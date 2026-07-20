@@ -387,3 +387,55 @@ Rendered dashboard components
 - Avoid global mutable state.
 - Avoid coupling storage shape directly to visual component internals.
 - Add tests before expanding public contracts.
+
+## Phase 6 frontend WebSocket architecture
+
+DashboardModern remains a custom HTML/CSS/JavaScript dashboard. `Dashboard`, `View`, `Section`, and `Card` are backend configuration payloads only; the frontend treats them as JSON and does not convert them into Lovelace, dashboard YAML, entities cards, or server-rendered UI.
+
+The frontend entry point is `custom_components/dashboardmodern/frontend/index.html`. It loads `src/app.js`, which binds the existing dashboard list, JSON editor, and create/save/delete buttons without redesigning the page. Runtime state is centralized in `DashboardModernStore` and contains one source of truth for the config entry id, dashboard list, active dashboard id, active dashboard JSON, loading state, saving state, deleting state, and error state.
+
+Home Assistant communication is isolated in `src/ws-client.js`. UI code calls this module instead of scattering raw WebSocket messages through DOM handlers. The client uses the authenticated Home Assistant frontend connection's `sendMessagePromise` method and intentionally does not open a second WebSocket. The current resolver checks, in order:
+
+1. `entry_id` or `config_entry_id` in the page URL.
+2. A DOM element with `data-dashboardmodern-entry-id`.
+3. A single `dashboardmodern` entry exposed on `hass.configEntries`.
+
+If none of those sources yields an id, initialization fails with a user-facing error instead of silently falling back to mock data. Development-only mock data can be injected explicitly through the store's `developmentFallback` option in tests or local harnesses.
+
+### Supported frontend WebSocket commands
+
+The frontend API layer wraps the Phase 5 commands exactly as JSON payloads:
+
+- `dashboardmodern/dashboard/list`
+- `dashboardmodern/dashboard/get`
+- `dashboardmodern/dashboard/create`
+- `dashboardmodern/dashboard/replace`
+- `dashboardmodern/dashboard/delete`
+
+Mutation responses are copied back into `DashboardModernStore`, and the dashboard list is refreshed after create, replace, and delete. The active dashboard is preserved when the backend list still contains its id; otherwise the first returned dashboard is selected.
+
+### Frontend error handling
+
+Home Assistant WebSocket errors are mapped to `DashboardModernApiError` while preserving the original error code for debugging. The UI renders a concise status message for known codes:
+
+- `entry_not_found`
+- `entry_not_loaded`
+- `dashboard_not_found`
+- `dashboard_already_exists`
+- `dashboard_persistence_error`
+- `invalid_dashboard`
+- `unauthorized`
+- `dashboardmodern_error`
+- `invalid_format`
+
+Malformed backend responses are treated as `invalid_format`. Failed operations update the centralized error state and do not crash DOM event handlers.
+
+### Running frontend tests
+
+Frontend tests use Node's built-in `node:test` runner to keep Phase 6 lightweight and avoid adding a bundler or browser test framework before the plain JavaScript frontend needs one.
+
+Run:
+
+```bash
+npm run test:frontend
+```
