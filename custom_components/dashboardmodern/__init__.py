@@ -6,7 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .runtime import DashboardModernRuntime, create_runtime
+from .runtime import DashboardModernRuntime, async_create_runtime
 
 PLATFORMS: list[str] = []
 
@@ -17,7 +17,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: DashboardModernConfigEntry
 ) -> bool:
     """Set up DashboardModern from a config entry."""
-    runtime = create_runtime(hass, entry.entry_id)
+    runtime = await async_create_runtime(hass, entry.entry_id)
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = runtime
     entry.runtime_data = runtime
