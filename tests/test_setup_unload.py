@@ -1,11 +1,20 @@
-"""Tests for DashboardModern setup and unload lifecycle."""
+"""Lightweight unit tests for DashboardModern setup and unload.
+
+These tests intentionally use minimal Home Assistant test doubles because the
+Phase 1 repository does not yet depend on pytest-homeassistant-custom-component.
+They verify only the local runtime bookkeeping performed by the integration
+lifecycle functions.
+"""
 
 from __future__ import annotations
 
 import asyncio
+import importlib
 import sys
 import types
 from pathlib import Path
+
+import pytest
 
 
 class _HomeAssistant:
@@ -13,7 +22,7 @@ class _HomeAssistant:
 
     def __init__(self) -> None:
         """Initialize Home Assistant state."""
-        self.data: dict[str, object] = {}
+        self.data: dict[str, dict[str, object]] = {}
 
 
 class _ConfigEntry:
@@ -22,42 +31,61 @@ class _ConfigEntry:
     def __init__(self, entry_id: str) -> None:
         """Initialize the entry double."""
         self.entry_id = entry_id
-        self.runtime_data = None
+        self.runtime_data: object | None = None
 
     def __class_getitem__(cls, item: object) -> type[_ConfigEntry]:
         """Support Home Assistant's generic ConfigEntry type annotation."""
         return cls
 
 
-def _install_homeassistant_stubs() -> None:
-    """Install minimal Home Assistant modules required for lifecycle imports."""
+@pytest.fixture
+def integration_module(monkeypatch: pytest.MonkeyPatch) -> types.ModuleType:
+    """Import the integration with scoped Home Assistant test doubles."""
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]))
+
     homeassistant = types.ModuleType("homeassistant")
     config_entries = types.ModuleType("homeassistant.config_entries")
     core = types.ModuleType("homeassistant.core")
 
     config_entries.ConfigEntry = _ConfigEntry
-    core.CALLBACK_TYPE = types.FunctionType
     core.HomeAssistant = _HomeAssistant
 
-    sys.modules.setdefault("homeassistant", homeassistant)
-    sys.modules.setdefault("homeassistant.config_entries", config_entries)
-    sys.modules.setdefault("homeassistant.core", core)
+    monkeypatch.setitem(sys.modules, "homeassistant", homeassistant)
+    monkeypatch.setitem(sys.modules, "homeassistant.config_entries", config_entries)
+    monkeypatch.setitem(sys.modules, "homeassistant.core", core)
+
+    for module_name in list(sys.modules):
+        if module_name.startswith("custom_components.dashboardmodern"):
+            monkeypatch.delitem(sys.modules, module_name, raising=False)
+
+    return importlib.import_module("custom_components.dashboardmodern")
 
 
-def test_config_entry_setup_and_unload() -> None:
-    """Set up and unload a config entry without leaving domain runtime data."""
-    _install_homeassistant_stubs()
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-    from custom_components.dashboardmodern import async_setup_entry, async_unload_entry
-    from custom_components.dashboardmodern.const import DOMAIN
-
+def test_config_entry_setup_stores_runtime(
+    integration_module: types.ModuleType,
+) -> None:
+    """Set up a config entry and store runtime data consistently."""
     hass = _HomeAssistant()
     entry = _ConfigEntry("test-entry")
 
-    assert asyncio.run(async_setup_entry(hass, entry)) is True
-    assert entry.runtime_data is not None
-    assert hass.data[DOMAIN][entry.entry_id] is entry.runtime_data
+    assert asyncio.run(integration_module.async_setup_entry(hass, entry)) is True
 
-    assert asyncio.run(async_unload_entry(hass, entry)) is True
-    assert DOMAIN not in hass.data
+    runtime = entry.runtime_data
+    assert runtime is not None
+    assert hass.data[integration_module.DOMAIN][entry.entry_id] is runtime
+    assert runtime.hass is hass
+    assert runtime.entry_id == entry.entry_id
+
+
+def test_config_entry_unload_clears_runtime(
+    integration_module: types.ModuleType,
+) -> None:
+    """Unload a config entry and clear runtime data consistently."""
+    hass = _HomeAssistant()
+    entry = _ConfigEntry("test-entry")
+
+    assert asyncio.run(integration_module.async_setup_entry(hass, entry)) is True
+    assert asyncio.run(integration_module.async_unload_entry(hass, entry)) is True
+
+    assert entry.runtime_data is None
+    assert integration_module.DOMAIN not in hass.data
