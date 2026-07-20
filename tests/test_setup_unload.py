@@ -326,8 +326,8 @@ async def test_frontend_registration_failure_leaves_no_lifecycle_state(
 ) -> None:
     """A static registration failure does not leave stale frontend state."""
     from custom_components.dashboardmodern.frontend import (
-        DATA_FRONTEND_REGISTERED,
         DATA_PANEL_ENTRY_IDS,
+        DATA_PANEL_REGISTERED,
         async_register_frontend,
     )
 
@@ -339,5 +339,161 @@ async def test_frontend_registration_failure_leaves_no_lifecycle_state(
     with pytest.raises(RuntimeError, match="static registration failed"):
         await async_register_frontend(hass, "entry-1")
 
-    assert DATA_FRONTEND_REGISTERED not in hass.data[DOMAIN]
+    assert DATA_PANEL_REGISTERED not in hass.data[DOMAIN]
     assert DATA_PANEL_ENTRY_IDS not in hass.data[DOMAIN]
+
+
+def _panel_is_registered(hass: HomeAssistant) -> bool:
+    """Return whether the real Home Assistant panel registry has the panel."""
+    from homeassistant.components.frontend import DATA_PANELS
+
+    return DOMAIN in hass.data.get(DATA_PANELS, {})
+
+
+@pytest.mark.asyncio
+async def test_last_unload_removes_panel_and_reload_reuses_static_path(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Last unload removes the panel while preserving one static registration."""
+    import custom_components.dashboardmodern.runtime as runtime_module
+    from custom_components.dashboardmodern import async_setup_entry, async_unload_entry
+    from custom_components.dashboardmodern.frontend import (
+        DATA_PANEL_ENTRY_IDS,
+        DATA_PANEL_REGISTERED,
+        DATA_STATIC_REGISTERED,
+    )
+
+    static_count = 0
+    original_http = hass.http
+
+    async def fake_static(paths: list[object]) -> None:
+        nonlocal static_count
+        static_count += 1
+        if original_http is not None:
+            await original_http.async_register_static_paths(paths)
+
+    monkeypatch.setattr(
+        runtime_module,
+        "HomeAssistantDashboardRepository",
+        lambda *_: _repo(MemoryStorageBackend()),
+    )
+    hass.http = SimpleNamespace(async_register_static_paths=fake_static)
+
+    entry = MockConfigEntry(domain=DOMAIN, entry_id="entry-1")
+    entry.add_to_hass(hass)
+
+    assert await async_setup_entry(hass, entry) is True
+    assert _panel_is_registered(hass)
+    assert static_count == 1
+
+    assert await async_unload_entry(hass, entry) is True
+    assert not _panel_is_registered(hass)
+    assert DATA_PANEL_REGISTERED not in hass.data[DOMAIN]
+    assert DATA_PANEL_ENTRY_IDS not in hass.data[DOMAIN]
+    assert hass.data[DOMAIN][DATA_STATIC_REGISTERED] is True
+
+    assert await async_setup_entry(hass, entry) is True
+    assert _panel_is_registered(hass)
+    assert _registered_panel_entry_ids(hass) == ["entry-1"]
+    assert static_count == 1
+
+
+@pytest.mark.asyncio
+async def test_unloading_one_of_multiple_entries_keeps_panel(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Unloading one loaded entry keeps the panel registered for remaining entries."""
+    import custom_components.dashboardmodern.runtime as runtime_module
+    from custom_components.dashboardmodern import async_setup_entry, async_unload_entry
+
+    monkeypatch.setattr(
+        runtime_module,
+        "HomeAssistantDashboardRepository",
+        lambda *_: _repo(MemoryStorageBackend()),
+    )
+
+    first = MockConfigEntry(domain=DOMAIN, entry_id="entry-1")
+    second = MockConfigEntry(domain=DOMAIN, entry_id="entry-2")
+    first.add_to_hass(hass)
+    second.add_to_hass(hass)
+
+    assert await async_setup_entry(hass, first) is True
+    assert await async_setup_entry(hass, second) is True
+    assert await async_unload_entry(hass, first) is True
+
+    assert _panel_is_registered(hass)
+    assert _registered_panel_entry_ids(hass) == ["entry-2"]
+
+
+@pytest.mark.asyncio
+async def test_runtime_setup_failure_does_not_expose_stale_panel_entry(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Runtime setup failure leaves previous panel membership unchanged."""
+    import custom_components.dashboardmodern.runtime as runtime_module
+    from custom_components.dashboardmodern import async_setup_entry
+    from custom_components.dashboardmodern.const import DATA_RUNTIMES
+
+    monkeypatch.setattr(
+        runtime_module,
+        "HomeAssistantDashboardRepository",
+        lambda *_: _repo(MemoryStorageBackend()),
+    )
+    loaded = MockConfigEntry(domain=DOMAIN, entry_id="entry-1")
+    loaded.add_to_hass(hass)
+    assert await async_setup_entry(hass, loaded) is True
+
+    async def fail_runtime(*args: object) -> object:
+        raise RuntimeError("runtime failed")
+
+    failed = MockConfigEntry(domain=DOMAIN, entry_id="entry-2")
+    failed.add_to_hass(hass)
+    monkeypatch.setattr(runtime_module, "async_create_runtime", fail_runtime)
+
+    with pytest.raises(RuntimeError, match="runtime failed"):
+        await async_setup_entry(hass, failed)
+
+    assert _registered_panel_entry_ids(hass) == ["entry-1"]
+    assert getattr(failed, "runtime_data", None) is None
+    assert "entry-2" not in hass.data[DOMAIN][DATA_RUNTIMES]
+    assert hass.data[DOMAIN][DATA_RUNTIMES]["entry-1"] is loaded.runtime_data
+
+
+@pytest.mark.asyncio
+async def test_panel_update_failure_does_not_corrupt_existing_membership(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Panel update failures do not commit failed entry membership."""
+    from homeassistant.components import frontend
+
+    import custom_components.dashboardmodern.runtime as runtime_module
+    from custom_components.dashboardmodern import async_setup_entry
+    from custom_components.dashboardmodern.frontend import DATA_PANEL_ENTRY_IDS
+
+    monkeypatch.setattr(
+        runtime_module,
+        "HomeAssistantDashboardRepository",
+        lambda *_: _repo(MemoryStorageBackend()),
+    )
+    first = MockConfigEntry(domain=DOMAIN, entry_id="entry-1")
+    first.add_to_hass(hass)
+    assert await async_setup_entry(hass, first) is True
+
+    original_register = frontend.async_register_built_in_panel
+
+    def fail_update(*args: object, **kwargs: object) -> None:
+        if kwargs.get("update"):
+            raise RuntimeError("panel update failed")
+        original_register(*args, **kwargs)
+
+    monkeypatch.setattr(frontend, "async_register_built_in_panel", fail_update)
+    second = MockConfigEntry(domain=DOMAIN, entry_id="entry-2")
+    second.add_to_hass(hass)
+
+    with pytest.raises(RuntimeError, match="panel update failed"):
+        await async_setup_entry(hass, second)
+
+    assert _registered_panel_entry_ids(hass) == ["entry-1"]
+    assert hass.data[DOMAIN][DATA_PANEL_ENTRY_IDS] == ["entry-1"]
+    assert getattr(second, "runtime_data", None) is None
+    assert "entry-2" not in hass.data[DOMAIN][DATA_RUNTIMES]

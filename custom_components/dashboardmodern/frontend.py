@@ -10,7 +10,8 @@ from .const import DOMAIN
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-DATA_FRONTEND_REGISTERED = "frontend_registered"
+DATA_STATIC_REGISTERED = "static_registered"
+DATA_PANEL_REGISTERED = "panel_registered"
 DATA_PANEL_ENTRY_IDS = "panel_entry_ids"
 PANEL_URL_PATH = DOMAIN
 PANEL_COMPONENT_NAME = "dashboardmodern-panel"
@@ -60,32 +61,48 @@ def _register_or_update_panel(
     )
 
 
+def _remove_panel(hass: HomeAssistant) -> None:
+    """Remove the DashboardModern panel from Home Assistant."""
+    from homeassistant.components import frontend
+
+    frontend.async_remove_panel(hass, PANEL_URL_PATH, warn_if_unknown=False)
+
+
+async def _ensure_static_registered(
+    hass: HomeAssistant, domain_data: dict[str, Any]
+) -> None:
+    """Register static assets once; Home Assistant has no static unregister API."""
+    if domain_data.get(DATA_STATIC_REGISTERED):
+        return
+
+    from homeassistant.components.http import StaticPathConfig
+    from homeassistant.setup import async_setup_component
+
+    if hass.http is None:
+        await async_setup_component(hass, "http", {})
+    await hass.http.async_register_static_paths(
+        [
+            StaticPathConfig(
+                url_path=STATIC_URL_PATH,
+                path=str(FRONTEND_DIR),
+                cache_headers=False,
+            )
+        ]
+    )
+    domain_data[DATA_STATIC_REGISTERED] = True
+
+
 async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
     """Register DashboardModern static assets and current panel config."""
     domain_data: dict[str, Any] = hass.data.setdefault(DOMAIN, {})
     current_entry_ids: list[str] = domain_data.get(DATA_PANEL_ENTRY_IDS, [])
     next_entry_ids = _next_entry_ids(current_entry_ids, entry_id, add=True)
-    already_registered = bool(domain_data.get(DATA_FRONTEND_REGISTERED))
+    already_registered = bool(domain_data.get(DATA_PANEL_REGISTERED))
 
-    from homeassistant.components.http import StaticPathConfig
-    from homeassistant.setup import async_setup_component
-
-    if not already_registered:
-        if hass.http is None:
-            await async_setup_component(hass, "http", {})
-        await hass.http.async_register_static_paths(
-            [
-                StaticPathConfig(
-                    url_path=STATIC_URL_PATH,
-                    path=str(FRONTEND_DIR),
-                    cache_headers=False,
-                )
-            ]
-        )
-
+    await _ensure_static_registered(hass, domain_data)
     _register_or_update_panel(hass, next_entry_ids, update=already_registered)
     domain_data[DATA_PANEL_ENTRY_IDS] = next_entry_ids
-    domain_data[DATA_FRONTEND_REGISTERED] = True
+    domain_data[DATA_PANEL_REGISTERED] = True
 
 
 async def async_unregister_frontend_entry(hass: HomeAssistant, entry_id: str) -> None:
@@ -95,6 +112,14 @@ async def async_unregister_frontend_entry(hass: HomeAssistant, entry_id: str) ->
         return
     current_entry_ids: list[str] = domain_data.get(DATA_PANEL_ENTRY_IDS, [])
     next_entry_ids = _next_entry_ids(current_entry_ids, entry_id, add=False)
-    if domain_data.get(DATA_FRONTEND_REGISTERED):
+
+    if not next_entry_ids:
+        if domain_data.get(DATA_PANEL_REGISTERED):
+            _remove_panel(hass)
+        domain_data.pop(DATA_PANEL_ENTRY_IDS, None)
+        domain_data.pop(DATA_PANEL_REGISTERED, None)
+        return
+
+    if domain_data.get(DATA_PANEL_REGISTERED):
         _register_or_update_panel(hass, next_entry_ids, update=True)
     domain_data[DATA_PANEL_ENTRY_IDS] = next_entry_ids

@@ -29,13 +29,18 @@ async def async_setup_entry(
     from .websocket_api import async_register_websocket_api
 
     async_register_websocket_api(hass)
-    await async_register_frontend(hass, entry.entry_id)
     runtime = await async_create_runtime(hass, entry.entry_id)
 
     hass.data.setdefault(DOMAIN, {}).setdefault(DATA_RUNTIMES, {})[entry.entry_id] = (
         runtime
     )
     entry.runtime_data = runtime
+    try:
+        await async_register_frontend(hass, entry.entry_id)
+    except Exception:
+        hass.data[DOMAIN][DATA_RUNTIMES].pop(entry.entry_id, None)
+        entry.runtime_data = None
+        raise
 
     return True
 
