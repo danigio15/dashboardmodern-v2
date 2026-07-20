@@ -65,3 +65,7 @@ test("client does not access Home Assistant Store, YAML, or Lovelace APIs", asyn
   const source = await import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/ws-client.js", import.meta.url), "utf8"));
   assert.doesNotMatch(source, /Store|lovelace|yaml|entities/i);
 });
+
+test("client construction reports a missing connection", () => {
+  assert.throws(() => createDashboardModernClient(null), /connection is unavailable/i);
+});

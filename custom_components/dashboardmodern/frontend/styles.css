@@ -11,3 +11,5 @@
 .dashboardmodern-list button { text-align: left; }
 .dashboardmodern-list button[aria-current="true"] { font-weight: 700; }
 .dashboardmodern-editor textarea { box-sizing: border-box; min-height: 520px; width: 100%; margin-top: 8px; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.dashboardmodern-entry { margin: 12px 0; }
+.dashboardmodern-entry select { margin-left: 8px; }

@@ -1,20 +1,60 @@
 import { createDashboardModernClient } from "./ws-client.js";
 import { DashboardModernStore, EMPTY_DASHBOARD } from "./state.js";
 
-export function resolveHaConnection(root = document) {
-  return root.querySelector("home-assistant")?.hass?.connection || window.hassConnection || window.hass?.connection;
+export function createDashboardModernShell(root, entryIds = []) {
+  root.innerHTML = `
+    <link rel="stylesheet" href="/dashboardmodern_static/styles.css" />
+    <main class="dashboardmodern-shell" data-dashboardmodern-app>
+      <header class="dashboardmodern-header">
+        <div>
+          <h1>DashboardModern</h1>
+          <p>Phase 6 backend-connected shell for the custom DashboardModern frontend.</p>
+        </div>
+        <div class="dashboardmodern-actions">
+          <button type="button" data-action="create">Create</button>
+          <button type="button" data-action="save">Save</button>
+          <button type="button" data-action="delete">Delete</button>
+        </div>
+      </header>
+      <section class="dashboardmodern-entry" data-entry-selector></section>
+      <section class="dashboardmodern-status" data-status hidden></section>
+      <section class="dashboardmodern-layout">
+        <aside class="dashboardmodern-sidebar">
+          <h2>Dashboards</h2>
+          <div data-dashboard-list></div>
+        </aside>
+        <section class="dashboardmodern-editor" aria-label="Dashboard JSON editor">
+          <label for="dashboardmodern-json">Dashboard JSON</label>
+          <textarea id="dashboardmodern-json" data-dashboard-editor spellcheck="false"></textarea>
+        </section>
+      </section>
+    </main>`;
+  renderEntrySelector(root, entryIds);
+  return root.querySelector("[data-dashboardmodern-app]");
 }
 
-export async function resolveConfigEntryId(root = document) {
+function renderEntrySelector(root, entryIds) {
+  const container = root.querySelector("[data-entry-selector]");
+  if (!container || entryIds.length < 2) return;
   const params = new URLSearchParams(window.location.search);
-  const fromUrl = params.get("entry_id") || params.get("config_entry_id");
-  if (fromUrl) return fromUrl;
-  const fromDataset = root.querySelector("[data-dashboardmodern-entry-id]")?.dataset.dashboardmodernEntryId;
-  if (fromDataset) return fromDataset;
-  const hass = root.querySelector("home-assistant")?.hass || window.hass;
-  const entries = hass?.configEntries?.dashboardmodern;
-  if (Array.isArray(entries) && entries.length === 1) return entries[0].entry_id;
-  throw new Error("Unable to resolve DashboardModern config entry id.");
+  const selected = params.get("entry_id") || "";
+  const label = document.createElement("label");
+  label.textContent = "Config entry ";
+  const select = document.createElement("select");
+  for (const entryId of entryIds) {
+    const option = document.createElement("option");
+    option.value = entryId;
+    option.textContent = entryId;
+    option.selected = entryId === selected;
+    select.append(option);
+  }
+  select.addEventListener("change", () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("entry_id", select.value);
+    window.location.assign(url.toString());
+  });
+  label.append(select);
+  container.append(label);
 }
 
 function renderStatus(container, state) {
@@ -63,7 +103,7 @@ function dashboardFromEditor(container, store, action) {
   if (dashboard) action(dashboard);
 }
 
-export function bindDashboardModernApp(container, store) {
+export function bindDashboardModernApp(container, store, { initialize = true } = {}) {
   store.subscribe((state) => {
     renderStatus(container, state);
     renderDashboardList(container, state, store);
@@ -80,19 +120,18 @@ export function bindDashboardModernApp(container, store) {
       dashboardFromEditor(container, store, (dashboard) => store.replaceDashboard(dashboard)),
     );
   container.querySelector('[data-action="delete"]').addEventListener("click", () => store.deleteDashboard());
-  return store.initialize();
+  if (initialize) return store.initialize();
+  return Promise.resolve();
 }
 
-export function bootstrapDashboardModern(root = document) {
-  const container = root.querySelector("[data-dashboardmodern-app]");
-  if (!container) return null;
-  const connection = resolveHaConnection(root);
-  const api = createDashboardModernClient(connection);
-  const store = new DashboardModernStore(api, { entryIdResolver: () => resolveConfigEntryId(root) });
+export function bootstrapDashboardModern(root, { connection, entryId, entryIds = [] } = {}) {
+  const container = createDashboardModernShell(root, entryIds);
+  const store = new DashboardModernStore(createDashboardModernClient(connection), {
+    entryIdResolver: async () => {
+      if (!entryId) throw new Error("Missing DashboardModern config entry id.");
+      return entryId;
+    },
+  });
   bindDashboardModernApp(container, store);
   return store;
-}
-
-if (typeof document !== "undefined") {
-  bootstrapDashboardModern(document);
 }

@@ -439,3 +439,11 @@ Run:
 ```bash
 npm run test:frontend
 ```
+
+### Home Assistant panel registration
+
+Phase 6 exposes the frontend through Home Assistant's integration lifecycle instead of requiring users to open files from `custom_components`. `async_setup_entry` registers the WebSocket API and calls the DashboardModern frontend registrar. The registrar serves static assets from `/dashboardmodern_static`, registers a `dashboardmodern` sidebar panel with `panel_custom.async_register_panel`, and keeps a sorted `entry_ids` list in Home Assistant domain data for deterministic entry selection across one entry, multiple entries, unload, and reload.
+
+The panel web component (`dashboardmodern-panel`) receives Home Assistant's authenticated `hass` object from the supported custom panel host. `panel.js` adapts `hass.connection` into the transport expected by `src/ws-client.js`; the WebSocket client itself remains transport-only and does not know about Home Assistant panel globals.
+
+The Phase 6 panel is intentionally a backend-connected shell with a JSON editor. It is not presented as the final visual DashboardModern editor, and migrating any richer visual dashboard UI remains future work. The frontend still treats dashboard payloads as JSON and does not introduce Lovelace or YAML conversion.

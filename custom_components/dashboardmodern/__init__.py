@@ -24,10 +24,12 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: DashboardModernConfigEntry
 ) -> bool:
     """Set up DashboardModern from a config entry."""
+    from .frontend import async_register_frontend
     from .runtime import async_create_runtime
     from .websocket_api import async_register_websocket_api
 
     async_register_websocket_api(hass)
+    await async_register_frontend(hass, entry.entry_id)
     runtime = await async_create_runtime(hass, entry.entry_id)
 
     hass.data.setdefault(DOMAIN, {}).setdefault(DATA_RUNTIMES, {})[entry.entry_id] = (
@@ -42,6 +44,10 @@ async def async_unload_entry(
     hass: HomeAssistant, entry: DashboardModernConfigEntry
 ) -> bool:
     """Unload a DashboardModern config entry."""
+    from .frontend import async_unregister_frontend_entry
+
+    await async_unregister_frontend_entry(hass, entry.entry_id)
+
     domain_data = hass.data.get(DOMAIN)
     if domain_data is not None:
         runtimes = domain_data.get(DATA_RUNTIMES, {})
