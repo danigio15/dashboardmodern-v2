@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-import threading
 from collections.abc import Awaitable, Callable
 from typing import Any
 from unittest.mock import AsyncMock
 
+import aiohttp.connector
+import aiohttp.resolver
+import homeassistant.helpers.aiohttp_client
 import pytest
 import pytest_asyncio
 from homeassistant.core import HomeAssistant
@@ -39,30 +41,28 @@ from tests.helpers import MemoryStorageBackend, dashboard
 WebSocketClientFactory = Callable[..., Awaitable[Any]]
 
 
-@pytest.fixture(autouse=True)
-def ignore_home_assistant_ws_cleanup_threads(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Ignore HA/aiohttp helper threads that outlive WS client shutdown briefly."""
-    original_enumerate = threading.enumerate
-
-    def enumerate_without_ws_helpers() -> list[threading.Thread]:
-        return [
-            thread
-            for thread in original_enumerate()
-            if not (
-                thread.name.startswith("Thread-")
-                and "_run_safe_shutdown_loop" in thread.name
-            )
-            and not thread.name.startswith("SyncWorker_")
-        ]
-
-    monkeypatch.setattr(threading, "enumerate", enumerate_without_ws_helpers)
+@pytest.fixture
+def use_threaded_aiohttp_resolver(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Avoid aiohttp's pycares resolver background shutdown thread in WS tests."""
+    monkeypatch.setattr(
+        aiohttp.resolver, "AsyncResolver", aiohttp.resolver.ThreadedResolver
+    )
+    monkeypatch.setattr(
+        aiohttp.resolver, "DefaultResolver", aiohttp.resolver.ThreadedResolver
+    )
+    monkeypatch.setattr(
+        aiohttp.connector, "DefaultResolver", aiohttp.resolver.ThreadedResolver
+    )
+    monkeypatch.setattr(
+        homeassistant.helpers.aiohttp_client,
+        "AsyncResolver",
+        aiohttp.resolver.ThreadedResolver,
+    )
 
 
 @pytest_asyncio.fixture
 async def dashboard_ws_client(
-    hass_ws_client: WebSocketClientFactory,
+    hass_ws_client: WebSocketClientFactory, use_threaded_aiohttp_resolver: None
 ) -> WebSocketClientFactory:
     """Create real hass_ws_client connections and close them after each test."""
     clients: list[Any] = []
@@ -76,7 +76,6 @@ async def dashboard_ws_client(
 
     for client in clients:
         await client.close()
-        await client.client.close()
 
 
 @pytest.fixture(autouse=True)
