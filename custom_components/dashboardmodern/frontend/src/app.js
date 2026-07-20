@@ -1,0 +1,137 @@
+import { createDashboardModernClient } from "./ws-client.js";
+import { DashboardModernStore, EMPTY_DASHBOARD } from "./state.js";
+
+export function createDashboardModernShell(root, entryIds = []) {
+  root.innerHTML = `
+    <link rel="stylesheet" href="/dashboardmodern_static/styles.css" />
+    <main class="dashboardmodern-shell" data-dashboardmodern-app>
+      <header class="dashboardmodern-header">
+        <div>
+          <h1>DashboardModern</h1>
+          <p>Phase 6 backend-connected shell for the custom DashboardModern frontend.</p>
+        </div>
+        <div class="dashboardmodern-actions">
+          <button type="button" data-action="create">Create</button>
+          <button type="button" data-action="save">Save</button>
+          <button type="button" data-action="delete">Delete</button>
+        </div>
+      </header>
+      <section class="dashboardmodern-entry" data-entry-selector></section>
+      <section class="dashboardmodern-status" data-status hidden></section>
+      <section class="dashboardmodern-layout">
+        <aside class="dashboardmodern-sidebar">
+          <h2>Dashboards</h2>
+          <div data-dashboard-list></div>
+        </aside>
+        <section class="dashboardmodern-editor" aria-label="Dashboard JSON editor">
+          <label for="dashboardmodern-json">Dashboard JSON</label>
+          <textarea id="dashboardmodern-json" data-dashboard-editor spellcheck="false"></textarea>
+        </section>
+      </section>
+    </main>`;
+  renderEntrySelector(root, entryIds);
+  return root.querySelector("[data-dashboardmodern-app]");
+}
+
+function renderEntrySelector(root, entryIds) {
+  const container = root.querySelector("[data-entry-selector]");
+  if (!container || entryIds.length < 2) return;
+  const params = new URLSearchParams(window.location.search);
+  const selected = params.get("entry_id") || "";
+  const label = document.createElement("label");
+  label.textContent = "Config entry ";
+  const select = document.createElement("select");
+  for (const entryId of entryIds) {
+    const option = document.createElement("option");
+    option.value = entryId;
+    option.textContent = entryId;
+    option.selected = entryId === selected;
+    select.append(option);
+  }
+  select.addEventListener("change", () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("entry_id", select.value);
+    window.location.assign(url.toString());
+  });
+  label.append(select);
+  container.append(label);
+}
+
+function renderStatus(container, state) {
+  const status = container.querySelector("[data-status]");
+  const message = state.error?.message || (state.loading && "Loading…") || (state.saving && "Saving…") || (state.deleting && "Deleting…") || "";
+  status.hidden = !message;
+  status.textContent = message;
+  status.dataset.kind = state.error ? "error" : "info";
+}
+
+function renderDashboardList(container, state, store) {
+  const list = container.querySelector("[data-dashboard-list]");
+  list.innerHTML = "";
+  const wrapper = document.createElement("div");
+  wrapper.className = "dashboardmodern-list";
+  for (const dashboard of state.dashboards) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = dashboard.title || dashboard.id;
+    button.setAttribute("aria-current", String(dashboard.id === state.activeDashboardId));
+    button.addEventListener("click", () => store.loadDashboard(dashboard.id));
+    wrapper.append(button);
+  }
+  list.append(wrapper);
+}
+
+function renderEditor(container, state) {
+  const editor = container.querySelector("[data-dashboard-editor]");
+  if (document.activeElement !== editor) {
+    editor.value = state.activeDashboard ? JSON.stringify(state.activeDashboard, null, 2) : "";
+  }
+}
+
+function parseEditorDashboard(container, store) {
+  const editor = container.querySelector("[data-dashboard-editor]");
+  try {
+    return JSON.parse(editor.value || JSON.stringify(EMPTY_DASHBOARD));
+  } catch (error) {
+    store.setError("invalid_format", `Dashboard JSON could not be parsed: ${error.message}`);
+    return null;
+  }
+}
+
+function dashboardFromEditor(container, store, action) {
+  const dashboard = parseEditorDashboard(container, store);
+  if (dashboard) action(dashboard);
+}
+
+export function bindDashboardModernApp(container, store, { initialize = true } = {}) {
+  store.subscribe((state) => {
+    renderStatus(container, state);
+    renderDashboardList(container, state, store);
+    renderEditor(container, state);
+  });
+  container
+    .querySelector('[data-action="create"]')
+    .addEventListener("click", () =>
+      dashboardFromEditor(container, store, (dashboard) => store.createDashboard(dashboard)),
+    );
+  container
+    .querySelector('[data-action="save"]')
+    .addEventListener("click", () =>
+      dashboardFromEditor(container, store, (dashboard) => store.replaceDashboard(dashboard)),
+    );
+  container.querySelector('[data-action="delete"]').addEventListener("click", () => store.deleteDashboard());
+  if (initialize) return store.initialize();
+  return Promise.resolve();
+}
+
+export function bootstrapDashboardModern(root, { connection, entryId, entryIds = [] } = {}) {
+  const container = createDashboardModernShell(root, entryIds);
+  const store = new DashboardModernStore(createDashboardModernClient(connection), {
+    entryIdResolver: async () => {
+      if (!entryId) throw new Error("Missing DashboardModern config entry id.");
+      return entryId;
+    },
+  });
+  bindDashboardModernApp(container, store);
+  return store;
+}

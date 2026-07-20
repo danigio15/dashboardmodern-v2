@@ -1,0 +1,15 @@
+.dashboardmodern-shell { font-family: system-ui, sans-serif; padding: 16px; color: var(--primary-text-color, #111); }
+.dashboardmodern-header { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+.dashboardmodern-header h1 { margin: 0; }
+.dashboardmodern-header p { margin: 4px 0 0; color: var(--secondary-text-color, #555); }
+.dashboardmodern-actions { display: flex; gap: 8px; }
+.dashboardmodern-status { margin: 12px 0; padding: 10px; border-radius: 6px; background: var(--secondary-background-color, #f2f2f2); }
+.dashboardmodern-status[data-kind="error"] { background: #fdecea; color: #7f1d1d; }
+.dashboardmodern-layout { display: grid; grid-template-columns: minmax(180px, 260px) 1fr; gap: 16px; }
+.dashboardmodern-sidebar, .dashboardmodern-editor { border: 1px solid var(--divider-color, #ddd); border-radius: 8px; padding: 12px; }
+.dashboardmodern-list { display: flex; flex-direction: column; gap: 6px; }
+.dashboardmodern-list button { text-align: left; }
+.dashboardmodern-list button[aria-current="true"] { font-weight: 700; }
+.dashboardmodern-editor textarea { box-sizing: border-box; min-height: 520px; width: 100%; margin-top: 8px; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.dashboardmodern-entry { margin: 12px 0; }
+.dashboardmodern-entry select { margin-left: 8px; }
