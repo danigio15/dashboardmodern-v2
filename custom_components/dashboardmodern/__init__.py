@@ -25,7 +25,9 @@ async def async_setup_entry(
 ) -> bool:
     """Set up DashboardModern from a config entry."""
     from .runtime import async_create_runtime
+    from .websocket_api import async_register_websocket_api
 
+    async_register_websocket_api(hass)
     runtime = await async_create_runtime(hass, entry.entry_id)
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = runtime
