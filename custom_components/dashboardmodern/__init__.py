@@ -1,0 +1,40 @@
+"""DashboardModern Home Assistant integration."""
+
+from __future__ import annotations
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+
+from .const import DOMAIN
+from .runtime import DashboardModernRuntime, create_runtime
+
+PLATFORMS: list[str] = []
+
+type DashboardModernConfigEntry = ConfigEntry[DashboardModernRuntime | None]
+
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: DashboardModernConfigEntry
+) -> bool:
+    """Set up DashboardModern from a config entry."""
+    runtime = create_runtime(hass, entry.entry_id)
+
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = runtime
+    entry.runtime_data = runtime
+
+    return True
+
+
+async def async_unload_entry(
+    hass: HomeAssistant, entry: DashboardModernConfigEntry
+) -> bool:
+    """Unload a DashboardModern config entry."""
+    domain_data = hass.data.get(DOMAIN)
+    if domain_data is not None:
+        domain_data.pop(entry.entry_id, None)
+        if not domain_data:
+            hass.data.pop(DOMAIN, None)
+
+    entry.runtime_data = None
+
+    return True
