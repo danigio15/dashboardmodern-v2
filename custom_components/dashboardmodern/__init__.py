@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from .const import DOMAIN
+from .const import DATA_RUNTIMES, DOMAIN
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -25,10 +25,14 @@ async def async_setup_entry(
 ) -> bool:
     """Set up DashboardModern from a config entry."""
     from .runtime import async_create_runtime
+    from .websocket_api import async_register_websocket_api
 
+    async_register_websocket_api(hass)
     runtime = await async_create_runtime(hass, entry.entry_id)
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = runtime
+    hass.data.setdefault(DOMAIN, {}).setdefault(DATA_RUNTIMES, {})[entry.entry_id] = (
+        runtime
+    )
     entry.runtime_data = runtime
 
     return True
@@ -40,9 +44,8 @@ async def async_unload_entry(
     """Unload a DashboardModern config entry."""
     domain_data = hass.data.get(DOMAIN)
     if domain_data is not None:
-        domain_data.pop(entry.entry_id, None)
-        if not domain_data:
-            hass.data.pop(DOMAIN, None)
+        runtimes = domain_data.get(DATA_RUNTIMES, {})
+        runtimes.pop(entry.entry_id, None)
 
     entry.runtime_data = None
 
