@@ -447,3 +447,24 @@ Panel membership updates use fresh panel configuration snapshots rather than mut
 The panel web component (`dashboardmodern-panel`) receives Home Assistant's authenticated `hass` object from the supported custom panel host. `panel.js` adapts `hass.connection` into the transport expected by `src/ws-client.js`; the WebSocket client itself remains transport-only and does not know about Home Assistant panel globals.
 
 The Phase 6 panel is intentionally a backend-connected shell with a JSON editor. It is not presented as the final visual DashboardModern editor, and migrating any richer visual dashboard UI remains future work. The frontend still treats dashboard payloads as JSON and does not introduce Lovelace or YAML conversion.
+
+## Phase 7 visual dashboard renderer
+
+Phase 7 makes the custom DashboardModern panel visual by default. The browser still uses the authenticated Home Assistant `hass.connection` WebSocket path to call DashboardModern's application service, and the backend still owns validation, persistence, and business rules for Dashboard, View, Section, and Card configuration. The frontend rendering layer in `frontend/src/render/` accepts plain serialized dashboard payloads from the centralized store and never opens its own WebSocket, calls REST endpoints, talks to the Home Assistant Store, or uses Lovelace/YAML concepts.
+
+The frontend now separates responsibilities as follows:
+
+- `ws-client.js`: DashboardModern WebSocket transport only.
+- `state.js`: centralized backend state plus presentation state such as `activeViewId`, visual/debug mode, and render errors.
+- `app.js`: shell creation and DOM event/controller wiring.
+- `render/dashboard-renderer.js`, `render/view-renderer.js`, `render/section-renderer.js`, and `render/card-renderer.js`: read-only visual rendering from serialized configuration.
+
+Configuration state and presentation state are intentionally distinct. Selecting a view updates only `activeViewId` in frontend state; it does not mutate or save the backend DashboardModern dashboard. When a dashboard is refreshed, the previous active view is preserved if the backend payload still contains it; otherwise the first valid backend-ordered view is selected deterministically.
+
+DashboardModern configuration remains separate from live Home Assistant entity state. If a card type is supported by the existing card payload and references an entity through `config.entity_id` or `config.entity`, the visual renderer reads that live state from the `hass` object supplied to the custom panel. Those entity values are not cached as authoritative DashboardModern configuration and do not trigger DashboardModern configuration reloads.
+
+Cards are rendered through an extensible registry keyed by the serialized card `type`. Phase 7 includes safe generic fallback rendering, text-like rendering for `text`, `markdown`, and `info` card types, and entity-state rendering for `entity` and `entity_state` when the current generic Card model's `config` mapping contains an entity reference. Unknown or malformed cards produce local visible fallback cards so the rest of the dashboard can continue rendering.
+
+The current backend Card schema defines `id`, `title`, `type`, and an open JSON-compatible `config` mapping, but it does not define typed card-specific configuration contracts. Phase 7 therefore does not add permanent frontend-only business rules. The smallest future domain extension is a typed card configuration/discriminator contract that formalizes supported card types and their required config fields in the domain/API schema.
+
+The Phase 6 JSON editor remains available as a clearly labelled configuration/debug view. It is not the default primary screen, it uses the existing centralized store for saves, and invalid JSON is represented as a frontend render/validation error rather than a backend API error.

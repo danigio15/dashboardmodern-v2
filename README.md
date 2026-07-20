@@ -10,3 +10,15 @@ Run frontend tests with:
 ```bash
 npm run test:frontend
 ```
+
+### Phase 7 visual renderer
+
+DashboardModern now opens to a visual, read-only dashboard renderer instead of the raw JSON editor. The panel renders the selected DashboardModern dashboard title, description, ordered views, ordered sections, and ordered cards from the serialized configuration returned by the existing WebSocket-backed application layer.
+
+View selection is presentation state (`activeViewId`) held in the frontend store. Switching views does not save or mutate the dashboard configuration. Refreshing the same dashboard preserves the selected view when it still exists and otherwise falls back to the first valid view in backend order.
+
+Live Home Assistant entity state, when used by a supported entity card, comes from the `hass` object supplied to the custom panel. It remains separate from DashboardModern configuration and is not persisted as dashboard data.
+
+Cards use a frontend renderer registry keyed by the backend payload's card `type`. Unknown card types and malformed card payloads render visible local fallback cards rather than crashing the entire dashboard. Because the current Card model exposes only `id`, `title`, `type`, and a generic `config` mapping, Phase 7 treats typed card configuration as limited: a future domain/API extension should formalize supported card types and config fields.
+
+The former JSON editor remains available through the **Debug JSON** mode as a development/configuration view. It is clearly labelled, is not the default dashboard screen, and still saves through the centralized DashboardModern store.

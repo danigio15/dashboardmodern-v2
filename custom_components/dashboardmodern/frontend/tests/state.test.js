@@ -58,3 +58,22 @@ test("errors are captured without throwing", async () => {
   assert.equal(store.state.error.code, "entry_not_loaded");
   assert.equal(store.state.loading, false);
 });
+
+test("active view is presentation state preserved across refresh and falls back when removed", async () => {
+  const dash = { id: "one", title: "One", views: [{ id: "a", title: "A" }, { id: "b", title: "B" }], sections: [], cards: [] };
+  const updated = { ...dash, views: [{ id: "a", title: "A" }] };
+  let current = dash;
+  const calls = [];
+  const store = new DashboardModernStore({
+    async listDashboards() { return [{ id: "one", title: "One" }]; },
+    async getDashboard(entryId, id) { calls.push(["get", id]); return current; },
+  }, { entryIdResolver: async () => "entry-1" });
+  await store.initialize();
+  store.setActiveView("b");
+  await store.loadDashboard("one");
+  assert.equal(store.state.activeViewId, "b");
+  current = updated;
+  await store.loadDashboard("one");
+  assert.equal(store.state.activeViewId, "a");
+  assert.deepEqual(calls, [["get", "one"], ["get", "one"], ["get", "one"]]);
+});

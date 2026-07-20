@@ -1,4 +1,5 @@
 import { DashboardModernApiError } from "./ws-client.js";
+import { selectActiveViewId } from "./render/dashboard-renderer.js";
 
 export const EMPTY_DASHBOARD = Object.freeze({
   id: "new-dashboard",
@@ -14,6 +15,10 @@ export function createInitialState() {
     dashboards: [],
     activeDashboardId: null,
     activeDashboard: null,
+    activeViewId: null,
+    mode: "visual",
+    renderError: null,
+    hass: null,
     loading: false,
     saving: false,
     deleting: false,
@@ -53,6 +58,19 @@ export class DashboardModernStore {
     this.setState({ error: { code, message: `${message} (${code})` } });
   }
 
+  setRenderError(code, message) {
+    this.setState({ renderError: { code, message: `${message} (${code})` } });
+  }
+
+  setActiveView(activeViewId) {
+    const selected = selectActiveViewId(this.state.activeDashboard, activeViewId);
+    this.setState({ activeViewId: selected, renderError: null });
+  }
+
+  setMode(mode) {
+    this.setState({ mode: mode === "debug" ? "debug" : "visual", renderError: null });
+  }
+
   async initialize() {
     this.setState({ loading: true, error: null });
     try {
@@ -81,7 +99,13 @@ export class DashboardModernStore {
     this.setState({ loading: true, error: null });
     try {
       const activeDashboard = await this.api.getDashboard(this.state.entryId, dashboardId);
-      this.setState({ activeDashboardId: activeDashboard.id, activeDashboard, loading: false });
+      this.setState({
+        activeDashboardId: activeDashboard.id,
+        activeDashboard,
+        activeViewId: selectActiveViewId(activeDashboard, this.state.activeViewId),
+        loading: false,
+        renderError: null,
+      });
     } catch (error) {
       this.setState({ loading: false, error: friendlyError(error) });
     }
@@ -91,7 +115,7 @@ export class DashboardModernStore {
     this.setState({ saving: true, error: null });
     try {
       const activeDashboard = await this.api.createDashboard(this.state.entryId, dashboard);
-      this.setState({ activeDashboardId: activeDashboard.id, activeDashboard, saving: false });
+      this.setState({ activeDashboardId: activeDashboard.id, activeDashboard, activeViewId: selectActiveViewId(activeDashboard, this.state.activeViewId), saving: false });
       await this.refreshDashboards();
     } catch (error) {
       this.setState({ saving: false, error: friendlyError(error) });
@@ -102,7 +126,7 @@ export class DashboardModernStore {
     this.setState({ saving: true, error: null });
     try {
       const activeDashboard = await this.api.replaceDashboard(this.state.entryId, dashboard);
-      this.setState({ activeDashboardId: activeDashboard.id, activeDashboard, saving: false });
+      this.setState({ activeDashboardId: activeDashboard.id, activeDashboard, activeViewId: selectActiveViewId(activeDashboard, this.state.activeViewId), saving: false });
       await this.refreshDashboards();
     } catch (error) {
       this.setState({ saving: false, error: friendlyError(error) });
@@ -114,7 +138,7 @@ export class DashboardModernStore {
     this.setState({ deleting: true, error: null });
     try {
       await this.api.deleteDashboard(this.state.entryId, dashboardId);
-      this.setState({ activeDashboardId: null, activeDashboard: null, deleting: false });
+      this.setState({ activeDashboardId: null, activeDashboard: null, activeViewId: null, deleting: false });
       await this.refreshDashboards();
     } catch (error) {
       this.setState({ deleting: false, error: friendlyError(error) });
