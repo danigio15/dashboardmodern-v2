@@ -2,21 +2,30 @@
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from typing import TYPE_CHECKING, Any
 
 from .const import DOMAIN
-from .runtime import DashboardModernRuntime, async_create_runtime
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+
+    from .runtime import DashboardModernRuntime
+
+    type DashboardModernConfigEntry = ConfigEntry[DashboardModernRuntime | None]
+else:
+    DashboardModernConfigEntry = Any
+    HomeAssistant = Any
 
 PLATFORMS: list[str] = []
-
-type DashboardModernConfigEntry = ConfigEntry[DashboardModernRuntime | None]
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: DashboardModernConfigEntry
 ) -> bool:
     """Set up DashboardModern from a config entry."""
+    from .runtime import async_create_runtime
+
     runtime = await async_create_runtime(hass, entry.entry_id)
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = runtime

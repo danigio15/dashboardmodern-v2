@@ -46,7 +46,7 @@ def validate_envelope_shape(data: object) -> Mapping[str, Any]:
         msg = "Dashboard storage envelope must be a mapping"
         raise MalformedStorageError(msg)
     version = data.get("version")
-    if not isinstance(version, int):
+    if type(version) is not int:
         msg = "Dashboard storage envelope version must be an integer"
         raise MalformedStorageError(msg)
     if "dashboards" not in data:

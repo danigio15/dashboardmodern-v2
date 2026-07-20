@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-
-from homeassistant.core import HomeAssistant
+from typing import TYPE_CHECKING
 
 from .domain import DashboardRegistry
 from .persistence import DashboardRepository, HomeAssistantDashboardRepository
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 
 @dataclass(slots=True)
@@ -23,7 +25,7 @@ class DashboardModernRuntime:
 async def async_create_runtime(
     hass: HomeAssistant, entry_id: str
 ) -> DashboardModernRuntime:
-    """Create the runtime container and load persisted dashboards."""
+    """Create one runtime repository for the entry and load persisted dashboards."""
     repository = HomeAssistantDashboardRepository(hass, entry_id)
     runtime = DashboardModernRuntime(
         hass=hass,

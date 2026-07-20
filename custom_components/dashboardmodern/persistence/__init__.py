@@ -8,12 +8,18 @@ from .exceptions import (
     UnsupportedStorageVersionError,
 )
 from .repository import DashboardRepository
-from .storage import HomeAssistantDashboardRepository
+from .storage import (
+    HomeAssistantDashboardRepository,
+    HomeAssistantStoreBackend,
+    JsonStorageBackend,
+)
 
 __all__ = [
     "DashboardPersistenceError",
     "DashboardRepository",
     "HomeAssistantDashboardRepository",
+    "HomeAssistantStoreBackend",
+    "JsonStorageBackend",
     "MalformedStorageError",
     "UnsupportedStorageVersionError",
 ]

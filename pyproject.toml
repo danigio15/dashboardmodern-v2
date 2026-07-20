@@ -8,3 +8,9 @@ ignore = ["ANN401"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[project.optional-dependencies]
+test = [
+    "pytest-asyncio>=1.4,<2",
+]
