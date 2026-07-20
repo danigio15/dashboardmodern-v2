@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any
 
 from custom_components.dashboardmodern.domain import Card, Dashboard, Section, View
 
@@ -26,27 +25,6 @@ class MemoryStorageBackend:
         await asyncio.sleep(0)
         self.data = data
         self.saves.append(data)
-
-
-class HomeAssistantHarness:
-    """Small hass object for lifecycle tests when HA test libs are unavailable."""
-
-    def __init__(self) -> None:
-        """Initialize Home Assistant-like state used by setup/unload."""
-        self.data: dict[str, Any] = {}
-
-    async def async_block_till_done(self) -> None:
-        """Mirror the Home Assistant test helper synchronization method."""
-        await asyncio.sleep(0)
-
-
-class MockConfigEntry:
-    """Config-entry helper matching the lifecycle attributes under test."""
-
-    def __init__(self, entry_id: str) -> None:
-        """Initialize the config entry helper."""
-        self.entry_id = entry_id
-        self.runtime_data: Any = None
 
 
 def dashboard(id_: str = "dashboard-1", title: str = "Main") -> Dashboard:

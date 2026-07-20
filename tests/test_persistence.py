@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -19,6 +20,9 @@ from custom_components.dashboardmodern.persistence.storage import (
 )
 
 from .helpers import MemoryStorageBackend, dashboard
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 
 def _repo(backend: MemoryStorageBackend) -> HomeAssistantDashboardRepository:
@@ -180,3 +184,23 @@ async def test_concurrent_save_operations() -> None:
     assert {item.id for item in await repo.async_load_all()} == {
         item.id for item in dashboards
     }
+
+
+@pytest.mark.asyncio
+async def test_real_home_assistant_store_save_reload_and_entry_isolation(
+    hass: HomeAssistant,
+) -> None:
+    """Real Home Assistant Store persists and isolates dashboards by config entry."""
+    first = dashboard("stored-1")
+    second = dashboard("stored-2")
+
+    await HomeAssistantDashboardRepository(hass, "entry-1").async_save(first)
+    await HomeAssistantDashboardRepository(hass, "entry-2").async_save(second)
+    await hass.async_block_till_done()
+
+    assert await HomeAssistantDashboardRepository(hass, "entry-1").async_load_all() == (
+        first,
+    )
+    assert await HomeAssistantDashboardRepository(hass, "entry-2").async_load_all() == (
+        second,
+    )
