@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import FrozenInstanceError
+from types import MappingProxyType
 
 import pytest
 
@@ -29,6 +31,17 @@ def _dashboard() -> Dashboard:
     section = Section.from_cards("section-1", "Overview", (card,))
     view = View.from_sections("view-1", "Home", (section,))
     return Dashboard.create("dashboard-1", "Main", (view,), (section,), (card,))
+
+
+def _contains_mapping_proxy(value: object) -> bool:
+    """Return whether a value contains a MappingProxyType recursively."""
+    if isinstance(value, MappingProxyType):
+        return True
+    if isinstance(value, dict):
+        return any(_contains_mapping_proxy(item) for item in value.values())
+    if isinstance(value, list | tuple):
+        return any(_contains_mapping_proxy(item) for item in value)
+    return False
 
 
 def test_identifiers_are_typed_hashable_and_validate_empty_values() -> None:
@@ -64,6 +77,31 @@ def test_domain_objects_are_immutable_and_serializable() -> None:
         ],
     }
     assert Dashboard.from_dict(serialized) == dashboard
+
+
+def test_card_serializes_nested_config_to_json_compatible_data() -> None:
+    """Nested card config thaws to JSON-compatible plain data."""
+    card = Card.create(
+        "card-1",
+        "Weather",
+        "weather",
+        {
+            "entity": {"id": "sensor.outdoor", "attributes": ["temperature"]},
+            "thresholds": [{"level": "high", "value": 80}],
+        },
+    )
+
+    serialized = card.to_dict()
+
+    assert not _contains_mapping_proxy(serialized)
+    json.dumps(serialized)
+    assert Card.from_dict(serialized) == card
+
+
+def test_card_rejects_set_config_values() -> None:
+    """Card config only accepts JSON-compatible container structures."""
+    with pytest.raises(ValidationError):
+        Card.create("card-1", "Weather", "weather", {"invalid": {"a", "b"}})
 
 
 def test_copy_helpers_return_updated_validated_objects() -> None:
@@ -123,13 +161,56 @@ def test_validation_detects_invalid_hierarchy_and_empty_required_fields() -> Non
         Card.create("card-1", " ", "weather")
     with pytest.raises(ValidationError):
         Dashboard.create("dashboard-1", " ", (), (), ())
-    with pytest.raises(ValidationError):
+    with pytest.raises(InvalidHierarchyError):
         Dashboard.create(
             "dashboard-1",
             "Main",
             (View.create("view-1", "Home", ()),),
             (section,),
             (card,),
+        )
+
+
+def test_validation_detects_duplicate_references() -> None:
+    """Duplicate section and card references inside parents are invalid."""
+    card = Card.create("card-1", "Weather", "weather")
+    section = Section.create("section-1", "Overview", (card.id,))
+
+    with pytest.raises(DuplicateIdError):
+        Dashboard.create(
+            "dashboard-1",
+            "Main",
+            (View.create("view-1", "Home", (section.id, section.id)),),
+            (section,),
+            (card,),
+        )
+
+    with pytest.raises(DuplicateIdError):
+        Dashboard.create(
+            "dashboard-1",
+            "Main",
+            (View.create("view-1", "Home", (section.id,)),),
+            (Section.create("section-1", "Overview", (card.id, card.id)),),
+            (card,),
+        )
+
+
+def test_validation_rejects_orphan_sections_and_cards() -> None:
+    """Every section and card must belong to the dashboard hierarchy."""
+    card = Card.create("card-1", "Weather", "weather")
+    orphan_card = Card.create("card-2", "Forecast", "weather")
+    section = Section.create("section-1", "Overview", (card.id,))
+    orphan_section = Section.create("section-2", "Other", (card.id,))
+    view = View.create("view-1", "Home", (section.id,))
+
+    with pytest.raises(InvalidHierarchyError):
+        Dashboard.create(
+            "dashboard-1", "Main", (view,), (section, orphan_section), (card,)
+        )
+
+    with pytest.raises(InvalidHierarchyError):
+        Dashboard.create(
+            "dashboard-1", "Main", (view,), (section,), (card, orphan_card)
         )
 
 

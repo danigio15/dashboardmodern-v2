@@ -32,6 +32,17 @@ def ensure_references_exist(  # noqa: UP047
             raise MissingReferenceError(msg)
 
 
+def ensure_all_referenced(  # noqa: UP047
+    required: Iterable[IdT], references: Iterable[IdT], label: str
+) -> None:  # noqa: UP047
+    """Raise when an aggregate child is not part of the hierarchy."""
+    referenced_ids = set(references)
+    for required_id in required:
+        if required_id not in referenced_ids:
+            msg = f"Unreferenced {label} is not allowed: {required_id}"
+            raise InvalidHierarchyError(msg)
+
+
 def ensure_non_empty_hierarchy(
     *, view_count: int, section_count: int, card_count: int
 ) -> None:

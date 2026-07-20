@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from types import MappingProxyType
 from typing import Any, Self
@@ -11,21 +12,33 @@ from .models import CardId
 
 
 def _freeze_value(value: Any) -> Any:
-    """Recursively freeze common container values."""
-    if isinstance(value, dict):
+    """Recursively freeze JSON-compatible container values."""
+    if isinstance(value, Mapping):
         return _freeze_mapping(value)
     if isinstance(value, list | tuple):
         return tuple(_freeze_value(item) for item in value)
     if isinstance(value, set | frozenset):
-        return frozenset(_freeze_value(item) for item in value)
+        msg = "Card config values must be JSON-compatible; sets are not supported"
+        raise ValidationError(msg)
     return value
 
 
-def _freeze_mapping(value: dict[str, Any] | None) -> MappingProxyType[str, Any]:
-    """Return an immutable recursive copy of a mapping."""
+def _freeze_mapping(value: Mapping[str, Any] | None) -> MappingProxyType[str, Any]:
+    """Return an immutable recursive copy of a JSON-compatible mapping."""
     return MappingProxyType(
         {key: _freeze_value(item) for key, item in (value or {}).items()}
     )
+
+
+def _thaw_value(value: Any) -> Any:
+    """Recursively serialize frozen containers into JSON-compatible values."""
+    if isinstance(value, Mapping):
+        return {key: _thaw_value(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_thaw_value(item) for item in value]
+    if isinstance(value, frozenset):
+        return sorted(_thaw_value(item) for item in value)
+    return value
 
 
 def _hashable_value(value: Any) -> object:
@@ -68,7 +81,7 @@ class Card:
         id: str | CardId,
         title: str,
         type: str,
-        config: dict[str, Any] | None = None,
+        config: Mapping[str, Any] | None = None,
     ) -> Self:
         """Create a card from primitive values."""
         return cls(CardId.from_raw(id), title, type, _freeze_mapping(config))
@@ -89,7 +102,7 @@ class Card:
             "id": str(self.id),
             "title": self.title,
             "type": self.type,
-            "config": dict(self.config),
+            "config": _thaw_value(self.config),
         }
 
     def __hash__(self) -> int:

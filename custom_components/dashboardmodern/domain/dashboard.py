@@ -6,10 +6,11 @@ from dataclasses import dataclass, replace
 from typing import Any, Self
 
 from .cards import Card
-from .exceptions import ValidationError
+from .exceptions import InvalidHierarchyError, ValidationError
 from .models import DashboardId
 from .sections import Section
 from .validation import (
+    ensure_all_referenced,
     ensure_non_empty_hierarchy,
     ensure_references_exist,
     ensure_unique_ids,
@@ -19,7 +20,7 @@ from .views import View
 
 @dataclass(frozen=True, slots=True)
 class Dashboard:
-    """Immutable dashboard aggregate containing views, sections, and cards."""
+    """Immutable strict aggregate containing only fully referenced children."""
 
     id: DashboardId
     title: str
@@ -74,16 +75,26 @@ class Dashboard:
         )
         section_ids = tuple(section.id for section in self.sections)
         card_ids = tuple(card.id for card in self.cards)
+        referenced_section_ids = []
+        referenced_card_ids = []
         for view in self.views:
+            ensure_unique_ids(view.section_ids, f"section reference in view {view.id}")
             ensure_references_exist(view.section_ids, section_ids, "section")
             if not view.section_ids:
                 msg = f"View has no sections: {view.id}"
-                raise ValidationError(msg)
+                raise InvalidHierarchyError(msg)
+            referenced_section_ids.extend(view.section_ids)
         for section in self.sections:
+            ensure_unique_ids(
+                section.card_ids, f"card reference in section {section.id}"
+            )
             ensure_references_exist(section.card_ids, card_ids, "card")
             if not section.card_ids:
                 msg = f"Section has no cards: {section.id}"
-                raise ValidationError(msg)
+                raise InvalidHierarchyError(msg)
+            referenced_card_ids.extend(section.card_ids)
+        ensure_all_referenced(section_ids, referenced_section_ids, "section")
+        ensure_all_referenced(card_ids, referenced_card_ids, "card")
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this dashboard into plain Python values."""
