@@ -65,6 +65,13 @@ class DashboardRegistry:
 
     def replace_all(self, dashboards: tuple[Dashboard, ...]) -> None:
         """Replace the complete registry contents in the supplied order."""
-        self._dashboards = {}
+        replacement: dict[DashboardId, Dashboard] = {}
         for dashboard in dashboards:
-            self.add(dashboard)
+            if not isinstance(dashboard, Dashboard):
+                msg = "dashboard must be a Dashboard"
+                raise TypeError(msg)
+            if dashboard.id in replacement:
+                msg = f"Dashboard already exists: {dashboard.id}"
+                raise DashboardAlreadyExistsError(msg)
+            replacement[dashboard.id] = dashboard
+        self._dashboards = replacement

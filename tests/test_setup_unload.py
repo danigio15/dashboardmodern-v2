@@ -77,17 +77,26 @@ async def test_runtime_creates_exactly_one_application_service(
     from custom_components.dashboardmodern.runtime import async_create_runtime
 
     repository = _repo(MemoryStorageBackend())
+    application_factory = MagicMock(
+        side_effect=runtime_module.DashboardApplicationService
+    )
     monkeypatch.setattr(
         runtime_module,
         "HomeAssistantDashboardRepository",
         lambda *_: repository,
     )
+    monkeypatch.setattr(
+        runtime_module, "DashboardApplicationService", application_factory
+    )
 
     runtime = await async_create_runtime(hass, "entry-1")
 
-    assert runtime.application is runtime.application
+    first_access = runtime.application
+    second_access = runtime.application
+    assert first_access is second_access
     assert runtime.application.registry is runtime.dashboards
     assert runtime.application.repository is runtime.repository
+    application_factory.assert_called_once_with(runtime.dashboards, runtime.repository)
 
 
 @pytest.mark.asyncio

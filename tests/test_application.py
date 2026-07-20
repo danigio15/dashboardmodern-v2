@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import FrozenInstanceError, dataclass, field
 
 import pytest
 
@@ -17,6 +17,8 @@ from custom_components.dashboardmodern.application import (
     ReplaceDashboardCommand,
 )
 from custom_components.dashboardmodern.domain import Dashboard, DashboardRegistry
+from custom_components.dashboardmodern.domain.exceptions import ValidationError
+from custom_components.dashboardmodern.domain.models import DashboardId
 
 from .helpers import dashboard
 
@@ -66,6 +68,45 @@ def _service(
     registry.replace_all(dashboards)
     repo = repository or ControllableRepository(dashboards)
     return DashboardApplicationService(registry, repo), registry, repo
+
+
+def test_create_dashboard_command_rejects_non_dashboard() -> None:
+    """Create commands accept only Dashboard payloads."""
+    with pytest.raises(TypeError):
+        CreateDashboardCommand("not-a-dashboard")
+
+
+def test_replace_dashboard_command_rejects_non_dashboard() -> None:
+    """Replace commands accept only Dashboard payloads."""
+    with pytest.raises(TypeError):
+        ReplaceDashboardCommand("not-a-dashboard")
+
+
+def test_delete_dashboard_command_normalizes_raw_string() -> None:
+    """Delete commands normalize raw dashboard id strings."""
+    command = DeleteDashboardCommand("dashboard-1")
+
+    assert command.dashboard_id == DashboardId("dashboard-1")
+
+
+def test_delete_dashboard_command_rejects_invalid_ids() -> None:
+    """Delete commands reject invalid dashboard ids during construction."""
+    with pytest.raises(ValidationError):
+        DeleteDashboardCommand(" ")
+
+
+def test_command_instances_are_immutable() -> None:
+    """Command dataclasses cannot be mutated after construction."""
+    create = CreateDashboardCommand(dashboard())
+    replace = ReplaceDashboardCommand(dashboard())
+    delete = DeleteDashboardCommand("dashboard-1")
+
+    with pytest.raises(FrozenInstanceError):
+        create.dashboard = dashboard("dashboard-2")
+    with pytest.raises(FrozenInstanceError):
+        replace.dashboard = dashboard("dashboard-2")
+    with pytest.raises(FrozenInstanceError):
+        delete.dashboard_id = DashboardId("dashboard-2")
 
 
 @pytest.mark.asyncio
