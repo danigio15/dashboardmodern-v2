@@ -1,91 +1,116 @@
-"""Lightweight unit tests for DashboardModern setup and unload.
-
-These tests intentionally use minimal Home Assistant test doubles because the
-Phase 1 repository does not yet depend on pytest-homeassistant-custom-component.
-They verify only the local runtime bookkeeping performed by the integration
-lifecycle functions.
-"""
+"""Dedicated setup/unload lifecycle tests for DashboardModern."""
 
 from __future__ import annotations
 
-import asyncio
-import importlib
-import sys
-import types
-from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
+from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.dashboardmodern.const import DOMAIN
+from custom_components.dashboardmodern.persistence.storage import (
+    HomeAssistantDashboardRepository,
+)
+
+from .helpers import MemoryStorageBackend, dashboard
 
 
-class _HomeAssistant:
-    """Minimal HomeAssistant test double."""
-
-    def __init__(self) -> None:
-        """Initialize Home Assistant state."""
-        self.data: dict[str, dict[str, object]] = {}
+def _repo(backend: MemoryStorageBackend) -> HomeAssistantDashboardRepository:
+    """Create a repository with an injected storage backend."""
+    return HomeAssistantDashboardRepository(backend=backend)
 
 
-class _ConfigEntry:
-    """Minimal ConfigEntry test double."""
-
-    def __init__(self, entry_id: str) -> None:
-        """Initialize the entry double."""
-        self.entry_id = entry_id
-        self.runtime_data: object | None = None
-
-    def __class_getitem__(cls, item: object) -> type[_ConfigEntry]:
-        """Support Home Assistant's generic ConfigEntry type annotation."""
-        return cls
-
-
-@pytest.fixture
-def integration_module(monkeypatch: pytest.MonkeyPatch) -> types.ModuleType:
-    """Import the integration with scoped Home Assistant test doubles."""
-    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]))
-
-    homeassistant = types.ModuleType("homeassistant")
-    config_entries = types.ModuleType("homeassistant.config_entries")
-    core = types.ModuleType("homeassistant.core")
-
-    config_entries.ConfigEntry = _ConfigEntry
-    core.HomeAssistant = _HomeAssistant
-
-    monkeypatch.setitem(sys.modules, "homeassistant", homeassistant)
-    monkeypatch.setitem(sys.modules, "homeassistant.config_entries", config_entries)
-    monkeypatch.setitem(sys.modules, "homeassistant.core", core)
-
-    for module_name in list(sys.modules):
-        if module_name.startswith("custom_components.dashboardmodern"):
-            monkeypatch.delitem(sys.modules, module_name, raising=False)
-
-    return importlib.import_module("custom_components.dashboardmodern")
-
-
-def test_config_entry_setup_stores_runtime(
-    integration_module: types.ModuleType,
+@pytest.mark.asyncio
+async def test_setup_entry_creates_one_runtime_per_entry(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Set up a config entry and store runtime data consistently."""
-    hass = _HomeAssistant()
-    entry = _ConfigEntry("test-entry")
+    """Setup creates a runtime, stores it in both locations, and uses one repo."""
+    import custom_components.dashboardmodern.runtime as runtime_module
+    from custom_components.dashboardmodern import async_setup_entry
 
-    assert asyncio.run(integration_module.async_setup_entry(hass, entry)) is True
+    repository = _repo(MemoryStorageBackend())
+    repository_factory = MagicMock(return_value=repository)
+    monkeypatch.setattr(
+        runtime_module, "HomeAssistantDashboardRepository", repository_factory
+    )
+    entry = MockConfigEntry(domain=DOMAIN, entry_id="entry-1")
+    entry.add_to_hass(hass)
 
-    runtime = entry.runtime_data
-    assert runtime is not None
-    assert hass.data[integration_module.DOMAIN][entry.entry_id] is runtime
-    assert runtime.hass is hass
-    assert runtime.entry_id == entry.entry_id
+    assert await async_setup_entry(hass, entry) is True
+    await hass.async_block_till_done()
+
+    assert entry.runtime_data is not None
+    assert hass.data[DOMAIN][entry.entry_id] is entry.runtime_data
+    assert entry.runtime_data.repository is repository
+    repository_factory.assert_called_once_with(hass, entry.entry_id)
 
 
-def test_config_entry_unload_clears_runtime(
-    integration_module: types.ModuleType,
+@pytest.mark.asyncio
+async def test_setup_loads_persisted_dashboards(hass: HomeAssistant) -> None:
+    """Config entry setup loads persisted dashboards into runtime."""
+    from custom_components.dashboardmodern import async_setup_entry
+
+    entry = MockConfigEntry(domain=DOMAIN, entry_id="entry-1")
+    entry.add_to_hass(hass)
+    item = dashboard()
+    await HomeAssistantDashboardRepository(hass, entry.entry_id).async_save(item)
+    await hass.async_block_till_done()
+
+    assert await async_setup_entry(hass, entry) is True
+    await hass.async_block_till_done()
+
+    assert entry.runtime_data.dashboards.list() == (item,)
+    assert entry.runtime_data.repository is hass.data[DOMAIN][entry.entry_id].repository
+
+
+@pytest.mark.asyncio
+async def test_unload_entry_clears_runtime_data(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Unload a config entry and clear runtime data consistently."""
-    hass = _HomeAssistant()
-    entry = _ConfigEntry("test-entry")
+    """Unloading an entry clears its runtime and domain storage."""
+    import custom_components.dashboardmodern.runtime as runtime_module
+    from custom_components.dashboardmodern import async_setup_entry, async_unload_entry
 
-    assert asyncio.run(integration_module.async_setup_entry(hass, entry)) is True
-    assert asyncio.run(integration_module.async_unload_entry(hass, entry)) is True
+    monkeypatch.setattr(
+        runtime_module,
+        "HomeAssistantDashboardRepository",
+        lambda *_: _repo(MemoryStorageBackend()),
+    )
+    entry = MockConfigEntry(domain=DOMAIN, entry_id="entry-1")
+    entry.add_to_hass(hass)
+    assert await async_setup_entry(hass, entry) is True
+
+    assert await async_unload_entry(hass, entry) is True
+    await hass.async_block_till_done()
 
     assert entry.runtime_data is None
-    assert integration_module.DOMAIN not in hass.data
+    assert DOMAIN not in hass.data
+
+
+@pytest.mark.asyncio
+async def test_unload_one_entry_preserves_another_runtime(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Unloading one entry does not remove another entry's runtime."""
+    import custom_components.dashboardmodern.runtime as runtime_module
+    from custom_components.dashboardmodern import async_setup_entry, async_unload_entry
+
+    monkeypatch.setattr(
+        runtime_module,
+        "HomeAssistantDashboardRepository",
+        lambda *_: _repo(MemoryStorageBackend()),
+    )
+    first = MockConfigEntry(domain=DOMAIN, entry_id="entry-1")
+    second = MockConfigEntry(domain=DOMAIN, entry_id="entry-2")
+    first.add_to_hass(hass)
+    second.add_to_hass(hass)
+    assert await async_setup_entry(hass, first) is True
+    assert await async_setup_entry(hass, second) is True
+
+    assert await async_unload_entry(hass, first) is True
+    await hass.async_block_till_done()
+
+    assert first.runtime_data is None
+    assert second.runtime_data is hass.data[DOMAIN][second.entry_id]
+    assert first.entry_id not in hass.data[DOMAIN]
