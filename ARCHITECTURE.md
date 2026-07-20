@@ -392,15 +392,11 @@ Rendered dashboard components
 
 DashboardModern remains a custom HTML/CSS/JavaScript dashboard. `Dashboard`, `View`, `Section`, and `Card` are backend configuration payloads only; the frontend treats them as JSON and does not convert them into Lovelace, dashboard YAML, entities cards, or server-rendered UI.
 
-The frontend entry point is `custom_components/dashboardmodern/frontend/index.html`. It loads `src/app.js`, which binds the existing dashboard list, JSON editor, and create/save/delete buttons without redesigning the page. Runtime state is centralized in `DashboardModernStore` and contains one source of truth for the config entry id, dashboard list, active dashboard id, active dashboard JSON, loading state, saving state, deleting state, and error state.
+The Home Assistant frontend entry point is `custom_components/dashboardmodern/frontend/panel.js`. The custom panel creates the Phase 6 shell from `src/app.js`, which binds the dashboard list, JSON editor, and create/save/delete buttons without redesigning the page. Runtime state is centralized in `DashboardModernStore` and contains one source of truth for the config entry id, dashboard list, active dashboard id, active dashboard JSON, loading state, saving state, deleting state, and error state.
 
-Home Assistant communication is isolated in `src/ws-client.js`. UI code calls this module instead of scattering raw WebSocket messages through DOM handlers. The client uses the authenticated Home Assistant frontend connection's `sendMessagePromise` method and intentionally does not open a second WebSocket. The current resolver checks, in order:
+Home Assistant communication is isolated in `src/ws-client.js`. UI code calls this module instead of scattering raw WebSocket messages through DOM handlers. The panel adapter receives Home Assistant's authenticated `hass.connection` from the supported custom panel host and passes its `sendMessagePromise` transport to the client; the frontend does not open a second WebSocket and does not depend on undocumented `window.hass`, `home-assistant`, or `hass.configEntries.dashboardmodern` globals.
 
-1. `entry_id` or `config_entry_id` in the page URL.
-2. A DOM element with `data-dashboardmodern-entry-id`.
-3. A single `dashboardmodern` entry exposed on `hass.configEntries`.
-
-If none of those sources yields an id, initialization fails with a user-facing error instead of silently falling back to mock data. Development-only mock data can be injected explicitly through the store's `developmentFallback` option in tests or local harnesses.
+Config entry discovery is driven by backend panel configuration. The integration registers the panel with the currently loaded DashboardModern entry ids, updates that panel configuration as entries are loaded/unloaded/reloaded, and the panel auto-selects the only entry or requires an `entry_id` URL parameter when multiple loaded entries exist. Development-only mock data can be injected explicitly through the store's `developmentFallback` option in tests or local harnesses.
 
 ### Supported frontend WebSocket commands
 
@@ -442,7 +438,11 @@ npm run test:frontend
 
 ### Home Assistant panel registration
 
-Phase 6 exposes the frontend through Home Assistant's integration lifecycle instead of requiring users to open files from `custom_components`. `async_setup_entry` registers the WebSocket API and calls the DashboardModern frontend registrar. The registrar serves static assets from `/dashboardmodern_static`, registers a `dashboardmodern` sidebar panel with `panel_custom.async_register_panel`, and keeps a sorted `entry_ids` list in Home Assistant domain data for deterministic entry selection across one entry, multiple entries, unload, and reload.
+Phase 6 exposes the frontend through Home Assistant's integration lifecycle instead of requiring users to open files from `custom_components`. `async_setup_entry` creates and stores the runtime first, then registers/updates frontend membership only after runtime setup succeeds; if frontend registration fails, setup rolls back the newly stored runtime.
+
+The frontend registrar serves static assets from `/dashboardmodern_static` once and registers the `dashboardmodern` sidebar panel through Home Assistant's panel registry. Static paths and panel visibility have separate lifecycle state: `static_registered` is preserved because Home Assistant does not provide static-path unregistering, while `panel_registered` and `panel_entry_ids` track the currently visible panel and loaded entries. When the final entry unloads, DashboardModern removes the panel and clears panel state; a later reload re-adds the panel without duplicating static registration.
+
+Panel membership updates use fresh panel configuration snapshots rather than mutating a previously registered Python list. The real panel registry is tested for the sequence `["entry-1"]`, `["entry-1", "entry-2"]`, `["entry-2"]`, and `["entry-1", "entry-2"]` across setup, second setup, unload, and reload.
 
 The panel web component (`dashboardmodern-panel`) receives Home Assistant's authenticated `hass` object from the supported custom panel host. `panel.js` adapts `hass.connection` into the transport expected by `src/ws-client.js`; the WebSocket client itself remains transport-only and does not know about Home Assistant panel globals.
 
