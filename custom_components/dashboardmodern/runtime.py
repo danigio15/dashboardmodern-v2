@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from .application import DashboardApplicationService
 from .domain import DashboardRegistry
 from .persistence import DashboardRepository, HomeAssistantDashboardRepository
 
@@ -20,6 +21,11 @@ class DashboardModernRuntime:
     entry_id: str
     repository: DashboardRepository
     dashboards: DashboardRegistry = field(default_factory=DashboardRegistry)
+    application: DashboardApplicationService = field(init=False)
+
+    def __post_init__(self) -> None:
+        """Create the per-runtime application service."""
+        self.application = DashboardApplicationService(self.dashboards, self.repository)
 
 
 async def async_create_runtime(
@@ -27,11 +33,12 @@ async def async_create_runtime(
 ) -> DashboardModernRuntime:
     """Create one runtime repository for the entry and load persisted dashboards."""
     repository = HomeAssistantDashboardRepository(hass, entry_id)
-    runtime = DashboardModernRuntime(
+    dashboards = DashboardRegistry()
+    for dashboard in await repository.async_load_all():
+        dashboards.add(dashboard)
+    return DashboardModernRuntime(
         hass=hass,
         entry_id=entry_id,
         repository=repository,
+        dashboards=dashboards,
     )
-    for dashboard in await repository.async_load_all():
-        runtime.dashboards.add(dashboard)
-    return runtime

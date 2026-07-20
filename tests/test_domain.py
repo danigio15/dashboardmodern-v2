@@ -232,3 +232,38 @@ def test_registry_adds_finds_lists_and_removes_dashboards() -> None:
 
     with pytest.raises(DashboardNotFoundError):
         registry.remove("dashboard-1")
+
+
+def test_registry_replace_all_preserves_supplied_order() -> None:
+    """Replacing all dashboards preserves the supplied deterministic order."""
+    first = _dashboard()
+    second = first.copy_with(id="dashboard-2")
+    registry = DashboardRegistry()
+
+    registry.replace_all((first, second))
+
+    assert registry.list() == (first, second)
+
+
+def test_registry_replace_all_rejects_duplicate_ids() -> None:
+    """Replacing all dashboards rejects duplicates before mutating state."""
+    original = _dashboard()
+    registry = DashboardRegistry()
+    registry.add(original)
+
+    with pytest.raises(DashboardAlreadyExistsError):
+        registry.replace_all((original.copy_with(title="One"), original))
+
+    assert registry.list() == (original,)
+
+
+def test_registry_replace_all_remains_unchanged_when_validation_fails() -> None:
+    """Replacing all dashboards is atomic when a supplied item is invalid."""
+    original = _dashboard()
+    registry = DashboardRegistry()
+    registry.add(original)
+
+    with pytest.raises(TypeError):
+        registry.replace_all((original.copy_with(id="dashboard-2"), object()))
+
+    assert registry.list() == (original,)

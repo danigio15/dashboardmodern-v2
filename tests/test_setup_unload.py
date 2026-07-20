@@ -43,6 +43,8 @@ async def test_setup_entry_creates_one_runtime_per_entry(
     assert entry.runtime_data is not None
     assert hass.data[DOMAIN][entry.entry_id] is entry.runtime_data
     assert entry.runtime_data.repository is repository
+    assert entry.runtime_data.application.repository is repository
+    assert entry.runtime_data.application.registry is entry.runtime_data.dashboards
     repository_factory.assert_called_once_with(hass, entry.entry_id)
 
 
@@ -62,6 +64,39 @@ async def test_setup_loads_persisted_dashboards(hass: HomeAssistant) -> None:
 
     assert entry.runtime_data.dashboards.list() == (item,)
     assert entry.runtime_data.repository is hass.data[DOMAIN][entry.entry_id].repository
+    assert entry.runtime_data.application.registry is entry.runtime_data.dashboards
+    assert entry.runtime_data.application.repository is entry.runtime_data.repository
+
+
+@pytest.mark.asyncio
+async def test_runtime_creates_exactly_one_application_service(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Runtime creates one application service using exposed dependencies."""
+    import custom_components.dashboardmodern.runtime as runtime_module
+    from custom_components.dashboardmodern.runtime import async_create_runtime
+
+    repository = _repo(MemoryStorageBackend())
+    application_factory = MagicMock(
+        side_effect=runtime_module.DashboardApplicationService
+    )
+    monkeypatch.setattr(
+        runtime_module,
+        "HomeAssistantDashboardRepository",
+        lambda *_: repository,
+    )
+    monkeypatch.setattr(
+        runtime_module, "DashboardApplicationService", application_factory
+    )
+
+    runtime = await async_create_runtime(hass, "entry-1")
+
+    first_access = runtime.application
+    second_access = runtime.application
+    assert first_access is second_access
+    assert runtime.application.registry is runtime.dashboards
+    assert runtime.application.repository is runtime.repository
+    application_factory.assert_called_once_with(runtime.dashboards, runtime.repository)
 
 
 @pytest.mark.asyncio

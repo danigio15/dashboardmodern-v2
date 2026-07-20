@@ -22,6 +22,17 @@ class DashboardRegistry:
             raise DashboardAlreadyExistsError(msg)
         self._dashboards[dashboard.id] = dashboard
 
+    def contains(self, dashboard_id: str | DashboardId) -> bool:
+        """Return whether a dashboard id exists in the registry."""
+        return DashboardId.from_raw(dashboard_id) in self._dashboards
+
+    def replace(self, dashboard: Dashboard) -> None:
+        """Replace an existing dashboard while preserving registry order."""
+        if dashboard.id not in self._dashboards:
+            msg = f"Dashboard not found: {dashboard.id}"
+            raise DashboardNotFoundError(msg)
+        self._dashboards[dashboard.id] = dashboard
+
     def remove(self, dashboard_id: str | DashboardId) -> Dashboard:
         """Remove and return a dashboard by id."""
         id_ = DashboardId.from_raw(dashboard_id)
@@ -51,3 +62,16 @@ class DashboardRegistry:
     def clear(self) -> None:
         """Remove all dashboards from the registry."""
         self._dashboards.clear()
+
+    def replace_all(self, dashboards: tuple[Dashboard, ...]) -> None:
+        """Replace the complete registry contents in the supplied order."""
+        replacement: dict[DashboardId, Dashboard] = {}
+        for dashboard in dashboards:
+            if not isinstance(dashboard, Dashboard):
+                msg = "dashboard must be a Dashboard"
+                raise TypeError(msg)
+            if dashboard.id in replacement:
+                msg = f"Dashboard already exists: {dashboard.id}"
+                raise DashboardAlreadyExistsError(msg)
+            replacement[dashboard.id] = dashboard
+        self._dashboards = replacement
