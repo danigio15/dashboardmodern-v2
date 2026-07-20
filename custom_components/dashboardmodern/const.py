@@ -5,6 +5,7 @@ from __future__ import annotations
 DOMAIN = "dashboardmodern"
 NAME = "DashboardModern v2"
 
+DATA_RUNTIMES = "runtimes"
 DATA_WEBSOCKET_REGISTERED = "websocket_registered"
 
 WS_TYPE_DASHBOARD_LIST = "dashboardmodern/dashboard/list"

@@ -25,6 +25,7 @@ from .application import (
     ReplaceDashboardCommand,
 )
 from .const import (
+    DATA_RUNTIMES,
     DATA_WEBSOCKET_REGISTERED,
     DOMAIN,
     ERR_DASHBOARD_ALREADY_EXISTS,
@@ -60,16 +61,17 @@ _ERROR_MESSAGES = {
 
 def async_register_websocket_api(hass: HomeAssistant) -> None:
     """Register DashboardModern WebSocket commands once per Home Assistant instance."""
-    if getattr(hass, DATA_WEBSOCKET_REGISTERED, False):
-        hass.data.setdefault(DOMAIN, {})
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    if domain_data.get(DATA_WEBSOCKET_REGISTERED):
         return
 
+    domain_data.setdefault(DATA_RUNTIMES, {})
     websocket_api.async_register_command(hass, websocket_list_dashboards)
     websocket_api.async_register_command(hass, websocket_get_dashboard)
     websocket_api.async_register_command(hass, websocket_create_dashboard)
     websocket_api.async_register_command(hass, websocket_replace_dashboard)
     websocket_api.async_register_command(hass, websocket_delete_dashboard)
-    setattr(hass, DATA_WEBSOCKET_REGISTERED, True)
+    domain_data[DATA_WEBSOCKET_REGISTERED] = True
 
 
 def _send_error(
@@ -99,7 +101,7 @@ def _runtime_for_entry(
         return None, ERR_ENTRY_NOT_FOUND
 
     domain_data = hass.data.get(DOMAIN, {})
-    runtime = domain_data.get(entry_id)
+    runtime = domain_data.get(DATA_RUNTIMES, {}).get(entry_id)
     if runtime is None or getattr(entry, "runtime_data", None) is None:
         return None, ERR_ENTRY_NOT_LOADED
     if runtime is not entry.runtime_data:

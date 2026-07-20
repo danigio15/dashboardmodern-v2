@@ -8,7 +8,7 @@ import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.dashboardmodern.const import DOMAIN
+from custom_components.dashboardmodern.const import DATA_RUNTIMES, DOMAIN
 from custom_components.dashboardmodern.persistence.storage import (
     HomeAssistantDashboardRepository,
 )
@@ -41,7 +41,7 @@ async def test_setup_entry_creates_one_runtime_per_entry(
     await hass.async_block_till_done()
 
     assert entry.runtime_data is not None
-    assert hass.data[DOMAIN][entry.entry_id] is entry.runtime_data
+    assert hass.data[DOMAIN][DATA_RUNTIMES][entry.entry_id] is entry.runtime_data
     assert entry.runtime_data.repository is repository
     assert entry.runtime_data.application.repository is repository
     assert entry.runtime_data.application.registry is entry.runtime_data.dashboards
@@ -63,7 +63,10 @@ async def test_setup_loads_persisted_dashboards(hass: HomeAssistant) -> None:
     await hass.async_block_till_done()
 
     assert entry.runtime_data.dashboards.list() == (item,)
-    assert entry.runtime_data.repository is hass.data[DOMAIN][entry.entry_id].repository
+    assert (
+        entry.runtime_data.repository
+        is hass.data[DOMAIN][DATA_RUNTIMES][entry.entry_id].repository
+    )
     assert entry.runtime_data.application.registry is entry.runtime_data.dashboards
     assert entry.runtime_data.application.repository is entry.runtime_data.repository
 
@@ -120,7 +123,7 @@ async def test_unload_entry_clears_runtime_data(
     await hass.async_block_till_done()
 
     assert entry.runtime_data is None
-    assert DOMAIN not in hass.data
+    assert entry.entry_id not in hass.data[DOMAIN][DATA_RUNTIMES]
 
 
 @pytest.mark.asyncio
@@ -147,5 +150,5 @@ async def test_unload_one_entry_preserves_another_runtime(
     await hass.async_block_till_done()
 
     assert first.runtime_data is None
-    assert second.runtime_data is hass.data[DOMAIN][second.entry_id]
-    assert first.entry_id not in hass.data[DOMAIN]
+    assert second.runtime_data is hass.data[DOMAIN][DATA_RUNTIMES][second.entry_id]
+    assert first.entry_id not in hass.data[DOMAIN][DATA_RUNTIMES]
