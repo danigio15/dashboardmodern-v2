@@ -3,6 +3,7 @@ import { HOME_SUMMARY_TYPE, defaultHomeSummaryConfig, renderHomeSummaryCard, ren
 import { WEATHER_CURRENT_TYPE, WEATHER_FORECAST_TYPE, defaultWeatherCurrentConfig, defaultWeatherForecastConfig, renderWeatherCurrentCard, renderWeatherCurrentEditor, renderWeatherForecastCard, renderWeatherForecastEditor, validateWeatherCurrentConfig, validateWeatherForecastConfig } from "./weather.js";
 import { BATTERY_STATUS_TYPE, ENERGY_FLOWS_TYPE, ENERGY_OVERVIEW_TYPE, GRID_STATUS_TYPE, SOLAR_PRODUCTION_TYPE, defaultBatteryStatusConfig, defaultEnergyFlowsConfig, defaultEnergyOverviewConfig, defaultGridStatusConfig, defaultSolarProductionConfig, renderBatteryStatusCard, renderBatteryStatusEditor, renderEnergyFlowsCard, renderEnergyFlowsEditor, renderEnergyOverviewCard, renderEnergyOverviewEditor, renderGridStatusCard, renderGridStatusEditor, renderSolarProductionCard, renderSolarProductionEditor, validateBatteryStatusConfig, validateEnergyFlowsConfig, validateEnergyOverviewConfig, validateGridStatusConfig, validateSolarProductionConfig } from "./energy.js";
 import { el, emptyState } from "../render/dom.js";
+import { CLIMATE_CONTROL_TYPE, COVER_CONTROL_TYPE, LIGHT_CONTROL_TYPE, SENSOR_STATUS_TYPE, SWITCH_CONTROL_TYPE, defaultClimateControlConfig, defaultCoverControlConfig, defaultLightControlConfig, defaultSensorStatusConfig, defaultSwitchControlConfig, renderClimateControlCard, renderClimateControlEditor, renderCoverControlCard, renderCoverControlEditor, renderLightControlCard, renderLightControlEditor, renderSensorStatusCard, renderSensorStatusEditor, renderSwitchControlCard, renderSwitchControlEditor, validateClimateControlConfig, validateCoverControlConfig, validateLightControlConfig, validateSensorStatusConfig, validateSwitchControlConfig } from "./device-controls.js";
 
 export function assertCardDefinition(definition) {
   if (!definition || typeof definition !== "object") throw new Error("Card definition is required.");
@@ -40,6 +41,11 @@ export function registerBuiltInCardTypes(registry) {
   registry.register({ type: BATTERY_STATUS_TYPE, displayName: "Battery status", renderer: renderBatteryStatusCard, editor: renderBatteryStatusEditor, defaultConfig: defaultBatteryStatusConfig, validateConfig: validateBatteryStatusConfig });
   registry.register({ type: SOLAR_PRODUCTION_TYPE, displayName: "Solar production", renderer: renderSolarProductionCard, editor: renderSolarProductionEditor, defaultConfig: defaultSolarProductionConfig, validateConfig: validateSolarProductionConfig });
   registry.register({ type: GRID_STATUS_TYPE, displayName: "Grid status", renderer: renderGridStatusCard, editor: renderGridStatusEditor, defaultConfig: defaultGridStatusConfig, validateConfig: validateGridStatusConfig });
+  registry.register({ type: CLIMATE_CONTROL_TYPE, displayName: "Climate control", renderer: renderClimateControlCard, editor: renderClimateControlEditor, defaultConfig: defaultClimateControlConfig, validateConfig: validateClimateControlConfig });
+  registry.register({ type: LIGHT_CONTROL_TYPE, displayName: "Light control", renderer: renderLightControlCard, editor: renderLightControlEditor, defaultConfig: defaultLightControlConfig, validateConfig: validateLightControlConfig });
+  registry.register({ type: SWITCH_CONTROL_TYPE, displayName: "Switch control", renderer: renderSwitchControlCard, editor: renderSwitchControlEditor, defaultConfig: defaultSwitchControlConfig, validateConfig: validateSwitchControlConfig });
+  registry.register({ type: COVER_CONTROL_TYPE, displayName: "Cover control", renderer: renderCoverControlCard, editor: renderCoverControlEditor, defaultConfig: defaultCoverControlConfig, validateConfig: validateCoverControlConfig });
+  registry.register({ type: SENSOR_STATUS_TYPE, displayName: "Sensor status", renderer: renderSensorStatusCard, editor: renderSensorStatusEditor, defaultConfig: defaultSensorStatusConfig, validateConfig: validateSensorStatusConfig });
   return registry;
 }
 
