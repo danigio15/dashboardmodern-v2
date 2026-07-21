@@ -23,6 +23,7 @@ export class DashboardModernPanel extends HTMLElement {
 
   set hass(value) {
     this._hass = value;
+    if (this.store) this.store.setState({ hass: value });
     this.bootstrap();
   }
 
@@ -46,7 +47,7 @@ export class DashboardModernPanel extends HTMLElement {
           return selectedEntryId;
         },
       });
-      bindDashboardModernApp(container, this.store);
+      bindDashboardModernApp(container, this.store, { hass: this._hass });
     } catch (error) {
       const fallback = new DashboardModernStore({}, { entryIdResolver: async () => null });
       fallback.setError("dashboardmodern_error", error.message);
