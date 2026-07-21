@@ -1,5 +1,5 @@
 import * as commands from "./commands.js";
-import { clearEditorState, enterEditor, markDraft, validateDraft } from "./editor-state.js";
+import { clearEditorState, enterEditor, hasBlockingLocalErrors, markDraft, validateDraft } from "./editor-state.js";
 
 export class EditorController {
   constructor(store, { idGenerator = commands.createIdGenerator("editor"), confirmUnsaved = async () => true } = {}) {
@@ -106,7 +106,7 @@ export class EditorController {
       const validationErrors = (this.state.validationErrors || []).filter((error) => error.field !== field);
       this.store.setState({ editor: { ...this.state, fieldText, validationErrors } });
     } catch (error) {
-      this.store.setState({ editor: { ...this.state, fieldText: { ...this.state.fieldText, [field]: text }, validationErrors: [...(this.state.validationErrors || []).filter((item) => item.field !== field), { field, message: error.message }] } });
+      this.store.setState({ editor: { ...this.state, dirty: true, fieldText: { ...this.state.fieldText, [field]: text }, validationErrors: [...(this.state.validationErrors || []).filter((item) => item.field !== field), { field, message: error.message }] } });
     }
   }
 
@@ -128,6 +128,7 @@ export class EditorController {
 
   async save() {
     if (this.state?.saving) return false;
+    if (hasBlockingLocalErrors(this.state)) return false;
     const validationErrors = validateDraft(this.state.draftDashboard);
     if (validationErrors.length) {
       this.store.setState({ editor: { ...this.state, validationErrors } });

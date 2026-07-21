@@ -42,3 +42,5 @@ The application default unsaved-change guard now asks before discarding dirty dr
 The editor preserves field focus, selection, and caret position across draft-driven rerenders by assigning stable semantic field identifiers. Invalid Card config text is retained locally in the config textarea while the previous valid draft config remains unchanged, so users can correct JSON without losing their input.
 
 Invalid Card config text is retained per card across unrelated editor changes and selection changes. The stale local text/error is cleared when the config is corrected, the card is deleted, editing is cancelled, or a save succeeds.
+
+Save is disabled while unresolved local editor validation errors exist, including invalid Card config text that has not yet been corrected to a JSON object. The editor will not persist the previous valid config while invalid config text is visible.

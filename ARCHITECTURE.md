@@ -508,3 +508,5 @@ Editable controls carry stable semantic `data-editor-field` identifiers such as 
 Invalid Card config edits are kept as editor-local field text keyed by `card:<id>:config`. They remain visible across rerenders and do not replace the previous valid `draftDashboard.cards[].config` until the JSON parses to an object.
 
 Editor-local field state is preserved across unrelated draft updates. Invalid Card config text and its field-level validation error are retained per card across Dashboard, View, Section, Card title, Card type, and selection changes; they are cleared only when that config field is corrected, the related Card is deleted, editing is cancelled, or a save succeeds.
+
+Save is blocked while any unresolved local editor validation error or invalid Card config field override exists. In that state the editor does not call the WebSocket replace path, keeps the dirty draft and local field text/errors visible, and reserves `saveError` for backend persistence failures only.

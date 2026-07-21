@@ -11,7 +11,7 @@ class Node {
   replaceChildren(...items) { this.children = items; this._text = ""; }
   setAttribute(k, v) { this.attributes[k] = String(v); }
   addEventListener(type, fn) { this.listeners[type] = fn; }
-  click() { return this.listeners.click?.({ target: this }); }
+  click() { if (this.disabled) return undefined; return this.listeners.click?.({ target: this }); }
   focus() { globalThis.document.activeElement = this; }
   setSelectionRange(start, end) { this.selectionStart = start; this.selectionEnd = end; }
   get textContent() { return this._text + this.children.map((c) => c.textContent).join(""); }
@@ -165,6 +165,10 @@ function controlsByLabel(panel) {
 
 function fieldById(panel, fieldId) {
   return descendants(panel).find((node) => node.dataset?.editorField === fieldId);
+}
+
+function buttonByText(panel, text) {
+  return descendants(panel).find((node) => node.tagName === "button" && node.textContent === text);
 }
 
 function typeCharacters(container, fieldId, text) {
@@ -392,4 +396,53 @@ test("invalid Card config field state survives unrelated form edits until correc
   assert.equal(store.state.editor.fieldText["card:c1:config"], undefined);
   assert.equal(store.state.editor.validationErrors.some((error) => error.field === "card:c1:config"), false);
   assert.equal(JSON.stringify(store.state.activeDashboard), persistedBefore);
+});
+
+test("Save is blocked while invalid Card config text is visible and succeeds after correction", async () => {
+  let replaceCalls = 0;
+  const editable = {
+    ...dashboard,
+    views: [{ id: "one", title: "One", section_ids: ["s1"] }],
+    sections: [{ id: "s1", title: "Section", card_ids: ["c1"] }],
+    cards: [{ id: "c1", title: "Card", type: "unknown", config: { old: true } }],
+  };
+  const api = {
+    listDashboards: async () => [editable],
+    getDashboard: async () => editable,
+    replaceDashboard: async (_entryId, draft) => { replaceCalls += 1; return draft; },
+  };
+  const store = new DashboardModernStore(api, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true, confirmUnsaved: async () => true });
+  container.actions.edit.click();
+  store.setState({ editor: { ...store.state.editor, selectedNode: { dashboardId: "dash", viewId: "one", sectionId: "s1", cardId: "c1" } } });
+  const previousConfig = store.state.editor.draftDashboard.cards[0].config;
+
+  let configField = fieldById(container.visualEditor, "card:c1:config");
+  configField.value = "[";
+  configField.setSelectionRange(1, 1);
+  configField.listeners.input();
+
+  let save = buttonByText(container.visualEditor, "Save");
+  assert.equal(save.disabled, true);
+  await save.click();
+  assert.equal(replaceCalls, 0);
+  assert.equal(store.state.mode, "edit");
+  assert.equal(store.state.editor.dirty, true);
+  assert.equal(fieldById(container.visualEditor, "card:c1:config").value, "[");
+  assert.equal(store.state.editor.draftDashboard.cards[0].config, previousConfig);
+  assert.equal(store.state.editor.validationErrors.some((error) => error.field === "card:c1:config"), true);
+
+  configField = fieldById(container.visualEditor, "card:c1:config");
+  configField.value = '{"new":true}';
+  configField.setSelectionRange(configField.value.length, configField.value.length);
+  configField.listeners.input();
+  save = buttonByText(container.visualEditor, "Save");
+  assert.equal(save.disabled, false);
+  await save.click();
+  assert.equal(replaceCalls, 1);
+  assert.equal(store.state.mode, "visual");
+  assert.equal(store.state.editor.draftDashboard, null);
+  assert.deepEqual(store.state.editor.fieldText, {});
+  assert.deepEqual(store.state.editor.validationErrors, []);
 });

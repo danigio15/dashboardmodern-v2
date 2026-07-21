@@ -43,6 +43,10 @@ function duplicateReferences(values = []) {
   });
 }
 
+export function hasBlockingLocalErrors(editor) {
+  return Boolean((editor?.validationErrors || []).length || Object.keys(editor?.fieldText || {}).length);
+}
+
 export function validateDraft(draft) {
   const errors = [];
   if (!draft || typeof draft !== "object" || Array.isArray(draft)) {

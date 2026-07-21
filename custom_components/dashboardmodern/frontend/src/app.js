@@ -2,6 +2,7 @@ import { createDashboardModernClient } from "./ws-client.js";
 import { DashboardModernStore, EMPTY_DASHBOARD } from "./state.js";
 import { renderDashboard } from "./render/dashboard-renderer.js";
 import { EditorController } from "./editor/editor-controller.js";
+import { hasBlockingLocalErrors } from "./editor/editor-state.js";
 import { renderCardForm } from "./editor/card-form.js";
 import { renderDashboardForm } from "./editor/dashboard-form.js";
 import { renderSectionForm } from "./editor/section-form.js";
@@ -108,7 +109,7 @@ export function renderEditor(container, state) {
   visual.hidden = state.mode === "debug";
   for (const action of container.querySelectorAll?.("[data-debug-action]") || []) {
     action.hidden = state.mode !== "debug";
-    action.disabled = state.mode !== "debug" || Boolean(state.editor?.saving);
+    action.disabled = state.mode !== "debug" || Boolean(state.editor?.saving) || hasBlockingLocalErrors(state.editor);
   }
   const editor = container.querySelector("[data-dashboard-editor]");
   if (document.activeElement !== editor) {
@@ -219,7 +220,7 @@ export function renderVisualEditor(container, state, editorController) {
   for (const error of state.editor.validationErrors || []) { const p = doc.createElement("p"); p.dataset.kind="error"; p.textContent = error.message; panel.append(p); }
   panel.append(renderDashboardForm(doc, draft, editorController));
   const addView = doc.createElement("button"); addView.type="button"; addView.textContent="Add view"; addView.addEventListener("click", () => editorController.addView()); panel.append(addView);
-  const save = doc.createElement("button"); save.type="button"; save.textContent="Save"; save.disabled = Boolean(state.editor.saving); save.addEventListener("click", () => editorController.save()); panel.append(save);
+  const save = doc.createElement("button"); save.type="button"; save.textContent="Save"; save.disabled = Boolean(state.editor.saving) || hasBlockingLocalErrors(state.editor); save.addEventListener("click", () => editorController.save()); panel.append(save);
   const cancel = doc.createElement("button"); cancel.type="button"; cancel.textContent="Cancel"; cancel.addEventListener("click", () => editorController.cancel()); panel.append(cancel);
   const selectedView = (draft.views || []).find((view) => view.id === state.editor.selectedNode.viewId) || null;
   const selectedSection = (draft.sections || []).find((section) => section.id === state.editor.selectedNode.sectionId) || null;
