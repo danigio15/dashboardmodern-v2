@@ -140,7 +140,7 @@ export class EditorController {
         this.store.setState({ editor: { ...this.state, debugText: text, debugError: validationErrors[0].message, validationErrors } });
         return false;
       }
-      this.store.setState({ editor: { ...markDraft(this.state, draft), debugText: text, debugError: null } });
+      this.store.setState({ editor: { ...markDraft(this.state, draft), debugText: text, debugError: null, validationErrors: [], fieldText: {} } });
       return true;
     } catch (error) {
       this.store.setState({ editor: { ...this.state, debugText: text, debugError: error.message } });
