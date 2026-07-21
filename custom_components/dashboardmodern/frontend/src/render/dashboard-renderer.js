@@ -1,15 +1,6 @@
+import { validViews } from "../presentation/view-selection.js";
 import { renderView } from "./view-renderer.js";
 import { el, emptyState } from "./dom.js";
-
-export function validViews(dashboard) {
-  return Array.isArray(dashboard?.views) ? dashboard.views.filter((view) => view?.id) : [];
-}
-
-export function selectActiveViewId(dashboard, previousActiveViewId = null) {
-  const views = validViews(dashboard);
-  if (previousActiveViewId && views.some((view) => view.id === previousActiveViewId)) return previousActiveViewId;
-  return views[0]?.id || null;
-}
 
 export function renderDashboard(container, state, { hass } = {}) {
   container.replaceChildren();

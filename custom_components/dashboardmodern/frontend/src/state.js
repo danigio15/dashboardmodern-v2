@@ -1,5 +1,5 @@
 import { DashboardModernApiError } from "./ws-client.js";
-import { selectActiveViewId } from "./render/dashboard-renderer.js";
+import { selectActiveViewId } from "./presentation/view-selection.js";
 
 export const EMPTY_DASHBOARD = Object.freeze({
   id: "new-dashboard",

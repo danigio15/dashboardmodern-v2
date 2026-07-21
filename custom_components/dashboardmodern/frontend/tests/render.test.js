@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { renderDashboard, selectActiveViewId } from "../src/render/dashboard-renderer.js";
+import { renderDashboard } from "../src/render/dashboard-renderer.js";
 import { renderCard } from "../src/render/card-renderer.js";
+import { selectActiveViewId } from "../src/presentation/view-selection.js";
 
 class Node {
   constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.dataset = {}; this.hidden = false; this._text = ""; }
@@ -67,9 +68,11 @@ test("empty dashboard view and section states render", () => {
   assert.match(root.textContent, /no cards/i);
 });
 
-test("malformed card and entity state update render locally", () => {
+test("malformed cards are isolated and open config displays only keys", () => {
   assert.match(renderCard(null).textContent, /Malformed card/);
-  const card = { id: "e", title: "Temp", type: "entity", config: { entity_id: "sensor.temp" } };
-  assert.match(renderCard(card, { hass: { states: { "sensor.temp": { state: "72", attributes: { unit_of_measurement: "°F" } } } } }).textContent, /72 °F/);
-  assert.match(renderCard(card, { hass: { states: { "sensor.temp": { state: "73", attributes: { unit_of_measurement: "°F" } } } } }).textContent, /73 °F/);
+  const card = { id: "e", title: "Open", type: "entity", config: { entity_id: "sensor.temp", message: "Hi" } };
+  const rendered = renderCard(card);
+  assert.match(rendered.textContent, /Card type: entity/);
+  assert.match(rendered.textContent, /Configuration keys: entity_id, message/);
+  assert.doesNotMatch(rendered.textContent, /sensor.temp|Hi/);
 });

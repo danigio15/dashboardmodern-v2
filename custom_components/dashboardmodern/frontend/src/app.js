@@ -14,8 +14,8 @@ export function createDashboardModernShell(root, entryIds = []) {
         <div class="dashboardmodern-actions">
           <button type="button" data-action="mode-visual">Dashboard</button>
           <button type="button" data-action="mode-debug">Debug JSON</button>
-          <button type="button" data-action="create">Create</button>
-          <button type="button" data-action="save">Save</button>
+          <button type="button" data-action="create" data-debug-action>Create</button>
+          <button type="button" data-action="save" data-debug-action>Save</button>
           <button type="button" data-action="delete">Delete</button>
         </div>
       </header>
@@ -92,11 +92,15 @@ function renderDashboardList(container, state, store) {
   list.append(wrapper);
 }
 
-function renderEditor(container, state) {
+export function renderEditor(container, state) {
   const panel = container.querySelector("[data-debug-panel]");
   const visual = container.querySelector("[data-dashboard-visual]");
   panel.hidden = state.mode !== "debug";
   visual.hidden = state.mode === "debug";
+  for (const action of container.querySelectorAll?.("[data-debug-action]") || []) {
+    action.hidden = state.mode !== "debug";
+    action.disabled = state.mode !== "debug";
+  }
   const editor = container.querySelector("[data-dashboard-editor]");
   if (document.activeElement !== editor) {
     editor.value = state.activeDashboard ? JSON.stringify(state.activeDashboard, null, 2) : "";
@@ -118,16 +122,24 @@ function dashboardFromEditor(container, store, action) {
   if (dashboard) action(dashboard).then(() => store.setMode("visual"));
 }
 
+export function renderVisualDashboard(container, state, store, { hass = null, renderer = renderDashboard } = {}) {
+  try {
+    renderer(container.querySelector("[data-dashboard-visual]"), state, { hass: state.hass || hass });
+    if (state.renderError) store.setState({ renderError: null });
+  } catch (error) {
+    const renderError = { code: "render_error", message: `${error.message} (render_error)` };
+    if (state.renderError?.code !== renderError.code || state.renderError?.message !== renderError.message) {
+      store.setState({ renderError });
+    }
+  }
+}
+
 export function bindDashboardModernApp(container, store, { initialize = true, hass = null } = {}) {
   store.subscribe((state) => {
     renderStatus(container, state);
     renderDashboardList(container, state, store);
     renderEditor(container, state);
-    try {
-      renderDashboard(container.querySelector("[data-dashboard-visual]"), state, { hass: state.hass || hass });
-    } catch (error) {
-      store.setRenderError("render_error", error.message);
-    }
+    renderVisualDashboard(container, state, store, { hass });
   });
   container.querySelector('[data-action="mode-visual"]').addEventListener("click", () => store.setMode("visual"));
   container.querySelector('[data-action="mode-debug"]').addEventListener("click", () => store.setMode("debug"));
