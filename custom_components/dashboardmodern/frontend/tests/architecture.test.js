@@ -30,3 +30,14 @@ test("editor modules make no raw websocket, Lovelace, YAML, Store, or DOM depend
     assert.doesNotMatch(source, /sendMessagePromise|new WebSocket|fetch\(|lovelace|yaml|home assistant store|json store|querySelector|innerHTML/i, module);
   }
 });
+
+test("visual editor uses dedicated selected-node form modules", async () => {
+  const source = await readFile("custom_components/dashboardmodern/frontend/src/app.js", "utf8");
+  assert.match(source, /renderDashboardForm/);
+  assert.match(source, /renderViewForm/);
+  assert.match(source, /renderSectionForm/);
+  assert.match(source, /renderCardForm/);
+  for (const forbidden of [/View title.*updateView/s, /Section title.*updateSection/s, /Card title.*updateCard/s, /Card config JSON.*updateCardConfig/s]) {
+    assert.doesNotMatch(source, forbidden);
+  }
+});

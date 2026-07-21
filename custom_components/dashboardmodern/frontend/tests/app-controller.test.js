@@ -242,3 +242,28 @@ test("structured selected-node forms update draft only and keep unknown card typ
   assert.equal(store.state.editor.draftDashboard.cards[0].config, previousConfig);
   assert.match(store.state.editor.validationErrors[0].message, /JSON object/);
 });
+
+test("accepted production confirmation performs active dashboard deletion", async () => {
+  let deleteCalls = 0;
+  const api = {
+    listDashboards: async () => [dashboard],
+    getDashboard: async () => dashboard,
+    deleteDashboard: async () => { deleteCalls += 1; },
+  };
+  const originalWindow = globalThis.window;
+  let confirmations = 0;
+  globalThis.window = { confirm: () => { confirmations += 1; return true; } };
+  const store = new DashboardModernStore(api, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true });
+  container.actions.edit.click();
+  const titleInput = controlsByLabel(container.visualEditor)[0];
+  titleInput.value = "Dirty";
+  titleInput.listeners.input();
+
+  await container.actions.delete.click();
+  assert.equal(confirmations, 1);
+  assert.equal(deleteCalls, 1);
+  assert.equal(store.state.editor.draftDashboard, null);
+  globalThis.window = originalWindow;
+});
