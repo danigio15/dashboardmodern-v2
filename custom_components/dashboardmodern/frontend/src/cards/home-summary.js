@@ -16,6 +16,7 @@ const TEMPLATE_PATTERN = /\{\{|\}\}|\{%|%\}|<script|javascript:/i;
 export function defaultHomeSummaryConfig() { return { title: "Quadro Avvisi", items: DEFAULT_ITEMS.map((item) => ({ ...item })) }; }
 function isAccent(value) { return SUMMARY_ACCENTS.includes(value); }
 function cleanItem(item = {}, index = 0) { return { key: typeof item.key === "string" && item.key.trim() ? item.key : `item-${index + 1}`, label: typeof item.label === "string" ? item.label : "", entityId: typeof item.entityId === "string" ? item.entityId : "", icon: isIconId(item.icon) ? item.icon : "alert", accent: isAccent(item.accent) ? item.accent : "green", suffix: typeof item.suffix === "string" ? item.suffix : "", fallbackText: typeof item.fallbackText === "string" ? item.fallbackText : "—" }; }
+export function nextHomeSummaryItemKey(items = []) { const keys = new Set((Array.isArray(items) ? items : []).map((item) => item?.key).filter((key) => typeof key === "string")); let index = 1; while (keys.has(`item-${index}`)) index += 1; return `item-${index}`; }
 export function normalizeSummaryMetric(state, { locale = "it-IT", suffix = "", fallbackText = "—", missingConfig = false } = {}) {
   if (missingConfig) return { status: "missing-config", display: fallbackText, available: false };
   if (!state) return { status: "missing-entity", display: fallbackText, available: false };
@@ -40,9 +41,11 @@ export function validateHomeSummaryConfig(c = {}) {
   if (c.title !== undefined && typeof c.title !== "string") errors.push({ field: "config.title", message: "title must be a string." });
   if (!Array.isArray(c.items)) return [...errors, { field: "config.items", message: "items must be an array." }];
   if (c.items.length > HOME_SUMMARY_MAX_ITEMS) errors.push({ field: "config.items", message: `items can contain at most ${HOME_SUMMARY_MAX_ITEMS} entries.` });
+  const seenKeys = new Set();
   c.items.forEach((item, i) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) { errors.push({ field: `config.items.${i}`, message: "item must be an object." }); return; }
     for (const key of ["key", "label", "entityId"]) if (typeof item[key] !== "string" || !item[key].trim()) errors.push({ field: `config.items.${i}.${key}`, message: `${key} is required.` });
+    if (typeof item.key === "string" && item.key.trim()) { if (seenKeys.has(item.key)) errors.push({ field: `config.items.${i}.key`, message: "key must be unique." }); else seenKeys.add(item.key); }
     for (const key of ["key", "label", "entityId", "suffix", "fallbackText"]) if (item[key] !== undefined && typeof item[key] === "string" && TEMPLATE_PATTERN.test(item[key])) errors.push({ field: `config.items.${i}.${key}`, message: `${key} cannot contain templates or executable expressions.` });
     if (!isIconId(item.icon)) errors.push({ field: `config.items.${i}.icon`, message: `icon must be one of: ${ICON_IDS.join(", ")}.` });
     if (!isAccent(item.accent)) errors.push({ field: `config.items.${i}.accent`, message: `accent must be one of: ${SUMMARY_ACCENTS.join(", ")}.` });
@@ -71,7 +74,7 @@ export function renderHomeSummaryEditor(documentRef, card, controller, errors = 
   const items = Array.isArray(card.config?.items) ? card.config.items : [];
   form.append(textInput(documentRef, "Title", card.config?.title || "", (title) => controller.updateCardConfigPatch(card.id, { title }), `card:${card.id}:config.title`));
   items.forEach((item, index) => form.append(itemEditor(documentRef, card, controller, item, index, items.length)));
-  const add = documentRef.createElement("button"); add.type = "button"; add.textContent = "Add item"; add.addEventListener("click", () => patchItems(card, controller, [...items, { key: `item-${items.length + 1}`, label: "", entityId: "", icon: "alert", accent: "green", suffix: "", fallbackText: "—" }])); form.append(add);
+  const add = documentRef.createElement("button"); add.type = "button"; add.textContent = "Add item"; add.addEventListener("click", () => patchItems(card, controller, [...items, { key: nextHomeSummaryItemKey(items), label: "", entityId: "", icon: "alert", accent: "green", suffix: "", fallbackText: "—" }])); form.append(add);
   for (const error of errors) form.append(fieldError(documentRef, error.message));
   return form;
 }
@@ -80,13 +83,14 @@ export function renderHomeSummaryCard(card, runtime = {}) {
   const shell = el("article", { className: "dashboardmodern-card legacy-card dm-home-summary", attrs: { "data-card-kind": HOME_SUMMARY_TYPE } });
   shell.append(el("h3", { className: "section-title", text: c.title || card.title || "Quadro Avvisi" }));
   const grid = el("div", { className: "glance-grid" });
-  for (const item of normalizeHomeSummaryItems(runtime, c)) {
+  const items = normalizeHomeSummaryItems(runtime, c);
+  for (const item of items) {
     const gc = el("button", { className: "glance-card", attrs: { type: "button", "aria-label": `${item.label}: ${item.display}`, "data-status": item.status, "data-accent": item.accent } });
     gc.append(el("div", { className: "g-info" }, [el("span", { className: "g-name", text: item.label }), el("span", { className: "g-val", text: item.display })]));
     const iconWrap = el("div", { className: "g-icon-wrap anim-ping" }); iconWrap.append(renderIcon(item.icon, { label: item.label })); gc.append(iconWrap);
     if (item.available) gc.addEventListener("click", () => runtime.interactions?.openHistory?.(item.entityId, item.label));
     grid.append(gc);
   }
-  if (!normalizeHomeSummaryItems(runtime, c).length) grid.append(emptyState("Configura almeno un indicatore Home."));
+  if (!items.length) grid.append(emptyState("Configura almeno un indicatore Home."));
   shell.append(grid); return shell;
 }

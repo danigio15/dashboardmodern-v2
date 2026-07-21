@@ -48,8 +48,8 @@ Phase 10 intentionally implements a **Home and weather parity slice**. It does n
 
 ### Implemented in Phase 10
 
-- `weather-current` card plugin: legacy weather hero hierarchy, current temperature/condition/humidity/wind, controlled local SVG icon ids, unavailable/missing/malformed states, structured entity editor, validator, keyboard-accessible interaction adapter.
-- `weather-forecast` card plugin: legacy forecast row treatment using normalized `attributes.forecast`, configurable item count from 1–10, local SVG condition icons, fallback state when no forecast exists.
+- `weather-current` card plugin: legacy weather hero hierarchy, current temperature/condition/humidity/wind, controlled local SVG icon ids, empty production entity defaults, unavailable/missing/malformed states, complete structured option editor, validator, keyboard-accessible interaction adapter.
+- `weather-forecast` card plugin: legacy forecast row treatment using normalized `attributes.forecast`, empty production entity defaults, structured `showForecast` and integer forecast count controls from 1–10, local SVG condition icons, fallback state when no forecast exists.
 - `home-summary` card plugin: `Quadro Avvisi` heading, glance grid/card hierarchy, configurable metrics, controlled icon registry, controlled accent registry, pure metric normalization, structured item-row editor, and history adapter routing.
 - Runtime boundary: plugins use only injected runtime capabilities and do not import websocket client, store, persistence, domain, application service, migrations, or backend modules.
 
@@ -72,10 +72,10 @@ Phase 10 intentionally implements a **Home and weather parity slice**. It does n
 - [x] Dedicated `weather-forecast` plugin with controlled forecast rendering and safe count range of 1–10.
 - [x] Dedicated `home-summary` plugin for the `Quadro Avvisi` hierarchy instead of one generic whole-page card.
 - [x] Controlled local SVG icon ids; no remote icon URLs, emoji icons, arbitrary HTML, or persisted executable markup.
-- [x] Unknown/unavailable/missing/malformed weather states render distinct legacy-styled empty states without throwing.
+- [x] Unknown/unavailable/missing/malformed weather states render distinct legacy-styled empty states without throwing, and unknown conditions use the neutral controlled `alert` icon rather than a sunny icon.
 - [x] Home summary metric normalization handles numeric, decimal, zero, unknown, unavailable, malformed, and missing entity states without silently converting unavailable states to zero.
 - [x] Live metrics come only from configured entity ids through `getEntityState()` and are not persisted.
 - [x] Rendering does not call backend, ws-client, store, persistence, domain, application service, or `runtime.hass`.
 - [x] Legacy desktop/tablet/mobile/dark/reduced-motion styling added to existing CSS modules.
-- [x] Structured editors and plugin validators cover required entity ids, stable item keys, labels, controlled icons, controlled accents, booleans, forecast count, strings, and executable-template rejection.
+- [x] Structured editors and plugin validators cover empty required entity defaults, required entity ids, unique stable item keys, labels, controlled icons, controlled accents, booleans, integer forecast count, strings, and executable-template rejection.
 - [x] Frontend tests cover default configs, missing required ids blocking Save, icon registry safety, remote icon rejection, normalizers, unavailable states, structured item editor operations, Advanced JSON validation, correction enabling Save, activeDashboard immutability before Save, render/backend boundaries, no iframe/arbitrary HTML, and safe text rendering.
