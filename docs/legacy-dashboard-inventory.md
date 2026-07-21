@@ -1,47 +1,56 @@
-# Legacy Dashboard Inventory — Phase 9
+# Legacy dashboard inventory
 
-Source of truth inspected: `danigio15/dashboardmodern/dashboard.html` at the repository root of the legacy project. This document summarizes structure and migration targets without copying the full legacy file.
+## Phase 10 — Home and Weather parity
 
-## Inventory
+Source inspected: `danigio15/dashboardmodern/dashboard.html` at `/tmp/dashboardmodern-legacy/dashboard.html`. The legacy repository was cloned read-only for inspection and was not modified.
 
-| Area | Classification | Legacy notes | Migration target |
-| --- | --- | --- | --- |
-| Global app shell | visual-only / navigation | Single-page smart-home dashboard with animated mesh-like background, centered content, large rounded surfaces, pills, tabs, and responsive mobile viewport constraints. | `AppShell`, design tokens, shell CSS. |
-| Header | visual-only | Brand/title area with high-contrast display typography and status/action affordances. | DashboardModern shell header. |
-| Home Assistant sidebar/menu button | navigation | Explicit HA menu boundary/launcher affordance rather than a generic admin sidebar. | Shell menu boundary placeholder; no legacy iframe. |
-| Connection status | infrastructure/debug | WebSocket status and debug panel updates surface connection state. | Runtime context connection status pill. |
-| Horizontal section navigation | navigation | Tab-like horizontal sections with active state and mobile overflow. | Persisted `Dashboard.views` as tabs. |
-| Home page | entity-state display / interactive control | Weather, quick status, presence, climate, lights, summary cards. | Phase 10 cards. |
-| Energy page | entity-state display / chart/history | Solar, grid, battery, power flow, consumption summaries and charts. | Phase 11 energy cards and history adapters. |
-| Rooms/devices pages | entity-state display / interactive control | Room tiles, lights, switches, covers, scenes, climate controls. | Phase 12 control cards. |
-| EV/charging page | entity-state display / interactive control | Charger state, charging targets, EV telemetry and service calls. | Phase 13 EV cards. |
-| Security/camera page | media/camera / interactive control | Alarm/security state, camera streams, HLS lifecycle, popups. | Phase 14 media and security cards. |
-| Server/appliance pages | entity-state display / infrastructure/debug | Server metrics, appliances, diagnostics and remaining detailed panels. | Phase 15 cards. |
-| Entity reads | entity-state display | Many `hass.states[...]` / entity id reads are embedded in page rendering functions. | Injected runtime context entity accessor. |
-| Service calls | interactive control | Calls through HA WebSocket/service adapter for lights, switches, covers, climate, EV and security actions. | Runtime service-call adapter; no calls in Phase 9 static card. |
-| Charts | chart/history | Chart.js runtime dependency used for history and energy visualizations. | Later chart plugin using injected history/runtime APIs. |
-| Camera/HLS behavior | media/camera | HLS.js/camera stream setup, teardown and modal viewing behavior. | Later media plugin with explicit lifecycle. |
-| Dialogs/popups | interactive control | Modal panels for details, confirmations, camera, debug and settings-like interactions. | Dialog primitives in later phases. |
-| History interactions | chart/history | History fetching and graph updates for energy/sensors. | Later history adapter behind runtime boundary. |
-| Responsive/mobile behavior | visual-only | Mobile-first viewport settings, horizontally scrollable tabs, condensed controls. | `responsive.css` and shell/nav structure. |
-| Theme/dark mode | visual-only | Dark-compatible visual language with light sculpted cards and semantic colors. | CSS custom properties in token layer. |
-| Third-party runtime deps | infrastructure/debug | Google Fonts (Inter, Oswald, Share Tech Mono), Chart.js, HLS.js and optional local `config.js`. | Fonts degrade gracefully; Chart/HLS deferred to later plugins. |
-| Global JavaScript state | infrastructure/debug | Large global state for HA connection, entity cache, charts, streams, tabs, popups and debug. | Decompose into runtime context, plugins and application service boundaries. |
-| Functions to decompose | infrastructure/debug | Connection bootstrap, entity update/render functions, service helpers, chart lifecycle, HLS lifecycle, dialog handlers, tab navigation and debug updating. | Incremental component/plugin migration. |
+### Home DOM and widget hierarchy
 
-## Migration matrix
+- `section#page-home.page.active`
+  - `div.weather-widget` clickable via `apriMeteo()`.
+    - `div.w-left` → `div#w-icon.w-icon`, `div.w-temp-wrap`, `span#w-temp.w-temp`, `span#w-state.w-state`.
+    - `div.w-right` → two `div.w-detail` rows for humidity and wind.
+  - `div#dashboard-pills-row.dashboard-pills-row` containing the conditional boiler and alarm pills.
+  - `h3.section-title` with `Quadro Avvisi`.
+  - `div#glance-grid.glance-grid` containing hidden-until-active alert cards: lights, climate, heating, openings, low batteries, plus a custom wrapper.
+  - `h3.section-title` with `Azioni Rapide Premium` and generated quick actions.
 
-| Legacy feature | Source location | Proposed component/plugin | Required card config | HA runtime dependency | Migration phase | Parity status |
-| --- | --- | --- | --- | --- | --- | --- |
-| Shell/background/header | `dashboard.html` document shell and CSS | App shell + design system | Dashboard title/description | Connection status only | 9 | Foundation implemented |
-| Section tabs | navigation handlers/classes | View tab renderer | Persisted `View` titles/order | None | 9 | Foundation implemented |
-| Generic legacy panel surface | card CSS primitives | `legacy-panel` | `subtitle`, `status`, `accent`, `body` | Injected context only | 9 | Foundation implemented |
-| Weather/home summary | home render functions | Weather/home cards | Entity ids, labels, units | Entity reads | 10 | Planned |
-| Energy flow | energy render/chart functions | Energy flow card | Solar/grid/battery entity ids | Entity reads/history | 11 | Planned |
-| Consumption charts | Chart.js setup/update | History chart card | Series definitions | History API | 11/15 | Planned |
-| Room controls | room/device handlers | Room/device control cards | Entity ids/actions | Entity reads/service calls | 12 | Planned |
-| EV charging | EV controls/functions | EV charging cards | Charger/vehicle entities | Entity reads/service calls | 13 | Planned |
-| Alarm/security | security handlers | Security card | Alarm/camera entities | Entity reads/service calls | 14 | Planned |
-| Camera streams | HLS/camera modal functions | Camera/HLS card | Camera entity/stream options | Stream URL + HLS runtime | 14 | Planned |
-| Server/appliance diagnostics | server/appliance sections | Diagnostic/appliance cards | Metric entity ids | Entity reads/history | 15 | Planned |
-| Debug panel | debug functions | Debug mode panel | None | Store/runtime status | 15 | Partial |
+### Weather data and fallback logic
+
+- Legacy weather resolves the first mapped state from `dm.core_055`, `weather.home`, then `dm.home_meteo`.
+- If required mapping is enabled and the weather state is unmapped, the widget is hidden; otherwise unavailable values render as `--`.
+- Current fields: state condition, `attributes.temperature`, `attributes.humidity`, `attributes.wind_speed`, and `last_updated` for freshness/debug contexts.
+- Forecast fields: `forecast[].datetime`, `forecast[].condition`, `forecast[].templow`, `forecast[].temperature`, and hourly `forecast[].precipitation`.
+- Forecast retrieval first calls `weather.get_forecasts` with `daily`; if that fails, legacy falls back to state `attributes.forecast`, then hourly-derived daily samples.
+
+### Icons and labels
+
+- Controlled condition map: `clear-night` 🌙, `cloudy` ☁️, `fog`/`hail` animated fog legacy treatment, `lightning`/`lightning-rainy` ⛈️, `partlycloudy` ⛅, `pouring`/`rainy` 🌧️, `snowy` ❄️, `snowy-rainy` 🌨️, `sunny` ☀️, `windy`/`windy-variant` 💨.
+- Italian labels: Sereno (Notte), Nuvoloso, Nebbia, Grandine, Fulmini, Temporale, Poco Nuvoloso, Acquazzone, Pioggia, Neve, Nevischio, Soleggiato, Ventoso, Vento Forte.
+
+### Interactions and refresh behavior
+
+- Weather hero click opens the forecast modal; forecast day click opens hourly forecast. Phase 10 routes equivalent actions through the injected `runtime.interactions` adapter where available.
+- Glance cards call details/history helpers in legacy; Phase 10 routes entity history through `runtime.interactions.openHistory`.
+- Legacy updates on its global render after HA WebSocket state changes. Phase 10 cards read only live `getEntityState()` from the injected runtime and introduce no polling or backend render calls.
+
+### Layout, theme, animation, localization
+
+- Desktop: weather hero is a two-column flex card with sculpted radius/elevation; glance cards use an auto-fit grid with `minmax(190px, 1fr)`.
+- Tablet/mobile: weather padding/radius/type scales down and stacks compactly; glance cards reduce padding and radius.
+- Dark mode: weather uses a dark blue gradient and token-compatible borders/text.
+- Animations are restrained: rotating weather mesh, floating weather icon, glance pulse/scan, all disabled under reduced motion.
+- Legacy locale is Italian (`it-IT`) for weekday/day and weather labels; Phase 10 helpers accept runtime locale for number/date formatting while preserving legacy Italian condition labels.
+
+### Parity checklist
+
+- [x] Dedicated `weather-current` plugin with renderer, structured editor, defaults, validator, fallback renderer, legacy CSS, and narrow runtime access.
+- [x] Dedicated `weather-forecast` plugin with controlled forecast rendering and safe count range of 1–10.
+- [x] Dedicated `home-summary` plugin for the Quadro Avvisi hierarchy instead of one generic whole-page card.
+- [x] Controlled icon/label mapping; no remote icon URLs or persisted executable markup.
+- [x] Unknown/unavailable/malformed weather states render clear legacy-styled empty states without throwing.
+- [x] Live metrics come only from configured entity ids through `getEntityState()` and are not persisted.
+- [x] Rendering does not call backend, ws-client, store, persistence, domain, application service, or `runtime.hass`.
+- [x] Legacy desktop/tablet/mobile/dark/reduced-motion styling added to existing CSS modules.
+- [x] Structured editors and plugin validators cover required entity ids, booleans, forecast count, and strings.
+- [x] Frontend tests cover weather rendering, forecast rendering, unavailable/malformed states, icon mapping, locale formatting, home summary rendering, plugin validation, runtime state use, architecture boundaries, no iframe/arbitrary HTML, and safe text rendering.

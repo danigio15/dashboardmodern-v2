@@ -98,10 +98,10 @@ test("built-in registries are deterministic and compatibility renderer APIs repo
   const first = createDefaultCardRegistry();
   const second = createCardRegistry();
   registerBuiltInCardTypes(second);
-  assert.deepEqual(first.types(), ["legacy-panel"]);
-  assert.deepEqual(second.types(), ["legacy-panel"]);
+  assert.deepEqual(first.types(), ["home-summary", "legacy-panel", "weather-current", "weather-forecast"]);
+  assert.deepEqual(second.types(), ["home-summary", "legacy-panel", "weather-current", "weather-forecast"]);
   assert.throws(() => second.register({ type: "legacy-panel", displayName: "Duplicate", renderer: () => new Node("article") }), /already registered/);
   registerCardRenderer("compat-card", () => new Node("article"), second);
-  assert.deepEqual(cardRendererTypes(second), ["compat-card", "legacy-panel"]);
+  assert.deepEqual(cardRendererTypes(second), ["compat-card", "home-summary", "legacy-panel", "weather-current", "weather-forecast"]);
   assert.equal(renderCardWithRegistry({ id: "x", title: "X", type: "compat-card", config: {} }, {}, { registry: second }).tagName, "article");
 });

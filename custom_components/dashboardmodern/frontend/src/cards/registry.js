@@ -1,4 +1,6 @@
 import { renderLegacyPanelCard, renderLegacyPanelEditor, validateLegacyPanelConfig, LEGACY_PANEL_TYPE } from "./legacy-panel.js";
+import { HOME_SUMMARY_TYPE, defaultHomeSummaryConfig, renderHomeSummaryCard, renderHomeSummaryEditor, validateHomeSummaryConfig } from "./home-summary.js";
+import { WEATHER_CURRENT_TYPE, WEATHER_FORECAST_TYPE, defaultWeatherCurrentConfig, defaultWeatherForecastConfig, renderWeatherCurrentCard, renderWeatherCurrentEditor, renderWeatherForecastCard, renderWeatherForecastEditor, validateWeatherCurrentConfig, validateWeatherForecastConfig } from "./weather.js";
 import { el, emptyState } from "../render/dom.js";
 
 export function assertCardDefinition(definition) {
@@ -29,6 +31,9 @@ export function createCardRegistry() {
 
 export function registerBuiltInCardTypes(registry) {
   registry.register({ type: LEGACY_PANEL_TYPE, displayName: "Legacy panel", renderer: renderLegacyPanelCard, editor: renderLegacyPanelEditor, defaultConfig: () => ({ accent: "primary", subtitle: "", status: "", body: "" }), validateConfig: validateLegacyPanelConfig });
+  registry.register({ type: HOME_SUMMARY_TYPE, displayName: "Home summary", renderer: renderHomeSummaryCard, editor: renderHomeSummaryEditor, defaultConfig: defaultHomeSummaryConfig, validateConfig: validateHomeSummaryConfig });
+  registry.register({ type: WEATHER_CURRENT_TYPE, displayName: "Weather current", renderer: renderWeatherCurrentCard, editor: renderWeatherCurrentEditor, defaultConfig: defaultWeatherCurrentConfig, validateConfig: validateWeatherCurrentConfig });
+  registry.register({ type: WEATHER_FORECAST_TYPE, displayName: "Weather forecast", renderer: renderWeatherForecastCard, editor: renderWeatherForecastEditor, defaultConfig: defaultWeatherForecastConfig, validateConfig: validateWeatherForecastConfig });
   return registry;
 }
 
