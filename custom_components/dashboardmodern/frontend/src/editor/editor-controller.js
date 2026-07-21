@@ -1,4 +1,5 @@
 import { DEFAULT_CARD_REGISTRY, getCardType } from "../cards/registry.js";
+import { layoutPatch, validateCardLayout } from "../layout.js";
 import { replaceCardConfigErrors, validateRegisteredCardConfigs } from "./card-validation.js";
 import * as commands from "./commands.js";
 import { clearEditorState, enterEditor, hasBlockingLocalErrors, markDraft, validateDraft } from "./editor-state.js";
@@ -94,6 +95,20 @@ export class EditorController {
   moveSection(viewId, id, direction) { this.apply((draft) => commands.moveSection(draft, viewId, id, direction)); }
   addCard(sectionId) { this.apply((draft) => commands.addCard(draft, sectionId, {}, this.idGenerator), (draft) => ({ dashboardId: draft.id, viewId: this.state.selectedNode.viewId, sectionId, cardId: draft.cards.at(-1).id })); }
   updateCard(id, patch) { this.apply((draft) => commands.updateCard(draft, id, patch)); }
+  updateCardLayoutValue(id, breakpoint, field, rawValue) {
+    const value = rawValue === "" ? "" : Number(rawValue);
+    const card = this.state.draftDashboard.cards.find((item) => item.id === id);
+    const fullField = `card:${id}:layout.${breakpoint}.${field}`;
+    const result = layoutPatch(card?.layout, breakpoint, field, value);
+    if (result.error) {
+      this.store.setState({ editor: { ...this.state, dirty: true, validationErrors: [...(this.state.validationErrors || []).filter((error) => error.field !== fullField), { field: fullField, message: result.error.message }] } });
+      return false;
+    }
+    this.updateCard(id, result.patch);
+    const validationErrors = [...(this.state.validationErrors || []).filter((error) => !error.field?.startsWith(`card:${id}:layout`)), ...validateCardLayout(result.patch.layout, { cardId: id })];
+    this.store.setState({ editor: { ...this.state, validationErrors } });
+    return true;
+  }
   changeCardType(id, type) {
     const definition = getCardType(type, this.cardRegistry);
     this.updateCard(id, { type, config: this.state.draftDashboard.cards.find((card) => card.id === id)?.config || definition?.defaultConfig?.() || {} });
