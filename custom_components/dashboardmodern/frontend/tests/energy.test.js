@@ -247,5 +247,5 @@ test("activeDashboard remains unchanged until energy validation succeeds", async
 });
 
 test("built-in registry includes all Phase 11 energy plugins", () => {
-  assert.deepEqual(createDefaultCardRegistry().types(), ["battery-status", "climate-control", "cover-control", "energy-flows", "energy-overview", "grid-status", "home-summary", "legacy-panel", "light-control", "sensor-status", "solar-production", "switch-control", "weather-current", "weather-forecast"]);
+  assert.deepEqual(createDefaultCardRegistry().types(), ["battery-status", "camera-status", "climate-control", "cover-control", "energy-flows", "energy-overview", "fan-control", "grid-status", "home-summary", "legacy-panel", "light-control", "media-player-control", "sensor-status", "solar-production", "switch-control", "vacuum-control", "weather-current", "weather-forecast"]);
 });
