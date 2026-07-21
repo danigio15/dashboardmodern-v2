@@ -11,14 +11,16 @@ class Node {
   replaceChildren(...items) { this.children = items; this._text = ""; }
   setAttribute(k, v) { this.attributes[k] = String(v); }
   addEventListener(type, fn) { this.listeners[type] = fn; }
-  click() { if (this.disabled) return undefined; return this.listeners.click?.({ target: this }); }
+  click() { if (this.disabled) return undefined; return this.listeners.click?.({ target: this, preventDefault() {} }); }
+  keydown(key) { return this.listeners.keydown?.({ key, target: this, preventDefault() { this.defaultPrevented = true; } }); }
   focus() { globalThis.document.activeElement = this; }
   setSelectionRange(start, end) { this.selectionStart = start; this.selectionEnd = end; }
   get textContent() { return this._text + this.children.map((c) => c.textContent).join(""); }
   set textContent(v) { this._text = String(v); this.children = []; }
+  querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
   querySelectorAll(selector) {
     const out = [];
-    const match = (n) => selector === "[data-debug-action]" ? Object.hasOwn(n.dataset, "debugAction") : selector.startsWith("[data-view-id]") ? Object.hasOwn(n.dataset, "viewId") : n.tagName === selector;
+    const match = (n) => selector === "[data-debug-action]" ? Object.hasOwn(n.dataset, "debugAction") : selector === "[data-create-dashboard-action]" ? Object.hasOwn(n.dataset, "createDashboardAction") : selector === '[data-create-field="id"]' ? n.dataset.createField === "id" : selector.startsWith("[data-view-id]") ? Object.hasOwn(n.dataset, "viewId") : n.tagName === selector;
     const walk = (n) => { if (match(n)) out.push(n); for (const c of n.children) walk(c); };
     walk(this); return out;
   }
@@ -186,6 +188,91 @@ function typeCharacters(container, fieldId, text) {
   }
   return field;
 }
+
+function createFields(container) {
+  return Object.fromEntries(descendants(container.list).filter((node) => node.dataset?.createField).map((node) => [node.dataset.createField, node]));
+}
+
+function submitCreate(container) {
+  const form = descendants(container.list).find((node) => node.tagName === "form");
+  return form.listeners.submit({ preventDefault() {} });
+}
+
+test("empty dashboard state exposes accessible first-dashboard creation flow", async () => {
+  const calls = [];
+  const created = { id: "first", title: "First", views: [{ id: "first-view", title: "Main", section_ids: ["first-section"] }], sections: [{ id: "first-section", title: "Main", card_ids: ["first-card"] }], cards: [{ id: "first-card", title: "Welcome", type: "dashboardmodern-placeholder", config: {} }] };
+  const api = {
+    listDashboards: async () => calls.filter((call) => call[0] === "create").length ? [created] : [],
+    getDashboard: async (_entry, id) => { calls.push(["get", id]); return created; },
+    createDashboard: async (_entry, dash) => { calls.push(["create", dash]); return created; },
+  };
+  const store = new DashboardModernStore(api, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true, confirmUnsaved: async () => true });
+  assert.match(container.list.textContent, /No dashboards available/);
+  assert.match(container.list.textContent, /Create dashboard/);
+
+  buttonByText(container.list, "Create dashboard").click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(globalThis.document.activeElement.dataset.createField, "id");
+  submitCreate(container);
+  assert.match(container.list.textContent, /Dashboard ID is required/);
+  assert.match(container.list.textContent, /Dashboard title is required/);
+
+  let fields = createFields(container);
+  fields.id.value = " first "; fields.id.listeners.input();
+  fields.title.value = " First "; fields.title.listeners.input();
+  const firstSubmit = submitCreate(container);
+  const secondSubmit = submitCreate(container);
+  await Promise.all([firstSubmit, secondSubmit]);
+  assert.deepEqual(calls.filter((call) => call[0] === "create"), [["create", { id: "first", title: "First", views: [{ id: "first-view", title: "Main", section_ids: ["first-section"] }], sections: [{ id: "first-section", title: "Main", card_ids: ["first-card"] }], cards: [{ id: "first-card", title: "Welcome", type: "dashboardmodern-placeholder", config: {} }] }]]);
+  assert.deepEqual(calls.filter((call) => call[0] === "get"), [["get", "first"]]);
+  assert.equal(store.state.activeDashboardId, "first");
+  assert.equal(store.state.activeDashboard, created);
+  assert.equal(store.state.mode, "edit");
+});
+
+test("non-empty dashboard state omits empty-state creation prompt", async () => {
+  const store = new DashboardModernStore({ listDashboards: async () => [dashboard], getDashboard: async () => dashboard }, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true });
+  assert.equal(Boolean(buttonByText(container.list, "Create dashboard")), false);
+});
+
+test("create dashboard cancellation and Escape restore focus without state changes", async () => {
+  const store = new DashboardModernStore({ listDashboards: async () => [], getDashboard: async () => null }, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true });
+  const trigger = buttonByText(container.list, "Create dashboard");
+  trigger.click(); await new Promise((resolve) => setTimeout(resolve, 0));
+  createFields(container).id.value = "draft";
+  buttonByText(container.list, "Cancel").click();
+  assert.equal(globalThis.document.activeElement, trigger);
+  assert.equal(store.state.activeDashboardId, null);
+  trigger.click(); await new Promise((resolve) => setTimeout(resolve, 0));
+  descendants(container.list).find((node) => node.tagName === "form").keydown("Escape");
+  assert.equal(globalThis.document.activeElement, trigger);
+});
+
+test("create dashboard backend failures preserve form and avoid partial local state", async () => {
+  let attempts = 0;
+  const api = { listDashboards: async () => [], getDashboard: async () => { throw new Error("should not load"); }, createDashboard: async () => { attempts += 1; const error = new Error("duplicate"); error.code = attempts === 1 ? "dashboard_already_exists" : "dashboard_persistence_error"; throw error; } };
+  const store = new DashboardModernStore(api, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true });
+  buttonByText(container.list, "Create dashboard").click();
+  let fields = createFields(container); fields.id.value = "first"; fields.id.listeners.input(); fields.title.value = "First"; fields.title.listeners.input();
+  await submitCreate(container);
+  assert.match(container.list.textContent, /dashboard_already_exists/);
+  fields = createFields(container);
+  assert.equal(fields.id.value, "first");
+  assert.equal(fields.title.value, "First");
+  assert.equal(store.state.activeDashboardId, null);
+  assert.equal(store.state.activeDashboard, null);
+  await submitCreate(container);
+  assert.match(container.list.textContent, /dashboard_persistence_error/);
+  assert.equal(store.state.mode, "visual");
+});
 
 test("production default unsaved confirmation rejects and accepts guarded app actions", async () => {
   const other = { ...dashboard, id: "other", title: "Other" };
