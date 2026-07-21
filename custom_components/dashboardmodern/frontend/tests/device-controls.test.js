@@ -31,7 +31,7 @@ test("validators reject malformed, arrays, invalid booleans/numbers/enums and ex
 test("climate normalizes temperatures, units, humidity, bad states and interactions", () => {
   const r=rt({"climate.home":ent("heat",{current_temperature:"68",temperature:70,temperature_unit:"°F",current_humidity:45,hvac_action:"heating",hvac_modes:["off","heat"]})});
   const n=normalizeClimate(r,{entityId:"climate.home",temperatureStep:0.5});
-  assert.equal(n.unit,"°F"); assert.equal(n.humidity,45); assert.equal(n.target,70);
+  assert.equal(n.unit,"°F"); assert.equal(n.humidity.value,45); assert.equal(n.target.value,70);
   const card=renderClimateControlCard({title:"Thermostat",config:{entityId:"climate.home",temperatureStep:0.5}},r);
   assert.match(card.textContent,/68 °F/); assert.match(card.textContent,/Humidity 45 %/);
   card.querySelectorAll("button")[1].click(); assert.deepEqual(r.calls[0],["climate","set_temperature",{entity_id:"climate.home",temperature:70.5}]);
@@ -44,22 +44,26 @@ test("light and switch toggles, brightness boundaries and disabled unavailable s
   assert.equal(normalizeLight(r,{entityId:"light.kitchen"}).brightness,0);
   const light=renderLightControlCard({config:{entityId:"light.kitchen",showBrightness:true}},r); light.querySelectorAll("button")[0].click(); assert.equal(r.calls[0][1],"toggle");
   assert.equal(normalizeLight(rt({"light.bad":ent("on",{brightness:300})}),{entityId:"light.bad"}).brightnessStatus,"malformed");
+  assert.equal(renderLightControlCard({config:{entityId:"light.bad",showBrightness:true}},rt({"light.bad":ent("on",{brightness:300})})).attributes["data-status"],"malformed");
   const sw=renderSwitchControlCard({config:{entityId:"switch.fan",secondaryInfo:"none"}},r); sw.querySelectorAll("button")[0].click(); assert.equal(r.calls[1][0],"switch");
   const unavailable=renderLightControlCard({config:{entityId:"light.none",showBrightness:true}},rt()); assert.equal(unavailable.querySelectorAll("button")[0].disabled,true);
+  const noService=renderSwitchControlCard({config:{entityId:"switch.fan",secondaryInfo:"none"}},{locale:"en-US",getEntityState:id=>({state:"on",attributes:{}})}); assert.equal(noService.querySelectorAll("button")[0].disabled,true);
 });
 
 test("cover supports open close stop and valid optional position only", () => {
-  const r=rt({"cover.garage":ent("opening",{current_position:50})});
+  const r=rt({"cover.garage":ent("opening",{current_position:50,supported_features:11})});
   assert.equal(normalizeCover(r,{entityId:"cover.garage"}).position,50);
   const c=renderCoverControlCard({config:{entityId:"cover.garage",showPosition:true}},r); assert.match(c.textContent,/opening/); assert.match(c.textContent,/Position 50%/);
   c.querySelectorAll("button").forEach(b=>b.click()); assert.deepEqual(r.calls.map(c=>c[1]),["open_cover","close_cover","stop_cover"]);
   assert.equal(normalizeCover(rt({"cover.bad":ent("open",{current_position:101})}),{entityId:"cover.bad"}).position,null);
+  assert.equal(renderCoverControlCard({config:{entityId:"cover.position",showPosition:true}},rt({"cover.position":ent("open",{current_position:10,supported_features:4})})).querySelectorAll("button").length,0);
 });
 
 test("sensor is read only, preserves zero, and formats arbitrary units", () => {
   const s=renderSensorStatusCard({title:"Temp",config:{entityId:"sensor.temp",secondaryInfo:"none"}},rt({"sensor.temp":ent("0",{unit_of_measurement:"ppm"})}));
   assert.match(s.textContent,/0 ppm/); assert.equal(s.querySelectorAll("button").length,0);
   const u=renderSensorStatusCard({config:{entityId:"sensor.u",secondaryInfo:"none"}},rt({"sensor.u":ent("unknown",{unit_of_measurement:"W"})})); assert.match(u.textContent,/Unavailable/);
+  const changed=renderSensorStatusCard({config:{entityId:"sensor.changed",secondaryInfo:"last_changed"}},rt({"sensor.changed":{state:"1",last_changed:"2026-07-21T00:00:00Z",attributes:{}}})); assert.match(changed.textContent,/Last changed: 2026-07-21/);
 });
 
 test("structured editors expose only controlled plugin fields", () => {
