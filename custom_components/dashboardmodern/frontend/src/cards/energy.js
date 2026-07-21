@@ -99,14 +99,24 @@ function unitFromState(state, fallbackUnit) {
 
 function convertValue(value, sourceUnit, kind) {
   if (kind === "power") {
-    if (sourceUnit === "W") return { value: value / 1000, canonicalUnit: CANONICAL_POWER_UNIT };
-    if (sourceUnit === "kW") return { value, canonicalUnit: CANONICAL_POWER_UNIT };
+    if (sourceUnit === "W") {
+      return { value: value / 1000, canonicalUnit: CANONICAL_POWER_UNIT };
+    }
+    if (sourceUnit === "kW") {
+      return { value, canonicalUnit: CANONICAL_POWER_UNIT };
+    }
   }
   if (kind === "energy") {
-    if (sourceUnit === "Wh") return { value: value / 1000, canonicalUnit: CANONICAL_ENERGY_UNIT };
-    if (sourceUnit === "kWh") return { value, canonicalUnit: CANONICAL_ENERGY_UNIT };
+    if (sourceUnit === "Wh") {
+      return { value: value / 1000, canonicalUnit: CANONICAL_ENERGY_UNIT };
+    }
+    if (sourceUnit === "kWh") {
+      return { value, canonicalUnit: CANONICAL_ENERGY_UNIT };
+    }
   }
-  if (kind === "soc" && sourceUnit === "%") return { value, canonicalUnit: CANONICAL_SOC_UNIT };
+  if (kind === "soc" && sourceUnit === "%") {
+    return { value, canonicalUnit: CANONICAL_SOC_UNIT };
+  }
   return null;
 }
 
@@ -130,20 +140,30 @@ function unavailableMetric(label, status, entityId = "", sourceUnit = "") {
 }
 
 function metric(runtime, entityId, fallbackUnit, label, kind, { optional = false } = {}) {
-  if (!entityId?.trim()) return unavailableMetric(label, optional ? "not-configured" : "missing-config", entityId);
+  if (!entityId?.trim()) {
+    return unavailableMetric(label, optional ? "not-configured" : "missing-config", entityId);
+  }
 
   const state = runtime.getEntityState?.(entityId);
-  if (!state) return unavailableMetric(label, "missing-entity", entityId);
+  if (!state) {
+    return unavailableMetric(label, "missing-entity", entityId);
+  }
 
   const raw = String(state.state ?? "").trim();
   const sourceUnit = unitFromState(state, fallbackUnit);
-  if (BAD_STATES.has(raw)) return unavailableMetric(label, raw || "unavailable", entityId, sourceUnit);
+  if (BAD_STATES.has(raw)) {
+    return unavailableMetric(label, raw || "unavailable", entityId, sourceUnit);
+  }
 
   const rawValue = parseNumber(raw);
-  if (rawValue === null) return unavailableMetric(label, "malformed", entityId, sourceUnit);
+  if (rawValue === null) {
+    return unavailableMetric(label, "malformed", entityId, sourceUnit);
+  }
 
   const converted = convertValue(rawValue, sourceUnit, kind);
-  if (!converted) return unavailableMetric(label, "unsupported-unit", entityId, sourceUnit);
+  if (!converted) {
+    return unavailableMetric(label, "unsupported-unit", entityId, sourceUnit);
+  }
 
   return {
     label,
@@ -174,8 +194,12 @@ function derivedMetric(label, value, unit, locale) {
 }
 
 function batteryMode(powerMetric, positiveDirection) {
-  if (!powerMetric.available) return "unavailable";
-  if (powerMetric.value === 0) return "idle";
+  if (!powerMetric.available) {
+    return "unavailable";
+  }
+  if (powerMetric.value === 0) {
+    return "idle";
+  }
   const positiveMeansCharging = positiveDirection === "charging";
   return powerMetric.value > 0 === positiveMeansCharging ? "charging" : "discharging";
 }
@@ -241,10 +265,18 @@ export function validateEnergyConfig(config = {}, required = [], unitFields = ["
     }
   }
 
-  if (unitFields.includes("powerUnit")) validateAllowed(errors, config, "powerUnit", POWER_UNITS);
-  if (unitFields.includes("energyUnit")) validateAllowed(errors, config, "energyUnit", ENERGY_UNITS);
-  if (unitFields.includes("socUnit")) validateAllowed(errors, config, "socUnit", SOC_UNITS);
-  if (unitFields.includes("batteryPositiveDirection")) validateAllowed(errors, config, "batteryPositiveDirection", BATTERY_POSITIVE_DIRECTIONS);
+  if (unitFields.includes("powerUnit")) {
+    validateAllowed(errors, config, "powerUnit", POWER_UNITS);
+  }
+  if (unitFields.includes("energyUnit")) {
+    validateAllowed(errors, config, "energyUnit", ENERGY_UNITS);
+  }
+  if (unitFields.includes("socUnit")) {
+    validateAllowed(errors, config, "socUnit", SOC_UNITS);
+  }
+  if (unitFields.includes("batteryPositiveDirection")) {
+    validateAllowed(errors, config, "batteryPositiveDirection", BATTERY_POSITIVE_DIRECTIONS);
+  }
   return errors;
 }
 
@@ -270,7 +302,9 @@ function metricTile(icon, metric, accent = "energy", runtime = {}) {
   const node = canOpenHistory
     ? el("button", { className: "dm-energy-tile", attrs: { ...attrs, type: "button" } }, children)
     : el("div", { className: "dm-energy-tile", attrs }, children);
-  if (canOpenHistory) node.addEventListener("click", () => runtime.interactions.openHistory(metric.entityId, metric.label));
+  if (canOpenHistory) {
+    node.addEventListener("click", () => runtime.interactions.openHistory(metric.entityId, metric.label));
+  }
   return node;
 }
 
