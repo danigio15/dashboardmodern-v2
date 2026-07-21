@@ -158,6 +158,34 @@ export function moveCard(dashboard, sectionId, id, direction) {
   return draft;
 }
 
+function assertNonEmptyString(value, name) {
+  if (typeof value !== "string" || !value.trim()) throw new EditorCommandError(`${name} must be a non-empty string.`);
+}
+
+function assertTargetIndex(value) {
+  if (!Number.isFinite(value) || !Number.isInteger(value) || value < 0) throw new EditorCommandError("targetIndex must be a non-negative finite integer.");
+}
+
+export function reorderCard(dashboard, sectionId, cardId, targetIndex) {
+  assertNonEmptyString(sectionId, "sectionId");
+  assertNonEmptyString(cardId, "cardId");
+  assertTargetIndex(targetIndex);
+  const section = (dashboard?.sections || []).find((item) => item.id === sectionId);
+  if (!section) throw new EditorCommandError(`Cannot reorder card because section does not exist: ${sectionId}`);
+  const ids = section.card_ids || [];
+  if (ids.filter((id) => id === cardId).length > 1) throw new EditorCommandError(`Cannot reorder malformed section with duplicate card id: ${cardId}`);
+  const from = ids.indexOf(cardId);
+  if (from < 0) throw new EditorCommandError(`Cannot reorder card because card does not exist in section: ${cardId}`);
+  if (targetIndex > ids.length) throw new EditorCommandError("targetIndex is beyond the destination length.");
+  const to = targetIndex > from ? targetIndex - 1 : targetIndex;
+  if (to === from) return clone(dashboard);
+  const nextIds = ids.filter((id) => id !== cardId);
+  nextIds.splice(to, 0, cardId);
+  const draft = clone(dashboard);
+  draft.sections = (draft.sections || []).map((item) => item.id === sectionId ? { ...item, card_ids: nextIds } : item);
+  return draft;
+}
+
 export function parseCardConfig(text) {
   const value = JSON.parse(text || "{}");
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new EditorCommandError("Card config must be a JSON object.");

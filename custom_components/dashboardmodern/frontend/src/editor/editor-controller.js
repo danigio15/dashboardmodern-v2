@@ -133,6 +133,7 @@ export class EditorController {
     this.clearFieldState([`card:${id}:`]);
   }
   moveCard(sectionId, id, direction) { this.apply((draft) => commands.moveCard(draft, sectionId, id, direction)); }
+  reorderCard(sectionId, id, targetIndex) { this.apply((draft) => commands.reorderCard(draft, sectionId, id, targetIndex)); }
 
   updateCardConfig(id, text) {
     const field = `card:${id}:config`;

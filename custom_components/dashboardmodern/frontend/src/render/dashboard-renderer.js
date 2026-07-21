@@ -19,12 +19,13 @@ export function renderDashboard(container, state, { hass, runtime, registry = DE
     container.append(emptyState("Select a dashboard to render."));
     return;
   }
-  const runtimeContext = { ...(runtime || createCardRuntimeContext({ hass, connectionStatus: state.connectionStatus || (state.loading ? "loading" : state.error ? "error" : "connected") })), cardRegistry: registry };
+  const runtimeContext = { ...(runtime || createCardRuntimeContext({ hass, connectionStatus: state.connectionStatus || (state.loading ? "loading" : state.error ? "error" : "connected") })), cardRegistry: registry, editMode: state.mode === "edit" && Boolean(state.editor?.editing) };
   const header = el("header", { className: "dashboardmodern-dashboard-header legacy-hero" });
   header.append(el("h2", { text: dashboard.title || "Untitled dashboard" }));
   if (dashboard.description) header.append(el("p", { text: dashboard.description }));
   header.append(el("p", { className: "dashboardmodern-dashboard-meta", text: `${validViews(dashboard).length} views` }));
   container.append(header);
+  if (runtimeContext.editMode) container.append(el("p", { className: "dashboardmodern-reorder-instructions", text: "Card reordering is enabled. Use each card move handle to drag, or press Space/Enter and arrow keys to reorder.", attrs: { id: "dashboardmodern-reorder-instructions" } }));
 
   const views = validViews(dashboard);
   if (!views.length) {
