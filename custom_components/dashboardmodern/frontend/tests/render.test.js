@@ -98,10 +98,10 @@ test("built-in registries are deterministic and compatibility renderer APIs repo
   const first = createDefaultCardRegistry();
   const second = createCardRegistry();
   registerBuiltInCardTypes(second);
-  assert.deepEqual(first.types(), ["battery-status", "energy-flows", "energy-overview", "grid-status", "home-summary", "legacy-panel", "solar-production", "weather-current", "weather-forecast"]);
-  assert.deepEqual(second.types(), ["battery-status", "energy-flows", "energy-overview", "grid-status", "home-summary", "legacy-panel", "solar-production", "weather-current", "weather-forecast"]);
+  assert.deepEqual(first.types(), ["battery-status", "climate-control", "cover-control", "energy-flows", "energy-overview", "grid-status", "home-summary", "legacy-panel", "light-control", "sensor-status", "solar-production", "switch-control", "weather-current", "weather-forecast"]);
+  assert.deepEqual(second.types(), ["battery-status", "climate-control", "cover-control", "energy-flows", "energy-overview", "grid-status", "home-summary", "legacy-panel", "light-control", "sensor-status", "solar-production", "switch-control", "weather-current", "weather-forecast"]);
   assert.throws(() => second.register({ type: "legacy-panel", displayName: "Duplicate", renderer: () => new Node("article") }), /already registered/);
   registerCardRenderer("compat-card", () => new Node("article"), second);
-  assert.deepEqual(cardRendererTypes(second), ["battery-status", "compat-card", "energy-flows", "energy-overview", "grid-status", "home-summary", "legacy-panel", "solar-production", "weather-current", "weather-forecast"]);
+  assert.deepEqual(cardRendererTypes(second), ["battery-status", "climate-control", "compat-card", "cover-control", "energy-flows", "energy-overview", "grid-status", "home-summary", "legacy-panel", "light-control", "sensor-status", "solar-production", "switch-control", "weather-current", "weather-forecast"]);
   assert.equal(renderCardWithRegistry({ id: "x", title: "X", type: "compat-card", config: {} }, {}, { registry: second }).tagName, "article");
 });

@@ -60,3 +60,10 @@ html[data-theme="dark"] .weather-widget.dm-weather-current { background: linear-
 @keyframes dmEnergyArrow { 50% { transform: translateX(4px); } }
 @media (max-width: 560px) { .dm-energy-flow { grid-template-columns: 1fr; text-align: center; } .dm-energy-tile strong { font-size: 1.35rem; } }
 @media (prefers-reduced-motion: reduce) { .dm-flow-arrow { animation: none !important; } }
+
+.dm-device-card { display: grid; gap: var(--dm-space-3); }
+.dm-device-card[data-status="unavailable"], .dm-device-card[data-status="unknown"], .dm-device-card[data-status="missing-entity"], .dm-device-card[data-status="malformed"] { opacity: 0.76; }
+.dm-device-controls { display: flex; flex-wrap: wrap; gap: var(--dm-space-2); align-items: center; }
+.dm-device-card select, .dm-device-card input[type="range"] { max-width: 100%; }
+@media (max-width: 640px) { .dm-device-controls { flex-direction: column; align-items: stretch; } .dm-device-controls > * { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .dm-device-card *, .dm-device-controls * { transition: none !important; animation: none !important; } }
