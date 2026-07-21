@@ -118,6 +118,27 @@ test("validators reject invalid, missing and executable card config", () => {
   assert(validateCameraStatusConfig({ entityId: "camera.front", showLastChanged: "yes" }).some((error) => error.field === "config.showLastChanged"));
 });
 
+
+test("malformed entity states and attributes render explicitly with disabled controls", () => {
+  for (const state of [{ bad: true }, ["bad"]]) {
+    const card = renderMediaPlayerControlCard(
+      { config: { entityId: "media_player.bad_state" } },
+      rt({ "media_player.bad_state": { state, attributes: { supported_features: 1 } } }),
+    );
+    assert.match(card.textContent, /malformed entity state/);
+    assert.equal(card.querySelectorAll("button")[0].disabled, true);
+  }
+
+  for (const attributes of [["bad"], "bad"]) {
+    const card = renderFanControlCard(
+      { config: { entityId: "fan.bad_attrs" } },
+      rt({ "fan.bad_attrs": { state: "on", attributes } }),
+    );
+    assert.match(card.textContent, /malformed entity attributes/);
+    assert.equal(card.querySelectorAll("button")[0].disabled, true);
+  }
+});
+
 test("media parsing distinguishes missing malformed zero and optional metadata", () => {
   assert.equal(normalizeMediaPlayer(rt({ "media_player.null": ent("playing", { volume_level: null }) }), { entityId: "media_player.null" }).volume.status, "missing");
   assert.equal(normalizeMediaPlayer(rt({ "media_player.zero": ent("playing", { volume_level: "0" }) }), { entityId: "media_player.zero" }).volume.status, "ok");

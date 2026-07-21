@@ -116,22 +116,35 @@ function parseSupportedFeatures(value) {
   return { status: "ok", value: Math.trunc(parsed.value) };
 }
 
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 function entityState(runtime, entityId) {
   if (!entityId || !ENTITY_RE.test(entityId) || UNSAFE_RE.test(entityId)) {
-    return { status: "missing-config", entity: null, raw: "" };
+    return { status: "missing-config", entity: null, raw: "", attributes: {} };
   }
 
   const entity = runtime.getEntityState?.(entityId);
-  if (!entity || typeof entity !== "object" || Array.isArray(entity)) {
-    return { status: "missing-entity", entity: null, raw: "" };
+  if (!isPlainObject(entity)) {
+    return { status: "missing-entity", entity: null, raw: "", attributes: {} };
   }
 
-  const raw = String(entity.state ?? "").trim();
+  const attributes = entity.attributes === undefined || entity.attributes === null ? {} : entity.attributes;
+  if (!isPlainObject(attributes)) {
+    return { status: "malformed-entity-attributes", entity, raw: "", attributes: {} };
+  }
+
+  if (entity.state !== undefined && typeof entity.state !== "string") {
+    return { status: "malformed-entity-state", entity, raw: "", attributes };
+  }
+
+  const raw = (entity.state || "").trim();
   if (BAD_STATES.has(raw)) {
-    return { status: raw || "unavailable", entity, raw };
+    return { status: raw || "unavailable", entity, raw, attributes };
   }
 
-  return { status: "ok", entity, raw };
+  return { status: "ok", entity, raw, attributes };
 }
 
 function hasFeature(featureSet, feature) {
@@ -173,7 +186,7 @@ function button(label, disabled, handler) {
 }
 
 function statusText(status) {
-  return status === "ok" ? "ok" : status.replace("-", " ");
+  return status === "ok" ? "ok" : status.replaceAll("-", " ");
 }
 
 function malformedLabels(items) {
@@ -194,7 +207,7 @@ function presetModes(value) {
 
 export function normalizeMediaPlayer(runtime = {}, config = {}) {
   const state = entityState(runtime, config.entityId);
-  const attributes = state.entity?.attributes || {};
+  const attributes = state.attributes;
   const featureSet = parseSupportedFeatures(attributes.supported_features);
   const friendlyName = parseOptionalString(attributes.friendly_name);
   const title = parseOptionalString(attributes.media_title);
@@ -223,7 +236,7 @@ export function normalizeMediaPlayer(runtime = {}, config = {}) {
 
 export function normalizeCamera(runtime = {}, config = {}) {
   const state = entityState(runtime, config.entityId);
-  const attributes = state.entity?.attributes || {};
+  const attributes = state.attributes;
   const friendlyName = parseOptionalString(attributes.friendly_name);
   const lastChanged = parseOptionalString(state.entity?.last_changed);
 
@@ -239,7 +252,7 @@ export function normalizeCamera(runtime = {}, config = {}) {
 
 export function normalizeFan(runtime = {}, config = {}) {
   const state = entityState(runtime, config.entityId);
-  const attributes = state.entity?.attributes || {};
+  const attributes = state.attributes;
   const featureSet = parseSupportedFeatures(attributes.supported_features);
   const friendlyName = parseOptionalString(attributes.friendly_name);
   const percentage = parseOptionalNumber(attributes.percentage, { min: 0, max: 100 });
@@ -268,7 +281,7 @@ export function normalizeFan(runtime = {}, config = {}) {
 
 export function normalizeVacuum(runtime = {}, config = {}) {
   const state = entityState(runtime, config.entityId);
-  const attributes = state.entity?.attributes || {};
+  const attributes = state.attributes;
   const featureSet = parseSupportedFeatures(attributes.supported_features);
   const friendlyName = parseOptionalString(attributes.friendly_name);
 
