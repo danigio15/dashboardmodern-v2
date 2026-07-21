@@ -326,7 +326,7 @@ export function bindDashboardModernApp(container, store, { initialize = true, ha
     renderEditor(container, state);
     renderVisualEditor(container, state, editorController);
     renderVisualDashboard(container, state, store, { hass, cardRegistry });
-    bottomNavigation.syncActive();
+    bottomNavigation.refresh();
   });
   container.querySelector('[data-action="mode-visual"]').addEventListener("click", () => editorController.setMode("visual"));
   container.querySelector('[data-action="mode-edit"]').addEventListener("click", () => editorController.setMode("edit"));
