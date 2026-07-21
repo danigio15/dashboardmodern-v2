@@ -102,6 +102,9 @@ function makeBoundContainer() {
   const status = new Node("section");
   const renderStatus = new Node("section");
   const list = new Node("div");
+  const brandTitle = new Node("h1"); brandTitle.dataset.brandTitle = "";
+  const brandSubtitle = new Node("p"); brandSubtitle.dataset.brandSubtitle = "";
+  const brandLogo = new Node("div"); brandLogo.dataset.brandLogoSlot = "";
   const actions = {
     visual: new Node("button"), edit: new Node("button"), debug: new Node("button"), create: new Node("button"), save: new Node("button"), delete: new Node("button"),
   };
@@ -115,6 +118,9 @@ function makeBoundContainer() {
     "[data-status]": status,
     "[data-render-status]": renderStatus,
     "[data-dashboard-list]": list,
+    "[data-brand-title]": brandTitle,
+    "[data-brand-subtitle]": brandSubtitle,
+    "[data-brand-logo-slot]": brandLogo,
     '[data-action="mode-visual"]': actions.visual,
     '[data-action="mode-edit"]': actions.edit,
     '[data-action="mode-debug"]': actions.debug,
@@ -123,7 +129,7 @@ function makeBoundContainer() {
     '[data-action="delete"]': actions.delete,
   };
   return {
-    visual, debug, editor, visualEditor, status, renderStatus, list, actions,
+    visual, debug, editor, visualEditor, status, renderStatus, list, brandTitle, brandSubtitle, brandLogo, actions, style: { values: {}, setProperty(k, v) { this.values[k] = v; } },
     querySelector(selector) { return nodes[selector] || null; },
     querySelectorAll(selector) { return selector === "[data-debug-action]" ? [actions.create, actions.save] : []; },
   };
@@ -352,8 +358,15 @@ test("structured selected-node forms update draft only and keep unknown card typ
   store.setState({ editor: { ...store.state.editor, selectedNode: { dashboardId: "dash", viewId: "one", sectionId: "s1", cardId: "c1" } } });
 
   const before = JSON.stringify(store.state.activeDashboard);
-  const controls = controlsByLabel(container.visualEditor);
-  const [dashboardTitle, dashboardDescription, viewTitle, viewDescription, sectionTitle, sectionDescription, cardTitle, cardType, cardConfig] = controls;
+  const dashboardTitle = fieldById(container.visualEditor, "dashboard.title");
+  const dashboardDescription = fieldById(container.visualEditor, "dashboard.description");
+  const viewTitle = fieldById(container.visualEditor, "view:one:title");
+  const viewDescription = fieldById(container.visualEditor, "view:one:description");
+  const sectionTitle = fieldById(container.visualEditor, "section:s1:title");
+  const sectionDescription = fieldById(container.visualEditor, "section:s1:description");
+  const cardTitle = fieldById(container.visualEditor, "card:c1:title");
+  const cardType = fieldById(container.visualEditor, "card:c1:type");
+  const cardConfig = fieldById(container.visualEditor, "card:c1:config");
   dashboardTitle.value = "Draft dashboard"; dashboardTitle.listeners.input();
   dashboardDescription.value = "Draft dashboard desc"; dashboardDescription.listeners.input();
   viewTitle.value = "Draft view"; viewTitle.listeners.input();
@@ -587,4 +600,61 @@ test("shell branding and theme config applies defaults configured values draft p
   assert.equal(unsafe.logoRef, "");
   assert.equal(unsafe.accent, "#22c55e");
   assert.equal(unsafe.mode, "auto");
+});
+
+test("visual dashboard settings fields update draft preview save reload and cancel safely", async () => {
+  let saved = { ...dashboard, config: { branding: { title: "Original", subtitle: "Before", logoRef: "", accentColor: "#22c55e" }, theme: { mode: "auto", accentColor: "#22c55e" } } };
+  const api = {
+    listDashboards: async () => [saved],
+    getDashboard: async () => saved,
+    replaceDashboard: async (_entryId, draft) => { saved = JSON.parse(JSON.stringify(draft)); return saved; },
+  };
+  const store = new DashboardModernStore(api, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true, confirmUnsaved: async () => true });
+  container.actions.edit.click();
+
+  const brandTitle = fieldById(container.visualEditor, "dashboard.config.branding.title");
+  brandTitle.value = "Casa";
+  brandTitle.listeners.input();
+  assert.equal(store.state.editor.draftDashboard.config.branding.title, "Casa");
+
+  const logo = fieldById(container.visualEditor, "dashboard.config.branding.logoRef");
+  logo.value = "javascript:bad";
+  logo.listeners.input();
+  assert.equal(store.state.editor.fieldText["dashboard.config.branding.logoRef"], "javascript:bad");
+  assert.equal(store.state.editor.draftDashboard.config.branding.logoRef, "");
+  logo.value = "/local/logo.png";
+  logo.listeners.input();
+  assert.equal(store.state.editor.draftDashboard.config.branding.logoRef, "/local/logo.png");
+
+  const color = fieldById(container.visualEditor, "dashboard.config.branding.accentColor");
+  color.value = "red";
+  color.listeners.input();
+  assert.equal(store.state.editor.fieldText["dashboard.config.branding.accentColor"], "red");
+  color.value = "#123456";
+  color.listeners.input();
+  assert.equal(store.state.editor.draftDashboard.config.branding.accentColor, "#123456");
+  assert.equal(container.style.values["--dm-primary"], "#123456");
+
+  const mode = fieldById(container.visualEditor, "dashboard.config.theme.mode");
+  for (const value of ["dark", "light", "auto"]) {
+    mode.value = value;
+    mode.listeners.change();
+    assert.equal(store.state.editor.draftDashboard.config.theme.mode, value);
+    assert.equal(container.dataset.themeMode, value);
+  }
+
+  const save = buttonByText(container.visualEditor, "Save");
+  await save.click();
+  await store.loadDashboard("dash");
+  assert.equal(store.state.activeDashboard.config.branding.title, "Casa");
+  assert.equal(store.state.activeDashboard.config.branding.logoRef, "/local/logo.png");
+
+  container.actions.edit.click();
+  fieldById(container.visualEditor, "dashboard.config.branding.title").value = "Discarded";
+  fieldById(container.visualEditor, "dashboard.config.branding.title").listeners.input();
+  assert.equal(container.querySelector("[data-brand-title]").textContent, "Discarded");
+  buttonByText(container.visualEditor, "Cancel").click();
+  assert.equal(store.state.activeDashboard.config.branding.title, "Casa");
 });

@@ -66,6 +66,32 @@ function updateNestedConfig(controller, card, path, value) {
   controller.updateCardConfigPatch(card.id, nestedPatch(card.config || {}, path, value));
 }
 
+function clearControllerField(controller, field) {
+  if (!controller.store?.setState || !controller.state) return;
+  const { [field]: _cleared, ...fieldText } = controller.state.fieldText || {};
+  controller.store.setState({
+    editor: {
+      ...controller.state,
+      fieldText,
+      validationErrors: (controller.state.validationErrors || []).filter((item) => item.field !== field),
+    },
+  });
+}
+
+function setControllerFieldError(controller, field, text, message) {
+  controller.store?.setState?.({
+    editor: {
+      ...controller.state,
+      dirty: true,
+      fieldText: { ...(controller.state?.fieldText || {}), [field]: text },
+      validationErrors: [
+        ...(controller.state?.validationErrors || []).filter((item) => item.field !== field),
+        { field, message },
+      ],
+    },
+  });
+}
+
 function checkboxInput(documentRef, labelText, checked, onChange, fieldId) {
   const label = documentRef.createElement("label");
   label.textContent = labelText;
@@ -388,28 +414,9 @@ export function renderAlertSummaryEditor(documentRef, card, controller, errors =
       try {
         const alerts = parseAlertArray(text);
         controller.updateCardConfigPatch(card.id, { alerts });
-        if (controller.store?.setState && controller.state) {
-          const { [field]: _cleared, ...fieldText } = controller.state.fieldText || {};
-          controller.store.setState({
-            editor: {
-              ...controller.state,
-              fieldText,
-              validationErrors: (controller.state.validationErrors || []).filter((item) => item.field !== field),
-            },
-          });
-        }
+        clearControllerField(controller, field);
       } catch (error) {
-        controller.store?.setState?.({
-          editor: {
-            ...controller.state,
-            dirty: true,
-            fieldText: { ...(controller.state?.fieldText || {}), [field]: text },
-            validationErrors: [
-              ...(controller.state?.validationErrors || []).filter((item) => item.field !== field),
-              { field, message: error.message },
-            ],
-          },
-        });
+        setControllerFieldError(controller, field, text, error.message);
       }
     },
     field,
@@ -428,7 +435,21 @@ export function renderQuickActionEditor(documentRef, card, controller, errors = 
   form.append(textInput(documentRef, "Domain", action.domain || "", (value) => updateNestedConfig(controller, card, "action.domain", value), `card:${card.id}:config.action.domain`));
   form.append(textInput(documentRef, "Service", action.service || "", (value) => updateNestedConfig(controller, card, "action.service", value), `card:${card.id}:config.action.service`));
   form.append(textInput(documentRef, "Target entity", action.target?.entity_id || "", (value) => updateNestedConfig(controller, card, "action.target.entity_id", value), `card:${card.id}:config.action.target.entity_id`));
-  form.append(textareaInput(documentRef, "Service data JSON", JSON.stringify(action.serviceData || {}, null, 2), (text) => updateNestedConfig(controller, card, "action.serviceData", parseJsonObject(text)), `card:${card.id}:config.action.serviceData`));
+  const serviceDataField = `card:${card.id}:config.action.serviceData`;
+  form.append(textareaInput(
+    documentRef,
+    "Service data JSON",
+    controller.state?.fieldText?.[serviceDataField] ?? JSON.stringify(action.serviceData || {}, null, 2),
+    (text) => {
+      try {
+        updateNestedConfig(controller, card, "action.serviceData", parseJsonObject(text));
+        clearControllerField(controller, serviceDataField);
+      } catch (error) {
+        setControllerFieldError(controller, serviceDataField, text, error.message);
+      }
+    },
+    serviceDataField,
+  ));
   form.append(checkboxInput(documentRef, "Require confirmation", action.confirmation, (value) => updateNestedConfig(controller, card, "action.confirmation", value), `card:${card.id}:config.action.confirmation`));
   for (const error of errors) form.append(fieldError(documentRef, error.message));
   return form;
