@@ -141,7 +141,7 @@ export function addCard(dashboard, sectionId, patch = {}, generator = createIdGe
 
 export function updateCard(dashboard, id, patch) {
   const draft = clone(dashboard);
-  draft.cards = (draft.cards || []).map((card) => card.id === id ? fields(card, patch, ["title", "type", "config"]) : card);
+  draft.cards = (draft.cards || []).map((card) => card.id === id ? fields(card, patch, ["title", "type", "config", "layout"]) : card);
   return draft;
 }
 

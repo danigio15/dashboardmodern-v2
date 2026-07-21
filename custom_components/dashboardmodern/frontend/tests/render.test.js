@@ -5,8 +5,9 @@ import { renderCard } from "../src/render/card-renderer.js";
 import { selectActiveViewId } from "../src/presentation/view-selection.js";
 
 class Node {
-  constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.dataset = {}; this.hidden = false; this._text = ""; }
+  constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.dataset = {}; this.hidden = false; this._text = ""; this.style = { values: {}, setProperty: (k, v) => { this.style.values[k] = String(v); } }; }
   append(...items) { this.children.push(...items); }
+  prepend(...items) { this.children.unshift(...items); }
   replaceChildren(...items) { this.children = items; this._text = ""; }
   setAttribute(k, v) { this.attributes[k] = String(v); }
   addEventListener(type, fn) { this[`on${type}`] = fn; }
@@ -104,4 +105,23 @@ test("built-in registries are deterministic and compatibility renderer APIs repo
   registerCardRenderer("compat-card", () => new Node("article"), second);
   assert.deepEqual(cardRendererTypes(second), ["alarm-control", "automation-control", "battery-status", "binary-sensor-status", "button-control", "camera-status", "climate-control", "compat-card", "cover-control", "device-tracker-status", "energy-flows", "energy-overview", "fan-control", "grid-status", "home-summary", "input-boolean-control", "input-number-control", "input-select-control", "legacy-panel", "light-control", "lock-control", "media-player-control", "person-status", "scene-control", "script-control", "sensor-status", "solar-production", "switch-control", "vacuum-control", "weather-current", "weather-forecast"]);
   assert.equal(renderCardWithRegistry({ id: "x", title: "X", type: "compat-card", config: {} }, {}, { registry: second }).tagName, "article");
+});
+
+
+test("Phase 16 grid layout applies normalized CSS properties and preserves order", () => {
+  const dash = { ...dashboard, sections: [{ id: "s1", title: "Section 1", card_ids: ["c1", "c2"] }], cards: [
+    { id: "c1", title: "Info", type: "text", config: { text: "Hello" }, layout: { desktop: { columns: 6, rows: 2 }, tablet: { columns: 4, rows: 3 }, mobile: { columns: 2, rows: 1 } } },
+    { id: "c2", title: "Mystery", type: "future", config: { z: 1 }, layout: { desktop: { columns: 13, rows: 1 } } },
+  ] };
+  const root = new Node("div");
+  renderDashboard(root, { dashboards: [dash], activeDashboard: dash, activeViewId: "v1" }, {});
+  const cards = root.querySelectorAll(".dashboardmodern-card");
+  assert.deepEqual(cards.map((card) => card.attributes["data-card-id"] ?? card.dataset.cardId), ["c1", "c2"]);
+  assert.equal(cards[0].style.values["--dm-card-columns-desktop"], "6");
+  assert.equal(cards[0].style.values["--dm-card-rows-tablet"], "3");
+  assert.equal(cards[0].style.values["--dm-card-columns-mobile"], "2");
+  assert.equal(cards[1].style.values["--dm-card-columns-desktop"], "4");
+  assert.equal(cards[1].dataset.layoutStatus, "malformed");
+  assert.match(cards[1].textContent, /safe defaults|Card type: future/);
+  assert.equal(cards.some((card) => card.style.values.order), false);
 });
