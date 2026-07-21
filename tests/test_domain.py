@@ -280,3 +280,28 @@ def test_dashboard_config_round_trips():
     )
     assert dashboard.to_dict()["config"]["branding"]["title"] == "Casa"
     assert Dashboard.from_dict(dashboard.to_dict()).config["theme"]["mode"] == "dark"
+
+
+def test_section_contract_config_round_trips():
+    from custom_components.dashboardmodern.domain import Section
+    section = Section.create(
+        "energy",
+        "Energy",
+        ("card-1",),
+        config={
+            "type": "energy",
+            "subtitle": "Power and tariffs",
+            "icon": "energy",
+            "enabled": True,
+            "visibleInNavbar": True,
+            "order": 5,
+            "accent": "#f59e0b",
+            "badge": {"entityId": "sensor.power"},
+            "visibility": {"condition": "always"},
+            "pluginConfig": {"nodes": []},
+            "layout": {"future": {}},
+        },
+    )
+    serialized = section.to_dict()
+    assert serialized["config"]["type"] == "energy"
+    assert Section.from_dict(serialized).config["badge"]["entityId"] == "sensor.power"

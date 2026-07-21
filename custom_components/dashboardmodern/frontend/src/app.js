@@ -18,6 +18,7 @@ export function createDashboardModernShell(root, entryIds = []) {
       <header class="dashboardmodern-header">
         <div class="dashboardmodern-brand">
           <div class="dashboardmodern-menu-boundary" aria-label="Home Assistant menu boundary">☰</div>
+          <div data-brand-logo-slot></div>
           <div>
             <h1 data-brand-title>Smart Home Dashboard</h1>
             <p data-brand-subtitle>Legacy parity foundation for DashboardModern.</p>
@@ -53,6 +54,55 @@ export function createDashboardModernShell(root, entryIds = []) {
     </main>`;
   renderEntrySelector(root, entryIds);
   return root.querySelector("[data-dashboardmodern-app]");
+}
+
+const SAFE_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+const SAFE_THEME_MODES = new Set(["auto", "light", "dark"]);
+
+export function normalizeShellConfig(dashboard) {
+  const branding = dashboard?.config?.branding || {};
+  const theme = dashboard?.config?.theme || {};
+  const accent = typeof branding.accentColor === "string" && SAFE_COLOR_PATTERN.test(branding.accentColor)
+    ? branding.accentColor
+    : typeof theme.accentColor === "string" && SAFE_COLOR_PATTERN.test(theme.accentColor)
+      ? theme.accentColor
+      : "#22c55e";
+  const logoRef = typeof branding.logoRef === "string" && (/^\//.test(branding.logoRef) || /^https:\/\//i.test(branding.logoRef)) && !/[<>]|javascript:/i.test(branding.logoRef)
+    ? branding.logoRef
+    : "";
+  const mode = SAFE_THEME_MODES.has(theme.mode) ? theme.mode : "auto";
+  return {
+    title: typeof branding.title === "string" && branding.title.trim() && !/[<>]/.test(branding.title) ? branding.title.trim() : "Smart Home Dashboard",
+    subtitle: typeof branding.subtitle === "string" && !/[<>]/.test(branding.subtitle) ? branding.subtitle : "Legacy parity foundation for DashboardModern.",
+    logoRef,
+    accent,
+    mode,
+  };
+}
+
+export function applyDashboardShellConfig(container, state) {
+  const dashboard = state.editor?.editing ? state.editor.draftDashboard : state.activeDashboard;
+  const config = normalizeShellConfig(dashboard);
+  const title = container.querySelector("[data-brand-title]");
+  const subtitle = container.querySelector("[data-brand-subtitle]");
+  const logoSlot = container.querySelector("[data-brand-logo-slot]");
+  if (title) title.textContent = config.title;
+  if (subtitle) subtitle.textContent = config.subtitle;
+  if (container.style?.setProperty) container.style.setProperty("--dm-primary", config.accent);
+  if (!container.dataset) container.dataset = {};
+  container.dataset.themeMode = config.mode;
+  if (logoSlot) {
+    logoSlot.replaceChildren?.();
+    logoSlot.hidden = !config.logoRef;
+    if (config.logoRef) {
+      const img = document.createElement("img");
+      img.src = config.logoRef;
+      img.alt = "";
+      img.className = "dashboardmodern-brand-logo";
+      logoSlot.append(img);
+    }
+  }
+  return config;
 }
 
 function renderEntrySelector(root, entryIds) {
@@ -268,6 +318,7 @@ export function bindDashboardModernApp(container, store, { initialize = true, ha
   };
   new CardReorderController(store, editorController, container.querySelector("[data-dashboard-visual]"));
   store.subscribe((state) => {
+    applyDashboardShellConfig(container, state);
     renderStatus(container, state);
     renderDashboardList(container, state, editorController, creation);
     renderEditor(container, state);

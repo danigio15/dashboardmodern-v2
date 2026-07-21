@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bindDashboardModernApp, renderEditor, renderVisualDashboard, createDashboardPayload } from "../src/app.js";
+import { applyDashboardShellConfig, bindDashboardModernApp, renderEditor, renderVisualDashboard, createDashboardPayload, normalizeShellConfig } from "../src/app.js";
 import { DashboardModernStore } from "../src/state.js";
 import { renderDashboard } from "../src/render/dashboard-renderer.js";
 
 class Node {
-  constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.dataset = {}; this.hidden = false; this.disabled = false; this._text = ""; this.listeners = {}; this.value = ""; this.selectionStart = 0; this.selectionEnd = 0; this.ownerDocument = globalThis.document; }
+  constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.dataset = {}; this.style = { values: {}, setProperty(k, v) { this.values[k] = v; } }; this.hidden = false; this.disabled = false; this._text = ""; this.listeners = {}; this.value = ""; this.selectionStart = 0; this.selectionEnd = 0; this.ownerDocument = globalThis.document; }
   append(...items) { this.children.push(...items); }
   set innerHTML(_v) { this.children = []; this._text = ""; }
   replaceChildren(...items) { this.children = items; this._text = ""; }
@@ -20,7 +20,7 @@ class Node {
   querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
   querySelectorAll(selector) {
     const out = [];
-    const match = (n) => selector === "[data-debug-action]" ? Object.hasOwn(n.dataset, "debugAction") : selector === "[data-create-dashboard-action]" ? Object.hasOwn(n.dataset, "createDashboardAction") : selector === '[data-create-field="id"]' ? n.dataset.createField === "id" : selector.startsWith("[data-view-id]") ? Object.hasOwn(n.dataset, "viewId") : n.tagName === selector;
+    const match = (n) => selector === "[data-brand-title]" ? Object.hasOwn(n.dataset, "brandTitle") : selector === "[data-brand-subtitle]" ? Object.hasOwn(n.dataset, "brandSubtitle") : selector === "[data-brand-logo-slot]" ? Object.hasOwn(n.dataset, "brandLogoSlot") : selector === "[data-debug-action]" ? Object.hasOwn(n.dataset, "debugAction") : selector === "[data-create-dashboard-action]" ? Object.hasOwn(n.dataset, "createDashboardAction") : selector === '[data-create-field="id"]' ? n.dataset.createField === "id" : selector.startsWith("[data-view-id]") ? Object.hasOwn(n.dataset, "viewId") : n.tagName === selector;
     const walk = (n) => { if (match(n)) out.push(n); for (const c of n.children) walk(c); };
     walk(this); return out;
   }
@@ -558,4 +558,33 @@ test("Save is blocked while invalid Card config text is visible and succeeds aft
   assert.equal(store.state.editor.draftDashboard, null);
   assert.deepEqual(store.state.editor.fieldText, {});
   assert.deepEqual(store.state.editor.validationErrors, []);
+});
+
+
+test("shell branding and theme config applies defaults configured values draft preview and safe fallbacks", () => {
+  const container = new Node("main");
+  const title = new Node("h1"); title.dataset.brandTitle = "";
+  const subtitle = new Node("p"); subtitle.dataset.brandSubtitle = "";
+  const logo = new Node("div"); logo.dataset.brandLogoSlot = "";
+  container.append(title, subtitle, logo);
+  applyDashboardShellConfig(container, { activeDashboard: null });
+  assert.equal(title.textContent, "Smart Home Dashboard");
+  assert.equal(container.dataset.themeMode, "auto");
+  const activeDashboard = { config: { branding: { title: "Casa", subtitle: "Benvenuto", logoRef: "/local/logo.png", accentColor: "#123456" }, theme: { mode: "dark" } } };
+  applyDashboardShellConfig(container, { activeDashboard });
+  assert.equal(title.textContent, "Casa");
+  assert.equal(subtitle.textContent, "Benvenuto");
+  assert.equal(container.style.values["--dm-primary"], "#123456");
+  assert.equal(container.dataset.themeMode, "dark");
+  assert.equal(logo.children[0].src, "/local/logo.png");
+  applyDashboardShellConfig(container, { activeDashboard, editor: { editing: true, draftDashboard: { config: { branding: { title: "Draft", subtitle: "Preview", accentColor: "#abcdef" }, theme: { mode: "light" } } } } });
+  assert.equal(title.textContent, "Draft");
+  assert.equal(container.dataset.themeMode, "light");
+  assert.equal(container.style.values["--dm-primary"], "#abcdef");
+  const unsafe = normalizeShellConfig({ config: { branding: { title: "<b>bad</b>", subtitle: "<i>x</i>", logoRef: "javascript:alert(1)", accentColor: "red" }, theme: { mode: "neon", accentColor: "also-bad" } } });
+  assert.equal(unsafe.title, "Smart Home Dashboard");
+  assert.equal(unsafe.subtitle, "Legacy parity foundation for DashboardModern.");
+  assert.equal(unsafe.logoRef, "");
+  assert.equal(unsafe.accent, "#22c55e");
+  assert.equal(unsafe.mode, "auto");
 });

@@ -31,3 +31,9 @@ Reference repository inspected: `https://github.com/danigio15/dashboardmodern` (
 | Themes | screenshots | light/dark | green accent/glass | mode/accent | none | theme tokens/contract | Implemented foundation | runtime switcher | token tests |
 | Responsive behavior | screenshots | desktop/mobile | adaptive grids/cards | layout per breakpoint | none | card layout contract | Existing + tokens | final breakpoints | layout tests |
 | Multilingual support | `dashboard-en.html`, README | Italian/English dashboards | localized labels | locale/messages | HA locale | locale runtime contract | Contracted | translations | locale tests |
+
+## Future functional-domain roadmap
+
+DashboardModern v2 will grow from the Home foundation into configurable functional sections. Each section will use the section contract (`id`, `type`, `title`, `subtitle`, `icon`, `enabled`, `visibleInNavbar`, `order`, `accent`, `badge`, `visibility`, `pluginConfig`, and future layout metadata). Bottom navigation will be derived from enabled sections that opt into navbar visibility rather than from hard-coded UI labels.
+
+Planned section domains: Home, Rooms, Lights, Climate, Covers, Energy, Appliances, Irrigation, Pool, Security, Cameras, Vehicles, Server, Media, People, Statistics, and Configuration.
