@@ -1,8 +1,9 @@
 import { validViews } from "../presentation/view-selection.js";
 import { renderView } from "./view-renderer.js";
+import { createCardRuntimeContext } from "../runtime/context.js";
 import { el, emptyState } from "./dom.js";
 
-export function renderDashboard(container, state, { hass } = {}) {
+export function renderDashboard(container, state, { hass, runtime } = {}) {
   container.replaceChildren();
   if (state.loading && !state.activeDashboard) {
     container.append(emptyState("Loading DashboardModern configuration…"));
@@ -17,7 +18,8 @@ export function renderDashboard(container, state, { hass } = {}) {
     container.append(emptyState("Select a dashboard to render."));
     return;
   }
-  const header = el("header", { className: "dashboardmodern-dashboard-header" });
+  const runtimeContext = runtime || createCardRuntimeContext({ hass, connectionStatus: state.connectionStatus || (state.loading ? "loading" : state.error ? "error" : "connected") });
+  const header = el("header", { className: "dashboardmodern-dashboard-header legacy-hero" });
   header.append(el("h2", { text: dashboard.title || "Untitled dashboard" }));
   if (dashboard.description) header.append(el("p", { text: dashboard.description }));
   header.append(el("p", { className: "dashboardmodern-dashboard-meta", text: `${validViews(dashboard).length} views` }));
@@ -28,12 +30,13 @@ export function renderDashboard(container, state, { hass } = {}) {
     container.append(emptyState("This dashboard has no views yet."));
     return;
   }
-  const nav = el("nav", { className: "dashboardmodern-view-nav", attrs: { "aria-label": "Dashboard views" } });
+  const nav = el("nav", { className: "dashboardmodern-view-nav legacy-tabs", attrs: { "aria-label": "Dashboard views", role: "tablist" } });
   for (const view of views) {
-    const button = el("button", { text: view.title || view.id, attrs: { type: "button", "aria-current": String(view.id === state.activeViewId) }, dataset: { viewId: view.id } });
+    const selected = view.id === state.activeViewId;
+    const button = el("button", { text: view.title || view.id, attrs: { type: "button", role: "tab", "aria-selected": String(selected), "aria-current": selected ? "page" : "false", tabindex: selected ? "0" : "-1" }, dataset: { viewId: view.id } });
     nav.append(button);
   }
   container.append(nav);
   const activeView = views.find((view) => view.id === state.activeViewId) || views[0];
-  container.append(renderView(activeView, dashboard, { hass }));
+  container.append(renderView(activeView, dashboard, runtimeContext));
 }

@@ -12,12 +12,17 @@ export function createDashboardModernShell(root, entryIds = []) {
   root.innerHTML = `
     <link rel="stylesheet" href="/dashboardmodern_static/styles.css" />
     <main class="dashboardmodern-shell" data-dashboardmodern-app>
+      <div class="dashboardmodern-app-container">
       <header class="dashboardmodern-header">
-        <div>
-          <h1>DashboardModern</h1>
-          <p>Visual renderer for custom DashboardModern dashboards.</p>
+        <div class="dashboardmodern-brand">
+          <div class="dashboardmodern-menu-boundary" aria-label="Home Assistant menu boundary">☰</div>
+          <div>
+            <h1>Smart Home Dashboard</h1>
+            <p>Legacy parity foundation for DashboardModern.</p>
+          </div>
         </div>
-        <div class="dashboardmodern-actions">
+        <span class="dashboardmodern-status-pill" data-connection-pill>HA WebSocket</span>
+        <div class="dashboardmodern-actions" aria-label="Dashboard mode controls">
           <button type="button" data-action="mode-visual">Dashboard</button>
           <button type="button" data-action="mode-edit">Edit</button>
           <button type="button" data-action="mode-debug">Debug JSON</button>
@@ -42,6 +47,7 @@ export function createDashboardModernShell(root, entryIds = []) {
           <textarea id="dashboardmodern-json" data-dashboard-editor spellcheck="false"></textarea>
         </section>
       </section>
+      </div>
     </main>`;
   renderEntrySelector(root, entryIds);
   return root.querySelector("[data-dashboardmodern-app]");
@@ -73,6 +79,8 @@ function renderEntrySelector(root, entryIds) {
 
 function renderStatus(container, state) {
   const status = container.querySelector("[data-status]");
+  const pill = container.querySelector("[data-connection-pill]");
+  if (pill) pill.textContent = state.error ? "Disconnected" : state.loading ? "Connecting" : "Connected";
   const message = state.error?.message || (state.loading && "Loading…") || (state.saving && "Saving…") || (state.deleting && "Deleting…") || "";
   status.hidden = !message;
   status.textContent = message;
@@ -171,6 +179,16 @@ export function bindDashboardModernApp(container, store, { initialize = true, ha
   container.querySelector("[data-dashboard-visual]").addEventListener("click", (event) => {
     const button = event.target?.closest?.("[data-view-id]");
     if (button?.dataset?.viewId) store.setActiveView(button.dataset.viewId);
+  });
+  container.querySelector("[data-dashboard-visual]").addEventListener("keydown", (event) => {
+    const current = event.target?.closest?.("[role=tab][data-view-id]");
+    if (!current || !["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
+    const tabs = [...container.querySelectorAll("[role=tab][data-view-id]")];
+    const index = tabs.indexOf(current);
+    const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    event.preventDefault();
+    tabs[nextIndex]?.focus();
+    if (tabs[nextIndex]?.dataset?.viewId) store.setActiveView(tabs[nextIndex].dataset.viewId);
   });
   if (initialize) return store.initialize();
   return Promise.resolve();

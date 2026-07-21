@@ -1,29 +1,6 @@
-.dashboardmodern-shell { font-family: system-ui, sans-serif; padding: 16px; color: var(--primary-text-color, #111); }
-.dashboardmodern-header { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
-.dashboardmodern-header h1 { margin: 0; }
-.dashboardmodern-header p { margin: 4px 0 0; color: var(--secondary-text-color, #555); }
-.dashboardmodern-actions { display: flex; gap: 8px; }
-.dashboardmodern-status { margin: 12px 0; padding: 10px; border-radius: 6px; background: var(--secondary-background-color, #f2f2f2); }
-.dashboardmodern-status[data-kind="error"] { background: #fdecea; color: #7f1d1d; }
-.dashboardmodern-layout { display: grid; grid-template-columns: minmax(180px, 260px) 1fr; gap: 16px; }
-.dashboardmodern-sidebar, .dashboardmodern-editor { border: 1px solid var(--divider-color, #ddd); border-radius: 8px; padding: 12px; }
-.dashboardmodern-list { display: flex; flex-direction: column; gap: 6px; }
-.dashboardmodern-list button { text-align: left; }
-.dashboardmodern-list button[aria-current="true"] { font-weight: 700; }
-.dashboardmodern-editor textarea { box-sizing: border-box; min-height: 520px; width: 100%; margin-top: 8px; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
-.dashboardmodern-entry { margin: 12px 0; }
-.dashboardmodern-entry select { margin-left: 8px; }
-.dashboardmodern-visual { border: 1px solid var(--divider-color, #ddd); border-radius: 8px; padding: 16px; min-width: 0; }
-.dashboardmodern-dashboard-header { border-bottom: 1px solid var(--divider-color, #ddd); margin-bottom: 12px; padding-bottom: 12px; }
-.dashboardmodern-dashboard-header h2 { margin: 0; font-size: 1.6rem; }
-.dashboardmodern-dashboard-meta, .dashboardmodern-section-description, .dashboardmodern-view-description { color: var(--secondary-text-color, #555); }
-.dashboardmodern-view-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 16px; }
-.dashboardmodern-view-nav button[aria-current="true"] { font-weight: 700; border-color: var(--primary-color, #03a9f4); }
-.dashboardmodern-section { margin: 16px 0; padding: 14px; border: 1px solid var(--divider-color, #ddd); border-radius: 10px; background: var(--card-background-color, #fff); }
-.dashboardmodern-section h3 { margin-top: 0; }
-.dashboardmodern-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-.dashboardmodern-card { padding: 12px; border: 1px solid var(--divider-color, #ddd); border-radius: 8px; background: var(--primary-background-color, #fafafa); }
-.dashboardmodern-card h4 { margin: 0 0 8px; }
-.dashboardmodern-card-type, .dashboardmodern-entity-id { color: var(--secondary-text-color, #555); font-size: .9rem; }
-.dashboardmodern-entity-state { font-size: 1.5rem; font-weight: 700; }
-.dashboardmodern-empty { margin: 8px 0; padding: 12px; border-radius: 8px; background: var(--secondary-background-color, #f2f2f2); color: var(--secondary-text-color, #555); }
+@import url("./src/styles/tokens.css");
+@import url("./src/styles/base.css");
+@import url("./src/styles/animations.css");
+@import url("./src/styles/shell.css");
+@import url("./src/styles/components.css");
+@import url("./src/styles/responsive.css");

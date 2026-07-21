@@ -44,3 +44,20 @@ The editor preserves field focus, selection, and caret position across draft-dri
 Invalid Card config text is retained per card across unrelated editor changes and selection changes. The stale local text/error is cleared when the config is corrected, the card is deleted, editing is cancelled, or a save succeeds.
 
 Save is disabled while unresolved local editor validation errors exist, including invalid Card config text that has not yet been corrected to a JSON object. The editor will not persist the previous valid config while invalid config text is visible.
+
+## Legacy dashboard parity roadmap
+
+DashboardModern's product objective is visual, structural, responsive and functional parity with the legacy `danigio15/dashboardmodern/dashboard.html` before unrelated dashboard expansion. The legacy HTML remains the parity reference until migration completion.
+
+Phase 9 establishes the shell, extracted design-system primitives, injected Home Assistant runtime boundary, and frontend card registry. Card plugins render through injected context instead of importing WebSocket clients, stores, Lovelace concepts, iframes, arbitrary HTML, or live entity persistence.
+
+Roadmap:
+
+- Phase 9: shell/design system/registry foundation.
+- Phase 10: Home and weather parity.
+- Phase 11: energy flow and consumption parity.
+- Phase 12: rooms and device controls parity.
+- Phase 13: EV and charging parity.
+- Phase 14: security and camera parity.
+- Phase 15: server, appliances, charts and remaining parity.
+- Phase 16: parity acceptance, legacy retirement, and new capabilities.

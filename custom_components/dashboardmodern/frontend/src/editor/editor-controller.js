@@ -1,3 +1,4 @@
+import { getCardType } from "../cards/registry.js";
 import * as commands from "./commands.js";
 import { clearEditorState, enterEditor, hasBlockingLocalErrors, markDraft, validateDraft } from "./editor-state.js";
 
@@ -91,6 +92,25 @@ export class EditorController {
   moveSection(viewId, id, direction) { this.apply((draft) => commands.moveSection(draft, viewId, id, direction)); }
   addCard(sectionId) { this.apply((draft) => commands.addCard(draft, sectionId, {}, this.idGenerator), (draft) => ({ dashboardId: draft.id, viewId: this.state.selectedNode.viewId, sectionId, cardId: draft.cards.at(-1).id })); }
   updateCard(id, patch) { this.apply((draft) => commands.updateCard(draft, id, patch)); }
+  changeCardType(id, type) {
+    const definition = getCardType(type);
+    this.updateCard(id, { type, config: this.state.draftDashboard.cards.find((card) => card.id === id)?.config || definition?.defaultConfig?.() || {} });
+    this.validateCardConfig(id);
+  }
+  updateCardConfigPatch(id, patch) {
+    const card = this.state.draftDashboard.cards.find((item) => item.id === id);
+    this.updateCard(id, { config: { ...(card?.config || {}), ...patch } });
+    this.validateCardConfig(id);
+  }
+  validateCardConfig(id) {
+    const card = this.state.draftDashboard.cards.find((item) => item.id === id);
+    const fieldPrefix = `card:${id}:config`;
+    const definition = getCardType(card?.type);
+    if (!definition?.validateConfig) return;
+    const pluginErrors = definition.validateConfig(card?.config || {});
+    const validationErrors = [...(this.state.validationErrors || []).filter((error) => !error.field?.startsWith(fieldPrefix)), ...pluginErrors.map((error) => ({ field: `${fieldPrefix}${error.field?.startsWith("config.") ? error.field.slice("config".length) : ""}`, message: error.message }))];
+    this.store.setState({ editor: { ...this.state, validationErrors } });
+  }
   removeCard(id) {
     this.apply((draft) => commands.removeCard(draft, id), (draft) => ({ dashboardId: draft.id, viewId: this.state.selectedNode.viewId, sectionId: this.state.selectedNode.sectionId, cardId: null }));
     this.clearFieldState([`card:${id}:`]);

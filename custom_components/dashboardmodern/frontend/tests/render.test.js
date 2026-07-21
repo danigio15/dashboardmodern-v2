@@ -76,3 +76,17 @@ test("malformed cards are isolated and open config displays only keys", () => {
   assert.match(rendered.textContent, /Configuration keys: entity_id, message/);
   assert.doesNotMatch(rendered.textContent, /sensor.temp|Hi/);
 });
+
+test("legacy shell foundation uses accessible scrollable view tabs and injected runtime", () => {
+  const root = new Node("div");
+  const dash = { ...dashboard, views: [{ id: "v1", title: "Home", section_ids: ["s1"] }], sections: [{ id: "s1", title: "Panels", card_ids: ["lp"] }], cards: [{ id: "lp", title: "Legacy", type: "legacy-panel", config: { subtitle: "Sub", status: "OK", accent: "energy", body: "<img onerror=alert(1)>" } }] };
+  renderDashboard(root, { dashboards: [dash], activeDashboard: dash, activeViewId: "v1" }, { runtime: { connectionStatus: "connected" } });
+  const nav = root.querySelectorAll("nav")[0];
+  const tab = root.querySelectorAll("button")[0];
+  assert.equal(nav.attributes.role, "tablist");
+  assert.equal(tab.attributes.role, "tab");
+  assert.equal(tab.attributes["aria-selected"], "true");
+  assert.match(root.textContent, /Legacy/);
+  assert.match(root.textContent, /<img onerror=alert\(1\)>/);
+});
+
