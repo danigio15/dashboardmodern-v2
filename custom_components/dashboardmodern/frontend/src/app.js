@@ -93,7 +93,68 @@ function renderStatus(container, state) {
   renderStatus.dataset.kind = "error";
 }
 
-function renderDashboardList(container, state, controller) {
+function createDashboardPayload(values) {
+  const id = values.id.trim();
+  return {
+    id,
+    title: values.title.trim(),
+    views: [{ id: `${id}-view`, title: "Main", section_ids: [`${id}-section`] }],
+    sections: [{ id: `${id}-section`, title: "Main", card_ids: [`${id}-card`] }],
+    cards: [{ id: `${id}-card`, title: "Welcome", type: "dashboardmodern-placeholder", config: {} }],
+  };
+}
+
+function validateDashboardCreation(values) {
+  const errors = {};
+  if (!values.id.trim()) errors.id = "Dashboard ID is required.";
+  if (!values.title.trim()) errors.title = "Dashboard title is required.";
+  return errors;
+}
+
+function renderDashboardCreationForm(root, state, creation, editorController) {
+  const doc = root.ownerDocument || document;
+  const panel = doc.createElement("form");
+  panel.className = "dashboardmodern-create-form";
+  panel.setAttribute("aria-label", "Create dashboard");
+  panel.setAttribute("aria-busy", String(Boolean(creation.pending)));
+  panel.addEventListener("submit", async (event) => {
+    event.preventDefault?.();
+    if (creation.pending) return;
+    creation.errors = validateDashboardCreation(creation.values);
+    if (Object.keys(creation.errors).length) { creation.render(); return; }
+    creation.pending = true; creation.backendError = null; creation.render();
+    const ok = await creation.store.createDashboard(createDashboardPayload(creation.values));
+    creation.pending = false;
+    if (ok) {
+      creation.open = false; creation.values = { id: "", title: "" }; creation.errors = {}; creation.backendError = null; creation.render();
+      await editorController.enter();
+      return;
+    }
+    creation.backendError = creation.store.state.error;
+    creation.render();
+  });
+  panel.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !creation.pending) { event.preventDefault?.(); creation.cancel(); }
+  });
+  const title = doc.createElement("h3"); title.textContent = "Create dashboard"; panel.append(title);
+  const live = doc.createElement("div"); live.setAttribute("role", "alert"); live.setAttribute("aria-live", "assertive");
+  live.textContent = creation.backendError?.message || Object.values(creation.errors)[0] || ""; panel.append(live);
+  for (const field of [{ name: "id", label: "Dashboard ID" }, { name: "title", label: "Dashboard title" }]) {
+    const label = doc.createElement("label"); label.textContent = field.label; label.setAttribute("for", `dashboardmodern-create-${field.name}`);
+    const input = doc.createElement("input"); input.id = `dashboardmodern-create-${field.name}`; input.value = creation.values[field.name]; input.disabled = creation.pending; input.dataset.createField = field.name; input.setAttribute("aria-invalid", String(Boolean(creation.errors[field.name])));
+    input.addEventListener("input", () => { creation.values[field.name] = input.value; creation.errors = { ...creation.errors, [field.name]: undefined }; creation.backendError = null; });
+    const error = doc.createElement("p"); error.textContent = creation.errors[field.name] || ""; error.dataset.createError = field.name;
+    label.append(input); panel.append(label, error);
+  }
+  const actions = doc.createElement("div");
+  const submit = doc.createElement("button"); submit.type = "submit"; submit.textContent = creation.pending ? "Creating…" : "Create dashboard"; submit.disabled = creation.pending; submit.setAttribute("aria-disabled", String(creation.pending));
+  const cancel = doc.createElement("button"); cancel.type = "button"; cancel.textContent = "Cancel"; cancel.disabled = creation.pending; cancel.addEventListener("click", () => creation.cancel());
+  actions.append(submit, cancel); panel.append(actions);
+  root.append(panel);
+  if (creation.needsFocus) { creation.needsFocus = false; setTimeout(() => panel.querySelector?.('[data-create-field="id"]')?.focus?.(), 0); }
+}
+
+function renderDashboardList(container, state, controller, creation = null) {
   const list = container.querySelector("[data-dashboard-list]");
   list.innerHTML = "";
   const wrapper = document.createElement("div");
@@ -106,7 +167,14 @@ function renderDashboardList(container, state, controller) {
     button.addEventListener("click", () => controller.loadDashboard(dashboard.id));
     wrapper.append(button);
   }
-  if (!state.dashboards.length) wrapper.textContent = "No dashboards available.";
+  if (!state.dashboards.length) {
+    const message = document.createElement("p"); message.textContent = "No dashboards available."; wrapper.append(message);
+    const sub = document.createElement("p"); sub.textContent = "No dashboards have been created yet."; wrapper.append(sub);
+    if (!creation?.open) {
+      const create = document.createElement("button"); create.type = "button"; create.textContent = "Create dashboard"; create.dataset.createDashboardAction = ""; create.addEventListener("click", () => creation.openForm()); wrapper.append(create);
+    }
+    if (creation?.open) renderDashboardCreationForm(wrapper, state, creation, controller);
+  }
   list.append(wrapper);
 }
 
@@ -164,10 +232,30 @@ export function createUnsavedChangeConfirmation() {
 
 export function bindDashboardModernApp(container, store, { initialize = true, hass = null, confirmUnsaved = createUnsavedChangeConfirmation(), cardRegistry = DEFAULT_CARD_REGISTRY } = {}) {
   const editorController = new EditorController(store, { confirmUnsaved, cardRegistry });
+  const creation = {
+    open: false,
+    pending: false,
+    values: { id: "", title: "" },
+    errors: {},
+    backendError: null,
+    needsFocus: false,
+    store,
+    render: () => renderDashboardList(container, store.state, editorController, creation),
+    openForm() { this.open = true; this.needsFocus = true; this.render(); },
+    cancel() {
+      this.open = false;
+      this.errors = {};
+      this.backendError = null;
+      this.render();
+      const list = container.querySelector("[data-dashboard-list]");
+      const createAction = container.querySelector?.("[data-create-dashboard-action]") || list?.querySelector?.("[data-create-dashboard-action]");
+      createAction?.focus?.();
+    },
+  };
   new CardReorderController(store, editorController, container.querySelector("[data-dashboard-visual]"));
   store.subscribe((state) => {
     renderStatus(container, state);
-    renderDashboardList(container, state, editorController);
+    renderDashboardList(container, state, editorController, creation);
     renderEditor(container, state);
     renderVisualEditor(container, state, editorController);
     renderVisualDashboard(container, state, store, { hass, cardRegistry });

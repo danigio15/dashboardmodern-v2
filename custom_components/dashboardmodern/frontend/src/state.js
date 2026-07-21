@@ -89,12 +89,16 @@ export class DashboardModernStore {
     }
   }
 
-  async refreshDashboards() {
+  async refreshDashboards(preferredDashboardId = this.state.activeDashboardId) {
     const dashboards = await this.api.listDashboards(this.state.entryId);
-    const stillSelected = dashboards.some((item) => item.id === this.state.activeDashboardId);
-    const activeDashboardId = stillSelected ? this.state.activeDashboardId : dashboards[0]?.id || null;
-    this.setState({ dashboards, activeDashboardId, loading: false });
-    if (activeDashboardId) await this.loadDashboard(activeDashboardId);
+    const preferredAvailable = dashboards.some((item) => item.id === preferredDashboardId);
+    const activeDashboardId = preferredAvailable ? preferredDashboardId : dashboards[0]?.id || null;
+    this.setState({ dashboards, loading: false });
+    if (activeDashboardId) {
+      await this.loadDashboard(activeDashboardId);
+      return;
+    }
+    this.setState({ activeDashboardId: null, activeDashboard: null, activeViewId: null, editor: clearEditorState(this.state.editor) });
   }
 
   async loadDashboard(dashboardId) {
@@ -117,11 +121,13 @@ export class DashboardModernStore {
   async createDashboard(dashboard = EMPTY_DASHBOARD) {
     this.setState({ saving: true, error: null });
     try {
-      const activeDashboard = await this.api.createDashboard(this.state.entryId, dashboard);
-      this.setState({ activeDashboardId: activeDashboard.id, activeDashboard, activeViewId: selectActiveViewId(activeDashboard, this.state.activeViewId), saving: false });
-      await this.refreshDashboards();
+      const createdDashboard = await this.api.createDashboard(this.state.entryId, dashboard);
+      this.setState({ saving: false });
+      await this.refreshDashboards(createdDashboard.id);
+      return this.state.activeDashboardId === createdDashboard.id && Boolean(this.state.activeDashboard);
     } catch (error) {
       this.setState({ saving: false, error: friendlyError(error) });
+      return false;
     }
   }
 
