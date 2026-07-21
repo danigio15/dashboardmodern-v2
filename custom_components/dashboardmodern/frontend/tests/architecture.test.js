@@ -66,3 +66,12 @@ test("card plugins use narrow runtime capabilities and never runtime.hass", asyn
   const runtime = await readFile("custom_components/dashboardmodern/frontend/src/runtime/context.js", "utf8");
   assert.doesNotMatch(runtime, /return Object\.freeze\(\{\s*hass/s);
 });
+
+
+test("Phase 10 card plugins keep frontend boundaries", async () => {
+  for (const file of ["home-summary.js", "weather.js"]) {
+    const source = await readFile(join("custom_components/dashboardmodern/frontend/src/cards", file), "utf8");
+    assert.doesNotMatch(source, /ws-client|store|backend|persistence|application|runtime\.hass|iframe|innerHTML|outerHTML/);
+    assert.doesNotMatch(source, /innerHTML\s*=|outerHTML\s*=|insertAdjacentHTML|eval\(|new Function|srcdoc|iframe/i);
+  }
+});
