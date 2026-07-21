@@ -138,7 +138,7 @@ test("application wiring routes dashboard selection delete and mode changes thro
   let asks = 0;
   await bindDashboardModernApp(container, store, { initialize: true, confirmUnsaved: async () => { asks += 1; return false; } });
   container.actions.edit.click();
-  const titleInput = container.visualEditor.children.find((child) => child.tagName === "input");
+  const titleInput = controlsByLabel(container.visualEditor)[0];
   titleInput.value = "Dirty";
   titleInput.listeners.input();
   assert.equal(store.state.editor.dirty, true);
@@ -151,4 +151,94 @@ test("application wiring routes dashboard selection delete and mode changes thro
   container.actions.visual.click();
   assert.equal(store.state.mode, "edit");
   assert.equal(asks, 3);
+});
+
+function descendants(node) {
+  return [node, ...node.children.flatMap(descendants)];
+}
+
+function controlsByLabel(panel) {
+  return descendants(panel).filter((node) => ["input", "textarea"].includes(node.tagName));
+}
+
+test("production default unsaved confirmation rejects and accepts guarded app actions", async () => {
+  const other = { ...dashboard, id: "other", title: "Other" };
+  let deleteCalls = 0;
+  const api = {
+    listDashboards: async () => [dashboard, other],
+    getDashboard: async (_entryId, id) => id === "other" ? other : dashboard,
+    deleteDashboard: async () => { deleteCalls += 1; },
+  };
+  const originalWindow = globalThis.window;
+  const confirmations = [];
+  globalThis.window = { confirm: () => confirmations.push("ask") && false };
+  const store = new DashboardModernStore(api, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true });
+  container.actions.edit.click();
+  const titleInput = controlsByLabel(container.visualEditor)[0];
+  titleInput.value = "Dirty";
+  titleInput.listeners.input();
+
+  await container.list.children[0].children[1].click();
+  assert.equal(confirmations.length, 1);
+  assert.equal(store.state.activeDashboardId, "dash");
+  assert.equal(store.state.editor.draftDashboard.title, "Dirty");
+  await container.actions.delete.click();
+  assert.equal(confirmations.length, 2);
+  assert.equal(deleteCalls, 0);
+  await container.actions.visual.click();
+  assert.equal(confirmations.length, 3);
+  assert.equal(store.state.mode, "edit");
+
+  globalThis.window.confirm = () => confirmations.push("ask") && true;
+  await container.list.children[0].children[1].click();
+  assert.equal(confirmations.length, 4);
+  assert.equal(store.state.activeDashboardId, "other");
+  assert.equal(store.state.editor.draftDashboard, null);
+  globalThis.window = originalWindow;
+});
+
+test("structured selected-node forms update draft only and keep unknown card types editable", async () => {
+  const editable = {
+    ...dashboard,
+    views: [{ id: "one", title: "One", description: "View desc", section_ids: ["s1"] }],
+    sections: [{ id: "s1", title: "Section", description: "Section desc", card_ids: ["c1"] }],
+    cards: [{ id: "c1", title: "Card", type: "unknown-type", config: { ok: true } }],
+  };
+  const store = new DashboardModernStore({ listDashboards: async () => [editable], getDashboard: async () => editable }, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true, confirmUnsaved: async () => true });
+  container.actions.edit.click();
+  store.setState({ editor: { ...store.state.editor, selectedNode: { dashboardId: "dash", viewId: "one", sectionId: "s1", cardId: "c1" } } });
+
+  const before = JSON.stringify(store.state.activeDashboard);
+  const controls = controlsByLabel(container.visualEditor);
+  const [dashboardTitle, dashboardDescription, viewTitle, viewDescription, sectionTitle, sectionDescription, cardTitle, cardType, cardConfig] = controls;
+  dashboardTitle.value = "Draft dashboard"; dashboardTitle.listeners.input();
+  dashboardDescription.value = "Draft dashboard desc"; dashboardDescription.listeners.input();
+  viewTitle.value = "Draft view"; viewTitle.listeners.input();
+  viewDescription.value = "Draft view desc"; viewDescription.listeners.input();
+  sectionTitle.value = "Draft section"; sectionTitle.listeners.input();
+  sectionDescription.value = "Draft section desc"; sectionDescription.listeners.input();
+  cardTitle.value = "Draft card"; cardTitle.listeners.input();
+  cardType.value = "new-unknown-type"; cardType.listeners.input();
+  cardConfig.value = '{"changed":true}'; cardConfig.listeners.input();
+
+  const draft = store.state.editor.draftDashboard;
+  assert.equal(draft.title, "Draft dashboard");
+  assert.equal(draft.description, "Draft dashboard desc");
+  assert.equal(draft.views[0].title, "Draft view");
+  assert.equal(draft.views[0].description, "Draft view desc");
+  assert.equal(draft.sections[0].title, "Draft section");
+  assert.equal(draft.sections[0].description, "Draft section desc");
+  assert.equal(draft.cards[0].title, "Draft card");
+  assert.equal(draft.cards[0].type, "new-unknown-type");
+  assert.deepEqual(draft.cards[0].config, { changed: true });
+  assert.equal(JSON.stringify(store.state.activeDashboard), before);
+
+  const previousConfig = draft.cards[0].config;
+  cardConfig.value = "[]"; cardConfig.listeners.input();
+  assert.equal(store.state.editor.draftDashboard.cards[0].config, previousConfig);
+  assert.match(store.state.editor.validationErrors[0].message, /JSON object/);
 });

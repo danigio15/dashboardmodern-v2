@@ -67,13 +67,17 @@ export function validateDraft(draft) {
   const sectionIds = new Set(sections.map((section) => section?.id).filter(Boolean));
   const cardIds = new Set(cards.map((card) => card?.id).filter(Boolean));
   const referencedSections = new Set();
+  const sectionOwners = new Map();
   const referencedCards = new Set();
+  const cardOwners = new Map();
 
   for (const view of views) {
     assertArray(errors, view?.section_ids, `view:${view?.id}:section_ids`);
     for (const duplicate of duplicateReferences(view?.section_ids || [])) addError(errors, `Duplicate section reference: ${duplicate}`, `view:${view?.id}:section_ids`);
     for (const sectionId of view?.section_ids || []) {
       if (!sectionIds.has(sectionId)) addError(errors, `View references missing section: ${sectionId}`, `view:${view?.id}:section_ids`);
+      if (sectionOwners.has(sectionId) && sectionOwners.get(sectionId) !== view?.id) addError(errors, `Section is referenced by multiple views: ${sectionId}`, `view:${view?.id}:section_ids`);
+      sectionOwners.set(sectionId, view?.id);
       referencedSections.add(sectionId);
     }
   }
@@ -83,6 +87,8 @@ export function validateDraft(draft) {
     for (const duplicate of duplicateReferences(section?.card_ids || [])) addError(errors, `Duplicate card reference: ${duplicate}`, `section:${section?.id}:card_ids`);
     for (const cardId of section?.card_ids || []) {
       if (!cardIds.has(cardId)) addError(errors, `Section references missing card: ${cardId}`, `section:${section?.id}:card_ids`);
+      if (cardOwners.has(cardId) && cardOwners.get(cardId) !== section?.id) addError(errors, `Card is referenced by multiple sections: ${cardId}`, `section:${section?.id}:card_ids`);
+      cardOwners.set(cardId, section?.id);
       referencedCards.add(cardId);
     }
   }

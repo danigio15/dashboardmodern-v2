@@ -2,6 +2,10 @@ import { createDashboardModernClient } from "./ws-client.js";
 import { DashboardModernStore, EMPTY_DASHBOARD } from "./state.js";
 import { renderDashboard } from "./render/dashboard-renderer.js";
 import { EditorController } from "./editor/editor-controller.js";
+import { renderCardForm } from "./editor/card-form.js";
+import { renderDashboardForm } from "./editor/dashboard-form.js";
+import { renderSectionForm } from "./editor/section-form.js";
+import { renderViewForm } from "./editor/view-form.js";
 
 export function createDashboardModernShell(root, entryIds = []) {
   root.innerHTML = `
@@ -140,7 +144,14 @@ export function renderVisualDashboard(container, state, store, { hass = null, re
   }
 }
 
-export function bindDashboardModernApp(container, store, { initialize = true, hass = null, confirmUnsaved = async () => true } = {}) {
+export function createUnsavedChangeConfirmation() {
+  return async () => {
+    if (typeof window !== "undefined" && typeof window.confirm === "function") return window.confirm("Discard unsaved DashboardModern editor changes?");
+    return false;
+  };
+}
+
+export function bindDashboardModernApp(container, store, { initialize = true, hass = null, confirmUnsaved = createUnsavedChangeConfirmation() } = {}) {
   const editorController = new EditorController(store, { confirmUnsaved });
   store.subscribe((state) => {
     renderStatus(container, state);
@@ -185,11 +196,16 @@ export function renderVisualEditor(container, state, editorController) {
   const doc = panel.ownerDocument || document;
   const heading = doc.createElement("h2"); heading.textContent = "Visual editor"; panel.append(heading);
   for (const error of state.editor.validationErrors || []) { const p = doc.createElement("p"); p.dataset.kind="error"; p.textContent = error.message; panel.append(p); }
-  const title = doc.createElement("input"); title.value = draft.title || ""; title.setAttribute("aria-label", "Dashboard title"); title.addEventListener("input", () => editorController.updateDashboard({ title: title.value })); panel.append(title);
-  const desc = doc.createElement("input"); desc.value = draft.description || ""; desc.setAttribute("aria-label", "Dashboard description"); desc.addEventListener("input", () => editorController.updateDashboard({ description: desc.value })); panel.append(desc);
+  panel.append(renderDashboardForm(doc, draft, editorController));
   const addView = doc.createElement("button"); addView.type="button"; addView.textContent="Add view"; addView.addEventListener("click", () => editorController.addView()); panel.append(addView);
   const save = doc.createElement("button"); save.type="button"; save.textContent="Save"; save.disabled = Boolean(state.editor.saving); save.addEventListener("click", () => editorController.save()); panel.append(save);
   const cancel = doc.createElement("button"); cancel.type="button"; cancel.textContent="Cancel"; cancel.addEventListener("click", () => editorController.cancel()); panel.append(cancel);
+  const selectedView = (draft.views || []).find((view) => view.id === state.editor.selectedNode.viewId) || null;
+  const selectedSection = (draft.sections || []).find((section) => section.id === state.editor.selectedNode.sectionId) || null;
+  const selectedCard = (draft.cards || []).find((card) => card.id === state.editor.selectedNode.cardId) || null;
+  panel.append(renderViewForm(doc, selectedView, editorController));
+  panel.append(renderSectionForm(doc, selectedSection, editorController));
+  panel.append(renderCardForm(doc, selectedCard, editorController, state.editor.validationErrors));
   const list = doc.createElement("div"); list.className="dashboardmodern-editor-tree"; panel.append(list);
   for (const view of draft.views || []) {
     const vb = doc.createElement("button"); vb.type="button"; vb.textContent = `View: ${view.title || view.id}`; vb.addEventListener("click", () => editorController.select({viewId:view.id,sectionId:null,cardId:null})); list.append(vb);

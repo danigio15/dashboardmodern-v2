@@ -210,3 +210,19 @@ test("Debug JSON structural validation keeps previous draft for invalid structur
     assert.ok(store.state.editor.debugError || store.state.editor.validationErrors.length, text);
   }
 });
+
+test("Debug JSON validation rejects sections and cards referenced by multiple parents", async () => {
+  const invalidOwnership = [
+    '{"id":"dash","views":[{"id":"v1","section_ids":["s1"]},{"id":"v2","section_ids":["s1"]}],"sections":[{"id":"s1","card_ids":[]}],"cards":[]}',
+    '{"id":"dash","views":[{"id":"v1","section_ids":["s1","s2"]}],"sections":[{"id":"s1","card_ids":["c1"]},{"id":"s2","card_ids":["c1"]}],"cards":[{"id":"c1","title":"C","type":"x","config":{}}]}'
+  ];
+  for (const text of invalidOwnership) {
+    const store = storeWithApi();
+    const controller = new EditorController(store);
+    await controller.enter();
+    const before = store.state.editor.draftDashboard;
+    assert.equal(controller.updateDebugJson(text), false, text);
+    assert.equal(store.state.editor.draftDashboard, before, text);
+    assert.match(store.state.editor.debugError, /multiple/);
+  }
+});

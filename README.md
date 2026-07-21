@@ -36,3 +36,5 @@ The card editor remains generic because the domain Card schema is only `id`, `ti
 While editing, the preview is rendered by the existing read-only renderer from the draft payload. It does not save, use a second renderer contract, or perform backend access.
 
 Phase 8 follow-up tightened the editor guard ownership so all draft-sensitive navigation is centralized in `EditorController`. Application dashboard selection, active-dashboard deletion, and mode changes delegate through controller methods instead of calling store load/delete directly when a draft may exist. Debug JSON now performs lightweight structural validation before replacing the draft, and editor save controls reflect `editor.saving` while duplicate saves are ignored.
+
+The application default unsaved-change guard now asks before discarding dirty drafts instead of silently approving navigation. The structured editor includes selected View, Section, and generic Card forms; Card config is edited as formatted object JSON and invalid edits stay local without replacing the previous valid config.

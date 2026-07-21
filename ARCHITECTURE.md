@@ -492,3 +492,11 @@ All draft-sensitive navigation is owned by `EditorController`. The store remains
 Editor hierarchy commands now validate parent existence before creating child nodes, collision-check explicit ids and generated ids against the aggregate, and fail before cloning/mutating when a command would create an orphan. Debug JSON also performs minimal structural draft checks before replacing the current draft: root object shape, collection arrays, usable unique ids, valid references, no duplicate references/orphans, and object-only Card config. These checks protect local draft coherence while leaving domain/business validation authoritative on the backend.
 
 Editor saves expose `editor.saving`, reject duplicate concurrent saves, leave dirty draft data intact during the backend call, and clear dirty/editor state only after a successful backend response. Failed saves reset `editor.saving`, preserve the draft, and display the backend error separately from local draft validation.
+
+### Phase 8 form and confirmation completion
+
+At the application boundary, the default unsaved-change adapter asks the user before discarding dirty drafts and fails closed when no browser confirmation API is available. Command and editor-state modules remain free of `window.confirm`; production wiring injects the confirmation policy into `EditorController`.
+
+The structured editor now renders separated Dashboard, View, Section, and Card forms. Selected View and Section forms edit title and description; the generic Card form edits title, opaque type, and formatted JSON-object config. Invalid Card config syntax, `null`, arrays, or primitives are field-level local validation errors and do not replace the previous valid draft config.
+
+Debug JSON structural validation enforces single-parent ownership in addition to prior integrity checks: a Section may be referenced by exactly one View, and a Card may be referenced by exactly one Section.
