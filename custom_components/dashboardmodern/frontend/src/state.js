@@ -1,5 +1,6 @@
 import { DashboardModernApiError } from "./ws-client.js";
 import { selectActiveViewId } from "./presentation/view-selection.js";
+import { selectActiveSectionId } from "./navigation/navigation.js";
 import { createEditorState, clearEditorState } from "./editor/editor-state.js";
 
 export const EMPTY_DASHBOARD = Object.freeze({
@@ -17,6 +18,7 @@ export function createInitialState() {
     activeDashboardId: null,
     activeDashboard: null,
     activeViewId: null,
+    activeSectionId: null,
     mode: "visual",
     editor: createEditorState(),
     renderError: null,
@@ -66,7 +68,15 @@ export class DashboardModernStore {
 
   setActiveView(activeViewId) {
     const selected = selectActiveViewId(this.state.activeDashboard, activeViewId);
-    this.setState({ activeViewId: selected, renderError: null });
+    const activeSectionId = selectActiveSectionId(this.state.activeDashboard, selected, this.state.activeSectionId);
+    this.setState({ activeViewId: selected, activeSectionId, renderError: null });
+  }
+
+  setActiveSection(sectionId) {
+    const dashboard = this.state.activeDashboard;
+    const selected = selectActiveSectionId(dashboard, this.state.activeViewId, sectionId);
+    const view = (dashboard?.views || []).find((item) => (item.section_ids || []).includes(selected));
+    this.setState({ activeSectionId: selected, activeViewId: view?.id || this.state.activeViewId, renderError: null });
   }
 
   setMode(mode) {
@@ -98,7 +108,7 @@ export class DashboardModernStore {
       await this.loadDashboard(activeDashboardId);
       return;
     }
-    this.setState({ activeDashboardId: null, activeDashboard: null, activeViewId: null, editor: clearEditorState(this.state.editor) });
+    this.setState({ activeDashboardId: null, activeDashboard: null, activeViewId: null, activeSectionId: null, editor: clearEditorState(this.state.editor) });
   }
 
   async loadDashboard(dashboardId) {
@@ -109,6 +119,7 @@ export class DashboardModernStore {
         activeDashboardId: activeDashboard.id,
         activeDashboard,
         activeViewId: selectActiveViewId(activeDashboard, this.state.activeViewId),
+        activeSectionId: selectActiveSectionId(activeDashboard, selectActiveViewId(activeDashboard, this.state.activeViewId), this.state.activeSectionId),
         loading: false,
         renderError: null,
         editor: clearEditorState(this.state.editor),
@@ -135,7 +146,7 @@ export class DashboardModernStore {
     this.setState({ saving: true, error: null });
     try {
       const activeDashboard = await this.api.replaceDashboard(this.state.entryId, dashboard);
-      this.setState({ activeDashboardId: activeDashboard.id, activeDashboard, activeViewId: selectActiveViewId(activeDashboard, this.state.activeViewId), saving: false });
+      this.setState({ activeDashboardId: activeDashboard.id, activeDashboard, activeViewId: selectActiveViewId(activeDashboard, this.state.activeViewId), activeSectionId: selectActiveSectionId(activeDashboard, selectActiveViewId(activeDashboard, this.state.activeViewId), this.state.activeSectionId), saving: false });
       await this.refreshDashboards();
     } catch (error) {
       this.setState({ saving: false, error: friendlyError(error) });
@@ -147,7 +158,7 @@ export class DashboardModernStore {
     this.setState({ deleting: true, error: null });
     try {
       await this.api.deleteDashboard(this.state.entryId, dashboardId);
-      this.setState({ activeDashboardId: null, activeDashboard: null, activeViewId: null, deleting: false, editor: clearEditorState(this.state.editor) });
+      this.setState({ activeDashboardId: null, activeDashboard: null, activeViewId: null, activeSectionId: null, deleting: false, editor: clearEditorState(this.state.editor) });
       await this.refreshDashboards();
     } catch (error) {
       this.setState({ deleting: false, error: friendlyError(error) });

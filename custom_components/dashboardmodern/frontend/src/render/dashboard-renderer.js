@@ -3,8 +3,11 @@ import { renderView } from "./view-renderer.js";
 import { DEFAULT_CARD_REGISTRY } from "../cards/registry.js";
 import { createCardRuntimeContext } from "../runtime/context.js";
 import { el, emptyState } from "./dom.js";
+import { renderBottomNavigation } from "../navigation/bottom-navigation.js";
+import { DEFAULT_SECTION_REGISTRY } from "../sections/registry.js";
+import { selectActiveSectionId } from "../navigation/navigation.js";
 
-export function renderDashboard(container, state, { hass, runtime, registry = DEFAULT_CARD_REGISTRY } = {}) {
+export function renderDashboard(container, state, { hass, runtime, registry = DEFAULT_CARD_REGISTRY, sectionRegistry = DEFAULT_SECTION_REGISTRY } = {}) {
   container.replaceChildren();
   if (state.loading && !state.activeDashboard) {
     container.append(emptyState("Loading DashboardModern configuration…"));
@@ -19,7 +22,7 @@ export function renderDashboard(container, state, { hass, runtime, registry = DE
     container.append(emptyState("Select a dashboard to render."));
     return;
   }
-  const runtimeContext = { ...(runtime || createCardRuntimeContext({ hass, connectionStatus: state.connectionStatus || (state.loading ? "loading" : state.error ? "error" : "connected") })), cardRegistry: registry, editMode: state.mode === "edit" && Boolean(state.editor?.editing) };
+  const runtimeContext = { ...(runtime || createCardRuntimeContext({ hass, connectionStatus: state.connectionStatus || (state.loading ? "loading" : state.error ? "error" : "connected") })), cardRegistry: registry, sectionRegistry, editMode: state.mode === "edit" && Boolean(state.editor?.editing) };
   const header = el("header", { className: "dashboardmodern-dashboard-header legacy-hero" });
   header.append(el("h2", { text: dashboard.title || "Untitled dashboard" }));
   if (dashboard.description) header.append(el("p", { text: dashboard.description }));
@@ -40,5 +43,7 @@ export function renderDashboard(container, state, { hass, runtime, registry = DE
   }
   container.append(nav);
   const activeView = views.find((view) => view.id === state.activeViewId) || views[0];
+  const activeSectionId = selectActiveSectionId(dashboard, activeView?.id, state.activeSectionId);
   container.append(renderView(activeView, dashboard, runtimeContext));
+  if (dashboard.config?.navigation) container.append(renderBottomNavigation(dashboard, activeSectionId));
 }

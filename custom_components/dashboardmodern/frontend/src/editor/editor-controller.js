@@ -1,6 +1,7 @@
 import { DEFAULT_CARD_REGISTRY, getCardType } from "../cards/registry.js";
 import { layoutPatch, validateCardLayout } from "../layout.js";
 import { replaceCardConfigErrors, validateRegisteredCardConfigs } from "./card-validation.js";
+import { validateNavigationConfig } from "../navigation/navigation.js";
 import * as commands from "./commands.js";
 import { clearEditorState, enterEditor, hasBlockingLocalErrors, markDraft, validateDraft } from "./editor-state.js";
 
@@ -151,7 +152,7 @@ export class EditorController {
   updateDebugJson(text) {
     try {
       const draft = JSON.parse(text);
-      const validationErrors = [...validateDraft(draft), ...validateRegisteredCardConfigs(draft, this.cardRegistry)];
+      const validationErrors = [...validateDraft(draft), ...validateNavigationConfig(draft.config), ...validateRegisteredCardConfigs(draft, this.cardRegistry)];
       if (validationErrors.length) {
         this.store.setState({ editor: { ...this.state, debugText: text, debugError: validationErrors[0].message, validationErrors } });
         return false;
@@ -168,7 +169,7 @@ export class EditorController {
     if (this.state?.saving) return false;
     if (this.state?.debugError) return false;
     if (Object.keys(this.state?.fieldText || {}).length) return false;
-    const validationErrors = [...validateDraft(this.state.draftDashboard), ...validateRegisteredCardConfigs(this.state.draftDashboard, this.cardRegistry)];
+    const validationErrors = [...validateDraft(this.state.draftDashboard), ...validateNavigationConfig(this.state.draftDashboard?.config), ...validateRegisteredCardConfigs(this.state.draftDashboard, this.cardRegistry)];
     if (validationErrors.length) {
       this.store.setState({ editor: { ...this.state, validationErrors } });
       return false;
