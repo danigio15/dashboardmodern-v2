@@ -105,7 +105,7 @@ test("media, camera, fan and vacuum card plugins register with deterministic ord
     registry.list().map((definition) => definition.displayName),
     [...registry.list().map((definition) => definition.displayName)].sort((a, b) => a.localeCompare(b)),
   );
-  assert.match(renderUnknownCard({ type: "missing-card", config: { safe: true } }).textContent, /not registered/);
+  assert.match(renderUnknownCard({ type: "missing-card", config: { safe: true } }).textContent, /Configuration required/);
 });
 
 test("validators reject invalid, missing and executable card config", () => {

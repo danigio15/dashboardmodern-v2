@@ -42,7 +42,7 @@ export function renderCardForm(documentRef, card, controller, validationErrors =
   select.addEventListener("change", () => controller.changeCardType(card.id, select.value)); typeLabel.append(select); form.append(typeLabel);
   const definition = getCardType(card.type, registry);
   const configErrors = errorsForCardConfig(validationErrors, card.id);
-  if (definition?.editor) form.append(definition.editor(documentRef, card, controller, configErrors));
+  if (definition?.editor) form.append(definition.editor(documentRef, card, controller, configErrors, fieldText));
   const configField = `card:${card.id}:config`;
   const details = documentRef.createElement("details"); details.open = !definition?.editor || !currentRegistered;
   const summary = documentRef.createElement("summary"); summary.textContent = definition?.editor ? "Advanced JSON fallback" : "Card config JSON"; details.append(summary);

@@ -17,7 +17,7 @@ test("action control defaults validators registry ordering and unknown fallback"
  assert(cards.validateButtonControlConfig({entityId:"{{bad}}",showLastChanged:true}).some(e=>/templates/.test(e.message)));
  assert(cards.validateSceneControlConfig({entityId:"scene.good",showLastChanged:"yes"}).some(e=>e.field==="config.showLastChanged"));
  assert.deepEqual(reg.list().map(d=>d.displayName),[...reg.list().map(d=>d.displayName)].sort((a,b)=>a.localeCompare(b)));
- assert.match(renderUnknownCard({type:"future",config:{x:1}}).textContent,/not registered/);
+ assert.match(renderUnknownCard({type:"future",config:{x:1}}).textContent,/Configuration required/);
 });
 
 test("general invalid entities and missing callService disable controls",()=>{

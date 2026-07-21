@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bindDashboardModernApp, renderEditor, renderVisualDashboard } from "../src/app.js";
+import { applyDashboardShellConfig, bindDashboardModernApp, renderEditor, renderVisualDashboard, createDashboardPayload, normalizeShellConfig } from "../src/app.js";
 import { DashboardModernStore } from "../src/state.js";
 import { renderDashboard } from "../src/render/dashboard-renderer.js";
 
 class Node {
-  constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.dataset = {}; this.hidden = false; this.disabled = false; this._text = ""; this.listeners = {}; this.value = ""; this.selectionStart = 0; this.selectionEnd = 0; this.ownerDocument = globalThis.document; }
+  constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.dataset = {}; this.style = { values: {}, setProperty(k, v) { this.values[k] = v; } }; this.hidden = false; this.disabled = false; this._text = ""; this.listeners = {}; this.value = ""; this.selectionStart = 0; this.selectionEnd = 0; this.ownerDocument = globalThis.document; }
   append(...items) { this.children.push(...items); }
   set innerHTML(_v) { this.children = []; this._text = ""; }
   replaceChildren(...items) { this.children = items; this._text = ""; }
@@ -20,7 +20,7 @@ class Node {
   querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
   querySelectorAll(selector) {
     const out = [];
-    const match = (n) => selector === "[data-debug-action]" ? Object.hasOwn(n.dataset, "debugAction") : selector === "[data-create-dashboard-action]" ? Object.hasOwn(n.dataset, "createDashboardAction") : selector === '[data-create-field="id"]' ? n.dataset.createField === "id" : selector.startsWith("[data-view-id]") ? Object.hasOwn(n.dataset, "viewId") : n.tagName === selector;
+    const match = (n) => selector === "[data-brand-title]" ? Object.hasOwn(n.dataset, "brandTitle") : selector === "[data-brand-subtitle]" ? Object.hasOwn(n.dataset, "brandSubtitle") : selector === "[data-brand-logo-slot]" ? Object.hasOwn(n.dataset, "brandLogoSlot") : selector === "[data-debug-action]" ? Object.hasOwn(n.dataset, "debugAction") : selector === "[data-create-dashboard-action]" ? Object.hasOwn(n.dataset, "createDashboardAction") : selector === '[data-create-field="id"]' ? n.dataset.createField === "id" : selector.startsWith("[data-view-id]") ? Object.hasOwn(n.dataset, "viewId") : n.tagName === selector;
     const walk = (n) => { if (match(n)) out.push(n); for (const c of n.children) walk(c); };
     walk(this); return out;
   }
@@ -102,6 +102,9 @@ function makeBoundContainer() {
   const status = new Node("section");
   const renderStatus = new Node("section");
   const list = new Node("div");
+  const brandTitle = new Node("h1"); brandTitle.dataset.brandTitle = "";
+  const brandSubtitle = new Node("p"); brandSubtitle.dataset.brandSubtitle = "";
+  const brandLogo = new Node("div"); brandLogo.dataset.brandLogoSlot = "";
   const actions = {
     visual: new Node("button"), edit: new Node("button"), debug: new Node("button"), create: new Node("button"), save: new Node("button"), delete: new Node("button"),
   };
@@ -115,6 +118,9 @@ function makeBoundContainer() {
     "[data-status]": status,
     "[data-render-status]": renderStatus,
     "[data-dashboard-list]": list,
+    "[data-brand-title]": brandTitle,
+    "[data-brand-subtitle]": brandSubtitle,
+    "[data-brand-logo-slot]": brandLogo,
     '[data-action="mode-visual"]': actions.visual,
     '[data-action="mode-edit"]': actions.edit,
     '[data-action="mode-debug"]': actions.debug,
@@ -123,7 +129,7 @@ function makeBoundContainer() {
     '[data-action="delete"]': actions.delete,
   };
   return {
-    visual, debug, editor, visualEditor, status, renderStatus, list, actions,
+    visual, debug, editor, visualEditor, status, renderStatus, list, brandTitle, brandSubtitle, brandLogo, actions, style: { values: {}, setProperty(k, v) { this.values[k] = v; } },
     querySelector(selector) { return nodes[selector] || null; },
     querySelectorAll(selector) { return selector === "[data-debug-action]" ? [actions.create, actions.save] : []; },
   };
@@ -200,7 +206,7 @@ function submitCreate(container) {
 
 test("empty dashboard state exposes accessible first-dashboard creation flow", async () => {
   const calls = [];
-  const created = { id: "first", title: "First", views: [{ id: "first-view", title: "Main", section_ids: ["first-section"] }], sections: [{ id: "first-section", title: "Main", card_ids: ["first-card"] }], cards: [{ id: "first-card", title: "Welcome", type: "dashboardmodern-placeholder", config: {} }] };
+  const created = createDashboardPayload({ id: "first", title: "First" });
   const api = {
     listDashboards: async () => calls.filter((call) => call[0] === "create").length ? [created] : [],
     getDashboard: async (_entry, id) => { calls.push(["get", id]); return created; },
@@ -225,7 +231,7 @@ test("empty dashboard state exposes accessible first-dashboard creation flow", a
   const firstSubmit = submitCreate(container);
   const secondSubmit = submitCreate(container);
   await Promise.all([firstSubmit, secondSubmit]);
-  assert.deepEqual(calls.filter((call) => call[0] === "create"), [["create", { id: "first", title: "First", views: [{ id: "first-view", title: "Main", section_ids: ["first-section"] }], sections: [{ id: "first-section", title: "Main", card_ids: ["first-card"] }], cards: [{ id: "first-card", title: "Welcome", type: "dashboardmodern-placeholder", config: {} }] }]]);
+  assert.deepEqual(calls.filter((call) => call[0] === "create"), [["create", createDashboardPayload({ id: "first", title: "First" })]]);
   assert.deepEqual(calls.filter((call) => call[0] === "get"), [["get", "first"]]);
   assert.equal(store.state.activeDashboardId, "first");
   assert.equal(store.state.activeDashboard, created);
@@ -259,7 +265,7 @@ test("create dashboard cancellation and Escape restore focus without state chang
 
 
 test("create dashboard load failure rolls back empty-state selection", async () => {
-  const created = { id: "first", title: "First", views: [{ id: "first-view", title: "Main", section_ids: ["first-section"] }], sections: [{ id: "first-section", title: "Main", card_ids: ["first-card"] }], cards: [{ id: "first-card", title: "Welcome", type: "dashboardmodern-placeholder", config: {} }] };
+  const created = createDashboardPayload({ id: "first", title: "First" });
   const api = {
     listDashboards: async () => [],
     getDashboard: async () => { throw Object.assign(new Error("load failed"), { code: "dashboardmodern_error" }); },
@@ -352,8 +358,15 @@ test("structured selected-node forms update draft only and keep unknown card typ
   store.setState({ editor: { ...store.state.editor, selectedNode: { dashboardId: "dash", viewId: "one", sectionId: "s1", cardId: "c1" } } });
 
   const before = JSON.stringify(store.state.activeDashboard);
-  const controls = controlsByLabel(container.visualEditor);
-  const [dashboardTitle, dashboardDescription, viewTitle, viewDescription, sectionTitle, sectionDescription, cardTitle, cardType, cardConfig] = controls;
+  const dashboardTitle = fieldById(container.visualEditor, "dashboard.title");
+  const dashboardDescription = fieldById(container.visualEditor, "dashboard.description");
+  const viewTitle = fieldById(container.visualEditor, "view:one:title");
+  const viewDescription = fieldById(container.visualEditor, "view:one:description");
+  const sectionTitle = fieldById(container.visualEditor, "section:s1:title");
+  const sectionDescription = fieldById(container.visualEditor, "section:s1:description");
+  const cardTitle = fieldById(container.visualEditor, "card:c1:title");
+  const cardType = fieldById(container.visualEditor, "card:c1:type");
+  const cardConfig = fieldById(container.visualEditor, "card:c1:config");
   dashboardTitle.value = "Draft dashboard"; dashboardTitle.listeners.input();
   dashboardDescription.value = "Draft dashboard desc"; dashboardDescription.listeners.input();
   viewTitle.value = "Draft view"; viewTitle.listeners.input();
@@ -558,4 +571,90 @@ test("Save is blocked while invalid Card config text is visible and succeeds aft
   assert.equal(store.state.editor.draftDashboard, null);
   assert.deepEqual(store.state.editor.fieldText, {});
   assert.deepEqual(store.state.editor.validationErrors, []);
+});
+
+
+test("shell branding and theme config applies defaults configured values draft preview and safe fallbacks", () => {
+  const container = new Node("main");
+  const title = new Node("h1"); title.dataset.brandTitle = "";
+  const subtitle = new Node("p"); subtitle.dataset.brandSubtitle = "";
+  const logo = new Node("div"); logo.dataset.brandLogoSlot = "";
+  container.append(title, subtitle, logo);
+  applyDashboardShellConfig(container, { activeDashboard: null });
+  assert.equal(title.textContent, "Smart Home Dashboard");
+  assert.equal(container.dataset.themeMode, "auto");
+  const activeDashboard = { config: { branding: { title: "Casa", subtitle: "Benvenuto", logoRef: "/local/logo.png", accentColor: "#123456" }, theme: { mode: "dark" } } };
+  applyDashboardShellConfig(container, { activeDashboard });
+  assert.equal(title.textContent, "Casa");
+  assert.equal(subtitle.textContent, "Benvenuto");
+  assert.equal(container.style.values["--dm-primary"], "#123456");
+  assert.equal(container.dataset.themeMode, "dark");
+  assert.equal(logo.children[0].src, "/local/logo.png");
+  applyDashboardShellConfig(container, { activeDashboard, editor: { editing: true, draftDashboard: { config: { branding: { title: "Draft", subtitle: "Preview", accentColor: "#abcdef" }, theme: { mode: "light" } } } } });
+  assert.equal(title.textContent, "Draft");
+  assert.equal(container.dataset.themeMode, "light");
+  assert.equal(container.style.values["--dm-primary"], "#abcdef");
+  const unsafe = normalizeShellConfig({ config: { branding: { title: "<b>bad</b>", subtitle: "<i>x</i>", logoRef: "javascript:alert(1)", accentColor: "red" }, theme: { mode: "neon", accentColor: "also-bad" } } });
+  assert.equal(unsafe.title, "Smart Home Dashboard");
+  assert.equal(unsafe.subtitle, "Legacy parity foundation for DashboardModern.");
+  assert.equal(unsafe.logoRef, "");
+  assert.equal(unsafe.accent, "#22c55e");
+  assert.equal(unsafe.mode, "auto");
+});
+
+test("visual dashboard settings fields update draft preview save reload and cancel safely", async () => {
+  let saved = { ...dashboard, config: { branding: { title: "Original", subtitle: "Before", logoRef: "", accentColor: "#22c55e" }, theme: { mode: "auto", accentColor: "#22c55e" } } };
+  const api = {
+    listDashboards: async () => [saved],
+    getDashboard: async () => saved,
+    replaceDashboard: async (_entryId, draft) => { saved = JSON.parse(JSON.stringify(draft)); return saved; },
+  };
+  const store = new DashboardModernStore(api, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true, confirmUnsaved: async () => true });
+  container.actions.edit.click();
+
+  const brandTitle = fieldById(container.visualEditor, "dashboard.config.branding.title");
+  brandTitle.value = "Casa";
+  brandTitle.listeners.input();
+  assert.equal(store.state.editor.draftDashboard.config.branding.title, "Casa");
+
+  const logo = fieldById(container.visualEditor, "dashboard.config.branding.logoRef");
+  logo.value = "javascript:bad";
+  logo.listeners.input();
+  assert.equal(store.state.editor.fieldText["dashboard.config.branding.logoRef"], "javascript:bad");
+  assert.equal(store.state.editor.draftDashboard.config.branding.logoRef, "");
+  logo.value = "/local/logo.png";
+  logo.listeners.input();
+  assert.equal(store.state.editor.draftDashboard.config.branding.logoRef, "/local/logo.png");
+
+  const color = fieldById(container.visualEditor, "dashboard.config.branding.accentColor");
+  color.value = "red";
+  color.listeners.input();
+  assert.equal(store.state.editor.fieldText["dashboard.config.branding.accentColor"], "red");
+  color.value = "#123456";
+  color.listeners.input();
+  assert.equal(store.state.editor.draftDashboard.config.branding.accentColor, "#123456");
+  assert.equal(container.style.values["--dm-primary"], "#123456");
+
+  const mode = fieldById(container.visualEditor, "dashboard.config.theme.mode");
+  for (const value of ["dark", "light", "auto"]) {
+    mode.value = value;
+    mode.listeners.change();
+    assert.equal(store.state.editor.draftDashboard.config.theme.mode, value);
+    assert.equal(container.dataset.themeMode, value);
+  }
+
+  const save = buttonByText(container.visualEditor, "Save");
+  await save.click();
+  await store.loadDashboard("dash");
+  assert.equal(store.state.activeDashboard.config.branding.title, "Casa");
+  assert.equal(store.state.activeDashboard.config.branding.logoRef, "/local/logo.png");
+
+  container.actions.edit.click();
+  fieldById(container.visualEditor, "dashboard.config.branding.title").value = "Discarded";
+  fieldById(container.visualEditor, "dashboard.config.branding.title").listeners.input();
+  assert.equal(container.querySelector("[data-brand-title]").textContent, "Discarded");
+  buttonByText(container.visualEditor, "Cancel").click();
+  assert.equal(store.state.activeDashboard.config.branding.title, "Casa");
 });

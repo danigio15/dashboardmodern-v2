@@ -64,7 +64,7 @@ function fields(item, patch, names) {
 }
 
 export function updateDashboardMetadata(dashboard, patch) {
-  return fields(clone(dashboard), patch, ["title", "description"]);
+  return fields(clone(dashboard), patch, ["title", "description", "config"]);
 }
 
 export function addView(dashboard, patch = {}, generator = createIdGenerator("view")) {
