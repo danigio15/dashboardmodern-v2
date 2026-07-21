@@ -1,0 +1,6 @@
+import { cloneDashboard } from "./commands.js";
+export function createEditorState(){ return { editing:false, dirty:false, draftDashboard:null, selectedNode:{dashboardId:null,viewId:null,sectionId:null,cardId:null}, validationErrors:[], saveError:null, saving:false, debugText:"", debugError:null }; }
+export function enterEditor(state, dashboard){ const draft=cloneDashboard(dashboard); return {...state, editing:true, dirty:false, draftDashboard:draft, selectedNode:{dashboardId:draft?.id||null,viewId:draft?.views?.[0]?.id||null,sectionId:null,cardId:null}, validationErrors:[], saveError:null, debugText:JSON.stringify(draft,null,2), debugError:null}; }
+export function clearEditorState(state){ return {...state, ...createEditorState()}; }
+export function markDraft(state, draft, selectedNode=state.selectedNode){ return {...state, draftDashboard:draft, dirty:true, selectedNode, debugText:JSON.stringify(draft,null,2), debugError:null, validationErrors:[]}; }
+export function validateDraft(draft){ const errors=[]; for(const card of draft?.cards||[]) if(!card.config||typeof card.config!=="object"||Array.isArray(card.config)) errors.push({field:`card:${card.id}:config`,message:"Card config must be a JSON object."}); return errors; }

@@ -1,5 +1,6 @@
 import { DashboardModernApiError } from "./ws-client.js";
 import { selectActiveViewId } from "./presentation/view-selection.js";
+import { createEditorState, clearEditorState } from "./editor/editor-state.js";
 
 export const EMPTY_DASHBOARD = Object.freeze({
   id: "new-dashboard",
@@ -17,6 +18,7 @@ export function createInitialState() {
     activeDashboard: null,
     activeViewId: null,
     mode: "visual",
+    editor: createEditorState(),
     renderError: null,
     hass: null,
     loading: false,
@@ -68,7 +70,7 @@ export class DashboardModernStore {
   }
 
   setMode(mode) {
-    this.setState({ mode: mode === "debug" ? "debug" : "visual", renderError: null });
+    this.setState({ mode: ["debug", "edit"].includes(mode) ? mode : "visual", renderError: null });
   }
 
   async initialize() {
@@ -96,6 +98,7 @@ export class DashboardModernStore {
   }
 
   async loadDashboard(dashboardId) {
+    if (this.state.editor?.dirty && this.confirmUnsaved && !(await this.confirmUnsaved())) return;
     this.setState({ loading: true, error: null });
     try {
       const activeDashboard = await this.api.getDashboard(this.state.entryId, dashboardId);
@@ -105,6 +108,7 @@ export class DashboardModernStore {
         activeViewId: selectActiveViewId(activeDashboard, this.state.activeViewId),
         loading: false,
         renderError: null,
+        editor: clearEditorState(this.state.editor),
       });
     } catch (error) {
       this.setState({ loading: false, error: friendlyError(error) });
@@ -138,7 +142,7 @@ export class DashboardModernStore {
     this.setState({ deleting: true, error: null });
     try {
       await this.api.deleteDashboard(this.state.entryId, dashboardId);
-      this.setState({ activeDashboardId: null, activeDashboard: null, activeViewId: null, deleting: false });
+      this.setState({ activeDashboardId: null, activeDashboard: null, activeViewId: null, deleting: false, editor: clearEditorState(this.state.editor) });
       await this.refreshDashboards();
     } catch (error) {
       this.setState({ deleting: false, error: friendlyError(error) });
