@@ -1,15 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { renderEditor, renderVisualDashboard } from "../src/app.js";
+import { bindDashboardModernApp, renderEditor, renderVisualDashboard } from "../src/app.js";
 import { DashboardModernStore } from "../src/state.js";
 import { renderDashboard } from "../src/render/dashboard-renderer.js";
 
 class Node {
-  constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.dataset = {}; this.hidden = false; this.disabled = false; this._text = ""; this.listeners = {}; }
+  constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.dataset = {}; this.hidden = false; this.disabled = false; this._text = ""; this.listeners = {}; this.value = ""; this.ownerDocument = globalThis.document; }
   append(...items) { this.children.push(...items); }
+  set innerHTML(_v) { this.children = []; this._text = ""; }
   replaceChildren(...items) { this.children = items; this._text = ""; }
   setAttribute(k, v) { this.attributes[k] = String(v); }
   addEventListener(type, fn) { this.listeners[type] = fn; }
+  click() { return this.listeners.click?.({ target: this }); }
   get textContent() { return this._text + this.children.map((c) => c.textContent).join(""); }
   set textContent(v) { this._text = String(v); this.children = []; }
   querySelectorAll(selector) {
@@ -86,4 +88,67 @@ test("top-level render failures are reentrancy safe and clear on success", () =>
   assert.equal(states.filter((message) => message === "boom (render_error)").length, 1);
   renderVisualDashboard(container, store.state, store, { renderer: renderDashboard });
   assert.equal(store.state.renderError, null);
+});
+
+function makeBoundContainer() {
+  const visual = new Node("section");
+  const debug = new Node("section");
+  const editor = new Node("textarea");
+  const visualEditor = new Node("section");
+  const status = new Node("section");
+  const renderStatus = new Node("section");
+  const list = new Node("div");
+  const actions = {
+    visual: new Node("button"), edit: new Node("button"), debug: new Node("button"), create: new Node("button"), save: new Node("button"), delete: new Node("button"),
+  };
+  actions.create.dataset.debugAction = "";
+  actions.save.dataset.debugAction = "";
+  const nodes = {
+    "[data-dashboard-visual]": visual,
+    "[data-debug-panel]": debug,
+    "[data-dashboard-editor]": editor,
+    "[data-visual-editor]": visualEditor,
+    "[data-status]": status,
+    "[data-render-status]": renderStatus,
+    "[data-dashboard-list]": list,
+    '[data-action="mode-visual"]': actions.visual,
+    '[data-action="mode-edit"]': actions.edit,
+    '[data-action="mode-debug"]': actions.debug,
+    '[data-action="create"]': actions.create,
+    '[data-action="save"]': actions.save,
+    '[data-action="delete"]': actions.delete,
+  };
+  return {
+    visual, debug, editor, visualEditor, status, renderStatus, list, actions,
+    querySelector(selector) { return nodes[selector] || null; },
+    querySelectorAll(selector) { return selector === "[data-debug-action]" ? [actions.create, actions.save] : []; },
+  };
+}
+
+test("application wiring routes dashboard selection delete and mode changes through editor guard", async () => {
+  const other = { ...dashboard, id: "other", title: "Other" };
+  let deleteCalls = 0;
+  const api = {
+    listDashboards: async () => [dashboard, other],
+    getDashboard: async (_entryId, id) => id === "other" ? other : dashboard,
+    deleteDashboard: async () => { deleteCalls += 1; },
+  };
+  const store = new DashboardModernStore(api, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  let asks = 0;
+  await bindDashboardModernApp(container, store, { initialize: true, confirmUnsaved: async () => { asks += 1; return false; } });
+  container.actions.edit.click();
+  const titleInput = container.visualEditor.children.find((child) => child.tagName === "input");
+  titleInput.value = "Dirty";
+  titleInput.listeners.input();
+  assert.equal(store.state.editor.dirty, true);
+
+  const dashboardButtons = container.list.children[0].children;
+  dashboardButtons[1].click();
+  assert.equal(store.state.activeDashboardId, "dash");
+  container.actions.delete.click();
+  assert.equal(deleteCalls, 0);
+  container.actions.visual.click();
+  assert.equal(store.state.mode, "edit");
+  assert.equal(asks, 3);
 });

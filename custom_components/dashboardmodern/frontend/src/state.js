@@ -98,7 +98,6 @@ export class DashboardModernStore {
   }
 
   async loadDashboard(dashboardId) {
-    if (this.state.editor?.dirty && this.confirmUnsaved && !(await this.confirmUnsaved())) return;
     this.setState({ loading: true, error: null });
     try {
       const activeDashboard = await this.api.getDashboard(this.state.entryId, dashboardId);

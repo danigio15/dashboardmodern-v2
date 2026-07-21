@@ -78,7 +78,7 @@ function renderStatus(container, state) {
   renderStatus.dataset.kind = "error";
 }
 
-function renderDashboardList(container, state, store) {
+function renderDashboardList(container, state, controller) {
   const list = container.querySelector("[data-dashboard-list]");
   list.innerHTML = "";
   const wrapper = document.createElement("div");
@@ -88,7 +88,7 @@ function renderDashboardList(container, state, store) {
     button.type = "button";
     button.textContent = dashboard.title || dashboard.id;
     button.setAttribute("aria-current", String(dashboard.id === state.activeDashboardId));
-    button.addEventListener("click", () => store.loadDashboard(dashboard.id));
+    button.addEventListener("click", () => controller.loadDashboard(dashboard.id));
     wrapper.append(button);
   }
   if (!state.dashboards.length) wrapper.textContent = "No dashboards available.";
@@ -104,7 +104,7 @@ export function renderEditor(container, state) {
   visual.hidden = state.mode === "debug";
   for (const action of container.querySelectorAll?.("[data-debug-action]") || []) {
     action.hidden = state.mode !== "debug";
-    action.disabled = state.mode !== "debug";
+    action.disabled = state.mode !== "debug" || Boolean(state.editor?.saving);
   }
   const editor = container.querySelector("[data-dashboard-editor]");
   if (document.activeElement !== editor) {
@@ -144,18 +144,18 @@ export function bindDashboardModernApp(container, store, { initialize = true, ha
   const editorController = new EditorController(store, { confirmUnsaved });
   store.subscribe((state) => {
     renderStatus(container, state);
-    renderDashboardList(container, state, store);
+    renderDashboardList(container, state, editorController);
     renderEditor(container, state);
     renderVisualEditor(container, state, editorController);
     renderVisualDashboard(container, state, store, { hass });
   });
   container.querySelector('[data-action="mode-visual"]').addEventListener("click", () => editorController.setMode("visual"));
   container.querySelector('[data-action="mode-edit"]').addEventListener("click", () => editorController.setMode("edit"));
-  container.querySelector('[data-action="mode-debug"]').addEventListener("click", () => { if (store.state.editor?.editing) store.setMode("debug"); else store.setMode("debug"); });
+  container.querySelector('[data-action="mode-debug"]').addEventListener("click", () => editorController.setMode("debug"));
   container.querySelector('[data-action="create"]').addEventListener("click", () => dashboardFromEditor(container, store, (dashboard) => store.createDashboard(dashboard)));
   container.querySelector('[data-action="save"]').addEventListener("click", () => store.state.editor?.editing ? editorController.save() : dashboardFromEditor(container, store, (dashboard) => store.replaceDashboard(dashboard)));
   container.querySelector("[data-dashboard-editor]").addEventListener("input", (event) => { if (store.state.editor?.editing) editorController.updateDebugJson(event.target.value); });
-  container.querySelector('[data-action="delete"]').addEventListener("click", () => store.deleteDashboard());
+  container.querySelector('[data-action="delete"]').addEventListener("click", () => editorController.deleteDashboard());
   container.querySelector("[data-dashboard-visual]").addEventListener("click", (event) => {
     const button = event.target?.closest?.("[data-view-id]");
     if (button?.dataset?.viewId) store.setActiveView(button.dataset.viewId);
@@ -188,7 +188,7 @@ export function renderVisualEditor(container, state, editorController) {
   const title = doc.createElement("input"); title.value = draft.title || ""; title.setAttribute("aria-label", "Dashboard title"); title.addEventListener("input", () => editorController.updateDashboard({ title: title.value })); panel.append(title);
   const desc = doc.createElement("input"); desc.value = draft.description || ""; desc.setAttribute("aria-label", "Dashboard description"); desc.addEventListener("input", () => editorController.updateDashboard({ description: desc.value })); panel.append(desc);
   const addView = doc.createElement("button"); addView.type="button"; addView.textContent="Add view"; addView.addEventListener("click", () => editorController.addView()); panel.append(addView);
-  const save = doc.createElement("button"); save.type="button"; save.textContent="Save"; save.addEventListener("click", () => editorController.save()); panel.append(save);
+  const save = doc.createElement("button"); save.type="button"; save.textContent="Save"; save.disabled = Boolean(state.editor.saving); save.addEventListener("click", () => editorController.save()); panel.append(save);
   const cancel = doc.createElement("button"); cancel.type="button"; cancel.textContent="Cancel"; cancel.addEventListener("click", () => editorController.cancel()); panel.append(cancel);
   const list = doc.createElement("div"); list.className="dashboardmodern-editor-tree"; panel.append(list);
   for (const view of draft.views || []) {

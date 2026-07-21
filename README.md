@@ -34,3 +34,5 @@ Debug JSON and Edit share the same draft while editing. Valid Debug JSON replace
 The card editor remains generic because the domain Card schema is only `id`, `title`, `type`, and `config`. Card `type` is an opaque string, unknown types stay editable, and `config` must parse to a JSON object; arrays and primitives are local draft validation errors before backend validation runs.
 
 While editing, the preview is rendered by the existing read-only renderer from the draft payload. It does not save, use a second renderer contract, or perform backend access.
+
+Phase 8 follow-up tightened the editor guard ownership so all draft-sensitive navigation is centralized in `EditorController`. Application dashboard selection, active-dashboard deletion, and mode changes delegate through controller methods instead of calling store load/delete directly when a draft may exist. Debug JSON now performs lightweight structural validation before replacing the draft, and editor save controls reflect `editor.saving` while duplicate saves are ignored.
