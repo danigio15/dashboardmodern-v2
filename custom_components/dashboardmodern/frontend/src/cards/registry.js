@@ -1,6 +1,7 @@
 import { renderLegacyPanelCard, renderLegacyPanelEditor, validateLegacyPanelConfig, LEGACY_PANEL_TYPE } from "./legacy-panel.js";
 import { HOME_SUMMARY_TYPE, defaultHomeSummaryConfig, renderHomeSummaryCard, renderHomeSummaryEditor, validateHomeSummaryConfig } from "./home-summary.js";
 import { WEATHER_CURRENT_TYPE, WEATHER_FORECAST_TYPE, defaultWeatherCurrentConfig, defaultWeatherForecastConfig, renderWeatherCurrentCard, renderWeatherCurrentEditor, renderWeatherForecastCard, renderWeatherForecastEditor, validateWeatherCurrentConfig, validateWeatherForecastConfig } from "./weather.js";
+import { BATTERY_STATUS_TYPE, ENERGY_FLOWS_TYPE, ENERGY_OVERVIEW_TYPE, GRID_STATUS_TYPE, SOLAR_PRODUCTION_TYPE, defaultBatteryStatusConfig, defaultEnergyFlowsConfig, defaultEnergyOverviewConfig, defaultGridStatusConfig, defaultSolarProductionConfig, renderBatteryStatusCard, renderBatteryStatusEditor, renderEnergyFlowsCard, renderEnergyFlowsEditor, renderEnergyOverviewCard, renderEnergyOverviewEditor, renderGridStatusCard, renderGridStatusEditor, renderSolarProductionCard, renderSolarProductionEditor, validateBatteryStatusConfig, validateEnergyFlowsConfig, validateEnergyOverviewConfig, validateGridStatusConfig, validateSolarProductionConfig } from "./energy.js";
 import { el, emptyState } from "../render/dom.js";
 
 export function assertCardDefinition(definition) {
@@ -34,6 +35,11 @@ export function registerBuiltInCardTypes(registry) {
   registry.register({ type: HOME_SUMMARY_TYPE, displayName: "Home summary", renderer: renderHomeSummaryCard, editor: renderHomeSummaryEditor, defaultConfig: defaultHomeSummaryConfig, validateConfig: validateHomeSummaryConfig });
   registry.register({ type: WEATHER_CURRENT_TYPE, displayName: "Weather current", renderer: renderWeatherCurrentCard, editor: renderWeatherCurrentEditor, defaultConfig: defaultWeatherCurrentConfig, validateConfig: validateWeatherCurrentConfig });
   registry.register({ type: WEATHER_FORECAST_TYPE, displayName: "Weather forecast", renderer: renderWeatherForecastCard, editor: renderWeatherForecastEditor, defaultConfig: defaultWeatherForecastConfig, validateConfig: validateWeatherForecastConfig });
+  registry.register({ type: ENERGY_OVERVIEW_TYPE, displayName: "Energy overview", renderer: renderEnergyOverviewCard, editor: renderEnergyOverviewEditor, defaultConfig: defaultEnergyOverviewConfig, validateConfig: validateEnergyOverviewConfig });
+  registry.register({ type: ENERGY_FLOWS_TYPE, displayName: "Energy flows", renderer: renderEnergyFlowsCard, editor: renderEnergyFlowsEditor, defaultConfig: defaultEnergyFlowsConfig, validateConfig: validateEnergyFlowsConfig });
+  registry.register({ type: BATTERY_STATUS_TYPE, displayName: "Battery status", renderer: renderBatteryStatusCard, editor: renderBatteryStatusEditor, defaultConfig: defaultBatteryStatusConfig, validateConfig: validateBatteryStatusConfig });
+  registry.register({ type: SOLAR_PRODUCTION_TYPE, displayName: "Solar production", renderer: renderSolarProductionCard, editor: renderSolarProductionEditor, defaultConfig: defaultSolarProductionConfig, validateConfig: validateSolarProductionConfig });
+  registry.register({ type: GRID_STATUS_TYPE, displayName: "Grid status", renderer: renderGridStatusCard, editor: renderGridStatusEditor, defaultConfig: defaultGridStatusConfig, validateConfig: validateGridStatusConfig });
   return registry;
 }
 

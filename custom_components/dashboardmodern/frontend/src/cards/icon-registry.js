@@ -15,6 +15,7 @@ export const ICONS = Object.freeze({
   door: { label: "Aperture", path: "M7 21V3h10v18M10 12h.01" },
   battery: { label: "Batteria", path: "M3 8h16v8H3V8Zm16 3h2v2h-2" },
   alert: { label: "Avviso", path: "M12 3 2 21h20L12 3Zm0 6v5m0 3h.01" },
+  grid: { label: "Rete", path: "M4 20h16M6 20V8h12v12M9 8V4h6v4m-6 5h.01m3 0h.01m3 0h.01m-6 4h.01m3 0h.01m3 0h.01" },
 });
 
 export const ICON_IDS = Object.freeze(Object.keys(ICONS));

@@ -98,10 +98,10 @@ test("built-in registries are deterministic and compatibility renderer APIs repo
   const first = createDefaultCardRegistry();
   const second = createCardRegistry();
   registerBuiltInCardTypes(second);
-  assert.deepEqual(first.types(), ["home-summary", "legacy-panel", "weather-current", "weather-forecast"]);
-  assert.deepEqual(second.types(), ["home-summary", "legacy-panel", "weather-current", "weather-forecast"]);
+  assert.deepEqual(first.types(), ["battery-status", "energy-flows", "energy-overview", "grid-status", "home-summary", "legacy-panel", "solar-production", "weather-current", "weather-forecast"]);
+  assert.deepEqual(second.types(), ["battery-status", "energy-flows", "energy-overview", "grid-status", "home-summary", "legacy-panel", "solar-production", "weather-current", "weather-forecast"]);
   assert.throws(() => second.register({ type: "legacy-panel", displayName: "Duplicate", renderer: () => new Node("article") }), /already registered/);
   registerCardRenderer("compat-card", () => new Node("article"), second);
-  assert.deepEqual(cardRendererTypes(second), ["compat-card", "home-summary", "legacy-panel", "weather-current", "weather-forecast"]);
+  assert.deepEqual(cardRendererTypes(second), ["battery-status", "compat-card", "energy-flows", "energy-overview", "grid-status", "home-summary", "legacy-panel", "solar-production", "weather-current", "weather-forecast"]);
   assert.equal(renderCardWithRegistry({ id: "x", title: "X", type: "compat-card", config: {} }, {}, { registry: second }).tagName, "article");
 });
