@@ -318,7 +318,7 @@ export function bindDashboardModernApp(container, store, { initialize = true, ha
     },
   };
   new CardReorderController(store, editorController, container.querySelector("[data-dashboard-visual]"));
-  bindBottomNavigation(container.querySelector("[data-dashboard-visual]"), store);
+  const bottomNavigation = bindBottomNavigation(container.querySelector("[data-dashboard-visual]"), store);
   store.subscribe((state) => {
     applyDashboardShellConfig(container, state);
     renderStatus(container, state);
@@ -326,6 +326,7 @@ export function bindDashboardModernApp(container, store, { initialize = true, ha
     renderEditor(container, state);
     renderVisualEditor(container, state, editorController);
     renderVisualDashboard(container, state, store, { hass, cardRegistry });
+    bottomNavigation.syncActive();
   });
   container.querySelector('[data-action="mode-visual"]').addEventListener("click", () => editorController.setMode("visual"));
   container.querySelector('[data-action="mode-edit"]').addEventListener("click", () => editorController.setMode("edit"));
