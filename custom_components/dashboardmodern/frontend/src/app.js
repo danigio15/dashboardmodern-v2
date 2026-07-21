@@ -187,9 +187,30 @@ export function bootstrapDashboardModern(root, { connection, entryId, entryIds =
   return store;
 }
 
+function descendants(node) {
+  return node ? [node, ...Array.from(node.children || []).flatMap(descendants)] : [];
+}
+
+function captureEditorFocus(panel) {
+  const active = panel?.ownerDocument?.activeElement || (typeof document !== "undefined" ? document.activeElement : null);
+  if (!active?.dataset?.editorField || !descendants(panel).includes(active)) return null;
+  return { field: active.dataset.editorField, selectionStart: active.selectionStart, selectionEnd: active.selectionEnd };
+}
+
+function restoreEditorFocus(panel, focusState) {
+  if (!focusState?.field) return;
+  const target = descendants(panel).find((node) => node.dataset?.editorField === focusState.field);
+  if (!target) return;
+  target.focus?.();
+  if (typeof target.setSelectionRange === "function" && typeof focusState.selectionStart === "number" && typeof focusState.selectionEnd === "number") {
+    target.setSelectionRange(focusState.selectionStart, focusState.selectionEnd);
+  }
+}
+
 export function renderVisualEditor(container, state, editorController) {
   const panel = container.querySelector("[data-visual-editor]");
   if (!panel) return;
+  const focusState = captureEditorFocus(panel);
   panel.replaceChildren();
   if (state.mode !== "edit" || !state.editor?.editing) return;
   const draft = state.editor.draftDashboard;
@@ -205,7 +226,7 @@ export function renderVisualEditor(container, state, editorController) {
   const selectedCard = (draft.cards || []).find((card) => card.id === state.editor.selectedNode.cardId) || null;
   panel.append(renderViewForm(doc, selectedView, editorController));
   panel.append(renderSectionForm(doc, selectedSection, editorController));
-  panel.append(renderCardForm(doc, selectedCard, editorController, state.editor.validationErrors));
+  panel.append(renderCardForm(doc, selectedCard, editorController, state.editor.validationErrors, state.editor.fieldText));
   const list = doc.createElement("div"); list.className="dashboardmodern-editor-tree"; panel.append(list);
   for (const view of draft.views || []) {
     const vb = doc.createElement("button"); vb.type="button"; vb.textContent = `View: ${view.title || view.id}`; vb.addEventListener("click", () => editorController.select({viewId:view.id,sectionId:null,cardId:null})); list.append(vb);
@@ -220,4 +241,5 @@ export function renderVisualEditor(container, state, editorController) {
       for (const card of (section.card_ids||[]).map(id=>(draft.cards||[]).find(c=>c.id===id)).filter(Boolean)) { const cb=doc.createElement("button"); cb.type="button"; cb.textContent=`Card: ${card.title||card.id} (${card.type||"unknown"})`; cb.addEventListener("click",()=>editorController.select({viewId:view.id,sectionId:section.id,cardId:card.id})); list.append(cb); }
     }
   }
+  restoreEditorFocus(panel, focusState);
 }

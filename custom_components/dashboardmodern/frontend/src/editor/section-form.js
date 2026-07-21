@@ -7,7 +7,7 @@ export function renderSectionForm(documentRef, section, controller) {
   heading.textContent = section ? `Selected section: ${section.title || section.id}` : "No section selected";
   form.append(heading);
   if (!section) return form;
-  form.append(textInput(documentRef, "Section title", section.title || "", (title) => controller.updateSection(section.id, { title })));
-  form.append(textInput(documentRef, "Section description", section.description || "", (description) => controller.updateSection(section.id, { description })));
+  form.append(textInput(documentRef, "Section title", section.title || "", (title) => controller.updateSection(section.id, { title }), `section:${section.id}:title`));
+  form.append(textInput(documentRef, "Section description", section.description || "", (description) => controller.updateSection(section.id, { description }), `section:${section.id}:description`));
   return form;
 }

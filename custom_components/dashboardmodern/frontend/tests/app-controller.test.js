@@ -5,13 +5,15 @@ import { DashboardModernStore } from "../src/state.js";
 import { renderDashboard } from "../src/render/dashboard-renderer.js";
 
 class Node {
-  constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.dataset = {}; this.hidden = false; this.disabled = false; this._text = ""; this.listeners = {}; this.value = ""; this.ownerDocument = globalThis.document; }
+  constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.dataset = {}; this.hidden = false; this.disabled = false; this._text = ""; this.listeners = {}; this.value = ""; this.selectionStart = 0; this.selectionEnd = 0; this.ownerDocument = globalThis.document; }
   append(...items) { this.children.push(...items); }
   set innerHTML(_v) { this.children = []; this._text = ""; }
   replaceChildren(...items) { this.children = items; this._text = ""; }
   setAttribute(k, v) { this.attributes[k] = String(v); }
   addEventListener(type, fn) { this.listeners[type] = fn; }
   click() { return this.listeners.click?.({ target: this }); }
+  focus() { globalThis.document.activeElement = this; }
+  setSelectionRange(start, end) { this.selectionStart = start; this.selectionEnd = end; }
   get textContent() { return this._text + this.children.map((c) => c.textContent).join(""); }
   set textContent(v) { this._text = String(v); this.children = []; }
   querySelectorAll(selector) {
@@ -161,6 +163,26 @@ function controlsByLabel(panel) {
   return descendants(panel).filter((node) => ["input", "textarea"].includes(node.tagName));
 }
 
+function fieldById(panel, fieldId) {
+  return descendants(panel).find((node) => node.dataset?.editorField === fieldId);
+}
+
+function typeCharacters(container, fieldId, text) {
+  let field = fieldById(container.visualEditor, fieldId);
+  field.focus();
+  for (const char of text) {
+    const start = field.selectionStart ?? field.value.length;
+    field.value = `${field.value.slice(0, start)}${char}${field.value.slice(field.selectionEnd ?? start)}`;
+    field.setSelectionRange(start + 1, start + 1);
+    field.listeners.input();
+    field = globalThis.document.activeElement;
+    assert.equal(field.dataset.editorField, fieldId);
+    assert.equal(field.selectionStart, start + 1);
+    assert.equal(field.selectionEnd, start + 1);
+  }
+  return field;
+}
+
 test("production default unsaved confirmation rejects and accepts guarded app actions", async () => {
   const other = { ...dashboard, id: "other", title: "Other" };
   let deleteCalls = 0;
@@ -266,4 +288,68 @@ test("accepted production confirmation performs active dashboard deletion", asyn
   assert.equal(deleteCalls, 1);
   assert.equal(store.state.editor.draftDashboard, null);
   globalThis.window = originalWindow;
+});
+
+test("sequential typing preserves focus caret and draft-only updates across selected-node forms", async () => {
+  const editable = {
+    ...dashboard,
+    title: "",
+    views: [{ id: "one", title: "", description: "", section_ids: ["s1"] }],
+    sections: [{ id: "s1", title: "", description: "", card_ids: ["c1"] }],
+    cards: [{ id: "c1", title: "", type: "", config: {} }],
+  };
+  const store = new DashboardModernStore({ listDashboards: async () => [editable], getDashboard: async () => editable }, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true, confirmUnsaved: async () => true });
+  container.actions.edit.click();
+  store.setState({ editor: { ...store.state.editor, selectedNode: { dashboardId: "dash", viewId: "one", sectionId: "s1", cardId: "c1" } } });
+  const persistedBefore = JSON.stringify(store.state.activeDashboard);
+
+  typeCharacters(container, "dashboard.title", "Dash");
+  typeCharacters(container, "view:one:title", "View");
+  typeCharacters(container, "section:s1:title", "Section");
+  typeCharacters(container, "card:c1:title", "Card");
+  typeCharacters(container, "card:c1:type", "unknown");
+
+  assert.equal(store.state.editor.draftDashboard.title, "Dash");
+  assert.equal(store.state.editor.draftDashboard.views[0].title, "View");
+  assert.equal(store.state.editor.draftDashboard.sections[0].title, "Section");
+  assert.equal(store.state.editor.draftDashboard.cards[0].title, "Card");
+  assert.equal(store.state.editor.draftDashboard.cards[0].type, "unknown");
+  assert.equal(JSON.stringify(store.state.activeDashboard), persistedBefore);
+});
+
+test("invalid Card config text survives rerenders and corrected config updates draft", async () => {
+  const editable = {
+    ...dashboard,
+    views: [{ id: "one", title: "One", section_ids: ["s1"] }],
+    sections: [{ id: "s1", title: "Section", card_ids: ["c1"] }],
+    cards: [{ id: "c1", title: "Card", type: "unknown", config: { ok: true } }],
+  };
+  const store = new DashboardModernStore({ listDashboards: async () => [editable], getDashboard: async () => editable }, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true, confirmUnsaved: async () => true });
+  container.actions.edit.click();
+  store.setState({ editor: { ...store.state.editor, selectedNode: { dashboardId: "dash", viewId: "one", sectionId: "s1", cardId: "c1" } } });
+  const persistedBefore = JSON.stringify(store.state.activeDashboard);
+  const previousConfig = store.state.editor.draftDashboard.cards[0].config;
+
+  let configField = fieldById(container.visualEditor, "card:c1:config");
+  configField.focus();
+  configField.value = "{";
+  configField.setSelectionRange(1, 1);
+  configField.listeners.input();
+  configField = globalThis.document.activeElement;
+  assert.equal(configField.dataset.editorField, "card:c1:config");
+  assert.equal(configField.value, "{");
+  assert.equal(configField.selectionStart, 1);
+  assert.equal(store.state.editor.draftDashboard.cards[0].config, previousConfig);
+
+  configField.value = '{"fixed":true}';
+  configField.setSelectionRange(configField.value.length, configField.value.length);
+  configField.listeners.input();
+  configField = globalThis.document.activeElement;
+  assert.equal(configField.value, '{"fixed":true}');
+  assert.deepEqual(store.state.editor.draftDashboard.cards[0].config, { fixed: true });
+  assert.equal(JSON.stringify(store.state.activeDashboard), persistedBefore);
 });

@@ -500,3 +500,9 @@ At the application boundary, the default unsaved-change adapter asks the user be
 The structured editor now renders separated Dashboard, View, Section, and Card forms. Selected View and Section forms edit title and description; the generic Card form edits title, opaque type, and formatted JSON-object config. Invalid Card config syntax, `null`, arrays, or primitives are field-level local validation errors and do not replace the previous valid draft config.
 
 Debug JSON structural validation enforces single-parent ownership in addition to prior integrity checks: a Section may be referenced by exactly one View, and a Card may be referenced by exactly one Section.
+
+### Phase 8 editor interaction stability
+
+Editable controls carry stable semantic `data-editor-field` identifiers such as `dashboard.title`, `view:<id>:title`, `section:<id>:title`, and `card:<id>:config`. The visual editor captures the active field and selection before rerendering the draft-driven editor panel and restores focus, caret, and selection to the matching field after render. This preserves continuous typing while still updating `draftDashboard` and preview state on each valid field update.
+
+Invalid Card config edits are kept as editor-local field text keyed by `card:<id>:config`. They remain visible across rerenders and do not replace the previous valid `draftDashboard.cards[].config` until the JSON parses to an object.

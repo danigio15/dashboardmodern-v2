@@ -78,10 +78,13 @@ export class EditorController {
   moveCard(sectionId, id, direction) { this.apply((draft) => commands.moveCard(draft, sectionId, id, direction)); }
 
   updateCardConfig(id, text) {
+    const field = `card:${id}:config`;
     try {
-      this.updateCard(id, { config: commands.parseCardConfig(text) });
+      const config = commands.parseCardConfig(text);
+      this.updateCard(id, { config });
+      this.store.setState({ editor: { ...this.state, fieldText: { ...this.state.fieldText, [field]: text } } });
     } catch (error) {
-      this.store.setState({ editor: { ...this.state, validationErrors: [{ field: "config", message: error.message }] } });
+      this.store.setState({ editor: { ...this.state, fieldText: { ...this.state.fieldText, [field]: text }, validationErrors: [{ field, message: error.message }] } });
     }
   }
 

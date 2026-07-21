@@ -1,12 +1,12 @@
 import { cloneDashboard } from "./commands.js";
 
 export function createEditorState() {
-  return { editing: false, dirty: false, draftDashboard: null, selectedNode: { dashboardId: null, viewId: null, sectionId: null, cardId: null }, validationErrors: [], saveError: null, saving: false, debugText: "", debugError: null };
+  return { editing: false, dirty: false, draftDashboard: null, selectedNode: { dashboardId: null, viewId: null, sectionId: null, cardId: null }, validationErrors: [], saveError: null, saving: false, debugText: "", debugError: null, fieldText: {} };
 }
 
 export function enterEditor(state, dashboard) {
   const draft = cloneDashboard(dashboard);
-  return { ...state, editing: true, dirty: false, draftDashboard: draft, selectedNode: { dashboardId: draft?.id || null, viewId: draft?.views?.[0]?.id || null, sectionId: null, cardId: null }, validationErrors: [], saveError: null, saving: false, debugText: JSON.stringify(draft, null, 2), debugError: null };
+  return { ...state, editing: true, dirty: false, draftDashboard: draft, selectedNode: { dashboardId: draft?.id || null, viewId: draft?.views?.[0]?.id || null, sectionId: null, cardId: null }, validationErrors: [], saveError: null, saving: false, debugText: JSON.stringify(draft, null, 2), debugError: null, fieldText: {} };
 }
 
 export function clearEditorState(state) {
@@ -14,7 +14,7 @@ export function clearEditorState(state) {
 }
 
 export function markDraft(state, draft, selectedNode = state.selectedNode) {
-  return { ...state, draftDashboard: draft, dirty: true, selectedNode, debugText: JSON.stringify(draft, null, 2), debugError: null, validationErrors: [], saveError: null };
+  return { ...state, draftDashboard: draft, dirty: true, selectedNode, debugText: JSON.stringify(draft, null, 2), debugError: null, validationErrors: [], saveError: null, fieldText: {} };
 }
 
 function addError(errors, message, field = "draft") {
