@@ -1,12 +1,14 @@
-import { getCardType } from "../cards/registry.js";
+import { DEFAULT_CARD_REGISTRY, getCardType } from "../cards/registry.js";
+import { replaceCardConfigErrors, validateRegisteredCardConfigs } from "./card-validation.js";
 import * as commands from "./commands.js";
 import { clearEditorState, enterEditor, hasBlockingLocalErrors, markDraft, validateDraft } from "./editor-state.js";
 
 export class EditorController {
-  constructor(store, { idGenerator = commands.createIdGenerator("editor"), confirmUnsaved = async () => true } = {}) {
+  constructor(store, { idGenerator = commands.createIdGenerator("editor"), confirmUnsaved = async () => true, cardRegistry = DEFAULT_CARD_REGISTRY } = {}) {
     this.store = store;
     this.idGenerator = idGenerator;
     this.confirmUnsaved = confirmUnsaved;
+    this.cardRegistry = cardRegistry;
   }
 
   get state() {
@@ -93,7 +95,7 @@ export class EditorController {
   addCard(sectionId) { this.apply((draft) => commands.addCard(draft, sectionId, {}, this.idGenerator), (draft) => ({ dashboardId: draft.id, viewId: this.state.selectedNode.viewId, sectionId, cardId: draft.cards.at(-1).id })); }
   updateCard(id, patch) { this.apply((draft) => commands.updateCard(draft, id, patch)); }
   changeCardType(id, type) {
-    const definition = getCardType(type);
+    const definition = getCardType(type, this.cardRegistry);
     this.updateCard(id, { type, config: this.state.draftDashboard.cards.find((card) => card.id === id)?.config || definition?.defaultConfig?.() || {} });
     this.validateCardConfig(id);
   }
@@ -105,10 +107,10 @@ export class EditorController {
   validateCardConfig(id) {
     const card = this.state.draftDashboard.cards.find((item) => item.id === id);
     const fieldPrefix = `card:${id}:config`;
-    const definition = getCardType(card?.type);
-    if (!definition?.validateConfig) return;
-    const pluginErrors = definition.validateConfig(card?.config || {});
-    const validationErrors = [...(this.state.validationErrors || []).filter((error) => !error.field?.startsWith(fieldPrefix)), ...pluginErrors.map((error) => ({ field: `${fieldPrefix}${error.field?.startsWith("config.") ? error.field.slice("config".length) : ""}`, message: error.message }))];
+    const definition = getCardType(card?.type, this.cardRegistry);
+    const pluginErrors = definition?.validateConfig?.(card?.config || {}) || [];
+    const preservedSyntaxError = this.state.fieldText?.[fieldPrefix] !== undefined ? (this.state.validationErrors || []).find((error) => error.field === fieldPrefix) : null;
+    const validationErrors = replaceCardConfigErrors(this.state.validationErrors || [], id, [...(preservedSyntaxError ? [preservedSyntaxError] : []), ...pluginErrors.map((error) => ({ field: `${fieldPrefix}${error.field === "config" || !error.field ? "" : error.field.startsWith("config.") ? `.${error.field.slice("config.".length)}` : `.${error.field}`}`, message: error.message }))]);
     this.store.setState({ editor: { ...this.state, validationErrors } });
   }
   removeCard(id) {
@@ -123,8 +125,8 @@ export class EditorController {
       const config = commands.parseCardConfig(text);
       this.updateCard(id, { config });
       const { [field]: _cleared, ...fieldText } = this.state.fieldText || {};
-      const validationErrors = (this.state.validationErrors || []).filter((error) => error.field !== field);
-      this.store.setState({ editor: { ...this.state, fieldText, validationErrors } });
+      this.store.setState({ editor: { ...this.state, fieldText } });
+      this.validateCardConfig(id);
     } catch (error) {
       this.store.setState({ editor: { ...this.state, dirty: true, fieldText: { ...this.state.fieldText, [field]: text }, validationErrors: [...(this.state.validationErrors || []).filter((item) => item.field !== field), { field, message: error.message }] } });
     }
@@ -133,7 +135,7 @@ export class EditorController {
   updateDebugJson(text) {
     try {
       const draft = JSON.parse(text);
-      const validationErrors = validateDraft(draft);
+      const validationErrors = [...validateDraft(draft), ...validateRegisteredCardConfigs(draft, this.cardRegistry)];
       if (validationErrors.length) {
         this.store.setState({ editor: { ...this.state, debugText: text, debugError: validationErrors[0].message, validationErrors } });
         return false;
@@ -148,8 +150,9 @@ export class EditorController {
 
   async save() {
     if (this.state?.saving) return false;
-    if (hasBlockingLocalErrors(this.state)) return false;
-    const validationErrors = validateDraft(this.state.draftDashboard);
+    if (this.state?.debugError) return false;
+    if (Object.keys(this.state?.fieldText || {}).length) return false;
+    const validationErrors = [...validateDraft(this.state.draftDashboard), ...validateRegisteredCardConfigs(this.state.draftDashboard, this.cardRegistry)];
     if (validationErrors.length) {
       this.store.setState({ editor: { ...this.state, validationErrors } });
       return false;

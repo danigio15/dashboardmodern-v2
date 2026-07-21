@@ -90,3 +90,18 @@ test("legacy shell foundation uses accessible scrollable view tabs and injected 
   assert.match(root.textContent, /<img onerror=alert\(1\)>/);
 });
 
+
+import { cardRendererTypes, registerCardRenderer, renderCard as renderCardWithRegistry } from "../src/render/card-renderer.js";
+import { createCardRegistry, createDefaultCardRegistry, registerBuiltInCardTypes } from "../src/cards/registry.js";
+
+test("built-in registries are deterministic and compatibility renderer APIs report real types", () => {
+  const first = createDefaultCardRegistry();
+  const second = createCardRegistry();
+  registerBuiltInCardTypes(second);
+  assert.deepEqual(first.types(), ["legacy-panel"]);
+  assert.deepEqual(second.types(), ["legacy-panel"]);
+  assert.throws(() => second.register({ type: "legacy-panel", displayName: "Duplicate", renderer: () => new Node("article") }), /already registered/);
+  registerCardRenderer("compat-card", () => new Node("article"), second);
+  assert.deepEqual(cardRendererTypes(second), ["compat-card", "legacy-panel"]);
+  assert.equal(renderCardWithRegistry({ id: "x", title: "X", type: "compat-card", config: {} }, {}, { registry: second }).tagName, "article");
+});

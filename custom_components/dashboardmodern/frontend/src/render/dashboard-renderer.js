@@ -1,9 +1,10 @@
 import { validViews } from "../presentation/view-selection.js";
 import { renderView } from "./view-renderer.js";
+import { DEFAULT_CARD_REGISTRY } from "../cards/registry.js";
 import { createCardRuntimeContext } from "../runtime/context.js";
 import { el, emptyState } from "./dom.js";
 
-export function renderDashboard(container, state, { hass, runtime } = {}) {
+export function renderDashboard(container, state, { hass, runtime, registry = DEFAULT_CARD_REGISTRY } = {}) {
   container.replaceChildren();
   if (state.loading && !state.activeDashboard) {
     container.append(emptyState("Loading DashboardModern configuration…"));
@@ -18,7 +19,7 @@ export function renderDashboard(container, state, { hass, runtime } = {}) {
     container.append(emptyState("Select a dashboard to render."));
     return;
   }
-  const runtimeContext = runtime || createCardRuntimeContext({ hass, connectionStatus: state.connectionStatus || (state.loading ? "loading" : state.error ? "error" : "connected") });
+  const runtimeContext = { ...(runtime || createCardRuntimeContext({ hass, connectionStatus: state.connectionStatus || (state.loading ? "loading" : state.error ? "error" : "connected") })), cardRegistry: registry };
   const header = el("header", { className: "dashboardmodern-dashboard-header legacy-hero" });
   header.append(el("h2", { text: dashboard.title || "Untitled dashboard" }));
   if (dashboard.description) header.append(el("p", { text: dashboard.description }));

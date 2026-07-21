@@ -238,3 +238,54 @@ test("removing a card clears stale local field text and validation errors for th
   assert.equal(store.state.editor.fieldText["card:c1:config"], undefined);
   assert.equal(store.state.editor.validationErrors.some((error) => error.field === "card:c1:config"), false);
 });
+
+test("plugin validation blocks advanced JSON save and reruns at save boundary", async () => {
+  let replaceCalls = 0;
+  const initial = { ...base(), cards: [{ id: "c1", title: "Panel", type: "legacy-panel", config: { accent: "primary" } }] };
+  const store = new DashboardModernStore({ replaceDashboard: async (_entryId, dashboard) => { replaceCalls += 1; return dashboard; }, listDashboards: async () => [initial], getDashboard: async () => initial }, { entryIdResolver: async () => "e" });
+  store.setState({ entryId: "e", activeDashboard: initial, activeDashboardId: "dash", dashboards: [initial] });
+  const controller = new EditorController(store);
+  await controller.enter();
+  controller.updateCardConfig("c1", '{"accent":"not-real"}');
+  assert.match(store.state.editor.validationErrors.find((error) => error.field === "card:c1:config.accent")?.message || "", /Accent/);
+  assert.equal(await controller.save(), false);
+  assert.equal(replaceCalls, 0);
+
+  store.setState({ editor: { ...store.state.editor, validationErrors: [] } });
+  assert.equal(await controller.save(), false);
+  assert.match(store.state.editor.validationErrors.find((error) => error.field === "card:c1:config.accent")?.message || "", /Accent/);
+  assert.equal(replaceCalls, 0);
+});
+
+test("debug JSON plugin validation blocks save without mutating active dashboard", async () => {
+  let replaceCalls = 0;
+  const initial = { ...base(), cards: [{ id: "c1", title: "Panel", type: "legacy-panel", config: { accent: "primary" } }] };
+  const store = new DashboardModernStore({ replaceDashboard: async (_entryId, dashboard) => { replaceCalls += 1; return dashboard; }, listDashboards: async () => [initial], getDashboard: async () => initial }, { entryIdResolver: async () => "e" });
+  store.setState({ entryId: "e", activeDashboard: initial, activeDashboardId: "dash", dashboards: [initial] });
+  const controller = new EditorController(store);
+  await controller.enter();
+  const before = JSON.stringify(store.state.activeDashboard);
+  const invalid = { ...initial, cards: [{ ...initial.cards[0], config: { accent: "bad" } }] };
+  assert.equal(controller.updateDebugJson(JSON.stringify(invalid)), false);
+  assert.equal(JSON.stringify(store.state.activeDashboard), before);
+  assert.equal(await controller.save(), false);
+  assert.equal(replaceCalls, 0);
+});
+
+test("plugin errors clear on correction or switch to unknown type and unknown objects save", async () => {
+  let replaceCalls = 0;
+  const initial = { ...base(), cards: [{ id: "c1", title: "Panel", type: "legacy-panel", config: { accent: "primary" } }] };
+  const store = new DashboardModernStore({ replaceDashboard: async (_entryId, dashboard) => { replaceCalls += 1; return dashboard; }, listDashboards: async () => [initial], getDashboard: async () => initial }, { entryIdResolver: async () => "e" });
+  store.setState({ entryId: "e", activeDashboard: initial, activeDashboardId: "dash", dashboards: [initial] });
+  const controller = new EditorController(store);
+  await controller.enter();
+  controller.updateCardConfig("c1", '{"accent":"bad"}');
+  assert.ok(store.state.editor.validationErrors.some((error) => error.field === "card:c1:config.accent"));
+  controller.updateCardConfig("c1", '{"accent":"solar"}');
+  assert.equal(store.state.editor.validationErrors.some((error) => error.field?.startsWith("card:c1:config")), false);
+  controller.updateCardConfig("c1", '{"accent":"bad"}');
+  controller.changeCardType("c1", "unknown-future");
+  assert.equal(store.state.editor.validationErrors.some((error) => error.field?.startsWith("card:c1:config")), false);
+  assert.equal(await controller.save(), true);
+  assert.equal(replaceCalls, 1);
+});

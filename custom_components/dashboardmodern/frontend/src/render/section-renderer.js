@@ -10,7 +10,7 @@ export function renderSection(section, cards = [], context = {}) {
   if (section?.description) wrapper.append(el("p", { className: "dashboardmodern-section-description", text: section.description }));
   const grid = el("div", { className: "dashboardmodern-card-grid" });
   if (!cards.length) grid.append(emptyState("This section has no cards yet."));
-  for (const card of cards) grid.append(renderCard(card, context));
+  for (const card of cards) grid.append(renderCard(card, context, { registry: context.cardRegistry }));
   wrapper.append(grid);
   return wrapper;
 }

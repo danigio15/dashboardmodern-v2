@@ -1,3 +1,4 @@
+import { DEFAULT_CARD_REGISTRY } from "./cards/registry.js";
 import { createDashboardModernClient } from "./ws-client.js";
 import { DashboardModernStore, EMPTY_DASHBOARD } from "./state.js";
 import { renderDashboard } from "./render/dashboard-renderer.js";
@@ -140,10 +141,10 @@ function dashboardFromEditor(container, store, action) {
   if (dashboard) action(dashboard).then(() => store.setMode("visual"));
 }
 
-export function renderVisualDashboard(container, state, store, { hass = null, renderer = renderDashboard } = {}) {
+export function renderVisualDashboard(container, state, store, { hass = null, renderer = renderDashboard, cardRegistry = DEFAULT_CARD_REGISTRY } = {}) {
   try {
     const renderState = state.editor?.editing ? { ...state, activeDashboard: state.editor.draftDashboard, activeViewId: state.editor.selectedNode.viewId || state.activeViewId } : state;
-    renderer(container.querySelector("[data-dashboard-visual]"), renderState, { hass: state.hass || hass });
+    renderer(container.querySelector("[data-dashboard-visual]"), renderState, { hass: state.hass || hass, registry: cardRegistry });
     if (state.renderError) store.setState({ renderError: null });
   } catch (error) {
     const renderError = { code: "render_error", message: `${error.message} (render_error)` };
@@ -160,14 +161,14 @@ export function createUnsavedChangeConfirmation() {
   };
 }
 
-export function bindDashboardModernApp(container, store, { initialize = true, hass = null, confirmUnsaved = createUnsavedChangeConfirmation() } = {}) {
-  const editorController = new EditorController(store, { confirmUnsaved });
+export function bindDashboardModernApp(container, store, { initialize = true, hass = null, confirmUnsaved = createUnsavedChangeConfirmation(), cardRegistry = DEFAULT_CARD_REGISTRY } = {}) {
+  const editorController = new EditorController(store, { confirmUnsaved, cardRegistry });
   store.subscribe((state) => {
     renderStatus(container, state);
     renderDashboardList(container, state, editorController);
     renderEditor(container, state);
     renderVisualEditor(container, state, editorController);
-    renderVisualDashboard(container, state, store, { hass });
+    renderVisualDashboard(container, state, store, { hass, cardRegistry });
   });
   container.querySelector('[data-action="mode-visual"]').addEventListener("click", () => editorController.setMode("visual"));
   container.querySelector('[data-action="mode-edit"]').addEventListener("click", () => editorController.setMode("edit"));
@@ -245,7 +246,7 @@ export function renderVisualEditor(container, state, editorController) {
   const selectedCard = (draft.cards || []).find((card) => card.id === state.editor.selectedNode.cardId) || null;
   panel.append(renderViewForm(doc, selectedView, editorController));
   panel.append(renderSectionForm(doc, selectedSection, editorController));
-  panel.append(renderCardForm(doc, selectedCard, editorController, state.editor.validationErrors, state.editor.fieldText));
+  panel.append(renderCardForm(doc, selectedCard, editorController, state.editor.validationErrors, state.editor.fieldText, editorController.cardRegistry));
   const list = doc.createElement("div"); list.className="dashboardmodern-editor-tree"; panel.append(list);
   for (const view of draft.views || []) {
     const vb = doc.createElement("button"); vb.type="button"; vb.textContent = `View: ${view.title || view.id}`; vb.addEventListener("click", () => editorController.select({viewId:view.id,sectionId:null,cardId:null})); list.append(vb);
