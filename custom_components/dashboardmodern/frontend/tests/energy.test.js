@@ -15,17 +15,47 @@ import {
 } from "../src/cards/energy.js";
 
 class Node {
-  constructor(tag) { this.tagName = tag; this.children = []; this.attributes = {}; this.dataset = {}; this._text = ""; this.value = ""; }
-  append(...items) { this.children.push(...items); }
-  setAttribute(k, v) { this.attributes[k] = String(v); }
-  addEventListener(t, f) { this[`on${t}`] = f; }
-  click() { this.onclick?.(); }
-  get textContent() { return this._text + this.children.map((c) => c.textContent).join(""); }
-  set textContent(v) { this._text = String(v); this.children = []; }
+  constructor(tag) {
+    this.tagName = tag;
+    this.children = [];
+    this.attributes = {};
+    this.dataset = {};
+    this._text = "";
+    this.value = "";
+  }
+
+  append(...items) {
+    this.children.push(...items);
+  }
+
+  setAttribute(key, value) {
+    this.attributes[key] = String(value);
+  }
+
+  addEventListener(type, listener) {
+    this[`on${type}`] = listener;
+  }
+
+  click() {
+    this.onclick?.();
+  }
+  get textContent() {
+    return this._text + this.children.map((child) => child.textContent).join("");
+  }
+
+  set textContent(value) {
+    this._text = String(value);
+    this.children = [];
+  }
   querySelectorAll(selector) {
     const out = [];
-    const match = (n) => selector.startsWith(".") ? n.className?.split?.(" ").includes(selector.slice(1)) : n.tagName === selector;
-    const walk = (n) => { if (match(n)) out.push(n); for (const c of n.children) walk(c); };
+    const match = (node) => (selector.startsWith(".")
+      ? node.className?.split?.(" ").includes(selector.slice(1))
+      : node.tagName === selector);
+    const walk = (node) => {
+      if (match(node)) out.push(node);
+      for (const child of node.children) walk(child);
+    };
     walk(this);
     return out;
   }
@@ -112,6 +142,29 @@ test("malformed, missing, unknown, and unavailable entities produce explicit sta
   assert.equal(n.metrics.import.status, "unavailable");
   assert.equal(n.metrics.export.status, "missing-entity");
   assert.equal(n.metrics.soc.status, "missing-config");
+});
+
+
+test("energy validators reject malformed config types and executable entity ids", () => {
+  const malformedConfigError = [{ field: "config", message: "Config must be an object." }];
+
+  assert.deepEqual(validateEnergyOverviewConfig(null), malformedConfigError);
+  assert.deepEqual(validateEnergyOverviewConfig([]), malformedConfigError);
+
+  const errors = validateEnergyOverviewConfig({
+    productionEntityId: "javascript:alert(1)",
+    houseConsumptionEntityId: "sensor.house",
+    gridImportEntityId: "sensor.import",
+    gridExportEntityId: "sensor.export",
+    batterySocEntityId: "sensor.soc",
+    batteryPowerEntityId: "sensor.battery",
+    powerUnit: "kW",
+    energyUnit: "kWh",
+    socUnit: "%",
+    batteryPositiveDirection: "charging",
+  });
+
+  assert(errors.some((error) => error.field === "config.productionEntityId"));
 });
 
 test("energy validators cover missing config, templates, invalid units, and battery direction", () => {
