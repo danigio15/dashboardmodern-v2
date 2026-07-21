@@ -41,3 +41,28 @@ test("visual editor uses dedicated selected-node form modules", async () => {
     assert.doesNotMatch(source, forbidden);
   }
 });
+
+test("Phase 9 frontend avoids legacy iframe and arbitrary persisted HTML execution shortcuts", async () => {
+  for (const file of ["custom_components/dashboardmodern/frontend/src/app.js", "custom_components/dashboardmodern/frontend/src/render/card-renderer.js", "custom_components/dashboardmodern/frontend/src/cards/legacy-panel.js"]) {
+    const source = await readFile(file, "utf8");
+    assert.doesNotMatch(source, /iframe|srcdoc|innerHTML\s*=.*card|eval\(|new Function|insertAdjacentHTML/i, file);
+  }
+});
+
+test("card plugins receive runtime context without importing websocket client or store directly", async () => {
+  for (const file of ["custom_components/dashboardmodern/frontend/src/cards/legacy-panel.js", "custom_components/dashboardmodern/frontend/src/cards/registry.js"]) {
+    const source = await readFile(file, "utf8");
+    assert.doesNotMatch(source, /ws-client|DashboardModernStore|sendMessagePromise|new WebSocket|fetch\(/, file);
+  }
+  const renderer = await readFile("custom_components/dashboardmodern/frontend/src/render/dashboard-renderer.js", "utf8");
+  assert.match(renderer, /createCardRuntimeContext/);
+});
+
+test("card plugins use narrow runtime capabilities and never runtime.hass", async () => {
+  for (const file of ["custom_components/dashboardmodern/frontend/src/cards/legacy-panel.js", "custom_components/dashboardmodern/frontend/src/cards/registry.js"]) {
+    const source = await readFile(file, "utf8");
+    assert.doesNotMatch(source, /runtime\.hass|context\.hass|\.hass\b|ws-client|DashboardModernStore|sendMessagePromise|new WebSocket/, file);
+  }
+  const runtime = await readFile("custom_components/dashboardmodern/frontend/src/runtime/context.js", "utf8");
+  assert.doesNotMatch(runtime, /return Object\.freeze\(\{\s*hass/s);
+});

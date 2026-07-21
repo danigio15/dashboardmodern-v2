@@ -510,3 +510,11 @@ Invalid Card config edits are kept as editor-local field text keyed by `card:<id
 Editor-local field state is preserved across unrelated draft updates. Invalid Card config text and its field-level validation error are retained per card across Dashboard, View, Section, Card title, Card type, and selection changes; they are cleared only when that config field is corrected, the related Card is deleted, editing is cancelled, or a save succeeds.
 
 Save is blocked while any unresolved local editor validation error or invalid Card config field override exists. In that state the editor does not call the WebSocket replace path, keeps the dirty draft and local field text/errors visible, and reserves `saveError` for backend persistence failures only.
+
+## Legacy parity architecture
+
+The legacy `danigio15/dashboardmodern/dashboard.html` is the visual and behavioral source of truth until parity is accepted. Phase 9 extracts only reusable tokens and primitives into the frontend style layer and keeps DashboardModern on the intended architecture: HTML/CSS/JS frontend to authenticated Home Assistant WebSocket API to application service, domain, and HA JSON Store.
+
+The backend aggregate remains `Dashboard -> View -> Section -> Card`. Frontend card registration is intentionally local and non-authoritative: a plugin has an opaque type id, display name, renderer, optional editor, optional default config factory, and optional local validator. Unknown cards continue to render and edit through safe fallbacks.
+
+Card renderers receive a runtime context with entity-state access, service-call adapter, locale, theme and connection status. They must not import the WebSocket client or store directly, must not use Lovelace/YAML/entity-card concepts, and must not execute arbitrary persisted HTML.

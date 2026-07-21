@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as c from "../src/editor/commands.js";
 import { EditorController } from "../src/editor/editor-controller.js";
+import { hasBlockingLocalErrors } from "../src/editor/editor-state.js";
 import { DashboardModernStore } from "../src/state.js";
 
 const base = () => ({
@@ -237,4 +238,88 @@ test("removing a card clears stale local field text and validation errors for th
   controller.removeCard("c1");
   assert.equal(store.state.editor.fieldText["card:c1:config"], undefined);
   assert.equal(store.state.editor.validationErrors.some((error) => error.field === "card:c1:config"), false);
+});
+
+test("plugin validation blocks advanced JSON save and reruns at save boundary", async () => {
+  let replaceCalls = 0;
+  const initial = { ...base(), cards: [{ id: "c1", title: "Panel", type: "legacy-panel", config: { accent: "primary" } }] };
+  const store = new DashboardModernStore({ replaceDashboard: async (_entryId, dashboard) => { replaceCalls += 1; return dashboard; }, listDashboards: async () => [initial], getDashboard: async () => initial }, { entryIdResolver: async () => "e" });
+  store.setState({ entryId: "e", activeDashboard: initial, activeDashboardId: "dash", dashboards: [initial] });
+  const controller = new EditorController(store);
+  await controller.enter();
+  controller.updateCardConfig("c1", '{"accent":"not-real"}');
+  assert.match(store.state.editor.validationErrors.find((error) => error.field === "card:c1:config.accent")?.message || "", /Accent/);
+  assert.equal(await controller.save(), false);
+  assert.equal(replaceCalls, 0);
+
+  store.setState({ editor: { ...store.state.editor, validationErrors: [] } });
+  assert.equal(await controller.save(), false);
+  assert.match(store.state.editor.validationErrors.find((error) => error.field === "card:c1:config.accent")?.message || "", /Accent/);
+  assert.equal(replaceCalls, 0);
+});
+
+test("debug JSON plugin validation blocks save without mutating active dashboard", async () => {
+  let replaceCalls = 0;
+  const initial = { ...base(), cards: [{ id: "c1", title: "Panel", type: "legacy-panel", config: { accent: "primary" } }] };
+  const store = new DashboardModernStore({ replaceDashboard: async (_entryId, dashboard) => { replaceCalls += 1; return dashboard; }, listDashboards: async () => [initial], getDashboard: async () => initial }, { entryIdResolver: async () => "e" });
+  store.setState({ entryId: "e", activeDashboard: initial, activeDashboardId: "dash", dashboards: [initial] });
+  const controller = new EditorController(store);
+  await controller.enter();
+  const before = JSON.stringify(store.state.activeDashboard);
+  const invalid = { ...initial, cards: [{ ...initial.cards[0], config: { accent: "bad" } }] };
+  assert.equal(controller.updateDebugJson(JSON.stringify(invalid)), false);
+  assert.equal(JSON.stringify(store.state.activeDashboard), before);
+  assert.equal(await controller.save(), false);
+  assert.equal(replaceCalls, 0);
+});
+
+test("plugin errors clear on correction or switch to unknown type and unknown objects save", async () => {
+  let replaceCalls = 0;
+  const initial = { ...base(), cards: [{ id: "c1", title: "Panel", type: "legacy-panel", config: { accent: "primary" } }] };
+  const store = new DashboardModernStore({ replaceDashboard: async (_entryId, dashboard) => { replaceCalls += 1; return dashboard; }, listDashboards: async () => [initial], getDashboard: async () => initial }, { entryIdResolver: async () => "e" });
+  store.setState({ entryId: "e", activeDashboard: initial, activeDashboardId: "dash", dashboards: [initial] });
+  const controller = new EditorController(store);
+  await controller.enter();
+  controller.updateCardConfig("c1", '{"accent":"bad"}');
+  assert.ok(store.state.editor.validationErrors.some((error) => error.field === "card:c1:config.accent"));
+  controller.updateCardConfig("c1", '{"accent":"solar"}');
+  assert.equal(store.state.editor.validationErrors.some((error) => error.field?.startsWith("card:c1:config")), false);
+  controller.updateCardConfig("c1", '{"accent":"bad"}');
+  controller.changeCardType("c1", "unknown-future");
+  assert.equal(store.state.editor.validationErrors.some((error) => error.field?.startsWith("card:c1:config")), false);
+  assert.equal(await controller.save(), true);
+  assert.equal(replaceCalls, 1);
+});
+
+
+test("valid Debug JSON replacement clears stale plugin errors and field text before save", async () => {
+  let replaceCalls = 0;
+  const initial = { ...base(), cards: [{ id: "c1", title: "Panel", type: "legacy-panel", config: { accent: "primary" } }] };
+  const saved = [];
+  const store = new DashboardModernStore({ replaceDashboard: async (_entryId, dashboard) => { replaceCalls += 1; saved.push(dashboard); return dashboard; }, listDashboards: async () => [initial], getDashboard: async () => initial }, { entryIdResolver: async () => "e" });
+  store.setState({ entryId: "e", activeDashboard: initial, activeDashboardId: "dash", dashboards: [initial] });
+  const controller = new EditorController(store);
+  await controller.enter();
+  const activeBefore = JSON.stringify(store.state.activeDashboard);
+
+  controller.updateCardConfig("c1", "{");
+  assert.equal(store.state.editor.fieldText["card:c1:config"], "{");
+  assert.ok(store.state.editor.validationErrors.some((error) => error.field === "card:c1:config"));
+
+  const invalidDebug = { ...initial, cards: [{ ...initial.cards[0], config: { accent: "invalid" } }] };
+  assert.equal(controller.updateDebugJson(JSON.stringify(invalidDebug)), false);
+  assert.match(store.state.editor.debugError, /Accent/);
+  assert.ok(hasBlockingLocalErrors(store.state.editor));
+
+  const validReplacement = { ...base(), sections: [{ id: "s1", title: "S1", card_ids: ["c2"] }], cards: [{ id: "c2", title: "Replacement", type: "legacy-panel", config: { accent: "solar" } }] };
+  assert.equal(controller.updateDebugJson(JSON.stringify(validReplacement)), true);
+  assert.equal(store.state.editor.debugError, null);
+  assert.deepEqual(store.state.editor.validationErrors, []);
+  assert.deepEqual(store.state.editor.fieldText, {});
+  assert.equal(hasBlockingLocalErrors(store.state.editor), false);
+  assert.equal(JSON.stringify(store.state.activeDashboard), activeBefore);
+
+  assert.equal(await controller.save(), true);
+  assert.equal(replaceCalls, 1);
+  assert.equal(saved[0].cards[0].id, "c2");
 });
