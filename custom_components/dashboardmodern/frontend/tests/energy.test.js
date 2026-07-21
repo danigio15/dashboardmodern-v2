@@ -138,7 +138,11 @@ test("flow rendering is neutral and does not invent directional allocations", ()
   const node = renderEnergyFlowsCard({ id: "f", title: "Flows", config: cfg }, runtime(states));
   assert.match(node.textContent, /Neutral direct metrics/);
   assert.match(node.textContent, /PV production↔3.2 kW/);
+  assert.match(node.textContent, /Battery \(discharging\)↔-1.5 kW/);
   assert.doesNotMatch(node.textContent, /PV→House|House→Battery|Battery→House|sensor\./);
+
+  const inverted = renderEnergyFlowsCard({ id: "f", title: "Flows", config: { ...cfg, batteryPositiveDirection: "discharging" } }, runtime(states));
+  assert.match(inverted.textContent, /Battery \(charging\)↔-1.5 kW/);
 });
 
 test("tiles use button semantics only when a history interaction is available", () => {

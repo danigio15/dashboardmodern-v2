@@ -210,7 +210,7 @@ export function normalizeEnergy(runtime = {}, config = {}) {
       { label: "House consumption", metric: metrics.house },
       { label: "Grid import", metric: metrics.import },
       { label: "Grid export", metric: metrics.export },
-      { label: "Battery power", metric: metrics.batteryPower },
+      { label: `Battery (${batteryMode(metrics.batteryPower, c.batteryPositiveDirection)})`, metric: metrics.batteryPower },
     ],
   };
 }
