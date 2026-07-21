@@ -8,6 +8,7 @@ import { renderCardForm } from "./editor/card-form.js";
 import { renderDashboardForm } from "./editor/dashboard-form.js";
 import { renderSectionForm } from "./editor/section-form.js";
 import { renderViewForm } from "./editor/view-form.js";
+import { CardReorderController } from "./editor/reorder.js";
 
 export function createDashboardModernShell(root, entryIds = []) {
   root.innerHTML = `
@@ -163,6 +164,7 @@ export function createUnsavedChangeConfirmation() {
 
 export function bindDashboardModernApp(container, store, { initialize = true, hass = null, confirmUnsaved = createUnsavedChangeConfirmation(), cardRegistry = DEFAULT_CARD_REGISTRY } = {}) {
   const editorController = new EditorController(store, { confirmUnsaved, cardRegistry });
+  new CardReorderController(store, editorController, container.querySelector("[data-dashboard-visual]"));
   store.subscribe((state) => {
     renderStatus(container, state);
     renderDashboardList(container, state, editorController);
