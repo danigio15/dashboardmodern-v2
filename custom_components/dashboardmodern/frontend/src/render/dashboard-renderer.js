@@ -3,6 +3,7 @@ import { renderView } from "./view-renderer.js";
 import { DEFAULT_CARD_REGISTRY } from "../cards/registry.js";
 import { createCardRuntimeContext } from "../runtime/context.js";
 import { el, emptyState } from "./dom.js";
+import { renderBottomNavigation } from "../navigation/bottom-navigation.js";
 
 export function renderDashboard(container, state, { hass, runtime, registry = DEFAULT_CARD_REGISTRY } = {}) {
   container.replaceChildren();
@@ -41,4 +42,5 @@ export function renderDashboard(container, state, { hass, runtime, registry = DE
   container.append(nav);
   const activeView = views.find((view) => view.id === state.activeViewId) || views[0];
   container.append(renderView(activeView, dashboard, runtimeContext));
+  if (dashboard.config?.navigation) container.append(renderBottomNavigation(dashboard, activeView?.section_ids?.[0] || ""));
 }

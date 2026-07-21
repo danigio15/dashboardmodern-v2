@@ -109,7 +109,7 @@ export function addSection(dashboard, viewId, patch = {}, generator = createIdGe
 
 export function updateSection(dashboard, id, patch) {
   const draft = clone(dashboard);
-  draft.sections = (draft.sections || []).map((section) => section.id === id ? fields(section, patch, ["title", "description"]) : section);
+  draft.sections = (draft.sections || []).map((section) => section.id === id ? fields(section, patch, ["title", "description", "type", "icon", "enabled", "visibleInNavbar", "order", "accent", "badge", "visibility", "navigation"]) : section);
   return draft;
 }
 

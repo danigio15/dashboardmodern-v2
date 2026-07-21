@@ -9,6 +9,7 @@ import { renderDashboardForm } from "./editor/dashboard-form.js";
 import { renderSectionForm } from "./editor/section-form.js";
 import { renderViewForm } from "./editor/view-form.js";
 import { CardReorderController } from "./editor/reorder.js";
+import { bindBottomNavigation } from "./navigation/bottom-navigation.js";
 
 export function createDashboardModernShell(root, entryIds = []) {
   root.innerHTML = `
@@ -148,7 +149,7 @@ export function createDashboardPayload(values) {
   return {
     id,
     title: values.title.trim(),
-    config: { branding: { title: values.title.trim(), subtitle: "Premium Home Assistant dashboard", logoRef: "", accentColor: "#22c55e" }, theme: { mode: "auto", accentColor: "#22c55e" } },
+    config: { branding: { title: values.title.trim(), subtitle: "Premium Home Assistant dashboard", logoRef: "", accentColor: "#22c55e" }, theme: { mode: "auto", accentColor: "#22c55e" }, navigation: { placement: "bottom", visibilityMode: "fixed", overflowMode: "scroll", showLabels: true, compactMode: false, itemSize: "medium", autoHideDelay: 2500, edgeIndicators: true } },
     views: [{ id: `${id}-home`, title: "Home", section_ids: [`${id}-weather`, `${id}-alerts`, `${id}-actions`] }],
     sections: [
       { id: `${id}-weather`, title: "Weather", card_ids: [`${id}-weather-hero`] },
@@ -317,6 +318,7 @@ export function bindDashboardModernApp(container, store, { initialize = true, ha
     },
   };
   new CardReorderController(store, editorController, container.querySelector("[data-dashboard-visual]"));
+  bindBottomNavigation(container.querySelector("[data-dashboard-visual]"), store);
   store.subscribe((state) => {
     applyDashboardShellConfig(container, state);
     renderStatus(container, state);
