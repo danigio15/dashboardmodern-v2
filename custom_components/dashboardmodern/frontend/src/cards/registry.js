@@ -6,6 +6,7 @@ import { el, emptyState } from "../render/dom.js";
 import { CAMERA_STATUS_TYPE, FAN_CONTROL_TYPE, MEDIA_PLAYER_CONTROL_TYPE, VACUUM_CONTROL_TYPE, defaultCameraStatusConfig, defaultFanControlConfig, defaultMediaPlayerControlConfig, defaultVacuumControlConfig, renderCameraStatusCard, renderCameraStatusEditor, renderFanControlCard, renderFanControlEditor, renderMediaPlayerControlCard, renderMediaPlayerControlEditor, renderVacuumControlCard, renderVacuumControlEditor, validateCameraStatusConfig, validateFanControlConfig, validateMediaPlayerControlConfig, validateVacuumControlConfig } from "./media-device-parity.js";
 import { AUTOMATION_CONTROL_TYPE, BUTTON_CONTROL_TYPE, INPUT_BOOLEAN_CONTROL_TYPE, INPUT_NUMBER_CONTROL_TYPE, INPUT_SELECT_CONTROL_TYPE, SCENE_CONTROL_TYPE, SCRIPT_CONTROL_TYPE, defaultAutomationControlConfig, defaultButtonControlConfig, defaultInputBooleanControlConfig, defaultInputNumberControlConfig, defaultInputSelectControlConfig, defaultSceneControlConfig, defaultScriptControlConfig, renderAutomationControlCard, renderAutomationControlEditor, renderButtonControlCard, renderButtonControlEditor, renderInputBooleanControlCard, renderInputBooleanControlEditor, renderInputNumberControlCard, renderInputNumberControlEditor, renderInputSelectControlCard, renderInputSelectControlEditor, renderSceneControlCard, renderSceneControlEditor, renderScriptControlCard, renderScriptControlEditor, validateAutomationControlConfig, validateButtonControlConfig, validateInputBooleanControlConfig, validateInputNumberControlConfig, validateInputSelectControlConfig, validateSceneControlConfig, validateScriptControlConfig } from "./action-controls.js";
 import { ALARM_CONTROL_TYPE, BINARY_SENSOR_STATUS_TYPE, DEVICE_TRACKER_STATUS_TYPE, LOCK_CONTROL_TYPE, PERSON_STATUS_TYPE, defaultAlarmControlConfig, defaultBinarySensorStatusConfig, defaultDeviceTrackerStatusConfig, defaultLockControlConfig, defaultPersonStatusConfig, renderAlarmControlCard, renderAlarmControlEditor, renderBinarySensorStatusCard, renderBinarySensorStatusEditor, renderDeviceTrackerStatusCard, renderDeviceTrackerStatusEditor, renderLockControlCard, renderLockControlEditor, renderPersonStatusCard, renderPersonStatusEditor, validateAlarmControlConfig, validateBinarySensorStatusConfig, validateDeviceTrackerStatusConfig, validateLockControlConfig, validatePersonStatusConfig } from "./security-access-presence.js";
+import { WEATHER_HERO_TYPE, ALERT_SUMMARY_TYPE, QUICK_ACTION_TYPE, GENERIC_APPLIANCE_TYPE, defaultWeatherHeroConfig, defaultAlertSummaryConfig, defaultQuickActionConfig, defaultGenericApplianceConfig, renderWeatherHeroCard, renderAlertSummaryCard, renderQuickActionCard, renderGenericApplianceCard, renderWeatherHeroEditor, renderAlertSummaryEditor, renderQuickActionEditor, renderGenericApplianceEditor, validateWeatherHeroConfig, validateAlertSummaryConfig, validateQuickActionConfig, validateGenericApplianceConfig } from "./home-foundation.js";
 import { CLIMATE_CONTROL_TYPE, COVER_CONTROL_TYPE, LIGHT_CONTROL_TYPE, SENSOR_STATUS_TYPE, SWITCH_CONTROL_TYPE, defaultClimateControlConfig, defaultCoverControlConfig, defaultLightControlConfig, defaultSensorStatusConfig, defaultSwitchControlConfig, renderClimateControlCard, renderClimateControlEditor, renderCoverControlCard, renderCoverControlEditor, renderLightControlCard, renderLightControlEditor, renderSensorStatusCard, renderSensorStatusEditor, renderSwitchControlCard, renderSwitchControlEditor, validateClimateControlConfig, validateCoverControlConfig, validateLightControlConfig, validateSensorStatusConfig, validateSwitchControlConfig } from "./device-controls.js";
 
 export function assertCardDefinition(definition) {
@@ -35,6 +36,10 @@ export function createCardRegistry() {
 }
 
 export function registerBuiltInCardTypes(registry) {
+  registry.register({ type: WEATHER_HERO_TYPE, displayName: "Weather hero", renderer: renderWeatherHeroCard, editor: renderWeatherHeroEditor, defaultConfig: defaultWeatherHeroConfig, validateConfig: validateWeatherHeroConfig });
+  registry.register({ type: ALERT_SUMMARY_TYPE, displayName: "Alert summary", renderer: renderAlertSummaryCard, editor: renderAlertSummaryEditor, defaultConfig: defaultAlertSummaryConfig, validateConfig: validateAlertSummaryConfig });
+  registry.register({ type: QUICK_ACTION_TYPE, displayName: "Quick action", renderer: renderQuickActionCard, editor: renderQuickActionEditor, defaultConfig: defaultQuickActionConfig, validateConfig: validateQuickActionConfig });
+  registry.register({ type: GENERIC_APPLIANCE_TYPE, displayName: "Generic appliance", renderer: renderGenericApplianceCard, editor: renderGenericApplianceEditor, defaultConfig: defaultGenericApplianceConfig, validateConfig: validateGenericApplianceConfig });
   registry.register({ type: ALARM_CONTROL_TYPE, displayName: "Alarm control", renderer: renderAlarmControlCard, editor: renderAlarmControlEditor, defaultConfig: defaultAlarmControlConfig, validateConfig: validateAlarmControlConfig });
   registry.register({ type: BINARY_SENSOR_STATUS_TYPE, displayName: "Binary sensor status", renderer: renderBinarySensorStatusCard, editor: renderBinarySensorStatusEditor, defaultConfig: defaultBinarySensorStatusConfig, validateConfig: validateBinarySensorStatusConfig });
   registry.register({ type: DEVICE_TRACKER_STATUS_TYPE, displayName: "Device tracker status", renderer: renderDeviceTrackerStatusCard, editor: renderDeviceTrackerStatusEditor, defaultConfig: defaultDeviceTrackerStatusConfig, validateConfig: validateDeviceTrackerStatusConfig });
@@ -78,12 +83,7 @@ export function clearCardRegistryForTests(registry = DEFAULT_CARD_REGISTRY) { re
 
 export function renderUnknownCard(card) {
   const shell = el("article", { className: "dashboardmodern-card legacy-card", attrs: { "data-card-kind": "unknown", "data-card-id": card?.id || "", "data-unsupported-card-type": card?.type || "" } });
-  shell.append(el("h4", { text: card?.title || "Unsupported card" }));
-  shell.append(el("p", { className: "dashboardmodern-card-type", text: `Card type: ${card?.type || "unknown"}` }));
-  if (card?.config && typeof card.config === "object" && !Array.isArray(card.config)) {
-    const keys = Object.keys(card.config).sort();
-    shell.append(el("p", { text: keys.length ? `Configuration keys: ${keys.join(", ")}` : "No card configuration." }));
-  }
-  shell.append(emptyState("This card type is not registered yet. Its JSON config remains editable."));
+  shell.append(el("h4", { text: card?.title || "Configuration required" }));
+  shell.append(emptyState("Configuration required: choose a supported DashboardModern card in the editor."));
   return shell;
 }

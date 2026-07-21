@@ -26,7 +26,7 @@ test("security access presence defaults validators registry fallback and editors
  }
  assert.deepEqual(reg.list().map(d=>d.displayName),[...reg.list().map(d=>d.displayName)].sort((a,b)=>a.localeCompare(b)));
  assert.throws(()=>reg.register({type:cards.LOCK_CONTROL_TYPE,displayName:"Again",renderer(){}}),/already registered/);
- assert.match(renderUnknownCard({type:"future",config:{safe:true}}).textContent,/not registered/);
+ assert.match(renderUnknownCard({type:"future",config:{safe:true}}).textContent,/Configuration required/);
 });
 
 test("general entity validation keeps missing unavailable unknown malformed distinct",()=>{

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bindDashboardModernApp, renderEditor, renderVisualDashboard } from "../src/app.js";
+import { bindDashboardModernApp, renderEditor, renderVisualDashboard, createDashboardPayload } from "../src/app.js";
 import { DashboardModernStore } from "../src/state.js";
 import { renderDashboard } from "../src/render/dashboard-renderer.js";
 
@@ -200,7 +200,7 @@ function submitCreate(container) {
 
 test("empty dashboard state exposes accessible first-dashboard creation flow", async () => {
   const calls = [];
-  const created = { id: "first", title: "First", views: [{ id: "first-view", title: "Main", section_ids: ["first-section"] }], sections: [{ id: "first-section", title: "Main", card_ids: ["first-card"] }], cards: [{ id: "first-card", title: "Welcome", type: "dashboardmodern-placeholder", config: {} }] };
+  const created = createDashboardPayload({ id: "first", title: "First" });
   const api = {
     listDashboards: async () => calls.filter((call) => call[0] === "create").length ? [created] : [],
     getDashboard: async (_entry, id) => { calls.push(["get", id]); return created; },
@@ -225,7 +225,7 @@ test("empty dashboard state exposes accessible first-dashboard creation flow", a
   const firstSubmit = submitCreate(container);
   const secondSubmit = submitCreate(container);
   await Promise.all([firstSubmit, secondSubmit]);
-  assert.deepEqual(calls.filter((call) => call[0] === "create"), [["create", { id: "first", title: "First", views: [{ id: "first-view", title: "Main", section_ids: ["first-section"] }], sections: [{ id: "first-section", title: "Main", card_ids: ["first-card"] }], cards: [{ id: "first-card", title: "Welcome", type: "dashboardmodern-placeholder", config: {} }] }]]);
+  assert.deepEqual(calls.filter((call) => call[0] === "create"), [["create", createDashboardPayload({ id: "first", title: "First" })]]);
   assert.deepEqual(calls.filter((call) => call[0] === "get"), [["get", "first"]]);
   assert.equal(store.state.activeDashboardId, "first");
   assert.equal(store.state.activeDashboard, created);
@@ -259,7 +259,7 @@ test("create dashboard cancellation and Escape restore focus without state chang
 
 
 test("create dashboard load failure rolls back empty-state selection", async () => {
-  const created = { id: "first", title: "First", views: [{ id: "first-view", title: "Main", section_ids: ["first-section"] }], sections: [{ id: "first-section", title: "Main", card_ids: ["first-card"] }], cards: [{ id: "first-card", title: "Welcome", type: "dashboardmodern-placeholder", config: {} }] };
+  const created = createDashboardPayload({ id: "first", title: "First" });
   const api = {
     listDashboards: async () => [],
     getDashboard: async () => { throw Object.assign(new Error("load failed"), { code: "dashboardmodern_error" }); },

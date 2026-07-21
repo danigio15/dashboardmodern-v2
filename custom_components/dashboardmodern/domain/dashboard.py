@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
+from types import MappingProxyType
 from typing import Any, Self
 
-from .cards import Card
+from .cards import Card, _freeze_mapping, _thaw_value, _hashable_value
 from .exceptions import InvalidHierarchyError, ValidationError
 from .models import DashboardId
 from .sections import Section
@@ -27,6 +28,7 @@ class Dashboard:
     views: tuple[View, ...]
     sections: tuple[Section, ...]
     cards: tuple[Card, ...]
+    config: MappingProxyType[str, Any] = field(default_factory=lambda: _freeze_mapping(None))
 
     def __post_init__(self) -> None:
         """Validate dashboard fields and hierarchy."""
@@ -36,6 +38,7 @@ class Dashboard:
         object.__setattr__(self, "views", tuple(self.views))
         object.__setattr__(self, "sections", tuple(self.sections))
         object.__setattr__(self, "cards", tuple(self.cards))
+        object.__setattr__(self, "config", _freeze_mapping(dict(self.config)))
         self.validate()
 
     @classmethod
@@ -46,9 +49,10 @@ class Dashboard:
         views: tuple[View, ...],
         sections: tuple[Section, ...],
         cards: tuple[Card, ...],
+        config: dict[str, Any] | None = None,
     ) -> Self:
         """Create a dashboard from primitive values and domain children."""
-        return cls(DashboardId.from_raw(id), title, views, sections, cards)
+        return cls(DashboardId.from_raw(id), title, views, sections, cards, _freeze_mapping(config))
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
@@ -61,6 +65,7 @@ class Dashboard:
                 Section.from_dict(item) for item in data.get("sections", ())
             ),
             cards=tuple(Card.from_dict(item) for item in data.get("cards", ())),
+            config=data.get("config"),
         )
 
     def validate(self) -> None:
@@ -104,10 +109,17 @@ class Dashboard:
             "views": [view.to_dict() for view in self.views],
             "sections": [section.to_dict() for section in self.sections],
             "cards": [card.to_dict() for card in self.cards],
+            **({"config": _thaw_value(self.config)} if self.config else {}),
         }
+
+    def __hash__(self) -> int:
+        """Return a hash value compatible with dashboard equality."""
+        return hash((self.id, self.title, self.views, self.sections, self.cards, _hashable_value(self.config)))
 
     def copy_with(self, **changes: Any) -> Self:
         """Return a validated copy with selected fields replaced."""
         if "id" in changes:
             changes["id"] = DashboardId.from_raw(changes["id"])
+        if "config" in changes:
+            changes["config"] = _freeze_mapping(changes["config"])
         return replace(self, **changes)

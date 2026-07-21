@@ -55,7 +55,7 @@ test("ordered sections and cards render with fallback isolation", () => {
   assert.match(root.textContent, /Section 1/);
   assert.match(root.textContent, /Mystery/);
   assert.match(root.textContent, /Info/);
-  assert.match(root.textContent, /Card type: future/);
+  assert.match(root.textContent, /Configuration required/);
 });
 
 test("empty dashboard view and section states render", () => {
@@ -73,8 +73,7 @@ test("malformed cards are isolated and open config displays only keys", () => {
   assert.match(renderCard(null).textContent, /Malformed card/);
   const card = { id: "e", title: "Open", type: "entity", config: { entity_id: "sensor.temp", message: "Hi" } };
   const rendered = renderCard(card);
-  assert.match(rendered.textContent, /Card type: entity/);
-  assert.match(rendered.textContent, /Configuration keys: entity_id, message/);
+  assert.match(rendered.textContent, /Configuration required/);
   assert.doesNotMatch(rendered.textContent, /sensor.temp|Hi/);
 });
 
@@ -99,11 +98,11 @@ test("built-in registries are deterministic and compatibility renderer APIs repo
   const first = createDefaultCardRegistry();
   const second = createCardRegistry();
   registerBuiltInCardTypes(second);
-  assert.deepEqual(first.types(), ["alarm-control", "automation-control", "battery-status", "binary-sensor-status", "button-control", "camera-status", "climate-control", "cover-control", "device-tracker-status", "energy-flows", "energy-overview", "fan-control", "grid-status", "home-summary", "input-boolean-control", "input-number-control", "input-select-control", "legacy-panel", "light-control", "lock-control", "media-player-control", "person-status", "scene-control", "script-control", "sensor-status", "solar-production", "switch-control", "vacuum-control", "weather-current", "weather-forecast"]);
-  assert.deepEqual(second.types(), ["alarm-control", "automation-control", "battery-status", "binary-sensor-status", "button-control", "camera-status", "climate-control", "cover-control", "device-tracker-status", "energy-flows", "energy-overview", "fan-control", "grid-status", "home-summary", "input-boolean-control", "input-number-control", "input-select-control", "legacy-panel", "light-control", "lock-control", "media-player-control", "person-status", "scene-control", "script-control", "sensor-status", "solar-production", "switch-control", "vacuum-control", "weather-current", "weather-forecast"]);
+  assert.deepEqual(first.types(), ["alarm-control", "alert-summary", "automation-control", "battery-status", "binary-sensor-status", "button-control", "camera-status", "climate-control", "cover-control", "device-tracker-status", "energy-flows", "energy-overview", "fan-control", "generic-appliance", "grid-status", "home-summary", "input-boolean-control", "input-number-control", "input-select-control", "legacy-panel", "light-control", "lock-control", "media-player-control", "person-status", "quick-action", "scene-control", "script-control", "sensor-status", "solar-production", "switch-control", "vacuum-control", "weather-current", "weather-forecast", "weather-hero"]);
+  assert.deepEqual(second.types(), ["alarm-control", "alert-summary", "automation-control", "battery-status", "binary-sensor-status", "button-control", "camera-status", "climate-control", "cover-control", "device-tracker-status", "energy-flows", "energy-overview", "fan-control", "generic-appliance", "grid-status", "home-summary", "input-boolean-control", "input-number-control", "input-select-control", "legacy-panel", "light-control", "lock-control", "media-player-control", "person-status", "quick-action", "scene-control", "script-control", "sensor-status", "solar-production", "switch-control", "vacuum-control", "weather-current", "weather-forecast", "weather-hero"]);
   assert.throws(() => second.register({ type: "legacy-panel", displayName: "Duplicate", renderer: () => new Node("article") }), /already registered/);
   registerCardRenderer("compat-card", () => new Node("article"), second);
-  assert.deepEqual(cardRendererTypes(second), ["alarm-control", "automation-control", "battery-status", "binary-sensor-status", "button-control", "camera-status", "climate-control", "compat-card", "cover-control", "device-tracker-status", "energy-flows", "energy-overview", "fan-control", "grid-status", "home-summary", "input-boolean-control", "input-number-control", "input-select-control", "legacy-panel", "light-control", "lock-control", "media-player-control", "person-status", "scene-control", "script-control", "sensor-status", "solar-production", "switch-control", "vacuum-control", "weather-current", "weather-forecast"]);
+  assert.deepEqual(cardRendererTypes(second), ["alarm-control", "alert-summary", "automation-control", "battery-status", "binary-sensor-status", "button-control", "camera-status", "climate-control", "compat-card", "cover-control", "device-tracker-status", "energy-flows", "energy-overview", "fan-control", "generic-appliance", "grid-status", "home-summary", "input-boolean-control", "input-number-control", "input-select-control", "legacy-panel", "light-control", "lock-control", "media-player-control", "person-status", "quick-action", "scene-control", "script-control", "sensor-status", "solar-production", "switch-control", "vacuum-control", "weather-current", "weather-forecast", "weather-hero"]);
   assert.equal(renderCardWithRegistry({ id: "x", title: "X", type: "compat-card", config: {} }, {}, { registry: second }).tagName, "article");
 });
 
@@ -122,6 +121,6 @@ test("Phase 16 grid layout applies normalized CSS properties and preserves order
   assert.equal(cards[0].style.values["--dm-card-columns-mobile"], "2");
   assert.equal(cards[1].style.values["--dm-card-columns-desktop"], "4");
   assert.equal(cards[1].dataset.layoutStatus, "malformed");
-  assert.match(cards[1].textContent, /safe defaults|Card type: future/);
+  assert.match(cards[1].textContent, /safe defaults|Configuration required/);
   assert.equal(cards.some((card) => card.style.values.order), false);
 });

@@ -19,8 +19,8 @@ export function createDashboardModernShell(root, entryIds = []) {
         <div class="dashboardmodern-brand">
           <div class="dashboardmodern-menu-boundary" aria-label="Home Assistant menu boundary">☰</div>
           <div>
-            <h1>Smart Home Dashboard</h1>
-            <p>Legacy parity foundation for DashboardModern.</p>
+            <h1 data-brand-title>Smart Home Dashboard</h1>
+            <p data-brand-subtitle>Legacy parity foundation for DashboardModern.</p>
           </div>
         </div>
         <span class="dashboardmodern-status-pill" data-connection-pill>HA WebSocket</span>
@@ -93,14 +93,28 @@ function renderStatus(container, state) {
   renderStatus.dataset.kind = "error";
 }
 
-function createDashboardPayload(values) {
+export function createDashboardPayload(values) {
   const id = values.id.trim();
   return {
     id,
     title: values.title.trim(),
-    views: [{ id: `${id}-view`, title: "Main", section_ids: [`${id}-section`] }],
-    sections: [{ id: `${id}-section`, title: "Main", card_ids: [`${id}-card`] }],
-    cards: [{ id: `${id}-card`, title: "Welcome", type: "dashboardmodern-placeholder", config: {} }],
+    config: { branding: { title: values.title.trim(), subtitle: "Premium Home Assistant dashboard", logoRef: "", accentColor: "#22c55e" }, theme: { mode: "auto", accentColor: "#22c55e" } },
+    views: [{ id: `${id}-home`, title: "Home", section_ids: [`${id}-weather`, `${id}-alerts`, `${id}-actions`] }],
+    sections: [
+      { id: `${id}-weather`, title: "Weather", card_ids: [`${id}-weather-hero`] },
+      { id: `${id}-alerts`, title: "Alerts", card_ids: [`${id}-alert-summary`] },
+      { id: `${id}-actions`, title: "Quick actions", card_ids: [`${id}-lights`, `${id}-climate`, `${id}-alarm`, `${id}-gate`, `${id}-washer`] },
+    ],
+    cards: [
+      { id: `${id}-weather-hero`, title: "Weather", type: "weather-hero", config: { weatherEntityId: "", showHumidity: true, showWind: true, showForecast: true } },
+      { id: `${id}-alert-summary`, title: "Alerts", type: "alert-summary", config: { alerts: [
+        { id: "lights", title: "Lights on", icon: "light", entityIds: [], condition: "on", activeColor: "#22c55e" },
+        { id: "climate", title: "Active climate", icon: "climate", entityIds: [], condition: "not_off", activeColor: "#22c55e" },
+        { id: "openings", title: "Openings", icon: "door", entityIds: [], condition: "on", activeColor: "#f97316" },
+        { id: "batteries", title: "Low batteries", icon: "battery", entityIds: [], condition: "below", value: 20, activeColor: "#ef4444" }
+      ] } },
+      ...["lights", "climate", "alarm", "gate", "washer"].map((name) => ({ id: `${id}-${name}`, title: name[0].toUpperCase() + name.slice(1), type: "quick-action", config: { title: name[0].toUpperCase() + name.slice(1), icon: name === "washer" ? "appliance" : name, action: { type: "service", domain: "", service: "", target: { entity_id: "" }, serviceData: {}, confirmation: false } } })),
+    ],
   };
 }
 
