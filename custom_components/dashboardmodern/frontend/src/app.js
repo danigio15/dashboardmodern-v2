@@ -171,7 +171,7 @@ function renderDashboardList(container, state, controller, creation = null) {
     const message = document.createElement("p"); message.textContent = "No dashboards available."; wrapper.append(message);
     const sub = document.createElement("p"); sub.textContent = "No dashboards have been created yet."; wrapper.append(sub);
     if (!creation?.open) {
-      const create = document.createElement("button"); create.type = "button"; create.textContent = "Create dashboard"; create.dataset.createDashboardAction = ""; create.addEventListener("click", () => creation.openForm(create)); wrapper.append(create);
+      const create = document.createElement("button"); create.type = "button"; create.textContent = "Create dashboard"; create.dataset.createDashboardAction = ""; create.addEventListener("click", () => creation.openForm()); wrapper.append(create);
     }
     if (creation?.open) renderDashboardCreationForm(wrapper, state, creation, controller);
   }
@@ -232,7 +232,26 @@ export function createUnsavedChangeConfirmation() {
 
 export function bindDashboardModernApp(container, store, { initialize = true, hass = null, confirmUnsaved = createUnsavedChangeConfirmation(), cardRegistry = DEFAULT_CARD_REGISTRY } = {}) {
   const editorController = new EditorController(store, { confirmUnsaved, cardRegistry });
-  const creation = { open: false, pending: false, values: { id: "", title: "" }, errors: {}, backendError: null, trigger: null, needsFocus: false, store, render: () => renderDashboardList(container, store.state, editorController, creation), openForm(trigger) { this.open = true; this.trigger = trigger; this.needsFocus = true; this.render(); }, cancel() { this.open = false; this.errors = {}; this.backendError = null; this.render(); this.trigger?.focus?.(); } };
+  const creation = {
+    open: false,
+    pending: false,
+    values: { id: "", title: "" },
+    errors: {},
+    backendError: null,
+    needsFocus: false,
+    store,
+    render: () => renderDashboardList(container, store.state, editorController, creation),
+    openForm() { this.open = true; this.needsFocus = true; this.render(); },
+    cancel() {
+      this.open = false;
+      this.errors = {};
+      this.backendError = null;
+      this.render();
+      const list = container.querySelector("[data-dashboard-list]");
+      const createAction = container.querySelector?.("[data-create-dashboard-action]") || list?.querySelector?.("[data-create-dashboard-action]");
+      createAction?.focus?.();
+    },
+  };
   new CardReorderController(store, editorController, container.querySelector("[data-dashboard-visual]"));
   store.subscribe((state) => {
     renderStatus(container, state);

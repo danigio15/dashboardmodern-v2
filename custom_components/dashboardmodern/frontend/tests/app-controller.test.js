@@ -247,11 +247,37 @@ test("create dashboard cancellation and Escape restore focus without state chang
   trigger.click(); await new Promise((resolve) => setTimeout(resolve, 0));
   createFields(container).id.value = "draft";
   buttonByText(container.list, "Cancel").click();
-  assert.equal(globalThis.document.activeElement, trigger);
+  assert.notEqual(globalThis.document.activeElement, trigger);
+  assert.equal(globalThis.document.activeElement, buttonByText(container.list, "Create dashboard"));
   assert.equal(store.state.activeDashboardId, null);
-  trigger.click(); await new Promise((resolve) => setTimeout(resolve, 0));
+  const rerenderedTrigger = buttonByText(container.list, "Create dashboard");
+  rerenderedTrigger.click(); await new Promise((resolve) => setTimeout(resolve, 0));
   descendants(container.list).find((node) => node.tagName === "form").keydown("Escape");
-  assert.equal(globalThis.document.activeElement, trigger);
+  assert.notEqual(globalThis.document.activeElement, rerenderedTrigger);
+  assert.equal(globalThis.document.activeElement, buttonByText(container.list, "Create dashboard"));
+});
+
+
+test("create dashboard load failure rolls back empty-state selection", async () => {
+  const created = { id: "first", title: "First", views: [{ id: "first-view", title: "Main", section_ids: ["first-section"] }], sections: [{ id: "first-section", title: "Main", card_ids: ["first-card"] }], cards: [{ id: "first-card", title: "Welcome", type: "dashboardmodern-placeholder", config: {} }] };
+  const api = {
+    listDashboards: async () => [],
+    getDashboard: async () => { throw Object.assign(new Error("load failed"), { code: "dashboardmodern_error" }); },
+    createDashboard: async () => created,
+  };
+  let createdOnce = false;
+  api.listDashboards = async () => createdOnce ? [created] : [];
+  api.createDashboard = async () => { createdOnce = true; return created; };
+  const store = new DashboardModernStore(api, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true });
+  buttonByText(container.list, "Create dashboard").click();
+  const fields = createFields(container); fields.id.value = "first"; fields.id.listeners.input(); fields.title.value = "First"; fields.title.listeners.input();
+  await submitCreate(container);
+  assert.equal(store.state.activeDashboardId, null);
+  assert.equal(store.state.activeDashboard, null);
+  assert.equal(store.state.mode, "visual");
+  assert.match(container.status.textContent, /dashboardmodern_error/);
 });
 
 test("create dashboard backend failures preserve form and avoid partial local state", async () => {

@@ -93,8 +93,12 @@ export class DashboardModernStore {
     const dashboards = await this.api.listDashboards(this.state.entryId);
     const preferredAvailable = dashboards.some((item) => item.id === preferredDashboardId);
     const activeDashboardId = preferredAvailable ? preferredDashboardId : dashboards[0]?.id || null;
-    this.setState({ dashboards, activeDashboardId, loading: false });
-    if (activeDashboardId) await this.loadDashboard(activeDashboardId);
+    this.setState({ dashboards, loading: false });
+    if (activeDashboardId) {
+      await this.loadDashboard(activeDashboardId);
+      return;
+    }
+    this.setState({ activeDashboardId: null, activeDashboard: null, activeViewId: null, editor: clearEditorState(this.state.editor) });
   }
 
   async loadDashboard(dashboardId) {
