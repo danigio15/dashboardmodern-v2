@@ -1,0 +1,74 @@
+import { fieldError, textInput } from "../editor/dashboard-form.js";
+import { el } from "../render/dom.js";
+import { isPlainObject, lookupEntity, parseFriendlyName, parseOptionalString, parseTimestampString } from "./action-controls.js";
+
+export const ALARM_CONTROL_TYPE = "alarm-control";
+export const BINARY_SENSOR_STATUS_TYPE = "binary-sensor-status";
+export const DEVICE_TRACKER_STATUS_TYPE = "device-tracker-status";
+export const LOCK_CONTROL_TYPE = "lock-control";
+export const PERSON_STATUS_TYPE = "person-status";
+
+const ENTITY_RE = /^[a-z0-9_]+\.[a-z0-9_]+$/;
+const VALID_LOCK = new Set(["locked", "unlocked", "locking", "unlocking", "jammed", "open", "opening"]);
+const TRANS_LOCK = new Set(["locking", "unlocking", "opening"]);
+const VALID_ALARM = new Set(["disarmed", "armed_home", "armed_away", "armed_night", "armed_vacation", "armed_custom_bypass", "pending", "arming", "disarming", "triggered"]);
+const TRANS_ALARM = new Set(["pending", "arming", "disarming"]);
+const ARM_BITS = Object.freeze({ arm_home: 1, arm_away: 2, arm_night: 4, arm_vacation: 32, arm_custom_bypass: 16 });
+const DC_LABELS = Object.freeze({ door: ["Open", "Closed"], garage_door: ["Open", "Closed"], window: ["Open", "Closed"], opening: ["Open", "Closed"], motion: ["Motion", "Clear"], occupancy: ["Occupied", "Clear"], presence: ["Present", "Away"], smoke: ["Smoke", "Clear"], gas: ["Gas", "Clear"], moisture: ["Wet", "Dry"], safety: ["Unsafe", "Safe"], problem: ["Problem", "OK"], connectivity: ["Connected", "Disconnected"], battery: ["Low", "OK"], plug: ["Plugged in", "Unplugged"], lock: ["Unlocked", "Locked"] });
+
+export const defaultAlarmControlConfig = () => ({ entityId: "", showChangedBy: true });
+export const defaultBinarySensorStatusConfig = () => ({ entityId: "", showLastChanged: false });
+export const defaultDeviceTrackerStatusConfig = () => ({ entityId: "", showCoordinates: false, showLastChanged: false });
+export const defaultLockControlConfig = () => ({ entityId: "", showChangedBy: true });
+export const defaultPersonStatusConfig = () => ({ entityId: "", showCoordinates: false, showLastChanged: false });
+
+function configErrors(config, domain, booleans) {
+  if (!isPlainObject(config)) return [{ field: "config", message: "Config must be an object." }];
+  const errors = [];
+  if (typeof config.entityId !== "string" || !config.entityId.trim()) errors.push({ field: "config.entityId", message: "entityId is required." });
+  else if (!ENTITY_RE.test(config.entityId)) errors.push({ field: "config.entityId", message: "entityId must be a Home Assistant entity ID." });
+  else if (config.entityId.split(".")[0] !== domain) errors.push({ field: "config.entityId", message: `entityId must be in the ${domain} domain.` });
+  for (const key of booleans) if (config[key] !== undefined && typeof config[key] !== "boolean") errors.push({ field: `config.${key}`, message: `${key} must be a boolean.` });
+  return errors;
+}
+export const validateAlarmControlConfig = (c) => configErrors(c, "alarm_control_panel", ["showChangedBy"]);
+export const validateBinarySensorStatusConfig = (c) => configErrors(c, "binary_sensor", ["showLastChanged"]);
+export const validateDeviceTrackerStatusConfig = (c) => configErrors(c, "device_tracker", ["showCoordinates", "showLastChanged"]);
+export const validateLockControlConfig = (c) => configErrors(c, "lock", ["showChangedBy"]);
+export const validatePersonStatusConfig = (c) => configErrors(c, "person", ["showCoordinates", "showLastChanged"]);
+
+const hasSvc = (r) => typeof r.callService === "function";
+const svc = (r, d, s, id) => { if (hasSvc(r)) r.callService(d, s, { entity_id: id }); };
+function statusText(n) { return n.reason || n.status || "malformed"; }
+function base(runtime, config, domain) { const n = lookupEntity(runtime, config?.entityId); const name = parseFriendlyName(n.attributes, config?.entityId); const wrong = typeof config?.entityId === "string" && config.entityId.includes(".") && config.entityId.split(".")[0] !== domain; return { ...n, entityId: config?.entityId || "", name: name.value, friendlyName: name.parsed, wrongDomain: wrong, lastChanged: parseTimestampString(n.entity?.last_changed) }; }
+function shell(kind, title, status) { const node = el("article", { className: `dashboardmodern-card dm-security-card dm-${kind}`, attrs: { "data-card-kind": kind, "data-status": status } }); node.append(el("style", { text: `.dm-security-card{display:grid;gap:.75rem}.dm-security-actions{display:flex;flex-wrap:wrap;gap:.5rem}.dm-security-card button:disabled{opacity:.45;cursor:not-allowed}.dm-prominent{font-weight:700}.dm-malformed{color:var(--dashboardmodern-danger,#b91c1c)}@media(max-width:640px){.dm-security-actions{flex-direction:column}.dm-security-actions button{width:100%}}@media(prefers-reduced-motion:reduce){.dm-security-card *{transition:none!important}}` })); node.append(el("h3", { className: "section-title", text: title })); return node; }
+function btn(label, disabled, onClick) { const b = el("button", { text: label, attrs: { type: "button", "aria-label": label, disabled: disabled ? "" : null } }); if (!disabled) b.addEventListener("click", onClick); return b; }
+function optStr(attrs, key) { const p = parseOptionalString(attrs[key]); return p.status === "valid" ? p.value : p.status === "malformed" ? `Malformed ${key}` : null; }
+function num(value, { integer = false, min = -Infinity, max = Infinity } = {}) { if (value === undefined || value === null) return { status: "missing", value: null }; if (typeof value !== "number" || !Number.isFinite(value) || (integer && !Number.isInteger(value)) || value < min || value > max) return { status: "malformed", value: null }; return { status: "valid", value }; }
+function coord(attrs, key, min, max) { return num(attrs[key], { min, max }); }
+function supported(attrs) { return num(attrs.supported_features, { integer: true, min: 0 }); }
+
+export function normalizeLockControl(runtime = {}, config = {}) { const n = base(runtime, config, "lock"); const malformed = n.status === "valid" && !VALID_LOCK.has(n.raw); const changedBy = parseOptionalString(n.attributes.changed_by); return { ...n, category: n.wrongDomain ? "malformed" : malformed ? "malformed" : n.status === "valid" && TRANS_LOCK.has(n.raw) ? "transitional" : n.raw === "jammed" ? "jammed" : n.status, changedBy, canLock: n.status === "valid" && ["unlocked", "open"].includes(n.raw), canUnlock: n.status === "valid" && n.raw === "locked" }; }
+export function renderLockControlCard(card, runtime = {}) { const n = normalizeLockControl(runtime, card.config); const bad = n.category !== "valid" || n.friendlyName.status === "malformed" || n.changedBy.status === "malformed"; const node = shell(LOCK_CONTROL_TYPE, card.title || n.name, n.category); node.append(el("p", { className: n.category === "jammed" ? "dm-prominent" : "", text: bad ? `Lock status: ${n.category === "jammed" ? "JAMMED" : statusText(n)}` : `Lock status: ${n.raw}` })); if (card.config?.showChangedBy && n.changedBy.status === "valid") node.append(el("p", { text: `Changed by: ${n.changedBy.value}` })); const actions = el("div", { className: "dm-security-actions" }); if (n.canLock) actions.append(btn(`Lock ${n.entityId}`, bad || !hasSvc(runtime), () => svc(runtime, "lock", "lock", n.entityId))); if (n.canUnlock) actions.append(btn(`Unlock ${n.entityId}`, bad || !hasSvc(runtime), () => svc(runtime, "lock", "unlock", n.entityId))); node.append(actions); return node; }
+
+export function normalizeAlarmControl(runtime = {}, config = {}) { const n = base(runtime, config, "alarm_control_panel"); const features = supported(n.attributes); const changedBy = parseOptionalString(n.attributes.changed_by); const malformed = n.status === "valid" && !VALID_ALARM.has(n.raw); const actions = features.status === "valid" ? Object.entries(ARM_BITS).filter(([, bit]) => (features.value & bit) !== 0).map(([a]) => a) : []; if (n.raw !== "disarmed") actions.unshift("disarm"); return { ...n, features, changedBy, actions, category: n.wrongDomain || malformed || features.status === "malformed" ? "malformed" : n.status === "valid" && TRANS_ALARM.has(n.raw) ? "transitional" : n.raw === "triggered" ? "triggered" : n.status }; }
+export function renderAlarmControlCard(card, runtime = {}) { const n = normalizeAlarmControl(runtime, card.config); const disabled = n.category !== "valid" || n.friendlyName.status === "malformed" || n.changedBy.status === "malformed" || !hasSvc(runtime); const node = shell(ALARM_CONTROL_TYPE, card.title || n.name, n.category); node.append(el("p", { className: n.category === "triggered" ? "dm-prominent" : "", text: `Alarm state: ${n.category === "triggered" ? "TRIGGERED" : n.category === "malformed" ? statusText(n) : n.raw}` })); if (card.config?.showChangedBy && n.changedBy.status === "valid") node.append(el("p", { text: `Changed by: ${n.changedBy.value}` })); const actions = el("div", { className: "dm-security-actions" }); for (const action of n.actions) actions.append(btn(action.replaceAll("_", " "), disabled, () => svc(runtime, "alarm_control_panel", `alarm_${action}`, n.entityId))); node.append(actions); return node; }
+
+export function normalizeBinarySensorStatus(runtime = {}, config = {}) { const n = base(runtime, config, "binary_sensor"); const dc = parseOptionalString(n.attributes.device_class); const malformed = n.status === "valid" && !["on", "off"].includes(n.raw); const labels = dc.status === "valid" && DC_LABELS[dc.value] ? DC_LABELS[dc.value] : ["On", "Off"]; return { ...n, deviceClass: dc, label: n.raw === "on" ? labels[0] : n.raw === "off" ? labels[1] : "Malformed state", category: n.wrongDomain || malformed ? "malformed" : n.status }; }
+export function renderBinarySensorStatusCard(card, runtime = {}) { const n = normalizeBinarySensorStatus(runtime, card.config); const node = shell(BINARY_SENSOR_STATUS_TYPE, card.title || n.name, n.category); node.append(el("p", { text: n.category === "valid" ? `${n.name}: ${n.label}` : `Binary sensor status: ${statusText(n)}` })); if (n.deviceClass.status === "valid") node.append(el("p", { text: `Device class: ${n.deviceClass.value}` })); else if (n.deviceClass.status === "malformed") node.append(el("p", { className: "dm-malformed", text: "Malformed device_class" })); if (card.config?.showLastChanged) node.append(el("p", { text: `Last changed: ${n.lastChanged.value || (n.lastChanged.status === "malformed" ? "Malformed timestamp" : "Missing")}` })); return node; }
+
+function normalizePresence(runtime, config, domain) { const n = base(runtime, config, domain); const lat = coord(n.attributes, "latitude", -90, 90); const lon = coord(n.attributes, "longitude", -180, 180); const gps = num(n.attributes.gps_accuracy, { min: 0 }); return { ...n, source: parseOptionalString(n.attributes.source ?? n.attributes.source_type), userId: parseOptionalString(n.attributes.user_id), lat, lon, gps, location: n.status === "valid" ? n.raw : statusText(n), category: n.wrongDomain ? "malformed" : n.status }; }
+export const normalizePersonStatus = (r = {}, c = {}) => normalizePresence(r, c, "person");
+export const normalizeDeviceTrackerStatus = (r = {}, c = {}) => ({ ...normalizePresence(r, c, "device_tracker"), battery: num(c && lookupEntity(r, c.entityId).attributes?.battery_level, { min: 0, max: 100 }), lastSeen: parseTimestampString(lookupEntity(r, c.entityId).attributes?.last_seen) });
+function renderPresence(kind, card, runtime, normalizer) { const n = normalizer(runtime, card.config); const node = shell(kind, card.title || n.name, n.category); node.append(el("p", { text: `Location: ${n.location === "home" ? "Home" : n.location === "not_home" ? "Away" : n.location}` })); for (const [label, p] of [["Source", n.source], ["User ID", n.userId]]) if (p?.status === "valid") node.append(el("p", { text: `${label}: ${p.value}` })); else if (p?.status === "malformed") node.append(el("p", { className: "dm-malformed", text: `Malformed ${label.toLowerCase()}` })); if (card.config?.showCoordinates) { node.append(el("p", { text: `Latitude: ${n.lat.status === "valid" ? n.lat.value : n.lat.status}` })); node.append(el("p", { text: `Longitude: ${n.lon.status === "valid" ? n.lon.value : n.lon.status}` })); } if (n.gps.status === "valid") node.append(el("p", { text: `GPS accuracy: ${n.gps.value}` })); else if (n.gps.status === "malformed") node.append(el("p", { className: "dm-malformed", text: "Malformed gps_accuracy" })); if (n.battery) node.append(el("p", { text: `Battery: ${n.battery.status === "valid" ? `${n.battery.value}%` : n.battery.status}` })); if (n.lastSeen?.status === "valid") node.append(el("p", { text: `Last seen: ${n.lastSeen.value}` })); else if (n.lastSeen?.status === "malformed") node.append(el("p", { className: "dm-malformed", text: "Malformed last_seen" })); if (card.config?.showLastChanged) node.append(el("p", { text: `Last changed: ${n.lastChanged.value || (n.lastChanged.status === "malformed" ? "Malformed timestamp" : "Missing")}` })); return node; }
+export const renderPersonStatusCard = (c, r) => renderPresence(PERSON_STATUS_TYPE, c, r, normalizePersonStatus);
+export const renderDeviceTrackerStatusCard = (c, r) => renderPresence(DEVICE_TRACKER_STATUS_TYPE, c, r, normalizeDeviceTrackerStatus);
+
+function boolInput(documentRef, labelText, value, onChange, fieldId) { const label = documentRef.createElement("label"); label.textContent = `${labelText} `; const input = documentRef.createElement("input"); input.type = "checkbox"; input.checked = value === true; input.dataset.editorField = fieldId; input.addEventListener("change", () => onChange(input.checked)); label.append(input); return label; }
+function editor(fields = []) { return (documentRef, cardDef, controller, errors = []) => { const form = documentRef.createElement("section"); form.className = "dashboardmodern-plugin-editor"; form.append(textInput(documentRef, "Entity ID", cardDef.config?.entityId || "", (entityId) => controller.updateCardConfigPatch(cardDef.id, { entityId }), `card:${cardDef.id}:config.entityId`)); for (const f of fields) form.append(f(documentRef, cardDef, controller)); for (const error of errors) form.append(fieldError(documentRef, error.message)); return form; }; }
+const b = (label, key) => (d, c, ctl) => boolInput(d, label, c.config?.[key], (v) => ctl.updateCardConfigPatch(c.id, { [key]: v }), `card:${c.id}:config.${key}`);
+export const renderAlarmControlEditor = editor([b("Show changed by", "showChangedBy")]);
+export const renderBinarySensorStatusEditor = editor([b("Show last changed", "showLastChanged")]);
+export const renderDeviceTrackerStatusEditor = editor([b("Show coordinates", "showCoordinates"), b("Show last changed", "showLastChanged")]);
+export const renderLockControlEditor = editor([b("Show changed by", "showChangedBy")]);
+export const renderPersonStatusEditor = editor([b("Show coordinates", "showCoordinates"), b("Show last changed", "showLastChanged")]);
