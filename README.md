@@ -40,3 +40,5 @@ Phase 8 follow-up tightened the editor guard ownership so all draft-sensitive na
 The application default unsaved-change guard now asks before discarding dirty drafts instead of silently approving navigation. The structured editor includes selected View, Section, and generic Card forms; Card config is edited as formatted object JSON and invalid edits stay local without replacing the previous valid config.
 
 The editor preserves field focus, selection, and caret position across draft-driven rerenders by assigning stable semantic field identifiers. Invalid Card config text is retained locally in the config textarea while the previous valid draft config remains unchanged, so users can correct JSON without losing their input.
+
+Invalid Card config text is retained per card across unrelated editor changes and selection changes. The stale local text/error is cleared when the config is corrected, the card is deleted, editing is cancelled, or a save succeeds.

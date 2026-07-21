@@ -14,7 +14,7 @@ export function clearEditorState(state) {
 }
 
 export function markDraft(state, draft, selectedNode = state.selectedNode) {
-  return { ...state, draftDashboard: draft, dirty: true, selectedNode, debugText: JSON.stringify(draft, null, 2), debugError: null, validationErrors: [], saveError: null, fieldText: {} };
+  return { ...state, draftDashboard: draft, dirty: true, selectedNode, debugText: JSON.stringify(draft, null, 2), debugError: null, saveError: null };
 }
 
 function addError(errors, message, field = "draft") {

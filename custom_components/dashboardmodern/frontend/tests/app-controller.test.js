@@ -349,7 +349,47 @@ test("invalid Card config text survives rerenders and corrected config updates d
   configField.setSelectionRange(configField.value.length, configField.value.length);
   configField.listeners.input();
   configField = globalThis.document.activeElement;
-  assert.equal(configField.value, '{"fixed":true}');
+  assert.equal(configField.value, '{\n  "fixed": true\n}');
   assert.deepEqual(store.state.editor.draftDashboard.cards[0].config, { fixed: true });
+  assert.equal(JSON.stringify(store.state.activeDashboard), persistedBefore);
+});
+
+test("invalid Card config field state survives unrelated form edits until corrected", async () => {
+  const editable = {
+    ...dashboard,
+    title: "Base",
+    views: [{ id: "one", title: "View", description: "", section_ids: ["s1"] }],
+    sections: [{ id: "s1", title: "Section", description: "", card_ids: ["c1"] }],
+    cards: [{ id: "c1", title: "Card", type: "unknown", config: { stable: true } }],
+  };
+  const store = new DashboardModernStore({ listDashboards: async () => [editable], getDashboard: async () => editable }, { entryIdResolver: async () => "entry" });
+  const container = makeBoundContainer();
+  await bindDashboardModernApp(container, store, { initialize: true, confirmUnsaved: async () => true });
+  container.actions.edit.click();
+  store.setState({ editor: { ...store.state.editor, selectedNode: { dashboardId: "dash", viewId: "one", sectionId: "s1", cardId: "c1" } } });
+  const persistedBefore = JSON.stringify(store.state.activeDashboard);
+  const previousConfig = store.state.editor.draftDashboard.cards[0].config;
+
+  let configField = fieldById(container.visualEditor, "card:c1:config");
+  configField.focus();
+  configField.value = "[invalid";
+  configField.setSelectionRange(configField.value.length, configField.value.length);
+  configField.listeners.input();
+
+  for (const [fieldId, text] of [["dashboard.title", "D"], ["view:one:title", "V"], ["section:s1:title", "S"], ["card:c1:title", "C"], ["card:c1:type", "T"]]) {
+    typeCharacters(container, fieldId, text);
+    configField = fieldById(container.visualEditor, "card:c1:config");
+    assert.equal(configField.value, "[invalid", fieldId);
+    assert.match(store.state.editor.validationErrors.find((error) => error.field === "card:c1:config")?.message || "", /JSON|object/i, fieldId);
+    assert.deepEqual(store.state.editor.draftDashboard.cards[0].config, previousConfig, fieldId);
+  }
+
+  configField = fieldById(container.visualEditor, "card:c1:config");
+  configField.value = '{"stable":false}';
+  configField.setSelectionRange(configField.value.length, configField.value.length);
+  configField.listeners.input();
+  assert.deepEqual(store.state.editor.draftDashboard.cards[0].config, { stable: false });
+  assert.equal(store.state.editor.fieldText["card:c1:config"], undefined);
+  assert.equal(store.state.editor.validationErrors.some((error) => error.field === "card:c1:config"), false);
   assert.equal(JSON.stringify(store.state.activeDashboard), persistedBefore);
 });

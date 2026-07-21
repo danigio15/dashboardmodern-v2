@@ -506,3 +506,5 @@ Debug JSON structural validation enforces single-parent ownership in addition to
 Editable controls carry stable semantic `data-editor-field` identifiers such as `dashboard.title`, `view:<id>:title`, `section:<id>:title`, and `card:<id>:config`. The visual editor captures the active field and selection before rerendering the draft-driven editor panel and restores focus, caret, and selection to the matching field after render. This preserves continuous typing while still updating `draftDashboard` and preview state on each valid field update.
 
 Invalid Card config edits are kept as editor-local field text keyed by `card:<id>:config`. They remain visible across rerenders and do not replace the previous valid `draftDashboard.cards[].config` until the JSON parses to an object.
+
+Editor-local field state is preserved across unrelated draft updates. Invalid Card config text and its field-level validation error are retained per card across Dashboard, View, Section, Card title, Card type, and selection changes; they are cleared only when that config field is corrected, the related Card is deleted, editing is cancelled, or a save succeeds.

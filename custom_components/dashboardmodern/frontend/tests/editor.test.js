@@ -226,3 +226,15 @@ test("Debug JSON validation rejects sections and cards referenced by multiple pa
     assert.match(store.state.editor.debugError, /multiple/);
   }
 });
+
+test("removing a card clears stale local field text and validation errors for that card", async () => {
+  const store = storeWithApi();
+  const controller = new EditorController(store);
+  await controller.enter();
+  controller.updateCardConfig("c1", "[");
+  assert.equal(store.state.editor.fieldText["card:c1:config"], "[");
+  assert.equal(store.state.editor.validationErrors.some((error) => error.field === "card:c1:config"), true);
+  controller.removeCard("c1");
+  assert.equal(store.state.editor.fieldText["card:c1:config"], undefined);
+  assert.equal(store.state.editor.validationErrors.some((error) => error.field === "card:c1:config"), false);
+});

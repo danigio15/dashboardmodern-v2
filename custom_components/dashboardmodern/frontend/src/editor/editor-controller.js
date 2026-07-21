@@ -58,6 +58,12 @@ export class EditorController {
     this.store.setState({ editor: { ...this.state, selectedNode: { ...this.state.selectedNode, ...node } } });
   }
 
+  clearFieldState(prefixes) {
+    const fieldText = Object.fromEntries(Object.entries(this.state.fieldText || {}).filter(([field]) => !prefixes.some((prefix) => field.startsWith(prefix))));
+    const validationErrors = (this.state.validationErrors || []).filter((error) => !prefixes.some((prefix) => error.field?.startsWith(prefix)));
+    this.store.setState({ editor: { ...this.state, fieldText, validationErrors } });
+  }
+
   apply(command, select) {
     const draft = command(this.state.draftDashboard);
     this.store.setState({ editor: markDraft(this.state, draft, select?.(draft) || this.state.selectedNode) });
@@ -66,15 +72,29 @@ export class EditorController {
   updateDashboard(patch) { this.apply((draft) => commands.updateDashboardMetadata(draft, patch)); }
   addView() { this.apply((draft) => commands.addView(draft, {}, this.idGenerator), (draft) => ({ dashboardId: draft.id, viewId: draft.views.at(-1).id, sectionId: null, cardId: null })); }
   updateView(id, patch) { this.apply((draft) => commands.updateView(draft, id, patch)); }
-  removeView(id) { this.apply((draft) => commands.removeView(draft, id), (draft) => ({ dashboardId: draft.id, viewId: draft.views[0]?.id || null, sectionId: null, cardId: null })); }
+  removeView(id) {
+    const view = (this.state.draftDashboard?.views || []).find((item) => item.id === id);
+    const sectionIds = new Set(view?.section_ids || []);
+    const cardIds = (this.state.draftDashboard?.sections || []).filter((section) => sectionIds.has(section.id)).flatMap((section) => section.card_ids || []);
+    this.apply((draft) => commands.removeView(draft, id), (draft) => ({ dashboardId: draft.id, viewId: draft.views[0]?.id || null, sectionId: null, cardId: null }));
+    this.clearFieldState([...cardIds.map((cardId) => `card:${cardId}:`), ...[...sectionIds].map((sectionId) => `section:${sectionId}:`), `view:${id}:`]);
+  }
   moveView(id, direction) { this.apply((draft) => commands.moveView(draft, id, direction)); }
   addSection(viewId) { this.apply((draft) => commands.addSection(draft, viewId, {}, this.idGenerator), (draft) => ({ dashboardId: draft.id, viewId, sectionId: draft.sections.at(-1).id, cardId: null })); }
   updateSection(id, patch) { this.apply((draft) => commands.updateSection(draft, id, patch)); }
-  removeSection(id) { this.apply((draft) => commands.removeSection(draft, id), (draft) => ({ dashboardId: draft.id, viewId: this.state.selectedNode.viewId, sectionId: null, cardId: null })); }
+  removeSection(id) {
+    const section = (this.state.draftDashboard?.sections || []).find((item) => item.id === id);
+    const cardIds = section?.card_ids || [];
+    this.apply((draft) => commands.removeSection(draft, id), (draft) => ({ dashboardId: draft.id, viewId: this.state.selectedNode.viewId, sectionId: null, cardId: null }));
+    this.clearFieldState([...cardIds.map((cardId) => `card:${cardId}:`), `section:${id}:`]);
+  }
   moveSection(viewId, id, direction) { this.apply((draft) => commands.moveSection(draft, viewId, id, direction)); }
   addCard(sectionId) { this.apply((draft) => commands.addCard(draft, sectionId, {}, this.idGenerator), (draft) => ({ dashboardId: draft.id, viewId: this.state.selectedNode.viewId, sectionId, cardId: draft.cards.at(-1).id })); }
   updateCard(id, patch) { this.apply((draft) => commands.updateCard(draft, id, patch)); }
-  removeCard(id) { this.apply((draft) => commands.removeCard(draft, id), (draft) => ({ dashboardId: draft.id, viewId: this.state.selectedNode.viewId, sectionId: this.state.selectedNode.sectionId, cardId: null })); }
+  removeCard(id) {
+    this.apply((draft) => commands.removeCard(draft, id), (draft) => ({ dashboardId: draft.id, viewId: this.state.selectedNode.viewId, sectionId: this.state.selectedNode.sectionId, cardId: null }));
+    this.clearFieldState([`card:${id}:`]);
+  }
   moveCard(sectionId, id, direction) { this.apply((draft) => commands.moveCard(draft, sectionId, id, direction)); }
 
   updateCardConfig(id, text) {
@@ -82,9 +102,11 @@ export class EditorController {
     try {
       const config = commands.parseCardConfig(text);
       this.updateCard(id, { config });
-      this.store.setState({ editor: { ...this.state, fieldText: { ...this.state.fieldText, [field]: text } } });
+      const { [field]: _cleared, ...fieldText } = this.state.fieldText || {};
+      const validationErrors = (this.state.validationErrors || []).filter((error) => error.field !== field);
+      this.store.setState({ editor: { ...this.state, fieldText, validationErrors } });
     } catch (error) {
-      this.store.setState({ editor: { ...this.state, fieldText: { ...this.state.fieldText, [field]: text }, validationErrors: [{ field, message: error.message }] } });
+      this.store.setState({ editor: { ...this.state, fieldText: { ...this.state.fieldText, [field]: text }, validationErrors: [...(this.state.validationErrors || []).filter((item) => item.field !== field), { field, message: error.message }] } });
     }
   }
 
