@@ -164,7 +164,7 @@ export class EditorController {
     }
   }
 
-  async save() {
+  async save({ remainEditing = false } = {}) {
     if (this.state?.saving) return false;
     if (this.state?.debugError) return false;
     if (Object.keys(this.state?.fieldText || {}).length) return false;
@@ -174,9 +174,15 @@ export class EditorController {
       return false;
     }
     const draft = this.state.draftDashboard;
+    const selectedNode = this.state.selectedNode;
     this.store.setState({ editor: { ...this.state, saving: true, saveError: null } });
     await this.store.replaceDashboard(draft);
     if (!this.store.state.error) {
+      if (remainEditing) {
+        const activeDashboard = this.store.state.activeDashboard;
+        this.store.setState({ mode: "edit", editor: { ...this.store.state.editor, editing: true, dirty: false, draftDashboard: commands.cloneDashboard(activeDashboard), selectedNode, validationErrors: [], saveError: null, saving: false, debugText: JSON.stringify(activeDashboard, null, 2), debugError: null, fieldText: {} } });
+        return true;
+      }
       this.store.setState({ mode: "visual", editor: clearEditorState(this.store.state.editor) });
       return true;
     }

@@ -25,6 +25,9 @@ export function renderSection(section, cards = [], context = {}) {
   });
   if (reorderActive) grid.append(insertionMarker(section, cards.length, reorderActive));
   wrapper.append(grid);
-  if (reorderActive && !wrapper.querySelector?.("[data-reorder-live]")) wrapper.append(el("div", { className: "dashboardmodern-reorder-live", attrs: { "aria-live": "polite", "aria-atomic": "true", "data-reorder-live": "" } }));
+  if (reorderActive && !wrapper.querySelector?.("[data-reorder-live]")) {
+    wrapper.append(el("p", { className: "dashboardmodern-reorder-error", attrs: { "data-reorder-error": "", role: "status", hidden: "" } }));
+    wrapper.append(el("div", { className: "dashboardmodern-reorder-live", attrs: { "aria-live": "polite", "aria-atomic": "true", "data-reorder-live": "" } }));
+  }
   return wrapper;
 }
