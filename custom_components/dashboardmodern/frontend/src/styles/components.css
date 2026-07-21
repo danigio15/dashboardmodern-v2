@@ -29,3 +29,16 @@ html[data-theme="dark"] .weather-widget.dm-weather-current { background: linear-
 @media (max-width: 768px) { .weather-widget.dm-weather-current { padding: 22px; gap: 18px; border-radius: 26px; } .w-temp { font-size: 40px; } .w-icon { font-size: 54px; } }
 @media (max-width: 520px) { .weather-widget.dm-weather-current { padding: 20px 16px; border-radius: 24px; gap: 14px; } .w-right { align-items: stretch; } .w-temp { font-size: 36px; } .dm-home-summary .glance-card { padding: 18px 14px; border-radius: 20px; } }
 @media (prefers-reduced-motion: reduce) { .w-icon, .weather-widget.dm-weather-current::before, .anim-ping { animation: none !important; } }
+.dm-icon, .dm-weather-icon { width: 1em; height: 1em; display: block; color: currentColor; }
+.w-icon { color: var(--accent); }
+.dm-home-summary .glance-card[data-accent="solar"] { --g-rgb: var(--solar-rgb); }
+.dm-home-summary .glance-card[data-accent="ev"] { --g-rgb: var(--ev-rgb); }
+.dm-home-summary .glance-card[data-accent="load"] { --g-rgb: var(--load-rgb); }
+.dm-home-summary .glance-card[data-accent="battery"] { --g-rgb: var(--battery-rgb); }
+.dm-home-summary .glance-card[data-accent="green"] { --g-rgb: var(--green-rgb); }
+.dm-home-summary .glance-card[data-accent="accent"] { --g-rgb: var(--accent-rgb); }
+.dm-home-summary .glance-card[data-accent="warning"] { --g-rgb: var(--solar-rgb); }
+.dm-home-summary .glance-card[data-accent="danger"] { --g-rgb: var(--load-rgb); }
+.dm-home-summary .glance-card[data-status]:not([data-status="ok"]) .g-val { color: var(--text-dim); font-size: 24px; }
+.dm-summary-editor-row { border: 1px solid var(--dm-border); border-radius: var(--dm-radius-lg); margin: .75rem 0; padding: .75rem; }
+.dm-summary-editor-actions { display: flex; gap: .5rem; flex-wrap: wrap; }

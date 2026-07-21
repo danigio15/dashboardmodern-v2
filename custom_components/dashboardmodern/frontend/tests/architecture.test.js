@@ -72,6 +72,6 @@ test("Phase 10 card plugins keep frontend boundaries", async () => {
   for (const file of ["home-summary.js", "weather.js"]) {
     const source = await readFile(join("custom_components/dashboardmodern/frontend/src/cards", file), "utf8");
     assert.doesNotMatch(source, /ws-client|store|backend|persistence|application|runtime\.hass|iframe|innerHTML|outerHTML/);
-    assert.doesNotMatch(source, /<script|onerror=|onclick=/);
+    assert.doesNotMatch(source, /innerHTML\s*=|outerHTML\s*=|insertAdjacentHTML|eval\(|new Function|srcdoc|iframe/i);
   }
 });
