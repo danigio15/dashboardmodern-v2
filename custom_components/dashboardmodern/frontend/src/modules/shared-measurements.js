@@ -62,5 +62,6 @@ export function normalizeMeasurement(runtime = {}, entityId, options = {}) {
     result.normalizedUnit = unit || result.sourceUnit;
   }
   const timestamp = evaluateTimestamp(result.lastUpdated, staleAfterMs, now);
+  if (timestamp.reason === "timestamp-invalid" || timestamp.reason === "timestamp-future") return { ...result, malformed: true, reason: timestamp.reason };
   return { ...result, available: !timestamp.stale, stale: timestamp.stale, reason: timestamp.reason, normalizedValue: value, displayValue: formatNumber(value, { locale, precision, unit: result.normalizedUnit }) };
 }

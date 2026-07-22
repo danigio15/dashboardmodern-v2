@@ -10,7 +10,7 @@ import { LIGHTS_MODULE, lightCapabilities, normalizeLight, summarizeLights } fro
 import { registerBuiltInModules } from "../src/modules/bootstrap.js";
 import { COVERS_MODULE, normalizeCover, coverCapabilities, renderCoverTile, renderCoverGroup, renderCoversOverview, openCoverDetailPanel } from "../src/modules/covers.js";
 import { CLIMATE_MODULE, normalizeClimate, climateCapabilities, renderClimateTile, renderClimateGroup, renderClimateOverview, renderClimatePanel, openClimateDetailPanel } from "../src/modules/climate.js";
-import { ENERGY_MODULE, deriveHomeLoad, gridDirection, batteryDirection, renderEnergyFlow } from "../src/modules/energy.js";
+import { ENERGY_MODULE, deriveHomeLoad, gridDirection, batteryDirection, renderEnergyFlow, normalizeGrid, normalizeBattery, homeLoad, selfConsumptionPercentage, selfSufficiencyPercentage } from "../src/modules/energy.js";
 import { APPLIANCES_MODULE, normalizeAppliance, renderAppliancesOverview } from "../src/modules/appliances.js";
 import { normalizeMeasurement } from "../src/modules/shared-measurements.js";
 
@@ -535,7 +535,7 @@ test("production appliance group bulk off filters compatible members and reports
 test("production appliance tile policies display fields detail action and action errors", async () => {
   runtime.calls = []; runtime.hass.states = { "switch.a":{state:"unavailable",attributes:{}}, "sensor.p":{state:"5",attributes:{unit_of_measurement:"W"}}, "sensor.r":{state:"15",attributes:{unit_of_measurement:"min"}} };
   const hidden = renderApplianceTile({type:"appliance-tile",config:{appliance:{title:"Hidden",entityId:"switch.a",unavailablePolicy:"hide"}}}, runtime);
-  assert.match(hidden.textContent, /hidden by unavailable policy/);
+  assert.equal(hidden.getAttribute("hidden"), ""); assert.equal(hidden.dataset.hiddenByPolicy, "unavailable");
   const app = { title:"Tile", category:"washer", icon:"wash", entityId:"switch.a", powerEntityId:"sensor.p", remainingTimeEntityId:"sensor.r", displayFields:["power","remainingTime"], primaryAction:{type:"service",domain:"bad",service:"bad",title:"Run"} };
   const node = renderApplianceTile({type:"appliance-tile",config:{appliance:app,detailAction:true}}, {});
   assert.match(node.textContent, /Power:/); assert.doesNotMatch(node.textContent, /Energy:/); assert.match(node.textContent, /Remaining:/);
@@ -548,7 +548,7 @@ test("production appliance tile policies display fields detail action and action
 test("production appliance actions validate navigation detail toggle status entity and remaining time", async () => {
   assert.deepEqual(validateApplianceAction({type:"navigation"}), {ok:false,reason:"navigation-target-required"});
   assert.deepEqual(validateApplianceAction({type:"navigation",viewId:"v",sectionId:"s"}), {ok:false,reason:"navigation-target-required"});
-  assert.deepEqual(validateApplianceAction({type:"toggle",entityId:"media_player.tv"}), {ok:false,reason:"toggle-domain-not-approved"});
+  assert.deepEqual(validateApplianceAction({type:"toggle",entityId:"media_player.tv"}), {ok:false,reason:"toggle-explicit-service-required"});
   await assert.rejects(() => dispatchApplianceAction({type:"navigation",viewId:"v"}, {}), /runtime-navigation-unavailable/);
   const navCalls=[]; await dispatchApplianceAction({type:"navigation",sectionId:"s"}, { navigateToSection:id=>navCalls.push(id) }); assert.deepEqual(navCalls, ["s"]);
   runtime.hass.states = { "switch.a":{state:"on",attributes:{}}, "sensor.remaining":{state:"25",attributes:{unit_of_measurement:"min"}} };
@@ -576,4 +576,47 @@ test("production energy history timeframe chart and power gauge peak validation"
   const sel=hist.querySelectorAll("select")[0]; sel.value="week"; sel.listeners.change(); assert.match(hist.textContent, /2.0 kW/);
   assert.match(renderPowerGauge({type:"power-gauge",config:{entityId:"sensor.p",unit:"kW",peakValue:1000,peakUnit:"W"}}, runtime).textContent, /Peak: 1.0 kW/);
   assert.match(renderPowerGauge({type:"power-gauge",config:{entityId:"sensor.p",unit:"kW",peakValue:"bad",peakUnit:"W"}}, runtime).textContent, /Peak unavailable/);
+});
+
+test("final energy separate branch completeness active values and unconfigured flow", () => {
+  runtime.hass.states = { "sensor.import":{state:"3",attributes:{unit_of_measurement:"kW"}}, "sensor.export":{state:"5",attributes:{unit_of_measurement:"kW"}}, "sensor.charge":{state:"4",attributes:{unit_of_measurement:"kW"}}, "sensor.discharge":{state:"1",attributes:{unit_of_measurement:"kW"}}, "sensor.bad":{state:"bad",attributes:{unit_of_measurement:"kW"}} };
+  let grid = normalizeGrid(runtime,{gridModel:"separate",gridImportEntityId:"sensor.import",separateFlowPolicy:"net"});
+  assert.equal(grid.complete, false); assert.deepEqual(grid.missingInputs, ["gridExport"]); assert.equal(grid.direction, "incomplete");
+  grid = normalizeGrid(runtime,{gridModel:"separate",gridImportEntityId:"sensor.import",gridExportEntityId:"sensor.export",separateFlowPolicy:"net"});
+  assert.equal(grid.direction, "exporting"); assert.equal(grid.activeMeasurement.entityId, "sensor.export"); assert.equal(grid.value, 2);
+  const flow = renderEnergyFlow({type:"energy-flow",config:{gridModel:"separate",gridImportEntityId:"sensor.import",gridExportEntityId:"sensor.export",separateFlowPolicy:"net",displayUnit:"kW"}}, runtime);
+  assert.match(flow.textContent, /Grid: 5.0 kW · exporting/);
+  const batteryMissing = normalizeBattery(runtime,{batteryModel:"separate",batteryChargeEntityId:"sensor.charge"});
+  assert.equal(batteryMissing.complete, false); assert.deepEqual(batteryMissing.missingInputs, ["batteryDischarge"]);
+  const battery = normalizeBattery(runtime,{batteryModel:"separate",batteryChargeEntityId:"sensor.charge",batteryDischargeEntityId:"sensor.discharge",separateFlowPolicy:"net"});
+  assert.equal(battery.direction, "charging"); assert.equal(battery.activeMeasurement.entityId, "sensor.charge");
+  const malformed = normalizeGrid(runtime,{gridModel:"separate",gridImportEntityId:"sensor.bad",gridExportEntityId:"sensor.export",separateFlowPolicy:"net"});
+  assert.equal(malformed.excludedInputs[0].reason, "malformed");
+  assert.match(renderEnergyFlow({type:"energy-flow",config:{}}, runtime).textContent, /No energy entities configured/);
+});
+
+test("final energy signed derived home load and percentage physics", () => {
+  runtime.hass.states = { "sensor.grid":{state:"-2",attributes:{unit_of_measurement:"kW"}}, "sensor.battery":{state:"1",attributes:{unit_of_measurement:"kW"}}, "sensor.solar":{state:"6",attributes:{unit_of_measurement:"kW"}} };
+  const home = homeLoad(runtime,{homeLoadMode:"derived",solarEntityId:"sensor.solar",gridEntityId:"sensor.grid",gridSignConvention:"positive-import",batteryEntityId:"sensor.battery",batterySignConvention:"positive-charge",displayUnit:"kW"});
+  assert.equal(home.complete, true); assert.equal(home.value, 3);
+  assert.equal(selfConsumptionPercentage({solarProduction:5,gridExport:6}).reason, "grid-export-exceeds-solar");
+  assert.equal(selfConsumptionPercentage({solarProduction:-1,gridExport:0}).reason, "invalid-solar-production");
+  assert.equal(selfSufficiencyPercentage({solarProduction:1,batteryDischarge:-1,homeConsumption:2}).reason, "invalid-battery-discharge");
+  assert.equal(selfSufficiencyPercentage({solarProduction:1,batteryDischarge:0,homeConsumption:0}).reason, "invalid-home-consumption");
+});
+
+test("final history structured timeframe timestamp semantics toggle/detail labels and aggregate buckets", async () => {
+  runtime.hass.states = { "sensor.future":{state:"1",attributes:{unit_of_measurement:"kW"},last_updated:"2099-01-01T00:00:00Z"}, "sensor.invalid_time":{state:"1",attributes:{unit_of_measurement:"kW"},last_updated:"bad"}, "switch.a":{state:"on",attributes:{}}, "sensor.p":{state:"1",attributes:{unit_of_measurement:"W"}}, "sensor.e":{state:"1",attributes:{unit_of_measurement:"Wh"}}, "sensor.mixed":{state:"1",attributes:{unit_of_measurement:"kW"}}, "sensor.stale":{state:"1",attributes:{unit_of_measurement:"W"},last_updated:"2020-01-01T00:00:00Z"}, "sensor.bad":{state:"bad",attributes:{unit_of_measurement:"W"}} };
+  const future = normalizeMeasurement(runtime,"sensor.future",{kind:"power",unit:"kW"}); assert.equal(future.available, false); assert.equal(future.malformed, true);
+  const invalid = normalizeMeasurement(runtime,"sensor.invalid_time",{kind:"power",unit:"kW"}); assert.equal(invalid.reason, "timestamp-invalid"); assert.equal(invalid.available, false);
+  const hist = renderEnergyHistory({type:"energy-history",config:{timeframes:["today","week"],defaultTimeframe:"today",series:[{id:"s",ranges:{today:[{timestamp:"2026-07-22T00:00:00Z",value:1}],week:[{timestamp:"2026-07-21T00:00:00Z",value:2}]},unit:"kW"}]}}, { ...runtime, datasets:{alt:{today:[{timestamp:"2026-07-22T00:00:00Z",value:4}]}} });
+  assert.match(hist.textContent, /1.0 kW/); const sel = hist.querySelectorAll("select")[0]; sel.value="week"; sel.listeners.change(); assert.match(hist.textContent, /2.0 kW/); assert.doesNotMatch(hist.textContent, /1.0 kW/);
+  assert.equal(validateApplianceAction({type:"toggle",entityId:"switch.a"}).ok, true);
+  assert.deepEqual(validateApplianceAction({type:"toggle",entityId:"media_player.tv",domain:"media_player"}), {ok:false,reason:"toggle-explicit-service-required"});
+  assert.equal(validateApplianceAction({type:"toggle",entityId:"media_player.tv",domain:"media_player",service:"toggle"}).ok, true);
+  await assert.rejects(() => dispatchApplianceAction({type:"detail"}, runtime, {}), /detail-appliance-required/);
+  const tile = renderApplianceTile({type:"appliance-tile",config:{appliance:{title:"Labels",entityId:"switch.a",secondaryAction:{type:"navigation",sectionId:"s"}},detailAction:true}}, {navigateToSection(){}});
+  assert.match(tile.textContent, /Navigate/); assert.match(tile.textContent, /Open detail/);
+  const agg = aggregateMeasurements([normalizeAppliance(runtime,{entityId:"switch.a",powerEntityId:"sensor.p"}), normalizeAppliance(runtime,{entityId:"switch.a",powerEntityId:"sensor.missing"}), normalizeAppliance(runtime,{entityId:"switch.a",powerEntityId:"sensor.bad"}), normalizeAppliance(runtime,{entityId:"switch.a",powerEntityId:"sensor.stale",staleAfterMs:1000}), normalizeAppliance(runtime,{entityId:"switch.a",powerEntityId:"sensor.mixed",powerUnit:"kW"})], "currentPower", "W");
+  assert.deepEqual({included:agg.included,missing:agg.missing,malformed:agg.malformed,stale:agg.stale,mixedUnit:agg.mixedUnit,partial:agg.partial}, {included:1,missing:1,malformed:1,stale:1,mixedUnit:1,partial:true});
 });

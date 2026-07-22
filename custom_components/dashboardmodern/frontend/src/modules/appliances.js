@@ -69,14 +69,14 @@ export function normalizeAppliance(runtime = {}, appliance = {}) {
 }
 
 export function aggregateMeasurements(appliances, key, unit) {
-  let value = 0, included = 0, excluded = 0, malformed = 0, unavailable = 0;
+  let value = 0, included = 0, excluded = 0, malformed = 0, unavailable = 0, missing = 0, stale = 0, mixedUnit = 0;
   for (const appliance of appliances) {
     const measurement = appliance[key];
-    if (!measurement) { excluded++; continue; }
+    if (!measurement) { excluded++; missing++; continue; }
     if (measurement.available && Number.isFinite(measurement.normalizedValue) && (!unit || measurement.normalizedUnit === unit)) { value += measurement.normalizedValue; included++; continue; }
-    excluded++; if (measurement.malformed || (unit && measurement.normalizedUnit !== unit)) malformed++; if (measurement.unavailable || measurement.missing || measurement.stale) unavailable++;
+    excluded++; if (unit && measurement.normalizedUnit && measurement.normalizedUnit !== unit) mixedUnit++; else if (measurement.malformed) malformed++; if (measurement.missing) missing++; if (measurement.unavailable) unavailable++; if (measurement.stale) stale++;
   }
-  return { value, included, excluded, malformed, unavailable, complete: excluded === 0, partial: excluded > 0, unit, displayValue: included ? formatNumber(value, { unit, precision: unit === "W" ? 0 : 1 }) : "Unavailable" };
+  return { value, included, excluded, missing, unavailable, malformed, stale, mixedUnit, complete: excluded === 0, partial: excluded > 0, unit, displayValue: included ? formatNumber(value, { unit, precision: unit === "W" ? 0 : 1 }) : "Unavailable" };
 }
 
 export function validateApplianceAction(action = {}) {
@@ -87,7 +87,7 @@ export function validateApplianceAction(action = {}) {
   if (action.type === "toggle") {
     if (!ENTITY_RE.test(action.entityId || "")) return { ok: false, reason: "invalid-entity-id" };
     const [domain] = action.entityId.split(".");
-    if (!action.domain && !TOGGLE_DOMAINS.has(domain)) return { ok: false, reason: "toggle-domain-not-approved" };
+    if (!TOGGLE_DOMAINS.has(domain) && (!action.domain || !action.service)) return { ok: false, reason: "toggle-explicit-service-required" };
     if ((action.domain && !/^[a-z0-9_]+$/.test(action.domain)) || (action.service && !/^[a-z0-9_]+$/.test(action.service))) return { ok: false, reason: "invalid-service" };
   }
   if (["switch-on", "switch-off", "script", "scene"].includes(action.type) && !ENTITY_RE.test(action.entityId || "")) return { ok: false, reason: "invalid-entity-id" };
@@ -96,6 +96,7 @@ export function validateApplianceAction(action = {}) {
   if (action.target && typeof action.target !== "object") return { ok: false, reason: "invalid-target" };
   if (action.data && typeof action.data !== "object") return { ok: false, reason: "invalid-service-data" };
   if (action.type === "navigation") { const targets = [action.sectionId, action.viewId].filter(Boolean); if (targets.length !== 1) return { ok: false, reason: "navigation-target-required" }; }
+  if (action.type === "detail" && action.appliance && (!action.appliance.title && !action.appliance.entityId && !action.appliance.id)) return { ok:false, reason:"detail-appliance-required" };
   return { ok: true };
 }
 
@@ -103,7 +104,7 @@ export function dispatchApplianceAction(action = {}, runtime = {}, appliance = {
   const valid = validateApplianceAction(action);
   if (!valid.ok) return Promise.reject(new Error(valid.reason));
   const requireCall = () => { if (typeof runtime.callService !== "function") throw new Error("runtime-call-service-unavailable"); };
-  if (action.type === "detail") { openApplianceDetailPanel(appliance, runtime, trigger); return Promise.resolve(true); }
+  if (action.type === "detail") { if(!appliance || (!appliance.title && !appliance.entityId && !appliance.id)) return Promise.reject(new Error("detail-appliance-required")); openApplianceDetailPanel(appliance, runtime, trigger); return Promise.resolve(true); }
   if (action.type === "navigation") {
     if (action.sectionId) { if (typeof runtime.navigateToSection !== "function") return Promise.reject(new Error("runtime-navigation-unavailable")); return Promise.resolve(runtime.navigateToSection(action.sectionId)); }
     if (typeof runtime.navigateToView !== "function") return Promise.reject(new Error("runtime-navigation-unavailable")); return Promise.resolve(runtime.navigateToView(action.viewId));
@@ -118,7 +119,8 @@ export function dispatchApplianceAction(action = {}, runtime = {}, appliance = {
   return Promise.reject(new Error("unsupported-action"));
 }
 
-function actionButton(action, runtime, label, appliance, host) {
+function defaultActionLabel(action = {}) { return action.title || ({toggle:"Toggle","switch-on":"Turn on","switch-off":"Turn off",service:"Run service",script:"Run script",scene:"Run scene",navigation:"Navigate",detail:"Open detail"}[action.type] || "Action"); }
+function actionButton(action, runtime, label = defaultActionLabel(action), appliance, host) {
   const b = el("button", { text: label, attrs: { type: "button", "aria-busy": "false", disabled: action.disabled ? "" : null } });
   b.dataset.structuralDisabled = String(Boolean(action.disabled));
   const state = createActionState(b, host, async () => { if (action.confirm && globalThis.confirm && !globalThis.confirm(action.confirmText || `Run ${label}?`)) return; await dispatchApplianceAction(action, runtime, appliance, b); }, { label, prefix: "appliance-action" });
@@ -130,16 +132,16 @@ const hiddenByPolicy = (a) => (a.missing && a.missingPolicy === "hide") || (a.un
 export function renderApplianceTile(w, runtime = {}) {
   const config = w.config || {}, source = config.appliance || configuredAppliances(w)[0] || {}, appliance = normalizeAppliance(runtime, source), n = article(w, "dm-appliance-tile");
   n.dataset.status = appliance.normalizedStatus;
-  if (hiddenByPolicy(appliance)) { n.append(emptyState(`${appliance.title} hidden by ${appliance.normalizedStatus} policy.`)); return n; }
+  if (hiddenByPolicy(appliance)) { n.setAttribute("hidden", ""); n.dataset.hiddenByPolicy = appliance.normalizedStatus; return n; }
   n.append(el("p", { text: `${appliance.icon || appliance.category} ${appliance.title}: ${appliance.normalizedStatus}` }));
   if (shouldShow(appliance, "power")) n.append(el("p", { text: `Power: ${appliance.currentPower?.displayValue || "Unavailable"}` }));
   if (shouldShow(appliance, "energy")) n.append(el("p", { text: `Energy: ${appliance.accumulatedEnergy?.displayValue || "Unavailable"}` }));
   if (shouldShow(appliance, "progress") && appliance.progressPercent) n.append(el("p", { text: `Progress: ${appliance.progressPercent.displayValue}${appliance.progressPercent.reason ? ` · ${appliance.progressPercent.reason}` : ""}` }));
   if (shouldShow(appliance, "remainingTime") && appliance.remainingTime) n.append(el("p", { text: `Remaining: ${appliance.remainingTime.displayValue}` }));
   if (shouldShow(appliance, "labels")) n.append(el("p", { text: `Room ${appliance.room || "none"} · Tags ${appliance.tags.join(", ") || "none"}` }));
-  if (appliance.primaryAction) n.append(actionButton(appliance.primaryAction, runtime, appliance.primaryAction.title || "Primary action", source, n));
-  if (appliance.secondaryAction) n.append(actionButton(appliance.secondaryAction, runtime, appliance.secondaryAction.title || "Details", source, n));
-  if (config.detailAction) n.append(actionButton({ type: "detail", title: "Open detail" }, runtime, "Open detail", source, n));
+  if (appliance.primaryAction) n.append(actionButton(appliance.primaryAction, runtime, defaultActionLabel(appliance.primaryAction), source, n));
+  if (appliance.secondaryAction) n.append(actionButton(appliance.secondaryAction, runtime, defaultActionLabel(appliance.secondaryAction), source, n));
+  if (config.detailAction) n.append(actionButton({ type: "detail" }, runtime, "Open detail", source, n));
   return n;
 }
 
@@ -147,10 +149,10 @@ export function renderApplianceGroup(w, runtime = {}) {
   const config = w.config || {}, members = configuredAppliances(w).filter((a) => !config.memberIds || config.memberIds.includes(a.id)).map((a) => ({ source: a, normalized: normalizeAppliance(runtime, a) })), normalized = members.map((m) => m.normalized), n = article(w, "dm-appliance-group");
   const counts = Object.fromEntries(STATUS_KEYS.map((key) => [key, normalized.filter((a) => a.normalizedStatus === key).length]));
   const power = aggregateMeasurements(normalized, "currentPower", config.powerUnit || "W"), energy = aggregateMeasurements(normalized, "accumulatedEnergy", config.energyUnit || "kWh");
-  n.append(el("p", { text: `Total: ${normalized.length} · available: ${normalized.filter((a) => a.available).length} · unavailable: ${normalized.filter((a) => !a.available).length}` }), el("p", { text: `active ${counts.active} idle ${counts.idle} paused ${counts.paused} completed ${counts.completed} error ${counts.error} unavailable ${counts.unavailable}` }), el("p", { text: `Aggregate power: ${power.displayValue} · ${power.complete ? "complete" : `partial excluded ${power.excluded}`}` }), el("p", { text: `Aggregate energy: ${energy.displayValue} · ${energy.complete ? "complete" : `partial excluded ${energy.excluded}`}` }));
+  n.append(el("p", { text: `Total: ${normalized.length} · available: ${normalized.filter((a) => a.available).length} · unavailable: ${normalized.filter((a) => !a.available).length}` }), el("p", { text: `active ${counts.active} idle ${counts.idle} paused ${counts.paused} completed ${counts.completed} error ${counts.error} unavailable ${counts.unavailable}` }), el("p", { text: `Aggregate power: ${power.displayValue} · ${power.complete ? "complete" : `partial excluded ${power.excluded} missing ${power.missing} unavailable ${power.unavailable} malformed ${power.malformed} stale ${power.stale} mixed-unit ${power.mixedUnit}`}` }), el("p", { text: `Aggregate energy: ${energy.displayValue} · ${energy.complete ? "complete" : `partial excluded ${energy.excluded} missing ${energy.missing} unavailable ${energy.unavailable} malformed ${energy.malformed} stale ${energy.stale} mixed-unit ${energy.mixedUnit}`}` }));
   const compatible = members.filter(({ source, normalized: a }) => a.available && ENTITY_RE.test(source.switchEntityId || "") && source.switchEntityId.startsWith("switch."));
   n.append(actionButton({ type: "service", domain: "switch", service: "turn_off", target: { entity_id: compatible.map(({ source }) => source.switchEntityId) }, title: "Turn off compatible switches", disabled: compatible.length === 0, confirm: config.confirmBulk !== false }, runtime, "Turn off compatible switches", config, n));
-  if (config.groupAction) n.append(actionButton(config.groupAction, runtime, config.groupAction.title || "Group action", config, n));
+  if (config.groupAction) n.append(actionButton(config.groupAction, runtime, defaultActionLabel(config.groupAction), config, n));
   return n;
 }
 
@@ -179,7 +181,7 @@ export function renderAppliancesOverview(w, runtime = {}) {
   const room = makeSelect("Room filter", rooms, config.room), tag = makeSelect("Tag filter", tags, config.tag), category = makeSelect("Category filter", cats, config.category), status = makeSelect("Status filter", STATUS_KEYS, config.status), sort = makeSelect("Sort appliances", ["name", "room", "category", "status", "currentPower", "energy"], config.sort || "name");
   const activeOnly = el("input", { attrs: { type: "checkbox", "aria-label": "Active only" } }); activeOnly.checked = config.activeOnly === true;
   const showUnavailable = el("input", { attrs: { type: "checkbox", "aria-label": "Show unavailable" } }); showUnavailable.checked = config.showUnavailable !== false;
-  const render = () => { n.replaceChildren(el("h3", { text: w.title || "Appliances overview" }), controls); const filtered = filterAppliances(all, { search: input.value, room: selectedValue(controls, "Room filter", config.room), tag: selectedValue(controls, "Tag filter", config.tag), category: selectedValue(controls, "Category filter", config.category), status: selectedValue(controls, "Status filter", config.status), sort: selectedValue(controls, "Sort appliances", config.sort || "name"), activeOnly: activeOnly.checked, showUnavailable: showUnavailable.checked }); const power = aggregateMeasurements(filtered, "currentPower", config.powerUnit || "W"), energy = aggregateMeasurements(filtered, "accumulatedEnergy", config.energyUnit || "kWh"); n.append(el("p", { text: `Active: ${filtered.filter((a) => a.active).length} · Unavailable: ${filtered.filter((a) => !a.available).length} · Current power: ${power.displayValue} · ${power.partial ? `partial excluded ${power.excluded}` : "complete"}` }), el("p", { text: `Aggregate energy: ${energy.displayValue} · ${energy.partial ? `partial excluded ${energy.excluded}` : "complete"}` })); filtered.forEach((a) => n.append(el("p", { text: `${a.title}: ${a.normalizedStatus}${config.showLabels === false ? "" : ` · Room ${a.room || "none"} · Tags ${a.tags.join(", ") || "none"}`}` }))); if (!filtered.length) n.append(emptyState("No appliances match the current filters.")); };
+  const render = () => { n.replaceChildren(el("h3", { text: w.title || "Appliances overview" }), controls); const filtered = filterAppliances(all, { search: input.value, room: selectedValue(controls, "Room filter", config.room), tag: selectedValue(controls, "Tag filter", config.tag), category: selectedValue(controls, "Category filter", config.category), status: selectedValue(controls, "Status filter", config.status), sort: selectedValue(controls, "Sort appliances", config.sort || "name"), activeOnly: activeOnly.checked, showUnavailable: showUnavailable.checked }); const power = aggregateMeasurements(filtered, "currentPower", config.powerUnit || "W"), energy = aggregateMeasurements(filtered, "accumulatedEnergy", config.energyUnit || "kWh"); n.append(el("p", { text: `Active: ${filtered.filter((a) => a.active).length} · Unavailable: ${filtered.filter((a) => !a.available).length} · Current power: ${power.displayValue} · ${power.partial ? `partial excluded ${power.excluded} missing ${power.missing} unavailable ${power.unavailable} malformed ${power.malformed} stale ${power.stale} mixed-unit ${power.mixedUnit}` : "complete"}` }), el("p", { text: `Aggregate energy: ${energy.displayValue} · ${energy.partial ? `partial excluded ${energy.excluded} missing ${energy.missing} unavailable ${energy.unavailable} malformed ${energy.malformed} stale ${energy.stale} mixed-unit ${energy.mixedUnit}` : "complete"}` })); filtered.forEach((a) => n.append(el("p", { text: `${a.title}: ${a.normalizedStatus}${config.showLabels === false ? "" : ` · Room ${a.room || "none"} · Tags ${a.tags.join(", ") || "none"}`}` }))); if (!filtered.length) n.append(emptyState("No appliances match the current filters.")); };
   for (const control of [input, room, tag, category, status, sort, activeOnly, showUnavailable]) control.addEventListener(control.tagName === "input" && control.attributes.type === "search" ? "input" : "change", render);
   const clear = el("button", { text: "Clear filters", attrs: { type: "button" } }); clear.addEventListener("click", () => { input.value = ""; room.value = tag.value = category.value = status.value = ""; sort.value = "name"; activeOnly.checked = false; showUnavailable.checked = true; render(); });
   controls.append(input, room, tag, category, status, activeOnly, showUnavailable, sort, clear); render(); return n;
@@ -198,7 +200,7 @@ export function renderApplianceUsage(w, runtime = {}) {
 }
 
 export function openApplianceDetailPanel(appliance, runtime = {}, trigger) {
-  return openSharedDetailPanel({ trigger, label: appliance.title || "Appliance detail", render: ({ close }) => { const normalized = normalizeAppliance(runtime, appliance), p = el("section", { attrs: { role: "dialog" } }), closeButton = el("button", { text: "Close", attrs: { type: "button" } }); closeButton.addEventListener("click", close); p.append(closeButton, el("h3", { text: `${normalized.title} (${normalized.category})` }), el("p", { text: `Status: ${normalized.normalizedStatus} · raw ${normalized.primaryState ?? "missing"}` }), el("p", { text: `Entities: primary ${appliance.entityId || "none"} · status ${appliance.statusEntityId || "none"} · power ${appliance.powerEntityId || "none"} · energy ${appliance.energyEntityId || "none"} · progress ${appliance.progressEntityId || "none"} · remaining ${appliance.remainingTimeEntityId || "none"} · switch ${appliance.switchEntityId || "none"}` }), el("p", { text: `Power ${normalized.currentPower?.displayValue || "Unavailable"} · Energy ${normalized.accumulatedEnergy?.displayValue || "Unavailable"} · Progress ${normalized.progressPercent?.displayValue || "Unavailable"} · Remaining ${normalized.remainingTime?.displayValue || "Unavailable"}` }), el("p", { text: `Room ${normalized.room || "none"} · Tags ${normalized.tags.join(", ") || "none"}` }), el("p", { text: `Explanation: ${normalized.statusEntityProblem || normalized.currentPower?.reason || normalized.accumulatedEnergy?.reason || normalized.progressPercent?.reason || "ok"}` })); for (const action of normalized.actions) p.append(actionButton(action, runtime, action.title || action.type, appliance, p)); return p; } }).panel;
+  return openSharedDetailPanel({ trigger, label: appliance.title || "Appliance detail", render: ({ close }) => { const normalized = normalizeAppliance(runtime, appliance), p = el("section", { attrs: { role: "dialog" } }), closeButton = el("button", { text: "Close", attrs: { type: "button" } }); closeButton.addEventListener("click", close); p.append(closeButton, el("h3", { text: `${normalized.title} (${normalized.category})` }), el("p", { text: `Status: ${normalized.normalizedStatus} · raw ${normalized.primaryState ?? "missing"}` }), el("p", { text: `Entities: primary ${appliance.entityId || "none"} · status ${appliance.statusEntityId || "none"} · power ${appliance.powerEntityId || "none"} · energy ${appliance.energyEntityId || "none"} · progress ${appliance.progressEntityId || "none"} · remaining ${appliance.remainingTimeEntityId || "none"} · switch ${appliance.switchEntityId || "none"}` }), el("p", { text: `Power ${normalized.currentPower?.displayValue || "Unavailable"} · Energy ${normalized.accumulatedEnergy?.displayValue || "Unavailable"} · Progress ${normalized.progressPercent?.displayValue || "Unavailable"} · Remaining ${normalized.remainingTime?.displayValue || "Unavailable"}` }), el("p", { text: `Room ${normalized.room || "none"} · Tags ${normalized.tags.join(", ") || "none"}` }), el("p", { text: `Explanation: ${normalized.statusEntityProblem || normalized.currentPower?.reason || normalized.accumulatedEnergy?.reason || normalized.progressPercent?.reason || "ok"}` })); for (const action of normalized.actions) p.append(actionButton(action, runtime, defaultActionLabel(action), appliance, p)); return p; } }).panel;
 }
 export function renderApplianceControlPanel(w, runtime = {}) { return renderApplianceTile({ ...w, type: "appliance-control-panel", config: { ...(w.config || {}), detailAction: true } }, runtime); }
 const renderers = { "appliance-tile": renderApplianceTile, "appliance-group": renderApplianceGroup, "appliances-overview": renderAppliancesOverview, "appliance-usage": renderApplianceUsage, "appliance-control-panel": renderApplianceControlPanel };
