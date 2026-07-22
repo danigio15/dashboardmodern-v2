@@ -85,7 +85,7 @@ export class EditorController {
     this.clearFieldState([...cardIds.map((cardId) => `card:${cardId}:`), ...[...sectionIds].map((sectionId) => `section:${sectionId}:`), `view:${id}:`]);
   }
   moveView(id, direction) { this.apply((draft) => commands.moveView(draft, id, direction)); }
-  addSection(viewId) { this.apply((draft) => commands.addSection(draft, viewId, {}, this.idGenerator), (draft) => ({ dashboardId: draft.id, viewId, sectionId: draft.sections.at(-1).id, cardId: null })); }
+  addSection(viewId, patch = {}) { this.apply((draft) => commands.addSection(draft, viewId, patch, this.idGenerator), (draft) => ({ dashboardId: draft.id, viewId, sectionId: draft.sections.at(-1).id, cardId: null })); }
   updateSection(id, patch) { this.apply((draft) => commands.updateSection(draft, id, patch)); }
   removeSection(id) {
     const section = (this.state.draftDashboard?.sections || []).find((item) => item.id === id);

@@ -57,6 +57,7 @@ test("Lights capabilities, malformed states, groups, and actions use runtime abs
 import { renderHomeHero, renderWeatherSummary, renderQuickActions, renderFavorites } from "../src/modules/home.js";
 import { filteredLights, normalizeColorTemperature, supportedLightData, renderLightGroup, renderLightsOverview, openLightDetailPanel, renderLightTile, createLightActionState } from "../src/modules/lights.js";
 import { renderWidgetSpecificEditor } from "../src/editor/widget-editor.js";
+import { addSection, createIdGenerator } from "../src/editor/commands.js";
 
 test("Home hero consumes showDate showTime greetingText and locale", () => {
   const node = renderHomeHero({ id:"hero", type:"home-hero", config:{ title:"Casa", greetingText:"Hola", showDate:true, showTime:true } }, { locale:"es-ES" });
@@ -242,4 +243,41 @@ test("Climate module normalization actions groups and overview use runtime only"
   assert.deepEqual(runtime.calls.at(-1),["climate","set_hvac_mode",{entity_id:"climate.hall",hvac_mode:"heat"}]);
   const ov=renderClimateOverview({type:"climate-overview",config:{entityIds:["climate.hall","climate.bed"],search:"hall"}},runtime);
   assert.match(ov.textContent,/Hall/); assert.doesNotMatch(ov.textContent,/Bed: cool/);
+});
+
+
+test("Covers and Climate visual editors expose production fields and preserve invalid text", () => {
+  const updates=[]; const controller={ state:{ validationErrors:[], fieldText:{} }, store:{ setState(s){ controller.state=s.editor; } }, updateWidget(s,w,p){ updates.push(p); } };
+  const section={ id:"s" };
+  const cover=renderWidgetSpecificEditor(document,section,{ id:"cw", type:"cover-tile", config:{ entityId:"cover.good", tags:["a"] } },controller);
+  assert.match(cover.textContent,/Cover entity/); assert.match(cover.textContent,/Quick controls/);
+  const coverInput=cover.querySelectorAll("input").find(i=>i.dataset.editorField==="widget:cw:entityId"); coverInput.value="climate.bad"; coverInput.listeners.input();
+  assert.equal(controller.state.fieldText["widget:cw:entityId"],"climate.bad"); assert.match(controller.state.validationErrors[0].message,/cover/);
+  const climate=renderWidgetSpecificEditor(document,section,{ id:"ct", type:"climate-control-panel", config:{ entityId:"climate.good", temperatureStep:0.5 } },controller);
+  assert.match(climate.textContent,/Preferred temperature step/);
+  const step=climate.querySelectorAll("input").find(i=>i.dataset.editorField==="widget:ct:temperatureStep"); step.value="0"; step.listeners.input();
+  assert.equal(controller.state.fieldText["widget:ct:temperatureStep"],"0"); assert.ok(controller.state.validationErrors.some(e=>/positive/.test(e.message)));
+});
+
+test("generic section creation accepts registered types with default widget layout", () => {
+  const dash={ id:"d", views:[{id:"v",section_ids:[]}], sections:[], cards:[] }, gen=createIdGenerator("section",[1]);
+  const next=addSection(dash,"v",{type:"covers",title:"Covers",config:{widgets:[{id:"covers-overview-default",type:"covers-overview",config:{entityIds:[]},layout:{size:"full"}}]}},gen);
+  assert.equal(next.sections[0].id,"section-1"); assert.equal(next.sections[0].type,"covers"); assert.deepEqual(next.sections[0].card_ids,[]); assert.equal(next.sections[0].config.widgets[0].type,"covers-overview");
+  const standard=addSection(next,"v",{},gen); assert.equal(standard.sections[1].id,"section-2"); assert.equal(standard.sections[1].card_ids.length,0);
+});
+
+test("overview controls support local filters sorting disabled bulk and clear", async () => {
+  runtime.calls=[]; runtime.hass.states={
+    "cover.a":{state:"open",attributes:{friendly_name:"Awning",supported_features:15,current_position:80}},
+    "cover.b":{state:"closed",attributes:{friendly_name:"Blind",supported_features:0,current_position:10}},
+    "climate.a":{state:"off",attributes:{friendly_name:"Hall",supported_features:1,hvac_modes:["off","heat"],current_temperature:70,temperature:69}},
+    "climate.b":{state:"heat",attributes:{friendly_name:"Bedroom",supported_features:1,hvac_modes:["off","heat"],hvac_action:"heating",current_temperature:65,temperature:66}}
+  };
+  const covers=renderCoversOverview({type:"covers-overview",config:{entityIds:["cover.a","cover.b"],rooms:{"cover.a":"Patio","cover.b":"Bedroom"},tags:{"cover.a":["shade"]},room:"Patio",confirmBulk:true}},runtime);
+  assert.match(covers.textContent,/Awning/); assert.doesNotMatch(covers.textContent,/Blind/);
+  const clear=covers.querySelectorAll("button").find(b=>b.textContent==="Clear filters"); clear.listeners.click(); assert.match(covers.textContent,/Blind/);
+  const stop=covers.querySelectorAll("button").find(b=>b.textContent==="Stop all"); assert.equal(stop.disabled,true);
+  globalThis.confirm=()=>true; await covers.querySelectorAll("button").find(b=>b.textContent==="Open all").listeners.click(); assert.ok(runtime.calls.some(c=>c[1]==="open_cover"));
+  const climate=renderClimateOverview({type:"climate-overview",config:{entityIds:["climate.a","climate.b"],hvacAction:"heating",confirmAllOff:true}},runtime);
+  assert.match(climate.textContent,/Bedroom/); assert.doesNotMatch(climate.textContent,/Hall: off/); await climate.querySelectorAll("button").find(b=>b.textContent==="Turn all off").listeners.click(); assert.ok(runtime.calls.some(c=>c[1]==="turn_off"&&c[2].entity_id==="climate.b"));
 });
