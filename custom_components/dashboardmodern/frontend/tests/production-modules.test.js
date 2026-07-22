@@ -922,3 +922,24 @@ test("production media artwork lifecycle is used by tile and detail panel cleanu
   const panel = renderMediaPanel({ config:cfg }, rt); panel.cleanup(); panel.cleanup();
   assert.equal(cleaned, 2); assert.equal(released, 2);
 });
+
+test("production media artwork identity applies to all source outcomes and now-playing cleanup", () => {
+  const cases = [
+    { ref:"ok", lastUpdated:"2026-07-22T00:00:00Z" },
+    { ref:"missing", missing:true },
+    { ref:"unavailable", unavailable:true },
+    { ref:"stale", lastUpdated:"2026-07-20T00:00:00Z" },
+    { ref:"bad", available:true, url:"https://private.invalid" },
+  ];
+  for (const raw of cases) {
+    const out = getMediaArtworkSource({ getMediaArtworkSource:()=>raw }, { artworkSource:"art", staleAfterMs:1, nowMs:new Date("2026-07-22T00:00:00Z").getTime() });
+    assert.equal(out.sourceType, "runtime");
+    assert.equal(out.runtimeKind, "media-artwork");
+  }
+  let cleaned = 0, released = 0;
+  const rt = { getEntityState(){ return { state:"playing", attributes:{}, last_updated:"2026-07-22T00:00:00Z" }; }, getMediaArtworkSource(){ return { ref:"np-art" }; }, mountMediaArtwork(){ return { cleanup(){ cleaned++; } }; }, releaseMediaArtwork(){ released++; } };
+  const node = renderMediaNowPlaying({ config:{ players:[{ id:"p", primaryEntity:"media_player.p", artworkSource:"art" }] } }, rt);
+  node.cleanup(); node.cleanup();
+  assert.equal(cleaned, 1);
+  assert.equal(released, 1);
+});
