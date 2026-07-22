@@ -1,4 +1,5 @@
 import { DEFAULT_CARD_REGISTRY } from "./cards/registry.js";
+import { DEFAULT_SECTION_REGISTRY } from "./sections/registry.js";
 import { createDashboardModernClient } from "./ws-client.js";
 import { DashboardModernStore, EMPTY_DASHBOARD } from "./state.js";
 import { renderDashboard } from "./render/dashboard-renderer.js";
@@ -416,7 +417,7 @@ export function renderVisualEditor(container, state, editorController) {
   for (const view of draft.views || []) {
     const vb = doc.createElement("button"); vb.type="button"; vb.textContent = `View: ${view.title || view.id}`; vb.addEventListener("click", () => editorController.select({viewId:view.id,sectionId:null,cardId:null})); list.append(vb);
     const row = doc.createElement("div");
-    for (const [label, fn] of [["Up",()=>editorController.moveView(view.id,-1)],["Down",()=>editorController.moveView(view.id,1)],["Delete",()=>editorController.removeView(view.id)],["Add section",()=>editorController.addSection(view.id)]]) { const b=doc.createElement("button"); b.type="button"; b.textContent=label; b.addEventListener("click",fn); row.append(b); }
+    for (const [label, fn] of [["Up",()=>editorController.moveView(view.id,-1)],["Down",()=>editorController.moveView(view.id,1)],["Delete",()=>editorController.removeView(view.id)]]) { const b=doc.createElement("button"); b.type="button"; b.textContent=label; b.addEventListener("click",fn); row.append(b); } const catalog=doc.createElement("select"); catalog.setAttribute("aria-label","Add registered section"); const base=doc.createElement("option"); base.value=""; base.textContent="standard/card section"; catalog.append(base); for(const def of DEFAULT_SECTION_REGISTRY.list().filter(d=>d.type!=="unknown-section")){const o=doc.createElement("option"); o.value=def.type; o.textContent=def.displayName; catalog.append(o);} const addSec=doc.createElement("button"); addSec.type="button"; addSec.textContent="Add section"; addSec.addEventListener("click",()=>{const def=DEFAULT_SECTION_REGISTRY.get(catalog.value); editorController.addSection(view.id,catalog.value?{type:catalog.value,title:def?.defaultTitle||def?.displayName||"New section",config:def?.defaultConfig?.()||{}}:{});}); row.append(catalog,addSec);
     list.append(row);
     const sections = (view.section_ids||[]).map(id => (draft.sections||[]).find(s=>s.id===id)).filter(Boolean);
     if (!sections.length) { const e=doc.createElement("p"); e.textContent="No sections in this view."; list.append(e); }
