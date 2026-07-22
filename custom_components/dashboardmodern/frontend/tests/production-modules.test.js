@@ -702,3 +702,29 @@ test("blocker textual durations metadata policies mutation future editor and tog
   const appEditor = renderWidgetSpecificEditor(document, section, {id:"at",type:"appliance-tile",config:{appliances:[{id:"a",title:"A"}]}}, controller);
   assert.match(appEditor.textContent, /Future tolerance ms/);
 });
+
+test("cleanup shared invalid entity semantics and direct home status contract", () => {
+  runtime.hass.states = {
+    "sensor.available_home": { state:"1.5", attributes:{unit_of_measurement:"kW"} },
+    "sensor.unavailable_home": { state:"unavailable", attributes:{unit_of_measurement:"kW"} },
+    "sensor.stale_home": { state:"2", attributes:{unit_of_measurement:"kW"}, last_updated:"2026-07-21T00:00:00Z" }
+  };
+  const invalidMeasurement = normalizeMeasurement(runtime, "not valid", { kind:"power", unit:"kW" });
+  assert.equal(invalidMeasurement.malformed, true); assert.equal(invalidMeasurement.missing, false); assert.equal(invalidMeasurement.reason, "invalid-entity-id");
+  const missingMeasurement = normalizeMeasurement(runtime, "", { kind:"power", unit:"kW" });
+  assert.equal(missingMeasurement.missing, true); assert.equal(missingMeasurement.reason, "missing-entity-id");
+  const notFound = normalizeMeasurement(runtime, "sensor.not_found", { kind:"power", unit:"kW" });
+  assert.equal(notFound.missing, true); assert.equal(notFound.reason, "entity-missing");
+  const unavailableMeasurement = normalizeMeasurement(runtime, "sensor.unavailable_home", { kind:"power", unit:"kW" });
+  assert.equal(unavailableMeasurement.unavailable, true); assert.equal(unavailableMeasurement.reason, "unavailable");
+  const directAvailable = homeLoad(runtime, { homeMode:"direct", homeEntityId:"sensor.available_home", displayUnit:"kW" });
+  assert.deepEqual({complete:directAvailable.complete, partial:directAvailable.partial, missing:directAvailable.missing, unavailable:directAvailable.unavailable, malformed:directAvailable.malformed, stale:directAvailable.stale, reason:directAvailable.reason}, {complete:true, partial:false, missing:false, unavailable:false, malformed:false, stale:false, reason:"ok"});
+  const directInvalid = homeLoad(runtime, { homeMode:"direct", homeEntityId:"not valid", displayUnit:"kW" });
+  assert.equal(directInvalid.malformed, true); assert.equal(directInvalid.missing, false); assert.equal(directInvalid.reason, "invalid-entity-id"); assert.equal(directInvalid.excludedInputs[0].status, "malformed");
+  const directMissing = homeLoad(runtime, { homeMode:"direct", homeEntityId:"sensor.not_found", displayUnit:"kW" });
+  assert.equal(directMissing.missing, true); assert.deepEqual(directMissing.missingInputs, ["homeLoad"]);
+  const directUnavailable = homeLoad(runtime, { homeMode:"direct", homeEntityId:"sensor.unavailable_home", displayUnit:"kW" });
+  assert.equal(directUnavailable.unavailable, true); assert.equal(directUnavailable.reason, "unavailable");
+  const directStale = homeLoad(runtime, { homeMode:"direct", homeEntityId:"sensor.stale_home", displayUnit:"kW", staleAfterMs:1000, futureToleranceMs:5000 });
+  assert.equal(directStale.stale, true); assert.equal(directStale.partial, true); assert.equal(directStale.reason, "timestamp-stale");
+});

@@ -44,7 +44,7 @@ export function normalizeMeasurement(runtime = {}, entityId, options = {}) {
   const entity = ENTITY_RE.test(entityId || "") ? runtime.getEntityState?.(entityId) : null;
   const result = base(entityId, entity, { kind, unit, precision });
   if (!entityId) return { ...result, missing: true, reason: "missing-entity-id" };
-  if (!ENTITY_RE.test(entityId)) return { ...result, missing: true, reason: "invalid-entity-id" };
+  if (!ENTITY_RE.test(entityId)) return { ...result, malformed: true, reason: "invalid-entity-id" };
   if (!entity) return { ...result, missing: true, reason: "entity-missing" };
   if (BAD.has(String(entity.state ?? "").trim())) return { ...result, unavailable: true, reason: String(entity.state || "empty") };
   const parsed = parseFiniteNumber(entity.state);
