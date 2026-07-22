@@ -548,7 +548,7 @@ test("production appliance tile policies display fields detail action and action
 test("production appliance actions validate navigation detail toggle status entity and remaining time", async () => {
   assert.deepEqual(validateApplianceAction({type:"navigation"}), {ok:false,reason:"navigation-target-required"});
   assert.deepEqual(validateApplianceAction({type:"navigation",viewId:"v",sectionId:"s"}), {ok:false,reason:"navigation-target-required"});
-  assert.deepEqual(validateApplianceAction({type:"toggle",entityId:"media_player.tv"}), {ok:false,reason:"toggle-explicit-service-required"});
+  assert.deepEqual(validateApplianceAction({type:"toggle",entityId:"media_player.tv"}), {ok:false,reason:"toggle-domain-not-approved"});
   await assert.rejects(() => dispatchApplianceAction({type:"navigation",viewId:"v"}, {}), /runtime-navigation-unavailable/);
   const navCalls=[]; await dispatchApplianceAction({type:"navigation",sectionId:"s"}, { navigateToSection:id=>navCalls.push(id) }); assert.deepEqual(navCalls, ["s"]);
   runtime.hass.states = { "switch.a":{state:"on",attributes:{}}, "sensor.remaining":{state:"25",attributes:{unit_of_measurement:"min"}} };
@@ -612,8 +612,8 @@ test("final history structured timeframe timestamp semantics toggle/detail label
   const hist = renderEnergyHistory({type:"energy-history",config:{timeframes:["today","week"],defaultTimeframe:"today",series:[{id:"s",ranges:{today:[{timestamp:"2026-07-22T00:00:00Z",value:1}],week:[{timestamp:"2026-07-21T00:00:00Z",value:2}]},unit:"kW"}]}}, { ...runtime, datasets:{alt:{today:[{timestamp:"2026-07-22T00:00:00Z",value:4}]}} });
   assert.match(hist.textContent, /1.0 kW/); const sel = hist.querySelectorAll("select")[0]; sel.value="week"; sel.listeners.change(); assert.match(hist.textContent, /2.0 kW/); assert.doesNotMatch(hist.textContent, /1.0 kW/);
   assert.equal(validateApplianceAction({type:"toggle",entityId:"switch.a"}).ok, true);
-  assert.deepEqual(validateApplianceAction({type:"toggle",entityId:"media_player.tv",domain:"media_player"}), {ok:false,reason:"toggle-explicit-service-required"});
-  assert.equal(validateApplianceAction({type:"toggle",entityId:"media_player.tv",domain:"media_player",service:"toggle"}).ok, true);
+  assert.deepEqual(validateApplianceAction({type:"toggle",entityId:"media_player.tv",domain:"media_player"}), {ok:false,reason:"toggle-domain-not-approved"});
+  assert.equal(validateApplianceAction({type:"service",domain:"media_player",service:"toggle",target:{entity_id:"media_player.tv"}}).ok, true);
   await assert.rejects(() => dispatchApplianceAction({type:"detail"}, runtime, {}), /detail-appliance-required/);
   const tile = renderApplianceTile({type:"appliance-tile",config:{appliance:{title:"Labels",entityId:"switch.a",secondaryAction:{type:"navigation",sectionId:"s"}},detailAction:true}}, {navigateToSection(){}});
   assert.match(tile.textContent, /Navigate/); assert.match(tile.textContent, /Open detail/);
@@ -644,7 +644,7 @@ test("cleanup remaining time timestamp tolerance signed values partial flow and 
   assert.equal(grid.direction, "exporting"); assert.equal(grid.rawSignedValue, -2); assert.equal(grid.activeMeasurement.normalizedValue, 2); assert.equal(grid.activeMeasurement.displayValue, "2.0 kW");
   const battery = normalizeBattery(runtime, { batteryEntityId:"sensor.battery_signed", batterySignConvention:"positive-charge", displayUnit:"kW" });
   assert.equal(battery.direction, "discharging"); assert.equal(battery.rawSignedValue, -3); assert.equal(battery.activeMeasurement.displayValue, "3.0 kW");
-  const partialFlow = renderEnergyFlow({type:"energy-flow",config:{gridModel:"separate",gridImportEntityId:"sensor.import",separateFlowPolicy:"allow-partial",displayUnit:"kW"}}, runtime);
+  const partialFlow = renderEnergyFlow({type:"energy-flow",config:{gridModel:"separate",gridImportEntityId:"sensor.import",separateFlowPolicy:"allow-partial-zero",displayUnit:"kW"}}, runtime);
   assert.match(partialFlow.textContent, /partial/); assert.equal(partialFlow.querySelector("g").attributes["data-status"], "partial");
   assert.equal(homeLoad(runtime, { homeEntityId:"sensor.import" }).mode, "none");
   const direct = homeLoad(runtime, { homeMode:"direct" });
@@ -663,4 +663,42 @@ test("cleanup invalid primary entity and minimal hidden appliance tile", () => {
   assert.equal(unavailable.unavailable, true); assert.equal(unavailable.primaryEntityProblem, null);
   const hidden = renderApplianceTile({type:"appliance-tile",config:{appliance:{title:"Hidden",entityId:"switch.unavailable",unavailablePolicy:"hide",powerEntityId:"sensor.never"}}}, runtime);
   assert.equal(hidden.getAttribute("hidden"), ""); assert.equal(hidden.children.length, 0); assert.equal(hidden.dataset.hiddenByPolicy, "unavailable"); assert.equal(hidden.textContent, "");
+});
+
+test("blocker textual durations metadata policies mutation future editor and toggle restriction", () => {
+  const now = Date.parse("2026-07-22T00:00:00Z");
+  runtime.hass.states = {
+    "sensor.text_hms": { state:"01:25:00", attributes:{}, last_updated:"2026-07-22T00:00:00Z" },
+    "sensor.text_hm": { state:"1h 25m", attributes:{}, last_updated:"2026-07-22T00:00:00Z" },
+    "sensor.text_short": { state:"00:42", attributes:{}, last_updated:"2026-07-22T00:00:00Z" },
+    "sensor.text_bad": { state:"soon", attributes:{}, last_updated:"2026-07-22T00:00:00Z" },
+    "sensor.past": { state:"7", attributes:{unit_of_measurement:"min"}, last_updated:"2026-07-22T00:00:03Z" },
+    "sensor.future": { state:"8", attributes:{unit_of_measurement:"kW"}, last_updated:new Date(Date.now()+3000).toISOString() },
+    "sensor.import": { state:"9", attributes:{unit_of_measurement:"kW"}, last_updated:"2026-07-22T00:00:03Z" },
+    "sensor.export": { state:"2", attributes:{unit_of_measurement:"kW"}, last_updated:"2026-07-22T00:00:03Z" }
+  };
+  const textual = normalizeRemainingTime(runtime, "sensor.text_hms", { now });
+  assert.deepEqual({available:textual.available, reason:textual.reason, rawValue:textual.rawValue, normalizedValue:textual.normalizedValue, displayValue:textual.displayValue, sourceUnit:textual.sourceUnit, normalizedUnit:textual.normalizedUnit, lastUpdated:textual.lastUpdated}, {available:true, reason:"text-duration", rawValue:"01:25:00", normalizedValue:null, displayValue:"01:25:00", sourceUnit:"", normalizedUnit:"", lastUpdated:"2026-07-22T00:00:00Z"});
+  assert.equal(normalizeRemainingTime(runtime, "sensor.text_hm", { now }).displayValue, "1h 25m");
+  assert.equal(normalizeRemainingTime(runtime, "sensor.text_short", { now }).displayValue, "00:42");
+  assert.equal(normalizeRemainingTime(runtime, "sensor.text_bad", { now }).reason, "malformed-duration");
+  const numeric = normalizeRemainingTime(runtime, "sensor.past", { unit:"min", precision:0, now, futureToleranceMs:5000 });
+  assert.equal(numeric.normalizedValue, 7); assert.equal(numeric.unit, "min");
+  const tolerant = normalizeGrid(runtime, { gridEntityId:"sensor.future", displayUnit:"kW", futureToleranceMs:5000 });
+  assert.equal(tolerant.signed.available, true); assert.equal(tolerant.signed.reason, "timestamp-ok-clock-skew");
+  const strictFuture = normalizeGrid(runtime, { gridEntityId:"sensor.future", displayUnit:"kW", futureToleranceMs:1000 });
+  assert.equal(strictFuture.signed.malformed, true); assert.equal(strictFuture.signed.reason, "timestamp-future");
+  const strict = normalizeGrid(runtime, { gridModel:"separate", gridImportEntityId:"sensor.import", separateFlowPolicy:"strict" });
+  assert.equal(strict.direction, "incomplete"); assert.equal(strict.complete, false);
+  const before = normalizeGrid(runtime, { gridModel:"separate", gridImportEntityId:"sensor.import", separateFlowPolicy:"allow-partial-zero", displayUnit:"kW", futureToleranceMs:5000 });
+  assert.equal(before.import.partial, undefined); assert.equal(before.activeMeasurement.partial, true); assert.equal(before.import.reason, "timestamp-ok");
+  const net = normalizeGrid(runtime, { gridModel:"separate", gridImportEntityId:"sensor.import", gridExportEntityId:"sensor.export", separateFlowPolicy:"net", displayUnit:"kW", futureToleranceMs:5000 });
+  assert.equal(net.complete, true); assert.equal(net.value, 7); assert.equal(net.direction, "importing");
+  assert.deepEqual(validateApplianceAction({type:"toggle",entityId:"media_player.tv",domain:"media_player",service:"toggle"}), {ok:false,reason:"toggle-domain-not-approved"});
+  assert.equal(validateApplianceAction({type:"service",domain:"media_player",service:"toggle",target:{entity_id:"media_player.tv"}}).ok, true);
+  const updates = [], section = {id:"s"}, controller = { state:{fieldText:{},validationErrors:[]}, store:{setState(v){controller.state=v.editor;}}, updateWidget(id,wid,patch){updates.push({id,wid,...patch});} };
+  const editor = renderWidgetSpecificEditor(document, section, {id:"ef",type:"energy-flow",config:{separateFlowPolicy:"strict",futureToleranceMs:5000}}, controller);
+  assert.match(editor.textContent, /Future tolerance ms/); assert.match(editor.textContent, /Separate flow policy/);
+  const appEditor = renderWidgetSpecificEditor(document, section, {id:"at",type:"appliance-tile",config:{appliances:[{id:"a",title:"A"}]}}, controller);
+  assert.match(appEditor.textContent, /Future tolerance ms/);
 });

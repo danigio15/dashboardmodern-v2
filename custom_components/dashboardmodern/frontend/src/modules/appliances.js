@@ -1,6 +1,6 @@
 import { el, emptyState } from "../render/dom.js";
 import { renderWidgetLayout } from "../widgets/runtime.js";
-import { normalizeMeasurement, ENTITY_RE, formatNumber } from "./shared-measurements.js";
+import { normalizeMeasurement, ENTITY_RE, formatNumber, evaluateTimestamp } from "./shared-measurements.js";
 import { openSharedDetailPanel } from "./detail-panel-controller.js";
 import { createActionState } from "./action-state.js";
 
@@ -26,14 +26,25 @@ export function applianceStatus(state, mappings = {}) {
   return "malformed";
 }
 
-export function normalizeRemainingTime(runtime = {}, entityId, { unit, precision = 0, staleAfterMs, now, futureToleranceMs } = {}) {
+export function normalizeRemainingTime(runtime = {}, entityId, { unit, precision = 0, staleAfterMs, now = Date.now(), futureToleranceMs = 5000 } = {}) {
   const entity = ENTITY_RE.test(entityId || "") ? runtime.getEntityState?.(entityId) : null;
-  const base = { entityId, rawValue: entity?.state, unit: unit || entity?.attributes?.unit_of_measurement || "", available: false, missing: false, unavailable: false, malformed: false, stale: false, reason: "not-evaluated", normalizedValue: null, displayValue: "Unavailable" };
+  const sourceUnit = entity?.attributes?.unit_of_measurement || unit || "";
+  const base = { entityId, rawValue: entity?.state, sourceUnit, normalizedUnit: unit || sourceUnit, unit: unit || sourceUnit, precision, lastUpdated: entity?.last_updated || entity?.lastUpdated || null, available: false, missing: false, unavailable: false, malformed: false, stale: false, reason: "not-evaluated", normalizedValue: null, displayValue: "Unavailable" };
   if (!entityId) return { ...base, missing: true, reason: "missing-entity-id" };
   if (!ENTITY_RE.test(entityId)) return { ...base, malformed: true, reason: "invalid-entity-id" };
   if (!entity) return { ...base, missing: true, reason: "entity-missing" };
-  const m = normalizeMeasurement(runtime, entityId, { kind: "duration", unit: base.unit, precision, staleAfterMs, futureToleranceMs, now, locale: runtime.locale });
-  return { ...base, available: m.available, missing: m.missing, unavailable: m.unavailable, malformed: m.malformed, stale: m.stale, reason: m.reason, normalizedValue: m.normalizedValue, unit: m.normalizedUnit || base.unit, displayValue: m.displayValue };
+  const rawText = txt(entity.state);
+  if (["unknown", "unavailable", ""].includes(rawText)) return { ...base, unavailable: true, reason: rawText || "empty" };
+  const numeric = Number(rawText);
+  if (Number.isFinite(numeric)) {
+    const m = normalizeMeasurement(runtime, entityId, { kind: "duration", unit: base.normalizedUnit, precision, staleAfterMs, futureToleranceMs, now, locale: runtime.locale });
+    return { ...base, available: m.available, missing: m.missing, unavailable: m.unavailable, malformed: m.malformed, stale: m.stale, reason: m.reason, normalizedValue: m.normalizedValue, sourceUnit: m.sourceUnit, normalizedUnit: m.normalizedUnit, unit: m.normalizedUnit || base.unit, lastUpdated: m.lastUpdated, displayValue: m.displayValue };
+  }
+  const timestamp = evaluateTimestamp(base.lastUpdated, staleAfterMs, now, futureToleranceMs);
+  if (timestamp.invalid || timestamp.future) return { ...base, malformed: true, reason: timestamp.reason };
+  const validText = /^\d{1,2}:\d{2}(:\d{2})?$/.test(rawText) || /^\d+h(\s+\d+m)?$/i.test(rawText) || /^\d+m$/i.test(rawText);
+  if (!validText) return { ...base, malformed: true, reason: "malformed-duration" };
+  return { ...base, available: !timestamp.stale, stale: timestamp.stale, reason: timestamp.stale ? timestamp.reason : "text-duration", displayValue: rawText };
 }
 
 export function normalizeAppliance(runtime = {}, appliance = {}) {
@@ -55,10 +66,10 @@ export function normalizeAppliance(runtime = {}, appliance = {}) {
   }
   let status = primaryEntityProblem === "invalid-primary-entity-id" ? "malformed" : primaryEntityProblem ? "missing" : applianceStatus(raw, appliance.statusMappings || appliance);
   if (statusEntityProblem) status = "malformed";
-  const power = appliance.powerEntityId ? normalizeMeasurement(runtime, appliance.powerEntityId, { kind: "power", unit: appliance.powerUnit || "W", precision: appliance.precision ?? 0, staleAfterMs: appliance.staleAfterMs, locale: runtime.locale }) : null;
-  const energy = appliance.energyEntityId ? normalizeMeasurement(runtime, appliance.energyEntityId, { kind: "energy", unit: appliance.energyUnit || "kWh", precision: appliance.precision ?? 1, staleAfterMs: appliance.staleAfterMs, locale: runtime.locale }) : null;
-  const progress = appliance.progressEntityId ? normalizeMeasurement(runtime, appliance.progressEntityId, { kind: "percent", precision: 0, staleAfterMs: appliance.staleAfterMs, locale: runtime.locale }) : null;
-  const remainingTime = appliance.remainingTimeEntityId ? normalizeRemainingTime(runtime, appliance.remainingTimeEntityId, { unit: appliance.remainingTimeUnit, staleAfterMs: appliance.staleAfterMs }) : null;
+  const power = appliance.powerEntityId ? normalizeMeasurement(runtime, appliance.powerEntityId, { kind: "power", unit: appliance.powerUnit || "W", precision: appliance.precision ?? 0, staleAfterMs: appliance.staleAfterMs, futureToleranceMs: appliance.futureToleranceMs, locale: runtime.locale }) : null;
+  const energy = appliance.energyEntityId ? normalizeMeasurement(runtime, appliance.energyEntityId, { kind: "energy", unit: appliance.energyUnit || "kWh", precision: appliance.precision ?? 1, staleAfterMs: appliance.staleAfterMs, futureToleranceMs: appliance.futureToleranceMs, locale: runtime.locale }) : null;
+  const progress = appliance.progressEntityId ? normalizeMeasurement(runtime, appliance.progressEntityId, { kind: "percent", precision: 0, staleAfterMs: appliance.staleAfterMs, futureToleranceMs: appliance.futureToleranceMs, locale: runtime.locale }) : null;
+  const remainingTime = appliance.remainingTimeEntityId ? normalizeRemainingTime(runtime, appliance.remainingTimeEntityId, { unit: appliance.remainingTimeUnit, staleAfterMs: appliance.staleAfterMs, futureToleranceMs: appliance.futureToleranceMs }) : null;
   return {
     id: appliance.id, title: appliance.title || appliance.entityId || "Appliance", icon: appliance.icon || "", category: appliance.category || "generic", primaryEntityState: primary?.state, primaryState: raw, primaryEntityProblem, statusEntityProblem,
     normalizedStatus: status, available: !["missing", "unavailable", "malformed"].includes(status), active: status === "active", idle: status === "idle", paused: status === "paused", completed: status === "completed", error: status === "error", hasError: status === "error", missing: status === "missing", unavailable: status === "unavailable", malformed: status === "malformed",
@@ -86,8 +97,9 @@ export function validateApplianceAction(action = {}) {
   if (action.type === "toggle") {
     if (!ENTITY_RE.test(action.entityId || "")) return { ok: false, reason: "invalid-entity-id" };
     const [domain] = action.entityId.split(".");
-    if (!TOGGLE_DOMAINS.has(domain) && (!action.domain || !action.service)) return { ok: false, reason: "toggle-explicit-service-required" };
-    if ((action.domain && !/^[a-z0-9_]+$/.test(action.domain)) || (action.service && !/^[a-z0-9_]+$/.test(action.service))) return { ok: false, reason: "invalid-service" };
+    if (!TOGGLE_DOMAINS.has(domain)) return { ok: false, reason: "toggle-domain-not-approved" };
+    if (action.domain && action.domain !== domain) return { ok: false, reason: "invalid-domain" };
+    if (action.service && action.service !== "toggle") return { ok: false, reason: "invalid-service" };
   }
   if (["switch-on", "switch-off", "script", "scene"].includes(action.type) && !ENTITY_RE.test(action.entityId || "")) return { ok: false, reason: "invalid-entity-id" };
   if (["switch-on", "switch-off"].includes(action.type) && !String(action.entityId).startsWith("switch.")) return { ok: false, reason: "invalid-domain" };
