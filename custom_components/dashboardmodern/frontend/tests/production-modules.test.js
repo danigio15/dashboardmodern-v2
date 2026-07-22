@@ -863,3 +863,13 @@ test("production media final blockers source counts lifecycle reduced motion and
   renderMediaProgress({ config:{ ...cfg, interpolate:true } }, runtime); assert.equal(interval, 0); delete globalThis.matchMedia;
   const np = renderMediaNowPlaying({ config:{ selectionStrategy:"first-playing", players:[{ id:"off", primaryEntity:"media_player.none" }, { id:"play", ...cfg, title:"Chosen" }] } }, runtime); assert.match(np.textContent, /Chosen|Attr title/);
 });
+
+test("production media editor nests player-owned rows and preserves sibling players", () => {
+  const updates=[], controller={state:{validationErrors:[],fieldText:{}},store:{setState(s){controller.state=s.editor;}},updateWidget(s,w,p){updates.push(p);}};
+  const widget={id:"mw-nested",type:"media-overview",config:{players:[{id:"a",title:"A",sourceList:[]},{id:"b",title:"B",sourceList:[{id:"b-src",title:"B Source"}]}]}};
+  const editor=renderWidgetSpecificEditor(document,{id:"s"},widget,controller);
+  editor.querySelectorAll("button").find(b=>b.textContent==="Add player source").listeners.click();
+  assert.equal(updates.at(-1).config.players[0].sourceList.length,1);
+  assert.equal(updates.at(-1).config.players[1].sourceList[0].id,"b-src");
+  assert.notEqual(updates.at(-1).config.players[0].sourceList[0].id,"b-src");
+});
