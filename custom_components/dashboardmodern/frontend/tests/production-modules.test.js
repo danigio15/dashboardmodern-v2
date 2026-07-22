@@ -12,6 +12,7 @@ import { COVERS_MODULE, normalizeCover, coverCapabilities, renderCoverTile, rend
 import { CLIMATE_MODULE, normalizeClimate, climateCapabilities, renderClimateTile, renderClimateGroup, renderClimateOverview, renderClimatePanel, openClimateDetailPanel } from "../src/modules/climate.js";
 import { ENERGY_MODULE, deriveHomeLoad, gridDirection, batteryDirection, renderEnergyFlow, normalizeGrid, normalizeBattery, homeLoad, selfConsumptionPercentage, selfSufficiencyPercentage } from "../src/modules/energy.js";
 import { APPLIANCES_MODULE, normalizeAppliance, renderAppliancesOverview } from "../src/modules/appliances.js";
+import { MEDIA_MODULE, defaultMediaSectionConfig, filteredMedia, getMediaArtworkSource, mediaEditor, normalizeMediaPlayer, normalizeMediaState, renderMediaGroup, renderMediaFavorites, renderMediaQueue, renderMediaNowPlaying, renderMediaOverview, renderMediaProgress, validateMediaAction } from "../src/modules/media.js";
 import { normalizeMeasurement } from "../src/modules/shared-measurements.js";
 
 class Node { constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.attributes={};this.listeners={};this.style={};this._text="";this.disabled=false;this.value="";this.checked=false;this.focusCount=0;} append(...c){this.children.push(...c); for(const x of c) if(x) x.parentNode=this;} remove(){ if(this.parentNode) this.parentNode.children=this.parentNode.children.filter(c=>c!==this); } replaceChildren(...c){ this.children=[]; this.append(...c); } getAttribute(k){return this.attributes[k];} setAttribute(k,v){this.attributes[k]=String(v); if(k==="disabled")this.disabled=true; if(k==="value")this.value=String(v); if(k.startsWith("data-")) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);} addEventListener(t,f){this.listeners[t]=f;} focus(){ globalThis.document.activeElement=this; this.focused=true; this.focusCount++; } querySelector(sel){return this.querySelectorAll(sel)[0]||null;} querySelectorAll(sel){const tags=sel.split(",").map(x=>x.trim()); const out=[]; const walk=n=>{if(tags.includes(n.tagName)||tags.includes(`[${Object.keys(n.attributes)[0]}]`))out.push(n); for(const c of n.children)walk(c)}; walk(this); return out;} get textContent(){return this._text+this.children.map(c=>c.textContent).join("");} set textContent(v){this._text=String(v);this.children=[];} }
@@ -22,14 +23,15 @@ const runtime = { hass: { states: {} }, getEntityState(id){ return this.hass.sta
 test("Home and Lights modules register independently with deterministic contributions", () => {
   const manager = createPluginManager({ sectionRegistry: createSectionRegistry(), cardRegistry: createCardRegistry(), widgetRegistry: createWidgetRegistry() });
   registerBuiltInModules({ pluginManager: manager });
-  assert.deepEqual(manager.listModules().map(m=>m.id), ["appliances", "cameras", "climate", "covers", "energy", "home", "lights", "vehicles"]);
-  assert.equal(manager.contributions().widgets.length, 55);
+  assert.deepEqual(manager.listModules().map(m=>m.id), ["appliances", "cameras", "climate", "covers", "energy", "home", "lights", "media", "vehicles"]);
+  assert.equal(manager.contributions().widgets.length, 68);
   assert.throws(()=>manager.registerModule(HOME_MODULE), /already registered/);
   assert.throws(()=>manager.registerModule(COVERS_MODULE), /already registered/);
   assert.throws(()=>manager.registerModule(CLIMATE_MODULE), /already registered/);
   assert.equal(LIGHTS_MODULE.defaultLayouts[0].widgets[0], "lights-overview");
   assert.equal(COVERS_MODULE.defaultLayouts[0].widgets[0], "covers-overview");
   assert.equal(CLIMATE_MODULE.defaultLayouts[0].widgets[0], "climate-overview");
+  assert.equal(MEDIA_MODULE.defaultLayouts[0].widgets[0], "media-overview");
 });
 
 
@@ -727,4 +729,70 @@ test("cleanup shared invalid entity semantics and direct home status contract", 
   assert.equal(directUnavailable.unavailable, true); assert.equal(directUnavailable.reason, "unavailable");
   const directStale = homeLoad(runtime, { homeMode:"direct", homeEntityId:"sensor.stale_home", displayUnit:"kW", staleAfterMs:1000, futureToleranceMs:5000 });
   assert.equal(directStale.stale, true); assert.equal(directStale.partial, true); assert.equal(directStale.reason, "timestamp-stale");
+});
+
+test("production media registers defaults unique IDs and normalizes explicit source model", () => {
+  const manager = createPluginManager({ sectionRegistry: createSectionRegistry(), cardRegistry: createCardRegistry(), widgetRegistry: createWidgetRegistry() });
+  manager.registerModule(MEDIA_MODULE);
+  assert.equal(manager.listModules()[0].id, "media");
+  assert.deepEqual(manager.contributions().widgets.map(w=>w.type), ["media-player-tile","media-now-playing","media-controls","media-volume","media-source","media-group","media-group-overview","media-favorites","media-queue","media-progress","media-artwork","media-overview","media-control-panel"]);
+  const cfg = defaultMediaSectionConfig("living");
+  assert.equal(cfg.widgets[0].id, "living-media-overview");
+  assert.equal(cfg.widgets[1].id, "living-media-now-playing");
+  assert.notEqual(cfg.widgets[0].id, cfg.widgets[1].id);
+  runtime.hass.states = {
+    "media_player.living": { state:"playing", attributes:{ media_title:"Song", media_artist:"Artist", media_album_name:"Album", media_duration:200, media_position:50, volume_level:0.25, is_volume_muted:false, source:"Radio" }, last_updated:"2026-07-22T00:00:00Z" },
+    "sensor.title": { state:"Configured title", attributes:{}, last_updated:"2026-07-22T00:00:00Z" },
+    "sensor.future": { state:"3", attributes:{}, last_updated:"2999-01-01T00:00:00Z" },
+  };
+  const n = normalizeMediaPlayer(runtime, { primaryEntity:"media_player.living", title:"Living", room:"Lounge", tags:["music"], mediaTitleEntity:"sensor.title", mediaPositionEntity:"sensor.future", futureToleranceMs:1 });
+  assert.equal(n.primaryAvailable, true);
+  assert.equal(n.operational, false);
+  assert.equal(n.health, "malformed");
+  assert.equal(n.sources.title.displayValue, "Configured title");
+  assert.equal(n.sources.position.reason, "timestamp-future");
+  assert.equal(n.sources.album.configured, true);
+  assert.equal(n.progress.normalizedValue, null);
+  assert.equal(normalizeMediaState("BUFFERING"), "buffering");
+  assert.equal(normalizeMediaState("custom_raw"), "custom_raw");
+});
+
+test("production media handles stale optional sources progress clamping actions artwork and cleanup", async () => {
+  let cleared = 0, mounted = 0, cleaned = 0;
+  globalThis.setInterval = () => 7; globalThis.clearInterval = (id) => { if (id === 7) cleared++; };
+  runtime.hass.states = { "media_player.den": { state:"playing", attributes:{ media_duration:100, media_position:150, volume_level:2, is_volume_muted:"off" }, last_updated:"2026-07-22T00:00:00Z" } };
+  runtime.getMediaArtworkSource = () => ({ ref:"safe-art", lastUpdated:"2026-07-22T00:00:00Z" });
+  runtime.mountMediaArtwork = () => { mounted++; return { cleanup(){ cleaned++; } }; };
+  assert.equal(getMediaArtworkSource(runtime, { primaryEntity:"media_player.den" }).available, true);
+  assert.equal(getMediaArtworkSource({ getMediaArtworkSource:()=>({ url:"https://example.invalid/x" }) }, {}).malformed, true);
+  const p = renderMediaProgress({ config:{ primaryEntity:"media_player.den", interpolate:true } }, runtime);
+  assert.equal(p.textContent.includes("100%"), true);
+  p.cleanup(); assert.equal(cleared, 1);
+  const art = renderMediaNowPlaying({ config:{ primaryEntity:"media_player.den", playbackActions:[{ type:"service", domain:"media_player", service:"explicit_play", entityId:"media_player.den" }] } }, runtime);
+  assert.equal(mounted, 1); art.querySelectorAll("button").at(-1).listeners.click();
+  assert.equal(runtime.calls.at(-1)[1], "explicit_play");
+  assert.equal(validateMediaAction({ type:"service", domain:"media_player" }, runtime)[0].field, "service");
+  assert.equal(validateMediaAction({ type:"service", domain:"media_player", service:"x" }, {}).some(e=>e.field==="runtime"), true);
+  art.children.find(c=>c.className?.includes?.("dm-media-artwork"))?.cleanup?.(); assert.equal(cleaned, 1);
+});
+
+test("production media overview groups favorites queue editor detail and explicit empty states", () => {
+  runtime.hass.states = {
+    "media_player.a": { state:"playing", attributes:{ friendly_name:"A", volume_level:.4, is_volume_muted:true, media_title:"Alpha" }, last_updated:"2026-07-22T00:00:00Z" },
+    "media_player.b": { state:"paused", attributes:{ friendly_name:"B", volume_level:.1, is_volume_muted:false, media_title:"Beta" }, last_updated:"2026-07-21T00:00:00Z" },
+  };
+  const cfg = { players:[{ primaryEntity:"media_player.a", title:"A", room:"Kitchen", tags:["x"], groupLeader:"media_player.a" }, { primaryEntity:"media_player.b", title:"B", room:"Den", tags:["y"] }], showUnavailable:true };
+  const xs = filteredMedia({ config:{ ...cfg, roomFilter:"Kitchen", playingOnly:true, groupedOnly:true, mutedOnly:true, sort:"volume" } }, runtime);
+  assert.equal(xs.length, 1); assert.equal(xs.counts.configured, 2); assert.equal(xs.counts.playing, 1); assert.equal(xs.counts.paused, 1); assert.equal(xs.counts.grouped, 1); assert.equal(xs.counts.muted, 1);
+  assert.match(renderMediaOverview({ config:cfg }, runtime).textContent, /2 shown/);
+  assert.match(renderMediaOverview({ config:{ players:[], showUnavailable:true } }, runtime).textContent, /No media players match/);
+  assert.match(renderMediaGroup({ config:{ ...cfg.players[0], groupingActions:[] } }, runtime).textContent, /grouped/);
+  assert.match(renderMediaFavorites({ config:{ favoriteRows:[{ id:"fav1", title:"Jazz", subtitle:"Late", tags:["music"], primaryAction:{ type:"navigate-view", viewId:"music" } }] } }, runtime).textContent, /Jazz/);
+  assert.match(renderMediaQueue({ config:{ queueSourceMapping:{ current:{ title:"Now" }, items:[{ title:"Next", artist:"Artist", duration:12, source:"runtime" }] } } }, runtime).textContent, /Next/);
+  let changed = null; const ed = mediaEditor({ players:[{ id:"stable", title:"Old" }], invalidText:"{" }, v=>{ changed=v; });
+  assert.equal(ed.textContent.includes("structured editor"), true);
+  ed.querySelectorAll("button").find(b=>b.textContent==="Duplicate").listeners.click();
+  assert.equal(changed.players.length, 2); assert.equal(changed.players[0].id, "stable");
+  ed.querySelectorAll("button").find(b=>b.textContent==="Add player").listeners.click();
+  assert.equal(changed.players.at(-1).invalidText, "{");
 });
