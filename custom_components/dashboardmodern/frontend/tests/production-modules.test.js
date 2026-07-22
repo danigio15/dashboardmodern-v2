@@ -12,7 +12,7 @@ import { COVERS_MODULE, normalizeCover, coverCapabilities, renderCoverTile, rend
 import { CLIMATE_MODULE, normalizeClimate, climateCapabilities, renderClimateTile, renderClimateGroup, renderClimateOverview, renderClimatePanel, openClimateDetailPanel } from "../src/modules/climate.js";
 import { ENERGY_MODULE, deriveHomeLoad, gridDirection, batteryDirection, renderEnergyFlow, normalizeGrid, normalizeBattery, homeLoad, selfConsumptionPercentage, selfSufficiencyPercentage } from "../src/modules/energy.js";
 import { APPLIANCES_MODULE, normalizeAppliance, renderAppliancesOverview } from "../src/modules/appliances.js";
-import { MEDIA_MODULE, collectMediaSources, defaultMediaSectionConfig, filteredMedia, getMediaArtworkSource, mediaEditor, normalizeMediaPlayer, normalizeMediaState, normalizeQueuePayload, renderMediaGroup, renderMediaFavorites, renderMediaQueue, renderMediaNowPlaying, renderMediaOverview, renderMediaProgress, renderMediaArtwork, renderMediaSource, renderMediaVolume, refreshMediaQueue, releaseMediaQueue, validateMediaAction } from "../src/modules/media.js";
+import { MEDIA_MODULE, collectMediaSources, defaultMediaSectionConfig, filteredMedia, getMediaArtworkSource, mediaEditor, normalizeMediaPlayer, normalizeMediaState, normalizeQueuePayload, renderMediaGroup, renderMediaFavorites, renderMediaQueue, renderMediaNowPlaying, renderMediaOverview, renderMediaProgress, renderMediaArtwork, refreshMediaArtwork, validateNormalizedRuntimeSource, renderMediaSource, renderMediaVolume, refreshMediaQueue, releaseMediaQueue, sourceObject, validateMediaAction } from "../src/modules/media.js";
 import { normalizeMeasurement } from "../src/modules/shared-measurements.js";
 
 class Node { constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.attributes={};this.listeners={};this.style={};this._text="";this.disabled=false;this.value="";this.checked=false;this.focusCount=0;} append(...c){this.children.push(...c); for(const x of c) if(x) x.parentNode=this;} remove(){ if(this.parentNode) this.parentNode.children=this.parentNode.children.filter(c=>c!==this); } replaceChildren(...c){ this.children=[]; this.append(...c); } getAttribute(k){return this.attributes[k];} setAttribute(k,v){this.attributes[k]=String(v); if(k==="disabled")this.disabled=true; if(k==="value")this.value=String(v); if(k.startsWith("data-")) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);} addEventListener(t,f){this.listeners[t]=f;} focus(){ globalThis.document.activeElement=this; this.focused=true; this.focusCount++; } querySelector(sel){return this.querySelectorAll(sel)[0]||null;} querySelectorAll(sel){const tags=sel.split(",").map(x=>x.trim()); const out=[]; const walk=n=>{if(tags.includes(n.tagName)||tags.includes(`[${Object.keys(n.attributes)[0]}]`))out.push(n); for(const c of n.children)walk(c)}; walk(this); return out;} get textContent(){return this._text+this.children.map(c=>c.textContent).join("");} set textContent(v){this._text=String(v);this.children=[];} }
@@ -872,4 +872,43 @@ test("production media editor nests player-owned rows and preserves sibling play
   assert.equal(updates.at(-1).config.players[0].sourceList.length,1);
   assert.equal(updates.at(-1).config.players[1].sourceList[0].id,"b-src");
   assert.notEqual(updates.at(-1).config.players[0].sourceList[0].id,"b-src");
+});
+
+test("production media final lifecycle validates artwork and queue normalized contracts", async () => {
+  let cleanupCount=0, releaseCount=0, mountCount=0;
+  const rt={
+    getMediaArtworkSource(){ return { ref:"art-a", lastUpdated:"2026-07-22T00:00:00Z" }; },
+    refreshMediaArtwork(){ return { ref:"art-b", lastUpdated:"2026-07-22T00:00:01Z" }; },
+    mountMediaArtwork(){ mountCount++; return { cleanup(){ cleanupCount++; } }; },
+    releaseMediaArtwork(){ releaseCount++; },
+    getEntityState(){ return null; },
+  };
+  const widget = renderMediaArtwork({ config:{ artworkSource:"art" } }, rt), holder = widget.querySelectorAll("div")[0];
+  assert.equal(holder.dataset.sourceState, "mounted");
+  assert.equal(mountCount, 1);
+  await widget.querySelectorAll("button")[0].listeners.click();
+  assert.equal(mountCount, 2);
+  assert.equal(cleanupCount, 1);
+  assert.equal(releaseCount, 1);
+  widget.cleanup(); widget.cleanup();
+  assert.equal(cleanupCount, 2);
+  assert.equal(releaseCount, 2);
+
+  const unavailable = getMediaArtworkSource({}, { artworkSource:"missing" });
+  assert.equal(unavailable.sourceType, "runtime");
+  assert.equal(unavailable.runtimeKind, "media-artwork");
+  assert.equal(unavailable.reason, "runtime-artwork-source-unavailable");
+  const failed = await refreshMediaArtwork({ refreshMediaArtwork(){ throw Object.assign(new Error("secret"), { code:"safe_code" }); } }, { artworkSource:"art" });
+  assert.equal(failed.reason, "runtime-artwork-refresh-error");
+  assert.equal(failed.diagnosticCode, "safe_code");
+  const contradictory = { ...sourceObject({ configured:true, sourceType:"runtime", runtimeKind:"media-artwork", normalizedValue:"safe" }), available:true, unavailable:true, reason:"bad" };
+  assert.equal(validateNormalizedRuntimeSource(contradictory, "media-artwork"), false);
+  const unsafe = { ...sourceObject({ configured:true, sourceType:"runtime", runtimeKind:"media-artwork", normalizedValue:"https://private.invalid/token=x" }), available:true, reason:"ok" };
+  assert.equal(validateNormalizedRuntimeSource(unsafe, "media-artwork"), false);
+  const q = await refreshMediaQueue({ refreshMediaQueue(){ throw Object.assign(new Error("hidden"), { code:"queue_safe" }); } }, {});
+  assert.equal(q.reason, "runtime-queue-refresh-error");
+  assert.equal(q.source.runtimeKind, "media-queue");
+  assert.equal(q.inputCount, 0); assert.equal(q.validCount, 0); assert.equal(q.invalidCount, 0);
+  const badQueueSource = { source:{ ...sourceObject({ configured:true, sourceType:"runtime", runtimeKind:"media-artwork", normalizedValue:"queue" }), available:true, reason:"ok" }, current:{ id:"c", title:"C" } };
+  assert.equal(normalizeQueuePayload(badQueueSource).source.runtimeKind, "media-queue");
 });
