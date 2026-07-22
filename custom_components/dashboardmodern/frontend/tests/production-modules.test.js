@@ -9,7 +9,7 @@ import { HOME_MODULE, evaluateAlertRule, aggregateHomeStatus } from "../src/modu
 import { LIGHTS_MODULE, lightCapabilities, normalizeLight, summarizeLights } from "../src/modules/lights.js";
 import { registerBuiltInModules } from "../src/modules/bootstrap.js";
 
-class Node { constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.attributes={};this.listeners={};this.style={};this._text="";this.disabled=false;this.value="";this.checked=false;} append(...c){this.children.push(...c); for(const x of c) if(x) x.parentNode=this;} remove(){ if(this.parentNode) this.parentNode.children=this.parentNode.children.filter(c=>c!==this); } replaceChildren(...c){ this.children=[]; this.append(...c); } setAttribute(k,v){this.attributes[k]=String(v); if(k==="disabled")this.disabled=true; if(k==="value")this.value=String(v); if(k.startsWith("data-")) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);} addEventListener(t,f){this.listeners[t]=f;} focus(){ globalThis.document.activeElement=this; this.focused=true; } querySelector(sel){return this.querySelectorAll(sel)[0]||null;} querySelectorAll(sel){const tags=sel.split(",").map(x=>x.trim()); const out=[]; const walk=n=>{if(tags.includes(n.tagName)||tags.includes(`[${Object.keys(n.attributes)[0]}]`))out.push(n); for(const c of n.children)walk(c)}; walk(this); return out;} get textContent(){return this._text+this.children.map(c=>c.textContent).join("");} set textContent(v){this._text=String(v);this.children=[];} }
+class Node { constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.attributes={};this.listeners={};this.style={};this._text="";this.disabled=false;this.value="";this.checked=false;this.focusCount=0;} append(...c){this.children.push(...c); for(const x of c) if(x) x.parentNode=this;} remove(){ if(this.parentNode) this.parentNode.children=this.parentNode.children.filter(c=>c!==this); } replaceChildren(...c){ this.children=[]; this.append(...c); } getAttribute(k){return this.attributes[k];} setAttribute(k,v){this.attributes[k]=String(v); if(k==="disabled")this.disabled=true; if(k==="value")this.value=String(v); if(k.startsWith("data-")) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);} addEventListener(t,f){this.listeners[t]=f;} focus(){ globalThis.document.activeElement=this; this.focused=true; this.focusCount++; } querySelector(sel){return this.querySelectorAll(sel)[0]||null;} querySelectorAll(sel){const tags=sel.split(",").map(x=>x.trim()); const out=[]; const walk=n=>{if(tags.includes(n.tagName)||tags.includes(`[${Object.keys(n.attributes)[0]}]`))out.push(n); for(const c of n.children)walk(c)}; walk(this); return out;} get textContent(){return this._text+this.children.map(c=>c.textContent).join("");} set textContent(v){this._text=String(v);this.children=[];} }
 const body = new Node("body");
 globalThis.document = { body, activeElement:null, listeners:{}, createElement: (tag) => new Node(tag), addEventListener(t,f){this.listeners[t]=f;}, removeEventListener(t){delete this.listeners[t];}, querySelector(sel){ return sel==="[data-light-detail-host]" ? body.children.find(c=>"lightDetailHost" in c.dataset) || null : null; } };
 const runtime = { hass: { states: {} }, getEntityState(id){ return this.hass.states[id] || null; }, calls: [], callService(d,s,data){ this.calls.push([d,s,data]); return Promise.resolve(); } };
@@ -49,7 +49,7 @@ test("Lights capabilities, malformed states, groups, and actions use runtime abs
   assert.deepEqual(runtime.calls[0], ["light", "turn_off", { entity_id:"light.rgbw" }]);
 });
 import { renderHomeHero, renderWeatherSummary, renderQuickActions, renderFavorites } from "../src/modules/home.js";
-import { filteredLights, normalizeColorTemperature, supportedLightData, renderLightGroup, renderLightsOverview, openLightDetailPanel } from "../src/modules/lights.js";
+import { filteredLights, normalizeColorTemperature, supportedLightData, renderLightGroup, renderLightsOverview, openLightDetailPanel, renderLightTile, createLightActionState } from "../src/modules/lights.js";
 import { renderWidgetSpecificEditor } from "../src/editor/widget-editor.js";
 
 test("Home hero consumes showDate showTime greetingText and locale", () => {
@@ -132,4 +132,63 @@ test("light detail panel focus trap Escape restoration and color bounds", () => 
   globalThis.document.listeners.keydown({ key:"Escape" });
   assert.equal(trigger.focused, true);
   assert.equal(globalThis.document.listeners.keydown, undefined);
+});
+
+
+test("distinct editors update schema-specific fields without conflating type kind and operator", () => {
+  const updates=[]; const controller={ state:{ validationErrors:[], fieldText:{} }, store:{ setState(s){ controller.state=s.editor; } }, updateWidget(s,w,p){ updates.push(p); } };
+  const section={ id:"s" };
+  const metric=renderWidgetSpecificEditor(document,section,{ id:"status", type:"home-status", config:{ metrics:[{ id:"m1", title:"Temp", entityIds:["sensor.temp"], operator:"equals", expected:"72" }] } },controller);
+  assert.match(metric.textContent, /Entity IDs/); assert.match(metric.textContent, /Expected/);
+  const metricSelect=metric.querySelectorAll("select")[0]; metricSelect.value="numeric-above"; metricSelect.listeners.change();
+  assert.equal(updates.at(-1).config.metrics[0].operator, "numeric-above"); assert.equal(updates.at(-1).config.metrics[0].type, undefined);
+  const alert=renderWidgetSpecificEditor(document,section,{ id:"alerts", type:"alerts-summary", config:{ rules:[{ id:"r1", entityId:"binary_sensor.door", operator:"on", severity:"warning", action:{type:"service"}, navigationTarget:{} }] } },controller);
+  assert.match(alert.textContent, /Icon/); assert.match(alert.textContent, /Message/); assert.match(alert.textContent, /Navigation section/);
+  const quick=renderWidgetSpecificEditor(document,section,{ id:"qa", type:"quick-actions", config:{ actions:[{ id:"a1", type:"service", title:"Run", domain:"light", service:"turn_on", badge:"!", accent:"blue", confirm:true }] } },controller);
+  assert.match(quick.textContent, /Domain/); assert.match(quick.textContent, /Service data/); assert.match(quick.textContent, /Badge/);
+  const favorite=renderWidgetSpecificEditor(document,section,{ id:"fav", type:"favorites", config:{ items:[{ id:"f1", kind:"view", targetId:"view-1", primaryAction:{ type:"navigate-view", viewId:"view-1" } }] } },controller);
+  assert.match(favorite.textContent, /Target ID/); assert.match(favorite.textContent, /Missing policy/);
+});
+
+test("editor validation marks invalid entity fields and repeated add IDs do not collide", () => {
+  const updates=[]; const controller={ state:{ validationErrors:[], fieldText:{} }, store:{ setState(s){ controller.state=s.editor; } }, updateWidget(s,w,p){ updates.push(p); } };
+  const section={ id:"s" }, widget={ id:"status", type:"home-status", config:{ metrics:[] } };
+  const editor=renderWidgetSpecificEditor(document,section,widget,controller); const add=editor.querySelectorAll("button")[0]; add.listeners.click(); add.listeners.click();
+  assert.notEqual(updates[0].config.metrics[0].id, updates[1].config.metrics[0].id);
+  const withRow=renderWidgetSpecificEditor(document,section,{...widget,config:updates.at(-1).config},controller);
+  for (const inp of withRow.querySelectorAll("input")) { inp.value="invalid, light.ok"; inp.listeners.input?.(); if (controller.state.validationErrors.length) break; }
+  assert.equal(controller.state.validationErrors.length, 1);
+});
+
+test("light action state reads current disabled state and restores structural disabled correctly", async () => {
+  const host = new Node("div"), control = new Node("button"); let calls=0; const state=createLightActionState(control,host,async()=>{calls++;});
+  control.disabled=true; assert.equal(await state.execute(), false); assert.equal(calls, 0);
+  control.disabled=false; assert.equal(await state.execute(), true); assert.equal(control.disabled, false);
+  control.dataset.structuralDisabled="true"; assert.equal(await state.execute(), false); assert.equal(control.disabled, false);
+  assert.match(host.textContent, /^$/);
+});
+
+test("Lights overview respects labels clear-sort policy and all-off disabled updates", () => {
+  runtime.hass.states = { "light.a": { state:"off", attributes:{ friendly_name:"Kitchen", supported_color_modes:[] } } };
+  const node = renderLightsOverview({ id:"ov2", type:"lights-overview", config:{ entityIds:["light.a"], rooms:{"light.a":"Kitchen"}, tags:{"light.a":["main"]}, showLabels:false, sort:"room", search:"Kitchen" } }, runtime);
+  assert.doesNotMatch(node.textContent, /Room Kitchen/);
+  const buttons=node.querySelectorAll("button"), allOff=buttons.find(b=>b.textContent==="Turn all off"), clear=buttons.find(b=>b.textContent==="Clear filters (keep sort)");
+  assert.equal(allOff.disabled, true); clear.listeners.click();
+  assert.equal(node.querySelectorAll("select").find(s=>s.attributes["aria-label"]==="Sort lights").value, "room");
+});
+
+test("color previews include white channels with accessible labels", () => {
+  runtime.hass.states = { "light.rgbw": { state:"on", attributes:{ friendly_name:"RGBW", supported_color_modes:["rgbw"], rgbw_color:[1,2,3,4] } }, "light.rgbww": { state:"on", attributes:{ friendly_name:"RGBWW", supported_color_modes:["rgbww"], rgbww_color:[5,6,7,8,9] } } };
+  const rgbw=renderLightTile({ id:"w", type:"light-tile", config:{ entityId:"light.rgbw" } }, runtime);
+  const rgbww=renderLightTile({ id:"ww", type:"light-tile", config:{ entityId:"light.rgbww" } }, runtime);
+  assert.match(rgbw.textContent, /W 4/); assert.match(rgbww.textContent, /CW 8/); assert.match(rgbww.textContent, /WW 9/);
+});
+
+test("detail panel traps Tab in both directions skips disabled and cleanup is idempotent", () => {
+  body.replaceChildren(); const trigger = new Node("button"); runtime.hass.states = { "light.rgb": { state:"on", attributes:{ friendly_name:"RGB", supported_color_modes:["rgb"], rgb_color:[1,2,3] } } };
+  const panel = openLightDetailPanel("light.rgb", runtime, trigger); const focusables=panel.querySelectorAll("button,input,select").filter(x=>!x.disabled);
+  globalThis.document.activeElement=focusables.at(-1); let prevented=0; panel.listeners.keydown({ key:"Tab", preventDefault(){prevented++;} }); assert.equal(globalThis.document.activeElement, focusables[0]);
+  globalThis.document.activeElement=focusables[0]; panel.listeners.keydown({ key:"Tab", shiftKey:true, preventDefault(){prevented++;} }); assert.equal(globalThis.document.activeElement, focusables.at(-1));
+  globalThis.document.listeners.keydown({ key:"Escape" }); globalThis.document.listeners.keydown?.({ key:"Escape" });
+  assert.equal(trigger.focusCount, 1); assert.equal(globalThis.document.listeners.keydown, undefined); assert.equal(body.children.length, 0); assert.equal(prevented, 2);
 });
