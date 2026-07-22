@@ -10,6 +10,9 @@ import { LIGHTS_MODULE, lightCapabilities, normalizeLight, summarizeLights } fro
 import { registerBuiltInModules } from "../src/modules/bootstrap.js";
 import { COVERS_MODULE, normalizeCover, coverCapabilities, renderCoverTile, renderCoverGroup, renderCoversOverview, openCoverDetailPanel } from "../src/modules/covers.js";
 import { CLIMATE_MODULE, normalizeClimate, climateCapabilities, renderClimateTile, renderClimateGroup, renderClimateOverview, renderClimatePanel, openClimateDetailPanel } from "../src/modules/climate.js";
+import { ENERGY_MODULE, deriveHomeLoad, gridDirection, batteryDirection, renderEnergyFlow } from "../src/modules/energy.js";
+import { APPLIANCES_MODULE, normalizeAppliance, renderAppliancesOverview } from "../src/modules/appliances.js";
+import { normalizeMeasurement } from "../src/modules/shared-measurements.js";
 
 class Node { constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.attributes={};this.listeners={};this.style={};this._text="";this.disabled=false;this.value="";this.checked=false;this.focusCount=0;} append(...c){this.children.push(...c); for(const x of c) if(x) x.parentNode=this;} remove(){ if(this.parentNode) this.parentNode.children=this.parentNode.children.filter(c=>c!==this); } replaceChildren(...c){ this.children=[]; this.append(...c); } getAttribute(k){return this.attributes[k];} setAttribute(k,v){this.attributes[k]=String(v); if(k==="disabled")this.disabled=true; if(k==="value")this.value=String(v); if(k.startsWith("data-")) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);} addEventListener(t,f){this.listeners[t]=f;} focus(){ globalThis.document.activeElement=this; this.focused=true; this.focusCount++; } querySelector(sel){return this.querySelectorAll(sel)[0]||null;} querySelectorAll(sel){const tags=sel.split(",").map(x=>x.trim()); const out=[]; const walk=n=>{if(tags.includes(n.tagName)||tags.includes(`[${Object.keys(n.attributes)[0]}]`))out.push(n); for(const c of n.children)walk(c)}; walk(this); return out;} get textContent(){return this._text+this.children.map(c=>c.textContent).join("");} set textContent(v){this._text=String(v);this.children=[];} }
 const body = new Node("body");
@@ -19,14 +22,47 @@ const runtime = { hass: { states: {} }, getEntityState(id){ return this.hass.sta
 test("Home and Lights modules register independently with deterministic contributions", () => {
   const manager = createPluginManager({ sectionRegistry: createSectionRegistry(), cardRegistry: createCardRegistry(), widgetRegistry: createWidgetRegistry() });
   registerBuiltInModules({ pluginManager: manager });
-  assert.deepEqual(manager.listModules().map(m=>m.id), ["climate", "covers", "home", "lights"]);
-  assert.equal(manager.contributions().widgets.length, 19);
+  assert.deepEqual(manager.listModules().map(m=>m.id), ["appliances", "climate", "covers", "energy", "home", "lights"]);
+  assert.equal(manager.contributions().widgets.length, 32);
   assert.throws(()=>manager.registerModule(HOME_MODULE), /already registered/);
   assert.throws(()=>manager.registerModule(COVERS_MODULE), /already registered/);
   assert.throws(()=>manager.registerModule(CLIMATE_MODULE), /already registered/);
   assert.equal(LIGHTS_MODULE.defaultLayouts[0].widgets[0], "lights-overview");
   assert.equal(COVERS_MODULE.defaultLayouts[0].widgets[0], "covers-overview");
   assert.equal(CLIMATE_MODULE.defaultLayouts[0].widgets[0], "climate-overview");
+});
+
+
+
+test("Energy and Appliances modules register independently with safe default layouts", () => {
+  const manager = createPluginManager({ sectionRegistry: createSectionRegistry(), cardRegistry: createCardRegistry(), widgetRegistry: createWidgetRegistry() });
+  manager.registerModule(ENERGY_MODULE); manager.registerModule(APPLIANCES_MODULE);
+  assert.deepEqual(manager.listModules().map(m=>m.id), ["appliances", "energy"]);
+  assert.equal(manager.contributions().widgets.length, 13);
+  assert.throws(()=>manager.registerModule(ENERGY_MODULE), /already registered/);
+  assert.equal(ENERGY_MODULE.defaultLayouts[0].widgets[0], "energy-flow");
+  assert.equal(APPLIANCES_MODULE.defaultLayouts[0].widgets[0], "appliances-overview");
+});
+
+test("shared measurement and energy calculations validate units states and directions", () => {
+  runtime.hass.states = { "sensor.power": { state:"1500", attributes:{ unit_of_measurement:"W", friendly_name:"Power" }, last_updated:"2026-07-22T00:00:00Z" }, "sensor.bad": { state:"NaN", attributes:{ unit_of_measurement:"W" } }, "sensor.energy": { state:"2", attributes:{ unit_of_measurement:"kWh" } } };
+  assert.equal(normalizeMeasurement(runtime,"sensor.power",{kind:"power",unit:"kW",precision:2}).displayValue, "1.50 kW");
+  assert.equal(normalizeMeasurement(runtime,"sensor.bad",{kind:"power",unit:"kW"}).malformed, true);
+  assert.equal(normalizeMeasurement(runtime,"sensor.missing",{kind:"power"}).missing, true);
+  assert.equal(gridDirection(0.01,{deadband:0.1}), "idle");
+  assert.equal(gridDirection(-2,{signConvention:"positive-export"}), "importing");
+  assert.equal(batteryDirection(-2,{signConvention:"positive-charge"}), "discharging");
+  const derived=deriveHomeLoad({solarProduction:{value:5,unit:"kW"},gridImport:{value:1,unit:"kW"},batteryDischarge:{value:0.5,unit:"kW"},gridExport:{value:2,unit:"kW"},batteryCharge:{value:0.5,unit:"kW"}});
+  assert.deepEqual({complete:derived.complete,value:derived.value,unit:derived.unit}, {complete:true,value:4,unit:"kW"});
+});
+
+test("Energy flow and appliances overview render configured runtime data only", () => {
+  runtime.hass.states = { "sensor.solar": { state:"2", attributes:{ unit_of_measurement:"kW" } }, "switch.washer": { state:"running", attributes:{} }, "sensor.washer_power": { state:"400", attributes:{ unit_of_measurement:"W" } } };
+  assert.match(renderEnergyFlow({ id:"ef", type:"energy-flow", config:{ solarEntityId:"sensor.solar" } }, runtime).textContent, /Solar: 2.0 kW/);
+  const app={ id:"washer", title:"Washer", entityId:"switch.washer", powerEntityId:"sensor.washer_power", activeStates:["running"] };
+  assert.equal(normalizeAppliance(runtime,app).normalizedStatus, "active");
+  const node=renderAppliancesOverview({ id:"ao", type:"appliances-overview", config:{ appliances:[app] } }, runtime);
+  assert.match(node.textContent, /Washer: active/);
 });
 
 test("widget runtime renders registered widgets and safe unknown fallback", () => {
