@@ -460,7 +460,7 @@ test("production energy source models render signed separate derived failures su
 });
 
 import { renderEnergySummary, renderPowerGauge, renderEnergyHistory, renderBatterySummary, renderGridSummary, renderSolarSummary, openEnergyDetailPanel } from "../src/modules/energy.js";
-import { renderApplianceTile, renderApplianceGroup, renderApplianceUsage, openApplianceDetailPanel, validateApplianceAction } from "../src/modules/appliances.js";
+import { renderApplianceTile, renderApplianceGroup, renderApplianceUsage, openApplianceDetailPanel, validateApplianceAction, dispatchApplianceAction, normalizeRemainingTime, aggregateMeasurements, filterAppliances } from "../src/modules/appliances.js";
 
 test("production battery grid solar summaries and detail panels expose production fields", () => {
   const trigger = new Node("button");
@@ -493,4 +493,87 @@ test("production appliances validate actions normalize states render widgets and
   assert.match(panel.textContent, /Washer/);
   panel.querySelectorAll("button")[0].listeners.click();
   assert.equal(trigger.focused, true);
+});
+
+test("production appliances overview filters sorts labels and partial aggregates are local", () => {
+  runtime.hass.states = {
+    "switch.washer": { state:"running", attributes:{} }, "sensor.washer_power": { state:"500", attributes:{unit_of_measurement:"W"} }, "sensor.washer_energy": { state:"1", attributes:{unit_of_measurement:"kWh"} },
+    "switch.dryer": { state:"off", attributes:{} }, "sensor.dryer_power": { state:"bad", attributes:{unit_of_measurement:"W"} }, "sensor.dryer_energy": { state:"2", attributes:{unit_of_measurement:"kWh"} },
+    "switch.fridge": { state:"unavailable", attributes:{} }, "sensor.fridge_power": { state:"100", attributes:{unit_of_measurement:"W"} }
+  };
+  const appliances = [
+    { id:"washer", title:"Washer", category:"washer", room:"Laundry", tags:["clean"], entityId:"switch.washer", powerEntityId:"sensor.washer_power", energyEntityId:"sensor.washer_energy", activeStates:["running"] },
+    { id:"dryer", title:"Dryer", category:"dryer", room:"Laundry", tags:["dry"], entityId:"switch.dryer", powerEntityId:"sensor.dryer_power", energyEntityId:"sensor.dryer_energy" },
+    { id:"fridge", title:"Fridge", category:"refrigerator", room:"Kitchen", tags:["cold"], entityId:"switch.fridge", powerEntityId:"sensor.fridge_power" }
+  ];
+  const normalized = appliances.map(a => normalizeAppliance(runtime, a));
+  assert.deepEqual(filterAppliances(normalized,{room:"Laundry",sort:"energy",showUnavailable:true}).map(a=>a.title), ["Dryer","Washer"]);
+  assert.deepEqual(filterAppliances(normalized,{tag:"clean",activeOnly:true,showUnavailable:true}).map(a=>a.id), ["washer"]);
+  assert.deepEqual(filterAppliances(normalized,{category:"refrigerator",status:"unavailable",showUnavailable:true}).map(a=>a.id), ["fridge"]);
+  const node = renderAppliancesOverview({type:"appliances-overview",config:{appliances,showLabels:true,showUnavailable:true,sort:"name"}}, runtime);
+  assert.match(node.textContent, /Current power: 600 W · partial excluded 1/);
+  assert.match(node.textContent, /Aggregate energy: 3.0 kWh · partial excluded 1/);
+  const search = node.querySelectorAll("input").find(i=>i.attributes.type==="search"); search.value="washer"; search.listeners.input();
+  assert.match(node.textContent, /Washer/); assert.doesNotMatch(node.textContent, /Dryer:/);
+  node.querySelectorAll("button").find(b=>b.textContent==="Clear filters").listeners.click();
+  assert.match(node.textContent, /Dryer/);
+});
+
+test("production appliance group bulk off filters compatible members and reports partial aggregates", async () => {
+  runtime.calls = []; let confirms = 0; globalThis.confirm = () => { confirms++; return true; };
+  runtime.hass.states = { "switch.a":{state:"running",attributes:{}}, "switch.b":{state:"off",attributes:{}}, "sensor.a_p":{state:"200",attributes:{unit_of_measurement:"W"}}, "sensor.b_p":{state:"bad",attributes:{unit_of_measurement:"W"}}, "sensor.a_e":{state:"1",attributes:{unit_of_measurement:"kWh"}} };
+  const appliances = [{id:"a",title:"A",entityId:"switch.a",switchEntityId:"switch.a",powerEntityId:"sensor.a_p",energyEntityId:"sensor.a_e",activeStates:["running"]},{id:"b",title:"B",entityId:"switch.b",switchEntityId:"light.not_switch",powerEntityId:"sensor.b_p"}];
+  const node = renderApplianceGroup({type:"appliance-group",config:{appliances,confirmBulk:true}}, runtime);
+  assert.match(node.textContent, /active 1 idle 1/);
+  assert.match(node.textContent, /Aggregate power: 200 W · partial excluded 1/);
+  const off = node.querySelectorAll("button").find(b=>b.textContent==="Turn off compatible switches"); assert.equal(off.dataset.structuralDisabled, "false");
+  await off.listeners.click();
+  assert.equal(confirms, 1);
+  assert.deepEqual(runtime.calls[0], ["switch", "turn_off", { entity_id:["switch.a"] }]);
+});
+
+test("production appliance tile policies display fields detail action and action errors", async () => {
+  runtime.calls = []; runtime.hass.states = { "switch.a":{state:"unavailable",attributes:{}}, "sensor.p":{state:"5",attributes:{unit_of_measurement:"W"}}, "sensor.r":{state:"15",attributes:{unit_of_measurement:"min"}} };
+  const hidden = renderApplianceTile({type:"appliance-tile",config:{appliance:{title:"Hidden",entityId:"switch.a",unavailablePolicy:"hide"}}}, runtime);
+  assert.match(hidden.textContent, /hidden by unavailable policy/);
+  const app = { title:"Tile", category:"washer", icon:"wash", entityId:"switch.a", powerEntityId:"sensor.p", remainingTimeEntityId:"sensor.r", displayFields:["power","remainingTime"], primaryAction:{type:"service",domain:"bad",service:"bad",title:"Run"} };
+  const node = renderApplianceTile({type:"appliance-tile",config:{appliance:app,detailAction:true}}, {});
+  assert.match(node.textContent, /Power:/); assert.doesNotMatch(node.textContent, /Energy:/); assert.match(node.textContent, /Remaining:/);
+  const run = node.querySelectorAll("button").find(b=>b.textContent==="Run"); await run.listeners.click();
+  assert.match(node.textContent, /runtime-call-service-unavailable/);
+  const detail = node.querySelectorAll("button").find(b=>b.textContent==="Open detail"); await detail.listeners.click();
+  assert.match(globalThis.document.body.textContent, /Tile/);
+});
+
+test("production appliance actions validate navigation detail toggle status entity and remaining time", async () => {
+  assert.deepEqual(validateApplianceAction({type:"navigation"}), {ok:false,reason:"navigation-target-required"});
+  assert.deepEqual(validateApplianceAction({type:"navigation",viewId:"v",sectionId:"s"}), {ok:false,reason:"navigation-target-required"});
+  assert.deepEqual(validateApplianceAction({type:"toggle",entityId:"media_player.tv"}), {ok:false,reason:"toggle-domain-not-approved"});
+  await assert.rejects(() => dispatchApplianceAction({type:"navigation",viewId:"v"}, {}), /runtime-navigation-unavailable/);
+  const navCalls=[]; await dispatchApplianceAction({type:"navigation",sectionId:"s"}, { navigateToSection:id=>navCalls.push(id) }); assert.deepEqual(navCalls, ["s"]);
+  runtime.hass.states = { "switch.a":{state:"on",attributes:{}}, "sensor.remaining":{state:"25",attributes:{unit_of_measurement:"min"}} };
+  const badStatus = normalizeAppliance(runtime, {title:"A",entityId:"switch.a",statusEntityId:"sensor.missing"});
+  assert.equal(badStatus.statusEntityProblem, "status-entity-missing"); assert.equal(badStatus.malformed, true);
+  assert.equal(normalizeRemainingTime(runtime,"sensor.remaining",{unit:"min"}).displayValue, "25 min");
+  const trigger = new Node("button"); await dispatchApplianceAction({type:"detail"}, runtime, {title:"Detail",entityId:"switch.a"}, trigger); assert.match(globalThis.document.body.textContent, /Detail/);
+});
+
+test("production appliance usage history thresholds and energy section defaults avoid collisions", () => {
+  runtime.hass.states = { "switch.a":{state:"running",attributes:{}}, "sensor.p":{state:"600",attributes:{unit_of_measurement:"W"}}, "sensor.daily":{state:"2",attributes:{unit_of_measurement:"kWh"}}, "sensor.cycle":{state:"0.5",attributes:{unit_of_measurement:"kWh"}}, "sensor.cost":{state:"1.25",attributes:{unit_of_measurement:"USD"}} };
+  const usage = renderApplianceUsage({type:"appliance-usage",config:{appliance:{title:"A",entityId:"switch.a",powerEntityId:"sensor.p",activeStates:["running"]},dailyEnergyEntityId:"sensor.daily",cycleEnergyEntityId:"sensor.cycle",costEntityId:"sensor.cost",threshold:500,points:[{timestamp:"2026-07-22T00:00:00Z",value:1},{timestamp:"bad",value:2}]}}, runtime);
+  assert.match(usage.textContent, /Threshold: exceeded/); assert.match(usage.textContent, /Daily energy: 2.0 kWh/); assert.match(usage.textContent, /1.3 USD/);
+  const dash={id:"d",views:[{id:"v",section_ids:[]}],sections:[],cards:[]}, gen=createIdGenerator("section");
+  const eCfg=ENERGY_MODULE.sections[0].defaultConfig(), aCfg=APPLIANCES_MODULE.sections[0].defaultConfig();
+  const d1=addSection(dash,"v",{type:"energy",config:eCfg},gen), d2=addSection(d1,"v",{type:"energy",config:eCfg},gen), d3=addSection(d2,"v",{type:"appliances",config:aCfg},gen), d4=addSection(d3,"v",{type:"appliances",config:aCfg},gen);
+  assert.deepEqual(d4.sections.map(s=>s.id), ["section-1","section-2","section-3","section-4"]);
+  const widgetIds=d4.sections.flatMap(s=>s.config.widgets.map(w=>w.id)); assert.equal(widgetIds.length, new Set(widgetIds).size); assert.equal(widgetIds.length, 6);
+});
+
+test("production energy history timeframe chart and power gauge peak validation", () => {
+  runtime.hass.states = { "sensor.p":{state:"1",attributes:{unit_of_measurement:"kW"}} };
+  const hist = renderEnergyHistory({type:"energy-history",config:{chartType:"bar",timeframes:["today","week"],defaultTimeframe:"today",series:[{id:"s",title:"Solar",unit:"kW",points:[{timestamp:"2026-07-22T00:00:00Z",value:1,timeframe:"today"},{timestamp:"2026-07-21T00:00:00Z",value:2,timeframe:"week"},{timestamp:"bad",value:3,timeframe:"today"}]}]}}, runtime);
+  assert.equal(hist.querySelector("svg").attributes["data-chart-type"], "bar"); assert.match(hist.textContent, /Solar: bar axis left kW/); assert.doesNotMatch(hist.textContent, /2.0 kW/);
+  const sel=hist.querySelectorAll("select")[0]; sel.value="week"; sel.listeners.change(); assert.match(hist.textContent, /2.0 kW/);
+  assert.match(renderPowerGauge({type:"power-gauge",config:{entityId:"sensor.p",unit:"kW",peakValue:1000,peakUnit:"W"}}, runtime).textContent, /Peak: 1.0 kW/);
+  assert.match(renderPowerGauge({type:"power-gauge",config:{entityId:"sensor.p",unit:"kW",peakValue:"bad",peakUnit:"W"}}, runtime).textContent, /Peak unavailable/);
 });
