@@ -305,3 +305,45 @@ def test_section_contract_config_round_trips():
     serialized = section.to_dict()
     assert serialized["config"]["type"] == "energy"
     assert Section.from_dict(serialized).config["badge"]["entityId"] == "sensor.power"
+
+
+def test_section_type_serialization_round_trip() -> None:
+    section = Section.from_dict({"id": "s", "title": "Home", "type": "home", "card_ids": [], "config": {"widgets": [{"id": "w", "type": "home-hero"}]}})
+    assert section.type == "home"
+    assert section.to_dict()["type"] == "home"
+
+
+def test_widget_section_without_cards_is_valid() -> None:
+    section = Section.from_dict({"id": "s", "title": "Home", "type": "home", "card_ids": [], "config": {"widgets": [{"id": "w", "type": "home-hero"}]}})
+    view = View.create("v", "Home", (section.id,))
+    dashboard = Dashboard.create("d", "Dashboard", (view,), (section,), ())
+    assert dashboard.cards == ()
+
+
+def test_card_section_still_valid() -> None:
+    card = Card.create("c", "Card", "legacy-panel", {})
+    section = Section.from_cards("s", "Cards", (card,))
+    view = View.create("v", "Home", (section.id,))
+    assert Dashboard.create("d", "Dashboard", (view,), (section,), (card,))
+
+
+def test_empty_section_rejected_even_when_dashboard_widgets_enabled() -> None:
+    section = Section.create("s", "Empty", (), {})
+    view = View.create("v", "Home", (section.id,))
+    with pytest.raises(InvalidHierarchyError):
+        Dashboard.create("d", "Dashboard", (view,), (section,), (), {"widgets_enabled": True})
+
+
+def test_dashboard_with_no_cards_and_no_widgets_rejected() -> None:
+    section = Section.create("s", "Empty", (), {})
+    view = View.create("v", "Home", (section.id,))
+    with pytest.raises(InvalidHierarchyError):
+        Dashboard.create("d", "Dashboard", (view,), (section,), ())
+
+
+def test_backward_compatible_section_without_type_round_trips() -> None:
+    card = Card.create("c", "Card", "legacy-panel", {})
+    section = Section.from_dict({"id": "s", "title": "Cards", "card_ids": ["c"]})
+    view = View.create("v", "Home", (section.id,))
+    dashboard = Dashboard.create("d", "Dashboard", (view,), (section,), (card,))
+    assert "type" not in dashboard.to_dict()["sections"][0]
