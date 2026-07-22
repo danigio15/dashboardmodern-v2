@@ -12,7 +12,7 @@ import { COVERS_MODULE, normalizeCover, coverCapabilities, renderCoverTile, rend
 import { CLIMATE_MODULE, normalizeClimate, climateCapabilities, renderClimateTile, renderClimateGroup, renderClimateOverview, renderClimatePanel, openClimateDetailPanel } from "../src/modules/climate.js";
 import { ENERGY_MODULE, deriveHomeLoad, gridDirection, batteryDirection, renderEnergyFlow, normalizeGrid, normalizeBattery, homeLoad, selfConsumptionPercentage, selfSufficiencyPercentage } from "../src/modules/energy.js";
 import { APPLIANCES_MODULE, normalizeAppliance, renderAppliancesOverview } from "../src/modules/appliances.js";
-import { MEDIA_MODULE, collectMediaSources, defaultMediaSectionConfig, filteredMedia, getMediaArtworkSource, mediaEditor, normalizeMediaPlayer, normalizeMediaState, normalizeQueuePayload, renderMediaGroup, renderMediaFavorites, renderMediaQueue, renderMediaNowPlaying, renderMediaOverview, renderMediaProgress, renderMediaArtwork, refreshMediaArtwork, validateNormalizedRuntimeSource, renderMediaSource, renderMediaVolume, refreshMediaQueue, releaseMediaQueue, sourceObject, validateMediaAction } from "../src/modules/media.js";
+import { MEDIA_MODULE, collectMediaSources, defaultMediaSectionConfig, filteredMedia, getMediaArtworkSource, mediaEditor, normalizeMediaPlayer, normalizeMediaState, normalizeQueuePayload, renderMediaGroup, renderMediaFavorites, renderMediaQueue, renderMediaNowPlaying, renderMediaOverview, renderMediaProgress, renderMediaArtwork, renderMediaTile, renderMediaPanel, refreshMediaArtwork, validateNormalizedRuntimeSource, renderMediaSource, renderMediaVolume, refreshMediaQueue, releaseMediaQueue, sourceObject, validateMediaAction } from "../src/modules/media.js";
 import { normalizeMeasurement } from "../src/modules/shared-measurements.js";
 
 class Node { constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.attributes={};this.listeners={};this.style={};this._text="";this.disabled=false;this.value="";this.checked=false;this.focusCount=0;} append(...c){this.children.push(...c); for(const x of c) if(x) x.parentNode=this;} remove(){ if(this.parentNode) this.parentNode.children=this.parentNode.children.filter(c=>c!==this); } replaceChildren(...c){ this.children=[]; this.append(...c); } getAttribute(k){return this.attributes[k];} setAttribute(k,v){this.attributes[k]=String(v); if(k==="disabled")this.disabled=true; if(k==="value")this.value=String(v); if(k.startsWith("data-")) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);} addEventListener(t,f){this.listeners[t]=f;} focus(){ globalThis.document.activeElement=this; this.focused=true; this.focusCount++; } querySelector(sel){return this.querySelectorAll(sel)[0]||null;} querySelectorAll(sel){const tags=sel.split(",").map(x=>x.trim()); const out=[]; const walk=n=>{if(tags.includes(n.tagName)||tags.includes(`[${Object.keys(n.attributes)[0]}]`))out.push(n); for(const c of n.children)walk(c)}; walk(this); return out;} get textContent(){return this._text+this.children.map(c=>c.textContent).join("");} set textContent(v){this._text=String(v);this.children=[];} }
@@ -911,4 +911,14 @@ test("production media final lifecycle validates artwork and queue normalized co
   assert.equal(q.inputCount, 0); assert.equal(q.validCount, 0); assert.equal(q.invalidCount, 0);
   const badQueueSource = { source:{ ...sourceObject({ configured:true, sourceType:"runtime", runtimeKind:"media-artwork", normalizedValue:"queue" }), available:true, reason:"ok" }, current:{ id:"c", title:"C" } };
   assert.equal(normalizeQueuePayload(badQueueSource).source.runtimeKind, "media-queue");
+});
+
+test("production media artwork lifecycle is used by tile and detail panel cleanup", () => {
+  let cleaned = 0, released = 0;
+  const rt = { getEntityState(){ return { state:"playing", attributes:{}, last_updated:"2026-07-22T00:00:00Z" }; }, getMediaArtworkSource(){ return { ref:"shared-art", lastUpdated:"2026-07-22T00:00:00Z" }; }, mountMediaArtwork(){ return { cleanup(){ cleaned++; } }; }, releaseMediaArtwork(){ released++; } };
+  const cfg = { primaryEntity:"media_player.lifecycle", artworkSource:"art" };
+  const tile = renderMediaTile({ config:cfg }, rt); tile.cleanup(); tile.cleanup();
+  assert.equal(cleaned, 1); assert.equal(released, 1);
+  const panel = renderMediaPanel({ config:cfg }, rt); panel.cleanup(); panel.cleanup();
+  assert.equal(cleaned, 2); assert.equal(released, 2);
 });
