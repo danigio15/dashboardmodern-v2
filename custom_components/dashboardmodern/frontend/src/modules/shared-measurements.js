@@ -26,13 +26,13 @@ export function formatNumber(value, { locale = "en-US", precision = 1, unit = ""
   if (!Number.isFinite(value)) return "Unavailable";
   return `${value.toLocaleString(locale, { minimumFractionDigits: precision, maximumFractionDigits: precision })}${unit ? ` ${unit}` : ""}`;
 }
-export function evaluateTimestamp(lastUpdated, staleAfterMs, now = Date.now()) {
-  if (!lastUpdated) return { stale: false, reason: "timestamp-missing" };
+export function evaluateTimestamp(lastUpdated, staleAfterMs, now = Date.now(), futureToleranceMs = 5000) {
+  if (!lastUpdated) return { stale: false, future: false, invalid: false, reason: "timestamp-missing" };
   const time = new Date(lastUpdated).getTime();
-  if (!Number.isFinite(time)) return { stale: false, reason: "timestamp-invalid" };
-  if (time > now) return { stale: false, reason: "timestamp-future" };
-  if (Number.isFinite(staleAfterMs) && staleAfterMs > 0 && now - time > staleAfterMs) return { stale: true, reason: "timestamp-stale" };
-  return { stale: false, reason: "timestamp-ok" };
+  if (!Number.isFinite(time)) return { stale: false, future: false, invalid: true, reason: "timestamp-invalid" };
+  if (time - now > Number(futureToleranceMs ?? 5000)) return { stale: false, future: true, invalid: false, reason: "timestamp-future" };
+  if (Number.isFinite(staleAfterMs) && staleAfterMs > 0 && now - time > staleAfterMs) return { stale: true, future: false, invalid: false, reason: "timestamp-stale" };
+  return { stale: false, future: false, invalid: false, reason: time > now ? "timestamp-ok-clock-skew" : "timestamp-ok" };
 }
 export const stale = (lastUpdated, maxAgeMs, now = Date.now()) => evaluateTimestamp(lastUpdated, maxAgeMs, now).stale;
 function base(entityId, entity, { kind, unit, precision = 1 } = {}) {
@@ -40,7 +40,7 @@ function base(entityId, entity, { kind, unit, precision = 1 } = {}) {
   return { entityId, friendlyName: entity?.attributes?.friendly_name || entityId || "", rawState: entity?.state, sourceUnit, normalizedUnit: unit || sourceUnit, deviceClass: entity?.attributes?.device_class || "", stateClass: entity?.attributes?.state_class || "", lastUpdated: entity?.last_updated || entity?.lastUpdated || null, available: false, missing: false, unavailable: false, malformed: false, stale: false, reason: "not-evaluated", normalizedValue: null, precision, displayValue: "Unavailable", kind };
 }
 export function normalizeMeasurement(runtime = {}, entityId, options = {}) {
-  const { kind = "power", unit, precision = 1, staleAfterMs, locale = "en-US", now = Date.now() } = options;
+  const { kind = "power", unit, precision = 1, staleAfterMs, locale = "en-US", now = Date.now(), futureToleranceMs = 5000 } = options;
   const entity = ENTITY_RE.test(entityId || "") ? runtime.getEntityState?.(entityId) : null;
   const result = base(entityId, entity, { kind, unit, precision });
   if (!entityId) return { ...result, missing: true, reason: "missing-entity-id" };
@@ -61,7 +61,7 @@ export function normalizeMeasurement(runtime = {}, entityId, options = {}) {
   } else if (kind === "currency" || kind === "carbon") {
     result.normalizedUnit = unit || result.sourceUnit;
   }
-  const timestamp = evaluateTimestamp(result.lastUpdated, staleAfterMs, now);
-  if (timestamp.reason === "timestamp-invalid" || timestamp.reason === "timestamp-future") return { ...result, malformed: true, reason: timestamp.reason };
+  const timestamp = evaluateTimestamp(result.lastUpdated, staleAfterMs, now, futureToleranceMs);
+  if (timestamp.invalid || timestamp.future) return { ...result, malformed: true, reason: timestamp.reason };
   return { ...result, available: !timestamp.stale, stale: timestamp.stale, reason: timestamp.reason, normalizedValue: value, displayValue: formatNumber(value, { locale, precision, unit: result.normalizedUnit }) };
 }

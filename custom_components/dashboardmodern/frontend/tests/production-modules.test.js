@@ -447,7 +447,7 @@ test("production energy source models render signed separate derived failures su
     "sensor.daily": { state:"7", attributes:{ unit_of_measurement:"kWh" } }
   };
   const flow = renderEnergyFlow({ id:"f", type:"energy-flow", config:{ gridEntityId:"sensor.grid", gridSignConvention:"positive-import", batteryEntityId:"sensor.battery", batterySignConvention:"positive-discharge", batterySocEntityId:"sensor.soc", solarEntityId:"sensor.solar", homeLoadMode:"direct", homeEntityId:"sensor.home", displayUnit:"kW", deadband:0.05 } }, { ...runtime, reducedMotion:true });
-  assert.match(flow.textContent, /Grid: -2.0 kW · exporting/);
+  assert.match(flow.textContent, /Grid: 2.0 kW · exporting/);
   assert.match(flow.textContent, /Battery: 0.0 kW · idle/);
   assert.equal(flow.querySelector("svg").attributes["data-reduced-motion"], "true");
   const fail = deriveHomeLoad({ solarProduction:{value:1,unit:"kW"}, gridImport:{value:1,unit:"bad"}, batteryDischarge:{value:0,unit:"kW"}, gridExport:{value:0,unit:"kW"}, batteryCharge:{value:0,unit:"kW"} });
@@ -619,4 +619,48 @@ test("final history structured timeframe timestamp semantics toggle/detail label
   assert.match(tile.textContent, /Navigate/); assert.match(tile.textContent, /Open detail/);
   const agg = aggregateMeasurements([normalizeAppliance(runtime,{entityId:"switch.a",powerEntityId:"sensor.p"}), normalizeAppliance(runtime,{entityId:"switch.a",powerEntityId:"sensor.missing"}), normalizeAppliance(runtime,{entityId:"switch.a",powerEntityId:"sensor.bad"}), normalizeAppliance(runtime,{entityId:"switch.a",powerEntityId:"sensor.stale",staleAfterMs:1000}), normalizeAppliance(runtime,{entityId:"switch.a",powerEntityId:"sensor.mixed",powerUnit:"kW"})], "currentPower", "W");
   assert.deepEqual({included:agg.included,missing:agg.missing,malformed:agg.malformed,stale:agg.stale,mixedUnit:agg.mixedUnit,partial:agg.partial}, {included:1,missing:1,malformed:1,stale:1,mixedUnit:1,partial:true});
+});
+
+test("cleanup remaining time timestamp tolerance signed values partial flow and explicit home mode", async () => {
+  const now = Date.parse("2026-07-22T00:00:00Z");
+  runtime.hass.states = {
+    "sensor.remaining_ok": { state:"12", attributes:{ unit_of_measurement:"min" }, last_updated:"2026-07-22T00:00:03Z" },
+    "sensor.remaining_future": { state:"12", attributes:{ unit_of_measurement:"min" }, last_updated:"2026-07-22T00:00:10Z" },
+    "sensor.remaining_stale": { state:"12", attributes:{ unit_of_measurement:"min" }, last_updated:"2026-07-21T00:00:00Z" },
+    "sensor.remaining_bad_time": { state:"12", attributes:{ unit_of_measurement:"min" }, last_updated:"bad" },
+    "sensor.grid_signed": { state:"-2", attributes:{ unit_of_measurement:"kW" } },
+    "sensor.battery_signed": { state:"-3", attributes:{ unit_of_measurement:"kW" } },
+    "sensor.import": { state:"5", attributes:{ unit_of_measurement:"kW" } }
+  };
+  const ok = normalizeRemainingTime(runtime, "sensor.remaining_ok", { unit:"min", now, futureToleranceMs:5000 });
+  assert.deepEqual({available:ok.available, malformed:ok.malformed, normalizedValue:ok.normalizedValue, displayValue:ok.displayValue, unit:ok.unit}, {available:true, malformed:false, normalizedValue:12, displayValue:"12 min", unit:"min"});
+  const future = normalizeRemainingTime(runtime, "sensor.remaining_future", { unit:"min", now, futureToleranceMs:5000 });
+  assert.deepEqual({available:future.available, malformed:future.malformed, reason:future.reason, normalizedValue:future.normalizedValue}, {available:false, malformed:true, reason:"timestamp-future", normalizedValue:null});
+  const stale = normalizeRemainingTime(runtime, "sensor.remaining_stale", { unit:"min", now, staleAfterMs:1000 });
+  assert.equal(stale.stale, true); assert.equal(stale.available, false);
+  const badTime = normalizeRemainingTime(runtime, "sensor.remaining_bad_time", { unit:"min", now });
+  assert.equal(badTime.reason, "timestamp-invalid"); assert.equal(badTime.malformed, true);
+  const grid = normalizeGrid(runtime, { gridEntityId:"sensor.grid_signed", gridSignConvention:"positive-import", displayUnit:"kW" });
+  assert.equal(grid.direction, "exporting"); assert.equal(grid.rawSignedValue, -2); assert.equal(grid.activeMeasurement.normalizedValue, 2); assert.equal(grid.activeMeasurement.displayValue, "2.0 kW");
+  const battery = normalizeBattery(runtime, { batteryEntityId:"sensor.battery_signed", batterySignConvention:"positive-charge", displayUnit:"kW" });
+  assert.equal(battery.direction, "discharging"); assert.equal(battery.rawSignedValue, -3); assert.equal(battery.activeMeasurement.displayValue, "3.0 kW");
+  const partialFlow = renderEnergyFlow({type:"energy-flow",config:{gridModel:"separate",gridImportEntityId:"sensor.import",separateFlowPolicy:"allow-partial",displayUnit:"kW"}}, runtime);
+  assert.match(partialFlow.textContent, /partial/); assert.equal(partialFlow.querySelector("g").attributes["data-status"], "partial");
+  assert.equal(homeLoad(runtime, { homeEntityId:"sensor.import" }).mode, "none");
+  const direct = homeLoad(runtime, { homeMode:"direct" });
+  assert.equal(direct.complete, false); assert.deepEqual(direct.missingInputs, ["homeLoad"]);
+  assert.equal(validateApplianceAction({type:"detail", appliance:{}}).ok, true);
+  await assert.rejects(() => dispatchApplianceAction({type:"detail", appliance:{}}, runtime, {}), /detail-appliance-required/);
+});
+
+test("cleanup invalid primary entity and minimal hidden appliance tile", () => {
+  runtime.hass.states = { "switch.unavailable":{state:"unavailable",attributes:{}}, "switch.ok":{state:"off",attributes:{}} };
+  const invalid = normalizeAppliance(runtime, { title:"Bad", entityId:"not valid" });
+  assert.equal(invalid.primaryEntityProblem, "invalid-primary-entity-id"); assert.equal(invalid.malformed, true); assert.equal(invalid.missing, false);
+  const missing = normalizeAppliance(runtime, { title:"Missing", entityId:"switch.missing" });
+  assert.equal(missing.primaryEntityProblem, "primary-entity-missing"); assert.equal(missing.missing, true);
+  const unavailable = normalizeAppliance(runtime, { title:"Unavailable", entityId:"switch.unavailable" });
+  assert.equal(unavailable.unavailable, true); assert.equal(unavailable.primaryEntityProblem, null);
+  const hidden = renderApplianceTile({type:"appliance-tile",config:{appliance:{title:"Hidden",entityId:"switch.unavailable",unavailablePolicy:"hide",powerEntityId:"sensor.never"}}}, runtime);
+  assert.equal(hidden.getAttribute("hidden"), ""); assert.equal(hidden.children.length, 0); assert.equal(hidden.dataset.hiddenByPolicy, "unavailable"); assert.equal(hidden.textContent, "");
 });

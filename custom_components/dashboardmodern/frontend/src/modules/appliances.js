@@ -26,23 +26,22 @@ export function applianceStatus(state, mappings = {}) {
   return "malformed";
 }
 
-export function normalizeRemainingTime(runtime = {}, entityId, { unit, precision = 0, staleAfterMs } = {}) {
+export function normalizeRemainingTime(runtime = {}, entityId, { unit, precision = 0, staleAfterMs, now, futureToleranceMs } = {}) {
   const entity = ENTITY_RE.test(entityId || "") ? runtime.getEntityState?.(entityId) : null;
-  const base = { entityId, rawValue: entity?.state, unit: unit || entity?.attributes?.unit_of_measurement || "", available: false, missing: false, unavailable: false, malformed: false, stale: false, reason: "not-evaluated", displayValue: "Unavailable" };
+  const base = { entityId, rawValue: entity?.state, unit: unit || entity?.attributes?.unit_of_measurement || "", available: false, missing: false, unavailable: false, malformed: false, stale: false, reason: "not-evaluated", normalizedValue: null, displayValue: "Unavailable" };
   if (!entityId) return { ...base, missing: true, reason: "missing-entity-id" };
-  if (!ENTITY_RE.test(entityId)) return { ...base, missing: true, malformed: true, reason: "invalid-entity-id" };
+  if (!ENTITY_RE.test(entityId)) return { ...base, malformed: true, reason: "invalid-entity-id" };
   if (!entity) return { ...base, missing: true, reason: "entity-missing" };
-  if (["unknown", "unavailable", ""].includes(txt(entity.state))) return { ...base, unavailable: true, reason: txt(entity.state) || "empty" };
-  const numeric = Number(entity.state);
-  if (Number.isFinite(numeric)) {
-    const m = normalizeMeasurement(runtime, entityId, { kind: "duration", unit: base.unit, precision, staleAfterMs, locale: runtime.locale });
-    return { ...base, available: m.available, stale: m.stale, reason: m.reason, displayValue: formatNumber(numeric, { locale: runtime.locale || "en-US", precision, unit: base.unit }) };
-  }
-  return { ...base, available: true, reason: "text-duration", displayValue: String(entity.state) };
+  const m = normalizeMeasurement(runtime, entityId, { kind: "duration", unit: base.unit, precision, staleAfterMs, futureToleranceMs, now, locale: runtime.locale });
+  return { ...base, available: m.available, missing: m.missing, unavailable: m.unavailable, malformed: m.malformed, stale: m.stale, reason: m.reason, normalizedValue: m.normalizedValue, unit: m.normalizedUnit || base.unit, displayValue: m.displayValue };
 }
 
 export function normalizeAppliance(runtime = {}, appliance = {}) {
-  const primary = ENTITY_RE.test(appliance.entityId || "") ? runtime.getEntityState?.(appliance.entityId) : null;
+  let primaryEntityProblem = null;
+  if (!appliance.entityId) primaryEntityProblem = "missing-primary-entity-id";
+  else if (!ENTITY_RE.test(appliance.entityId)) primaryEntityProblem = "invalid-primary-entity-id";
+  const primary = !primaryEntityProblem ? runtime.getEntityState?.(appliance.entityId) : null;
+  if (appliance.entityId && !primaryEntityProblem && !primary) primaryEntityProblem = "primary-entity-missing";
   let raw = primary?.state;
   let statusEntityState = null;
   let statusEntityProblem = null;
@@ -54,14 +53,14 @@ export function normalizeAppliance(runtime = {}, appliance = {}) {
       else raw = statusEntityState.state;
     }
   }
-  let status = !appliance.entityId || !primary ? "missing" : applianceStatus(raw, appliance.statusMappings || appliance);
+  let status = primaryEntityProblem === "invalid-primary-entity-id" ? "malformed" : primaryEntityProblem ? "missing" : applianceStatus(raw, appliance.statusMappings || appliance);
   if (statusEntityProblem) status = "malformed";
   const power = appliance.powerEntityId ? normalizeMeasurement(runtime, appliance.powerEntityId, { kind: "power", unit: appliance.powerUnit || "W", precision: appliance.precision ?? 0, staleAfterMs: appliance.staleAfterMs, locale: runtime.locale }) : null;
   const energy = appliance.energyEntityId ? normalizeMeasurement(runtime, appliance.energyEntityId, { kind: "energy", unit: appliance.energyUnit || "kWh", precision: appliance.precision ?? 1, staleAfterMs: appliance.staleAfterMs, locale: runtime.locale }) : null;
   const progress = appliance.progressEntityId ? normalizeMeasurement(runtime, appliance.progressEntityId, { kind: "percent", precision: 0, staleAfterMs: appliance.staleAfterMs, locale: runtime.locale }) : null;
   const remainingTime = appliance.remainingTimeEntityId ? normalizeRemainingTime(runtime, appliance.remainingTimeEntityId, { unit: appliance.remainingTimeUnit, staleAfterMs: appliance.staleAfterMs }) : null;
   return {
-    id: appliance.id, title: appliance.title || appliance.entityId || "Appliance", icon: appliance.icon || "", category: appliance.category || "generic", primaryEntityState: primary?.state, primaryState: raw, statusEntityProblem,
+    id: appliance.id, title: appliance.title || appliance.entityId || "Appliance", icon: appliance.icon || "", category: appliance.category || "generic", primaryEntityState: primary?.state, primaryState: raw, primaryEntityProblem, statusEntityProblem,
     normalizedStatus: status, available: !["missing", "unavailable", "malformed"].includes(status), active: status === "active", idle: status === "idle", paused: status === "paused", completed: status === "completed", error: status === "error", hasError: status === "error", missing: status === "missing", unavailable: status === "unavailable", malformed: status === "malformed",
     on: list(appliance.onStates).includes(String(raw)) || status === "active", currentPower: power, accumulatedEnergy: energy, progressPercent: progress, remainingTime, room: appliance.room || "", tags: list(appliance.tags), enabled: appliance.enabled !== false, displayFields: list(appliance.displayFields),
     actions: [appliance.primaryAction, appliance.secondaryAction, appliance.startAction, appliance.stopAction, appliance.pauseAction].filter(Boolean), primaryAction: appliance.primaryAction, secondaryAction: appliance.secondaryAction, switchEntityId: appliance.switchEntityId, missingPolicy: appliance.missingPolicy || "show", unavailablePolicy: appliance.unavailablePolicy || "show"
@@ -96,7 +95,6 @@ export function validateApplianceAction(action = {}) {
   if (action.target && typeof action.target !== "object") return { ok: false, reason: "invalid-target" };
   if (action.data && typeof action.data !== "object") return { ok: false, reason: "invalid-service-data" };
   if (action.type === "navigation") { const targets = [action.sectionId, action.viewId].filter(Boolean); if (targets.length !== 1) return { ok: false, reason: "navigation-target-required" }; }
-  if (action.type === "detail" && action.appliance && (!action.appliance.title && !action.appliance.entityId && !action.appliance.id)) return { ok:false, reason:"detail-appliance-required" };
   return { ok: true };
 }
 
@@ -130,9 +128,10 @@ function actionButton(action, runtime, label = defaultActionLabel(action), appli
 const shouldShow = (appliance, field) => !appliance.displayFields.length || appliance.displayFields.includes(field);
 const hiddenByPolicy = (a) => (a.missing && a.missingPolicy === "hide") || (a.unavailable && a.unavailablePolicy === "hide");
 export function renderApplianceTile(w, runtime = {}) {
-  const config = w.config || {}, source = config.appliance || configuredAppliances(w)[0] || {}, appliance = normalizeAppliance(runtime, source), n = article(w, "dm-appliance-tile");
+  const config = w.config || {}, source = config.appliance || configuredAppliances(w)[0] || {}, appliance = normalizeAppliance(runtime, source);
+  if (hiddenByPolicy(appliance)) { const hidden = el("article", { className: "dm-widget dm-appliance-tile", attrs: { hidden: "", "data-status": appliance.normalizedStatus, "data-hidden-by-policy": appliance.normalizedStatus } }); return hidden; }
+  const n = article(w, "dm-appliance-tile");
   n.dataset.status = appliance.normalizedStatus;
-  if (hiddenByPolicy(appliance)) { n.setAttribute("hidden", ""); n.dataset.hiddenByPolicy = appliance.normalizedStatus; return n; }
   n.append(el("p", { text: `${appliance.icon || appliance.category} ${appliance.title}: ${appliance.normalizedStatus}` }));
   if (shouldShow(appliance, "power")) n.append(el("p", { text: `Power: ${appliance.currentPower?.displayValue || "Unavailable"}` }));
   if (shouldShow(appliance, "energy")) n.append(el("p", { text: `Energy: ${appliance.accumulatedEnergy?.displayValue || "Unavailable"}` }));
