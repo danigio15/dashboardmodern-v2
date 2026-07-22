@@ -8,6 +8,8 @@ import { renderWidget } from "../src/widgets/runtime.js";
 import { HOME_MODULE, evaluateAlertRule, aggregateHomeStatus } from "../src/modules/home.js";
 import { LIGHTS_MODULE, lightCapabilities, normalizeLight, summarizeLights } from "../src/modules/lights.js";
 import { registerBuiltInModules } from "../src/modules/bootstrap.js";
+import { COVERS_MODULE, normalizeCover, coverCapabilities, renderCoverTile, renderCoverGroup, renderCoversOverview } from "../src/modules/covers.js";
+import { CLIMATE_MODULE, normalizeClimate, climateCapabilities, renderClimateTile, renderClimateGroup, renderClimateOverview } from "../src/modules/climate.js";
 
 class Node { constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.attributes={};this.listeners={};this.style={};this._text="";this.disabled=false;this.value="";this.checked=false;this.focusCount=0;} append(...c){this.children.push(...c); for(const x of c) if(x) x.parentNode=this;} remove(){ if(this.parentNode) this.parentNode.children=this.parentNode.children.filter(c=>c!==this); } replaceChildren(...c){ this.children=[]; this.append(...c); } getAttribute(k){return this.attributes[k];} setAttribute(k,v){this.attributes[k]=String(v); if(k==="disabled")this.disabled=true; if(k==="value")this.value=String(v); if(k.startsWith("data-")) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);} addEventListener(t,f){this.listeners[t]=f;} focus(){ globalThis.document.activeElement=this; this.focused=true; this.focusCount++; } querySelector(sel){return this.querySelectorAll(sel)[0]||null;} querySelectorAll(sel){const tags=sel.split(",").map(x=>x.trim()); const out=[]; const walk=n=>{if(tags.includes(n.tagName)||tags.includes(`[${Object.keys(n.attributes)[0]}]`))out.push(n); for(const c of n.children)walk(c)}; walk(this); return out;} get textContent(){return this._text+this.children.map(c=>c.textContent).join("");} set textContent(v){this._text=String(v);this.children=[];} }
 const body = new Node("body");
@@ -17,10 +19,14 @@ const runtime = { hass: { states: {} }, getEntityState(id){ return this.hass.sta
 test("Home and Lights modules register independently with deterministic contributions", () => {
   const manager = createPluginManager({ sectionRegistry: createSectionRegistry(), cardRegistry: createCardRegistry(), widgetRegistry: createWidgetRegistry() });
   registerBuiltInModules({ pluginManager: manager });
-  assert.deepEqual(manager.listModules().map(m=>m.id), ["home", "lights"]);
-  assert.equal(manager.contributions().widgets.length, 11);
+  assert.deepEqual(manager.listModules().map(m=>m.id), ["climate", "covers", "home", "lights"]);
+  assert.equal(manager.contributions().widgets.length, 19);
   assert.throws(()=>manager.registerModule(HOME_MODULE), /already registered/);
+  assert.throws(()=>manager.registerModule(COVERS_MODULE), /already registered/);
+  assert.throws(()=>manager.registerModule(CLIMATE_MODULE), /already registered/);
   assert.equal(LIGHTS_MODULE.defaultLayouts[0].widgets[0], "lights-overview");
+  assert.equal(COVERS_MODULE.defaultLayouts[0].widgets[0], "covers-overview");
+  assert.equal(CLIMATE_MODULE.defaultLayouts[0].widgets[0], "climate-overview");
 });
 
 test("widget runtime renders registered widgets and safe unknown fallback", () => {
@@ -191,4 +197,49 @@ test("detail panel traps Tab in both directions skips disabled and cleanup is id
   globalThis.document.activeElement=focusables[0]; panel.listeners.keydown({ key:"Tab", shiftKey:true, preventDefault(){prevented++;} }); assert.equal(globalThis.document.activeElement, focusables.at(-1));
   globalThis.document.listeners.keydown({ key:"Escape" }); globalThis.document.listeners.keydown?.({ key:"Escape" });
   assert.equal(trigger.focusCount, 1); assert.equal(globalThis.document.listeners.keydown, undefined); assert.equal(body.children.length, 0); assert.equal(prevented, 2);
+});
+
+
+test("Covers module normalization actions groups and overview use runtime only", async () => {
+  runtime.calls=[]; runtime.hass.states={
+    "cover.door":{state:"open",attributes:{friendly_name:"Garage",device_class:"garage",supported_features:15,current_position:120,current_tilt_position:"bad"}},
+    "cover.shade":{state:"closing",attributes:{friendly_name:"Shade",supported_features:255,current_position:50,current_tilt_position:-5}},
+    "cover.bad":{state:"open",attributes:null}
+  };
+  assert.equal(coverCapabilities(runtime.hass.states["cover.shade"]).setTiltPosition,true);
+  assert.equal(normalizeCover(runtime,"cover.door").currentPosition,100);
+  assert.equal(normalizeCover(runtime,"cover.shade").currentTiltPosition,0);
+  assert.equal(normalizeCover(runtime,"cover.bad").status,"malformed");
+  assert.equal(normalizeCover(runtime,"cover.missing").status,"missing");
+  const tile=renderCoverTile({type:"cover-tile",config:{entityId:"cover.door"}},runtime);
+  await tile.querySelectorAll("button").find(b=>b.textContent==="Close").listeners.click();
+  assert.deepEqual(runtime.calls.at(-1),["cover","close_cover",{entity_id:"cover.door"}]);
+  const group=renderCoverGroup({type:"cover-group",config:{entityIds:["cover.door","cover.shade"],sharedPositionEnabled:true,sharedTiltEnabled:true,scenes:[{entityId:"scene.movie",title:"Movie"}]}},runtime);
+  assert.match(group.textContent,/2 available/);
+  const sliders=group.querySelectorAll("input"); sliders[0].value="33"; await sliders[0].listeners.change(); sliders[1].value="44"; await sliders[1].listeners.change();
+  assert.ok(runtime.calls.some(c=>c[1]==="set_cover_position"&&c[2].position===33));
+  assert.ok(runtime.calls.some(c=>c[1]==="set_cover_tilt_position"&&c[2].tilt_position===44));
+  const ov=renderCoversOverview({type:"covers-overview",config:{entityIds:["cover.door","cover.shade"],search:"garage"}},runtime);
+  assert.match(ov.textContent,/Garage/); assert.doesNotMatch(ov.textContent,/Shade: closing/);
+});
+
+test("Climate module normalization actions groups and overview use runtime only", async () => {
+  runtime.calls=[]; runtime.hass.states={
+    "climate.hall":{state:"heat",attributes:{friendly_name:"Hall",supported_features:123,hvac_modes:["off","heat","cool"],hvac_action:"heating",current_temperature:70,temperature:100,min_temp:50,max_temp:90,target_temp_step:0.5,current_humidity:45,fan_modes:["auto"],preset_modes:["eco"],swing_modes:["on"]}},
+    "climate.bed":{state:"cool",attributes:{friendly_name:"Bed",supported_features:3,hvac_modes:["off","cool"],hvac_action:"cooling",current_temperature:75,target_temp_low:40,target_temp_high:120,min_temp:60,max_temp:80,target_temp_step:1}},
+    "climate.bad":{state:"heat",attributes:null}
+  };
+  assert.equal(climateCapabilities(runtime.hass.states["climate.hall"]).presetMode,true);
+  assert.equal(normalizeClimate(runtime,"climate.hall").targetTemperature,90);
+  assert.equal(normalizeClimate(runtime,"climate.bed").targetLow,60);
+  assert.equal(normalizeClimate(runtime,"climate.bad").status,"malformed");
+  assert.equal(normalizeClimate(runtime,"climate.missing").status,"missing");
+  const tile=renderClimateTile({type:"climate-tile",config:{entityId:"climate.hall"}},runtime);
+  await tile.querySelectorAll("button").find(b=>b.textContent==="Turn off").listeners.click();
+  assert.deepEqual(runtime.calls.at(-1),["climate","turn_off",{entity_id:"climate.hall"}]);
+  const group=renderClimateGroup({type:"climate-group",config:{entityIds:["climate.hall","climate.bed"],permittedModes:["heat"]}},runtime);
+  assert.match(group.textContent,/1 heating/); await group.querySelectorAll("button").find(b=>b.textContent==="Set heat").listeners.click();
+  assert.deepEqual(runtime.calls.at(-1),["climate","set_hvac_mode",{entity_id:"climate.hall",hvac_mode:"heat"}]);
+  const ov=renderClimateOverview({type:"climate-overview",config:{entityIds:["climate.hall","climate.bed"],search:"hall"}},runtime);
+  assert.match(ov.textContent,/Hall/); assert.doesNotMatch(ov.textContent,/Bed: cool/);
 });
