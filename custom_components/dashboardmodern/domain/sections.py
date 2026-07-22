@@ -19,6 +19,7 @@ class Section:
     title: str
     card_ids: tuple[CardId, ...] = ()
     config: MappingProxyType[str, Any] = field(default_factory=lambda: _freeze_mapping(None))
+    type: str | None = None
 
     def __post_init__(self) -> None:
         """Validate and normalize section fields."""
@@ -39,10 +40,11 @@ class Section:
         title: str,
         card_ids: tuple[str | CardId, ...] = (),
         config: dict[str, Any] | None = None,
+        type: str | None = None,
     ) -> Self:
         """Create a section from primitive values."""
         return cls(
-            SectionId.from_raw(id), title, tuple(CardId.from_raw(i) for i in card_ids), _freeze_mapping(config)
+            SectionId.from_raw(id), title, tuple(CardId.from_raw(i) for i in card_ids), _freeze_mapping(config), type
         )
 
     @classmethod
@@ -55,7 +57,7 @@ class Section:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
         """Create a section from a serialized dictionary."""
-        return cls.create(data["id"], data["title"], tuple(data.get("card_ids", ())), data.get("config"))
+        return cls.create(data["id"], data["title"], tuple(data.get("card_ids", ())), data.get("config"), data.get("type"))
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this section into plain Python values."""
@@ -64,11 +66,12 @@ class Section:
             "title": self.title,
             "card_ids": [str(card_id) for card_id in self.card_ids],
             **({"config": _thaw_value(self.config)} if self.config else {}),
+            **({"type": self.type} if self.type else {}),
         }
 
     def __hash__(self) -> int:
         """Return a hash value compatible with section equality."""
-        return hash((self.id, self.title, self.card_ids, _hashable_value(self.config)))
+        return hash((self.id, self.title, self.card_ids, _hashable_value(self.config), self.type))
 
     def copy_with(self, **changes: Any) -> Self:
         """Return a copy with selected fields replaced."""

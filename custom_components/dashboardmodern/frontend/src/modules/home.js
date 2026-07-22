@@ -1,4 +1,3 @@
-import { DEFAULT_PLUGIN_MANAGER } from "../plugins/registry.js";
 import { el } from "../render/dom.js";
 import { renderWidgetLayout } from "../widgets/runtime.js";
 import { summarizeLights } from "./lights.js";
@@ -17,5 +16,3 @@ export function renderLightsSummary(w,r={}){const s=summarizeLights(r,w.config?.
 export function homeSectionRenderer(section,cards,context){const n=el("section",{className:"dashboardmodern-section dm-home-section",attrs:{"data-section-id":section.id}}); n.append(el("h3",{text:section.title||"Home"})); n.append(renderWidgetLayout(section.config?.widgets||[],context,context.widgetRegistry)); return n;}
 const widgets=[ ["home-hero","Home hero",renderHomeHero,()=>({title:"Home",subtitle:"",showGreeting:true,showDateTime:false})], ["weather-summary","Weather summary",renderWeatherSummary,()=>({entityId:"",displayedFields:["condition","temperature"]})], ["home-status","Home status",renderHomeStatus,()=>({metrics:[]})], ["alerts-summary","Alerts summary",renderAlerts,()=>({rules:[]})], ["quick-actions","Quick actions",renderQuickActions,()=>({actions:[]})], ["favorites","Favorites",renderFavorites,()=>({items:[]})], ["lights-summary","Lights summary",renderLightsSummary,()=>({entityIds:[],quickToggle:false})] ];
 export const HOME_MODULE={id:"home",schemaVersion:1,sections:[{type:"home",displayName:"Home",renderer:homeSectionRenderer}],widgets:widgets.map(([type,displayName,renderer,defaultConfig])=>({type,displayName,renderer,defaultConfig,schemaVersion:1,supportedLayoutSizes:["small","medium","large","full"]})),editorPanels:[{id:"home-editor",title:"Home editor"}],navigationEntries:[{sectionType:"home",icon:"home",title:"Home"}],actions:["navigate.view","navigate.section","service.call","entity.toggle","scene.turn_on","script.turn_on"],defaultLayouts:[{sectionType:"home",widgets:widgets.map(w=>w[0])}]};
-export function registerHomeModule(manager=DEFAULT_PLUGIN_MANAGER){if(manager.listModules().some(m=>m.id==="home"))return HOME_MODULE; try{manager.registerModule(HOME_MODULE);}catch(error){if(!/already registered/.test(error.message))throw error;} return HOME_MODULE;}
-registerHomeModule();

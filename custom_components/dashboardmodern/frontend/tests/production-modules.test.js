@@ -5,8 +5,9 @@ import { createSectionRegistry } from "../src/sections/registry.js";
 import { createCardRegistry } from "../src/cards/registry.js";
 import { createWidgetRegistry } from "../src/widgets/registry.js";
 import { renderWidget } from "../src/widgets/runtime.js";
-import { HOME_MODULE, registerHomeModule, evaluateAlertRule, aggregateHomeStatus } from "../src/modules/home.js";
-import { LIGHTS_MODULE, lightCapabilities, normalizeLight, summarizeLights, registerLightsModule } from "../src/modules/lights.js";
+import { HOME_MODULE, evaluateAlertRule, aggregateHomeStatus } from "../src/modules/home.js";
+import { LIGHTS_MODULE, lightCapabilities, normalizeLight, summarizeLights } from "../src/modules/lights.js";
+import { registerBuiltInModules } from "../src/modules/bootstrap.js";
 
 class Node { constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.attributes={};this.listeners={};this.style={};this._text="";} append(...c){this.children.push(...c);} setAttribute(k,v){this.attributes[k]=String(v); if(k.startsWith("data-")) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);} addEventListener(t,f){this.listeners[t]=f;} querySelectorAll(sel){const out=[]; const walk=n=>{if(sel==="button"&&n.tagName==="button")out.push(n); for(const c of n.children)walk(c)}; walk(this); return out;} get textContent(){return this._text+this.children.map(c=>c.textContent).join("");} set textContent(v){this._text=String(v);this.children=[];} }
 globalThis.document = { createElement: (tag) => new Node(tag) };
@@ -14,7 +15,7 @@ const runtime = { hass: { states: {} }, getEntityState(id){ return this.hass.sta
 
 test("Home and Lights modules register independently with deterministic contributions", () => {
   const manager = createPluginManager({ sectionRegistry: createSectionRegistry(), cardRegistry: createCardRegistry(), widgetRegistry: createWidgetRegistry() });
-  registerLightsModule(manager); registerHomeModule(manager);
+  registerBuiltInModules({ pluginManager: manager });
   assert.deepEqual(manager.listModules().map(m=>m.id), ["home", "lights"]);
   assert.equal(manager.contributions().widgets.length, 11);
   assert.throws(()=>manager.registerModule(HOME_MODULE), /already registered/);

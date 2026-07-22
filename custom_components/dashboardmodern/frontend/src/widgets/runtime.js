@@ -2,28 +2,17 @@ import { DEFAULT_WIDGET_REGISTRY, defaultWidgetContract, validateWidgetContract 
 import { el, emptyState, safeDomId } from "../render/dom.js";
 
 const SIZES = new Set(["small", "medium", "large", "full"]);
-export function normalizeWidgetSize(widget = {}) { const size = widget?.layout?.size || widget?.size || "medium"; return SIZES.has(size) ? size : "medium"; }
-export function renderUnknownWidget(widget = {}) {
-  const node = el("article", { className: "dm-widget dm-widget-unknown", attrs: { id: safeDomId("widget", widget.id), "data-widget-id": widget.id || "", "data-widget-type": widget.type || "", "data-widget-size": normalizeWidgetSize(widget), "data-unsupported-widget": "" } });
-  node.append(el("h3", { text: widget.title || "Unsupported widget" }));
-  node.append(emptyState(`Unsupported widget type: ${widget.type || "missing"}. It remains safe to edit and save.`));
-  return node;
-}
-export function renderWidget(widget, context = {}, registry = DEFAULT_WIDGET_REGISTRY) {
-  const normalized = defaultWidgetContract(widget || {});
-  const errors = validateWidgetContract(normalized);
-  const definition = registry.get(normalized.type);
-  if (errors.length || !definition?.renderer) return renderUnknownWidget(normalized);
-  const merged = { ...normalized, config: { ...(typeof definition.defaultConfig === "function" ? definition.defaultConfig() : {}), ...normalized.config } };
-  const validation = definition.validator?.(merged.config, merged) || [];
-  if (validation.length) return renderUnknownWidget(merged);
-  const node = definition.renderer(merged, context);
-  node.dataset.widgetId = merged.id; node.dataset.widgetType = merged.type; node.dataset.widgetSize = normalizeWidgetSize(merged);
-  return node;
-}
-export function renderWidgetLayout(widgets = [], context = {}, registry = DEFAULT_WIDGET_REGISTRY) {
-  const grid = el("div", { className: "dm-widget-grid", attrs: { "data-widget-layout": "" } });
-  for (const widget of widgets.filter((w) => w?.enabled !== false && w?.visibility?.enabled !== false)) grid.append(renderWidget(widget, context, registry));
-  if (!grid.children.length) grid.append(emptyState("No widgets configured."));
-  return grid;
-}
+function clone(value) { if (Array.isArray(value)) return value.map(clone); if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, clone(v)])); return value; }
+function deepMerge(base, patch) { const out = clone(base || {}); for (const [key, value] of Object.entries(patch || {})) out[key] = value && typeof value === "object" && !Array.isArray(value) && out[key] && typeof out[key] === "object" && !Array.isArray(out[key]) ? deepMerge(out[key], value) : clone(value); return out; }
+export function normalizeWidgetSize(widget = {}, definition = null) { const size = widget?.layout?.size || widget?.size || "medium"; const allowed = new Set(definition?.supportedLayoutSizes || SIZES); return SIZES.has(size) && allowed.has(size) ? size : (allowed.has("medium") ? "medium" : [...allowed][0] || "medium"); }
+export function getWidgetRenderer(type, registry = DEFAULT_WIDGET_REGISTRY) { return registry.get(type)?.renderer || null; }
+export function getWidgetEditor(type, registry = DEFAULT_WIDGET_REGISTRY) { return registry.get(type)?.editor || null; }
+export function getWidgetValidator(type, registry = DEFAULT_WIDGET_REGISTRY) { return registry.get(type)?.validator || null; }
+export function orderedWidgets(widgets = []) { return [...widgets].map((widget, index) => ({ widget, index })).sort((a, b) => Number.isFinite(a.widget?.order) && Number.isFinite(b.widget?.order) ? a.widget.order - b.widget.order || a.index - b.index : Number.isFinite(a.widget?.order) ? -1 : Number.isFinite(b.widget?.order) ? 1 : a.index - b.index).map((item) => item.widget); }
+function shell(widget, kind, message) { const normalized = defaultWidgetContract(widget || {}); const node = el("article", { className: `dm-widget dm-widget-${kind}`, attrs: { id: safeDomId("widget", normalized.id), "data-widget-id": normalized.id, "data-widget-type": normalized.type, "data-widget-size": normalizeWidgetSize(normalized), "data-widget-error-kind": kind } }); node.append(el("h3", { text: normalized.title || (kind === "unknown" ? "Unsupported widget" : "Widget configuration issue") })); node.append(emptyState(message)); return node; }
+export function renderUnknownWidget(widget = {}) { return shell(widget, "unknown", `Unsupported widget type: ${widget.type || "missing"}. It remains safe to edit and save.`); }
+export function renderInvalidWidget(widget = {}, errors = []) { return shell(widget, "invalid", `Invalid widget configuration: ${errors.map((error) => error.message).join(" ") || "configuration failed validation"}`); }
+export function renderWidgetError(widget = {}, error) { return shell(widget, "error", `This widget could not be rendered: ${error?.message || "Unknown renderer error"}`); }
+export function normalizeWidgetForRender(widget, definition) { const normalized = defaultWidgetContract(clone(widget || {})); const defaultConfig = typeof definition?.defaultConfig === "function" ? definition.defaultConfig(normalized.schemaVersion) : {}; return { ...normalized, schemaVersion: normalized.schemaVersion || definition?.schemaVersion || 1, layout: { ...(normalized.layout || {}), size: normalizeWidgetSize(normalized, definition) }, config: deepMerge(defaultConfig, normalized.config) }; }
+export function renderWidget(widget, context = {}, registry = DEFAULT_WIDGET_REGISTRY) { const base = defaultWidgetContract(clone(widget || {})); const contractErrors = validateWidgetContract(base); if (contractErrors.length) return renderInvalidWidget(base, contractErrors); const definition = registry.get(base.type); if (!definition?.renderer) return renderUnknownWidget(base); const normalized = normalizeWidgetForRender(base, definition); const validation = definition.validator?.(normalized.config, normalized) || []; if (validation.length) return renderInvalidWidget(normalized, validation); try { const node = definition.renderer(normalized, context); node.dataset.widgetId = normalized.id; node.dataset.widgetType = normalized.type; node.dataset.widgetSize = normalizeWidgetSize(normalized, definition); return node; } catch (error) { return renderWidgetError(normalized, error); } }
+export function renderWidgetLayout(widgets = [], context = {}, registry = DEFAULT_WIDGET_REGISTRY) { const grid = el("div", { className: "dm-widget-grid", attrs: { "data-widget-layout": "" } }); for (const widget of orderedWidgets(widgets).filter((w) => w?.enabled !== false && w?.visibility?.enabled !== false)) grid.append(renderWidget(widget, context, registry)); if (!grid.children.length) grid.append(emptyState("No widgets configured.")); return grid; }

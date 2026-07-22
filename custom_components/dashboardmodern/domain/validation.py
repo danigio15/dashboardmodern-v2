@@ -53,6 +53,5 @@ def ensure_non_empty_hierarchy(
     if section_count == 0:
         msg = "Dashboard must contain at least one section"
         raise InvalidHierarchyError(msg)
-    if card_count == 0:
-        msg = "Dashboard must contain at least one card"
-        raise InvalidHierarchyError(msg)
+    # Widget-provided sections may legitimately have no cards. Per-section
+    # validation decides whether each section has card or widget content.

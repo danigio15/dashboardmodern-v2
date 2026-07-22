@@ -8,12 +8,16 @@ import { renderCardForm } from "./editor/card-form.js";
 import { renderDashboardForm } from "./editor/dashboard-form.js";
 import { renderSectionForm } from "./editor/section-form.js";
 import { renderViewForm } from "./editor/view-form.js";
+import { renderWidgetEditor } from "./editor/widget-editor.js";
 import { CardReorderController } from "./editor/reorder.js";
 import { bindBottomNavigation } from "./navigation/bottom-navigation.js";
-import "./modules/home.js";
-import "./modules/lights.js";
+import { registerBuiltInModules } from "./modules/bootstrap.js";
+
+let builtInModulesRegistered = false;
+export function ensureBuiltInModulesRegistered() { if (!builtInModulesRegistered) { registerBuiltInModules(); builtInModulesRegistered = true; } }
 
 export function createDashboardModernShell(root, entryIds = []) {
+  ensureBuiltInModulesRegistered();
   root.innerHTML = `
     <link rel="stylesheet" href="/dashboardmodern_static/styles.css" />
     <main class="dashboardmodern-shell" data-dashboardmodern-app>
@@ -151,27 +155,24 @@ export function createDashboardPayload(values) {
   return {
     id,
     title: values.title.trim(),
-    config: { branding: { title: values.title.trim(), subtitle: "Premium Home Assistant dashboard", logoRef: "", accentColor: "#22c55e" }, theme: { mode: "auto", accentColor: "#22c55e" }, navigation: { placement: "bottom", visibilityMode: "fixed", overflowMode: "scroll", showLabels: true, compactMode: false, itemSize: "medium", autoHideDelay: 2500, edgeIndicators: true } },
+    config: { widgets_enabled: true, branding: { title: values.title.trim(), subtitle: "Premium Home Assistant dashboard", logoRef: "", accentColor: "#22c55e" }, theme: { mode: "auto", accentColor: "#22c55e" }, navigation: { placement: "bottom", visibilityMode: "fixed", overflowMode: "scroll", showLabels: true, compactMode: false, itemSize: "medium", autoHideDelay: 2500, edgeIndicators: true } },
     views: [
       { id: `${id}-home-view`, title: "Home", section_ids: [`${id}-home`] },
       { id: `${id}-lights-view`, title: "Lights", section_ids: [`${id}-lights`] },
     ],
     sections: [
-      { id: `${id}-home`, title: "Home", type: "home", card_ids: [`${id}-home-anchor`], config: { widgets: [
+      { id: `${id}-home`, title: "Home", type: "home", card_ids: [], config: { widgets: [
         { id: `${id}-hero`, type: "home-hero", title: "Home", layout: { size: "full" }, config: { title: values.title.trim(), subtitle: "Welcome to DashboardModern", showGreeting: true, showDateTime: true } },
         { id: `${id}-weather`, type: "weather-summary", title: "Weather", layout: { size: "medium" }, config: { entityId: "", displayedFields: ["condition", "temperature", "humidity"] } },
         { id: `${id}-status`, type: "home-status", title: "Home Status", layout: { size: "medium" }, config: { metrics: [] } },
         { id: `${id}-actions`, type: "quick-actions", title: "Quick Actions", layout: { size: "medium" }, config: { actions: [] } },
         { id: `${id}-lights-summary`, type: "lights-summary", title: "Lights", layout: { size: "medium" }, config: { entityIds: [], quickToggle: false } },
       ] } },
-      { id: `${id}-lights`, title: "Lights", type: "lights", card_ids: [`${id}-lights-anchor`], config: { widgets: [
+      { id: `${id}-lights`, title: "Lights", type: "lights", card_ids: [], config: { widgets: [
         { id: `${id}-lights-overview`, type: "lights-overview", title: "Lights Overview", layout: { size: "full" }, config: { entityIds: [], confirmAllOff: true, sort: "name", filters: {} } },
       ] } },
     ],
-    cards: [
-      { id: `${id}-home-anchor`, title: "Home module anchor", type: "legacy-panel", config: { subtitle: "", status: "", body: "Home module widgets render from the section registry." } },
-      { id: `${id}-lights-anchor`, title: "Lights module anchor", type: "legacy-panel", config: { subtitle: "", status: "", body: "Lights module widgets render from the section registry." } },
-    ],
+    cards: [],
   };
 }
 function validateDashboardCreation(values) {
@@ -410,6 +411,7 @@ export function renderVisualEditor(container, state, editorController) {
   panel.append(renderViewForm(doc, selectedView, editorController));
   panel.append(renderSectionForm(doc, selectedSection, editorController));
   panel.append(renderCardForm(doc, selectedCard, editorController, state.editor.validationErrors, state.editor.fieldText, editorController.cardRegistry));
+  panel.append(renderWidgetEditor(doc, selectedSection, editorController));
   const list = doc.createElement("div"); list.className="dashboardmodern-editor-tree"; panel.append(list);
   for (const view of draft.views || []) {
     const vb = doc.createElement("button"); vb.type="button"; vb.textContent = `View: ${view.title || view.id}`; vb.addEventListener("click", () => editorController.select({viewId:view.id,sectionId:null,cardId:null})); list.append(vb);
