@@ -1,11 +1,11 @@
 import { el } from "../render/dom.js";
 let activeClose=null, seq=0;
-function focusables(panel){return [...panel.querySelectorAll?.("button,input,select,textarea,[tabindex]")||[]].filter((n)=>!n.disabled&&n.getAttribute?.("aria-hidden")!=="true");}
+function focusables(panel){return [...panel.querySelectorAll?.("button,input,select,textarea,a,[tabindex]")||[]].filter((n)=>!n.disabled&&n.getAttribute?.("aria-disabled")!=="true"&&n.getAttribute?.("aria-hidden")!=="true"&&n.getAttribute?.("hidden")===undefined&&n.getAttribute?.("tabindex")!=="-1"&&(n.tagName!=="a"||n.getAttribute?.("href")));}
 export function openSharedDetailPanel({ render, trigger=null, label="Detail panel" }={}){
   activeClose?.();
   const doc=globalThis.document;
   let host=doc?.querySelector?.("[data-dashboardmodern-detail-host]");
-  if(!host){host=el("div",{className:"dm-detail-host",attrs:{"data-dashboardmodern-detail-host":"",role:"presentation"}});doc?.body?.append?.(host);}
+  if(!host){host=el("div",{className:"dm-detail-host dm-detail-modal-overlay",attrs:{"data-dashboardmodern-detail-host":"",role:"presentation","data-detail-mode":"modal-overlay"}});doc?.body?.append?.(host);}
   let closed=false;
   const id=`dm-detail-panel-${++seq}`;
   const close=()=>{if(closed)return;closed=true;host.replaceChildren?.();host.remove?.();doc?.removeEventListener?.("keydown",onGlobalKey);if(activeClose===close)activeClose=null;trigger?.focus?.();};

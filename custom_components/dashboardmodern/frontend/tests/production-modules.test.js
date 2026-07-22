@@ -58,6 +58,7 @@ import { renderHomeHero, renderWeatherSummary, renderQuickActions, renderFavorit
 import { filteredLights, normalizeColorTemperature, supportedLightData, renderLightGroup, renderLightsOverview, openLightDetailPanel, renderLightTile, createLightActionState } from "../src/modules/lights.js";
 import { renderWidgetSpecificEditor } from "../src/editor/widget-editor.js";
 import { addSection, createIdGenerator } from "../src/editor/commands.js";
+import { EditorController } from "../src/editor/editor-controller.js";
 
 test("Home hero consumes showDate showTime greetingText and locale", () => {
   const node = renderHomeHero({ id:"hero", type:"home-hero", config:{ title:"Casa", greetingText:"Hola", showDate:true, showTime:true } }, { locale:"es-ES" });
@@ -334,4 +335,43 @@ test("structured scene and mapping editors keep stable rows and validation block
   const updates=[]; const controller={state:{validationErrors:[],fieldText:{}},store:{setState(s){controller.state=s.editor;}},updateWidget(s,w,p){updates.push(p);}}; const section={id:"s"};
   const sceneEditor=renderWidgetSpecificEditor(document,section,{id:"g",type:"cover-group",config:{scenes:[{id:"scene-row",title:"Movie",entityId:"scene.movie"}]}},controller); assert.match(sceneEditor.textContent,/Scene row ID/); const badScene=sceneEditor.querySelectorAll("input").find(i=>i.dataset.editorField==="widget:g:scenes.0.entityId"); badScene.value="script.bad"; badScene.listeners.input(); assert.equal(controller.state.fieldText["widget:g:scenes.0.entityId"],"script.bad");
   const mapEditor=renderWidgetSpecificEditor(document,section,{id:"ov",type:"climate-overview",config:{rooms:{"climate.good":"Hall"},tags:{"climate.good":["main"]}}},controller); assert.match(mapEditor.textContent,/Mapping row ID/); const badMap=mapEditor.querySelectorAll("input").find(i=>i.dataset.editorField==="widget:ov:mappings.0.entityId"); badMap.value="cover.bad"; badMap.listeners.input(); assert.equal(controller.state.fieldText["widget:ov:mappings.0.entityId"],"cover.bad"); assert.ok(controller.state.validationErrors.length>=2);
+});
+
+
+test("bulk confirmation cancel paths skip services and confirm paths execute", async () => {
+  let allow=false, confirms=0; globalThis.confirm=()=>{confirms++;return allow;}; runtime.calls=[]; runtime.hass.states={
+    "cover.c":{state:"opening",attributes:{supported_features:255,current_position:10,current_tilt_position:20}},
+    "climate.c":{state:"heat",attributes:{supported_features:19,hvac_modes:["off","heat"],temperature:70,min_temp:60,max_temp:80,target_temp_step:1,temperature_unit:"°F",preset_modes:["eco"]}}
+  };
+  const cov=renderCoverGroup({type:"cover-group",config:{entityIds:["cover.c"],sharedPositionEnabled:true,sharedTiltEnabled:true,confirmBulk:true,scenes:[{id:"s1",title:"Movie",entityId:"scene.movie"}]}},runtime);
+  await cov.querySelectorAll("button").find(b=>b.textContent==="Open group").listeners.click(); await cov.querySelectorAll("button").find(b=>b.textContent==="Movie").listeners.click(); cov.querySelectorAll("input")[0].value="50"; await cov.querySelectorAll("input")[0].listeners.change(); assert.equal(runtime.calls.length,0);
+  allow=true; await cov.querySelectorAll("button").find(b=>b.textContent==="Open group").listeners.click(); await cov.querySelectorAll("button").find(b=>b.textContent==="Movie").listeners.click(); assert.ok(runtime.calls.some(c=>c[1]==="open_cover")); assert.ok(runtime.calls.some(c=>c[0]==="scene"));
+  allow=false; runtime.calls=[]; const overview=renderCoversOverview({type:"covers-overview",config:{entityIds:["cover.c"],confirmBulk:true}},runtime); await overview.querySelectorAll("button").find(b=>b.textContent==="Stop all").listeners.click(); assert.equal(runtime.calls.length,0); allow=true; await overview.querySelectorAll("button").find(b=>b.textContent==="Stop all").listeners.click(); assert.ok(runtime.calls.some(c=>c[1]==="stop_cover"));
+  allow=false; runtime.calls=[]; const cl=renderClimateGroup({type:"climate-group",config:{entityIds:["climate.c"],permittedModes:["heat"],permittedPresets:["eco"],bulkTemperatureEnabled:true,bulkRangeEnabled:true,confirmBulk:true}},runtime);
+  await cl.querySelectorAll("button").find(b=>b.textContent==="Set heat").listeners.click(); await cl.querySelectorAll("button").find(b=>b.textContent==="Preset eco").listeners.click(); const nums=cl.querySelectorAll("input"); nums[0].value="71"; await nums[0].listeners.change(); nums[1].value="65"; nums[2].value="75"; await nums[2].listeners.change(); assert.equal(runtime.calls.length,0); assert.ok(confirms>=7);
+});
+
+test("bulk range rejects mixed units and invalid low high with visible errors", async () => {
+  runtime.calls=[]; runtime.hass.states={
+    "climate.f":{state:"heat",attributes:{supported_features:2,hvac_modes:["heat"],target_temp_low:60,target_temp_high:75,min_temp:55,max_temp:80,target_temp_step:0.5,temperature_unit:"°F"}},
+    "climate.c":{state:"heat",attributes:{supported_features:2,hvac_modes:["heat"],target_temp_low:18,target_temp_high:23,min_temp:10,max_temp:30,target_temp_step:0.1,temperature_unit:"°C"}}
+  };
+  const mixed=renderClimateGroup({type:"climate-group",config:{entityIds:["climate.f","climate.c"],bulkRangeEnabled:true}},runtime); assert.equal(mixed.querySelectorAll("input")[0].disabled,true); assert.match(mixed.textContent,/Mixed units/);
+  runtime.hass.states["climate.c"].attributes.temperature_unit="°F"; runtime.hass.states["climate.c"].attributes.min_temp=60; runtime.hass.states["climate.c"].attributes.max_temp=80;
+  const group=renderClimateGroup({type:"climate-group",config:{entityIds:["climate.f","climate.c"],bulkRangeEnabled:true}},runtime); const inputs=group.querySelectorAll("input"); assert.equal(inputs[0].attributes.min,"60"); assert.equal(inputs[0].attributes.max,"80"); assert.equal(inputs[0].attributes.step,"0.5"); inputs[0].value="78"; inputs[1].value="70"; await inputs[1].listeners.change(); assert.match(group.textContent,/Low target/); assert.equal(runtime.calls.length,0);
+});
+
+test("structured mappings persist IDs through edit reorder and migration", () => {
+  const updates=[]; const controller={state:{validationErrors:[],fieldText:{}},store:{setState(s){controller.state=s.editor;}},updateWidget(s,w,p){updates.push(p);}}; const section={id:"s"};
+  const editor=renderWidgetSpecificEditor(document,section,{id:"ovp",type:"covers-overview",config:{mappings:[{id:"row-a",entityId:"cover.a",room:"A",tags:["one"]},{id:"row-b",entityId:"cover.b",room:"B",tags:[]}] }},controller);
+  editor.querySelectorAll("input").find(i=>i.dataset.editorField==="widget:ovp:mappings.0.room").value="AA"; editor.querySelectorAll("input").find(i=>i.dataset.editorField==="widget:ovp:mappings.0.room").listeners.input(); assert.equal(updates.at(-1).config.mappings[0].id,"row-a");
+  editor.querySelectorAll("button").find(b=>b.textContent==="Down").listeners.click(); assert.deepEqual(updates.at(-1).config.mappings.map(m=>m.id),["row-b","row-a"]);
+  const migrated=renderWidgetSpecificEditor(document,section,{id:"ovm",type:"covers-overview",config:{rooms:{"cover.x":"X"},tags:{"cover.x":["tag"]}}},controller); assert.match(migrated.textContent,/Mapping row ID/); migrated.querySelectorAll("button").find(b=>b.textContent==="Add mapping").listeners.click(); assert.ok(updates.at(-1).config.mappings.at(-1).id.startsWith("mapping-"));
+});
+
+test("registered section creation avoids widget collisions and save cancel semantics remain", async () => {
+  const dash={id:"d",views:[{id:"v",section_ids:[]}],sections:[{id:"existing",config:{widgets:[{id:"section-1-widget-1"}]},card_ids:[]}],cards:[]},gen=createIdGenerator("section",[1]);
+  const cfg={widgets:[{type:"covers-overview",config:{},layout:{size:"full"}},{type:"cover-tile",config:{entityId:""},layout:{size:"small"}}]}; const a=addSection(dash,"v",{type:"covers",config:cfg},gen); const b=addSection(a,"v",{type:"covers",config:cfg},gen); const c=addSection(b,"v",{type:"climate",config:{widgets:[{type:"climate-overview",config:{},layout:{size:"full"}}]}},gen); const d=addSection(c,"v",{type:"climate",config:{widgets:[{type:"climate-overview",config:{},layout:{size:"full"}}]}},gen);
+  assert.deepEqual(d.sections.slice(1).map(s=>s.id),["section-1","section-2","section-3","section-4"]); assert.equal(new Set(d.sections.flatMap(s=>s.config?.widgets?.map(w=>w.id)||[])).size,7); assert.equal(d.sections[1].config.widgets.length,2);
+  let active=d; const store={state:{activeDashboard:active,activeDashboardId:"d",editor:null,error:null},setState(p){this.state={...this.state,...p};},setMode(mode){this.state.mode=mode;},async replaceDashboard(next){active=next;this.state.activeDashboard=next;}}; const controller=new EditorController(store); await controller.enter(); controller.addSection("v",{type:"covers",config:cfg}); assert.equal(store.state.editor.dirty,true); await controller.cancel(); assert.equal(store.state.editor.editing,false); await controller.enter(); controller.addSection("v",{type:"covers",config:cfg}); assert.equal(store.state.editor.dirty,true); assert.ok(store.state.editor.draftDashboard.sections.some(s=>s.type==="covers"));
 });
