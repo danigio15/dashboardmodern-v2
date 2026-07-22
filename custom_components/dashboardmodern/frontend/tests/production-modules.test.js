@@ -9,8 +9,9 @@ import { HOME_MODULE, evaluateAlertRule, aggregateHomeStatus } from "../src/modu
 import { LIGHTS_MODULE, lightCapabilities, normalizeLight, summarizeLights } from "../src/modules/lights.js";
 import { registerBuiltInModules } from "../src/modules/bootstrap.js";
 
-class Node { constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.attributes={};this.listeners={};this.style={};this._text="";} append(...c){this.children.push(...c);} setAttribute(k,v){this.attributes[k]=String(v); if(k.startsWith("data-")) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);} addEventListener(t,f){this.listeners[t]=f;} querySelectorAll(sel){const out=[]; const walk=n=>{if(sel==="button"&&n.tagName==="button")out.push(n); for(const c of n.children)walk(c)}; walk(this); return out;} get textContent(){return this._text+this.children.map(c=>c.textContent).join("");} set textContent(v){this._text=String(v);this.children=[];} }
-globalThis.document = { createElement: (tag) => new Node(tag) };
+class Node { constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.attributes={};this.listeners={};this.style={};this._text="";this.disabled=false;this.value="";this.checked=false;} append(...c){this.children.push(...c); for(const x of c) if(x) x.parentNode=this;} remove(){ if(this.parentNode) this.parentNode.children=this.parentNode.children.filter(c=>c!==this); } replaceChildren(...c){ this.children=[]; this.append(...c); } setAttribute(k,v){this.attributes[k]=String(v); if(k==="disabled")this.disabled=true; if(k==="value")this.value=String(v); if(k.startsWith("data-")) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);} addEventListener(t,f){this.listeners[t]=f;} focus(){ globalThis.document.activeElement=this; this.focused=true; } querySelector(sel){return this.querySelectorAll(sel)[0]||null;} querySelectorAll(sel){const tags=sel.split(",").map(x=>x.trim()); const out=[]; const walk=n=>{if(tags.includes(n.tagName)||tags.includes(`[${Object.keys(n.attributes)[0]}]`))out.push(n); for(const c of n.children)walk(c)}; walk(this); return out;} get textContent(){return this._text+this.children.map(c=>c.textContent).join("");} set textContent(v){this._text=String(v);this.children=[];} }
+const body = new Node("body");
+globalThis.document = { body, activeElement:null, listeners:{}, createElement: (tag) => new Node(tag), addEventListener(t,f){this.listeners[t]=f;}, removeEventListener(t){delete this.listeners[t];}, querySelector(sel){ return sel==="[data-light-detail-host]" ? body.children.find(c=>"lightDetailHost" in c.dataset) || null : null; } };
 const runtime = { hass: { states: {} }, getEntityState(id){ return this.hass.states[id] || null; }, calls: [], callService(d,s,data){ this.calls.push([d,s,data]); return Promise.resolve(); } };
 
 test("Home and Lights modules register independently with deterministic contributions", () => {
@@ -48,7 +49,8 @@ test("Lights capabilities, malformed states, groups, and actions use runtime abs
   assert.deepEqual(runtime.calls[0], ["light", "turn_off", { entity_id:"light.rgbw" }]);
 });
 import { renderHomeHero, renderWeatherSummary, renderQuickActions, renderFavorites } from "../src/modules/home.js";
-import { filteredLights, normalizeColorTemperature, supportedLightData } from "../src/modules/lights.js";
+import { filteredLights, normalizeColorTemperature, supportedLightData, renderLightGroup, renderLightsOverview, openLightDetailPanel } from "../src/modules/lights.js";
+import { renderWidgetSpecificEditor } from "../src/editor/widget-editor.js";
 
 test("Home hero consumes showDate showTime greetingText and locale", () => {
   const node = renderHomeHero({ id:"hero", type:"home-hero", config:{ title:"Casa", greetingText:"Hola", showDate:true, showTime:true } }, { locale:"es-ES" });
@@ -94,4 +96,40 @@ test("Light service data covers RGBW RGBWW HS XY and Kelvin/mired color temperat
   assert.deepEqual(supportedLightData(base,{ hs:[370,120] }).hs_color, [360,100]);
   assert.deepEqual(supportedLightData(base,{ xy:[1.2,-1] }).xy_color, [1,0]);
   assert.deepEqual(normalizeColorTemperature({ attributes:{ min_mireds:153, max_mireds:500, color_temp:200 } }), { mode:"mired", field:"color_temp", min:153, max:500, value:200 });
+});
+
+
+test("structured editors expose distinct fields and collision-safe row IDs", () => {
+  const updates=[]; const controller={ state:{ validationErrors:[], fieldText:{} }, store:{ setState(s){ controller.state=s.editor; } }, updateWidget(s,w,p){ updates.push(p); } };
+  const section={ id:"s" };
+  const alertEditor=renderWidgetSpecificEditor(document,section,{ id:"alerts", type:"alerts-summary", config:{ rules:[{ id:"rules-1", title:"Door", operator:"on", entityId:"binary_sensor.door", severity:"warning" }] } },controller);
+  assert.match(alertEditor.textContent, /Operator/); assert.match(alertEditor.textContent, /Severity/);
+  const favEditor=renderWidgetSpecificEditor(document,section,{ id:"fav", type:"favorites", config:{ items:[{ id:"items-1", kind:"view", targetId:"v" }] } },controller);
+  assert.match(favEditor.textContent, /Type/);
+  const add = favEditor.querySelectorAll("button")[0]; add.listeners.click();
+  assert.notEqual(updates.at(-1).config.items.at(-1).id, "items-1");
+});
+
+test("Lights overview runtime controls update local filters", () => {
+  runtime.hass.states = { "light.a": { state:"on", attributes:{ friendly_name:"Kitchen", supported_color_modes:["brightness"] } }, "light.b": { state:"off", attributes:{ friendly_name:"Bedroom", supported_color_modes:[] } } };
+  const node = renderLightsOverview({ id:"ov", type:"lights-overview", config:{ entityIds:["light.a","light.b"], rooms:{"light.a":"Kitchen","light.b":"Bedroom"}, tags:{"light.a":["main"]}, sort:"name" } }, runtime);
+  const search = node.querySelectorAll("input").find(i=>i.attributes.type==="search"); search.value="bed"; search.listeners.input();
+  assert.match(node.textContent, /Bedroom/); assert.doesNotMatch(node.textContent, /Kitchen: on/);
+});
+
+test("group brightness uses shared pending/error state and mixed aggregate", async () => {
+  runtime.calls=[]; runtime.hass.states = { "light.a": { state:"on", attributes:{ brightness:64, supported_color_modes:["brightness"] } }, "light.b": { state:"on", attributes:{ brightness:200, supported_color_modes:["brightness"] } } };
+  const node = renderLightGroup({ id:"g", type:"light-group", config:{ entityIds:["light.a","light.b"], showBrightness:true } }, runtime);
+  const slider = node.querySelectorAll("input")[0]; assert.equal(slider.dataset.mixed, "true"); slider.value="50"; await slider.listeners.change();
+  assert.deepEqual(runtime.calls.map(c=>c[2].brightness), [128,128]);
+});
+
+test("light detail panel focus trap Escape restoration and color bounds", () => {
+  const trigger = new Node("button"); runtime.hass.states = { "light.rgbww": { state:"on", attributes:{ friendly_name:"RGBWW", supported_color_modes:["rgbww","hs"], rgbww_color:[1,2,3,4,5], hs_color:[10,50] } } };
+  const panel = openLightDetailPanel("light.rgbww", runtime, trigger);
+  assert.match(panel.textContent, /RGBWW color/);
+  const inputs = panel.querySelectorAll("input"); assert.ok(inputs.some(i=>i.attributes["aria-label"]==="WW"));
+  globalThis.document.listeners.keydown({ key:"Escape" });
+  assert.equal(trigger.focused, true);
+  assert.equal(globalThis.document.listeners.keydown, undefined);
 });
