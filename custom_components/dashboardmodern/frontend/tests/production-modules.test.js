@@ -8,8 +8,8 @@ import { renderWidget } from "../src/widgets/runtime.js";
 import { HOME_MODULE, evaluateAlertRule, aggregateHomeStatus } from "../src/modules/home.js";
 import { LIGHTS_MODULE, lightCapabilities, normalizeLight, summarizeLights } from "../src/modules/lights.js";
 import { registerBuiltInModules } from "../src/modules/bootstrap.js";
-import { COVERS_MODULE, normalizeCover, coverCapabilities, renderCoverTile, renderCoverGroup, renderCoversOverview } from "../src/modules/covers.js";
-import { CLIMATE_MODULE, normalizeClimate, climateCapabilities, renderClimateTile, renderClimateGroup, renderClimateOverview } from "../src/modules/climate.js";
+import { COVERS_MODULE, normalizeCover, coverCapabilities, renderCoverTile, renderCoverGroup, renderCoversOverview, openCoverDetailPanel } from "../src/modules/covers.js";
+import { CLIMATE_MODULE, normalizeClimate, climateCapabilities, renderClimateTile, renderClimateGroup, renderClimateOverview, renderClimatePanel, openClimateDetailPanel } from "../src/modules/climate.js";
 
 class Node { constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.attributes={};this.listeners={};this.style={};this._text="";this.disabled=false;this.value="";this.checked=false;this.focusCount=0;} append(...c){this.children.push(...c); for(const x of c) if(x) x.parentNode=this;} remove(){ if(this.parentNode) this.parentNode.children=this.parentNode.children.filter(c=>c!==this); } replaceChildren(...c){ this.children=[]; this.append(...c); } getAttribute(k){return this.attributes[k];} setAttribute(k,v){this.attributes[k]=String(v); if(k==="disabled")this.disabled=true; if(k==="value")this.value=String(v); if(k.startsWith("data-")) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);} addEventListener(t,f){this.listeners[t]=f;} focus(){ globalThis.document.activeElement=this; this.focused=true; this.focusCount++; } querySelector(sel){return this.querySelectorAll(sel)[0]||null;} querySelectorAll(sel){const tags=sel.split(",").map(x=>x.trim()); const out=[]; const walk=n=>{if(tags.includes(n.tagName)||tags.includes(`[${Object.keys(n.attributes)[0]}]`))out.push(n); for(const c of n.children)walk(c)}; walk(this); return out;} get textContent(){return this._text+this.children.map(c=>c.textContent).join("");} set textContent(v){this._text=String(v);this.children=[];} }
 const body = new Node("body");
@@ -262,7 +262,7 @@ test("Covers and Climate visual editors expose production fields and preserve in
 test("generic section creation accepts registered types with default widget layout", () => {
   const dash={ id:"d", views:[{id:"v",section_ids:[]}], sections:[], cards:[] }, gen=createIdGenerator("section",[1]);
   const next=addSection(dash,"v",{type:"covers",title:"Covers",config:{widgets:[{id:"covers-overview-default",type:"covers-overview",config:{entityIds:[]},layout:{size:"full"}}]}},gen);
-  assert.equal(next.sections[0].id,"section-1"); assert.equal(next.sections[0].type,"covers"); assert.deepEqual(next.sections[0].card_ids,[]); assert.equal(next.sections[0].config.widgets[0].type,"covers-overview");
+  assert.equal(next.sections[0].id,"section-1"); assert.equal(next.sections[0].type,"covers"); assert.deepEqual(next.sections[0].card_ids,[]); assert.equal(next.sections[0].config.widgets[0].type,"covers-overview"); assert.equal(next.sections[0].config.widgets[0].id,"section-1-widget-1");
   const standard=addSection(next,"v",{},gen); assert.equal(standard.sections[1].id,"section-2"); assert.equal(standard.sections[1].card_ids.length,0);
 });
 
@@ -280,4 +280,58 @@ test("overview controls support local filters sorting disabled bulk and clear", 
   globalThis.confirm=()=>true; await covers.querySelectorAll("button").find(b=>b.textContent==="Open all").listeners.click(); assert.ok(runtime.calls.some(c=>c[1]==="open_cover"));
   const climate=renderClimateOverview({type:"climate-overview",config:{entityIds:["climate.a","climate.b"],hvacAction:"heating",confirmAllOff:true}},runtime);
   assert.match(climate.textContent,/Bedroom/); assert.doesNotMatch(climate.textContent,/Hall: off/); await climate.querySelectorAll("button").find(b=>b.textContent==="Turn all off").listeners.click(); assert.ok(runtime.calls.some(c=>c[1]==="turn_off"&&c[2].entity_id==="climate.b"));
+});
+
+
+test("shared detail panel replaces across Lights Covers and Climate with exact focus restoration", () => {
+  body.replaceChildren(); let removed=0; const originalRemove=globalThis.document.removeEventListener; globalThis.document.removeEventListener=function(t){removed++; originalRemove.call(this,t);};
+  const lightTrigger=new Node("button"), coverTrigger=new Node("button"), climateTrigger=new Node("button");
+  runtime.hass.states={
+    "light.one":{state:"on",attributes:{friendly_name:"Light",supported_color_modes:[]}},
+    "cover.one":{state:"open",attributes:{friendly_name:"Cover",supported_features:15}},
+    "climate.one":{state:"heat",attributes:{friendly_name:"Climate",supported_features:1,hvac_modes:["off","heat"],temperature:70}}
+  };
+  const light=openLightDetailPanel("light.one",runtime,lightTrigger); assert.match(light.textContent,/Light detail/);
+  const cover=openCoverDetailPanel("cover.one",runtime,coverTrigger); assert.match(cover.textContent,/Cover detail/); assert.equal(lightTrigger.focusCount,1);
+  const climate=openClimateDetailPanel("climate.one",runtime,climateTrigger); assert.match(climate.textContent,/Climate detail/); assert.equal(coverTrigger.focusCount,1);
+  globalThis.document.listeners.keydown({key:"Escape",preventDefault(){}}); globalThis.document.listeners.keydown?.({key:"Escape",preventDefault(){}});
+  assert.equal(climateTrigger.focusCount,1); assert.ok(removed>=1); globalThis.document.removeEventListener=originalRemove;
+});
+
+test("bulk confirmations cover groups climate groups range and unique default widget ids", async () => {
+  let confirms=0; globalThis.confirm=()=>{confirms++;return true;}; runtime.calls=[]; runtime.hass.states={
+    "cover.a":{state:"opening",attributes:{supported_features:255,current_position:20,current_tilt_position:30}},"cover.b":{state:"closed",attributes:{supported_features:255,current_position:80,current_tilt_position:60}},
+    "climate.a":{state:"heat",attributes:{supported_features:19,hvac_modes:["off","heat"],temperature:70,min_temp:60,max_temp:80,target_temp_step:0.5,temperature_unit:"°F",preset_modes:["eco"]}},
+    "climate.b":{state:"heat",attributes:{supported_features:19,hvac_modes:["off","heat"],temperature:71,min_temp:65,max_temp:75,target_temp_step:1,temperature_unit:"°F",preset_modes:["eco"]}}
+  };
+  const cg=renderCoverGroup({type:"cover-group",config:{entityIds:["cover.a","cover.b"],sharedPositionEnabled:true,sharedTiltEnabled:true,confirmBulk:true}},runtime);
+  assert.equal(cg.attributes["data-mixed-state"],"true"); assert.equal(cg.attributes["data-mixed-tilt"],"true");
+  await cg.querySelectorAll("button").find(b=>b.textContent==="Open group").listeners.click();
+  await cg.querySelectorAll("button").find(b=>b.textContent==="Stop moving").listeners.click();
+  const sliders=cg.querySelectorAll("input"); assert.equal(sliders[0].value,"50"); assert.equal(sliders[1].value,"45"); await sliders[0].listeners.change(); await sliders[1].listeners.change();
+  const ng=renderCoverGroup({type:"cover-group",config:{nativeEntityId:"cover.a"}},runtime); assert.equal(ng.attributes["data-native-mode"],"true"); assert.match(ng.textContent,/Native cover group/);
+  const clg=renderClimateGroup({type:"climate-group",config:{entityIds:["climate.a","climate.b"],permittedModes:["heat"],permittedPresets:["eco"],bulkTemperatureEnabled:true,bulkRangeEnabled:true,confirmBulk:true}},runtime);
+  await clg.querySelectorAll("button").find(b=>b.textContent==="Turn all off").listeners.click(); await clg.querySelectorAll("button").find(b=>b.textContent==="Set heat").listeners.click(); await clg.querySelectorAll("button").find(b=>b.textContent==="Preset eco").listeners.click();
+  const nums=clg.querySelectorAll("input"); assert.equal(nums[0].attributes.min,"65"); assert.equal(nums[0].attributes.max,"75"); nums[0].value="70"; await nums[0].listeners.change(); nums[1].value="66"; nums[2].value="74"; await nums[2].listeners.change();
+  assert.ok(confirms>=8); assert.ok(runtime.calls.some(c=>c[1]==="set_cover_tilt_position")); assert.ok(runtime.calls.some(c=>c[1]==="set_preset_mode")); assert.ok(runtime.calls.some(c=>c[2].target_temp_low===66&&c[2].target_temp_high===74));
+  const dash={id:"d",views:[{id:"v",section_ids:[]}],sections:[],cards:[]},gen=createIdGenerator("section",[10]); const a=addSection(dash,"v",{type:"covers",config:{widgets:[{type:"covers-overview",config:{},layout:{size:"full"}}]}},gen); const b=addSection(a,"v",{type:"covers",config:{widgets:[{type:"covers-overview",config:{},layout:{size:"full"}}]}},gen); assert.notEqual(b.sections[0].config.widgets[0].id,b.sections[1].config.widgets[0].id);
+});
+
+test("climate derived filters current selectors aux and mixed-unit rejection", async () => {
+  runtime.calls=[]; runtime.hass.states={
+    "climate.x":{state:"eco_heat",attributes:{friendly_name:"X",supported_features:121,hvac_modes:["eco_heat"],hvac_action:"defrost",temperature:20,min_temp:10,max_temp:30,target_temp_step:0.1,temperature_unit:"°C",fan_modes:["auto","high"],fan_mode:"high",preset_modes:["away"],preset_mode:"away",swing_modes:["both"],swing_mode:"both",aux_heat:"on"}},
+    "climate.y":{state:"heat",attributes:{supported_features:1,hvac_modes:["heat"],temperature:70,min_temp:60,max_temp:80,target_temp_step:1,temperature_unit:"°F"}}
+  };
+  const ov=renderClimateOverview({type:"climate-overview",config:{entityIds:["climate.x"],hvacMode:"eco_heat",hvacAction:"defrost"}},runtime);
+  assert.ok(ov.querySelectorAll("option").some(o=>o.value==="eco_heat")); assert.ok(ov.querySelectorAll("option").some(o=>o.value==="defrost"));
+  const panel=renderClimatePanel({type:"climate-control-panel",config:{entityId:"climate.x"}},runtime);
+  const selects=panel.querySelectorAll("select"); assert.ok(selects.some(s=>s.children.some(o=>o.value==="eco_heat"&&o.selected))); assert.ok(selects.some(s=>s.children.some(o=>o.value==="high"&&o.selected))); assert.ok(selects.some(s=>s.children.some(o=>o.value==="away"&&o.selected))); assert.ok(selects.some(s=>s.children.some(o=>o.value==="both"&&o.selected)));
+  assert.equal(panel.querySelectorAll("button").find(b=>b.textContent==="Aux heat on").disabled,true);
+  const group=renderClimateGroup({type:"climate-group",config:{entityIds:["climate.x","climate.y"],bulkTemperatureEnabled:true}},runtime); const input=group.querySelectorAll("input")[0]; assert.equal(input.disabled,true); assert.match(group.textContent,/Mixed units/);
+});
+
+test("structured scene and mapping editors keep stable rows and validation blocking", () => {
+  const updates=[]; const controller={state:{validationErrors:[],fieldText:{}},store:{setState(s){controller.state=s.editor;}},updateWidget(s,w,p){updates.push(p);}}; const section={id:"s"};
+  const sceneEditor=renderWidgetSpecificEditor(document,section,{id:"g",type:"cover-group",config:{scenes:[{id:"scene-row",title:"Movie",entityId:"scene.movie"}]}},controller); assert.match(sceneEditor.textContent,/Scene row ID/); const badScene=sceneEditor.querySelectorAll("input").find(i=>i.dataset.editorField==="widget:g:scenes.0.entityId"); badScene.value="script.bad"; badScene.listeners.input(); assert.equal(controller.state.fieldText["widget:g:scenes.0.entityId"],"script.bad");
+  const mapEditor=renderWidgetSpecificEditor(document,section,{id:"ov",type:"climate-overview",config:{rooms:{"climate.good":"Hall"},tags:{"climate.good":["main"]}}},controller); assert.match(mapEditor.textContent,/Mapping row ID/); const badMap=mapEditor.querySelectorAll("input").find(i=>i.dataset.editorField==="widget:ov:mappings.0.entityId"); badMap.value="cover.bad"; badMap.listeners.input(); assert.equal(controller.state.fieldText["widget:ov:mappings.0.entityId"],"cover.bad"); assert.ok(controller.state.validationErrors.length>=2);
 });

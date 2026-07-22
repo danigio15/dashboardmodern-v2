@@ -102,7 +102,9 @@ export function addSection(dashboard, viewId, patch = {}, generator = createIdGe
   assertView(dashboard, viewId);
   const id = nextId(dashboard, patch, generator);
   const draft = clone(dashboard);
-  draft.sections = [...(draft.sections || []), { id, title: patch.title || "New section", description: patch.description || "", type: patch.type, icon: patch.icon, config: clone(patch.config || {}), card_ids: [] }];
+  const config = clone(patch.config || {});
+  if (Array.isArray(config.widgets)) config.widgets = config.widgets.map((widget, index) => ({ ...widget, id: `${id}-widget-${index + 1}` }));
+  draft.sections = [...(draft.sections || []), { id, title: patch.title || "New section", description: patch.description || "", type: patch.type, icon: patch.icon, config, card_ids: [] }];
   draft.views = (draft.views || []).map((view) => view.id === viewId ? { ...view, section_ids: [...(view.section_ids || []), id] } : view);
   return draft;
 }
