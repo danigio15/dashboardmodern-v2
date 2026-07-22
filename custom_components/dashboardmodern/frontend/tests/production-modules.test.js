@@ -12,7 +12,7 @@ import { COVERS_MODULE, normalizeCover, coverCapabilities, renderCoverTile, rend
 import { CLIMATE_MODULE, normalizeClimate, climateCapabilities, renderClimateTile, renderClimateGroup, renderClimateOverview, renderClimatePanel, openClimateDetailPanel } from "../src/modules/climate.js";
 import { ENERGY_MODULE, deriveHomeLoad, gridDirection, batteryDirection, renderEnergyFlow, normalizeGrid, normalizeBattery, homeLoad, selfConsumptionPercentage, selfSufficiencyPercentage } from "../src/modules/energy.js";
 import { APPLIANCES_MODULE, normalizeAppliance, renderAppliancesOverview } from "../src/modules/appliances.js";
-import { MEDIA_MODULE, defaultMediaSectionConfig, filteredMedia, getMediaArtworkSource, mediaEditor, normalizeMediaPlayer, normalizeMediaState, renderMediaGroup, renderMediaFavorites, renderMediaQueue, renderMediaNowPlaying, renderMediaOverview, renderMediaProgress, renderMediaArtwork, renderMediaSource, renderMediaVolume, refreshMediaQueue, releaseMediaQueue, validateMediaAction } from "../src/modules/media.js";
+import { MEDIA_MODULE, collectMediaSources, defaultMediaSectionConfig, filteredMedia, getMediaArtworkSource, mediaEditor, normalizeMediaPlayer, normalizeMediaState, normalizeQueuePayload, renderMediaGroup, renderMediaFavorites, renderMediaQueue, renderMediaNowPlaying, renderMediaOverview, renderMediaProgress, renderMediaArtwork, renderMediaSource, renderMediaVolume, refreshMediaQueue, releaseMediaQueue, validateMediaAction } from "../src/modules/media.js";
 import { normalizeMeasurement } from "../src/modules/shared-measurements.js";
 
 class Node { constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.attributes={};this.listeners={};this.style={};this._text="";this.disabled=false;this.value="";this.checked=false;this.focusCount=0;} append(...c){this.children.push(...c); for(const x of c) if(x) x.parentNode=this;} remove(){ if(this.parentNode) this.parentNode.children=this.parentNode.children.filter(c=>c!==this); } replaceChildren(...c){ this.children=[]; this.append(...c); } getAttribute(k){return this.attributes[k];} setAttribute(k,v){this.attributes[k]=String(v); if(k==="disabled")this.disabled=true; if(k==="value")this.value=String(v); if(k.startsWith("data-")) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);} addEventListener(t,f){this.listeners[t]=f;} focus(){ globalThis.document.activeElement=this; this.focused=true; this.focusCount++; } querySelector(sel){return this.querySelectorAll(sel)[0]||null;} querySelectorAll(sel){const tags=sel.split(",").map(x=>x.trim()); const out=[]; const walk=n=>{if(tags.includes(n.tagName)||tags.includes(`[${Object.keys(n.attributes)[0]}]`))out.push(n); for(const c of n.children)walk(c)}; walk(this); return out;} get textContent(){return this._text+this.children.map(c=>c.textContent).join("");} set textContent(v){this._text=String(v);this.children=[];} }
@@ -780,15 +780,16 @@ test("production media overview groups favorites queue editor detail and explici
   runtime.hass.states = {
     "media_player.a": { state:"playing", attributes:{ friendly_name:"A", volume_level:.4, is_volume_muted:true, media_title:"Alpha" }, last_updated:"2026-07-22T00:00:00Z" },
     "media_player.b": { state:"paused", attributes:{ friendly_name:"B", volume_level:.1, is_volume_muted:false, media_title:"Beta" }, last_updated:"2026-07-21T00:00:00Z" },
+    "binary_sensor.group_a": { state:"on", attributes:{}, last_updated:"2026-07-22T00:00:00Z" },
   };
-  const cfg = { players:[{ primaryEntity:"media_player.a", allowPrimaryAttributes:true, title:"A", room:"Kitchen", tags:["x"], groupLeader:"media_player.a" }, { primaryEntity:"media_player.b", allowPrimaryAttributes:true, title:"B", room:"Den", tags:["y"] }], showUnavailable:true };
+  const cfg = { players:[{ primaryEntity:"media_player.a", allowPrimaryAttributes:true, title:"A", room:"Kitchen", tags:["x"], groupLeaderEntityId:"media_player.a", groupedStateEntity:"binary_sensor.group_a" }, { primaryEntity:"media_player.b", allowPrimaryAttributes:true, title:"B", room:"Den", tags:["y"] }], showUnavailable:true };
   const xs = filteredMedia({ config:{ ...cfg, roomFilter:"Kitchen", playingOnly:true, groupedOnly:true, mutedOnly:true, sort:"volume" } }, runtime);
   assert.equal(xs.length, 1); assert.equal(xs.counts.configured, 2); assert.equal(xs.counts.playing, 1); assert.equal(xs.counts.paused, 1); assert.equal(xs.counts.grouped, 1); assert.equal(xs.counts.muted, 1);
   assert.match(renderMediaOverview({ config:cfg }, runtime).textContent, /2 shown/);
   assert.match(renderMediaOverview({ config:{ players:[], showUnavailable:true } }, runtime).textContent, /No media players match/);
   assert.match(renderMediaGroup({ config:{ ...cfg.players[0], groupingActions:[] } }, runtime).textContent, /grouped/);
   assert.match(renderMediaFavorites({ config:{ favoriteRows:[{ id:"fav1", title:"Jazz", subtitle:"Late", tags:["music"], primaryAction:{ type:"navigate-view", viewId:"music" } }] } }, runtime).textContent, /Jazz/);
-  assert.match(renderMediaQueue({ config:{ queueSourceMapping:{ current:{ title:"Now" }, items:[{ title:"Next", artist:"Artist", duration:12, source:"runtime" }] } } }, runtime).textContent, /Next/);
+  assert.match(renderMediaQueue({ config:{ queueSourceMapping:{ current:{ title:"Now" }, items:[{ id:"next", title:"Next", artist:"Artist", duration:12, source:"runtime" }] } } }, runtime).textContent, /Next/);
   let changed = null; const ed = mediaEditor({ players:[{ id:"stable", title:"Old" }], invalidText:"{" }, v=>{ changed=v; });
   assert.equal(ed.textContent.includes("structured editor"), true);
   ed.querySelectorAll("button").find(b=>b.textContent==="Duplicate").listeners.click();
@@ -812,13 +813,13 @@ test("production media follow-up covers real interpolation timestamp policy sour
     "media_player.member": { state:"idle", attributes:{}, last_updated:"2026-07-22T00:00:00Z" },
   };
   runtime.getMediaQueueSource = () => ({ ref:"queue-ref", lastUpdated:"2026-07-22T00:00:00Z" });
-  runtime.refreshMediaQueue = () => ({ source:{ ref:"queue-ref", lastUpdated:"2026-07-22T00:00:00Z" }, current:{ title:"Current", artist:"Artist", duration:10, position:1 }, items:[{ title:"Next", artist:"A", duration:3 }, { bad:true }] });
+  runtime.refreshMediaQueue = () => ({ source:{ ref:"queue-ref", lastUpdated:"2026-07-22T00:00:00Z" }, current:{ id:"current", title:"Current", artist:"Artist", duration:10, position:1 }, items:[{ id:"next", title:"Next", artist:"A", duration:3 }, { bad:true }] });
   runtime.releaseMediaQueue = () => releaseCount++;
   runtime.getMediaArtworkSource = () => ({ ref:"art-ref", lastUpdated:"2026-07-22T00:00:00Z" });
   runtime.refreshMediaArtwork = () => ({ source:{ ref:"art-new", lastUpdated:"2026-07-22T00:00:11Z" } });
   runtime.releaseMediaArtwork = () => releaseCount++;
   runtime.mountMediaArtwork = () => { mountCount++; return { cleanup(){ cleanupCount++; } }; };
-  const cfg = { id:"core", primaryEntity:"media_player.core", stateEntity:"sensor.state", mediaDurationEntity:"sensor.duration", mediaPositionEntity:"sensor.position", mediaPositionUpdatedAtEntity:"sensor.updated", sourceList:[{ id:"radio", title:"Radio", visibility:{ entityId:"sensor.visible", operator:"equals", expected:"show" } }, { title:"Bad", action:{ type:"service", domain:"x" } }], sourceParameterizedAction:{ type:"service", domain:"media", service:"explicit_source", entityId:"media_player.core", parameterKey:"source_name" }, groupLeader:"media_player.core", groupMembers:[{ id:"m1", entityId:"media_player.member", room:"Den" }, { id:"m2", entityId:"media_player.missing", room:"Bad" }], queueSource:"queue", artworkSource:"art", volumeActions:[{ type:"service", domain:"media", service:"explicit_volume", entityId:"media_player.core", kind:"set", parameterKey:"level", confirm:true }], playbackActions:[{ type:"service", domain:"media", service:"visible", entityId:"media_player.core", visibility:{ entityId:"sensor.visible", operator:"equals", expected:"show" } }] };
+  const cfg = { id:"core", primaryEntity:"media_player.core", stateEntity:"sensor.state", mediaDurationEntity:"sensor.duration", mediaPositionEntity:"sensor.position", mediaPositionUpdatedAtEntity:"sensor.updated", sourceList:[{ id:"radio", title:"Radio", visibility:{ entityId:"sensor.visible", operator:"equals", expected:"show" } }, { title:"Bad", action:{ type:"service", domain:"x" } }], sourceParameterizedAction:{ type:"service", domain:"media", service:"explicit_source", entityId:"media_player.core", parameterKey:"source_name" }, groupLeaderEntityId:"media_player.core", groupedStateEntity:"sensor.visible", groupMembers:[{ id:"m1", entityId:"media_player.member", room:"Den" }, { id:"m2", entityId:"media_player.missing", room:"Bad" }], queueSource:"queue", artworkSource:"art", volumeActions:[{ type:"service", domain:"media", service:"explicit_volume", entityId:"media_player.core", kind:"set", parameterKey:"level", confirm:true }], playbackActions:[{ type:"service", domain:"media", service:"visible", entityId:"media_player.core", visibility:{ entityId:"sensor.visible", operator:"equals", expected:"show" } }] };
   const n = normalizeMediaPlayer(runtime, cfg);
   assert.equal(n.primaryAvailable, true); assert.equal(n.stateAvailable, true); assert.equal(n.operational, true); assert.equal(n.sources.updatedAt.normalizedValue, "2026-07-22T00:00:05.000Z");
   assert.equal(n.sourceList[0].id, "radio"); assert.equal(n.sourceList[1].malformed, true); assert.equal(n.group.members[1].health, "missing"); assert.equal(n.configuredCount > 5, true); assert.equal(n.excludedCount >= 0, true);
@@ -829,4 +830,36 @@ test("production media follow-up covers real interpolation timestamp policy sour
   globalThis.confirm = () => true; const vol = renderMediaVolume({ config:cfg }, runtime), slider = vol.querySelectorAll("input")[0]; slider.value = "150"; await slider.listeners.change(); assert.equal(runtime.calls.at(-1)[2].level, 100);
   const updates=[], controller={state:{validationErrors:[],fieldText:{}},store:{setState(s){controller.state=s.editor;}},updateWidget(s,w,p){updates.push(p);}}; const editor = renderWidgetSpecificEditor(document,{id:"s"},{id:"mw",type:"media-overview",config:{players:[{id:"p1",title:"P"}]}},controller); assert.match(editor.textContent,/Allow primary attributes/); editor.querySelectorAll("button").find(b=>b.textContent==="Add Media player").listeners.click(); assert.equal(updates.at(-1).config.players.length, 2);
   Date.now = savedNow; globalThis.setInterval = savedSet; globalThis.clearInterval = savedClear;
+});
+
+test("production media final blockers source counts lifecycle reduced motion and selection", async () => {
+  runtime.hass.states = {
+    "media_player.primary": { state:"playing", attributes:{ media_title:"Attr title" }, last_updated:"2026-07-20T00:00:00Z" },
+    "sensor.state": { state:"playing", attributes:{}, last_updated:"2026-07-22T00:00:00Z" },
+    "sensor.duration": { state:"10", attributes:{}, last_updated:"2026-07-22T00:00:00Z" },
+    "sensor.position": { state:"9", attributes:{}, last_updated:"2026-07-22T00:00:00Z" },
+    "sensor.updated_old_entity": { state:"2026-07-22T00:00:00Z", attributes:{}, last_updated:"2026-07-20T00:00:00Z" },
+    "binary_sensor.grouped": { state:"on", attributes:{}, last_updated:"2026-07-22T00:00:00Z" },
+    "media_player.member": { state:"idle", attributes:{}, last_updated:"2026-07-22T00:00:00Z" },
+  };
+  const cfg = { primaryEntity:"media_player.primary", stateEntity:"sensor.state", mediaDurationEntity:"sensor.duration", mediaPositionEntity:"sensor.position", mediaPositionUpdatedAtEntity:"sensor.updated_old_entity", allowPrimaryAttributes:true, staleAfterMs:1000, nowMs:new Date("2026-07-22T00:00:00.500Z").getTime(), sourceList:[{ id:"stable-source", title:"Stable" }], groupLeaderEntityId:"media_player.primary", groupedStateEntity:"binary_sensor.grouped", groupMembers:[{ id:"stable-member", entityId:"media_player.member" }], artworkSource:"art" };
+  const n = normalizeMediaPlayer(runtime, cfg), sources = collectMediaSources(n.sources);
+  assert.equal(new Set(sources).size, sources.length);
+  assert.equal(n.sources.updatedAt.reason, "timestamp-entity-stale");
+  assert.equal(n.sources.title.sourceType, "attribute");
+  assert.equal(n.sources.title.attributeName, "media_title");
+  assert.equal(n.sourceList[0].legacyFallback, false);
+  assert.equal(n.group.leaderEntityId, "media_player.primary");
+  assert.equal(n.group.grouped, true);
+  assert.equal(n.excludedCount < n.configuredCount, true);
+  assert.equal(n.optionalConfiguredCount > 0, true);
+  const q = normalizeQueuePayload({ source:{ ref:"queue", lastUpdated:"2026-07-22T00:00:00Z" }, current:{ id:"cur", title:"Current" }, items:[{ id:"ok", title:"Valid" }, { title:"missing id" }] });
+  assert.equal(q.inputCount, 3); assert.equal(q.validCount, 2); assert.equal(q.invalidCount, 1); assert.equal(q.partial, true); assert.equal(q.reason, "partial-invalid-items");
+  const unsafe = { getMediaArtworkSource:()=>({ unavailable:true, ref:"art", reason:"none" }), mountMediaArtwork(){ throw Object.assign(new Error("secret internal URL"), { code:"safe_code" }); } };
+  assert.equal(renderMediaArtwork({ config:{ artworkSource:"art" } }, unsafe).textContent.includes("runtime-artwork-source-unavailable"), false);
+  const thrower = { getMediaArtworkSource:()=>({ ref:"art", lastUpdated:"2026-07-22T00:00:00Z" }), mountMediaArtwork(){ throw new Error("do not show"); } };
+  const art = renderMediaArtwork({ config:{ artworkSource:"art" } }, thrower); assert.match(art.textContent, /runtime-artwork-renderer-error/); assert.equal(art.textContent.includes("do not show"), false);
+  let interval = 0; globalThis.matchMedia = () => ({ matches:true }); globalThis.setInterval = () => { interval++; return 1; };
+  renderMediaProgress({ config:{ ...cfg, interpolate:true } }, runtime); assert.equal(interval, 0); delete globalThis.matchMedia;
+  const np = renderMediaNowPlaying({ config:{ selectionStrategy:"first-playing", players:[{ id:"off", primaryEntity:"media_player.none" }, { id:"play", ...cfg, title:"Chosen" }] } }, runtime); assert.match(np.textContent, /Chosen|Attr title/);
 });
