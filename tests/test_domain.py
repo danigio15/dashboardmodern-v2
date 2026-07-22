@@ -347,3 +347,17 @@ def test_backward_compatible_section_without_type_round_trips() -> None:
     view = View.create("v", "Home", (section.id,))
     dashboard = Dashboard.create("d", "Dashboard", (view,), (section,), (card,))
     assert "type" not in dashboard.to_dict()["sections"][0]
+
+
+def test_typed_widget_section_without_widgets_is_rejected() -> None:
+    section = Section.from_dict({"id": "s", "title": "Home", "type": "home", "card_ids": [], "config": {}})
+    view = View.create("v", "Home", (section.id,))
+    with pytest.raises(InvalidHierarchyError):
+        Dashboard.create("d", "Dashboard", (view,), (section,), ())
+
+
+def test_typed_widget_section_with_empty_widgets_is_rejected() -> None:
+    section = Section.from_dict({"id": "s", "title": "Lights", "type": "lights", "card_ids": [], "config": {"widgets": []}})
+    view = View.create("v", "Home", (section.id,))
+    with pytest.raises(InvalidHierarchyError):
+        Dashboard.create("d", "Dashboard", (view,), (section,), ())

@@ -47,3 +47,51 @@ test("Lights capabilities, malformed states, groups, and actions use runtime abs
   await node.querySelectorAll("button")[0].listeners.click();
   assert.deepEqual(runtime.calls[0], ["light", "turn_off", { entity_id:"light.rgbw" }]);
 });
+import { renderHomeHero, renderWeatherSummary, renderQuickActions, renderFavorites } from "../src/modules/home.js";
+import { filteredLights, normalizeColorTemperature, supportedLightData } from "../src/modules/lights.js";
+
+test("Home hero consumes showDate showTime greetingText and locale", () => {
+  const node = renderHomeHero({ id:"hero", type:"home-hero", config:{ title:"Casa", greetingText:"Hola", showDate:true, showTime:true } }, { locale:"es-ES" });
+  assert.match(node.textContent, /Casa/); assert.match(node.textContent, /Hola/);
+});
+
+test("Weather respects displayedFields and forecast rendering", () => {
+  runtime.hass.states = { "weather.home": { state:"sunny", attributes:{ temperature: 21, apparent_temperature: 20, humidity: 44, temperature_unit:"°C", forecast:[{ datetime:"2026-07-22", condition:"rainy", temperature:19 }] } } };
+  const node = renderWeatherSummary({ id:"w", type:"weather-summary", config:{ entityId:"weather.home", displayedFields:["condition","humidity","forecast"] } }, runtime);
+  assert.match(node.textContent, /Condition: sunny/); assert.match(node.textContent, /Humidity: 44%/); assert.match(node.textContent, /rainy/); assert.doesNotMatch(node.textContent, /Feels like/);
+});
+
+test("Home Status supports all required operators", () => {
+  runtime.hass.states = { "sensor.n": { state:"5", attributes:{} }, "person.a": { state:"home", attributes:{} }, "switch.a": { state:"off", attributes:{} }, "light.a": { state:"on", attributes:{} }, "sensor.u": { state:"unavailable", attributes:{} } };
+  const metrics = aggregateHomeStatus({ metrics:[
+    { id:"eq", entityIds:["sensor.n"], rules:[{ operator:"equals", expected:5 }] }, { id:"ne", entityIds:["sensor.n"], rules:[{ operator:"not-equals", expected:6 }] }, { id:"on", entityIds:["light.a"], rules:[{ operator:"on" }] }, { id:"off", entityIds:["switch.a"], rules:[{ operator:"off" }] }, { id:"home", entityIds:["person.a"], rules:[{ operator:"home" }] }, { id:"un", entityIds:["sensor.u"], rules:[{ operator:"unavailable" }] }, { id:"above", entityIds:["sensor.n"], rules:[{ operator:"numeric-above", expected:4 }] }, { id:"below", entityIds:["sensor.n"], rules:[{ operator:"numeric-below", expected:6 }] }
+  ] }, runtime);
+  assert.deepEqual(Object.values(metrics).map(m=>m.count), [1,1,1,1,1,1,1,1]);
+});
+
+test("Quick action failure preserves label and exposes live error", async () => {
+  const node = renderQuickActions({ id:"qa", type:"quick-actions", config:{ actions:[{ title:"Fail", type:"service", domain:"x", service:"y" }] } }, { callService(){ return Promise.reject(new Error("boom")); } });
+  const button = node.querySelectorAll("button")[0]; await button.listeners.click(); assert.equal(button.textContent, "Fail"); assert.match(node.textContent, /boom/);
+});
+
+test("Favorites render missing entity and non-entity targets", () => {
+  runtime.hass.states = {}; const node = renderFavorites({ id:"fav", type:"favorites", config:{ items:[{ kind:"entity", entityId:"light.missing", title:"Missing" }, { kind:"view", targetId:"lights", title:"Lights view" }] } }, runtime);
+  assert.match(node.textContent, /Missing/); assert.match(node.textContent, /Lights view/);
+});
+
+test("Lights overview search filters and sorting consume saved config", () => {
+  runtime.hass.states = { "light.b": { state:"off", attributes:{ friendly_name:"Bedroom", area:"Room B" } }, "light.a": { state:"on", attributes:{ friendly_name:"Kitchen", area:"Room A" } } };
+  const out = filteredLights({ config:{ entityIds:["light.b","light.a"], search:"kit", stateFilter:"on", sort:"name", rooms:{"light.a":"Kitchen"}, tags:{"light.a":["main"]}, tag:"main" } }, runtime);
+  assert.deepEqual(out.map(l=>l.entityId), ["light.a"]);
+});
+
+test("Light service data covers RGBW RGBWW HS XY and Kelvin/mired color temperatures", () => {
+  const base = { capabilities:{ brightness:true,colorTemp:true,rgb:true,rgbw:true,rgbww:true,hs:true,xy:true,effects:true,transition:true }, attributes:{ min_color_temp_kelvin:2000, max_color_temp_kelvin:6500, effect_list:["rainbow"] } };
+  assert.equal(supportedLightData(base,{ brightnessPct:50 }).brightness, 128);
+  assert.equal(supportedLightData(base,{ colorTemp:7000 }).color_temp_kelvin, 6500);
+  assert.deepEqual(supportedLightData(base,{ rgbw:[1,2,3,4] }).rgbw_color, [1,2,3,4]);
+  assert.deepEqual(supportedLightData(base,{ rgbww:[1,2,3,4,5] }).rgbww_color, [1,2,3,4,5]);
+  assert.deepEqual(supportedLightData(base,{ hs:[370,120] }).hs_color, [360,100]);
+  assert.deepEqual(supportedLightData(base,{ xy:[1.2,-1] }).xy_color, [1,0]);
+  assert.deepEqual(normalizeColorTemperature({ attributes:{ min_mireds:153, max_mireds:500, color_temp:200 } }), { mode:"mired", field:"color_temp", min:153, max:500, value:200 });
+});
