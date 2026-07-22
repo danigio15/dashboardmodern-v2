@@ -94,8 +94,9 @@ class Dashboard:
                 section.card_ids, f"card reference in section {section.id}"
             )
             ensure_references_exist(section.card_ids, card_ids, "card")
-            if not section.card_ids:
-                msg = f"Section has no cards: {section.id}"
+            has_widgets = bool(section.config.get("widgets"))
+            if not section.card_ids and not has_widgets:
+                msg = f"Section has no cards or widgets: {section.id}"
                 raise InvalidHierarchyError(msg)
             referenced_card_ids.extend(section.card_ids)
         ensure_all_referenced(section_ids, referenced_section_ids, "section")

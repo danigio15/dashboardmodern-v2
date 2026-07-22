@@ -134,6 +134,12 @@ export class EditorController {
     this.clearFieldState([`card:${id}:`]);
   }
   moveCard(sectionId, id, direction) { this.apply((draft) => commands.moveCard(draft, sectionId, id, direction)); }
+  addWidget(sectionId, patch) { this.apply((dashboard) => commands.addWidget(dashboard, sectionId, patch)); }
+  updateWidget(sectionId, widgetId, patch) { this.apply((dashboard) => commands.updateWidget(dashboard, sectionId, widgetId, patch)); }
+  removeWidget(sectionId, widgetId) { this.apply((dashboard) => commands.removeWidget(dashboard, sectionId, widgetId)); }
+  duplicateWidget(sectionId, widgetId) { this.apply((dashboard) => commands.duplicateWidget(dashboard, sectionId, widgetId)); }
+  moveWidget(sectionId, widgetId, direction) { this.apply((dashboard) => commands.moveWidget(dashboard, sectionId, widgetId, direction)); }
+
   reorderCard(sectionId, id, targetIndex) { this.apply((draft) => commands.reorderCard(draft, sectionId, id, targetIndex)); }
 
   updateCardConfig(id, text) {
