@@ -22,8 +22,8 @@ const runtime = { hass: { states: {} }, getEntityState(id){ return this.hass.sta
 test("Home and Lights modules register independently with deterministic contributions", () => {
   const manager = createPluginManager({ sectionRegistry: createSectionRegistry(), cardRegistry: createCardRegistry(), widgetRegistry: createWidgetRegistry() });
   registerBuiltInModules({ pluginManager: manager });
-  assert.deepEqual(manager.listModules().map(m=>m.id), ["appliances", "climate", "covers", "energy", "home", "lights"]);
-  assert.equal(manager.contributions().widgets.length, 32);
+  assert.deepEqual(manager.listModules().map(m=>m.id), ["appliances", "cameras", "climate", "covers", "energy", "home", "lights", "vehicles"]);
+  assert.equal(manager.contributions().widgets.length, 55);
   assert.throws(()=>manager.registerModule(HOME_MODULE), /already registered/);
   assert.throws(()=>manager.registerModule(COVERS_MODULE), /already registered/);
   assert.throws(()=>manager.registerModule(CLIMATE_MODULE), /already registered/);
