@@ -8,6 +8,8 @@ import { COVERS_MODULE } from "./covers.js";
 import { CLIMATE_MODULE } from "./climate.js";
 import { ENERGY_MODULE } from "./energy.js";
 import { APPLIANCES_MODULE } from "./appliances.js";
+import { VEHICLES_MODULE } from "./vehicles.js";
+import { CAMERAS_MODULE } from "./cameras.js";
 
 export function registerBuiltInModules({ pluginManager = DEFAULT_PLUGIN_MANAGER, sectionRegistry = DEFAULT_SECTION_REGISTRY, widgetRegistry = DEFAULT_WIDGET_REGISTRY, cardRegistry = DEFAULT_CARD_REGISTRY } = {}) {
   const manager = pluginManager || createPluginManager({ sectionRegistry, widgetRegistry, cardRegistry });
@@ -17,5 +19,7 @@ export function registerBuiltInModules({ pluginManager = DEFAULT_PLUGIN_MANAGER,
   manager.registerModule(CLIMATE_MODULE);
   manager.registerModule(ENERGY_MODULE);
   manager.registerModule(APPLIANCES_MODULE);
+  manager.registerModule(VEHICLES_MODULE);
+  manager.registerModule(CAMERAS_MODULE);
   return manager.contributions();
 }
