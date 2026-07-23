@@ -4,6 +4,10 @@ import { createDashboardModernClient, DashboardModernApiError } from "../src/ws-
 
 const dashboard = { id: "main", title: "Main", views: [], sections: [], cards: [] };
 
+function haResult(result) {
+  return { id: 1, type: "result", success: true, result };
+}
+
 function clientFor(handler) {
   const messages = [];
   return {
@@ -18,33 +22,52 @@ function clientFor(handler) {
 }
 
 test("list success sends the list command", async () => {
-  const { client, messages } = clientFor(() => ({ dashboards: [dashboard] }));
+  const { client, messages } = clientFor(() => haResult({ dashboards: [dashboard] }));
   assert.deepEqual(await client.listDashboards("entry-1"), [dashboard]);
   assert.equal(messages[0].type, "dashboardmodern/dashboard/list");
 });
 
 test("get success sends the get command", async () => {
-  const { client, messages } = clientFor(() => ({ dashboard }));
+  const { client, messages } = clientFor(() => haResult({ dashboard }));
   assert.deepEqual(await client.getDashboard("entry-1", "main"), dashboard);
   assert.equal(messages[0].dashboard_id, "main");
 });
 
 test("create success sends JSON dashboard payload", async () => {
-  const { client, messages } = clientFor(() => ({ dashboard }));
+  const { client, messages } = clientFor(() => haResult({ dashboard }));
   assert.deepEqual(await client.createDashboard("entry-1", dashboard), dashboard);
   assert.equal(messages[0].type, "dashboardmodern/dashboard/create");
   assert.deepEqual(messages[0].dashboard, dashboard);
 });
 
 test("replace success sends JSON dashboard payload", async () => {
-  const { client, messages } = clientFor(() => ({ dashboard }));
+  const { client, messages } = clientFor(() => haResult({ dashboard }));
   assert.deepEqual(await client.replaceDashboard("entry-1", dashboard), dashboard);
   assert.equal(messages[0].type, "dashboardmodern/dashboard/replace");
 });
 
 test("delete success validates response", async () => {
-  const { client } = clientFor(() => ({ dashboard_id: "main", deleted: true }));
+  const { client } = clientFor(() => haResult({ dashboard_id: "main", deleted: true }));
   assert.deepEqual(await client.deleteDashboard("entry-1", "main"), { dashboard_id: "main", deleted: true });
+});
+
+test("already-unwrapped Home Assistant results remain supported", async () => {
+  const { client } = clientFor(() => ({ dashboards: [dashboard] }));
+  assert.deepEqual(await client.listDashboards("entry-1"), [dashboard]);
+});
+
+test("unsuccessful Home Assistant result envelopes preserve backend error codes", async () => {
+  const { client } = clientFor(() => ({
+    id: 1,
+    type: "result",
+    success: false,
+    error: { code: "dashboard_not_found", message: "boom" },
+  }));
+  await assert.rejects(() => client.getDashboard("entry-1", "missing"), (error) => {
+    assert.ok(error instanceof DashboardModernApiError);
+    assert.equal(error.code, "dashboard_not_found");
+    return true;
+  });
 });
 
 test("backend error mapping preserves error code", async () => {
@@ -57,7 +80,7 @@ test("backend error mapping preserves error code", async () => {
 });
 
 test("invalid response handling rejects malformed payloads", async () => {
-  const { client } = clientFor(() => ({ dashboards: "not-an-array" }));
+  const { client } = clientFor(() => haResult({ dashboards: "not-an-array" }));
   await assert.rejects(() => client.listDashboards("entry-1"), /invalid response/i);
 });
 
