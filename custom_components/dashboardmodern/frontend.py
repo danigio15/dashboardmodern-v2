@@ -86,7 +86,7 @@ def _remove_panel(hass: HomeAssistant) -> None:
 async def _ensure_static_registered(
     hass: HomeAssistant, domain_data: dict[str, Any]
 ) -> None:
-    """Register the current versioned asset path once per Home Assistant run."""
+    """Register current versioned modules and the stable shared-asset path."""
     static_url_path = _versioned_static_url_path()
     if domain_data.get(DATA_STATIC_REGISTERED) == static_url_path:
         return
@@ -99,10 +99,15 @@ async def _ensure_static_registered(
     await hass.http.async_register_static_paths(
         [
             StaticPathConfig(
+                url_path=STATIC_URL_PATH,
+                path=str(FRONTEND_DIR),
+                cache_headers=False,
+            ),
+            StaticPathConfig(
                 url_path=static_url_path,
                 path=str(FRONTEND_DIR),
                 cache_headers=False,
-            )
+            ),
         ]
     )
     domain_data[DATA_STATIC_REGISTERED] = static_url_path
