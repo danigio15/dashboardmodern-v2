@@ -1,0 +1,93 @@
+name: Sync original Dashboard Modern frontend
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Commit, tag or branch from danigio15/dashboardmodern
+        required: false
+        default: c03182ef76faf7d3648b0b6c8bcd94a62012c852
+  push:
+    branches:
+      - recovery/integrate-original-dashboard
+    paths:
+      - .github/workflows/sync-original-dashboard.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out integration branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Copy original runtime files
+        env:
+          SOURCE_REF: ${{ inputs.source_ref || 'c03182ef76faf7d3648b0b6c8bcd94a62012c852' }}
+        run: |
+          set -euo pipefail
+          source_dir="${RUNNER_TEMP}/dashboardmodern-source"
+          target_dir="custom_components/dashboardmodern/frontend/legacy"
+
+          git clone --no-checkout --filter=blob:none https://github.com/danigio15/dashboardmodern.git "$source_dir"
+          git -C "$source_dir" fetch --depth=1 origin "$SOURCE_REF"
+          git -C "$source_dir" checkout --detach FETCH_HEAD
+          source_sha="$(git -C "$source_dir" rev-parse HEAD)"
+
+          rm -rf "$target_dir"
+          mkdir -p "$target_dir"
+
+          find "$source_dir" -maxdepth 1 -type f \
+            \( -name 'dashboard*.html' \
+               -o -name 'config*.js' \
+               -o -name '*.png' \
+               -o -name '*.jpg' \
+               -o -name '*.jpeg' \
+               -o -name '*.webp' \
+               -o -name '*.svg' \
+               -o -name '*.gif' \) \
+            -exec cp '{}' "$target_dir/" ';'
+
+          for asset_dir in assets images; do
+            if [ -d "$source_dir/$asset_dir" ]; then
+              cp -R "$source_dir/$asset_dir" "$target_dir/$asset_dir"
+            fi
+          done
+
+          test -s "$target_dir/dashboard.html"
+
+          if [ ! -f "$target_dir/config.js" ]; then
+            cat > "$target_dir/config.js" <<'EOF'
+          // Optional legacy configuration file.
+          // Existing Dashboard Modern settings continue to be read from same-origin localStorage.
+          EOF
+          fi
+
+          cat > "$target_dir/SOURCE.md" <<EOF
+          # Vendored Dashboard Modern runtime
+
+          Source repository: https://github.com/danigio15/dashboardmodern
+
+          Source commit: \`$source_sha\`
+
+          The files in this directory are copied without redesigning the original dashboard. Run the
+          **Sync original Dashboard Modern frontend** workflow to update them from an explicit source ref.
+          EOF
+
+      - name: Commit synchronized runtime
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/dashboardmodern/frontend/legacy
+          if git diff --cached --quiet; then
+            echo "Original dashboard runtime is already synchronized."
+            exit 0
+          fi
+          git commit -m "vendor: synchronize original Dashboard Modern runtime"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
