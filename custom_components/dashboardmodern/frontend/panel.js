@@ -14,6 +14,10 @@ function entryIdsFromPanel(panel) {
   return Array.isArray(entryIds) ? entryIds.filter((entryId) => typeof entryId === "string" && entryId) : [];
 }
 
+function shouldNotifyHassSubscribers(root) {
+  return !root?.querySelector?.(".dashboardmodern-create-form");
+}
+
 export class DashboardModernPanel extends HTMLElement {
   constructor() {
     super();
@@ -23,7 +27,16 @@ export class DashboardModernPanel extends HTMLElement {
 
   set hass(value) {
     this._hass = value;
-    if (this.store) this.store.setState({ hass: value });
+    if (this.store) {
+      if (shouldNotifyHassSubscribers(this.shadowRoot)) {
+        this.store.setState({ hass: value });
+      } else {
+        // Home Assistant replaces `hass` frequently as entity states change. Updating
+        // the store without notifying subscribers while this form is open prevents the
+        // form DOM (and the focused input) from being destroyed on every state update.
+        this.store.state = { ...this.store.state, hass: value };
+      }
+    }
     this.bootstrap();
   }
 
@@ -60,4 +73,4 @@ if (!customElements.get("dashboardmodern-panel")) {
   customElements.define("dashboardmodern-panel", DashboardModernPanel);
 }
 
-export { createConnectionAdapter, entryIdsFromPanel };
+export { createConnectionAdapter, entryIdsFromPanel, shouldNotifyHassSubscribers };
