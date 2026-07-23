@@ -1,80 +1,47 @@
 # DashboardModern v2
 
-A custom Home Assistant integration that provides the DashboardModern panel and its frontend runtime.
+Home Assistant custom integration that installs and exposes the original **Dashboard Modern** interface as a native sidebar panel.
+
+The production panel now uses the real Italian dashboard from [`danigio15/dashboardmodern`](https://github.com/danigio15/dashboardmodern), rather than the temporary generic renderer/editor prototype.
 
 ## Install and update with HACS
-
-> HACS can only access public GitHub repositories. Before adding this repository to HACS, change the repository visibility from **Private** to **Public** in GitHub repository settings.
 
 1. Open **HACS** in Home Assistant.
 2. Open the three-dot menu and select **Custom repositories**.
 3. Add `https://github.com/danigio15/dashboardmodern-v2`.
-4. Select the category **Integration**.
-5. Open **DashboardModern v2** in HACS and choose **Download**.
+4. Select **Integration**.
+5. Download **DashboardModern v2**.
 6. Restart Home Assistant.
-7. Go to **Settings → Devices & services → Add integration** and search for **DashboardModern v2**.
+7. Go to **Settings → Devices & services → Add integration** and add **DashboardModern v2**.
 
-After installation, future changes from the default branch can be installed from HACS. HACS uses the latest GitHub commit when the repository has no published releases; published GitHub releases can be added later for named version selection.
+After installation, HACS owns `custom_components/dashboardmodern`. Do not mix HACS updates with manual copies in that directory.
 
-Do not manually copy files into `custom_components/dashboardmodern` after switching to the HACS installation. Let HACS own that directory so updates replace the complete integration consistently.
+## What version 0.2.0 changes
 
-## Frontend development
+- The Home Assistant sidebar panel loads the original `dashboard.html` design and runtime.
+- The original dashboard is served from the integration's versioned static directory, so HACS updates invalidate the complete frontend cache.
+- The page runs on the same Home Assistant origin. Existing `cd_*` localStorage configuration from the legacy `/local/...` dashboard therefore remains available in the same browser/profile.
+- Cameras, fullscreen mode, external chart libraries, the original wizard, editor, auto-detection and all existing dashboard sections remain part of the original runtime.
+- The panel exposes a same-origin `__DASHBOARDMODERN_HOST__` bridge containing the current authenticated Home Assistant frontend object for the gradual migration away from the legacy token/WebSocket layer.
 
-DashboardModern's frontend is plain HTML/CSS/JavaScript under `custom_components/dashboardmodern/frontend`. It talks to Home Assistant only through the authenticated frontend WebSocket connection and the DashboardModern commands documented in `ARCHITECTURE.md`; it does not use Lovelace YAML or direct Home Assistant Store access.
+The experimental v2 dashboard aggregate, WebSocket API and persistence code remain in the repository for later migration work, but they are no longer the default user interface.
 
-Run frontend tests with:
+## Source synchronization
+
+The vendored runtime is stored under:
+
+```text
+custom_components/dashboardmodern/frontend/legacy/
+```
+
+`.github/workflows/sync-original-dashboard.yml` copies the root runtime files from the original repository and records the exact source commit in `SOURCE.md`. This keeps the visual dashboard source auditable while allowing the integration to be installed and updated entirely through HACS.
+
+## Development checks
+
+Frontend tests:
 
 ```bash
 npm run test:frontend
 ```
 
-### Phase 7 visual renderer
-
-DashboardModern now opens to a visual, read-only dashboard renderer instead of the raw JSON editor. The panel renders the selected DashboardModern dashboard title, description, ordered views, ordered sections, and ordered cards from the serialized configuration returned by the existing WebSocket-backed application layer.
-
-View selection is presentation state (`activeViewId`) held in the frontend store. Switching views does not save or mutate the dashboard configuration. Refreshing the same dashboard preserves the selected view when it still exists and otherwise falls back to the first valid view in backend order.
-
-Live Home Assistant entity state remains separate from DashboardModern configuration. Phase 7 does not display entity-specific cards yet because no formal domain/API card contract defines entity references. When that contract exists, entity state should come from the `hass` object supplied to the custom panel and must not be persisted as dashboard data.
-
-Cards use a frontend renderer registry keyed by the backend payload's card `type`, but Phase 7 intentionally registers no authoritative typed card contracts. Unknown card types and malformed card payloads render visible local fallback cards rather than crashing the entire dashboard. Because the current Card model exposes only `id`, `title`, `type`, and a generic `config` mapping, typed text/entity rendering is blocked until a future domain/API extension formalizes supported card types and config fields.
-
-The former JSON editor remains available through the **Debug JSON** mode as a development/configuration view. It is clearly labelled, is not the default dashboard screen, and still saves through the centralized DashboardModern store.
-
-### Phase 8 visual editor
-
-Phase 8 adds a structured **Edit** mode beside **Dashboard** and **Debug JSON**. Dashboard mode remains read-only. Edit mode creates an explicit frontend draft cloned from the selected dashboard and never mutates `activeDashboard` directly. Save uses the existing DashboardModern WebSocket replace command through the centralized store; backend/domain validation remains authoritative and failed saves preserve the dirty draft.
-
-The editor follows the existing hierarchy ownership model: views own ordered `section_ids`, sections own ordered `card_ids`, and removing a view or section cascades removal of its owned sections/cards from the draft to avoid orphans. New view, section, and card ids are generated by an injectable, collision-checked generator rather than array indexes.
-
-Debug JSON and Edit share the same draft while editing. Valid Debug JSON replaces the draft; invalid JSON is kept as local debug text and does not corrupt the last valid draft. Unsaved changes are guarded before dashboard switching, cancelling/leaving edit mode, deleting the active dashboard, or replacing the draft with freshly loaded backend state.
-
-The card editor remains generic because the domain Card schema is only `id`, `title`, `type`, and `config`. Card `type` is an opaque string, unknown types stay editable, and `config` must parse to a JSON object; arrays and primitives are local draft validation errors before backend validation runs.
-
-While editing, the preview is rendered by the existing read-only renderer from the draft payload. It does not save, use a second renderer contract, or perform backend access.
-
-Phase 8 follow-up tightened the editor guard ownership so all draft-sensitive navigation is centralized in `EditorController`. Application dashboard selection, active-dashboard deletion, and mode changes delegate through controller methods instead of calling store load/delete directly when a draft may exist. Debug JSON now performs lightweight structural validation before replacing the draft, and editor save controls reflect `editor.saving` while duplicate saves are ignored.
-
-The application default unsaved-change guard now asks before discarding dirty drafts instead of silently approving navigation. The structured editor includes selected View, Section, and generic Card forms; Card config is edited as formatted object JSON and invalid edits stay local without replacing the previous valid config.
-
-The editor preserves field focus, selection, and caret position across draft-driven rerenders by assigning stable semantic field identifiers. Invalid Card config text is retained locally in the config textarea while the previous valid draft config remains unchanged, so users can correct JSON without losing their input.
-
-Invalid Card config text is retained per card across unrelated editor changes and selection changes. The stale local text/error is cleared when the config is corrected, the card is deleted, editing is cancelled, or a save succeeds.
-
-Save is disabled while unresolved local editor validation errors exist, including invalid Card config text that has not yet been corrected to a JSON object. The editor will not persist the previous valid config while invalid config text is visible.
-
-## Legacy dashboard parity roadmap
-
-DashboardModern's product objective is visual, structural, responsive and functional parity with the legacy `danigio15/dashboardmodern/dashboard.html` before unrelated dashboard expansion. The legacy HTML remains the parity reference until migration completion.
-
-Phase 9 establishes the shell, extracted design-system primitives, injected Home Assistant runtime boundary, and frontend card registry. Card plugins render through injected context instead of importing WebSocket clients, stores, Lovelace concepts, iframes, arbitrary HTML, or live entity persistence.
-
-Roadmap:
-
-- Phase 9: shell/design system/registry foundation.
-- Phase 10: Home and weather parity.
-- Phase 11: energy flow and consumption parity.
-- Phase 12: rooms and device controls parity.
-- Phase 13: EV and charging parity.
-- Phase 14: security and camera parity.
-- Phase 15: server, appliances, charts and remaining parity.
-- Phase 16: parity acceptance, legacy retirement, and new capabilities.
+Home Assistant validation is performed by the repository's hassfest and HACS workflows.
