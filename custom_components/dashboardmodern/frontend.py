@@ -17,12 +17,21 @@ PANEL_URL_PATH = DOMAIN
 PANEL_COMPONENT_NAME = "dashboardmodern-panel"
 STATIC_URL_PATH = "/dashboardmodern_static"
 FRONTEND_DIR = Path(__file__).parent / "frontend"
-_CUSTOM_PANEL_CONFIG = {
-    "name": PANEL_COMPONENT_NAME,
-    "embed_iframe": False,
-    "trust_external": False,
-    "module_url": f"{STATIC_URL_PATH}/panel.js",
-}
+
+
+def _frontend_asset_version() -> str:
+    """Return a version that changes whenever a shipped frontend asset changes."""
+    mtimes = (
+        path.stat().st_mtime_ns
+        for path in FRONTEND_DIR.rglob("*")
+        if path.is_file() and path.suffix in {".js", ".css", ".json"}
+    )
+    return format(max(mtimes, default=0), "x")
+
+
+def _versioned_static_url_path() -> str:
+    """Return a unique static mount for the complete ES module graph."""
+    return f"{STATIC_URL_PATH}/{_frontend_asset_version()}"
 
 
 def _next_entry_ids(current: list[str], entry_id: str, *, add: bool) -> list[str]:
@@ -37,9 +46,15 @@ def _next_entry_ids(current: list[str], entry_id: str, *, add: bool) -> list[str
 
 def _panel_config(entry_ids: list[str]) -> dict[str, Any]:
     """Build a fresh Home Assistant panel config snapshot."""
+    static_url_path = _versioned_static_url_path()
     return {
         "entry_ids": list(entry_ids),
-        "_panel_custom": dict(_CUSTOM_PANEL_CONFIG),
+        "_panel_custom": {
+            "name": PANEL_COMPONENT_NAME,
+            "embed_iframe": False,
+            "trust_external": False,
+            "module_url": f"{static_url_path}/panel.js",
+        },
     }
 
 
@@ -71,8 +86,9 @@ def _remove_panel(hass: HomeAssistant) -> None:
 async def _ensure_static_registered(
     hass: HomeAssistant, domain_data: dict[str, Any]
 ) -> None:
-    """Register static assets once; Home Assistant has no static unregister API."""
-    if domain_data.get(DATA_STATIC_REGISTERED):
+    """Register the current versioned asset path once per Home Assistant run."""
+    static_url_path = _versioned_static_url_path()
+    if domain_data.get(DATA_STATIC_REGISTERED) == static_url_path:
         return
 
     from homeassistant.components.http import StaticPathConfig
@@ -83,13 +99,13 @@ async def _ensure_static_registered(
     await hass.http.async_register_static_paths(
         [
             StaticPathConfig(
-                url_path=STATIC_URL_PATH,
+                url_path=static_url_path,
                 path=str(FRONTEND_DIR),
                 cache_headers=False,
             )
         ]
     )
-    domain_data[DATA_STATIC_REGISTERED] = True
+    domain_data[DATA_STATIC_REGISTERED] = static_url_path
 
 
 async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
