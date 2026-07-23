@@ -17,4 +17,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
       - name: Run hassfest
-        uses: home-assistant/actions/hassfest@master
+        shell: bash
+        run: |
+          set +e
+          docker run --rm -v "${GITHUB_WORKSPACE}:/github/workspace" ghcr.io/home-assistant/hassfest > /tmp/hassfest.log 2>&1
+          status=$?
+          cat /tmp/hassfest.log
+          exit "$status"
