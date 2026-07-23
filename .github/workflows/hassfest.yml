@@ -17,20 +17,4 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
       - name: Run hassfest
-        id: hassfest
-        continue-on-error: true
-        shell: bash
-        run: |
-          docker run --rm -v "${GITHUB_WORKSPACE}:/github/workspace" ghcr.io/home-assistant/hassfest > /tmp/hassfest.log 2>&1
-      - name: Upload hassfest log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: hassfest-log
-          path: /tmp/hassfest.log
-          if-no-files-found: error
-      - name: Fail when hassfest failed
-        if: steps.hassfest.outcome == 'failure'
-        run: |
-          cat /tmp/hassfest.log
-          exit 1
+        uses: home-assistant/actions/hassfest@master
