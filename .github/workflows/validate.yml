@@ -20,3 +20,6 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
+          # Repository topics are metadata configured outside the codebase and
+          # are not required for installation as a HACS custom repository.
+          ignore: topics
