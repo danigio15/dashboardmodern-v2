@@ -3,31 +3,48 @@ import test from "node:test";
 
 globalThis.HTMLElement = class {};
 globalThis.customElements = { get() {}, define() {} };
-globalThis.window = { location: { search: "", href: "https://example.local/dashboardmodern" } };
 
-const { createConnectionAdapter, entryIdsFromPanel, shouldNotifyHassSubscribers } = await import("../panel.js");
+const { createLegacyFrame, entryIdsFromPanel, legacyDashboardUrl } = await import("../panel.js");
 
-test("missing connection during bootstrap is reported by the adapter", () => {
-  assert.throws(() => createConnectionAdapter({}), /connection is unavailable/i);
-});
-
-test("successful bootstrap uses the supported hass connection adapter", () => {
-  const connection = { sendMessagePromise() {} };
-  assert.equal(createConnectionAdapter({ connection }), connection);
+test("legacy dashboard URL stays inside the versioned frontend mount", () => {
+  assert.equal(
+    legacyDashboardUrl("https://ha.local/dashboardmodern_static/abc123/panel.js"),
+    "https://ha.local/dashboardmodern_static/abc123/legacy/dashboard.html?embedded=1",
+  );
 });
 
 test("missing config entry id yields no entry ids", () => {
   assert.deepEqual(entryIdsFromPanel({ config: {} }), []);
 });
 
-test("multiple entry selection behavior reads deterministic panel config", () => {
-  assert.deepEqual(entryIdsFromPanel({ config: { entry_ids: ["b", "a"] } }), ["b", "a"]);
+test("panel entry ids are filtered without changing their order", () => {
+  assert.deepEqual(
+    entryIdsFromPanel({ config: { entry_ids: ["b", "", null, "a"] } }),
+    ["b", "a"],
+  );
 });
 
-test("Home Assistant updates notify the app when the create form is closed", () => {
-  assert.equal(shouldNotifyHassSubscribers({ querySelector: () => null }), true);
-});
+test("legacy iframe enables the capabilities used by the original dashboard", () => {
+  const attributes = new Map();
+  const iframe = {
+    className: "",
+    title: "",
+    src: "",
+    loading: "",
+    referrerPolicy: "",
+    allow: "",
+    setAttribute(name, value) { attributes.set(name, value); },
+  };
+  const documentRef = { createElement: (name) => {
+    assert.equal(name, "iframe");
+    return iframe;
+  } };
 
-test("Home Assistant updates preserve the open create form and its focus", () => {
-  assert.equal(shouldNotifyHassSubscribers({ querySelector: () => ({}) }), false);
+  const result = createLegacyFrame(documentRef, "https://ha.local/legacy/dashboard.html");
+
+  assert.equal(result, iframe);
+  assert.equal(iframe.src, "https://ha.local/legacy/dashboard.html");
+  assert.match(iframe.allow, /camera/);
+  assert.match(iframe.allow, /fullscreen/);
+  assert.equal(attributes.get("allowfullscreen"), "");
 });
