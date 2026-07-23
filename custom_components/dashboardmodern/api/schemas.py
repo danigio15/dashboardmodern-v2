@@ -21,7 +21,7 @@ CARD_SCHEMA = vol.Schema(
         vol.Required("id"): _NON_EMPTY_STRING,
         vol.Required("title"): _NON_EMPTY_STRING,
         vol.Required("type"): _NON_EMPTY_STRING,
-        vol.Optional("config", default={}): dict,
+        vol.Optional("config", default=dict): dict,
     },
     extra=vol.PREVENT_EXTRA,
 )
@@ -30,7 +30,9 @@ SECTION_SCHEMA = vol.Schema(
     {
         vol.Required("id"): _NON_EMPTY_STRING,
         vol.Required("title"): _NON_EMPTY_STRING,
-        vol.Optional("card_ids", default=[]): [str],
+        vol.Optional("type"): _NON_EMPTY_STRING,
+        vol.Optional("config", default=dict): dict,
+        vol.Optional("card_ids", default=list): [str],
     },
     extra=vol.PREVENT_EXTRA,
 )
@@ -39,7 +41,7 @@ VIEW_SCHEMA = vol.Schema(
     {
         vol.Required("id"): _NON_EMPTY_STRING,
         vol.Required("title"): _NON_EMPTY_STRING,
-        vol.Optional("section_ids", default=[]): [str],
+        vol.Optional("section_ids", default=list): [str],
     },
     extra=vol.PREVENT_EXTRA,
 )
@@ -51,6 +53,7 @@ DASHBOARD_SCHEMA = vol.Schema(
         vol.Required("views"): [VIEW_SCHEMA],
         vol.Required("sections"): [SECTION_SCHEMA],
         vol.Required("cards"): [CARD_SCHEMA],
+        vol.Optional("config", default=dict): dict,
     },
     extra=vol.PREVENT_EXTRA,
 )
