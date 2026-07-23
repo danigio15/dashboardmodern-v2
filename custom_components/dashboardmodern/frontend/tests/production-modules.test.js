@@ -963,3 +963,25 @@ test("production media artwork owner releases replacement failure and shared det
   panel.querySelectorAll("button")[0].listeners.click();
   assert.equal(released.filter(x => x === "art-original").length, 1);
 });
+
+
+test("production media artwork handle owns source for failures and unavailable cleanup", () => {
+  let mountCleaned = 0; const released = [];
+  const failing = {
+    getMediaArtworkSource(){ return { ref:"mount-fail" }; },
+    mountMediaArtwork(){ throw Object.assign(new Error("hidden renderer"), { code:"renderer_safe" }); },
+    releaseMediaArtwork(ref){ released.push(ref); },
+  };
+  const failed = renderMediaArtwork({ config:{ artworkSource:"art" } }, failing);
+  failed.cleanup(); failed.cleanup();
+  assert.equal(released.filter(x => x === "mount-fail").length, 1);
+  const unavailableRuntime = {
+    getMediaArtworkSource(){ return { ref:"unavailable-art", unavailable:true }; },
+    mountMediaArtwork(){ return { cleanup(){ mountCleaned++; } }; },
+    releaseMediaArtwork(ref){ released.push(ref); },
+  };
+  const unavailable = renderMediaArtwork({ config:{ artworkSource:"art" } }, unavailableRuntime);
+  unavailable.cleanup(); unavailable.cleanup();
+  assert.equal(mountCleaned, 0);
+  assert.equal(released.filter(x => x === "unavailable-art").length, 1);
+});
