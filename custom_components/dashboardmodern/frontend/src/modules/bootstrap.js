@@ -14,18 +14,24 @@ import { MEDIA_MODULE } from "./media.js";
 import { SECURITY_MODULE } from "./security.js";
 import { ROOMS_MODULE } from "./rooms.js";
 
+const BUILT_IN_MODULES = [
+  LIGHTS_MODULE,
+  HOME_MODULE,
+  COVERS_MODULE,
+  CLIMATE_MODULE,
+  ENERGY_MODULE,
+  APPLIANCES_MODULE,
+  VEHICLES_MODULE,
+  CAMERAS_MODULE,
+  MEDIA_MODULE,
+  SECURITY_MODULE,
+  ROOMS_MODULE,
+];
+
 export function registerBuiltInModules({ pluginManager = DEFAULT_PLUGIN_MANAGER, sectionRegistry = DEFAULT_SECTION_REGISTRY, widgetRegistry = DEFAULT_WIDGET_REGISTRY, cardRegistry = DEFAULT_CARD_REGISTRY } = {}) {
   const manager = pluginManager || createPluginManager({ sectionRegistry, widgetRegistry, cardRegistry });
-  manager.registerModule(LIGHTS_MODULE);
-  manager.registerModule(HOME_MODULE);
-  manager.registerModule(COVERS_MODULE);
-  manager.registerModule(CLIMATE_MODULE);
-  manager.registerModule(ENERGY_MODULE);
-  manager.registerModule(APPLIANCES_MODULE);
-  manager.registerModule(VEHICLES_MODULE);
-  manager.registerModule(CAMERAS_MODULE);
-  manager.registerModule(MEDIA_MODULE);
-  manager.registerModule(SECURITY_MODULE);
-  manager.registerModule(ROOMS_MODULE);
+  for (const module of BUILT_IN_MODULES) {
+    if (!manager.hasModule(module.id)) manager.registerModule(module);
+  }
   return manager.contributions();
 }
