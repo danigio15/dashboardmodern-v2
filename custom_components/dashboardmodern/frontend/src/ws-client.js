@@ -48,6 +48,18 @@ function assertDashboard(value) {
   return dashboard;
 }
 
+function unwrapMessageResult(value) {
+  const response = assertObject(value);
+  const isHomeAssistantEnvelope =
+    response.type === "result" ||
+    Object.prototype.hasOwnProperty.call(response, "success") ||
+    Object.prototype.hasOwnProperty.call(response, "result");
+
+  if (!isHomeAssistantEnvelope) return response;
+  if (response.success === false) throw mapError(response);
+  return assertObject(response.result);
+}
+
 export function createDashboardModernClient(connection) {
   if (!connection || typeof connection.sendMessagePromise !== "function") {
     throw new DashboardModernApiError(
@@ -58,8 +70,9 @@ export function createDashboardModernClient(connection) {
 
   async function sendMessage(message) {
     try {
-      return await connection.sendMessagePromise(message);
+      return unwrapMessageResult(await connection.sendMessagePromise(message));
     } catch (error) {
+      if (error instanceof DashboardModernApiError) throw error;
       throw mapError(error);
     }
   }
