@@ -12,7 +12,7 @@ import { COVERS_MODULE, normalizeCover, coverCapabilities, renderCoverTile, rend
 import { CLIMATE_MODULE, normalizeClimate, climateCapabilities, renderClimateTile, renderClimateGroup, renderClimateOverview, renderClimatePanel, openClimateDetailPanel } from "../src/modules/climate.js";
 import { ENERGY_MODULE, deriveHomeLoad, gridDirection, batteryDirection, renderEnergyFlow, normalizeGrid, normalizeBattery, homeLoad, selfConsumptionPercentage, selfSufficiencyPercentage } from "../src/modules/energy.js";
 import { APPLIANCES_MODULE, normalizeAppliance, renderAppliancesOverview } from "../src/modules/appliances.js";
-import { MEDIA_MODULE, collectMediaSources, defaultMediaSectionConfig, filteredMedia, getMediaArtworkSource, mediaEditor, normalizeMediaPlayer, normalizeMediaState, normalizeQueuePayload, renderMediaGroup, renderMediaFavorites, renderMediaQueue, renderMediaNowPlaying, renderMediaOverview, renderMediaProgress, renderMediaArtwork, renderMediaTile, renderMediaPanel, refreshMediaArtwork, validateNormalizedRuntimeSource, renderMediaSource, renderMediaVolume, refreshMediaQueue, releaseMediaQueue, sourceObject, validateMediaAction } from "../src/modules/media.js";
+import { MEDIA_MODULE, collectMediaSources, defaultMediaSectionConfig, filteredMedia, getMediaArtworkSource, mediaEditor, normalizeMediaPlayer, normalizeMediaState, normalizeQueuePayload, renderMediaGroup, renderMediaFavorites, renderMediaQueue, renderMediaNowPlaying, renderMediaOverview, renderMediaProgress, renderMediaArtwork, renderMediaTile, renderMediaPanel, openMediaDetailPanel, refreshMediaArtwork, validateNormalizedRuntimeSource, renderMediaSource, renderMediaVolume, refreshMediaQueue, releaseMediaQueue, sourceObject, validateMediaAction } from "../src/modules/media.js";
 import { normalizeMeasurement } from "../src/modules/shared-measurements.js";
 
 class Node { constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.attributes={};this.listeners={};this.style={};this._text="";this.disabled=false;this.value="";this.checked=false;this.focusCount=0;} append(...c){this.children.push(...c); for(const x of c) if(x) x.parentNode=this;} remove(){ if(this.parentNode) this.parentNode.children=this.parentNode.children.filter(c=>c!==this); } replaceChildren(...c){ this.children=[]; this.append(...c); } getAttribute(k){return this.attributes[k];} setAttribute(k,v){this.attributes[k]=String(v); if(k==="disabled")this.disabled=true; if(k==="value")this.value=String(v); if(k.startsWith("data-")) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);} addEventListener(t,f){this.listeners[t]=f;} focus(){ globalThis.document.activeElement=this; this.focused=true; this.focusCount++; } querySelector(sel){return this.querySelectorAll(sel)[0]||null;} querySelectorAll(sel){const tags=sel.split(",").map(x=>x.trim()); const out=[]; const walk=n=>{if(tags.includes(n.tagName)||tags.includes(`[${Object.keys(n.attributes)[0]}]`))out.push(n); for(const c of n.children)walk(c)}; walk(this); return out;} get textContent(){return this._text+this.children.map(c=>c.textContent).join("");} set textContent(v){this._text=String(v);this.children=[];} }
@@ -942,4 +942,24 @@ test("production media artwork identity applies to all source outcomes and now-p
   node.cleanup(); node.cleanup();
   assert.equal(cleaned, 1);
   assert.equal(released, 1);
+});
+
+
+test("production media artwork owner releases replacement failure and shared detail close", async () => {
+  const released = [], rt = {
+    getEntityState(){ return { state:"playing", attributes:{}, last_updated:"2026-07-22T00:00:00Z" }; },
+    getMediaArtworkSource(){ return { ref:"art-original" }; },
+    refreshMediaArtwork(){ throw Object.assign(new Error("hidden internal"), { code:"refresh_safe" }); },
+    mountMediaArtwork(){ return { cleanup(){} }; },
+    releaseMediaArtwork(ref){ released.push(ref); },
+  };
+  const art = renderMediaArtwork({ config:{ artworkSource:"art" } }, rt);
+  await art.querySelectorAll("button")[0].listeners.click();
+  art.cleanup(); art.cleanup();
+  assert.equal(released.filter(x => x === "art-original").length, 1);
+  assert.equal(released.filter(x => x === null).length, 1);
+  released.length = 0;
+  const trigger = new Node("button"), panel = openMediaDetailPanel({ primaryEntity:"media_player.detail", artworkSource:"detail-art" }, rt, trigger);
+  panel.querySelectorAll("button")[0].listeners.click();
+  assert.equal(released.filter(x => x === "art-original").length, 1);
 });
