@@ -1,0 +1,27 @@
+name: Validate HACS repository
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  validate-hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
+          # HACS reads repository-level metadata for these checks. During this
+          # pull request GitHub does not expose the new LICENSE file as the
+          # repository license until it is merged into the default branch.
+          # Topics are optional for installation as a custom HACS repository.
+          ignore: topics license

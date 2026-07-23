@@ -1,5 +1,22 @@
-# dashboardmodern-v2
-Dashboard for Home assistant 
+# DashboardModern v2
+
+A custom Home Assistant integration that provides the DashboardModern panel and its frontend runtime.
+
+## Install and update with HACS
+
+> HACS can only access public GitHub repositories. Before adding this repository to HACS, change the repository visibility from **Private** to **Public** in GitHub repository settings.
+
+1. Open **HACS** in Home Assistant.
+2. Open the three-dot menu and select **Custom repositories**.
+3. Add `https://github.com/danigio15/dashboardmodern-v2`.
+4. Select the category **Integration**.
+5. Open **DashboardModern v2** in HACS and choose **Download**.
+6. Restart Home Assistant.
+7. Go to **Settings → Devices & services → Add integration** and search for **DashboardModern v2**.
+
+After installation, future changes from the default branch can be installed from HACS. HACS uses the latest GitHub commit when the repository has no published releases; published GitHub releases can be added later for named version selection.
+
+Do not manually copy files into `custom_components/dashboardmodern` after switching to the HACS installation. Let HACS own that directory so updates replace the complete integration consistently.
 
 ## Frontend development
 
