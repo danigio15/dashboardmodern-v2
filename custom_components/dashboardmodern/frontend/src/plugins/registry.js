@@ -29,9 +29,17 @@ export function createPluginManager({
   const modules = new Map();
 
   return {
+    hasModule(id) {
+      return modules.has(id);
+    },
+
+    getModule(id) {
+      return modules.get(id) || null;
+    },
+
     registerModule(module) {
       const normalized = normalizeModuleDefinition(module);
-      if (modules.has(normalized.id)) throw new Error(`Module already registered: ${normalized.id}`);
+      if (modules.has(normalized.id)) return modules.get(normalized.id);
 
       for (const section of normalized.sections) {
         sectionRegistry.register({ ...section, owner: normalized.id });
