@@ -23,7 +23,17 @@ export class DashboardModernPanel extends HTMLElement {
 
   set hass(value) {
     this._hass = value;
-    if (this.store) this.store.setState({ hass: value });
+    if (this.store) {
+      const createFormOpen = Boolean(this.shadowRoot?.querySelector(".dashboardmodern-create-form"));
+      if (createFormOpen) {
+        // Home Assistant replaces `hass` frequently as entity states change. Updating
+        // the store without notifying subscribers while this form is open prevents the
+        // form DOM (and the focused input) from being destroyed on every state update.
+        this.store.state = { ...this.store.state, hass: value };
+      } else {
+        this.store.setState({ hass: value });
+      }
+    }
     this.bootstrap();
   }
 
