@@ -8,6 +8,7 @@ import { renderWidget } from "../src/widgets/runtime.js";
 import { HOME_MODULE, evaluateAlertRule, aggregateHomeStatus } from "../src/modules/home.js";
 import { LIGHTS_MODULE, lightCapabilities, normalizeLight, summarizeLights } from "../src/modules/lights.js";
 import { registerBuiltInModules } from "../src/modules/bootstrap.js";
+import { ROOMS_MODULE, ROOM_WIDGETS, defaultRoomsSectionConfig, normalizeRoom, normalizeRooms, summarizeRooms, filterRooms, aggregateAreas, aggregateFloors, aggregateMetric, validateRoomAction, executeRoomAction } from "../src/modules/rooms.js";
 import { COVERS_MODULE, normalizeCover, coverCapabilities, renderCoverTile, renderCoverGroup, renderCoversOverview, openCoverDetailPanel } from "../src/modules/covers.js";
 import { CLIMATE_MODULE, normalizeClimate, climateCapabilities, renderClimateTile, renderClimateGroup, renderClimateOverview, renderClimatePanel, openClimateDetailPanel } from "../src/modules/climate.js";
 import { ENERGY_MODULE, deriveHomeLoad, gridDirection, batteryDirection, renderEnergyFlow, normalizeGrid, normalizeBattery, homeLoad, selfConsumptionPercentage, selfSufficiencyPercentage } from "../src/modules/energy.js";
@@ -23,15 +24,17 @@ const runtime = { hass: { states: {} }, getEntityState(id){ return this.hass.sta
 test("Home and Lights modules register independently with deterministic contributions", () => {
   const manager = createPluginManager({ sectionRegistry: createSectionRegistry(), cardRegistry: createCardRegistry(), widgetRegistry: createWidgetRegistry() });
   registerBuiltInModules({ pluginManager: manager });
-  assert.deepEqual(manager.listModules().map(m=>m.id), ["appliances", "cameras", "climate", "covers", "energy", "home", "lights", "media", "security", "vehicles"]);
-  assert.equal(manager.contributions().widgets.length, 81);
+  assert.deepEqual(manager.listModules().map(m=>m.id), ["appliances", "cameras", "climate", "covers", "energy", "home", "lights", "media", "rooms", "security", "vehicles"]);
+  assert.equal(manager.contributions().widgets.length, 94);
   assert.throws(()=>manager.registerModule(HOME_MODULE), /already registered/);
   assert.throws(()=>manager.registerModule(COVERS_MODULE), /already registered/);
   assert.throws(()=>manager.registerModule(CLIMATE_MODULE), /already registered/);
+  assert.throws(()=>manager.registerModule(ROOMS_MODULE), /already registered/);
   assert.equal(LIGHTS_MODULE.defaultLayouts[0].widgets[0], "lights-overview");
   assert.equal(COVERS_MODULE.defaultLayouts[0].widgets[0], "covers-overview");
   assert.equal(CLIMATE_MODULE.defaultLayouts[0].widgets[0], "climate-overview");
   assert.equal(MEDIA_MODULE.defaultLayouts[0].widgets[0], "media-overview");
+  assert.deepEqual(ROOMS_MODULE.defaultLayouts[0].widgets, ["rooms-overview", "environment-summary"]);
 });
 
 
@@ -984,4 +987,88 @@ test("production media artwork handle owns source for failures and unavailable c
   unavailable.cleanup(); unavailable.cleanup();
   assert.equal(mountCleaned, 0);
   assert.equal(released.filter(x => x === "unavailable-art").length, 1);
+});
+
+test("Rooms module registration defaults and widgets are deterministic", () => {
+  assert.equal(ROOMS_MODULE.id, "rooms");
+  assert.equal(ROOMS_MODULE.sections[0].type, "rooms");
+  assert.equal(ROOMS_MODULE.navigationEntries[0].title, "Rooms");
+  assert.deepEqual(ROOMS_MODULE.widgets.map(w=>w.type), ROOM_WIDGETS);
+  assert.equal(new Set(ROOM_WIDGETS).size, ROOM_WIDGETS.length);
+  const cfg = defaultRoomsSectionConfig("rooms-main");
+  assert.deepEqual(cfg.widgets.map(w=>w.id), ["rooms-main-rooms-overview", "rooms-main-environment-summary"]);
+});
+
+test("Rooms normalize explicit sources states units timestamps and attribute fallback", () => {
+  const rt={ now: Date.parse("2026-07-23T00:00:00Z"), states:{
+    "sensor.temp":{state:"77",attributes:{unit_of_measurement:"F",value:"25"},last_updated:"2026-07-22T23:59:00Z"},
+    "sensor.hum":{state:"45",attributes:{unit_of_measurement:"%"},last_updated:"2026-07-22T23:59:00Z"},
+    "sensor.old":{state:"1",attributes:{unit_of_measurement:"ppm"},last_updated:"2026-07-20T00:00:00Z"},
+    "sensor.future":{state:"1",attributes:{unit_of_measurement:"ppm"},last_updated:"2026-07-24T00:00:00Z"},
+    "light.kitchen":{state:"on",attributes:{},last_updated:"2026-07-22T23:59:00Z"},
+    "sensor.bad":{state:"NaN",attributes:{unit_of_measurement:"W"},last_updated:"2026-07-22T23:59:00Z"},
+    "sensor.un":{state:"unavailable",attributes:{},last_updated:"2026-07-22T23:59:00Z"}
+  }, getEntityState(id){return this.states[id]||null;} };
+  const room={id:"kitchen",title:"Kitchen",allowPrimaryAttributes:false,staleAfterMs:3600000,attributeMappings:{temperature:"value"},mappings:[
+    {id:"t",category:"temperature",entityId:"sensor.temp",unit:"C",normalizedUnit:"C",precision:1},
+    {id:"h",category:"humidity",entityId:"sensor.hum",unit:"%",normalizedUnit:"%"},
+    {id:"l",category:"lights",entityId:"light.kitchen"},
+    {id:"m",category:"temperature",entityId:"sensor.missing"},
+    {id:"i",category:"temperature",entityId:"bad id"},
+    {id:"b",category:"power",entityId:"sensor.bad",unit:"W",normalizedUnit:"kW",optional:true},
+    {id:"u",category:"custom",entityId:"sensor.un",optional:true},
+    {id:"s",category:"co2",entityId:"sensor.old",unit:"ppm",normalizedUnit:"ppm"},
+    {id:"f",category:"co2",entityId:"sensor.future",unit:"ppm",normalizedUnit:"ppm"}
+  ]};
+  const n=normalizeRoom(rt,room);
+  assert.equal(n.sources.find(s=>s.id==="t").normalizedValue, 25);
+  assert.equal(n.sources.find(s=>s.id==="t").sourceType, "attribute");
+  for (const src of n.sources) assert.equal([src.available,src.missing,src.unavailable,src.malformed,src.stale].filter(Boolean).length, src.configured ? 1 : 0);
+  assert.equal(n.sources.find(s=>s.id==="m").missing, true);
+  assert.equal(n.sources.find(s=>s.id==="i").malformed, true);
+  assert.equal(n.sources.find(s=>s.id==="b").malformed, true);
+  assert.equal(n.sources.find(s=>s.id==="u").unavailable, true);
+  assert.equal(n.sources.find(s=>s.id==="s").stale, true);
+  assert.equal(n.sources.find(s=>s.id==="f").malformed, true);
+  assert.equal(n.counts.lightsTotal, 1);
+  assert.equal(n.counts.lightsOn, 1);
+  assert.equal(n.operational, false);
+  assert.equal(n.health, "malformed");
+});
+
+test("Rooms aggregation thresholds filters groups actions and no double normalization", async () => {
+  const rt={ calls:[], nav:[], states:{
+    "sensor.t1":{state:"20",attributes:{unit_of_measurement:"C"}}, "sensor.t2":{state:"22",attributes:{unit_of_measurement:"C"}}, "sensor.co2":{state:"1200",attributes:{unit_of_measurement:"ppm"}},
+    "person.a":{state:"home",attributes:{}}, "lock.front":{state:"unlocked",attributes:{}}, "cover.blind":{state:"open",attributes:{}}, "switch.fan":{state:"on",attributes:{}}
+  }, getEntityState(id){return this.states[id]||null;}, callService(d,s,data){this.calls.push([d,s,data]); return Promise.resolve();}, navigateToSection(id){this.nav.push(["section",id]);}, navigateToView(id){this.nav.push(["view",id]);} };
+  const config={rooms:[{id:"r1",title:"Kitchen",floorId:"f1",floorTitle:"First",tags:["main"],thresholds:{highCo2:1000},aggregationStrategies:{temperature:"average"},actions:[{id:"a",title:"Run",type:"service",domain:"switch",service:"turn_on",entityId:"switch.fan"},{id:"n",type:"navigate-section",sectionId:"sec"}],favorites:[{id:"fav",kind:"entity",entityId:"switch.fan"}],mappings:[
+    {id:"t1",category:"temperature",entityId:"sensor.t1",unit:"C",normalizedUnit:"C"},{id:"t2",category:"temperature",entityId:"sensor.t2",unit:"C",normalizedUnit:"C"},{id:"co",category:"co2",entityId:"sensor.co2",unit:"ppm",normalizedUnit:"ppm"},{id:"p",category:"people",entityId:"person.a"},{id:"lo",category:"locks",entityId:"lock.front"},{id:"cv",category:"covers",entityId:"cover.blind"},{id:"ap",category:"appliances",entityId:"switch.fan"}]}], areas:[{id:"a1",title:"Area",roomIds:["r1"]}], floors:[{id:"f1",title:"First",roomIds:["r1"]}]};
+  const rooms=normalizeRooms(rt,config), room=rooms[0];
+  assert.equal(room.environment.temperature.normalizedValue, 21);
+  assert.equal(room.environment.temperature.inputCount, 2);
+  assert.equal(room.environment.temperature.validCount, 2);
+  assert.equal(room.alerts[0].reason, "co2-high");
+  assert.equal(summarizeRooms(rooms).totalPeopleHome, 1);
+  assert.equal(summarizeRooms(rooms).totalUnlockedLocks, 1);
+  assert.equal(summarizeRooms(rooms).totalOpenCovers, 1);
+  assert.equal(summarizeRooms(rooms).totalActiveAppliances, 1);
+  assert.deepEqual(filterRooms(rooms,{search:"kit",tag:"main",alertsOnly:true,lightsOnOnly:false}).map(r=>r.id), ["r1"]);
+  assert.equal(aggregateAreas(config,rooms)[0].configuredRooms, 1);
+  assert.equal(aggregateFloors(config,rooms)[0].occupiedRooms, 1);
+  assert.equal(aggregateMetric(room.sources.filter(s=>s.category==="temperature"),"unsupported").reason, "invalid-aggregation-strategy");
+  assert.equal(validateRoomAction({type:"service",domain:"switch",service:"turn_on",entityId:"bad id"}).ok, false);
+  await executeRoomAction(rt, room.actions[0]); await executeRoomAction(rt, room.actions[1]);
+  assert.deepEqual(rt.calls[0], ["switch","turn_on",{entity_id:"switch.fan"}]);
+  assert.deepEqual(rt.nav[0], ["section","sec"]);
+});
+
+test("Rooms renderers expose explicit favorites entities detail and empty states", () => {
+  const config={rooms:[{id:"r",title:"Room",displayFields:["title","alerts","unavailable"],favorites:[{id:"f",kind:"widget",title:"Widget"}],mappings:[{id:"x",category:"custom",entityId:"sensor.x"}]}]};
+  runtime.hass.states={};
+  const overview=ROOMS_MODULE.widgets.find(w=>w.type==="rooms-overview").renderer({id:"w",type:"rooms-overview",config}, runtime);
+  assert.match(overview.textContent, /Room/);
+  const fav=ROOMS_MODULE.widgets.find(w=>w.type==="room-favorites").renderer({id:"f",type:"room-favorites",config:{room:config.rooms[0]}}, runtime);
+  assert.match(fav.textContent, /Widget/);
+  const ent=ROOMS_MODULE.widgets.find(w=>w.type==="room-entities").renderer({id:"e",type:"room-entities",config:{room:config.rooms[0]}}, runtime);
+  assert.match(ent.textContent, /sensor.x/);
 });

@@ -12,6 +12,7 @@ import { VEHICLES_MODULE } from "./vehicles.js";
 import { CAMERAS_MODULE } from "./cameras.js";
 import { MEDIA_MODULE } from "./media.js";
 import { SECURITY_MODULE } from "./security.js";
+import { ROOMS_MODULE } from "./rooms.js";
 
 export function registerBuiltInModules({ pluginManager = DEFAULT_PLUGIN_MANAGER, sectionRegistry = DEFAULT_SECTION_REGISTRY, widgetRegistry = DEFAULT_WIDGET_REGISTRY, cardRegistry = DEFAULT_CARD_REGISTRY } = {}) {
   const manager = pluginManager || createPluginManager({ sectionRegistry, widgetRegistry, cardRegistry });
@@ -25,5 +26,6 @@ export function registerBuiltInModules({ pluginManager = DEFAULT_PLUGIN_MANAGER,
   manager.registerModule(CAMERAS_MODULE);
   manager.registerModule(MEDIA_MODULE);
   manager.registerModule(SECURITY_MODULE);
+  manager.registerModule(ROOMS_MODULE);
   return manager.contributions();
 }
