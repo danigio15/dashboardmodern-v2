@@ -1,7 +1,7 @@
 {
   "domain": "dashboardmodern",
   "name": "DashboardModern v2",
-  "codeowners": [],
+  "codeowners": ["@danigio15"],
   "config_flow": true,
   "documentation": "https://github.com/danigio15/dashboardmodern-v2",
   "integration_type": "hub",
