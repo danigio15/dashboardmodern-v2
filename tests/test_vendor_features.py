@@ -59,7 +59,7 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         # The repository logo is used, not the inline SVG mark.
         assert 'src="./logo.png"' in html, name
         # The Piano field is hidden in the temperature section.
-        assert 'id="ed-st2-floor" class="ed-input" style="display:none;"' in html, name
+        assert "#ed-st2-floor,#ed-st2-flicon{display:none" in html, name
         assert "function editorRenderStanze(" in html, name
         assert "function edStanzaRoomAdd(" in html, name
         # The dedicated Rooms section is registry-only (name + icon); the
@@ -100,3 +100,7 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert 'data-tab="visib"' in html, name
         assert "function editorRenderVisib(" in html, name
         assert "function edVisibToggle(" in html, name
+        # The old Hide/Nascondi tab is gone.
+        assert 'data-tab="hide"' not in html, name
+        # Rooms can be assigned a floor.
+        assert 'id="ed-room-floor"' in html, name

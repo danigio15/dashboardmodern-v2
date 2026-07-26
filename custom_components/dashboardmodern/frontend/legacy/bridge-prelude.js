@@ -29,6 +29,11 @@
     // Same-origin by construction: both documents are served by Home Assistant.
     // A cross-origin parent throws here, which is the correct standalone path.
     try {
+      // The host sets these directly on this window before/at frame load; either
+      // is a reliable signal we are the integration-hosted copy, independent of
+      // parent-access timing.
+      if (window.__DASHBOARDMODERN_BRIDGED__ === true) return true;
+      if (window.__DASHBOARDMODERN_INSTANCE__) return true;
       var parent = window.parent;
       if (!parent || parent === window) return false;
       return parent.__DASHBOARDMODERN_HOST__ === true;

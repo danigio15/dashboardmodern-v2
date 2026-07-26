@@ -98,20 +98,21 @@ ROOMS_RENDER_REPLACEMENT = (
     "var rowsHtml = rooms.map(function(r,i){ "
     'return \'<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">\''
     "+((r.icon?r.icon+' ':'🏠 ')+(r.name||'Stanza'))"
-    "+'</div></div>'"
+    "+'</div>'+(r.floor?'<div class=\"ed-row-old\">🏢 '+r.floor+'</div>':'')+'</div>'"
     '+\'<div class="ed-del" onclick="edStanzaRoomDel(\'+i+\')" title="Elimina">🗑️</div></div>\'; '
     "}).join('') || '<div class=\"ed-empty\">Nessuna stanza. Aggiungine una qui sotto.</div>'; "
     "return '<div class=\"ed-intro\">Gestisci qui le tue <b>stanze</b>. Ogni stanza creata qui compare nel menù a tendina di elettrodomestici, clima e telecamere. Per i sensori di temperatura usa la sezione dedicata.</div>'"
     "+'<div class=\"ed-list\">'+rowsHtml+'</div>'"
     "+'<div class=\"ed-form\">'"
-    '+\'<div style="display:flex;gap:8px;margin-bottom:8px;"><input id="ed-room-icon" class="ed-input" style="flex:0 0 60px;text-align:center;" placeholder="🏠" value="🏠"><input id="ed-room-name" class="ed-input" style="flex:1;" placeholder="Nome stanza (es. Cucina)"></div>\''
+    '+\'<div style="display:flex;gap:8px;margin-bottom:8px;"><input id="ed-room-icon" class="ed-input" style="flex:0 0 60px;text-align:center;" placeholder="🏠" value="🏠"><input id="ed-room-name" class="ed-input" style="flex:1;" placeholder="Nome stanza (es. Cucina)"></div><input id="ed-room-floor" class="ed-input" style="margin-bottom:8px;" placeholder="Piano (es. Piano terra) — facoltativo">\''
     '+\'<button class="ed-btn-add" onclick="edStanzaRoomAdd()">＋ Aggiungi stanza</button>\''
     "+'</div>'; } "
     "function edStanzaRoomAdd(){ var name=(document.getElementById('ed-room-name').value||'').trim(); "
     "if(!name){ alert('Inserisci il nome della stanza'); return; } "
     "var icon=(document.getElementById('ed-room-icon').value||'🏠').trim(); "
+    "var floor=(document.getElementById('ed-room-floor').value||'').trim(); "
     "var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); "
-    "var existing=rooms.filter(function(x){return x&&x.name;}); var r={ name:name, icon:icon }; rooms.push(r); "
+    "var r={ name:name, icon:icon }; if(floor) r.floor=floor; rooms.push(r); "
     "localStorage.setItem('cd_stanze', JSON.stringify(rooms)); "
     "try { cdMarkDirty(); cdSyncPush(); } catch(e){} "
     "try { buildTempCards(); } catch(e){} editorSwitch('stanze'); } "
@@ -171,18 +172,7 @@ WIZARD_STEP_REPLACEMENT = "WIZ = { step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 
 VERSION_ANCHOR = "const DASHBOARD_VERSION = '0.11.1';"
 VERSION_REPLACEMENT = "const DASHBOARD_VERSION = '0.11.1-int';"
 
-# ── Temperature section: remove the "Piano" (floor) fields ─────────────────
-# The floor name + floor icon inputs are dropped; the section keeps the room
-# dropdown and the temp/humidity sensors only.
-TEMP_FLOOR_ANCHOR = '<input id="ed-st2-floor" class="ed-input" style="flex:0 0 32%;"'
-TEMP_FLICON_ANCHOR = '<input id="ed-st2-flicon" class="ed-input" style="flex:0 0 52px;" placeholder="🏢" maxlength="4" title="Icona del piano">'
-TEMP_FLICON_REPLACEMENT = (
-    '<input id="ed-st2-flicon" class="ed-input" style="display:none;" maxlength="4">'
-)
-TEMP_FLOOR_REPLACEMENT = (
-    '<input id="ed-st2-floor" class="ed-input" style="display:none;"'
-)
-
+# ── Temperature section: the Piano (floor) fields are hidden via CSS below ─
 
 LOGO_MARK_ANCHOR = 'const mark = `<svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex:0 0 auto; display:block;">\n        <defs><linearGradient id="${uid}" x1="0" y1="0" x2="48" y2="48"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#0369a1"/></linearGradient></defs>\n        <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#${uid})"/>\n        <path d="M13 24.5 L24 15 L35 24.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>\n        <path d="M15.8 23 V34 H32.2 V23" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>\n        <path d="M25 23.5 L20.5 30.8 H24 L23 35 L28.8 27.2 H24.9 Z" fill="#fde047"/>\n    </svg>`;'
 LOGO_MARK_REPLACEMENT = 'const mark = \'<img src="./logo.png" alt="Dashboard Modern" width="\'+size+\'" height="\'+size+\'" style="flex:0 0 auto;display:block;object-fit:contain;border-radius:12px;" onerror="this.style.display=&#39;none&#39;">\';'
@@ -234,6 +224,19 @@ VIS_RENDER_REPLACEMENT = (
 )
 
 
+# ── Hide the Piano (floor) fields in the temperature section via CSS ───────
+TEMP_FLOOR_CSS_ANCHOR = "<head>"
+TEMP_FLOOR_CSS_REPLACEMENT = (
+    "<head><style>#ed-st2-floor,#ed-st2-flicon{display:none !important;}</style>"
+)
+
+
+# ── Remove the old "Nascondi/Hide" tab ─────────────────────────────────────
+HIDE_TAB_IT_ANCHOR = '<button class="ed-tab" data-tab="hide"  onclick="editorSwitch(\'hide\')">👁️ Nascondi</button>'
+HIDE_TAB_EN_ANCHOR = '<button class="ed-tab" data-tab="hide"  onclick="editorSwitch(\'hide\')">👁️ Hide</button>'
+HIDE_TAB_REPLACEMENT = ""
+
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("room-helper", ROOM_HELPER_ANCHOR, ROOM_HELPER_REPLACEMENT),
@@ -258,9 +261,10 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("wizard-trigger-guard", WIZARD_TRIGGER_ANCHOR, WIZARD_TRIGGER_REPLACEMENT),
     ("wizard-skip-token-step", WIZARD_STEP_ANCHOR, WIZARD_STEP_REPLACEMENT),
     ("version-marker", VERSION_ANCHOR, VERSION_REPLACEMENT),
+    ("temp-hide-floor-css", TEMP_FLOOR_CSS_ANCHOR, TEMP_FLOOR_CSS_REPLACEMENT),
+    ("remove-hide-tab-it?", HIDE_TAB_IT_ANCHOR, HIDE_TAB_REPLACEMENT),
+    ("remove-hide-tab-en?", HIDE_TAB_EN_ANCHOR, HIDE_TAB_REPLACEMENT),
     ("brand-logo", LOGO_MARK_ANCHOR, LOGO_MARK_REPLACEMENT),
-    ("temp-remove-floor?", TEMP_FLOOR_ANCHOR, TEMP_FLOOR_REPLACEMENT),
-    ("temp-remove-flicon?", TEMP_FLICON_ANCHOR, TEMP_FLICON_REPLACEMENT),
     ("temp-hide-duplicate-form?", TEMP_DUP_ANCHOR, TEMP_DUP_REPLACEMENT),
     ("camera-room-save", CAMERA_SAVE_ANCHOR, CAMERA_SAVE_REPLACEMENT),
 )
