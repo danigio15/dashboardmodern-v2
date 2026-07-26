@@ -295,14 +295,15 @@ RILEVA_SWITCH_REPLACEMENT = (
 
 RILEVA_RENDER_ANCHOR = "function editorRenderLuci()"
 RILEVA_RENDER_REPLACEMENT = (
-    "function editorRenderRileva(){"
-    ' return \'<div class="ed-intro">\U0001fa84 <b>Autorilevamento</b>:'
+    "function cdDbgStatus(){ try { return '<div class=\"ed-intro mono\" style=\"font-size:11px;opacity:0.75;\">v'+(typeof DASHBOARD_VERSION==='undefined'?'?':DASHBOARD_VERSION)+' | hosted:'+(window.__DASHBOARDMODERN_HOSTED__?1:0)+' | bridge:'+(window.__DASHBOARDMODERN_BRIDGED__?1:0)+' | token:'+(window.__DASHBOARDMODERN_REAL_TOKEN__?1:0)+' | sync:'+(localStorage.getItem('cd_sync_ts')||0)+'</div>'; } catch(e){ return ''; } } function editorRenderRileva(){ var st=cdDbgStatus();"
+    ' return st+\'<div class="ed-intro">\U0001fa84 <b>Autorilevamento</b>:'
     " analizza tutte le entit\u00e0 di Home Assistant e compila da solo luci,"
     " clima, stanze, telecamere e collegamenti. Puoi correggere tutto dopo"
     " nelle altre schede.</div>'"
     '+\'<button class="ed-btn-add" style="width:100%;"'
     ' onclick="edAutoRileva()">\U0001fa84 Avvia autorilevamento</button>\''
-    '+\'<div id="ed-rileva-out" style="margin-top:10px;"></div>\'; } '
+    '+\'<div id="ed-rileva-out" style="margin-top:10px;"></div>\''
+    '+\'<div style="margin-top:22px;border-top:1px solid rgba(220,38,38,0.3);padding-top:12px;"><button class="ed-btn-add" style="width:100%;background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;" onclick="wzResetAll()">🗑️ Reset totale configurazione</button></div>\'; } '
     "function edAutoRilevaLog(t){ var o=document.getElementById('ed-rileva-out');"
     " if(o) o.innerHTML='<div class=\"ed-intro\">'+t+'</div>'; } "
     "function edAutoRileva(){"
@@ -391,8 +392,47 @@ TEMP_MERGE_REPLACEMENT = (
 )
 
 
+# The temperature section lists only rooms that HAVE a temperature sensor;
+# the registry itself lives in the Rooms tab. The original index is kept, so
+# the reorder arrows still address the right cd_stanze entries.
+TEMP_ROWS_ED_ANCHOR = "const stanzeRows = stanze.map((r, i) => `"
+TEMP_ROWS_ED_REPLACEMENT = (
+    "const stanzeRows = stanze.map((r, i) => !(r && r.temp) ? '' : `"
+)
+
+TEMP_ROWS_WZ_ANCHOR = '${(WIZ.stanze||[]).map((r, i) => `<div class="ed-row">'
+TEMP_ROWS_WZ_REPLACEMENT = (
+    "${(WIZ.stanze||[]).map((r, i) => !(r && r.temp) ? '' : `<div class=\"ed-row\">"
+)
+
+# The dashboard navbar names the section for what it shows.
+NAV_TEMP_IT_ANCHOR = (
+    'data-tab="temp"><span class="icon">🌡️</span><span class="text">Stanze</span>'
+)
+NAV_TEMP_IT_REPLACEMENT = (
+    'data-tab="temp"><span class="icon">🌡️</span><span class="text">Temperatura</span>'
+)
+NAV_TEMP_EN_ANCHOR = (
+    'data-tab="temp"><span class="icon">🌡️</span><span class="text">Rooms</span>'
+)
+NAV_TEMP_EN_REPLACEMENT = (
+    'data-tab="temp"><span class="icon">🌡️</span><span class="text">Temperature</span>'
+)
+
+
+# The navbar tab for the temperature section says Temperatura, not Stanze.
+
+# The temperature section lists only rooms that actually have a temperature
+# sensor; registry-only rooms live in the Rooms tab. The original array index
+# is preserved so the reorder arrows keep pointing at the right entry.
+
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
+    ("nav-temp-it?", NAV_TEMP_IT_ANCHOR, NAV_TEMP_IT_REPLACEMENT),
+    ("nav-temp-en?", NAV_TEMP_EN_ANCHOR, NAV_TEMP_EN_REPLACEMENT),
+    ("temp-rows-editor", TEMP_ROWS_ED_ANCHOR, TEMP_ROWS_ED_REPLACEMENT),
+    ("temp-rows-wizard", TEMP_ROWS_WZ_ANCHOR, TEMP_ROWS_WZ_REPLACEMENT),
     ("temp-pencil-editor?", TEMP_PEN_ED_ANCHOR, TEMP_PEN_REPLACEMENT),
     ("temp-pencil-wizard?", TEMP_PEN_WZ_ANCHOR, TEMP_PEN_REPLACEMENT),
     ("temp-add-merges", TEMP_MERGE_ANCHOR, TEMP_MERGE_REPLACEMENT),

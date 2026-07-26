@@ -126,6 +126,19 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         # Temperature rows are display-only: no pencil, no delete.
         assert "edEditStanza2(${i})" not in html, name
         assert "wzEditStanza(${i})" not in html, name
+        # The temp section lists only rooms with a temperature sensor.
+        assert "!(r && r.temp) ? '' : " in html, name
+        # The navbar tab is labelled Temperatura/Temperature, not Stanze/Rooms.
+        assert '<span class="text">Stanze</span>' not in html, name
+        assert '<span class="text">Rooms</span>' not in html, name
+        # The hamburger keeps its original behavior (HA sidebar in kiosk).
+        assert "if (window.parent === window) { cdOpenAppMenu(); return; }" in html, (
+            name
+        )
+        # A full reset lives in the Rileva tab and never reopens the wizard.
+        assert 'onclick="wzResetAll()"' in html, name
+        # The Rileva tab carries a diagnostic status line.
+        assert "function cdDbgStatus()" in html, name
         # The user_data sync key is namespaced when hosted.
         assert "dashboardmodern_integration_config" in html, name
         assert "key: 'dashboard_modern_config'" not in html, name

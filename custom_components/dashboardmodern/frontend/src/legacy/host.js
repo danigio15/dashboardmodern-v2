@@ -94,6 +94,10 @@ export function mountLegacyHost(
   frame.style.height = "100%";
 
   const BridgeSocket = createBridgeSocket({ connection, onDenied });
+  // Available to the frame's prelude from the very first parse, so the
+  // page's initial connection goes straight through the bridge — no failed
+  // first attempt, no visible red phase, no reconnect reload.
+  hostWindow.__DASHBOARDMODERN_BRIDGE_WS__ = BridgeSocket;
 
   // If the ancestor chain turns out to have no definite height, a percentage
   // resolves to zero and the dashboard renders as a thin strip. Falling back
@@ -132,6 +136,7 @@ export function mountLegacyHost(
       frame.remove();
       delete hostWindow[HOST_KEY];
       delete hostWindow.__DASHBOARDMODERN_REAL_TOKEN__;
+      delete hostWindow.__DASHBOARDMODERN_BRIDGE_WS__;
     },
   };
 }

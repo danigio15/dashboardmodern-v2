@@ -104,7 +104,13 @@
     }
   };
   StubSocket.prototype.removeEventListener = function () {};
-  window.WebSocket = StubSocket;
+  var BridgeWS = null;
+  try {
+    BridgeWS = window.parent.__DASHBOARDMODERN_BRIDGE_WS__ || null;
+  } catch (error) {
+    BridgeWS = null;
+  }
+  window.WebSocket = typeof BridgeWS === "function" ? BridgeWS : StubSocket;
 
   window.__DASHBOARDMODERN_CONNECTION__ = {
     token: REAL_TOKEN || HOSTED_TOKEN,
