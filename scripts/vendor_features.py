@@ -21,7 +21,7 @@ ROOM_HELPER_ANCHOR = "function getAppliances(){"
 ROOM_HELPER_REPLACEMENT = (
     "function cdRoomList(){ try { if (typeof getStanze === 'function') { var g = getStanze(); if (Array.isArray(g)) return g; } var r = cdCfg('cd_stanze'); return Array.isArray(r)?r:[]; } catch(e){ return []; } }\n"
     "function cdRoomOptions(sel){ var rooms = cdRoomList(); var o = '<option value=\"\">\u2014 Nessuna stanza \u2014</option>'; rooms.forEach(function(r){ var nm=(r&&r.name)?String(r.name):''; if(!nm) return; var s=(String(sel||'')===nm)?' selected':''; var safe=nm.replace(/&/g,'&amp;').replace(/\"/g,'&quot;'); o += '<option value=\"'+safe+'\"'+s+'>'+((r.icon?r.icon+' ':'')+nm)+'</option>'; }); return o; }\n"
-    "function cdRoomOf(item){ return (item && item.room) ? String(item.room) : ''; }\nfunction cdFloorDatalist(){ var fl={}; cdRoomList().forEach(function(r){ if(r&&r.floor) fl[String(r.floor)]=1; }); return '<datalist id=\"ed-floor-list\">'+Object.keys(fl).map(function(f){ return '<option value=\"'+f+'\">'; }).join('')+'</datalist>'; }\n"
+    "function cdRoomOf(item){ return (item && item.room) ? String(item.room) : ''; }\nfunction cdFloorNames(){ var fl={}; cdRoomList().forEach(function(r){ if(r&&r.floor) fl[String(r.floor)]=1; }); return Object.keys(fl); }\nfunction cdFloorSelOptions(cur){ var o='<option value=\"\">— Nessun piano —</option>'; cdFloorNames().forEach(function(f){ o+='<option value=\"'+f+'\"'+(cur===f?' selected':'')+'>🏢 '+f+'</option>'; }); o+='<option value=\"__new__\">➕ Nuovo piano…</option>'; return o; }\n"
     "function getAppliances(){"
 )
 
@@ -104,19 +104,19 @@ ROOMS_RENDER_REPLACEMENT = (
     "return '<div class=\"ed-intro\">Gestisci qui le tue <b>stanze</b>. Ogni stanza creata qui compare nel menù a tendina di elettrodomestici, clima e telecamere. Per i sensori di temperatura usa la sezione dedicata.</div>'"
     "+'<div class=\"ed-list\">'+rowsHtml+'</div>'"
     "+'<div class=\"ed-form\">'"
-    '+\'<div style="display:flex;gap:8px;margin-bottom:8px;"><input id="ed-room-icon" class="ed-input" style="flex:0 0 60px;text-align:center;" placeholder="🏠" value="🏠"><input id="ed-room-name" class="ed-input" style="flex:1;" placeholder="Nome stanza (es. Cucina)"></div><input id="ed-room-floor" class="ed-input" style="margin-bottom:8px;" list="ed-floor-list" placeholder="Piano (es. Piano terra)">\'+cdFloorDatalist()+\'\''
+    '+\'<div style="display:flex;gap:8px;margin-bottom:8px;"><input id="ed-room-icon" class="ed-input" style="flex:0 0 60px;text-align:center;" placeholder="🏠" value="🏠"><input id="ed-room-name" class="ed-input" style="flex:1;" placeholder="Nome stanza (es. Cucina)"></div><select id="ed-room-floor" class="ed-input" style="margin-bottom:8px;" onchange="edStanzaFloorSel(this)">\'+cdFloorSelOptions()+\'</select>\''
     '+\'<button class="ed-btn-add" onclick="edStanzaRoomAdd()">＋ Aggiungi stanza</button>\''
     "+'</div>'; } "
     "function edStanzaRoomAdd(){ var name=(document.getElementById('ed-room-name').value||'').trim(); "
     "if(!name){ alert('Inserisci il nome della stanza'); return; } "
     "var icon=(document.getElementById('ed-room-icon').value||'🏠').trim(); "
-    "var floor=(document.getElementById('ed-room-floor').value||'').trim(); "
+    "var floor=(document.getElementById('ed-room-floor').value||'').trim(); if(floor==='__new__') floor=''; "
     "var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); "
     "var r={ name:name, icon:icon }; if(floor) r.floor=floor; rooms.push(r); "
     "localStorage.setItem('cd_stanze', JSON.stringify(rooms)); "
     "try { cdMarkDirty(); cdSyncPush(); } catch(e){} "
     "try { buildTempCards(); } catch(e){} editorSwitch('stanze'); } "
-    "function edStanzaRoomDel(i){ var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); "
+    "function edStanzaFloorSel(sel){ if(sel.value!=='__new__') return; var f=(prompt('Nome del nuovo piano (es. Piano terra)')||'').trim(); if(!f){ sel.value=''; return; } var o=document.createElement('option'); o.value=f; o.textContent='🏢 '+f; var opts=sel.options; var nw=null; for(var i2=0;i2<opts.length;i2++){ if(opts[i2].value==='__new__'){ nw=opts[i2]; break; } } sel.insertBefore(o, nw); sel.value=f; } function edStanzaRoomDel(i){ var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); "
     "rooms.splice(i,1); localStorage.setItem('cd_stanze', JSON.stringify(rooms)); "
     "try { cdMarkDirty(); cdSyncPush(); } catch(e){} "
     "try { buildTempCards(); } catch(e){} editorSwitch('stanze'); } "
@@ -240,9 +240,7 @@ HIDE_TAB_REPLACEMENT = ""
 # calls, which made Home Assistant log failed logins. When hosted, prefer the
 # real access token the host injected in memory.
 REST_TOKEN_ANCHOR = "const LONG_LIVED_TOKEN = _CONN.token ||"
-REST_TOKEN_REPLACEMENT = (
-    "const LONG_LIVED_TOKEN = (window.__DASHBOARDMODERN_REAL_TOKEN__) || _CONN.token ||"
-)
+REST_TOKEN_REPLACEMENT = "const LONG_LIVED_TOKEN = window.__DASHBOARDMODERN_HOSTED__ ? (window.__DASHBOARDMODERN_REAL_TOKEN__ || '') : _CONN.token ||"
 
 # "Configura la dashboard" should open the editor directly when hosted, not the
 # token wizard. The button is identified by its unique box-shadow.
@@ -346,8 +344,27 @@ RILEVA_RENDER_REPLACEMENT = (
 )
 
 
+# Hosted: dedicated user_data sync key, never shared with a standalone plancia.
+SYNC_KEY_ANCHOR = "'dashboard_modern_config'"
+SYNC_KEY_REPLACEMENT = (
+    "(window.__DASHBOARDMODERN_HOSTED__"
+    " ? 'dashboardmodern_integration_config'"
+    " : 'dashboard' + '_modern_config')"
+)
+
+# ── Temperature rows: rooms are managed only from the Rooms tab ────────────
+TEMP_DEL_ED_ANCHOR = '<div class="ed-del" onclick="edDelStanza(${i})">🗑️</div>'
+TEMP_DEL_WZ_ANCHOR = (
+    '<div class="ed-del" onclick="WIZ.stanze.splice(${i},1); wzRender();">🗑️</div>'
+)
+TEMP_DEL_REPLACEMENT = ""
+
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
+    ("sync-key-hosted?", SYNC_KEY_ANCHOR, SYNC_KEY_REPLACEMENT),
+    ("temp-del-editor?", TEMP_DEL_ED_ANCHOR, TEMP_DEL_REPLACEMENT),
+    ("temp-del-wizard?", TEMP_DEL_WZ_ANCHOR, TEMP_DEL_REPLACEMENT),
     ("rileva-tab", RILEVA_TAB_ANCHOR, RILEVA_TAB_REPLACEMENT),
     ("rileva-switch", RILEVA_SWITCH_ANCHOR, RILEVA_SWITCH_REPLACEMENT),
     ("rileva-render", RILEVA_RENDER_ANCHOR, RILEVA_RENDER_REPLACEMENT),

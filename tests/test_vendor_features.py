@@ -106,7 +106,7 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert 'id="ed-room-floor"' in html, name
         # Hosted: Configura opens the editor, and REST uses the real token.
         assert "apriConfigEntita : apriSetupWizard" in html, name
-        assert "window.__DASHBOARDMODERN_REAL_TOKEN__) || _CONN.token" in html, name
+        assert "? (window.__DASHBOARDMODERN_REAL_TOKEN__ ||" in html, name
         # The 7-tap setup gesture and its mentions are gone.
         assert "if (false && taps >= 7)" in html, name
         assert "7 tap veloci sul titolo, oppure" not in html, name
@@ -118,5 +118,10 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         # The Temperatura icon pickers are hidden; icons come from the registry.
         assert "#ed-st2-icon" in html, name
         # Floors are offered as a dropdown of existing floors.
-        assert "cdFloorDatalist" in html, name
-        assert 'id="ed-floor-list"' in html, name
+        assert "cdFloorSelOptions" in html, name
+        assert "function edStanzaFloorSel(" in html, name
+        # The user_data sync key is namespaced when hosted.
+        assert "dashboardmodern_integration_config" in html, name
+        assert "key: 'dashboard_modern_config'" not in html, name
+        # Temperature rows have no delete button; rooms live in the Rooms tab.
+        assert "edDelStanza(${i})" not in html, name

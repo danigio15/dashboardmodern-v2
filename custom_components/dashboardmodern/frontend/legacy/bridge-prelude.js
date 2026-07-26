@@ -58,6 +58,54 @@
     REAL_TOKEN = "";
   }
   if (REAL_TOKEN) window.__DASHBOARDMODERN_REAL_TOKEN__ = REAL_TOKEN;
+
+  // Between document parse and the host's load-time bridge install, the page
+  // would otherwise reach the REAL WebSocket and authenticate on its own — the
+  // source of the "login attempt failed" notifications. Replace it with an
+  // inert stub that opens nothing and closes immediately: the dashboard's own
+  // reconnect logic retries after the bridge is installed and succeeds. No
+  // authentication of any kind can leave the frame before the bridge exists.
+  function StubSocket() {
+    var self = this;
+    this.readyState = StubSocket.CONNECTING;
+    setTimeout(function () {
+      self.readyState = StubSocket.CLOSED;
+      try {
+        if (typeof self.onerror === "function") self.onerror({ type: "error" });
+      } catch (error) {
+        /* listener errors are the page's business */
+      }
+      try {
+        if (typeof self.onclose === "function") {
+          self.onclose({ code: 1006, reason: "bridge not ready" });
+        }
+      } catch (error) {
+        /* listener errors are the page's business */
+      }
+    }, 40);
+  }
+  StubSocket.CONNECTING = 0;
+  StubSocket.OPEN = 1;
+  StubSocket.CLOSING = 2;
+  StubSocket.CLOSED = 3;
+  StubSocket.prototype.send = function () {};
+  StubSocket.prototype.close = function () {
+    this.readyState = StubSocket.CLOSED;
+  };
+  StubSocket.prototype.addEventListener = function (type, handler) {
+    if (type === "close" || type === "error") {
+      setTimeout(function () {
+        try {
+          handler({ code: 1006, type: type });
+        } catch (error) {
+          /* listener errors are the page's business */
+        }
+      }, 50);
+    }
+  };
+  StubSocket.prototype.removeEventListener = function () {};
+  window.WebSocket = StubSocket;
+
   window.__DASHBOARDMODERN_CONNECTION__ = {
     token: REAL_TOKEN || HOSTED_TOKEN,
     local_ip: window.location.host,
