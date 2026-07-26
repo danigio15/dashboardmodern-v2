@@ -33,6 +33,24 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         assert "room:roomSel" in html, name
         assert "getElementById('ed-cl-room')" in html, name
         assert "getElementById('ed-cam-room')" in html, name
+        # The static climate/camera forms use a plain <select> populated by the
+        # editor hook, never inline JS injected into static HTML (which would
+        # render as literal text and break the form).
+        assert "cdRoomOptions('')+'</select>" not in html, f"{name} broken inline JS"
+        assert "dmFilled" in html, name
+        # A dedicated Rooms tab manages the registry.
+        assert 'data-tab="stanze"' in html, name
+        assert "function editorRenderStanze(" in html, name
+        assert "function edStanzaRoomAdd(" in html, name
+
+
+def test_the_room_helper_reads_the_same_cascade_as_the_temperature_section() -> None:
+    """The dropdown must see rooms from config.js too, not only localStorage."""
+    from vendor_features import ROOM_HELPER_REPLACEMENT
+
+    # Deferring to getStanze picks up the wizard/localStorage/config.js cascade,
+    # which is why the dropdown was empty when rooms lived only in config.js.
+    assert "getStanze" in ROOM_HELPER_REPLACEMENT
 
 
 def test_the_room_helper_reads_the_existing_registry() -> None:
@@ -43,3 +61,15 @@ def test_the_room_helper_reads_the_existing_registry() -> None:
     # The helper is reusable, so lights/climate/cameras can call the same thing.
     assert "function cdRoomOptions(" in ROOM_HELPER_REPLACEMENT
     assert "function cdRoomOf(" in ROOM_HELPER_REPLACEMENT
+
+
+def test_rooms_management_is_separated_from_temperatures() -> None:
+    """The rooms editor reads 'Gestione Stanze'; the view is just 'Temperature'."""
+    for name in vendor_legacy.VARIANTS:
+        html = (VENDORED / name).read_text(encoding="utf-8")
+        # The old conflated labels are gone.
+        assert "Stanze (temperature)" not in html, name
+        assert "Rooms (temperatures)" not in html, name
+        assert "Temperature Stanze" not in html, name
+        # A dedicated management label exists (either language).
+        assert ("Gestione Stanze" in html) or ("Manage Rooms" in html), name
