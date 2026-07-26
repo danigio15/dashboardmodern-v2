@@ -6176,7 +6176,7 @@ html[data-theme="dark"] .tc2-hum { background: rgba(14,165,233,0.16); color:#7dd
    localStorage (se presente) ha priorità, così puoi ancora testare in locale.
    ─────────────────────────────────────────────────────────────────── */
 /* ═══ v258: VERSIONE — visibile in console, wizard e pagina Config ═══ */
-const DASHBOARD_VERSION = '0.11.1';
+const DASHBOARD_VERSION = '0.11.1-int';
 console.log('%c🏠 Dashboard Modern v' + DASHBOARD_VERSION, 'font-size:14px; font-weight:bold; color:#0ea5e9;');
 
 /* CD_BAKED_START */
@@ -6570,13 +6570,7 @@ function dmApplianceChoose(t){
 function cdBrandLogo(size, withWordmark) {
     size = size || 44;
     const uid = 'cdlg' + Math.random().toString(36).slice(2, 7);
-    const mark = `<svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex:0 0 auto; display:block;">
-        <defs><linearGradient id="${uid}" x1="0" y1="0" x2="48" y2="48"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#0369a1"/></linearGradient></defs>
-        <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#${uid})"/>
-        <path d="M13 24.5 L24 15 L35 24.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M15.8 23 V34 H32.2 V23" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M25 23.5 L20.5 30.8 H24 L23 35 L28.8 27.2 H24.9 Z" fill="#fde047"/>
-    </svg>`;
+    const mark = '<img src="./logo.png" alt="Dashboard Modern" width="'+size+'" height="'+size+'" style="flex:0 0 auto;display:block;object-fit:contain;border-radius:12px;" onerror="this.style.display=&#39;none&#39;">';
     if (!withWordmark) return mark;
     const fs = Math.round(size * 0.42);
     return `<div style="display:flex; align-items:center; gap:12px;">${mark}<div style="display:flex; flex-direction:column; line-height:1.05;"><span style="font-family:'Oswald',sans-serif; font-weight:700; font-size:${fs}px; letter-spacing:0.5px; color:var(--text,#0f172a);">Dashboard</span><span style="font-family:'Oswald',sans-serif; font-weight:700; font-size:${fs}px; letter-spacing:2.5px; color:#0ea5e9;">MODERN</span></div></div>`;
@@ -7282,6 +7276,7 @@ function apriConfigEntita() {
         <div class="ed-tabs">
           <button class="ed-tab" data-tab="sezioni" onclick="editorSwitch('sezioni')">📑 Sezioni</button>
           <button class="ed-tab" data-tab="load"  onclick="editorSwitch('load')">🔌 Carichi</button>
+          <button class="ed-tab" data-tab="visib" onclick="editorSwitch('visib')">👁️ Sezioni</button>
           <button class="ed-tab" data-tab="stanze" onclick="editorSwitch('stanze')">🚪 Stanze</button>
           <button class="ed-tab" data-tab="luci"  onclick="editorSwitch('luci')">💡 Luci</button>
           <button class="ed-tab" data-tab="appliances" onclick="editorSwitch('appliances')">🧺 Elettrodom.</button>
@@ -7303,6 +7298,7 @@ function editorSwitch(tab) {
     if (tab === 'sezioni') body.innerHTML = editorRenderSezioni();
     if (tab === 'sost')   body.innerHTML = editorRenderSost();
     if (tab === 'load')   body.innerHTML = editorRenderLoad();
+    if (tab === 'visib') body.innerHTML = editorRenderVisib();
     if (tab === 'stanze') body.innerHTML = editorRenderStanze();
     if (tab === 'luci')   body.innerHTML = editorRenderLuci();
     if (tab === 'appliances') { body.innerHTML = editorRenderAppliances(); try { edApplRenderEnts(); } catch(e){} }
@@ -7686,7 +7682,7 @@ function cdLuciRoomList() {
     return set;
 }
 
-function editorRenderStanze(){ var rooms = (typeof getStanze==='function'?getStanze():[])||[]; var esc=function(x){return String(x==null?'':x).replace(/"/g,'&quot;');}; var rowsHtml = rooms.map(function(r,i){ return '<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">'+((r.icon?r.icon+' ':'🏠 ')+(r.name||'Stanza'))+'</div></div>'+'<div class="ed-del" onclick="edStanzaRoomDel('+i+')" title="Elimina">🗑️</div></div>'; }).join('') || '<div class="ed-empty">Nessuna stanza. Aggiungine una qui sotto.</div>'; return '<div class="ed-intro">Gestisci qui le tue <b>stanze</b>. Ogni stanza creata qui compare nel menù a tendina di elettrodomestici, clima e telecamere. Per i sensori di temperatura usa la sezione dedicata.</div>'+'<div class="ed-list">'+rowsHtml+'</div>'+'<div class="ed-form">'+'<div style="display:flex;gap:8px;margin-bottom:8px;"><input id="ed-room-icon" class="ed-input" style="flex:0 0 60px;text-align:center;" placeholder="🏠" value="🏠"><input id="ed-room-name" class="ed-input" style="flex:1;" placeholder="Nome stanza (es. Cucina)"></div>'+'<button class="ed-btn-add" onclick="edStanzaRoomAdd()">＋ Aggiungi stanza</button>'+'</div>'; } function edStanzaRoomAdd(){ var name=(document.getElementById('ed-room-name').value||'').trim(); if(!name){ alert('Inserisci il nome della stanza'); return; } var icon=(document.getElementById('ed-room-icon').value||'🏠').trim(); var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); var existing=rooms.filter(function(x){return x&&x.name;}); var r={ name:name, icon:icon }; rooms.push(r); localStorage.setItem('cd_stanze', JSON.stringify(rooms)); try { cdMarkDirty(); cdSyncPush(); } catch(e){} try { buildTempCards(); } catch(e){} editorSwitch('stanze'); } function edStanzaRoomDel(i){ var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); rooms.splice(i,1); localStorage.setItem('cd_stanze', JSON.stringify(rooms)); try { cdMarkDirty(); cdSyncPush(); } catch(e){} try { buildTempCards(); } catch(e){} editorSwitch('stanze'); } function editorRenderLuci() {
+function cdVisibSez(){ return [['home','🏠','Home','Meteo, avvisi, azioni rapide'],['energy','⚡','Energia','Fotovoltaico e consumi'],['ev','🚗','Auto elettrica','EV + wallbox (EVCC)'],['boiler','🌞','Solare termico','Boiler solare'],['clima','❄️','Clima','Condizionatori e riscaldamento'],['temp','🌡️','Temperatura','Temperature e umidità'],['security','🛡️','Sicurezza','Telecamere e allarme'],['server','🖥️','MiniPC','Monitoraggio server']]; } function editorRenderVisib(){ var sez=cdVisibSez(); var cur=cdCfg('cd_sections')||{}; var rows=sez.map(function(x,idx){ var k=x[0]; var on=(cur[k]!==false); return '<div class="ed-row" style="align-items:center;"><div class="ed-row-main"><div class="ed-row-new">'+x[1]+' '+x[2]+'</div><div class="ed-row-old">'+x[3]+'</div></div><div onclick="edVisibToggle('+idx+')" style="cursor:pointer;flex:0 0 52px;height:30px;border-radius:15px;background:'+(on?'#0ea5e9':'#cbd5e1')+';position:relative;transition:.2s;"><div style="position:absolute;top:3px;'+(on?'right:3px':'left:3px')+';width:24px;height:24px;border-radius:50%;background:#fff;"></div></div></div>'; }).join(''); return '<div class="ed-intro">Attiva o disattiva intere <b>sezioni</b> della dashboard. Le sezioni disattivate spariscono dalla vista.</div><div class="ed-list">'+rows+'</div>'; } function edVisibToggle(idx){ var sez=cdVisibSez(); var x=sez[idx]; if(!x) return; var k=x[0]; var cur=cdCfg('cd_sections')||{}; cur[k]=(cur[k]===false); localStorage.setItem('cd_sections', JSON.stringify(cur)); try { cdMarkDirty(); cdSyncPush(); } catch(e){} try { if(typeof render==='function') render(); } catch(e){} editorSwitch('visib'); } function editorRenderStanze(){ var rooms = (typeof getStanze==='function'?getStanze():[])||[]; var esc=function(x){return String(x==null?'':x).replace(/"/g,'&quot;');}; var rowsHtml = rooms.map(function(r,i){ return '<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">'+((r.icon?r.icon+' ':'🏠 ')+(r.name||'Stanza'))+'</div></div>'+'<div class="ed-del" onclick="edStanzaRoomDel('+i+')" title="Elimina">🗑️</div></div>'; }).join('') || '<div class="ed-empty">Nessuna stanza. Aggiungine una qui sotto.</div>'; return '<div class="ed-intro">Gestisci qui le tue <b>stanze</b>. Ogni stanza creata qui compare nel menù a tendina di elettrodomestici, clima e telecamere. Per i sensori di temperatura usa la sezione dedicata.</div>'+'<div class="ed-list">'+rowsHtml+'</div>'+'<div class="ed-form">'+'<div style="display:flex;gap:8px;margin-bottom:8px;"><input id="ed-room-icon" class="ed-input" style="flex:0 0 60px;text-align:center;" placeholder="🏠" value="🏠"><input id="ed-room-name" class="ed-input" style="flex:1;" placeholder="Nome stanza (es. Cucina)"></div>'+'<button class="ed-btn-add" onclick="edStanzaRoomAdd()">＋ Aggiungi stanza</button>'+'</div>'; } function edStanzaRoomAdd(){ var name=(document.getElementById('ed-room-name').value||'').trim(); if(!name){ alert('Inserisci il nome della stanza'); return; } var icon=(document.getElementById('ed-room-icon').value||'🏠').trim(); var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); var existing=rooms.filter(function(x){return x&&x.name;}); var r={ name:name, icon:icon }; rooms.push(r); localStorage.setItem('cd_stanze', JSON.stringify(rooms)); try { cdMarkDirty(); cdSyncPush(); } catch(e){} try { buildTempCards(); } catch(e){} editorSwitch('stanze'); } function edStanzaRoomDel(i){ var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); rooms.splice(i,1); localStorage.setItem('cd_stanze', JSON.stringify(rooms)); try { cdMarkDirty(); cdSyncPush(); } catch(e){} try { buildTempCards(); } catch(e){} editorSwitch('stanze'); } function editorRenderLuci() {
     const luci = cdCfg('cd_luci') || {};
     const ids = Object.keys(luci);
     if (!ids.length) {
@@ -8418,7 +8414,7 @@ function wzRender() {
           <div style="display:flex; gap:8px; margin:10px 0 8px;">
             <input id="ed-st2-icon" class="ed-input" style="flex:0 0 56px;" placeholder="🌡️" maxlength="4"><button type="button" onclick="wzPickIcon('#ed-st2-icon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
             <select id="ed-st2-name" class="ed-input" style="flex:1;"></select>
-            <input id="ed-st2-floor" class="ed-input" style="flex:0 0 32%;" placeholder="Piano (opz.)"><input id="ed-st2-flicon" class="ed-input" style="flex:0 0 52px;" placeholder="🏢" maxlength="4" title="Icona del piano"><button type="button" onclick="wzPickIcon('#ed-st2-flicon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
+            <input id="ed-st2-floor" class="ed-input" style="display:none;" placeholder="Piano (opz.)"><input id="ed-st2-flicon" class="ed-input" style="display:none;" maxlength="4"><button type="button" onclick="wzPickIcon('#ed-st2-flicon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
           </div>
           <div style="display:flex; gap:6px; margin-bottom:6px;">
             <input id="ed-st2-temp" class="ed-input mono" autocomplete="off" placeholder="sensor.temperatura_x" style="flex:1; font-family:monospace;">
@@ -9748,7 +9744,7 @@ function editorRenderSezioni() {
           <div style="display:flex; gap:8px; margin:10px 0 8px;">
             <input id="ed-st2-icon" class="ed-input" style="flex:0 0 56px;" placeholder="🌡️" maxlength="4"><button type="button" onclick="wzPickIcon('#ed-st2-icon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
             <select id="ed-st2-name" class="ed-input" style="flex:1;"></select>
-            <input id="ed-st2-floor" class="ed-input" style="flex:0 0 30%;" placeholder="Piano (opz.)"><input id="ed-st2-flicon" class="ed-input" style="flex:0 0 52px;" placeholder="🏢" maxlength="4" title="Icona del piano"><button type="button" onclick="wzPickIcon('#ed-st2-flicon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
+            <input id="ed-st2-floor" class="ed-input" style="flex:0 0 30%;" placeholder="Piano (opz.)"><input id="ed-st2-flicon" class="ed-input" style="display:none;" maxlength="4"><button type="button" onclick="wzPickIcon('#ed-st2-flicon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
           </div>
           <div style="display:flex; gap:6px; margin-bottom:6px;">
             <input id="ed-st2-temp" class="ed-input mono" autocomplete="off" placeholder="sensor.temperatura_x" style="flex:1; font-family:monospace;">
@@ -9759,7 +9755,7 @@ function editorRenderSezioni() {
             <button type="button" onclick="wzPickEntity('#ed-st2-hum')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button>
           </div>
           <button class="ed-btn-add" id="ed-st2-btn" style="width:100%;" onclick="edAddStanza2()">＋ Aggiungi stanza</button></div>
-          <div class="ed-form">
+          <div class="ed-form" style="display:none;">
             <div class="ed-form-row">
               <input id="ed-st-icon" class="ed-input ed-icon-input" placeholder="🛋️" maxlength="4"><button type="button" onclick="wzPickIcon('#ed-st-icon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
               <input id="ed-st-name" class="ed-input" placeholder="Nome stanza" style="flex:1;">

@@ -167,6 +167,73 @@ WIZARD_STEP_ANCHOR = "WIZ = { step: 1,"
 WIZARD_STEP_REPLACEMENT = "WIZ = { step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 : 1),"
 
 
+# ── Visible build marker: prove the served HTML actually updated ───────────
+VERSION_ANCHOR = "const DASHBOARD_VERSION = '0.11.1';"
+VERSION_REPLACEMENT = "const DASHBOARD_VERSION = '0.11.1-int';"
+
+# ── Temperature section: remove the "Piano" (floor) fields ─────────────────
+# The floor name + floor icon inputs are dropped; the section keeps the room
+# dropdown and the temp/humidity sensors only.
+TEMP_FLOOR_ANCHOR = '<input id="ed-st2-floor" class="ed-input" style="flex:0 0 32%;"'
+TEMP_FLICON_ANCHOR = '<input id="ed-st2-flicon" class="ed-input" style="flex:0 0 52px;" placeholder="🏢" maxlength="4" title="Icona del piano">'
+TEMP_FLICON_REPLACEMENT = (
+    '<input id="ed-st2-flicon" class="ed-input" style="display:none;" maxlength="4">'
+)
+TEMP_FLOOR_REPLACEMENT = (
+    '<input id="ed-st2-floor" class="ed-input" style="display:none;"'
+)
+
+
+LOGO_MARK_ANCHOR = 'const mark = `<svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex:0 0 auto; display:block;">\n        <defs><linearGradient id="${uid}" x1="0" y1="0" x2="48" y2="48"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#0369a1"/></linearGradient></defs>\n        <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#${uid})"/>\n        <path d="M13 24.5 L24 15 L35 24.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>\n        <path d="M15.8 23 V34 H32.2 V23" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>\n        <path d="M25 23.5 L20.5 30.8 H24 L23 35 L28.8 27.2 H24.9 Z" fill="#fde047"/>\n    </svg>`;'
+LOGO_MARK_REPLACEMENT = 'const mark = \'<img src="./logo.png" alt="Dashboard Modern" width="\'+size+\'" height="\'+size+\'" style="flex:0 0 auto;display:block;object-fit:contain;border-radius:12px;" onerror="this.style.display=&#39;none&#39;">\';'
+
+
+# ── Remove the duplicate old room form in the temperature section ──────────
+TEMP_DUP_ANCHOR = 'onclick="edAddStanza2()">＋ Aggiungi stanza</button></div>\n          <div class="ed-form">'
+TEMP_DUP_REPLACEMENT = 'onclick="edAddStanza2()">＋ Aggiungi stanza</button></div>\n          <div class="ed-form" style="display:none;">'
+
+
+# ── A dedicated "Visibility" tab: show/hide whole sections ─────────────────
+# The wizard already toggles which sections appear; this exposes the same
+# control in the editor as its own tab, writing the same cd_sections store.
+VIS_TAB_ANCHOR = (
+    '<button class="ed-tab" data-tab="luci"  onclick="editorSwitch(\'luci\')">'
+)
+VIS_TAB_REPLACEMENT = '<button class="ed-tab" data-tab="visib" onclick="editorSwitch(\'visib\')">👁️ Sezioni</button>\n          <button class="ed-tab" data-tab="luci"  onclick="editorSwitch(\'luci\')">'
+
+VIS_SWITCH_ANCHOR = "if (tab === 'luci')   body.innerHTML = editorRenderLuci();"
+VIS_SWITCH_REPLACEMENT = "if (tab === 'visib') body.innerHTML = editorRenderVisib();\n    if (tab === 'luci')   body.innerHTML = editorRenderLuci();"
+
+VIS_RENDER_ANCHOR = "function editorRenderLuci()"
+VIS_RENDER_REPLACEMENT = (
+    "function cdVisibSez(){ return [['home','🏠','Home','Meteo, avvisi, azioni rapide'],"
+    "['energy','⚡','Energia','Fotovoltaico e consumi'],"
+    "['ev','🚗','Auto elettrica','EV + wallbox (EVCC)'],"
+    "['boiler','🌞','Solare termico','Boiler solare'],"
+    "['clima','❄️','Clima','Condizionatori e riscaldamento'],"
+    "['temp','🌡️','Temperatura','Temperature e umidità'],"
+    "['security','🛡️','Sicurezza','Telecamere e allarme'],"
+    "['server','🖥️','MiniPC','Monitoraggio server']]; } "
+    "function editorRenderVisib(){ var sez=cdVisibSez(); var cur=cdCfg('cd_sections')||{}; "
+    "var rows=sez.map(function(x,idx){ var k=x[0]; var on=(cur[k]!==false); "
+    'return \'<div class="ed-row" style="align-items:center;"><div class="ed-row-main">'
+    "<div class=\"ed-row-new\">'+x[1]+' '+x[2]+'</div>"
+    "<div class=\"ed-row-old\">'+x[3]+'</div></div>"
+    '<div onclick="edVisibToggle(\'+idx+\')" style="cursor:pointer;flex:0 0 52px;height:30px;'
+    "border-radius:15px;background:'+(on?'#0ea5e9':'#cbd5e1')+';position:relative;transition:.2s;\">"
+    "<div style=\"position:absolute;top:3px;'+(on?'right:3px':'left:3px')+';width:24px;height:24px;"
+    "border-radius:50%;background:#fff;\"></div></div></div>'; }).join(''); "
+    'return \'<div class="ed-intro">Attiva o disattiva intere <b>sezioni</b> della dashboard. '
+    "Le sezioni disattivate spariscono dalla vista.</div><div class=\"ed-list\">'+rows+'</div>'; } "
+    "function edVisibToggle(idx){ var sez=cdVisibSez(); var x=sez[idx]; if(!x) return; var k=x[0]; "
+    "var cur=cdCfg('cd_sections')||{}; cur[k]=(cur[k]===false); "
+    "localStorage.setItem('cd_sections', JSON.stringify(cur)); "
+    "try { cdMarkDirty(); cdSyncPush(); } catch(e){} "
+    "try { if(typeof render==='function') render(); } catch(e){} editorSwitch('visib'); } "
+    "function editorRenderLuci()"
+)
+
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("room-helper", ROOM_HELPER_ANCHOR, ROOM_HELPER_REPLACEMENT),
@@ -176,6 +243,9 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("climate-room-save", CLIMATE_SAVE_ANCHOR, CLIMATE_SAVE_REPLACEMENT),
     ("camera-room-field", CAMERA_FORM_ANCHOR, CAMERA_FORM_REPLACEMENT),
     ("room-select-populate", POPULATE_ANCHOR, POPULATE_REPLACEMENT),
+    ("visib-tab", VIS_TAB_ANCHOR, VIS_TAB_REPLACEMENT),
+    ("visib-switch", VIS_SWITCH_ANCHOR, VIS_SWITCH_REPLACEMENT),
+    ("visib-render", VIS_RENDER_ANCHOR, VIS_RENDER_REPLACEMENT),
     ("rooms-tab", ROOMS_TAB_ANCHOR, ROOMS_TAB_REPLACEMENT),
     ("rooms-switch", ROOMS_SWITCH_ANCHOR, ROOMS_SWITCH_REPLACEMENT),
     ("rooms-render", ROOMS_RENDER_ANCHOR, ROOMS_RENDER_REPLACEMENT),
@@ -187,5 +257,10 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("temp-name-en?", TEMP_NAME_ANCHOR_EN, TEMP_NAME_REPLACEMENT),
     ("wizard-trigger-guard", WIZARD_TRIGGER_ANCHOR, WIZARD_TRIGGER_REPLACEMENT),
     ("wizard-skip-token-step", WIZARD_STEP_ANCHOR, WIZARD_STEP_REPLACEMENT),
+    ("version-marker", VERSION_ANCHOR, VERSION_REPLACEMENT),
+    ("brand-logo", LOGO_MARK_ANCHOR, LOGO_MARK_REPLACEMENT),
+    ("temp-remove-floor?", TEMP_FLOOR_ANCHOR, TEMP_FLOOR_REPLACEMENT),
+    ("temp-remove-flicon?", TEMP_FLICON_ANCHOR, TEMP_FLICON_REPLACEMENT),
+    ("temp-hide-duplicate-form?", TEMP_DUP_ANCHOR, TEMP_DUP_REPLACEMENT),
     ("camera-room-save", CAMERA_SAVE_ANCHOR, CAMERA_SAVE_REPLACEMENT),
 )

@@ -54,6 +54,12 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         # The token wizard never opens when hosted by the integration.
         assert "!window.__DASHBOARDMODERN_HOSTED__" in html, name
         assert "step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 : 1)" in html, name
+        # The build marker proves the served HTML updated.
+        assert "0.11.1-int" in html, name
+        # The repository logo is used, not the inline SVG mark.
+        assert 'src="./logo.png"' in html, name
+        # The Piano field is hidden in the temperature section.
+        assert 'id="ed-st2-floor" class="ed-input" style="display:none;"' in html, name
         assert "function editorRenderStanze(" in html, name
         assert "function edStanzaRoomAdd(" in html, name
         # The dedicated Rooms section is registry-only (name + icon); the
@@ -90,3 +96,7 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "🌡️ Temperatura" in html, name
         # A dedicated Rooms tab exists for managing the registry.
         assert 'data-tab="stanze"' in html, name
+        # A Visibility tab toggles whole sections.
+        assert 'data-tab="visib"' in html, name
+        assert "function editorRenderVisib(" in html, name
+        assert "function edVisibToggle(" in html, name
