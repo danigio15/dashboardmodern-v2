@@ -6358,7 +6358,7 @@ function cdApplianceIcon(type, size) {
   return '<svg '+A+'>'+(I[type]||I.generico)+'</svg>';
 }
 function cdApplianceName(type){ const x=DM_APPLIANCES.find(a=>a.t===type); return x?x.n:'Appliance'; }
-function cdRoomList(){ try { var r = cdCfg('cd_stanze'); return Array.isArray(r)?r:[]; } catch(e){ return []; } }
+function cdRoomList(){ try { if (typeof getStanze === 'function') { var g = getStanze(); if (Array.isArray(g)) return g; } var r = cdCfg('cd_stanze'); return Array.isArray(r)?r:[]; } catch(e){ return []; } }
 function cdRoomOptions(sel){ var rooms = cdRoomList(); var o = '<option value="">— Nessuna stanza —</option>'; rooms.forEach(function(r){ var nm=(r&&r.name)?String(r.name):''; if(!nm) return; var s=(String(sel||'')===nm)?' selected':''; var safe=nm.replace(/&/g,'&amp;').replace(/"/g,'&quot;'); o += '<option value="'+safe+'"'+s+'>'+((r.icon?r.icon+' ':'')+nm)+'</option>'; }); return o; }
 function cdRoomOf(item){ return (item && item.room) ? String(item.room) : ''; }
 function getAppliances(){ const a=cdCfg('cd_appliances'); return Array.isArray(a)?a:[]; }
@@ -7273,6 +7273,7 @@ function apriConfigEntita() {
           <button class="ed-tab" data-tab="sezioni" onclick="editorSwitch('sezioni')">📑 Sections</button>
           <button class="ed-tab" data-tab="sost"  onclick="editorSwitch('sost')">🔁 Overrides</button>
           <button class="ed-tab" data-tab="load"  onclick="editorSwitch('load')">🔌 Loads</button>
+          <button class="ed-tab" data-tab="stanze" onclick="editorSwitch('stanze')">🚪 Stanze</button>
           <button class="ed-tab" data-tab="luci"  onclick="editorSwitch('luci')">💡 Lights</button>
           <button class="ed-tab" data-tab="appliances" onclick="editorSwitch('appliances')">🧺 Appliances</button>
           <button class="ed-tab" data-tab="avvisi" onclick="editorSwitch('avvisi')">🔔 Alerts</button>
@@ -7288,12 +7289,14 @@ function apriConfigEntita() {
 
 function editorSwitch(tab) {
     EDITOR_TAB = tab;
+    try { setTimeout(function(){ ['ed-cl-room','ed-cam-room'].forEach(function(id){ var el=document.getElementById(id); if(el && !el.dataset.dmFilled){ el.innerHTML = cdRoomOptions(''); el.dataset.dmFilled='1'; } }); }, 0); } catch(e){}
     document.querySelectorAll('.ed-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     const body = document.getElementById('ed-body');
     if (!body) return;
     if (tab === 'sezioni') body.innerHTML = editorRenderSezioni();
     if (tab === 'sost')   body.innerHTML = editorRenderSost();
     if (tab === 'load')   body.innerHTML = editorRenderLoad();
+    if (tab === 'stanze') body.innerHTML = editorRenderStanze();
     if (tab === 'luci')   body.innerHTML = editorRenderLuci();
     if (tab === 'appliances') { body.innerHTML = editorRenderAppliances(); try { edApplRenderEnts(); } catch(e){} }
     if (tab === 'avvisi') { body.innerHTML = editorRenderAvvisi(); try { edAvvRenderEnts(); } catch(e){} }
@@ -7668,7 +7671,7 @@ function cdLuciRoomList() {
     return set;
 }
 
-function editorRenderLuci() {
+function editorRenderStanze(){ var rooms = (typeof getStanze==='function'?getStanze():[])||[]; var esc=function(x){return String(x==null?'':x).replace(/"/g,'&quot;');}; var rowsHtml = rooms.map(function(r,i){ return '<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">'+((r.icon?r.icon+' ':'🏠 ')+(r.name||'Stanza'))+'</div><div class="ed-row-old mono">'+(r.temp?esc(r.temp):'nessun sensore')+'</div></div>'+'<div class="ed-del" onclick="edStanzaRoomDel('+i+')" title="Elimina">🗑️</div></div>'; }).join('') || '<div class="ed-empty">Nessuna stanza. Aggiungine una qui sotto.</div>'; return '<div class="ed-intro">Gestisci qui le tue <b>stanze</b>. Ogni stanza creata qui compare nel menù a tendina di elettrodomestici, clima e telecamere. Il sensore di temperatura è facoltativo.</div>'+'<div class="ed-list">'+rowsHtml+'</div>'+'<div class="ed-form">'+'<div style="display:flex;gap:8px;margin-bottom:8px;"><input id="ed-room-icon" class="ed-input" style="flex:0 0 60px;text-align:center;" placeholder="🏠" value="🏠"><input id="ed-room-name" class="ed-input" style="flex:1;" placeholder="Nome stanza (es. Cucina)"></div>'+'<input id="ed-room-temp" list="ed-entity-list" class="ed-input mono" placeholder="sensor.temperatura_x (facoltativo)" style="margin-bottom:8px;">'+'<button class="ed-btn-add" onclick="edStanzaRoomAdd()">＋ Aggiungi stanza</button>'+'</div>'; } function edStanzaRoomAdd(){ var name=(document.getElementById('ed-room-name').value||'').trim(); if(!name){ alert('Inserisci il nome della stanza'); return; } var icon=(document.getElementById('ed-room-icon').value||'🏠').trim(); var temp=(document.getElementById('ed-room-temp').value||'').trim(); var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); var r={ name:name, icon:icon }; if(temp) r.temp=temp; rooms.push(r); localStorage.setItem('cd_stanze', JSON.stringify(rooms)); try { cdMarkDirty(); cdSyncPush(); } catch(e){} try { buildTempCards(); } catch(e){} editorSwitch('stanze'); } function edStanzaRoomDel(i){ var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); rooms.splice(i,1); localStorage.setItem('cd_stanze', JSON.stringify(rooms)); try { cdMarkDirty(); cdSyncPush(); } catch(e){} try { buildTempCards(); } catch(e){} editorSwitch('stanze'); } function editorRenderLuci() {
     const luci = cdCfg('cd_luci') || {};
     const ids = Object.keys(luci);
     if (!ids.length) {
@@ -8380,7 +8383,7 @@ function wzRender() {
             <button class="ed-btn-add" style="width:100%;" onclick="wzAddReportDevice()">＋ Add to Report</button>
           </div>
         </details>` : ''}${WIZ.sections['temp'] !== false ? `
-        <details class="ed-acc"><summary class="ed-acc-head">🌡️ Rooms (temperatures) <span class="ed-acc-n">${(WIZ.stanze||[]).length}</span></summary>
+        <details class="ed-acc"><summary class="ed-acc-head">🏠 Manage Rooms <span class="ed-acc-n">${(WIZ.stanze||[]).length}</span></summary>
           <div class="ed-acc-body">
             ${(WIZ.stanze||[]).map((r, i) => `<div class="ed-row"><div style="display:flex; flex-direction:column; gap:2px;"><div class="ed-del" style="width:24px; height:20px; font-size:10px; ${i===0?'opacity:0.25; pointer-events:none;':''}" onclick="wzMoveStanza(${i},-1)">▲</div><div class="ed-del" style="width:24px; height:20px; font-size:10px; ${i===WIZ.stanze.length-1?'opacity:0.25; pointer-events:none;':''}" onclick="wzMoveStanza(${i},1)">▼</div></div><div style="font-size:15px;">${r.icon||'🏠'}</div><div class="ed-row-main"><div class="ed-row-new">${r.name}</div><div class="ed-row-old mono">${r.temp}</div></div><div class="ed-del" style="background:rgba(14,165,233,0.12);" onclick="wzEditStanza(${i})">✏️</div><div class="ed-del" onclick="WIZ.stanze.splice(${i},1); wzRender();">🗑️</div></div>`).join('')}
             <div style="display:flex; gap:8px; margin-bottom:8px;">
@@ -9702,7 +9705,7 @@ function editorRenderSezioni() {
       <div class="ed-intro">Configure each section with <b>your</b> HA entities. Leave empty to keep the default reference (if it does not exist in your HA, the card shows "—").</div>
       ${sezAccordions}
 
-      <details class="ed-acc"><summary class="ed-acc-head">🌡️ Rooms (temperatures) <span class="ed-acc-n">${stanze.length} rooms</span></summary>
+      <details class="ed-acc"><summary class="ed-acc-head">🏠 Manage Rooms <span class="ed-acc-n">${stanze.length} rooms</span></summary>
         <div class="ed-acc-body">
           <div class="ed-list">${stanzeRows}
           <div style="display:flex; gap:8px; margin:10px 0 8px;">
@@ -9783,7 +9786,7 @@ function editorRenderSezioni() {
               <input id="ed-cl-name" class="ed-input" placeholder="Name (e.g. Office)" style="flex:1;">
             </div>
             <input id="ed-cl-ent" list="ed-entity-list" class="ed-input mono" placeholder="climate.studio">
-            <select id="ed-cl-room" class="ed-input" style="margin-bottom:6px;width:100%;">'+cdRoomOptions('')+'</select><button class="ed-btn-add" onclick="edAddClima()">＋ Add climate unit</button>
+            <select id="ed-cl-room" class="ed-input" style="margin-bottom:6px;width:100%;"></select><button class="ed-btn-add" onclick="edAddClima()">＋ Add climate unit</button>
             <div class="ed-slot" style="margin-top:10px;"><div class="ed-slot-lbl">🔥 Boiler entity (switch — optional)</div>
               <input class="ed-input mono ed-slot-in" list="ed-entity-list" data-ref="switch.caldaia" value="${ENTITY_OVERRIDES['switch.caldaia'] || ''}" placeholder="switch.caldaia" onchange="edSetSlot(this)"></div>
             <div class="ed-slot" style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--card-border);">
@@ -9808,7 +9811,7 @@ function editorRenderSezioni() {
             <input id="ed-cam-name" class="ed-input" placeholder="Name (e.g. Garden)">
             <input id="ed-cam-ent" list="ed-entity-list" class="ed-input mono" placeholder="camera.giardino">
             <input id="ed-cam-stream" class="ed-input mono" placeholder="go2rtc stream name (optional, for WebRTC)">
-            <select id="ed-cam-room" class="ed-input" style="margin-bottom:6px;width:100%;">'+cdRoomOptions('')+'</select><button class="ed-btn-add" onclick="edAddCamera()">＋ Add camera</button>
+            <select id="ed-cam-room" class="ed-input" style="margin-bottom:6px;width:100%;"></select><button class="ed-btn-add" onclick="edAddCamera()">＋ Add camera</button>
           </div>
         </div>
       </details>
@@ -15077,7 +15080,7 @@ connect();
       <span class="bh-icon">←</span><span>Home</span>
     </button>
     <div style="margin-bottom:20px;">
-      <h2 style="font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">🌡️ Temperature Stanze</h2>
+      <h2 style="font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">🌡️ Temperature</h2>
       <p style="font-size:11px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;" id="temp-last-update">Aggiornamento in corso...</p>
     </div>
     <div class="temp-grid" id="temp-grid"><!-- v257: card stanze generate dinamicamente da CD_STANZE / config utente --></div>

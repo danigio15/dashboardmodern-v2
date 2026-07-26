@@ -189,7 +189,7 @@ CONN_WRITE_IMPORT_PATCHED = (
 )
 
 
-from vendor_features import FEATURE_PATCHES  # noqa: E402
+from vendor_features import FEATURE_PATCHES, RENAME_PATCHES  # noqa: E402
 
 
 def patch_variant(source: str, name: str) -> str:
@@ -220,6 +220,10 @@ def patch_variant(source: str, name: str) -> str:
     patched = _hide_bake_download(patched, name)
     for label, anchor, replacement in FEATURE_PATCHES:
         patched = _apply_once(patched, anchor, replacement, f"{name} {label}")
+    # Label-only renames: replace-all, and tolerant of a label not being
+    # present (the two languages use different wording).
+    for old_label, new_label in RENAME_PATCHES:
+        patched = patched.replace(old_label, new_label)
     return _apply_upstream_fixes(patched, name)
 
 
