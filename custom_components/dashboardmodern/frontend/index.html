@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DashboardModern</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="dashboardmodern-shell" data-dashboardmodern-app>
+      <header class="dashboardmodern-header">
+        <div>
+          <h1>DashboardModern</h1>
+          <p>Custom dashboard editor backed by the Home Assistant WebSocket API.</p>
+        </div>
+        <div class="dashboardmodern-actions">
+          <button type="button" data-action="create">Create</button>
+          <button type="button" data-action="save">Save</button>
+          <button type="button" data-action="delete">Delete</button>
+        </div>
+      </header>
+
+      <section class="dashboardmodern-status" data-status hidden></section>
+
+      <section class="dashboardmodern-layout">
+        <aside class="dashboardmodern-sidebar">
+          <h2>Dashboards</h2>
+          <div data-dashboard-list></div>
+        </aside>
+
+        <section class="dashboardmodern-editor" aria-label="Dashboard JSON editor">
+          <label for="dashboardmodern-json">Dashboard JSON</label>
+          <textarea id="dashboardmodern-json" data-dashboard-editor spellcheck="false"></textarea>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
