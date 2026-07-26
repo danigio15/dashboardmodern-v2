@@ -21,7 +21,7 @@ ROOM_HELPER_ANCHOR = "function getAppliances(){"
 ROOM_HELPER_REPLACEMENT = (
     "function cdRoomList(){ try { if (typeof getStanze === 'function') { var g = getStanze(); if (Array.isArray(g)) return g; } var r = cdCfg('cd_stanze'); return Array.isArray(r)?r:[]; } catch(e){ return []; } }\n"
     "function cdRoomOptions(sel){ var rooms = cdRoomList(); var o = '<option value=\"\">\u2014 Nessuna stanza \u2014</option>'; rooms.forEach(function(r){ var nm=(r&&r.name)?String(r.name):''; if(!nm) return; var s=(String(sel||'')===nm)?' selected':''; var safe=nm.replace(/&/g,'&amp;').replace(/\"/g,'&quot;'); o += '<option value=\"'+safe+'\"'+s+'>'+((r.icon?r.icon+' ':'')+nm)+'</option>'; }); return o; }\n"
-    "function cdRoomOf(item){ return (item && item.room) ? String(item.room) : ''; }\nfunction cdFloorNames(){ var fl={}; cdRoomList().forEach(function(r){ if(r&&r.floor) fl[String(r.floor)]=1; }); return Object.keys(fl); }\nfunction cdFloorSelOptions(cur){ var o='<option value=\"\">— Nessun piano —</option>'; cdFloorNames().forEach(function(f){ o+='<option value=\"'+f+'\"'+(cur===f?' selected':'')+'>🏢 '+f+'</option>'; }); o+='<option value=\"__new__\">➕ Nuovo piano…</option>'; return o; }\n"
+    "function cdRoomOf(item){ return (item && item.room) ? String(item.room) : ''; }\nfunction cdFloorNames(){ var fl=[]; try{ fl=JSON.parse(localStorage.getItem('cd_floors'))||[]; }catch(e){} var seen={}; var outv=[]; fl.forEach(function(f){ f=String(f); if(f&&!seen[f]){ seen[f]=1; outv.push(f); } }); cdRoomList().forEach(function(r){ if(r&&r.floor){ var f=String(r.floor); if(!seen[f]){ seen[f]=1; outv.push(f); } } }); return outv; }\nfunction cdFloorSelOptions(cur){ var o='<option value=\"\">— Nessun piano —</option>'; cdFloorNames().forEach(function(f){ o+='<option value=\"'+f+'\"'+(cur===f?' selected':'')+'>🏢 '+f+'</option>'; }); return o; }\nfunction cdFloorRowsHtml(){ var names=cdFloorNames(); var rows = names.length ? names.map(function(f,i){ return '<div class=\"ed-row\" style=\"align-items:center;\"><div class=\"ed-row-main\"><div class=\"ed-row-new\">🏢 '+f+'</div></div><div class=\"ed-del\" onclick=\"edFloorDel('+i+')\">🗑️</div></div>'; }).join('') : '<div class=\"ed-intro\">Nessun piano. Aggiungine uno qui sotto.</div>'; return '<div class=\"ed-intro\" style=\"margin-top:16px;\">Gestisci qui i <b>piani</b>. Ogni piano creato qui compare nel menù a tendina delle stanze.</div>'+rows+'<div style=\"display:flex;gap:8px;margin:8px 0;\"><input id=\"ed-floor-name\" class=\"ed-input\" style=\"flex:1;\" placeholder=\"Nome piano (es. Piano terra)\"><button class=\"ed-btn-add\" style=\"flex:0 0 auto;\" onclick=\"edFloorAdd()\">＋ Aggiungi piano</button></div>'; }\nfunction edFloorAdd(){ var n=(document.getElementById('ed-floor-name').value||'').trim(); if(!n) return; var fl=[]; try{ fl=JSON.parse(localStorage.getItem('cd_floors'))||[]; }catch(e){} if(fl.indexOf(n)<0) fl.push(n); localStorage.setItem('cd_floors', JSON.stringify(fl)); try{ cdMarkDirty(); cdSyncPush(); }catch(e){} editorSwitch('stanze'); }\nfunction edFloorDel(i){ var names=cdFloorNames(); var n=names[i]; if(!n) return; var fl=[]; try{ fl=JSON.parse(localStorage.getItem('cd_floors'))||[]; }catch(e){} fl=fl.filter(function(x){ return x!==n; }); localStorage.setItem('cd_floors', JSON.stringify(fl)); var rooms=cdRoomList().slice(); var ch=false; rooms.forEach(function(r){ if(r&&r.floor===n){ delete r.floor; ch=true; } }); if(ch) localStorage.setItem('cd_stanze', JSON.stringify(rooms)); try{ cdMarkDirty(); cdSyncPush(); }catch(e){} editorSwitch('stanze'); }\n"
     "function getAppliances(){"
 )
 
@@ -104,8 +104,8 @@ ROOMS_RENDER_REPLACEMENT = (
     "return '<div class=\"ed-intro\">Gestisci qui le tue <b>stanze</b>. Ogni stanza creata qui compare nel menù a tendina di elettrodomestici, clima e telecamere. Per i sensori di temperatura usa la sezione dedicata.</div>'"
     "+'<div class=\"ed-list\">'+rowsHtml+'</div>'"
     "+'<div class=\"ed-form\">'"
-    '+\'<div style="display:flex;gap:8px;margin-bottom:8px;"><input id="ed-room-icon" class="ed-input" style="flex:0 0 60px;text-align:center;" placeholder="🏠" value="🏠"><input id="ed-room-name" class="ed-input" style="flex:1;" placeholder="Nome stanza (es. Cucina)"></div><select id="ed-room-floor" class="ed-input" style="margin-bottom:8px;" onchange="edStanzaFloorSel(this)">\'+cdFloorSelOptions()+\'</select>\''
-    '+\'<button class="ed-btn-add" onclick="edStanzaRoomAdd()">＋ Aggiungi stanza</button>\''
+    '+\'<div style="display:flex;gap:8px;margin-bottom:8px;"><input id="ed-room-icon" class="ed-input" style="flex:0 0 60px;text-align:center;" placeholder="🏠" value="🏠"><input id="ed-room-name" class="ed-input" style="flex:1;" placeholder="Nome stanza (es. Cucina)"></div><select id="ed-room-floor" class="ed-input" style="margin-bottom:8px;">\'+cdFloorSelOptions()+\'</select>\''
+    "+'<button class=\"ed-btn-add\" onclick=\"edStanzaRoomAdd()\">＋ Aggiungi stanza</button>'+cdFloorRowsHtml()+''"
     "+'</div>'; } "
     "function edStanzaRoomAdd(){ var name=(document.getElementById('ed-room-name').value||'').trim(); "
     "if(!name){ alert('Inserisci il nome della stanza'); return; } "
@@ -116,7 +116,7 @@ ROOMS_RENDER_REPLACEMENT = (
     "localStorage.setItem('cd_stanze', JSON.stringify(rooms)); "
     "try { cdMarkDirty(); cdSyncPush(); } catch(e){} "
     "try { buildTempCards(); } catch(e){} editorSwitch('stanze'); } "
-    "function edStanzaFloorSel(sel){ if(sel.value!=='__new__') return; var f=(prompt('Nome del nuovo piano (es. Piano terra)')||'').trim(); if(!f){ sel.value=''; return; } var o=document.createElement('option'); o.value=f; o.textContent='🏢 '+f; var opts=sel.options; var nw=null; for(var i2=0;i2<opts.length;i2++){ if(opts[i2].value==='__new__'){ nw=opts[i2]; break; } } sel.insertBefore(o, nw); sel.value=f; } function edStanzaRoomDel(i){ var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); "
+    "function edStanzaRoomDel(i){ var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); "
     "rooms.splice(i,1); localStorage.setItem('cd_stanze', JSON.stringify(rooms)); "
     "try { cdMarkDirty(); cdSyncPush(); } catch(e){} "
     "try { buildTempCards(); } catch(e){} editorSwitch('stanze'); } "
@@ -360,8 +360,42 @@ TEMP_DEL_WZ_ANCHOR = (
 TEMP_DEL_REPLACEMENT = ""
 
 
+# Temperature rows are display-only: no edit pencil in either render path.
+TEMP_PEN_ED_ANCHOR = (
+    '<div class="ed-del" style="background:rgba(14,165,233,0.12);"'
+    ' onclick="edEditStanza2(${i})">✏️</div>'
+)
+TEMP_PEN_WZ_ANCHOR = (
+    '<div class="ed-del" style="background:rgba(14,165,233,0.12);"'
+    ' onclick="wzEditStanza(${i})">✏️</div>'
+)
+TEMP_PEN_REPLACEMENT = ""
+
+# Adding with an existing room selected updates that room instead of
+# duplicating it — the dropdown is the only way to reference rooms now.
+TEMP_MERGE_ANCHOR = (
+    "edSaveFloorIcon(floor);\n"
+    "    rooms.push(r);\n"
+    "    localStorage.setItem('cd_stanze', JSON.stringify(rooms));"
+)
+TEMP_MERGE_REPLACEMENT = (
+    "edSaveFloorIcon(floor);\n"
+    "    var _ex = -1;"
+    " for (var _q = 0; _q < rooms.length; _q++) {"
+    " if (rooms[_q] && rooms[_q].name === name) { _ex = _q; break; } }\n"
+    "    if (_ex >= 0) { rooms[_ex].temp = temp;"
+    " if (hum) rooms[_ex].hum = hum; else delete rooms[_ex].hum;"
+    " if (floor) rooms[_ex].floor = floor;"
+    " } else { rooms.push(r); }\n"
+    "    localStorage.setItem('cd_stanze', JSON.stringify(rooms));"
+)
+
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
+    ("temp-pencil-editor?", TEMP_PEN_ED_ANCHOR, TEMP_PEN_REPLACEMENT),
+    ("temp-pencil-wizard?", TEMP_PEN_WZ_ANCHOR, TEMP_PEN_REPLACEMENT),
+    ("temp-add-merges", TEMP_MERGE_ANCHOR, TEMP_MERGE_REPLACEMENT),
     ("sync-key-hosted?", SYNC_KEY_ANCHOR, SYNC_KEY_REPLACEMENT),
     ("temp-del-editor?", TEMP_DEL_ED_ANCHOR, TEMP_DEL_REPLACEMENT),
     ("temp-del-wizard?", TEMP_DEL_WZ_ANCHOR, TEMP_DEL_REPLACEMENT),

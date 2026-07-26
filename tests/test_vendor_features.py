@@ -119,7 +119,13 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "#ed-st2-icon" in html, name
         # Floors are offered as a dropdown of existing floors.
         assert "cdFloorSelOptions" in html, name
-        assert "function edStanzaFloorSel(" in html, name
+        # Floors are managed like rooms: registry rows + add/delete.
+        assert "function edFloorAdd(" in html, name
+        assert "function edFloorDel(" in html, name
+        assert "cdFloorRowsHtml" in html, name
+        # Temperature rows are display-only: no pencil, no delete.
+        assert "edEditStanza2(${i})" not in html, name
+        assert "wzEditStanza(${i})" not in html, name
         # The user_data sync key is namespaced when hosted.
         assert "dashboardmodern_integration_config" in html, name
         assert "key: 'dashboard_modern_config'" not in html, name
