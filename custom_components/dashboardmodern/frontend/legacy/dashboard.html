@@ -6704,7 +6704,7 @@ let storicChartInstance = null;
 /* ═══ v256: CONNESSIONE — priorità: wizard UI (localStorage/baked) → config.js → default ═══ */
 const _CFG = window.DASHBOARD_CONFIG || {};
 const _CONN = (window.__DASHBOARDMODERN_HOSTED__ && window.__DASHBOARDMODERN_CONNECTION__) || (typeof cdCfg === 'function' ? cdCfg('cd_connection') : {}) || {};
-const LONG_LIVED_TOKEN = _CONN.token || ((typeof _dmNoBaked === 'undefined' || !_dmNoBaked) && _CFG.connection && _CFG.connection.token) || ""; 
+const LONG_LIVED_TOKEN = (window.__DASHBOARDMODERN_REAL_TOKEN__) || _CONN.token || ((typeof _dmNoBaked === 'undefined' || !_dmNoBaked) && _CFG.connection && _CFG.connection.token) || ""; 
 const NABU_CASA_URL = _CONN.remote_url || (_CFG.connection && _CFG.connection.remote_url) || ""; 
 const LOCAL_IP = _CONN.local_ip || (_CFG.connection && _CFG.connection.local_ip) || (location.host || "homeassistant.local:8123");
 const DASHBOARD_PATH = _CONN.dashboard_path || (_CFG.connection && _CFG.connection.dashboard_path) || "/lovelace/0?disable_km=";
@@ -8473,7 +8473,7 @@ function wzRender() {
         <div class="wz-sub">La configurazione è salvata <b>su questo dispositivo</b> (con HACS sopravvive agli aggiornamenti).<br><br>
         📌 <b>Per tornare in configurazione in qualsiasi momento:</b><br>
         • Pagina <b>⚙️ Config</b> nel menu (visibile agli admin)<br>
-        • Oppure <b>7 tap veloci sul titolo</b> in alto nella Home<br><br>
+       <br>
         Per rendere la config multi-dispositivo: ⚙️ → Configura Entità → 📤 Esporta.</div>
         <button class="wz-btn wz-btn-green" onclick="wzFinish()">Salva e avvia la dashboard ✓</button>`;
 
@@ -11326,7 +11326,7 @@ function cdEmptyStateCheck() {
     const b = document.createElement('div');
     b.id = 'cd-empty-banner';
     b.style.cssText = 'margin:14px 0; padding:18px 20px; border-radius:20px; background:linear-gradient(135deg,#e0f2fe,#bae6fd); border:1px solid #7dd3fc; color:#0c4a6e; font-size:13.5px; line-height:1.65; box-shadow:0 4px 14px rgba(2,132,199,0.12);';
-    b.innerHTML = '<b style="font-size:15px;">👋 La dashboard è quasi pronta!</b><br>Non hai ancora collegato le tue entità, quindi le card sono nascoste.<br><button onclick="apriSetupWizard()" style="margin-top:12px; width:100%; padding:13px; border:none; border-radius:14px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-weight:800; font-size:14px; letter-spacing:0.5px; cursor:pointer; box-shadow:0 6px 16px rgba(2,132,199,0.35);">⚙️ Configura la dashboard</button><br><span style="opacity:0.75; font-size:12px; display:block; margin-top:8px;">In alternativa: 7 tap veloci sul titolo, oppure aggiungi <b>#setup</b> all\'URL.</span>';
+    b.innerHTML = '<b style="font-size:15px;">👋 La dashboard è quasi pronta!</b><br>Non hai ancora collegato le tue entità, quindi le card sono nascoste.<br><button onclick="(window.__DASHBOARDMODERN_HOSTED__ ? apriConfigEntita : apriSetupWizard)()" style="margin-top:12px; width:100%; padding:13px; border:none; border-radius:14px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-weight:800; font-size:14px; letter-spacing:0.5px; cursor:pointer; box-shadow:0 6px 16px rgba(2,132,199,0.35);">⚙️ Configura la dashboard</button><br><span style="opacity:0.75; font-size:12px; display:block; margin-top:8px;"></span>';
     home.insertBefore(b, home.firstChild);
 }
 document.addEventListener('DOMContentLoaded', () => setTimeout(cdEmptyStateCheck, 500));
@@ -14260,7 +14260,7 @@ document.addEventListener('DOMContentLoaded', () => { const v = document.getElem
             clearTimeout(timer);
             timer = setTimeout(() => { taps = 0; }, 2500);
             if (taps === 5 && navigator.vibrate) navigator.vibrate(30);
-            if (taps >= 7) {
+            if (false && taps >= 7) {
                 taps = 0;
                 if (navigator.vibrate) navigator.vibrate([50,50,50]);
                 try { apriSetupWizard(); } catch(e) { console.error(e); }

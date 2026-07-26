@@ -237,6 +237,45 @@ HIDE_TAB_EN_ANCHOR = '<button class="ed-tab" data-tab="hide"  onclick="editorSwi
 HIDE_TAB_REPLACEMENT = ""
 
 
+# ── Hosted: use the real token for REST, and open the editor from Configura ─
+# The placeholder token is fine for the WebSocket shim but invalid for the REST
+# calls, which made Home Assistant log failed logins. When hosted, prefer the
+# real access token the host injected in memory.
+REST_TOKEN_ANCHOR = "const LONG_LIVED_TOKEN = _CONN.token ||"
+REST_TOKEN_REPLACEMENT = (
+    "const LONG_LIVED_TOKEN = (window.__DASHBOARDMODERN_REAL_TOKEN__) || _CONN.token ||"
+)
+
+# "Configura la dashboard" should open the editor directly when hosted, not the
+# token wizard. The button is identified by its unique box-shadow.
+CONFIG_BTN_ANCHOR = 'box-shadow:0 6px 16px rgba(2,132,199,0.35);">⚙️ '
+CONFIG_BTN_ONCLICK_ANCHOR = 'onclick="apriSetupWizard()" style="margin'
+CONFIG_BTN_ONCLICK_REPLACEMENT = 'onclick="(window.__DASHBOARDMODERN_HOSTED__ ? apriConfigEntita : apriSetupWizard)()" style="margin'
+
+
+# ── Remove the 7-tap setup trigger and its mentions ────────────────────────
+# Hosted, setup is opened from Configura (the editor). The hidden 7-tap gesture
+# and the banner/summary lines that advertise it are removed.
+SEVENTAP_HANDLER_ANCHOR = "if (taps >= 7) {"
+SEVENTAP_HANDLER_REPLACEMENT = "if (false && taps >= 7) {"
+
+SEVENTAP_BANNER_IT_ANCHOR = (
+    "In alternativa: 7 tap veloci sul titolo, oppure aggiungi <b>#setup</b> all\\'URL."
+)
+SEVENTAP_BANNER_EN_ANCHOR = (
+    "Alternatively: 7 quick taps on the title, or add <b>#setup</b> to the URL."
+)
+SEVENTAP_BANNER_REPLACEMENT = ""
+
+SEVENTAP_SUMMARY_IT_ANCHOR = (
+    " • Oppure <b>7 tap veloci sul titolo</b> in alto nella Home<br>"
+)
+SEVENTAP_SUMMARY_EN_ANCHOR = (
+    " • Or <b>7 quick taps on the title</b> at the top of Home<br>"
+)
+SEVENTAP_SUMMARY_REPLACEMENT = ""
+
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("room-helper", ROOM_HELPER_ANCHOR, ROOM_HELPER_REPLACEMENT),
@@ -261,6 +300,17 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("wizard-trigger-guard", WIZARD_TRIGGER_ANCHOR, WIZARD_TRIGGER_REPLACEMENT),
     ("wizard-skip-token-step", WIZARD_STEP_ANCHOR, WIZARD_STEP_REPLACEMENT),
     ("version-marker", VERSION_ANCHOR, VERSION_REPLACEMENT),
+    ("rest-token-hosted", REST_TOKEN_ANCHOR, REST_TOKEN_REPLACEMENT),
+    (
+        "configura-opens-editor",
+        CONFIG_BTN_ONCLICK_ANCHOR,
+        CONFIG_BTN_ONCLICK_REPLACEMENT,
+    ),
+    ("disable-7tap", SEVENTAP_HANDLER_ANCHOR, SEVENTAP_HANDLER_REPLACEMENT),
+    ("banner-7tap-it?", SEVENTAP_BANNER_IT_ANCHOR, SEVENTAP_BANNER_REPLACEMENT),
+    ("banner-7tap-en?", SEVENTAP_BANNER_EN_ANCHOR, SEVENTAP_BANNER_REPLACEMENT),
+    ("summary-7tap-it?", SEVENTAP_SUMMARY_IT_ANCHOR, SEVENTAP_SUMMARY_REPLACEMENT),
+    ("summary-7tap-en?", SEVENTAP_SUMMARY_EN_ANCHOR, SEVENTAP_SUMMARY_REPLACEMENT),
     ("temp-hide-floor-css", TEMP_FLOOR_CSS_ANCHOR, TEMP_FLOOR_CSS_REPLACEMENT),
     ("remove-hide-tab-it?", HIDE_TAB_IT_ANCHOR, HIDE_TAB_REPLACEMENT),
     ("remove-hide-tab-en?", HIDE_TAB_EN_ANCHOR, HIDE_TAB_REPLACEMENT),

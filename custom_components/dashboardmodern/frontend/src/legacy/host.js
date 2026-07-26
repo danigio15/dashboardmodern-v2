@@ -104,6 +104,16 @@ export function mountLegacyHost(
     // Set the hosted marker directly too, so the dashboard knows it is hosted
     // even before its own prelude runs — the wizard guard depends on this.
     child.__DASHBOARDMODERN_HOSTED__ = true;
+    // The dashboard makes some REST calls (history, statistics, camera) with a
+    // Bearer token. Hosted, its placeholder token is invalid and Home Assistant
+    // logs failed logins. Pass the real access token in memory (never to
+    // localStorage, so isolation holds) for those same-origin REST calls.
+    try {
+      const realToken = hass?.auth?.data?.access_token;
+      if (realToken) child.__DASHBOARDMODERN_REAL_TOKEN__ = realToken;
+    } catch (error) {
+      /* no token available; REST-dependent widgets degrade, no login errors */
+    }
     child.WebSocket = BridgeSocket;
     child.__DASHBOARDMODERN_BRIDGED__ = true;
   };

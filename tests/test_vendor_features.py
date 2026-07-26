@@ -104,3 +104,10 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert 'data-tab="hide"' not in html, name
         # Rooms can be assigned a floor.
         assert 'id="ed-room-floor"' in html, name
+        # Hosted: Configura opens the editor, and REST uses the real token.
+        assert "apriConfigEntita : apriSetupWizard" in html, name
+        assert "window.__DASHBOARDMODERN_REAL_TOKEN__) || _CONN.token" in html, name
+        # The 7-tap setup gesture and its mentions are gone.
+        assert "if (false && taps >= 7)" in html, name
+        assert "7 tap veloci sul titolo, oppure" not in html, name
+        assert "7 quick taps on the title, or" not in html, name
