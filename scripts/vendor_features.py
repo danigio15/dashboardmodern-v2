@@ -204,6 +204,14 @@ VIS_RENDER_REPLACEMENT = (
     "['temp','🌡️','Temperatura','Temperature e umidità'],"
     "['security','🛡️','Sicurezza','Telecamere e allarme'],"
     "['server','🖥️','MiniPC','Monitoraggio server']]; } "
+    "function e2Gen(v){ return String(v||'').replace(/'/g,'&#39;'); } "
+    "function cdGenHtml(){ var br=cdCfg('cd_branding')||{}; var cn2=cdCfg('cd_connection')||{}; var adm=(cn2.admin_users&&cn2.admin_users[0])||''; "
+    "return \"<div class='ed-intro'><b>Generali</b>: nome della dashboard e utente amministratore.</div>\" "
+    "+\"<input id='ed-gen-title' class='ed-input' style='margin-bottom:8px;' placeholder='Nome dashboard (es. SMART HOME)' value='\"+e2Gen(br.title)+\"'>\" "
+    "+\"<input id='ed-gen-sub' class='ed-input' style='margin-bottom:8px;' placeholder='Sottotitolo' value='\"+e2Gen(br.subtitle)+\"'>\" "
+    "+\"<input id='ed-gen-admin' class='ed-input' style='margin-bottom:8px;' placeholder='Utente admin (vuoto = Config visibile a tutti)' value='\"+e2Gen(adm)+\"'>\" "
+    "+\"<button class='ed-btn-add' style='width:100%;margin-bottom:16px;' onclick='edSaveGeneral()'>💾 Salva generali</button>\"; } "
+    "function edSaveGeneral(){ var t=(document.getElementById('ed-gen-title').value||'').trim(); var st2=(document.getElementById('ed-gen-sub').value||'').trim(); var a=(document.getElementById('ed-gen-admin').value||'').trim(); var br=cdCfg('cd_branding')||{}; if(t) br.title=t; else delete br.title; if(st2) br.subtitle=st2; else delete br.subtitle; localStorage.setItem('cd_branding', JSON.stringify(br)); var cn=cdCfg('cd_connection')||{}; cn.admin_users = a ? [a] : []; localStorage.setItem('cd_connection', JSON.stringify(cn)); try{ cdMarkDirty(); cdSyncPush(); }catch(e){} try{ edToast('Salvato'); }catch(e){} setTimeout(function(){ location.reload(); }, 700); } "
     "function editorRenderVisib(){ var sez=cdVisibSez(); var cur=cdCfg('cd_sections')||{}; "
     "var rows=sez.map(function(x,idx){ var k=x[0]; var on=(cur[k]!==false); "
     'return \'<div class="ed-row" style="align-items:center;"><div class="ed-row-main">'
@@ -213,7 +221,7 @@ VIS_RENDER_REPLACEMENT = (
     "border-radius:15px;background:'+(on?'#0ea5e9':'#cbd5e1')+';position:relative;transition:.2s;\">"
     "<div style=\"position:absolute;top:3px;'+(on?'right:3px':'left:3px')+';width:24px;height:24px;"
     "border-radius:50%;background:#fff;\"></div></div></div>'; }).join(''); "
-    'return \'<div class="ed-intro">Attiva o disattiva intere <b>sezioni</b> della dashboard. '
+    'return cdGenHtml()+\'<div class="ed-intro">Attiva o disattiva intere <b>sezioni</b> della dashboard. '
     "Le sezioni disattivate spariscono dalla vista.</div><div class=\"ed-list\">'+rows+'</div>'; } "
     "function edVisibToggle(idx){ var sez=cdVisibSez(); var x=sez[idx]; if(!x) return; var k=x[0]; "
     "var cur=cdCfg('cd_sections')||{}; cur[k]=(cur[k]===false); "
@@ -427,8 +435,48 @@ NAV_TEMP_EN_REPLACEMENT = (
 # is preserved so the reorder arrows keep pointing at the right entry.
 
 
+# The empty-state banner re-checks after connection: the cloud restore can
+# land after the one-shot boot check, leaving a connected-but-unconfigured
+# dashboard with no way in. cdEmptyStateCheck is idempotent.
+BANNER_ON_CONNECT_ANCHOR = "setTimeout(cdTotalsRun, 2500);"
+BANNER_ON_CONNECT_REPLACEMENT = (
+    "setTimeout(cdTotalsRun, 2500);"
+    " try { setTimeout(cdEmptyStateCheck, 1200);"
+    " setTimeout(cdEmptyStateCheck, 4000); } catch(e) {}"
+)
+
+# The wizard is retired from the UI: its card leaves the Config page and
+# its entry leaves the app menu. apriSetupWizard stays defined because the
+# Rileva flow initializes WIZ through it, invisibly.
+WIZ_CARD_IT_ANCHOR = '<!-- Setup Wizard -->\n      <div class="cfg-card" onclick="apriSetupWizard()">\n        <div class="cfg-card-ico" style="--cc-rgb: 14,165,233;">🧙</div>\n        <div class="cfg-card-txt">\n          <div class="cfg-card-nm">Setup Wizard</div>\n          <div class="cfg-card-ds">Configurazione guidata: connessione, nome, sezioni, luci, entità e telecamere</div>\n        </div>\n        <div class="cfg-card-arrow">›</div>\n      </div>'
+WIZ_CARD_EN_ANCHOR = '<!-- Setup Wizard -->\n      <div class="cfg-card" onclick="apriSetupWizard()">\n        <div class="cfg-card-ico" style="--cc-rgb: 14,165,233;">🧙</div>\n        <div class="cfg-card-txt">\n          <div class="cfg-card-nm">Setup Wizard</div>\n          <div class="cfg-card-ds">Guided setup: connection, name, sections, lights, entities and cameras</div>\n        </div>\n        <div class="cfg-card-arrow">›</div>\n      </div>'
+WIZ_CARD_REPLACEMENT = ""
+
+WIZ_MENU_IT_ANCHOR = (
+    "card.appendChild(mkItem('\U0001f9d9', 'Riconfigura (wizard)',"
+    " () => apriSetupWizard()));"
+)
+WIZ_MENU_EN_ANCHOR = (
+    "card.appendChild(mkItem('\U0001f9d9', 'Reconfigure (wizard)',"
+    " () => apriSetupWizard()));"
+)
+WIZ_MENU_REPLACEMENT = ""
+
+# The reset confirm no longer promises a wizard.
+RESET_TXT_IT_ANCHOR = "Dovrai rifare il wizard."
+RESET_TXT_IT_REPLACEMENT = "Poi riconfiguri tutto dal pannello Config."
+RESET_TXT_EN_ANCHOR = "You will need to run the wizard again."
+RESET_TXT_EN_REPLACEMENT = "Then reconfigure from the editor."
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
+    ("banner-on-connect", BANNER_ON_CONNECT_ANCHOR, BANNER_ON_CONNECT_REPLACEMENT),
+    ("wizard-card-it?", WIZ_CARD_IT_ANCHOR, WIZ_CARD_REPLACEMENT),
+    ("wizard-card-en?", WIZ_CARD_EN_ANCHOR, WIZ_CARD_REPLACEMENT),
+    ("wizard-menu-it?", WIZ_MENU_IT_ANCHOR, WIZ_MENU_REPLACEMENT),
+    ("wizard-menu-en?", WIZ_MENU_EN_ANCHOR, WIZ_MENU_REPLACEMENT),
+    ("reset-text-it?", RESET_TXT_IT_ANCHOR, RESET_TXT_IT_REPLACEMENT),
+    ("reset-text-en?", RESET_TXT_EN_ANCHOR, RESET_TXT_EN_REPLACEMENT),
     ("nav-temp-it?", NAV_TEMP_IT_ANCHOR, NAV_TEMP_IT_REPLACEMENT),
     ("nav-temp-en?", NAV_TEMP_EN_ANCHOR, NAV_TEMP_EN_REPLACEMENT),
     ("temp-rows-editor", TEMP_ROWS_ED_ANCHOR, TEMP_ROWS_ED_REPLACEMENT),

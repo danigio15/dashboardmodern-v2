@@ -137,6 +137,15 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         )
         # A full reset lives in the Rileva tab and never reopens the wizard.
         assert 'onclick="wzResetAll()"' in html, name
+        # The empty-state banner re-checks after connection.
+        assert "setTimeout(cdEmptyStateCheck, 1200)" in html, name
+        # The wizard is gone from the Config page and the app menu.
+        assert "<!-- Setup Wizard -->" not in html, name
+        assert "Riconfigura (wizard)" not in html, name
+        assert "Reconfigure (wizard)" not in html, name
+        # General settings (name, subtitle, admin) live in the editor.
+        assert "function edSaveGeneral()" in html, name
+        assert "return cdGenHtml()+" in html, name
         # The Rileva tab carries a diagnostic status line.
         assert "function cdDbgStatus()" in html, name
         # The user_data sync key is namespaced when hosted.
