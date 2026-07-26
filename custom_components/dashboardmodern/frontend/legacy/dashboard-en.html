@@ -7261,11 +7261,11 @@ function apriConfigEntita() {
           ${window.__DASHBOARDMODERN_HOSTED__ ? '' : '<div class="ed-head-close" title="Download the dashboard with token and configuration baked in" onclick="cdBakeDownload()">💾</div>'}<div class="ed-head-close" onclick="document.getElementById('editor-modal').remove()">✕</div>
         </div>
         <div class="ed-tabs">
+          <button class="ed-tab" data-tab="visib" onclick="editorSwitch('visib')">⚙️ Impostazioni</button>
           <button class="ed-tab" data-tab="rileva" onclick="editorSwitch('rileva')">🪄 Rileva</button>
           <button class="ed-tab" data-tab="sezioni" onclick="editorSwitch('sezioni')">📑 Sections</button>
           <button class="ed-tab" data-tab="sost"  onclick="editorSwitch('sost')">🔁 Overrides</button>
           <button class="ed-tab" data-tab="load"  onclick="editorSwitch('load')">🔌 Loads</button>
-          <button class="ed-tab" data-tab="visib" onclick="editorSwitch('visib')">👁️ Sezioni</button>
           <button class="ed-tab" data-tab="stanze" onclick="editorSwitch('stanze')">🚪 Stanze</button>
           <button class="ed-tab" data-tab="luci"  onclick="editorSwitch('luci')">💡 Lights</button>
           <button class="ed-tab" data-tab="appliances" onclick="editorSwitch('appliances')">🧺 Appliances</button>
@@ -7314,8 +7314,8 @@ function editorRenderSost() {
       <div class="ed-intro">Sostituisci un'entità usata dalla dashboard con un'altra, ovunque essa compaia (card, popup, storico, comandi). Utile se cambi una presa smart o un sensore.</div>
       <div class="ed-list">${rows}</div>
       <div class="ed-form">
-        <input id="ed-ov-old" list="ed-entity-list" class="ed-input mono" placeholder="Entità attuale (in dashboard)">
-        <input id="ed-ov-new" list="ed-entity-list" class="ed-input mono" placeholder="Nuova entità (sostituto)">
+        <div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-ov-old" style="flex:1;" class="ed-input mono" placeholder="Entità attuale (in dashboard)"><button type="button" onclick="wzPickEntity('#ed-ov-old')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
+        <div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-ov-new" style="flex:1;" class="ed-input mono" placeholder="Nuova entità (sostituto)"><button type="button" onclick="wzPickEntity('#ed-ov-new')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
         <button class="ed-btn-add" onclick="edAddOverride()">＋ Aggiungi sostituzione</button>
       </div>`;
 }
@@ -7408,7 +7408,7 @@ function editorRenderLoad() {
           <input id="ed-load-name" class="ed-input" placeholder="Nome (es. Tostapane)" style="flex:1;">
           <input id="ed-load-icon" class="ed-input ed-icon-input" placeholder="🍞" maxlength="4"><button type="button" onclick="wzPickIcon('#ed-load-icon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
         </div>
-        <div style="display:flex; gap:6px;"><input id="ed-load-pwr" list="ed-entity-list" class="ed-input mono" placeholder="sensor.tostapane_power"><button type="button" onclick="wzPickEntity('#ed-load-pwr')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
+        <div style="display:flex; gap:6px;"><div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-load-pwr" style="flex:1;" class="ed-input mono" placeholder="sensor.tostapane_power"><button type="button" onclick="wzPickEntity('#ed-load-pwr')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div><button type="button" onclick="wzPickEntity('#ed-load-pwr')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
         <button class="ed-btn-add" onclick="edAddLoad()">＋ Aggiungi carico</button>
       </div>
       <div class="ed-sec-title" style="margin-top:16px;">📊 Analysis Report — entries</div>
@@ -8926,7 +8926,7 @@ function cdEpFilter(q) {
 function cdEpChoose(id) {
     const ref = window._cdEpRef;
     document.getElementById('cd-entpick')?.remove();
-    if (ref && ref.startsWith('#')) { const el = document.getElementById(ref.slice(1)); if (el) el.value = id; return; }
+    if (ref && ref.nodeType === 1) { ref.value = id; try { ref.dispatchEvent(new Event('change')); } catch(e) {} return; } if (ref && ref.startsWith('#')) { const el = document.getElementById(ref.slice(1)); if (el) el.value = id; return; }
     if (ref === '__qa__') { const qa = document.getElementById('wz-qa-ent'); if (qa) qa.value = id; return; }
     if (ref === '__ed_qa__') { const qa = document.getElementById('ed-qa-ent'); if (qa) qa.value = id; return; }
     const inp = document.querySelector(`input[data-ref="${ref}"]`);
@@ -9723,8 +9723,8 @@ function editorRenderSezioni() {
               <input id="ed-st-icon" class="ed-input ed-icon-input" placeholder="🛋️" maxlength="4">
               <input id="ed-st-name" class="ed-input" placeholder="Room name" style="flex:1;">
             </div>
-            <input id="ed-st-temp" list="ed-entity-list" class="ed-input mono" placeholder="sensor.temperature_x (temperatura)">
-            <input id="ed-st-hum" list="ed-entity-list" class="ed-input mono" placeholder="sensor.umidita_x (optional — auto if empty)">
+            <div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-st-temp" style="flex:1;" class="ed-input mono" placeholder="sensor.temperature_x (temperatura)"><button type="button" onclick="wzPickEntity('#ed-st-temp')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
+            <div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-st-hum" style="flex:1;" class="ed-input mono" placeholder="sensor.umidita_x (optional — auto if empty)"><button type="button" onclick="wzPickEntity('#ed-st-hum')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
             <button class="ed-btn-add" onclick="edAddStanza()">＋ Add room</button>
           </div>
         </div>
@@ -9781,14 +9781,14 @@ function editorRenderSezioni() {
               <select id="ed-cl-type" class="ed-input" style="flex:0 0 46%;"><option value="clima">❄️ Air conditioner</option><option value="termo">🔥 Radiator</option></select>
               <input id="ed-cl-name" class="ed-input" placeholder="Name (e.g. Office)" style="flex:1;">
             </div>
-            <input id="ed-cl-ent" list="ed-entity-list" class="ed-input mono" placeholder="climate.studio">
+            <div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-cl-ent" style="flex:1;" class="ed-input mono" placeholder="climate.studio"><button type="button" onclick="wzPickEntity('#ed-cl-ent')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
             <select id="ed-cl-room" class="ed-input" style="margin-bottom:6px;width:100%;"></select><button class="ed-btn-add" onclick="edAddClima()">＋ Add climate unit</button>
             <div class="ed-slot" style="margin-top:10px;"><div class="ed-slot-lbl">🔥 Boiler entity (switch — optional)</div>
-              <input class="ed-input mono ed-slot-in" list="ed-entity-list" data-ref="switch.caldaia" value="${ENTITY_OVERRIDES['switch.caldaia'] || ''}" placeholder="switch.caldaia" onchange="edSetSlot(this)"></div>
+              <div style="display:flex; gap:8px; margin-bottom:6px;"><input style="flex:1;" class="ed-input mono ed-slot-in" data-ref="switch.caldaia" value="${ENTITY_OVERRIDES['switch.caldaia'] || ''}" placeholder="switch.caldaia" onchange="edSetSlot(this)"><button type="button" onclick="wzPickEntity(this.previousElementSibling)" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div></div>
             <div class="ed-slot" style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--card-border);">
               <div class="ed-slot-lbl">🔥 Boiler entity (switch — optional)</div>
-              <input class="ed-input mono ed-slot-in" list="ed-entity-list" data-ref="switch.caldaia"
-                     value="${ENTITY_OVERRIDES['switch.caldaia'] || ''}" placeholder="es. dm.core_049" onchange="edSetSlot(this)">
+              <div style="display:flex; gap:8px; margin-bottom:6px;"><input style="flex:1;" class="ed-input mono ed-slot-in" data-ref="switch.caldaia"
+                     value="${ENTITY_OVERRIDES['switch.caldaia'] || ''}" placeholder="es. dm.core_049" onchange="edSetSlot(this)"><button type="button" onclick="wzPickEntity(this.previousElementSibling)" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
             </div>
           </div>
         </div>
@@ -9805,7 +9805,7 @@ function editorRenderSezioni() {
             </div>`).join('')}</div>
           <div class="ed-form">
             <input id="ed-cam-name" class="ed-input" placeholder="Name (e.g. Garden)">
-            <input id="ed-cam-ent" list="ed-entity-list" class="ed-input mono" placeholder="camera.giardino">
+            <div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-cam-ent" style="flex:1;" class="ed-input mono" placeholder="camera.giardino"><button type="button" onclick="wzPickEntity('#ed-cam-ent')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
             <input id="ed-cam-stream" class="ed-input mono" placeholder="go2rtc stream name (optional, for WebRTC)">
             <select id="ed-cam-room" class="ed-input" style="margin-bottom:6px;width:100%;"></select><button class="ed-btn-add" onclick="edAddCamera()">＋ Add camera</button>
           </div>

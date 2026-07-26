@@ -146,6 +146,12 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         # General settings (name, subtitle, admin) live in the editor.
         assert "function edSaveGeneral()" in html, name
         assert "return cdGenHtml()+" in html, name
+        # The settings tab is first and labelled Impostazioni.
+        assert html.find('data-tab="visib"') < html.find('data-tab="rileva"'), name
+        assert "⚙️ Impostazioni" in html, name
+        # Every entity field uses the magnifier picker, no native datalist.
+        assert 'list="ed-entity-list"' not in html, name
+        assert "ref.nodeType === 1" in html, name
         # The Rileva tab carries a diagnostic status line.
         assert "function cdDbgStatus()" in html, name
         # The user_data sync key is namespaced when hosted.

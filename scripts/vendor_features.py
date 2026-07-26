@@ -290,6 +290,8 @@ RILEVA_TAB_ANCHOR = (
     '<button class="ed-tab" data-tab="sezioni" onclick="editorSwitch(\'sezioni\')">'
 )
 RILEVA_TAB_REPLACEMENT = (
+    '<button class="ed-tab" data-tab="visib" onclick="editorSwitch(\'visib\')">'
+    "\u2699\ufe0f Impostazioni</button>\n          "
     '<button class="ed-tab" data-tab="rileva" onclick="editorSwitch(\'rileva\')">'
     "\U0001fa84 Rileva</button>\n          "
     '<button class="ed-tab" data-tab="sezioni" onclick="editorSwitch(\'sezioni\')">'
@@ -468,8 +470,68 @@ RESET_TXT_IT_REPLACEMENT = "Poi riconfiguri tutto dal pannello Config."
 RESET_TXT_EN_ANCHOR = "You will need to run the wizard again."
 RESET_TXT_EN_REPLACEMENT = "Then reconfigure from the editor."
 
+# Every entity field uses the magnifier picker, like the temperature
+# section: the native datalist dropdown is removed and a search button
+# (wzPickEntity) is added, wrapped in a flex row.
+LENS_1_A = '<input id="ed-ov-old" list="ed-entity-list" class="ed-input mono" placeholder="Entità attuale (in dashboard)">'
+LENS_1_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-ov-old" style="flex:1;" class="ed-input mono" placeholder="Entità attuale (in dashboard)"><button type="button" onclick="wzPickEntity(\'#ed-ov-old\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+LENS_2_A = '<input id="ed-ov-new" list="ed-entity-list" class="ed-input mono" placeholder="Nuova entità (sostituto)">'
+LENS_2_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-ov-new" style="flex:1;" class="ed-input mono" placeholder="Nuova entità (sostituto)"><button type="button" onclick="wzPickEntity(\'#ed-ov-new\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+LENS_3_A = '<input id="ed-load-pwr" list="ed-entity-list" class="ed-input mono" placeholder="sensor.tostapane_power">'
+LENS_3_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-load-pwr" style="flex:1;" class="ed-input mono" placeholder="sensor.tostapane_power"><button type="button" onclick="wzPickEntity(\'#ed-load-pwr\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+LENS_4_A = '<input id="ed-st-temp" list="ed-entity-list" class="ed-input mono" placeholder="sensor.temperatura_x (temperatura)">'
+LENS_4_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-st-temp" style="flex:1;" class="ed-input mono" placeholder="sensor.temperatura_x (temperatura)"><button type="button" onclick="wzPickEntity(\'#ed-st-temp\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+LENS_5_A = '<input id="ed-st-hum" list="ed-entity-list" class="ed-input mono" placeholder="sensor.umidita_x (facoltativo — auto se vuoto)">'
+LENS_5_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-st-hum" style="flex:1;" class="ed-input mono" placeholder="sensor.umidita_x (facoltativo — auto se vuoto)"><button type="button" onclick="wzPickEntity(\'#ed-st-hum\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+LENS_6_A = '<input id="ed-cl-ent" list="ed-entity-list" class="ed-input mono" placeholder="climate.studio">'
+LENS_6_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-cl-ent" style="flex:1;" class="ed-input mono" placeholder="climate.studio"><button type="button" onclick="wzPickEntity(\'#ed-cl-ent\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+LENS_7_A = '<input id="ed-cam-ent" list="ed-entity-list" class="ed-input mono" placeholder="camera.giardino">'
+LENS_7_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-cam-ent" style="flex:1;" class="ed-input mono" placeholder="camera.giardino"><button type="button" onclick="wzPickEntity(\'#ed-cam-ent\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+LENS_8_A = '<input id="ed-ov-old" list="ed-entity-list" class="ed-input mono" placeholder="Entità attuale (in dashboard)">'
+LENS_8_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-ov-old" style="flex:1;" class="ed-input mono" placeholder="Entità attuale (in dashboard)"><button type="button" onclick="wzPickEntity(\'#ed-ov-old\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+LENS_9_A = '<input id="ed-ov-new" list="ed-entity-list" class="ed-input mono" placeholder="Nuova entità (sostituto)">'
+LENS_9_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-ov-new" style="flex:1;" class="ed-input mono" placeholder="Nuova entità (sostituto)"><button type="button" onclick="wzPickEntity(\'#ed-ov-new\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+LENS_10_A = '<input id="ed-load-pwr" list="ed-entity-list" class="ed-input mono" placeholder="sensor.tostapane_power">'
+LENS_10_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-load-pwr" style="flex:1;" class="ed-input mono" placeholder="sensor.tostapane_power"><button type="button" onclick="wzPickEntity(\'#ed-load-pwr\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+LENS_11_A = '<input id="ed-st-temp" list="ed-entity-list" class="ed-input mono" placeholder="sensor.temperature_x (temperatura)">'
+LENS_11_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-st-temp" style="flex:1;" class="ed-input mono" placeholder="sensor.temperature_x (temperatura)"><button type="button" onclick="wzPickEntity(\'#ed-st-temp\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+LENS_12_A = '<input id="ed-st-hum" list="ed-entity-list" class="ed-input mono" placeholder="sensor.umidita_x (optional — auto if empty)">'
+LENS_12_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-st-hum" style="flex:1;" class="ed-input mono" placeholder="sensor.umidita_x (optional — auto if empty)"><button type="button" onclick="wzPickEntity(\'#ed-st-hum\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+LENS_13_A = '<input id="ed-cl-ent" list="ed-entity-list" class="ed-input mono" placeholder="climate.studio">'
+LENS_13_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-cl-ent" style="flex:1;" class="ed-input mono" placeholder="climate.studio"><button type="button" onclick="wzPickEntity(\'#ed-cl-ent\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+LENS_14_A = '<input id="ed-cam-ent" list="ed-entity-list" class="ed-input mono" placeholder="camera.giardino">'
+LENS_14_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-cam-ent" style="flex:1;" class="ed-input mono" placeholder="camera.giardino"><button type="button" onclick="wzPickEntity(\'#ed-cam-ent\')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+
+# The entity picker also accepts a DOM element as its target: slot inputs
+# have no id, so their magnifier passes the input element itself; a change
+# event is dispatched so edSetSlot persists the choice.
+EPCHOOSE_ANCHOR = "function cdEpChoose(id) {\n    const ref = window._cdEpRef;\n    document.getElementById('cd-entpick')?.remove();\n    if (ref"
+EPCHOOSE_REPLACEMENT = "function cdEpChoose(id) {\n    const ref = window._cdEpRef;\n    document.getElementById('cd-entpick')?.remove();\n    if (ref && ref.nodeType === 1) { ref.value = id; try { ref.dispatchEvent(new Event('change')); } catch(e) {} return; } if (ref"
+
+SLOT_1_A = '<input class="ed-input mono ed-slot-in" list="ed-entity-list" data-ref="switch.caldaia"\n                     value="${ENTITY_OVERRIDES[\'switch.caldaia\'] || \'\'}" placeholder="es. dm.core_049" onchange="edSetSlot(this)">'
+SLOT_1_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input style="flex:1;" class="ed-input mono ed-slot-in" data-ref="switch.caldaia"\n                     value="${ENTITY_OVERRIDES[\'switch.caldaia\'] || \'\'}" placeholder="es. dm.core_049" onchange="edSetSlot(this)"><button type="button" onclick="wzPickEntity(this.previousElementSibling)" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+SLOT_2_A = '<input class="ed-input mono ed-slot-in" list="ed-entity-list" data-ref="switch.caldaia" value="${ENTITY_OVERRIDES[\'switch.caldaia\'] || \'\'}" placeholder="switch.caldaia" onchange="edSetSlot(this)">'
+SLOT_2_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input style="flex:1;" class="ed-input mono ed-slot-in" data-ref="switch.caldaia" value="${ENTITY_OVERRIDES[\'switch.caldaia\'] || \'\'}" placeholder="switch.caldaia" onchange="edSetSlot(this)"><button type="button" onclick="wzPickEntity(this.previousElementSibling)" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>'
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
+    ("picker-element-ref", EPCHOOSE_ANCHOR, EPCHOOSE_REPLACEMENT),
+    ("lens-slot-1?", SLOT_1_A, SLOT_1_R),
+    ("lens-slot-2?", SLOT_2_A, SLOT_2_R),
+    ("lens-ed-ov-old-it?", LENS_1_A, LENS_1_R),
+    ("lens-ed-ov-new-it?", LENS_2_A, LENS_2_R),
+    ("lens-ed-load-pwr-it?", LENS_3_A, LENS_3_R),
+    ("lens-ed-st-temp-it?", LENS_4_A, LENS_4_R),
+    ("lens-ed-st-hum-it?", LENS_5_A, LENS_5_R),
+    ("lens-ed-cl-ent-it?", LENS_6_A, LENS_6_R),
+    ("lens-ed-cam-ent-it?", LENS_7_A, LENS_7_R),
+    ("lens-ed-ov-old-en?", LENS_8_A, LENS_8_R),
+    ("lens-ed-ov-new-en?", LENS_9_A, LENS_9_R),
+    ("lens-ed-load-pwr-en?", LENS_10_A, LENS_10_R),
+    ("lens-ed-st-temp-en?", LENS_11_A, LENS_11_R),
+    ("lens-ed-st-hum-en?", LENS_12_A, LENS_12_R),
+    ("lens-ed-cl-ent-en?", LENS_13_A, LENS_13_R),
+    ("lens-ed-cam-ent-en?", LENS_14_A, LENS_14_R),
     ("banner-on-connect", BANNER_ON_CONNECT_ANCHOR, BANNER_ON_CONNECT_REPLACEMENT),
     ("wizard-card-it?", WIZ_CARD_IT_ANCHOR, WIZ_CARD_REPLACEMENT),
     ("wizard-card-en?", WIZ_CARD_EN_ANCHOR, WIZ_CARD_REPLACEMENT),
@@ -498,7 +560,6 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("climate-room-save", CLIMATE_SAVE_ANCHOR, CLIMATE_SAVE_REPLACEMENT),
     ("camera-room-field", CAMERA_FORM_ANCHOR, CAMERA_FORM_REPLACEMENT),
     ("room-select-populate", POPULATE_ANCHOR, POPULATE_REPLACEMENT),
-    ("visib-tab", VIS_TAB_ANCHOR, VIS_TAB_REPLACEMENT),
     ("visib-switch", VIS_SWITCH_ANCHOR, VIS_SWITCH_REPLACEMENT),
     ("visib-render", VIS_RENDER_ANCHOR, VIS_RENDER_REPLACEMENT),
     ("rooms-tab", ROOMS_TAB_ANCHOR, ROOMS_TAB_REPLACEMENT),
