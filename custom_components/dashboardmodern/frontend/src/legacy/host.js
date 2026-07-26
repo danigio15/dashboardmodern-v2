@@ -48,6 +48,7 @@ export function mountLegacyHost(
     documentRef = globalThis.document,
     hostWindow = globalThis.window,
     variant = null,
+    instanceId = "integration",
     onDenied = () => {},
   } = {},
 ) {
@@ -96,6 +97,10 @@ export function mountLegacyHost(
     // to the real constructor and try to authenticate on its own.
     const child = frame.contentWindow;
     if (!child) return;
+    // Give the hosted dashboard a stable, integration-specific storage
+    // namespace, so its cd_* keys never collide with a standalone plancia or
+    // another dashboard on the same origin.
+    child.__DASHBOARDMODERN_INSTANCE__ = instanceId;
     child.WebSocket = BridgeSocket;
     child.__DASHBOARDMODERN_BRIDGED__ = true;
   };

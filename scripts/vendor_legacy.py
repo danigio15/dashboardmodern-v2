@@ -34,6 +34,7 @@ VENDOR_DIR = REPO_ROOT / "custom_components/dashboardmodern/frontend/legacy"
 SOURCE_REPO = "https://github.com/danigio15/dashboardmodern.git"
 VARIANTS = ("dashboard.html", "dashboard-en.html")
 
+NS_TAG = '<script src="./storage-namespace.js"></script>'
 PRELUDE_TAG = '<script src="./bridge-prelude.js"></script>'
 # The tested logic the sections call. A module, so it shares one
 # implementation with the rest of the integration instead of a copy.
@@ -195,7 +196,7 @@ def patch_variant(source: str, name: str) -> str:
     patched = _apply_once(
         source,
         HEAD_ANCHOR,
-        f"{HEAD_ANCHOR}\n{PRELUDE_TAG}\n{MODULES_TAG}",
+        f"{HEAD_ANCHOR}\n{NS_TAG}\n{PRELUDE_TAG}\n{MODULES_TAG}",
         f"{name} prelude",
     )
     patched = _apply_once(patched, CONN_ANCHOR, CONN_PATCHED, f"{name} connection")

@@ -60,6 +60,9 @@ export class DashboardModernPanel extends HTMLElement {
       connection: this._hass.connection,
       staticBase,
       variant,
+      // A fixed id for the integration-hosted dashboard, so its storage is
+      // always isolated from any standalone plancia on the same Home Assistant.
+      instanceId: "integration",
     });
   }
 
