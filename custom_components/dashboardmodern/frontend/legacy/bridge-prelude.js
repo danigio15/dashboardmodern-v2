@@ -48,8 +48,18 @@
   // the hosted page never has to touch the storage the standalone page relies
   // on. Not a credential: the shim discards the auth message it appears in.
   window.__DASHBOARDMODERN_HOSTED__ = true;
+  // Copy the real access token from the parent synchronously: this runs before
+  // the dashboard's scripts parse, so const LONG_LIVED_TOKEN sees it. In memory
+  // only — never written to storage.
+  var REAL_TOKEN = "";
+  try {
+    REAL_TOKEN = String(window.parent.__DASHBOARDMODERN_REAL_TOKEN__ || "");
+  } catch (error) {
+    REAL_TOKEN = "";
+  }
+  if (REAL_TOKEN) window.__DASHBOARDMODERN_REAL_TOKEN__ = REAL_TOKEN;
   window.__DASHBOARDMODERN_CONNECTION__ = {
-    token: HOSTED_TOKEN,
+    token: REAL_TOKEN || HOSTED_TOKEN,
     local_ip: window.location.host,
     remote_url: "",
   };

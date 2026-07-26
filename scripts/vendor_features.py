@@ -21,7 +21,7 @@ ROOM_HELPER_ANCHOR = "function getAppliances(){"
 ROOM_HELPER_REPLACEMENT = (
     "function cdRoomList(){ try { if (typeof getStanze === 'function') { var g = getStanze(); if (Array.isArray(g)) return g; } var r = cdCfg('cd_stanze'); return Array.isArray(r)?r:[]; } catch(e){ return []; } }\n"
     "function cdRoomOptions(sel){ var rooms = cdRoomList(); var o = '<option value=\"\">\u2014 Nessuna stanza \u2014</option>'; rooms.forEach(function(r){ var nm=(r&&r.name)?String(r.name):''; if(!nm) return; var s=(String(sel||'')===nm)?' selected':''; var safe=nm.replace(/&/g,'&amp;').replace(/\"/g,'&quot;'); o += '<option value=\"'+safe+'\"'+s+'>'+((r.icon?r.icon+' ':'')+nm)+'</option>'; }); return o; }\n"
-    "function cdRoomOf(item){ return (item && item.room) ? String(item.room) : ''; }\n"
+    "function cdRoomOf(item){ return (item && item.room) ? String(item.room) : ''; }\nfunction cdFloorDatalist(){ var fl={}; cdRoomList().forEach(function(r){ if(r&&r.floor) fl[String(r.floor)]=1; }); return '<datalist id=\"ed-floor-list\">'+Object.keys(fl).map(function(f){ return '<option value=\"'+f+'\">'; }).join('')+'</datalist>'; }\n"
     "function getAppliances(){"
 )
 
@@ -104,7 +104,7 @@ ROOMS_RENDER_REPLACEMENT = (
     "return '<div class=\"ed-intro\">Gestisci qui le tue <b>stanze</b>. Ogni stanza creata qui compare nel menù a tendina di elettrodomestici, clima e telecamere. Per i sensori di temperatura usa la sezione dedicata.</div>'"
     "+'<div class=\"ed-list\">'+rowsHtml+'</div>'"
     "+'<div class=\"ed-form\">'"
-    '+\'<div style="display:flex;gap:8px;margin-bottom:8px;"><input id="ed-room-icon" class="ed-input" style="flex:0 0 60px;text-align:center;" placeholder="🏠" value="🏠"><input id="ed-room-name" class="ed-input" style="flex:1;" placeholder="Nome stanza (es. Cucina)"></div><input id="ed-room-floor" class="ed-input" style="margin-bottom:8px;" placeholder="Piano (es. Piano terra) — facoltativo">\''
+    '+\'<div style="display:flex;gap:8px;margin-bottom:8px;"><input id="ed-room-icon" class="ed-input" style="flex:0 0 60px;text-align:center;" placeholder="🏠" value="🏠"><input id="ed-room-name" class="ed-input" style="flex:1;" placeholder="Nome stanza (es. Cucina)"></div><input id="ed-room-floor" class="ed-input" style="margin-bottom:8px;" list="ed-floor-list" placeholder="Piano (es. Piano terra)">\'+cdFloorDatalist()+\'\''
     '+\'<button class="ed-btn-add" onclick="edStanzaRoomAdd()">＋ Aggiungi stanza</button>\''
     "+'</div>'; } "
     "function edStanzaRoomAdd(){ var name=(document.getElementById('ed-room-name').value||'').trim(); "
@@ -226,9 +226,7 @@ VIS_RENDER_REPLACEMENT = (
 
 # ── Hide the Piano (floor) fields in the temperature section via CSS ───────
 TEMP_FLOOR_CSS_ANCHOR = "<head>"
-TEMP_FLOOR_CSS_REPLACEMENT = (
-    "<head><style>#ed-st2-floor,#ed-st2-flicon{display:none !important;}</style>"
-)
+TEMP_FLOOR_CSS_REPLACEMENT = "<head><style>#ed-st2-floor,#ed-st2-flicon,#ed-st2-icon,button[onclick=\"wzPickIcon('#ed-st2-icon')\"],button[onclick=\"wzPickIcon('#ed-st2-flicon')\"]{display:none !important;}</style>"
 
 
 # ── Remove the old "Nascondi/Hide" tab ─────────────────────────────────────
@@ -276,8 +274,84 @@ SEVENTAP_SUMMARY_EN_ANCHOR = (
 SEVENTAP_SUMMARY_REPLACEMENT = ""
 
 
+# Room rows: no 'undefined' when a room has no temperature sensor.
+TEMP_ROW_UNDEF_ANCHOR = '<div class="ed-row-old mono">${r.temp}</div>'
+TEMP_ROW_UNDEF_REPLACEMENT = '<div class="ed-row-old mono">${r.temp || ""}</div>'
+
+
+# The auto-detection from the wizard, exposed as the FIRST editor tab.
+RILEVA_TAB_ANCHOR = (
+    '<button class="ed-tab" data-tab="sezioni" onclick="editorSwitch(\'sezioni\')">'
+)
+RILEVA_TAB_REPLACEMENT = (
+    '<button class="ed-tab" data-tab="rileva" onclick="editorSwitch(\'rileva\')">'
+    "\U0001fa84 Rileva</button>\n          "
+    '<button class="ed-tab" data-tab="sezioni" onclick="editorSwitch(\'sezioni\')">'
+)
+
+RILEVA_SWITCH_ANCHOR = "if (tab === 'sezioni') body.innerHTML = editorRenderSezioni();"
+RILEVA_SWITCH_REPLACEMENT = (
+    "if (tab === 'rileva') body.innerHTML = editorRenderRileva();\n    "
+    "if (tab === 'sezioni') body.innerHTML = editorRenderSezioni();"
+)
+
+RILEVA_RENDER_ANCHOR = "function editorRenderLuci()"
+RILEVA_RENDER_REPLACEMENT = (
+    "function editorRenderRileva(){"
+    ' return \'<div class="ed-intro">\U0001fa84 <b>Autorilevamento</b>:'
+    " analizza tutte le entit\u00e0 di Home Assistant e compila da solo luci,"
+    " clima, stanze, telecamere e collegamenti. Puoi correggere tutto dopo"
+    " nelle altre schede.</div>'"
+    '+\'<button class="ed-btn-add" style="width:100%;"'
+    ' onclick="edAutoRileva()">\U0001fa84 Avvia autorilevamento</button>\''
+    '+\'<div id="ed-rileva-out" style="margin-top:10px;"></div>\'; } '
+    "function edAutoRilevaLog(t){ var o=document.getElementById('ed-rileva-out');"
+    " if(o) o.innerHTML='<div class=\"ed-intro\">'+t+'</div>'; } "
+    "function edAutoRileva(){"
+    " try { apriSetupWizard(); var wz=document.getElementById('setup-wizard');"
+    " if(wz) wz.remove(); } catch(e){}"
+    " edAutoRilevaLog('\u23f3 Carico tutte le entit\u00e0 da Home Assistant\u2026');"
+    " try { wzLoadAllEntities(); } catch(e){}"
+    " var tries=0; var t=setInterval(function(){ tries++;"
+    " if (typeof WIZ!=='undefined' && WIZ && WIZ.allMeta && WIZ.allMeta.length){"
+    " clearInterval(t);"
+    " try { wzAutoDetect(); } catch(e){ edAutoRilevaLog('\u274c '+e.message); return; }"
+    " try {"
+    " if (WIZ.luci && Object.keys(WIZ.luci).length)"
+    " localStorage.setItem('cd_luci', JSON.stringify(WIZ.luci));"
+    " if (WIZ.stanze && WIZ.stanze.length)"
+    " localStorage.setItem('cd_stanze', JSON.stringify(WIZ.stanze));"
+    " if (WIZ.climaUnits && WIZ.climaUnits.length)"
+    " localStorage.setItem('cd_clima_units', JSON.stringify(WIZ.climaUnits));"
+    " if (WIZ.cameras && WIZ.cameras.length)"
+    " localStorage.setItem('cd_cameras', JSON.stringify(WIZ.cameras));"
+    " if (WIZ.entities && Object.keys(WIZ.entities).length){"
+    " var ov={}; try{ ov=JSON.parse(localStorage.getItem('cd_entity_overrides'))||{};"
+    " }catch(e){}"
+    " Object.keys(WIZ.entities).forEach(function(k){ ov[k]=WIZ.entities[k]; });"
+    " localStorage.setItem('cd_entity_overrides', JSON.stringify(ov)); }"
+    " try{ cdMarkDirty(); cdSyncPush(); }catch(e){}"
+    " edAutoRilevaLog('\u2705 Rilevate: '"
+    "+Object.keys(WIZ.luci||{}).length+' luci \u00b7 '"
+    "+(WIZ.stanze||[]).length+' stanze \u00b7 '"
+    "+(WIZ.climaUnits||[]).length+' clima \u00b7 '"
+    "+(WIZ.cameras||[]).length+' camere \u00b7 '"
+    "+Object.keys(WIZ.entities||{}).length+' entit\u00e0.<br>Ricarico\u2026');"
+    " setTimeout(function(){ location.reload(); }, 1400);"
+    " } catch(e){ edAutoRilevaLog('\u274c '+e.message); }"
+    " } else if (tries>40){ clearInterval(t);"
+    " edAutoRilevaLog('\u274c Timeout nel caricamento entit\u00e0. Riprova.'); }"
+    " }, 500); } "
+    "function editorRenderLuci()"
+)
+
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
+    ("rileva-tab", RILEVA_TAB_ANCHOR, RILEVA_TAB_REPLACEMENT),
+    ("rileva-switch", RILEVA_SWITCH_ANCHOR, RILEVA_SWITCH_REPLACEMENT),
+    ("rileva-render", RILEVA_RENDER_ANCHOR, RILEVA_RENDER_REPLACEMENT),
+    ("temp-row-undef?", TEMP_ROW_UNDEF_ANCHOR, TEMP_ROW_UNDEF_REPLACEMENT),
     ("room-helper", ROOM_HELPER_ANCHOR, ROOM_HELPER_REPLACEMENT),
     ("appliance-room-field", APPLIANCE_FORM_ANCHOR, APPLIANCE_FORM_REPLACEMENT),
     ("appliance-room-save", APPLIANCE_SAVE_ANCHOR, APPLIANCE_SAVE_REPLACEMENT),

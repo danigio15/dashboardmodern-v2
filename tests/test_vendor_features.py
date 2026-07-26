@@ -59,7 +59,7 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         # The repository logo is used, not the inline SVG mark.
         assert 'src="./logo.png"' in html, name
         # The Piano field is hidden in the temperature section.
-        assert "#ed-st2-floor,#ed-st2-flicon{display:none" in html, name
+        assert "#ed-st2-floor,#ed-st2-flicon,#ed-st2-icon" in html, name
         assert "function editorRenderStanze(" in html, name
         assert "function edStanzaRoomAdd(" in html, name
         # The dedicated Rooms section is registry-only (name + icon); the
@@ -111,3 +111,12 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "if (false && taps >= 7)" in html, name
         assert "7 tap veloci sul titolo, oppure" not in html, name
         assert "7 quick taps on the title, or" not in html, name
+        # The auto-detection lives in the editor as the first tab.
+        assert 'data-tab="rileva"' in html, name
+        assert "function editorRenderRileva(" in html, name
+        assert "function edAutoRileva(" in html, name
+        # The Temperatura icon pickers are hidden; icons come from the registry.
+        assert "#ed-st2-icon" in html, name
+        # Floors are offered as a dropdown of existing floors.
+        assert "cdFloorDatalist" in html, name
+        assert 'id="ed-floor-list"' in html, name
