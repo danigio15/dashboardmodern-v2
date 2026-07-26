@@ -189,6 +189,9 @@ CONN_WRITE_IMPORT_PATCHED = (
 )
 
 
+from vendor_features import FEATURE_PATCHES  # noqa: E402
+
+
 def patch_variant(source: str, name: str) -> str:
     """Apply both bridge patches to one legacy dashboard file."""
     if PRELUDE_TAG in source:
@@ -215,6 +218,8 @@ def patch_variant(source: str, name: str) -> str:
     patched = _apply_once(patched, TOKEN_ANCHOR, TOKEN_PATCHED, f"{name} token")
     patched = _apply_once(patched, WIZARD_ANCHOR, WIZARD_PATCHED, f"{name} wizard")
     patched = _hide_bake_download(patched, name)
+    for label, anchor, replacement in FEATURE_PATCHES:
+        patched = _apply_once(patched, anchor, replacement, f"{name} {label}")
     return _apply_upstream_fixes(patched, name)
 
 

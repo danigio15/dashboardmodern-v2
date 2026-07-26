@@ -20,11 +20,17 @@ if TYPE_CHECKING:
 PLATFORMS: list[str] = []
 
 
+async def _reload_on_options_change(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Re-register the panel when visibility options change."""
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Register the frontend that serves the HTML dashboard."""
     from .frontend import async_register_frontend
 
     await async_register_frontend(hass, entry.entry_id)
+    entry.async_on_unload(entry.add_update_listener(_reload_on_options_change))
     return True
 
 

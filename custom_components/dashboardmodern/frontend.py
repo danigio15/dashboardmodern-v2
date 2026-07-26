@@ -109,8 +109,18 @@ def _panel_config(entry_ids: list[str]) -> dict[str, Any]:
     }
 
 
+def _admin_only_option(hass: HomeAssistant) -> bool:
+    """Whether any config entry asks to restrict the panel to admins."""
+    from .config_flow import OPTION_ADMIN_ONLY
+
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if entry.options.get(OPTION_ADMIN_ONLY):
+            return True
+    return False
+
+
 def _register_or_update_panel(
-    hass: HomeAssistant, entry_ids: list[str], *, update: bool
+    hass: HomeAssistant, entry_ids: list[str], *, update: bool, admin_only: bool = False
 ) -> None:
     """Register or update the DashboardModern panel with current entry ids."""
     from homeassistant.components import frontend
@@ -122,10 +132,11 @@ def _register_or_update_panel(
         sidebar_icon="mdi:view-dashboard-edit",
         frontend_url_path=PANEL_URL_PATH,
         config=_panel_config(entry_ids),
-        # Everyone in the house should see the dashboard. The WebSocket API
-        # already requires admin for every mutation, so the editor is
-        # protected where it matters rather than by hiding the panel.
-        require_admin=False,
+        # Default: everyone in the house sees the dashboard, since mutations
+        # already require admin. When admin_only is set in the options, the
+        # panel is hidden from non-admins — the finest per-user control Home
+        # Assistant offers for a panel.
+        require_admin=admin_only,
         update=update,
     )
 
@@ -178,12 +189,15 @@ async def _ensure_static_registered(
 async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
     """Register DashboardModern static assets and current panel config."""
     domain_data: dict[str, Any] = hass.data.setdefault(DOMAIN, {})
+    admin_only = _admin_only_option(hass)
     current_entry_ids: list[str] = domain_data.get(DATA_PANEL_ENTRY_IDS, [])
     next_entry_ids = _next_entry_ids(current_entry_ids, entry_id, add=True)
     already_registered = bool(domain_data.get(DATA_PANEL_REGISTERED))
 
     await _ensure_static_registered(hass, domain_data)
-    _register_or_update_panel(hass, next_entry_ids, update=already_registered)
+    _register_or_update_panel(
+        hass, next_entry_ids, update=already_registered, admin_only=admin_only
+    )
     domain_data[DATA_PANEL_ENTRY_IDS] = next_entry_ids
     domain_data[DATA_PANEL_REGISTERED] = True
 
@@ -204,5 +218,7 @@ async def async_unregister_frontend_entry(hass: HomeAssistant, entry_id: str) ->
         return
 
     if domain_data.get(DATA_PANEL_REGISTERED):
-        _register_or_update_panel(hass, next_entry_ids, update=True)
+        _register_or_update_panel(
+            hass, next_entry_ids, update=True, admin_only=_admin_only_option(hass)
+        )
     domain_data[DATA_PANEL_ENTRY_IDS] = next_entry_ids

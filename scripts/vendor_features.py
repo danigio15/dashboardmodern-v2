@@ -1,0 +1,67 @@
+# ruff: noqa: E501
+"""Feature patches for the vendored dashboard.
+
+Kept separate from vendor_legacy.py so the JavaScript snippets can be written as
+plain raw strings without a second layer of escaping. Each entry is
+(label, anchor, replacement): the anchor must appear exactly once in the source
+and is replaced by the replacement.
+
+Current feature: a shared room registry usable in every section. The rooms
+already live in cd_stanze; this adds a reusable helper to build a room <select>,
+a room field on the appliance editor, and persistence of the chosen room. The
+same helper (cdRoomOptions / cdRoomOf) is meant to be reused for lights, climate
+and cameras next, so a room means the same thing everywhere.
+"""
+
+from __future__ import annotations
+
+# A reusable room helper, injected just before getAppliances so it is defined
+# before anything that renders.
+ROOM_HELPER_ANCHOR = "function getAppliances(){"
+ROOM_HELPER_REPLACEMENT = (
+    "function cdRoomList(){ try { var r = cdCfg('cd_stanze'); return Array.isArray(r)?r:[]; } catch(e){ return []; } }\n"
+    "function cdRoomOptions(sel){ var rooms = cdRoomList(); var o = '<option value=\"\">\u2014 Nessuna stanza \u2014</option>'; rooms.forEach(function(r){ var nm=(r&&r.name)?String(r.name):''; if(!nm) return; var s=(String(sel||'')===nm)?' selected':''; var safe=nm.replace(/&/g,'&amp;').replace(/\"/g,'&quot;'); o += '<option value=\"'+safe+'\"'+s+'>'+((r.icon?r.icon+' ':'')+nm)+'</option>'; }); return o; }\n"
+    "function cdRoomOf(item){ return (item && item.room) ? String(item.room) : ''; }\n"
+    "function getAppliances(){"
+)
+
+# A room dropdown in the appliance editor, injected right after the name input.
+# The anchor is language-independent: the hidden icon input follows the name in
+# both the Italian and English variants.
+APPLIANCE_FORM_ANCHOR = (
+    '<input type="hidden" id="appl-icon" value="\'+curIcon+\'"></div>\''
+)
+APPLIANCE_FORM_REPLACEMENT = (
+    '<input type="hidden" id="appl-icon" value="\'+curIcon+\'"></div>\''
+    ' +\'<div style="margin-bottom:8px;"><label style="font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);display:block;margin-bottom:4px;">STANZA</label><select id="appl-room" class="ed-input" style="margin:0;width:100%;">\'+cdRoomOptions(editing?ed.room:\'\')+\'</select></div>\''
+)
+
+# Persist the chosen room when saving an appliance.
+APPLIANCE_SAVE_ANCHOR = "const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceName(icon), icon, entities, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 };"
+APPLIANCE_SAVE_REPLACEMENT = "const roomSel=(document.getElementById('appl-room')||{}).value||''; const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceName(icon), icon, entities, room:roomSel, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 };"
+
+# Climate: the same room dropdown, reading the same registry.
+# Climate: inject the room dropdown before the Add button (onclick is identical in both languages).
+CLIMATE_FORM_ANCHOR = '<button class="ed-btn-add" onclick="edAddClima()">'
+CLIMATE_FORM_REPLACEMENT = '<select id="ed-cl-room" class="ed-input" style="margin-bottom:6px;width:100%;">\'+cdRoomOptions(\'\')+\'</select><button class="ed-btn-add" onclick="edAddClima()">'
+CLIMATE_SAVE_ANCHOR = "units.push({ name, entity: ent, type });"
+CLIMATE_SAVE_REPLACEMENT = "units.push({ name, entity: ent, type, room:(document.getElementById('ed-cl-room')||{}).value||'' });"
+
+# Cameras: the same room dropdown, reading the same registry.
+# Cameras: inject the room dropdown before the Add button.
+CAMERA_FORM_ANCHOR = '<button class="ed-btn-add" onclick="edAddCamera()">'
+CAMERA_FORM_REPLACEMENT = '<select id="ed-cam-room" class="ed-input" style="margin-bottom:6px;width:100%;">\'+cdRoomOptions(\'\')+\'</select><button class="ed-btn-add" onclick="edAddCamera()">'
+CAMERA_SAVE_ANCHOR = "const nuova = { name, entity: ent };"
+CAMERA_SAVE_REPLACEMENT = "const nuova = { name, entity: ent, room:(document.getElementById('ed-cam-room')||{}).value||'' };"
+
+
+# Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
+FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
+    ("room-helper", ROOM_HELPER_ANCHOR, ROOM_HELPER_REPLACEMENT),
+    ("appliance-room-field", APPLIANCE_FORM_ANCHOR, APPLIANCE_FORM_REPLACEMENT),
+    ("appliance-room-save", APPLIANCE_SAVE_ANCHOR, APPLIANCE_SAVE_REPLACEMENT),
+    ("climate-room-field", CLIMATE_FORM_ANCHOR, CLIMATE_FORM_REPLACEMENT),
+    ("climate-room-save", CLIMATE_SAVE_ANCHOR, CLIMATE_SAVE_REPLACEMENT),
+    ("camera-room-field", CAMERA_FORM_ANCHOR, CAMERA_FORM_REPLACEMENT),
+    ("camera-room-save", CAMERA_SAVE_ANCHOR, CAMERA_SAVE_REPLACEMENT),
+)

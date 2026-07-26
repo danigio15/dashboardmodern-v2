@@ -6358,6 +6358,9 @@ function cdApplianceIcon(type, size) {
   return '<svg '+A+'>'+(I[type]||I.generico)+'</svg>';
 }
 function cdApplianceName(type){ const x=DM_APPLIANCES.find(a=>a.t===type); return x?x.n:'Appliance'; }
+function cdRoomList(){ try { var r = cdCfg('cd_stanze'); return Array.isArray(r)?r:[]; } catch(e){ return []; } }
+function cdRoomOptions(sel){ var rooms = cdRoomList(); var o = '<option value="">— Nessuna stanza —</option>'; rooms.forEach(function(r){ var nm=(r&&r.name)?String(r.name):''; if(!nm) return; var s=(String(sel||'')===nm)?' selected':''; var safe=nm.replace(/&/g,'&amp;').replace(/"/g,'&quot;'); o += '<option value="'+safe+'"'+s+'>'+((r.icon?r.icon+' ':'')+nm)+'</option>'; }); return o; }
+function cdRoomOf(item){ return (item && item.room) ? String(item.room) : ''; }
 function getAppliances(){ const a=cdCfg('cd_appliances'); return Array.isArray(a)?a:[]; }
 
 /* Stato ricavato dalle entità: numeriche = potenza (W), on/heat/playing = acceso */
@@ -6501,7 +6504,7 @@ function editorRenderAppliances(){
   return '<div class="ed-intro">Add your appliances (washing machine, dishwasher, oven, microwave…). You can link <b>one or more entities</b> to each; the status (Running / Standby / Off) is derived from <b>power draw in Watts</b>, so it works even with <b>non-wifi</b> appliances via a smart plug.</div>'
     +'<div class="ed-list">'+rows+'</div>'
     +'<div class="ed-form">'
-    +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;"><button type="button" id="appl-icon-btn" onclick="dmAppliancePicker()" style="flex:0 0 54px;height:54px;border:1px solid var(--card-border);border-radius:14px;background:linear-gradient(135deg,#e0f2fe,#bae6fd);color:#0369a1;cursor:pointer;display:flex;align-items:center;justify-content:center;">'+cdApplianceIcon(curIcon,30)+'</button><input id="appl-name" class="ed-input" style="flex:1;margin:0;" value="'+(editing?esc(ed.name):'')+'" placeholder="Name (e.g. Washing machine, Kitchen oven…)"><input type="hidden" id="appl-icon" value="'+curIcon+'"></div>'
+    +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;"><button type="button" id="appl-icon-btn" onclick="dmAppliancePicker()" style="flex:0 0 54px;height:54px;border:1px solid var(--card-border);border-radius:14px;background:linear-gradient(135deg,#e0f2fe,#bae6fd);color:#0369a1;cursor:pointer;display:flex;align-items:center;justify-content:center;">'+cdApplianceIcon(curIcon,30)+'</button><input id="appl-name" class="ed-input" style="flex:1;margin:0;" value="'+(editing?esc(ed.name):'')+'" placeholder="Name (e.g. Washing machine, Kitchen oven…)"><input type="hidden" id="appl-icon" value="'+curIcon+'"></div>' +'<div style="margin-bottom:8px;"><label style="font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);display:block;margin-bottom:4px;">STANZA</label><select id="appl-room" class="ed-input" style="margin:0;width:100%;">'+cdRoomOptions(editing?ed.room:'')+'</select></div>'
     +'<div style="display:flex;gap:6px;"><input id="appl-ent" class="ed-input mono" style="flex:1;" autocomplete="off" placeholder="sensor.oven_power (W) or switch.oven"><button type="button" onclick="wzPickEntity(\'#appl-ent\')" style="flex:0 0 40px;height:40px;border:none;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;font-size:15px;cursor:pointer;">🔍</button></div>'
     +'<button type="button" class="ed-btn-add" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);margin-bottom:8px;" onclick="edApplAddEntity()">＋ Add this entity</button>'
     +'<div id="appl-ents" style="margin-bottom:8px;"></div>'
@@ -6525,7 +6528,7 @@ function edApplSave(){
   const typed=(document.getElementById('appl-ent').value||'').trim();
   const entities=_applEnts.slice(); if(typed.includes('.')&&!entities.includes(typed)) entities.push(typed);
   if(!entities.length){ alert('Add at least one entity (press ➕)'); return; }
-  const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceName(icon), icon, entities, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 };
+  const roomSel=(document.getElementById('appl-room')||{}).value||''; const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceName(icon), icon, entities, room:roomSel, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 };
   const list=getAppliances();
   if(_applEditIdx!=null&&list[_applEditIdx]){ item.id=list[_applEditIdx].id||item.id; list[_applEditIdx]=item; } else list.push(item);
   localStorage.setItem('cd_appliances',JSON.stringify(list));
@@ -9780,7 +9783,7 @@ function editorRenderSezioni() {
               <input id="ed-cl-name" class="ed-input" placeholder="Name (e.g. Office)" style="flex:1;">
             </div>
             <input id="ed-cl-ent" list="ed-entity-list" class="ed-input mono" placeholder="climate.studio">
-            <button class="ed-btn-add" onclick="edAddClima()">＋ Add climate unit</button>
+            <select id="ed-cl-room" class="ed-input" style="margin-bottom:6px;width:100%;">'+cdRoomOptions('')+'</select><button class="ed-btn-add" onclick="edAddClima()">＋ Add climate unit</button>
             <div class="ed-slot" style="margin-top:10px;"><div class="ed-slot-lbl">🔥 Boiler entity (switch — optional)</div>
               <input class="ed-input mono ed-slot-in" list="ed-entity-list" data-ref="switch.caldaia" value="${ENTITY_OVERRIDES['switch.caldaia'] || ''}" placeholder="switch.caldaia" onchange="edSetSlot(this)"></div>
             <div class="ed-slot" style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--card-border);">
@@ -9805,7 +9808,7 @@ function editorRenderSezioni() {
             <input id="ed-cam-name" class="ed-input" placeholder="Name (e.g. Garden)">
             <input id="ed-cam-ent" list="ed-entity-list" class="ed-input mono" placeholder="camera.giardino">
             <input id="ed-cam-stream" class="ed-input mono" placeholder="go2rtc stream name (optional, for WebRTC)">
-            <button class="ed-btn-add" onclick="edAddCamera()">＋ Add camera</button>
+            <select id="ed-cam-room" class="ed-input" style="margin-bottom:6px;width:100%;">'+cdRoomOptions('')+'</select><button class="ed-btn-add" onclick="edAddCamera()">＋ Add camera</button>
           </div>
         </div>
       </details>
@@ -9943,7 +9946,7 @@ function edAddClima() {
     const ent = (document.getElementById('ed-cl-ent').value || '').trim();
     if (!name || !ent.includes('.')) { alert('Enter a name and a valid climate entity'); return; }
     const units = getClimaUnits().slice();
-    units.push({ name, entity: ent, type });
+    units.push({ name, entity: ent, type, room:(document.getElementById('ed-cl-room')||{}).value||'' });
     localStorage.setItem('cd_clima_units', JSON.stringify(units));
     buildClimaCards();
     buildDeviceCards();
@@ -9963,7 +9966,7 @@ function edAddCamera() {
     const stream = (document.getElementById('ed-cam-stream').value || '').trim();
     if (!name || !ent.includes('.')) { alert('Enter a name and a valid camera entity'); return; }
     const cams = getCameras().slice();
-    const nuova = { name, entity: ent };
+    const nuova = { name, entity: ent, room:(document.getElementById('ed-cam-room')||{}).value||'' };
     if (stream) nuova.stream = stream;
     cams.push(nuova);
     localStorage.setItem('cd_cameras', JSON.stringify(cams));
