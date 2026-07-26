@@ -7289,7 +7289,7 @@ function apriConfigEntita() {
 
 function editorSwitch(tab) {
     EDITOR_TAB = tab;
-    try { setTimeout(function(){ ['ed-cl-room','ed-cam-room','ed-lu-room','ed-st2-name'].forEach(function(id){ var el=document.getElementById(id); if(el && !el.dataset.dmFilled){ el.innerHTML = cdRoomOptions(''); el.dataset.dmFilled='1'; } }); }, 0); } catch(e){}
+    try { setTimeout(function(){ ['ed-cl-room','ed-cam-room','ed-lu-room','ed-st2-name'].forEach(function(id){ var els=document.querySelectorAll('select#'+id+', select[id="'+id+'"]'); els.forEach(function(el){ if(el){ var cur=el.value||''; el.innerHTML = cdRoomOptions(cur); } }); }); }, 0); } catch(e){}
     document.querySelectorAll('.ed-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     const body = document.getElementById('ed-body');
     if (!body) return;
@@ -8167,9 +8167,9 @@ setTimeout(() => { try { applyTextOverrides(); applyHiddenElements(); } catch(e)
    Salva in localStorage (cd_connection/cd_branding/cd_sections/cd_luci);
    il download HTML dall'editor le rende poi permanenti nel file.
    ═══════════════════════════════════════════════════════════════════ */
-let WIZ = { step: 1, token: '', title: '', subtitle: '', sections: {}, luci: {}, entities: [] };
+let WIZ = { step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 : 1), token: '', title: '', subtitle: '', sections: {}, luci: {}, entities: [] };
 
-function apriSetupWizard() { if (window.__DASHBOARDMODERN_HOSTED__) { try { location.reload(); } catch(e){} return; }
+function apriSetupWizard() {
     const old = document.getElementById('setup-wizard');
     if (old) old.remove();
     // Precompila con valori esistenti

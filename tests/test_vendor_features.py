@@ -42,7 +42,7 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         # editor hook, never inline JS injected into static HTML (which would
         # render as literal text and break the form).
         assert "cdRoomOptions('')+'</select>" not in html, f"{name} broken inline JS"
-        assert "dmFilled" in html, name
+        assert "querySelectorAll" in html, name
         # A dedicated Rooms tab manages the registry.
         assert 'data-tab="stanze"' in html, name
         # The temperature section is renamed and its name field is a dropdown.
@@ -53,10 +53,7 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         assert '<input id="ed-st2-name"' not in html, name
         # The token wizard never opens when hosted by the integration.
         assert "!window.__DASHBOARDMODERN_HOSTED__" in html, name
-        assert (
-            "function apriSetupWizard() { if (window.__DASHBOARDMODERN_HOSTED__)"
-            in html
-        ), name
+        assert "step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 : 1)" in html, name
         assert "function editorRenderStanze(" in html, name
         assert "function edStanzaRoomAdd(" in html, name
         # The dedicated Rooms section is registry-only (name + icon); the

@@ -52,7 +52,7 @@ CAMERA_FORM_REPLACEMENT = '<select id="ed-cam-room" class="ed-input" style="marg
 # A hook in editorSwitch fills any room <select> with the registry each time the
 # editor renders, so the static forms show the current rooms without inline JS.
 POPULATE_ANCHOR = "function editorSwitch(tab) {\n    EDITOR_TAB = tab;"
-POPULATE_REPLACEMENT = "function editorSwitch(tab) {\n    EDITOR_TAB = tab;\n    try { setTimeout(function(){ ['ed-cl-room','ed-cam-room','ed-lu-room','ed-st2-name'].forEach(function(id){ var el=document.getElementById(id); if(el && !el.dataset.dmFilled){ el.innerHTML = cdRoomOptions(''); el.dataset.dmFilled='1'; } }); }, 0); } catch(e){}"
+POPULATE_REPLACEMENT = "function editorSwitch(tab) {\n    EDITOR_TAB = tab;\n    try { setTimeout(function(){ ['ed-cl-room','ed-cam-room','ed-lu-room','ed-st2-name'].forEach(function(id){ var els=document.querySelectorAll('select#'+id+', select[id=\"'+id+'\"]'); els.forEach(function(el){ if(el){ var cur=el.value||''; el.innerHTML = cdRoomOptions(cur); } }); }); }, 0); } catch(e){}"
 
 CLIMATE_SAVE_ANCHOR = "units.push({ name, entity: ent, type });"
 CLIMATE_SAVE_REPLACEMENT = "units.push({ name, entity: ent, type, room:(document.getElementById('ed-cl-room')||{}).value||'' });"
@@ -163,8 +163,8 @@ WIZARD_TRIGGER_REPLACEMENT = "if (!LONG_LIVED_TOKEN && !window.__DASHBOARDMODERN
 
 # apriSetupWizard itself: bail out immediately when hosted, in case anything
 # else calls it (e.g. the reset flow).
-WIZARD_FN_ANCHOR = "function apriSetupWizard() {"
-WIZARD_FN_REPLACEMENT = "function apriSetupWizard() { if (window.__DASHBOARDMODERN_HOSTED__) { try { location.reload(); } catch(e){} return; }"
+WIZARD_STEP_ANCHOR = "WIZ = { step: 1,"
+WIZARD_STEP_REPLACEMENT = "WIZ = { step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 : 1),"
 
 
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
@@ -186,6 +186,6 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("temp-name-it?", TEMP_NAME_ANCHOR_IT, TEMP_NAME_REPLACEMENT),
     ("temp-name-en?", TEMP_NAME_ANCHOR_EN, TEMP_NAME_REPLACEMENT),
     ("wizard-trigger-guard", WIZARD_TRIGGER_ANCHOR, WIZARD_TRIGGER_REPLACEMENT),
-    ("wizard-fn-guard", WIZARD_FN_ANCHOR, WIZARD_FN_REPLACEMENT),
+    ("wizard-skip-token-step", WIZARD_STEP_ANCHOR, WIZARD_STEP_REPLACEMENT),
     ("camera-room-save", CAMERA_SAVE_ANCHOR, CAMERA_SAVE_REPLACEMENT),
 )
