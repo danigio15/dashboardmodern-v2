@@ -6707,7 +6707,7 @@ const LONG_LIVED_TOKEN = _CONN.token || ((typeof _dmNoBaked === 'undefined' || !
 const NABU_CASA_URL = _CONN.remote_url || (_CFG.connection && _CFG.connection.remote_url) || ""; 
 const LOCAL_IP = _CONN.local_ip || (_CFG.connection && _CFG.connection.local_ip) || (location.host || "homeassistant.local:8123");
 const DASHBOARD_PATH = _CONN.dashboard_path || (_CFG.connection && _CFG.connection.dashboard_path) || "/lovelace/0?disable_km=";
-if (!LONG_LIVED_TOKEN) document.addEventListener('DOMContentLoaded', () => { if (typeof apriSetupWizard === 'function') apriSetupWizard(); });
+if (!LONG_LIVED_TOKEN && !window.__DASHBOARDMODERN_HOSTED__) document.addEventListener('DOMContentLoaded', () => { if (typeof apriSetupWizard === 'function') apriSetupWizard(); });
 
 const LUCI_NAMES = {};
 
@@ -7289,7 +7289,7 @@ function apriConfigEntita() {
 
 function editorSwitch(tab) {
     EDITOR_TAB = tab;
-    try { setTimeout(function(){ ['ed-cl-room','ed-cam-room','ed-lu-room'].forEach(function(id){ var el=document.getElementById(id); if(el && !el.dataset.dmFilled){ el.innerHTML = cdRoomOptions(''); el.dataset.dmFilled='1'; } }); }, 0); } catch(e){}
+    try { setTimeout(function(){ ['ed-cl-room','ed-cam-room','ed-lu-room','ed-st2-name'].forEach(function(id){ var el=document.getElementById(id); if(el && !el.dataset.dmFilled){ el.innerHTML = cdRoomOptions(''); el.dataset.dmFilled='1'; } }); }, 0); } catch(e){}
     document.querySelectorAll('.ed-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     const body = document.getElementById('ed-body');
     if (!body) return;
@@ -8169,7 +8169,7 @@ setTimeout(() => { try { applyTextOverrides(); applyHiddenElements(); } catch(e)
    ═══════════════════════════════════════════════════════════════════ */
 let WIZ = { step: 1, token: '', title: '', subtitle: '', sections: {}, luci: {}, entities: [] };
 
-function apriSetupWizard() {
+function apriSetupWizard() { if (window.__DASHBOARDMODERN_HOSTED__) { try { location.reload(); } catch(e){} return; }
     const old = document.getElementById('setup-wizard');
     if (old) old.remove();
     // Precompila con valori esistenti
@@ -8383,7 +8383,7 @@ function wzRender() {
             <button class="ed-btn-add" style="width:100%;" onclick="wzAddReportDevice()">＋ Add to Report</button>
           </div>
         </details>` : ''}${WIZ.sections['temp'] !== false ? `
-        <details class="ed-acc"><summary class="ed-acc-head">🏠 Manage Rooms <span class="ed-acc-n">${(WIZ.stanze||[]).length}</span></summary>
+        <details class="ed-acc"><summary class="ed-acc-head">🌡️ Temperatura <span class="ed-acc-n">${(WIZ.stanze||[]).length}</span></summary>
           <div class="ed-acc-body">
             ${(WIZ.stanze||[]).map((r, i) => `<div class="ed-row"><div style="display:flex; flex-direction:column; gap:2px;"><div class="ed-del" style="width:24px; height:20px; font-size:10px; ${i===0?'opacity:0.25; pointer-events:none;':''}" onclick="wzMoveStanza(${i},-1)">▲</div><div class="ed-del" style="width:24px; height:20px; font-size:10px; ${i===WIZ.stanze.length-1?'opacity:0.25; pointer-events:none;':''}" onclick="wzMoveStanza(${i},1)">▼</div></div><div style="font-size:15px;">${r.icon||'🏠'}</div><div class="ed-row-main"><div class="ed-row-new">${r.name}</div><div class="ed-row-old mono">${r.temp}</div></div><div class="ed-del" style="background:rgba(14,165,233,0.12);" onclick="wzEditStanza(${i})">✏️</div><div class="ed-del" onclick="WIZ.stanze.splice(${i},1); wzRender();">🗑️</div></div>`).join('')}
             <div style="display:flex; gap:8px; margin-bottom:8px;">
@@ -8398,7 +8398,7 @@ function wzRender() {
         
           <div style="display:flex; gap:8px; margin:10px 0 8px;">
             <input id="ed-st2-icon" class="ed-input" style="flex:0 0 56px;" placeholder="🌡️" maxlength="4">
-            <input id="ed-st2-name" class="ed-input" style="flex:1;" placeholder="Room name">
+            <select id="ed-st2-name" class="ed-input" style="flex:1;"></select>
             <input id="ed-st2-floor" class="ed-input" style="flex:0 0 32%;" placeholder="Floor (opt.)"><input id="ed-st2-flicon" class="ed-input" style="flex:0 0 52px;" placeholder="🏢" maxlength="4" title="Floor icon"><button type="button" onclick="wzPickIcon('#ed-st2-flicon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
           </div>
           <div style="display:flex; gap:6px; margin-bottom:6px;">
@@ -9705,12 +9705,12 @@ function editorRenderSezioni() {
       <div class="ed-intro">Configure each section with <b>your</b> HA entities. Leave empty to keep the default reference (if it does not exist in your HA, the card shows "—").</div>
       ${sezAccordions}
 
-      <details class="ed-acc"><summary class="ed-acc-head">🏠 Manage Rooms <span class="ed-acc-n">${stanze.length} rooms</span></summary>
+      <details class="ed-acc"><summary class="ed-acc-head">🌡️ Temperatura <span class="ed-acc-n">${stanze.length} rooms</span></summary>
         <div class="ed-acc-body">
           <div class="ed-list">${stanzeRows}
           <div style="display:flex; gap:8px; margin:10px 0 8px;">
             <input id="ed-st2-icon" class="ed-input" style="flex:0 0 56px;" placeholder="🌡️" maxlength="4">
-            <input id="ed-st2-name" class="ed-input" style="flex:1;" placeholder="Room name">
+            <select id="ed-st2-name" class="ed-input" style="flex:1;"></select>
             <input id="ed-st2-floor" class="ed-input" style="flex:0 0 30%;" placeholder="Floor (opt.)"><input id="ed-st2-flicon" class="ed-input" style="flex:0 0 52px;" placeholder="🏢" maxlength="4" title="Floor icon"><button type="button" onclick="wzPickIcon('#ed-st2-flicon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
           </div>
           <div style="display:flex; gap:6px; margin-bottom:6px;">

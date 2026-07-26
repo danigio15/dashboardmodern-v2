@@ -92,6 +92,17 @@ def _apply_once(source: str, anchor: str, replacement: str, label: str) -> str:
     return source.replace(anchor, replacement, 1)
 
 
+def _apply_all(source: str, anchor: str, replacement: str, label: str) -> str:
+    """Replace every occurrence of an anchor that appears more than once."""
+    found = source.count(anchor)
+    if found == 0:
+        raise PatchError(
+            f"{label}: expected at least one occurrence of {anchor!r}, found 0. "
+            "Upstream changed; update this script instead of loosening the anchor."
+        )
+    return source.replace(anchor, replacement)
+
+
 def _hide_bake_download(source: str, name: str) -> str:
     """Hide the bake-download control while the integration hosts the dashboard.
 
@@ -219,7 +230,12 @@ def patch_variant(source: str, name: str) -> str:
     patched = _apply_once(patched, WIZARD_ANCHOR, WIZARD_PATCHED, f"{name} wizard")
     patched = _hide_bake_download(patched, name)
     for label, anchor, replacement in FEATURE_PATCHES:
-        patched = _apply_once(patched, anchor, replacement, f"{name} {label}")
+        if label.endswith("?"):
+            # Optional, language-specific: replace every occurrence, and it
+            # is fine if this variant does not contain it at all.
+            patched = patched.replace(anchor, replacement)
+        else:
+            patched = _apply_once(patched, anchor, replacement, f"{name} {label}")
     # Label-only renames: replace-all, and tolerant of a label not being
     # present (the two languages use different wording).
     for old_label, new_label in RENAME_PATCHES:

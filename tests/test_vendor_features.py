@@ -45,6 +45,18 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         assert "dmFilled" in html, name
         # A dedicated Rooms tab manages the registry.
         assert 'data-tab="stanze"' in html, name
+        # The temperature section is renamed and its name field is a dropdown.
+        assert "🌡️ Temperatura" in html, name
+        assert "Stanze (temperature)" not in html, name
+        assert "Rooms (temperatures)" not in html, name
+        assert '<select id="ed-st2-name"' in html, name
+        assert '<input id="ed-st2-name"' not in html, name
+        # The token wizard never opens when hosted by the integration.
+        assert "!window.__DASHBOARDMODERN_HOSTED__" in html, name
+        assert (
+            "function apriSetupWizard() { if (window.__DASHBOARDMODERN_HOSTED__)"
+            in html
+        ), name
         assert "function editorRenderStanze(" in html, name
         assert "function edStanzaRoomAdd(" in html, name
         # The dedicated Rooms section is registry-only (name + icon); the
@@ -72,12 +84,12 @@ def test_the_room_helper_reads_the_existing_registry() -> None:
 
 
 def test_rooms_management_is_separated_from_temperatures() -> None:
-    """The rooms editor reads 'Gestione Stanze'; the view is just 'Temperature'."""
+    """The temperature section is renamed; a separate Rooms tab manages rooms."""
     for name in vendor_legacy.VARIANTS:
         html = (VENDORED / name).read_text(encoding="utf-8")
-        # The old conflated labels are gone.
+        # The old conflated titles are gone in favour of "Temperatura".
         assert "Stanze (temperature)" not in html, name
         assert "Rooms (temperatures)" not in html, name
-        assert "Temperature Stanze" not in html, name
-        # A dedicated management label exists (either language).
-        assert ("Gestione Stanze" in html) or ("Manage Rooms" in html), name
+        assert "🌡️ Temperatura" in html, name
+        # A dedicated Rooms tab exists for managing the registry.
+        assert 'data-tab="stanze"' in html, name

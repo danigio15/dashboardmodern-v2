@@ -52,7 +52,7 @@ CAMERA_FORM_REPLACEMENT = '<select id="ed-cam-room" class="ed-input" style="marg
 # A hook in editorSwitch fills any room <select> with the registry each time the
 # editor renders, so the static forms show the current rooms without inline JS.
 POPULATE_ANCHOR = "function editorSwitch(tab) {\n    EDITOR_TAB = tab;"
-POPULATE_REPLACEMENT = "function editorSwitch(tab) {\n    EDITOR_TAB = tab;\n    try { setTimeout(function(){ ['ed-cl-room','ed-cam-room','ed-lu-room'].forEach(function(id){ var el=document.getElementById(id); if(el && !el.dataset.dmFilled){ el.innerHTML = cdRoomOptions(''); el.dataset.dmFilled='1'; } }); }, 0); } catch(e){}"
+POPULATE_REPLACEMENT = "function editorSwitch(tab) {\n    EDITOR_TAB = tab;\n    try { setTimeout(function(){ ['ed-cl-room','ed-cam-room','ed-lu-room','ed-st2-name'].forEach(function(id){ var el=document.getElementById(id); if(el && !el.dataset.dmFilled){ el.innerHTML = cdRoomOptions(''); el.dataset.dmFilled='1'; } }); }, 0); } catch(e){}"
 
 CLIMATE_SAVE_ANCHOR = "units.push({ name, entity: ent, type });"
 CLIMATE_SAVE_REPLACEMENT = "units.push({ name, entity: ent, type, room:(document.getElementById('ed-cl-room')||{}).value||'' });"
@@ -137,6 +137,36 @@ LIGHTS_SAVE_ANCHOR = (
 LIGHTS_SAVE_REPLACEMENT = "var _luRoomEl = document.getElementById('ed-lu-room'); var _luRoom = _luRoomEl ? (_luRoomEl.value||'').trim() : ''; var _luName = (document.getElementById('ed-lu-name').value || '').trim(); const nm = (_luRoom && _luName && _luName.indexOf(' - ')===-1) ? (_luRoom + ' - ' + _luName) : _luName;"
 
 
+# ── Temperature section: rename to "Temperatura" and use a room dropdown ──
+# The section titled "Stanze (temperature)" assigns temp/humidity sensors to a
+# room. Its name field becomes a dropdown of existing rooms, and the title is
+# forced to "Temperatura". Both title and field appear twice in the source
+# (two render paths), so both are replaced.
+TEMP_NAME_ANCHOR_IT = '<input id="ed-st2-name" class="ed-input" style="flex:1;" placeholder="Nome stanza">'
+TEMP_NAME_ANCHOR_EN = (
+    '<input id="ed-st2-name" class="ed-input" style="flex:1;" placeholder="Room name">'
+)
+TEMP_NAME_REPLACEMENT = (
+    '<select id="ed-st2-name" class="ed-input" style="flex:1;"></select>'
+)
+TEMP_TITLE_ANCHOR_EN = "🌡️ Rooms (temperatures) "
+TEMP_TITLE_ANCHOR = "🌡️ Stanze (temperature) "
+TEMP_TITLE_REPLACEMENT = "🌡️ Temperatura "
+
+
+# ── Never show the token wizard when hosted by the integration ─────────────
+# The hosted dashboard gets its connection from the authenticated bridge, so
+# the long-lived-token wizard must never open — not on load, and not after a
+# "reset all". Standalone use is unaffected.
+WIZARD_TRIGGER_ANCHOR = "if (!LONG_LIVED_TOKEN) document.addEventListener('DOMContentLoaded', () => { if (typeof apriSetupWizard === 'function') apriSetupWizard(); });"
+WIZARD_TRIGGER_REPLACEMENT = "if (!LONG_LIVED_TOKEN && !window.__DASHBOARDMODERN_HOSTED__) document.addEventListener('DOMContentLoaded', () => { if (typeof apriSetupWizard === 'function') apriSetupWizard(); });"
+
+# apriSetupWizard itself: bail out immediately when hosted, in case anything
+# else calls it (e.g. the reset flow).
+WIZARD_FN_ANCHOR = "function apriSetupWizard() {"
+WIZARD_FN_REPLACEMENT = "function apriSetupWizard() { if (window.__DASHBOARDMODERN_HOSTED__) { try { location.reload(); } catch(e){} return; }"
+
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("room-helper", ROOM_HELPER_ANCHOR, ROOM_HELPER_REPLACEMENT),
@@ -151,5 +181,11 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("rooms-render", ROOMS_RENDER_ANCHOR, ROOMS_RENDER_REPLACEMENT),
     ("lights-room-field", LIGHTS_FORM_ANCHOR, LIGHTS_FORM_REPLACEMENT),
     ("lights-room-save", LIGHTS_SAVE_ANCHOR, LIGHTS_SAVE_REPLACEMENT),
+    ("temp-title-it?", TEMP_TITLE_ANCHOR, TEMP_TITLE_REPLACEMENT),
+    ("temp-title-en?", TEMP_TITLE_ANCHOR_EN, TEMP_TITLE_REPLACEMENT),
+    ("temp-name-it?", TEMP_NAME_ANCHOR_IT, TEMP_NAME_REPLACEMENT),
+    ("temp-name-en?", TEMP_NAME_ANCHOR_EN, TEMP_NAME_REPLACEMENT),
+    ("wizard-trigger-guard", WIZARD_TRIGGER_ANCHOR, WIZARD_TRIGGER_REPLACEMENT),
+    ("wizard-fn-guard", WIZARD_FN_ANCHOR, WIZARD_FN_REPLACEMENT),
     ("camera-room-save", CAMERA_SAVE_ANCHOR, CAMERA_SAVE_REPLACEMENT),
 )
