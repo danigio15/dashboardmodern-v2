@@ -7289,7 +7289,7 @@ function apriConfigEntita() {
 
 function editorSwitch(tab) {
     EDITOR_TAB = tab;
-    try { setTimeout(function(){ ['ed-cl-room','ed-cam-room'].forEach(function(id){ var el=document.getElementById(id); if(el && !el.dataset.dmFilled){ el.innerHTML = cdRoomOptions(''); el.dataset.dmFilled='1'; } }); }, 0); } catch(e){}
+    try { setTimeout(function(){ ['ed-cl-room','ed-cam-room','ed-lu-room'].forEach(function(id){ var el=document.getElementById(id); if(el && !el.dataset.dmFilled){ el.innerHTML = cdRoomOptions(''); el.dataset.dmFilled='1'; } }); }, 0); } catch(e){}
     document.querySelectorAll('.ed-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     const body = document.getElementById('ed-body');
     if (!body) return;
@@ -7459,7 +7459,7 @@ function edAddReportDevice() {
 }
 
 function edAddLuce() {
-    const nm = (document.getElementById('ed-lu-name').value || '').trim();
+    var _luRoomEl = document.getElementById('ed-lu-room'); var _luRoom = _luRoomEl ? (_luRoomEl.value||'').trim() : ''; var _luName = (document.getElementById('ed-lu-name').value || '').trim(); const nm = (_luRoom && _luName && _luName.indexOf(' - ')===-1) ? (_luRoom + ' - ' + _luName) : _luName;
     const id = (document.getElementById('ed-lu-ent').value || '').trim();
     if (!nm || !/^(light|switch|group|input_boolean|fan)\./.test(id)) { alert('Enter a name and a valid entity (e.g. light.living or switch.kitchen)'); return; }
     let L = {}; try { L = JSON.parse(localStorage.getItem('cd_luci')) || {}; } catch(e) {}
@@ -9826,7 +9826,7 @@ function editorRenderSezioni() {
             <input id="ed-lu-ent" class="ed-input mono" autocomplete="off" placeholder="dm.core_022" style="flex:1; font-family:monospace;">
             <button type="button" onclick="wzPickEntity('#ed-lu-ent')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button>
           </div>
-          <button class="ed-btn-add" style="width:100%;" onclick="edAddLuce()">＋ Add light</button>
+          <select id="ed-lu-room" class="ed-input" style="margin-bottom:6px;width:100%;"></select><button class="ed-btn-add" style="width:100%;" onclick="edAddLuce()">＋ Add light</button>
         </div>
       </details>
       <details class="ed-acc"><summary class="ed-acc-head">📊 Report Analisi <span class="ed-acc-n">${cdCfgList('cd_report_devices').length} entries</span></summary>

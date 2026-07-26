@@ -27,7 +27,12 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         html = (VENDORED / name).read_text(encoding="utf-8")
         assert "function cdRoomOptions(" in html, name
         # The same registry-backed dropdown appears in every section.
-        for field in ('id="appl-room"', 'id="ed-cl-room"', 'id="ed-cam-room"'):
+        for field in (
+            'id="appl-room"',
+            'id="ed-cl-room"',
+            'id="ed-cam-room"',
+            'id="ed-lu-room"',
+        ):
             assert field in html, f"{name} missing {field}"
         # And each persists the chosen room.
         assert "room:roomSel" in html, name

@@ -52,7 +52,7 @@ CAMERA_FORM_REPLACEMENT = '<select id="ed-cam-room" class="ed-input" style="marg
 # A hook in editorSwitch fills any room <select> with the registry each time the
 # editor renders, so the static forms show the current rooms without inline JS.
 POPULATE_ANCHOR = "function editorSwitch(tab) {\n    EDITOR_TAB = tab;"
-POPULATE_REPLACEMENT = "function editorSwitch(tab) {\n    EDITOR_TAB = tab;\n    try { setTimeout(function(){ ['ed-cl-room','ed-cam-room'].forEach(function(id){ var el=document.getElementById(id); if(el && !el.dataset.dmFilled){ el.innerHTML = cdRoomOptions(''); el.dataset.dmFilled='1'; } }); }, 0); } catch(e){}"
+POPULATE_REPLACEMENT = "function editorSwitch(tab) {\n    EDITOR_TAB = tab;\n    try { setTimeout(function(){ ['ed-cl-room','ed-cam-room','ed-lu-room'].forEach(function(id){ var el=document.getElementById(id); if(el && !el.dataset.dmFilled){ el.innerHTML = cdRoomOptions(''); el.dataset.dmFilled='1'; } }); }, 0); } catch(e){}"
 
 CLIMATE_SAVE_ANCHOR = "units.push({ name, entity: ent, type });"
 CLIMATE_SAVE_REPLACEMENT = "units.push({ name, entity: ent, type, room:(document.getElementById('ed-cl-room')||{}).value||'' });"
@@ -123,6 +123,20 @@ ROOMS_RENDER_REPLACEMENT = (
 )
 
 
+# ── Lights: room dropdown that feeds the "Room - Detail" naming convention ──
+LIGHTS_FORM_ANCHOR = (
+    '<button class="ed-btn-add" style="width:100%;" onclick="edAddLuce()">'
+)
+LIGHTS_FORM_REPLACEMENT = '<select id="ed-lu-room" class="ed-input" style="margin-bottom:6px;width:100%;"></select><button class="ed-btn-add" style="width:100%;" onclick="edAddLuce()">'
+
+# When a room is picked, prepend "Room - " to the light name so the existing
+# grouping (which parses the text before " - ") keeps working.
+LIGHTS_SAVE_ANCHOR = (
+    "const nm = (document.getElementById('ed-lu-name').value || '').trim();"
+)
+LIGHTS_SAVE_REPLACEMENT = "var _luRoomEl = document.getElementById('ed-lu-room'); var _luRoom = _luRoomEl ? (_luRoomEl.value||'').trim() : ''; var _luName = (document.getElementById('ed-lu-name').value || '').trim(); const nm = (_luRoom && _luName && _luName.indexOf(' - ')===-1) ? (_luRoom + ' - ' + _luName) : _luName;"
+
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("room-helper", ROOM_HELPER_ANCHOR, ROOM_HELPER_REPLACEMENT),
@@ -135,5 +149,7 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("rooms-tab", ROOMS_TAB_ANCHOR, ROOMS_TAB_REPLACEMENT),
     ("rooms-switch", ROOMS_SWITCH_ANCHOR, ROOMS_SWITCH_REPLACEMENT),
     ("rooms-render", ROOMS_RENDER_ANCHOR, ROOMS_RENDER_REPLACEMENT),
+    ("lights-room-field", LIGHTS_FORM_ANCHOR, LIGHTS_FORM_REPLACEMENT),
+    ("lights-room-save", LIGHTS_SAVE_ANCHOR, LIGHTS_SAVE_REPLACEMENT),
     ("camera-room-save", CAMERA_SAVE_ANCHOR, CAMERA_SAVE_REPLACEMENT),
 )
