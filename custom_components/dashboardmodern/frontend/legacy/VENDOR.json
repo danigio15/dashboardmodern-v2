@@ -1,0 +1,16 @@
+{
+  "source": "https://github.com/danigio15/dashboardmodern.git",
+  "ref": "main",
+  "commit": "c03182ef76faf7d3648b0b6c8bcd94a62012c852",
+  "sha256": {
+    "dashboard.html": "cc3083ebc059213093abd7c2175c810feff5f97cf1c19753fbac3d16f9f6148e",
+    "dashboard-en.html": "e8069dcef481c2c529587359b01a1864168ae21084db824cc084eec410321069"
+  },
+  "_note": "sha256 is of the unpatched upstream source; every patch is applied by scripts/vendor_legacy.py.",
+  "upstream_fixes_pending": [
+    "cameras-wipe",
+    "alarm-entity",
+    "pin-length",
+    "pin-display"
+  ]
+}

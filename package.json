@@ -1,0 +1,16 @@
+{
+  "name": "dashboardmodern-v2",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test:frontend": "node --test custom_components/dashboardmodern/frontend/tests/*.test.js",
+    "format": "prettier --write \"custom_components/dashboardmodern/frontend/**/*.js\"",
+    "format:check": "prettier --check \"custom_components/dashboardmodern/frontend/**/*.js\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.0"
+  }
+}
