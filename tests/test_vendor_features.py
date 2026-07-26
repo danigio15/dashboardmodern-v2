@@ -42,6 +42,9 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         assert 'data-tab="stanze"' in html, name
         assert "function editorRenderStanze(" in html, name
         assert "function edStanzaRoomAdd(" in html, name
+        # The dedicated Rooms section is registry-only (name + icon); the
+        # temperature sensor stays in the separate temperature section.
+        assert "ed-room-temp" not in html, name
 
 
 def test_the_room_helper_reads_the_same_cascade_as_the_temperature_section() -> None:

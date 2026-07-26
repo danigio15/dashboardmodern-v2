@@ -1,6 +1,4 @@
-git add -A
-git commit -m "Update DashboardModern"
-git push -u origin agent/update-dashboardmodern-v3{
+{
   "printWidth": 100,
   "singleQuote": false,
   "trailingComma": "all"

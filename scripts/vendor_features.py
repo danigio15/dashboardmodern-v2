@@ -98,22 +98,20 @@ ROOMS_RENDER_REPLACEMENT = (
     "var rowsHtml = rooms.map(function(r,i){ "
     'return \'<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">\''
     "+((r.icon?r.icon+' ':'🏠 ')+(r.name||'Stanza'))"
-    "+'</div><div class=\"ed-row-old mono\">'+(r.temp?esc(r.temp):'nessun sensore')+'</div></div>'"
+    "+'</div></div>'"
     '+\'<div class="ed-del" onclick="edStanzaRoomDel(\'+i+\')" title="Elimina">🗑️</div></div>\'; '
     "}).join('') || '<div class=\"ed-empty\">Nessuna stanza. Aggiungine una qui sotto.</div>'; "
-    "return '<div class=\"ed-intro\">Gestisci qui le tue <b>stanze</b>. Ogni stanza creata qui compare nel menù a tendina di elettrodomestici, clima e telecamere. Il sensore di temperatura è facoltativo.</div>'"
+    "return '<div class=\"ed-intro\">Gestisci qui le tue <b>stanze</b>. Ogni stanza creata qui compare nel menù a tendina di elettrodomestici, clima e telecamere. Per i sensori di temperatura usa la sezione dedicata.</div>'"
     "+'<div class=\"ed-list\">'+rowsHtml+'</div>'"
     "+'<div class=\"ed-form\">'"
     '+\'<div style="display:flex;gap:8px;margin-bottom:8px;"><input id="ed-room-icon" class="ed-input" style="flex:0 0 60px;text-align:center;" placeholder="🏠" value="🏠"><input id="ed-room-name" class="ed-input" style="flex:1;" placeholder="Nome stanza (es. Cucina)"></div>\''
-    '+\'<input id="ed-room-temp" list="ed-entity-list" class="ed-input mono" placeholder="sensor.temperatura_x (facoltativo)" style="margin-bottom:8px;">\''
     '+\'<button class="ed-btn-add" onclick="edStanzaRoomAdd()">＋ Aggiungi stanza</button>\''
     "+'</div>'; } "
     "function edStanzaRoomAdd(){ var name=(document.getElementById('ed-room-name').value||'').trim(); "
     "if(!name){ alert('Inserisci il nome della stanza'); return; } "
     "var icon=(document.getElementById('ed-room-icon').value||'🏠').trim(); "
-    "var temp=(document.getElementById('ed-room-temp').value||'').trim(); "
     "var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); "
-    "var r={ name:name, icon:icon }; if(temp) r.temp=temp; rooms.push(r); "
+    "var existing=rooms.filter(function(x){return x&&x.name;}); var r={ name:name, icon:icon }; rooms.push(r); "
     "localStorage.setItem('cd_stanze', JSON.stringify(rooms)); "
     "try { cdMarkDirty(); cdSyncPush(); } catch(e){} "
     "try { buildTempCards(); } catch(e){} editorSwitch('stanze'); } "
