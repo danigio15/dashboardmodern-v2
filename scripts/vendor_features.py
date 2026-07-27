@@ -686,6 +686,26 @@ R17_14_R = 'grid.innerHTML=\'<div style="grid-column:1/-1; display:flex; gap:8px
 R17_15_A = "var pg=document.getElementById('page-tapparelle');"
 R17_15_R = "var w2=document.getElementById('glance-custom-wrap'); if(w2){ var opens=getTapparelle().filter(function(t){ var st=(typeof STATES!=='undefined')?STATES[t.entity]:null; return st && st.state==='open'; }); var tv=document.getElementById('tapp-avvisi'); if(opens.length){ if(!tv){ tv=document.createElement('div'); tv.id='tapp-avvisi'; w2.appendChild(tv); } tv.innerHTML=opens.map(function(t){ return '<div class=\"irr-skip\" style=\"margin:6px 0;\">🪟 '+String(t.name||t.entity).replace(/</g,'&lt;')+' aperta</div>'; }).join(''); } else if(tv){ tv.remove(); } } var pg=document.getElementById('page-tapparelle');"
 
+# Round 18: field-test fixes.
+R18_1_A = "data-tab=\"visib\" onclick=\"editorSwitch((typeof EDITOR_TAB !== 'undefined' && EDITOR_TAB) ? EDITOR_TAB : 'visib')\">"
+R18_1_R = 'data-tab="visib" onclick="editorSwitch(\'visib\')">'
+R18_2_A = "if (window.__DASHBOARDMODERN_HOSTED__) { try { if (isBoot) cdHideBoot(); } catch(e) {} return; }"
+R18_2_R = "if (window.__DASHBOARDMODERN_HOSTED__ || location.pathname.indexOf('/dashboardmodern_static') !== -1) { try { if (isBoot) cdHideBoot(); } catch(e) {} return; }"
+R18_3_A = "function cdEvCaptureProfile(){ var ov={}; try { var cur=JSON.parse(localStorage.getItem('cd_entity_overrides'))||{}; Object.keys(cur).forEach(function(k){ if(k.indexOf('dm.ev_')===0) ov[k]=cur[k]; }); } catch(e){}"
+R18_3_R = "function cdEvCaptureProfile(){ var ov={}; try { document.querySelectorAll('input.ed-slot-in[data-ref^=\"dm.ev_\"]').forEach(function(el){ try { edSetSlot(el); } catch(e3){} }); } catch(e2){} try { Object.keys(ENTITY_OVERRIDES||{}).forEach(function(k){ if(k.indexOf('dm.ev_')===0) ov[k]=ENTITY_OVERRIDES[k]; }); } catch(e){}"
+R18_4_A = "var cars=getEvCars(); cars.push({ name:n, ov:prof.ov, img:prof.img }); saveEvCars(cars); localStorage.setItem('cd_ev_car_active', String(cars.length-1));"
+R18_4_R = "var cars=getEvCars(); var found=-1; for(var ci=0;ci<cars.length;ci++){ if(cars[ci] && cars[ci].name===n){ found=ci; break; } } if(found>=0){ cars[found]={ name:n, ov:prof.ov, img:prof.img }; localStorage.setItem('cd_ev_car_active', String(found)); } else { cars.push({ name:n, ov:prof.ov, img:prof.img }); localStorage.setItem('cd_ev_car_active', String(cars.length-1)); } saveEvCars(cars);"
+R18_5_A = 'return \'<div class="ed-intro" style="margin-top:16px;">🚗'
+R18_5_R = "var sel2 = cars.length ? '<select class=\"ed-input\" style=\"width:100%; margin:8px 0;\" onchange=\"cdEvCarSelEd(this)\">'+'<option value=\"\">— Scegli un profilo da modificare —</option>'+cars.map(function(c,i){ return '<option value=\"'+i+'\"'+(i===act?' selected':'')+'>🚗 '+String(c.name||('Auto '+(i+1))).replace(/</g,'&lt;')+'</option>'; }).join('')+'</select>' : ''; return sel2+'<div class=\"ed-intro\" style=\"margin-top:16px;\">🚗"
+R18_6_A = "function cdEvCarBtn(btn){"
+R18_6_R = "function cdEvCarSelEd(sel){ try { var i=parseInt(sel.value,10); if(isNaN(i)) return; cdEvApplyCar(i); try { editorSwitch((typeof EDITOR_TAB !== 'undefined' && EDITOR_TAB) ? EDITOR_TAB : 'sez2'); } catch(e2){} } catch(e){} } function cdEvCarBtn(btn){"
+R18_7_A = "function edFilterSez(el, n){ try {"
+R18_7_R = "function edSecSave(){ try { cdMarkDirty(); cdSyncPush(); } catch(e){} try { edToast('Sezione salvata'); } catch(e){} } function edCostSplit(el, mode){ try { var kids=Array.prototype.slice.call(el.children); var start=-1; for(var i=0;i<kids.length;i++){ var t=(kids[i].textContent||''); if(t.indexOf('Costo energia')!==-1||t.indexOf('Energy cost')!==-1){ start=i; break; } } if(start<0) return null; if(mode==='hide'){ for(var j=start;j<kids.length;j++) kids[j].style.display='none'; return null; } var frag=document.createElement('div'); for(var k2=start;k2<kids.length;k2++) frag.appendChild(kids[k2]); return frag; } catch(e){ return null; } } function edFilterSez(el, n){ try {"
+R18_8_A = " if(extra){ var w=document.createElement('div'); w.innerHTML=extra; el.insertBefore(w, el.firstChild); }"
+R18_8_R = " if(extra){ var w=document.createElement('div'); w.innerHTML=extra; el.insertBefore(w, el.firstChild); } if(n===0){ ['dm.home_interruttore_antifurto','dm.home_script_apertura_cancello'].forEach(function(rf){ var inp=el.querySelector('input[data-ref=\"'+rf+'\"]'); var blk=inp && (inp.closest('.ed-slot')||inp.parentElement); if(blk) blk.style.display='none'; }); } if(n===1){ try { var tmp=document.createElement('div'); tmp.innerHTML=editorRenderLoad(); var frag=edCostSplit(tmp,'move'); if(frag) el.appendChild(frag); } catch(e4){} } if(n>=7){ var sv=document.createElement('div'); sv.innerHTML='<button class=\"ed-btn-add\" style=\"width:100%; margin-top:10px;\" onclick=\"edSecSave()\">💾 Salva sezione</button>'; el.appendChild(sv); }"
+R18_9_A = "if (tab === 'load')   body.innerHTML = editorRenderLoad();"
+R18_9_R = "if (tab === 'load') { body.innerHTML = editorRenderLoad(); edCostSplit(body,'hide'); }"
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -835,4 +855,13 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("tapp-cmd-all", R17_13_A, R17_13_R),
     ("tapp-all-buttons", R17_14_A, R17_14_R),
     ("tapp-avvisi", R17_15_A, R17_15_R),
+    ("fix-visib-tab-onclick", R18_1_A, R18_1_R),
+    ("update-check-path-guard", R18_2_A, R18_2_R),
+    ("evcars-capture-live", R18_3_A, R18_3_R),
+    ("evcars-add-updates", R18_4_A, R18_4_R),
+    ("evcars-tab-dropdown", R18_5_A, R18_5_R),
+    ("evcars-seled-fn", R18_6_A, R18_6_R),
+    ("filter-extras", R18_7_A, R18_7_R),
+    ("filter-body-extras", R18_8_A, R18_8_R),
+    ("load-hide-cost", R18_9_A, R18_9_R),
 )

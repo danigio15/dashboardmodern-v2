@@ -161,6 +161,18 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         # Tapparelle: open/close-all buttons and open-shutter alerts.
         assert "Apri tutte" in html and "Chiudi tutte" in html, name
         assert "tapp-avvisi" in html, name
+        # Round 18 field fixes: Impostazioni button restored, update-check
+        # path guard, live EV capture with same-name update and edit
+        # dropdown, hidden Home quick-action slots, per-tab saves, and the
+        # energy-cost block relocated to the Energia tab.
+        assert 'data-tab="visib" onclick="editorSwitch(\'visib\')">' in html, name
+        assert "location.pathname.indexOf('/dashboardmodern_static')" in html, name
+        assert "cars[found]={ name:n" in html, name
+        assert "function cdEvCarSelEd(" in html, name
+        assert "dm.home_interruttore_antifurto" in html, name
+        assert "function edSecSave()" in html, name
+        assert "function edCostSplit(" in html, name
+        assert "edCostSplit(body,'hide')" in html, name
         # Every entity field uses the magnifier picker, no native datalist.
         assert 'list="ed-entity-list"' not in html, name
         assert "ref.nodeType === 1" in html, name
