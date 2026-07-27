@@ -766,7 +766,7 @@ R22_2_R = "function edVisibToggle(idx){ var sez=cdVisibSez(); var x=sez[idx]; if
 R22_3_A = "function cdSecShow(k){ try { if(!k) return;"
 R22_3_R = "function cdSecShow(k){ try { if(!k) return; setTimeout(function(){ try { cdApplyNavVis(); } catch(e2){} }, 60);"
 R22_4_A = "+' | sync:'+(localStorage.getItem('cd_sync_ts')||0)"
-R22_4_R = "+' | sync:'+(localStorage.getItem('cd_sync_ts')||0)+' | inst:'+String(window.__DASHBOARDMODERN_STORAGE_NS__||'-').slice(0,10)+' | prim:'+(window.__DASHBOARDMODERN_PRIMARY__===false?0:1)"
+R22_4_R = "+' | sync:'+(localStorage.getItem('cd_sync_ts')||0)+' | inst:'+String(window.__DASHBOARDMODERN_STORAGE_NS__||'-').slice(0,10)+' | prim:'+(window.__DASHBOARDMODERN_PRIMARY__===false?0:1)+' | q:'+String(location.search||'').slice(0,18)"
 
 # The reset reload keeps the frame query: dmi/dmp carry the instance.
 RESET_KEEP_QUERY_A = "location.replace(location.pathname), 450)"

@@ -36,7 +36,17 @@ export class DashboardModernPanel extends HTMLElement {
   }
 
   set panel(value) {
+    const prevEntry = this._panel?.config?.entry_ids?.[0];
     this._panel = value;
+    const nextEntry = value?.config?.entry_ids?.[0];
+    // Home Assistant reuses one custom element for panels sharing a
+    // component name: switching plancia must tear the old frame down and
+    // mount the new one, or every panel shows the first dashboard.
+    if (this.mounted && nextEntry && prevEntry !== nextEntry) {
+      this.host?.destroy();
+      this.host = null;
+      this.mounted = false;
+    }
     this.bootstrap();
   }
 
@@ -78,6 +88,16 @@ export class DashboardModernPanel extends HTMLElement {
   }
 }
 
-if (!customElements.get("dashboardmodern-panel")) {
-  customElements.define("dashboardmodern-panel", DashboardModernPanel);
+const PANEL_TAG = (() => {
+  try {
+    const m = /dashboardmodern_static\/([a-z0-9]+)\//.exec(import.meta.url);
+    if (m && m[1]) return `dashboardmodern-panel-${m[1].slice(0, 8)}`;
+  } catch (e) {
+    /* fall through to the unversioned tag */
+  }
+  return "dashboardmodern-panel";
+})();
+
+if (!customElements.get(PANEL_TAG)) {
+  customElements.define(PANEL_TAG, DashboardModernPanel);
 }

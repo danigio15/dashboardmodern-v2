@@ -117,7 +117,7 @@ def _panel_config(hass: HomeAssistant, entry: Any) -> dict[str, Any]:
         "static_base": static_url_path,
         "legacy_variants": legacy_variants(),
         "_panel_custom": {
-            "name": PANEL_COMPONENT_NAME,
+            "name": f"{PANEL_COMPONENT_NAME}-{_frontend_asset_version()[:8]}",
             "embed_iframe": False,
             "trust_external": False,
             "module_url": f"{static_url_path}/panel.js",
