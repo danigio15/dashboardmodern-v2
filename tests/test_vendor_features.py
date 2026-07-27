@@ -56,7 +56,7 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         assert "!window.__DASHBOARDMODERN_HOSTED__" in html, name
         assert "step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 : 1)" in html, name
         # The build marker proves the served HTML updated.
-        assert "0.11.1-int" in html, name
+        assert "0.12.0-int" in html, name
         # The repository logo is used, not the inline SVG mark.
         assert 'src="./logo.png"' in html, name
         # The Piano field is hidden in the temperature section.
@@ -112,8 +112,8 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "if (false && taps >= 7)" in html, name
         assert "7 tap veloci sul titolo, oppure" not in html, name
         assert "7 quick taps on the title, or" not in html, name
-        # The auto-detection lives in the editor as the first tab.
-        assert 'data-tab="rileva"' in html, name
+        # The auto-detection lives inside the Impostazioni tab now.
+        assert "function editorRenderRileva()" in html, name
         assert "function editorRenderRileva(" in html, name
         assert "function edAutoRileva(" in html, name
         # The Temperatura icon pickers are hidden; icons come from the registry.
@@ -147,9 +147,20 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         # General settings (name, subtitle, admin) live in the editor.
         assert "function edSaveGeneral()" in html, name
         assert "return cdGenHtml()+" in html, name
-        # The settings tab is first and labelled Impostazioni.
-        assert html.find('data-tab="visib"') < html.find('data-tab="rileva"'), name
+        # The settings tab is first; Rileva and Sezioni tabs are gone —
+        # autodetect+reset live inside Impostazioni, sections have own tabs.
         assert "⚙️ Impostazioni" in html, name
+        assert 'data-tab="rileva"' not in html, name
+        assert 'data-tab="sezioni"' not in html, name
+        assert 'data-tab="sez0"' in html and 'data-tab="sez10"' in html, name
+        assert "function edFilterSez(" in html, name
+        assert "Rilevamento e manutenzione" in html, name
+        # Bugfix guards: sync loop-guard, hosted update-check, version bump.
+        assert "cd_sync_rl2" in html, name
+        assert "0.12.0-int" in html and "0.11.1-int" not in html, name
+        # Tapparelle: open/close-all buttons and open-shutter alerts.
+        assert "Apri tutte" in html and "Chiudi tutte" in html, name
+        assert "tapp-avvisi" in html, name
         # Every entity field uses the magnifier picker, no native datalist.
         assert 'list="ed-entity-list"' not in html, name
         assert "ref.nodeType === 1" in html, name
@@ -199,7 +210,9 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert 'id="ev-car-picker"' in html, name
         assert "function cdEvApplyCar(" in html, name
         assert "function cdEvCarsHtml()" in html, name
-        assert "return cdGenHtml()+cdEvCarsHtml()+" in html, name
+        # EV cars and Energia views render inside their own tabs now.
+        assert "extra+=cdEvCarsHtml()" in html, name
+        assert "extra+=cdEnViewsHtml()" in html, name
         # Energia: per-view toggles and a flow that degrades without PV.
         assert "function cdApplyEnergyViews()" in html, name
         assert "function cdApplyFlowMinimal()" in html, name

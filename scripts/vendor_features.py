@@ -292,8 +292,6 @@ RILEVA_TAB_ANCHOR = (
 RILEVA_TAB_REPLACEMENT = (
     '<button class="ed-tab" data-tab="visib" onclick="editorSwitch(\'visib\')">'
     "\u2699\ufe0f Impostazioni</button>\n          "
-    '<button class="ed-tab" data-tab="rileva" onclick="editorSwitch(\'rileva\')">'
-    "\U0001fa84 Rileva</button>\n          "
     '<button class="ed-tab" data-tab="sezioni" onclick="editorSwitch(\'sezioni\')">'
 )
 
@@ -656,6 +654,38 @@ ENVIEW_3_R = "return cdGenHtml()+cdEvCarsHtml()+cdEnViewsHtml()+"
 ENVIEW_4_A = "'cd_ev_cars','cd_floors'"
 ENVIEW_4_R = "'cd_ev_cars','cd_energy_views','cd_floors'"
 
+# Round 17: loop guards, per-section editor tabs, tapparelle extras.
+R17_1_A = "if (n > 0) { sessionStorage.setItem('cd_sync_reloading', '1'); console.log('[Sync] config più recente da HA — ricarico'); location.reload(); }"
+R17_1_R = "if (n > 0) { if (sessionStorage.getItem('cd_sync_rl2')) { console.log('[Sync] applicato senza reload (loop-guard)'); try { if (typeof render === 'function') render(); } catch(e2) {} } else { sessionStorage.setItem('cd_sync_rl2', '1'); sessionStorage.setItem('cd_sync_reloading', '1'); console.log('[Sync] config più recente da HA — ricarico'); location.reload(); } }"
+R17_2_A = "if (n > 0) { sessionStorage.setItem('cd_sync_reloading', '1'); console.log('[Sync] config più recente da HA — ricarico'); location.reload(); }"
+R17_2_R = "if (n > 0) { if (sessionStorage.getItem('cd_sync_rl2')) { console.log('[Sync] applicato senza reload (loop-guard)'); try { if (typeof render === 'function') render(); } catch(e2) {} } else { sessionStorage.setItem('cd_sync_rl2', '1'); sessionStorage.setItem('cd_sync_reloading', '1'); console.log('[Sync] config più recente da HA — ricarico'); location.reload(); } }"
+R17_3_A = "function cdCheckUpdate(isBoot) {\n    try {"
+R17_3_R = "function cdCheckUpdate(isBoot) {\n    if (window.__DASHBOARDMODERN_HOSTED__) { try { if (isBoot) cdHideBoot(); } catch(e) {} return; }\n    try {"
+R17_4_A = "DASHBOARD_VERSION = '0.11.1-int'"
+R17_4_R = "DASHBOARD_VERSION = '0.12.0-int'"
+R17_5_A = "v0.11.1"
+R17_5_R = "v0.12.0-int"
+R17_6_A = '<button class="ed-tab" data-tab="sezioni" onclick="editorSwitch(\'sezioni\')">📑 Sezioni</button>\n          '
+R17_6_R = ""
+R17_7_A = '<button class="ed-tab" data-tab="sezioni" onclick="editorSwitch(\'sezioni\')">📑 Sections</button>\n          '
+R17_7_R = ""
+R17_8_A = '<button class="ed-tab" data-tab="load"'
+R17_8_R = '<button class="ed-tab" data-tab="sez0" onclick="editorSwitch(\'sez0\')">🏠 Home</button>\n          <button class="ed-tab" data-tab="sez1" onclick="editorSwitch(\'sez1\')">⚡ Energia</button>\n          <button class="ed-tab" data-tab="sez2" onclick="editorSwitch(\'sez2\')">🚗 EV</button>\n          <button class="ed-tab" data-tab="sez3" onclick="editorSwitch(\'sez3\')">🌞 Solare</button>\n          <button class="ed-tab" data-tab="sez4" onclick="editorSwitch(\'sez4\')">🛡️ Sicurezza</button>\n          <button class="ed-tab" data-tab="sez5" onclick="editorSwitch(\'sez5\')">🧺 Lavatrice</button>\n          <button class="ed-tab" data-tab="sez6" onclick="editorSwitch(\'sez6\')">🖥️ MiniPC</button>\n          <button class="ed-tab" data-tab="sez7" onclick="editorSwitch(\'sez7\')">🌡️ Temperatura</button>\n          <button class="ed-tab" data-tab="sez8" onclick="editorSwitch(\'sez8\')">⚡ Azioni</button>\n          <button class="ed-tab" data-tab="sez9" onclick="editorSwitch(\'sez9\')">❄️ Clima</button>\n          <button class="ed-tab" data-tab="sez10" onclick="editorSwitch(\'sez10\')">📷 Telecamere</button>\n          <button class="ed-tab" data-tab="load"'
+R17_9_A = "if (tab === 'sezioni') body.innerHTML = editorRenderSezioni();"
+R17_9_R = "if (tab.indexOf('sez') === 0 && tab !== 'sezioni') { body.innerHTML = editorRenderSezioni(); edFilterSez(body, parseInt(tab.slice(3), 10)); }"
+R17_10_A = "function edSaveGeneral(){"
+R17_10_R = "function cdSecKeyByOrd(n){ return ['home','energy','ev','boiler','security','','server','temp','','clima',''][n]||''; } function cdSecToggleHtml(k){ if(!k) return ''; var cur=cdCfg('cd_sections')||{}; var on=(cur[k]!==false); return '<button class=\"ed-btn-add\" style=\"width:100%; margin:10px 0; background:'+(on?'linear-gradient(135deg,#10b981,#047857)':'linear-gradient(135deg,#94a3b8,#64748b)')+'; color:#fff;\" data-key=\"'+k+'\" onclick=\"edSecTog(this)\">'+(on?'🟢 Sezione visibile in dashboard — tocca per nascondere':'⚪ Sezione nascosta — tocca per mostrare')+'</button>'; } function edSecTog(btn){ try { var k=btn.getAttribute('data-key'); var sez=cdVisibSez(); var idx=-1; for(var i=0;i<sez.length;i++){ if(sez[i][0]===k){ idx=i; break; } } if(idx>=0) edVisibToggle(idx); } catch(e){} } function edFilterSez(el, n){ try { var ds=el.querySelectorAll('details.ed-acc'); for (var i=0;i<ds.length;i++){ if(i===n){ ds[i].open=true; } else { ds[i].style.display='none'; } } var it=el.querySelector('.ed-intro'); if(it && !it.closest('details')) it.style.display='none'; var extra=''; var k=cdSecKeyByOrd(n); if(k) extra+=cdSecToggleHtml(k); if(n===2){ try { extra+=cdEvCarsHtml(); } catch(e2){} } if(n===1){ try { extra+=cdEnViewsHtml(); } catch(e2){} } if(extra){ var w=document.createElement('div'); w.innerHTML=extra; el.insertBefore(w, el.firstChild); } } catch(e){} } function edSaveGeneral(){"
+R17_11_A = "editorSwitch('visib')"
+R17_11_R = "editorSwitch((typeof EDITOR_TAB !== 'undefined' && EDITOR_TAB) ? EDITOR_TAB : 'visib')"
+R17_12_A = "return cdGenHtml()+cdEvCarsHtml()+cdEnViewsHtml()+"
+R17_12_R = "var _rl2=''; try { _rl2=editorRenderRileva(); } catch(e) {} return cdGenHtml()+'<div class=\"ed-intro\" style=\"margin-top:18px;\"><b>Rilevamento e manutenzione</b>: autorilevamento entità e reset.</div>'+_rl2+'<div style=\"display:none;\">'+"
+R17_13_A = "var card=btn.closest('[data-tapp]');"
+R17_13_R = "if(btn.getAttribute('data-all')){ var svc2=btn.getAttribute('data-svc'); getTapparelle().forEach(function(t){ try { ws.send(JSON.stringify({ id: msgId++, type:'call_service', domain:'cover', service:svc2, target:{ entity_id: t.entity } })); } catch(e2){} }); return; } var card=btn.closest('[data-tapp]');"
+R17_14_A = "grid.innerHTML=cdGroupCards(list, cdTappCard);"
+R17_14_R = 'grid.innerHTML=\'<div style="grid-column:1/-1; display:flex; gap:8px;">\'+\'<button class="tapp-btn" data-all="1" data-svc="open_cover" onclick="cdTappCmd(this)">▲ Apri tutte</button>\'+\'<button class="tapp-btn" data-all="1" data-svc="close_cover" onclick="cdTappCmd(this)">▼ Chiudi tutte</button>\'+\'</div>\'+cdGroupCards(list, cdTappCard);'
+R17_15_A = "var pg=document.getElementById('page-tapparelle');"
+R17_15_R = "var w2=document.getElementById('glance-custom-wrap'); if(w2){ var opens=getTapparelle().filter(function(t){ var st=(typeof STATES!=='undefined')?STATES[t.entity]:null; return st && st.state==='open'; }); var tv=document.getElementById('tapp-avvisi'); if(opens.length){ if(!tv){ tv=document.createElement('div'); tv.id='tapp-avvisi'; w2.appendChild(tv); } tv.innerHTML=opens.map(function(t){ return '<div class=\"irr-skip\" style=\"margin:6px 0;\">🪟 '+String(t.name||t.entity).replace(/</g,'&lt;')+' aperta</div>'; }).join(''); } else if(tv){ tv.remove(); } } var pg=document.getElementById('page-tapparelle');"
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -790,4 +820,19 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("enviews-ed-fns", ENVIEW_2_A, ENVIEW_2_R),
     ("enviews-ed-hook", ENVIEW_3_A, ENVIEW_3_R),
     ("enviews-sync?", ENVIEW_4_A, ENVIEW_4_R),
+    ("sync-loop-guard-it?", R17_1_A, R17_1_R),
+    ("sync-loop-guard-en?", R17_2_A, R17_2_R),
+    ("update-check-hosted", R17_3_A, R17_3_R),
+    ("version-bump", R17_4_A, R17_4_R),
+    ("version-bump-txt?", R17_5_A, R17_5_R),
+    ("rm-tab-sezioni-it?", R17_6_A, R17_6_R),
+    ("rm-tab-sezioni-en?", R17_7_A, R17_7_R),
+    ("sez-tabs", R17_8_A, R17_8_R),
+    ("sez-switch", R17_9_A, R17_9_R),
+    ("sez-filter-fns", R17_10_A, R17_10_R),
+    ("vistoggle-current?", R17_11_A, R17_11_R),
+    ("visib-restructure", R17_12_A, R17_12_R),
+    ("tapp-cmd-all", R17_13_A, R17_13_R),
+    ("tapp-all-buttons", R17_14_A, R17_14_R),
+    ("tapp-avvisi", R17_15_A, R17_15_R),
 )
