@@ -102,7 +102,10 @@ test("mounting without an authenticated connection is refused", () => {
 test("the frame points at the versioned path and keeps playback permissions", () => {
   const { host } = mount();
 
-  assert.equal(host.frame.getAttribute("src"), "/dashboardmodern_static/abc/legacy/dashboard.html");
+  assert.equal(
+    host.frame.getAttribute("src"),
+    "/dashboardmodern_static/abc/legacy/dashboard.html?dmi=integration&dmp=1",
+  );
   for (const permission of ["autoplay", "fullscreen", "picture-in-picture"]) {
     assert.equal(host.frame.getAttribute("allow").includes(permission), true);
   }

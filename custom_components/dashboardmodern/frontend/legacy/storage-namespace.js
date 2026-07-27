@@ -23,6 +23,12 @@
   var MANAGED = /^(cd_|dm_)/;
 
   function resolveInstanceId() {
+    // 0. From the frame URL: the host appends ?dmi=<instance>, readable
+    // synchronously at parse time. This is the authoritative source.
+    try {
+      var m = /[?&]dmi=([^&]+)/.exec(window.location.search || "");
+      if (m && m[1]) return decodeURIComponent(m[1]);
+    } catch (e) {}
     // 1. Explicit id from the integration, if hosted.
     try {
       if (window.__DASHBOARDMODERN_INSTANCE__) return String(window.__DASHBOARDMODERN_INSTANCE__);

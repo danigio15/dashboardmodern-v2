@@ -23,6 +23,16 @@
 (function () {
   "use strict";
   try {
+    var _q = window.location.search || "";
+    var _mi = /[?&]dmi=([^&]+)/.exec(_q);
+    if (_mi && _mi[1] && !window.__DASHBOARDMODERN_INSTANCE__) {
+      window.__DASHBOARDMODERN_INSTANCE__ = decodeURIComponent(_mi[1]);
+    }
+    var _mp = /[?&]dmp=(\d)/.exec(_q);
+    if (_mp) window.__DASHBOARDMODERN_PRIMARY__ = _mp[1] === "1";
+  } catch (e) {}
+
+  try {
     if (parent && parent !== window) {
       if (parent.__DASHBOARDMODERN_INSTANCE__ && !window.__DASHBOARDMODERN_INSTANCE__) {
         window.__DASHBOARDMODERN_INSTANCE__ = parent.__DASHBOARDMODERN_INSTANCE__;

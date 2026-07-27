@@ -9436,7 +9436,7 @@ function wzResetAll() {
     keys.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
     // 3) reload clean (no hash, to avoid a loop with #reset)
     try { localStorage.setItem('dm_fresh_start', '1'); } catch(e) {}
-    setTimeout(() => location.replace(location.pathname), 450);
+    setTimeout(() => location.replace(location.pathname + (location.search || '')), 450);
 }
 /* v298: applica la modalità barra fissa a livello CSS — funziona ovunque */
 function cdApplyNavFixedBody() {

@@ -768,6 +768,12 @@ R22_3_R = "function cdSecShow(k){ try { if(!k) return; setTimeout(function(){ tr
 R22_4_A = "+' | sync:'+(localStorage.getItem('cd_sync_ts')||0)"
 R22_4_R = "+' | sync:'+(localStorage.getItem('cd_sync_ts')||0)+' | inst:'+String(window.__DASHBOARDMODERN_STORAGE_NS__||'-').slice(0,10)+' | prim:'+(window.__DASHBOARDMODERN_PRIMARY__===false?0:1)"
 
+# The reset reload keeps the frame query: dmi/dmp carry the instance.
+RESET_KEEP_QUERY_A = "location.replace(location.pathname), 450)"
+RESET_KEEP_QUERY_R = (
+    "location.replace(location.pathname + (location.search || '')), 450)"
+)
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -947,4 +953,5 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("nav-vis-on-toggle", R22_2_A, R22_2_R),
     ("nav-vis-on-show", R22_3_A, R22_3_R),
     ("status-instance", R22_4_A, R22_4_R),
+    ("reset-keep-query?", RESET_KEEP_QUERY_A, RESET_KEEP_QUERY_R),
 )

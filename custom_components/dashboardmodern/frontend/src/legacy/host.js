@@ -83,7 +83,11 @@ export function mountLegacyHost(
   const frame = documentRef.createElement("iframe");
   frame.className = "dashboardmodern-legacy-host";
   frame.setAttribute("title", "DashboardModern");
-  frame.setAttribute("src", `${staticBase}/legacy/${file}`);
+  // The instance id and primary flag ride the URL: query params are
+  // readable at parse time by the very first frame script, immune to any
+  // parent-window timing or panel mount/destroy ordering.
+  const dmQuery = `?dmi=${encodeURIComponent(instanceId)}&dmp=${primary !== false ? 1 : 0}`;
+  frame.setAttribute("src", `${staticBase}/legacy/${file}${dmQuery}`);
   // Camera playback needs these delegated explicitly: an iframe blocks
   // autoplay, fullscreen and picture-in-picture by default, which silently
   // breaks the WebRTC/HLS/MJPEG cascade and the iOS fullscreen handling.
