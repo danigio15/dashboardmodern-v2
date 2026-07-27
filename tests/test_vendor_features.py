@@ -247,11 +247,17 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "function cdRegEnrich(" in html, name
         assert "config/floor_registry/list" in html, name
         assert "function cdSecShow(" in html, name
-        assert "cd_sections_boot" in html, name
-        # Boot defaults v2: dependency-free content scan decides visibility.
+        # Navbar engine v3: no boot flag (reset-proof), all sections in the
+        # map, toggles on every section tab. Behavior is covered by the node
+        # tests in navbar-visibility.test.js against the vendored file.
+        assert "cd_sections_boot" not in html, name
         assert "function cdSecBoot()" in html, name
-        assert "function cdSecHasContent(" in html, name
-        assert "setTimeout(cdSecBoot, 1200);" in html, name
+        assert "function cdNavVisMap()" in html, name
+        assert "'appliances-main'" in html or "appliances-main" in html, name
+        assert "cdSecToggleHtml('tapparelle')" in html, name
+        assert "cdSecToggleHtml('irrigazione')" in html, name
+        assert "cdSecToggleHtml('piscina')" in html, name
+        assert "cdSecToggleHtml('appliances')" in html, name
         assert "cdSecShowByRef(ref)" in html, name
         assert "cdRegEnrich(function(){" in html, name
         # The Rileva tab carries a diagnostic status line.
