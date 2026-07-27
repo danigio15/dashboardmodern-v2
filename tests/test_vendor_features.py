@@ -39,9 +39,10 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         assert "getElementById('ed-cl-room')" in html, name
         assert "getElementById('ed-cam-room')" in html, name
         # The static climate/camera forms use a plain <select> populated by the
-        # editor hook, never inline JS injected into static HTML (which would
-        # render as literal text and break the form).
-        assert "cdRoomOptions('')+'</select>" not in html, f"{name} broken inline JS"
+        # editor hook; inline concat there would render as literal text. Inline
+        # concat inside JS render functions (rooms, tapparelle) is fine.
+        assert "ed-cl-room\">'+cdRoomOptions" not in html, name
+        assert "ed-cam-room\">'+cdRoomOptions" not in html, name
         assert "querySelectorAll" in html, name
         # A dedicated Rooms tab manages the registry.
         assert 'data-tab="stanze"' in html, name
@@ -152,6 +153,58 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         # Every entity field uses the magnifier picker, no native datalist.
         assert 'list="ed-entity-list"' not in html, name
         assert "ref.nodeType === 1" in html, name
+        # Clima cards are grouped by floor -> room via the shared helper.
+        assert "function cdGroupCards(" in html, name
+        assert "cdGroupCards(uFreddo, card)" in html, name
+        assert "cdGroupCards(uCaldo, card)" in html, name
+        # Temperature cards share the clima cp-card structure, ids intact.
+        assert "temp-card tc2" not in html, name
+        assert 'class="cp-badge temp-comfort-badge" id="tc_${tid}"' in html, name
+        assert 'id="tv_${tid}"' in html, name
+        assert 'id="hv_${hid}"' in html, name
+        # Lights popup gains a floor level; appliances group with indexes kept.
+        assert "_fi(cdRoomFloorOf(a)) - _fi(cdRoomFloorOf(b))" in html, name
+        assert "cdGroupCards(list.map((a,_ai)=>" in html, name
+        assert "const i=a._idx;" in html, name
+        # Appliances can be assigned a room from the editor, persisted.
+        assert 'id="appl-room"' in html, name
+        assert "if(_rm) item.room=_rm;" in html, name
+        # The lights room list offers registry rooms so floors resolve.
+        assert "!set.includes(r.name)) set.push(r.name)" in html, name
+        # Appliances with an energy sensor auto-populate the Report.
+        assert "function cdApplReportEntries(" in html, name
+        assert ".concat(cdApplReportEntries(" in html, name
+        # The Tapparelle section: page, navbar, runtime, editor, sync.
+        assert 'id="page-tapparelle"' in html, name
+        assert 'id="tab-tapparelle"' in html, name
+        assert "function renderTapparelle()" in html, name
+        assert "function editorRenderTapparelle()" in html, name
+        assert ".tapp-shutter" in html, name
+        # Irrigazione: page, navbar, runtime with rain-aware scheduler,
+        # editor, and sync (which also carries the tapparelle/floors keys).
+        assert 'id="page-irrigazione"' in html, name
+        assert 'id="tab-irrigazione"' in html, name
+        assert "function renderIrrigazione()" in html, name
+        assert "function editorRenderIrrigazione()" in html, name
+        assert "cd_irr_lastrun" in html, name
+        assert ".irr-drops" in html, name
+        # Piscina: page, navbar, temp-based auto filtration, editor, sync.
+        assert 'id="page-piscina"' in html, name
+        assert 'id="tab-piscina"' in html, name
+        assert "function renderPiscina()" in html, name
+        assert "function editorRenderPiscina()" in html, name
+        assert "cdPoolTargetHours" in html, name
+        assert "cd_pool_lastrun" in html, name
+        # Multiple EV cars: profiles, page dropdown, editor manager, sync.
+        assert 'id="ev-car-picker"' in html, name
+        assert "function cdEvApplyCar(" in html, name
+        assert "function cdEvCarsHtml()" in html, name
+        assert "return cdGenHtml()+cdEvCarsHtml()+" in html, name
+        # Energia: per-view toggles and a flow that degrades without PV.
+        assert "function cdApplyEnergyViews()" in html, name
+        assert "function cdApplyFlowMinimal()" in html, name
+        assert "function cdEnViewsHtml()" in html, name
+        assert "'cd_ev_cars','cd_energy_views','cd_floors'" in html, name
         # The Rileva tab carries a diagnostic status line.
         assert "function cdDbgStatus()" in html, name
         # The user_data sync key is namespaced when hosted.
