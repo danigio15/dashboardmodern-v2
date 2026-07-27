@@ -817,6 +817,31 @@ R26_5_A = (
 )
 R26_5_R = 'onchange="cdLuciSetRoom(\'${id}\', this.value)">${roomOptions(room)}</select> <button class="ed-ord-btn" title="Rinomina" onclick="cdLuceRen(\'${id}\')" style="width:26px; height:22px; border:none; border-radius:6px; background:rgba(14,165,233,0.15); cursor:pointer; font-size:11px;">\\u270f\\ufe0f</button> <button class="ed-ord-btn" title="Elimina" onclick="cdLuceDel(\'${id}\')" style="width:26px; height:22px; border:none; border-radius:6px; background:rgba(239,68,68,0.15); cursor:pointer; font-size:11px;">\\U0001f5d1\\ufe0f</button>'
 
+# Round 27: appliances page, used rooms, lens guarantee, report hook.
+R27_3_A = "t.dataset.tab === 'piscina') renderPiscina();"
+R27_3_R = "t.dataset.tab === 'piscina') renderPiscina(); if (t.dataset.tab === 'appliances-main') { try { renderAppliances(); } catch(eA){} }"
+R27_4_A = "function cdRoomOptions(sel){ var rooms = cdRoomList();"
+R27_4_R = "function cdRoomsUsed(){ try { var all=cdRoomList(); var used={}; all.forEach(function(r){ if(r&&r.temp&&r.name) used[r.name]=1; }); var lr=cdCfg('cd_luci_rooms')||{}; Object.keys(lr).forEach(function(k){ if(lr[k]) used[lr[k]]=1; }); try { getClimaUnits().forEach(function(u){ if(u&&u.room) used[u.room]=1; }); } catch(e2){} try { cdCfgList('cd_appliances').forEach(function(a){ if(a&&a.room) used[a.room]=1; }); } catch(e2){} try { (cdCfgList('cd_tapparelle')||[]).forEach(function(t){ if(t&&t.room) used[t.room]=1; }); } catch(e2){} var out=all.filter(function(r){ return r&&r.name&&used[r.name]; }); return out.length?out:all; } catch(e){ return cdRoomList(); } } function cdRoomOptions(sel){ var rooms = cdRoomsUsed();"
+R27_5_A = " if(n>=7){ var sv=document.createElement('div');"
+R27_5_R = " try { el.querySelectorAll('input.ed-slot-in').forEach(function(inp){ var nx=inp.nextElementSibling; if(nx && nx.tagName==='BUTTON') return; var b=document.createElement('button'); b.type='button'; b.textContent='🔍'; b.style.cssText='flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#38bdf8,#0284c7); cursor:pointer; font-size:15px;'; b.onclick=function(){ try { wzPickEntity(inp.getAttribute('data-ref')||inp); } catch(e2){} }; var par=inp.parentElement; if(par){ par.style.display='flex'; par.style.gap='6px'; inp.style.flex='1'; } inp.insertAdjacentElement('afterend', b); }); } catch(eL){} if(n>=7){ var sv=document.createElement('div');"
+R27_7_A = (
+    "function edApplEdit(i){ const a=getAppliances()[i]; if(!a) return; _applEditIdx=i;"
+)
+R27_7_R = "function edApplEdit(i){ const a=getAppliances()[i]; if(!a) return; _applEditIdx=i; try { edToast('Modifica: '+(a.name||'elettrodomestico')); } catch(eT){} setTimeout(function(){ try { var f=document.getElementById('appl-name')||document.getElementById('appl-ent'); if(f){ f.scrollIntoView({behavior:'smooth', block:'center'}); f.focus(); } } catch(e2){} }, 250);"
+R27_8_A = "function edApplDel(i){ const list=getAppliances();"
+R27_8_R = "function edApplDel(i){ if(!confirm('Eliminare questo elettrodomestico?')) return; const list=getAppliances();"
+
+R27H_it_A = '<h3 class="section-title" id="appliances-title" style="display:none;">Elettrodomestici</h3>\n    <div class="appliances-grid" id="appliances-grid"><!-- v0.11.0: elettrodomestici (cd_appliances) --></div>'
+R27H_it_R = ""
+R27H_en_A = '<h3 class="section-title" id="appliances-title" style="display:none;">Appliances</h3>\n    <div class="appliances-grid" id="appliances-grid"></div>'
+R27H_en_R = ""
+
+R27RPT_it_A = "edToast(item?'Elettrodomestico salvato':'Aggiunto');"
+R27RPT_it_R = "try { if(typeof cdApplReportEntries==='function') cdApplReportEntries(); } catch(eR){} edToast(item?'Elettrodomestico salvato':'Aggiunto');"
+R27RPT_en_A = "edToast(item?'Appliance saved':'Added');"
+R27RPT_en_R = "try { if(typeof cdApplReportEntries==='function') cdApplReportEntries(); } catch(eR){} edToast(item?'Appliance saved':'Added');"
+
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -1011,4 +1036,13 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("appl-ent-toggle-row", R26_3_A, R26_3_R),
     ("luci-ren-del-fns", R26_4_A, R26_4_R),
     ("luci-ren-del-row", R26_5_A, R26_5_R),
+    ("appl-tab-render", R27_3_A, R27_3_R),
+    ("rooms-used", R27_4_A, R27_4_R),
+    ("lens-everywhere", R27_5_A, R27_5_R),
+    ("appl-edit-feedback", R27_7_A, R27_7_R),
+    ("appl-del-confirm", R27_8_A, R27_8_R),
+    ("appl-off-home-it?", R27H_it_A, R27H_it_R),
+    ("appl-off-home-en?", R27H_en_A, R27H_en_R),
+    ("report-refresh-on-save-it?", R27RPT_it_A, R27RPT_it_R),
+    ("report-refresh-on-save-en?", R27RPT_en_A, R27RPT_en_R),
 )
