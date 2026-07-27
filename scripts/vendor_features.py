@@ -758,6 +758,16 @@ R21S_en_R = "rn; }\n    localStorage.setItem('cd_entity_overrides', JSON.stringi
 R21C_en_A = "e });\n    localStorage.setItem('cd_clima_units', JSON.stringify(units));\n    buildClimaCards();"
 R21C_en_R = "e });\n    localStorage.setItem('cd_clima_units', JSON.stringify(units));\n    try { cdSecShow('clima'); } catch(e){} buildClimaCards();"
 
+# Round 22: navbar visibility engine and instance diagnostics.
+R22_1_A = "function toggleVentola()"
+R22_1_R = "function cdApplyNavVis(){ try { var cur=cdCfg('cd_sections')||{}; ['home','energy','ev','boiler','clima','temp','security','server'].forEach(function(k){ var b=document.querySelector('.tab[data-tab=\"'+k+'\"]'); if(b) b.style.display=(cur[k]===false)?'none':''; }); } catch(e){} } try { cdApplyNavVis(); } catch(e) {} setTimeout(function(){ try { cdApplyNavVis(); } catch(e) {} }, 1500); setInterval(function(){ try { cdApplyNavVis(); } catch(e) {} }, 3000); function toggleVentola()"
+R22_2_A = "function edVisibToggle(idx){ var sez=cdVisibSez(); var x=sez[idx]; if(!x) return; var k=x[0];"
+R22_2_R = "function edVisibToggle(idx){ var sez=cdVisibSez(); var x=sez[idx]; if(!x) return; var k=x[0]; setTimeout(function(){ try { cdApplyNavVis(); } catch(e){} }, 50);"
+R22_3_A = "function cdSecShow(k){ try { if(!k) return;"
+R22_3_R = "function cdSecShow(k){ try { if(!k) return; setTimeout(function(){ try { cdApplyNavVis(); } catch(e2){} }, 60);"
+R22_4_A = "+' | sync:'+(localStorage.getItem('cd_sync_ts')||0)"
+R22_4_R = "+' | sync:'+(localStorage.getItem('cd_sync_ts')||0)+' | inst:'+String(window.__DASHBOARDMODERN_STORAGE_NS__||'-').slice(0,10)+' | prim:'+(window.__DASHBOARDMODERN_PRIMARY__===false?0:1)"
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -933,4 +943,8 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("sec-show-on-clima-it?", R21C_it_A, R21C_it_R),
     ("sec-show-on-slot-en?", R21S_en_A, R21S_en_R),
     ("sec-show-on-clima-en?", R21C_en_A, R21C_en_R),
+    ("nav-vis-engine", R22_1_A, R22_1_R),
+    ("nav-vis-on-toggle", R22_2_A, R22_2_R),
+    ("nav-vis-on-show", R22_3_A, R22_3_R),
+    ("status-instance", R22_4_A, R22_4_R),
 )
