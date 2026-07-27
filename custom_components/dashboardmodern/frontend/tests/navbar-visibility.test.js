@@ -49,7 +49,18 @@ const NAV_KEYS = [
 function runEngine(seedStorage = {}) {
   const store = new Map(Object.entries(seedStorage));
   const tabs = {};
-  for (const k of NAV_KEYS) tabs[k] = { style: { display: "" } };
+  for (const k of NAV_KEYS) {
+    const style = {
+      display: "",
+      setProperty(prop, v) {
+        if (prop === "display") this.display = v;
+      },
+      removeProperty(prop) {
+        if (prop === "display") this.display = "";
+      },
+    };
+    tabs[k] = { style };
+  }
   const timeouts = [];
   const sandbox = {
     localStorage: {
@@ -62,6 +73,10 @@ function runEngine(seedStorage = {}) {
       querySelector: (sel) => {
         const m = /\.tab\[data-tab="([\w-]+)"\]/.exec(sel);
         return m && tabs[m[1]] ? tabs[m[1]] : null;
+      },
+      querySelectorAll: (sel) => {
+        const m = /\.tab\[data-tab="([\w-]+)"\]/.exec(sel);
+        return m && tabs[m[1]] ? [tabs[m[1]]] : [];
       },
     },
     setTimeout: (fn) => timeouts.push(fn),
