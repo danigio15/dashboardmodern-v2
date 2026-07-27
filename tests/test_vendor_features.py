@@ -248,6 +248,10 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "config/floor_registry/list" in html, name
         assert "function cdSecShow(" in html, name
         assert "cd_sections_boot" in html, name
+        # Boot defaults v2: dependency-free content scan decides visibility.
+        assert "function cdSecBoot()" in html, name
+        assert "function cdSecHasContent(" in html, name
+        assert "setTimeout(cdSecBoot, 1200);" in html, name
         assert "cdSecShowByRef(ref)" in html, name
         assert "cdRegEnrich(function(){" in html, name
         # The Rileva tab carries a diagnostic status line.

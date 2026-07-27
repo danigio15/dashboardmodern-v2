@@ -774,6 +774,11 @@ RESET_KEEP_QUERY_R = (
     "location.replace(location.pathname + (location.search || '')), 450)"
 )
 
+# Boot section defaults, dependency-free: first boot with no saved
+# choices scans real content — populated sections visible, empty hidden.
+SECBOOT_A = "(function(){ try { if(!window.__DASHBOARDMODERN_HOSTED__) return; if(localStorage.getItem('cd_sections')) return; if(localStorage.getItem('cd_sections_boot')) return; var noCfg = !Object.keys(cdCfg('cd_entity_overrides')||{}).length && !(cdCfgList('cd_stanze')).length && !(cdCfgList('cd_clima_units')).length && !Object.keys(cdCfg('cd_luci')||{}).length; if(!noCfg) return; localStorage.setItem('cd_sections_boot','1'); localStorage.setItem('cd_sections', JSON.stringify({ energy:false, ev:false, boiler:false, clima:false, temp:false, security:false, server:false })); } catch(e){} })();"
+SECBOOT_R = "function cdSecLS(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } } function cdSecHasContent(k){ try { var ov=cdSecLS('cd_entity_overrides')||{}; var oks=Object.keys(ov); function pref(p){ for(var i=0;i<oks.length;i++){ if(oks[i].indexOf(p)===0) return true; } return false; } if(k==='energy') return pref('dm.energy_'); if(k==='ev') return pref('dm.ev_'); if(k==='boiler') return pref('dm.boiler_'); if(k==='server') return pref('dm.server_'); if(k==='security') return pref('dm.security_') || ((cdSecLS('cd_cameras')||[]).length>0); if(k==='clima') return (cdSecLS('cd_clima_units')||[]).length>0; if(k==='temp'){ var st=cdSecLS('cd_stanze')||[]; for(var i2=0;i2<st.length;i2++){ if(st[i2]&&st[i2].temp) return true; } return false; } return true; } catch(e){ return true; } } function cdSecBoot(){ try { if(!window.__DASHBOARDMODERN_HOSTED__) return; if(localStorage.getItem('cd_sections_boot')) return; if(localStorage.getItem('cd_sections')) { localStorage.setItem('cd_sections_boot','1'); return; } var out={}; ['energy','ev','boiler','clima','temp','security','server'].forEach(function(k){ out[k]=cdSecHasContent(k)?true:false; }); localStorage.setItem('cd_sections', JSON.stringify(out)); localStorage.setItem('cd_sections_boot','1'); try { cdApplyNavVis(); } catch(e2){} try { if(typeof render==='function') render(); } catch(e2){} } catch(e){} } cdSecBoot(); setTimeout(cdSecBoot, 1200); "
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -954,4 +959,5 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("nav-vis-on-show", R22_3_A, R22_3_R),
     ("status-instance", R22_4_A, R22_4_R),
     ("reset-keep-query?", RESET_KEEP_QUERY_A, RESET_KEEP_QUERY_R),
+    ("secboot-v2", SECBOOT_A, SECBOOT_R),
 )
