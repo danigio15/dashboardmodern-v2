@@ -543,7 +543,9 @@ APPL_GROUP_TAIL_REPLACEMENT = "+'<div class=\"appl-st '+s.cls+'\">'+s.label+'</d
 # Room assignment for appliances in the editor, and the lights room list
 # offers the registry rooms so names match and floors resolve.
 APPL_ROOM_FORM_ANCHOR = 'id="appl-icon" value="\'+curIcon+\'"></div>\''
-APPL_ROOM_FORM_REPLACEMENT = 'id="appl-icon" value="\'+curIcon+\'"></div>\'\n              +\'<select id="appl-room" class="ed-input" style="width:100%; margin-bottom:8px;">\'+cdRoomOptions((editing&&ed&&ed.room)?ed.room:\'\')+\'</select>\''
+APPL_ROOM_FORM_REPLACEMENT = (
+    APPL_ROOM_FORM_ANCHOR  # select duplicato rimosso: resta quello etichettato STANZA
+)
 APPL_ROOM_SAVE_ANCHOR = "const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceName(icon), icon, entities, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 };"
 APPL_ROOM_SAVE_REPLACEMENT = "const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceName(icon), icon, entities, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 }; const _rm=((document.getElementById('appl-room')||{}).value||'').trim(); if(_rm) item.room=_rm;"
 LUCI_ROOMS_REGISTRY_ANCHOR = "=> { const r = cdLightRoom(id); if (r && !set.includes(r)) set.push(r); });\n    return set;"
@@ -801,6 +803,20 @@ R25_7_R = "if (tab === 'pool') body.innerHTML = cdSecToggleHtml('piscina') + edi
 SECMIG_A = "if(localStorage.getItem('cd_sections')) return;"
 SECMIG_R = "var _cs=localStorage.getItem('cd_sections'); if(_cs){ try { var cur2=JSON.parse(_cs)||{}; var ch2=false; ['energy','appliances','ev','boiler','clima','temp','security','server','tapparelle','irrigazione','piscina'].forEach(function(k){ if(!(k in cur2)){ cur2[k]=cdSecHasContent(k)?true:false; ch2=true; } }); if(ch2){ localStorage.setItem('cd_sections', JSON.stringify(cur2)); try { cdApplyNavVis(); } catch(e3){} } } catch(e4){} return; }"
 
+# Round 26: field bugfixes (temp grid, room select, toggles, lights).
+R26_1_A = "const _rooms = getStanze();"
+R26_1_R = "const _rooms = getStanze().filter(function(r){ return r && r.temp; });"
+R26_2_A = "function toggleVentola()"
+R26_2_R = "function cdApplEntTog(en, btn){ try { if(navigator.vibrate) navigator.vibrate(12); var dom=String(en).split('.')[0]; var cur=(STATES[en]&&STATES[en].state)||'off'; var svc=(cur==='on')?'turn_off':'turn_on'; ws.send(JSON.stringify({ id: msgId++, type:'call_service', domain: dom, service: svc, target:{ entity_id: en } })); if(btn){ btn.style.opacity='0.45'; setTimeout(function(){ try { btn.style.opacity=''; var st2=(STATES[en]&&STATES[en].state)||''; btn.classList.toggle('on', st2==='on'); } catch(e2){} }, 900); } } catch(e){} } function toggleVentola()"
+R26_3_A = " style=\"font-weight:800;color:#0ea5e9;\">'+val+' '+unit+'</div></div>';"
+R26_3_R = " style=\"font-weight:800;color:#0ea5e9;\">'+val+' '+unit+'</div>'+((/^(switch|light|input_boolean|fan)\\./.test(en))?('<button class=\"ed-ord-btn'+(((STATES[en]&&STATES[en].state)==='on')?' on':'')+'\" style=\"flex:0 0 auto; margin-left:8px; width:44px; height:30px; border:none; border-radius:9px; cursor:pointer; font-size:15px; background:rgba(14,165,233,0.16);\" onclick=\"event.stopPropagation(); cdApplEntTog(\\''+en+'\\', this)\">\\u23fb</button>'):'')+'</div>';"
+R26_4_A = "function edSaveGeneral(){"
+R26_4_R = "function cdLuceRen(id){ try { var luci=cdCfg('cd_luci')||{}; var cur=luci[id]||id; var n=prompt('Nome luce', cur); if(n===null) return; n=String(n).trim(); if(!n) return; luci[id]=n; localStorage.setItem('cd_luci', JSON.stringify(luci)); try { cdMarkDirty(); cdSyncPush(); } catch(e2){} try { if(typeof updateGestioneLuci==='function') updateGestioneLuci(); } catch(e2){} editorSwitch('luci'); } catch(e){} } function cdLuceDel(id){ try { if(!confirm('Rimuovere questa luce dalla dashboard?')) return; var luci=cdCfg('cd_luci')||{}; delete luci[id]; localStorage.setItem('cd_luci', JSON.stringify(luci)); var rooms=cdCfg('cd_luci_rooms')||{}; if(rooms[id]!==undefined){ delete rooms[id]; localStorage.setItem('cd_luci_rooms', JSON.stringify(rooms)); } try { cdMarkDirty(); cdSyncPush(); } catch(e2){} try { if(typeof updateGestioneLuci==='function') updateGestioneLuci(); } catch(e2){} editorSwitch('luci'); } catch(e){} } function edSaveGeneral(){"
+R26_5_A = (
+    "onchange=\"cdLuciSetRoom('${id}', this.value)\">${roomOptions(room)}</select>"
+)
+R26_5_R = 'onchange="cdLuciSetRoom(\'${id}\', this.value)">${roomOptions(room)}</select> <button class="ed-ord-btn" title="Rinomina" onclick="cdLuceRen(\'${id}\')" style="width:26px; height:22px; border:none; border-radius:6px; background:rgba(14,165,233,0.15); cursor:pointer; font-size:11px;">\\u270f\\ufe0f</button> <button class="ed-ord-btn" title="Elimina" onclick="cdLuceDel(\'${id}\')" style="width:26px; height:22px; border:none; border-radius:6px; background:rgba(239,68,68,0.15); cursor:pointer; font-size:11px;">\\U0001f5d1\\ufe0f</button>'
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -990,4 +1006,9 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("toggle-irr", R25_6_A, R25_6_R),
     ("toggle-pool", R25_7_A, R25_7_R),
     ("secboot-migrate-keys", SECMIG_A, SECMIG_R),
+    ("temp-rooms-filter", R26_1_A, R26_1_R),
+    ("appl-ent-toggle-fn", R26_2_A, R26_2_R),
+    ("appl-ent-toggle-row", R26_3_A, R26_3_R),
+    ("luci-ren-del-fns", R26_4_A, R26_4_R),
+    ("luci-ren-del-row", R26_5_A, R26_5_R),
 )

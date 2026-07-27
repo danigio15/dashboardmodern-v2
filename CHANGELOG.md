@@ -57,6 +57,17 @@ Prima versione candidata al rilascio pubblico.
   sole chiavi mancanti.
 - Il tab Impostazioni non si apriva; salvataggio profili EV con valori
   digitati ma non confermati.
+- La pagina Temperatura restava vuota quando l'autorilevamento aggiungeva
+  stanze senza sensore (la prima stanza senza `temp` bloccava il render):
+  ora mostra solo le stanze con sensore, raggruppate per piano.
+- Gli elettrodomestici finivano tutti in "Altro": l'editor aveva due
+  selettori stanza duplicati e il salvataggio leggeva quello sbagliato.
+- Le luci rilevate automaticamente non si potevano rinominare né
+  eliminare: bottoni ✏️/🗑️ su ogni riga della sezione Luci.
+- Nel dettaglio elettrodomestici le entità switch/light/fan hanno ora un
+  vero pulsante di accensione/spegnimento.
+- Logo ridisegnato: geometria simmetrica centrata al pixel, gradiente
+  cielo→blu e saetta ambra nello stile della dashboard, resa a 1024px.
 
 ## 0.2.0
 
