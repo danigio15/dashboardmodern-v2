@@ -739,6 +739,25 @@ SYNC_KEY_MULTI_R = (
     ".replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 16) : ''))"
 )
 
+# Round 21: registry-driven autodetect and hidden-by-default sections.
+R21_1_A = "function toggleVentola()"
+R21_1_R = "function cdSecShow(k){ try { if(!k) return; var cur=cdCfg('cd_sections')||{}; if(cur[k]===false){ cur[k]=true; localStorage.setItem('cd_sections', JSON.stringify(cur)); try { cdMarkDirty(); cdSyncPush(); } catch(e2){} try { if(typeof updateEditButtonVisibility==='function') updateEditButtonVisibility(); } catch(e2){} try { if(typeof render==='function') render(); } catch(e2){} } } catch(e){} } function cdSecShowByRef(ref){ try { var r=String(ref||''); var mapp=[['dm.energy_','energy'],['dm.ev_','ev'],['dm.boiler_','boiler'],['dm.security_','security'],['dm.server_','server'],['dm.home_','home']]; for(var i=0;i<mapp.length;i++){ if(r.indexOf(mapp[i][0])===0){ cdSecShow(mapp[i][1]); return; } } } catch(e){} } (function(){ try { if(!window.__DASHBOARDMODERN_HOSTED__) return; if(localStorage.getItem('cd_sections')) return; if(localStorage.getItem('cd_sections_boot')) return; var noCfg = !Object.keys(cdCfg('cd_entity_overrides')||{}).length && !(cdCfgList('cd_stanze')).length && !(cdCfgList('cd_clima_units')).length && !Object.keys(cdCfg('cd_luci')||{}).length; if(!noCfg) return; localStorage.setItem('cd_sections_boot','1'); localStorage.setItem('cd_sections', JSON.stringify({ energy:false, ev:false, boiler:false, clima:false, temp:false, security:false, server:false })); } catch(e){} })(); function toggleVentola()"
+R21_4_A = "function toggleVentola()"
+R21_4_R = "function cdRegEnrich(done){ try { var fin=false; var to=setTimeout(function(){ if(!fin){ fin=true; done(); } }, 9000); var so=new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/api/websocket'); var mid=1; var want={}; var out={ floors:null, areas:null, ents:null, devs:null }; function fire(type,slot){ var id=mid++; want[id]=slot; so.send(JSON.stringify({ id:id, type:type })); } function finish(){ if(fin) return; fin=true; clearTimeout(to); try { so.close(); } catch(e2){} try { cdRegApply(out); } catch(e2){} done(); } so.onerror=function(){ finish(); }; so.onmessage=function(ev){ try { var m=JSON.parse(ev.data); if(m.type==='auth_required'){ so.send(JSON.stringify({ type:'auth', access_token:(window.__DASHBOARDMODERN_REAL_TOKEN__||'') })); return; } if(m.type==='auth_ok'){ fire('config/floor_registry/list','floors'); fire('config/area_registry/list','areas'); fire('config/entity_registry/list','ents'); fire('config/device_registry/list','devs'); return; } if(m.type==='result' && want[m.id]){ out[want[m.id]] = m.success ? (m.result||[]) : []; delete want[m.id]; if(out.floors&&out.areas&&out.ents&&out.devs) finish(); } } catch(e3){} }; } catch(e){ done(); } } function cdRegApply(o){ try { var floors=(o.floors||[]).slice().sort(function(a,b){ return (a.level||0)-(b.level||0); }); var fName={}; floors.forEach(function(f){ fName[f.floor_id]=f.name; }); if(floors.length){ localStorage.setItem('cd_floors', JSON.stringify(floors.map(function(f){ return f.name; }))); } var aName={}; var aFloor={}; (o.areas||[]).forEach(function(a){ aName[a.area_id]=a.name; aFloor[a.area_id]=fName[a.floor_id]||''; }); if((o.areas||[]).length){ var st=cdCfgList('cd_stanze').slice(); (o.areas||[]).forEach(function(a){ var ex=null; for(var i=0;i<st.length;i++){ if(st[i]&&st[i].name===a.name){ ex=st[i]; break; } } if(ex){ if(!ex.floor && aFloor[a.area_id]) ex.floor=aFloor[a.area_id]; } else { var r={ name:a.name, icon:'🏠' }; if(aFloor[a.area_id]) r.floor=aFloor[a.area_id]; st.push(r); } }); localStorage.setItem('cd_stanze', JSON.stringify(st)); } var devArea={}; (o.devs||[]).forEach(function(d){ if(d.area_id) devArea[d.id]=d.area_id; }); var entArea={}; (o.ents||[]).forEach(function(e){ var ar=e.area_id||devArea[e.device_id]; if(ar) entArea[e.entity_id]=aName[ar]||''; }); var rooms={}; try { rooms=cdCfg('cd_luci_rooms')||{}; } catch(e2){} var ch=false; Object.keys(cdCfg('cd_luci')||{}).forEach(function(id){ if(!rooms[id] && entArea[id]){ rooms[id]=entArea[id]; ch=true; } }); if(ch) localStorage.setItem('cd_luci_rooms', JSON.stringify(rooms)); var units=getClimaUnits().slice(); var uc=false; units.forEach(function(u){ if(u && !u.room && entArea[u.entity]){ u.room=entArea[u.entity]; uc=true; } }); if(uc) localStorage.setItem('cd_clima_units', JSON.stringify(units)); var cams=cdCfgList('cd_cameras').slice(); var cc=false; cams.forEach(function(c){ var ce=c&&(c.entity||c.cam); if(c && !c.room && ce && entArea[ce]){ c.room=entArea[ce]; cc=true; } }); if(cc) localStorage.setItem('cd_cameras', JSON.stringify(cams)); try { if((cdCfgList('cd_stanze')||[]).some(function(r){ return r&&r.temp; })) cdSecShow('temp'); if(getClimaUnits().length) cdSecShow('clima'); if(cdCfgList('cd_cameras').length) cdSecShow('security'); var ov=cdCfg('cd_entity_overrides')||{}; Object.keys(ov).forEach(function(k){ cdSecShowByRef(k); }); } catch(e4){} try { cdMarkDirty(); cdSyncPush(); } catch(e5){} } catch(e){} } function toggleVentola()"
+R21_5_A = "setTimeout(function(){ location.reload(); }, 1400); }"
+R21_5_R = (
+    "cdRegEnrich(function(){ setTimeout(function(){ location.reload(); }, 400); }); }"
+)
+
+R21S_it_A = "rn; }\n    localStorage.setItem('cd_entity_overrides', JSON.stringify(ENTITY_OVERRIDES));\n    try { cdMarkDirty(); cdSyncPush(); } catch(e){}"
+R21S_it_R = "rn; }\n    localStorage.setItem('cd_entity_overrides', JSON.stringify(ENTITY_OVERRIDES));\n    try { cdMarkDirty(); cdSyncPush(); } catch(e){} try { cdSecShowByRef(ref); } catch(e){}"
+R21C_it_A = "e });\n    localStorage.setItem('cd_clima_units', JSON.stringify(units));\n    buildClimaCards();"
+R21C_it_R = "e });\n    localStorage.setItem('cd_clima_units', JSON.stringify(units));\n    try { cdSecShow('clima'); } catch(e){} buildClimaCards();"
+R21S_en_A = "rn; }\n    localStorage.setItem('cd_entity_overrides', JSON.stringify(ENTITY_OVERRIDES));\n    try { cdMarkDirty(); cdSyncPush(); } catch(e){}"
+R21S_en_R = "rn; }\n    localStorage.setItem('cd_entity_overrides', JSON.stringify(ENTITY_OVERRIDES));\n    try { cdMarkDirty(); cdSyncPush(); } catch(e){} try { cdSecShowByRef(ref); } catch(e){}"
+R21C_en_A = "e });\n    localStorage.setItem('cd_clima_units', JSON.stringify(units));\n    buildClimaCards();"
+R21C_en_R = "e });\n    localStorage.setItem('cd_clima_units', JSON.stringify(units));\n    try { cdSecShow('clima'); } catch(e){} buildClimaCards();"
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -907,4 +926,11 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("nav-order-hook", R19_8_A, R19_8_R),
     ("nav-order-sync?", R19_9_A, R19_9_R),
     ("sync-key-multi?", SYNC_KEY_MULTI_A, SYNC_KEY_MULTI_R),
+    ("sec-show-engine", R21_1_A, R21_1_R),
+    ("reg-enrich-js", R21_4_A, R21_4_R),
+    ("rileva-enrich-hook", R21_5_A, R21_5_R),
+    ("sec-show-on-slot-it?", R21S_it_A, R21S_it_R),
+    ("sec-show-on-clima-it?", R21C_it_A, R21C_it_R),
+    ("sec-show-on-slot-en?", R21S_en_A, R21S_en_R),
+    ("sec-show-on-clima-en?", R21C_en_A, R21C_en_R),
 )

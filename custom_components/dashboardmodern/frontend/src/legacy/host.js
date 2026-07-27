@@ -70,6 +70,11 @@ export function mountLegacyHost(
   try {
     const realToken = hass?.auth?.data?.access_token;
     if (realToken) hostWindow.__DASHBOARDMODERN_REAL_TOKEN__ = realToken;
+    // Instance and primary flags live on the PARENT window too: the
+    // frame's pre-navigation window is replaced, so early frame scripts
+    // (storage namespace, prelude) resolve them from the parent.
+    hostWindow.__DASHBOARDMODERN_INSTANCE__ = instanceId;
+    hostWindow.__DASHBOARDMODERN_PRIMARY__ = primary !== false;
   } catch (error) {
     /* no token; REST-dependent widgets degrade, never a failed login */
   }
@@ -140,6 +145,8 @@ export function mountLegacyHost(
       frame.remove();
       delete hostWindow[HOST_KEY];
       delete hostWindow.__DASHBOARDMODERN_REAL_TOKEN__;
+      delete hostWindow.__DASHBOARDMODERN_INSTANCE__;
+      delete hostWindow.__DASHBOARDMODERN_PRIMARY__;
       delete hostWindow.__DASHBOARDMODERN_BRIDGE_WS__;
     },
   };

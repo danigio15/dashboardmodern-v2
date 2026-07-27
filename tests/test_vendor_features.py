@@ -243,6 +243,13 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         # Multi-plancia: the sync key gains an instance suffix for secondary
         # panels; the primary keeps the historical key.
         assert html.count("__DASHBOARDMODERN_PRIMARY__ === false") == 4, name
+        # Round 21: registry-driven autodetect and hidden-by-default sections.
+        assert "function cdRegEnrich(" in html, name
+        assert "config/floor_registry/list" in html, name
+        assert "function cdSecShow(" in html, name
+        assert "cd_sections_boot" in html, name
+        assert "cdSecShowByRef(ref)" in html, name
+        assert "cdRegEnrich(function(){" in html, name
         # The Rileva tab carries a diagnostic status line.
         assert "function cdDbgStatus()" in html, name
         # The user_data sync key is namespaced when hosted.

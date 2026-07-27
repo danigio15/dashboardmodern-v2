@@ -31,6 +31,7 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   "get_config",
   "get_services",
   "config/area_registry/list",
+  "config/floor_registry/list",
   "config/device_registry/list",
   "config/entity_registry/list",
   "recorder/statistics_during_period",

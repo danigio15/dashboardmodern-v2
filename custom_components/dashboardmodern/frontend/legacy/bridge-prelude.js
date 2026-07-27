@@ -22,6 +22,17 @@
  */
 (function () {
   "use strict";
+  try {
+    if (parent && parent !== window) {
+      if (parent.__DASHBOARDMODERN_INSTANCE__ && !window.__DASHBOARDMODERN_INSTANCE__) {
+        window.__DASHBOARDMODERN_INSTANCE__ = parent.__DASHBOARDMODERN_INSTANCE__;
+      }
+      if (typeof parent.__DASHBOARDMODERN_PRIMARY__ !== "undefined") {
+        window.__DASHBOARDMODERN_PRIMARY__ = parent.__DASHBOARDMODERN_PRIMARY__ !== false;
+      }
+    }
+  } catch (e) { /* cross-origin parent: standalone use, nothing to copy */ }
+
 
   var HOSTED_TOKEN = "__dashboardmodern_hosted__";
 

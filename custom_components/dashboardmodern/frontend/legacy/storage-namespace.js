@@ -27,6 +27,14 @@
     try {
       if (window.__DASHBOARDMODERN_INSTANCE__) return String(window.__DASHBOARDMODERN_INSTANCE__);
     } catch (e) {}
+    // 1b. From the parent window: the host sets the markers there because the
+    // frame's own pre-navigation window is replaced before scripts run. This
+    // is what keeps multiple plance (config entries) truly isolated.
+    try {
+      if (window.parent && window.parent !== window && window.parent.__DASHBOARDMODERN_INSTANCE__) {
+        return String(window.parent.__DASHBOARDMODERN_INSTANCE__);
+      }
+    } catch (e) {}
     // 2. A stable id from this document's path, so two files on one origin
     //    (e.g. /local/plancia.html vs the integration mount) never collide.
     var path = "";
