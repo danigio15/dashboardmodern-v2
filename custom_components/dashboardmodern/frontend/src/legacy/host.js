@@ -49,6 +49,7 @@ export function mountLegacyHost(
     hostWindow = globalThis.window,
     variant = null,
     instanceId = "integration",
+    primary = true,
     onDenied = () => {},
   } = {},
 ) {
@@ -116,6 +117,9 @@ export function mountLegacyHost(
     // namespace, so its cd_* keys never collide with a standalone plancia or
     // another dashboard on the same origin.
     child.__DASHBOARDMODERN_INSTANCE__ = instanceId;
+    // The primary plancia keeps the historical cloud-sync key; secondary
+    // plance get an instance-suffixed key so their configs never collide.
+    child.__DASHBOARDMODERN_PRIMARY__ = primary !== false;
     // Set the hosted marker directly too, so the dashboard knows it is hosted
     // even before its own prelude runs — the wizard guard depends on this.
     child.__DASHBOARDMODERN_HOSTED__ = true;

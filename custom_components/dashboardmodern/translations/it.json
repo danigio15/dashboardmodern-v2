@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nuova plancia DashboardModern",
+        "data": {
+          "name": "Nome della plancia"
+        },
+        "data_description": {
+          "name": "Compare nella barra laterale. Puoi aggiungere più plance, ognuna con la propria configurazione."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "admin_only": "Visibile solo agli amministratori"
+        }
+      }
+    }
+  }
+}

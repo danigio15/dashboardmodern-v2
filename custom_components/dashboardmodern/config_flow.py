@@ -20,19 +20,24 @@ OPTION_ADMIN_ONLY = "admin_only"
 class DashboardModernConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a DashboardModern config flow."""
 
-    VERSION = 1
+    VERSION = 2
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Create a DashboardModern config entry."""
-        await self.async_set_unique_id(DOMAIN)
-        self._abort_if_unique_id_configured()
+        """Create a DashboardModern config entry (one per plancia)."""
+        if user_input is not None:
+            name = (user_input.get("name") or NAME).strip() or NAME
+            # The first plancia ever created is the primary one: it keeps the
+            # historical panel URL and the historical cloud-sync key, so
+            # existing installations upgrade without losing anything.
+            primary = not self._async_current_entries()
+            return self.async_create_entry(
+                title=name, data={"name": name, "primary": primary}
+            )
 
-        if user_input is None:
-            return self.async_show_form(step_id="user", data_schema=None, errors={})
-
-        return self.async_create_entry(title=NAME, data={})
+        schema = vol.Schema({vol.Required("name", default=NAME): str})
+        return self.async_show_form(step_id="user", data_schema=schema)
 
     @staticmethod
     @callback

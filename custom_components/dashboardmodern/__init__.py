@@ -25,6 +25,18 @@ async def _reload_on_options_change(hass: HomeAssistant, entry: ConfigEntry) -> 
     await hass.config_entries.async_reload(entry.entry_id)
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate v1 single-instance entries: they become the primary plancia."""
+    if entry.version == 1:
+        from .const import NAME
+
+        data = {**entry.data}
+        data.setdefault("name", entry.title or NAME)
+        data["primary"] = True
+        hass.config_entries.async_update_entry(entry, data=data, version=2)
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Register the frontend that serves the HTML dashboard."""
     from .frontend import async_register_frontend

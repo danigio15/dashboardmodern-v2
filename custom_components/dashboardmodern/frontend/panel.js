@@ -60,9 +60,14 @@ export class DashboardModernPanel extends HTMLElement {
       connection: this._hass.connection,
       staticBase,
       variant,
-      // A fixed id for the integration-hosted dashboard, so its storage is
-      // always isolated from any standalone plancia on the same Home Assistant.
-      instanceId: "integration",
+      // Each plancia (config entry) gets its own storage namespace, so
+      // multiple panels never share cd_* keys; the historical fallback keeps
+      // pre-multi installations on their existing namespace.
+      instanceId:
+        (this._panel.config?.entry_ids && this._panel.config.entry_ids[0]) ||
+        "integration",
+      // The primary plancia keeps the historical cloud-sync key.
+      primary: this._panel.config?.primary !== false,
     });
   }
 

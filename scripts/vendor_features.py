@@ -706,6 +706,39 @@ R18_8_R = " if(extra){ var w=document.createElement('div'); w.innerHTML=extra; e
 R18_9_A = "if (tab === 'load')   body.innerHTML = editorRenderLoad();"
 R18_9_R = "if (tab === 'load') { body.innerHTML = editorRenderLoad(); edCostSplit(body,'hide'); }"
 
+# Round 19: appliance save, tapparelle alerts, cams merge, nav order.
+R19_1_A = "if (tab === 'appliances') { body.innerHTML = editorRenderAppliances();"
+R19_1_R = 'if (tab === \'appliances\') { body.innerHTML = editorRenderAppliances() + \'<button class="ed-btn-add" style="width:100%; margin-top:10px;" onclick="edSecSave()">💾 Salva sezione</button>\';'
+R19_2_A = '<option value="custom"'
+R19_2_R = '<option value="tapp">🪟 Tapparelle (cover)</option><option value="custom"'
+R19_3_A = "const grp = document.getElementById('ed-avv-grp').value;"
+R19_3_R = "const grp = document.getElementById('ed-avv-grp').value; if (grp === 'tapp') { const entT = (document.getElementById('ed-avv-ent').value||'').trim(); const nmT = (document.getElementById('ed-avv-name').value||'').trim(); if (!entT.includes('.')) { alert('Inserisci una entità cover valida'); return; } const itemT = { entities:[entT], name: nmT || entT, icon:'🪟', cond:'eq', value:'open' }; const listT = cdCfgList('cd_avvisi_custom'); listT.push(itemT); localStorage.setItem('cd_avvisi_custom', JSON.stringify(listT)); try { cdMarkDirty(); cdSyncPush(); } catch(e){} editorSwitch('avvisi'); edToast('Avviso tapparella aggiunto'); return; }"
+R19_4_A = "if(i===n){ ds[i].open=true; } else { ds[i].style.display='none'; }"
+R19_4_R = "var alsoN=(n===4)?10:-1; if(i===n||i===alsoN){ ds[i].open=true; } else { ds[i].style.display='none'; }"
+R19_5_A = '<button class="ed-tab" data-tab="sez10" onclick="editorSwitch(\'sez10\')">📷 Telecamere</button>\n          '
+R19_5_R = ""
+R19_6_A = "function toggleVentola()"
+R19_6_R = "function cdNavOrder(){ try { var v=JSON.parse(localStorage.getItem('cd_navbar_order'))||[]; return Array.isArray(v)?v:[]; } catch(e){ return []; } } function cdNavTabs(){ var out=[]; document.querySelectorAll('.tab[data-tab]').forEach(function(b){ var t=(b.textContent||'').trim(); out.push({ k:b.getAttribute('data-tab'), lbl:t }); }); return out; } function cdNavKeys(){ var tabs=cdNavTabs(); var ord=cdNavOrder(); var keys=[]; ord.forEach(function(k){ if(tabs.some(function(t){ return t.k===k; }) && keys.indexOf(k)<0) keys.push(k); }); tabs.forEach(function(t){ if(keys.indexOf(t.k)<0) keys.push(t.k); }); return keys; } function cdApplyNavOrder(){ try { var ord=cdNavOrder(); if(!ord.length) return; var btns=document.querySelectorAll('.tab[data-tab]'); if(!btns.length) return; var nav=btns[0].parentElement; var map={}; btns.forEach(function(b){ map[b.getAttribute('data-tab')]=b; }); cdNavKeys().forEach(function(k){ if(map[k]) nav.appendChild(map[k]); }); } catch(e){} } setTimeout(function(){ try { cdApplyNavOrder(); } catch(e){} }, 1200); function toggleVentola()"
+R19_7_A = "function edSaveGeneral(){"
+R19_7_R = "function cdNavOrderHtml(){ try { var tabs=cdNavTabs(); if(!tabs.length) return ''; var lbl={}; tabs.forEach(function(t){ lbl[t.k]=t.lbl; }); var keys=cdNavKeys(); var rows=keys.map(function(k,i){ return '<div class=\"ed-row\" style=\"align-items:center;\"><div style=\"display:flex; gap:4px;\"><div class=\"ed-del\" style=\"'+(i===0?'opacity:0.25;pointer-events:none;':'')+'\" data-i=\"'+i+'\" data-d=\"-1\" onclick=\"edNavMove(this)\">▲</div><div class=\"ed-del\" style=\"'+(i===keys.length-1?'opacity:0.25;pointer-events:none;':'')+'\" data-i=\"'+i+'\" data-d=\"1\" onclick=\"edNavMove(this)\">▼</div></div><div class=\"ed-row-main\"><div class=\"ed-row-new\">'+String(lbl[k]||k).replace(/</g,'&lt;')+'</div></div></div>'; }).join(''); return '<div class=\"ed-intro\" style=\"margin-top:16px;\"><b>Ordine navbar</b>: disponi le sezioni della barra come preferisci.</div>'+rows; } catch(e){ return ''; } } function edNavMove(btn){ try { var i=parseInt(btn.getAttribute('data-i'),10); var d=parseInt(btn.getAttribute('data-d'),10); var keys=cdNavKeys(); var j=i+d; if(isNaN(i)||isNaN(d)||j<0||j>=keys.length) return; var t=keys[i]; keys[i]=keys[j]; keys[j]=t; localStorage.setItem('cd_navbar_order', JSON.stringify(keys)); try { cdMarkDirty(); cdSyncPush(); } catch(e2){} cdApplyNavOrder(); editorSwitch('visib'); } catch(e){} } function edSaveGeneral(){"
+R19_8_A = (
+    'return cdGenHtml()+\'<div class="ed-intro" style="margin-top:18px;"><b>Rilevamento'
+)
+R19_8_R = 'return cdGenHtml()+cdNavOrderHtml()+\'<div class="ed-intro" style="margin-top:18px;"><b>Rilevamento'
+R19_9_A = "'cd_piscina','cd_ev_cars','cd_energy_views','cd_floors'"
+R19_9_R = "'cd_piscina','cd_ev_cars','cd_energy_views','cd_navbar_order','cd_floors'"
+
+# Multi-plancia: secondary panels use an instance-suffixed cloud-sync
+# key; the primary keeps the historical key so upgrades lose nothing.
+SYNC_KEY_MULTI_A = "'dashboardmodern_integration_config'"
+SYNC_KEY_MULTI_R = (
+    "('dashboardmodern_integration_config' +"
+    " (window.__DASHBOARDMODERN_PRIMARY__ === false"
+    " && window.__DASHBOARDMODERN_INSTANCE__"
+    " ? '__' + String(window.__DASHBOARDMODERN_INSTANCE__)"
+    ".replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 16) : ''))"
+)
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -864,4 +897,14 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("filter-extras", R18_7_A, R18_7_R),
     ("filter-body-extras", R18_8_A, R18_8_R),
     ("load-hide-cost", R18_9_A, R18_9_R),
+    ("appl-save-btn", R19_1_A, R19_1_R),
+    ("avvisi-tapp-option?", R19_2_A, R19_2_R),
+    ("avvisi-tapp-handler", R19_3_A, R19_3_R),
+    ("cams-in-security", R19_4_A, R19_4_R),
+    ("rm-cams-tab?", R19_5_A, R19_5_R),
+    ("nav-order-js", R19_6_A, R19_6_R),
+    ("nav-order-ed-fns", R19_7_A, R19_7_R),
+    ("nav-order-hook", R19_8_A, R19_8_R),
+    ("nav-order-sync?", R19_9_A, R19_9_R),
+    ("sync-key-multi?", SYNC_KEY_MULTI_A, SYNC_KEY_MULTI_R),
 )

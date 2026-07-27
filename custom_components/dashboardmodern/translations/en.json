@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "New DashboardModern panel",
+        "data": {
+          "name": "Panel name"
+        },
+        "data_description": {
+          "name": "Shown in the sidebar. You can add multiple panels, each with its own configuration."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "admin_only": "Visible to administrators only"
+        }
+      }
+    }
+  }
+}

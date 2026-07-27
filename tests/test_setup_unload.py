@@ -66,12 +66,12 @@ async def test_admin_only_option_hides_the_panel(
 
     def fake_register(
         _hass: object,
-        _entry_ids: object,
+        entry: object,
+        _url_path: str,
         *,
         update: bool,
-        admin_only: bool = False,
     ) -> None:
-        captured["admin_only"] = admin_only
+        captured["admin_only"] = bool(entry.options.get(OPTION_ADMIN_ONLY, False))
 
     monkeypatch.setattr(frontend_module, "_register_or_update_panel", fake_register)
     monkeypatch.setattr(frontend_module, "_ensure_static_registered", _async_noop)
@@ -89,3 +89,37 @@ async def test_admin_only_option_hides_the_panel(
 async def _async_noop(*_args: object, **_kwargs: object) -> None:
     """No-op async stub."""
     return None
+
+
+async def test_multiple_plance_have_own_paths(hass: HomeAssistant) -> None:
+    """The primary keeps the historic URL; a second plancia gets its own."""
+    from custom_components.dashboardmodern import frontend as frontend_module
+
+    primary = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="entry-a",
+        title="Casa",
+        data={"name": "Casa", "primary": True},
+    )
+    primary.add_to_hass(hass)
+    second = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="entry-b",
+        title="Mare",
+        data={"name": "Mare", "primary": False},
+    )
+    second.add_to_hass(hass)
+
+    taken: set[str] = set()
+    p1 = frontend_module._panel_url_path(hass, primary, taken)
+    taken.add(p1)
+    p2 = frontend_module._panel_url_path(hass, second, taken)
+
+    assert p1 == frontend_module.PANEL_URL_PATH
+    assert p2 != p1 and p2.startswith(frontend_module.PANEL_URL_PATH + "-")
+    assert "mare" in p2
+
+    cfg = frontend_module._panel_config(hass, second)
+    assert cfg["entry_ids"] == ["entry-b"]
+    assert cfg["instance_id"] == "entry-b"
+    assert cfg["primary"] is False

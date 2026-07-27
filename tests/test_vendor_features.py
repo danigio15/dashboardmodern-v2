@@ -152,7 +152,7 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "⚙️ Impostazioni" in html, name
         assert 'data-tab="rileva"' not in html, name
         assert 'data-tab="sezioni"' not in html, name
-        assert 'data-tab="sez0"' in html and 'data-tab="sez10"' in html, name
+        assert 'data-tab="sez0"' in html and 'data-tab="sez9"' in html, name
         assert "function edFilterSez(" in html, name
         assert "Rilevamento e manutenzione" in html, name
         # Bugfix guards: sync loop-guard, hosted update-check, version bump.
@@ -173,6 +173,16 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "function edSecSave()" in html, name
         assert "function edCostSplit(" in html, name
         assert "edCostSplit(body,'hide')" in html, name
+        # Round 19: appliance save, tapparelle alert group, cams in security,
+        # navbar ordering from Impostazioni.
+        assert "editorRenderAppliances() + '<button" in html, name
+        assert 'value="tapp">🪟 Tapparelle (cover)' in html, name
+        assert "grp === 'tapp'" in html, name
+        assert "alsoN=(n===4)?10:-1" in html, name
+        assert 'data-tab="sez10"' not in html, name
+        assert "function cdApplyNavOrder()" in html, name
+        assert "function cdNavOrderHtml()" in html, name
+        assert "'cd_navbar_order','cd_floors'" in html, name
         # Every entity field uses the magnifier picker, no native datalist.
         assert 'list="ed-entity-list"' not in html, name
         assert "ref.nodeType === 1" in html, name
@@ -229,7 +239,10 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "function cdApplyEnergyViews()" in html, name
         assert "function cdApplyFlowMinimal()" in html, name
         assert "function cdEnViewsHtml()" in html, name
-        assert "'cd_ev_cars','cd_energy_views','cd_floors'" in html, name
+        assert "'cd_ev_cars','cd_energy_views','cd_navbar_order'" in html, name
+        # Multi-plancia: the sync key gains an instance suffix for secondary
+        # panels; the primary keeps the historical key.
+        assert html.count("__DASHBOARDMODERN_PRIMARY__ === false") == 4, name
         # The Rileva tab carries a diagnostic status line.
         assert "function cdDbgStatus()" in html, name
         # The user_data sync key is namespaced when hosted.
