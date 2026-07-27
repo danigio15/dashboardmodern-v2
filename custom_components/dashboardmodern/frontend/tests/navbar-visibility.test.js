@@ -117,16 +117,37 @@ test("populated sections stay visible on first derivation", () => {
   assert.equal(tabs.piscina.style.display, "none");
 });
 
+test("v2 maps missing the newer keys get them filled, choices intact", () => {
+  // Field bug: a map written by the older engine had only the seven legacy
+  // keys, so Elettrodomestici (and tapparelle/irrigazione/piscina) never hid.
+  const { store, tabs } = runEngine({
+    cd_sections: JSON.stringify({
+      energy: false,
+      ev: false,
+      boiler: false,
+      clima: false,
+      temp: false,
+      security: false,
+      server: false,
+    }),
+  });
+  const cur = JSON.parse(store.get("cd_sections"));
+  assert.equal(cur.appliances, false, "appliances non migrato");
+  assert.equal(cur.tapparelle, false);
+  assert.equal(cur.energy, false, "scelta esistente alterata");
+  assert.equal(tabs["appliances-main"].style.display, "none");
+});
+
 test("explicit user choices are never overridden", () => {
   const { store, tabs } = runEngine({
     cd_sections: JSON.stringify({ energy: true, ev: false }),
     cd_entity_overrides: JSON.stringify({ "dm.ev_batteria": "sensor.b" }),
   });
-  // The saved map is untouched (no re-derivation) and applied as-is.
-  assert.deepEqual(JSON.parse(store.get("cd_sections")), {
-    energy: true,
-    ev: false,
-  });
+  // Existing choices are untouched; only missing keys get filled in.
+  const cur = JSON.parse(store.get("cd_sections"));
+  assert.equal(cur.energy, true);
+  assert.equal(cur.ev, false);
+  assert.equal(cur.appliances, false);
   assert.equal(tabs.ev.style.display, "none");
   assert.equal(tabs.energy.style.display, "");
 });

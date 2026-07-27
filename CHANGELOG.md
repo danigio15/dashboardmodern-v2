@@ -1,5 +1,63 @@
 # Changelog
 
+Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/);
+le versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
+
+## 0.12.0 — 2026-07-27
+
+Prima versione candidata al rilascio pubblico.
+
+### Aggiunto
+
+- **Plance multiple**: il config flow chiede il nome e permette più entry;
+  ogni plancia ha pannello, storage e chiave di sincronizzazione propri e
+  isolati. La prima plancia è *primaria* e mantiene URL e chiave storici
+  (migrazione automatica delle installazioni esistenti).
+- **Autorilevamento dai registri HA**: piani dal floor registry, aree come
+  stanze (col piano), stanza ereditata dall'area per luci, clima e
+  telecamere. Non sovrascrive mai le scelte manuali.
+- **Motore visibilità navbar**: al primo avvio le sezioni si mostrano solo se
+  popolate (plancia nuova = solo Home e Config) e si accendono da sole
+  appena ricevono contenuto; interruttore 🟢/⚪ in cima a ogni scheda
+  dell'editor; ordinamento linguette da Impostazioni.
+- **Editor ristrutturato**: una scheda per ogni sezione (via il vecchio tab
+  "Sezioni"), profili EV nella scheda EV con tendina di modifica, viste e
+  costi energia nella scheda Energia, Rileva e Reset dentro Impostazioni,
+  telecamere unite a Sicurezza, Salva in ogni sezione.
+- **Nuove sezioni e funzioni**: Tapparelle (card animate, Apri/Chiudi tutte,
+  avvisi cover aperta), Irrigazione (zone sequenziali, orario, salto
+  pioggia), Piscina (filtrazione fissa o automatica), profili multi-auto EV,
+  viste Energia configurabili, raggruppamento piano→stanza.
+- **Diagnostica**: riga di stato in Impostazioni (versione, hosted, bridge,
+  token, sync, istanza, primaria, query, chiave in uso).
+- **Brand**: nuovo logo generato da `scripts/make_logo.py` (icona app,
+  icone HACS/brands, lockup con wordmark).
+- Suite di regressione Node per il motore navbar eseguita sul file
+  vendorizzato; test Python per i pannelli multi-entry.
+
+### Cambiato
+
+- Tag del custom element versionato per build: classi in cache di build
+  precedenti non pilotano più i pannelli nuovi.
+- Istanza e flag primaria viaggiano nell'URL dell'iframe (`?dmi=…&dmp=…`),
+  a prova di qualunque timing di mount.
+- Versione integrazione allineata al frontend (0.12.0).
+
+### Corretto
+
+- Le plance mostravano lo stesso frame (riuso dell'elemento pannello di HA):
+  al cambio di entry il frame ora si smonta e rimonta.
+- Storage condiviso tra plance per fallback sull'hash del percorso.
+- Loop di ricarica su desktop (doppio import sync recintato, auto-update
+  legacy disattivato quando ospitato).
+- Il Reset lasciava la navbar piena (flag di boot orfano): la derivazione
+  riparte da sola quando manca la mappa sezioni.
+- Mappe sezioni dei motori precedenti senza le chiavi nuove
+  (Elettrodomestici, Tapparelle, Irrigazione, Piscina): migrazione delle
+  sole chiavi mancanti.
+- Il tab Impostazioni non si apriva; salvataggio profili EV con valori
+  digitati ma non confermati.
+
 ## 0.2.0
 
 ### The hosted dashboard never receives a credential

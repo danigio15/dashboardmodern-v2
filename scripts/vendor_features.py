@@ -795,6 +795,12 @@ R25_6_R = "if (tab === 'irr') body.innerHTML = cdSecToggleHtml('irrigazione') + 
 R25_7_A = "if (tab === 'pool') body.innerHTML = editorRenderPiscina();"
 R25_7_R = "if (tab === 'pool') body.innerHTML = cdSecToggleHtml('piscina') + editorRenderPiscina();"
 
+# cd_sections maps written by older engines lack the newer section
+# keys (appliances, tapparelle, irrigazione, piscina): fill only the
+# missing ones from content, never touching existing choices.
+SECMIG_A = "if(localStorage.getItem('cd_sections')) return;"
+SECMIG_R = "var _cs=localStorage.getItem('cd_sections'); if(_cs){ try { var cur2=JSON.parse(_cs)||{}; var ch2=false; ['energy','appliances','ev','boiler','clima','temp','security','server','tapparelle','irrigazione','piscina'].forEach(function(k){ if(!(k in cur2)){ cur2[k]=cdSecHasContent(k)?true:false; ch2=true; } }); if(ch2){ localStorage.setItem('cd_sections', JSON.stringify(cur2)); try { cdApplyNavVis(); } catch(e3){} } } catch(e4){} return; }"
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -983,4 +989,5 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("toggle-tapp", R25_5_A, R25_5_R),
     ("toggle-irr", R25_6_A, R25_6_R),
     ("toggle-pool", R25_7_A, R25_7_R),
+    ("secboot-migrate-keys", SECMIG_A, SECMIG_R),
 )
