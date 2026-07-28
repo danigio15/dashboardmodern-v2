@@ -27,3 +27,11 @@ A failed sync restores the prior model and persisted projection and emits an err
 ## Screenshots
 
 The changed editor is hosted inside an authenticated Home Assistant iframe, which is unavailable in this repository-only environment. The DOM behavior is therefore captured programmatically in the frontend functional tests; no synthetic screenshot is presented as a real Home Assistant reproduction.
+
+## Phase 2 hardening
+
+The store now emits `optimistic` before awaiting backend synchronization, followed by `success`; a failed synchronization restores the snapshot, persists it, and emits `rollback` so the same coordinator reverses the DOM update. Legacy `cd_*` writes are outbound projections; the compatibility write bridge reconciles unavoidable old writers into `dm_dashboard_state`.
+
+Migrations are section-specific (`migrateRooms`, `migrateCameras`, `migrateAppliances`, `migrateLights`, `migrateClimate`, `migrateEv`, `migrateCovers`, `migratePool`, `migrateIrrigation`, and `migrateEnergy`). Energy, pool, and irrigation retain object schemas. Room ids use deterministic floor/name slugs with deterministic collision suffixes.
+
+Visual regression coverage records navbar/page/card class and section-order snapshots and byte-for-byte hashes of every global layout stylesheet. No global CSS, navbar, card layout, desktop layout, or mobile layout file changed during this phase. Browser screenshots remain blocked because no browser binary is installed and the package registry rejects Playwright installation (HTTP 403); the authenticated Home Assistant iframe is also unavailable.
