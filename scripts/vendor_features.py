@@ -849,6 +849,23 @@ R28S_en_R = '<section class="page" id="page-appliances-main">\n  <h3 class="sect
 R28NV_A = "var b=document.querySelector('.tab[data-tab=\"'+mp[k]+'\"]'); if(b) b.style.display=(cur[k]===false)?'none':'';"
 R28NV_R = "document.querySelectorAll('.tab[data-tab=\"'+mp[k]+'\"]').forEach(function(b){ if(cur[k]===false) b.style.setProperty('display','none','important'); else b.style.removeProperty('display'); });"
 
+# Round 29: kill the v262 physical remover; ON/OFF text; temp render.
+R29_1_A = "if (tab) tab.remove();   // v262: rimozione fisica — nessun CSS può farlo riapparire\n                if (page) page.remove();"
+R29_1_R = "/* v262 neutralizzato: la visibilità è di cdApplyNavVis, le pagine restano nel DOM */"
+R29_2_A = "onclick=\"event.stopPropagation(); cdApplEntTog(\\''+en+'\\', this)\">\\u23fb</button>'):'')"
+R29_2_R = "onclick=\"event.stopPropagation(); cdApplEntTog(\\''+en+'\\', this)\">'+(((STATES[en]&&STATES[en].state)==='on')?'OFF':'ON')+'</button>'):'')"
+R29_3_A = "if(btn){ btn.style.opacity='0.45'; setTimeout(function(){ try { btn.style.opacity=''; var st2=(STATES[en]&&STATES[en].state)||''; btn.classList.toggle('on', st2==='on'); } catch(e2){} }, 900); }"
+R29_3_R = "if(btn){ btn.style.opacity='0.45'; setTimeout(function(){ try { btn.style.opacity=''; var st2=(STATES[en]&&STATES[en].state)||''; btn.textContent=(st2==='on')?'OFF':'ON'; btn.classList.toggle('on', st2==='on'); } catch(e2){} }, 900); }"
+R29_4_A = "function toggleVentola()"
+R29_4_R = "setTimeout(function(){ try { buildTempCards(); } catch(e){} }, 2200); function toggleVentola()"
+R29_5_A = " try { if(typeof render==='function') render(); } catch(e2){} editorSwitch((typeof EDITOR_TAB !== 'undefined' && EDITOR_TAB) ? EDITOR_TAB : 'visib'); } catch(e){} } "
+R29_5_R = " try { if(typeof render==='function') render(); } catch(e2){} try { buildTempCards(); } catch(e2){} editorSwitch((typeof EDITOR_TAB !== 'undefined' && EDITOR_TAB) ? EDITOR_TAB : 'visib'); } catch(e){} } "
+
+R29B_it_A = "if (tab) tab.style.display = 'none';\n            if (page) page.remove();"
+R29B_it_R = "/* remover secondario neutralizzato (cdApplyNavVis comanda) */"
+R29B_en_A = "if (tab) tab.style.display = 'none';\n            if (page) page.remove();"
+R29B_en_R = "/* remover secondario neutralizzato (cdApplyNavVis comanda) */"
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -1055,4 +1072,11 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("appl-page-modern-it?", R28S_it_A, R28S_it_R),
     ("appl-page-modern-en?", R28S_en_A, R28S_en_R),
     ("navvis-hardened", R28NV_A, R28NV_R),
+    ("kill-section-remover", R29_1_A, R29_1_R),
+    ("toggle-text-onoff", R29_2_A, R29_2_R),
+    ("toggle-text-feedback", R29_3_A, R29_3_R),
+    ("temp-render-hooks", R29_4_A, R29_4_R),
+    ("temp-render-on-show", R29_5_A, R29_5_R),
+    ("kill-section-remover-2-it?", R29B_it_A, R29B_it_R),
+    ("kill-section-remover-2-en?", R29B_en_A, R29B_en_R),
 )
