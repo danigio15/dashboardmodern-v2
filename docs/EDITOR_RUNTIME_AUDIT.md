@@ -89,6 +89,27 @@ fallback to an alternative core editor.
 
 ## 0.14.0 convergence status after PR #22 review
 
+### Energy editor → public consumer matrix
+
+Fields without a concrete public consumer are deliberately not exposed by the
+canonical editor. The remaining mappings are:
+
+| Editor field | Canonical slot | Public consumer | Visible surface |
+|---|---|---|---|
+| `house.power` | `dm.energy_potenza_consumo_casa` | `render()` / `getDisplay()` | Flow map Home node and history popup |
+| `house.daily_energy`, `house.monthly_energy`, `house.annual_energy` | `dm.energy_consumo_casa_{oggi,mese,anno}` | `cdTotalsRun()`, `render()`, period engine | Daily flow, Energy KPIs and annual analysis |
+| `grid.power` | `dm.energy_potenza_scambio_rete` | `render()` / `getDisplay()` | Flow map Grid node and history popup |
+| `grid.daily_import_energy`, `grid.daily_export_energy` | `dm.energy_energia_{prelevata,immessa}_oggi` | `render()`, `cdRefreshPeriodDeltas()` | Daily Grid flow and period report |
+| `grid.monthly_import_energy`, `grid.monthly_export_energy` | `dm.energy_rete_{acquistata,venduta}_mese` | `cdRefreshPeriodDeltas()` | Monthly financial/report calculations |
+| `solar.power` | `dm.energy_potenza_fotovoltaico` | `render()` / `getDisplay()` | Flow map Solar node and history popup |
+| `solar.daily_energy`, `solar.monthly_energy`, `solar.annual_energy` | `dm.energy_produzione_solare_{oggi,mese,anno}` | `cdTotalsRun()`, `render()`, period engine | Daily flow, production KPIs and annual analysis |
+| `battery.power`, `battery.soc` | `dm.energy_{potenza_batteria,stato_carica_batteria}` | `render()` / `getDisplay()` | Battery flow node, SOC and history popup |
+| `battery.daily_charged_energy`, `battery.monthly_charged_energy` | `dm.energy_batteria_caricata_{oggi,mese}` | `render()`, `cdRefreshPeriodDeltas()` | Daily Battery flow and period report |
+
+Lifetime-only House/Solar fields, separate Grid import/export power fields and
+unused total Battery counters were removed from the editor because the public
+dashboard has no distinct visual consumer for them.
+
 | Area | Status | Evidence / remaining work |
 |---|---|---|
 | Runtime diagnostics | PARTIAL | The tab is part of both templates and the legacy script now exposes an explicit DOM/API readiness boundary; the four browser jobs must confirm it. |
@@ -97,7 +118,7 @@ fallback to an alternative core editor.
 | Report | PASS | Draft form, one Save transaction, status lifecycle, rollback, report-only order, canonical pickers and explicit manual rows. |
 | Settings, Home, EV, Solar, Security, MiniPC, Temperature, Actions, Climate | PARTIAL | Tab IDs resolve canonically, but their renderers remain legacy. |
 | Pool, Irrigation, Covers, Rooms, Lights, Appliances, Alerts | PARTIAL | Still rebuilt by the compatibility coordinator/global renderers. |
-| Browser evidence | FAIL | The last remote run reached Chromium but failed on the former `EDITOR_TAB` readiness race. The test now waits for the explicit readiness signal, but a new green workflow artifact is still required. |
+| Browser evidence | FAIL | The last remote run reached Chromium but failed before readiness because the Chart mock lacked `Chart.defaults`. The runtime guard and mock are now corrected, but a new green workflow artifact is still required. |
 
 This is not a release candidate. Remaining PARTIAL rows must be migrated and the
 manual Home Assistant checklist completed before release readiness can be claimed.

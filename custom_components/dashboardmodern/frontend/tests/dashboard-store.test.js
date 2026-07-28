@@ -550,27 +550,16 @@ test("Report edits preserve a normal load's explicit dashboard visibility", asyn
 
 test("every Energy editor field has one deterministic public slot", () => {
   const fields = {
-    house: ["power", "daily_energy", "monthly_energy", "annual_energy", "total_energy"],
+    house: ["power", "daily_energy", "monthly_energy", "annual_energy"],
     grid: [
       "power",
-      "import_power",
-      "export_power",
       "daily_import_energy",
       "daily_export_energy",
       "monthly_import_energy",
       "monthly_export_energy",
-      "total_import_energy",
-      "total_export_energy",
     ],
-    solar: ["power", "daily_energy", "monthly_energy", "annual_energy", "total_energy"],
-    battery: [
-      "power",
-      "soc",
-      "charged_energy",
-      "discharged_energy",
-      "daily_charged_energy",
-      "monthly_charged_energy",
-    ],
+    solar: ["power", "daily_energy", "monthly_energy", "annual_energy"],
+    battery: ["power", "soc", "daily_charged_energy", "monthly_charged_energy"],
   };
   const model = {};
   let index = 0;
@@ -586,7 +575,7 @@ test("every Energy editor field has one deterministic public slot", () => {
   );
 });
 
-test("annual and lifetime Energy semantics use distinct real slots", () => {
+test("annual Energy is projected while unconsumed lifetime fields stay out of runtime", () => {
   const projected = projectEnergySlots(
     {
       house: {
@@ -605,17 +594,17 @@ test("annual and lifetime Energy semantics use distinct real slots", () => {
     {},
   );
   assert.equal(projected["dm.energy_consumo_casa_anno"], "sensor.house_year");
-  assert.equal(projected["dm.energy_consumo_casa_totale"], "sensor.house_lifetime");
   assert.equal(projected["dm.energy_produzione_solare_anno"], "sensor.solar_year");
-  assert.equal(projected["dm.energy_produzione_solare_totale"], "sensor.solar_lifetime");
-  assert.equal(new Set(Object.values(projected)).size, 8);
+  assert.equal(projected["dm.energy_consumo_casa_totale"], undefined);
+  assert.equal(projected["dm.energy_produzione_solare_totale"], undefined);
+  assert.equal(new Set(Object.values(projected)).size, 6);
 });
 
 test("Energy slot ownership is derived from the canonical projection without typos", () => {
   const slots = editorSlotsForSection("energy");
   assert.ok(slots.includes("dm.energy_potenza_fotovoltaico"));
   assert.ok(slots.includes("dm.energy_consumo_casa_anno"));
-  assert.ok(slots.includes("dm.energy_consumo_casa_totale"));
+  assert.equal(slots.includes("dm.energy_consumo_casa_totale"), false);
   assert.equal(
     slots.some((slot) => slot.includes("solaar")),
     false,

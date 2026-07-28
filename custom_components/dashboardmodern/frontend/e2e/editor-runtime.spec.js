@@ -1,19 +1,55 @@
 import { expect, test } from "@playwright/test";
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+  test(`${variant}: missing Chart.js still reaches legacy readiness`, async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(`${error.message}\n${error.stack || ""}`));
+    await page.route("https://**", (route) =>
+      route.fulfill({ contentType: "application/javascript", body: "" }),
+    );
+    await page.addInitScript(() => {
+      window.WebSocket = class extends EventTarget {
+        static OPEN = 1;
+        readyState = 1;
+        send() {}
+        close() {}
+      };
+    });
+    await page.goto(`/legacy/${variant}`);
+    await page.waitForFunction(
+      () => window.__DASHBOARDMODERN_LEGACY_READY__ === true && document.readyState !== "loading",
+    );
+    await expect(
+      page.locator('[role="alert"]', {
+        hasText: "Errore durante il caricamento di DashboardModern",
+      }),
+    ).toHaveCount(0);
+    expect(pageErrors).toEqual([]);
+  });
+
   test(`${variant}: runtime, energy, loads and report use the shipped module`, async ({
     page,
   }, testInfo) => {
     const errors = [];
     const pageErrors = [];
     page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
-    page.on("pageerror", (error) => pageErrors.push(error.message));
+    let rejectEarlyPageError;
+    const earlyPageError = new Promise((_, reject) => {
+      rejectEarlyPageError = reject;
+    });
+    page.on("pageerror", (error) => {
+      const detail = [error.message, error.stack || "Stack unavailable", `URL: ${page.url()}`].join(
+        "\n",
+      );
+      pageErrors.push(detail);
+      rejectEarlyPageError(new Error(`Page error before runtime readiness:\n${detail}`));
+    });
     await page.route("https://**", async (route) => {
       const url = route.request().url();
       if (url.includes("chart.js"))
         return route.fulfill({
           contentType: "application/javascript",
-          body: "window.Chart=class{constructor(){}destroy(){}}",
+          body: "window.Chart=class{static defaults={color:'',font:{}};constructor(){}destroy(){}}",
         });
       if (url.includes("panzoom"))
         return route.fulfill({
@@ -103,12 +139,20 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       );
     });
     await page.goto(`/legacy/${variant}`);
-    await page.waitForFunction(
-      () =>
-        window.__DASHBOARDMODERN_LEGACY_READY__ === true &&
-        !!window.DashboardModernModules &&
-        document.readyState !== "loading",
-    );
+    await Promise.race([
+      page.waitForFunction(
+        () =>
+          window.__DASHBOARDMODERN_LEGACY_READY__ === true &&
+          !!window.DashboardModernModules &&
+          document.readyState !== "loading",
+      ),
+      earlyPageError,
+    ]);
+    await expect(
+      page.locator('[role="alert"]', {
+        hasText: "Errore durante il caricamento di DashboardModern",
+      }),
+    ).toHaveCount(0);
     expect(
       await page.evaluate(() =>
         ED_DEVICES.map((device) => [device.name, device.icon, device.sensor]),
@@ -118,6 +162,20 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       ["Pump second", "💧", "sensor.pump_month"],
       ["Manual third", "🔌", "sensor.manual_month"],
     ]);
+    expect(
+      await page.evaluate(() => {
+        const state = window.DashboardModernModules.store.getState();
+        const washer = state.sections.appliances.filter((item) => item.device_type === "lavatrice");
+        return {
+          schema: state.schema_version,
+          count: washer.length,
+          visual: [washer[0]?.visual_type, washer[0]?.visual_key],
+        };
+      }),
+    ).toEqual({ schema: 4, count: 1, visual: ["asset", "lavatrice"] });
+    expect(await page.evaluate(() => ED_DEVICES.some((item) => item.name === "Wallbox"))).toBe(
+      false,
+    );
     await page
       .locator("#setup-wizard")
       .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
@@ -153,6 +211,23 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(
       page.locator('[data-energy-panel="loads"] [data-load-id]', { hasText: "Pump" }),
     ).toHaveCount(1);
+    await page
+      .locator('[data-energy-panel="loads"] [data-load-id]', { hasText: "Pump" })
+      .locator("[data-edit-load]")
+      .click();
+    await page.locator("#dm-load-name").fill("Pump updated");
+    await page.locator("[data-save-load]").click();
+    await expect(
+      page.locator('[data-energy-panel="loads"] [data-load-id]', { hasText: "Pump updated" }),
+    ).toHaveCount(1);
+    await page.locator("#dm-load-name").fill("Temporary load");
+    await page.locator("#dm-load-power").fill("sensor.temporary_power");
+    await page.locator("[data-save-load]").click();
+    const temporary = page.locator('[data-energy-panel="loads"] [data-load-id]', {
+      hasText: "Temporary load",
+    });
+    await temporary.locator("[data-delete-load]").click();
+    await expect(temporary).toHaveCount(0);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-loads.png` });
     await page.getByRole("button", { name: "REPORT" }).click();
     const report = await page.locator('[data-energy-panel="report"]').innerHTML();
@@ -184,7 +259,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         () =>
           window.DashboardModernModules.store
             .getSection("loads")
-            .find((item) => item.name === "Pump")?.show_in_dashboard,
+            .find((item) => item.name === "Pump updated")?.show_in_dashboard,
       ),
     ).toBe(false);
     await page.getByRole("button", { name: /CARICHI|LOADS/ }).click();

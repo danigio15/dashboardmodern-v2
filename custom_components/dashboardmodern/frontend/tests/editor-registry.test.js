@@ -105,6 +105,13 @@ test("public report and multi-device sync consume canonical state only", async (
     assert.match(report, /getSection\('appliances'\)/);
     assert.match(report, /getSection\('loads'\)/);
     assert.doesNotMatch(report, /cd_report_devices|cdApplReportEntries/);
+    const devicesDeclaration = source.slice(
+      source.indexOf("const ED_DEVICES ="),
+      source.indexOf("function cdRebuildReportDevices"),
+    );
+    assert.match(devicesDeclaration, /const ED_DEVICES = \[\];/);
+    assert.doesNotMatch(devicesDeclaration, /Wallbox|Lavatrice|ED_DEVICES_DEFAULT/);
+    assert.match(report, /Canonical Report runtime unavailable/);
     const sync = source.slice(
       source.indexOf("const CD_SYNC_KEYS"),
       source.indexOf("function cdMarkDirty"),
@@ -112,6 +119,20 @@ test("public report and multi-device sync consume canonical state only", async (
     assert.match(sync, /dm_dashboard_state/);
     assert.doesNotMatch(sync, /cd_subloads_extra|cd_report_devices/);
     assert.match(sync, /applySnapshot/);
+  }
+});
+
+test("Chart.js guard accepts both an absent library and its minimal defaults contract", async () => {
+  for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+    const source = await readFile(new URL(`../legacy/${variant}`, import.meta.url), "utf8");
+    const chart = source.slice(
+      source.indexOf("if (typeof Chart"),
+      source.indexOf("let storicChartInstance"),
+    );
+    assert.match(chart, /typeof Chart !== 'undefined' && Chart\.defaults/);
+    assert.match(chart, /Chart\.defaults\.font \|\|= \{\}/);
+    assert.doesNotThrow(() => Function(chart)());
+    assert.doesNotThrow(() => Function("Chart", chart)({ defaults: { color: "", font: {} } }));
   }
 });
 

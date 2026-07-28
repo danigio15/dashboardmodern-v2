@@ -6726,8 +6726,9 @@ let isPseudoFullscreen = false; // Gestione Fullscreen per iOS su flussi MJPEG
 /* v281: la dashboard deve vivere anche se il CDN di Chart.js non è raggiungibile
    (tablet offline, reti filtrate): senza questa guardia un CDN mancante uccideva
    l'intera inizializzazione — wizard, tap sul titolo, configurazione. */
-if (typeof Chart !== 'undefined') {
+if (typeof Chart !== 'undefined' && Chart.defaults) {
     Chart.defaults.color = '#5c6c81';
+    Chart.defaults.font ||= {};
     Chart.defaults.font.family = "'Inter', sans-serif";
 }
 let storicChartInstance = null;
@@ -7396,17 +7397,12 @@ function edGetExtra(key) { return cdCfg(key); }
 function buildReportSelect() {
     const sel = document.getElementById('ed-dev-selector');
     if (!sel) return;
-    const devs = cdCfgList('cd_report_devices');
-    if (!devs.length) {
-        /* v0.7.4: se il Report è auto-popolato dai nodi mensili, il select usa quelle voci */
-        if (typeof ED_DEVICES !== 'undefined' && ED_DEVICES.length) {
-            sel.innerHTML = ED_DEVICES.map(d => `<option value="${d.sensor}">${d.icon || '⚡'} ${d.name}</option>`).join('');
-            return;
-        }
-        if (typeof CD_REQUIRE_MAPPING !== 'undefined' && CD_REQUIRE_MAPPING) sel.innerHTML = '<option value="">— Aggiungi le voci da ⚙️ Editor → Carichi → Report Analisi —</option>';
-        return; // nel file personale restano le option di default
+    if (typeof ED_DEVICES !== 'undefined' && ED_DEVICES.length) {
+        sel.innerHTML = ED_DEVICES.map(d => `<option value="${d.sensor}">${d.icon || '⚡'} ${d.name}</option>`).join('');
+        return;
     }
-    sel.innerHTML = devs.map(d => `<option value="${d.entity}">${d.icon || '⚡'} ${d.name}</option>`).join('');
+    const runtimeError = window.__DM_REPORT_RUNTIME_ERROR__;
+    sel.innerHTML = `<option value="">${runtimeError ? '⚠️ ' + runtimeError : '— Nessun elemento Report configurato —'}</option>`;
 }
 document.addEventListener('DOMContentLoaded', buildReportSelect);
 
@@ -12935,28 +12931,21 @@ const ED_DEV_SENSORS_CURR = {
     boiler:       'dm.energy_boiler_mese',
 };
 
-const ED_DEVICES = [
-    { key:'wallbox',      name:'Wallbox',          icon:'⚡', color:'#06b6d4', sensor:'dm.ev_energia_wallbox_mese',               bg:'rgba(6,182,212,0.1)' },
-    { key:'clima',        name:'Condizionatori',   icon:'❄️', color:'#0ea5e9', sensor:'dm.energy_condizionatori_mese',         bg:'rgba(14,165,233,0.1)' },
-    { key:'frigo',        name:'Frigorifero',      icon:'🧊', color:'#1e40af', sensor:'dm.core_032',                 bg:'rgba(30,64,175,0.1)' },
-    { key:'lavastoviglie',name:'Lavastoviglie',    icon:'🍽️', color:'#059669', sensor:'dm.core_034',         bg:'rgba(5,150,105,0.1)' },
-    { key:'friggitrice',  name:'Friggitrice',      icon:'🍟', color:'#ea580c', sensor:'dm.core_031',           bg:'rgba(234,88,12,0.1)' },
-    { key:'caffe',         name:'Macchina Caffè',             icon:'☕', color:'#a16207', sensor:'dm.core_033',                  bg:'rgba(161,98,7,0.1)' },
-    { key:'asciugatrice', name:'Asciugatrice',     icon:'💨', color:'#f59e0b', sensor:'dm.core_029',          bg:'rgba(245,158,11,0.1)' },
-    { key:'lavatrice',    name:'Lavatrice',        icon:'🧺', color:'#7c3aed', sensor:'dm.core_035',             bg:'rgba(124,58,237,0.1)' },
-    { key:'forno',        name:'Forno',            icon:'♨️', color:'#e11d48', sensor:'dm.core_030',                 bg:'rgba(225,29,72,0.1)' },
-    { key:'microonde',    name:'Microonde',        icon:'📡', color:'#8b5cf6', sensor:'dm.core_036',             bg:'rgba(139,92,246,0.1)' },
-    { key:'boiler',       name:'Boiler Elettrico', icon:'🔥', color:'#f97316', sensor:'dm.energy_boiler_mese',    bg:'rgba(249,115,22,0.1)' },
-];
+const ED_DEVICES = [];
 
 /* v297: la lista "Attività Dispositivi" del Report segue le voci dell'utente.
    Con voci configurate → solo quelle; senza, su build pubblica → vuota (niente nomi blindati).
    v0.7.3 fix (#6): ora è una funzione richiamabile — aggiungere una voce dall'editor
    aggiorna il Report SUBITO, senza dover ricaricare la pagina. */
-const ED_DEVICES_DEFAULT = ED_DEVICES.slice();
 function cdRebuildReportDevices() {
   const modules = window.DashboardModernModules;
-  if (!modules || !modules.store || !modules.data.canonicalReportDevices) return;
+  ED_DEVICES.length = 0;
+  if (!modules || !modules.store || !modules.data.canonicalReportDevices) {
+    window.__DM_REPORT_RUNTIME_ERROR__ = 'Canonical Report runtime unavailable';
+    buildReportSelect();
+    return false;
+  }
+  window.__DM_REPORT_RUNTIME_ERROR__ = '';
   const devices = modules.data.canonicalReportDevices(
     modules.store.getSection('appliances'), modules.store.getSection('loads'));
   const palette = ['#06b6d4','#7c3aed','#e11d48','#059669','#f59e0b','#0ea5e9'];
