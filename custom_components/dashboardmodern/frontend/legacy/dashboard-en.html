@@ -6199,7 +6199,7 @@ body.cd-nav-fixed { padding-bottom: 96px !important; }
    localStorage (se presente) ha priorità, così puoi ancora testare in locale.
    ─────────────────────────────────────────────────────────────────── */
 /* ═══ v258: VERSIONE — visibile in console, wizard e pagina Config ═══ */
-const DASHBOARD_VERSION = '0.12.6';
+const DASHBOARD_VERSION = '0.13.0';
 console.log('%c🏠 Dashboard Modern v' + DASHBOARD_VERSION, 'font-size:14px; font-weight:bold; color:#0ea5e9;');
 
 /* CD_BAKED_START */
@@ -6564,14 +6564,13 @@ function edApplSave(){
   const roomSel=(document.getElementById('appl-room')||{}).value||''; const previous=(_applEditIdx!=null&&getAppliances()[_applEditIdx])?getAppliances()[_applEditIdx]:{}; const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceDisplayName(Object.assign({},previous,{name:'',entities:entities}))||'Appliance', icon, entities, room_id:roomSel, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 }; ['image','image_url','type','device_type'].forEach(function(k){ if(previous[k]!=null) item[k]=previous[k]; }); const _rm=((document.getElementById('appl-room')||{}).value||'').trim(); if(_rm) item.room_id=_rm;
   const list=getAppliances();
   if(_applEditIdx!=null&&list[_applEditIdx]){ item.id=list[_applEditIdx].id||item.id; list[_applEditIdx]=item; } else list.push(item);
-  localStorage.setItem('cd_appliances',JSON.stringify(list)); cdEnsureSectionVisible('appliances');
-  try{ cdMarkDirty(); cdSyncPush(); }catch(e){}
+  var store=globalThis.DashboardModernModules&&DashboardModernModules.store; if(store){ store.replaceSection('appliances',list).catch(function(e){ alert('Salvataggio fallito: '+e.message); }); } else { localStorage.setItem('cd_appliances',JSON.stringify(list)); cdEnsureSectionVisible('appliances'); try{ cdMarkDirty(); cdSyncPush(); }catch(e){} }
   _applEnts=[]; _applEditIdx=null;
   editorSwitch('appliances'); try{ renderAppliances(); renderApplianceSection(true); }catch(e){}
   try { if(typeof cdApplReportEntries==='function') cdApplReportEntries(); } catch(eR){} edToast(item?'Appliance saved':'Added');
 }
 function edApplEdit(i){ const a=getAppliances()[i]; if(!a) return; _applEditIdx=i; try { edToast('Modifica: '+(a.name||'elettrodomestico')); } catch(eT){} setTimeout(function(){ try { var f=document.getElementById('appl-name')||document.getElementById('appl-ent'); if(f){ f.scrollIntoView({behavior:'smooth', block:'center'}); f.focus(); } } catch(e2){} }, 250); _applEnts=(a.entities||[]).map(e=>typeof e==='string'?e:e.entity).filter(Boolean); editorSwitch('appliances'); }
-function edApplDel(i){ if(!confirm('Eliminare questo elettrodomestico?')) return; const list=getAppliances(); if(i<0||i>=list.length) return; list.splice(i,1); localStorage.setItem('cd_appliances',JSON.stringify(list)); try{ cdMarkDirty(); cdSyncPush(); }catch(e){} try{ renderAppliances(); renderApplianceSection(true); }catch(e){} editorSwitch('appliances'); edToast('Removed'); }
+function edApplDel(i){ if(!confirm('Eliminare questo elettrodomestico?')) return; const list=getAppliances(); if(i<0||i>=list.length) return; var store=globalThis.DashboardModernModules&&DashboardModernModules.store; if(store){ store.removeItem('appliances',list[i].id).then(function(){ renderAppliances(); renderApplianceSection(true); editorSwitch('appliances'); edToast('Rimosso'); }).catch(function(e){ alert('Eliminazione fallita: '+e.message); }); return; } list.splice(i,1); localStorage.setItem('cd_appliances',JSON.stringify(list)); renderAppliances(); renderApplianceSection(true); }
 function edApplCancel(){ _applEditIdx=null; _applEnts=[]; editorSwitch('appliances'); }
 
 /* Picker degli elettrodomestici con immagini standard */
@@ -7766,23 +7765,9 @@ function cdDbgStatus(){ try { return '<div class="ed-intro mono" style="font-siz
         💡 Assign each light to a room and reorder with the arrows. Rooms and order are reflected in the <b>Lights</b> popup.
       </div>`;
 
-    // Gestione stanze
-    html += `<div style="background:rgba(14,165,233,0.06); border-radius:14px; padding:12px; margin-bottom:16px;">
-        <div style="font-weight:900; font-size:12.5px; margin-bottom:8px; color:var(--text,#0f172a);">🏠 Rooms</div>
-        <div id="ed-luci-rooms">${rooms.length ? rooms.map((r, i) => `
-          <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
-            <div style="display:flex; flex-direction:column; gap:2px;">
-              <button ${i===0?'disabled':''} onclick="cdLuciRoomMove(${i}, -1)" style="width:24px; height:20px; border:none; border-radius:5px; background:rgba(148,163,184,0.18); cursor:pointer; font-size:10px; ${i===0?'opacity:0.3;':''}">▲</button>
-              <button ${i===rooms.length-1?'disabled':''} onclick="cdLuciRoomMove(${i}, 1)" style="width:24px; height:20px; border:none; border-radius:5px; background:rgba(148,163,184,0.18); cursor:pointer; font-size:10px; ${i===rooms.length-1?'opacity:0.3;':''}">▼</button>
-            </div>
-            <input class="ed-input" style="flex:1; font-size:12px; padding:7px;" value="${r.replace(/"/g,'&quot;')}" onchange="cdLuciRenameRoom('${r.replace(/'/g,"\\'")}', this.value)">
-            <button onclick="cdLuciDeleteRoom('${r.replace(/'/g,"\\'")}')" style="flex:0 0 34px; height:32px; border:none; border-radius:9px; background:rgba(239,68,68,0.1); color:#dc2626; cursor:pointer; font-size:14px;">🗑</button>
-          </div>`).join('') : '<div style="font-size:11.5px; color:var(--text-dim,#94a3b8); padding:4px 0;">No rooms yet: create one below or assign it directly to a light.</div>'}</div>
-        <div style="display:flex; gap:6px; margin-top:8px;">
-          <input id="ed-new-luci-room" class="ed-input" style="flex:1; font-size:12px;" placeholder="New room name (e.g. Living room)">
-          <button class="ed-btn" style="flex:0 0 auto;" onclick="cdLuciAddRoom()">+ Add</button>
-        </div>
-      </div>`;
+    // Rooms are managed exclusively by the Rooms editor. Qui si salva solo
+    // l’ordine di visualizzazione e l’assegnazione tramite room_id.
+    html += `<div class="ed-intro dm-lights-room-notice">🏠 Create, rename and delete rooms only in the <b>Rooms</b> section. Here you can assign and reorder lights.</div>`;
 
     // Luci raggruppate
     rooms.forEach(r => {
@@ -9996,7 +9981,7 @@ function edDelClima(i) {
 }
 let _dmCameraEditIndex=null;
 function edEditCamera(i){ var c=getCameras()[i]; if(!c)return; _dmCameraEditIndex=i; document.getElementById('ed-cam-name').value=c.name||''; document.getElementById('ed-cam-ent').value=c.entity||''; document.getElementById('ed-cam-stream').value=c.stream||''; var room=document.getElementById('ed-cam-room'); if(room) room.value=c.room_id||c.room||''; }
-function dmSaveCameras(cams){ localStorage.setItem('cd_cameras',JSON.stringify(cams)); try{cdMarkDirty();cdSyncPush();}catch(e){} var grid=document.getElementById('cam-grid'); if(grid)grid._sig=''; buildCamCards(); refreshCameras(); try{render();}catch(e){} }
+function dmSaveCameras(cams){ var grid=document.getElementById('cam-grid'); if(grid)grid._sig=''; var store=globalThis.DashboardModernModules&&DashboardModernModules.store; if(store){ var pending=store.replaceSection('cameras',cams); buildCamCards(); refreshCameras(); pending.then(function(){ var grid=document.getElementById('cam-grid'); if(grid)grid._sig=''; buildCamCards(); refreshCameras(); try{cdApplyNavVis();}catch(e){} }).catch(function(e){ alert('Salvataggio telecamera fallito: '+e.message); }); return; } localStorage.setItem('cd_cameras',JSON.stringify(cams)); try{cdMarkDirty();cdSyncPush();}catch(e){} var grid=document.getElementById('cam-grid'); if(grid)grid._sig=''; buildCamCards(); refreshCameras(); try{render();}catch(e){} }
 function edAddCamera() { const name=(document.getElementById('ed-cam-name').value||'').trim(), ent=(document.getElementById('ed-cam-ent').value||'').trim(), stream=(document.getElementById('ed-cam-stream').value||'').trim(); if(!name||!/^camera\.[a-z0-9_]+$/i.test(ent)){alert('Invalid camera');return;} const cams=getCameras().slice(); const nuova={id:(_dmCameraEditIndex!=null&&cams[_dmCameraEditIndex]&&cams[_dmCameraEditIndex].id)||('camera_'+Date.now().toString(36)),name:name,entity:ent,stream:stream,room_id:(document.getElementById('ed-cam-room')||{}).value||''}; if(_dmCameraEditIndex==null)cams.push(nuova);else cams[_dmCameraEditIndex]=nuova; _dmCameraEditIndex=null; dmSaveCameras(cams); editorSwitch('sezioni'); edToast('Camera added'); }
 function edDelCamera(i) { const cams=getCameras().slice(); cams.splice(i,1); _dmCameraEditIndex=null; dmSaveCameras(cams); editorSwitch('sezioni'); }
 

@@ -56,7 +56,7 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         assert "!window.__DASHBOARDMODERN_HOSTED__" in html, name
         assert "step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 : 1)" in html, name
         # The build marker proves the served HTML updated.
-        assert "0.12.6" in html, name
+        assert "0.13.0" in html, name
         # The repository logo is used, not the inline SVG mark.
         assert 'src="./logo.png"' in html, name
         # The Piano field is hidden in the temperature section.
@@ -157,7 +157,7 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "Rilevamento e manutenzione" in html, name
         # Bugfix guards: sync loop-guard, hosted update-check, version bump.
         assert "cd_sync_rl2" in html, name
-        assert "0.12.6" in html and "0.11.1-int" not in html, name
+        assert "0.13.0" in html and "0.11.1-int" not in html, name
         # Tapparelle: open/close-all buttons and open-shutter alerts.
         assert "Apri tutte" in html and "Chiudi tutte" in html, name
         assert "tapp-avvisi" in html, name
