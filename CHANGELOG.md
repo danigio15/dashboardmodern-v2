@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.4 — 2026-07-28
+
+- Unificati stanze, elettrodomestici e telecamere sul modello dati vendorizzato usato dall'integrazione.
+- Aggiunti tab dinamici per stanza, toggle comandabili e CRUD telecamere sincronizzato con Home Assistant.
+- Rimossa la patch runtime caricata in coda e aggiunti test funzionali bilingue del modello.
+
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/);
 le versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 

@@ -35,7 +35,7 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         ):
             assert field in html, f"{name} missing {field}"
         # And each persists the chosen room.
-        assert "room:roomSel" in html, name
+        assert "room_id:roomSel" in html, name
         assert "getElementById('ed-cl-room')" in html, name
         assert "getElementById('ed-cam-room')" in html, name
         # The static climate/camera forms use a plain <select> populated by the
@@ -56,7 +56,7 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         assert "!window.__DASHBOARDMODERN_HOSTED__" in html, name
         assert "step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 : 1)" in html, name
         # The build marker proves the served HTML updated.
-        assert "0.12.3-int" in html, name
+        assert "0.12.4-int" in html, name
         # The repository logo is used, not the inline SVG mark.
         assert 'src="./logo.png"' in html, name
         # The Piano field is hidden in the temperature section.
@@ -157,7 +157,7 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "Rilevamento e manutenzione" in html, name
         # Bugfix guards: sync loop-guard, hosted update-check, version bump.
         assert "cd_sync_rl2" in html, name
-        assert "0.12.3-int" in html and "0.11.1-int" not in html, name
+        assert "0.12.4-int" in html and "0.11.1-int" not in html, name
         # Tapparelle: open/close-all buttons and open-shutter alerts.
         assert "Apri tutte" in html and "Chiudi tutte" in html, name
         assert "tapp-avvisi" in html, name
@@ -201,7 +201,7 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "const i=a._idx;" in html, name
         # Appliances can be assigned a room from the editor, persisted.
         assert 'id="appl-room"' in html, name
-        assert "if(_rm) item.room=_rm;" in html, name
+        assert "if(_rm) item.room_id=_rm;" in html, name
         # The lights room list offers registry rooms so floors resolve.
         assert "!set.includes(r.name)) set.push(r.name)" in html, name
         # Appliances with an energy sensor auto-populate the Report.

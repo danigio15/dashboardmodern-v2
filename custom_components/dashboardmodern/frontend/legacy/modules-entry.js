@@ -52,10 +52,21 @@ import {
   lightControls,
   lightDisplayColor,
 } from "../src/cards/light-controls.js";
+import {
+  applianceGroups,
+  applianceRoomId,
+  controllableEntity,
+  normalizeCamera,
+  normalizeCameras,
+  normalizeRooms,
+  removeCamera,
+  saveCamera,
+  stableRoomId,
+} from "../src/legacy/dashboard-data.js";
 
 // Bumped when a module gains something a section may want to rely on. A
 // section can check it instead of feature-detecting each function.
-export const MODULES_VERSION = 1;
+export const MODULES_VERSION = 2;
 
 const DashboardModernModules = Object.freeze({
   version: MODULES_VERSION,
@@ -94,6 +105,17 @@ const DashboardModernModules = Object.freeze({
   }),
 
   lights: Object.freeze({ lightControls, lightDisplayColor, brightnessPercent }),
+  data: Object.freeze({
+    stableRoomId,
+    normalizeRooms,
+    applianceRoomId,
+    applianceGroups,
+    controllableEntity,
+    normalizeCamera,
+    normalizeCameras,
+    saveCamera,
+    removeCamera,
+  }),
 });
 
 // The document checks for this one name.
