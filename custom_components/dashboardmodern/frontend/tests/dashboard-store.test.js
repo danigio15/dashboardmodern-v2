@@ -318,3 +318,63 @@ test("all CRUD editor sections are registered with the reactive coordinator", as
     "energy",
   ]);
 });
+
+test("real schema 3 migration imports washer, preserves its visual and legacy loads", () => {
+  const schema3 = {
+    schema_version: 3,
+    sections: { rooms: [], appliances: [], loads: [], entityOverrides: {} },
+    visibility: { ev: false },
+  };
+  const { store, storage } = setup({
+    dm_dashboard_state: schema3,
+    cd_entity_overrides: {
+      "dm.lavatrice_potenza_presa": "sensor.washer_power",
+      "dm.lavatrice_presa_avvio": "switch.washer",
+    },
+    cd_subloads_extra: {
+      cucina: [
+        {
+          id: "toast",
+          name: "Tostapane",
+          pwr: "sensor.toast_power",
+          icon: "🍞",
+          room_id: "kitchen",
+        },
+      ],
+    },
+    cd_report_devices: [
+      { id: "manual-water", name: "Acqua", entity: "sensor.water_month", icon: "💧" },
+    ],
+  });
+  assert.equal(store.getState().schema_version, 4);
+  const washer = store.getSection("appliances").find((item) => item.id === "appliance-lavatrice");
+  assert.equal(washer.visual_type, "asset");
+  assert.equal(washer.visual_key, "lavatrice");
+  assert.equal(washer.icon, "");
+  assert.deepEqual(
+    store.getSection("loads").map((item) => item.id),
+    ["toast", "manual-water"],
+  );
+  assert.ok(storage.getItem("dm_dashboard_backup_v3"));
+  const rerun = store.migrate();
+  assert.deepEqual(rerun.changes, []);
+  assert.equal(
+    store.getSection("appliances").filter((item) => item.device_type === "lavatrice").length,
+    1,
+  );
+});
+
+test("real EV slot mappings make EV visible in the same transaction", async () => {
+  const { store } = setup({
+    dm_dashboard_state: {
+      schema_version: 4,
+      sections: { entityOverrides: {} },
+      visibility: { ev: false },
+    },
+  });
+  await store.replaceSection("entityOverrides", {
+    "dm.ev_soc": "sensor.auto_state_of_charge",
+    "dm.ev_charge_power": "sensor.wallbox_charge_power",
+  });
+  assert.equal(store.getState().visibility.ev, true);
+});

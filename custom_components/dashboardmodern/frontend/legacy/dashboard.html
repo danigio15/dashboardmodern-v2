@@ -6204,7 +6204,8 @@ html[data-theme="dark"] .tc2-hum { background: rgba(14,165,233,0.16); color:#7dd
    localStorage (se presente) ha priorità, così puoi ancora testare in locale.
    ─────────────────────────────────────────────────────────────────── */
 /* ═══ v258: VERSIONE — visibile in console, wizard e pagina Config ═══ */
-const DASHBOARD_VERSION = '0.13.3';
+const DASHBOARD_VERSION = '0.14.0';
+globalThis.DASHBOARD_VERSION = DASHBOARD_VERSION;
 console.log('%c🏠 Dashboard Modern v' + DASHBOARD_VERSION, 'font-size:14px; font-weight:bold; color:#0ea5e9;');
 
 /* CD_BAKED_START */
@@ -7329,6 +7330,7 @@ function apriConfigEntita() {
 
 function editorSwitch(tab) {
     EDITOR_TAB = tab;
+    if (globalThis.DashboardModernModules?.renderEditorTab?.(tab)) return;
     try { setTimeout(function(){ ['ed-cl-room','ed-cam-room','ed-lu-room','ed-st2-name'].forEach(function(id){ var els=document.querySelectorAll('select#'+id+', select[id="'+id+'"]'); els.forEach(function(el){ if(el){ var cur=el.value||''; el.innerHTML = cdRoomOptions(cur); } }); }); }, 0); } catch(e){}
     document.querySelectorAll('.ed-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     const body = document.getElementById('ed-body');
@@ -7336,7 +7338,7 @@ function editorSwitch(tab) {
     if (tab === 'rileva') body.innerHTML = editorRenderRileva();
     if (tab.indexOf('sez') === 0 && tab !== 'sezioni') { body.innerHTML = editorRenderSezioni(); edFilterSez(body, parseInt(tab.slice(3), 10)); }
     if (tab === 'sost')   body.innerHTML = editorRenderSost();
-    if (tab === 'load') { var dmLoad=globalThis.DashboardModernModules; if(dmLoad&&dmLoad.render&&dmLoad.render.mountLoadsEditor) dmLoad.render.mountLoadsEditor(body); else { body.innerHTML=editorRenderLoad(); edCostSplit(body,'hide'); } }
+    if (tab === 'load') { var dmLoad=globalThis.DashboardModernModules; if(dmLoad&&dmLoad.render&&dmLoad.render.mountLoadsEditor) dmLoad.render.mountLoadsEditor(body); else throw new Error('Editor canonico Carichi non caricato'); }
     if (tab === 'visib') body.innerHTML = editorRenderVisib();
     if (tab === 'pool') body.innerHTML = cdSecToggleHtml('piscina') + editorRenderPiscina();
     if (tab === 'irr') body.innerHTML = cdSecToggleHtml('irrigazione') + editorRenderIrrigazione();
@@ -7406,111 +7408,7 @@ function buildReportSelect() {
 document.addEventListener('DOMContentLoaded', buildReportSelect);
 
 
-function editorRenderLoad() {
-    const ext = edGetExtra('cd_subloads_extra');
-    let rows = '';
-    Object.entries(ext).forEach(([grp, items]) => {
-        (items||[]).forEach((it, i) => {
-            rows += `<div class="ed-row">
-              <div class="ed-row-main">
-                <div class="ed-row-new">${it.icon||'🔌'} ${it.name}</div>
-                <div class="ed-row-old">${grp} · ${it.pwr}</div>
-              </div>
-              <div class="ed-del" onclick="edDelLoad('${grp}',${i})">🗑️</div>
-            </div>`;
-        });
-    });
-    if (!rows) rows = '<div class="ed-empty">Nessun carico aggiunto</div>';
-    const customGroups = (cdCfgList('cd_subload_groups')).map((g, i) => `<div class="ed-row"><div style="font-size:15px;">${g.icon||'🔌'}</div><div class="ed-row-main"><div class="ed-row-new">${g.name}</div><div class="ed-row-old mono">gruppo personalizzato</div></div><div class="ed-del" onclick="edDelLoadGroup(${i})">🗑️</div></div>`).join('');
-    const fn = cdCfg('cd_flow_nodes') || {};
-    /* v301: prima opzione = nessun popup (il nodo apre lo storico del suo sensore) */
-    const grpOpts = (sel) =>
-        '<option value=""' + (!sel ? ' selected' : '') + '>📈 Nessun popup — apre lo storico</option>' +
-        cdCfgList('cd_subload_groups').map(g => `<option value="${g.id}" ${sel === g.id ? 'selected' : ''}>${g.icon || '🔌'} ${g.name}</option>`).join('');
-    const nodeForm = (key, defName) => `
-          <div style="background:rgba(148,163,184,0.07); border-radius:12px; padding:10px; margin-bottom:8px;">
-            <div style="font-weight:800; font-size:12px; margin-bottom:6px;">🗺️ Nodo mappa ${['lav','cuc','boiler','wb','clima'].indexOf(key)+1} <span style="font-weight:600; color:var(--text-dim);">— nome attuale: ${(fn[key] && fn[key].name) || defName + ' (predefinito)'}</span></div>
-            <div style="display:flex; gap:6px; margin-bottom:6px;">
-              <input id="ed-fn-${key}-icon" class="ed-input" style="flex:0 0 56px;" placeholder="🧺" maxlength="4" value="${(fn[key] && fn[key].icon) || ''}"><button type="button" onclick="wzPickIcon('#ed-fn-${key}-icon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
-              <input id="ed-fn-${key}-name" class="ed-input" style="flex:1;" placeholder="${defName}" value="${(fn[key] && fn[key].name) || defName}">
-              <select id="ed-fn-${key}-group" class="ed-input" style="flex:0 0 34%;">${grpOpts((fn[key] && fn[key].group) || '')}</select>
-            </div>
-            <div style="display:flex; gap:6px;"><input id="ed-fn-${key}-pwr" class="ed-input mono" style="flex:1; font-family:monospace;" placeholder="Sensore potenza (W) del nodo" value="${(fn[key] && fn[key].pwr) || ''}"><button type="button" onclick="wzPickEntity('#ed-fn-${key}-pwr')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
-          </div>`;
-    return `
-          <div class="ed-sec-title">🗺️ Nodi della mappa flussi</div>
-          ${nodeForm('lav', 'Lavanderia')}${nodeForm('cuc', 'Cucina')}${nodeForm('boiler', 'Boiler')}${nodeForm('wb', 'Wallbox')}${nodeForm('clima', 'Clima')}
-          <button class="ed-save-btn" style="margin-top:0; margin-bottom:14px;" onclick="edSaveFlowNodes()">💾 Salva nodi mappa</button>
-          <div class="ed-sec-title">➕ Nuovo gruppo di carichi</div>
-          <div style="display:flex; gap:8px; margin-bottom:8px;">
-            <input id="ed-lg-icon" class="ed-input" style="flex:0 0 64px;" placeholder="🔌" maxlength="4"><button type="button" onclick="wzPickIcon('#ed-lg-icon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
-            <input id="ed-lg-name" class="ed-input" style="flex:1;" placeholder="Nome gruppo (es. Garage, Piano Terra…)">
-            <button class="ed-btn" onclick="edAddLoadGroup()">Crea</button>
-          </div>
-          ${customGroups}
-          <div style="height:10px;"></div>`+`
-      <div class="ed-intro">Crea i tuoi gruppi di carichi (Garage, Piano Terra…) e aggiungi dispositivi ai popup. Lo stato acceso/spento si deduce dalla potenza (>5W) se non specifichi un binary_sensor.</div>
-      <div class="ed-list">${rows}</div>
-      <div class="ed-form">
-        <select id="ed-load-grp" class="ed-input" style="flex:0 0 38%;">
-                ${Object.entries(SUBLOADS_CONFIG).filter(([k, g]) => { const hasCustom = Object.values(SUBLOADS_CONFIG).some(x => x.custom); return !k.endsWith('_day') && (hasCustom ? g.custom : (k === 'cucina' || k === 'lavanderia')); }).map(([k, g]) => `<option value="${k}">${g.icon} ${(g.title || '').replace(' Istantaneo','')}</option>`).join('')}
-              </select>
-        <div class="ed-form-row">
-          <input id="ed-load-name" class="ed-input" placeholder="Nome (es. Tostapane)" style="flex:1;">
-          <input id="ed-load-icon" class="ed-input ed-icon-input" placeholder="🍞" maxlength="4"><button type="button" onclick="wzPickIcon('#ed-load-icon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
-        </div>
-        <div style="display:flex; gap:6px;"><div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-load-pwr" style="flex:1;" class="ed-input mono" placeholder="sensor.tostapane_power"><button type="button" onclick="wzPickEntity('#ed-load-pwr')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div><button type="button" onclick="wzPickEntity('#ed-load-pwr')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
-        <button class="ed-btn-add" onclick="edAddLoad()">＋ Aggiungi carico</button>
-      </div>
-      <div class="ed-sec-title" style="margin-top:16px;">💶 Costo energia</div>
-      <div class="ed-hint">€/kWh <b>prelevato</b> dalla rete e €/kWh <b>immesso</b> (vendita). Usati in tutti i calcoli del Report.</div>
-      <div style="display:flex; gap:8px; margin-bottom:14px; align-items:center;">
-        <input id="ed-costo-kwh" class="ed-input" type="number" step="0.001" min="0" placeholder="0.25 €/kWh prelevato" value="${(function(){ try { const v = parseFloat(cdCfg('cd_costo_kwh')); return v > 0 ? v : ''; } catch(e){ return ''; } })()}" style="flex:1;">
-        <input id="ed-prezzo-imm" class="ed-input" type="number" step="0.001" min="0" placeholder="0.10 €/kWh immesso" value="${(function(){ try { const v = parseFloat(cdCfg('cd_prezzo_immissione')); return v > 0 ? v : ''; } catch(e){ return ''; } })()}" style="flex:1;">
-        <button type="button" class="ed-save-btn" style="width:auto; flex:0 0 auto; margin-top:0;" onclick="edSaveCosti()">💾 Salva</button>
-      </div>
-      <div class="ed-sec-title" style="margin-top:16px;">📊 Report Analisi — voci</div>
-      <div class="ed-intro">I dispositivi del Report mensile (Energia → Analisi): nome, icona ed entità kWh-mese liberi.</div>
-      <div class="ed-list">${cdCfgList('cd_report_devices').map((d, i2) => `<div class="ed-row"><div style="font-size:15px;">${d.icon||'⚡'}</div><div class="ed-row-main"><div class="ed-row-new">${d.name}</div><div class="ed-row-old mono">${d.entity}</div></div><div class="ed-del" onclick="edDelReportDevice(${i2})">🗑️</div></div>`).join('') || '<div class="ed-empty">Nessuna voce — aggiungile qui sotto</div>'}</div>
-      <div style="display:flex; gap:8px; margin-bottom:8px;">
-        <input id="ed-rep-icon" class="ed-input" style="flex:0 0 60px;" placeholder="⚡" maxlength="4"><button type="button" onclick="wzPickIcon('#ed-rep-icon')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:16px; cursor:pointer;">😀</button>
-        <input id="ed-rep-name" class="ed-input" style="flex:1;" placeholder="Nome (es. Piscina)">
-      </div>
-      <div style="display:flex; gap:6px; margin-bottom:8px;">
-        <input id="ed-rep-ent" class="ed-input mono" autocomplete="off" placeholder="dm.core_028" style="flex:1; font-family:monospace;">
-        <button type="button" onclick="wzPickEntity('#ed-rep-ent')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button>
-      </div>
-      <button class="ed-btn-add" style="width:100%;" onclick="edAddReportDevice()">＋ Aggiungi voce Report</button>
-`;
-}
-function edAddLoad() {
-    const grp = document.getElementById('ed-load-grp').value;
-    const name = (document.getElementById('ed-load-name').value||'').trim();
-    const icon = (document.getElementById('ed-load-icon').value||'🔌').trim();
-    const pwr = (document.getElementById('ed-load-pwr').value||'').trim();
-    if (!name || !pwr.includes('.')) { alert('Inserisci nome ed entità valida'); return; }
-    const ext = edGetExtra('cd_subloads_extra');
-    if (!ext[grp]) ext[grp] = [];
-    ext[grp].push({ name, pwr, icon });
-    localStorage.setItem('cd_subloads_extra', JSON.stringify(ext));
-    editorSwitch('load');
-    edToast('Carico aggiunto — ricarica per vederlo');
-}
-function edAddReportDevice() {
-    const name = (document.getElementById('ed-rep-name').value || '').trim();
-    const icon = (document.getElementById('ed-rep-icon').value || '⚡').trim();
-    const ent = (document.getElementById('ed-rep-ent').value || '').trim();
-    if (!name || !ent.includes('.')) { alert('Inserisci nome ed entità'); return; }
-    const devs = cdCfgList('cd_report_devices');
-    devs.push({ name, icon, entity: ent });
-    localStorage.setItem('cd_report_devices', JSON.stringify(devs));
-    try { cdMarkDirty(); cdSyncPush(); } catch(e){}
-    buildReportSelect();
-    try { cdRebuildReportDevices(); } catch(e){}
-    editorSwitch('load');
-    edToast('Voce Report aggiunta');
-}
-
+/* Legacy Loads/Report CRUD removed in 0.14.0; migration is in migrations.js. */
 function edAddLuce() {
     var _luRoomEl = document.getElementById('ed-lu-room'); var _luRoom = _luRoomEl ? (_luRoomEl.value||'').trim() : ''; var _luName = (document.getElementById('ed-lu-name').value || '').trim(); const nm = (_luRoom && _luName && _luName.indexOf(' - ')===-1) ? (_luRoom + ' - ' + _luName) : _luName;
     const id = (document.getElementById('ed-lu-ent').value || '').trim();

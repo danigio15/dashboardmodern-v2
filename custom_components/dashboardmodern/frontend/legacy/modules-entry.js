@@ -17,8 +17,10 @@ import {
 import { DashboardStore } from "../src/core/dashboard-store.js";
 import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/core/device-model.js";
 import { createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
+import { SCHEMA_VERSION } from "../src/core/device-model.js";
+import { BUILD_INFO } from "./build-info.js";
 
-export const MODULES_VERSION = 5;
+export const MODULES_VERSION = 14;
 
 const store = new DashboardStore({
   sync: async () => {
@@ -82,7 +84,7 @@ function mountEnergyEditor(target) {
     globalThis.document?.documentElement?.lang === "en" ? "en" : "it", {
       onPick: (input) => globalThis.wzPickEntity?.(input),
       renderLoads: (loads) => mountLoadsEditor(loads),
-      renderReport: (report) => mountLoadsEditor(report, "", "report"),
+      renderReport: (report) => mountReportEditor(report),
       renderSettings: (settings) => {
         settings.innerHTML = `${globalThis.cdEnViewsHtml?.() || ""}
           <div class="ed-form dm-energy-cost-card"><div class="ed-sec-title">💶 Costo energia</div>
@@ -99,24 +101,14 @@ function mountEnergyEditor(target) {
 }
 
 const esc = (value) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-function entityField(id, label, value = "", placeholder = "sensor.entity") {
-  return `<label class="ed-slot"><span class="ed-slot-lbl">${label} <span class="ed-acc-n">Facoltativo</span></span><span class="ed-form-row"><input id="${id}" class="ed-input ed-slot-in mono" value="${esc(value)}" placeholder="${placeholder}"><button type="button" class="dm-entity-picker" data-entity-target="${id}" aria-label="Seleziona ${label}">🔍</button></span></label>`;
+export function createEntityField({ id, label, value = "", placeholder = "sensor.entity", domain = "", optional = true } = {}) {
+  const domainAttr = domain ? ` data-domain="${esc(domain)}"` : "";
+  const opt = optional ? ' <span class="ed-acc-n">Facoltativo</span>' : "";
+  return `<label class="ed-slot"><span class="ed-slot-lbl">${esc(label)}${opt}</span><span class="ed-form-row"><input id="${esc(id)}" class="ed-input ed-slot-in mono" value="${esc(value)}" placeholder="${esc(placeholder)}"${domainAttr}><button type="button" class="dm-entity-picker" data-entity-target="${esc(id)}" aria-label="Seleziona ${esc(label)}">🔍</button></span></label>`;
 }
+const entityField = (id, label, value, placeholder) => createEntityField({ id, label, value, placeholder });
 
 export function mountEntityPickers(target) {
-  target?.querySelectorAll?.("input.ed-input.mono, input.ed-slot-in, input[data-ref]")?.forEach?.(
-    (input) => {
-      const row = input.parentElement;
-      if (!row || row.querySelector?.(".dm-entity-picker, button[onclick*='wzPickEntity']")) return;
-      const button = globalThis.document.createElement("button");
-      button.type = "button";
-      button.className = "dm-entity-picker";
-      button.setAttribute("aria-label", "Seleziona entità");
-      button.textContent = "🔍";
-      button.addEventListener("click", () => globalThis.wzPickEntity?.(input));
-      row.appendChild(button);
-    },
-  );
   target?.querySelectorAll?.(".dm-entity-picker[data-entity-target]").forEach((button) => {
     if (button.dataset.pickerMounted === "true") return;
     button.dataset.pickerMounted = "true";
@@ -126,6 +118,52 @@ export function mountEntityPickers(target) {
     });
   });
 }
+
+function mountReportEditor(target) {
+  const items = [...store.getSection("appliances"), ...store.getSection("loads")]
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+  target.innerHTML = `<div class="ed-intro">Seleziona e ordina gli elementi canonici mostrati nel Report. I carichi si creano soltanto in Carichi.</div><div class="ed-list">${items.map((item) => `<div class="ed-row" data-report-id="${esc(item.id)}"><label><input type="checkbox" data-report-toggle ${item.show_in_report !== false ? "checked" : ""}> ${esc(item.name || "Voce")}</label><input class="ed-input" data-report-label placeholder="Etichetta report" value="${esc(item.report_label || item.name)}"><input class="ed-input ed-icon-input" data-report-icon value="${esc(item.report_icon || item.icon)}"><input class="ed-input mono" data-report-entity placeholder="Entità mensile o totale" value="${esc(item.report_entity || item.monthly_energy_entity || item.total_energy_entity)}"></div>`).join("") || '<div class="ed-empty">Nessun elemento canonico configurato.</div>'}</div>`;
+  target.querySelectorAll("[data-report-id]").forEach((row, order) => row.addEventListener("change", () => {
+    const section = store.getSection("appliances").some((item) => item.id === row.dataset.reportId) ? "appliances" : "loads";
+    store.updateItem(section, row.dataset.reportId, { show_in_report: row.querySelector("[data-report-toggle]").checked, report_label: row.querySelector("[data-report-label]").value, report_icon: row.querySelector("[data-report-icon]").value, report_entity: row.querySelector("[data-report-entity]").value, order });
+  }));
+  mountCurrentEditor("energy-report", target);
+}
+
+function renderDiagnostics(target) {
+  const rows = {
+    "Manifest version": BUILD_INFO.version, DASHBOARD_VERSION: globalThis.DASHBOARD_VERSION || "non esposto",
+    MODULES_VERSION, "Store schema_version": store.getState().schema_version,
+    "HTML URL": globalThis.location?.href || "", "modules-entry.js URL": import.meta.url,
+    "Static asset hash": location.pathname.match(/dashboardmodern_static\/([^/]+)/)?.[1] || BUILD_INFO.assetHash, "Lingua / variante": `${document.documentElement.lang || "?"} / ${location.pathname.split("/").pop()}`,
+    "Renderer tab attivo": document.querySelector(".ed-tab.active")?.dataset?.tab || "diagnostics",
+    "Build date / commit": `${BUILD_INFO.date} / ${BUILD_INFO.commit}`,
+  };
+  target.innerHTML = `<div class="ed-sec-title">🩺 Diagnostica runtime</div><div class="ed-list">${Object.entries(rows).map(([key, value]) => `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${esc(key)}</div><div class="ed-row-old mono">${esc(value)}</div></div></div>`).join("")}</div>`;
+  target.dataset.runtimeDiagnostics = "true";
+}
+
+export const EDITOR_REGISTRY = Object.freeze({
+  energy: { render: mountEnergyEditor, mount: mountCurrentEditor, save: null, hasConfiguredData: true, visibilityKey: "energy" },
+  load: { render: mountLoadsEditor, mount: mountCurrentEditor, save: null, hasConfiguredData: true, visibilityKey: "energy" },
+  diagnostics: { render: renderDiagnostics, mount: mountCurrentEditor, save: null, hasConfiguredData: true, visibilityKey: null },
+});
+
+export function renderEditorTab(tab, target = globalThis.document?.getElementById?.("ed-body")) {
+  const descriptor = EDITOR_REGISTRY[tab];
+  if (!descriptor || !target) return false;
+  globalThis.document?.querySelectorAll?.(".ed-tab").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
+  descriptor.render(target); descriptor.mount?.(tab, target); return true;
+}
+
+globalThis.document?.addEventListener?.("DOMContentLoaded", () => {
+  const tabs = document.querySelector(".ed-tabs");
+  if (tabs && !tabs.querySelector('[data-tab="diagnostics"]')) {
+    const button = document.createElement("button"); button.type = "button"; button.className = "ed-tab";
+    button.dataset.tab = "diagnostics"; button.textContent = "🩺 Runtime";
+    button.addEventListener("click", () => renderEditorTab("diagnostics")); tabs.append(button);
+  }
+});
 
 export function mountCurrentEditor(section, target = globalThis.document?.getElementById?.("ed-body")) {
   if (!target) return;
@@ -175,7 +213,10 @@ const DashboardModernModules = Object.freeze({
     removeCamera,
   }),
   store,
-  render: Object.freeze({ createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, mountCurrentEditor, mountEnergyEditor, mountEntityPickers, mountLoadsEditor, renderDeviceCard, renderEnergyEditor }),
+  EDITOR_REGISTRY,
+  renderEditorTab,
+  diagnostics: Object.freeze({ BUILD_INFO, MODULES_VERSION, SCHEMA_VERSION, htmlUrl: globalThis.location?.href, modulesUrl: import.meta.url }),
+  render: Object.freeze({ createEnergyReportRows, createRenderCoordinator, createEntityField, loadPopupMetrics, mountCurrentEditor, mountEnergyEditor, mountEntityPickers, mountLoadsEditor, mountReportEditor, renderDeviceCard, renderEnergyEditor }),
 });
 
 globalThis.DashboardModernModules = DashboardModernModules;

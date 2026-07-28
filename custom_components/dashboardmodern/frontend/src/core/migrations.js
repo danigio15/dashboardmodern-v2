@@ -12,6 +12,7 @@ export const SECTION_KEYS = Object.freeze({
   pool: "cd_piscina",
   irrigation: "cd_irrigazione",
   energy: "cd_energy_model",
+  entityOverrides: "cd_entity_overrides",
 });
 
 function slug(value = "") {
@@ -84,6 +85,10 @@ export function migrateEnergy(input = {}) {
   };
 }
 
+export function migrateEntityOverrides(input = {}) {
+  return input && !Array.isArray(input) ? cloneValue(input) : {};
+}
+
 export function normalizeSection(section, input, context = {}) {
   const rooms = context.rooms || [];
   const migrations = {
@@ -98,12 +103,12 @@ export function normalizeSection(section, input, context = {}) {
     pool: migratePool,
     irrigation: migrateIrrigation,
     energy: migrateEnergy,
+    entityOverrides: migrateEntityOverrides,
   };
   return migrations[section]?.(input, rooms) ?? cloneValue(input);
 }
 
-export function migrateState(input = {}) {
-  if (+input.schema_version >= SCHEMA_VERSION) return { state: cloneValue(input), changes: [] };
+function canonicalize(input = {}, version) {
   const source = input.sections || input;
   const rooms = migrateRooms(source.rooms || []);
   const sections = { rooms };
@@ -111,12 +116,106 @@ export function migrateState(input = {}) {
     sections[section] = normalizeSection(section, source[section], { rooms });
   return {
     state: {
-      schema_version: SCHEMA_VERSION,
+      schema_version: version,
       sections,
       visibility: { ...(input.visibility || input.sections_visibility || {}) },
     },
-    changes: [`schema ${input.schema_version || 0} → ${SCHEMA_VERSION}`],
+    changes: [`schema ${input.schema_version || 0} → ${version}`],
   };
+}
+
+export const migrateV0ToV1 = (input) => canonicalize(input, 1).state;
+export const migrateV1ToV2 = (input) => canonicalize(input, 2).state;
+export const migrateV2ToV3 = (input) => canonicalize(input, 3).state;
+
+const fingerprint = (item) =>
+  String(
+    item.monthly_energy_entity ||
+      item.total_energy_entity ||
+      item.power_entity ||
+      item.entity ||
+      "",
+  ).trim();
+
+export function migrateV3ToV4(input, legacy = {}) {
+  const next = canonicalize(input, 4).state;
+  const sections = next.sections;
+  const overrides = { ...(sections.entityOverrides || {}), ...(legacy.entityOverrides || {}) };
+  sections.entityOverrides = overrides;
+  const washer = Object.entries(overrides).filter(
+    ([key, value]) => key.startsWith("dm.lavatrice_") && value,
+  );
+  if (washer.length && !sections.appliances.some((item) => item.device_type === "lavatrice")) {
+    const get = (suffix) => washer.find(([key]) => key.includes(suffix))?.[1] || "";
+    sections.appliances.push(
+      normalizeDevice(
+        {
+          id: "appliance-lavatrice",
+          name: "Lavatrice",
+          device_type: "lavatrice",
+          visual_type: "asset",
+          visual_key: "lavatrice",
+          image: legacy.washerImage || "",
+          entities: washer.map(([, entity]) => entity),
+          state_entity: get("fase_corrente"),
+          power_entity: get("potenza_presa"),
+          history_entity: get("tempo_rimanente"),
+          control_entity: get("presa_avvio") || get("avvio_ciclo"),
+          metadata: { migrated_from: "entity-overrides-v3" },
+          order: sections.appliances.length,
+        },
+        "appliances",
+        { rooms: sections.rooms, index: sections.appliances.length },
+      ),
+    );
+  }
+  const seen = new Set(sections.loads.map(fingerprint).filter(Boolean));
+  const add = (raw, category) => {
+    const item = normalizeDevice(
+      {
+        ...raw,
+        category,
+        id: raw.id,
+        power_entity: raw.power_entity || raw.pwr || raw.pwrLive || "",
+        monthly_energy_entity: raw.monthly_energy_entity || raw.entity || "",
+        history_entity: raw.history_entity || raw.entity || "",
+        state_entity: raw.state_entity || raw.bin || "",
+        icon: raw.icon || "",
+        image: raw.image || "",
+        room_id: raw.room_id || raw.room || "",
+        show_in_report: raw.show_in_report !== false,
+        show_in_dashboard: category !== "manual-report" && raw.show_in_dashboard !== false,
+      },
+      "loads",
+      { rooms: sections.rooms, index: sections.loads.length },
+    );
+    const key = fingerprint(item);
+    if (key && seen.has(key)) return;
+    if (key) seen.add(key);
+    sections.loads.push(item);
+  };
+  Object.entries(legacy.subloads || {}).forEach(([category, items]) =>
+    (items || []).forEach((item) => add(item, category)),
+  );
+  (legacy.reportDevices || []).forEach((item) => add(item, "manual-report"));
+  return next;
+}
+
+export function migrateState(input = {}, legacy = {}) {
+  let state = cloneValue(input);
+  const changes = [];
+  let version = +state.schema_version || 0;
+  const steps = [migrateV0ToV1, migrateV1ToV2, migrateV2ToV3];
+  while (version < 3) {
+    state = steps[version](state);
+    changes.push(`schema ${version} → ${version + 1}`);
+    version++;
+  }
+  if (version === 3) {
+    state = migrateV3ToV4(state, legacy);
+    changes.push("schema 3 → 4");
+  }
+  return { state, changes };
 }
 
 export function readLegacyState(storage) {
@@ -131,7 +230,11 @@ export function readLegacyState(storage) {
   for (const [section, key] of Object.entries(SECTION_KEYS))
     sections[section] = parse(
       key,
-      ["pool", "irrigation", "energy"].includes(section) ? {} : section === "lights" ? {} : [],
+      ["pool", "irrigation", "energy", "entityOverrides"].includes(section)
+        ? {}
+        : section === "lights"
+          ? {}
+          : [],
     );
   // The historical washer was a standalone editor section backed by entity
   // overrides. Promote it to the canonical appliance model without removing

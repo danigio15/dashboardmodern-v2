@@ -9,6 +9,7 @@ export const VISIBILITY_SECTION = Object.freeze({
   climate: "clima",
   ev: "ev",
   energy: "energy",
+  entityOverrides: "entityOverrides",
   covers: "tapparelle",
   pool: "piscina",
   irrigation: "irrigazione",
@@ -72,7 +73,19 @@ export class DashboardStore {
         `dm_dashboard_backup_v${source.schema_version || 0}`,
         JSON.stringify(source),
       );
-    const result = migrateState(source);
+    const parse = (key, fallback) => {
+      try {
+        return JSON.parse(this.storage.getItem(key)) ?? fallback;
+      } catch {
+        return fallback;
+      }
+    };
+    const result = migrateState(source, {
+      entityOverrides: parse("cd_entity_overrides", {}),
+      subloads: parse("cd_subloads_extra", {}),
+      reportDevices: parse("cd_report_devices", []),
+      washerImage: parse("cd_lavatrice_visual", ""),
+    });
     this.state = result.state;
     if (result.changes.length) console.info("[DashboardStore] migration", result.changes);
     this.persist();
@@ -134,10 +147,32 @@ export class DashboardStore {
     return this.replaceSection(section, value);
   }
   ensureSectionVisibleForData(section) {
+    if (section === "entityOverrides") {
+      let changed = false;
+      const slotSections = {
+        "dm.ev_": "ev",
+        "dm.energy_": "energy",
+        "dm.server_": "server",
+        "dm.boiler_": "boiler",
+        "camera.": "security",
+        "alarm_control_panel.": "security",
+      };
+      for (const [slot, entity] of Object.entries(this.state.sections.entityOverrides || {})) {
+        if (!configured(entity)) continue;
+        const mapped = Object.entries(slotSections).find(([prefix]) =>
+          slot.startsWith(prefix),
+        )?.[1];
+        if (mapped && this.state.visibility[mapped] !== true) {
+          this.state.visibility[mapped] = true;
+          changed = true;
+        }
+      }
+      return changed;
+    }
     const key = VISIBILITY_SECTION[section] || section;
     const value = this.state.sections[section];
     const hasData = hasConfiguredData(section, value);
-    if (hasData && this.state.visibility[key] === false) {
+    if (hasData && this.state.visibility[key] !== true) {
       this.state.visibility[key] = true;
       return true;
     }

@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export function cloneValue(value) {
   if (typeof globalThis.structuredClone === "function") return globalThis.structuredClone(value);
@@ -64,6 +64,8 @@ export function getDeviceDisplayName(device = {}, states = {}, locale = "it") {
 }
 
 export function getDeviceVisual(device = {}) {
+  if (device.visual_type && device.visual_key)
+    return { kind: device.visual_type, value: device.visual_key };
   const image = String(device.image || device.image_url || "").trim();
   if (image) return { kind: "image", value: image };
   const icon = String(device.icon || "").trim();
@@ -96,6 +98,8 @@ export function normalizeDevice(input = {}, section, context = {}) {
     name,
     icon: /^mdi:/i.test(String(input.icon || "")) ? input.icon : "",
     image: String(input.image || input.image_url || ""),
+    visual_type: String(input.visual_type || ""),
+    visual_key: String(input.visual_key || ""),
     room_id: String(roomId),
     entities,
     enabled: input.enabled !== false,
@@ -121,6 +125,9 @@ export function normalizeDevice(input = {}, section, context = {}) {
       state_entity: input.state_entity || input.state || "",
       show_in_report: input.show_in_report !== false,
       show_in_dashboard: input.show_in_dashboard !== false,
+      report_label: String(input.report_label || ""),
+      report_icon: String(input.report_icon || ""),
+      report_entity: String(input.report_entity || ""),
       category: String(input.category || type || (section === "loads" ? "secondary" : "appliance")),
       device_type: String(type || (section === "loads" ? "secondary" : "appliance")).toLowerCase(),
     });
