@@ -866,6 +866,16 @@ R29B_it_R = "/* remover secondario neutralizzato (cdApplyNavVis comanda) */"
 R29B_en_A = "if (tab) tab.style.display = 'none';\n            if (page) page.remove();"
 R29B_en_R = "/* remover secondario neutralizzato (cdApplyNavVis comanda) */"
 
+# Round 30: provable build marker, run counters, one-tap nav diagnosis.
+R30_1_A = "'0.12.0-int'"
+R30_1_R = "'0.12.1-int'"
+R30_2_A = "function cdApplyNavVis(){ try {"
+R30_2_R = "window.__CD_NVRUN=(window.__CD_NVRUN||0); function cdApplyNavVis(){ try { window.__CD_NVRUN++;"
+R30_3_A = "function cdSecBoot(){ try {"
+R30_3_R = "function cdSecBoot(){ try { window.__CD_SBRUN=(window.__CD_SBRUN||0)+1;"
+R30_4_A = "function editorRenderRileva(){ var st=cdDbgStatus();"
+R30_4_R = "function cdNavDiag(){ try { var mp=cdNavVisMap(); var cur=cdCfg('cd_sections')||{}; var L=[]; L.push('ver=0.12.1-int url='+location.pathname.slice(-46)); L.push('inst='+String(window.__DASHBOARDMODERN_STORAGE_NS__||'-').slice(0,12)+' prim='+(window.__DASHBOARDMODERN_PRIMARY__===false?0:1)); L.push('secboot='+(window.__CD_SBRUN||0)+' navvis='+(window.__CD_NVRUN||0)); L.push('cd_sections='+String(localStorage.getItem('cd_sections'))); Object.keys(mp).forEach(function(k){ var sel='.tab[data-tab=\"'+mp[k]+'\"]'; var els=document.querySelectorAll(sel); var pg=document.getElementById('page-'+mp[k]); var st=els.length?getComputedStyle(els[0]).display:'-'; L.push(k+': cfg='+String(cur[k])+' tabs='+els.length+' disp='+st+' page='+(pg?1:0)); }); var rep=L.join('\\n'); try { console.log('[NavDiag]\\n'+rep); } catch(e2){} prompt('Diagnosi navbar (tieni premuto per copiare)', rep); } catch(e){ alert('diag err: '+e.message); } } function editorRenderRileva(){ var st=cdDbgStatus(); st+='<button class=\"ed-btn-add\" style=\"width:100%; margin:6px 0 10px;\" onclick=\"cdNavDiag()\">🧪 Diagnosi navbar</button>';"
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -1079,4 +1089,8 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("temp-render-on-show", R29_5_A, R29_5_R),
     ("kill-section-remover-2-it?", R29B_it_A, R29B_it_R),
     ("kill-section-remover-2-en?", R29B_en_A, R29B_en_R),
+    ("ver-0121", R30_1_A, R30_1_R),
+    ("nav-counters", R30_2_A, R30_2_R),
+    ("boot-counter", R30_3_A, R30_3_R),
+    ("nav-diag-fn", R30_4_A, R30_4_R),
 )
