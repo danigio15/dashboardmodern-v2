@@ -216,7 +216,12 @@ def patch_variant(source: str, name: str) -> str:
         f"{name} prelude",
     )
     patched = _apply_once(patched, CONN_ANCHOR, CONN_PATCHED, f"{name} connection")
-    patched = _apply_once(patched, "</body>", f"{FIXES_SCRIPT_TAG}\n</body>", f"{name} runtime fixes")
+    patched = _apply_once(
+        patched,
+        "</body>",
+        f"{FIXES_SCRIPT_TAG}\n</body>",
+        f"{name} runtime fixes",
+    )
     patched = _apply_once(
         patched,
         CONN_WRITE_WIZARD_ANCHOR,
