@@ -5,7 +5,8 @@ test("the exact module shipped by the HTML loads and exposes the canonical model
   delete globalThis.DashboardModernModules;
   const module = await import(`../legacy/modules-entry.js?functional=${Date.now()}`);
   assert.equal(module.default, globalThis.DashboardModernModules);
-  assert.equal(module.default.version, 3);
+  assert.equal(module.default.version, 4);
+  assert.equal(typeof module.default.store.addItem, "function");
   assert.equal(typeof module.default.data.applianceGroups, "function");
   assert.equal(typeof module.default.data.applianceState, "function");
   assert.equal(typeof module.default.data.normalizeCameras, "function");
@@ -25,7 +26,7 @@ test("appliance media retains the backwards-compatible priority", async () => {
   assert.deepEqual(applianceMedia({ image: "/local/washer.png", icon: "mdi:washing-machine" }), { kind: "image", value: "/local/washer.png" });
   assert.deepEqual(applianceMedia({ image_url: "https://example.test/oven.png" }), { kind: "image", value: "https://example.test/oven.png" });
   assert.deepEqual(applianceMedia({ icon: "mdi:stove" }), { kind: "icon", value: "mdi:stove" });
-  assert.deepEqual(applianceMedia({ device_type: "oven" }), { kind: "type", value: "oven" });
+  assert.deepEqual(applianceMedia({ device_type: "forno" }), { kind: "icon", value: "mdi:stove" });
 });
 
 test("energy report is derived from appliances and normalizes power and energy", async () => {

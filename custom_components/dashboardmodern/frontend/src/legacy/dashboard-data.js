@@ -1,4 +1,5 @@
-/** Canonical data model shared by the vendored Italian and English dashboards. */
+/** Compatibility adapters for the canonical model used by both vendored dashboards. */
+import { getDeviceDisplayName, getDeviceVisual } from "../core/device-model.js";
 export function stableRoomId(room, index = 0) {
   if (room?.id || room?.room_id) return String(room.id || room.room_id);
   const slug = String(room?.name || `room-${index + 1}`)
@@ -48,28 +49,12 @@ export function entityLabel(entityId = "") {
 }
 
 export function applianceName(appliance = {}, states = {}, fallback = "Appliance") {
-  const configured = String(appliance.name || appliance.title || "").trim();
-  if (configured && !/^(other|altro)$/i.test(configured)) return configured;
-  const entities = [appliance.entity, appliance.power, appliance.energy]
-    .concat(appliance.entities || [])
-    .map((entry) => (typeof entry === "string" ? entry : entry?.entity))
-    .filter(Boolean);
-  for (const entity of entities) {
-    const friendly = String(states[entity]?.attributes?.friendly_name || "").trim();
-    if (friendly) return friendly;
-  }
-  const derived = entityLabel(entities[0]);
-  return derived || fallback;
+  const name = getDeviceDisplayName(appliance, states, fallback === "Elettrodomestico" ? "it" : "en");
+  return /^(Device|Dispositivo)$/.test(name) ? fallback : name;
 }
 
 export function applianceMedia(appliance = {}) {
-  const image = String(appliance.image || appliance.image_url || "").trim();
-  if (image) return { kind: "image", value: image };
-  const icon = String(appliance.icon || "").trim();
-  if (icon && icon !== "generico") return { kind: "icon", value: icon };
-  const type = String(appliance.type || appliance.device_type || "").trim();
-  if (type) return { kind: "type", value: type };
-  return { kind: "fallback", value: "generico" };
+  return getDeviceVisual({ section: "appliances", ...appliance });
 }
 
 export function applianceEnergyReport(appliances = [], states = {}, rooms = []) {

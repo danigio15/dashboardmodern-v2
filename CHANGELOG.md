@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0 — 2026-07-28
+
+- Introduced the canonical DashboardStore, schema v2 migration and targeted reactive render coordination.
+- Unified device names/visuals, appliance/camera CRUD, section visibility, stable room references and the energy editor model.
+- Removed room lifecycle controls from the Lights editor.
+
 ## 0.12.6 — 2026-07-28
 
 - Corrette le virgolette non bilanciate nell'HTML generato dall'editor stanze
