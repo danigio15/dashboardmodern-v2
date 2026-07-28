@@ -39,6 +39,69 @@ export function applianceGroups(appliances = [], roomInput = []) {
   return { rooms, all: appliances.slice(), groups, unassigned };
 }
 
+export function entityLabel(entityId = "") {
+  const objectId = String(entityId).split(".").pop() || "";
+  return objectId
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+export function applianceName(appliance = {}, states = {}, fallback = "Appliance") {
+  const configured = String(appliance.name || appliance.title || "").trim();
+  if (configured && !/^(other|altro)$/i.test(configured)) return configured;
+  const entities = [appliance.entity, appliance.power, appliance.energy]
+    .concat(appliance.entities || [])
+    .map((entry) => (typeof entry === "string" ? entry : entry?.entity))
+    .filter(Boolean);
+  for (const entity of entities) {
+    const friendly = String(states[entity]?.attributes?.friendly_name || "").trim();
+    if (friendly) return friendly;
+  }
+  const derived = entityLabel(entities[0]);
+  return derived || fallback;
+}
+
+export function applianceMedia(appliance = {}) {
+  const image = String(appliance.image || appliance.image_url || "").trim();
+  if (image) return { kind: "image", value: image };
+  const icon = String(appliance.icon || "").trim();
+  if (icon && icon !== "generico") return { kind: "icon", value: icon };
+  const type = String(appliance.type || appliance.device_type || "").trim();
+  if (type) return { kind: "type", value: type };
+  return { kind: "fallback", value: "generico" };
+}
+
+export function applianceEnergyReport(appliances = [], states = {}, rooms = []) {
+  const normalizedRooms = normalizeRooms(rooms);
+  return appliances.map((appliance) => {
+    const entries = [appliance.power, appliance.power_entity, appliance.energy, appliance.energy_today]
+      .concat(appliance.entities || [])
+      .map((entry) => (typeof entry === "string" ? entry : entry?.entity))
+      .filter(Boolean);
+    let power = null;
+    let energy = null;
+    for (const entity of entries) {
+      const state = states[entity];
+      const value = Number(state?.state);
+      const unit = String(state?.attributes?.unit_of_measurement || "").toLowerCase();
+      if (!Number.isFinite(value)) continue;
+      if (unit === "w" || unit === "kw") power = { entity, value: unit === "kw" ? value * 1000 : value, unit: "W" };
+      if (unit === "wh" || unit === "kwh") energy = { entity, value: unit === "wh" ? value / 1000 : value, unit: "kWh" };
+    }
+    const roomId = applianceRoomId(appliance, normalizedRooms);
+    return {
+      appliance,
+      name: applianceName(appliance, states),
+      room: normalizedRooms.find((room) => room.id === roomId) || null,
+      power,
+      energy,
+      state: applianceState(appliance, states),
+      historyEntity: energy?.entity || power?.entity || entries[0] || "",
+    };
+  });
+}
+
 export function controllableEntity(appliance) {
   const candidates = [appliance?.switch_entity, appliance?.switch, appliance?.light]
     .concat(appliance?.entities || [])

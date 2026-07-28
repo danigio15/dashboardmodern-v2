@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E501
 """Vendor the legacy DashboardModern dashboard into this integration.
 
 The legacy dashboard lives in danigio15/dashboardmodern and stays the source of
@@ -135,6 +136,16 @@ def _hide_bake_download(source: str, name: str) -> str:
 # which is what happens when fixes live only in a separate script someone has
 # to remember to run.
 UPSTREAM_FIXES: tuple[tuple[str, str, str, int], ...] = (
+    (
+        "duplicate-climate-boiler",
+        """            <div class="ed-slot" style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--card-border);">
+              <div class="ed-slot-lbl">🔥 Entità caldaia (switch — opzionale)</div>
+              <div style="display:flex; gap:8px; margin-bottom:6px;"><input style="flex:1;" class="ed-input mono ed-slot-in" data-ref="switch.caldaia"
+                     value="${ENTITY_OVERRIDES['switch.caldaia'] || ''}" placeholder="es. dm.core_049" onchange="edSetSlot(this)"><button type="button" onclick="wzPickEntity(this.previousElementSibling)" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
+            </div>""",
+        "",
+        1,
+    ),
     (
         "cameras-wipe",
         "localStorage.setItem('cd_cameras','cd_appliances', JSON.stringify(",
