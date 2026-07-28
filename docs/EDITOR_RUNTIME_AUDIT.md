@@ -86,3 +86,18 @@ through `DashboardStore`; legacy keys are migration inputs/projections only.
 The sequence is navigation → render → mount → interaction → store transaction
 → optimistic targeted render → mount → backend sync. There is no silent
 fallback to an alternative core editor.
+
+## 0.14.0 convergence status after PR #22 review
+
+| Area | Status | Evidence / remaining work |
+|---|---|---|
+| Runtime diagnostics | PASS | The tab is part of both `apriConfigEntita` templates; registration after modal append is idempotent. |
+| Energy | PASS | `sez1` resolves to `energy`; `edFilterSez` no longer mounts Energy. |
+| Loads | PASS | Registry dispatch performs one render and one mount; canonical store CRUD only. |
+| Report | PASS | Draft form, one Save transaction, status lifecycle, rollback, report-only order, canonical pickers and explicit manual rows. |
+| Settings, Home, EV, Solar, Security, MiniPC, Temperature, Actions, Climate | PARTIAL | Tab IDs resolve canonically, but their renderers remain legacy. |
+| Pool, Irrigation, Covers, Rooms, Lights, Appliances, Alerts | PARTIAL | Still rebuilt by the compatibility coordinator/global renderers. |
+| Browser evidence | PARTIAL | Playwright configuration/workflow is present; authenticated Home Assistant evidence remains required. |
+
+This is not a release candidate. Remaining PARTIAL rows must be migrated and the
+manual Home Assistant checklist completed before release readiness can be claimed.

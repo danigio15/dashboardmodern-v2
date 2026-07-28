@@ -378,3 +378,43 @@ test("real EV slot mappings make EV visible in the same transaction", async () =
   });
   assert.equal(store.getState().visibility.ev, true);
 });
+
+test("real editor slots reveal EV, Energy, MiniPC, Solar and Security", async () => {
+  const cases = [
+    ["dm.ev_batteria_auto", "sensor.car_soc", "ev"],
+    ["dm.energy_potenza_batteria", "sensor.battery_power", "energy"],
+    ["dm.server_cpu", "sensor.minipc_cpu", "server"],
+    ["dm.boiler_temperatura", "sensor.solar_boiler", "boiler"],
+    ["dm.security_centrale_allarme", "alarm_control_panel.home", "security"],
+    ["dm.home_interruttore_antifurto", "switch.alarm", "security"],
+  ];
+  for (const [slot, entity, section] of cases) {
+    const { store } = setup({
+      dm_dashboard_state: {
+        schema_version: 4,
+        sections: { entityOverrides: {} },
+        visibility: { [section]: false },
+      },
+    });
+    await store.replaceSection("entityOverrides", { [slot]: entity });
+    assert.equal(store.getState().visibility[section], true, slot);
+  }
+});
+
+test("legacy-only washer reaches schema 4 once with preserved id, entities and asset", () => {
+  const { store } = setup({
+    cd_entity_overrides: {
+      "dm.lavatrice_presa_avvio_lavatrice": "switch.washer",
+      "dm.lavatrice_potenza_presa_lavatrice_per_lavatrici_no": "sensor.washer_power",
+    },
+  });
+  const washers = store.getSection("appliances").filter((item) => item.device_type === "lavatrice");
+  assert.equal(store.getState().schema_version, 4);
+  assert.equal(washers.length, 1);
+  assert.equal(washers[0].id, "appliance-lavatrice");
+  assert.equal(washers[0].control_entity, "switch.washer");
+  assert.equal(washers[0].power_entity, "sensor.washer_power");
+  assert.equal(washers[0].visual_type, "asset");
+  assert.equal(washers[0].visual_key, "lavatrice");
+  assert.equal(store.migrate().changes.length, 0);
+});

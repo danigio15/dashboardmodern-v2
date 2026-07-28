@@ -145,7 +145,12 @@ export function migrateV3ToV4(input, legacy = {}) {
   const washer = Object.entries(overrides).filter(
     ([key, value]) => key.startsWith("dm.lavatrice_") && value,
   );
-  if (washer.length && !sections.appliances.some((item) => item.device_type === "lavatrice")) {
+  const existingWasher = sections.appliances.find((item) => item.device_type === "lavatrice");
+  if (existingWasher) {
+    existingWasher.visual_type ||= "asset";
+    existingWasher.visual_key ||= "lavatrice";
+    if (!existingWasher.image && legacy.washerImage) existingWasher.image = legacy.washerImage;
+  } else if (washer.length) {
     const get = (suffix) => washer.find(([key]) => key.includes(suffix))?.[1] || "";
     sections.appliances.push(
       normalizeDevice(

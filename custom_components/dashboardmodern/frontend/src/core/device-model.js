@@ -128,6 +128,7 @@ export function normalizeDevice(input = {}, section, context = {}) {
       report_label: String(input.report_label || ""),
       report_icon: String(input.report_icon || ""),
       report_entity: String(input.report_entity || ""),
+      report_order: Number.isFinite(+input.report_order) ? +input.report_order : context.index || 0,
       category: String(input.category || type || (section === "loads" ? "secondary" : "appliance")),
       device_type: String(type || (section === "loads" ? "secondary" : "appliance")).toLowerCase(),
     });

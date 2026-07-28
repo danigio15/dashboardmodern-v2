@@ -61,5 +61,6 @@ jobs:
           node-version: "22"
       - name: Run frontend tests
         run: |
+          python scripts/generate_build_info.py --expected-commit "$GITHUB_SHA"
           npm run check:inline-syntax
           npm run test:frontend

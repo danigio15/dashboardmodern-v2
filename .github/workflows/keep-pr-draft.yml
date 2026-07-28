@@ -1,0 +1,19 @@
+name: Keep convergence PR in draft
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  draft:
+    if: github.event.pull_request.draft == false && startsWith(github.event.pull_request.title, 'Draft: converge editor runtime')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Convert the convergence PR to a real draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr ready --undo "$PR_URL"

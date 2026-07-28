@@ -88,6 +88,9 @@ export function renderDeviceCard(document, target, device, states = {}, rooms = 
   if (visual.kind === "image") {
     media.src = visual.value;
     media.alt = "";
+  } else if (visual.kind === "asset") {
+    media.dataset.asset = visual.value;
+    media.innerHTML = globalThis.cdApplianceIcon?.(visual.value, 28) || visual.value;
   } else media.dataset.icon = visual.value;
   const title = document.createElement("strong");
   title.textContent = getDeviceDisplayName(device, states, locale);

@@ -1,5 +1,6 @@
 import { cloneValue, SCHEMA_VERSION, normalizeDevice } from "./device-model.js";
 import { migrateState, normalizeSection, readLegacyState, SECTION_KEYS } from "./migrations.js";
+import { sectionForEditorSlot } from "./editor-slots.js";
 
 export const VISIBILITY_SECTION = Object.freeze({
   cameras: "security",
@@ -149,19 +150,9 @@ export class DashboardStore {
   ensureSectionVisibleForData(section) {
     if (section === "entityOverrides") {
       let changed = false;
-      const slotSections = {
-        "dm.ev_": "ev",
-        "dm.energy_": "energy",
-        "dm.server_": "server",
-        "dm.boiler_": "boiler",
-        "camera.": "security",
-        "alarm_control_panel.": "security",
-      };
       for (const [slot, entity] of Object.entries(this.state.sections.entityOverrides || {})) {
         if (!configured(entity)) continue;
-        const mapped = Object.entries(slotSections).find(([prefix]) =>
-          slot.startsWith(prefix),
-        )?.[1];
+        const mapped = sectionForEditorSlot(slot);
         if (mapped && this.state.visibility[mapped] !== true) {
           this.state.visibility[mapped] = true;
           changed = true;
@@ -256,6 +247,45 @@ export class DashboardStore {
           rooms: this.state.sections.rooms || [],
         })),
     );
+  }
+  saveReport(items) {
+    return this.transact("report", "save", () => {
+      const bySection = {
+        appliances: this.state.sections.appliances || [],
+        loads: this.state.sections.loads || [],
+      };
+      const wantedManual = new Set(
+        items.filter((item) => item.category === "manual-report").map((item) => item.id),
+      );
+      bySection.loads = bySection.loads.filter(
+        (item) => item.category !== "manual-report" || wantedManual.has(item.id),
+      );
+      for (const draft of items) {
+        const section = draft.category === "manual-report" ? "loads" : draft.section;
+        const list = bySection[section];
+        const index = list.findIndex((item) => item.id === draft.id);
+        const patch = {
+          ...draft,
+          report_order: Number(draft.report_order) || 0,
+          show_in_dashboard: draft.category === "manual-report" ? false : draft.show_in_dashboard,
+        };
+        if (index < 0)
+          list.push(
+            normalizeDevice(patch, section, {
+              rooms: this.state.sections.rooms || [],
+              index: list.length,
+            }),
+          );
+        else
+          list[index] = normalizeDevice({ ...list[index], ...patch }, section, {
+            rooms: this.state.sections.rooms || [],
+            index,
+          });
+      }
+      this.state.sections.appliances = bySection.appliances;
+      this.state.sections.loads = bySection.loads;
+      return cloneValue(items);
+    });
   }
   sync() {
     return this.syncAdapter(this.getState(), { operation: "sync" });
