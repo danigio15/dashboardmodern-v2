@@ -49,6 +49,13 @@ export function createRenderCoordinator(store, renderers = {}) {
       appliances: "renderAppliances",
       cameras: "renderCameras",
       lights: "renderLights",
+      climate: "renderClimate",
+      covers: "renderCovers",
+      pool: "renderPool",
+      irrigation: "renderIrrigation",
+      rooms: "renderRooms",
+      ev: "renderEvProfiles",
+      energy: "renderEnergy",
     };
     call(names[change.section], change);
     if (change.section === "appliances" || change.section === "energy")
@@ -58,6 +65,12 @@ export function createRenderCoordinator(store, renderers = {}) {
       call("renderLights", change);
       call("renderAppliances", change);
     }
+    // Keep the open editor in step with the optimistic model (and with a
+    // rollback).  Previously only dashboard renderers were called here, so
+    // the stale editor DOM survived until editorSwitch() happened to rebuild it.
+    call("renderCurrentEditor", change.section, change);
+    call("renderDropdowns", change.section, change);
+    call("renderDashboard", change.section, change);
     if (change.visibilityChanged) call("renderNavbar", change);
   });
 }
@@ -130,6 +143,8 @@ const ENERGY_GROUPS = [
   ],
 ];
 
+const ENERGY_ICONS = { house: "🏠", grid: "🔌", solar: "☀️", battery: "🔋" };
+
 export function renderEnergyEditor(
   document,
   target,
@@ -142,26 +157,31 @@ export function renderEnergyEditor(
   const root = typeof target === "string" ? document.querySelector(target) : target;
   if (!root) return;
   root.replaceChildren();
-  root.classList.add("ed-list");
-  for (const [group, title, fields] of ENERGY_GROUPS) {
-    const block = document.createElement("section");
-    block.className = "ed-acc";
-    const heading = document.createElement("h3");
-    heading.textContent = title;
+  root.classList.add("ed-list", "dm-energy-editor");
+  ENERGY_GROUPS.forEach(([group, title, fields], groupIndex) => {
+    const block = document.createElement("details");
+    block.className = "dm-energy-editor__group";
+    block.open = groupIndex === 0;
+    const heading = document.createElement("summary");
+    heading.className = "dm-energy-editor__heading";
+    const configured = fields.filter(([key]) => Boolean(model[group]?.[key])).length;
+    heading.innerHTML = `<span>${ENERGY_ICONS[group]} ${title}</span><small>${configured}/${fields.length} configurati</small>`;
     block.append(heading);
+    const body = document.createElement("div");
+    body.className = "dm-energy-editor__body";
     for (const [key, label, unit, example] of fields) {
       const field = document.createElement("label");
-      field.className = "ed-slot";
-      field.innerHTML = `<span>${label} <small>Facoltativo · ${unit}</small></span><em>Entità Home Assistant, es. ${example}</em>`;
+      field.className = "dm-energy-editor__field";
+      field.innerHTML = `<span class="dm-energy-editor__label">${label}<span class="dm-energy-editor__badges"><small>${unit}</small><small>Facoltativo</small></span></span><em>Entità Home Assistant, es. ${example}</em>`;
       const row = document.createElement("span");
-      row.className = "ed-row";
+      row.className = "dm-energy-editor__input-row";
       const input = document.createElement("input");
       input.name = `${group}.${key}`;
       input.value = model[group]?.[key] || "";
       input.placeholder = example;
       input.dataset.validation = !input.value || states[input.value] ? "valid" : "invalid";
       const preview = document.createElement("output");
-      preview.textContent = states[input.value]?.state ?? "—";
+      preview.textContent = `${locale === "it" ? "Valore" : "Value"}: ${states[input.value]?.state ?? "—"}${states[input.value]?.state != null ? ` ${unit}` : ""}`;
       const pick = document.createElement("button");
       pick.type = "button";
       pick.textContent = "🔍";
@@ -170,12 +190,13 @@ export function renderEnergyEditor(
       pick.addEventListener("click", () => handlers.onPick?.(input));
       row.append(input, pick, preview);
       field.append(row);
-      block.append(field);
+      body.append(field);
     }
+    block.append(body);
     root.append(block);
-  }
+  });
   const appliancesBlock = document.createElement("section");
-  appliancesBlock.className = "ed-acc";
+  appliancesBlock.className = "dm-energy-editor__report";
   const heading = document.createElement("h3");
   heading.textContent = locale === "it" ? "Elettrodomestici" : "Appliances";
   appliancesBlock.append(heading);
