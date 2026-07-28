@@ -154,6 +154,31 @@ const ENERGY_GROUPS = [
 ];
 
 const ENERGY_ICONS = { house: "🏠", grid: "🔌", solar: "☀️", battery: "🔋" };
+const ENERGY_EN = Object.freeze({
+  Casa: "Home",
+  Rete: "Grid",
+  Fotovoltaico: "Solar",
+  Batteria: "Battery",
+  "Potenza istantanea": "Instant power",
+  "Energia giornaliera": "Daily energy",
+  "Energia mensile": "Monthly energy",
+  "Energia totale": "Total energy",
+  "Potenza rete": "Grid power",
+  "Potenza prelevata": "Import power",
+  "Potenza immessa": "Export power",
+  "Energia prelevata giornaliera": "Daily imported energy",
+  "Energia immessa giornaliera": "Daily exported energy",
+  "Energia prelevata mensile": "Monthly imported energy",
+  "Energia immessa mensile": "Monthly exported energy",
+  "Energia totale prelevata": "Total imported energy",
+  "Energia totale immessa": "Total exported energy",
+  Potenza: "Power",
+  SOC: "State of charge",
+  "Energia caricata": "Charged energy",
+  "Energia scaricata": "Discharged energy",
+  "Caricata oggi": "Charged today",
+  "Caricata questo mese": "Charged this month",
+});
 
 export function createEntityPickerField(
   document,
@@ -253,11 +278,12 @@ export function renderEnergyEditor(
     const heading = document.createElement("summary");
     heading.className = "ed-acc-head";
     const configured = fields.filter(([key]) => Boolean(model[group]?.[key])).length;
-    heading.innerHTML = `<span>${ENERGY_ICONS[group]} ${title}</span><small>${configured}/${fields.length} configurati</small>`;
+    heading.innerHTML = `<span>${ENERGY_ICONS[group]} ${locale === "en" ? ENERGY_EN[title] || title : title}</span><small>${configured}/${fields.length} ${locale === "en" ? "configured" : "configurati"}</small>`;
     block.append(heading);
     const body = document.createElement("div");
     body.className = "ed-acc-body";
-    for (const [key, label, unit, example] of fields) {
+    for (const [key, sourceLabel, unit, example] of fields) {
+      const label = locale === "en" ? ENERGY_EN[sourceLabel] || sourceLabel : sourceLabel;
       const field = document.createElement("label");
       field.className = "ed-slot";
       field.innerHTML = `<span class="ed-slot-lbl">${label} <span class="ed-acc-n">${unit}</span> <span class="ed-acc-n">Facoltativo</span></span><span class="ed-hint">Entità Home Assistant, es. ${example}</span>`;

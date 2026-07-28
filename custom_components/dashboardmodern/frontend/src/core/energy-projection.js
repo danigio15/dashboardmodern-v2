@@ -1,9 +1,27 @@
 export const ENERGY_SLOT_MAP = Object.freeze({
   "house.power": "dm.energy_potenza_consumo_casa",
+  "house.daily_energy": "dm.energy_consumo_casa_oggi",
+  "house.monthly_energy": "dm.energy_consumo_casa_mese",
+  "house.total_energy": "dm.energy_consumo_casa_anno",
   "grid.power": "dm.energy_potenza_scambio_rete",
+  "grid.import_power": "dm.energy_potenza_prelevata_rete",
+  "grid.export_power": "dm.energy_potenza_immessa_rete",
+  "grid.daily_import_energy": "dm.energy_energia_prelevata_oggi",
+  "grid.daily_export_energy": "dm.energy_energia_immessa_oggi",
+  "grid.monthly_import_energy": "dm.energy_rete_acquistata_mese",
+  "grid.monthly_export_energy": "dm.energy_rete_venduta_mese",
+  "grid.total_import_energy": "dm.energy_rete_acquistata_totale",
+  "grid.total_export_energy": "dm.energy_rete_venduta_totale",
   "solar.power": "dm.energy_potenza_fotovoltaico",
+  "solar.daily_energy": "dm.energy_produzione_solare_oggi",
+  "solar.monthly_energy": "dm.energy_produzione_solare_mese",
+  "solar.total_energy": "dm.energy_produzione_solare_anno",
   "battery.power": "dm.energy_potenza_batteria",
   "battery.soc": "dm.energy_stato_carica_batteria",
+  "battery.charged_energy": "dm.energy_batteria_caricata_totale",
+  "battery.discharged_energy": "dm.energy_batteria_scaricata_totale",
+  "battery.daily_charged_energy": "dm.energy_batteria_caricata_oggi",
+  "battery.monthly_charged_energy": "dm.energy_batteria_caricata_mese",
 });
 
 export function projectEnergySlots(energy = {}, overrides = {}) {

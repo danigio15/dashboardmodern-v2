@@ -114,3 +114,43 @@ test("public report and multi-device sync consume canonical state only", async (
     assert.match(sync, /applySnapshot/);
   }
 });
+
+test("custom device cards use devs emptiness and never reference the Temperature visible list", async () => {
+  for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+    const source = await readFile(new URL(`../legacy/${variant}`, import.meta.url), "utf8");
+    const start = source.indexOf("function buildDeviceCards()");
+    const block = source.slice(start, source.indexOf("function updateDeviceCards()", start));
+    assert.match(block, /const devs = getDevices\(\)/);
+    assert.match(block, /if \(!devs\.length\)/);
+    assert.doesNotMatch(block, /visible/);
+    assert.doesNotMatch(block, /stanza|room con sensore/i);
+  }
+});
+
+test("Loads excludes manual Report entries and category controls", async () => {
+  const source = await readFile(moduleUrl, "utf8");
+  const start = source.indexOf("function mountLoadsEditor");
+  const block = source.slice(start, source.indexOf("const DashboardModernModules", start));
+  assert.doesNotMatch(block, /C\. VOCI REPORT MANUALI|dm-load-category/);
+  assert.match(block, /category !== "manual-report"/);
+});
+
+test("manual Report rows use the shared renderer and mount every dynamic control", async () => {
+  const source = await readFile(moduleUrl, "utf8");
+  assert.match(source, /export function renderReportRow\(item, index\)/);
+  const mountStart = source.indexOf("function mountReportEditor");
+  const mount = source.slice(mountStart, source.indexOf("function renderDiagnostics", mountStart));
+  assert.match(mount, /renderReportRow\(/);
+  assert.match(mount, /mountReportRowControls\(added, list, dirty\)/);
+  assert.match(source, /function mountReportRowControls/);
+  for (const control of [
+    "data-report-up",
+    "data-report-down",
+    "data-report-delete",
+    "data-icon-target",
+    "data-entity-target",
+  ])
+    assert.match(source, new RegExp(control));
+  assert.match(mount, /list\.querySelector\("\.ed-empty"\)\?\.remove\(\)/);
+  assert.match(mount, /const currentActions = target\.querySelector/);
+});

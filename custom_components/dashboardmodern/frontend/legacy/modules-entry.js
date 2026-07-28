@@ -24,8 +24,8 @@ import { canonicalReportDevices } from "../src/core/energy-projection.js";
 export const MODULES_VERSION = 14;
 const LOCALE = globalThis.document?.documentElement?.lang === "en" ? "en" : "it";
 const COPY = Object.freeze({
-  it: { optional: "Facoltativo", select: "Seleziona", saveReport: "Salva Report", saved: "Salvato", dirty: "Modifiche non salvate", saving: "Salvataggio…", addManual: "Aggiungi voce manuale", empty: "Nessun elemento configurato.", reportIntro: "Seleziona e ordina il Report senza modificare l'ordine della dashboard.", reportLabel: "Etichetta", reportEntity: "Entità Report", history: "Storico", name: "Nome", entity: "Entità", add: "Aggiungi", required: "Nome ed entità sono obbligatori", moveUp: "Sposta su", moveDown: "Sposta giù", remove: "Elimina" },
-  en: { optional: "Optional", select: "Select", saveReport: "Save Report", saved: "Saved", dirty: "Unsaved changes", saving: "Saving…", addManual: "Add manual entry", empty: "No configured items.", reportIntro: "Select and order Report entries without changing dashboard order.", reportLabel: "Label", reportEntity: "Report entity", history: "History", name: "Name", entity: "Entity", add: "Add", required: "Name and entity are required", moveUp: "Move up", moveDown: "Move down", remove: "Delete" },
+  it: { optional: "Facoltativo", select: "Seleziona", saveReport: "Salva Report", saved: "Report salvato", dirty: "Modifiche non salvate", saving: "Salvataggio…", addManual: "Aggiungi voce manuale", empty: "Nessun elemento configurato.", reportIntro: "Seleziona e ordina il Report senza modificare l'ordine della dashboard.", reportLabel: "Etichetta", reportEntity: "Entità Report", history: "Storico", name: "Nome", entity: "Entità", add: "Aggiungi", required: "Nome ed entità sono obbligatori", moveUp: "Sposta su", moveDown: "Sposta giù", remove: "Elimina", energyCost: "Costo energia", energyRates: "Tariffe usate dal Report Energia.", saveCosts: "Salva costi", loadsIntro: "Carichi e Report condividono il modello canonico senza duplicati.", appliances: "Elettrodomestici / dispositivi", secondaryLoads: "Carichi secondari", noLoads: "Nessun carico configurato", editLoad: "Modifica carico", newLoad: "Nuovo carico", visibleReport: "Visibile nel report", visibleDashboard: "Visibile nella dashboard", addLoad: "Aggiungi carico", saveChanges: "Salva modifiche", powerEntity: "Entità potenza", dailyEnergy: "Energia giornaliera", monthlyEnergy: "Energia mensile", totalEnergy: "Energia totale", state: "Stato", control: "Comando ON/OFF", diagnostics: "Diagnostica runtime", languageVariant: "Lingua / variante", activeRenderer: "Renderer attivo", loadNameRequired: "Inserisci il nome del carico", energySaveFailed: "Salvataggio Energia fallito" },
+  en: { optional: "Optional", select: "Select", saveReport: "Save Report", saved: "Report saved", dirty: "Unsaved changes", saving: "Saving…", addManual: "Add manual entry", empty: "No configured items.", reportIntro: "Select and order Report entries without changing dashboard order.", reportLabel: "Label", reportEntity: "Report entity", history: "History", name: "Name", entity: "Entity", add: "Add", required: "Name and entity are required", moveUp: "Move up", moveDown: "Move down", remove: "Delete", energyCost: "Energy cost", energyRates: "Rates used by the Energy Report.", saveCosts: "Save costs", loadsIntro: "Loads and Report share the canonical model without duplicates.", appliances: "Appliances / devices", secondaryLoads: "Secondary loads", noLoads: "No configured loads", editLoad: "Edit load", newLoad: "New load", visibleReport: "Visible in Report", visibleDashboard: "Visible on dashboard", addLoad: "Add load", saveChanges: "Save changes", powerEntity: "Power entity", dailyEnergy: "Daily energy", monthlyEnergy: "Monthly energy", totalEnergy: "Total energy", state: "State", control: "On/off control", diagnostics: "Runtime diagnostics", languageVariant: "Language / variant", activeRenderer: "Active renderer", loadNameRequired: "Enter a load name", energySaveFailed: "Energy save failed" },
 });
 const t = (key) => COPY[LOCALE][key] || key;
 
@@ -114,14 +114,14 @@ function renderEnergyEditorTab(target) {
       renderReport: (report) => { renderReportEditor(report); mountReportEditor("report", report); },
       renderSettings: (settings) => {
         settings.innerHTML = `${globalThis.cdEnViewsHtml?.() || ""}
-          <div class="ed-form dm-energy-cost-card"><div class="ed-sec-title">💶 Costo energia</div>
-          <div class="ed-hint">Tariffe usate dal Report Energia.</div>
+          <div class="ed-form dm-energy-cost-card"><div class="ed-sec-title">💶 ${t("energyCost")}</div>
+          <div class="ed-hint">${t("energyRates")}</div>
           <div class="ed-form-row"><input id="ed-costo-kwh" class="ed-input" type="number" step="0.001" min="0" placeholder="€/kWh prelevato" value="${globalThis.cdCfg?.("cd_costo_kwh") || ""}"><input id="ed-prezzo-imm" class="ed-input" type="number" step="0.001" min="0" placeholder="€/kWh immesso" value="${globalThis.cdCfg?.("cd_prezzo_immissione") || ""}"></div>
-          <button class="ed-save-btn" onclick="edSaveCosti()">💾 Salva costi</button></div>`;
+          <button class="ed-save-btn" onclick="edSaveCosti()">💾 ${t("saveCosts")}</button></div>`;
       },
       onChange: (group, key, value) => {
         const next = store.getSection("energy"); next[group] ||= {}; next[group][key] = value;
-        store.replaceSection("energy", next).catch((error) => globalThis.alert?.(`Energy save failed: ${error.message}`));
+        store.replaceSection("energy", next).catch((error) => globalThis.alert?.(`${t("energySaveFailed")}: ${error.message}`));
       },
     });
 }
@@ -153,23 +153,45 @@ export function mountEntityPickers(target) {
   });
 }
 
+export function renderReportRow(item, index) {
+  const fieldToken = String(item.id || index).replace(/[^a-zA-Z0-9_-]/g, "-");
+  return `<div class="ed-row dm-report-row" data-report-id="${esc(item.id)}" data-section="${esc(item.section || "loads")}">
+    <label><input type="checkbox" data-report-toggle ${item.show_in_report !== false ? "checked" : ""}> Report</label>
+    <input class="ed-input" data-report-label placeholder="${t("reportLabel")}" value="${esc(item.report_label || item.name)}">
+    ${createIconField(`dm-report-icon-${fieldToken}`, item.report_icon || item.emoji_icon || item.icon)}
+    ${createEntityField({ id: `dm-report-entity-${fieldToken}`, label: t("reportEntity"), value: item.report_entity || item.monthly_energy_entity || item.total_energy_entity, optional: false })}
+    ${item.category === "manual-report" ? createEntityField({ id: `dm-report-history-${fieldToken}`, label: t("history"), value: item.history_entity }) : ""}
+    <span><button type="button" data-report-up aria-label="${t("moveUp")}">▲</button><button type="button" data-report-down aria-label="${t("moveDown")}">▼</button>${item.category === "manual-report" ? `<button type="button" data-report-delete aria-label="${t("remove")}">🗑️</button>` : ""}</span>
+    <input type="hidden" data-report-name value="${esc(item.name)}"><input type="hidden" data-report-category value="${esc(item.category)}">
+  </div>`;
+}
+
 function renderReportEditor(target) {
   const items = [...store.getSection("appliances"), ...store.getSection("loads")]
     .filter((item) => item.category !== "manual-report" || item.show_in_dashboard === false)
     .sort((a, b) => (a.report_order ?? a.order ?? 0) - (b.report_order ?? b.order ?? 0));
-  const row = (item, index) => `<div class="ed-row dm-report-row" data-report-id="${esc(item.id)}" data-section="${esc(item.section || "loads")}">
-    <label><input type="checkbox" data-report-toggle ${item.show_in_report !== false ? "checked" : ""}> Report</label>
-    <input class="ed-input" data-report-label placeholder="${t("reportLabel")}" value="${esc(item.report_label || item.name)}">
-    ${createIconField(`dm-report-icon-${index}`, item.report_icon || item.emoji_icon || item.icon)}
-    ${createEntityField({ id: `dm-report-entity-${index}`, label: t("reportEntity"), value: item.report_entity || item.monthly_energy_entity || item.total_energy_entity, optional: false })}
-    ${item.category === "manual-report" ? createEntityField({ id: `dm-report-history-${index}`, label: t("history"), value: item.history_entity }) : ""}
-    <span><button type="button" data-report-up aria-label="${t("moveUp")}">▲</button><button type="button" data-report-down aria-label="${t("moveDown")}">▼</button>${item.category === "manual-report" ? `<button type="button" data-report-delete aria-label="${t("remove")}">🗑️</button>` : ""}</span>
-    <input type="hidden" data-report-name value="${esc(item.name)}"><input type="hidden" data-report-category value="${esc(item.category)}">
-  </div>`;
-  target.innerHTML = `<div class="ed-intro">${t("reportIntro")}</div><div class="ed-list" data-report-list>${items.map(row).join("") || `<div class="ed-empty">${t("empty")}</div>`}</div>
+  target.innerHTML = `<div class="ed-intro">${t("reportIntro")}</div><div class="ed-list" data-report-list>${items.map(renderReportRow).join("") || `<div class="ed-empty">${t("empty")}</div>`}</div>
     <button type="button" class="ed-btn-add" data-report-add>＋ ${t("addManual")}</button>
     <div class="ed-form" data-report-manual hidden><input class="ed-input" data-manual-name placeholder="${t("name")}">${createIconField("dm-manual-report-icon")}${createEntityField({ id: "dm-manual-report-entity", label: t("entity"), optional: false })}${createEntityField({ id: "dm-manual-report-history", label: t("history") })}<button type="button" class="ed-btn-add" data-manual-confirm>${t("add")}</button></div>
     <div class="ed-action-bar" data-report-actions data-state="clean"><button type="button" class="ed-save-btn" data-report-save disabled>💾 ${t("saveReport")}</button><output data-report-status>${t("saved")}</output></div>`;
+}
+
+function mountReportRowControls(row, list, dirty) {
+  mountEntityPickers(row);
+  row.querySelector("[data-report-up]")?.addEventListener("click", () => {
+    const sibling = row.previousElementSibling;
+    if (sibling?.matches?.("[data-report-id]")) list.insertBefore(row, sibling);
+    dirty();
+  });
+  row.querySelector("[data-report-down]")?.addEventListener("click", () => {
+    const sibling = row.nextElementSibling;
+    if (sibling?.matches?.("[data-report-id]")) list.insertBefore(sibling, row);
+    dirty();
+  });
+  row.querySelector("[data-report-delete]")?.addEventListener("click", () => {
+    row.remove();
+    dirty();
+  });
 }
 
 function mountReportEditor(_tab, target) {
@@ -178,15 +200,11 @@ function mountReportEditor(_tab, target) {
   const status = target.querySelector("[data-report-status]");
   const actions = target.querySelector("[data-report-actions]");
   const dirty = () => { actions.dataset.state = "dirty"; save.disabled = false; status.textContent = t("dirty"); };
-  target.addEventListener("input", dirty);
-  target.addEventListener("change", dirty);
-  target.querySelectorAll("[data-report-up],[data-report-down]").forEach((button) => button.addEventListener("click", () => {
-    const current = button.closest("[data-report-id]");
-    const sibling = button.hasAttribute("data-report-up") ? current.previousElementSibling : current.nextElementSibling;
-    if (sibling?.matches?.("[data-report-id]")) list.insertBefore(button.hasAttribute("data-report-up") ? current : sibling, button.hasAttribute("data-report-up") ? sibling : current);
-    dirty();
-  }));
-  target.querySelectorAll("[data-report-delete]").forEach((button) => button.addEventListener("click", () => { button.closest("[data-report-id]").remove(); dirty(); }));
+  target.oninput = dirty;
+  target.onchange = dirty;
+  target.querySelectorAll("[data-report-id]").forEach((row) =>
+    mountReportRowControls(row, list, dirty),
+  );
   target.querySelector("[data-report-add]")?.addEventListener("click", () => { target.querySelector("[data-report-manual]").hidden = false; });
   target.querySelector("[data-manual-confirm]")?.addEventListener("click", () => {
     const name = target.querySelector("[data-manual-name]").value.trim();
@@ -194,11 +212,11 @@ function mountReportEditor(_tab, target) {
     if (!name || !entity.includes(".")) return globalThis.alert?.(t("required"));
     const id = `load-manual-${Date.now().toString(36)}`;
     const wrapper = globalThis.document.createElement("div");
-    wrapper.innerHTML = row({ id, section: "loads", category: "manual-report", name, report_entity: entity, history_entity: target.querySelector("#dm-manual-report-history").value.trim(), report_icon: target.querySelector("#dm-manual-report-icon").value.trim(), show_in_dashboard: false }, list.querySelectorAll("[data-report-id]").length);
+    wrapper.innerHTML = renderReportRow({ id, section: "loads", category: "manual-report", name, report_entity: entity, history_entity: target.querySelector("#dm-manual-report-history").value.trim(), report_icon: target.querySelector("#dm-manual-report-icon").value.trim(), show_in_dashboard: false }, list.querySelectorAll("[data-report-id]").length);
     const added = wrapper.firstElementChild;
+    list.querySelector(".ed-empty")?.remove();
     list.append(added);
-    added.querySelector("[data-report-delete]")?.addEventListener("click", () => { added.remove(); dirty(); });
-    mountEntityPickers(added);
+    mountReportRowControls(added, list, dirty);
     dirty();
   });
   save?.addEventListener("click", async () => {
@@ -210,7 +228,7 @@ function mountReportEditor(_tab, target) {
       report_entity: rowElement.querySelectorAll("[data-entity-field] input")[0]?.value || "",
       history_entity: rowElement.querySelectorAll("[data-entity-field] input")[1]?.value || "", report_order,
     }));
-    try { await store.saveReport(draft); actions.dataset.state = "success"; status.textContent = t("saved"); }
+    try { await store.saveReport(draft); const currentActions = target.querySelector("[data-report-actions]"); currentActions.dataset.state = "success"; target.querySelector("[data-report-status]").textContent = t("saved"); }
     catch (error) { globalThis.console?.error?.("[Report] rollback", error, before); renderReportEditor(target); mountReportEditor("report", target); const rolled = target.querySelector("[data-report-actions]"); rolled.dataset.state = "error"; target.querySelector("[data-report-status]").textContent = `Error: ${error.message}`; }
   });
   mountEntityPickers(target);
@@ -225,11 +243,11 @@ function renderDiagnostics(target) {
     "Dashboard version": globalThis.DASHBOARD_VERSION || BUILD_INFO.dashboardVersion,
     "Module version": MODULES_VERSION, "Schema version": store.getState().schema_version,
     "HTML URL": globalThis.location?.href || "", "modules-entry.js URL": import.meta.url,
-    "Static asset hash": location.pathname.match(/dashboardmodern_static\/([^/]+)/)?.[1] || BUILD_INFO.assetHash, "Lingua / variante": `${document.documentElement.lang || "?"} / ${location.pathname.split("/").pop()}`,
-    "Renderer tab attivo": document.querySelector(".ed-tab.active")?.dataset?.tab || "diagnostics",
+    "Static asset hash": location.pathname.match(/dashboardmodern_static\/([^/]+)/)?.[1] || BUILD_INFO.assetHash, [t("languageVariant")]: `${document.documentElement.lang || "?"} / ${location.pathname.split("/").pop()}`,
+    [t("activeRenderer")]: document.querySelector(".ed-tab.active")?.dataset?.tab || "diagnostics",
     "Git commit": BUILD_INFO.commit, "Build date": BUILD_INFO.date,
   };
-  target.innerHTML = `<div class="ed-sec-title">🩺 Diagnostica runtime</div><div class="ed-list">${Object.entries(rows).map(([key, value]) => `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${esc(key)}</div><div class="ed-row-old mono">${esc(value)}</div></div></div>`).join("")}</div>`;
+  target.innerHTML = `<div class="ed-sec-title">🩺 ${t("diagnostics")}</div><div class="ed-list">${Object.entries(rows).map(([key, value]) => `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${esc(key)}</div><div class="ed-row-old mono">${esc(value)}</div></div></div>`).join("")}</div>`;
   target.dataset.runtimeDiagnostics = "true";
 }
 
@@ -277,21 +295,20 @@ export function mountCurrentEditor(section, target = globalThis.document?.getEle
   target.querySelectorAll?.("details.ed-acc").forEach((details) => details.dataset.editorMounted = "true");
   target.dataset.mountedSection = section || "";
 }
-function mountLoadsEditor(target, editId = "", mode = "loads") {
+function mountLoadsEditor(target, editId = "") {
   const loads = store.getSection("loads");
   const appliances = store.getSection("appliances");
   const current = loads.find((item) => item.id === editId) || {};
-  const cards = (items, manual, readOnly = false) => items.map((item) => `<div class="ed-row" data-load-id="${esc(item.id)}"><div class="ed-row-main"><div class="ed-row-new">${esc(item.icon || "🔌")} ${esc(item.name || "Carico")}</div><div class="ed-row-old">${esc(item.category || (manual ? "Voce report" : "Carico secondario"))}</div></div>${readOnly ? "" : `<button class="ed-del" data-edit-load="${esc(item.id)}" title="Modifica">✏️</button><button class="ed-del" data-delete-load="${esc(item.id)}" title="Elimina">🗑️</button>`}</div>`).join("") || '<div class="ed-empty">Nessuna voce configurata</div>';
-  target.innerHTML = `<div class="ed-intro">${mode === "report" ? "Configura qui Elettrodomestici, Carichi secondari e Voci manuali usando il solo modello canonico." : "Carichi e Report condividono lo stesso modello: nessuna configurazione viene duplicata."}</div><details class="ed-acc" open><summary class="ed-acc-head">A. DISPOSITIVI / ELETTRODOMESTICI <span class="ed-acc-n">${appliances.length}</span></summary><div class="ed-acc-body"><div class="ed-intro">Collegati al modello canonico Elettrodomestici; si modificano una sola volta nella sezione dedicata.</div>${cards(appliances, false, true)}</div></details>
-    <details class="ed-acc" open><summary class="ed-acc-head">B. CARICHI SECONDARI <span class="ed-acc-n">${loads.filter((x) => x.category !== "manual-report").length}</span></summary><div class="ed-acc-body">${cards(loads.filter((x) => x.category !== "manual-report"), false)}</div></details>
-    <details class="ed-acc"><summary class="ed-acc-head">C. VOCI REPORT MANUALI <span class="ed-acc-n">${loads.filter((x) => x.category === "manual-report").length}</span></summary><div class="ed-acc-body">${cards(loads.filter((x) => x.category === "manual-report"), true)}</div></details>
-    <div class="ed-form" data-load-form><div class="ed-sec-title">${editId ? "Modifica carico" : "Nuovo carico secondario"}</div><div class="ed-form-row"><input id="dm-load-name" class="ed-input" placeholder="Nome" value="${esc(current.name)}"><input id="dm-load-icon" class="ed-input ed-icon-input" placeholder="🔌 / mdi:power-plug" value="${esc(current.icon)}"></div><div class="ed-form-row"><input id="dm-load-category" class="ed-input" placeholder="Categoria" value="${esc(current.category || "secondary")}"><select id="dm-load-room" class="ed-input">${globalThis.cdRoomOptions?.(current.room_id) || ""}</select></div>${entityField("dm-load-power", "Entità potenza", current.power_entity, "sensor.carico_power")}${entityField("dm-load-day", "Energia giornaliera", current.daily_energy_entity)}${entityField("dm-load-month", "Energia mensile", current.monthly_energy_entity)}${entityField("dm-load-total", "Energia totale", current.total_energy_entity)}${entityField("dm-load-history", "Storico", current.history_entity)}${entityField("dm-load-state", "Stato", current.state_entity)}${entityField("dm-load-control", "Comando ON/OFF", current.control_entity, "switch.carico")}<label class="ed-intro"><input id="dm-load-report" type="checkbox" ${current.show_in_report !== false ? "checked" : ""}> Visibile nel report</label><label class="ed-intro"><input id="dm-load-dashboard" type="checkbox" ${current.show_in_dashboard !== false ? "checked" : ""}> Visibile nella dashboard</label><button class="ed-btn-add" data-save-load>💾 ${editId ? "Salva modifiche" : "Aggiungi carico"}</button></div>`;
+  const cards = (items, readOnly = false) => items.map((item) => `<div class="ed-row" data-load-id="${esc(item.id)}"><div class="ed-row-main"><div class="ed-row-new">${esc(item.emoji_icon || item.icon || "🔌")} ${esc(item.name || t("newLoad"))}</div><div class="ed-row-old">${esc(item.category || "secondary")}</div></div>${readOnly ? "" : `<button class="ed-del" data-edit-load="${esc(item.id)}" title="${t("editLoad")}">✏️</button><button class="ed-del" data-delete-load="${esc(item.id)}" title="${t("remove")}">🗑️</button>`}</div>`).join("") || `<div class="ed-empty">${t("noLoads")}</div>`;
+  target.innerHTML = `<div class="ed-intro">${t("loadsIntro")}</div><details class="ed-acc" open><summary class="ed-acc-head">A. ${t("appliances")} <span class="ed-acc-n">${appliances.length}</span></summary><div class="ed-acc-body">${cards(appliances, true)}</div></details>
+    <details class="ed-acc" open><summary class="ed-acc-head">B. ${t("secondaryLoads")} <span class="ed-acc-n">${loads.filter((x) => x.category !== "manual-report").length}</span></summary><div class="ed-acc-body">${cards(loads.filter((x) => x.category !== "manual-report"))}</div></details>
+    <div class="ed-form" data-load-form><div class="ed-sec-title">${editId ? t("editLoad") : t("newLoad")}</div><div class="ed-form-row"><input id="dm-load-name" class="ed-input" placeholder="${t("name")}" value="${esc(current.name)}"><input id="dm-load-icon" class="ed-input ed-icon-input" placeholder="🔌 / mdi:power-plug" value="${esc(current.emoji_icon || current.icon)}"></div><div class="ed-form-row"><select id="dm-load-room" class="ed-input">${globalThis.cdRoomOptions?.(current.room_id) || ""}</select></div>${entityField("dm-load-power", t("powerEntity"), current.power_entity, "sensor.load_power")}${entityField("dm-load-day", t("dailyEnergy"), current.daily_energy_entity)}${entityField("dm-load-month", t("monthlyEnergy"), current.monthly_energy_entity)}${entityField("dm-load-total", t("totalEnergy"), current.total_energy_entity)}${entityField("dm-load-history", t("history"), current.history_entity)}${entityField("dm-load-state", t("state"), current.state_entity)}${entityField("dm-load-control", t("control"), current.control_entity, "switch.load")}<label class="ed-intro"><input id="dm-load-report" type="checkbox" ${current.show_in_report !== false ? "checked" : ""}> ${t("visibleReport")}</label><label class="ed-intro"><input id="dm-load-dashboard" type="checkbox" ${current.show_in_dashboard !== false ? "checked" : ""}> ${t("visibleDashboard")}</label><button class="ed-btn-add" data-save-load>💾 ${editId ? t("saveChanges") : t("addLoad")}</button></div>`;
   target.querySelectorAll?.("[data-edit-load]").forEach((button) => button.addEventListener("click", () => mountLoadsEditor(target, button.dataset.editLoad)));
   target.querySelectorAll?.("[data-delete-load]").forEach((button) => button.addEventListener("click", async () => { try { await store.removeItem("loads", button.dataset.deleteLoad); } catch (error) { globalThis.alert?.(error.message); } }));
   target.querySelector?.("[data-save-load]")?.addEventListener("click", async () => {
     const value = (id) => target.querySelector(`#${id}`)?.value?.trim() || "";
-    const item = { name: value("dm-load-name"), icon: value("dm-load-icon"), category: value("dm-load-category") || "secondary", room_id: value("dm-load-room"), power_entity: value("dm-load-power"), daily_energy_entity: value("dm-load-day"), monthly_energy_entity: value("dm-load-month"), total_energy_entity: value("dm-load-total"), history_entity: value("dm-load-history"), state_entity: value("dm-load-state"), control_entity: value("dm-load-control"), show_in_report: !!target.querySelector("#dm-load-report")?.checked, show_in_dashboard: !!target.querySelector("#dm-load-dashboard")?.checked, order: current.order ?? loads.length };
-    if (!item.name) return globalThis.alert?.("Inserisci il nome del carico");
+    const item = { name: value("dm-load-name"), icon: value("dm-load-icon"), category: current.category && current.category !== "manual-report" ? current.category : "secondary", room_id: value("dm-load-room"), power_entity: value("dm-load-power"), daily_energy_entity: value("dm-load-day"), monthly_energy_entity: value("dm-load-month"), total_energy_entity: value("dm-load-total"), history_entity: value("dm-load-history"), state_entity: value("dm-load-state"), control_entity: value("dm-load-control"), show_in_report: !!target.querySelector("#dm-load-report")?.checked, show_in_dashboard: !!target.querySelector("#dm-load-dashboard")?.checked, order: current.order ?? loads.length };
+    if (!item.name) return globalThis.alert?.(t("loadNameRequired"));
     try { await (editId ? store.updateItem("loads", editId, item) : store.addItem("loads", item)); }
     catch (error) { globalThis.alert?.(error.message); }
   });

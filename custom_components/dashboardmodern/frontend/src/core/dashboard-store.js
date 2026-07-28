@@ -269,10 +269,12 @@ export class DashboardStore {
         const section = draft.category === "manual-report" ? "loads" : draft.section;
         const list = bySection[section];
         const index = list.findIndex((item) => item.id === draft.id);
+        const existing = index >= 0 ? list[index] : {};
         const patch = {
           ...draft,
           report_order: Number(draft.report_order) || 0,
-          show_in_dashboard: draft.category === "manual-report" ? false : draft.show_in_dashboard,
+          show_in_dashboard:
+            draft.category === "manual-report" ? false : existing.show_in_dashboard !== false,
         };
         if (index < 0)
           list.push(

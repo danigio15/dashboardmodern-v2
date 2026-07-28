@@ -521,3 +521,66 @@ test("canonical snapshot transfers loads and Report settings atomically between 
     false,
   );
 });
+
+test("Report edits preserve a normal load's explicit dashboard visibility", async () => {
+  const { store } = setup();
+  const load = await store.addItem("loads", {
+    name: "Hidden pump",
+    power_entity: "sensor.hidden_pump",
+    show_in_dashboard: false,
+    show_in_report: true,
+  });
+  await store.saveReport([
+    {
+      id: load.id,
+      section: "loads",
+      category: load.category,
+      name: load.name,
+      show_in_report: true,
+      report_label: "Report pump",
+      report_entity: "sensor.hidden_pump_month",
+      report_order: 1,
+    },
+  ]);
+  const saved = store.getSection("loads")[0];
+  assert.equal(saved.show_in_dashboard, false);
+  assert.equal(saved.report_label, "Report pump");
+});
+
+test("every Energy editor field has one deterministic public slot", () => {
+  const fields = {
+    house: ["power", "daily_energy", "monthly_energy", "total_energy"],
+    grid: [
+      "power",
+      "import_power",
+      "export_power",
+      "daily_import_energy",
+      "daily_export_energy",
+      "monthly_import_energy",
+      "monthly_export_energy",
+      "total_import_energy",
+      "total_export_energy",
+    ],
+    solar: ["power", "daily_energy", "monthly_energy", "total_energy"],
+    battery: [
+      "power",
+      "soc",
+      "charged_energy",
+      "discharged_energy",
+      "daily_charged_energy",
+      "monthly_charged_energy",
+    ],
+  };
+  const model = {};
+  let index = 0;
+  for (const [group, keys] of Object.entries(fields)) {
+    model[group] = {};
+    for (const key of keys) model[group][key] = `sensor.energy_${index++}`;
+  }
+  const projected = projectEnergySlots(model, {});
+  assert.equal(Object.keys(projected).length, index);
+  assert.deepEqual(
+    new Set(Object.values(projected)),
+    new Set(Array.from({ length: index }, (_, i) => `sensor.energy_${i}`)),
+  );
+});
