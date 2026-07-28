@@ -89,14 +89,58 @@ test("Energy real DOM opens Flussi by default, switches settings and reuses the 
   assert.equal(panels.find((node) => node.dataset.energyPanel === "flows").hidden, false);
   assert.equal(panels.find((node) => node.dataset.energyPanel === "settings").hidden, true);
   const tabs = root.queryAll((node) => node.classList.contains("ed-inner-tab"));
-  tabs[1].click();
-  assert.equal(panels[0].hidden, true);
-  assert.equal(panels[1].hidden, false);
+  assert.deepEqual(
+    tabs.map((tab) => tab.textContent),
+    ["FLUSSI ED ENTITÀ", "CARICHI", "IMPOSTAZIONI"],
+  );
+  tabs[2].click();
+  assert.equal(panels.find((node) => node.dataset.energyPanel === "flows").hidden, true);
+  assert.equal(panels.find((node) => node.dataset.energyPanel === "settings").hidden, false);
   const picker = root.queryAll((node) => node.classList.contains("dm-entity-picker"))[0];
   assert.ok(picker);
   picker.click();
   assert.equal(picked.value, "sensor.house");
   assert.match(root.queryAll((node) => node.tagName === "OUTPUT")[0].textContent, /432 W/);
+});
+
+test("empty Energy fields have no fixed Value placeholder and pickers survive 20 rerenders", () => {
+  const root = new Element("div");
+  let picks = 0;
+  for (let pass = 0; pass < 20; pass++) {
+    renderEnergyEditor(document, root, {}, [], {}, "it", { onPick: () => picks++ });
+    const pickers = root.queryAll((node) => node.classList.contains("dm-entity-picker"));
+    assert.ok(pickers.length > 0);
+    assert.equal(root.queryAll((node) => node.tagName === "OUTPUT").length, 0);
+    pickers.forEach((picker) => picker.click());
+  }
+  assert.ok(picks > 20);
+  assert.doesNotMatch(root.innerHTML, /Valore:/);
+});
+
+test("editor navbar exposes Loads only inside Energy and has no standalone washer", async () => {
+  for (const file of ["dashboard.html", "dashboard-en.html"]) {
+    const source = await readFile(new URL(`../legacy/${file}`, import.meta.url), "utf8");
+    const editor = source.slice(
+      source.indexOf('<div class="ed-tabs">'),
+      source.indexOf('<div class="ed-body"'),
+    );
+    assert.doesNotMatch(editor, /data-tab="load"/);
+    assert.doesNotMatch(editor, /data-tab="sez5"/);
+  }
+});
+
+test("legacy washer mappings migrate into the canonical appliance list", () => {
+  const state = readLegacyState(
+    storage({
+      cd_entity_overrides: {
+        "dm.lavatrice_presa_avvio_lavatrice": "switch.washer",
+        "dm.lavatrice_potenza_presa_lavatrice_per_lavatrici_no": "sensor.washer_power",
+      },
+    }),
+  );
+  const washer = state.sections.appliances.find((item) => item.id === "appliance-lavatrice");
+  assert.equal(washer.control_entity, "switch.washer");
+  assert.equal(washer.power_entity, "sensor.washer_power");
 });
 
 test("legacy secondary loads and manual report rows migrate once without duplicates", () => {

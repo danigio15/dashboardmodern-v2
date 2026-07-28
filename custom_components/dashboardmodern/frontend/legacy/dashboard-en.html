@@ -6199,7 +6199,7 @@ body.cd-nav-fixed { padding-bottom: 96px !important; }
    localStorage (se presente) ha priorità, così puoi ancora testare in locale.
    ─────────────────────────────────────────────────────────────────── */
 /* ═══ v258: VERSIONE — visibile in console, wizard e pagina Config ═══ */
-const DASHBOARD_VERSION = '0.13.2';
+const DASHBOARD_VERSION = '0.13.3';
 console.log('%c🏠 Dashboard Modern v' + DASHBOARD_VERSION, 'font-size:14px; font-weight:bold; color:#0ea5e9;');
 
 /* CD_BAKED_START */
@@ -7297,11 +7297,9 @@ function apriConfigEntita() {
           <button class="ed-tab" data-tab="sost"  onclick="editorSwitch('sost')">🔁 Overrides</button>
           <button class="ed-tab" data-tab="sez0" onclick="editorSwitch('sez0')">🏠 Home</button>
           <button class="ed-tab" data-tab="sez1" onclick="editorSwitch('sez1')">⚡ Energy</button>
-          <button class="ed-tab" data-tab="load"  onclick="editorSwitch('load')">🔌 Loads</button>
           <button class="ed-tab" data-tab="sez2" onclick="editorSwitch('sez2')">🚗 EV</button>
           <button class="ed-tab" data-tab="sez3" onclick="editorSwitch('sez3')">🌞 Solare</button>
           <button class="ed-tab" data-tab="sez4" onclick="editorSwitch('sez4')">🛡️ Sicurezza</button>
-          <button class="ed-tab" data-tab="sez5" onclick="editorSwitch('sez5')">🧺 Lavatrice</button>
           <button class="ed-tab" data-tab="sez6" onclick="editorSwitch('sez6')">🖥️ MiniPC</button>
           <button class="ed-tab" data-tab="sez7" onclick="editorSwitch('sez7')">🌡️ Temperatura</button>
           <button class="ed-tab" data-tab="sez8" onclick="editorSwitch('sez8')">⚡ Azioni</button>
@@ -7344,6 +7342,7 @@ function editorSwitch(tab) {
     if (tab === 'testi')  body.innerHTML = editorRenderTesti();
     if (tab === 'hide')   body.innerHTML = editorRenderHide();
     if (tab === 'export') body.innerHTML = editorRenderExport();
+    try { var dmMount=globalThis.DashboardModernModules; if(dmMount&&dmMount.render) dmMount.render.mountCurrentEditor(tab, body); } catch(e){}
 }
 
 /* ─────────── TAB 1: SOSTITUZIONI (override entity) ─────────── */
@@ -7785,6 +7784,7 @@ function cdDbgStatus(){ try { return '<div class="ed-intro mono" style="font-siz
     }
 
     html += `<button class="ed-save-btn" onclick="edToast('💾 Lights layout saved — reload to apply'); cdSyncPush && cdSyncPush();">💾 Save lights layout</button>`;
+    html += `<div class="ed-form dm-light-add-form"><div class="ed-sec-title">＋ ADD LIGHT</div><div class="ed-form-row"><input id="luce-add-ent" class="ed-input mono" placeholder="light.living_room"><button type="button" class="dm-entity-picker" data-entity-target="luce-add-ent">🔍</button></div><input id="luce-add-name" class="ed-input" placeholder="Light name (optional)"><button class="ed-btn-add" onclick="cdLuceAdd()">＋ Add light</button></div>`;
     return html;
 }
 

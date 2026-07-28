@@ -74,7 +74,7 @@ for (const [file, labels] of [
         Math.max(0, match.index - 250),
         match.index + match[0].length + 700,
       );
-      assert.match(around, /wzPickEntity/, match[0]);
+      assert.match(around, /wzPickEntity|data-entity-target/, match[0]);
     }
   });
 
