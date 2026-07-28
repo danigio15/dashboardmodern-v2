@@ -57,10 +57,9 @@ def main() -> None:
             }
             missing = required - names
             if missing:
-                raise RuntimeError(
-                    "Release archive missing required root files: "
-                    f"{sorted(missing)}"
-                )
+                details = ", ".join(sorted(missing))
+                message = f"Release archive missing required root files: {details}"
+                raise RuntimeError(message)
             if any(name.startswith("custom_components/") for name in names):
                 raise RuntimeError(
                     "Release archive contains an invalid nested "
