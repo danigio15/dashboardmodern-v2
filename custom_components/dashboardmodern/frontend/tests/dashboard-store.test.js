@@ -251,3 +251,71 @@ test("legacy writes are reconciled back into the canonical runtime state", async
     "Legacy",
   );
 });
+
+test("add, update, delete and rollback rerender the active editor exactly once", async () => {
+  const storage = new MemoryStorage();
+  let fail = false;
+  const store = new DashboardStore({
+    storage,
+    sync: async () => {
+      if (fail) throw new Error("backend unavailable");
+    },
+  });
+  store.migrate();
+  const calls = [];
+  createRenderCoordinator(store, {
+    renderCurrentEditor: (section, change) => calls.push(`editor:${section}:${change.status}`),
+    renderDashboard: (section, change) => calls.push(`dashboard:${section}:${change.status}`),
+    renderDropdowns: (section, change) => calls.push(`dropdowns:${section}:${change.status}`),
+  });
+  const item = await store.addItem("appliances", { name: "Forno", icon: "mdi:stove" });
+  assert.equal(calls.filter((call) => call === "editor:appliances:optimistic").length, 1);
+  await store.updateItem("appliances", item.id, { name: "Forno nuovo", icon: "mdi:oven" });
+  assert.equal(store.getSection("appliances")[0].name, "Forno nuovo");
+  await store.removeItem("appliances", item.id);
+  assert.equal(store.getSection("appliances").length, 0, "delete is visible before navigation");
+
+  const camera = await store.addItem("cameras", { name: "Ingresso", entity: "camera.ingresso" });
+  fail = true;
+  await assert.rejects(store.removeItem("cameras", camera.id), /backend unavailable/);
+  assert.equal(
+    store.getSection("cameras").length,
+    1,
+    "rollback restores the deleted row immediately",
+  );
+  assert.equal(calls.filter((call) => call === "editor:cameras:rollback").length, 1);
+  assert.ok(calls.some((call) => call.startsWith("dashboard:")));
+  assert.ok(calls.some((call) => call.startsWith("dropdowns:")));
+});
+
+test("all CRUD editor sections are registered with the reactive coordinator", async () => {
+  const { store } = setup();
+  const rendered = [];
+  createRenderCoordinator(store, { renderCurrentEditor: (section) => rendered.push(section) });
+  for (const section of [
+    "appliances",
+    "cameras",
+    "rooms",
+    "ev",
+    "lights",
+    "climate",
+    "covers",
+  ]) {
+    await store.addItem(section, { name: section, entity: `sensor.${section}` });
+  }
+  await store.replaceSection("pool", { tempEnt: "sensor.pool" });
+  await store.replaceSection("irrigation", { zones: [] });
+  await store.replaceSection("energy", { house: { power: "sensor.house" } });
+  assert.deepEqual(rendered, [
+    "appliances",
+    "cameras",
+    "rooms",
+    "ev",
+    "lights",
+    "climate",
+    "covers",
+    "pool",
+    "irrigation",
+    "energy",
+  ]);
+});

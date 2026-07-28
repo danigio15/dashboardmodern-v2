@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.1 — 2026-07-28
+
+- Editor Energia compatto e richiudibile, ottimizzato per mobile.
+- CRUD ottimistico aggiorna immediatamente editor, dashboard, report e selettori, incluso rollback.
+
 ## 0.13.0 — 2026-07-28
 
 - Introduced the canonical DashboardStore, schema v2 migration and targeted reactive render coordination.
