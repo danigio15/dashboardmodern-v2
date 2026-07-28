@@ -6442,7 +6442,7 @@ function apriApplianceDetail(i){
 }
 
 
-function cdApplEntity(a, keys) {
+function cdApplEntity(a, keys){ var v=cdApplEntityOrig(a, keys); if(v) return v; try { var ents=(a&&a.entities||[]).map(function(e){ return typeof e==='string'?e:e.entity; }).filter(Boolean); var k=String(keys&&keys[0]||''); function dom(d){ for(var i=0;i<ents.length;i++){ if(ents[i].indexOf(d+'.')===0) return ents[i]; } return null; } if(k.indexOf('switch')===0) return dom('switch')||dom('light')||dom('input_boolean'); if(k.indexOf('energy')===0){ for(var j=0;j<ents.length;j++){ if(/energy|kwh/i.test(ents[j])) return ents[j]; } return null; } if(k.indexOf('power')===0||k.indexOf('history')===0||k.indexOf('duration')===0&&false) return dom('sensor'); } catch(e){} return null; } function cdApplEntityOrig(a, keys) {
   for (const k of keys) {
     const v = a && a[k];
     if (typeof v === 'string' && v.includes('.')) return v;
