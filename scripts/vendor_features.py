@@ -899,6 +899,17 @@ R33_1_R = "function cdApplBridge(){ try { if(typeof APPLIANCES==='undefined') re
 R33_2_A = "grid.innerHTML ="
 R33_2_R = "if(!visible.length){ grid.innerHTML='<div style=\"text-align:center; padding:30px; color:var(--text-dim); font-weight:700;\">Nessuna stanza con sensore — aggiungila nel tab Temperatura dell&#39;editor</div>'; return; } grid.innerHTML ="
 
+R34_1_A = "\\U0001f5d1\\ufe0f</button>"
+R34_1_R = "🗑️</button>"
+R34_2_A = "if (_hasFloors) {"
+R34_2_R = "if (_rooms.length) {"
+R34_3_A = "const f = r.floor || 'Altro';"
+R34_3_R = "const f = r.floor || r.name || 'Altro';"
+R34_4_A = "(r.floor || 'Altro') === CD_TEMP_FLOOR"
+R34_4_R = "(r.floor || r.name || 'Altro') === CD_TEMP_FLOOR"
+R34_5_A = " try { if(typeof renderApplianceSection==='function') renderApplianceSection(true); } catch(e2){}"
+R34_5_R = " try { var pg=document.getElementById('page-appliances-main'); var bar=pg&&pg.querySelector('.sub-tabs-energy'); if(bar){ var cats=[]; APPLIANCES.forEach(function(a){ if(a.category&&cats.indexOf(a.category)<0) cats.push(a.category); }); var bh='<button class=\"sub-tab-btn appl-section-tab active\" onclick=\"switchApplianceView(\\'overview\\', event)\">📊 Panoramica</button>'; cats.forEach(function(c){ var lb=c.charAt(0).toUpperCase()+c.slice(1); bh+='<button class=\"sub-tab-btn appl-section-tab\" onclick=\"switchApplianceView(\\''+c+'\\', event)\">🏠 '+lb+'</button>'; }); bar.innerHTML=bh; } if(pg){ pg.querySelectorAll('button').forEach(function(b){ var t=(b.textContent||''); if(t.indexOf('CONFIGURA')>=0||t.indexOf('Configura')>=0){ var card=b.closest('div'); if(card&&card.parentElement) card.parentElement.style.display='none'; } }); } } catch(e3){} try { if(typeof renderApplianceSection==='function') renderApplianceSection(true); } catch(e2){}"
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -1126,4 +1137,9 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("luci-add-form?", R32_3_A, R32_3_R),
     ("appl-bridge", R33_1_A, R33_1_R),
     ("temp-empty-hint?", R33_2_A, R33_2_R),
+    ("luci-trash-glyph", R34_1_A, R34_1_R),
+    ("temp-tabs-gate", R34_2_A, R34_2_R),
+    ("temp-tabs-fallback", R34_3_A, R34_3_R),
+    ("temp-filter-fallback", R34_4_A, R34_4_R),
+    ("appl-bridge-v2", R34_5_A, R34_5_R),
 )
