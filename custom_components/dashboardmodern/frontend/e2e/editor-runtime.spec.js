@@ -337,7 +337,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#dm-iconpick")).toHaveCount(0);
     await page.evaluate(() => window.editorSwitch("luci"));
     await assertPickerInvariant();
-    await expect(page.locator("#luce-add-ent")).toHaveAttribute("data-entity-input", "true");
+    const lightAddEntity = page.locator("#ed-body [data-light-add-entity]");
+    await expect(lightAddEntity).toHaveCount(1);
+    await expect(lightAddEntity).toBeVisible();
+    await expect(lightAddEntity).toHaveAttribute("data-entity-input", "true");
+    const lightAddEntityId = await lightAddEntity.getAttribute("id");
+    expect(lightAddEntityId).toBeTruthy();
+    await expect(
+      page.locator(`#ed-body .dm-entity-picker[data-entity-target="${lightAddEntityId}"]`),
+    ).toHaveCount(1);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-lights.png` });
     await page.evaluate(() => document.getElementById("editor-modal")?.remove());
     await page.evaluate(() => window.apriConfigEntita());
