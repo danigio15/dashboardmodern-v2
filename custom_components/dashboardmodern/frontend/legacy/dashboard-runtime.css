@@ -153,6 +153,29 @@
   align-self: end;
 }
 
+/* Covers: replace the tiny generic tile with a dashboard-sized control card. */
+#page-tapparelle>div { max-width:1100px!important;padding:0 16px 80px }
+#tapp-grid { grid-template-columns:repeat(auto-fit,minmax(320px,380px))!important;justify-content:center!important;align-items:stretch;gap:18px!important;padding:18px 4px 80px!important }
+#tapp-grid>div:first-child { width:min(100%,778px);justify-self:center;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px!important;padding:12px;border:1px solid var(--card-border,#e2e8f0);border-radius:20px;background:rgba(255,255,255,.72);box-shadow:var(--shadow-sculpted);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px) }
+.tapp-card { min-height:330px!important;padding:18px!important;gap:12px!important;border:1px solid var(--card-border,#e2e8f0);border-radius:26px!important;background:var(--card-bg,#fff)!important;box-shadow:var(--shadow-sculpted)!important;transition:transform .22s ease,box-shadow .22s ease }
+.tapp-card:hover { transform:translateY(-4px);box-shadow:var(--shadow-hover)!important }
+.tapp-head { min-height:34px }
+.tapp-name { font-family:'Oswald',sans-serif;font-size:18px!important;letter-spacing:.3px }
+.tapp-state { padding:5px 10px!important;font-size:10px!important;text-transform:uppercase;letter-spacing:.65px }
+.tapp-win { height:178px!important;border:0!important;border-radius:20px!important;background:linear-gradient(180deg,#dff5ff 0%,#bfe8fb 48%,#eef8ff 49%,#d9eef8 100%)!important;box-shadow:inset 0 0 0 4px #dbe5ef,inset 0 0 0 6px rgba(100,116,139,.38),0 12px 24px rgba(15,23,42,.10);isolation:isolate }
+.tapp-win::before { content:"";position:absolute;left:50%;top:5px;bottom:5px;width:2px;background:rgba(100,116,139,.30);z-index:0 }
+.tapp-glass { background:linear-gradient(135deg,rgba(255,255,255,.62),transparent 45%),linear-gradient(45deg,transparent 58%,rgba(255,255,255,.35))!important }
+.tapp-shutter { z-index:2;background:linear-gradient(180deg,#dbe4ee,#aab8c8);box-shadow:0 8px 16px rgba(15,23,42,.20) }
+.tapp-shutter i { flex-basis:18px!important;height:18px!important;border-bottom:2px solid rgba(51,65,85,.42)!important;background:linear-gradient(180deg,#d9e2ec,#9aa9ba)!important }
+.tapp-pos { min-height:28px!important;font-family:'Oswald',sans-serif;font-size:18px!important;font-weight:700;line-height:28px;color:var(--text,#0f172a);opacity:1!important }
+.tapp-ctl { gap:8px!important }
+.tapp-btn { min-height:44px!important;height:auto!important;border-radius:14px!important;font-weight:800!important;box-shadow:0 6px 14px rgba(2,132,199,.20);transition:transform .16s ease,filter .16s ease }
+.tapp-btn:hover { filter:brightness(1.06);transform:translateY(-1px) }
+.tapp-card .tapp-btn[data-svc="open_cover"]::after { content:" Apri" }
+.tapp-card .tapp-btn[data-svc="stop_cover"]::after { content:" Stop" }
+.tapp-card .tapp-btn[data-svc="close_cover"]::after { content:" Chiudi" }
+
+
 .dm-energy-cost-card {
   margin-top: 12px;
   padding: 16px;
@@ -228,5 +251,18 @@
 
   #page-appliances-main .appl-metric:nth-child(n + 2) {
     display: none;
+  }
+
+  #tapp-grid {
+    grid-template-columns: 1fr !important;
+    padding-inline: 0 !important;
+  }
+
+  #tapp-grid > div:first-child {
+    width: 100%;
+  }
+
+  .tapp-card {
+    min-height: 312px !important;
   }
 }

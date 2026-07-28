@@ -175,7 +175,7 @@ export function mountEntityPickers(target) {
     if (!input.id) input.id = `dm-entity-${[...target.querySelectorAll("input")].indexOf(input)}`;
     let button = input.parentElement?.querySelector?.(`.dm-entity-picker[data-entity-target="${CSS.escape(input.id)}"]`);
     const adjacent = input.nextElementSibling;
-    if (!button && adjacent?.matches?.("button[onclick*='wzPickEntity']")) {
+    if (!button && adjacent?.matches?.(".dm-entity-picker, button[onclick*='wzPickEntity']")) {
       button = adjacent;
       button.classList.add("dm-entity-picker");
     }

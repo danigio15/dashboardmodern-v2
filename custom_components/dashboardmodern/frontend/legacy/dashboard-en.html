@@ -6419,10 +6419,10 @@ function cdApplianceVisual(a,size){
   const type=cdApplianceType(a);
   if(media.kind==='image') {
     const src=String(media.value).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-    return '<img src="'+src+'" alt="'+String(a&&a.name||'Appliance').replace(/"/g,'&quot;')+'" onerror="cdApplianceImageFallback(this,\''+type+'\','+size+')">';
+    return '<img src="'+src+'" alt="'+String(a&&a.name||'Appliance').replace(/"/g,'&quot;')+'" style="display:block;width:'+size+'px;height:'+size+'px;max-width:100%;object-fit:contain" onerror="cdApplianceImageFallback(this,\''+type+'\','+size+')">';
   }
   const integrated=String(media.value||type);
-  return cdApplianceIcon(integrated.indexOf('mdi:')===0?type:integrated,size);
+  return integrated.indexOf('mdi:')===0?cdIconMarkup(integrated,size):cdApplianceIcon(integrated,size);
 }
 function cdEnsureSectionVisible(section){ var aliases={cameras:'security',lights:'home'}; var key=aliases[section]||section; var cfg=cdCfg('cd_sections')||{}; if(cfg[key]===false){ cfg[key]=true; localStorage.setItem('cd_sections',JSON.stringify(cfg)); try{cdMarkDirty();cdSyncPush();}catch(e){} try{cdApplyNavVis();}catch(e){} try{render();}catch(e){} } }
 function cdRoomList(){ try { var raw=(typeof getStanze==='function'?getStanze():cdCfg('cd_stanze'))||[]; var api=window.DashboardModernModules&&DashboardModernModules.data; return api?api.normalizeRooms(raw):raw.map(function(r,i){ return Object.assign({},r,{id:String(r.id||r.room_id||('room-'+i))}); }); } catch(e){ return []; } }

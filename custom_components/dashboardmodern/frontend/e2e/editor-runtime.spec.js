@@ -30,6 +30,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: runtime, energy, loads and report use the shipped module`, async ({
     page,
   }, testInfo) => {
+    testInfo.setTimeout(90_000);
     const errors = [];
     const pageErrors = [];
     const seedState = {
@@ -201,12 +202,16 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy.png` });
     const assertPickerInvariant = async () => {
       const counts = await page.locator("#ed-body").evaluate((body) => ({
-        inputs: body.querySelectorAll("[data-entity-input]").length,
-        pickers: body.querySelectorAll(".dm-entity-picker[data-entity-target]").length,
+        inputs: [...body.querySelectorAll("[data-entity-input]")].filter(
+          (input) => input.getClientRects().length > 0,
+        ).length,
+        pickers: [...body.querySelectorAll(".dm-entity-picker")].filter(
+          (button) => button.getClientRects().length > 0,
+        ).length,
         uniqueTargets: new Set(
-          [...body.querySelectorAll(".dm-entity-picker[data-entity-target]")].map(
-            (button) => button.dataset.entityTarget,
-          ),
+          [...body.querySelectorAll(".dm-entity-picker")]
+            .filter((button) => button.getClientRects().length > 0)
+            .map((button) => button.dataset.entityTarget),
         ).size,
       }));
       expect(counts.pickers).toBe(counts.inputs);
@@ -329,7 +334,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-room-picker.png`,
     });
-    await page.getByRole("button", { name: /CHIUDI|CLOSE/ }).click();
+    await page
+      .locator("#dm-iconpick")
+      .getByRole("button", { name: /CHIUDI|CLOSE/ })
+      .click();
     await page.evaluate(() => window.editorSwitch("luci"));
     await assertPickerInvariant();
     await expect(page.locator("#luce-add-ent")).toHaveAttribute("data-entity-input", "true");

@@ -98,8 +98,13 @@ test("Energy real DOM opens Flussi by default, switches settings and reuses the 
   assert.equal(panels.find((node) => node.dataset.energyPanel === "settings").hidden, false);
   const picker = root.queryAll((node) => node.classList.contains("dm-entity-picker"))[0];
   assert.ok(picker);
+  assert.equal(picked, undefined);
+  assert.equal(picker.dataset.entityTarget, "dm-energy-house-power");
+  assert.equal(picker.dataset.pickerMounted, "true");
   picker.click();
   assert.equal(picked.value, "sensor.house");
+  assert.equal(picked.id, picker.dataset.entityTarget);
+  assert.equal(picked.dataset.entityInput, "true");
   assert.match(root.queryAll((node) => node.tagName === "OUTPUT")[0].textContent, /432 W/);
 });
 
@@ -110,10 +115,7 @@ test("empty Energy fields have no fixed Value placeholder and pickers survive 20
     renderEnergyEditor(document, root, {}, [], {}, "it", { onPick: () => picks++ });
     const pickers = root.queryAll((node) => node.classList.contains("dm-entity-picker"));
     assert.ok(pickers.length > 0);
-    assert.equal(
-      root.queryAll((node) => node.classList.contains("dm-entity-preview")).length,
-      0,
-    );
+    assert.equal(root.queryAll((node) => node.classList.contains("dm-entity-preview")).length, 0);
     pickers.forEach((picker) => picker.click());
   }
   assert.ok(picks > 20);

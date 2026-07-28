@@ -199,6 +199,7 @@ const ENERGY_UI = Object.freeze({
 export function createEntityPickerField(
   document,
   {
+    id = "dm-energy-entity",
     value = "",
     placeholder = "",
     label = "Entità",
@@ -216,12 +217,16 @@ export function createEntityPickerField(
   const row = document.createElement("span");
   row.className = "ed-form-row";
   const input = document.createElement("input");
+  input.id = id;
   input.className = "ed-input ed-slot-in mono";
+  input.dataset.entityInput = "true";
   input.value = value;
   input.placeholder = placeholder;
   const picker = document.createElement("button");
   picker.type = "button";
   picker.className = "dm-entity-picker";
+  picker.dataset.entityTarget = input.id;
+  picker.dataset.pickerMounted = "true";
   picker.textContent = "🔍";
   picker.setAttribute("aria-label", `${copy.select} ${label}`);
   picker.addEventListener("click", () => onPick?.(input));
@@ -315,6 +320,7 @@ export function renderEnergyEditor(
       field.className = "ed-slot";
       field.innerHTML = `<span class="ed-slot-lbl">${label} <span class="ed-acc-n">${unit}</span> <span class="ed-acc-n">${copy.optional}</span></span><span class="ed-hint">${copy.entityHint} ${example}</span>`;
       const { field: entity, input } = createEntityPickerField(document, {
+        id: `dm-energy-${group}-${key}`,
         value: model[group]?.[key] || "",
         placeholder: example,
         label,
