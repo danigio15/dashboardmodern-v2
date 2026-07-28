@@ -4,6 +4,7 @@ import { DashboardStore, hasConfiguredData } from "../src/core/dashboard-store.j
 import { cloneValue, getDeviceDisplayName, getDeviceVisual } from "../src/core/device-model.js";
 import { migrateEnergy, migrateRooms, migrateState } from "../src/core/migrations.js";
 import { createEnergyReportRows, createRenderCoordinator } from "../src/core/renderers.js";
+import { canonicalReportDevices, projectEnergySlots } from "../src/core/energy-projection.js";
 
 test("visibility recognizes configured pool and irrigation entities without devices", () => {
   assert.equal(hasConfiguredData("pool", { pumpEnt: "switch.pool" }), true);
@@ -417,4 +418,106 @@ test("legacy-only washer reaches schema 4 once with preserved id, entities and a
   assert.equal(washers[0].visual_type, "asset");
   assert.equal(washers[0].visual_key, "lavatrice");
   assert.equal(store.migrate().changes.length, 0);
+});
+
+test("Energy is canonical and deterministically projects public runtime slots", async () => {
+  const { store, storage } = setup({
+    dm_dashboard_state: {
+      schema_version: 4,
+      sections: { energy: {}, entityOverrides: {} },
+      visibility: {},
+    },
+  });
+  await store.replaceSection("energy", {
+    house: { power: "sensor.house" },
+    grid: { power: "sensor.grid" },
+    solar: { power: "sensor.solar" },
+    battery: { power: "sensor.battery", soc: "sensor.soc" },
+  });
+  const overrides = JSON.parse(storage.getItem("cd_entity_overrides"));
+  assert.deepEqual(overrides, projectEnergySlots(store.getSection("energy"), {}));
+  assert.equal(overrides["dm.energy_potenza_consumo_casa"], "sensor.house");
+  assert.equal(overrides["dm.energy_stato_carica_batteria"], "sensor.soc");
+});
+
+test("canonical public Report honors inclusion, presentation, entity and report order", () => {
+  const rows = canonicalReportDevices(
+    [{ id: "washer", name: "Washer", show_in_report: false, report_entity: "sensor.washer" }],
+    [
+      {
+        id: "water",
+        name: "Water",
+        show_in_report: true,
+        report_label: "Acqua",
+        report_icon: "💧",
+        report_entity: "sensor.water",
+        report_order: 2,
+      },
+      {
+        id: "toast",
+        name: "Toast",
+        show_in_report: true,
+        report_label: "Pane",
+        report_icon: "🍞",
+        report_entity: "sensor.toast",
+        report_order: 1,
+      },
+    ],
+  );
+  assert.deepEqual(
+    rows.map((row) => [row.key, row.name, row.icon, row.entity]),
+    [
+      ["toast", "Pane", "🍞", "sensor.toast"],
+      ["water", "Acqua", "💧", "sensor.water"],
+    ],
+  );
+});
+
+test("legacy emoji and room names survive load migration without becoming device types", () => {
+  const migrated = migrateState(
+    {
+      schema_version: 3,
+      sections: { rooms: [{ id: "room-kitchen", name: "Kitchen" }], loads: [], appliances: [] },
+      visibility: {},
+    },
+    {
+      subloads: {
+        kitchen: [{ id: "toast", name: "Toast", icon: "🍞", room: "Kitchen", pwr: "sensor.toast" }],
+      },
+    },
+  ).state.sections.loads[0];
+  assert.equal(migrated.room_id, "room-kitchen");
+  assert.equal(migrated.report_icon, "🍞");
+  assert.equal(migrated.emoji_icon, "🍞");
+  assert.equal(migrated.icon, "");
+  assert.equal(migrated.device_type, "secondary");
+});
+
+test("canonical snapshot transfers loads and Report settings atomically between devices", async () => {
+  const first = setup().store;
+  const load = await first.addItem("loads", {
+    name: "Pump",
+    power_entity: "sensor.pump",
+    show_in_report: true,
+  });
+  await first.saveReport([
+    {
+      ...load,
+      section: "loads",
+      report_label: "Pool pump",
+      report_icon: "💧",
+      report_entity: "sensor.pump_month",
+      report_order: 4,
+    },
+  ]);
+  const second = setup({
+    cd_subloads_extra: { stale: [{ name: "Legacy", pwr: "sensor.legacy" }] },
+  }).store;
+  second.applySnapshot(JSON.stringify(first.getState()));
+  assert.deepEqual(second.getSection("loads"), first.getSection("loads"));
+  assert.equal(second.getSection("loads")[0].report_label, "Pool pump");
+  assert.equal(
+    second.getSection("loads").some((item) => item.name === "Legacy"),
+    false,
+  );
 });

@@ -6688,6 +6688,7 @@ function _avvRenderPopup(a, idx, force) {
 
 /* ═══ v254: SISTEMA OVERRIDE ENTITÀ (configurabile da UI, solo admin) ═══ */
 let ENTITY_OVERRIDES = cdCfg('cd_entity_overrides');
+window.cdApplyCanonicalOverrides = function(overrides) { ENTITY_OVERRIDES = Object.assign({}, overrides || {}); };
 function resolveEntity(id) { return ENTITY_OVERRIDES[id] || id; }
 
 const _RAW_STATES = {};
@@ -8411,7 +8412,7 @@ function wzRender() {
    La configurazione viene salvata anche nell'archivio utente di Home Assistant
    (frontend user_data): configuri una volta, la ritrovi su ogni dispositivo. */
 /* v301: cd_theme e cd_navbar_mode NON sono sincronizzati — sono preferenze del singolo dispositivo */
-const CD_SYNC_KEYS = ['cd_connection','cd_branding','cd_sections','cd_section_names','cd_luci','cd_luci_rooms','cd_luci_order','cd_luci_room_order','cd_stanze','cd_cameras','cd_appliances','cd_clima_units','cd_quick_actions','cd_devices','cd_ev_image','cd_entity_overrides','cd_subloads_extra','cd_subload_groups','cd_report_devices','cd_tapparelle','cd_irrigazione','cd_piscina','cd_ev_cars','cd_energy_views','cd_navbar_order','cd_floors','cd_slot_labels','cd_flow_nodes','cd_gruppi_extra','cd_gruppi_removed','cd_avvisi_names_extra','cd_avvisi_custom','cd_text_overrides','cd_hidden_elements'];
+const CD_SYNC_KEYS = ['dm_dashboard_state','cd_connection','cd_branding','cd_sections','cd_section_names','cd_luci','cd_luci_rooms','cd_stanze','cd_cameras','cd_appliances','cd_loads','cd_energy_model','cd_clima_units','cd_quick_actions','cd_devices','cd_ev_image','cd_entity_overrides','cd_tapparelle','cd_irrigazione','cd_piscina','cd_ev_cars','cd_energy_views','cd_navbar_order','cd_floors','cd_slot_labels','cd_flow_nodes','cd_avvisi_custom','cd_text_overrides','cd_hidden_elements'];
 
 function cdSyncCollect() {
     const out = { _savedAt: Date.now() };
@@ -8421,7 +8422,7 @@ function cdSyncCollect() {
 function cdSyncApply(data) {
     if (!data) return 0;
     let n = 0;
-    CD_SYNC_KEYS.forEach(k => { if (data[k] !== undefined) { localStorage.setItem(k, data[k]); n++; } });
+    if (data.dm_dashboard_state !== undefined) { localStorage.setItem('dm_dashboard_state', data.dm_dashboard_state); window.DashboardModernModules?.store?.applySnapshot(data.dm_dashboard_state); n++; } CD_SYNC_KEYS.filter(k => k !== 'dm_dashboard_state').forEach(k => { if (data[k] !== undefined) { localStorage.setItem(k, data[k]); n++; } });
     return n;
 }
 /* Push sul WS principale (dashboard già connessa) */
@@ -12952,37 +12953,18 @@ const ED_DEVICES = [
    v0.7.3 fix (#6): ora è una funzione richiamabile — aggiungere una voce dall'editor
    aggiorna il Report SUBITO, senza dover ricaricare la pagina. */
 const ED_DEVICES_DEFAULT = ED_DEVICES.slice();
-function cdApplReportEntries(manual){ try { var used={}; (manual||[]).forEach(function(d){ if(d&&d.entity) used[d.entity]=1; }); var api=window.DashboardModernModules&&DashboardModernModules.data; var rows=api&&api.applianceEnergyReport?api.applianceEnergyReport(getAppliances(),STATES,cdRoomList()):[]; return rows.filter(function(r){ return r.historyEntity&&!used[r.historyEntity]; }).map(function(r){ used[r.historyEntity]=1; return { name:r.name, room:r.room&&r.room.name||'', icon:(r.appliance.icon||'🔌'), entity:r.historyEntity, power:r.power, energy:r.energy, state:r.state.state, history:r.historyEntity }; }); } catch(e){ return []; } } function cdRebuildReportDevices() {
-  try {
-    const _repDevs = cdCfgList('cd_report_devices').concat(cdApplReportEntries(cdCfgList('cd_report_devices')));
-    const _palette = ['#06b6d4','#7c3aed','#e11d48','#059669','#f59e0b','#0ea5e9','#ea580c','#8b5cf6','#f97316','#1e40af','#a16207'];
-    ED_DEVICES.length = 0;
-    if (_repDevs.length) {
-        _repDevs.forEach((d, i) => ED_DEVICES.push({
-            key: 'rep_' + i, name: d.name, icon: d.icon || '⚡',
-            color: _palette[i % _palette.length], sensor: d.entity,
-            bg: 'rgba(14,165,233,0.1)'
-        }));
-    } else if (typeof CD_REQUIRE_MAPPING !== 'undefined' && CD_REQUIRE_MAPPING) {
-        /* v0.7.4 (#6): senza voci configurate il Report si popola DA SOLO con i consumi
-           mensili della mappa flussi già mappati dall'utente (Wallbox, Clima, Boiler, nodi 1-2). */
-        const _fnR = cdCfg('cd_flow_nodes') || {};
-        const _auto = [
-            { name: (_fnR.wb && _fnR.wb.name) || 'Wallbox', icon: (_fnR.wb && _fnR.wb.icon) || '🚗', ent: 'dm.ev_energia_wallbox_mese' },
-            { name: (_fnR.clima && _fnR.clima.name) || 'Clima', icon: (_fnR.clima && _fnR.clima.icon) || '❄️', ent: 'dm.energy_condizionatori_mese' },
-            { name: (_fnR.boiler && _fnR.boiler.name) || 'Boiler', icon: (_fnR.boiler && _fnR.boiler.icon) || '🔥', ent: 'dm.energy_boiler_mese' },
-            { name: (_fnR.lav && _fnR.lav.name) || 'Lavanderia', icon: (_fnR.lav && _fnR.lav.icon) || '🧺', ent: 'dm.energy_somma_lavanderia_mese' },
-            { name: (_fnR.cuc && _fnR.cuc.name) || 'Cucina', icon: (_fnR.cuc && _fnR.cuc.icon) || '🍳', ent: 'dm.energy_somma_cucina_mese' },
-        ].filter(a => resolveEntity(a.ent) !== a.ent);
-        _auto.forEach((a, i) => ED_DEVICES.push({
-            key: 'auto_' + i, name: a.name, icon: a.icon,
-            color: _palette[i % _palette.length], sensor: resolveEntity(a.ent),
-            bg: 'rgba(14,165,233,0.1)'
-        }));
-    } else {
-        ED_DEVICES.push(...ED_DEVICES_DEFAULT);
-    }
-  } catch(e) {}
+function cdRebuildReportDevices() {
+  const modules = window.DashboardModernModules;
+  if (!modules || !modules.store || !modules.data.canonicalReportDevices) return;
+  const devices = modules.data.canonicalReportDevices(
+    modules.store.getSection('appliances'), modules.store.getSection('loads'));
+  const palette = ['#06b6d4','#7c3aed','#e11d48','#059669','#f59e0b','#0ea5e9'];
+  ED_DEVICES.length = 0;
+  devices.forEach(function(device, index) {
+    ED_DEVICES.push({ key: device.key, name: device.name, icon: device.icon,
+      sensor: device.entity, history: device.history,
+      color: palette[index % palette.length], bg: 'rgba(14,165,233,0.1)' });
+  });
 }
 cdRebuildReportDevices();
 

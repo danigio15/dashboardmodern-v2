@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: npm install
+      - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: python scripts/generate_build_info.py --expected-commit "$GITHUB_SHA"
       - run: npm run test:e2e

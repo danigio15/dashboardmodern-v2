@@ -58,7 +58,7 @@ export function createRenderCoordinator(store, renderers = {}) {
       energy: "renderEnergy",
     };
     call(names[change.section], change);
-    if (["appliances", "loads", "energy"].includes(change.section))
+    if (["appliances", "loads", "energy", "report"].includes(change.section))
       call("renderEnergyReport", change);
     if (change.section === "rooms") {
       call("renderRoomSelectors", change);
@@ -161,6 +161,7 @@ export function createEntityPickerField(
 ) {
   const field = document.createElement("span");
   field.className = "dm-entity-field";
+  field.dataset.entityField = "";
   const row = document.createElement("span");
   row.className = "ed-form-row";
   const input = document.createElement("input");

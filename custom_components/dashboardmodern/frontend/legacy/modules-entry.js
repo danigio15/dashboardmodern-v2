@@ -19,8 +19,15 @@ import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/c
 import { createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
 import { SCHEMA_VERSION } from "../src/core/device-model.js";
 import { BUILD_INFO } from "./build-info.js";
+import { canonicalReportDevices } from "../src/core/energy-projection.js";
 
 export const MODULES_VERSION = 14;
+const LOCALE = globalThis.document?.documentElement?.lang === "en" ? "en" : "it";
+const COPY = Object.freeze({
+  it: { optional: "Facoltativo", select: "Seleziona", saveReport: "Salva Report", saved: "Salvato", dirty: "Modifiche non salvate", saving: "Salvataggio…", addManual: "Aggiungi voce manuale", empty: "Nessun elemento configurato.", reportIntro: "Seleziona e ordina il Report senza modificare l'ordine della dashboard.", reportLabel: "Etichetta", reportEntity: "Entità Report", history: "Storico", name: "Nome", entity: "Entità", add: "Aggiungi", required: "Nome ed entità sono obbligatori", moveUp: "Sposta su", moveDown: "Sposta giù", remove: "Elimina" },
+  en: { optional: "Optional", select: "Select", saveReport: "Save Report", saved: "Saved", dirty: "Unsaved changes", saving: "Saving…", addManual: "Add manual entry", empty: "No configured items.", reportIntro: "Select and order Report entries without changing dashboard order.", reportLabel: "Label", reportEntity: "Report entity", history: "History", name: "Name", entity: "Entity", add: "Add", required: "Name and entity are required", moveUp: "Move up", moveDown: "Move down", remove: "Delete" },
+});
+const t = (key) => COPY[LOCALE][key] || key;
 
 const store = new DashboardStore({
   sync: async () => {
@@ -31,6 +38,12 @@ const store = new DashboardStore({
 });
 store.migrate();
 store.installLegacyWriteBridge();
+const applyRuntimeProjection = () =>
+  globalThis.cdApplyCanonicalOverrides?.(store.getSection("entityOverrides"));
+applyRuntimeProjection();
+store.subscribe((change) => {
+  if (change.status === "optimistic" || change.status === "rollback") applyRuntimeProjection();
+});
 
 // The vendored UI keeps its established markup/CSS. This is the single bridge
 // that translates canonical store changes into its existing partial renderers.
@@ -49,7 +62,7 @@ createRenderCoordinator(store, {
   renderCurrentEditor(section) {
     const tab = globalThis.document?.querySelector?.(".ed-tab.active")?.dataset?.tab;
     const sectionTabs = {
-      appliances: "appliances", loads: "load", cameras: "sezioni", energy: "sezioni", rooms: "stanze",
+      appliances: "appliances", loads: "sez1", report: "sez1", energy: "sez1", cameras: "sezioni", rooms: "stanze",
       ev: "sezioni", lights: "luci", climate: "sezioni", covers: "tapp",
       pool: "pool", irrigation: "irr",
     };
@@ -59,6 +72,20 @@ createRenderCoordinator(store, {
     // Re-render the active body directly; editorSwitch is navigation and was
     // the accidental refresh mechanism that left confirmed deletes visible.
     const body = globalThis.document.getElementById("ed-body");
+    if (tab === "sez1" && section === "energy") {
+      renderEditorTab("sez1", body);
+      return;
+    }
+    if (tab === "sez1" && section === "loads") {
+      const panel = body.querySelector('[data-energy-panel="loads"]');
+      if (panel) { mountLoadsEditor(panel); mountCurrentEditor("loads", panel); panel.hidden = false; }
+      return;
+    }
+    if (tab === "sez1" && section === "report") {
+      const panel = body.querySelector('[data-energy-panel="report"]');
+      if (panel) { renderReportEditor(panel); mountReportEditor("report", panel); panel.hidden = false; }
+      return;
+    }
     if (tab === "appliances") {
       body.innerHTML = globalThis.cdSecToggleHtml("appliances") + globalThis.editorRenderAppliances() + '<button class="ed-btn-add" style="width:100%; margin-top:10px;" onclick="edSecSave()">💾 Salva sezione</button>';
       globalThis.edApplRenderEnts?.();
@@ -68,7 +95,7 @@ createRenderCoordinator(store, {
     else if (tab === "tapp") body.innerHTML = globalThis.cdSecToggleHtml("tapparelle") + globalThis.editorRenderTapparelle();
     else if (tab === "pool") body.innerHTML = globalThis.cdSecToggleHtml("piscina") + globalThis.editorRenderPiscina();
     else if (tab === "irr") body.innerHTML = globalThis.cdSecToggleHtml("irrigazione") + globalThis.editorRenderIrrigazione();
-    else if (tab?.startsWith("sez") && tab !== "sezioni") {
+    else if (tab?.startsWith("sez") && tab !== "sezioni" && tab !== "sez1") {
       body.innerHTML = globalThis.editorRenderSezioni();
       globalThis.edFilterSez?.(body, Number(tab.slice(3)));
     }
@@ -102,8 +129,11 @@ function renderEnergyEditorTab(target) {
 const esc = (value) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 export function createEntityField({ id, label, value = "", placeholder = "sensor.entity", domain = "", optional = true } = {}) {
   const domainAttr = domain ? ` data-domain="${esc(domain)}"` : "";
-  const opt = optional ? ' <span class="ed-acc-n">Facoltativo</span>' : "";
-  return `<label class="ed-slot"><span class="ed-slot-lbl">${esc(label)}${opt}</span><span class="ed-form-row"><input id="${esc(id)}" class="ed-input ed-slot-in mono" value="${esc(value)}" placeholder="${esc(placeholder)}"${domainAttr}><button type="button" class="dm-entity-picker" data-entity-target="${esc(id)}" aria-label="Seleziona ${esc(label)}">🔍</button></span></label>`;
+  const opt = optional ? ` <span class="ed-acc-n">${t("optional")}</span>` : "";
+  return `<label class="ed-slot dm-entity-field" data-entity-field><span class="ed-slot-lbl">${esc(label)}${opt}</span><span class="ed-form-row"><input id="${esc(id)}" class="ed-input ed-slot-in mono" value="${esc(value)}" placeholder="${esc(placeholder)}"${domainAttr}><button type="button" class="dm-entity-picker" data-entity-target="${esc(id)}" aria-label="${t("select")} ${esc(label)}">🔍</button></span></label>`;
+}
+function createIconField(id, value = "") {
+  return `<span class="ed-form-row dm-icon-field" data-icon-field><input id="${esc(id)}" class="ed-input ed-icon-input" value="${esc(value)}"><button type="button" class="dm-icon-picker" data-icon-target="${esc(id)}" aria-label="${t("select")} icon">🎨</button></span>`;
 }
 const entityField = (id, label, value, placeholder) => createEntityField({ id, label, value, placeholder });
 
@@ -116,6 +146,11 @@ export function mountEntityPickers(target) {
       if (input) globalThis.wzPickEntity?.(input);
     });
   });
+  target?.querySelectorAll?.(".dm-icon-picker[data-icon-target]").forEach((button) => {
+    if (button.dataset.pickerMounted === "true") return;
+    button.dataset.pickerMounted = "true";
+    button.addEventListener("click", () => globalThis.dmIconPicker?.(`#${button.dataset.iconTarget}`));
+  });
 }
 
 function renderReportEditor(target) {
@@ -124,17 +159,17 @@ function renderReportEditor(target) {
     .sort((a, b) => (a.report_order ?? a.order ?? 0) - (b.report_order ?? b.order ?? 0));
   const row = (item, index) => `<div class="ed-row dm-report-row" data-report-id="${esc(item.id)}" data-section="${esc(item.section || "loads")}">
     <label><input type="checkbox" data-report-toggle ${item.show_in_report !== false ? "checked" : ""}> Report</label>
-    <input class="ed-input" data-report-label placeholder="Etichetta" value="${esc(item.report_label || item.name)}">
-    <span class="ed-form-row"><input class="ed-input ed-icon-input" data-report-icon placeholder="Icona" value="${esc(item.report_icon || item.icon)}"><button type="button" class="dm-icon-picker" aria-label="Seleziona icona">🎨</button></span>
-    ${createEntityField({ id: `dm-report-entity-${index}`, label: "Entità Report", value: item.report_entity || item.monthly_energy_entity || item.total_energy_entity, optional: false })}
-    ${item.category === "manual-report" ? createEntityField({ id: `dm-report-history-${index}`, label: "Storico", value: item.history_entity }) : ""}
-    <span><button type="button" data-report-up aria-label="Sposta su">▲</button><button type="button" data-report-down aria-label="Sposta giù">▼</button>${item.category === "manual-report" ? '<button type="button" data-report-delete aria-label="Elimina">🗑️</button>' : ""}</span>
+    <input class="ed-input" data-report-label placeholder="${t("reportLabel")}" value="${esc(item.report_label || item.name)}">
+    ${createIconField(`dm-report-icon-${index}`, item.report_icon || item.emoji_icon || item.icon)}
+    ${createEntityField({ id: `dm-report-entity-${index}`, label: t("reportEntity"), value: item.report_entity || item.monthly_energy_entity || item.total_energy_entity, optional: false })}
+    ${item.category === "manual-report" ? createEntityField({ id: `dm-report-history-${index}`, label: t("history"), value: item.history_entity }) : ""}
+    <span><button type="button" data-report-up aria-label="${t("moveUp")}">▲</button><button type="button" data-report-down aria-label="${t("moveDown")}">▼</button>${item.category === "manual-report" ? `<button type="button" data-report-delete aria-label="${t("remove")}">🗑️</button>` : ""}</span>
     <input type="hidden" data-report-name value="${esc(item.name)}"><input type="hidden" data-report-category value="${esc(item.category)}">
   </div>`;
-  target.innerHTML = `<div class="ed-intro">Seleziona e ordina il Report senza modificare l'ordine della dashboard.</div><div class="ed-list" data-report-list>${items.map(row).join("") || '<div class="ed-empty">Nessun elemento configurato.</div>'}</div>
-    <button type="button" class="ed-btn-add" data-report-add>＋ Aggiungi voce manuale</button>
-    <div class="ed-form" data-report-manual hidden><input class="ed-input" data-manual-name placeholder="Nome"><input class="ed-input ed-icon-input" data-manual-icon placeholder="Icona">${createEntityField({ id: "dm-manual-report-entity", label: "Entità", optional: false })}${createEntityField({ id: "dm-manual-report-history", label: "Storico" })}<button type="button" class="ed-btn-add" data-manual-confirm>Aggiungi</button></div>
-    <div class="ed-action-bar" data-report-actions data-state="clean"><button type="button" class="ed-save-btn" data-report-save disabled>💾 Salva Report</button><output data-report-status>Salvato</output></div>`;
+  target.innerHTML = `<div class="ed-intro">${t("reportIntro")}</div><div class="ed-list" data-report-list>${items.map(row).join("") || `<div class="ed-empty">${t("empty")}</div>`}</div>
+    <button type="button" class="ed-btn-add" data-report-add>＋ ${t("addManual")}</button>
+    <div class="ed-form" data-report-manual hidden><input class="ed-input" data-manual-name placeholder="${t("name")}">${createIconField("dm-manual-report-icon")}${createEntityField({ id: "dm-manual-report-entity", label: t("entity"), optional: false })}${createEntityField({ id: "dm-manual-report-history", label: t("history") })}<button type="button" class="ed-btn-add" data-manual-confirm>${t("add")}</button></div>
+    <div class="ed-action-bar" data-report-actions data-state="clean"><button type="button" class="ed-save-btn" data-report-save disabled>💾 ${t("saveReport")}</button><output data-report-status>${t("saved")}</output></div>`;
 }
 
 function mountReportEditor(_tab, target) {
@@ -142,7 +177,7 @@ function mountReportEditor(_tab, target) {
   const save = target.querySelector("[data-report-save]");
   const status = target.querySelector("[data-report-status]");
   const actions = target.querySelector("[data-report-actions]");
-  const dirty = () => { actions.dataset.state = "dirty"; save.disabled = false; status.textContent = "Modifiche non salvate"; };
+  const dirty = () => { actions.dataset.state = "dirty"; save.disabled = false; status.textContent = t("dirty"); };
   target.addEventListener("input", dirty);
   target.addEventListener("change", dirty);
   target.querySelectorAll("[data-report-up],[data-report-down]").forEach((button) => button.addEventListener("click", () => {
@@ -156,10 +191,10 @@ function mountReportEditor(_tab, target) {
   target.querySelector("[data-manual-confirm]")?.addEventListener("click", () => {
     const name = target.querySelector("[data-manual-name]").value.trim();
     const entity = target.querySelector("#dm-manual-report-entity").value.trim();
-    if (!name || !entity.includes(".")) return globalThis.alert?.("Nome ed entità sono obbligatori");
+    if (!name || !entity.includes(".")) return globalThis.alert?.(t("required"));
     const id = `load-manual-${Date.now().toString(36)}`;
     const wrapper = globalThis.document.createElement("div");
-    wrapper.innerHTML = row({ id, section: "loads", category: "manual-report", name, report_entity: entity, history_entity: target.querySelector("#dm-manual-report-history").value.trim(), report_icon: target.querySelector("[data-manual-icon]").value.trim(), show_in_dashboard: false }, list.querySelectorAll("[data-report-id]").length);
+    wrapper.innerHTML = row({ id, section: "loads", category: "manual-report", name, report_entity: entity, history_entity: target.querySelector("#dm-manual-report-history").value.trim(), report_icon: target.querySelector("#dm-manual-report-icon").value.trim(), show_in_dashboard: false }, list.querySelectorAll("[data-report-id]").length);
     const added = wrapper.firstElementChild;
     list.append(added);
     added.querySelector("[data-report-delete]")?.addEventListener("click", () => { added.remove(); dirty(); });
@@ -167,20 +202,20 @@ function mountReportEditor(_tab, target) {
     dirty();
   });
   save?.addEventListener("click", async () => {
-    const before = store.getState(); actions.dataset.state = "loading"; save.disabled = true; status.textContent = "Salvataggio…";
+    const before = store.getState(); actions.dataset.state = "loading"; save.disabled = true; status.textContent = t("saving");
     const draft = [...list.querySelectorAll("[data-report-id]")].map((rowElement, report_order) => ({
       id: rowElement.dataset.reportId, section: rowElement.dataset.section, category: rowElement.querySelector("[data-report-category]").value,
       name: rowElement.querySelector("[data-report-name]").value, show_in_report: rowElement.querySelector("[data-report-toggle]").checked,
-      report_label: rowElement.querySelector("[data-report-label]").value.trim(), report_icon: rowElement.querySelector("[data-report-icon]").value.trim(),
-      report_entity: rowElement.querySelector("[data-entity-target]")?.previousElementSibling?.value || rowElement.querySelector(".dm-entity-field input")?.value || "",
-      history_entity: rowElement.querySelectorAll(".dm-entity-field input")[1]?.value || "", report_order,
+      report_label: rowElement.querySelector("[data-report-label]").value.trim(), report_icon: rowElement.querySelector("[data-icon-field] input").value.trim(),
+      report_entity: rowElement.querySelectorAll("[data-entity-field] input")[0]?.value || "",
+      history_entity: rowElement.querySelectorAll("[data-entity-field] input")[1]?.value || "", report_order,
     }));
-    try { await store.saveReport(draft); actions.dataset.state = "success"; status.textContent = "Report salvato"; }
-    catch (error) { actions.dataset.state = "error"; status.textContent = `Errore: ${error.message}`; renderReportEditor(target); mountCurrentEditor("report", target); globalThis.console?.error?.("[Report] rollback", error, before); }
+    try { await store.saveReport(draft); actions.dataset.state = "success"; status.textContent = t("saved"); }
+    catch (error) { globalThis.console?.error?.("[Report] rollback", error, before); renderReportEditor(target); mountReportEditor("report", target); const rolled = target.querySelector("[data-report-actions]"); rolled.dataset.state = "error"; target.querySelector("[data-report-status]").textContent = `Error: ${error.message}`; }
   });
   mountEntityPickers(target);
-  const entityInputs = target.querySelectorAll(".dm-entity-field input").length;
-  const pickers = target.querySelectorAll(".dm-entity-picker").length;
+  const entityInputs = target.querySelectorAll("[data-entity-field] input").length;
+  const pickers = target.querySelectorAll("[data-entity-field] .dm-entity-picker").length;
   if (entityInputs !== pickers) throw new Error(`Entity picker invariant failed: ${entityInputs} inputs / ${pickers} pickers`);
 }
 
@@ -252,18 +287,20 @@ function mountLoadsEditor(target, editId = "", mode = "loads") {
     <details class="ed-acc"><summary class="ed-acc-head">C. VOCI REPORT MANUALI <span class="ed-acc-n">${loads.filter((x) => x.category === "manual-report").length}</span></summary><div class="ed-acc-body">${cards(loads.filter((x) => x.category === "manual-report"), true)}</div></details>
     <div class="ed-form" data-load-form><div class="ed-sec-title">${editId ? "Modifica carico" : "Nuovo carico secondario"}</div><div class="ed-form-row"><input id="dm-load-name" class="ed-input" placeholder="Nome" value="${esc(current.name)}"><input id="dm-load-icon" class="ed-input ed-icon-input" placeholder="🔌 / mdi:power-plug" value="${esc(current.icon)}"></div><div class="ed-form-row"><input id="dm-load-category" class="ed-input" placeholder="Categoria" value="${esc(current.category || "secondary")}"><select id="dm-load-room" class="ed-input">${globalThis.cdRoomOptions?.(current.room_id) || ""}</select></div>${entityField("dm-load-power", "Entità potenza", current.power_entity, "sensor.carico_power")}${entityField("dm-load-day", "Energia giornaliera", current.daily_energy_entity)}${entityField("dm-load-month", "Energia mensile", current.monthly_energy_entity)}${entityField("dm-load-total", "Energia totale", current.total_energy_entity)}${entityField("dm-load-history", "Storico", current.history_entity)}${entityField("dm-load-state", "Stato", current.state_entity)}${entityField("dm-load-control", "Comando ON/OFF", current.control_entity, "switch.carico")}<label class="ed-intro"><input id="dm-load-report" type="checkbox" ${current.show_in_report !== false ? "checked" : ""}> Visibile nel report</label><label class="ed-intro"><input id="dm-load-dashboard" type="checkbox" ${current.show_in_dashboard !== false ? "checked" : ""}> Visibile nella dashboard</label><button class="ed-btn-add" data-save-load>💾 ${editId ? "Salva modifiche" : "Aggiungi carico"}</button></div>`;
   target.querySelectorAll?.("[data-edit-load]").forEach((button) => button.addEventListener("click", () => mountLoadsEditor(target, button.dataset.editLoad)));
-  target.querySelectorAll?.("[data-delete-load]").forEach((button) => button.addEventListener("click", () => store.removeItem("loads", button.dataset.deleteLoad)));
-  target.querySelector?.("[data-save-load]")?.addEventListener("click", () => {
+  target.querySelectorAll?.("[data-delete-load]").forEach((button) => button.addEventListener("click", async () => { try { await store.removeItem("loads", button.dataset.deleteLoad); } catch (error) { globalThis.alert?.(error.message); } }));
+  target.querySelector?.("[data-save-load]")?.addEventListener("click", async () => {
     const value = (id) => target.querySelector(`#${id}`)?.value?.trim() || "";
     const item = { name: value("dm-load-name"), icon: value("dm-load-icon"), category: value("dm-load-category") || "secondary", room_id: value("dm-load-room"), power_entity: value("dm-load-power"), daily_energy_entity: value("dm-load-day"), monthly_energy_entity: value("dm-load-month"), total_energy_entity: value("dm-load-total"), history_entity: value("dm-load-history"), state_entity: value("dm-load-state"), control_entity: value("dm-load-control"), show_in_report: !!target.querySelector("#dm-load-report")?.checked, show_in_dashboard: !!target.querySelector("#dm-load-dashboard")?.checked, order: current.order ?? loads.length };
     if (!item.name) return globalThis.alert?.("Inserisci il nome del carico");
-    (editId ? store.updateItem("loads", editId, item) : store.addItem("loads", item)).catch((error) => globalThis.alert?.(error.message));
+    try { await (editId ? store.updateItem("loads", editId, item) : store.addItem("loads", item)); }
+    catch (error) { globalThis.alert?.(error.message); }
   });
 }
 
 const DashboardModernModules = Object.freeze({
   version: MODULES_VERSION,
   data: Object.freeze({
+    canonicalReportDevices,
     getDeviceDisplayName,
     getDeviceVisual,
     normalizeDevice,

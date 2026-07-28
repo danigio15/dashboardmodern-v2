@@ -1,4 +1,5 @@
 import { cloneValue, SCHEMA_VERSION, normalizeDevice } from "./device-model.js";
+import { ENERGY_SLOT_MAP } from "./energy-projection.js";
 
 export const SECTION_KEYS = Object.freeze({
   rooms: "cd_stanze",
@@ -142,6 +143,11 @@ export function migrateV3ToV4(input, legacy = {}) {
   const sections = next.sections;
   const overrides = { ...(sections.entityOverrides || {}), ...(legacy.entityOverrides || {}) };
   sections.entityOverrides = overrides;
+  for (const [path, slot] of Object.entries(ENERGY_SLOT_MAP)) {
+    const [group, key] = path.split(".");
+    if (!sections.energy[group]?.[key] && overrides[slot])
+      sections.energy[group][key] = overrides[slot];
+  }
   const washer = Object.entries(overrides).filter(
     ([key, value]) => key.startsWith("dm.lavatrice_") && value,
   );
@@ -185,9 +191,12 @@ export function migrateV3ToV4(input, legacy = {}) {
         monthly_energy_entity: raw.monthly_energy_entity || raw.entity || "",
         history_entity: raw.history_entity || raw.entity || "",
         state_entity: raw.state_entity || raw.bin || "",
-        icon: raw.icon || "",
+        icon: /^mdi:/i.test(String(raw.icon || "")) ? raw.icon : "",
+        report_icon: !/^mdi:/i.test(String(raw.icon || "")) ? raw.icon || "" : "",
+        emoji_icon: !/^mdi:/i.test(String(raw.icon || "")) ? raw.icon || "" : "",
         image: raw.image || "",
-        room_id: raw.room_id || raw.room || "",
+        room_id: raw.room_id || "",
+        room: raw.room || "",
         show_in_report: raw.show_in_report !== false,
         show_in_dashboard: category !== "manual-report" && raw.show_in_dashboard !== false,
       },
@@ -288,6 +297,8 @@ export function readLegacyState(storage) {
           name: item.name || "",
           icon: item.icon || "",
           category,
+          room_id: item.room_id || "",
+          room: item.room || "",
           power_entity: item.power_entity || item.pwr || item.pwrLive || "",
           state_entity: item.state_entity || item.bin || "",
           show_in_report: item.show_in_report !== false,

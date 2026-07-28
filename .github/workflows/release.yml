@@ -56,9 +56,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
       - name: Generate build provenance from the tagged HEAD
-        run: python scripts/generate_build_info.py --expected-commit "$GITHUB_SHA"
-      - name: Package the generated integration
-        run: zip -r dashboardmodern.zip custom_components/dashboardmodern
+        run: python scripts/build_release.py --expected-commit "$GITHUB_SHA" --output dashboardmodern.zip
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:

@@ -1,6 +1,7 @@
 import { cloneValue, SCHEMA_VERSION, normalizeDevice } from "./device-model.js";
 import { migrateState, normalizeSection, readLegacyState, SECTION_KEYS } from "./migrations.js";
 import { sectionForEditorSlot } from "./editor-slots.js";
+import { projectEnergySlots } from "./energy-projection.js";
 
 export const VISIBILITY_SECTION = Object.freeze({
   cameras: "security",
@@ -103,6 +104,10 @@ export class DashboardStore {
     return () => this.listeners.delete(listener);
   }
   persist() {
+    this.state.sections.entityOverrides = projectEnergySlots(
+      this.state.sections.energy || {},
+      this.state.sections.entityOverrides || {},
+    );
     this.projecting = true;
     try {
       this.storage.setItem("dm_dashboard_state", JSON.stringify(this.state));
@@ -286,6 +291,20 @@ export class DashboardStore {
       this.state.sections.loads = bySection.loads;
       return cloneValue(items);
     });
+  }
+  applySnapshot(serialized) {
+    const input = typeof serialized === "string" ? JSON.parse(serialized) : serialized;
+    const result = migrateState(input);
+    this.state = result.state;
+    this.persist();
+    const change = {
+      section: "snapshot",
+      operation: "sync-apply",
+      status: "optimistic",
+      state: this.getState(),
+    };
+    this.listeners.forEach((listener) => listener(change));
+    return this.getState();
   }
   sync() {
     return this.syncAdapter(this.getState(), { operation: "sync" });

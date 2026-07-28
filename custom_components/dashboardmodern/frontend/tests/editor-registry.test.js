@@ -68,12 +68,49 @@ test("Report DOM has a save lifecycle, canonical pickers and differs from Loads"
     source.indexOf("function renderDiagnostics"),
   );
   const loads = source.slice(source.indexOf("function mountLoadsEditor"));
-  assert.match(report, /Salva Report/);
+  assert.match(report, /t\("saveReport"\)/);
   assert.match(report, /data-state="clean"/);
   assert.match(report, /saveReport/);
   assert.match(report, /createEntityField/);
   assert.match(report, /report_order/);
-  assert.match(report, /Aggiungi voce manuale/);
+  assert.match(report, /t\("addManual"\)/);
   assert.doesNotMatch(report, /dm-load-category/);
   assert.notEqual(report, loads);
+  assert.match(report, /\[data-entity-field\] input/);
+  assert.match(report, /\[data-entity-field\] \.dm-entity-picker/);
+  assert.match(report, /renderReportEditor\(target\); mountReportEditor\("report", target\)/);
+});
+
+test("Energy coordinator never calls the legacy section renderer for Energy, Loads or Report", async () => {
+  const source = await readFile(moduleUrl, "utf8");
+  const coordinator = source.slice(
+    source.indexOf("createRenderCoordinator"),
+    source.indexOf("function renderEnergyEditorTab"),
+  );
+  assert.match(coordinator, /tab === "sez1" && section === "energy"/);
+  assert.match(coordinator, /tab === "sez1" && section === "loads"/);
+  assert.match(coordinator, /tab === "sez1" && section === "report"/);
+  assert.match(coordinator, /tab !== "sez1"/);
+});
+
+test("public report and multi-device sync consume canonical state only", async () => {
+  for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+    const source = await readFile(new URL(`../legacy/${variant}`, import.meta.url), "utf8");
+    const reportStart = source.indexOf("function cdRebuildReportDevices");
+    const report = source.slice(
+      reportStart,
+      source.indexOf("cdRebuildReportDevices();", reportStart),
+    );
+    assert.match(report, /canonicalReportDevices/);
+    assert.match(report, /getSection\('appliances'\)/);
+    assert.match(report, /getSection\('loads'\)/);
+    assert.doesNotMatch(report, /cd_report_devices|cdApplReportEntries/);
+    const sync = source.slice(
+      source.indexOf("const CD_SYNC_KEYS"),
+      source.indexOf("function cdMarkDirty"),
+    );
+    assert.match(sync, /dm_dashboard_state/);
+    assert.doesNotMatch(sync, /cd_subloads_extra|cd_report_devices/);
+    assert.match(sync, /applySnapshot/);
+  }
 });
