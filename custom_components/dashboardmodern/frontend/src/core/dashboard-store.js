@@ -5,6 +5,7 @@ export const VISIBILITY_SECTION = Object.freeze({
   cameras: "security",
   lights: "home",
   appliances: "appliances",
+  loads: "energy",
   climate: "clima",
   ev: "ev",
   energy: "energy",
@@ -28,6 +29,11 @@ export class DashboardStore {
   migrate() {
     const saved = this.storage.getItem("dm_dashboard_state");
     const source = saved ? JSON.parse(saved) : readLegacyState(this.storage);
+    if (saved && +source.schema_version < 3 && !source.sections?.loads?.length) {
+      const legacyLoads = readLegacyState(this.storage).sections.loads;
+      source.sections ||= {};
+      source.sections.loads = legacyLoads;
+    }
     if (+source.schema_version < SCHEMA_VERSION)
       this.storage.setItem(
         `dm_dashboard_backup_v${source.schema_version || 0}`,

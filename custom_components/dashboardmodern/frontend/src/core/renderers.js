@@ -58,7 +58,7 @@ export function createRenderCoordinator(store, renderers = {}) {
       energy: "renderEnergy",
     };
     call(names[change.section], change);
-    if (change.section === "appliances" || change.section === "energy")
+    if (["appliances", "loads", "energy"].includes(change.section))
       call("renderEnergyReport", change);
     if (change.section === "rooms") {
       call("renderRoomSelectors", change);
@@ -115,10 +115,15 @@ const ENERGY_GROUPS = [
     "grid",
     "Rete",
     [
+      ["power", "Potenza rete", "W", "sensor.rete_power"],
       ["import_power", "Potenza prelevata", "W", "sensor.rete_prelievo"],
       ["export_power", "Potenza immessa", "W", "sensor.rete_immissione"],
-      ["import_energy", "Energia prelevata", "kWh", "sensor.rete_energia"],
-      ["export_energy", "Energia immessa", "kWh", "sensor.rete_resa"],
+      ["daily_import_energy", "Energia prelevata giornaliera", "kWh", "sensor.rete_prelievo_oggi"],
+      ["daily_export_energy", "Energia immessa giornaliera", "kWh", "sensor.rete_immissione_oggi"],
+      ["monthly_import_energy", "Energia prelevata mensile", "kWh", "sensor.rete_prelievo_mese"],
+      ["monthly_export_energy", "Energia immessa mensile", "kWh", "sensor.rete_immissione_mese"],
+      ["total_import_energy", "Energia totale prelevata", "kWh", "sensor.rete_prelievo_totale"],
+      ["total_export_energy", "Energia totale immessa", "kWh", "sensor.rete_immissione_totale"],
     ],
   ],
   [
@@ -139,6 +144,8 @@ const ENERGY_GROUPS = [
       ["soc", "SOC", "%", "sensor.batteria_soc"],
       ["charged_energy", "Energia caricata", "kWh", "sensor.batteria_caricata"],
       ["discharged_energy", "Energia scaricata", "kWh", "sensor.batteria_scaricata"],
+      ["daily_charged_energy", "Caricata oggi", "kWh", "sensor.batteria_caricata_oggi"],
+      ["monthly_charged_energy", "Caricata questo mese", "kWh", "sensor.batteria_caricata_mese"],
     ],
   ],
 ];
@@ -157,33 +164,63 @@ export function renderEnergyEditor(
   const root = typeof target === "string" ? document.querySelector(target) : target;
   if (!root) return;
   root.replaceChildren();
-  root.classList.add("ed-list", "dm-energy-editor");
+  root.classList.add("ed-list");
+  root.dataset.editor = "energy";
+  const tabs = document.createElement("div");
+  tabs.className = "ed-inner-tabs";
+  const flowsButton = document.createElement("button");
+  flowsButton.className = "ed-inner-tab active";
+  flowsButton.type = "button";
+  flowsButton.textContent = locale === "it" ? "FLUSSI ED ENTITÀ" : "FLOWS & ENTITIES";
+  const settingsButton = document.createElement("button");
+  settingsButton.className = "ed-inner-tab";
+  settingsButton.type = "button";
+  settingsButton.textContent = locale === "it" ? "IMPOSTAZIONI" : "SETTINGS";
+  const flows = document.createElement("section");
+  flows.dataset.energyPanel = "flows";
+  const settings = document.createElement("section");
+  settings.dataset.energyPanel = "settings";
+  settings.hidden = true;
+  const selectTab = (name) => {
+    flows.hidden = name !== "flows";
+    settings.hidden = name !== "settings";
+    flowsButton.classList.toggle("active", name === "flows");
+    settingsButton.classList.toggle("active", name === "settings");
+    handlers.onTabChange?.(name);
+  };
+  flowsButton.addEventListener("click", () => selectTab("flows"));
+  settingsButton.addEventListener("click", () => selectTab("settings"));
+  tabs.append(flowsButton, settingsButton);
+  root.append(tabs, flows, settings);
   ENERGY_GROUPS.forEach(([group, title, fields], groupIndex) => {
     const block = document.createElement("details");
-    block.className = "dm-energy-editor__group";
+    block.className = "ed-acc";
     block.open = groupIndex === 0;
     const heading = document.createElement("summary");
-    heading.className = "dm-energy-editor__heading";
+    heading.className = "ed-acc-head";
     const configured = fields.filter(([key]) => Boolean(model[group]?.[key])).length;
     heading.innerHTML = `<span>${ENERGY_ICONS[group]} ${title}</span><small>${configured}/${fields.length} configurati</small>`;
     block.append(heading);
     const body = document.createElement("div");
-    body.className = "dm-energy-editor__body";
+    body.className = "ed-acc-body";
     for (const [key, label, unit, example] of fields) {
       const field = document.createElement("label");
-      field.className = "dm-energy-editor__field";
-      field.innerHTML = `<span class="dm-energy-editor__label">${label}<span class="dm-energy-editor__badges"><small>${unit}</small><small>Facoltativo</small></span></span><em>Entità Home Assistant, es. ${example}</em>`;
+      field.className = "ed-slot";
+      field.innerHTML = `<span class="ed-slot-lbl">${label} <span class="ed-acc-n">${unit}</span> <span class="ed-acc-n">Facoltativo</span></span><span class="ed-hint">Entità Home Assistant, es. ${example}</span>`;
       const row = document.createElement("span");
-      row.className = "dm-energy-editor__input-row";
+      row.className = "ed-form-row";
       const input = document.createElement("input");
+      input.className = "ed-input ed-slot-in mono";
       input.name = `${group}.${key}`;
       input.value = model[group]?.[key] || "";
       input.placeholder = example;
       input.dataset.validation = !input.value || states[input.value] ? "valid" : "invalid";
       const preview = document.createElement("output");
+      preview.className = "ed-row-old";
       preview.textContent = `${locale === "it" ? "Valore" : "Value"}: ${states[input.value]?.state ?? "—"}${states[input.value]?.state != null ? ` ${unit}` : ""}`;
       const pick = document.createElement("button");
       pick.type = "button";
+      pick.className = "dm-entity-picker";
       pick.textContent = "🔍";
       pick.setAttribute("aria-label", `Seleziona ${label}`);
       input.addEventListener("change", () => handlers.onChange?.(group, key, input.value));
@@ -193,15 +230,23 @@ export function renderEnergyEditor(
       body.append(field);
     }
     block.append(body);
-    root.append(block);
+    flows.append(block);
   });
-  const appliancesBlock = document.createElement("section");
-  appliancesBlock.className = "dm-energy-editor__report";
-  const heading = document.createElement("h3");
-  heading.textContent = locale === "it" ? "Elettrodomestici" : "Appliances";
-  appliancesBlock.append(heading);
-  appliances.forEach((device) =>
-    renderDeviceCard(document, appliancesBlock, device, states, [], locale),
-  );
-  root.append(appliancesBlock);
+  handlers.renderSettings?.(settings);
+}
+
+export function loadPopupMetrics(load, states = {}, costPerKwh = 0) {
+  const definitions = [
+    ["power", load.power_entity, "W"],
+    ["daily", load.daily_energy_entity, "kWh"],
+    ["monthly", load.monthly_energy_entity, "kWh"],
+    ["total", load.total_energy_entity, "kWh"],
+  ];
+  const values = definitions
+    .filter(([, entity]) => entity)
+    .map(([key, entity, unit]) => ({ key, ...metric(states, entity, unit) }));
+  const monthly = values.find((value) => value.key === "monthly")?.value;
+  if (monthly != null)
+    values.push({ key: "cost", entity: "", value: monthly * Number(costPerKwh || 0), unit: "€" });
+  return values;
 }
