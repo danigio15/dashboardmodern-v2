@@ -158,7 +158,8 @@ const entityField = (id, label, value, placeholder) => createEntityField({ id, l
 export function mountEntityPickers(target) {
   if (!target?.querySelectorAll) return;
 
-  const explicitLegacyIds = /^(?:ed-(?:pl-(?:temp|ph|cl|pump|heat|light)|irr-(?:ent|rain|weather)|tp-ent|luce-ent|cam-ent)|luce-add-ent|appl-ent-new|ed-avv-ent)$/;
+  const lightAddEntityIds = /^(?:luce|light)-add-ent$/;
+  const explicitLegacyIds = /^(?:ed-(?:pl-(?:temp|ph|cl|pump|heat|light)|irr-(?:ent|rain|weather)|tp-ent|luce-ent|cam-ent)|(?:luce|light)-add-ent|appl-ent-new|ed-avv-ent)$/;
   const inputs = new Set(target.querySelectorAll(
     "[data-entity-input], [data-entity-field] input, input.ed-slot-in[data-ref], input[data-domain]",
   ));
@@ -173,6 +174,9 @@ export function mountEntityPickers(target) {
   inputs.forEach((input) => {
     input.dataset.entityInput = "true";
     if (!input.id) input.id = `dm-entity-${[...target.querySelectorAll("input")].indexOf(input)}`;
+    if (lightAddEntityIds.test(input.id)) {
+      input.dataset.lightAddEntity = "";
+    }
     let button = input.parentElement?.querySelector?.(`.dm-entity-picker[data-entity-target="${CSS.escape(input.id)}"]`);
     const adjacent = input.nextElementSibling;
     if (!button && adjacent?.matches?.(".dm-entity-picker, button[onclick*='wzPickEntity']")) {

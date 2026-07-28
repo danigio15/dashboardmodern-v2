@@ -7721,7 +7721,7 @@ function cdDbgStatus(){ try { return '<div class="ed-intro mono" style="font-siz
     }
 
     html += `<button class="ed-save-btn" onclick="edToast('💾 Lights layout saved — reload to apply'); cdSyncPush && cdSyncPush();">💾 Save lights layout</button>`;
-    html += `<div class="ed-form dm-light-add-form"><div class="ed-sec-title">＋ ADD LIGHT</div><div class="ed-form-row"><input id="luce-add-ent" class="ed-input mono" data-light-add-entity data-entity-input="true" placeholder="light.living_room"><button type="button" class="dm-entity-picker" data-entity-target="luce-add-ent">🔍</button></div><input id="luce-add-name" class="ed-input" placeholder="Light name (optional)"><button class="ed-btn-add" onclick="cdLuceAdd()">＋ Add light</button></div>`;
+    html += `<div class="ed-form dm-light-add-form"><div class="ed-sec-title">＋ ADD LIGHT</div><div class="ed-form-row"><input id="luce-add-ent" class="ed-input mono" placeholder="light.living_room"><button type="button" class="dm-entity-picker" data-entity-target="luce-add-ent">🔍</button></div><input id="luce-add-name" class="ed-input" placeholder="Light name (optional)"><button class="ed-btn-add" onclick="cdLuceAdd()">＋ Add light</button></div>`;
     return html;
 }
 
