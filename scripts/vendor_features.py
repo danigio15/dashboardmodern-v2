@@ -170,7 +170,7 @@ WIZARD_STEP_REPLACEMENT = "WIZ = { step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 
 
 # ── Visible build marker: prove the served HTML actually updated ───────────
 VERSION_ANCHOR = "const DASHBOARD_VERSION = '0.11.1';"
-VERSION_REPLACEMENT = "const DASHBOARD_VERSION = '0.11.1-int';"
+VERSION_REPLACEMENT = "const DASHBOARD_VERSION = '0.12.3-int';"
 
 # ── Temperature section: the Piano (floor) fields are hidden via CSS below ─
 
@@ -913,7 +913,7 @@ R34_5_R = " try { var pg=document.getElementById('page-appliances-main'); var ba
 R35_1_A = "(r.floor || 'Altro') === f)"
 R35_1_R = "(r.floor || r.name || 'Altro') === f)"
 R35_2_A = "'0.12.1-int'"
-R35_2_R = "'0.12.2-int'"
+R35_2_R = "'0.12.3-int'"
 
 R36_A = "function cdApplEntity"
 R36_R = "function cdApplEntity(a, keys){ var v=cdApplEntityOrig(a, keys); if(v) return v; try { var ents=(a&&a.entities||[]).map(function(e){ return typeof e==='string'?e:e.entity; }).filter(Boolean); var k=String(keys&&keys[0]||''); function dom(d){ for(var i=0;i<ents.length;i++){ if(ents[i].indexOf(d+'.')===0) return ents[i]; } return null; } if(k.indexOf('switch')===0) return dom('switch')||dom('light')||dom('input_boolean'); if(k.indexOf('energy')===0){ for(var j=0;j<ents.length;j++){ if(/energy|kwh/i.test(ents[j])) return ents[j]; } return null; } if(k.indexOf('power')===0||k.indexOf('history')===0||k.indexOf('duration')===0&&false) return dom('sensor'); } catch(e){} return null; } function cdApplEntityOrig"

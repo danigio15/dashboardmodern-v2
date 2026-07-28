@@ -39,6 +39,8 @@ PRELUDE_TAG = '<script src="./bridge-prelude.js"></script>'
 # The tested logic the sections call. A module, so it shares one
 # implementation with the rest of the integration instead of a copy.
 MODULES_TAG = '<script type="module" src="./modules-entry.js"></script>'
+FIXES_STYLE_TAG = '<link rel="stylesheet" href="./dashboard-fixes.css">'
+FIXES_SCRIPT_TAG = '<script src="./dashboard-fixes.js"></script>'
 HEAD_ANCHOR = "<head>"
 
 WIZARD_ANCHOR = "\n        step: 1,\n        token: conn.token"
@@ -210,10 +212,11 @@ def patch_variant(source: str, name: str) -> str:
     patched = _apply_once(
         source,
         HEAD_ANCHOR,
-        f"{HEAD_ANCHOR}\n{NS_TAG}\n{PRELUDE_TAG}\n{MODULES_TAG}",
+        f"{HEAD_ANCHOR}\n{NS_TAG}\n{PRELUDE_TAG}\n{MODULES_TAG}\n{FIXES_STYLE_TAG}",
         f"{name} prelude",
     )
     patched = _apply_once(patched, CONN_ANCHOR, CONN_PATCHED, f"{name} connection")
+    patched = _apply_once(patched, "</body>", f"{FIXES_SCRIPT_TAG}\n</body>", f"{name} runtime fixes")
     patched = _apply_once(
         patched,
         CONN_WRITE_WIZARD_ANCHOR,
