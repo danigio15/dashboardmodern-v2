@@ -6,6 +6,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "check:inline-syntax": "node custom_components/dashboardmodern/frontend/tests/inline-syntax.js custom_components/dashboardmodern/frontend/legacy/dashboard.html custom_components/dashboardmodern/frontend/legacy/dashboard-en.html",
     "test:frontend": "node --test custom_components/dashboardmodern/frontend/tests/*.test.js",
     "format": "prettier --write \"custom_components/dashboardmodern/frontend/**/*.js\"",
     "format:check": "prettier --check \"custom_components/dashboardmodern/frontend/**/*.js\""
