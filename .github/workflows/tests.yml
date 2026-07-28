@@ -60,4 +60,6 @@ jobs:
         with:
           node-version: "22"
       - name: Run frontend tests
-        run: npm run test:frontend
+        run: |
+          npm run check:inline-syntax
+          npm run test:frontend

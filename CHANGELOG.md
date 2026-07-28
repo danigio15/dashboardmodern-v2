@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.6 — 2026-07-28
+
+- Corrette le virgolette non bilanciate nell'HTML generato dall'editor stanze
+  che impedivano al browser di compilare il JavaScript inline.
+- Aggiunti compilazione reale di ogni blocco inline bilingue e test del
+  bootstrap con timeout e messaggio di errore al posto dello spinner infinito.
+
 ## 0.12.4 — 2026-07-28
 
 - Unificati stanze, elettrodomestici e telecamere sul modello dati vendorizzato usato dall'integrazione.

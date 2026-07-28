@@ -34,6 +34,7 @@ jobs:
       - name: Test
         run: |
           python -m pytest -q
+          npm run check:inline-syntax
           npm run test:frontend
       - name: Check the tag matches the manifest version
         # A release whose tag and manifest disagree installs as one version and
