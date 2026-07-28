@@ -54,6 +54,8 @@ export function applianceName(appliance = {}, states = {}, fallback = "Appliance
 }
 
 export function applianceMedia(appliance = {}) {
+  if (appliance.visual_type && appliance.visual_key)
+    return { kind: appliance.visual_type, value: appliance.visual_key };
   return getDeviceVisual({ section: "appliances", ...appliance });
 }
 

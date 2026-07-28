@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 import pytest
+
+pytest.importorskip(
+    "homeassistant", reason="Home Assistant test dependency is not installed"
+)
+
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 

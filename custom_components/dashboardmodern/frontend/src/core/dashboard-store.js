@@ -1,5 +1,7 @@
 import { cloneValue, SCHEMA_VERSION, normalizeDevice } from "./device-model.js";
 import { migrateState, normalizeSection, readLegacyState, SECTION_KEYS } from "./migrations.js";
+import { sectionForEditorSlot } from "./editor-slots.js";
+import { projectEnergySlots } from "./energy-projection.js";
 
 export const VISIBILITY_SECTION = Object.freeze({
   cameras: "security",
@@ -9,6 +11,7 @@ export const VISIBILITY_SECTION = Object.freeze({
   climate: "clima",
   ev: "ev",
   energy: "energy",
+  entityOverrides: "entityOverrides",
   covers: "tapparelle",
   pool: "piscina",
   irrigation: "irrigazione",
@@ -72,7 +75,19 @@ export class DashboardStore {
         `dm_dashboard_backup_v${source.schema_version || 0}`,
         JSON.stringify(source),
       );
-    const result = migrateState(source);
+    const parse = (key, fallback) => {
+      try {
+        return JSON.parse(this.storage.getItem(key)) ?? fallback;
+      } catch {
+        return fallback;
+      }
+    };
+    const result = migrateState(source, {
+      entityOverrides: parse("cd_entity_overrides", {}),
+      subloads: parse("cd_subloads_extra", {}),
+      reportDevices: parse("cd_report_devices", []),
+      washerImage: parse("cd_lavatrice_visual", ""),
+    });
     this.state = result.state;
     if (result.changes.length) console.info("[DashboardStore] migration", result.changes);
     this.persist();
@@ -89,6 +104,10 @@ export class DashboardStore {
     return () => this.listeners.delete(listener);
   }
   persist() {
+    this.state.sections.entityOverrides = projectEnergySlots(
+      this.state.sections.energy || {},
+      this.state.sections.entityOverrides || {},
+    );
     this.projecting = true;
     try {
       this.storage.setItem("dm_dashboard_state", JSON.stringify(this.state));
@@ -134,10 +153,22 @@ export class DashboardStore {
     return this.replaceSection(section, value);
   }
   ensureSectionVisibleForData(section) {
+    if (section === "entityOverrides") {
+      let changed = false;
+      for (const [slot, entity] of Object.entries(this.state.sections.entityOverrides || {})) {
+        if (!configured(entity)) continue;
+        const mapped = sectionForEditorSlot(slot);
+        if (mapped && this.state.visibility[mapped] !== true) {
+          this.state.visibility[mapped] = true;
+          changed = true;
+        }
+      }
+      return changed;
+    }
     const key = VISIBILITY_SECTION[section] || section;
     const value = this.state.sections[section];
     const hasData = hasConfiguredData(section, value);
-    if (hasData && this.state.visibility[key] === false) {
+    if (hasData && this.state.visibility[key] !== true) {
       this.state.visibility[key] = true;
       return true;
     }
@@ -221,6 +252,61 @@ export class DashboardStore {
           rooms: this.state.sections.rooms || [],
         })),
     );
+  }
+  saveReport(items) {
+    return this.transact("report", "save", () => {
+      const bySection = {
+        appliances: this.state.sections.appliances || [],
+        loads: this.state.sections.loads || [],
+      };
+      const wantedManual = new Set(
+        items.filter((item) => item.category === "manual-report").map((item) => item.id),
+      );
+      bySection.loads = bySection.loads.filter(
+        (item) => item.category !== "manual-report" || wantedManual.has(item.id),
+      );
+      for (const draft of items) {
+        const section = draft.category === "manual-report" ? "loads" : draft.section;
+        const list = bySection[section];
+        const index = list.findIndex((item) => item.id === draft.id);
+        const existing = index >= 0 ? list[index] : {};
+        const patch = {
+          ...draft,
+          report_order: Number(draft.report_order) || 0,
+          show_in_dashboard:
+            draft.category === "manual-report" ? false : existing.show_in_dashboard !== false,
+        };
+        if (index < 0)
+          list.push(
+            normalizeDevice(patch, section, {
+              rooms: this.state.sections.rooms || [],
+              index: list.length,
+            }),
+          );
+        else
+          list[index] = normalizeDevice({ ...list[index], ...patch }, section, {
+            rooms: this.state.sections.rooms || [],
+            index,
+          });
+      }
+      this.state.sections.appliances = bySection.appliances;
+      this.state.sections.loads = bySection.loads;
+      return cloneValue(items);
+    });
+  }
+  applySnapshot(serialized) {
+    const input = typeof serialized === "string" ? JSON.parse(serialized) : serialized;
+    const result = migrateState(input);
+    this.state = result.state;
+    this.persist();
+    const change = {
+      section: "snapshot",
+      operation: "sync-apply",
+      status: "optimistic",
+      state: this.getState(),
+    };
+    this.listeners.forEach((listener) => listener(change));
+    return this.getState();
   }
   sync() {
     return this.syncAdapter(this.getState(), { operation: "sync" });

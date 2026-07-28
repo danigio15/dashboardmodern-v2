@@ -110,11 +110,28 @@ test("empty Energy fields have no fixed Value placeholder and pickers survive 20
     renderEnergyEditor(document, root, {}, [], {}, "it", { onPick: () => picks++ });
     const pickers = root.queryAll((node) => node.classList.contains("dm-entity-picker"));
     assert.ok(pickers.length > 0);
-    assert.equal(root.queryAll((node) => node.tagName === "OUTPUT").length, 0);
+    assert.equal(
+      root.queryAll((node) => node.classList.contains("dm-entity-preview")).length,
+      0,
+    );
     pickers.forEach((picker) => picker.click());
   }
   assert.ok(picks > 20);
   assert.doesNotMatch(root.innerHTML, /Valore:/);
+});
+
+test("English Energy renderer localizes fields, picker labels and action states", () => {
+  const root = new Element("div");
+  renderEnergyEditor(document, root, {}, [], {}, "en");
+  const nodes = root.queryAll(() => true);
+  const markup = nodes.map((node) => `${node.innerHTML} ${node.textContent || ""}`).join(" ");
+  assert.match(markup, /Optional/);
+  assert.match(markup, /Home Assistant entity, e\.g\./);
+  assert.match(markup, /Save Energy/);
+  assert.match(markup, /No unsaved changes/);
+  assert.doesNotMatch(markup, /Facoltativo|Entità Home Assistant|Salva Energia|Nessuna modifica/);
+  const picker = nodes.find((node) => node.classList.contains("dm-entity-picker"));
+  assert.match(picker["aria-label"], /^Select /);
 });
 
 test("editor navbar exposes Loads only inside Energy and has no standalone washer", async () => {

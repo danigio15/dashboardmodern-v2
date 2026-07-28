@@ -5,7 +5,7 @@ test("the exact module shipped by the HTML loads and exposes the canonical model
   delete globalThis.DashboardModernModules;
   const module = await import(`../legacy/modules-entry.js?functional=${Date.now()}`);
   assert.equal(module.default, globalThis.DashboardModernModules);
-  assert.equal(module.default.version, 5);
+  assert.equal(module.default.version, 14);
   assert.equal(typeof module.default.store.addItem, "function");
   assert.equal(typeof module.default.data.applianceGroups, "function");
   assert.equal(typeof module.default.data.applianceState, "function");

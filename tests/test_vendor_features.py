@@ -56,7 +56,7 @@ def test_the_room_field_is_present_in_every_section_and_language() -> None:
         assert "!window.__DASHBOARDMODERN_HOSTED__" in html, name
         assert "step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 : 1)" in html, name
         # The build marker proves the served HTML updated.
-        assert "0.13.3" in html, name
+        assert "0.14.0" in html, name
         # The repository logo is used, not the inline SVG mark.
         assert 'src="./logo.png"' in html, name
         # The Piano field is hidden in the temperature section.
@@ -157,7 +157,7 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "Rilevamento e manutenzione" in html, name
         # Bugfix guards: sync loop-guard, hosted update-check, version bump.
         assert "cd_sync_rl2" in html, name
-        assert "0.13.3" in html and "0.11.1-int" not in html, name
+        assert "0.14.0" in html and "0.11.1-int" not in html, name
         # Tapparelle: open/close-all buttons and open-shutter alerts.
         assert "Apri tutte" in html and "Chiudi tutte" in html, name
         assert "tapp-avvisi" in html, name
@@ -172,7 +172,8 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "dm.home_interruttore_antifurto" in html, name
         assert "function edSecSave()" in html, name
         assert "function edCostSplit(" in html, name
-        assert "edCostSplit(body,'hide')" in html, name
+        assert "function editorRenderLoad(" not in html, name
+        assert "Editor canonico Carichi non caricato" in html, name
         # Round 19: appliance save, tapparelle alert group, cams in security,
         # navbar ordering from Impostazioni.
         assert "editorRenderAppliances() + '<button" in html, name
@@ -204,9 +205,10 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         assert "if(_rm) item.room_id=_rm;" in html, name
         # The lights room list offers registry rooms so floors resolve.
         assert "!set.includes(r.name)) set.push(r.name)" in html, name
-        # Appliances with an energy sensor auto-populate the Report.
-        assert "function cdApplReportEntries(" in html, name
-        assert ".concat(cdApplReportEntries(" in html, name
+        # The public Report consumes only the canonical appliance/load projection.
+        assert "function cdApplReportEntries(" not in html, name
+        assert "modules.data.canonicalReportDevices" in html, name
+        assert ".concat(cdApplReportEntries(" not in html, name
         # The Tapparelle section: page, navbar, runtime, editor, sync.
         assert 'id="page-tapparelle"' in html, name
         assert 'id="tab-tapparelle"' in html, name

@@ -58,7 +58,7 @@ export function createRenderCoordinator(store, renderers = {}) {
       energy: "renderEnergy",
     };
     call(names[change.section], change);
-    if (["appliances", "loads", "energy"].includes(change.section))
+    if (["appliances", "loads", "energy", "report"].includes(change.section))
       call("renderEnergyReport", change);
     if (change.section === "rooms") {
       call("renderRoomSelectors", change);
@@ -88,6 +88,9 @@ export function renderDeviceCard(document, target, device, states = {}, rooms = 
   if (visual.kind === "image") {
     media.src = visual.value;
     media.alt = "";
+  } else if (visual.kind === "asset") {
+    media.dataset.asset = visual.value;
+    media.innerHTML = globalThis.cdApplianceIcon?.(visual.value, 28) || visual.value;
   } else media.dataset.icon = visual.value;
   const title = document.createElement("strong");
   title.textContent = getDeviceDisplayName(device, states, locale);
@@ -108,7 +111,7 @@ const ENERGY_GROUPS = [
       ["power", "Potenza istantanea", "W", "sensor.casa_power"],
       ["daily_energy", "Energia giornaliera", "kWh", "sensor.casa_oggi"],
       ["monthly_energy", "Energia mensile", "kWh", "sensor.casa_mese"],
-      ["total_energy", "Energia totale", "kWh", "sensor.casa_totale"],
+      ["annual_energy", "Energia annuale", "kWh", "sensor.casa_anno"],
     ],
   ],
   [
@@ -116,14 +119,10 @@ const ENERGY_GROUPS = [
     "Rete",
     [
       ["power", "Potenza rete", "W", "sensor.rete_power"],
-      ["import_power", "Potenza prelevata", "W", "sensor.rete_prelievo"],
-      ["export_power", "Potenza immessa", "W", "sensor.rete_immissione"],
       ["daily_import_energy", "Energia prelevata giornaliera", "kWh", "sensor.rete_prelievo_oggi"],
       ["daily_export_energy", "Energia immessa giornaliera", "kWh", "sensor.rete_immissione_oggi"],
       ["monthly_import_energy", "Energia prelevata mensile", "kWh", "sensor.rete_prelievo_mese"],
       ["monthly_export_energy", "Energia immessa mensile", "kWh", "sensor.rete_immissione_mese"],
-      ["total_import_energy", "Energia totale prelevata", "kWh", "sensor.rete_prelievo_totale"],
-      ["total_export_energy", "Energia totale immessa", "kWh", "sensor.rete_immissione_totale"],
     ],
   ],
   [
@@ -133,7 +132,7 @@ const ENERGY_GROUPS = [
       ["power", "Potenza", "W", "sensor.fv_power"],
       ["daily_energy", "Energia giornaliera", "kWh", "sensor.fv_oggi"],
       ["monthly_energy", "Energia mensile", "kWh", "sensor.fv_mese"],
-      ["total_energy", "Energia totale", "kWh", "sensor.fv_totale"],
+      ["annual_energy", "Energia annuale", "kWh", "sensor.fv_anno"],
     ],
   ],
   [
@@ -142,8 +141,6 @@ const ENERGY_GROUPS = [
     [
       ["power", "Potenza", "W", "sensor.batteria_power"],
       ["soc", "SOC", "%", "sensor.batteria_soc"],
-      ["charged_energy", "Energia caricata", "kWh", "sensor.batteria_caricata"],
-      ["discharged_energy", "Energia scaricata", "kWh", "sensor.batteria_scaricata"],
       ["daily_charged_energy", "Caricata oggi", "kWh", "sensor.batteria_caricata_oggi"],
       ["monthly_charged_energy", "Caricata questo mese", "kWh", "sensor.batteria_caricata_mese"],
     ],
@@ -151,13 +148,71 @@ const ENERGY_GROUPS = [
 ];
 
 const ENERGY_ICONS = { house: "🏠", grid: "🔌", solar: "☀️", battery: "🔋" };
+const ENERGY_EN = Object.freeze({
+  Casa: "Home",
+  Rete: "Grid",
+  Fotovoltaico: "Solar",
+  Batteria: "Battery",
+  "Potenza istantanea": "Instant power",
+  "Energia giornaliera": "Daily energy",
+  "Energia mensile": "Monthly energy",
+  "Energia annuale": "Annual energy",
+  "Energia totale": "Total energy",
+  "Potenza rete": "Grid power",
+  "Potenza prelevata": "Import power",
+  "Potenza immessa": "Export power",
+  "Energia prelevata giornaliera": "Daily imported energy",
+  "Energia immessa giornaliera": "Daily exported energy",
+  "Energia prelevata mensile": "Monthly imported energy",
+  "Energia immessa mensile": "Monthly exported energy",
+  "Energia totale prelevata": "Total imported energy",
+  "Energia totale immessa": "Total exported energy",
+  Potenza: "Power",
+  SOC: "State of charge",
+  "Energia caricata": "Charged energy",
+  "Energia scaricata": "Discharged energy",
+  "Caricata oggi": "Charged today",
+  "Caricata questo mese": "Charged this month",
+});
+
+const ENERGY_UI = Object.freeze({
+  it: {
+    select: "Seleziona",
+    optional: "Facoltativo",
+    entityHint: "Entità Home Assistant, es.",
+    configured: "configurati",
+    save: "💾 Salva Energia",
+    clean: "Nessuna modifica non salvata",
+    dirty: "Modifiche non salvate",
+  },
+  en: {
+    select: "Select",
+    optional: "Optional",
+    entityHint: "Home Assistant entity, e.g.",
+    configured: "configured",
+    save: "💾 Save Energy",
+    clean: "No unsaved changes",
+    dirty: "Unsaved changes",
+  },
+});
 
 export function createEntityPickerField(
   document,
-  { value = "", placeholder = "", label = "Entità", state, unit = "", onPick, onChange } = {},
+  {
+    value = "",
+    placeholder = "",
+    label = "Entità",
+    locale = "it",
+    state,
+    unit = "",
+    onPick,
+    onChange,
+  } = {},
 ) {
+  const copy = ENERGY_UI[locale] || ENERGY_UI.it;
   const field = document.createElement("span");
   field.className = "dm-entity-field";
+  field.dataset.entityField = "";
   const row = document.createElement("span");
   row.className = "ed-form-row";
   const input = document.createElement("input");
@@ -168,7 +223,7 @@ export function createEntityPickerField(
   picker.type = "button";
   picker.className = "dm-entity-picker";
   picker.textContent = "🔍";
-  picker.setAttribute("aria-label", `Seleziona ${label}`);
+  picker.setAttribute("aria-label", `${copy.select} ${label}`);
   picker.addEventListener("click", () => onPick?.(input));
   input.addEventListener("change", () => onChange?.(input.value, input));
   row.append(input, picker);
@@ -191,6 +246,7 @@ export function renderEnergyEditor(
   locale = "it",
   handlers = {},
 ) {
+  const copy = ENERGY_UI[locale] || ENERGY_UI.it;
   const root = typeof target === "string" ? document.querySelector(target) : target;
   if (!root) return;
   root.replaceChildren();
@@ -249,18 +305,20 @@ export function renderEnergyEditor(
     const heading = document.createElement("summary");
     heading.className = "ed-acc-head";
     const configured = fields.filter(([key]) => Boolean(model[group]?.[key])).length;
-    heading.innerHTML = `<span>${ENERGY_ICONS[group]} ${title}</span><small>${configured}/${fields.length} configurati</small>`;
+    heading.innerHTML = `<span>${ENERGY_ICONS[group]} ${locale === "en" ? ENERGY_EN[title] || title : title}</span><small>${configured}/${fields.length} ${copy.configured}</small>`;
     block.append(heading);
     const body = document.createElement("div");
     body.className = "ed-acc-body";
-    for (const [key, label, unit, example] of fields) {
+    for (const [key, sourceLabel, unit, example] of fields) {
+      const label = locale === "en" ? ENERGY_EN[sourceLabel] || sourceLabel : sourceLabel;
       const field = document.createElement("label");
       field.className = "ed-slot";
-      field.innerHTML = `<span class="ed-slot-lbl">${label} <span class="ed-acc-n">${unit}</span> <span class="ed-acc-n">Facoltativo</span></span><span class="ed-hint">Entità Home Assistant, es. ${example}</span>`;
+      field.innerHTML = `<span class="ed-slot-lbl">${label} <span class="ed-acc-n">${unit}</span> <span class="ed-acc-n">${copy.optional}</span></span><span class="ed-hint">${copy.entityHint} ${example}</span>`;
       const { field: entity, input } = createEntityPickerField(document, {
         value: model[group]?.[key] || "",
         placeholder: example,
         label,
+        locale,
         state: states[model[group]?.[key] || ""]?.state,
         unit,
         onPick: handlers.onPick,
@@ -274,9 +332,33 @@ export function renderEnergyEditor(
     block.append(body);
     flows.append(block);
   });
+  const actions = document.createElement("div");
+  actions.className = "ed-action-bar";
+  actions.dataset.energyActions = "";
+  actions.dataset.state = "clean";
+  const save = document.createElement("button");
+  save.type = "button";
+  save.className = "ed-save-btn";
+  save.dataset.energySave = "";
+  save.disabled = true;
+  save.textContent = copy.save;
+  const status = document.createElement("output");
+  status.dataset.energyStatus = "";
+  status.textContent = copy.clean;
+  actions.append(save, status);
+  flows.append(actions);
+  const dirty = () => {
+    actions.dataset.state = "dirty";
+    save.disabled = false;
+    status.textContent = copy.dirty;
+  };
+  flows.addEventListener("input", dirty);
+  flows.addEventListener("change", dirty);
+  save.addEventListener("click", () => handlers.onSave?.({ actions, save, status }));
   handlers.renderLoads?.(loads);
   handlers.renderReport?.(report);
   handlers.renderSettings?.(settings);
+  selectTab(handlers.initialTab || "flows");
 }
 
 export function loadPopupMetrics(load, states = {}, costPerKwh = 0) {

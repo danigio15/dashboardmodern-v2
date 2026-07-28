@@ -33,6 +33,7 @@ jobs:
           ruff format --check .
       - name: Test
         run: |
+          python scripts/generate_build_info.py --expected-commit "$GITHUB_SHA"
           python -m pytest -q
           npm run check:inline-syntax
           npm run test:frontend
@@ -54,7 +55,10 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+      - name: Generate build provenance from the tagged HEAD
+        run: python scripts/build_release.py --expected-commit "$GITHUB_SHA" --output dashboardmodern.zip
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          files: dashboardmodern.zip
