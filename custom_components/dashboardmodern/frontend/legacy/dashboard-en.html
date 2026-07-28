@@ -4646,6 +4646,7 @@ body.cd-nav-fixed nav.tabs.bottom-nav-bar {
 body.cd-nav-fixed .bottom-nav-handle { display: none !important; }
 body.cd-nav-fixed { padding-bottom: 96px !important; }
 </style>
+<link rel="stylesheet" href="./dashboard-fixes.css">
 </head>
 <body>
 <script>(function(){try{var p=localStorage.getItem('cd_theme')||'auto';var d=p==='dark'||(p==='auto'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
@@ -4882,7 +4883,7 @@ body.cd-nav-fixed { padding-bottom: 96px !important; }
           <div class="ed-year-summary-header">
             <span class="ed-year-summary-icon">📊</span>
             <div class="ed-year-summary-title">
-              <div class="ed-year-summary-lbl">Bilancio Anno</div>
+              <div class="ed-year-summary-lbl">Total</div>
               <div class="ed-year-summary-year" id="ed-year-summary-year">2026</div>
             </div>
           </div>
@@ -6184,7 +6185,7 @@ body.cd-nav-fixed { padding-bottom: 96px !important; }
    localStorage (se presente) ha priorità, così puoi ancora testare in locale.
    ─────────────────────────────────────────────────────────────────── */
 /* ═══ v258: VERSIONE — visibile in console, wizard e pagina Config ═══ */
-const DASHBOARD_VERSION = '0.12.2-int';
+const DASHBOARD_VERSION = '0.12.3-int';
 console.log('%c🏠 Dashboard Modern v' + DASHBOARD_VERSION, 'font-size:14px; font-weight:bold; color:#0ea5e9;');
 
 /* CD_BAKED_START */
@@ -15195,5 +15196,6 @@ connect();
     </div>
   </div>
 </div>
+<script src="./dashboard-fixes.js"></script>
 </body>
 </html>
