@@ -30,7 +30,6 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: runtime, energy, loads and report use the shipped module`, async ({
     page,
   }, testInfo) => {
-    testInfo.setTimeout(90_000);
     const errors = [];
     const pageErrors = [];
     const seedState = {
@@ -334,10 +333,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-room-picker.png`,
     });
-    await page
-      .locator("#dm-iconpick")
-      .getByRole("button", { name: /CHIUDI|CLOSE/ })
-      .click();
+    await page.locator("#dm-iconpick [data-icon-picker-close]").click();
+    await expect(page.locator("#dm-iconpick")).toHaveCount(0);
     await page.evaluate(() => window.editorSwitch("luci"));
     await assertPickerInvariant();
     await expect(page.locator("#luce-add-ent")).toHaveAttribute("data-entity-input", "true");

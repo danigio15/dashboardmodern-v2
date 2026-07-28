@@ -6339,7 +6339,7 @@ function dmIconPicker(targetSel, category) {
         <div style="font-weight:900; font-size:14.5px; margin-bottom:8px; color:var(--text,#0f172a);">😀 Scegli l'icona</div>
         <input id="dm-icon-search" class="ed-input" style="margin-bottom:8px;" placeholder="🔍 Cerca (es. acqua, porta, fuoco)…" oninput="dmIconFilter(this.value)">
         <div id="dm-icon-grid" style="overflow-y:auto; flex:1; display:grid; grid-template-columns:repeat(auto-fill,minmax(46px,1fr)); gap:6px;"></div>
-        <button type="button" style="margin-top:10px; padding:11px; border:none; border-radius:12px; background:#94a3b8; color:#fff; font-weight:800; cursor:pointer;" onclick="document.getElementById('dm-iconpick').remove()">Chiudi</button>
+        <button type="button" data-icon-picker-close aria-label="Chiudi selettore icone" style="margin-top:10px; padding:11px; border:none; border-radius:12px; background:#94a3b8; color:#fff; font-weight:800; cursor:pointer;" onclick="document.getElementById('dm-iconpick').remove()">Chiudi</button>
       </div>`;
     document.body.appendChild(ov);
     window._dmIconTarget = targetSel;
