@@ -148,7 +148,8 @@ export function readLegacyState(storage) {
     sections.appliances.push({
       id: "appliance-lavatrice",
       name: "Lavatrice",
-      icon: "mdi:washing-machine",
+      // Keep the project's original built-in washer artwork identifier.
+      icon: "lavatrice",
       device_type: "lavatrice",
       entities: washerEntities.map(([, entity]) => entity),
       state_entity: get("fase_corrente"),

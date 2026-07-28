@@ -4796,8 +4796,7 @@ html[data-theme="dark"] .tc2-hum { background: rgba(14,165,233,0.16); color:#7dd
     </div>
   </div>
   <div class="appl-main-hero">
-    <div><div class="appl-main-title">🧺 Elettrodomestici</div><div class="appl-main-sub" id="appl-main-sub">Configura cd_appliances in config.js o dall'editor integrato.</div></div>
-    <button class="ed-btn-add appl-main-config" onclick="apriConfigEntita(); setTimeout(()=>editorSwitch('appliances'),250)">⚙️ Configura</button>
+    <div><div class="appl-main-title">🧺 Elettrodomestici</div><div class="appl-main-sub" id="appl-main-sub"></div></div>
   </div>
   <div class="glance-grid appl-kpi-grid" id="appl-kpi-grid"></div>
   <div class="appl-main-view active" id="appl-view-overview"><h3 class="section-title">Panoramica</h3><div class="appl-page-grid" id="appl-grid-overview"></div></div>
@@ -6339,7 +6338,7 @@ function dmIconFilter(q) {
     const grid = document.getElementById('dm-icon-grid');
     if (!grid) return;
     const rows = q ? DM_ICONS.filter(x => x.k.includes(q) || x.e === q) : DM_ICONS;
-    if(!visible.length){ grid.innerHTML='<div style="text-align:center; padding:30px; color:var(--text-dim); font-weight:700;">Nessuna stanza con sensore — aggiungila nel tab Temperatura dell&#39;editor</div>'; return; } grid.innerHTML = rows.map(x => `<button type="button" onclick="dmIconChoose('${x.e}')" style="font-size:24px; padding:8px 0; border:1px solid var(--card-border,#e2e8f0); border-radius:12px; background:rgba(148,163,184,0.08); cursor:pointer;">${x.e}</button>`).join('') || '<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-dim); font-weight:700;">Nessuna icona</div>';
+    grid.innerHTML = rows.map(x => `<button type="button" onclick="dmIconChoose('${x.e}')" style="font-size:24px; padding:8px 0; border:1px solid var(--card-border,#e2e8f0); border-radius:12px; background:rgba(148,163,184,0.08); cursor:pointer;">${x.e}</button>`).join('') || '<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-dim); font-weight:700;">Nessuna icona</div>';
 }
 function dmIconChoose(e) {
     const sel = window._dmIconTarget;
@@ -6513,7 +6512,7 @@ function renderApplianceSection(force) {
   const day = list.reduce((t, a) => t + cdApplNum(cdApplEntity(a, ['energy_today','daily_energy'])), 0);
   const alerts = list.filter(a => !cdApplConfiguredEntities(a).length).length;
   setHtml('appl-kpi-grid', [[labs[0], on, '🟢'], [labs[1], Math.round(watts) + ' W', '⚡'], [labs[2], (day ? day.toFixed(1) : '—') + ' kWh', '📅'], [labs[3], alerts, '⚠️']].map(x => `<div class="glance-card" style="--g-rgb:14,165,233;display:flex;"><div class="g-info"><span class="g-name">${x[0]}</span><span class="g-val">${x[1]}</span></div><div class="g-icon-wrap">${x[2]}</div></div>`).join(''));
-  setTxt('appl-main-sub', list.length ? 'Configura gli entity_id in cd_appliances: name, icon, category, power, energy, duration, switch, history.' : 'Nessun elettrodomestico configurato — Configura gli entity_id in cd_appliances: name, icon, category, power, energy, duration, switch, history.');
+  setTxt('appl-main-sub', list.length ? '' : 'Nessun elettrodomestico configurato.');
   const cats = {
     overview: roomList,
     kitchen: list.filter(a => cdApplCategory(a) === 'kitchen'),
@@ -9862,7 +9861,7 @@ function editorRenderSezioni() {
             <input id="ed-cam-name" class="ed-input" placeholder="Nome (es. Giardino)">
             <div style="display:flex; gap:8px; margin-bottom:6px;"><input id="ed-cam-ent" style="flex:1;" class="ed-input mono" placeholder="camera.giardino"><button type="button" onclick="wzPickEntity('#ed-cam-ent')" style="flex:0 0 38px; height:38px; border:none; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:14px; cursor:pointer;">🔍</button></div>
             <input id="ed-cam-stream" class="ed-input mono" placeholder="Nome stream go2rtc (facoltativo, per WebRTC)">
-            <select id="ed-cam-room" class="ed-input" style="margin-bottom:6px;width:100%;"></select><button class="ed-btn-add" onclick="edAddCamera()">＋ Aggiungi telecamera</button>
+            <select id="ed-cam-room" class="ed-input" style="margin-bottom:6px;width:100%;"></select><button class="ed-btn-add" onclick="edAddCamera()">＋ Aggiungi telecamera</button><button type="button" class="ed-save-btn" onclick="edSaveSezione(this)">💾 Salva sezione</button>
           </div>
         </div>
       </details>

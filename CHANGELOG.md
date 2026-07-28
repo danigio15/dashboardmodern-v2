@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.4 — 2026-07-28
+
+- Rifinitura finale dell'Editor: Salva Telecamere, Report Energia canonico e card Costi uniforme.
+- Corretti picker entità persistenti, ricerca icone Stanze, visibilità immediata e migrazione Lavatrice.
+- Rimossi dalla pagina Elettrodomestici i richiami ridondanti alla configurazione.
+
 ## 0.13.2 — 2026-07-28
 
 - Unificato l'editor Energia con tab Flussi e Impostazioni e con il picker entità condiviso.

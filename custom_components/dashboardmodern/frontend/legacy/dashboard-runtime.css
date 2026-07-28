@@ -13,3 +13,6 @@
 .dm-appliance-power { margin-top:auto;display:flex;flex-direction:column }.dm-appliance-power small{color:var(--text-dim)}.dm-appliance-power strong{font-size:22px;color:#f8fafc}
 .dm-appliance-history { grid-column:1/3;border:0;background:transparent;padding:0;cursor:pointer }.dm-appliance-history svg{width:100%;height:38px}.dm-appliance-history path{fill:none;stroke:#38bdf8;stroke-width:2;vector-effect:non-scaling-stroke}.dm-appliance-history.disabled{opacity:.3;cursor:default}
 @media(max-width:640px){.dm-appliance-card{grid-template-columns:82px 1fr;min-height:180px;padding:13px}.dm-entity-field{gap:6px}}
+.dm-energy-cost-card { margin-top:12px; padding:16px; border:1px solid var(--card-border,#e2e8f0); border-radius:14px; background:var(--card-bg,#fff) }
+.dm-light-add-form .ed-input { margin:0 }
+@media (max-width:700px) { .dm-energy-cost-card .ed-form-row { grid-template-columns:1fr; display:grid } }
