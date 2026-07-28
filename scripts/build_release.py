@@ -50,12 +50,22 @@ def main() -> None:
 
         with zipfile.ZipFile(args.output) as archive:
             names = set(archive.namelist())
-            required = {"__init__.py", "manifest.json", "frontend/legacy/build-info.js"}
+            required = {
+                "__init__.py",
+                "manifest.json",
+                "frontend/legacy/build-info.js",
+            }
             missing = required - names
             if missing:
-                raise RuntimeError(f"Release archive missing required root files: {sorted(missing)}")
+                raise RuntimeError(
+                    "Release archive missing required root files: "
+                    f"{sorted(missing)}"
+                )
             if any(name.startswith("custom_components/") for name in names):
-                raise RuntimeError("Release archive contains an invalid nested custom_components directory")
+                raise RuntimeError(
+                    "Release archive contains an invalid nested "
+                    "custom_components directory"
+                )
 
     manifest = json.loads((COMPONENT / "manifest.json").read_text())
     print(f"Built {args.output} for {manifest['version']} at {args.expected_commit}")
