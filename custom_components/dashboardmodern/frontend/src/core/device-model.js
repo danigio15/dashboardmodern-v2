@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export function cloneValue(value) {
   if (typeof globalThis.structuredClone === "function") return globalThis.structuredClone(value);
@@ -107,7 +107,7 @@ export function normalizeDevice(input = {}, section, context = {}) {
     base.stream = String(input.stream || input.stream_url || input.url);
   if (input.threshold_run != null) base.metadata.threshold_run = +input.threshold_run;
   if (input.threshold_standby != null) base.metadata.threshold_standby = +input.threshold_standby;
-  if (section === "appliances")
+  if (section === "appliances" || section === "loads")
     Object.assign(base, {
       power_entity: input.power_entity || input.power || "",
       energy_entity: input.energy_entity || input.energy || "",
@@ -118,7 +118,11 @@ export function normalizeDevice(input = {}, section, context = {}) {
       history_entity: input.history_entity || input.history || "",
       control_entity:
         input.control_entity || input.switch_entity || input.switch || input.light || "",
-      device_type: String(type || "appliance").toLowerCase(),
+      state_entity: input.state_entity || input.state || "",
+      show_in_report: input.show_in_report !== false,
+      show_in_dashboard: input.show_in_dashboard !== false,
+      category: String(input.category || type || (section === "loads" ? "secondary" : "appliance")),
+      device_type: String(type || (section === "loads" ? "secondary" : "appliance")).toLowerCase(),
     });
   return base;
 }

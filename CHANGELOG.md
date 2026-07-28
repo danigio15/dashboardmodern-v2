@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.2 — 2026-07-28
+
+- Unificato l'editor Energia con tab Flussi e Impostazioni e con il picker entità condiviso.
+- Consolidati Carichi secondari e voci report in un modello canonico migrato e reattivo.
+- Spostata la scheda Carichi subito dopo Energia nell'Editor Dashboard.
+
 ## 0.13.1 — 2026-07-28
 
 - Editor Energia compatto e richiudibile, ottimizzato per mobile.

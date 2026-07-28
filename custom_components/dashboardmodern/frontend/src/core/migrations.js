@@ -4,6 +4,7 @@ export const SECTION_KEYS = Object.freeze({
   rooms: "cd_stanze",
   cameras: "cd_cameras",
   appliances: "cd_appliances",
+  loads: "cd_loads",
   lights: "cd_luci",
   climate: "cd_clima_units",
   ev: "cd_ev_cars",
@@ -51,6 +52,7 @@ function migrateDevices(section, input, rooms) {
 }
 export const migrateCameras = (input, rooms) => migrateDevices("cameras", input, rooms);
 export const migrateAppliances = (input, rooms) => migrateDevices("appliances", input, rooms);
+export const migrateLoads = (input, rooms) => migrateDevices("loads", input, rooms);
 export const migrateClimate = (input, rooms) => migrateDevices("climate", input, rooms);
 export const migrateCovers = (input, rooms) => migrateDevices("covers", input, rooms);
 
@@ -88,6 +90,7 @@ export function normalizeSection(section, input, context = {}) {
     rooms: migrateRooms,
     cameras: migrateCameras,
     appliances: migrateAppliances,
+    loads: migrateLoads,
     lights: migrateLights,
     climate: migrateClimate,
     ev: migrateEv,
@@ -130,5 +133,47 @@ export function readLegacyState(storage) {
       key,
       ["pool", "irrigation", "energy"].includes(section) ? {} : section === "lights" ? {} : [],
     );
+  // Consolidate the two historical secondary-consumption stores once.  The
+  // canonical load id is generated independently from its mutable name and
+  // report rows that point at an existing load are deliberately not copied.
+  if (!sections.loads.length) {
+    const extras = parse("cd_subloads_extra", {});
+    const reports = parse("cd_report_devices", []);
+    const seen = new Set();
+    const add = (item) => {
+      const fingerprint = String(item.monthly_energy_entity || item.power_entity || "").trim();
+      if (fingerprint && seen.has(fingerprint)) return;
+      if (fingerprint) seen.add(fingerprint);
+      sections.loads.push(item);
+    };
+    Object.entries(extras || {}).forEach(([category, items]) =>
+      (items || []).forEach((item, index) =>
+        add({
+          id: item.id || `load-${slug(category) || "secondary"}-${index + 1}`,
+          name: item.name || "",
+          icon: item.icon || "",
+          category,
+          power_entity: item.power_entity || item.pwr || item.pwrLive || "",
+          state_entity: item.state_entity || item.bin || "",
+          show_in_report: item.show_in_report !== false,
+          show_in_dashboard: item.show_in_dashboard !== false,
+          order: sections.loads.length,
+        }),
+      ),
+    );
+    reports.forEach((item, index) =>
+      add({
+        id: item.id || `load-report-${index + 1}`,
+        name: item.name || "",
+        icon: item.icon || "",
+        category: "manual-report",
+        monthly_energy_entity: item.monthly_energy_entity || item.entity || "",
+        history_entity: item.history_entity || item.entity || "",
+        show_in_report: true,
+        show_in_dashboard: false,
+        order: sections.loads.length,
+      }),
+    );
+  }
   return { schema_version: 0, sections, visibility: parse("cd_sections", {}) };
 }
