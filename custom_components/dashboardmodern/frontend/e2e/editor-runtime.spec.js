@@ -32,6 +32,50 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   }, testInfo) => {
     const errors = [];
     const pageErrors = [];
+    const seedState = {
+      schema_version: 3,
+      sections: {
+        rooms: [],
+        appliances: [
+          {
+            id: "appliance-seed",
+            name: "Seed washer",
+            device_type: "lavatrice",
+            show_in_report: true,
+            report_label: "Washer first",
+            report_icon: "🧺",
+            report_entity: "sensor.washer_month",
+            report_order: 0,
+          },
+        ],
+        loads: [
+          {
+            id: "load-seed",
+            name: "Seed pump",
+            category: "secondary",
+            show_in_report: true,
+            report_label: "Pump second",
+            report_icon: "💧",
+            report_entity: "sensor.pump_month",
+            report_order: 1,
+          },
+          {
+            id: "manual-seed",
+            name: "Seed manual",
+            category: "manual-report",
+            show_in_report: true,
+            show_in_dashboard: false,
+            report_label: "Manual third",
+            report_icon: "🔌",
+            report_entity: "sensor.manual_month",
+            report_order: 2,
+          },
+        ],
+      },
+      visibility: {},
+    };
+    const seedOverrides = { "dm.lavatrice_potenza_presa": "sensor.washer_power" };
+
     page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
     let rejectEarlyPageError;
     const earlyPageError = new Promise((_, reject) => {
@@ -88,57 +132,23 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         close() {}
       }
       window.WebSocket = TestSocket;
-      localStorage.setItem(
-        "dm_dashboard_state",
-        JSON.stringify({
-          schema_version: 3,
-          sections: {
-            rooms: [],
-            appliances: [
-              {
-                id: "appliance-seed",
-                name: "Seed washer",
-                device_type: "lavatrice",
-                show_in_report: true,
-                report_label: "Washer first",
-                report_icon: "🧺",
-                report_entity: "sensor.washer_month",
-                report_order: 0,
-              },
-            ],
-            loads: [
-              {
-                id: "load-seed",
-                name: "Seed pump",
-                category: "secondary",
-                show_in_report: true,
-                report_label: "Pump second",
-                report_icon: "💧",
-                report_entity: "sensor.pump_month",
-                report_order: 1,
-              },
-              {
-                id: "manual-seed",
-                name: "Seed manual",
-                category: "manual-report",
-                show_in_report: true,
-                show_in_dashboard: false,
-                report_label: "Manual third",
-                report_icon: "🔌",
-                report_entity: "sensor.manual_month",
-                report_order: 2,
-              },
-            ],
-          },
-          visibility: {},
-        }),
-      );
-      localStorage.setItem(
-        "cd_entity_overrides",
-        JSON.stringify({ "dm.lavatrice_potenza_presa": "sensor.washer_power" }),
-      );
     });
+
+    // Seed the exact application origin, then reload so DashboardStore reads the
+    // schema-v3 fixture during module startup. addInitScript is intentionally
+    // reserved for browser API stubs: localStorage seeding there was not
+    // deterministic in Chromium and caused false schema-0 migrations.
     await page.goto(`/legacy/${variant}`);
+    await page.evaluate(
+      ({ state, overrides }) => {
+        localStorage.clear();
+        localStorage.setItem("dm_dashboard_state", JSON.stringify(state));
+        localStorage.setItem("cd_entity_overrides", JSON.stringify(overrides));
+      },
+      { state: seedState, overrides: seedOverrides },
+    );
+    await page.reload();
+
     await Promise.race([
       page.waitForFunction(
         () =>
