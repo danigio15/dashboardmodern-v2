@@ -91,9 +91,9 @@ test("Energy real DOM opens Flussi by default, switches settings and reuses the 
   const tabs = root.queryAll((node) => node.classList.contains("ed-inner-tab"));
   assert.deepEqual(
     tabs.map((tab) => tab.textContent),
-    ["FLUSSI ED ENTITÀ", "CARICHI", "IMPOSTAZIONI"],
+    ["FLUSSI ED ENTITÀ", "CARICHI", "REPORT", "IMPOSTAZIONI"],
   );
-  tabs[2].click();
+  tabs[3].click();
   assert.equal(panels.find((node) => node.dataset.energyPanel === "flows").hidden, true);
   assert.equal(panels.find((node) => node.dataset.energyPanel === "settings").hidden, false);
   const picker = root.queryAll((node) => node.classList.contains("dm-entity-picker"))[0];
@@ -141,6 +141,7 @@ test("legacy washer mappings migrate into the canonical appliance list", () => {
   const washer = state.sections.appliances.find((item) => item.id === "appliance-lavatrice");
   assert.equal(washer.control_entity, "switch.washer");
   assert.equal(washer.power_entity, "sensor.washer_power");
+  assert.equal(washer.icon, "lavatrice");
 });
 
 test("legacy secondary loads and manual report rows migrate once without duplicates", () => {

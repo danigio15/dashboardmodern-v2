@@ -210,6 +210,10 @@ export function renderEnergyEditor(
   loadsButton.className = "ed-inner-tab";
   loadsButton.type = "button";
   loadsButton.textContent = locale === "it" ? "CARICHI" : "LOADS";
+  const reportButton = document.createElement("button");
+  reportButton.className = "ed-inner-tab";
+  reportButton.type = "button";
+  reportButton.textContent = "REPORT";
   const flows = document.createElement("section");
   flows.dataset.energyPanel = "flows";
   const settings = document.createElement("section");
@@ -218,20 +222,26 @@ export function renderEnergyEditor(
   const loads = document.createElement("section");
   loads.dataset.energyPanel = "loads";
   loads.hidden = true;
+  const report = document.createElement("section");
+  report.dataset.energyPanel = "report";
+  report.hidden = true;
   const selectTab = (name) => {
     flows.hidden = name !== "flows";
     settings.hidden = name !== "settings";
     loads.hidden = name !== "loads";
+    report.hidden = name !== "report";
     flowsButton.classList.toggle("active", name === "flows");
     settingsButton.classList.toggle("active", name === "settings");
     loadsButton.classList.toggle("active", name === "loads");
+    reportButton.classList.toggle("active", name === "report");
     handlers.onTabChange?.(name);
   };
   flowsButton.addEventListener("click", () => selectTab("flows"));
   settingsButton.addEventListener("click", () => selectTab("settings"));
   loadsButton.addEventListener("click", () => selectTab("loads"));
-  tabs.append(flowsButton, loadsButton, settingsButton);
-  root.append(tabs, flows, loads, settings);
+  reportButton.addEventListener("click", () => selectTab("report"));
+  tabs.append(flowsButton, loadsButton, reportButton, settingsButton);
+  root.append(tabs, flows, loads, report, settings);
   ENERGY_GROUPS.forEach(([group, title, fields], groupIndex) => {
     const block = document.createElement("details");
     block.className = "ed-acc";
@@ -265,6 +275,7 @@ export function renderEnergyEditor(
     flows.append(block);
   });
   handlers.renderLoads?.(loads);
+  handlers.renderReport?.(report);
   handlers.renderSettings?.(settings);
 }
 

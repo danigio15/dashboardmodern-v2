@@ -29,7 +29,15 @@ export function hasConfiguredData(section, value) {
           )),
     );
   if (!value || typeof value !== "object") return false;
-  if (section === "irrigation") return (value.zones || []).length > 0;
+  if (section === "irrigation")
+    return (
+      (value.zones || []).some((zone) => configured(zone?.entity)) ||
+      [value.rainEnt, value.weatherEnt].some(configured)
+    );
+  if (section === "pool")
+    return ["tempEnt", "phEnt", "clEnt", "pumpEnt", "heatEnt", "lightEnt"].some((key) =>
+      configured(value[key]),
+    );
   return Object.entries(value).some(
     ([key, entry]) =>
       key !== "metadata" &&

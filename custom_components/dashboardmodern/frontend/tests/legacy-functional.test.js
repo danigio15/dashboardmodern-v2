@@ -51,6 +51,18 @@ for (const [file, labels] of [
     assert.match(rooms, /ed-room-icon-preview/);
     assert.match(rooms, /dmIconPicker/);
     assert.match(source, /function cdIconMarkup[\s\S]*mdi:/);
+    const iconFilter = functionSource(source, "dmIconFilter");
+    assert.match(iconFilter, /const rows = q \? DM_ICONS\.filter/);
+    assert.doesNotMatch(iconFilter, /visible\.length/);
+  });
+
+  test(`${file}: camera has canonical Save and appliance page has no editor CTA`, () => {
+    const editor = functionSource(source, "editorRenderSezioni");
+    const cameraStart = editor.indexOf("ed-cam-room");
+    const camera = editor.slice(cameraStart, cameraStart + 500);
+    assert.match(camera, /class="ed-save-btn"/);
+    assert.doesNotMatch(source, /<button[^>]+appl-main-config/);
+    assert.doesNotMatch(source, /(?:Configura gli|Configure) entity_id/);
   });
 
   test(`${file}: adding an appliance reveals and synchronizes its section without reload`, () => {

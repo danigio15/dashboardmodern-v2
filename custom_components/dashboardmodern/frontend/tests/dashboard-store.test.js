@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DashboardStore } from "../src/core/dashboard-store.js";
+import { DashboardStore, hasConfiguredData } from "../src/core/dashboard-store.js";
 import { cloneValue, getDeviceDisplayName, getDeviceVisual } from "../src/core/device-model.js";
 import { migrateEnergy, migrateRooms, migrateState } from "../src/core/migrations.js";
 import { createEnergyReportRows, createRenderCoordinator } from "../src/core/renderers.js";
+
+test("visibility recognizes configured pool and irrigation entities without devices", () => {
+  assert.equal(hasConfiguredData("pool", { pumpEnt: "switch.pool" }), true);
+  assert.equal(hasConfiguredData("irrigation", { rainEnt: "sensor.rain", zones: [] }), true);
+  assert.equal(hasConfiguredData("irrigation", { zones: [{ entity: "switch.garden" }] }), true);
+  assert.equal(hasConfiguredData("pool", { filterHours: 8 }), false);
+});
 
 class MemoryStorage {
   values = new Map();
@@ -292,15 +299,7 @@ test("all CRUD editor sections are registered with the reactive coordinator", as
   const { store } = setup();
   const rendered = [];
   createRenderCoordinator(store, { renderCurrentEditor: (section) => rendered.push(section) });
-  for (const section of [
-    "appliances",
-    "cameras",
-    "rooms",
-    "ev",
-    "lights",
-    "climate",
-    "covers",
-  ]) {
+  for (const section of ["appliances", "cameras", "rooms", "ev", "lights", "climate", "covers"]) {
     await store.addItem(section, { name: section, entity: `sensor.${section}` });
   }
   await store.replaceSection("pool", { tempEnt: "sensor.pool" });

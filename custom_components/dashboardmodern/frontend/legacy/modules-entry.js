@@ -82,13 +82,13 @@ function mountEnergyEditor(target) {
     globalThis.document?.documentElement?.lang === "en" ? "en" : "it", {
       onPick: (input) => globalThis.wzPickEntity?.(input),
       renderLoads: (loads) => mountLoadsEditor(loads),
+      renderReport: (report) => mountLoadsEditor(report, "", "report"),
       renderSettings: (settings) => {
         settings.innerHTML = `${globalThis.cdEnViewsHtml?.() || ""}
-          <div class="ed-sec-title">💶 Costo energia</div>
+          <div class="ed-form dm-energy-cost-card"><div class="ed-sec-title">💶 Costo energia</div>
           <div class="ed-hint">Tariffe usate dal Report Energia.</div>
           <div class="ed-form-row"><input id="ed-costo-kwh" class="ed-input" type="number" step="0.001" min="0" placeholder="€/kWh prelevato" value="${globalThis.cdCfg?.("cd_costo_kwh") || ""}"><input id="ed-prezzo-imm" class="ed-input" type="number" step="0.001" min="0" placeholder="€/kWh immesso" value="${globalThis.cdCfg?.("cd_prezzo_immissione") || ""}"></div>
-          <button class="ed-save-btn" onclick="edSaveCosti()">💾 Salva costi</button>
-          <div class="ed-sec-title">📊 Report</div><div class="ed-intro">Il report usa Elettrodomestici, Carichi secondari e voci manuali configurati nella sezione Carichi.</div>`;
+          <button class="ed-save-btn" onclick="edSaveCosti()">💾 Salva costi</button></div>`;
       },
       onChange: (group, key, value) => {
         const next = store.getSection("energy"); next[group] ||= {}; next[group][key] = value;
@@ -104,6 +104,19 @@ function entityField(id, label, value = "", placeholder = "sensor.entity") {
 }
 
 export function mountEntityPickers(target) {
+  target?.querySelectorAll?.("input.ed-input.mono, input.ed-slot-in, input[data-ref]")?.forEach?.(
+    (input) => {
+      const row = input.parentElement;
+      if (!row || row.querySelector?.(".dm-entity-picker, button[onclick*='wzPickEntity']")) return;
+      const button = globalThis.document.createElement("button");
+      button.type = "button";
+      button.className = "dm-entity-picker";
+      button.setAttribute("aria-label", "Seleziona entità");
+      button.textContent = "🔍";
+      button.addEventListener("click", () => globalThis.wzPickEntity?.(input));
+      row.appendChild(button);
+    },
+  );
   target?.querySelectorAll?.(".dm-entity-picker[data-entity-target]").forEach((button) => {
     if (button.dataset.pickerMounted === "true") return;
     button.dataset.pickerMounted = "true";
@@ -121,12 +134,12 @@ export function mountCurrentEditor(section, target = globalThis.document?.getEle
   target.querySelectorAll?.("details.ed-acc").forEach((details) => details.dataset.editorMounted = "true");
   target.dataset.mountedSection = section || "";
 }
-function mountLoadsEditor(target, editId = "") {
+function mountLoadsEditor(target, editId = "", mode = "loads") {
   const loads = store.getSection("loads");
   const appliances = store.getSection("appliances");
   const current = loads.find((item) => item.id === editId) || {};
   const cards = (items, manual, readOnly = false) => items.map((item) => `<div class="ed-row" data-load-id="${esc(item.id)}"><div class="ed-row-main"><div class="ed-row-new">${esc(item.icon || "🔌")} ${esc(item.name || "Carico")}</div><div class="ed-row-old">${esc(item.category || (manual ? "Voce report" : "Carico secondario"))}</div></div>${readOnly ? "" : `<button class="ed-del" data-edit-load="${esc(item.id)}" title="Modifica">✏️</button><button class="ed-del" data-delete-load="${esc(item.id)}" title="Elimina">🗑️</button>`}</div>`).join("") || '<div class="ed-empty">Nessuna voce configurata</div>';
-  target.innerHTML = `<details class="ed-acc" open><summary class="ed-acc-head">A. DISPOSITIVI / ELETTRODOMESTICI <span class="ed-acc-n">${appliances.length}</span></summary><div class="ed-acc-body"><div class="ed-intro">Collegati al modello canonico Elettrodomestici; si modificano una sola volta nella sezione dedicata.</div>${cards(appliances, false, true)}</div></details>
+  target.innerHTML = `<div class="ed-intro">${mode === "report" ? "Configura qui Elettrodomestici, Carichi secondari e Voci manuali usando il solo modello canonico." : "Carichi e Report condividono lo stesso modello: nessuna configurazione viene duplicata."}</div><details class="ed-acc" open><summary class="ed-acc-head">A. DISPOSITIVI / ELETTRODOMESTICI <span class="ed-acc-n">${appliances.length}</span></summary><div class="ed-acc-body"><div class="ed-intro">Collegati al modello canonico Elettrodomestici; si modificano una sola volta nella sezione dedicata.</div>${cards(appliances, false, true)}</div></details>
     <details class="ed-acc" open><summary class="ed-acc-head">B. CARICHI SECONDARI <span class="ed-acc-n">${loads.filter((x) => x.category !== "manual-report").length}</span></summary><div class="ed-acc-body">${cards(loads.filter((x) => x.category !== "manual-report"), false)}</div></details>
     <details class="ed-acc"><summary class="ed-acc-head">C. VOCI REPORT MANUALI <span class="ed-acc-n">${loads.filter((x) => x.category === "manual-report").length}</span></summary><div class="ed-acc-body">${cards(loads.filter((x) => x.category === "manual-report"), true)}</div></details>
     <div class="ed-form" data-load-form><div class="ed-sec-title">${editId ? "Modifica carico" : "Nuovo carico secondario"}</div><div class="ed-form-row"><input id="dm-load-name" class="ed-input" placeholder="Nome" value="${esc(current.name)}"><input id="dm-load-icon" class="ed-input ed-icon-input" placeholder="🔌 / mdi:power-plug" value="${esc(current.icon)}"></div><div class="ed-form-row"><input id="dm-load-category" class="ed-input" placeholder="Categoria" value="${esc(current.category || "secondary")}"><select id="dm-load-room" class="ed-input">${globalThis.cdRoomOptions?.(current.room_id) || ""}</select></div>${entityField("dm-load-power", "Entità potenza", current.power_entity, "sensor.carico_power")}${entityField("dm-load-day", "Energia giornaliera", current.daily_energy_entity)}${entityField("dm-load-month", "Energia mensile", current.monthly_energy_entity)}${entityField("dm-load-total", "Energia totale", current.total_energy_entity)}${entityField("dm-load-history", "Storico", current.history_entity)}${entityField("dm-load-state", "Stato", current.state_entity)}${entityField("dm-load-control", "Comando ON/OFF", current.control_entity, "switch.carico")}<label class="ed-intro"><input id="dm-load-report" type="checkbox" ${current.show_in_report !== false ? "checked" : ""}> Visibile nel report</label><label class="ed-intro"><input id="dm-load-dashboard" type="checkbox" ${current.show_in_dashboard !== false ? "checked" : ""}> Visibile nella dashboard</label><button class="ed-btn-add" data-save-load>💾 ${editId ? "Salva modifiche" : "Aggiungi carico"}</button></div>`;
