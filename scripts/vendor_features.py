@@ -170,7 +170,7 @@ WIZARD_STEP_REPLACEMENT = "WIZ = { step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 
 
 # ── Visible build marker: prove the served HTML actually updated ───────────
 VERSION_ANCHOR = "const DASHBOARD_VERSION = '0.11.1';"
-VERSION_REPLACEMENT = "const DASHBOARD_VERSION = '0.13.2';"
+VERSION_REPLACEMENT = "const DASHBOARD_VERSION = '0.13.3';"
 
 # ── Temperature section: the Piano (floor) fields are hidden via CSS below ─
 

@@ -14,6 +14,31 @@ export const VISIBILITY_SECTION = Object.freeze({
   irrigation: "irrigazione",
 });
 
+const configured = (value) =>
+  typeof value === "string" ? value.trim().includes(".") : Boolean(value);
+export function hasConfiguredData(section, value) {
+  if (Array.isArray(value))
+    return value.some(
+      (item) =>
+        item?.enabled !== false &&
+        (Boolean(String(item?.name || "").trim()) ||
+          Object.entries(item || {}).some(
+            ([key, entry]) =>
+              /entit|entity|entities|profile/.test(key) &&
+              (Array.isArray(entry) ? entry.some(configured) : configured(entry)),
+          )),
+    );
+  if (!value || typeof value !== "object") return false;
+  if (section === "irrigation") return (value.zones || []).length > 0;
+  return Object.entries(value).some(
+    ([key, entry]) =>
+      key !== "metadata" &&
+      (typeof entry === "object"
+        ? hasConfiguredData(section, entry)
+        : /ent|power|energy|soc|camera|alarm/i.test(key) && configured(entry)),
+  );
+}
+
 export class DashboardStore {
   constructor({
     storage = globalThis.localStorage,
@@ -103,14 +128,7 @@ export class DashboardStore {
   ensureSectionVisibleForData(section) {
     const key = VISIBILITY_SECTION[section] || section;
     const value = this.state.sections[section];
-    const hasData = Array.isArray(value)
-      ? value.some((item) => item?.enabled !== false)
-      : Boolean(
-          value &&
-          Object.keys(value).some(
-            (name) => name !== "metadata" && Object.keys(value[name] || {}).length,
-          ),
-        );
+    const hasData = hasConfiguredData(section, value);
     if (hasData && this.state.visibility[key] === false) {
       this.state.visibility[key] = true;
       return true;

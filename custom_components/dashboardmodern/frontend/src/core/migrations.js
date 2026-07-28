@@ -133,6 +133,32 @@ export function readLegacyState(storage) {
       key,
       ["pool", "irrigation", "energy"].includes(section) ? {} : section === "lights" ? {} : [],
     );
+  // The historical washer was a standalone editor section backed by entity
+  // overrides. Promote it to the canonical appliance model without removing
+  // those overrides, so existing popup/control mappings keep working.
+  const overrides = parse("cd_entity_overrides", {});
+  const washerEntities = Object.entries(overrides).filter(
+    ([key, value]) => key.startsWith("dm.lavatrice_") && value,
+  );
+  if (
+    washerEntities.length &&
+    !sections.appliances.some((item) => item?.device_type === "lavatrice")
+  ) {
+    const get = (suffix) => washerEntities.find(([key]) => key.includes(suffix))?.[1] || "";
+    sections.appliances.push({
+      id: "appliance-lavatrice",
+      name: "Lavatrice",
+      icon: "mdi:washing-machine",
+      device_type: "lavatrice",
+      entities: washerEntities.map(([, entity]) => entity),
+      state_entity: get("fase_corrente"),
+      power_entity: get("potenza_presa"),
+      history_entity: get("tempo_rimanente"),
+      control_entity: get("presa_avvio") || get("avvio_ciclo"),
+      order: sections.appliances.length,
+      metadata: { migrated_from: "lavatrice" },
+    });
+  }
   // Consolidate the two historical secondary-consumption stores once.  The
   // canonical load id is generated independently from its mutable name and
   // report rows that point at an existing load are deliberately not copied.

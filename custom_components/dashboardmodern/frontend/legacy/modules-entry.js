@@ -70,6 +70,7 @@ createRenderCoordinator(store, {
       body.innerHTML = globalThis.editorRenderSezioni();
       globalThis.edFilterSez?.(body, Number(tab.slice(3)));
     }
+    mountCurrentEditor(tab, body);
   },
   renderDropdowns() { globalThis.cdFillRoomSelects?.(); },
   renderDashboard() { globalThis.render?.(); },
@@ -80,6 +81,7 @@ function mountEnergyEditor(target) {
   renderEnergyEditor(globalThis.document, target, model, store.getSection("appliances"), globalThis.STATES || {},
     globalThis.document?.documentElement?.lang === "en" ? "en" : "it", {
       onPick: (input) => globalThis.wzPickEntity?.(input),
+      renderLoads: (loads) => mountLoadsEditor(loads),
       renderSettings: (settings) => {
         settings.innerHTML = `${globalThis.cdEnViewsHtml?.() || ""}
           <div class="ed-sec-title">💶 Costo energia</div>
@@ -93,11 +95,31 @@ function mountEnergyEditor(target) {
         store.replaceSection("energy", next).catch((error) => globalThis.alert?.(`Energy save failed: ${error.message}`));
       },
     });
+  mountCurrentEditor("energy", target);
 }
 
 const esc = (value) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 function entityField(id, label, value = "", placeholder = "sensor.entity") {
-  return `<label class="ed-slot"><span class="ed-slot-lbl">${label} <span class="ed-acc-n">Facoltativo</span></span><span class="ed-form-row"><input id="${id}" class="ed-input ed-slot-in mono" value="${esc(value)}" placeholder="${placeholder}"><button type="button" class="dm-entity-picker" onclick="wzPickEntity('#${id}')" aria-label="Seleziona ${label}">🔍</button></span></label>`;
+  return `<label class="ed-slot"><span class="ed-slot-lbl">${label} <span class="ed-acc-n">Facoltativo</span></span><span class="ed-form-row"><input id="${id}" class="ed-input ed-slot-in mono" value="${esc(value)}" placeholder="${placeholder}"><button type="button" class="dm-entity-picker" data-entity-target="${id}" aria-label="Seleziona ${label}">🔍</button></span></label>`;
+}
+
+export function mountEntityPickers(target) {
+  target?.querySelectorAll?.(".dm-entity-picker[data-entity-target]").forEach((button) => {
+    if (button.dataset.pickerMounted === "true") return;
+    button.dataset.pickerMounted = "true";
+    button.addEventListener("click", () => {
+      const input = target.querySelector?.(`#${button.dataset.entityTarget}`);
+      if (input) globalThis.wzPickEntity?.(input);
+    });
+  });
+}
+
+export function mountCurrentEditor(section, target = globalThis.document?.getElementById?.("ed-body")) {
+  if (!target) return;
+  mountEntityPickers(target);
+  globalThis.cdFillRoomSelects?.();
+  target.querySelectorAll?.("details.ed-acc").forEach((details) => details.dataset.editorMounted = "true");
+  target.dataset.mountedSection = section || "";
 }
 function mountLoadsEditor(target, editId = "") {
   const loads = store.getSection("loads");
@@ -116,6 +138,7 @@ function mountLoadsEditor(target, editId = "") {
     if (!item.name) return globalThis.alert?.("Inserisci il nome del carico");
     (editId ? store.updateItem("loads", editId, item) : store.addItem("loads", item)).catch((error) => globalThis.alert?.(error.message));
   });
+  mountCurrentEditor("energy-loads", target);
 }
 
 const DashboardModernModules = Object.freeze({
@@ -139,7 +162,7 @@ const DashboardModernModules = Object.freeze({
     removeCamera,
   }),
   store,
-  render: Object.freeze({ createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, mountEnergyEditor, mountLoadsEditor, renderDeviceCard, renderEnergyEditor }),
+  render: Object.freeze({ createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, mountCurrentEditor, mountEnergyEditor, mountEntityPickers, mountLoadsEditor, renderDeviceCard, renderEnergyEditor }),
 });
 
 globalThis.DashboardModernModules = DashboardModernModules;

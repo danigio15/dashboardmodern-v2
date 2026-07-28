@@ -152,6 +152,36 @@ const ENERGY_GROUPS = [
 
 const ENERGY_ICONS = { house: "🏠", grid: "🔌", solar: "☀️", battery: "🔋" };
 
+export function createEntityPickerField(
+  document,
+  { value = "", placeholder = "", label = "Entità", state, unit = "", onPick, onChange } = {},
+) {
+  const field = document.createElement("span");
+  field.className = "dm-entity-field";
+  const row = document.createElement("span");
+  row.className = "ed-form-row";
+  const input = document.createElement("input");
+  input.className = "ed-input ed-slot-in mono";
+  input.value = value;
+  input.placeholder = placeholder;
+  const picker = document.createElement("button");
+  picker.type = "button";
+  picker.className = "dm-entity-picker";
+  picker.textContent = "🔍";
+  picker.setAttribute("aria-label", `Seleziona ${label}`);
+  picker.addEventListener("click", () => onPick?.(input));
+  input.addEventListener("change", () => onChange?.(input.value, input));
+  row.append(input, picker);
+  field.append(row);
+  if (value && state != null) {
+    const preview = document.createElement("output");
+    preview.className = "ed-row-old dm-entity-preview";
+    preview.textContent = `${state}${unit ? ` ${unit}` : ""}`;
+    field.append(preview);
+  }
+  return { field, input, picker };
+}
+
 export function renderEnergyEditor(
   document,
   target,
@@ -176,22 +206,32 @@ export function renderEnergyEditor(
   settingsButton.className = "ed-inner-tab";
   settingsButton.type = "button";
   settingsButton.textContent = locale === "it" ? "IMPOSTAZIONI" : "SETTINGS";
+  const loadsButton = document.createElement("button");
+  loadsButton.className = "ed-inner-tab";
+  loadsButton.type = "button";
+  loadsButton.textContent = locale === "it" ? "CARICHI" : "LOADS";
   const flows = document.createElement("section");
   flows.dataset.energyPanel = "flows";
   const settings = document.createElement("section");
   settings.dataset.energyPanel = "settings";
   settings.hidden = true;
+  const loads = document.createElement("section");
+  loads.dataset.energyPanel = "loads";
+  loads.hidden = true;
   const selectTab = (name) => {
     flows.hidden = name !== "flows";
     settings.hidden = name !== "settings";
+    loads.hidden = name !== "loads";
     flowsButton.classList.toggle("active", name === "flows");
     settingsButton.classList.toggle("active", name === "settings");
+    loadsButton.classList.toggle("active", name === "loads");
     handlers.onTabChange?.(name);
   };
   flowsButton.addEventListener("click", () => selectTab("flows"));
   settingsButton.addEventListener("click", () => selectTab("settings"));
-  tabs.append(flowsButton, settingsButton);
-  root.append(tabs, flows, settings);
+  loadsButton.addEventListener("click", () => selectTab("loads"));
+  tabs.append(flowsButton, loadsButton, settingsButton);
+  root.append(tabs, flows, loads, settings);
   ENERGY_GROUPS.forEach(([group, title, fields], groupIndex) => {
     const block = document.createElement("details");
     block.className = "ed-acc";
@@ -207,31 +247,24 @@ export function renderEnergyEditor(
       const field = document.createElement("label");
       field.className = "ed-slot";
       field.innerHTML = `<span class="ed-slot-lbl">${label} <span class="ed-acc-n">${unit}</span> <span class="ed-acc-n">Facoltativo</span></span><span class="ed-hint">Entità Home Assistant, es. ${example}</span>`;
-      const row = document.createElement("span");
-      row.className = "ed-form-row";
-      const input = document.createElement("input");
-      input.className = "ed-input ed-slot-in mono";
+      const { field: entity, input } = createEntityPickerField(document, {
+        value: model[group]?.[key] || "",
+        placeholder: example,
+        label,
+        state: states[model[group]?.[key] || ""]?.state,
+        unit,
+        onPick: handlers.onPick,
+        onChange: (value) => handlers.onChange?.(group, key, value),
+      });
       input.name = `${group}.${key}`;
-      input.value = model[group]?.[key] || "";
-      input.placeholder = example;
       input.dataset.validation = !input.value || states[input.value] ? "valid" : "invalid";
-      const preview = document.createElement("output");
-      preview.className = "ed-row-old";
-      preview.textContent = `${locale === "it" ? "Valore" : "Value"}: ${states[input.value]?.state ?? "—"}${states[input.value]?.state != null ? ` ${unit}` : ""}`;
-      const pick = document.createElement("button");
-      pick.type = "button";
-      pick.className = "dm-entity-picker";
-      pick.textContent = "🔍";
-      pick.setAttribute("aria-label", `Seleziona ${label}`);
-      input.addEventListener("change", () => handlers.onChange?.(group, key, input.value));
-      pick.addEventListener("click", () => handlers.onPick?.(input));
-      row.append(input, pick, preview);
-      field.append(row);
+      field.append(entity);
       body.append(field);
     }
     block.append(body);
     flows.append(block);
   });
+  handlers.renderLoads?.(loads);
   handlers.renderSettings?.(settings);
 }
 
