@@ -6184,7 +6184,7 @@ body.cd-nav-fixed { padding-bottom: 96px !important; }
    localStorage (se presente) ha priorità, così puoi ancora testare in locale.
    ─────────────────────────────────────────────────────────────────── */
 /* ═══ v258: VERSIONE — visibile in console, wizard e pagina Config ═══ */
-const DASHBOARD_VERSION = '0.12.1-int';
+const DASHBOARD_VERSION = '0.12.2-int';
 console.log('%c🏠 Dashboard Modern v' + DASHBOARD_VERSION, 'font-size:14px; font-weight:bold; color:#0ea5e9;');
 
 /* CD_BAKED_START */
@@ -14254,7 +14254,7 @@ function renderTemperature() {
     try {
         document.querySelectorAll('.tfl-avg').forEach(el => {
             const f = el.dataset.floor;
-            const ts = getStanze().filter(r => (r.floor || 'Altro') === f)
+            const ts = getStanze().filter(r => (r.floor || r.name || 'Altro') === f)
                 .map(r => parseFloat(getRawState(r.temp))).filter(v => !isNaN(v));
             el.textContent = ts.length ? (ts.reduce((a,b) => a+b, 0) / ts.length).toFixed(1) + '°' : '—°';
         });
