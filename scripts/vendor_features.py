@@ -876,6 +876,21 @@ R30_3_R = "function cdSecBoot(){ try { window.__CD_SBRUN=(window.__CD_SBRUN||0)+
 R30_4_A = "function editorRenderRileva(){ var st=cdDbgStatus();"
 R30_4_R = "function cdNavDiag(){ try { var mp=cdNavVisMap(); var cur=cdCfg('cd_sections')||{}; var L=[]; L.push('ver=0.12.1-int url='+location.pathname.slice(-46)); L.push('inst='+String(window.__DASHBOARDMODERN_STORAGE_NS__||'-').slice(0,12)+' prim='+(window.__DASHBOARDMODERN_PRIMARY__===false?0:1)); L.push('secboot='+(window.__CD_SBRUN||0)+' navvis='+(window.__CD_NVRUN||0)); L.push('cd_sections='+String(localStorage.getItem('cd_sections'))); Object.keys(mp).forEach(function(k){ var sel='.tab[data-tab=\"'+mp[k]+'\"]'; var els=document.querySelectorAll(sel); var pg=document.getElementById('page-'+mp[k]); var st=els.length?getComputedStyle(els[0]).display:'-'; L.push(k+': cfg='+String(cur[k])+' tabs='+els.length+' disp='+st+' page='+(pg?1:0)); }); var rep=L.join('\\n'); try { console.log('[NavDiag]\\n'+rep); } catch(e2){} prompt('Diagnosi navbar (tieni premuto per copiare)', rep); } catch(e){ alert('diag err: '+e.message); } } function editorRenderRileva(){ var st=cdDbgStatus(); st+='<button class=\"ed-btn-add\" style=\"width:100%; margin:6px 0 10px;\" onclick=\"cdNavDiag()\">🧪 Diagnosi navbar</button>';"
 
+R31K_1_A = "var tab=document.getElementById('tab-tapparelle'); if(tab) tab.style.display=list.length?'':'none';"
+R31K_1_R = ""
+R31K_2_A = "var tab=document.getElementById('tab-tapparelle'); if(tab) tab.style.display=getTapparelle().length?'':'none';"
+R31K_2_R = ""
+R31K_3_A = "var tab=document.getElementById('tab-irrigazione'); if(tab) tab.style.display=o.zones.length?'':'none';"
+R31K_3_R = ""
+R31K_4_A = "var tab=document.getElementById('tab-irrigazione'); if(tab) tab.style.display=getIrr().zones.length?'':'none';"
+R31K_4_R = ""
+R31K_5_A = "var tab=document.getElementById('tab-piscina'); if(tab) tab.style.display=configured?'':'none';"
+R31K_5_R = ""
+R31K_6_A = "var tab=document.getElementById('tab-piscina'); if(tab){ var o=getPool(); tab.style.display=(o.tempEnt||o.pumpEnt||o.phEnt)?'':'none'; }"
+R31K_6_R = ""
+R31D_A = "var rep=L.join('\\n');"
+R31D_R = "try { var st3=cdSecLS('cd_stanze')||[]; var wt=st3.filter(function(r){ return r&&r.temp; }); L.push('stanze='+st3.length+' con-temp='+wt.length+' CD_TEMP_FLOOR='+String(typeof CD_TEMP_FLOOR!=='undefined'?CD_TEMP_FLOOR:'?')); var g3=document.getElementById('temp-grid'); var errT=''; try { buildTempCards(); } catch(eT){ errT=eT.message; } L.push('temp-grid='+(g3?g3.children.length:'assente')+(errT?' ERR='+errT:'')); } catch(eX){ L.push('temp-diag-err'); } try { var ap3=cdCfgList('cd_appliances'); ap3.forEach(function(a){ if(!a) return; var ents=(a.entities||[]); var hasE=false; ents.forEach(function(en2){ var s4=STATES[en2]||{}; var at=(s4.attributes||{}); if(at.device_class==='energy'||/wh$/i.test(String(at.unit_of_measurement||''))) hasE=true; }); L.push('appl '+(a.name||'?')+': ents='+ents.length+' kwh='+(hasE?1:0)); }); } catch(eY){ L.push('appl-diag-err'); } var rep=L.join('\\n');"
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -1093,4 +1108,11 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("nav-counters", R30_2_A, R30_2_R),
     ("boot-counter", R30_3_A, R30_3_R),
     ("nav-diag-fn", R30_4_A, R30_4_R),
+    ("kill-tab-writer-1?", R31K_1_A, R31K_1_R),
+    ("kill-tab-writer-2?", R31K_2_A, R31K_2_R),
+    ("kill-tab-writer-3?", R31K_3_A, R31K_3_R),
+    ("kill-tab-writer-4?", R31K_4_A, R31K_4_R),
+    ("kill-tab-writer-5?", R31K_5_A, R31K_5_R),
+    ("kill-tab-writer-6?", R31K_6_A, R31K_6_R),
+    ("diag-temp-report", R31D_A, R31D_R),
 )
