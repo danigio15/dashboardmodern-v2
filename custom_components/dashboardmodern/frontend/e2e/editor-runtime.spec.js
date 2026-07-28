@@ -211,21 +211,21 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     ).toBeVisible();
     await page.getByRole("button", { name: /CARICHI|LOADS/ }).click();
     const loads = await page.locator('[data-energy-panel="loads"]').innerHTML();
-    await page.locator("#dm-load-name").fill("Pump");
+    await page.locator("#dm-load-name").fill("Booster");
     await page.locator("#dm-load-power").fill("sensor.pump_power");
     await page.locator("#dm-load-dashboard").uncheck();
     await page.locator("[data-save-load]").click();
     await expect(
-      page.locator('[data-energy-panel="loads"] [data-load-id]', { hasText: "Pump" }),
+      page.locator('[data-energy-panel="loads"] [data-load-id]', { hasText: "Booster" }),
     ).toHaveCount(1);
     await page
-      .locator('[data-energy-panel="loads"] [data-load-id]', { hasText: "Pump" })
+      .locator('[data-energy-panel="loads"] [data-load-id]', { hasText: "Booster" })
       .locator("[data-edit-load]")
       .click();
-    await page.locator("#dm-load-name").fill("Pump updated");
+    await page.locator("#dm-load-name").fill("Booster updated");
     await page.locator("[data-save-load]").click();
     await expect(
-      page.locator('[data-energy-panel="loads"] [data-load-id]', { hasText: "Pump updated" }),
+      page.locator('[data-energy-panel="loads"] [data-load-id]', { hasText: "Booster updated" }),
     ).toHaveCount(1);
     await page.locator("#dm-load-name").fill("Temporary load");
     await page.locator("#dm-load-power").fill("sensor.temporary_power");
@@ -266,7 +266,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         () =>
           window.DashboardModernModules.store
             .getSection("loads")
-            .find((item) => item.name === "Pump updated")?.show_in_dashboard,
+            .find((item) => item.name === "Booster updated")?.show_in_dashboard,
       ),
     ).toBe(false);
     await page.getByRole("button", { name: /CARICHI|LOADS/ }).click();
