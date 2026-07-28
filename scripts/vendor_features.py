@@ -910,6 +910,11 @@ R34_4_R = "(r.floor || r.name || 'Altro') === CD_TEMP_FLOOR"
 R34_5_A = " try { if(typeof renderApplianceSection==='function') renderApplianceSection(true); } catch(e2){}"
 R34_5_R = " try { var pg=document.getElementById('page-appliances-main'); var bar=pg&&pg.querySelector('.sub-tabs-energy'); if(bar){ var cats=[]; APPLIANCES.forEach(function(a){ if(a.category&&cats.indexOf(a.category)<0) cats.push(a.category); }); var bh='<button class=\"sub-tab-btn appl-section-tab active\" onclick=\"switchApplianceView(\\'overview\\', event)\">📊 Panoramica</button>'; cats.forEach(function(c){ var lb=c.charAt(0).toUpperCase()+c.slice(1); bh+='<button class=\"sub-tab-btn appl-section-tab\" onclick=\"switchApplianceView(\\''+c+'\\', event)\">🏠 '+lb+'</button>'; }); bar.innerHTML=bh; } if(pg){ pg.querySelectorAll('button').forEach(function(b){ var t=(b.textContent||''); if(t.indexOf('CONFIGURA')>=0||t.indexOf('Configura')>=0){ var card=b.closest('div'); if(card&&card.parentElement) card.parentElement.style.display='none'; } }); } } catch(e3){} try { if(typeof renderApplianceSection==='function') renderApplianceSection(true); } catch(e2){}"
 
+R35_1_A = "(r.floor || 'Altro') === f)"
+R35_1_R = "(r.floor || r.name || 'Altro') === f)"
+R35_2_A = "'0.12.1-int'"
+R35_2_R = "'0.12.2-int'"
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -1142,4 +1147,6 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("temp-tabs-fallback", R34_3_A, R34_3_R),
     ("temp-filter-fallback", R34_4_A, R34_4_R),
     ("appl-bridge-v2", R34_5_A, R34_5_R),
+    ("temp-avg-fallback?", R35_1_A, R35_1_R),
+    ("ver-0122?", R35_2_A, R35_2_R),
 )
