@@ -66,8 +66,10 @@
     return true;
   }
 
-  window.addEventListener("dashboardmodern:legacy-ready", installEmptyLightsRendererFix, { once: true });
-  window.addEventListener("DOMContentLoaded", installEmptyLightsRendererFix, { once: true });
+  if (typeof window.addEventListener === "function") {
+    window.addEventListener("dashboardmodern:legacy-ready", installEmptyLightsRendererFix, { once: true });
+    window.addEventListener("DOMContentLoaded", installEmptyLightsRendererFix, { once: true });
+  }
 
   try {
     var _q = window.location.search || "";
