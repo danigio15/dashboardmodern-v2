@@ -41,7 +41,10 @@ test("HACS release artifact has root integration layout and exact provenance", (
   assert.ok(names.includes("__init__.py"));
   assert.ok(names.includes("manifest.json"));
   assert.ok(names.includes("frontend/legacy/build-info.js"));
-  assert.equal(names.some((name) => name.startsWith("custom_components/")), false);
+  assert.equal(
+    names.some((name) => name.startsWith("custom_components/")),
+    false,
+  );
 
   const buildInfo = readArchive("frontend/legacy/build-info.js");
   const manifest = JSON.parse(readArchive("manifest.json"));

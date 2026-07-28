@@ -199,6 +199,39 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.evaluate(() => window.editorSwitch("sez1"));
     await expect(page.locator('#ed-body[data-renderer="energy"]')).toBeVisible();
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy.png` });
+    const assertPickerInvariant = async () => {
+      const counts = await page.locator("#ed-body").evaluate((body) => ({
+        inputs: body.querySelectorAll("[data-entity-input]").length,
+        pickers: body.querySelectorAll(".dm-entity-picker[data-entity-target]").length,
+        uniqueTargets: new Set(
+          [...body.querySelectorAll(".dm-entity-picker[data-entity-target]")].map(
+            (button) => button.dataset.entityTarget,
+          ),
+        ).size,
+      }));
+      expect(counts.pickers).toBe(counts.inputs);
+      expect(counts.uniqueTargets).toBe(counts.inputs);
+    };
+    await assertPickerInvariant();
+    await page.getByRole("button", { name: /IMPOSTAZIONI|SETTINGS/ }).click();
+    await page.getByRole("button", { name: /FLUSSI ED ENTITÀ|FLOWS & ENTITIES/ }).click();
+    await assertPickerInvariant();
+    await page.evaluate(() => window.editorSwitch("sez2"));
+    await assertPickerInvariant();
+    await page.locator("#ed-body").evaluate((body) => {
+      body.scrollTop = body.scrollHeight;
+    });
+    await expect(page.locator("#ed-body")).toHaveJSProperty(
+      "scrollTop",
+      await page.locator("#ed-body").evaluate((body) => body.scrollTop),
+    );
+    expect(
+      await page.locator("#ed-body").evaluate((body) => body.scrollWidth <= body.clientWidth + 1),
+    ).toBe(true);
+    await page.screenshot({
+      path: `test-results/${testInfo.project.name}-${variant}-ev-bottom.png`,
+    });
+    await page.evaluate(() => window.editorSwitch("sez1"));
     const housePower = page.locator('[data-energy-panel="flows"] input').first();
     await housePower.fill("sensor.house_power");
     await housePower.blur();
@@ -284,6 +317,50 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         () => JSON.parse(localStorage.getItem("dm_dashboard_state")).schema_version,
       ),
     ).toBe(4);
+    await page.evaluate(() => window.editorSwitch("stanze"));
+    await page.locator('#ed-body button[title="Selettore icone"]').click();
+    await expect(page.locator("#dm-icon-grid button")).toHaveCount(19);
+    for (const icon of ["🛏️", "🛋️", "🍳", "🛁", "💻", "🚗", "🌇", "🧺"])
+      await expect(page.locator("#dm-icon-grid button", { hasText: icon })).toHaveCount(1);
+    await page.locator("#dm-icon-search").fill("camera");
+    await expect(page.locator("#dm-icon-grid button", { hasText: "🛏️" })).toHaveCount(1);
+    await page.locator("#dm-icon-search").fill("bedroom");
+    await expect(page.locator("#dm-icon-grid button", { hasText: "🛏️" })).toHaveCount(1);
+    await page.screenshot({
+      path: `test-results/${testInfo.project.name}-${variant}-room-picker.png`,
+    });
+    await page.getByRole("button", { name: /CHIUDI|CLOSE/ }).click();
+    await page.evaluate(() => window.editorSwitch("luci"));
+    await assertPickerInvariant();
+    await expect(page.locator("#luce-add-ent")).toHaveAttribute("data-entity-input", "true");
+    await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-lights.png` });
+    await page.evaluate(() => document.getElementById("editor-modal")?.remove());
+    await page.evaluate(() => window.apriConfigEntita());
+    await page.evaluate(() => window.editorSwitch("luci"));
+    await assertPickerInvariant();
+
+    await page.evaluate(() => {
+      document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
+      document.getElementById("page-appliances-main")?.classList.add("active");
+      window.renderApplianceSection(true);
+    });
+    const applianceCards = page.locator("#appl-grid-overview .appl-wide-card");
+    await expect(applianceCards).toHaveCount(1);
+    await expect(applianceCards.first().locator(".appl-ic svg, .appl-ic img")).toHaveCount(1);
+    expect(
+      await applianceCards
+        .first()
+        .locator(".appl-ic")
+        .evaluate(
+          (visual) =>
+            visual.getBoundingClientRect().width > 0 &&
+            visual.getBoundingClientRect().height > 0 &&
+            !!visual.querySelector("svg,img"),
+        ),
+    ).toBe(true);
+    await page.screenshot({
+      path: `test-results/${testInfo.project.name}-${variant}-appliances.png`,
+    });
     expect(errors).toEqual([]);
     expect(pageErrors).toEqual([]);
   });

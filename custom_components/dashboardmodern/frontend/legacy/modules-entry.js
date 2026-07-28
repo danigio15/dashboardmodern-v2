@@ -156,20 +156,52 @@ function createIconField(id, value = "") {
 const entityField = (id, label, value, placeholder) => createEntityField({ id, label, value, placeholder });
 
 export function mountEntityPickers(target) {
-  target?.querySelectorAll?.(".dm-entity-picker[data-entity-target]").forEach((button) => {
-    if (button.dataset.pickerMounted === "true") return;
-    button.dataset.pickerMounted = "true";
-    button.addEventListener("click", () => {
-      const input = target.querySelector?.(`#${button.dataset.entityTarget}`);
-      if (input) globalThis.wzPickEntity?.(input);
-    });
+  if (!target?.querySelectorAll) return;
+
+  const explicitLegacyIds = /^(?:ed-(?:pl-(?:temp|ph|cl|pump|heat|light)|irr-(?:ent|rain|weather)|tp-ent|luce-ent|cam-ent)|luce-add-ent|appl-ent-new|ed-avv-ent)$/;
+  const inputs = new Set(target.querySelectorAll(
+    "[data-entity-input], [data-entity-field] input, input.ed-slot-in[data-ref], input[data-domain]",
+  ));
+
+  target.querySelectorAll("input").forEach((input) => {
+    const next = input.nextElementSibling;
+    if (explicitLegacyIds.test(input.id) || next?.matches?.(".dm-entity-picker, button[onclick*='wzPickEntity']")) {
+      inputs.add(input);
+    }
   });
-  target?.querySelectorAll?.(".dm-icon-picker[data-icon-target]").forEach((button) => {
+
+  inputs.forEach((input) => {
+    input.dataset.entityInput = "true";
+    if (!input.id) input.id = `dm-entity-${[...target.querySelectorAll("input")].indexOf(input)}`;
+    let button = input.parentElement?.querySelector?.(`.dm-entity-picker[data-entity-target="${CSS.escape(input.id)}"]`);
+    const adjacent = input.nextElementSibling;
+    if (!button && adjacent?.matches?.("button[onclick*='wzPickEntity']")) {
+      button = adjacent;
+      button.classList.add("dm-entity-picker");
+    }
+    if (!button) {
+      button = document.createElement("button");
+      button.type = "button";
+      button.className = "dm-entity-picker";
+      button.textContent = "🔍";
+      input.insertAdjacentElement("afterend", button);
+    }
+    button.dataset.entityTarget = input.id;
+    button.setAttribute("aria-label", `${t("select")} entity_id`);
+    button.onclick = null;
+    if (button.dataset.pickerMounted !== "true") {
+      button.dataset.pickerMounted = "true";
+      button.addEventListener("click", () => globalThis.wzPickEntity?.(input));
+    }
+  });
+
+  target.querySelectorAll(".dm-icon-picker[data-icon-target]").forEach((button) => {
     if (button.dataset.pickerMounted === "true") return;
     button.dataset.pickerMounted = "true";
     button.addEventListener("click", () => globalThis.dmIconPicker?.(`#${button.dataset.iconTarget}`));
   });
 }
+
 
 export function renderReportRow(item, index) {
   const fieldToken = String(item.id || index).replace(/[^a-zA-Z0-9_-]/g, "-");
