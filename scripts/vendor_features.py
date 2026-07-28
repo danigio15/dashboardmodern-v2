@@ -915,6 +915,9 @@ R35_1_R = "(r.floor || r.name || 'Altro') === f)"
 R35_2_A = "'0.12.1-int'"
 R35_2_R = "'0.12.2-int'"
 
+R36_A = "function cdApplEntity"
+R36_R = "function cdApplEntity(a, keys){ var v=cdApplEntityOrig(a, keys); if(v) return v; try { var ents=(a&&a.entities||[]).map(function(e){ return typeof e==='string'?e:e.entity; }).filter(Boolean); var k=String(keys&&keys[0]||''); function dom(d){ for(var i=0;i<ents.length;i++){ if(ents[i].indexOf(d+'.')===0) return ents[i]; } return null; } if(k.indexOf('switch')===0) return dom('switch')||dom('light')||dom('input_boolean'); if(k.indexOf('energy')===0){ for(var j=0;j<ents.length;j++){ if(/energy|kwh/i.test(ents[j])) return ents[j]; } return null; } if(k.indexOf('power')===0||k.indexOf('history')===0||k.indexOf('duration')===0&&false) return dom('sensor'); } catch(e){} return null; } function cdApplEntityOrig"
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
@@ -1149,4 +1152,5 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("appl-bridge-v2", R34_5_A, R34_5_R),
     ("temp-avg-fallback?", R35_1_A, R35_1_R),
     ("ver-0122?", R35_2_A, R35_2_R),
+    ("appl-entity-fallback", R36_A, R36_R),
 )
