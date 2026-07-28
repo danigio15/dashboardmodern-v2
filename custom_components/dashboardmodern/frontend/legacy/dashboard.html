@@ -6391,21 +6391,9 @@ function getAppliances(){ const a=cdCfg('cd_appliances'); return Array.isArray(a
 
 /* Stato ricavato dalle entità: numeriche = potenza (W), on/heat/playing = acceso */
 function cdApplStatus(a){
-  const ents=(a.entities||[]).map(e=>typeof e==='string'?e:e.entity).filter(Boolean);
-  let maxW=null, anyOn=false;
-  ents.forEach(en=>{ const s=STATES[en]; if(!s) return;
-    const v=parseFloat(s.state);
-    if(!isNaN(v)) maxW=(maxW==null)?v:Math.max(maxW,v);
-    const st=String(s.state).toLowerCase();
-    if(st==='on'||st==='playing'||st==='heat'||st==='cool'||st==='home'||st==='open') anyOn=true;
-  });
-  const tRun=(a.threshold_run!=null?+a.threshold_run:5), tStby=(a.threshold_standby!=null?+a.threshold_standby:1);
-  if(maxW!=null){
-    if(maxW>=tRun) return {label:'In funzione',cls:'run',w:maxW};
-    if(maxW>=tStby) return {label:'Standby',cls:'standby',w:maxW};
-    return {label:'Spento',cls:'off',w:maxW};
-  }
-  return anyOn?{label:'Acceso',cls:'run',w:null}:{label:'Spento',cls:'off',w:null};
+  const api=window.DashboardModernModules&&DashboardModernModules.data;
+  if(api&&api.applianceState){ const r=api.applianceState(a,STATES); return r.state==='running'?{label:'In funzione',cls:'run',w:r.watts}:r.state==='on'?{label:'Acceso',cls:'on',w:r.watts}:{label:'Spento',cls:'off',w:r.watts}; }
+  return {label:'Spento',cls:'off',w:null};
 }
 function renderAppliances(){
   const grid=document.getElementById('appliances-grid'); const title=document.getElementById('appliances-title');
@@ -8478,17 +8466,8 @@ function wzRender() {
             </div>
             <div style="display:flex; gap:6px; margin-bottom:8px;"><input id="wz-cl-ent" class="wz-input mono" autocomplete="off" placeholder="climate.studio" style="margin-bottom:0; flex:1; font-family:monospace;"><button type="button" onclick="wzPickEntity('#wz-cl-ent')" style="flex:0 0 40px; height:40px; border:none; border-radius:12px; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:15px; cursor:pointer;">🔍</button></div>
             <button class="ed-btn-add" style="width:100%;" onclick="wzAddClima()">＋ Aggiungi unità</button>
-            <div class="ed-slot" style="margin-top:12px;"><div class="ed-slot-lbl">🔥 Entità caldaia (switch — facoltativa)</div>
-              <input class="wz-input mono" style="margin-bottom:0; font-family:monospace; font-size:11.5px;" autocomplete="off"
-                     data-ref="switch.caldaia" value="${(WIZ.entities && WIZ.entities['switch.caldaia']) || ENTITY_OVERRIDES['switch.caldaia'] || ''}" placeholder="switch.caldaia" onchange="wzSetSlot(this)"></div>
-            <div class="ed-slot" style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--card-border);">
-              <div class="ed-slot-lbl">🔥 Entità caldaia (switch — opzionale)</div>
-              <input class="wz-input mono" style="margin-bottom:0; font-family:monospace; font-size:11.5px;" autocomplete="off"
-                     data-ref="switch.caldaia" value="${(WIZ.entities && WIZ.entities['switch.caldaia']) || ENTITY_OVERRIDES['switch.caldaia'] || ''}"
-                     placeholder="es. dm.core_049" onchange="wzSetSlot(this)">
-            </div>
-          </div>
-        </details>` : ''}${WIZ.sections['security'] !== false ? `
+            <div class="ed-slot" style="margin-top:12px;"><div class="ed-slot-lbl">🔥 Entità caldaia (switch — facoltativa)</div><div style="display:flex;gap:6px;"><input id="wz-boiler-ent" class="wz-input mono" style="margin-bottom:0; font-family:monospace; font-size:11.5px;" autocomplete="off"
+                     data-ref="switch.caldaia" value="${(WIZ.entities && WIZ.entities['switch.caldaia']) || ENTITY_OVERRIDES['switch.caldaia'] || ''}" placeholder="switch.caldaia" onchange="wzSetSlot(this)"><button type="button" onclick="wzPickEntity('#wz-boiler-ent')" style="flex:0 0 40px;height:40px;border:none;border-radius:12px;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;cursor:pointer;">🔍</button></div></div></div></details>` : ''}${WIZ.sections['security'] !== false ? `
       <details class="ed-acc"><summary class="ed-acc-head">📹 Telecamere <span class="ed-acc-n">${(WIZ.cameras||[]).length}</span></summary>
           <div class="ed-acc-body">
             ${(WIZ.cameras||[]).map((cam, i) => `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${cam.name}</div><div class="ed-row-old mono">${cam.entity}</div></div><div class="ed-del" onclick="WIZ.cameras.splice(${i},1); wzRender();">🗑️</div></div>`).join('')}

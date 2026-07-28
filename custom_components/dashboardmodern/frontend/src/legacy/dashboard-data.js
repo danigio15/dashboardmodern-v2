@@ -50,6 +50,37 @@ export function controllableEntity(appliance) {
   );
 }
 
+export function applianceState(appliance, states = {}) {
+  const entities = [appliance?.power, appliance?.power_entity]
+    .concat(appliance?.entities || [])
+    .map((entry) => (typeof entry === "string" ? entry : entry?.entity))
+    .filter(Boolean);
+  let watts = null;
+  let powered = false;
+  for (const entity of entities) {
+    const state = states[entity];
+    if (!state) continue;
+    const unit = String(state.attributes?.unit_of_measurement || "").toLowerCase();
+    const value = Number(state.state);
+    if (Number.isFinite(value) && /^(w|kw|watt|watts)$/.test(unit)) {
+      const normalized = unit === "kw" ? value * 1000 : value;
+      watts = Math.max(watts ?? 0, normalized);
+    }
+    if (["on", "playing", "heat", "cool", "open"].includes(String(state.state).toLowerCase())) {
+      powered = true;
+    }
+  }
+  const run = Number.isFinite(Number(appliance?.threshold_run))
+    ? Number(appliance.threshold_run)
+    : 5;
+  const standby = Number.isFinite(Number(appliance?.threshold_standby))
+    ? Number(appliance.threshold_standby)
+    : 1;
+  if (watts != null && watts >= run) return { state: "running", watts };
+  if (powered || (watts != null && watts >= standby)) return { state: "on", watts };
+  return { state: "off", watts };
+}
+
 export function normalizeCamera(camera = {}, index = 0) {
   const entity = String(camera.entity || camera.camera_entity || camera.cam || "").trim();
   const stream = String(camera.stream || camera.stream_url || camera.url || "").trim();

@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   applianceGroups,
+  applianceState,
   controllableEntity,
   normalizeCameras,
   normalizeRooms,
@@ -50,6 +51,35 @@ for (const locale of ["it", "en"]) {
     assert.equal(controllableEntity({ switch_entity: "switch.washer" }), "switch.washer");
     assert.equal(controllableEntity({ light: "light.oven" }), "light.oven");
     assert.equal(controllableEntity({ entities: ["sensor.washer_power"] }), "");
+  });
+
+  test(`${locale}: appliance state uses real power units and binary state`, () => {
+    const appliance = {
+      entities: ["sensor.power", "sensor.energy", "switch.appliance"],
+      threshold_run: 5,
+      threshold_standby: 1,
+    };
+    assert.deepEqual(
+      applianceState(appliance, {
+        "sensor.power": { state: "0", attributes: { unit_of_measurement: "W" } },
+        "sensor.energy": { state: "150", attributes: { unit_of_measurement: "kWh" } },
+        "switch.appliance": { state: "off", attributes: {} },
+      }),
+      { state: "off", watts: 0 },
+    );
+    assert.deepEqual(
+      applianceState(appliance, {
+        "sensor.power": { state: "2", attributes: { unit_of_measurement: "W" } },
+        "switch.appliance": { state: "on", attributes: {} },
+      }),
+      { state: "on", watts: 2 },
+    );
+    assert.deepEqual(
+      applianceState(appliance, {
+        "sensor.power": { state: "0.025", attributes: { unit_of_measurement: "kW" } },
+      }),
+      { state: "running", watts: 25 },
+    );
   });
 
   test(`${locale}: camera CRUD preserves distinct cards and survives serialization`, () => {

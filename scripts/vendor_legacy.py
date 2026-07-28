@@ -252,6 +252,29 @@ def _localize_variant(source: str, name: str) -> str:
     return source
 
 
+def _fix_boiler_entity_picker(source: str, name: str) -> str:
+    """Replace the duplicated boiler field with the standard searchable row."""
+    pattern = re.compile(
+        r'<div class="ed-slot" style="margin-top:12px;"><div class="ed-slot-lbl">([^<]+)</div>\s*'
+        r'<input class="wz-input mono"([^>]+data-ref="switch\.caldaia"[^>]*)></div>\s*'
+        r'<div class="ed-slot" style="margin-top:12px; padding-top:12px; border-top:1px dashed var\(--card-border\);">.*?</div>\s*'
+        r'</div>\s*</details>`',
+        re.S,
+    )
+    replacement = (
+        r'<div class="ed-slot" style="margin-top:12px;"><div class="ed-slot-lbl">\1</div>'
+        r'<div style="display:flex;gap:6px;"><input id="wz-boiler-ent" class="wz-input mono"\2>'
+        r'<button type="button" onclick="wzPickEntity(\'#wz-boiler-ent\')" '
+        r'style="flex:0 0 40px;height:40px;border:none;border-radius:12px;'
+        r'background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;cursor:pointer;">🔍</button>'
+        r'</div></div></div></details>`'
+    )
+    source, count = pattern.subn(replacement, source, count=1)
+    if count != 1:
+        raise PatchError(f"{name} boiler picker: expected one duplicated field, found {count}")
+    return source
+
+
 def patch_variant(source: str, name: str) -> str:
     """Apply both bridge patches to one legacy dashboard file."""
     if PRELUDE_TAG in source:
@@ -289,7 +312,8 @@ def patch_variant(source: str, name: str) -> str:
     # present (the two languages use different wording).
     for old_label, new_label in RENAME_PATCHES:
         patched = patched.replace(old_label, new_label)
-    return _localize_variant(_apply_upstream_fixes(patched, name), name)
+    patched = _localize_variant(_apply_upstream_fixes(patched, name), name)
+    return _fix_boiler_entity_picker(patched, name)
 
 
 def _checkout(ref: str, destination: Path) -> str:
