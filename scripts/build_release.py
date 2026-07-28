@@ -40,12 +40,23 @@ def main() -> None:
                     or path.name == "build-info.js"
                 ):
                     continue
-                relative = path.relative_to(ROOT)
+                # HACS extracts a zip_release directly into
+                # /config/custom_components/dashboardmodern. Integration files
+                # therefore have to live at the archive root, not under a second
+                # custom_components/dashboardmodern directory.
+                relative = path.relative_to(COMPONENT)
                 archive.write(path, relative)
-            archive.write(
-                generated,
-                "custom_components/dashboardmodern/frontend/legacy/build-info.js",
-            )
+            archive.write(generated, "frontend/legacy/build-info.js")
+
+        with zipfile.ZipFile(args.output) as archive:
+            names = set(archive.namelist())
+            required = {"__init__.py", "manifest.json", "frontend/legacy/build-info.js"}
+            missing = required - names
+            if missing:
+                raise RuntimeError(f"Release archive missing required root files: {sorted(missing)}")
+            if any(name.startswith("custom_components/") for name in names):
+                raise RuntimeError("Release archive contains an invalid nested custom_components directory")
+
     manifest = json.loads((COMPONENT / "manifest.json").read_text())
     print(f"Built {args.output} for {manifest['version']} at {args.expected_commit}")
 
