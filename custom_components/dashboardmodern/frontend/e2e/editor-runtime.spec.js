@@ -71,10 +71,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
             report_order: 2,
           },
         ],
+        entityOverrides: {
+          "dm.lavatrice_potenza_presa": "sensor.washer_power",
+        },
       },
       visibility: {},
     };
-    const seedOverrides = { "dm.lavatrice_potenza_presa": "sensor.washer_power" };
 
     page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
     let rejectEarlyPageError;
@@ -134,19 +136,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       window.WebSocket = TestSocket;
     });
 
-    // Seed the exact application origin, then reload so DashboardStore reads the
-    // schema-v3 fixture during module startup. addInitScript is intentionally
-    // reserved for browser API stubs: localStorage seeding there was not
-    // deterministic in Chromium and caused false schema-0 migrations.
+    // Seed only the canonical snapshot. Writing cd_entity_overrides after the
+    // first page load would trigger the legacy write bridge and overwrite this
+    // fixture with the already-initialized empty store before reload.
     await page.goto(`/legacy/${variant}`);
-    await page.evaluate(
-      ({ state, overrides }) => {
-        localStorage.clear();
-        localStorage.setItem("dm_dashboard_state", JSON.stringify(state));
-        localStorage.setItem("cd_entity_overrides", JSON.stringify(overrides));
-      },
-      { state: seedState, overrides: seedOverrides },
-    );
+    await page.evaluate((state) => {
+      localStorage.clear();
+      localStorage.setItem("dm_dashboard_state", JSON.stringify(state));
+    }, seedState);
     await page.reload();
 
     await Promise.race([
