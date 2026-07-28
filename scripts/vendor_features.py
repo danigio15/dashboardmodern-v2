@@ -38,7 +38,7 @@ APPLIANCE_FORM_REPLACEMENT = (
 
 # Persist the chosen room when saving an appliance.
 APPLIANCE_SAVE_ANCHOR = "const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceName(icon), icon, entities, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 };"
-APPLIANCE_SAVE_REPLACEMENT = "const roomSel=(document.getElementById('appl-room')||{}).value||''; const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceName(icon), icon, entities, room:roomSel, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 };"
+APPLIANCE_SAVE_REPLACEMENT = "const roomSel=(document.getElementById('appl-room')||{}).value||''; const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceName(icon), icon, entities, room_id:roomSel, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 };"
 
 # Climate: the same room dropdown, reading the same registry.
 # Climate: a plain <select> in the static form; populated by the hook below.
@@ -112,7 +112,7 @@ ROOMS_RENDER_REPLACEMENT = (
     "var icon=(document.getElementById('ed-room-icon').value||'🏠').trim(); "
     "var floor=(document.getElementById('ed-room-floor').value||'').trim(); if(floor==='__new__') floor=''; "
     "var rooms=(typeof getStanze==='function'?getStanze():[]).slice(); "
-    "var r={ name:name, icon:icon }; if(floor) r.floor=floor; rooms.push(r); "
+    "var r={ id:'room_'+Date.now().toString(36), name:name, icon:icon }; if(floor) r.floor=floor; rooms.push(r); "
     "localStorage.setItem('cd_stanze', JSON.stringify(rooms)); "
     "try { cdMarkDirty(); cdSyncPush(); } catch(e){} "
     "try { buildTempCards(); } catch(e){} editorSwitch('stanze'); } "
@@ -170,7 +170,7 @@ WIZARD_STEP_REPLACEMENT = "WIZ = { step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 
 
 # ── Visible build marker: prove the served HTML actually updated ───────────
 VERSION_ANCHOR = "const DASHBOARD_VERSION = '0.11.1';"
-VERSION_REPLACEMENT = "const DASHBOARD_VERSION = '0.12.3-int';"
+VERSION_REPLACEMENT = "const DASHBOARD_VERSION = '0.12.4-int';"
 
 # ── Temperature section: the Piano (floor) fields are hidden via CSS below ─
 
@@ -515,7 +515,7 @@ SLOT_2_R = '<div style="display:flex; gap:8px; margin-bottom:6px;"><input style=
 # a room are sorted by registry-floor order, then room, and full-width
 # headers are inserted whenever the (floor, room) pair changes.
 GROUP_HELPER_ANCHOR = "function buildClimaCards() {"
-GROUP_HELPER_REPLACEMENT = "function cdRoomFloorOf(roomName){ if(!roomName) return ''; var rs=(typeof getStanze==='function'?getStanze():[]); for(var i=0;i<rs.length;i++){ if(rs[i]&&rs[i].name===roomName) return rs[i].floor||''; } return ''; } function cdGroupCards(items, cardFn){ try { var anyRoom=false; items.forEach(function(u){ if(u&&u.room) anyRoom=true; }); if(!anyRoom) return items.map(cardFn).join(''); var floors=(typeof cdFloorNames==='function'?cdFloorNames():[]); function fIdx(f){ var i=floors.indexOf(f); return i<0?9999:i; } var sorted=items.slice().sort(function(a,b){ var fa=cdRoomFloorOf(a.room), fb=cdRoomFloorOf(b.room); if(fIdx(fa)!==fIdx(fb)) return fIdx(fa)-fIdx(fb); var ra=a.room||'zzzz', rb=b.room||'zzzz'; if(ra!==rb) return ra<rb?-1:1; return 0; }); var out=''; var lastKey=null; sorted.forEach(function(u){ var f=cdRoomFloorOf(u.room); var key=(f||'')+'|'+(u.room||''); if(key!==lastKey){ lastKey=key; var lbl = u.room ? ((f?('🏢 '+f+' · '):'')+'🏠 '+u.room) : '🏠 Senza stanza'; out += '<div style=\"grid-column:1/-1; font-weight:800; opacity:0.75; font-size:13px; letter-spacing:0.5px; padding:8px 2px 0;\">'+lbl+'</div>'; } out += cardFn(u); }); return out; } catch(e){ return items.map(cardFn).join(''); } } function buildClimaCards() {"
+GROUP_HELPER_REPLACEMENT = "function cdRoomFloorOf(roomName){ if(!roomName) return ''; var rs=(typeof getStanze==='function'?getStanze():[]); for(var i=0;i<rs.length;i++){ if(rs[i]&&rs[i].name===roomName) return rs[i].floor||''; } return ''; } function cdGroupCards(items, cardFn){ try { var anyRoom=false; items.forEach(function(u){ if(u&&u.room) anyRoom=true; }); if(!anyRoom) return items.map(cardFn).join(''); var floors=(typeof cdFloorNames==='function'?cdFloorNames():[]); function fIdx(f){ var i=floors.indexOf(f); return i<0?9999:i; } var sorted=items.slice().sort(function(a,b){ var fa=cdRoomFloorOf(a.room), fb=cdRoomFloorOf(b.room); if(fIdx(fa)!==fIdx(fb)) return fIdx(fa)-fIdx(fb); var ra=a.room||'zzzz', rb=b.room||'zzzz'; if(ra!==rb) return ra<rb?-1:1; return 0; }); var out=''; var lastKey=null; sorted.forEach(function(u){ var f=cdRoomFloorOf(u.room); var key=(f||'')+'|'+(u.room||''); if(key!==lastKey){ lastKey=key; var lbl = u.room ? ((f?('🏢 '+f+' · '):'')+'🏠 '+u.room) : '🏠 Nessuna stanza'; out += '<div style=\"grid-column:1/-1; font-weight:800; opacity:0.75; font-size:13px; letter-spacing:0.5px; padding:8px 2px 0;\">'+lbl+'</div>'; } out += cardFn(u); }); return out; } catch(e){ return items.map(cardFn).join(''); } } function buildClimaCards() {"
 
 CLIMA_GROUP_F_ANCHOR = "gF.innerHTML = uFreddo.map(card).join('') ||"
 CLIMA_GROUP_F_REPLACEMENT = "gF.innerHTML = cdGroupCards(uFreddo, card) ||"
@@ -547,7 +547,7 @@ APPL_ROOM_FORM_REPLACEMENT = (
     APPL_ROOM_FORM_ANCHOR  # select duplicato rimosso: resta quello etichettato STANZA
 )
 APPL_ROOM_SAVE_ANCHOR = "const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceName(icon), icon, entities, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 };"
-APPL_ROOM_SAVE_REPLACEMENT = "const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceName(icon), icon, entities, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 }; const _rm=((document.getElementById('appl-room')||{}).value||'').trim(); if(_rm) item.room=_rm;"
+APPL_ROOM_SAVE_REPLACEMENT = "const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceName(icon), icon, entities, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 }; const _rm=((document.getElementById('appl-room')||{}).value||'').trim(); if(_rm) item.room_id=_rm;"
 LUCI_ROOMS_REGISTRY_ANCHOR = "=> { const r = cdLightRoom(id); if (r && !set.includes(r)) set.push(r); });\n    return set;"
 LUCI_ROOMS_REGISTRY_REPLACEMENT = "=> { const r = cdLightRoom(id); if (r && !set.includes(r)) set.push(r); });\n    try { (typeof getStanze==='function'?getStanze():[]).forEach(r => { if (r && r.name && !set.includes(r.name)) set.push(r.name); }); } catch(e) {} return set;"
 
@@ -913,7 +913,7 @@ R34_5_R = " try { var pg=document.getElementById('page-appliances-main'); var ba
 R35_1_A = "(r.floor || 'Altro') === f)"
 R35_1_R = "(r.floor || r.name || 'Altro') === f)"
 R35_2_A = "'0.12.1-int'"
-R35_2_R = "'0.12.3-int'"
+R35_2_R = "'0.12.4-int'"
 
 R36_A = "function cdApplEntity"
 R36_R = "function cdApplEntity(a, keys){ var v=cdApplEntityOrig(a, keys); if(v) return v; try { var ents=(a&&a.entities||[]).map(function(e){ return typeof e==='string'?e:e.entity; }).filter(Boolean); var k=String(keys&&keys[0]||''); function dom(d){ for(var i=0;i<ents.length;i++){ if(ents[i].indexOf(d+'.')===0) return ents[i]; } return null; } if(k.indexOf('switch')===0) return dom('switch')||dom('light')||dom('input_boolean'); if(k.indexOf('energy')===0){ for(var j=0;j<ents.length;j++){ if(/energy|kwh/i.test(ents[j])) return ents[j]; } return null; } if(k.indexOf('power')===0||k.indexOf('history')===0||k.indexOf('duration')===0&&false) return dom('sensor'); } catch(e){} return null; } function cdApplEntityOrig"
