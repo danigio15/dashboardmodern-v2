@@ -41,6 +41,9 @@ for (const [file, labels] of [
     const save = functionSource(source, "edApplSave");
     for (const key of ["image", "image_url", "type", "device_type"])
       assert.match(save, new RegExp(key));
+    const visual = functionSource(source, "cdApplianceVisual");
+    assert.match(visual, /object-fit:contain/);
+    assert.match(visual, /cdIconMarkup\(integrated,size\)/);
   });
 
   test(`${file}: shipped climate editor has one boiler value and room editor supports mdi`, () => {
@@ -52,7 +55,7 @@ for (const [file, labels] of [
     assert.match(rooms, /dmIconPicker/);
     assert.match(source, /function cdIconMarkup[\s\S]*mdi:/);
     const iconFilter = functionSource(source, "dmIconFilter");
-    assert.match(iconFilter, /const rows = q \? DM_ICONS\.filter/);
+    assert.match(iconFilter, /const dataset = window\._dmIconDataset \|\| DM_ICONS/);
     assert.doesNotMatch(iconFilter, /visible\.length/);
   });
 

@@ -22,6 +22,55 @@
  */
 (function () {
   "use strict";
+
+  /*
+   * The English legacy renderer returns early when there are no configured
+   * lights, so its "Add light" form never reaches the DOM. Keep the legacy
+   * renderer intact and append the same stable form only when it is missing.
+   * The canonical editor mount then adds data-entity-input/data-light-add-entity
+   * and binds the picker exactly as it does for the non-empty state.
+   */
+  function lightAddFormMarkup() {
+    var isEnglish = document.documentElement.lang === "en" || /dashboard-en\.html(?:$|[?#])/.test(window.location.href);
+    var title = isEnglish ? "＋ ADD LIGHT" : "＋ AGGIUNGI LUCE";
+    var entityPlaceholder = isEnglish ? "light.living_room" : "light.soggiorno";
+    var namePlaceholder = isEnglish ? "Light name (optional)" : "Nome luce (facoltativo)";
+    var addLabel = isEnglish ? "＋ Add light" : "＋ Aggiungi luce";
+
+    return '<div class="ed-form dm-light-add-form" data-light-add-form>' +
+      '<div class="ed-sec-title">' + title + '</div>' +
+      '<div class="ed-form-row">' +
+        '<input id="luce-add-ent" class="ed-input mono" placeholder="' + entityPlaceholder + '">' +
+        '<button type="button" class="dm-entity-picker" data-entity-target="luce-add-ent" aria-label="' +
+          (isEnglish ? "Select light entity" : "Seleziona entità luce") + '">🔍</button>' +
+      '</div>' +
+      '<input id="luce-add-name" class="ed-input" placeholder="' + namePlaceholder + '">' +
+      '<button class="ed-btn-add" onclick="cdLuceAdd()">' + addLabel + '</button>' +
+    '</div>';
+  }
+
+  function installEmptyLightsRendererFix() {
+    var original = window.editorRenderLuci;
+    if (typeof original !== "function" || original.__dmEmptyLightsFixed) return false;
+
+    function patchedEditorRenderLuci() {
+      var html = original.apply(this, arguments);
+      if (typeof html !== "string" || /data-light-add-form|id=["']luce-add-ent["']/.test(html)) {
+        return html;
+      }
+      return html + lightAddFormMarkup();
+    }
+
+    patchedEditorRenderLuci.__dmEmptyLightsFixed = true;
+    window.editorRenderLuci = patchedEditorRenderLuci;
+    return true;
+  }
+
+  if (typeof window.addEventListener === "function") {
+    window.addEventListener("dashboardmodern:legacy-ready", installEmptyLightsRendererFix, { once: true });
+    window.addEventListener("DOMContentLoaded", installEmptyLightsRendererFix, { once: true });
+  }
+
   try {
     var _q = window.location.search || "";
     var _mi = /[?&]dmi=([^&]+)/.exec(_q);

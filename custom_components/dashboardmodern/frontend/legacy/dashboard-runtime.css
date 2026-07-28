@@ -1,42 +1,157 @@
-.dm-entity-field { display:flex;gap:8px;margin-bottom:8px;width:100% }
-.dm-entity-field>.ed-input { flex:1;min-width:0;margin:0 }
-.dm-entity-picker { flex:0 0 40px;height:40px;border:0;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;cursor:pointer }
-.dm-camera-edit { flex:0 0 34px;height:34px;border:0;border-radius:9px;background:rgba(14,165,233,.14);cursor:pointer }
-.appl-st.on { color:#38bdf8;background:rgba(14,165,233,.14) }
-.appl-st.run { color:#4ade80;background:rgba(34,197,94,.14) }
+.dm-entity-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+  width: 100%;
+}
 
-/* The hosted panel must have a real vertical scrolling surface. Safari in a
-   Home Assistant iframe otherwise keeps the transformed modal as the wheel
-   target while its flex child never becomes scrollable. */
-html,body { min-height:100%;height:auto!important;overflow-y:auto!important }
-body { overscroll-behavior-y:auto }
-.page.active { min-height:calc(100dvh - 90px);overflow:visible!important;padding-bottom:max(80px,env(safe-area-inset-bottom)) }
-#editor-modal.modal-wrapper { align-items:flex-start!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch }
-#editor-modal .ed-shell { min-height:0!important;max-height:calc(100dvh - 24px)!important;margin:auto!important;overflow:hidden!important;transform:none!important }
-#editor-modal .ed-body { min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch;touch-action:pan-y }
+.ed-form-row:has(> [data-entity-input]),
+.ed-slot:has(> [data-entity-input]) {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
 
-/* Appliance cards: large illustrated appliance at the left, operational data
-   at the right, like the visual reference supplied for the dashboard. */
-#page-appliances-main .appl-page-grid { grid-template-columns:repeat(auto-fit,minmax(300px,1fr))!important;align-items:stretch }
-#page-appliances-main .appl-wide-card { display:grid!important;grid-template-columns:124px minmax(0,1fr);grid-template-rows:auto auto auto;gap:10px 16px;min-height:230px!important;padding:18px!important;overflow:hidden;background:linear-gradient(145deg,rgba(3,8,20,.99),rgba(12,25,45,.98))!important;border:1px solid rgba(125,211,252,.18)!important;box-shadow:0 18px 42px rgba(2,6,23,.28)!important;color:#e2e8f0!important }
-#page-appliances-main .appl-wide-card::before { opacity:1!important;background:radial-gradient(circle at 18% 28%,rgba(14,165,233,.22),transparent 34%),radial-gradient(circle at 92% 8%,rgba(56,189,248,.12),transparent 30%)!important }
-#page-appliances-main .appl-wide-card.on { border-color:rgba(56,189,248,.56)!important;box-shadow:0 18px 46px rgba(2,132,199,.24)!important }
-#page-appliances-main .appl-wide-top { display:contents!important }
-#page-appliances-main .appl-wide-top>div:first-child { display:contents!important }
-#page-appliances-main .appl-wide-top>div:first-child>div:last-child { grid-column:2;grid-row:1;min-width:0!important;align-self:start;padding-right:82px;z-index:1 }
-#page-appliances-main .appl-ic { grid-column:1;grid-row:1/4;display:grid!important;place-items:center;align-self:stretch;min-height:174px;padding:12px;border-radius:22px;color:#38bdf8!important;background:linear-gradient(145deg,rgba(224,242,254,.98),rgba(186,230,253,.88));box-shadow:inset 0 0 0 1px rgba(255,255,255,.72),0 14px 30px rgba(2,132,199,.18);z-index:1 }
-#page-appliances-main .appl-ic svg,#page-appliances-main .appl-ic img,#page-appliances-main .appl-ic ha-icon { width:104px!important;height:104px!important;max-width:100%;object-fit:contain;filter:drop-shadow(0 12px 14px rgba(2,132,199,.22)) }
-#page-appliances-main .appl-ic svg { stroke-width:1.25 }
-#page-appliances-main .appl-wide-name { color:#f8fafc!important;font-size:16px!important;line-height:1.2 }
-#page-appliances-main .appl-wide-cat { color:#7dd3fc!important;opacity:.82 }
-#page-appliances-main .appl-wide-top>.appl-st { grid-column:2;grid-row:1;justify-self:end;align-self:start;z-index:2;padding:5px 10px }
-#page-appliances-main .appl-metrics { grid-column:2;grid-row:2;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px!important;margin:0!important;z-index:1 }
-#page-appliances-main .appl-metric { min-width:0;padding:9px 8px!important;background:rgba(148,163,184,.08)!important;border-color:rgba(148,163,184,.14)!important }
-#page-appliances-main .appl-metric-lbl { color:#94a3b8!important }
-#page-appliances-main .appl-metric-val { color:#f8fafc!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis }
-#page-appliances-main .appl-actions { grid-column:2;grid-row:3;display:flex!important;align-items:center;gap:8px;margin-top:auto;z-index:1 }
-#page-appliances-main .appl-action-btn { min-height:38px;border-color:rgba(125,211,252,.18)!important;background:rgba(14,165,233,.10)!important;color:#bae6fd!important }
-#page-appliances-main .appl-action-btn.on { background:linear-gradient(135deg,#0ea5e9,#0369a1)!important;color:#fff!important }
+[data-entity-input] {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.dm-entity-picker {
+  flex: 0 0 40px;
+  width: 40px;
+  min-height: 40px;
+  align-self: stretch;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0ea5e9, #0369a1);
+  color: #fff;
+  cursor: pointer;
+}
+
+.dm-camera-edit {
+  flex: 0 0 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: rgba(14, 165, 233, 0.14);
+  cursor: pointer;
+}
+
+.appl-st.on {
+  color: #38bdf8;
+  background: rgba(14, 165, 233, 0.14);
+}
+
+.appl-st.run {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.14);
+}
+
+/* The editor owns one scrolling surface; public dashboard scrolling is untouched. */
+#editor-modal.modal-wrapper {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+#editor-modal .ed-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: min(88vh, calc(100dvh - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: hidden;
+}
+
+#editor-modal .ed-head,
+#editor-modal .ed-tabs {
+  flex: 0 0 auto;
+}
+
+#editor-modal .ed-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Compact, two-column appliance cards with an always-visible inline visual. */
+#page-appliances-main .appl-page-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 16px;
+}
+
+#page-appliances-main .appl-wide-card {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  gap: 10px 14px;
+  min-width: 0;
+  min-height: 190px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+#page-appliances-main .appl-wide-top,
+#page-appliances-main .appl-wide-top > div:first-child {
+  display: contents;
+}
+
+#page-appliances-main .appl-wide-top > div:first-child > div:last-child {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  padding-right: 74px;
+}
+
+#page-appliances-main .appl-ic {
+  grid-column: 1;
+  grid-row: 1 / 4;
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+  padding: 8px;
+  border-radius: 18px;
+  color: #0ea5e9;
+  background: rgba(14, 165, 233, 0.1);
+}
+
+#page-appliances-main .appl-ic svg,
+#page-appliances-main .appl-ic img {
+  display: block;
+  width: 96px;
+  height: 96px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+#page-appliances-main .appl-wide-top > .appl-st {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: start;
+}
+
+#page-appliances-main .appl-metrics {
+  grid-column: 2;
+  grid-row: 2;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+  margin: 0;
+}
+
+#page-appliances-main .appl-actions {
+  grid-column: 2;
+  grid-row: 3;
+  align-self: end;
+}
 
 /* Covers: replace the tiny generic tile with a dashboard-sized control card. */
 #page-tapparelle>div { max-width:1100px!important;padding:0 16px 80px }
@@ -60,25 +175,94 @@ body { overscroll-behavior-y:auto }
 .tapp-card .tapp-btn[data-svc="stop_cover"]::after { content:" Stop" }
 .tapp-card .tapp-btn[data-svc="close_cover"]::after { content:" Chiudi" }
 
-.dm-energy-cost-card { margin-top:12px;padding:16px;border:1px solid var(--card-border,#e2e8f0);border-radius:14px;background:var(--card-bg,#fff) }
-.dm-light-add-form .ed-input { margin:0 }
 
-@media (max-width:700px) {
-  #editor-modal.modal-wrapper { padding:0!important;align-items:stretch!important }
-  #editor-modal .ed-shell { width:100%!important;max-width:none!important;min-height:100dvh!important;max-height:100dvh!important;margin:0!important;border-radius:0!important }
-  #editor-modal .ed-head { padding-top:max(14px,env(safe-area-inset-top))!important }
-  #editor-modal .ed-body { padding-bottom:max(28px,env(safe-area-inset-bottom))!important }
-  .dm-energy-cost-card .ed-form-row { grid-template-columns:1fr;display:grid }
-  .dm-entity-field { gap:6px }
-  #page-appliances-main .appl-page-grid { grid-template-columns:1fr!important }
-  #page-appliances-main .appl-wide-card { grid-template-columns:94px minmax(0,1fr);min-height:205px!important;padding:13px!important;gap:8px 12px }
-  #page-appliances-main .appl-ic { min-height:150px;padding:9px;border-radius:18px }
-  #page-appliances-main .appl-ic svg,#page-appliances-main .appl-ic img,#page-appliances-main .appl-ic ha-icon { width:78px!important;height:78px!important }
-  #page-appliances-main .appl-wide-top>div:first-child>div:last-child { padding-right:0 }
-  #page-appliances-main .appl-wide-top>.appl-st { position:absolute;right:13px;top:13px }
-  #page-appliances-main .appl-metrics { grid-template-columns:1fr }
-  #page-appliances-main .appl-metric:nth-child(n+2) { display:none }
-  #tapp-grid { grid-template-columns:1fr!important;padding-inline:0!important }
-  #tapp-grid>div:first-child { width:100% }
-  .tapp-card { min-height:312px!important }
+.dm-energy-cost-card {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--card-border, #e2e8f0);
+  border-radius: 14px;
+  background: var(--card-bg, #fff);
+}
+
+.dm-light-add-form .ed-input {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  #editor-modal.modal-wrapper {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  #editor-modal .ed-shell {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  #editor-modal .ed-head {
+    padding-top: max(14px, env(safe-area-inset-top));
+  }
+
+  #editor-modal .ed-body {
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
+  }
+
+  .dm-energy-cost-card .ed-form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  #page-appliances-main .appl-page-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #page-appliances-main .appl-wide-card {
+    grid-template-columns: 86px minmax(0, 1fr);
+    min-height: 170px;
+    padding: 12px;
+    gap: 8px 10px;
+  }
+
+  #page-appliances-main .appl-ic {
+    min-height: 132px;
+  }
+
+  #page-appliances-main .appl-ic svg,
+  #page-appliances-main .appl-ic img {
+    width: 72px;
+    height: 72px;
+  }
+
+  #page-appliances-main .appl-wide-top > div:first-child > div:last-child {
+    padding-right: 0;
+  }
+
+  #page-appliances-main .appl-wide-top > .appl-st {
+    position: static;
+  }
+
+  #page-appliances-main .appl-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  #page-appliances-main .appl-metric:nth-child(n + 2) {
+    display: none;
+  }
+
+  #tapp-grid {
+    grid-template-columns: 1fr !important;
+    padding-inline: 0 !important;
+  }
+
+  #tapp-grid > div:first-child {
+    width: 100%;
+  }
+
+  .tapp-card {
+    min-height: 312px !important;
+  }
 }
