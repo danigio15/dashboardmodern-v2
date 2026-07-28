@@ -204,6 +204,54 @@ CONN_WRITE_IMPORT_PATCHED = (
 from vendor_features import FEATURE_PATCHES, RENAME_PATCHES  # noqa: E402
 
 
+# User-facing vocabulary that must never leak from one vendored locale into
+# the other.  Apply this during vending as well as testing the committed
+# artifacts: otherwise a future refresh would silently reintroduce mixed UI.
+LOCALIZATION_GLOSSARY: tuple[tuple[str, str], ...] = (
+    ("No room", "Nessuna stanza"),
+    ("Overview", "Panoramica"),
+    ("Power", "Potenza"),
+    ("Energy", "Energia"),
+    ("Duration", "Durata"),
+    ("History", "Storico"),
+    ("Running", "In funzione"),
+    ("On", "Acceso"),
+    ("Off", "Spento"),
+    ("Not configured", "Non configurato"),
+    ("Choose entity", "Scegli entità"),
+    ("Edit camera", "Modifica telecamera"),
+    ("Current consumption", "Consumo attuale"),
+    ("Daily consumption", "Consumo giornaliero"),
+    ("Monthly consumption", "Consumo mensile"),
+    ("Total", "Totale"),
+    ("Camera", "Telecamera"),
+    ("Room", "Stanza"),
+    ("Cameras", "Telecamere"),
+    ("Rooms", "Stanze"),
+)
+
+
+def _localized_word(source: str, old: str, new: str) -> str:
+    """Replace a complete UI word without touching identifiers/entity ids."""
+    return re.sub(
+        rf"(?<![A-Za-zÀ-ÿ_]){re.escape(old)}(?![A-Za-zÀ-ÿ_])", new, source
+    )
+
+
+def _localize_variant(source: str, name: str) -> str:
+    """Enforce the audited vocabulary for the selected HTML locale."""
+    pairs = LOCALIZATION_GLOSSARY
+    if name == "dashboard-en.html":
+        pairs = tuple((italian, english) for english, italian in pairs)
+    for old, new in sorted(pairs, key=lambda pair: len(pair[0]), reverse=True):
+        source = _localized_word(source, old, new)
+    if name == "dashboard.html":
+        source = source.replace("alert('Invalid camera')", "alert('Telecamera non valida')")
+    else:
+        source = source.replace(">STANZA</label>", ">ROOM</label>")
+    return source
+
+
 def patch_variant(source: str, name: str) -> str:
     """Apply both bridge patches to one legacy dashboard file."""
     if PRELUDE_TAG in source:
@@ -241,7 +289,7 @@ def patch_variant(source: str, name: str) -> str:
     # present (the two languages use different wording).
     for old_label, new_label in RENAME_PATCHES:
         patched = patched.replace(old_label, new_label)
-    return _apply_upstream_fixes(patched, name)
+    return _localize_variant(_apply_upstream_fixes(patched, name), name)
 
 
 def _checkout(ref: str, destination: Path) -> str:

@@ -56,7 +56,7 @@ export function normalizeCamera(camera = {}, index = 0) {
   return {
     ...camera,
     id: String(camera.id || `camera-${index + 1}`),
-    name: String(camera.name || entity || `Camera ${index + 1}`),
+    name: String(camera.name || entity || `camera-${index + 1}`),
     entity,
     stream,
     room_id: String(camera.room_id || camera.roomId || ""),
