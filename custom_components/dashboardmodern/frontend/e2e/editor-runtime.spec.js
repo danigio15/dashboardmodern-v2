@@ -56,7 +56,44 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         "dm_dashboard_state",
         JSON.stringify({
           schema_version: 3,
-          sections: { rooms: [], appliances: [], loads: [] },
+          sections: {
+            rooms: [],
+            appliances: [
+              {
+                id: "appliance-seed",
+                name: "Seed washer",
+                device_type: "lavatrice",
+                show_in_report: true,
+                report_label: "Washer first",
+                report_icon: "🧺",
+                report_entity: "sensor.washer_month",
+                report_order: 0,
+              },
+            ],
+            loads: [
+              {
+                id: "load-seed",
+                name: "Seed pump",
+                category: "secondary",
+                show_in_report: true,
+                report_label: "Pump second",
+                report_icon: "💧",
+                report_entity: "sensor.pump_month",
+                report_order: 1,
+              },
+              {
+                id: "manual-seed",
+                name: "Seed manual",
+                category: "manual-report",
+                show_in_report: true,
+                show_in_dashboard: false,
+                report_label: "Manual third",
+                report_icon: "🔌",
+                report_entity: "sensor.manual_month",
+                report_order: 2,
+              },
+            ],
+          },
           visibility: {},
         }),
       );
@@ -67,8 +104,20 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     });
     await page.goto(`/legacy/${variant}`);
     await page.waitForFunction(
-      () => typeof window.apriConfigEntita === "function" && !!window.DashboardModernModules,
+      () =>
+        window.__DASHBOARDMODERN_LEGACY_READY__ === true &&
+        !!window.DashboardModernModules &&
+        document.readyState !== "loading",
     );
+    expect(
+      await page.evaluate(() =>
+        ED_DEVICES.map((device) => [device.name, device.icon, device.sensor]),
+      ),
+    ).toEqual([
+      ["Washer first", "🧺", "sensor.washer_month"],
+      ["Pump second", "💧", "sensor.pump_month"],
+      ["Manual third", "🔌", "sensor.manual_month"],
+    ]);
     await page
       .locator("#setup-wizard")
       .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
@@ -76,6 +125,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.evaluate(() => {
       window.cdSyncPush = async () => {};
     });
+    await expect(page.locator("#ed-modal")).toHaveCount(0);
     await page.evaluate(() => window.apriConfigEntita());
     await expect(page.locator('.ed-tab[data-tab="runtime"]')).toHaveCount(1);
     await page.locator('.ed-tab[data-tab="runtime"]').click();
@@ -87,6 +137,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const housePower = page.locator('[data-energy-panel="flows"] input').first();
     await housePower.fill("sensor.house_power");
     await housePower.blur();
+    await expect(page.locator("[data-energy-actions]")).toHaveAttribute("data-state", "dirty");
+    await page.locator("[data-energy-save]").click();
+    await expect(page.locator("[data-energy-actions]")).toHaveAttribute("data-state", "success");
     await expect(page.locator('#ed-body[data-renderer="energy"]')).toBeVisible();
     await expect(
       page.getByRole("button", { name: /FLUSSI ED ENTITÀ|FLOWS & ENTITIES/ }),
@@ -125,6 +178,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await firstReport.locator("[data-entity-field] input").first().fill("sensor.canonical_month");
     await page.locator("[data-report-save]").click();
     await expect(page.locator("[data-report-actions]")).toHaveAttribute("data-state", "success");
+    await expect(page.locator('[data-energy-panel="report"]')).toBeVisible();
     expect(
       await page.evaluate(
         () =>
@@ -138,11 +192,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator('[data-report-name][value="Manual water"]')).toHaveCount(1);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-report.png` });
     expect(
-      await page.evaluate(() => {
-        window.cdRebuildReportDevices();
-        return ED_DEVICES.map((device) => [device.name, device.sensor]);
-      }),
+      await page.evaluate(() => ED_DEVICES.map((device) => [device.name, device.sensor])),
     ).toContainEqual(["Canonical label", "sensor.canonical_month"]);
+    await expect(
+      page.locator('#ed-dev-selector option[value="sensor.canonical_month"]'),
+    ).toContainText("Canonical label");
     expect(
       await page.evaluate(
         () => JSON.parse(localStorage.getItem("dm_dashboard_state")).schema_version,

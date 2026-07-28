@@ -14959,6 +14959,22 @@ async function edCaricaDettaglio() {
 })();
 
 connect();
+
+// Explicit boundary between parsing the large legacy script and consumers of
+// its public API.  Do not expose readiness until lexical declarations, public
+// editor functions and the DOM are all usable.
+(function signalDashboardModernLegacyReady() {
+    function ready() {
+        if (globalThis.__DASHBOARDMODERN_LEGACY_READY__) return;
+        if (typeof EDITOR_TAB === 'undefined' ||
+            typeof editorSwitch !== 'function' ||
+            typeof apriConfigEntita !== 'function') return;
+        globalThis.__DASHBOARDMODERN_LEGACY_READY__ = true;
+        globalThis.dispatchEvent(new CustomEvent('dashboardmodern:legacy-ready'));
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ready, { once: true });
+    else ready();
+})();
 </script>
 
   <section class="page" id="page-temp">

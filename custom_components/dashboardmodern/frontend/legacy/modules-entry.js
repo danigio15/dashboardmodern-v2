@@ -24,8 +24,8 @@ import { canonicalReportDevices } from "../src/core/energy-projection.js";
 export const MODULES_VERSION = 14;
 const LOCALE = globalThis.document?.documentElement?.lang === "en" ? "en" : "it";
 const COPY = Object.freeze({
-  it: { optional: "Facoltativo", select: "Seleziona", saveReport: "Salva Report", saved: "Report salvato", dirty: "Modifiche non salvate", saving: "Salvataggio…", addManual: "Aggiungi voce manuale", empty: "Nessun elemento configurato.", reportIntro: "Seleziona e ordina il Report senza modificare l'ordine della dashboard.", reportLabel: "Etichetta", reportEntity: "Entità Report", history: "Storico", name: "Nome", entity: "Entità", add: "Aggiungi", required: "Nome ed entità sono obbligatori", moveUp: "Sposta su", moveDown: "Sposta giù", remove: "Elimina", energyCost: "Costo energia", energyRates: "Tariffe usate dal Report Energia.", saveCosts: "Salva costi", loadsIntro: "Carichi e Report condividono il modello canonico senza duplicati.", appliances: "Elettrodomestici / dispositivi", secondaryLoads: "Carichi secondari", noLoads: "Nessun carico configurato", editLoad: "Modifica carico", newLoad: "Nuovo carico", visibleReport: "Visibile nel report", visibleDashboard: "Visibile nella dashboard", addLoad: "Aggiungi carico", saveChanges: "Salva modifiche", powerEntity: "Entità potenza", dailyEnergy: "Energia giornaliera", monthlyEnergy: "Energia mensile", totalEnergy: "Energia totale", state: "Stato", control: "Comando ON/OFF", diagnostics: "Diagnostica runtime", languageVariant: "Lingua / variante", activeRenderer: "Renderer attivo", loadNameRequired: "Inserisci il nome del carico", energySaveFailed: "Salvataggio Energia fallito" },
-  en: { optional: "Optional", select: "Select", saveReport: "Save Report", saved: "Report saved", dirty: "Unsaved changes", saving: "Saving…", addManual: "Add manual entry", empty: "No configured items.", reportIntro: "Select and order Report entries without changing dashboard order.", reportLabel: "Label", reportEntity: "Report entity", history: "History", name: "Name", entity: "Entity", add: "Add", required: "Name and entity are required", moveUp: "Move up", moveDown: "Move down", remove: "Delete", energyCost: "Energy cost", energyRates: "Rates used by the Energy Report.", saveCosts: "Save costs", loadsIntro: "Loads and Report share the canonical model without duplicates.", appliances: "Appliances / devices", secondaryLoads: "Secondary loads", noLoads: "No configured loads", editLoad: "Edit load", newLoad: "New load", visibleReport: "Visible in Report", visibleDashboard: "Visible on dashboard", addLoad: "Add load", saveChanges: "Save changes", powerEntity: "Power entity", dailyEnergy: "Daily energy", monthlyEnergy: "Monthly energy", totalEnergy: "Total energy", state: "State", control: "On/off control", diagnostics: "Runtime diagnostics", languageVariant: "Language / variant", activeRenderer: "Active renderer", loadNameRequired: "Enter a load name", energySaveFailed: "Energy save failed" },
+  it: { optional: "Facoltativo", select: "Seleziona", saveReport: "Salva Report", saved: "Report salvato", energySaved: "Energia salvata", dirty: "Modifiche non salvate", saving: "Salvataggio…", addManual: "Aggiungi voce manuale", empty: "Nessun elemento configurato.", reportIntro: "Seleziona e ordina il Report senza modificare l'ordine della dashboard.", reportLabel: "Etichetta", reportEntity: "Entità Report", history: "Storico", name: "Nome", entity: "Entità", add: "Aggiungi", required: "Nome ed entità sono obbligatori", moveUp: "Sposta su", moveDown: "Sposta giù", remove: "Elimina", energyCost: "Costo energia", energyRates: "Tariffe usate dal Report Energia.", saveCosts: "Salva costi", loadsIntro: "Carichi e Report condividono il modello canonico senza duplicati.", appliances: "Elettrodomestici / dispositivi", secondaryLoads: "Carichi secondari", noLoads: "Nessun carico configurato", editLoad: "Modifica carico", newLoad: "Nuovo carico", visibleReport: "Visibile nel report", visibleDashboard: "Visibile nella dashboard", addLoad: "Aggiungi carico", saveChanges: "Salva modifiche", powerEntity: "Entità potenza", dailyEnergy: "Energia giornaliera", monthlyEnergy: "Energia mensile", totalEnergy: "Energia totale", state: "Stato", control: "Comando ON/OFF", diagnostics: "Diagnostica runtime", languageVariant: "Lingua / variante", activeRenderer: "Renderer attivo", loadNameRequired: "Inserisci il nome del carico", energySaveFailed: "Salvataggio Energia fallito" },
+  en: { optional: "Optional", select: "Select", saveReport: "Save Report", saved: "Report saved", energySaved: "Energy saved", dirty: "Unsaved changes", saving: "Saving…", addManual: "Add manual entry", empty: "No configured items.", reportIntro: "Select and order Report entries without changing dashboard order.", reportLabel: "Label", reportEntity: "Report entity", history: "History", name: "Name", entity: "Entity", add: "Add", required: "Name and entity are required", moveUp: "Move up", moveDown: "Move down", remove: "Delete", energyCost: "Energy cost", energyRates: "Rates used by the Energy Report.", saveCosts: "Save costs", loadsIntro: "Loads and Report share the canonical model without duplicates.", appliances: "Appliances / devices", secondaryLoads: "Secondary loads", noLoads: "No configured loads", editLoad: "Edit load", newLoad: "New load", visibleReport: "Visible in Report", visibleDashboard: "Visible on dashboard", addLoad: "Add load", saveChanges: "Save changes", powerEntity: "Power entity", dailyEnergy: "Daily energy", monthlyEnergy: "Monthly energy", totalEnergy: "Total energy", state: "State", control: "On/off control", diagnostics: "Runtime diagnostics", languageVariant: "Language / variant", activeRenderer: "Active renderer", loadNameRequired: "Enter a load name", energySaveFailed: "Energy save failed" },
 });
 const t = (key) => COPY[LOCALE][key] || key;
 
@@ -56,7 +56,10 @@ createRenderCoordinator(store, {
       globalThis.buildCamCards?.(); globalThis.refreshCameras?.();
     }
   },
-  renderEnergyReport() { globalThis.cdRebuildReportDevices?.(); },
+  renderEnergyReport() {
+    globalThis.cdRebuildReportDevices?.();
+    globalThis.buildReportSelect?.();
+  },
   renderNavbar() { globalThis.cdApplyNavVis?.(); },
   renderRoomSelectors() { globalThis.cdFillRoomSelects?.(); },
   renderCurrentEditor(section) {
@@ -105,8 +108,10 @@ createRenderCoordinator(store, {
   renderDashboard() { globalThis.render?.(); },
 });
 
+let activeEnergyPanel = "flows";
 function renderEnergyEditorTab(target) {
   const model = store.getSection("energy");
+  const draft = structuredClone(model);
   renderEnergyEditor(globalThis.document, target, model, store.getSection("appliances"), globalThis.STATES || {},
     globalThis.document?.documentElement?.lang === "en" ? "en" : "it", {
       onPick: (input) => globalThis.wzPickEntity?.(input),
@@ -120,8 +125,21 @@ function renderEnergyEditorTab(target) {
           <button class="ed-save-btn" onclick="edSaveCosti()">💾 ${t("saveCosts")}</button></div>`;
       },
       onChange: (group, key, value) => {
-        const next = store.getSection("energy"); next[group] ||= {}; next[group][key] = value;
-        store.replaceSection("energy", next).catch((error) => globalThis.alert?.(`${t("energySaveFailed")}: ${error.message}`));
+        draft[group] ||= {}; draft[group][key] = value;
+      },
+      initialTab: activeEnergyPanel,
+      onTabChange: (tab) => { activeEnergyPanel = tab; },
+      onSave: async ({ actions, save, status }) => {
+        draft.metadata = { ...(draft.metadata || {}), semantics_version: 2 };
+        actions.dataset.state = "loading"; save.disabled = true; status.textContent = t("saving");
+        try {
+          await store.replaceSection("energy", draft);
+          const current = target.querySelector("[data-energy-actions]");
+          if (current) { current.dataset.state = "success"; current.querySelector("[data-energy-status]").textContent = t("energySaved"); }
+        } catch (error) {
+          const current = target.querySelector("[data-energy-actions]");
+          if (current) { current.dataset.state = "error"; current.querySelector("[data-energy-status]").textContent = `${t("energySaveFailed")}: ${error.message}`; }
+        }
       },
     });
 }
@@ -341,9 +359,33 @@ const DashboardModernModules = Object.freeze({
   dispatchEditorTab,
   resolveEditorTab,
   registerEditorTabs,
+  hydrateCanonicalRuntime,
   diagnostics: Object.freeze({ BUILD_INFO, MODULES_VERSION, SCHEMA_VERSION, htmlUrl: globalThis.location?.href, modulesUrl: import.meta.url }),
   render: Object.freeze({ createEnergyReportRows, createRenderCoordinator, createEntityField, loadPopupMetrics, mountCurrentEditor, mountEntityPickers, mountLoadsEditor, mountReportEditor, renderEnergyEditorTab, renderReportEditor, renderDeviceCard, renderEnergyEditor }),
 });
 
 globalThis.DashboardModernModules = DashboardModernModules;
+
+let canonicalRuntimeHydrated = false;
+export function hydrateCanonicalRuntime() {
+  if (canonicalRuntimeHydrated) return false;
+  if (!globalThis.__DASHBOARDMODERN_LEGACY_READY__ || globalThis.document?.readyState === "loading") {
+    globalThis.addEventListener?.("dashboardmodern:legacy-ready", hydrateCanonicalRuntime, {
+      once: true,
+    });
+    return false;
+  }
+  canonicalRuntimeHydrated = true;
+  applyRuntimeProjection();
+  globalThis.cdRebuildReportDevices?.();
+  globalThis.buildReportSelect?.();
+  globalThis.cdApplyNavVis?.();
+  globalThis.renderAppliances?.();
+  globalThis.renderApplianceSection?.(true);
+  globalThis.buildDeviceCards?.();
+  globalThis.render?.();
+  return true;
+}
+
+hydrateCanonicalRuntime();
 export default DashboardModernModules;

@@ -229,6 +229,17 @@ export function migrateState(input = {}, legacy = {}) {
     state = migrateV3ToV4(state, legacy);
     changes.push("schema 3 → 4");
   }
+  const energy = state.sections?.energy;
+  if (+state.schema_version >= 4 && energy && energy.metadata?.semantics_version !== 2) {
+    for (const group of ["house", "solar"]) {
+      if (energy[group]?.total_energy && !energy[group].annual_energy) {
+        energy[group].annual_energy = energy[group].total_energy;
+        delete energy[group].total_energy;
+      }
+    }
+    energy.metadata = { ...(energy.metadata || {}), semantics_version: 2 };
+    changes.push("energy annual/lifetime semantics normalized");
+  }
   return { state, changes };
 }
 

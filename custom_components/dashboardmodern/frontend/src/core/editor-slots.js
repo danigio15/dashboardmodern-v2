@@ -1,12 +1,11 @@
+import { ENERGY_SLOT_MAP } from "./energy-projection.js";
+
 /** Canonical editor slot ownership. Rendering, persistence and visibility share this map. */
 export const EDITOR_SLOT_SECTIONS = Object.freeze({
   "dm.ev_batteria_auto": "ev",
   "dm.ev_soc": "ev",
   "dm.ev_charge_power": "ev",
-  "dm.energy_potenza_batteria": "energy",
-  "dm.energy_potenza_casa": "energy",
-  "dm.energy_potenza_rete": "energy",
-  "dm.energy_potenza_solaar": "energy",
+  ...Object.fromEntries(Object.values(ENERGY_SLOT_MAP).map((slot) => [slot, "energy"])),
   "dm.server_cpu": "server",
   "dm.server_ram": "server",
   "dm.server_temperature": "server",

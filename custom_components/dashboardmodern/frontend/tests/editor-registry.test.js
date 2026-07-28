@@ -127,6 +127,44 @@ test("custom device cards use devs emptiness and never reference the Temperature
   }
 });
 
+test("both legacy variants expose readiness only after the public editor API and DOM", async () => {
+  for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+    const source = await readFile(new URL(`../legacy/${variant}`, import.meta.url), "utf8");
+    const marker = source.slice(source.indexOf("function signalDashboardModernLegacyReady"));
+    assert.match(marker, /typeof EDITOR_TAB/);
+    assert.match(marker, /typeof editorSwitch !== 'function'/);
+    assert.match(marker, /typeof apriConfigEntita !== 'function'/);
+    assert.match(marker, /DOMContentLoaded/);
+    assert.match(marker, /__DASHBOARDMODERN_LEGACY_READY__ = true/);
+    assert.match(marker, /dashboardmodern:legacy-ready/);
+  }
+});
+
+test("canonical module hydrates the public runtime once after legacy readiness", async () => {
+  const source = await readFile(moduleUrl, "utf8");
+  const hydrate = source.slice(source.indexOf("export function hydrateCanonicalRuntime"));
+  assert.match(hydrate, /canonicalRuntimeHydrated/);
+  assert.match(hydrate, /__DASHBOARDMODERN_LEGACY_READY__/);
+  assert.match(hydrate, /applyRuntimeProjection\(\)/);
+  assert.match(hydrate, /cdRebuildReportDevices/);
+  assert.match(hydrate, /buildReportSelect/);
+  assert.match(hydrate, /cdApplyNavVis/);
+  assert.match(hydrate, /renderAppliances/);
+  assert.match(hydrate, /globalThis\.render\?\.\(\)/);
+});
+
+test("Energy flow uses one draft transaction and exposes a save lifecycle", async () => {
+  const source = await readFile(moduleUrl, "utf8");
+  const energy = source.slice(
+    source.indexOf("function renderEnergyEditorTab"),
+    source.indexOf("const esc"),
+  );
+  assert.match(energy, /structuredClone\(model\)/);
+  assert.match(energy, /onSave: async/);
+  assert.equal((energy.match(/store\.replaceSection\("energy"/g) || []).length, 1);
+  assert.match(energy, /activeEnergyPanel/);
+});
+
 test("Loads excludes manual Report entries and category controls", async () => {
   const source = await readFile(moduleUrl, "utf8");
   const start = source.indexOf("function mountLoadsEditor");

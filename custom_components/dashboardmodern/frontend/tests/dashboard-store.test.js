@@ -5,6 +5,7 @@ import { cloneValue, getDeviceDisplayName, getDeviceVisual } from "../src/core/d
 import { migrateEnergy, migrateRooms, migrateState } from "../src/core/migrations.js";
 import { createEnergyReportRows, createRenderCoordinator } from "../src/core/renderers.js";
 import { canonicalReportDevices, projectEnergySlots } from "../src/core/energy-projection.js";
+import { editorSlotsForSection } from "../src/core/editor-slots.js";
 
 test("visibility recognizes configured pool and irrigation entities without devices", () => {
   assert.equal(hasConfiguredData("pool", { pumpEnt: "switch.pool" }), true);
@@ -549,7 +550,7 @@ test("Report edits preserve a normal load's explicit dashboard visibility", asyn
 
 test("every Energy editor field has one deterministic public slot", () => {
   const fields = {
-    house: ["power", "daily_energy", "monthly_energy", "total_energy"],
+    house: ["power", "daily_energy", "monthly_energy", "annual_energy", "total_energy"],
     grid: [
       "power",
       "import_power",
@@ -561,7 +562,7 @@ test("every Energy editor field has one deterministic public slot", () => {
       "total_import_energy",
       "total_export_energy",
     ],
-    solar: ["power", "daily_energy", "monthly_energy", "total_energy"],
+    solar: ["power", "daily_energy", "monthly_energy", "annual_energy", "total_energy"],
     battery: [
       "power",
       "soc",
@@ -582,5 +583,41 @@ test("every Energy editor field has one deterministic public slot", () => {
   assert.deepEqual(
     new Set(Object.values(projected)),
     new Set(Array.from({ length: index }, (_, i) => `sensor.energy_${i}`)),
+  );
+});
+
+test("annual and lifetime Energy semantics use distinct real slots", () => {
+  const projected = projectEnergySlots(
+    {
+      house: {
+        daily_energy: "sensor.house_day",
+        monthly_energy: "sensor.house_month",
+        annual_energy: "sensor.house_year",
+        total_energy: "sensor.house_lifetime",
+      },
+      solar: {
+        daily_energy: "sensor.solar_day",
+        monthly_energy: "sensor.solar_month",
+        annual_energy: "sensor.solar_year",
+        total_energy: "sensor.solar_lifetime",
+      },
+    },
+    {},
+  );
+  assert.equal(projected["dm.energy_consumo_casa_anno"], "sensor.house_year");
+  assert.equal(projected["dm.energy_consumo_casa_totale"], "sensor.house_lifetime");
+  assert.equal(projected["dm.energy_produzione_solare_anno"], "sensor.solar_year");
+  assert.equal(projected["dm.energy_produzione_solare_totale"], "sensor.solar_lifetime");
+  assert.equal(new Set(Object.values(projected)).size, 8);
+});
+
+test("Energy slot ownership is derived from the canonical projection without typos", () => {
+  const slots = editorSlotsForSection("energy");
+  assert.ok(slots.includes("dm.energy_potenza_fotovoltaico"));
+  assert.ok(slots.includes("dm.energy_consumo_casa_anno"));
+  assert.ok(slots.includes("dm.energy_consumo_casa_totale"));
+  assert.equal(
+    slots.some((slot) => slot.includes("solaar")),
+    false,
   );
 });

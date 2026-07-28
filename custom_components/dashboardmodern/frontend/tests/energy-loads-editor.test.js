@@ -110,7 +110,10 @@ test("empty Energy fields have no fixed Value placeholder and pickers survive 20
     renderEnergyEditor(document, root, {}, [], {}, "it", { onPick: () => picks++ });
     const pickers = root.queryAll((node) => node.classList.contains("dm-entity-picker"));
     assert.ok(pickers.length > 0);
-    assert.equal(root.queryAll((node) => node.tagName === "OUTPUT").length, 0);
+    assert.equal(
+      root.queryAll((node) => node.classList.contains("dm-entity-preview")).length,
+      0,
+    );
     pickers.forEach((picker) => picker.click());
   }
   assert.ok(picks > 20);

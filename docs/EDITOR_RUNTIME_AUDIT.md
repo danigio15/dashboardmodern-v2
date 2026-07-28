@@ -91,13 +91,13 @@ fallback to an alternative core editor.
 
 | Area | Status | Evidence / remaining work |
 |---|---|---|
-| Runtime diagnostics | PASS | The tab is part of both `apriConfigEntita` templates; registration after modal append is idempotent. |
-| Energy | PASS | `sez1` resolves to `energy`; `edFilterSez` no longer mounts Energy. |
+| Runtime diagnostics | PARTIAL | The tab is part of both templates and the legacy script now exposes an explicit DOM/API readiness boundary; the four browser jobs must confirm it. |
+| Energy | PARTIAL | `sez1` resolves to `energy`, uses a draft plus one Save transaction and preserves its inner tab; browser and Home Assistant evidence remain required. |
 | Loads | PASS | Registry dispatch performs one render and one mount; canonical store CRUD only. |
 | Report | PASS | Draft form, one Save transaction, status lifecycle, rollback, report-only order, canonical pickers and explicit manual rows. |
 | Settings, Home, EV, Solar, Security, MiniPC, Temperature, Actions, Climate | PARTIAL | Tab IDs resolve canonically, but their renderers remain legacy. |
 | Pool, Irrigation, Covers, Rooms, Lights, Appliances, Alerts | PARTIAL | Still rebuilt by the compatibility coordinator/global renderers. |
-| Browser evidence | PARTIAL | Playwright configuration/workflow is present; authenticated Home Assistant evidence remains required. |
+| Browser evidence | FAIL | The last remote run reached Chromium but failed on the former `EDITOR_TAB` readiness race. The test now waits for the explicit readiness signal, but a new green workflow artifact is still required. |
 
 This is not a release candidate. Remaining PARTIAL rows must be migrated and the
 manual Home Assistant checklist completed before release readiness can be claimed.

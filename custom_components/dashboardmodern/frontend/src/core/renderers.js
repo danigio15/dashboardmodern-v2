@@ -111,6 +111,7 @@ const ENERGY_GROUPS = [
       ["power", "Potenza istantanea", "W", "sensor.casa_power"],
       ["daily_energy", "Energia giornaliera", "kWh", "sensor.casa_oggi"],
       ["monthly_energy", "Energia mensile", "kWh", "sensor.casa_mese"],
+      ["annual_energy", "Energia annuale", "kWh", "sensor.casa_anno"],
       ["total_energy", "Energia totale", "kWh", "sensor.casa_totale"],
     ],
   ],
@@ -136,6 +137,7 @@ const ENERGY_GROUPS = [
       ["power", "Potenza", "W", "sensor.fv_power"],
       ["daily_energy", "Energia giornaliera", "kWh", "sensor.fv_oggi"],
       ["monthly_energy", "Energia mensile", "kWh", "sensor.fv_mese"],
+      ["annual_energy", "Energia annuale", "kWh", "sensor.fv_anno"],
       ["total_energy", "Energia totale", "kWh", "sensor.fv_totale"],
     ],
   ],
@@ -162,6 +164,7 @@ const ENERGY_EN = Object.freeze({
   "Potenza istantanea": "Instant power",
   "Energia giornaliera": "Daily energy",
   "Energia mensile": "Monthly energy",
+  "Energia annuale": "Annual energy",
   "Energia totale": "Total energy",
   "Potenza rete": "Grid power",
   "Potenza prelevata": "Import power",
@@ -304,9 +307,33 @@ export function renderEnergyEditor(
     block.append(body);
     flows.append(block);
   });
+  const actions = document.createElement("div");
+  actions.className = "ed-action-bar";
+  actions.dataset.energyActions = "";
+  actions.dataset.state = "clean";
+  const save = document.createElement("button");
+  save.type = "button";
+  save.className = "ed-save-btn";
+  save.dataset.energySave = "";
+  save.disabled = true;
+  save.textContent = locale === "en" ? "💾 Save Energy" : "💾 Salva Energia";
+  const status = document.createElement("output");
+  status.dataset.energyStatus = "";
+  status.textContent = locale === "en" ? "No unsaved changes" : "Nessuna modifica non salvata";
+  actions.append(save, status);
+  flows.append(actions);
+  const dirty = () => {
+    actions.dataset.state = "dirty";
+    save.disabled = false;
+    status.textContent = locale === "en" ? "Unsaved changes" : "Modifiche non salvate";
+  };
+  flows.addEventListener("input", dirty);
+  flows.addEventListener("change", dirty);
+  save.addEventListener("click", () => handlers.onSave?.({ actions, save, status }));
   handlers.renderLoads?.(loads);
   handlers.renderReport?.(report);
   handlers.renderSettings?.(settings);
+  selectTab(handlers.initialTab || "flows");
 }
 
 export function loadPopupMetrics(load, states = {}, costPerKwh = 0) {
