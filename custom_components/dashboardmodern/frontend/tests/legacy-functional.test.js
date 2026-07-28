@@ -33,6 +33,36 @@ for (const [file, labels] of [
 ]) {
   const source = readFileSync(new URL(`../legacy/${file}`, import.meta.url), "utf8");
 
+  test(`${file}: shipped renderer never uses OTHER and preserves appliance media`, () => {
+    const renderer = functionSource(source, "renderAppliances");
+    assert.match(renderer, /cdApplianceDisplayName/);
+    assert.match(renderer, /cdApplianceVisual/);
+    assert.doesNotMatch(renderer, /a\.name\|\|cdApplianceName/);
+    const save = functionSource(source, "edApplSave");
+    for (const key of ["image", "image_url", "type", "device_type"])
+      assert.match(save, new RegExp(key));
+  });
+
+  test(`${file}: shipped climate editor has one boiler value and room editor supports mdi`, () => {
+    const editor = functionSource(source, "editorRenderSezioni");
+    assert.equal((editor.match(/data-ref="switch\.caldaia"/g) || []).length, 1);
+    const roomStart = source.indexOf("function editorRenderStanze(");
+    const rooms = source.slice(roomStart, source.indexOf("function editorRenderLuci(", roomStart));
+    assert.match(rooms, /ed-room-icon-preview/);
+    assert.match(rooms, /dmIconPicker/);
+    assert.match(source, /function cdIconMarkup[\s\S]*mdi:/);
+  });
+
+  test(`${file}: adding an appliance reveals and synchronizes its section without reload`, () => {
+    const save = functionSource(source, "edApplSave");
+    const visibility = functionSource(source, "cdEnsureSectionVisible");
+    assert.match(save, /cdEnsureSectionVisible\('appliances'\)/);
+    assert.match(visibility, /cdMarkDirty\(\);cdSyncPush\(\)/);
+    assert.match(visibility, /cdApplyNavVis\(\)/);
+    assert.match(visibility, /render\(\)/);
+    assert.doesNotMatch(save, /location\.reload/);
+  });
+
   test(`${file}: every entity editor keeps a searchable picker`, () => {
     const entityInput =
       /<input[^>]+(?:placeholder="(?:sensor|switch|light|camera|climate|cover|weather)\.|data-ref=)[^>]*>/gi;
@@ -144,6 +174,7 @@ for (const [file, labels] of [
       cdApplVal: () => "2 W",
       cdApplianceName: () => "Appliance",
       cdApplianceIcon: () => "icon",
+      cdApplianceVisual: () => "icon",
     };
     vm.createContext(context);
     vm.runInContext(
