@@ -24,6 +24,20 @@ const devices = [
   _energy: energy,
 }));
 
+async function installHostedRuntime(page) {
+  // dashboard.html opened directly does not receive the script injection made by
+  // the Home Assistant panel. Reproduce the production environment explicitly
+  // and wait for every wrapper used by this spec before interacting with the UI.
+  await page.addScriptTag({ url: "/legacy/runtime-hotfix.js" });
+  await page.waitForFunction(
+    () =>
+      window.__DASHBOARDMODERN_RUNTIME_HOTFIX__ === true &&
+      window.editorRenderLuci?.__dmRealFix === true &&
+      window.editorSwitch?.__dmRealFix === true &&
+      window.cdApplMainCard?.__dmRealFix === true,
+  );
+}
+
 async function boot(page) {
   await page.route("https://**", (r) =>
     r.fulfill({
@@ -82,6 +96,7 @@ async function boot(page) {
   await page.waitForFunction(
     () => window.__DASHBOARDMODERN_LEGACY_READY__ && window.DashboardModernModules,
   );
+  await installHostedRuntime(page);
   await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((n) => n.remove()));
   await page.evaluate((devices) => {
     devices.forEach((d) => {
@@ -118,6 +133,28 @@ async function openEnergyAnalysis(page) {
   await expect(page.locator("#view-panoramica")).toBeVisible();
   await expect(page.locator("#ed-pane-analisi")).toBeVisible();
   await expect(page.locator("#ed-dev-selector")).toBeVisible();
+}
+
+async function openLightsEditor(page) {
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("luci");
+  });
+
+  await expect(page.locator("#editor-modal")).toBeVisible();
+  await expect(page.locator("#ed-body .dm-light-add-form")).toBeVisible();
+
+  const input = page.locator("#ed-body [data-light-add-entity]");
+  await expect(input).toHaveCount(1);
+  await expect(input).toBeVisible();
+  const inputId = await input.getAttribute("id");
+  expect(inputId).toBeTruthy();
+
+  const picker = page.locator(
+    `#ed-body .dm-entity-picker[data-entity-target="${inputId}"]`,
+  );
+  await expect(picker).toHaveCount(1);
+  await expect(picker).toBeVisible();
 }
 
 test("release evidence", async ({ page }, info) => {
@@ -160,10 +197,6 @@ test("release evidence", async ({ page }, info) => {
     .locator(".ed-dev-detail-wrap")
     .screenshot({ path: `${dir}/energy-device-detail-mobile-forno.png` });
 
-  await page.evaluate(() => {
-    window.apriConfigEntita();
-    window.editorSwitch("luci");
-  });
-  await expect(page.locator(".dm-light-add-form .dm-entity-picker")).toBeVisible();
+  await openLightsEditor(page);
   await page.screenshot({ path: `${dir}/lights-editor-mobile.png`, fullPage: true });
 });
