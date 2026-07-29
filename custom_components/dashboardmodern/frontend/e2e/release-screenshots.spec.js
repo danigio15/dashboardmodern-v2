@@ -99,6 +99,27 @@ async function boot(page) {
   }, devices);
 }
 
+async function openEnergyAnalysis(page) {
+  await page.evaluate(() => {
+    document.querySelectorAll(".page").forEach((n) => n.classList.remove("active"));
+    document.getElementById("page-energy")?.classList.add("active");
+  });
+
+  const reportButton = page.locator("#page-energy .sub-tab-btn", { hasText: "Report" });
+  await expect(reportButton).toBeVisible();
+  await reportButton.click();
+
+  await page.evaluate(() => {
+    window.edSwitchTab?.("analisi");
+    window.cdRebuildReportDevices?.();
+    window.buildReportSelect?.();
+  });
+
+  await expect(page.locator("#view-panoramica")).toBeVisible();
+  await expect(page.locator("#ed-pane-analisi")).toBeVisible();
+  await expect(page.locator("#ed-dev-selector")).toBeVisible();
+}
+
 test("release evidence", async ({ page }, info) => {
   await boot(page);
   await page.evaluate(() => {
@@ -113,6 +134,7 @@ test("release evidence", async ({ page }, info) => {
   const dir = "docs/screenshots";
   await page.screenshot({ path: `${dir}/appliances-${info.project.name}.png`, fullPage: true });
   if (info.project.name !== "mobile") return;
+
   await page.evaluate(() => {
     localStorage.setItem(
       "cd_tapparelle",
@@ -126,20 +148,18 @@ test("release evidence", async ({ page }, info) => {
     timeout: 3000,
   });
   await page.screenshot({ path: `${dir}/home-mobile-shutter-alert.png`, fullPage: true });
-  await page.evaluate(() => {
-    document.querySelectorAll(".page").forEach((n) => n.classList.remove("active"));
-    document.getElementById("page-energy").classList.add("active");
-    document.getElementById("ed-pane-analisi").style.display = "block";
-    document.getElementById("ed-pane-panoramica").style.display = "none";
-    buildReportSelect();
-  });
-  await expect(page.locator("#ed-dev-selector")).toContainText("Forno");
+
+  await openEnergyAnalysis(page);
+  const selector = page.locator("#ed-dev-selector");
+  await expect(selector).toContainText("Forno");
   await page.screenshot({ path: `${dir}/energy-analysis-mobile-forno.png`, fullPage: true });
-  await page.selectOption("#ed-dev-selector", "sensor.oven_energy");
+  await selector.selectOption("sensor.oven_energy");
   await page.evaluate(() => window.edCaricaDettaglio?.());
+  await expect(page.locator(".ed-dev-detail-wrap")).toBeVisible();
   await page
     .locator(".ed-dev-detail-wrap")
     .screenshot({ path: `${dir}/energy-device-detail-mobile-forno.png` });
+
   await page.evaluate(() => {
     window.apriConfigEntita();
     window.editorSwitch("luci");
