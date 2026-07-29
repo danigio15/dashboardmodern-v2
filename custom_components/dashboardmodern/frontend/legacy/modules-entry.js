@@ -194,41 +194,51 @@ export function mountTemperatureEditor(_section, target) {
       option.disabled = configuredIds.has(option.value) && option.value !== editingId;
     });
   };
-  const populate = (room, mode = "add") => {
-    editingId = mode === "edit" ? room?.id || "" : "";
-    selectedRoomId = mode === "add" ? room?.id || "" : "";
+  const selectRoomForAdd = (room) => {
+    editingId = "";
+    selectedRoomId = room?.id || "";
     if (!select) return;
     refreshOptions();
-    select.value = editingId || selectedRoomId;
-    select.disabled = Boolean(editingId);
+    select.disabled = false;
+    select.value = selectedRoomId;
+    const iconInput = target.querySelector("#dm-temperature-icon");
+    if (!iconInput.value || iconInput.value === "🌡️") iconInput.value = room?.icon || "🌡️";
+    target.querySelector("[data-temperature-floor]").textContent = room?.floor ? `🏢 ${room.floor}` : "";
+    target.querySelector("[data-temperature-form-title]").textContent = `＋ ${LOCALE === "en" ? "Add temperature" : "Aggiungi temperatura"}`;
+    target.querySelector("[data-temperature-submit]").textContent = t("add");
+    target.querySelector("[data-temperature-cancel]").hidden = true;
+  };
+  const populateEdit = (room) => {
+    editingId = room?.id || "";
+    selectedRoomId = "";
+    if (!select) return;
+    refreshOptions();
+    select.value = editingId;
+    select.disabled = true;
     target.querySelector("#dm-temperature-icon").value = room?.icon || "🌡️";
     target.querySelector("#ed-pl-temp").value = room?.temp || "";
     target.querySelector("#dm-humidity-new").value = room?.hum || "";
     target.querySelector("[data-temperature-floor]").textContent = room?.floor ? `🏢 ${room.floor}` : "";
-    target.querySelector("[data-temperature-form-title]").textContent = editingId ? `${LOCALE === "en" ? "Edit" : "Modifica"} ${room.name}` : `＋ ${LOCALE === "en" ? "Add temperature" : "Aggiungi temperatura"}`;
-    target.querySelector("[data-temperature-submit]").textContent = editingId ? (LOCALE === "en" ? "Save changes" : "Salva modifiche") : t("add");
-    target.querySelector("[data-temperature-cancel]").hidden = !editingId;
+    target.querySelector("[data-temperature-form-title]").textContent = `${LOCALE === "en" ? "Edit" : "Modifica"} ${room.name}`;
+    target.querySelector("[data-temperature-submit]").textContent = LOCALE === "en" ? "Save changes" : "Salva modifiche";
+    target.querySelector("[data-temperature-cancel]").hidden = false;
   };
   refreshOptions();
   select?.addEventListener("change", () =>
-    populate(
-      store.getSection("rooms").find((room) => room.id === select.value),
-      "add",
-    ),
+    selectRoomForAdd(store.getSection("rooms").find((room) => room.id === select.value)),
   );
   target.querySelectorAll("[data-temperature-edit]").forEach((button) =>
     button.addEventListener("click", () =>
-      populate(
+      populateEdit(
         store
           .getSection("rooms")
           .find((room) => room.id === button.closest("[data-room-id]").dataset.roomId),
-        "edit",
       ),
     ),
   );
   target
     .querySelector("[data-temperature-cancel]")
-    ?.addEventListener("click", () => populate(null, "add"));
+    ?.addEventListener("click", () => selectRoomForAdd(null));
   target.querySelectorAll("[data-temperature-delete]").forEach((button) => button.addEventListener("click", async () => {
     const id = button.closest("[data-room-id]").dataset.roomId;
     await store.updateItem("rooms", id, { temp: "", hum: "" });

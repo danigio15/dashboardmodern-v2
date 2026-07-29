@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { clickBottomTab } from "./helpers/navigation.js";
 
 const haStates = [
   { entity_id: "light.salone", state: "on", attributes: { friendly_name: "Luce salone" } },
@@ -97,18 +98,6 @@ async function chooseEntity(page, input, entity) {
   await page.locator("#cd-ep-list", { hasText: entity }).locator("div[onclick]").click();
 }
 
-async function openEnergy(page) {
-  const handle = page.locator("#bottomNavHandle");
-  if (await handle.isVisible()) await handle.click();
-  else {
-    const viewport = page.viewportSize();
-    if (viewport) await page.mouse.move(viewport.width / 2, viewport.height - 1);
-  }
-  const tab = page.locator('.tab[data-tab="energy"]');
-  await tab.scrollIntoViewIfNeeded();
-  await tab.click();
-}
-
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: real shutter editor drives the live warning popup`, async ({
     page,
@@ -124,6 +113,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       await page.locator("#ed-tp-room").selectOption("room-salone");
       await page.locator("#ed-body .ed-btn-add", { hasText: /tapparella|shutter/i }).click();
     }
+    await expect
+      .poll(() => page.evaluate(() => getTapparelle().map((item) => item.entity)))
+      .toEqual(["cover.salone", "cover.cucina"]);
+    await expect
+      .poll(() =>
+        page.evaluate(() => (typeof STATES !== "undefined" ? STATES["cover.salone"]?.state : null)),
+      )
+      .toBe("open");
     await page.locator("#editor-modal .ed-head-close").last().click();
     const shutter = page.locator("#tapp-avvisi .dm-shutter-alert");
     await expect(shutter.locator(".g-name")).toContainText(/TAPPARELLA APERTA|SHUTTER OPEN/);
@@ -162,7 +159,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await boot(page, variant, testInfo);
     await openEditor(page, "appliances");
     for (let index = 0; index < 20; index += 1)
-      await page.locator('.ed-tab[data-tab="appliances"]').click();
+      await page.evaluate(() => editorSwitch("appliances"));
     await expect(page.locator("#ed-body #appl-ent")).toHaveCount(1);
     await expect(
       page.locator('#ed-body .dm-entity-picker[data-entity-target="appl-ent"]'),
@@ -192,7 +189,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         show_in_report: true,
       });
     await page.locator("#editor-modal .ed-head-close").last().click();
-    await openEnergy(page);
+    await clickBottomTab(page, "energy");
     await page.getByRole("button", { name: /Report/i }).click();
     await page.getByRole("button", { name: /Analisi|Analysis/i }).click();
     await expect(page.locator("#ed-dev-selector")).toContainText("Forno");
@@ -207,7 +204,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.waitForFunction(
       () => window.__DASHBOARDMODERN_LEGACY_READY__ && window.DashboardModernModules,
     );
-    await openEnergy(page);
+    await clickBottomTab(page, "energy");
     await page.getByRole("button", { name: /Report/i }).click();
     await page.getByRole("button", { name: /Analisi|Analysis/i }).click();
     await expect(page.locator("#ed-dev-selector option", { hasText: "Forno" })).toHaveAttribute(

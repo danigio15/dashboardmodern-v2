@@ -28,6 +28,7 @@
   });
 
   let originalApplianceCard = null;
+  let originalApplianceSectionRenderer = null;
   let originalLightRenderer = null;
   let originalLightRoom = null;
   let originalEditorSwitch = null;
@@ -38,18 +39,30 @@
   let passScheduled = false;
   let shutterTimer = null;
 
+  function dashboardStates() {
+    try {
+      if (typeof STATES !== "undefined") return STATES;
+    } catch (_error) {}
+    return window.STATES || {};
+  }
+
   function openShutters() {
     const rooms = roomCatalog();
+    const states = dashboardStates();
     const configured = typeof window.getTapparelle === "function" ? window.getTapparelle() : [];
     return configured.flatMap(function (cover) {
-      const entity = String(cover?.entity || "");
-      const stateObject = window.STATES?.[entity];
+      const entity = String(cover?.entity || cover?.entities?.[0] || "");
+      const stateObject = states[entity];
       const state = String(stateObject?.state || "unknown").toLowerCase();
       if (!stateObject || state === "unknown" || state === "unavailable") return [];
       const rawPosition = stateObject.attributes?.current_position;
       const position = rawPosition == null ? null : Number(rawPosition);
-      if (state !== "open" && state !== "opening" && !(Number.isFinite(position) && position > 0)) return [];
-      const room = resolveRoom(cover.room, rooms);
+      const open =
+        state === "open" ||
+        state === "opening" ||
+        (Number.isFinite(position) && position > 0);
+      if (!open) return [];
+      const room = resolveRoom(cover.room_id || cover.room, rooms);
       return [{ ...cover, entity, state, position: Number.isFinite(position) ? position : null, room }];
     });
   }
@@ -323,7 +336,16 @@
         : "Nessuna stanza";
     const configuredVisual = window.DashboardModernModules?.data?.getDeviceVisual?.(appliance);
     const signature = `${appliance.id || ""}|${room?.id || ""}|${roomText}|${type}|${configuredVisual?.kind || ""}|${configuredVisual?.value || ""}`;
-    if (card.dataset.dmApplianceSignature === signature) return;
+    const visual = card.querySelector(".appl-ic");
+    const existingImage = visual?.querySelector("img");
+    const imageExpected = configuredVisual?.kind === "image" && Boolean(configuredVisual.value);
+    const imageNormalized =
+      !imageExpected ||
+      Boolean(
+        existingImage?.classList.contains("dm-appliance-image") &&
+          existingImage.getAttribute("src") === configuredVisual.value,
+      );
+    if (card.dataset.dmApplianceSignature === signature && imageNormalized) return;
 
     card.dataset.applianceId = String(appliance.id || "");
     const roomLabel = card.querySelector(".appl-wide-cat");
@@ -332,7 +354,6 @@
       if (roomLabel.textContent !== roomText) roomLabel.textContent = roomText;
     }
 
-    const visual = card.querySelector(".appl-ic");
     if (visual) {
       const glyph = GLYPHS[type] || GLYPHS.generico;
       visual.dataset.applianceType = type;
@@ -410,6 +431,19 @@
     };
     wrapped.__dmRealFix = true;
     window.cdApplMainCard = wrapped;
+    if (
+      typeof window.renderApplianceSection === "function" &&
+      !window.renderApplianceSection.__dmRealFix
+    ) {
+      originalApplianceSectionRenderer = window.renderApplianceSection;
+      const wrappedSection = function () {
+        const result = originalApplianceSectionRenderer.apply(this, arguments);
+        repairRenderedAppliances();
+        return result;
+      };
+      wrappedSection.__dmRealFix = true;
+      window.renderApplianceSection = wrappedSection;
+    }
     try {
       window.renderApplianceSection?.(true);
     } catch (_error) {}

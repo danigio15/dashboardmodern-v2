@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { clickStableButton } from "./helpers/navigation.js";
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: missing Chart.js still reaches legacy readiness`, async ({ page }) => {
@@ -217,8 +218,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       expect(counts.uniqueTargets).toBe(counts.inputs);
     };
     await assertPickerInvariant();
-    await page.getByRole("button", { name: /IMPOSTAZIONI|SETTINGS/ }).click();
-    await page.getByRole("button", { name: /FLUSSI ED ENTITÀ|FLOWS & ENTITIES/ }).click();
+    await clickStableButton(page, page.getByRole("button", { name: /IMPOSTAZIONI|SETTINGS/ }));
+    await clickStableButton(
+      page,
+      page.getByRole("button", { name: /FLUSSI ED ENTITÀ|FLOWS & ENTITIES/ }),
+    );
     await assertPickerInvariant();
     await page.evaluate(() => window.editorSwitch("sez2"));
     await assertPickerInvariant();
@@ -246,7 +250,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(
       page.getByRole("button", { name: /FLUSSI ED ENTITÀ|FLOWS & ENTITIES/ }),
     ).toBeVisible();
-    await page.getByRole("button", { name: /CARICHI|LOADS/ }).click();
+    await clickStableButton(page, page.getByRole("button", { name: /CARICHI|LOADS/ }));
     const loads = await page.locator('[data-energy-panel="loads"]').innerHTML();
     await page.locator("#dm-load-name").fill("Booster");
     await page.locator("#dm-load-power").fill("sensor.pump_power");
@@ -273,7 +277,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await temporary.locator("[data-delete-load]").click();
     await expect(temporary).toHaveCount(0);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-loads.png` });
-    await page.getByRole("button", { name: "REPORT" }).click();
+    await clickStableButton(page, page.getByRole("button", { name: "REPORT" }));
     const report = await page.locator('[data-energy-panel="report"]').innerHTML();
     expect(report).not.toBe(loads);
     expect(report).toMatch(/Salva Report|Save Report/);
@@ -309,8 +313,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
             .find((item) => item.name === "Booster updated")?.show_in_dashboard,
       ),
     ).toBe(false);
-    await page.getByRole("button", { name: /CARICHI|LOADS/ }).click();
-    await page.getByRole("button", { name: "REPORT" }).click();
+    await clickStableButton(page, page.getByRole("button", { name: /CARICHI|LOADS/ }));
+    await clickStableButton(page, page.getByRole("button", { name: "REPORT" }));
     await expect(page.locator('[data-report-name][value="Manual water"]')).toHaveCount(1);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-report.png` });
     expect(

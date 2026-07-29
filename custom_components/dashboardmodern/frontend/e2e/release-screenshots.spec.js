@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { clickBottomTab } from "./helpers/navigation.js";
 
 const devices = [
   ["washer", "Lavatrice", "lavatrice", 420, 1.8],
@@ -122,20 +123,13 @@ async function boot(page) {
 }
 
 async function openEnergyAnalysis(page) {
-  await page.evaluate(() => {
-    document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
-    document.getElementById("page-energy")?.classList.add("active");
-  });
+  await clickBottomTab(page, "energy");
 
   const reportButton = page.locator("#page-energy .sub-tab-btn", { hasText: "Report" });
   await expect(reportButton).toBeVisible();
   await reportButton.click();
 
-  await page.evaluate(() => {
-    window.edSwitchTab?.("analisi");
-    window.cdRebuildReportDevices?.();
-    window.buildReportSelect?.();
-  });
+  await page.getByRole("button", { name: /Analisi|Analysis/i }).click();
 
   await expect(page.locator("#view-panoramica")).toBeVisible();
   await expect(page.locator("#ed-pane-analisi")).toBeVisible();
@@ -195,10 +189,7 @@ test("release evidence", async ({ page }, testInfo) => {
     );
     STATES["cover.salone"] = { state: "open", attributes: {} };
   });
-  const navHandle = page.locator("#bottomNavHandle");
-  await expect(navHandle).toBeVisible();
-  await navHandle.click();
-  await page.locator('.tab[data-tab="home"]').click();
+  await clickBottomTab(page, "home");
   await expect(page.locator("#glance-custom-wrap")).toBeVisible();
   const shutterAlert = page.locator("#tapp-avvisi .dm-shutter-alert");
   await expect(shutterAlert.locator(".g-name")).toHaveText(/TAPPARELLA APERTA|SHUTTER OPEN/);

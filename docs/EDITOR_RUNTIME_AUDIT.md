@@ -193,3 +193,17 @@ browser test validates decoded natural dimensions,
 visible dimensions, containment, centering, overflow and absence of glyph
 replacement in Chromium desktop/mobile and WebKit/iPad. Final visual acceptance
 remains open until the user-provided appliance reference asset is integrated.
+
+The final browser follow-up identified three independent DOM/runtime causes:
+
+* `STATES` is a global lexical `let` binding in the vendored dashboard, not a
+  `window` property. The shutter runtime now reads that binding through a guarded
+  `dashboardStates()` accessor and only falls back to `window.STATES`.
+* Selecting a room in Add Temperature reused the Edit population function and
+  cleared entity values already chosen through the picker. Add and Edit now have
+  separate population paths; room selection never changes the temperature or
+  humidity draft.
+* A matching appliance signature did not prove that the current visual DOM was
+  normalized, because the legacy renderer could replace `.appl-ic` afterwards.
+  The early return now also inspects the real image class and source, and the
+  appliance section wrapper repairs the rendered DOM synchronously.

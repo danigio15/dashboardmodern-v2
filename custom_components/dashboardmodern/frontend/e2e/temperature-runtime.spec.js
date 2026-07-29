@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { clickBottomTab } from "./helpers/navigation.js";
 
 const states = [
   {
@@ -49,63 +50,6 @@ const temperatureSeed = {
   },
   visibility: {},
 };
-
-async function waitForStableBox(locator) {
-  let previous = null;
-  let stableSamples = 0;
-  await expect
-    .poll(async () => {
-      const box = await locator.boundingBox();
-      if (!box) {
-        previous = null;
-        stableSamples = 0;
-        return false;
-      }
-      const current = {
-        x: Math.round(box.x),
-        y: Math.round(box.y),
-        width: Math.round(box.width),
-        height: Math.round(box.height),
-      };
-      if (
-        previous &&
-        current.x === previous.x &&
-        current.y === previous.y &&
-        current.width === previous.width &&
-        current.height === previous.height
-      )
-        stableSamples += 1;
-      else stableSamples = 0;
-      previous = current;
-      return stableSamples >= 3;
-    })
-    .toBeTruthy();
-}
-
-async function revealBottomNavigation(page, projectName) {
-  const nav = page.locator("nav.bottom-nav-bar");
-  if (projectName === "mobile") {
-    const handle = page.locator("#bottomNavHandle");
-    await expect(handle).toBeVisible();
-    await handle.click();
-    await expect(nav).toHaveClass(/visible/);
-    return;
-  }
-
-  const viewport = page.viewportSize();
-  if (!viewport) throw new Error("Playwright viewport is unavailable");
-  await page.mouse.move(Math.floor(viewport.width / 2), viewport.height - 1);
-  await expect
-    .poll(async () => {
-      const box = await nav.boundingBox();
-      return Boolean(box && box.y >= 0 && box.y + box.height <= viewport.height);
-    })
-    .toBeTruthy();
-  const navBox = await nav.boundingBox();
-  if (!navBox) throw new Error("Desktop navigation has no bounding box");
-  await page.mouse.move(navBox.x + 4, navBox.y + 4);
-  await waitForStableBox(nav);
-}
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: Temperature editor, HA picker, persistence and live dashboard`, async ({
@@ -192,6 +136,19 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.locator("#dm-temperature-room").selectOption("room-kitchen");
     await page.locator("#dm-humidity-new").fill("sensor.kitchen_humidity");
     await page.locator("[data-temperature-submit]").click();
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const room = DashboardModernModules.store
+            .getSection("rooms")
+            .find((item) => item.id === "room-kitchen");
+          return { temp: room?.temp, hum: room?.hum };
+        }),
+      )
+      .toEqual({
+        temp: "sensor.kitchen_temperature",
+        hum: "sensor.kitchen_humidity",
+      });
     await expect(
       page.locator('[data-temperature-room][data-room-id="room-kitchen"]'),
     ).toContainText("sensor.kitchen_temperature");
@@ -205,39 +162,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     });
     await page.locator("#editor-modal .ed-head-close").last().click();
     await expect(page.locator("#editor-modal")).toHaveCount(0);
-    await revealBottomNavigation(page, testInfo.project.name);
-    const temperatureTab = page.locator('.tab[data-tab="temp"]');
-    await expect(temperatureTab).toBeVisible();
-    if (testInfo.project.name === "desktop") {
-      await waitForStableBox(temperatureTab);
-      const tabBox = await temperatureTab.boundingBox();
-      if (!tabBox) throw new Error("Temperature tab has no bounding box");
-      await page.mouse.move(tabBox.x + tabBox.width / 2, tabBox.y + tabBox.height / 2);
-      await waitForStableBox(temperatureTab);
-      const stableTabBox = await temperatureTab.boundingBox();
-      if (!stableTabBox) throw new Error("Temperature tab disappeared before click");
-      await page.mouse.click(
-        stableTabBox.x + stableTabBox.width / 2,
-        stableTabBox.y + stableTabBox.height / 2,
-      );
-    } else {
-      await temperatureTab.scrollIntoViewIfNeeded();
-      await expect
-        .poll(async () => {
-          const box = await temperatureTab.boundingBox();
-          const viewport = page.viewportSize();
-          return Boolean(
-            box &&
-            viewport &&
-            box.x >= 0 &&
-            box.x + box.width <= viewport.width &&
-            box.y >= 0 &&
-            box.y + box.height <= viewport.height,
-          );
-        })
-        .toBeTruthy();
-      await temperatureTab.click();
-    }
+    await clickBottomTab(page, "temp");
     await expect(page.locator("#page-temp")).toHaveClass(/active/);
     await expect(page.locator("#temp-grid .cp-card")).toContainText("Kitchen");
     await expect(page.locator("#temp-grid .temp-value")).toContainText("21.5");
