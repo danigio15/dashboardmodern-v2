@@ -32,6 +32,20 @@ export function legacyVariantForLocale(locale) {
   return normalized.startsWith("it") ? LEGACY_VARIANTS.it : LEGACY_VARIANTS.en;
 }
 
+function injectRuntimeHotfix(child, staticBase) {
+  try {
+    const documentRef = child?.document;
+    if (!documentRef?.head || documentRef.getElementById("dm-runtime-hotfix")) return;
+    const script = documentRef.createElement("script");
+    script.id = "dm-runtime-hotfix";
+    script.src = `${staticBase}/legacy/runtime-hotfix.js`;
+    script.async = false;
+    documentRef.head.append(script);
+  } catch (error) {
+    /* The next iframe load retries the injection. */
+  }
+}
+
 /**
  * Mount the hosted legacy dashboard.
  *
@@ -134,6 +148,7 @@ export function mountLegacyHost(
     child.__DASHBOARDMODERN_HOSTED__ = true;
     child.WebSocket = BridgeSocket;
     child.__DASHBOARDMODERN_BRIDGED__ = true;
+    injectRuntimeHotfix(child, staticBase);
   };
   frame.addEventListener?.("load", install);
   container.replaceChildren(frame);

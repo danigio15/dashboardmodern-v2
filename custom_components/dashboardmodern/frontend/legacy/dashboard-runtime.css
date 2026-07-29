@@ -23,6 +23,7 @@
 .dm-entity-picker {
   flex: 0 0 40px;
   width: 40px;
+  min-width: 40px;
   min-height: 40px;
   align-self: stretch;
   border: 0;
@@ -30,6 +31,10 @@
   background: linear-gradient(135deg, #0ea5e9, #0369a1);
   color: #fff;
   cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .dm-camera-edit {
@@ -51,106 +56,143 @@
   background: rgba(34, 197, 94, 0.14);
 }
 
-/* The editor owns one scrolling surface; public dashboard scrolling is untouched. */
+/*
+ * Safari inside the Home Assistant iframe is unreliable with a fixed 100dvh
+ * inner scroller. The modal overlay is now the only scrolling surface: the
+ * shell follows its natural height and can never trap content below ed-body.
+ */
 #editor-modal.modal-wrapper {
-  overflow: hidden;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
   overscroll-behavior: contain;
+  align-items: flex-start !important;
+  padding: 24px 12px !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 #editor-modal .ed-shell {
   display: flex;
   flex-direction: column;
+  width: min(100%, 790px);
+  height: auto !important;
   min-height: 0;
-  height: min(88vh, calc(100dvh - 24px));
-  max-height: calc(100dvh - 24px);
-  overflow: hidden;
+  max-height: none !important;
+  margin: auto;
+  overflow: visible !important;
 }
 
 #editor-modal .ed-head,
-#editor-modal .ed-tabs {
+#editor-modal .ed-tabs,
+#editor-modal .ed-body {
   flex: 0 0 auto;
 }
 
 #editor-modal .ed-body {
-  flex: 1 1 auto;
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible !important;
+  touch-action: auto;
 }
 
-/* Compact, two-column appliance cards with an always-visible inline visual. */
+/*
+ * Appliance cards: avoid display:contents, which produced an empty narrow
+ * visual column in Safari. The icon now lives in a stable header row and the
+ * card stays compact at every width.
+ */
 #page-appliances-main .appl-page-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   align-items: stretch;
   gap: 16px;
 }
 
 #page-appliances-main .appl-wide-card {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  grid-template-rows: auto auto auto;
-  gap: 10px 14px;
+  display: flex !important;
+  flex-direction: column;
+  gap: 14px;
   min-width: 0;
-  min-height: 190px;
+  min-height: 0;
   padding: 16px;
   overflow: hidden;
 }
 
-#page-appliances-main .appl-wide-top,
+#page-appliances-main .appl-wide-top {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
 #page-appliances-main .appl-wide-top > div:first-child {
-  display: contents;
+  display: flex !important;
+  align-items: center;
+  flex: 1 1 auto;
+  gap: 12px !important;
+  min-width: 0;
 }
 
 #page-appliances-main .appl-wide-top > div:first-child > div:last-child {
-  grid-column: 2;
-  grid-row: 1;
   min-width: 0;
-  padding-right: 74px;
+  padding-right: 0;
 }
 
 #page-appliances-main .appl-ic {
-  grid-column: 1;
-  grid-row: 1 / 4;
-  display: grid;
+  display: grid !important;
   place-items: center;
-  min-height: 150px;
-  padding: 8px;
-  border-radius: 18px;
-  color: #0ea5e9;
-  background: rgba(14, 165, 233, 0.1);
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  min-height: 72px;
+  padding: 10px;
+  border-radius: 20px;
+  color: #0284c7;
+  background: linear-gradient(145deg, rgba(224, 242, 254, 0.95), rgba(186, 230, 253, 0.72));
+  box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.12);
+  overflow: hidden;
+}
+
+#page-appliances-main .appl-ic:empty::before {
+  content: "⚙️";
+  font-size: 34px;
+  line-height: 1;
 }
 
 #page-appliances-main .appl-ic svg,
-#page-appliances-main .appl-ic img {
-  display: block;
-  width: 96px;
-  height: 96px;
+#page-appliances-main .appl-ic img,
+#page-appliances-main .appl-ic ha-icon {
+  display: block !important;
+  width: 52px !important;
+  height: 52px !important;
   max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
+  --mdc-icon-size: 52px;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 #page-appliances-main .appl-wide-top > .appl-st {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: end;
-  align-self: start;
+  flex: 0 0 auto;
+  align-self: flex-start;
 }
 
 #page-appliances-main .appl-metrics {
-  grid-column: 2;
-  grid-row: 2;
+  display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   min-width: 0;
   margin: 0;
+  gap: 8px;
+}
+
+#page-appliances-main .appl-metric {
+  min-width: 0;
 }
 
 #page-appliances-main .appl-actions {
-  grid-column: 2;
-  grid-row: 3;
-  align-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: auto;
 }
 
 /* Covers: replace the tiny generic tile with a dashboard-sized control card. */
@@ -175,7 +217,6 @@
 .tapp-card .tapp-btn[data-svc="stop_cover"]::after { content:" Stop" }
 .tapp-card .tapp-btn[data-svc="close_cover"]::after { content:" Chiudi" }
 
-
 .dm-energy-cost-card {
   margin-top: 12px;
   padding: 16px;
@@ -190,15 +231,13 @@
 
 @media (max-width: 760px) {
   #editor-modal.modal-wrapper {
-    padding: 0;
-    align-items: stretch;
+    padding: 0 !important;
   }
 
   #editor-modal .ed-shell {
     width: 100%;
     max-width: none;
-    height: 100dvh;
-    max-height: 100dvh;
+    min-height: 100%;
     margin: 0;
     border-radius: 0;
   }
@@ -221,36 +260,29 @@
   }
 
   #page-appliances-main .appl-wide-card {
-    grid-template-columns: 86px minmax(0, 1fr);
-    min-height: 170px;
     padding: 12px;
-    gap: 8px 10px;
+    gap: 10px;
   }
 
   #page-appliances-main .appl-ic {
-    min-height: 132px;
+    flex-basis: 58px;
+    width: 58px;
+    height: 58px;
+    min-height: 58px;
+    border-radius: 16px;
+    padding: 8px;
   }
 
   #page-appliances-main .appl-ic svg,
-  #page-appliances-main .appl-ic img {
-    width: 72px;
-    height: 72px;
-  }
-
-  #page-appliances-main .appl-wide-top > div:first-child > div:last-child {
-    padding-right: 0;
-  }
-
-  #page-appliances-main .appl-wide-top > .appl-st {
-    position: static;
+  #page-appliances-main .appl-ic img,
+  #page-appliances-main .appl-ic ha-icon {
+    width: 42px !important;
+    height: 42px !important;
+    --mdc-icon-size: 42px;
   }
 
   #page-appliances-main .appl-metrics {
-    grid-template-columns: 1fr;
-  }
-
-  #page-appliances-main .appl-metric:nth-child(n + 2) {
-    display: none;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   #tapp-grid {
