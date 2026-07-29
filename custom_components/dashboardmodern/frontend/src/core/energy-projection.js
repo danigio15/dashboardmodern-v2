@@ -1,4 +1,4 @@
-import "./mobile-ui-fixes.js";
+import "../../legacy/mobile-ui-fixes.js";
 
 export const ENERGY_SLOT_MAP = Object.freeze({
   "house.power": "dm.energy_potenza_consumo_casa",
@@ -72,7 +72,11 @@ export function reportEntityForDevice(item = {}, states = globalThis.STATES || {
   );
 }
 
-export function canonicalReportDevices(appliances = [], loads = [], states = globalThis.STATES || {}) {
+export function canonicalReportDevices(
+  appliances = [],
+  loads = [],
+  states = globalThis.STATES || {},
+) {
   return [...appliances, ...loads]
     .filter((item) => item.show_in_report !== false)
     .sort((a, b) => (a.report_order ?? a.order ?? 0) - (b.report_order ?? b.order ?? 0))
