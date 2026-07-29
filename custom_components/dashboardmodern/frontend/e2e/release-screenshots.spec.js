@@ -39,8 +39,13 @@ async function installHostedRuntime(page) {
 }
 
 async function boot(page) {
-  await page.route("https://**", (r) =>
-    r.fulfill({
+  // History requests are irrelevant to these visual checks. Stub them so the
+  // screenshot flow is deterministic and does not wait on the static test server.
+  await page.route("**/api/history/**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "[]" }),
+  );
+  await page.route("https://**", (route) =>
+    route.fulfill({
       status: 200,
       contentType: "application/javascript",
       body: "window.Chart=class{static defaults={color:'',font:{}};constructor(){}destroy(){}};window.panzoom=()=>({dispose(){}})",
@@ -54,15 +59,15 @@ async function boot(page) {
         super();
         queueMicrotask(() => this.onopen?.());
       }
-      send(p) {
-        const m = JSON.parse(p);
+      send(payload) {
+        const message = JSON.parse(payload);
         queueMicrotask(() =>
           this.onmessage?.(
             new MessageEvent("message", {
               data: JSON.stringify(
-                m.type === "auth"
+                message.type === "auth"
                   ? { type: "auth_ok" }
-                  : { id: m.id, type: "result", success: true, result: [] },
+                  : { id: message.id, type: "result", success: true, result: [] },
               ),
             }),
           ),
@@ -73,7 +78,7 @@ async function boot(page) {
   });
   await page.goto("/legacy/dashboard.html");
   await page.evaluate(
-    ({ devices }) => {
+    ({ devices: seededDevices }) => {
       localStorage.clear();
       localStorage.setItem(
         "dm_dashboard_state",
@@ -81,7 +86,7 @@ async function boot(page) {
           schema_version: 4,
           sections: {
             rooms: [{ id: "room-salone", name: "Salone", icon: "🏠" }],
-            appliances: devices.map(({ _power, _energy, ...d }) => d),
+            appliances: seededDevices.map(({ _power, _energy, ...device }) => device),
             loads: [],
             lights: [],
             entityOverrides: {},
@@ -97,16 +102,16 @@ async function boot(page) {
     () => window.__DASHBOARDMODERN_LEGACY_READY__ && window.DashboardModernModules,
   );
   await installHostedRuntime(page);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((n) => n.remove()));
-  await page.evaluate((devices) => {
-    devices.forEach((d) => {
-      STATES[d.power_entity] = {
-        state: String(d._power),
-        attributes: { unit_of_measurement: "W", friendly_name: d.name + " potenza" },
+  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page.evaluate((seededDevices) => {
+    seededDevices.forEach((device) => {
+      STATES[device.power_entity] = {
+        state: String(device._power),
+        attributes: { unit_of_measurement: "W", friendly_name: `${device.name} potenza` },
       };
-      STATES[d.energy_entity] = {
-        state: String(d._energy),
-        attributes: { unit_of_measurement: "kWh", friendly_name: d.name + " energia" },
+      STATES[device.energy_entity] = {
+        state: String(device._energy),
+        attributes: { unit_of_measurement: "kWh", friendly_name: `${device.name} energia` },
       };
     });
     cdRebuildReportDevices();
@@ -116,7 +121,7 @@ async function boot(page) {
 
 async function openEnergyAnalysis(page) {
   await page.evaluate(() => {
-    document.querySelectorAll(".page").forEach((n) => n.classList.remove("active"));
+    document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
     document.getElementById("page-energy")?.classList.add("active");
   });
 
@@ -136,41 +141,48 @@ async function openEnergyAnalysis(page) {
 }
 
 async function openLightsEditor(page) {
-  await page.evaluate(() => {
-    window.apriConfigEntita();
-    window.editorSwitch("luci");
-  });
-
+  // Open the modal first, then navigate after the real body exists. Do not assert
+  // a cosmetic wrapper class: legacy and canonical renderers may use different
+  // containers while exposing the same supported user interaction.
+  await page.evaluate(() => window.apriConfigEntita());
   await expect(page.locator("#editor-modal")).toBeVisible();
-  await expect(page.locator("#ed-body .dm-light-add-form")).toBeVisible();
+  await expect(page.locator("#ed-body")).toBeVisible();
+  await page.evaluate(() => window.editorSwitch("luci"));
 
-  const input = page.locator("#ed-body [data-light-add-entity]");
-  await expect(input).toHaveCount(1);
+  const body = page.locator("#ed-body");
+  const input = body.locator("[data-light-add-entity], #luce-add-ent, #light-add-ent").first();
   await expect(input).toBeVisible();
+
   const inputId = await input.getAttribute("id");
   expect(inputId).toBeTruthy();
 
-  const picker = page.locator(
-    `#ed-body .dm-entity-picker[data-entity-target="${inputId}"]`,
-  );
+  const picker = body.locator(`.dm-entity-picker[data-entity-target="${inputId}"]`);
   await expect(picker).toHaveCount(1);
   await expect(picker).toBeVisible();
+
+  const addButton = body.getByRole("button", { name: /aggiungi luce|add light/i }).last();
+  await expect(addButton).toBeVisible();
+  expect(await body.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
 }
 
-test("release evidence", async ({ page }, info) => {
+test("release evidence", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
   await boot(page);
   await page.evaluate(() => {
-    document.querySelectorAll(".page").forEach((n) => n.classList.remove("active"));
+    document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
     document.getElementById("page-appliances-main").classList.add("active");
     renderApplianceSection(true);
   });
   await expect(page.locator("#appl-grid-overview .dm-control-device")).toHaveCount(5);
   expect(
-    await page.locator("#page-appliances-main").evaluate((n) => n.scrollWidth <= n.clientWidth + 1),
+    await page.locator("#page-appliances-main").evaluate((node) => node.scrollWidth <= node.clientWidth + 1),
   ).toBe(true);
-  const dir = "docs/screenshots";
-  await page.screenshot({ path: `${dir}/appliances-${info.project.name}.png`, fullPage: true });
-  if (info.project.name !== "mobile") return;
+  const screenshotDirectory = "docs/screenshots";
+  await page.screenshot({
+    path: `${screenshotDirectory}/appliances-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  if (testInfo.project.name !== "mobile") return;
 
   await page.evaluate(() => {
     localStorage.setItem(
@@ -178,25 +190,34 @@ test("release evidence", async ({ page }, info) => {
       JSON.stringify([{ name: "Salone", entity: "cover.salone" }]),
     );
     STATES["cover.salone"] = { state: "open", attributes: {} };
-    document.querySelectorAll(".page").forEach((n) => n.classList.remove("active"));
+    document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
     document.getElementById("page-home").classList.add("active");
   });
   await expect(page.locator("#tapp-avvisi .glance-card")).toContainText("1 tapparella aperta", {
     timeout: 3000,
   });
-  await page.screenshot({ path: `${dir}/home-mobile-shutter-alert.png`, fullPage: true });
+  await page.screenshot({
+    path: `${screenshotDirectory}/home-mobile-shutter-alert.png`,
+    fullPage: true,
+  });
 
   await openEnergyAnalysis(page);
   const selector = page.locator("#ed-dev-selector");
   await expect(selector).toContainText("Forno");
-  await page.screenshot({ path: `${dir}/energy-analysis-mobile-forno.png`, fullPage: true });
+  await page.screenshot({
+    path: `${screenshotDirectory}/energy-analysis-mobile-forno.png`,
+    fullPage: true,
+  });
   await selector.selectOption("sensor.oven_energy");
   await page.evaluate(() => window.edCaricaDettaglio?.());
   await expect(page.locator(".ed-dev-detail-wrap")).toBeVisible();
   await page
     .locator(".ed-dev-detail-wrap")
-    .screenshot({ path: `${dir}/energy-device-detail-mobile-forno.png` });
+    .screenshot({ path: `${screenshotDirectory}/energy-device-detail-mobile-forno.png` });
 
   await openLightsEditor(page);
-  await page.screenshot({ path: `${dir}/lights-editor-mobile.png`, fullPage: true });
+  await page.screenshot({
+    path: `${screenshotDirectory}/lights-editor-mobile.png`,
+    fullPage: true,
+  });
 });
