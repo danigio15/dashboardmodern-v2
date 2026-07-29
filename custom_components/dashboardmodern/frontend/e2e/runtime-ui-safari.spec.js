@@ -59,6 +59,7 @@ async function bootDashboard(page, variant) {
       rooms: [],
       appliances: [],
       loads: [],
+      lights: [],
       entityOverrides: {},
     },
     visibility: {},
@@ -68,9 +69,15 @@ async function bootDashboard(page, variant) {
   await page.evaluate((seed) => {
     localStorage.clear();
     localStorage.setItem("dm_dashboard_state", JSON.stringify(seed));
-    localStorage.setItem("cd_luci", JSON.stringify({}));
   }, state);
   await page.reload();
+
+  // Simulate the real regression: light.salone was persisted against the legacy
+  // room name "terrazza" before stable room IDs were introduced.
+  await page.evaluate(() => {
+    localStorage.setItem("cd_luci", JSON.stringify({ "light.salone": "Salone" }));
+    localStorage.setItem("cd_luci_rooms", JSON.stringify({ "light.salone": "terrazza" }));
+  });
 
   // In Home Assistant this script is injected by the hosted panel. The E2E opens
   // the legacy document directly, so reproduce that production injection here.
@@ -79,23 +86,30 @@ async function bootDashboard(page, variant) {
     () =>
       window.__DASHBOARDMODERN_LEGACY_READY__ === true &&
       !!window.DashboardModernModules &&
-      window.__DASHBOARDMODERN_RUNTIME_HOTFIX__ === true,
+      window.__DASHBOARDMODERN_RUNTIME_HOTFIX__ === true &&
+      window.editorRenderLuci?.__dmRealFix === true &&
+      window.cdApplMainCard?.__dmRealFix === true,
   );
   await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await page.evaluate(() => {
     window.cdSyncPush = async () => {};
+    window.__pickedEntityInput = "";
+    window.wzPickEntity = (input) => {
+      window.__pickedEntityInput = input?.id || "";
+    };
   });
   expect(pageErrors).toEqual([]);
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: Safari runtime UI remains usable after rerenders`, async ({ page }, testInfo) => {
+  test(`${variant}: real Safari/HA regressions stay fixed`, async ({ page }, testInfo) => {
     await bootDashboard(page, variant);
 
-    // Populate the canonical store after runtime boot. Seeding only localStorage
-    // is not deterministic here because the legacy cloud-sync bootstrap can
-    // reconcile an empty remote snapshot before the assertion phase.
     await page.evaluate(async () => {
+      await window.DashboardModernModules.store.replaceSection("rooms", [
+        { id: "room-terrazza", name: "Terrazza", icon: "🏠", order: 0 },
+        { id: "room-salone", name: "Salone", icon: "🛋️", order: 1 },
+      ]);
       await window.DashboardModernModules.store.replaceSection("appliances", [
         {
           id: "appliance-safari",
@@ -103,6 +117,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           device_type: "forno",
           visual_type: "asset",
           visual_key: "forno",
+          room_id: "room-salone",
           power_entity: "sensor.forno_power",
           entities: ["sensor.forno_power"],
           show_in_dashboard: true,
@@ -118,16 +133,34 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(lightInput).toHaveCount(1);
     const lightId = await lightInput.getAttribute("id");
     expect(lightId).toBeTruthy();
-    const picker = body.locator(`.dm-entity-picker[data-entity-target="${lightId}"]`);
+
+    const lightRoomSelect = body.locator('select[data-light-entity="light.salone"]');
+    await expect(lightRoomSelect).toHaveCount(1);
+    await expect(lightRoomSelect).toHaveValue("room-salone");
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cd_luci_rooms"))["light.salone"])).toBe(
+      "room-salone",
+    );
+    await expect(body).toContainText("Salone");
+
+    let picker = body.locator(`.dm-entity-picker[data-entity-target="${lightId}"]`);
     await expect(picker).toHaveCount(1);
     await expect(picker).toBeVisible();
+    await picker.click();
+    await expect.poll(() => page.evaluate(() => window.__pickedEntityInput)).toBe(lightId);
 
-    // Re-render the complete editor body twice. The runtime guard must remount
-    // exactly one picker each time, which is what previously failed in Home Assistant.
+    // Re-render the complete editor body twice. The picker must still exist and
+    // its delegated click must still reach the current input, not a detached node.
     await page.evaluate(() => window.editorSwitch("stanze"));
     await page.evaluate(() => window.editorSwitch("luci"));
     await expect(body.locator("[data-light-add-entity]")).toHaveCount(1);
-    await expect(body.locator(".dm-entity-picker")).toHaveCount(1);
+    picker = body.locator(`.dm-entity-picker[data-entity-target="${lightId}"]`);
+    await expect(picker).toHaveCount(1);
+    await expect(picker).toBeVisible();
+    await page.evaluate(() => {
+      window.__pickedEntityInput = "";
+    });
+    await picker.click();
+    await expect.poll(() => page.evaluate(() => window.__pickedEntityInput)).toBe(lightId);
 
     await body.evaluate((node) => {
       const spacer = document.createElement("div");
@@ -157,15 +190,21 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const card = page.locator("#appl-grid-overview .appl-wide-card").first();
     await expect(card).toBeVisible();
     expect(await card.evaluate((node) => getComputedStyle(node).display)).toBe("flex");
+    const roomLabel = card.locator(".appl-wide-cat");
+    await expect(roomLabel).toContainText("Salone");
+    await expect(roomLabel).not.toContainText(/other|altro/i);
+
     const visual = card.locator(".appl-ic");
     const visualBox = await visual.boundingBox();
     expect(visualBox?.width ?? 0).toBeGreaterThanOrEqual(50);
     expect(visualBox?.height ?? 0).toBeGreaterThanOrEqual(50);
-    const graphic = visual.locator("svg, img, ha-icon").first();
-    await expect(graphic).toBeVisible();
-    const graphicBox = await graphic.boundingBox();
-    expect(graphicBox?.width ?? 0).toBeGreaterThanOrEqual(30);
-    expect(graphicBox?.height ?? 0).toBeGreaterThanOrEqual(30);
+    const glyph = visual.locator(".dm-appliance-glyph");
+    await expect(glyph).toBeVisible();
+    await expect(glyph).not.toHaveText("");
+
+    const cardBox = await card.boundingBox();
+    if (testInfo.project.name === "desktop") expect(cardBox?.width ?? 9999).toBeLessThanOrEqual(540);
+
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-appliances-real.png`,
     });
