@@ -31,69 +31,10 @@
   let editorObserver = null;
   let pickerPassQueued = false;
   let appliancePassQueued = false;
-  let legacyInstallTimer = null;
+  let installTimer = null;
   let originalApplianceCard = null;
   let originalLightRenderer = null;
   let originalLightRoom = null;
-
-  function injectRuntimeStyles() {
-    if (document.getElementById("dm-runtime-real-fixes")) return;
-    const style = document.createElement("style");
-    style.id = "dm-runtime-real-fixes";
-    style.textContent = `
-      #page-appliances-main .appl-page-grid {
-        grid-template-columns: repeat(auto-fill, minmax(340px, 520px)) !important;
-        justify-content: start !important;
-        align-items: stretch;
-      }
-      #page-appliances-main .appl-wide-card {
-        width: 100%;
-        max-width: 520px;
-      }
-      #page-appliances-main .appl-ic .dm-appliance-glyph {
-        display: grid !important;
-        place-items: center;
-        width: 52px !important;
-        height: 52px !important;
-        font-size: 38px !important;
-        line-height: 1 !important;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI Emoji", sans-serif !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        filter: none !important;
-      }
-      #page-appliances-main .appl-wide-cat.dm-room-label {
-        color: var(--text-dim, #64748b);
-        text-transform: none;
-        letter-spacing: .2px;
-      }
-      .dm-entity-picker {
-        display: inline-grid !important;
-        place-items: center !important;
-        flex: 0 0 40px !important;
-        width: 40px !important;
-        min-width: 40px !important;
-        min-height: 40px !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-      }
-      @media (max-width: 760px) {
-        #page-appliances-main .appl-page-grid {
-          grid-template-columns: 1fr !important;
-        }
-        #page-appliances-main .appl-wide-card {
-          max-width: none;
-        }
-        #page-appliances-main .appl-ic .dm-appliance-glyph {
-          width: 42px !important;
-          height: 42px !important;
-          font-size: 31px !important;
-        }
-      }
-    `;
-    document.head.append(style);
-  }
 
   function slug(value) {
     return String(value || "")
@@ -112,21 +53,47 @@
     }
   }
 
+  function normalizeRoom(room, index) {
+    if (!room) return null;
+    const name = String(room.name || room.id || room.room_id || `Stanza ${index + 1}`);
+    return {
+      ...room,
+      id: String(room.id || room.room_id || `room-${slug(name) || index + 1}`),
+      name,
+    };
+  }
+
   function roomCatalog() {
-    let rooms = [];
+    const sources = [];
+
     try {
-      if (typeof window.cdRoomList === "function") rooms = window.cdRoomList() || [];
-      else if (typeof window.getStanze === "function") rooms = window.getStanze() || [];
-    } catch (_error) {
-      rooms = [];
-    }
-    return rooms.filter(Boolean).map(function (room, index) {
-      return {
-        ...room,
-        id: String(room.id || room.room_id || `room-${slug(room.name) || index + 1}`),
-        name: String(room.name || room.id || `Stanza ${index + 1}`),
-      };
+      const canonical = window.DashboardModernModules?.store?.getSection?.("rooms");
+      if (Array.isArray(canonical)) sources.push(...canonical);
+    } catch (_error) {}
+
+    try {
+      const legacy = typeof window.cdRoomList === "function" ? window.cdRoomList() : [];
+      if (Array.isArray(legacy)) sources.push(...legacy);
+    } catch (_error) {}
+
+    try {
+      const rooms = typeof window.getStanze === "function" ? window.getStanze() : [];
+      if (Array.isArray(rooms)) sources.push(...rooms);
+    } catch (_error) {}
+
+    const byId = new Map();
+    const byName = new Map();
+    sources.forEach(function (source, index) {
+      const room = normalizeRoom(source, index);
+      if (!room) return;
+      const idKey = room.id.toLowerCase();
+      const nameKey = room.name.toLowerCase();
+      if (!byId.has(idKey) && !byName.has(nameKey)) {
+        byId.set(idKey, room);
+        byName.set(nameKey, room);
+      }
     });
+    return Array.from(byId.values());
   }
 
   function resolveRoom(ref, rooms) {
@@ -136,8 +103,10 @@
     const token = slug(value).replace(/^room-/, "");
     return (
       rooms.find((room) => room.id === value) ||
+      rooms.find((room) => room.id.toLowerCase() === lower) ||
       rooms.find((room) => room.name.toLowerCase() === lower) ||
       rooms.find((room) => slug(room.name) === token) ||
+      rooms.find((room) => slug(room.id).replace(/^room-/, "") === token) ||
       null
     );
   }
@@ -145,16 +114,19 @@
   function exactRoomFromEntity(entityId, rooms) {
     const objectId = String(entityId || "").split(".").pop() || "";
     const token = slug(objectId);
-    return rooms.find(function (room) {
-      const roomToken = slug(room.name);
-      const idToken = slug(room.id).replace(/^room-/, "");
-      return token === roomToken || token === idToken;
-    }) || null;
+    return (
+      rooms.find(function (room) {
+        const roomToken = slug(room.name);
+        const idToken = slug(room.id).replace(/^room-/, "");
+        return token === roomToken || token === idToken;
+      }) || null
+    );
   }
 
   function migrateLightRoomIds() {
     const rooms = roomCatalog();
     if (!rooms.length) return false;
+
     const lights = readJson("cd_luci", {});
     const assigned = readJson("cd_luci_rooms", {});
     let changed = false;
@@ -171,9 +143,11 @@
 
     Object.keys(assigned).forEach(function (entityId) {
       if (!Object.prototype.hasOwnProperty.call(lights, entityId)) return;
+      const exact = exactRoomFromEntity(entityId, rooms);
       const current = resolveRoom(assigned[entityId], rooms);
-      if (current && assigned[entityId] !== current.id) {
-        assigned[entityId] = current.id;
+      const wanted = exact || current;
+      if (wanted && assigned[entityId] !== wanted.id) {
+        assigned[entityId] = wanted.id;
         changed = true;
       }
     });
@@ -195,18 +169,14 @@
     return String(appliance?.device_type || appliance?.type || appliance?.icon || "generico").toLowerCase();
   }
 
-  function applianceGlyph(appliance) {
-    return GLYPHS[applianceType(appliance)] || GLYPHS.generico;
-  }
-
   function applianceRoom(appliance) {
     const rooms = roomCatalog();
     const api = window.DashboardModernModules?.data;
-    let roomId = "";
+    let ref = appliance?.room_id || appliance?.room || "";
     try {
-      if (typeof api?.applianceRoomId === "function") roomId = api.applianceRoomId(appliance, rooms);
+      if (typeof api?.applianceRoomId === "function") ref = api.applianceRoomId(appliance, rooms) || ref;
     } catch (_error) {}
-    return resolveRoom(roomId || appliance?.room_id || appliance?.room, rooms);
+    return resolveRoom(ref, rooms);
   }
 
   function repairApplianceMarkup(html, appliance) {
@@ -227,18 +197,19 @@
           : "Nessuna stanza";
     }
 
+    const type = applianceType(appliance);
     const visual = card.querySelector(".appl-ic");
     if (visual) {
-      visual.dataset.applianceType = applianceType(appliance);
-      visual.innerHTML = `<span class="dm-appliance-glyph" aria-hidden="true">${applianceGlyph(appliance)}</span>`;
+      visual.dataset.applianceType = type;
+      visual.innerHTML = `<span class="dm-appliance-glyph" aria-hidden="true">${GLYPHS[type] || GLYPHS.generico}</span>`;
     }
-
     return card.outerHTML;
   }
 
   function installApplianceRenderer() {
     if (window.cdApplMainCard?.__dmRealFix) return true;
     if (typeof window.cdApplMainCard !== "function") return false;
+
     originalApplianceCard = window.cdApplMainCard;
     const wrapped = function (appliance) {
       return repairApplianceMarkup(originalApplianceCard(appliance), appliance);
@@ -254,11 +225,14 @@
   function rebuildLightSelect(select, entityId) {
     const rooms = roomCatalog();
     const assigned = readJson("cd_luci_rooms", {});
-    const current = resolveRoom(assigned[entityId], rooms);
+    const exact = exactRoomFromEntity(entityId, rooms);
+    const current = exact || resolveRoom(assigned[entityId], rooms);
+
     const empty = document.createElement("option");
     empty.value = "";
     empty.textContent = document.documentElement.lang === "en" ? "— Other areas —" : "— Altre zone —";
     select.replaceChildren(empty);
+
     rooms.forEach(function (room) {
       const option = document.createElement("option");
       option.value = room.id;
@@ -266,6 +240,7 @@
       option.selected = current?.id === room.id;
       select.append(option);
     });
+    select.value = current?.id || "";
     select.dataset.lightEntity = entityId;
   }
 
@@ -280,7 +255,7 @@
     return template.innerHTML;
   }
 
-  function installLightRoomRuntime() {
+  function installLightRuntime() {
     if (window.editorRenderLuci?.__dmRealFix) return true;
     if (typeof window.editorRenderLuci !== "function" || typeof window.cdLightRoom !== "function") return false;
 
@@ -290,7 +265,7 @@
     window.cdLightRoom = function (entityId) {
       const rooms = roomCatalog();
       const assigned = readJson("cd_luci_rooms", {});
-      const room = resolveRoom(assigned[entityId], rooms);
+      const room = exactRoomFromEntity(entityId, rooms) || resolveRoom(assigned[entityId], rooms);
       return room?.name || originalLightRoom(entityId);
     };
 
@@ -316,8 +291,7 @@
     window.editorRenderLuci = wrapped;
 
     migrateLightRoomIds();
-    const activeTab = document.querySelector(".ed-tab.active")?.dataset?.tab;
-    if (activeTab === "luci") {
+    if (document.querySelector(".ed-tab.active")?.dataset?.tab === "luci") {
       try {
         window.editorSwitch("luci");
       } catch (_error) {}
@@ -325,11 +299,48 @@
     return true;
   }
 
+  function injectStyles() {
+    if (document.getElementById("dm-runtime-real-fixes")) return;
+    const style = document.createElement("style");
+    style.id = "dm-runtime-real-fixes";
+    style.textContent = `
+      #page-appliances-main .appl-page-grid {
+        grid-template-columns: repeat(auto-fill, minmax(340px, 520px)) !important;
+        justify-content: start !important;
+        align-items: stretch;
+      }
+      #page-appliances-main .appl-wide-card { width: 100%; max-width: 520px; }
+      #page-appliances-main .appl-ic .dm-appliance-glyph {
+        display: grid !important; place-items: center; width: 52px !important; height: 52px !important;
+        font-size: 38px !important; line-height: 1 !important;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI Emoji", sans-serif !important;
+        visibility: visible !important; opacity: 1 !important; filter: none !important;
+      }
+      #page-appliances-main .appl-wide-cat.dm-room-label {
+        color: var(--text-dim, #64748b); text-transform: none; letter-spacing: .2px;
+      }
+      .dm-entity-picker {
+        display: inline-grid !important; place-items: center !important; flex: 0 0 40px !important;
+        width: 40px !important; min-width: 40px !important; min-height: 40px !important;
+        visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;
+      }
+      @media (max-width: 760px) {
+        #page-appliances-main .appl-page-grid { grid-template-columns: 1fr !important; }
+        #page-appliances-main .appl-wide-card { max-width: none; }
+        #page-appliances-main .appl-ic .dm-appliance-glyph {
+          width: 42px !important; height: 42px !important; font-size: 31px !important;
+        }
+      }
+    `;
+    document.head.append(style);
+  }
+
   function mountEntityPickers() {
     const body = document.getElementById("ed-body");
-    const mount = window.DashboardModernModules?.render?.mountEntityPickers;
     if (!body) return;
-    if (typeof mount === "function") mount(body);
+    try {
+      window.DashboardModernModules?.render?.mountEntityPickers?.(body);
+    } catch (_error) {}
 
     body.querySelectorAll("#luce-add-ent, #light-add-ent, [data-entity-input]").forEach(function (input) {
       if (!input.id) input.id = `dm-entity-${Math.random().toString(36).slice(2)}`;
@@ -394,33 +405,33 @@
     window.wzPickEntity?.(input);
   }
 
-  function installLegacyOverrides() {
+  function installOverrides() {
     const appliancesReady = installApplianceRenderer();
-    const lightsReady = installLightRoomRuntime();
-    if (appliancesReady && lightsReady && legacyInstallTimer) {
-      clearInterval(legacyInstallTimer);
-      legacyInstallTimer = null;
+    const lightsReady = installLightRuntime();
+    if (appliancesReady && lightsReady && installTimer) {
+      clearInterval(installTimer);
+      installTimer = null;
     }
   }
 
   const documentObserver = new MutationObserver(function () {
     attachEditorObserver();
     queueAppliancePass();
-    installLegacyOverrides();
+    installOverrides();
   });
 
   function start() {
-    injectRuntimeStyles();
+    injectStyles();
     document.addEventListener("click", delegatedPickerClick, true);
     documentObserver.observe(document.documentElement, { childList: true, subtree: true });
     attachEditorObserver();
     queueAppliancePass();
-    installLegacyOverrides();
-    legacyInstallTimer = setInterval(installLegacyOverrides, 100);
+    installOverrides();
+    installTimer = setInterval(installOverrides, 100);
     setTimeout(function () {
-      if (legacyInstallTimer) {
-        clearInterval(legacyInstallTimer);
-        legacyInstallTimer = null;
+      if (installTimer) {
+        clearInterval(installTimer);
+        installTimer = null;
       }
     }, 10000);
   }
