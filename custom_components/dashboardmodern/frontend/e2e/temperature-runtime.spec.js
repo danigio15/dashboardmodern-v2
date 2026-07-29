@@ -21,6 +21,27 @@ const states = [
   },
 ];
 
+async function revealBottomNavigation(page, projectName) {
+  const nav = page.locator("nav.bottom-nav-bar");
+  if (projectName === "mobile") {
+    const handle = page.locator("#bottomNavHandle");
+    await expect(handle).toBeVisible();
+    await handle.click();
+    await expect(nav).toHaveClass(/visible/);
+    return;
+  }
+
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("Playwright viewport is unavailable");
+  await page.mouse.move(Math.floor(viewport.width / 2), viewport.height - 1);
+  await expect
+    .poll(async () => {
+      const box = await nav.boundingBox();
+      return Boolean(box && box.y < viewport.height);
+    })
+    .toBeTruthy();
+}
+
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: Temperature editor, HA picker, persistence and live dashboard`, async ({
     page,
@@ -122,8 +143,26 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     });
     await page.locator("#editor-modal .ed-head-close").last().click();
     await expect(page.locator("#editor-modal")).toHaveCount(0);
+    await revealBottomNavigation(page, testInfo.project.name);
     const temperatureTab = page.locator('.tab[data-tab="temp"]');
     await expect(temperatureTab).toBeVisible();
+    await temperatureTab.scrollIntoViewIfNeeded();
+    if (testInfo.project.name === "mobile") {
+      await expect
+        .poll(async () => {
+          const box = await temperatureTab.boundingBox();
+          const viewport = page.viewportSize();
+          return Boolean(
+            box &&
+            viewport &&
+            box.x >= 0 &&
+            box.x + box.width <= viewport.width &&
+            box.y >= 0 &&
+            box.y + box.height <= viewport.height,
+          );
+        })
+        .toBeTruthy();
+    }
     await temperatureTab.click();
     await expect(page.locator("#page-temp")).toHaveClass(/active/);
     await expect(page.locator("#temp-grid .cp-card")).toContainText("Kitchen");
@@ -138,6 +177,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       path: `test-results/${testInfo.project.name}-${variant}-temperature-dashboard.png`,
       fullPage: true,
     });
+    const roomBeforeDelete = await page.evaluate(() => {
+      const {
+        temp: _temp,
+        hum: _hum,
+        ...room
+      } = DashboardModernModules.store.getSection("rooms")[0];
+      return room;
+    });
     await page.evaluate(() => {
       apriConfigEntita();
       editorSwitch("sez7");
@@ -148,14 +195,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       .poll(() =>
         page.evaluate(() => {
           const room = DashboardModernModules.store.getSection("rooms")[0];
+          const { temp, hum, ...preserved } = room;
           return {
-            name: room.name,
-            icon: room.icon,
-            temp: room.temp,
-            hum: room.hum,
+            preserved,
+            temp,
+            hum,
+            roomCount: DashboardModernModules.store.getSection("rooms").length,
           };
         }),
       )
-      .toEqual({ name: "Kitchen", icon: "🌡️", temp: "", hum: "" });
+      .toEqual({ preserved: roomBeforeDelete, temp: "", hum: "", roomCount: 1 });
   });
 }
