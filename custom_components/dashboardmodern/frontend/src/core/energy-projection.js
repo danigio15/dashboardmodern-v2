@@ -52,6 +52,14 @@ function entityUnit(states, entityId) {
   return String(states?.[entityId]?.attributes?.unit_of_measurement || "").toLowerCase();
 }
 
+function isPowerUnit(unit) {
+  return /^(w|kw)$/.test(String(unit || "").toLowerCase());
+}
+
+function isEnergyUnit(unit) {
+  return /^(wh|kwh)$/.test(String(unit || "").toLowerCase());
+}
+
 export function reportEntityForDevice(item = {}, states = globalThis.STATES || {}) {
   const explicit = [
     item.report_entity,
@@ -61,14 +69,18 @@ export function reportEntityForDevice(item = {}, states = globalThis.STATES || {
     item.daily_energy_entity,
   ]
     .map((value) => String(value || "").trim())
-    .find(Boolean);
+    .find((entityId) => entityId && !isPowerUnit(entityUnit(states, entityId)));
   if (explicit) return explicit;
 
   const candidates = [...new Set(entityIds(item))];
   return (
-    candidates.find((entityId) => /^(wh|kwh)$/.test(entityUnit(states, entityId))) ||
+    candidates.find((entityId) => isEnergyUnit(entityUnit(states, entityId))) ||
     candidates.find((entityId) => /(?:^|[_-])(mese|month|monthly)(?:$|[_-])/i.test(entityId)) ||
-    candidates.find((entityId) => /energy|energia|kwh|consum|total|totale/i.test(entityId)) ||
+    candidates.find(
+      (entityId) =>
+        !isPowerUnit(entityUnit(states, entityId)) &&
+        /energy|energia|kwh|consum|total|totale/i.test(entityId),
+    ) ||
     ""
   );
 }
@@ -79,7 +91,11 @@ export function canonicalReportDevices(
   states = globalThis.STATES || {},
 ) {
   return [...appliances, ...loads]
-    .filter((item) => item.show_in_report !== false)
+    .filter(
+      (item) =>
+        item.show_in_report !== false &&
+        (item.show_in_report === true || entityIds(item).length > 0),
+    )
     .sort((a, b) => (a.report_order ?? a.order ?? 0) - (b.report_order ?? b.order ?? 0))
     .map((item, index) => {
       const entity = reportEntityForDevice(item, states);
