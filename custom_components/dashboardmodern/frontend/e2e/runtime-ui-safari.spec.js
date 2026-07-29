@@ -57,16 +57,7 @@ async function bootDashboard(page, variant) {
     schema_version: 4,
     sections: {
       rooms: [],
-      appliances: [
-        {
-          id: "appliance-safari",
-          name: "Forno",
-          device_type: "forno",
-          visual_type: "asset",
-          visual_key: "forno",
-          entities: ["sensor.forno_power"],
-        },
-      ],
+      appliances: [],
       loads: [],
       entityOverrides: {},
     },
@@ -80,6 +71,7 @@ async function bootDashboard(page, variant) {
     localStorage.setItem("cd_luci", JSON.stringify({}));
   }, state);
   await page.reload();
+
   // In Home Assistant this script is injected by the hosted panel. The E2E opens
   // the legacy document directly, so reproduce that production injection here.
   await page.addScriptTag({ url: "/legacy/runtime-hotfix.js" });
@@ -99,6 +91,24 @@ async function bootDashboard(page, variant) {
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: Safari runtime UI remains usable after rerenders`, async ({ page }, testInfo) => {
     await bootDashboard(page, variant);
+
+    // Populate the canonical store after runtime boot. Seeding only localStorage
+    // is not deterministic here because the legacy cloud-sync bootstrap can
+    // reconcile an empty remote snapshot before the assertion phase.
+    await page.evaluate(async () => {
+      await window.DashboardModernModules.store.replaceSection("appliances", [
+        {
+          id: "appliance-safari",
+          name: "Forno",
+          device_type: "forno",
+          visual_type: "asset",
+          visual_key: "forno",
+          power_entity: "sensor.forno_power",
+          entities: ["sensor.forno_power"],
+          show_in_dashboard: true,
+        },
+      ]);
+    });
 
     await page.evaluate(() => window.apriConfigEntita());
     await page.evaluate(() => window.editorSwitch("luci"));
@@ -133,7 +143,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     });
     expect(await modal.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
     expect(await body.evaluate((node) => getComputedStyle(node).overflowY)).toBe("visible");
-    await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-runtime-scroll.png` });
+    await page.screenshot({
+      path: `test-results/${testInfo.project.name}-${variant}-runtime-scroll.png`,
+    });
 
     await page.evaluate(() => document.getElementById("editor-modal")?.remove());
     await page.evaluate(() => {
@@ -154,6 +166,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const graphicBox = await graphic.boundingBox();
     expect(graphicBox?.width ?? 0).toBeGreaterThanOrEqual(30);
     expect(graphicBox?.height ?? 0).toBeGreaterThanOrEqual(30);
-    await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-appliances-real.png` });
+    await page.screenshot({
+      path: `test-results/${testInfo.project.name}-${variant}-appliances-real.png`,
+    });
   });
 }
