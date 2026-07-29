@@ -189,7 +189,21 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     const card = page.locator("#appl-grid-overview .appl-wide-card").first();
     await expect(card).toBeVisible();
-    expect(await card.evaluate((node) => getComputedStyle(node).display)).toBe("flex");
+    const cardLayout = await card.evaluate((node) => {
+      const style = getComputedStyle(node);
+      const rect = node.getBoundingClientRect();
+      return {
+        display: style.display,
+        visibility: style.visibility,
+        width: rect.width,
+        height: rect.height,
+      };
+    });
+    expect(cardLayout.display).not.toBe("none");
+    expect(cardLayout.visibility).not.toBe("hidden");
+    expect(cardLayout.width).toBeGreaterThan(0);
+    expect(cardLayout.height).toBeGreaterThan(0);
+
     const roomLabel = card.locator(".appl-wide-cat");
     await expect(roomLabel).toContainText("Salone");
     await expect(roomLabel).not.toContainText(/other|altro/i);

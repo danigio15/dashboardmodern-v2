@@ -21,6 +21,12 @@ export function normalizeRooms(input = []) {
   });
 }
 
+export function isConfiguredRoom(room) {
+  const name = String(room?.name || "").trim();
+  if (!name || /^(other|altro|generic|generico|undefined)$/i.test(name)) return false;
+  return !/^room[_-][a-z0-9]{5,}$/i.test(name);
+}
+
 export function applianceRoomId(appliance, rooms) {
   const explicit = appliance?.room_id || appliance?.roomId;
   if (explicit && rooms.some((room) => room.id === String(explicit))) return String(explicit);
@@ -49,7 +55,11 @@ export function entityLabel(entityId = "") {
 }
 
 export function applianceName(appliance = {}, states = {}, fallback = "Appliance") {
-  const name = getDeviceDisplayName(appliance, states, fallback === "Elettrodomestico" ? "it" : "en");
+  const name = getDeviceDisplayName(
+    appliance,
+    states,
+    fallback === "Elettrodomestico" ? "it" : "en",
+  );
   return /^(Device|Dispositivo)$/.test(name) ? fallback : name;
 }
 
@@ -62,7 +72,12 @@ export function applianceMedia(appliance = {}) {
 export function applianceEnergyReport(appliances = [], states = {}, rooms = []) {
   const normalizedRooms = normalizeRooms(rooms);
   return appliances.map((appliance) => {
-    const entries = [appliance.power, appliance.power_entity, appliance.energy, appliance.energy_today]
+    const entries = [
+      appliance.power,
+      appliance.power_entity,
+      appliance.energy,
+      appliance.energy_today,
+    ]
       .concat(appliance.entities || [])
       .map((entry) => (typeof entry === "string" ? entry : entry?.entity))
       .filter(Boolean);
@@ -73,8 +88,10 @@ export function applianceEnergyReport(appliances = [], states = {}, rooms = []) 
       const value = Number(state?.state);
       const unit = String(state?.attributes?.unit_of_measurement || "").toLowerCase();
       if (!Number.isFinite(value)) continue;
-      if (unit === "w" || unit === "kw") power = { entity, value: unit === "kw" ? value * 1000 : value, unit: "W" };
-      if (unit === "wh" || unit === "kwh") energy = { entity, value: unit === "wh" ? value / 1000 : value, unit: "kWh" };
+      if (unit === "w" || unit === "kw")
+        power = { entity, value: unit === "kw" ? value * 1000 : value, unit: "W" };
+      if (unit === "wh" || unit === "kwh")
+        energy = { entity, value: unit === "wh" ? value / 1000 : value, unit: "kWh" };
     }
     const roomId = applianceRoomId(appliance, normalizedRooms);
     return {
