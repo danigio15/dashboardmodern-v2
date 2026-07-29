@@ -80,6 +80,9 @@ async function bootDashboard(page, variant) {
     localStorage.setItem("cd_luci", JSON.stringify({}));
   }, state);
   await page.reload();
+  // In Home Assistant this script is injected by the hosted panel. The E2E opens
+  // the legacy document directly, so reproduce that production injection here.
+  await page.addScriptTag({ url: "/legacy/runtime-hotfix.js" });
   await page.waitForFunction(
     () =>
       window.__DASHBOARDMODERN_LEGACY_READY__ === true &&
@@ -124,9 +127,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     });
     const modal = page.locator("#editor-modal");
     await expect(modal).toBeVisible();
-    expect(
-      await modal.evaluate((node) => node.scrollHeight > node.clientHeight),
-    ).toBe(true);
+    expect(await modal.evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true);
     await modal.evaluate((node) => {
       node.scrollTop = node.scrollHeight;
     });
