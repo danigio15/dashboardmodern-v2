@@ -1,3 +1,5 @@
+import "./mobile-ui-fixes.js";
+
 export const ENERGY_SLOT_MAP = Object.freeze({
   "house.power": "dm.energy_potenza_consumo_casa",
   "house.daily_energy": "dm.energy_consumo_casa_oggi",
@@ -29,16 +31,60 @@ export function projectEnergySlots(energy = {}, overrides = {}) {
   return result;
 }
 
-export function canonicalReportDevices(appliances = [], loads = []) {
+function entityIds(item = {}) {
+  return [
+    item.report_entity,
+    item.monthly_energy_entity,
+    item.total_energy_entity,
+    item.energy_entity,
+    item.daily_energy_entity,
+    item.history_entity,
+    item.entity,
+    ...(item.entities || []),
+  ]
+    .map((entry) => (typeof entry === "string" ? entry : entry?.entity))
+    .map((entry) => String(entry || "").trim())
+    .filter(Boolean);
+}
+
+function entityUnit(states, entityId) {
+  return String(states?.[entityId]?.attributes?.unit_of_measurement || "").toLowerCase();
+}
+
+export function reportEntityForDevice(item = {}, states = globalThis.STATES || {}) {
+  const explicit = [
+    item.report_entity,
+    item.monthly_energy_entity,
+    item.total_energy_entity,
+    item.energy_entity,
+    item.daily_energy_entity,
+  ]
+    .map((value) => String(value || "").trim())
+    .find(Boolean);
+  if (explicit) return explicit;
+
+  const candidates = [...new Set(entityIds(item))];
+  return (
+    candidates.find((entityId) => /^(wh|kwh)$/.test(entityUnit(states, entityId))) ||
+    candidates.find((entityId) => /(?:^|[_-])(mese|month|monthly)(?:$|[_-])/i.test(entityId)) ||
+    candidates.find((entityId) => /energy|energia|kwh|consum|total|totale/i.test(entityId)) ||
+    ""
+  );
+}
+
+export function canonicalReportDevices(appliances = [], loads = [], states = globalThis.STATES || {}) {
   return [...appliances, ...loads]
-    .filter((item) => item.show_in_report === true)
+    .filter((item) => item.show_in_report !== false)
     .sort((a, b) => (a.report_order ?? a.order ?? 0) - (b.report_order ?? b.order ?? 0))
-    .map((item, index) => ({
-      key: item.id || `report-${index}`,
-      name: item.report_label || item.name || item.id,
-      icon: item.report_icon || item.emoji_icon || item.icon || "⚡",
-      entity: item.report_entity || item.monthly_energy_entity || item.total_energy_entity || "",
-      history: item.history_entity || item.report_entity || "",
-    }))
+    .map((item, index) => {
+      const entity = reportEntityForDevice(item, states);
+      return {
+        key: item.id || `report-${index}`,
+        name: item.report_label || item.name || item.id,
+        icon: item.report_icon || item.emoji_icon || item.icon || "⚡",
+        entity,
+        history: item.history_entity || entity,
+      };
+    })
     .filter((item) => item.entity);
 }
