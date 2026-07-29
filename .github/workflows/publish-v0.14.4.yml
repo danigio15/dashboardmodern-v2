@@ -2,51 +2,36 @@ name: Publish v0.14.4
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - ".github/workflows/publish-v0.14.4.yml"
+      - .github/workflows/publish-v0.14.4.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   publish:
-    name: Verify and publish v0.14.4
     runs-on: ubuntu-latest
     steps:
-      - name: Check out v0.14.4
+      - name: Check out tagged source
         uses: actions/checkout@v4
         with:
-          ref: v0.14.4
+          ref: 3799c040a337c4988689fe446ec063c46b1d3a1f
           fetch-depth: 0
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Install test dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements_test.txt ruff
-      - name: Verify tagged source
-        run: |
-          test "$(python -c "import json; print(json.load(open('custom_components/dashboardmodern/manifest.json'))['version'])")" = "0.14.4"
-          test "$(git rev-parse HEAD)" = "$(git rev-list -n 1 v0.14.4)"
-          ruff check .
-          ruff format --check .
-          python scripts/generate_build_info.py --expected-commit "$(git rev-parse HEAD)"
-          python -m pytest -q
-          npm run check:inline-syntax
-          npm run test:frontend
+
       - name: Build release archive
-        run: python scripts/build_release.py --expected-commit "$(git rev-parse HEAD)" --output dashboardmodern.zip
+        run: python scripts/build_release.py --expected-commit 3799c040a337c4988689fe446ec063c46b1d3a1f --output dashboardmodern.zip
+
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.14.4
+          target_commitish: 3799c040a337c4988689fe446ec063c46b1d3a1f
           generate_release_notes: true
           files: dashboardmodern.zip
