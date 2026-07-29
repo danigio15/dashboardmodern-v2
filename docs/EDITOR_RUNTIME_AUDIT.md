@@ -122,3 +122,48 @@ dashboard has no distinct visual consumer for them.
 
 This is not a release candidate. Remaining PARTIAL rows must be migrated and the
 manual Home Assistant checklist completed before release readiness can be claimed.
+# Runtime data path audit (shutters, Temperature, appliances and Report)
+
+The authoritative path is now:
+
+1. The real Editor writes through `DashboardModernModules.store` (appliances call
+   `replaceSection("appliances", list)`; Temperature calls `updateItem("rooms", id,
+   patch)`). Temperature therefore enriches an existing stable room and never
+   constructs a second room.
+2. `DashboardStore.persist()` serializes the complete schema-4 snapshot to
+   `dm_dashboard_state`, then projects compatibility keys such as `cd_stanze` and
+   `cd_appliances` while its projection guard prevents a write loop.
+3. `installLegacyWriteBridge()` is only the reverse compatibility path: a legacy
+   writer is reconciled into the canonical section. It is not a second source of
+   truth.
+4. `createRenderCoordinator()` reacts to the optimistic transaction and refreshes
+   the public appliance renderer, active editor, Report projection and selectors.
+5. The public Energy Report is rebuilt from `canonicalReportDevices(appliances,
+   loads, STATES)`. It does not persist a competing `cd_report_devices` model.
+
+The appliance form actually persists a generic `entities` array of strings (for
+example `["sensor.forno_power", "sensor.forno_energy"]`). Normalization also
+accepts legacy entity objects. Explicit `power_entity`, `energy_entity`,
+`daily_energy_entity`, `report_entity`, and `history_entity` remain empty unless
+they existed in migrated data; `show_in_report` defaults to true; `device_type`
+comes from the selected appliance visual; and `visual_type`/`visual_key` are
+preserved by normalization. Report inference must consequently inspect the real
+generic array and Home Assistant units, preferring Wh/kWh and rejecting W/kW.
+
+The former shutter warning was an isolated two-second inline renderer. It counted
+only the literal `open` state, emitted bespoke markup with the count inside the
+title, and installed no click handler or popup. The canonical runtime repair now
+derives count, card, and popup from one `openShutters()` list and refreshes an open
+popup as state changes.
+
+The previous Temperature renderer exposed editable room name/floor fields and its
+Add action constructed `room-${Date.now()}`. That made the Temperature tab a
+second room creator. Its saved cards also used a different fieldset layout. The
+shared form now selects a stable canonical room id, derives floor, uses the icon
+and HA entity pickers, and clears only `temp`/`hum` on deletion.
+
+Earlier Report tests stayed green because they directly inserted an idealized
+Forno object containing explicit energy fields and manually invoked both Report
+rebuild functions. Such a test skipped the appliance form, store normalization,
+legacy projection, reactive coordinator, navigation, and reload that expose the
+runtime defect.

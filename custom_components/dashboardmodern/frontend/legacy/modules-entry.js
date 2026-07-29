@@ -163,50 +163,54 @@ function createIconField(id, value = "") {
 const entityField = (id, label, value, placeholder) => createEntityField({ id, label, value, placeholder });
 
 export function renderTemperatureEditor(target) {
-  const rooms = store.getSection("rooms").filter((room) => room.temp || room.hum);
-  const rows = rooms.map((room, index) => `<fieldset class="ed-form dm-temperature-room" data-temperature-room data-room-id="${esc(room.id)}">
-    <legend>${esc(room.icon || "🌡️")} ${esc(room.name || `${t("name")} ${index + 1}`)}</legend>
-    <div class="ed-form-row"><input class="ed-input" data-temperature-name aria-label="${t("name")}" value="${esc(room.name)}"><input class="ed-input" data-temperature-icon aria-label="Icon" value="${esc(room.icon || "🌡️")}"><input class="ed-input" data-temperature-floor aria-label="Floor" value="${esc(room.floor)}"></div>
-    ${createEntityField({ id: `dm-temperature-${index}`, label: "Temperature entity_id", value: room.temp, optional: false })}
-    ${createEntityField({ id: `dm-humidity-${index}`, label: "Humidity entity_id", value: room.hum })}
+  const allRooms = store.getSection("rooms");
+  const configured = allRooms.filter((room) => room.temp || room.hum);
+  const rows = configured.map((room) => `<article class="ed-row dm-temperature-card" data-temperature-room data-room-id="${esc(room.id)}">
+    <div class="dm-temperature-card-icon">${globalThis.cdIconMarkup?.(room.icon || "🌡️", 28) || esc(room.icon || "🌡️")}</div>
+    <div class="ed-row-main"><div class="ed-row-new">${esc(room.name)}</div><div class="ed-row-old">${room.floor ? `🏢 ${esc(room.floor)} · ` : ""}<span class="mono">${esc(room.temp)}</span>${room.hum ? ` · <span class="mono">${esc(room.hum)}</span>` : ""}</div></div>
+    <button type="button" class="ed-del dm-temperature-edit" data-temperature-edit aria-label="${LOCALE === "en" ? "Edit" : "Modifica"}">✏️</button>
     <button type="button" class="ed-del" data-temperature-delete aria-label="${t("remove")}">🗑️</button>
-  </fieldset>`).join("");
-  target.innerHTML = `<div class="ed-intro" data-temperature-editor>${LOCALE === "en" ? "Configure real Home Assistant temperature and humidity entities for each room." : "Configura le entità reali di temperatura e umidità di Home Assistant per ogni stanza."}</div><div data-temperature-list>${rows || `<div class="ed-empty">${t("empty")}</div>`}</div>
-    <div class="ed-form" data-temperature-new><div class="ed-sec-title">＋ ${LOCALE === "en" ? "New temperature" : "Nuova temperatura"}</div><div class="ed-form-row"><input id="dm-temperature-new-name" class="ed-input" placeholder="${t("name")}"><input id="dm-temperature-new-icon" class="ed-input" value="🌡️" aria-label="Icon"><input id="dm-temperature-new-floor" class="ed-input" placeholder="Floor"></div>${createEntityField({ id: "ed-pl-temp", label: "Temperature entity_id", optional: false })}${createEntityField({ id: "dm-humidity-new", label: "Humidity entity_id" })}<button type="button" class="ed-btn-add" data-temperature-add>${t("add")}</button></div>
-    <button type="button" class="ed-save-btn" data-temperature-save>💾 ${LOCALE === "en" ? "Save temperatures" : "Salva temperature"}</button>`;
+  </article>`).join("");
+  const options = allRooms.map((room) => `<option value="${esc(room.id)}" ${(room.temp || room.hum) ? "disabled" : ""}>${esc(room.name)}${(room.temp || room.hum) ? (LOCALE === "en" ? " — configured" : " — configurata") : ""}</option>`).join("");
+  const empty = LOCALE === "en" ? "Configure at least one room first in the Rooms section." : "Configura prima almeno una stanza nella sezione Stanze.";
+  target.innerHTML = `<div class="ed-intro" data-temperature-editor>${LOCALE === "en" ? "Temperature uses canonical rooms: it adds sensors without creating duplicate rooms." : "Temperatura usa le stanze canoniche: aggiunge i sensori senza creare stanze duplicate."}</div><div class="ed-list" data-temperature-list>${rows || `<div class="ed-empty">${t("empty")}</div>`}</div>
+    ${allRooms.length ? `<form class="ed-form dm-temperature-form" data-temperature-form><div class="ed-sec-title" data-temperature-form-title>＋ ${LOCALE === "en" ? "Add temperature" : "Aggiungi temperatura"}</div><label class="ed-slot"><span class="ed-slot-lbl">${LOCALE === "en" ? "Room" : "Stanza"}</span><select id="dm-temperature-room" class="ed-input" required><option value="">— ${LOCALE === "en" ? "Select room" : "Seleziona stanza"} —</option>${options}</select></label><label class="ed-slot"><span class="ed-slot-lbl">${LOCALE === "en" ? "Icon" : "Simbolo"}</span>${createIconField("dm-temperature-icon", "🌡️")}</label><output class="ed-row-old dm-temperature-floor" data-temperature-floor></output>${createEntityField({ id: "ed-pl-temp", label: LOCALE === "en" ? "Temperature entity" : "Entità temperatura", optional: false })}${createEntityField({ id: "dm-humidity-new", label: LOCALE === "en" ? "Humidity entity" : "Entità umidità" })}<div class="dm-temperature-actions"><button type="submit" class="ed-btn-add" data-temperature-submit>${t("add")}</button><button type="button" class="ed-del" data-temperature-cancel hidden>${LOCALE === "en" ? "Cancel" : "Annulla"}</button></div></form>` : `<div class="ed-empty dm-temperature-no-rooms">${empty}<button type="button" class="ed-btn-add" data-temperature-go-rooms>${LOCALE === "en" ? "Configure rooms" : "Configura stanze"}</button></div>`}`;
 }
 
 export function mountTemperatureEditor(_section, target) {
   mountEntityPickers(target);
-  const readRooms = () => {
-    const current = store.getSection("rooms");
-    const rows = new Map([...target.querySelectorAll("[data-temperature-room]")].map((row) => [row.dataset.roomId, row]));
-    return current.map((room) => {
-      const row = rows.get(room.id);
-      if (!row) return room;
-      if (row.dataset.temperatureDeleted === "true") return { ...room, temp: "", hum: "" };
-      return {
-        ...room,
-        name: row.querySelector("[data-temperature-name]").value.trim(),
-        icon: row.querySelector("[data-temperature-icon]").value.trim(),
-        floor: row.querySelector("[data-temperature-floor]").value.trim(),
-        temp: row.querySelector('[id^="dm-temperature-"]').value.trim(),
-        hum: row.querySelector('[id^="dm-humidity-"]').value.trim(),
-      };
-    });
+  const select = target.querySelector("#dm-temperature-room");
+  const form = target.querySelector("[data-temperature-form]");
+  let editingId = "";
+  const populate = (room) => {
+    editingId = room?.id || "";
+    if (!select) return;
+    [...select.options].forEach((option) => { option.disabled = Boolean(option.disabled && option.value !== editingId); });
+    select.value = editingId;
+    select.disabled = Boolean(editingId);
+    target.querySelector("#dm-temperature-icon").value = room?.icon || "🌡️";
+    target.querySelector("#ed-pl-temp").value = room?.temp || "";
+    target.querySelector("#dm-humidity-new").value = room?.hum || "";
+    target.querySelector("[data-temperature-floor]").textContent = room?.floor ? `🏢 ${room.floor}` : "";
+    target.querySelector("[data-temperature-form-title]").textContent = editingId ? `${LOCALE === "en" ? "Edit" : "Modifica"} ${room.name}` : `＋ ${LOCALE === "en" ? "Add temperature" : "Aggiungi temperatura"}`;
+    target.querySelector("[data-temperature-submit]").textContent = editingId ? (LOCALE === "en" ? "Save changes" : "Salva modifiche") : t("add");
+    target.querySelector("[data-temperature-cancel]").hidden = !editingId;
   };
-  target.querySelectorAll("[data-temperature-delete]").forEach((button) => button.addEventListener("click", () => {
-    const row = button.closest("[data-temperature-room]");
-    row.dataset.temperatureDeleted = "true";
-    row.hidden = true;
+  select?.addEventListener("change", () => populate(store.getSection("rooms").find((room) => room.id === select.value)));
+  target.querySelectorAll("[data-temperature-edit]").forEach((button) => button.addEventListener("click", () => populate(store.getSection("rooms").find((room) => room.id === button.closest("[data-room-id]").dataset.roomId))));
+  target.querySelector("[data-temperature-cancel]")?.addEventListener("click", () => populate(null));
+  target.querySelectorAll("[data-temperature-delete]").forEach((button) => button.addEventListener("click", async () => {
+    const id = button.closest("[data-room-id]").dataset.roomId;
+    await store.updateItem("rooms", id, { temp: "", hum: "" });
   }));
-  target.querySelector("[data-temperature-add]")?.addEventListener("click", () => {
-    const name = target.querySelector("#dm-temperature-new-name").value.trim();
+  form?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const id = editingId || select.value;
     const temp = target.querySelector("#ed-pl-temp").value.trim();
-    if (!name || !temp.includes(".")) return globalThis.alert?.(t("required"));
-    store.replaceSection("rooms", [...readRooms(), { id: `room-${Date.now().toString(36)}`, name, icon: target.querySelector("#dm-temperature-new-icon").value.trim() || "🌡️", floor: target.querySelector("#dm-temperature-new-floor").value.trim(), temp, hum: target.querySelector("#dm-humidity-new").value.trim() }]);
+    if (!id || !temp.includes(".")) return globalThis.alert?.(t("required"));
+    await store.updateItem("rooms", id, { icon: target.querySelector("#dm-temperature-icon").value.trim() || "🌡️", temp, hum: target.querySelector("#dm-humidity-new").value.trim() });
   });
-  target.querySelector("[data-temperature-save]")?.addEventListener("click", () => store.replaceSection("rooms", readRooms()));
+  target.querySelector("[data-temperature-go-rooms]")?.addEventListener("click", () => globalThis.editorSwitch?.("stanze"));
 }
 
 export function mountEntityPickers(target) {

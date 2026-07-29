@@ -36,6 +36,80 @@
   let documentObserver = null;
   let installTimer = null;
   let passScheduled = false;
+  let shutterTimer = null;
+
+  function openShutters() {
+    const rooms = roomCatalog();
+    const configured = typeof window.getTapparelle === "function" ? window.getTapparelle() : [];
+    return configured.flatMap(function (cover) {
+      const entity = String(cover?.entity || "");
+      const stateObject = window.STATES?.[entity];
+      const state = String(stateObject?.state || "unknown").toLowerCase();
+      if (!stateObject || state === "unknown" || state === "unavailable") return [];
+      const rawPosition = stateObject.attributes?.current_position;
+      const position = rawPosition == null ? null : Number(rawPosition);
+      if (state !== "open" && state !== "opening" && !(Number.isFinite(position) && position > 0)) return [];
+      const room = resolveRoom(cover.room, rooms);
+      return [{ ...cover, entity, state, position: Number.isFinite(position) ? position : null, room }];
+    });
+  }
+
+  function shutterStateLabel(item) {
+    const en = document.documentElement.lang === "en";
+    if (item.state === "opening") return en ? "Opening" : "In apertura";
+    if (item.state === "open") return en ? "Open" : "Aperta";
+    return en ? "Partially open" : "Parzialmente aperta";
+  }
+
+  function closeShutterPopup() {
+    document.getElementById("dm-shutter-popup")?.remove();
+  }
+
+  function renderShutterPopup(items) {
+    const popup = document.getElementById("dm-shutter-popup");
+    if (!popup) return;
+    if (!items.length) return closeShutterPopup();
+    const list = popup.querySelector("[data-shutter-popup-list]");
+    list.replaceChildren(...items.map(function (item) {
+      const row = document.createElement("article");
+      row.className = "dm-shutter-popup-row";
+      row.innerHTML = `<span class="g-icon-wrap">🪟</span><span><strong>${String(item.name || item.entity).replace(/</g, "&lt;")}</strong><small>${item.room ? `${String(item.room.name).replace(/</g, "&lt;")} · ` : ""}${shutterStateLabel(item)}${item.position == null ? "" : ` · ${Math.round(item.position)}%`}</small></span>`;
+      return row;
+    }));
+  }
+
+  function showShutterPopup() {
+    const en = document.documentElement.lang === "en";
+    const popup = document.createElement("div");
+    popup.id = "dm-shutter-popup";
+    popup.className = "dm-shutter-popup-backdrop";
+    popup.innerHTML = `<section class="dm-shutter-popup" role="dialog" aria-modal="true" aria-labelledby="dm-shutter-popup-title"><header><h2 id="dm-shutter-popup-title">🪟 ${en ? "Open shutters" : "Tapparelle aperte"}</h2><button type="button" data-shutter-popup-close aria-label="${en ? "Close" : "Chiudi"}">×</button></header><div data-shutter-popup-list></div></section>`;
+    popup.addEventListener("click", (event) => { if (event.target === popup || event.target.closest("[data-shutter-popup-close]")) closeShutterPopup(); });
+    document.body.append(popup);
+    renderShutterPopup(openShutters());
+  }
+
+  function renderShutterAlert() {
+    const host = document.getElementById("glance-custom-wrap");
+    if (!host) return;
+    const items = openShutters();
+    let wrapper = document.getElementById("tapp-avvisi");
+    if (!items.length) {
+      wrapper?.remove();
+      closeShutterPopup();
+      return;
+    }
+    if (!wrapper) {
+      wrapper = document.createElement("div");
+      wrapper.id = "tapp-avvisi";
+      host.append(wrapper);
+    }
+    const en = document.documentElement.lang === "en";
+    const title = items.length === 1 ? (en ? "SHUTTER OPEN" : "TAPPARELLA APERTA") : (en ? "SHUTTERS OPEN" : "TAPPARELLE APERTE");
+    wrapper.innerHTML = `<button type="button" class="glance-card dm-shutter-alert" style="--g-rgb:245,158,11;display:flex" aria-haspopup="dialog"><span class="g-info"><span class="g-name">${title}</span><span class="g-val">${items.length}</span></span><span class="g-icon-wrap">🪟</span></button>`;
+    wrapper.querySelector("button").addEventListener("click", showShutterPopup);
+    renderShutterPopup(items);
+  }
 
   function readJson(key, fallback) {
     try {
@@ -247,7 +321,8 @@
       : document.documentElement.lang === "en"
         ? "No room"
         : "Nessuna stanza";
-    const signature = `${appliance.id || ""}|${room?.id || ""}|${roomText}|${type}`;
+    const configuredVisual = window.DashboardModernModules?.data?.getDeviceVisual?.(appliance);
+    const signature = `${appliance.id || ""}|${room?.id || ""}|${roomText}|${type}|${configuredVisual?.kind || ""}|${configuredVisual?.value || ""}`;
     if (card.dataset.dmApplianceSignature === signature) return;
 
     card.dataset.applianceId = String(appliance.id || "");
@@ -261,8 +336,17 @@
     if (visual) {
       const glyph = GLYPHS[type] || GLYPHS.generico;
       visual.dataset.applianceType = type;
-      const currentGlyph = visual.querySelector(".dm-appliance-glyph");
-      if (!currentGlyph || currentGlyph.textContent !== glyph) {
+      if (configuredVisual?.kind === "image" && configuredVisual.value) {
+        visual.innerHTML = `<img class="dm-appliance-image" src="${String(configuredVisual.value).replace(/&/g, "&amp;").replace(/"/g, "&quot;")}" alt="${String(appliance.name || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;")}">`;
+        const image = visual.querySelector("img");
+        image.addEventListener("error", function () {
+          visual.innerHTML = `<span class="dm-appliance-glyph" aria-hidden="true">${glyph}</span>`;
+        }, { once: true });
+      } else if (configuredVisual?.kind === "asset" && configuredVisual.value) {
+        visual.innerHTML = window.cdApplianceVisual?.(appliance, 96) || `<span class="dm-appliance-glyph" aria-hidden="true">${glyph}</span>`;
+      } else if (configuredVisual?.kind === "icon" && configuredVisual.value) {
+        visual.innerHTML = window.cdIconMarkup?.(configuredVisual.value, 64) || `<span class="dm-appliance-glyph" aria-hidden="true">${glyph}</span>`;
+      } else {
         visual.innerHTML = `<span class="dm-appliance-glyph" aria-hidden="true">${glyph}</span>`;
       }
     }
@@ -415,6 +499,8 @@
         align-items: stretch;
       }
       #page-appliances-main .appl-wide-card { width: 100%; max-width: 520px; }
+      #page-appliances-main .appl-visual { min-height: 150px; padding: 14px; overflow: hidden; }
+      #page-appliances-main .dm-appliance-image { display:block; width:100%; height:100%; min-height:120px; max-height:190px; object-fit:contain; object-position:center; }
       #page-appliances-main .appl-ic .dm-appliance-glyph {
         display: grid !important; place-items: center; width: 52px !important; height: 52px !important;
         font-size: 38px !important; line-height: 1 !important;
@@ -429,6 +515,22 @@
         width: 40px !important; min-width: 40px !important; min-height: 40px !important;
         visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;
       }
+      #tapp-avvisi { display: contents; }
+      .dm-shutter-alert { border: 0; width: 100%; text-align: left; cursor: pointer; font: inherit; }
+      .dm-shutter-popup-backdrop { position: fixed; inset: 0; z-index: 100004; display: grid; place-items: center; padding: 18px; background: rgba(15,23,42,.58); backdrop-filter: blur(5px); }
+      .dm-shutter-popup { width: min(520px,100%); max-height: min(680px,90vh); overflow: auto; padding: 20px; border-radius: 24px; color: var(--text,#0f172a); background: var(--card-bg,#fff); box-shadow: 0 24px 70px rgba(15,23,42,.3); }
+      .dm-shutter-popup header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+      .dm-shutter-popup h2 { margin:0; font-size:20px; }
+      .dm-shutter-popup header button { border:0; border-radius:50%; width:40px; height:40px; font-size:26px; cursor:pointer; }
+      .dm-shutter-popup-row { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--card-border,#e2e8f0); border-radius:16px; margin-top:8px; }
+      .dm-shutter-popup-row span:last-child { display:grid; gap:3px; min-width:0; }
+      .dm-shutter-popup-row small { color:var(--text-dim,#64748b); }
+      .dm-temperature-card-icon { flex:0 0 42px; display:grid; place-items:center; font-size:28px; }
+      .dm-temperature-form { display:grid; gap:10px; }
+      .dm-temperature-form .ed-slot { display:grid; gap:5px; }
+      .dm-temperature-actions { display:flex; gap:8px; }
+      .dm-temperature-actions .ed-btn-add { flex:1; }
+      .dm-temperature-no-rooms .ed-btn-add { margin-top:12px; }
       @media (max-width: 760px) {
         #page-appliances-main .appl-page-grid { grid-template-columns: 1fr !important; }
         #page-appliances-main .appl-wide-card { max-width: none; }
@@ -490,6 +592,8 @@
 
     installAll();
     schedulePass();
+    renderShutterAlert();
+    shutterTimer = setInterval(renderShutterAlert, 500);
     installTimer = setInterval(installAll, 100);
     setTimeout(function () {
       if (installTimer) {

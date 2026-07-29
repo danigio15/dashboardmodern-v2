@@ -115,7 +115,33 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       );
       localStorage.setItem(
         "dm_dashboard_state",
-        JSON.stringify({ schema_version: 4, sections: { rooms: [] }, visibility: {} }),
+        JSON.stringify({
+          schema_version: 4,
+          sections: {
+            rooms: [
+              {
+                id: "room-kitchen",
+                name: "Kitchen",
+                icon: "mdi:sofa",
+                floor: "Ground",
+                order: 3,
+                metadata: { source: "e2e" },
+                rgb: "12,34,56",
+                temp: "",
+                hum: "",
+              },
+              {
+                id: "room-bathroom",
+                name: "Bathroom",
+                icon: "mdi:shower",
+                floor: "First",
+                temp: "",
+                hum: "",
+              },
+            ],
+          },
+          visibility: {},
+        }),
       );
     }, states);
     await page.goto(`/legacy/${variant}`);
@@ -164,16 +190,17 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       .locator("#cd-ep-list", { hasText: "sensor.kitchen_temperature" })
       .locator("div[onclick]")
       .click();
-    await page.locator("#dm-temperature-new-name").fill("Kitchen");
-    await page.locator("[data-temperature-add]").click();
-    await expect(page.locator('[data-temperature-room] input[id^="dm-temperature-"]')).toHaveValue(
-      "sensor.kitchen_temperature",
-    );
+    await page.locator("#dm-temperature-room").selectOption("room-kitchen");
+    await page.locator("#dm-humidity-new").fill("sensor.kitchen_humidity");
+    await page.locator("[data-temperature-submit]").click();
+    await expect(
+      page.locator('[data-temperature-room][data-room-id="room-kitchen"]'),
+    ).toContainText("sensor.kitchen_temperature");
     await page.evaluate(() => editorSwitch("sez1"));
     await page.evaluate(() => editorSwitch("sez7"));
-    await expect(page.locator('[data-temperature-room] input[id^="dm-temperature-"]')).toHaveValue(
-      "sensor.kitchen_temperature",
-    );
+    await expect(
+      page.locator('[data-temperature-room][data-room-id="room-kitchen"]'),
+    ).toContainText("sensor.kitchen_temperature");
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-temperature-saved.png`,
     });
@@ -237,12 +264,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       apriConfigEntita();
       editorSwitch("sez7");
     });
-    await page.locator("[data-temperature-delete]").click();
-    await page.locator("[data-temperature-save]").click();
+    await page
+      .locator('[data-temperature-room][data-room-id="room-kitchen"] [data-temperature-delete]')
+      .click();
     await expect
       .poll(() =>
         page.evaluate(() => {
-          const room = DashboardModernModules.store.getSection("rooms")[0];
+          const room = DashboardModernModules.store
+            .getSection("rooms")
+            .find((value) => value.id === "room-kitchen");
           const { temp, hum, ...preserved } = room;
           return {
             preserved,
@@ -252,6 +282,6 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           };
         }),
       )
-      .toEqual({ preserved: roomBeforeDelete, temp: "", hum: "", roomCount: 1 });
+      .toEqual({ preserved: roomBeforeDelete, temp: "", hum: "", roomCount: 2 });
   });
 }

@@ -32,7 +32,7 @@ export function projectEnergySlots(energy = {}, overrides = {}) {
   return result;
 }
 
-function entityIds(item = {}) {
+export function entityIds(item = {}) {
   return [
     item.report_entity,
     item.monthly_energy_entity,
@@ -43,7 +43,11 @@ function entityIds(item = {}) {
     item.entity,
     ...(item.entities || []),
   ]
-    .map((entry) => (typeof entry === "string" ? entry : entry?.entity))
+    .map((entry) =>
+      typeof entry === "string"
+        ? entry
+        : entry?.entity || entry?.entity_id || entry?.id || entry?.value,
+    )
     .map((entry) => String(entry || "").trim())
     .filter(Boolean);
 }
@@ -90,6 +94,7 @@ export function canonicalReportDevices(
   loads = [],
   states = globalThis.STATES || {},
 ) {
+  const seen = new Set();
   return [...appliances, ...loads]
     .filter(
       (item) =>
@@ -107,5 +112,12 @@ export function canonicalReportDevices(
         history: item.history_entity || entity,
       };
     })
-    .filter((item) => item.entity);
+    .filter((item) => {
+      if (!item.entity) return false;
+      const identity = `${item.key}|${item.entity}`;
+      const duplicate =
+        seen.has(identity) || [...seen].some((value) => value.endsWith(`|${item.entity}`));
+      seen.add(identity);
+      return !duplicate;
+    });
 }
