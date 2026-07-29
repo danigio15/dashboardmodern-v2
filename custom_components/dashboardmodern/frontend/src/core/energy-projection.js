@@ -1,4 +1,5 @@
 import "../../legacy/mobile-ui-fixes.js";
+import "../../legacy/report-mobile-fixes.js";
 
 export const ENERGY_SLOT_MAP = Object.freeze({
   "house.power": "dm.energy_potenza_consumo_casa",
