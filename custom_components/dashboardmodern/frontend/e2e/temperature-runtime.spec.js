@@ -143,11 +143,32 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           visibility: {},
         }),
       );
+      window.__ROOM_BOOT_TRACE = [
+        {
+          stage: "before-load",
+          canonical: localStorage.getItem("dm_dashboard_state"),
+          legacy: localStorage.getItem("cd_stanze"),
+          rooms: null,
+        },
+      ];
     }, states);
     await page.goto(`/legacy/${variant}`);
     await page.waitForFunction(
       () => window.__DASHBOARDMODERN_LEGACY_READY__ && window.DashboardModernModules,
     );
+    await page.evaluate(() =>
+      window.__ROOM_BOOT_TRACE.push({
+        stage: "legacy-ready",
+        canonical: localStorage.getItem("dm_dashboard_state"),
+        legacy: localStorage.getItem("cd_stanze"),
+        rooms: DashboardModernModules.store.getSection("rooms"),
+      }),
+    );
+    expect(
+      await page.evaluate(() =>
+        DashboardModernModules.store.getSection("rooms").map((room) => room.id),
+      ),
+    ).toEqual(["room-kitchen", "room-bathroom"]);
     // A fresh E2E profile intentionally has not completed onboarding.  The
     // production wizard is therefore expected here, but Config must receive
     // real pointer events for this editor-focused scenario.
@@ -159,8 +180,20 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         _RAW_STATES[state.entity_id] = state;
         STATES[state.entity_id] = state;
       });
+      window.__ROOM_BOOT_TRACE.push({
+        stage: "before-editor",
+        canonical: localStorage.getItem("dm_dashboard_state"),
+        legacy: localStorage.getItem("cd_stanze"),
+        rooms: DashboardModernModules.store.getSection("rooms"),
+      });
       apriConfigEntita();
       editorSwitch("sez7");
+      window.__ROOM_BOOT_TRACE.push({
+        stage: "after-temperature-switch",
+        canonical: localStorage.getItem("dm_dashboard_state"),
+        legacy: localStorage.getItem("cd_stanze"),
+        rooms: DashboardModernModules.store.getSection("rooms"),
+      });
     }, states);
     await expect(page.locator('#ed-body[data-renderer="temperature"]')).toBeVisible();
     await expect(page.locator("#ed-pl-temp")).toBeVisible();

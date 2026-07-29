@@ -158,9 +158,11 @@ def test_rooms_management_is_separated_from_temperatures() -> None:
         # Bugfix guards: sync loop-guard, hosted update-check, version bump.
         assert "cd_sync_rl2" in html, name
         assert "0.14.0" in html and "0.11.1-int" not in html, name
-        # Tapparelle: open/close-all buttons and open-shutter alerts.
+        # Tapparelle: the vendored page keeps only page controls. The canonical
+        # runtime is the sole owner of the Home alert/popup, avoiding competing
+        # intervals that rewrite the same node.
         assert "Apri tutte" in html and "Chiudi tutte" in html, name
-        assert "tapp-avvisi" in html, name
+        assert "tapp-avvisi" not in html, name
         # Round 18 field fixes: Impostazioni button restored, update-check
         # path guard, live EV capture with same-name update and edit
         # dropdown, hidden Home quick-action slots, per-tab saves, and the

@@ -686,7 +686,10 @@ R17_13_R = "if(btn.getAttribute('data-all')){ var svc2=btn.getAttribute('data-sv
 R17_14_A = "grid.innerHTML=cdGroupCards(list, cdTappCard);"
 R17_14_R = 'grid.innerHTML=\'<div style="grid-column:1/-1; display:flex; gap:8px;">\'+\'<button class="tapp-btn" data-all="1" data-svc="open_cover" onclick="cdTappCmd(this)">▲ Apri tutte</button>\'+\'<button class="tapp-btn" data-all="1" data-svc="close_cover" onclick="cdTappCmd(this)">▼ Chiudi tutte</button>\'+\'</div>\'+cdGroupCards(list, cdTappCard);'
 R17_15_A = "var pg=document.getElementById('page-tapparelle');"
-R17_15_R = "var w2=document.getElementById('glance-custom-wrap'); if(w2){ var opens=getTapparelle().filter(function(t){ var st=(typeof STATES!=='undefined')?STATES[t.entity]:null; return st && st.state==='open'; }); var tv=document.getElementById('tapp-avvisi'); if(opens.length){ if(!tv){ tv=document.createElement('div'); tv.id='tapp-avvisi'; w2.appendChild(tv); } tv.innerHTML=opens.map(function(t){ return '<div class=\"irr-skip\" style=\"margin:6px 0;\">🪟 '+String(t.name||t.entity).replace(/</g,'&lt;')+' aperta</div>'; }).join(''); } else if(tv){ tv.remove(); } } var pg=document.getElementById('page-tapparelle');"
+# The canonical runtime owns the Home warning and popup.  Keep this anchor as a
+# no-op so future vendor refreshes cannot reintroduce a second interval writing
+# #tapp-avvisi.
+R17_15_R = R17_15_A
 
 # Round 18: field-test fixes.
 R18_1_A = "data-tab=\"visib\" onclick=\"editorSwitch((typeof EDITOR_TAB !== 'undefined' && EDITOR_TAB) ? EDITOR_TAB : 'visib')\">"

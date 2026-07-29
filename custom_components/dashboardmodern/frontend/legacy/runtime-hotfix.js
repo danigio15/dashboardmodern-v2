@@ -594,6 +594,16 @@
     schedulePass();
     renderShutterAlert();
     shutterTimer = setInterval(renderShutterAlert, 500);
+    window.addEventListener(
+      "pagehide",
+      function () {
+        if (shutterTimer) clearInterval(shutterTimer);
+        shutterTimer = null;
+        bodyObserver?.disconnect();
+        documentObserver?.disconnect();
+      },
+      { once: true },
+    );
     installTimer = setInterval(installAll, 100);
     setTimeout(function () {
       if (installTimer) {

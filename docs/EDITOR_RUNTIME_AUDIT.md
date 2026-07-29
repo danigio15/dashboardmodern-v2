@@ -167,3 +167,27 @@ Forno object containing explicit energy fields and manually invoked both Report
 rebuild functions. Such a test skipped the appliance form, store normalization,
 legacy projection, reactive coordinator, navigation, and reload that expose the
 runtime defect.
+
+## PR #31 browser follow-up
+
+The room loss observed by the browser matrix came from a stale legacy bootstrap
+write. Legacy code read `cd_stanze` before `modules-entry.js` had projected the
+saved schema-4 snapshot, retained the empty array, and wrote it after
+`installLegacyWriteBridge()` was active. The bridge treated that compatibility
+write as authoritative and replaced the populated canonical `rooms` section.
+`reconcileLegacyWrite()` now rejects only this destructive empty-room projection
+and immediately restores `cd_stanze` from the canonical snapshot. Legitimate room
+deletion remains owned by the canonical Rooms editor.
+
+The legacy shutter interval no longer renders `#tapp-avvisi`; it only refreshes
+the dedicated shutter page. `runtime-hotfix.js` is therefore the sole owner of
+the Home warning, count and open popup, with one guarded interval and page-hide
+cleanup. `real-shutters-appliance-report.spec.js` covers the real shutter Editor
+flow and live popup, while its Forno scenario covers the appliance Editor,
+canonical persistence, Energy Report/Analysis navigation and full reload.
+
+The image regression uses the existing, checked-in
+`custom_components/dashboardmodern/frontend/legacy/logo.png` as a deterministic
+configured image fixture. The browser test validates decoded natural dimensions,
+visible dimensions, containment, centering, overflow and absence of glyph
+replacement in Chromium desktop/mobile and WebKit/iPad.

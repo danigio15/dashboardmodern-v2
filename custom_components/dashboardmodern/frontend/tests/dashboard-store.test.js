@@ -280,6 +280,32 @@ test("legacy writes are reconciled back into the canonical runtime state", async
   );
 });
 
+test("a stale empty cd_stanze bootstrap write cannot erase canonical rooms", async () => {
+  const { store, storage } = setup({
+    dm_dashboard_state: {
+      schema_version: 4,
+      sections: {
+        rooms: [
+          { id: "room-kitchen", name: "Kitchen" },
+          { id: "room-bathroom", name: "Bathroom" },
+        ],
+      },
+      visibility: {},
+    },
+  });
+  store.installLegacyWriteBridge();
+  storage.setItem("cd_stanze", "[]");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(
+    store.getSection("rooms").map((room) => room.id),
+    ["room-kitchen", "room-bathroom"],
+  );
+  assert.deepEqual(
+    JSON.parse(storage.getItem("cd_stanze")).map((room) => room.id),
+    ["room-kitchen", "room-bathroom"],
+  );
+});
+
 test("add, update, delete and rollback rerender the active editor exactly once", async () => {
   const storage = new MemoryStorage();
   let fail = false;

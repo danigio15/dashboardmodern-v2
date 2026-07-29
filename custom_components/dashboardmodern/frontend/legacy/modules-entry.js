@@ -182,11 +182,24 @@ export function mountTemperatureEditor(_section, target) {
   const select = target.querySelector("#dm-temperature-room");
   const form = target.querySelector("[data-temperature-form]");
   let editingId = "";
-  const populate = (room) => {
-    editingId = room?.id || "";
+  let selectedRoomId = "";
+  const refreshOptions = () => {
+    const configuredIds = new Set(
+      store
+        .getSection("rooms")
+        .filter((room) => room.temp || room.hum)
+        .map((room) => room.id),
+    );
+    [...(select?.options || [])].forEach((option) => {
+      option.disabled = configuredIds.has(option.value) && option.value !== editingId;
+    });
+  };
+  const populate = (room, mode = "add") => {
+    editingId = mode === "edit" ? room?.id || "" : "";
+    selectedRoomId = mode === "add" ? room?.id || "" : "";
     if (!select) return;
-    [...select.options].forEach((option) => { option.disabled = Boolean(option.disabled && option.value !== editingId); });
-    select.value = editingId;
+    refreshOptions();
+    select.value = editingId || selectedRoomId;
     select.disabled = Boolean(editingId);
     target.querySelector("#dm-temperature-icon").value = room?.icon || "🌡️";
     target.querySelector("#ed-pl-temp").value = room?.temp || "";
@@ -196,16 +209,33 @@ export function mountTemperatureEditor(_section, target) {
     target.querySelector("[data-temperature-submit]").textContent = editingId ? (LOCALE === "en" ? "Save changes" : "Salva modifiche") : t("add");
     target.querySelector("[data-temperature-cancel]").hidden = !editingId;
   };
-  select?.addEventListener("change", () => populate(store.getSection("rooms").find((room) => room.id === select.value)));
-  target.querySelectorAll("[data-temperature-edit]").forEach((button) => button.addEventListener("click", () => populate(store.getSection("rooms").find((room) => room.id === button.closest("[data-room-id]").dataset.roomId))));
-  target.querySelector("[data-temperature-cancel]")?.addEventListener("click", () => populate(null));
+  refreshOptions();
+  select?.addEventListener("change", () =>
+    populate(
+      store.getSection("rooms").find((room) => room.id === select.value),
+      "add",
+    ),
+  );
+  target.querySelectorAll("[data-temperature-edit]").forEach((button) =>
+    button.addEventListener("click", () =>
+      populate(
+        store
+          .getSection("rooms")
+          .find((room) => room.id === button.closest("[data-room-id]").dataset.roomId),
+        "edit",
+      ),
+    ),
+  );
+  target
+    .querySelector("[data-temperature-cancel]")
+    ?.addEventListener("click", () => populate(null, "add"));
   target.querySelectorAll("[data-temperature-delete]").forEach((button) => button.addEventListener("click", async () => {
     const id = button.closest("[data-room-id]").dataset.roomId;
     await store.updateItem("rooms", id, { temp: "", hum: "" });
   }));
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const id = editingId || select.value;
+    const id = editingId || selectedRoomId;
     const temp = target.querySelector("#ed-pl-temp").value.trim();
     if (!id || !temp.includes(".")) return globalThis.alert?.(t("required"));
     await store.updateItem("rooms", id, { icon: target.querySelector("#dm-temperature-icon").value.trim() || "🌡️", temp, hum: target.querySelector("#dm-humidity-new").value.trim() });
