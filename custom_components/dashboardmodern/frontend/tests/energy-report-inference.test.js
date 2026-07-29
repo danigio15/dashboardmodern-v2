@@ -8,7 +8,7 @@ import {
 import {
   inferApplianceEntity,
   isGeneratedRoomName,
-} from "../src/core/mobile-ui-fixes.js";
+} from "../legacy/mobile-ui-fixes.js";
 
 test("infers a report entity from a generic kWh appliance entity", () => {
   const states = {
