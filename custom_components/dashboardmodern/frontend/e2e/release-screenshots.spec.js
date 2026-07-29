@@ -102,7 +102,9 @@ async function boot(page) {
     () => window.__DASHBOARDMODERN_LEGACY_READY__ && window.DashboardModernModules,
   );
   await installHostedRuntime(page);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await page.evaluate((seededDevices) => {
     seededDevices.forEach((device) => {
       STATES[device.power_entity] = {
@@ -175,7 +177,9 @@ test("release evidence", async ({ page }, testInfo) => {
   });
   await expect(page.locator("#appl-grid-overview .dm-control-device")).toHaveCount(5);
   expect(
-    await page.locator("#page-appliances-main").evaluate((node) => node.scrollWidth <= node.clientWidth + 1),
+    await page
+      .locator("#page-appliances-main")
+      .evaluate((node) => node.scrollWidth <= node.clientWidth + 1),
   ).toBe(true);
   const screenshotDirectory = "docs/screenshots";
   await page.screenshot({

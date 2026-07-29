@@ -14,6 +14,25 @@ test("visibility recognizes configured pool and irrigation entities without devi
   assert.equal(hasConfiguredData("pool", { filterHours: 8 }), false);
 });
 
+test("Temperature visibility requires a real room sensor instead of only a room name", () => {
+  assert.equal(hasConfiguredData("rooms", [{ name: "Kitchen" }]), false);
+  assert.equal(
+    hasConfiguredData("rooms", [{ name: "Kitchen", temp: "sensor.kitchen_temp" }]),
+    true,
+  );
+  assert.equal(hasConfiguredData("rooms", [{ name: "Bath", hum: "sensor.bath_humidity" }]), true);
+});
+
+test("saving the first canonical Temperature makes the public temp section visible", async () => {
+  const { store, storage } = setup();
+  await store.replaceSection("rooms", [
+    { id: "room-kitchen", name: "Kitchen", temp: "sensor.kitchen_temp" },
+  ]);
+  assert.equal(store.getState().visibility.temp, true);
+  assert.equal(JSON.parse(storage.getItem("cd_sections")).temp, true);
+  assert.equal(JSON.parse(storage.getItem("cd_stanze"))[0].temp, "sensor.kitchen_temp");
+});
+
 class MemoryStorage {
   values = new Map();
   getItem(key) {
@@ -609,4 +628,35 @@ test("Energy slot ownership is derived from the canonical projection without typ
     slots.some((slot) => slot.includes("solaar")),
     false,
   );
+});
+
+test("Temperature room migration preserves legacy entity ids and display metadata", () => {
+  const [room] = migrateRooms([
+    {
+      name: "Kitchen",
+      icon: "mdi:thermometer",
+      floor: "Ground",
+      temp: "sensor.kitchen_temperature",
+      hum: "sensor.kitchen_humidity",
+      rgb: "14,165,233",
+    },
+  ]);
+  assert.equal(room.temp, "sensor.kitchen_temperature");
+  assert.equal(room.hum, "sensor.kitchen_humidity");
+  assert.equal(room.icon, "mdi:thermometer");
+  assert.equal(room.rgb, "14,165,233");
+  const remounted = migrateRooms([room])[0];
+  assert.deepEqual(remounted, room);
+});
+
+test("Temperature migration accepts descriptive legacy entity field names", () => {
+  const [room] = migrateRooms([
+    {
+      name: "Office",
+      temperature_entity: "sensor.office_temperature",
+      humidity_entity: "sensor.office_humidity",
+    },
+  ]);
+  assert.equal(room.temp, "sensor.office_temperature");
+  assert.equal(room.hum, "sensor.office_humidity");
 });
