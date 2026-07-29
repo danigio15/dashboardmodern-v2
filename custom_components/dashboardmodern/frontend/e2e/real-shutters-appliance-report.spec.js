@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
 const haStates = [
   { entity_id: "light.salone", state: "on", attributes: { friendly_name: "Luce salone" } },
@@ -24,7 +25,19 @@ const haStates = [
   },
 ];
 
-async function boot(page, variant) {
+const dashboardSeed = {
+  schema_version: 4,
+  sections: {
+    rooms: [{ id: "room-salone", name: "Salone", icon: "mdi:sofa", floor: "Terra" }],
+    lights: [{ id: "light-salone", name: "Luce salone", entities: ["light.salone"] }],
+    appliances: [],
+    loads: [],
+    covers: [],
+  },
+  visibility: { home: true, energy: true, appliances: true, tapparelle: true },
+};
+
+async function boot(page, variant, testInfo) {
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await page.addInitScript((states) => {
     window.WebSocket = class extends EventTarget {
@@ -47,30 +60,13 @@ async function boot(page, variant) {
       }
       close() {}
     };
-    localStorage.setItem(
-      "cd_connection",
-      JSON.stringify({ token: "e2e", ws_url: "ws://ha.test/api/websocket" }),
-    );
-    if (!localStorage.getItem("dm_dashboard_state"))
-      localStorage.setItem(
-        "dm_dashboard_state",
-        JSON.stringify({
-          schema_version: 4,
-          sections: {
-            rooms: [{ id: "room-salone", name: "Salone", icon: "mdi:sofa", floor: "Terra" }],
-            lights: [{ id: "light-salone", name: "Luce salone", entities: ["light.salone"] }],
-            appliances: [],
-            loads: [],
-            covers: [],
-          },
-          visibility: { home: true, energy: true, appliances: true, tapparelle: true },
-        }),
-      );
   }, haStates);
-  await page.goto(`/legacy/${variant}`);
-  await page.waitForFunction(
-    () => window.__DASHBOARDMODERN_LEGACY_READY__ && window.DashboardModernModules,
-  );
+  await bootNamespacedDashboard(page, variant, testInfo, dashboardSeed);
+  await expect
+    .poll(() =>
+      page.evaluate(() => DashboardModernModules.store.getSection("rooms").map((room) => room.id)),
+    )
+    .toContain("room-salone");
   await page
     .locator("#setup-wizard")
     .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
@@ -117,7 +113,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: real shutter editor drives the live warning popup`, async ({
     page,
   }, testInfo) => {
-    await boot(page, variant);
+    await boot(page, variant, testInfo);
     await openEditor(page, "tapp");
     for (const [name, entity] of [
       ["Tapparella salone", "cover.salone"],
@@ -163,8 +159,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: appliance Editor persists Forno through Energy Report and reload`, async ({
     page,
   }, testInfo) => {
-    await boot(page, variant);
+    await boot(page, variant, testInfo);
     await openEditor(page, "appliances");
+    for (let index = 0; index < 20; index += 1)
+      await page.locator('.ed-tab[data-tab="appliances"]').click();
+    await expect(page.locator("#ed-body #appl-ent")).toHaveCount(1);
+    await expect(
+      page.locator('#ed-body .dm-entity-picker[data-entity-target="appl-ent"]'),
+    ).toHaveCount(1);
     await page.locator("#appl-icon-btn").click();
     await page.locator("#dm-applpick button", { hasText: /Forno|Oven/i }).click();
     await page.locator("#appl-name").fill("Forno");

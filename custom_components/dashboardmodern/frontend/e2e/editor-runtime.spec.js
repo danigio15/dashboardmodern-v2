@@ -284,11 +284,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.locator("#dm-manual-report-entity").fill("sensor.water_month");
     await page.locator("#dm-manual-report-history").fill("sensor.water_total");
     await page.locator("[data-manual-confirm]").click();
-    const manual = page.locator(".dm-report-row").last();
+    await expect(page.locator(".dm-report-row")).toHaveCount(4);
+    let manual = page.locator(".dm-report-row").last();
     await expect(manual.locator('[data-report-name][value="Manual water"]')).toHaveCount(1);
     await expect(manual.locator(".dm-entity-picker")).toHaveCount(2);
     await expect(manual.locator(".dm-icon-picker")).toHaveCount(1);
+    manual = page.locator(".dm-report-row").last();
     await expect(manual.locator("[data-report-up]")).toHaveCount(1);
+    manual = page.locator(".dm-report-row").last();
     await expect(manual.locator("[data-report-down]")).toHaveCount(1);
     await expect(manual.locator("[data-report-delete]")).toHaveCount(1);
     const firstReport = page.locator(".dm-report-row").first();
@@ -333,7 +336,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-room-picker.png`,
     });
-    await page.locator("#dm-iconpick [data-icon-picker-close]").click();
+    const closeIconPicker = page.getByRole("button", {
+      name: /Chiudi selettore icone|Close icon picker/i,
+    });
+    await closeIconPicker.scrollIntoViewIfNeeded();
+    await expect(closeIconPicker).toBeVisible();
+    await closeIconPicker.click();
     await expect(page.locator("#dm-iconpick")).toHaveCount(0);
     await page.evaluate(() => window.editorSwitch("luci"));
     await assertPickerInvariant();

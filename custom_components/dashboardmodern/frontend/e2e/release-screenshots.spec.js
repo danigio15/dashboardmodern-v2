@@ -194,12 +194,15 @@ test("release evidence", async ({ page }, testInfo) => {
       JSON.stringify([{ name: "Salone", entity: "cover.salone" }]),
     );
     STATES["cover.salone"] = { state: "open", attributes: {} };
-    document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
-    document.getElementById("page-home").classList.add("active");
   });
-  await expect(page.locator("#tapp-avvisi .glance-card")).toContainText("1 tapparella aperta", {
-    timeout: 3000,
-  });
+  const navHandle = page.locator("#bottomNavHandle");
+  await expect(navHandle).toBeVisible();
+  await navHandle.click();
+  await page.locator('.tab[data-tab="home"]').click();
+  await expect(page.locator("#glance-custom-wrap")).toBeVisible();
+  const shutterAlert = page.locator("#tapp-avvisi .dm-shutter-alert");
+  await expect(shutterAlert.locator(".g-name")).toHaveText(/TAPPARELLA APERTA|SHUTTER OPEN/);
+  await expect(shutterAlert.locator(".g-val")).toHaveText("1");
   await page.screenshot({
     path: `${screenshotDirectory}/home-mobile-shutter-alert.png`,
     fullPage: true,

@@ -337,11 +337,24 @@
       const glyph = GLYPHS[type] || GLYPHS.generico;
       visual.dataset.applianceType = type;
       if (configuredVisual?.kind === "image" && configuredVisual.value) {
-        visual.innerHTML = `<img class="dm-appliance-image" src="${String(configuredVisual.value).replace(/&/g, "&amp;").replace(/"/g, "&quot;")}" alt="${String(appliance.name || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;")}">`;
-        const image = visual.querySelector("img");
-        image.addEventListener("error", function () {
-          visual.innerHTML = `<span class="dm-appliance-glyph" aria-hidden="true">${glyph}</span>`;
-        }, { once: true });
+        let image = visual.querySelector("img");
+        if (!image) {
+          image = document.createElement("img");
+          visual.replaceChildren(image);
+        }
+        image.classList.add("dm-appliance-image");
+        image.src = configuredVisual.value;
+        image.alt = appliance.name || "";
+        if (image.dataset.dmFallbackBound !== "true") {
+          image.dataset.dmFallbackBound = "true";
+          image.addEventListener(
+            "error",
+            function () {
+              visual.innerHTML = `<span class="dm-appliance-glyph" aria-hidden="true">${glyph}</span>`;
+            },
+            { once: true },
+          );
+        }
       } else if (configuredVisual?.kind === "asset" && configuredVisual.value) {
         visual.innerHTML = window.cdApplianceVisual?.(appliance, 96) || `<span class="dm-appliance-glyph" aria-hidden="true">${glyph}</span>`;
       } else if (configuredVisual?.kind === "icon" && configuredVisual.value) {

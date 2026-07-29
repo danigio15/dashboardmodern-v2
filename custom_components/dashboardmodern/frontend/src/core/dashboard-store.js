@@ -153,25 +153,6 @@ export class DashboardStore {
       );
     const section = Object.entries(SECTION_KEYS).find(([, storageKey]) => storageKey === key)?.[0];
     if (!section) return Promise.resolve();
-    // Canonical rooms are projected to cd_stanze during migrate().  Some
-    // legacy boot paths captured cd_stanze before the module loaded and write
-    // that stale empty array back afterwards.  An empty compatibility
-    // projection must never erase a populated authoritative snapshot; room
-    // deletion is owned by the canonical Rooms editor.
-    if (
-      section === "rooms" &&
-      Array.isArray(value) &&
-      value.length === 0 &&
-      (this.state.sections.rooms || []).length > 0
-    ) {
-      this.projecting = true;
-      try {
-        this.storage.setItem(key, JSON.stringify(this.state.sections.rooms));
-      } finally {
-        this.projecting = false;
-      }
-      return Promise.resolve();
-    }
     return this.replaceSection(section, value);
   }
   ensureSectionVisibleForData(section) {
