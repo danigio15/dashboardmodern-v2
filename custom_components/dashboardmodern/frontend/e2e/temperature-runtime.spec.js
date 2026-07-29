@@ -65,6 +65,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.waitForFunction(
       () => window.__DASHBOARDMODERN_LEGACY_READY__ && window.DashboardModernModules,
     );
+    // A fresh E2E profile intentionally has not completed onboarding.  The
+    // production wizard is therefore expected here, but Config must receive
+    // real pointer events for this editor-focused scenario.
+    await page
+      .locator("#setup-wizard")
+      .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
     await page.evaluate((haStates) => {
       haStates.forEach((state) => {
         _RAW_STATES[state.entity_id] = state;
@@ -132,5 +138,24 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       path: `test-results/${testInfo.project.name}-${variant}-temperature-dashboard.png`,
       fullPage: true,
     });
+    await page.evaluate(() => {
+      apriConfigEntita();
+      editorSwitch("sez7");
+    });
+    await page.locator("[data-temperature-delete]").click();
+    await page.locator("[data-temperature-save]").click();
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const room = DashboardModernModules.store.getSection("rooms")[0];
+          return {
+            name: room.name,
+            icon: room.icon,
+            temp: room.temp,
+            hum: room.hum,
+          };
+        }),
+      )
+      .toEqual({ name: "Kitchen", icon: "🌡️", temp: "", hum: "" });
   });
 }

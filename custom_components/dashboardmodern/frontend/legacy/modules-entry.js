@@ -163,7 +163,7 @@ function createIconField(id, value = "") {
 const entityField = (id, label, value, placeholder) => createEntityField({ id, label, value, placeholder });
 
 export function renderTemperatureEditor(target) {
-  const rooms = store.getSection("rooms");
+  const rooms = store.getSection("rooms").filter((room) => room.temp || room.hum);
   const rows = rooms.map((room, index) => `<fieldset class="ed-form dm-temperature-room" data-temperature-room data-room-id="${esc(room.id)}">
     <legend>${esc(room.icon || "🌡️")} ${esc(room.name || `${t("name")} ${index + 1}`)}</legend>
     <div class="ed-form-row"><input class="ed-input" data-temperature-name aria-label="${t("name")}" value="${esc(room.name)}"><input class="ed-input" data-temperature-icon aria-label="Icon" value="${esc(room.icon || "🌡️")}"><input class="ed-input" data-temperature-floor aria-label="Floor" value="${esc(room.floor)}"></div>
@@ -178,17 +178,28 @@ export function renderTemperatureEditor(target) {
 
 export function mountTemperatureEditor(_section, target) {
   mountEntityPickers(target);
-  const readRooms = () => [...target.querySelectorAll("[data-temperature-room]")].map((row, index) => ({
-    ...(store.getSection("rooms").find((room) => room.id === row.dataset.roomId) || {}),
-    id: row.dataset.roomId,
-    name: row.querySelector("[data-temperature-name]").value.trim(),
-    icon: row.querySelector("[data-temperature-icon]").value.trim(),
-    floor: row.querySelector("[data-temperature-floor]").value.trim(),
-    temp: row.querySelector('[id^="dm-temperature-"]').value.trim(),
-    hum: row.querySelector('[id^="dm-humidity-"]').value.trim(),
-    order: index,
+  const readRooms = () => {
+    const current = store.getSection("rooms");
+    const rows = new Map([...target.querySelectorAll("[data-temperature-room]")].map((row) => [row.dataset.roomId, row]));
+    return current.map((room) => {
+      const row = rows.get(room.id);
+      if (!row) return room;
+      if (row.dataset.temperatureDeleted === "true") return { ...room, temp: "", hum: "" };
+      return {
+        ...room,
+        name: row.querySelector("[data-temperature-name]").value.trim(),
+        icon: row.querySelector("[data-temperature-icon]").value.trim(),
+        floor: row.querySelector("[data-temperature-floor]").value.trim(),
+        temp: row.querySelector('[id^="dm-temperature-"]').value.trim(),
+        hum: row.querySelector('[id^="dm-humidity-"]').value.trim(),
+      };
+    });
+  };
+  target.querySelectorAll("[data-temperature-delete]").forEach((button) => button.addEventListener("click", () => {
+    const row = button.closest("[data-temperature-room]");
+    row.dataset.temperatureDeleted = "true";
+    row.hidden = true;
   }));
-  target.querySelectorAll("[data-temperature-delete]").forEach((button) => button.addEventListener("click", () => button.closest("[data-temperature-room]").remove()));
   target.querySelector("[data-temperature-add]")?.addEventListener("click", () => {
     const name = target.querySelector("#dm-temperature-new-name").value.trim();
     const temp = target.querySelector("#ed-pl-temp").value.trim();
