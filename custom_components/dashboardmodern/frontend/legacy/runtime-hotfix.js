@@ -27,11 +27,15 @@
     generico: "🔌",
   });
 
-  let passQueued = false;
-  let installTimer = null;
   let originalApplianceCard = null;
   let originalLightRenderer = null;
   let originalLightRoom = null;
+  let originalEditorSwitch = null;
+  let bodyObserver = null;
+  let observedBody = null;
+  let documentObserver = null;
+  let installTimer = null;
+  let passScheduled = false;
 
   function readJson(key, fallback) {
     try {
@@ -80,18 +84,14 @@
       append(typeof window.getStanze === "function" ? window.getStanze() : []);
     } catch (_error) {}
 
-    const byId = new Map();
-    const byName = new Map();
+    const byIdentity = new Map();
     sources.forEach(function (source, index) {
       const room = normalizeRoom(source, index);
       if (!room) return;
-      const idKey = room.id.toLowerCase();
-      const nameKey = room.name.toLowerCase();
-      if (byId.has(idKey) || byName.has(nameKey)) return;
-      byId.set(idKey, room);
-      byName.set(nameKey, room);
+      const key = `${room.id.toLowerCase()}|${room.name.toLowerCase()}`;
+      if (!byIdentity.has(key)) byIdentity.set(key, room);
     });
-    return Array.from(byId.values());
+    return Array.from(byIdentity.values());
   }
 
   function resolveRoom(ref, rooms) {
@@ -125,28 +125,26 @@
     return handler.match(/cdLuciSetRoom\('([^']+)'/)?.[1] || "";
   }
 
-  function knownLightEntities() {
+  function knownLightEntities(root) {
     const entities = new Set(Object.keys(readJson("cd_luci", {})));
-    document.querySelectorAll(".ed-lrow select, select[data-light-entity]").forEach(function (select) {
+    (root || document).querySelectorAll?.(".ed-lrow select, select[data-light-entity]").forEach(function (select) {
       const entityId = lightEntityFromSelect(select);
       if (entityId) entities.add(entityId);
     });
     return entities;
   }
 
-  function migrateLightRoomIds() {
+  function migrateLightRoomIds(root) {
     const rooms = roomCatalog();
     if (!rooms.length) return false;
 
     const assigned = readJson("cd_luci_rooms", {});
-    let changed = false;
-    const entities = knownLightEntities();
+    const entities = knownLightEntities(root);
     Object.keys(assigned).forEach((entityId) => entities.add(entityId));
+    let changed = false;
 
     entities.forEach(function (entityId) {
-      const exact = exactRoomFromEntity(entityId, rooms);
-      const current = resolveRoom(assigned[entityId], rooms);
-      const wanted = exact || current;
+      const wanted = exactRoomFromEntity(entityId, rooms) || resolveRoom(assigned[entityId], rooms);
       if (wanted && assigned[entityId] !== wanted.id) {
         assigned[entityId] = wanted.id;
         changed = true;
@@ -157,7 +155,6 @@
       localStorage.setItem("cd_luci_rooms", JSON.stringify(assigned));
       try {
         window.cdMarkDirty?.();
-        window.cdSyncPush?.();
       } catch (_error) {}
     }
     return changed;
@@ -167,8 +164,7 @@
     if (!select || !entityId) return;
     const rooms = roomCatalog();
     const assigned = readJson("cd_luci_rooms", {});
-    const exact = exactRoomFromEntity(entityId, rooms);
-    const current = exact || resolveRoom(assigned[entityId], rooms);
+    const current = exactRoomFromEntity(entityId, rooms) || resolveRoom(assigned[entityId], rooms);
     const selectedId = current?.id || "";
     const signature = `${entityId}|${selectedId}|${rooms
       .map((room) => `${room.id}:${room.name}:${room.icon || ""}`)
@@ -176,20 +172,22 @@
 
     if (select.dataset.dmRoomSignature === signature && select.value === selectedId) return;
 
+    const fragment = document.createDocumentFragment();
     const empty = document.createElement("option");
     empty.value = "";
     empty.textContent = document.documentElement.lang === "en" ? "— Other areas —" : "— Altre zone —";
-    if (!selectedId) empty.setAttribute("selected", "selected");
-    select.replaceChildren(empty);
+    empty.selected = !selectedId;
+    fragment.append(empty);
 
     rooms.forEach(function (room) {
       const option = document.createElement("option");
       option.value = room.id;
       option.textContent = `${room.icon && !String(room.icon).startsWith("mdi:") ? `${room.icon} ` : ""}${room.name}`;
-      if (selectedId === room.id) option.setAttribute("selected", "selected");
-      select.append(option);
+      option.selected = selectedId === room.id;
+      fragment.append(option);
     });
 
+    select.replaceChildren(fragment);
     select.dataset.lightEntity = entityId;
     select.dataset.dmRoomSignature = signature;
     select.value = selectedId;
@@ -205,6 +203,7 @@
   function repairLightEditorMarkup(html) {
     const template = document.createElement("template");
     template.innerHTML = String(html || "");
+    migrateLightRoomIds(template.content);
     template.content.querySelectorAll(".ed-lrow select, select[data-light-entity]").forEach(function (select) {
       const entityId = lightEntityFromSelect(select);
       if (entityId) rebuildLightSelect(select, entityId);
@@ -215,7 +214,7 @@
   function repairRenderedLightEditor(root) {
     const body = root || document.getElementById("ed-body");
     if (!body) return;
-    migrateLightRoomIds();
+    migrateLightRoomIds(body);
     body.querySelectorAll(".ed-lrow select, select[data-light-entity]").forEach(function (select) {
       const entityId = lightEntityFromSelect(select);
       if (entityId) rebuildLightSelect(select, entityId);
@@ -227,18 +226,6 @@
       if (typeof window.cdApplianceType === "function") return window.cdApplianceType(appliance);
     } catch (_error) {}
     return String(appliance?.device_type || appliance?.type || appliance?.icon || "generico").toLowerCase();
-  }
-
-  function currentAppliances() {
-    try {
-      const canonical = window.DashboardModernModules?.store?.getSection?.("appliances");
-      if (Array.isArray(canonical) && canonical.length) return canonical;
-    } catch (_error) {}
-    try {
-      const legacy = typeof window.getAppliances === "function" ? window.getAppliances() : [];
-      if (Array.isArray(legacy) && legacy.length) return legacy;
-    } catch (_error) {}
-    return readJson("cd_appliances", []);
   }
 
   function applianceRoom(appliance) {
@@ -253,25 +240,33 @@
 
   function repairApplianceCard(card, appliance) {
     if (!card || !appliance) return;
-    card.dataset.applianceId = String(appliance.id || "");
-
     const room = applianceRoom(appliance);
+    const type = applianceType(appliance);
+    const roomText = room
+      ? `🏠 ${room.name}`
+      : document.documentElement.lang === "en"
+        ? "No room"
+        : "Nessuna stanza";
+    const signature = `${appliance.id || ""}|${room?.id || ""}|${roomText}|${type}`;
+    if (card.dataset.dmApplianceSignature === signature) return;
+
+    card.dataset.applianceId = String(appliance.id || "");
     const roomLabel = card.querySelector(".appl-wide-cat");
     if (roomLabel) {
       roomLabel.classList.add("dm-room-label");
-      roomLabel.textContent = room
-        ? `🏠 ${room.name}`
-        : document.documentElement.lang === "en"
-          ? "No room"
-          : "Nessuna stanza";
+      if (roomLabel.textContent !== roomText) roomLabel.textContent = roomText;
     }
 
-    const type = applianceType(appliance);
     const visual = card.querySelector(".appl-ic");
     if (visual) {
+      const glyph = GLYPHS[type] || GLYPHS.generico;
       visual.dataset.applianceType = type;
-      visual.innerHTML = `<span class="dm-appliance-glyph" aria-hidden="true">${GLYPHS[type] || GLYPHS.generico}</span>`;
+      const currentGlyph = visual.querySelector(".dm-appliance-glyph");
+      if (!currentGlyph || currentGlyph.textContent !== glyph) {
+        visual.innerHTML = `<span class="dm-appliance-glyph" aria-hidden="true">${glyph}</span>`;
+      }
     }
+    card.dataset.dmApplianceSignature = signature;
   }
 
   function repairApplianceMarkup(html, appliance) {
@@ -281,6 +276,18 @@
     if (!card) return html;
     repairApplianceCard(card, appliance);
     return card.outerHTML;
+  }
+
+  function currentAppliances() {
+    try {
+      const canonical = window.DashboardModernModules?.store?.getSection?.("appliances");
+      if (Array.isArray(canonical) && canonical.length) return canonical;
+    } catch (_error) {}
+    try {
+      const legacy = typeof window.getAppliances === "function" ? window.getAppliances() : [];
+      if (Array.isArray(legacy) && legacy.length) return legacy;
+    } catch (_error) {}
+    return readJson("cd_appliances", []);
   }
 
   function repairRenderedAppliances() {
@@ -341,12 +348,12 @@
     };
 
     const wrapped = function () {
-      migrateLightRoomIds();
+      migrateLightRoomIds(document);
       return repairLightEditorMarkup(originalLightRenderer());
     };
     wrapped.__dmRealFix = true;
     window.editorRenderLuci = wrapped;
-    migrateLightRoomIds();
+    migrateLightRoomIds(document);
     return true;
   }
 
@@ -368,7 +375,7 @@
         button.textContent = "🔍";
         input.insertAdjacentElement("afterend", button);
       }
-      button.dataset.entityTarget = input.id;
+      if (button.dataset.entityTarget !== input.id) button.dataset.entityTarget = input.id;
     });
   }
 
@@ -381,6 +388,20 @@
     event.preventDefault();
     event.stopImmediatePropagation();
     window.wzPickEntity?.(input);
+  }
+
+  function installEditorSwitch() {
+    if (window.editorSwitch?.__dmRealFix) return true;
+    if (typeof window.editorSwitch !== "function") return false;
+    originalEditorSwitch = window.editorSwitch;
+    const wrapped = function () {
+      const result = originalEditorSwitch.apply(this, arguments);
+      schedulePass();
+      return result;
+    };
+    wrapped.__dmRealFix = true;
+    window.editorSwitch = wrapped;
+    return true;
   }
 
   function injectStyles() {
@@ -419,45 +440,57 @@
     document.head.append(style);
   }
 
-  function installOverrides() {
+  function attachBodyObserver() {
+    const body = document.getElementById("ed-body");
+    if (!body || body === observedBody) return;
+    bodyObserver?.disconnect();
+    observedBody = body;
+    bodyObserver = new MutationObserver(schedulePass);
+    bodyObserver.observe(body, { childList: true, subtree: true });
+  }
+
+  function installAll() {
     const appliancesReady = installApplianceRenderer();
     const lightsReady = installLightRuntime();
-    if (appliancesReady && lightsReady && installTimer) {
+    const editorReady = installEditorSwitch();
+    attachBodyObserver();
+    if (appliancesReady && lightsReady && editorReady && installTimer) {
       clearInterval(installTimer);
       installTimer = null;
     }
   }
 
   function runPass() {
-    passQueued = false;
-    installOverrides();
+    passScheduled = false;
+    installAll();
     repairRenderedLightEditor();
     mountEntityPickers();
     repairRenderedAppliances();
   }
 
-  function queuePass() {
-    if (passQueued) return;
-    passQueued = true;
-    queueMicrotask(runPass);
+  function schedulePass() {
+    if (passScheduled) return;
+    passScheduled = true;
+    setTimeout(runPass, 0);
   }
 
   function start() {
     injectStyles();
     document.addEventListener("click", delegatedPickerClick, true);
-    new MutationObserver(queuePass).observe(document.documentElement, { childList: true, subtree: true });
+    documentObserver = new MutationObserver(function () {
+      attachBodyObserver();
+      schedulePass();
+    });
+    documentObserver.observe(document.documentElement, { childList: true, subtree: true });
 
     try {
       const store = window.DashboardModernModules?.store;
-      if (typeof store?.subscribe === "function") store.subscribe(queuePass);
+      if (typeof store?.subscribe === "function") store.subscribe(schedulePass);
     } catch (_error) {}
 
-    installOverrides();
-    queuePass();
-    installTimer = setInterval(function () {
-      installOverrides();
-      queuePass();
-    }, 100);
+    installAll();
+    schedulePass();
+    installTimer = setInterval(installAll, 100);
     setTimeout(function () {
       if (installTimer) {
         clearInterval(installTimer);
