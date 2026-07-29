@@ -120,12 +120,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-temperature-saved.png`,
     });
-    await page.evaluate(() => {
-      document.getElementById("editor-modal")?.remove();
-      showPage("temp");
-      buildTempCards();
-      renderTemperature();
-    });
+    await page.locator("#editor-modal .ed-head-close").last().click();
+    await expect(page.locator("#editor-modal")).toHaveCount(0);
+    const temperatureTab = page.locator('.tab[data-tab="temp"]');
+    await expect(temperatureTab).toBeVisible();
+    await temperatureTab.click();
+    await expect(page.locator("#page-temp")).toHaveClass(/active/);
     await expect(page.locator("#temp-grid .cp-card")).toContainText("Kitchen");
     await expect(page.locator("#temp-grid .temp-value")).toContainText("21.5");
     await page.evaluate(() => {

@@ -14,6 +14,25 @@ test("visibility recognizes configured pool and irrigation entities without devi
   assert.equal(hasConfiguredData("pool", { filterHours: 8 }), false);
 });
 
+test("Temperature visibility requires a real room sensor instead of only a room name", () => {
+  assert.equal(hasConfiguredData("rooms", [{ name: "Kitchen" }]), false);
+  assert.equal(
+    hasConfiguredData("rooms", [{ name: "Kitchen", temp: "sensor.kitchen_temp" }]),
+    true,
+  );
+  assert.equal(hasConfiguredData("rooms", [{ name: "Bath", hum: "sensor.bath_humidity" }]), true);
+});
+
+test("saving the first canonical Temperature makes the public temp section visible", async () => {
+  const { store, storage } = setup();
+  await store.replaceSection("rooms", [
+    { id: "room-kitchen", name: "Kitchen", temp: "sensor.kitchen_temp" },
+  ]);
+  assert.equal(store.getState().visibility.temp, true);
+  assert.equal(JSON.parse(storage.getItem("cd_sections")).temp, true);
+  assert.equal(JSON.parse(storage.getItem("cd_stanze"))[0].temp, "sensor.kitchen_temp");
+});
+
 class MemoryStorage {
   values = new Map();
   getItem(key) {

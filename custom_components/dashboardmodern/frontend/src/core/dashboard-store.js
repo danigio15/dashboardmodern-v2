@@ -4,6 +4,7 @@ import { sectionForEditorSlot } from "./editor-slots.js";
 import { projectEnergySlots } from "./energy-projection.js";
 
 export const VISIBILITY_SECTION = Object.freeze({
+  rooms: "temp",
   cameras: "security",
   lights: "home",
   appliances: "appliances",
@@ -20,6 +21,8 @@ export const VISIBILITY_SECTION = Object.freeze({
 const configured = (value) =>
   typeof value === "string" ? value.trim().includes(".") : Boolean(value);
 export function hasConfiguredData(section, value) {
+  if (section === "rooms" && Array.isArray(value))
+    return value.some((room) => configured(room?.temp) || configured(room?.hum));
   if (Array.isArray(value))
     return value.some(
       (item) =>
