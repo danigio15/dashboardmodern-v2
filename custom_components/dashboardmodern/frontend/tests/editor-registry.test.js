@@ -11,6 +11,26 @@ test("real editor tab ids resolve to canonical ownership", async () => {
   assert.equal(resolveEditorTab("sez4"), "security");
   assert.equal(resolveEditorTab("runtime"), "diagnostics");
   assert.equal(resolveEditorTab("pool"), "pool");
+  assert.equal(resolveEditorTab("sez7"), "temperature");
+});
+
+test("Temperature is registry-owned and uses the canonical room store", async () => {
+  const module = await import(`${moduleUrl}?temperature=${Date.now()}`);
+  assert.equal(module.EDITOR_REGISTRY.temperature.render, module.renderTemperatureEditor);
+  assert.equal(module.EDITOR_REGISTRY.temperature.mount, module.mountTemperatureEditor);
+  const target = { innerHTML: "" };
+  module.renderTemperatureEditor(target);
+  assert.match(target.innerHTML, /data-temperature-editor/);
+  assert.match(target.innerHTML, /id="ed-pl-temp"/);
+  assert.equal((target.innerHTML.match(/dm-entity-picker/g) || []).length, 2);
+  const source = await readFile(moduleUrl, "utf8");
+  const renderer = source.slice(
+    source.indexOf("export function renderTemperatureEditor"),
+    source.indexOf("export function renderReportRow"),
+  );
+  assert.match(renderer, /store\.getSection\("rooms"\)/);
+  assert.match(renderer, /store\.replaceSection\("rooms"/);
+  assert.doesNotMatch(renderer, /sensor\.[a-z_]+["']/);
 });
 
 test("registry dispatch performs exactly one render and one mount", async () => {

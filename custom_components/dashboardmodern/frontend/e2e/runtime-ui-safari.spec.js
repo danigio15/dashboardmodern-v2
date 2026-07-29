@@ -90,7 +90,9 @@ async function bootDashboard(page, variant) {
       window.editorRenderLuci?.__dmRealFix === true &&
       window.cdApplMainCard?.__dmRealFix === true,
   );
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await page.evaluate(() => {
     window.cdSyncPush = async () => {};
     window.__pickedEntityInput = "";
@@ -137,9 +139,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const lightRoomSelect = body.locator('select[data-light-entity="light.salone"]');
     await expect(lightRoomSelect).toHaveCount(1);
     await expect(lightRoomSelect).toHaveValue("room-salone");
-    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cd_luci_rooms"))["light.salone"])).toBe(
-      "room-salone",
-    );
+    expect(
+      await page.evaluate(() => JSON.parse(localStorage.getItem("cd_luci_rooms"))["light.salone"]),
+    ).toBe("room-salone");
     await expect(body).toContainText("Salone");
 
     let picker = body.locator(`.dm-entity-picker[data-entity-target="${lightId}"]`);
@@ -217,7 +219,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(glyph).not.toHaveText("");
 
     const cardBox = await card.boundingBox();
-    if (testInfo.project.name === "desktop") expect(cardBox?.width ?? 9999).toBeLessThanOrEqual(540);
+    if (testInfo.project.name === "desktop")
+      expect(cardBox?.width ?? 9999).toBeLessThanOrEqual(540);
 
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-appliances-real.png`,

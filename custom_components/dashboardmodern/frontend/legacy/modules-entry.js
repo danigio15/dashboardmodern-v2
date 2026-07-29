@@ -55,6 +55,8 @@ createRenderCoordinator(store, {
     } else if (section === "cameras") {
       const grid = globalThis.document?.getElementById?.("cam-grid"); if (grid) grid._sig = "";
       globalThis.buildCamCards?.(); globalThis.refreshCameras?.();
+    } else if (section === "rooms") {
+      globalThis.buildTempCards?.(); globalThis.renderTemperature?.();
     }
   },
   renderEnergyReport() {
@@ -70,12 +72,16 @@ createRenderCoordinator(store, {
       ev: "sezioni", lights: "luci", climate: "sezioni", covers: "tapp",
       pool: "pool", irrigation: "irr",
     };
-    const expected = sectionTabs[section];
+    const expected = section === "rooms" && tab === "sez7" ? "sez7" : sectionTabs[section];
     const matches = expected === tab || (expected === "sezioni" && tab?.startsWith("sez"));
     if (!globalThis.document?.getElementById?.("ed-body") || !matches) return;
     // Re-render the active body directly; editorSwitch is navigation and was
     // the accidental refresh mechanism that left confirmed deletes visible.
     const body = globalThis.document.getElementById("ed-body");
+    if (tab === "sez7" && section === "rooms") {
+      renderEditorTab("sez7", body);
+      return;
+    }
     if (tab === "sez1" && section === "energy") {
       renderEditorTab("sez1", body);
       return;
@@ -155,6 +161,42 @@ function createIconField(id, value = "") {
   return `<span class="ed-form-row dm-icon-field" data-icon-field><input id="${esc(id)}" class="ed-input ed-icon-input" value="${esc(value)}"><button type="button" class="dm-icon-picker" data-icon-target="${esc(id)}" aria-label="${t("select")} icon">🎨</button></span>`;
 }
 const entityField = (id, label, value, placeholder) => createEntityField({ id, label, value, placeholder });
+
+export function renderTemperatureEditor(target) {
+  const rooms = store.getSection("rooms");
+  const rows = rooms.map((room, index) => `<fieldset class="ed-form dm-temperature-room" data-temperature-room data-room-id="${esc(room.id)}">
+    <legend>${esc(room.icon || "🌡️")} ${esc(room.name || `${t("name")} ${index + 1}`)}</legend>
+    <div class="ed-form-row"><input class="ed-input" data-temperature-name aria-label="${t("name")}" value="${esc(room.name)}"><input class="ed-input" data-temperature-icon aria-label="Icon" value="${esc(room.icon || "🌡️")}"><input class="ed-input" data-temperature-floor aria-label="Floor" value="${esc(room.floor)}"></div>
+    ${createEntityField({ id: `dm-temperature-${index}`, label: "Temperature entity_id", value: room.temp, optional: false })}
+    ${createEntityField({ id: `dm-humidity-${index}`, label: "Humidity entity_id", value: room.hum })}
+    <button type="button" class="ed-del" data-temperature-delete aria-label="${t("remove")}">🗑️</button>
+  </fieldset>`).join("");
+  target.innerHTML = `<div class="ed-intro" data-temperature-editor>${LOCALE === "en" ? "Configure real Home Assistant temperature and humidity entities for each room." : "Configura le entità reali di temperatura e umidità di Home Assistant per ogni stanza."}</div><div data-temperature-list>${rows || `<div class="ed-empty">${t("empty")}</div>`}</div>
+    <div class="ed-form" data-temperature-new><div class="ed-sec-title">＋ ${LOCALE === "en" ? "New temperature" : "Nuova temperatura"}</div><div class="ed-form-row"><input id="dm-temperature-new-name" class="ed-input" placeholder="${t("name")}"><input id="dm-temperature-new-icon" class="ed-input" value="🌡️" aria-label="Icon"><input id="dm-temperature-new-floor" class="ed-input" placeholder="Floor"></div>${createEntityField({ id: "ed-pl-temp", label: "Temperature entity_id", optional: false })}${createEntityField({ id: "dm-humidity-new", label: "Humidity entity_id" })}<button type="button" class="ed-btn-add" data-temperature-add>${t("add")}</button></div>
+    <button type="button" class="ed-save-btn" data-temperature-save>💾 ${LOCALE === "en" ? "Save temperatures" : "Salva temperature"}</button>`;
+}
+
+export function mountTemperatureEditor(_section, target) {
+  mountEntityPickers(target);
+  const readRooms = () => [...target.querySelectorAll("[data-temperature-room]")].map((row, index) => ({
+    ...(store.getSection("rooms").find((room) => room.id === row.dataset.roomId) || {}),
+    id: row.dataset.roomId,
+    name: row.querySelector("[data-temperature-name]").value.trim(),
+    icon: row.querySelector("[data-temperature-icon]").value.trim(),
+    floor: row.querySelector("[data-temperature-floor]").value.trim(),
+    temp: row.querySelector('[id^="dm-temperature-"]').value.trim(),
+    hum: row.querySelector('[id^="dm-humidity-"]').value.trim(),
+    order: index,
+  }));
+  target.querySelectorAll("[data-temperature-delete]").forEach((button) => button.addEventListener("click", () => button.closest("[data-temperature-room]").remove()));
+  target.querySelector("[data-temperature-add]")?.addEventListener("click", () => {
+    const name = target.querySelector("#dm-temperature-new-name").value.trim();
+    const temp = target.querySelector("#ed-pl-temp").value.trim();
+    if (!name || !temp.includes(".")) return globalThis.alert?.(t("required"));
+    store.replaceSection("rooms", [...readRooms(), { id: `room-${Date.now().toString(36)}`, name, icon: target.querySelector("#dm-temperature-new-icon").value.trim() || "🌡️", floor: target.querySelector("#dm-temperature-new-floor").value.trim(), temp, hum: target.querySelector("#dm-humidity-new").value.trim() }]);
+  });
+  target.querySelector("[data-temperature-save]")?.addEventListener("click", () => store.replaceSection("rooms", readRooms()));
+}
 
 export function mountEntityPickers(target) {
   if (!target?.querySelectorAll) return;
@@ -317,6 +359,7 @@ export const EDITOR_REGISTRY = Object.freeze({
   energy: { render: renderEnergyEditorTab, mount: mountCurrentEditor, visibilityKey: "energy" },
   loads: { render: mountLoadsEditor, mount: mountCurrentEditor, visibilityKey: "energy" },
   report: { render: renderReportEditor, mount: mountReportEditor, visibilityKey: "energy" },
+  temperature: { render: renderTemperatureEditor, mount: mountTemperatureEditor, visibilityKey: "temp" },
   diagnostics: { render: renderDiagnostics, mount: mountCurrentEditor, visibilityKey: null },
 });
 

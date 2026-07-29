@@ -610,3 +610,34 @@ test("Energy slot ownership is derived from the canonical projection without typ
     false,
   );
 });
+
+test("Temperature room migration preserves legacy entity ids and display metadata", () => {
+  const [room] = migrateRooms([
+    {
+      name: "Kitchen",
+      icon: "mdi:thermometer",
+      floor: "Ground",
+      temp: "sensor.kitchen_temperature",
+      hum: "sensor.kitchen_humidity",
+      rgb: "14,165,233",
+    },
+  ]);
+  assert.equal(room.temp, "sensor.kitchen_temperature");
+  assert.equal(room.hum, "sensor.kitchen_humidity");
+  assert.equal(room.icon, "mdi:thermometer");
+  assert.equal(room.rgb, "14,165,233");
+  const remounted = migrateRooms([room])[0];
+  assert.deepEqual(remounted, room);
+});
+
+test("Temperature migration accepts descriptive legacy entity field names", () => {
+  const [room] = migrateRooms([
+    {
+      name: "Office",
+      temperature_entity: "sensor.office_temperature",
+      humidity_entity: "sensor.office_humidity",
+    },
+  ]);
+  assert.equal(room.temp, "sensor.office_temperature");
+  assert.equal(room.hum, "sensor.office_humidity");
+});

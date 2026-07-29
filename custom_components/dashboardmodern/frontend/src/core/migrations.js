@@ -41,6 +41,12 @@ export function migrateRooms(input = []) {
       name: String(room.name || `Room ${index + 1}`),
       icon: room.icon || "",
       floor: room.floor || "",
+      // Temperature sensors historically lived on cd_stanze.  Keep these
+      // fields in the canonical room projection: dropping them here makes
+      // DashboardStore.persist() destructively rewrite cd_stanze.
+      temp: String(room.temp || room.temperature_entity || ""),
+      hum: String(room.hum || room.humidity_entity || ""),
+      rgb: room.rgb || "",
       order: Number.isFinite(+room.order) ? +room.order : index,
       metadata: { ...(room.metadata || {}) },
     };
