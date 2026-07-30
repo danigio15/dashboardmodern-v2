@@ -6618,7 +6618,13 @@ function edApplRenderEnts(){
 }
 function edApplAddEntity(){ const inp=document.getElementById('appl-ent'); const v=((inp&&inp.value)||'').trim(); if(!v.includes('.')){alert('Enter a valid entity');return;} if(!_applEnts.includes(v))_applEnts.push(v); if(inp)inp.value=''; edApplRenderEnts(); }
 function edApplRemoveEntity(i){ _applEnts.splice(i,1); edApplRenderEnts(); }
-function edApplSave(){
+function edApplFinalizeSave(){
+  _applEnts=[]; _applEditIdx=null; editorSwitch('appliances');
+  globalThis.renderAppliances?.(); globalThis.renderApplianceSection?.(true);
+  globalThis.cdRebuildReportDevices?.(); globalThis.buildReportSelect?.();
+  edToast('Appliance saved');
+}
+async function edApplSave(){
   const name=(document.getElementById('appl-name').value||'').trim();
   const icon=(document.getElementById('appl-icon').value||'generico');
   const thr=parseFloat(document.getElementById('appl-thr').value); 
@@ -6628,11 +6634,28 @@ function edApplSave(){
   const roomSel=(document.getElementById('appl-room')||{}).value||''; const previous=(_applEditIdx!=null&&getAppliances()[_applEditIdx])?getAppliances()[_applEditIdx]:{}; const item={ id:'appl_'+Date.now().toString(36), name:name||cdApplianceDisplayName(Object.assign({},previous,{name:'',entities:entities}))||'Appliance', icon, entities, room_id:roomSel, threshold_run:isNaN(thr)?5:thr, threshold_standby:1 }; ['image','image_url','type','device_type'].forEach(function(k){ if(previous[k]!=null) item[k]=previous[k]; }); const _rm=((document.getElementById('appl-room')||{}).value||'').trim(); if(_rm) item.room_id=_rm;
   const list=getAppliances();
   if(_applEditIdx!=null&&list[_applEditIdx]){ item.id=list[_applEditIdx].id||item.id; list[_applEditIdx]=item; } else list.push(item);
-  var store=globalThis.DashboardModernModules&&DashboardModernModules.store; if(store){ store.replaceSection('appliances',list).catch(function(e){ alert('Save failed: '+e.message); }); _applEnts=[]; _applEditIdx=null; return; } localStorage.setItem('cd_appliances',JSON.stringify(list)); cdEnsureSectionVisible('appliances'); try{ cdMarkDirty(); cdSyncPush(); }catch(e){}
-  _applEnts=[]; _applEditIdx=null; editorSwitch('appliances'); renderAppliances(); renderApplianceSection(true); edToast('Appliance saved');
+  var store=globalThis.DashboardModernModules&&DashboardModernModules.store;
+  if(store){ try { await store.replaceSection('appliances',list); edApplFinalizeSave(); } catch(error){ alert('Save failed: '+error.message); } return; }
+  localStorage.setItem('cd_appliances',JSON.stringify(list)); cdEnsureSectionVisible('appliances');
+  try{ cdMarkDirty(); cdSyncPush(); }catch(_error){}
+  edApplFinalizeSave();
 }
 function edApplEdit(i){ const a=getAppliances()[i]; if(!a) return; _applEditIdx=i; try { edToast('Modifica: '+(a.name||'elettrodomestico')); } catch(eT){} setTimeout(function(){ try { var f=document.getElementById('appl-name')||document.getElementById('appl-ent'); if(f){ f.scrollIntoView({behavior:'smooth', block:'center'}); f.focus(); } } catch(e2){} }, 250); _applEnts=(a.entities||[]).map(e=>typeof e==='string'?e:e.entity).filter(Boolean); editorSwitch('appliances'); }
-function edApplDel(i){ if(!confirm('Delete this appliance?')) return; const list=getAppliances(); if(i<0||i>=list.length) return; var store=globalThis.DashboardModernModules&&DashboardModernModules.store; if(store){ store.removeItem('appliances',list[i].id).catch(function(e){ alert('Delete failed: '+e.message); }); return; } list.splice(i,1); localStorage.setItem('cd_appliances',JSON.stringify(list)); renderAppliances(); renderApplianceSection(true); }
+function edApplDel(i){
+  if(!confirm('Delete this appliance?')) return;
+  const list=getAppliances(); if(i<0||i>=list.length) return;
+  var store=globalThis.DashboardModernModules&&DashboardModernModules.store;
+  if(store){
+    store.removeItem('appliances',list[i].id).then(function(){
+      globalThis.cdRebuildReportDevices?.(); globalThis.buildReportSelect?.();
+      editorSwitch('appliances'); globalThis.renderAppliances?.(); globalThis.renderApplianceSection?.(true);
+    }).catch(function(error){ alert('Delete failed: '+error.message); });
+    return;
+  }
+  list.splice(i,1); localStorage.setItem('cd_appliances',JSON.stringify(list));
+  globalThis.renderAppliances?.(); globalThis.renderApplianceSection?.(true);
+  globalThis.cdRebuildReportDevices?.(); globalThis.buildReportSelect?.();
+}
 function edApplCancel(){ _applEditIdx=null; _applEnts=[]; editorSwitch('appliances'); }
 
 /* Picker degli elettrodomestici con immagini standard */

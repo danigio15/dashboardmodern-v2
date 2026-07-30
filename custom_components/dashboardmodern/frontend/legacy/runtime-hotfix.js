@@ -648,6 +648,15 @@
     setTimeout(runPass, 0);
   }
 
+  function refreshReportProjection() {
+    try {
+      globalThis.cdRebuildReportDevices?.();
+      globalThis.buildReportSelect?.();
+    } catch (error) {
+      console.warn("[DashboardModern] Report projection:", error);
+    }
+  }
+
   function start() {
     injectStyles();
     document.addEventListener("click", delegatedPickerClick, true);
@@ -659,10 +668,16 @@
 
     try {
       const store = window.DashboardModernModules?.store;
-      if (typeof store?.subscribe === "function") store.subscribe(schedulePass);
+      if (typeof store?.subscribe === "function") {
+        store.subscribe(function () {
+          schedulePass();
+          refreshReportProjection();
+        });
+      }
     } catch (_error) {}
 
     installAll();
+    refreshReportProjection();
     schedulePass();
     renderShutterAlert();
     shutterTimer = setInterval(renderShutterAlert, 500);

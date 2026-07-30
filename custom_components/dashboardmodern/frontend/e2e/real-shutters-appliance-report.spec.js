@@ -123,6 +123,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: real shutter editor drives the live warning popup`, async ({
     page,
   }, testInfo) => {
+    if (testInfo.project.name === "webkit-ipad")
+      test.slow(true, "Full real UI flow is slower on WebKit/iPad");
     await boot(page, variant, testInfo);
     await openEditor(page, "tapp");
     for (const [name, entity] of [
@@ -207,6 +209,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: appliance Editor persists Forno through Energy Report and reload`, async ({
     page,
   }, testInfo) => {
+    if (testInfo.project.name === "webkit-ipad")
+      test.slow(true, "Full real UI flow is slower on WebKit/iPad");
     await boot(page, variant, testInfo);
     await openEditor(page, "appliances");
     for (let index = 0; index < 20; index += 1)
@@ -239,6 +243,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         room_id: "room-salone",
         show_in_report: true,
       });
+    await expect
+      .poll(() => page.evaluate(() => ED_DEVICES.find((device) => device.name === "Forno")?.sensor))
+      .toBe("sensor.forno_energy");
     await page.locator("#editor-modal .ed-head-close").last().click();
     await openEnergyAnalysis(page, testInfo);
     await expect(page.locator("#ed-dev-selector")).toContainText("Forno");
@@ -263,6 +270,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         ),
       )
       .toBe(true);
+    await expect
+      .poll(() => page.evaluate(() => ED_DEVICES.find((device) => device.name === "Forno")?.sensor))
+      .toBe("sensor.forno_energy");
     await openEnergyAnalysis(page, testInfo);
     await expect(page.locator("#ed-dev-selector option", { hasText: "Forno" })).toHaveAttribute(
       "value",

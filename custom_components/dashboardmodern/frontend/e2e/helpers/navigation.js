@@ -55,13 +55,32 @@ async function instantScrollIntoView(locator) {
   });
 }
 
-async function centerTabInsideNavigation(tab) {
-  await tab.evaluate((node) => {
-    const navigation = node.closest("nav.bottom-nav-bar");
-    if (!navigation) throw new Error("Bottom navigation missing");
-    const targetLeft = node.offsetLeft - (navigation.clientWidth - node.offsetWidth) / 2;
-    navigation.scrollTo({ left: Math.max(0, targetLeft), behavior: "instant" });
+async function tapTouchNavigationTab(page, nav, handle, tab, tabName) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      if (!(await nav.getAttribute("class"))?.includes("visible"))
+        await handle.tap({ timeout: 2500 });
+      await expect(nav).toHaveClass(/visible/, { timeout: 1500 });
+      await tab.tap({ timeout: 3000 });
+      await expect(tab).toHaveClass(/active/, { timeout: 1500 });
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  const diagnostics = await tab.evaluate((node) => {
+    const box = node.getBoundingClientRect();
+    const element = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+    return {
+      rect: { left: box.left, top: box.top, right: box.right, bottom: box.bottom },
+      hitTag: element?.tagName || null,
+      hitClass: element?.className || null,
+      hitTab: element?.closest(".tab")?.dataset.tab || null,
+      navClass: node.closest("nav.bottom-nav-bar")?.className || null,
+    };
   });
+  throw new Error(`Unable to activate ${tabName}: ${JSON.stringify(diagnostics)}; ${lastError}`);
 }
 
 export async function clickBottomTab(page, tabName, testInfo) {
@@ -72,25 +91,7 @@ export async function clickBottomTab(page, tabName, testInfo) {
   if (touchProject) {
     const handle = page.locator("#bottomNavHandle");
     await expect(handle).toBeVisible();
-    if (!(await nav.getAttribute("class"))?.includes("visible")) await handle.tap();
-    await expect(nav).toHaveClass(/visible/);
-    await waitForStableBox(nav);
-    await centerTabInsideNavigation(tab);
-    await expect(tab).toBeVisible();
-    await waitForStableBox(tab);
-    const hitTarget = await tab.evaluate((node) => {
-      const box = node.getBoundingClientRect();
-      const element = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
-      return {
-        tab: node.dataset.tab,
-        targetTag: element?.tagName || null,
-        targetClass: element?.className || null,
-        targetTab: element?.closest(".tab")?.dataset.tab || null,
-        navClass: node.closest("nav.bottom-nav-bar")?.className || null,
-      };
-    });
-    expect(hitTarget.targetTab).toBe(tabName);
-    await tab.tap({ timeout: 5000 });
+    await tapTouchNavigationTab(page, nav, handle, tab, tabName);
   } else {
     await revealBottomNavigation(page);
     await expect(tab).toBeVisible();

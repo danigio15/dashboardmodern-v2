@@ -269,3 +269,13 @@ Touch tab navigation now waits for the animated navbar and target tab boxes to
 stabilize, scrolls only the fixed navbar's horizontal container, verifies the
 actual center-point hit target, and uses Playwright `locator.tap()` rather than
 absolute touchscreen coordinates. Desktop activation remains keyboard-driven.
+
+### Reactive appliance/report completion
+
+Touch navigation now gives the automatic navbar at most two short locator-tap
+attempts and collects hit diagnostics only after both fail, avoiding stability
+waits that could overlap the auto-hide timer. Appliance saves await the canonical
+store transaction before one shared finalizer rerenders the editor/public card
+and refreshes the Report selector. Runtime store notifications also rebuild that
+projection, and the real Forno E2E asserts `ED_DEVICES` both before navigation and
+after reload without invoking rebuild functions from the test.
