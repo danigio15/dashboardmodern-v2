@@ -1,9 +1,7 @@
 {
   "domain": "dashboardmodern",
   "name": "DashboardModern v2",
-  "codeowners": [
-    "@danigio15"
-  ],
+  "codeowners": ["@danigio15"],
   "config_flow": true,
   "dependencies": [
     "frontend",
