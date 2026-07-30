@@ -2,6 +2,7 @@
 import "./release-0147-fixes.js";
 import "./release-0147-store-fixes.js";
 import "./release-0147-dom-compat.js";
+import "./release-0147-appliance-store.js";
 
 function installReportCompatibilityMarker() {
   if (document.getElementById("dm-report-mobile-fixes")) return;
