@@ -67,9 +67,23 @@ function decorateStandardAlerts() {
   });
 }
 
+function decorateApplianceAssetMarkers() {
+  document.querySelectorAll(".appl-main-view").forEach((view) => {
+    const active = view.classList.contains("active");
+    view.querySelectorAll(".dm-appliance-art").forEach((asset) => {
+      const key = asset.dataset.applianceAsset || asset.dataset.applianceAssetKey || "";
+      if (!key) return;
+      asset.dataset.applianceAssetKey = key;
+      if (active) asset.dataset.applianceAsset = key;
+      else asset.removeAttribute("data-appliance-asset");
+    });
+  });
+}
+
 function decorateAll() {
   decorateShutterRows();
   decorateStandardAlerts();
+  decorateApplianceAssetMarkers();
 }
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
@@ -86,5 +100,7 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
   new MutationObserver(decorate).observe(document.documentElement, {
     childList: true,
     subtree: true,
+    attributes: true,
+    attributeFilter: ["class"],
   });
 }
