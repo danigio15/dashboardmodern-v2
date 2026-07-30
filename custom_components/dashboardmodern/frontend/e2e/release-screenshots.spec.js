@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { clickBottomTab } from "./helpers/navigation.js";
+import { clickBottomTab, clickStableButton } from "./helpers/navigation.js";
 
 const devices = [
   ["washer", "Lavatrice", "lavatrice", 420, 1.8],
@@ -122,14 +122,18 @@ async function boot(page) {
   }, devices);
 }
 
-async function openEnergyAnalysis(page) {
-  await clickBottomTab(page, "energy");
+async function openEnergyAnalysis(page, projectName) {
+  await clickBottomTab(page, "energy", projectName);
 
-  const reportButton = page.locator("#page-energy .sub-tab-btn", { hasText: "Report" });
-  await expect(reportButton).toBeVisible();
-  await reportButton.click();
+  const energyPage = page.locator("#page-energy.active");
+  const reportButton = energyPage.locator(".sub-tab-btn", { hasText: "Report" });
+  await clickStableButton(page, reportButton, projectName);
 
-  await page.getByRole("button", { name: /Analisi|Analysis/i }).click();
+  await clickStableButton(
+    page,
+    energyPage.getByRole("button", { name: /Analisi|Analysis/i }),
+    projectName,
+  );
 
   await expect(page.locator("#view-panoramica")).toBeVisible();
   await expect(page.locator("#ed-pane-analisi")).toBeVisible();
@@ -189,7 +193,7 @@ test("release evidence", async ({ page }, testInfo) => {
     );
     STATES["cover.salone"] = { state: "open", attributes: {} };
   });
-  await clickBottomTab(page, "home");
+  await clickBottomTab(page, "home", testInfo.project.name);
   await expect(page.locator("#glance-custom-wrap")).toBeVisible();
   const shutterAlert = page.locator("#tapp-avvisi .dm-shutter-alert");
   await expect(shutterAlert.locator(".g-name")).toHaveText(/TAPPARELLA APERTA|SHUTTER OPEN/);
@@ -199,7 +203,7 @@ test("release evidence", async ({ page }, testInfo) => {
     fullPage: true,
   });
 
-  await openEnergyAnalysis(page);
+  await openEnergyAnalysis(page, testInfo.project.name);
   const selector = page.locator("#ed-dev-selector");
   await expect(selector).toContainText("Forno");
   await page.screenshot({

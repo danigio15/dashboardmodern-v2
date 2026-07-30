@@ -216,12 +216,19 @@ export class DashboardStore {
       throw error;
     }
   }
+  _normalizeItem(section, item, index) {
+    if (section === "rooms")
+      return normalizeSection("rooms", [item], {
+        rooms: this.state.sections.rooms || [],
+      })[0];
+    return normalizeDevice(item, section, {
+      rooms: this.state.sections.rooms || [],
+      index,
+    });
+  }
   addItem(section, item) {
     return this.transact(section, "add", () => {
-      const value = normalizeDevice(item, section, {
-        rooms: this.state.sections.rooms || [],
-        index: (this.state.sections[section] || []).length,
-      });
+      const value = this._normalizeItem(section, item, (this.state.sections[section] || []).length);
       (this.state.sections[section] ||= []).push(value);
       return cloneValue(value);
     });
@@ -231,10 +238,7 @@ export class DashboardStore {
       const list = this.state.sections[section] || [];
       const index = list.findIndex((item) => item.id === id);
       if (index < 0) throw new Error(`Unknown ${section} item: ${id}`);
-      list[index] = normalizeDevice({ ...list[index], ...patch, id }, section, {
-        rooms: this.state.sections.rooms || [],
-        index,
-      });
+      list[index] = this._normalizeItem(section, { ...list[index], ...patch, id }, index);
       return cloneValue(list[index]);
     });
   }

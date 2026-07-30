@@ -103,8 +103,12 @@ export function createId(section = "device", random = globalThis.crypto?.randomU
 
 export function normalizeDevice(input = {}, section, context = {}) {
   const entities = deviceEntities(input);
-  const roomId =
-    input.room_id || input.roomId || context.rooms?.find((r) => r.name === input.room)?.id || "";
+  const explicitRoomId = input.room_id || input.roomId || "";
+  const legacyRoomRef = input.room || "";
+  const matchedRoom = context.rooms?.find(
+    (room) => room.id === legacyRoomRef || room.name === legacyRoomRef,
+  );
+  const roomId = explicitRoomId || matchedRoom?.id || "";
   const rawIcon = String(input.icon || "");
   const emoji =
     !rawIcon.startsWith("mdi:") && /[^\x00-\x7f]/.test(rawIcon)

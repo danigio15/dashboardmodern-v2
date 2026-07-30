@@ -359,10 +359,8 @@
       visual.dataset.applianceType = type;
       if (configuredVisual?.kind === "image" && configuredVisual.value) {
         let image = visual.querySelector("img");
-        if (!image) {
-          image = document.createElement("img");
-          visual.replaceChildren(image);
-        }
+        if (!image) image = document.createElement("img");
+        visual.replaceChildren(image);
         image.classList.add("dm-appliance-image");
         image.src = configuredVisual.value;
         image.alt = appliance.name || "";

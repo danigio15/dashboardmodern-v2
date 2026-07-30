@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { DashboardStore, hasConfiguredData } from "../src/core/dashboard-store.js";
-import { cloneValue, getDeviceDisplayName, getDeviceVisual } from "../src/core/device-model.js";
+import {
+  cloneValue,
+  getDeviceDisplayName,
+  getDeviceVisual,
+  normalizeDevice,
+} from "../src/core/device-model.js";
 import { migrateEnergy, migrateRooms, migrateState } from "../src/core/migrations.js";
 import { createEnergyReportRows, createRenderCoordinator } from "../src/core/renderers.js";
 import { canonicalReportDevices, projectEnergySlots } from "../src/core/energy-projection.js";
@@ -31,6 +36,42 @@ test("saving the first canonical Temperature makes the public temp section visib
   assert.equal(store.getState().visibility.temp, true);
   assert.equal(JSON.parse(storage.getItem("cd_sections")).temp, true);
   assert.equal(JSON.parse(storage.getItem("cd_stanze"))[0].temp, "sensor.kitchen_temp");
+});
+
+test("room updates preserve canonical metadata and only clear Temperature configuration", async () => {
+  const { store } = setup();
+  const original = {
+    id: "room-kitchen",
+    name: "Kitchen",
+    icon: "mdi:sofa",
+    floor: "Ground",
+    order: 3,
+    rgb: "12,34,56",
+    metadata: { source: "e2e" },
+    temp: "",
+    hum: "",
+  };
+  await store.replaceSection("rooms", [original]);
+  await store.updateItem("rooms", "room-kitchen", {
+    temp: "sensor.kitchen_temperature",
+    hum: "sensor.kitchen_humidity",
+  });
+  assert.deepEqual(store.getSection("rooms")[0], {
+    ...original,
+    temp: "sensor.kitchen_temperature",
+    hum: "sensor.kitchen_humidity",
+  });
+  await store.updateItem("rooms", "room-kitchen", { temp: "", hum: "" });
+  assert.deepEqual(store.getSection("rooms")[0], original);
+});
+
+test("cover legacy room references resolve stable room ids", () => {
+  const cover = normalizeDevice(
+    { name: "Tapparella salone", entity: "cover.salone", room: "room-salone" },
+    "covers",
+    { rooms: [{ id: "room-salone", name: "Salone" }] },
+  );
+  assert.equal(cover.room_id, "room-salone");
 });
 
 class MemoryStorage {

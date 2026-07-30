@@ -207,3 +207,18 @@ The final browser follow-up identified three independent DOM/runtime causes:
   normalized, because the legacy renderer could replace `.appl-ic` afterwards.
   The early return now also inspects the real image class and source, and the
   appliance section wrapper repairs the rendered DOM synchronously.
+
+## Section-aware canonical updates
+
+`DashboardStore.updateItem()` previously sent every section through the device
+normalizer. For `rooms`, that silently discarded room-only fields (`temp`,
+`hum`, `floor`, `rgb`, ordering and metadata), so the Temperature form appeared
+to save while the canonical room remained unconfigured. Room additions and
+updates now use the `rooms` section normalizer; deleting a Temperature
+configuration consequently clears only `temp` and `hum`.
+
+Legacy shutter records also store their room reference in `room`. That value can
+be either the historical display name or the stable canonical id (for example
+`room-salone`). Device normalization now resolves both forms and always stores
+the result in canonical `room_id`, allowing the live popup to display the room
+after the Editor-to-store round trip.

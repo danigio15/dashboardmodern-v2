@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
-import { clickBottomTab } from "./helpers/navigation.js";
+import { clickBottomTab, clickStableButton } from "./helpers/navigation.js";
 
 const haStates = [
   { entity_id: "light.salone", state: "on", attributes: { friendly_name: "Luce salone" } },
@@ -71,8 +71,7 @@ async function boot(page, variant, testInfo) {
   await page
     .locator("#setup-wizard")
     .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
-  await page.addScriptTag({ url: "/legacy/runtime-hotfix.js" });
-  await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_HOTFIX__);
+  await installRuntimeHotfix(page);
   await page.evaluate(
     (states) =>
       states.forEach((state) => {
@@ -82,6 +81,28 @@ async function boot(page, variant, testInfo) {
     haStates,
   );
   await page.evaluate(() => window.render?.());
+}
+
+async function installRuntimeHotfix(page) {
+  await page.addScriptTag({ url: "/legacy/runtime-hotfix.js" });
+  await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_HOTFIX__);
+}
+
+async function openEnergyAnalysis(page, projectName) {
+  await clickBottomTab(page, "energy", projectName);
+  const energyPage = page.locator("#page-energy.active");
+  await clickStableButton(
+    page,
+    energyPage.getByRole("button", { name: /^📊?\s*Report$/i }),
+    projectName,
+  );
+  await expect(page.locator("#view-panoramica")).toBeVisible();
+  await clickStableButton(
+    page,
+    energyPage.getByRole("button", { name: /Analisi|Analysis/i }),
+    projectName,
+  );
+  await expect(page.locator("#ed-pane-analisi")).toBeVisible();
 }
 
 async function openEditor(page, tab) {
@@ -125,12 +146,31 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const shutter = page.locator("#tapp-avvisi .dm-shutter-alert");
     await expect(shutter.locator(".g-name")).toContainText(/TAPPARELLA APERTA|SHUTTER OPEN/);
     await expect(shutter.locator(".g-val")).toHaveText("1");
-    await expect(page.locator("#glance-luci .g-name")).toHaveCount(1);
+    const lightCard = page.locator("#glance-luci.glance-card");
+    const shutterCard = page.locator("#tapp-avvisi .dm-shutter-alert");
+    await expect(lightCard).toBeVisible();
+    await expect(shutterCard).toBeVisible();
     const [lightBox, shutterBox] = await Promise.all([
-      page.locator("#glance-luci").boundingBox(),
-      shutter.boundingBox(),
+      lightCard.boundingBox(),
+      shutterCard.boundingBox(),
     ]);
-    expect(Math.abs((lightBox?.height || 0) - (shutterBox?.height || 0))).toBeLessThanOrEqual(2);
+    if (!lightBox || !shutterBox) throw new Error("Alert cards have no bounding box");
+    expect(Math.abs(lightBox.height - shutterBox.height)).toBeLessThanOrEqual(2);
+    const styles = await Promise.all(
+      [lightCard, shutterCard].map((card) =>
+        card.evaluate((node) => {
+          const style = getComputedStyle(node);
+          return {
+            borderRadius: style.borderRadius,
+            padding: style.padding,
+            boxShadow: style.boxShadow,
+            display: style.display,
+            alignItems: style.alignItems,
+          };
+        }),
+      ),
+    );
+    expect(styles[1]).toEqual(styles[0]);
     await shutter.click();
     await expect(page.locator("#dm-shutter-popup")).toContainText("Tapparella salone");
     await expect(page.locator("#dm-shutter-popup")).toContainText("Salone");
@@ -189,9 +229,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         show_in_report: true,
       });
     await page.locator("#editor-modal .ed-head-close").last().click();
-    await clickBottomTab(page, "energy");
-    await page.getByRole("button", { name: /Report/i }).click();
-    await page.getByRole("button", { name: /Analisi|Analysis/i }).click();
+    await openEnergyAnalysis(page, testInfo.project.name);
     await expect(page.locator("#ed-dev-selector")).toContainText("Forno");
     await expect(page.locator("#ed-dev-selector option", { hasText: "Forno" })).toHaveAttribute(
       "value",
@@ -204,9 +242,17 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.waitForFunction(
       () => window.__DASHBOARDMODERN_LEGACY_READY__ && window.DashboardModernModules,
     );
-    await clickBottomTab(page, "energy");
-    await page.getByRole("button", { name: /Report/i }).click();
-    await page.getByRole("button", { name: /Analisi|Analysis/i }).click();
+    await installRuntimeHotfix(page);
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          DashboardModernModules.store
+            .getSection("appliances")
+            .some((item) => item.name === "Forno"),
+        ),
+      )
+      .toBe(true);
+    await openEnergyAnalysis(page, testInfo.project.name);
     await expect(page.locator("#ed-dev-selector option", { hasText: "Forno" })).toHaveAttribute(
       "value",
       "sensor.forno_energy",
