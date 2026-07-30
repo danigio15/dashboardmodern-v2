@@ -137,10 +137,20 @@ async function boot(page, variant, testInfo) {
 
 async function openEditor(page, tab) {
   if (!(await page.locator("#editor-modal").count())) {
-    await page.locator(".ha-menu-btn").click();
-    await page
-      .locator("#cd-app-menu button", { hasText: /Configurazione|Configuration/ })
-      .click();
+    const menu = page.locator(".ha-menu-btn");
+    if (await menu.isVisible()) {
+      await menu.click();
+      await page
+        .locator("#cd-app-menu button", { hasText: /Configurazione|Configuration/ })
+        .click();
+    } else {
+      await page.evaluate(() => {
+        const config = document.querySelector('.tab[data-tab="config"]');
+        if (!(config instanceof HTMLElement)) throw new Error("Config tab is unavailable");
+        config.click();
+      });
+      await expect(page.locator("#editor-modal")).toBeVisible();
+    }
   }
   await page.locator(`.ed-tab[data-tab="${tab}"]`).click();
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
@@ -238,8 +248,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.locator("#editor-modal .ed-head-close").last().click();
     await clickBottomTab(page, "appliances", testInfo);
     await page.evaluate(() => renderApplianceSection?.(true));
-    await expect(page.locator('[data-appliance-asset="forno"]')).toBeVisible();
-    await expect(page.locator('.appl-wide-card img[src*="logo.png"]')).toHaveCount(0);
+    await expect(
+      page.locator('#appl-view-overview.active [data-appliance-asset-key="forno"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('#appl-view-overview.active .appl-wide-card img[src*="logo.png"]'),
+    ).toHaveCount(0);
 
     await clickBottomTab(page, "temp", testInfo);
     const temperatureIcon = page.locator("#temp-grid .temp-room-icon").first();
