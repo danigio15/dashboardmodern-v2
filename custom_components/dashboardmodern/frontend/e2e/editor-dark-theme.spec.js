@@ -102,7 +102,15 @@ async function boot(page, variant, testInfo) {
     editorSwitch("sez1");
   });
   await expect(page.locator("#editor-modal")).toBeVisible();
-  await page.locator(".ed-inner-tab", { hasText: /^REPORT$/i }).click();
+
+  const reportTab = page.locator(".ed-inner-tab", { hasText: /^REPORT$/i });
+  await reportTab.click();
+  await expect(reportTab).toHaveClass(/active/);
+
+  const reportRow = page.locator("#editor-modal .dm-report-row").first();
+  await expect(reportRow).toBeVisible();
+  await expect(reportRow.locator(".ed-input").first()).toBeVisible();
+  await expect(reportRow.locator(".ed-slot-lbl").first()).toBeVisible();
 }
 
 function channel(value) {

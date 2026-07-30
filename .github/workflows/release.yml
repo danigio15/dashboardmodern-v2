@@ -2,6 +2,10 @@ name: Release
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - "custom_components/dashboardmodern/manifest.json"
     tags:
       - "v*"
   workflow_dispatch:
@@ -45,7 +49,7 @@ jobs:
         run: |
           manifest=$(python -c "import json;print(json.load(open('custom_components/dashboardmodern/manifest.json'))['version'])")
           release_tag="v$manifest"
-          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [[ "$GITHUB_REF" == refs/tags/* ]]; then
             tag="v${GITHUB_REF_NAME#v}"
             if [ "$release_tag" != "$tag" ]; then
               echo "Tag ${tag#v} does not match manifest version $manifest" >&2
