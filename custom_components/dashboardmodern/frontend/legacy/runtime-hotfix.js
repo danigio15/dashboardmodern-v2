@@ -137,7 +137,7 @@
           item.room?.name || "",
           pending,
           shutterCommandErrors.get(item.entity) || "",
-        ].join(":"),
+        ].join(":");
       })
       .join("|");
   }
@@ -159,16 +159,16 @@
     button.disabled = true;
     button.textContent = service === "close_cover" ? (en ? "Closing…" : "Chiusura…") : "…";
     if (error) error.textContent = "";
-    globalThis
-      .dmCallHaService("cover", service, { entity_id: item.entity })
-      .catch((cause) => {
-        pendingShutterCommands.delete(key);
-        if (button.isConnected) {
-          button.disabled = false;
-          button.textContent = original;
-        }
-        if (error) error.textContent = cause?.message || String(cause);
-      });
+    Promise.resolve(
+      globalThis.dmCallHaService("cover", service, { entity_id: item.entity }),
+    ).catch((cause) => {
+      pendingShutterCommands.delete(key);
+      if (button.isConnected) {
+        button.disabled = false;
+        button.textContent = original;
+      }
+      if (error) error.textContent = cause?.message || String(cause);
+    });
   }
 
   function renderShutterPopup(items) {
