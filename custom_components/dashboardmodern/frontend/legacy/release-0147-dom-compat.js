@@ -37,15 +37,21 @@ function bindStandardAlertButton(button, group, entity) {
   if (accordion) accordion.open = true;
 }
 
+function standardAlertRow(entity) {
+  return [...document.querySelectorAll("#ed-body .ed-row-old.mono")]
+    .find((node) => {
+      const value = node.textContent.trim();
+      return value === entity || value.endsWith(` · ${entity}`) || value.endsWith(entity);
+    })
+    ?.closest(".ed-row");
+}
+
 function decorateStandardAlerts() {
   const groups = readJson("cd_gruppi_extra", {});
   Object.entries(groups).forEach(([group, entities]) => {
     if (!Array.isArray(entities)) return;
     entities.forEach((entity) => {
-      const line = [...document.querySelectorAll("#ed-body .ed-row-old.mono")].find(
-        (node) => node.textContent.trim() === entity,
-      );
-      const row = line?.closest(".ed-row");
+      const row = standardAlertRow(entity);
       if (!row) return;
       let button = row.querySelector("[data-standard-alert-edit]");
       if (!button) {
