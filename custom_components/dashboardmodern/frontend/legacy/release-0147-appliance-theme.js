@@ -49,6 +49,7 @@ function installApplianceThemeCss() {
     }
 
     #page-appliances-main .appl-wide-card.dm-control-device .appl-visual .appl-ic,
+    #page-appliances-main .appl-wide-card.dm-control-device .appl-visual .dm-appliance-media,
     #page-appliances-main .appl-wide-card.dm-control-device .appl-visual .dm-appliance-art,
     #page-appliances-main .appl-wide-card.dm-control-device .appl-visual .dm-appliance-image-wrap {
       display: grid !important;
@@ -90,10 +91,6 @@ function installApplianceThemeCss() {
     }
 
     #page-appliances-main .appl-wide-card.dm-control-device .appl-visual .dm-appliance-glyph {
-      display: grid;
-      place-items: center;
-      width: 100%;
-      height: 100%;
       font-size: clamp(58px, 7vw, 96px);
       line-height: 1;
     }
@@ -156,6 +153,16 @@ function installApplianceThemeCss() {
     @media (max-width: 760px) {
       #page-appliances-main .appl-wide-card.dm-control-device {
         grid-template-columns: 112px minmax(0, 1fr) !important;
+      }
+
+      #page-appliances-main .appl-wide-card.dm-control-device .appl-visual .dm-appliance-media,
+      #page-appliances-main .appl-wide-card.dm-control-device .appl-visual .dm-appliance-media > .dm-appliance-art {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 100% !important;
+        min-height: 100% !important;
+        max-width: none !important;
+        max-height: none !important;
       }
     }
   `;
