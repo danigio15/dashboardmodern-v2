@@ -78,6 +78,21 @@
     document.getElementById("dm-shutter-popup")?.remove();
   }
 
+  function shutterPopupSignature(items) {
+    return items
+      .map((item) =>
+        [
+          item.entity,
+          item.name || "",
+          item.state,
+          item.position ?? "",
+          item.room?.id || "",
+          item.room?.name || "",
+        ].join(":"),
+      )
+      .join("|");
+  }
+
   function callShutterService(button, item, service) {
     const en = document.documentElement.lang === "en";
     const original = button.textContent;
@@ -112,8 +127,13 @@
   function renderShutterPopup(items) {
     const popup = document.getElementById("dm-shutter-popup");
     if (!popup) return;
-    if (!items.length) return closeShutterPopup();
+    if (!items.length) {
+      closeShutterPopup();
+      return;
+    }
     const list = popup.querySelector("[data-shutter-popup-list]");
+    const signature = shutterPopupSignature(items);
+    if (list.dataset.dmShutterPopupSignature === signature) return;
     list.replaceChildren(...items.map(function (item) {
       const row = document.createElement("article");
       row.className = "dm-shutter-popup-row";
@@ -132,6 +152,7 @@
       });
       return row;
     }));
+    list.dataset.dmShutterPopupSignature = signature;
   }
 
   function showShutterPopup() {
