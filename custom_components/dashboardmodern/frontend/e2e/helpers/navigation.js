@@ -55,6 +55,15 @@ async function instantScrollIntoView(locator) {
   });
 }
 
+async function centerTabInsideNavigation(tab) {
+  await tab.evaluate((node) => {
+    const navigation = node.closest("nav.bottom-nav-bar");
+    if (!navigation) throw new Error("Bottom navigation missing");
+    const targetLeft = node.offsetLeft - (navigation.clientWidth - node.offsetWidth) / 2;
+    navigation.scrollTo({ left: Math.max(0, targetLeft), behavior: "instant" });
+  });
+}
+
 export async function clickBottomTab(page, tabName, testInfo) {
   const touchProject =
     testInfo.project.name === "mobile" || testInfo.project.name === "webkit-ipad";
@@ -63,12 +72,25 @@ export async function clickBottomTab(page, tabName, testInfo) {
   if (touchProject) {
     const handle = page.locator("#bottomNavHandle");
     await expect(handle).toBeVisible();
-    if (!(await nav.getAttribute("class"))?.includes("visible")) await handle.click();
+    if (!(await nav.getAttribute("class"))?.includes("visible")) await handle.tap();
     await expect(nav).toHaveClass(/visible/);
-    await instantScrollIntoView(tab);
-    const box = await tab.boundingBox();
-    if (!box) throw new Error(`${tabName} touch tab has no bounding box`);
-    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    await waitForStableBox(nav);
+    await centerTabInsideNavigation(tab);
+    await expect(tab).toBeVisible();
+    await waitForStableBox(tab);
+    const hitTarget = await tab.evaluate((node) => {
+      const box = node.getBoundingClientRect();
+      const element = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      return {
+        tab: node.dataset.tab,
+        targetTag: element?.tagName || null,
+        targetClass: element?.className || null,
+        targetTab: element?.closest(".tab")?.dataset.tab || null,
+        navClass: node.closest("nav.bottom-nav-bar")?.className || null,
+      };
+    });
+    expect(hitTarget.targetTab).toBe(tabName);
+    await tab.tap({ timeout: 5000 });
   } else {
     await revealBottomNavigation(page);
     await expect(tab).toBeVisible();

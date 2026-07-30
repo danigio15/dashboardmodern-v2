@@ -262,3 +262,10 @@ navigation requires the touch handle for mobile/iPad projects and uses a real
 Playwright touchscreen tap; desktop retains keyboard activation. Google Fonts
 responses in the editor integration test now use CSS/font MIME types, and only
 the long WebKit editor flow receives the scoped `test.slow()` allowance.
+
+### Stable touch-tab targeting
+
+Touch tab navigation now waits for the animated navbar and target tab boxes to
+stabilize, scrolls only the fixed navbar's horizontal container, verifies the
+actual center-point hit target, and uses Playwright `locator.tap()` rather than
+absolute touchscreen coordinates. Desktop activation remains keyboard-driven.
