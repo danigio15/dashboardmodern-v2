@@ -15,29 +15,49 @@ function decorateShutterRows() {
   });
 }
 
+function bindStandardAlertButton(button, group, entity) {
+  button.removeAttribute("onclick");
+  button.dataset.standardAlertEdit = "";
+  button.dataset.standardAlertGroup = group;
+  button.dataset.standardAlertEntity = entity;
+  button.type = "button";
+  button.classList.add("ed-del");
+  button.textContent = "✏️";
+  button.title = document.documentElement.lang === "en" ? "Edit" : "Modifica";
+  if (button.dataset.standardAlertMounted !== "true") {
+    button.dataset.standardAlertMounted = "true";
+    button.addEventListener("click", () =>
+      globalThis.edEditAvvisoStandard?.(
+        button.dataset.standardAlertGroup,
+        button.dataset.standardAlertEntity,
+      ),
+    );
+  }
+  const accordion = button.closest("details.ed-acc");
+  if (accordion) accordion.open = true;
+}
+
 function decorateStandardAlerts() {
   const groups = readJson("cd_gruppi_extra", {});
-  document.querySelectorAll("[data-standard-alert-edit]").forEach((button) => {
-    const row = button.closest(".ed-row");
-    const entity = row?.querySelector(".ed-row-old.mono")?.textContent?.trim() || "";
-    const group = Object.entries(groups).find(([, entities]) =>
-      Array.isArray(entities) && entities.includes(entity),
-    )?.[0];
-    if (!group || !entity) return;
-    button.removeAttribute("onclick");
-    button.dataset.standardAlertGroup = group;
-    button.dataset.standardAlertEntity = entity;
-    if (button.dataset.standardAlertMounted !== "true") {
-      button.dataset.standardAlertMounted = "true";
-      button.addEventListener("click", () =>
-        globalThis.edEditAvvisoStandard?.(
-          button.dataset.standardAlertGroup,
-          button.dataset.standardAlertEntity,
-        ),
+  Object.entries(groups).forEach(([group, entities]) => {
+    if (!Array.isArray(entities)) return;
+    entities.forEach((entity) => {
+      const line = [...document.querySelectorAll("#ed-body .ed-row-old.mono")].find(
+        (node) => node.textContent.trim() === entity,
       );
-    }
-    const accordion = button.closest("details.ed-acc");
-    if (accordion) accordion.open = true;
+      const row = line?.closest(".ed-row");
+      if (!row) return;
+      let button = row.querySelector("[data-standard-alert-edit]");
+      if (!button) {
+        button = document.createElement("button");
+        const remove = [...row.querySelectorAll(".ed-del")].find(
+          (node) => node.textContent.includes("🗑️"),
+        );
+        if (remove) remove.before(button);
+        else row.append(button);
+      }
+      bindStandardAlertButton(button, group, entity);
+    });
   });
 }
 
