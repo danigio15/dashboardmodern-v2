@@ -172,22 +172,41 @@ function decorateApplianceCards() {
     });
 }
 
-function install() {
-  if (globalThis[FLAG]?.installed) {
-    installApplianceThemeCss();
-    decorateApplianceCards();
-    return;
-  }
+function installRenderHook() {
+  const renderer = globalThis.renderApplianceSection;
+  if (typeof renderer !== "function") return false;
+  if (renderer.__dmApplianceThemeAware === true) return true;
 
-  globalThis[FLAG] = { installed: true };
+  const wrapped = function () {
+    const result = renderer.apply(this, arguments);
+    decorateApplianceCards();
+    queueMicrotask(decorateApplianceCards);
+    return result;
+  };
+  wrapped.__dmApplianceThemeAware = true;
+  globalThis.renderApplianceSection = wrapped;
+  return true;
+}
+
+function install() {
   installApplianceThemeCss();
+  installRenderHook();
   decorateApplianceCards();
+
+  if (globalThis[FLAG]?.installed) return;
+  globalThis[FLAG] = { installed: true };
 
   let frame = 0;
   new MutationObserver(() => {
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(decorateApplianceCards);
   }).observe(document.documentElement, { childList: true, subtree: true });
+
+  let attempts = 0;
+  const timer = setInterval(() => {
+    attempts += 1;
+    if (installRenderHook() || attempts >= 100) clearInterval(timer);
+  }, 100);
 }
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
