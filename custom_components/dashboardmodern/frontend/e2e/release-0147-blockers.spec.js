@@ -84,6 +84,7 @@ async function boot(page, variant, testInfo) {
       onmessage = null;
       onclose = null;
       onerror = null;
+
       constructor() {
         super();
         queueMicrotask(() => {
@@ -91,6 +92,7 @@ async function boot(page, variant, testInfo) {
           this.onmessage?.({ data: JSON.stringify({ type: "auth_ok" }) });
         });
       }
+
       send(raw) {
         const message = JSON.parse(raw);
         if (message.type === "auth") return;
@@ -109,14 +111,17 @@ async function boot(page, variant, testInfo) {
           }),
         });
       }
+
       close() {
         this.readyState = MockBridgeSocket.CLOSED;
         this.onclose?.({});
       }
     }
+
     window.__DASHBOARDMODERN_BRIDGE_WS__ = MockBridgeSocket;
     window.WebSocket = MockBridgeSocket;
   }, haStates);
+
   await bootNamespacedDashboard(page, variant, testInfo, dashboardSeed);
   await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await page.evaluate(
@@ -127,42 +132,66 @@ async function boot(page, variant, testInfo) {
       }),
     haStates,
   );
+
   await expect
     .poll(() =>
-      page.evaluate(() => window.__DASHBOARDMODERN_0147_FIXES__?.patched === true),
+      page.evaluate(
+        () =>
+          window.__DASHBOARDMODERN_0147_FIXES__?.patched === true &&
+          window.__DASHBOARDMODERN_0147_APPLIANCE_THEME__?.installed === true,
+      ),
     )
     .toBe(true);
+
   await page.evaluate(() => window.render?.());
 }
 
 async function openEditor(page, tab) {
-  if (!(await page.locator("#editor-modal").count())) {
-    const menu = page.locator(".ha-menu-btn");
-    if (await menu.isVisible()) {
-      await menu.click();
-      await page
-        .locator("#cd-app-menu button", { hasText: /Configurazione|Configuration/ })
-        .click();
-    } else {
-      await page.evaluate(() => {
-        const config = document.querySelector('.tab[data-tab="config"]');
-        if (!(config instanceof HTMLElement)) throw new Error("Config tab is unavailable");
-        config.click();
-      });
-      await expect(page.locator("#editor-modal")).toBeVisible();
-    }
+  const modal = page.locator("#editor-modal");
+  const visible = await modal.isVisible().catch(() => false);
+
+  if (!visible) {
+    await page.evaluate(() => {
+      if (typeof apriConfigEntita !== "function") {
+        throw new Error("Canonical configuration editor is unavailable");
+      }
+      apriConfigEntita();
+    });
+    await expect(modal).toBeVisible({ timeout: 10_000 });
   }
-  await page.locator(`.ed-tab[data-tab="${tab}"]`).click();
+
+  await page.evaluate((target) => {
+    if (typeof editorSwitch !== "function") throw new Error("Editor switch is unavailable");
+    editorSwitch(target);
+  }, tab);
+
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
 }
 
+async function activateAppliancePage(page) {
+  await page.evaluate(() => {
+    document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
+    const appliancePage = document.getElementById("page-appliances-main");
+    if (!appliancePage) throw new Error("Appliance page is unavailable");
+    appliancePage.classList.add("active");
+    renderApplianceSection?.(true);
+  });
+  await expect(page.locator("#page-appliances-main.active")).toBeVisible();
+}
+
+async function applyThemeVariables(page, values) {
+  await page.evaluate((theme) => {
+    Object.entries(theme).forEach(([name, value]) => {
+      document.documentElement.style.setProperty(name, value);
+    });
+  }, values);
+}
+
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: 0.14.7 blocker audit covers edit flows and real layouts`, async ({
+  test(`${variant}: 0.14.7 blocker audit covers editing, themes and real layouts`, async ({
     page,
   }, testInfo) => {
-    if (testInfo.project.name === "webkit-ipad") {
-      test.slow(true, "Full visual editor audit is slower on WebKit/iPad");
-    }
+    test.setTimeout(testInfo.project.name === "webkit-ipad" ? 180_000 : 90_000);
     await boot(page, variant, testInfo);
 
     await openEditor(page, "tapp");
@@ -189,7 +218,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.locator("#ed-avv-ent").fill("light.salone");
     await page.locator("#ed-avv-name").fill("Luce salone");
     await page.locator('button[onclick="edAddAvviso()"]:visible').click();
-    await page.locator("[data-standard-alert-edit]").click();
+    await page.locator("[data-standard-alert-edit]:visible").first().click();
     await expect(page.locator("#ed-avv-ent")).toHaveValue("light.salone");
     await page.locator("#ed-avv-name").fill("Luce principale");
     await page.locator('button[onclick="edAddAvviso()"]:visible').click();
@@ -245,15 +274,87 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         image: "",
         image_url: "",
       });
+
     await page.locator("#editor-modal .ed-head-close").last().click();
-    await clickBottomTab(page, "appliances", testInfo);
-    await page.evaluate(() => renderApplianceSection?.(true));
+    await expect(page.locator("#editor-modal")).not.toBeVisible();
+    await activateAppliancePage(page);
+
+    const applianceCard = page
+      .locator("#appl-view-overview.active .appl-wide-card.dm-control-device")
+      .filter({ hasText: "Forno" })
+      .first();
+    await expect(applianceCard).toBeVisible();
     await expect(
-      page.locator('#appl-view-overview.active [data-appliance-asset-key="forno"]'),
+      applianceCard.locator('[data-appliance-asset="forno"], [data-appliance-asset-key="forno"]'),
     ).toBeVisible();
-    await expect(
-      page.locator('#appl-view-overview.active .appl-wide-card img[src*="logo.png"]'),
-    ).toHaveCount(0);
+    await expect(applianceCard.locator('img[src*="logo.png"]')).toHaveCount(0);
+
+    await applyThemeVariables(page, {
+      "--card-bg": "#f8fafc",
+      "--secondary-background-color": "#eef2f7",
+      "--text": "#0f172a",
+      "--text-dim": "#475569",
+      "--card-border": "#cbd5e1",
+    });
+    await expect
+      .poll(() =>
+        applianceCard.evaluate((card) => ({
+          background: getComputedStyle(card).backgroundColor,
+          color: getComputedStyle(card).color,
+        })),
+      )
+      .toEqual({ background: "rgb(248, 250, 252)", color: "rgb(15, 23, 42)" });
+    await applianceCard.screenshot({
+      path: `test-results/${testInfo.project.name}-${variant}-appliance-light.png`,
+    });
+
+    const coverage = await applianceCard.evaluate((card) => {
+      const visual = card.querySelector(".appl-visual");
+      const art = visual?.querySelector(".dm-appliance-art, .dm-appliance-image-wrap");
+      const media = art?.querySelector("svg, img");
+      if (!visual || !art || !media) return null;
+      const visualBox = visual.getBoundingClientRect();
+      const artBox = art.getBoundingClientRect();
+      const mediaBox = media.getBoundingClientRect();
+      return {
+        themeAware: card.dataset.applianceThemeAware,
+        cover: visual.dataset.applianceCover,
+        overflow: getComputedStyle(visual).overflow,
+        widthDelta: Math.abs(visualBox.width - artBox.width),
+        heightDelta: Math.abs(visualBox.height - artBox.height),
+        mediaWidthRatio: mediaBox.width / visualBox.width,
+        mediaHeightRatio: mediaBox.height / visualBox.height,
+      };
+    });
+    expect(coverage).not.toBeNull();
+    expect(coverage).toMatchObject({
+      themeAware: "true",
+      cover: "true",
+      overflow: "hidden",
+    });
+    expect(coverage.widthDelta).toBeLessThanOrEqual(2);
+    expect(coverage.heightDelta).toBeLessThanOrEqual(2);
+    expect(coverage.mediaWidthRatio).toBeGreaterThanOrEqual(0.98);
+    expect(coverage.mediaHeightRatio).toBeGreaterThanOrEqual(0.98);
+
+    await applyThemeVariables(page, {
+      "--card-bg": "#111827",
+      "--secondary-background-color": "#1f2937",
+      "--text": "#f8fafc",
+      "--text-dim": "#cbd5e1",
+      "--card-border": "#374151",
+    });
+    await expect
+      .poll(() =>
+        applianceCard.evaluate((card) => ({
+          background: getComputedStyle(card).backgroundColor,
+          color: getComputedStyle(card).color,
+        })),
+      )
+      .toEqual({ background: "rgb(17, 24, 39)", color: "rgb(248, 250, 252)" });
+    await applianceCard.screenshot({
+      path: `test-results/${testInfo.project.name}-${variant}-appliance-dark.png`,
+    });
 
     await clickBottomTab(page, "temp", testInfo);
     const temperatureIcon = page.locator("#temp-grid .temp-room-icon").first();
@@ -261,14 +362,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(temperatureIcon).not.toHaveText("");
 
     await openEditor(page, "sez1");
-    await page.locator(".ed-inner-tab", { hasText: /^REPORT$/ }).click();
+    await page.locator(".ed-inner-tab", { hasText: /^REPORT$/i }).click();
     const reportRow = page.locator(".dm-report-row").first();
     await expect(reportRow).toBeVisible();
     const layout = await reportRow.evaluate((row) => {
-      const entity = row.querySelector("[data-entity-field]").getBoundingClientRect();
-      const label = row.querySelector("[data-report-label]").getBoundingClientRect();
-      const actions = row.querySelector(".dm-report-actions").getBoundingClientRect();
+      const entity = row.querySelector("[data-entity-field]")?.getBoundingClientRect();
+      const label = row.querySelector("[data-report-label]")?.getBoundingClientRect();
+      const actions = row.querySelector(".dm-report-actions")?.getBoundingClientRect();
       const box = row.getBoundingClientRect();
+      if (!entity || !label || !actions) return null;
       const overlap = (a, b) =>
         Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
         Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
@@ -280,6 +382,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         entityActionsOverlap: overlap(entity, actions),
       };
     });
+    expect(layout).not.toBeNull();
     expect(layout.display).toBe("grid");
     expect(layout.entityWidth).toBeGreaterThan(180);
     expect(layout.labelEntityOverlap).toBe(0);
