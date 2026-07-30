@@ -41,6 +41,7 @@ const dashboardSeed = {
 async function boot(page, variant, testInfo) {
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await page.addInitScript((states) => {
+    window.__haCalls = [];
     window.WebSocket = class extends EventTarget {
       static OPEN = 1;
       readyState = 1;
@@ -50,6 +51,7 @@ async function boot(page, variant, testInfo) {
       }
       send(raw) {
         const message = JSON.parse(raw);
+        if (message.type === "call_service") window.__haCalls.push(message);
         const result = message.type === "get_states" ? states : [];
         this.onmessage?.({
           data: JSON.stringify(
@@ -188,6 +190,19 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#dm-shutter-popup")).toContainText("Tapparella salone");
     await expect(page.locator("#dm-shutter-popup")).toContainText("Salone");
     await expect(page.locator("#dm-shutter-popup")).toContainText("65%");
+    const close = page.locator('[data-shutter-service="close_cover"]').first();
+    await close.click();
+    await expect(close).toBeDisabled();
+    await expect(close).toHaveText(/Chiusura…|Closing…/);
+    await expect
+      .poll(() => page.evaluate(() => window.__haCalls.at(-1)))
+      .toMatchObject({
+        type: "call_service",
+        domain: "cover",
+        service: "close_cover",
+        service_data: { entity_id: "cover.salone" },
+      });
+    await expect(page.locator("#dm-shutter-popup")).toBeVisible();
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-shutter-popup.png`,
     });
