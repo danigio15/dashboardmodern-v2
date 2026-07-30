@@ -221,12 +221,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await clickStableButton(
       page,
       page.getByRole("button", { name: /IMPOSTAZIONI|SETTINGS/ }),
-      testInfo.project.name,
+      testInfo,
     );
     await clickStableButton(
       page,
       page.getByRole("button", { name: /FLUSSI ED ENTITÀ|FLOWS & ENTITIES/ }),
-      testInfo.project.name,
+      testInfo,
     );
     await assertPickerInvariant();
     await page.evaluate(() => window.editorSwitch("sez2"));
@@ -255,11 +255,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(
       page.getByRole("button", { name: /FLUSSI ED ENTITÀ|FLOWS & ENTITIES/ }),
     ).toBeVisible();
-    await clickStableButton(
-      page,
-      page.getByRole("button", { name: /CARICHI|LOADS/ }),
-      testInfo.project.name,
-    );
+    await clickStableButton(page, page.getByRole("button", { name: /CARICHI|LOADS/ }), testInfo);
     const loads = await page.locator('[data-energy-panel="loads"]').innerHTML();
     await page.locator("#dm-load-name").fill("Booster");
     await page.locator("#dm-load-power").fill("sensor.pump_power");
@@ -286,11 +282,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await temporary.locator("[data-delete-load]").click();
     await expect(temporary).toHaveCount(0);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-loads.png` });
-    await clickStableButton(
-      page,
-      page.getByRole("button", { name: "REPORT" }),
-      testInfo.project.name,
-    );
+    await clickStableButton(page, page.getByRole("button", { name: "REPORT" }), testInfo);
     const report = await page.locator('[data-energy-panel="report"]').innerHTML();
     expect(report).not.toBe(loads);
     expect(report).toMatch(/Salva Report|Save Report/);
@@ -300,7 +292,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.locator("#dm-manual-report-icon").fill("💧");
     await page.locator("#dm-manual-report-entity").fill("sensor.water_month");
     await page.locator("#dm-manual-report-history").fill("sensor.water_total");
-    await page.locator("[data-manual-confirm]").click();
+    await clickStableButton(page, page.locator("[data-manual-confirm]"), testInfo);
     await expect(page.locator(".dm-report-row")).toHaveCount(4);
     let manual = page.locator(".dm-report-row").last();
     await expect(manual.locator('[data-report-name][value="Manual water"]')).toHaveCount(1);
@@ -326,16 +318,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
             .find((item) => item.name === "Booster updated")?.show_in_dashboard,
       ),
     ).toBe(false);
-    await clickStableButton(
-      page,
-      page.getByRole("button", { name: /CARICHI|LOADS/ }),
-      testInfo.project.name,
-    );
-    await clickStableButton(
-      page,
-      page.getByRole("button", { name: "REPORT" }),
-      testInfo.project.name,
-    );
+    await clickStableButton(page, page.getByRole("button", { name: /CARICHI|LOADS/ }), testInfo);
+    await clickStableButton(page, page.getByRole("button", { name: "REPORT" }), testInfo);
     await expect(page.locator('[data-report-name][value="Manual water"]')).toHaveCount(1);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-report.png` });
     expect(
@@ -353,7 +337,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await clickStableButton(
       page,
       page.locator('#ed-body button[title="Selettore icone"]'),
-      testInfo.project.name,
+      testInfo,
     );
     await expect(page.locator("#dm-icon-grid button")).toHaveCount(19);
     for (const icon of ["🛏️", "🛋️", "🍳", "🛁", "💻", "🚗", "🌇", "🧺"])
@@ -368,7 +352,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const closeIconPicker = page.getByRole("button", {
       name: /Chiudi selettore icone|Close icon picker/i,
     });
-    await clickStableButton(page, closeIconPicker, testInfo.project.name);
+    await clickStableButton(page, closeIconPicker, testInfo);
     await expect(page.locator("#dm-iconpick")).toHaveCount(0);
     await page.evaluate(() => window.editorSwitch("luci"));
     await assertPickerInvariant();

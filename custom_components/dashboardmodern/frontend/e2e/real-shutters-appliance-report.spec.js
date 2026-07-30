@@ -88,19 +88,19 @@ async function installRuntimeHotfix(page) {
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_HOTFIX__);
 }
 
-async function openEnergyAnalysis(page, projectName) {
-  await clickBottomTab(page, "energy", projectName);
+async function openEnergyAnalysis(page, testInfo) {
+  await clickBottomTab(page, "energy");
   const energyPage = page.locator("#page-energy.active");
   await clickStableButton(
     page,
     energyPage.getByRole("button", { name: /^📊?\s*Report$/i }),
-    projectName,
+    testInfo,
   );
   await expect(page.locator("#view-panoramica")).toBeVisible();
   await clickStableButton(
     page,
     energyPage.getByRole("button", { name: /Analisi|Analysis/i }),
-    projectName,
+    testInfo,
   );
   await expect(page.locator("#ed-pane-analisi")).toBeVisible();
 }
@@ -170,7 +170,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         }),
       ),
     );
-    expect(styles[1]).toEqual(styles[0]);
+    await expect(lightCard).toHaveClass(/glance-card/);
+    await expect(shutterCard).toHaveClass(/glance-card/);
+    expect(styles[1].borderRadius).toBe(styles[0].borderRadius);
+    expect(styles[1].padding).toBe(styles[0].padding);
+    expect(styles[1].display).toBe(styles[0].display);
+    expect(styles[1].alignItems).toBe(styles[0].alignItems);
+    expect(styles[0].boxShadow).not.toBe("none");
+    expect(styles[1].boxShadow).not.toBe("none");
     await shutter.click();
     await expect(page.locator("#dm-shutter-popup")).toContainText("Tapparella salone");
     await expect(page.locator("#dm-shutter-popup")).toContainText("Salone");
@@ -229,7 +236,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         show_in_report: true,
       });
     await page.locator("#editor-modal .ed-head-close").last().click();
-    await openEnergyAnalysis(page, testInfo.project.name);
+    await openEnergyAnalysis(page, testInfo);
     await expect(page.locator("#ed-dev-selector")).toContainText("Forno");
     await expect(page.locator("#ed-dev-selector option", { hasText: "Forno" })).toHaveAttribute(
       "value",
@@ -252,7 +259,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         ),
       )
       .toBe(true);
-    await openEnergyAnalysis(page, testInfo.project.name);
+    await openEnergyAnalysis(page, testInfo);
     await expect(page.locator("#ed-dev-selector option", { hasText: "Forno" })).toHaveAttribute(
       "value",
       "sensor.forno_energy",

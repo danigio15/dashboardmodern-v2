@@ -24,15 +24,13 @@ export async function waitForStableBox(locator) {
     .toBeTruthy();
 }
 
-export async function revealBottomNavigation(page, projectName) {
+export async function revealBottomNavigation(page) {
   const nav = page.locator("nav.bottom-nav-bar");
-  const touch = projectName === "mobile" || projectName === "webkit-ipad";
-  if (touch) {
-    const handle = page.locator("#bottomNavHandle");
-    await expect(handle).toBeVisible();
+  const handle = page.locator("#bottomNavHandle");
+  if (await handle.isVisible()) {
     if (!(await nav.getAttribute("class"))?.includes("visible")) await handle.click();
     await expect(nav).toHaveClass(/visible/);
-    return "touch";
+    return "handle";
   }
 
   const viewport = page.viewportSize();
@@ -51,30 +49,40 @@ export async function revealBottomNavigation(page, projectName) {
   return "mouse";
 }
 
-export async function clickBottomTab(page, tabName, projectName) {
-  const mode = await revealBottomNavigation(page, projectName);
+export async function clickBottomTab(page, tabName) {
+  const mode = await revealBottomNavigation(page);
   const tab = page.locator(`.tab[data-tab="${tabName}"]`);
   await tab.scrollIntoViewIfNeeded();
   await expect(tab).toBeVisible();
-  await waitForStableBox(tab);
-  const box = await tab.boundingBox();
-  if (!box) throw new Error(`${tabName} tab has no box`);
-  if (mode === "touch") {
-    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+  if (mode === "handle") {
+    await tab.click();
   } else {
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    const initialBox = await tab.boundingBox();
+    if (!initialBox) throw new Error(`${tabName} tab has no box`);
+    await page.mouse.move(
+      initialBox.x + initialBox.width / 2,
+      initialBox.y + initialBox.height / 2,
+    );
+    await waitForStableBox(tab);
+    const stableBox = await tab.boundingBox();
+    if (!stableBox) throw new Error(`${tabName} tab disappeared`);
+    await page.mouse.move(stableBox.x + stableBox.width / 2, stableBox.y + stableBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.up();
   }
   await expect(tab).toHaveClass(/active/);
   await expect(page.locator(`#page-${tabName}`)).toHaveClass(/active/);
 }
 
-export async function clickStableButton(page, locator, projectName) {
+export async function clickStableButton(page, locator, testInfo) {
   await expect(locator).toBeVisible();
+  await expect(locator).toBeEnabled();
   await locator.scrollIntoViewIfNeeded();
-  await waitForStableBox(locator);
-  const box = await locator.boundingBox();
-  if (!box) throw new Error("Button has no bounding box");
-  if (projectName === "mobile" || projectName === "webkit-ipad")
+  if (testInfo.project.name === "webkit-ipad") {
+    const box = await locator.boundingBox();
+    if (!box) throw new Error("Button has no box");
     await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-  else await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    return;
+  }
+  await locator.click();
 }

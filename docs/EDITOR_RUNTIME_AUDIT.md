@@ -222,3 +222,22 @@ be either the historical display name or the stable canonical id (for example
 `room-salone`). Device normalization now resolves both forms and always stores
 the result in canonical `room_id`, allowing the live popup to display the room
 after the Editor-to-store round trip.
+
+## Touch navigation and idempotent runtime rendering
+
+The mobile Chromium project now enables the actual mobile/touch context. The
+production dock uses hover behavior only for fine pointers; coarse touch
+pointers, including wide iPads, receive the visible handle layout. Runtime
+layout detection uses the same width, landscape-height and coarse-pointer media
+conditions, so Safari/iPad no longer depends on a hover interaction it cannot
+perform.
+
+The Home shutter renderer signs the canonical open-shutter projection (entity,
+state, position and room) and preserves the existing alert DOM while that
+projection is unchanged. Its 500 ms reconciliation therefore updates an open
+popup without continuously replacing the clickable card.
+
+Configured appliance images now mark their real `.appl-ic` container with
+`dm-appliance-image-wrap`. The container is 120–180 px wide on desktop and at
+least 100 px wide on mobile, with a 150 px containment area and centered
+`object-fit: contain`; the image remains the sole child when decoding succeeds.

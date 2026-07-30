@@ -28,4 +28,6 @@ export async function bootNamespacedDashboard(page, variant, testInfo, seed) {
   await expect
     .poll(() => page.evaluate(() => DashboardModernModules.store.getState()))
     .toMatchObject({ schema_version: 4 });
+  if (testInfo.project.name === "webkit-ipad")
+    await expect(page.locator("#bottomNavHandle")).toBeVisible();
 }

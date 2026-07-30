@@ -117,10 +117,20 @@
       wrapper.id = "tapp-avvisi";
       host.append(wrapper);
     }
+    const signature = items
+      .map((item) =>
+        [item.entity, item.state, item.position, item.room?.id || ""].join(":"),
+      )
+      .join("|");
+    if (wrapper.dataset.dmShutterSignature === signature) {
+      renderShutterPopup(items);
+      return;
+    }
     const en = document.documentElement.lang === "en";
     const title = items.length === 1 ? (en ? "SHUTTER OPEN" : "TAPPARELLA APERTA") : (en ? "SHUTTERS OPEN" : "TAPPARELLE APERTE");
     wrapper.innerHTML = `<button type="button" class="glance-card dm-shutter-alert" style="--g-rgb:245,158,11;display:flex" aria-haspopup="dialog"><span class="g-info"><span class="g-name">${title}</span><span class="g-val">${items.length}</span></span><span class="g-icon-wrap">🪟</span></button>`;
     wrapper.querySelector("button").addEventListener("click", showShutterPopup);
+    wrapper.dataset.dmShutterSignature = signature;
     renderShutterPopup(items);
   }
 
@@ -342,6 +352,8 @@
     const imageNormalized =
       !imageExpected ||
       Boolean(
+        visual?.classList.contains("dm-appliance-image-wrap") &&
+          visual.childElementCount === 1 &&
         existingImage?.classList.contains("dm-appliance-image") &&
           existingImage.getAttribute("src") === configuredVisual.value,
       );
@@ -358,6 +370,7 @@
       const glyph = GLYPHS[type] || GLYPHS.generico;
       visual.dataset.applianceType = type;
       if (configuredVisual?.kind === "image" && configuredVisual.value) {
+        visual.classList.add("dm-appliance-image-wrap");
         let image = visual.querySelector("img");
         if (!image) image = document.createElement("img");
         visual.replaceChildren(image);
@@ -369,16 +382,20 @@
           image.addEventListener(
             "error",
             function () {
+              visual.classList.remove("dm-appliance-image-wrap");
               visual.innerHTML = `<span class="dm-appliance-glyph" aria-hidden="true">${glyph}</span>`;
             },
             { once: true },
           );
         }
       } else if (configuredVisual?.kind === "asset" && configuredVisual.value) {
+        visual.classList.remove("dm-appliance-image-wrap");
         visual.innerHTML = window.cdApplianceVisual?.(appliance, 96) || `<span class="dm-appliance-glyph" aria-hidden="true">${glyph}</span>`;
       } else if (configuredVisual?.kind === "icon" && configuredVisual.value) {
+        visual.classList.remove("dm-appliance-image-wrap");
         visual.innerHTML = window.cdIconMarkup?.(configuredVisual.value, 64) || `<span class="dm-appliance-glyph" aria-hidden="true">${glyph}</span>`;
       } else {
+        visual.classList.remove("dm-appliance-image-wrap");
         visual.innerHTML = `<span class="dm-appliance-glyph" aria-hidden="true">${glyph}</span>`;
       }
     }
@@ -544,8 +561,18 @@
         align-items: stretch;
       }
       #page-appliances-main .appl-wide-card { width: 100%; max-width: 520px; }
-      #page-appliances-main .appl-visual { min-height: 150px; padding: 14px; overflow: hidden; }
-      #page-appliances-main .dm-appliance-image { display:block; width:100%; height:100%; min-height:120px; max-height:190px; object-fit:contain; object-position:center; }
+      #page-appliances-main .appl-ic.dm-appliance-image-wrap {
+        width: min(180px, 38vw) !important; min-width: 120px !important;
+        height: 150px !important; min-height: 120px !important; flex: 0 0 auto !important;
+        padding: 10px !important; overflow: hidden !important; display: grid !important; place-items: center !important;
+      }
+      #page-appliances-main .appl-ic.dm-appliance-image-wrap .dm-appliance-image {
+        display:block; width:100% !important; height:100% !important; min-width:0 !important;
+        min-height:0 !important; object-fit:contain; object-position:center;
+      }
+      @media (max-width: 768px) {
+        #page-appliances-main .appl-ic.dm-appliance-image-wrap { width: min(150px, 38vw) !important; min-width: 100px !important; }
+      }
       #page-appliances-main .appl-ic .dm-appliance-glyph {
         display: grid !important; place-items: center; width: 52px !important; height: 52px !important;
         font-size: 38px !important; line-height: 1 !important;

@@ -1824,7 +1824,7 @@ nav.tabs.bottom-nav-bar .tab.active .text {
 }
 
 /* ================= COMPORTAMENTO DESKTOP (DOCK MAC OS) ================= */
-@media (min-width: 769px) {
+@media (min-width: 769px) and (hover: hover) and (pointer: fine) {
     body { padding-bottom: 20px !important; } 
     
     nav.tabs.bottom-nav-bar {
@@ -1886,7 +1886,7 @@ nav.tabs.bottom-nav-bar .tab.active .text {
 
 /* ================= COMPORTAMENTO SMARTPHONE (HIDE/SHOW CON GESTO) ================= */
 /* Si attiva su: portrait fino a 768px LARGHEZZA  OPPURE  landscape con altezza ≤ 500px (smartphone ruotato) */
-@media (max-width: 768px), (orientation: landscape) and (max-height: 500px) {
+@media (max-width: 768px), (orientation: landscape) and (max-height: 500px), (hover: none) and (pointer: coarse) {
     body { padding-bottom: 30px !important; } 
 
     /* Barra NASCOSTA di default su mobile */
@@ -14863,7 +14863,8 @@ async function edCaricaDettaglio() {
         if (!window.matchMedia) return window.innerWidth <= 768;
         return window.matchMedia('(max-width: 768px)').matches ||
                (window.matchMedia('(orientation: landscape)').matches &&
-                window.matchMedia('(max-height: 500px)').matches);
+                window.matchMedia('(max-height: 500px)').matches) ||
+               window.matchMedia('(hover: none) and (pointer: coarse)').matches;
     }
     if (!isMobileLayout()) return;
     

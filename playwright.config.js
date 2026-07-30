@@ -14,7 +14,16 @@ export default defineConfig({
   },
   projects: [
     { name: "desktop", use: { viewport: { width: 1440, height: 900 } } },
-    { name: "mobile", use: { viewport: { width: 390, height: 844 } } },
+    {
+      name: "mobile",
+      use: {
+        browserName: "chromium",
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+        deviceScaleFactor: 2,
+      },
+    },
     { name: "webkit-ipad", use: { ...devices["iPad Pro 11"], browserName: "webkit" } },
   ],
 });

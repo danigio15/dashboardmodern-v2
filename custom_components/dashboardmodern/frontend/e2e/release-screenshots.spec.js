@@ -122,17 +122,17 @@ async function boot(page) {
   }, devices);
 }
 
-async function openEnergyAnalysis(page, projectName) {
-  await clickBottomTab(page, "energy", projectName);
+async function openEnergyAnalysis(page, testInfo) {
+  await clickBottomTab(page, "energy");
 
   const energyPage = page.locator("#page-energy.active");
   const reportButton = energyPage.locator(".sub-tab-btn", { hasText: "Report" });
-  await clickStableButton(page, reportButton, projectName);
+  await clickStableButton(page, reportButton, testInfo);
 
   await clickStableButton(
     page,
     energyPage.getByRole("button", { name: /Analisi|Analysis/i }),
-    projectName,
+    testInfo,
   );
 
   await expect(page.locator("#view-panoramica")).toBeVisible();
@@ -203,7 +203,7 @@ test("release evidence", async ({ page }, testInfo) => {
     fullPage: true,
   });
 
-  await openEnergyAnalysis(page, testInfo.project.name);
+  await openEnergyAnalysis(page, testInfo);
   const selector = page.locator("#ed-dev-selector");
   await expect(selector).toContainText("Forno");
   await page.screenshot({
