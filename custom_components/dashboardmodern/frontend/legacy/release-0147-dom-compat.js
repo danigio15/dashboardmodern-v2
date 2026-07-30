@@ -67,6 +67,33 @@ function decorateStandardAlerts() {
   });
 }
 
+function roomGlyph(icon) {
+  const value = String(icon || "").toLowerCase();
+  if (value && !value.startsWith("mdi:")) return String(icon);
+  if (/sofa|living|television/.test(value)) return "🛋️";
+  if (/bed/.test(value)) return "🛏️";
+  if (/silverware|food|kitchen|stove/.test(value)) return "🍽️";
+  if (/shower|bath|toilet/.test(value)) return "🚿";
+  if (/baby|crib/.test(value)) return "👶";
+  if (/desk|office|monitor/.test(value)) return "🖥️";
+  if (/garage|car/.test(value)) return "🚗";
+  if (/tree|garden|flower/.test(value)) return "🌳";
+  return "🏠";
+}
+
+function decorateTemperatureIcons() {
+  const rooms = globalThis.DashboardModernModules?.store?.getSection?.("rooms") || [];
+  document.querySelectorAll("#temp-grid .temp-card").forEach((card, index) => {
+    const name = card.querySelector(".cp-name")?.textContent?.trim() || "";
+    const room = rooms.find((item) => item.name === name) || rooms.filter((item) => item.temp)[index];
+    const icon = card.querySelector(".cp-icon");
+    if (!room || !icon) return;
+    icon.classList.add("temp-room-icon");
+    icon.dataset.roomIcon = room.icon || "mdi:home";
+    icon.textContent = roomGlyph(room.icon || "mdi:home");
+  });
+}
+
 function decorateApplianceAssetMarkers() {
   document.querySelectorAll(".appl-main-view").forEach((view) => {
     const active = view.classList.contains("active");
@@ -80,10 +107,24 @@ function decorateApplianceAssetMarkers() {
   });
 }
 
+function installApplianceRenderHook() {
+  const render = globalThis.renderApplianceSection;
+  if (typeof render !== "function" || render.__dm0147AssetMarkers) return;
+  function renderApplianceSection0147(...args) {
+    const result = render.apply(this, args);
+    decorateApplianceAssetMarkers();
+    return result;
+  }
+  renderApplianceSection0147.__dm0147AssetMarkers = true;
+  globalThis.renderApplianceSection = renderApplianceSection0147;
+}
+
 function decorateAll() {
   decorateShutterRows();
   decorateStandardAlerts();
+  decorateTemperatureIcons();
   decorateApplianceAssetMarkers();
+  installApplianceRenderHook();
 }
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
@@ -97,6 +138,10 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
   } else {
     decorate();
   }
+  const timer = window.setInterval(() => {
+    decorateAll();
+    if (globalThis.renderApplianceSection?.__dm0147AssetMarkers) window.clearInterval(timer);
+  }, 100);
   new MutationObserver(decorate).observe(document.documentElement, {
     childList: true,
     subtree: true,
