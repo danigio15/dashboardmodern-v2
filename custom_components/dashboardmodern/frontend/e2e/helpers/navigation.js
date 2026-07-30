@@ -74,15 +74,9 @@ export async function clickBottomTab(page, tabName) {
   await expect(page.locator(`#page-${tabName}`)).toHaveClass(/active/);
 }
 
-export async function clickStableButton(page, locator, testInfo) {
+export async function clickStableButton(_page, locator, _testInfo) {
   await expect(locator).toBeVisible();
   await expect(locator).toBeEnabled();
   await locator.scrollIntoViewIfNeeded();
-  if (testInfo.project.name === "webkit-ipad") {
-    const box = await locator.boundingBox();
-    if (!box) throw new Error("Button has no box");
-    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-    return;
-  }
   await locator.click();
 }
