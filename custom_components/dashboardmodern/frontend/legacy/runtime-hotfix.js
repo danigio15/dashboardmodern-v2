@@ -159,16 +159,30 @@
     button.disabled = true;
     button.textContent = service === "close_cover" ? (en ? "Closing…" : "Chiusura…") : "…";
     if (error) error.textContent = "";
-    Promise.resolve(
-      globalThis.dmCallHaService("cover", service, { entity_id: item.entity }),
-    ).catch((cause) => {
+    const handleFailure = (cause) => {
       pendingShutterCommands.delete(key);
       if (button.isConnected) {
         button.disabled = false;
         button.textContent = original;
       }
       if (error) error.textContent = cause?.message || String(cause);
-    });
+    };
+    let request;
+    try {
+      const callService = globalThis.dmCallHaService;
+      if (typeof callService !== "function") {
+        throw new Error(
+          en
+            ? "Home Assistant service bridge unavailable"
+            : "Bridge servizi Home Assistant non disponibile",
+        );
+      }
+      request = callService("cover", service, { entity_id: item.entity });
+    } catch (cause) {
+      handleFailure(cause);
+      return;
+    }
+    Promise.resolve(request).catch(handleFailure);
   }
 
   function renderShutterPopup(items) {

@@ -42,29 +42,61 @@ async function boot(page, variant, testInfo) {
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await page.addInitScript((states) => {
     window.__haCalls = [];
-    window.WebSocket = class extends EventTarget {
+    class MockBridgeSocket extends EventTarget {
+      static CONNECTING = 0;
       static OPEN = 1;
-      readyState = 1;
+      static CLOSING = 2;
+      static CLOSED = 3;
+      readyState = MockBridgeSocket.OPEN;
+      onopen = null;
+      onmessage = null;
+      onclose = null;
+      onerror = null;
       constructor() {
         super();
-        queueMicrotask(() => this.onmessage?.({ data: JSON.stringify({ type: "auth_required" }) }));
+        queueMicrotask(() => {
+          this.onopen?.({});
+          this.onmessage?.({ data: JSON.stringify({ type: "auth_ok" }) });
+        });
       }
       send(raw) {
         const message = JSON.parse(raw);
-        if (message.type === "call_service") window.__haCalls.push(message);
-        const result = message.type === "get_states" ? states : [];
+        if (message.type === "auth") return;
+        if (message.type === "call_service") window.__haCalls.push(structuredClone(message));
+        let result = null;
+        if (message.type === "get_states") result = states;
+        else if (message.type === "frontend/get_user_data") result = { value: null };
         this.onmessage?.({
-          data: JSON.stringify(
-            message.type === "auth"
-              ? { type: "auth_ok" }
-              : { id: message.id, type: "result", success: true, result },
-          ),
+          data: JSON.stringify({
+            id: message.id,
+            type: "result",
+            success: true,
+            result,
+          }),
         });
       }
-      close() {}
-    };
+      close() {
+        this.readyState = MockBridgeSocket.CLOSED;
+        this.onclose?.({});
+      }
+    }
+    window.__DASHBOARDMODERN_BRIDGE_WS__ = MockBridgeSocket;
+    window.WebSocket = MockBridgeSocket;
   }, haStates);
   await bootNamespacedDashboard(page, variant, testInfo, dashboardSeed);
+  await expect
+    .poll(() =>
+      page.evaluate(() => ({
+        bridgeType: typeof window.__DASHBOARDMODERN_BRIDGE_WS__,
+        serviceType: typeof window.dmCallHaService,
+        activeBridge: window.WebSocket === window.__DASHBOARDMODERN_BRIDGE_WS__,
+      })),
+    )
+    .toEqual({
+      bridgeType: "function",
+      serviceType: "function",
+      activeBridge: true,
+    });
   await expect
     .poll(() =>
       page.evaluate(() => DashboardModernModules.store.getSection("rooms").map((room) => room.id)),
