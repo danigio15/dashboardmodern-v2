@@ -156,7 +156,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       rooms: JSON.parse(localStorage.getItem("cd_luci_rooms") || "{}"),
     }))).toEqual({ lights: { "light.salone": "Luce principale" }, rooms: { "light.salone": "Salone" } });
 
-    await openEditor(page, "temperature");
+    await openEditor(page, "sez7");
     const actions = page.locator(".dm-temperature-actions");
     await expect(actions).toBeVisible();
     await expect(actions.locator("button").first()).toHaveCSS("min-height", "44px");
