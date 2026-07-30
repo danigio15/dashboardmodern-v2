@@ -1981,6 +1981,22 @@ nav.tabs.bottom-nav-bar .tab.active .text {
         white-space: nowrap !important;
     }
 }
+html.dm-touch-navigation nav.tabs.bottom-nav-bar {
+    bottom: -120px !important;
+    width: calc(100% - 20px) !important;
+    min-width: auto !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: translateX(-50%) scale(.95) !important;
+    overflow-x: auto !important;
+}
+html.dm-touch-navigation nav.tabs.bottom-nav-bar.visible {
+    bottom: 18px !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateX(-50%) scale(1) !important;
+}
+html.dm-touch-navigation .bottom-nav-handle { display: block !important; }
 /* ================= FIX OVERFLOW TESTO VISTE MESE/GIORNO ================= */
 
 /* Riduce leggermente i numeri singoli nei cerchi principali (es. Casa, Solare) */
@@ -14918,7 +14934,12 @@ async function edCaricaDettaglio() {
 // ================= GESTIONE BARRA INFERIORE SU MOBILE (HIDE/SHOW CON GESTO) ================= //
 (function setupBottomNavMobile() {
     // Si attiva su smartphone in portrait (≤768px largo) OPPURE in landscape (altezza ≤500px)
+    function isTouchCapable() {
+        return Boolean(navigator.maxTouchPoints > 0 || 'ontouchstart' in window);
+    }
+    if (isTouchCapable()) document.documentElement.classList.add('dm-touch-navigation');
     function isMobileLayout() {
+        if (isTouchCapable()) return true;
         if (!window.matchMedia) return window.innerWidth <= 768;
         return window.matchMedia('(max-width: 768px)').matches ||
                (window.matchMedia('(orientation: landscape)').matches &&

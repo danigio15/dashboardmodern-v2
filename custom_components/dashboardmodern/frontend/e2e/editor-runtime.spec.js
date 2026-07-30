@@ -5,9 +5,22 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: missing Chart.js still reaches legacy readiness`, async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(`${error.message}\n${error.stack || ""}`));
-    await page.route("https://**", (route) =>
-      route.fulfill({ contentType: "application/javascript", body: "" }),
-    );
+    await page.route("https://**", (route) => {
+      const url = route.request().url();
+      if (url.startsWith("https://fonts.googleapis.com/"))
+        return route.fulfill({
+          status: 200,
+          contentType: "text/css",
+          body: "/* E2E font stub */",
+        });
+      if (url.startsWith("https://fonts.gstatic.com/"))
+        return route.fulfill({
+          status: 200,
+          contentType: "font/woff2",
+          body: Buffer.from([]),
+        });
+      return route.fulfill({ status: 200, contentType: "application/javascript", body: "" });
+    });
     await page.addInitScript(() => {
       window.WebSocket = class extends EventTarget {
         static OPEN = 1;
@@ -31,6 +44,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: runtime, energy, loads and report use the shipped module`, async ({
     page,
   }, testInfo) => {
+    if (testInfo.project.name === "webkit-ipad")
+      test.slow(true, "Full editor integration flow is slower on WebKit");
     const errors = [];
     const pageErrors = [];
     const seedState = {
@@ -93,6 +108,18 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     });
     await page.route("https://**", async (route) => {
       const url = route.request().url();
+      if (url.startsWith("https://fonts.googleapis.com/"))
+        return route.fulfill({
+          status: 200,
+          contentType: "text/css",
+          body: "/* E2E font stub */",
+        });
+      if (url.startsWith("https://fonts.gstatic.com/"))
+        return route.fulfill({
+          status: 200,
+          contentType: "font/woff2",
+          body: Buffer.from([]),
+        });
       if (url.includes("chart.js"))
         return route.fulfill({
           contentType: "application/javascript",
@@ -108,7 +135,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           contentType: "application/javascript",
           body: "window.Hls=class{static isSupported(){return false}}",
         });
-      return route.fulfill({ status: 200, body: "" });
+      return route.fulfill({ status: 200, contentType: "application/javascript", body: "" });
     });
     await page.addInitScript(() => {
       class TestSocket extends EventTarget {

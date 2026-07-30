@@ -55,18 +55,22 @@ async function instantScrollIntoView(locator) {
   });
 }
 
-export async function clickBottomTab(page, tabName) {
-  const mode = await revealBottomNavigation(page);
+export async function clickBottomTab(page, tabName, testInfo) {
+  const touchProject =
+    testInfo.project.name === "mobile" || testInfo.project.name === "webkit-ipad";
   const nav = page.locator("nav.bottom-nav-bar");
   const tab = page.locator(`.tab[data-tab="${tabName}"]`);
-  if (mode === "handle") {
+  if (touchProject) {
+    const handle = page.locator("#bottomNavHandle");
+    await expect(handle).toBeVisible();
+    if (!(await nav.getAttribute("class"))?.includes("visible")) await handle.click();
     await expect(nav).toHaveClass(/visible/);
     await instantScrollIntoView(tab);
-    await expect(tab).toBeVisible();
     const box = await tab.boundingBox();
     if (!box) throw new Error(`${tabName} touch tab has no bounding box`);
     await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
   } else {
+    await revealBottomNavigation(page);
     await expect(tab).toBeVisible();
     await tab.focus();
     await expect(tab).toBeFocused();

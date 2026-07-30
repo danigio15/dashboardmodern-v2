@@ -252,3 +252,13 @@ buttons use the same immediate-scroll/tap path on WebKit to avoid waiting for an
 animated or freshly reconstructed node to settle. The shutter E2E deliberately
 keeps its popup open beyond the former two-second legacy interval and verifies
 that the canonical alert remains the sole card owner.
+
+### WebKit/iPad finalization
+
+The legacy bootstrap now detects touch capability through `maxTouchPoints` or
+`ontouchstart`, adds `dm-touch-navigation`, and forces the handle-based navbar
+layout even when Safari reports ambiguous hover/pointer media features. E2E tab
+navigation requires the touch handle for mobile/iPad projects and uses a real
+Playwright touchscreen tap; desktop retains keyboard activation. Google Fonts
+responses in the editor integration test now use CSS/font MIME types, and only
+the long WebKit editor flow receives the scoped `test.slow()` allowance.

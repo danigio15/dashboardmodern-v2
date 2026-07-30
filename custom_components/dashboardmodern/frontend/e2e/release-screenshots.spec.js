@@ -123,7 +123,7 @@ async function boot(page) {
 }
 
 async function openEnergyAnalysis(page, testInfo) {
-  await clickBottomTab(page, "energy");
+  await clickBottomTab(page, "energy", testInfo);
 
   const energyPage = page.locator("#page-energy.active");
   const reportButton = energyPage.locator(".sub-tab-btn", { hasText: "Report" });
@@ -193,7 +193,7 @@ test("release evidence", async ({ page }, testInfo) => {
     );
     STATES["cover.salone"] = { state: "open", attributes: {} };
   });
-  await clickBottomTab(page, "home", testInfo.project.name);
+  await clickBottomTab(page, "home", testInfo);
   await expect(page.locator("#glance-custom-wrap")).toBeVisible();
   const shutterAlert = page.locator("#tapp-avvisi .dm-shutter-alert");
   await expect(shutterAlert.locator(".g-name")).toHaveText(/TAPPARELLA APERTA|SHUTTER OPEN/);

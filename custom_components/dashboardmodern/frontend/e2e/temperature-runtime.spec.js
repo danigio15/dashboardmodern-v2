@@ -162,7 +162,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     });
     await page.locator("#editor-modal .ed-head-close").last().click();
     await expect(page.locator("#editor-modal")).toHaveCount(0);
-    await clickBottomTab(page, "temp", testInfo.project.name);
+    await clickBottomTab(page, "temp", testInfo);
     await expect(page.locator("#page-temp")).toHaveClass(/active/);
     await expect(page.locator("#temp-grid .cp-card")).toContainText("Kitchen");
     await expect(page.locator("#temp-grid .temp-value")).toContainText("21.5");

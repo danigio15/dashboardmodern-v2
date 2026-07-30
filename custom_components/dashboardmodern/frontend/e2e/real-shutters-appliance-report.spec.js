@@ -89,7 +89,7 @@ async function installRuntimeHotfix(page) {
 }
 
 async function openEnergyAnalysis(page, testInfo) {
-  await clickBottomTab(page, "energy");
+  await clickBottomTab(page, "energy", testInfo);
   const energyPage = page.locator("#page-energy.active");
   await clickStableButton(
     page,
