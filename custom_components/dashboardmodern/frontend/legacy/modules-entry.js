@@ -20,7 +20,7 @@ import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/c
 import { createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
 import { SCHEMA_VERSION } from "../src/core/device-model.js";
 import { BUILD_INFO } from "./build-info.js";
-import { canonicalReportDevices } from "../src/core/energy-projection.js";
+import { canonicalReportDevices, reportEntityForDevice } from "../src/core/energy-projection.js";
 
 export const MODULES_VERSION = 14;
 const LOCALE = globalThis.document?.documentElement?.lang === "en" ? "en" : "it";
@@ -157,8 +157,9 @@ export function createEntityField({ id, label, value = "", placeholder = "sensor
   const opt = optional ? ` <span class="ed-acc-n">${t("optional")}</span>` : "";
   return `<label class="ed-slot dm-entity-field" data-entity-field><span class="ed-slot-lbl">${esc(label)}${opt}</span><span class="ed-form-row"><input id="${esc(id)}" class="ed-input ed-slot-in mono" value="${esc(value)}" placeholder="${esc(placeholder)}"${domainAttr}><button type="button" class="dm-entity-picker" data-entity-target="${esc(id)}" aria-label="${t("select")} ${esc(label)}">🔍</button></span></label>`;
 }
-function createIconField(id, value = "") {
-  return `<span class="ed-form-row dm-icon-field" data-icon-field><input id="${esc(id)}" class="ed-input ed-icon-input" value="${esc(value)}"><button type="button" class="dm-icon-picker" data-icon-target="${esc(id)}" aria-label="${t("select")} icon">🎨</button></span>`;
+function createIconField(id, value = "", category = "") {
+  const categoryAttr = category ? ` data-icon-category="${esc(category)}"` : "";
+  return `<span class="ed-form-row dm-icon-field" data-icon-field><input id="${esc(id)}" class="ed-input ed-icon-input" value="${esc(value)}"${categoryAttr}><button type="button" class="dm-icon-picker" data-icon-target="${esc(id)}"${categoryAttr} aria-label="${t("select")} icon">🎨</button></span>`;
 }
 const entityField = (id, label, value, placeholder) => createEntityField({ id, label, value, placeholder });
 
@@ -174,7 +175,7 @@ export function renderTemperatureEditor(target) {
   const options = allRooms.map((room) => `<option value="${esc(room.id)}" ${(room.temp || room.hum) ? "disabled" : ""}>${esc(room.name)}${(room.temp || room.hum) ? (LOCALE === "en" ? " — configured" : " — configurata") : ""}</option>`).join("");
   const empty = LOCALE === "en" ? "Configure at least one room first in the Rooms section." : "Configura prima almeno una stanza nella sezione Stanze.";
   target.innerHTML = `<div class="ed-intro" data-temperature-editor>${LOCALE === "en" ? "Temperature uses canonical rooms: it adds sensors without creating duplicate rooms." : "Temperatura usa le stanze canoniche: aggiunge i sensori senza creare stanze duplicate."}</div><div class="ed-list" data-temperature-list>${rows || `<div class="ed-empty">${t("empty")}</div>`}</div>
-    ${allRooms.length ? `<form class="ed-form dm-temperature-form" data-temperature-form><div class="ed-sec-title" data-temperature-form-title>＋ ${LOCALE === "en" ? "Add temperature" : "Aggiungi temperatura"}</div><label class="ed-slot"><span class="ed-slot-lbl">${LOCALE === "en" ? "Room" : "Stanza"}</span><select id="dm-temperature-room" class="ed-input" required><option value="">— ${LOCALE === "en" ? "Select room" : "Seleziona stanza"} —</option>${options}</select></label><label class="ed-slot"><span class="ed-slot-lbl">${LOCALE === "en" ? "Icon" : "Simbolo"}</span>${createIconField("dm-temperature-icon", "🌡️")}</label><output class="ed-row-old dm-temperature-floor" data-temperature-floor></output>${createEntityField({ id: "ed-pl-temp", label: LOCALE === "en" ? "Temperature entity" : "Entità temperatura", optional: false })}${createEntityField({ id: "dm-humidity-new", label: LOCALE === "en" ? "Humidity entity" : "Entità umidità" })}<div class="dm-temperature-actions"><button type="submit" class="ed-btn-add" data-temperature-submit>${t("add")}</button><button type="button" class="ed-del" data-temperature-cancel hidden>${LOCALE === "en" ? "Cancel" : "Annulla"}</button></div></form>` : `<div class="ed-empty dm-temperature-no-rooms">${empty}<button type="button" class="ed-btn-add" data-temperature-go-rooms>${LOCALE === "en" ? "Configure rooms" : "Configura stanze"}</button></div>`}`;
+    ${allRooms.length ? `<form class="ed-form dm-temperature-form" data-temperature-form><div class="ed-sec-title" data-temperature-form-title>＋ ${LOCALE === "en" ? "Add temperature" : "Aggiungi temperatura"}</div><label class="ed-slot"><span class="ed-slot-lbl">${LOCALE === "en" ? "Room" : "Stanza"}</span><select id="dm-temperature-room" class="ed-input" required><option value="">— ${LOCALE === "en" ? "Select room" : "Seleziona stanza"} —</option>${options}</select></label><label class="ed-slot"><span class="ed-slot-lbl">${LOCALE === "en" ? "Icon" : "Simbolo"}</span>${createIconField("dm-temperature-icon", "mdi:home", "rooms")}</label><output class="ed-row-old dm-temperature-floor" data-temperature-floor></output>${createEntityField({ id: "ed-pl-temp", label: LOCALE === "en" ? "Temperature entity" : "Entità temperatura", optional: false })}${createEntityField({ id: "dm-humidity-new", label: LOCALE === "en" ? "Humidity entity" : "Entità umidità" })}<div class="dm-temperature-actions"><button type="submit" class="ed-btn-add" data-temperature-submit>${t("add")}</button><button type="button" class="ed-btn-secondary" data-temperature-cancel hidden>${LOCALE === "en" ? "Cancel" : "Annulla"}</button></div></form>` : `<div class="ed-empty dm-temperature-no-rooms">${empty}<button type="button" class="ed-btn-add" data-temperature-go-rooms>${LOCALE === "en" ? "Configure rooms" : "Configura stanze"}</button></div>`}`;
 }
 
 export function mountTemperatureEditor(_section, target) {
@@ -300,7 +301,7 @@ export function mountEntityPickers(target) {
   target.querySelectorAll(".dm-icon-picker[data-icon-target]").forEach((button) => {
     if (button.dataset.pickerMounted === "true") return;
     button.dataset.pickerMounted = "true";
-    button.addEventListener("click", () => globalThis.dmIconPicker?.(`#${button.dataset.iconTarget}`));
+    button.addEventListener("click", () => globalThis.dmIconPicker?.(`#${button.dataset.iconTarget}`, button.dataset.iconCategory || undefined));
   });
 }
 
@@ -311,7 +312,7 @@ export function renderReportRow(item, index) {
     <label><input type="checkbox" data-report-toggle ${item.show_in_report !== false ? "checked" : ""}> Report</label>
     <input class="ed-input" data-report-label placeholder="${t("reportLabel")}" value="${esc(item.report_label || item.name)}">
     ${createIconField(`dm-report-icon-${fieldToken}`, item.report_icon || item.emoji_icon || item.icon)}
-    ${createEntityField({ id: `dm-report-entity-${fieldToken}`, label: t("reportEntity"), value: item.report_entity || item.monthly_energy_entity || item.total_energy_entity, optional: false })}
+    ${createEntityField({ id: `dm-report-entity-${fieldToken}`, label: t("reportEntity"), value: reportEntityForDevice(item, globalThis.STATES || {}), optional: false })}
     ${item.category === "manual-report" ? createEntityField({ id: `dm-report-history-${fieldToken}`, label: t("history"), value: item.history_entity }) : ""}
     <span><button type="button" data-report-up aria-label="${t("moveUp")}">▲</button><button type="button" data-report-down aria-label="${t("moveDown")}">▼</button>${item.category === "manual-report" ? `<button type="button" data-report-delete aria-label="${t("remove")}">🗑️</button>` : ""}</span>
     <input type="hidden" data-report-name value="${esc(item.name)}"><input type="hidden" data-report-category value="${esc(item.category)}">

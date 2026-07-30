@@ -164,7 +164,22 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#editor-modal")).toHaveCount(0);
     await clickBottomTab(page, "temp", testInfo);
     await expect(page.locator("#page-temp")).toHaveClass(/active/);
-    await expect(page.locator("#temp-grid .cp-card")).toContainText("Kitchen");
+    const temperatureCard = page.locator("#temp-grid .temp-card");
+    await expect(temperatureCard).toContainText("Kitchen");
+    await expect(temperatureCard).toHaveCount(1);
+    const temperatureLayout = await temperatureCard.evaluate((node) => {
+      const style = getComputedStyle(node);
+      const box = node.getBoundingClientRect();
+      return {
+        tag: node.tagName,
+        aspectRatio: style.aspectRatio,
+        width: box.width,
+        height: box.height,
+      };
+    });
+    expect(temperatureLayout.tag).toBe("ARTICLE");
+    expect(temperatureLayout.aspectRatio).toBe("auto");
+    expect(temperatureLayout.height).toBeLessThan(temperatureLayout.width * 1.25);
     await expect(page.locator("#temp-grid .temp-value")).toContainText("21.5");
     await page.evaluate(() => {
       _RAW_STATES["sensor.kitchen_temperature"].state = "23.7";

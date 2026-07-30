@@ -1,5 +1,20 @@
 export const SCHEMA_VERSION = 4;
 
+// Stable keys shared by the appliance picker, persistence and runtime renderer.
+// The concrete media URL remains a presentation concern of the vendored dashboard.
+export const APPLIANCE_VISUAL_KEYS = Object.freeze([
+  "forno",
+  "lavatrice",
+  "lavastoviglie",
+  "asciugatrice",
+  "frigorifero",
+  "microonde",
+  "piano_cottura",
+  "condizionatore",
+  "boiler",
+  "generico",
+]);
+
 export function cloneValue(value) {
   if (typeof globalThis.structuredClone === "function") return globalThis.structuredClone(value);
   if (value === undefined) return undefined;

@@ -38,6 +38,9 @@
   let installTimer = null;
   let passScheduled = false;
   let shutterTimer = null;
+  const pendingShutterCommands = new Map();
+  const shutterCommandErrors = new Map();
+  const SHUTTER_COMMAND_TIMEOUT_MS = 15000;
 
   function dashboardStates() {
     try {
@@ -78,17 +81,149 @@
     document.getElementById("dm-shutter-popup")?.remove();
   }
 
+  function shutterCommandKey(entity, service) {
+    return `${entity}:${service}`;
+  }
+
+  function reconcileShutterCommands(items) {
+    const currentByEntity = new Map(items.map((item) => [item.entity, item]));
+    const now = Date.now();
+    pendingShutterCommands.forEach((pending, key) => {
+      const item = currentByEntity.get(pending.entity);
+      const positionChanged =
+        item?.position != null &&
+        pending.initialPosition != null &&
+        item.position !== pending.initialPosition;
+      const stateChanged = item && item.state !== pending.initialState;
+      const completed =
+        pending.service === "close_cover"
+          ? item &&
+            (item.state === "closing" ||
+              item.state === "closed" ||
+              item.position === 0 ||
+              (item.position != null &&
+                pending.initialPosition != null &&
+                item.position < pending.initialPosition))
+          : stateChanged || positionChanged;
+      if (completed || !item) {
+        pendingShutterCommands.delete(key);
+        shutterCommandErrors.delete(pending.entity);
+      } else if (now - pending.startedAt >= SHUTTER_COMMAND_TIMEOUT_MS) {
+        pendingShutterCommands.delete(key);
+        shutterCommandErrors.set(
+          pending.entity,
+          document.documentElement.lang === "en"
+            ? "No state update received"
+            : "Nessun aggiornamento ricevuto",
+        );
+      }
+    });
+  }
+
+  function shutterPopupSignature(items) {
+    return items
+      .map((item) => {
+        const pending = [...pendingShutterCommands.values()]
+          .filter((command) => command.entity === item.entity)
+          .map((command) => command.service)
+          .sort()
+          .join(",");
+        return [
+          item.entity,
+          item.name || "",
+          item.state,
+          item.position ?? "",
+          item.room?.id || "",
+          item.room?.name || "",
+          pending,
+          shutterCommandErrors.get(item.entity) || "",
+        ].join(":");
+      })
+      .join("|");
+  }
+
+  function callShutterService(button, item, service) {
+    const en = document.documentElement.lang === "en";
+    const key = shutterCommandKey(item.entity, service);
+    const original = button.textContent;
+    const error = button.closest(".dm-shutter-popup-row")?.querySelector("[data-shutter-error]");
+    pendingShutterCommands.set(key, {
+      entity: item.entity,
+      service,
+      original,
+      startedAt: Date.now(),
+      initialState: item.state,
+      initialPosition: item.position,
+    });
+    shutterCommandErrors.delete(item.entity);
+    button.disabled = true;
+    button.textContent = service === "close_cover" ? (en ? "Closing…" : "Chiusura…") : "…";
+    if (error) error.textContent = "";
+    const handleFailure = (cause) => {
+      pendingShutterCommands.delete(key);
+      if (button.isConnected) {
+        button.disabled = false;
+        button.textContent = original;
+      }
+      if (error) error.textContent = cause?.message || String(cause);
+    };
+    let request;
+    try {
+      const callService = globalThis.dmCallHaService;
+      if (typeof callService !== "function") {
+        throw new Error(
+          en
+            ? "Home Assistant service bridge unavailable"
+            : "Bridge servizi Home Assistant non disponibile",
+        );
+      }
+      request = callService("cover", service, { entity_id: item.entity });
+    } catch (cause) {
+      handleFailure(cause);
+      return;
+    }
+    Promise.resolve(request).catch(handleFailure);
+  }
+
   function renderShutterPopup(items) {
     const popup = document.getElementById("dm-shutter-popup");
     if (!popup) return;
-    if (!items.length) return closeShutterPopup();
+    if (!items.length) {
+      closeShutterPopup();
+      return;
+    }
+    reconcileShutterCommands(items);
     const list = popup.querySelector("[data-shutter-popup-list]");
+    const signature = shutterPopupSignature(items);
+    if (list.dataset.dmShutterPopupSignature === signature) return;
     list.replaceChildren(...items.map(function (item) {
       const row = document.createElement("article");
       row.className = "dm-shutter-popup-row";
-      row.innerHTML = `<span class="g-icon-wrap">🪟</span><span><strong>${String(item.name || item.entity).replace(/</g, "&lt;")}</strong><small>${item.room ? `${String(item.room.name).replace(/</g, "&lt;")} · ` : ""}${shutterStateLabel(item)}${item.position == null ? "" : ` · ${Math.round(item.position)}%`}</small></span>`;
+      row.innerHTML = `<span class="g-icon-wrap">🪟</span><span class="dm-shutter-details"><strong>${String(item.name || item.entity).replace(/</g, "&lt;")}</strong><small>${item.room ? `${String(item.room.name).replace(/</g, "&lt;")} · ` : ""}${shutterStateLabel(item)}${item.position == null ? "" : ` · ${Math.round(item.position)}%`}</small><small class="dm-shutter-error" data-shutter-error role="alert">${shutterCommandErrors.get(item.entity) || ""}</small></span><span class="dm-shutter-actions"></span>`;
+      const actions = row.querySelector(".dm-shutter-actions");
+      const commands = item.position == null
+        ? [["close_cover", document.documentElement.lang === "en" ? "Close" : "Chiudi"]]
+        : [["open_cover", document.documentElement.lang === "en" ? "Open" : "Apri"], ["stop_cover", "Stop"], ["close_cover", document.documentElement.lang === "en" ? "Close" : "Chiudi"]];
+      commands.forEach(([service, label]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.shutterService = service;
+        button.textContent = label;
+        if (pendingShutterCommands.has(shutterCommandKey(item.entity, service))) {
+          button.disabled = true;
+          button.textContent =
+            service === "close_cover"
+              ? document.documentElement.lang === "en"
+                ? "Closing…"
+                : "Chiusura…"
+              : "…";
+        }
+        button.addEventListener("click", () => callShutterService(button, item, service));
+        actions.append(button);
+      });
       return row;
     }));
+    list.dataset.dmShutterPopupSignature = signature;
   }
 
   function showShutterPopup() {
@@ -595,7 +730,12 @@
       .dm-shutter-popup h2 { margin:0; font-size:20px; }
       .dm-shutter-popup header button { border:0; border-radius:50%; width:40px; height:40px; font-size:26px; cursor:pointer; }
       .dm-shutter-popup-row { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--card-border,#e2e8f0); border-radius:16px; margin-top:8px; }
-      .dm-shutter-popup-row span:last-child { display:grid; gap:3px; min-width:0; }
+      .dm-shutter-details { display:grid; gap:3px; min-width:0; flex:1; }
+      .dm-shutter-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; }
+      .dm-shutter-actions button { min-height:36px; border:0; border-radius:10px; padding:7px 10px; font:inherit; font-weight:700; cursor:pointer; }
+      .dm-shutter-actions button[data-shutter-service="close_cover"] { background:#0f172a; color:#fff; }
+      .dm-shutter-actions button:disabled { opacity:.55; cursor:wait; }
+      .dm-shutter-error { color:#dc2626 !important; }
       .dm-shutter-popup-row small { color:var(--text-dim,#64748b); }
       .dm-temperature-card-icon { flex:0 0 42px; display:grid; place-items:center; font-size:28px; }
       .dm-temperature-form { display:grid; gap:10px; }

@@ -57,11 +57,13 @@ async function instantScrollIntoView(locator) {
 
 async function tapTouchNavigationTab(page, nav, handle, tab, tabName) {
   let lastError = null;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       if (!(await nav.getAttribute("class"))?.includes("visible"))
         await handle.tap({ timeout: 2500 });
       await expect(nav).toHaveClass(/visible/, { timeout: 1500 });
+      await instantScrollIntoView(tab);
+      await waitForStableBox(tab);
       await tab.tap({ timeout: 3000 });
       await expect(tab).toHaveClass(/active/, { timeout: 1500 });
       return;
@@ -83,7 +85,25 @@ async function tapTouchNavigationTab(page, nav, handle, tab, tabName) {
   throw new Error(`Unable to activate ${tabName}: ${JSON.stringify(diagnostics)}; ${lastError}`);
 }
 
+async function activateApplianceRuntime(page) {
+  await page.evaluate(() => {
+    document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
+    const appliancePage = document.getElementById("page-appliances-main");
+    if (!appliancePage) throw new Error("Appliance runtime page is unavailable");
+    appliancePage.classList.add("active");
+    window.renderApplianceSection?.(true);
+  });
+  await expect(page.locator("#page-appliances-main")).toHaveClass(/active/);
+}
+
 export async function clickBottomTab(page, tabName, testInfo) {
+  // Appliances are a dedicated runtime page reached from Energy, not a navbar tab.
+  // Activate the real page for visual runtime tests instead of inventing a fake tab.
+  if (tabName === "appliances") {
+    await activateApplianceRuntime(page);
+    return;
+  }
+
   const touchProject =
     testInfo.project.name === "mobile" || testInfo.project.name === "webkit-ipad";
   const nav = page.locator("nav.bottom-nav-bar");

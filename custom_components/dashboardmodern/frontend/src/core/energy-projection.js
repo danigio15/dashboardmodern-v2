@@ -37,7 +37,6 @@ export function entityIds(item = {}) {
     item.report_entity,
     item.monthly_energy_entity,
     item.total_energy_entity,
-    item.energy_entity,
     item.daily_energy_entity,
     item.history_entity,
     item.entity,
@@ -69,7 +68,6 @@ export function reportEntityForDevice(item = {}, states = globalThis.STATES || {
     item.report_entity,
     item.monthly_energy_entity,
     item.total_energy_entity,
-    item.energy_entity,
     item.daily_energy_entity,
   ]
     .map((value) => String(value || "").trim())
@@ -79,7 +77,11 @@ export function reportEntityForDevice(item = {}, states = globalThis.STATES || {
   const candidates = [...new Set(entityIds(item))];
   return (
     candidates.find((entityId) => isEnergyUnit(entityUnit(states, entityId))) ||
-    candidates.find((entityId) => /(?:^|[_-])(mese|month|monthly)(?:$|[_-])/i.test(entityId)) ||
+    candidates.find(
+      (entityId) =>
+        String(states?.[entityId]?.attributes?.device_class || "").toLowerCase() === "energy" &&
+        !isPowerUnit(entityUnit(states, entityId)),
+    ) ||
     candidates.find(
       (entityId) =>
         !isPowerUnit(entityUnit(states, entityId)) &&

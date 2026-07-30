@@ -41,28 +41,62 @@ const dashboardSeed = {
 async function boot(page, variant, testInfo) {
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await page.addInitScript((states) => {
-    window.WebSocket = class extends EventTarget {
+    window.__haCalls = [];
+    class MockBridgeSocket extends EventTarget {
+      static CONNECTING = 0;
       static OPEN = 1;
-      readyState = 1;
+      static CLOSING = 2;
+      static CLOSED = 3;
+      readyState = MockBridgeSocket.OPEN;
+      onopen = null;
+      onmessage = null;
+      onclose = null;
+      onerror = null;
       constructor() {
         super();
-        queueMicrotask(() => this.onmessage?.({ data: JSON.stringify({ type: "auth_required" }) }));
+        queueMicrotask(() => {
+          this.onopen?.({});
+          this.onmessage?.({ data: JSON.stringify({ type: "auth_ok" }) });
+        });
       }
       send(raw) {
         const message = JSON.parse(raw);
-        const result = message.type === "get_states" ? states : [];
+        if (message.type === "auth") return;
+        if (message.type === "call_service") window.__haCalls.push(structuredClone(message));
+        let result = null;
+        if (message.type === "get_states") result = states;
+        else if (message.type === "frontend/get_user_data") result = { value: null };
         this.onmessage?.({
-          data: JSON.stringify(
-            message.type === "auth"
-              ? { type: "auth_ok" }
-              : { id: message.id, type: "result", success: true, result },
-          ),
+          data: JSON.stringify({
+            id: message.id,
+            type: "result",
+            success: true,
+            result,
+          }),
         });
       }
-      close() {}
-    };
+      close() {
+        this.readyState = MockBridgeSocket.CLOSED;
+        this.onclose?.({});
+      }
+    }
+    window.__DASHBOARDMODERN_BRIDGE_WS__ = MockBridgeSocket;
+    window.WebSocket = MockBridgeSocket;
   }, haStates);
   await bootNamespacedDashboard(page, variant, testInfo, dashboardSeed);
+  await expect
+    .poll(() =>
+      page.evaluate(() => ({
+        bridgeType: typeof window.__DASHBOARDMODERN_BRIDGE_WS__,
+        serviceType: typeof window.dmCallHaService,
+        activeBridge: window.WebSocket === window.__DASHBOARDMODERN_BRIDGE_WS__,
+      })),
+    )
+    .toEqual({
+      bridgeType: "function",
+      serviceType: "function",
+      activeBridge: true,
+    });
   await expect
     .poll(() =>
       page.evaluate(() => DashboardModernModules.store.getSection("rooms").map((room) => room.id)),
@@ -188,6 +222,22 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#dm-shutter-popup")).toContainText("Tapparella salone");
     await expect(page.locator("#dm-shutter-popup")).toContainText("Salone");
     await expect(page.locator("#dm-shutter-popup")).toContainText("65%");
+    const close = page.locator('[data-shutter-service="close_cover"]').first();
+    await close.click();
+    await expect
+      .poll(() => page.evaluate(() => window.__haCalls.at(-1)))
+      .toMatchObject({
+        type: "call_service",
+        domain: "cover",
+        service: "close_cover",
+        service_data: { entity_id: "cover.salone" },
+      });
+    await expect(close).toBeDisabled();
+    await expect(close).toHaveText(/Chiusura…|Closing…/);
+    await page.waitForTimeout(2600);
+    await expect(close).toBeDisabled();
+    await expect(close).toHaveText(/Chiusura…|Closing…/);
+    await expect(page.locator("#dm-shutter-popup")).toBeVisible();
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-shutter-popup.png`,
     });

@@ -230,6 +230,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         height: imageRect.height,
         objectFit: imageStyle.objectFit,
         objectPosition: imageStyle.objectPosition,
+        fillsWidth: Math.abs(imageRect.width - wrapperRect.width) <= 1,
+        fillsHeight: Math.abs(imageRect.height - wrapperRect.height) <= 1,
         contained:
           imageRect.left >= wrapperRect.left - 1 &&
           imageRect.top >= wrapperRect.top - 1 &&
@@ -242,8 +244,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(imageMetrics.naturalHeight).toBeGreaterThan(0);
     expect(imageMetrics.width).toBeGreaterThanOrEqual(80);
     expect(imageMetrics.height).toBeGreaterThanOrEqual(80);
-    expect(imageMetrics.objectFit).toBe("contain");
+    expect(imageMetrics.objectFit).toBe("cover");
     expect(imageMetrics.objectPosition).toBe("50% 50%");
+    expect(imageMetrics.fillsWidth).toBe(true);
+    expect(imageMetrics.fillsHeight).toBe(true);
     expect(imageMetrics.contained).toBe(true);
     expect(imageMetrics.overflow).toBe("hidden");
 
