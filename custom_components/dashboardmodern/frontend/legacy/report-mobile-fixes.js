@@ -1,5 +1,6 @@
 /* Responsive Report editor and 0.14.7 regression fixes. */
 import "./release-0147-fixes.js";
+import "./release-0147-store-fixes.js";
 
 function installReportCompatibilityMarker() {
   if (document.getElementById("dm-report-mobile-fixes")) return;
