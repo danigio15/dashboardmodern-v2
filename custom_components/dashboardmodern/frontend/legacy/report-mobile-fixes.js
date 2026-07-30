@@ -5,6 +5,7 @@ import "./release-0147-dom-compat.js";
 import "./release-0147-appliance-store.js";
 import "./release-0147-appliance-theme.js";
 import "./release-0147-report-polish.js";
+import "./release-0147-editor-theme.js";
 
 function installReportCompatibilityMarker() {
   if (document.getElementById("dm-report-mobile-fixes")) return;
