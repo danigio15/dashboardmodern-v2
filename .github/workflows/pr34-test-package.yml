@@ -1,0 +1,27 @@
+name: Build PR34 test package
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    if: github.head_ref == 'fix/real-ha-ui-regressions-0.14.7'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build integration package
+        run: python scripts/build_release.py --expected-commit "$GITHUB_SHA" --output dashboardmodern-pr34-test.zip
+      - name: Upload integration package
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboardmodern-pr34-test
+          path: dashboardmodern-pr34-test.zip
+          if-no-files-found: error
