@@ -192,8 +192,6 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#dm-shutter-popup")).toContainText("65%");
     const close = page.locator('[data-shutter-service="close_cover"]').first();
     await close.click();
-    await expect(close).toBeDisabled();
-    await expect(close).toHaveText(/Chiusura…|Closing…/);
     await expect
       .poll(() => page.evaluate(() => window.__haCalls.at(-1)))
       .toMatchObject({
@@ -202,6 +200,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         service: "close_cover",
         service_data: { entity_id: "cover.salone" },
       });
+    await expect(close).toBeDisabled();
+    await expect(close).toHaveText(/Chiusura…|Closing…/);
+    await page.waitForTimeout(2600);
+    await expect(close).toBeDisabled();
+    await expect(close).toHaveText(/Chiusura…|Closing…/);
     await expect(page.locator("#dm-shutter-popup")).toBeVisible();
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-shutter-popup.png`,

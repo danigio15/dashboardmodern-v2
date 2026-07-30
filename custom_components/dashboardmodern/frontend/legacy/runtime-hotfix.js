@@ -38,6 +38,9 @@
   let installTimer = null;
   let passScheduled = false;
   let shutterTimer = null;
+  const pendingShutterCommands = new Map();
+  const shutterCommandErrors = new Map();
+  const SHUTTER_COMMAND_TIMEOUT_MS = 15000;
 
   function dashboardStates() {
     try {
@@ -78,50 +81,94 @@
     document.getElementById("dm-shutter-popup")?.remove();
   }
 
+  function shutterCommandKey(entity, service) {
+    return `${entity}:${service}`;
+  }
+
+  function reconcileShutterCommands(items) {
+    const currentByEntity = new Map(items.map((item) => [item.entity, item]));
+    const now = Date.now();
+    pendingShutterCommands.forEach((pending, key) => {
+      const item = currentByEntity.get(pending.entity);
+      const positionChanged =
+        item?.position != null &&
+        pending.initialPosition != null &&
+        item.position !== pending.initialPosition;
+      const stateChanged = item && item.state !== pending.initialState;
+      const completed =
+        pending.service === "close_cover"
+          ? item &&
+            (item.state === "closing" ||
+              item.state === "closed" ||
+              item.position === 0 ||
+              (item.position != null &&
+                pending.initialPosition != null &&
+                item.position < pending.initialPosition))
+          : stateChanged || positionChanged;
+      if (completed || !item) {
+        pendingShutterCommands.delete(key);
+        shutterCommandErrors.delete(pending.entity);
+      } else if (now - pending.startedAt >= SHUTTER_COMMAND_TIMEOUT_MS) {
+        pendingShutterCommands.delete(key);
+        shutterCommandErrors.set(
+          pending.entity,
+          document.documentElement.lang === "en"
+            ? "No state update received"
+            : "Nessun aggiornamento ricevuto",
+        );
+      }
+    });
+  }
+
   function shutterPopupSignature(items) {
     return items
-      .map((item) =>
-        [
+      .map((item) => {
+        const pending = [...pendingShutterCommands.values()]
+          .filter((command) => command.entity === item.entity)
+          .map((command) => command.service)
+          .sort()
+          .join(",");
+        return [
           item.entity,
           item.name || "",
           item.state,
           item.position ?? "",
           item.room?.id || "",
           item.room?.name || "",
+          pending,
+          shutterCommandErrors.get(item.entity) || "",
         ].join(":"),
-      )
+      })
       .join("|");
   }
 
   function callShutterService(button, item, service) {
     const en = document.documentElement.lang === "en";
+    const key = shutterCommandKey(item.entity, service);
     const original = button.textContent;
     const error = button.closest(".dm-shutter-popup-row")?.querySelector("[data-shutter-error]");
+    pendingShutterCommands.set(key, {
+      entity: item.entity,
+      service,
+      original,
+      startedAt: Date.now(),
+      initialState: item.state,
+      initialPosition: item.position,
+    });
+    shutterCommandErrors.delete(item.entity);
     button.disabled = true;
     button.textContent = service === "close_cover" ? (en ? "Closing…" : "Chiusura…") : "…";
     if (error) error.textContent = "";
-    try {
-      if (typeof ws === "undefined" || !ws || ws.readyState !== 1)
-        throw new Error(en ? "Home Assistant is not connected" : "Home Assistant non connesso");
-      ws.send(JSON.stringify({
-        id: msgId++,
-        type: "call_service",
-        domain: "cover",
-        service,
-        service_data: { entity_id: item.entity },
-      }));
-      // HA remains the only state authority. The normal state event refreshes this popup.
-      window.setTimeout(() => {
+    globalThis
+      .dmCallHaService("cover", service, { entity_id: item.entity })
+      .catch((cause) => {
+        pendingShutterCommands.delete(key);
         if (button.isConnected) {
           button.disabled = false;
           button.textContent = original;
         }
-      }, 2000);
-    } catch (cause) {
-      button.disabled = false;
-      button.textContent = original;
-      if (error) error.textContent = cause?.message || String(cause);
-    }
+        if (error) error.textContent = cause?.message || String(cause);
+      });
   }
 
   function renderShutterPopup(items) {
@@ -131,13 +178,14 @@
       closeShutterPopup();
       return;
     }
+    reconcileShutterCommands(items);
     const list = popup.querySelector("[data-shutter-popup-list]");
     const signature = shutterPopupSignature(items);
     if (list.dataset.dmShutterPopupSignature === signature) return;
     list.replaceChildren(...items.map(function (item) {
       const row = document.createElement("article");
       row.className = "dm-shutter-popup-row";
-      row.innerHTML = `<span class="g-icon-wrap">🪟</span><span class="dm-shutter-details"><strong>${String(item.name || item.entity).replace(/</g, "&lt;")}</strong><small>${item.room ? `${String(item.room.name).replace(/</g, "&lt;")} · ` : ""}${shutterStateLabel(item)}${item.position == null ? "" : ` · ${Math.round(item.position)}%`}</small><small class="dm-shutter-error" data-shutter-error role="alert"></small></span><span class="dm-shutter-actions"></span>`;
+      row.innerHTML = `<span class="g-icon-wrap">🪟</span><span class="dm-shutter-details"><strong>${String(item.name || item.entity).replace(/</g, "&lt;")}</strong><small>${item.room ? `${String(item.room.name).replace(/</g, "&lt;")} · ` : ""}${shutterStateLabel(item)}${item.position == null ? "" : ` · ${Math.round(item.position)}%`}</small><small class="dm-shutter-error" data-shutter-error role="alert">${shutterCommandErrors.get(item.entity) || ""}</small></span><span class="dm-shutter-actions"></span>`;
       const actions = row.querySelector(".dm-shutter-actions");
       const commands = item.position == null
         ? [["close_cover", document.documentElement.lang === "en" ? "Close" : "Chiudi"]]
@@ -147,6 +195,15 @@
         button.type = "button";
         button.dataset.shutterService = service;
         button.textContent = label;
+        if (pendingShutterCommands.has(shutterCommandKey(item.entity, service))) {
+          button.disabled = true;
+          button.textContent =
+            service === "close_cover"
+              ? document.documentElement.lang === "en"
+                ? "Closing…"
+                : "Chiusura…"
+              : "…";
+        }
         button.addEventListener("click", () => callShutterService(button, item, service));
         actions.append(button);
       });

@@ -6802,6 +6802,29 @@ let HA_API_URL = '';
 let HA_HTTP_URL = ''; 
 let currentPopupType = null; 
 let pendingWsCallbacks = {};
+window.dmCallHaService = function dmCallHaService(domain, service, serviceData) {
+    return new Promise((resolve, reject) => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            reject(new Error(document.documentElement.lang === 'en' ? 'Home Assistant is not connected' : 'Home Assistant non connesso'));
+            return;
+        }
+        const id = msgId++;
+        pendingWsCallbacks[id] = (message) => {
+            if (message.success === false) {
+                reject(new Error((message.error && message.error.message) || 'Service call failed'));
+                return;
+            }
+            resolve(message.result);
+        };
+        ws.send(JSON.stringify({
+            id,
+            type: 'call_service',
+            domain,
+            service,
+            service_data: serviceData
+        }));
+    });
+};
 let currentWeatherEntity = null;
 let currentActiveCam = null;
 let currentHistEntity = null;
