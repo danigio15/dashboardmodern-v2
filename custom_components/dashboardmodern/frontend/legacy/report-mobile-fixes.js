@@ -10,6 +10,7 @@ import "./real-ha-0147-fixes.js";
 import "./real-ha-0147-stability.js";
 import "./real-ha-0147-layout-lock.js";
 import "./real-ha-0147-data-repair.js";
+import "./real-ha-0147-alert-compat.js";
 
 function installReportCompatibilityMarker() {
   if (document.getElementById("dm-report-mobile-fixes")) return;
