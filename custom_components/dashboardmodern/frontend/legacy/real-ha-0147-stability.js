@@ -11,10 +11,9 @@ function readJson(key, fallback) {
 }
 
 /*
- * runtime-hotfix.js can replace a legacy renderer after real-ha-0147-fixes.js
- * has already wrapped it. Mark the currently installed renderer as accepted
- * before the retry loop runs, otherwise the two compatibility layers wrap one
- * another repeatedly and eventually overflow the call stack.
+ * runtime-hotfix.js and real-ha-0147-fixes.js use different wrapper markers.
+ * Mark the current implementation for both layers before either retry loop can
+ * wrap it again. This prevents A -> B -> A recursion regardless of load order.
  */
 function markCurrentWrappers() {
   [
@@ -30,6 +29,7 @@ function markCurrentWrappers() {
     if (typeof value !== "function") return;
     try {
       value.__dmRealHa0147 = true;
+      value.__dmRealFix = true;
     } catch (_error) {}
   });
 }
