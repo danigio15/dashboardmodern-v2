@@ -85,10 +85,10 @@ export function getDeviceDisplayName(device = {}, states = {}, locale = "it") {
 }
 
 export function getDeviceVisual(device = {}) {
-  if (device.visual_type && device.visual_key)
-    return { kind: device.visual_type, value: device.visual_key };
   const image = String(device.image || device.image_url || "").trim();
   if (image) return { kind: "image", value: image };
+  if (device.visual_type && device.visual_key)
+    return { kind: device.visual_type, value: device.visual_key };
   const icon = String(device.icon || "").trim();
   if (/^mdi:[a-z0-9-]+$/i.test(icon)) return { kind: "icon", value: icon };
   const type = String(device.device_type || device.type || "")
@@ -103,8 +103,12 @@ export function createId(section = "device", random = globalThis.crypto?.randomU
 
 export function normalizeDevice(input = {}, section, context = {}) {
   const entities = deviceEntities(input);
-  const roomId =
-    input.room_id || input.roomId || context.rooms?.find((r) => r.name === input.room)?.id || "";
+  const explicitRoomId = input.room_id || input.roomId || "";
+  const legacyRoomRef = input.room || "";
+  const matchedRoom = context.rooms?.find(
+    (room) => room.id === legacyRoomRef || room.name === legacyRoomRef,
+  );
+  const roomId = explicitRoomId || matchedRoom?.id || "";
   const rawIcon = String(input.icon || "");
   const emoji =
     !rawIcon.startsWith("mdi:") && /[^\x00-\x7f]/.test(rawIcon)

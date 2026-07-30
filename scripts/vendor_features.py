@@ -686,7 +686,10 @@ R17_13_R = "if(btn.getAttribute('data-all')){ var svc2=btn.getAttribute('data-sv
 R17_14_A = "grid.innerHTML=cdGroupCards(list, cdTappCard);"
 R17_14_R = 'grid.innerHTML=\'<div style="grid-column:1/-1; display:flex; gap:8px;">\'+\'<button class="tapp-btn" data-all="1" data-svc="open_cover" onclick="cdTappCmd(this)">▲ Apri tutte</button>\'+\'<button class="tapp-btn" data-all="1" data-svc="close_cover" onclick="cdTappCmd(this)">▼ Chiudi tutte</button>\'+\'</div>\'+cdGroupCards(list, cdTappCard);'
 R17_15_A = "var pg=document.getElementById('page-tapparelle');"
-R17_15_R = "var w2=document.getElementById('glance-custom-wrap'); if(w2){ var opens=getTapparelle().filter(function(t){ var st=(typeof STATES!=='undefined')?STATES[t.entity]:null; return st && st.state==='open'; }); var tv=document.getElementById('tapp-avvisi'); if(opens.length){ if(!tv){ tv=document.createElement('div'); tv.id='tapp-avvisi'; w2.appendChild(tv); } tv.innerHTML=opens.map(function(t){ return '<div class=\"irr-skip\" style=\"margin:6px 0;\">🪟 '+String(t.name||t.entity).replace(/</g,'&lt;')+' aperta</div>'; }).join(''); } else if(tv){ tv.remove(); } } var pg=document.getElementById('page-tapparelle');"
+# The canonical runtime owns the Home warning and popup.  Keep this anchor as a
+# no-op so future vendor refreshes cannot reintroduce a second interval writing
+# #tapp-avvisi.
+R17_15_R = R17_15_A
 
 # Round 18: field-test fixes.
 R18_1_A = "data-tab=\"visib\" onclick=\"editorSwitch((typeof EDITOR_TAB !== 'undefined' && EDITOR_TAB) ? EDITOR_TAB : 'visib')\">"
@@ -917,6 +920,10 @@ R35_2_R = "'0.12.4-int'"
 
 R36_A = "function cdApplEntity"
 R36_R = "function cdApplEntity(a, keys){ var v=cdApplEntityOrig(a, keys); if(v) return v; try { var ents=(a&&a.entities||[]).map(function(e){ return typeof e==='string'?e:e.entity; }).filter(Boolean); var k=String(keys&&keys[0]||''); function dom(d){ for(var i=0;i<ents.length;i++){ if(ents[i].indexOf(d+'.')===0) return ents[i]; } return null; } if(k.indexOf('switch')===0) return dom('switch')||dom('light')||dom('input_boolean'); if(k.indexOf('energy')===0){ for(var j=0;j<ents.length;j++){ if(/energy|kwh/i.test(ents[j])) return ents[j]; } return null; } if(k.indexOf('power')===0||k.indexOf('history')===0||k.indexOf('duration')===0&&false) return dom('sensor'); } catch(e){} return null; } function cdApplEntityOrig"
+R37_IT_A = '<input id="appl-ent" class="ed-input mono" style="flex:1;" autocomplete="off" placeholder="sensor.forno_potenza (W) o switch.forno"><button type="button" onclick="wzPickEntity(\\\'#appl-ent\\\')" style="flex:0 0 40px;height:40px;border:none;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;font-size:15px;cursor:pointer;">🔍</button>'
+R37_EN_A = '<input id="appl-ent" class="ed-input mono" style="flex:1;" autocomplete="off" placeholder="sensor.oven_power (W) or switch.oven"><button type="button" onclick="wzPickEntity(\\\'#appl-ent\\\')" style="flex:0 0 40px;height:40px;border:none;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;font-size:15px;cursor:pointer;">🔍</button>'
+R37_IT_R = '<input id="appl-ent" class="ed-input mono" data-entity-input autocomplete="off" style="flex:1;" placeholder="sensor.forno_potenza (W) o switch.forno"><button type="button" class="dm-entity-picker" data-entity-target="appl-ent" aria-label="Seleziona entity_id">🔍</button>'
+R37_EN_R = '<input id="appl-ent" class="ed-input mono" data-entity-input autocomplete="off" style="flex:1;" placeholder="sensor.oven_power (W) or switch.oven"><button type="button" class="dm-entity-picker" data-entity-target="appl-ent" aria-label="Select entity_id">🔍</button>'
 
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
@@ -1153,4 +1160,6 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("temp-avg-fallback?", R35_1_A, R35_1_R),
     ("ver-0122?", R35_2_A, R35_2_R),
     ("appl-entity-fallback", R36_A, R36_R),
+    ("appl-canonical-picker-it?", R37_IT_A, R37_IT_R),
+    ("appl-canonical-picker-en?", R37_EN_A, R37_EN_R),
 )

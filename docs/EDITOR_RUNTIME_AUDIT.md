@@ -122,3 +122,160 @@ dashboard has no distinct visual consumer for them.
 
 This is not a release candidate. Remaining PARTIAL rows must be migrated and the
 manual Home Assistant checklist completed before release readiness can be claimed.
+# Runtime data path audit (shutters, Temperature, appliances and Report)
+
+The authoritative path is now:
+
+1. The real Editor writes through `DashboardModernModules.store` (appliances call
+   `replaceSection("appliances", list)`; Temperature calls `updateItem("rooms", id,
+   patch)`). Temperature therefore enriches an existing stable room and never
+   constructs a second room.
+2. `DashboardStore.persist()` serializes the complete schema-4 snapshot to
+   `dm_dashboard_state`, then projects compatibility keys such as `cd_stanze` and
+   `cd_appliances` while its projection guard prevents a write loop.
+3. `installLegacyWriteBridge()` is only the reverse compatibility path: a legacy
+   writer is reconciled into the canonical section. It is not a second source of
+   truth.
+4. `createRenderCoordinator()` reacts to the optimistic transaction and refreshes
+   the public appliance renderer, active editor, Report projection and selectors.
+5. The public Energy Report is rebuilt from `canonicalReportDevices(appliances,
+   loads, STATES)`. It does not persist a competing `cd_report_devices` model.
+
+The appliance form actually persists a generic `entities` array of strings (for
+example `["sensor.forno_power", "sensor.forno_energy"]`). Normalization also
+accepts legacy entity objects. Explicit `power_entity`, `energy_entity`,
+`daily_energy_entity`, `report_entity`, and `history_entity` remain empty unless
+they existed in migrated data; `show_in_report` defaults to true; `device_type`
+comes from the selected appliance visual; and `visual_type`/`visual_key` are
+preserved by normalization. Report inference must consequently inspect the real
+generic array and Home Assistant units, preferring Wh/kWh and rejecting W/kW.
+
+The former shutter warning was an isolated two-second inline renderer. It counted
+only the literal `open` state, emitted bespoke markup with the count inside the
+title, and installed no click handler or popup. The canonical runtime repair now
+derives count, card, and popup from one `openShutters()` list and refreshes an open
+popup as state changes.
+
+The previous Temperature renderer exposed editable room name/floor fields and its
+Add action constructed `room-${Date.now()}`. That made the Temperature tab a
+second room creator. Its saved cards also used a different fieldset layout. The
+shared form now selects a stable canonical room id, derives floor, uses the icon
+and HA entity pickers, and clears only `temp`/`hum` on deletion.
+
+Earlier Report tests stayed green because they directly inserted an idealized
+Forno object containing explicit energy fields and manually invoked both Report
+rebuild functions. Such a test skipped the appliance form, store normalization,
+legacy projection, reactive coordinator, navigation, and reload that expose the
+runtime defect.
+
+## PR #31 browser follow-up
+
+The room loss observed by the browser matrix was an E2E bootstrap error caused by
+`storage-namespace.js`. The test wrote `dm_dashboard_state` in `addInitScript`,
+before the namespacing shim existed, so it populated the global key. The runtime
+then mapped its reads to `cd_<instance>_dm_dashboard_state` and correctly found no
+canonical data. Browser fixtures now navigate with an explicit `dmi`, wait for
+the real shim, seed through the public `localStorage` API, and reload. The former
+blanket guard against reconciling `cd_stanze=[]` was removed because it prevented
+the legacy Rooms editor from legitimately deleting the final room.
+
+The legacy shutter interval no longer renders `#tapp-avvisi`; it only refreshes
+the dedicated shutter page. `runtime-hotfix.js` is therefore the sole owner of
+the Home warning, count and open popup, with one guarded interval and page-hide
+cleanup. `real-shutters-appliance-report.spec.js` covers the real shutter Editor
+flow and live popup, while its Forno scenario covers the appliance Editor,
+canonical persistence, Energy Report/Analysis navigation and full reload.
+
+The image loading regression uses the existing, checked-in
+`custom_components/dashboardmodern/frontend/legacy/logo.png` as a deterministic
+technical fixture only. It is not presented as the final appliance artwork. The
+browser test validates decoded natural dimensions,
+visible dimensions, containment, centering, overflow and absence of glyph
+replacement in Chromium desktop/mobile and WebKit/iPad. Final visual acceptance
+remains open until the user-provided appliance reference asset is integrated.
+
+The final browser follow-up identified three independent DOM/runtime causes:
+
+* `STATES` is a global lexical `let` binding in the vendored dashboard, not a
+  `window` property. The shutter runtime now reads that binding through a guarded
+  `dashboardStates()` accessor and only falls back to `window.STATES`.
+* Selecting a room in Add Temperature reused the Edit population function and
+  cleared entity values already chosen through the picker. Add and Edit now have
+  separate population paths; room selection never changes the temperature or
+  humidity draft.
+* A matching appliance signature did not prove that the current visual DOM was
+  normalized, because the legacy renderer could replace `.appl-ic` afterwards.
+  The early return now also inspects the real image class and source, and the
+  appliance section wrapper repairs the rendered DOM synchronously.
+
+## Section-aware canonical updates
+
+`DashboardStore.updateItem()` previously sent every section through the device
+normalizer. For `rooms`, that silently discarded room-only fields (`temp`,
+`hum`, `floor`, `rgb`, ordering and metadata), so the Temperature form appeared
+to save while the canonical room remained unconfigured. Room additions and
+updates now use the `rooms` section normalizer; deleting a Temperature
+configuration consequently clears only `temp` and `hum`.
+
+Legacy shutter records also store their room reference in `room`. That value can
+be either the historical display name or the stable canonical id (for example
+`room-salone`). Device normalization now resolves both forms and always stores
+the result in canonical `room_id`, allowing the live popup to display the room
+after the Editor-to-store round trip.
+
+## Touch navigation and idempotent runtime rendering
+
+The mobile Chromium project now enables the actual mobile/touch context. The
+production dock uses hover behavior only for fine pointers; coarse touch
+pointers, including wide iPads, receive the visible handle layout. Runtime
+layout detection uses the same width, landscape-height and coarse-pointer media
+conditions, so Safari/iPad no longer depends on a hover interaction it cannot
+perform.
+
+The Home shutter renderer signs the canonical open-shutter projection (entity,
+state, position and room) and preserves the existing alert DOM while that
+projection is unchanged. Its 500 ms reconciliation therefore updates an open
+popup without continuously replacing the clickable card.
+
+Configured appliance images now mark their real `.appl-ic` container with
+`dm-appliance-image-wrap`. The container is 120–180 px wide on desktop and at
+least 100 px wide on mobile, with a 150 px containment area and centered
+`object-fit: contain`; the image remains the sole child when decoding succeeds.
+
+### Final browser interaction audit
+
+The image assertion now measures containment and overflow against the normalized
+`.dm-appliance-image-wrap`, rather than the obsolete `.appl-visual` ancestor.
+Touch navigation uses Playwright touchscreen input after an immediate DOM scroll,
+while desktop dock buttons are focused and activated with the keyboard. Editor
+buttons use the same immediate-scroll/tap path on WebKit to avoid waiting for an
+animated or freshly reconstructed node to settle. The shutter E2E deliberately
+keeps its popup open beyond the former two-second legacy interval and verifies
+that the canonical alert remains the sole card owner.
+
+### WebKit/iPad finalization
+
+The legacy bootstrap now detects touch capability through `maxTouchPoints` or
+`ontouchstart`, adds `dm-touch-navigation`, and forces the handle-based navbar
+layout even when Safari reports ambiguous hover/pointer media features. E2E tab
+navigation requires the touch handle for mobile/iPad projects and uses a real
+Playwright touchscreen tap; desktop retains keyboard activation. Google Fonts
+responses in the editor integration test now use CSS/font MIME types, and only
+the long WebKit editor flow receives the scoped `test.slow()` allowance.
+
+### Stable touch-tab targeting
+
+Touch tab navigation now waits for the animated navbar and target tab boxes to
+stabilize, scrolls only the fixed navbar's horizontal container, verifies the
+actual center-point hit target, and uses Playwright `locator.tap()` rather than
+absolute touchscreen coordinates. Desktop activation remains keyboard-driven.
+
+### Reactive appliance/report completion
+
+Touch navigation now gives the automatic navbar at most two short locator-tap
+attempts and collects hit diagnostics only after both fail, avoiding stability
+waits that could overlap the auto-hide timer. Appliance saves await the canonical
+store transaction before one shared finalizer rerenders the editor/public card
+and refreshes the Report selector. Runtime store notifications also rebuild that
+projection, and the real Forno E2E asserts `ED_DEVICES` both before navigation and
+after reload without invoking rebuild functions from the test.

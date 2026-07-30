@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.13"
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium webkit
       - run: python scripts/generate_build_info.py --expected-commit "$GITHUB_SHA"
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { clickBottomTab, clickStableButton } from "./helpers/navigation.js";
 
 const devices = [
   ["washer", "Lavatrice", "lavatrice", 420, 1.8],
@@ -121,21 +122,18 @@ async function boot(page) {
   }, devices);
 }
 
-async function openEnergyAnalysis(page) {
-  await page.evaluate(() => {
-    document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
-    document.getElementById("page-energy")?.classList.add("active");
-  });
+async function openEnergyAnalysis(page, testInfo) {
+  await clickBottomTab(page, "energy", testInfo);
 
-  const reportButton = page.locator("#page-energy .sub-tab-btn", { hasText: "Report" });
-  await expect(reportButton).toBeVisible();
-  await reportButton.click();
+  const energyPage = page.locator("#page-energy.active");
+  const reportButton = energyPage.locator(".sub-tab-btn", { hasText: "Report" });
+  await clickStableButton(page, reportButton, testInfo);
 
-  await page.evaluate(() => {
-    window.edSwitchTab?.("analisi");
-    window.cdRebuildReportDevices?.();
-    window.buildReportSelect?.();
-  });
+  await clickStableButton(
+    page,
+    energyPage.getByRole("button", { name: /Analisi|Analysis/i }),
+    testInfo,
+  );
 
   await expect(page.locator("#view-panoramica")).toBeVisible();
   await expect(page.locator("#ed-pane-analisi")).toBeVisible();
@@ -194,18 +192,18 @@ test("release evidence", async ({ page }, testInfo) => {
       JSON.stringify([{ name: "Salone", entity: "cover.salone" }]),
     );
     STATES["cover.salone"] = { state: "open", attributes: {} };
-    document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
-    document.getElementById("page-home").classList.add("active");
   });
-  await expect(page.locator("#tapp-avvisi .glance-card")).toContainText("1 tapparella aperta", {
-    timeout: 3000,
-  });
+  await clickBottomTab(page, "home", testInfo);
+  await expect(page.locator("#glance-custom-wrap")).toBeVisible();
+  const shutterAlert = page.locator("#tapp-avvisi .dm-shutter-alert");
+  await expect(shutterAlert.locator(".g-name")).toHaveText(/TAPPARELLA APERTA|SHUTTER OPEN/);
+  await expect(shutterAlert.locator(".g-val")).toHaveText("1");
   await page.screenshot({
     path: `${screenshotDirectory}/home-mobile-shutter-alert.png`,
     fullPage: true,
   });
 
-  await openEnergyAnalysis(page);
+  await openEnergyAnalysis(page, testInfo);
   const selector = page.locator("#ed-dev-selector");
   await expect(selector).toContainText("Forno");
   await page.screenshot({

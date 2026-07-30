@@ -112,6 +112,26 @@ test("show_in_report defaults to enabled for migrated appliances", () => {
   assert.equal(canonicalReportDevices([appliance], [], {})[0].entity, "sensor.forno_kwh");
 });
 
+for (const entities of [
+  ["sensor.forno_energy"],
+  [{ entity: "sensor.forno_energy", type: "energy", label: "Forno" }],
+  [{ entity_id: "sensor.forno_energy" }],
+]) {
+  test(`accepts the persisted appliance entity shape ${JSON.stringify(entities)}`, () => {
+    const states = {
+      "sensor.forno_energy": { attributes: { unit_of_measurement: "kWh" } },
+    };
+    assert.equal(reportEntityForDevice({ name: "Forno", entities }, states), "sensor.forno_energy");
+  });
+}
+
+test("deduplicates the same energy sensor projected by appliances and legacy loads", () => {
+  const states = { "sensor.forno_energy": { attributes: { unit_of_measurement: "kWh" } } };
+  const appliance = { id: "forno", name: "Forno", entities: ["sensor.forno_energy"] };
+  const legacy = { id: "legacy-forno", name: "Forno legacy", energy_entity: "sensor.forno_energy" };
+  assert.equal(canonicalReportDevices([appliance], [legacy], states).length, 1);
+});
+
 test("mobile runtime identifies generated ghost room labels", () => {
   assert.equal(isGeneratedRoomName("ROOM_MS4FXRS8"), true);
   assert.equal(isGeneratedRoomName("room-ms4fxrs8"), true);

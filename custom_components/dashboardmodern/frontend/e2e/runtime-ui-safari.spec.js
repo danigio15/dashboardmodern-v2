@@ -117,8 +117,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           id: "appliance-safari",
           name: "Forno",
           device_type: "forno",
-          visual_type: "asset",
-          visual_key: "forno",
+          image: "/legacy/logo.png",
           room_id: "room-salone",
           power_entity: "sensor.forno_power",
           entities: ["sensor.forno_power"],
@@ -214,9 +213,39 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const visualBox = await visual.boundingBox();
     expect(visualBox?.width ?? 0).toBeGreaterThanOrEqual(50);
     expect(visualBox?.height ?? 0).toBeGreaterThanOrEqual(50);
-    const glyph = visual.locator(".dm-appliance-glyph");
-    await expect(glyph).toBeVisible();
-    await expect(glyph).not.toHaveText("");
+    const image = visual.locator("img.dm-appliance-image");
+    await expect(image).toBeVisible();
+    await expect(visual.locator(".dm-appliance-glyph")).toHaveCount(0);
+    const imageMetrics = await image.evaluate((node) => {
+      const imageStyle = getComputedStyle(node);
+      const imageRect = node.getBoundingClientRect();
+      const wrapper = node.closest(".dm-appliance-image-wrap");
+      if (!wrapper) throw new Error("Normalized appliance image wrapper is missing");
+      const wrapperStyle = getComputedStyle(wrapper);
+      const wrapperRect = wrapper.getBoundingClientRect();
+      return {
+        naturalWidth: node.naturalWidth,
+        naturalHeight: node.naturalHeight,
+        width: imageRect.width,
+        height: imageRect.height,
+        objectFit: imageStyle.objectFit,
+        objectPosition: imageStyle.objectPosition,
+        contained:
+          imageRect.left >= wrapperRect.left - 1 &&
+          imageRect.top >= wrapperRect.top - 1 &&
+          imageRect.right <= wrapperRect.right + 1 &&
+          imageRect.bottom <= wrapperRect.bottom + 1,
+        overflow: wrapperStyle.overflow,
+      };
+    });
+    expect(imageMetrics.naturalWidth).toBeGreaterThan(0);
+    expect(imageMetrics.naturalHeight).toBeGreaterThan(0);
+    expect(imageMetrics.width).toBeGreaterThanOrEqual(80);
+    expect(imageMetrics.height).toBeGreaterThanOrEqual(80);
+    expect(imageMetrics.objectFit).toBe("contain");
+    expect(imageMetrics.objectPosition).toBe("50% 50%");
+    expect(imageMetrics.contained).toBe(true);
+    expect(imageMetrics.overflow).toBe("hidden");
 
     const cardBox = await card.boundingBox();
     if (testInfo.project.name === "desktop")

@@ -1,12 +1,26 @@
 import { expect, test } from "@playwright/test";
+import { clickStableButton } from "./helpers/navigation.js";
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: missing Chart.js still reaches legacy readiness`, async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(`${error.message}\n${error.stack || ""}`));
-    await page.route("https://**", (route) =>
-      route.fulfill({ contentType: "application/javascript", body: "" }),
-    );
+    await page.route("https://**", (route) => {
+      const url = route.request().url();
+      if (url.startsWith("https://fonts.googleapis.com/"))
+        return route.fulfill({
+          status: 200,
+          contentType: "text/css",
+          body: "/* E2E font stub */",
+        });
+      if (url.startsWith("https://fonts.gstatic.com/"))
+        return route.fulfill({
+          status: 200,
+          contentType: "font/woff2",
+          body: Buffer.from([]),
+        });
+      return route.fulfill({ status: 200, contentType: "application/javascript", body: "" });
+    });
     await page.addInitScript(() => {
       window.WebSocket = class extends EventTarget {
         static OPEN = 1;
@@ -30,6 +44,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: runtime, energy, loads and report use the shipped module`, async ({
     page,
   }, testInfo) => {
+    if (testInfo.project.name === "webkit-ipad")
+      test.slow(true, "Full editor integration flow is slower on WebKit");
     const errors = [];
     const pageErrors = [];
     const seedState = {
@@ -92,6 +108,18 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     });
     await page.route("https://**", async (route) => {
       const url = route.request().url();
+      if (url.startsWith("https://fonts.googleapis.com/"))
+        return route.fulfill({
+          status: 200,
+          contentType: "text/css",
+          body: "/* E2E font stub */",
+        });
+      if (url.startsWith("https://fonts.gstatic.com/"))
+        return route.fulfill({
+          status: 200,
+          contentType: "font/woff2",
+          body: Buffer.from([]),
+        });
       if (url.includes("chart.js"))
         return route.fulfill({
           contentType: "application/javascript",
@@ -107,7 +135,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           contentType: "application/javascript",
           body: "window.Hls=class{static isSupported(){return false}}",
         });
-      return route.fulfill({ status: 200, body: "" });
+      return route.fulfill({ status: 200, contentType: "application/javascript", body: "" });
     });
     await page.addInitScript(() => {
       class TestSocket extends EventTarget {
@@ -217,8 +245,16 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       expect(counts.uniqueTargets).toBe(counts.inputs);
     };
     await assertPickerInvariant();
-    await page.getByRole("button", { name: /IMPOSTAZIONI|SETTINGS/ }).click();
-    await page.getByRole("button", { name: /FLUSSI ED ENTITÀ|FLOWS & ENTITIES/ }).click();
+    await clickStableButton(
+      page,
+      page.getByRole("button", { name: /IMPOSTAZIONI|SETTINGS/ }),
+      testInfo,
+    );
+    await clickStableButton(
+      page,
+      page.getByRole("button", { name: /FLUSSI ED ENTITÀ|FLOWS & ENTITIES/ }),
+      testInfo,
+    );
     await assertPickerInvariant();
     await page.evaluate(() => window.editorSwitch("sez2"));
     await assertPickerInvariant();
@@ -246,7 +282,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(
       page.getByRole("button", { name: /FLUSSI ED ENTITÀ|FLOWS & ENTITIES/ }),
     ).toBeVisible();
-    await page.getByRole("button", { name: /CARICHI|LOADS/ }).click();
+    await clickStableButton(page, page.getByRole("button", { name: /CARICHI|LOADS/ }), testInfo);
     const loads = await page.locator('[data-energy-panel="loads"]').innerHTML();
     await page.locator("#dm-load-name").fill("Booster");
     await page.locator("#dm-load-power").fill("sensor.pump_power");
@@ -273,22 +309,25 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await temporary.locator("[data-delete-load]").click();
     await expect(temporary).toHaveCount(0);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-loads.png` });
-    await page.getByRole("button", { name: "REPORT" }).click();
+    await clickStableButton(page, page.getByRole("button", { name: "REPORT" }), testInfo);
     const report = await page.locator('[data-energy-panel="report"]').innerHTML();
     expect(report).not.toBe(loads);
     expect(report).toMatch(/Salva Report|Save Report/);
     expect(report).not.toContain("dm-load-category");
-    await page.locator("[data-report-add]").click();
+    await clickStableButton(page, page.locator("[data-report-add]"), testInfo);
     await page.locator("[data-manual-name]").fill("Manual water");
     await page.locator("#dm-manual-report-icon").fill("💧");
     await page.locator("#dm-manual-report-entity").fill("sensor.water_month");
     await page.locator("#dm-manual-report-history").fill("sensor.water_total");
-    await page.locator("[data-manual-confirm]").click();
-    const manual = page.locator(".dm-report-row").last();
+    await clickStableButton(page, page.locator("[data-manual-confirm]"), testInfo);
+    await expect(page.locator(".dm-report-row")).toHaveCount(4);
+    let manual = page.locator(".dm-report-row").last();
     await expect(manual.locator('[data-report-name][value="Manual water"]')).toHaveCount(1);
     await expect(manual.locator(".dm-entity-picker")).toHaveCount(2);
     await expect(manual.locator(".dm-icon-picker")).toHaveCount(1);
+    manual = page.locator(".dm-report-row").last();
     await expect(manual.locator("[data-report-up]")).toHaveCount(1);
+    manual = page.locator(".dm-report-row").last();
     await expect(manual.locator("[data-report-down]")).toHaveCount(1);
     await expect(manual.locator("[data-report-delete]")).toHaveCount(1);
     const firstReport = page.locator(".dm-report-row").first();
@@ -306,8 +345,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
             .find((item) => item.name === "Booster updated")?.show_in_dashboard,
       ),
     ).toBe(false);
-    await page.getByRole("button", { name: /CARICHI|LOADS/ }).click();
-    await page.getByRole("button", { name: "REPORT" }).click();
+    await clickStableButton(page, page.getByRole("button", { name: /CARICHI|LOADS/ }), testInfo);
+    await clickStableButton(page, page.getByRole("button", { name: "REPORT" }), testInfo);
     await expect(page.locator('[data-report-name][value="Manual water"]')).toHaveCount(1);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-report.png` });
     expect(
@@ -322,7 +361,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       ),
     ).toBe(4);
     await page.evaluate(() => window.editorSwitch("stanze"));
-    await page.locator('#ed-body button[title="Selettore icone"]').click();
+    await clickStableButton(
+      page,
+      page.locator('#ed-body button[title="Selettore icone"]'),
+      testInfo,
+    );
     await expect(page.locator("#dm-icon-grid button")).toHaveCount(19);
     for (const icon of ["🛏️", "🛋️", "🍳", "🛁", "💻", "🚗", "🌇", "🧺"])
       await expect(page.locator("#dm-icon-grid button", { hasText: icon })).toHaveCount(1);
@@ -333,7 +376,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-room-picker.png`,
     });
-    await page.locator("#dm-iconpick [data-icon-picker-close]").click();
+    const closeIconPicker = page.getByRole("button", {
+      name: /Chiudi selettore icone|Close icon picker/i,
+    });
+    await clickStableButton(page, closeIconPicker, testInfo);
     await expect(page.locator("#dm-iconpick")).toHaveCount(0);
     await page.evaluate(() => window.editorSwitch("luci"));
     await assertPickerInvariant();
@@ -348,6 +394,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     ).toHaveCount(1);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-lights.png` });
     await page.evaluate(() => document.getElementById("editor-modal")?.remove());
+    await page.waitForFunction(() => typeof window.apriConfigEntita === "function");
     await page.evaluate(() => window.apriConfigEntita());
     await page.evaluate(() => window.editorSwitch("luci"));
     await assertPickerInvariant();

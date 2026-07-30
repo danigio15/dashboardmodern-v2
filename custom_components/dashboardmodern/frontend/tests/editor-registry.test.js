@@ -18,6 +18,9 @@ test("Temperature is registry-owned and uses the canonical room store", async ()
   const module = await import(`${moduleUrl}?temperature=${Date.now()}`);
   assert.equal(module.EDITOR_REGISTRY.temperature.render, module.renderTemperatureEditor);
   assert.equal(module.EDITOR_REGISTRY.temperature.mount, module.mountTemperatureEditor);
+  await module.default.store.replaceSection("rooms", [
+    { id: "room-salone", name: "Salone", icon: "mdi:sofa", floor: "Terra" },
+  ]);
   const target = { innerHTML: "" };
   module.renderTemperatureEditor(target);
   assert.match(target.innerHTML, /data-temperature-editor/);
@@ -29,7 +32,7 @@ test("Temperature is registry-owned and uses the canonical room store", async ()
     source.indexOf("export function renderReportRow"),
   );
   assert.match(renderer, /store\.getSection\("rooms"\)/);
-  assert.match(renderer, /store\.replaceSection\("rooms"/);
+  assert.match(renderer, /store\.updateItem\("rooms"/);
   assert.doesNotMatch(renderer, /sensor\.[a-z_]+["']/);
 });
 
