@@ -287,7 +287,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(report).not.toBe(loads);
     expect(report).toMatch(/Salva Report|Save Report/);
     expect(report).not.toContain("dm-load-category");
-    await page.locator("[data-report-add]").click();
+    await clickStableButton(page, page.locator("[data-report-add]"), testInfo);
     await page.locator("[data-manual-name]").fill("Manual water");
     await page.locator("#dm-manual-report-icon").fill("💧");
     await page.locator("#dm-manual-report-entity").fill("sensor.water_month");
@@ -367,6 +367,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     ).toHaveCount(1);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-lights.png` });
     await page.evaluate(() => document.getElementById("editor-modal")?.remove());
+    await page.waitForFunction(() => typeof window.apriConfigEntita === "function");
     await page.evaluate(() => window.apriConfigEntita());
     await page.evaluate(() => window.editorSwitch("luci"));
     await assertPickerInvariant();

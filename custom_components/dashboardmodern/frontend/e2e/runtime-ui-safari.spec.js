@@ -217,18 +217,25 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(image).toBeVisible();
     await expect(visual.locator(".dm-appliance-glyph")).toHaveCount(0);
     const imageMetrics = await image.evaluate((node) => {
-      const style = getComputedStyle(node);
-      const rect = node.getBoundingClientRect();
-      const parent = node.parentElement.getBoundingClientRect();
+      const imageStyle = getComputedStyle(node);
+      const imageRect = node.getBoundingClientRect();
+      const wrapper = node.closest(".dm-appliance-image-wrap");
+      if (!wrapper) throw new Error("Normalized appliance image wrapper is missing");
+      const wrapperStyle = getComputedStyle(wrapper);
+      const wrapperRect = wrapper.getBoundingClientRect();
       return {
         naturalWidth: node.naturalWidth,
         naturalHeight: node.naturalHeight,
-        width: rect.width,
-        height: rect.height,
-        objectFit: style.objectFit,
-        objectPosition: style.objectPosition,
-        contained: rect.width <= parent.width + 1 && rect.height <= parent.height + 1,
-        overflow: getComputedStyle(node.closest(".appl-visual")).overflow,
+        width: imageRect.width,
+        height: imageRect.height,
+        objectFit: imageStyle.objectFit,
+        objectPosition: imageStyle.objectPosition,
+        contained:
+          imageRect.left >= wrapperRect.left - 1 &&
+          imageRect.top >= wrapperRect.top - 1 &&
+          imageRect.right <= wrapperRect.right + 1 &&
+          imageRect.bottom <= wrapperRect.bottom + 1,
+        overflow: wrapperStyle.overflow,
       };
     });
     expect(imageMetrics.naturalWidth).toBeGreaterThan(0);

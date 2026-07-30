@@ -49,34 +49,43 @@ export async function revealBottomNavigation(page) {
   return "mouse";
 }
 
+async function instantScrollIntoView(locator) {
+  await locator.evaluate((node) => {
+    node.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
+  });
+}
+
 export async function clickBottomTab(page, tabName) {
   const mode = await revealBottomNavigation(page);
+  const nav = page.locator("nav.bottom-nav-bar");
   const tab = page.locator(`.tab[data-tab="${tabName}"]`);
-  await tab.scrollIntoViewIfNeeded();
-  await expect(tab).toBeVisible();
   if (mode === "handle") {
-    await tab.click();
+    await expect(nav).toHaveClass(/visible/);
+    await instantScrollIntoView(tab);
+    await expect(tab).toBeVisible();
+    const box = await tab.boundingBox();
+    if (!box) throw new Error(`${tabName} touch tab has no bounding box`);
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
   } else {
-    const initialBox = await tab.boundingBox();
-    if (!initialBox) throw new Error(`${tabName} tab has no box`);
-    await page.mouse.move(
-      initialBox.x + initialBox.width / 2,
-      initialBox.y + initialBox.height / 2,
-    );
-    await waitForStableBox(tab);
-    const stableBox = await tab.boundingBox();
-    if (!stableBox) throw new Error(`${tabName} tab disappeared`);
-    await page.mouse.move(stableBox.x + stableBox.width / 2, stableBox.y + stableBox.height / 2);
-    await page.mouse.down();
-    await page.mouse.up();
+    await expect(tab).toBeVisible();
+    await tab.focus();
+    await expect(tab).toBeFocused();
+    await page.keyboard.press("Enter");
   }
   await expect(tab).toHaveClass(/active/);
   await expect(page.locator(`#page-${tabName}`)).toHaveClass(/active/);
 }
 
-export async function clickStableButton(_page, locator, _testInfo) {
+export async function clickStableButton(page, locator, testInfo) {
   await expect(locator).toBeVisible();
   await expect(locator).toBeEnabled();
+  if (testInfo.project.name === "webkit-ipad") {
+    await instantScrollIntoView(locator);
+    const box = await locator.boundingBox();
+    if (!box) throw new Error("WebKit button has no box");
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    return;
+  }
   await locator.scrollIntoViewIfNeeded();
   await locator.click();
 }

@@ -179,6 +179,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(styles[0].boxShadow).not.toBe("none");
     expect(styles[1].boxShadow).not.toBe("none");
     await shutter.click();
+    await expect(page.locator("#dm-shutter-popup")).toBeVisible();
+    await page.waitForTimeout(2600);
+    await expect(page.locator("#tapp-avvisi .dm-shutter-alert")).toHaveCount(1);
+    await expect(page.locator("#dm-shutter-popup")).toBeVisible();
     await expect(page.locator("#dm-shutter-popup")).toContainText("Tapparella salone");
     await expect(page.locator("#dm-shutter-popup")).toContainText("Salone");
     await expect(page.locator("#dm-shutter-popup")).toContainText("65%");

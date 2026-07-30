@@ -241,3 +241,14 @@ Configured appliance images now mark their real `.appl-ic` container with
 `dm-appliance-image-wrap`. The container is 120–180 px wide on desktop and at
 least 100 px wide on mobile, with a 150 px containment area and centered
 `object-fit: contain`; the image remains the sole child when decoding succeeds.
+
+### Final browser interaction audit
+
+The image assertion now measures containment and overflow against the normalized
+`.dm-appliance-image-wrap`, rather than the obsolete `.appl-visual` ancestor.
+Touch navigation uses Playwright touchscreen input after an immediate DOM scroll,
+while desktop dock buttons are focused and activated with the keyboard. Editor
+buttons use the same immediate-scroll/tap path on WebKit to avoid waiting for an
+animated or freshly reconstructed node to settle. The shutter E2E deliberately
+keeps its popup open beyond the former two-second legacy interval and verifies
+that the canonical alert remains the sole card owner.
