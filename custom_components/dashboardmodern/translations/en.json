@@ -15,8 +15,17 @@
   "options": {
     "step": {
       "init": {
+        "title": "Access and dashboard integration",
+        "description": "Choose the users allowed to open this dashboard. Leave the list empty to allow everyone. Lovelace registration makes DashboardModern appear in Settings → Dashboards and lets users choose it as their default dashboard.",
         "data": {
+          "allowed_users": "Allowed users",
+          "register_lovelace_dashboard": "Also register as a Home Assistant dashboard",
           "admin_only": "Visible to administrators only"
+        },
+        "data_description": {
+          "allowed_users": "Users not selected are denied even when they open the URL directly.",
+          "register_lovelace_dashboard": "The dashboard is created the first time an administrator opens DashboardModern.",
+          "admin_only": "Native Home Assistant filter; it takes precedence for non-administrator accounts."
         }
       }
     }
