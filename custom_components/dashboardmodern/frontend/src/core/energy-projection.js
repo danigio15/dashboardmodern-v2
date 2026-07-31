@@ -66,6 +66,13 @@ const TOTAL_ENERGY_ALIASES = Object.freeze([
       monthly_charged_energy: "dm.energy_batteria_caricata_mese",
     },
   },
+  {
+    path: "battery.total_discharged_energy",
+    targets: {
+      daily_discharged_energy: "dm.energy_batteria_scaricata_oggi",
+      monthly_discharged_energy: "dm.energy_batteria_usata_mese",
+    },
+  },
 ]);
 
 const REPORT_ICON_BY_TYPE = Object.freeze({
@@ -148,7 +155,9 @@ function configured(value) {
  */
 export function projectEnergySlots(energy = {}, overrides = {}) {
   const result = { ...overrides };
+  const totalPaths = new Set(TOTAL_ENERGY_ALIASES.map((definition) => definition.path));
   for (const [path, slot] of Object.entries(ENERGY_SLOT_MAP)) {
+    if (totalPaths.has(path)) continue;
     const [group, key] = path.split(".");
     const value = configured(energy[group]?.[key]);
     if (value) result[slot] = value;
@@ -158,10 +167,12 @@ export function projectEnergySlots(energy = {}, overrides = {}) {
   for (const definition of TOTAL_ENERGY_ALIASES) {
     const [group, totalKey] = definition.path.split(".");
     const totalEntity = configured(energy[group]?.[totalKey]);
-    if (!totalEntity) continue;
-    for (const [periodKey, slot] of Object.entries(definition.targets)) {
-      if (!configured(energy[group]?.[periodKey])) result[slot] = totalEntity;
-    }
+    const missingPeriods = Object.entries(definition.targets).filter(
+      ([periodKey]) => !configured(energy[group]?.[periodKey]),
+    );
+    if (!totalEntity || missingPeriods.length === 0) continue;
+    result[ENERGY_SLOT_MAP[definition.path]] = totalEntity;
+    for (const [, slot] of missingPeriods) result[slot] = totalEntity;
   }
   return result;
 }
