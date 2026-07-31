@@ -18,20 +18,21 @@ function decorateShutterRows() {
 function bindStandardAlertButton(button, group, entity) {
   button.removeAttribute("onclick");
   button.dataset.standardAlertEdit = "";
+  button.dataset.realAlertEdit = "";
   button.dataset.standardAlertGroup = group;
   button.dataset.standardAlertEntity = entity;
+  button.dataset.alertGroup = group;
+  button.dataset.alertEntity = entity;
   button.type = "button";
-  button.classList.add("ed-del");
+  button.classList.add("ed-del", "dm-edit-button");
   button.textContent = "✏️";
   button.title = document.documentElement.lang === "en" ? "Edit" : "Modifica";
-  if (button.dataset.standardAlertMounted !== "true") {
-    button.dataset.standardAlertMounted = "true";
+  button.setAttribute("aria-label", button.title);
+  if (button.dataset.alertEditMounted !== "true") {
+    button.dataset.alertEditMounted = "true";
     button.addEventListener("click", () => {
       const edit = globalThis.dmRealEditAlert || globalThis.edEditAvvisoStandard;
-      edit?.(
-        button.dataset.standardAlertGroup,
-        button.dataset.standardAlertEntity,
-      );
+      edit?.(button.dataset.alertGroup, button.dataset.alertEntity);
     });
   }
   const accordion = button.closest("details.ed-acc");
@@ -55,16 +56,7 @@ function decorateStandardAlerts() {
       const row = standardAlertRow(entity);
       if (!row) return;
 
-      // The real-HA compatibility layer owns the final edit control. Once its
-      // button exists, never recreate the older standard button: the previous
-      // add/remove race caused duplicate controls and occasionally reopened an
-      // empty form on slower WebKit devices.
-      if (row.querySelector("[data-real-alert-edit]")) {
-        row.querySelectorAll("[data-standard-alert-edit]").forEach((button) => button.remove());
-        return;
-      }
-
-      let button = row.querySelector("[data-standard-alert-edit]");
+      let button = row.querySelector("[data-standard-alert-edit], [data-real-alert-edit]");
       if (!button) {
         button = document.createElement("button");
         const remove = [...row.querySelectorAll(".ed-del")].find(
@@ -74,6 +66,12 @@ function decorateStandardAlerts() {
         else row.append(button);
       }
       bindStandardAlertButton(button, group, entity);
+
+      // Older compatibility passes could leave two edit buttons in the same
+      // row. Keep the canonical dual-marker button and remove only duplicates.
+      row.querySelectorAll("[data-standard-alert-edit], [data-real-alert-edit]").forEach((candidate) => {
+        if (candidate !== button) candidate.remove();
+      });
     });
   });
 }
