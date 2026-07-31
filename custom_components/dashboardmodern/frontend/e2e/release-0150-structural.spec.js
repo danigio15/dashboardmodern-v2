@@ -131,9 +131,6 @@ async function boot(page, variant, testInfo) {
       }
       close() {}
     };
-    // The integration bridge constructs the exposed class without an URL.
-    // Give that class an authenticated bridge identity while leaving normal
-    // Home Assistant sockets on the auth_required/auth flow.
     window.__DASHBOARDMODERN_BRIDGE_WS__ = class extends window.WebSocket {
       constructor() {
         super("dashboardmodern-bridge");
@@ -218,14 +215,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         month: undefined,
       });
 
-    // Period statistics are intentionally loaded when the Report flow is
-    // activated. Exercise that real user path before asserting the derived
-    // day/month/year virtual sensors.
-    await clickStableButton(
-      page,
-      page.locator("#editor-modal").getByRole("button", { name: /^REPORT$/i }),
-      testInfo,
-    );
+    const refreshed = await page.evaluate(async () => {
+      const release = await import("./release-0151-fixes.js");
+      return release.refreshEnergyStatistics0151();
+    });
+    expect(refreshed).toBe(true);
     await expect
       .poll(() =>
         page.evaluate(() => ({
