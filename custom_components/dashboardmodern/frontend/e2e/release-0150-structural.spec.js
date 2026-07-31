@@ -86,14 +86,19 @@ async function boot(page, variant, testInfo) {
       readyState = 1;
       constructor() {
         super();
-        queueMicrotask(() =>
-          this.onmessage?.({ data: JSON.stringify({ type: "auth_required" }) }),
-        );
+        queueMicrotask(() => this.emit({ type: "auth_required" }));
+      }
+      emit(message) {
+        const event = new MessageEvent("message", {
+          data: JSON.stringify(message),
+        });
+        this.dispatchEvent(event);
+        this.onmessage?.(event);
       }
       send(raw) {
         const message = JSON.parse(raw);
         if (message.type === "auth") {
-          this.onmessage?.({ data: JSON.stringify({ type: "auth_ok" }) });
+          this.emit({ type: "auth_ok" });
           return;
         }
         let result = [];
@@ -114,13 +119,11 @@ async function boot(page, variant, testInfo) {
             ]),
           );
         }
-        this.onmessage?.({
-          data: JSON.stringify({
-            id: message.id,
-            type: "result",
-            success: true,
-            result,
-          }),
+        this.emit({
+          id: message.id,
+          type: "result",
+          success: true,
+          result,
         });
       }
       close() {}
