@@ -243,6 +243,9 @@ function installStyles() {
       #temp-grid{grid-template-columns:1fr!important}
       #temp-grid .temp-card.dm-temperature-card-0149{grid-template-columns:54px minmax(0,1fr)!important;padding:16px!important;border-radius:22px!important}
       #temp-grid .dm-temperature-room-icon{width:50px!important;height:50px!important;border-radius:16px!important}
+      #dp-report .dm-report-row,#dp-reports .dm-report-row,.dm-editor-report .dm-report-row{display:grid!important;grid-template-columns:44px minmax(0,1fr)!important;gap:10px!important}
+      #dp-report .dm-report-row>label,#dp-report .dm-report-row>.dm-icon-field,#dp-report .dm-report-row>.dm-entity-field,#dp-report .dm-report-row>span,#dp-reports .dm-report-row>label,#dp-reports .dm-report-row>.dm-icon-field,#dp-reports .dm-report-row>.dm-entity-field,#dp-reports .dm-report-row>span,.dm-editor-report .dm-report-row>label,.dm-editor-report .dm-report-row>.dm-icon-field,.dm-editor-report .dm-report-row>.dm-entity-field,.dm-editor-report .dm-report-row>span{grid-column:2!important;width:100%!important;min-width:0!important}
+      #dp-report .dm-report-row>.dm-report-icon-preview,#dp-reports .dm-report-row>.dm-report-icon-preview,.dm-editor-report .dm-report-row>.dm-report-icon-preview{grid-column:1!important;grid-row:1 / span 2!important}
       .dm-report-row{display:grid!important;grid-template-columns:44px minmax(0,1fr)!important;gap:10px!important}
       .dm-report-row>label,.dm-report-row>.dm-icon-field,.dm-report-row>.dm-entity-field,.dm-report-row>span{grid-column:2!important;width:100%!important;min-width:0!important}
       .dm-report-icon-preview{grid-column:1!important;grid-row:1 / span 2!important}
