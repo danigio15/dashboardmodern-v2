@@ -1,25 +1,113 @@
-/*
- * DashboardModern panel.
- *
- * One job: serve the dashboardmodern HTML dashboard, hosted by the integration
- * so there is no file for the user to save and extract. The panel mounts the
- * vendored HTML in a same-origin iframe and gives it an authenticated
- * connection through a WebSocket shim — no token is written anywhere, so the
- * user's own iframe plancia keeps its own token untouched.
- *
- * There is deliberately no native renderer here. New features are added inside
- * the HTML dashboard itself, applied as reproducible patches by
- * scripts/vendor_legacy.py.
- */
-
+/* DashboardModern custom panel and companion Lovelace dashboard registration. */
 import { legacyVariantForLocale, mountLegacyHost } from "./src/legacy/host.js";
 
-/** Choose which vendored HTML variant to serve, from what the backend reports. */
+const dashboardJobs = new Map();
+
 export function resolveLegacyVariant(panel, hass) {
   const variants = panel?.config?.legacy_variants;
   if (!Array.isArray(variants) || variants.length === 0) return null;
   const preferred = legacyVariantForLocale(hass?.locale?.language);
   return variants.includes(preferred) ? preferred : variants[0];
+}
+
+export function userCanAccess(config = {}, user = {}) {
+  const allowed = Array.isArray(config.allowed_user_ids)
+    ? config.allowed_user_ids.filter(Boolean)
+    : [];
+  return allowed.length === 0 || allowed.includes(user?.id);
+}
+
+function dashboardView(config) {
+  const allowed = Array.isArray(config.allowed_user_ids)
+    ? config.allowed_user_ids.filter(Boolean)
+    : [];
+  const visible = allowed.length ? allowed.map((user) => ({ user })) : true;
+  return {
+    title: config.title || "DashboardModern",
+    path: "home",
+    type: "panel",
+    panel: true,
+    visible,
+    cards: [
+      {
+        type: "custom:dashboardmodern-card",
+        entry_id: config.entry_ids?.[0] || config.instance_id,
+        title: config.title || "DashboardModern",
+        primary: config.primary !== false,
+        static_base: config.static_base,
+        allowed_user_ids: allowed,
+      },
+    ],
+  };
+}
+
+async function listDashboards(hass) {
+  return hass.connection.sendMessagePromise({ type: "lovelace/dashboards/list" });
+}
+
+export async function ensureCompanionDashboard(hass, panel) {
+  const config = panel?.config || {};
+  if (
+    !config.register_lovelace_dashboard ||
+    !config.lovelace_url_path ||
+    !config.static_base ||
+    !hass?.user?.is_admin ||
+    !hass.connection?.sendMessagePromise
+  ) {
+    return null;
+  }
+
+  const entryId = config.entry_ids?.[0] || config.instance_id || config.lovelace_url_path;
+  const signature = JSON.stringify([
+    entryId,
+    config.title,
+    config.primary,
+    config.static_base,
+    config.allowed_user_ids,
+    config.admin_only,
+  ]);
+  const key = `${entryId}:${signature}`;
+  if (dashboardJobs.has(key)) return dashboardJobs.get(key);
+
+  const job = (async () => {
+    let dashboards = await listDashboards(hass);
+    let dashboard = dashboards.find((item) => item.url_path === config.lovelace_url_path);
+    if (!dashboard) {
+      try {
+        dashboard = await hass.connection.sendMessagePromise({
+          type: "lovelace/dashboards/create",
+          title: config.title || "DashboardModern",
+          icon: "mdi:view-dashboard-edit",
+          url_path: config.lovelace_url_path,
+          show_in_sidebar: false,
+          require_admin: Boolean(config.admin_only),
+        });
+      } catch (error) {
+        dashboards = await listDashboards(hass);
+        dashboard = dashboards.find((item) => item.url_path === config.lovelace_url_path);
+        if (!dashboard) throw error;
+      }
+    } else if (dashboard.title !== config.title) {
+      dashboard = await hass.connection.sendMessagePromise({
+        type: "lovelace/dashboards/update",
+        dashboard_id: dashboard.id,
+        title: config.title || "DashboardModern",
+        require_admin: Boolean(config.admin_only),
+      });
+    }
+
+    await hass.connection.sendMessagePromise({
+      type: "lovelace/config/save",
+      url_path: config.lovelace_url_path,
+      config: { views: [dashboardView(config)] },
+    });
+    return dashboard;
+  })().catch((error) => {
+    console.warn("[DashboardModern] companion dashboard registration failed", error);
+    return null;
+  });
+  dashboardJobs.set(key, job);
+  return job;
 }
 
 export class DashboardModernPanel extends HTMLElement {
@@ -39,19 +127,38 @@ export class DashboardModernPanel extends HTMLElement {
     const prevEntry = this._panel?.config?.entry_ids?.[0];
     this._panel = value;
     const nextEntry = value?.config?.entry_ids?.[0];
-    // Home Assistant reuses one custom element for panels sharing a
-    // component name: switching plancia must tear the old frame down and
-    // mount the new one, or every panel shows the first dashboard.
-    if (this.mounted && nextEntry && prevEntry !== nextEntry) {
-      this.host?.destroy();
-      this.host = null;
-      this.mounted = false;
-    }
+    if (this.mounted && nextEntry && prevEntry !== nextEntry) this.resetHost();
     this.bootstrap();
   }
 
+  resetHost() {
+    this.host?.destroy();
+    this.host = null;
+    this.mounted = false;
+  }
+
+  renderDenied() {
+    this.resetHost();
+    const denied = document.createElement("section");
+    denied.setAttribute("role", "alert");
+    denied.innerHTML = `<strong>DashboardModern</strong><span>${
+      this._hass?.locale?.language?.startsWith("it")
+        ? "Questa plancia non è abilitata per il tuo utente."
+        : "This dashboard is not enabled for your user."
+    }</span>`;
+    const style = document.createElement("style");
+    style.textContent = `:host{display:grid;min-height:100%;place-items:center;background:var(--primary-background-color)}section{display:grid;gap:12px;max-width:420px;margin:24px;padding:28px;border-radius:22px;background:var(--card-background-color);box-shadow:var(--ha-card-box-shadow);color:var(--primary-text-color);text-align:center}strong{font-size:1.4rem}span{color:var(--secondary-text-color)}`;
+    this.shadowRoot.replaceChildren(style, denied);
+  }
+
   bootstrap() {
-    if (!this._hass || !this._panel || this.mounted) return;
+    if (!this._hass || !this._panel) return;
+    ensureCompanionDashboard(this._hass, this._panel);
+    if (!userCanAccess(this._panel.config, this._hass.user)) {
+      this.renderDenied();
+      return;
+    }
+    if (this.mounted) return;
     const variant = resolveLegacyVariant(this._panel, this._hass);
     const staticBase = this._panel.config?.static_base;
     if (!variant || !staticBase || !this._hass.connection?.sendMessagePromise) return;
@@ -59,45 +166,32 @@ export class DashboardModernPanel extends HTMLElement {
     this.mounted = true;
     this.style.display = "block";
     this.style.height = "100%";
-
     const surface = document.createElement("div");
-    surface.style.width = "100%";
-    surface.style.height = "100%";
+    surface.style.cssText = "width:100%;height:100%;min-height:0";
     this.shadowRoot.replaceChildren(surface);
-
     this.host = mountLegacyHost(surface, {
       hass: this._hass,
       connection: this._hass.connection,
       staticBase,
       variant,
-      // Each plancia (config entry) gets its own storage namespace, so
-      // multiple panels never share cd_* keys; the historical fallback keeps
-      // pre-multi installations on their existing namespace.
       instanceId:
         (this._panel.config?.entry_ids && this._panel.config.entry_ids[0]) ||
         "integration",
-      // The primary plancia keeps the historical cloud-sync key.
       primary: this._panel.config?.primary !== false,
     });
   }
 
   disconnectedCallback() {
-    this.host?.destroy();
-    this.host = null;
-    this.mounted = false;
+    this.resetHost();
   }
 }
 
 const PANEL_TAG = (() => {
   try {
     const m = /dashboardmodern_static\/([a-z0-9]+)\//.exec(import.meta.url);
-    if (m && m[1]) return `dashboardmodern-panel-${m[1].slice(0, 8)}`;
-  } catch (e) {
-    /* fall through to the unversioned tag */
-  }
+    if (m?.[1]) return `dashboardmodern-panel-${m[1].slice(0, 8)}`;
+  } catch (_error) {}
   return "dashboardmodern-panel";
 })();
 
-if (!customElements.get(PANEL_TAG)) {
-  customElements.define(PANEL_TAG, DashboardModernPanel);
-}
+if (!customElements.get(PANEL_TAG)) customElements.define(PANEL_TAG, DashboardModernPanel);
