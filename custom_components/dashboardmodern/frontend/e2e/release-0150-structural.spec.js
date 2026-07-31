@@ -217,6 +217,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         day: undefined,
         month: undefined,
       });
+
+    // Period statistics are intentionally loaded when the Report flow is
+    // activated. Exercise that real user path before asserting the derived
+    // day/month/year virtual sensors.
+    await clickStableButton(
+      page,
+      page.locator("#editor-modal").getByRole("button", { name: /^REPORT$/i }),
+      testInfo,
+    );
     await expect
       .poll(() =>
         page.evaluate(() => ({
