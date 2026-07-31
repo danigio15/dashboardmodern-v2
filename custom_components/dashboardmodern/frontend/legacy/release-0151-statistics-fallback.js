@@ -61,8 +61,35 @@ const PERIOD_SOURCES = Object.freeze([
   },
 ]);
 
+const editorTotals = new Map();
+
 function dashboardStore() {
   return globalThis.DashboardModernModules?.store;
+}
+
+function fieldName(group, key) {
+  return `${group}.${key}`;
+}
+
+function readEditorEntity(group, key) {
+  const name = fieldName(group, key);
+  const input = document.querySelector(
+    `[data-editor="energy"] [name="${name}"], #editor-modal [name="${name}"]`,
+  );
+  const value = String(input?.value || "").trim();
+  if (value) editorTotals.set(name, value);
+  return value || editorTotals.get(name) || "";
+}
+
+function rememberEditorTotals() {
+  PERIOD_SOURCES.forEach(({ group, totalKey }) => readEditorEntity(group, totalKey));
+}
+
+function isEnergySaveButton(button) {
+  if (!(button instanceof HTMLButtonElement)) return false;
+  if (button.matches("[data-energy-save]")) return true;
+  const text = String(button.textContent || "").replace(/\s+/g, " ").trim();
+  return /(?:salva\s+energia|save\s+energy)/i.test(text);
 }
 
 function selectedReportDate() {
@@ -91,7 +118,9 @@ function selectedReportDate() {
 function definitionsFor(energy) {
   return PERIOD_SOURCES.map((definition) => {
     const group = energy?.[definition.group] || {};
-    const entity = String(group[definition.totalKey] || "").trim();
+    const entity = String(
+      group[definition.totalKey] || readEditorEntity(definition.group, definition.totalKey) || "",
+    ).trim();
     return { definition, group, entity };
   }).filter((item) => item.entity);
 }
@@ -144,8 +173,10 @@ async function requestPeriod(kind, selected, definitions) {
 
 export async function refreshEnergyStatisticsFallback0151(selected = selectedReportDate()) {
   const store = dashboardStore();
-  if (!store?.getSection || typeof globalThis.fetchHAStatistics !== "function") return false;
-  const definitions = definitionsFor(store.getSection("energy") || {});
+  if (typeof globalThis.fetchHAStatistics !== "function") return false;
+  rememberEditorTotals();
+  const energy = store?.getSection?.("energy") || {};
+  const definitions = definitionsFor(energy);
   if (!definitions.length) return false;
   try {
     await Promise.all([
@@ -187,7 +218,10 @@ function subscribeWhenReady() {
   }
   subscribed = true;
   store.subscribe((change) => {
-    if (change.section === "energy" && change.status === "success") scheduleRefresh(0);
+    if (change.section === "energy" && change.status === "success") {
+      rememberEditorTotals();
+      scheduleRefresh(0);
+    }
   });
   return true;
 }
@@ -197,11 +231,24 @@ function install() {
   globalThis[FALLBACK_FLAG] = { installed: true, version: "0.14.11" };
   subscribeWhenReady();
   document.addEventListener(
+    "input",
+    (event) => {
+      const input = event.target;
+      if (!(input instanceof HTMLInputElement)) return;
+      if (!PERIOD_SOURCES.some(({ group, totalKey }) => input.name === fieldName(group, totalKey))) return;
+      const value = String(input.value || "").trim();
+      if (value) editorTotals.set(input.name, value);
+      else editorTotals.delete(input.name);
+    },
+    true,
+  );
+  document.addEventListener(
     "click",
     (event) => {
-      const button = event.target.closest?.("[data-energy-save]");
-      if (!button) return;
-      scheduleRefresh(120);
+      const button = event.target.closest?.("button");
+      if (!isEnergySaveButton(button)) return;
+      rememberEditorTotals();
+      scheduleRefresh(180);
     },
     true,
   );
