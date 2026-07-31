@@ -1,4 +1,4 @@
-/* Responsive Report editor and 0.14.7 regression fixes. */
+/* Responsive Report editor and runtime regression fixes. */
 import "./release-0147-fixes.js";
 import "./release-0147-store-fixes.js";
 import "./release-0147-dom-compat.js";
@@ -12,12 +12,13 @@ import "./real-ha-0147-layout-lock.js";
 import "./real-ha-0147-data-repair.js";
 import "./real-ha-0147-alert-compat.js";
 import "./real-ha-0147-popup-layout.js";
+import "./release-0149-fixes.js";
 
 function installReportCompatibilityMarker() {
   if (document.getElementById("dm-report-mobile-fixes")) return;
   const marker = document.createElement("style");
   marker.id = "dm-report-mobile-fixes";
-  marker.textContent = "/* Layout rules are installed by release-0147-fixes.js. */";
+  marker.textContent = "/* Layout rules are installed by the release compatibility modules. */";
   document.head.append(marker);
 }
 
