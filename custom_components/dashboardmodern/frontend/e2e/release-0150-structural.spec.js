@@ -209,15 +209,21 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(card).toContainText("Salone");
     await expect(card).toContainText("29.0");
     const layout = await card.evaluate((node) => {
-      const name = node.querySelector(".cp-name")?.getBoundingClientRect();
-      const values = node.querySelector(".temp-values")?.getBoundingClientRect();
-      const info = node.querySelector(".cp-info")?.getBoundingClientRect();
+      const nameNode = node.querySelector(".cp-name");
+      const valuesNode = node.querySelector(".temp-values, .temp-card-body");
+      const infoNode = node.querySelector(".cp-info, .temp-card-body");
+      if (!nameNode || !valuesNode || !infoNode) {
+        throw new Error("Temperature card is missing its name, values or info structure");
+      }
+      const name = nameNode.getBoundingClientRect();
+      const values = valuesNode.getBoundingClientRect();
+      const info = infoNode.getBoundingClientRect();
       const cardBox = node.getBoundingClientRect();
       return {
-        nameBottom: name?.bottom,
-        valuesTop: values?.top,
-        infoLeft: info?.left,
-        infoRight: info?.right,
+        nameBottom: name.bottom,
+        valuesTop: values.top,
+        infoLeft: info.left,
+        infoRight: info.right,
         cardLeft: cardBox.left,
         cardRight: cardBox.right,
         height: cardBox.height,
