@@ -8,6 +8,7 @@ pytest.importorskip(
     "homeassistant", reason="Home Assistant test dependency is not installed"
 )
 
+from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.dashboardmodern.config_flow import (
@@ -18,7 +19,9 @@ from custom_components.dashboardmodern.const import DOMAIN
 from custom_components.dashboardmodern.frontend import _panel_config
 
 
-def test_panel_config_exposes_user_allow_list_and_companion_dashboard(hass) -> None:
+def test_panel_config_exposes_user_allow_list_and_companion_dashboard(
+    hass: HomeAssistant,
+) -> None:
     """The frontend gets the exact users and a stable Lovelace path."""
     entry = MockConfigEntry(
         domain=DOMAIN,
