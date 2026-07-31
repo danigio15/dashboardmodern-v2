@@ -158,11 +158,10 @@ function configured(value) {
 /**
  * Project canonical Energy fields to legacy runtime slots.
  *
- * Cumulative lifetime meters are deliberately projected only to their lifetime
- * slots. Daily, monthly and yearly slots stay empty unless a dedicated entity
- * was configured. The 0.14.11 statistics engine fills those missing slots with
- * deltas for the selected period. Mapping a lifetime total directly to a period
- * slot would display the same all-time value in every view.
+ * A cumulative meter is exposed in its lifetime slot only while at least one
+ * day/month/year value must be derived from Long-Term Statistics. When all
+ * period entities are explicitly configured, the unused lifetime slot stays
+ * out of the runtime. A lifetime meter is never copied into a period slot.
  */
 export function projectEnergySlots(energy = {}, overrides = {}) {
   const result = { ...overrides };
@@ -180,7 +179,10 @@ export function projectEnergySlots(energy = {}, overrides = {}) {
     const [group, totalKey] = definition.path.split(".");
     const totalEntity = configured(energy[group]?.[totalKey]);
     const totalSlot = ENERGY_SLOT_MAP[definition.path];
-    if (totalEntity) result[totalSlot] = totalEntity;
+    const needsDerivation = Object.keys(definition.targets).some(
+      (periodKey) => !configured(energy[group]?.[periodKey]),
+    );
+    if (totalEntity && needsDerivation) result[totalSlot] = totalEntity;
     else delete result[totalSlot];
 
     for (const [periodKey, periodSlot] of Object.entries(definition.targets)) {
