@@ -13,6 +13,8 @@ export const ENERGY_SLOT_MAP = Object.freeze({
   "grid.daily_export_energy": "dm.energy_energia_immessa_oggi",
   "grid.monthly_import_energy": "dm.energy_rete_acquistata_mese",
   "grid.monthly_export_energy": "dm.energy_rete_venduta_mese",
+  "grid.annual_import_energy": "dm.energy_rete_acquistata_anno",
+  "grid.annual_export_energy": "dm.energy_rete_venduta_anno",
   "grid.total_import_energy": "dm.core_045",
   "grid.total_export_energy": "dm.core_044",
   "solar.power": "dm.energy_potenza_fotovoltaico",
@@ -24,11 +26,15 @@ export const ENERGY_SLOT_MAP = Object.freeze({
   "battery.soc": "dm.energy_stato_carica_batteria",
   "battery.daily_charged_energy": "dm.energy_batteria_caricata_oggi",
   "battery.monthly_charged_energy": "dm.energy_batteria_caricata_mese",
+  "battery.annual_charged_energy": "dm.energy_batteria_caricata_anno",
+  "battery.daily_discharged_energy": "dm.energy_batteria_scaricata_oggi",
+  "battery.monthly_discharged_energy": "dm.energy_batteria_usata_mese",
+  "battery.annual_discharged_energy": "dm.energy_batteria_usata_anno",
   "battery.total_charged_energy": "dm.core_041",
   "battery.total_discharged_energy": "dm.core_042",
 });
 
-const TOTAL_ENERGY_ALIASES = Object.freeze([
+export const TOTAL_ENERGY_ALIASES = Object.freeze([
   {
     path: "house.total_energy",
     targets: {
@@ -42,6 +48,7 @@ const TOTAL_ENERGY_ALIASES = Object.freeze([
     targets: {
       daily_import_energy: "dm.energy_energia_prelevata_oggi",
       monthly_import_energy: "dm.energy_rete_acquistata_mese",
+      annual_import_energy: "dm.energy_rete_acquistata_anno",
     },
   },
   {
@@ -49,6 +56,7 @@ const TOTAL_ENERGY_ALIASES = Object.freeze([
     targets: {
       daily_export_energy: "dm.energy_energia_immessa_oggi",
       monthly_export_energy: "dm.energy_rete_venduta_mese",
+      annual_export_energy: "dm.energy_rete_venduta_anno",
     },
   },
   {
@@ -64,6 +72,7 @@ const TOTAL_ENERGY_ALIASES = Object.freeze([
     targets: {
       daily_charged_energy: "dm.energy_batteria_caricata_oggi",
       monthly_charged_energy: "dm.energy_batteria_caricata_mese",
+      annual_charged_energy: "dm.energy_batteria_caricata_anno",
     },
   },
   {
@@ -71,6 +80,7 @@ const TOTAL_ENERGY_ALIASES = Object.freeze([
     targets: {
       daily_discharged_energy: "dm.energy_batteria_scaricata_oggi",
       monthly_discharged_energy: "dm.energy_batteria_usata_mese",
+      annual_discharged_energy: "dm.energy_batteria_usata_anno",
     },
   },
 ]);
@@ -146,16 +156,18 @@ function configured(value) {
 }
 
 /**
- * Project canonical Energy fields to the legacy runtime slots.
+ * Project canonical Energy fields to legacy runtime slots.
  *
- * A cumulative total is also projected to the period slots when no dedicated
- * daily/monthly/yearly entity was configured. The legacy period engine then
- * asks Home Assistant Long-Term Statistics for the delta of the requested
- * period, while explicit period entities keep precedence.
+ * Cumulative lifetime meters are deliberately projected only to their lifetime
+ * slots. Daily, monthly and yearly slots stay empty unless a dedicated entity
+ * was configured. The 0.14.11 statistics engine fills those missing slots with
+ * deltas for the selected period. Mapping a lifetime total directly to a period
+ * slot would display the same all-time value in every view.
  */
 export function projectEnergySlots(energy = {}, overrides = {}) {
   const result = { ...overrides };
   const totalPaths = new Set(TOTAL_ENERGY_ALIASES.map((definition) => definition.path));
+
   for (const [path, slot] of Object.entries(ENERGY_SLOT_MAP)) {
     if (totalPaths.has(path)) continue;
     const [group, key] = path.split(".");
@@ -167,12 +179,15 @@ export function projectEnergySlots(energy = {}, overrides = {}) {
   for (const definition of TOTAL_ENERGY_ALIASES) {
     const [group, totalKey] = definition.path.split(".");
     const totalEntity = configured(energy[group]?.[totalKey]);
-    const missingPeriods = Object.entries(definition.targets).filter(
-      ([periodKey]) => !configured(energy[group]?.[periodKey]),
-    );
-    if (!totalEntity || missingPeriods.length === 0) continue;
-    result[ENERGY_SLOT_MAP[definition.path]] = totalEntity;
-    for (const [, slot] of missingPeriods) result[slot] = totalEntity;
+    const totalSlot = ENERGY_SLOT_MAP[definition.path];
+    if (totalEntity) result[totalSlot] = totalEntity;
+    else delete result[totalSlot];
+
+    for (const [periodKey, periodSlot] of Object.entries(definition.targets)) {
+      const explicit = configured(energy[group]?.[periodKey]);
+      if (explicit) result[periodSlot] = explicit;
+      else delete result[periodSlot];
+    }
   }
   return result;
 }
