@@ -235,9 +235,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(layout.height).toBeGreaterThan(90);
 
     await clickBottomTab(page, "appliances", testInfo);
-    await expect(page.locator(".appl-wide-card")).toContainText("Forno");
-    await expect(page.locator(".appl-wide-card .appl-mini")).toContainText(/Totale|Total/);
-    await expect(page.locator(".appl-wide-card .appl-mini")).not.toContainText("🔋");
+    const applianceCard = page
+      .locator("#page-appliances-main .appl-main-view.active .appl-wide-card")
+      .first();
+    await expect(applianceCard).toContainText("Forno");
+    const applianceTotal = applianceCard.locator(".appl-mini");
+    await expect(applianceTotal).toContainText(/Totale|Total/);
+    await expect(applianceTotal).not.toContainText("🔋");
 
     await openEnergyAnalysis(page, testInfo);
     const option = page.locator("#ed-dev-selector option", { hasText: "Forno" });
