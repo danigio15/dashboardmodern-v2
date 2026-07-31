@@ -26,12 +26,13 @@ function bindStandardAlertButton(button, group, entity) {
   button.title = document.documentElement.lang === "en" ? "Edit" : "Modifica";
   if (button.dataset.standardAlertMounted !== "true") {
     button.dataset.standardAlertMounted = "true";
-    button.addEventListener("click", () =>
-      globalThis.edEditAvvisoStandard?.(
+    button.addEventListener("click", () => {
+      const edit = globalThis.dmRealEditAlert || globalThis.edEditAvvisoStandard;
+      edit?.(
         button.dataset.standardAlertGroup,
         button.dataset.standardAlertEntity,
-      ),
-    );
+      );
+    });
   }
   const accordion = button.closest("details.ed-acc");
   if (accordion) accordion.open = true;
@@ -53,6 +54,16 @@ function decorateStandardAlerts() {
     entities.forEach((entity) => {
       const row = standardAlertRow(entity);
       if (!row) return;
+
+      // The real-HA compatibility layer owns the final edit control. Once its
+      // button exists, never recreate the older standard button: the previous
+      // add/remove race caused duplicate controls and occasionally reopened an
+      // empty form on slower WebKit devices.
+      if (row.querySelector("[data-real-alert-edit]")) {
+        row.querySelectorAll("[data-standard-alert-edit]").forEach((button) => button.remove());
+        return;
+      }
+
       let button = row.querySelector("[data-standard-alert-edit]");
       if (!button) {
         button = document.createElement("button");
