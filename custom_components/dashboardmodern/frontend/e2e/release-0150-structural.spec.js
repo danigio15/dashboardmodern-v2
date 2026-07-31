@@ -131,9 +131,14 @@ async function boot(page, variant, testInfo) {
       }
       close() {}
     };
-    // The dmi query marks this page as integration-hosted. Expose the mock as
-    // the host bridge so bridge-prelude does not replace it with StubSocket.
-    window.__DASHBOARDMODERN_BRIDGE_WS__ = window.WebSocket;
+    // The integration bridge constructs the exposed class without an URL.
+    // Give that class an authenticated bridge identity while leaving normal
+    // Home Assistant sockets on the auth_required/auth flow.
+    window.__DASHBOARDMODERN_BRIDGE_WS__ = class extends window.WebSocket {
+      constructor() {
+        super("dashboardmodern-bridge");
+      }
+    };
   }, states);
   await bootNamespacedDashboard(page, variant, testInfo, seed);
   await page
