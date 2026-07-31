@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { canonicalReportDevices, reportEntityForDevice } from "../src/core/energy-projection.js";
+import {
+  canonicalReportDevices,
+  isCumulativeEnergyEntity,
+  projectEnergySlots,
+  reportEntityForDevice,
+  reportIconForDevice,
+} from "../src/core/energy-projection.js";
 import { inferApplianceEntity, isGeneratedRoomName } from "../legacy/mobile-ui-fixes.js";
 
 test("infers a report entity from a generic kWh appliance entity", () => {
@@ -23,7 +29,7 @@ test("infers a report entity from a generic kWh appliance entity", () => {
     {
       key: "appliance-forno",
       name: "Forno",
-      icon: "mdi:stove",
+      icon: "♨️",
       visual: { kind: "icon", value: "mdi:devices" },
       visual_key: "",
       image: "",
@@ -33,16 +39,58 @@ test("infers a report entity from a generic kWh appliance entity", () => {
   ]);
 });
 
-test("prefers an explicit monthly report entity", () => {
+test("prefers an explicit monthly report entity when no cumulative meter is configured", () => {
   const appliance = {
     id: "appliance-forno",
     name: "Forno",
-    entities: ["sensor.forno_power", "sensor.forno_totale"],
+    entities: ["sensor.forno_power", "sensor.forno_mese"],
     monthly_energy_entity: "sensor.forno_mese",
     show_in_report: true,
   };
 
   assert.equal(reportEntityForDevice(appliance, {}), "sensor.forno_mese");
+});
+
+test("prefers a cumulative total meter so Report can calculate months and years", () => {
+  const states = {
+    "sensor.forno_mese": {
+      attributes: { unit_of_measurement: "kWh", device_class: "energy" },
+    },
+    "sensor.forno_totale": {
+      attributes: {
+        unit_of_measurement: "kWh",
+        device_class: "energy",
+        state_class: "total_increasing",
+      },
+    },
+  };
+  const appliance = {
+    id: "appliance-forno",
+    name: "Forno",
+    monthly_energy_entity: "sensor.forno_mese",
+    total_energy_entity: "sensor.forno_totale",
+    entities: ["sensor.forno_mese", "sensor.forno_totale"],
+  };
+
+  assert.equal(isCumulativeEnergyEntity("sensor.forno_totale", states), true);
+  assert.equal(reportEntityForDevice(appliance, states), "sensor.forno_totale");
+  assert.equal(canonicalReportDevices([appliance], [], states)[0].history, "sensor.forno_totale");
+});
+
+test("projects one cumulative grid meter to current-period slots without overriding explicit fields", () => {
+  const projected = projectEnergySlots({
+    grid: {
+      total_import_energy: "sensor.solarman_total_grid_energy",
+      monthly_import_energy: "sensor.grid_month_explicit",
+    },
+  });
+
+  assert.equal(projected["dm.core_045"], "sensor.solarman_total_grid_energy");
+  assert.equal(
+    projected["dm.energy_energia_prelevata_oggi"],
+    "sensor.solarman_total_grid_energy",
+  );
+  assert.equal(projected["dm.energy_rete_acquistata_mese"], "sensor.grid_month_explicit");
 });
 
 test("uses entity naming as fallback when HA state metadata is not loaded", () => {
@@ -101,8 +149,9 @@ test("Forno in Salone selects kWh and never W for the canonical Report", () => {
   const report = canonicalReportDevices([forno], [], states);
   assert.equal(report.length, 1);
   assert.equal(report[0].name, "Forno");
-  assert.equal(report[0].icon, "mdi:stove");
+  assert.equal(report[0].icon, "♨️");
   assert.equal(report[0].entity, "sensor.forno_energy");
+  assert.equal(reportIconForDevice(forno), "♨️");
 });
 
 test("show_in_report defaults to enabled for migrated appliances", () => {

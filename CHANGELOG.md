@@ -3,6 +3,44 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 0.14.10 — 2026-07-31
+
+### Aggiunto
+
+- Campi **contatore totale cumulativo** per consumo casa, prelievo e immissione
+  rete, produzione fotovoltaica, carica e scarica batteria.
+- Validazione nel Config Energia di unità, `device_class` e `state_class`; i
+  sensori W/kW vengono riconosciuti come potenza e rifiutati per i totali.
+- Proiezione automatica di un contatore totale sui periodi mancanti. Giorno,
+  mese, mesi passati e anno vengono ricavati dalle Long-Term Statistics di Home
+  Assistant; i sensori specifici per periodo restano override prioritari.
+- Test unitari ed E2E dedicati a contatori cumulativi, report con icone,
+  Temperatura e layout WebKit/iPad/Fold.
+
+### Cambiato
+
+- Il Report Energia preferisce l'entità totale o un'altra entità con
+  `state_class: total_increasing`/`total` rispetto a sensori mensili o
+  giornalieri, così può ricostruire correttamente lo storico per mese e anno.
+- Le visuali del Report usano immagine, SVG dell'elettrodomestico o glifo
+  leggibile. Le stringhe `mdi:*` non vengono più stampate nell'interfaccia o nel
+  selettore dispositivo.
+- I pulsanti **Aggiungi**, **Salva** e **Annulla** sono uniformati per altezza,
+  raggio, gerarchia cromatica e comportamento responsive.
+- README ampliato con configurazione Energia raccomandata, precedenza dei campi,
+  requisiti dei contatori e diagnostica dei valori a zero.
+
+### Corretto
+
+- Card Temperatura con nome, icona, valore e umidità sovrapposti a causa di
+  `grid-area` applicate a elementi annidati: la struttura interna ora usa una
+  griglia stabile e selettori più specifici delle regole legacy.
+- Icona forno/frigorifero assente nel Report e testo letterale `mdi:stove`.
+- Simbolo batteria associato impropriamente al totale consumato nella card
+  Elettrodomestici; sostituito da **∑ Totale**.
+- Config Energia privo dell'ingresso necessario per usare direttamente contatori
+  lifetime come `sensor.solarman_total_grid_energy`.
+
 ## 0.14.9 — 2026-07-31
 
 ### Aggiunto
@@ -10,38 +48,19 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - **Plancia Lovelace associata** a ogni istanza DashboardModern. Viene creata
   alla prima apertura amministrativa, compare in **Impostazioni → Plance** e
   può essere scelta come predefinita globale o personale.
-- **Selettore utenti autorizzati** nelle opzioni dell'integrazione. La lista è
-  applicata sia alla visibilità della vista Lovelace sia al controllo diretto
-  del pannello e della custom card.
-- Custom card globale `dashboardmodern-card`, caricata dal percorso statico
-  versionato dell'integrazione senza configurazione manuale delle risorse.
-- Test automatici per creazione plancia, visibilità per utente e derivazione
-  delle icone del Report Energia.
+- **Selettore utenti autorizzati** nelle opzioni dell'integrazione.
+- Custom card globale `dashboardmodern-card` caricata automaticamente.
 
 ### Cambiato
 
-- Report Energia: eredita automaticamente l'icona o la visuale selezionata
-  nell'elettrodomestico; frigorifero, forno, lavatrice, lavastoviglie,
-  asciugatrice e altri tipi hanno fallback MDI coerenti.
-- Nuovo layout della card Temperatura: icona stanza più leggibile, gerarchia
-  compatta e griglia `auto-fit` senza spazi inutili.
-- Layout responsive basato sulla larghezza effettiva del viewport, con profili
-  compact/fold/wide, `ResizeObserver`, `visualViewport` e ricalcolo al cambio
-  di orientamento o apertura di un dispositivo pieghevole.
-- Immagini e icone degli elettrodomestici ridimensionate con limiti fluidi
-  anche sugli smartphone stretti.
-- README riscritto e allineato alle funzioni pubbliche della 0.14.9.
+- Report Energia collegato alla visuale canonica dell'elettrodomestico.
+- Layout responsive con profili compact/fold/wide e ricalcolo del viewport.
+- Associazione manuale Luce → Stanza resa prioritaria.
 
 ### Corretto
 
-- L'associazione manuale di una luce alla stanza ora prevale sempre
-  sull'inferenza ricavata dal nome dell'entità.
-- Le stanze senza entità luce associate non vengono più mostrate nella pagina
-  Luci.
-- Le righe del Report con icona vuota vengono riparate usando la visuale
-  canonica dell'elettrodomestico.
-- Il passaggio fra schermo chiuso e aperto dei dispositivi Fold non lascia più
-  card e immagini con le misure del viewport precedente.
+- Stanze senza luci nascoste.
+- Ricalcolo delle card al passaggio fra schermo chiuso e aperto dei Fold.
 
 ## 0.14.8 — 2026-07-30
 

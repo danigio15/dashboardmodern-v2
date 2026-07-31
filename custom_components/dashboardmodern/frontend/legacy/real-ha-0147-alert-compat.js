@@ -27,29 +27,48 @@ function groupForEntity(entity, row) {
   return "";
 }
 
+function bindAlertEditButton(button, group, entity) {
+  button.removeAttribute("onclick");
+  button.type = "button";
+  button.classList.add("ed-del", "dm-edit-button");
+  button.dataset.standardAlertEdit = "";
+  button.dataset.realAlertEdit = "";
+  button.dataset.standardAlertGroup = group;
+  button.dataset.standardAlertEntity = entity;
+  button.dataset.alertGroup = group;
+  button.dataset.alertEntity = entity;
+  button.textContent = "✏️";
+  button.title = document.documentElement.lang === "en" ? "Edit" : "Modifica";
+  button.setAttribute("aria-label", button.title);
+  if (button.dataset.alertEditMounted !== "true") {
+    button.dataset.alertEditMounted = "true";
+    button.addEventListener("click", () => {
+      const edit = globalThis.dmRealEditAlert || globalThis.edEditAvvisoStandard;
+      edit?.(button.dataset.alertGroup, button.dataset.alertEntity);
+    });
+  }
+}
+
 function installAlertEditButtons(root = document) {
   root.querySelectorAll("#editor-modal .ed-row").forEach((row) => {
     const entity = entityFromRow(row);
     const group = entity && groupForEntity(entity, row);
-    if (!entity || !group || typeof globalThis.dmRealEditAlert !== "function") return;
+    if (!entity || !group) return;
 
-    row.querySelectorAll("[data-standard-alert-edit]").forEach((button) => button.remove());
-    if (row.querySelector("[data-real-alert-edit]")) return;
+    let edit = row.querySelector("[data-standard-alert-edit], [data-real-alert-edit]");
+    if (!edit) {
+      const remove = [...row.querySelectorAll(".ed-del")].find((button) =>
+        /edDelAvviso/.test(button.getAttribute("onclick") || "") || button.textContent.includes("🗑️"),
+      );
+      if (!remove) return;
+      edit = document.createElement("button");
+      remove.before(edit);
+    }
+    bindAlertEditButton(edit, group, entity);
 
-    const remove = [...row.querySelectorAll(".ed-del")].find((button) =>
-      /edDelAvviso/.test(button.getAttribute("onclick") || ""),
-    );
-    if (!remove) return;
-
-    const edit = document.createElement("button");
-    edit.type = "button";
-    edit.className = "ed-del dm-edit-button";
-    edit.dataset.realAlertEdit = "";
-    edit.textContent = "✏️";
-    edit.title = document.documentElement.lang === "en" ? "Edit" : "Modifica";
-    edit.setAttribute("aria-label", edit.title);
-    edit.addEventListener("click", () => globalThis.dmRealEditAlert(group, entity));
-    remove.before(edit);
+    row.querySelectorAll("[data-standard-alert-edit], [data-real-alert-edit]").forEach((candidate) => {
+      if (candidate !== edit) candidate.remove();
+    });
   });
 }
 
