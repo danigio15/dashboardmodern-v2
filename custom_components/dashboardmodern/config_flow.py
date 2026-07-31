@@ -8,13 +8,18 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers.selector import (
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .const import DOMAIN, NAME
 
-# When true, only administrators see the dashboard panel. Home Assistant offers
-# no per-user panel visibility, so admin-only is the finest control available —
-# useful when the dashboard should not appear for guest or child accounts.
 OPTION_ADMIN_ONLY = "admin_only"
+OPTION_ALLOWED_USERS = "allowed_users"
+OPTION_REGISTER_LOVELACE = "register_lovelace_dashboard"
 
 
 class DashboardModernConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -28,9 +33,6 @@ class DashboardModernConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Create a DashboardModern config entry (one per plancia)."""
         if user_input is not None:
             name = (user_input.get("name") or NAME).strip() or NAME
-            # The first plancia ever created is the primary one: it keeps the
-            # historical panel URL and the historical cloud-sync key, so
-            # existing installations upgrade without losing anything.
             primary = not self._async_current_entries()
             return self.async_create_entry(
                 title=name, data={"name": name, "primary": primary}
@@ -49,15 +51,54 @@ class DashboardModernConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class DashboardModernOptionsFlow(config_entries.OptionsFlow):
-    """Options: who can see the dashboard panel."""
+    """Configure panel visibility and its companion Lovelace dashboard."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Let the user restrict the panel to administrators."""
+        """Choose who can open this plancia and register it as a dashboard."""
         if user_input is not None:
+            user_input[OPTION_ALLOWED_USERS] = list(
+                dict.fromkeys(user_input.get(OPTION_ALLOWED_USERS, []))
+            )
             return self.async_create_entry(title="", data=user_input)
 
-        current = self.config_entry.options.get(OPTION_ADMIN_ONLY, False)
-        schema = vol.Schema({vol.Optional(OPTION_ADMIN_ONLY, default=current): bool})
+        current_users = list(self.config_entry.options.get(OPTION_ALLOWED_USERS, []))
+        users = await self.hass.auth.async_get_users()
+        options: list[SelectOptionDict] = [
+            SelectOptionDict(label=user.name or user.id, value=user.id)
+            for user in users
+            if user.is_active and not user.system_generated
+        ]
+        known = {option["value"] for option in options}
+        options.extend(
+            SelectOptionDict(label=user_id, value=user_id)
+            for user_id in current_users
+            if user_id not in known
+        )
+
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    OPTION_ALLOWED_USERS,
+                    description={"suggested_value": current_users},
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=options,
+                        multiple=True,
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
+                    OPTION_REGISTER_LOVELACE,
+                    default=self.config_entry.options.get(
+                        OPTION_REGISTER_LOVELACE, True
+                    ),
+                ): bool,
+                vol.Optional(
+                    OPTION_ADMIN_ONLY,
+                    default=self.config_entry.options.get(OPTION_ADMIN_ONLY, False),
+                ): bool,
+            }
+        )
         return self.async_show_form(step_id="init", data_schema=schema)
