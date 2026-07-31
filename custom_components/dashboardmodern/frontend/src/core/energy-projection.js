@@ -7,54 +7,122 @@ export const ENERGY_SLOT_MAP = Object.freeze({
   "house.daily_energy": "dm.energy_consumo_casa_oggi",
   "house.monthly_energy": "dm.energy_consumo_casa_mese",
   "house.annual_energy": "dm.energy_consumo_casa_anno",
+  "house.total_energy": "dm.core_043",
   "grid.power": "dm.energy_potenza_scambio_rete",
   "grid.daily_import_energy": "dm.energy_energia_prelevata_oggi",
   "grid.daily_export_energy": "dm.energy_energia_immessa_oggi",
   "grid.monthly_import_energy": "dm.energy_rete_acquistata_mese",
   "grid.monthly_export_energy": "dm.energy_rete_venduta_mese",
+  "grid.total_import_energy": "dm.core_045",
+  "grid.total_export_energy": "dm.core_044",
   "solar.power": "dm.energy_potenza_fotovoltaico",
   "solar.daily_energy": "dm.energy_produzione_solare_oggi",
   "solar.monthly_energy": "dm.energy_produzione_solare_mese",
   "solar.annual_energy": "dm.energy_produzione_solare_anno",
+  "solar.total_energy": "dm.core_046",
   "battery.power": "dm.energy_potenza_batteria",
   "battery.soc": "dm.energy_stato_carica_batteria",
   "battery.daily_charged_energy": "dm.energy_batteria_caricata_oggi",
   "battery.monthly_charged_energy": "dm.energy_batteria_caricata_mese",
+  "battery.total_charged_energy": "dm.core_041",
+  "battery.total_discharged_energy": "dm.core_042",
 });
 
+const TOTAL_ENERGY_ALIASES = Object.freeze([
+  {
+    path: "house.total_energy",
+    targets: {
+      daily_energy: "dm.energy_consumo_casa_oggi",
+      monthly_energy: "dm.energy_consumo_casa_mese",
+      annual_energy: "dm.energy_consumo_casa_anno",
+    },
+  },
+  {
+    path: "grid.total_import_energy",
+    targets: {
+      daily_import_energy: "dm.energy_energia_prelevata_oggi",
+      monthly_import_energy: "dm.energy_rete_acquistata_mese",
+    },
+  },
+  {
+    path: "grid.total_export_energy",
+    targets: {
+      daily_export_energy: "dm.energy_energia_immessa_oggi",
+      monthly_export_energy: "dm.energy_rete_venduta_mese",
+    },
+  },
+  {
+    path: "solar.total_energy",
+    targets: {
+      daily_energy: "dm.energy_produzione_solare_oggi",
+      monthly_energy: "dm.energy_produzione_solare_mese",
+      annual_energy: "dm.energy_produzione_solare_anno",
+    },
+  },
+  {
+    path: "battery.total_charged_energy",
+    targets: {
+      daily_charged_energy: "dm.energy_batteria_caricata_oggi",
+      monthly_charged_energy: "dm.energy_batteria_caricata_mese",
+    },
+  },
+]);
+
 const REPORT_ICON_BY_TYPE = Object.freeze({
-  forno: "mdi:stove",
-  oven: "mdi:stove",
-  frigo: "mdi:fridge-outline",
-  frigorifero: "mdi:fridge-outline",
-  fridge: "mdi:fridge-outline",
-  refrigerator: "mdi:fridge-outline",
-  congelatore: "mdi:fridge-bottom",
-  freezer: "mdi:fridge-bottom",
-  lavatrice: "mdi:washing-machine",
-  washer: "mdi:washing-machine",
-  washing_machine: "mdi:washing-machine",
-  lavastoviglie: "mdi:dishwasher",
-  dishwasher: "mdi:dishwasher",
-  asciugatrice: "mdi:tumble-dryer",
-  dryer: "mdi:tumble-dryer",
-  microonde: "mdi:microwave",
-  microwave: "mdi:microwave",
-  boiler: "mdi:water-boiler",
-  scaldabagno: "mdi:water-boiler",
-  tv: "mdi:television",
-  televisore: "mdi:television",
-  condizionatore: "mdi:air-conditioner",
-  climatizzatore: "mdi:air-conditioner",
-  ventilatore: "mdi:fan",
-  fan: "mdi:fan",
-  robot: "mdi:robot-vacuum",
-  aspirapolvere: "mdi:vacuum",
-  piano_cottura: "mdi:stove",
-  cappa: "mdi:fan",
-  caffe: "mdi:coffee-maker",
-  bollitore: "mdi:kettle",
-  tostapane: "mdi:toaster",
+  forno: "♨️",
+  oven: "♨️",
+  frigo: "❄️",
+  frigorifero: "❄️",
+  fridge: "❄️",
+  refrigerator: "❄️",
+  congelatore: "🧊",
+  freezer: "🧊",
+  lavatrice: "🧺",
+  washer: "🧺",
+  washing_machine: "🧺",
+  lavastoviglie: "🍽️",
+  dishwasher: "🍽️",
+  asciugatrice: "💨",
+  dryer: "💨",
+  microonde: "〰️",
+  microwave: "〰️",
+  boiler: "🚿",
+  scaldabagno: "🚿",
+  tv: "📺",
+  televisore: "📺",
+  condizionatore: "❄️",
+  climatizzatore: "❄️",
+  ventilatore: "🌀",
+  fan: "🌀",
+  robot: "🤖",
+  aspirapolvere: "🧹",
+  piano_cottura: "🔥",
+  cappa: "🌬️",
+  caffe: "☕",
+  bollitore: "🫖",
+  tostapane: "🍞",
+});
+
+const MDI_ICON_GLYPHS = Object.freeze({
+  "mdi:stove": "♨️",
+  "mdi:fridge-outline": "❄️",
+  "mdi:fridge-bottom": "🧊",
+  "mdi:washing-machine": "🧺",
+  "mdi:dishwasher": "🍽️",
+  "mdi:tumble-dryer": "💨",
+  "mdi:microwave": "〰️",
+  "mdi:water-boiler": "🚿",
+  "mdi:television": "📺",
+  "mdi:air-conditioner": "❄️",
+  "mdi:fan": "🌀",
+  "mdi:robot-vacuum": "🤖",
+  "mdi:vacuum": "🧹",
+  "mdi:coffee-maker": "☕",
+  "mdi:kettle": "🫖",
+  "mdi:toaster": "🍞",
+  "mdi:flash": "⚡",
+  "mdi:power-plug": "🔌",
+  "mdi:devices": "🔌",
 });
 
 function normalizedToken(value) {
@@ -66,13 +134,34 @@ function normalizedToken(value) {
     .replace(/^_+|_+$/g, "");
 }
 
+function configured(value) {
+  return String(value || "").trim();
+}
+
+/**
+ * Project canonical Energy fields to the legacy runtime slots.
+ *
+ * A cumulative total is also projected to the period slots when no dedicated
+ * daily/monthly/yearly entity was configured. The legacy period engine then
+ * asks Home Assistant Long-Term Statistics for the delta of the requested
+ * period, while explicit period entities keep precedence.
+ */
 export function projectEnergySlots(energy = {}, overrides = {}) {
   const result = { ...overrides };
   for (const [path, slot] of Object.entries(ENERGY_SLOT_MAP)) {
     const [group, key] = path.split(".");
-    const value = String(energy[group]?.[key] || "").trim();
+    const value = configured(energy[group]?.[key]);
     if (value) result[slot] = value;
     else delete result[slot];
+  }
+
+  for (const definition of TOTAL_ENERGY_ALIASES) {
+    const [group, totalKey] = definition.path.split(".");
+    const totalEntity = configured(energy[group]?.[totalKey]);
+    if (!totalEntity) continue;
+    for (const [periodKey, slot] of Object.entries(definition.targets)) {
+      if (!configured(energy[group]?.[periodKey])) result[slot] = totalEntity;
+    }
   }
   return result;
 }
@@ -80,8 +169,9 @@ export function projectEnergySlots(energy = {}, overrides = {}) {
 export function entityIds(item = {}) {
   return [
     item.report_entity,
-    item.monthly_energy_entity,
     item.total_energy_entity,
+    item.energy_entity,
+    item.monthly_energy_entity,
     item.daily_energy_entity,
     item.history_entity,
     item.entity,
@@ -96,35 +186,68 @@ export function entityIds(item = {}) {
     .filter(Boolean);
 }
 
+function entityAttributes(states, entityId) {
+  return states?.[entityId]?.attributes || {};
+}
+
 function entityUnit(states, entityId) {
-  return String(states?.[entityId]?.attributes?.unit_of_measurement || "").toLowerCase();
+  return String(entityAttributes(states, entityId).unit_of_measurement || "").toLowerCase();
+}
+
+function entityStateClass(states, entityId) {
+  return String(entityAttributes(states, entityId).state_class || "").toLowerCase();
 }
 
 function isPowerUnit(unit) {
-  return /^(w|kw)$/.test(String(unit || "").toLowerCase());
+  return /^(w|kw|mw)$/.test(String(unit || "").toLowerCase());
 }
 
 function isEnergyUnit(unit) {
-  return /^(wh|kwh)$/.test(String(unit || "").toLowerCase());
+  return /^(wh|kwh|mwh)$/.test(String(unit || "").toLowerCase());
+}
+
+function isValidEnergyCandidate(states, entityId) {
+  if (!entityId || isPowerUnit(entityUnit(states, entityId))) return false;
+  const attributes = entityAttributes(states, entityId);
+  if (!Object.keys(attributes).length) return true;
+  return (
+    isEnergyUnit(entityUnit(states, entityId)) ||
+    String(attributes.device_class || "").toLowerCase() === "energy"
+  );
+}
+
+export function isCumulativeEnergyEntity(entityId, states = globalThis.STATES || {}) {
+  if (!isValidEnergyCandidate(states, entityId)) return false;
+  const stateClass = entityStateClass(states, entityId);
+  if (stateClass === "total" || stateClass === "total_increasing") return true;
+  return /(?:^|[._-])(total|totale|lifetime|meter|contatore)(?:[._-]|$)/i.test(entityId);
 }
 
 export function reportEntityForDevice(item = {}, states = globalThis.STATES || {}) {
-  const explicit = [
-    item.report_entity,
-    item.monthly_energy_entity,
-    item.total_energy_entity,
-    item.daily_energy_entity,
-  ]
-    .map((value) => String(value || "").trim())
-    .find((entityId) => entityId && !isPowerUnit(entityUnit(states, entityId)));
-  if (explicit) return explicit;
+  const reportEntity = configured(item.report_entity);
+  if (isValidEnergyCandidate(states, reportEntity)) return reportEntity;
 
   const candidates = [...new Set(entityIds(item))];
+  const explicitTotal = configured(item.total_energy_entity);
+  if (isValidEnergyCandidate(states, explicitTotal)) return explicitTotal;
+
+  const cumulative = candidates.find((entityId) => isCumulativeEnergyEntity(entityId, states));
+  if (cumulative) return cumulative;
+
+  const explicitPeriod = [
+    item.energy_entity,
+    item.monthly_energy_entity,
+    item.daily_energy_entity,
+  ]
+    .map(configured)
+    .find((entityId) => isValidEnergyCandidate(states, entityId));
+  if (explicitPeriod) return explicitPeriod;
+
   return (
     candidates.find((entityId) => isEnergyUnit(entityUnit(states, entityId))) ||
     candidates.find(
       (entityId) =>
-        String(states?.[entityId]?.attributes?.device_class || "").toLowerCase() === "energy" &&
+        String(entityAttributes(states, entityId).device_class || "").toLowerCase() === "energy" &&
         !isPowerUnit(entityUnit(states, entityId)),
     ) ||
     candidates.find(
@@ -136,10 +259,27 @@ export function reportEntityForDevice(item = {}, states = globalThis.STATES || {
   );
 }
 
-/** Resolve the Report icon from the visual/type selected in Appliances. */
+function glyphForMdi(icon) {
+  const value = String(icon || "").trim().toLowerCase();
+  if (MDI_ICON_GLYPHS[value]) return MDI_ICON_GLYPHS[value];
+  if (/fridge|snowflake/.test(value)) return "❄️";
+  if (/stove|fire/.test(value)) return "♨️";
+  if (/wash/.test(value)) return "🧺";
+  if (/dish/.test(value)) return "🍽️";
+  if (/dryer|wind|fan/.test(value)) return "💨";
+  if (/water|boiler|shower/.test(value)) return "🚿";
+  if (/television/.test(value)) return "📺";
+  if (/coffee/.test(value)) return "☕";
+  if (/kettle/.test(value)) return "🫖";
+  if (/toaster/.test(value)) return "🍞";
+  return "⚡";
+}
+
+/** Resolve a visible Report glyph without ever printing a raw `mdi:*` token. */
 export function reportIconForDevice(item = {}) {
-  const explicit = String(item.report_icon || item.emoji_icon || item.icon || "").trim();
-  if (explicit) return explicit;
+  const explicit = configured(item.report_icon || item.emoji_icon || item.icon);
+  if (explicit && !explicit.startsWith("mdi:")) return explicit;
+  if (explicit.startsWith("mdi:")) return glyphForMdi(explicit);
 
   const candidates = [
     item.visual_key,
@@ -155,8 +295,8 @@ export function reportIconForDevice(item = {}) {
   }
 
   const visual = getDeviceVisual(item);
-  if (visual?.kind === "icon" && visual.value) return visual.value;
-  return "mdi:flash";
+  if (visual?.kind === "icon" && visual.value) return glyphForMdi(visual.value);
+  return "⚡";
 }
 
 export function canonicalReportDevices(
@@ -183,7 +323,7 @@ export function canonicalReportDevices(
         visual_key: item.visual_key || "",
         image: visual?.kind === "image" ? visual.value : "",
         entity,
-        history: item.history_entity || entity,
+        history: entity || item.history_entity || "",
       };
     })
     .filter((item) => {
