@@ -84,9 +84,12 @@ async function boot(page, variant, testInfo) {
     window.WebSocket = class extends EventTarget {
       static OPEN = 1;
       readyState = 1;
-      constructor() {
+      constructor(url = "") {
         super();
-        queueMicrotask(() => this.emit({ type: "auth_required" }));
+        const isHostedBridge = String(url).includes("dashboardmodern-bridge");
+        queueMicrotask(() =>
+          this.emit({ type: isHostedBridge ? "auth_ok" : "auth_required" }),
+        );
       }
       emit(message) {
         const event = new MessageEvent("message", {
