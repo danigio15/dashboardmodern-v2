@@ -77,7 +77,7 @@ test("prefers a cumulative total meter so Report can calculate months and years"
   assert.equal(canonicalReportDevices([appliance], [], states)[0].history, "sensor.forno_totale");
 });
 
-test("projects one cumulative grid meter to current-period slots without overriding explicit fields", () => {
+test("projects a cumulative grid meter only to its lifetime slot and preserves explicit periods", () => {
   const projected = projectEnergySlots({
     grid: {
       total_import_energy: "sensor.solarman_total_grid_energy",
@@ -86,11 +86,9 @@ test("projects one cumulative grid meter to current-period slots without overrid
   });
 
   assert.equal(projected["dm.core_045"], "sensor.solarman_total_grid_energy");
-  assert.equal(
-    projected["dm.energy_energia_prelevata_oggi"],
-    "sensor.solarman_total_grid_energy",
-  );
+  assert.equal(projected["dm.energy_energia_prelevata_oggi"], undefined);
   assert.equal(projected["dm.energy_rete_acquistata_mese"], "sensor.grid_month_explicit");
+  assert.equal(projected["dm.energy_rete_acquistata_anno"], undefined);
 });
 
 test("uses entity naming as fallback when HA state metadata is not loaded", () => {
