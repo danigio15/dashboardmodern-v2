@@ -28,7 +28,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
       - name: Install Playwright system dependencies
-        timeout-minutes: 8
+        timeout-minutes: 15
         run: npx playwright install-deps chromium webkit
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
