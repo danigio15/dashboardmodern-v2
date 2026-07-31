@@ -125,6 +125,9 @@ async function boot(page, variant, testInfo) {
       }
       close() {}
     };
+    // The dmi query marks this page as integration-hosted. Expose the mock as
+    // the host bridge so bridge-prelude does not replace it with StubSocket.
+    window.__DASHBOARDMODERN_BRIDGE_WS__ = window.WebSocket;
   }, states);
   await bootNamespacedDashboard(page, variant, testInfo, seed);
   await page
