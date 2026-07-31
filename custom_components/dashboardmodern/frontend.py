@@ -14,17 +14,14 @@ if TYPE_CHECKING:
 
 DATA_STATIC_REGISTERED = "static_registered"
 DATA_STATIC_BASE_REGISTERED = "static_base_registered"
+DATA_DASHBOARD_CARD_REGISTERED = "dashboard_card_registered"
+DATA_PANEL_PATHS = "panel_paths"
 PANEL_URL_PATH = DOMAIN
 PANEL_COMPONENT_NAME = "dashboardmodern-panel"
 STATIC_URL_PATH = "/dashboardmodern_static"
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 LEGACY_DIR = FRONTEND_DIR / "legacy"
 
-
-# .html covers the vendored legacy dashboard, so shipping a new one changes
-# the versioned mount and users get it without clearing anything.
-# Images too: a release that only changes an icon must still change the
-# versioned mount, or browsers keep serving the old one indefinitely.
 ASSET_SUFFIXES = frozenset(
     {
         ".js",
@@ -44,16 +41,7 @@ ASSET_SUFFIXES = frozenset(
 
 @lru_cache(maxsize=1)
 def _frontend_asset_version() -> str:
-    """Return a version that changes whenever a shipped frontend asset changes.
-
-    The version is derived from asset content rather than modification times so
-    that the same installed release always produces the same URL. HACS and git
-    both rewrite mtimes on download, which previously invalidated the browser
-    cache on every reinstall even when nothing had changed.
-
-    Assets are read once per Home Assistant process; shipped files do not change
-    while Home Assistant is running.
-    """
+    """Return a stable digest that changes whenever a frontend asset changes."""
     digest = hashlib.blake2b(digest_size=8)
     for path in sorted(
         path
@@ -71,21 +59,14 @@ def _versioned_static_url_path() -> str:
 
 
 def legacy_variants() -> list[str]:
-    """Return the vendored legacy dashboards that are actually shipped.
-
-    Vendoring is a separate step, so a checkout may legitimately have none.
-    The panel reads this instead of probing with a request that 404s.
-    """
+    """Return the vendored legacy dashboards that are actually shipped."""
     if not LEGACY_DIR.is_dir():
         return []
     return sorted(path.name for path in LEGACY_DIR.glob("dashboard*.html"))
 
 
-DATA_PANEL_PATHS = "panel_paths"
-
-
 def _entry_is_primary(hass: HomeAssistant, entry: Any) -> bool:
-    """Whether this entry is the primary plancia (historic URL and sync key)."""
+    """Whether this entry is the primary plancia."""
     if entry.data.get("primary"):
         return True
     entries = hass.config_entries.async_entries(DOMAIN)
@@ -107,15 +88,40 @@ def _panel_url_path(hass: HomeAssistant, entry: Any, taken: set[str]) -> str:
     return path
 
 
+def _lovelace_url_path(entry: Any) -> str:
+    """Return the stable URL of the companion Lovelace dashboard."""
+    return f"dashboardmodern-{entry.entry_id[:8].lower()}"
+
+
+def _allowed_user_ids(entry: Any) -> list[str]:
+    """Return the exact user allow-list stored in the entry options."""
+    from .config_flow import OPTION_ALLOWED_USERS
+
+    value = entry.options.get(OPTION_ALLOWED_USERS, [])
+    if not isinstance(value, list):
+        return []
+    return [str(user_id) for user_id in value if user_id]
+
+
 def _panel_config(hass: HomeAssistant, entry: Any) -> dict[str, Any]:
     """Build the panel config snapshot for one plancia."""
+    from .config_flow import OPTION_ADMIN_ONLY, OPTION_REGISTER_LOVELACE
+
     static_url_path = _versioned_static_url_path()
     return {
         "entry_ids": [entry.entry_id],
         "instance_id": entry.entry_id,
+        "title": entry.title or "DashboardModern",
         "primary": _entry_is_primary(hass, entry),
         "static_base": static_url_path,
         "legacy_variants": legacy_variants(),
+        "allowed_user_ids": _allowed_user_ids(entry),
+        "register_lovelace_dashboard": bool(
+            entry.options.get(OPTION_REGISTER_LOVELACE, True)
+        ),
+        "admin_only": bool(entry.options.get(OPTION_ADMIN_ONLY, False)),
+        "lovelace_url_path": _lovelace_url_path(entry),
+        "dashboard_card_module": f"{static_url_path}/dashboard-card.js",
         "_panel_custom": {
             "name": f"{PANEL_COMPONENT_NAME}-{_frontend_asset_version()[:8]}",
             "embed_iframe": False,
@@ -128,7 +134,7 @@ def _panel_config(hass: HomeAssistant, entry: Any) -> dict[str, Any]:
 def _register_or_update_panel(
     hass: HomeAssistant, entry: Any, url_path: str, *, update: bool
 ) -> None:
-    """Register or update the panel for one plancia."""
+    """Register or update the custom panel for one plancia."""
     from homeassistant.components import frontend
 
     from .config_flow import OPTION_ADMIN_ONLY
@@ -141,6 +147,7 @@ def _register_or_update_panel(
         frontend_url_path=url_path,
         config=_panel_config(hass, entry),
         require_admin=bool(entry.options.get(OPTION_ADMIN_ONLY, False)),
+        show_in_sidebar=True,
         update=update,
     )
 
@@ -173,8 +180,6 @@ async def _ensure_static_registered(
             cache_headers=False,
         )
     ]
-    # The stable mount serves shared assets and must be registered exactly once
-    # per process; re-registering the same aiohttp route raises at runtime.
     if not domain_data.get(DATA_STATIC_BASE_REGISTERED):
         configs.insert(
             0,
@@ -190,14 +195,37 @@ async def _ensure_static_registered(
     domain_data[DATA_STATIC_REGISTERED] = static_url_path
 
 
+def _ensure_dashboard_card_registered(
+    hass: HomeAssistant, domain_data: dict[str, Any]
+) -> None:
+    """Load the companion custom card on every Home Assistant frontend page."""
+    from homeassistant.components import frontend
+
+    module_url = f"{_versioned_static_url_path()}/dashboard-card.js"
+    if domain_data.get(DATA_DASHBOARD_CARD_REGISTERED) == module_url:
+        return
+
+    manager = hass.data.get(frontend.DATA_EXTRA_MODULE_URL)
+    if manager is None:
+        return
+
+    previous = domain_data.get(DATA_DASHBOARD_CARD_REGISTERED)
+    if previous and previous in manager.urls:
+        manager.remove(previous)
+    if module_url not in manager.urls:
+        manager.add(module_url)
+    domain_data[DATA_DASHBOARD_CARD_REGISTERED] = module_url
+
+
 async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
-    """Register static assets and this plancia's own sidebar panel."""
+    """Register static assets, custom card and this plancia's sidebar panel."""
     domain_data: dict[str, Any] = hass.data.setdefault(DOMAIN, {})
     entry = hass.config_entries.async_get_entry(entry_id)
     if entry is None:
         return
 
     await _ensure_static_registered(hass, domain_data)
+    _ensure_dashboard_card_registered(hass, domain_data)
 
     paths: dict[str, str] = domain_data.setdefault(DATA_PANEL_PATHS, {})
     taken = {p for eid, p in paths.items() if eid != entry_id}

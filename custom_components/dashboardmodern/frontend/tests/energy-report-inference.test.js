@@ -23,7 +23,10 @@ test("infers a report entity from a generic kWh appliance entity", () => {
     {
       key: "appliance-forno",
       name: "Forno",
-      icon: "⚡",
+      icon: "mdi:stove",
+      visual: { kind: "icon", value: "mdi:devices" },
+      visual_key: "",
+      image: "",
       entity: "sensor.forno_consumo",
       history: "sensor.forno_consumo",
     },
