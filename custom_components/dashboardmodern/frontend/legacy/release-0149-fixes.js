@@ -201,7 +201,7 @@ function installResponsiveClasses() {
   const root = document.documentElement;
   const apply = () => {
     const width = Math.round(globalThis.visualViewport?.width || root.clientWidth || innerWidth);
-    root.dataset.dmViewport = width <= 420 ? "compact" : width <= 760 ? "fold" : "wide";
+    root.dataset.dmViewport = width <= 420 ? "compact" : width <= 820 ? "fold" : "wide";
     root.style.setProperty("--dm-viewport-width", `${width}px`);
     requestAnimationFrame(() => {
       globalThis.renderTemperature?.();
@@ -238,7 +238,7 @@ function installStyles() {
     .dm-report-icon-preview{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:#e0f2fe;color:#0369a1;align-self:end}
     .dm-appliance-art,.appl-main-view [data-appliance-asset],.appl-main-view img,.appl-main-view svg{max-width:clamp(86px,22vw,210px)!important;max-height:clamp(86px,22vw,210px)!important;width:auto!important;height:auto!important;object-fit:contain!important}
     [data-dm-viewport="fold"] .dashboard-grid,[data-dm-viewport="fold"] .cards-grid,[data-dm-viewport="fold"] .appl-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))!important}
-    @media(max-width:760px){
+    @media(max-width:820px){
       .main,.page,.page-content{padding-inline:clamp(10px,3vw,18px)!important}
       #temp-grid{grid-template-columns:1fr!important}
       #temp-grid .temp-card.dm-temperature-card-0149{grid-template-columns:54px minmax(0,1fr)!important;padding:16px!important;border-radius:22px!important}
