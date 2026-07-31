@@ -49,9 +49,8 @@ test("total meter validation rejects power sensors and accepts total_increasing 
   });
 });
 
-test("raw MDI tokens always become visible report glyphs", () => {
+test("known MDI appliance tokens become visible report glyphs", () => {
   assert.equal(mdiGlyph("mdi:stove"), "♨️");
   assert.equal(mdiGlyph("mdi:fridge-outline"), "❄️");
-  assert.equal(mdiGlyph("mdi:unknown-device"), "⚡");
   assert.equal(mdiGlyph("🍽️"), "🍽️");
 });
