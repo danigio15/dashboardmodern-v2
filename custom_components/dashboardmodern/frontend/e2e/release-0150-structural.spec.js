@@ -140,6 +140,7 @@ async function boot(page, variant, testInfo) {
     buildReportSelect?.();
   }, states);
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RELEASE_0150__?.installed);
+  await page.waitForFunction(() => window.__DASHBOARDMODERN_RELEASE_0151__?.installed);
 }
 
 async function openEnergyAnalysis(page, testInfo) {
@@ -199,8 +200,25 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       )
       .toEqual({
         total: "sensor.solarman_total_grid_energy",
-        day: "sensor.solarman_total_grid_energy",
-        month: "sensor.solarman_total_grid_energy",
+        day: undefined,
+        month: undefined,
+      });
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({
+          day: Number(_RAW_STATES["dm.energy_energia_prelevata_oggi"]?.state),
+          month: Number(_RAW_STATES["dm.energy_rete_acquistata_mese"]?.state),
+          year: Number(_RAW_STATES["dm.energy_rete_acquistata_anno"]?.state),
+          source:
+            _RAW_STATES["dm.energy_rete_acquistata_mese"]?.attributes
+              ?.dashboardmodern_source,
+        })),
+      )
+      .toEqual({
+        day: 42.6,
+        month: 42.6,
+        year: 42.6,
+        source: "sensor.solarman_total_grid_energy",
       });
     await page.locator("#editor-modal .ed-head-close").last().click();
 
