@@ -21,7 +21,10 @@ function installReportCompatibilityMarker() {
   if (document.getElementById("dm-report-mobile-fixes")) return;
   const marker = document.createElement("style");
   marker.id = "dm-report-mobile-fixes";
-  marker.textContent = "/* Layout rules are installed by the release compatibility modules. */";
+  marker.textContent = `
+    /* Keep every primary editor action at the established 44 px touch target. */
+    #editor-modal .dm-unified-action { min-height: 44px !important; }
+  `;
   document.head.append(marker);
 }
 
