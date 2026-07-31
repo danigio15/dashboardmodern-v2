@@ -1,5 +1,6 @@
 /* DashboardModern 0.14.11: authenticated statistics fallback for late store startup. */
 import { periodDelta, periodRange } from "./release-0151-fixes.js";
+import { fetchEnergyStatistics0151 } from "./release-0151-statistics-socket.js";
 
 const FALLBACK_FLAG = "__DASHBOARDMODERN_RELEASE_0151_STATISTICS_FALLBACK__";
 const REFRESH_EVENT = "dashboardmodern:energy-statistics";
@@ -152,12 +153,10 @@ function inject(slot, value, entity, kind, selected) {
 }
 
 async function requestPeriod(kind, selected, definitions) {
-  const fetchStatistics = globalThis.fetchHAStatistics;
-  if (typeof fetchStatistics !== "function") return false;
   const range = periodRange(kind, selected);
   if (range.end <= range.start) return false;
   const ids = [...new Set(definitions.map((item) => item.entity))];
-  const result = await fetchStatistics(
+  const result = await fetchEnergyStatistics0151(
     ids,
     range.start.toISOString(),
     range.end.toISOString(),
@@ -173,7 +172,10 @@ async function requestPeriod(kind, selected, definitions) {
 
 export async function refreshEnergyStatisticsFallback0151(selected = selectedReportDate()) {
   const store = dashboardStore();
-  if (typeof globalThis.fetchHAStatistics !== "function") return false;
+  if (
+    typeof globalThis.fetchHAStatistics !== "function" &&
+    typeof globalThis.WebSocket !== "function"
+  ) return false;
   rememberEditorTotals();
   const energy = store?.getSection?.("energy") || {};
   const definitions = definitionsFor(energy);
