@@ -5,6 +5,7 @@ import "./release-0152-runtime.js";
 import "./energy-monthly-report-media-fixes.js";
 import "./energy-report-runtime-hooks.js";
 import "./energy-report-observer-guard.js";
+import "./appliance-media-layout-lock.js";
 
 function installArtworkLayoutFix0152() {
   const doc = globalThis.document;
