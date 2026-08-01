@@ -6,8 +6,15 @@ const DOM_OBSERVER_KEY = "__DASHBOARDMODERN_MEDIA_DOM_OBSERVER_0153__";
 
 function canonicalArtworkType0153(value) {
   const token = String(value || "").toLowerCase();
-  if (/frigo|fridge|refriger|frigorifero/.test(token)) return "fridge";
+  if (/microonde|microwave/.test(token)) return "microwave";
+  if (/forno|oven|stove/.test(token)) return "oven";
+  if (/frigo|fridge|refriger|frigorifero|freezer|congelatore/.test(token)) return "fridge";
   if (/scaldabagno|boiler|water[_ -]?heater/.test(token)) return "boiler";
+  if (/lavatrice|washing[_ -]?machine|washer/.test(token)) return "washer";
+  if (/asciugatrice|tumble[_ -]?dryer|dryer/.test(token)) return "dryer";
+  if (/lavastoviglie|dishwasher/.test(token)) return "dishwasher";
+  if (/piano[_ -]?cottura|cooktop|hob/.test(token)) return "cooktop";
+  if (/televis|\btv\b|monitor/.test(token)) return "television";
   return "";
 }
 
@@ -68,20 +75,33 @@ function restoreGeneratedArtwork0153() {
     const visual = applianceVisual0153(item);
     if (visual?.kind !== "asset") return;
 
-    const type = canonicalArtworkType0153(
-      visual.value || item.visual_key || item.device_type || item.type || item.name,
+    const sourceToken = String(
+      visual.value || item.visual_key || item.device_type || item.type || item.name || "",
     );
+    const type = canonicalArtworkType0153(sourceToken);
     if (!type) return;
 
     const media = card.querySelector(".appl-visual .appl-ic");
     if (!media) return;
     card.dataset.dmArtwork = type;
-    media.classList.add("dm-appliance-media-0153");
-    card.querySelector(".appl-visual")?.classList.add("dm-appliance-viewport-0153");
+    card.dataset.dmArtStyle = "panel";
+    media.classList.add("dm-appliance-media-0153", "dm-appliance-media-0154");
+    card
+      .querySelector(".appl-visual")
+      ?.classList.add("dm-appliance-viewport-0153", "dm-appliance-viewport-0154");
 
-    if (!media.querySelector(`[data-dm-art="${type}"]`)) {
-      const markup = applianceArtwork0152(type, 76);
+    const existing = media.querySelector(`[data-dm-art="${type}"]`);
+    if (!existing || !existing.classList.contains("dm-appliance-art-0154")) {
+      const markup =
+        globalThis.cdApplianceIcon?.(type, 96) || applianceArtwork0152(type, 88);
       if (markup) media.innerHTML = markup;
+    }
+
+    const artwork = media.querySelector(`[data-dm-art="${type}"]`);
+    if (artwork) {
+      artwork.dataset.dmArtStyle = "panel";
+      artwork.dataset.applianceAsset = sourceToken;
+      artwork.dataset.applianceAssetKey = sourceToken;
     }
   });
   classifyApplianceImages0153();
@@ -144,17 +164,17 @@ function installApplianceMediaLayoutLock0153() {
         .appl-wide-card [data-dm-art] > svg {
         display: block !important;
         box-sizing: border-box !important;
-        width: 76% !important;
-        height: 76% !important;
+        width: 88% !important;
+        height: 88% !important;
         min-width: 0 !important;
         min-height: 0 !important;
-        max-width: 76% !important;
-        max-height: 76% !important;
+        max-width: 88% !important;
+        max-height: 88% !important;
         object-fit: contain !important;
         object-position: center !important;
         transform: none !important;
         overflow: visible !important;
-        flex: 0 0 76% !important;
+        flex: 0 0 88% !important;
       }
     `;
   }
