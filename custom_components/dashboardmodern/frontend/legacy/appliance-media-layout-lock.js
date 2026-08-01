@@ -11,15 +11,11 @@ function installApplianceMediaLayoutLock0153() {
     style.id = STYLE_ID;
     style.textContent = `
       html body #page-appliances-main #appl-grid-overview
-        .appl-wide-card.dm-control-device[data-dm-media-kind="image"]
-        .appl-visual
-        .appl-ic.dm-appliance-media-0153
-        img.dm-appliance-image.dm-appliance-image-0153,
+        .appl-wide-card .appl-visual img,
       html body #appl-grid-overview
-        .appl-wide-card.dm-control-device[data-dm-media-kind="image"]
-        .appl-visual.dm-appliance-viewport-0153
-        .appl-ic.dm-appliance-media-0153
-        img.dm-appliance-image.dm-appliance-image-0153 {
+        .appl-wide-card .appl-visual img,
+      html body #page-appliances-main
+        .appl-wide-card .appl-visual img {
         display: block !important;
         box-sizing: border-box !important;
         width: 100% !important;
@@ -45,7 +41,11 @@ function installApplianceMediaLayoutLock0153() {
         .appl-visual.dm-appliance-viewport-0153
         .appl-ic.dm-appliance-media-0153
         [data-dm-art]
-        > svg {
+        > svg,
+      html body #page-appliances-main
+        .appl-wide-card [data-dm-art] > svg,
+      html body #appl-grid-overview
+        .appl-wide-card [data-dm-art] > svg {
         display: block !important;
         box-sizing: border-box !important;
         width: 76% !important;
