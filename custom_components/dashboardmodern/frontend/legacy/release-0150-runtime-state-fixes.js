@@ -6,7 +6,27 @@ function isEnglish() {
   return document.documentElement.lang === "en";
 }
 
+function exposeRuntimeStateRegistries() {
+  try {
+    if (typeof _RAW_STATES !== "undefined" && _RAW_STATES) {
+      if (globalThis._RAW_STATES && globalThis._RAW_STATES !== _RAW_STATES) {
+        Object.assign(_RAW_STATES, globalThis._RAW_STATES);
+      }
+      globalThis._RAW_STATES = _RAW_STATES;
+    }
+  } catch (_error) {}
+  try {
+    if (typeof STATES !== "undefined" && STATES) {
+      if (globalThis.STATES && globalThis.STATES !== STATES) {
+        Object.assign(STATES, globalThis.STATES);
+      }
+      globalThis.STATES = STATES;
+    }
+  } catch (_error) {}
+}
+
 function runtimeStates() {
+  exposeRuntimeStateRegistries();
   try {
     if (typeof STATES !== "undefined" && STATES) return STATES;
   } catch (_error) {}
@@ -106,6 +126,7 @@ function patchReportStore() {
 function installRuntimeStateFixes() {
   if (globalThis[RUNTIME_STATE_FIX_FLAG]) return;
   globalThis[RUNTIME_STATE_FIX_FLAG] = true;
+  exposeRuntimeStateRegistries();
 
   document.addEventListener("input", (event) => refreshTotalEnergyInput(event.target));
   document.addEventListener("change", (event) => refreshTotalEnergyInput(event.target));
@@ -114,6 +135,7 @@ function installRuntimeStateFixes() {
   new MutationObserver(() => {
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => {
+      exposeRuntimeStateRegistries();
       refreshTotalEnergyInputs();
       if (Date.now() < reportSuccessUntil) setReportSuccessState();
     });
@@ -122,6 +144,7 @@ function installRuntimeStateFixes() {
   refreshTotalEnergyInputs();
   if (patchReportStore()) return;
   const timer = setInterval(() => {
+    exposeRuntimeStateRegistries();
     if (patchReportStore()) clearInterval(timer);
   }, 50);
   setTimeout(() => clearInterval(timer), 15000);
