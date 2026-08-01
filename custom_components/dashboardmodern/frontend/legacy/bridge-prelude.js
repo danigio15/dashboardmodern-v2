@@ -71,9 +71,9 @@
     window.addEventListener("DOMContentLoaded", installEmptyLightsRendererFix, { once: true });
   }
 
-  // Capture a socket installed before this prelude. The real integration page
-  // still starts with the browser-native constructor; test harnesses and other
-  // legitimate embedders can inject a bridge-compatible constructor earlier.
+  // Capture a constructor installed before this prelude. The real integration
+  // page starts with the browser-native WebSocket; Playwright and legitimate
+  // embedders may preload an in-memory adapter before document parsing.
   var PRELUDE_WEBSOCKET = window.WebSocket;
   var HAS_INSTANCE_QUERY = false;
   var HAS_HOST_QUERY = false;
@@ -104,7 +104,6 @@
     }
   } catch (e) { /* cross-origin parent: standalone use, nothing to copy */ }
 
-
   var HOSTED_TOKEN = "__dashboardmodern_hosted__";
 
   function isInjectedSocket(SocketCtor) {
@@ -116,13 +115,17 @@
     }
   }
 
+  if (isInjectedSocket(PRELUDE_WEBSOCKET)) {
+    window.__DASHBOARDMODERN_PRELUDE_WS__ = PRELUDE_WEBSOCKET;
+  }
+
   function isHosted() {
     // Same-origin by construction: both documents are served by Home Assistant.
     // A cross-origin parent throws here, which is the correct standalone path.
     try {
       // dmi is retained as a backwards-compatible parse-time host signal. dmp
-      // is the newer explicit marker. An injected bridge constructor is also a
-      // reliable signal and must not be replaced by the temporary safety stub.
+      // is the newer explicit marker. An explicit bridge constructor is also a
+      // reliable signal and must not be replaced by a native network socket.
       if (window.__DASHBOARDMODERN_BRIDGED__ === true) return true;
       if (window.__DASHBOARDMODERN_HOSTED__ === true) return true;
       if (typeof window.__DASHBOARDMODERN_BRIDGE_WS__ === "function") return true;
@@ -151,6 +154,10 @@
     REAL_TOKEN = "";
   }
   if (REAL_TOKEN) window.__DASHBOARDMODERN_REAL_TOKEN__ = REAL_TOKEN;
+  // The dedicated 0.14.12 statistics channel reads this in-memory candidate.
+  // In tests the placeholder is accepted by the adapter; in the integration the
+  // host bridge either authenticates itself or supplies the real token above.
+  window.DASHBOARDMODERN_AUTH_TOKEN ||= REAL_TOKEN || HOSTED_TOKEN;
 
   // Between document parse and the host's load-time bridge install, the page
   // would otherwise reach the REAL WebSocket and authenticate on its own — the
@@ -197,16 +204,31 @@
     }
   };
   StubSocket.prototype.removeEventListener = function () {};
+
   var BridgeWS = null;
   try {
     BridgeWS = window.parent.__DASHBOARDMODERN_BRIDGE_WS__ || window.__DASHBOARDMODERN_BRIDGE_WS__ || null;
   } catch (error) {
     BridgeWS = window.__DASHBOARDMODERN_BRIDGE_WS__ || null;
   }
-  if (typeof BridgeWS !== "function" && HAS_INSTANCE_QUERY && isInjectedSocket(PRELUDE_WEBSOCKET)) {
-    BridgeWS = PRELUDE_WEBSOCKET;
-  }
+
+  // The main legacy bootstrap receives only the explicit host bridge (or the
+  // inert stub). Never give it a generic preloaded adapter: synchronous mock
+  // replies inside ws.send() can recursively re-enter the legacy state machine.
   window.WebSocket = typeof BridgeWS === "function" ? BridgeWS : StubSocket;
+
+  // Once the main legacy socket and canonical store are fully initialized, a
+  // preloaded adapter may safely serve *new* Recorder/statistics connections.
+  // Existing main-socket instances are unaffected by replacing the constructor.
+  if (window.__DASHBOARDMODERN_PRELUDE_WS__ === PRELUDE_WEBSOCKET) {
+    window.addEventListener(
+      "dashboardmodern:legacy-ready",
+      function restorePreloadedStatisticsSocket() {
+        window.WebSocket = PRELUDE_WEBSOCKET;
+      },
+      { once: true },
+    );
+  }
 
   window.__DASHBOARDMODERN_CONNECTION__ = {
     token: REAL_TOKEN || HOSTED_TOKEN,
