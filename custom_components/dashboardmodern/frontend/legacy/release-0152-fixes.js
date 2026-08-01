@@ -3,9 +3,10 @@ export * from "./release-0152-runtime.js";
 import "./release-0152-runtime.js";
 
 function installArtworkLayoutFix0152() {
-  if (document.getElementById("dm-release-0152-artwork-layout-fix")) return;
+  const doc = globalThis.document;
+  if (!doc || doc.getElementById("dm-release-0152-artwork-layout-fix")) return;
 
-  const style = document.createElement("style");
+  const style = doc.createElement("style");
   style.id = "dm-release-0152-artwork-layout-fix";
   style.textContent = `
     html body #page-appliances-main
@@ -39,7 +40,7 @@ function installArtworkLayoutFix0152() {
       overflow: visible !important;
     }
   `;
-  document.head.append(style);
+  doc.head.append(style);
 }
 
 installArtworkLayoutFix0152();
