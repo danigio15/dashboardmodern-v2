@@ -2,6 +2,7 @@
 import "./release-0152-guards.js";
 export * from "./release-0152-runtime.js";
 import "./release-0152-runtime.js";
+import "./release-0153-fixes.js";
 
 function installArtworkLayoutFix0152() {
   const doc = globalThis.document;
