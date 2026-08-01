@@ -1,4 +1,4 @@
-/* DashboardModern 0.14.14: final canonical artwork lock without observer feedback. */
+/* DashboardModern 0.14.14: authoritative appliance artwork and media renderer. */
 import {
   applianceArtwork0154,
   canonicalArtworkType0154,
@@ -9,9 +9,12 @@ const STYLE_ID = "dm-release-0154-final-artwork-lock";
 const LEGACY_STYLE_DISABLED_KEY = "__DASHBOARDMODERN_MEDIA_STYLE_LOCK_DISABLED_0153__";
 const LEGACY_STYLE_OBSERVER_KEY = "__DASHBOARDMODERN_MEDIA_STYLE_OBSERVER_0153__";
 const LEGACY_DOM_OBSERVER_KEY = "__DASHBOARDMODERN_MEDIA_DOM_OBSERVER_0153__";
+const MEDIA_FIX_KEY = "__DASHBOARDMODERN_ENERGY_REPORT_MEDIA_FIX__";
+const DISABLED_OBSERVER = Object.freeze({ disabled: true, disconnect() {} });
 const LEGACY_GEOMETRY_STYLE_IDS = new Set([
   "dm-appliance-media-layout-lock-0153",
   "dm-release-0152-artwork-layout-fix",
+  "dm-energy-report-media-fixes-0153",
 ]);
 
 function setData0154(node, key, value) {
@@ -22,17 +25,33 @@ function setAttribute0154(node, name, value) {
   if (node && node.getAttribute(name) !== value) node.setAttribute(name, value);
 }
 
-function retireObserverSlot0154(key) {
-  globalThis[key]?.disconnect?.();
+function addClass0154(node, ...tokens) {
+  tokens.forEach((token) => {
+    if (node && !node.classList.contains(token)) node.classList.add(token);
+  });
+}
+
+function important0154(node, properties) {
+  if (!node?.style) return;
+  Object.entries(properties).forEach(([name, value]) => {
+    if (node.style.getPropertyValue(name) !== value || node.style.getPropertyPriority(name) !== "important") {
+      node.style.setProperty(name, value, "important");
+    }
+  });
+}
+
+function retireObserverSlot0154(owner, key, truthy = false) {
+  if (!owner) return;
+  owner[key]?.disconnect?.();
   try {
-    Object.defineProperty(globalThis, key, {
+    Object.defineProperty(owner, key, {
       configurable: true,
       enumerable: false,
-      get: () => null,
+      get: () => (truthy ? DISABLED_OBSERVER : null),
       set: (observer) => observer?.disconnect?.(),
     });
   } catch (_error) {
-    globalThis[key] = null;
+    owner[key] = truthy ? DISABLED_OBSERVER : null;
   }
 }
 
@@ -43,8 +62,10 @@ function removeLegacyGeometryStyles0154(root = globalThis.document) {
 
 function disableLegacyObservers0154() {
   globalThis[LEGACY_STYLE_DISABLED_KEY] = true;
-  retireObserverSlot0154(LEGACY_STYLE_OBSERVER_KEY);
-  retireObserverSlot0154(LEGACY_DOM_OBSERVER_KEY);
+  retireObserverSlot0154(globalThis, LEGACY_STYLE_OBSERVER_KEY);
+  retireObserverSlot0154(globalThis, LEGACY_DOM_OBSERVER_KEY);
+  const mediaState = globalThis[MEDIA_FIX_KEY];
+  if (mediaState) retireObserverSlot0154(mediaState, "observer", true);
   removeLegacyGeometryStyles0154();
 }
 
@@ -78,14 +99,37 @@ function sourceToken0154(item, visual, card) {
   );
 }
 
+function applyImageFit0154(image, fit) {
+  setData0154(image, "dmImageFit", fit);
+  important0154(image, {
+    display: "block",
+    "box-sizing": "border-box",
+    width: "100%",
+    height: "100%",
+    "min-width": "0px",
+    "min-height": "0px",
+    "max-width": "100%",
+    "max-height": "100%",
+    padding: "0px",
+    border: "0px",
+    "border-radius": "12px",
+    "box-shadow": "none",
+    "object-fit": fit,
+    "object-position": "center",
+    transform: "none",
+  });
+}
+
 function classifyImage0154(image) {
   const source = image.currentSrc || image.getAttribute("src") || "";
   const apply = () => {
     if (!image.naturalWidth || !image.naturalHeight) return;
     const ratio = image.naturalWidth / image.naturalHeight;
-    setData0154(image, "dmImageFit", ratio >= 0.92 && ratio <= 1.08 ? "cover" : "contain");
+    const fit = ratio >= 0.92 && ratio <= 1.08 ? "cover" : "contain";
+    applyImageFit0154(image, fit);
     setData0154(image, "dmImageFitSource", source);
   };
+  applyImageFit0154(image, image.dataset.dmImageFit || "cover");
   if (image.complete && image.naturalWidth) apply();
   else if (image.dataset.dmImageFitPending !== source) {
     setData0154(image, "dmImageFitPending", source);
@@ -96,6 +140,7 @@ function classifyImage0154(image) {
 function enforceArtwork0154() {
   const doc = globalThis.document;
   if (!doc) return false;
+  disableLegacyObservers0154();
   const appliances = items0154();
   const byId = new Map(appliances.map((item) => [String(item.id || ""), item]));
   const cards = doc.querySelectorAll(
@@ -113,8 +158,24 @@ function enforceArtwork0154() {
     setData0154(card, "applianceThemeAware", "true");
     setData0154(viewport, "applianceCover", "true");
     setData0154(card, "dmArtStyle", "panel");
-    viewport.classList.add("dm-appliance-viewport-0154");
-    media.classList.add("dm-appliance-media-0154");
+    addClass0154(viewport, "dm-appliance-viewport-0154");
+    addClass0154(media, "dm-appliance-media-0154");
+    important0154(viewport, { overflow: "hidden", padding: "0px" });
+    important0154(media, {
+      display: "grid",
+      "place-items": "center",
+      "box-sizing": "border-box",
+      width: "100%",
+      height: "100%",
+      "min-width": "0px",
+      "min-height": "0px",
+      "max-width": "100%",
+      "max-height": "100%",
+      padding: "0px",
+      margin: "0px",
+      overflow: "hidden",
+      transform: "none",
+    });
 
     if (visual?.kind === "image" && visual.value) {
       setData0154(card, "dmArtwork", "custom");
@@ -126,7 +187,8 @@ function enforceArtwork0154() {
       }
       setAttribute0154(image, "src", visual.value);
       setAttribute0154(image, "alt", String(item.name || ""));
-      image.classList.add(
+      addClass0154(
+        image,
         "dm-appliance-image",
         "dm-appliance-image-0153",
         "dm-appliance-custom-image-0154",
@@ -154,6 +216,37 @@ function enforceArtwork0154() {
     setData0154(artwork, "dmArtStyle", "panel");
     setData0154(artwork, "applianceAsset", source);
     setData0154(artwork, "applianceAssetKey", source);
+    important0154(artwork, {
+      display: "grid",
+      "place-items": "center",
+      "box-sizing": "border-box",
+      width: "100%",
+      height: "100%",
+      "min-width": "0px",
+      "min-height": "0px",
+      "max-width": "100%",
+      "max-height": "100%",
+      padding: "0px",
+      margin: "0px",
+      overflow: "hidden",
+      transform: "none",
+    });
+    const svg = artwork.querySelector("svg");
+    important0154(svg, {
+      display: "block",
+      "box-sizing": "border-box",
+      width: "100%",
+      height: "100%",
+      "min-width": "0px",
+      "min-height": "0px",
+      "max-width": "100%",
+      "max-height": "100%",
+      "object-fit": "contain",
+      "object-position": "center",
+      transform: "none",
+      overflow: "visible",
+      flex: "0 0 100%",
+    });
   });
   return true;
 }
@@ -177,63 +270,24 @@ function installStyles0154() {
       background:var(--dm-art-tile)!important;border-color:var(--dm-art-panel-stroke)!important;
     }
     html body #page-appliances-main #appl-grid-overview
-      .appl-wide-card[data-dm-art-style="panel"] .appl-visual .appl-ic,
+      .appl-wide-card[data-dm-art-style="panel"] .appl-visual img,
     html body #appl-grid-overview
-      .appl-wide-card[data-dm-art-style="panel"] .appl-visual .appl-ic,
+      .appl-wide-card[data-dm-art-style="panel"] .appl-visual img,
     html body #page-appliances-main
-      .appl-wide-card[data-dm-art-style="panel"] .appl-visual .appl-ic,
-    html body #page-appliances-main #appl-grid-overview
-      .appl-wide-card[data-dm-art-style="panel"] .dm-appliance-art-0154,
-    html body #appl-grid-overview
-      .appl-wide-card[data-dm-art-style="panel"] .dm-appliance-art-0154 {
-      display:grid!important;place-items:center!important;box-sizing:border-box!important;
-      width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;
-      max-width:100%!important;max-height:100%!important;padding:0!important;margin:0!important;
-      overflow:hidden!important;transform:none!important;
+      .appl-wide-card[data-dm-art-style="panel"] .appl-visual img {
+      object-fit:cover!important;object-position:center!important;
     }
     html body #page-appliances-main #appl-grid-overview
-      .appl-wide-card[data-dm-art-style="panel"] .dm-appliance-art-0154 > svg,
+      .appl-wide-card[data-dm-art-style="panel"] .appl-visual img[data-dm-image-fit="contain"],
     html body #appl-grid-overview
-      .appl-wide-card[data-dm-art-style="panel"] .dm-appliance-art-0154 > svg,
+      .appl-wide-card[data-dm-art-style="panel"] .appl-visual img[data-dm-image-fit="contain"],
     html body #page-appliances-main
-      .appl-wide-card[data-dm-art-style="panel"] .dm-appliance-art-0154 > svg {
-      display:block!important;box-sizing:border-box!important;width:100%!important;height:100%!important;
-      min-width:0!important;min-height:0!important;max-width:100%!important;max-height:100%!important;
-      object-fit:contain!important;object-position:center!important;transform:none!important;
-      overflow:visible!important;flex:0 0 100%!important;filter:drop-shadow(0 8px 12px rgba(15,41,66,.16));
-    }
-    html body #page-appliances-main #appl-grid-overview
-      .appl-wide-card[data-dm-artwork="custom"][data-dm-art-style="panel"] .appl-visual img,
-    html body #appl-grid-overview
-      .appl-wide-card[data-dm-artwork="custom"][data-dm-art-style="panel"] .appl-visual img,
-    html body #page-appliances-main
-      .appl-wide-card[data-dm-artwork="custom"][data-dm-art-style="panel"] .appl-visual img {
-      display:block!important;box-sizing:border-box!important;width:100%!important;height:100%!important;
-      min-width:0!important;min-height:0!important;max-width:100%!important;max-height:100%!important;
-      padding:0!important;border:0!important;border-radius:12px!important;box-shadow:none!important;
-      object-fit:contain!important;object-position:center!important;transform:none!important;
-    }
-    html body #page-appliances-main #appl-grid-overview
-      .appl-wide-card[data-dm-artwork="custom"] .appl-visual img[data-dm-image-fit="cover"],
-    html body #appl-grid-overview
-      .appl-wide-card[data-dm-artwork="custom"] .appl-visual img[data-dm-image-fit="cover"],
-    html body #page-appliances-main
-      .appl-wide-card[data-dm-artwork="custom"] .appl-visual img[data-dm-image-fit="cover"] {
-      object-fit:cover!important;
+      .appl-wide-card[data-dm-art-style="panel"] .appl-visual img[data-dm-image-fit="contain"] {
+      object-fit:contain!important;
     }
   `;
   doc.head.append(style);
   return style;
-}
-
-function settleStyleOrder0154() {
-  const state = globalThis[LOCK_KEY];
-  const doc = globalThis.document;
-  if (!state || state.styleSettled || !doc?.head) return;
-  removeLegacyGeometryStyles0154();
-  const style = installStyles0154();
-  if (style && doc.head.lastElementChild !== style) doc.head.append(style);
-  state.styleSettled = true;
 }
 
 function installLegacyStyleCleanup0154() {
@@ -255,16 +309,10 @@ function installLegacyStyleCleanup0154() {
 function nodeTouchesAppliances0154(node) {
   if (!node || node.nodeType !== 1) return false;
   return Boolean(
-    node.matches?.("#appl-grid-overview, #page-appliances-main, .appl-wide-card, .appl-visual, .appl-ic") ||
+    node.matches?.("#appl-grid-overview, #page-appliances-main, .appl-wide-card") ||
       node.closest?.("#appl-grid-overview, #page-appliances-main") ||
       node.querySelector?.("#appl-grid-overview, #page-appliances-main, .appl-wide-card"),
   );
-}
-
-function mutationTouchesAppliances0154(record) {
-  if (record.type === "attributes") return nodeTouchesAppliances0154(record.target);
-  if (nodeTouchesAppliances0154(record.target)) return true;
-  return [...record.addedNodes, ...record.removedNodes].some(nodeTouchesAppliances0154);
 }
 
 function schedule0154() {
@@ -282,18 +330,36 @@ function installObserver0154() {
   const doc = globalThis.document;
   const state = globalThis[LOCK_KEY];
   if (!doc?.body || !state || typeof MutationObserver !== "function") return false;
-  if (state.observerVersion === 2 && state.observer) return true;
+  if (state.observerVersion === 3 && state.observer) return true;
   state.observer?.disconnect?.();
   state.observer = new MutationObserver((records) => {
-    if (records.some(mutationTouchesAppliances0154)) schedule0154();
+    if (
+      records.some(
+        (record) =>
+          nodeTouchesAppliances0154(record.target) ||
+          [...record.addedNodes, ...record.removedNodes].some(nodeTouchesAppliances0154),
+      )
+    ) {
+      schedule0154();
+    }
   });
-  state.observer.observe(doc.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ["data-dm-artwork", "data-dm-art-style", "class", "src"],
-  });
-  state.observerVersion = 2;
+  state.observer.observe(doc.body, { childList: true, subtree: true });
+  state.observerVersion = 3;
+  return true;
+}
+
+function installRenderHook0154() {
+  const original = globalThis.renderApplianceSection;
+  if (typeof original !== "function" || original.__dm0154ArtworkHook) return false;
+  function renderApplianceSection0154(...args) {
+    const result = original.apply(this, args);
+    globalThis.queueMicrotask?.(enforceArtwork0154);
+    globalThis.requestAnimationFrame?.(enforceArtwork0154);
+    return result;
+  }
+  renderApplianceSection0154.__dm0154ArtworkHook = true;
+  renderApplianceSection0154.__dmPrevious = original;
+  globalThis.renderApplianceSection = renderApplianceSection0154;
   return true;
 }
 
@@ -304,12 +370,12 @@ function installLock0154() {
     observer: null,
     observerVersion: 0,
     scheduled: false,
-    styleSettled: false,
     legacyStyleCleanupObserver: null,
   });
   disableLegacyObservers0154();
   installStyles0154();
   installLegacyStyleCleanup0154();
+  installRenderHook0154();
   enforceArtwork0154();
   installObserver0154();
   return true;
@@ -318,16 +384,10 @@ function installLock0154() {
 if (typeof globalThis.document !== "undefined") {
   installLock0154();
   globalThis.queueMicrotask?.(installLock0154);
-  globalThis.setTimeout?.(() => {
-    installLock0154();
-    settleStyleOrder0154();
-  }, 0);
+  globalThis.setTimeout?.(installLock0154, 0);
   globalThis.setTimeout?.(installLock0154, 200);
   globalThis.setTimeout?.(installLock0154, 650);
-  globalThis.addEventListener?.("dashboardmodern:legacy-ready", () => {
-    installLock0154();
-    settleStyleOrder0154();
-  });
+  globalThis.addEventListener?.("dashboardmodern:legacy-ready", installLock0154);
   if (globalThis.document.readyState === "loading") {
     globalThis.document.addEventListener("DOMContentLoaded", installLock0154, { once: true });
   }
