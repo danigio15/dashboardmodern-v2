@@ -13,6 +13,20 @@ function syncCanonicalIcon(form, iconInput) {
   if (room?.icon) iconInput.value = String(room.icon);
 }
 
+function installStyles() {
+  if (document.getElementById("dm-release-0152-temperature-dom-styles")) return;
+  const style = document.createElement("style");
+  style.id = "dm-release-0152-temperature-dom-styles";
+  style.textContent = `
+    #editor-modal [data-temperature-form] .dm-temperature-actions button,
+    #editor-modal [data-temperature-form] [data-temperature-submit],
+    #editor-modal [data-temperature-form] [data-temperature-cancel] {
+      min-height: 44px !important;
+    }
+  `;
+  document.head.append(style);
+}
+
 function removeDuplicateIconEditor() {
   const form = document.querySelector("#editor-modal [data-temperature-form]");
   if (!form) return;
@@ -51,6 +65,7 @@ function removeDuplicateIconEditor() {
 function install() {
   if (globalThis[TEMPERATURE_DOM_FLAG]?.installed) return;
   globalThis[TEMPERATURE_DOM_FLAG] = { installed: true, version: "0.14.12" };
+  installStyles();
 
   let frame = 0;
   const schedule = () => {
