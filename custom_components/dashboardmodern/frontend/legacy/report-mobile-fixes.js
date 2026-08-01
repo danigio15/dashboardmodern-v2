@@ -17,6 +17,7 @@ import "./release-0150-fixes.js";
 import "./release-0150-save-state-fix.js";
 import "./release-0150-runtime-state-fixes.js";
 import "./release-0152-fixes.js";
+import "./release-0152-compat.js";
 
 function installReportCompatibilityMarker() {
   if (document.getElementById("dm-report-mobile-fixes")) return;
