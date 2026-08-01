@@ -243,6 +243,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       expect(artwork.heightRatio).toBeLessThan(0.9);
     }
 
+    await page.evaluate(() => {
+      window.__dmStatisticsRequests = [];
+    });
     const refreshed = await page.evaluate(async () => {
       const release = await import("./release-0152-fixes.js");
       return release.refreshEnergyStatistics0152(new Date());
@@ -256,7 +259,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           year: CD_PERIOD["dm.energy_rete_acquistata_anno"],
           requests: window.__dmStatisticsRequests
             .filter((request) => Number(request.id) >= 152000)
-            .map((request) => ({ period: request.period, types: request.types })),
+            .map((request) => ({ period: request.period, types: request.types }))
+            .sort(
+              (left, right) =>
+                ["hour", "day", "month"].indexOf(left.period) -
+                ["hour", "day", "month"].indexOf(right.period),
+            ),
         })),
       )
       .toEqual({
