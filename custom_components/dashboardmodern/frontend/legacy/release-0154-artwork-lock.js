@@ -9,6 +9,10 @@ const STYLE_ID = "dm-release-0154-final-artwork-lock";
 const LEGACY_STYLE_DISABLED_KEY = "__DASHBOARDMODERN_MEDIA_STYLE_LOCK_DISABLED_0153__";
 const LEGACY_STYLE_OBSERVER_KEY = "__DASHBOARDMODERN_MEDIA_STYLE_OBSERVER_0153__";
 const LEGACY_DOM_OBSERVER_KEY = "__DASHBOARDMODERN_MEDIA_DOM_OBSERVER_0153__";
+const LEGACY_GEOMETRY_STYLE_IDS = new Set([
+  "dm-appliance-media-layout-lock-0153",
+  "dm-release-0152-artwork-layout-fix",
+]);
 
 function setData0154(node, key, value) {
   if (node?.dataset && node.dataset[key] !== value) node.dataset[key] = value;
@@ -18,12 +22,30 @@ function setAttribute0154(node, name, value) {
   if (node && node.getAttribute(name) !== value) node.setAttribute(name, value);
 }
 
+function retireObserverSlot0154(key) {
+  globalThis[key]?.disconnect?.();
+  try {
+    Object.defineProperty(globalThis, key, {
+      configurable: true,
+      enumerable: false,
+      get: () => null,
+      set: (observer) => observer?.disconnect?.(),
+    });
+  } catch (_error) {
+    globalThis[key] = null;
+  }
+}
+
+function removeLegacyGeometryStyles0154(root = globalThis.document) {
+  if (!root?.querySelectorAll) return;
+  LEGACY_GEOMETRY_STYLE_IDS.forEach((id) => root.querySelector(`#${id}`)?.remove());
+}
+
 function disableLegacyObservers0154() {
   globalThis[LEGACY_STYLE_DISABLED_KEY] = true;
-  globalThis[LEGACY_STYLE_OBSERVER_KEY]?.disconnect?.();
-  globalThis[LEGACY_DOM_OBSERVER_KEY]?.disconnect?.();
-  globalThis[LEGACY_STYLE_OBSERVER_KEY] = null;
-  globalThis[LEGACY_DOM_OBSERVER_KEY] = null;
+  retireObserverSlot0154(LEGACY_STYLE_OBSERVER_KEY);
+  retireObserverSlot0154(LEGACY_DOM_OBSERVER_KEY);
+  removeLegacyGeometryStyles0154();
 }
 
 function items0154() {
@@ -208,9 +230,26 @@ function settleStyleOrder0154() {
   const state = globalThis[LOCK_KEY];
   const doc = globalThis.document;
   if (!state || state.styleSettled || !doc?.head) return;
+  removeLegacyGeometryStyles0154();
   const style = installStyles0154();
   if (style && doc.head.lastElementChild !== style) doc.head.append(style);
   state.styleSettled = true;
+}
+
+function installLegacyStyleCleanup0154() {
+  const doc = globalThis.document;
+  const state = globalThis[LOCK_KEY];
+  if (!doc?.head || !state || typeof MutationObserver !== "function") return false;
+  if (state.legacyStyleCleanupObserver) return true;
+  state.legacyStyleCleanupObserver = new MutationObserver((records) => {
+    records.forEach((record) => {
+      record.addedNodes.forEach((node) => {
+        if (node.nodeType === 1 && LEGACY_GEOMETRY_STYLE_IDS.has(node.id)) node.remove();
+      });
+    });
+  });
+  state.legacyStyleCleanupObserver.observe(doc.head, { childList: true });
+  return true;
 }
 
 function nodeTouchesAppliances0154(node) {
@@ -245,8 +284,6 @@ function installObserver0154() {
   if (!doc?.body || !state || typeof MutationObserver !== "function") return false;
   if (state.observerVersion === 2 && state.observer) return true;
   state.observer?.disconnect?.();
-  state.styleObserver?.disconnect?.();
-  state.styleObserver = null;
   state.observer = new MutationObserver((records) => {
     if (records.some(mutationTouchesAppliances0154)) schedule0154();
   });
@@ -265,13 +302,14 @@ function installLock0154() {
   if (!doc?.documentElement) return false;
   const state = (globalThis[LOCK_KEY] ||= {
     observer: null,
-    styleObserver: null,
     observerVersion: 0,
     scheduled: false,
     styleSettled: false,
+    legacyStyleCleanupObserver: null,
   });
   disableLegacyObservers0154();
   installStyles0154();
+  installLegacyStyleCleanup0154();
   enforceArtwork0154();
   installObserver0154();
   return true;
@@ -285,6 +323,7 @@ if (typeof globalThis.document !== "undefined") {
     settleStyleOrder0154();
   }, 0);
   globalThis.setTimeout?.(installLock0154, 200);
+  globalThis.setTimeout?.(installLock0154, 650);
   globalThis.addEventListener?.("dashboardmodern:legacy-ready", () => {
     installLock0154();
     settleStyleOrder0154();
