@@ -44,11 +44,11 @@ function removeDuplicateIconEditor() {
     iconInput.closest("[data-icon-field]") ||
     iconInput.parentElement;
 
-  // Keep the original input node because the legacy submit closure references
-  // that exact object. Move it out of the visible label, then remove the whole
-  // duplicate row so "Simbolo/Icon" no longer exists in the editor DOM.
+  // Keep the original input object because the legacy submit closure references
+  // it. The input is nested inside .dm-icon-field, not a direct child of the
+  // label, so detach it through its actual parent before removing the row.
   if (field && field !== form) {
-    field.removeChild(iconInput);
+    iconInput.remove();
     field.remove();
     form.append(iconInput);
   }
