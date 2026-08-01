@@ -74,7 +74,7 @@ async function boot(page, variant, testInfo) {
   await bootNamespacedDashboard(page, variant, testInfo, seed);
   await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await page.waitForFunction(
-    () => window.__DASHBOARDMODERN_RELEASE_0154_ARTWORK_LOCK__?.observerVersion === 2,
+    () => window.__DASHBOARDMODERN_RELEASE_0154_ARTWORK_LOCK__?.observerVersion === 3,
   );
   await clickBottomTab(page, "appliances-main", testInfo);
   await expect(page.locator("#appl-grid-overview .appl-wide-card")).toHaveCount(4);
@@ -122,8 +122,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         legacyDisabled: window.__DASHBOARDMODERN_MEDIA_STYLE_LOCK_DISABLED_0153__,
         legacyStyleObserver: Boolean(window.__DASHBOARDMODERN_MEDIA_STYLE_OBSERVER_0153__),
         legacyDomObserver: Boolean(window.__DASHBOARDMODERN_MEDIA_DOM_OBSERVER_0153__),
+        mediaObserverDisabled:
+          window.__DASHBOARDMODERN_ENERGY_REPORT_MEDIA_FIX__?.observer?.disabled === true,
         legacyStyleCount: styleIds.filter((id) => id === "dm-appliance-media-layout-lock-0153").length,
         legacyReleaseStyleCount: styleIds.filter((id) => id === "dm-release-0152-artwork-layout-fix").length,
+        legacyMediaStyleCount: styleIds.filter((id) => id === "dm-energy-report-media-fixes-0153").length,
         finalStyleCount: styleIds.filter((id) => id === "dm-release-0154-final-artwork-lock").length,
       };
     });
@@ -132,8 +135,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       legacyDisabled: true,
       legacyStyleObserver: false,
       legacyDomObserver: false,
+      mediaObserverDisabled: true,
       legacyStyleCount: 0,
       legacyReleaseStyleCount: 0,
+      legacyMediaStyleCount: 0,
       finalStyleCount: 1,
     });
     expect(result.headMutations).toBeLessThanOrEqual(4);
