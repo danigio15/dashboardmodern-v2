@@ -10,6 +10,7 @@ import "./release-0154-prelude.js";
 import "./release-0154-runtime.js";
 import "./release-0154-postlude.js";
 import "./release-0154-artwork-lock.js";
+import "./release-0154-artwork-idempotency.js";
 
 function installArtworkLayoutFix0152() {
   const doc = globalThis.document;
