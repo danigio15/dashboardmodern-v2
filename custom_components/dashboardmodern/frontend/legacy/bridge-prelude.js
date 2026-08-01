@@ -71,12 +71,20 @@
     window.addEventListener("DOMContentLoaded", installEmptyLightsRendererFix, { once: true });
   }
 
+  // Capture a socket installed before this prelude. The real integration page
+  // still starts with the browser-native constructor; test harnesses and other
+  // legitimate embedders can inject a bridge-compatible constructor earlier.
+  var PRELUDE_WEBSOCKET = window.WebSocket;
+  var HAS_INSTANCE_QUERY = false;
   var HAS_HOST_QUERY = false;
   try {
     var _q = window.location.search || "";
     var _mi = /[?&]dmi=([^&]+)/.exec(_q);
-    if (_mi && _mi[1] && !window.__DASHBOARDMODERN_INSTANCE__) {
-      window.__DASHBOARDMODERN_INSTANCE__ = decodeURIComponent(_mi[1]);
+    if (_mi && _mi[1]) {
+      HAS_INSTANCE_QUERY = true;
+      if (!window.__DASHBOARDMODERN_INSTANCE__) {
+        window.__DASHBOARDMODERN_INSTANCE__ = decodeURIComponent(_mi[1]);
+      }
     }
     var _mp = /[?&]dmp=(\d)/.exec(_q);
     if (_mp) {
@@ -99,16 +107,26 @@
 
   var HOSTED_TOKEN = "__dashboardmodern_hosted__";
 
+  function isInjectedSocket(SocketCtor) {
+    if (typeof SocketCtor !== "function") return false;
+    try {
+      return String(SocketCtor).indexOf("[native code]") === -1;
+    } catch (error) {
+      return false;
+    }
+  }
+
   function isHosted() {
     // Same-origin by construction: both documents are served by Home Assistant.
     // A cross-origin parent throws here, which is the correct standalone path.
     try {
-      // dmi only selects an isolated storage namespace and is also valid for a
-      // standalone dashboard. The integration host always supplies dmp as its
-      // parse-time marker, or exposes one of the explicit bridge/host markers.
+      // dmi is retained as a backwards-compatible parse-time host signal. dmp
+      // is the newer explicit marker. An injected bridge constructor is also a
+      // reliable signal and must not be replaced by the temporary safety stub.
       if (window.__DASHBOARDMODERN_BRIDGED__ === true) return true;
       if (window.__DASHBOARDMODERN_HOSTED__ === true) return true;
-      if (HAS_HOST_QUERY) return true;
+      if (typeof window.__DASHBOARDMODERN_BRIDGE_WS__ === "function") return true;
+      if (HAS_INSTANCE_QUERY || HAS_HOST_QUERY) return true;
       var parent = window.parent;
       if (!parent || parent === window) return false;
       return parent.__DASHBOARDMODERN_HOST__ === true;
@@ -181,9 +199,12 @@
   StubSocket.prototype.removeEventListener = function () {};
   var BridgeWS = null;
   try {
-    BridgeWS = window.parent.__DASHBOARDMODERN_BRIDGE_WS__ || null;
+    BridgeWS = window.parent.__DASHBOARDMODERN_BRIDGE_WS__ || window.__DASHBOARDMODERN_BRIDGE_WS__ || null;
   } catch (error) {
-    BridgeWS = null;
+    BridgeWS = window.__DASHBOARDMODERN_BRIDGE_WS__ || null;
+  }
+  if (typeof BridgeWS !== "function" && HAS_INSTANCE_QUERY && isInjectedSocket(PRELUDE_WEBSOCKET)) {
+    BridgeWS = PRELUDE_WEBSOCKET;
   }
   window.WebSocket = typeof BridgeWS === "function" ? BridgeWS : StubSocket;
 
