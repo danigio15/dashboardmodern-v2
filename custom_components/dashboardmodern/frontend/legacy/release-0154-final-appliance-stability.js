@@ -141,16 +141,30 @@ function normalizeCustomImage0154(card, item, visual, viewport, media) {
   setDataset(card, "applianceThemeAware", "true");
   setDataset(viewport, "applianceCover", "true");
 
-  let image = media.querySelector(":scope > img.dm-appliance-custom-image-0154");
+  let wrapper = media.querySelector(":scope > .dm-appliance-image-wrap");
+  if (!wrapper) {
+    wrapper = globalThis.document.createElement("span");
+    wrapper.className = "dm-appliance-image-wrap";
+    media.replaceChildren(wrapper);
+  } else if (media.children.length !== 1) {
+    media.replaceChildren(wrapper);
+  }
+
+  let image = wrapper.querySelector(":scope > img.dm-appliance-custom-image-0154");
   if (!image) {
     image = globalThis.document.createElement("img");
     image.className = "dm-appliance-image dm-appliance-image-0153 dm-appliance-custom-image-0154";
-    media.replaceChildren(image);
+    wrapper.replaceChildren(image);
   }
   if (image.getAttribute("src") !== visual.value) image.src = visual.value;
   image.alt = String(item.name || "");
   image.loading = "eager";
   image.decoding = "async";
+
+  fillViewport0154(viewport, media, wrapper, image);
+  setImportant(wrapper, "overflow", "hidden");
+  setImportant(wrapper, "border-radius", "12px");
+  setImportant(image, "overflow", "hidden");
 
   const applyFit = () => {
     const ratio = image.naturalHeight ? image.naturalWidth / image.naturalHeight : 0;
@@ -160,8 +174,6 @@ function normalizeCustomImage0154(card, item, visual, viewport, media) {
   };
   if (image.complete && image.naturalWidth) applyFit();
   else image.addEventListener("load", applyFit, { once: true });
-
-  fillViewport0154(viewport, media, image, image);
   return true;
 }
 
