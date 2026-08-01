@@ -3,6 +3,25 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 0.14.13 — 2026-08-01
+
+### Corretto
+
+- Ripristinati i totali mensili della sezione Energia usando richieste Recorder
+  compatibili con Home Assistant e senza il parametro non supportato `types`.
+- Il Report dispositivi ora calcola i consumi del mese dai contatori cumulativi,
+  incluse baseline precedenti al periodo e gestione dei reset `total_increasing`.
+- Eliminati i refresh Recorder duplicati quando la pagina Report non è visibile.
+- Ripristinate le illustrazioni generate di frigorifero e scaldabagno dopo il
+  rendering delle card Elettrodomestici.
+- Immagini personalizzate e SVG vengono centrati e contenuti correttamente su
+  desktop, mobile e WebKit, senza ritagli o overflow.
+
+### Verificato
+
+- HACS, hassfest, test Python, test frontend, Ruff e Browser E2E completi su
+  interfacce italiana e inglese.
+
 ## 0.14.10 — 2026-07-31
 
 ### Aggiunto
