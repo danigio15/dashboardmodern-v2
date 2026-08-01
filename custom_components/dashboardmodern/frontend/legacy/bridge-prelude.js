@@ -212,25 +212,105 @@
   }
 
   // The main legacy bootstrap receives only the explicit host bridge (or the
-  // inert stub). Never give it a generic preloaded adapter: synchronous mock
-  // replies inside ws.send() can recursively re-enter the legacy state machine.
+  // inert stub). Never give it a generic preloaded adapter while its own script
+  // is parsing: synchronous mock replies inside ws.send() can recursively
+  // re-enter the legacy state machine.
   window.WebSocket = typeof BridgeWS === "function" ? BridgeWS : StubSocket;
 
-  // Once the main legacy socket and canonical store are fully initialized, a
-  // preloaded adapter may safely serve *new* Recorder/statistics connections.
-  // Existing main-socket instances are unaffected by replacing the constructor.
+  function deferredSocketConstructor(SocketCtor) {
+    function construct(args) {
+      if (typeof Reflect !== "undefined" && typeof Reflect.construct === "function") {
+        return Reflect.construct(SocketCtor, args);
+      }
+      var Bound = Function.prototype.bind.apply(SocketCtor, [null].concat(args));
+      return new Bound();
+    }
+
+    function DeferredSocket() {
+      var inner = construct(Array.prototype.slice.call(arguments));
+      Object.defineProperty(this, "__dmInnerSocket", {
+        value: inner,
+        configurable: false,
+        enumerable: false,
+        writable: false,
+      });
+      var outer = this;
+      ["onopen", "onmessage", "onerror", "onclose"].forEach(function (property) {
+        var assigned = null;
+        Object.defineProperty(outer, property, {
+          configurable: true,
+          enumerable: true,
+          get: function () {
+            return assigned;
+          },
+          set: function (handler) {
+            assigned = typeof handler === "function" ? handler : null;
+            inner[property] = assigned
+              ? function (event) {
+                  setTimeout(function () {
+                    assigned.call(outer, event);
+                  }, 0);
+                }
+              : null;
+          },
+        });
+      });
+    }
+
+    DeferredSocket.prototype = Object.create(SocketCtor.prototype || Object.prototype);
+    DeferredSocket.prototype.constructor = DeferredSocket;
+    DeferredSocket.prototype.send = function () {
+      return this.__dmInnerSocket.send.apply(this.__dmInnerSocket, arguments);
+    };
+    DeferredSocket.prototype.close = function () {
+      return this.__dmInnerSocket.close.apply(this.__dmInnerSocket, arguments);
+    };
+    DeferredSocket.prototype.addEventListener = function (type, handler, options) {
+      var outer = this;
+      if (typeof this.__dmInnerSocket.addEventListener !== "function") return;
+      return this.__dmInnerSocket.addEventListener(
+        type,
+        function (event) {
+          setTimeout(function () {
+            handler.call(outer, event);
+          }, 0);
+        },
+        options,
+      );
+    };
+    DeferredSocket.prototype.removeEventListener = function () {};
+    ["readyState", "url", "protocol", "extensions", "bufferedAmount", "binaryType"].forEach(function (property) {
+      Object.defineProperty(DeferredSocket.prototype, property, {
+        configurable: true,
+        enumerable: true,
+        get: function () {
+          return this.__dmInnerSocket[property];
+        },
+        set: function (value) {
+          this.__dmInnerSocket[property] = value;
+        },
+      });
+    });
+    DeferredSocket.CONNECTING = SocketCtor.CONNECTING == null ? 0 : SocketCtor.CONNECTING;
+    DeferredSocket.OPEN = SocketCtor.OPEN == null ? 1 : SocketCtor.OPEN;
+    DeferredSocket.CLOSING = SocketCtor.CLOSING == null ? 2 : SocketCtor.CLOSING;
+    DeferredSocket.CLOSED = SocketCtor.CLOSED == null ? 3 : SocketCtor.CLOSED;
+    return DeferredSocket;
+  }
+
+  // Once the main legacy socket and canonical store are initialized, expose an
+  // asynchronous wrapper around the preloaded adapter. Both a later reconnect
+  // and Recorder receive the expected mock/bridge replies, but never inside the
+  // same call stack as send(), so the legacy state machine cannot recurse.
   if (
     window.__DASHBOARDMODERN_PRELUDE_WS__ === PRELUDE_WEBSOCKET &&
     typeof window.addEventListener === "function"
   ) {
     window.addEventListener(
       "dashboardmodern:legacy-ready",
-      function restorePreloadedStatisticsSocket() {
-        // The marker is supplied only to an already-injected in-memory adapter.
-        // It is never published during the normal hosted bootstrap and is not a
-        // usable Home Assistant credential.
+      function installDeferredPreloadedSocket() {
         window.DASHBOARDMODERN_AUTH_TOKEN ||= REAL_TOKEN || HOSTED_TOKEN;
-        window.WebSocket = PRELUDE_WEBSOCKET;
+        window.WebSocket = deferredSocketConstructor(PRELUDE_WEBSOCKET);
       },
       { once: true },
     );
