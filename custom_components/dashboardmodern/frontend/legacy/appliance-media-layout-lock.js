@@ -1,5 +1,67 @@
 /* DashboardModern: final appliance media lock loaded after legacy layout themes. */
+import { applianceArtwork0152 } from "./release-0152-runtime.js";
+
 const STYLE_ID = "dm-appliance-media-layout-lock-0153";
+const DOM_OBSERVER_KEY = "__DASHBOARDMODERN_MEDIA_DOM_OBSERVER_0153__";
+
+function canonicalArtworkType0153(value) {
+  const token = String(value || "").toLowerCase();
+  if (/frigo|fridge|refriger|frigorifero/.test(token)) return "fridge";
+  if (/scaldabagno|boiler|water[_ -]?heater/.test(token)) return "boiler";
+  return "";
+}
+
+function applianceItems0153() {
+  try {
+    const items = globalThis.DashboardModernModules?.store?.getSection?.("appliances");
+    return Array.isArray(items) ? items : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function applianceVisual0153(item) {
+  try {
+    return globalThis.DashboardModernModules?.data?.getDeviceVisual?.(item) || null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function restoreGeneratedArtwork0153() {
+  const doc = globalThis.document;
+  if (!doc) return false;
+  const items = applianceItems0153();
+  if (!items.length) return false;
+  const byId = new Map(items.map((item) => [String(item.id || ""), item]));
+  const cards = doc.querySelectorAll(
+    "#appl-grid-overview .appl-wide-card[data-appliance-id], #page-appliances-main .appl-wide-card[data-appliance-id]",
+  );
+
+  cards.forEach((card, index) => {
+    const item = byId.get(String(card.dataset.applianceId || "")) || items[index];
+    if (!item) return;
+    const visual = applianceVisual0153(item);
+    if (visual?.kind !== "asset") return;
+
+    const type = canonicalArtworkType0153(
+      visual.value || item.visual_key || item.device_type || item.type || item.name,
+    );
+    if (!type) return;
+
+    const media = card.querySelector(".appl-visual .appl-ic");
+    if (!media) return;
+    card.dataset.dmArtwork = type;
+    media.classList.add("dm-appliance-media-0153");
+    card.querySelector(".appl-visual")?.classList.add("dm-appliance-viewport-0153");
+
+    if (!media.querySelector(`[data-dm-art="${type}"]`)) {
+      const markup = applianceArtwork0152(type, 76);
+      if (markup) media.innerHTML = markup;
+    }
+  });
+  return true;
+}
 
 function installApplianceMediaLayoutLock0153() {
   const doc = globalThis.document;
@@ -84,9 +146,36 @@ function keepLayoutLockLast0153() {
   globalThis.__DASHBOARDMODERN_MEDIA_STYLE_OBSERVER_0153__ = observer;
 }
 
+function observeApplianceDom0153() {
+  const doc = globalThis.document;
+  if (!doc?.documentElement || globalThis[DOM_OBSERVER_KEY]) return;
+  let scheduled = false;
+  const schedule = () => {
+    if (scheduled) return;
+    scheduled = true;
+    const run = () => {
+      scheduled = false;
+      restoreGeneratedArtwork0153();
+    };
+    if (typeof globalThis.requestAnimationFrame === "function") {
+      globalThis.requestAnimationFrame(run);
+    } else {
+      globalThis.setTimeout?.(run, 0);
+    }
+  };
+  const observer = new MutationObserver((records) => {
+    if (records.some((record) => record.addedNodes.length || record.removedNodes.length)) schedule();
+  });
+  observer.observe(doc.documentElement, { childList: true, subtree: true });
+  globalThis[DOM_OBSERVER_KEY] = observer;
+  schedule();
+}
+
 function install0153() {
   installApplianceMediaLayoutLock0153();
   keepLayoutLockLast0153();
+  observeApplianceDom0153();
+  restoreGeneratedArtwork0153();
 }
 
 if (typeof globalThis.document !== "undefined") {
