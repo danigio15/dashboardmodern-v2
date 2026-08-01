@@ -5,6 +5,7 @@ import {
   periodValue0153,
   statisticsRequest0153,
 } from "../legacy/energy-monthly-report-media-fixes.js";
+import { sanitizeRecorderPayload0153 } from "../legacy/energy-report-runtime-hooks.js";
 
 test("Recorder compatibility request never sends change inside types", () => {
   const previous = globalThis.resolveEntity;
@@ -28,6 +29,20 @@ test("Recorder compatibility request never sends change inside types", () => {
     if (previous === undefined) delete globalThis.resolveEntity;
     else globalThis.resolveEntity = previous;
   }
+});
+
+test("legacy Recorder payload removes unsupported types before WebSocket send", () => {
+  const raw = JSON.stringify({
+    id: 42,
+    type: "recorder/statistics_during_period",
+    statistic_ids: ["sensor.total_house_energy"],
+    period: "month",
+    types: ["max", "state", "sum", "change"],
+  });
+  const sanitized = JSON.parse(sanitizeRecorderPayload0153(raw));
+  assert.equal(sanitized.id, 42);
+  assert.equal(sanitized.period, "month");
+  assert.equal("types" in sanitized, false);
 });
 
 test("monthly Report values sum Recorder changes", () => {
