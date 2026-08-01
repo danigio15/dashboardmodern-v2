@@ -11,6 +11,7 @@ import "./release-0154-runtime.js";
 import "./release-0154-postlude.js";
 import "./release-0154-artwork-lock.js";
 import "./release-0154-artwork-idempotency.js";
+import "./release-0154-style-observer-guard.js";
 
 function installArtworkLayoutFix0152() {
   const doc = globalThis.document;
