@@ -71,6 +71,7 @@
     window.addEventListener("DOMContentLoaded", installEmptyLightsRendererFix, { once: true });
   }
 
+  var HAS_HOST_QUERY = false;
   try {
     var _q = window.location.search || "";
     var _mi = /[?&]dmi=([^&]+)/.exec(_q);
@@ -78,7 +79,10 @@
       window.__DASHBOARDMODERN_INSTANCE__ = decodeURIComponent(_mi[1]);
     }
     var _mp = /[?&]dmp=(\d)/.exec(_q);
-    if (_mp) window.__DASHBOARDMODERN_PRIMARY__ = _mp[1] === "1";
+    if (_mp) {
+      HAS_HOST_QUERY = true;
+      window.__DASHBOARDMODERN_PRIMARY__ = _mp[1] === "1";
+    }
   } catch (e) {}
 
   try {
@@ -99,11 +103,12 @@
     // Same-origin by construction: both documents are served by Home Assistant.
     // A cross-origin parent throws here, which is the correct standalone path.
     try {
-      // The host sets these directly on this window before/at frame load; either
-      // is a reliable signal we are the integration-hosted copy, independent of
-      // parent-access timing.
+      // dmi only selects an isolated storage namespace and is also valid for a
+      // standalone dashboard. The integration host always supplies dmp as its
+      // parse-time marker, or exposes one of the explicit bridge/host markers.
       if (window.__DASHBOARDMODERN_BRIDGED__ === true) return true;
-      if (window.__DASHBOARDMODERN_INSTANCE__) return true;
+      if (window.__DASHBOARDMODERN_HOSTED__ === true) return true;
+      if (HAS_HOST_QUERY) return true;
       var parent = window.parent;
       if (!parent || parent === window) return false;
       return parent.__DASHBOARDMODERN_HOST__ === true;
