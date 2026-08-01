@@ -84,16 +84,24 @@ async function boot(page, variant, testInfo) {
     window.WebSocket = class extends EventTarget {
       static OPEN = 1;
       readyState = 1;
-      constructor() {
+      constructor(url = "") {
         super();
+        const isHostedBridge = String(url).includes("dashboardmodern-bridge");
         queueMicrotask(() =>
-          this.onmessage?.({ data: JSON.stringify({ type: "auth_required" }) }),
+          this.emit({ type: isHostedBridge ? "auth_ok" : "auth_required" }),
         );
+      }
+      emit(message) {
+        const event = new MessageEvent("message", {
+          data: JSON.stringify(message),
+        });
+        this.dispatchEvent(event);
+        this.onmessage?.(event);
       }
       send(raw) {
         const message = JSON.parse(raw);
         if (message.type === "auth") {
-          this.onmessage?.({ data: JSON.stringify({ type: "auth_ok" }) });
+          this.emit({ type: "auth_ok" });
           return;
         }
         let result = [];
@@ -114,16 +122,19 @@ async function boot(page, variant, testInfo) {
             ]),
           );
         }
-        this.onmessage?.({
-          data: JSON.stringify({
-            id: message.id,
-            type: "result",
-            success: true,
-            result,
-          }),
+        this.emit({
+          id: message.id,
+          type: "result",
+          success: true,
+          result,
         });
       }
       close() {}
+    };
+    window.__DASHBOARDMODERN_BRIDGE_WS__ = class extends window.WebSocket {
+      constructor() {
+        super("dashboardmodern-bridge");
+      }
     };
   }, states);
   await bootNamespacedDashboard(page, variant, testInfo, seed);
@@ -140,6 +151,7 @@ async function boot(page, variant, testInfo) {
     buildReportSelect?.();
   }, states);
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RELEASE_0150__?.installed);
+  await page.waitForFunction(() => window.__DASHBOARDMODERN_RELEASE_0151__?.installed);
 }
 
 async function openEnergyAnalysis(page, testInfo) {
@@ -199,8 +211,31 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       )
       .toEqual({
         total: "sensor.solarman_total_grid_energy",
-        day: "sensor.solarman_total_grid_energy",
-        month: "sensor.solarman_total_grid_energy",
+        day: undefined,
+        month: undefined,
+      });
+
+    const refreshed = await page.evaluate(async () => {
+      const release = await import("./release-0151-fixes.js");
+      return release.refreshEnergyStatistics0151();
+    });
+    expect(refreshed).toBe(true);
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({
+          day: Number(_RAW_STATES["dm.energy_energia_prelevata_oggi"]?.state),
+          month: Number(_RAW_STATES["dm.energy_rete_acquistata_mese"]?.state),
+          year: Number(_RAW_STATES["dm.energy_rete_acquistata_anno"]?.state),
+          source:
+            _RAW_STATES["dm.energy_rete_acquistata_mese"]?.attributes
+              ?.dashboardmodern_source,
+        })),
+      )
+      .toEqual({
+        day: 42.6,
+        month: 42.6,
+        year: 42.6,
+        source: "sensor.solarman_total_grid_energy",
       });
     await page.locator("#editor-modal .ed-head-close").last().click();
 
