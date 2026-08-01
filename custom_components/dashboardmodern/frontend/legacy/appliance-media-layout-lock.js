@@ -28,11 +28,35 @@ function applianceVisual0153(item) {
   }
 }
 
+function classifyApplianceImages0153() {
+  const doc = globalThis.document;
+  if (!doc) return;
+  doc
+    .querySelectorAll("#appl-grid-overview .appl-visual img, #page-appliances-main .appl-visual img")
+    .forEach((image) => {
+      const source = image.currentSrc || image.getAttribute("src") || "";
+      const apply = () => {
+        if (!image.naturalWidth || !image.naturalHeight) return;
+        const ratio = image.naturalWidth / image.naturalHeight;
+        image.dataset.dmImageFit = ratio >= 0.92 && ratio <= 1.08 ? "cover" : "contain";
+        image.dataset.dmImageFitSource = source;
+      };
+      if (image.complete && image.naturalWidth) apply();
+      else if (image.dataset.dmImageFitPending !== source) {
+        image.dataset.dmImageFitPending = source;
+        image.addEventListener("load", apply, { once: true });
+      }
+    });
+}
+
 function restoreGeneratedArtwork0153() {
   const doc = globalThis.document;
   if (!doc) return false;
   const items = applianceItems0153();
-  if (!items.length) return false;
+  if (!items.length) {
+    classifyApplianceImages0153();
+    return false;
+  }
   const byId = new Map(items.map((item) => [String(item.id || ""), item]));
   const cards = doc.querySelectorAll(
     "#appl-grid-overview .appl-wide-card[data-appliance-id], #page-appliances-main .appl-wide-card[data-appliance-id]",
@@ -60,6 +84,7 @@ function restoreGeneratedArtwork0153() {
       if (markup) media.innerHTML = markup;
     }
   });
+  classifyApplianceImages0153();
   return true;
 }
 
@@ -90,6 +115,15 @@ function installApplianceMediaLayoutLock0153() {
         object-position: center !important;
         border-radius: 12px !important;
         transform: none !important;
+      }
+
+      html body #page-appliances-main #appl-grid-overview
+        .appl-wide-card .appl-visual img[data-dm-image-fit="cover"],
+      html body #appl-grid-overview
+        .appl-wide-card .appl-visual img[data-dm-image-fit="cover"],
+      html body #page-appliances-main
+        .appl-wide-card .appl-visual img[data-dm-image-fit="cover"] {
+        object-fit: cover !important;
       }
 
       html body #page-appliances-main #appl-grid-overview
