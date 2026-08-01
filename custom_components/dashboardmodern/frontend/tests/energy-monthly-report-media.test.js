@@ -41,7 +41,8 @@ test("monthly Report values sum Recorder changes", () => {
 });
 
 test("monthly Report values use the pre-period baseline for cumulative totals", () => {
-  assert.equal(periodValue0153([{ sum: 1042.6 }], { sum: 1000 }), 42.6);
+  const value = periodValue0153([{ sum: 1042.6 }], { sum: 1000 });
+  assert.ok(Math.abs(value - 42.6) < 1e-9);
 });
 
 test("cumulative meter resets stay non-negative in the Report", () => {
