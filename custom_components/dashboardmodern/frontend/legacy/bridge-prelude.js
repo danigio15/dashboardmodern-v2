@@ -153,11 +153,10 @@
   } catch (error) {
     REAL_TOKEN = "";
   }
-  if (REAL_TOKEN) window.__DASHBOARDMODERN_REAL_TOKEN__ = REAL_TOKEN;
-  // The dedicated 0.14.12 statistics channel reads this in-memory candidate.
-  // In tests the placeholder is accepted by the adapter; in the integration the
-  // host bridge either authenticates itself or supplies the real token above.
-  window.DASHBOARDMODERN_AUTH_TOKEN ||= REAL_TOKEN || HOSTED_TOKEN;
+  if (REAL_TOKEN) {
+    window.__DASHBOARDMODERN_REAL_TOKEN__ = REAL_TOKEN;
+    window.DASHBOARDMODERN_AUTH_TOKEN ||= REAL_TOKEN;
+  }
 
   // Between document parse and the host's load-time bridge install, the page
   // would otherwise reach the REAL WebSocket and authenticate on its own — the
@@ -220,10 +219,17 @@
   // Once the main legacy socket and canonical store are fully initialized, a
   // preloaded adapter may safely serve *new* Recorder/statistics connections.
   // Existing main-socket instances are unaffected by replacing the constructor.
-  if (window.__DASHBOARDMODERN_PRELUDE_WS__ === PRELUDE_WEBSOCKET) {
+  if (
+    window.__DASHBOARDMODERN_PRELUDE_WS__ === PRELUDE_WEBSOCKET &&
+    typeof window.addEventListener === "function"
+  ) {
     window.addEventListener(
       "dashboardmodern:legacy-ready",
       function restorePreloadedStatisticsSocket() {
+        // The marker is supplied only to an already-injected in-memory adapter.
+        // It is never published during the normal hosted bootstrap and is not a
+        // usable Home Assistant credential.
+        window.DASHBOARDMODERN_AUTH_TOKEN ||= REAL_TOKEN || HOSTED_TOKEN;
         window.WebSocket = PRELUDE_WEBSOCKET;
       },
       { once: true },
