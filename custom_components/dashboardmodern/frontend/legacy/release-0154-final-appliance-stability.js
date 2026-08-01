@@ -86,6 +86,10 @@ function sourceToken0154(item, visual, card) {
   );
 }
 
+function directChild(node, predicate) {
+  return [...(node?.children || [])].find(predicate) || null;
+}
+
 function setDataset(node, key, value) {
   if (!node?.dataset || node.dataset[key] === value) return false;
   node.dataset[key] = value;
@@ -141,7 +145,9 @@ function normalizeCustomImage0154(card, item, visual, viewport, media) {
   setDataset(card, "applianceThemeAware", "true");
   setDataset(viewport, "applianceCover", "true");
 
-  let wrapper = media.querySelector(":scope > .dm-appliance-image-wrap");
+  let wrapper = directChild(media, (node) =>
+    node.classList?.contains("dm-appliance-image-wrap"),
+  );
   if (!wrapper) {
     wrapper = globalThis.document.createElement("span");
     wrapper.className = "dm-appliance-image-wrap";
@@ -150,7 +156,11 @@ function normalizeCustomImage0154(card, item, visual, viewport, media) {
     media.replaceChildren(wrapper);
   }
 
-  let image = wrapper.querySelector(":scope > img.dm-appliance-custom-image-0154");
+  let image = directChild(
+    wrapper,
+    (node) =>
+      node.tagName === "IMG" && node.classList?.contains("dm-appliance-custom-image-0154"),
+  );
   if (!image) {
     image = globalThis.document.createElement("img");
     image.className = "dm-appliance-image dm-appliance-image-0153 dm-appliance-custom-image-0154";
@@ -190,22 +200,32 @@ function normalizeAsset0154(card, item, visual, viewport, media) {
   setDataset(card, "applianceThemeAware", "true");
   setDataset(viewport, "applianceCover", "true");
 
-  const selector = `:scope > .dm-appliance-art-0154[data-dm-art="${canonical}"]`;
-  let artwork = media.querySelector(selector);
+  const artwork = directChild(
+    media,
+    (node) =>
+      node.classList?.contains("dm-appliance-art-0154") &&
+      node.dataset?.dmArt === canonical,
+  );
   const valid = Boolean(artwork?.querySelector("svg .dm-art-panel"));
+  let normalizedArtwork = artwork;
   if (!valid || media.children.length !== 1) {
     const markup = applianceArtwork0154(canonical, 96);
     if (!markup) return false;
     media.innerHTML = markup;
-    artwork = media.querySelector(selector);
+    normalizedArtwork = directChild(
+      media,
+      (node) =>
+        node.classList?.contains("dm-appliance-art-0154") &&
+        node.dataset?.dmArt === canonical,
+    );
   }
-  if (!artwork) return false;
+  if (!normalizedArtwork) return false;
 
-  setDataset(artwork, "dmArtStyle", "panel");
-  setDataset(artwork, "applianceAsset", source);
-  setDataset(artwork, "applianceAssetKey", source);
-  const svg = artwork.querySelector(":scope > svg");
-  fillViewport0154(viewport, media, artwork, svg);
+  setDataset(normalizedArtwork, "dmArtStyle", "panel");
+  setDataset(normalizedArtwork, "applianceAsset", source);
+  setDataset(normalizedArtwork, "applianceAssetKey", source);
+  const svg = directChild(normalizedArtwork, (node) => node.tagName?.toLowerCase() === "svg");
+  fillViewport0154(viewport, media, normalizedArtwork, svg);
   return true;
 }
 
@@ -237,6 +257,25 @@ function normalizeCards0154() {
   }
 }
 
+function installRendererHook0154() {
+  const original = globalThis.renderApplianceSection;
+  if (typeof original !== "function" || original.__dm0154FinalApplianceRenderer) return false;
+
+  function renderApplianceSection0154(...args) {
+    const result = original.apply(this, args);
+    if (result && typeof result.finally === "function") {
+      return result.finally(() => normalizeCards0154());
+    }
+    normalizeCards0154();
+    return result;
+  }
+
+  renderApplianceSection0154.__dm0154FinalApplianceRenderer = true;
+  renderApplianceSection0154.__dmPrevious = original;
+  globalThis.renderApplianceSection = renderApplianceSection0154;
+  return true;
+}
+
 function schedule0154() {
   const state = state0154();
   if (state.scheduled) return;
@@ -244,6 +283,7 @@ function schedule0154() {
   const run = () => {
     state.scheduled = false;
     disableLegacyObservers0154();
+    installRendererHook0154();
     normalizeCards0154();
   };
   globalThis.requestAnimationFrame?.(run) || globalThis.setTimeout?.(run, 0);
@@ -271,6 +311,7 @@ function installTargetedObserver0154() {
 
 function install0154() {
   disableLegacyObservers0154();
+  installRendererHook0154();
   normalizeCards0154();
   installTargetedObserver0154();
 }
@@ -281,5 +322,6 @@ if (typeof globalThis.document !== "undefined") {
   globalThis.setTimeout?.(install0154, 0);
   globalThis.setTimeout?.(install0154, 300);
   globalThis.setTimeout?.(install0154, 700);
+  globalThis.setTimeout?.(install0154, 1200);
   globalThis.addEventListener?.("dashboardmodern:legacy-ready", install0154);
 }
