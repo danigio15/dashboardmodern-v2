@@ -209,6 +209,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(result.registry).toEqual({ solar: 42.6, house: 30.6, import: 10, export: 20 });
     expect(result.leakedLifetime).toBe(false);
     expect(result.requests.length).toBeGreaterThan(0);
+    expect(result.requests.length).toBeLessThanOrEqual(24);
     expect(result.requests.every((request) => request.types === undefined)).toBe(true);
   });
 
@@ -230,6 +231,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           kind: card.dataset.dmArtwork,
           style: card.dataset.dmArtStyle,
           ratio: Math.round((svg.width / viewport.width) * 1000) / 1000,
+          heightRatio: Math.round((svg.height / viewport.height) * 1000) / 1000,
           panel: Boolean(card.querySelector('[data-dm-art-style="panel"] .dm-art-panel')),
         };
       }),
@@ -237,8 +239,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     expect(visuals.map((item) => item.kind)).toEqual(["oven", "fridge", "microwave", "boiler"]);
     expect(visuals.every((item) => item.style === "panel" && item.panel)).toBe(true);
-    expect(Math.max(...visuals.map((item) => item.ratio)) - Math.min(...visuals.map((item) => item.ratio))).toBeLessThan(0.04);
-    expect(visuals.every((item) => item.ratio >= 0.74 && item.ratio <= 0.9)).toBe(true);
+    expect(Math.max(...visuals.map((item) => item.ratio)) - Math.min(...visuals.map((item) => item.ratio))).toBeLessThan(0.02);
+    expect(visuals.every((item) => item.ratio >= 0.98 && item.ratio <= 1.01)).toBe(true);
+    expect(visuals.every((item) => item.heightRatio >= 0.98 && item.heightRatio <= 1.01)).toBe(true);
 
     const palettes = await page.evaluate(() => {
       document.documentElement.setAttribute("data-theme", "light");
