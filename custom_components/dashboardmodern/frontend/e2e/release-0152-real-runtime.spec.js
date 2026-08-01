@@ -216,15 +216,22 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.locator("#editor-modal .ed-head-close").last().click();
 
     await clickBottomTab(page, "appliances", testInfo);
+    const overview = page.locator("#appl-grid-overview");
     await expect(
-      page.locator('[data-appliance-id="appliance-frigo"][data-dm-artwork="fridge"] [data-dm-art="fridge"]'),
+      overview.locator(
+        '[data-appliance-id="appliance-frigo"][data-dm-artwork="fridge"] [data-dm-art="fridge"]',
+      ),
     ).toBeVisible();
     await expect(
-      page.locator('[data-appliance-id="appliance-boiler"][data-dm-artwork="boiler"] [data-dm-art="boiler"]'),
+      overview.locator(
+        '[data-appliance-id="appliance-boiler"][data-dm-artwork="boiler"] [data-dm-art="boiler"]',
+      ),
     ).toBeVisible();
     const artworkLayout = await page.evaluate(() =>
       ["appliance-frigo", "appliance-boiler"].map((id) => {
-        const card = document.querySelector(`[data-appliance-id="${id}"]`);
+        const card = document.querySelector(
+          `#appl-grid-overview [data-appliance-id="${id}"]`,
+        );
         const visual = card.querySelector(".appl-visual").getBoundingClientRect();
         const svg = card.querySelector("[data-dm-art] svg").getBoundingClientRect();
         return {
