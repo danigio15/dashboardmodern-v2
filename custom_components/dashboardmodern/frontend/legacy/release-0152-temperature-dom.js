@@ -1,6 +1,14 @@
 /* DashboardModern 0.14.12: remove the duplicate Temperature icon editor at its DOM boundary. */
 const TEMPERATURE_DOM_FLAG = "__DASHBOARDMODERN_RELEASE_0152_TEMPERATURE_DOM__";
 
+function isEnglish() {
+  return document.documentElement.lang === "en";
+}
+
+function copy(it, en) {
+  return isEnglish() ? en : it;
+}
+
 function canonicalRooms() {
   return globalThis.DashboardModernModules?.store?.getSection?.("rooms") || [];
 }
@@ -27,9 +35,26 @@ function installStyles() {
   document.head.append(style);
 }
 
+function cleanTemperatureLabels(form) {
+  form.querySelectorAll(".ed-slot-lbl").forEach((label) => {
+    label.childNodes.forEach((node) => {
+      if (node.nodeType !== Node.TEXT_NODE || !/[✏️🖉]/u.test(node.nodeValue || "")) return;
+      node.nodeValue = String(node.nodeValue || "").replace(/[✏️🖉]/gu, "").trimEnd();
+    });
+  });
+
+  const intro = form.parentElement?.querySelector("[data-temperature-editor]");
+  const message = copy(
+    "Seleziona una stanza già creata e associa i sensori di temperatura e umidità. Nome e icona si modificano esclusivamente nella sezione Stanze.",
+    "Select an existing room and associate its temperature and humidity sensors. Name and icon are edited exclusively in Rooms.",
+  );
+  if (intro && intro.textContent !== message) intro.textContent = message;
+}
+
 function removeDuplicateIconEditor() {
   const form = document.querySelector("#editor-modal [data-temperature-form]");
   if (!form) return;
+  cleanTemperatureLabels(form);
 
   const iconInput = form.querySelector("#dm-temperature-icon");
   if (!iconInput) return;
