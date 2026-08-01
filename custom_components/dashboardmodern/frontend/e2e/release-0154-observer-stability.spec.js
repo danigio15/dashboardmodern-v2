@@ -78,7 +78,7 @@ async function boot(page, variant, testInfo) {
   );
   await clickBottomTab(page, "appliances-main", testInfo);
   await expect(page.locator("#appl-grid-overview .appl-wide-card")).toHaveCount(4);
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(700);
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
@@ -123,6 +123,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         legacyStyleObserver: Boolean(window.__DASHBOARDMODERN_MEDIA_STYLE_OBSERVER_0153__),
         legacyDomObserver: Boolean(window.__DASHBOARDMODERN_MEDIA_DOM_OBSERVER_0153__),
         legacyStyleCount: styleIds.filter((id) => id === "dm-appliance-media-layout-lock-0153").length,
+        legacyReleaseStyleCount: styleIds.filter((id) => id === "dm-release-0152-artwork-layout-fix").length,
         finalStyleCount: styleIds.filter((id) => id === "dm-release-0154-final-artwork-lock").length,
       };
     });
@@ -131,7 +132,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       legacyDisabled: true,
       legacyStyleObserver: false,
       legacyDomObserver: false,
-      legacyStyleCount: 1,
+      legacyStyleCount: 0,
+      legacyReleaseStyleCount: 0,
       finalStyleCount: 1,
     });
     expect(result.headMutations).toBeLessThanOrEqual(4);
