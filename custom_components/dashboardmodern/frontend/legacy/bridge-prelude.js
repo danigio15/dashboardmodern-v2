@@ -71,14 +71,26 @@
     window.addEventListener("DOMContentLoaded", installEmptyLightsRendererFix, { once: true });
   }
 
+  // Capture a constructor installed before this prelude. The real integration
+  // page starts with the browser-native WebSocket; Playwright and legitimate
+  // embedders may preload an in-memory adapter before document parsing.
+  var PRELUDE_WEBSOCKET = window.WebSocket;
+  var HAS_INSTANCE_QUERY = false;
+  var HAS_HOST_QUERY = false;
   try {
     var _q = window.location.search || "";
     var _mi = /[?&]dmi=([^&]+)/.exec(_q);
-    if (_mi && _mi[1] && !window.__DASHBOARDMODERN_INSTANCE__) {
-      window.__DASHBOARDMODERN_INSTANCE__ = decodeURIComponent(_mi[1]);
+    if (_mi && _mi[1]) {
+      HAS_INSTANCE_QUERY = true;
+      if (!window.__DASHBOARDMODERN_INSTANCE__) {
+        window.__DASHBOARDMODERN_INSTANCE__ = decodeURIComponent(_mi[1]);
+      }
     }
     var _mp = /[?&]dmp=(\d)/.exec(_q);
-    if (_mp) window.__DASHBOARDMODERN_PRIMARY__ = _mp[1] === "1";
+    if (_mp) {
+      HAS_HOST_QUERY = true;
+      window.__DASHBOARDMODERN_PRIMARY__ = _mp[1] === "1";
+    }
   } catch (e) {}
 
   try {
@@ -92,18 +104,32 @@
     }
   } catch (e) { /* cross-origin parent: standalone use, nothing to copy */ }
 
-
   var HOSTED_TOKEN = "__dashboardmodern_hosted__";
+
+  function isInjectedSocket(SocketCtor) {
+    if (typeof SocketCtor !== "function") return false;
+    try {
+      return String(SocketCtor).indexOf("[native code]") === -1;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  if (isInjectedSocket(PRELUDE_WEBSOCKET)) {
+    window.__DASHBOARDMODERN_PRELUDE_WS__ = PRELUDE_WEBSOCKET;
+  }
 
   function isHosted() {
     // Same-origin by construction: both documents are served by Home Assistant.
     // A cross-origin parent throws here, which is the correct standalone path.
     try {
-      // The host sets these directly on this window before/at frame load; either
-      // is a reliable signal we are the integration-hosted copy, independent of
-      // parent-access timing.
+      // dmi is retained as a backwards-compatible parse-time host signal. dmp
+      // is the newer explicit marker. An explicit bridge constructor is also a
+      // reliable signal and must not be replaced by a native network socket.
       if (window.__DASHBOARDMODERN_BRIDGED__ === true) return true;
-      if (window.__DASHBOARDMODERN_INSTANCE__) return true;
+      if (window.__DASHBOARDMODERN_HOSTED__ === true) return true;
+      if (typeof window.__DASHBOARDMODERN_BRIDGE_WS__ === "function") return true;
+      if (HAS_INSTANCE_QUERY || HAS_HOST_QUERY) return true;
       var parent = window.parent;
       if (!parent || parent === window) return false;
       return parent.__DASHBOARDMODERN_HOST__ === true;
@@ -127,7 +153,10 @@
   } catch (error) {
     REAL_TOKEN = "";
   }
-  if (REAL_TOKEN) window.__DASHBOARDMODERN_REAL_TOKEN__ = REAL_TOKEN;
+  if (REAL_TOKEN) {
+    window.__DASHBOARDMODERN_REAL_TOKEN__ = REAL_TOKEN;
+    window.DASHBOARDMODERN_AUTH_TOKEN ||= REAL_TOKEN;
+  }
 
   // Between document parse and the host's load-time bridge install, the page
   // would otherwise reach the REAL WebSocket and authenticate on its own — the
@@ -174,13 +203,118 @@
     }
   };
   StubSocket.prototype.removeEventListener = function () {};
+
   var BridgeWS = null;
   try {
-    BridgeWS = window.parent.__DASHBOARDMODERN_BRIDGE_WS__ || null;
+    BridgeWS = window.parent.__DASHBOARDMODERN_BRIDGE_WS__ || window.__DASHBOARDMODERN_BRIDGE_WS__ || null;
   } catch (error) {
-    BridgeWS = null;
+    BridgeWS = window.__DASHBOARDMODERN_BRIDGE_WS__ || null;
   }
+
+  // The main legacy bootstrap receives only the explicit host bridge (or the
+  // inert stub). Never give it a generic preloaded adapter while its own script
+  // is parsing: synchronous mock replies inside ws.send() can recursively
+  // re-enter the legacy state machine.
   window.WebSocket = typeof BridgeWS === "function" ? BridgeWS : StubSocket;
+
+  function deferredSocketConstructor(SocketCtor) {
+    function construct(args) {
+      if (typeof Reflect !== "undefined" && typeof Reflect.construct === "function") {
+        return Reflect.construct(SocketCtor, args);
+      }
+      var Bound = Function.prototype.bind.apply(SocketCtor, [null].concat(args));
+      return new Bound();
+    }
+
+    function DeferredSocket() {
+      var inner = construct(Array.prototype.slice.call(arguments));
+      Object.defineProperty(this, "__dmInnerSocket", {
+        value: inner,
+        configurable: false,
+        enumerable: false,
+        writable: false,
+      });
+      var outer = this;
+      ["onopen", "onmessage", "onerror", "onclose"].forEach(function (property) {
+        var assigned = null;
+        Object.defineProperty(outer, property, {
+          configurable: true,
+          enumerable: true,
+          get: function () {
+            return assigned;
+          },
+          set: function (handler) {
+            assigned = typeof handler === "function" ? handler : null;
+            inner[property] = assigned
+              ? function (event) {
+                  setTimeout(function () {
+                    assigned.call(outer, event);
+                  }, 0);
+                }
+              : null;
+          },
+        });
+      });
+    }
+
+    DeferredSocket.prototype = Object.create(SocketCtor.prototype || Object.prototype);
+    DeferredSocket.prototype.constructor = DeferredSocket;
+    DeferredSocket.prototype.send = function () {
+      return this.__dmInnerSocket.send.apply(this.__dmInnerSocket, arguments);
+    };
+    DeferredSocket.prototype.close = function () {
+      return this.__dmInnerSocket.close.apply(this.__dmInnerSocket, arguments);
+    };
+    DeferredSocket.prototype.addEventListener = function (type, handler, options) {
+      var outer = this;
+      if (typeof this.__dmInnerSocket.addEventListener !== "function") return;
+      return this.__dmInnerSocket.addEventListener(
+        type,
+        function (event) {
+          setTimeout(function () {
+            handler.call(outer, event);
+          }, 0);
+        },
+        options,
+      );
+    };
+    DeferredSocket.prototype.removeEventListener = function () {};
+    ["readyState", "url", "protocol", "extensions", "bufferedAmount", "binaryType"].forEach(function (property) {
+      Object.defineProperty(DeferredSocket.prototype, property, {
+        configurable: true,
+        enumerable: true,
+        get: function () {
+          return this.__dmInnerSocket[property];
+        },
+        set: function (value) {
+          this.__dmInnerSocket[property] = value;
+        },
+      });
+    });
+    DeferredSocket.CONNECTING = SocketCtor.CONNECTING == null ? 0 : SocketCtor.CONNECTING;
+    DeferredSocket.OPEN = SocketCtor.OPEN == null ? 1 : SocketCtor.OPEN;
+    DeferredSocket.CLOSING = SocketCtor.CLOSING == null ? 2 : SocketCtor.CLOSING;
+    DeferredSocket.CLOSED = SocketCtor.CLOSED == null ? 3 : SocketCtor.CLOSED;
+    return DeferredSocket;
+  }
+
+  // Once the main legacy socket and canonical store are initialized, expose an
+  // asynchronous wrapper around the preloaded adapter. Both a later reconnect
+  // and Recorder receive the expected mock/bridge replies, but never inside the
+  // same call stack as send(), so the legacy state machine cannot recurse.
+  if (
+    window.__DASHBOARDMODERN_PRELUDE_WS__ === PRELUDE_WEBSOCKET &&
+    typeof window.addEventListener === "function"
+  ) {
+    window.addEventListener(
+      "dashboardmodern:legacy-ready",
+      function installDeferredPreloadedSocket() {
+        window.DASHBOARDMODERN_AUTH_TOKEN ||= REAL_TOKEN || HOSTED_TOKEN;
+        window.WebSocket = deferredSocketConstructor(PRELUDE_WEBSOCKET);
+      },
+      { once: true },
+    );
+  }
 
   window.__DASHBOARDMODERN_CONNECTION__ = {
     token: REAL_TOKEN || HOSTED_TOKEN,
