@@ -49,6 +49,10 @@ function cleanTemperatureLabels(form) {
     "Select an existing room and associate its temperature and humidity sensors. Name and icon are edited exclusively in Rooms.",
   );
   if (intro && intro.textContent !== message) intro.textContent = message;
+
+  const submit = form.querySelector("[data-temperature-submit]");
+  const submitLabel = copy("ASSOCIA SENSORI", "ASSOCIATE SENSORS");
+  if (submit && submit.textContent !== submitLabel) submit.textContent = submitLabel;
 }
 
 function removeDuplicateIconEditor() {
