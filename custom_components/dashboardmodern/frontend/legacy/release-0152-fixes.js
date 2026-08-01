@@ -1,4 +1,5 @@
 /* DashboardModern 0.14.12 compatibility entry point. */
+import "./release-0152-guards.js";
 export * from "./release-0152-runtime.js";
 import "./release-0152-runtime.js";
 
@@ -54,22 +55,4 @@ function installArtworkLayoutFix0152() {
   doc.head.append(style);
 }
 
-function restoreExplicitBridge0152() {
-  const bridge = globalThis.__DASHBOARDMODERN_BRIDGE_WS__;
-  if (typeof bridge !== "function") return false;
-  globalThis.WebSocket = bridge;
-  return true;
-}
-
 installArtworkLayoutFix0152();
-restoreExplicitBridge0152();
-
-if (typeof globalThis.addEventListener === "function") {
-  globalThis.addEventListener(
-    "dashboardmodern:legacy-ready",
-    () => {
-      restoreExplicitBridge0152();
-    },
-    { once: true },
-  );
-}
