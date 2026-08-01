@@ -9,9 +9,7 @@ function installArtworkLayoutFix0152() {
   const style = doc.createElement("style");
   style.id = "dm-release-0152-artwork-layout-fix";
   style.textContent = `
-    html body #page-appliances-main
-      .appl-wide-card.dm-control-device[data-dm-artwork]
-      .dm-appliance-art.dm-appliance-art-0152 {
+    html body [data-dm-art].dm-appliance-art-0152 {
       display: grid !important;
       place-items: center !important;
       box-sizing: border-box !important;
@@ -25,10 +23,9 @@ function installArtworkLayoutFix0152() {
       overflow: hidden !important;
     }
 
-    html body #page-appliances-main
-      .appl-wide-card.dm-control-device[data-dm-artwork]
-      .dm-appliance-art.dm-appliance-art-0152 svg {
+    html body [data-dm-art].dm-appliance-art-0152 > svg {
       display: block !important;
+      box-sizing: border-box !important;
       width: 76% !important;
       height: 76% !important;
       min-width: 0 !important;
@@ -38,6 +35,7 @@ function installArtworkLayoutFix0152() {
       object-fit: contain !important;
       transform: none !important;
       overflow: visible !important;
+      flex: 0 0 76% !important;
     }
   `;
   doc.head.append(style);
