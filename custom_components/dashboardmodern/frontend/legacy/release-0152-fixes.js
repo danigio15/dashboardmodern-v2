@@ -9,6 +9,7 @@ import "./release-0154-prelude.js";
 import "./release-0154-runtime.js";
 import "./release-0154-postlude.js";
 import "./release-0154-final-appliance-stability.js";
+import "./release-0154-render-stability.js";
 
 const RENDER_GUARD_KEY_0152 = "__DASHBOARDMODERN_RELEASE_0152_RENDER_GUARD__";
 
