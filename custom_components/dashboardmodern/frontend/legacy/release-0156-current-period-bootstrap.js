@@ -1,6 +1,7 @@
 /* DashboardModern 0.14.16: bounded current-period hydration after the canonical store becomes ready. */
 const FINAL_KEY_0156 = "__DASHBOARDMODERN_RELEASE_0156_FINAL_RUNTIME__";
 const BOOT_KEY_0156 = "__DASHBOARDMODERN_RELEASE_0156_CURRENT_BOOTSTRAP__";
+const LEGACY_KEY_0156 = "__DASHBOARDMODERN_RELEASE_0156_PERIOD_RUNTIME__";
 const CURRENT_SLOTS_0156 = Object.freeze([
   "dm.energy_consumo_casa_mese",
   "dm.energy_produzione_solare_mese",
@@ -9,6 +10,15 @@ const CURRENT_SLOTS_0156 = Object.freeze([
   "dm.energy_batteria_caricata_mese",
   "dm.energy_batteria_usata_mese",
 ]);
+
+function installCompatibilityMarker0156() {
+  globalThis[LEGACY_KEY_0156] ||= {
+    installed: true,
+    version: "0.14.16",
+    superseded: true,
+    owner: "release-0156-final-runtime",
+  };
+}
 
 function installEnergyAliases0156() {
   const store = globalThis.DashboardModernModules?.store;
@@ -68,6 +78,7 @@ function currentValuesReady0156() {
 }
 
 function state0156() {
+  installCompatibilityMarker0156();
   return (globalThis[BOOT_KEY_0156] ||= {
     installed: true,
     timer: 0,
@@ -107,6 +118,7 @@ function scheduleHydration0156(delay = 0) {
 
 function install0156() {
   const state = state0156();
+  installCompatibilityMarker0156();
   installEnergyAliases0156();
   state.attempts = 0;
   scheduleHydration0156(0);
