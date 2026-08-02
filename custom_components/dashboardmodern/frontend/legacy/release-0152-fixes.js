@@ -17,6 +17,7 @@ import "./release-0154-temperature-live-state.js";
 import "./release-0155-energy-placeholder-fallback.js";
 import "./release-0155-public-runtime.js";
 import "./release-0156-webkit-stability.js";
+import "./release-0156-final-stability.js";
 import "./release-0156-current-period-lock.js";
 
 if (typeof globalThis.document !== "undefined") {
