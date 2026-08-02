@@ -1,4 +1,6 @@
-/* Stable DOM compatibility markers for audited 0.14.7 editor flows. */
+/* Stable, idempotent DOM compatibility markers for audited editor flows. */
+const OBSERVER_KEY = "__DASHBOARDMODERN_0147_DOM_COMPAT_OBSERVER__";
+
 function readJson(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key)) ?? fallback;
@@ -7,27 +9,46 @@ function readJson(key, fallback) {
   }
 }
 
+function setData(node, key, value) {
+  if (!node?.dataset || node.dataset[key] === value) return false;
+  node.dataset[key] = value;
+  return true;
+}
+
+function setAttribute(node, name, value) {
+  if (!node || node.getAttribute(name) === value) return false;
+  node.setAttribute(name, value);
+  return true;
+}
+
+function setText(node, value) {
+  if (!node || node.textContent === value) return false;
+  node.textContent = value;
+  return true;
+}
+
 function decorateShutterRows() {
   document.querySelectorAll("[data-tapp-id]").forEach((row, index) => {
-    const edit = row.querySelector("[data-tapp-edit]");
-    if (edit) edit.dataset.tappEdit = String(index);
-    row.dataset.tappIndex = String(index);
+    const value = String(index);
+    setData(row.querySelector("[data-tapp-edit]"), "tappEdit", value);
+    setData(row, "tappIndex", value);
   });
 }
 
 function bindStandardAlertButton(button, group, entity) {
-  button.removeAttribute("onclick");
-  button.dataset.standardAlertEdit = "";
-  button.dataset.realAlertEdit = "";
-  button.dataset.standardAlertGroup = group;
-  button.dataset.standardAlertEntity = entity;
-  button.dataset.alertGroup = group;
-  button.dataset.alertEntity = entity;
-  button.type = "button";
+  if (button.hasAttribute("onclick")) button.removeAttribute("onclick");
+  setData(button, "standardAlertEdit", "");
+  setData(button, "realAlertEdit", "");
+  setData(button, "standardAlertGroup", group);
+  setData(button, "standardAlertEntity", entity);
+  setData(button, "alertGroup", group);
+  setData(button, "alertEntity", entity);
+  if (button.type !== "button") button.type = "button";
   button.classList.add("ed-del", "dm-edit-button");
-  button.textContent = "✏️";
-  button.title = document.documentElement.lang === "en" ? "Edit" : "Modifica";
-  button.setAttribute("aria-label", button.title);
+  setText(button, "✏️");
+  const title = document.documentElement.lang === "en" ? "Edit" : "Modifica";
+  if (button.title !== title) button.title = title;
+  setAttribute(button, "aria-label", title);
   if (button.dataset.alertEditMounted !== "true") {
     button.dataset.alertEditMounted = "true";
     button.addEventListener("click", () => {
@@ -36,7 +57,7 @@ function bindStandardAlertButton(button, group, entity) {
     });
   }
   const accordion = button.closest("details.ed-acc");
-  if (accordion) accordion.open = true;
+  if (accordion && !accordion.open) accordion.open = true;
 }
 
 function standardAlertRow(entity) {
@@ -66,9 +87,6 @@ function decorateStandardAlerts() {
         else row.append(button);
       }
       bindStandardAlertButton(button, group, entity);
-
-      // Older compatibility passes could leave two edit buttons in the same
-      // row. Keep the canonical dual-marker button and remove only duplicates.
       row.querySelectorAll("[data-standard-alert-edit], [data-real-alert-edit]").forEach((candidate) => {
         if (candidate !== button) candidate.remove();
       });
@@ -98,8 +116,9 @@ function decorateTemperatureIcons() {
     const icon = card.querySelector(".cp-icon");
     if (!room || !icon) return;
     icon.classList.add("temp-room-icon");
-    icon.dataset.roomIcon = room.icon || "mdi:home";
-    icon.textContent = roomGlyph(room.icon || "mdi:home");
+    const value = room.icon || "mdi:home";
+    setData(icon, "roomIcon", value);
+    setText(icon, roomGlyph(value));
   });
 }
 
@@ -109,23 +128,28 @@ function decorateApplianceAssetMarkers() {
     view.querySelectorAll(".dm-appliance-art").forEach((asset) => {
       const key = asset.dataset.applianceAsset || asset.dataset.applianceAssetKey || "";
       if (!key) return;
-      asset.dataset.applianceAssetKey = key;
-      if (active) asset.dataset.applianceAsset = key;
-      else asset.removeAttribute("data-appliance-asset");
+      setData(asset, "applianceAssetKey", key);
+      if (active) setData(asset, "applianceAsset", key);
+      else if (asset.hasAttribute("data-appliance-asset")) asset.removeAttribute("data-appliance-asset");
     });
   });
 }
 
 function installApplianceRenderHook() {
   const render = globalThis.renderApplianceSection;
-  if (typeof render !== "function" || render.__dm0147AssetMarkers) return;
+  if (typeof render !== "function" || render.__dm0147AssetMarkers) return false;
   function renderApplianceSection0147(...args) {
     const result = render.apply(this, args);
+    if (result && typeof result.finally === "function") {
+      return result.finally(decorateApplianceAssetMarkers);
+    }
     decorateApplianceAssetMarkers();
     return result;
   }
   renderApplianceSection0147.__dm0147AssetMarkers = true;
+  renderApplianceSection0147.__dmPrevious = render;
   globalThis.renderApplianceSection = renderApplianceSection0147;
+  return true;
 }
 
 function decorateAll() {
@@ -151,10 +175,13 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
     decorateAll();
     if (globalThis.renderApplianceSection?.__dm0147AssetMarkers) window.clearInterval(timer);
   }, 100);
-  new MutationObserver(decorate).observe(document.documentElement, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ["class"],
-  });
+  if (!globalThis[OBSERVER_KEY]) {
+    globalThis[OBSERVER_KEY] = new MutationObserver(decorate);
+    globalThis[OBSERVER_KEY].observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+  }
 }
