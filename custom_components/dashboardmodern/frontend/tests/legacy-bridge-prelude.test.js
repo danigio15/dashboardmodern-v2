@@ -12,8 +12,15 @@ const PRELUDE = readFileSync(
 /** Run the prelude in a mock document, mirroring how the iframe loads it. */
 function runPrelude({ parent, host = "ha.local:8123", storage = {}, throwOnParent = false }) {
   const writes = [];
+  class MockWebSocket {
+    static CONNECTING = 0;
+    static OPEN = 1;
+    static CLOSING = 2;
+    static CLOSED = 3;
+  }
   const window = {
     location: { host },
+    WebSocket: MockWebSocket,
     localStorage: {
       getItem: (key) => (key in storage ? storage[key] : null),
       setItem: (key, value) => {
