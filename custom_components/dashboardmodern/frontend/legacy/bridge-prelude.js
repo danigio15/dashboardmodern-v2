@@ -161,9 +161,9 @@
   // Between document parse and the host's load-time bridge install, the page
   // would otherwise reach the REAL WebSocket and authenticate on its own — the
   // source of the "login attempt failed" notifications. Replace it with an
-  // inert stub that opens nothing and closes immediately: the dashboard's own
-  // reconnect logic retries after the bridge is installed and succeeds. No
-  // authentication of any kind can leave the frame before the bridge exists.
+  // inert stub only when neither an explicit bridge nor a safe preloaded
+  // adapter exists. A preloaded adapter is wrapped below so all callbacks are
+  // asynchronous and cannot recursively re-enter the legacy state machine.
   function StubSocket() {
     var self = this;
     this.readyState = StubSocket.CONNECTING;
@@ -210,12 +210,6 @@
   } catch (error) {
     BridgeWS = window.__DASHBOARDMODERN_BRIDGE_WS__ || null;
   }
-
-  // The main legacy bootstrap receives only the explicit host bridge (or the
-  // inert stub). Never give it a generic preloaded adapter while its own script
-  // is parsing: synchronous mock replies inside ws.send() can recursively
-  // re-enter the legacy state machine.
-  window.WebSocket = typeof BridgeWS === "function" ? BridgeWS : StubSocket;
 
   function deferredSocketConstructor(SocketCtor) {
     function construct(args) {
@@ -298,10 +292,25 @@
     return DeferredSocket;
   }
 
-  // Once the main legacy socket and canonical store are initialized, expose an
-  // asynchronous wrapper around the preloaded adapter. Both a later reconnect
-  // and Recorder receive the expected mock/bridge replies, but never inside the
-  // same call stack as send(), so the legacy state machine cannot recurse.
+  // The main legacy bootstrap receives the explicit host bridge, otherwise the
+  // preloaded adapter with asynchronous callbacks, and only falls back to the
+  // inert stub when no safe transport exists yet. This prevents the artificial
+  // close/reconnect cycle while preserving protection from synchronous mocks.
+  var PreloadedWS =
+    window.__DASHBOARDMODERN_PRELUDE_WS__ === PRELUDE_WEBSOCKET
+      ? deferredSocketConstructor(PRELUDE_WEBSOCKET)
+      : null;
+  window.WebSocket =
+    typeof BridgeWS === "function"
+      ? BridgeWS
+      : typeof PreloadedWS === "function"
+        ? PreloadedWS
+        : StubSocket;
+
+  // Once the main legacy socket and canonical store are initialized, keep the
+  // asynchronous wrapper around the preloaded adapter for Recorder and later
+  // reconnects. It is safe to reassign the constructor: existing sockets remain
+  // untouched and every future callback stays outside the send() call stack.
   if (
     window.__DASHBOARDMODERN_PRELUDE_WS__ === PRELUDE_WEBSOCKET &&
     typeof window.addEventListener === "function"
