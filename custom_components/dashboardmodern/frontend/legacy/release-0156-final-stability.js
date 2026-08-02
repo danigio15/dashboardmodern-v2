@@ -1,15 +1,12 @@
-/* DashboardModern 0.14.16: final live-state and shared-transport stability owner. */
+/* DashboardModern 0.14.16: final live-state and reconnect stability owner. */
 const PUBLIC_KEY_0156_FINAL = "__DASHBOARDMODERN_RELEASE_0155_PUBLIC_RUNTIME__";
 const BROKER_KEY_0156_FINAL = "__DASHBOARDMODERN_RELEASE_0156_FINAL_RUNTIME__";
-const OLD_STABILITY_KEY_0156_FINAL = "__DASHBOARDMODERN_RELEASE_0156_WEBKIT_STABILITY__";
 const FINAL_STABILITY_KEY_0156 = "__DASHBOARDMODERN_RELEASE_0156_FINAL_STABILITY__";
 
 function finalStabilityState0156() {
   return (globalThis[FINAL_STABILITY_KEY_0156] ||= {
     installed: true,
     timer: 0,
-    originalWebSocket: null,
-    guardedWebSocket: null,
   });
 }
 
@@ -133,6 +130,10 @@ function installLiveStateOwner0156() {
   const runtime = globalThis[PUBLIC_KEY_0156_FINAL];
   if (!runtime) return false;
   if (!runtime.__dm0156FinalStateOwner) {
+    if (runtime.states instanceof Map) {
+      runtime.states.forEach(mirrorLegacyState0156);
+    }
+
     const previousSync = typeof runtime.syncTemperature === "function"
       ? runtime.syncTemperature.bind(runtime)
       : null;
@@ -140,7 +141,7 @@ function installLiveStateOwner0156() {
       let result = false;
       try { result = previousSync ? previousSync(force) : false; } catch (_error) {}
       scheduleTemperatureSync0156Final();
-      return result || true;
+      return result;
     };
 
     const previousIngestState = typeof runtime.ingestState === "function"
@@ -236,6 +237,11 @@ function createSharedFacade0156() {
   socket.send = (raw) => {
     let message;
     try { message = JSON.parse(raw); } catch (_error) { return; }
+    const broker = globalThis[BROKER_KEY_0156_FINAL];
+    if (message.type === "call_service" && broker?.socket?.readyState === 1) {
+      try { broker.socket.send(raw); } catch (_error) {}
+      return;
+    }
     if (message.type === "auth") {
       emit({ type: "auth_ok" });
       return;
@@ -252,87 +258,64 @@ function createSharedFacade0156() {
       emit({ id: message.id, type: "result", success: true, result: { value: null } });
       return;
     }
-    if (message.type === "recorder/statistics_during_period") {
-      const broker = globalThis[BROKER_KEY_0156_FINAL];
-      const statistics = broker?.statistics;
-      if (typeof statistics === "function") {
-        Promise.resolve(
-          statistics(
-            message.statistic_ids || [],
-            new Date(message.start_time),
-            new Date(message.end_time),
-            message.period || "day",
-          ),
-        ).then(
-          (result) => emit({ id: message.id, type: "result", success: true, result }),
-          (error) => emit({
-            id: message.id,
-            type: "result",
-            success: false,
-            error: { message: String(error?.message || error) },
-          }),
-        );
-        return;
-      }
-    }
     emit({ id: message.id, type: "result", success: true, result: [] });
   };
 
-  globalThis.setTimeout?.(() => emit({ type: "auth_required" }), 0);
   return socket;
 }
 
-function originalWebSocket0156Final() {
-  const state = finalStabilityState0156();
-  if (typeof state.originalWebSocket === "function") return state.originalWebSocket;
-  const previous = globalThis[OLD_STABILITY_KEY_0156_FINAL];
-  const candidate = previous?.originalWebSocket ||
-    globalThis.__DASHBOARDMODERN_PRELUDE_WS__ ||
-    globalThis.WebSocket;
-  if (typeof candidate === "function") state.originalWebSocket = candidate;
-  return state.originalWebSocket;
+function assignLegacySocket0156(socket) {
+  let assigned = false;
+  try {
+    if (typeof ws !== "undefined") {
+      ws = socket;
+      assigned = true;
+    }
+  } catch (_error) {}
+  if (Object.prototype.hasOwnProperty.call(globalThis, "ws")) {
+    try {
+      globalThis.ws = socket;
+      assigned = true;
+    } catch (_error) {}
+  }
+  return assigned;
 }
 
-function installTransportOwner0156() {
-  const state = finalStabilityState0156();
-  const original = originalWebSocket0156Final();
-  if (typeof original !== "function") return false;
+function markConnected0156() {
+  const text = globalThis.document?.getElementById?.("conn-text");
+  if (text) text.textContent = "Connesso";
+  globalThis.document?.getElementById?.("live-dot")?.classList?.add?.("connected");
+}
 
-  const previous = globalThis[OLD_STABILITY_KEY_0156_FINAL];
-  if (previous) {
-    globalThis.clearTimeout?.(previous.restoreTimer);
-    globalThis.clearInterval?.(previous.wrapperTimer);
-    previous.restoreTimer = 0;
-    previous.wrapperTimer = 0;
-    previous.armed = false;
+function installReconnectOwner0156() {
+  const current = globalThis.connect;
+  if (typeof current !== "function" || current.__dm0156SharedReconnectOwner) {
+    return Boolean(current?.__dm0156SharedReconnectOwner);
   }
 
-  if (!state.guardedWebSocket) {
-    function SharedRuntimeWebSocket0156(...args) {
-      const broker = globalThis[BROKER_KEY_0156_FINAL];
-      const canReuse = Boolean(
-        broker?.socket?.readyState === 1 &&
-        (broker.ready || broker.installed),
-      );
-      if (canReuse) return createSharedFacade0156();
-      return Reflect.construct(original, args, new.target || original);
-    }
-    SharedRuntimeWebSocket0156.prototype = original.prototype || Object.prototype;
-    ["CONNECTING", "OPEN", "CLOSING", "CLOSED"].forEach((key, index) => {
-      SharedRuntimeWebSocket0156[key] = original[key] ?? index;
-    });
-    state.guardedWebSocket = SharedRuntimeWebSocket0156;
+  async function sharedReconnectOwner0156(...args) {
+    const broker = globalThis[BROKER_KEY_0156_FINAL];
+    const live = globalThis[PUBLIC_KEY_0156_FINAL];
+    const canReuse = Boolean(
+      broker?.socket?.readyState === 1 ||
+      live?.states?.size,
+    );
+    if (!canReuse) return current.apply(this, args);
+    const facade = createSharedFacade0156();
+    assignLegacySocket0156(facade);
+    markConnected0156();
+    return true;
   }
 
-  if (globalThis.WebSocket !== state.guardedWebSocket) {
-    globalThis.WebSocket = state.guardedWebSocket;
-  }
+  sharedReconnectOwner0156.__dm0156SharedReconnectOwner = true;
+  sharedReconnectOwner0156.__dmPrevious = current;
+  globalThis.connect = sharedReconnectOwner0156;
   return true;
 }
 
 function reinforceFinalStability0156() {
   installLiveStateOwner0156();
-  installTransportOwner0156();
+  installReconnectOwner0156();
   scheduleTemperatureSync0156Final();
 }
 
@@ -355,8 +338,7 @@ function installFinalStability0156() {
     reinforceFinalStability0156();
     if (attempts >= 80 || (
       globalThis[PUBLIC_KEY_0156_FINAL]?.__dm0156FinalStateOwner &&
-      globalThis.WebSocket === state.guardedWebSocket &&
-      globalThis[BROKER_KEY_0156_FINAL]?.ready
+      globalThis.connect?.__dm0156SharedReconnectOwner
     )) {
       globalThis.clearInterval?.(state.timer);
       state.timer = 0;
