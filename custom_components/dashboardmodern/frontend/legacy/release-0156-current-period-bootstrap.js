@@ -58,6 +58,13 @@ function registry0156() {
   return (globalThis.CD_PERIOD ||= {});
 }
 
+function rawState0156(slot) {
+  try {
+    if (typeof _RAW_STATES !== "undefined" && _RAW_STATES?.[slot]) return _RAW_STATES[slot];
+  } catch (_error) {}
+  return globalThis._RAW_STATES?.[slot] || globalThis.STATES?.[slot] || null;
+}
+
 function configuredEnergy0156() {
   try {
     installEnergyAliases0156();
@@ -74,7 +81,15 @@ function configuredEnergy0156() {
 function currentValuesReady0156() {
   if (!configuredEnergy0156()) return false;
   const values = registry0156();
-  return CURRENT_SLOTS_0156.some((slot) => Number.isFinite(Number(values[slot])));
+  return CURRENT_SLOTS_0156.some((slot) => {
+    const state = rawState0156(slot);
+    return Boolean(
+      state?.attributes?.dashboardmodern_derived &&
+      state?.attributes?.dashboardmodern_source &&
+      Number.isFinite(Number(values[slot])) &&
+      Number.isFinite(Number(state.state)),
+    );
+  });
 }
 
 function state0156() {
