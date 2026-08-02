@@ -124,9 +124,6 @@ function monthRange0156(month, year) {
   const now = new Date();
   const start = new Date(year, month - 1, 1);
   const next = new Date(year, month, 1);
-  // Recorder's end is exclusive. For a closed historical month use the last
-  // millisecond before the next month, leaving an exact first-of-month end only
-  // for the baseline request. This prevents the two requests being conflated.
   const end = next > now ? now : new Date(next.getTime() - 1);
   const baselineStart = new Date(start);
   baselineStart.setDate(baselineStart.getDate() - 2);
@@ -221,10 +218,12 @@ async function refreshOverview0156() {
       ]),
     );
     patchOverview0156(data);
+    restoreCurrentSlots0156();
     globalThis.__DASHBOARDMODERN_REPORT_PERIOD__ = { ...selected, values: data };
     return true;
   } catch (error) {
     console.warn("[DashboardModern] final Report-period owner", error);
+    restoreCurrentSlots0156();
     return false;
   }
 }
@@ -285,16 +284,19 @@ function wrapDeviceRenderer0156() {
   async function ownerDeviceRenderer0156(month, year, ...rest) {
     const state = ownerState0156();
     const generation = ++state.deviceGeneration;
-    const result = await current.call(this, month, year, ...rest);
-    const devices = canonicalDevices0156();
-    const ids = [...new Set(devices.map((device) => String(device.entity || "").trim()).filter(Boolean))];
     try {
+      const result = await current.call(this, month, year, ...rest);
+      const devices = canonicalDevices0156();
+      const ids = [...new Set(devices.map((device) => String(device.entity || "").trim()).filter(Boolean))];
       const values = await monthValues0156(ids, month, year);
       if (generation === state.deviceGeneration) patchDeviceRows0156(values);
+      return result;
     } catch (error) {
       console.warn("[DashboardModern] final historical device owner", error);
+      return false;
+    } finally {
+      restoreCurrentSlots0156();
     }
-    return result;
   }
 
   ownerDeviceRenderer0156.__dm0156OwnerGuardDevices = true;
@@ -368,6 +370,7 @@ function install0156() {
         if (!event.target?.matches?.("#ed-sel-month, #ed-sel-year")) return;
         state.overviewGeneration += 1;
         state.deviceGeneration += 1;
+        restoreCurrentSlots0156();
         scheduleOverview0156(10);
         globalThis.setTimeout?.(() => scheduleOverview0156(0), 160);
         globalThis.setTimeout?.(() => scheduleOverview0156(0), 500);
