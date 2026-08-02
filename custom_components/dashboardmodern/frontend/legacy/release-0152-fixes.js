@@ -14,6 +14,7 @@ import "./release-0154-energy-render-hotfix.js";
 import "./release-0154-classifier-cycle-guard.js";
 import "./release-0154-dom-stability.js";
 import "./release-0154-temperature-live-state.js";
+import "./release-0155-energy-placeholder-fallback.js";
 import "./release-0155-public-runtime.js";
 
 const RENDER_GUARD_KEY_0152 = "__DASHBOARDMODERN_RELEASE_0152_RENDER_GUARD__";
