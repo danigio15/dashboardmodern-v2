@@ -1,4 +1,4 @@
-/* DashboardModern 0.14.14: isolate energy refreshes and keep appliance metrics correct. */
+/* DashboardModern 0.14.14/0.14.15: isolate energy refreshes and keep appliance metrics correct. */
 const HOTFIX_KEY = "__DASHBOARDMODERN_RELEASE_0154_ENERGY_RENDER_HOTFIX__";
 const RELEASE_KEY = "__DASHBOARDMODERN_RELEASE_0154__";
 const PERIOD_EVENT = "dashboardmodern:energy-periods-0154";
@@ -129,6 +129,12 @@ function installEnergyRenderPhase0154(name) {
 
 function runtimeState0154(entity) {
   const id = String(entity || "").trim();
+  try {
+    if (typeof _RAW_STATES !== "undefined" && _RAW_STATES?.[id]) return _RAW_STATES[id];
+  } catch (_error) {}
+  try {
+    if (typeof STATES !== "undefined" && STATES?.[id]) return STATES[id];
+  } catch (_error) {}
   return globalThis._RAW_STATES?.[id] || globalThis.STATES?.[id] || null;
 }
 
@@ -295,79 +301,6 @@ function normalizeApplianceMetrics0154() {
   return true;
 }
 
-function periodRegistry0154() {
-  try {
-    if (typeof CD_PERIOD !== "undefined" && CD_PERIOD) return CD_PERIOD;
-  } catch (_error) {}
-  return globalThis.CD_PERIOD || {};
-}
-
-function periodNumber0154(slot) {
-  const value = Number(periodRegistry0154()?.[slot]);
-  return Number.isFinite(value) ? Math.max(0, value) : null;
-}
-
-function periodText0154(slot) {
-  const value = periodNumber0154(slot);
-  if (value == null) return "—";
-  const rounded = Math.round(value * 1000) / 1000;
-  return `${rounded} kWh`;
-}
-
-function setPeriodText0154(id, value) {
-  const node = globalThis.document?.getElementById?.(id);
-  if (!node || node.textContent === value) return false;
-  node.textContent = value;
-  return true;
-}
-
-function setPeriodDual0154(id, downSlot, upSlot) {
-  const node = globalThis.document?.getElementById?.(id);
-  if (!node) return false;
-  const down = periodNumber0154(downSlot);
-  const up = periodNumber0154(upSlot);
-  const html = `<span style="color:#e11d48">↓ ${down == null ? 0 : Math.round(down * 1000) / 1000} kWh</span><br><span style="color:#10b981">↑ ${up == null ? 0 : Math.round(up * 1000) / 1000} kWh</span>`;
-  if (node.innerHTML === html) return false;
-  node.innerHTML = html;
-  return true;
-}
-
-function syncEnergyPeriodDom0154() {
-  const periods = {
-    day: {
-      solar: "dm.energy_produzione_solare_oggi",
-      home: "dm.energy_consumo_casa_oggi",
-      gridDown: "dm.energy_energia_prelevata_oggi",
-      gridUp: "dm.energy_energia_immessa_oggi",
-      batteryDown: "dm.energy_batteria_caricata_oggi",
-      batteryUp: "dm.energy_batteria_scaricata_oggi",
-    },
-    month: {
-      solar: "dm.energy_produzione_solare_mese",
-      home: "dm.energy_consumo_casa_mese",
-      gridDown: "dm.energy_rete_acquistata_mese",
-      gridUp: "dm.energy_rete_venduta_mese",
-      batteryDown: "dm.energy_batteria_caricata_mese",
-      batteryUp: "dm.energy_batteria_usata_mese",
-    },
-    year: {
-      solar: "dm.energy_produzione_solare_anno",
-      home: "dm.energy_consumo_casa_anno",
-      gridDown: "dm.energy_rete_acquistata_anno",
-      gridUp: "dm.energy_rete_venduta_anno",
-      batteryDown: "dm.energy_batteria_caricata_anno",
-      batteryUp: "dm.energy_batteria_usata_anno",
-    },
-  };
-  Object.entries(periods).forEach(([kind, slots]) => {
-    setPeriodText0154(`v-solar-${kind}`, periodText0154(slots.solar));
-    setPeriodText0154(`v-home-${kind}`, periodText0154(slots.home));
-    setPeriodDual0154(`v-grid-${kind}`, slots.gridDown, slots.gridUp);
-    setPeriodDual0154(`v-battery-${kind}`, slots.batteryDown, slots.batteryUp);
-  });
-  return true;
-}
-
 function installApplianceRenderHook0154() {
   const current = globalThis.renderApplianceSection;
   if (typeof current !== "function" || functionChainHas0154(current, "__dm0154MetricHook")) {
@@ -397,7 +330,6 @@ function installEnergyRenderHotfix0154() {
   installApplianceEntityClassifier0154();
   installApplianceRenderHook0154();
   normalizeApplianceMetrics0154();
-  syncEnergyPeriodDom0154();
   hotfixState0154().installed = true;
 }
 
@@ -417,10 +349,7 @@ function monitorStartup0154() {
 
 function syncAfterPeriodRefresh0154() {
   armGlobalRenderSuppression0154(1200);
-  syncEnergyPeriodDom0154();
   normalizeApplianceMetrics0154();
-  globalThis.requestAnimationFrame?.(syncEnergyPeriodDom0154);
-  globalThis.setTimeout?.(syncEnergyPeriodDom0154, 40);
 }
 
 if (typeof globalThis.document !== "undefined") {

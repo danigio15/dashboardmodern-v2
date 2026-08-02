@@ -106,11 +106,23 @@ export function applianceEnergyReport(appliances = [], states = {}, rooms = []) 
   });
 }
 
-export function controllableEntity(appliance) {
-  const candidates = [appliance?.switch_entity, appliance?.switch, appliance?.light]
-    .concat(appliance?.entities || [])
+function applianceEntities(appliance, keys = []) {
+  return [
+    ...keys.map((key) => appliance?.[key]),
+    ...(Array.isArray(appliance?.entities) ? appliance.entities : []),
+  ]
     .map((entry) => (typeof entry === "string" ? entry : entry?.entity))
     .filter(Boolean);
+}
+
+export function controllableEntity(appliance) {
+  const candidates = applianceEntities(appliance, [
+    "control_entity",
+    "switch_entity",
+    "switch",
+    "light",
+    "fan",
+  ]);
   return (
     candidates.find((entity) => /^(switch|light|input_boolean|fan)\.[a-z0-9_]+$/i.test(entity)) ||
     ""
@@ -118,22 +130,32 @@ export function controllableEntity(appliance) {
 }
 
 export function applianceState(appliance, states = {}) {
-  const entities = [appliance?.power, appliance?.power_entity]
-    .concat(appliance?.entities || [])
-    .map((entry) => (typeof entry === "string" ? entry : entry?.entity))
-    .filter(Boolean);
+  const powerEntities = applianceEntities(appliance, ["power", "power_entity", "power_sensor"]);
+  const stateEntities = applianceEntities(appliance, [
+    "control_entity",
+    "state_entity",
+    "status_entity",
+    "switch_entity",
+    "switch",
+    "light",
+    "fan",
+  ]);
   let watts = null;
   let powered = false;
-  for (const entity of entities) {
+  for (const entity of [...new Set([...powerEntities, ...stateEntities])]) {
     const state = states[entity];
     if (!state) continue;
-    const unit = String(state.attributes?.unit_of_measurement || "").toLowerCase();
+    const unit = String(state.attributes?.unit_of_measurement || "").toLowerCase().replaceAll(" ", "");
     const value = Number(state.state);
-    if (Number.isFinite(value) && /^(w|kw|watt|watts)$/.test(unit)) {
-      const normalized = unit === "kw" ? value * 1000 : value;
+    if (Number.isFinite(value) && /^(w|kw|mw|watt|watts)$/.test(unit)) {
+      const normalized = unit === "kw" ? value * 1000 : unit === "mw" ? value * 1_000_000 : value;
       watts = Math.max(watts ?? 0, normalized);
     }
-    if (["on", "playing", "heat", "cool", "open"].includes(String(state.state).toLowerCase())) {
+    if (
+      ["on", "playing", "heat", "cool", "open", "opening", "running", "active"].includes(
+        String(state.state).toLowerCase(),
+      )
+    ) {
       powered = true;
     }
   }
