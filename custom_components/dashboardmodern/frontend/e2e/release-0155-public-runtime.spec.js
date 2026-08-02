@@ -71,60 +71,11 @@ const seed = {
 
 async function boot(page, variant, testInfo) {
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
-  await page.addInitScript((states) => {
-    window.__DM0155_TEST_SOCKETS__ = [];
-    class MockSocket extends EventTarget {
-      static OPEN = 1;
-      readyState = 1;
-      onopen = null;
-      onmessage = null;
-      onclose = null;
-      subscriptionId = 0;
-
-      constructor() {
-        super();
-        window.__DM0155_TEST_SOCKETS__.push(this);
-        queueMicrotask(() => {
-          this.onopen?.({});
-          this.onmessage?.({ data: JSON.stringify({ type: "auth_ok" }) });
-        });
-      }
-
-      send(raw) {
-        const message = JSON.parse(raw);
-        if (message.type === "auth") return;
-        if (message.type === "get_states") {
-          this.onmessage?.({
-            data: JSON.stringify({
-              id: message.id,
-              type: "result",
-              success: true,
-              result: states,
-            }),
-          });
-          return;
-        }
-        if (message.type === "subscribe_events") this.subscriptionId = message.id;
-        this.onmessage?.({
-          data: JSON.stringify({
-            id: message.id,
-            type: "result",
-            success: true,
-            result: message.type === "frontend/get_user_data" ? { value: null } : null,
-          }),
-        });
-      }
-
-      close() {
-        this.readyState = 3;
-        this.onclose?.({});
-      }
-    }
-    window.WebSocket = MockSocket;
-    window.__DASHBOARDMODERN_BRIDGE_WS__ = MockSocket;
-  }, liveStates);
   await bootNamespacedDashboard(page, variant, testInfo, seed);
   await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page.evaluate((states) => {
+    window.__DASHBOARDMODERN_RELEASE_0155_PUBLIC_RUNTIME__?.ingestStates(states);
+  }, liveStates);
   await expect
     .poll(() =>
       page.evaluate(
