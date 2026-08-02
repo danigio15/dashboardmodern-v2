@@ -16,7 +16,6 @@ import "./release-0154-dom-stability.js";
 import "./release-0154-temperature-live-state.js";
 import "./release-0155-energy-placeholder-fallback.js";
 import "./release-0155-public-runtime.js";
-import "./release-0156-period-runtime.js";
 
 if (typeof globalThis.document !== "undefined") {
   import("./release-0156-final-runtime.js").then(() =>
