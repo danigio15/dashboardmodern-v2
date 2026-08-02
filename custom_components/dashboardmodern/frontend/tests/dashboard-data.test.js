@@ -48,6 +48,7 @@ for (const locale of ["it", "en"]) {
   });
 
   test(`${locale}: appliance toggle is emitted only for controllable entities`, () => {
+    assert.equal(controllableEntity({ control_entity: "switch.fridge" }), "switch.fridge");
     assert.equal(controllableEntity({ switch_entity: "switch.washer" }), "switch.washer");
     assert.equal(controllableEntity({ light: "light.oven" }), "light.oven");
     assert.equal(controllableEntity({ entities: ["sensor.washer_power"] }), "");
@@ -79,6 +80,30 @@ for (const locale of ["it", "en"]) {
         "sensor.power": { state: "0.025", attributes: { unit_of_measurement: "kW" } },
       }),
       { state: "running", watts: 25 },
+    );
+  });
+
+  test(`${locale}: canonical control_entity drives the live appliance state`, () => {
+    const appliance = {
+      id: "fridge",
+      control_entity: "switch.fridge",
+      power_entity: "sensor.fridge_power",
+      threshold_run: 5,
+      threshold_standby: 1,
+    };
+    assert.deepEqual(
+      applianceState(appliance, {
+        "switch.fridge": { state: "on", attributes: {} },
+        "sensor.fridge_power": { state: "0", attributes: { unit_of_measurement: "W" } },
+      }),
+      { state: "on", watts: 0 },
+    );
+    assert.deepEqual(
+      applianceState(appliance, {
+        "switch.fridge": { state: "off", attributes: {} },
+        "sensor.fridge_power": { state: "82", attributes: { unit_of_measurement: "W" } },
+      }),
+      { state: "running", watts: 82 },
     );
   });
 
