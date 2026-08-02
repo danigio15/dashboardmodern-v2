@@ -3,6 +3,56 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 0.14.15 — 2026-08-02
+
+### Corretto
+
+- Impedita la sovrascrittura ritardata dei valori Energia già corretti: Casa,
+  Fotovoltaico, Rete e Batteria mantengono il dato canonico del periodo durante
+  refresh Recorder e aggiornamenti del runtime.
+- Temperatura e umidità ora ricevono lo stato iniziale con `get_states` e gli
+  aggiornamenti successivi tramite una sottoscrizione autenticata agli eventi
+  `state_changed` di Home Assistant.
+- Lo stato Elettrodomestici considera finalmente `control_entity`,
+  `state_entity`, `switch_entity` e i sensori di potenza W/kW.
+- Badge della card e pulsante **Accendi/Spegni** vengono riconciliati con lo
+  stato reale senza attendere un nuovo rendering completo della pagina.
+- Nuova icona Home Assistant/HACS con safe area trasparente, variante ad alta
+  densità e logo locale, per evitare il ritaglio nelle righe compatte.
+
+### Documentazione
+
+- README riscritto e aggiornato alla release 0.14.15 con installazione,
+  aggiornamento, priorità Energia, configurazione Temperature,
+  Elettrodomestici, branding, sicurezza e diagnostica.
+- Aggiunte indicazioni esplicite sul riavvio richiesto dopo un aggiornamento
+  HACS e sul confronto con la dashboard Energia nativa.
+
+### Verificato
+
+- Test unitari dedicati a `control_entity` e soglie di potenza.
+- Browser E2E italiano e inglese per i tre casi reali: Energia inizialmente
+  corretta che non deve cambiare, temperatura dal bridge e dispositivo acceso.
+- HACS, hassfest, test Python, test frontend, Ruff e build release.
+
+## 0.14.14 — 2026-08-02
+
+### Aggiunto
+
+- Classificazione dei contatori energetici tramite metadati Home Assistant
+  `device_class`, `state_class` e unità reali.
+- Nuova famiglia SVG coerente per forno, microonde, frigorifero, scaldabagno,
+  lavatrice, asciugatrice, lavastoviglie, piano cottura e TV.
+- Guardie per renderer, observer e mutazioni DOM del runtime legacy.
+
+### Corretto
+
+- Calcolo del consumo mensile del Report a partire da contatori cumulativi e
+  Long-Term Statistics, senza mostrare il valore lifetime.
+- Supporto alle vecchie mappature `dm.*` e ai reset `total_increasing`.
+- Stabilità delle card Elettrodomestici e aggiornamento live delle Temperature
+  nell'ambiente di test.
+
 ## 0.14.13 — 2026-08-01
 
 ### Corretto
