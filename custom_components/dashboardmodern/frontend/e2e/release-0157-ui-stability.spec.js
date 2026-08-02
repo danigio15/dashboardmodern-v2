@@ -212,7 +212,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(energyResult.samples.every((sample) => sample.every((value) => value !== 0))).toBe(true);
 
     await page.evaluate(() => {
+      document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
       const pageNode = document.getElementById("page-appliances-main");
+      pageNode.classList.add("active");
       pageNode.innerHTML = `
         <div><button type="button">← HOME</button></div>
         <div class="legacy-room-nav"><button type="button">📊 PANORAMICA</button><button type="button">❔ NESSUNA STANZA</button></div>
@@ -253,6 +255,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(appliancePage.locator(".appl-wide-card:visible")).toHaveCount(2);
 
     await page.evaluate(() => {
+      document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
+      document.getElementById("page-temp").classList.add("active");
       const grid = document.getElementById("temp-grid");
       grid.innerHTML = `<article class="temp-card" data-room-id="room-terrazza"><div class="cp-name">Terrazza</div><div id="tv_room-terrazza">35.3</div><div id="hv_room-terrazza">37</div><div id="tc_room-terrazza">🔥</div></article>`;
       window.__DASHBOARDMODERN_RELEASE_0157_UI_STABILITY__.decorateTemperatures();
