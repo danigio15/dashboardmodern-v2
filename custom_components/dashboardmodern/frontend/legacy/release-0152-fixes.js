@@ -18,9 +18,9 @@ import "./release-0155-energy-placeholder-fallback.js";
 import "./release-0155-public-runtime.js";
 
 if (typeof globalThis.document !== "undefined") {
-  import("./release-0156-final-runtime.js").then(() =>
-    import("./release-0156-current-period-bootstrap.js"),
-  );
+  import("./release-0156-final-runtime.js")
+    .then(() => import("./release-0156-current-period-bootstrap.js"))
+    .then(() => import("./release-0156-owner-guard.js"));
 }
 
 const RENDER_GUARD_KEY_0152 = "__DASHBOARDMODERN_RELEASE_0152_RENDER_GUARD__";
