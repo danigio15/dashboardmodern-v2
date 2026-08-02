@@ -1,6 +1,20 @@
-/* DashboardModern 0.14.15: fill unavailable period placeholders without overwriting canonical HA values. */
+/* DashboardModern 0.14.15: preserve canonical energy values and normalize the legacy locale. */
 const PERIOD_EVENT_0155 = "dashboardmodern:energy-periods-0154";
 const PERIOD_FALLBACK_KEY_0155 = "__DASHBOARDMODERN_RELEASE_0155_ENERGY_FALLBACK__";
+
+function normalizeLegacyLanguage0155() {
+  const doc = globalThis.document;
+  if (!doc) return false;
+  const pathname = String(globalThis.location?.pathname || "");
+  const englishPage = /(?:^|\/)dashboard-en\.html$/i.test(pathname);
+  if (!englishPage) return false;
+  const current = String(doc.documentElement?.lang || "").trim();
+  if (/^en(?:-|$)/i.test(current)) return false;
+  doc.documentElement.setAttribute("lang", "en");
+  return true;
+}
+
+normalizeLegacyLanguage0155();
 
 function fallbackState0155() {
   return (globalThis[PERIOD_FALLBACK_KEY_0155] ||= { installed: true, attempts: 0, timer: 0 });
@@ -49,6 +63,7 @@ function fillDualPeriod0155(id, downSlot, upSlot) {
 }
 
 function fillEnergyPlaceholders0155() {
+  normalizeLegacyLanguage0155();
   const periods = {
     day: {
       solar: "dm.energy_produzione_solare_oggi",
@@ -95,6 +110,7 @@ function schedulePlaceholderFill0155() {
 function installPlaceholderFallback0155() {
   const state = fallbackState0155();
   state.installed = true;
+  normalizeLegacyLanguage0155();
   schedulePlaceholderFill0155();
   if (state.timer || typeof globalThis.setInterval !== "function") return;
   state.timer = globalThis.setInterval(() => {
