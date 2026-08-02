@@ -1,70 +1,14 @@
-/* DashboardModern 0.14.12 compatibility entry point. */
+/* DashboardModern compatibility entry point. */
 import "./release-0152-guards.js";
 export * from "./release-0152-runtime.js";
 import "./release-0152-runtime.js";
 import "./energy-monthly-report-media-fixes.js";
 import "./energy-report-runtime-hooks.js";
 import "./energy-report-observer-guard.js";
-import "./appliance-media-layout-lock.js";
 import "./release-0154-prelude.js";
 import "./release-0154-runtime.js";
 import "./release-0154-postlude.js";
-import "./release-0154-artwork-lock.js";
-import "./release-0154-artwork-idempotency.js";
-import "./release-0154-style-observer-guard.js";
 import "./release-0154-final-appliance-stability.js";
-
-function installArtworkLayoutFix0152() {
-  const doc = globalThis.document;
-  if (!doc || doc.getElementById("dm-release-0152-artwork-layout-fix")) return;
-
-  const artworkSelector = `
-    html body #page-appliances-main
-      .appl-wide-card.dm-control-device[data-dm-artwork]
-      .appl-visual
-      .appl-ic
-      .dm-appliance-media
-      > .dm-appliance-art
-      > .dm-appliance-art.dm-appliance-art-0152[data-dm-art]
-  `;
-
-  const style = doc.createElement("style");
-  style.id = "dm-release-0152-artwork-layout-fix";
-  style.textContent = `
-    ${artworkSelector} {
-      display: grid !important;
-      place-items: center !important;
-      box-sizing: border-box !important;
-      width: 100% !important;
-      height: 100% !important;
-      min-width: 0 !important;
-      min-height: 0 !important;
-      max-width: 100% !important;
-      max-height: 100% !important;
-      padding: 6px !important;
-      margin: 0 !important;
-      overflow: hidden !important;
-      transform: none !important;
-    }
-
-    ${artworkSelector} > svg {
-      display: block !important;
-      box-sizing: border-box !important;
-      width: 76% !important;
-      height: 76% !important;
-      min-width: 0 !important;
-      min-height: 0 !important;
-      max-width: 76% !important;
-      max-height: 76% !important;
-      object-fit: contain !important;
-      object-position: center !important;
-      transform: none !important;
-      overflow: visible !important;
-      flex: 0 0 76% !important;
-    }
-  `;
-  doc.head.append(style);
-}
 
 const RENDER_GUARD_KEY_0152 = "__DASHBOARDMODERN_RELEASE_0152_RENDER_GUARD__";
 
@@ -131,12 +75,11 @@ function installRenderRefreshGuard0152() {
 
 function reinstallRuntimeGuards0152() {
   installRenderRefreshGuard0152();
-  globalThis.queueMicrotask?.(() => installRenderRefreshGuard0152());
-  globalThis.setTimeout?.(() => installRenderRefreshGuard0152(), 0);
-  globalThis.setTimeout?.(() => installRenderRefreshGuard0152(), 120);
+  globalThis.queueMicrotask?.(installRenderRefreshGuard0152);
+  globalThis.setTimeout?.(installRenderRefreshGuard0152, 0);
+  globalThis.setTimeout?.(installRenderRefreshGuard0152, 120);
 }
 
-installArtworkLayoutFix0152();
 reinstallRuntimeGuards0152();
 
 if (typeof globalThis.addEventListener === "function") {
