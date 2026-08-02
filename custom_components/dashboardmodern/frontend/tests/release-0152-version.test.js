@@ -4,7 +4,7 @@ import test from "node:test";
 
 const manifestUrl = new URL("../../manifest.json", import.meta.url);
 
-test("the corrective release is version 0.14.13", async () => {
+test("the corrective release is version 0.14.14", async () => {
   const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
-  assert.equal(manifest.version, "0.14.13");
+  assert.equal(manifest.version, "0.14.14");
 });

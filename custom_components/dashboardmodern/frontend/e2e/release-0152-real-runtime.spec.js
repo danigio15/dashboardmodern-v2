@@ -244,10 +244,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     );
     for (const artwork of artworkLayout) {
       expect(artwork.inside).toBe(true);
-      expect(artwork.widthRatio).toBeGreaterThan(0.5);
-      expect(artwork.widthRatio).toBeLessThan(0.9);
-      expect(artwork.heightRatio).toBeGreaterThan(0.5);
-      expect(artwork.heightRatio).toBeLessThan(0.9);
+      expect(artwork.widthRatio).toBeGreaterThanOrEqual(0.98);
+      expect(artwork.widthRatio).toBeLessThanOrEqual(1.01);
+      expect(artwork.heightRatio).toBeGreaterThanOrEqual(0.98);
+      expect(artwork.heightRatio).toBeLessThanOrEqual(1.01);
     }
 
     await page.evaluate(() => {

@@ -10,6 +10,42 @@ function readJson(key, fallback) {
   }
 }
 
+function setData(node, key, value) {
+  if (!node?.dataset || node.dataset[key] === value) return false;
+  node.dataset[key] = value;
+  return true;
+}
+
+function setAttribute(node, name, value) {
+  if (!node || node.getAttribute(name) === value) return false;
+  node.setAttribute(name, value);
+  return true;
+}
+
+function addClass(node, token) {
+  if (!node?.classList || node.classList.contains(token)) return false;
+  node.classList.add(token);
+  return true;
+}
+
+function removeClass(node, token) {
+  if (!node?.classList?.contains(token)) return false;
+  node.classList.remove(token);
+  return true;
+}
+
+function setText(node, value) {
+  if (!node || node.textContent === value) return false;
+  node.textContent = value;
+  return true;
+}
+
+function setStyle(node, property, value) {
+  if (!node?.style || node.style[property] === value) return false;
+  node.style[property] = value;
+  return true;
+}
+
 /*
  * runtime-hotfix.js and real-ha-0147-fixes.js use different wrapper markers.
  * Mark the current implementation for both layers before either retry loop can
@@ -51,11 +87,11 @@ function stabilizePowerButtons(root = document) {
       : isEnglish()
         ? "Turn on"
         : "Accendi";
-    if (button.textContent.trim() !== label) button.textContent = label;
-    button.dataset.dmPowerToggle = "true";
-    button.classList.remove("appl-action-btn");
-    button.classList.add("dm-appliance-power-toggle");
-    button.setAttribute("aria-label", label);
+    setText(button, label);
+    setData(button, "dmPowerToggle", "true");
+    removeClass(button, "appl-action-btn");
+    addClass(button, "dm-appliance-power-toggle");
+    setAttribute(button, "aria-label", label);
   });
 }
 
@@ -72,6 +108,30 @@ function alertGroupForEntity(entity, row) {
   return "";
 }
 
+function bindStableAlertEditButton(button, group, entity) {
+  if (button.hasAttribute("onclick")) button.removeAttribute("onclick");
+  if (button.type !== "button") button.type = "button";
+  addClass(button, "ed-del");
+  addClass(button, "dm-edit-button");
+  setData(button, "standardAlertEdit", "");
+  setData(button, "realAlertEdit", "");
+  setData(button, "standardAlertGroup", group);
+  setData(button, "standardAlertEntity", entity);
+  setData(button, "alertGroup", group);
+  setData(button, "alertEntity", entity);
+  setText(button, "✏️");
+  const title = isEnglish() ? "Edit" : "Modifica";
+  if (button.title !== title) button.title = title;
+  setAttribute(button, "aria-label", title);
+  if (button.dataset.alertEditMounted !== "true") {
+    button.dataset.alertEditMounted = "true";
+    button.addEventListener("click", () => {
+      const edit = globalThis.dmRealEditAlert || globalThis.edEditAvvisoStandard;
+      edit?.(button.dataset.alertGroup, button.dataset.alertEntity);
+    });
+  }
+}
+
 function stabilizeAlertEditButtons(root = document) {
   root.querySelectorAll("#editor-modal .ed-row").forEach((row) => {
     const entity = row.querySelector(".ed-row-old.mono")?.textContent?.trim();
@@ -79,35 +139,39 @@ function stabilizeAlertEditButtons(root = document) {
     const group = alertGroupForEntity(entity, row);
     if (!group) return;
 
-    row.querySelectorAll("[data-standard-alert-edit]").forEach((button) => button.remove());
-    if (row.querySelector("[data-real-alert-edit]")) return;
+    const candidates = [
+      ...row.querySelectorAll("[data-real-alert-edit], [data-standard-alert-edit]"),
+    ];
+    let editButton = candidates.find((button) => button.hasAttribute("data-real-alert-edit"));
+    editButton ||= candidates[0] || null;
 
-    const removeButton = [...row.querySelectorAll(".ed-del")].find(
-      (button) => /edDelAvviso/.test(button.getAttribute("onclick") || ""),
-    );
-    if (!removeButton || typeof globalThis.dmRealEditAlert !== "function") return;
+    if (!editButton) {
+      const removeButton = [...row.querySelectorAll(".ed-del")].find(
+        (button) =>
+          /edDelAvviso/.test(button.getAttribute("onclick") || "") ||
+          button.textContent.includes("🗑️"),
+      );
+      if (!removeButton) return;
+      editButton = document.createElement("button");
+      removeButton.before(editButton);
+    }
 
-    const editButton = document.createElement("button");
-    editButton.type = "button";
-    editButton.className = "ed-del dm-edit-button";
-    editButton.dataset.realAlertEdit = "";
-    editButton.textContent = "✏️";
-    editButton.title = isEnglish() ? "Edit" : "Modifica";
-    editButton.setAttribute("aria-label", editButton.title);
-    editButton.addEventListener("click", () => globalThis.dmRealEditAlert(group, entity));
-    removeButton.before(editButton);
+    bindStableAlertEditButton(editButton, group, entity);
+    candidates.forEach((candidate) => {
+      if (candidate !== editButton && candidate.isConnected) candidate.remove();
+    });
   });
 }
 
 function stabilizeReportRows(root = document) {
   root.querySelectorAll("#editor-modal [data-energy-panel='report'] .dm-report-row").forEach((row) => {
-    row.dataset.realReportStable = "true";
+    setData(row, "realReportStable", "true");
     const fields = row.querySelector(":scope > .dm-report-fields");
     if (!fields) return;
     fields.querySelectorAll(".dm-config-field, [data-entity-field], [data-icon-field]").forEach((field) => {
-      field.style.gridArea = "auto";
-      field.style.width = "100%";
-      field.style.minWidth = "0";
+      setStyle(field, "gridArea", "auto");
+      setStyle(field, "width", "100%");
+      setStyle(field, "minWidth", "0px");
     });
   });
 }
