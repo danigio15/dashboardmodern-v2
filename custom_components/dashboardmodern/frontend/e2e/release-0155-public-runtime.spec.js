@@ -1,0 +1,189 @@
+import { expect, test } from "@playwright/test";
+import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+
+const liveStates = [
+  {
+    entity_id: "sensor.terrace_temperature",
+    state: "22.4",
+    attributes: {
+      friendly_name: "Terrace temperature",
+      unit_of_measurement: "°C",
+      device_class: "temperature",
+    },
+  },
+  {
+    entity_id: "sensor.terrace_humidity",
+    state: "51",
+    attributes: {
+      friendly_name: "Terrace humidity",
+      unit_of_measurement: "%",
+      device_class: "humidity",
+    },
+  },
+  {
+    entity_id: "switch.fridge",
+    state: "on",
+    attributes: { friendly_name: "Fridge" },
+  },
+  {
+    entity_id: "sensor.fridge_power",
+    state: "82",
+    attributes: {
+      friendly_name: "Fridge power",
+      unit_of_measurement: "W",
+      device_class: "power",
+    },
+  },
+];
+
+const seed = {
+  schema_version: 4,
+  sections: {
+    rooms: [
+      {
+        id: "room-terrace",
+        name: "Terrazza",
+        icon: "mdi:balcony",
+        floor: "Esterno",
+        temp: "sensor.terrace_temperature",
+        hum: "sensor.terrace_humidity",
+      },
+    ],
+    appliances: [
+      {
+        id: "appl-fridge",
+        name: "Frigo",
+        device_type: "fridge",
+        visual_type: "asset",
+        visual_key: "fridge",
+        room_id: "room-terrace",
+        control_entity: "switch.fridge",
+        power_entity: "sensor.fridge_power",
+        threshold_run: 5,
+        threshold_standby: 1,
+        show_in_dashboard: true,
+        show_in_report: true,
+      },
+    ],
+  },
+  visibility: { temperature: true, temp: true, appliances: true, energy: true },
+};
+
+async function boot(page, variant, testInfo) {
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await page.addInitScript((states) => {
+    window.__DM0155_TEST_SOCKETS__ = [];
+    class MockSocket extends EventTarget {
+      static OPEN = 1;
+      readyState = 1;
+      onopen = null;
+      onmessage = null;
+      onclose = null;
+      subscriptionId = 0;
+
+      constructor() {
+        super();
+        window.__DM0155_TEST_SOCKETS__.push(this);
+        queueMicrotask(() => {
+          this.onopen?.({});
+          this.onmessage?.({ data: JSON.stringify({ type: "auth_ok" }) });
+        });
+      }
+
+      send(raw) {
+        const message = JSON.parse(raw);
+        if (message.type === "auth") return;
+        if (message.type === "get_states") {
+          this.onmessage?.({
+            data: JSON.stringify({
+              id: message.id,
+              type: "result",
+              success: true,
+              result: states,
+            }),
+          });
+          return;
+        }
+        if (message.type === "subscribe_events") this.subscriptionId = message.id;
+        this.onmessage?.({
+          data: JSON.stringify({
+            id: message.id,
+            type: "result",
+            success: true,
+            result: message.type === "frontend/get_user_data" ? { value: null } : null,
+          }),
+        });
+      }
+
+      close() {
+        this.readyState = 3;
+        this.onclose?.({});
+      }
+    }
+    window.WebSocket = MockSocket;
+    window.__DASHBOARDMODERN_BRIDGE_WS__ = MockSocket;
+  }, liveStates);
+  await bootNamespacedDashboard(page, variant, testInfo, seed);
+  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => window.__DASHBOARDMODERN_RELEASE_0155_PUBLIC_RUNTIME__?.states?.size || 0,
+      ),
+    )
+    .toBeGreaterThanOrEqual(liveStates.length);
+}
+
+for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+  test(`${variant}: 0.14.15 keeps HA energy truth and live room/device states`, async ({
+    page,
+  }, testInfo) => {
+    await boot(page, variant, testInfo);
+
+    await page.evaluate(() => {
+      buildTempCards();
+      renderTemperature();
+      window.__DASHBOARDMODERN_RELEASE_0155_PUBLIC_RUNTIME__.syncTemperature();
+      renderApplianceSection(true);
+      window.__DASHBOARDMODERN_RELEASE_0155_PUBLIC_RUNTIME__.syncAppliances();
+    });
+
+    const temperature = page.locator("#temp-grid .temp-value").first();
+    await expect(temperature).toContainText("22.4");
+    const humidity = page.locator('#temp-grid [id^="hv_sensor_terrace_humidity"]').first();
+    await expect(humidity).toContainText("51");
+
+    const card = page.locator('.appl-wide-card[data-appliance-id="appl-fridge"]').first();
+    await expect(card).toHaveClass(/on/);
+    await expect(card.locator(".appl-st")).toContainText(
+      variant === "dashboard-en.html" ? /RUNNING|ON/i : /IN FUNZIONE|ACCESO/i,
+    );
+    await expect(card.locator(".dm-appliance-power-toggle")).toContainText(
+      variant === "dashboard-en.html" ? "Turn off" : "Spegni",
+    );
+
+    await page.evaluate(() => {
+      const canonical = {
+        "v-solar-month": "42.7 kWh",
+        "v-home-month": "32.9 kWh",
+        "v-grid-month": "↓ 0 kWh ↑ 6.9 kWh",
+        "v-battery-month": "↓ 8.2 kWh ↑ 5.3 kWh",
+      };
+      Object.entries(canonical).forEach(([id, value]) => {
+        document.getElementById(id).textContent = value;
+      });
+      const runtime = window.__DASHBOARDMODERN_RELEASE_0155_PUBLIC_RUNTIME__;
+      runtime.energySnapshots = Object.create(null);
+      runtime.captureEnergy(true);
+      document.getElementById("v-home-month").textContent = "27.6 kWh";
+      document.getElementById("v-grid-month").textContent = "↓ 0 kWh ↑ 7 kWh";
+      document.getElementById("v-battery-month").textContent = "↓ 8.4 kWh ↑ 5.4 kWh";
+      window.dispatchEvent(new CustomEvent("dashboardmodern:energy-periods-0154"));
+    });
+
+    await expect(page.locator("#v-home-month")).toHaveText("32.9 kWh");
+    await expect(page.locator("#v-grid-month")).toContainText("6.9 kWh");
+    await expect(page.locator("#v-battery-month")).toContainText("8.2 kWh");
+    await expect(page.locator("#v-battery-month")).toContainText("5.3 kWh");
+  });
+}
