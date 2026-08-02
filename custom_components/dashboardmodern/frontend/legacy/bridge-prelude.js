@@ -158,6 +158,51 @@
     window.DASHBOARDMODERN_AUTH_TOKEN ||= REAL_TOKEN;
   }
 
+  /*
+   * The inert socket below deliberately triggers the legacy close path once.
+   * That close handler schedules `connect` five seconds later. Recorder and the
+   * shared 0.14.16 broker are ready before then, so the retry is redundant, but
+   * its callback is a lexical reference and cannot be replaced afterwards.
+   * Track only the timeout created while invoking this exact close callback;
+   * the final runtime can then cancel that one timer without replacing
+   * WebSocket, setTimeout or any application callback globally.
+   */
+  function invokeTrackedInitialClose(socket, event) {
+    var originalSetTimeout = window.setTimeout;
+    if (typeof originalSetTimeout !== "function" || typeof socket.onclose !== "function") {
+      socket.onclose(event);
+      return;
+    }
+    var record = window.__DASHBOARDMODERN_LEGACY_RECONNECT__ || {
+      timer: 0,
+      callback: null,
+      args: [],
+      captured: false,
+      cancelled: false,
+    };
+    window.__DASHBOARDMODERN_LEGACY_RECONNECT__ = record;
+
+    function trackedSetTimeout(handler, delay) {
+      var args = Array.prototype.slice.call(arguments, 2);
+      var timer = originalSetTimeout.apply(window, arguments);
+      if (typeof handler === "function" && Number(delay) === 5000) {
+        record.timer = timer;
+        record.callback = handler;
+        record.args = args;
+        record.captured = true;
+        record.cancelled = false;
+      }
+      return timer;
+    }
+
+    window.setTimeout = trackedSetTimeout;
+    try {
+      socket.onclose(event);
+    } finally {
+      if (window.setTimeout === trackedSetTimeout) window.setTimeout = originalSetTimeout;
+    }
+  }
+
   // Between document parse and the host's load-time bridge install, the page
   // would otherwise reach the REAL WebSocket and authenticate on its own — the
   // source of the "login attempt failed" notifications. Replace it with an
@@ -176,7 +221,7 @@
       }
       try {
         if (typeof self.onclose === "function") {
-          self.onclose({ code: 1006, reason: "bridge not ready" });
+          invokeTrackedInitialClose(self, { code: 1006, reason: "bridge not ready" });
         }
       } catch (error) {
         /* listener errors are the page's business */
