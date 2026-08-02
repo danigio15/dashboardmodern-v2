@@ -123,10 +123,17 @@ test("oven, fridge, microwave and boiler share the same panel artwork contract",
   }
 });
 
-test("the compatibility entry imports the 0.14.14 runtime after previous layout layers", async () => {
+test("the compatibility entry loads one final appliance media owner after the 0.14.14 runtime", async () => {
   const entry = await readFile(new URL("../legacy/release-0152-fixes.js", import.meta.url), "utf8");
-  const oldLayout = entry.indexOf('import "./appliance-media-layout-lock.js"');
   const newRuntime = entry.indexOf('import "./release-0154-runtime.js"');
-  assert.ok(oldLayout >= 0);
-  assert.ok(newRuntime > oldLayout);
+  const postlude = entry.indexOf('import "./release-0154-postlude.js"');
+  const finalOwner = entry.indexOf('import "./release-0154-final-appliance-stability.js"');
+
+  assert.ok(newRuntime >= 0);
+  assert.ok(postlude > newRuntime);
+  assert.ok(finalOwner > postlude);
+  assert.equal(entry.includes('import "./appliance-media-layout-lock.js"'), false);
+  assert.equal(entry.includes('import "./release-0154-artwork-lock.js"'), false);
+  assert.equal(entry.includes('import "./release-0154-artwork-idempotency.js"'), false);
+  assert.equal(entry.includes('import "./release-0154-style-observer-guard.js"'), false);
 });
