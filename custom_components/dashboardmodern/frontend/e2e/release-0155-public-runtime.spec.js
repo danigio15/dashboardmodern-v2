@@ -158,7 +158,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(card.locator(".appl-st")).toContainText(
       variant === "dashboard-en.html" ? /RUNNING|ON/i : /IN FUNZIONE|ACCESO/i,
     );
-    await expect(card.locator(".dm-appliance-power-toggle")).toContainText(
+    await expect(card.locator('button[data-dm-power-toggle="true"]')).toContainText(
       variant === "dashboard-en.html" ? "Turn off" : "Spegni",
     );
 
@@ -172,15 +172,21 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       Object.entries(canonical).forEach(([id, value]) => {
         document.getElementById(id).textContent = value;
       });
-      const runtime = window.__DASHBOARDMODERN_RELEASE_0155_PUBLIC_RUNTIME__;
-      runtime.energySnapshots = Object.create(null);
-      runtime.captureEnergy(true);
-      document.getElementById("v-home-month").textContent = "27.6 kWh";
-      document.getElementById("v-grid-month").textContent = "↓ 0 kWh ↑ 7 kWh";
-      document.getElementById("v-battery-month").textContent = "↓ 8.4 kWh ↑ 5.4 kWh";
+      try {
+        window.eval(`
+          CD_PERIOD["dm.energy_produzione_solare_mese"] = 42.7;
+          CD_PERIOD["dm.energy_consumo_casa_mese"] = 27.6;
+          CD_PERIOD["dm.energy_rete_acquistata_mese"] = 0;
+          CD_PERIOD["dm.energy_rete_venduta_mese"] = 7;
+          CD_PERIOD["dm.energy_batteria_caricata_mese"] = 8.4;
+          CD_PERIOD["dm.energy_batteria_usata_mese"] = 5.4;
+        `);
+      } catch (_error) {}
       window.dispatchEvent(new CustomEvent("dashboardmodern:energy-periods-0154"));
     });
 
+    await page.waitForTimeout(300);
+    await expect(page.locator("#v-solar-month")).toHaveText("42.7 kWh");
     await expect(page.locator("#v-home-month")).toHaveText("32.9 kWh");
     await expect(page.locator("#v-grid-month")).toContainText("6.9 kWh");
     await expect(page.locator("#v-battery-month")).toContainText("8.2 kWh");
