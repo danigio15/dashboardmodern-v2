@@ -16,12 +16,12 @@ import "./release-0154-dom-stability.js";
 import "./release-0154-temperature-live-state.js";
 import "./release-0155-energy-placeholder-fallback.js";
 import "./release-0155-public-runtime.js";
+import "./release-0156-current-period-lock.js";
 
 if (typeof globalThis.document !== "undefined") {
   import("./release-0156-final-runtime.js")
     .then(() => import("./release-0156-current-period-bootstrap.js"))
-    .then(() => import("./release-0156-owner-guard.js"))
-    .then(() => import("./release-0156-current-period-lock.js"));
+    .then(() => import("./release-0156-owner-guard.js"));
 }
 
 const RENDER_GUARD_KEY_0152 = "__DASHBOARDMODERN_RELEASE_0152_RENDER_GUARD__";
