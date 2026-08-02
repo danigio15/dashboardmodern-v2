@@ -1,15 +1,10 @@
-/* DashboardModern 0.14.14: final ownership gates for appliance cards and editor DOM. */
+/* DashboardModern 0.14.14: final ownership gates for appliance cards and DOM observers. */
 const DOM_STABILITY_KEY = "__DASHBOARDMODERN_RELEASE_0154_DOM_STABILITY__";
 const LEGACY_COMPAT_OBSERVER_KEY = "__DASHBOARDMODERN_0147_DOM_COMPAT_OBSERVER__";
-
-function now0154Dom() {
-  return globalThis.performance?.now?.() ?? Date.now();
-}
 
 function domState0154() {
   return (globalThis[DOM_STABILITY_KEY] ||= {
     applianceSignature: "",
-    allowAlertRenderUntil: 0,
     monitor: null,
     monitorTicks: 0,
   });
@@ -92,18 +87,29 @@ function applianceCardsReady0154Dom() {
   return grid.querySelectorAll(".appl-wide-card[data-appliance-id]").length === expected;
 }
 
+function markFinalOwner0154(fn) {
+  if (typeof fn !== "function") return;
+  fn.__dm0154FinalTopGate = true;
+  fn.__dm0154StableRenderGate = true;
+  fn.__dm0154SingleArtworkOwner = true;
+  fn.__dm0154MetricHook = true;
+  fn.__dm0147AssetMarkers = true;
+}
+
 function installFinalApplianceGate0154() {
   const current = globalThis.renderApplianceSection;
-  if (typeof current !== "function" || current.__dm0154FinalTopGate) return false;
+  if (typeof current !== "function") return false;
+  if (functionChainHas0154Dom(current, "__dm0154FinalTopGate")) {
+    markFinalOwner0154(current);
+    return true;
+  }
+
   const state = domState0154();
   if (applianceCardsReady0154Dom()) state.applianceSignature = applianceSignature0154Dom();
 
   function finalApplianceRender0154(...args) {
     const signature = applianceSignature0154Dom();
-    const forced = args[0] === true;
-    if (!forced && applianceCardsReady0154Dom() && signature === state.applianceSignature) {
-      return false;
-    }
+    if (applianceCardsReady0154Dom() && signature === state.applianceSignature) return false;
     state.applianceSignature = signature;
     try {
       const result = current.apply(this, args);
@@ -119,11 +125,7 @@ function installFinalApplianceGate0154() {
     }
   }
 
-  finalApplianceRender0154.__dm0154FinalTopGate = true;
-  finalApplianceRender0154.__dm0154StableRenderGate = true;
-  finalApplianceRender0154.__dm0154SingleArtworkOwner = true;
-  finalApplianceRender0154.__dm0154MetricHook = true;
-  finalApplianceRender0154.__dm0147AssetMarkers = true;
+  markFinalOwner0154(finalApplianceRender0154);
   finalApplianceRender0154.__dmPrevious = current;
   globalThis.renderApplianceSection = finalApplianceRender0154;
   return true;
@@ -144,73 +146,9 @@ function narrowLegacyCompatibilityObserver0154() {
   }
 }
 
-function allowAlertEditorRender0154() {
-  domState0154().allowAlertRenderUntil = now0154Dom() + 1200;
-}
-
-function installAlertActionGuard0154(name) {
-  const current = globalThis[name];
-  if (typeof current !== "function" || functionChainHas0154Dom(current, "__dm0154AlertAction")) {
-    return false;
-  }
-  function alertAction0154(...args) {
-    allowAlertEditorRender0154();
-    return current.apply(this, args);
-  }
-  alertAction0154.__dm0154AlertAction = true;
-  alertAction0154.__dmPrevious = current;
-  globalThis[name] = alertAction0154;
-  return true;
-}
-
-function installEditorSwitchGuard0154() {
-  const current = globalThis.editorSwitch;
-  if (typeof current !== "function" || functionChainHas0154Dom(current, "__dm0154EditorSwitchGuard")) {
-    return false;
-  }
-
-  function stableEditorSwitch0154(tab, ...args) {
-    const target = String(tab || "");
-    if (target === "avvisi") {
-      const active = globalThis.document?.querySelector?.(".ed-tab.active")?.dataset?.tab || "";
-      const modal = globalThis.document?.getElementById?.("editor-modal");
-      const body = globalThis.document?.getElementById?.("ed-body");
-      const sameMountedTab =
-        active === "avvisi" &&
-        modal?.classList?.contains("show") &&
-        Boolean(body?.children?.length);
-      if (sameMountedTab && now0154Dom() > domState0154().allowAlertRenderUntil) return false;
-    }
-    return current.call(this, tab, ...args);
-  }
-
-  stableEditorSwitch0154.__dm0154EditorSwitchGuard = true;
-  stableEditorSwitch0154.__dmPrevious = current;
-  globalThis.editorSwitch = stableEditorSwitch0154;
-  return true;
-}
-
-function markCompatibilityOwner0154() {
-  const current = globalThis.renderApplianceSection;
-  if (!functionChainHas0154Dom(current, "__dm0147AssetMarkers")) return false;
-  if (!current.__dm0147AssetMarkers) current.__dm0147AssetMarkers = true;
-  return true;
-}
-
 function installDomStability0154() {
   narrowLegacyCompatibilityObserver0154();
   installFinalApplianceGate0154();
-  markCompatibilityOwner0154();
-  [
-    "dmRealEditAlert",
-    "edEditAvvisoStandard",
-    "edAddAvviso",
-    "edDelAvviso",
-    "edEditAvvisoCustom",
-    "edDelAvvisoCustom",
-    "edAvvCancelEdit",
-  ].forEach(installAlertActionGuard0154);
-  installEditorSwitchGuard0154();
 }
 
 function monitorDomStability0154() {
