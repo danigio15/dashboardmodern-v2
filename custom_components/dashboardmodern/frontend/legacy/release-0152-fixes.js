@@ -17,7 +17,10 @@ import "./release-0154-temperature-live-state.js";
 import "./release-0155-energy-placeholder-fallback.js";
 import "./release-0155-public-runtime.js";
 import "./release-0156-period-runtime.js";
-import "./release-0156-final-runtime.js";
+
+if (typeof globalThis.document !== "undefined") {
+  import("./release-0156-final-runtime.js");
+}
 
 const RENDER_GUARD_KEY_0152 = "__DASHBOARDMODERN_RELEASE_0152_RENDER_GUARD__";
 
