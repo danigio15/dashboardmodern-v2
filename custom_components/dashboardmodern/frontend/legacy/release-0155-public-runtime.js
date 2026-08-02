@@ -1,6 +1,5 @@
-/* DashboardModern 0.14.15: public runtime truth for energy, temperature and appliances. */
+/* DashboardModern 0.14.15: live Home Assistant truth for temperature and appliances. */
 const PUBLIC_RUNTIME_KEY = "__DASHBOARDMODERN_RELEASE_0155_PUBLIC_RUNTIME__";
-const ENERGY_REFRESH_EVENT = "dashboardmodern:energy-periods-0154";
 const ON_STATES = new Set(["on", "playing", "heat", "cool", "open", "opening", "running", "active"]);
 
 function runtime0155() {
@@ -11,9 +10,6 @@ function runtime0155() {
     socket: null,
     socketRetry: 0,
     messageId: 155000,
-    energySnapshots: Object.create(null),
-    energyRestoreQueued: false,
-    restoringEnergy: false,
     observer: null,
     wrapperTimer: 0,
     syncTimer: 0,
@@ -166,27 +162,32 @@ function syncTemperature0155() {
     const humidityText = humidity == null ? "—" : humidity.toFixed(0);
     changed = setText0155(doc.getElementById(`tv_${tempId}`), tempText) || changed;
     changed = setText0155(doc.getElementById(`tbl_${tempId}`), `${tempText}°`) || changed;
-    changed = setWidth0155(
-      doc.getElementById(`tb_${tempId}`),
-      temperature == null
-        ? "0%"
-        : `${Math.min(100, Math.max(0, ((temperature - 10) / 25) * 100))}%`,
-    ) || changed;
-    changed = setHtml0155(
-      doc.getElementById(`hv_${humidityId}`),
-      `${humidityText}<span style="font-size:14px;opacity:0.75;">%</span>`,
-    ) || changed;
+    changed =
+      setWidth0155(
+        doc.getElementById(`tb_${tempId}`),
+        temperature == null
+          ? "0%"
+          : `${Math.min(100, Math.max(0, ((temperature - 10) / 25) * 100))}%`,
+      ) || changed;
+    changed =
+      setHtml0155(
+        doc.getElementById(`hv_${humidityId}`),
+        `${humidityText}<span style="font-size:14px;opacity:0.75;">%</span>`,
+      ) || changed;
     changed = setText0155(doc.getElementById(`hbl_${humidityId}`), `${humidityText}%`) || changed;
-    changed = setWidth0155(
-      doc.getElementById(`hb_${humidityId}`),
-      humidity == null ? "0%" : `${Math.min(100, Math.max(0, humidity))}%`,
-    ) || changed;
+    changed =
+      setWidth0155(
+        doc.getElementById(`hb_${humidityId}`),
+        humidity == null ? "0%" : `${Math.min(100, Math.max(0, humidity))}%`,
+      ) || changed;
 
     const cards = [...doc.querySelectorAll("#temp-grid .temp-card")];
     const card =
       cards.find((candidate) => String(candidate.dataset.roomId || "") === String(room.id || "")) ||
-      cards.find((candidate) =>
-        (candidate.querySelector(".cp-name")?.textContent || "").trim() === String(room.name || "").trim(),
+      cards.find(
+        (candidate) =>
+          (candidate.querySelector(".cp-name")?.textContent || "").trim() ===
+          String(room.name || "").trim(),
       ) ||
       cards[index];
     if (card) {
@@ -194,7 +195,9 @@ function syncTemperature0155() {
       if (fallbackTemperature && !fallbackTemperature.id) {
         changed = setText0155(fallbackTemperature, tempText) || changed;
       }
-      const fallbackHumidity = card.querySelector(".humidity-value,.hum-value,[data-humidity-value]");
+      const fallbackHumidity = card.querySelector(
+        ".humidity-value,.hum-value,[data-humidity-value]",
+      );
       if (fallbackHumidity && !fallbackHumidity.id) {
         changed = setText0155(fallbackHumidity, humidityText) || changed;
       }
@@ -216,11 +219,13 @@ function syncTemperature0155() {
 }
 
 function entityEntries0155(item) {
-  return [...new Set(
-    (Array.isArray(item?.entities) ? item.entities : [])
-      .map((entry) => (typeof entry === "string" ? entry : entry?.entity))
-      .filter(Boolean),
-  )];
+  return [
+    ...new Set(
+      (Array.isArray(item?.entities) ? item.entities : [])
+        .map((entry) => (typeof entry === "string" ? entry : entry?.entity))
+        .filter(Boolean),
+    ),
+  ];
 }
 
 function firstEntity0155(item, keys) {
@@ -257,9 +262,13 @@ function powerEntity0155(item) {
   return (
     candidates.find((entity) => {
       const state = exactState0155(entity);
-      const unit = String(state?.attributes?.unit_of_measurement || "").toLowerCase().replaceAll(" ", "");
+      const unit = String(state?.attributes?.unit_of_measurement || "")
+        .toLowerCase()
+        .replaceAll(" ", "");
       return state?.attributes?.device_class === "power" || /^(w|kw|mw)$/.test(unit);
-    }) || explicit || ""
+    }) ||
+    explicit ||
+    ""
   );
 }
 
@@ -269,7 +278,9 @@ function applianceLiveState0155(item) {
   const power = powerEntity0155(item);
   const powerState = exactState0155(power);
   let watts = Number.parseFloat(powerState?.state);
-  const unit = String(powerState?.attributes?.unit_of_measurement || "").toLowerCase().replaceAll(" ", "");
+  const unit = String(powerState?.attributes?.unit_of_measurement || "")
+    .toLowerCase()
+    .replaceAll(" ", "");
   if (Number.isFinite(watts) && unit === "kw") watts *= 1000;
   else if (Number.isFinite(watts) && unit === "mw") watts *= 1_000_000;
   if (!Number.isFinite(watts)) watts = null;
@@ -332,7 +343,9 @@ function syncAppliances0155() {
         );
       });
       if (button && live.control) {
-        const controlOn = ON_STATES.has(String(exactState0155(live.control)?.state || "").toLowerCase());
+        const controlOn = ON_STATES.has(
+          String(exactState0155(live.control)?.state || "").toLowerCase(),
+        );
         if (button.classList.contains("on") !== controlOn) {
           button.classList.toggle("on", controlOn);
           changed = true;
@@ -344,82 +357,6 @@ function syncAppliances0155() {
       }
     });
   return changed;
-}
-
-const ENERGY_IDS_0155 = Object.freeze({
-  day: ["v-solar-day", "v-home-day", "v-grid-day", "v-battery-day"],
-  month: ["v-solar-month", "v-home-month", "v-grid-month", "v-battery-month"],
-  year: ["v-solar-year", "v-home-year", "v-grid-year", "v-battery-year"],
-});
-
-function numericEnergyText0155(value) {
-  const matches = String(value || "").match(/-?\d+(?:[.,]\d+)?/g) || [];
-  return matches.map((part) => Number(part.replace(",", "."))).filter(Number.isFinite);
-}
-
-function validEnergySnapshot0155(nodes) {
-  if (nodes.some((node) => !node || !/kwh/i.test(node.textContent || ""))) return false;
-  return nodes.some((node) => numericEnergyText0155(node.textContent).some((value) => value > 0));
-}
-
-function captureEnergySnapshots0155(force = false) {
-  const doc = globalThis.document;
-  if (!doc || runtime0155().restoringEnergy) return false;
-  let captured = false;
-  Object.entries(ENERGY_IDS_0155).forEach(([kind, ids]) => {
-    const runtime = runtime0155();
-    if (!force && runtime.energySnapshots[kind]) return;
-    const nodes = ids.map((id) => doc.getElementById(id));
-    if (!validEnergySnapshot0155(nodes)) return;
-    runtime.energySnapshots[kind] = Object.fromEntries(
-      nodes.map((node) => [node.id, node.innerHTML]),
-    );
-    captured = true;
-  });
-  return captured;
-}
-
-function restoreEnergySnapshots0155() {
-  const runtime = runtime0155();
-  const doc = globalThis.document;
-  runtime.energyRestoreQueued = false;
-  if (!doc) return false;
-  runtime.restoringEnergy = true;
-  let restored = false;
-  try {
-    Object.values(runtime.energySnapshots).forEach((snapshot) => {
-      Object.entries(snapshot || {}).forEach(([id, html]) => {
-        const node = doc.getElementById(id);
-        if (node && node.innerHTML !== html) {
-          node.innerHTML = html;
-          restored = true;
-        }
-      });
-    });
-  } finally {
-    runtime.restoringEnergy = false;
-  }
-  return restored;
-}
-
-function scheduleEnergyRestore0155() {
-  const runtime = runtime0155();
-  if (runtime.energyRestoreQueued) return;
-  runtime.energyRestoreQueued = true;
-  const restore = () => restoreEnergySnapshots0155();
-  globalThis.queueMicrotask?.(restore);
-  globalThis.requestAnimationFrame?.(restore);
-  globalThis.setTimeout?.(restore, 0);
-  globalThis.setTimeout?.(restore, 40);
-  globalThis.setTimeout?.(restore, 160);
-}
-
-function resetEnergySnapshots0155(kind = "") {
-  const runtime = runtime0155();
-  if (kind && runtime.energySnapshots[kind]) delete runtime.energySnapshots[kind];
-  else runtime.energySnapshots = Object.create(null);
-  globalThis.setTimeout?.(() => captureEnergySnapshots0155(), 0);
-  globalThis.setTimeout?.(() => captureEnergySnapshots0155(), 100);
 }
 
 function functionChainHas0155(fn, marker) {
@@ -455,12 +392,6 @@ function wrapRender0155(name, callback) {
 }
 
 function installRenderWrappers0155() {
-  wrapRender0155("renderEnergy", () => {
-    globalThis.requestAnimationFrame?.(() => captureEnergySnapshots0155());
-  });
-  wrapRender0155("renderEnergyDashboard", () => {
-    globalThis.requestAnimationFrame?.(() => captureEnergySnapshots0155());
-  });
   wrapRender0155("renderTemperature", syncTemperature0155);
   wrapRender0155("renderApplianceSection", syncAppliances0155);
   wrapRender0155("renderAppliances", syncAppliances0155);
@@ -468,20 +399,18 @@ function installRenderWrappers0155() {
 
 function installObserver0155() {
   const runtime = runtime0155();
-  if (runtime.observer || !globalThis.document?.documentElement || typeof MutationObserver !== "function") {
+  if (
+    runtime.observer ||
+    !globalThis.document?.documentElement ||
+    typeof MutationObserver !== "function"
+  ) {
     return;
   }
   runtime.observer = new MutationObserver((records) => {
-    let energyChanged = false;
-    let runtimeChanged = false;
-    records.forEach((record) => {
+    const runtimeChanged = records.some((record) => {
       const target = record.target?.nodeType === 1 ? record.target : record.target?.parentElement;
-      if (!target) return;
-      const id = target.id || target.closest?.("[id]")?.id || "";
-      if (/^v-(solar|home|grid|battery)-(day|month|year)$/.test(id)) energyChanged = true;
-      if (target.closest?.("#temp-grid,#appl-grid-overview,#page-appliances-main")) runtimeChanged = true;
+      return Boolean(target?.closest?.("#temp-grid,#appl-grid-overview,#page-appliances-main"));
     });
-    if (energyChanged && Object.keys(runtime.energySnapshots).length) scheduleEnergyRestore0155();
     if (runtimeChanged) scheduleRuntimeSync0155();
   });
   runtime.observer.observe(globalThis.document.documentElement, {
@@ -569,7 +498,6 @@ function syncRuntime0155() {
   installRenderWrappers0155();
   syncTemperature0155();
   syncAppliances0155();
-  captureEnergySnapshots0155();
 }
 
 let syncQueued0155 = false;
@@ -605,9 +533,6 @@ function install0155() {
   }
   if (!runtime.syncTimer) runtime.syncTimer = globalThis.setInterval?.(syncRuntime0155, 1000);
 
-  runtime.captureEnergy = (force = false) => captureEnergySnapshots0155(force);
-  runtime.restoreEnergy = restoreEnergySnapshots0155;
-  runtime.resetEnergy = resetEnergySnapshots0155;
   runtime.syncTemperature = syncTemperature0155;
   runtime.syncAppliances = syncAppliances0155;
   runtime.ingestState = rememberState0155;
@@ -615,30 +540,8 @@ function install0155() {
 }
 
 if (typeof globalThis.document !== "undefined") {
-  globalThis.addEventListener?.(ENERGY_REFRESH_EVENT, scheduleEnergyRestore0155);
   globalThis.addEventListener?.("dashboardmodern:legacy-ready", install0155);
   globalThis.addEventListener?.("pageshow", install0155);
-  globalThis.document.addEventListener(
-    "click",
-    (event) => {
-      const target = event.target?.closest?.("button,.sub-tab-btn,.ed-inner-tab,.hist-time-btn");
-      if (!target) return;
-      const text = String(target.textContent || "");
-      if (/giornal|daily/i.test(text)) resetEnergySnapshots0155("day");
-      else if (/mensil|monthly/i.test(text)) resetEnergySnapshots0155("month");
-      else if (/ann|year/i.test(text)) resetEnergySnapshots0155("year");
-    },
-    true,
-  );
-  globalThis.document.addEventListener(
-    "change",
-    (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLSelectElement)) return;
-      if (/month|mese|year|anno/i.test(`${target.id} ${target.name}`)) resetEnergySnapshots0155("month");
-    },
-    true,
-  );
   if (globalThis.document.readyState === "loading") {
     globalThis.document.addEventListener("DOMContentLoaded", install0155, { once: true });
   } else install0155();
