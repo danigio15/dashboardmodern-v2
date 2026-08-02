@@ -1,6 +1,7 @@
-/* DashboardModern 0.14.14: keep energy-period refreshes from rebuilding unrelated UI. */
+/* DashboardModern 0.14.14: isolate energy refreshes and keep appliance metrics correct. */
 const HOTFIX_KEY = "__DASHBOARDMODERN_RELEASE_0154_ENERGY_RENDER_HOTFIX__";
 const RELEASE_KEY = "__DASHBOARDMODERN_RELEASE_0154__";
+const PERIOD_EVENT = "dashboardmodern:energy-periods-0154";
 
 function clock0154Hotfix() {
   return globalThis.performance?.now?.() ?? Date.now();
@@ -8,13 +9,29 @@ function clock0154Hotfix() {
 
 function hotfixState0154() {
   return (globalThis[HOTFIX_KEY] ||= {
-    suppressNextGlobalRender: false,
     suppressUntil: 0,
+    energyRenderDepth: 0,
     releaseState: null,
     installed: false,
     monitor: null,
     monitorTicks: 0,
   });
+}
+
+function functionChainHas0154(fn, marker) {
+  const seen = new Set();
+  let current = fn;
+  while (typeof current === "function" && !seen.has(current)) {
+    if (current[marker]) return true;
+    seen.add(current);
+    current = current.__dmPrevious;
+  }
+  return false;
+}
+
+function armGlobalRenderSuppression0154(duration = 5000) {
+  const state = hotfixState0154();
+  state.suppressUntil = Math.max(state.suppressUntil, clock0154Hotfix() + duration);
 }
 
 function instrumentEnergyRefreshState0154() {
@@ -32,10 +49,7 @@ function instrumentEnergyRefreshState0154() {
       },
       set(value) {
         const next = Boolean(value);
-        if (refreshing && !next) {
-          hotfix.suppressNextGlobalRender = true;
-          hotfix.suppressUntil = clock0154Hotfix() + 250;
-        }
+        if (next || refreshing !== next) armGlobalRenderSuppression0154(5000);
         refreshing = next;
       },
     });
@@ -48,7 +62,9 @@ function instrumentEnergyRefreshState0154() {
 
 function calledFromEnergyRefresh0154() {
   try {
-    return String(new Error().stack || "").includes("refreshEnergyPeriods0154");
+    return /refreshEnergyPeriods0154|cdRefreshPeriodDeltas|cdDeriveFromTotals|renderEnergyDashboard|renderEnergy/.test(
+      String(new Error().stack || ""),
+    );
   } catch (_error) {
     return false;
   }
@@ -56,17 +72,19 @@ function calledFromEnergyRefresh0154() {
 
 function installGlobalRenderGate0154() {
   const current = globalThis.render;
-  if (typeof current !== "function" || current.__dm0154EnergyRenderGate) return false;
+  if (typeof current !== "function" || functionChainHas0154(current, "__dm0154EnergyRenderGate")) {
+    return false;
+  }
 
   function energySafeGlobalRender0154(...args) {
     const hotfix = hotfixState0154();
-    const armed = hotfix.suppressNextGlobalRender;
-    const active = armed && clock0154Hotfix() <= hotfix.suppressUntil;
-    if (armed) {
-      hotfix.suppressNextGlobalRender = false;
-      hotfix.suppressUntil = 0;
+    if (
+      hotfix.energyRenderDepth > 0 ||
+      clock0154Hotfix() <= hotfix.suppressUntil ||
+      calledFromEnergyRefresh0154()
+    ) {
+      return false;
     }
-    if (active || calledFromEnergyRefresh0154()) return false;
     return current.apply(this, args);
   }
 
@@ -77,9 +95,236 @@ function installGlobalRenderGate0154() {
   return true;
 }
 
+function installEnergyRenderPhase0154(name) {
+  const current = globalThis[name];
+  if (typeof current !== "function" || functionChainHas0154(current, "__dm0154EnergyPhase")) {
+    return false;
+  }
+
+  function energyPhase0154(...args) {
+    const state = hotfixState0154();
+    state.energyRenderDepth += 1;
+    armGlobalRenderSuppression0154(1500);
+    let result;
+    try {
+      result = current.apply(this, args);
+    } catch (error) {
+      state.energyRenderDepth = Math.max(0, state.energyRenderDepth - 1);
+      throw error;
+    }
+    if (result && typeof result.finally === "function") {
+      return result.finally(() => {
+        state.energyRenderDepth = Math.max(0, state.energyRenderDepth - 1);
+      });
+    }
+    state.energyRenderDepth = Math.max(0, state.energyRenderDepth - 1);
+    return result;
+  }
+
+  energyPhase0154.__dm0154EnergyPhase = true;
+  energyPhase0154.__dmPrevious = current;
+  globalThis[name] = energyPhase0154;
+  return true;
+}
+
+function runtimeState0154(entity) {
+  const id = String(entity || "").trim();
+  return globalThis.STATES?.[id] || globalThis._RAW_STATES?.[id] || null;
+}
+
+function configuredEntities0154(item) {
+  return [...new Set(
+    (Array.isArray(item?.entities) ? item.entities : [])
+      .map((value) => (typeof value === "string" ? value : value?.entity))
+      .filter(Boolean),
+  )];
+}
+
+function explicitEntity0154(item, keys) {
+  for (const key of keys || []) {
+    const value = item?.[key];
+    const entity = typeof value === "string" ? value : value?.entity;
+    if (typeof entity === "string" && entity.includes(".")) return entity;
+  }
+  return "";
+}
+
+function entityFacts0154(entity) {
+  const state = runtimeState0154(entity);
+  const attributes = state?.attributes || {};
+  return {
+    entity: String(entity || ""),
+    unit: String(attributes.unit_of_measurement || "").trim().toLowerCase().replaceAll(" ", ""),
+    deviceClass: String(attributes.device_class || "").trim().toLowerCase(),
+    stateClass: String(attributes.state_class || "").trim().toLowerCase(),
+    text: `${entity || ""} ${attributes.friendly_name || ""}`.toLowerCase(),
+  };
+}
+
+function isEnergyEntity0154(entity) {
+  const facts = entityFacts0154(entity);
+  return (
+    facts.deviceClass === "energy" ||
+    /^(wh|kwh|mwh)$/.test(facts.unit) ||
+    (/total|totale|energy|energia|kwh/.test(facts.text) &&
+      !/^(w|kw|mw)$/.test(facts.unit)) ||
+    (["total", "total_increasing"].includes(facts.stateClass) && !/^(w|kw|mw)$/.test(facts.unit))
+  );
+}
+
+function isPowerEntity0154(entity) {
+  const facts = entityFacts0154(entity);
+  return (
+    facts.deviceClass === "power" ||
+    /^(w|kw|mw)$/.test(facts.unit) ||
+    (/power|potenza|watt/.test(facts.text) && !isEnergyEntity0154(entity))
+  );
+}
+
+function isDurationEntity0154(entity) {
+  const facts = entityFacts0154(entity);
+  return (
+    facts.deviceClass === "duration" ||
+    /^(s|sec|second|seconds|min|minute|minutes|h|hr|hour|hours)$/.test(facts.unit) ||
+    /duration|durata|runtime|tempo/.test(facts.text)
+  );
+}
+
+function roleForKeys0154(keys) {
+  const token = String(keys?.[0] || "").toLowerCase();
+  if (token.startsWith("energy") || token.includes("daily_energy")) return "energy";
+  if (token.startsWith("power")) return "power";
+  if (token.startsWith("duration")) return "duration";
+  if (token.startsWith("switch") || token.startsWith("control") || token.startsWith("light")) {
+    return "control";
+  }
+  if (token.startsWith("history")) return "history";
+  return "";
+}
+
+function candidateForRole0154(item, role) {
+  const candidates = configuredEntities0154(item);
+  if (role === "energy") return candidates.find(isEnergyEntity0154) || "";
+  if (role === "power") return candidates.find(isPowerEntity0154) || "";
+  if (role === "duration") return candidates.find(isDurationEntity0154) || "";
+  if (role === "control") {
+    return candidates.find((entity) => /^(switch|light|input_boolean|fan)\./.test(entity)) || "";
+  }
+  if (role === "history") {
+    return candidates.find(isEnergyEntity0154) || candidates.find(isPowerEntity0154) || "";
+  }
+  return "";
+}
+
+function validForRole0154(entity, role) {
+  if (!entity) return false;
+  if (role === "energy") return isEnergyEntity0154(entity);
+  if (role === "power") return isPowerEntity0154(entity);
+  if (role === "duration") return isDurationEntity0154(entity);
+  if (role === "control") return /^(switch|light|input_boolean|fan)\./.test(entity);
+  if (role === "history") return isEnergyEntity0154(entity) || isPowerEntity0154(entity);
+  return true;
+}
+
+function installApplianceEntityClassifier0154() {
+  const current = globalThis.cdApplEntity;
+  if (typeof current !== "function" || functionChainHas0154(current, "__dm0154EntityClassifier")) {
+    return false;
+  }
+
+  function classifiedApplianceEntity0154(item, keys) {
+    const explicit = explicitEntity0154(item, keys);
+    if (explicit) return explicit;
+    const role = roleForKeys0154(keys);
+    const candidate = candidateForRole0154(item, role);
+    if (candidate) return candidate;
+    const fallback = current.call(this, item, keys);
+    if (role && !validForRole0154(fallback, role)) return null;
+    return fallback;
+  }
+
+  classifiedApplianceEntity0154.__dm0154EntityClassifier = true;
+  classifiedApplianceEntity0154.__dmPrevious = current;
+  globalThis.cdApplEntity = classifiedApplianceEntity0154;
+  return true;
+}
+
+function entityDisplayValue0154(entity) {
+  const state = runtimeState0154(entity);
+  if (!state) return "";
+  const unit = String(state.attributes?.unit_of_measurement || "").trim();
+  return `${state.state}${unit ? ` ${unit}` : ""}`;
+}
+
+function normalizeApplianceMetrics0154() {
+  const doc = globalThis.document;
+  if (!doc) return false;
+  let items = [];
+  try {
+    const value = globalThis.DashboardModernModules?.store?.getSection?.("appliances");
+    items = Array.isArray(value) ? value : [];
+  } catch (_error) {}
+  const byId = new Map(items.map((item) => [String(item.id || ""), item]));
+  doc.querySelectorAll("#page-appliances-main .appl-wide-card[data-appliance-id]").forEach((card, index) => {
+    const item = byId.get(String(card.dataset.applianceId || "")) || items[index];
+    if (!item) return;
+    const power = candidateForRole0154(item, "power");
+    const energy = candidateForRole0154(item, "energy");
+    const live = card.querySelector(".appl-live");
+    const primary = live?.querySelector(".appl-primary");
+    const primaryValue = primary?.querySelector("strong")?.textContent || "";
+    if (primary && (!power || /(?:^|\s)(?:wh|kwh|mwh)(?:\s|$)/i.test(primaryValue))) primary.remove();
+    if (!energy || !live) return;
+    const label = globalThis.document?.documentElement?.lang === "en" ? "Total" : "Totale";
+    const value = entityDisplayValue0154(energy);
+    if (!value) return;
+    let total = live.querySelector(".appl-mini[data-dm-energy-total='true']");
+    if (!total) {
+      total = [...live.querySelectorAll(".appl-mini")].find((node) =>
+        /(?:wh|kwh|mwh)(?:\s|$)/i.test(node.textContent || ""),
+      );
+    }
+    if (!total) {
+      total = doc.createElement("span");
+      total.className = "appl-mini";
+      live.append(total);
+    }
+    if (total.dataset.dmEnergyTotal !== "true") total.dataset.dmEnergyTotal = "true";
+    const text = `∑ ${label} ${value}`;
+    if (total.textContent !== text) total.textContent = text;
+  });
+  return true;
+}
+
+function installApplianceRenderHook0154() {
+  const current = globalThis.renderApplianceSection;
+  if (typeof current !== "function" || functionChainHas0154(current, "__dm0154MetricHook")) {
+    return false;
+  }
+
+  function applianceMetricRender0154(...args) {
+    const result = current.apply(this, args);
+    if (result && typeof result.finally === "function") {
+      return result.finally(normalizeApplianceMetrics0154);
+    }
+    normalizeApplianceMetrics0154();
+    return result;
+  }
+
+  applianceMetricRender0154.__dm0154MetricHook = true;
+  applianceMetricRender0154.__dmPrevious = current;
+  globalThis.renderApplianceSection = applianceMetricRender0154;
+  return true;
+}
+
 function installEnergyRenderHotfix0154() {
   instrumentEnergyRefreshState0154();
   installGlobalRenderGate0154();
+  installEnergyRenderPhase0154("renderEnergy");
+  installEnergyRenderPhase0154("renderEnergyDashboard");
+  installApplianceEntityClassifier0154();
+  installApplianceRenderHook0154();
+  normalizeApplianceMetrics0154();
   hotfixState0154().installed = true;
 }
 
@@ -106,6 +351,10 @@ if (typeof globalThis.document !== "undefined") {
   globalThis.setTimeout?.(installEnergyRenderHotfix0154, 500);
   globalThis.addEventListener?.("dashboardmodern:legacy-ready", installEnergyRenderHotfix0154);
   globalThis.addEventListener?.("pageshow", installEnergyRenderHotfix0154);
+  globalThis.addEventListener?.(PERIOD_EVENT, () => {
+    armGlobalRenderSuppression0154(1200);
+    normalizeApplianceMetrics0154();
+  });
   if (globalThis.document.readyState === "loading") {
     globalThis.document.addEventListener("DOMContentLoaded", installEnergyRenderHotfix0154, {
       once: true,
