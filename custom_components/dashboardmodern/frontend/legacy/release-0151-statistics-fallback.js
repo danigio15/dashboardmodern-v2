@@ -1,5 +1,5 @@
-/* DashboardModern 0.14.11: authenticated statistics fallback for late store startup. */
-import { periodDelta, periodRange } from "./release-0151-fixes.js";
+/* DashboardModern 0.14.16: current-period statistics without Report cross-contamination. */
+import { periodRange } from "./release-0151-fixes.js";
 import { fetchEnergyStatistics0151 } from "./release-0151-statistics-socket.js";
 
 const FALLBACK_FLAG = "__DASHBOARDMODERN_RELEASE_0151_STATISTICS_FALLBACK__";
@@ -63,6 +63,7 @@ const PERIOD_SOURCES = Object.freeze([
 ]);
 
 const editorTotals = new Map();
+let requestGeneration = 0;
 
 function dashboardStore() {
   return globalThis.DashboardModernModules?.store;
@@ -93,29 +94,6 @@ function isEnergySaveButton(button) {
   return /(?:salva\s+energia|save\s+energy)/i.test(text);
 }
 
-function selectedReportDate() {
-  const scope =
-    document.getElementById("page-energy") || document.getElementById("page-energia") || document;
-  const selects = [...scope.querySelectorAll("select")].filter(
-    (select) => !select.closest("#editor-modal"),
-  );
-  const label = (select) =>
-    `${select.id} ${select.name} ${select.className} ${select.getAttribute("aria-label") || ""} ${select.previousElementSibling?.textContent || ""}`.toLowerCase();
-  const monthSelect = selects.find((select) => /month|mese/.test(label(select)));
-  const yearSelect = selects.find((select) => /year|anno/.test(label(select)));
-  const now = new Date();
-  const rawMonth = Number(monthSelect?.value);
-  const month =
-    Number.isInteger(rawMonth) && rawMonth >= 1 && rawMonth <= 12
-      ? rawMonth - 1
-      : Number.isInteger(rawMonth) && rawMonth >= 0 && rawMonth <= 11
-        ? rawMonth
-        : now.getMonth();
-  const rawYear = Number(yearSelect?.value || yearSelect?.selectedOptions?.[0]?.textContent);
-  const year = Number.isInteger(rawYear) && rawYear >= 2000 ? rawYear : now.getFullYear();
-  return new Date(year, month, 1);
-}
-
 function definitionsFor(energy) {
   return PERIOD_SOURCES.map((definition) => {
     const group = energy?.[definition.group] || {};
@@ -126,12 +104,57 @@ function definitionsFor(energy) {
   }).filter((item) => item.entity);
 }
 
+function rowTime(row) {
+  const raw = row?.start ?? row?.end ?? row?.last_updated ?? row?.timestamp ?? 0;
+  const value = typeof raw === "number" ? raw : Date.parse(raw);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function cumulativeValue(row) {
+  for (const key of ["sum", "state", "max"]) {
+    const value = Number(row?.[key]);
+    if (Number.isFinite(value)) return value;
+  }
+  return null;
+}
+
+function periodValue(rows = [], baseline = null) {
+  const ordered = (Array.isArray(rows) ? rows : [])
+    .filter(Boolean)
+    .slice()
+    .sort((left, right) => rowTime(left) - rowTime(right));
+  const changes = ordered
+    .map((row) => Number(row?.change))
+    .filter((value) => Number.isFinite(value));
+  if (changes.length) return Math.max(0, changes.reduce((total, value) => total + value, 0));
+
+  const values = ordered.map(cumulativeValue).filter((value) => value != null);
+  const base = cumulativeValue(baseline);
+  if (base != null && values.length) values.unshift(base);
+  if (values.length < 2) return null;
+
+  let total = 0;
+  for (let index = 1; index < values.length; index += 1) {
+    const difference = values[index] - values[index - 1];
+    total += difference >= 0 ? difference : Math.max(0, values[index]);
+  }
+  return Math.max(0, total);
+}
+
+function baselineStart(range, kind) {
+  const start = new Date(range.start);
+  if (kind === "year") start.setMonth(start.getMonth() - 2);
+  else if (kind === "day") start.setDate(start.getDate() - 1);
+  else start.setDate(start.getDate() - 2);
+  return start;
+}
+
 function inject(slot, value, entity, kind, selected) {
   if (!slot || !Number.isFinite(value)) return;
   const timestamp = new Date().toISOString();
   const state = {
     entity_id: slot,
-    state: Math.max(0, value).toFixed(1),
+    state: Math.max(0, value).toFixed(3),
     attributes: {
       unit_of_measurement: "kWh",
       device_class: "energy",
@@ -154,23 +177,51 @@ function inject(slot, value, entity, kind, selected) {
 
 async function requestPeriod(kind, selected, definitions) {
   const range = periodRange(kind, selected);
-  if (range.end <= range.start) return false;
-  const ids = [...new Set(definitions.map((item) => item.entity))];
+  if (range.end <= range.start) return [];
+  const relevant = definitions.filter(({ definition, group }) => {
+    const target = definition.periods[kind];
+    return target && !String(group[target.explicitKey] || "").trim();
+  });
+  if (!relevant.length) return [];
+
+  const ids = [...new Set(relevant.map((item) => item.entity))];
   const result = await fetchEnergyStatistics0151(
     ids,
     range.start.toISOString(),
     range.end.toISOString(),
     range.period,
   );
-  definitions.forEach(({ definition, group, entity }) => {
-    const target = definition.periods[kind];
-    if (!target || String(group[target.explicitKey] || "").trim()) return;
-    inject(target.slot, periodDelta(result?.[entity] || []), entity, kind, selected);
+
+  const unresolved = relevant.filter(({ entity }) => periodValue(result?.[entity] || []) == null);
+  let baselines = {};
+  if (unresolved.length) {
+    const baselineIds = [...new Set(unresolved.map((item) => item.entity))];
+    baselines = await fetchEnergyStatistics0151(
+      baselineIds,
+      baselineStart(range, kind).toISOString(),
+      range.start.toISOString(),
+      range.period,
+    );
+  }
+
+  return relevant.flatMap(({ definition, entity }) => {
+    const rows = result?.[entity] || [];
+    const baselineRows = (baselines?.[entity] || [])
+      .slice()
+      .sort((left, right) => rowTime(left) - rowTime(right));
+    const value = periodValue(rows, baselineRows.at(-1) || null);
+    if (value == null) return [];
+    return [{
+      slot: definition.periods[kind].slot,
+      value,
+      entity,
+      kind,
+      selected,
+    }];
   });
-  return true;
 }
 
-export async function refreshEnergyStatisticsFallback0151(selected = selectedReportDate()) {
+export async function refreshEnergyStatisticsFallback0151(selected = new Date()) {
   const store = dashboardStore();
   if (
     typeof globalThis.fetchHAStatistics !== "function" &&
@@ -180,23 +231,30 @@ export async function refreshEnergyStatisticsFallback0151(selected = selectedRep
   const energy = store?.getSection?.("energy") || {};
   const definitions = definitionsFor(energy);
   if (!definitions.length) return false;
+
+  const generation = ++requestGeneration;
   try {
-    await Promise.all([
-      requestPeriod("day", new Date(), definitions),
-      requestPeriod("month", selected, definitions),
-      requestPeriod("year", selected, definitions),
-    ]);
-    globalThis.render?.();
+    const updates = (
+      await Promise.all([
+        requestPeriod("day", new Date(), definitions),
+        requestPeriod("month", selected, definitions),
+        requestPeriod("year", selected, definitions),
+      ])
+    ).flat();
+    if (generation !== requestGeneration) return false;
+
+    updates.forEach(({ slot, value, entity, kind, selected: updateDate }) => {
+      inject(slot, value, entity, kind, updateDate);
+    });
     globalThis.renderEnergy?.();
-    globalThis.renderReport?.();
     globalThis.dispatchEvent?.(
       new CustomEvent(REFRESH_EVENT, {
-        detail: { selected: selected.toISOString(), transport: "authenticated-runtime" },
+        detail: { selected: selected.toISOString(), transport: "current-period-runtime" },
       }),
     );
     return true;
   } catch (error) {
-    console.warn("[DashboardModern] authenticated Energy statistics fallback", error);
+    console.warn("[DashboardModern] current Energy statistics fallback", error);
     return false;
   }
 }
@@ -207,7 +265,7 @@ let subscriptionRetry = 0;
 
 function scheduleRefresh(delay = 80) {
   clearTimeout(refreshTimer);
-  refreshTimer = setTimeout(() => refreshEnergyStatisticsFallback0151(), delay);
+  refreshTimer = setTimeout(() => refreshEnergyStatisticsFallback0151(new Date()), delay);
 }
 
 function subscribeWhenReady() {
@@ -215,7 +273,7 @@ function subscribeWhenReady() {
   const store = dashboardStore();
   if (!store?.subscribe) {
     clearTimeout(subscriptionRetry);
-    subscriptionRetry = setTimeout(subscribeWhenReady, 100);
+    subscriptionRetry = setTimeout(subscribeWhenReady, 150);
     return false;
   }
   subscribed = true;
@@ -230,7 +288,7 @@ function subscribeWhenReady() {
 
 function install() {
   if (globalThis[FALLBACK_FLAG]?.installed) return;
-  globalThis[FALLBACK_FLAG] = { installed: true, version: "0.14.11" };
+  globalThis[FALLBACK_FLAG] = { installed: true, version: "0.14.16" };
   subscribeWhenReady();
   document.addEventListener(
     "input",
@@ -251,16 +309,6 @@ function install() {
       if (!isEnergySaveButton(button)) return;
       rememberEditorTotals();
       scheduleRefresh(180);
-    },
-    true,
-  );
-  document.addEventListener(
-    "change",
-    (event) => {
-      const select = event.target;
-      if (!(select instanceof HTMLSelectElement) || select.closest("#editor-modal")) return;
-      const description = `${select.id} ${select.name} ${select.getAttribute("aria-label") || ""}`;
-      if (/month|mese|year|anno/i.test(description)) scheduleRefresh(40);
     },
     true,
   );
