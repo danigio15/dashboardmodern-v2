@@ -12,6 +12,8 @@ function hotfixState0154() {
     suppressUntil: 0,
     releaseState: null,
     installed: false,
+    monitor: null,
+    monitorTicks: 0,
   });
 }
 
@@ -32,7 +34,7 @@ function instrumentEnergyRefreshState0154() {
         const next = Boolean(value);
         if (refreshing && !next) {
           hotfix.suppressNextGlobalRender = true;
-          hotfix.suppressUntil = clock0154Hotfix() + 100;
+          hotfix.suppressUntil = clock0154Hotfix() + 250;
         }
         refreshing = next;
       },
@@ -44,18 +46,27 @@ function instrumentEnergyRefreshState0154() {
   }
 }
 
+function calledFromEnergyRefresh0154() {
+  try {
+    return String(new Error().stack || "").includes("refreshEnergyPeriods0154");
+  } catch (_error) {
+    return false;
+  }
+}
+
 function installGlobalRenderGate0154() {
   const current = globalThis.render;
   if (typeof current !== "function" || current.__dm0154EnergyRenderGate) return false;
 
   function energySafeGlobalRender0154(...args) {
     const hotfix = hotfixState0154();
-    if (hotfix.suppressNextGlobalRender) {
-      const active = clock0154Hotfix() <= hotfix.suppressUntil;
+    const armed = hotfix.suppressNextGlobalRender;
+    const active = armed && clock0154Hotfix() <= hotfix.suppressUntil;
+    if (armed) {
       hotfix.suppressNextGlobalRender = false;
       hotfix.suppressUntil = 0;
-      if (active) return false;
     }
+    if (active || calledFromEnergyRefresh0154()) return false;
     return current.apply(this, args);
   }
 
@@ -72,11 +83,32 @@ function installEnergyRenderHotfix0154() {
   hotfixState0154().installed = true;
 }
 
+function monitorStartup0154() {
+  const hotfix = hotfixState0154();
+  if (hotfix.monitor || typeof globalThis.setInterval !== "function") return;
+  hotfix.monitorTicks = 0;
+  hotfix.monitor = globalThis.setInterval(() => {
+    hotfix.monitorTicks += 1;
+    installEnergyRenderHotfix0154();
+    if (hotfix.monitorTicks >= 150) {
+      globalThis.clearInterval?.(hotfix.monitor);
+      hotfix.monitor = null;
+    }
+  }, 100);
+}
+
 if (typeof globalThis.document !== "undefined") {
   installEnergyRenderHotfix0154();
+  monitorStartup0154();
   globalThis.queueMicrotask?.(installEnergyRenderHotfix0154);
   globalThis.setTimeout?.(installEnergyRenderHotfix0154, 0);
   globalThis.setTimeout?.(installEnergyRenderHotfix0154, 120);
   globalThis.setTimeout?.(installEnergyRenderHotfix0154, 500);
   globalThis.addEventListener?.("dashboardmodern:legacy-ready", installEnergyRenderHotfix0154);
+  globalThis.addEventListener?.("pageshow", installEnergyRenderHotfix0154);
+  if (globalThis.document.readyState === "loading") {
+    globalThis.document.addEventListener("DOMContentLoaded", installEnergyRenderHotfix0154, {
+      once: true,
+    });
+  }
 }
