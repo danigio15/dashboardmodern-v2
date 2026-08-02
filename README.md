@@ -6,290 +6,384 @@
 
 <p align="center">
   <b>Una plancia smart-home completa, multiutente e responsive per Home Assistant.</b><br>
-  Energia · Fotovoltaico · EV · Clima · Luci · Sicurezza · Tapparelle · Irrigazione · Piscina
+  Energia · Fotovoltaico · Batteria · EV · Clima · Luci · Sicurezza · Elettrodomestici · Automazioni
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.14.10-0ea5e9">
-  <img src="https://img.shields.io/badge/HACS-custom-41BDF5">
-  <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a">
+  <img src="https://img.shields.io/badge/version-0.14.15-0ea5e9" alt="Versione 0.14.15">
+  <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
+  <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
+  <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
-> **English summary** — DashboardModern is a complete Home Assistant dashboard
-> distributed as a HACS custom integration. Version 0.14.10 restores cumulative
-> energy meters as first-class inputs, derives day/month/year values from Home
-> Assistant Long-Term Statistics, fixes appliance icons in the Energy Report,
-> rebuilds the Temperature card layout and standardizes editor actions.
+> **English overview** — DashboardModern is a responsive, multi-instance Home
+> Assistant dashboard distributed as a HACS custom integration. Release 0.14.15
+> keeps the Energy flow values produced by the canonical Home Assistant render,
+> mirrors live `state_changed` events for temperature and appliances, recognises
+> canonical `control_entity` mappings, and ships safe-area local brand assets.
 
 ---
 
 ## Indice
 
-1. [Novità 0.14.10](#novità-01410)
+1. [Novità 0.14.15](#novità-01415)
 2. [Funzioni principali](#funzioni-principali)
-3. [Installazione](#installazione)
-4. [Prima configurazione](#prima-configurazione)
-5. [Energia: configurazione consigliata](#energia-configurazione-consigliata)
-6. [Report Energia ed elettrodomestici](#report-energia-ed-elettrodomestici)
-7. [Plancia Home Assistant e preferita](#plancia-home-assistant-e-preferita)
-8. [Utenti autorizzati](#utenti-autorizzati)
-9. [Editor e sezioni](#editor-e-sezioni)
-10. [Responsive e dispositivi pieghevoli](#responsive-e-dispositivi-pieghevoli)
-11. [Aggiornamento, cache e diagnostica](#aggiornamento-cache-e-diagnostica)
-12. [Sviluppo e test](#sviluppo-e-test)
+3. [Requisiti](#requisiti)
+4. [Installazione con HACS](#installazione-con-hacs)
+5. [Aggiornamento](#aggiornamento)
+6. [Prima configurazione](#prima-configurazione)
+7. [Energia e flussi](#energia-e-flussi)
+8. [Report Energia](#report-energia)
+9. [Temperature e umidità](#temperature-e-umidità)
+10. [Elettrodomestici](#elettrodomestici)
+11. [Plance multiple e utenti](#plance-multiple-e-utenti)
+12. [Branding Home Assistant e HACS](#branding-home-assistant-e-hacs)
+13. [Sicurezza del bridge](#sicurezza-del-bridge)
+14. [Risoluzione dei problemi](#risoluzione-dei-problemi)
+15. [Sviluppo, test e release](#sviluppo-test-e-release)
 
-## Novità 0.14.10
+## Novità 0.14.15
 
-- I **contatori totali cumulativi** tornano disponibili nel Config Energia per
-  Casa, Rete, Fotovoltaico e Batteria.
-- Da un solo contatore con `state_class: total_increasing` o `total`, la
-  dashboard calcola automaticamente giorno, mese corrente, mesi passati e anno
-  tramite le Long-Term Statistics di Home Assistant.
-- I sensori giornalieri, mensili e annuali restano disponibili come override:
-  quando sono configurati hanno precedenza sul contatore totale.
-- Il Report preferisce il contatore totale dell'elettrodomestico, così può
-  ricostruire correttamente i periodi invece di dipendere da un sensore mensile
-  che si azzera.
-- Le icone `mdi:*` non vengono più stampate come testo. Il Report usa immagine,
-  visuale o glifo coerente con l'elettrodomestico selezionato.
-- La card Temperatura è stata ricostruita con una griglia interna stabile: nome,
-  icona, temperatura e umidità non si sovrappongono.
-- Il simbolo batteria è stato rimosso dal totale consumato degli
-  elettrodomestici e sostituito da **∑ Totale**.
-- I pulsanti **Aggiungi**, **Salva** e **Annulla** hanno stile e dimensioni
-  uniformi in tutto l'editor.
+Questa versione corregge regressioni osservate su una vera installazione Home
+Assistant mobile, non soltanto in ambiente simulato.
+
+### Energia
+
+- I valori di **Giornaliera**, **Mensile** e **Annuale** non vengono più
+  riscritti dopo il primo rendering da un registro secondario non allineato.
+- Il dato già calcolato dalla sorgente canonica rimane stabile durante refresh,
+  cambio scheda e aggiornamenti Recorder.
+- La protezione copre Casa, Fotovoltaico, Rete e Batteria, inclusi i due versi di
+  prelievo/immissione e carica/scarica.
+- I contatori cumulativi restano supportati per Report e periodi derivati, ma non
+  possono sovrascrivere un valore di flusso già valido mostrato dalla dashboard.
+
+### Temperature
+
+- Temperatura e umidità vengono aggiornate da una sottoscrizione autenticata agli
+  eventi `state_changed` di Home Assistant.
+- Il runtime mantiene un mirror esatto degli stati reali e aggiorna le card anche
+  quando il vecchio registro interno o un override non è ancora pronto.
+- Il valore iniziale arriva tramite `get_states`; gli aggiornamenti successivi
+  non richiedono ricaricamenti della pagina.
+
+### Elettrodomestici
+
+- `control_entity` è ora un campo canonico anche per il calcolo dello stato.
+- Sono riconosciuti anche `state_entity`, `switch_entity`, sensori di potenza in
+  W/kW e le entità legacy contenute in `entities`.
+- Badge, colore card e pulsante **Accendi/Spegni** seguono lo stato reale.
+- Una potenza superiore alla soglia di funzionamento ha precedenza e mostra
+  **In funzione**, anche quando il comando binario è temporaneamente in ritardo.
+
+### Branding e documentazione
+
+- Nuova icona HACS/Home Assistant con ampia area di sicurezza trasparente, così
+  il simbolo non viene tagliato nelle righe compatte delle Impostazioni.
+- Aggiunte variante ad alta densità e logo locale.
+- README e changelog sono stati riallineati alla versione pubblica corrente.
 
 ## Funzioni principali
 
-- **Più plance indipendenti**: casa, tablet, ospiti o altri impianti, ciascuna
-  con URL, storage, sincronizzazione e impostazioni separati.
-- **Plancia nativa Home Assistant**: oltre al pannello laterale, DashboardModern
-  registra una plancia Lovelace che compare in **Impostazioni → Plance** e può
-  essere scelta come predefinita globale o personale.
-- **Accesso per utente**: ogni istanza può essere visibile a tutti oppure a una
-  lista precisa di utenti Home Assistant.
-- **Editor visuale**: configurazione senza YAML per Energia, EV, Solare,
-  Sicurezza, Temperatura, Clima, Luci, Elettrodomestici, Piscina, Irrigazione,
-  Tapparelle, Stanze e Avvisi.
-- **Autorilevamento**: usa piani, aree, dispositivi ed entità per proporre
-  associazioni senza sovrascrivere le scelte manuali.
-- **Responsive reale**: griglie fluide, `ResizeObserver`, `visualViewport` e
-  ricalcolo al cambio di orientamento o apertura di un dispositivo Fold.
-- **Bilingue**: interfaccia italiana e inglese.
+- **Più plance indipendenti** per casa, tablet, ospiti o impianti distinti.
+- **Pannello laterale e plancia Lovelace** registrati dall'integrazione.
+- **Editor visuale** per Energia, EV, Solare, Batteria, Luci, Clima,
+  Temperature, Sicurezza, Elettrodomestici, Tapparelle, Irrigazione, Piscina,
+  Stanze e Avvisi.
+- **Autorilevamento** da aree, piani, dispositivi ed entità Home Assistant.
+- **Accesso per utente** configurabile per ogni istanza.
+- **Responsive reale** per telefono, tablet, desktop e dispositivi Fold.
+- **Italiano e inglese** con dashboard vendorizzate separate.
+- **Storico e statistiche a lungo termine** per energia e consumi.
+- **Bridge autenticato**: il documento ospitato non riceve un token utilizzabile.
 
-## Installazione
+## Requisiti
 
-### HACS
+- Home Assistant con supporto alle integrazioni personalizzate.
+- HACS consigliato per installazione e aggiornamenti.
+- Recorder attivo quando si vogliono derivare periodi da contatori cumulativi.
+- Home Assistant 2026.3 o successivo per usare direttamente gli asset locali
+  `brand/icon.png` e `brand/logo.png`; HACS usa comunque l'icona inclusa nel
+  repository.
+
+Non servono token salvati manualmente, file in `www/`, risorse Lovelace aggiunte
+all'interfaccia o configurazioni YAML per il pannello.
+
+## Installazione con HACS
 
 1. Apri **HACS → Repository personalizzati**.
-2. Aggiungi `https://github.com/danigio15/dashboardmodern-v2` come
-   **Integrazione**.
-3. Installa DashboardModern e riavvia Home Assistant.
-4. Vai in **Impostazioni → Dispositivi e servizi → Aggiungi integrazione**,
-   cerca DashboardModern e assegna un nome alla plancia.
-5. Apri una volta la nuova voce laterale con un account amministratore.
-
-L'ultima apertura crea o aggiorna automaticamente la plancia Lovelace associata.
-Non occorrono token, file in `www/` o risorse Lovelace manuali.
+2. Aggiungi `https://github.com/danigio15/dashboardmodern-v2`.
+3. Seleziona la categoria **Integrazione**.
+4. Installa l'ultima release di DashboardModern.
+5. **Riavvia Home Assistant** quando HACS mostra `Restart required`.
+6. Vai in **Impostazioni → Dispositivi e servizi → Aggiungi integrazione**.
+7. Cerca **DashboardModern** e assegna un nome alla prima plancia.
+8. Apri la nuova voce laterale almeno una volta con un account amministratore.
 
 ### Installazione manuale
 
-Copia `custom_components/dashboardmodern` in
-`config/custom_components/dashboardmodern`, riavvia Home Assistant e aggiungi
-l'integrazione dall'interfaccia.
+Copia la cartella:
+
+```text
+custom_components/dashboardmodern
+```
+
+in:
+
+```text
+/config/custom_components/dashboardmodern
+```
+
+Riavvia Home Assistant e aggiungi l'integrazione da **Dispositivi e servizi**.
+
+## Aggiornamento
+
+1. Installa la nuova versione da HACS.
+2. Riavvia Home Assistant; la sola ricarica del browser non sostituisce il
+   riavvio richiesto da un aggiornamento dell'integrazione.
+3. Riapri DashboardModern.
+4. Se l'app mobile conserva una vecchia pagina, chiudila completamente e
+   riaprila. In browser è sufficiente una ricarica completa.
+5. Controlla in **Config → Impostazioni** che la versione mostrata corrisponda
+   alla release installata.
+
+Le configurazioni delle plance sono mantenute. Non è necessario cancellare
+storage, entità o integrazione per un normale aggiornamento.
 
 ## Prima configurazione
 
 1. Apri DashboardModern dalla barra laterale.
 2. Entra in **Config → Configura entità**.
-3. In **Impostazioni**, avvia **Autorilevamento**.
-4. Controlla le associazioni proposte e salva ogni sezione modificata.
-5. Configura stanze, luci ed elettrodomestici.
-6. Completa **Energia → Flussi ed entità** seguendo la configurazione consigliata
-   qui sotto.
+3. In **Impostazioni**, esegui **Autorilevamento**.
+4. Controlla le associazioni proposte prima di salvarle.
+5. Configura le **Stanze** con identificativi stabili.
+6. Associa luci, temperature ed elettrodomestici alle stanze.
+7. Completa **Energia → Flussi ed entità**.
+8. Configura eventuali profili EV, telecamere e automazioni.
 
-La navbar mostra automaticamente le sezioni che contengono dati. Le stanze
-senza entità associate non vengono renderizzate nelle relative pagine.
+L'autorilevamento propone valori ma non deve sostituire una scelta manuale già
+salvata. Le sezioni senza dati possono essere nascoste dalla navbar.
 
-## Energia: configurazione consigliata
+## Energia e flussi
 
-### Contatore totale oppure sensori per periodo
+DashboardModern distingue tre tipi di dato:
 
-Per ogni flusso energetico puoi scegliere una delle due modalità.
-
-**Modalità consigliata — un contatore totale cumulativo**
-
-Inserisci un'entità che:
-
-- misuri energia, normalmente in `Wh`, `kWh` o `MWh`;
-- abbia `device_class: energy`;
-- abbia `state_class: total_increasing` oppure `total`;
-- non sia un sensore di potenza istantanea in `W` o `kW`.
-
-Esempio valido:
-
-```text
-sensor.solarman_total_grid_energy
-unit_of_measurement: kWh
-device_class: energy
-state_class: total_increasing
-```
-
-Il nome dell'entità può contenere anche la parola `power`, ma sono unità,
-`device_class` e `state_class` a determinare se il dato è utilizzabile. Il Config
-segnala in rosso un sensore W/kW o non cumulativo.
-
-**Modalità alternativa — sensori già calcolati**
-
-Puoi continuare a indicare entità giornaliere, mensili o annuali. Questi campi
-sono override facoltativi e, se compilati, hanno precedenza sul contatore totale
-per il relativo periodo.
-
-### Campi totali disponibili
-
-| Gruppo | Campo totale | Periodi derivati automaticamente |
+| Tipo | Unità tipica | Uso |
 |---|---|---|
-| Casa | Contatore totale consumo casa | oggi, mese, anno |
-| Rete | Totale energia prelevata | oggi, mese, mesi passati, anno |
-| Rete | Totale energia immessa | oggi, mese, mesi passati, anno |
-| Fotovoltaico | Totale produzione | oggi, mese, anno |
-| Batteria | Totale caricata / scaricata | oggi, mese e analisi storiche |
+| Potenza istantanea | W, kW | flussi in tempo reale e stato carichi |
+| Energia di periodo | Wh, kWh, MWh | giorno, mese o anno già calcolato |
+| Contatore cumulativo | Wh, kWh, MWh con `total`/`total_increasing` | delta ricavati dal Recorder |
 
-DashboardModern interroga le statistiche del recorder e usa il delta del
-periodo richiesto. Non crea helper e non modifica l'entità originale.
+### Priorità dei valori
 
-### Valori a zero
+1. Valore canonico già renderizzato per il periodo selezionato.
+2. Sensore esplicito giornaliero, mensile o annuale configurato dall'utente.
+3. Delta del contatore cumulativo calcolato dalle Long-Term Statistics.
+4. `—` quando nessuna sorgente valida è disponibile.
 
-Quando il Report resta a zero, verifica in **Strumenti per sviluppatori →
-Statistiche** che l'entità non presenti errori e disponga di statistiche a lungo
-termine. Controlla inoltre che il contatore non sia espresso in `W` o `kW`.
-Dopo aver corretto l'entità, salva nuovamente Energia e riapri il Report.
+Un sensore in W/kW non viene mai usato come energia. Un contatore lifetime non
+viene mostrato direttamente come consumo mensile.
 
-## Report Energia ed elettrodomestici
+### Configurazione consigliata
 
-Per ciascun elettrodomestico configura, quando disponibili:
+Per Casa, Fotovoltaico, Rete e Batteria puoi usare:
+
+- sensori separati già calcolati per giorno/mese/anno; oppure
+- un contatore cumulativo con:
+  - `device_class: energy`;
+  - `state_class: total` o `total_increasing`;
+  - unità `Wh`, `kWh` o `MWh`;
+  - statistiche a lungo termine disponibili.
+
+Per la Rete configura separatamente prelievo e immissione. Per la Batteria
+configura separatamente energia caricata e scaricata.
+
+### Confronto con la dashboard Energia di Home Assistant
+
+I numeri devono essere confrontati sullo stesso periodo e con le stesse entità.
+Una piccola differenza di arrotondamento è normale; una differenza stabile di
+parecchi kWh indica invece una mappatura o una statistica diversa. La release
+0.14.15 impedisce che un refresh secondario cambi un valore inizialmente
+corretto.
+
+## Report Energia
+
+Per ciascun elettrodomestico puoi configurare:
 
 - entità di potenza istantanea;
 - comando ON/OFF;
-- **entità energia totale cumulativa**;
-- stanza e visuale.
+- stato separato opzionale;
+- energia giornaliera o mensile già calcolata;
+- contatore energia totale cumulativo;
+- entità per lo storico;
+- stanza, tipo, icona o immagine personalizzata.
 
-Il Report sceglie l'entità in questo ordine:
+Il Report seleziona una sorgente energetica valida e usa le statistiche del
+Recorder quando deve ricostruire un periodo da un totale cumulativo. Durante il
+caricamento non ricade mai sul valore lifetime come se fosse il consumo del
+mese.
 
-1. entità Report esplicita valida;
-2. entità energia totale;
-3. altra entità cumulativa `total`/`total_increasing`;
-4. entità energia mensile, giornaliera o generica in Wh/kWh.
+Le visuali integrate coprono forno, frigorifero, microonde, scaldabagno,
+lavatrice, asciugatrice, lavastoviglie, piano cottura, TV e dispositivi generici.
 
-Un'entità W/kW viene sempre esclusa dai calcoli energetici. Il Report usa
-l'immagine configurata oppure una visuale coerente con il tipo: forno,
-frigorifero, lavatrice, lavastoviglie, asciugatrice e altri dispositivi non
-mostrano più stringhe come `mdi:stove`.
+## Temperature e umidità
 
-## Plancia Home Assistant e preferita
+In **Config → Stanze**, per ogni ambiente indica:
 
-Ogni istanza genera una plancia Lovelace con URL stabile
-`dashboardmodern-<id>`:
+```text
+Temperatura: sensor.terrazza_temperature
+Umidità:     sensor.terrazza_humidity
+```
 
-1. Apri DashboardModern una volta come amministratore.
-2. Vai in **Impostazioni → Plance**.
-3. Dal menu della plancia puoi impostarla come predefinita per tutti.
-4. Ogni utente può scegliere la propria da **Profilo → Plancia**.
+L'entità deve avere uno stato numerico. Le unità consigliate sono `°C` e `%`.
+La dashboard legge lo stato iniziale e resta sottoscritta agli aggiornamenti di
+Home Assistant. Una card configurata non deve rimanere su `—` se l'entità è
+disponibile in **Strumenti per sviluppatori → Stati**.
 
-La plancia generata non viene aggiunta automaticamente una seconda volta alla
-barra laterale, per evitare il duplicato del pannello DashboardModern.
+Se il sensore di umidità non è indicato, il runtime prova anche la convenzione
+`_temperature` → `_humidity`, ma la configurazione esplicita è preferibile.
 
-## Utenti autorizzati
+## Elettrodomestici
 
-Apri **Impostazioni → Dispositivi e servizi → DashboardModern → Configura**.
-Per ciascuna istanza puoi impostare:
+### Campi principali
 
-- **Utenti autorizzati**: lista precisa degli account ammessi; lista vuota =
-  tutti gli utenti autenticati.
-- **Registra anche come plancia Home Assistant**.
-- **Solo amministratori**: filtro nativo Home Assistant più restrittivo.
+| Campo | Esempio | Funzione |
+|---|---|---|
+| `control_entity` | `switch.frigo` | comando e stato ON/OFF canonico |
+| `state_entity` | `binary_sensor.frigo_running` | stato separato opzionale |
+| `power_entity` | `sensor.frigo_power` | consumo istantaneo e rilevamento attività |
+| `total_energy_entity` | `sensor.frigo_energy_total` | storico e periodi |
+| `room_id` | `room-kitchen` | relazione stabile con la stanza |
 
-Esempio: autorizza Giovanni nella plancia Casa e Donato nella plancia Ospiti,
-poi seleziona la rispettiva plancia predefinita nei due profili.
+### Regole dello stato
 
-## Editor e sezioni
+- potenza ≥ soglia di funzionamento: **In funzione**;
+- comando/stato `on` oppure potenza ≥ soglia standby: **Acceso**;
+- altrimenti: **Spento**.
 
-| Sezione | Funzioni principali |
+Il pulsante mostra **Spegni** quando l'entità di controllo è `on` e **Accendi**
+quando è `off`. Il controllo viene inviato soltanto a domini comandabili come
+`switch`, `light`, `input_boolean` e `fan`.
+
+## Plance multiple e utenti
+
+Ogni istanza ha:
+
+- URL e identificativo propri;
+- storage isolato;
+- voce laterale configurabile;
+- plancia Lovelace associata opzionale;
+- lista di utenti autorizzati;
+- opzione solo amministratori.
+
+Gestisci queste impostazioni da:
+
+**Impostazioni → Dispositivi e servizi → DashboardModern → Configura**.
+
+Una lista utenti vuota consente l'accesso a tutti gli utenti autenticati,
+salvo il filtro **Solo amministratori**.
+
+## Branding Home Assistant e HACS
+
+Gli asset sono inclusi in:
+
+```text
+custom_components/dashboardmodern/brand/
+├── icon.png
+├── icon@2x.png
+└── logo.png
+```
+
+L'icona usa una safe area trasparente ampia per evitare ritagli in HACS,
+Riparazioni e Dispositivi e servizi. Dopo l'aggiornamento può essere necessario
+riavviare Home Assistant perché le immagini brand vengono memorizzate nella
+cache locale.
+
+## Sicurezza del bridge
+
+Il pannello ospita la dashboard legacy in un iframe same-origin, ma non le
+consegna una credenziale persistente. Un WebSocket bridge inoltra soltanto un
+insieme esplicito di messaggi necessari, tra cui:
+
+- lettura stati;
+- sottoscrizione agli eventi;
+- chiamate servizio;
+- registri aree/dispositivi/entità;
+- storico e statistiche Recorder;
+- stream e miniature telecamere.
+
+I tipi non autorizzati vengono rifiutati. Il token di Home Assistant resta nel
+contesto autenticato del pannello.
+
+## Risoluzione dei problemi
+
+| Sintomo | Controllo |
 |---|---|
-| Impostazioni | Titolo, navbar, autorilevamento, reset, diagnostica |
-| Energia | Contatori totali, flussi, costi, carichi, Report e storico |
-| Elettrodomestici | Entità, stanza, soglie, immagini, icone e totale energia |
-| Luci | Associazione esplicita alla stanza; stanze vuote nascoste |
-| Temperatura | Card senza sovrapposizioni, icona stanza, temperatura e umidità |
-| EV | Profili multipli e dati veicolo |
-| Sicurezza | Allarme e telecamere WebRTC/HLS/MJPEG |
-| Tapparelle | Stato, comandi e avvisi cover aperte |
-| Piscina / Irrigazione | Programmi, sensori e automazioni operative |
+| HACS mostra `Restart required` | riavvia Home Assistant prima di provare la dashboard |
+| Versione vecchia dopo l'update | chiudi e riapri app/browser, poi verifica la versione in Config |
+| Energia cambia dopo pochi secondi | assicurati di avere 0.14.15 o successiva; confronta periodo ed entità con HA Energia |
+| Totale mensile uguale al lifetime | verifica `state_class`, unità e statistiche del contatore |
+| Temperatura su `—` | controlla entity ID e stato numerico in Strumenti per sviluppatori |
+| Elettrodomestico acceso mostrato spento | configura `control_entity` e, se disponibile, `power_entity` |
+| Pulsante non cambia stato | verifica che l'entità appartenga a un dominio comandabile |
+| Icona tagliata | aggiorna, riavvia Home Assistant e ricarica l'app |
+| Storico vuoto | verifica che Recorder conservi statistiche per l'entità selezionata |
 
-I comandi principali dell'editor adottano una gerarchia comune:
+Per una segnalazione utile includi:
 
-- **Aggiungi**: azzurro;
-- **Salva**: verde;
-- **Annulla**: grigio;
-- picker entità: pulsante lente separato.
+- versione DashboardModern e Home Assistant;
+- browser o modello dispositivo;
+- screenshot;
+- passaggi precisi;
+- entity ID coinvolti;
+- stato e attributi delle entità, senza dati sensibili.
 
-## Responsive e dispositivi pieghevoli
+## Sviluppo, test e release
 
-La dashboard distingue automaticamente:
-
-- **compact** fino a 420 px;
-- **fold/tablet verticale** da 421 a 820 px;
-- **wide** oltre 820 px.
-
-Un `ResizeObserver` ricalcola il layout quando cambia il viewport. Le card
-Temperatura usano una griglia interna a due colonne e le immagini degli
-elettrodomestici hanno limiti fluidi, quindi il passaggio fra Samsung Galaxy Z
-Fold chiuso e aperto non richiede il ricaricamento.
-
-## Aggiornamento, cache e diagnostica
-
-Gli asset frontend sono serviti da un percorso basato sul contenuto. Dopo un
-aggiornamento HACS:
-
-1. riavvia Home Assistant;
-2. ricarica la pagina o riapri l'app;
-3. apri DashboardModern una volta come amministratore.
-
-La scheda Impostazioni mostra versione, bridge, sincronizzazione e identificativo
-istanza. In una segnalazione allega versione, dispositivo/browser, screenshot,
-passaggi per riprodurre e, per Energia, attributi dell'entità usata.
-
-## Sviluppo e test
+Struttura principale:
 
 ```text
 custom_components/dashboardmodern/
 ├── __init__.py
 ├── config_flow.py
 ├── frontend.py
+├── manifest.json
+├── brand/
 └── frontend/
     ├── panel.js
     ├── dashboard-card.js
     ├── src/core/
     ├── src/legacy/
-    └── legacy/
+    ├── legacy/
+    ├── tests/
+    └── e2e/
 tests/
 ```
 
-Comandi principali:
+Comandi di verifica:
 
 ```bash
-python -m pytest
+python -m pytest -q
+ruff check .
+ruff format --check .
 npm run check:inline-syntax
 npm run test:frontend
-npm run format:check
 npm run test:e2e
 ```
 
-La release viene pubblicata soltanto dopo test Python, frontend, hassfest, HACS
-e matrice Browser E2E verdi. Il pacchetto HACS è `dashboardmodern.zip` allegato
-alla release GitHub.
+Una release pubblica viene creata soltanto quando risultano verdi:
 
-Consulta [CHANGELOG.md](CHANGELOG.md) per le modifiche di ogni versione.
+- test Python;
+- test frontend;
+- Browser E2E su tutte le varianti configurate;
+- hassfest;
+- validazione HACS;
+- build del pacchetto `dashboardmodern.zip`.
+
+Il workflow di release legge la versione da `manifest.json`, crea il tag
+corrispondente e allega lo ZIP alla GitHub Release.
+
+Consulta [CHANGELOG.md](CHANGELOG.md) per la cronologia completa.
 
 ---
 
