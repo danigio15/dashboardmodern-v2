@@ -4,9 +4,11 @@ import {
   refreshEnergyStatistics0152 as refreshEnergyStatisticsCore0152,
   refreshSelectedPeriod,
 } from "./runtime-consolidated.js";
+import "./runtime-release-gate.js";
 import "./runtime-canonical-readiness.js";
 import "./runtime-compatibility.js";
 import "./runtime-residual-contracts.js";
+import "./runtime-final-owner.js";
 
 function loadClassicRuntime(id, path, readyKey) {
   if (typeof document === "undefined" || globalThis[readyKey]) return Promise.resolve(true);
@@ -50,6 +52,8 @@ export async function refreshEnergyStatistics0152(selected = new Date()) {
   const result = await refreshEnergyStatisticsCore0152(selected);
   globalThis.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE__?.project?.();
   globalThis.__DASHBOARDMODERN_RESIDUAL_CONTRACTS_0150__?.apply?.();
+  globalThis.__DASHBOARDMODERN_FINAL_OWNER_0150__?.apply?.();
+  globalThis.__DASHBOARDMODERN_RELEASE_GATE_0150__?.apply?.();
   return result;
 }
 
