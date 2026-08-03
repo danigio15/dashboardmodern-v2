@@ -87,9 +87,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await clickBottomTab(page, "energy", testInfo);
 
     const result = await page.evaluate(() => {
-      DashboardModernRuntime0150.applyOptionalFlowVisibility();
-      const nodes = ["ist", "day", "month"].map((view) => {
-        const node = document.getElementById(`n-wb-${view}`);
+      window.__DASHBOARDMODERN_RUNTIME_COMPATIBILITY_0150__.applyOptionalFlowVisibility();
+      const nodes = ["", "-day", "-month"].map((suffix) => {
+        const node = document.getElementById(`n-wb${suffix}`);
         return {
           exists: Boolean(node),
           hidden: node ? node.hidden || getComputedStyle(node).display === "none" : true,
@@ -101,7 +101,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       return { nodes, lines };
     });
 
-    expect(result.nodes.every((node) => node.hidden)).toBe(true);
+    expect(result.nodes.every((node) => node.exists && node.hidden)).toBe(true);
+    expect(result.lines.length).toBeGreaterThan(0);
     expect(result.lines.every(Boolean)).toBe(true);
   });
 }
