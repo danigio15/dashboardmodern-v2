@@ -20,13 +20,16 @@ import "./release-0156-webkit-stability.js";
 import "./release-0156-final-stability.js";
 import "./release-0156-reconnect-timer-cancel.js";
 import "./release-0156-current-period-lock.js";
+import "./release-0157-finalization.js";
 
 if (typeof globalThis.document !== "undefined") {
   import("./release-0156-final-runtime.js")
     .then(() => import("./release-0156-current-period-bootstrap.js"))
     .then(() => import("./release-0156-owner-guard.js"))
     .then(() => import("./release-0157-ui-stability.js"))
-    .then(() => import("./release-0157-stability-guard.js"));
+    .then(() => import("./release-0157-stability-guard.js"))
+    .then(() => globalThis.__DASHBOARDMODERN_RELEASE_0157_FINALIZE__?.())
+    .catch((error) => globalThis.console?.warn?.("[DashboardModern] final runtime import", error));
 }
 
 const RENDER_GUARD_KEY_0152 = "__DASHBOARDMODERN_RELEASE_0152_RENDER_GUARD__";
