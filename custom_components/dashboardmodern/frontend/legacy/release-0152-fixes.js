@@ -7,7 +7,7 @@ import {
 import "./runtime-canonical-readiness.js";
 import "./runtime-residual-contracts.js";
 import "./runtime-compatibility.js";
-import "./runtime-release-owner.js";
+import "./runtime-release-owner-v2.js";
 
 function loadClassicRuntime(id, path, readyKey) {
   if (typeof document === "undefined" || globalThis[readyKey]) return Promise.resolve(true);
@@ -41,6 +41,23 @@ const classicRuntimeReady =
         "__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE_V2__",
       );
 
+function statisticsStatus(result) {
+  if (typeof document === "undefined") return;
+  let status = document.querySelector("[data-dm-energy-statistics-status]");
+  if (!status) {
+    status = document.createElement("output");
+    status.hidden = true;
+    status.dataset.dmEnergyStatisticsStatus = "";
+    status.setAttribute("aria-live", "polite");
+    (document.getElementById("page-energy") || document.body || document.documentElement).append(status);
+  }
+  status.textContent = result
+    ? ""
+    : document.documentElement.lang === "en"
+      ? "Energy statistics unavailable"
+      : "Statistiche energia non disponibili";
+}
+
 export { refreshSelectedPeriod };
 
 export async function refreshEnergyStatistics0152(selected = new Date()) {
@@ -52,6 +69,7 @@ export async function refreshEnergyStatistics0152(selected = new Date()) {
   globalThis.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE__?.project?.();
   globalThis.__DASHBOARDMODERN_RESIDUAL_CONTRACTS_0150__?.apply?.();
   globalThis.__DASHBOARDMODERN_RELEASE_OWNER_0150__?.apply?.();
+  statisticsStatus(result);
   return result;
 }
 
