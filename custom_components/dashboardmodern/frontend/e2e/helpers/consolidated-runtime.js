@@ -123,6 +123,19 @@ export const consolidatedSeed = {
   visibility: { energy: true, appliances: true, temperature: true, temp: true },
 };
 
+const currentMonthValues = {
+  "sensor.house_total": 39.9,
+  "sensor.solar_total": 50.2,
+  "sensor.grid_import_total": 0,
+  "sensor.grid_export_total": 7.2,
+  "sensor.battery_charge_total": 8.6,
+  "sensor.battery_discharge_total": 5.5,
+  "sensor.fridge_total": 4.4,
+  "sensor.boiler_total": 1.2,
+  "sensor.microwave_total": 0.2,
+  "sensor.oven_total": 0,
+};
+
 const monthValues = {
   "sensor.house_total": 86,
   "sensor.solar_total": 90,
@@ -152,18 +165,19 @@ const yearValues = {
 export async function bootConsolidatedDashboard(page, variant, testInfo) {
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await page.addInitScript(
-    ({ haStates, monthly, annual }) => {
+    ({ haStates, currentMonthly, monthly, annual }) => {
       window.DASHBOARDMODERN_AUTH_TOKEN = "e2e-token";
       window.__dmSocketInstances = 0;
       window.__dmStatisticsRequests = [];
       const now = new Date();
       const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      window.__dmCurrentPeriod = { month: now.getMonth() + 1, year: now.getFullYear() };
       window.__dmSelectedPeriod = {
         month: previous.getMonth() + 1,
         year: previous.getFullYear(),
       };
       const base = Object.fromEntries(
-        Object.keys({ ...monthly, ...annual }).map((id, index) => [id, 1000 + index * 100]),
+        Object.keys({ ...currentMonthly, ...monthly, ...annual }).map((id, index) => [id, 1000 + index * 100]),
       );
 
       window.WebSocket = class extends EventTarget {
@@ -201,7 +215,11 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
             const baseline =
               (message.period === "day" && days <= 3.1 && end.getDate() === 1) ||
               (message.period === "month" && days <= 35 && end.getMonth() === 0 && end.getDate() === 1);
-            const selected = message.period === "month" ? annual : monthly;
+            const previousPeriod = window.__dmSelectedPeriod;
+            const isPreviousMonth =
+              start.getMonth() + 1 === previousPeriod.month && start.getFullYear() === previousPeriod.year;
+            const selected =
+              message.period === "month" ? annual : isPreviousMonth ? monthly : currentMonthly;
             const result = Object.fromEntries(
               (message.statistic_ids || []).map((id) => {
                 const sum = base[id] + (baseline ? 0 : selected[id] || 0);
@@ -218,7 +236,12 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
         }
       };
     },
-    { haStates: consolidatedStates, monthly: monthValues, annual: yearValues },
+    {
+      haStates: consolidatedStates,
+      currentMonthly: currentMonthValues,
+      monthly: monthValues,
+      annual: yearValues,
+    },
   );
 
   await bootNamespacedDashboard(page, variant, testInfo, consolidatedSeed);
@@ -226,5 +249,5 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.ready === true);
   await expect
     .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house))
-    .toBe(86);
+    .toBe(39.9);
 }
