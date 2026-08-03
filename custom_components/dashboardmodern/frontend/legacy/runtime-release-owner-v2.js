@@ -12,7 +12,6 @@
     periodTargets: [],
     periodLocked: false,
     scheduled: false,
-    observer: null,
     lightEditEntity: "",
     alertEdit: null,
     savingTemperature: false,
@@ -505,14 +504,6 @@
     });
   }
 
-  function installObserver() {
-    if (state.observer || typeof MutationObserver !== "function") return;
-    state.observer = new MutationObserver((records) => {
-      if (records.some((record) => record.addedNodes.length || record.removedNodes.length)) scheduleApply();
-    });
-    state.observer.observe(doc.documentElement, { childList: true, subtree: true });
-  }
-
   function preserveEnergySnapshot() {
     const ids = ["v-solar-month", "v-home-month", "v-grid-month", "v-battery-month"];
     const snapshot = Object.fromEntries(ids.map((id) => [id, doc.getElementById(id)?.textContent ?? null]));
@@ -605,7 +596,7 @@
   root.addEventListener?.("pageshow", scheduleApply);
 
   suppressLegacyEnergyEvent(); publishContracts(); installStyles(); installPeriodLock();
-  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", () => { installObserver(); applyAll(); }, { once: true });
-  else { installObserver(); applyAll(); }
+  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", applyAll, { once: true });
+  else applyAll();
   [80, 260, 700].forEach((delay) => root.setTimeout?.(applyAll, delay));
 })(globalThis);
