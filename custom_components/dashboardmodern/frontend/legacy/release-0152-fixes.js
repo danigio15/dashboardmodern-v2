@@ -27,6 +27,7 @@ import "./release-0157-temperature-icons.js";
 
 if (typeof globalThis.document !== "undefined") {
   import("./release-0156-final-runtime.js")
+    .then(() => import("./release-0157-month-range-fix.js"))
     .then(() => import("./release-0156-current-period-bootstrap.js"))
     .then(() => import("./release-0156-owner-guard.js"))
     .then(() => import("./release-0157-ui-stability.js"))
