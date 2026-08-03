@@ -3,6 +3,7 @@ import "./runtime-regression-guard.js";
 import "./runtime-consolidated.js";
 import "./runtime-canonical-readiness.js";
 import "./runtime-final-owner.js";
+import "./runtime-residual-fixes.js";
 import "./runtime-compatibility.js";
 
 export {
