@@ -5,8 +5,6 @@ import {
   refreshSelectedPeriod,
 } from "./runtime-consolidated.js";
 import "./runtime-canonical-readiness.js";
-import "./runtime-final-owner.js";
-import "./runtime-residual-fixes.js";
 import "./runtime-compatibility.js";
 import "./runtime-residual-contracts.js";
 
@@ -40,12 +38,6 @@ const classicRuntimeReady =
         "dm-runtime-legacy-period-bridge-v2",
         "./runtime-legacy-period-bridge-v2.js",
         "__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE_V2__",
-      ).then(() =>
-        loadClassicRuntime(
-          "dm-runtime-legacy-bridge-hooks",
-          "./runtime-legacy-bridge-hooks.js",
-          "__DASHBOARDMODERN_LEGACY_BRIDGE_HOOKS__",
-        ),
       );
 
 export { refreshSelectedPeriod };
@@ -57,7 +49,7 @@ export async function refreshEnergyStatistics0152(selected = new Date()) {
   broker?.inflight?.clear?.();
   const result = await refreshEnergyStatisticsCore0152(selected);
   globalThis.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE__?.project?.();
-  globalThis.__DASHBOARDMODERN_LEGACY_BRIDGE_HOOKS__?.project?.();
+  globalThis.__DASHBOARDMODERN_RESIDUAL_CONTRACTS_0150__?.apply?.();
   return result;
 }
 
