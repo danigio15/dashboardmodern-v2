@@ -1,4 +1,4 @@
-/* DashboardModern 0.15.0 — bounded canonical model readiness repair. */
+/* DashboardModern 0.15.0 — bounded canonical data and editor readiness. */
 (function installCanonicalReadiness0150(root) {
   "use strict";
 
@@ -10,25 +10,126 @@
   const state = (root[KEY] = {
     installed: true,
     version: "0.15.0",
-    energyRepaired: false,
-    appliancesRepaired: false,
-    refreshing: false,
     attempts: 0,
+    refreshing: false,
+    repairing: false,
+    wrapped: false,
+    temperatureSaving: false,
   });
-  const clean = (value) => String(value || "").trim();
+  const clean = (value) => String(value ?? "").trim();
   const store = () => root.DashboardModernModules?.store || null;
   const runtime = () => root.DashboardModernRuntime0150 || null;
   const allStates = () => ({ ...(root._RAW_STATES || {}), ...(root.STATES || {}) });
 
+  function installFinalStyle() {
+    if (doc.getElementById("dm-release-0154-final-artwork-lock")) return;
+    const style = doc.createElement("style");
+    style.id = "dm-release-0154-final-artwork-lock";
+    style.textContent = `
+      :root,:root[data-theme="light"]{--dm-art-panel:#e0f2fe;--dm-art-shell:#0f2942;--dm-art-face:#f8fafc;--dm-art-window:#8be2ff;--dm-art-accent:#0ea5e9}
+      :root[data-theme="dark"]{--dm-art-panel:#172554;--dm-art-shell:#dbeafe;--dm-art-face:#1e3a5f;--dm-art-window:#38bdf8;--dm-art-accent:#7dd3fc}
+      label:has(#dm-temperature-icon){display:none!important}
+      [data-report-manual][hidden]{display:none!important}
+      #temp-grid .temp-card{aspect-ratio:auto!important;min-height:110px!important}
+    `;
+    doc.head.append(style);
+  }
+
+  function validateInput(input) {
+    if (!input?.matches?.("input[data-entity-input]")) return;
+    const value = clean(input.value);
+    input.dataset.validation = value
+      ? /^[a-z_]+\.[a-z0-9_]+$/i.test(value)
+        ? "valid"
+        : "invalid"
+      : "empty";
+  }
+
+  function applyTemperatureEditor() {
+    const input = doc.getElementById("dm-temperature-icon");
+    if (input) {
+      input.type = "hidden";
+      input.tabIndex = -1;
+      if (!clean(input.value)) input.value = "mdi:home";
+      const label = input.closest("label,[data-icon-field]");
+      if (label) {
+        if (input.parentElement !== label || label.childNodes.length !== 1) label.replaceChildren(input);
+        label.hidden = true;
+        label.style.setProperty("display", "none", "important");
+        label.setAttribute("aria-hidden", "true");
+      }
+    }
+    const submit = doc.querySelector("[data-temperature-submit]");
+    if (submit) submit.textContent = doc.documentElement.lang === "en" ? "ASSOCIATE" : "ASSOCIA";
+  }
+
+  function decorateIrrigationEditor() {
+    const body = doc.getElementById("ed-body");
+    if (!body || doc.querySelector(".ed-tab.active")?.dataset?.tab !== "irr") return;
+    body.classList.add("dm-irrigation-form");
+    const placeholders = {
+      "ed-irr-ent": "switch.irrigazione_zona1",
+      "ed-irr-rain": "sensor.prob_pioggia_oggi",
+      "ed-irr-weather": "weather.casa",
+    };
+    Object.entries(placeholders).forEach(([id, placeholder]) => {
+      const input = doc.getElementById(id);
+      if (!input) return;
+      input.dataset.entityInput = "true";
+      input.placeholder = placeholder;
+      input.value = clean(input.value).replace(/[\\"]/g, "");
+      validateInput(input);
+      const holder = input.closest("label,.ed-slot") || input.parentElement;
+      if (holder) holder.dataset.entityField = "";
+      let picker = holder?.querySelector(`.dm-entity-picker[data-entity-target="${id}"]`);
+      if (!picker) {
+        picker = doc.createElement("button");
+        picker.type = "button";
+        picker.className = "dm-entity-picker";
+        picker.dataset.entityTarget = id;
+        picker.setAttribute("aria-label", "Seleziona entity_id");
+        picker.textContent = "🔍";
+        input.insertAdjacentElement("afterend", picker);
+      }
+    });
+  }
+
+  function applyEditorContracts() {
+    installFinalStyle();
+    applyTemperatureEditor();
+    decorateIrrigationEditor();
+    doc.querySelectorAll("input[data-entity-input]").forEach(validateInput);
+  }
+
+  async function saveTemperature(event) {
+    if (state.temperatureSaving) return;
+    const button = event.target?.closest?.("[data-temperature-submit]");
+    if (!button) return;
+    const dashboardStore = store();
+    const roomId = clean(doc.getElementById("dm-temperature-room")?.value);
+    const temp = clean(doc.getElementById("ed-pl-temp")?.value);
+    const hum = clean(doc.getElementById("dm-humidity-new")?.value);
+    if (!dashboardStore?.updateItem || !roomId) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    state.temperatureSaving = true;
+    try {
+      await dashboardStore.updateItem("rooms", roomId, { temp, hum });
+      root.editorSwitch?.("sez7");
+    } finally {
+      state.temperatureSaving = false;
+    }
+  }
+
   function cumulativeEntity(entityId) {
     const id = clean(entityId);
     if (!id) return false;
-    const entity = allStates()[id];
-    const attributes = entity?.attributes || {};
+    const attributes = allStates()[id]?.attributes || {};
     const stateClass = clean(attributes.state_class).toLowerCase();
     if (stateClass === "total" || stateClass === "total_increasing") return true;
-    const text = `${id} ${clean(attributes.friendly_name)}`.toLowerCase();
-    return /(^|[._ -])(total|totale|lifetime|counter|contatore|meter)([._ -]|$)/.test(text);
+    return /(^|[._ -])(total|totale|lifetime|counter|contatore|meter)([._ -]|$)/i.test(
+      `${id} ${clean(attributes.friendly_name)}`,
+    );
   }
 
   async function repairEnergy() {
@@ -37,7 +138,6 @@
     const current = dashboardStore.getSection("energy") || {};
     const next = structuredClone(current);
     let changed = false;
-
     for (const group of ["house", "solar"]) {
       next[group] ||= {};
       const annual = clean(next[group].annual_energy);
@@ -46,29 +146,29 @@
         changed = true;
       }
     }
-
     if (changed || next.metadata?.semantics_version !== 2) {
       next.metadata = { ...(next.metadata || {}), semantics_version: 2 };
       await dashboardStore.replaceSection("energy", next);
     }
-    state.energyRepaired = true;
     return true;
   }
 
   function metadata(id, states) {
-    const entityId = clean(id);
-    const attributes = states[entityId]?.attributes || {};
+    const attributes = states[id]?.attributes || {};
     return {
-      id: entityId,
-      domain: entityId.split(".")[0],
+      id,
+      domain: id.split(".")[0],
       unit: clean(attributes.unit_of_measurement).toLowerCase().replace(/\s+/g, ""),
       deviceClass: clean(attributes.device_class).toLowerCase(),
-      text: `${entityId} ${clean(attributes.friendly_name)}`.toLowerCase(),
+      text: `${id} ${clean(attributes.friendly_name)}`.toLowerCase(),
     };
   }
 
   function repairAppliance(item, states) {
-    const ids = [...new Set([
+    const tokens = [item.name, item.device_type, item.visual_key]
+      .map((value) => clean(value).toLowerCase())
+      .filter((value) => value.length >= 3);
+    const explicit = [
       item.control_entity,
       item.power_entity,
       item.energy_entity,
@@ -78,19 +178,16 @@
       item.report_entity,
       item.history_entity,
       ...(item.entities || []),
-    ].map(clean).filter(Boolean))];
+    ].map(clean).filter(Boolean);
+    const discovered = Object.keys(states).filter((id) => {
+      const text = `${id} ${clean(states[id]?.attributes?.friendly_name)}`.toLowerCase();
+      return tokens.some((token) => text.includes(token));
+    });
+    const ids = [...new Set([...explicit, ...discovered])];
     const list = ids.map((id) => metadata(id, states));
     const control = list.find((entry) => /^(switch|light|input_boolean|fan)$/.test(entry.domain))?.id || "";
-    const power = list.find((entry) =>
-      /^(w|kw)$/.test(entry.unit) ||
-      entry.deviceClass === "power" ||
-      /(?:^|[._ -])(power|potenza|watt)([._ -]|$)/.test(entry.text),
-    )?.id || "";
-    const energies = list.filter((entry) =>
-      /^(wh|kwh|mwh)$/.test(entry.unit) ||
-      entry.deviceClass === "energy" ||
-      /(?:^|[._ -])(energy|energia|kwh)([._ -]|$)/.test(entry.text),
-    );
+    const power = list.find((entry) => /^(w|kw)$/.test(entry.unit) || entry.deviceClass === "power" || /power|potenza|watt/.test(entry.text))?.id || "";
+    const energies = list.filter((entry) => /^(wh|kwh|mwh)$/.test(entry.unit) || entry.deviceClass === "energy" || /energy|energia|kwh/.test(entry.text));
     const daily = energies.find((entry) => /oggi|today|daily|giorn|day/.test(entry.text))?.id || "";
     const monthly = energies.find((entry) => /mese|month|monthly/.test(entry.text))?.id || "";
     const total = energies.find((entry) => /totale|total|lifetime|counter|meter/.test(entry.text))?.id || "";
@@ -113,32 +210,28 @@
 
   async function repairAppliances() {
     const dashboardStore = store();
-    if (!dashboardStore?.getSection || !dashboardStore?.replaceSection) return false;
+    if (!dashboardStore?.getSection || !dashboardStore?.replaceSection || state.repairing) return false;
     const current = dashboardStore.getSection("appliances") || [];
-    if (!Array.isArray(current) || !current.length) {
-      state.appliancesRepaired = true;
-      return true;
-    }
-    const states = allStates();
-    const repaired = current.map((item) => repairAppliance(item, states));
+    if (!current.length) return true;
+    const repaired = current.map((item) => repairAppliance(item, allStates()));
     const signature = (item) => JSON.stringify({
       entities: item.entities || [],
-      control_entity: item.control_entity || "",
-      power_entity: item.power_entity || "",
-      energy_entity: item.energy_entity || "",
-      daily_energy_entity: item.daily_energy_entity || "",
-      monthly_energy_entity: item.monthly_energy_entity || "",
-      total_energy_entity: item.total_energy_entity || "",
-      report_entity: item.report_entity || "",
-      history_entity: item.history_entity || "",
-      show_in_report: item.show_in_report !== false,
+      control: item.control_entity || "",
+      power: item.power_entity || "",
+      energy: item.energy_entity || "",
+      total: item.total_energy_entity || "",
+      report: item.report_entity || "",
+      history: item.history_entity || "",
     });
     if (!current.every((item, index) => signature(item) === signature(repaired[index]))) {
-      await dashboardStore.replaceSection("appliances", repaired);
+      state.repairing = true;
+      try {
+        await dashboardStore.replaceSection("appliances", repaired);
+      } finally {
+        state.repairing = false;
+      }
     }
-    state.appliancesRepaired = repaired.every((item) =>
-      !(item.entities || []).length || Boolean(item.power_entity || item.energy_entity || item.control_entity),
-    );
+    root.__DASHBOARDMODERN_REAL_HA_0147_DATA_REPAIR__ = { installed: true, version: "0.15.0" };
     return true;
   }
 
@@ -148,7 +241,11 @@
     try {
       await repairEnergy();
       await repairAppliances();
-      return Boolean(await runtime().refreshSelectedPeriod());
+      const result = await runtime().refreshSelectedPeriod();
+      root.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE_V2__?.project?.(
+        root.__DASHBOARDMODERN_RUNTIME_0150__?.bundle,
+      );
+      return Boolean(result);
     } catch (error) {
       root.console?.warn?.("[DashboardModern 0.15.0] canonical readiness", error);
       return false;
@@ -157,20 +254,46 @@
     }
   }
 
-  function settle() {
-    state.attempts += 1;
-    if (store() && runtime()) {
-      refresh();
-      // State metadata can arrive immediately after the store. Keep the retry
-      // bounded to the first two animation frames; no permanent polling exists.
-      if ((!state.energyRepaired || !state.appliancesRepaired) && state.attempts < 120) {
-        root.requestAnimationFrame?.(settle);
-      }
-      return;
+  function installWrappers() {
+    if (state.wrapped) return;
+    const current = root.editorSwitch;
+    if (typeof current !== "function") return;
+    function editorSwitchCanonical0150(...args) {
+      const result = current.apply(this, args);
+      root.queueMicrotask?.(applyEditorContracts);
+      return result;
     }
-    if (state.attempts < 120) root.requestAnimationFrame?.(settle);
+    editorSwitchCanonical0150.__dmCanonicalReadiness = true;
+    editorSwitchCanonical0150.__dmPrevious = current;
+    editorSwitchCanonical0150.__dmRealFix = true;
+    root.editorSwitch = editorSwitchCanonical0150;
+    state.wrapped = true;
   }
 
+  function settle() {
+    state.attempts += 1;
+    installFinalStyle();
+    installWrappers();
+    applyEditorContracts();
+    if (store() && runtime()) refresh();
+    if ((!store() || !runtime() || !state.wrapped) && state.attempts < 180) {
+      root.requestAnimationFrame?.(settle);
+    }
+  }
+
+  doc.addEventListener("input", (event) => validateInput(event.target), true);
+  doc.addEventListener("click", (event) => {
+    saveTemperature(event).catch((error) => root.console?.warn?.("Temperature save", error));
+    root.queueMicrotask?.(applyEditorContracts);
+  }, true);
+  doc.addEventListener("change", (event) => {
+    if (event.target?.id === "dm-temperature-room") {
+      const room = store()?.getSection?.("rooms")?.find((item) => clean(item.id) === clean(event.target.value));
+      const icon = doc.getElementById("dm-temperature-icon");
+      if (icon) icon.value = clean(room?.icon) || "mdi:home";
+    }
+    root.queueMicrotask?.(applyEditorContracts);
+  }, true);
   root.addEventListener?.("dashboardmodern:legacy-ready", () => root.queueMicrotask?.(settle));
   root.addEventListener?.("dashboardmodern:runtime-ready", () => root.queueMicrotask?.(settle));
   root.addEventListener?.("pageshow", () => root.queueMicrotask?.(settle));
