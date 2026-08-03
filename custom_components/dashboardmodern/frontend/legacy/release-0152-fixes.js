@@ -2,6 +2,7 @@
 import "./release-0152-guards.js";
 export * from "./release-0152-runtime.js";
 import "./release-0152-runtime.js";
+import "./release-0157-period-prelude.js";
 import "./energy-monthly-report-media-fixes.js";
 import "./energy-report-runtime-hooks.js";
 import "./energy-report-observer-guard.js";
