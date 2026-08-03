@@ -1,5 +1,6 @@
 /* DashboardModern 0.15.0 compatibility facade: one production runtime. */
 import "./runtime-consolidated.js";
+import "./runtime-compatibility.js";
 
 export {
   refreshEnergyStatistics0152,
