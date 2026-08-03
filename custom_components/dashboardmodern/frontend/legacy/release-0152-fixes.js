@@ -1,27 +1,61 @@
 /* DashboardModern 0.15.0 compatibility facade: one production runtime. */
 import "./runtime-regression-guard.js";
-import "./runtime-consolidated.js";
+import {
+  refreshEnergyStatistics0152 as refreshEnergyStatisticsCore0152,
+  refreshSelectedPeriod,
+} from "./runtime-consolidated.js";
 import "./runtime-canonical-readiness.js";
 import "./runtime-final-owner.js";
 import "./runtime-residual-fixes.js";
 import "./runtime-compatibility.js";
 
-if (
-  typeof document !== "undefined" &&
-  !globalThis.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE_V2__ &&
-  !document.querySelector('script[data-dm-legacy-period-bridge-v2="true"]')
-) {
-  const bridge = document.createElement("script");
-  bridge.src = new URL("./runtime-legacy-period-bridge-v2.js", import.meta.url).href;
-  bridge.async = false;
-  bridge.dataset.dmLegacyPeriodBridgeV2 = "true";
-  (document.head || document.documentElement).append(bridge);
+function loadClassicRuntime(id, path, readyKey) {
+  if (typeof document === "undefined" || globalThis[readyKey]) return Promise.resolve(true);
+  const current = document.getElementById(id);
+  if (current) {
+    return new Promise((resolve) => {
+      if (globalThis[readyKey]) resolve(true);
+      else {
+        current.addEventListener("load", () => resolve(true), { once: true });
+        current.addEventListener("error", () => resolve(false), { once: true });
+      }
+    });
+  }
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.id = id;
+    script.src = new URL(path, import.meta.url).href;
+    script.async = false;
+    script.addEventListener("load", () => resolve(true), { once: true });
+    script.addEventListener("error", () => resolve(false), { once: true });
+    (document.head || document.documentElement).append(script);
+  });
 }
 
-export {
-  refreshEnergyStatistics0152,
-  refreshSelectedPeriod,
-} from "./runtime-consolidated.js";
+const classicRuntimeReady =
+  typeof document === "undefined"
+    ? Promise.resolve(true)
+    : loadClassicRuntime(
+        "dm-runtime-legacy-period-bridge-v2",
+        "./runtime-legacy-period-bridge-v2.js",
+        "__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE_V2__",
+      ).then(() =>
+        loadClassicRuntime(
+          "dm-runtime-legacy-bridge-hooks",
+          "./runtime-legacy-bridge-hooks.js",
+          "__DASHBOARDMODERN_LEGACY_BRIDGE_HOOKS__",
+        ),
+      );
+
+export { refreshSelectedPeriod };
+
+export async function refreshEnergyStatistics0152(selected = new Date()) {
+  await classicRuntimeReady;
+  globalThis.DashboardModernRuntime0150?.broker?.cache?.clear?.();
+  const result = await refreshEnergyStatisticsCore0152(selected);
+  globalThis.__DASHBOARDMODERN_LEGACY_BRIDGE_HOOKS__?.project?.();
+  return result;
+}
 
 export {
   PERIOD_SOURCES as PERIOD_SOURCES_0152,
