@@ -3,6 +3,47 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 0.15.0 — 2026-08-03
+
+### Architettura
+
+- Eliminata dal grafo di produzione la catena di patch runtime accumulata tra
+  le release 0.14.7 e 0.14.17. I vecchi file restano come storico, ma non
+  vengono più caricati dal browser.
+- Introdotti un solo broker WebSocket Home Assistant e un solo controller
+  event-driven per Energia, Report ed Elettrodomestici.
+- Rimossi gli intervalli permanenti e gli observer globali del documento che
+  causavano rendering ripetuti, lentezza progressiva e writer concorrenti.
+- Le richieste Recorder sono deduplicate, condivise e memorizzate in cache.
+
+### Corretto
+
+- Header, Produzione FV, Consumo totale, Autosufficienza e riepilogo costi ora
+  leggono lo stesso bundle mensile atomico; un aggiornamento live non può più
+  sostituire il consumo Casa con un valore differente.
+- Il riquadro **Totale anno** usa realmente gennaio → fine anno selezionato,
+  oppure gennaio → ora per l'anno corrente, senza riutilizzare il totale mese.
+- Il Report Elettrodomestici calcola il delta del periodo dal sensore energia
+  totale cumulativo e non mostra più il valore lifetime come consumo mensile.
+- La consultazione di un mese storico non sovrascrive i valori correnti usati
+  dai flow Energia.
+- Rimosso il secondo filtro stanze inserito dentro la griglia
+  Elettrodomestici; rimane esclusivamente la navigazione canonica superiore.
+- I nodi opzionali del flow, compresa Wallbox, e le relative linee non vengono
+  renderizzati quando non esiste alcuna entità configurata.
+- Gli asset locali usati da Home Assistant e HACS sono ora identici al logo del
+  repository, incluse le varianti ad alta densità.
+
+### Verificato
+
+- Invarianti automatiche: un solo broker, zero `setInterval` permanenti, zero
+  `MutationObserver` globali e nessun layer release 0.14.x nel loader runtime.
+- Test unitari su confini mese/anno, baseline Recorder, reset
+  `total_increasing`, totale Casa e sensori energia totale dispositivi.
+- Browser E2E italiano e inglese su desktop, mobile e WebKit per coerenza KPI,
+  totale anno, Report dispositivi, stanze, flow opzionale e isolamento storico.
+- HACS, hassfest, test Python, test frontend, Ruff e artefatto release.
+
 ## 0.14.17 — 2026-08-02
 
 ### Corretto
