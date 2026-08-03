@@ -21,6 +21,7 @@ import "./release-0156-final-stability.js";
 import "./release-0156-reconnect-timer-cancel.js";
 import "./release-0156-current-period-lock.js";
 import "./release-0157-finalization.js";
+import "./release-0157-period-owner.js";
 
 if (typeof globalThis.document !== "undefined") {
   import("./release-0156-final-runtime.js")
