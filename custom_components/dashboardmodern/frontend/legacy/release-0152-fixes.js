@@ -6,8 +6,8 @@ import {
 } from "./runtime-consolidated.js";
 import "./runtime-canonical-readiness.js";
 import "./runtime-residual-contracts.js";
-import "./runtime-final-owner.js";
 import "./runtime-compatibility.js";
+import "./runtime-release-owner.js";
 
 function loadClassicRuntime(id, path, readyKey) {
   if (typeof document === "undefined" || globalThis[readyKey]) return Promise.resolve(true);
@@ -51,8 +51,7 @@ export async function refreshEnergyStatistics0152(selected = new Date()) {
   const result = await refreshEnergyStatisticsCore0152(selected);
   globalThis.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE__?.project?.();
   globalThis.__DASHBOARDMODERN_RESIDUAL_CONTRACTS_0150__?.apply?.();
-  globalThis.__DASHBOARDMODERN_FINAL_OWNER_0150__?.apply?.();
-  globalThis.__DASHBOARDMODERN_RUNTIME_COMPATIBILITY_0150__?.refreshOverview?.();
+  globalThis.__DASHBOARDMODERN_RELEASE_OWNER_0150__?.apply?.();
   return result;
 }
 
