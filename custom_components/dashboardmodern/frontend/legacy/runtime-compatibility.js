@@ -11,6 +11,14 @@ const CURRENT_MONTH_SLOTS = [
   "dm.energy_batteria_usata_mese",
 ];
 
+function storeSection(name, fallback) {
+  try {
+    return globalThis.DashboardModernModules?.store?.getSection?.(name) ?? fallback;
+  } catch (_error) {
+    return fallback;
+  }
+}
+
 function historicalSelection() {
   const now = new Date();
   const month = Number(document.getElementById("ed-sel-month")?.value);
@@ -60,6 +68,50 @@ function installDerivedStateGuard() {
   broker.ingestState = ingestStateCurrentMonth0150;
 }
 
+function configuredText() {
+  const names = ["energy", "ev", "loads", "appliances", "climate", "rooms"];
+  return JSON.stringify(
+    Object.fromEntries(names.map((name) => [name, storeSection(name, name === "energy" ? {} : [])])),
+  ).toLowerCase();
+}
+
+function optionalAvailability() {
+  const config = configuredText();
+  return {
+    wb: /wallbox|evcc|charge[_ -]?power|charging[_ -]?power|energia[_ -]?wallbox/.test(config),
+    boiler: /boiler|scaldabagno|water[_ -]?heater/.test(config),
+    clima: /climate\.|condizion|air[_ -]?condition/.test(config),
+    lav: /lavatrice|washer|washing[_ -]?machine|asciugatrice|dryer/.test(config),
+    cuc: /forno|oven|microonde|microwave|frigo|fridge|dishwasher|lavastoviglie|cooktop/.test(config),
+  };
+}
+
+function applyOptionalFlowVisibility() {
+  const availability = optionalAvailability();
+  Object.entries(availability).forEach(([token, visible]) => {
+    for (const suffix of ["", "-day", "-month"]) {
+      const node = document.getElementById(`n-${token}${suffix}`);
+      if (node) {
+        node.hidden = !visible;
+        node.style.display = visible ? "" : "none";
+      }
+      document
+        .querySelectorAll(`.flow-line[id*="-${token}${suffix}"],.flow-line[id*="-${token}-"]`)
+        .forEach((line) => {
+          const id = String(line.id || "");
+          const samePeriod =
+            suffix === ""
+              ? !/-day$|-month$/.test(id)
+              : id.endsWith(suffix);
+          if (!samePeriod) return;
+          line.hidden = !visible;
+          line.style.display = visible ? "" : "none";
+        });
+    }
+  });
+  return availability;
+}
+
 function ingestState(state) {
   const id = String(state?.entity_id || "").trim();
   if (!id) return false;
@@ -96,6 +148,19 @@ function syncAppliances() {
 installCurrentMonthRegistryGuard();
 installDerivedStateGuard();
 
+globalThis.addEventListener?.("dashboardmodern:runtime-ready", applyOptionalFlowVisibility);
+globalThis.addEventListener?.("dashboardmodern:period-bundle", applyOptionalFlowVisibility);
+globalThis.addEventListener?.("pageshow", applyOptionalFlowVisibility);
+globalThis.queueMicrotask?.(applyOptionalFlowVisibility);
+
+try {
+  globalThis.DashboardModernModules?.store?.subscribe?.((change) => {
+    if (["energy", "ev", "loads", "appliances", "climate", "rooms"].includes(change.section)) {
+      globalThis.queueMicrotask?.(applyOptionalFlowVisibility);
+    }
+  });
+} catch (_error) {}
+
 const shared = {
   installed: true,
   ready: true,
@@ -106,6 +171,7 @@ const shared = {
   ingestStates,
   syncTemperature,
   syncAppliances,
+  applyOptionalFlowVisibility,
   broker: api?.broker,
   statistics: api?.broker?.statistics?.bind(api.broker),
   monthValues(ids, month, year) {
