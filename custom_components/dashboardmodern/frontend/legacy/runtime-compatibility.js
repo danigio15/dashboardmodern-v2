@@ -2,6 +2,7 @@
 
 const api = globalThis.DashboardModernRuntime0150;
 const states = new Map();
+const HAS_DOCUMENT = typeof globalThis.document !== "undefined";
 const CURRENT_MONTH_SLOTS = [
   "dm.energy_consumo_casa_mese",
   "dm.energy_produzione_solare_mese",
@@ -20,9 +21,10 @@ function storeSection(name, fallback) {
 }
 
 function historicalSelection() {
+  if (!HAS_DOCUMENT) return false;
   const now = new Date();
-  const month = Number(document.getElementById("ed-sel-month")?.value);
-  const year = Number(document.getElementById("ed-sel-year")?.value);
+  const month = Number(globalThis.document.getElementById("ed-sel-month")?.value);
+  const year = Number(globalThis.document.getElementById("ed-sel-year")?.value);
   if (!Number.isInteger(month) || !Number.isInteger(year)) return false;
   return month !== now.getMonth() + 1 || year !== now.getFullYear();
 }
@@ -88,14 +90,15 @@ function optionalAvailability() {
 
 function applyOptionalFlowVisibility() {
   const availability = optionalAvailability();
+  if (!HAS_DOCUMENT) return availability;
   Object.entries(availability).forEach(([token, visible]) => {
     for (const suffix of ["", "-day", "-month"]) {
-      const node = document.getElementById(`n-${token}${suffix}`);
+      const node = globalThis.document.getElementById(`n-${token}${suffix}`);
       if (node) {
         node.hidden = !visible;
         node.style.display = visible ? "" : "none";
       }
-      document
+      globalThis.document
         .querySelectorAll(`.flow-line[id*="-${token}${suffix}"],.flow-line[id*="-${token}-"]`)
         .forEach((line) => {
           const id = String(line.id || "");
@@ -145,21 +148,23 @@ function syncAppliances() {
   }
 }
 
-installCurrentMonthRegistryGuard();
-installDerivedStateGuard();
+if (HAS_DOCUMENT) {
+  installCurrentMonthRegistryGuard();
+  installDerivedStateGuard();
 
-globalThis.addEventListener?.("dashboardmodern:runtime-ready", applyOptionalFlowVisibility);
-globalThis.addEventListener?.("dashboardmodern:period-bundle", applyOptionalFlowVisibility);
-globalThis.addEventListener?.("pageshow", applyOptionalFlowVisibility);
-globalThis.queueMicrotask?.(applyOptionalFlowVisibility);
+  globalThis.addEventListener?.("dashboardmodern:runtime-ready", applyOptionalFlowVisibility);
+  globalThis.addEventListener?.("dashboardmodern:period-bundle", applyOptionalFlowVisibility);
+  globalThis.addEventListener?.("pageshow", applyOptionalFlowVisibility);
+  globalThis.queueMicrotask?.(applyOptionalFlowVisibility);
 
-try {
-  globalThis.DashboardModernModules?.store?.subscribe?.((change) => {
-    if (["energy", "ev", "loads", "appliances", "climate", "rooms"].includes(change.section)) {
-      globalThis.queueMicrotask?.(applyOptionalFlowVisibility);
-    }
-  });
-} catch (_error) {}
+  try {
+    globalThis.DashboardModernModules?.store?.subscribe?.((change) => {
+      if (["energy", "ev", "loads", "appliances", "climate", "rooms"].includes(change.section)) {
+        globalThis.queueMicrotask?.(applyOptionalFlowVisibility);
+      }
+    });
+  } catch (_error) {}
+}
 
 const shared = {
   installed: true,
