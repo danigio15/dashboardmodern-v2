@@ -27,6 +27,9 @@
   ];
 
   const clean = (value) => String(value ?? "").trim();
+  const english = () =>
+    clean(doc?.documentElement?.lang).toLowerCase().startsWith("en") ||
+    /dashboard-en\.html/i.test(root.location?.pathname || "");
   const api = () => root.DashboardModernRuntime0150 || null;
   const store = () => root.DashboardModernModules?.store || null;
   const lexical = (name, fallback) => {
@@ -50,6 +53,20 @@
     ].forEach((key) => {
       root[key] = { ...(root[key] || {}), installed: true, patched: true, version: VERSION };
     });
+    root.__DASHBOARDMODERN_MEDIA_STYLE_LOCK_DISABLED_0153__ = true;
+    root.__DASHBOARDMODERN_ENERGY_REPORT_MEDIA_FIX__ = {
+      ...(root.__DASHBOARDMODERN_ENERGY_REPORT_MEDIA_FIX__ || {}),
+      installed: true,
+      version: VERSION,
+      observer: { disabled: true },
+    };
+    root.__DASHBOARDMODERN_RELEASE_0154_ARTWORK_LOCK__ = {
+      ...(root.__DASHBOARDMODERN_RELEASE_0154_ARTWORK_LOCK__ || {}),
+      installed: true,
+      version: VERSION,
+      observer: null,
+      observerVersion: 3,
+    };
   }
 
   function ingestState(state) {
@@ -92,24 +109,40 @@
   function isCurrent(bundle) {
     if (!bundle?.period) return false;
     const now = new Date();
-    return Number(bundle.period.month) === now.getMonth() + 1 && Number(bundle.period.year) === now.getFullYear();
+    return (
+      Number(bundle.period.month) === now.getMonth() + 1 &&
+      Number(bundle.period.year) === now.getFullYear()
+    );
+  }
+
+  function restoreCurrentPeriod() {
+    if (!Object.keys(currentMonth).length) return false;
+    root.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE__?.merge?.(currentMonth);
+    const registries = [root.CD_PERIOD, periodRegistry()].filter(Boolean);
+    [...new Set(registries)].forEach((registry) => {
+      Object.entries(currentMonth).forEach(([slot, value]) => {
+        try {
+          registry[slot] = value;
+        } catch (_error) {}
+      });
+    });
+    return true;
   }
 
   function rememberOrRestorePeriod(bundle) {
     if (!bundle?.month) return;
-    const registry = periodRegistry();
     if (isCurrent(bundle)) {
       Object.entries(PERIOD_KEYS).forEach(([slot, key]) => {
         const value = Number(bundle.month[key]);
-        if (Number.isFinite(value)) currentMonth[slot] = value;
+        if (Number.isFinite(value)) currentMonth[slot] = Math.max(0, value);
       });
+      restoreCurrentPeriod();
       return;
     }
-    root.queueMicrotask?.(() => {
-      Object.entries(currentMonth).forEach(([slot, value]) => {
-        registry[slot] = value;
-      });
-    });
+    root.queueMicrotask?.(restoreCurrentPeriod);
+    [20, 60, 140, 300, 620].forEach((delay) =>
+      root.setTimeout?.(restoreCurrentPeriod, delay),
+    );
   }
 
   function installStyles() {
@@ -121,53 +154,99 @@
       #editor-modal[data-dm-editor-theme="dark"] .ed-tabs,#editor-modal[data-dm-editor-theme="dark"] .ed-inner-tabs,#editor-modal[data-dm-editor-theme="dark"] .dm-report-row{background:var(--surface-2,#1b2540)!important;color:var(--text,#e6edf7)!important}
       #editor-modal[data-dm-editor-theme="dark"] .ed-input{background:var(--surface-3,#212d4c)!important;color:var(--text,#e6edf7)!important;border-color:var(--card-border,#263453)!important}
       #page-appliances-main img.dm-appliance-image-0153,#page-appliances-main img.dm-appliance-image{object-fit:cover!important;object-position:center!important}
+      #page-appliances-main img.dm-appliance-image-0153[src^="data:image"],#page-appliances-main img.dm-appliance-image[src^="data:image"]{object-fit:contain!important}
       #dm-shutter-popup header{position:relative!important;display:flex!important;align-items:center!important;justify-content:space-between!important;padding-right:56px!important}
       #dm-shutter-popup [data-shutter-popup-close]{position:absolute!important;right:10px!important;top:50%!important;transform:translateY(-50%)!important}
       #dm-shutter-popup .dm-shutter-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
       #dm-shutter-popup .dm-shutter-actions button{width:100%!important;min-width:0!important;box-sizing:border-box!important}
-      label:has(#dm-temperature-icon){display:none!important}
+      #editor-modal [data-temperature-form] label:has(#dm-temperature-icon){display:none!important}
     `;
     doc.head.append(style);
   }
 
   function hideTemperatureIcon() {
     if (!doc) return;
-    const input = doc.getElementById("dm-temperature-icon");
+    const form = doc.querySelector("#editor-modal [data-temperature-form]");
+    const input = form?.querySelector("#dm-temperature-icon") || doc.getElementById("dm-temperature-icon");
     if (!input) return;
     input.type = "hidden";
+    input.hidden = true;
     input.tabIndex = -1;
-    const label = input.closest("label,[data-icon-field]");
-    if (label) {
-      label.hidden = true;
-      label.style.setProperty("display", "none", "important");
-      label.setAttribute("aria-hidden", "true");
+    input.setAttribute("aria-hidden", "true");
+    if (!clean(input.value)) input.value = "mdi:home";
+    const field =
+      input.closest("label.ed-slot") ||
+      input.closest("label") ||
+      input.closest("[data-icon-field]");
+    if (form && field && field !== form) {
+      input.remove();
+      field.remove();
+      form.append(input);
+    } else if (field) {
+      field.hidden = true;
+      field.style.setProperty("display", "none", "important");
+      field.setAttribute("aria-hidden", "true");
     }
+    form?.querySelectorAll("label.ed-slot").forEach((label) => {
+      if (!/(^|\s)(Simbolo|Icon)(\s|$)/i.test(clean(label.textContent))) return;
+      if (label.querySelector("[data-entity-input]")) return;
+      label.remove();
+    });
   }
 
   function normalizeApplianceArtwork() {
     if (!doc) return;
     const devices = store()?.getSection?.("appliances") || [];
     doc.querySelectorAll("#page-appliances-main .appl-wide-card").forEach((card, index) => {
+      card.querySelectorAll(".appl-spark").forEach((node) => node.remove());
       const holder = card.querySelector(".appl-ic");
-      if (!holder || holder.querySelector("svg,img")) return;
-      const device = devices.find((item) => clean(item.id) === clean(card.dataset.applianceId)) || devices[index];
-      const token = clean(device?.visual_key || device?.device_type || device?.name || "generico");
-      const markup = root.cdApplianceIcon?.(token, 96);
-      if (markup) holder.innerHTML = markup;
+      if (holder && !holder.querySelector("svg,img")) {
+        const device =
+          devices.find((item) => clean(item.id) === clean(card.dataset.applianceId)) ||
+          devices[index];
+        const token = clean(device?.visual_key || device?.device_type || device?.name || "generico");
+        const markup = root.cdApplianceIcon?.(token, 96);
+        if (markup) holder.innerHTML = markup;
+      }
+      card.querySelectorAll("img.dm-appliance-image").forEach((image) => {
+        image.classList.add("dm-appliance-image-0153");
+      });
+      card.querySelectorAll(".appl-mini").forEach((node) => {
+        const original = clean(node.textContent);
+        if (!/kWh/i.test(original)) return;
+        const value = clean(original.replace(/🔋/gu, "").replace(/^(Totale|Total)\s*/i, ""));
+        const next = `${english() ? "Total" : "Totale"} ${value}`;
+        if (node.textContent !== next) node.textContent = next;
+      });
     });
   }
 
-  async function saveTemperature(event) {
-    const button = event.target?.closest?.("[data-temperature-submit]");
-    if (!button) return;
+  async function persistTemperature() {
     const roomId = clean(doc.getElementById("dm-temperature-room")?.value);
     const temp = clean(doc.getElementById("ed-pl-temp")?.value);
     const hum = clean(doc.getElementById("dm-humidity-new")?.value);
-    if (!roomId || !store()?.updateItem) return;
+    const dashboardStore = store();
+    if (!roomId || !dashboardStore?.updateItem) return false;
+    await dashboardStore.updateItem("rooms", roomId, { temp, hum });
+    root.renderTemperature?.();
+    root.buildTempCards?.();
+    root.editorSwitch?.("sez7");
+    return true;
+  }
+
+  function captureTemperatureClick(event) {
+    const button = event.target?.closest?.("[data-temperature-submit]");
+    if (!button) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    await store().updateItem("rooms", roomId, { temp, hum });
-    root.editorSwitch?.("sez7");
+    persistTemperature().catch((error) => root.console?.warn?.("Temperature save", error));
+  }
+
+  function captureTemperatureSubmit(event) {
+    if (!event.target?.matches?.("[data-temperature-form]")) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    persistTemperature().catch((error) => root.console?.warn?.("Temperature save", error));
   }
 
   function applyDomContracts() {
@@ -175,8 +254,12 @@
     installStyles();
     hideTemperatureIcon();
     normalizeApplianceArtwork();
+    restoreCurrentPeriod();
     const modal = doc?.getElementById("editor-modal");
-    if (modal) modal.dataset.dmEditorTheme = doc.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    if (modal) {
+      modal.dataset.dmEditorTheme =
+        doc.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    }
   }
 
   const shared = {
@@ -219,10 +302,9 @@
 
   publish();
   if (doc) {
-    doc.addEventListener("click", (event) => {
-      saveTemperature(event).catch((error) => root.console?.warn?.("Temperature save", error));
-      root.queueMicrotask?.(applyDomContracts);
-    }, true);
+    root.addEventListener("click", captureTemperatureClick, true);
+    root.addEventListener("submit", captureTemperatureSubmit, true);
+    doc.addEventListener("click", () => root.queueMicrotask?.(applyDomContracts), true);
   }
   root.addEventListener?.("dashboardmodern:runtime-ready", publish);
   root.addEventListener?.("dashboardmodern:legacy-ready", () => root.queueMicrotask?.(applyDomContracts));
@@ -232,4 +314,5 @@
   });
   root.addEventListener?.("dashboardmodern:energy-statistics", () => root.queueMicrotask?.(applyDomContracts));
   root.addEventListener?.("pageshow", publish);
+  [40, 120, 300, 700].forEach((delay) => root.setTimeout?.(applyDomContracts, delay));
 })(globalThis);
