@@ -21,8 +21,11 @@ function owner() {
   value.periodGeneration ||= 0;
   value.currentSlots ||= new Map();
   value.expected ||= new Map();
+  value.snapshots ||= new Map();
   value.periodToken ||= "";
   value.writing ||= false;
+  value.periodCommitted ||= false;
+  value.periodFinishTimer ||= 0;
   value.observer ||= null;
   return value;
 }
@@ -165,20 +168,53 @@ function scheduleCurrent(delay = 0) {
   state.currentTimer = setTimeout(refreshCurrent, delay);
 }
 
-function clearPeriodOwner() {
+function periodPage() {
+  return document.getElementById("view-panoramica") ||
+    document.getElementById("page-energy") ||
+    document.getElementById("page-energia") ||
+    document.getElementById("ed-kpi-prod")?.closest?.(".flow-view,.page") ||
+    null;
+}
+
+function ensurePeriodStatus() {
+  const page = periodPage();
+  if (!page) return null;
+  let status = page.querySelector("[data-dm-period-loading-0157]");
+  if (!status) {
+    status = document.createElement("div");
+    status.className = "dm-period-loading-0157";
+    status.setAttribute("data-dm-period-loading-0157", "");
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    const english = document.documentElement.lang === "en";
+    status.innerHTML = `<span aria-hidden="true"></span><strong>${english ? "Updating month…" : "Aggiornamento mese…"}</strong>`;
+    page.prepend(status);
+  }
+  return status;
+}
+
+function capturePeriodKpis() {
   const state = owner();
-  state.observer?.disconnect?.();
-  state.observer = null;
-  state.expected.clear();
-  state.periodToken = "";
+  state.snapshots.clear();
+  ["ed-kpi-prod", "ed-kpi-cons", "ed-kpi-auto"].forEach((id) => {
+    const node = document.getElementById(id);
+    if (node) state.snapshots.set(id, node.innerHTML);
+  });
+}
+
+function periodValuesToRestore() {
+  const state = owner();
+  return state.periodCommitted && state.expected.size ? state.expected : state.snapshots;
 }
 
 function restoreKpis() {
   const state = owner();
   if (state.writing || !state.periodToken) return;
+  const values = periodValuesToRestore();
+  if (!values.size) return;
   state.writing = true;
   try {
-    state.expected.forEach((html, id) => {
+    values.forEach((html, id) => {
       const node = document.getElementById(id);
       if (node && node.innerHTML !== html) node.innerHTML = html;
     });
@@ -190,53 +226,102 @@ function restoreKpis() {
 function observeKpis() {
   const state = owner();
   state.observer?.disconnect?.();
-  if (typeof MutationObserver !== "function" || !state.expected.size) return;
-  state.observer = new MutationObserver(() => queueMicrotask(restoreKpis));
-  state.expected.forEach((_html, id) => {
+  if (typeof MutationObserver !== "function") return;
+  state.observer = new MutationObserver(() => {
+    if (!state.writing) queueMicrotask(restoreKpis);
+  });
+  ["ed-kpi-prod", "ed-kpi-cons", "ed-kpi-auto"].forEach((id) => {
     const node = document.getElementById(id);
     if (node) state.observer.observe(node, { childList: true, subtree: true, characterData: true });
   });
+}
+
+function beginPeriodOwner(period) {
+  const state = owner();
+  clearTimeout(state.periodFinishTimer);
+  if (!state.periodToken) capturePeriodKpis();
+  state.periodToken = `${period.year}-${period.month}`;
+  state.periodCommitted = false;
+  state.expected.clear();
+  const page = periodPage();
+  page?.classList.add("dm-period-loading-active-0157");
+  page?.setAttribute("aria-busy", "true");
+  const status = ensurePeriodStatus();
+  if (status) status.hidden = false;
+  observeKpis();
+}
+
+function finishPeriodOwner(generation) {
+  const state = owner();
+  clearTimeout(state.periodFinishTimer);
+  state.periodFinishTimer = setTimeout(() => {
+    if (generation !== state.periodGeneration) return;
+    state.observer?.disconnect?.();
+    state.observer = null;
+    state.snapshots.clear();
+    state.expected.clear();
+    state.periodCommitted = false;
+    state.periodToken = "";
+    const page = periodPage();
+    page?.classList.remove("dm-period-loading-active-0157");
+    page?.removeAttribute("aria-busy");
+    const status = page?.querySelector?.("[data-dm-period-loading-0157]");
+    if (status) status.hidden = true;
+  }, 600);
+}
+
+function commitSelectedKpis(values, generation, token) {
+  const state = owner();
+  if (generation !== state.periodGeneration || token !== state.periodToken) return false;
+  const prod = Number.isFinite(values.prod) ? Math.max(0, values.prod) : 0;
+  const cons = Number.isFinite(values.cons) ? Math.max(0, values.cons) : 0;
+  const imported = Number.isFinite(values.prelevato) ? Math.max(0, values.prelevato) : 0;
+  const autonomy = cons > 0 ? Math.max(0, Math.min(100, Math.round(((cons - imported) / cons) * 100))) : 0;
+  state.expected = new Map([
+    ["ed-kpi-prod", `${prod.toFixed(1)} <small>kWh</small>`],
+    ["ed-kpi-cons", `${cons.toFixed(1)} <small>kWh</small>`],
+    ["ed-kpi-auto", `${autonomy} <small>%</small>`],
+  ]);
+  state.periodCommitted = true;
+  state.observer?.disconnect?.();
+  restoreKpis();
+  observeKpis();
+  finishPeriodOwner(generation);
+  return true;
 }
 
 async function refreshSelected(generation, period) {
   const state = owner();
   const runtime = globalThis[RUNTIME_KEY];
   const sources = configuredSources().filter(({ key }) => ["prod", "cons", "prelevato"].includes(key));
-  if (generation !== state.periodGeneration || typeof runtime?.monthValues !== "function" || !sources.length) return false;
   const token = `${period.year}-${period.month}`;
+  if (generation !== state.periodGeneration || token !== state.periodToken || typeof runtime?.monthValues !== "function" || !sources.length) {
+    finishPeriodOwner(generation);
+    return false;
+  }
   try {
     const raw = await runtime.monthValues(
       sources.map(({ entity }) => entity),
       period.month,
       period.year,
     );
-    if (generation !== state.periodGeneration) return false;
+    if (generation !== state.periodGeneration || token !== state.periodToken) return false;
     const values = Object.fromEntries(sources.map(({ key, entity }) => [key, Number(raw.get(entity))]));
-    const prod = Number.isFinite(values.prod) ? Math.max(0, values.prod) : 0;
-    const cons = Number.isFinite(values.cons) ? Math.max(0, values.cons) : 0;
-    const imported = Number.isFinite(values.prelevato) ? Math.max(0, values.prelevato) : 0;
-    const autonomy = cons > 0 ? Math.max(0, Math.min(100, Math.round(((cons - imported) / cons) * 100))) : 0;
-    state.expected = new Map([
-      ["ed-kpi-prod", `${prod.toFixed(1)} <small>kWh</small>`],
-      ["ed-kpi-cons", `${cons.toFixed(1)} <small>kWh</small>`],
-      ["ed-kpi-auto", `${autonomy} <small>%</small>`],
-    ]);
-    state.periodToken = token;
-    restoreKpis();
-    observeKpis();
-    return true;
+    return commitSelectedKpis(values, generation, token);
   } catch (error) {
     console.warn("[DashboardModern] selected-period owner", error);
+    restoreKpis();
+    finishPeriodOwner(generation);
     return false;
   }
 }
 
-function scheduleSelected(delay = 120, period = selectedPeriod()) {
+function scheduleSelected(delay = 90, period = selectedPeriod()) {
   const state = owner();
   const generation = ++state.periodGeneration;
   const captured = { month: Number(period.month), year: Number(period.year) };
   clearTimeout(state.periodTimer);
-  clearPeriodOwner();
+  beginPeriodOwner(captured);
   state.periodTimer = setTimeout(() => refreshSelected(generation, captured), delay);
 }
 
@@ -261,7 +346,9 @@ function install() {
   owner();
   document.addEventListener("change", (event) => {
     if (!event.target?.matches?.("#ed-sel-month,#ed-sel-year")) return;
-    scheduleSelected(120, selectedPeriod());
+    const period = selectedPeriod();
+    event.stopImmediatePropagation();
+    scheduleSelected(90, period);
   }, true);
   document.addEventListener("click", (event) => {
     if (!event.target?.closest?.('.tab[data-tab="energy"],.tab[data-tab="energia"]')) return;
