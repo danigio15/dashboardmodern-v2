@@ -1,4 +1,5 @@
 /* DashboardModern 0.15.0 compatibility facade: one production runtime. */
+import "./runtime-regression-guard.js";
 import "./runtime-consolidated.js";
 import "./runtime-compatibility.js";
 
