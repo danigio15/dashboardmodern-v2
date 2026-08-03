@@ -123,7 +123,6 @@ function installCurrentOwners(values, sources, month, year) {
         configurable: true,
         enumerable: true,
         get: () => entry.value,
-        // Historical renderers and obsolete delta writers are read-only here.
         set: () => {},
       });
     } catch (_error) {}
@@ -177,11 +176,6 @@ function clearPeriodOwner() {
 function restoreKpis() {
   const state = owner();
   if (state.writing || !state.periodToken) return;
-  const period = selectedPeriod();
-  if (`${period.year}-${period.month}` !== state.periodToken) {
-    clearPeriodOwner();
-    return;
-  }
   state.writing = true;
   try {
     state.expected.forEach((html, id) => {
@@ -204,12 +198,11 @@ function observeKpis() {
   });
 }
 
-async function refreshSelected(generation) {
+async function refreshSelected(generation, period) {
   const state = owner();
   const runtime = globalThis[RUNTIME_KEY];
   const sources = configuredSources().filter(({ key }) => ["prod", "cons", "prelevato"].includes(key));
   if (generation !== state.periodGeneration || typeof runtime?.monthValues !== "function" || !sources.length) return false;
-  const period = selectedPeriod();
   const token = `${period.year}-${period.month}`;
   try {
     const raw = await runtime.monthValues(
@@ -217,8 +210,7 @@ async function refreshSelected(generation) {
       period.month,
       period.year,
     );
-    const latest = selectedPeriod();
-    if (generation !== state.periodGeneration || token !== `${latest.year}-${latest.month}`) return false;
+    if (generation !== state.periodGeneration) return false;
     const values = Object.fromEntries(sources.map(({ key, entity }) => [key, Number(raw.get(entity))]));
     const prod = Number.isFinite(values.prod) ? Math.max(0, values.prod) : 0;
     const cons = Number.isFinite(values.cons) ? Math.max(0, values.cons) : 0;
@@ -239,12 +231,13 @@ async function refreshSelected(generation) {
   }
 }
 
-function scheduleSelected(delay = 120) {
+function scheduleSelected(delay = 120, period = selectedPeriod()) {
   const state = owner();
   const generation = ++state.periodGeneration;
+  const captured = { month: Number(period.month), year: Number(period.year) };
   clearTimeout(state.periodTimer);
   clearPeriodOwner();
-  state.periodTimer = setTimeout(() => refreshSelected(generation), delay);
+  state.periodTimer = setTimeout(() => refreshSelected(generation, captured), delay);
 }
 
 function settle() {
@@ -252,9 +245,6 @@ function settle() {
   if (typeof runtime?.monthValues !== "function") return false;
   stopLegacyWriters();
   scheduleCurrent(0);
-  if (document.getElementById("ed-sel-month") && document.getElementById("ed-sel-year")) {
-    scheduleSelected(150);
-  }
   return true;
 }
 
@@ -265,16 +255,17 @@ function retry(attempt = 0) {
   state.retry = setTimeout(() => retry(attempt + 1), 75);
 }
 
+globalThis.__DASHBOARDMODERN_RELEASE_0157_PERIOD_OWNER_SETTLE__ = settle;
+
 function install() {
   owner();
   document.addEventListener("change", (event) => {
     if (!event.target?.matches?.("#ed-sel-month,#ed-sel-year")) return;
-    scheduleSelected(120);
+    scheduleSelected(120, selectedPeriod());
   }, true);
   document.addEventListener("click", (event) => {
     if (!event.target?.closest?.('.tab[data-tab="energy"],.tab[data-tab="energia"]')) return;
     scheduleCurrent(40);
-    scheduleSelected(160);
   }, true);
   globalThis.addEventListener?.("dashboardmodern:legacy-ready", () => retry(0));
   globalThis.addEventListener?.("pageshow", () => retry(0));
