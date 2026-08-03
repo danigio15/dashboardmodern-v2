@@ -3,6 +3,29 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 0.14.17 — 2026-08-02
+
+### Corretto
+
+- Il cambio mese nel Report Energia mantiene visibili i dati precedenti durante
+  il caricamento e sostituisce Produzione, Consumo e Autosufficienza in un unico
+  aggiornamento, senza passaggi intermedi a zero.
+- Ripristinata l'associazione Elettrodomestico → Stanza usando il modello
+  canonico; i filtri stanza mostrano nuovamente solo i dispositivi appartenenti
+  alla stanza selezionata.
+- Rimossa dalla card Elettrodomestici la vecchia rappresentazione `∑ Totale` e
+  sostituita con riquadri leggibili **Consumo totale** e **Adesso**, lasciando
+  invariata l'immagine configurata del dispositivo.
+- Ridisegnata la card Temperature con gerarchia più chiara per stanza,
+  temperatura e umidità. La fiamma non viene più mostrata: al suo posto compare
+  uno stato testuale esplicito come **Comfort**, **Caldo** o **Molto caldo**.
+
+### Verificato
+
+- Controllo sintattico del nuovo runtime.
+- Browser E2E italiano e inglese per cambio mese senza zero, filtri stanza,
+  mantenimento dell'immagine elettrodomestico e card temperatura senza fiamma.
+
 ## 0.14.15 — 2026-08-02
 
 ### Corretto
