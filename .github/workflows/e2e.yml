@@ -10,7 +10,9 @@ permissions:
 jobs:
   playwright:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    container:
+      image: mcr.microsoft.com/playwright:v1.54.1-noble
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,19 +23,6 @@ jobs:
         with:
           python-version: "3.13"
       - run: npm ci
-      - name: Cache Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
-      - name: Install Playwright system dependencies
-        timeout-minutes: 15
-        run: npx playwright install-deps chromium webkit
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 8
-        run: npx playwright install chromium webkit
       - run: python scripts/generate_build_info.py --expected-commit "$GITHUB_SHA"
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
