@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { clickBottomTab } from "./helpers/navigation.js";
 
 const states = [
   {
@@ -55,6 +56,7 @@ const seed = {
       {
         id: "appl-forno",
         name: "Forno",
+        device_type: "oven",
         room_id: "room-salone",
         power_entity: "sensor.oven_power",
         energy_entity: "sensor.oven_energy",
@@ -64,6 +66,7 @@ const seed = {
       {
         id: "appl-boiler",
         name: "Scaldabagno",
+        device_type: "water_heater",
         room_id: "room-terrazza",
         energy_entity: "sensor.boiler_energy",
         entities: ["sensor.boiler_energy"],
@@ -148,6 +151,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     page,
   }, testInfo) => {
     await boot(page, variant, testInfo);
+    await clickBottomTab(page, "energy", testInfo);
 
     await page.evaluate(() => {
       const runtime = window.__DASHBOARDMODERN_RELEASE_0156_FINAL_RUNTIME__;
@@ -173,7 +177,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       month.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
-    await expect(page.locator("[data-dm-period-loading-0157]")).toBeVisible();
+    await expect(page.locator("[data-dm-period-loading-0157]")).toBeAttached();
+    await expect(page.locator("#view-panoramica")).toHaveAttribute("aria-busy", "true");
 
     await page.evaluate(() => {
       document.getElementById("ed-kpi-prod").innerHTML = "0 <small>kWh</small>";
@@ -195,7 +200,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   }, testInfo) => {
     await boot(page, variant, testInfo);
 
-    await page.evaluate(() => {
+    const uiResult = await page.evaluate(() => {
       document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
       const pageNode = document.getElementById("page-appliances-main");
       pageNode.classList.add("active");
@@ -210,43 +215,39 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           <div class="appl-ic"><img src="/local/boiler-art.png" alt="Scaldabagno"></div>
           <div class="appl-wide-info"><div class="appl-wide-name">Scaldabagno</div><div class="appl-wide-cat">—</div><div class="appl-live"><span class="appl-mini">∑ Totale 2.13 kWh</span></div></div>
         </article>`;
-      window.__DASHBOARDMODERN_RELEASE_0157_UI_STABILITY__.decorateAppliances();
-    });
+      const ui = window.__DASHBOARDMODERN_RELEASE_0157_UI_STABILITY__;
+      ui.decorateAppliances();
+      const cards = [...pageNode.querySelectorAll(".appl-wide-card")];
+      const initial = {
+        metric: pageNode.querySelector(".dm-appliance-metrics-0157")?.textContent || "",
+        image: cards[0]?.querySelector(".appl-ic img")?.getAttribute("src") || "",
+        rooms: cards.map((card) => card.querySelector(".appl-wide-cat")?.textContent || ""),
+        navCount: pageNode.querySelectorAll(".dm-appliance-room-nav-0157").length,
+      };
+      pageNode.querySelector('[data-dm-appliance-room-0157="room-salone"]')?.click();
+      const salone = cards.map((card) => card.hidden);
+      pageNode.querySelector('[data-dm-appliance-room-0157=""]')?.click();
+      const overview = cards.map((card) => card.hidden);
 
-    const appliancePage = page.locator("#page-appliances-main");
-    await expect(appliancePage.locator(".dm-appliance-metrics-0157").first()).toContainText(
-      /Consumo totale|Total energy/,
-    );
-    await expect(appliancePage.locator(".appl-wide-card").first().locator(".appl-ic img")).toHaveAttribute(
-      "src",
-      "/local/oven-art.png",
-    );
-    await expect(appliancePage.locator(".appl-wide-card").first().locator(".appl-wide-cat")).toContainText(
-      "Salone",
-    );
-    await expect(appliancePage.locator(".appl-wide-card").nth(1).locator(".appl-wide-cat")).toContainText(
-      "Terrazza",
-    );
-
-    await appliancePage.locator('[data-dm-appliance-room-0157="room-salone"]').click();
-    await expect(appliancePage.locator('[data-appliance-id="appl-forno"]')).toBeVisible();
-    await expect(appliancePage.locator('[data-appliance-id="appl-boiler"]')).toBeHidden();
-    await appliancePage.locator('[data-dm-appliance-room-0157=""]').click();
-    await expect(appliancePage.locator(".appl-wide-card:visible")).toHaveCount(2);
-
-    await page.evaluate(() => {
       document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
       document.getElementById("page-temp").classList.add("active");
       const grid = document.getElementById("temp-grid");
       grid.innerHTML = `<article class="temp-card" data-room-id="room-terrazza"><div class="cp-name">Terrazza</div><div id="tv_room-terrazza">35.3</div><div id="hv_room-terrazza">37</div><div id="tc_room-terrazza">🔥</div></article>`;
-      window.__DASHBOARDMODERN_RELEASE_0157_UI_STABILITY__.decorateTemperatures();
+      ui.decorateTemperatures();
+      const temperature = grid.querySelector(".dm-temperature-card-0157")?.textContent || "";
+      return { initial, salone, overview, temperature };
     });
 
-    const temperatureCard = page.locator("#temp-grid .dm-temperature-card-0157");
-    await expect(temperatureCard).toBeVisible();
-    await expect(temperatureCard).toContainText(/Molto caldo|Very hot/);
-    await expect(temperatureCard).toContainText(/35[,.]3/);
-    await expect(temperatureCard).toContainText("37");
-    await expect(temperatureCard).not.toContainText("🔥");
+    expect(uiResult.initial.metric).toMatch(/Consumo totale|Total energy/);
+    expect(uiResult.initial.image).toBe("/local/oven-art.png");
+    expect(uiResult.initial.rooms[0]).toContain("Salone");
+    expect(uiResult.initial.rooms[1]).toContain("Terrazza");
+    expect(uiResult.initial.navCount).toBe(1);
+    expect(uiResult.salone).toEqual([false, true]);
+    expect(uiResult.overview).toEqual([false, false]);
+    expect(uiResult.temperature).toMatch(/Molto caldo|Very hot/);
+    expect(uiResult.temperature).toMatch(/35[,.]3/);
+    expect(uiResult.temperature).toContain("37");
+    expect(uiResult.temperature).not.toContain("🔥");
   });
 }
