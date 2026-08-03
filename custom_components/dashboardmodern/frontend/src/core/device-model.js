@@ -142,8 +142,6 @@ export function getDeviceVisual(device = {}) {
   const icon = String(device.icon || "").trim();
   if (/^mdi:[a-z0-9-]+$/i.test(icon)) return { kind: "icon", value: icon };
   const type = String(device.device_type || device.type || "").toLowerCase().trim();
-  const visual = legacyVisualKey(device, icon, type);
-  if (visual) return { kind: "asset", value: visual };
   return { kind: "icon", value: TYPE_ICONS[type] || TYPE_ICONS[device.section] || "mdi:devices" };
 }
 
