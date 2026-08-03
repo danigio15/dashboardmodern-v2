@@ -1,11 +1,9 @@
-/* DashboardModern 0.15.0 — classic bridge for lexical legacy period registries. */
+/* DashboardModern 0.15.0 — classic bridge for the real lexical CD_PERIOD registry. */
 (function installLegacyPeriodBridge0150(root) {
   "use strict";
 
   const KEY = "__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE_V2__";
   if (root[KEY]?.installed) return;
-  const doc = root.document;
-  if (!doc) return;
 
   const MONTH_SLOTS = Object.freeze({
     "dm.energy_consumo_casa_mese": "house",
@@ -15,24 +13,15 @@
     "dm.energy_batteria_caricata_mese": "batteryCharged",
     "dm.energy_batteria_usata_mese": "batteryDischarged",
   });
-  const YEAR_SLOTS = Object.freeze({
-    "dm.energy_consumo_casa_anno": "house",
-    "dm.energy_produzione_solare_anno": "solar",
-    "dm.energy_rete_acquistata_anno": "gridImport",
-    "dm.energy_rete_venduta_anno": "gridExport",
-    "dm.energy_batteria_caricata_anno": "batteryCharged",
-    "dm.energy_batteria_usata_anno": "batteryDischarged",
-  });
-
   const state = {
     installed: true,
     version: "0.15.0",
     attempts: 0,
-    target: null,
+    ownerInstalled: false,
     values: Object.create(null),
-    brokerWrapped: false,
+    pending: Object.create(null),
   };
-  const clean = (value) => String(value ?? "").trim();
+
   const finite = (value) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
@@ -42,186 +31,137 @@
     try {
       if (typeof CD_PERIOD !== "undefined" && CD_PERIOD) return CD_PERIOD;
     } catch (_error) {}
-    return (root.CD_PERIOD ||= {});
-  }
-
-  function rawRegistry() {
-    try {
-      if (typeof _RAW_STATES !== "undefined" && _RAW_STATES) return _RAW_STATES;
-    } catch (_error) {}
-    return (root._RAW_STATES ||= {});
-  }
-
-  function visibleRegistry() {
-    try {
-      if (typeof STATES !== "undefined" && STATES) return STATES;
-    } catch (_error) {}
-    return (root.STATES ||= {});
+    return null;
   }
 
   function isCurrent(value = new Date()) {
-    const date = new Date(value);
+    const selected = new Date(value);
     const now = new Date();
-    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+    return (
+      selected.getFullYear() === now.getFullYear() &&
+      selected.getMonth() === now.getMonth()
+    );
   }
 
-  function bindRegistry() {
+  function installOwner() {
+    if (state.ownerInstalled) return true;
     const target = registry();
-    if (state.target === target) return true;
-    state.target = target;
+    if (!target) return false;
     Object.keys(MONTH_SLOTS).forEach((slot) => {
-      const previous = state.values[slot]?.value;
       const initial = finite(target[slot]);
-      const entry = (state.values[slot] ||= { value: 0, owned: false });
-      if (!entry.owned) entry.value = initial == null ? previous ?? 0 : Math.max(0, initial);
+      state.values[slot] = {
+        value: initial == null ? 0 : Math.max(0, initial),
+        owned: false,
+      };
       const descriptor = Object.getOwnPropertyDescriptor(target, slot);
-      if (descriptor?.get?.__dmLegacyPeriodBridgeV2) return;
-      if (descriptor && descriptor.configurable === false) return;
-      function getLegacyPeriod0150() {
-        return entry.value;
-      }
-      getLegacyPeriod0150.__dmLegacyPeriodBridgeV2 = true;
+      if (descriptor?.configurable === false) return;
       try {
         Object.defineProperty(target, slot, {
           configurable: true,
           enumerable: true,
-          get: getLegacyPeriod0150,
+          get() {
+            return state.values[slot].value;
+          },
           set(raw) {
             const value = finite(raw);
-            if (value == null || entry.owned) return;
-            entry.value = Math.max(0, value);
+            if (value == null || state.values[slot].owned) return;
+            state.values[slot].value = Math.max(0, value);
           },
         });
       } catch (_error) {}
     });
-    return true;
-  }
-
-  function set(slot, raw) {
-    const value = finite(raw);
-    if (!slot || value == null) return false;
-    bindRegistry();
-    const entry = (state.values[slot] ||= { value: 0, owned: false });
-    entry.value = Math.max(0, value);
-    entry.owned = true;
-    if (!MONTH_SLOTS[slot]) {
-      try {
-        registry()[slot] = entry.value;
-      } catch (_error) {}
-    }
-    return true;
-  }
-
-  function publish(slot, raw, key, kind, selected) {
-    const value = finite(raw);
-    if (!slot || value == null) return false;
-    const stamp = new Date().toISOString();
-    const item = {
-      entity_id: slot,
-      state: String(Math.max(0, value)),
-      attributes: {
-        unit_of_measurement: "kWh",
-        device_class: "energy",
-        state_class: "measurement",
-        dashboardmodern_derived: true,
-        dashboardmodern_source: key,
-        dashboardmodern_period: kind,
-        dashboardmodern_selected: selected.toISOString(),
-        dashboardmodern_version: "0.15.0",
-      },
-      last_changed: stamp,
-      last_updated: stamp,
-    };
-    rawRegistry()[slot] = item;
-    try {
-      visibleRegistry()[slot] = item;
-    } catch (_error) {}
-    if (kind !== "month" || isCurrent(selected)) set(slot, value);
-    return true;
-  }
-
-  function project(bundle = root.__DASHBOARDMODERN_RUNTIME_0150__?.bundle) {
-    bindRegistry();
-    if (!bundle?.period) return false;
-    const selected = new Date(Number(bundle.period.year), Number(bundle.period.month) - 1, 1);
-    Object.entries(MONTH_SLOTS).forEach(([slot, key]) =>
-      publish(slot, bundle.month?.[key], key, "month", selected),
-    );
-    Object.entries(YEAR_SLOTS).forEach(([slot, key]) =>
-      publish(slot, bundle.year?.[key], key, "year", selected),
-    );
-    return true;
-  }
-
-  function installBrokerHook() {
-    const broker = root.DashboardModernRuntime0150?.broker;
-    const current = broker?.ingestState;
-    if (typeof current !== "function") return false;
-    if (current.__dmLegacyPeriodBridgeV2) {
-      state.brokerWrapped = true;
-      return true;
-    }
-    function ingestLegacyPeriodBridge0150(item) {
-      const result = current.call(this, item);
-      const attributes = item?.attributes || {};
-      if (attributes.dashboardmodern_derived === true) {
-        publish(
-          clean(item.entity_id),
-          item.state,
-          attributes.dashboardmodern_source || clean(item.entity_id),
-          attributes.dashboardmodern_period || "month",
-          new Date(attributes.dashboardmodern_selected || Date.now()),
-        );
-      }
-      return result;
-    }
-    ingestLegacyPeriodBridge0150.__dmLegacyPeriodBridgeV2 = true;
-    ingestLegacyPeriodBridge0150.__dmPrevious = current;
-    broker.ingestState = ingestLegacyPeriodBridge0150;
-    state.brokerWrapped = true;
+    state.ownerInstalled = true;
+    Object.entries(state.pending).forEach(([slot, value]) => api.set(slot, value));
+    state.pending = Object.create(null);
     return true;
   }
 
   const api = {
     installed: true,
     version: "0.15.0",
-    get(slot) {
-      bindRegistry();
-      return registry()[slot];
+    ready() {
+      return installOwner();
     },
-    set,
+    get(slot) {
+      const target = registry();
+      return target?.[slot];
+    },
+    set(slot, raw) {
+      const value = finite(raw);
+      if (!slot || value == null) return false;
+      if (!installOwner()) {
+        state.pending[slot] = Math.max(0, value);
+        return false;
+      }
+      if (state.values[slot]) {
+        state.values[slot].value = Math.max(0, value);
+        state.values[slot].owned = true;
+      } else {
+        const target = registry();
+        if (!target) {
+          state.pending[slot] = Math.max(0, value);
+          return false;
+        }
+        target[slot] = Math.max(0, value);
+      }
+      return true;
+    },
     merge(values) {
-      Object.entries(values || {}).forEach(([slot, value]) => set(slot, value));
+      Object.entries(values || {}).forEach(([slot, value]) => api.set(slot, value));
       return registry();
     },
-    publish,
-    project,
   };
+
   root[KEY] = api;
   root.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE__ = api;
 
-  function apply() {
-    bindRegistry();
-    installBrokerHook();
-    project();
+  function projectBundle(bundle = root.__DASHBOARDMODERN_RUNTIME_0150__?.bundle) {
+    if (!bundle?.period || !bundle?.month) return false;
+    const selected = new Date(Number(bundle.period.year), Number(bundle.period.month) - 1, 1);
+    if (!isCurrent(selected)) return false;
+    Object.entries(MONTH_SLOTS).forEach(([slot, key]) => api.set(slot, bundle.month[key]));
+    return true;
+  }
+
+  function projectDerivedStates() {
+    const states = { ...(root._RAW_STATES || {}), ...(root.STATES || {}) };
+    Object.entries(states).forEach(([slot, item]) => {
+      if (!item?.attributes?.dashboardmodern_derived) return;
+      const kind = item.attributes.dashboardmodern_period;
+      const selected = item.attributes.dashboardmodern_selected;
+      if (kind === "month" && selected && !isCurrent(selected)) return;
+      api.set(slot, item.state);
+    });
+  }
+
+  function project() {
+    if (!installOwner()) return false;
+    projectBundle();
+    projectDerivedStates();
+    return true;
+  }
+  api.project = project;
+
+  function scheduleProject() {
+    [0, 30, 80, 160, 320, 650, 1100, 1800].forEach((delay) =>
+      root.setTimeout?.(project, delay),
+    );
   }
 
   function settle() {
     state.attempts += 1;
-    apply();
-    const lexicalReady = registry() !== root.CD_PERIOD || typeof root.CD_PERIOD === "undefined";
-    const ready = lexicalReady && Boolean(root.DashboardModernRuntime0150);
-    if (!ready && state.attempts < 240) root.requestAnimationFrame?.(settle);
+    const ready = project();
+    if (!ready && state.attempts < 300) root.requestAnimationFrame?.(settle);
+    else scheduleProject();
   }
 
-  api.merge(root.__DASHBOARDMODERN_LEGACY_PERIOD_PENDING__ || {});
-  root.__DASHBOARDMODERN_LEGACY_PERIOD_PENDING__ = {};
-  root.addEventListener?.("dashboardmodern:legacy-ready", () => root.queueMicrotask?.(settle));
-  root.addEventListener?.("dashboardmodern:runtime-ready", () => root.queueMicrotask?.(settle));
-  root.addEventListener?.("dashboardmodern:period-bundle", (event) => project(event.detail));
-  root.addEventListener?.("dashboardmodern:energy-statistics", () => root.queueMicrotask?.(apply));
-  root.addEventListener?.("pageshow", () => root.queueMicrotask?.(settle));
+  root.addEventListener?.("dashboardmodern:runtime-ready", scheduleProject);
+  root.addEventListener?.("dashboardmodern:period-bundle", (event) => {
+    projectBundle(event.detail);
+    scheduleProject();
+  });
+  root.addEventListener?.("dashboardmodern:energy-statistics", scheduleProject);
+  root.addEventListener?.("pageshow", scheduleProject);
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:legacy-period-bridge-ready"));
-  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", settle, { once: true });
-  else settle();
+  settle();
 })(globalThis);
