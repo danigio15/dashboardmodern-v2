@@ -8,13 +8,13 @@ import "./runtime-compatibility.js";
 
 if (
   typeof document !== "undefined" &&
-  !globalThis.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE__ &&
-  !document.querySelector('script[data-dm-legacy-period-bridge="true"]')
+  !globalThis.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE_V2__ &&
+  !document.querySelector('script[data-dm-legacy-period-bridge-v2="true"]')
 ) {
   const bridge = document.createElement("script");
-  bridge.src = new URL("./runtime-legacy-period-bridge.js", import.meta.url).href;
+  bridge.src = new URL("./runtime-legacy-period-bridge-v2.js", import.meta.url).href;
   bridge.async = false;
-  bridge.dataset.dmLegacyPeriodBridge = "true";
+  bridge.dataset.dmLegacyPeriodBridgeV2 = "true";
   (document.head || document.documentElement).append(bridge);
 }
 
