@@ -1,4 +1,4 @@
-/* DashboardModern 0.15.0 — bounded hooks for the classic legacy bridge. */
+/* DashboardModern 0.15.0 — scoped, non-invasive legacy bridge hooks. */
 (function installLegacyBridgeHooks0150(root) {
   "use strict";
 
@@ -7,19 +7,15 @@
   const doc = root.document;
   if (!doc) return;
 
-  const MONTH_SLOTS = Object.freeze({
-    "dm.energy_consumo_casa_mese": "house",
-    "dm.energy_produzione_solare_mese": "solar",
-    "dm.energy_rete_acquistata_mese": "gridImport",
-    "dm.energy_rete_venduta_mese": "gridExport",
-    "dm.energy_batteria_caricata_mese": "batteryCharged",
-    "dm.energy_batteria_usata_mese": "batteryDischarged",
-  });
   const state = (root[KEY] = {
     installed: true,
     version: "0.15.0",
     attempts: 0,
     brokerWrapped: false,
+    editorObserver: null,
+    editorBody: null,
+    applianceObserver: null,
+    applianceGrid: null,
     temperatureSaving: false,
   });
   const clean = (value) => String(value ?? "").trim();
@@ -38,11 +34,8 @@
   }
 
   function projectBundle(bundle = runtimeState()?.bundle) {
-    if (!bridge()?.set || !bundle?.period || !bundle?.month) return false;
-    const selected = new Date(Number(bundle.period.year), Number(bundle.period.month) - 1, 1);
-    if (!isCurrent(selected)) return false;
-    Object.entries(MONTH_SLOTS).forEach(([slot, key]) => bridge().set(slot, bundle.month[key]));
-    return true;
+    if (!bridge()?.project || !bundle?.period) return false;
+    return bridge().project(bundle);
   }
 
   function projectDerivedStates() {
@@ -62,7 +55,7 @@
     const broker = runtimeApi()?.broker;
     const current = broker?.ingestState;
     if (typeof current !== "function") return false;
-    if (current.__dmLegacyBridgeHooks) {
+    if (current.__dmLegacyBridgeHooksV2) {
       state.brokerWrapped = true;
       return true;
     }
@@ -77,7 +70,7 @@
       }
       return result;
     }
-    ingestLegacyBridgeHooks0150.__dmLegacyBridgeHooks = true;
+    ingestLegacyBridgeHooks0150.__dmLegacyBridgeHooksV2 = true;
     ingestLegacyBridgeHooks0150.__dmPrevious = current;
     broker.ingestState = ingestLegacyBridgeHooks0150;
     state.brokerWrapped = true;
@@ -98,7 +91,7 @@
       if (!input) return;
       input.placeholder = placeholder;
       input.value = clean(input.value).replace(/[\\"]/g, "");
-      const holder = input.parentElement;
+      const holder = input.closest("label,.ed-slot") || input.parentElement;
       if (holder) holder.dataset.entityField = "";
       let button = input.nextElementSibling;
       if (!button?.matches?.("button")) button = holder?.querySelector?.("button");
@@ -111,6 +104,7 @@
       button.dataset.entityTarget = id;
       if (!clean(button.textContent)) button.textContent = "🔍";
     });
+    root.DashboardModernModules?.render?.mountEntityPickers?.(body);
     return true;
   }
 
@@ -119,38 +113,28 @@
       const mini = card.querySelector(".appl-mini");
       if (!mini) return;
       const amount = (mini.textContent.match(/[\d.,]+\s*kWh/i) || [""])[0].trim();
-      mini.textContent = `${english() ? "Total" : "Totale"}${amount ? ` ${amount}` : ""}`;
+      const expected = `${english() ? "Total" : "Totale"}${amount ? ` ${amount}` : ""}`;
+      if (mini.textContent.trim() !== expected) mini.textContent = expected;
     });
   }
 
-  function applyUi() {
-    decorateIrrigationEditor();
-    normalizeApplianceCards();
-    projectBundle();
-    projectDerivedStates();
-  }
-
-  function wrapAfter(name, after = applyUi) {
-    const current = root[name];
-    if (typeof current !== "function" || current.__dmLegacyBridgeAfter) return typeof current === "function";
-    function legacyBridgeAfter0150(...args) {
-      const result = current.apply(this, args);
-      const finish = () => root.queueMicrotask?.(after);
-      if (result && typeof result.finally === "function") return result.finally(finish);
-      finish();
-      return result;
+  function installScopedObservers() {
+    const body = doc.getElementById("ed-body");
+    if (body && state.editorBody !== body) {
+      state.editorObserver?.disconnect?.();
+      state.editorBody = body;
+      state.editorObserver = new MutationObserver(() => root.queueMicrotask?.(decorateIrrigationEditor));
+      state.editorObserver.observe(body, { childList: true, subtree: true });
+      decorateIrrigationEditor();
     }
-    legacyBridgeAfter0150.__dmLegacyBridgeAfter = true;
-    legacyBridgeAfter0150.__dmResidualAfter = true;
-    legacyBridgeAfter0150.__dmFinalOwner = true;
-    legacyBridgeAfter0150.__dmRealFix = name === "editorSwitch" || Boolean(current.__dmRealFix);
-    legacyBridgeAfter0150.__dmPrevious = current;
-    try {
-      root[name] = legacyBridgeAfter0150;
-    } catch (_error) {
-      return false;
+    const grid = doc.getElementById("appl-grid-overview");
+    if (grid && state.applianceGrid !== grid) {
+      state.applianceObserver?.disconnect?.();
+      state.applianceGrid = grid;
+      state.applianceObserver = new MutationObserver(() => root.queueMicrotask?.(normalizeApplianceCards));
+      state.applianceObserver.observe(grid, { childList: true, subtree: true });
+      normalizeApplianceCards();
     }
-    return root[name] === legacyBridgeAfter0150 || root[name]?.__dmLegacyBridgeAfter === true;
   }
 
   async function saveTemperatureFromForm() {
@@ -169,39 +153,28 @@
     }
   }
 
-  function installWrappers() {
-    wrapAfter("editorSwitch");
-    wrapAfter("renderApplianceSection", normalizeApplianceCards);
-    wrapAfter("renderAppliances", normalizeApplianceCards);
-    wrapAfter("renderEnergy");
-    wrapAfter("renderEnergyDashboard");
-    wrapAfter("switchEnergyView");
+  function apply() {
+    installBrokerHook();
+    installScopedObservers();
+    decorateIrrigationEditor();
+    normalizeApplianceCards();
+    projectBundle();
+    projectDerivedStates();
+    return true;
   }
+  state.project = apply;
 
   function scheduleApply() {
     [0, 30, 80, 160, 320, 650, 1100, 1800, 2600].forEach((delay) =>
-      root.setTimeout?.(() => {
-        installBrokerHook();
-        installWrappers();
-        applyUi();
-      }, delay),
+      root.setTimeout?.(apply, delay),
     );
   }
 
-  state.project = () => {
-    installBrokerHook();
-    installWrappers();
-    applyUi();
-    return true;
-  };
-
   function settle() {
     state.attempts += 1;
-    installBrokerHook();
-    installWrappers();
-    applyUi();
-    const ready = Boolean(bridge()?.set && runtimeState()?.ready && runtimeState()?.bundle);
-    if (!ready && state.attempts < 240) root.requestAnimationFrame?.(settle);
+    apply();
+    const ready = Boolean(bridge()?.ready?.() && runtimeState()?.ready && runtimeState()?.bundle);
+    if (!ready && state.attempts < 300) root.requestAnimationFrame?.(settle);
     else scheduleApply();
   }
 
@@ -209,11 +182,11 @@
     "click",
     (event) => {
       if (event.target?.closest?.("[data-temperature-submit]")) saveTemperatureFromForm();
-      root.queueMicrotask?.(applyUi);
+      root.queueMicrotask?.(apply);
     },
     true,
   );
-  doc.addEventListener("change", () => root.queueMicrotask?.(applyUi), true);
+  doc.addEventListener("change", () => root.queueMicrotask?.(apply), true);
   root.addEventListener?.("dashboardmodern:runtime-ready", scheduleApply);
   root.addEventListener?.("dashboardmodern:period-bundle", scheduleApply);
   root.addEventListener?.("dashboardmodern:energy-statistics", scheduleApply);
