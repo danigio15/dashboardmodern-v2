@@ -22,6 +22,7 @@ import "./release-0156-reconnect-timer-cancel.js";
 import "./release-0156-current-period-lock.js";
 import "./release-0157-finalization.js";
 import "./release-0157-period-owner.js";
+import "./release-0157-temperature-icons.js";
 
 if (typeof globalThis.document !== "undefined") {
   import("./release-0156-final-runtime.js")
@@ -29,7 +30,10 @@ if (typeof globalThis.document !== "undefined") {
     .then(() => import("./release-0156-owner-guard.js"))
     .then(() => import("./release-0157-ui-stability.js"))
     .then(() => import("./release-0157-stability-guard.js"))
-    .then(() => globalThis.__DASHBOARDMODERN_RELEASE_0157_FINALIZE__?.())
+    .then(() => {
+      globalThis.__DASHBOARDMODERN_RELEASE_0157_FINALIZE__?.();
+      globalThis.__DASHBOARDMODERN_RELEASE_0157_PERIOD_OWNER_SETTLE__?.();
+    })
     .catch((error) => globalThis.console?.warn?.("[DashboardModern] final runtime import", error));
 }
 
