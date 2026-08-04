@@ -2,6 +2,7 @@
 import "./release-0152-fixes.js";
 import "./runtime-real-ha-hotfix-v2.js";
 import "./runtime-real-ha-theme-owner.js";
+import "./runtime-real-ha-temperature-stability.js";
 
 if (typeof document !== "undefined" && !document.getElementById("dm-report-responsive-0150")) {
   const style = document.createElement("style");
