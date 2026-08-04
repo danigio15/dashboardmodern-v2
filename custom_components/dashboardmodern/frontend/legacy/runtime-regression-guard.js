@@ -19,6 +19,7 @@ import {
     unsubscribe: null,
     currentFlowText: Object.create(null),
     currentFlowSlots: Object.create(null),
+    savingTemperature: false,
   });
 
   const FLOW_IDS = Object.freeze([
@@ -364,6 +365,47 @@ import {
     return true;
   }
 
+  async function persistTemperature() {
+    if (state.savingTemperature) return false;
+    const dashboardStore = store();
+    const roomId = clean(doc.getElementById("dm-temperature-room")?.value);
+    const temp = clean(doc.getElementById("ed-pl-temp")?.value);
+    const hum = clean(doc.getElementById("dm-humidity-new")?.value);
+    if (!roomId || !dashboardStore?.updateItem) return false;
+    if (!temp.includes(".")) {
+      root.alert?.(
+        doc.documentElement.lang === "en"
+          ? "Enter a valid temperature entity"
+          : "Inserisci un'entità temperatura valida",
+      );
+      return false;
+    }
+    state.savingTemperature = true;
+    try {
+      const room = (dashboardStore.getSection("rooms") || []).find(
+        (item) => clean(item.id) === roomId,
+      );
+      await dashboardStore.updateItem("rooms", roomId, {
+        icon: clean(doc.getElementById("dm-temperature-icon")?.value) || clean(room?.icon) || "mdi:home",
+        temp,
+        hum,
+      });
+      root.buildTempCards?.();
+      root.renderTemperature?.();
+      root.editorSwitch?.("sez7");
+      return true;
+    } finally {
+      state.savingTemperature = false;
+    }
+  }
+
+  function captureTemperatureSave(event) {
+    if (!event.target?.closest?.("[data-temperature-submit]")) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    persistTemperature().catch((error) => root.console?.warn?.("Temperature save", error));
+  }
+
   function readAlertGroups() {
     try {
       return JSON.parse(root.localStorage?.getItem("cd_gruppi_extra") || "{}") || {};
@@ -393,9 +435,32 @@ import {
     return "";
   }
 
+  function alertName(entity) {
+    try {
+      const names = JSON.parse(root.localStorage?.getItem("cd_avvisi_names_extra") || "{}") || {};
+      return clean(names[entity]) || clean(root.STATES?.[entity]?.attributes?.friendly_name) || entity;
+    } catch (_error) {
+      return entity;
+    }
+  }
+
   function invokeAlertEdit(button) {
+    const group = clean(button.dataset.alertGroup);
+    const entity = clean(button.dataset.alertEntity);
+    const owner = root.__DASHBOARDMODERN_RELEASE_OWNER_0150__;
+    if (owner && group && entity) {
+      owner.alertEdit = { group, entity };
+      const groupInput = doc.getElementById("ed-avv-grp");
+      const entityInput = doc.getElementById("ed-avv-ent");
+      const nameInput = doc.getElementById("ed-avv-name");
+      if (groupInput) groupInput.value = group;
+      if (entityInput) entityInput.value = entity;
+      if (nameInput) nameInput.value = alertName(entity);
+      return true;
+    }
     const edit = root.dmRealEditAlert || root.edEditAvvisoStandard;
-    edit?.(button.dataset.alertGroup, button.dataset.alertEntity);
+    edit?.(group, entity);
+    return Boolean(edit);
   }
 
   function bindAlertEditButton(button, group, entity) {
@@ -497,6 +562,7 @@ import {
 
   alignBridge();
   installStyles();
+  root.addEventListener?.("click", captureTemperatureSave, true);
   root.addEventListener?.("dashboardmodern:runtime-ready", scheduleApply);
   root.addEventListener?.("dashboardmodern:legacy-ready", scheduleApply);
   root.addEventListener?.("dashboardmodern:energy-statistics", scheduleApply);
