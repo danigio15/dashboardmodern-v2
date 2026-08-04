@@ -1,5 +1,6 @@
 /* DashboardModern 0.15.2 — production entry for the single runtime owner. */
 import "./runtime-consolidated.js";
+import "../src/core/runtime-startup-coordinator.js";
 import "../src/core/alerts-runtime.js";
 import "../src/core/vehicle-image-runtime.js";
 
