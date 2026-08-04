@@ -1,6 +1,7 @@
-/* DashboardModern 0.15.1 compatibility entry: one runtime plus bounded real-HA owner. */
+/* DashboardModern 0.15.1 compatibility entry: consolidated runtime plus bounded real-HA owners. */
 import "./release-0152-fixes.js";
 import "./runtime-real-ha-hotfix-v2.js";
+import "./runtime-real-ha-theme-owner.js";
 
 if (typeof document !== "undefined" && !document.getElementById("dm-report-responsive-0150")) {
   const style = document.createElement("style");
