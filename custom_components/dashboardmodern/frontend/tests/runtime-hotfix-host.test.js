@@ -1,21 +1,7 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
-import vm from "node:vm";
 
 import { mountLegacyHost } from "../src/legacy/host.js";
-
-const runtimeHotfixUrl = new URL("../legacy/runtime-hotfix.js", import.meta.url);
-
-test("the runtime hotfix is complete, compiled and closes its IIFE", async () => {
-  const source = await readFile(runtimeHotfixUrl, "utf8");
-
-  assert.ok(source.length > 25000, "runtime hotfix must not be truncated");
-  assert.ok(source.split("\n").length >= 700, "runtime hotfix retains the complete runtime");
-  assert.match(source, /window\.__DASHBOARDMODERN_RUNTIME_HOTFIX__\s*=\s*true;/);
-  assert.ok(source.trimEnd().endsWith("})();"), "runtime hotfix closes its IIFE");
-  assert.doesNotThrow(() => new vm.Script(source, { filename: "runtime-hotfix.js" }));
-});
 
 function element(tag) {
   return {
@@ -39,7 +25,7 @@ function element(tag) {
   };
 }
 
-test("the hosted frame receives the runtime stability guard on every load", () => {
+test("the hosted frame installs only the authenticated transport bridge", () => {
   const scripts = [];
   const childDocument = {
     head: {
@@ -58,19 +44,21 @@ test("the hosted frame receives the runtime stability guard on every load", () =
   frame.contentWindow = { document: childDocument };
   frame.clientHeight = 100;
   const container = element("div");
+  const connection = { sendMessagePromise: async () => ({}) };
 
   const host = mountLegacyHost(container, {
     hass: { locale: { language: "it" } },
-    connection: { sendMessagePromise: async () => ({}) },
+    connection,
     staticBase: "/dashboardmodern_static/hash",
     documentRef: { createElement: () => frame },
     hostWindow: {},
   });
 
-  assert.equal(scripts.length, 1);
-  assert.equal(scripts[0].id, "dm-runtime-hotfix");
-  assert.equal(scripts[0].src, "/dashboardmodern_static/hash/legacy/runtime-hotfix.js");
+  assert.equal(scripts.length, 0, "the host must not inject a second runtime");
+  assert.equal(host.frame.contentWindow.__DASHBOARDMODERN_BRIDGED__, true);
+  assert.equal(typeof host.frame.contentWindow.WebSocket, "function");
+  assert.match(host.frame.getAttribute("src"), /\/legacy\/dashboard\.html\?/);
 
   host.frame.listeners.load();
-  assert.equal(scripts.length, 1, "reload installation stays idempotent");
+  assert.equal(scripts.length, 0, "reloads must not inject patches either");
 });
