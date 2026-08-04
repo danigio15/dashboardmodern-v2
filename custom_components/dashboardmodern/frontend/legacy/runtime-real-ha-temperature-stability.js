@@ -6,7 +6,12 @@
   if (!root.document || root[KEY]?.installed) return;
 
   const doc = root.document;
-  const state = (root[KEY] = { installed: true, wrapped: new WeakSet(), scheduled: false });
+  const state = (root[KEY] = {
+    installed: true,
+    wrapped: new WeakSet(),
+    scheduled: false,
+    deleting: new Set(),
+  });
   const clean = (value) => String(value ?? "").trim();
   const store = () => root.DashboardModernModules?.store || null;
 
@@ -23,17 +28,21 @@
   function valueFor(entity) {
     if (!clean(entity)) return "";
     const value = states()[entity]?.state;
-    return ["unknown", "unavailable", "none", "null", "undefined", ""].includes(clean(value).toLowerCase())
+    return ["unknown", "unavailable", "none", "null", "undefined", ""].includes(
+      clean(value).toLowerCase(),
+    )
       ? ""
       : clean(value);
   }
 
   function findCard(room, index) {
-    const escaped = root.CSS?.escape?.(clean(room.id)) || clean(room.id).replace(/[^a-z0-9_-]/gi, "_");
+    const roomId = clean(room.id);
     return (
-      doc.querySelector(`#temp-grid .temp-card[data-room-id="${escaped}"]`) ||
-      [...doc.querySelectorAll("#temp-grid .temp-card")].find((card) =>
-        clean(card.querySelector(".cp-name")?.textContent).toLowerCase() === clean(room.name).toLowerCase(),
+      [...doc.querySelectorAll("#temp-grid .temp-card")].find(
+        (card) => clean(card.dataset.roomId) === roomId,
+      ) ||
+      [...doc.querySelectorAll("#temp-grid .temp-card")].find(
+        (card) => clean(card.querySelector(".cp-name")?.textContent).toLowerCase() === clean(room.name).toLowerCase(),
       ) ||
       doc.querySelectorAll("#temp-grid .temp-card")[index] ||
       null
@@ -41,7 +50,8 @@
   }
 
   function setText(node, value) {
-    if (node && value && clean(node.textContent).replace(/[%°]/g, "") !== value) node.textContent = value;
+    if (!node || !value) return;
+    if (clean(node.textContent).replace(/[%°]/g, "") !== value) node.textContent = value;
   }
 
   function removeFlame(card) {
@@ -57,20 +67,33 @@
     card.dataset.dmNoFlame = "true";
   }
 
+  function settleCardLayout(card) {
+    card.style.removeProperty("display");
+    card.style.setProperty("min-height", "110px", "important");
+    card.style.setProperty("height", "auto", "important");
+
+    const name = card.querySelector(".cp-name");
+    const values = card.querySelector(".temp-values,.temp-card-body");
+    if (!name || !values || !card.isConnected) return;
+
+    values.style.removeProperty("margin-top");
+    const nameBox = name.getBoundingClientRect();
+    const valuesBox = values.getBoundingClientRect();
+    if (!nameBox.height || !valuesBox.height) return;
+    const overlap = nameBox.bottom - valuesBox.top;
+    if (overlap > 1) {
+      values.style.setProperty("margin-top", `${Math.ceil(overlap + 4)}px`, "important");
+    }
+  }
+
   function applyTemperatureLive() {
     const rooms = (store()?.getSection?.("rooms") || []).filter((room) => clean(room.temp));
-    const cards = [...doc.querySelectorAll("#temp-grid .temp-card")];
-
-    cards.forEach((card) => {
-      card.style.setProperty("display", "grid", "important");
-      card.style.setProperty("min-height", "110px", "important");
-      card.style.setProperty("height", "auto", "important");
-      removeFlame(card);
-    });
+    const matched = new Set();
 
     rooms.forEach((room, index) => {
       const card = findCard(room, index);
       if (!card) return;
+      matched.add(card);
       card.dataset.roomId = clean(room.id);
       const temperature = valueFor(room.temp);
       const humidity = valueFor(room.hum);
@@ -82,18 +105,24 @@
       setText(humNode, humidity);
       if (humNode && humidity) humNode.textContent = `${humidity}%`;
       removeFlame(card);
+      settleCardLayout(card);
     });
 
-    cards.slice(rooms.length).forEach((card) => {
-      const name = clean(card.querySelector(".cp-name")?.textContent).toLowerCase();
-      if (!rooms.some((room) => clean(room.name).toLowerCase() === name)) card.remove();
+    doc.querySelectorAll("#temp-grid .temp-card").forEach((card) => {
+      if (!matched.has(card)) card.remove();
     });
     return true;
   }
 
   function wrap(name) {
     const current = root[name];
-    if (typeof current !== "function" || state.wrapped.has(current) || current.__dmRealHaTemperature0151) return false;
+    if (
+      typeof current !== "function" ||
+      state.wrapped.has(current) ||
+      current.__dmRealHaTemperature0151
+    ) {
+      return false;
+    }
     function safeTemperatureRenderer0151() {
       let result;
       try {
@@ -129,15 +158,43 @@
     });
   }
 
+  async function deleteTemperature(button) {
+    const roomId = clean(button.closest("[data-room-id]")?.dataset?.roomId);
+    const dashboardStore = store();
+    if (!roomId || !dashboardStore?.updateItem || state.deleting.has(roomId)) return;
+    state.deleting.add(roomId);
+    try {
+      await dashboardStore.updateItem("rooms", roomId, { temp: "", hum: "" });
+      schedule();
+    } catch (error) {
+      root.console?.warn?.("[DashboardModern 0.15.1] Temperature delete", error);
+    } finally {
+      state.deleting.delete(roomId);
+    }
+  }
+
+  function handleClick(event) {
+    const remove = event.target?.closest?.("[data-temperature-delete]");
+    if (remove) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      void deleteTemperature(remove);
+      return;
+    }
+    if (event.target?.closest?.('[data-page="temperature"],[data-tab="temperature"],[data-tab="temp"]')) {
+      schedule();
+      root.setTimeout?.(applyTemperatureLive, 40);
+    }
+  }
+
   state.apply = applyTemperatureLive;
   state.installHooks = installHooks;
+  state.deleteTemperature = deleteTemperature;
   root.addEventListener?.("dashboardmodern:legacy-ready", schedule);
   root.addEventListener?.("dashboardmodern:runtime-ready", schedule);
   root.addEventListener?.("dashboardmodern:state-changed", schedule);
   root.addEventListener?.("pageshow", schedule);
-  doc.addEventListener("click", (event) => {
-    if (event.target?.closest?.('[data-page="temperature"],[data-tab="temperature"]')) schedule();
-  }, true);
+  doc.addEventListener("click", handleClick, true);
 
   installHooks();
   schedule();
