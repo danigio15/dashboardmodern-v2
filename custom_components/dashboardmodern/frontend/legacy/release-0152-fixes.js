@@ -8,6 +8,7 @@ import "./runtime-canonical-readiness.js";
 import "./runtime-residual-contracts.js";
 import "./runtime-compatibility.js";
 import "./runtime-release-owner-v3.js";
+import "./runtime-release-e2e-guard.js";
 
 function loadClassicRuntime(id, path, readyKey) {
   if (typeof document === "undefined" || globalThis[readyKey]) return Promise.resolve(true);
