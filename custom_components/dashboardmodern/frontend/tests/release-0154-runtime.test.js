@@ -7,7 +7,7 @@ import {
   canonicalArtworkType0154,
   isCumulativeEnergyEntity0154,
   periodPlans0154,
-} from "../legacy/release-0154-runtime.js";
+} from "../legacy/release-0152-fixes.js";
 
 const totalState = (entityId, friendlyName = entityId) => ({
   entity_id: entityId,
@@ -41,11 +41,20 @@ test("a cumulative entity saved in a monthly field is derived instead of shown a
   const plans = periodPlans0154(energy, "month", states);
   assert.equal(plans.length, 1);
   assert.deepEqual(plans[0], {
-    kind: "month",
+    key: "solar",
     group: "solar",
+    totalKey: "total_energy",
+    periodKeys: { day: "daily_energy", month: "monthly_energy", year: "annual_energy" },
+    slots: {
+      day: "dm.energy_produzione_solare_oggi",
+      month: "dm.energy_produzione_solare_mese",
+      year: "dm.energy_produzione_solare_anno",
+    },
+    kind: "month",
     slot: "dm.energy_produzione_solare_mese",
     source: "sensor.solar_total",
     entity: "sensor.solar_total",
+    direct: false,
     reason: "explicit-cumulative",
   });
 });
@@ -58,7 +67,11 @@ test("a genuine monthly measurement remains the explicit period value", () => {
     solar: { monthly_energy: "sensor.solar_month" },
   };
 
-  assert.deepEqual(periodPlans0154(energy, "month", states), []);
+  const plans = periodPlans0154(energy, "month", states);
+  assert.equal(plans.length, 1);
+  assert.equal(plans[0].direct, true);
+  assert.equal(plans[0].reason, "explicit-period");
+  assert.equal(plans[0].entity, "sensor.solar_month");
 });
 
 test("canonical total fields still derive day, month and year", () => {
@@ -123,17 +136,13 @@ test("oven, fridge, microwave and boiler share the same panel artwork contract",
   }
 });
 
-test("the compatibility entry loads one final appliance media owner after the 0.14.14 runtime", async () => {
+test("the compatibility entry loads one consolidated runtime and no release patch chain", async () => {
   const entry = await readFile(new URL("../legacy/release-0152-fixes.js", import.meta.url), "utf8");
-  const newRuntime = entry.indexOf('import "./release-0154-runtime.js"');
-  const postlude = entry.indexOf('import "./release-0154-postlude.js"');
-  const finalOwner = entry.indexOf('import "./release-0154-final-appliance-stability.js"');
-
-  assert.ok(newRuntime >= 0);
-  assert.ok(postlude > newRuntime);
-  assert.ok(finalOwner > postlude);
-  assert.equal(entry.includes('import "./appliance-media-layout-lock.js"'), false);
-  assert.equal(entry.includes('import "./release-0154-artwork-lock.js"'), false);
-  assert.equal(entry.includes('import "./release-0154-artwork-idempotency.js"'), false);
-  assert.equal(entry.includes('import "./release-0154-style-observer-guard.js"'), false);
+  assert.match(entry, /runtime-consolidated\.js/);
+  assert.doesNotMatch(entry, /release-0154-runtime\.js/);
+  assert.doesNotMatch(entry, /release-0154-postlude\.js/);
+  assert.doesNotMatch(entry, /release-0154-final-appliance-stability\.js/);
+  assert.doesNotMatch(entry, /release-015[5-7]-/);
+  assert.doesNotMatch(entry, /setInterval\s*\(/);
+  assert.doesNotMatch(entry, /MutationObserver/);
 });

@@ -1,17 +1,17 @@
 export const SCHEMA_VERSION = 4;
 
-// Stable keys shared by the appliance picker, persistence and runtime renderer.
-// The concrete media URL remains a presentation concern of the vendored dashboard.
 export const APPLIANCE_VISUAL_KEYS = Object.freeze([
   "forno",
   "lavatrice",
   "lavastoviglie",
   "asciugatrice",
   "frigorifero",
+  "frigo",
   "microonde",
   "piano_cottura",
   "condizionatore",
   "boiler",
+  "scaldabagno",
   "generico",
 ]);
 
@@ -57,6 +57,41 @@ const TYPE_ICONS = Object.freeze({
 });
 
 const LEGACY_NAMES = /^(generico|generic|other|altro|appliance)$/i;
+const VISUAL_ALIASES = Object.freeze({
+  oven: "forno",
+  stove: "forno",
+  washer: "lavatrice",
+  washing_machine: "lavatrice",
+  dishwasher: "lavastoviglie",
+  dryer: "asciugatrice",
+  fridge: "frigorifero",
+  refrigerator: "frigorifero",
+  microwave: "microonde",
+  cooktop: "piano_cottura",
+  hob: "piano_cottura",
+  water_heater: "boiler",
+});
+
+function normalizedToken(value = "") {
+  return String(value)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function legacyVisualKey(input = {}, rawIcon = "", type = "") {
+  const candidates = [input.visual_key, rawIcon, type, input.device_type, input.type]
+    .map(normalizedToken)
+    .filter(Boolean);
+  for (const candidate of candidates) {
+    const key = VISUAL_ALIASES[candidate] || candidate;
+    if (APPLIANCE_VISUAL_KEYS.includes(key)) return key;
+  }
+  return "";
+}
 
 export function entityLabel(entityId = "") {
   return String(entityId)
@@ -106,9 +141,7 @@ export function getDeviceVisual(device = {}) {
     return { kind: device.visual_type, value: device.visual_key };
   const icon = String(device.icon || "").trim();
   if (/^mdi:[a-z0-9-]+$/i.test(icon)) return { kind: "icon", value: icon };
-  const type = String(device.device_type || device.type || "")
-    .toLowerCase()
-    .trim();
+  const type = String(device.device_type || device.type || "").toLowerCase().trim();
   return { kind: "icon", value: TYPE_ICONS[type] || TYPE_ICONS[device.section] || "mdi:devices" };
 }
 
@@ -131,17 +164,20 @@ export function normalizeDevice(input = {}, section, context = {}) {
       : String(input.emoji_icon || "");
   const type =
     input.device_type || input.type || (!rawIcon.startsWith("mdi:") && !emoji ? rawIcon : "");
+  const visualKey = legacyVisualKey(input, rawIcon, type);
   const name = LEGACY_NAMES.test(String(input.name || "").trim())
     ? ""
     : String(input.name || "").trim();
+  const image = String(input.image || input.image_url || "");
   const base = {
     id: String(input.id || createId(section)),
     section,
     name,
-    icon: /^mdi:/i.test(String(input.icon || "")) ? input.icon : "",
-    image: String(input.image || input.image_url || ""),
-    visual_type: String(input.visual_type || ""),
-    visual_key: String(input.visual_key || ""),
+    icon: /^mdi:/i.test(rawIcon) ? rawIcon : "",
+    image,
+    image_url: image,
+    visual_type: String(input.visual_type || (visualKey ? "asset" : "")),
+    visual_key: String(input.visual_key || visualKey),
     emoji_icon: emoji,
     room_id: String(roomId),
     entities,
