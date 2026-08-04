@@ -31,6 +31,25 @@ const allStates = () => ({
 });
 const text = (it, en) => (doc?.documentElement?.lang === "en" ? en : it);
 const recoveryBroker = new HomeAssistantBroker({ timeout: 2500, cacheCurrentMs: 0, cacheHistoricalMs: 0 });
+recoveryBroker.statistics = async function exactStatistics(ids, start, end, period = "day") {
+  const statisticIds = [...new Set((ids || []).map((id) => clean(id)).filter(Boolean))];
+  if (!statisticIds.length) return {};
+  const startIso = new Date(start).toISOString();
+  const endIso = new Date(end).toISOString();
+  const result = await this.cachedRequest(
+    {
+      type: "recorder/statistics_during_period",
+      start_time: startIso,
+      end_time: endIso,
+      statistic_ids: statisticIds,
+      period,
+      units: { energy: "kWh" },
+    },
+    `recovery-statistics|${period}|${startIso}|${endIso}|${statisticIds.join(",")}`,
+    0,
+  );
+  return Object.fromEntries(statisticIds.map((id) => [id, result?.[id] || []]));
+};
 
 function installFastBridgeGuard() {
   const current = HomeAssistantBroker.prototype.connect;
@@ -240,7 +259,7 @@ async function recoverEnergyBundle() {
   const selected = new Date(period.year, period.month - 1, 1);
   const energy = energySection();
   const overrides = energyOverrides();
-  const resolver = root.resolveEntity || ((value) => value);
+  const resolver = (value) => value;
   const load = async (kind, date) => {
     const plans = sourcePlans(energy, kind, allStates(), overrides, resolver);
     const values = await recoveryBroker.valuesForPlans(plans, date, allStates());
