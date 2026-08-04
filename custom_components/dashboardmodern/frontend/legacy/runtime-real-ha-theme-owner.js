@@ -4,8 +4,24 @@
   const KEY = "__DASHBOARDMODERN_REAL_HA_THEME_OWNER_0151__";
   if (!root.document || root[KEY]?.installed) return;
   const doc = root.document;
-  const state = (root[KEY] = { installed: true, scheduled: false, render: null });
+  const state = (root[KEY] = {
+    installed: true,
+    scheduled: false,
+    render: null,
+    styleSetProperty: null,
+  });
   const clean = (value) => String(value ?? "").trim();
+  const THEME_VARIABLES = new Set([
+    "--card-bg",
+    "--ha-card-background",
+    "--secondary-background-color",
+    "--text",
+    "--text-dim",
+    "--card-border",
+    "--dm-bg",
+    "--bg-sculpted",
+    "--bg-1",
+  ]);
 
   function channels(value) {
     const raw = clean(value).toLowerCase();
@@ -60,8 +76,20 @@
   function apply() {
     const dark = dashboardIsDark();
     const palette = dark
-      ? { card: "#111827", surface: "#1f2937", text: "#f8fafc", dim: "#cbd5e1", border: "#374151" }
-      : { card: "#f8fafc", surface: "#ffffff", text: "#0f172a", dim: "#64748b", border: "#dbe4ee" };
+      ? {
+          card: "#111827",
+          surface: "#1f2937",
+          text: "#f8fafc",
+          dim: "#cbd5e1",
+          border: "#374151",
+        }
+      : {
+          card: "#f8fafc",
+          surface: "#ffffff",
+          text: "#0f172a",
+          dim: "#64748b",
+          border: "#dbe4ee",
+        };
     doc.documentElement.dataset.dmDashboardTheme = dark ? "dark" : "light";
     doc.documentElement.style.setProperty("--dm-real-card-bg", palette.card);
     doc.documentElement.style.setProperty("--dm-real-surface", palette.surface);
@@ -98,9 +126,22 @@
     root.setTimeout?.(apply, 90);
   }
 
+  function chainHas(fn, marker) {
+    const seen = new Set();
+    let current = fn;
+    while (typeof current === "function" && !seen.has(current)) {
+      if (current[marker]) return true;
+      seen.add(current);
+      current = current.__dmPrevious;
+    }
+    return false;
+  }
+
   function installRenderHook() {
     const current = root.renderApplianceSection;
-    if (typeof current !== "function" || current.__dmRealHaThemeOwner0151) return false;
+    if (typeof current !== "function" || chainHas(current, "__dmRealHaThemeOwner0151")) {
+      return false;
+    }
     function themedApplianceRender0151() {
       const result = current.apply(this, arguments);
       const finish = () => {
@@ -118,23 +159,52 @@
     return true;
   }
 
+  function installStyleHook() {
+    const style = doc.documentElement.style;
+    if (!style || state.styleSetProperty) return Boolean(state.styleSetProperty);
+    const original = style.setProperty.bind(style);
+    function setThemeProperty0151(name, value, priority) {
+      const result = original(name, value, priority);
+      if (THEME_VARIABLES.has(clean(name))) schedule();
+      return result;
+    }
+    try {
+      Object.defineProperty(style, "setProperty", {
+        configurable: true,
+        writable: true,
+        value: setThemeProperty0151,
+      });
+      state.styleSetProperty = original;
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
   state.apply = apply;
   state.installRenderHook = installRenderHook;
+  state.installStyleHook = installStyleHook;
   doc.addEventListener("click", schedule, true);
   doc.addEventListener("change", schedule, true);
   root.addEventListener?.("dashboardmodern:legacy-ready", () => {
     installRenderHook();
+    installStyleHook();
     schedule();
   });
   root.addEventListener?.("dashboardmodern:runtime-ready", () => {
     installRenderHook();
+    installStyleHook();
     schedule();
   });
   root.addEventListener?.("pageshow", schedule);
+  installStyleHook();
   installRenderHook();
   apply();
-  [180, 820, 1650].forEach((delay) => root.setTimeout?.(() => {
-    installRenderHook();
-    apply();
-  }, delay));
+  [180, 820, 1650].forEach((delay) =>
+    root.setTimeout?.(() => {
+      installStyleHook();
+      installRenderHook();
+      apply();
+    }, delay),
+  );
 })(globalThis);
