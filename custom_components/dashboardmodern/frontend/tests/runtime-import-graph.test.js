@@ -28,16 +28,19 @@ async function productionGraph(entry) {
   return seen;
 }
 
-test("the production import graph contains one consolidated runtime and no patch cascade", async () => {
+test("the production import graph contains one consolidated runtime and one bounded real-HA correction", async () => {
   const graph = await productionGraph("legacy/modules-entry.js");
-  const relative = [...graph.keys()].map((file) => path.relative(frontendRoot, file).replaceAll("\\", "/"));
+  const relative = [...graph.keys()].map((file) =>
+    path.relative(frontendRoot, file).replaceAll("\\", "/"),
+  );
   const releaseFiles = relative.filter((file) => /legacy\/release-\d+/.test(file));
   const combined = [...graph.values()].join("\n");
 
   assert.deepEqual(releaseFiles, ["legacy/release-0152-fixes.js"]);
   assert.equal(relative.filter((file) => file.endsWith("runtime-consolidated.js")).length, 1);
   assert.equal(relative.filter((file) => file.endsWith("runtime-compatibility.js")).length, 1);
-  assert.ok(relative.length <= 20, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.equal(relative.filter((file) => file.endsWith("runtime-real-ha-hotfix.js")).length, 1);
+  assert.ok(relative.length <= 21, `production graph unexpectedly grew to ${relative.length} modules`);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
   assert.doesNotMatch(combined, /new\s+MutationObserver\s*\(/);
 });
