@@ -74,11 +74,6 @@ import {
     installSocketConstants(explicitBridge);
     installSocketConstants(preloaded);
 
-    // An explicitly installed host/test bridge is authoritative. The prelude's
-    // deferred adapter is useful only when no explicit bridge exists: replacing
-    // it with the raw preloaded constructor can synchronously re-enter the
-    // legacy state machine, while leaving it in front of an explicit bridge
-    // breaks the public bridge identity contract.
     if (explicitBridge && current !== explicitBridge) root.WebSocket = explicitBridge;
     else if (typeof current !== "function" && preloaded) root.WebSocket = preloaded;
 
@@ -356,6 +351,19 @@ import {
     );
   }
 
+  function installDispatchFacade() {
+    const current = root.dispatchEvent;
+    if (typeof current !== "function" || current.__dmRuntimeRegression0150) return false;
+    function dispatchEvent0150(event) {
+      if (event?.type === "dashboardmodern:energy-periods-0154") protectCurrentFlow();
+      return current.call(this, event);
+    }
+    dispatchEvent0150.__dmRuntimeRegression0150 = true;
+    dispatchEvent0150.__dmPrevious = current;
+    root.dispatchEvent = dispatchEvent0150;
+    return true;
+  }
+
   function readAlertGroups() {
     try {
       return JSON.parse(root.localStorage?.getItem("cd_gruppi_extra") || "{}") || {};
@@ -454,9 +462,11 @@ import {
 
   function apply() {
     alignBridge();
+    installDispatchFacade();
     normalizeApplianceArtwork();
     installAlertEditButtons();
     installEditorFacade();
+    captureCurrentFlow();
     bindStore();
   }
 
