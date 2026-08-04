@@ -160,9 +160,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       .toContain("light.real_alert");
 
     await openEditor(page, "avvisi");
-    const alertEdit = page.locator(
-      '[data-alert-edit-0151][data-alert-entity="light.real_alert"]',
-    );
+    const alertRow = page.locator("article").filter({ hasText: "light.real_alert" }).first();
+    const alertEdit = alertRow.getByRole("button", { name: /Modifica|Edit/i }).first();
+    await expect(alertRow).toBeVisible();
     await expect(alertEdit).toBeVisible();
     await alertEdit.click();
     await expect(page.locator("#ed-avv-ent")).toHaveValue("light.real_alert");
