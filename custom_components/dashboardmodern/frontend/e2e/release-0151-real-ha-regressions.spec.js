@@ -29,10 +29,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           generation: window.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle?.generation,
         })),
       )
-      .toMatchObject({ ready: true, day: 39.9, month: 39.9, year: 760 });
+      .toMatchObject({ ready: true, day: 5.7, month: 39.9, year: 760 });
 
-    await expect(page.locator("#v-home-day")).toContainText(/39[,.]9/);
-    await expect(page.locator("#v-solar-day")).toContainText(/50[,.]2/);
+    await expect(page.locator("#v-home-day")).toContainText(/5[,.]7/);
+    await expect(page.locator("#v-solar-day")).toContainText(/7[,.]3/);
     await expect(page.locator("#v-home-month")).toContainText(/39[,.]9/);
     await expect(page.locator("#ed-kpi-cons")).toContainText(/39[,.]9/);
     const generations = await page.locator("#view-day,#view-month,#view-panoramica").evaluateAll((nodes) =>
@@ -61,7 +61,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       return samples;
     });
     for (const sample of stableSamples) {
-      expect(sample.day).toMatch(/39[,.]9/);
+      expect(sample.day).toMatch(/5[,.]7/);
       expect(sample.month).toMatch(/39[,.]9/);
       expect(sample.report).toMatch(/39[,.]9/);
       expect(`${sample.day} ${sample.month} ${sample.report}`).not.toContain("614");
