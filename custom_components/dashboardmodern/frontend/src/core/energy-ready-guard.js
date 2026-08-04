@@ -1,11 +1,13 @@
-/* Re-arm the canonical Energy recovery after an early empty bundle was accepted. */
+/* Bounded recovery guard for Energy bundles created before canonical hydration. */
 const root = globalThis;
+const doc = root.document;
 const KEY = "__DASHBOARDMODERN_ENERGY_READY_GUARD__";
 const state = (root[KEY] ||= {
   installed: true,
   attempts: 0,
+  rearms: 0,
   timer: 0,
-  rearmed: false,
+  done: false,
 });
 
 const clean = (value) => String(value ?? "").trim();
@@ -24,27 +26,55 @@ function canonicalEnergySource() {
   );
 }
 
+function expose(source, owner, house) {
+  if (!doc?.documentElement) return;
+  const requests = Array.isArray(root.__dmStatisticsRequests)
+    ? root.__dmStatisticsRequests.length
+    : -1;
+  doc.documentElement.dataset.dmEnergyGuard = [
+    source || "none",
+    root.WebSocket?.name || "none",
+    owner?.energyRunning ? "running" : "idle",
+    owner?.energyVerified ? "verified" : "pending",
+    state.rearms,
+    house,
+    requests,
+  ].join("|");
+}
+
 function tick() {
   state.timer = 0;
   state.attempts += 1;
   const source = canonicalEnergySource();
   const owner = root.__DASHBOARDMODERN_VEHICLE_IMAGE_RUNTIME__;
-  const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
-  const acceptedEmptyBundle =
-    owner?.energyVerified === true &&
-    Number(runtime?.bundle?.month?.house || 0) === 0;
+  const house = Number(root.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle?.month?.house || 0);
 
-  if (source && owner && !owner.energyRunning && acceptedEmptyBundle && !state.rearmed) {
-    state.rearmed = true;
+  expose(source, owner, house);
+  if (source && Number.isFinite(house) && house !== 0) {
+    state.done = true;
+    return;
+  }
+
+  const cadenceReached = state.attempts % 10 === 0;
+  if (
+    source &&
+    owner &&
+    !owner.energyRunning &&
+    cadenceReached &&
+    state.rearms < 16
+  ) {
+    state.rearms += 1;
     state.source = source;
     owner.energyVerified = false;
     owner.scheduleContracts?.(0);
     root.dispatchEvent?.(
-      new CustomEvent("dashboardmodern:energy-source-ready", { detail: { source } }),
+      new CustomEvent("dashboardmodern:energy-source-ready", {
+        detail: { source, attempt: state.rearms },
+      }),
     );
   }
 
-  if (!state.rearmed && state.attempts < 320) {
+  if (!state.done && state.attempts < 360) {
     state.timer = root.setTimeout?.(tick, 25);
   }
 }
