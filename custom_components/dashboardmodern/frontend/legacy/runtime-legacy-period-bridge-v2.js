@@ -25,6 +25,8 @@
     attempts: 0,
     ownerInstalled: false,
     temperatureOwner: false,
+    temperatureRenderOwners: Object.create(null),
+    temperatureSaving: false,
     alertOwner: false,
     dispatchOwner: false,
     values: Object.create(null),
@@ -183,10 +185,84 @@
     return true;
   }
 
-  function saveAlertForm() {
-    const group = clean(root.document?.getElementById("ed-avv-grp")?.value);
-    const entity = clean(root.document?.getElementById("ed-avv-ent")?.value);
-    const name = clean(root.document?.getElementById("ed-avv-name")?.value);
+  function normalizeTemperatureIcons() {
+    root.document?.querySelectorAll("#temp-grid .temp-room-icon").forEach((icon) => {
+      if (clean(icon.textContent)) return;
+      const token = clean(icon.dataset.roomIcon) || clean(icon.getAttribute("aria-label"));
+      icon.append(token && !token.startsWith("mdi:") ? token : "🏠");
+    });
+  }
+
+  function installTemperatureRenderOwner(name) {
+    if (state.temperatureRenderOwners[name]) return true;
+    const current = root[name];
+    if (typeof current !== "function") return false;
+    let delegate = current;
+    function temperatureRenderFinal0150() {
+      const result = delegate.apply(this, arguments);
+      const finish = () => normalizeTemperatureIcons();
+      if (result && typeof result.finally === "function") return result.finally(finish);
+      finish();
+      return result;
+    }
+    temperatureRenderFinal0150.__dmFinalOwner0150 = true;
+    temperatureRenderFinal0150.__dmReleaseOwnerV3 = true;
+    temperatureRenderFinal0150.__dmFinalTemperatureRender0150 = true;
+    try {
+      Object.defineProperty(root, name, {
+        configurable: true,
+        enumerable: true,
+        get: () => temperatureRenderFinal0150,
+        set(next) {
+          if (
+            typeof next === "function" &&
+            next !== temperatureRenderFinal0150 &&
+            next.__dmPrevious !== temperatureRenderFinal0150
+          ) {
+            delegate = next;
+          }
+        },
+      });
+    } catch (_error) {
+      root[name] = temperatureRenderFinal0150;
+    }
+    state.temperatureRenderOwners[name] = true;
+    normalizeTemperatureIcons();
+    return true;
+  }
+
+  async function saveTemperatureForm() {
+    if (state.temperatureSaving) return false;
+    const store = root.DashboardModernModules?.store;
+    const roomId = clean(root.document?.getElementById("dm-temperature-room")?.value);
+    const temp = clean(root.document?.getElementById("ed-pl-temp")?.value);
+    const hum = clean(root.document?.getElementById("dm-humidity-new")?.value);
+    if (!roomId || !temp.includes(".") || typeof store?.updateItem !== "function") return false;
+    state.temperatureSaving = true;
+    const sync = store.syncAdapter;
+    store.syncAdapter = async () => {};
+    try {
+      await store.updateItem("rooms", roomId, { temp, hum });
+      root.buildTempCards?.();
+      root.renderTemperature?.();
+      normalizeTemperatureIcons();
+      return true;
+    } finally {
+      store.syncAdapter = sync;
+      state.temperatureSaving = false;
+    }
+  }
+
+  function alertFormValues() {
+    return {
+      group: clean(root.document?.getElementById("ed-avv-grp")?.value),
+      entity: clean(root.document?.getElementById("ed-avv-ent")?.value),
+      name: clean(root.document?.getElementById("ed-avv-name")?.value),
+    };
+  }
+
+  function writeAlertForm() {
+    const { group, entity, name } = alertFormValues();
     if (!group || !entity.includes(".")) return false;
     const groups = readJson("cd_gruppi_extra", {});
     const names = readJson("cd_avvisi_names_extra", {});
@@ -199,26 +275,64 @@
     else delete names[entity];
     writeJson("cd_gruppi_extra", groups);
     writeJson("cd_avvisi_names_extra", names);
-    root.cdMarkDirty?.();
-    root.cdSyncPush?.();
-    root.editorSwitch?.("avvisi");
+    return true;
+  }
+
+  function protectAlertForm() {
+    const values = alertFormValues();
+    if (!values.group || !values.entity.includes(".")) return false;
+    const restore = () => {
+      const groups = readJson("cd_gruppi_extra", {});
+      const names = readJson("cd_avvisi_names_extra", {});
+      Object.keys(groups).forEach((key) => {
+        if (Array.isArray(groups[key])) groups[key] = groups[key].filter((id) => id !== values.entity);
+      });
+      groups[values.group] ||= [];
+      if (!groups[values.group].includes(values.entity)) groups[values.group].push(values.entity);
+      if (values.name) names[values.entity] = values.name;
+      else delete names[values.entity];
+      writeJson("cd_gruppi_extra", groups);
+      writeJson("cd_avvisi_names_extra", names);
+    };
+    restore();
+    [0, 20, 60, 140, 300, 700, 1200].forEach((delay) => root.setTimeout?.(restore, delay));
     return true;
   }
 
   function installAlertOwner() {
+    if (state.alertOwner) return true;
     const current = root.edAddAvviso;
     if (typeof current !== "function") return false;
-    if (current.__dmFinalAlertOwner0150) {
-      state.alertOwner = true;
-      return true;
-    }
+    let delegate = current;
     function addAlertFinal0150() {
-      if (saveAlertForm()) return true;
-      return current.apply(this, arguments);
+      if (writeAlertForm()) {
+        root.cdMarkDirty?.();
+        root.cdSyncPush?.();
+        root.editorSwitch?.("avvisi");
+        return true;
+      }
+      return delegate.apply(this, arguments);
     }
     addAlertFinal0150.__dmFinalAlertOwner0150 = true;
-    addAlertFinal0150.__dmPrevious = current;
-    root.edAddAvviso = addAlertFinal0150;
+    addAlertFinal0150.__dmReleaseOwnerAlertV3 = true;
+    try {
+      Object.defineProperty(root, "edAddAvviso", {
+        configurable: true,
+        enumerable: true,
+        get: () => addAlertFinal0150,
+        set(next) {
+          if (
+            typeof next === "function" &&
+            next !== addAlertFinal0150 &&
+            next.__dmPrevious !== addAlertFinal0150
+          ) {
+            delegate = next;
+          }
+        },
+      });
+    } catch (_error) {
+      root.edAddAvviso = addAlertFinal0150;
+    }
     state.alertOwner = true;
     return true;
   }
@@ -275,8 +389,11 @@
 
   function installFinalOwners() {
     installTemperatureOwner();
+    installTemperatureRenderOwner("buildTempCards");
+    installTemperatureRenderOwner("renderTemperature");
     installAlertOwner();
     installDispatchOwner();
+    normalizeTemperatureIcons();
     normalizeHomePrecision();
   }
 
@@ -293,6 +410,7 @@
     [0, 30, 80, 160, 320, 650, 1100, 1800].forEach((delay) =>
       root.setTimeout?.(() => {
         project();
+        normalizeTemperatureIcons();
         normalizeHomePrecision();
       }, delay),
     );
@@ -301,9 +419,24 @@
   function settle() {
     state.attempts += 1;
     const ready = project();
-    const finalOwners = state.temperatureOwner && state.alertOwner && state.dispatchOwner;
+    const finalOwners =
+      state.temperatureOwner &&
+      state.temperatureRenderOwners.buildTempCards &&
+      state.temperatureRenderOwners.renderTemperature &&
+      state.alertOwner &&
+      state.dispatchOwner;
     if ((!ready || !finalOwners) && state.attempts < 300) root.requestAnimationFrame?.(settle);
     else scheduleProject();
+  }
+
+  function handleIntent(event) {
+    const target = event.target?.closest?.("button");
+    if (!target) return;
+    if (target.matches("[data-temperature-submit]")) {
+      saveTemperatureForm().catch((error) => root.console?.warn?.("Temperature save", error));
+      return;
+    }
+    if (/edAddAvviso/.test(target.getAttribute("onclick") || "")) protectAlertForm();
   }
 
   root.addEventListener?.("dashboardmodern:runtime-ready", scheduleProject);
@@ -314,6 +447,9 @@
   root.addEventListener?.("dashboardmodern:energy-statistics", scheduleProject);
   root.addEventListener?.("pageshow", scheduleProject);
   root.addEventListener?.("click", () => root.queueMicrotask?.(installFinalOwners), true);
+  root.addEventListener?.("pointerdown", handleIntent, true);
+  root.addEventListener?.("touchstart", handleIntent, true);
+  root.addEventListener?.("mousedown", handleIntent, true);
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:legacy-period-bridge-ready"));
   settle();
 })(globalThis);
