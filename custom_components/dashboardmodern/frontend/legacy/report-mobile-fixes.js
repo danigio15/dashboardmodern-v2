@@ -3,7 +3,6 @@ import "./runtime-consolidated.js";
 import "../src/core/runtime-startup-coordinator.js";
 import "../src/core/alerts-runtime.js";
 import "../src/core/vehicle-image-runtime.js";
-import "../src/core/energy-ready-guard.js";
 
 if (typeof document !== "undefined" && !document.getElementById("dm-report-responsive-0152")) {
   const style = document.createElement("style");
