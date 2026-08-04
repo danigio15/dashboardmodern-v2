@@ -26,6 +26,7 @@
     ownerInstalled: false,
     temperatureOwner: false,
     temperatureRenderOwners: Object.create(null),
+    temperatureTabOwner: false,
     temperatureSaving: false,
     alertOwner: false,
     dispatchOwner: false,
@@ -231,6 +232,21 @@
     return true;
   }
 
+  function installTemperatureTabOwner() {
+    if (state.temperatureTabOwner) return true;
+    const tab = root.document?.querySelector('.tab[data-tab="temp"]');
+    if (!tab) return false;
+    const finish = () => {
+      normalizeTemperatureIcons();
+      root.queueMicrotask?.(normalizeTemperatureIcons);
+      [0, 30, 80, 160].forEach((delay) => root.setTimeout?.(normalizeTemperatureIcons, delay));
+    };
+    tab.addEventListener("click", finish);
+    tab.dataset.dmTemperatureIconOwner = "true";
+    state.temperatureTabOwner = true;
+    return true;
+  }
+
   async function saveTemperatureForm() {
     if (state.temperatureSaving) return false;
     const store = root.DashboardModernModules?.store;
@@ -391,6 +407,7 @@
     installTemperatureOwner();
     installTemperatureRenderOwner("buildTempCards");
     installTemperatureRenderOwner("renderTemperature");
+    installTemperatureTabOwner();
     installAlertOwner();
     installDispatchOwner();
     normalizeTemperatureIcons();
@@ -423,6 +440,7 @@
       state.temperatureOwner &&
       state.temperatureRenderOwners.buildTempCards &&
       state.temperatureRenderOwners.renderTemperature &&
+      state.temperatureTabOwner &&
       state.alertOwner &&
       state.dispatchOwner;
     if ((!ready || !finalOwners) && state.attempts < 300) root.requestAnimationFrame?.(settle);
