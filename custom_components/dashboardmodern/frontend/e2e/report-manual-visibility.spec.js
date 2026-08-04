@@ -48,7 +48,7 @@ async function boot(page, variant, testInfo) {
   await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await expect
     .poll(() =>
-      page.evaluate(() => window.__DASHBOARDMODERN_0147_REPORT_POLISH__?.installed === true),
+      page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true),
     )
     .toBe(true);
 
