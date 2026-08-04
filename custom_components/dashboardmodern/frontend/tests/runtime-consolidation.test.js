@@ -71,19 +71,20 @@ test("canonical total sensor is the period source for home energy", () => {
   assert.equal(plans[0].reason, "canonical-total");
 });
 
-test("production loader has no accumulated release cascade", async () => {
+test("production loader owns one atomic runtime without patch cascades", async () => {
   const loader = await readFile(new URL("../legacy/report-mobile-fixes.js", import.meta.url), "utf8");
-  const facade = await readFile(new URL("../legacy/release-0152-fixes.js", import.meta.url), "utf8");
   const mobile = await readFile(new URL("../legacy/mobile-ui-fixes.js", import.meta.url), "utf8");
   const runtime = await readFile(new URL("../legacy/runtime-consolidated.js", import.meta.url), "utf8");
 
-  assert.match(loader, /release-0152-fixes\.js/);
-  assert.match(facade, /runtime-consolidated\.js/);
-  assert.doesNotMatch(loader, /release-01(?:47|49|50|51|54|55|56|57)-/);
-  assert.doesNotMatch(facade, /release-01(?:47|49|50|51|54|55|56|57)-/);
+  assert.match(loader, /runtime-consolidated\.js/);
+  assert.doesNotMatch(loader, /release-\d+|runtime-real-ha|runtime-residual|runtime-release-owner/);
   assert.doesNotMatch(mobile, /new\s+MutationObserver/);
   assert.doesNotMatch(mobile, /setInterval\s*\(/);
   assert.doesNotMatch(runtime, /new\s+MutationObserver/);
   assert.doesNotMatch(runtime, /setInterval\s*\(/);
   assert.equal((runtime.match(/new\s+HomeAssistantBroker\s*\(/g) || []).length, 1);
+  assert.match(runtime, /loadEnergyPeriod\("day"/);
+  assert.match(runtime, /loadEnergyPeriod\("month"/);
+  assert.match(runtime, /loadEnergyPeriod\("year"/);
+  assert.match(runtime, /Promise\.all/);
 });
