@@ -82,6 +82,12 @@ export async function clickBottomTab(page, tabName, testInfo) {
   await tab.evaluate((node) => node.click());
   await expect(tab).toHaveClass(/active/);
   await expect(page.locator(`#page-${runtimeTab}`)).toHaveClass(/active/);
+
+  if (runtimeTab === "temp") {
+    const firstCard = page.locator("#temp-grid .temp-card").first();
+    await expect(firstCard).toBeAttached();
+    await waitForStableBox(firstCard);
+  }
 }
 
 export async function clickStableButton(page, locator, testInfo) {
