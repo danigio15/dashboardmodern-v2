@@ -62,6 +62,16 @@ function activeSocketReady() {
   return true;
 }
 
+function ensureBrokerToken() {
+  if (clean(root.DASHBOARDMODERN_AUTH_TOKEN)) return;
+  const token = clean(
+    root.__DASHBOARDMODERN_REAL_TOKEN__ ||
+    root.__DASHBOARDMODERN_CONNECTION__?.token ||
+    (root.__DASHBOARDMODERN_HOSTED__ ? "__dashboardmodern_hosted__" : ""),
+  );
+  if (token) root.DASHBOARDMODERN_AUTH_TOKEN = token;
+}
+
 function alignSocketConstants() {
   const SocketCtor = root.WebSocket;
   if (typeof SocketCtor !== "function") return;
@@ -124,6 +134,16 @@ function installStyles() {
     #editor-modal[data-dm-editor-theme="dark"] .ed-head-title{
       color:var(--dm-editor-text)!important
     }
+    [data-report-manual][hidden]{display:none!important}
+    html body #page-appliances-main .appl-wide-card{
+      box-sizing:border-box!important;width:min(100%,410px)!important;max-width:410px!important;
+      max-height:190px!important;overflow:hidden!important
+    }
+    html body #page-appliances-main .dm-appliance-image-wrap,
+    html body #page-appliances-main .dm-appliance-image{
+      display:block!important;box-sizing:border-box!important;width:100%!important;height:100%!important
+    }
+    html body #page-appliances-main .dm-appliance-image{object-fit:cover!important;object-position:50% 50%!important}
     #dm-shutter-popup{position:fixed;inset:0;z-index:10060;display:grid;place-items:center;
       padding:16px;background:rgba(2,6,23,.62)}
     #dm-shutter-popup>.dm-shutter-popup{box-sizing:border-box;width:min(680px,100%);max-height:min(760px,92dvh);
@@ -155,12 +175,18 @@ function syncEditorTheme() {
   modal.dataset.dmEditorTheme = dark ? "dark" : "light";
 }
 
+function setReportFormVisibility(form, expanded) {
+  if (!form) return;
+  form.hidden = !expanded;
+  if (expanded) form.style.removeProperty("display");
+  else form.style.setProperty("display", "none", "important");
+}
+
 function applyReportManualContracts() {
   doc?.querySelectorAll("[data-report-add]").forEach((button) => {
     if (!button.hasAttribute("aria-expanded")) button.setAttribute("aria-expanded", "false");
     const panel = button.closest('[data-energy-panel="report"]') || button.parentElement;
-    const form = panel?.querySelector("[data-report-manual]");
-    if (form) form.hidden = button.getAttribute("aria-expanded") !== "true";
+    setReportFormVisibility(panel?.querySelector("[data-report-manual]"), button.getAttribute("aria-expanded") === "true");
   });
 }
 
@@ -233,8 +259,8 @@ function normalizeLightsEditorDom() {
   const assignments = readJson("cd_luci_rooms", {});
   const addInput = body.querySelector("#luce-add-ent");
   if (addInput) {
-    addInput.dataset.lightAddEntity = "";
-    addInput.dataset.entityInput = "";
+    addInput.dataset.lightAddEntity = "true";
+    addInput.dataset.entityInput = "true";
     const picker = addInput.parentElement?.querySelector(".dm-entity-picker");
     if (picker) picker.dataset.entityTarget = addInput.id;
   }
@@ -383,6 +409,17 @@ function normalizeApplianceCards() {
     const device = byId.get(clean(card.dataset.applianceId)) || devices[index];
     if (!device) return;
     card.querySelectorAll(".appl-spark").forEach((node) => node.remove());
+    const imageUrl = clean(device.image || device.image_url);
+    if (imageUrl) {
+      const icon = card.querySelector(".appl-ic");
+      if (icon && icon.querySelector("img.dm-appliance-image")?.getAttribute("src") !== imageUrl) {
+        icon.innerHTML = `<span class="dm-appliance-image-wrap"><img class="dm-appliance-image" alt="${esc(device.name)}"></span>`;
+        const image = icon.querySelector("img");
+        image.src = imageUrl;
+        image.loading = "eager";
+        image.decoding = "async";
+      }
+    }
     ensurePowerToggle(card, device, states);
   });
 }
@@ -433,6 +470,18 @@ function callShutterService(button, item, service) {
   }
 }
 
+function shutterSignature(items, includePending = false) {
+  return items.map((item) => [
+    item.entity,
+    item.state,
+    item.position ?? "",
+    item.room?.id || "",
+    includePending
+      ? [...state.pendingShutters.keys()].filter((key) => key.startsWith(`${item.entity}:`)).sort().join(",")
+      : "",
+  ].join(":" )).join("|");
+}
+
 function renderShutterPopup(items = openShutters()) {
   const popup = doc?.getElementById("dm-shutter-popup");
   if (!popup) return;
@@ -442,6 +491,8 @@ function renderShutterPopup(items = openShutters()) {
   }
   const list = popup.querySelector("[data-shutter-popup-list]");
   if (!list) return;
+  const signature = shutterSignature(items, true);
+  if (list.dataset.dmShutterSignature === signature) return;
   list.replaceChildren(...items.map((item) => {
     const row = doc.createElement("article");
     row.className = "dm-shutter-popup-row";
@@ -470,6 +521,7 @@ function renderShutterPopup(items = openShutters()) {
     });
     return row;
   }));
+  list.dataset.dmShutterSignature = signature;
 }
 
 function showShutterPopup() {
@@ -499,11 +551,15 @@ function renderShutterAlert() {
     wrapper.id = "tapp-avvisi";
     host.append(wrapper);
   }
-  const title = items.length === 1
-    ? english() ? "SHUTTER OPEN" : "TAPPARELLA APERTA"
-    : english() ? "SHUTTERS OPEN" : "TAPPARELLE APERTE";
-  wrapper.innerHTML = `<button type="button" class="glance-card dm-shutter-alert" style="--g-rgb:245,158,11;display:flex" aria-haspopup="dialog"><span class="g-info"><span class="g-name">${title}</span><span class="g-val">${items.length}</span></span><span class="g-icon-wrap">🪟</span></button>`;
-  wrapper.querySelector("button").addEventListener("click", showShutterPopup);
+  const signature = shutterSignature(items);
+  if (wrapper.dataset.dmShutterSignature !== signature) {
+    const title = items.length === 1
+      ? english() ? "SHUTTER OPEN" : "TAPPARELLA APERTA"
+      : english() ? "SHUTTERS OPEN" : "TAPPARELLE APERTE";
+    wrapper.innerHTML = `<button type="button" class="glance-card dm-shutter-alert" style="--g-rgb:245,158,11;display:flex" aria-haspopup="dialog"><span class="g-info"><span class="g-name">${title}</span><span class="g-val">${items.length}</span></span><span class="g-icon-wrap">🪟</span></button>`;
+    wrapper.querySelector("button").addEventListener("click", showShutterPopup);
+    wrapper.dataset.dmShutterSignature = signature;
+  }
   renderShutterPopup(items);
   scheduleShutterHeartbeat();
 }
@@ -516,7 +572,6 @@ function scheduleShutterHeartbeat() {
   }
   state.shutterTimer = root.setTimeout?.(() => {
     renderShutterAlert();
-    renderShutterPopup();
   }, 250);
 }
 
@@ -537,6 +592,7 @@ function applyContracts() {
   applyReportManualContracts();
   normalizeLightsEditorDom();
   normalizeAlertEditorDom();
+  root.__DASHBOARDMODERN_ALERTS_RUNTIME__?.apply?.();
   normalizeApplianceCards();
   renderShutterAlert();
 }
@@ -598,7 +654,7 @@ function bindEvents() {
       if (form) {
         const expanded = add.getAttribute("aria-expanded") === "true";
         add.setAttribute("aria-expanded", String(!expanded));
-        form.hidden = expanded;
+        setReportFormVisibility(form, !expanded);
       }
       return;
     }
@@ -626,6 +682,7 @@ function subscribeStore() {
 }
 
 function setupContracts() {
+  ensureBrokerToken();
   installStyles();
   installWrappers();
   bindEvents();
