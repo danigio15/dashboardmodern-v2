@@ -28,7 +28,7 @@ async function productionGraph(entry) {
   return seen;
 }
 
-test("the production graph contains one consolidated runtime and one bounded real-HA owner", async () => {
+test("the production graph contains one consolidated runtime and bounded real-HA owners", async () => {
   const graph = await productionGraph("legacy/modules-entry.js");
   const relative = [...graph.keys()].map((file) =>
     path.relative(frontendRoot, file).replaceAll("\\", "/"),
@@ -40,8 +40,9 @@ test("the production graph contains one consolidated runtime and one bounded rea
   assert.equal(relative.filter((file) => file.endsWith("runtime-consolidated.js")).length, 1);
   assert.equal(relative.filter((file) => file.endsWith("runtime-compatibility.js")).length, 1);
   assert.equal(relative.filter((file) => file.endsWith("runtime-real-ha-hotfix-v2.js")).length, 1);
+  assert.equal(relative.filter((file) => file.endsWith("runtime-real-ha-theme-owner.js")).length, 1);
   assert.equal(relative.filter((file) => file.endsWith("runtime-real-ha-hotfix.js")).length, 0);
-  assert.ok(relative.length <= 21, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 22, `production graph unexpectedly grew to ${relative.length} modules`);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
   assert.doesNotMatch(combined, /new\s+MutationObserver\s*\(/);
 });
