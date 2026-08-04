@@ -1,4 +1,4 @@
-/* Re-arm the canonical Energy recovery once the persisted Energy section is ready. */
+/* Re-arm the canonical Energy recovery after an early empty bundle was accepted. */
 const root = globalThis;
 const KEY = "__DASHBOARDMODERN_ENERGY_READY_GUARD__";
 const state = (root[KEY] ||= {
@@ -29,8 +29,12 @@ function tick() {
   state.attempts += 1;
   const source = canonicalEnergySource();
   const owner = root.__DASHBOARDMODERN_VEHICLE_IMAGE_RUNTIME__;
+  const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
+  const acceptedEmptyBundle =
+    owner?.energyVerified === true &&
+    Number(runtime?.bundle?.month?.house || 0) === 0;
 
-  if (source && owner && !owner.energyRunning && !state.rearmed) {
+  if (source && owner && !owner.energyRunning && acceptedEmptyBundle && !state.rearmed) {
     state.rearmed = true;
     state.source = source;
     owner.energyVerified = false;
@@ -40,7 +44,7 @@ function tick() {
     );
   }
 
-  if (!state.rearmed && state.attempts < 240) {
+  if (!state.rearmed && state.attempts < 320) {
     state.timer = root.setTimeout?.(tick, 25);
   }
 }
