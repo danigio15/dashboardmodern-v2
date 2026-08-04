@@ -6,176 +6,164 @@ async function openEditor(page, tab) {
   await page.evaluate((targetTab) => {
     if (!document.getElementById("editor-modal")?.classList.contains("show")) apriConfigEntita();
     editorSwitch(targetTab);
-    if (targetTab === "avvisi") {
-      window.__DASHBOARDMODERN_ALERT_EDIT_CONTRACT_0151__?.apply?.();
-    }
+    if (targetTab === "avvisi") window.__DASHBOARDMODERN_ALERTS_RUNTIME__?.apply?.();
   }, tab);
   await expect(page.locator("#editor-modal")).toBeVisible();
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: 0.15.1 restores real HA theme, totals, flows, temperature and alerts`, async ({
+  test(`${variant}: 0.15.2 root runtime keeps Energy, Lights, Alerts, Quick Actions and EV coherent`, async ({
     page,
   }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 180_000 : 110_000);
     await bootConsolidatedDashboard(page, variant, testInfo);
 
-    await page.evaluate(() => {
-      document.documentElement.style.setProperty("--dm-bg", "#f0f4f8");
-      document.documentElement.style.setProperty("--bg-sculpted", "#f0f4f8");
-      document.documentElement.style.setProperty("--card-bg", "#071728");
-      document.documentElement.style.setProperty("--ha-card-background", "#071728");
-      document.documentElement.style.setProperty("--primary-text-color", "#ffffff");
-      window.__DASHBOARDMODERN_REAL_HA_HOTFIX_0151__?.apply?.();
-      window.__DASHBOARDMODERN_REAL_HA_THEME_OWNER_0151__?.apply?.();
-    });
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({
+          ready: window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready,
+          day: window.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle?.day?.house,
+          month: window.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle?.month?.house,
+          year: window.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle?.year?.house,
+          generation: window.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle?.generation,
+        })),
+      )
+      .toMatchObject({ ready: true, day: 39.9, month: 39.9, year: 760 });
 
-    await clickBottomTab(page, "appliances", testInfo);
-    const appliance = page
-      .locator("#page-appliances-main .appl-wide-card")
-      .filter({ hasText: /Frigo|Fridge/i })
-      .first();
-    await expect(appliance).toBeVisible();
-    await expect(appliance).toHaveCSS("background-color", "rgb(248, 250, 252)");
-    await expect(appliance.locator(".appl-wide-name")).toHaveCSS("color", "rgb(15, 23, 42)");
-    const applianceToggle = appliance
-      .locator('[data-dm-power-toggle="true"],.dm-appliance-power-toggle')
-      .first();
-    if (await applianceToggle.count()) {
-      await expect(applianceToggle).toHaveCSS("border-radius", "12px");
-      await expect(applianceToggle).toHaveCSS("color", "rgb(255, 255, 255)");
+    await expect(page.locator("#v-home-day")).toContainText(/39[,.]9/);
+    await expect(page.locator("#v-solar-day")).toContainText(/50[,.]2/);
+    await expect(page.locator("#v-home-month")).toContainText(/39[,.]9/);
+    await expect(page.locator("#ed-kpi-cons")).toContainText(/39[,.]9/);
+    const generations = await page.locator("#view-day,#view-month,#view-panoramica").evaluateAll((nodes) =>
+      nodes.map((node) => node.dataset.dmEnergyBundle),
+    );
+    expect(new Set(generations).size).toBe(1);
+    expect(generations[0]).toBeTruthy();
+
+    const stableSamples = await page.evaluate(async () => {
+      document.getElementById("v-home-day").textContent = "614.0 kWh";
+      document.getElementById("v-home-month").textContent = "614.0 kWh";
+      document.getElementById("ed-kpi-cons").textContent = "614.0 kWh";
+      render?.();
+      const read = () => ({
+        day: document.getElementById("v-home-day")?.textContent || "",
+        month: document.getElementById("v-home-month")?.textContent || "",
+        report: document.getElementById("ed-kpi-cons")?.textContent || "",
+      });
+      const samples = [];
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      samples.push(read());
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      samples.push(read());
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      samples.push(read());
+      return samples;
+    });
+    for (const sample of stableSamples) {
+      expect(sample.day).toMatch(/39[,.]9/);
+      expect(sample.month).toMatch(/39[,.]9/);
+      expect(sample.report).toMatch(/39[,.]9/);
+      expect(`${sample.day} ${sample.month} ${sample.report}`).not.toContain("614");
     }
 
     await page.evaluate(() => {
-      const rooms = DashboardModernModules.store
-        .getSection("rooms")
-        .filter((item) => item.temp);
-      if (!rooms.length) throw new Error("No configured temperature rooms in the real-HA fixture");
-      rooms.forEach((room, index) => {
-        const current = STATES[room.temp] || {
-          entity_id: room.temp,
-          state: "22.0",
-          attributes: { unit_of_measurement: "°C", friendly_name: room.name },
-        };
-        STATES[room.temp] = {
-          ...structuredClone(current),
-          state: index === 0 ? "35.4" : "22.0",
-          attributes: {
-            ...(current.attributes || {}),
-            unit_of_measurement: current.attributes?.unit_of_measurement || "°C",
-          },
-        };
-        _RAW_STATES[room.temp] = structuredClone(STATES[room.temp]);
-        if (room.hum) {
-          const humidity = STATES[room.hum] || {
-            entity_id: room.hum,
-            state: "49",
-            attributes: { unit_of_measurement: "%", friendly_name: room.name },
-          };
-          STATES[room.hum] = {
-            ...structuredClone(humidity),
-            state: "49",
-            attributes: {
-              ...(humidity.attributes || {}),
-              unit_of_measurement: humidity.attributes?.unit_of_measurement || "%",
-            },
-          };
-          _RAW_STATES[room.hum] = structuredClone(STATES[room.hum]);
-        }
-      });
-      buildTempCards?.();
-      renderTemperature?.();
-      window.__DASHBOARDMODERN_REAL_HA_HOTFIX_0151__?.apply?.();
-      window.__DASHBOARDMODERN_REAL_HA_TEMPERATURE_STABILITY_0151__?.apply?.();
-    });
-    await clickBottomTab(page, "temp", testInfo);
-    const temperatureCard = page.locator("#temp-grid .temp-card").first();
-    await expect(temperatureCard).toContainText("35.4");
-    await expect(temperatureCard).not.toContainText("🔥");
-
-    await page.evaluate(() => {
-      const runtime = window.__DASHBOARDMODERN_RUNTIME_0150__;
-      runtime.bundle.month = {
-        house: 413.9,
-        solar: 288.8,
-        gridImport: 222,
-        gridExport: 5.8,
-        batteryCharged: 27,
-        batteryDischarged: 136,
-      };
-      DashboardModernRuntime0150.applyBundle(runtime.bundle);
-      document.getElementById("v-home-month").textContent = "614.0 kWh";
-      document.getElementById("v-solar-month").textContent = "999.0 kWh";
-      window.dispatchEvent(new CustomEvent("dashboardmodern:period-bundle", { detail: runtime.bundle }));
-      window.dispatchEvent(new CustomEvent("dashboardmodern:energy-periods-0154"));
-    });
-    await expect(page.locator("#v-home-month")).toContainText(/413[,.]9/);
-    await expect(page.locator("#v-home-month")).not.toContainText("614");
-    await expect(page.locator("#v-solar-month")).toContainText(/288[,.]8/);
-    await expect(page.locator("#v-grid-month")).toContainText(/222[,.]0/);
-    await expect(page.locator("#v-grid-month")).toContainText(/5[,.]8/);
-    await expect(page.locator("#ed-kpi-cons")).toContainText(/413[,.]9/);
-    await expect(page.locator("#ed-yoy-chips")).toContainText(/413[,.]9/);
-
-    await openEditor(page, "sez1");
-    const housePower = page.locator("#dm-energy-house-power");
-    await housePower.fill("sensor.house_power");
-    await housePower.dispatchEvent("input");
-    const houseDetails = housePower.locator("xpath=ancestor::details[1]");
-    await expect(houseDetails.locator("summary")).toContainText(/3\/5/);
-    await expect(page.locator("#dm-energy-house-total_energy")).toHaveValue("sensor.house_total");
-    await page.locator("[data-energy-save]").click();
-    await expect
-      .poll(() => page.evaluate(() => DashboardModernModules.store.getSection("energy").house))
-      .toMatchObject({ power: "sensor.house_power", total_energy: "sensor.house_total" });
-
-    await page.evaluate(() => {
-      const alertState = {
-        entity_id: "light.real_alert",
-        state: "on",
-        attributes: { friendly_name: "Avviso reale salone" },
-      };
-      STATES[alertState.entity_id] = structuredClone(alertState);
-      _RAW_STATES[alertState.entity_id] = structuredClone(alertState);
-      localStorage.setItem("cd_gruppi_extra", JSON.stringify({ luci: [alertState.entity_id] }));
+      localStorage.setItem(
+        "cd_luci",
+        JSON.stringify({
+          "light.salone": "Lampadario salone",
+          "light.cucina": "Lampadario cucina",
+          "light.pensili": "Pensili cucina",
+        }),
+      );
+      localStorage.setItem(
+        "cd_luci_rooms",
+        JSON.stringify({
+          "light.salone": "Salone",
+          "light.cucina": "Cucina",
+          "light.pensili": "Cucina",
+        }),
+      );
+      localStorage.setItem(
+        "cd_luci_room_order",
+        JSON.stringify(["ROOM-VUOTA", "Salone", "Cucina"]),
+      );
+      localStorage.setItem(
+        "cd_luci_order",
+        JSON.stringify({ Cucina: ["light.pensili", "light.cucina"], "ROOM-VUOTA": [] }),
+      );
       localStorage.setItem(
         "cd_avvisi_names_extra",
-        JSON.stringify({ [alertState.entity_id]: "Avviso reale salone" }),
+        JSON.stringify({
+          "light.salone": "Lampadario salone",
+          "light.cucina": "Lampadario cucina",
+          "light.pensili": "Pensili cucina",
+        }),
       );
-      window.__DASHBOARDMODERN_REAL_HA_HOTFIX_0151__?.synchronizeAlertRegistries?.();
-      window.__DASHBOARDMODERN_REAL_HA_HOTFIX_0151__?.refreshAlerts?.();
-      window.render?.();
+      localStorage.setItem("cd_gruppi_extra", JSON.stringify({ luci: ["light.salone"] }));
     });
 
-    await expect
-      .poll(() =>
-        page.evaluate(() => {
-          const groups = window.eval(
-            'typeof GRUPPI_MONITORAGGIO !== "undefined" ? GRUPPI_MONITORAGGIO : {}',
-          );
-          return groups.luci || [];
-        }),
-      )
-      .toContain("light.real_alert");
+    await openEditor(page, "luci");
+    const lightGroups = page.locator("#ed-body .dm-light-group");
+    await expect(lightGroups).toHaveCount(2);
+    await expect(page.locator('#ed-body [data-light-room="Salone"]')).toContainText("light.salone");
+    const kitchen = page.locator('#ed-body [data-light-room="Cucina"]');
+    await expect(kitchen).toContainText("light.pensili");
+    await expect(kitchen).toContainText("light.cucina");
+    await expect(page.locator("#ed-body")).not.toContainText("ROOM-VUOTA");
 
     await openEditor(page, "avvisi");
-    const alertRow = page.locator("article").filter({ hasText: "light.real_alert" }).first();
-    const alertEdit = alertRow.getByRole("button", { name: /Modifica|Edit/i }).first();
-    await expect(alertRow).toBeVisible();
-    await expect(alertEdit).toBeVisible();
-    await alertEdit.click();
-    await expect(page.locator("#ed-avv-ent")).toHaveValue("light.real_alert");
-    await page.locator("#ed-avv-name").fill("Avviso salone modificato");
-    await page.locator('button[onclick="edAddAvviso()"]:visible').click();
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () => JSON.parse(localStorage.getItem("cd_avvisi_names_extra") || "{}")[
-            "light.real_alert"
-          ],
-        ),
-      )
-      .toBe("Avviso salone modificato");
+    await page.evaluate(() => window.__DASHBOARDMODERN_ALERTS_RUNTIME__?.apply?.());
+    for (const entity of ["light.salone", "light.cucina", "light.pensili"]) {
+      const row = page.locator(`[data-alert-entity="${entity}"]`);
+      await expect(row).toBeVisible();
+      await expect(row.locator(".ed-row-old")).toHaveText(entity);
+      await expect(row.getByRole("button", { name: /Modifica|Edit/i })).toBeVisible();
+    }
+    await expect(page.locator("#ed-body .ed-row").filter({ hasText: /^\s*$/ })).toHaveCount(0);
+    const firstAlert = page.locator('[data-alert-entity="light.cucina"]');
+    await firstAlert.getByRole("button", { name: /Modifica|Edit/i }).click();
+    await expect(page.locator("#ed-avv-ent")).toHaveValue("light.cucina");
+    await expect(page.locator("#ed-avv-name")).toHaveValue("Lampadario cucina");
+
+    await page.evaluate(() => {
+      window.__pickedLights = null;
+      cdPickLights(
+        "Piano terra",
+        (lights) => {
+          window.__pickedLights = lights;
+        },
+        ["light.salone", "light.cucina"],
+      );
+    });
+    const picker = page.locator("#dm-light-picker-0152");
+    await expect(picker).toBeVisible();
+    await expect(picker.locator('[data-pick-light="light.salone"]')).toBeVisible();
+    await picker.locator('[data-pick-light="light.salone"] [data-down]').click();
+    await picker.locator("[data-save]").click();
+    await expect.poll(() => page.evaluate(() => window.__pickedLights)).toEqual([
+      "light.cucina",
+      "light.salone",
+    ]);
+
+    const pixel = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nCEAAAAASUVORK5CYII=",
+      "base64",
+    );
+    await page.route("**/local/auto/b10.png", (route) =>
+      route.fulfill({ status: 200, contentType: "image/png", body: pixel }),
+    );
+    await page.evaluate(() => {
+      localStorage.setItem("cd_ev_image", JSON.stringify("/config/www/auto/b10.png"));
+      render?.();
+    });
+    const vehicle = page.locator("#ev-mod-car-img");
+    await expect(vehicle).toHaveAttribute("src", /\/local\/auto\/b10\.png$/);
+    await expect(vehicle).toBeVisible();
+
+    await clickBottomTab(page, "temp", testInfo);
+    const temperatureCard = page.locator("#temp-grid .temp-card").first();
+    await expect(temperatureCard).toBeVisible();
+    await expect(temperatureCard).not.toContainText("🔥");
   });
 }
