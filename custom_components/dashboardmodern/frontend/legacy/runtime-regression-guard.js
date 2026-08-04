@@ -18,6 +18,7 @@ import {
     store: null,
     unsubscribe: null,
     currentFlowText: Object.create(null),
+    currentFlowSlots: Object.create(null),
   });
 
   const FLOW_IDS = Object.freeze([
@@ -68,20 +69,22 @@ import {
       typeof root.__DASHBOARDMODERN_PRELUDE_WS__ === "function"
         ? root.__DASHBOARDMODERN_PRELUDE_WS__
         : null;
-    const candidate = explicitBridge || preloaded;
 
     installSocketConstants(current);
     installSocketConstants(explicitBridge);
     installSocketConstants(preloaded);
 
-    // bridge-prelude intentionally installs an asynchronous/deferred adapter.
-    // Never replace an already usable constructor with the raw preloaded one:
-    // synchronous mock replies would re-enter both the legacy and canonical
-    // state machines and the dashboard would fall back to zero values.
-    if (typeof current !== "function" && candidate) root.WebSocket = candidate;
-    if (!explicitBridge && candidate) root.__DASHBOARDMODERN_BRIDGE_WS__ = candidate;
+    // An explicitly installed host/test bridge is authoritative. The prelude's
+    // deferred adapter is useful only when no explicit bridge exists: replacing
+    // it with the raw preloaded constructor can synchronously re-enter the
+    // legacy state machine, while leaving it in front of an explicit bridge
+    // breaks the public bridge identity contract.
+    if (explicitBridge && current !== explicitBridge) root.WebSocket = explicitBridge;
+    else if (typeof current !== "function" && preloaded) root.WebSocket = preloaded;
 
-    state.bridgeAligned = typeof root.WebSocket === "function";
+    state.bridgeAligned = explicitBridge
+      ? root.WebSocket === explicitBridge
+      : typeof root.WebSocket === "function";
     const reconnect = root.__DASHBOARDMODERN_LEGACY_RECONNECT__;
     if (state.bridgeAligned && reconnect?.timer) {
       root.clearTimeout?.(reconnect.timer);
@@ -96,49 +99,54 @@ import {
     const style = doc.createElement("style");
     style.id = "dm-runtime-regression-guard-0150";
     style.textContent = `
-      #page-appliances-main .appl-ic,
       #page-appliances-main .appl-visual,
+      #page-appliances-main .appl-ic,
       #page-appliances-main .dm-appliance-image-wrap {
-        overflow: hidden !important;
+        position:relative;
+        box-sizing:border-box!important;
+        overflow:hidden!important;
       }
+      #page-appliances-main .appl-ic,
       #page-appliances-main .dm-appliance-image-wrap {
-        display: block !important;
-        width: 100% !important;
-        height: 100% !important;
-        max-width: none !important;
-        max-height: none !important;
+        display:block!important;
+        width:100%!important;
+        height:100%!important;
+        min-width:100%!important;
+        min-height:100%!important;
+        max-width:none!important;
+        max-height:none!important;
       }
       #page-appliances-main img.dm-appliance-image,
       #page-appliances-main img.dm-appliance-image-0153 {
-        display: block !important;
-        width: 100% !important;
-        height: 100% !important;
-        min-width: 100% !important;
-        min-height: 100% !important;
-        max-width: none !important;
-        max-height: none !important;
-        object-fit: cover !important;
-        object-position: 50% 50% !important;
+        display:block!important;
+        width:100%!important;
+        height:100%!important;
+        min-width:100%!important;
+        min-height:100%!important;
+        max-width:none!important;
+        max-height:none!important;
+        object-fit:cover!important;
+        object-position:50% 50%!important;
       }
       #page-appliances-main .dm-appliance-art,
       #page-appliances-main .dm-appliance-art-0154,
       #page-appliances-main [data-dm-art] {
-        display: block !important;
-        width: 100% !important;
-        height: 100% !important;
-        min-width: 100% !important;
-        min-height: 100% !important;
+        display:block!important;
+        width:100%!important;
+        height:100%!important;
+        min-width:100%!important;
+        min-height:100%!important;
       }
       #page-appliances-main .dm-appliance-art > svg,
       #page-appliances-main .dm-appliance-art-0154 > svg,
       #page-appliances-main [data-dm-art] > svg {
-        display: block !important;
-        width: 100% !important;
-        height: 100% !important;
-        min-width: 100% !important;
-        min-height: 100% !important;
-        max-width: none !important;
-        max-height: none !important;
+        display:block!important;
+        width:100%!important;
+        height:100%!important;
+        min-width:100%!important;
+        min-height:100%!important;
+        max-width:none!important;
+        max-height:none!important;
       }
     `;
     (doc.head || doc.documentElement).append(style);
@@ -183,6 +191,16 @@ import {
     return true;
   }
 
+  function applianceHolder(card) {
+    let holder = card.querySelector(".appl-ic");
+    if (holder) return holder;
+    const visual = card.querySelector(".appl-visual") || card;
+    holder = doc.createElement("div");
+    holder.className = "appl-ic";
+    visual.prepend(holder);
+    return holder;
+  }
+
   function normalizeApplianceArtwork() {
     if (!doc) return false;
     installStyles();
@@ -194,25 +212,21 @@ import {
         devices.find((item) => clean(item?.id) === clean(card.dataset.applianceId)) ||
         devices[index] ||
         {};
-      const holder = card.querySelector(".appl-ic, .appl-visual");
-      if (!holder) return;
-
+      const holder = applianceHolder(card);
       const token = clean(
         device.visual_key || device.device_type || device.icon || device.name || card.textContent,
       );
       const type = canonicalArtworkType(token);
       const explicitImage = clean(device.image || device.image_url);
 
-      if (type && !explicitImage) {
-        const markup = artworkMarkup(token, 96);
-        if (markup && (!holder.querySelector("[data-dm-art]") || holder.querySelector("img"))) {
-          holder.innerHTML = markup;
+      if (explicitImage) {
+        let image = holder.querySelector("img");
+        if (!image) {
+          image = doc.createElement("img");
+          holder.replaceChildren(image);
         }
-        card.dataset.dmArtwork = type;
-        card.dataset.dmArtStyle = "panel";
-      }
-
-      holder.querySelectorAll("img").forEach((image) => {
+        image.src = explicitImage;
+        image.alt = clean(device.name);
         image.classList.add("dm-appliance-image", "dm-appliance-image-0153");
         let wrapper = image.closest(".dm-appliance-image-wrap");
         if (!wrapper) {
@@ -221,6 +235,20 @@ import {
           image.replaceWith(wrapper);
           wrapper.append(image);
         }
+        card.dataset.dmMediaKind = "image";
+        card.dataset.dmArtwork = "custom";
+      } else if (type) {
+        const markup = artworkMarkup(token, 96);
+        const current = holder.querySelector("[data-appliance-asset]");
+        const expected = legacyArtworkKey(type);
+        if (markup && current?.dataset.applianceAsset !== expected) holder.innerHTML = markup;
+        card.dataset.dmMediaKind = "asset";
+        card.dataset.dmArtwork = type;
+        card.dataset.dmArtStyle = "panel";
+      }
+
+      holder.querySelectorAll("img").forEach((image) => {
+        image.classList.add("dm-appliance-image", "dm-appliance-image-0153");
       });
     });
     return true;
@@ -241,6 +269,44 @@ import {
     };
   }
 
+  function protectOwnerSlots(owner, mapped) {
+    if (!owner || typeof owner !== "object") return;
+    Object.entries(mapped).forEach(([slot, value]) => {
+      if (Number.isFinite(value) && (value > 0 || state.currentFlowSlots[slot] == null)) {
+        state.currentFlowSlots[slot] = Math.max(0, value);
+      }
+      const descriptor = Object.getOwnPropertyDescriptor(owner, slot);
+      if (descriptor?.configurable === false || descriptor?.get?.__dmCurrentFlow0150) {
+        try {
+          owner[slot] = state.currentFlowSlots[slot];
+        } catch (_error) {}
+        return;
+      }
+      const getter = function currentFlowSlot0150() {
+        return state.currentFlowSlots[slot] ?? 0;
+      };
+      getter.__dmCurrentFlow0150 = true;
+      try {
+        Object.defineProperty(owner, slot, {
+          configurable: true,
+          enumerable: true,
+          get: getter,
+          set(raw) {
+            const next = Number(raw);
+            if (!Number.isFinite(next)) return;
+            if (next > 0 || state.currentFlowSlots[slot] == null) {
+              state.currentFlowSlots[slot] = Math.max(0, next);
+            }
+          },
+        });
+      } catch (_error) {
+        try {
+          owner[slot] = state.currentFlowSlots[slot];
+        } catch (_ignored) {}
+      }
+    });
+  }
+
   function publishCurrentFlowValues(values) {
     const mapped = Object.fromEntries(
       Object.entries(FLOW_SLOTS)
@@ -254,7 +320,7 @@ import {
       root.__DASHBOARDMODERN_RELEASE_E2E_GUARD_0150__?.currentMonth,
       root.__DASHBOARDMODERN_RUNTIME_COMPATIBILITY_0150__?.currentMonth,
     ].filter(Boolean);
-    owners.forEach((owner) => Object.assign(owner, mapped));
+    owners.forEach((owner) => protectOwnerSlots(owner, mapped));
     root.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE__?.merge?.(mapped);
     root.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE_V2__?.merge?.(mapped);
     return true;
@@ -278,13 +344,16 @@ import {
       const node = doc.getElementById(id);
       if (node && node.textContent !== text) node.textContent = text;
     });
+    publishCurrentFlowValues(currentFlowValues());
     return true;
   }
 
   function protectCurrentFlow() {
     captureCurrentFlow();
     root.queueMicrotask?.(restoreCurrentFlow);
-    [0, 40, 140, 320, 700].forEach((delay) => root.setTimeout?.(restoreCurrentFlow, delay));
+    [0, 40, 140, 320, 700, 1600, 3600, 6200].forEach((delay) =>
+      root.setTimeout?.(restoreCurrentFlow, delay),
+    );
   }
 
   function readAlertGroups() {
@@ -316,6 +385,11 @@ import {
     return "";
   }
 
+  function invokeAlertEdit(button) {
+    const edit = root.dmRealEditAlert || root.edEditAvvisoStandard;
+    edit?.(button.dataset.alertGroup, button.dataset.alertEntity);
+  }
+
   function bindAlertEditButton(button, group, entity) {
     button.removeAttribute("onclick");
     button.type = "button";
@@ -331,10 +405,7 @@ import {
     button.setAttribute("aria-label", button.title);
     if (button.dataset.alertEditMounted === "true") return;
     button.dataset.alertEditMounted = "true";
-    button.addEventListener("click", () => {
-      const edit = root.dmRealEditAlert || root.edEditAvvisoStandard;
-      edit?.(button.dataset.alertGroup, button.dataset.alertEntity);
-    });
+    button.addEventListener("click", () => invokeAlertEdit(button));
   }
 
   function installAlertEditButtons() {
@@ -392,7 +463,7 @@ import {
   function scheduleApply() {
     root.queueMicrotask?.(apply);
     root.setTimeout?.(apply, 0);
-    root.setTimeout?.(normalizeApplianceArtwork, 40);
+    [40, 140, 360].forEach((delay) => root.setTimeout?.(normalizeApplianceArtwork, delay));
     root.setTimeout?.(installAlertEditButtons, 40);
   }
 
@@ -407,6 +478,13 @@ import {
     return true;
   }
 
+  state.alignBridge = alignBridge;
+  state.normalizeApplianceArtwork = normalizeApplianceArtwork;
+  state.installAlertEditButtons = installAlertEditButtons;
+  state.captureCurrentFlow = captureCurrentFlow;
+  state.restoreCurrentFlow = restoreCurrentFlow;
+  state.apply = apply;
+
   alignBridge();
   installStyles();
   root.addEventListener?.("dashboardmodern:runtime-ready", scheduleApply);
@@ -415,7 +493,22 @@ import {
   root.addEventListener?.("dashboardmodern:period-bundle", scheduleApply);
   root.addEventListener?.("dashboardmodern:energy-periods-0154", protectCurrentFlow, true);
   root.addEventListener?.("pageshow", scheduleApply);
-  doc?.addEventListener?.("click", scheduleApply, true);
+  doc?.addEventListener?.(
+    "click",
+    (event) => {
+      const button = event.target?.closest?.(
+        "[data-standard-alert-edit], [data-real-alert-edit]",
+      );
+      if (button) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        invokeAlertEdit(button);
+        return;
+      }
+      scheduleApply();
+    },
+    true,
+  );
 
   scheduleApply();
   [50, 180, 500, 900].forEach((delay) => root.setTimeout?.(apply, delay));
