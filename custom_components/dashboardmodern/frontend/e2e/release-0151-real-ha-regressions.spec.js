@@ -25,6 +25,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       document.documentElement.style.setProperty("--ha-card-background", "#071728");
       document.documentElement.style.setProperty("--primary-text-color", "#ffffff");
       window.__DASHBOARDMODERN_REAL_HA_HOTFIX_0151__?.apply?.();
+      window.__DASHBOARDMODERN_REAL_HA_THEME_OWNER_0151__?.apply?.();
     });
 
     await clickBottomTab(page, "appliances", testInfo);
@@ -33,7 +34,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       .filter({ hasText: /Frigo|Fridge/i })
       .first();
     await expect(appliance).toBeVisible();
-    await expect(appliance).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(appliance).toHaveCSS("background-color", "rgb(248, 250, 252)");
     await expect(appliance.locator(".appl-wide-name")).toHaveCSS("color", "rgb(15, 23, 42)");
     const applianceToggle = appliance.locator('[data-dm-power-toggle="true"],.dm-appliance-power-toggle').first();
     if (await applianceToggle.count()) {
