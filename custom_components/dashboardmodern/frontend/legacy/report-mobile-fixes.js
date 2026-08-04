@@ -18,3 +18,63 @@ if (typeof document !== "undefined" && !document.getElementById("dm-report-respo
   `;
   document.head.append(style);
 }
+
+/* The canonical Alerts renderer and the bounded legacy owner must expose one edit contract. */
+if (typeof document !== "undefined") {
+  const canonicalAlertSelector =
+    "[data-final-alert-edit],[data-real-alert-edit],[data-standard-alert-edit]";
+
+  function normalizeAlertEditContracts() {
+    document.querySelectorAll(canonicalAlertSelector).forEach((button) => {
+      button.dataset.alertEdit0151 = "";
+      const row = button.closest(".ed-row");
+      if (!row) return;
+      row.querySelectorAll("[data-alert-edit-0151]").forEach((candidate) => {
+        if (candidate !== button && !candidate.matches(canonicalAlertSelector)) candidate.remove();
+      });
+    });
+  }
+
+  function installAlertEditorSwitchBridge() {
+    const current = globalThis.editorSwitch;
+    if (typeof current !== "function" || current.__dmAlertContract0151) return;
+    function editorSwitchAlertContract0151() {
+      const result = current.apply(this, arguments);
+      if (arguments[0] === "avvisi") {
+        globalThis.queueMicrotask?.(normalizeAlertEditContracts);
+        globalThis.setTimeout?.(normalizeAlertEditContracts, 40);
+      }
+      return result;
+    }
+    editorSwitchAlertContract0151.__dmAlertContract0151 = true;
+    editorSwitchAlertContract0151.__dmPrevious = current;
+    globalThis.editorSwitch = editorSwitchAlertContract0151;
+  }
+
+  document.addEventListener(
+    "click",
+    (event) => {
+      if (event.target?.closest?.('.ed-tab[data-tab="avvisi"]')) {
+        globalThis.queueMicrotask?.(normalizeAlertEditContracts);
+        globalThis.setTimeout?.(normalizeAlertEditContracts, 40);
+      }
+    },
+    true,
+  );
+  globalThis.addEventListener?.("dashboardmodern:legacy-ready", () => {
+    installAlertEditorSwitchBridge();
+    normalizeAlertEditContracts();
+  });
+  globalThis.addEventListener?.("dashboardmodern:runtime-ready", () => {
+    installAlertEditorSwitchBridge();
+    normalizeAlertEditContracts();
+  });
+  installAlertEditorSwitchBridge();
+  normalizeAlertEditContracts();
+  [80, 280, 760, 1500].forEach((delay) =>
+    globalThis.setTimeout?.(() => {
+      installAlertEditorSwitchBridge();
+      normalizeAlertEditContracts();
+    }, delay),
+  );
+}
