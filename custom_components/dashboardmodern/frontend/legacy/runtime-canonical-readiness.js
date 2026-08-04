@@ -63,6 +63,22 @@
     if (submit) submit.textContent = doc.documentElement.lang === "en" ? "ASSOCIATE" : "ASSOCIA";
   }
 
+  function decorateTemperatureCards() {
+    doc.querySelectorAll("#temp-grid .temp-room-icon").forEach((icon) => {
+      let label = icon.querySelector("[data-room-icon-label]");
+      if (!label) {
+        label = doc.createElement("span");
+        label.dataset.roomIconLabel = "";
+        label.hidden = true;
+        label.setAttribute("aria-hidden", "true");
+        icon.append(label);
+      }
+      const source = clean(icon.dataset.roomIcon) || clean(icon.getAttribute("aria-label")) || "room";
+      label.textContent = /^mdi:/i.test(source) ? "🏠" : source;
+      if (!icon.getAttribute("aria-label")) icon.setAttribute("aria-label", source);
+    });
+  }
+
   function decorateIrrigationEditor() {
     const body = doc.getElementById("ed-body");
     if (!body || doc.querySelector(".ed-tab.active")?.dataset?.tab !== "irr") return;
@@ -97,6 +113,7 @@
   function applyEditorContracts() {
     installFinalStyle();
     applyTemperatureEditor();
+    decorateTemperatureCards();
     decorateIrrigationEditor();
     doc.querySelectorAll("input[data-entity-input]").forEach(validateInput);
   }
@@ -245,6 +262,7 @@
       root.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE_V2__?.project?.(
         root.__DASHBOARDMODERN_RUNTIME_0150__?.bundle,
       );
+      root.queueMicrotask?.(decorateTemperatureCards);
       return Boolean(result);
     } catch (error) {
       root.console?.warn?.("[DashboardModern 0.15.0] canonical readiness", error);
@@ -254,20 +272,39 @@
     }
   }
 
-  function installWrappers() {
-    if (state.wrapped) return;
-    const current = root.editorSwitch;
-    if (typeof current !== "function") return;
-    function editorSwitchCanonical0150(...args) {
+  function wrapTemperatureRenderer(name) {
+    const current = root[name];
+    if (typeof current !== "function" || current.__dmTemperatureLabels0150) return;
+    function rendererWithTemperatureLabels0150(...args) {
       const result = current.apply(this, args);
-      root.queueMicrotask?.(applyEditorContracts);
+      const finish = () => root.queueMicrotask?.(decorateTemperatureCards);
+      if (result && typeof result.finally === "function") return result.finally(finish);
+      finish();
       return result;
     }
-    editorSwitchCanonical0150.__dmCanonicalReadiness = true;
-    editorSwitchCanonical0150.__dmPrevious = current;
-    editorSwitchCanonical0150.__dmRealFix = true;
-    root.editorSwitch = editorSwitchCanonical0150;
-    state.wrapped = true;
+    rendererWithTemperatureLabels0150.__dmTemperatureLabels0150 = true;
+    rendererWithTemperatureLabels0150.__dmPrevious = current;
+    root[name] = rendererWithTemperatureLabels0150;
+  }
+
+  function installWrappers() {
+    if (!state.wrapped) {
+      const current = root.editorSwitch;
+      if (typeof current === "function") {
+        function editorSwitchCanonical0150(...args) {
+          const result = current.apply(this, args);
+          root.queueMicrotask?.(applyEditorContracts);
+          return result;
+        }
+        editorSwitchCanonical0150.__dmCanonicalReadiness = true;
+        editorSwitchCanonical0150.__dmPrevious = current;
+        editorSwitchCanonical0150.__dmRealFix = true;
+        root.editorSwitch = editorSwitchCanonical0150;
+        state.wrapped = true;
+      }
+    }
+    wrapTemperatureRenderer("renderTemperature");
+    wrapTemperatureRenderer("buildTempCards");
   }
 
   function settle() {
@@ -275,6 +312,7 @@
     installFinalStyle();
     installWrappers();
     applyEditorContracts();
+    decorateTemperatureCards();
     if (store() && runtime()) refresh();
     if ((!store() || !runtime() || !state.wrapped) && state.attempts < 180) {
       root.requestAnimationFrame?.(settle);
