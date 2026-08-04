@@ -20,6 +20,7 @@ import {
     currentFlowText: Object.create(null),
     currentFlowSlots: Object.create(null),
     savingTemperature: false,
+    alertEdit: null,
   });
 
   const FLOW_IDS = Object.freeze([
@@ -386,13 +387,26 @@ import {
     return true;
   }
 
+  function applyRoomSnapshot(dashboardStore, roomId, patch) {
+    if (!dashboardStore?.applySnapshot) return false;
+    const snapshot = dashboardStore.getState();
+    const rooms = (snapshot.sections?.rooms || []).map((room) =>
+      clean(room.id) === roomId ? { ...room, ...patch } : room,
+    );
+    dashboardStore.applySnapshot({
+      ...snapshot,
+      sections: { ...(snapshot.sections || {}), rooms },
+    });
+    return true;
+  }
+
   async function persistTemperature() {
     if (state.savingTemperature) return false;
     const dashboardStore = store();
     const roomId = clean(doc.getElementById("dm-temperature-room")?.value);
     const temp = clean(doc.getElementById("ed-pl-temp")?.value);
     const hum = clean(doc.getElementById("dm-humidity-new")?.value);
-    if (!roomId || !dashboardStore?.updateItem) return false;
+    if (!roomId || !dashboardStore) return false;
     if (!temp.includes(".")) {
       root.alert?.(
         doc.documentElement.lang === "en"
@@ -401,38 +415,57 @@ import {
       );
       return false;
     }
+
+    const room = (dashboardStore.getSection("rooms") || []).find(
+      (item) => clean(item.id) === roomId,
+    );
+    const patch = {
+      icon: clean(doc.getElementById("dm-temperature-icon")?.value) || clean(room?.icon) || "mdi:home",
+      temp,
+      hum,
+    };
+
     state.savingTemperature = true;
     try {
-      const room = (dashboardStore.getSection("rooms") || []).find(
-        (item) => clean(item.id) === roomId,
-      );
-      await dashboardStore.updateItem("rooms", roomId, {
-        icon: clean(doc.getElementById("dm-temperature-icon")?.value) || clean(room?.icon) || "mdi:home",
-        temp,
-        hum,
-      });
+      let persisted = false;
+      if (dashboardStore.updateItem) {
+        try {
+          await dashboardStore.updateItem("rooms", roomId, patch);
+          const saved = (dashboardStore.getSection("rooms") || []).find(
+            (item) => clean(item.id) === roomId,
+          );
+          persisted = clean(saved?.temp) === temp && clean(saved?.hum) === hum;
+        } catch (_error) {}
+      }
+      if (!persisted) persisted = applyRoomSnapshot(dashboardStore, roomId, patch);
+      try {
+        await Promise.resolve(root.cdSyncPush?.());
+      } catch (_error) {
+        // Offline/local edits remain canonical and will be synchronized later.
+      }
       root.buildTempCards?.();
       root.renderTemperature?.();
       root.editorSwitch?.("sez7");
-      return true;
+      return persisted;
     } finally {
       state.savingTemperature = false;
     }
   }
 
-  function captureTemperatureSave(event) {
-    if (!event.target?.closest?.("[data-temperature-submit]")) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    persistTemperature().catch((error) => root.console?.warn?.("Temperature save", error));
+  function readJson(key, fallback) {
+    try {
+      return JSON.parse(root.localStorage?.getItem(key) || "") ?? fallback;
+    } catch (_error) {
+      return fallback;
+    }
+  }
+
+  function writeJson(key, value) {
+    root.localStorage?.setItem(key, JSON.stringify(value));
   }
 
   function readAlertGroups() {
-    try {
-      return JSON.parse(root.localStorage?.getItem("cd_gruppi_extra") || "{}") || {};
-    } catch (_error) {
-      return {};
-    }
+    return readJson("cd_gruppi_extra", {});
   }
 
   function alertEntityFromRow(row) {
@@ -457,31 +490,50 @@ import {
   }
 
   function alertName(entity) {
-    try {
-      const names = JSON.parse(root.localStorage?.getItem("cd_avvisi_names_extra") || "{}") || {};
-      return clean(names[entity]) || clean(root.STATES?.[entity]?.attributes?.friendly_name) || entity;
-    } catch (_error) {
-      return entity;
-    }
+    const names = readJson("cd_avvisi_names_extra", {});
+    return clean(names[entity]) || clean(root.STATES?.[entity]?.attributes?.friendly_name) || entity;
   }
 
   function invokeAlertEdit(button) {
     const group = clean(button.dataset.alertGroup);
     const entity = clean(button.dataset.alertEntity);
+    if (!group || !entity) return false;
+    state.alertEdit = { group, entity };
     const owner = root.__DASHBOARDMODERN_RELEASE_OWNER_0150__;
-    if (owner && group && entity) {
-      owner.alertEdit = { group, entity };
-      const groupInput = doc.getElementById("ed-avv-grp");
-      const entityInput = doc.getElementById("ed-avv-ent");
-      const nameInput = doc.getElementById("ed-avv-name");
-      if (groupInput) groupInput.value = group;
-      if (entityInput) entityInput.value = entity;
-      if (nameInput) nameInput.value = alertName(entity);
-      return true;
+    if (owner) owner.alertEdit = { group, entity };
+    const groupInput = doc.getElementById("ed-avv-grp");
+    const entityInput = doc.getElementById("ed-avv-ent");
+    const nameInput = doc.getElementById("ed-avv-name");
+    if (groupInput) groupInput.value = group;
+    if (entityInput) entityInput.value = entity;
+    if (nameInput) nameInput.value = alertName(entity);
+    return true;
+  }
+
+  function saveAlertEdit() {
+    const previous = state.alertEdit;
+    if (!previous) return false;
+    const group = clean(doc.getElementById("ed-avv-grp")?.value) || previous.group;
+    const entity = clean(doc.getElementById("ed-avv-ent")?.value) || previous.entity;
+    const name = clean(doc.getElementById("ed-avv-name")?.value);
+    if (!entity.includes(".")) return false;
+
+    const groups = readAlertGroups();
+    const names = readJson("cd_avvisi_names_extra", {});
+    if (Array.isArray(groups[previous.group])) {
+      groups[previous.group] = groups[previous.group].filter((id) => id !== previous.entity);
     }
-    const edit = root.dmRealEditAlert || root.edEditAvvisoStandard;
-    edit?.(group, entity);
-    return Boolean(edit);
+    groups[group] ||= [];
+    if (!groups[group].includes(entity)) groups[group].push(entity);
+    delete names[previous.entity];
+    if (name) names[entity] = name;
+    writeJson("cd_gruppi_extra", groups);
+    writeJson("cd_avvisi_names_extra", names);
+    state.alertEdit = null;
+    const owner = root.__DASHBOARDMODERN_RELEASE_OWNER_0150__;
+    if (owner) owner.alertEdit = null;
+    root.editorSwitch?.("avvisi");
+    return true;
   }
 
   function bindAlertEditButton(button, group, entity) {
@@ -497,13 +549,14 @@ import {
     button.textContent = "✏️";
     button.title = doc.documentElement.lang === "en" ? "Edit" : "Modifica";
     button.setAttribute("aria-label", button.title);
-    if (button.dataset.alertEditMounted === "true") return;
-    button.dataset.alertEditMounted = "true";
-    button.addEventListener("click", () => invokeAlertEdit(button));
   }
 
   function installAlertEditButtons() {
     if (!doc) return false;
+    doc.querySelectorAll("#editor-modal [data-dm-standard-alert-list]").forEach((node) => node.remove());
+    doc.querySelectorAll("#editor-modal details").forEach((details) => {
+      details.open = true;
+    });
     doc.querySelectorAll("#editor-modal .ed-row").forEach((row) => {
       const entity = alertEntityFromRow(row);
       const group = entity && alertGroupForEntity(entity, row);
@@ -527,6 +580,35 @@ import {
         });
     });
     return true;
+  }
+
+  function capturePrimaryInteractions(event) {
+    const temperature = event.target?.closest?.("[data-temperature-submit]");
+    if (temperature) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      persistTemperature().catch((error) => root.console?.warn?.("Temperature save", error));
+      return;
+    }
+
+    const alertEdit = event.target?.closest?.(
+      "[data-standard-alert-edit], [data-real-alert-edit]",
+    );
+    if (alertEdit) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      invokeAlertEdit(alertEdit);
+      return;
+    }
+
+    const alertSave = event.target?.closest?.(
+      'button[onclick="edAddAvviso()"], button[onclick*="edAddAvviso"]',
+    );
+    if (alertSave && state.alertEdit) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      saveAlertEdit();
+    }
   }
 
   function installEditorFacade() {
@@ -560,9 +642,11 @@ import {
   function scheduleApply() {
     root.queueMicrotask?.(apply);
     root.setTimeout?.(apply, 0);
-    [40, 140, 360].forEach((delay) => root.setTimeout?.(normalizeApplianceArtwork, delay));
+    [40, 140, 360].forEach((delay) => {
+      root.setTimeout?.(normalizeApplianceArtwork, delay);
+      root.setTimeout?.(installAlertEditButtons, delay);
+    });
     root.setTimeout?.(hideLegacyTemperatureIcon, 40);
-    root.setTimeout?.(installAlertEditButtons, 40);
   }
 
   function bindStore() {
@@ -585,29 +669,14 @@ import {
 
   alignBridge();
   installStyles();
-  root.addEventListener?.("click", captureTemperatureSave, true);
+  root.addEventListener?.("click", capturePrimaryInteractions, true);
   root.addEventListener?.("dashboardmodern:runtime-ready", scheduleApply);
   root.addEventListener?.("dashboardmodern:legacy-ready", scheduleApply);
   root.addEventListener?.("dashboardmodern:energy-statistics", scheduleApply);
   root.addEventListener?.("dashboardmodern:period-bundle", scheduleApply);
   root.addEventListener?.("dashboardmodern:energy-periods-0154", protectCurrentFlow, true);
   root.addEventListener?.("pageshow", scheduleApply);
-  doc?.addEventListener?.(
-    "click",
-    (event) => {
-      const button = event.target?.closest?.(
-        "[data-standard-alert-edit], [data-real-alert-edit]",
-      );
-      if (button) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        invokeAlertEdit(button);
-        return;
-      }
-      scheduleApply();
-    },
-    true,
-  );
+  doc?.addEventListener?.("click", scheduleApply, true);
 
   scheduleApply();
   [50, 180, 500, 900].forEach((delay) => root.setTimeout?.(apply, delay));
