@@ -123,6 +123,19 @@ export const consolidatedSeed = {
   visibility: { energy: true, appliances: true, temperature: true, temp: true },
 };
 
+const dayValues = {
+  "sensor.house_total": 5.7,
+  "sensor.solar_total": 7.3,
+  "sensor.grid_import_total": 0.8,
+  "sensor.grid_export_total": 1.1,
+  "sensor.battery_charge_total": 1.4,
+  "sensor.battery_discharge_total": 0.9,
+  "sensor.fridge_total": 0.7,
+  "sensor.boiler_total": 0.3,
+  "sensor.microwave_total": 0.1,
+  "sensor.oven_total": 0,
+};
+
 const currentMonthValues = {
   "sensor.house_total": 39.9,
   "sensor.solar_total": 50.2,
@@ -165,7 +178,7 @@ const yearValues = {
 export async function bootConsolidatedDashboard(page, variant, testInfo) {
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await page.addInitScript(
-    ({ haStates, currentMonthly, monthly, annual }) => {
+    ({ haStates, daily, currentMonthly, monthly, annual }) => {
       window.DASHBOARDMODERN_AUTH_TOKEN = "e2e-token";
       window.__dmSocketInstances = 0;
       window.__dmStatisticsRequests = [];
@@ -177,7 +190,10 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
         year: previous.getFullYear(),
       };
       const base = Object.fromEntries(
-        Object.keys({ ...currentMonthly, ...monthly, ...annual }).map((id, index) => [id, 1000 + index * 100]),
+        Object.keys({ ...daily, ...currentMonthly, ...monthly, ...annual }).map((id, index) => [
+          id,
+          1000 + index * 100,
+        ]),
       );
 
       window.WebSocket = class extends EventTarget {
@@ -213,13 +229,20 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
             const end = new Date(message.end_time);
             const days = Math.abs(end - start) / 86400000;
             const baseline =
+              (message.period === "hour" && days <= 0.2 && end.getHours() === 0) ||
               (message.period === "day" && days <= 3.1 && end.getDate() === 1) ||
               (message.period === "month" && days <= 35 && end.getMonth() === 0 && end.getDate() === 1);
             const previousPeriod = window.__dmSelectedPeriod;
             const isPreviousMonth =
               start.getMonth() + 1 === previousPeriod.month && start.getFullYear() === previousPeriod.year;
             const selected =
-              message.period === "month" ? annual : isPreviousMonth ? monthly : currentMonthly;
+              message.period === "hour"
+                ? daily
+                : message.period === "month"
+                  ? annual
+                  : isPreviousMonth
+                    ? monthly
+                    : currentMonthly;
             const result = Object.fromEntries(
               (message.statistic_ids || []).map((id) => {
                 const sum = base[id] + (baseline ? 0 : selected[id] || 0);
@@ -238,6 +261,7 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
     },
     {
       haStates: consolidatedStates,
+      daily: dayValues,
       currentMonthly: currentMonthValues,
       monthly: monthValues,
       annual: yearValues,
