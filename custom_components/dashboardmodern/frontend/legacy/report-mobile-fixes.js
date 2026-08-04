@@ -35,21 +35,10 @@ if (typeof document !== "undefined") {
     });
   }
 
-  function installAlertEditorSwitchBridge() {
-    const current = globalThis.editorSwitch;
-    if (typeof current !== "function" || current.__dmAlertContract0151) return;
-    function editorSwitchAlertContract0151() {
-      const result = current.apply(this, arguments);
-      if (arguments[0] === "avvisi") {
-        globalThis.queueMicrotask?.(normalizeAlertEditContracts);
-        globalThis.setTimeout?.(normalizeAlertEditContracts, 40);
-      }
-      return result;
-    }
-    editorSwitchAlertContract0151.__dmAlertContract0151 = true;
-    editorSwitchAlertContract0151.__dmPrevious = current;
-    globalThis.editorSwitch = editorSwitchAlertContract0151;
-  }
+  globalThis.__DASHBOARDMODERN_ALERT_EDIT_CONTRACT_0151__ = {
+    installed: true,
+    apply: normalizeAlertEditContracts,
+  };
 
   document.addEventListener(
     "click",
@@ -61,20 +50,11 @@ if (typeof document !== "undefined") {
     },
     true,
   );
-  globalThis.addEventListener?.("dashboardmodern:legacy-ready", () => {
-    installAlertEditorSwitchBridge();
-    normalizeAlertEditContracts();
-  });
-  globalThis.addEventListener?.("dashboardmodern:runtime-ready", () => {
-    installAlertEditorSwitchBridge();
-    normalizeAlertEditContracts();
-  });
-  installAlertEditorSwitchBridge();
+  globalThis.addEventListener?.("dashboardmodern:legacy-ready", normalizeAlertEditContracts);
+  globalThis.addEventListener?.("dashboardmodern:runtime-ready", normalizeAlertEditContracts);
+  globalThis.addEventListener?.("pageshow", normalizeAlertEditContracts);
   normalizeAlertEditContracts();
   [80, 280, 760, 1500].forEach((delay) =>
-    globalThis.setTimeout?.(() => {
-      installAlertEditorSwitchBridge();
-      normalizeAlertEditContracts();
-    }, delay),
+    globalThis.setTimeout?.(normalizeAlertEditContracts, delay),
   );
 }
