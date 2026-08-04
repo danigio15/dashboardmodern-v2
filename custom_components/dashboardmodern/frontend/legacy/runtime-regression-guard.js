@@ -96,15 +96,36 @@ import {
     style.id = "dm-runtime-regression-guard-0150";
     style.textContent = `
       #page-appliances-main .appl-visual,
-      #page-appliances-main .appl-ic,
-      #page-appliances-main .dm-appliance-image-wrap {
-        position:relative;
+      #page-appliances-main .appl-ic {
+        position:relative!important;
         box-sizing:border-box!important;
         overflow:hidden!important;
       }
-      #page-appliances-main .appl-ic,
-      #page-appliances-main .dm-appliance-image-wrap {
+      #page-appliances-main .dm-appliance-image-wrap,
+      #page-appliances-main .dm-appliance-art,
+      #page-appliances-main .dm-appliance-art-0154,
+      #page-appliances-main [data-dm-art] {
+        position:absolute!important;
+        inset:0!important;
         display:block!important;
+        box-sizing:border-box!important;
+        width:100%!important;
+        height:100%!important;
+        min-width:100%!important;
+        min-height:100%!important;
+        max-width:none!important;
+        max-height:none!important;
+        overflow:hidden!important;
+      }
+      #page-appliances-main img.dm-appliance-image,
+      #page-appliances-main img.dm-appliance-image-0153,
+      #page-appliances-main .dm-appliance-art > svg,
+      #page-appliances-main .dm-appliance-art-0154 > svg,
+      #page-appliances-main [data-dm-art] > svg {
+        position:absolute!important;
+        inset:0!important;
+        display:block!important;
+        box-sizing:border-box!important;
         width:100%!important;
         height:100%!important;
         min-width:100%!important;
@@ -114,35 +135,8 @@ import {
       }
       #page-appliances-main img.dm-appliance-image,
       #page-appliances-main img.dm-appliance-image-0153 {
-        display:block!important;
-        width:100%!important;
-        height:100%!important;
-        min-width:100%!important;
-        min-height:100%!important;
-        max-width:none!important;
-        max-height:none!important;
         object-fit:cover!important;
         object-position:50% 50%!important;
-      }
-      #page-appliances-main .dm-appliance-art,
-      #page-appliances-main .dm-appliance-art-0154,
-      #page-appliances-main [data-dm-art] {
-        display:block!important;
-        width:100%!important;
-        height:100%!important;
-        min-width:100%!important;
-        min-height:100%!important;
-      }
-      #page-appliances-main .dm-appliance-art > svg,
-      #page-appliances-main .dm-appliance-art-0154 > svg,
-      #page-appliances-main [data-dm-art] > svg {
-        display:block!important;
-        width:100%!important;
-        height:100%!important;
-        min-width:100%!important;
-        min-height:100%!important;
-        max-width:none!important;
-        max-height:none!important;
       }
     `;
     (doc.head || doc.documentElement).append(style);
@@ -197,6 +191,17 @@ import {
     return holder;
   }
 
+  function removeDuplicateMedia(card, holder, canonical) {
+    card
+      .querySelectorAll("[data-appliance-asset], [data-dm-art], .dm-appliance-image-wrap")
+      .forEach((node) => {
+        if (node === canonical || canonical?.contains(node) || node.contains(canonical)) return;
+        if (holder.contains(node) || !node.closest(".appl-ic") || node.closest(".appl-ic") !== holder) {
+          node.remove();
+        }
+      });
+  }
+
   function normalizeApplianceArtwork() {
     if (!doc) return false;
     installStyles();
@@ -216,36 +221,52 @@ import {
       const explicitImage = clean(device.image || device.image_url);
 
       if (explicitImage) {
-        let image = holder.querySelector("img");
-        if (!image) {
-          image = doc.createElement("img");
-          holder.replaceChildren(image);
-        }
+        holder.querySelectorAll("[data-appliance-asset], [data-dm-art]").forEach((node) => node.remove());
+        let image = holder.querySelector("img.dm-appliance-image, img");
+        if (!image) image = doc.createElement("img");
         image.src = explicitImage;
         image.alt = clean(device.name);
         image.classList.add("dm-appliance-image", "dm-appliance-image-0153");
         let wrapper = image.closest(".dm-appliance-image-wrap");
-        if (!wrapper) {
+        if (!wrapper || wrapper.parentElement !== holder) {
           wrapper = doc.createElement("span");
           wrapper.className = "dm-appliance-image-wrap";
-          image.replaceWith(wrapper);
           wrapper.append(image);
+          holder.replaceChildren(wrapper);
         }
+        removeDuplicateMedia(card, holder, wrapper);
         card.dataset.dmMediaKind = "image";
         card.dataset.dmArtwork = "custom";
       } else if (type) {
-        const markup = artworkMarkup(token, 96);
-        const current = holder.querySelector("[data-appliance-asset]");
+        holder.querySelectorAll(".dm-appliance-image-wrap, img.dm-appliance-image").forEach((node) => node.remove());
         const expected = legacyArtworkKey(type);
-        if (markup && current?.dataset.applianceAsset !== expected) holder.innerHTML = markup;
+        let canonical = holder.querySelector(`[data-appliance-asset="${expected}"]`);
+        if (!canonical) {
+          holder.innerHTML = artworkMarkup(token, 96);
+          canonical = holder.querySelector(`[data-appliance-asset="${expected}"]`);
+        }
+        removeDuplicateMedia(card, holder, canonical);
         card.dataset.dmMediaKind = "asset";
         card.dataset.dmArtwork = type;
         card.dataset.dmArtStyle = "panel";
       }
+    });
+    return true;
+  }
 
-      holder.querySelectorAll("img").forEach((image) => {
-        image.classList.add("dm-appliance-image", "dm-appliance-image-0153");
-      });
+  function hideLegacyTemperatureIcon() {
+    const form = doc?.querySelector?.("#editor-modal [data-temperature-form]");
+    if (!form) return false;
+    form.querySelectorAll("label.ed-slot, label").forEach((label) => {
+      if (!/(^|\s)(Simbolo|Icon)(\s|$)/i.test(clean(label.textContent))) return;
+      const input = label.querySelector("#dm-temperature-icon, #ed-pl-icon, input");
+      if (input) {
+        input.type = "hidden";
+        input.hidden = true;
+        input.setAttribute("aria-hidden", "true");
+        form.append(input);
+      }
+      label.remove();
     });
     return true;
   }
@@ -529,6 +550,7 @@ import {
     alignBridge();
     installDispatchFacade();
     normalizeApplianceArtwork();
+    hideLegacyTemperatureIcon();
     installAlertEditButtons();
     installEditorFacade();
     captureCurrentFlow();
@@ -539,6 +561,7 @@ import {
     root.queueMicrotask?.(apply);
     root.setTimeout?.(apply, 0);
     [40, 140, 360].forEach((delay) => root.setTimeout?.(normalizeApplianceArtwork, delay));
+    root.setTimeout?.(hideLegacyTemperatureIcon, 40);
     root.setTimeout?.(installAlertEditButtons, 40);
   }
 
