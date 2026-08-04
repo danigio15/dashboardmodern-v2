@@ -63,3 +63,70 @@ if (typeof document !== "undefined") {
     globalThis.setTimeout?.(normalizeAlertEditContracts, delay),
   );
 }
+
+/* Keep the selected-period bundle authoritative after every bounded legacy repaint. */
+if (
+  typeof globalThis.dispatchEvent === "function" &&
+  !globalThis.__DASHBOARDMODERN_FLOW_EVENT_OWNER_0151__?.installed
+) {
+  const flowState = (globalThis.__DASHBOARDMODERN_FLOW_EVENT_OWNER_0151__ = {
+    installed: true,
+    bundle: null,
+    revision: 0,
+  });
+  const currentDispatch = globalThis.dispatchEvent;
+
+  function cloneValue(value) {
+    try {
+      return structuredClone(value);
+    } catch (_error) {
+      return JSON.parse(JSON.stringify(value));
+    }
+  }
+
+  function meaningfulMonth(month) {
+    return Boolean(
+      month &&
+        ["house", "solar", "gridImport", "gridExport", "batteryCharged", "batteryDischarged"]
+          .map((key) => Number(month[key]))
+          .some((value) => Number.isFinite(value) && value > 0),
+    );
+  }
+
+  function restoreStableFlow(revision) {
+    if (revision !== flowState.revision || !flowState.bundle) return;
+    const stable = cloneValue(flowState.bundle);
+    const runtime = globalThis.__DASHBOARDMODERN_RUNTIME_0150__;
+    if (runtime?.bundle && meaningfulMonth(stable.month)) {
+      runtime.bundle.month = cloneValue(stable.month);
+    }
+    globalThis.__DASHBOARDMODERN_REAL_HA_HOTFIX_0151__?.applyCanonicalFlow?.(stable);
+  }
+
+  function finalPeriodDispatch0151(event) {
+    if (event?.type === "dashboardmodern:period-bundle" && meaningfulMonth(event.detail?.month)) {
+      flowState.bundle = cloneValue(event.detail);
+      flowState.revision += 1;
+    }
+    const revision = flowState.revision;
+    const result = currentDispatch.call(this, event);
+    if (
+      flowState.bundle &&
+      (event?.type === "dashboardmodern:period-bundle" ||
+        event?.type === "dashboardmodern:energy-periods-0154")
+    ) {
+      restoreStableFlow(revision);
+      [20, 80, 180, 400, 900].forEach((delay) =>
+        globalThis.setTimeout?.(() => restoreStableFlow(revision), delay),
+      );
+    }
+    return result;
+  }
+
+  finalPeriodDispatch0151.__dmFlowEventOwner0151 = true;
+  finalPeriodDispatch0151.__dmRealHa0151V2 = true;
+  finalPeriodDispatch0151.__dmPrevious = currentDispatch;
+  flowState.dispatch = finalPeriodDispatch0151;
+  flowState.restore = () => restoreStableFlow(flowState.revision);
+  globalThis.dispatchEvent = finalPeriodDispatch0151;
+}
