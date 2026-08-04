@@ -52,8 +52,7 @@ async function boot(page, testInfo) {
     _RAW_STATES[haState.entity_id] = structuredClone(haState);
     STATES[haState.entity_id] = structuredClone(haState);
   }, state);
-  await page.addScriptTag({ url: "/legacy/runtime-hotfix.js" });
-  await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_HOTFIX__);
+  await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true);
   await page.evaluate(() => window.render?.());
 }
 
