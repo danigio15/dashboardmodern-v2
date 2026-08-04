@@ -35,26 +35,31 @@ if (typeof document !== "undefined") {
     });
   }
 
+  function applyAlertEditContracts() {
+    normalizeAlertEditContracts();
+    globalThis.queueMicrotask?.(normalizeAlertEditContracts);
+    [0, 40, 120].forEach((delay) =>
+      globalThis.setTimeout?.(normalizeAlertEditContracts, delay),
+    );
+  }
+
   globalThis.__DASHBOARDMODERN_ALERT_EDIT_CONTRACT_0151__ = {
     installed: true,
-    apply: normalizeAlertEditContracts,
+    apply: applyAlertEditContracts,
   };
 
   document.addEventListener(
     "click",
     (event) => {
-      if (event.target?.closest?.('.ed-tab[data-tab="avvisi"]')) {
-        globalThis.queueMicrotask?.(normalizeAlertEditContracts);
-        globalThis.setTimeout?.(normalizeAlertEditContracts, 40);
-      }
+      if (event.target?.closest?.('.ed-tab[data-tab="avvisi"]')) applyAlertEditContracts();
     },
     true,
   );
-  globalThis.addEventListener?.("dashboardmodern:legacy-ready", normalizeAlertEditContracts);
-  globalThis.addEventListener?.("dashboardmodern:runtime-ready", normalizeAlertEditContracts);
-  globalThis.addEventListener?.("pageshow", normalizeAlertEditContracts);
-  normalizeAlertEditContracts();
-  [80, 280, 760, 1500].forEach((delay) =>
+  globalThis.addEventListener?.("dashboardmodern:legacy-ready", applyAlertEditContracts);
+  globalThis.addEventListener?.("dashboardmodern:runtime-ready", applyAlertEditContracts);
+  globalThis.addEventListener?.("pageshow", applyAlertEditContracts);
+  applyAlertEditContracts();
+  [280, 760, 1500].forEach((delay) =>
     globalThis.setTimeout?.(normalizeAlertEditContracts, delay),
   );
 }
