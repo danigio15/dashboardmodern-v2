@@ -1,5 +1,6 @@
 /* DashboardModern 0.15.2 — production entry for the single runtime owner. */
 import "./runtime-consolidated.js";
+import "../src/core/alerts-runtime.js";
 
 if (typeof document !== "undefined" && !document.getElementById("dm-report-responsive-0152")) {
   const style = document.createElement("style");
