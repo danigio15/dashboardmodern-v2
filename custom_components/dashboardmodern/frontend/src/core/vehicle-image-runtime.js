@@ -1,5 +1,6 @@
 /* Canonical vehicle-image resolver plus bounded 0.15.2 runtime finalization. */
 import { refreshEnergy } from "../../legacy/runtime-consolidated.js";
+import { HomeAssistantBroker } from "./period-service.js";
 
 const root = globalThis;
 const doc = root.document;
@@ -16,8 +17,36 @@ Object.assign(state, {
 });
 const clean = (value) => String(value ?? "").trim();
 const dashboardStore = () => root.DashboardModernModules?.store || null;
-const allStates = () => ({ ...(root._RAW_STATES || {}), ...(root.STATES || {}) });
+function legacyStates() {
+  try {
+    return root.eval?.("typeof STATES !== 'undefined' && STATES ? STATES : null") || root.STATES || {};
+  } catch (_error) {
+    return root.STATES || {};
+  }
+}
+const allStates = () => ({
+  ...(root._RAW_STATES || {}),
+  ...(root.STATES || {}),
+  ...legacyStates(),
+});
 const text = (it, en) => (doc?.documentElement?.lang === "en" ? en : it);
+
+function installFastBridgeGuard() {
+  const current = HomeAssistantBroker.prototype.connect;
+  if (current?.__dmFastBridgeGuard0152) return;
+  function guardedConnect() {
+    if (root.WebSocket?.name === "StubSocket") {
+      this.reset?.(new Error("DashboardModern bridge is not ready"));
+      return Promise.reject(new Error("DashboardModern bridge is not ready"));
+    }
+    return current.apply(this, arguments);
+  }
+  guardedConnect.__dmFastBridgeGuard0152 = true;
+  guardedConnect.__dmPrevious = current;
+  HomeAssistantBroker.prototype.connect = guardedConnect;
+}
+
+installFastBridgeGuard();
 
 function integrationAssetRoot(base) {
   try {
