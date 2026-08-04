@@ -26,7 +26,7 @@ if (typeof document !== "undefined") {
 
   function normalizeAlertEditContracts() {
     document.querySelectorAll(canonicalAlertSelector).forEach((button) => {
-      button.dataset.alertEdit0151 = "";
+      button.setAttribute("data-alert-edit-0151", "");
       const row = button.closest(".ed-row");
       if (!row) return;
       row.querySelectorAll("[data-alert-edit-0151]").forEach((candidate) => {
