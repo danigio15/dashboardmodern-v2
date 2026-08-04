@@ -3,7 +3,7 @@ import {
   canonicalArtworkType,
 } from "../src/core/appliance-artwork.js";
 
-/* DashboardModern 0.15.0 — deterministic final UI/transport guard. */
+/* DashboardModern 0.15.0 — deterministic, idempotent final UI/transport guard. */
 (function installRuntimeRegressionGuard0150(root) {
   "use strict";
 
@@ -34,6 +34,9 @@ import {
     }
   };
   const writeJson = (key, value) => root.localStorage?.setItem(key, JSON.stringify(value));
+  const setDataset = (node, key, value) => {
+    if (node?.dataset && node.dataset[key] !== value) node.dataset[key] = value;
+  };
 
   const FLOW_IDS = Object.freeze([
     "v-solar-month",
@@ -78,7 +81,6 @@ import {
     installSocketConstants(root.WebSocket);
     installSocketConstants(explicit);
     installSocketConstants(preloaded);
-
     if (explicit && root.WebSocket !== explicit) root.WebSocket = explicit;
     else if (typeof root.WebSocket !== "function" && preloaded) root.WebSocket = preloaded;
     if (!explicit && preloaded && typeof root.__DASHBOARDMODERN_BRIDGE_WS__ !== "function") {
@@ -124,6 +126,9 @@ import {
       html body #page-appliances-main .dm-appliance-image[src^="data:image"]{object-fit:contain!important}
       #editor-modal [data-dm-final-alert-list]{display:block!important}
       #editor-modal [data-dm-final-alert-list] .ed-row{display:flex!important}
+      .dm-temp-icon-text{position:absolute!important;width:1px!important;height:1px!important;
+        padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;
+        white-space:nowrap!important;border:0!important}
     `;
     (doc.head || doc.documentElement).append(style);
   }
@@ -191,38 +196,49 @@ import {
         visual.prepend(holder);
       }
 
-      visual.querySelectorAll("[data-dm-art],.dm-appliance-image-wrap").forEach((node) => {
-        if (!holder.contains(node)) node.remove();
-      });
-
       const token = clean(
         device.visual_key || device.device_type || device.icon || device.name || card.textContent,
       );
       const type = canonicalArtworkType(token);
       const imageUrl = clean(device.image || device.image_url);
-      if (imageUrl) {
-        const wrapper = doc.createElement("span");
-        wrapper.className = "dm-appliance-image-wrap";
-        const image = doc.createElement("img");
-        image.className = "dm-appliance-image dm-appliance-image-0153";
-        image.src = imageUrl;
-        image.alt = clean(device.name);
-        wrapper.append(image);
-        holder.replaceChildren(wrapper);
-        card.dataset.dmArtwork = "custom";
-        card.dataset.dmMediaKind = "image";
-      } else if (type) {
-        replaceMarkup(holder, artworkMarkup(token, 96));
-        card.dataset.dmArtwork = type;
-        card.dataset.dmMediaKind = "asset";
+      const signature = `${clean(device.id)}|${type}|${imageUrl}`;
+      const outside = [...visual.querySelectorAll("[data-dm-art],.dm-appliance-image-wrap")].filter(
+        (node) => !holder.contains(node),
+      );
+      const media = [...holder.querySelectorAll("[data-dm-art],.dm-appliance-image-wrap")];
+      const currentImage = holder.querySelector("img.dm-appliance-image");
+      const currentArt = holder.querySelector("[data-dm-art]");
+      const valid =
+        card.dataset.dmFinalGuardSignature === signature &&
+        outside.length === 0 &&
+        media.length === 1 &&
+        (imageUrl
+          ? currentImage?.getAttribute("src") === imageUrl
+          : Boolean(type && currentArt?.dataset.dmArt === type));
+
+      if (!valid) {
+        outside.forEach((node) => node.remove());
+        if (imageUrl) {
+          const wrapper = doc.createElement("span");
+          wrapper.className = "dm-appliance-image-wrap";
+          const image = doc.createElement("img");
+          image.className = "dm-appliance-image dm-appliance-image-0153";
+          image.src = imageUrl;
+          image.alt = clean(device.name);
+          wrapper.append(image);
+          holder.replaceChildren(wrapper);
+        } else if (type) {
+          replaceMarkup(holder, artworkMarkup(token, 96));
+        }
+        setDataset(card, "dmFinalGuardSignature", signature);
       }
 
-      const media = [...holder.querySelectorAll("[data-dm-art],.dm-appliance-image-wrap")];
-      media.slice(1).forEach((node) => node.remove());
       card.querySelectorAll(".appl-spark").forEach((node) => node.remove());
-      card.dataset.dmArtStyle = "panel";
-      card.dataset.applianceThemeAware = "true";
-      visual.dataset.applianceCover = "true";
+      setDataset(card, "dmArtwork", imageUrl ? "custom" : type);
+      setDataset(card, "dmMediaKind", imageUrl ? "image" : "asset");
+      setDataset(card, "dmArtStyle", "panel");
+      setDataset(card, "applianceThemeAware", "true");
+      setDataset(visual, "applianceCover", "true");
 
       const toggle = card.querySelector('[data-dm-power-toggle="true"]');
       if (toggle) {
@@ -231,6 +247,33 @@ import {
         });
       }
     });
+    return true;
+  }
+
+  function normalizeTemperatureUi() {
+    if (!doc) return false;
+    doc.querySelectorAll("#temp-grid .temp-room-icon").forEach((icon) => {
+      if (icon.querySelector(".dm-temp-icon-text")) return;
+      const fallback = doc.createElement("span");
+      fallback.className = "dm-temp-icon-text";
+      fallback.textContent = clean(icon.dataset.roomIcon) || clean(icon.getAttribute("aria-label")) || "home";
+      icon.append(fallback);
+    });
+
+    const form = doc.querySelector("#editor-modal [data-temperature-form]");
+    const input = form?.querySelector("#dm-temperature-icon");
+    if (form && input) {
+      const field = input.closest("label.ed-slot") || input.closest("label") || input.closest("[data-icon-field]");
+      input.type = "hidden";
+      input.hidden = true;
+      input.tabIndex = -1;
+      input.setAttribute("aria-hidden", "true");
+      if (field && field !== form) {
+        input.remove();
+        field.remove();
+        form.append(input);
+      }
+    }
     return true;
   }
 
@@ -256,23 +299,33 @@ import {
     if (!doc || doc.querySelector(".ed-tab.active")?.dataset?.tab !== "avvisi") return false;
     const body = doc.getElementById("ed-body");
     if (!body) return false;
-
-    body.querySelectorAll("[data-dm-standard-alert-list],[data-dm-final-alert-list]").forEach((node) =>
-      node.remove(),
+    const entries = Object.entries(readJson("cd_gruppi_extra", {})).flatMap(([group, entities]) =>
+      (entities || []).map((entity) => ({ group, entity })),
     );
+    const signature = JSON.stringify(entries);
+    const existing = body.querySelector("[data-dm-final-alert-list]");
+    const ownerLists = [...body.querySelectorAll("[data-dm-standard-alert-list]")].filter(
+      (node) => node !== existing,
+    );
+    ownerLists.forEach((node) => node.remove());
+    if (
+      existing?.dataset.dmAlertSignature === signature &&
+      existing.querySelectorAll("[data-final-alert-edit]").length === entries.length
+    ) {
+      return true;
+    }
+
+    existing?.remove();
     body.querySelectorAll("[data-real-alert-edit],[data-standard-alert-edit]").forEach((button) => {
       button.removeAttribute("data-real-alert-edit");
       button.removeAttribute("data-standard-alert-edit");
       button.removeAttribute("data-final-alert-edit");
     });
-
-    const entries = Object.entries(readJson("cd_gruppi_extra", {})).flatMap(([group, entities]) =>
-      (entities || []).map((entity) => ({ group, entity })),
-    );
     if (!entries.length) return true;
 
     const list = doc.createElement("section");
     list.dataset.dmFinalAlertList = "";
+    list.dataset.dmAlertSignature = signature;
     body.prepend(list);
 
     entries.forEach(({ group, entity }) => {
@@ -344,6 +397,19 @@ import {
     return true;
   }
 
+  function installAlertSaveFacade() {
+    const current = root.edAddAvviso;
+    if (typeof current !== "function" || current.__dmFinalAlertSave0150) return false;
+    function finalAlertSave() {
+      if (state.alertEdit) return saveAlertEdit();
+      return current.apply(this, arguments);
+    }
+    finalAlertSave.__dmFinalAlertSave0150 = true;
+    finalAlertSave.__dmPrevious = current;
+    root.edAddAvviso = finalAlertSave;
+    return true;
+  }
+
   async function saveTemperature() {
     const dashboardStore = store();
     const roomId = clean(doc.getElementById("dm-temperature-room")?.value);
@@ -359,7 +425,6 @@ import {
       }
       return false;
     }
-
     const sync = dashboardStore.syncAdapter;
     dashboardStore.syncAdapter = async () => {};
     try {
@@ -449,7 +514,6 @@ import {
     function finalOwnerApply() {
       const result = current.apply(this, arguments);
       root.queueMicrotask?.(finalizeDom);
-      root.setTimeout?.(finalizeDom, 0);
       return result;
     }
     finalOwnerApply.__dmFinalOwner0150 = true;
@@ -463,7 +527,7 @@ import {
     if (typeof current !== "function" || current.__dmFinalOwner0150) return false;
     function finalRender() {
       const result = current.apply(this, arguments);
-      const finish = () => scheduleFinalApply();
+      const finish = () => root.queueMicrotask?.(finalizeDom);
       if (result && typeof result.finally === "function") return result.finally(finish);
       finish();
       return result;
@@ -494,7 +558,9 @@ import {
       installStyles();
       installArtworkFacade();
       normalizeApplianceArtwork();
+      normalizeTemperatureUi();
       normalizeAlertEditor();
+      installAlertSaveFacade();
       installDispatchOwner();
       installOwnerWrapper();
       ["renderApplianceSection", "editorSwitch", "buildTempCards", "renderTemperature"].forEach(
@@ -508,7 +574,7 @@ import {
 
   function scheduleFinalApply() {
     root.queueMicrotask?.(finalizeDom);
-    [0, 40, 140].forEach((delay) => root.setTimeout?.(finalizeDom, delay));
+    root.setTimeout?.(finalizeDom, 60);
   }
 
   function handleClick(event) {
@@ -531,18 +597,24 @@ import {
       event.preventDefault();
       event.stopImmediatePropagation();
       saveTemperature().catch((error) => root.console?.warn?.("Temperature save", error));
-      return;
     }
-    scheduleFinalApply();
+  }
+
+  function handleSubmit(event) {
+    if (!event.target?.matches?.("[data-temperature-form]")) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    saveTemperature().catch((error) => root.console?.warn?.("Temperature save", error));
   }
 
   alignBridge();
   installStyles();
-  doc?.addEventListener?.("click", handleClick, true);
+  root.addEventListener?.("click", handleClick, true);
+  root.addEventListener?.("submit", handleSubmit, true);
   root.addEventListener?.("dashboardmodern:legacy-ready", scheduleFinalApply);
   root.addEventListener?.("dashboardmodern:runtime-ready", scheduleFinalApply);
   root.addEventListener?.("dashboardmodern:period-bundle", scheduleFinalApply);
   root.addEventListener?.("pageshow", scheduleFinalApply);
   scheduleFinalApply();
-  [50, 180, 500, 900, 1600].forEach((delay) => root.setTimeout?.(finalizeDom, delay));
+  [120, 500, 1200].forEach((delay) => root.setTimeout?.(finalizeDom, delay));
 })(globalThis);
