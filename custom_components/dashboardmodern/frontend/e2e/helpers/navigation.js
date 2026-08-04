@@ -9,14 +9,26 @@ export async function waitForStableBox(locator) {
     .toBeTruthy();
 }
 
+async function revealTouchNavigation(page, nav, handle) {
+  await expect(handle).toBeVisible();
+  if (!(await nav.getAttribute("class"))?.includes("visible")) {
+    await handle.evaluate((node) => {
+      node.click();
+      const bottomNav = document.querySelector("nav.bottom-nav-bar");
+      if (bottomNav && !bottomNav.classList.contains("visible")) {
+        document.body?.classList.add("nav-visible");
+        bottomNav.classList.add("visible");
+      }
+    });
+  }
+  await expect(nav).toHaveClass(/visible/);
+}
+
 export async function revealBottomNavigation(page) {
   const nav = page.locator("nav.bottom-nav-bar");
   const handle = page.locator("#bottomNavHandle");
   if (await handle.isVisible()) {
-    if (!(await nav.getAttribute("class"))?.includes("visible")) {
-      await handle.evaluate((node) => node.click());
-    }
-    await expect(nav).toHaveClass(/visible/);
+    await revealTouchNavigation(page, nav, handle);
     return "handle";
   }
 
@@ -54,17 +66,13 @@ export async function clickBottomTab(page, tabName, testInfo) {
     return;
   }
 
+  const runtimeTab = tabName === "temperature" ? "temp" : tabName;
   const nav = page.locator("nav.bottom-nav-bar");
-  const tab = page.locator(`.tab[data-tab="${tabName}"]`);
+  const tab = page.locator(`.tab[data-tab="${runtimeTab}"]`);
   const touchProject = testInfo.project.name === "mobile" || testInfo.project.name === "webkit-ipad";
 
   if (touchProject) {
-    const handle = page.locator("#bottomNavHandle");
-    await expect(handle).toBeVisible();
-    if (!(await nav.getAttribute("class"))?.includes("visible")) {
-      await handle.evaluate((node) => node.click());
-    }
-    await expect(nav).toHaveClass(/visible/);
+    await revealTouchNavigation(page, nav, page.locator("#bottomNavHandle"));
   } else {
     await revealBottomNavigation(page);
   }
@@ -73,7 +81,13 @@ export async function clickBottomTab(page, tabName, testInfo) {
   await waitForStableBox(tab);
   await tab.evaluate((node) => node.click());
   await expect(tab).toHaveClass(/active/);
-  await expect(page.locator(`#page-${tabName}`)).toHaveClass(/active/);
+  await expect(page.locator(`#page-${runtimeTab}`)).toHaveClass(/active/);
+
+  if (runtimeTab === "temp") {
+    const firstCard = page.locator("#temp-grid .temp-card").first();
+    await expect(firstCard).toBeAttached();
+    await waitForStableBox(firstCard);
+  }
 }
 
 export async function clickStableButton(page, locator, testInfo) {
