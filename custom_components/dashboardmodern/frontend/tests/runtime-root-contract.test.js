@@ -15,6 +15,7 @@ globalThis.localStorage = {
 };
 
 const runtime = await import("../legacy/runtime-consolidated.js");
+const vehicle = await import("../src/core/vehicle-image-runtime.js");
 
 function put(key, value) {
   storage.set(key, JSON.stringify(value));
@@ -47,13 +48,28 @@ test("lights editor groups only rooms containing configured entities", () => {
   );
 });
 
-test("vehicle image paths accept Home Assistant www and relative assets", () => {
-  assert.equal(runtime.resolveVehicleImagePath("/config/www/auto/b10.png"), "/local/auto/b10.png");
-  assert.equal(runtime.resolveVehicleImagePath("www/auto/b10.png"), "/local/auto/b10.png");
-  assert.equal(runtime.resolveVehicleImagePath("/local/auto/b10.png"), "/local/auto/b10.png");
+test("vehicle image paths accept Home Assistant www, integration and relative assets", () => {
+  const base = "https://ha.local/api/dashboardmodern/hash/legacy/dashboard.html";
+  assert.equal(vehicle.resolveVehicleAsset("/config/www/auto/b10.png", base), "/local/auto/b10.png");
+  assert.equal(vehicle.resolveVehicleAsset("www/auto/b10.png", base), "/local/auto/b10.png");
+  assert.equal(vehicle.resolveVehicleAsset("/local/auto/b10.png", base), "/local/auto/b10.png");
   assert.equal(
-    runtime.resolveVehicleImagePath("images/b10.png", "https://ha.local/api/dashboardmodern/hash/legacy/dashboard.html"),
+    vehicle.resolveVehicleAsset("images/b10.png", base),
     "https://ha.local/api/dashboardmodern/hash/legacy/images/b10.png",
   );
-  assert.equal(runtime.resolveVehicleImagePath("C:\\Users\\me\\b10.png"), "");
+  assert.equal(
+    vehicle.resolveVehicleAsset(
+      "/config/custom_components/dashboardmodern/frontend/images/b10.png",
+      base,
+    ),
+    "https://ha.local/api/dashboardmodern/hash/images/b10.png",
+  );
+  assert.equal(
+    vehicle.resolveVehicleAsset(
+      "custom_components/dashboardmodern/frontend/legacy/images/b10.png",
+      base,
+    ),
+    "https://ha.local/api/dashboardmodern/hash/legacy/images/b10.png",
+  );
+  assert.equal(vehicle.resolveVehicleAsset("C:\\Users\\me\\b10.png", base), "");
 });
