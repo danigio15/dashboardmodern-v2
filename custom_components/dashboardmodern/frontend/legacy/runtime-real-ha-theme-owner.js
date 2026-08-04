@@ -31,10 +31,25 @@
 
   function dashboardIsDark() {
     const styles = root.getComputedStyle?.(doc.documentElement);
-    for (const token of ["--dm-bg", "--bg-sculpted", "--bg-1"]) {
-      const result = isDarkColor(styles?.getPropertyValue(token));
-      if (result != null) return result;
+    const dashboardBackground =
+      clean(styles?.getPropertyValue("--dm-bg")) ||
+      clean(styles?.getPropertyValue("--bg-sculpted")) ||
+      clean(styles?.getPropertyValue("--bg-1"));
+    const dashboardDark = isDarkColor(dashboardBackground);
+    const cardBackground = clean(styles?.getPropertyValue("--card-bg"));
+    const inheritedHaBackground = clean(styles?.getPropertyValue("--ha-card-background"));
+    const cardDark = isDarkColor(cardBackground);
+
+    // A standalone --card-bg is an explicit DashboardModern theme override.
+    // When it matches Home Assistant's own card variable, it is inherited host
+    // chrome and must not turn a visibly light DashboardModern page dark.
+    if (
+      cardDark != null &&
+      (!inheritedHaBackground || cardBackground.toLowerCase() !== inheritedHaBackground.toLowerCase())
+    ) {
+      return cardDark;
     }
+    if (dashboardDark != null) return dashboardDark;
     return clean(doc.documentElement.dataset.theme).toLowerCase() === "dark";
   }
 
