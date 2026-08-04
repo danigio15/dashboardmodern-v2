@@ -4,7 +4,7 @@
   const KEY = "__DASHBOARDMODERN_REAL_HA_THEME_OWNER_0151__";
   if (!root.document || root[KEY]?.installed) return;
   const doc = root.document;
-  const state = (root[KEY] = { installed: true, scheduled: false });
+  const state = (root[KEY] = { installed: true, scheduled: false, render: null });
   const clean = (value) => String(value ?? "").trim();
 
   function channels(value) {
@@ -45,7 +45,7 @@
   function apply() {
     const dark = dashboardIsDark();
     const palette = dark
-      ? { card: "#0f172a", surface: "#172033", text: "#f8fafc", dim: "#a8b4c6", border: "#334155" }
+      ? { card: "#111827", surface: "#1f2937", text: "#f8fafc", dim: "#cbd5e1", border: "#374151" }
       : { card: "#f8fafc", surface: "#ffffff", text: "#0f172a", dim: "#64748b", border: "#dbe4ee" };
     doc.documentElement.dataset.dmDashboardTheme = dark ? "dark" : "light";
     doc.documentElement.style.setProperty("--dm-real-card-bg", palette.card);
@@ -83,12 +83,43 @@
     root.setTimeout?.(apply, 90);
   }
 
+  function installRenderHook() {
+    const current = root.renderApplianceSection;
+    if (typeof current !== "function" || current.__dmRealHaThemeOwner0151) return false;
+    function themedApplianceRender0151() {
+      const result = current.apply(this, arguments);
+      const finish = () => {
+        root.queueMicrotask?.(apply);
+        root.setTimeout?.(apply, 60);
+      };
+      if (result && typeof result.finally === "function") return result.finally(finish);
+      finish();
+      return result;
+    }
+    themedApplianceRender0151.__dmRealHaThemeOwner0151 = true;
+    themedApplianceRender0151.__dmPrevious = current;
+    state.render = themedApplianceRender0151;
+    root.renderApplianceSection = themedApplianceRender0151;
+    return true;
+  }
+
   state.apply = apply;
+  state.installRenderHook = installRenderHook;
   doc.addEventListener("click", schedule, true);
   doc.addEventListener("change", schedule, true);
-  root.addEventListener?.("dashboardmodern:legacy-ready", schedule);
-  root.addEventListener?.("dashboardmodern:runtime-ready", schedule);
+  root.addEventListener?.("dashboardmodern:legacy-ready", () => {
+    installRenderHook();
+    schedule();
+  });
+  root.addEventListener?.("dashboardmodern:runtime-ready", () => {
+    installRenderHook();
+    schedule();
+  });
   root.addEventListener?.("pageshow", schedule);
+  installRenderHook();
   apply();
-  [180, 820, 1650].forEach((delay) => root.setTimeout?.(apply, delay));
+  [180, 820, 1650].forEach((delay) => root.setTimeout?.(() => {
+    installRenderHook();
+    apply();
+  }, delay));
 })(globalThis);
