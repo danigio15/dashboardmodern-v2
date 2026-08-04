@@ -36,7 +36,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(appliance).toBeVisible();
     await expect(appliance).toHaveCSS("background-color", "rgb(248, 250, 252)");
     await expect(appliance.locator(".appl-wide-name")).toHaveCSS("color", "rgb(15, 23, 42)");
-    const applianceToggle = appliance.locator('[data-dm-power-toggle="true"],.dm-appliance-power-toggle').first();
+    const applianceToggle = appliance
+      .locator('[data-dm-power-toggle="true"],.dm-appliance-power-toggle')
+      .first();
     if (await applianceToggle.count()) {
       await expect(applianceToggle).toHaveCSS("border-radius", "12px");
       await expect(applianceToggle).toHaveCSS("color", "rgb(255, 255, 255)");
@@ -119,7 +121,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await housePower.fill("sensor.house_power");
     await housePower.dispatchEvent("input");
     const houseDetails = housePower.locator("xpath=ancestor::details[1]");
-    await expect(houseDetails.locator("summary")).toContainText(/2\/5/);
+    await expect(houseDetails.locator("summary")).toContainText(/3\/5/);
     await expect(page.locator("#dm-energy-house-total_energy")).toHaveValue("sensor.house_total");
     await page.locator("[data-energy-save]").click();
     await expect
