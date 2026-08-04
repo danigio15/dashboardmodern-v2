@@ -1,6 +1,6 @@
 /* Canonical vehicle-image resolver plus bounded 0.15.2 runtime finalization. */
 import { applyAtomicEnergyBundle } from "../../legacy/runtime-consolidated.js";
-import { HomeAssistantBroker, sourcePlans } from "./period-service.js";
+import { HomeAssistantBroker } from "./period-service.js";
 
 const root = globalThis;
 const doc = root.document;
@@ -14,8 +14,13 @@ Object.assign(state, {
   energyTimer: state.energyTimer || 0,
   contractTimer: state.contractTimer || 0,
   contractAttempts: state.contractAttempts || 0,
+  energyFailures: Number(state.energyFailures) || 0,
 });
 const clean = (value) => String(value ?? "").trim();
+const numeric = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 const dashboardStore = () => root.DashboardModernModules?.store || null;
 function legacyStates() {
   try {
@@ -30,26 +35,11 @@ const allStates = () => ({
   ...legacyStates(),
 });
 const text = (it, en) => (doc?.documentElement?.lang === "en" ? en : it);
-const recoveryBroker = new HomeAssistantBroker({ timeout: 2500, cacheCurrentMs: 0, cacheHistoricalMs: 0 });
-recoveryBroker.statistics = async function exactStatistics(ids, start, end, period = "day") {
-  const statisticIds = [...new Set((ids || []).map((id) => clean(id)).filter(Boolean))];
-  if (!statisticIds.length) return {};
-  const startIso = new Date(start).toISOString();
-  const endIso = new Date(end).toISOString();
-  const result = await this.cachedRequest(
-    {
-      type: "recorder/statistics_during_period",
-      start_time: startIso,
-      end_time: endIso,
-      statistic_ids: statisticIds,
-      period,
-      units: { energy: "kWh" },
-    },
-    `recovery-statistics|${period}|${startIso}|${endIso}|${statisticIds.join(",")}`,
-    0,
-  );
-  return Object.fromEntries(statisticIds.map((id) => [id, result?.[id] || []]));
-};
+const recoveryBroker = new HomeAssistantBroker({
+  timeout: 3000,
+  cacheCurrentMs: 0,
+  cacheHistoricalMs: 0,
+});
 
 function installFastBridgeGuard() {
   const current = HomeAssistantBroker.prototype.connect;
@@ -226,132 +216,255 @@ function syncShutterState() {
   return true;
 }
 
-function energySection() {
-  return dashboardStore()?.getSection?.("energy") || {};
-}
-
-function energyOverrides() {
-  const fromStore = dashboardStore()?.getSection?.("entityOverrides");
-  if (fromStore && typeof fromStore === "object") return fromStore;
-  try {
-    return JSON.parse(root.localStorage?.getItem("cd_entity_overrides") || "{}") || {};
-  } catch (_error) {
-    return root.ENTITY_OVERRIDES || {};
-  }
-}
-
-function periodValues(values) {
-  const finite = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
-  return Object.freeze({
-    house: finite(values.get("house")),
-    solar: finite(values.get("solar")),
-    gridImport: finite(values.get("gridImport")),
-    gridExport: finite(values.get("gridExport")),
-    batteryCharged: finite(values.get("batteryCharged")),
-    batteryDischarged: finite(values.get("batteryDischarged")),
-  });
-}
-
-async function recoverEnergyBundle() {
-  await recoveryBroker.startStateFeed();
-  const now = new Date();
-  const period = { month: now.getMonth() + 1, year: now.getFullYear() };
-  const selected = new Date(period.year, period.month - 1, 1);
-  const energy = energySection();
-  const overrides = energyOverrides();
-  const resolver = (value) => value;
-  const load = async (kind, date) => {
-    const plans = sourcePlans(energy, kind, allStates(), overrides, resolver);
-    const values = await recoveryBroker.valuesForPlans(plans, date, allStates());
-    return periodValues(values);
+function energyConfiguration() {
+  const energy = dashboardStore()?.getSection?.("energy") || {};
+  const source = (group, periodKey, totalKey) =>
+    clean(energy[group]?.[periodKey] || energy[group]?.[totalKey]);
+  return {
+    day: {
+      house: source("house", "daily_energy", "total_energy"),
+      solar: source("solar", "daily_energy", "total_energy"),
+      gridImport: source("grid", "daily_import_energy", "total_import_energy"),
+      gridExport: source("grid", "daily_export_energy", "total_export_energy"),
+      batteryCharged: source("battery", "daily_charged_energy", "total_charged_energy"),
+      batteryDischarged: source("battery", "daily_discharged_energy", "total_discharged_energy"),
+    },
+    month: {
+      house: source("house", "monthly_energy", "total_energy"),
+      solar: source("solar", "monthly_energy", "total_energy"),
+      gridImport: source("grid", "monthly_import_energy", "total_import_energy"),
+      gridExport: source("grid", "monthly_export_energy", "total_export_energy"),
+      batteryCharged: source("battery", "monthly_charged_energy", "total_charged_energy"),
+      batteryDischarged: source("battery", "monthly_discharged_energy", "total_discharged_energy"),
+    },
+    year: {
+      house: source("house", "annual_energy", "total_energy"),
+      solar: source("solar", "annual_energy", "total_energy"),
+      gridImport: source("grid", "annual_import_energy", "total_import_energy"),
+      gridExport: source("grid", "annual_export_energy", "total_export_energy"),
+      batteryCharged: source("battery", "annual_charged_energy", "total_charged_energy"),
+      batteryDischarged: source("battery", "annual_discharged_energy", "total_discharged_energy"),
+    },
   };
-  const buildDevices = root.DashboardModernModules?.data?.canonicalReportDevices;
-  const devices = typeof buildDevices === "function"
-    ? buildDevices(
-        dashboardStore()?.getSection?.("appliances") || [],
-        dashboardStore()?.getSection?.("loads") || [],
-        allStates(),
-      )
-    : [
-        ...(dashboardStore()?.getSection?.("appliances") || []),
-        ...(dashboardStore()?.getSection?.("loads") || []),
-      ]
-        .filter((item) => item?.show_in_report !== false)
-        .map((item) => ({
-          ...item,
-          entity:
-            clean(item.total_energy_entity) ||
-            clean(item.report_entity) ||
-            clean(item.history_entity) ||
-            clean(item.energy_entity) ||
-            clean(item.monthly_energy_entity),
-        }))
-        .filter((item) => item.entity);
-  const ids = [...new Set(devices.map((item) => clean(item.entity)).filter(Boolean))];
-  const [day, month, year, deviceMonth, deviceYear] = await Promise.all([
-    load("day", now),
-    load("month", selected),
-    load("year", selected),
-    recoveryBroker.valuesForEntities(ids, "month", selected),
-    recoveryBroker.valuesForEntities(ids, "year", selected),
+}
+
+function canonicalDevices() {
+  const store = dashboardStore();
+  const build = root.DashboardModernModules?.data?.canonicalReportDevices;
+  if (typeof build === "function") {
+    return build(
+      store?.getSection?.("appliances") || [],
+      store?.getSection?.("loads") || [],
+      allStates(),
+    );
+  }
+  return [
+    ...(store?.getSection?.("appliances") || []),
+    ...(store?.getSection?.("loads") || []),
+  ]
+    .filter((item) => item?.show_in_report !== false)
+    .map((item) => ({
+      ...item,
+      entity:
+        clean(item.total_energy_entity) ||
+        clean(item.report_entity) ||
+        clean(item.history_entity) ||
+        clean(item.energy_entity) ||
+        clean(item.monthly_energy_entity),
+    }))
+    .filter((item) => clean(item.entity));
+}
+
+function periodRange(kind, now = new Date()) {
+  let start;
+  let baselineStart;
+  let period;
+  if (kind === "day") {
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    baselineStart = new Date(start);
+    baselineStart.setHours(baselineStart.getHours() - 2);
+    period = "hour";
+  } else if (kind === "year") {
+    start = new Date(now.getFullYear(), 0, 1);
+    baselineStart = new Date(start);
+    baselineStart.setMonth(baselineStart.getMonth() - 1);
+    period = "month";
+  } else {
+    start = new Date(now.getFullYear(), now.getMonth(), 1);
+    baselineStart = new Date(start);
+    baselineStart.setDate(baselineStart.getDate() - 2);
+    period = "day";
+  }
+  return { start, baselineStart, end: now, period };
+}
+
+async function requestStatistics(ids, start, end, period) {
+  const statisticIds = [...new Set((ids || []).map(clean).filter(Boolean))];
+  if (!statisticIds.length) return {};
+  const result = await recoveryBroker.request({
+    type: "recorder/statistics_during_period",
+    start_time: new Date(start).toISOString(),
+    end_time: new Date(end).toISOString(),
+    statistic_ids: statisticIds,
+    period,
+    units: { energy: "kWh" },
+  });
+  return result && typeof result === "object" ? result : {};
+}
+
+function lastStatisticValue(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  for (let index = list.length - 1; index >= 0; index -= 1) {
+    for (const key of ["sum", "state", "max"]) {
+      const value = numeric(list[index]?.[key]);
+      if (value != null) return value;
+    }
+  }
+  return null;
+}
+
+function periodConsumption(currentRows, baselineRows) {
+  const current = lastStatisticValue(currentRows);
+  const baseline = lastStatisticValue(baselineRows);
+  if (current == null) return 0;
+  if (baseline == null) return Math.max(0, current);
+  const delta = current - baseline;
+  return Math.max(0, delta >= 0 ? delta : current);
+}
+
+async function loadPeriod(kind, sources, now) {
+  const range = periodRange(kind, now);
+  const ids = Object.values(sources).filter(Boolean);
+  const [current, baseline] = await Promise.all([
+    requestStatistics(ids, range.start, range.end, range.period),
+    requestStatistics(ids, range.baselineStart, range.start, range.period),
   ]);
-  const readRate = (key) => {
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(sources).map(([key, entity]) => [
+        key,
+        entity ? periodConsumption(current[entity], baseline[entity]) : 0,
+      ]),
+    ),
+  );
+}
+
+async function loadDevicePeriod(kind, devices, now) {
+  const range = periodRange(kind, now);
+  const ids = [...new Set(devices.map((device) => clean(device.entity)).filter(Boolean))];
+  const [current, baseline] = await Promise.all([
+    requestStatistics(ids, range.start, range.end, range.period),
+    requestStatistics(ids, range.baselineStart, range.start, range.period),
+  ]);
+  return new Map(
+    ids.map((entity) => [
+      entity,
+      periodConsumption(current[entity], baseline[entity]),
+    ]),
+  );
+}
+
+function energyRates() {
+  const read = (key) => {
     const configured = root.cdCfg?.(key);
     const raw = configured !== undefined && configured !== null && configured !== ""
       ? configured
       : root.localStorage?.getItem(key);
-    const value = Number(raw);
-    return Number.isFinite(value) ? value : 0;
+    return numeric(raw) || 0;
   };
+  return Object.freeze({
+    importPrice: read("cd_costo_kwh"),
+    exportPrice: read("cd_prezzo_immissione"),
+  });
+}
+
+function exposeEnergyState(label, detail = "") {
+  if (!doc?.documentElement) return;
+  doc.documentElement.dataset.dmVehicleEnergy = [
+    label,
+    root.WebSocket?.name || "none",
+    state.energyFailures,
+    detail,
+  ].join("|");
+}
+
+async function recoverEnergyBundle() {
+  const now = new Date();
+  const configuration = energyConfiguration();
+  if (!configuration.month.house) return false;
+  const devices = canonicalDevices();
+  const [day, month, year, deviceMonth, deviceYear] = await Promise.all([
+    loadPeriod("day", configuration.day, now),
+    loadPeriod("month", configuration.month, now),
+    loadPeriod("year", configuration.year, now),
+    loadDevicePeriod("month", devices, now),
+    loadDevicePeriod("year", devices, now),
+  ]);
   const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
   if (!runtime) return false;
-  const generation = Math.max(Number(runtime.generation) || 0, Number(runtime.bundle?.generation) || 0) + 1;
+  const generation = Math.max(
+    Number(runtime.generation) || 0,
+    Number(runtime.bundle?.generation) || 0,
+  ) + 1;
   const bundle = Object.freeze({
     generation,
-    period: Object.freeze(period),
+    period: Object.freeze({ month: now.getMonth() + 1, year: now.getFullYear() }),
     day,
     month,
     year,
     deviceMonth: Object.freeze({ devices, values: deviceMonth }),
     deviceYear: Object.freeze({ devices, values: deviceYear }),
-    rates: Object.freeze({
-      importPrice: readRate("cd_costo_kwh"),
-      exportPrice: readRate("cd_prezzo_immissione"),
-    }),
+    rates: energyRates(),
   });
   runtime.generation = generation;
   runtime.bundle = bundle;
   runtime.selected = bundle.period;
   runtime.lastRefreshAt = Date.now();
+  root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
   applyAtomicEnergyBundle(bundle);
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:period-bundle", { detail: bundle }));
+  exposeEnergyState("done", `${day.house}/${month.house}/${year.house}`);
   return true;
 }
 
 async function verifyEnergyBundle() {
-  if (state.energyRunning || state.energyVerified || !dashboardStore()) return;
+  const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
+  const currentHouse = numeric(runtime?.bundle?.month?.house) || 0;
+  if (currentHouse !== 0) {
+    state.energyVerified = true;
+    exposeEnergyState("existing", String(currentHouse));
+    return;
+  }
+  if (state.energyRunning || !dashboardStore()) return;
   if (root.WebSocket?.name === "StubSocket") {
+    state.energyVerified = false;
     scheduleEnergyVerification();
     return;
   }
+  if (root.__DASHBOARDMODERN_STARTUP_COORDINATOR__?.running) {
+    state.energyVerified = false;
+    scheduleEnergyVerification();
+    return;
+  }
+
   state.energyRunning = true;
+  state.energyVerified = false;
+  exposeEnergyState("running", energyConfiguration().month.house);
   try {
     const applied = await recoverEnergyBundle();
-    const requests = root.__dmStatisticsRequests;
-    const usedStatistics = !Array.isArray(requests) || requests.length > 0;
-    if (applied && root.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle && usedStatistics) {
-      state.energyVerified = true;
-    }
-  } catch (_error) {
-    recoveryBroker.reset?.();
+    state.energyVerified = Boolean(applied);
+  } catch (error) {
+    state.energyFailures += 1;
+    exposeEnergyState("error", clean(error?.message || error));
+    recoveryBroker.reset?.(error);
   } finally {
     state.energyRunning = false;
-    if (!state.energyVerified) scheduleEnergyVerification();
+    if (!state.energyVerified && state.energyFailures < 8) scheduleEnergyVerification();
   }
 }
 
 function scheduleEnergyVerification(delay = 80) {
-  if (state.energyTimer || state.energyVerified) return;
+  root.clearTimeout?.(state.energyTimer);
   state.energyTimer = root.setTimeout?.(() => {
     state.energyTimer = 0;
     verifyEnergyBundle();
@@ -402,5 +515,6 @@ function install() {
 state.apply = applyVehicleAsset;
 state.resolve = resolveVehicleAsset;
 state.scheduleContracts = scheduleContracts;
+state.verifyEnergy = verifyEnergyBundle;
 if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", install, { once: true });
 else install();
