@@ -4,7 +4,7 @@ import test from "node:test";
 
 const manifestUrl = new URL("../../manifest.json", import.meta.url);
 
-test("the consolidated public release is version 0.15.0", async () => {
+test("the real Home Assistant hotfix release is version 0.15.1", async () => {
   const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
-  assert.equal(manifest.version, "0.15.0");
+  assert.equal(manifest.version, "0.15.1");
 });
