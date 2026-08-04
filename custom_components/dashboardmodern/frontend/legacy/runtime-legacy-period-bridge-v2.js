@@ -13,19 +13,38 @@
     "dm.energy_batteria_caricata_mese": "batteryCharged",
     "dm.energy_batteria_usata_mese": "batteryDischarged",
   });
+  const FLOW_IDS = Object.freeze([
+    "v-solar-month",
+    "v-home-month",
+    "v-grid-month",
+    "v-battery-month",
+  ]);
   const state = {
     installed: true,
     version: "0.15.0",
     attempts: 0,
     ownerInstalled: false,
+    temperatureOwner: false,
+    alertOwner: false,
+    dispatchOwner: false,
     values: Object.create(null),
     pending: Object.create(null),
   };
 
+  const clean = (value) => String(value ?? "").trim();
   const finite = (value) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
   };
+  const readJson = (key, fallback) => {
+    try {
+      return JSON.parse(root.localStorage?.getItem(key) || "") ?? fallback;
+    } catch (_error) {
+      return fallback;
+    }
+  };
+  const writeJson = (key, value) =>
+    root.localStorage?.setItem(key, JSON.stringify(value));
 
   function registry() {
     try {
@@ -134,24 +153,156 @@
     });
   }
 
+  function installTemperatureOwner() {
+    const store = root.DashboardModernModules?.store;
+    const current = store?.updateItem;
+    if (typeof current !== "function") return false;
+    if (current.__dmFinalTemperatureOwner0150) {
+      state.temperatureOwner = true;
+      return true;
+    }
+    async function updateItemFinal0150(section, id, patch) {
+      const validTemperature =
+        section === "rooms" &&
+        patch &&
+        Object.prototype.hasOwnProperty.call(patch, "temp") &&
+        clean(patch.temp).includes(".");
+      if (!validTemperature) return current.call(this, section, id, patch);
+      const sync = store.syncAdapter;
+      store.syncAdapter = async () => {};
+      try {
+        return await current.call(this, section, id, patch);
+      } finally {
+        store.syncAdapter = sync;
+      }
+    }
+    updateItemFinal0150.__dmFinalTemperatureOwner0150 = true;
+    updateItemFinal0150.__dmPrevious = current;
+    store.updateItem = updateItemFinal0150;
+    state.temperatureOwner = true;
+    return true;
+  }
+
+  function saveAlertForm() {
+    const group = clean(root.document?.getElementById("ed-avv-grp")?.value);
+    const entity = clean(root.document?.getElementById("ed-avv-ent")?.value);
+    const name = clean(root.document?.getElementById("ed-avv-name")?.value);
+    if (!group || !entity.includes(".")) return false;
+    const groups = readJson("cd_gruppi_extra", {});
+    const names = readJson("cd_avvisi_names_extra", {});
+    Object.keys(groups).forEach((key) => {
+      if (Array.isArray(groups[key])) groups[key] = groups[key].filter((id) => id !== entity);
+    });
+    groups[group] ||= [];
+    if (!groups[group].includes(entity)) groups[group].push(entity);
+    if (name) names[entity] = name;
+    else delete names[entity];
+    writeJson("cd_gruppi_extra", groups);
+    writeJson("cd_avvisi_names_extra", names);
+    root.cdMarkDirty?.();
+    root.cdSyncPush?.();
+    root.editorSwitch?.("avvisi");
+    return true;
+  }
+
+  function installAlertOwner() {
+    const current = root.edAddAvviso;
+    if (typeof current !== "function") return false;
+    if (current.__dmFinalAlertOwner0150) {
+      state.alertOwner = true;
+      return true;
+    }
+    function addAlertFinal0150() {
+      if (saveAlertForm()) return true;
+      return current.apply(this, arguments);
+    }
+    addAlertFinal0150.__dmFinalAlertOwner0150 = true;
+    addAlertFinal0150.__dmPrevious = current;
+    root.edAddAvviso = addAlertFinal0150;
+    state.alertOwner = true;
+    return true;
+  }
+
+  function captureFlowText() {
+    return Object.fromEntries(
+      FLOW_IDS.map((id) => [id, root.document?.getElementById(id)?.textContent ?? null]),
+    );
+  }
+
+  function restoreFlowText(snapshot) {
+    Object.entries(snapshot || {}).forEach(([id, value]) => {
+      const node = root.document?.getElementById(id);
+      if (node && value != null && node.textContent !== value) node.textContent = value;
+    });
+  }
+
+  function installDispatchOwner() {
+    const current = root.dispatchEvent;
+    if (typeof current !== "function") return false;
+    if (current.__dmFinalLegacyDispatch0150) {
+      state.dispatchOwner = true;
+      return true;
+    }
+    function dispatchFinal0150(event) {
+      const energyEvent = event?.type === "dashboardmodern:energy-periods-0154";
+      const snapshot = energyEvent ? captureFlowText() : null;
+      const result = current.call(this, event);
+      if (energyEvent) {
+        root.queueMicrotask?.(() => restoreFlowText(snapshot));
+        [0, 20, 60, 140, 260, 300, 340, 500, 700].forEach((delay) =>
+          root.setTimeout?.(() => restoreFlowText(snapshot), delay),
+        );
+      }
+      return result;
+    }
+    dispatchFinal0150.__dmFinalLegacyDispatch0150 = true;
+    dispatchFinal0150.__dmPrevious = current;
+    root.dispatchEvent = dispatchFinal0150;
+    state.dispatchOwner = true;
+    return true;
+  }
+
+  function normalizeHomePrecision() {
+    const node = root.document?.getElementById("v-home-month");
+    if (!node) return false;
+    const value = node.textContent || "";
+    const normalized = value
+      .replace(/(\d+\.\d*?[1-9])0+(?=\s*kWh)/g, "$1")
+      .replace(/(\d+)\.0+(?=\s*kWh)/g, "$1");
+    if (normalized !== value) node.textContent = normalized;
+    return true;
+  }
+
+  function installFinalOwners() {
+    installTemperatureOwner();
+    installAlertOwner();
+    installDispatchOwner();
+    normalizeHomePrecision();
+  }
+
   function project() {
     if (!installOwner()) return false;
     projectBundle();
     projectDerivedStates();
+    installFinalOwners();
     return true;
   }
   api.project = project;
 
   function scheduleProject() {
     [0, 30, 80, 160, 320, 650, 1100, 1800].forEach((delay) =>
-      root.setTimeout?.(project, delay),
+      root.setTimeout?.(() => {
+        project();
+        normalizeHomePrecision();
+      }, delay),
     );
   }
 
   function settle() {
     state.attempts += 1;
     const ready = project();
-    if (!ready && state.attempts < 300) root.requestAnimationFrame?.(settle);
+    const finalOwners = state.temperatureOwner && state.alertOwner && state.dispatchOwner;
+    if ((!ready || !finalOwners) && state.attempts < 300) root.requestAnimationFrame?.(settle);
     else scheduleProject();
   }
 
@@ -162,6 +313,7 @@
   });
   root.addEventListener?.("dashboardmodern:energy-statistics", scheduleProject);
   root.addEventListener?.("pageshow", scheduleProject);
+  root.addEventListener?.("click", () => root.queueMicrotask?.(installFinalOwners), true);
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:legacy-period-bridge-ready"));
   settle();
 })(globalThis);
