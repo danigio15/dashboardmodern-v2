@@ -403,6 +403,71 @@
     return true;
   }
 
+  function installReportLayoutStyle() {
+    if (root.document?.getElementById("dm-final-report-layout-0150")) return;
+    const style = root.document?.createElement("style");
+    if (!style) return;
+    style.id = "dm-final-report-layout-0150";
+    style.textContent = `
+      #editor-modal [data-energy-panel="report"] .dm-report-row[data-real-report-layout="true"]{
+        display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;
+        grid-template-areas:"toggle actions" "fields fields"!important;
+        gap:12px!important;align-items:center!important
+      }
+      #editor-modal [data-energy-panel="report"] .dm-report-row[data-real-report-layout="true"]>.dm-report-toggle{grid-area:toggle!important}
+      #editor-modal [data-energy-panel="report"] .dm-report-row[data-real-report-layout="true"]>.dm-report-fields{
+        grid-area:fields!important;display:grid!important;
+        grid-template-columns:minmax(150px,.75fr) minmax(130px,.45fr) minmax(240px,1.3fr)!important;
+        gap:10px!important;align-items:end!important;width:100%!important;min-width:0!important
+      }
+      #editor-modal [data-energy-panel="report"] .dm-report-row[data-real-report-layout="true"]>.dm-report-actions{grid-area:actions!important}
+      #editor-modal [data-energy-panel="report"] .dm-report-fields>*{min-width:0!important;margin:0!important}
+      #editor-modal [data-energy-panel="report"] .dm-report-fields>[data-report-label],
+      #editor-modal [data-energy-panel="report"] .dm-report-fields>[data-entity-field],
+      #editor-modal [data-energy-panel="report"] .dm-report-fields>[data-icon-field]{width:100%!important}
+      @media(max-width:700px){
+        #editor-modal [data-energy-panel="report"] .dm-report-row[data-real-report-layout="true"]>.dm-report-fields{
+          grid-template-columns:1fr!important
+        }
+      }
+    `;
+    root.document.head.append(style);
+  }
+
+  function normalizeReportRows() {
+    installReportLayoutStyle();
+    root.document?.querySelectorAll('[data-energy-panel="report"] .dm-report-row').forEach((row) => {
+      row.dataset.realReportLayout = "true";
+      let toggle = row.querySelector(":scope > .dm-report-toggle");
+      if (!toggle) {
+        toggle = [...row.children].find((child) => child.querySelector?.("[data-report-toggle]"));
+        toggle?.classList.add("dm-report-toggle");
+      }
+      let actions = row.querySelector(":scope > .dm-report-actions");
+      if (!actions) {
+        actions = [...row.children].find((child) =>
+          child.querySelector?.("[data-report-up],[data-report-down],[data-report-delete]"),
+        );
+        actions?.classList.add("dm-report-actions");
+      }
+      let fields = row.querySelector(":scope > .dm-report-fields");
+      if (!fields) {
+        fields = root.document.createElement("div");
+        fields.className = "dm-report-fields";
+        [...row.children]
+          .filter(
+            (child) =>
+              child !== toggle &&
+              child !== actions &&
+              !child.matches?.('input[type="hidden"]'),
+          )
+          .forEach((child) => fields.append(child));
+        if (actions) row.insertBefore(fields, actions);
+        else row.append(fields);
+      }
+    });
+  }
+
   function installFinalOwners() {
     installTemperatureOwner();
     installTemperatureRenderOwner("buildTempCards");
@@ -412,6 +477,7 @@
     installDispatchOwner();
     normalizeTemperatureIcons();
     normalizeHomePrecision();
+    normalizeReportRows();
   }
 
   function project() {
@@ -429,6 +495,7 @@
         project();
         normalizeTemperatureIcons();
         normalizeHomePrecision();
+        normalizeReportRows();
       }, delay),
     );
   }
