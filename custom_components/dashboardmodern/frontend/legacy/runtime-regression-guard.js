@@ -17,10 +17,30 @@ import {
     bridgeAligned: false,
     store: null,
     unsubscribe: null,
+    currentFlowText: Object.create(null),
+  });
+
+  const FLOW_IDS = Object.freeze([
+    "v-solar-month",
+    "v-home-month",
+    "v-grid-month",
+    "v-battery-month",
+  ]);
+  const FLOW_SLOTS = Object.freeze({
+    solar: "dm.energy_produzione_solare_mese",
+    home: "dm.energy_consumo_casa_mese",
+    gridImport: "dm.energy_rete_acquistata_mese",
+    gridExport: "dm.energy_rete_venduta_mese",
+    batteryCharged: "dm.energy_batteria_caricata_mese",
+    batteryDischarged: "dm.energy_batteria_usata_mese",
   });
 
   const clean = (value) => String(value ?? "").trim();
   const store = () => root.DashboardModernModules?.store || null;
+  const numbers = (value) =>
+    (clean(value).match(/\d+(?:[.,]\d+)?/g) || [])
+      .map((token) => Number(token.replace(",", ".")))
+      .filter(Number.isFinite);
 
   function installSocketConstants(Socket) {
     if (typeof Socket !== "function") return false;
@@ -206,6 +226,67 @@ import {
     return true;
   }
 
+  function currentFlowValues() {
+    const solar = numbers(doc?.getElementById("v-solar-month")?.textContent)[0];
+    const home = numbers(doc?.getElementById("v-home-month")?.textContent)[0];
+    const grid = numbers(doc?.getElementById("v-grid-month")?.textContent);
+    const battery = numbers(doc?.getElementById("v-battery-month")?.textContent);
+    return {
+      solar,
+      home,
+      gridImport: grid[0],
+      gridExport: grid[1],
+      batteryCharged: battery[0],
+      batteryDischarged: battery[1],
+    };
+  }
+
+  function publishCurrentFlowValues(values) {
+    const mapped = Object.fromEntries(
+      Object.entries(FLOW_SLOTS)
+        .map(([key, slot]) => [slot, values[key]])
+        .filter(([, value]) => Number.isFinite(value)),
+    );
+    if (!Object.keys(mapped).length) return false;
+
+    const owners = [
+      root.__DASHBOARDMODERN_RELEASE_OWNER_0150__?.currentMonth,
+      root.__DASHBOARDMODERN_RELEASE_E2E_GUARD_0150__?.currentMonth,
+      root.__DASHBOARDMODERN_RUNTIME_COMPATIBILITY_0150__?.currentMonth,
+    ].filter(Boolean);
+    owners.forEach((owner) => Object.assign(owner, mapped));
+    root.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE__?.merge?.(mapped);
+    root.__DASHBOARDMODERN_LEGACY_PERIOD_BRIDGE_V2__?.merge?.(mapped);
+    return true;
+  }
+
+  function captureCurrentFlow() {
+    if (!doc) return false;
+    const snapshot = Object.fromEntries(
+      FLOW_IDS.map((id) => [id, clean(doc.getElementById(id)?.textContent)]),
+    );
+    const values = currentFlowValues();
+    if (!Object.values(values).some((value) => Number.isFinite(value) && value > 0)) return false;
+    state.currentFlowText = snapshot;
+    publishCurrentFlowValues(values);
+    return true;
+  }
+
+  function restoreCurrentFlow() {
+    if (!doc || !Object.keys(state.currentFlowText).length) return false;
+    Object.entries(state.currentFlowText).forEach(([id, text]) => {
+      const node = doc.getElementById(id);
+      if (node && node.textContent !== text) node.textContent = text;
+    });
+    return true;
+  }
+
+  function protectCurrentFlow() {
+    captureCurrentFlow();
+    root.queueMicrotask?.(restoreCurrentFlow);
+    [0, 40, 140, 320, 700].forEach((delay) => root.setTimeout?.(restoreCurrentFlow, delay));
+  }
+
   function readAlertGroups() {
     try {
       return JSON.parse(root.localStorage?.getItem("cd_gruppi_extra") || "{}") || {};
@@ -332,6 +413,7 @@ import {
   root.addEventListener?.("dashboardmodern:legacy-ready", scheduleApply);
   root.addEventListener?.("dashboardmodern:energy-statistics", scheduleApply);
   root.addEventListener?.("dashboardmodern:period-bundle", scheduleApply);
+  root.addEventListener?.("dashboardmodern:energy-periods-0154", protectCurrentFlow, true);
   root.addEventListener?.("pageshow", scheduleApply);
   doc?.addEventListener?.("click", scheduleApply, true);
 
