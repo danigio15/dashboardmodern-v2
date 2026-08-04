@@ -50,37 +50,35 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.evaluate(() => {
       const rooms = DashboardModernModules.store
         .getSection("rooms")
-        .filter((item) => item.temp || item.hum);
+        .filter((item) => item.temp);
       if (!rooms.length) throw new Error("No configured temperature rooms in the real-HA fixture");
       rooms.forEach((room, index) => {
-        if (room.temp) {
-          const current = STATES[room.temp] || {
-            entity_id: room.temp,
-            state: "22.0",
-            attributes: { unit_of_measurement: "°C", friendly_name: room.name },
-          };
-          STATES[room.temp] = {
-            ...structuredClone(current),
-            state: index === 0 ? "35.4" : "22.0",
-            attributes: {
-              ...(current.attributes || {}),
-              unit_of_measurement: current.attributes?.unit_of_measurement || "°C",
-            },
-          };
-          _RAW_STATES[room.temp] = structuredClone(STATES[room.temp]);
-        }
+        const current = STATES[room.temp] || {
+          entity_id: room.temp,
+          state: "22.0",
+          attributes: { unit_of_measurement: "°C", friendly_name: room.name },
+        };
+        STATES[room.temp] = {
+          ...structuredClone(current),
+          state: index === 0 ? "35.4" : "22.0",
+          attributes: {
+            ...(current.attributes || {}),
+            unit_of_measurement: current.attributes?.unit_of_measurement || "°C",
+          },
+        };
+        _RAW_STATES[room.temp] = structuredClone(STATES[room.temp]);
         if (room.hum) {
-          const current = STATES[room.hum] || {
+          const humidity = STATES[room.hum] || {
             entity_id: room.hum,
             state: "49",
             attributes: { unit_of_measurement: "%", friendly_name: room.name },
           };
           STATES[room.hum] = {
-            ...structuredClone(current),
+            ...structuredClone(humidity),
             state: "49",
             attributes: {
-              ...(current.attributes || {}),
-              unit_of_measurement: current.attributes?.unit_of_measurement || "%",
+              ...(humidity.attributes || {}),
+              unit_of_measurement: humidity.attributes?.unit_of_measurement || "%",
             },
           };
           _RAW_STATES[room.hum] = structuredClone(STATES[room.hum]);
@@ -89,8 +87,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       buildTempCards?.();
       renderTemperature?.();
       window.__DASHBOARDMODERN_REAL_HA_HOTFIX_0151__?.apply?.();
+      window.__DASHBOARDMODERN_REAL_HA_TEMPERATURE_STABILITY_0151__?.apply?.();
     });
-    await clickBottomTab(page, "temperature", testInfo);
+    await clickBottomTab(page, "temp", testInfo);
     const temperatureCard = page.locator("#temp-grid .temp-card").first();
     await expect(temperatureCard).toContainText("35.4");
     await expect(temperatureCard).not.toContainText("🔥");
