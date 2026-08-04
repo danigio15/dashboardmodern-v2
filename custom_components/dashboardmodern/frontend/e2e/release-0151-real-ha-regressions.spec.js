@@ -6,6 +6,9 @@ async function openEditor(page, tab) {
   await page.evaluate((targetTab) => {
     if (!document.getElementById("editor-modal")?.classList.contains("show")) apriConfigEntita();
     editorSwitch(targetTab);
+    if (targetTab === "avvisi") {
+      window.__DASHBOARDMODERN_ALERT_EDIT_CONTRACT_0151__?.apply?.();
+    }
   }, tab);
   await expect(page.locator("#editor-modal")).toBeVisible();
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
