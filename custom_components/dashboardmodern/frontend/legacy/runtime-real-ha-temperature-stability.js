@@ -10,7 +10,6 @@
     installed: true,
     wrapped: new WeakSet(),
     scheduled: false,
-    deleting: new Set(),
   });
   const clean = (value) => String(value ?? "").trim();
   const store = () => root.DashboardModernModules?.store || null;
@@ -76,13 +75,13 @@
     const values = card.querySelector(".temp-values,.temp-card-body");
     if (!name || !values || !card.isConnected) return;
 
-    values.style.removeProperty("margin-top");
+    values.style.setProperty("margin-top", "8px", "important");
     const nameBox = name.getBoundingClientRect();
     const valuesBox = values.getBoundingClientRect();
     if (!nameBox.height || !valuesBox.height) return;
     const overlap = nameBox.bottom - valuesBox.top;
     if (overlap > 1) {
-      values.style.setProperty("margin-top", `${Math.ceil(overlap + 4)}px`, "important");
+      values.style.setProperty("margin-top", `${Math.ceil(overlap + 10)}px`, "important");
     }
   }
 
@@ -158,29 +157,7 @@
     });
   }
 
-  async function deleteTemperature(button) {
-    const roomId = clean(button.closest("[data-room-id]")?.dataset?.roomId);
-    const dashboardStore = store();
-    if (!roomId || !dashboardStore?.updateItem || state.deleting.has(roomId)) return;
-    state.deleting.add(roomId);
-    try {
-      await dashboardStore.updateItem("rooms", roomId, { temp: "", hum: "" });
-      schedule();
-    } catch (error) {
-      root.console?.warn?.("[DashboardModern 0.15.1] Temperature delete", error);
-    } finally {
-      state.deleting.delete(roomId);
-    }
-  }
-
   function handleClick(event) {
-    const remove = event.target?.closest?.("[data-temperature-delete]");
-    if (remove) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      void deleteTemperature(remove);
-      return;
-    }
     if (event.target?.closest?.('[data-page="temperature"],[data-tab="temperature"],[data-tab="temp"]')) {
       schedule();
       root.setTimeout?.(applyTemperatureLive, 40);
@@ -189,7 +166,6 @@
 
   state.apply = applyTemperatureLive;
   state.installHooks = installHooks;
-  state.deleteTemperature = deleteTemperature;
   root.addEventListener?.("dashboardmodern:legacy-ready", schedule);
   root.addEventListener?.("dashboardmodern:runtime-ready", schedule);
   root.addEventListener?.("dashboardmodern:state-changed", schedule);
