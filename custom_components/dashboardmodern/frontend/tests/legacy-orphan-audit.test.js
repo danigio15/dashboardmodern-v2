@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readdir, readFile } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
@@ -19,6 +19,15 @@ async function filesBelow(directory) {
   return output;
 }
 
+async function exists(file) {
+  try {
+    await access(file);
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
 async function productionEntries() {
   const entries = new Set([path.join(legacyRoot, "modules-entry.js")]);
   for (const name of ["dashboard.html", "dashboard-en.html"]) {
@@ -27,7 +36,7 @@ async function productionEntries() {
       const source = match[1].split(/[?#]/, 1)[0];
       if (!source || /^(?:https?:|data:|\/)/.test(source)) continue;
       const absolute = path.resolve(legacyRoot, source);
-      if (absolute.endsWith(".js")) entries.add(absolute);
+      if (absolute.endsWith(".js") && (await exists(absolute))) entries.add(absolute);
     }
   }
   return entries;
