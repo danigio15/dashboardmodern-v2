@@ -28,25 +28,17 @@ async function productionGraph(entry) {
   return seen;
 }
 
-test("the production graph contains one consolidated runtime and bounded real-HA owners", async () => {
+test("production has one runtime owner and no numbered patch cascade", async () => {
   const graph = await productionGraph("legacy/modules-entry.js");
   const relative = [...graph.keys()].map((file) =>
     path.relative(frontendRoot, file).replaceAll("\\", "/"),
   );
-  const releaseFiles = relative.filter((file) => /legacy\/release-\d+/.test(file));
   const combined = [...graph.values()].join("\n");
 
-  assert.deepEqual(releaseFiles, ["legacy/release-0152-fixes.js"]);
   assert.equal(relative.filter((file) => file.endsWith("runtime-consolidated.js")).length, 1);
-  assert.equal(relative.filter((file) => file.endsWith("runtime-compatibility.js")).length, 1);
-  assert.equal(relative.filter((file) => file.endsWith("runtime-real-ha-hotfix-v2.js")).length, 1);
-  assert.equal(relative.filter((file) => file.endsWith("runtime-real-ha-theme-owner.js")).length, 1);
-  assert.equal(
-    relative.filter((file) => file.endsWith("runtime-real-ha-temperature-stability.js")).length,
-    1,
-  );
-  assert.equal(relative.filter((file) => file.endsWith("runtime-real-ha-hotfix.js")).length, 0);
-  assert.ok(relative.length <= 23, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.deepEqual(relative.filter((file) => /legacy\/release-\d+/.test(file)), []);
+  assert.deepEqual(relative.filter((file) => /runtime-real-ha|runtime-residual|runtime-release-owner|runtime-regression-guard/.test(file)), []);
+  assert.ok(relative.length <= 18, `production graph unexpectedly grew to ${relative.length} modules`);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
   assert.doesNotMatch(combined, /new\s+MutationObserver\s*\(/);
 });
