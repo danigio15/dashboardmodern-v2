@@ -43,16 +43,44 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     }
 
     await page.evaluate(() => {
-      const room = DashboardModernModules.store.getSection("rooms").find((item) => item.temp);
-      const entity = room?.temp;
-      if (!entity) throw new Error("No configured temperature entity in the real-HA fixture");
-      const current = STATES[entity] || {
-        entity_id: entity,
-        state: "0",
-        attributes: { unit_of_measurement: "°C", friendly_name: room.name },
-      };
-      STATES[entity] = { ...structuredClone(current), state: "35.4" };
-      _RAW_STATES[entity] = structuredClone(STATES[entity]);
+      const rooms = DashboardModernModules.store
+        .getSection("rooms")
+        .filter((item) => item.temp || item.hum);
+      if (!rooms.length) throw new Error("No configured temperature rooms in the real-HA fixture");
+      rooms.forEach((room, index) => {
+        if (room.temp) {
+          const current = STATES[room.temp] || {
+            entity_id: room.temp,
+            state: "22.0",
+            attributes: { unit_of_measurement: "°C", friendly_name: room.name },
+          };
+          STATES[room.temp] = {
+            ...structuredClone(current),
+            state: index === 0 ? "35.4" : "22.0",
+            attributes: {
+              ...(current.attributes || {}),
+              unit_of_measurement: current.attributes?.unit_of_measurement || "°C",
+            },
+          };
+          _RAW_STATES[room.temp] = structuredClone(STATES[room.temp]);
+        }
+        if (room.hum) {
+          const current = STATES[room.hum] || {
+            entity_id: room.hum,
+            state: "49",
+            attributes: { unit_of_measurement: "%", friendly_name: room.name },
+          };
+          STATES[room.hum] = {
+            ...structuredClone(current),
+            state: "49",
+            attributes: {
+              ...(current.attributes || {}),
+              unit_of_measurement: current.attributes?.unit_of_measurement || "%",
+            },
+          };
+          _RAW_STATES[room.hum] = structuredClone(STATES[room.hum]);
+        }
+      });
       buildTempCards?.();
       renderTemperature?.();
       window.__DASHBOARDMODERN_REAL_HA_HOTFIX_0151__?.apply?.();
