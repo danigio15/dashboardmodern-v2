@@ -3,9 +3,9 @@ import { bootConsolidatedDashboard } from "./helpers/consolidated-runtime.js";
 import { clickBottomTab } from "./helpers/navigation.js";
 
 async function openEditor(page, tab) {
-  await page.evaluate(() => {
+  await page.evaluate((targetTab) => {
     if (!document.getElementById("editor-modal")?.classList.contains("show")) apriConfigEntita();
-    editorSwitch(tab);
+    editorSwitch(targetTab);
   }, tab);
   await expect(page.locator("#editor-modal")).toBeVisible();
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
