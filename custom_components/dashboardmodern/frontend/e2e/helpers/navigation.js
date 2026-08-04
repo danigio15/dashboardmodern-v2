@@ -54,8 +54,9 @@ export async function clickBottomTab(page, tabName, testInfo) {
     return;
   }
 
+  const runtimeTab = tabName === "temperature" ? "temp" : tabName;
   const nav = page.locator("nav.bottom-nav-bar");
-  const tab = page.locator(`.tab[data-tab="${tabName}"]`);
+  const tab = page.locator(`.tab[data-tab="${runtimeTab}"]`);
   const touchProject = testInfo.project.name === "mobile" || testInfo.project.name === "webkit-ipad";
 
   if (touchProject) {
@@ -73,7 +74,7 @@ export async function clickBottomTab(page, tabName, testInfo) {
   await waitForStableBox(tab);
   await tab.evaluate((node) => node.click());
   await expect(tab).toHaveClass(/active/);
-  await expect(page.locator(`#page-${tabName}`)).toHaveClass(/active/);
+  await expect(page.locator(`#page-${runtimeTab}`)).toHaveClass(/active/);
 }
 
 export async function clickStableButton(page, locator, testInfo) {
