@@ -21,7 +21,10 @@
       lexicalStates = root.eval?.('typeof STATES !== "undefined" ? STATES : {}') || {};
       lexicalRaw = root.eval?.('typeof _RAW_STATES !== "undefined" ? _RAW_STATES : {}') || {};
     } catch (_error) {}
-    return { ...lexicalRaw, ...lexicalStates, ...(root._RAW_STATES || {}), ...(root.STATES || {}) };
+    // The lexical registries are the live source used by the vendored dashboard.
+    // Window properties may be older snapshots in Home Assistant/WebKit, so they
+    // must be merged first and never overwrite the latest lexical state.
+    return { ...(root._RAW_STATES || {}), ...(root.STATES || {}), ...lexicalRaw, ...lexicalStates };
   }
 
   function valueFor(entity) {
