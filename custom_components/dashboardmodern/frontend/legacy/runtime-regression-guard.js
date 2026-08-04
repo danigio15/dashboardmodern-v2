@@ -206,9 +206,105 @@ import {
     return true;
   }
 
+  function readAlertGroups() {
+    try {
+      return JSON.parse(root.localStorage?.getItem("cd_gruppi_extra") || "{}") || {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  function alertEntityFromRow(row) {
+    const text = row.querySelector(".ed-row-old.mono")?.textContent || row.textContent || "";
+    return text.match(/\b[a-z_][a-z0-9_]*\.[a-z0-9_]+\b/i)?.[0] || "";
+  }
+
+  function alertGroupForEntity(entity, row) {
+    const saved = Object.entries(readAlertGroups()).find(
+      ([, ids]) => Array.isArray(ids) && ids.includes(entity),
+    );
+    if (saved) return saved[0];
+    const text = `${row.textContent || ""} ${
+      row.closest("details")?.querySelector("summary")?.textContent || ""
+    }`.toLowerCase();
+    if (/apert|contact|door|window/.test(text)) return "win";
+    if (/batter/.test(text)) return "batt";
+    if (/luc|light/.test(text)) return "luci";
+    if (/clima|climate/.test(text)) return "clima";
+    if (/riscald|heating/.test(text)) return "risc";
+    return "";
+  }
+
+  function bindAlertEditButton(button, group, entity) {
+    button.removeAttribute("onclick");
+    button.type = "button";
+    button.classList.add("ed-del", "dm-edit-button");
+    button.dataset.standardAlertEdit = "";
+    button.dataset.realAlertEdit = "";
+    button.dataset.standardAlertGroup = group;
+    button.dataset.standardAlertEntity = entity;
+    button.dataset.alertGroup = group;
+    button.dataset.alertEntity = entity;
+    button.textContent = "✏️";
+    button.title = doc.documentElement.lang === "en" ? "Edit" : "Modifica";
+    button.setAttribute("aria-label", button.title);
+    if (button.dataset.alertEditMounted === "true") return;
+    button.dataset.alertEditMounted = "true";
+    button.addEventListener("click", () => {
+      const edit = root.dmRealEditAlert || root.edEditAvvisoStandard;
+      edit?.(button.dataset.alertGroup, button.dataset.alertEntity);
+    });
+  }
+
+  function installAlertEditButtons() {
+    if (!doc) return false;
+    doc.querySelectorAll("#editor-modal .ed-row").forEach((row) => {
+      const entity = alertEntityFromRow(row);
+      const group = entity && alertGroupForEntity(entity, row);
+      if (!entity || !group) return;
+
+      let edit = row.querySelector("[data-standard-alert-edit], [data-real-alert-edit]");
+      if (!edit) {
+        const remove = [...row.querySelectorAll(".ed-del")].find((button) =>
+          /edDelAvviso/.test(button.getAttribute("onclick") || "") ||
+          button.textContent.includes("🗑️"),
+        );
+        if (!remove) return;
+        edit = doc.createElement("button");
+        remove.before(edit);
+      }
+      bindAlertEditButton(edit, group, entity);
+      row
+        .querySelectorAll("[data-standard-alert-edit], [data-real-alert-edit]")
+        .forEach((candidate) => {
+          if (candidate !== edit) candidate.remove();
+        });
+    });
+    return true;
+  }
+
+  function installEditorFacade() {
+    const current = root.editorSwitch;
+    if (typeof current !== "function" || current.__dmRuntime0150Review) return false;
+
+    function patchedEditorSwitch() {
+      const result = current.apply(this, arguments);
+      scheduleApply();
+      return result;
+    }
+
+    Object.assign(patchedEditorSwitch, current);
+    patchedEditorSwitch.__dmRuntime0150Review = true;
+    patchedEditorSwitch.__dmOriginal = current;
+    root.editorSwitch = patchedEditorSwitch;
+    return true;
+  }
+
   function apply() {
     alignBridge();
     normalizeApplianceArtwork();
+    installAlertEditButtons();
+    installEditorFacade();
     bindStore();
   }
 
@@ -216,6 +312,7 @@ import {
     root.queueMicrotask?.(apply);
     root.setTimeout?.(apply, 0);
     root.setTimeout?.(normalizeApplianceArtwork, 40);
+    root.setTimeout?.(installAlertEditButtons, 40);
   }
 
   function bindStore() {
