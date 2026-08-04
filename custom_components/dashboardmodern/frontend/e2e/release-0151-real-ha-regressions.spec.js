@@ -19,6 +19,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await bootConsolidatedDashboard(page, variant, testInfo);
 
     await page.evaluate(() => {
+      document.documentElement.style.setProperty("--dm-bg", "#f0f4f8");
       document.documentElement.style.setProperty("--bg-sculpted", "#f0f4f8");
       document.documentElement.style.setProperty("--card-bg", "#071728");
       document.documentElement.style.setProperty("--ha-card-background", "#071728");
@@ -41,9 +42,16 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     }
 
     await page.evaluate(() => {
-      const state = STATES["sensor.terrace_temperature"];
-      state.state = "35.4";
-      _RAW_STATES["sensor.terrace_temperature"] = structuredClone(state);
+      const room = DashboardModernModules.store.getSection("rooms").find((item) => item.temp);
+      const entity = room?.temp;
+      if (!entity) throw new Error("No configured temperature entity in the real-HA fixture");
+      const current = STATES[entity] || {
+        entity_id: entity,
+        state: "0",
+        attributes: { unit_of_measurement: "°C", friendly_name: room.name },
+      };
+      STATES[entity] = { ...structuredClone(current), state: "35.4" };
+      _RAW_STATES[entity] = structuredClone(STATES[entity]);
       buildTempCards?.();
       renderTemperature?.();
       window.__DASHBOARDMODERN_REAL_HA_HOTFIX_0151__?.apply?.();
@@ -86,9 +94,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#dm-energy-house-total_energy")).toHaveValue("sensor.house_total");
     await page.locator("[data-energy-save]").click();
     await expect
-      .poll(() =>
-        page.evaluate(() => DashboardModernModules.store.getSection("energy").house),
-      )
+      .poll(() => page.evaluate(() => DashboardModernModules.store.getSection("energy").house))
       .toMatchObject({ power: "sensor.house_power", total_energy: "sensor.house_total" });
 
     await page.evaluate(() => {
@@ -105,7 +111,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         JSON.stringify({ [alertState.entity_id]: "Avviso reale salone" }),
       );
       window.__DASHBOARDMODERN_REAL_HA_HOTFIX_0151__?.synchronizeAlertRegistries?.();
-      window.__DASHBOARDMODERN_REAL_HA_HOTFIX_0151__?.refreshAlerts?.(true);
+      window.__DASHBOARDMODERN_REAL_HA_HOTFIX_0151__?.refreshAlerts?.();
       window.render?.();
     });
 
