@@ -24,10 +24,26 @@ const state = (root[KEY] ||= {
 });
 
 const clean = (value) => String(value ?? "").trim();
-const english = () => doc?.documentElement?.lang === "en";
+const english = () => {
+  const lang = clean(doc?.documentElement?.lang).toLowerCase();
+  const path = clean(root.location?.pathname).toLowerCase();
+  return lang === "en" || lang.startsWith("en-") || /dashboard-en\.html$/.test(path);
+};
 const store = () => root.DashboardModernModules?.store || null;
+function lexicalStates(name) {
+  try {
+    return (
+      root.eval?.(`typeof ${name} !== "undefined" && ${name} ? ${name} : null`) ||
+      {}
+    );
+  } catch (_error) {
+    return {};
+  }
+}
 const dashboardStates = () => ({
+  ...lexicalStates("_RAW_STATES"),
   ...(root._RAW_STATES || {}),
+  ...lexicalStates("STATES"),
   ...(root.STATES || {}),
 });
 
@@ -172,7 +188,8 @@ function normalizeApplianceCards() {
           wrapper.append(image);
           media.replaceChildren(wrapper);
         }
-        image.src = src;
+        const resolved = new URL(src, doc.baseURI).href;
+        if (image.src !== resolved) image.src = src;
         image.alt = clean(item.name);
         image.loading = "eager";
         image.decoding = "async";
@@ -252,7 +269,7 @@ function normalizeTemperatureCards() {
       if (humidityValue) humidityValue.textContent = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
       if (comfort) {
         let badge = "🟢";
-        let label = english() ? "Comfort" : "Comfort";
+        let label = "Comfort";
         if (temperature == null) {
           badge = "—";
           label = english() ? "Unavailable" : "Non disponibile";
@@ -296,7 +313,7 @@ function normalizeTemperatureEditor() {
   }
   form.querySelectorAll(".ed-slot-lbl").forEach((label) => {
     [...label.childNodes].forEach((node) => {
-      if (node.nodeType === Node.TEXT_NODE)
+      if (node.nodeType === 3)
         node.nodeValue = String(node.nodeValue || "").replace(/[✏️🖉]/gu, "").trimEnd();
     });
   });
@@ -429,12 +446,57 @@ function normalizeEnergyEditor() {
   }
 }
 
+function normalizeShutterUi() {
+  const popup = doc?.getElementById("dm-shutter-popup");
+  const alert = doc?.getElementById("tapp-avvisi");
+  if (!popup && !alert) return false;
+  const states = dashboardStates();
+  const rooms = store()?.getSection?.("rooms") || [];
+  const covers = Object.entries(states)
+    .filter(([entity]) => entity.startsWith("cover."))
+    .flatMap(([entity, current]) => {
+      const status = clean(current?.state).toLowerCase();
+      const rawPosition = current?.attributes?.current_position;
+      const position = rawPosition == null ? null : Number(rawPosition);
+      const active =
+        status === "open" ||
+        status === "opening" ||
+        (Number.isFinite(position) && position > 0);
+      if (!active) return [];
+      const suffix = clean(entity.split(".").pop()).replaceAll("_", " ").toLowerCase();
+      const room = rooms.find((item) => clean(item.name).toLowerCase() === suffix) || null;
+      return [{ entity, status, position: Number.isFinite(position) ? position : null, room }];
+    });
+  if (!covers.length) {
+    popup?.remove();
+    alert?.remove();
+    return false;
+  }
+  const count = alert?.querySelector(".g-val");
+  if (count) count.textContent = String(covers.length);
+  popup?.querySelectorAll(".dm-shutter-popup-row").forEach((row, index) => {
+    const cover = covers[index];
+    if (!cover) {
+      row.remove();
+      return;
+    }
+    const detail = row.querySelector(".dm-shutter-details small");
+    if (!detail) return;
+    const label = cover.status === "opening"
+      ? english() ? "Opening" : "In apertura"
+      : english() ? "Open" : "Aperta";
+    detail.textContent = `${cover.room ? `${cover.room.name} · ` : ""}${label}${cover.position == null ? "" : ` · ${Math.round(cover.position)}%`}`;
+  });
+  return true;
+}
+
 function runContracts() {
   installStyles();
   normalizeApplianceCards();
   normalizeTemperatureEditor();
   normalizeTemperatureCards();
   normalizeEnergyEditor();
+  normalizeShutterUi();
 }
 
 function wrapRenderer(name, after) {
@@ -453,6 +515,11 @@ function wrapRenderer(name, after) {
   return true;
 }
 
+function schedule(delay = 0) {
+  if (state.timer) return;
+  state.timer = root.setTimeout?.(settle, delay);
+}
+
 function settle() {
   state.timer = 0;
   state.attempts += 1;
@@ -461,8 +528,11 @@ function settle() {
   wrapRenderer("buildTempCards", normalizeTemperatureCards);
   wrapRenderer("renderTemperature", normalizeTemperatureCards);
   runContracts();
-  if (state.attempts < 80 && !state.storeUnsubscribe)
-    state.timer = root.setTimeout?.(settle, 50);
+  const liveShutters = Boolean(
+    doc?.getElementById("dm-shutter-popup") || doc?.getElementById("tapp-avvisi"),
+  );
+  if ((state.attempts < 80 && !state.storeUnsubscribe) || liveShutters)
+    schedule(liveShutters ? 100 : 50);
 }
 
 function install() {
@@ -472,25 +542,24 @@ function install() {
     state.listeners = true;
     doc.addEventListener("click", (event) => {
       const target = event.target?.closest?.(
-        '.tab[data-tab="appliances"],.tab[data-tab="temp"],.tab[data-tab="temperature"],.ed-tab[data-tab="sez7"],.ed-tab[data-tab="sez1"],[data-energy-save]',
+        '.tab[data-tab="appliances"],.tab[data-tab="temp"],.tab[data-tab="temperature"],.ed-tab[data-tab="sez7"],.ed-tab[data-tab="sez1"],[data-energy-save],#tapp-avvisi,.dm-shutter-alert',
       );
       if (!target) return;
       root.queueMicrotask?.(runContracts);
-      root.setTimeout?.(runContracts, 0);
+      schedule(0);
     }, true);
-    root.addEventListener?.("dashboardmodern:legacy-ready", runContracts);
-    root.addEventListener?.("dashboardmodern:runtime-ready", runContracts);
-    root.addEventListener?.("dashboardmodern:state-changed", runContracts);
-    root.addEventListener?.("pageshow", runContracts);
+    root.addEventListener?.("dashboardmodern:legacy-ready", () => schedule(0));
+    root.addEventListener?.("dashboardmodern:runtime-ready", () => schedule(0));
+    root.addEventListener?.("dashboardmodern:state-changed", () => schedule(0));
+    root.addEventListener?.("pageshow", () => schedule(0));
   }
   const dashboardStore = store();
   if (!state.storeUnsubscribe && dashboardStore?.subscribe) {
     state.storeUnsubscribe = dashboardStore.subscribe((change) => {
-      if (["appliances", "rooms", "energy"].includes(change.section))
-        root.queueMicrotask?.(runContracts);
+      if (["appliances", "rooms", "energy"].includes(change.section)) schedule(0);
     });
   }
-  settle();
+  schedule(0);
 }
 
 if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", install, { once: true });
