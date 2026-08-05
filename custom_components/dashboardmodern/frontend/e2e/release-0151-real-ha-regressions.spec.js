@@ -113,6 +113,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     );
     await page.evaluate(() => {
       localStorage.setItem("cd_ev_image", JSON.stringify("/loca/auto/b10.png"));
+      const sections = JSON.parse(localStorage.getItem("cd_sections") || "{}");
+      sections.ev = true;
+      localStorage.setItem("cd_sections", JSON.stringify(sections));
+      window.cdApplyNavVis?.();
       editorSwitch("sez2");
     });
     await expect
