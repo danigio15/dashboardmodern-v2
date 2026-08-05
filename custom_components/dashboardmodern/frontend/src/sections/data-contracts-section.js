@@ -1,4 +1,5 @@
 import {
+  allStates,
   clean,
   dashboardStore,
   readJson,
@@ -21,6 +22,16 @@ const ENERGY_NAME = /(?:energy|energia|consum|kwh)/i;
 const DAILY_NAME = /(?:daily|giorno|today|oggi)/i;
 const MONTHLY_NAME = /(?:monthly|mese|month)/i;
 const TOTAL_NAME = /(?:total|totale|lifetime|meter|contatore)/i;
+const GENERIC_TOKENS = new Set([
+  "appl",
+  "appliance",
+  "device",
+  "dispositivo",
+  "generic",
+  "generico",
+  "load",
+  "carico",
+]);
 
 function entityId(entry) {
   return clean(typeof entry === "string" ? entry : entry?.entity || entry?.entity_id);
@@ -48,24 +59,91 @@ function uniqueEntities(device = {}) {
   ];
 }
 
+function slug(value) {
+  return clean(value)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function deviceTokens(device = {}) {
+  return [
+    device.name,
+    clean(device.id).replace(/^(?:appl|load|device)-/i, ""),
+    device.device_type,
+    device.visual_key,
+  ]
+    .flatMap((value) => slug(value).split("-"))
+    .filter((value, index, values) =>
+      value.length >= 3 && !GENERIC_TOKENS.has(value) && values.indexOf(value) === index,
+    );
+}
+
+function belongsToDevice(entity, tokens) {
+  const objectId = slug(clean(entity).split(".").pop());
+  return tokens.some(
+    (token) =>
+      objectId === token ||
+      objectId.startsWith(`${token}-`) ||
+      objectId.endsWith(`-${token}`) ||
+      objectId.includes(`-${token}-`),
+  );
+}
+
+function stateAttributes(entity) {
+  return allStates()[entity]?.attributes || {};
+}
+
+function stateUnit(entity) {
+  return clean(stateAttributes(entity).unit_of_measurement).toLowerCase();
+}
+
+function isPowerEntity(entity) {
+  const attributes = stateAttributes(entity);
+  return (
+    clean(attributes.device_class).toLowerCase() === "power" ||
+    /^(?:w|kw|mw)$/.test(stateUnit(entity)) ||
+    POWER_NAME.test(entity)
+  );
+}
+
+function isEnergyEntity(entity) {
+  const attributes = stateAttributes(entity);
+  return (
+    clean(attributes.device_class).toLowerCase() === "energy" ||
+    /^(?:wh|kwh|mwh)$/.test(stateUnit(entity)) ||
+    ENERGY_NAME.test(entity)
+  );
+}
+
+function candidateEntities(device = {}) {
+  const explicit = uniqueEntities(device);
+  const tokens = deviceTokens(device);
+  if (!tokens.length) return explicit;
+  const recovered = Object.keys(allStates()).filter((entity) => belongsToDevice(entity, tokens));
+  return [...new Set([...explicit, ...recovered])];
+}
+
 function inferApplianceContract(device = {}) {
-  const entities = uniqueEntities(device);
+  const entities = candidateEntities(device);
   const sensors = entities.filter((id) => /^sensor\./i.test(id));
+  const energySensors = sensors.filter(isEnergyEntity);
   const find = (pattern, values = sensors) => values.find((id) => pattern.test(id)) || "";
   const control = clean(device.control_entity) || find(CONTROL_DOMAIN, entities);
-  const power = clean(device.power_entity) || find(POWER_NAME);
-  const daily = clean(device.daily_energy_entity) || find(DAILY_NAME);
-  const monthly = clean(device.monthly_energy_entity) || find(MONTHLY_NAME);
-  const namedTotal = find(TOTAL_NAME);
+  const power = clean(device.power_entity) || sensors.find(isPowerEntity) || find(POWER_NAME);
+  const daily = clean(device.daily_energy_entity) || find(DAILY_NAME, energySensors);
+  const monthly = clean(device.monthly_energy_entity) || find(MONTHLY_NAME, energySensors);
+  const namedTotal = find(TOTAL_NAME, energySensors);
   const energy =
     clean(device.energy_entity) ||
-    find(ENERGY_NAME) ||
-    namedTotal ||
-    monthly ||
-    daily;
-  const total = clean(device.total_energy_entity) || namedTotal || energy;
+    energySensors.find((id) => !DAILY_NAME.test(id) && !MONTHLY_NAME.test(id) && !TOTAL_NAME.test(id)) ||
+    energySensors[0] ||
+    "";
+  const total = clean(device.total_energy_entity) || namedTotal;
   const history = clean(device.history_entity) || total || monthly || energy;
-  const report = clean(device.report_entity) || history || monthly || energy;
+  const report = clean(device.report_entity) || monthly || energy || total;
   const nextEntities = [
     ...new Set([control, power, energy, daily, monthly, total, history, report, ...entities].filter(Boolean)),
   ];
@@ -89,7 +167,7 @@ function same(left, right) {
 
 function sectionNeedsRepair(section) {
   const current = dashboardStore()?.getSection?.(section);
-  if (!Array.isArray(current) || !current.length) return true;
+  if (!Array.isArray(current) || !current.length) return false;
   return current.some((device) => !same(device, inferApplianceContract(device)));
 }
 
@@ -102,15 +180,6 @@ async function normalizeDeviceSection(section) {
   if (same(current, next)) return false;
   await store.replaceSection(section, next);
   return true;
-}
-
-function slug(value) {
-  return clean(value)
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
 }
 
 function canonicalRoomForLight(entity, name, rooms) {
@@ -204,7 +273,7 @@ export function installDataContractsSection() {
   subscribeStore();
   if (!state.installed) {
     state.installed = true;
-    for (const event of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
+    for (const event of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "dashboardmodern:state-changed", "pageshow"]) {
       root.addEventListener?.(event, () => {
         subscribeStore();
         state.attempts = 0;
