@@ -81,8 +81,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       "#dm-energy-battery-total_discharged_energy": "sensor.battery_discharge_total",
     };
     for (const [selector, value] of Object.entries(totalFields)) {
-      await expect(page.locator(selector)).toBeVisible();
-      await expect(page.locator(selector)).toHaveValue(value);
+      const field = page.locator(selector);
+      await expect(field).toBeAttached();
+      await field.evaluate((node) => {
+        const group = node.closest("details");
+        if (group) group.open = true;
+      });
+      await expect(field).toBeVisible();
+      await expect(field).toHaveValue(value);
     }
     await expect
       .poll(() =>
