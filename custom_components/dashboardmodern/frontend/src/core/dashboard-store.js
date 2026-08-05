@@ -20,6 +20,8 @@ export const VISIBILITY_SECTION = Object.freeze({
 
 const configured = (value) =>
   typeof value === "string" ? value.trim().includes(".") : Boolean(value);
+const sameValue = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+
 export function hasConfiguredData(section, value) {
   if (section === "rooms" && Array.isArray(value))
     return value.some((room) => configured(room?.temp) || configured(room?.hum));
@@ -145,12 +147,14 @@ export class DashboardStore {
     } catch {
       return Promise.resolve();
     }
-    if (key === "cd_sections")
+    if (key === "cd_sections") {
+      if (sameValue(this.state.visibility, value)) return Promise.resolve(cloneValue(value));
       return this.transact(
         "visibility",
         "legacy-reconcile",
         () => (this.state.visibility = { ...value }),
       );
+    }
     const section = Object.entries(SECTION_KEYS).find(([, storageKey]) => storageKey === key)?.[0];
     if (!section) return Promise.resolve();
     return this.replaceSection(section, value);
@@ -234,12 +238,14 @@ export class DashboardStore {
     });
   }
   updateItem(section, id, patch) {
+    const list = this.state.sections[section] || [];
+    const index = list.findIndex((item) => item.id === id);
+    if (index < 0) return Promise.reject(new Error(`Unknown ${section} item: ${id}`));
+    const next = this._normalizeItem(section, { ...list[index], ...patch, id }, index);
+    if (sameValue(list[index], next)) return Promise.resolve(cloneValue(next));
     return this.transact(section, "update", () => {
-      const list = this.state.sections[section] || [];
-      const index = list.findIndex((item) => item.id === id);
-      if (index < 0) throw new Error(`Unknown ${section} item: ${id}`);
-      list[index] = this._normalizeItem(section, { ...list[index], ...patch, id }, index);
-      return cloneValue(list[index]);
+      list[index] = next;
+      return cloneValue(next);
     });
   }
   removeItem(section, id) {
@@ -251,13 +257,16 @@ export class DashboardStore {
     });
   }
   replaceSection(section, value) {
+    const normalized = normalizeSection(section, value, {
+      rooms: this.state.sections.rooms || [],
+    });
+    if (sameValue(this.state.sections[section] ?? [], normalized)) {
+      return Promise.resolve(cloneValue(normalized));
+    }
     return this.transact(
       section,
       "replace",
-      () =>
-        (this.state.sections[section] = normalizeSection(section, value, {
-          rooms: this.state.sections.rooms || [],
-        })),
+      () => (this.state.sections[section] = normalized),
     );
   }
   saveReport(items) {

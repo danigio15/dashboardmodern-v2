@@ -1,357 +1,388 @@
-/* Preserve cumulative totals, gate readiness and clean final live-state UI. */
+/* DashboardModern 0.15.4 — readiness, lifetime guidance and historical detail projection. */
 import { applyAtomicEnergyBundle } from "../../legacy/runtime-consolidated.js";
-import { HomeAssistantBroker } from "./period-service.js";
 
 const root = globalThis;
 const doc = root.document;
-if (doc && !doc.getElementById("dm-ev-editor-preview-0152")) {
-  const style = doc.createElement("style");
-  style.id = "dm-ev-editor-preview-0152";
-  style.textContent = `
-    html:has(#editor-modal.show) #page-ev:not(.active):has(#ev-mod-car-img[src]) {
-      display:block!important;position:fixed!important;inset:0!important;
-      width:100vw!important;height:100vh!important;overflow:hidden!important;
-      opacity:1!important;transform:none!important;pointer-events:none!important;z-index:-1!important
-    }
-  `;
-  (doc.head || doc.documentElement).append(style);
-}
 const KEY = "__DASHBOARDMODERN_ENERGY_TOTAL_SOURCE__";
-const state = (root[KEY] ||= {
+const state = (root[KEY] ||= {});
+Object.assign(state, {
   installed: true,
+  version: "0.15.4",
   attempts: 0,
   timer: 0,
-  repairing: false,
-  repaired: false,
-  forced: false,
-  dayRunning: false,
-  dayDone: false,
-  dayFailures: 0,
+  detailTimer: 0,
+  uiTimer: 0,
+  uiAttempts: 0,
   done: false,
-  shutterAttempts: 0,
-  shutterTimer: 0,
-});
-const dayBroker = new HomeAssistantBroker({
-  timeout: 3000,
-  cacheCurrentMs: 0,
-  cacheHistoricalMs: 0,
+  readyGateInstalled: false,
+  appliedGeneration: 0,
+  error: "",
 });
 
 const clean = (value) => String(value ?? "").trim();
 const finite = (value) => {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+  return Number.isFinite(parsed) ? parsed : 0;
 };
-const rounded = (value) => Math.round((finite(value) || 0) * 1000) / 1000;
+const valueFrom = (values, entity) =>
+  values instanceof Map ? finite(values.get(entity)) : finite(values?.[entity]);
+const english = () => {
+  const lang = clean(doc?.documentElement?.lang).toLowerCase();
+  return lang.startsWith("en") || /dashboard-en\.html$/i.test(root.location?.pathname || "");
+};
 
 function energyModel() {
   return root.DashboardModernModules?.store?.getSection?.("energy") || {};
 }
-
-function hasEnergySource() {
+function configuredSource() {
   const energy = energyModel();
-  return Boolean(
-    clean(
-      energy.house?.daily_energy ||
-        energy.house?.monthly_energy ||
-        energy.house?.total_energy ||
-        energy.house?.annual_energy,
-    ),
+  return clean(
+    energy.house?.daily_energy ||
+      energy.house?.monthly_energy ||
+      energy.house?.annual_energy ||
+      energy.house?.total_energy,
   );
 }
-
-function synchronizeRuntimeAlias() {
-  const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
-  if (!runtime) return null;
-  root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
+function runtimeRoot() {
+  const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__ || null;
+  if (runtime) root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
   return runtime;
 }
 
 function installReadyGate() {
-  const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
-  if (!runtime || runtime.__dmEnergyReadyGate0152 || !hasEnergySource()) return false;
-  let canonicalReady = Boolean(runtime.ready);
-  Object.defineProperty(runtime, "ready", {
-    configurable: true,
-    enumerable: true,
-    get() {
-      return state.done === true && canonicalReady === true;
-    },
-    set(value) {
-      canonicalReady = Boolean(value);
-    },
-  });
-  Object.defineProperty(runtime, "__dmEnergyReadyGate0152", {
-    configurable: true,
-    value: true,
-  });
-  state.readyGateInstalled = true;
-  root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
-  return true;
-}
-
-installReadyGate();
-
-function requestFullEnergyRecovery() {
-  if (!state.repaired || state.forced) return false;
-  const runtime = synchronizeRuntimeAlias();
-  const coordinator = root.__DASHBOARDMODERN_STARTUP_COORDINATOR__;
-  const vehicle = root.__DASHBOARDMODERN_VEHICLE_IMAGE_RUNTIME__;
-  if (!runtime || !vehicle || coordinator?.running || vehicle.energyRunning) return false;
-
-  state.forced = true;
-  runtime.bundle = null;
-  runtime.lastRefreshAt = 0;
-  root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
-  vehicle.energyVerified = false;
-  vehicle.scheduleContracts?.(0);
-  vehicle.verifyEnergy?.();
-  root.dispatchEvent?.(
-    new CustomEvent("dashboardmodern:energy-total-source-ready", {
-      detail: { source: state.source, fullRecovery: true },
-    }),
-  );
-  return true;
-}
-
-async function repair() {
-  if (state.repairing || state.repaired) return;
-  const store = root.DashboardModernModules?.store;
-  if (!store?.getSection || !store?.replaceSection) return;
-  const energy = store.getSection("energy") || {};
-  let changed = false;
-
-  for (const group of ["house", "solar"]) {
-    const model = (energy[group] ||= {});
-    const total = clean(model.total_energy);
-    const annual = clean(model.annual_energy);
-    if (!total && annual) {
-      model.total_energy = annual;
-      changed = true;
-    }
-    if (!annual && total) {
-      model.annual_energy = total;
-      changed = true;
-    }
-  }
-
-  const source = clean(energy.house?.total_energy || energy.house?.monthly_energy);
-  if (!source) return;
-
-  installReadyGate();
-  state.repairing = true;
+  const runtime = runtimeRoot();
+  if (!runtime || runtime.__dmEnergyReadyGate0154 || !configuredSource()) return false;
+  let ownerReady = Boolean(runtime.ready);
   try {
-    if (changed) await store.replaceSection("energy", energy);
-    state.repaired = true;
-    state.source = source;
-    if (root.document?.documentElement)
-      root.document.documentElement.dataset.dmEnergyTotalSource = source;
+    Object.defineProperty(runtime, "ready", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return state.done === true && ownerReady === true;
+      },
+      set(value) {
+        ownerReady = Boolean(value);
+      },
+    });
+    Object.defineProperty(runtime, "__dmEnergyReadyGate0154", {
+      configurable: true,
+      value: true,
+    });
+    state.readyGateInstalled = true;
+    return true;
   } catch (error) {
     state.error = clean(error?.message || error);
-  } finally {
-    state.repairing = false;
+    return false;
   }
 }
 
-function daySources() {
-  const energy = energyModel();
-  const source = (group, periodKey, totalKey) =>
-    clean(
-      energy[group]?.[periodKey] ||
-        energy[group]?.[totalKey] ||
-        energy[group]?.annual_energy,
-    );
-  return {
-    house: source("house", "daily_energy", "total_energy"),
-    solar: source("solar", "daily_energy", "total_energy"),
-    gridImport: source("grid", "daily_import_energy", "total_import_energy"),
-    gridExport: source("grid", "daily_export_energy", "total_export_energy"),
-    batteryCharged: source("battery", "daily_charged_energy", "total_charged_energy"),
-    batteryDischarged: source("battery", "daily_discharged_energy", "total_discharged_energy"),
-  };
+function energyHelpText(field) {
+  const group = clean(field?.dataset?.energyGroup);
+  const key = clean(field?.dataset?.energyKey);
+  const subject = {
+    house: english() ? "home consumption" : "il consumo della casa",
+    solar: english() ? "solar production" : "la produzione fotovoltaica",
+    grid: key.includes("export")
+      ? english()
+        ? "energy exported to the grid"
+        : "l’energia immessa in rete"
+      : english()
+        ? "energy imported from the grid"
+        : "l’energia prelevata dalla rete",
+    battery: key.includes("discharged")
+      ? english()
+        ? "battery discharge"
+        : "l’energia scaricata dalla batteria"
+      : english()
+        ? "battery charge"
+        : "l’energia caricata nella batteria",
+  }[group] || (english() ? "energy" : "l’energia");
+  return english()
+    ? `Use the lifetime cumulative kWh meter for ${subject}, with device_class: energy and state_class: total or total_increasing. DashboardModern derives day, month, year and previous months from Home Assistant Long-Term Statistics. Do not use a sensor that resets monthly.`
+    : `Usa il contatore cumulativo lifetime in kWh per ${subject}, con device_class: energy e state_class: total oppure total_increasing. DashboardModern ricava giorno, mese, anno e mesi precedenti dalle Long-Term Statistics di Home Assistant. Non usare un sensore che si azzera ogni mese.`;
 }
 
-async function statistics(ids, start, end) {
-  const statisticIds = [...new Set(Object.values(ids).map(clean).filter(Boolean))];
-  if (!statisticIds.length) return {};
-  const result = await dayBroker.request({
-    type: "recorder/statistics_during_period",
-    start_time: new Date(start).toISOString(),
-    end_time: new Date(end).toISOString(),
-    statistic_ids: statisticIds,
-    period: "hour",
-    units: { energy: "kWh" },
-  });
-  return result && typeof result === "object" ? result : {};
-}
-
-function lastValue(rows) {
-  const list = Array.isArray(rows) ? rows : [];
-  for (let index = list.length - 1; index >= 0; index -= 1) {
-    for (const key of ["sum", "state", "max"]) {
-      const value = finite(list[index]?.[key]);
-      if (value != null) return value;
+function ensureEnergyHelp() {
+  const fields = [...(doc?.querySelectorAll?.("[data-dm-injected-energy-total='true']") || [])];
+  if (!fields.length) return false;
+  const editor = fields[0].closest("#ed-body,[data-editor='energy']") || fields[0].parentElement;
+  if (editor && !editor.querySelector(".dm-energy-total-overview")) {
+    const overview = doc.createElement("div");
+    overview.className = "dm-energy-total-overview";
+    overview.innerHTML = english()
+      ? "<b>Total entities and historical periods</b><br>Daily, monthly and annual entities are optional. A lifetime total meter lets the Report derive the selected period and previous months from Home Assistant Recorder statistics."
+      : "<b>Entità totali e periodi storici</b><br>Le entità giornaliera, mensile e annuale sono facoltative. Un contatore totale lifetime permette al Report di ricavare il periodo selezionato e i mesi precedenti dalle statistiche del Recorder di Home Assistant.";
+    editor.prepend(overview);
+  }
+  fields.forEach((field) => {
+    let helper = field.querySelector(":scope > .dm-energy-total-help");
+    if (!helper) {
+      helper = doc.createElement("small");
+      helper.className = "dm-energy-total-help";
+      field.append(helper);
     }
-  }
-  return null;
+    helper.textContent = energyHelpText(field);
+  });
+  return fields.every((field) => field.querySelector(":scope > .dm-energy-total-help"));
 }
 
-function consumption(currentRows, baselineRows) {
-  const current = lastValue(currentRows);
-  const baseline = lastValue(baselineRows);
-  if (current == null) return 0;
-  if (baseline == null) return rounded(current);
-  const delta = current - baseline;
-  return rounded(delta >= 0 ? delta : current);
+function editButton(kind, index) {
+  const button = doc.createElement("button");
+  button.type = "button";
+  button.className = "ed-del dm-edit-existing";
+  button.dataset.dmEditKind = kind;
+  button.dataset.dmEditIndex = String(index);
+  button.textContent = "✏️";
+  button.title = english() ? "Edit" : "Modifica";
+  button.setAttribute("aria-label", button.title);
+  return button;
 }
 
-function roundedRecord(record = {}) {
-  return Object.freeze(
-    Object.fromEntries(Object.entries(record).map(([key, value]) => [key, rounded(value)])),
-  );
+function legacyRowsBeforeField(container, field) {
+  if (!container || !field) return [];
+  return [...container.querySelectorAll(".ed-row")].filter((row) => {
+    if (row.contains(field) || row.querySelector("[data-dm-edit-kind]")) return false;
+    const position = row.compareDocumentPosition(field);
+    const precedesField = Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING);
+    const controls = [...row.querySelectorAll(".ed-del,button")];
+    return precedesField && controls.length > 0;
+  });
 }
 
-async function repairDayBundle() {
-  if (state.dayRunning || state.dayDone || root.WebSocket?.name === "StubSocket") return;
-  const runtime = synchronizeRuntimeAlias();
-  if (!runtime?.bundle) return;
-  const sources = daySources();
-  if (!sources.house) return;
-
-  state.dayRunning = true;
-  try {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const baselineStart = new Date(start);
-    baselineStart.setHours(baselineStart.getHours() - 2);
-    const end = new Date(now);
-    if (end.getHours() === 0) end.setHours(1, 0, 0, 0);
-
-    const [current, baseline] = await Promise.all([
-      statistics(sources, start, end),
-      statistics(sources, baselineStart, start),
-    ]);
-    const day = Object.freeze(
-      Object.fromEntries(
-        Object.entries(sources).map(([key, entity]) => [
-          key,
-          entity ? consumption(current[entity], baseline[entity]) : 0,
-        ]),
-      ),
-    );
-    const previous = runtime.bundle;
-    const generation = Math.max(
-      Number(runtime.generation) || 0,
-      Number(previous.generation) || 0,
-    ) + 1;
-    const bundle = Object.freeze({
-      ...previous,
-      generation,
-      day,
-      month: roundedRecord(previous.month),
-      year: roundedRecord(previous.year),
+function ensureLegacyEditButtons() {
+  const body = doc?.getElementById("ed-body");
+  if (!body) return false;
+  const definitions = [
+    ["action", "#ed-qa-type"],
+    ["climate", "#ed-cl-type"],
+    ["shutter", "#ed-tp-name"],
+    ["room", "#ed-room-name"],
+  ];
+  let inserted = false;
+  definitions.forEach(([kind, selector]) => {
+    const field = body.querySelector(selector);
+    if (!field) return;
+    const container = field.closest("details") || body;
+    legacyRowsBeforeField(container, field).forEach((row, index) => {
+      if (row.querySelector(`[data-dm-edit-kind='${kind}']`)) return;
+      const controls = [...row.querySelectorAll(".ed-del,button")];
+      const remove =
+        controls.find((control) =>
+          /(?:delete|remove|elimina|rimuovi|cestino|trash|eddel)/i.test(
+            `${control.className} ${control.getAttribute("aria-label") || ""} ${control.title || ""} ${control.getAttribute("onclick") || ""}`,
+          ),
+        ) || controls.at(-1);
+      if (!remove) return;
+      remove.before(editButton(kind, index));
+      inserted = true;
     });
-    runtime.generation = generation;
-    runtime.bundle = bundle;
-    runtime.lastRefreshAt = Date.now();
-    root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
-    applyAtomicEnergyBundle(bundle);
-    root.dispatchEvent?.(
-      new CustomEvent("dashboardmodern:period-bundle", { detail: bundle }),
-    );
-    state.dayDone = true;
-  } catch (error) {
-    state.dayFailures += 1;
-    state.dayError = clean(error?.message || error);
-    dayBroker.reset?.(error);
-  } finally {
-    state.dayRunning = false;
-  }
+  });
+  return inserted || Boolean(body.querySelector("[data-dm-edit-kind]"));
 }
 
-function energyTick() {
+function ensureEditorContracts() {
+  const energy = ensureEnergyHelp();
+  const edits = ensureLegacyEditButtons();
+  return energy || edits;
+}
+
+function uiTick() {
+  state.uiTimer = 0;
+  state.uiAttempts += 1;
+  wrapEditorSwitch();
+  const complete = ensureEditorContracts();
+  if (!complete && doc?.getElementById("editor-modal") && state.uiAttempts < 240)
+    state.uiTimer = root.setTimeout?.(uiTick, 50);
+}
+function scheduleUi(delay = 0) {
+  root.clearTimeout?.(state.uiTimer);
+  state.uiTimer = root.setTimeout?.(uiTick, delay);
+}
+function wrapEditorSwitch() {
+  const current = root.editorSwitch;
+  if (typeof current !== "function" || current.__dmEnergyHelp0154) return false;
+  function energyGuidedEditorSwitch(...args) {
+    const result = current.apply(this, args);
+    const finish = () => {
+      state.uiAttempts = 0;
+      root.queueMicrotask?.(ensureEditorContracts);
+      scheduleUi(0);
+    };
+    if (result && typeof result.finally === "function") return result.finally(finish);
+    finish();
+    return result;
+  }
+  energyGuidedEditorSwitch.__dmEnergyHelp0154 = true;
+  energyGuidedEditorSwitch.__dmPrevious = current;
+  root.editorSwitch = energyGuidedEditorSwitch;
+  return true;
+}
+
+function setText(id, value) {
+  const element = doc?.getElementById(id);
+  if (element) element.textContent = value;
+}
+function rate(key) {
+  const configured = root.cdCfg?.(key);
+  const raw =
+    configured !== undefined && configured !== null && configured !== ""
+      ? configured
+      : root.localStorage?.getItem(key);
+  return finite(raw);
+}
+function splitFor(period, value) {
+  const house = finite(period?.house);
+  const grid = finite(period?.gridImport);
+  const gridShare = house > 0 ? Math.max(0, Math.min(1, grid / house)) : 1;
+  return { grid: value * gridShare, solar: value * (1 - gridShare) };
+}
+
+function applyDeviceDetail(bundle) {
+  const selector = doc?.getElementById("ed-dev-selector");
+  const entity = clean(selector?.value);
+  if (!entity || !bundle?.deviceMonth || !bundle?.deviceYear) return false;
+  const monthValue = valueFrom(bundle.deviceMonth.values, entity);
+  const yearValue = valueFrom(bundle.deviceYear.values, entity);
+  const selectedMonth = Number(bundle.period?.month) || new Date().getMonth() + 1;
+  const selectedYear = Number(bundle.period?.year) || new Date().getFullYear();
+  const days = new Date(selectedYear, selectedMonth, 0).getDate();
+  const importPrice = finite(bundle.rates?.importPrice) || rate("cd_costo_kwh");
+  const monthSplit = splitFor(bundle.month, monthValue);
+  const yearSplit = splitFor(bundle.year, yearValue);
+
+  setText("ed-dkpi-mese", `${monthValue.toFixed(1)} kWh`);
+  setText("ed-dkpi-mese-eur", `€ ${(monthValue * importPrice).toFixed(2)}`);
+  setText("ed-dkpi-media", `${(days ? monthValue / days : 0).toFixed(2)} kWh`);
+  setText("ed-dkpi-media-sub", english() ? "Daily average" : "Media/giorno");
+  setText("ed-dkpi-risp-eur", `+ ${(monthSplit.solar * importPrice).toFixed(2)} €`);
+  setText("ed-dkpi-risp-kwh", `${monthSplit.solar.toFixed(1)} kWh da FV`);
+  setText("ed-dkpi-costo-eur", `- ${(monthSplit.grid * importPrice).toFixed(2)} €`);
+  setText("ed-dkpi-costo-kwh", `${monthSplit.grid.toFixed(1)} kWh dalla rete`);
+  setText("ed-dkpi-year-lbl", String(selectedYear));
+  setText("ed-dkpi-anno-risp-eur", `+ ${(yearSplit.solar * importPrice).toFixed(2)} €`);
+  setText("ed-dkpi-anno-risp-kwh", `${yearSplit.solar.toFixed(1)} kWh da FV`);
+  setText("ed-dkpi-anno-costo-eur", `- ${(yearSplit.grid * importPrice).toFixed(2)} €`);
+  setText("ed-dkpi-anno-costo-kwh", `${yearSplit.grid.toFixed(1)} kWh dalla rete`);
+
+  const message = doc?.getElementById("ed-dev-chart-msg");
+  const canvas = doc?.getElementById("ed-dev-chart-canvas");
+  if (message && monthValue > 0 && (!canvas || getComputedStyle(canvas).display === "none")) {
+    message.style.display = "flex";
+    message.textContent = english()
+      ? `Selected month total: ${monthValue.toFixed(1)} kWh`
+      : `Totale mese selezionato: ${monthValue.toFixed(1)} kWh`;
+  }
+  const panel = doc?.querySelector(".ed-device-detail,#ed-device-detail");
+  if (panel)
+    panel.dataset.dmCanonicalDevicePeriod = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}|${monthValue}`;
+  return true;
+}
+
+function scheduleDeviceDetail(delay = 0) {
+  root.clearTimeout?.(state.detailTimer);
+  state.detailTimer = root.setTimeout?.(() => {
+    state.detailTimer = 0;
+    applyDeviceDetail(runtimeRoot()?.bundle);
+  }, delay);
+}
+
+function complete(runtime) {
+  const bundle = runtime?.bundle;
+  if (!bundle?.day || !bundle?.month || !bundle?.year) return false;
+  const generation = Number(bundle.generation) || Number(runtime.generation) || 0;
+  if (generation && generation !== state.appliedGeneration) {
+    applyAtomicEnergyBundle(bundle);
+    state.appliedGeneration = generation;
+  }
+  applyDeviceDetail(bundle);
+  ensureEditorContracts();
+  state.done = true;
+  runtime.ready = true;
+  root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
+  if (doc?.documentElement) {
+    doc.documentElement.dataset.dmEnergyTotalSource = configuredSource();
+    doc.documentElement.dataset.dmRuntimeAlias = [
+      bundle.day?.house,
+      bundle.month?.house,
+      bundle.year?.house,
+    ].join("/");
+  }
+  return true;
+}
+function releaseWithoutEnergy(runtime) {
+  state.done = true;
+  if (runtime) runtime.ready = true;
+  root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
+}
+function tick() {
   state.timer = 0;
   if (state.done) return;
   state.attempts += 1;
+  const runtime = runtimeRoot();
   installReadyGate();
-  repair();
-  const runtime = synchronizeRuntimeAlias();
-  requestFullEnergyRecovery();
+  if (!configuredSource()) {
+    releaseWithoutEnergy(runtime);
+    return;
+  }
+  if (complete(runtime)) return;
+  if (state.attempts >= 720) {
+    state.error ||= "Canonical Energy bundle timeout";
+    releaseWithoutEnergy(runtime);
+    return;
+  }
+  state.timer = root.setTimeout?.(tick, 25);
+}
+function schedule() {
+  if (!state.done && !state.timer) state.timer = root.setTimeout?.(tick, 0);
+  wrapEditorSwitch();
+  ensureEditorContracts();
+  scheduleDeviceDetail(0);
+}
 
-  const vehicle = root.__DASHBOARDMODERN_VEHICLE_IMAGE_RUNTIME__;
-  const baseComplete =
-    state.forced &&
-    vehicle?.energyVerified === true &&
-    runtime?.bundle?.day &&
-    runtime?.bundle?.month &&
-    runtime?.bundle?.year;
-  if (baseComplete && !state.dayDone && !state.dayRunning) repairDayBundle();
+function wrapLegacyDetail() {
+  const current = root.edCaricaDettaglio;
+  if (typeof current !== "function" || current.__dmCanonicalDevice0154) return;
+  function canonicalDeviceDetail(...args) {
+    const result = current.apply(this, args);
+    const finish = () => scheduleDeviceDetail(0);
+    if (result && typeof result.finally === "function") return result.finally(finish);
+    finish();
+    return result;
+  }
+  canonicalDeviceDetail.__dmCanonicalDevice0154 = true;
+  canonicalDeviceDetail.__dmPrevious = current;
+  root.edCaricaDettaglio = canonicalDeviceDetail;
+}
 
-  if (baseComplete && state.dayDone && !state.dayRunning) {
-    state.done = true;
-    runtime.ready = true;
-    root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
-    if (root.document?.documentElement) {
-      root.document.documentElement.dataset.dmRuntimeAlias = [
-        runtime.bundle.day.house,
-        runtime.bundle.month.house,
-        runtime.bundle.year.house,
-      ].join("/");
+installReadyGate();
+root.addEventListener?.("dashboardmodern:legacy-ready", () => {
+  wrapLegacyDetail();
+  wrapEditorSwitch();
+  schedule();
+});
+root.addEventListener?.("dashboardmodern:runtime-ready", schedule);
+root.addEventListener?.("dashboardmodern:period-bundle", (event) => {
+  const runtime = runtimeRoot();
+  if (runtime && event?.detail) runtime.bundle = event.detail;
+  applyDeviceDetail(event?.detail);
+  schedule();
+});
+root.addEventListener?.("pageshow", schedule);
+doc?.addEventListener(
+  "click",
+  (event) => {
+    if (event.target?.closest?.(".ed-tab,[data-energy-tab],[data-energy-panel]")) {
+      state.uiAttempts = 0;
+      scheduleUi(0);
     }
-    return;
-  }
-
-  if (state.dayFailures >= 8 || state.attempts >= 520) {
-    state.done = true;
-    if (runtime) runtime.ready = true;
-    root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
-    return;
-  }
-
-  state.timer = root.setTimeout?.(energyTick, 25);
-}
-
-function liveStates() {
-  let states = root.STATES || {};
-  try {
-    states = root.eval?.("typeof STATES !== 'undefined' && STATES ? STATES : null") || states;
-  } catch (_error) {}
-  return states || {};
-}
-
-function removeClosedShutterUi() {
-  const states = liveStates();
-  const covers = Object.entries(states).filter(([entity]) => entity.startsWith("cover."));
-  if (!covers.length) return;
-  const allClosed = covers.every(([, current]) => {
-    const status = clean(current?.state).toLowerCase();
-    const position = Number(current?.attributes?.current_position);
-    return (
-      status === "closed" ||
-      status === "unavailable" ||
-      status === "unknown" ||
-      (Number.isFinite(position) && position <= 0)
-    );
-  });
-  if (!allClosed) return;
-  root.document?.getElementById("tapp-avvisi")?.remove();
-  root.document?.getElementById("dm-shutter-popup")?.remove();
-}
-
-function shutterTick() {
-  state.shutterTimer = 0;
-  state.shutterAttempts += 1;
-  removeClosedShutterUi();
-  if (state.shutterAttempts < 360)
-    state.shutterTimer = root.setTimeout?.(shutterTick, 100);
-}
-
-function start() {
-  if (!state.done && !state.timer) energyTick();
-  if (!state.shutterTimer && state.shutterAttempts < 360) shutterTick();
-}
-
-root.addEventListener?.("dashboardmodern:legacy-ready", start);
-root.addEventListener?.("dashboardmodern:runtime-ready", start);
-root.addEventListener?.("dashboardmodern:state-changed", removeClosedShutterUi);
-root.queueMicrotask?.(start);
+  },
+  true,
+);
+doc?.addEventListener("change", (event) => {
+  if (event.target?.matches?.("#ed-dev-selector,#ed-month,#ed-year")) scheduleDeviceDetail(80);
+});
+root.queueMicrotask?.(() => {
+  wrapLegacyDetail();
+  wrapEditorSwitch();
+  schedule();
+});
