@@ -20,6 +20,10 @@ function normalizeReportManualPanel() {
   const form = panel?.querySelector("[data-report-manual]");
   if (!button || !form) return false;
 
+  if (!form.id) form.id = `dm-report-manual-${Math.random().toString(36).slice(2, 9)}`;
+  button.setAttribute("aria-controls", form.id);
+  button.dataset.dmClosedLabel ||= clean(button.textContent);
+
   if (button.dataset.dmReportToggleBound !== "true") {
     button.dataset.dmReportToggleBound = "true";
     button.addEventListener(
@@ -27,15 +31,31 @@ function normalizeReportManualPanel() {
       (event) => {
         event.preventDefault();
         event.stopImmediatePropagation();
-        const next = button.getAttribute("aria-expanded") !== "true";
-        button.setAttribute("aria-expanded", String(next));
-        form.hidden = !next;
+        form.hidden = !form.hidden;
+        const open = !form.hidden;
+        button.setAttribute("aria-expanded", String(open));
+        button.textContent = open
+          ? english()
+            ? "− Close manual entry"
+            : "− Chiudi voce manuale"
+          : button.dataset.dmClosedLabel;
+        if (open) panel.querySelector("[data-manual-name]")?.focus();
       },
       true,
     );
   }
-  if (!button.hasAttribute("aria-expanded")) button.setAttribute("aria-expanded", "false");
-  form.hidden = button.getAttribute("aria-expanded") !== "true";
+
+  if (!button.hasAttribute("aria-expanded")) {
+    form.hidden = true;
+    button.setAttribute("aria-expanded", "false");
+  }
+  const open = button.getAttribute("aria-expanded") === "true";
+  form.hidden = !open;
+  button.textContent = open
+    ? english()
+      ? "− Close manual entry"
+      : "− Chiudi voce manuale"
+    : button.dataset.dmClosedLabel;
   return true;
 }
 
@@ -124,7 +144,10 @@ function installStyles() {
       #editor-modal[data-dm-editor-theme="dark"] .ed-slot-lbl{
         color:var(--text-dim,#92a4c2)!important
       }
-      #editor-modal [data-report-manual][hidden]{display:none!important}
+      #editor-modal [data-energy-panel="report"] [data-report-manual][hidden]{display:none!important}
+      #editor-modal [data-energy-panel="report"] [data-report-manual]:not([hidden]){
+        display:grid!important;gap:10px!important;margin-top:10px!important
+      }
       #editor-modal .dm-energy-help-compact{
         display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:center!important;
         gap:8px 12px!important;margin:0 0 12px!important;padding:10px 12px!important;border-radius:14px!important;
