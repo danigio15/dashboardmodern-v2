@@ -9,7 +9,7 @@ const PRELUDE = readFileSync(
   "utf8",
 );
 
-function runPrelude({ parent: parentValue, host = "ha.local:8123", storage = {}, query = "" }) {
+function runPrelude({ parent: parentValue, host = "ha.local:8123", storage = {}, query = "", SocketCtor } = {}) {
   const writes = [];
   const listeners = new Map();
   class MockWebSocket {
@@ -40,7 +40,7 @@ function runPrelude({ parent: parentValue, host = "ha.local:8123", storage = {},
   const window = {
     document,
     location: { host, search: query, href: `http://${host}/dashboard.html${query}` },
-    WebSocket: MockWebSocket,
+    WebSocket: SocketCtor || MockWebSocket,
     localStorage: {
       getItem: (key) => (key in storage ? storage[key] : null),
       setItem: (key, value) => {
@@ -51,6 +51,7 @@ function runPrelude({ parent: parentValue, host = "ha.local:8123", storage = {},
     addEventListener(type, handler) {
       listeners.set(type, handler);
     },
+    setTimeout,
   };
   window.parent = parentValue === "self" ? window : parent;
   const context = createContext({
@@ -72,7 +73,7 @@ function runPrelude({ parent: parentValue, host = "ha.local:8123", storage = {},
   };
 }
 
-test("hosted mode exposes only the placeholder and the injected non-native adapter", () => {
+test("hosted mode uses a network-inert stub until the explicit bridge exists", () => {
   const { window } = runPrelude({ parent: { __DASHBOARDMODERN_HOST__: true } });
 
   assert.equal(window.__DASHBOARDMODERN_HOSTED__, true);
@@ -80,10 +81,9 @@ test("hosted mode exposes only the placeholder and the injected non-native adapt
   assert.equal(window.__DASHBOARDMODERN_CONNECTION__.local_ip, "ha.local:8123");
   assert.equal(window.__DASHBOARDMODERN_REAL_TOKEN__, undefined);
   assert.equal(window.DASHBOARDMODERN_AUTH_TOKEN, undefined);
-  assert.equal(window.WebSocket.name, "DeferredSocket");
-  assert.equal(window.WebSocket.__dmInjectedHostedAdapter, true);
-  assert.equal(window.__DASHBOARDMODERN_BRIDGE_WS__, window.WebSocket);
-  assert.equal(window.__DASHBOARDMODERN_BRIDGED__, true);
+  assert.equal(window.WebSocket.name, "StubSocket");
+  assert.equal(window.WebSocket.__dmHostedStub, true);
+  assert.equal(window.__DASHBOARDMODERN_BRIDGED__, undefined);
 });
 
 test("an explicit parent bridge is the only hosted transport", () => {
@@ -99,6 +99,24 @@ test("an explicit parent bridge is the only hosted transport", () => {
   assert.equal(window.__DASHBOARDMODERN_BRIDGE_WS__, BridgeSocket);
   assert.equal(window.__DASHBOARDMODERN_BRIDGED__, true);
   assert.equal(window.__DASHBOARDMODERN_REAL_TOKEN__, undefined);
+});
+
+test("a WebView-native constructor without native-code text is never trusted", () => {
+  let constructed = 0;
+  function AndroidWebViewSocket() {
+    constructed += 1;
+  }
+  AndroidWebViewSocket.toString = () => "function WebSocket() { [android bridge] }";
+
+  const { window } = runPrelude({
+    parent: { __DASHBOARDMODERN_HOST__: true },
+    SocketCtor: AndroidWebViewSocket,
+  });
+
+  assert.equal(window.WebSocket.name, "StubSocket");
+  assert.equal(window.WebSocket.__dmHostedStub, true);
+  assert.equal(constructed, 0);
+  assert.notEqual(window.__DASHBOARDMODERN_BRIDGE_WS__, AndroidWebViewSocket);
 });
 
 test("the prelude never writes to shared localStorage", () => {
@@ -122,6 +140,7 @@ test("host query markers enable hosted mode without a readable parent", () => {
 
   assert.equal(window.__DASHBOARDMODERN_HOSTED__, true);
   assert.equal(window.__DASHBOARDMODERN_CONNECTION__.token, "__dashboardmodern_hosted__");
+  assert.equal(window.WebSocket.__dmHostedStub, true);
 });
 
 test("without a host the prelude is a no-op", () => {
@@ -134,8 +153,10 @@ test("without a host the prelude is a no-op", () => {
   }
 });
 
-test("the source contains no usable token handoff", () => {
+test("the source contains no usable token handoff or WebSocket source heuristic", () => {
   assert.doesNotMatch(PRELUDE, /__DASHBOARDMODERN_REAL_TOKEN__/);
   assert.doesNotMatch(PRELUDE, /access_token/);
   assert.doesNotMatch(PRELUDE, /LONG_LIVED_TOKEN/);
+  assert.doesNotMatch(PRELUDE, /native code/);
+  assert.doesNotMatch(PRELUDE, /PRELUDE_WEBSOCKET|DeferredSocket/);
 });
