@@ -253,16 +253,19 @@
     }
     var injected = window.__DASHBOARDMODERN_PRELUDE_WS__;
     if (typeof injected === "function" && isInjectedSocket(injected)) {
-      window.WebSocket =
+      var adapter =
         window.__DASHBOARDMODERN_PRELUDE_DEFERRED_WS__ ||
         deferredSocketConstructor(injected);
-      window.__DASHBOARDMODERN_PRELUDE_DEFERRED_WS__ = window.WebSocket;
+      window.__DASHBOARDMODERN_PRELUDE_DEFERRED_WS__ = adapter;
+      window.__DASHBOARDMODERN_BRIDGE_WS__ = adapter;
+      window.__DASHBOARDMODERN_BRIDGED__ = true;
+      window.WebSocket = adapter;
       return true;
     }
     return false;
   }
 
-  window.WebSocket = explicitBridge() || StubSocket;
+  if (!adoptBridge()) window.WebSocket = StubSocket;
   window.__DASHBOARDMODERN_CONNECTION__ = {
     token: HOSTED_PLACEHOLDER,
     local_ip: window.location.host,
