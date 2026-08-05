@@ -10,44 +10,47 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.3-0ea5e9" alt="Versione 0.15.3">
+  <img src="https://img.shields.io/badge/version-0.15.4-0ea5e9" alt="Versione 0.15.4">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.3
-> restores the canonical appliance artwork, Temperature room UI, lifetime Energy
-> entities and repository branding after the 0.15.2 real-install regression.
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.4
+> completes the real-UI recovery with stable Energy history, editable existing
+> items, corrected EV images, readable Temperature status and theme-aware appliances.
 
 ---
 
-## Novità 0.15.3
+## Novità 0.15.4
 
-La 0.15.3 è una release correttiva della 0.15.2 verificata sulla UI reale di Home Assistant.
+La 0.15.4 completa la correzione della UI reale di Home Assistant ed è verificata con test Browser E2E su italiano, inglese, desktop, mobile e WebKit/iPad.
 
-### Interfaccia ripristinata
+### Energia e Report
 
-- artwork canonico chiaro per gli elettrodomestici, senza ritorno alle vecchie tessere scure;
-- immagini personalizzate degli elettrodomestici mantenute e adattate alla card;
-- icone locali e valori live nella sezione Temperatura;
-- editor Temperatura basato esclusivamente sulle stanze canoniche, senza secondo campo icona duplicato;
-- badge temperatura senza la vecchia fiamma invasiva.
+- mantenuti insieme i sensori **Energia totale** e annuali durante le migrazioni;
+- valori giornalieri, mensili e annuali pubblicati come un unico bundle coerente;
+- eliminati i valori transitori errati durante il secondo recupero Recorder;
+- descrizioni chiare per i contatori `total` e `total_increasing`;
+- mesi precedenti ricostruibili anche per gli elettrodomestici tramite il sensore totale;
+- editor Report e dettaglio dispositivi resi più completi e leggibili.
 
-### Energia
+### Interfaccia reale
 
-- ripristinato il campo **Energia totale** per Casa e Fotovoltaico;
-- ripristinati i totali di prelievo e immissione per la Rete;
-- ripristinati energia caricata/scaricata e relativi totali per la Batteria;
-- il sensore lifetime resta disponibile anche quando giorno, mese e anno vengono calcolati dal Recorder;
-- gli elettrodomestici possono usare `total_energy_entity` per ricostruire correttamente i mesi precedenti nel Report.
+- elementi esistenti modificabili in Azioni, Clima, Tapparelle e Stanze;
+- URL auto `/loca/...` normalizzati automaticamente in `/local/...`;
+- immagine EV verificata nella pagina pubblica effettiva;
+- card Elettrodomestici leggibili e coerenti in modalità chiara e scura;
+- badge Temperatura con testo visibile: Freddo, Fresco, Comfort, Tiepido, Caldo o Non disponibile;
+- runtime consolidato senza reintrodurre owner numerati o intervalli permanenti.
 
-### HACS e documentazione
+### HACS e qualità
 
-- brand HACS disponibile nella cartella `brand/` alla radice del repository;
-- logo README con URL assoluto, quindi visibile anche nella pagina HACS;
-- versione README, manifest e test allineate alla stessa release.
+- manifest, README e contratto release allineati alla versione 0.15.4;
+- validazione HACS e hassfest;
+- test Python, Ruff, frontend e Browser E2E;
+- generazione automatica di `dashboardmodern.zip` dal commit pubblicato.
 
 ---
 
