@@ -72,6 +72,17 @@ function synchronizeReportFields() {
   });
 }
 
+function normalizeLightEditCompatibility() {
+  let changed = false;
+  doc?.querySelectorAll('#editor-modal [data-light-entity] button[onclick^="dmOpenLightEditor"]').forEach((button) => {
+    const entity = clean(button.closest("[data-light-entity]")?.dataset?.lightEntity);
+    if (!entity) return;
+    button.setAttribute("onclick", `cdLuceRen(${JSON.stringify(entity)})`);
+    changed = true;
+  });
+  return changed;
+}
+
 function normalizeAlertsEditor() {
   if (doc?.querySelector(".ed-tab.active")?.dataset?.tab !== "avvisi") return false;
   root.__DASHBOARDMODERN_ALERTS_RUNTIME__?.apply?.();
@@ -127,6 +138,7 @@ function removeBatteryGlyphs() {
 
 export function applyEditorContracts() {
   normalizeReportManualPanel();
+  normalizeLightEditCompatibility();
   normalizeAlertsEditor();
   normalizeTemperatureEditor();
   normalizeEnergyHelp();
