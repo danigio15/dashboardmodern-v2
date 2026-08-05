@@ -29,7 +29,11 @@ async function exists(file) {
 }
 
 async function productionEntries() {
-  const entries = new Set([path.join(legacyRoot, "modules-entry.js")]);
+  const entries = new Set([
+    path.join(legacyRoot, "modules-entry.js"),
+    // scripts/vendor_legacy.py injects this module after the vendored HTML is built.
+    path.join(legacyRoot, "report-mobile-fixes.js"),
+  ]);
   for (const name of ["dashboard.html", "dashboard-en.html"]) {
     const html = await readFile(path.join(legacyRoot, name), "utf8");
     for (const match of html.matchAll(scriptPattern)) {
@@ -61,7 +65,7 @@ async function productionGraph() {
   return seen;
 }
 
-test("every JavaScript file in legacy is reachable from a shipped HTML entry", async () => {
+test("every JavaScript file in legacy is reachable from a production entry", async () => {
   const graph = await productionGraph();
   const all = (await filesBelow(legacyRoot)).filter((file) => file.endsWith(".js"));
   const orphans = all
