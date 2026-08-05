@@ -1,4 +1,4 @@
-/* DashboardModern 0.15.3 — single production entry and real-UI contracts. */
+/* DashboardModern 0.15.4 — single production entry and real-UI contracts. */
 import "./runtime-consolidated.js";
 import "../src/core/runtime-startup-coordinator.js";
 import "../src/core/alerts-runtime.js";
@@ -14,7 +14,7 @@ const doc = root.document;
 const KEY = "__DASHBOARDMODERN_REAL_UI_CONTRACTS__";
 const state = (root[KEY] ||= {
   installed: true,
-  version: "0.15.3",
+  version: "0.15.4",
   attempts: 0,
   timer: 0,
   normalizingAppliances: false,
@@ -271,26 +271,21 @@ function normalizeTemperatureCards() {
       if (value) value.textContent = temperature == null ? "—" : temperature.toFixed(1);
       if (humidityValue) humidityValue.textContent = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
       if (comfort) {
-        let badge = "🟢";
         let label = "Comfort";
         if (temperature == null) {
-          badge = "—";
           label = english() ? "Unavailable" : "Non disponibile";
         } else if (temperature < 16) {
-          badge = "❄️";
           label = english() ? "Cold" : "Freddo";
         } else if (temperature < 19) {
-          badge = "🔵";
           label = english() ? "Cool" : "Fresco";
         } else if (temperature > 27) {
-          badge = "🟠";
           label = english() ? "Hot" : "Caldo";
         } else if (temperature > 24) {
-          badge = "🟡";
           label = english() ? "Warm" : "Tiepido";
         }
-        comfort.textContent = badge;
+        comfort.textContent = label;
         comfort.title = label;
+        comfort.setAttribute("aria-label", label);
       }
     });
     return true;
