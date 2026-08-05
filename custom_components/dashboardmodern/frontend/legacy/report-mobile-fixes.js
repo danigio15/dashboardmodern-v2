@@ -9,6 +9,17 @@ if (typeof document !== "undefined" && !document.getElementById("dm-report-respo
   const style = document.createElement("style");
   style.id = "dm-report-responsive-0152";
   style.textContent = `
+    #dm-light-picker-0152 {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 20000 !important;
+      pointer-events: auto !important;
+    }
+    #dm-light-picker-0152 .modal-content {
+      position: relative !important;
+      z-index: 1 !important;
+      pointer-events: auto !important;
+    }
     @media (max-width: 720px) {
       .ed-header-period { align-items: stretch; }
       .ed-yoy-chips { display:flex; flex-wrap:wrap; gap:6px; }
