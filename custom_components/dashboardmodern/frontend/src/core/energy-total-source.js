@@ -1,4 +1,4 @@
-/* Preserve cumulative totals, canonical aliases and final live-state cleanup. */
+/* Preserve cumulative totals, gate readiness and clean final live-state UI. */
 import { applyAtomicEnergyBundle } from "../../legacy/runtime-consolidated.js";
 import { HomeAssistantBroker } from "./period-service.js";
 
@@ -31,6 +31,22 @@ const finite = (value) => {
 };
 const rounded = (value) => Math.round((finite(value) || 0) * 1000) / 1000;
 
+function energyModel() {
+  return root.DashboardModernModules?.store?.getSection?.("energy") || {};
+}
+
+function hasEnergySource() {
+  const energy = energyModel();
+  return Boolean(
+    clean(
+      energy.house?.daily_energy ||
+        energy.house?.monthly_energy ||
+        energy.house?.total_energy ||
+        energy.house?.annual_energy,
+    ),
+  );
+}
+
 function synchronizeRuntimeAlias() {
   const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
   if (!runtime) return null;
@@ -38,20 +54,30 @@ function synchronizeRuntimeAlias() {
   return runtime;
 }
 
-function holdRuntime(runtime = synchronizeRuntimeAlias()) {
-  if (!runtime || state.done) return;
-  runtime.ready = false;
+function installReadyGate() {
+  const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
+  if (!runtime || runtime.__dmEnergyReadyGate0152 || !hasEnergySource()) return false;
+  let canonicalReady = Boolean(runtime.ready);
+  Object.defineProperty(runtime, "ready", {
+    configurable: true,
+    enumerable: true,
+    get() {
+      return state.done === true && canonicalReady === true;
+    },
+    set(value) {
+      canonicalReady = Boolean(value);
+    },
+  });
+  Object.defineProperty(runtime, "__dmEnergyReadyGate0152", {
+    configurable: true,
+    value: true,
+  });
+  state.readyGateInstalled = true;
   root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
+  return true;
 }
 
-function releaseRuntime(runtime = synchronizeRuntimeAlias()) {
-  if (!runtime) return;
-  runtime.ready = true;
-  root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
-  root.dispatchEvent?.(
-    new CustomEvent("dashboardmodern:runtime-ready", { detail: { energyRecovered: true } }),
-  );
-}
+installReadyGate();
 
 function requestFullEnergyRecovery() {
   if (!state.repaired || state.forced) return false;
@@ -61,7 +87,6 @@ function requestFullEnergyRecovery() {
   if (!runtime || !vehicle || coordinator?.running || vehicle.energyRunning) return false;
 
   state.forced = true;
-  holdRuntime(runtime);
   runtime.bundle = null;
   runtime.lastRefreshAt = 0;
   root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
@@ -100,8 +125,8 @@ async function repair() {
   const source = clean(energy.house?.total_energy || energy.house?.monthly_energy);
   if (!source) return;
 
+  installReadyGate();
   state.repairing = true;
-  holdRuntime();
   try {
     if (changed) await store.replaceSection("energy", energy);
     state.repaired = true;
@@ -116,12 +141,12 @@ async function repair() {
 }
 
 function daySources() {
-  const energy = root.DashboardModernModules?.store?.getSection?.("energy") || {};
+  const energy = energyModel();
   const source = (group, periodKey, totalKey) =>
     clean(
       energy[group]?.[periodKey] ||
-      energy[group]?.[totalKey] ||
-      energy[group]?.annual_energy,
+        energy[group]?.[totalKey] ||
+        energy[group]?.annual_energy,
     );
   return {
     house: source("house", "daily_energy", "total_energy"),
@@ -181,7 +206,6 @@ async function repairDayBundle() {
   if (!sources.house) return;
 
   state.dayRunning = true;
-  holdRuntime(runtime);
   try {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -190,7 +214,7 @@ async function repairDayBundle() {
     const end = new Date(now);
     // During 00:xx the recorder mock would otherwise classify the current
     // interval as the midnight baseline. A future 01:00 boundary is harmless
-    // for Home Assistant: Recorder returns the samples available up to now.
+    // for Home Assistant: Recorder returns only samples available up to now.
     if (end.getHours() === 0) end.setHours(1, 0, 0, 0);
 
     const [current, baseline] = await Promise.all([
@@ -237,10 +261,11 @@ async function repairDayBundle() {
 
 function energyTick() {
   state.timer = 0;
+  if (state.done) return;
   state.attempts += 1;
+  installReadyGate();
   repair();
   const runtime = synchronizeRuntimeAlias();
-  if ((state.repairing || state.repaired) && !state.done) holdRuntime(runtime);
   requestFullEnergyRecovery();
 
   const vehicle = root.__DASHBOARDMODERN_VEHICLE_IMAGE_RUNTIME__;
@@ -254,6 +279,7 @@ function energyTick() {
 
   if (baseComplete && state.dayDone && !state.dayRunning) {
     state.done = true;
+    runtime.ready = true;
     root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
     if (root.document?.documentElement) {
       root.document.documentElement.dataset.dmRuntimeAlias = [
@@ -262,13 +288,13 @@ function energyTick() {
         runtime.bundle.year.house,
       ].join("/");
     }
-    releaseRuntime(runtime);
     return;
   }
 
   if (state.dayFailures >= 8 || state.attempts >= 520) {
     state.done = true;
-    releaseRuntime(runtime);
+    if (runtime) runtime.ready = true;
+    root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
     return;
   }
 
@@ -311,7 +337,7 @@ function shutterTick() {
 }
 
 function start() {
-  energyTick();
+  if (!state.done && !state.timer) energyTick();
   if (!state.shutterTimer && state.shutterAttempts < 360) shutterTick();
 }
 
