@@ -13,7 +13,7 @@ async function openEditor(page, tab) {
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: 0.15.2 root runtime keeps Energy, Lights, Alerts, Quick Actions and EV coherent`, async ({
+  test(`${variant}: 0.15.3 keeps Energy, appliance artwork, Lights, Alerts, EV and Temperature coherent`, async ({
     page,
   }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 180_000 : 110_000);
@@ -66,6 +66,40 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       expect(sample.report).toMatch(/39[,.]9/);
       expect(`${sample.day} ${sample.month} ${sample.report}`).not.toContain("614");
     }
+
+    // Real regression from 0.15.2: lifetime fields vanished from the editor,
+    // even though the Recorder runtime still depended on those sources.
+    await openEditor(page, "sez1");
+    const energyEditor = page.locator('#ed-body[data-editor="energy"]');
+    await expect(energyEditor).toBeVisible();
+    const totalFields = {
+      "#dm-energy-house-total_energy": "sensor.house_total",
+      "#dm-energy-solar-total_energy": "sensor.solar_total",
+      "#dm-energy-grid-total_import_energy": "sensor.grid_import_total",
+      "#dm-energy-grid-total_export_energy": "sensor.grid_export_total",
+      "#dm-energy-battery-total_charged_energy": "sensor.battery_charge_total",
+      "#dm-energy-battery-total_discharged_energy": "sensor.battery_discharge_total",
+    };
+    for (const [selector, value] of Object.entries(totalFields)) {
+      await expect(page.locator(selector)).toBeVisible();
+      await expect(page.locator(selector)).toHaveValue(value);
+    }
+    await expect
+      .poll(() =>
+        page.evaluate(() => DashboardModernModules.store.getSection("energy")),
+      )
+      .toMatchObject({
+        house: { total_energy: "sensor.house_total" },
+        solar: { total_energy: "sensor.solar_total" },
+        grid: {
+          total_import_energy: "sensor.grid_import_total",
+          total_export_energy: "sensor.grid_export_total",
+        },
+        battery: {
+          total_charged_energy: "sensor.battery_charge_total",
+          total_discharged_energy: "sensor.battery_discharge_total",
+        },
+      });
 
     await page.evaluate(() => {
       localStorage.setItem(
@@ -161,9 +195,30 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(vehicle).toHaveAttribute("src", /\/local\/auto\/b10\.png$/);
     await expect(vehicle).toBeVisible();
 
+    await page.locator("#editor-modal .ed-head-close").last().click();
+    await expect(page.locator("#editor-modal")).toHaveCount(0);
+
+    // Real regression from 0.15.2: canonical artwork was replaced by the old
+    // navy line-icon tile. Verify both the DOM owner and the rendered surface.
+    await clickBottomTab(page, "appliances", testInfo);
+    const appliance = page.locator(
+      '#page-appliances-main .appl-wide-card[data-appliance-id="appl-fridge"]',
+    );
+    await expect(appliance).toBeVisible();
+    await expect(appliance).toHaveAttribute("data-dm-art-style", "panel");
+    await expect(appliance).toHaveAttribute("data-dm-media-kind", "asset");
+    const artwork = appliance.locator(".dm-appliance-art .dm-art-panel");
+    await expect(artwork).toBeVisible();
+    await expect(artwork).toHaveAttribute("fill", "#e0f2fe");
+    await expect(appliance.locator(".appl-visual")).toHaveCSS(
+      "background-color",
+      "rgb(224, 242, 254)",
+    );
+
     await clickBottomTab(page, "temp", testInfo);
     const temperatureCard = page.locator("#temp-grid .temp-card").first();
     await expect(temperatureCard).toBeVisible();
+    await expect(temperatureCard.locator(".dm-temperature-icon-fallback")).toBeVisible();
     await expect(temperatureCard).not.toContainText("🔥");
   });
 }
