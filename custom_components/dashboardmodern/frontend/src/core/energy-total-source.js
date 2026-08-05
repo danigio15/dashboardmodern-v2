@@ -1,4 +1,4 @@
-/* Preserve cumulative totals and keep the historical runtime alias canonical. */
+/* Preserve cumulative totals, canonical aliases and final live-state cleanup. */
 const root = globalThis;
 const KEY = "__DASHBOARDMODERN_ENERGY_TOTAL_SOURCE__";
 const state = (root[KEY] ||= {
@@ -7,36 +7,41 @@ const state = (root[KEY] ||= {
   timer: 0,
   repairing: false,
   repaired: false,
+  forced: false,
   done: false,
+  shutterAttempts: 0,
+  shutterTimer: 0,
 });
 
 const clean = (value) => String(value ?? "").trim();
 
 function synchronizeRuntimeAlias() {
   const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
-  if (!runtime) return 0;
+  if (!runtime) return null;
   root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
-  return Number(runtime.bundle?.month?.house || 0);
+  return runtime;
 }
 
-function kickEnergyRuntime() {
-  const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
-  if (runtime && Number(runtime.bundle?.month?.house || 0) === 0) {
-    runtime.bundle = null;
-    runtime.lastRefreshAt = 0;
-  }
-  synchronizeRuntimeAlias();
+function requestFullEnergyRecovery() {
+  if (!state.repaired || state.forced) return false;
+  const runtime = synchronizeRuntimeAlias();
   const coordinator = root.__DASHBOARDMODERN_STARTUP_COORDINATOR__;
-  if (coordinator && !coordinator.running) coordinator.completed = false;
   const vehicle = root.__DASHBOARDMODERN_VEHICLE_IMAGE_RUNTIME__;
-  if (vehicle) {
-    vehicle.energyVerified = false;
-    vehicle.scheduleContracts?.(0);
-    vehicle.verifyEnergy?.();
-  }
+  if (!runtime || !vehicle || coordinator?.running || vehicle.energyRunning) return false;
+
+  state.forced = true;
+  runtime.bundle = null;
+  runtime.lastRefreshAt = 0;
+  root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
+  vehicle.energyVerified = false;
+  vehicle.scheduleContracts?.(0);
+  vehicle.verifyEnergy?.();
   root.dispatchEvent?.(
-    new CustomEvent("dashboardmodern:energy-total-source-ready"),
+    new CustomEvent("dashboardmodern:energy-total-source-ready", {
+      detail: { source: state.source, fullRecovery: true },
+    }),
   );
+  return true;
 }
 
 async function repair() {
@@ -70,7 +75,6 @@ async function repair() {
     state.source = source;
     if (root.document?.documentElement)
       root.document.documentElement.dataset.dmEnergyTotalSource = source;
-    kickEnergyRuntime();
   } catch (error) {
     state.error = clean(error?.message || error);
   } finally {
@@ -78,21 +82,79 @@ async function repair() {
   }
 }
 
-function tick() {
+function energyTick() {
   state.timer = 0;
   state.attempts += 1;
   repair();
-  const house = synchronizeRuntimeAlias();
-  if (state.repaired && Number.isFinite(house) && house !== 0) {
+  synchronizeRuntimeAlias();
+  requestFullEnergyRecovery();
+
+  const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
+  const vehicle = root.__DASHBOARDMODERN_VEHICLE_IMAGE_RUNTIME__;
+  const complete =
+    state.forced &&
+    vehicle?.energyVerified === true &&
+    runtime?.bundle?.day &&
+    runtime?.bundle?.month &&
+    runtime?.bundle?.year;
+  if (complete) {
     state.done = true;
-    if (root.document?.documentElement)
-      root.document.documentElement.dataset.dmRuntimeAlias = String(house);
+    root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
+    if (root.document?.documentElement) {
+      root.document.documentElement.dataset.dmRuntimeAlias = [
+        runtime.bundle.day.house,
+        runtime.bundle.month.house,
+        runtime.bundle.year.house,
+      ].join("/");
+    }
     return;
   }
-  if (!state.done && state.attempts < 400)
-    state.timer = root.setTimeout?.(tick, 25);
+
+  if (!state.done && state.attempts < 480)
+    state.timer = root.setTimeout?.(energyTick, 25);
 }
 
-root.addEventListener?.("dashboardmodern:legacy-ready", tick);
-root.addEventListener?.("dashboardmodern:runtime-ready", tick);
-root.queueMicrotask?.(tick);
+function liveStates() {
+  let states = root.STATES || {};
+  try {
+    states = root.eval?.("typeof STATES !== 'undefined' && STATES ? STATES : null") || states;
+  } catch (_error) {}
+  return states || {};
+}
+
+function removeClosedShutterUi() {
+  const states = liveStates();
+  const covers = Object.entries(states).filter(([entity]) => entity.startsWith("cover."));
+  if (!covers.length) return;
+  const allClosed = covers.every(([, current]) => {
+    const status = clean(current?.state).toLowerCase();
+    const position = Number(current?.attributes?.current_position);
+    return (
+      status === "closed" ||
+      status === "unavailable" ||
+      status === "unknown" ||
+      (Number.isFinite(position) && position <= 0)
+    );
+  });
+  if (!allClosed) return;
+  root.document?.getElementById("tapp-avvisi")?.remove();
+  root.document?.getElementById("dm-shutter-popup")?.remove();
+}
+
+function shutterTick() {
+  state.shutterTimer = 0;
+  state.shutterAttempts += 1;
+  removeClosedShutterUi();
+  if (state.shutterAttempts < 360)
+    state.shutterTimer = root.setTimeout?.(shutterTick, 100);
+}
+
+function start() {
+  energyTick();
+  if (!state.shutterTimer && state.shutterAttempts < 360) shutterTick();
+}
+
+root.addEventListener?.("dashboardmodern:legacy-ready", start);
+root.addEventListener?.("dashboardmodern:runtime-ready", start);
+root.addEventListener?.("dashboardmodern:state-changed", removeClosedShutterUi);
+root.queueMicrotask?.(start);
