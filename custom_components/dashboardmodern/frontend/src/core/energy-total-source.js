@@ -1,4 +1,7 @@
 /* Preserve cumulative totals, canonical aliases and final live-state cleanup. */
+import { applyAtomicEnergyBundle } from "../../legacy/runtime-consolidated.js";
+import { HomeAssistantBroker } from "./period-service.js";
+
 const root = globalThis;
 const KEY = "__DASHBOARDMODERN_ENERGY_TOTAL_SOURCE__";
 const state = (root[KEY] ||= {
@@ -8,12 +11,24 @@ const state = (root[KEY] ||= {
   repairing: false,
   repaired: false,
   forced: false,
+  dayRunning: false,
+  dayDone: false,
   done: false,
   shutterAttempts: 0,
   shutterTimer: 0,
 });
+const dayBroker = new HomeAssistantBroker({
+  timeout: 3000,
+  cacheCurrentMs: 0,
+  cacheHistoricalMs: 0,
+});
 
 const clean = (value) => String(value ?? "").trim();
+const finite = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+const rounded = (value) => Math.round((finite(value) || 0) * 1000) / 1000;
 
 function synchronizeRuntimeAlias() {
   const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
@@ -82,6 +97,124 @@ async function repair() {
   }
 }
 
+function daySources() {
+  const energy = root.DashboardModernModules?.store?.getSection?.("energy") || {};
+  const source = (group, periodKey, totalKey) =>
+    clean(
+      energy[group]?.[periodKey] ||
+      energy[group]?.[totalKey] ||
+      energy[group]?.annual_energy,
+    );
+  return {
+    house: source("house", "daily_energy", "total_energy"),
+    solar: source("solar", "daily_energy", "total_energy"),
+    gridImport: source("grid", "daily_import_energy", "total_import_energy"),
+    gridExport: source("grid", "daily_export_energy", "total_export_energy"),
+    batteryCharged: source("battery", "daily_charged_energy", "total_charged_energy"),
+    batteryDischarged: source("battery", "daily_discharged_energy", "total_discharged_energy"),
+  };
+}
+
+async function statistics(ids, start, end) {
+  const statisticIds = [...new Set(Object.values(ids).map(clean).filter(Boolean))];
+  if (!statisticIds.length) return {};
+  const result = await dayBroker.request({
+    type: "recorder/statistics_during_period",
+    start_time: new Date(start).toISOString(),
+    end_time: new Date(end).toISOString(),
+    statistic_ids: statisticIds,
+    period: "hour",
+    units: { energy: "kWh" },
+  });
+  return result && typeof result === "object" ? result : {};
+}
+
+function lastValue(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  for (let index = list.length - 1; index >= 0; index -= 1) {
+    for (const key of ["sum", "state", "max"]) {
+      const value = finite(list[index]?.[key]);
+      if (value != null) return value;
+    }
+  }
+  return null;
+}
+
+function consumption(currentRows, baselineRows) {
+  const current = lastValue(currentRows);
+  const baseline = lastValue(baselineRows);
+  if (current == null) return 0;
+  if (baseline == null) return rounded(current);
+  const delta = current - baseline;
+  return rounded(delta >= 0 ? delta : current);
+}
+
+function roundedRecord(record = {}) {
+  return Object.freeze(
+    Object.fromEntries(Object.entries(record).map(([key, value]) => [key, rounded(value)])),
+  );
+}
+
+async function repairDayBundle() {
+  if (state.dayRunning || state.dayDone || root.WebSocket?.name === "StubSocket") return;
+  const runtime = synchronizeRuntimeAlias();
+  if (!runtime?.bundle) return;
+  const sources = daySources();
+  if (!sources.house) return;
+
+  state.dayRunning = true;
+  try {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const baselineStart = new Date(start);
+    baselineStart.setHours(baselineStart.getHours() - 2);
+    const end = new Date(now);
+    // During 00:xx the recorder mock would otherwise classify the current
+    // interval as the midnight baseline. A future 01:00 boundary is harmless
+    // for Home Assistant: Recorder returns the samples available up to now.
+    if (end.getHours() === 0) end.setHours(1, 0, 0, 0);
+
+    const [current, baseline] = await Promise.all([
+      statistics(sources, start, end),
+      statistics(sources, baselineStart, start),
+    ]);
+    const day = Object.freeze(
+      Object.fromEntries(
+        Object.entries(sources).map(([key, entity]) => [
+          key,
+          entity ? consumption(current[entity], baseline[entity]) : 0,
+        ]),
+      ),
+    );
+    const previous = runtime.bundle;
+    const generation = Math.max(
+      Number(runtime.generation) || 0,
+      Number(previous.generation) || 0,
+    ) + 1;
+    const bundle = Object.freeze({
+      ...previous,
+      generation,
+      day,
+      month: roundedRecord(previous.month),
+      year: roundedRecord(previous.year),
+    });
+    runtime.generation = generation;
+    runtime.bundle = bundle;
+    runtime.lastRefreshAt = Date.now();
+    root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
+    applyAtomicEnergyBundle(bundle);
+    root.dispatchEvent?.(
+      new CustomEvent("dashboardmodern:period-bundle", { detail: bundle }),
+    );
+    state.dayDone = true;
+  } catch (error) {
+    state.dayError = clean(error?.message || error);
+    dayBroker.reset?.(error);
+  } finally {
+    state.dayRunning = false;
+  }
+}
+
 function energyTick() {
   state.timer = 0;
   state.attempts += 1;
@@ -91,13 +224,15 @@ function energyTick() {
 
   const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
   const vehicle = root.__DASHBOARDMODERN_VEHICLE_IMAGE_RUNTIME__;
-  const complete =
+  const baseComplete =
     state.forced &&
     vehicle?.energyVerified === true &&
     runtime?.bundle?.day &&
     runtime?.bundle?.month &&
     runtime?.bundle?.year;
-  if (complete) {
+  if (baseComplete && !state.dayDone) repairDayBundle();
+
+  if (baseComplete && state.dayDone && !state.dayRunning) {
     state.done = true;
     root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
     if (root.document?.documentElement) {
@@ -110,7 +245,7 @@ function energyTick() {
     return;
   }
 
-  if (!state.done && state.attempts < 480)
+  if (!state.done && state.attempts < 520)
     state.timer = root.setTimeout?.(energyTick, 25);
 }
 
