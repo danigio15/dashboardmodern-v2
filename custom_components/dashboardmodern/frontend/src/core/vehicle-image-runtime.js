@@ -29,10 +29,16 @@ function legacyStates() {
 }
 
 function allStates() {
+  const live = legacyStates();
+  for (const [entity, current] of Object.entries(live)) {
+    if (!entity.startsWith("cover.")) continue;
+    if (root._RAW_STATES) root._RAW_STATES[entity] = current;
+    if (root.STATES && root.STATES !== live) root.STATES[entity] = current;
+  }
   return {
     ...(root._RAW_STATES || {}),
     ...(root.STATES || {}),
-    ...legacyStates(),
+    ...live,
   };
 }
 
