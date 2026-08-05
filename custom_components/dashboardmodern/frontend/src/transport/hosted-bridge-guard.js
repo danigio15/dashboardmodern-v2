@@ -48,6 +48,25 @@ export function isNativeSocket(SocketCtor = root.WebSocket) {
   }
 }
 
+export function ensureSocketConstants(SocketCtor) {
+  if (typeof SocketCtor !== "function") return SocketCtor;
+  for (const [key, fallback] of Object.entries({ CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 })) {
+    if (SocketCtor[key] != null) continue;
+    try {
+      Object.defineProperty(SocketCtor, key, {
+        configurable: true,
+        enumerable: true,
+        value: fallback,
+      });
+    } catch (_error) {
+      try {
+        SocketCtor[key] = fallback;
+      } catch (_ignored) {}
+    }
+  }
+  return SocketCtor;
+}
+
 function deferredSocketConstructor(SocketCtor) {
   function DeferredSocket(...args) {
     const inner = Reflect.construct(SocketCtor, args);
@@ -98,9 +117,7 @@ function deferredSocketConstructor(SocketCtor) {
       },
     });
   }
-  for (const [key, fallback] of Object.entries({ CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 })) {
-    DeferredSocket[key] = SocketCtor[key] == null ? fallback : SocketCtor[key];
-  }
+  ensureSocketConstants(DeferredSocket);
   DeferredSocket.__dmPreloadedCredentialSocket = true;
   return DeferredSocket;
 }
@@ -112,6 +129,7 @@ export function adoptHostedBridge() {
     (typeof parentValue("__DASHBOARDMODERN_BRIDGE_WS__") === "function" &&
       parentValue("__DASHBOARDMODERN_BRIDGE_WS__"));
   if (typeof bridge !== "function") return false;
+  ensureSocketConstants(bridge);
   root.__DASHBOARDMODERN_HOSTED__ = true;
   root.__DASHBOARDMODERN_BRIDGED__ = true;
   root.__DASHBOARDMODERN_BRIDGE_WS__ = bridge;
@@ -138,6 +156,7 @@ export function isHostedBridgeReady() {
   const SocketCtor = root.WebSocket;
   if (typeof SocketCtor !== "function") return false;
   if (SocketCtor.name === "StubSocket" || isNativeSocket(SocketCtor)) return false;
+  ensureSocketConstants(SocketCtor);
   return root.__DASHBOARDMODERN_BRIDGED__ === true;
 }
 
