@@ -3,11 +3,25 @@ const HOSTED_PLACEHOLDER = "__dashboardmodern_hosted__";
 
 const clean = (value) => String(value ?? "").trim();
 
+function nativeCredential() {
+  return clean(
+    root.DASHBOARDMODERN_AUTH_TOKEN ||
+      root.__DASHBOARDMODERN_REAL_TOKEN__ ||
+      root.__DASHBOARDMODERN_CONNECTION__?.token,
+  );
+}
+
+export function hasUsableNativeCredential() {
+  const token = nativeCredential();
+  return Boolean(token && token !== HOSTED_PLACEHOLDER);
+}
+
 export function isHostedDashboard() {
   if (root.__DASHBOARDMODERN_HOSTED__ === true || root.__DASHBOARDMODERN_BRIDGED__ === true)
     return true;
   try {
-    if (/[?&](?:dmi|dmp)=/.test(root.location?.search || "")) return true;
+    if (/[?&](?:dmi|dmp)=/.test(root.location?.search || ""))
+      return !hasUsableNativeCredential();
     return root.parent && root.parent !== root && root.parent.__DASHBOARDMODERN_HOST__ === true;
   } catch (_error) {
     return false;
