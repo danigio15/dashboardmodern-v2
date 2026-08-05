@@ -66,7 +66,8 @@ export function applyVehicleAsset() {
   if (!doc) return false;
   const original = configuredImage();
   const url = resolveVehicleAsset(original);
-  if (url && clean(original) !== url) root.localStorage?.setItem("cd_ev_image", JSON.stringify(url));
+  if (url && clean(original) !== url)
+    root.localStorage?.setItem("cd_ev_image", JSON.stringify(url));
   state.lastUrl = url;
   let mounted = false;
   for (const id of ["ev-mod-car-img", "ev-new-car-img"]) {
@@ -119,7 +120,8 @@ function profileMeta(car = {}) {
     overrides["dm.ev_battery"] ||
     overrides["dm.ev_soc"] ||
     "";
-  const current = batteryEntity && (root.STATES?.[batteryEntity] || root._RAW_STATES?.[batteryEntity]);
+  const current =
+    batteryEntity && (root.STATES?.[batteryEntity] || root._RAW_STATES?.[batteryEntity]);
   const value = Number(current?.state);
   return Number.isFinite(value) ? `${Math.round(value)}%` : t("Profilo EV", "EV profile");
 }
@@ -134,13 +136,12 @@ function nativeSelect() {
 
 function chooseProfile(index) {
   const select = nativeSelect();
-  if (select) {
-    select.value = String(index);
+  if (select) select.value = String(index);
+  if (typeof root.cdEvApplyCar === "function") root.cdEvApplyCar(index);
+  else if (select) {
     select.dispatchEvent(new Event("input", { bubbles: true }));
     select.dispatchEvent(new Event("change", { bubbles: true }));
-  }
-  if (typeof root.cdEvApplyCar === "function") root.cdEvApplyCar(index);
-  else root.localStorage?.setItem("cd_ev_car_active", String(index));
+  } else root.localStorage?.setItem("cd_ev_car_active", String(index));
   root.queueMicrotask?.(() => {
     renderVehicleSelector();
     applyVehicleAsset();
@@ -226,7 +227,8 @@ function schedule(delay = 0) {
     installLegacyWrappers();
     const ready = renderVehicleSelector();
     applyVehicleAsset();
-    if ((!ready || !nativeSelect()) && state.attempts < 80) schedule(state.attempts < 20 ? 50 : 250);
+    if ((!ready || !nativeSelect()) && state.attempts < 80)
+      schedule(state.attempts < 20 ? 50 : 250);
   }, delay);
 }
 
@@ -263,7 +265,12 @@ export function installEvSection() {
       },
       true,
     );
-    for (const event of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "dashboardmodern:state-changed", "pageshow"]) {
+    for (const event of [
+      "dashboardmodern:legacy-ready",
+      "dashboardmodern:runtime-ready",
+      "dashboardmodern:state-changed",
+      "pageshow",
+    ]) {
       root.addEventListener?.(event, () => {
         state.attempts = 0;
         schedule(0);
