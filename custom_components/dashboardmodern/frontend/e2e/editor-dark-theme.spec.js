@@ -167,7 +167,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       row: "rgb(27, 37, 64)",
       input: "rgb(33, 45, 76)",
       inputText: "rgb(230, 237, 247)",
-      labelText: "rgb(146, 164, 194)",
+      labelText: "rgb(168, 183, 207)",
     });
     expect(contrastRatio(palette.inputText, palette.input)).toBeGreaterThanOrEqual(7);
     expect(contrastRatio(palette.labelText, palette.row)).toBeGreaterThanOrEqual(4.5);
