@@ -1,4 +1,4 @@
-/* DashboardModern 0.15.4 — readiness and historical detail projection for the single Energy owner. */
+/* DashboardModern 0.15.4 — readiness, lifetime guidance and historical detail projection. */
 import { applyAtomicEnergyBundle } from "../../legacy/runtime-consolidated.js";
 
 const root = globalThis;
@@ -11,6 +11,8 @@ Object.assign(state, {
   attempts: 0,
   timer: 0,
   detailTimer: 0,
+  uiTimer: 0,
+  uiAttempts: 0,
   done: false,
   readyGateInstalled: false,
   appliedGeneration: 0,
@@ -24,6 +26,10 @@ const finite = (value) => {
 };
 const valueFrom = (values, entity) =>
   values instanceof Map ? finite(values.get(entity)) : finite(values?.[entity]);
+const english = () => {
+  const lang = clean(doc?.documentElement?.lang).toLowerCase();
+  return lang.startsWith("en") || /dashboard-en\.html$/i.test(root.location?.pathname || "");
+};
 
 function energyModel() {
   return root.DashboardModernModules?.store?.getSection?.("energy") || {};
@@ -70,15 +76,98 @@ function installReadyGate() {
   }
 }
 
+function energyHelpText(field) {
+  const group = clean(field?.dataset?.energyGroup);
+  const key = clean(field?.dataset?.energyKey);
+  const subject = {
+    house: english() ? "home consumption" : "il consumo della casa",
+    solar: english() ? "solar production" : "la produzione fotovoltaica",
+    grid: key.includes("export")
+      ? english()
+        ? "energy exported to the grid"
+        : "l’energia immessa in rete"
+      : english()
+        ? "energy imported from the grid"
+        : "l’energia prelevata dalla rete",
+    battery: key.includes("discharged")
+      ? english()
+        ? "battery discharge"
+        : "l’energia scaricata dalla batteria"
+      : english()
+        ? "battery charge"
+        : "l’energia caricata nella batteria",
+  }[group] || (english() ? "energy" : "l’energia");
+  return english()
+    ? `Use the lifetime cumulative kWh meter for ${subject}, with device_class: energy and state_class: total or total_increasing. DashboardModern derives day, month, year and previous months from Home Assistant Long-Term Statistics. Do not use a sensor that resets monthly.`
+    : `Usa il contatore cumulativo lifetime in kWh per ${subject}, con device_class: energy e state_class: total oppure total_increasing. DashboardModern ricava giorno, mese, anno e mesi precedenti dalle Long-Term Statistics di Home Assistant. Non usare un sensore che si azzera ogni mese.`;
+}
+
+function ensureEnergyHelp() {
+  const fields = [...(doc?.querySelectorAll?.("[data-dm-injected-energy-total='true']") || [])];
+  if (!fields.length) return false;
+  const editor = fields[0].closest("#ed-body,[data-editor='energy']") || fields[0].parentElement;
+  if (editor && !editor.querySelector(".dm-energy-total-overview")) {
+    const overview = doc.createElement("div");
+    overview.className = "dm-energy-total-overview";
+    overview.innerHTML = english()
+      ? "<b>Total entities and historical periods</b><br>Daily, monthly and annual entities are optional. A lifetime total meter lets the Report derive the selected period and previous months from Home Assistant Recorder statistics."
+      : "<b>Entità totali e periodi storici</b><br>Le entità giornaliera, mensile e annuale sono facoltative. Un contatore totale lifetime permette al Report di ricavare il periodo selezionato e i mesi precedenti dalle statistiche del Recorder di Home Assistant.";
+    editor.prepend(overview);
+  }
+  fields.forEach((field) => {
+    let helper = field.querySelector(":scope > .dm-energy-total-help");
+    if (!helper) {
+      helper = doc.createElement("small");
+      helper.className = "dm-energy-total-help";
+      field.append(helper);
+    }
+    helper.textContent = energyHelpText(field);
+  });
+  return fields.every((field) => field.querySelector(":scope > .dm-energy-total-help"));
+}
+
+function uiTick() {
+  state.uiTimer = 0;
+  state.uiAttempts += 1;
+  wrapEditorSwitch();
+  const complete = ensureEnergyHelp();
+  if (!complete && doc?.getElementById("editor-modal") && state.uiAttempts < 240)
+    state.uiTimer = root.setTimeout?.(uiTick, 50);
+}
+function scheduleUi(delay = 0) {
+  root.clearTimeout?.(state.uiTimer);
+  state.uiTimer = root.setTimeout?.(uiTick, delay);
+}
+function wrapEditorSwitch() {
+  const current = root.editorSwitch;
+  if (typeof current !== "function" || current.__dmEnergyHelp0154) return false;
+  function energyGuidedEditorSwitch(...args) {
+    const result = current.apply(this, args);
+    const finish = () => {
+      state.uiAttempts = 0;
+      root.queueMicrotask?.(ensureEnergyHelp);
+      scheduleUi(0);
+    };
+    if (result && typeof result.finally === "function") return result.finally(finish);
+    finish();
+    return result;
+  }
+  energyGuidedEditorSwitch.__dmEnergyHelp0154 = true;
+  energyGuidedEditorSwitch.__dmPrevious = current;
+  root.editorSwitch = energyGuidedEditorSwitch;
+  return true;
+}
+
 function setText(id, value) {
   const element = doc?.getElementById(id);
   if (element) element.textContent = value;
 }
 function rate(key) {
   const configured = root.cdCfg?.(key);
-  const raw = configured !== undefined && configured !== null && configured !== ""
-    ? configured
-    : root.localStorage?.getItem(key);
+  const raw =
+    configured !== undefined && configured !== null && configured !== ""
+      ? configured
+      : root.localStorage?.getItem(key);
   return finite(raw);
 }
 function splitFor(period, value) {
@@ -104,7 +193,7 @@ function applyDeviceDetail(bundle) {
   setText("ed-dkpi-mese", `${monthValue.toFixed(1)} kWh`);
   setText("ed-dkpi-mese-eur", `€ ${(monthValue * importPrice).toFixed(2)}`);
   setText("ed-dkpi-media", `${(days ? monthValue / days : 0).toFixed(2)} kWh`);
-  setText("ed-dkpi-media-sub", doc?.documentElement?.lang === "en" ? "Daily average" : "Media/giorno");
+  setText("ed-dkpi-media-sub", english() ? "Daily average" : "Media/giorno");
   setText("ed-dkpi-risp-eur", `+ ${(monthSplit.solar * importPrice).toFixed(2)} €`);
   setText("ed-dkpi-risp-kwh", `${monthSplit.solar.toFixed(1)} kWh da FV`);
   setText("ed-dkpi-costo-eur", `- ${(monthSplit.grid * importPrice).toFixed(2)} €`);
@@ -119,12 +208,13 @@ function applyDeviceDetail(bundle) {
   const canvas = doc?.getElementById("ed-dev-chart-canvas");
   if (message && monthValue > 0 && (!canvas || getComputedStyle(canvas).display === "none")) {
     message.style.display = "flex";
-    message.textContent = doc?.documentElement?.lang === "en"
+    message.textContent = english()
       ? `Selected month total: ${monthValue.toFixed(1)} kWh`
       : `Totale mese selezionato: ${monthValue.toFixed(1)} kWh`;
   }
   const panel = doc?.querySelector(".ed-device-detail,#ed-device-detail");
-  if (panel) panel.dataset.dmCanonicalDevicePeriod = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}|${monthValue}`;
+  if (panel)
+    panel.dataset.dmCanonicalDevicePeriod = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}|${monthValue}`;
   return true;
 }
 
@@ -145,6 +235,7 @@ function complete(runtime) {
     state.appliedGeneration = generation;
   }
   applyDeviceDetail(bundle);
+  ensureEnergyHelp();
   state.done = true;
   runtime.ready = true;
   root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
@@ -183,6 +274,8 @@ function tick() {
 }
 function schedule() {
   if (!state.done && !state.timer) state.timer = root.setTimeout?.(tick, 0);
+  wrapEditorSwitch();
+  ensureEnergyHelp();
   scheduleDeviceDetail(0);
 }
 
@@ -204,6 +297,7 @@ function wrapLegacyDetail() {
 installReadyGate();
 root.addEventListener?.("dashboardmodern:legacy-ready", () => {
   wrapLegacyDetail();
+  wrapEditorSwitch();
   schedule();
 });
 root.addEventListener?.("dashboardmodern:runtime-ready", schedule);
@@ -214,10 +308,21 @@ root.addEventListener?.("dashboardmodern:period-bundle", (event) => {
   schedule();
 });
 root.addEventListener?.("pageshow", schedule);
+doc?.addEventListener(
+  "click",
+  (event) => {
+    if (event.target?.closest?.(".ed-tab,[data-energy-tab],[data-energy-panel]")) {
+      state.uiAttempts = 0;
+      scheduleUi(0);
+    }
+  },
+  true,
+);
 doc?.addEventListener("change", (event) => {
   if (event.target?.matches?.("#ed-dev-selector,#ed-month,#ed-year")) scheduleDeviceDetail(80);
 });
 root.queueMicrotask?.(() => {
   wrapLegacyDetail();
+  wrapEditorSwitch();
   schedule();
 });
