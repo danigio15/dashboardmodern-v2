@@ -1,88 +1,61 @@
-/* DashboardModern 0.15.0 — one event-driven runtime owner. */
-import {
-  HomeAssistantBroker,
-  PERIOD_SOURCES,
-  isCumulativeEnergyEntity,
-  periodConsumption,
-  periodRange,
-  sourcePlans,
-} from "../src/core/period-service.js";
-import {
-  applianceArtwork,
-  applianceArtwork0152,
-  canonicalArtworkType,
-} from "../src/core/appliance-artwork.js";
+/* DashboardModern 0.15.2 — single production runtime owner. */
+import { HomeAssistantBroker, sourcePlans } from "../src/core/period-service.js";
 
-const VERSION = "0.15.0";
-const KEY = "__DASHBOARDMODERN_RUNTIME_0150__";
-const COMPAT_KEYS = [
-  "__DASHBOARDMODERN_RELEASE_0152__",
-  "__DASHBOARDMODERN_RELEASE_0154__",
-  "__DASHBOARDMODERN_RELEASE_0155_PUBLIC_RUNTIME__",
-  "__DASHBOARDMODERN_RELEASE_0156_FINAL_RUNTIME__",
-  "__DASHBOARDMODERN_RELEASE_0157_UI_STABILITY__",
-  "__DASHBOARDMODERN_RELEASE_0157_FINAL__",
-];
-
+const KEY = "__DASHBOARDMODERN_RUNTIME_ROOT__";
+const VERSION = "0.15.2";
 const broker = new HomeAssistantBroker();
-const text = (it, en) => (document.documentElement.lang === "en" ? en : it);
-const clean = (value) => String(value || "").trim();
+const root = globalThis;
+const doc = root.document;
+
+const state = (root[KEY] ||= {
+  installed: true,
+  version: VERSION,
+  ready: false,
+  generation: 0,
+  bundle: null,
+  selected: null,
+  refreshTimer: 0,
+  lastRefreshAt: 0,
+  wrappers: new Set(),
+  storeUnsubscribe: null,
+  brokerStarted: false,
+});
+
+const clean = (value) => String(value ?? "").trim();
 const finite = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
-const format = (value, digits = 1) => finite(value).toLocaleString(
-  document.documentElement.lang === "en" ? "en-US" : "it-IT",
-  { minimumFractionDigits: digits, maximumFractionDigits: digits },
-);
-
-function runtime() {
-  const state = (globalThis[KEY] ||= {
-    installed: true,
-    ready: false,
-    version: VERSION,
-    generation: 0,
-    selected: null,
-    bundle: null,
-    loading: false,
-    refreshTimer: 0,
-    wrappersInstalled: false,
-    storeSubscribed: false,
-    editorWrapped: false,
-    pendingEnergy: {},
-    editingApplianceId: "",
-    metrics: {
-      permanentIntervals: 0,
-      documentObservers: 0,
-      listeners: 0,
-      lastRequestMs: 0,
-      lastApplyMs: 0,
-      bundles: 0,
-    },
+const esc = (value) =>
+  clean(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll('"', "&quot;");
+const locale = () => (doc?.documentElement?.lang === "en" ? "en-US" : "it-IT");
+const format = (value, digits = 1) =>
+  finite(value).toLocaleString(locale(), {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
   });
-  return state;
+const text = (it, en) => (doc?.documentElement?.lang === "en" ? en : it);
+
+function readJson(key, fallback) {
+  try {
+    const value = JSON.parse(root.localStorage?.getItem(key) || "");
+    return value ?? fallback;
+  } catch (_error) {
+    return fallback;
+  }
 }
 
-function selectedPeriod() {
-  const now = new Date();
-  const month = Number(document.getElementById("ed-sel-month")?.value);
-  const year = Number(document.getElementById("ed-sel-year")?.value);
-  return {
-    month: Number.isInteger(month) && month >= 1 && month <= 12 ? month : now.getMonth() + 1,
-    year: Number.isInteger(year) && year >= 2000 ? year : now.getFullYear(),
-  };
-}
-
-function selectedDate(period = selectedPeriod()) {
-  return new Date(Number(period.year), Number(period.month) - 1, 1);
-}
-
-function tokenFor(period) {
-  return `${period.year}-${String(period.month).padStart(2, "0")}`;
+function writeJson(key, value) {
+  root.localStorage?.setItem(key, JSON.stringify(value));
+  root.cdMarkDirty?.();
+  root.cdSyncPush?.();
 }
 
 function dashboardStore() {
-  return globalThis.DashboardModernModules?.store || null;
+  return root.DashboardModernModules?.store || null;
 }
 
 function section(name, fallback) {
@@ -93,29 +66,81 @@ function section(name, fallback) {
   }
 }
 
-function energyConfig() {
-  return section("energy", {}) || {};
-}
-
 function allStates() {
-  return { ...(globalThis._RAW_STATES || {}), ...(globalThis.STATES || {}) };
+  return { ...(root._RAW_STATES || {}), ...(root.STATES || {}) };
 }
 
 function entityOverrides() {
-  try {
-    if (typeof ENTITY_OVERRIDES !== "undefined" && ENTITY_OVERRIDES) return ENTITY_OVERRIDES;
-  } catch (_error) {}
-  return globalThis.ENTITY_OVERRIDES || {};
+  const fromStore = section("entityOverrides", null);
+  if (fromStore && typeof fromStore === "object") return fromStore;
+  return readJson("cd_entity_overrides", root.ENTITY_OVERRIDES || {});
+}
+
+function selectedPeriod() {
+  const now = new Date();
+  const month = Number(doc?.getElementById("ed-sel-month")?.value);
+  const year = Number(doc?.getElementById("ed-sel-year")?.value);
+  return {
+    month: Number.isInteger(month) && month >= 1 && month <= 12 ? month : now.getMonth() + 1,
+    year: Number.isInteger(year) && year >= 2000 ? year : now.getFullYear(),
+  };
+}
+
+function selectedDate(period = selectedPeriod()) {
+  return new Date(period.year, period.month - 1, 1);
+}
+
+function periodRecord(values) {
+  return Object.freeze({
+    house: finite(values.get("house")),
+    solar: finite(values.get("solar")),
+    gridImport: finite(values.get("gridImport")),
+    gridExport: finite(values.get("gridExport")),
+    batteryCharged: finite(values.get("batteryCharged")),
+    batteryDischarged: finite(values.get("batteryDischarged")),
+  });
+}
+
+function writeDerived(plan, value, kind, date) {
+  if (!Number.isFinite(value) || !plan?.slot) return;
+  const rounded = Math.round(Math.max(0, value) * 1000) / 1000;
+  root.CD_PERIOD ||= {};
+  root.CD_PERIOD[plan.slot] = rounded;
+  broker.ingestState({
+    entity_id: plan.slot,
+    state: String(rounded),
+    attributes: {
+      unit_of_measurement: "kWh",
+      device_class: "energy",
+      state_class: "measurement",
+      dashboardmodern_derived: true,
+      dashboardmodern_period: kind,
+      dashboardmodern_source: plan.entity,
+      dashboardmodern_version: VERSION,
+    },
+    last_changed: date.toISOString(),
+    last_updated: new Date().toISOString(),
+  });
+}
+
+async function loadEnergyPeriod(kind, date) {
+  const plans = sourcePlans(
+    section("energy", {}),
+    kind,
+    allStates(),
+    entityOverrides(),
+    root.resolveEntity || ((value) => value),
+  );
+  const values = await broker.valuesForPlans(plans, date, allStates());
+  plans.forEach((plan) => writeDerived(plan, values.get(plan.key), kind, date));
+  return periodRecord(values);
 }
 
 function canonicalDevices() {
-  try {
-    const modules = globalThis.DashboardModernModules;
-    const build = modules?.data?.canonicalReportDevices;
-    if (typeof build === "function") {
-      return build(section("appliances", []), section("loads", []), allStates());
-    }
-  } catch (_error) {}
+  const build = root.DashboardModernModules?.data?.canonicalReportDevices;
+  if (typeof build === "function") {
+    return build(section("appliances", []), section("loads", []), allStates());
+  }
   return [...section("appliances", []), ...section("loads", [])]
     .filter((item) => item?.show_in_report !== false)
     .map((item) => ({
@@ -130,128 +155,75 @@ function canonicalDevices() {
     .filter((item) => item.entity);
 }
 
-function writeDerived(slot, value, source, kind, selected) {
-  if (!slot || !Number.isFinite(value)) return;
-  const rounded = Math.round(Math.max(0, value) * 1000) / 1000;
-  globalThis.CD_PERIOD ||= {};
-  globalThis.CD_PERIOD[slot] = rounded;
-  const stamp = new Date().toISOString();
-  const state = {
-    entity_id: slot,
-    state: String(rounded),
-    attributes: {
-      unit_of_measurement: "kWh",
-      device_class: "energy",
-      state_class: "measurement",
-      dashboardmodern_derived: true,
-      dashboardmodern_source: source,
-      dashboardmodern_period: kind,
-      dashboardmodern_selected: selected.toISOString(),
-      dashboardmodern_version: VERSION,
-    },
-    last_changed: stamp,
-    last_updated: stamp,
-  };
-  broker.ingestState(state);
-}
-
-function periodData(values) {
-  return {
-    house: finite(values.get("house")),
-    solar: finite(values.get("solar")),
-    gridImport: finite(values.get("gridImport")),
-    gridExport: finite(values.get("gridExport")),
-    batteryCharged: finite(values.get("batteryCharged")),
-    batteryDischarged: finite(values.get("batteryDischarged")),
-  };
-}
-
-async function loadEnergyPeriod(kind, date) {
-  const plans = sourcePlans(
-    energyConfig(),
-    kind,
-    allStates(),
-    entityOverrides(),
-    globalThis.resolveEntity || ((value) => value),
-  );
-  const values = await broker.valuesForPlans(plans, date, allStates());
-  plans.forEach((plan) => {
-    const value = values.get(plan.key);
-    if (Number.isFinite(value)) writeDerived(plan.slot, value, plan.entity, kind, date);
-  });
-  return periodData(values);
-}
-
 async function loadDevicePeriod(kind, date) {
   const devices = canonicalDevices();
-  const ids = [...new Set(devices.map((device) => clean(device.entity)).filter(Boolean))];
-  const values = await broker.valuesForEntities(ids, kind, date);
-  return {
-    devices,
-    values,
-  };
+  const ids = [...new Set(devices.map((item) => clean(item.entity)).filter(Boolean))];
+  return { devices, values: await broker.valuesForEntities(ids, kind, date) };
 }
 
 function rates() {
   const read = (key) => {
-    try {
-      const configured = globalThis.cdCfg?.(key);
-      if (configured !== undefined && configured !== null && configured !== "") return finite(configured);
-    } catch (_error) {}
-    try {
-      return finite(globalThis.localStorage?.getItem(key));
-    } catch (_error) {
-      return 0;
-    }
+    const configured = root.cdCfg?.(key);
+    if (configured !== undefined && configured !== null && configured !== "") return finite(configured);
+    return finite(root.localStorage?.getItem(key));
   };
-  return {
-    importPrice: read("cd_costo_kwh"),
-    exportPrice: read("cd_prezzo_immissione"),
-  };
+  return { importPrice: read("cd_costo_kwh"), exportPrice: read("cd_prezzo_immissione") };
 }
 
-async function loadBundle(period = selectedPeriod()) {
-  const state = runtime();
+export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
   const generation = ++state.generation;
-  state.loading = true;
-  const started = performance.now?.() ?? Date.now();
-  const date = selectedDate(period);
-  const [month, year, deviceMonth, deviceYear] = await Promise.all([
-    loadEnergyPeriod("month", date),
-    loadEnergyPeriod("year", date),
-    loadDevicePeriod("month", date),
-    loadDevicePeriod("year", date),
+  const monthDate = selectedDate(period);
+  const today = new Date();
+  const [day, month, year, deviceMonth, deviceYear] = await Promise.all([
+    loadEnergyPeriod("day", today),
+    loadEnergyPeriod("month", monthDate),
+    loadEnergyPeriod("year", monthDate),
+    loadDevicePeriod("month", monthDate),
+    loadDevicePeriod("year", monthDate),
   ]);
   if (generation !== state.generation) return null;
-  const bundle = {
-    token: tokenFor(period),
-    period: { ...period },
+  return Object.freeze({
+    generation,
+    period: Object.freeze({ ...period }),
+    day,
     month,
     year,
     deviceMonth,
     deviceYear,
-    rates: rates(),
-  };
-  state.selected = { ...period };
-  state.bundle = bundle;
-  state.loading = false;
-  state.metrics.lastRequestMs = Math.round((performance.now?.() ?? Date.now()) - started);
-  state.metrics.bundles += 1;
-  return bundle;
-}
-
-function setHtml(id, html) {
-  const node = document.getElementById(id);
-  if (!node || node.innerHTML === html) return false;
-  node.innerHTML = html;
-  return true;
+    rates: Object.freeze(rates()),
+  });
 }
 
 function setText(id, value) {
-  const node = document.getElementById(id);
-  if (!node || node.textContent === value) return false;
-  node.textContent = value;
-  return true;
+  const node = doc?.getElementById(id);
+  if (node && node.textContent !== value) node.textContent = value;
+}
+
+function setHtml(id, value) {
+  const node = doc?.getElementById(id);
+  if (node && node.innerHTML !== value) node.innerHTML = value;
+}
+
+function kwh(value, digits = 1) {
+  return `${format(value, digits)} kWh`;
+}
+
+function dual(imported, exported, battery = false) {
+  const down = battery ? "#10b981" : "#e11d48";
+  const up = battery ? "#e11d48" : "#10b981";
+  return `<span style="color:${down}">↓ ${format(imported, 1)} kWh</span><br><span style="color:${up}">↑ ${format(exported, 1)} kWh</span>`;
+}
+
+function applyFlow(kind, data) {
+  const suffix = kind === "day" ? "day" : "month";
+  setText(`v-solar-${suffix}`, kwh(data.solar));
+  setText(`v-home-${suffix}`, kwh(data.house));
+  setHtml(`v-grid-${suffix}`, dual(data.gridImport, data.gridExport));
+  setHtml(`v-battery-${suffix}`, dual(data.batteryCharged, data.batteryDischarged, true));
+  ["solar", "home", "grid", "battery"].forEach((key) => {
+    const node = doc?.getElementById(`n-${key}-${suffix}`);
+    if (node) node.dataset.dmPeriodOwner = VERSION;
+  });
 }
 
 function autonomy(data) {
@@ -264,584 +236,530 @@ function financial(data, bundle) {
   const exportIncome = data.gridExport * bundle.rates.exportPrice;
   const withoutSolar = data.house * bundle.rates.importPrice;
   const realCost = Math.max(0, importCost - exportIncome);
-  const saved = Math.max(0, withoutSolar - realCost);
-  return { importCost, exportIncome, withoutSolar, realCost, saved };
+  return {
+    importCost,
+    exportIncome,
+    withoutSolar,
+    realCost,
+    saved: Math.max(0, withoutSolar - realCost),
+  };
 }
 
-function applyOverview(bundle) {
+function applyReportOverview(bundle) {
   const data = bundle.month;
   const auto = autonomy(data);
   setHtml("ed-kpi-prod", `${format(data.solar)} <small>kWh</small>`);
   setHtml("ed-kpi-cons", `${format(data.house)} <small>kWh</small>`);
   setHtml("ed-kpi-auto", `${auto} <small>%</small>`);
-
-  const chips = document.getElementById("ed-yoy-chips");
+  const chips = doc?.getElementById("ed-yoy-chips");
   if (chips) {
     chips.innerHTML = [
-      `<span class="ed-yoy-chip dm-period-chip-0150">☀️ ${format(data.solar)} kWh</span>`,
-      `<span class="ed-yoy-chip dm-period-chip-0150">🏠 ${format(data.house)} kWh</span>`,
-      `<span class="ed-yoy-chip dm-period-chip-0150">⚡ ${format(data.gridImport)} kWh ${text("da Rete", "from Grid")}</span>`,
+      `<span class="ed-yoy-chip">☀️ ${kwh(data.solar)}</span>`,
+      `<span class="ed-yoy-chip">🏠 ${kwh(data.house)}</span>`,
+      `<span class="ed-yoy-chip">⚡ ${kwh(data.gridImport)} ${text("da Rete", "from Grid")}</span>`,
     ].join("");
   }
-
-  const finance = financial(data, bundle);
-  setText("ed-fin-pagato", `${format(finance.withoutSolar, 2)} €`);
-  setText("ed-fin-pagato-sub", `${format(data.house)} kWh`);
-  setText("ed-fin-costo", `${format(finance.realCost, 2)} €`);
-  setText("ed-fin-costo-sub", `${format(data.gridImport)} kWh ${text("dalla rete", "from grid")}`);
-  setText("ed-fin-risp", `${format(finance.saved, 2)} €`);
-  setText("ed-fin-risp-sub", `${format(Math.max(0, data.house - data.gridImport))} kWh ${text("autoconsumati", "self-consumed")}`);
-  setText("ed-fin-imm", `${format(finance.exportIncome, 2)} €`);
-  setText("ed-fin-imm-sub", `${format(data.gridExport)} kWh`);
-  setText("ed-fin-co2", `${format(data.solar * 0.233, 1)} kg`);
-  setText("ed-fin-co2-sub", "CO₂");
-
+  const money = financial(data, bundle);
+  setText("ed-fin-pagato", `${format(money.withoutSolar, 2)} €`);
+  setText("ed-fin-pagato-sub", kwh(data.house));
+  setText("ed-fin-costo", `${format(money.realCost, 2)} €`);
+  setText("ed-fin-costo-sub", `${kwh(data.gridImport)} ${text("dalla rete", "from grid")}`);
+  setText("ed-fin-risp", `${format(money.saved, 2)} €`);
+  setText("ed-fin-imm", `${format(money.exportIncome, 2)} €`);
   setText("ed-auto-big", `${auto}%`);
   setText("ed-auto-ring-val", `${auto}%`);
-  const circle = document.getElementById("ed-auto-circle");
+  const circle = doc?.getElementById("ed-auto-circle");
   if (circle) circle.setAttribute("stroke-dasharray", `${(201 * auto) / 100} 201`);
 }
 
 function applyAnnual(bundle) {
   const data = bundle.year;
-  const finance = financial(data, bundle);
+  const money = financial(data, bundle);
   setText("ed-year-summary-year", String(bundle.period.year));
-  setText("ed-year-pagato", `${format(finance.importCost, 2)} €`);
-  setText("ed-year-pagato-sub", `${format(data.gridImport)} kWh ${text("dalla rete", "from grid")}`);
-  setText("ed-year-risparmio", `${format(finance.saved, 2)} €`);
-  setText(
-    "ed-year-risparmio-sub",
-    `${text("su", "on")} ${format(data.house)} kWh ${text("consumati", "consumed")}`,
-  );
+  setText("ed-year-pagato", `${format(money.importCost, 2)} €`);
+  setText("ed-year-pagato-sub", `${kwh(data.gridImport)} ${text("dalla rete", "from grid")}`);
+  setText("ed-year-risparmio", `${format(money.saved, 2)} €`);
+  setText("ed-year-risparmio-sub", `${text("su", "on")} ${kwh(data.house)}`);
   setText("ed-dkpi-year-lbl", String(bundle.period.year));
 }
 
-function deviceEntity(row, devices) {
-  const direct = clean(row.dataset.entity || row.dataset.sensor);
-  if (direct) return direct;
-  const onclick = row.getAttribute("onclick") || "";
-  const match = /apriStorico\s*\(\s*event\s*,\s*['\"]([^'\"]+)/.exec(onclick);
-  if (match?.[1]) return match[1];
-  const name = clean(row.querySelector(".ed-dev-name")?.childNodes?.[0]?.textContent);
-  return clean(devices.find((device) => clean(device.name) === name)?.entity);
-}
-
 function applyDeviceRows(bundle) {
-  if (!bundle?.deviceMonth) return;
-  const list = document.getElementById("ed-device-list");
+  const list = doc?.getElementById("ed-device-list");
   if (!list) return;
   const { devices, values } = bundle.deviceMonth;
   const maximum = Math.max(0.001, ...devices.map((device) => finite(values.get(device.entity))));
   let total = 0;
-
   list.querySelectorAll(".ed-device-row").forEach((row) => {
-    const entity = deviceEntity(row, devices);
-    const value = values.get(entity) ?? values.get(globalThis.resolveEntity?.(entity) || entity);
+    const direct = clean(row.dataset.entity || row.dataset.sensor);
+    const name = clean(row.querySelector(".ed-dev-name")?.childNodes?.[0]?.textContent);
+    const entity = direct || clean(devices.find((device) => clean(device.name) === name)?.entity);
+    const value = values.get(entity) ?? values.get(root.resolveEntity?.(entity) || entity);
     if (!Number.isFinite(value)) return;
     total += value;
     row.dataset.entity = entity;
-    row.dataset.dmPeriodValue = String(value);
-    const kwh = row.querySelector(".ed-dev-kwh");
-    if (kwh) kwh.innerHTML = `${format(value)} <small>kWh</small>`;
+    row.dataset.dmPeriodOwner = VERSION;
+    const valueNode = row.querySelector(".ed-dev-kwh");
+    if (valueNode) valueNode.innerHTML = `${format(value)} <small>kWh</small>`;
     const eur = row.querySelector(".ed-dev-eur");
     if (eur) eur.textContent = `${format(value * bundle.rates.importPrice, 2)} €`;
     const fill = row.querySelector(".ed-dev-bar-fill,.ed-dev-bar");
-    if (fill) fill.style.width = `${Math.max(0, Math.min(100, (value / maximum) * 100))}%`;
-    row.querySelectorAll(".ed-dev-name small,.ed-dev-live,.ed-dev-total-live").forEach((node) => {
+    if (fill) fill.style.width = `${Math.min(100, (value / maximum) * 100)}%`;
+    row.querySelectorAll(".ed-dev-live,.ed-dev-total-live,.ed-dev-name small").forEach((node) => {
       node.hidden = true;
     });
   });
-
-  setText("ed-dev-total", `${format(total)} kWh`);
-  const label = document.getElementById("ed-dev-period-label");
-  if (label) {
-    const option = document.getElementById("ed-sel-month")?.selectedOptions?.[0]?.textContent || bundle.period.month;
-    label.textContent = `${option} ${bundle.period.year}`;
-  }
+  setText("ed-dev-total", kwh(total));
 }
 
-function applyBundle(bundle = runtime().bundle) {
-  if (!bundle) return false;
-  const started = performance.now?.() ?? Date.now();
-  applyOverview(bundle);
+export function applyAtomicEnergyBundle(bundle = state.bundle) {
+  if (!bundle || !doc) return false;
+  applyFlow("day", bundle.day);
+  applyFlow("month", bundle.month);
+  applyReportOverview(bundle);
   applyAnnual(bundle);
   applyDeviceRows(bundle);
-  removeDuplicateRoomNav();
-  applyOptionalFlowVisibility();
-  runtime().metrics.lastApplyMs = Math.round((performance.now?.() ?? Date.now()) - started);
+  doc.querySelectorAll("#view-day,#view-month,#view-panoramica").forEach((node) => {
+    node.dataset.dmEnergyBundle = String(bundle.generation);
+    node.removeAttribute("aria-busy");
+  });
   return true;
 }
 
-function showPeriodLoading(active) {
-  const page = document.getElementById("view-panoramica");
-  if (!page) return;
-  page.classList.toggle("dm-period-loading-0150", active);
-  page.toggleAttribute("aria-busy", active);
+function setEnergyLoading(active) {
+  doc?.querySelectorAll("#view-day,#view-month,#view-panoramica").forEach((node) => {
+    node.toggleAttribute("aria-busy", active);
+    node.classList.toggle("dm-energy-loading", active);
+  });
 }
 
-export async function refreshSelectedPeriod(period = selectedPeriod()) {
-  const state = runtime();
-  showPeriodLoading(true);
+export async function refreshEnergy(period = selectedPeriod()) {
+  setEnergyLoading(true);
   try {
-    const bundle = await loadBundle(period);
+    const bundle = await loadAtomicEnergyBundle(period);
     if (!bundle) return false;
-    applyBundle(bundle);
-    globalThis.dispatchEvent?.(
-      new CustomEvent("dashboardmodern:period-bundle", { detail: bundle }),
-    );
+    state.bundle = bundle;
+    state.selected = bundle.period;
+    state.lastRefreshAt = Date.now();
+    applyAtomicEnergyBundle(bundle);
+    root.dispatchEvent?.(new CustomEvent("dashboardmodern:period-bundle", { detail: bundle }));
     return true;
   } catch (error) {
-    state.loading = false;
-    console.warn("[DashboardModern 0.15.0] period bundle", error);
+    root.console?.warn?.("[DashboardModern] energy bundle", error);
     return false;
   } finally {
-    showPeriodLoading(false);
+    setEnergyLoading(false);
   }
 }
 
-export async function refreshEnergyStatistics0152(selected = new Date()) {
-  try {
-    const [day, month, year] = await Promise.all([
-      loadEnergyPeriod("day", new Date()),
-      loadEnergyPeriod("month", selected),
-      loadEnergyPeriod("year", selected),
-    ]);
-    const current = selectedPeriod();
-    if (selected.getMonth() + 1 === current.month && selected.getFullYear() === current.year) {
-      const state = runtime();
-      if (state.bundle) {
-        state.bundle.month = month;
-        state.bundle.year = year;
-        applyBundle(state.bundle);
-      }
-    }
-    return Boolean(day || month || year);
-  } catch (error) {
-    console.warn("[DashboardModern 0.15.0] statistics refresh", error);
-    return false;
-  }
+function scheduleEnergyRefresh(force = false) {
+  root.clearTimeout?.(state.refreshTimer);
+  const elapsed = Date.now() - state.lastRefreshAt;
+  const delay = force ? 0 : Math.max(250, 15000 - elapsed);
+  state.refreshTimer = root.setTimeout?.(() => refreshEnergy(), delay);
 }
 
-function scheduleRefresh(delay = 40, period = selectedPeriod()) {
-  const state = runtime();
-  globalThis.clearTimeout?.(state.refreshTimer);
-  const captured = { month: Number(period.month), year: Number(period.year) };
-  state.refreshTimer = globalThis.setTimeout?.(() => refreshSelectedPeriod(captured), delay);
-}
-
-function chainHas(fn, marker) {
-  const seen = new Set();
-  let current = fn;
-  while (typeof current === "function" && !seen.has(current)) {
-    if (current[marker]) return true;
-    seen.add(current);
-    current = current.__dmPrevious;
-  }
-  return false;
-}
-
-function wrapRender(name, after) {
-  const current = globalThis[name];
-  if (typeof current !== "function" || chainHas(current, "__dm0150Consolidated")) return false;
-  function consolidatedRender(...args) {
-    const result = current.apply(this, args);
-    const finish = () => globalThis.queueMicrotask?.(() => after?.(...args));
-    if (result && typeof result.finally === "function") return result.finally(finish);
-    finish();
-    return result;
-  }
-  consolidatedRender.__dm0150Consolidated = true;
-  consolidatedRender.__dmPrevious = current;
-  globalThis[name] = consolidatedRender;
-  return true;
-}
-
-function installArtworkOwner() {
-  const current = globalThis.cdApplianceIcon;
-  if (typeof current !== "function" || chainHas(current, "__dm0150Artwork")) return false;
-  function consolidatedArtwork(type, size) {
-    return applianceArtwork(type, size || 96) || current.call(this, type, size);
-  }
-  consolidatedArtwork.__dm0150Artwork = true;
-  consolidatedArtwork.__dmPrevious = current;
-  globalThis.cdApplianceIcon = consolidatedArtwork;
-  return true;
-}
-
-function normalizeArtwork() {
-  document.querySelectorAll("#page-appliances-main [data-appliance-id] .appl-visual").forEach((visual) => {
-    if (visual.querySelector("img[src]:not([src=''])")) return;
-    const card = visual.closest("[data-appliance-id]");
-    const device = section("appliances", []).find((item) => String(item.id) === card?.dataset.applianceId);
-    const token = device?.visual_key || device?.device_type || device?.icon || device?.name;
-    const markup = applianceArtwork(token, 96);
-    if (!markup) return;
-    visual.innerHTML = markup;
-    card.dataset.dmArtwork = canonicalArtworkType(token);
+export function configuredLightGroups() {
+  const lights = readJson("cd_luci", {});
+  const assignments = readJson("cd_luci_rooms", {});
+  const order = readJson("cd_luci_order", {});
+  const preferredRooms = readJson("cd_luci_room_order", []);
+  const ids = Object.keys(lights).filter((id) => id.includes("."));
+  const grouped = new Map();
+  ids.forEach((id) => {
+    const room = clean(assignments[id]) || text("Altre zone", "Other areas");
+    if (!grouped.has(room)) grouped.set(room, []);
+    grouped.get(room).push(id);
   });
-}
-
-function removeDuplicateRoomNav() {
-  document.querySelectorAll("#dm-appliance-room-nav-0157,.dm-appliance-room-nav-0157").forEach((node) => node.remove());
-  document.querySelectorAll("#page-appliances-main [data-dm-appliance-room-0157]").forEach((card) => {
-    card.removeAttribute("data-dm-appliance-room-0157");
-    card.hidden = false;
-  });
-}
-
-function configuredEntityText() {
-  const sections = ["energy", "ev", "loads", "appliances", "climate", "rooms"];
-  return JSON.stringify(Object.fromEntries(sections.map((name) => [name, section(name, name === "energy" ? {} : [])]))).toLowerCase();
-}
-
-function nodeAvailability() {
-  const energy = energyConfig();
-  const textConfig = configuredEntityText();
-  const hasGroup = (group) => Object.values(energy?.[group] || {}).some((value) => clean(value).includes("."));
-  return {
-    solar: hasGroup("solar"),
-    grid: hasGroup("grid"),
-    battery: hasGroup("battery"),
-    home: hasGroup("house"),
-    wb: /wallbox|evcc|charge[_ -]?power|charging[_ -]?power/.test(textConfig),
-    boiler: /boiler|scaldabagno|water[_ -]?heater/.test(textConfig),
-    clima: /climate\.|condizion|air[_ -]?condition/.test(textConfig),
-    lav: /lavatrice|washer|washing[_ -]?machine|asciugatrice|dryer/.test(textConfig),
-    cuc: /forno|oven|microonde|microwave|frigo|fridge|dishwasher|lavastoviglie|cooktop/.test(textConfig),
-  };
-}
-
-function flowEndpoints(pathId) {
-  const cleanId = String(pathId || "")
-    .replace(/^m-/, "")
-    .replace(/^line-/, "")
-    .replace(/-(ist|day|month)$/, "");
-  const tokens = cleanId.split("-").filter(Boolean);
-  return tokens.slice(0, 2);
-}
-
-function applyOptionalFlowVisibility() {
-  const available = nodeAvailability();
-  for (const view of ["ist", "day", "month"]) {
-    Object.entries(available).forEach(([token, present]) => {
-      const node = document.getElementById(`n-${token}-${view}`);
-      if (node) {
-        node.hidden = !present;
-        node.style.display = present ? "" : "none";
-      }
-    });
-    document.querySelectorAll(`#view-${view} .flow-line`).forEach((path) => {
-      const endpoints = flowEndpoints(path.id);
-      const visible = endpoints.every((token) => available[token] !== false);
-      path.hidden = !visible;
-      path.style.display = visible ? "" : "none";
-    });
-  }
-}
-
-function energyTotalFields() {
-  return [
-    ["house", "total_energy", text("Energia totale casa", "Total home energy"), "sensor.casa_energia_totale"],
-    ["grid", "total_import_energy", text("Energia totale prelevata", "Total imported energy"), "sensor.rete_prelievo_totale"],
-    ["grid", "total_export_energy", text("Energia totale immessa", "Total exported energy"), "sensor.rete_immissione_totale"],
-    ["solar", "total_energy", text("Energia totale fotovoltaico", "Total solar energy"), "sensor.fv_energia_totale"],
-    ["battery", "total_charged_energy", text("Energia totale caricata", "Total charged energy"), "sensor.batteria_caricata_totale"],
-    ["battery", "total_discharged_energy", text("Energia totale scaricata", "Total discharged energy"), "sensor.batteria_scaricata_totale"],
+  const roomNames = [
+    ...preferredRooms.filter((room) => grouped.has(room)),
+    ...[...grouped.keys()].filter((room) => !preferredRooms.includes(room)),
   ];
-}
-
-function decorateEnergyEditor() {
-  const root = document.querySelector('[data-editor="energy"]');
-  const store = dashboardStore();
-  if (!root || !store) return false;
-  const model = energyConfig();
-  energyTotalFields().forEach(([group, key, label, placeholder]) => {
-    const id = `dm-energy-${group}-${key}`;
-    if (root.querySelector(`#${id}`)) return;
-    const anchor = root.querySelector(`[name="${group}.power"],[name^="${group}."]`);
-    const body = anchor?.closest(".ed-acc-body");
-    if (!body) return;
-    const field = document.createElement("label");
-    field.className = "ed-slot dm-total-energy-field-0150";
-    field.innerHTML = `<span class="ed-slot-lbl">${label} <span class="ed-acc-n">kWh</span></span><span class="ed-hint">${text("Contatore cumulativo Home Assistant", "Home Assistant cumulative meter")}</span><span class="dm-entity-field" data-entity-field><span class="ed-form-row"><input id="${id}" name="${group}.${key}" class="ed-input ed-slot-in mono" data-entity-input value="${clean(model?.[group]?.[key])}" placeholder="${placeholder}"><button type="button" class="dm-entity-picker" data-entity-target="${id}" aria-label="${label}">🔍</button></span></span>`;
-    const input = field.querySelector("input");
-    const remember = () => {
-      runtime().pendingEnergy[`${group}.${key}`] = input.value;
-    };
-    input.addEventListener("input", remember);
-    input.addEventListener("change", remember);
-    body.append(field);
+  return roomNames.map((room) => {
+    const current = grouped.get(room) || [];
+    const saved = Array.isArray(order[room]) ? order[room] : [];
+    const entities = [
+      ...saved.filter((id) => current.includes(id)),
+      ...current.filter((id) => !saved.includes(id)),
+    ];
+    return { room, entities, lights };
   });
-  globalThis.DashboardModernModules?.render?.mountEntityPickers?.(root);
-  return true;
 }
 
-function installStoreMerge() {
-  const state = runtime();
-  const store = dashboardStore();
-  const original = store?.replaceSection;
-  if (!store || typeof original !== "function" || original.__dm0150EnergyMerge) return Boolean(original?.__dm0150EnergyMerge);
-  async function replaceSection0150(sectionName, value) {
-    if (sectionName !== "energy") return original.apply(this, arguments);
-    const merged = structuredClone(value || {});
-    Object.entries(state.pendingEnergy).forEach(([path, entity]) => {
-      const [group, key] = path.split(".");
-      merged[group] ||= {};
-      merged[group][key] = clean(entity);
-    });
-    return original.call(this, sectionName, merged);
-  }
-  replaceSection0150.__dm0150EnergyMerge = true;
-  replaceSection0150.__dmPrevious = original;
-  store.replaceSection = replaceSection0150;
-  return true;
+function allRoomOptions(selected) {
+  const rooms = section("rooms", readJson("cd_stanze", []));
+  return [
+    `<option value="">— ${text("Nessuna stanza", "No room")} —</option>`,
+    ...rooms
+      .filter((room) => clean(room?.name))
+      .map((room) => `<option value="${esc(room.name)}" ${clean(selected) === clean(room.name) ? "selected" : ""}>${esc(room.icon || "🏠")} ${esc(room.name)}</option>`),
+  ].join("");
 }
 
-function applianceTotalField(value = "") {
-  const label = text("Sensore energia totale", "Total energy sensor");
-  return `<label class="ed-slot dm-total-energy-field-0150" data-entity-field><span class="ed-slot-lbl">${label}</span><span class="ed-form-row"><input id="appl-total-energy-entity" class="ed-input mono" data-entity-input value="${clean(value)}" placeholder="sensor.forno_energia_totale"><button type="button" class="dm-entity-picker" data-entity-target="appl-total-energy-entity" aria-label="${label}">🔍</button></span></label>`;
+export function renderCanonicalLightsEditor() {
+  const groups = configuredLightGroups();
+  const add = `<div class="ed-form"><div class="ed-form-row"><input id="luce-add-ent" class="ed-input mono" placeholder="light.salone"><button type="button" class="dm-entity-picker" onclick="wzPickEntity('#luce-add-ent')">🔍</button></div><input id="luce-add-name" class="ed-input" placeholder="${text("Nome luce", "Light name")}"><button class="ed-btn-add" onclick="cdLuceAdd()">＋ ${text("Aggiungi luce", "Add light")}</button></div>`;
+  if (!groups.length) return `<div class="ed-empty">${text("Nessuna luce configurata.", "No configured lights.")}</div>${add}`;
+  const assignments = readJson("cd_luci_rooms", {});
+  const body = groups
+    .map((group, groupIndex) => {
+      const rows = group.entities
+        .map((id, index) => {
+          const name = group.lights[id] || allStates()?.[id]?.attributes?.friendly_name || id;
+          return `<div class="ed-row dm-light-row" data-light-entity="${esc(id)}"><div style="display:flex;flex-direction:column;gap:2px"><button type="button" class="ed-del" ${index === 0 ? "disabled" : ""} onclick="dmLightMove('${esc(id)}',-1)">▲</button><button type="button" class="ed-del" ${index === group.entities.length - 1 ? "disabled" : ""} onclick="dmLightMove('${esc(id)}',1)">▼</button></div><div class="ed-row-main"><div class="ed-row-new">💡 ${esc(name)}</div><div class="ed-row-old mono">${esc(id)}</div></div><select class="ed-input dm-light-room" onchange="dmLightSetRoom('${esc(id)}',this.value)">${allRoomOptions(assignments[id])}</select><button type="button" class="ed-del" onclick="cdLuceRen('${esc(id)}')">✏️</button><button type="button" class="ed-del" onclick="cdLuceDel('${esc(id)}')">🗑️</button></div>`;
+        })
+        .join("");
+      return `<section class="dm-light-group" data-light-room="${esc(group.room)}"><div class="ed-acc-head"><span>🏠 ${esc(group.room)} · ${group.entities.length}</span><span><button type="button" class="ed-del" ${groupIndex === 0 ? "disabled" : ""} onclick="dmLightRoomMove('${esc(group.room)}',-1)">▲</button><button type="button" class="ed-del" ${groupIndex === groups.length - 1 ? "disabled" : ""} onclick="dmLightRoomMove('${esc(group.room)}',1)">▼</button></span></div><div class="ed-list">${rows}</div></section>`;
+    })
+    .join("");
+  return `<div class="ed-intro">${text("Sono mostrate solo le stanze che contengono almeno una luce configurata. Le frecce definiscono l'ordine usato anche nelle Azioni rapide.", "Only rooms containing configured lights are shown. Arrows also define Quick Action order.")}</div>${body}${add}`;
 }
 
-function installApplianceEditor() {
-  const state = runtime();
-  if (state.editorWrapped) return true;
-  const render = globalThis.editorRenderAppliances;
-  const save = globalThis.edApplSave;
-  const edit = globalThis.edApplEdit;
-  const cancel = globalThis.edApplCancel;
-  if (![render, save, edit, cancel].every((fn) => typeof fn === "function")) return false;
+function persistLightOrder(groups) {
+  writeJson(
+    "cd_luci_order",
+    Object.fromEntries(groups.map((group) => [group.room, group.entities])),
+  );
+  writeJson("cd_luci_room_order", groups.map((group) => group.room));
+}
 
-  function edit0150(index) {
-    state.editingApplianceId = clean(section("appliances", [])[Number(index)]?.id);
-    return edit.apply(this, arguments);
-  }
-  edit0150.__dmPrevious = edit;
-  globalThis.edApplEdit = edit0150;
+function rerenderEditor(tab = "luci") {
+  root.editorSwitch?.(tab);
+}
 
-  function cancel0150() {
-    state.editingApplianceId = "";
-    return cancel.apply(this, arguments);
-  }
-  cancel0150.__dmPrevious = cancel;
-  globalThis.edApplCancel = cancel0150;
+root.dmLightMove = (id, direction) => {
+  const groups = configuredLightGroups();
+  const group = groups.find((item) => item.entities.includes(id));
+  if (!group) return;
+  const index = group.entities.indexOf(id);
+  const next = index + Number(direction);
+  if (next < 0 || next >= group.entities.length) return;
+  [group.entities[index], group.entities[next]] = [group.entities[next], group.entities[index]];
+  persistLightOrder(groups);
+  rerenderEditor();
+};
 
-  function render0150() {
-    const template = document.createElement("template");
-    template.innerHTML = render.apply(this, arguments);
-    const form = [...template.content.querySelectorAll(".ed-form")].at(-1);
-    if (!form || form.querySelector("#appl-total-energy-entity")) return template.innerHTML;
-    const item = section("appliances", []).find((entry) => clean(entry.id) === state.editingApplianceId) || {};
-    const holder = form.querySelector("[data-appliance-canonical-fields] .dm-config-grid,[data-appliance-canonical-fields]") || form;
-    holder.insertAdjacentHTML("beforeend", applianceTotalField(item.total_energy_entity || ""));
-    return template.innerHTML;
-  }
-  render0150.__dmPrevious = render;
-  globalThis.editorRenderAppliances = render0150;
+root.dmLightRoomMove = (room, direction) => {
+  const groups = configuredLightGroups();
+  const index = groups.findIndex((item) => item.room === room);
+  const next = index + Number(direction);
+  if (index < 0 || next < 0 || next >= groups.length) return;
+  [groups[index], groups[next]] = [groups[next], groups[index]];
+  persistLightOrder(groups);
+  rerenderEditor();
+};
 
-  async function save0150() {
-    const total = clean(document.getElementById("appl-total-energy-entity")?.value);
-    const name = clean(document.getElementById("appl-name")?.value);
-    const editingId = state.editingApplianceId;
-    const result = await save.apply(this, arguments);
-    const store = dashboardStore();
-    if (!store?.getSection || !store?.updateItem) return result;
-    const items = store.getSection("appliances") || [];
-    const item = items.find((entry) => clean(entry.id) === editingId) ||
-      [...items].reverse().find((entry) => !name || clean(entry.name) === name);
-    if (item && total) {
-      await store.updateItem("appliances", item.id, {
-        total_energy_entity: total,
-        report_entity: total,
-        history_entity: total,
-        entities: [...new Set([...(item.entities || []), total])],
+root.dmLightSetRoom = (id, room) => {
+  const assignments = readJson("cd_luci_rooms", {});
+  if (clean(room)) assignments[id] = clean(room);
+  else delete assignments[id];
+  writeJson("cd_luci_rooms", assignments);
+  const groups = configuredLightGroups();
+  persistLightOrder(groups);
+  rerenderEditor();
+};
+
+function orderedLightIds() {
+  return configuredLightGroups().flatMap((group) => group.entities);
+}
+
+export function openOrderedLightPicker(groupName, onDone, preselected = []) {
+  doc?.getElementById("dm-light-picker-0152")?.remove();
+  const names = readJson("cd_luci", {});
+  const ordered = orderedLightIds();
+  let selected = [...new Set(preselected.filter((id) => ordered.includes(id)))];
+  const modal = doc.createElement("div");
+  modal.id = "dm-light-picker-0152";
+  modal.className = "modal show";
+  modal.innerHTML = `<div class="modal-content" style="max-width:720px"><div class="ed-head"><strong>💡 ${esc(groupName)}</strong><button type="button" class="ed-head-close" data-close>✕</button></div><input class="ed-input" data-search placeholder="${text("Cerca luce", "Search light")}"><div class="ed-list" data-list></div><div class="ed-action-bar"><button type="button" class="ed-btn-add" data-cancel>${text("Annulla", "Cancel")}</button><button type="button" class="ed-save-btn" data-save>💾 ${text("Salva ordine", "Save order")}</button></div></div>`;
+  doc.body.append(modal);
+  const list = modal.querySelector("[data-list]");
+  const render = () => {
+    const query = clean(modal.querySelector("[data-search]").value).toLowerCase();
+    const visible = ordered.filter((id) => `${names[id] || ""} ${id}`.toLowerCase().includes(query));
+    list.innerHTML = visible.map((id) => {
+      const checked = selected.includes(id);
+      const index = selected.indexOf(id);
+      return `<div class="ed-row" data-pick-light="${esc(id)}"><input type="checkbox" ${checked ? "checked" : ""}><div class="ed-row-main"><div class="ed-row-new">${esc(names[id] || id)}</div><div class="ed-row-old mono">${esc(id)}</div></div><button type="button" class="ed-del" data-up ${!checked || index <= 0 ? "disabled" : ""}>▲</button><button type="button" class="ed-del" data-down ${!checked || index >= selected.length - 1 ? "disabled" : ""}>▼</button></div>`;
+    }).join("");
+    list.querySelectorAll("[data-pick-light]").forEach((row) => {
+      const id = row.dataset.pickLight;
+      row.querySelector("input").addEventListener("change", (event) => {
+        selected = event.target.checked ? [...selected, id] : selected.filter((item) => item !== id);
+        render();
       });
+      row.querySelector("[data-up]").addEventListener("click", () => {
+        const index = selected.indexOf(id);
+        if (index > 0) [selected[index - 1], selected[index]] = [selected[index], selected[index - 1]];
+        render();
+      });
+      row.querySelector("[data-down]").addEventListener("click", () => {
+        const index = selected.indexOf(id);
+        if (index >= 0 && index < selected.length - 1) [selected[index + 1], selected[index]] = [selected[index], selected[index + 1]];
+        render();
+      });
+    });
+  };
+  modal.querySelector("[data-search]").addEventListener("input", render);
+  modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", () => modal.remove()));
+  modal.querySelector("[data-save]").addEventListener("click", () => {
+    onDone?.(selected);
+    modal.remove();
+  });
+  render();
+}
+
+function synchronizeLightAlerts() {
+  const lights = Object.keys(readJson("cd_luci", {})).filter((id) => id.includes("."));
+  const removed = readJson("cd_gruppi_removed", {});
+  const extras = readJson("cd_gruppi_extra", {});
+  extras.luci = [...new Set([...(extras.luci || []), ...lights])].filter(
+    (id) => !(removed.luci || []).includes(id),
+  );
+  root.localStorage?.setItem("cd_gruppi_extra", JSON.stringify(extras));
+  try {
+    root.eval?.("if (typeof GRUPPI_MONITORAGGIO !== 'undefined') GRUPPI_MONITORAGGIO.luci = [...new Set([...(GRUPPI_MONITORAGGIO.luci || []), ..." + JSON.stringify(extras.luci) + "])];");
+  } catch (_error) {}
+}
+
+function normalizeAlertEditorDom() {
+  const body = doc?.getElementById("ed-body");
+  if (!body || doc.querySelector(".ed-tab.active")?.dataset?.tab !== "avvisi") return;
+  body.querySelectorAll(".ed-row").forEach((row) => {
+    const label = clean(row.querySelector(".ed-row-new")?.textContent);
+    const entity = clean(row.querySelector(".ed-row-old")?.textContent);
+    if (!label && !entity) row.remove();
+  });
+}
+
+const EXTRA_SYNC_KEYS = Object.freeze([
+  "cd_luci_order",
+  "cd_luci_room_order",
+  "cd_gruppi_extra",
+  "cd_gruppi_removed",
+  "cd_avvisi_names_extra",
+]);
+
+function installSyncBridge() {
+  const collect = root.cdSyncCollect;
+  if (typeof collect === "function" && !collect.__dmRoot0152) {
+    function canonicalCollect() {
+      const output = collect.apply(this, arguments) || {};
+      EXTRA_SYNC_KEYS.forEach((key) => {
+        const value = root.localStorage?.getItem(key);
+        if (value !== null) output[key] = value;
+      });
+      return output;
     }
-    state.editingApplianceId = "";
-    return result;
+    canonicalCollect.__dmRoot0152 = true;
+    root.cdSyncCollect = canonicalCollect;
   }
-  save0150.__dmPrevious = save;
-  globalThis.edApplSave = save0150;
-  state.editorWrapped = true;
-  return true;
+  const apply = root.cdSyncApply;
+  if (typeof apply === "function" && !apply.__dmRoot0152) {
+    function canonicalApply(data) {
+      const count = finite(apply.apply(this, arguments));
+      let extra = 0;
+      EXTRA_SYNC_KEYS.forEach((key) => {
+        if (data?.[key] !== undefined) {
+          root.localStorage?.setItem(key, data[key]);
+          extra += 1;
+        }
+      });
+      return count + extra;
+    }
+    canonicalApply.__dmRoot0152 = true;
+    root.cdSyncApply = canonicalApply;
+  }
+}
+
+export function resolveVehicleImagePath(value, base = doc?.baseURI || root.location?.href || "") {
+  let raw = typeof value === "string" ? value : value?.url || value?.path || "";
+  raw = clean(raw).replaceAll("\\", "/");
+  if (!raw) return "";
+  if (/^(?:data:|blob:|https?:)/i.test(raw)) return raw;
+  if (/^(?:file:|[a-z]:\/)/i.test(raw)) return "";
+  if (raw.startsWith("/config/www/")) return `/local/${raw.slice("/config/www/".length)}`;
+  if (raw.startsWith("config/www/")) return `/local/${raw.slice("config/www/".length)}`;
+  if (raw.startsWith("www/")) return `/local/${raw.slice(4)}`;
+  if (raw.startsWith("local/")) return `/${raw}`;
+  if (raw.startsWith("/")) return raw;
+  try {
+    return new URL(raw.replace(/^\.\//, ""), base).href;
+  } catch (_error) {
+    return raw;
+  }
+}
+
+function applyVehicleImage() {
+  const stored = root.localStorage?.getItem("cd_ev_image") || "";
+  let configured = readJson("cd_ev_image", "");
+  if (!configured && stored && !stored.startsWith("{") && !stored.startsWith("[")) configured = stored.replace(/^"|"$/g, "");
+  const url = resolveVehicleImagePath(configured);
+  ["ev-mod-car-img", "ev-new-car-img"].forEach((id) => {
+    const image = doc?.getElementById(id);
+    if (!image) return;
+    if (!url) {
+      image.removeAttribute("src");
+      image.style.display = "none";
+      return;
+    }
+    image.onerror = () => {
+      image.dataset.evImageError = url;
+      image.style.display = "none";
+    };
+    image.onload = () => {
+      delete image.dataset.evImageError;
+      image.style.display = "block";
+      image.style.opacity = "1";
+    };
+    image.style.display = "block";
+    if (image.src !== url) image.src = url;
+  });
+  const hero = doc?.getElementById("lm-hero-card");
+  if (hero) hero.dataset.evImage = url ? "configured" : "missing";
+}
+
+function normalizeTemperature() {
+  doc?.querySelectorAll("#temp-grid .temp-card").forEach((card) => {
+    card.style.setProperty("min-height", "110px", "important");
+    card.style.setProperty("height", "auto", "important");
+    const walker = doc.createTreeWalker(card, root.NodeFilter?.SHOW_TEXT || 4);
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach((node) => {
+      if (node.nodeValue?.includes("🔥")) node.nodeValue = node.nodeValue.replaceAll("🔥", "").trim();
+    });
+  });
+}
+
+function installThemeStyles() {
+  if (!doc || doc.getElementById("dm-runtime-root-0152-style")) return;
+  const style = doc.createElement("style");
+  style.id = "dm-runtime-root-0152-style";
+  style.textContent = `
+    #page-appliances-main .appl-wide-card{background:var(--dm-dashboard-card,#fff)!important;color:var(--text,#0f172a)!important}
+    #page-appliances-main .dm-appliance-toggle,#page-appliances-main [data-dm-power-toggle]{border:0!important;border-radius:12px!important;padding:8px 14px!important;background:linear-gradient(135deg,#38bdf8,#0284c7)!important;color:#fff!important;font-weight:800!important}
+    .dm-energy-loading{opacity:.72;transition:opacity .15s ease}
+    .dm-light-group{margin:0 0 12px}.dm-light-row .dm-light-room{max-width:260px}
+    #dm-light-picker-0152{z-index:10050}
+    @media(max-width:720px){.dm-light-row{flex-wrap:wrap}.dm-light-row .dm-light-room{order:4;max-width:none;width:100%}}
+  `;
+  doc.head.append(style);
+}
+
+function installFunctionOwners() {
+  if (typeof root.editorRenderLuci === "function") root.editorRenderLuci = renderCanonicalLightsEditor;
+  if (typeof root.cdPickLights === "function") root.cdPickLights = openOrderedLightPicker;
+
+  const alerts = root.editorRenderAvvisi;
+  if (typeof alerts === "function" && !alerts.__dmRoot0152) {
+    function canonicalAlerts() {
+      synchronizeLightAlerts();
+      return alerts.apply(this, arguments);
+    }
+    canonicalAlerts.__dmRoot0152 = true;
+    root.editorRenderAvvisi = canonicalAlerts;
+  }
+
+  const wrapAfter = (name, callback) => {
+    const current = root[name];
+    if (typeof current !== "function" || current.__dmRoot0152 || state.wrappers.has(current)) return;
+    function owned() {
+      const result = current.apply(this, arguments);
+      root.queueMicrotask?.(callback);
+      return result;
+    }
+    Object.assign(owned, current);
+    owned.__dmRoot0152 = true;
+    owned.__dmPrevious = current;
+    state.wrappers.add(current);
+    state.wrappers.add(owned);
+    root[name] = owned;
+  };
+
+  wrapAfter("render", () => {
+    applyAtomicEnergyBundle();
+    applyVehicleImage();
+    normalizeTemperature();
+  });
+  wrapAfter("renderEnergyDashboard", () => applyAtomicEnergyBundle());
+  wrapAfter("renderEdDeviceList", () => applyAtomicEnergyBundle());
+  wrapAfter("buildTempCards", normalizeTemperature);
+  wrapAfter("renderTemperature", normalizeTemperature);
+  wrapAfter("editorSwitch", () => {
+    installFunctionOwners();
+    synchronizeLightAlerts();
+    normalizeAlertEditorDom();
+  });
+}
+
+function bindDomEvents() {
+  if (!doc || doc.documentElement.dataset.dmRootEvents === VERSION) return;
+  doc.documentElement.dataset.dmRootEvents = VERSION;
+  doc.addEventListener("change", (event) => {
+    if (event.target?.matches?.("#ed-sel-month,#ed-sel-year")) scheduleEnergyRefresh(true);
+  });
+  doc.addEventListener("click", (event) => {
+    if (event.target?.closest?.("[data-tab='energy'],.sub-tab-btn")) {
+      root.queueMicrotask?.(() => applyAtomicEnergyBundle());
+    }
+    if (event.target?.closest?.(".ed-tab[data-tab='avvisi']")) {
+      synchronizeLightAlerts();
+      root.queueMicrotask?.(normalizeAlertEditorDom);
+    }
+    if (event.target?.closest?.("[data-tab='ev']")) root.queueMicrotask?.(applyVehicleImage);
+  }, true);
+  root.addEventListener?.("dashboardmodern:state-changed", () => scheduleEnergyRefresh(false));
+  root.addEventListener?.("pageshow", () => {
+    installFunctionOwners();
+    applyAtomicEnergyBundle();
+    applyVehicleImage();
+  });
 }
 
 function subscribeStore() {
-  const state = runtime();
-  const store = dashboardStore();
-  if (state.storeSubscribed || !store?.subscribe) return Boolean(state.storeSubscribed);
-  store.subscribe((change) => {
-    if (!["energy", "appliances", "loads", "ev", "climate", "rooms"].includes(change.section)) return;
-    broker.cache.clear();
-    if (["energy", "appliances", "loads"].includes(change.section)) scheduleRefresh(80);
-    globalThis.queueMicrotask?.(() => {
-      decorateEnergyEditor();
-      removeDuplicateRoomNav();
-      applyOptionalFlowVisibility();
-    });
+  if (state.storeUnsubscribe || !dashboardStore()?.subscribe) return;
+  state.storeUnsubscribe = dashboardStore().subscribe((change) => {
+    if (["energy", "appliances", "loads", "entityOverrides"].includes(change.section)) {
+      scheduleEnergyRefresh(true);
+    }
+    if (["lights", "rooms"].includes(change.section)) {
+      synchronizeLightAlerts();
+      if (doc?.querySelector(".ed-tab.active")?.dataset?.tab === "luci") rerenderEditor();
+    }
   });
-  state.storeSubscribed = true;
-  return true;
 }
 
-function installWrappers() {
-  const state = runtime();
-  wrapRender("renderEnergyDashboard", () => applyBundle());
-  wrapRender("renderEdDeviceList", () => applyDeviceRows(state.bundle));
-  wrapRender("renderApplianceSection", () => {
-    removeDuplicateRoomNav();
-    normalizeArtwork();
-  });
-  wrapRender("renderEnergy", applyOptionalFlowVisibility);
-  wrapRender("switchEnergyView", applyOptionalFlowVisibility);
-  wrapRender("editorSwitch", () => {
-    decorateEnergyEditor();
-    installApplianceEditor();
-  });
-  installArtworkOwner();
-  installStoreMerge();
-  installApplianceEditor();
+function start() {
+  if (!doc) return;
+  installThemeStyles();
+  installFunctionOwners();
+  installSyncBridge();
+  bindDomEvents();
   subscribeStore();
-  state.wrappersInstalled = true;
-  return true;
-}
-
-function disableLegacyRuntimes() {
-  const timerNames = [
-    "retryTimer",
-    "wrapperTimer",
-    "wrappersTimer",
-    "sampleTimer",
-    "timer",
-    "restoreTimer",
-    "periodTimer",
-    "currentTimer",
-  ];
-  COMPAT_KEYS.forEach((key) => {
-    const value = globalThis[key];
-    if (!value || value === runtime()) return;
-    timerNames.forEach((name) => {
-      if (!value[name]) return;
-      globalThis.clearInterval?.(value[name]);
-      globalThis.clearTimeout?.(value[name]);
-      value[name] = 0;
+  if (!state.brokerStarted) {
+    state.brokerStarted = true;
+    broker.startStateFeed().catch((error) => {
+      state.brokerStarted = false;
+      root.console?.warn?.("[DashboardModern] state feed", error);
     });
-    value.observer?.disconnect?.();
-    value.pageObserver?.disconnect?.();
-  });
-}
-
-function installStyles() {
-  if (document.getElementById("dm-runtime-consolidated-style")) return;
-  const style = document.createElement("style");
-  style.id = "dm-runtime-consolidated-style";
-  style.textContent = `
-    .dm-period-loading-0150 .ed-kpi-banner,
-    .dm-period-loading-0150 #ed-year-summary,
-    .dm-period-loading-0150 #ed-device-list { opacity:.72; }
-    .dm-total-energy-field-0150 { border-color:rgba(16,185,129,.35)!important; background:rgba(236,253,245,.55)!important; }
-    #dm-appliance-room-nav-0157,.dm-appliance-room-nav-0157 { display:none!important; }
-    #page-appliances-main .appl-wide-card[hidden] { display:none!important; }
-  `;
-  document.head.append(style);
-}
-
-function installCompatibility() {
-  const state = runtime();
-  const shared = {
-    installed: true,
-    ready: state.ready,
-    version: VERSION,
-    broker,
-    statistics: broker.statistics.bind(broker),
-    monthValues: (ids, month, year) => broker.valuesForEntities(ids, "month", new Date(year, month - 1, 1)),
-    yearValues: (ids, year) => broker.valuesForEntities(ids, "year", new Date(year, 0, 1)),
-    refreshCurrent: () => refreshEnergyStatistics0152(new Date()),
-    refreshOverview: () => refreshSelectedPeriod(),
-  };
-  COMPAT_KEYS.forEach((key) => {
-    globalThis[key] = { ...(globalThis[key] || {}), ...shared };
-  });
-  globalThis.fetchHAStatistics = broker.statistics.bind(broker);
-  globalThis.__DASHBOARDMODERN_RELEASE_0152__.refreshEnergyStatistics0152 = refreshEnergyStatistics0152;
-  globalThis.__DASHBOARDMODERN_RELEASE_0154__.refreshEnergyPeriods0154 = refreshEnergyStatistics0152;
-}
-
-function onPeriodChange(event) {
-  if (!event.target?.matches?.("#ed-sel-month,#ed-sel-year")) return;
-  const period = selectedPeriod();
-  event.stopImmediatePropagation();
-  scheduleRefresh(0, period);
-}
-
-function settle(attempt = 0) {
-  installWrappers();
-  decorateEnergyEditor();
-  removeDuplicateRoomNav();
-  normalizeArtwork();
-  applyOptionalFlowVisibility();
-  if (runtime().wrappersInstalled && dashboardStore()) return true;
-  if (attempt >= 90) return false;
-  globalThis.requestAnimationFrame?.(() => settle(attempt + 1));
-  return false;
-}
-
-async function start() {
-  const state = runtime();
-  installStyles();
-  disableLegacyRuntimes();
-  installCompatibility();
-  settle();
-  try {
-    await broker.startStateFeed();
-  } catch (error) {
-    console.warn("[DashboardModern 0.15.0] live state feed", error);
   }
+  synchronizeLightAlerts();
+  applyVehicleImage();
+  normalizeTemperature();
+  if (!state.bundle) scheduleEnergyRefresh(true);
   state.ready = true;
-  installCompatibility();
-  scheduleRefresh(0);
-  globalThis.__DASHBOARDMODERN_RUNTIME_READY__ = true;
-  globalThis.dispatchEvent?.(new CustomEvent("dashboardmodern:runtime-ready", { detail: { version: VERSION } }));
 }
 
-function install() {
-  const state = runtime();
-  if (state.eventsInstalled) return;
-  state.eventsInstalled = true;
-  document.addEventListener("change", onPeriodChange, true);
-  state.metrics.listeners += 1;
-  globalThis.addEventListener?.("dashboardmodern:legacy-ready", () => settle(), { once: true });
-  globalThis.addEventListener?.("pageshow", () => {
-    settle();
-    applyBundle();
-  });
-  state.metrics.listeners += 2;
+function boot(attempt = 0) {
   start();
+  if (attempt < 120 && (!dashboardStore() || typeof root.render !== "function")) {
+    root.requestAnimationFrame?.(() => boot(attempt + 1));
+  }
 }
 
-export {
-  PERIOD_SOURCES,
-  applianceArtwork,
-  applianceArtwork0152,
-  canonicalArtworkType,
-  isCumulativeEnergyEntity,
-  periodConsumption,
-  periodRange,
-  sourcePlans,
-};
-
-export const DashboardModernRuntime0150 = Object.freeze({
-  broker,
-  refreshSelectedPeriod,
-  refreshEnergyStatistics0152,
-  applyBundle,
-  applyOptionalFlowVisibility,
-  removeDuplicateRoomNav,
-  runtime,
-});
-
-globalThis.DashboardModernRuntime0150 = DashboardModernRuntime0150;
-
-if (typeof document !== "undefined") {
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install, { once: true });
-  else install();
-}
+root.__DASHBOARDMODERN_RUNTIME_0150__ = state;
+root.__DASHBOARDMODERN_RUNTIME_ROOT__ = state;
+root.addEventListener?.("dashboardmodern:legacy-ready", start);
+root.addEventListener?.("dashboardmodern:runtime-ready", start);
+if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", () => boot(), { once: true });
+else boot();

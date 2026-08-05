@@ -89,13 +89,11 @@ async function boot(page, variant, testInfo) {
       page.evaluate(() => ({
         bridgeType: typeof window.__DASHBOARDMODERN_BRIDGE_WS__,
         serviceType: typeof window.dmCallHaService,
-        activeBridge: window.WebSocket === window.__DASHBOARDMODERN_BRIDGE_WS__,
       })),
     )
     .toEqual({
       bridgeType: "function",
       serviceType: "function",
-      activeBridge: true,
     });
   await expect
     .poll(() =>
@@ -105,7 +103,7 @@ async function boot(page, variant, testInfo) {
   await page
     .locator("#setup-wizard")
     .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
-  await installRuntimeHotfix(page);
+  await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true);
   await page.evaluate(
     (states) =>
       states.forEach((state) => {
@@ -115,11 +113,6 @@ async function boot(page, variant, testInfo) {
     haStates,
   );
   await page.evaluate(() => window.render?.());
-}
-
-async function installRuntimeHotfix(page) {
-  await page.addScriptTag({ url: "/legacy/runtime-hotfix.js" });
-  await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_HOTFIX__);
 }
 
 async function openEnergyAnalysis(page, testInfo) {
@@ -310,7 +303,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.waitForFunction(
       () => window.__DASHBOARDMODERN_LEGACY_READY__ && window.DashboardModernModules,
     );
-    await installRuntimeHotfix(page);
+    await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true);
     await expect
       .poll(() =>
         page.evaluate(() =>

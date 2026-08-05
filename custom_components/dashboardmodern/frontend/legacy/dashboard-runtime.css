@@ -319,3 +319,22 @@
 .dm-light-add-form{display:grid;gap:10px;margin-top:16px;padding:16px!important;border:1px solid var(--card-border,#dbe4ee);border-radius:18px;background:var(--card-bg,#fff);box-shadow:0 10px 25px rgba(15,23,42,.08)}
 .dm-light-add-form .ed-sec-title{margin:0;font-size:16px;text-transform:none}.dm-light-add-form .ed-sec-title::after{content:'Inserisci o cerca un’entità';display:block;margin-top:3px;color:var(--text-dim,#64748b);font:500 11px/1.4 system-ui}
 @media(max-width:760px){#page-appliances-main .appl-page-grid{grid-template-columns:1fr}#page-appliances-main .appl-wide-card.dm-control-device{grid-template-columns:104px minmax(0,1fr);min-height:154px}#page-appliances-main .appl-info{padding:12px 10px}.ed-lrow{flex-wrap:wrap!important}.ed-lrow select{flex:1 1 100%!important;width:100%!important;order:3}.ed-inner-tab,.sub-tab-btn{font-size:12px!important;min-height:40px}.dm-report-row,.ed-acc-body{min-width:0}.dm-report-row .ed-input{font-size:13px!important}}
+
+/* Keep a configured EV hero visible when the local artwork is unavailable. */
+#ev-mod-car-img[data-ev-failed="1"],
+#ev-new-car-img[data-ev-failed="1"],
+#ev-mod-car-img[data-ev-image-error],
+#ev-new-car-img[data-ev-image-error] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: min(78vw, 520px) !important;
+  min-width: 120px !important;
+  height: clamp(90px, 20vw, 210px) !important;
+  min-height: 80px !important;
+  object-fit: contain !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 260'%3E%3Cpath fill='%2394a3b8' d='M112 174h28l28-72c7-18 24-30 44-30h205c23 0 44 12 56 32l39 70h20c22 0 40 18 40 40v10H80v-10c0-22 14-40 32-40Zm93-68-25 68h274l-35-62c-2-4-7-6-12-6H205Zm-37 132a34 34 0 1 0 68 0 34 34 0 0 0-68 0Zm272 0a34 34 0 1 0 68 0 34 34 0 0 0-68 0Z'/%3E%3C/svg%3E") !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+}

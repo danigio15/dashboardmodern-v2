@@ -93,7 +93,7 @@ async function boot(page, variant, testInfo) {
 
   await expect
     .poll(() =>
-      page.evaluate(() => window.__DASHBOARDMODERN_0147_EDITOR_THEME__?.installed === true),
+      page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true),
     )
     .toBe(true);
 

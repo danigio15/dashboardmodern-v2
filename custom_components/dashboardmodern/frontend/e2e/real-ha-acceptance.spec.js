@@ -77,7 +77,7 @@ async function boot(page, variant, testInfo) {
     _RAW_STATES[state.entity_id] = structuredClone(state);
     STATES[state.entity_id] = structuredClone(state);
   }), states);
-  await expect.poll(() => page.evaluate(() => window.__DASHBOARDMODERN_REAL_HA_0147__?.installed === true)).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true)).toBe(true);
   await page.evaluate(() => window.render?.());
 }
 
@@ -136,7 +136,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator('#ed-dev-selector option[value="sensor.forno_energy"]')).toContainText("Forno");
 
     await openEditor(page, "avvisi");
-    await page.locator('[data-real-alert-edit=""]').first().click();
+    await page.locator("[data-dm-alert-edit]").first().click();
     await expect(page.locator("#ed-avv-ent")).toHaveValue("light.salone");
     await page.locator("#ed-avv-name").fill("Luce principale");
     await page.locator('button[onclick="edAddAvviso()"]:visible').click();
@@ -146,10 +146,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     }))).toEqual({ groups: { luci: ["light.salone"] }, names: { "light.salone": "Luce principale" } });
 
     await openEditor(page, "luci");
-    await page.locator(".ed-lrow .dm-edit-button").first().click();
+    await page.locator('[data-light-entity="light.salone"] .dm-light-room').selectOption({ label: "Salone" });
+    await page.locator('[data-light-entity="light.salone"] button[onclick^="cdLuceRen"]').click();
     await expect(page.locator("#luce-add-ent")).toHaveValue("light.salone");
     await page.locator("#luce-add-name").fill("Luce principale");
-    await page.locator("#luce-add-room").selectOption({ label: "Salone" });
     await page.locator('button[onclick="cdLuceAdd()"]:visible').click();
     await expect.poll(() => page.evaluate(() => ({
       lights: JSON.parse(localStorage.getItem("cd_luci") || "{}"),

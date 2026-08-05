@@ -72,7 +72,7 @@ async function boot(page, testInfo) {
     _RAW_STATES[state.entity_id] = structuredClone(state);
     STATES[state.entity_id] = structuredClone(state);
   }), states);
-  await expect.poll(() => page.evaluate(() => window.__DASHBOARDMODERN_REAL_HA_0147_DATA_REPAIR__?.installed === true)).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true)).toBe(true);
 }
 
 test("real HA: recover a saved Frigo with missing power, energy and control entities", async ({ page }, testInfo) => {

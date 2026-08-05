@@ -72,23 +72,18 @@ async function bootDashboard(page, variant) {
   }, state);
   await page.reload();
 
-  // Simulate the real regression: light.salone was persisted against the legacy
-  // room name "terrazza" before stable room IDs were introduced.
   await page.evaluate(() => {
     localStorage.setItem("cd_luci", JSON.stringify({ "light.salone": "Salone" }));
     localStorage.setItem("cd_luci_rooms", JSON.stringify({ "light.salone": "terrazza" }));
   });
 
-  // In Home Assistant this script is injected by the hosted panel. The E2E opens
-  // the legacy document directly, so reproduce that production injection here.
-  await page.addScriptTag({ url: "/legacy/runtime-hotfix.js" });
   await page.waitForFunction(
     () =>
       window.__DASHBOARDMODERN_LEGACY_READY__ === true &&
       !!window.DashboardModernModules &&
-      window.__DASHBOARDMODERN_RUNTIME_HOTFIX__ === true &&
-      window.editorRenderLuci?.__dmRealFix === true &&
-      window.cdApplMainCard?.__dmRealFix === true,
+      window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true &&
+      typeof window.editorRenderLuci === "function" &&
+      typeof window.cdApplMainCard === "function",
   );
   await page
     .locator("#setup-wizard")
@@ -149,8 +144,6 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await picker.click();
     await expect.poll(() => page.evaluate(() => window.__pickedEntityInput)).toBe(lightId);
 
-    // Re-render the complete editor body twice. The picker must still exist and
-    // its delegated click must still reach the current input, not a detached node.
     await page.evaluate(() => window.editorSwitch("stanze"));
     await page.evaluate(() => window.editorSwitch("luci"));
     await expect(body.locator("[data-light-add-entity]")).toHaveCount(1);
