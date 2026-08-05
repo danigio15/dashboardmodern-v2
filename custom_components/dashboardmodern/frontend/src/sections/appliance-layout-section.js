@@ -7,7 +7,7 @@ function installStyles() {
   installStyle(
     "dm-appliance-layout-section-style",
     `
-      #appl-grid-overview,#page-appliances-main .appl-grid,#page-appliances-main [data-appliance-grid]{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),460px))!important;justify-content:start!important;align-items:stretch!important;gap:18px!important}
+      #appl-grid-overview,#page-appliances-main .appl-grid,#page-appliances-main [data-appliance-grid]{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),410px))!important;justify-content:start!important;align-items:stretch!important;gap:18px!important}
       #page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-height:178px!important;max-height:none!important;border-radius:22px!important;overflow:hidden!important;grid-template-columns:128px minmax(0,1fr)!important;box-shadow:0 14px 30px color-mix(in srgb,#0f172a 14%,transparent)!important}
       #page-appliances-main .appl-visual,#appl-grid-overview .appl-visual{display:grid!important;place-items:center!important;border-radius:0!important;min-width:128px!important;min-height:178px!important}
       #page-appliances-main .appl-wide-card .appl-ic,#appl-grid-overview .appl-wide-card .appl-ic{display:grid!important;place-items:center!important;box-sizing:border-box!important;width:100%!important;height:100%!important;min-width:96px!important;min-height:96px!important;margin:0!important;padding:12px!important}
