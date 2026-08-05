@@ -14,6 +14,45 @@ const state = (root[KEY] ||= {
   frame: 0,
 });
 
+function installExplicitReportSaveContract() {
+  const store = root.DashboardModernModules?.store;
+  const current = store?.saveReport;
+  if (!store || typeof current !== "function" || current.__dmExplicitReportSave) return false;
+
+  function explicitReportSave(items) {
+    const existingById = new Map(
+      [
+        ...(this.getSection?.("appliances") || []),
+        ...(this.getSection?.("loads") || []),
+      ].map((item) => [item.id, item]),
+    );
+    const marked = (Array.isArray(items) ? items : []).map((item) => {
+      const existing = existingById.get(item.id);
+      const selected = clean(item.report_entity);
+      const previous = clean(existing?.report_entity);
+      const metadata = {
+        ...(existing?.metadata || {}),
+        ...(item.metadata || {}),
+      };
+      if (
+        selected &&
+        (existing?.metadata?.report_entity_explicit === true || !existing || selected !== previous)
+      ) {
+        metadata.report_entity_explicit = true;
+      } else if (!selected) {
+        delete metadata.report_entity_explicit;
+      }
+      return { ...item, metadata };
+    });
+    return current.call(this, marked);
+  }
+
+  explicitReportSave.__dmExplicitReportSave = true;
+  explicitReportSave.__dmPrevious = current;
+  store.saveReport = explicitReportSave;
+  return true;
+}
+
 function normalizeReportManualPanel() {
   const panel = doc?.querySelector('#editor-modal [data-energy-panel="report"]');
   const button = panel?.querySelector("[data-report-add]");
@@ -137,6 +176,7 @@ function removeBatteryGlyphs() {
 }
 
 export function applyEditorContracts() {
+  installExplicitReportSaveContract();
   normalizeReportManualPanel();
   normalizeLightEditCompatibility();
   normalizeAlertsEditor();
