@@ -11,8 +11,8 @@ import {
 import {
   inferApplianceEntity,
   isGeneratedRoomName,
-  normalizeVehiclePath,
-} from "../legacy/mobile-ui-fixes.js";
+} from "../src/sections/data-contracts-section.js";
+import { resolveVehicleAsset } from "../src/sections/ev-section.js";
 
 test("infers a report entity from a generic kWh appliance entity", () => {
   const states = {
@@ -189,7 +189,7 @@ test("deduplicates the same energy sensor projected by appliances and legacy loa
   assert.equal(canonicalReportDevices([appliance], [legacy], states).length, 1);
 });
 
-test("mobile runtime identifies generated ghost room labels", () => {
+test("data contracts identify generated ghost room labels", () => {
   assert.equal(isGeneratedRoomName("ROOM_MS4FXRS8"), true);
   assert.equal(isGeneratedRoomName("room-ms4fxrs8"), true);
   assert.equal(isGeneratedRoomName("Salone"), false);
@@ -206,6 +206,7 @@ test("appliance entity inference distinguishes energy from power", () => {
 });
 
 test("normalizes the common /loca typo without creating a new asset path", () => {
-  assert.equal(normalizeVehiclePath("/loca/ev/idle.png"), "/local/ev/idle.png");
-  assert.equal(normalizeVehiclePath("config/www/ev/idle.png"), "/local/ev/idle.png");
+  const base = "https://ha.local/api/dashboardmodern/hash/legacy/dashboard.html";
+  assert.equal(resolveVehicleAsset("/loca/ev/idle.png", base), "/local/ev/idle.png");
+  assert.equal(resolveVehicleAsset("config/www/ev/idle.png", base), "/local/ev/idle.png");
 });
