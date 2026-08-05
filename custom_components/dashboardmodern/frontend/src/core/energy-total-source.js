@@ -144,8 +144,8 @@ function legacyRowsBeforeField(container, field) {
     if (row.contains(field) || row.querySelector("[data-dm-edit-kind]")) return false;
     const position = row.compareDocumentPosition(field);
     const precedesField = Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING);
-    const buttons = [...row.querySelectorAll("button")];
-    return precedesField && buttons.length > 0;
+    const controls = [...row.querySelectorAll(".ed-del,button")];
+    return precedesField && controls.length > 0;
   });
 }
 
@@ -165,13 +165,13 @@ function ensureLegacyEditButtons() {
     const container = field.closest("details") || body;
     legacyRowsBeforeField(container, field).forEach((row, index) => {
       if (row.querySelector(`[data-dm-edit-kind='${kind}']`)) return;
-      const buttons = [...row.querySelectorAll("button")];
+      const controls = [...row.querySelectorAll(".ed-del,button")];
       const remove =
-        buttons.find((button) =>
-          /(?:delete|remove|elimina|rimuovi|cestino|trash)/i.test(
-            `${button.className} ${button.getAttribute("aria-label") || ""} ${button.title || ""} ${button.getAttribute("onclick") || ""}`,
+        controls.find((control) =>
+          /(?:delete|remove|elimina|rimuovi|cestino|trash|eddel)/i.test(
+            `${control.className} ${control.getAttribute("aria-label") || ""} ${control.title || ""} ${control.getAttribute("onclick") || ""}`,
           ),
-        ) || buttons.at(-1);
+        ) || controls.at(-1);
       if (!remove) return;
       remove.before(editButton(kind, index));
       inserted = true;
