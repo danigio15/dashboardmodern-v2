@@ -13,6 +13,7 @@ const state = (root[KEY] ||= {
   forced: false,
   dayRunning: false,
   dayDone: false,
+  dayFailures: 0,
   done: false,
   shutterAttempts: 0,
   shutterTimer: 0,
@@ -37,6 +38,21 @@ function synchronizeRuntimeAlias() {
   return runtime;
 }
 
+function holdRuntime(runtime = synchronizeRuntimeAlias()) {
+  if (!runtime || state.done) return;
+  runtime.ready = false;
+  root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
+}
+
+function releaseRuntime(runtime = synchronizeRuntimeAlias()) {
+  if (!runtime) return;
+  runtime.ready = true;
+  root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
+  root.dispatchEvent?.(
+    new CustomEvent("dashboardmodern:runtime-ready", { detail: { energyRecovered: true } }),
+  );
+}
+
 function requestFullEnergyRecovery() {
   if (!state.repaired || state.forced) return false;
   const runtime = synchronizeRuntimeAlias();
@@ -45,6 +61,7 @@ function requestFullEnergyRecovery() {
   if (!runtime || !vehicle || coordinator?.running || vehicle.energyRunning) return false;
 
   state.forced = true;
+  holdRuntime(runtime);
   runtime.bundle = null;
   runtime.lastRefreshAt = 0;
   root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
@@ -84,6 +101,7 @@ async function repair() {
   if (!source) return;
 
   state.repairing = true;
+  holdRuntime();
   try {
     if (changed) await store.replaceSection("energy", energy);
     state.repaired = true;
@@ -163,6 +181,7 @@ async function repairDayBundle() {
   if (!sources.house) return;
 
   state.dayRunning = true;
+  holdRuntime(runtime);
   try {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -208,6 +227,7 @@ async function repairDayBundle() {
     );
     state.dayDone = true;
   } catch (error) {
+    state.dayFailures += 1;
     state.dayError = clean(error?.message || error);
     dayBroker.reset?.(error);
   } finally {
@@ -219,10 +239,10 @@ function energyTick() {
   state.timer = 0;
   state.attempts += 1;
   repair();
-  synchronizeRuntimeAlias();
+  const runtime = synchronizeRuntimeAlias();
+  if ((state.repairing || state.repaired) && !state.done) holdRuntime(runtime);
   requestFullEnergyRecovery();
 
-  const runtime = root.__DASHBOARDMODERN_RUNTIME_ROOT__;
   const vehicle = root.__DASHBOARDMODERN_VEHICLE_IMAGE_RUNTIME__;
   const baseComplete =
     state.forced &&
@@ -230,7 +250,7 @@ function energyTick() {
     runtime?.bundle?.day &&
     runtime?.bundle?.month &&
     runtime?.bundle?.year;
-  if (baseComplete && !state.dayDone) repairDayBundle();
+  if (baseComplete && !state.dayDone && !state.dayRunning) repairDayBundle();
 
   if (baseComplete && state.dayDone && !state.dayRunning) {
     state.done = true;
@@ -242,11 +262,17 @@ function energyTick() {
         runtime.bundle.year.house,
       ].join("/");
     }
+    releaseRuntime(runtime);
     return;
   }
 
-  if (!state.done && state.attempts < 520)
-    state.timer = root.setTimeout?.(energyTick, 25);
+  if (state.dayFailures >= 8 || state.attempts >= 520) {
+    state.done = true;
+    releaseRuntime(runtime);
+    return;
+  }
+
+  state.timer = root.setTimeout?.(energyTick, 25);
 }
 
 function liveStates() {
