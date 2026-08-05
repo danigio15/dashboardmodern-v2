@@ -1,13 +1,39 @@
-/* Compatibility exports retained for existing tests and stored configurations. */
-import "../src/sections/section-runtime.js";
-export { inferApplianceEntity } from "../src/sections/appliances-section.js";
+/* Pure compatibility utilities. Production startup belongs to report-mobile-fixes.js. */
+
+const clean = (value) => String(value ?? "").trim();
+
+export function inferApplianceEntity(device = {}, states = {}, kind = "energy") {
+  const candidates = [
+    device[`${kind}_entity`],
+    device[`${kind}_today`],
+    device.daily_energy_entity,
+    device.monthly_energy_entity,
+    device.total_energy_entity,
+    ...(device.entities || []),
+  ]
+    .map((entry) => (typeof entry === "string" ? entry : entry?.entity || entry?.entity_id))
+    .map(clean)
+    .filter(Boolean);
+  const expected = kind === "power" ? /^(w|kw)$/i : /^(wh|kwh|mwh)$/i;
+  const named =
+    kind === "power"
+      ? /power|potenza|watt/i
+      : /energy|energia|kwh|consum|total|totale|mese|month/i;
+  return (
+    candidates.find((entityId) =>
+      expected.test(clean(states?.[entityId]?.attributes?.unit_of_measurement)),
+    ) ||
+    candidates.find((entityId) => named.test(entityId)) ||
+    ""
+  );
+}
 
 export function isGeneratedRoomName(value = "") {
-  return /^room[-_][a-z0-9]{6,}$/i.test(String(value).trim());
+  return /^room[-_][a-z0-9]{6,}$/i.test(clean(value));
 }
 
 export function normalizeVehiclePath(value = "") {
-  let path = String(value || "").trim().replaceAll("\\", "/");
+  let path = clean(value).replaceAll("\\", "/");
   if (path.startsWith("/loca/")) path = `/local/${path.slice(6)}`;
   else if (path.startsWith("loca/")) path = `/local/${path.slice(5)}`;
   else if (path.startsWith("/config/www/")) path = `/local/${path.slice(12)}`;
