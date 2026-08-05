@@ -87,6 +87,12 @@ function same(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function sectionNeedsRepair(section) {
+  const current = dashboardStore()?.getSection?.(section);
+  if (!Array.isArray(current) || !current.length) return true;
+  return current.some((device) => !same(device, inferApplianceContract(device)));
+}
+
 async function normalizeDeviceSection(section) {
   const store = dashboardStore();
   if (!store?.getSection || !store?.replaceSection) return false;
@@ -128,7 +134,7 @@ function normalizeLegacyLightRooms() {
   let changed = false;
   for (const [entity, name] of Object.entries(lights)) {
     const raw = clean(assignments[entity]);
-    if (rooms.some((room) => clean(room.id) === raw)) continue;
+    if (rooms.some((room) => clean(room.id) === raw || clean(room.name) === raw)) continue;
     const inferred = canonicalRoomForLight(entity, name, rooms);
     const resolved =
       inferred ||
@@ -156,12 +162,11 @@ export async function applyDataContracts() {
   if (!store) return false;
   state.applying = true;
   try {
-    const changed = [
+    return [
       await normalizeDeviceSection("appliances"),
       await normalizeDeviceSection("loads"),
       normalizeLegacyLightRooms(),
     ].some(Boolean);
-    return changed;
   } finally {
     state.applying = false;
   }
@@ -172,9 +177,17 @@ function schedule(delay = 0) {
   state.timer = root.setTimeout?.(async () => {
     state.timer = 0;
     state.attempts += 1;
-    const ready = Boolean(dashboardStore());
-    if (ready) await applyDataContracts();
-    if (!ready && state.attempts < 120) schedule(25);
+    const store = dashboardStore();
+    if (store) {
+      subscribeStore();
+      await applyDataContracts();
+    }
+    const hydrating =
+      !store ||
+      sectionNeedsRepair("appliances") ||
+      sectionNeedsRepair("loads") ||
+      !(store.getSection?.("rooms") || []).length;
+    if ((hydrating || state.attempts < 80) && state.attempts < 240) schedule(hydrating ? 25 : 100);
   }, delay);
 }
 
@@ -194,6 +207,7 @@ export function installDataContractsSection() {
     for (const event of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
       root.addEventListener?.(event, () => {
         subscribeStore();
+        state.attempts = 0;
         schedule(0);
       });
     }
