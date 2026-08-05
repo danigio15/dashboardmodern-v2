@@ -44,8 +44,17 @@ function groupFromRow(row) {
   return found?.[0] || "altro";
 }
 
+function extractEntityId(value) {
+  const matches = clean(value).match(/\b[a-z_]+\.[a-z0-9_]+\b/gi);
+  return matches?.at(-1) || "";
+}
+
 function rowEntity(row) {
-  return clean(row.dataset.alertEntity || row.querySelector(".ed-row-old")?.textContent);
+  return (
+    extractEntityId(row.dataset.alertEntity) ||
+    extractEntityId(row.querySelector(".ed-row-old")?.textContent) ||
+    extractEntityId(row.textContent)
+  );
 }
 
 function rowName(row, entity) {
@@ -118,7 +127,7 @@ export function openAlertEditor(row) {
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const name = clean(form.elements.name.value);
-    const entity = clean(form.elements.entity.value);
+    const entity = extractEntityId(form.elements.entity.value);
     const group = clean(form.elements.group.value) || "altro";
     const error = form.querySelector("[data-error]");
     if (!name || !/^[a-z_]+\.[a-z0-9_]+$/i.test(entity)) {
