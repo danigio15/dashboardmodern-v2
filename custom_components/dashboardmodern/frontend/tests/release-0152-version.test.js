@@ -31,9 +31,14 @@ test("HACS root brand assets are shipped", async () => {
   }
 });
 
-test("the production entry reuses canonical modules instead of numbered owners", async () => {
+test("the production entry is only a transport guard and section loader", async () => {
   const source = await readFile(productionEntryUrl, "utf8");
-  assert.match(source, /src\/core\/appliance-artwork\.js/);
+  assert.match(source, /transport\/hosted-bridge-guard\.js/);
+  assert.match(source, /sections\/section-runtime\.js/);
+  assert.doesNotMatch(
+    source,
+    /appliance-artwork|alerts-runtime|vehicle-image-runtime|runtime-consolidated|mobile-ui-fixes/,
+  );
   assert.doesNotMatch(source, /release-\d{4}[^"']*\.js/);
   assert.doesNotMatch(source, /new MutationObserver|setInterval\s*\(/);
 });
