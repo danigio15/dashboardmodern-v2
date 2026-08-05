@@ -126,11 +126,71 @@ function ensureEnergyHelp() {
   return fields.every((field) => field.querySelector(":scope > .dm-energy-total-help"));
 }
 
+function editButton(kind, index) {
+  const button = doc.createElement("button");
+  button.type = "button";
+  button.className = "ed-del dm-edit-existing";
+  button.dataset.dmEditKind = kind;
+  button.dataset.dmEditIndex = String(index);
+  button.textContent = "✏️";
+  button.title = english() ? "Edit" : "Modifica";
+  button.setAttribute("aria-label", button.title);
+  return button;
+}
+
+function legacyRowsBeforeField(container, field) {
+  if (!container || !field) return [];
+  return [...container.querySelectorAll(".ed-row")].filter((row) => {
+    if (row.contains(field) || row.querySelector("[data-dm-edit-kind]")) return false;
+    const position = row.compareDocumentPosition(field);
+    const precedesField = Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING);
+    const buttons = [...row.querySelectorAll("button")];
+    return precedesField && buttons.length > 0;
+  });
+}
+
+function ensureLegacyEditButtons() {
+  const body = doc?.getElementById("ed-body");
+  if (!body) return false;
+  const definitions = [
+    ["action", "#ed-qa-type"],
+    ["climate", "#ed-cl-type"],
+    ["shutter", "#ed-tp-name"],
+    ["room", "#ed-room-name"],
+  ];
+  let inserted = false;
+  definitions.forEach(([kind, selector]) => {
+    const field = body.querySelector(selector);
+    if (!field) return;
+    const container = field.closest("details") || body;
+    legacyRowsBeforeField(container, field).forEach((row, index) => {
+      if (row.querySelector(`[data-dm-edit-kind='${kind}']`)) return;
+      const buttons = [...row.querySelectorAll("button")];
+      const remove =
+        buttons.find((button) =>
+          /(?:delete|remove|elimina|rimuovi|cestino|trash)/i.test(
+            `${button.className} ${button.getAttribute("aria-label") || ""} ${button.title || ""} ${button.getAttribute("onclick") || ""}`,
+          ),
+        ) || buttons.at(-1);
+      if (!remove) return;
+      remove.before(editButton(kind, index));
+      inserted = true;
+    });
+  });
+  return inserted || Boolean(body.querySelector("[data-dm-edit-kind]"));
+}
+
+function ensureEditorContracts() {
+  const energy = ensureEnergyHelp();
+  const edits = ensureLegacyEditButtons();
+  return energy || edits;
+}
+
 function uiTick() {
   state.uiTimer = 0;
   state.uiAttempts += 1;
   wrapEditorSwitch();
-  const complete = ensureEnergyHelp();
+  const complete = ensureEditorContracts();
   if (!complete && doc?.getElementById("editor-modal") && state.uiAttempts < 240)
     state.uiTimer = root.setTimeout?.(uiTick, 50);
 }
@@ -145,7 +205,7 @@ function wrapEditorSwitch() {
     const result = current.apply(this, args);
     const finish = () => {
       state.uiAttempts = 0;
-      root.queueMicrotask?.(ensureEnergyHelp);
+      root.queueMicrotask?.(ensureEditorContracts);
       scheduleUi(0);
     };
     if (result && typeof result.finally === "function") return result.finally(finish);
@@ -235,7 +295,7 @@ function complete(runtime) {
     state.appliedGeneration = generation;
   }
   applyDeviceDetail(bundle);
-  ensureEnergyHelp();
+  ensureEditorContracts();
   state.done = true;
   runtime.ready = true;
   root.__DASHBOARDMODERN_RUNTIME_0150__ = runtime;
@@ -275,7 +335,7 @@ function tick() {
 function schedule() {
   if (!state.done && !state.timer) state.timer = root.setTimeout?.(tick, 0);
   wrapEditorSwitch();
-  ensureEnergyHelp();
+  ensureEditorContracts();
   scheduleDeviceDetail(0);
 }
 
