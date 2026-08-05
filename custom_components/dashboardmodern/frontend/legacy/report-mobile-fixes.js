@@ -2,6 +2,7 @@
 import "./runtime-consolidated.js";
 import "../src/core/runtime-startup-coordinator.js";
 import "../src/core/alerts-runtime.js";
+import "../src/core/energy-total-source.js";
 import "../src/core/vehicle-image-runtime.js";
 
 if (typeof document !== "undefined" && !document.getElementById("dm-report-responsive-0152")) {
