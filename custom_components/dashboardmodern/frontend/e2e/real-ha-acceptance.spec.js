@@ -137,9 +137,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     await openEditor(page, "avvisi");
     await page.locator("[data-dm-alert-edit]").first().click();
-    await expect(page.locator("#ed-avv-ent")).toHaveValue("light.salone");
-    await page.locator("#ed-avv-name").fill("Luce principale");
-    await page.locator('button[onclick="edAddAvviso()"]:visible').click();
+    const alertEditor = page.locator("#dm-alert-editor-modal");
+    await expect(alertEditor).toBeVisible();
+    await expect(alertEditor.locator('input[name="entity"]')).toHaveValue("light.salone");
+    await alertEditor.locator('input[name="name"]').fill("Luce principale");
+    await alertEditor.locator('select[name="group"]').selectOption("luci");
+    await alertEditor.locator('button[type="submit"]').click();
+    await expect(alertEditor).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => ({
       groups: JSON.parse(localStorage.getItem("cd_gruppi_extra") || "{}"),
       names: JSON.parse(localStorage.getItem("cd_avvisi_names_extra") || "{}"),
