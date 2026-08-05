@@ -59,6 +59,25 @@ function normalizeReportManualPanel() {
   return true;
 }
 
+function synchronizeReportFields() {
+  doc?.querySelectorAll('#editor-modal [data-energy-panel="report"] .dm-report-row').forEach((row) => {
+    row.querySelectorAll("input,select,textarea").forEach((field) => {
+      if (field instanceof HTMLInputElement && ["checkbox", "radio"].includes(field.type)) {
+        field.toggleAttribute("checked", field.checked);
+      } else {
+        field.setAttribute("value", field.value);
+      }
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  });
+}
+
+function normalizeAlertsEditor() {
+  if (doc?.querySelector(".ed-tab.active")?.dataset?.tab !== "avvisi") return false;
+  root.__DASHBOARDMODERN_ALERTS_RUNTIME__?.apply?.();
+  return true;
+}
+
 function normalizeTemperatureEditor() {
   const form = doc?.querySelector("#editor-modal [data-temperature-form]");
   if (!form) return false;
@@ -108,6 +127,7 @@ function removeBatteryGlyphs() {
 
 export function applyEditorContracts() {
   normalizeReportManualPanel();
+  normalizeAlertsEditor();
   normalizeTemperatureEditor();
   normalizeEnergyHelp();
   removeBatteryGlyphs();
@@ -192,7 +212,14 @@ export function installEditorContractsSection() {
     for (const event of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
       root.addEventListener?.(event, schedule);
     }
-    doc.addEventListener("click", schedule, true);
+    doc.addEventListener(
+      "click",
+      (event) => {
+        if (event.target?.closest?.("[data-report-save]")) synchronizeReportFields();
+        schedule();
+      },
+      true,
+    );
   }
 }
 
