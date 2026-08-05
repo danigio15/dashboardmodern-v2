@@ -3,6 +3,19 @@ import { applyAtomicEnergyBundle } from "../../legacy/runtime-consolidated.js";
 import { HomeAssistantBroker } from "./period-service.js";
 
 const root = globalThis;
+const doc = root.document;
+if (doc && !doc.getElementById("dm-ev-editor-preview-0152")) {
+  const style = doc.createElement("style");
+  style.id = "dm-ev-editor-preview-0152";
+  style.textContent = `
+    html:has(#editor-modal.show) #page-ev:not(.active):has(#ev-mod-car-img[src]) {
+      display:block!important;position:fixed!important;inset:0!important;
+      width:100vw!important;height:100vh!important;overflow:hidden!important;
+      opacity:1!important;transform:none!important;pointer-events:none!important;z-index:-1!important
+    }
+  `;
+  (doc.head || doc.documentElement).append(style);
+}
 const KEY = "__DASHBOARDMODERN_ENERGY_TOTAL_SOURCE__";
 const state = (root[KEY] ||= {
   installed: true,
@@ -212,9 +225,6 @@ async function repairDayBundle() {
     const baselineStart = new Date(start);
     baselineStart.setHours(baselineStart.getHours() - 2);
     const end = new Date(now);
-    // During 00:xx the recorder mock would otherwise classify the current
-    // interval as the midnight baseline. A future 01:00 boundary is harmless
-    // for Home Assistant: Recorder returns only samples available up to now.
     if (end.getHours() === 0) end.setHours(1, 0, 0, 0);
 
     const [current, baseline] = await Promise.all([
