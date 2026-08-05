@@ -1,0 +1,476 @@
+import {
+  allStates,
+  clean,
+  doc,
+  english,
+  esc,
+  installStyle,
+  readJson,
+  root,
+  section,
+  t,
+  wrapFunction,
+  writeJsonIfChanged,
+} from "./shared.js";
+
+const KEY = "__DASHBOARDMODERN_LIGHTS_ALERTS_SECTION__";
+const state = (root[KEY] ||= {
+  installed: false,
+  listeners: false,
+  syncing: false,
+});
+
+function slug(value) {
+  return clean(value)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function canonicalRooms() {
+  const values = section("rooms", readJson("cd_stanze", []));
+  return (Array.isArray(values) ? values : [])
+    .map((room, index) => {
+      const name = clean(room?.name || room?.id || `room-${index + 1}`);
+      return {
+        ...room,
+        id: clean(room?.id) || `room-${slug(name) || index + 1}`,
+        name,
+      };
+    })
+    .filter((room) => room.name);
+}
+
+function resolveRoom(value, rooms = canonicalRooms()) {
+  const raw = clean(value);
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  const token = slug(raw).replace(/^room-/, "");
+  return (
+    rooms.find((room) => clean(room.id) === raw) ||
+    rooms.find((room) => clean(room.id).toLowerCase() === lower) ||
+    rooms.find((room) => clean(room.name).toLowerCase() === lower) ||
+    rooms.find((room) => slug(room.name) === token) ||
+    rooms.find((room) => slug(room.id).replace(/^room-/, "") === token) ||
+    null
+  );
+}
+
+function roomLabel(value, rooms = canonicalRooms()) {
+  return resolveRoom(value, rooms)?.name || clean(value) || t("Altre zone", "Other areas");
+}
+
+export function configuredLightGroups() {
+  const lights = readJson("cd_luci", {});
+  const assignments = readJson("cd_luci_rooms", {});
+  const order = readJson("cd_luci_order", {});
+  const preferredRooms = readJson("cd_luci_room_order", []);
+  const rooms = canonicalRooms();
+  const ids = Object.keys(lights).filter((id) => id.includes("."));
+  const grouped = new Map();
+  ids.forEach((id) => {
+    const label = roomLabel(assignments[id], rooms);
+    if (!grouped.has(label)) grouped.set(label, []);
+    grouped.get(label).push(id);
+  });
+  const preferredLabels = preferredRooms.map((room) => roomLabel(room, rooms));
+  const roomNames = [
+    ...preferredLabels.filter((room, index) => grouped.has(room) && preferredLabels.indexOf(room) === index),
+    ...[...grouped.keys()].filter((room) => !preferredLabels.includes(room)),
+  ];
+  return roomNames.map((room) => {
+    const current = grouped.get(room) || [];
+    const saved = Array.isArray(order[room]) ? order[room] : [];
+    const entities = [
+      ...saved.filter((id) => current.includes(id)),
+      ...current.filter((id) => !saved.includes(id)),
+    ];
+    return { room, entities, lights };
+  });
+}
+
+function roomOptions(selected) {
+  const rooms = canonicalRooms();
+  const target = resolveRoom(selected, rooms);
+  return [
+    `<option value="">— ${t("Altre zone", "Other areas")} —</option>`,
+    ...rooms.map(
+      (room) =>
+        `<option value="${esc(room.id)}" ${target?.id === room.id ? "selected" : ""}>${clean(room.icon) && !clean(room.icon).startsWith("mdi:") ? `${esc(room.icon)} ` : ""}${esc(room.name)}</option>`,
+    ),
+  ].join("");
+}
+
+export function renderCanonicalLightsEditor() {
+  const groups = configuredLightGroups();
+  const assignments = readJson("cd_luci_rooms", {});
+  const add = `<form class="ed-form dm-light-add-form" data-light-add-form onsubmit="event.preventDefault();cdLuceAdd()">
+    <div class="ed-sec-title">＋ ${t("AGGIUNGI LUCE", "ADD LIGHT")}</div>
+    <div class="ed-form-row"><input id="luce-add-ent" class="ed-input mono" data-entity-input data-light-add-entity placeholder="light.salone"><button type="button" class="dm-entity-picker" data-entity-target="luce-add-ent" onclick="wzPickEntity(document.getElementById('luce-add-ent'))" aria-label="${t("Seleziona entità luce", "Select light entity")}">🔍</button></div>
+    <input id="luce-add-name" class="ed-input" placeholder="${t("Nome luce", "Light name")}">
+    <button type="submit" class="ed-btn-add">＋ ${t("Aggiungi luce", "Add light")}</button>
+  </form>`;
+  if (!groups.length)
+    return `<div class="ed-empty">${t("Nessuna luce configurata.", "No configured lights.")}</div>${add}`;
+  const body = groups
+    .map((group, groupIndex) => {
+      const rows = group.entities
+        .map((id, index) => {
+          const name = group.lights[id] || allStates()?.[id]?.attributes?.friendly_name || id;
+          return `<article class="ed-row dm-light-row" data-light-entity="${esc(id)}">
+            <span class="dm-light-order"><button type="button" class="ed-del" ${index === 0 ? "disabled" : ""} onclick="dmLightMove('${esc(id)}',-1)" aria-label="${t("Sposta su", "Move up")}">▲</button><button type="button" class="ed-del" ${index === group.entities.length - 1 ? "disabled" : ""} onclick="dmLightMove('${esc(id)}',1)" aria-label="${t("Sposta giù", "Move down")}">▼</button></span>
+            <div class="ed-row-main"><div class="ed-row-new">💡 ${esc(name)}</div><div class="ed-row-old mono">${esc(id)}</div></div>
+            <select class="ed-input dm-light-room" data-light-entity="${esc(id)}" onchange="dmLightSetRoom('${esc(id)}',this.value)">${roomOptions(assignments[id])}</select>
+            <button type="button" class="ed-del dm-light-edit" onclick="dmOpenLightEditor('${esc(id)}')" aria-label="${t("Modifica luce", "Edit light")}">✏️</button>
+            <button type="button" class="ed-del" onclick="cdLuceDel('${esc(id)}')" aria-label="${t("Elimina luce", "Delete light")}">🗑️</button>
+          </article>`;
+        })
+        .join("");
+      return `<section class="dm-light-group" data-light-room="${esc(group.room)}"><header class="ed-acc-head"><span>🏠 ${esc(group.room)} · ${group.entities.length}</span><span class="dm-light-room-order"><button type="button" class="ed-del" ${groupIndex === 0 ? "disabled" : ""} onclick="dmLightRoomMove('${esc(group.room)}',-1)">▲</button><button type="button" class="ed-del" ${groupIndex === groups.length - 1 ? "disabled" : ""} onclick="dmLightRoomMove('${esc(group.room)}',1)">▼</button></span></header><div class="ed-list">${rows}</div></section>`;
+    })
+    .join("");
+  return `<div class="ed-intro">${t("Sono mostrate solo le stanze che contengono almeno una luce. Modifica apre tutti i dati della luce, non una finestra del browser.", "Only rooms containing a light are shown. Edit opens all light fields, not a browser prompt.")}</div>${body}${add}`;
+}
+
+function persistLightOrder(groups, { sync = true } = {}) {
+  const changedOrder = writeJsonIfChanged(
+    "cd_luci_order",
+    Object.fromEntries(groups.map((group) => [group.room, group.entities])),
+    { sync: false },
+  );
+  const changedRooms = writeJsonIfChanged(
+    "cd_luci_room_order",
+    groups.map((group) => group.room),
+    { sync: false },
+  );
+  if (sync && (changedOrder || changedRooms)) {
+    root.cdMarkDirty?.();
+    root.cdSyncPush?.();
+  }
+  return changedOrder || changedRooms;
+}
+
+function rerenderLights() {
+  const body = doc?.getElementById("ed-body");
+  if (body && doc.querySelector(".ed-tab.active")?.dataset?.tab === "luci") {
+    body.innerHTML = renderCanonicalLightsEditor();
+    return;
+  }
+  root.editorSwitch?.("luci");
+}
+
+function replaceEntity(value, oldId, newId) {
+  if (Array.isArray(value)) return value.map((item) => replaceEntity(item, oldId, newId));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key === oldId ? newId : key, replaceEntity(item, oldId, newId)]),
+    );
+  }
+  return value === oldId ? newId : value;
+}
+
+function saveAllLightMaps({ oldId, entity, name, roomId }) {
+  const keys = [
+    "cd_luci",
+    "cd_luci_rooms",
+    "cd_luci_order",
+    "cd_luci_room_order",
+    "cd_gruppi_extra",
+    "cd_gruppi_removed",
+    "cd_avvisi_names_extra",
+    "cd_quick_actions",
+  ];
+  const values = Object.fromEntries(
+    keys.map((key) => [
+      key,
+      readJson(key, key === "cd_luci_room_order" || key === "cd_quick_actions" ? [] : {}),
+    ]),
+  );
+  const lights = values.cd_luci && typeof values.cd_luci === "object" ? values.cd_luci : {};
+  const assignments = values.cd_luci_rooms && typeof values.cd_luci_rooms === "object" ? values.cd_luci_rooms : {};
+  if (entity !== oldId) {
+    delete lights[oldId];
+    delete assignments[oldId];
+    for (const key of keys.slice(2)) values[key] = replaceEntity(values[key], oldId, entity);
+  }
+  lights[entity] = name;
+  if (roomId) assignments[entity] = roomId;
+  else delete assignments[entity];
+  values.cd_luci = lights;
+  values.cd_luci_rooms = assignments;
+  if (values.cd_avvisi_names_extra && typeof values.cd_avvisi_names_extra === "object")
+    values.cd_avvisi_names_extra[entity] = name;
+
+  let changed = false;
+  for (const key of keys) changed = writeJsonIfChanged(key, values[key], { sync: false }) || changed;
+  if (changed) {
+    root.cdMarkDirty?.();
+    root.cdSyncPush?.();
+  }
+  synchronizeLightAlerts();
+}
+
+export function openLightEditor(entityId) {
+  const oldId = clean(entityId);
+  const names = readJson("cd_luci", {});
+  if (!oldId || !names[oldId]) return;
+  doc?.getElementById("dm-light-editor-modal")?.remove();
+  const assignments = readJson("cd_luci_rooms", {});
+  const modal = doc.createElement("div");
+  modal.id = "dm-light-editor-modal";
+  modal.className = "dm-section-modal";
+  modal.innerHTML = `<section class="dm-section-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-light-editor-title">
+    <header><strong id="dm-light-editor-title">💡 ${t("Modifica luce", "Edit light")}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header>
+    <form data-form>
+      <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(names[oldId])}" required></label>
+      <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(oldId)}" required><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
+      <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomOptions(assignments[oldId])}</select></label>
+      <output data-error></output>
+      <footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="submit" class="ed-save-btn">💾 ${t("Salva modifiche", "Save changes")}</button></footer>
+    </form>
+  </section>`;
+  doc.body.append(modal);
+  const form = modal.querySelector("[data-form]");
+  const entityInput = form.elements.entity;
+  const close = () => modal.remove();
+  modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
+  modal.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(entityInput));
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) close();
+  });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const entity = clean(form.elements.entity.value);
+    const name = clean(form.elements.name.value);
+    const roomId = clean(form.elements.room.value);
+    const error = form.querySelector("[data-error]");
+    if (!/^light\.[a-z0-9_]+$/i.test(entity) || !name) {
+      error.textContent = t("Inserisci un nome e un'entità light.* valida.", "Enter a name and a valid light.* entity.");
+      return;
+    }
+    const existing = readJson("cd_luci", {});
+    if (entity !== oldId && existing[entity]) {
+      error.textContent = t("Questa entità è già configurata.", "This entity is already configured.");
+      return;
+    }
+    saveAllLightMaps({ oldId, entity, name, roomId });
+    close();
+    rerenderLights();
+  });
+}
+
+root.dmLightMove = (id, direction) => {
+  const groups = configuredLightGroups();
+  const group = groups.find((item) => item.entities.includes(id));
+  if (!group) return;
+  const index = group.entities.indexOf(id);
+  const next = index + Number(direction);
+  if (next < 0 || next >= group.entities.length) return;
+  [group.entities[index], group.entities[next]] = [group.entities[next], group.entities[index]];
+  persistLightOrder(groups);
+  rerenderLights();
+};
+
+root.dmLightRoomMove = (room, direction) => {
+  const groups = configuredLightGroups();
+  const index = groups.findIndex((item) => item.room === room);
+  const next = index + Number(direction);
+  if (index < 0 || next < 0 || next >= groups.length) return;
+  [groups[index], groups[next]] = [groups[next], groups[index]];
+  persistLightOrder(groups);
+  rerenderLights();
+};
+
+root.dmLightSetRoom = (id, roomId) => {
+  const assignments = readJson("cd_luci_rooms", {});
+  if (clean(roomId)) assignments[id] = clean(roomId);
+  else delete assignments[id];
+  const assignmentChanged = writeJsonIfChanged("cd_luci_rooms", assignments, { sync: false });
+  const groups = configuredLightGroups();
+  const orderChanged = persistLightOrder(groups, { sync: false });
+  if (assignmentChanged || orderChanged) {
+    root.cdMarkDirty?.();
+    root.cdSyncPush?.();
+  }
+  rerenderLights();
+};
+root.dmOpenLightEditor = openLightEditor;
+
+function orderedLightIds() {
+  return configuredLightGroups().flatMap((group) => group.entities);
+}
+
+export function openOrderedLightPicker(groupName, onDone, preselected = []) {
+  doc?.getElementById("dm-light-picker-0152")?.remove();
+  const names = readJson("cd_luci", {});
+  const ordered = orderedLightIds();
+  let selected = [...new Set(preselected.filter((id) => ordered.includes(id)))];
+  const modal = doc.createElement("div");
+  modal.id = "dm-light-picker-0152";
+  modal.className = "dm-section-modal";
+  modal.innerHTML = `<section class="dm-section-dialog dm-light-picker-dialog" role="dialog" aria-modal="true">
+    <header><strong>💡 ${esc(groupName)}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header>
+    <input class="ed-input" data-search placeholder="${t("Cerca luce", "Search light")}">
+    <div class="ed-list dm-light-picker-list" data-list></div>
+    <footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="button" class="ed-save-btn" data-save>💾 ${t("Salva selezione", "Save selection")}</button></footer>
+  </section>`;
+  doc.body.append(modal);
+  const list = modal.querySelector("[data-list]");
+  const render = () => {
+    const query = clean(modal.querySelector("[data-search]").value).toLowerCase();
+    const visible = ordered.filter((id) => `${names[id] || ""} ${id}`.toLowerCase().includes(query));
+    list.innerHTML = visible
+      .map((id) => {
+        const checked = selected.includes(id);
+        const index = selected.indexOf(id);
+        return `<article class="ed-row dm-light-picker-row" data-pick-light="${esc(id)}"><input type="checkbox" ${checked ? "checked" : ""}><div class="ed-row-main"><div class="ed-row-new">${esc(names[id] || id)}</div><div class="ed-row-old mono">${esc(id)}</div></div><button type="button" class="ed-del" data-up ${!checked || index <= 0 ? "disabled" : ""}>▲</button><button type="button" class="ed-del" data-down ${!checked || index >= selected.length - 1 ? "disabled" : ""}>▼</button></article>`;
+      })
+      .join("");
+    list.querySelectorAll("[data-pick-light]").forEach((row) => {
+      const id = row.dataset.pickLight;
+      row.querySelector("input").addEventListener("change", (event) => {
+        selected = event.target.checked
+          ? [...selected.filter((item) => item !== id), id]
+          : selected.filter((item) => item !== id);
+        render();
+      });
+      row.querySelector("[data-up]").addEventListener("click", () => {
+        const index = selected.indexOf(id);
+        if (index > 0) [selected[index - 1], selected[index]] = [selected[index], selected[index - 1]];
+        render();
+      });
+      row.querySelector("[data-down]").addEventListener("click", () => {
+        const index = selected.indexOf(id);
+        if (index >= 0 && index < selected.length - 1)
+          [selected[index + 1], selected[index]] = [selected[index], selected[index + 1]];
+        render();
+      });
+    });
+  };
+  const close = () => modal.remove();
+  modal.querySelector("[data-search]").addEventListener("input", render);
+  modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
+  modal.querySelector("[data-save]").addEventListener("click", () => {
+    onDone?.(selected);
+    close();
+  });
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) close();
+  });
+  render();
+}
+
+export function synchronizeLightAlerts() {
+  if (state.syncing) return false;
+  state.syncing = true;
+  try {
+    const lights = Object.keys(readJson("cd_luci", {})).filter((id) => id.includes("."));
+    const removed = readJson("cd_gruppi_removed", {});
+    const extras = readJson("cd_gruppi_extra", {});
+    const next = [...new Set([...(extras.luci || []), ...lights])].filter(
+      (id) => !(removed.luci || []).includes(id),
+    );
+    if (JSON.stringify(extras.luci || []) === JSON.stringify(next)) return false;
+    extras.luci = next;
+    return writeJsonIfChanged("cd_gruppi_extra", extras);
+  } finally {
+    state.syncing = false;
+  }
+}
+
+function normalizeAlertEditorDom() {
+  const body = doc?.getElementById("ed-body");
+  if (!body || doc.querySelector(".ed-tab.active")?.dataset?.tab !== "avvisi") return false;
+  body.querySelectorAll(".ed-row").forEach((row) => {
+    const label = clean(row.querySelector(".ed-row-new")?.textContent);
+    const entity = clean(row.querySelector(".ed-row-old")?.textContent);
+    if (!label && !entity) row.remove();
+  });
+  return true;
+}
+
+function installStyles() {
+  installStyle(
+    "dm-lights-alerts-section-style",
+    `
+      .dm-section-modal{position:fixed!important;inset:0!important;z-index:100000!important;display:grid!important;place-items:center!important;box-sizing:border-box!important;padding:16px!important;background:rgba(2,6,23,.68)!important;pointer-events:auto!important}
+      .dm-section-dialog{display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;box-sizing:border-box!important;width:min(720px,100%)!important;max-height:min(760px,92dvh)!important;overflow:hidden!important;border:1px solid var(--divider-color,rgba(148,163,184,.25))!important;border-radius:22px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--primary-text-color,var(--text,#0f172a))!important;box-shadow:0 28px 90px rgba(0,0,0,.38)!important}
+      .dm-section-dialog>header,.dm-section-dialog>footer{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;padding:14px 16px!important;background:var(--secondary-background-color,rgba(148,163,184,.10))!important;border-color:var(--divider-color,rgba(148,163,184,.22))!important}
+      .dm-section-dialog>header{border-bottom:1px solid}.dm-section-dialog>footer{border-top:1px solid}
+      .dm-section-dialog>header button{display:grid!important;place-items:center!important;width:38px!important;height:38px!important;border:0!important;border-radius:50%!important;background:var(--secondary-background-color,#eef2f7)!important;color:var(--primary-text-color,#0f172a)!important;cursor:pointer!important}
+      .dm-section-dialog>form{display:grid!important;gap:14px!important;overflow:auto!important;padding:18px!important}
+      .dm-section-dialog>form>footer{display:flex!important;justify-content:flex-end!important;gap:10px!important}
+      .dm-section-dialog [data-error]{min-height:18px;color:var(--error-color,#dc2626);font-weight:800}
+      .dm-light-picker-dialog{grid-template-rows:auto auto minmax(0,1fr) auto!important}
+      .dm-light-picker-dialog>[data-search]{box-sizing:border-box!important;width:auto!important;margin:14px 16px 8px!important}
+      .dm-light-picker-list{min-height:0!important;overflow:auto!important;padding:8px 16px 16px!important}
+      .dm-light-picker-row{display:grid!important;grid-template-columns:auto minmax(0,1fr) 38px 38px!important;align-items:center!important;gap:10px!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;margin:0 0 8px!important}
+      .dm-light-picker-row input{width:18px!important;height:18px!important;margin:0!important}
+      .dm-light-picker-row .ed-row-main{min-width:0!important}.dm-light-picker-row .ed-row-new,.dm-light-picker-row .ed-row-old{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+      .dm-light-row{display:grid!important;grid-template-columns:auto minmax(140px,1fr) minmax(150px,260px) 42px 42px!important;align-items:center!important;gap:10px!important;min-width:0!important}
+      .dm-light-order{display:grid!important;gap:3px!important}.dm-light-room-order{display:inline-flex!important;gap:4px!important}
+      .dm-light-row .dm-light-room{width:100%!important;min-width:0!important}
+      @media(max-width:720px){
+        .dm-section-modal{padding:8px!important}.dm-section-dialog{max-height:96dvh!important;border-radius:18px!important}
+        .dm-light-row{grid-template-columns:auto minmax(0,1fr) 42px 42px!important}.dm-light-row .dm-light-room{grid-column:1/-1!important;grid-row:2!important}
+        .dm-light-picker-row{grid-template-columns:auto minmax(0,1fr) 36px 36px!important;padding:10px!important}
+        .dm-section-dialog>form>footer{flex-direction:column-reverse!important}.dm-section-dialog>form>footer button{width:100%!important}
+      }
+    `,
+  );
+}
+
+function installOwners() {
+  if (typeof root.editorRenderLuci === "function") root.editorRenderLuci = renderCanonicalLightsEditor;
+  root.cdPickLights = openOrderedLightPicker;
+  root.cdLuceRen = openLightEditor;
+  const alerts = root.editorRenderAvvisi;
+  if (typeof alerts === "function" && !alerts.__dmLightsAlertsSection) {
+    function canonicalAlerts(...args) {
+      synchronizeLightAlerts();
+      const result = alerts.apply(this, args);
+      root.queueMicrotask?.(normalizeAlertEditorDom);
+      return result;
+    }
+    canonicalAlerts.__dmLightsAlertsSection = true;
+    canonicalAlerts.__dmPrevious = alerts;
+    root.editorRenderAvvisi = canonicalAlerts;
+  }
+  wrapFunction("editorSwitch", "__dmLightsAlertsEditor", () => {
+    installOwners();
+    normalizeAlertEditorDom();
+  });
+}
+
+export function installLightsAlertsSection() {
+  if (!doc) return;
+  installStyles();
+  installOwners();
+  synchronizeLightAlerts();
+  if (!state.listeners) {
+    state.listeners = true;
+    root.addEventListener?.("dashboardmodern:legacy-ready", () => {
+      installOwners();
+      synchronizeLightAlerts();
+    });
+    doc.addEventListener(
+      "click",
+      (event) => {
+        if (event.target?.closest?.(".ed-tab[data-tab='luci'],.ed-tab[data-tab='avvisi']"))
+          root.queueMicrotask?.(() => {
+            installOwners();
+            synchronizeLightAlerts();
+            normalizeAlertEditorDom();
+          });
+      },
+      true,
+    );
+  }
+  state.installed = true;
+}
+
+if (doc?.readyState === "loading")
+  doc.addEventListener("DOMContentLoaded", installLightsAlertsSection, { once: true });
+else installLightsAlertsSection();

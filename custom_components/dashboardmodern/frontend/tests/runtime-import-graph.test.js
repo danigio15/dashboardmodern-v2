@@ -9,36 +9,91 @@ const importPattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["'
 
 async function productionGraph(entry) {
   const seen = new Map();
+  const edges = new Map();
 
   async function visit(file) {
     const normalized = path.normalize(file);
     if (seen.has(normalized)) return;
     const source = await readFile(normalized, "utf8");
     seen.set(normalized, source);
+    const dependencies = [];
+    edges.set(normalized, dependencies);
     for (const match of source.matchAll(importPattern)) {
       const specifier = match[1];
       if (!specifier.startsWith(".")) continue;
       let next = path.resolve(path.dirname(normalized), specifier);
       if (!path.extname(next)) next += ".js";
+      next = path.normalize(next);
+      dependencies.push(next);
       await visit(next);
     }
   }
 
   await visit(path.resolve(frontendRoot, entry));
-  return seen;
+  return { seen, edges };
 }
 
-test("production has one runtime owner and no numbered patch cascade", async () => {
-  const graph = await productionGraph("legacy/modules-entry.js");
+function assertAcyclic(edges) {
+  const active = new Set();
+  const complete = new Set();
+
+  function visit(file, chain = []) {
+    if (complete.has(file)) return;
+    if (active.has(file)) {
+      const cycle = [...chain, file]
+        .map((item) => path.relative(frontendRoot, item).replaceAll("\\", "/"))
+        .join(" -> ");
+      assert.fail(`production import cycle: ${cycle}`);
+    }
+    active.add(file);
+    for (const dependency of edges.get(file) || []) visit(dependency, [...chain, file]);
+    active.delete(file);
+    complete.add(file);
+  }
+
+  for (const file of edges.keys()) visit(file);
+}
+
+test("production has one owner per section and no patch cascade", async () => {
+  const { seen: graph, edges } = await productionGraph("legacy/modules-entry.js");
   const relative = [...graph.keys()].map((file) =>
     path.relative(frontendRoot, file).replaceAll("\\", "/"),
   );
   const combined = [...graph.values()].join("\n");
+  const sectionOwners = [
+    "sections/energy-section.js",
+    "sections/temperature-section.js",
+    "sections/appliances-section.js",
+    "sections/lights-alerts-section.js",
+    "sections/editor-crud-section.js",
+  ];
 
   assert.equal(relative.filter((file) => file.endsWith("runtime-consolidated.js")).length, 1);
+  for (const owner of sectionOwners) {
+    assert.equal(
+      relative.filter((file) => file.endsWith(owner)).length,
+      1,
+      `${owner} must have exactly one production owner`,
+    );
+  }
   assert.deepEqual(relative.filter((file) => /legacy\/release-\d+/.test(file)), []);
-  assert.deepEqual(relative.filter((file) => /runtime-real-ha|runtime-residual|runtime-release-owner|runtime-regression-guard/.test(file)), []);
-  assert.ok(relative.length <= 18, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.deepEqual(
+    relative.filter((file) =>
+      /runtime-real-ha|runtime-residual|runtime-release-owner|runtime-regression-guard/.test(file),
+    ),
+    [],
+  );
+  assert.ok(relative.length <= 32, `production graph unexpectedly grew to ${relative.length} modules`);
+  assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
-  assert.doesNotMatch(combined, /new\s+MutationObserver\s*\(/);
+
+  const observers = [...graph.entries()].filter(([, source]) => /new\s+MutationObserver\s*\(/.test(source));
+  assert.ok(observers.length <= 2, `too many section observers: ${observers.length}`);
+  for (const [file, source] of observers) {
+    assert.doesNotMatch(
+      source,
+      /\.observe\s*\(\s*(?:document|doc|document\.body|doc\.body|document\.documentElement|doc\.documentElement)\b/,
+      `${path.relative(frontendRoot, file)} must not observe the whole document`,
+    );
+  }
 });

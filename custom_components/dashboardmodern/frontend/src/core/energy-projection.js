@@ -233,10 +233,14 @@ export function isCumulativeEnergyEntity(entityId, states = globalThis.STATES ||
 
 export function reportEntityForDevice(item = {}, states = globalThis.STATES || {}) {
   const candidates = [...new Set(entityIds(item))];
+  const configuredReport = configured(item.report_entity);
+  const userSelectedReport = item.metadata?.report_entity_explicit === true;
+  if (userSelectedReport && isValidEnergyCandidate(states, configuredReport))
+    return configuredReport;
+
   const explicitTotal = configured(item.total_energy_entity);
   if (isCumulativeEnergyEntity(explicitTotal, states)) return explicitTotal;
 
-  const configuredReport = configured(item.report_entity);
   if (isCumulativeEnergyEntity(configuredReport, states)) return configuredReport;
 
   const cumulative = candidates.find((entityId) => isCumulativeEnergyEntity(entityId, states));
@@ -321,6 +325,7 @@ export function canonicalReportDevices(
     .map((item, index) => {
       const entity = reportEntityForDevice(item, states);
       const visual = getDeviceVisual(item);
+      const history = item.history_entity || item.total_energy_entity || entity || "";
       return {
         key: item.id || `report-${index}`,
         name: item.report_label || item.name || item.id,
@@ -329,8 +334,8 @@ export function canonicalReportDevices(
         visual_key: item.visual_key || "",
         image: visual?.kind === "image" ? visual.value : "",
         entity,
-        history: entity || item.history_entity || "",
-        cumulative: isCumulativeEnergyEntity(entity, states),
+        history,
+        cumulative: isCumulativeEnergyEntity(history, states),
       };
     })
     .filter((item) => {

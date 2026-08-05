@@ -147,14 +147,18 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     await openEditor(page, "luci");
     await page.locator('[data-light-entity="light.salone"] .dm-light-room').selectOption({ label: "Salone" });
-    await page.locator('[data-light-entity="light.salone"] button[onclick^="cdLuceRen"]').click();
-    await expect(page.locator("#luce-add-ent")).toHaveValue("light.salone");
-    await page.locator("#luce-add-name").fill("Luce principale");
-    await page.locator('button[onclick="cdLuceAdd()"]:visible').click();
+    await page.locator('[data-light-entity="light.salone"] .dm-light-edit').click();
+    const lightEditor = page.locator("#dm-light-editor-modal");
+    await expect(lightEditor).toBeVisible();
+    await expect(lightEditor.locator('input[name="entity"]')).toHaveValue("light.salone");
+    await lightEditor.locator('input[name="name"]').fill("Luce principale");
+    await lightEditor.locator('select[name="room"]').selectOption("room-salone");
+    await lightEditor.locator('button[type="submit"]').click();
+    await expect(lightEditor).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => ({
       lights: JSON.parse(localStorage.getItem("cd_luci") || "{}"),
       rooms: JSON.parse(localStorage.getItem("cd_luci_rooms") || "{}"),
-    }))).toEqual({ lights: { "light.salone": "Luce principale" }, rooms: { "light.salone": "Salone" } });
+    }))).toEqual({ lights: { "light.salone": "Luce principale" }, rooms: { "light.salone": "room-salone" } });
 
     await openEditor(page, "sez7");
     const actions = page.locator(".dm-temperature-actions");

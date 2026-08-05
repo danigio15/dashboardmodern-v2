@@ -90,11 +90,7 @@ test("Recorder change buckets are summed and meter resets stay non-negative", ()
 test("canonical total sensor derives every Energy period", () => {
   const states = { "sensor.house_total": totalState("sensor.house_total") };
   for (const kind of ["day", "month", "year"]) {
-    const plans = sourcePlans(
-      { house: { total_energy: "sensor.house_total" } },
-      kind,
-      states,
-    );
+    const plans = sourcePlans({ house: { total_energy: "sensor.house_total" } }, kind, states);
     assert.equal(plans.length, 1);
     assert.equal(plans[0].key, "house");
     assert.equal(plans[0].entity, "sensor.house_total");
@@ -140,20 +136,28 @@ test("legacy overrides still classify total increasing meters safely", () => {
   );
 });
 
-test("production loader owns one atomic runtime without patch cascades", async () => {
+test("production entry delegates to imported section owners", async () => {
   const loader = await readFile(new URL("../legacy/report-mobile-fixes.js", import.meta.url), "utf8");
   const mobile = await readFile(new URL("../legacy/mobile-ui-fixes.js", import.meta.url), "utf8");
   const runtime = await readFile(new URL("../legacy/runtime-consolidated.js", import.meta.url), "utf8");
+  const sections = await readFile(new URL("../src/sections/section-runtime.js", import.meta.url), "utf8");
+  const energy = await readFile(new URL("../src/sections/energy-section.js", import.meta.url), "utf8");
+  const guard = await readFile(new URL("../src/transport/hosted-bridge-guard.js", import.meta.url), "utf8");
 
-  assert.match(loader, /runtime-consolidated\.js/);
+  assert.match(loader, /sections\/section-runtime\.js/);
+  assert.match(runtime, /sections\/energy-section\.js/);
+  assert.match(runtime, /sections\/lights-alerts-section\.js/);
+  for (const name of ["energy", "temperature", "appliances", "lights-alerts", "editor-crud"])
+    assert.match(sections, new RegExp(`${name}-section\\.js`));
   assert.doesNotMatch(loader, /release-\d+|runtime-real-ha|runtime-residual|runtime-release-owner/);
-  assert.doesNotMatch(mobile, /new\s+MutationObserver/);
-  assert.doesNotMatch(mobile, /setInterval\s*\(/);
-  assert.doesNotMatch(runtime, /new\s+MutationObserver/);
-  assert.doesNotMatch(runtime, /setInterval\s*\(/);
-  assert.equal((runtime.match(/new\s+HomeAssistantBroker\s*\(/g) || []).length, 1);
-  assert.match(runtime, /loadEnergyPeriod\("day"/);
-  assert.match(runtime, /loadEnergyPeriod\("month"/);
-  assert.match(runtime, /loadEnergyPeriod\("year"/);
-  assert.match(runtime, /Promise\.all/);
+  assert.doesNotMatch(runtime, /HomeAssistantBroker|setInterval\s*\(/);
+  assert.doesNotMatch(mobile, /setInterval\s*\(|new\s+MutationObserver/);
+  assert.equal((energy.match(/new\s+SafeHomeAssistantBroker\s*\(/g) || []).length, 1);
+  assert.match(energy, /loadEnergyPeriod\("day"/);
+  assert.match(energy, /loadEnergyPeriod\("month"/);
+  assert.match(energy, /loadEnergyPeriod\("year"/);
+  assert.match(energy, /Promise\.all/);
+  assert.match(energy, /Incomplete Home Assistant statistics/);
+  assert.match(guard, /sanitizeHostedCredentials/);
+  assert.doesNotMatch(guard, /send\s*\(.*access_token/);
 });
