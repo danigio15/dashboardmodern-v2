@@ -1,5 +1,3 @@
-import "../../legacy/mobile-ui-fixes.js";
-import "../../legacy/report-mobile-fixes.js";
 import { getDeviceVisual } from "./device-model.js";
 
 export const ENERGY_SLOT_MAP = Object.freeze({
