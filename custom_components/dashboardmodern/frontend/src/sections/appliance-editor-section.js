@@ -1,8 +1,10 @@
+import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
 import {
   clean,
   dashboardStore,
   doc,
   esc,
+  installStyle,
   readJson,
   root,
   section,
@@ -12,6 +14,20 @@ import {
 
 const KEY = "__DASHBOARDMODERN_APPLIANCE_EDITOR_SECTION__";
 const state = (root[KEY] ||= { installed: false, previousEdit: null });
+const ARTWORK_TYPES = [
+  "generico",
+  "lavatrice",
+  "asciugatrice",
+  "lavastoviglie",
+  "frigorifero",
+  "forno",
+  "microonde",
+  "boiler",
+  "clima",
+  "televisore",
+  "computer",
+  "presa",
+];
 
 function appliances() {
   const stored = dashboardStore()?.getSection?.("appliances");
@@ -32,6 +48,15 @@ function roomOptions(selected) {
 
 function entityField(name, label, value, help = "") {
   return `<label class="ed-slot"><span class="ed-slot-lbl">${label}</span><span class="ed-form-row"><input class="ed-input mono" name="${name}" value="${esc(value)}"><button type="button" class="dm-entity-picker" data-pick="${name}" aria-label="${t("Seleziona entità", "Select entity")}">🔍</button></span>${help ? `<small>${help}</small>` : ""}</label>`;
+}
+
+function iconValue(device) {
+  return clean(device.icon || device.visual_key || device.device_type || device.type || "generico");
+}
+
+function iconPreviewMarkup(value) {
+  const kind = canonicalArtworkType(clean(value)) || "generico";
+  return applianceArtwork(kind, 112) || `<span class="dm-appliance-preview-fallback">🔌</span>`;
 }
 
 function normalizeEntities(device, values) {
@@ -70,10 +95,29 @@ async function saveAppliance(index, next) {
   root.buildReportSelect?.();
 }
 
+function installEditorStyles() {
+  installStyle(
+    "dm-appliance-editor-section-style",
+    `
+      #dm-appliance-editor-modal .dm-appliance-editor-dialog{width:min(760px,calc(100vw - 24px))!important;max-height:calc(100dvh - 24px)!important}
+      #dm-appliance-editor-modal .dm-appliance-icon-field{display:grid!important;grid-template-columns:132px minmax(0,1fr)!important;align-items:center!important;gap:14px!important;grid-column:1/-1!important}
+      #dm-appliance-editor-modal .dm-appliance-icon-preview{display:grid!important;place-items:center!important;box-sizing:border-box!important;width:132px!important;height:116px!important;overflow:hidden!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:18px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 9%,var(--ha-card-background,#fff))!important}
+      #dm-appliance-editor-modal .dm-appliance-icon-preview .dm-appliance-art,#dm-appliance-editor-modal .dm-appliance-icon-preview svg{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important}
+      #dm-appliance-editor-modal .dm-appliance-icon-control{display:grid!important;gap:8px!important;min-width:0!important}
+      #dm-appliance-editor-modal .dm-appliance-icon-control small{color:var(--secondary-text-color,#64748b)!important;line-height:1.35!important}
+      #dm-appliance-editor-modal .dm-appliance-preview-fallback{font-size:54px!important}
+      #dm-appliance-editor-modal form{overflow:auto!important;padding-bottom:max(18px,env(safe-area-inset-bottom))!important}
+      #dm-appliance-editor-modal footer{position:sticky!important;bottom:0!important;z-index:3!important;padding-top:12px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important}
+      @media(max-width:560px){#dm-appliance-editor-modal .dm-appliance-icon-field{grid-template-columns:104px minmax(0,1fr)!important}#dm-appliance-editor-modal .dm-appliance-icon-preview{width:104px!important;height:96px!important}#dm-appliance-editor-modal .dm-appliance-editor-dialog{width:calc(100vw - 16px)!important;max-height:calc(100dvh - 16px)!important}}
+    `,
+  );
+}
+
 export function openApplianceEditor(index) {
   const device = appliances()[index];
   if (!device) return false;
   doc?.getElementById("dm-appliance-editor-modal")?.remove();
+  const currentIcon = iconValue(device);
   const modal = doc.createElement("div");
   modal.id = "dm-appliance-editor-modal";
   modal.className = "dm-section-modal";
@@ -82,7 +126,10 @@ export function openApplianceEditor(index) {
     <form data-form>
       <div class="dm-modal-grid dm-appliance-main-fields">
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(device.name)}" required></label>
-        <label class="ed-slot"><span class="ed-slot-lbl">${t("Tipo / icona", "Type / icon")}</span><input class="ed-input" name="icon" value="${esc(device.icon || device.visual_key || "generico")}"></label>
+        <div class="dm-appliance-icon-field">
+          <div class="dm-appliance-icon-preview" data-icon-preview aria-label="${t("Anteprima icona", "Icon preview")}">${iconPreviewMarkup(currentIcon)}</div>
+          <label class="ed-slot dm-appliance-icon-control"><span class="ed-slot-lbl">${t("Tipo / icona", "Type / icon")}</span><input class="ed-input" name="icon" list="dm-appliance-icon-types" value="${esc(currentIcon)}" autocomplete="off"><datalist id="dm-appliance-icon-types">${ARTWORK_TYPES.map((type) => `<option value="${type}"></option>`).join("")}</datalist><small>${t("Scrivi o scegli il tipo: l’anteprima mostra l’icona che verrà usata nella card.", "Type or select a category: the preview shows the icon used on the card.")}</small></label>
+        </div>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room_id">${roomOptions(device.room_id || device.room)}</select></label>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Soglia in funzione", "Running threshold")}</span><input class="ed-input" type="number" step="0.1" min="0" name="threshold_run" value="${esc(device.threshold_run ?? 5)}"><small>${t("Potenza in watt oltre la quale la card risulta accesa.", "Power in watts above which the card is shown as running.")}</small></label>
       </div>
@@ -99,6 +146,15 @@ export function openApplianceEditor(index) {
   </section>`;
   doc.body.append(modal);
   const form = modal.querySelector("[data-form]");
+  const iconInput = form.elements.icon;
+  const preview = modal.querySelector("[data-icon-preview]");
+  const updatePreview = () => {
+    preview.innerHTML = iconPreviewMarkup(iconInput.value);
+    preview.dataset.icon = canonicalArtworkType(clean(iconInput.value)) || "generico";
+  };
+  iconInput.addEventListener("input", updatePreview);
+  iconInput.addEventListener("change", updatePreview);
+  updatePreview();
   const close = () => modal.remove();
   modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
   modal.querySelectorAll("[data-pick]").forEach((button) =>
@@ -125,10 +181,14 @@ export function openApplianceEditor(index) {
       );
       return;
     }
+    const selectedIcon = clean(values.icon) || "generico";
     const next = {
       ...device,
       name,
-      icon: clean(values.icon) || device.icon || "generico",
+      icon: selectedIcon,
+      visual_type: "asset",
+      visual_key: canonicalArtworkType(selectedIcon) || selectedIcon,
+      device_type: canonicalArtworkType(selectedIcon) || device.device_type || selectedIcon,
       room_id: clean(values.room_id),
       threshold_run: Number.isFinite(Number(values.threshold_run)) ? Number(values.threshold_run) : 5,
       control_entity: clean(values.control_entity),
@@ -170,6 +230,7 @@ function installOverride() {
 
 export function installApplianceEditorSection() {
   if (!doc) return;
+  installEditorStyles();
   installOverride();
   if (!state.installed) {
     state.installed = true;
