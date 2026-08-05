@@ -72,7 +72,7 @@ function runPrelude({ parent: parentValue, host = "ha.local:8123", storage = {},
   };
 }
 
-test("hosted mode exposes only the in-memory compatibility placeholder", () => {
+test("hosted mode exposes only the placeholder and the injected non-native adapter", () => {
   const { window } = runPrelude({ parent: { __DASHBOARDMODERN_HOST__: true } });
 
   assert.equal(window.__DASHBOARDMODERN_HOSTED__, true);
@@ -80,7 +80,10 @@ test("hosted mode exposes only the in-memory compatibility placeholder", () => {
   assert.equal(window.__DASHBOARDMODERN_CONNECTION__.local_ip, "ha.local:8123");
   assert.equal(window.__DASHBOARDMODERN_REAL_TOKEN__, undefined);
   assert.equal(window.DASHBOARDMODERN_AUTH_TOKEN, undefined);
-  assert.equal(window.WebSocket.name, "StubSocket");
+  assert.equal(window.WebSocket.name, "DeferredSocket");
+  assert.equal(window.WebSocket.__dmInjectedHostedAdapter, true);
+  assert.equal(window.__DASHBOARDMODERN_BRIDGE_WS__, window.WebSocket);
+  assert.equal(window.__DASHBOARDMODERN_BRIDGED__, true);
 });
 
 test("an explicit parent bridge is the only hosted transport", () => {
@@ -93,7 +96,8 @@ test("an explicit parent bridge is the only hosted transport", () => {
   });
 
   assert.equal(window.WebSocket, BridgeSocket);
-  assert.equal(window.__DASHBOARDMODERN_BRIDGE_WS__, undefined);
+  assert.equal(window.__DASHBOARDMODERN_BRIDGE_WS__, BridgeSocket);
+  assert.equal(window.__DASHBOARDMODERN_BRIDGED__, true);
   assert.equal(window.__DASHBOARDMODERN_REAL_TOKEN__, undefined);
 });
 
