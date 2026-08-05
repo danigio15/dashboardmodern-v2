@@ -9,17 +9,37 @@ const PRELUDE = readFileSync(
   "utf8",
 );
 
-/** Run the prelude in a mock document, mirroring how the iframe loads it. */
-function runPrelude({ parent, host = "ha.local:8123", storage = {}, throwOnParent = false }) {
+function runPrelude({ parent: parentValue, host = "ha.local:8123", storage = {}, query = "" }) {
   const writes = [];
+  const listeners = new Map();
   class MockWebSocket {
     static CONNECTING = 0;
     static OPEN = 1;
     static CLOSING = 2;
     static CLOSED = 3;
   }
+  const parent =
+    parentValue === "self"
+      ? null
+      : parentValue === "cross-origin"
+        ? new Proxy(
+            {},
+            {
+              get() {
+                throw new Error("cross-origin");
+              },
+            },
+          )
+        : parentValue;
+  const document = {
+    documentElement: { lang: "it" },
+    addEventListener(type, handler) {
+      listeners.set(type, handler);
+    },
+  };
   const window = {
-    location: { host },
+    document,
+    location: { host, search: query, href: `http://${host}/dashboard.html${query}` },
     WebSocket: MockWebSocket,
     localStorage: {
       getItem: (key) => (key in storage ? storage[key] : null),
@@ -28,52 +48,85 @@ function runPrelude({ parent, host = "ha.local:8123", storage = {}, throwOnParen
         storage[key] = String(value);
       },
     },
-  };
-  Object.defineProperty(window, "parent", {
-    get() {
-      if (throwOnParent) throw new Error("cross-origin");
-      return parent === "self" ? window : parent;
+    addEventListener(type, handler) {
+      listeners.set(type, handler);
     },
+  };
+  window.parent = parentValue === "self" ? window : parent;
+  const context = createContext({
+    window,
+    document,
+    parent: window.parent,
+    setTimeout,
+    clearTimeout,
+    Event,
   });
-  const context = createContext({ window });
   runInContext(PRELUDE, context);
-  return { window, storage, writes };
+  return {
+    window,
+    storage,
+    writes,
+    dispatch(type) {
+      listeners.get(type)?.();
+    },
+  };
 }
 
-test("when hosted, the placeholder is exposed in memory, not stored", () => {
+test("hosted mode exposes only the placeholder and the injected non-native adapter", () => {
   const { window } = runPrelude({ parent: { __DASHBOARDMODERN_HOST__: true } });
 
   assert.equal(window.__DASHBOARDMODERN_HOSTED__, true);
   assert.equal(window.__DASHBOARDMODERN_CONNECTION__.token, "__dashboardmodern_hosted__");
   assert.equal(window.__DASHBOARDMODERN_CONNECTION__.local_ip, "ha.local:8123");
+  assert.equal(window.__DASHBOARDMODERN_REAL_TOKEN__, undefined);
+  assert.equal(window.DASHBOARDMODERN_AUTH_TOKEN, undefined);
+  assert.equal(window.WebSocket.name, "DeferredSocket");
+  assert.equal(window.WebSocket.__dmInjectedHostedAdapter, true);
+  assert.equal(window.__DASHBOARDMODERN_BRIDGE_WS__, window.WebSocket);
+  assert.equal(window.__DASHBOARDMODERN_BRIDGED__, true);
 });
 
-test("the prelude never writes to the shared localStorage", () => {
-  // Two dashboards on one host share localStorage. Writing cd_connection here
-  // is exactly what broke the standalone dashboard's real token.
-  const { writes } = runPrelude({ parent: { __DASHBOARDMODERN_HOST__: true } });
+test("an explicit parent bridge is the only hosted transport", () => {
+  class BridgeSocket {}
+  const { window } = runPrelude({
+    parent: {
+      __DASHBOARDMODERN_HOST__: true,
+      __DASHBOARDMODERN_BRIDGE_WS__: BridgeSocket,
+    },
+  });
+
+  assert.equal(window.WebSocket, BridgeSocket);
+  assert.equal(window.__DASHBOARDMODERN_BRIDGE_WS__, BridgeSocket);
+  assert.equal(window.__DASHBOARDMODERN_BRIDGED__, true);
+  assert.equal(window.__DASHBOARDMODERN_REAL_TOKEN__, undefined);
+});
+
+test("the prelude never writes to shared localStorage", () => {
+  const storage = {
+    cd_connection: JSON.stringify({
+      token: "real-standalone-token",
+      dashboard_path: "/lovelace/2",
+    }),
+  };
+  const { writes } = runPrelude({
+    parent: { __DASHBOARDMODERN_HOST__: true },
+    storage,
+  });
 
   assert.deepEqual(writes, []);
-});
-
-test("an existing standalone connection is left untouched", () => {
-  const storage = {
-    cd_connection: JSON.stringify({ token: "real-standalone-token", dashboard_path: "/lovelace/2" }),
-  };
-
-  runPrelude({ parent: { __DASHBOARDMODERN_HOST__: true }, storage });
-
-  // The standalone dashboard's own token survives intact.
   assert.equal(JSON.parse(storage.cd_connection).token, "real-standalone-token");
 });
 
+test("host query markers enable hosted mode without a readable parent", () => {
+  const { window } = runPrelude({ parent: "cross-origin", query: "?dmi=test&dmp=1" });
+
+  assert.equal(window.__DASHBOARDMODERN_HOSTED__, true);
+  assert.equal(window.__DASHBOARDMODERN_CONNECTION__.token, "__dashboardmodern_hosted__");
+});
+
 test("without a host the prelude is a no-op", () => {
-  for (const scenario of [
-    { parent: "self" },
-    { parent: { __DASHBOARDMODERN_HOST__: false } },
-    { parent: {}, throwOnParent: true },
-  ]) {
-    const { window, writes } = runPrelude(scenario);
+  for (const parent of ["self", { __DASHBOARDMODERN_HOST__: false }, "cross-origin"]) {
+    const { window, writes } = runPrelude({ parent });
 
     assert.equal(window.__DASHBOARDMODERN_HOSTED__, undefined);
     assert.equal(window.__DASHBOARDMODERN_CONNECTION__, undefined);
@@ -81,12 +134,8 @@ test("without a host the prelude is a no-op", () => {
   }
 });
 
-test("the in-memory placeholder is not a usable Home Assistant credential", () => {
-  const { window } = runPrelude({ parent: { __DASHBOARDMODERN_HOST__: true } });
-  const token = window.__DASHBOARDMODERN_CONNECTION__.token;
-
-  // A real Home Assistant token is a JWT. This is not, so anything trying to
-  // authenticate with it gets nothing — which is the point.
-  assert.equal(token.startsWith("eyJ"), false);
-  assert.equal(token.includes("."), false);
+test("the source contains no usable token handoff", () => {
+  assert.doesNotMatch(PRELUDE, /__DASHBOARDMODERN_REAL_TOKEN__/);
+  assert.doesNotMatch(PRELUDE, /access_token/);
+  assert.doesNotMatch(PRELUDE, /LONG_LIVED_TOKEN/);
 });

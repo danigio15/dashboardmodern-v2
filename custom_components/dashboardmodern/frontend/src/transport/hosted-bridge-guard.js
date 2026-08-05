@@ -3,6 +3,14 @@ const HOSTED_PLACEHOLDER = "__dashboardmodern_hosted__";
 
 const clean = (value) => String(value ?? "").trim();
 
+function parentValue(key) {
+  try {
+    return root.parent && root.parent !== root ? root.parent[key] : undefined;
+  } catch (_error) {
+    return undefined;
+  }
+}
+
 function nativeCredential() {
   return clean(
     root.DASHBOARDMODERN_AUTH_TOKEN ||
@@ -16,16 +24,19 @@ export function hasUsableNativeCredential() {
   return Boolean(token && token !== HOSTED_PLACEHOLDER);
 }
 
-export function isHostedDashboard() {
-  if (hasUsableNativeCredential()) return false;
+export function isStructurallyHostedDashboard() {
   if (root.__DASHBOARDMODERN_HOSTED__ === true || root.__DASHBOARDMODERN_BRIDGED__ === true)
     return true;
   try {
     if (/[?&](?:dmi|dmp)=/.test(root.location?.search || "")) return true;
-    return root.parent && root.parent !== root && root.parent.__DASHBOARDMODERN_HOST__ === true;
+    return Boolean(root.parent && root.parent !== root && parentValue("__DASHBOARDMODERN_HOST__") === true);
   } catch (_error) {
     return false;
   }
+}
+
+export function isHostedDashboard() {
+  return isStructurallyHostedDashboard();
 }
 
 export function isNativeSocket(SocketCtor = root.WebSocket) {
@@ -35,6 +46,25 @@ export function isNativeSocket(SocketCtor = root.WebSocket) {
   } catch (_error) {
     return false;
   }
+}
+
+export function ensureSocketConstants(SocketCtor) {
+  if (typeof SocketCtor !== "function") return SocketCtor;
+  for (const [key, fallback] of Object.entries({ CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 })) {
+    if (SocketCtor[key] != null) continue;
+    try {
+      Object.defineProperty(SocketCtor, key, {
+        configurable: true,
+        enumerable: true,
+        value: fallback,
+      });
+    } catch (_error) {
+      try {
+        SocketCtor[key] = fallback;
+      } catch (_ignored) {}
+    }
+  }
+  return SocketCtor;
 }
 
 function deferredSocketConstructor(SocketCtor) {
@@ -87,14 +117,73 @@ function deferredSocketConstructor(SocketCtor) {
       },
     });
   }
-  for (const [key, fallback] of Object.entries({ CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 })) {
-    DeferredSocket[key] = SocketCtor[key] == null ? fallback : SocketCtor[key];
-  }
+  ensureSocketConstants(DeferredSocket);
   DeferredSocket.__dmPreloadedCredentialSocket = true;
   return DeferredSocket;
 }
 
+function parseSocketMessage(event) {
+  try {
+    return JSON.parse(event?.data || event);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function wrapInjectedHostedAdapter(BridgeCtor) {
+  if (
+    typeof BridgeCtor !== "function" ||
+    BridgeCtor.__dmInjectedHostedAdapter !== true ||
+    BridgeCtor.__dmHostedHandshakeAdapter === true
+  )
+    return BridgeCtor;
+  class HostedHandshakeAdapter extends BridgeCtor {
+    constructor(...args) {
+      super(...args);
+      const original = Object.getOwnPropertyDescriptor(this, "onmessage");
+      if (!original?.set) return;
+      let assigned = null;
+      Object.defineProperty(this, "onmessage", {
+        configurable: true,
+        enumerable: true,
+        get: () => assigned,
+        set: (handler) => {
+          assigned = typeof handler === "function" ? handler : null;
+          original.set.call(this, (event) => {
+            if (parseSocketMessage(event)?.type === "auth_required") {
+              this.send(JSON.stringify({ type: "auth", access_token: HOSTED_PLACEHOLDER }));
+              return;
+            }
+            assigned?.call(this, event);
+          });
+        },
+      });
+    }
+  }
+  ensureSocketConstants(HostedHandshakeAdapter);
+  HostedHandshakeAdapter.__dmInjectedHostedAdapter = true;
+  HostedHandshakeAdapter.__dmHostedHandshakeAdapter = true;
+  return HostedHandshakeAdapter;
+}
+
+export function adoptHostedBridge() {
+  if (!isStructurallyHostedDashboard()) return false;
+  let bridge =
+    (typeof root.__DASHBOARDMODERN_BRIDGE_WS__ === "function" && root.__DASHBOARDMODERN_BRIDGE_WS__) ||
+    (typeof parentValue("__DASHBOARDMODERN_BRIDGE_WS__") === "function" &&
+      parentValue("__DASHBOARDMODERN_BRIDGE_WS__"));
+  if (typeof bridge !== "function") return false;
+  bridge = wrapInjectedHostedAdapter(bridge);
+  ensureSocketConstants(bridge);
+  root.__DASHBOARDMODERN_HOSTED__ = true;
+  root.__DASHBOARDMODERN_BRIDGED__ = true;
+  root.__DASHBOARDMODERN_BRIDGE_WS__ = bridge;
+  if (root.WebSocket !== bridge) root.WebSocket = bridge;
+  return true;
+}
+
 export function restoreCredentialedPreloadedSocket() {
+  if (isStructurallyHostedDashboard()) return false;
   const current = root.WebSocket;
   const preloaded = root.__DASHBOARDMODERN_PRELUDE_WS__;
   if (!hasUsableNativeCredential()) return false;
@@ -103,34 +192,51 @@ export function restoreCredentialedPreloadedSocket() {
     root.__DASHBOARDMODERN_PRELUDE_DEFERRED_WS__ || deferredSocketConstructor(preloaded);
   root.__DASHBOARDMODERN_PRELUDE_DEFERRED_WS__ = restored;
   root.WebSocket = restored;
-  root.__DASHBOARDMODERN_BRIDGE_WS__ = restored;
   return true;
 }
 
 export function isHostedBridgeReady() {
+  if (!isStructurallyHostedDashboard()) return false;
+  adoptHostedBridge();
   const SocketCtor = root.WebSocket;
-  if (!isHostedDashboard() || typeof SocketCtor !== "function") return false;
+  if (typeof SocketCtor !== "function") return false;
   if (SocketCtor.name === "StubSocket" || isNativeSocket(SocketCtor)) return false;
-  return root.__DASHBOARDMODERN_BRIDGED__ === true || root.__DASHBOARDMODERN_HOSTED__ === true;
+  ensureSocketConstants(SocketCtor);
+  return root.__DASHBOARDMODERN_BRIDGED__ === true;
+}
+
+function clearCredential(key) {
+  try {
+    delete root[key];
+  } catch (_error) {
+    root[key] = "";
+  }
 }
 
 export function sanitizeHostedCredentials() {
-  for (const key of ["DASHBOARDMODERN_AUTH_TOKEN", "__DASHBOARDMODERN_REAL_TOKEN__"]) {
-    if (clean(root[key]) === HOSTED_PLACEHOLDER) {
-      try {
-        delete root[key];
-      } catch (_error) {
-        root[key] = "";
-      }
+  const hosted = isStructurallyHostedDashboard();
+  if (hosted) {
+    for (const key of [
+      "DASHBOARDMODERN_AUTH_TOKEN",
+      "__DASHBOARDMODERN_REAL_TOKEN__",
+      "LONG_LIVED_TOKEN",
+      "HA_TOKEN",
+    ])
+      clearCredential(key);
+    const connection = root.__DASHBOARDMODERN_CONNECTION__;
+    if (connection) connection.token = "";
+    adoptHostedBridge();
+  } else {
+    for (const key of ["DASHBOARDMODERN_AUTH_TOKEN", "__DASHBOARDMODERN_REAL_TOKEN__"]) {
+      if (clean(root[key]) === HOSTED_PLACEHOLDER) clearCredential(key);
     }
+    const connection = root.__DASHBOARDMODERN_CONNECTION__;
+    if (connection && clean(connection.token) === HOSTED_PLACEHOLDER) connection.token = "";
+    restoreCredentialedPreloadedSocket();
   }
-  const connection = root.__DASHBOARDMODERN_CONNECTION__;
-  if (connection && clean(connection.token) === HOSTED_PLACEHOLDER) connection.token = "";
-
-  restoreCredentialedPreloadedSocket();
 
   const reconnect = root.__DASHBOARDMODERN_LEGACY_RECONNECT__;
-  if (isHostedDashboard() && reconnect?.timer) {
+  if (hosted && reconnect?.timer) {
     root.clearTimeout?.(reconnect.timer);
     reconnect.timer = 0;
     reconnect.callback = null;
@@ -140,7 +246,7 @@ export function sanitizeHostedCredentials() {
 }
 
 export async function waitForHostedBridge({ timeout = 5000, interval = 25 } = {}) {
-  if (!isHostedDashboard()) return true;
+  if (!isStructurallyHostedDashboard()) return true;
   sanitizeHostedCredentials();
   const started = Date.now();
   while (Date.now() - started < timeout) {
@@ -154,7 +260,12 @@ export function installHostedBridgeGuard() {
   sanitizeHostedCredentials();
   if (root.__DASHBOARDMODERN_HOST_GUARD_INSTALLED__) return;
   root.__DASHBOARDMODERN_HOST_GUARD_INSTALLED__ = true;
-  for (const event of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
+  for (const event of [
+    "dashboardmodern:legacy-ready",
+    "dashboardmodern:runtime-ready",
+    "dashboardmodern:bridge-ready",
+    "pageshow",
+  ]) {
     root.addEventListener?.(event, sanitizeHostedCredentials);
   }
 }

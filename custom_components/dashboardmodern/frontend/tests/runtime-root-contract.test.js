@@ -14,8 +14,8 @@ globalThis.localStorage = {
   },
 };
 
-const runtime = await import("../legacy/runtime-consolidated.js");
-const vehicle = await import("../src/core/vehicle-image-runtime.js");
+const lights = await import("../src/sections/lights-alerts-section.js");
+const vehicle = await import("../src/sections/ev-section.js");
 
 function put(key, value) {
   storage.set(key, JSON.stringify(value));
@@ -40,7 +40,7 @@ test("lights editor groups only rooms containing configured entities", () => {
   });
 
   assert.deepEqual(
-    runtime.configuredLightGroups().map(({ room, entities }) => ({ room, entities })),
+    lights.configuredLightGroups().map(({ room, entities }) => ({ room, entities })),
     [
       { room: "Salone", entities: ["light.salone"] },
       { room: "Cucina", entities: ["light.pensili", "light.cucina"] },

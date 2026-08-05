@@ -54,21 +54,35 @@ function assertAcyclic(edges) {
   for (const file of edges.keys()) visit(file);
 }
 
-test("production has one owner per section and no patch cascade", async () => {
-  const { seen: graph, edges } = await productionGraph("legacy/modules-entry.js");
+test("production has one dedicated owner per section and no patch cascade", async () => {
+  const { seen: graph, edges } = await productionGraph("legacy/report-mobile-fixes.js");
   const relative = [...graph.keys()].map((file) =>
     path.relative(frontendRoot, file).replaceAll("\\", "/"),
   );
   const combined = [...graph.values()].join("\n");
   const sectionOwners = [
+    "sections/data-contracts-section.js",
     "sections/energy-section.js",
+    "sections/energy-stability-section.js",
+    "sections/energy-guidance-section.js",
     "sections/temperature-section.js",
+    "sections/temperature-layout-section.js",
     "sections/appliances-section.js",
+    "sections/appliance-layout-section.js",
+    "sections/appliance-editor-section.js",
     "sections/lights-alerts-section.js",
+    "sections/alerts-section.js",
+    "sections/unified-editors-section.js",
     "sections/editor-crud-section.js",
+    "sections/editor-contracts-section.js",
+    "sections/report-editor-section.js",
+    "sections/shutter-section.js",
+    "sections/shutter-alert-layout-section.js",
+    "sections/ev-section.js",
   ];
 
-  assert.equal(relative.filter((file) => file.endsWith("runtime-consolidated.js")).length, 1);
+  assert.equal(relative.filter((file) => file.endsWith("section-runtime.js")).length, 1);
+  assert.equal(relative.filter((file) => file.endsWith("runtime-consolidated.js")).length, 0);
   for (const owner of sectionOwners) {
     assert.equal(
       relative.filter((file) => file.endsWith(owner)).length,
@@ -83,11 +97,19 @@ test("production has one owner per section and no patch cascade", async () => {
     ),
     [],
   );
-  assert.ok(relative.length <= 32, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.deepEqual(
+    relative.filter((file) =>
+      /mobile-ui-fixes|alerts-runtime|vehicle-image-runtime|runtime-startup-coordinator/.test(file),
+    ),
+    [],
+  );
+  assert.ok(relative.length <= 48, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
-  const observers = [...graph.entries()].filter(([, source]) => /new\s+MutationObserver\s*\(/.test(source));
+  const observers = [...graph.entries()].filter(([, source]) =>
+    /new\s+MutationObserver\s*\(/.test(source),
+  );
   assert.ok(observers.length <= 2, `too many section observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(

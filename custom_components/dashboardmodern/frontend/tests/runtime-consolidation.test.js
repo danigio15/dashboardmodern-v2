@@ -136,28 +136,109 @@ test("legacy overrides still classify total increasing meters safely", () => {
   );
 });
 
-test("production entry delegates to imported section owners", async () => {
+test("production entry delegates only to the transport guard and section runtime", async () => {
   const loader = await readFile(new URL("../legacy/report-mobile-fixes.js", import.meta.url), "utf8");
-  const mobile = await readFile(new URL("../legacy/mobile-ui-fixes.js", import.meta.url), "utf8");
-  const runtime = await readFile(new URL("../legacy/runtime-consolidated.js", import.meta.url), "utf8");
+  const prelude = await readFile(new URL("../legacy/bridge-prelude.js", import.meta.url), "utf8");
   const sections = await readFile(new URL("../src/sections/section-runtime.js", import.meta.url), "utf8");
   const energy = await readFile(new URL("../src/sections/energy-section.js", import.meta.url), "utf8");
-  const guard = await readFile(new URL("../src/transport/hosted-bridge-guard.js", import.meta.url), "utf8");
+  const stability = await readFile(
+    new URL("../src/sections/energy-stability-section.js", import.meta.url),
+    "utf8",
+  );
+  const guidance = await readFile(
+    new URL("../src/sections/energy-guidance-section.js", import.meta.url),
+    "utf8",
+  );
+  const report = await readFile(
+    new URL("../src/sections/report-editor-section.js", import.meta.url),
+    "utf8",
+  );
+  const editors = await readFile(
+    new URL("../src/sections/unified-editors-section.js", import.meta.url),
+    "utf8",
+  );
+  const applianceLayout = await readFile(
+    new URL("../src/sections/appliance-layout-section.js", import.meta.url),
+    "utf8",
+  );
+  const ev = await readFile(new URL("../src/sections/ev-section.js", import.meta.url), "utf8");
+  const guard = await readFile(
+    new URL("../src/transport/hosted-bridge-guard.js", import.meta.url),
+    "utf8",
+  );
 
+  assert.match(loader, /transport\/hosted-bridge-guard\.js/);
   assert.match(loader, /sections\/section-runtime\.js/);
-  assert.match(runtime, /sections\/energy-section\.js/);
-  assert.match(runtime, /sections\/lights-alerts-section\.js/);
-  for (const name of ["energy", "temperature", "appliances", "lights-alerts", "editor-crud"])
+  assert.doesNotMatch(
+    loader,
+    /runtime-consolidated|mobile-ui-fixes|alerts-runtime|vehicle-image-runtime|release-\d+/,
+  );
+
+  for (const name of [
+    "data-contracts",
+    "energy",
+    "energy-stability",
+    "energy-guidance",
+    "temperature",
+    "temperature-layout",
+    "appliances",
+    "appliance-layout",
+    "appliance-editor",
+    "lights-alerts",
+    "alerts",
+    "unified-editors",
+    "editor-crud",
+    "editor-contracts",
+    "report-editor",
+    "shutter",
+    "shutter-alert-layout",
+    "ev",
+  ]) {
     assert.match(sections, new RegExp(`${name}-section\\.js`));
-  assert.doesNotMatch(loader, /release-\d+|runtime-real-ha|runtime-residual|runtime-release-owner/);
-  assert.doesNotMatch(runtime, /HomeAssistantBroker|setInterval\s*\(/);
-  assert.doesNotMatch(mobile, /setInterval\s*\(|new\s+MutationObserver/);
+  }
+
   assert.equal((energy.match(/new\s+SafeHomeAssistantBroker\s*\(/g) || []).length, 1);
   assert.match(energy, /loadEnergyPeriod\("day"/);
   assert.match(energy, /loadEnergyPeriod\("month"/);
   assert.match(energy, /loadEnergyPeriod\("year"/);
   assert.match(energy, /Promise\.all/);
   assert.match(energy, /Incomplete Home Assistant statistics/);
+  assert.match(stability, /waitForHostedBridge/);
+  assert.match(stability, /refreshEnergy/);
+  assert.match(stability, /dm-energy-awaiting/);
+  assert.match(
+    guidance,
+    /Seleziona il contatore totale kWh per calcolare anche i mesi precedenti/,
+  );
+  assert.match(guidance, /Report storico usa il contatore totale cumulativo/);
+  assert.match(report, /dm-report-row-editor/);
+  assert.match(report, /grid-template-areas/);
+  for (const kind of ["action", "climate", "shutter", "room"])
+    assert.match(editors, new RegExp(`kind === "${kind}"`));
+  assert.match(applianceLayout, /border-radius:22px/);
+  assert.doesNotMatch(applianceLayout, /border-radius:999px/);
+  assert.match(ev, /dm-vehicle-profile-card/);
+  assert.match(ev, /dm-vehicle-native-select/);
+  assert.doesNotMatch(ev, /shutter|alert/i);
+
+  assert.match(guard, /isStructurallyHostedDashboard/);
+  assert.match(guard, /adoptHostedBridge/);
   assert.match(guard, /sanitizeHostedCredentials/);
-  assert.doesNotMatch(guard, /send\s*\(.*access_token/);
+  assert.match(guard, /BridgeCtor\.__dmInjectedHostedAdapter !== true/);
+  assert.match(guard, /access_token: HOSTED_PLACEHOLDER/);
+  assert.doesNotMatch(guard, /access_token:\s*(?:token|nativeCredential\(\)|root\.)/);
+  assert.doesNotMatch(prelude, /__DASHBOARDMODERN_REAL_TOKEN__/);
+  assert.doesNotMatch(prelude, /access_token/);
+
+  for (const deleted of [
+    "../legacy/mobile-ui-fixes.js",
+    "../legacy/runtime-consolidated.js",
+    "../src/core/alerts-runtime.js",
+    "../src/core/vehicle-image-runtime.js",
+    "../src/core/runtime-startup-coordinator.js",
+  ]) {
+    await assert.rejects(readFile(new URL(deleted, import.meta.url), "utf8"), {
+      code: "ENOENT",
+    });
+  }
 });

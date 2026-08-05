@@ -38,10 +38,14 @@ export function section(name, fallback) {
 export function allStates() {
   const values = {};
   for (const name of ["_RAW_STATES", "STATES"]) {
+    let lexical = null;
     try {
-      const lexical = root.eval?.(`typeof ${name} !== "undefined" && ${name} ? ${name} : null`);
-      if (lexical && typeof lexical === "object") Object.assign(values, lexical);
+      lexical = root.eval?.(`typeof ${name} !== "undefined" && ${name} ? ${name} : null`);
     } catch (_error) {}
+    if (lexical && typeof lexical === "object") {
+      Object.assign(values, lexical);
+      continue;
+    }
     if (root[name] && typeof root[name] === "object") Object.assign(values, root[name]);
   }
   return values;
