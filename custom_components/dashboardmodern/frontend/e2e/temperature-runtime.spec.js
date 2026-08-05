@@ -91,9 +91,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         ),
       )
       .toEqual(["room-kitchen", "room-bathroom"]);
-    // A fresh E2E profile intentionally has not completed onboarding.  The
-    // production wizard is therefore expected here, but Config must receive
-    // real pointer events for this editor-focused scenario.
+    // A fresh E2E profile intentionally has not completed onboarding. The
+    // production wizard is expected here, but Config must receive pointer events.
     await page
       .locator("#setup-wizard")
       .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
@@ -119,6 +118,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         ).size,
       })),
     ).toEqual({ inputs: 2, pickers: 2, targets: 2 });
+
+    // The room owns its icon. Temperature must not expose the old duplicate
+    // symbol editor that regressed in the real Home Assistant installation.
+    await expect(page.locator("#dm-temperature-icon")).toBeHidden();
+    await expect(page.locator('[data-temperature-form] [data-icon-field]')).toHaveCount(0);
+    await expect(page.locator("[data-temperature-submit]")).toHaveText(
+      variant === "dashboard-en.html" ? "ASSOCIATE SENSORS" : "ASSOCIA SENSORI",
+    );
+
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-temperature-config.png`,
     });
@@ -157,6 +165,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(
       page.locator('[data-temperature-room][data-room-id="room-kitchen"]'),
     ).toContainText("sensor.kitchen_temperature");
+    await expect(page.locator("#dm-temperature-icon")).toBeHidden();
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-temperature-saved.png`,
     });
@@ -180,6 +189,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(temperatureLayout.tag).toBe("ARTICLE");
     expect(temperatureLayout.aspectRatio).toBe("auto");
     expect(temperatureLayout.height).toBeLessThan(temperatureLayout.width * 1.25);
+
+    // Do not depend on an external MDI renderer: a configured canonical room
+    // must always have a visible local icon in the live dashboard.
+    const roomIcon = temperatureCard.locator(".dm-temperature-icon-fallback");
+    await expect(roomIcon).toBeVisible();
+    await expect(roomIcon).toHaveText("🛋️");
+    await expect(temperatureCard).not.toContainText("🔥");
     await expect(page.locator("#temp-grid .temp-value")).toContainText("21.5");
     await page.evaluate(() => {
       _RAW_STATES["sensor.kitchen_temperature"].state = "23.7";
@@ -187,6 +203,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       renderTemperature();
     });
     await expect(page.locator("#temp-grid .temp-value")).toContainText("23.7");
+    await expect(roomIcon).toBeVisible();
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-temperature-dashboard.png`,
       fullPage: true,

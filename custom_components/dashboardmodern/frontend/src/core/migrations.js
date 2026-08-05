@@ -41,7 +41,7 @@ export function migrateRooms(input = []) {
       name: String(room.name || `Room ${index + 1}`),
       icon: room.icon || "",
       floor: room.floor || "",
-      // Temperature sensors historically lived on cd_stanze.  Keep these
+      // Temperature sensors historically lived on cd_stanze. Keep these
       // fields in the canonical room projection: dropping them here makes
       // DashboardStore.persist() destructively rewrite cd_stanze.
       temp: String(room.temp || room.temperature_entity || ""),
@@ -221,6 +221,28 @@ export function migrateV3ToV4(input, legacy = {}) {
   return next;
 }
 
+function preserveEnergySemantics(energy) {
+  if (!energy) return false;
+  let changed = false;
+  for (const group of ["house", "solar"]) {
+    const model = (energy[group] ||= {});
+    const total = String(model.total_energy || "").trim();
+    const annual = String(model.annual_energy || "").trim();
+    if (total && !annual) {
+      model.annual_energy = total;
+      changed = true;
+    }
+    if (annual && !total) {
+      model.total_energy = annual;
+      changed = true;
+    }
+  }
+  const previous = Number(energy.metadata?.semantics_version) || 0;
+  if (previous !== 3) changed = true;
+  energy.metadata = { ...(energy.metadata || {}), semantics_version: 3 };
+  return changed;
+}
+
 export function migrateState(input = {}, legacy = {}) {
   let state = cloneValue(input);
   const changes = [];
@@ -235,17 +257,8 @@ export function migrateState(input = {}, legacy = {}) {
     state = migrateV3ToV4(state, legacy);
     changes.push("schema 3 → 4");
   }
-  const energy = state.sections?.energy;
-  if (+state.schema_version >= 4 && energy && energy.metadata?.semantics_version !== 2) {
-    for (const group of ["house", "solar"]) {
-      if (energy[group]?.total_energy && !energy[group].annual_energy) {
-        energy[group].annual_energy = energy[group].total_energy;
-        delete energy[group].total_energy;
-      }
-    }
-    energy.metadata = { ...(energy.metadata || {}), semantics_version: 2 };
-    changes.push("energy annual/lifetime semantics normalized");
-  }
+  if (+state.schema_version >= 4 && preserveEnergySemantics(state.sections?.energy))
+    changes.push("energy annual/lifetime semantics preserved");
   return { state, changes };
 }
 
@@ -294,7 +307,7 @@ export function readLegacyState(storage) {
       metadata: { migrated_from: "lavatrice" },
     });
   }
-  // Consolidate the two historical secondary-consumption stores once.  The
+  // Consolidate the two historical secondary-consumption stores once. The
   // canonical load id is generated independently from its mutable name and
   // report rows that point at an existing load are deliberately not copied.
   if (!sections.loads.length) {
