@@ -136,7 +136,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator('#ed-dev-selector option[value="sensor.forno_energy"]')).toContainText("Forno");
 
     await openEditor(page, "avvisi");
-    await page.locator("[data-dm-alert-edit]:visible").first().click();
+    const alertEdit = page.locator("[data-dm-alert-edit]").first();
+    await expect(alertEdit).toHaveCount(1);
+    await alertEdit.evaluate((button) => {
+      const details = button.closest("details");
+      if (details) details.open = true;
+    });
+    await expect(alertEdit).toBeVisible();
+    await alertEdit.click();
     const alertEditor = page.locator("#dm-alert-editor-modal");
     await expect(alertEditor).toBeVisible();
     await expect(alertEditor.locator('input[name="entity"]')).toHaveValue("light.salone");
