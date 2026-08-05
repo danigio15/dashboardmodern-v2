@@ -31,8 +31,8 @@ function legacyStates() {
 function allStates() {
   return {
     ...(root._RAW_STATES || {}),
-    ...legacyStates(),
     ...(root.STATES || {}),
+    ...legacyStates(),
   };
 }
 
