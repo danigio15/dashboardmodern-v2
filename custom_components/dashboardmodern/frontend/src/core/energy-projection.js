@@ -142,31 +142,18 @@ const MDI_ICON_GLYPHS = Object.freeze({
   "mdi:devices": "🔌",
 });
 
-function normalizedToken(value) {
-  return String(value || "")
+const configured = (value) => String(value || "").trim();
+const normalizedToken = (value) =>
+  configured(value)
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
-}
 
-function configured(value) {
-  return String(value || "").trim();
-}
-
-/**
- * Project canonical Energy fields to legacy runtime slots.
- *
- * A cumulative meter is exposed in its lifetime slot only while at least one
- * day/month/year value must be derived from Long-Term Statistics. When all
- * period entities are explicitly configured, the unused lifetime slot stays
- * out of the runtime. A lifetime meter is never copied into a period slot.
- */
 export function projectEnergySlots(energy = {}, overrides = {}) {
   const result = { ...overrides };
   const totalPaths = new Set(TOTAL_ENERGY_ALIASES.map((definition) => definition.path));
-
   for (const [path, slot] of Object.entries(ENERGY_SLOT_MAP)) {
     if (totalPaths.has(path)) continue;
     const [group, key] = path.split(".");
@@ -174,7 +161,6 @@ export function projectEnergySlots(energy = {}, overrides = {}) {
     if (value) result[slot] = value;
     else delete result[slot];
   }
-
   for (const definition of TOTAL_ENERGY_ALIASES) {
     const [group, totalKey] = definition.path.split(".");
     const totalEntity = configured(energy[group]?.[totalKey]);
@@ -184,7 +170,6 @@ export function projectEnergySlots(energy = {}, overrides = {}) {
     );
     if (totalEntity && needsDerivation) result[totalSlot] = totalEntity;
     else delete result[totalSlot];
-
     for (const [periodKey, periodSlot] of Object.entries(definition.targets)) {
       const explicit = configured(energy[group]?.[periodKey]);
       if (explicit) result[periodSlot] = explicit;
@@ -196,8 +181,8 @@ export function projectEnergySlots(energy = {}, overrides = {}) {
 
 export function entityIds(item = {}) {
   return [
-    item.report_entity,
     item.total_energy_entity,
+    item.report_entity,
     item.energy_entity,
     item.monthly_energy_entity,
     item.daily_energy_entity,
@@ -210,37 +195,32 @@ export function entityIds(item = {}) {
         ? entry
         : entry?.entity || entry?.entity_id || entry?.id || entry?.value,
     )
-    .map((entry) => String(entry || "").trim())
+    .map(configured)
     .filter(Boolean);
 }
 
 function entityAttributes(states, entityId) {
   return states?.[entityId]?.attributes || {};
 }
-
 function entityUnit(states, entityId) {
-  return String(entityAttributes(states, entityId).unit_of_measurement || "").toLowerCase();
+  return configured(entityAttributes(states, entityId).unit_of_measurement).toLowerCase();
 }
-
 function entityStateClass(states, entityId) {
-  return String(entityAttributes(states, entityId).state_class || "").toLowerCase();
+  return configured(entityAttributes(states, entityId).state_class).toLowerCase();
 }
-
 function isPowerUnit(unit) {
-  return /^(w|kw|mw)$/.test(String(unit || "").toLowerCase());
+  return /^(w|kw|mw)$/.test(configured(unit).toLowerCase());
 }
-
 function isEnergyUnit(unit) {
-  return /^(wh|kwh|mwh)$/.test(String(unit || "").toLowerCase());
+  return /^(wh|kwh|mwh)$/.test(configured(unit).toLowerCase());
 }
-
 function isValidEnergyCandidate(states, entityId) {
   if (!entityId || isPowerUnit(entityUnit(states, entityId))) return false;
   const attributes = entityAttributes(states, entityId);
   if (!Object.keys(attributes).length) return true;
   return (
     isEnergyUnit(entityUnit(states, entityId)) ||
-    String(attributes.device_class || "").toLowerCase() === "energy"
+    configured(attributes.device_class).toLowerCase() === "energy"
   );
 }
 
@@ -252,20 +232,21 @@ export function isCumulativeEnergyEntity(entityId, states = globalThis.STATES ||
 }
 
 export function reportEntityForDevice(item = {}, states = globalThis.STATES || {}) {
-  const reportEntity = configured(item.report_entity);
-  if (isValidEnergyCandidate(states, reportEntity)) return reportEntity;
-
   const candidates = [...new Set(entityIds(item))];
   const explicitTotal = configured(item.total_energy_entity);
-  if (isValidEnergyCandidate(states, explicitTotal)) return explicitTotal;
+  if (isCumulativeEnergyEntity(explicitTotal, states)) return explicitTotal;
+
+  const configuredReport = configured(item.report_entity);
+  if (isCumulativeEnergyEntity(configuredReport, states)) return configuredReport;
 
   const cumulative = candidates.find((entityId) => isCumulativeEnergyEntity(entityId, states));
   if (cumulative) return cumulative;
 
   const explicitPeriod = [
-    item.energy_entity,
     item.monthly_energy_entity,
+    item.energy_entity,
     item.daily_energy_entity,
+    configuredReport,
   ]
     .map(configured)
     .find((entityId) => isValidEnergyCandidate(states, entityId));
@@ -275,7 +256,7 @@ export function reportEntityForDevice(item = {}, states = globalThis.STATES || {
     candidates.find((entityId) => isEnergyUnit(entityUnit(states, entityId))) ||
     candidates.find(
       (entityId) =>
-        String(entityAttributes(states, entityId).device_class || "").toLowerCase() === "energy" &&
+        configured(entityAttributes(states, entityId).device_class).toLowerCase() === "energy" &&
         !isPowerUnit(entityUnit(states, entityId)),
     ) ||
     candidates.find(
@@ -288,7 +269,7 @@ export function reportEntityForDevice(item = {}, states = globalThis.STATES || {
 }
 
 function glyphForMdi(icon) {
-  const value = String(icon || "").trim().toLowerCase();
+  const value = configured(icon).toLowerCase();
   if (MDI_ICON_GLYPHS[value]) return MDI_ICON_GLYPHS[value];
   if (/fridge|snowflake/.test(value)) return "❄️";
   if (/stove|fire/.test(value)) return "♨️";
@@ -303,12 +284,10 @@ function glyphForMdi(icon) {
   return "⚡";
 }
 
-/** Resolve a visible Report glyph without ever printing a raw `mdi:*` token. */
 export function reportIconForDevice(item = {}) {
   const explicit = configured(item.report_icon || item.emoji_icon || item.icon);
   if (explicit && !explicit.startsWith("mdi:")) return explicit;
   if (explicit.startsWith("mdi:")) return glyphForMdi(explicit);
-
   const candidates = [
     item.visual_key,
     item.device_type,
@@ -321,7 +300,6 @@ export function reportIconForDevice(item = {}) {
     const match = Object.keys(REPORT_ICON_BY_TYPE).find((key) => candidate.includes(key));
     if (match) return REPORT_ICON_BY_TYPE[match];
   }
-
   const visual = getDeviceVisual(item);
   if (visual?.kind === "icon" && visual.value) return glyphForMdi(visual.value);
   return "⚡";
@@ -332,7 +310,7 @@ export function canonicalReportDevices(
   loads = [],
   states = globalThis.STATES || {},
 ) {
-  const seen = new Set();
+  const seenEntities = new Set();
   return [...appliances, ...loads]
     .filter(
       (item) =>
@@ -352,14 +330,12 @@ export function canonicalReportDevices(
         image: visual?.kind === "image" ? visual.value : "",
         entity,
         history: entity || item.history_entity || "",
+        cumulative: isCumulativeEnergyEntity(entity, states),
       };
     })
     .filter((item) => {
-      if (!item.entity) return false;
-      const identity = `${item.key}|${item.entity}`;
-      const duplicate =
-        seen.has(identity) || [...seen].some((value) => value.endsWith(`|${item.entity}`));
-      seen.add(identity);
-      return !duplicate;
+      if (!item.entity || seenEntities.has(item.entity)) return false;
+      seenEntities.add(item.entity);
+      return true;
     });
 }
