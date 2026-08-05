@@ -2,6 +2,7 @@ import {
   allStates,
   clean,
   dashboardStore,
+  doc,
   readJson,
   root,
   writeJsonIfChanged,
@@ -306,7 +307,7 @@ export async function applyDataContracts() {
 }
 
 function schedule(delay = 0) {
-  if (state.timer) return;
+  if (!doc || state.timer) return;
   state.timer = root.setTimeout?.(async () => {
     state.timer = 0;
     state.attempts += 1;
@@ -326,6 +327,7 @@ function schedule(delay = 0) {
 }
 
 function subscribeStore() {
+  if (!doc) return;
   const store = dashboardStore();
   if (state.storeUnsubscribe || !store?.subscribe) return;
   state.storeUnsubscribe = store.subscribe((change) => {
@@ -334,6 +336,7 @@ function subscribeStore() {
 }
 
 export function installDataContractsSection() {
+  if (!doc) return false;
   schedule(0);
   subscribeStore();
   if (!state.installed) {
@@ -351,6 +354,9 @@ export function installDataContractsSection() {
       });
     }
   }
+  return true;
 }
 
-installDataContractsSection();
+if (doc?.readyState === "loading")
+  doc.addEventListener("DOMContentLoaded", installDataContractsSection, { once: true });
+else if (doc) installDataContractsSection();
