@@ -17,11 +17,12 @@ const state = (root[KEY] ||= {
 });
 
 const CONTROL_DOMAIN = /^(?:switch|light|fan|input_boolean)\./i;
-const POWER_NAME = /(?:^|[._-])(?:power|potenza|watt)(?:$|[._-])/i;
+const POWER_NAME = /(?:^|[._-])(?:power|potenza|watt|assorbimento)(?:$|[._-])/i;
 const ENERGY_NAME = /(?:energy|energia|consum|kwh)/i;
 const DAILY_NAME = /(?:daily|giorno|today|oggi)/i;
 const MONTHLY_NAME = /(?:monthly|mese|month)/i;
 const TOTAL_NAME = /(?:total|totale|lifetime|meter|contatore)/i;
+const GENERATED_ROOM_NAME = /^room[_-][a-z0-9]{8,}$/i;
 const GENERIC_TOKENS = new Set([
   "appl",
   "appliance",
@@ -59,6 +60,56 @@ function uniqueEntities(device = {}) {
   ];
 }
 
+export function isGeneratedRoomName(value) {
+  return GENERATED_ROOM_NAME.test(clean(value));
+}
+
+function stateData(states, entity) {
+  return states?.[entity]?.attributes || {};
+}
+
+function unitFrom(states, entity) {
+  return clean(stateData(states, entity).unit_of_measurement).toLowerCase();
+}
+
+export function inferApplianceEntity(
+  device = {},
+  states = allStates(),
+  kind = "energy",
+) {
+  const entities = uniqueEntities(device);
+  if (kind === "control") return entities.find((entity) => CONTROL_DOMAIN.test(entity)) || "";
+  if (kind === "power") {
+    return (
+      clean(device.power_entity) ||
+      entities.find((entity) => {
+        const attributes = stateData(states, entity);
+        return (
+          clean(attributes.device_class).toLowerCase() === "power" ||
+          /^(?:w|kw|mw)$/.test(unitFrom(states, entity)) ||
+          POWER_NAME.test(entity)
+        );
+      }) ||
+      ""
+    );
+  }
+  return (
+    clean(device.total_energy_entity) ||
+    clean(device.energy_entity) ||
+    clean(device.monthly_energy_entity) ||
+    clean(device.daily_energy_entity) ||
+    entities.find((entity) => {
+      const attributes = stateData(states, entity);
+      return (
+        clean(attributes.device_class).toLowerCase() === "energy" ||
+        /^(?:wh|kwh|mwh)$/.test(unitFrom(states, entity)) ||
+        ENERGY_NAME.test(entity)
+      );
+    }) ||
+    ""
+  );
+}
+
 function slug(value) {
   return clean(value)
     .normalize("NFKD")
@@ -76,8 +127,11 @@ function deviceTokens(device = {}) {
     device.visual_key,
   ]
     .flatMap((value) => slug(value).split("-"))
-    .filter((value, index, values) =>
-      value.length >= 3 && !GENERIC_TOKENS.has(value) && values.indexOf(value) === index,
+    .filter(
+      (value, index, values) =>
+        value.length >= 3 &&
+        !GENERIC_TOKENS.has(value) &&
+        values.indexOf(value) === index,
     );
 }
 
@@ -122,7 +176,9 @@ function candidateEntities(device = {}) {
   const explicit = uniqueEntities(device);
   const tokens = deviceTokens(device);
   if (!tokens.length) return explicit;
-  const recovered = Object.keys(allStates()).filter((entity) => belongsToDevice(entity, tokens));
+  const recovered = Object.keys(allStates()).filter((entity) =>
+    belongsToDevice(entity, tokens),
+  );
   return [...new Set([...explicit, ...recovered])];
 }
 
@@ -138,14 +194,20 @@ function inferApplianceContract(device = {}) {
   const namedTotal = find(TOTAL_NAME, energySensors);
   const energy =
     clean(device.energy_entity) ||
-    energySensors.find((id) => !DAILY_NAME.test(id) && !MONTHLY_NAME.test(id) && !TOTAL_NAME.test(id)) ||
+    energySensors.find(
+      (id) => !DAILY_NAME.test(id) && !MONTHLY_NAME.test(id) && !TOTAL_NAME.test(id),
+    ) ||
     energySensors[0] ||
     "";
   const total = clean(device.total_energy_entity) || namedTotal;
   const history = clean(device.history_entity) || total || monthly || energy;
-  const report = clean(device.report_entity) || monthly || energy || total;
+  const report = clean(device.report_entity) || total || monthly || energy;
   const nextEntities = [
-    ...new Set([control, power, energy, daily, monthly, total, history, report, ...entities].filter(Boolean)),
+    ...new Set(
+      [control, power, energy, daily, monthly, total, history, report, ...entities].filter(
+        Boolean,
+      ),
+    ),
   ];
   return {
     ...device,
@@ -189,8 +251,10 @@ function canonicalRoomForLight(entity, name, rooms) {
     rooms.find((room) => {
       const roomName = slug(room.name);
       const roomId = slug(room.id).replace(/^room-/, "");
-      return [entityToken, nameToken].filter(Boolean).includes(roomName) ||
-        [entityToken, nameToken].filter(Boolean).includes(roomId);
+      return (
+        [entityToken, nameToken].filter(Boolean).includes(roomName) ||
+        [entityToken, nameToken].filter(Boolean).includes(roomId)
+      );
     }) || null
   );
 }
@@ -256,7 +320,8 @@ function schedule(delay = 0) {
       sectionNeedsRepair("appliances") ||
       sectionNeedsRepair("loads") ||
       !(store.getSection?.("rooms") || []).length;
-    if ((hydrating || state.attempts < 80) && state.attempts < 240) schedule(hydrating ? 25 : 100);
+    if ((hydrating || state.attempts < 80) && state.attempts < 240)
+      schedule(hydrating ? 25 : 100);
   }, delay);
 }
 
@@ -273,7 +338,12 @@ export function installDataContractsSection() {
   subscribeStore();
   if (!state.installed) {
     state.installed = true;
-    for (const event of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "dashboardmodern:state-changed", "pageshow"]) {
+    for (const event of [
+      "dashboardmodern:legacy-ready",
+      "dashboardmodern:runtime-ready",
+      "dashboardmodern:state-changed",
+      "pageshow",
+    ]) {
       root.addEventListener?.(event, () => {
         subscribeStore();
         state.attempts = 0;
