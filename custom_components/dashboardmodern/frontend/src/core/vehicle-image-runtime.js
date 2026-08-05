@@ -101,6 +101,14 @@ function persistNormalizedImage(original, normalized) {
     root.localStorage?.setItem("cd_ev_image", serialized);
 }
 
+function showLoadedImage(image) {
+  delete image.dataset.evImageError;
+  delete image.dataset.evFailed;
+  image.style.display = "block";
+  image.style.visibility = "visible";
+  image.style.opacity = "1";
+}
+
 export function applyVehicleAsset() {
   if (!doc) return false;
   const original = configuredImage();
@@ -116,24 +124,26 @@ export function applyVehicleAsset() {
       image.style.display = "none";
       return;
     }
+
+    const resolved = new URL(url, doc.baseURI).href;
+    const staleFailure = image.dataset.evFailed === "1" || Boolean(image.dataset.evImageError);
+    delete image.dataset.evFailed;
+    delete image.dataset.evImageError;
     image.onerror = () => {
       image.dataset.evImageError = url;
       image.style.display = "none";
     };
-    image.onload = () => {
-      delete image.dataset.evImageError;
-      delete image.dataset.evFailed;
-      image.style.display = "block";
-      image.style.visibility = "visible";
-      image.style.opacity = "1";
-    };
-    const resolved = new URL(url, doc.baseURI).href;
-    if (image.src !== resolved) image.src = url;
-    if (!image.dataset.evImageError) {
-      image.style.display = "block";
-      image.style.visibility = "visible";
-      mounted = true;
+    image.onload = () => showLoadedImage(image);
+    image.style.display = "block";
+    image.style.visibility = "visible";
+    image.style.opacity = "1";
+
+    if (image.src !== resolved || (staleFailure && image.complete && image.naturalWidth === 0)) {
+      if (staleFailure) image.removeAttribute("src");
+      image.src = url;
     }
+    if (image.complete && image.naturalWidth > 0) showLoadedImage(image);
+    mounted = image.style.display !== "none" || mounted;
   });
   const hero = doc.getElementById("lm-hero-card");
   if (hero) hero.dataset.evImage = url ? "configured" : "missing";
