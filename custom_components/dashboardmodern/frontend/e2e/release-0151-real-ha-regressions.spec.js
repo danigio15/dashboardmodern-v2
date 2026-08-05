@@ -205,10 +205,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#editor-modal")).toHaveCount(0);
 
     // Real regression from 0.15.2: canonical artwork was replaced by the old
-    // navy line-icon tile. Verify both the DOM owner and the rendered surface.
+    // navy line-icon tile. Verify the active overview projection, not the
+    // intentionally duplicated card in the secondary-room grid.
     await clickBottomTab(page, "appliances", testInfo);
     const appliance = page.locator(
-      '#page-appliances-main .appl-wide-card[data-appliance-id="appl-fridge"]',
+      '#appl-grid-overview .appl-wide-card[data-appliance-id="appl-fridge"]',
     );
     await expect(appliance).toBeVisible();
     await expect(appliance).toHaveAttribute("data-dm-art-style", "panel");
