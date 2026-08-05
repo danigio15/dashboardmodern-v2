@@ -121,9 +121,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.evaluate(() => render?.());
     const vehicle = page.locator("#ev-mod-car-img");
     await expect(vehicle).toHaveAttribute("src", /\/local\/auto\/b10\.png$/);
-    await expect(vehicle).toBeVisible();
 
     await page.locator("#editor-modal .ed-head-close").last().click();
+    await expect(page.locator("#editor-modal")).toHaveCount(0);
+    await clickBottomTab(page, "ev", testInfo);
+    await page.evaluate(() => window.__DASHBOARDMODERN_VEHICLE_IMAGE_RUNTIME__?.apply?.());
+    await expect(vehicle).toBeVisible();
+
     await clickBottomTab(page, "appliances", testInfo);
     const appliance = page.locator(
       '#appl-grid-overview .appl-wide-card[data-appliance-id="appl-fridge"]',
