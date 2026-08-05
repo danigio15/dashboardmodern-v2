@@ -3,9 +3,16 @@
   "use strict";
 
   var HOSTED_PLACEHOLDER = "__dashboardmodern_hosted__";
-  var PRELUDE_WEBSOCKET = window.WebSocket;
   var hasInstanceQuery = false;
   var hasHostQuery = false;
+
+  function parentValue(key) {
+    try {
+      return parent && parent !== window ? parent[key] : undefined;
+    } catch (_error) {
+      return undefined;
+    }
+  }
 
   function lightAddFormMarkup() {
     var isEnglish =
@@ -17,21 +24,13 @@
     var addLabel = isEnglish ? "＋ Add light" : "＋ Aggiungi luce";
     return (
       '<div class="ed-form dm-light-add-form" data-light-add-form>' +
-      '<div class="ed-sec-title">' +
-      title +
-      "</div>" +
+      '<div class="ed-sec-title">' + title + "</div>" +
       '<div class="ed-form-row">' +
-      '<input id="luce-add-ent" class="ed-input mono" placeholder="' +
-      entityPlaceholder +
-      '">' +
+      '<input id="luce-add-ent" class="ed-input mono" placeholder="' + entityPlaceholder + '">' +
       '<button type="button" class="dm-entity-picker" data-entity-target="luce-add-ent">🔍</button>' +
       "</div>" +
-      '<input id="luce-add-name" class="ed-input" placeholder="' +
-      namePlaceholder +
-      '">' +
-      '<button class="ed-btn-add" onclick="cdLuceAdd()">' +
-      addLabel +
-      "</button></div>"
+      '<input id="luce-add-name" class="ed-input" placeholder="' + namePlaceholder + '">' +
+      '<button class="ed-btn-add" onclick="cdLuceAdd()">' + addLabel + "</button></div>"
     );
   }
 
@@ -52,30 +51,12 @@
     return true;
   }
 
-  function isInjectedSocket(SocketCtor) {
-    if (typeof SocketCtor !== "function") return false;
-    try {
-      return String(SocketCtor).indexOf("[native code]") === -1;
-    } catch (_error) {
-      return false;
-    }
-  }
-
-  function parentValue(key) {
-    try {
-      return parent && parent !== window ? parent[key] : undefined;
-    } catch (_error) {
-      return undefined;
-    }
-  }
-
   try {
     var query = window.location.search || "";
     var instance = /[?&]dmi=([^&]+)/.exec(query);
     if (instance && instance[1]) {
       hasInstanceQuery = true;
-      window.__DASHBOARDMODERN_INSTANCE__ ||=
-        decodeURIComponent(instance[1]);
+      window.__DASHBOARDMODERN_INSTANCE__ ||= decodeURIComponent(instance[1]);
     }
     var primary = /[?&]dmp=(\d)/.exec(query);
     if (primary) {
@@ -100,8 +81,6 @@
   if (!isHosted()) return;
 
   window.__DASHBOARDMODERN_HOSTED__ = true;
-  if (isInjectedSocket(PRELUDE_WEBSOCKET))
-    window.__DASHBOARDMODERN_PRELUDE_WS__ = PRELUDE_WEBSOCKET;
 
   function trackReconnect(socket, event) {
     if (typeof socket.onclose !== "function") return;
@@ -150,6 +129,7 @@
   StubSocket.OPEN = 1;
   StubSocket.CLOSING = 2;
   StubSocket.CLOSED = 3;
+  StubSocket.__dmHostedStub = true;
   StubSocket.prototype.send = function () {};
   StubSocket.prototype.close = function () {
     this.readyState = StubSocket.CLOSED;
@@ -164,108 +144,34 @@
   };
   StubSocket.prototype.removeEventListener = function () {};
 
-  function deferredSocketConstructor(SocketCtor) {
-    function DeferredSocket() {
-      var args = Array.prototype.slice.call(arguments);
-      var inner = Reflect.construct(SocketCtor, args);
-      Object.defineProperty(this, "__dmInnerSocket", { value: inner });
-      var outer = this;
-      ["onopen", "onmessage", "onerror", "onclose"].forEach(function (property) {
-        var assigned = null;
-        Object.defineProperty(outer, property, {
-          configurable: true,
-          enumerable: true,
-          get: function () {
-            return assigned;
-          },
-          set: function (handler) {
-            assigned = typeof handler === "function" ? handler : null;
-            inner[property] = assigned
-              ? function (event) {
-                  setTimeout(function () {
-                    assigned.call(outer, event);
-                  }, 0);
-                }
-              : null;
-          },
-        });
-      });
-    }
-    DeferredSocket.prototype = Object.create(SocketCtor.prototype || Object.prototype);
-    DeferredSocket.prototype.constructor = DeferredSocket;
-    DeferredSocket.prototype.send = function () {
-      return this.__dmInnerSocket.send.apply(this.__dmInnerSocket, arguments);
-    };
-    DeferredSocket.prototype.close = function () {
-      return this.__dmInnerSocket.close && this.__dmInnerSocket.close.apply(this.__dmInnerSocket, arguments);
-    };
-    DeferredSocket.prototype.addEventListener = function (type, handler, options) {
-      var outer = this;
-      if (typeof this.__dmInnerSocket.addEventListener !== "function") return;
-      return this.__dmInnerSocket.addEventListener(
-        type,
-        function (event) {
-          setTimeout(function () {
-            handler.call(outer, event);
-          }, 0);
-        },
-        options,
-      );
-    };
-    DeferredSocket.prototype.removeEventListener = function () {};
-    ["readyState", "url", "protocol", "extensions", "bufferedAmount", "binaryType"].forEach(
-      function (property) {
-        Object.defineProperty(DeferredSocket.prototype, property, {
-          configurable: true,
-          enumerable: true,
-          get: function () {
-            return this.__dmInnerSocket[property];
-          },
-          set: function (value) {
-            this.__dmInnerSocket[property] = value;
-          },
-        });
-      },
-    );
-    DeferredSocket.CONNECTING = SocketCtor.CONNECTING == null ? 0 : SocketCtor.CONNECTING;
-    DeferredSocket.OPEN = SocketCtor.OPEN == null ? 1 : SocketCtor.OPEN;
-    DeferredSocket.CLOSING = SocketCtor.CLOSING == null ? 2 : SocketCtor.CLOSING;
-    DeferredSocket.CLOSED = SocketCtor.CLOSED == null ? 3 : SocketCtor.CLOSED;
-    DeferredSocket.__dmInjectedHostedAdapter = true;
-    return DeferredSocket;
-  }
-
   function explicitBridge() {
-    var bridge = parentValue("__DASHBOARDMODERN_BRIDGE_WS__");
-    if (typeof bridge === "function") return bridge;
-    return typeof window.__DASHBOARDMODERN_BRIDGE_WS__ === "function"
-      ? window.__DASHBOARDMODERN_BRIDGE_WS__
-      : null;
+    var parentBridge = parentValue("__DASHBOARDMODERN_BRIDGE_WS__");
+    if (typeof parentBridge === "function") return parentBridge;
+    var localBridge = window.__DASHBOARDMODERN_BRIDGE_WS__;
+    if (typeof localBridge === "function" && localBridge.__dmHostedStub !== true)
+      return localBridge;
+    return null;
   }
 
   function adoptBridge() {
     var bridge = explicitBridge();
-    if (bridge) {
-      window.__DASHBOARDMODERN_BRIDGE_WS__ = bridge;
-      window.__DASHBOARDMODERN_BRIDGED__ = true;
-      window.WebSocket = bridge;
-      return true;
-    }
-    var injected = window.__DASHBOARDMODERN_PRELUDE_WS__;
-    if (typeof injected === "function" && isInjectedSocket(injected)) {
-      var adapter =
-        window.__DASHBOARDMODERN_PRELUDE_DEFERRED_WS__ ||
-        deferredSocketConstructor(injected);
-      window.__DASHBOARDMODERN_PRELUDE_DEFERRED_WS__ = adapter;
-      window.__DASHBOARDMODERN_BRIDGE_WS__ = adapter;
-      window.__DASHBOARDMODERN_BRIDGED__ = true;
-      window.WebSocket = adapter;
-      return true;
-    }
-    return false;
+    if (!bridge) return false;
+    window.__DASHBOARDMODERN_BRIDGE_WS__ = bridge;
+    window.__DASHBOARDMODERN_BRIDGED__ = true;
+    window.WebSocket = bridge;
+    return true;
   }
 
+  /*
+   * Never infer that the browser's current WebSocket is a trusted adapter.
+   * Android WebView and some embedded browsers stringify native constructors
+   * differently, so source-code heuristics can accidentally reuse the real
+   * network WebSocket and send the hosted placeholder to Home Assistant.
+   * Only the explicit parent bridge is trusted. Until it exists, StubSocket
+   * cannot open a network connection.
+   */
   if (!adoptBridge()) window.WebSocket = StubSocket;
+
   window.__DASHBOARDMODERN_CONNECTION__ = {
     token: HOSTED_PLACEHOLDER,
     local_ip: window.location.host,
