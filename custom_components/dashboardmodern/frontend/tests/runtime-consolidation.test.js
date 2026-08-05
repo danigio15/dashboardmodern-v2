@@ -224,7 +224,9 @@ test("production entry delegates only to the transport guard and section runtime
   assert.match(guard, /isStructurallyHostedDashboard/);
   assert.match(guard, /adoptHostedBridge/);
   assert.match(guard, /sanitizeHostedCredentials/);
-  assert.doesNotMatch(guard, /send\s*\(.*access_token/);
+  assert.match(guard, /BridgeCtor\.__dmInjectedHostedAdapter !== true/);
+  assert.match(guard, /access_token: HOSTED_PLACEHOLDER/);
+  assert.doesNotMatch(guard, /access_token:\s*(?:token|nativeCredential\(\)|root\.)/);
   assert.doesNotMatch(prelude, /__DASHBOARDMODERN_REAL_TOKEN__/);
   assert.doesNotMatch(prelude, /access_token/);
 
