@@ -17,11 +17,11 @@ export function hasUsableNativeCredential() {
 }
 
 export function isHostedDashboard() {
+  if (hasUsableNativeCredential()) return false;
   if (root.__DASHBOARDMODERN_HOSTED__ === true || root.__DASHBOARDMODERN_BRIDGED__ === true)
     return true;
   try {
-    if (/[?&](?:dmi|dmp)=/.test(root.location?.search || ""))
-      return !hasUsableNativeCredential();
+    if (/[?&](?:dmi|dmp)=/.test(root.location?.search || "")) return true;
     return root.parent && root.parent !== root && root.parent.__DASHBOARDMODERN_HOST__ === true;
   } catch (_error) {
     return false;
