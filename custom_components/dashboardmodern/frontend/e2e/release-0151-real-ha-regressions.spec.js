@@ -105,7 +105,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     }
 
     const pixel = Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nCEAAAAASUVORK5CYII=",
+      "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR4nGNkaPj/n4GBgYGJAQoAJRkCgp9o0gYAAAAASUVORK5CYII=",
       "base64",
     );
     await page.route("**/local/auto/b10.png", (route) =>
