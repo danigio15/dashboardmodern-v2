@@ -95,7 +95,8 @@ export function normalizeTemperatureCards() {
           fallback.setAttribute("aria-hidden", "true");
           icon.replaceChildren(fallback);
         }
-        fallback.textContent = glyph(room.icon);
+        const iconGlyph = glyph(room.icon);
+        if (fallback.textContent !== iconGlyph) fallback.textContent = iconGlyph;
       }
 
       const temperature = numericState(room.temp);
@@ -106,11 +107,14 @@ export function normalizeTemperatureCards() {
       const value = doc.getElementById(`tv_${temperatureId}`) || card.querySelector(".temp-value");
       const humidityValue = doc.getElementById(`hv_${humidityId}`) || card.querySelector(".temp-hum-val");
       const comfort = doc.getElementById(`tc_${temperatureId}`) || card.querySelector(".temp-comfort-badge");
-      if (value) value.textContent = temperature == null ? "—" : temperature.toFixed(1);
-      if (humidityValue) humidityValue.textContent = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
+      const temperatureText = temperature == null ? "—" : temperature.toFixed(1);
+      const humidityText = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
+      if (value && value.textContent !== temperatureText) value.textContent = temperatureText;
+      if (humidityValue && humidityValue.textContent !== humidityText)
+        humidityValue.textContent = humidityText;
       if (comfort) {
         const label = comfortLabel(temperature);
-        comfort.textContent = label;
+        if (comfort.textContent !== label) comfort.textContent = label;
         comfort.title = label;
         comfort.setAttribute("aria-label", label);
         comfort.dataset.comfort = label.toLowerCase().replaceAll(" ", "-");
