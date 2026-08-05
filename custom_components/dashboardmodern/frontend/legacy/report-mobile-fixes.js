@@ -41,10 +41,10 @@ function lexicalStates(name) {
   }
 }
 const dashboardStates = () => ({
-  ...lexicalStates("_RAW_STATES"),
   ...(root._RAW_STATES || {}),
-  ...lexicalStates("STATES"),
+  ...lexicalStates("_RAW_STATES"),
   ...(root.STATES || {}),
+  ...lexicalStates("STATES"),
 });
 
 const ROOM_GLYPHS = Object.freeze({
@@ -123,6 +123,9 @@ function installStyles() {
     #temp-grid .dm-temperature-icon-fallback{display:block!important;font-size:22px!important;line-height:1!important}
     #temp-grid .temp-card{background:var(--card-bg,#fff)!important;color:var(--text,#0f172a)!important}
     #temp-grid .temp-comfort-badge{display:grid!important;place-items:center!important}
+    #editor-modal [data-temperature-form] #dm-temperature-icon,
+    #editor-modal [data-temperature-form] [data-icon-field],
+    #editor-modal [data-temperature-form] label.ed-slot:has(#dm-temperature-icon){display:none!important}
     #editor-modal [data-temperature-form] .dm-temperature-actions button,
     #editor-modal [data-temperature-form] [data-temperature-submit],
     #editor-modal [data-temperature-form] [data-temperature-cancel]{min-height:44px!important}
@@ -531,8 +534,11 @@ function settle() {
   const liveShutters = Boolean(
     doc?.getElementById("dm-shutter-popup") || doc?.getElementById("tapp-avvisi"),
   );
-  if ((state.attempts < 80 && !state.storeUnsubscribe) || liveShutters)
-    schedule(liveShutters ? 100 : 50);
+  const delayedEditor = Boolean(
+    doc?.querySelector("#editor-modal [data-temperature-form],#editor-modal [data-editor='energy']"),
+  );
+  if (state.attempts < 240 || liveShutters || delayedEditor)
+    schedule(liveShutters || delayedEditor ? 100 : 50);
 }
 
 function install() {
