@@ -122,13 +122,58 @@ function deferredSocketConstructor(SocketCtor) {
   return DeferredSocket;
 }
 
+function parseSocketMessage(event) {
+  try {
+    return JSON.parse(event?.data || event);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function wrapInjectedHostedAdapter(BridgeCtor) {
+  if (
+    typeof BridgeCtor !== "function" ||
+    BridgeCtor.__dmInjectedHostedAdapter !== true ||
+    BridgeCtor.__dmHostedHandshakeAdapter === true
+  )
+    return BridgeCtor;
+  class HostedHandshakeAdapter extends BridgeCtor {
+    constructor(...args) {
+      super(...args);
+      const original = Object.getOwnPropertyDescriptor(this, "onmessage");
+      if (!original?.set) return;
+      let assigned = null;
+      Object.defineProperty(this, "onmessage", {
+        configurable: true,
+        enumerable: true,
+        get: () => assigned,
+        set: (handler) => {
+          assigned = typeof handler === "function" ? handler : null;
+          original.set.call(this, (event) => {
+            if (parseSocketMessage(event)?.type === "auth_required") {
+              this.send(JSON.stringify({ type: "auth", access_token: HOSTED_PLACEHOLDER }));
+              return;
+            }
+            assigned?.call(this, event);
+          });
+        },
+      });
+    }
+  }
+  ensureSocketConstants(HostedHandshakeAdapter);
+  HostedHandshakeAdapter.__dmInjectedHostedAdapter = true;
+  HostedHandshakeAdapter.__dmHostedHandshakeAdapter = true;
+  return HostedHandshakeAdapter;
+}
+
 export function adoptHostedBridge() {
   if (!isStructurallyHostedDashboard()) return false;
-  const bridge =
+  let bridge =
     (typeof root.__DASHBOARDMODERN_BRIDGE_WS__ === "function" && root.__DASHBOARDMODERN_BRIDGE_WS__) ||
     (typeof parentValue("__DASHBOARDMODERN_BRIDGE_WS__") === "function" &&
       parentValue("__DASHBOARDMODERN_BRIDGE_WS__"));
   if (typeof bridge !== "function") return false;
+  bridge = wrapInjectedHostedAdapter(bridge);
   ensureSocketConstants(bridge);
   root.__DASHBOARDMODERN_HOSTED__ = true;
   root.__DASHBOARDMODERN_BRIDGED__ = true;
