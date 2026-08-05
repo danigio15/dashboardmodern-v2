@@ -8,7 +8,11 @@ import {
   reportEntityForDevice,
   reportIconForDevice,
 } from "../src/core/energy-projection.js";
-import { inferApplianceEntity, isGeneratedRoomName } from "../legacy/mobile-ui-fixes.js";
+import {
+  inferApplianceEntity,
+  isGeneratedRoomName,
+  normalizeVehiclePath,
+} from "../legacy/mobile-ui-fixes.js";
 
 test("infers a report entity from a generic kWh appliance entity", () => {
   const states = {
@@ -35,6 +39,7 @@ test("infers a report entity from a generic kWh appliance entity", () => {
       image: "",
       entity: "sensor.forno_consumo",
       history: "sensor.forno_consumo",
+      cumulative: false,
     },
   ]);
 });
@@ -67,6 +72,7 @@ test("prefers a cumulative total meter so Report can calculate months and years"
   const appliance = {
     id: "appliance-forno",
     name: "Forno",
+    report_entity: "sensor.forno_mese",
     monthly_energy_entity: "sensor.forno_mese",
     total_energy_entity: "sensor.forno_totale",
     entities: ["sensor.forno_mese", "sensor.forno_totale"],
@@ -75,6 +81,7 @@ test("prefers a cumulative total meter so Report can calculate months and years"
   assert.equal(isCumulativeEnergyEntity("sensor.forno_totale", states), true);
   assert.equal(reportEntityForDevice(appliance, states), "sensor.forno_totale");
   assert.equal(canonicalReportDevices([appliance], [], states)[0].history, "sensor.forno_totale");
+  assert.equal(canonicalReportDevices([appliance], [], states)[0].cumulative, true);
 });
 
 test("projects a cumulative grid meter only to its lifetime slot and preserves explicit periods", () => {
@@ -196,4 +203,9 @@ test("appliance entity inference distinguishes energy from power", () => {
   };
   assert.equal(inferApplianceEntity(device, states, "power"), "sensor.forno_assorbimento");
   assert.equal(inferApplianceEntity(device, states, "energy"), "sensor.forno_totale");
+});
+
+test("normalizes the common /loca typo without creating a new asset path", () => {
+  assert.equal(normalizeVehiclePath("/loca/ev/idle.png"), "/local/ev/idle.png");
+  assert.equal(normalizeVehiclePath("config/www/ev/idle.png"), "/local/ev/idle.png");
 });
