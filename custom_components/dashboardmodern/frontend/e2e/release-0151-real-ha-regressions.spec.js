@@ -6,14 +6,13 @@ async function openEditor(page, tab) {
   await page.evaluate((targetTab) => {
     if (!document.getElementById("editor-modal")?.classList.contains("show")) apriConfigEntita();
     editorSwitch(targetTab);
-    if (targetTab === "avvisi") window.__DASHBOARDMODERN_ALERTS_RUNTIME__?.apply?.();
   }, tab);
   await expect(page.locator("#editor-modal")).toBeVisible();
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: 0.15.4 keeps the real Energy, EV, appliance and editor contracts coherent`, async ({
+  test(`${variant}: modular runtime keeps Energy, EV, appliance and editor contracts coherent`, async ({
     page,
   }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 180_000 : 110_000);
@@ -84,6 +83,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator(".dm-energy-total-overview")).toContainText(
       variant.includes("-en") ? /previous months/i : /mesi precedenti/i,
     );
+    await expect(page.locator(".dm-energy-source-guide")).toContainText(
+      variant.includes("-en") ? /total kWh meter/i : /contatore totale kWh/i,
+    );
 
     await page.evaluate(() => {
       localStorage.setItem("cd_quick_actions", JSON.stringify([{ type: "builtin", builtin: "luci", name: "Luci" }]));
@@ -118,6 +120,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       localStorage.setItem("cd_sections", JSON.stringify(sections));
       window.cdApplyNavVis?.();
       editorSwitch("sez2");
+      window.dispatchEvent(new Event("pageshow"));
     });
     await expect
       .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cd_ev_image"))))
@@ -129,7 +132,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.locator("#editor-modal .ed-head-close").last().click();
     await expect(page.locator("#editor-modal")).toHaveCount(0);
     await clickBottomTab(page, "ev", testInfo);
-    await page.evaluate(() => window.__DASHBOARDMODERN_VEHICLE_IMAGE_RUNTIME__?.apply?.());
+    await page.evaluate(() => window.dispatchEvent(new Event("pageshow")));
     await expect(vehicle).toBeVisible();
 
     await clickBottomTab(page, "appliances", testInfo);
