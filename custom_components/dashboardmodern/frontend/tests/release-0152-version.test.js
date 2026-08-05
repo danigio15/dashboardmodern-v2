@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import test from "node:test";
+import { migrateState } from "../src/core/migrations.js";
 
 const manifestUrl = new URL("../../manifest.json", import.meta.url);
 const readmeUrl = new URL("../../../../README.md", import.meta.url);
@@ -35,4 +36,44 @@ test("the production entry reuses canonical modules instead of numbered owners",
   assert.match(source, /src\/core\/appliance-artwork\.js/);
   assert.doesNotMatch(source, /release-\d{4}[^"']*\.js/);
   assert.doesNotMatch(source, /new MutationObserver|setInterval\s*\(/);
+});
+
+test("schema migration preserves lifetime and annual Energy sources together", () => {
+  const totalOnly = migrateState({
+    schema_version: 4,
+    sections: {
+      energy: {
+        house: { total_energy: "sensor.house_total" },
+        solar: { total_energy: "sensor.solar_total" },
+        grid: {},
+        battery: {},
+        metadata: { semantics_version: 2 },
+      },
+    },
+  }).state.sections.energy;
+  assert.deepEqual(totalOnly.house, {
+    total_energy: "sensor.house_total",
+    annual_energy: "sensor.house_total",
+  });
+  assert.deepEqual(totalOnly.solar, {
+    total_energy: "sensor.solar_total",
+    annual_energy: "sensor.solar_total",
+  });
+  assert.equal(totalOnly.metadata.semantics_version, 3);
+
+  const annualOnly = migrateState({
+    schema_version: 4,
+    sections: {
+      energy: {
+        house: { annual_energy: "sensor.house_year" },
+        solar: { annual_energy: "sensor.solar_year" },
+        grid: {},
+        battery: {},
+        metadata: { semantics_version: 2 },
+      },
+    },
+  }).state.sections.energy;
+  assert.equal(annualOnly.house.total_energy, "sensor.house_year");
+  assert.equal(annualOnly.solar.total_energy, "sensor.solar_year");
+  assert.equal(annualOnly.metadata.semantics_version, 3);
 });
