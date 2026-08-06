@@ -11,6 +11,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / "custom_components/dashboardmodern"
+EXCLUDED_RELEASE_PARTS = frozenset({"__pycache__", "e2e", "tests"})
+EXCLUDED_RELEASE_FILES = frozenset({"frontend/index.html", "frontend/styles.css"})
+
+
+def _include_release_file(path: Path) -> bool:
+    if not path.is_file() or path.name == "build-info.js":
+        return False
+    relative = path.relative_to(COMPONENT)
+    if EXCLUDED_RELEASE_PARTS.intersection(relative.parts):
+        return False
+    return relative.as_posix() not in EXCLUDED_RELEASE_FILES
 
 
 def main() -> None:
@@ -34,11 +45,7 @@ def main() -> None:
         )
         with zipfile.ZipFile(args.output, "w", zipfile.ZIP_DEFLATED) as archive:
             for path in COMPONENT.rglob("*"):
-                if (
-                    not path.is_file()
-                    or "__pycache__" in path.parts
-                    or path.name == "build-info.js"
-                ):
+                if not _include_release_file(path):
                     continue
                 # HACS extracts a zip_release directly into
                 # /config/custom_components/dashboardmodern. Integration files
@@ -53,6 +60,8 @@ def main() -> None:
             required = {
                 "__init__.py",
                 "manifest.json",
+                "brand/icon.png",
+                "brand/icon@2x.png",
                 "frontend/legacy/build-info.js",
             }
             missing = required - names
@@ -65,6 +74,8 @@ def main() -> None:
                     "Release archive contains an invalid nested "
                     "custom_components directory"
                 )
+            if any("/e2e/" in name or "/tests/" in name for name in names):
+                raise RuntimeError("Release archive contains development-only frontend files")
 
     manifest = json.loads((COMPONENT / "manifest.json").read_text())
     print(f"Built {args.output} for {manifest['version']} at {args.expected_commit}")
