@@ -1,7 +1,7 @@
 import { doc, installStyle, root, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENERGY_FLOW_SECTION__";
-const state = (root[KEY] ||= { installed: false, observer: null, frame: 0 });
+const state = (root[KEY] ||= { installed: false, frame: 0 });
 
 const COLORS = Object.freeze({
   solar: "#ff9f0a",
@@ -25,12 +25,7 @@ function periodActive(period, key) {
 
 function candidates(scope, key) {
   const words = key === "grid" ? ["grid", "rete"] : key === "solar" ? ["solar", "solare", "pv"] : key === "battery" ? ["battery", "batteria"] : ["home", "house", "casa"];
-  const selector = words.flatMap((word) => [
-    `[id*="${word}" i]`,
-    `[class*="${word}" i]`,
-    `[data-flow*="${word}" i]`,
-    `[data-source*="${word}" i]`,
-  ]).join(",");
+  const selector = words.flatMap((word) => [`[id*="${word}" i]`, `[class*="${word}" i]`, `[data-flow*="${word}" i]`, `[data-source*="${word}" i]`]).join(",");
   return [...scope.querySelectorAll(selector)].filter((node) => /^(path|line|polyline|circle|g|div|span)$/i.test(node.tagName));
 }
 
@@ -92,10 +87,12 @@ export function installEnergyFlowSection() {
   state.installed = true;
   installStyles();
   for (const name of ["renderEnergyMonth", "renderEnergyDay", "renderEnergyDashboard", "applyAtomicEnergyBundle"]) wrapFunction(name, `__dmEnergyFlow_${name}`, schedule);
-  state.observer = new MutationObserver(schedule);
-  state.observer.observe(doc.documentElement, { subtree: true, childList: true, characterData: true });
   root.addEventListener?.("dashboardmodern:energy-bundle", schedule);
   root.addEventListener?.("dashboardmodern:runtime-ready", schedule);
+  root.addEventListener?.("dashboardmodern:legacy-ready", schedule);
+  doc.addEventListener("click", (event) => {
+    if (event.target?.closest?.("[data-energy-tab],.energy-tab,.sub-tab-btn")) schedule();
+  }, true);
   schedule();
 }
 
