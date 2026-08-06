@@ -82,9 +82,7 @@ def main() -> None:
     payload = {
         "generated": True,
         "integrationVersion": manifest["version"],
-        "dashboardVersion": source_constant(
-            DASHBOARD_RUNTIME, "DASHBOARD_VERSION"
-        ),
+        "dashboardVersion": source_constant(DASHBOARD_RUNTIME, "DASHBOARD_VERSION"),
         "moduleVersion": int(
             source_constant(FRONTEND / "legacy/modules-entry.js", "MODULES_VERSION")
         ),
