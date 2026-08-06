@@ -28,6 +28,7 @@ import { installSolarThermalSection } from "./solar-thermal-section.js";
 import { installPoolSection } from "./pool-section.js";
 import { installIrrigationSection } from "./irrigation-section.js";
 import { installMiniPcSection } from "./minipc-section.js";
+import { installRuntimeHotfix0159Section } from "./runtime-hotfix-0159-section.js";
 
 const root = globalThis;
 const RUNTIME_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME__";
@@ -69,6 +70,7 @@ export function installSectionRuntime() {
     installShutterSection();
     installShutterAlertLayoutSection();
     installEvSection();
+    installRuntimeHotfix0159Section();
 
     root[RUNTIME_KEY] = Object.freeze({
       installed: true,
@@ -102,6 +104,7 @@ export function installSectionRuntime() {
         "shutters",
         "shutter-alert-layout",
         "ev",
+        "runtime-hotfix-0159",
       ]),
       registry: root.__DASHBOARDMODERN_SECTIONS__,
       energyServices: root.__DASHBOARDMODERN_ENERGY_SERVICES__,
