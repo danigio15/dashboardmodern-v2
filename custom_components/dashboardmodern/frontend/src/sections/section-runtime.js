@@ -1,5 +1,6 @@
 import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
 import { installDataContractsSection } from "./data-contracts-section.js";
+import { installEnergyCalculationsSection } from "./energy-calculations-section.js";
 import { installEnergySection } from "./energy-section.js";
 import { installEnergyStabilitySection } from "./energy-stability-section.js";
 import { installEnergyGuidanceSection } from "./energy-guidance-section.js";
@@ -40,6 +41,7 @@ export function installSectionRuntime() {
     installHostedBridgeGuard();
     installDataContractsSection();
     installHomeSection();
+    installEnergyCalculationsSection();
     installEnergySection();
     installEnergyStabilitySection();
     installEnergyGuidanceSection();
@@ -71,6 +73,7 @@ export function installSectionRuntime() {
       sections: Object.freeze([
         "data-contracts",
         "home",
+        "energy-calculations",
         "energy",
         "energy-stability",
         "energy-guidance",
