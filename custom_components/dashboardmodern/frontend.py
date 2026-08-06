@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Iterator
 
 from .const import DOMAIN
 
@@ -37,17 +37,35 @@ ASSET_SUFFIXES = frozenset(
         ".ico",
     }
 )
+RUNTIME_ROOT_FILES = frozenset({"panel.js", "dashboard-card.js"})
+RUNTIME_DIRECTORIES = ("legacy", "src")
+IGNORED_RUNTIME_PARTS = frozenset({"e2e", "tests", "__pycache__"})
+
+
+def _runtime_assets() -> Iterator[Path]:
+    """Yield only files that can be requested by the production runtime."""
+    for name in sorted(RUNTIME_ROOT_FILES):
+        path = FRONTEND_DIR / name
+        if path.is_file():
+            yield path
+    for directory_name in RUNTIME_DIRECTORIES:
+        directory = FRONTEND_DIR / directory_name
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.rglob("*")):
+            if (
+                path.is_file()
+                and path.suffix in ASSET_SUFFIXES
+                and not IGNORED_RUNTIME_PARTS.intersection(path.parts)
+            ):
+                yield path
 
 
 @lru_cache(maxsize=1)
 def _frontend_asset_version() -> str:
-    """Return a stable digest that changes whenever a frontend asset changes."""
+    """Return a stable digest that changes whenever a runtime asset changes."""
     digest = hashlib.blake2b(digest_size=8)
-    for path in sorted(
-        path
-        for path in FRONTEND_DIR.rglob("*")
-        if path.is_file() and path.suffix in ASSET_SUFFIXES
-    ):
+    for path in _runtime_assets():
         digest.update(str(path.relative_to(FRONTEND_DIR).as_posix()).encode())
         digest.update(path.read_bytes())
     return digest.hexdigest()
@@ -177,7 +195,7 @@ async def _ensure_static_registered(
         StaticPathConfig(
             url_path=static_url_path,
             path=str(FRONTEND_DIR),
-            cache_headers=False,
+            cache_headers=True,
         )
     ]
     if not domain_data.get(DATA_STATIC_BASE_REGISTERED):
