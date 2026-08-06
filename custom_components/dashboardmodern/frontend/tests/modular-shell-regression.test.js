@@ -23,7 +23,7 @@ for (const [file, locale] of [
 }
 
 test("temporary migration workflows and payloads are absent", () => {
-  const root = path.resolve(here, "../../../../..");
+  const root = path.resolve(here, "../../../..");
   assert.equal(fs.existsSync(path.join(root, ".github/workflows/source-snapshot.yml")), false);
   assert.equal(
     fs.existsSync(path.join(root, ".github/workflows/apply-vendor-test-update.yml")),
