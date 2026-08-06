@@ -75,7 +75,9 @@ def main() -> None:
                     "custom_components directory"
                 )
             if any("/e2e/" in name or "/tests/" in name for name in names):
-                raise RuntimeError("Release archive contains development-only frontend files")
+                raise RuntimeError(
+                    "Release archive contains development-only frontend files"
+                )
 
     manifest = json.loads((COMPONENT / "manifest.json").read_text())
     print(f"Built {args.output} for {manifest['version']} at {args.expected_commit}")
