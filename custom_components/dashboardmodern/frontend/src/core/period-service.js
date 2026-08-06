@@ -1,4 +1,5 @@
 /* DashboardModern 0.15.0 — pure period/statistics service. */
+import { runtimeMetrics } from "./runtime-metrics.js";
 
 export const PERIOD_SOURCES = Object.freeze([
   {
@@ -97,11 +98,7 @@ export function rowTimestamp(row) {
 }
 
 export function cumulativeValue(row) {
-  for (const field of ["sum", "state", "max"]) {
-    const value = finite(row?.[field]);
-    if (value != null) return value;
-  }
-  return null;
+  return finite(row?.sum);
 }
 
 /**
@@ -114,29 +111,29 @@ export function periodConsumption(rows = [], baseline = null) {
     .slice()
     .sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
 
-  const changes = ordered.map((row) => finite(row?.change)).filter((value) => value != null);
-  if (changes.length) return Math.max(0, changes.reduce((sum, value) => sum + value, 0));
-
   const values = ordered.map(cumulativeValue).filter((value) => value != null);
   const first = cumulativeValue(baseline);
   if (first != null && values.length) values.unshift(first);
   if (values.length < 2) return null;
 
-  let total = 0;
-  for (let index = 1; index < values.length; index += 1) {
-    const current = values[index];
-    const previous = values[index - 1];
-    const delta = current - previous;
-    // total_increasing can reset. After a reset the new reading is the valid use.
-    total += delta >= 0 ? delta : Math.max(0, current);
-  }
-  return Math.max(0, total);
+  // Recorder's sum is already unit-normalized and reset-aware. Re-applying
+  // counter reset logic here would count the same reset twice.
+  return Math.max(0, values.at(-1) - values[0]);
+}
+
+export function recorderBucketConsumptions(rows = [], baseline = null) {
+  const ordered = [baseline, ...(Array.isArray(rows) ? rows : [])]
+    .filter((row) => row && cumulativeValue(row) != null)
+    .sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
+  return ordered.slice(1).map((row, index) => Object.freeze({
+    ...row,
+    change: Math.max(0, cumulativeValue(row) - cumulativeValue(ordered[index])),
+  }));
 }
 
 function endOfClosedRange(nextBoundary, now) {
   if (nextBoundary > now) return new Date(now);
-  // Avoid a response exactly at the next boundary being reused as baseline.
-  return new Date(nextBoundary.getTime() - 1);
+  return new Date(nextBoundary);
 }
 
 export function periodRange(kind, selected = new Date(), now = new Date()) {
@@ -419,6 +416,7 @@ export class HomeAssistantBroker {
   async request(payload) {
     const socket = await this.connect();
     const id = ++this.nextId;
+    if (payload?.type === "recorder/statistics_during_period") runtimeMetrics.increment("recorderRequests");
     return new Promise((resolve, reject) => {
       const timer = globalThis.setTimeout?.(() => {
         this.pending.delete(id);
@@ -463,9 +461,10 @@ export class HomeAssistantBroker {
         type: "recorder/statistics_during_period",
         start_time: startIso,
         end_time: endIso,
-        statistic_ids: statisticIds,
-        period,
-        units: { energy: "kWh" },
+          statistic_ids: statisticIds,
+          period,
+          types: ["sum"],
+          units: { energy: "kWh" },
       },
       key,
       historical ? this.cacheHistoricalMs : this.cacheCurrentMs,
@@ -478,7 +477,14 @@ export class HomeAssistantBroker {
   async valuesForPlans(plans, selected, states = globalThis.STATES || {}) {
     const output = new Map();
     const direct = plans.filter((plan) => plan.direct);
-    direct.forEach((plan) => {
+    const selectedDate = new Date(selected);
+    const today = new Date();
+    const directIsCurrent = (kind) => kind === "day"
+      ? selectedDate.toDateString() === today.toDateString()
+      : kind === "year"
+        ? selectedDate.getFullYear() === today.getFullYear()
+        : selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() === today.getMonth();
+    direct.filter((plan) => directIsCurrent(plan.kind)).forEach((plan) => {
       const value = readDirectState(plan.entity, states);
       if (value != null) output.set(plan.key, value);
     });
@@ -489,24 +495,17 @@ export class HomeAssistantBroker {
     const range = periodRange(kind, selected);
     if (range.end <= range.start) return output;
     const ids = [...new Set(derived.map((plan) => plan.entity))];
-    const rows = await this.statistics(ids, range.start, range.end, range.period);
-    const unresolved = derived.filter((plan) => periodConsumption(rows[plan.entity] || []) == null);
-    let baselines = {};
-    if (unresolved.length) {
-      const baseline = baselineRange(kind, range.start);
-      baselines = await this.statistics(
-        [...new Set(unresolved.map((plan) => plan.entity))],
-        baseline.start,
-        baseline.end,
-        range.period,
-      );
-    }
+    const baseline = baselineRange(kind, range.start);
+    // One Recorder request contains both the sample immediately before the
+    // boundary and all samples in the requested period. This is the same data
+    // contract used for Energy: growth = final sum - initial sum.
+    const rows = await this.statistics(ids, baseline.start, range.end, range.period);
 
     derived.forEach((plan) => {
-      const baselineRows = (baselines[plan.entity] || [])
-        .slice()
-        .sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
-      const value = periodConsumption(rows[plan.entity] || [], baselineRows.at(-1) || null);
+      const entityRows = (rows[plan.entity] || []).slice().sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
+      const before = entityRows.filter((row) => rowTimestamp(row) < range.start.getTime());
+      const within = entityRows.filter((row) => rowTimestamp(row) >= range.start.getTime() && rowTimestamp(row) < range.end.getTime());
+      const value = periodConsumption(within, before.at(-1) || null);
       if (value != null) output.set(plan.key, Math.round(value * 1000) / 1000);
     });
     return output;

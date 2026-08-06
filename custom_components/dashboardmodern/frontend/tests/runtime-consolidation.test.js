@@ -29,19 +29,16 @@ const measurementState = (id) => ({
   },
 });
 
-test("closed month ends before the next month baseline boundary", () => {
+test("closed month uses the exact exclusive next-month boundary", () => {
   const selected = new Date(2026, 4, 1);
   const range = periodRange("month", selected, new Date(2026, 7, 3));
   assert.equal(range.start.getFullYear(), 2026);
   assert.equal(range.start.getMonth(), 4);
   assert.equal(range.start.getDate(), 1);
   assert.equal(range.end.getFullYear(), 2026);
-  assert.equal(range.end.getMonth(), 4);
-  assert.equal(range.end.getDate(), 31);
-  assert.equal(range.end.getHours(), 23);
-  assert.equal(range.end.getMinutes(), 59);
-  assert.equal(range.end.getSeconds(), 59);
-  assert.equal(range.end.getMilliseconds(), 999);
+  assert.equal(range.end.getDate(), 1);
+  assert.equal(range.end.getMonth(), 5);
+  assert.equal(range.end.getHours(), 0);
 });
 
 test("year range is independent from selected month", () => {
@@ -49,10 +46,9 @@ test("year range is independent from selected month", () => {
   assert.equal(range.start.getFullYear(), 2025);
   assert.equal(range.start.getMonth(), 0);
   assert.equal(range.start.getDate(), 1);
-  assert.equal(range.end.getFullYear(), 2025);
-  assert.equal(range.end.getMonth(), 11);
-  assert.equal(range.end.getDate(), 31);
-  assert.equal(range.end.getMilliseconds(), 999);
+  assert.equal(range.end.getFullYear(), 2026);
+  assert.equal(range.end.getMonth(), 0);
+  assert.equal(range.end.getDate(), 1);
   assert.equal(range.period, "month");
 });
 
@@ -68,23 +64,15 @@ test("appliance cumulative total is converted to selected-period delta", () => {
   assert.equal(periodConsumption([{ sum: 9100 }]), null);
 });
 
-test("Recorder change buckets are summed and meter resets stay non-negative", () => {
-  assert.ok(
-    Math.abs(
-      periodConsumption([
-        { start: "2026-08-01T00:00:00Z", change: 1.2, sum: 11843.0 },
-        { start: "2026-08-01T01:00:00Z", change: 2.4, sum: 11845.4 },
-      ]) - 3.6,
-    ) < 1e-9,
-  );
-  assert.equal(
-    periodConsumption([
-      { start: "2026-08-01T00:00:00Z", state: 98 },
-      { start: "2026-08-01T01:00:00Z", state: 3 },
-      { start: "2026-08-01T02:00:00Z", state: 8 },
-    ]),
-    8,
-  );
+test("Recorder sum growth matches Home Assistant across physical meter resets", () => {
+  const baseline = { start: "2026-07-31T23:00:00Z", state: 98, sum: 11839.4 };
+  const rows = [
+    { start: "2026-08-01T00:00:00Z", state: 1.2, sum: 11840.6 },
+    { start: "2026-08-01T01:00:00Z", state: 3.6, sum: 11843.0 },
+    { start: "2026-08-01T02:00:00Z", state: 0.5, sum: 11843.5 },
+  ];
+  assert.ok(Math.abs(periodConsumption(rows, baseline) - 4.1) < 1e-9);
+  assert.equal(periodConsumption(rows.map(({ sum: _sum, ...row }) => row), baseline), null);
 });
 
 test("canonical total sensor derives every Energy period", () => {

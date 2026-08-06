@@ -1,5 +1,6 @@
 /** Compatibility adapters for the canonical model used by both vendored dashboards. */
 import { getDeviceDisplayName, getDeviceVisual } from "../core/device-model.js";
+import { createApplianceViewModel } from "../core/appliance-view-model.js";
 export function stableRoomId(room, index = 0) {
   if (room?.id || room?.room_id) return String(room.id || room.room_id);
   const slug = String(room?.name || `room-${index + 1}`)
@@ -72,6 +73,7 @@ export function applianceMedia(appliance = {}) {
 export function applianceEnergyReport(appliances = [], states = {}, rooms = []) {
   const normalizedRooms = normalizeRooms(rooms);
   return appliances.map((appliance) => {
+    const view = createApplianceViewModel(appliance, states, normalizedRooms);
     const entries = [
       appliance.power,
       appliance.power_entity,
@@ -96,12 +98,14 @@ export function applianceEnergyReport(appliances = [], states = {}, rooms = []) 
     const roomId = applianceRoomId(appliance, normalizedRooms);
     return {
       appliance,
-      name: applianceName(appliance, states),
-      room: normalizedRooms.find((room) => room.id === roomId) || null,
+      name: view.name,
+      room: view.room || normalizedRooms.find((room) => room.id === roomId) || null,
       power,
       energy,
-      state: applianceState(appliance, states),
-      historyEntity: energy?.entity || power?.entity || entries[0] || "",
+      state: { state: view.mode, watts: view.watts, label: view.label },
+      badge: view.badge,
+      action: view.action,
+      historyEntity: view.historyEntity,
     };
   });
 }
@@ -130,44 +134,8 @@ export function controllableEntity(appliance) {
 }
 
 export function applianceState(appliance, states = {}) {
-  const powerEntities = applianceEntities(appliance, ["power", "power_entity", "power_sensor"]);
-  const stateEntities = applianceEntities(appliance, [
-    "control_entity",
-    "state_entity",
-    "status_entity",
-    "switch_entity",
-    "switch",
-    "light",
-    "fan",
-  ]);
-  let watts = null;
-  let powered = false;
-  for (const entity of [...new Set([...powerEntities, ...stateEntities])]) {
-    const state = states[entity];
-    if (!state) continue;
-    const unit = String(state.attributes?.unit_of_measurement || "").toLowerCase().replaceAll(" ", "");
-    const value = Number(state.state);
-    if (Number.isFinite(value) && /^(w|kw|mw|watt|watts)$/.test(unit)) {
-      const normalized = unit === "kw" ? value * 1000 : unit === "mw" ? value * 1_000_000 : value;
-      watts = Math.max(watts ?? 0, normalized);
-    }
-    if (
-      ["on", "playing", "heat", "cool", "open", "opening", "running", "active"].includes(
-        String(state.state).toLowerCase(),
-      )
-    ) {
-      powered = true;
-    }
-  }
-  const run = Number.isFinite(Number(appliance?.threshold_run))
-    ? Number(appliance.threshold_run)
-    : 5;
-  const standby = Number.isFinite(Number(appliance?.threshold_standby))
-    ? Number(appliance.threshold_standby)
-    : 1;
-  if (watts != null && watts >= run) return { state: "running", watts };
-  if (powered || (watts != null && watts >= standby)) return { state: "on", watts };
-  return { state: "off", watts };
+  const model = createApplianceViewModel(appliance, states);
+  return { state: model.mode, watts: model.watts };
 }
 
 export function normalizeCamera(camera = {}, index = 0) {

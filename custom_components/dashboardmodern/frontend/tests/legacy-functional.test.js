@@ -251,7 +251,7 @@ for (const [file, labels] of [
     assert.equal(saved.length, 3);
   });
 
-  test(`${file}: actual energy totals fallback yields daily/monthly and preserves explicit sensors`, () => {
+  test(`${file}: removed legacy totals handler cannot produce competing period values`, () => {
     const context = {
       window: {
         _cdStatMonthly: 10,
@@ -280,20 +280,11 @@ for (const [file, labels] of [
         id: 10,
         result: { "sensor.total": [{ change: 20 }, { change: 7 }] },
       }),
-      true,
+      false,
     );
-    assert.equal(context._RAW_STATES["sensor.month"].state, "7");
-    assert.equal(context._RAW_STATES["sensor.year"].state, "27");
-    assert.equal(
-      context.handle({
-        id: 11,
-        result: { "sensor.total": [{ change: 1.2 }, { change: 2.3 }] },
-      }),
-      true,
-    );
-    assert.equal(context._RAW_STATES["sensor.day"].state, "3.5");
+    assert.deepEqual(context._RAW_STATES, {});
     context.ENTITY_OVERRIDES["sensor.day"] = "sensor.explicit_day";
-    context._RAW_STATES["sensor.day"].state = "99";
+    context._RAW_STATES["sensor.day"] = { state: "99" };
     context.handle({ id: 11, result: { "sensor.total": [{ change: 4 }] } });
     assert.equal(context._RAW_STATES["sensor.day"].state, "99");
   });
