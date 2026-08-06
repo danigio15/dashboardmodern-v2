@@ -10,49 +10,49 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.7-0ea5e9" alt="Versione 0.15.7">
+  <img src="https://img.shields.io/badge/version-0.15.8-0ea5e9" alt="Versione 0.15.8">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.7
-> secures hosted authentication, makes Energy updates atomic, restores explicit
-> lifetime-meter guidance and completes the responsive editor cleanup.
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.8
+> completes the modular section runtime, strengthens Energy calculations and
+> aligns the shutter popup with the standard alert dialogs.
 
 ---
 
-## Novità 0.15.7
+## Novità 0.15.8
 
-La 0.15.7 chiude le regressioni riscontrate su Home Assistant reale dopo la 0.15.6 e completa la separazione del runtime in moduli proprietari. La release è verificata con test Browser E2E su italiano, inglese, desktop, mobile, Firefox e WebKit/iPad.
+La 0.15.8 completa la separazione del runtime in moduli proprietari, consolida i calcoli Energia e uniforma i popup della dashboard. La release è verificata con test Browser E2E su italiano, inglese, desktop, mobile, Firefox e WebKit/iPad.
 
 ### Connessione, Energia e Report
 
 - il pannello ospitato usa esclusivamente il bridge autenticato del parent;
 - nessun token Home Assistant viene copiato nel frame e nessun WebSocket nativo può essere riattivato nel pannello ospitato;
-- Energia resta in attesa del bridge e pubblica in modo atomico i valori giorno, mese e anno;
-- ripristinata la guida esplicita per sensori giornalieri, mensili, annuali e totali;
-- il contatore totale cumulativo kWh è indicato come sorgente per mesi precedenti e Report storico;
+- Energia pubblica in modo atomico i valori giorno, mese e anno;
+- separati calcoli, caricamento storico e view-model Energia;
+- gestiti contatori cumulativi, reset, valori negativi e dati mancanti;
+- il contatore totale cumulativo kWh alimenta mesi precedenti e Report storico;
 - mantenuto il recupero automatico delle entità potenza, energia totale, Report e comando degli elettrodomestici già configurati.
 
 ### Editor e interfaccia
 
-- Config Report ricostruita con layout responsive e modifica in popup;
-- popup di modifica per Azioni, Clima, Tapparelle, Stanze, Avvisi ed Elettrodomestici;
-- popup Tapparelle uniformato agli altri dialog;
-- card Elettrodomestici nuovamente rettangolari e contenute entro misure stabili;
-- card Temperatura riequilibrate e controlli touch mantenuti ad almeno 44 px;
-- selezione auto EV sostituita da schede profilo, mantenendo la select legacy soltanto come compatibilità invisibile;
+- popup Tapparelle uniformato alla struttura e allo stile dei popup Avvisi;
+- comandi Apri, Ferma e Chiudi mantenuti accessibili e responsive;
+- Config Report con layout responsive e modifica in popup;
+- card Elettrodomestici con nome, immagine, stato, potenza, energia e comando coerenti;
+- aggiornamento immediato dopo aggiunta, modifica o spostamento tra stanze;
 - tema scuro dell’editor con contrasto leggibile e coerente con la palette della dashboard.
 
 ### Architettura e qualità
 
-- `legacy/report-mobile-fixes.js` è ora soltanto il punto di ingresso per guard di trasporto e runtime delle sezioni;
-- rimossi owner misti e runtime duplicati non più utilizzati;
-- test frontend, Python e Ruff completati con successo;
-- validazione HACS e hassfest completata con successo;
-- Browser E2E completo senza fallimenti;
+- moduli autonomi per Home, Clima, Sicurezza, Solare termico, Piscina, Irrigazione e MiniPC;
+- servizi Energia separati per calcoli, bundle storico e view-model;
+- `legacy/report-mobile-fixes.js` resta il solo punto di ingresso del runtime produttivo;
+- rimossi owner misti, runtime duplicati e asset di sviluppo dal pacchetto HACS;
+- test frontend, Python, Ruff, HACS, hassfest e Browser E2E completati con successo;
 - generazione automatica di `dashboardmodern.zip` dal commit pubblicato.
 
 ---
