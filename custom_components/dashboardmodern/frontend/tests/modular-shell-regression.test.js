@@ -18,7 +18,7 @@ for (const [file, locale] of [
     assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)[^>]*>\s*\S/i);
     assert.ok(html.includes(`dashboard-runtime-${locale}.css`));
     assert.ok(html.includes(`dashboard-runtime-${locale}.js`));
-    assert.ok(html.includes("report-mobile-fixes.js"));
+    assert.ok(html.includes("modules-entry.js"));
   });
 }
 
