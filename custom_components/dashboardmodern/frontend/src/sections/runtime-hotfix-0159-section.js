@@ -10,7 +10,12 @@ import {
 import { scheduleApplianceNormalization } from "./appliances-section.js";
 
 const KEY = "__DASHBOARDMODERN_RUNTIME_HOTFIX_0159__";
-const state = (root[KEY] ||= { installed: false, migrating: false, listeners: false });
+const state = (root[KEY] ||= {
+  installed: false,
+  migrating: false,
+  listeners: false,
+  energyRetryNormalized: false,
+});
 
 function isCumulative(entityId) {
   const id = clean(entityId);
@@ -134,12 +139,14 @@ function removeRedundantApplianceHooks() {
   }
 }
 
-function stopEnergyRetryStorm() {
+function normalizePendingEnergyRetry() {
+  if (state.energyRetryNormalized) return false;
   const stability = root.__DASHBOARDMODERN_ENERGY_STABILITY_SECTION__;
   if (!stability) return false;
   root.clearTimeout?.(stability.retryTimer);
   stability.retryTimer = 0;
   if (root.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle) stability.attempts = 0;
+  state.energyRetryNormalized = true;
   return true;
 }
 
@@ -189,7 +196,6 @@ function installStyles() {
 
 function refreshHotfix() {
   removeRedundantApplianceHooks();
-  stopEnergyRetryStorm();
   relabelLegacyTotalFields();
   fixApplianceStatusPresentation();
 }
@@ -199,7 +205,7 @@ export function installRuntimeHotfix0159Section() {
   state.installed = true;
   installStyles();
   removeRedundantApplianceHooks();
-  stopEnergyRetryStorm();
+  normalizePendingEnergyRetry();
   migrateLegacyEnergyTotals();
   refreshHotfix();
   root.addEventListener?.("dashboardmodern:legacy-ready", refreshHotfix);
