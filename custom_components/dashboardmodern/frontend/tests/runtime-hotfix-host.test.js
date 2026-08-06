@@ -8,6 +8,7 @@ function element(tag) {
     tagName: tag,
     style: {},
     attributes: {},
+    dataset: {},
     listeners: {},
     setAttribute(name, value) {
       this.attributes[name] = String(value);
@@ -25,7 +26,7 @@ function element(tag) {
   };
 }
 
-test("the hosted frame installs only the authenticated transport bridge", () => {
+test("the hosted frame installs only the authenticated transport bridge", async () => {
   const scripts = [];
   const childDocument = {
     head: {
@@ -53,11 +54,14 @@ test("the hosted frame installs only the authenticated transport bridge", () => 
     documentRef: { createElement: () => frame },
     hostWindow: {},
   });
+  await host.ready;
 
   assert.equal(scripts.length, 0, "the host must not inject a second runtime");
   assert.equal(host.frame.contentWindow.__DASHBOARDMODERN_BRIDGED__, true);
   assert.equal(typeof host.frame.contentWindow.WebSocket, "function");
-  assert.match(host.frame.getAttribute("src"), /\/legacy\/dashboard\.html\?/);
+  assert.match(host.frame.dataset.source, /\/legacy\/dashboard\.html\?/);
+  assert.equal(host.frame.getAttribute("src"), undefined, "the child must not navigate before the bridge exists");
+  assert.match(host.frame.srcdoc, /__DASHBOARDMODERN_BRIDGE_WS__/);
 
   host.frame.listeners.load();
   assert.equal(scripts.length, 0, "reloads must not inject patches either");
