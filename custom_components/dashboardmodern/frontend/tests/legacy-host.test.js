@@ -10,6 +10,7 @@ function fakeElement(tag) {
     className: "",
     style: {},
     attributes: {},
+    dataset: {},
     children: [],
     listeners: {},
     contentWindow: {},
@@ -39,19 +40,19 @@ function connectionWith(handler = async () => ({}), subscribe = async () => () =
 
 function mount(overrides = {}) {
   const container = fakeElement("div");
-  const hostWindow = { location: { host: "ha.local:8123" } };
+  const hostWindow = { location: { href: "http://ha.local:8123/dashboardmodern", host: "ha.local:8123" } };
   const host = mountLegacyHost(container, {
     hass: { locale: { language: "it" } },
     connection: connectionWith(),
     staticBase: "/dashboardmodern_static/abc",
     documentRef,
     hostWindow,
+    fetchRef: async () => ({ ok: true, text: async () => "<!doctype html><html><head></head><body></body></html>" }),
     ...overrides,
   });
   return { host, container, hostWindow };
 }
 
-/** Drive a shim socket and collect what it delivers back. */
 async function exchange(socket, message) {
   const received = [];
   socket.onmessage = (event) => received.push(JSON.parse(event.data));
@@ -69,16 +70,12 @@ test("the language variant follows the Home Assistant locale", () => {
 
 test("no credential is published to the hosted page", () => {
   const { hostWindow } = mount();
-
-  // The hosted page loads scripts from a public CDN, and any script in a page
-  // can read that page's storage. There must be nothing worth reading.
   assert.equal(hostWindow[HOST_KEY], true);
   assert.equal(JSON.stringify(hostWindow).includes("token"), false);
 });
 
 test("the hosted page gets a shim instead of the real WebSocket", () => {
   const { host } = mount();
-
   assert.equal(typeof host.frame.contentWindow.WebSocket, "function");
   assert.equal(host.frame.contentWindow.__DASHBOARDMODERN_BRIDGED__, true);
 });
@@ -86,32 +83,28 @@ test("the hosted page gets a shim instead of the real WebSocket", () => {
 test("the shim is reinstalled when the hosted document reloads", () => {
   const { host } = mount();
   host.frame.contentWindow = {};
-
   host.frame.listeners.load();
-
   assert.equal(host.frame.contentWindow.__DASHBOARDMODERN_BRIDGED__, true);
 });
 
 test("mounting without an authenticated connection is refused", () => {
-  assert.throws(
-    () => mount({ connection: {} }),
-    /authenticated Home Assistant connection/,
-  );
+  assert.throws(() => mount({ connection: {} }), /authenticated Home Assistant connection/);
 });
 
-test("the frame points at the versioned path and keeps playback permissions", () => {
+test("the frame records the versioned source and keeps playback permissions", async () => {
   const { host } = mount();
-
+  await host.ready;
   assert.equal(
-    host.frame.getAttribute("src"),
+    host.frame.dataset.source,
     "/dashboardmodern_static/abc/legacy/dashboard.html?dmi=integration&dmp=1",
   );
+  assert.equal(host.frame.getAttribute("src"), undefined);
+  assert.match(host.frame.srcdoc, /<base href="http:\/\/ha\.local:8123\/dashboardmodern_static\/abc\/legacy\/">/);
+  assert.match(host.frame.srcdoc, /__DASHBOARDMODERN_BRIDGE_WS__/);
   for (const permission of ["autoplay", "fullscreen", "picture-in-picture"]) {
     assert.equal(host.frame.getAttribute("allow").includes(permission), true);
   }
   assert.equal(host.frame.getAttribute("sandbox"), undefined);
-  // Fill the container: subtracting a header the container already excluded
-  // is what left a blank strip under the dashboard.
   assert.equal(host.frame.style.height, "100%");
 });
 
@@ -124,17 +117,15 @@ test("a container with no height falls back to viewport units", () => {
     connection: connectionWith(),
     staticBase: "/dashboardmodern_static/abc",
     documentRef: { createElement: () => frame },
-    hostWindow: { location: { host: "ha.local:8123" } },
+    hostWindow: { location: { href: "http://ha.local:8123/dashboardmodern", host: "ha.local:8123" } },
+    fetchRef: async () => ({ ok: true, text: async () => "<!doctype html><html><head></head><body></body></html>" }),
   });
-
   assert.equal(host.frame.style.height, "100dvh");
 });
 
 test("destroying the host removes the frame and the marker", () => {
   const { host, hostWindow } = mount();
-
   host.destroy();
-
   assert.equal(host.frame.removed, true);
   assert.equal(HOST_KEY in hostWindow, false);
 });
@@ -144,9 +135,7 @@ test("the shim completes the handshake without authenticating", async () => {
   const socket = new Socket();
   const received = [];
   socket.onmessage = (event) => received.push(JSON.parse(event.data));
-
   await new Promise((resolve) => setTimeout(resolve, 0));
-
   assert.deepEqual(received, [{ type: "auth_ok" }]);
 });
 
@@ -158,9 +147,7 @@ test("an auth message carrying a placeholder is discarded, not forwarded", async
       return {};
     }),
   });
-
   await exchange(new Socket(), { type: "auth", access_token: "__dashboardmodern_hosted__" });
-
   assert.deepEqual(sent, []);
 });
 
@@ -170,10 +157,8 @@ test("permitted messages are forwarded and their replies returned", async () => 
       message.type === "get_states" ? [{ entity_id: "light.x" }] : {},
     ),
   });
-
   const received = await exchange(new Socket(), { id: 7, type: "get_states" });
   const result = received.find((item) => item.id === 7);
-
   assert.equal(result.success, true);
   assert.deepEqual(result.result, [{ entity_id: "light.x" }]);
 });
@@ -188,12 +173,8 @@ test("a message type outside the allowed set is refused and reported", async () 
     }),
     onDenied: (type) => denied.push(type),
   });
-
   const received = await exchange(new Socket(), { id: 3, type: "config/auth/create" });
   const result = received.find((item) => item.id === 3);
-
-  // The shim is the enforcement point: this is a stronger guarantee than the
-  // token ever gave, because a token permits everything its owner can do.
   assert.equal(result.success, false);
   assert.equal(result.error.code, "not_allowed");
   assert.deepEqual(denied, ["config/auth/create"]);
@@ -215,7 +196,6 @@ test("the allowed set covers what the hosted dashboard actually sends", () => {
   ]) {
     assert.equal(ALLOWED_MESSAGE_TYPES.includes(type), true, `missing ${type}`);
   }
-  // Nothing that would let the hosted page grant itself anything.
   assert.equal(ALLOWED_MESSAGE_TYPES.includes("auth/long_lived_access_token"), false);
   assert.equal(ALLOWED_MESSAGE_TYPES.includes("config/auth/create"), false);
 });
@@ -226,10 +206,8 @@ test("a backend failure is reported rather than swallowed", async () => {
       throw Object.assign(new Error("nope"), { code: "unknown_command" });
     }),
   });
-
   const received = await exchange(new Socket(), { id: 4, type: "get_states" });
   const result = received.find((item) => item.id === 4);
-
   assert.equal(result.success, false);
   assert.equal(result.error.code, "unknown_command");
 });
@@ -245,17 +223,13 @@ test("events reach the hosted page and unsubscribe when the socket closes", asyn
       };
     }),
   });
-
   const socket = new Socket();
   const received = [];
   socket.onmessage = (event) => received.push(JSON.parse(event.data));
   await socket.send(JSON.stringify({ id: 9, type: "subscribe_events", event_type: "state_changed" }));
   await new Promise((resolve) => setTimeout(resolve, 0));
-
   emit({ event_type: "state_changed" });
   assert.equal(received.some((item) => item.type === "event" && item.id === 9), true);
-
-  // A hosted document that reloads would otherwise leak a subscription each time.
   socket.close();
   assert.equal(released, 1);
 });

@@ -3,6 +3,8 @@ import { installDataContractsSection } from "./data-contracts-section.js";
 import { installEnergySection } from "./energy-section.js";
 import { installEnergyStabilitySection } from "./energy-stability-section.js";
 import { installEnergyGuidanceSection } from "./energy-guidance-section.js";
+import { installEnergyConfigSection } from "./energy-config-section.js";
+import { installEnergyFlowSection } from "./energy-flow-section.js";
 import { installTemperatureSection } from "./temperature-section.js";
 import { installTemperatureLayoutSection } from "./temperature-layout-section.js";
 import { installAppliancesSection } from "./appliances-section.js";
@@ -26,6 +28,8 @@ export function installSectionRuntime() {
   installEnergySection();
   installEnergyStabilitySection();
   installEnergyGuidanceSection();
+  installEnergyConfigSection();
+  installEnergyFlowSection();
   installTemperatureSection();
   installTemperatureLayoutSection();
   installAppliancesSection();
@@ -47,6 +51,8 @@ export function installSectionRuntime() {
       "energy",
       "energy-stability",
       "energy-guidance",
+      "energy-config",
+      "energy-flow",
       "temperature",
       "temperature-layout",
       "appliances",

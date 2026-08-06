@@ -10,22 +10,22 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.6-0ea5e9" alt="Versione 0.15.6">
+  <img src="https://img.shields.io/badge/version-0.15.7-0ea5e9" alt="Versione 0.15.7">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.6
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.7
 > secures hosted authentication, makes Energy updates atomic, restores explicit
 > lifetime-meter guidance and completes the responsive editor cleanup.
 
 ---
 
-## Novità 0.15.6
+## Novità 0.15.7
 
-La 0.15.6 chiude le regressioni riscontrate su Home Assistant reale dopo la 0.15.5 e completa la separazione del runtime in moduli proprietari. La release è verificata con test Browser E2E su italiano, inglese, desktop, mobile, Firefox e WebKit/iPad.
+La 0.15.7 chiude le regressioni riscontrate su Home Assistant reale dopo la 0.15.6 e completa la separazione del runtime in moduli proprietari. La release è verificata con test Browser E2E su italiano, inglese, desktop, mobile, Firefox e WebKit/iPad.
 
 ### Connessione, Energia e Report
 
