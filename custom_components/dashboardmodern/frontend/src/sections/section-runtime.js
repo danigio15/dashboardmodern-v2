@@ -19,6 +19,13 @@ import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
 import { installShutterAlertLayoutSection } from "./shutter-alert-layout-section.js";
 import { installEvSection } from "./ev-section.js";
+import { installHomeSection } from "./home-section.js";
+import { installClimateSection } from "./climate-section.js";
+import { installSecuritySection } from "./security-section.js";
+import { installSolarThermalSection } from "./solar-thermal-section.js";
+import { installPoolSection } from "./pool-section.js";
+import { installIrrigationSection } from "./irrigation-section.js";
+import { installMiniPcSection } from "./minipc-section.js";
 
 const root = globalThis;
 const RUNTIME_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME__";
@@ -32,6 +39,7 @@ export function installSectionRuntime() {
   try {
     installHostedBridgeGuard();
     installDataContractsSection();
+    installHomeSection();
     installEnergySection();
     installEnergyStabilitySection();
     installEnergyGuidanceSection();
@@ -44,6 +52,12 @@ export function installSectionRuntime() {
     installApplianceEditorSection();
     installLightsAlertsSection();
     installAlertsSection();
+    installClimateSection();
+    installSecuritySection();
+    installSolarThermalSection();
+    installPoolSection();
+    installIrrigationSection();
+    installMiniPcSection();
     installUnifiedEditorsSection();
     installEditorCrudSection();
     installEditorContractsSection();
@@ -54,8 +68,9 @@ export function installSectionRuntime() {
 
     root[RUNTIME_KEY] = Object.freeze({
       installed: true,
-      sections: [
+      sections: Object.freeze([
         "data-contracts",
+        "home",
         "energy",
         "energy-stability",
         "energy-guidance",
@@ -68,6 +83,12 @@ export function installSectionRuntime() {
         "appliance-editor",
         "lights",
         "alerts",
+        "climate",
+        "security",
+        "solar-thermal",
+        "pool",
+        "irrigation",
+        "minipc",
         "unified-editors",
         "editor-crud",
         "editor-contracts",
@@ -75,7 +96,8 @@ export function installSectionRuntime() {
         "shutters",
         "shutter-alert-layout",
         "ev",
-      ],
+      ]),
+      registry: root.__DASHBOARDMODERN_SECTIONS__,
     });
     return root[RUNTIME_KEY];
   } finally {
