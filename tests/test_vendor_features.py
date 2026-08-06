@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
@@ -21,10 +22,22 @@ VENDORED = Path(__file__).resolve().parents[1] / (
 )
 
 
+def _variant_source(name: str) -> str:
+    """Return the HTML shell plus every local asset it loads directly."""
+    html = (VENDORED / name).read_text(encoding="utf-8")
+    parts = [html]
+    references = re.findall(r'(?:src|href)="\./([^"?#]+)', html)
+    for reference in references:
+        asset = VENDORED / reference
+        if asset.is_file() and asset.suffix in {".js", ".css", ".html"}:
+            parts.append(asset.read_text(encoding="utf-8"))
+    return "\n".join(parts)
+
+
 def test_the_room_field_is_present_in_every_section_and_language() -> None:
     """Appliances, climate and cameras all gain the same room dropdown."""
     for name in vendor_legacy.VARIANTS:
-        html = (VENDORED / name).read_text(encoding="utf-8")
+        html = _variant_source(name)
         assert "function cdRoomOptions(" in html, name
         # The same registry-backed dropdown appears in every section.
         for field in (
@@ -90,7 +103,7 @@ def test_the_room_helper_reads_the_existing_registry() -> None:
 def test_rooms_management_is_separated_from_temperatures() -> None:
     """The temperature section is renamed; a separate Rooms tab manages rooms."""
     for name in vendor_legacy.VARIANTS:
-        html = (VENDORED / name).read_text(encoding="utf-8")
+        html = _variant_source(name)
         # The old conflated titles are gone in favour of "Temperatura".
         assert "Stanze (temperature)" not in html, name
         assert "Rooms (temperatures)" not in html, name
