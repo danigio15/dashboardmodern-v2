@@ -60,7 +60,8 @@ def extract_variant(filename: str, locale: str) -> None:
             nonlocal first
             if first:
                 first = False
-                return f'<link rel="stylesheet" href="./dashboard-runtime-{locale}.css">'
+                stylesheet = f"./dashboard-runtime-{locale}.css"
+                return f'<link rel="stylesheet" href="{stylesheet}">'
             return ""
 
         html = STYLE_RE.sub(replace_style, html)
