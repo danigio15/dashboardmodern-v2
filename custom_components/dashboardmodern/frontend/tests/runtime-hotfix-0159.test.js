@@ -16,12 +16,14 @@ test("0.15.9 promotes cumulative annual sensors to canonical total sensors", asy
   assert.match(source, /total_increasing/);
 });
 
-test("0.15.9 removes global appliance render and retry storms", async () => {
+test("0.15.9 filters appliance updates without breaking energy recovery", async () => {
   const source = await readFile(sourceUrl, "utf8");
   assert.match(source, /removeEventListener\?\.\("dashboardmodern:state-changed", scheduleApplianceNormalization\)/);
-  assert.match(source, /root\.render = root\.render\.__dmPrevious/);
+  assert.doesNotMatch(source, /root\.render = root\.render\.__dmPrevious/);
   assert.match(source, /configuredApplianceEntities\(\)\.has\(id\)/);
-  assert.match(source, /stability\.attempts = Math\.max\(24/);
+  assert.match(source, /stability\.retryTimer = 0/);
+  assert.match(source, /stability\.attempts = 0/);
+  assert.doesNotMatch(source, /stability\.attempts = Math\.max\(24/);
 });
 
 test("0.15.9 distinguishes running, standby and off appliances", async () => {
