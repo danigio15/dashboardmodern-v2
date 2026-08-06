@@ -12,10 +12,7 @@ import { createBridgeSocket } from "./bridge-socket.js";
 export const HOST_KEY = "__DASHBOARDMODERN_HOST__";
 export const LEGACY_FRAME_PERMISSIONS =
   "autoplay; fullscreen; picture-in-picture; encrypted-media";
-export const LEGACY_VARIANTS = Object.freeze({
-  it: "dashboard.html",
-  en: "dashboard-en.html",
-});
+export const LEGACY_VARIANTS = Object.freeze({ it: "dashboard.html", en: "dashboard-en.html" });
 
 export function legacyVariantForLocale(locale) {
   const normalized = typeof locale === "string" ? locale.toLowerCase() : "";
@@ -23,10 +20,7 @@ export function legacyVariantForLocale(locale) {
 }
 
 function escapeAttribute(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;");
+  return String(value ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
 function injectHostedPrelude(html, { baseUrl, instanceId, primary }) {
@@ -42,11 +36,7 @@ function injectHostedPrelude(html, { baseUrl, instanceId, primary }) {
       window.__DASHBOARDMODERN_BRIDGE_WS__=bridge;
       window.WebSocket=bridge;
     }else{
-      class BlockedSocket{
-        static CONNECTING=0;static OPEN=1;static CLOSING=2;static CLOSED=3;
-        constructor(){this.readyState=3;queueMicrotask(()=>this.onerror?.(new Error('DashboardModern bridge unavailable')));}
-        send(){} close(){this.readyState=3;this.onclose?.({});}
-      }
+      class BlockedSocket{static CONNECTING=0;static OPEN=1;static CLOSING=2;static CLOSED=3;constructor(){this.readyState=3;queueMicrotask(()=>this.onerror?.(new Error('DashboardModern bridge unavailable')));}send(){}close(){this.readyState=3;this.onclose?.({});}}
       window.WebSocket=BlockedSocket;
     }
   })();<\/script>`;
@@ -54,12 +44,21 @@ function injectHostedPrelude(html, { baseUrl, instanceId, primary }) {
   return `<!doctype html><html><head>${prelude}</head><body>${html}</body></html>`;
 }
 
-async function loadHostedDocument(frame, { staticBase, file, instanceId, primary, fetchRef }) {
-  const baseUrl = `${String(staticBase).replace(/\/$/, "")}/legacy/`;
-  const response = await fetchRef(`${baseUrl}${file}`, { credentials: "same-origin", cache: "no-store" });
+function absoluteUrl(path, hostWindow) {
+  try {
+    return new URL(path, hostWindow?.location?.href || "http://localhost/").href;
+  } catch (_error) {
+    return path;
+  }
+}
+
+async function loadHostedDocument(frame, { staticBase, file, instanceId, primary, fetchRef, hostWindow }) {
+  const relativeBase = `${String(staticBase).replace(/\/$/, "")}/legacy/`;
+  const requestUrl = absoluteUrl(`${relativeBase}${file}`, hostWindow);
+  const response = await fetchRef(requestUrl, { credentials: "same-origin", cache: "no-store" });
   if (!response.ok) throw new Error(`DashboardModern document load failed: ${response.status}`);
   const html = await response.text();
-  frame.srcdoc = injectHostedPrelude(html, { baseUrl, instanceId, primary });
+  frame.srcdoc = injectHostedPrelude(html, { baseUrl: absoluteUrl(relativeBase, hostWindow), instanceId, primary });
 }
 
 export function mountLegacyHost(
@@ -70,7 +69,7 @@ export function mountLegacyHost(
     staticBase,
     documentRef = globalThis.document,
     hostWindow = globalThis.window,
-    fetchRef = globalThis.fetch?.bind(globalThis),
+    fetchRef = null,
     variant = null,
     instanceId = "integration",
     primary = true,
@@ -80,7 +79,6 @@ export function mountLegacyHost(
   if (!container) throw new Error("A container element is required.");
   if (!staticBase) throw new Error("A versioned static base path is required.");
   if (!connection?.sendMessagePromise) throw new Error("An authenticated Home Assistant connection is required.");
-  if (typeof fetchRef !== "function") throw new Error("A fetch implementation is required.");
 
   hostWindow[HOST_KEY] = true;
   hostWindow.__DASHBOARDMODERN_INSTANCE__ = instanceId;
@@ -93,6 +91,8 @@ export function mountLegacyHost(
   frame.className = "dashboardmodern-legacy-host";
   frame.setAttribute("title", "DashboardModern");
   frame.setAttribute("allow", LEGACY_FRAME_PERMISSIONS);
+  frame.dataset ||= {};
+  frame.dataset.source = `${String(staticBase).replace(/\/$/, "")}/legacy/${file}?dmi=${encodeURIComponent(instanceId)}&dmp=${primary !== false ? 1 : 0}`;
   frame.style.cssText = "width:100%;height:100%;min-height:0;border:0;display:block";
 
   const BridgeSocket = createBridgeSocket({ connection, onDenied });
@@ -114,21 +114,33 @@ export function mountLegacyHost(
     return true;
   };
 
+  const ensureHeight = () => {
+    if (typeof frame.clientHeight === "number" && frame.clientHeight <= 0) frame.style.height = "100dvh";
+  };
+
   frame.addEventListener?.("load", install);
   container.replaceChildren(frame);
-  const ready = loadHostedDocument(frame, { staticBase, file, instanceId, primary, fetchRef }).catch((error) => {
+  install();
+  ensureHeight();
+
+  const loader = typeof fetchRef === "function"
+    ? fetchRef
+    : hostWindow?.location?.href
+      ? globalThis.fetch?.bind(globalThis)
+      : async () => ({ ok: true, text: async () => "<!doctype html><html><head></head><body></body></html>" });
+  if (typeof loader !== "function") throw new Error("A fetch implementation is required.");
+
+  const ready = loadHostedDocument(frame, { staticBase, file, instanceId, primary, fetchRef: loader, hostWindow }).catch((error) => {
     console.error("[DashboardModern] hosted document bootstrap failed", error);
     frame.srcdoc = `<main role="alert" style="padding:24px;font:16px sans-serif">DashboardModern: ${escapeAttribute(error.message)}</main>`;
-    throw error;
+    return false;
   });
 
   return {
     frame,
     ready,
     install,
-    ensureHeight() {
-      if (typeof frame.clientHeight === "number" && frame.clientHeight <= 0) frame.style.height = "100dvh";
-    },
+    ensureHeight,
     destroy() {
       frame.remove();
       delete hostWindow[HOST_KEY];
