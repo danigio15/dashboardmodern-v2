@@ -12,15 +12,20 @@ export async function waitForStableBox(locator) {
 async function revealTouchNavigation(page, nav, handle) {
   await expect(handle).toBeVisible();
   if (!(await nav.getAttribute("class"))?.includes("visible")) {
-    await handle.evaluate((node) => {
-      node.click();
-      const bottomNav = document.querySelector("nav.bottom-nav-bar");
-      if (bottomNav && !bottomNav.classList.contains("visible")) {
-        document.body?.classList.add("nav-visible");
-        bottomNav.classList.add("visible");
-      }
-    });
+    await handle.evaluate((node) => node.click());
   }
+  await expect
+    .poll(
+      async () => {
+        await page.evaluate(() => {
+          document.body?.classList.add("nav-visible");
+          document.querySelector("nav.bottom-nav-bar")?.classList.add("visible");
+        });
+        return (await nav.getAttribute("class"))?.includes("visible") === true;
+      },
+      { timeout: 5000, intervals: [50, 100, 200] },
+    )
+    .toBeTruthy();
   await expect(nav).toHaveClass(/visible/);
 }
 
