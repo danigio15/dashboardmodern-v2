@@ -94,6 +94,11 @@ export function mountLegacyHost(
   frame.dataset ||= {};
   frame.dataset.source = `${String(staticBase).replace(/\/$/, "")}/legacy/${file}?dmi=${encodeURIComponent(instanceId)}&dmp=${primary !== false ? 1 : 0}`;
   frame.style.cssText = "width:100%;height:100%;min-height:0;border:0;display:block";
+  frame.style.width = "100%";
+  frame.style.height = "100%";
+  frame.style.minHeight = "0";
+  frame.style.border = "0";
+  frame.style.display = "block";
 
   const BridgeSocket = createBridgeSocket({ connection, onDenied });
   BridgeSocket.__dmInjectedHostedAdapter = true;
