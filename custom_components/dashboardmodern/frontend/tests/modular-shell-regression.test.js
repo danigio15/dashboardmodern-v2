@@ -16,8 +16,8 @@ for (const [file, locale] of [
     assert.ok(Buffer.byteLength(html) < 150_000, `${file} grew back into a monolith`);
     assert.doesNotMatch(html, /<style(?:\s|>)/i);
     assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)[^>]*>\s*\S/i);
-    assert.match(html, new RegExp(`dashboard-runtime-${locale}\\.css`));
-    assert.match(html, new RegExp(`dashboard-runtime-${locale}\\.js`));
+    assert.match(html, new RegExp(`dashboard-runtime-${locale}\.css`));
+    assert.match(html, new RegExp(`dashboard-runtime-${locale}\.js`));
     assert.match(html, /report-mobile-fixes\.js/);
   });
 }
