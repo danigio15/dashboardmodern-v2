@@ -31,9 +31,9 @@ test("HACS root brand assets are shipped", async () => {
   }
 });
 
-test("the production entry is only a transport guard and section loader", async () => {
+test("the production entry delegates once to the idempotent section runtime", async () => {
   const source = await readFile(productionEntryUrl, "utf8");
-  assert.match(source, /transport\/hosted-bridge-guard\.js/);
+  assert.doesNotMatch(source, /transport\/hosted-bridge-guard\.js/);
   assert.match(source, /sections\/section-runtime\.js/);
   assert.doesNotMatch(
     source,

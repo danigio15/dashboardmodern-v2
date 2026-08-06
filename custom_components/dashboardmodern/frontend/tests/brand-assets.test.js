@@ -1,27 +1,39 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../../../../", import.meta.url);
 
-async function bytes(path) {
-  return readFile(new URL(path, root));
+async function digest(path) {
+  const content = await readFile(new URL(path, root));
+  return createHash("sha256").update(content).digest("hex");
 }
 
-test("Home Assistant local brand assets match the repository brand", async () => {
-  const [assetIcon, localIcon, localIcon2x] = await Promise.all([
-    bytes("assets/icon@2x.png"),
-    bytes("custom_components/dashboardmodern/brand/icon.png"),
-    bytes("custom_components/dashboardmodern/brand/icon@2x.png"),
-  ]);
-  const [assetLogo, localLogo, localLogo2x] = await Promise.all([
-    bytes("assets/logo@2x.png"),
-    bytes("custom_components/dashboardmodern/brand/logo.png"),
-    bytes("custom_components/dashboardmodern/brand/logo@2x.png"),
-  ]);
+async function assertSame(paths) {
+  const digests = await Promise.all(paths.map(digest));
+  assert.equal(new Set(digests).size, 1, `brand assets differ: ${paths.join(", ")}`);
+}
 
-  assert.deepEqual(localIcon, assetIcon);
-  assert.deepEqual(localIcon2x, assetIcon);
-  assert.deepEqual(localLogo, assetLogo);
-  assert.deepEqual(localLogo2x, assetLogo);
+test("HACS and Home Assistant brand assets use canonical 1x and 2x files", async () => {
+  await assertSame([
+    "assets/icon.png",
+    "brand/icon.png",
+    "custom_components/dashboardmodern/brand/icon.png",
+  ]);
+  await assertSame([
+    "assets/icon@2x.png",
+    "brand/icon@2x.png",
+    "custom_components/dashboardmodern/brand/icon@2x.png",
+  ]);
+  await assertSame([
+    "assets/logo.png",
+    "brand/logo.png",
+    "custom_components/dashboardmodern/brand/logo.png",
+  ]);
+  await assertSame([
+    "assets/logo@2x.png",
+    "brand/logo@2x.png",
+    "custom_components/dashboardmodern/brand/logo@2x.png",
+  ]);
 });

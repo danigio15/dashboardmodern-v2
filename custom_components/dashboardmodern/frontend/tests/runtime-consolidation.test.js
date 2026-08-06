@@ -136,7 +136,7 @@ test("legacy overrides still classify total increasing meters safely", () => {
   );
 });
 
-test("production entry delegates only to the transport guard and section runtime", async () => {
+test("production entry delegates once to the section runtime, which owns the guard", async () => {
   const loader = await readFile(new URL("../legacy/report-mobile-fixes.js", import.meta.url), "utf8");
   const prelude = await readFile(new URL("../legacy/bridge-prelude.js", import.meta.url), "utf8");
   const sections = await readFile(new URL("../src/sections/section-runtime.js", import.meta.url), "utf8");
@@ -167,8 +167,9 @@ test("production entry delegates only to the transport guard and section runtime
     "utf8",
   );
 
-  assert.match(loader, /transport\/hosted-bridge-guard\.js/);
+  assert.doesNotMatch(loader, /transport\/hosted-bridge-guard\.js/);
   assert.match(loader, /sections\/section-runtime\.js/);
+  assert.match(sections, /transport\/hosted-bridge-guard\.js/);
   assert.doesNotMatch(
     loader,
     /runtime-consolidated|mobile-ui-fixes|alerts-runtime|vehicle-image-runtime|release-\d+/,

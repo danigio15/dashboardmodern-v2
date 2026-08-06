@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 
 import DashboardModernModules from "../legacy/modules-entry.js";
+import { readLegacyBundle } from "./legacy-source.js";
 
 function functionSource(source, name) {
   const start = source.indexOf(`function ${name}(`);
@@ -31,7 +31,7 @@ for (const [file, labels] of [
   ["dashboard.html", { overview: "Panoramica", none: "Nessuna stanza" }],
   ["dashboard-en.html", { overview: "Overview", none: "No room" }],
 ]) {
-  const source = readFileSync(new URL(`../legacy/${file}`, import.meta.url), "utf8");
+  const source = readLegacyBundle(file);
 
   test(`${file}: shipped renderer never uses OTHER and preserves appliance media`, () => {
     const renderer = functionSource(source, "renderAppliances");

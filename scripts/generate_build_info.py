@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "custom_components/dashboardmodern/frontend"
 DEFAULT_OUT = FRONTEND / "legacy/build-info.js"
+DASHBOARD_RUNTIME = FRONTEND / "legacy/dashboard-runtime-it.js"
 ASSET_SUFFIXES = frozenset({".js", ".css", ".html", ".json", ".png", ".svg", ".gif", ".webp"})
 RUNTIME_ROOT_FILES = frozenset({"panel.js", "dashboard-card.js"})
 RUNTIME_DIRECTORIES = ("legacy", "src")
@@ -78,7 +79,7 @@ def main() -> None:
         "generated": True,
         "integrationVersion": manifest["version"],
         "dashboardVersion": source_constant(
-            FRONTEND / "legacy/dashboard.html", "DASHBOARD_VERSION"
+            DASHBOARD_RUNTIME, "DASHBOARD_VERSION"
         ),
         "moduleVersion": int(
             source_constant(FRONTEND / "legacy/modules-entry.js", "MODULES_VERSION")
