@@ -128,9 +128,6 @@ function applianceStateChanged(event) {
 
 function removeRedundantApplianceHooks() {
   root.removeEventListener?.("dashboardmodern:state-changed", scheduleApplianceNormalization);
-  if (root.render?.__dmAppliancesRenderSection && root.render.__dmPrevious) {
-    root.render = root.render.__dmPrevious;
-  }
   if (!state.listeners) {
     state.listeners = true;
     root.addEventListener?.("dashboardmodern:state-changed", applianceStateChanged);
@@ -142,7 +139,7 @@ function stopEnergyRetryStorm() {
   if (!stability) return false;
   root.clearTimeout?.(stability.retryTimer);
   stability.retryTimer = 0;
-  stability.attempts = Math.max(24, Number(stability.attempts) || 0);
+  if (root.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle) stability.attempts = 0;
   return true;
 }
 
