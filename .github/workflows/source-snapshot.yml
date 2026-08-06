@@ -1,0 +1,27 @@
+name: Source snapshot
+
+on:
+  push:
+    branches:
+      - agent/0.15.8-repository-cleanup-performance-brand
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-snapshot
+          path: |
+            .
+            !.git/**
+            !node_modules/**
+            !test-results/**
+            !playwright-report/**
+          include-hidden-files: true
+          retention-days: 1
