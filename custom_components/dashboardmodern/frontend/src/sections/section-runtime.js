@@ -1,6 +1,7 @@
 import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
 import { installDataContractsSection } from "./data-contracts-section.js";
 import { installEnergyCalculationsSection } from "./energy-calculations-section.js";
+import { installEnergyServicesSection } from "./energy-services-section.js";
 import { installEnergySection } from "./energy-section.js";
 import { installEnergyStabilitySection } from "./energy-stability-section.js";
 import { installEnergyGuidanceSection } from "./energy-guidance-section.js";
@@ -42,6 +43,7 @@ export function installSectionRuntime() {
     installDataContractsSection();
     installHomeSection();
     installEnergyCalculationsSection();
+    installEnergyServicesSection();
     installEnergySection();
     installEnergyStabilitySection();
     installEnergyGuidanceSection();
@@ -74,6 +76,7 @@ export function installSectionRuntime() {
         "data-contracts",
         "home",
         "energy-calculations",
+        "energy-services",
         "energy",
         "energy-stability",
         "energy-guidance",
@@ -101,6 +104,7 @@ export function installSectionRuntime() {
         "ev",
       ]),
       registry: root.__DASHBOARDMODERN_SECTIONS__,
+      energyServices: root.__DASHBOARDMODERN_ENERGY_SERVICES__,
     });
     return root[RUNTIME_KEY];
   } finally {
