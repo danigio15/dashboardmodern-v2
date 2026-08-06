@@ -8,13 +8,16 @@ import hashlib
 import json
 import re
 import subprocess
+from collections.abc import Iterator
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "custom_components/dashboardmodern/frontend"
 DEFAULT_OUT = FRONTEND / "legacy/build-info.js"
 DASHBOARD_RUNTIME = FRONTEND / "legacy/dashboard-runtime-it.js"
-ASSET_SUFFIXES = frozenset({".js", ".css", ".html", ".json", ".png", ".svg", ".gif", ".webp"})
+ASSET_SUFFIXES = frozenset(
+    {".js", ".css", ".html", ".json", ".png", ".svg", ".gif", ".webp"}
+)
 RUNTIME_ROOT_FILES = frozenset({"panel.js", "dashboard-card.js"})
 RUNTIME_DIRECTORIES = ("legacy", "src")
 IGNORED_RUNTIME_PARTS = frozenset({"e2e", "tests", "__pycache__"})
@@ -26,7 +29,7 @@ def git_head() -> str:
     ).strip()
 
 
-def runtime_assets():
+def runtime_assets() -> Iterator[Path]:
     """Yield only assets reachable from the production panel and card."""
     for name in sorted(RUNTIME_ROOT_FILES):
         path = FRONTEND / name
@@ -56,7 +59,8 @@ def asset_hash() -> str:
 
 def source_constant(path: Path, name: str) -> str:
     match = re.search(
-        rf"(?:const|export const)\s+{name}\s*=\s*['\"]?([^;'\"\s]+)", path.read_text()
+        rf"(?:const|export const)\s+{name}\s*=\s*['\"]?([^;'\"\s]+)",
+        path.read_text(),
     )
     if not match:
         raise RuntimeError(f"{name} not found in {path}")
