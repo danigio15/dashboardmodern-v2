@@ -8,11 +8,19 @@ import hashlib
 import json
 import re
 import subprocess
+from collections.abc import Iterator
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "custom_components/dashboardmodern/frontend"
 DEFAULT_OUT = FRONTEND / "legacy/build-info.js"
+DASHBOARD_RUNTIME = FRONTEND / "legacy/dashboard-runtime-it.js"
+ASSET_SUFFIXES = frozenset(
+    {".js", ".css", ".html", ".json", ".png", ".svg", ".gif", ".webp"}
+)
+RUNTIME_ROOT_FILES = frozenset({"panel.js", "dashboard-card.js"})
+RUNTIME_DIRECTORIES = ("legacy", "src")
+IGNORED_RUNTIME_PARTS = frozenset({"e2e", "tests", "__pycache__"})
 
 
 def git_head() -> str:
@@ -21,16 +29,29 @@ def git_head() -> str:
     ).strip()
 
 
+def runtime_assets() -> Iterator[Path]:
+    """Yield only assets reachable from the production panel and card."""
+    for name in sorted(RUNTIME_ROOT_FILES):
+        path = FRONTEND / name
+        if path.is_file():
+            yield path
+    for directory_name in RUNTIME_DIRECTORIES:
+        directory = FRONTEND / directory_name
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.rglob("*")):
+            if (
+                path.is_file()
+                and path != DEFAULT_OUT
+                and path.suffix in ASSET_SUFFIXES
+                and not IGNORED_RUNTIME_PARTS.intersection(path.parts)
+            ):
+                yield path
+
+
 def asset_hash() -> str:
     digest = hashlib.blake2b(digest_size=8)
-    for path in sorted(FRONTEND.rglob("*")):
-        if (
-            not path.is_file()
-            or path == DEFAULT_OUT
-            or path.suffix
-            not in {".js", ".css", ".html", ".json", ".png", ".svg", ".gif", ".webp"}
-        ):
-            continue
+    for path in runtime_assets():
         digest.update(path.relative_to(FRONTEND).as_posix().encode())
         digest.update(path.read_bytes())
     return digest.hexdigest()
@@ -38,7 +59,8 @@ def asset_hash() -> str:
 
 def source_constant(path: Path, name: str) -> str:
     match = re.search(
-        rf"(?:const|export const)\s+{name}\s*=\s*['\"]?([^;'\"\s]+)", path.read_text()
+        rf"(?:const|export const)\s+{name}\s*=\s*['\"]?([^;'\"\s]+)",
+        path.read_text(),
     )
     if not match:
         raise RuntimeError(f"{name} not found in {path}")
@@ -60,9 +82,7 @@ def main() -> None:
     payload = {
         "generated": True,
         "integrationVersion": manifest["version"],
-        "dashboardVersion": source_constant(
-            FRONTEND / "legacy/dashboard.html", "DASHBOARD_VERSION"
-        ),
+        "dashboardVersion": source_constant(DASHBOARD_RUNTIME, "DASHBOARD_VERSION"),
         "moduleVersion": int(
             source_constant(FRONTEND / "legacy/modules-entry.js", "MODULES_VERSION")
         ),

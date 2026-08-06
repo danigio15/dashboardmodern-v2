@@ -6,17 +6,11 @@
 // sections must stay visible, and explicit user choices must win.
 
 import test from "node:test";
+
+import { readLegacyBundle } from "./legacy-source.js";
 import assert from "node:assert";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const html = fs.readFileSync(
-  path.join(__dirname, "..", "legacy", "dashboard.html"),
-  "utf8",
-);
+const html = readLegacyBundle("dashboard.html");
 
 function extract(startMarker, endMarker) {
   const i = html.indexOf(startMarker);

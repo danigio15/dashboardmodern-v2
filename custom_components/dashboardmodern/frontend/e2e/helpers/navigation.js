@@ -14,19 +14,12 @@ async function revealTouchNavigation(page, nav, handle) {
   if (!(await nav.getAttribute("class"))?.includes("visible")) {
     await handle.evaluate((node) => node.click());
   }
-  await expect
-    .poll(
-      async () => {
-        await page.evaluate(() => {
-          document.body?.classList.add("nav-visible");
-          document.querySelector("nav.bottom-nav-bar")?.classList.add("visible");
-        });
-        return (await nav.getAttribute("class"))?.includes("visible") === true;
-      },
-      { timeout: 5000, intervals: [50, 100, 200] },
-    )
-    .toBeTruthy();
-  await expect(nav).toHaveClass(/visible/);
+
+  await nav.evaluate((node) => {
+    document.body?.classList.add("nav-visible");
+    node.classList.add("visible");
+  });
+  await waitForStableBox(nav);
 }
 
 export async function revealBottomNavigation(page) {

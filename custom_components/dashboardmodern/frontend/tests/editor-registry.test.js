@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+import { readLegacyBundleAsync } from "./legacy-source.js";
+
 const moduleUrl = new URL("../legacy/modules-entry.js", import.meta.url);
 
 test("real editor tab ids resolve to canonical ownership", async () => {
@@ -54,7 +56,7 @@ test("registry dispatch performs exactly one render and one mount", async () => 
 test("runtime tab is in each modal template and diagnostics expose distinct provenance", async () => {
   const moduleSource = await readFile(moduleUrl, "utf8");
   for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-    const source = await readFile(new URL(`../legacy/${variant}`, import.meta.url), "utf8");
+    const source = await readLegacyBundleAsync(variant);
     const modal = source.slice(
       source.indexOf("function apriConfigEntita"),
       source.indexOf("function editorSwitch"),
@@ -75,7 +77,7 @@ test("runtime tab is in each modal template and diagnostics expose distinct prov
 
 test("Energy is registry-owned and edFilterSez no longer mounts Energy", async () => {
   for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-    const source = await readFile(new URL(`../legacy/${variant}`, import.meta.url), "utf8");
+    const source = await readLegacyBundleAsync(variant);
     const filter = source.slice(
       source.indexOf("function edFilterSez"),
       source.indexOf("function cdNavOrderHtml"),
@@ -118,7 +120,7 @@ test("Energy coordinator never calls the legacy section renderer for Energy, Loa
 
 test("public report and multi-device sync consume canonical state only", async () => {
   for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-    const source = await readFile(new URL(`../legacy/${variant}`, import.meta.url), "utf8");
+    const source = await readLegacyBundleAsync(variant);
     const reportStart = source.indexOf("function cdRebuildReportDevices");
     const report = source.slice(
       reportStart,
@@ -147,7 +149,7 @@ test("public report and multi-device sync consume canonical state only", async (
 
 test("Chart.js guard accepts both an absent library and its minimal defaults contract", async () => {
   for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-    const source = await readFile(new URL(`../legacy/${variant}`, import.meta.url), "utf8");
+    const source = await readLegacyBundleAsync(variant);
     const chart = source.slice(
       source.indexOf("if (typeof Chart"),
       source.indexOf("let storicChartInstance"),
@@ -161,7 +163,7 @@ test("Chart.js guard accepts both an absent library and its minimal defaults con
 
 test("custom device cards use devs emptiness and never reference the Temperature visible list", async () => {
   for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-    const source = await readFile(new URL(`../legacy/${variant}`, import.meta.url), "utf8");
+    const source = await readLegacyBundleAsync(variant);
     const start = source.indexOf("function buildDeviceCards()");
     const block = source.slice(start, source.indexOf("function updateDeviceCards()", start));
     assert.match(block, /const devs = getDevices\(\)/);
@@ -173,7 +175,7 @@ test("custom device cards use devs emptiness and never reference the Temperature
 
 test("both legacy variants expose readiness only after the public editor API and DOM", async () => {
   for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-    const source = await readFile(new URL(`../legacy/${variant}`, import.meta.url), "utf8");
+    const source = await readLegacyBundleAsync(variant);
     const marker = source.slice(source.indexOf("function signalDashboardModernLegacyReady"));
     assert.match(marker, /typeof EDITOR_TAB/);
     assert.match(marker, /typeof editorSwitch !== 'function'/);

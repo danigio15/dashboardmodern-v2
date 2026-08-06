@@ -3,7 +3,6 @@ import {
   clean,
   dashboardStore,
   doc,
-  english,
   installStyle,
   root,
   t,
@@ -75,6 +74,12 @@ function ensureAlertContainer() {
   return container;
 }
 
+function closePopup(popup) {
+  if (!popup) return;
+  popup.classList.remove("show");
+  popup.remove();
+}
+
 function openPopup() {
   const items = configuredOpenCovers();
   if (!items.length) return;
@@ -82,19 +87,34 @@ function openPopup() {
   if (!popup) {
     popup = doc.createElement("div");
     popup.id = "dm-shutter-popup";
-    popup.className = "dm-shutter-popup-backdrop";
-    popup.innerHTML = `<section class="dm-shutter-popup-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-shutter-popup-title">
-      <header><h2 id="dm-shutter-popup-title">${t("Tapparelle aperte", "Open shutters")}</h2><button type="button" data-shutter-popup-close aria-label="${t("Chiudi", "Close")}">✕</button></header>
-      <div class="dm-shutter-popup-list" data-shutter-list></div>
-    </section>`;
+    popup.className = "modal-wrapper dm-shutter-popup";
+    popup.setAttribute("role", "presentation");
+    popup.innerHTML = `<div class="modal-card details-content dm-shutter-popup-card" role="dialog" aria-modal="true" aria-labelledby="dm-shutter-popup-title">
+      <div class="ev-waw-header">
+        <h3 class="ev-waw-title" id="dm-shutter-popup-title">🪟 ${t("TAPPARELLE APERTE", "OPEN SHUTTERS")}</h3>
+        <div class="ev-waw-close" role="button" tabindex="0" data-shutter-popup-close aria-label="${t("Chiudi", "Close")}">✕ ${t("CHIUDI", "CLOSE")}</div>
+      </div>
+      <div class="details-list dm-shutter-popup-list" data-shutter-list></div>
+    </div>`;
     doc.body.append(popup);
-    const close = () => popup.remove();
-    popup.querySelector("[data-shutter-popup-close]").addEventListener("click", close);
+    const close = () => closePopup(popup);
+    const closeButton = popup.querySelector("[data-shutter-popup-close]");
+    closeButton.addEventListener("click", close);
+    closeButton.addEventListener("keydown", (event) => {
+      if (!["Enter", " "].includes(event.key)) return;
+      event.preventDefault();
+      close();
+    });
     popup.addEventListener("click", (event) => {
       if (event.target === popup) close();
     });
+    popup.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") close();
+    });
   }
   renderPopupRows(popup, items);
+  popup.classList.add("show");
+  popup.querySelector("[data-shutter-popup-close]")?.focus?.({ preventScroll: true });
 }
 
 function statusLabel(item) {
@@ -131,13 +151,14 @@ async function callCoverService(button, entity, service) {
 
 function createPopupRow(item) {
   const row = doc.createElement("article");
-  row.className = "dm-shutter-popup-row";
+  row.className = "detail-row dm-shutter-popup-row";
   row.dataset.shutterEntity = item.entity;
-  row.innerHTML = `<div class="dm-shutter-details"><strong></strong><small></small></div><div class="dm-shutter-actions"></div>`;
+  row.innerHTML = `<div class="d-info dm-shutter-details"><div class="d-name"></div><div class="d-state"></div></div><div class="dm-shutter-actions"></div>`;
   const actions = row.querySelector(".dm-shutter-actions");
   for (const service of ["open_cover", "stop_cover", "close_cover"]) {
     const button = doc.createElement("button");
     button.type = "button";
+    button.className = "ed-ord-btn dm-shutter-action";
     button.dataset.shutterService = service;
     button.addEventListener("click", () => callCoverService(button, item.entity, service));
     actions.append(button);
@@ -146,10 +167,10 @@ function createPopupRow(item) {
 }
 
 function updatePopupRow(row, item) {
-  row.querySelector(".dm-shutter-details strong").textContent = item.name;
+  row.querySelector(".dm-shutter-details .d-name").textContent = item.name;
   const detail = [item.room?.name, statusLabel(item)];
   if (item.position != null) detail.push(`${Math.round(item.position)}%`);
-  row.querySelector(".dm-shutter-details small").textContent = detail.filter(Boolean).join(" · ");
+  row.querySelector(".dm-shutter-details .d-state").textContent = detail.filter(Boolean).join(" · ");
   row.querySelectorAll("[data-shutter-service]").forEach((button) => {
     const service = button.dataset.shutterService;
     const busy = state.busy.has(`${item.entity}:${service}`);
@@ -184,7 +205,7 @@ function ensureAlert(items) {
     alert.dataset.accent = "warning";
     alert.setAttribute("role", "button");
     alert.setAttribute("tabindex", "0");
-    alert.innerHTML = `<div class="g-info"><div class="g-name"></div><div class="g-val"></div></div><div class="g-icon-wrap" aria-hidden="true">🪟</div>`;
+    alert.innerHTML = `<div class="g-info"><div class="g-name"></div><div class="g-val"></div></div><div class="g-icon-wrap anim-ping" aria-hidden="true">🪟</div>`;
     const activate = (event) => {
       if (event.type === "keydown" && !["Enter", " "].includes(event.key)) return;
       event.preventDefault();
@@ -242,20 +263,16 @@ function installStyles() {
     "dm-shutter-section-style",
     `
       .dm-shutter-alert-host{display:contents!important}
-      .dm-shutter-alert{box-sizing:border-box!important;width:100%!important;min-width:0!important;cursor:pointer!important}
+      .dm-shutter-alert{box-sizing:border-box!important;width:100%!important;min-width:0!important;cursor:pointer!important;--g-rgb:225,29,72}
       .dm-shutter-alert:focus-visible{outline:3px solid var(--accent-color,var(--accent,#0ea5e9))!important;outline-offset:3px!important}
-      .dm-shutter-popup-backdrop{position:fixed!important;inset:0!important;z-index:100001!important;display:grid!important;place-items:center!important;padding:16px!important;background:rgba(2,6,23,.70)!important}
-      .dm-shutter-popup-dialog{box-sizing:border-box!important;width:min(760px,100%)!important;max-height:min(780px,92dvh)!important;overflow:hidden!important;border:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;border-radius:22px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--primary-text-color,var(--text,#0f172a))!important;box-shadow:0 28px 90px rgba(0,0,0,.38)!important}
-      .dm-shutter-popup-dialog>header{display:grid!important;grid-template-columns:minmax(0,1fr) 42px!important;align-items:center!important;gap:12px!important;padding:15px 16px!important;border-bottom:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;background:var(--secondary-background-color,var(--surface-2,#f8fafc))!important}
-      .dm-shutter-popup-dialog>header h2{min-width:0!important;margin:0!important;font-size:20px!important;line-height:1.2!important}
-      .dm-shutter-popup-dialog>header button{display:grid!important;place-items:center!important;width:42px!important;height:42px!important;margin:0!important;border:0!important;border-radius:50%!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--primary-text-color,var(--text,#0f172a))!important;cursor:pointer!important}
-      .dm-shutter-popup-list{display:grid!important;gap:10px!important;max-height:calc(92dvh - 74px)!important;overflow:auto!important;padding:14px!important}
-      .dm-shutter-popup-row{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(250px,360px)!important;align-items:center!important;gap:14px!important;padding:14px!important;border:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;border-radius:16px!important;background:var(--secondary-background-color,var(--surface-2,#f8fafc))!important}
-      .dm-shutter-details{display:grid!important;gap:4px!important;min-width:0!important}.dm-shutter-details strong,.dm-shutter-details small{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.dm-shutter-details small{color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
+      .dm-shutter-popup-card{box-sizing:border-box!important;width:min(760px,100%)!important;max-width:760px!important}
+      .dm-shutter-popup-list{display:grid!important;gap:10px!important;max-height:min(68dvh,620px)!important;overflow:auto!important;padding-right:4px!important}
+      .dm-shutter-popup-row{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(250px,360px)!important;align-items:center!important;gap:14px!important}
+      .dm-shutter-details{min-width:0!important}.dm-shutter-details .d-name,.dm-shutter-details .d-state{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
       .dm-shutter-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
-      .dm-shutter-actions button{box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:42px!important;margin:0!important;padding:8px 10px!important;border:0!important;border-radius:12px!important;background:var(--primary-color,var(--accent,#0ea5e9))!important;color:#fff!important;font-weight:850!important;cursor:pointer!important}
+      .dm-shutter-actions button{box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:42px!important;margin:0!important;padding:8px 10px!important;font-weight:850!important}
       .dm-shutter-actions button:disabled{cursor:wait!important;opacity:.72!important}
-      @media(max-width:640px){.dm-shutter-popup-backdrop{padding:8px!important}.dm-shutter-popup-dialog{max-height:96dvh!important;border-radius:18px!important}.dm-shutter-popup-row{grid-template-columns:1fr!important}.dm-shutter-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+      @media(max-width:640px){.dm-shutter-popup-card{width:100%!important;max-height:92dvh!important}.dm-shutter-popup-row{grid-template-columns:1fr!important}.dm-shutter-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
     `,
   );
 }

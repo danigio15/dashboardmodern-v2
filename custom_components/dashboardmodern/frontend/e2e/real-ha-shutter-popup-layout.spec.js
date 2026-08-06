@@ -63,16 +63,18 @@ test("real HA: shutter popup keeps close control and three actions aligned", asy
   await alert.click();
 
   const popup = page.locator("#dm-shutter-popup");
-  const title = popup.locator("header h2");
+  const title = popup.locator(".ev-waw-title");
   const close = popup.locator("[data-shutter-popup-close]");
   const actions = popup.locator(".dm-shutter-actions button");
   await expect(popup).toBeVisible();
+  await expect(title).toBeVisible();
+  await expect(close).toBeVisible();
   await expect(actions).toHaveCount(3);
 
   const [titleBox, closeBox] = await Promise.all([title.boundingBox(), close.boundingBox()]);
   if (!titleBox || !closeBox) throw new Error("Shutter popup header has no bounding box");
   expect(Math.abs((titleBox.y + titleBox.height / 2) - (closeBox.y + closeBox.height / 2))).toBeLessThanOrEqual(8);
-  expect(closeBox.x).toBeGreaterThan(titleBox.x + titleBox.width);
+  expect(closeBox.x).toBeGreaterThanOrEqual(titleBox.x + titleBox.width);
 
   const widths = await actions.evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().width));
   expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(2);

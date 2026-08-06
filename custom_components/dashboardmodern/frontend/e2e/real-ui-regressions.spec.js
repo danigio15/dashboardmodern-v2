@@ -216,7 +216,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#dm-shutter-popup")).toContainText("Salone");
     await expect(page.locator("#dm-shutter-popup")).toContainText("65%");
     const close = page.locator('[data-shutter-service="close_cover"]').first();
-    await close.click();
+    await clickStableButton(page, close, testInfo);
     await expect
       .poll(() => page.evaluate(() => window.__haCalls.at(-1)))
       .toMatchObject({
