@@ -21,55 +21,66 @@ import { installShutterAlertLayoutSection } from "./shutter-alert-layout-section
 import { installEvSection } from "./ev-section.js";
 
 const root = globalThis;
+const RUNTIME_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME__";
+const INSTALLING_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME_INSTALLING__";
 
 export function installSectionRuntime() {
-  installHostedBridgeGuard();
-  installDataContractsSection();
-  installEnergySection();
-  installEnergyStabilitySection();
-  installEnergyGuidanceSection();
-  installEnergyConfigSection();
-  installEnergyFlowSection();
-  installTemperatureSection();
-  installTemperatureLayoutSection();
-  installAppliancesSection();
-  installApplianceLayoutSection();
-  installApplianceEditorSection();
-  installLightsAlertsSection();
-  installAlertsSection();
-  installUnifiedEditorsSection();
-  installEditorCrudSection();
-  installEditorContractsSection();
-  installReportEditorSection();
-  installShutterSection();
-  installShutterAlertLayoutSection();
-  installEvSection();
-  root.__DASHBOARDMODERN_SECTION_RUNTIME__ = Object.freeze({
-    installed: true,
-    sections: [
-      "data-contracts",
-      "energy",
-      "energy-stability",
-      "energy-guidance",
-      "energy-config",
-      "energy-flow",
-      "temperature",
-      "temperature-layout",
-      "appliances",
-      "appliance-layout",
-      "appliance-editor",
-      "lights",
-      "alerts",
-      "unified-editors",
-      "editor-crud",
-      "editor-contracts",
-      "report-editor",
-      "shutters",
-      "shutter-alert-layout",
-      "ev",
-    ],
-  });
-  return root.__DASHBOARDMODERN_SECTION_RUNTIME__;
+  if (root[RUNTIME_KEY]?.installed) return root[RUNTIME_KEY];
+  if (root[INSTALLING_KEY]) return root[RUNTIME_KEY] || null;
+
+  root[INSTALLING_KEY] = true;
+  try {
+    installHostedBridgeGuard();
+    installDataContractsSection();
+    installEnergySection();
+    installEnergyStabilitySection();
+    installEnergyGuidanceSection();
+    installEnergyConfigSection();
+    installEnergyFlowSection();
+    installTemperatureSection();
+    installTemperatureLayoutSection();
+    installAppliancesSection();
+    installApplianceLayoutSection();
+    installApplianceEditorSection();
+    installLightsAlertsSection();
+    installAlertsSection();
+    installUnifiedEditorsSection();
+    installEditorCrudSection();
+    installEditorContractsSection();
+    installReportEditorSection();
+    installShutterSection();
+    installShutterAlertLayoutSection();
+    installEvSection();
+
+    root[RUNTIME_KEY] = Object.freeze({
+      installed: true,
+      sections: [
+        "data-contracts",
+        "energy",
+        "energy-stability",
+        "energy-guidance",
+        "energy-config",
+        "energy-flow",
+        "temperature",
+        "temperature-layout",
+        "appliances",
+        "appliance-layout",
+        "appliance-editor",
+        "lights",
+        "alerts",
+        "unified-editors",
+        "editor-crud",
+        "editor-contracts",
+        "report-editor",
+        "shutters",
+        "shutter-alert-layout",
+        "ev",
+      ],
+    });
+    return root[RUNTIME_KEY];
+  } finally {
+    delete root[INSTALLING_KEY];
+  }
 }
 
 installSectionRuntime();
