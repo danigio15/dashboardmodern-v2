@@ -93,7 +93,6 @@ test("production has one dedicated owner per section and no patch cascade", asyn
     "sections/editor-contracts-section.js",
     "sections/report-editor-section.js",
     "sections/shutter-section.js",
-    "sections/shutter-alert-layout-section.js",
     "sections/ev-section.js",
   ];
 
@@ -106,6 +105,7 @@ test("production has one dedicated owner per section and no patch cascade", asyn
       `${owner} must have exactly one production owner`,
     );
   }
+  assert.equal(relative.some((file) => file.endsWith("shutter-alert-layout-section.js")), false);
   assert.deepEqual(relative.filter((file) => /legacy\/release-\d+/.test(file)), []);
   assert.deepEqual(
     relative.filter((file) =>
@@ -135,8 +135,6 @@ test("production has one dedicated owner per section and no patch cascade", asyn
     );
   }
 
-  // Every modern source module must be reachable from at least one real
-  // production entrypoint: runtime, canonical legacy bridge, panel or card.
   const srcRoot = path.join(frontendRoot, "src");
   const srcFiles = (await filesBelow(srcRoot)).filter((file) => file.endsWith(".js"));
   const srcOrphans = srcFiles
