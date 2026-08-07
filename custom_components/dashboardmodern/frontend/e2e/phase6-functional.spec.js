@@ -23,9 +23,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       await page.screenshot({ path: `test-results/${variant}-config-energy-mobile.png`, fullPage: true });
 
     // Leave the editor through the real UI instead of deleting its DOM node.
-    // Removing #ed-modal directly left editor layout/scroll state behind on mobile.
-    await page.locator("#ed-modal .ed-head-close").click();
-    await expect(page.locator("#ed-modal")).toBeHidden();
+    // The real modal is #editor-modal; the old #ed-modal selector never closed it.
+    await page.locator("#editor-modal .ed-head-close").last().click();
+    await expect(page.locator("#editor-modal")).toBeHidden();
     await page.locator('.tab[data-tab="appliances-main"]').click();
     await page.evaluate(() => window.renderApplianceSection(true));
 
