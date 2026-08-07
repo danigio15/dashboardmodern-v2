@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { installStateEventGate } from "../src/core/state-event-gate.js";
 
-function harness(delay = 0, sections = null) {
+function harness(delay = 0, sections = null, storageValues = {}) {
   const events = [];
   class FakeCustomEvent {
     constructor(type, init = {}) {
@@ -15,6 +15,11 @@ function harness(delay = 0, sections = null) {
     dispatchEvent(event) {
       events.push(event);
       return true;
+    },
+    localStorage: {
+      getItem(key) {
+        return Object.hasOwn(storageValues, key) ? storageValues[key] : null;
+      },
     },
     setTimeout,
     queueMicrotask,
@@ -80,4 +85,28 @@ test("unconfigured Home Assistant chatter is stored but not sent to dashboard re
   assert.equal(states.size, 501);
   assert.equal(events.length, 1);
   assert.deepEqual(events[0].detail.entity_ids, ["sensor.house_total"]);
+});
+
+test("legacy EV profile entities survive the global live-state filter", async () => {
+  const legacyCars = JSON.stringify([
+    {
+      name: "B10",
+      ov: {
+        "dm.ev_soc": "sensor.leapmotor_b10_battery",
+        "dm.ev_range": "sensor.leapmotor_b10_range",
+      },
+    },
+  ]);
+  const { broker, events, states } = harness(
+    1,
+    { energy: { house: { total_energy: "sensor.house_total" } } },
+    { cd_ev_cars: legacyCars },
+  );
+  broker.subscription = 42;
+  broker.ingestState({ entity_id: "sensor.unrelated", state: "1", attributes: {} });
+  broker.ingestState({ entity_id: "sensor.leapmotor_b10_battery", state: "80", attributes: {} });
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(states.size, 2);
+  assert.equal(events.length, 1);
+  assert.deepEqual(events[0].detail.entity_ids, ["sensor.leapmotor_b10_battery"]);
 });
