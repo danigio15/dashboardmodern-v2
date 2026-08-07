@@ -1,24 +1,66 @@
 const STATE_EVENT = "dashboardmodern:state-changed";
 const SERVICE_KEY = "DashboardModernEnergyService";
+const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
 
 function makeEvent(root, detail) {
   if (typeof root.CustomEvent === "function") return new root.CustomEvent(STATE_EVENT, { detail });
   return { type: STATE_EVENT, detail };
 }
 
+function collectEntityIds(value, output, depth = 0) {
+  if (depth > 12 || value == null) return;
+  if (typeof value === "string") {
+    const id = value.trim();
+    if (ENTITY_ID.test(id)) output.add(id);
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((entry) => collectEntityIds(entry, output, depth + 1));
+    return;
+  }
+  if (typeof value === "object") {
+    Object.values(value).forEach((entry) => collectEntityIds(entry, output, depth + 1));
+  }
+}
+
+function configuredEntities(root) {
+  const ids = new Set();
+  try {
+    collectEntityIds(root.DashboardModernModules?.store?.getState?.()?.sections, ids);
+  } catch (_error) {}
+  try {
+    collectEntityIds(root.CD_BAKED_CONFIG, ids);
+  } catch (_error) {}
+  try {
+    collectEntityIds(root.ENTITY_OVERRIDES, ids);
+  } catch (_error) {}
+  return ids;
+}
+
 /**
  * Prevent the initial Home Assistant get_states snapshot from producing one UI
- * event per entity, then coalesce live state_changed notifications into a
- * bounded batch. State registries are still updated synchronously by the
- * original broker; only the expensive UI notification is gated.
+ * event per entity, discard live updates that are not used anywhere by the
+ * dashboard, then coalesce the remaining notifications into a bounded batch.
+ * State registries are still updated synchronously by the original broker.
  */
-export function installStateEventGate(broker, root = globalThis, { delay = 200 } = {}) {
+export function installStateEventGate(broker, root = globalThis, { delay = 500 } = {}) {
   if (!broker || typeof broker.ingestState !== "function" || broker.__dmStateEventGate) return false;
 
   const original = broker.ingestState;
   const pendingIds = new Set();
   let lastState = null;
   let timer = 0;
+  let interests = new Set();
+  let interestsAt = 0;
+
+  const currentInterests = () => {
+    const now = Date.now();
+    if (!interestsAt || now - interestsAt >= 5000) {
+      interests = configuredEntities(root);
+      interestsAt = now;
+    }
+    return interests;
+  };
 
   const flush = () => {
     timer = 0;
@@ -39,7 +81,12 @@ export function installStateEventGate(broker, root = globalThis, { delay = 200 }
 
   const queue = (state) => {
     const id = String(state?.entity_id || "").trim();
-    if (id) pendingIds.add(id);
+    if (!id) return;
+    const configured = currentInterests();
+    // If the canonical store is not ready yet, remain backward compatible and
+    // allow the event. Once it is ready, unrelated HA entities are ignored.
+    if (configured.size && !configured.has(id)) return;
+    pendingIds.add(id);
     lastState = state || lastState;
     if (timer) return;
     timer = root.setTimeout?.(flush, Math.max(0, Number(delay) || 0)) || 0;
@@ -71,7 +118,7 @@ export function installStateEventGate(broker, root = globalThis, { delay = 200 }
   };
 
   Object.defineProperty(broker, "__dmStateEventGate", {
-    value: Object.freeze({ flush, pendingIds }),
+    value: Object.freeze({ flush, pendingIds, currentInterests }),
     configurable: false,
     enumerable: false,
     writable: false,
