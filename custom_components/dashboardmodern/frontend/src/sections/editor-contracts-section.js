@@ -140,12 +140,22 @@ function normalizeTemperatureEditor() {
   return true;
 }
 
+function energyEditorActive() {
+  const tab = clean(doc?.querySelector("#editor-modal .ed-tab.active")?.dataset?.tab).toLowerCase();
+  return tab === "sez1" || tab === "energy";
+}
+
 function normalizeEnergyHelp() {
+  const active = energyEditorActive();
+  doc?.querySelectorAll("#editor-modal .dm-energy-help-compact").forEach((overview) => {
+    overview.hidden = !active;
+  });
+  if (!active) return false;
   const overview = doc?.querySelector("#editor-modal .dm-energy-help-compact");
   if (overview) {
     const markup = t(
-      "<strong>Storico consumi</strong><span>Seleziona il contatore totale kWh per calcolare anche i mesi precedenti.</span>",
-      "<strong>Consumption history</strong><span>Select the total kWh meter to calculate previous months too.</span>",
+      "<strong>Storico consumi</strong><span>Seleziona i contatori totali kWh per Recorder e mesi precedenti; il consumo Casa viene riconciliato con i flussi come in Home Assistant.</span>",
+      "<strong>Consumption history</strong><span>Select total kWh meters for Recorder and previous months; Home consumption is reconciled from flows like Home Assistant.</span>",
     );
     if (overview.innerHTML !== markup) overview.innerHTML = markup;
   }
@@ -220,6 +230,7 @@ function installStyles() {
       #editor-modal [data-energy-panel="report"] [data-report-manual]:not([hidden]){
         display:grid!important;gap:10px!important;margin-top:10px!important
       }
+      #editor-modal .dm-energy-help-compact[hidden]{display:none!important}
       #editor-modal .dm-energy-help-compact{
         display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:center!important;
         gap:8px 12px!important;margin:0 0 12px!important;padding:10px 12px!important;border-radius:14px!important;
@@ -229,6 +240,23 @@ function installStyles() {
       #editor-modal .dm-energy-help-compact strong{white-space:nowrap!important}
       #editor-modal .dm-energy-help-compact span{color:var(--secondary-text-color,var(--text-dim,#64748b))!important;font-size:12px!important;line-height:1.35!important}
       #editor-modal .dm-energy-total-note{display:block!important;margin-top:4px!important;font-size:10px!important;line-height:1.2!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
+
+      /* One modal contract for Appliances, Alerts, Actions, Climate, Shutters and Rooms. */
+      .dm-section-modal{position:fixed!important;inset:0!important;z-index:100040!important;display:grid!important;place-items:center!important;padding:16px!important;background:rgba(15,23,42,.58)!important;backdrop-filter:blur(5px)!important}
+      .dm-section-modal .dm-section-dialog{box-sizing:border-box!important;width:min(880px,calc(100vw - 24px))!important;max-height:min(92dvh,920px)!important;display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;overflow:hidden!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:26px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--primary-text-color,var(--text,#0f172a))!important;box-shadow:0 28px 80px rgba(15,23,42,.3)!important}
+      .dm-section-modal .dm-section-dialog>header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:18px 22px!important;border-bottom:1px solid var(--divider-color,#e2e8f0)!important;font-size:18px!important}
+      .dm-section-modal .dm-section-dialog>header [data-close]{display:grid!important;place-items:center!important;width:42px!important;height:42px!important;border:0!important;border-radius:50%!important;background:var(--secondary-background-color,#f1f5f9)!important;color:var(--secondary-text-color,#64748b)!important;font-size:20px!important;cursor:pointer!important}
+      .dm-section-modal .dm-section-dialog>form{box-sizing:border-box!important;min-height:0!important;overflow:auto!important;display:grid!important;align-content:start!important;gap:14px!important;padding:20px 22px 0!important}
+      .dm-section-modal .dm-section-dialog .ed-slot{display:grid!important;gap:6px!important;min-width:0!important}
+      .dm-section-modal .dm-section-dialog .ed-slot-lbl{font-size:12px!important;font-weight:800!important;color:var(--secondary-text-color,#64748b)!important}
+      .dm-section-modal .dm-section-dialog .ed-form-row{display:grid!important;grid-template-columns:minmax(0,1fr) 48px!important;gap:10px!important;align-items:center!important}
+      .dm-section-modal .dm-section-dialog .ed-input{box-sizing:border-box!important;width:100%!important;min-height:48px!important;padding:10px 14px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:13px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:inherit!important}
+      .dm-section-modal .dm-section-dialog .dm-entity-picker{min-width:48px!important;height:48px!important;border:0!important;border-radius:13px!important;background:var(--primary-color,#0284c7)!important;color:#fff!important;cursor:pointer!important}
+      .dm-section-modal .dm-section-dialog>form>footer{position:sticky!important;bottom:0!important;z-index:2!important;display:flex!important;justify-content:flex-end!important;gap:10px!important;margin:2px -22px 0!important;padding:14px 22px 18px!important;border-top:1px solid var(--divider-color,#e2e8f0)!important;background:var(--ha-card-background,var(--card-bg,#fff))!important}
+      .dm-section-modal .dm-section-dialog>form>footer button{min-height:44px!important;padding:10px 16px!important;border:0!important;border-radius:12px!important;font-weight:900!important;cursor:pointer!important}
+      .dm-section-modal .dm-section-dialog>form>footer .ed-save-btn{background:var(--success-color,#059669)!important;color:#fff!important}
+      #dm-appliance-editor-modal .dm-appliance-editor-dialog{overflow:hidden!important}
+
       #page-appliances-main .appl-wide-card .appl-wide-stat,
       #appl-grid-overview .appl-wide-card .appl-wide-stat,
       #page-appliances-main .appl-wide-card .appl-energy,
@@ -243,14 +271,28 @@ function installStyles() {
       }
       @media(max-width:620px){
         #editor-modal .dm-energy-help-compact{grid-template-columns:1fr!important}
+        .dm-section-modal{padding:0!important;place-items:stretch!important}.dm-section-modal .dm-section-dialog{width:100%!important;max-height:100dvh!important;height:100dvh!important;border-radius:0!important}.dm-section-modal .dm-section-dialog>form{padding-left:16px!important;padding-right:16px!important}.dm-section-modal .dm-section-dialog>form>footer{margin-left:-16px!important;margin-right:-16px!important;padding-left:16px!important;padding-right:16px!important}
       }
     `,
   );
 }
 
+function mutationTouchesEditor(records = []) {
+  return records.some((record) => {
+    const target = record.target;
+    if (target?.nodeType === 1 && target.closest?.("#editor-modal,.dm-section-modal")) return true;
+    return [...(record.addedNodes || []), ...(record.removedNodes || [])].some((node) => {
+      if (node?.nodeType !== 1) return false;
+      return node.matches?.("#editor-modal,.dm-section-modal") || node.querySelector?.("#editor-modal,.dm-section-modal");
+    });
+  });
+}
+
 function installObserver() {
   if (!doc || state.observer || typeof root.MutationObserver !== "function") return;
-  state.observer = new root.MutationObserver(schedule);
+  state.observer = new root.MutationObserver((records) => {
+    if (mutationTouchesEditor(records)) schedule();
+  });
   state.observer.observe(doc.body, { childList: true, subtree: true });
 }
 
@@ -268,7 +310,7 @@ export function installEditorContractsSection() {
       "click",
       (event) => {
         if (event.target?.closest?.("[data-report-save]")) synchronizeReportFields();
-        schedule();
+        if (event.target?.closest?.("#editor-modal,.dm-section-modal")) schedule();
       },
       true,
     );
