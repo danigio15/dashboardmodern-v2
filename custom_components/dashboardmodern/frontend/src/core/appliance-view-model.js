@@ -27,15 +27,18 @@ export function createApplianceViewModel(device = {}, states = {}, rooms = [], l
   const unavailable = [powerEntity, controlEntity, stateEntity].filter(Boolean).some((id) => ["unknown", "unavailable"].includes(clean(states?.[id]?.state).toLowerCase()));
   const run = Number.isFinite(Number(device.threshold_run)) ? Number(device.threshold_run) : 5;
   const standby = Number.isFinite(Number(device.threshold_standby)) ? Number(device.threshold_standby) : 1;
-  const operational = ["playing", "heat", "cool", "open", "opening", "running", "active", "on"].includes(effectiveState);
-  const explicitlyOff = ["off", "idle", "closed", "stopped", "paused"].includes(effectiveState);
+  const operational = ["playing", "heat", "cool", "open", "opening", "running", "active"].includes(effectiveState)
+    || (Boolean(stateEntity) && configuredState === "on");
+  const explicitlyOff = Boolean(stateEntity) && ["off", "closed", "stopped"].includes(configuredState);
   const mode = unavailable && watts == null
     ? "unavailable"
-    : operational || (watts != null && watts >= run)
-      ? "running"
-      : (!explicitlyOff && controlState === "on") || (watts != null && watts >= standby)
-        ? "standby"
-        : "off";
+    : explicitlyOff
+      ? "off"
+      : operational || (watts != null && watts >= run)
+        ? "running"
+        : controlState === "on" || (watts != null && watts >= standby)
+          ? "standby"
+          : "off";
   const labels = locale === "en"
     ? { running: "RUNNING", standby: "STANDBY", off: "OFF", unavailable: "UNAVAILABLE" }
     : { running: "IN FUNZIONE", standby: "STANDBY", off: "SPENTO", unavailable: "NON DISPONIBILE" };
