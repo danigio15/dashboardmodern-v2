@@ -19,7 +19,6 @@ import { installEditorCrudSection } from "./editor-crud-section.js";
 import { installEditorContractsSection } from "./editor-contracts-section.js";
 import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
-import { installShutterAlertLayoutSection } from "./shutter-alert-layout-section.js";
 import { installEvSection } from "./ev-section.js";
 import { installHomeSection } from "./home-section.js";
 import { installClimateSection } from "./climate-section.js";
@@ -45,8 +44,6 @@ export function installSectionRuntime() {
     installEnergyCalculationsSection();
     installEnergyServicesSection();
     installEnergySection();
-    // Energy starts the Home Assistant broker asynchronously. Install the gate
-    // immediately afterwards, before the get_states snapshot can be ingested.
     installStateEventGate(root.DashboardModernEnergyService?.broker, root);
     installEnergyStabilitySection();
     installEnergyGuidanceSection();
@@ -69,7 +66,6 @@ export function installSectionRuntime() {
     installEditorContractsSection();
     installReportEditorSection();
     installShutterSection();
-    installShutterAlertLayoutSection();
     installEvSection();
 
     root[RUNTIME_KEY] = Object.freeze({
@@ -102,7 +98,6 @@ export function installSectionRuntime() {
         "editor-contracts",
         "report-editor",
         "shutters",
-        "shutter-alert-layout",
         "ev",
       ]),
       registry: root.__DASHBOARDMODERN_SECTIONS__,
