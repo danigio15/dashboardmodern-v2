@@ -59,6 +59,27 @@ test("generic ON state means standby when a power sensor says 0 W", () => {
   assert.equal(model.label, "STANDBY");
 });
 
+test("monthly energy measurements do not masquerade as lifetime history", () => {
+  const monthly = "sensor.energy_mese_microonde";
+  const model = createApplianceViewModel(
+    {
+      id: "microwave",
+      monthly_energy_entity: monthly,
+      history_entity: monthly,
+      report_entity: monthly,
+    },
+    {
+      [monthly]: {
+        state: "3.2",
+        attributes: { unit_of_measurement: "kWh", state_class: "measurement", device_class: "energy" },
+      },
+    },
+    [],
+    "it",
+  );
+  assert.equal(model.historyEntity, "");
+});
+
 test("legacy status_entity remains supported after migration", () => {
   const model = createApplianceViewModel(
     { id: "dishwasher", status_entity: "sensor.dishwasher_status" },
