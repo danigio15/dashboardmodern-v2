@@ -6,7 +6,8 @@ import test from "node:test";
 
 const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const legacyRoot = path.join(frontendRoot, "legacy");
-const importPattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
+const staticImportPattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
+const dynamicImportPattern = /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
 const scriptPattern = /<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/g;
 
 async function filesBelow(directory) {
@@ -29,11 +30,7 @@ async function exists(file) {
 }
 
 async function productionEntries() {
-  const entries = new Set([
-    path.join(legacyRoot, "modules-entry.js"),
-    // scripts/vendor_legacy.py injects this module after the vendored HTML is built.
-    path.join(legacyRoot, "report-mobile-fixes.js"),
-  ]);
+  const entries = new Set();
   for (const name of ["dashboard.html", "dashboard-en.html"]) {
     const html = await readFile(path.join(legacyRoot, name), "utf8");
     for (const match of html.matchAll(scriptPattern)) {
@@ -46,6 +43,13 @@ async function productionEntries() {
   return entries;
 }
 
+function importSpecifiers(source) {
+  return [
+    ...[...source.matchAll(staticImportPattern)].map((match) => match[1]),
+    ...[...source.matchAll(dynamicImportPattern)].map((match) => match[1]),
+  ];
+}
+
 async function productionGraph() {
   const seen = new Set();
   async function visit(file) {
@@ -53,8 +57,7 @@ async function productionGraph() {
     if (seen.has(normalized)) return;
     seen.add(normalized);
     const source = await readFile(normalized, "utf8");
-    for (const match of source.matchAll(importPattern)) {
-      const specifier = match[1];
+    for (const specifier of importSpecifiers(source)) {
       if (!specifier.startsWith(".")) continue;
       let next = path.resolve(path.dirname(normalized), specifier);
       if (!path.extname(next)) next += ".js";
@@ -65,7 +68,7 @@ async function productionGraph() {
   return seen;
 }
 
-test("every JavaScript file in legacy is reachable from a production entry", async () => {
+test("every legacy JavaScript file is reachable from a script actually loaded by the vendored HTML", async () => {
   const graph = await productionGraph();
   const all = (await filesBelow(legacyRoot)).filter((file) => file.endsWith(".js"));
   const orphans = all
@@ -73,4 +76,5 @@ test("every JavaScript file in legacy is reachable from a production entry", asy
     .map((file) => path.relative(frontendRoot, file).replaceAll("\\", "/"))
     .sort();
   assert.deepEqual(orphans, [], `orphan legacy modules:\n${orphans.join("\n")}`);
+  assert.equal(graph.has(path.join(legacyRoot, "report-mobile-fixes.js")), false);
 });
