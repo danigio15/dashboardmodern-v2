@@ -250,10 +250,32 @@ function canonicalDevices() {
 
 async function loadDevicePeriod(kind, date) {
   const devices = canonicalDevices();
-  const cumulative = devices.filter((item) => item.cumulative !== false);
-  const ids = [...new Set(cumulative.map((item) => clean(item.history || item.entity)).filter(Boolean))];
-  if (!ids.length) return { devices, values: new Map() };
-  return { devices, values: await broker.valuesForEntities(ids, kind, date) };
+  const plans = devices.flatMap((item, index) => {
+    const history = clean(item.history);
+    const entity = clean(item.entity);
+    const key = clean(item.key) || `report-device-${index}`;
+    if (history && item.cumulative !== false) {
+      return [{ key, entity: history, source: history, kind, direct: false }];
+    }
+    // A period helper (for example sensor.energy_mese_microonde) is useful only
+    // for the current month. HomeAssistantBroker.valuesForPlans intentionally
+    // refuses direct values for past months, and annual history requires a real
+    // cumulative meter instead of reusing a monthly measurement.
+    if (kind === "month" && entity) {
+      return [{ key, entity, source: entity, kind, direct: true }];
+    }
+    return [];
+  });
+  if (!plans.length) return { devices, values: new Map() };
+  const byKey = await broker.valuesForPlans(plans, date, allStates());
+  const values = new Map();
+  plans.forEach((plan) => {
+    const value = byKey.get(plan.key);
+    if (!Number.isFinite(value)) return;
+    values.set(plan.entity, value);
+    values.set(plan.source, value);
+  });
+  return { devices, values };
 }
 
 function rates() {
