@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, stat } from "node:fs/promises";
+import { access, readFile, stat } from "node:fs/promises";
 import test from "node:test";
 import { migrateState } from "../src/core/migrations.js";
 
@@ -7,7 +7,8 @@ const manifestUrl = new URL("../../manifest.json", import.meta.url);
 const readmeUrl = new URL("../../../../README.md", import.meta.url);
 const rootIconUrl = new URL("../../../../brand/icon.png", import.meta.url);
 const rootLogoUrl = new URL("../../../../brand/logo.png", import.meta.url);
-const productionEntryUrl = new URL("../legacy/report-mobile-fixes.js", import.meta.url);
+const bootstrapUrl = new URL("../legacy/config.js", import.meta.url);
+const obsoleteEntryUrl = new URL("../legacy/report-mobile-fixes.js", import.meta.url);
 const energySectionUrl = new URL("../src/sections/energy-section.js", import.meta.url);
 
 test("the production conflict-audit release is consistently versioned as 0.15.12", async () => {
@@ -36,16 +37,13 @@ test("HACS canonical root brand assets are shipped", async () => {
   }
 });
 
-test("the production entry delegates once to the idempotent section runtime", async () => {
-  const source = await readFile(productionEntryUrl, "utf8");
-  assert.doesNotMatch(source, /transport\/hosted-bridge-guard\.js/);
-  assert.match(source, /sections\/section-runtime\.js/);
-  assert.doesNotMatch(
-    source,
-    /appliance-artwork|alerts-runtime|vehicle-image-runtime|runtime-consolidated|mobile-ui-fixes/,
-  );
-  assert.doesNotMatch(source, /release-\d{4}[^"']*\.js/);
-  assert.doesNotMatch(source, /new MutationObserver|setInterval\s*\(/);
+test("the hosted bootstrap delegates once to the idempotent section runtime", async () => {
+  const source = await readFile(bootstrapUrl, "utf8");
+  assert.match(source, /__DASHBOARDMODERN_LEGACY_READY__/);
+  assert.match(source, /DashboardModernModules/);
+  assert.match(source, /\.\.\/src\/sections\/section-runtime\.js/);
+  assert.doesNotMatch(source, /report-mobile-fixes|setInterval\s*\(|MutationObserver/);
+  await assert.rejects(access(obsoleteEntryUrl));
 });
 
 test("schema migration preserves lifetime and annual Energy sources together", () => {
