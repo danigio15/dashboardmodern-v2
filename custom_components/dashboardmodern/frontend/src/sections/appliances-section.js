@@ -120,10 +120,12 @@ function normalizeArtwork(card, device) {
 
 function normalizeStatus(card, model) {
   const badge = card.querySelector(
-    ".appl-wide-status,.appl-status,.appl-state,[data-appliance-state],.appl-badge",
+    ".appl-wide-status,.appl-status,.appl-state,.appl-st,[data-appliance-state],.appl-badge",
   );
   if (badge) {
     badge.dataset.state = model.badge;
+    badge.classList.remove("run", "standby", "off", "unavailable");
+    badge.classList.add(model.mode === "running" ? "run" : model.mode);
     setText(badge, model.label);
   }
   card.dataset.applianceState = model.mode;
@@ -247,6 +249,7 @@ function installStyles() {
       }
       #page-appliances-main .appl-wide-status,#appl-grid-overview .appl-wide-status,
       #page-appliances-main .appl-status,#appl-grid-overview .appl-status,
+      #page-appliances-main .appl-st,#appl-grid-overview .appl-st,
       #page-appliances-main [data-appliance-state],#appl-grid-overview [data-appliance-state]{
         display:inline-flex!important;align-items:center!important;justify-content:center!important;
         min-width:68px!important;min-height:30px!important;margin:0!important;padding:6px 10px!important;
@@ -263,6 +266,10 @@ function installStyles() {
       #page-appliances-main [data-state="off"],#appl-grid-overview [data-state="off"]{
         background:color-mix(in srgb,var(--secondary-text-color,#64748b) 12%,transparent)!important;
         color:var(--dm-appl-muted)!important
+      }
+      #page-appliances-main [data-state="unavailable"],#appl-grid-overview [data-state="unavailable"]{
+        background:color-mix(in srgb,var(--error-color,#dc2626) 12%,transparent)!important;
+        color:var(--error-color,#b91c1c)!important
       }
       #page-appliances-main .appl-wide-actions,#appl-grid-overview .appl-wide-actions,
       #page-appliances-main .appl-actions,#appl-grid-overview .appl-actions{
