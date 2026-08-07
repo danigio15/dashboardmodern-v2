@@ -173,7 +173,7 @@ function normalizeStatus(card, model) {
 
 function ensureToggle(card, model) {
   const entity = model.action.entity;
-  card.querySelectorAll(".appl-action-btn").forEach((legacy) => {
+  card.querySelectorAll(".appl-action-btn:first-child").forEach((legacy) => {
     legacy.hidden = true;
     legacy.setAttribute("aria-hidden", "true");
     legacy.tabIndex = -1;
@@ -324,7 +324,7 @@ function installStyles() {
         background:color-mix(in srgb,var(--error-color,#dc2626) 12%,transparent)!important;
         color:var(--error-color,#b91c1c)!important
       }
-      #page-appliances-main .appl-action-btn,#appl-grid-overview .appl-action-btn{display:none!important}
+      #page-appliances-main .appl-action-btn:first-child,#appl-grid-overview .appl-action-btn:first-child{display:none!important}
       #page-appliances-main .appl-wide-actions,#appl-grid-overview .appl-wide-actions,
       #page-appliances-main .appl-actions,#appl-grid-overview .appl-actions{
         display:flex!important;align-items:center!important;gap:8px!important;margin-top:10px!important
