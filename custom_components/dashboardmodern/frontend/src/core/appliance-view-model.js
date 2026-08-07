@@ -16,7 +16,10 @@ export function createApplianceViewModel(device = {}, states = {}, rooms = [], l
     .find((id) => /^(switch|light|input_boolean|fan)\./.test(id)) || "";
   const inferredEnergy = candidates(device, ["total_energy_entity", "energy_entity", "monthly_energy_entity", "daily_energy_entity"])
     .find((id) => /^(wh|kwh|mwh)$/.test(unit(states, id))) || "";
-  const historyEntity = clean(device.history_entity || device.total_energy_entity || device.energy_entity || device.monthly_energy_entity || inferredEnergy || powerEntity);
+  // History must come from an explicit/history-capable energy entity. A power
+  // sensor is still used for live status but must not silently enable the
+  // History action when the appliance has no configured history source.
+  const historyEntity = clean(device.history_entity || device.total_energy_entity || device.energy_entity || device.monthly_energy_entity || inferredEnergy);
   const rawPower = numeric(states, powerEntity);
   const watts = rawPower == null ? null : unit(states, powerEntity) === "kw" ? rawPower * 1000 : unit(states, powerEntity) === "mw" ? rawPower * 1_000_000 : rawPower;
   const controlState = clean(states?.[controlEntity]?.state).toLowerCase();
