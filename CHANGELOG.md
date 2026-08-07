@@ -3,6 +3,37 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 0.15.10 — 2026-08-07
+
+### Corretto
+
+- Eliminata la tempesta di eventi UI all'apertura: lo snapshot iniziale
+  `get_states` continua ad aggiornare tutti gli stati interni ma non emette più
+  un `dashboardmodern:state-changed` per ogni entità Home Assistant.
+- Gli aggiornamenti live ravvicinati vengono coalescati in batch e la frequenza
+  delle notifiche UI viene limitata, evitando raffiche di render su Energia,
+  Elettrodomestici, Temperature ed EV.
+- Il gate degli eventi viene armato prima della creazione del broker Energia,
+  eliminando la race di bootstrap anche con bridge/WebSocket molto rapidi.
+
+### Pulizia
+
+- Esteso l'audit orphan a tutti i moduli moderni `frontend/src` e a tutti gli
+  entrypoint reali di produzione (`report-mobile-fixes.js`, `modules-entry.js`,
+  `panel.js`, `dashboard-card.js`).
+- Rimosso `src/core/energy-total-source.js`, facciata di compatibilità non
+  referenziata da alcun entrypoint reale.
+- Sostituito il vecchio test versione `release-0152-version.test.js` con un test
+  dedicato alla 0.15.10; README e manifest tornano allineati alla release.
+
+### Verificato
+
+- Test di carico con 2.500 stati nello snapshot iniziale: tutti gli stati
+  vengono acquisiti con zero notifiche UI di bootstrap.
+- Test con 500 aggiornamenti live consecutivi: una sola notifica UI coalescata.
+- Audit automatico dei moduli moderni e legacy per impedire nuove facciate o
+  runtime orfani nelle release successive.
+
 ## 0.15.9 — 2026-08-07
 
 ### Corretto

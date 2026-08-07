@@ -9,14 +9,15 @@ const rootIconUrl = new URL("../../../../brand/icon.png", import.meta.url);
 const rootLogoUrl = new URL("../../../../brand/logo.png", import.meta.url);
 const productionEntryUrl = new URL("../legacy/report-mobile-fixes.js", import.meta.url);
 
-test("the functional-fix release is consistently versioned as 0.15.9", async () => {
+test("the startup hotfix release is consistently versioned as 0.15.10", async () => {
   const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
   const readme = await readFile(readmeUrl, "utf8");
 
-  assert.equal(manifest.version, "0.15.9");
-  assert.match(readme, /version-0\.15\.8/);
-  assert.match(readme, /Release 0\.15\.8/);
-  assert.doesNotMatch(readme, /version-0\.15\.7|Release 0\.15\.7|Novità 0\.15\.7/);
+  assert.equal(manifest.version, "0.15.10");
+  assert.match(readme, /version-0\.15\.10/);
+  assert.match(readme, /Release 0\.15\.10/);
+  assert.match(readme, /Novità 0\.15\.10/);
+  assert.doesNotMatch(readme, /version-0\.15\.8|Release 0\.15\.8|Novità 0\.15\.8/);
   assert.match(
     readme,
     /https:\/\/raw\.githubusercontent\.com\/danigio15\/dashboardmodern-v2\/main\/assets\/logo@2x\.png/,

@@ -1,13 +1,29 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const importPattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
+const productionEntries = Object.freeze([
+  "legacy/report-mobile-fixes.js",
+  "legacy/modules-entry.js",
+  "panel.js",
+  "dashboard-card.js",
+]);
 
-async function productionGraph(entry) {
+async function filesBelow(directory) {
+  const output = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) output.push(...(await filesBelow(absolute)));
+    else output.push(absolute);
+  }
+  return output;
+}
+
+async function productionGraph(entries = productionEntries) {
   const seen = new Map();
   const edges = new Map();
 
@@ -29,7 +45,7 @@ async function productionGraph(entry) {
     }
   }
 
-  await visit(path.resolve(frontendRoot, entry));
+  for (const entry of entries) await visit(path.resolve(frontendRoot, entry));
   return { seen, edges };
 }
 
@@ -55,7 +71,7 @@ function assertAcyclic(edges) {
 }
 
 test("production has one dedicated owner per section and no patch cascade", async () => {
-  const { seen: graph, edges } = await productionGraph("legacy/report-mobile-fixes.js");
+  const { seen: graph, edges } = await productionGraph();
   const relative = [...graph.keys()].map((file) =>
     path.relative(frontendRoot, file).replaceAll("\\", "/"),
   );
@@ -103,7 +119,7 @@ test("production has one dedicated owner per section and no patch cascade", asyn
     ),
     [],
   );
-  assert.ok(relative.length <= 48, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 60, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
@@ -118,4 +134,14 @@ test("production has one dedicated owner per section and no patch cascade", asyn
       `${path.relative(frontendRoot, file)} must not observe the whole document`,
     );
   }
+
+  // Every modern source module must be reachable from at least one real
+  // production entrypoint: runtime, canonical legacy bridge, panel or card.
+  const srcRoot = path.join(frontendRoot, "src");
+  const srcFiles = (await filesBelow(srcRoot)).filter((file) => file.endsWith(".js"));
+  const srcOrphans = srcFiles
+    .filter((file) => !graph.has(path.normalize(file)))
+    .map((file) => path.relative(frontendRoot, file).replaceAll("\\", "/"))
+    .sort();
+  assert.deepEqual(srcOrphans, [], `orphan src modules:\n${srcOrphans.join("\n")}`);
 });
