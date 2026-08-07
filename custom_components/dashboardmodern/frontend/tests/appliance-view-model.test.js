@@ -23,3 +23,40 @@ test("appliance thresholds produce STANDBY and SPENTO deterministically", () => 
   assert.equal(createApplianceViewModel(device, states(2), [], "it").label, "STANDBY");
   assert.equal(createApplianceViewModel(device, states(0, "off"), [], "it").label, "SPENTO");
 });
+
+test("canonical state_entity drives status even without power or control entities", () => {
+  const model = createApplianceViewModel(
+    { id: "dryer", name: "Asciugatrice", state_entity: "sensor.dryer_state" },
+    { "sensor.dryer_state": { state: "running", attributes: {} } },
+    [],
+    "it",
+  );
+  assert.equal(model.stateEntity, "sensor.dryer_state");
+  assert.equal(model.mode, "running");
+  assert.equal(model.label, "IN FUNZIONE");
+});
+
+test("legacy status_entity remains supported after migration", () => {
+  const model = createApplianceViewModel(
+    { id: "dishwasher", status_entity: "sensor.dishwasher_status" },
+    { "sensor.dishwasher_status": { state: "off", attributes: {} } },
+    [],
+    "en",
+  );
+  assert.equal(model.stateEntity, "sensor.dishwasher_status");
+  assert.equal(model.mode, "off");
+  assert.equal(model.label, "OFF");
+});
+
+test("unknown and unavailable configured states are not presented as OFF", () => {
+  for (const value of ["unknown", "unavailable"]) {
+    const model = createApplianceViewModel(
+      { id: "offline", state_entity: "sensor.offline_state" },
+      { "sensor.offline_state": { state: value, attributes: {} } },
+      [],
+      "en",
+    );
+    assert.equal(model.mode, "unavailable");
+    assert.equal(model.label, "UNAVAILABLE");
+  }
+});
