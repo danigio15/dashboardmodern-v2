@@ -23,6 +23,34 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(sourceGroups).toHaveCount(6);
     await expect(page.locator("#editor-modal .dm-energy-source-guide")).toBeVisible();
 
+    // The real report screenshot showed cards wider than the editor modal. Open
+    // the Report tab and enforce the browser geometry instead of only checking CSS.
+    const reportButton = config.getByRole("button", { name: /^REPORT$/i });
+    await reportButton.click();
+    const reportPanel = page.locator('#editor-modal [data-energy-panel="report"]');
+    await expect(reportPanel).toBeVisible();
+    await expect(reportPanel.locator(".dm-report-row").first()).toBeVisible();
+    expect(
+      await page.evaluate(() => {
+        const modal = document.querySelector("#editor-modal .ed-shell") || document.querySelector("#editor-modal");
+        const rows = [...document.querySelectorAll('#editor-modal [data-energy-panel="report"] .dm-report-row')];
+        if (!modal || !rows.length) return false;
+        const bounds = modal.getBoundingClientRect();
+        return rows.every((row) => {
+          const rect = row.getBoundingClientRect();
+          return rect.left >= bounds.left - 2 && rect.right <= bounds.right + 2;
+        });
+      }),
+    ).toBeTruthy();
+
+    // Return to the main flow/entity sub-tab before switching top-level editor
+    // sections, so the Energy guide is mounted in its normal context.
+    const flowButton = config.getByRole("button", {
+      name: variant.includes("-en") ? /FLOW|ENTIT/i : /FLUSSI|ENTIT/i,
+    }).first();
+    await flowButton.click();
+    await expect(page.locator("#editor-modal .dm-energy-source-guide")).toBeVisible();
+
     // Energy-specific guidance must not leak into Alerts or any other top-level
     // editor section, which was visible in the real 0.15.10 screenshot.
     await page.evaluate(() => window.editorSwitch("avvisi"));
