@@ -22,12 +22,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     if (testInfo.project.name === "mobile")
       await page.screenshot({ path: `test-results/${variant}-config-energy-mobile.png`, fullPage: true });
 
-    await page.evaluate(() => {
-      document.getElementById("ed-modal")?.remove();
-      document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
-      document.getElementById("page-appliances-main")?.classList.add("active");
-      window.renderApplianceSection(true);
-    });
+    // Leave the editor through the real UI instead of deleting its DOM node.
+    // Removing #ed-modal directly left editor layout/scroll state behind on mobile.
+    await page.locator("#ed-modal .ed-head-close").click();
+    await expect(page.locator("#ed-modal")).toBeHidden();
+    await page.locator('.tab[data-tab="appliances-main"]').click();
+    await page.evaluate(() => window.renderApplianceSection(true));
+
     // Appliance cards are rendered in multiple sub-views (overview/room/other).
     // Only the active sub-view is visible to the user; scope assertions to it so
     // duplicate cards in hidden views do not inflate status counts.
@@ -48,7 +49,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       await page.screenshot({ path: `test-results/${variant}-appliances-mobile.png`, fullPage: true });
     }
 
-    await page.evaluate(() => window.switchTab("energy"));
+    // Navigate exactly as a user does. There is no public window.switchTab helper.
+    await page.locator('.tab[data-tab="energy"]').click();
     await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house === 39.9);
     await expect(page.locator("#ed-kpi-cons")).toContainText("39.9");
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy-monthly.png`, fullPage: true });
