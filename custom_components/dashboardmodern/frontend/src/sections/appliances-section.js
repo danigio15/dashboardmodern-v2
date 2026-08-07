@@ -51,6 +51,46 @@ function devices() {
   return Array.isArray(values) ? values : [];
 }
 
+function eventEntityIds(event) {
+  const values = event?.detail?.entity_ids || [event?.detail?.entity_id];
+  return new Set((Array.isArray(values) ? values : [values]).map(clean).filter(Boolean));
+}
+
+function applianceEntityIds() {
+  const ids = new Set();
+  devices().forEach((device) => {
+    for (const value of [
+      device.control_entity,
+      device.state_entity,
+      device.status_entity,
+      device.power_entity,
+      device.energy_entity,
+      device.daily_energy_entity,
+      device.monthly_energy_entity,
+      device.total_energy_entity,
+      device.history_entity,
+      device.report_entity,
+      ...(device.entities || []),
+    ]) {
+      const id = clean(typeof value === "string" ? value : value?.entity || value?.entity_id);
+      if (id) ids.add(id);
+    }
+  });
+  return ids;
+}
+
+export function stateChangeAffectsAppliances(event) {
+  const changed = eventEntityIds(event);
+  if (!changed.size) return false;
+  const configured = applianceEntityIds();
+  return [...changed].some((id) => configured.has(id));
+}
+
+function appliancesVisible() {
+  const page = doc?.getElementById("page-appliances-main");
+  return Boolean(page?.classList.contains("active") || page?.matches?.(":not([hidden])") && getComputedStyle(page).display !== "none");
+}
+
 function visualFor(device) {
   try {
     const visual = root.DashboardModernModules?.data?.getDeviceVisual?.(device);
@@ -133,7 +173,15 @@ function normalizeStatus(card, model) {
 
 function ensureToggle(card, model) {
   const entity = model.action.entity;
-  if (!entity) return;
+  card.querySelectorAll(".appl-action-btn").forEach((legacy) => {
+    legacy.hidden = true;
+    legacy.setAttribute("aria-hidden", "true");
+    legacy.tabIndex = -1;
+  });
+  if (!entity) {
+    card.querySelector('[data-dm-power-toggle="true"]')?.remove();
+    return;
+  }
   let button = card.querySelector('[data-dm-power-toggle="true"]');
   if (!button) {
     button = doc.createElement("button");
@@ -182,7 +230,12 @@ export function normalizeApplianceCards() {
     cards.forEach((card, index) => {
       const device = byId.get(clean(card.dataset.applianceId)) || configured[index];
       if (!device) return;
-      const model = createApplianceViewModel(device, states, section("rooms", []), english() ? "en" : "it");
+      const model = createApplianceViewModel(
+        device,
+        states,
+        section("rooms", []),
+        english() ? "en" : "it",
+      );
       card.dataset.dmApplianceSection = "true";
       card.dataset.dmArtStyle = "panel";
       card.dataset.applianceThemeAware = "true";
@@ -271,6 +324,7 @@ function installStyles() {
         background:color-mix(in srgb,var(--error-color,#dc2626) 12%,transparent)!important;
         color:var(--error-color,#b91c1c)!important
       }
+      #page-appliances-main .appl-action-btn,#appl-grid-overview .appl-action-btn{display:none!important}
       #page-appliances-main .appl-wide-actions,#appl-grid-overview .appl-wide-actions,
       #page-appliances-main .appl-actions,#appl-grid-overview .appl-actions{
         display:flex!important;align-items:center!important;gap:8px!important;margin-top:10px!important
@@ -312,7 +366,9 @@ function installStyles() {
 function installWrappers() {
   wrapFunction("renderAppliances", "__dmAppliancesSection", scheduleApplianceNormalization);
   wrapFunction("renderApplianceSection", "__dmAppliancesSection", scheduleApplianceNormalization);
-  wrapFunction("render", "__dmAppliancesRenderSection", scheduleApplianceNormalization);
+  wrapFunction("render", "__dmAppliancesRenderSection", () => {
+    if (appliancesVisible()) scheduleApplianceNormalization();
+  });
 }
 
 function subscribeStore() {
@@ -330,7 +386,9 @@ export function installAppliancesSection() {
   scheduleApplianceNormalization();
   if (!state.listeners) {
     state.listeners = true;
-    root.addEventListener?.("dashboardmodern:state-changed", scheduleApplianceNormalization);
+    root.addEventListener?.("dashboardmodern:state-changed", (event) => {
+      if (appliancesVisible() && stateChangeAffectsAppliances(event)) scheduleApplianceNormalization();
+    });
     root.addEventListener?.("dashboardmodern:legacy-ready", () => {
       installWrappers();
       scheduleApplianceNormalization();
@@ -338,7 +396,7 @@ export function installAppliancesSection() {
     doc.addEventListener(
       "click",
       (event) => {
-        if (event.target?.closest?.("[data-tab='appliances'],.tab[data-tab='appliances']"))
+        if (event.target?.closest?.("[data-tab='appliances-main'],[data-tab='appliances'],.tab[data-tab='appliances-main']"))
           scheduleApplianceNormalization();
       },
       true,
