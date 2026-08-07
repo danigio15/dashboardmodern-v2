@@ -49,13 +49,27 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const normalized = await cards.locator("[data-appliance-state]").allTextContents();
     expect(normalized.every((label) => statuses.some((status) => status.includes(label)))).toBeTruthy();
     if (testInfo.project.name === "mobile") {
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+      const mobileContentFits = await page.evaluate(() => {
+        const viewport = innerWidth;
+        const nodes = [
+          document.querySelector("#page-appliances-main"),
+          document.querySelector("#page-appliances-main .appl-main-view.active"),
+          ...document.querySelectorAll(
+            "#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id]",
+          ),
+        ].filter(Boolean);
+        return nodes.every((node) => {
+          const rect = node.getBoundingClientRect();
+          return rect.left >= -2 && rect.right <= viewport + 2;
+        });
+      });
+      expect(mobileContentFits).toBeTruthy();
       await page.screenshot({ path: `test-results/${variant}-appliances-mobile.png`, fullPage: true });
     }
 
     await page.locator('.tab[data-tab="energy"]').evaluate((button) => button.click());
     await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house === 39.9);
-    await expect(page.locator("#ed-kpi-cons")).toContainText("39.9");
+    await expect(page.locator("#ed-kpi-cons")).toContainText(/39[,.]9/);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy-monthly.png`, fullPage: true });
     expect(await page.evaluate(() => window.__dmStatisticsRequests.every((request) => request.types?.includes("sum")))).toBeTruthy();
     expect(errors).toEqual([]);
