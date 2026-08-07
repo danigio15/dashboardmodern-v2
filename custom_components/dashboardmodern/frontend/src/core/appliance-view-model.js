@@ -9,6 +9,14 @@ const numeric = (states, entity) => {
   return Number.isFinite(value) ? value : null;
 };
 const unit = (states, entity) => clean(states?.[entity]?.attributes?.unit_of_measurement).toLowerCase();
+const isCumulativeEnergy = (states, entity) => {
+  const id = clean(entity);
+  if (!id) return false;
+  const attributes = states?.[id]?.attributes || {};
+  const stateClass = clean(attributes.state_class).toLowerCase();
+  if (stateClass === "total" || stateClass === "total_increasing") return true;
+  return /(?:^|[._-])(total|totale|lifetime|meter|contatore)(?:[._-]|$)/i.test(id);
+};
 
 export function createApplianceViewModel(device = {}, states = {}, rooms = [], locale = "it") {
   const powerEntity = candidates(device, ["power_entity", "power", "power_sensor"])
@@ -22,7 +30,18 @@ export function createApplianceViewModel(device = {}, states = {}, rooms = [], l
     .find((id) => Boolean(states?.[id])) || "";
   const inferredEnergy = candidates(device, ["total_energy_entity", "energy_entity", "monthly_energy_entity", "daily_energy_entity"])
     .find((id) => /^(wh|kwh|mwh)$/.test(unit(states, id))) || "";
-  const historyEntity = clean(device.history_entity || device.total_energy_entity || device.energy_entity || device.monthly_energy_entity || inferredEnergy || powerEntity);
+  // History and previous-month Report data require a lifetime/cumulative meter.
+  // A monthly measurement is useful for the current period but must never
+  // silently enable the history button or masquerade as a total source.
+  const historyEntity = [
+    device.history_entity,
+    device.total_energy_entity,
+    device.report_entity,
+    device.energy_entity,
+    inferredEnergy,
+  ]
+    .map(entityId)
+    .find((id) => isCumulativeEnergy(states, id)) || "";
   const rawPower = numeric(states, powerEntity);
   const watts = rawPower == null ? null : unit(states, powerEntity) === "kw" ? rawPower * 1000 : unit(states, powerEntity) === "mw" ? rawPower * 1_000_000 : rawPower;
   const controlState = clean(states?.[controlEntity]?.state).toLowerCase();
