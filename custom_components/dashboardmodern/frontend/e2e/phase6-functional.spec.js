@@ -17,9 +17,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       : ["Potenza", "giornaliera", "mensile", "annuale", "Contatore energia totale"]) {
       await expect(config).toContainText(new RegExp(label, "i"));
     }
-    const sourceGroups = config.locator("details.ed-acc").filter({
-      has: config.locator('[data-energy-total-field="true"]'),
-    });
+    const sourceGroups = config.locator('details.ed-acc:has([data-energy-total-field="true"])');
     await expect(sourceGroups).toHaveCount(6);
     if (testInfo.project.name === "mobile")
       await page.screenshot({ path: `test-results/${variant}-config-energy-mobile.png`, fullPage: true });
