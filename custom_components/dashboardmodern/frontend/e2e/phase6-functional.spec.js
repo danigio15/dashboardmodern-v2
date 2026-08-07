@@ -76,17 +76,21 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     // Appliance cards are rendered in multiple sub-views (overview/room/other).
     // Only the active sub-view is visible to the user; scope assertions to it so
-    // duplicate cards in hidden views do not inflate status counts.
-    const cards = page.locator("#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id]");
-    await expect(cards.filter({ hasText: variant.includes("-en") ? "RUNNING" : "IN FUNZIONE" })).toHaveCount(1);
-    await expect(cards.filter({ hasText: "STANDBY" })).toHaveCount(2);
-    await expect(cards.filter({ hasText: variant.includes("-en") ? "OFF" : "SPENTO" })).toHaveCount(2);
+    // duplicate cards in hidden views do not inflate status counts. Use the
+    // canonical card state marker rather than free text: in English the power
+    // action "Turn off" must never be mistaken for an OFF device state.
+    const cardSelector = "#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id]";
+    const cards = page.locator(cardSelector);
+    await expect(page.locator(`${cardSelector}[data-appliance-state="running"]`)).toHaveCount(1);
+    await expect(page.locator(`${cardSelector}[data-appliance-state="standby"]`)).toHaveCount(2);
+    await expect(page.locator(`${cardSelector}[data-appliance-state="off"]`)).toHaveCount(2);
 
     const microwave = page.locator(
       '#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id="appl-microwave"]',
     );
     await expect(microwave).toContainText("0 W");
-    await expect(microwave.locator("[data-appliance-state]")).toContainText("STANDBY");
+    await expect(microwave).toHaveAttribute("data-appliance-state", "standby");
+    await expect(microwave.locator(".appl-st")).toContainText("STANDBY");
     await expect(microwave.locator('[data-dm-power-toggle="true"]')).toBeVisible();
     // The old icon-only toggle may remain in legacy markup for compatibility,
     // but it must not be visible beside the modern Accendi/Spegni control.
@@ -97,9 +101,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     );
     await expect(noHistory).toHaveCount(1);
     await expect(noHistory.getByRole("button", { name: /Storico|History/ })).toBeDisabled();
-    const statuses = await cards.locator(".appl-st").allTextContents();
-    const normalized = await cards.locator("[data-appliance-state]").allTextContents();
-    expect(normalized.every((label) => statuses.some((status) => status.includes(label)))).toBeTruthy();
+    const normalizedStates = await cards.evaluateAll((nodes) => nodes.map((node) => node.dataset.applianceState).sort());
+    expect(normalizedStates).toEqual(["off", "off", "running", "standby", "standby"]);
     if (testInfo.project.name === "mobile") {
       const mobileContentFits = await page.evaluate(() => {
         const viewport = innerWidth;
