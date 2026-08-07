@@ -1,4 +1,5 @@
 const STATE_EVENT = "dashboardmodern:state-changed";
+const SERVICE_KEY = "DashboardModernEnergyService";
 
 function makeEvent(root, detail) {
   if (typeof root.CustomEvent === "function") return new root.CustomEvent(STATE_EVENT, { detail });
@@ -77,3 +78,39 @@ export function installStateEventGate(broker, root = globalThis, { delay = 40 } 
   });
   return true;
 }
+
+/**
+ * Arm a setter before energy-section.js is evaluated. That makes the broker
+ * gate installation synchronous with DashboardModernEnergyService assignment,
+ * so there is no race with a very fast bridge/WebSocket during startup.
+ */
+export function armStateEventGate(root = globalThis) {
+  const current = root[SERVICE_KEY];
+  if (current?.broker) {
+    installStateEventGate(current.broker, root);
+    return true;
+  }
+
+  const descriptor = Object.getOwnPropertyDescriptor(root, SERVICE_KEY);
+  if (descriptor && !descriptor.configurable) return false;
+  if (descriptor?.set?.__dmStateEventGateSetter) return true;
+
+  let value = descriptor?.value;
+  const setter = function setEnergyService(next) {
+    value = next;
+    installStateEventGate(next?.broker, root);
+  };
+  Object.defineProperty(setter, "__dmStateEventGateSetter", { value: true });
+
+  Object.defineProperty(root, SERVICE_KEY, {
+    configurable: true,
+    enumerable: descriptor?.enumerable ?? true,
+    get() {
+      return value;
+    },
+    set: setter,
+  });
+  return true;
+}
+
+armStateEventGate();
