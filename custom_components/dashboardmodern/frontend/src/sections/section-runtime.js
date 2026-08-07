@@ -1,4 +1,5 @@
 import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
+import { installStateEventGate } from "../core/state-event-gate.js";
 import { installDataContractsSection } from "./data-contracts-section.js";
 import { installEnergyCalculationsSection } from "./energy-calculations-section.js";
 import { installEnergyServicesSection } from "./energy-services-section.js";
@@ -44,6 +45,9 @@ export function installSectionRuntime() {
     installEnergyCalculationsSection();
     installEnergyServicesSection();
     installEnergySection();
+    // Energy starts the Home Assistant broker asynchronously. Install the gate
+    // immediately afterwards, before the get_states snapshot can be ingested.
+    installStateEventGate(root.DashboardModernEnergyService?.broker, root);
     installEnergyStabilitySection();
     installEnergyGuidanceSection();
     installEnergyFlowSection();
@@ -76,6 +80,7 @@ export function installSectionRuntime() {
         "energy-calculations",
         "energy-services",
         "energy",
+        "state-event-gate",
         "energy-stability",
         "energy-guidance",
         "energy-flow",
