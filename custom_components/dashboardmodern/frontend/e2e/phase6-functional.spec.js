@@ -17,7 +17,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       : ["Potenza", "giornaliera", "mensile", "annuale", "Contatore energia totale"]) {
       await expect(config).toContainText(new RegExp(label, "i"));
     }
-    await expect(config.locator("details.ed-acc")).toHaveCount(6);
+    const sourceGroups = config.locator("details.ed-acc").filter({
+      has: config.locator('[data-energy-total-field="true"]'),
+    });
+    await expect(sourceGroups).toHaveCount(6);
     if (testInfo.project.name === "mobile")
       await page.screenshot({ path: `test-results/${variant}-config-energy-mobile.png`, fullPage: true });
 
@@ -31,7 +34,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(cards.filter({ hasText: variant.includes("-en") ? "RUNNING" : "IN FUNZIONE" })).toHaveCount(1);
     await expect(cards.filter({ hasText: "STANDBY" })).toHaveCount(1);
     await expect(cards.filter({ hasText: variant.includes("-en") ? "OFF" : "SPENTO" })).toHaveCount(3);
-    const noHistory = cards.filter({ hasText: "Ventola" });
+    const noHistory = cards.filter({ hasText: variant.includes("-en") ? "Fan" : "Ventola" });
     await expect(noHistory.getByRole("button", { name: /Storico|History/ })).toBeDisabled();
     const statuses = await cards.locator(".appl-st").allTextContents();
     const normalized = await cards.locator("[data-appliance-state]").allTextContents();
