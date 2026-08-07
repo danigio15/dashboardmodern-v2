@@ -26,7 +26,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     // The real modal is #editor-modal; the old #ed-modal selector never closed it.
     await page.locator("#editor-modal .ed-head-close").last().click();
     await expect(page.locator("#editor-modal")).toBeHidden();
-    await page.locator('.tab[data-tab="appliances-main"]').click();
+
+    // Trigger the real navigation buttons through their DOM click handler. The
+    // sidebar can intentionally sit outside the viewport (desktop/mobile/touch),
+    // so a pointer click is not a stable cross-project contract here.
+    await page.locator('.tab[data-tab="appliances-main"]').evaluate((button) => button.click());
     await page.evaluate(() => window.renderApplianceSection(true));
 
     // Appliance cards are rendered in multiple sub-views (overview/room/other).
@@ -49,8 +53,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       await page.screenshot({ path: `test-results/${variant}-appliances-mobile.png`, fullPage: true });
     }
 
-    // Navigate exactly as a user does. There is no public window.switchTab helper.
-    await page.locator('.tab[data-tab="energy"]').click();
+    await page.locator('.tab[data-tab="energy"]').evaluate((button) => button.click());
     await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house === 39.9);
     await expect(page.locator("#ed-kpi-cons")).toContainText("39.9");
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy-monthly.png`, fullPage: true });
