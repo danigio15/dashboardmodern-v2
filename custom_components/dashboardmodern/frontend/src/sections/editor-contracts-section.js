@@ -10,7 +10,6 @@ import {
 const KEY = "__DASHBOARDMODERN_EDITOR_CONTRACTS_SECTION__";
 const state = (root[KEY] ||= {
   installed: false,
-  observer: null,
   frame: 0,
 });
 
@@ -166,33 +165,15 @@ function normalizeEnergyHelp() {
   return Boolean(overview);
 }
 
-function removeBatteryGlyphs() {
-  let changed = false;
-  doc
-    ?.querySelectorAll(
-      "#page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card",
-    )
-    .forEach((card) => {
-      const walker = doc.createTreeWalker(card, NodeFilter.SHOW_TEXT);
-      const nodes = [];
-      while (walker.nextNode()) nodes.push(walker.currentNode);
-      nodes.forEach((node) => {
-        if (!node.nodeValue?.includes("🔋")) return;
-        node.nodeValue = node.nodeValue.replaceAll("🔋", "").replace(/\s{2,}/g, " ");
-        changed = true;
-      });
-    });
-  return changed;
-}
-
 export function applyEditorContracts() {
   installExplicitReportSaveContract();
+  if (!doc?.querySelector("#editor-modal,.dm-section-modal")) return false;
   normalizeReportManualPanel();
   normalizeLightEditCompatibility();
   normalizeAlertsEditor();
   normalizeTemperatureEditor();
   normalizeEnergyHelp();
-  removeBatteryGlyphs();
+  return true;
 }
 
 function schedule() {
@@ -277,29 +258,10 @@ function installStyles() {
   );
 }
 
-function mutationTouchesEditor(records = []) {
-  return records.some((record) => {
-    const target = record.target;
-    if (target?.nodeType === 1 && target.closest?.("#editor-modal,.dm-section-modal")) return true;
-    return [...(record.addedNodes || []), ...(record.removedNodes || [])].some((node) => {
-      if (node?.nodeType !== 1) return false;
-      return node.matches?.("#editor-modal,.dm-section-modal") || node.querySelector?.("#editor-modal,.dm-section-modal");
-    });
-  });
-}
-
-function installObserver() {
-  if (!doc || state.observer || typeof root.MutationObserver !== "function") return;
-  state.observer = new root.MutationObserver((records) => {
-    if (mutationTouchesEditor(records)) schedule();
-  });
-  state.observer.observe(doc.body, { childList: true, subtree: true });
-}
-
 export function installEditorContractsSection() {
   if (!doc) return;
   installStyles();
-  installObserver();
+  installExplicitReportSaveContract();
   schedule();
   if (!state.installed) {
     state.installed = true;
@@ -310,7 +272,9 @@ export function installEditorContractsSection() {
       "click",
       (event) => {
         if (event.target?.closest?.("[data-report-save]")) synchronizeReportFields();
-        if (event.target?.closest?.("#editor-modal,.dm-section-modal")) schedule();
+        // A click is the common entry point for opening/switching editors. Run
+        // once on the next frame, after the legacy handler has mounted the modal.
+        schedule();
       },
       true,
     );
