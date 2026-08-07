@@ -195,11 +195,10 @@ test("production entry delegates once to the section runtime, which owns the gua
   assert.match(stability, /waitForHostedBridge/);
   assert.match(stability, /refreshEnergy/);
   assert.match(stability, /dm-energy-awaiting/);
-  assert.match(
-    guidance,
-    /Seleziona il contatore totale kWh per calcolare anche i mesi precedenti/,
-  );
-  assert.match(guidance, /Report storico usa il contatore totale cumulativo/);
+  assert.match(guidance, /consumo Casa usa lo stesso bilancio dei flussi di Home Assistant/);
+  assert.match(guidance, /energyEditorActive/);
+  assert.match(guidance, /removeEnergyGuidance/);
+  assert.match(guidance, /Recorder, storico e mesi precedenti/);
   assert.match(report, /dm-report-row-editor/);
   assert.match(report, /grid-template-areas/);
   for (const kind of ["action", "climate", "shutter", "room"])
