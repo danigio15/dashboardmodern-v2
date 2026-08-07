@@ -11,9 +11,12 @@ test("Energy guidance is explicitly gated by the active editor tab", async () =>
   assert.match(source, /tab === "sez1" \|\| tab === "energy"/);
 });
 
-test("editor observer ignores unrelated dashboard DOM churn", async () => {
+test("editor contracts are event-driven and never observe the whole dashboard DOM", async () => {
   const source = await readFile(new URL("editor-contracts-section.js", root), "utf8");
-  assert.match(source, /mutationTouchesEditor/);
   assert.match(source, /#editor-modal,\.dm-section-modal/);
-  assert.doesNotMatch(source, /new root\.MutationObserver\(schedule\)/);
+  assert.match(source, /doc\.addEventListener\(/);
+  assert.match(source, /root\.addEventListener/);
+  assert.doesNotMatch(source, /MutationObserver/);
+  assert.doesNotMatch(source, /\.observe\s*\(\s*doc\.body/);
+  assert.doesNotMatch(source, /mutationTouchesEditor/);
 });
