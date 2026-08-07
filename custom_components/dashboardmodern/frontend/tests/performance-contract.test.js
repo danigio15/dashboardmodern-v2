@@ -18,8 +18,11 @@ test("live HA event gate filters against configured dashboard entities", () => {
   assert.match(stateGate, /configured\.size && !configured\.has\(id\)/);
 });
 
-test("editor contract work is scheduled only for editor mutations", () => {
-  assert.match(editorContracts, /if \(mutationTouchesEditor\(records\)\) schedule\(\)/);
+test("editor contracts do not observe or rescan the whole dashboard DOM", () => {
+  assert.doesNotMatch(editorContracts, /new\s+(?:root\.)?MutationObserver/);
+  assert.doesNotMatch(editorContracts, /\.observe\s*\(\s*doc\.body/);
+  assert.doesNotMatch(editorContracts, /removeBatteryGlyphs/);
+  assert.match(editorContracts, /if \(!doc\?\.querySelector\("#editor-modal,.dm-section-modal"\)\) return false/);
 });
 
 test("data contracts never restart a retry chain for live state changes", () => {
