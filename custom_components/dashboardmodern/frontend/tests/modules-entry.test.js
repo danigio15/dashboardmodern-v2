@@ -48,12 +48,20 @@ test("energy report is derived from appliances and normalizes power and energy",
       {
         name: "Washer",
         room_id: "laundry",
+        total_energy_entity: "sensor.washer_energy",
         entities: ["sensor.washer_power", "sensor.washer_energy"],
       },
     ],
     {
       "sensor.washer_power": { state: "1.25", attributes: { unit_of_measurement: "kW" } },
-      "sensor.washer_energy": { state: "750", attributes: { unit_of_measurement: "Wh" } },
+      "sensor.washer_energy": {
+        state: "750",
+        attributes: {
+          unit_of_measurement: "Wh",
+          device_class: "energy",
+          state_class: "total_increasing",
+        },
+      },
     },
     [{ id: "laundry", name: "Laundry", icon: "mdi:washing-machine" }],
   );
