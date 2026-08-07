@@ -20,13 +20,7 @@ import { installEditorContractsSection } from "./editor-contracts-section.js";
 import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
 import { installEvSection } from "./ev-section.js";
-import { installHomeSection } from "./home-section.js";
-import { installClimateSection } from "./climate-section.js";
-import { installSecuritySection } from "./security-section.js";
-import { installSolarThermalSection } from "./solar-thermal-section.js";
-import { installPoolSection } from "./pool-section.js";
-import { installIrrigationSection } from "./irrigation-section.js";
-import { installMiniPcSection } from "./minipc-section.js";
+import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 
 const root = globalThis;
 const RUNTIME_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME__";
@@ -39,8 +33,8 @@ export function installSectionRuntime() {
   root[INSTALLING_KEY] = true;
   try {
     installHostedBridgeGuard();
+    installLegacySections();
     installDataContractsSection();
-    installHomeSection();
     installEnergyCalculationsSection();
     installEnergyServicesSection();
     installEnergySection();
@@ -55,12 +49,6 @@ export function installSectionRuntime() {
     installApplianceEditorSection();
     installLightsAlertsSection();
     installAlertsSection();
-    installClimateSection();
-    installSecuritySection();
-    installSolarThermalSection();
-    installPoolSection();
-    installIrrigationSection();
-    installMiniPcSection();
     installUnifiedEditorsSection();
     installEditorCrudSection();
     installEditorContractsSection();
@@ -72,7 +60,7 @@ export function installSectionRuntime() {
       installed: true,
       sections: Object.freeze([
         "data-contracts",
-        "home",
+        ...LEGACY_SECTION_KEYS,
         "energy-calculations",
         "energy-services",
         "energy",
@@ -87,12 +75,6 @@ export function installSectionRuntime() {
         "appliance-editor",
         "lights",
         "alerts",
-        "climate",
-        "security",
-        "solar-thermal",
-        "pool",
-        "irrigation",
-        "minipc",
         "unified-editors",
         "editor-crud",
         "editor-contracts",

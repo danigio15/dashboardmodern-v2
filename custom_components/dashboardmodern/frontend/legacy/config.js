@@ -1,13 +1,36 @@
-// Optional legacy configuration and production bootstrap.
-// Both vendored HTML variants already load this file before their inline runtime.
-// Keep configuration in same-origin localStorage and load the single modular owner graph.
+// DashboardModern hosted bootstrap coordinator.
+// The vendored legacy runtime owns the initial DOM/functions. Modern sections
+// are installed only after legacy-ready and after modules-entry has exposed the
+// canonical store/API, avoiding a second bootstrap racing during HTML parsing.
 (function bootstrapDashboardModernRuntime() {
-  if (globalThis.__DASHBOARDMODERN_RUNTIME_BOOTSTRAP__) return;
-  globalThis.__DASHBOARDMODERN_RUNTIME_BOOTSTRAP__ = true;
-  import("./report-mobile-fixes.js").catch((error) => {
-    globalThis.__DASHBOARDMODERN_RUNTIME_BOOTSTRAP_ERROR__ = String(
-      error?.message || error || "runtime bootstrap failed",
-    );
-    globalThis.console?.error?.("[DashboardModern] modular runtime bootstrap failed", error);
-  });
+  const KEY = "__DASHBOARDMODERN_RUNTIME_BOOTSTRAP__";
+  const state = (globalThis[KEY] ||= { started: false, promise: null });
+
+  const start = () => {
+    if (state.started) return true;
+    if (
+      !globalThis.__DASHBOARDMODERN_LEGACY_READY__ ||
+      !globalThis.DashboardModernModules ||
+      globalThis.document?.readyState === "loading"
+    ) {
+      return false;
+    }
+    state.started = true;
+    state.promise = import("../src/sections/section-runtime.js").catch((error) => {
+      state.started = false;
+      globalThis.__DASHBOARDMODERN_RUNTIME_BOOTSTRAP_ERROR__ = String(
+        error?.message || error || "runtime bootstrap failed",
+      );
+      globalThis.console?.error?.("[DashboardModern] modular runtime bootstrap failed", error);
+      throw error;
+    });
+    return true;
+  };
+
+  globalThis.addEventListener?.("dashboardmodern:legacy-ready", start, { once: true });
+  if (globalThis.document?.readyState === "loading") {
+    globalThis.document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    queueMicrotask(start);
+  }
 })();
