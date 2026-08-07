@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { installStateEventGate } from "../src/core/state-event-gate.js";
 
-function harness(delay = 0) {
+function harness(delay = 0, sections = null) {
   const events = [];
   class FakeCustomEvent {
     constructor(type, init = {}) {
@@ -19,6 +19,13 @@ function harness(delay = 0) {
     setTimeout,
     queueMicrotask,
   };
+  if (sections) {
+    root.DashboardModernModules = {
+      store: {
+        getState: () => ({ sections }),
+      },
+    };
+  }
   const states = new Map();
   const broker = {
     statesStarted: true,
@@ -57,4 +64,20 @@ test("live state changes are coalesced into one UI notification batch", async ()
   assert.equal(events[0].type, "dashboardmodern:state-changed");
   assert.equal(events[0].detail.coalesced, true);
   assert.equal(events[0].detail.entity_ids.length, 500);
+});
+
+test("unconfigured Home Assistant chatter is stored but not sent to dashboard renderers", async () => {
+  const { broker, events, states } = harness(1, {
+    energy: { house: { total_energy: "sensor.house_total" } },
+    appliances: [{ power_entity: "sensor.microwave_power", control_entity: "switch.microwave" }],
+  });
+  broker.subscription = 42;
+  for (let index = 0; index < 500; index += 1) {
+    broker.ingestState({ entity_id: `sensor.unrelated_${index}`, state: String(index), attributes: {} });
+  }
+  broker.ingestState({ entity_id: "sensor.house_total", state: "123.4", attributes: {} });
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(states.size, 501);
+  assert.equal(events.length, 1);
+  assert.deepEqual(events[0].detail.entity_ids, ["sensor.house_total"]);
 });
