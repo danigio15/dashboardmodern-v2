@@ -90,6 +90,27 @@ async function openEditor(page, tab) {
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
 }
 
+async function modalContract(modal) {
+  return modal.locator(".dm-section-dialog").evaluate((dialog) => {
+    const style = getComputedStyle(dialog);
+    const close = dialog.querySelector("header [data-close]");
+    const footer = dialog.querySelector("form > footer");
+    const closeStyle = close ? getComputedStyle(close) : null;
+    const footerStyle = footer ? getComputedStyle(footer) : null;
+    const rect = dialog.getBoundingClientRect();
+    return {
+      width: Math.round(rect.width),
+      borderRadius: style.borderRadius,
+      display: style.display,
+      gridTemplateRows: style.gridTemplateRows,
+      closeWidth: closeStyle?.width || "",
+      closeHeight: closeStyle?.height || "",
+      closeRadius: closeStyle?.borderRadius || "",
+      footerPosition: footerStyle?.position || "",
+    };
+  });
+}
+
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: real Home Assistant acceptance fixes preserve entities and editing`, async ({ page }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 180_000 : 100_000);
@@ -126,6 +147,18 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(toggle).toHaveText(/Accendi|Spegni|Turn on|Turn off/);
     await expect(toggle).not.toHaveText(/[⏻×✕]/);
 
+    // Appliance and Alert editors perform the same job and therefore must use
+    // the same real modal shell, close control and sticky action footer.
+    await page.evaluate(() => edApplEdit(0));
+    const applianceEditor = page.locator("#dm-appliance-editor-modal");
+    await expect(applianceEditor).toBeVisible();
+    await expect(applianceEditor).toHaveClass(/dm-section-modal/);
+    const applianceContract = await modalContract(applianceEditor);
+    expect(applianceContract.display).toBe("grid");
+    expect(applianceContract.footerPosition).toBe("sticky");
+    await applianceEditor.locator("[data-cancel]").click();
+    await expect(applianceEditor).toHaveCount(0);
+
     await openEditor(page, "sez1");
     await page.locator(".ed-inner-tab", { hasText: /^REPORT$/i }).click();
     await expect(page.locator("#dm-report-entity-appl-forno")).toHaveValue("sensor.forno_energy");
@@ -146,6 +179,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await alertEdit.click();
     const alertEditor = page.locator("#dm-alert-editor-modal");
     await expect(alertEditor).toBeVisible();
+    await expect(alertEditor).toHaveClass(/dm-section-modal/);
+    const alertContract = await modalContract(alertEditor);
+    expect(alertContract.borderRadius).toBe(applianceContract.borderRadius);
+    expect(alertContract.gridTemplateRows).toBe(applianceContract.gridTemplateRows);
+    expect(alertContract.closeWidth).toBe(applianceContract.closeWidth);
+    expect(alertContract.closeHeight).toBe(applianceContract.closeHeight);
+    expect(alertContract.closeRadius).toBe(applianceContract.closeRadius);
+    expect(alertContract.footerPosition).toBe(applianceContract.footerPosition);
+    expect(Math.abs(alertContract.width - applianceContract.width)).toBeLessThanOrEqual(2);
     await expect(alertEditor.locator('input[name="entity"]')).toHaveValue("light.salone");
     await alertEditor.locator('input[name="name"]').fill("Luce principale");
     await alertEditor.locator('select[name="group"]').selectOption("luci");
