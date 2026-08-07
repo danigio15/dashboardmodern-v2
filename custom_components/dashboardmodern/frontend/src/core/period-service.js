@@ -212,7 +212,7 @@ export function sourcePlans(
     const legacy = String(overrides?.[definition.slots[kind]] || "").trim();
 
     if (explicit && !isCumulativeEnergyEntity(explicit, states, resolver)) {
-      return [
+      const plans = [
         {
           ...definition,
           kind,
@@ -223,6 +223,22 @@ export function sourcePlans(
           reason: "explicit-period",
         },
       ];
+      // Period helpers are only authoritative for the current period. Keep the
+      // cumulative meter as a derived fallback so previous months/years remain
+      // available without forcing users to remove their current-period sensor.
+      if (total) {
+        plans.push({
+          ...definition,
+          kind,
+          slot: definition.slots[kind],
+          entity: resolveEntity(total, resolver),
+          source: total,
+          direct: false,
+          fallback: true,
+          reason: "canonical-total-fallback",
+        });
+      }
+      return plans;
     }
 
     const source = explicit || total || legacy;
@@ -324,6 +340,11 @@ export class HomeAssistantBroker {
     [...new Set(registries)].forEach((registry) => {
       registry[id] = copy;
     });
+    if (!copy.attributes?.dashboardmodern_derived && typeof globalThis.CustomEvent === "function") {
+      globalThis.dispatchEvent?.(new globalThis.CustomEvent("dashboardmodern:state-changed", {
+        detail: { entity_id: id, state: copy },
+      }));
+    }
     return true;
   }
 
@@ -461,10 +482,10 @@ export class HomeAssistantBroker {
         type: "recorder/statistics_during_period",
         start_time: startIso,
         end_time: endIso,
-          statistic_ids: statisticIds,
-          period,
-          types: ["sum"],
-          units: { energy: "kWh" },
+        statistic_ids: statisticIds,
+        period,
+        types: ["sum"],
+        units: { energy: "kWh" },
       },
       key,
       historical ? this.cacheHistoricalMs : this.cacheCurrentMs,
@@ -502,6 +523,7 @@ export class HomeAssistantBroker {
     const rows = await this.statistics(ids, baseline.start, range.end, range.period);
 
     derived.forEach((plan) => {
+      if (plan.fallback && output.has(plan.key)) return;
       const entityRows = (rows[plan.entity] || []).slice().sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
       const before = entityRows.filter((row) => rowTimestamp(row) < range.start.getTime());
       const within = entityRows.filter((row) => rowTimestamp(row) >= range.start.getTime() && rowTimestamp(row) < range.end.getTime());
