@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../../../../", import.meta.url);
@@ -15,7 +15,7 @@ async function assertSame(paths) {
   assert.equal(new Set(digests).size, 1, `brand assets differ: ${paths.join(", ")}`);
 }
 
-test("HACS root and installed Home Assistant brand assets stay byte-identical", async () => {
+test("the only brand duplication is the packaging-required HACS/install pair", async () => {
   await assertSame([
     "brand/icon.png",
     "custom_components/dashboardmodern/brand/icon.png",
@@ -32,4 +32,11 @@ test("HACS root and installed Home Assistant brand assets stay byte-identical", 
     "brand/logo@2x.png",
     "custom_components/dashboardmodern/brand/logo@2x.png",
   ]);
+
+  for (const obsolete of [
+    "custom_components/dashboardmodern/frontend/legacy/icon.png",
+    "custom_components/dashboardmodern/frontend/legacy/logo.png",
+  ]) {
+    await assert.rejects(access(new URL(obsolete, root)));
+  }
 });
