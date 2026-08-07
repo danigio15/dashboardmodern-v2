@@ -17,6 +17,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       : ["Potenza", "giornaliera", "mensile", "annuale", "Contatore energia totale"]) {
       await expect(config).toContainText(new RegExp(label, "i"));
     }
+    await expect(config.locator('input[name="battery.soc"]')).toBeAttached();
+    await expect(config).toContainText(variant.includes("-en") ? /State of charge/i : /Stato di carica/i);
     const sourceGroups = config.locator('details.ed-acc:has([data-energy-total-field="true"])');
     await expect(sourceGroups).toHaveCount(6);
     if (testInfo.project.name === "mobile")
