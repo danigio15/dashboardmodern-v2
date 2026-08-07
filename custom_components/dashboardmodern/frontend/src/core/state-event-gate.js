@@ -9,10 +9,10 @@ function makeEvent(root, detail) {
 /**
  * Prevent the initial Home Assistant get_states snapshot from producing one UI
  * event per entity, then coalesce live state_changed notifications into a
- * single short batch. State registries are still updated synchronously by the
+ * bounded batch. State registries are still updated synchronously by the
  * original broker; only the expensive UI notification is gated.
  */
-export function installStateEventGate(broker, root = globalThis, { delay = 40 } = {}) {
+export function installStateEventGate(broker, root = globalThis, { delay = 200 } = {}) {
   if (!broker || typeof broker.ingestState !== "function" || broker.__dmStateEventGate) return false;
 
   const original = broker.ingestState;
