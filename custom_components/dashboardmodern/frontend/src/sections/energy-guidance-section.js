@@ -38,7 +38,21 @@ function contractCard(group, title, icon) {
   </article>`;
 }
 
+function energyEditorActive() {
+  const active = doc?.querySelector("#editor-modal .ed-tab.active");
+  const tab = clean(active?.dataset?.tab).toLowerCase();
+  return tab === "sez1" || tab === "energy";
+}
+
+function removeEnergyGuidance() {
+  doc?.querySelectorAll("#editor-modal .dm-energy-source-guide").forEach((node) => node.remove());
+}
+
 export function normalizeEnergyGuidance() {
+  if (!energyEditorActive()) {
+    removeEnergyGuidance();
+    return false;
+  }
   const editor = doc?.querySelector('#editor-modal [data-editor="energy"],#ed-body[data-editor="energy"]');
   if (!editor) return false;
   const flows = editor.querySelector('[data-energy-panel="flows"]') || editor;
@@ -51,11 +65,11 @@ export function normalizeEnergyGuidance() {
   guide.innerHTML = `<div class="dm-energy-source-guide-intro">
     <strong>${t("Quale entità usa la dashboard", "Which entity the dashboard uses")}</strong>
     <span>${t(
-      "Seleziona il contatore totale kWh per calcolare anche i mesi precedenti. I campi giornaliero, mensile e annuale sono facoltativi e, quando presenti, sostituiscono il calcolo del relativo periodo. Il Report storico usa il contatore totale cumulativo con state_class total o total_increasing.",
-      "Select the total kWh meter to calculate previous months too. Daily, monthly and annual fields are optional and override the calculation for their period. Historical Report uses the cumulative total meter with state_class total or total_increasing.",
+      "Quando Fotovoltaico e Rete sono configurati, il consumo Casa usa lo stesso bilancio dei flussi di Home Assistant. I contatori totali kWh servono anche per Recorder, storico e mesi precedenti; i campi giornaliero, mensile e annuale restano override facoltativi del singolo periodo.",
+      "When Solar and Grid are configured, Home consumption uses the same flow balance as Home Assistant. Total kWh meters also feed Recorder, history and previous months; daily, monthly and annual fields remain optional per-period overrides.",
     )}</span>
   </div><div class="dm-energy-source-guide-grid">
-    ${contractCard("house", t("Casa", "Home"), "🏠")}
+    ${contractCard("house", t("Casa (fallback)", "Home (fallback)"), "🏠")}
     ${contractCard("solar", t("Fotovoltaico", "Solar"), "☀️")}
     ${contractCard("grid", t("Rete prelevata", "Grid import"), "🔌")}
   </div>`;
@@ -68,8 +82,8 @@ export function normalizeEnergyGuidance() {
       field.append(purpose);
     }
     purpose.textContent = t(
-      "Usata per giorno, mese, anno, mesi precedenti e Report quando non esiste un sensore specifico del periodo.",
-      "Used for day, month, year, previous months and Report when no period-specific sensor exists.",
+      "Usata per Recorder, storico e mesi precedenti quando non esiste un sensore specifico del periodo.",
+      "Used for Recorder, history and previous months when no period-specific sensor exists.",
     );
   });
   return true;
@@ -103,7 +117,7 @@ export function installEnergyGuidanceSection() {
     doc.addEventListener(
       "click",
       (event) => {
-        if (event.target?.closest?.(".ed-tab[data-tab='sez1'],[data-energy-tab],.sub-tab-btn"))
+        if (event.target?.closest?.("#editor-modal .ed-tab,#editor-modal [data-energy-tab],#editor-modal .sub-tab-btn"))
           root.queueMicrotask?.(normalizeEnergyGuidance);
       },
       true,
