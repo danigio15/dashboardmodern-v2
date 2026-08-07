@@ -1,12 +1,4 @@
-import {
-  allStates,
-  clean,
-  dashboardStore,
-  doc,
-  installStyle,
-  root,
-  t,
-} from "./shared.js";
+import { allStates, clean, dashboardStore, doc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SHUTTER_SECTION__";
 const state = (root[KEY] ||= {
@@ -42,7 +34,7 @@ export function stateChangeAffectsShutters(event) {
   return [...changed].some((id) => configured.has(id));
 }
 
-function configuredOpenCovers() {
+function openCovers() {
   const states = allStates();
   const rooms = dashboardStore()?.getSection?.("rooms") || [];
   return covers().flatMap((cover) => {
@@ -62,18 +54,14 @@ function configuredOpenCovers() {
     const room = rooms.find(
       (item) => clean(item.id) === roomValue || clean(item.name) === roomValue,
     );
-    return [
-      {
-        cover,
-        entity,
-        current,
-        status,
-        position: Number.isFinite(position) ? position : null,
-        room,
-        name: clean(cover.name) || clean(current.attributes?.friendly_name) || entity,
-        icon: clean(cover.icon || current.attributes?.icon),
-      },
-    ];
+    return [{
+      entity,
+      status,
+      position: Number.isFinite(position) ? position : null,
+      room,
+      name: clean(cover.name) || clean(current.attributes?.friendly_name) || entity,
+      icon: clean(cover.icon || current.attributes?.icon),
+    }];
   });
 }
 
@@ -95,7 +83,8 @@ function ensureAlertContainer() {
   return container;
 }
 
-function closePopup(popup) {
+function closePopup() {
+  const popup = doc?.getElementById("dm-shutter-popup");
   if (!popup) return;
   popup.classList.remove("show");
   popup.remove();
@@ -118,20 +107,33 @@ function actionLabel(service, busy = false) {
   return t("Ferma", "Stop");
 }
 
-async function callCoverService(button, entity, service) {
-  const busyKey = `${entity}:${service}`;
-  state.busy.set(busyKey, true);
-  button.disabled = true;
-  button.textContent = actionLabel(service, true);
+function clearBusy(entity) {
+  const pending = state.busy.get(entity);
+  if (!pending) return false;
+  if (pending.timeout) root.clearTimeout?.(pending.timeout);
+  state.busy.delete(entity);
+  return true;
+}
+
+async function callCoverService(entity, service) {
+  if (!entity || state.busy.has(entity)) return;
+  const pending = { service, timeout: 0 };
+  state.busy.set(entity, pending);
+  scheduleShutterSync();
   try {
     await root.dmCallHaService?.("cover", service, { entity_id: entity });
+    // The RPC result only confirms that Home Assistant accepted the command.
+    // Keep the action busy until the actual cover state changes. This bounded
+    // timeout is only a safety net for a lost state event; it is not polling.
+    pending.timeout = root.setTimeout?.(() => {
+      if (state.busy.get(entity) !== pending) return;
+      state.busy.delete(entity);
+      scheduleShutterSync();
+    }, 10000) || 0;
   } catch (error) {
-    root.console?.error?.("[DashboardModern] shutter service", error);
-  } finally {
-    state.busy.delete(busyKey);
-    button.disabled = false;
-    button.textContent = actionLabel(service, false);
+    clearBusy(entity);
     scheduleShutterSync();
+    root.console?.error?.("[DashboardModern] shutter service", error);
   }
 }
 
@@ -146,7 +148,7 @@ function createPopupRow(item) {
     button.type = "button";
     button.className = "dm-shutter-action";
     button.dataset.shutterService = service;
-    button.addEventListener("click", () => callCoverService(button, item.entity, service));
+    button.addEventListener("click", () => callCoverService(item.entity, service));
     actions.append(button);
   }
   return row;
@@ -162,10 +164,12 @@ function updatePopupRow(row, item) {
   const detail = [item.room?.name, statusLabel(item)];
   if (item.position != null) detail.push(`${Math.round(item.position)}%`);
   row.querySelector(".dm-shutter-details .d-state").textContent = detail.filter(Boolean).join(" · ");
+
+  const pending = state.busy.get(item.entity);
   row.querySelectorAll("[data-shutter-service]").forEach((button) => {
     const service = button.dataset.shutterService;
-    const busy = state.busy.has(`${item.entity}:${service}`);
-    button.disabled = busy;
+    const busy = pending?.service === service;
+    button.disabled = Boolean(pending);
     button.textContent = actionLabel(service, busy);
   });
 }
@@ -173,21 +177,21 @@ function updatePopupRow(row, item) {
 function renderPopupRows(popup, items) {
   const list = popup?.querySelector("[data-shutter-list]");
   if (!list) return;
-  const byEntity = new Map(
+  const existing = new Map(
     [...list.querySelectorAll(".dm-shutter-popup-row")].map((row) => [row.dataset.shutterEntity, row]),
   );
-  const ordered = items.map((item) => {
-    const row = byEntity.get(item.entity) || createPopupRow(item);
+  const rows = items.map((item) => {
+    const row = existing.get(item.entity) || createPopupRow(item);
     updatePopupRow(row, item);
-    byEntity.delete(item.entity);
+    existing.delete(item.entity);
     return row;
   });
-  byEntity.forEach((row) => row.remove());
-  list.replaceChildren(...ordered);
+  existing.forEach((row) => row.remove());
+  list.replaceChildren(...rows);
 }
 
 function openPopup() {
-  const items = configuredOpenCovers();
+  const items = openCovers();
   if (!items.length) return;
   let popup = doc.getElementById("dm-shutter-popup");
   if (!popup) {
@@ -195,21 +199,14 @@ function openPopup() {
     popup.id = "dm-shutter-popup";
     popup.className = "modal-wrapper dm-shutter-popup";
     popup.setAttribute("role", "presentation");
-    popup.innerHTML = `<div class="modal-card details-content dm-shutter-popup-card" role="dialog" aria-modal="true" aria-labelledby="dm-shutter-popup-title">
-      <div class="ev-waw-header dm-shutter-popup-header">
-        <h3 class="ev-waw-title" id="dm-shutter-popup-title"><span class="dm-shutter-title-icon" aria-hidden="true">🪟</span><span>${t("Tapparelle aperte", "Open shutters")}</span></h3>
-        <button type="button" class="ev-waw-close dm-shutter-popup-close" data-shutter-popup-close aria-label="${t("Chiudi", "Close")}">✕</button>
-      </div>
-      <div class="details-list dm-shutter-popup-list" data-shutter-list></div>
-    </div>`;
+    popup.innerHTML = `<div class="modal-card details-content dm-shutter-popup-card" role="dialog" aria-modal="true" aria-labelledby="dm-shutter-popup-title"><div class="ev-waw-header dm-shutter-popup-header"><h3 class="ev-waw-title" id="dm-shutter-popup-title"><span class="dm-shutter-title-icon" aria-hidden="true">🪟</span><span>${t("Tapparelle aperte", "Open shutters")}</span></h3><button type="button" class="ev-waw-close dm-shutter-popup-close" data-shutter-popup-close aria-label="${t("Chiudi", "Close")}">✕</button></div><div class="details-list dm-shutter-popup-list" data-shutter-list></div></div>`;
     doc.body.append(popup);
-    const close = () => closePopup(popup);
-    popup.querySelector("[data-shutter-popup-close]")?.addEventListener("click", close);
+    popup.querySelector("[data-shutter-popup-close]")?.addEventListener("click", closePopup);
     popup.addEventListener("click", (event) => {
-      if (event.target === popup) close();
+      if (event.target === popup) closePopup();
     });
     popup.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") close();
+      if (event.key === "Escape") closePopup();
     });
   }
   renderPopupRows(popup, items);
@@ -247,10 +244,10 @@ function ensureAlert(items) {
 
 export function syncShutterSection() {
   if (!doc) return false;
-  const items = configuredOpenCovers();
+  const items = openCovers();
   if (!items.length) {
     doc.querySelector("#tapp-avvisi .dm-shutter-alert")?.remove();
-    doc.getElementById("dm-shutter-popup")?.remove();
+    closePopup();
     if (state.createdContainer && !doc.querySelector("#tapp-avvisi > *")) {
       doc.getElementById("tapp-avvisi")?.remove();
       state.createdContainer = false;
@@ -299,9 +296,19 @@ function installStyles() {
       .dm-shutter-details{min-width:0!important}.dm-shutter-details .d-name,.dm-shutter-details .d-state{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.dm-shutter-details .d-name{font-weight:900!important}.dm-shutter-details .d-state{margin-top:3px!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important;font-size:12px!important}
       .dm-shutter-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
       .dm-shutter-actions button{box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:38px!important;margin:0!important;padding:7px 9px!important;border:1px solid color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 28%,var(--divider-color,#dbe4ee))!important;border-radius:10px!important;background:color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 10%,var(--ha-card-background,#fff))!important;color:var(--primary-text-color,var(--text,#0f172a))!important;font-size:12px!important;font-weight:850!important;box-shadow:none!important;cursor:pointer!important}
-      .dm-shutter-actions button[data-shutter-service="stop_cover"]{background:var(--ha-card-background,var(--card-bg,#fff))!important}.dm-shutter-actions button[data-shutter-service="close_cover"]{background:var(--accent-color,var(--accent,#0ea5e9))!important;color:#fff!important}
+      .dm-shutter-actions button[data-shutter-service="stop_cover"]{background:var(--ha-card-background,var(--card-bg,#fff))!important}
+      .dm-shutter-actions button[data-shutter-service="close_cover"]{background:var(--accent-color,var(--accent,#0ea5e9))!important;color:#fff!important}
       .dm-shutter-actions button:disabled{cursor:wait!important;opacity:.65!important}
-      @media(max-width:640px){.dm-shutter-popup{align-items:end!important;padding:0!important}.dm-shutter-popup-card{width:100%!important;max-width:none!important;max-height:88dvh!important;border-radius:22px 22px 0 0!important}.dm-shutter-popup-header{min-height:62px!important;padding:10px 14px!important}.dm-shutter-popup-header .ev-waw-title{font-size:18px!important}.dm-shutter-popup-list{padding:10px!important}.dm-shutter-popup-row{grid-template-columns:44px minmax(0,1fr)!important;gap:10px!important;padding:11px!important}.dm-shutter-actions{grid-column:1/-1!important}.dm-shutter-actions button{min-height:40px!important}}
+      @media(max-width:640px){
+        .dm-shutter-popup{align-items:end!important;padding:0!important}
+        .dm-shutter-popup-card{width:100%!important;max-width:none!important;max-height:88dvh!important;border-radius:22px 22px 0 0!important}
+        .dm-shutter-popup-header{min-height:62px!important;padding:10px 14px!important}
+        .dm-shutter-popup-header .ev-waw-title{font-size:18px!important}
+        .dm-shutter-popup-list{padding:10px!important}
+        .dm-shutter-popup-row{grid-template-columns:44px minmax(0,1fr)!important;gap:10px!important;padding:11px!important}
+        .dm-shutter-actions{grid-column:1/-1!important}
+        .dm-shutter-actions button{min-height:40px!important}
+      }
     `,
   );
 }
@@ -310,21 +317,25 @@ export function installShutterSection() {
   if (!doc) return;
   installStyles();
   subscribeStore();
-  scheduleShutterSync();
   if (!state.installed) {
     state.installed = true;
-    for (const event of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
-      root.addEventListener?.(event, () => {
+    for (const eventName of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
+      root.addEventListener?.(eventName, () => {
         subscribeStore();
         scheduleShutterSync();
       });
     }
     root.addEventListener?.("dashboardmodern:state-changed", (event) => {
-      if (stateChangeAffectsShutters(event)) scheduleShutterSync();
+      if (!stateChangeAffectsShutters(event)) return;
+      for (const entity of eventEntityIds(event)) clearBusy(entity);
+      scheduleShutterSync();
     });
   }
+  scheduleShutterSync();
 }
 
-if (doc?.readyState === "loading")
+if (doc?.readyState === "loading") {
   doc.addEventListener("DOMContentLoaded", installShutterSection, { once: true });
-else installShutterSection();
+} else {
+  installShutterSection();
+}
