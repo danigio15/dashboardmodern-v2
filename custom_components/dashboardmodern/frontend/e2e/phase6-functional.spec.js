@@ -28,7 +28,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       document.getElementById("page-appliances-main")?.classList.add("active");
       window.renderApplianceSection(true);
     });
-    const cards = page.locator("#page-appliances-main .appl-wide-card[data-appliance-id]");
+    // Appliance cards are rendered in multiple sub-views (overview/room/other).
+    // Only the active sub-view is visible to the user; scope assertions to it so
+    // duplicate cards in hidden views do not inflate status counts.
+    const cards = page.locator("#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id]");
     await expect(cards.filter({ hasText: variant.includes("-en") ? "RUNNING" : "IN FUNZIONE" })).toHaveCount(1);
     await expect(cards.filter({ hasText: "STANDBY" })).toHaveCount(1);
     await expect(cards.filter({ hasText: variant.includes("-en") ? "OFF" : "SPENTO" })).toHaveCount(3);
