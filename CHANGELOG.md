@@ -3,6 +3,45 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 0.15.9 — 2026-08-07
+
+### Corretto
+
+- Il Report Energia e i KPI Casa usano la crescita della `sum` Recorder del
+  contatore totale per giorno, mese e anno, compresi i periodi storici; i
+  sensori giorno/mese/anno restano override soltanto del periodo corrente.
+- La configurazione Energia espone nuovamente il sensore **SOC batteria** e i
+  contatori energia totale per Casa, rete, fotovoltaico e carica/scarica
+  batteria.
+- Gli Elettrodomestici rispettano `state_entity` e il legacy `status_entity`,
+  distinguono `unavailable`/`unknown` da **SPENTO/OFF** e conservano le soglie
+  RUNNING/STANDBY basate sulla potenza.
+- Le card Elettrodomestici mantengono layout e azioni entro il viewport mobile;
+  il pulsante Storico resta disabilitato quando non esiste una sorgente valida.
+- Gli aggiornamenti `state_changed` di Home Assistant riattivano il refresh
+  Energia senza attendere il vecchio intervallo periodico e senza creare loop
+  sugli stati virtuali derivati `dm.*`.
+- Corrette le asserzioni E2E per formattazione locale dei decimali e sidebar
+  off-canvas, mantenendo identica la verifica funzionale tra italiano e inglese.
+
+### Pulizia
+
+- Rimosso il vecchio `energy-config-section.js` ormai sostituito dal renderer
+  Energia canonico e rimosso il documento di pianificazione 0.15.9 diventato
+  obsoleto dopo l'implementazione.
+- Verificato il grafo JavaScript legacy con l'audit automatico degli orphan:
+  nessun modulo di produzione non raggiungibile dagli entrypoint.
+
+### Verificato
+
+- Parità Recorder con fixture reset-aware e fallback storico dal contatore
+  cumulativo quando è configurato anche un sensore di periodo corrente.
+- Test unitari per `state_entity`, `status_entity`, unavailable, refresh live e
+  assenza di loop sugli stati derivati.
+- Browser E2E italiano/inglese su desktop, mobile e WebKit per Config Energia,
+  SOC batteria, Elettrodomestici, storico e KPI mensili.
+- HACS, hassfest, test Python, test frontend e Ruff.
+
 ## 0.15.0 — 2026-08-03
 
 ### Architettura
