@@ -21,6 +21,17 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(config).toContainText(variant.includes("-en") ? /State of charge/i : /Stato di carica/i);
     const sourceGroups = config.locator('details.ed-acc:has([data-energy-total-field="true"])');
     await expect(sourceGroups).toHaveCount(6);
+    await expect(page.locator("#editor-modal .dm-energy-source-guide")).toBeVisible();
+
+    // Energy-specific guidance must not leak into Alerts or any other top-level
+    // editor section, which was visible in the real 0.15.10 screenshot.
+    await page.evaluate(() => window.editorSwitch("avvisi"));
+    await expect(page.locator("#editor-modal .ed-tab.active")).toHaveAttribute("data-tab", "avvisi");
+    await expect(page.locator("#editor-modal .dm-energy-source-guide")).toHaveCount(0);
+    await expect(page.locator("#editor-modal .dm-energy-help-compact:visible")).toHaveCount(0);
+    await page.evaluate(() => window.editorSwitch("sez1"));
+    await expect(config).toBeVisible();
+
     if (testInfo.project.name === "mobile")
       await page.screenshot({ path: `test-results/${variant}-config-energy-mobile.png`, fullPage: true });
 
@@ -40,8 +51,19 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     // duplicate cards in hidden views do not inflate status counts.
     const cards = page.locator("#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id]");
     await expect(cards.filter({ hasText: variant.includes("-en") ? "RUNNING" : "IN FUNZIONE" })).toHaveCount(1);
-    await expect(cards.filter({ hasText: "STANDBY" })).toHaveCount(1);
-    await expect(cards.filter({ hasText: variant.includes("-en") ? "OFF" : "SPENTO" })).toHaveCount(3);
+    await expect(cards.filter({ hasText: "STANDBY" })).toHaveCount(2);
+    await expect(cards.filter({ hasText: variant.includes("-en") ? "OFF" : "SPENTO" })).toHaveCount(2);
+
+    const microwave = page.locator(
+      '#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id="appl-microwave"]',
+    );
+    await expect(microwave).toContainText("0 W");
+    await expect(microwave.locator("[data-appliance-state]")).toContainText("STANDBY");
+    await expect(microwave.locator('[data-dm-power-toggle="true"]')).toBeVisible();
+    // The old icon-only toggle may remain in legacy markup for compatibility,
+    // but it must not be visible beside the modern Accendi/Spegni control.
+    await expect(microwave.locator(".appl-action-btn").first()).toBeHidden();
+
     const noHistory = page.locator(
       '#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id="appl-no-history"]',
     );
@@ -70,6 +92,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     }
 
     await page.locator('.tab[data-tab="energy"]').evaluate((button) => button.click());
+    // The fixture deliberately reports 28.2 kWh from the direct Home meter but
+    // 39.9 kWh from the same flow balance used by Home Assistant. The browser
+    // must show the reconciled value, not the direct meter.
     await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house === 39.9);
     await expect(page.locator("#ed-kpi-cons")).toContainText(/39[,.]9/);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy-monthly.png`, fullPage: true });
