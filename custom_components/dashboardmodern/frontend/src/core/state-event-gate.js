@@ -1,6 +1,21 @@
 const STATE_EVENT = "dashboardmodern:state-changed";
 const SERVICE_KEY = "DashboardModernEnergyService";
 const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
+const LEGACY_CONFIG_KEYS = Object.freeze([
+  "dm_dashboard_state",
+  "cd_stanze",
+  "cd_cameras",
+  "cd_appliances",
+  "cd_loads",
+  "cd_luci",
+  "cd_clima_units",
+  "cd_ev_cars",
+  "cd_tapparelle",
+  "cd_piscina",
+  "cd_irrigazione",
+  "cd_energy_model",
+  "cd_entity_overrides",
+]);
 
 function makeEvent(root, detail) {
   if (typeof root.CustomEvent === "function") return new root.CustomEvent(STATE_EVENT, { detail });
@@ -23,6 +38,22 @@ function collectEntityIds(value, output, depth = 0) {
   }
 }
 
+function collectStoredConfig(root, ids) {
+  const storage = root.localStorage;
+  if (!storage?.getItem) return;
+  for (const key of LEGACY_CONFIG_KEYS) {
+    try {
+      const raw = storage.getItem(key);
+      if (!raw) continue;
+      let value = raw;
+      try {
+        value = JSON.parse(raw);
+      } catch (_error) {}
+      collectEntityIds(value, ids);
+    } catch (_error) {}
+  }
+}
+
 function configuredEntities(root) {
   const ids = new Set();
   try {
@@ -34,6 +65,7 @@ function configuredEntities(root) {
   try {
     collectEntityIds(root.ENTITY_OVERRIDES, ids);
   } catch (_error) {}
+  collectStoredConfig(root, ids);
   return ids;
 }
 
@@ -83,8 +115,9 @@ export function installStateEventGate(broker, root = globalThis, { delay = 500 }
     const id = String(state?.entity_id || "").trim();
     if (!id) return;
     const configured = currentInterests();
-    // If the canonical store is not ready yet, remain backward compatible and
-    // allow the event. Once it is ready, unrelated HA entities are ignored.
+    // If neither the canonical nor legacy configuration is ready yet, remain
+    // backward compatible and allow the event. Once configuration is known,
+    // unrelated Home Assistant chatter is ignored.
     if (configured.size && !configured.has(id)) return;
     pendingIds.add(id);
     lastState = state || lastState;
