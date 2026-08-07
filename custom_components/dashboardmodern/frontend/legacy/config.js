@@ -8,13 +8,18 @@
 
   const start = () => {
     if (state.started) return true;
+    const modules = globalThis.DashboardModernModules;
     if (
       !globalThis.__DASHBOARDMODERN_LEGACY_READY__ ||
-      !globalThis.DashboardModernModules ||
+      !modules ||
       globalThis.document?.readyState === "loading"
     ) {
       return false;
     }
+
+    const releaseVersion = modules.diagnostics?.BUILD_INFO?.dashboardVersion;
+    if (releaseVersion) globalThis.DASHBOARD_VERSION = releaseVersion;
+
     state.started = true;
     state.promise = import("../src/sections/section-runtime.js").catch((error) => {
       state.started = false;
