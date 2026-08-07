@@ -145,6 +145,7 @@ const ENERGY_GROUPS = [
     "Batteria · carica",
     [
       ["power", "Potenza", "W", "sensor.batteria_power"],
+      ["soc", "Stato di carica", "%", "sensor.batteria_soc"],
       ["daily_charged_energy", "Caricata oggi", "kWh", "sensor.batteria_caricata_oggi"],
       ["monthly_charged_energy", "Caricata questo mese", "kWh", "sensor.batteria_caricata_mese"],
       ["annual_charged_energy", "Caricata questo anno", "kWh", "sensor.batteria_caricata_anno"],
@@ -189,6 +190,7 @@ const ENERGY_EN = Object.freeze({
   "Energia totale immessa": "Total exported energy",
   Potenza: "Power",
   SOC: "State of charge",
+  "Stato di carica": "State of charge",
   "Energia caricata": "Charged energy",
   "Energia scaricata": "Discharged energy",
 });
