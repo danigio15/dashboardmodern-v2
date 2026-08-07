@@ -35,7 +35,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(cards.filter({ hasText: variant.includes("-en") ? "RUNNING" : "IN FUNZIONE" })).toHaveCount(1);
     await expect(cards.filter({ hasText: "STANDBY" })).toHaveCount(1);
     await expect(cards.filter({ hasText: variant.includes("-en") ? "OFF" : "SPENTO" })).toHaveCount(3);
-    const noHistory = cards.locator('[data-appliance-id="appl-no-history"]');
+    const noHistory = page.locator(
+      '#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id="appl-no-history"]',
+    );
+    await expect(noHistory).toHaveCount(1);
     await expect(noHistory.getByRole("button", { name: /Storico|History/ })).toBeDisabled();
     const statuses = await cards.locator(".appl-st").allTextContents();
     const normalized = await cards.locator("[data-appliance-state]").allTextContents();
