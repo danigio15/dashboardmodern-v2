@@ -17,6 +17,8 @@ export const consolidatedStates = [
     state: "82",
     attributes: { unit_of_measurement: "W", device_class: "power" },
   },
+  { entity_id: "sensor.boiler_power", state: "2", attributes: { unit_of_measurement: "W", device_class: "power" } },
+  { entity_id: "sensor.microwave_power", state: "0", attributes: { unit_of_measurement: "W", device_class: "power" } },
   ...[
     "house_total",
     "solar_total",
@@ -75,7 +77,8 @@ export const consolidatedSeed = {
         visual_key: "boiler",
         room_id: "room-terrazza",
         total_energy_entity: "sensor.boiler_total",
-        entities: ["sensor.boiler_total"],
+        power_entity: "sensor.boiler_power",
+        entities: ["sensor.boiler_power", "sensor.boiler_total"],
         show_in_dashboard: true,
         show_in_report: true,
       },
@@ -87,9 +90,19 @@ export const consolidatedSeed = {
         visual_key: "microwave",
         room_id: "room-salone",
         total_energy_entity: "sensor.microwave_total",
-        entities: ["sensor.microwave_total"],
+        power_entity: "sensor.microwave_power",
+        entities: ["sensor.microwave_power", "sensor.microwave_total"],
         show_in_dashboard: true,
         show_in_report: true,
+      },
+      {
+        id: "appl-no-history",
+        name: "Ventola",
+        device_type: "fan",
+        room_id: "room-salone",
+        entities: [],
+        show_in_dashboard: true,
+        show_in_report: false,
       },
       {
         id: "appl-oven",
@@ -227,11 +240,6 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
             window.__dmStatisticsRequests.push(structuredClone(message));
             const start = new Date(message.start_time);
             const end = new Date(message.end_time);
-            const days = Math.abs(end - start) / 86400000;
-            const baseline =
-              (message.period === "hour" && days <= 0.2 && end.getHours() === 0) ||
-              (message.period === "day" && days <= 3.1 && end.getDate() === 1) ||
-              (message.period === "month" && days <= 35 && end.getMonth() === 0 && end.getDate() === 1);
             const previousPeriod = window.__dmSelectedPeriod;
             const isPreviousMonth =
               start.getMonth() + 1 === previousPeriod.month && start.getFullYear() === previousPeriod.year;
@@ -245,8 +253,12 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
                     : currentMonthly;
             const result = Object.fromEntries(
               (message.statistic_ids || []).map((id) => {
-                const sum = base[id] + (baseline ? 0 : selected[id] || 0);
-                return [id, [{ start: message.start_time, sum, state: sum }]];
+                const initial = base[id];
+                const final = initial + (selected[id] || 0);
+                return [id, [
+                  { start: message.start_time, sum: initial, state: initial },
+                  { start: new Date(end.getTime() - 1).toISOString(), sum: final, state: final },
+                ]];
               }),
             );
             this.emit({ id: message.id, type: "result", success: true, result });

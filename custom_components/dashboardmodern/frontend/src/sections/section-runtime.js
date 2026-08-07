@@ -5,7 +5,6 @@ import { installEnergyServicesSection } from "./energy-services-section.js";
 import { installEnergySection } from "./energy-section.js";
 import { installEnergyStabilitySection } from "./energy-stability-section.js";
 import { installEnergyGuidanceSection } from "./energy-guidance-section.js";
-import { installEnergyConfigSection } from "./energy-config-section.js";
 import { installEnergyFlowSection } from "./energy-flow-section.js";
 import { installTemperatureSection } from "./temperature-section.js";
 import { installTemperatureLayoutSection } from "./temperature-layout-section.js";
@@ -47,7 +46,6 @@ export function installSectionRuntime() {
     installEnergySection();
     installEnergyStabilitySection();
     installEnergyGuidanceSection();
-    installEnergyConfigSection();
     installEnergyFlowSection();
     installTemperatureSection();
     installTemperatureLayoutSection();
@@ -80,7 +78,6 @@ export function installSectionRuntime() {
         "energy",
         "energy-stability",
         "energy-guidance",
-        "energy-config",
         "energy-flow",
         "temperature",
         "temperature-layout",

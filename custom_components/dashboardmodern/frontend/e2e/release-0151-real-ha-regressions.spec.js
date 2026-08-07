@@ -78,8 +78,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       });
       await expect(field).toBeVisible();
       await expect(field).toHaveValue(value);
-      await expect(field.locator("xpath=ancestor::*[@data-dm-injected-energy-total='true'][1]").locator(".dm-energy-total-help")).toContainText(/total_increasing/);
+      const nativeTotalField = field.locator("xpath=ancestor::label[@data-energy-total-field='true'][1]");
+      await expect(nativeTotalField).toBeAttached();
+      await expect(nativeTotalField).toContainText(
+        variant.includes("-en") ? /Total energy meter/i : /Contatore energia totale/i,
+      );
     }
+    await expect(page.locator(".dm-energy-recorder-explanation")).toContainText(/total_increasing/);
     await expect(page.locator(".dm-energy-total-overview")).toContainText(
       variant.includes("-en") ? /previous months/i : /mesi precedenti/i,
     );

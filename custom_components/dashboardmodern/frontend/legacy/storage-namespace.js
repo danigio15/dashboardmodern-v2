@@ -19,6 +19,14 @@
 (function () {
   "use strict";
 
+  // The English shell historically declared lang="it". Resolve the variant
+  // synchronously before modules-entry.js reads documentElement.lang, so every
+  // native renderer receives the correct locale without runtime DOM patches.
+  try {
+    var dashboardPath = window.location && window.location.pathname ? window.location.pathname : "";
+    if (/(^|\/)dashboard-en\.html$/i.test(dashboardPath)) document.documentElement.lang = "en";
+  } catch (e) {}
+
   var NS_PREFIX = "cdns_"; // where the resolved instance id is remembered
   var MANAGED = /^(cd_|dm_)/;
 

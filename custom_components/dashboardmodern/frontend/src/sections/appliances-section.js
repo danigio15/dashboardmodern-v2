@@ -1,4 +1,6 @@
 import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
+import { createApplianceViewModel } from "../core/appliance-view-model.js";
+import { runtimeMetrics } from "../core/runtime-metrics.js";
 import {
   allStates,
   clean,
@@ -64,24 +66,6 @@ function visualFor(device) {
   };
 }
 
-function entityId(entry) {
-  return clean(typeof entry === "string" ? entry : entry?.entity || entry?.entity_id);
-}
-
-function controlEntity(device) {
-  return clean(
-    device?.control_entity ||
-      (device?.entities || []).map(entityId).find((id) => /^(switch|light|fan|input_boolean)\./.test(id)),
-  );
-}
-
-function isOn(device, states) {
-  const control = controlEntity(device);
-  if (control) return states[control]?.state === "on";
-  const power = inferApplianceEntity(device, states, "power");
-  return power ? Number(states[power]?.state) > 1 : false;
-}
-
 function setText(node, value) {
   if (node && node.textContent !== value) node.textContent = value;
 }
@@ -134,21 +118,21 @@ function normalizeArtwork(card, device) {
   card.dataset.dmMediaKind = "asset";
 }
 
-function normalizeStatus(card, device, states) {
-  const on = isOn(device, states);
-  const label = on ? (english() ? "ON" : "ACCESO") : english() ? "OFF" : "SPENTO";
+function normalizeStatus(card, model) {
   const badge = card.querySelector(
-    ".appl-wide-status,.appl-status,.appl-state,[data-appliance-state],.appl-badge",
+    ".appl-wide-status,.appl-status,.appl-state,.appl-st,[data-appliance-state],.appl-badge",
   );
   if (badge) {
-    badge.dataset.state = on ? "on" : "off";
-    setText(badge, label);
+    badge.dataset.state = model.badge;
+    badge.classList.remove("run", "standby", "off", "unavailable");
+    badge.classList.add(model.mode === "running" ? "run" : model.mode);
+    setText(badge, model.label);
   }
-  card.dataset.applianceState = on ? "on" : "off";
+  card.dataset.applianceState = model.mode;
 }
 
-function ensureToggle(card, device, states) {
-  const entity = controlEntity(device);
+function ensureToggle(card, model) {
+  const entity = model.action.entity;
   if (!entity) return;
   let button = card.querySelector('[data-dm-power-toggle="true"]');
   if (!button) {
@@ -175,11 +159,10 @@ function ensureToggle(card, device, states) {
       }
     });
   }
-  const on = states[entity]?.state === "on";
   button.dataset.entity = entity;
-  button.dataset.state = on ? "on" : "off";
-  button.setAttribute("aria-pressed", on ? "true" : "false");
-  setText(button, on ? (english() ? "Turn off" : "Spegni") : english() ? "Turn on" : "Accendi");
+  button.dataset.state = model.action.pressed ? "on" : "off";
+  button.setAttribute("aria-pressed", model.action.pressed ? "true" : "false");
+  setText(button, model.action.label);
 }
 
 export function normalizeApplianceCards() {
@@ -192,20 +175,22 @@ export function normalizeApplianceCards() {
   ];
   if (!configured.length || !cards.length) return false;
   state.normalizing = true;
+  runtimeMetrics.increment("applianceRenders");
   try {
     const byId = new Map(configured.map((device) => [clean(device.id), device]));
     const states = allStates();
     cards.forEach((card, index) => {
       const device = byId.get(clean(card.dataset.applianceId)) || configured[index];
       if (!device) return;
+      const model = createApplianceViewModel(device, states, section("rooms", []), english() ? "en" : "it");
       card.dataset.dmApplianceSection = "true";
       card.dataset.dmArtStyle = "panel";
       card.dataset.applianceThemeAware = "true";
       card.querySelectorAll(".appl-spark").forEach((node) => node.remove());
       normalizeArtwork(card, device);
       normalizeEnergyGlyphs(card);
-      normalizeStatus(card, device, states);
-      ensureToggle(card, device, states);
+      normalizeStatus(card, model);
+      ensureToggle(card, model);
     });
     return true;
   } finally {
@@ -264,18 +249,27 @@ function installStyles() {
       }
       #page-appliances-main .appl-wide-status,#appl-grid-overview .appl-wide-status,
       #page-appliances-main .appl-status,#appl-grid-overview .appl-status,
+      #page-appliances-main .appl-st,#appl-grid-overview .appl-st,
       #page-appliances-main [data-appliance-state],#appl-grid-overview [data-appliance-state]{
         display:inline-flex!important;align-items:center!important;justify-content:center!important;
         min-width:68px!important;min-height:30px!important;margin:0!important;padding:6px 10px!important;
         border-radius:999px!important;line-height:1!important;font-weight:900!important
       }
-      #page-appliances-main [data-state="on"],#appl-grid-overview [data-state="on"]{
+      #page-appliances-main [data-state="running"],#appl-grid-overview [data-state="running"]{
         background:color-mix(in srgb,var(--success-color,#10b981) 14%,transparent)!important;
         color:var(--success-color,#047857)!important
+      }
+      #page-appliances-main [data-state="standby"],#appl-grid-overview [data-state="standby"]{
+        background:color-mix(in srgb,var(--warning-color,#f59e0b) 16%,transparent)!important;
+        color:var(--warning-color,#b45309)!important
       }
       #page-appliances-main [data-state="off"],#appl-grid-overview [data-state="off"]{
         background:color-mix(in srgb,var(--secondary-text-color,#64748b) 12%,transparent)!important;
         color:var(--dm-appl-muted)!important
+      }
+      #page-appliances-main [data-state="unavailable"],#appl-grid-overview [data-state="unavailable"]{
+        background:color-mix(in srgb,var(--error-color,#dc2626) 12%,transparent)!important;
+        color:var(--error-color,#b91c1c)!important
       }
       #page-appliances-main .appl-wide-actions,#appl-grid-overview .appl-wide-actions,
       #page-appliances-main .appl-actions,#appl-grid-overview .appl-actions{
@@ -304,10 +298,12 @@ function installStyles() {
       }
       @media(max-width:560px){
         #page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{
-          grid-template-columns:96px minmax(0,1fr)!important;min-height:158px!important
+          grid-template-columns:1fr!important;grid-template-rows:140px auto!important;min-height:0!important
         }
-        #page-appliances-main .appl-wide-body,#appl-grid-overview .appl-wide-body{padding:12px 10px!important}
-        #page-appliances-main .appl-wide-actions,#appl-grid-overview .appl-wide-actions{flex-wrap:wrap!important}
+        #page-appliances-main .appl-visual,#appl-grid-overview .appl-visual{min-height:140px!important}
+        #page-appliances-main .appl-wide-body,#appl-grid-overview .appl-wide-body{padding:14px 12px!important}
+        #page-appliances-main .appl-wide-actions,#appl-grid-overview .appl-wide-actions{display:grid!important;grid-template-columns:1fr!important}
+        #page-appliances-main .appl-wide-actions button,#appl-grid-overview .appl-wide-actions button{width:100%!important;min-height:44px!important}
       }
     `,
   );

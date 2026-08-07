@@ -14,20 +14,20 @@ test("host installs the bridge before any dashboard script executes", async () =
   assert.doesNotMatch(source, /frame\.setAttribute\("src"/);
 });
 
-test("section runtime owns energy configuration and flow rendering", async () => {
+test("native renderer owns energy configuration while runtime owns flow rendering", async () => {
   const runtime = await read("src/sections/section-runtime.js");
-  assert.match(runtime, /energy-config-section\.js/);
+  const renderer = await read("src/core/renderers.js");
+  assert.doesNotMatch(runtime, /energy-config-section\.js/);
   assert.match(runtime, /energy-flow-section\.js/);
-  assert.match(runtime, /installEnergyConfigSection\(\)/);
   assert.match(runtime, /installEnergyFlowSection\(\)/);
+  assert.match(renderer, /Contatore energia totale/);
 });
 
-test("energy config explains cumulative totals and optional period sensors", async () => {
-  const source = await read("src/sections/energy-config-section.js");
-  assert.match(source, /state_class total o total_increasing/);
-  assert.match(source, /mesi precedenti e Report/);
-  assert.match(source, /Sensori facoltativi del periodo/);
-  assert.match(source, /non usare un sensore W\/kW/i);
+test("energy config explains Recorder totals without DOM patching", async () => {
+  const source = await read("src/core/renderers.js");
+  assert.match(source, /state_class: total_increasing/);
+  assert.match(source, /somma Recorder finale meno somma Recorder iniziale/);
+  assert.doesNotMatch(source, /MutationObserver/);
 });
 
 test("energy flow module restores active source colors", async () => {

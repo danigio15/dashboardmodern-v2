@@ -73,7 +73,7 @@ for (const locale of ["it", "en"]) {
         "sensor.power": { state: "2", attributes: { unit_of_measurement: "W" } },
         "switch.appliance": { state: "on", attributes: {} },
       }),
-      { state: "on", watts: 2 },
+      { state: "standby", watts: 2 },
     );
     assert.deepEqual(
       applianceState(appliance, {
@@ -96,7 +96,7 @@ for (const locale of ["it", "en"]) {
         "switch.fridge": { state: "on", attributes: {} },
         "sensor.fridge_power": { state: "0", attributes: { unit_of_measurement: "W" } },
       }),
-      { state: "on", watts: 0 },
+      { state: "standby", watts: 0 },
     );
     assert.deepEqual(
       applianceState(appliance, {

@@ -1,4 +1,5 @@
 import { getDeviceDisplayName, getDeviceVisual } from "./device-model.js";
+import { runtimeMetrics } from "./runtime-metrics.js";
 
 function metric(states, entity, expectedUnit) {
   const state = entity && states[entity];
@@ -70,6 +71,7 @@ export function createRenderCoordinator(store, renderers = {}) {
     // the stale editor DOM survived until editorSwitch() happened to rebuild it.
     call("renderCurrentEditor", change.section, change);
     call("renderDropdowns", change.section, change);
+    runtimeMetrics.increment("globalRenders");
     call("renderDashboard", change.section, change);
     if (change.visibilityChanged) call("renderNavbar", change);
   });
@@ -112,19 +114,21 @@ const ENERGY_GROUPS = [
       ["daily_energy", "Energia giornaliera", "kWh", "sensor.casa_oggi"],
       ["monthly_energy", "Energia mensile", "kWh", "sensor.casa_mese"],
       ["annual_energy", "Energia annuale", "kWh", "sensor.casa_anno"],
+      ["total_energy", "Contatore energia totale", "kWh", "sensor.casa_totale"],
     ],
   ],
   [
     "grid",
-    "Rete",
+    "Rete · prelievo",
     [
       ["power", "Potenza rete", "W", "sensor.rete_power"],
       ["daily_import_energy", "Energia prelevata giornaliera", "kWh", "sensor.rete_prelievo_oggi"],
-      ["daily_export_energy", "Energia immessa giornaliera", "kWh", "sensor.rete_immissione_oggi"],
       ["monthly_import_energy", "Energia prelevata mensile", "kWh", "sensor.rete_prelievo_mese"],
-      ["monthly_export_energy", "Energia immessa mensile", "kWh", "sensor.rete_immissione_mese"],
+      ["annual_import_energy", "Energia prelevata annuale", "kWh", "sensor.rete_prelievo_anno"],
+      ["total_import_energy", "Contatore energia totale", "kWh", "sensor.rete_prelievo_totale"],
     ],
   ],
+  ["grid", "Rete · immissione", [["power", "Potenza", "W", "sensor.rete_power"], ["daily_export_energy", "Energia immessa giornaliera", "kWh", "sensor.rete_immissione_oggi"], ["monthly_export_energy", "Energia immessa mensile", "kWh", "sensor.rete_immissione_mese"], ["annual_export_energy", "Energia immessa annuale", "kWh", "sensor.rete_immissione_anno"], ["total_export_energy", "Contatore energia totale", "kWh", "sensor.rete_immissione_totale"]]],
   [
     "solar",
     "Fotovoltaico",
@@ -133,31 +137,48 @@ const ENERGY_GROUPS = [
       ["daily_energy", "Energia giornaliera", "kWh", "sensor.fv_oggi"],
       ["monthly_energy", "Energia mensile", "kWh", "sensor.fv_mese"],
       ["annual_energy", "Energia annuale", "kWh", "sensor.fv_anno"],
+      ["total_energy", "Contatore energia totale", "kWh", "sensor.fv_totale"],
     ],
   ],
   [
     "battery",
-    "Batteria",
+    "Batteria · carica",
     [
       ["power", "Potenza", "W", "sensor.batteria_power"],
-      ["soc", "SOC", "%", "sensor.batteria_soc"],
+      ["soc", "Stato di carica", "%", "sensor.batteria_soc"],
       ["daily_charged_energy", "Caricata oggi", "kWh", "sensor.batteria_caricata_oggi"],
       ["monthly_charged_energy", "Caricata questo mese", "kWh", "sensor.batteria_caricata_mese"],
+      ["annual_charged_energy", "Caricata questo anno", "kWh", "sensor.batteria_caricata_anno"],
+      ["total_charged_energy", "Contatore energia totale", "kWh", "sensor.batteria_caricata_totale"],
     ],
   ],
+  ["battery", "Batteria · scarica", [["power", "Potenza", "W", "sensor.batteria_power"], ["daily_discharged_energy", "Scaricata oggi", "kWh", "sensor.batteria_scaricata_oggi"], ["monthly_discharged_energy", "Scaricata questo mese", "kWh", "sensor.batteria_scaricata_mese"], ["annual_discharged_energy", "Scaricata questo anno", "kWh", "sensor.batteria_scaricata_anno"], ["total_discharged_energy", "Contatore energia totale", "kWh", "sensor.batteria_scaricata_totale"]]],
 ];
 
 const ENERGY_ICONS = { house: "🏠", grid: "🔌", solar: "☀️", battery: "🔋" };
 const ENERGY_EN = Object.freeze({
   Casa: "Home",
   Rete: "Grid",
+  "Rete · prelievo": "Grid · import",
+  "Rete · immissione": "Grid · export",
   Fotovoltaico: "Solar",
   Batteria: "Battery",
+  "Batteria · carica": "Battery · charge",
+  "Batteria · scarica": "Battery · discharge",
   "Potenza istantanea": "Instant power",
   "Energia giornaliera": "Daily energy",
   "Energia mensile": "Monthly energy",
   "Energia annuale": "Annual energy",
   "Energia totale": "Total energy",
+  "Contatore energia totale": "Total energy meter",
+  "Energia prelevata annuale": "Annual imported energy",
+  "Energia immessa annuale": "Annual exported energy",
+  "Caricata oggi": "Charged today",
+  "Caricata questo mese": "Charged this month",
+  "Caricata questo anno": "Charged this year",
+  "Scaricata oggi": "Discharged today",
+  "Scaricata questo mese": "Discharged this month",
+  "Scaricata questo anno": "Discharged this year",
   "Potenza rete": "Grid power",
   "Potenza prelevata": "Import power",
   "Potenza immessa": "Export power",
@@ -169,10 +190,9 @@ const ENERGY_EN = Object.freeze({
   "Energia totale immessa": "Total exported energy",
   Potenza: "Power",
   SOC: "State of charge",
+  "Stato di carica": "State of charge",
   "Energia caricata": "Charged energy",
   "Energia scaricata": "Discharged energy",
-  "Caricata oggi": "Charged today",
-  "Caricata questo mese": "Charged this month",
 });
 
 const ENERGY_UI = Object.freeze({
@@ -277,6 +297,12 @@ export function renderEnergyEditor(
   reportButton.textContent = "REPORT";
   const flows = document.createElement("section");
   flows.dataset.energyPanel = "flows";
+  const intro = document.createElement("p");
+  intro.className = "ed-intro dm-energy-recorder-explanation";
+  intro.textContent = locale === "en"
+    ? "For every source, Total energy meter is the cumulative Recorder source (normally state_class: total_increasing). It is not a period value: day, month and year are calculated as final Recorder sum minus initial Recorder sum, so meter resets are preserved. Period sensors are optional current-period overrides."
+    : "Per ogni sorgente, Contatore energia totale è il sensore cumulativo Recorder (normalmente state_class: total_increasing). Non è un valore di periodo: giorno, mese e anno sono calcolati come somma Recorder finale meno somma Recorder iniziale, preservando i reset. I sensori di periodo sono override facoltativi del periodo corrente.";
+  flows.append(intro);
   const settings = document.createElement("section");
   settings.dataset.energyPanel = "settings";
   settings.hidden = true;
@@ -319,8 +345,11 @@ export function renderEnergyEditor(
       const field = document.createElement("label");
       field.className = "ed-slot";
       field.innerHTML = `<span class="ed-slot-lbl">${label} <span class="ed-acc-n">${unit}</span> <span class="ed-acc-n">${copy.optional}</span></span><span class="ed-hint">${copy.entityHint} ${example}</span>`;
+      if (key.startsWith("total_" ) || key === "total_energy") field.dataset.energyTotalField = "true";
       const { field: entity, input } = createEntityPickerField(document, {
-        id: `dm-energy-${group}-${key}`,
+        id: key === "power" && (groupIndex === 2 || groupIndex === 5)
+          ? `dm-energy-${group}-${key}-${groupIndex}`
+          : `dm-energy-${group}-${key}`,
         value: model[group]?.[key] || "",
         placeholder: example,
         label,

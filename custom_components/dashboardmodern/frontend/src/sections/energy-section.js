@@ -1,6 +1,8 @@
 import {
   HomeAssistantBroker,
   PERIOD_SOURCES,
+  periodConsumption,
+  recorderBucketConsumptions,
   sourcePlans,
 } from "../core/period-service.js";
 import {
@@ -25,6 +27,7 @@ import {
   sanitizeHostedCredentials,
   waitForHostedBridge,
 } from "../transport/hosted-bridge-guard.js";
+import { runtimeMetrics } from "../core/runtime-metrics.js";
 
 const KEY = "__DASHBOARDMODERN_RUNTIME_ROOT__";
 const VERSION = "0.15.4";
@@ -87,6 +90,27 @@ const broker = new SafeHomeAssistantBroker({
   timeout: 12000,
   cacheCurrentMs: 10000,
   cacheHistoricalMs: 600000,
+});
+root.DashboardModernEnergyService = Object.freeze({
+  statistics: (ids, start, end, period) => broker.statistics(ids, start, end, period),
+  async statisticsWithGrowth(ids, start, end, period = "day") {
+    const boundary = new Date(start);
+    const baselineStart = new Date(boundary);
+    if (period === "hour") baselineStart.setHours(baselineStart.getHours() - 2);
+    else if (period === "month") baselineStart.setMonth(baselineStart.getMonth() - 1);
+    else baselineStart.setDate(baselineStart.getDate() - 2);
+    const result = await broker.statistics(ids, baselineStart, end, period);
+    return Object.fromEntries(ids.map((id) => {
+      const ordered = (result[id] || []).slice().sort((a, b) => new Date(a.start) - new Date(b.start));
+      const before = ordered.filter((row) => new Date(row.start) < boundary);
+      const within = ordered.filter((row) => new Date(row.start) >= boundary && new Date(row.start) < new Date(end));
+      return [id, recorderBucketConsumptions(within, before.at(-1) || null)];
+    }));
+  },
+  consumption: periodConsumption,
+  buckets: recorderBucketConsumptions,
+  broker,
+  refresh: () => scheduleEnergyRefresh(true),
 });
 
 const ENERGY_KEYS = PERIOD_SOURCES.map((item) => item.key);
@@ -209,6 +233,7 @@ function incompleteMessage(results) {
 }
 
 export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
+  runtimeMetrics.increment("energyRefreshes");
   const generation = ++state.generation;
   const monthDate = selectedDate(period);
   const today = new Date();
