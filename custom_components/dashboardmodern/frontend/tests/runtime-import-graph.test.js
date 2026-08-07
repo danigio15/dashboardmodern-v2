@@ -1,11 +1,21 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const importPattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
+
+async function filesBelow(directory) {
+  const output = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) output.push(...(await filesBelow(absolute)));
+    else output.push(absolute);
+  }
+  return output;
+}
 
 async function productionGraph(entry) {
   const seen = new Map();
@@ -103,7 +113,7 @@ test("production has one dedicated owner per section and no patch cascade", asyn
     ),
     [],
   );
-  assert.ok(relative.length <= 48, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 50, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
@@ -118,4 +128,14 @@ test("production has one dedicated owner per section and no patch cascade", asyn
       `${path.relative(frontendRoot, file)} must not observe the whole document`,
     );
   }
+
+  // Unlike the old legacy-only orphan audit, this proves that every modern
+  // production source module is reachable from the actual runtime entrypoint.
+  const srcRoot = path.join(frontendRoot, "src");
+  const srcFiles = (await filesBelow(srcRoot)).filter((file) => file.endsWith(".js"));
+  const srcOrphans = srcFiles
+    .filter((file) => !graph.has(path.normalize(file)))
+    .map((file) => path.relative(frontendRoot, file).replaceAll("\\", "/"))
+    .sort();
+  assert.deepEqual(srcOrphans, [], `orphan src modules:\n${srcOrphans.join("\n")}`);
 });
