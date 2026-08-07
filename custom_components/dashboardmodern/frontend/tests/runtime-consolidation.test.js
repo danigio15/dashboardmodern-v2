@@ -180,11 +180,11 @@ test("production entry delegates once to the section runtime, which owns the gua
     "editor-contracts",
     "report-editor",
     "shutter",
-    "shutter-alert-layout",
     "ev",
   ]) {
     assert.match(sections, new RegExp(`${name}-section\\.js`));
   }
+  assert.doesNotMatch(sections, /shutter-alert-layout-section\.js/);
 
   assert.equal((energy.match(/new\s+SafeHomeAssistantBroker\s*\(/g) || []).length, 1);
   assert.match(energy, /loadEnergyPeriod\("day"/);
@@ -224,6 +224,7 @@ test("production entry delegates once to the section runtime, which owns the gua
     "../src/core/alerts-runtime.js",
     "../src/core/vehicle-image-runtime.js",
     "../src/core/runtime-startup-coordinator.js",
+    "../src/sections/shutter-alert-layout-section.js",
   ]) {
     await assert.rejects(readFile(new URL(deleted, import.meta.url), "utf8"), {
       code: "ENOENT",
