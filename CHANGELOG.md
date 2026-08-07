@@ -3,6 +3,52 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 0.15.11 — 2026-08-07
+
+### Corretto
+
+- Il consumo **Casa** viene riconciliato con il bilancio dei flussi usato dalla
+  dashboard Energia di Home Assistant quando Fotovoltaico e Rete sono
+  configurati; il contatore Casa diretto resta fallback se il bilancio non è
+  ricostruibile.
+- Le card Elettrodomestici non mostrano più **IN FUNZIONE** a 0 W soltanto
+  perché lo switch di comando è ON: `state_entity`/`status_entity`, comando e
+  potenza hanno ruoli distinti e 0 W con smart plug ON risulta STANDBY.
+- Rimane un solo comando **Accendi/Spegni** nella card, eliminando il doppio
+  controllo iconico + testuale.
+- Un sensore mensile `measurement` non viene più salvato, precompilato o usato
+  come contatore lifetime per Storico/Report; il campo totale richiede una
+  sorgente cumulativa `total` o `total_increasing`.
+- Le informazioni specifiche Energia vengono rimosse passando ad Avvisi o ad
+  altre sezioni dell'Editor.
+- Le righe Report sono contenute entro i bordi del modal anche su viewport
+  stretti e i modal di modifica condividono shell, header, campi, scroll e
+  footer coerenti.
+
+### Prestazioni
+
+- Gli aggiornamenti Home Assistant non riferiti da alcuna configurazione della
+  dashboard aggiornano i registri interni senza provocare rendering UI.
+- Il filtro live include anche le configurazioni legacy ancora valide, compresi
+  profili EV, stanze, luci, clima, tapparelle, energia e override entità.
+- EV reagisce soltanto alle entità dei profili auto e Temperature soltanto ai
+  sensori temperatura/umidità delle stanze configurate.
+- Il `MutationObserver` dell'Editor pianifica lavoro solo per mutazioni che
+  riguardano effettivamente `#editor-modal` o i modal di sezione.
+
+### Pulizia e verifica
+
+- Eliminati i quattro duplicati della cartella root `assets/`: README e HACS
+  usano ora la cartella canonica `brand/`; resta separata la copia brand
+  dell'integrazione installata necessaria al packaging Home Assistant.
+- Rimossi test legati nominalmente a vecchie release e mantenuti i relativi
+  contratti in test correnti/version-neutral.
+- Browser E2E usa fixture che riproducono le regressioni reali: contatore Casa
+  diretto discordante dai flussi, elettrodomestico a 0 W con switch ON, overflow
+  Report e guida Energia che non deve comparire in Avvisi.
+- Validazione HACS, hassfest, Python, Ruff, test frontend e audit orphan restano
+  gate obbligatori della release.
+
 ## 0.15.10 — 2026-08-07
 
 ### Corretto
