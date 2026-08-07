@@ -210,27 +210,18 @@ function installStyles() {
         background:var(--surface-3,#212d4c)!important;color:var(--text,#e6edf7)!important;
         border-color:var(--card-border,#263453)!important
       }
-      #editor-modal[data-dm-editor-theme="dark"] .ed-slot-lbl{
-        color:var(--text-dim,#92a4c2)!important
-      }
+      #editor-modal[data-dm-editor-theme="dark"] .ed-slot-lbl{color:var(--text-dim,#92a4c2)!important}
       #editor-modal [data-energy-panel="report"] [data-report-manual][hidden]{display:none!important}
-      #editor-modal [data-energy-panel="report"] [data-report-manual]:not([hidden]){
-        display:grid!important;gap:10px!important;margin-top:10px!important
-      }
+      #editor-modal [data-energy-panel="report"] [data-report-manual]:not([hidden]){display:grid!important;gap:10px!important;margin-top:10px!important}
       #editor-modal .dm-energy-help-compact[hidden]{display:none!important}
-      #editor-modal .dm-energy-help-compact{
-        display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:center!important;
-        gap:8px 12px!important;margin:0 0 12px!important;padding:10px 12px!important;border-radius:14px!important;
-        background:color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 8%,transparent)!important;
-        color:var(--primary-text-color,var(--text,#0f172a))!important
-      }
+      #editor-modal .dm-energy-help-compact{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:center!important;gap:8px 12px!important;margin:0 0 12px!important;padding:10px 12px!important;border-radius:14px!important;background:color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 8%,transparent)!important;color:var(--primary-text-color,var(--text,#0f172a))!important}
       #editor-modal .dm-energy-help-compact strong{white-space:nowrap!important}
       #editor-modal .dm-energy-help-compact span{color:var(--secondary-text-color,var(--text-dim,#64748b))!important;font-size:12px!important;line-height:1.35!important}
       #editor-modal .dm-energy-total-note{display:block!important;margin-top:4px!important;font-size:10px!important;line-height:1.2!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
 
-      /* One modal contract for Appliances, Alerts, Actions, Climate, Shutters and Rooms. */
+      /* Canonical geometry for every section editor. */
       .dm-section-modal{position:fixed!important;inset:0!important;z-index:100040!important;display:grid!important;place-items:center!important;padding:16px!important;background:rgba(15,23,42,.58)!important;backdrop-filter:blur(5px)!important}
-      .dm-section-modal .dm-section-dialog{box-sizing:border-box!important;width:min(880px,calc(100vw - 24px))!important;max-height:min(92dvh,920px)!important;display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;overflow:hidden!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:26px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--primary-text-color,var(--text,#0f172a))!important;box-shadow:0 28px 80px rgba(15,23,42,.3)!important}
+      .dm-section-modal .dm-section-dialog{box-sizing:border-box!important;width:min(880px,calc(100vw - 24px))!important;height:min(760px,calc(100dvh - 32px))!important;max-height:min(760px,calc(100dvh - 32px))!important;display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;overflow:hidden!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:26px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--primary-text-color,var(--text,#0f172a))!important;box-shadow:0 28px 80px rgba(15,23,42,.3)!important}
       .dm-section-modal .dm-section-dialog>header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:18px 22px!important;border-bottom:1px solid var(--divider-color,#e2e8f0)!important;font-size:18px!important}
       .dm-section-modal .dm-section-dialog>header [data-close]{display:grid!important;place-items:center!important;width:42px!important;height:42px!important;border:0!important;border-radius:50%!important;background:var(--secondary-background-color,#f1f5f9)!important;color:var(--secondary-text-color,#64748b)!important;font-size:20px!important;cursor:pointer!important}
       .dm-section-modal .dm-section-dialog>form{box-sizing:border-box!important;min-height:0!important;overflow:auto!important;display:grid!important;align-content:start!important;gap:14px!important;padding:20px 22px 0!important}
@@ -244,21 +235,16 @@ function installStyles() {
       .dm-section-modal .dm-section-dialog>form>footer .ed-save-btn{background:var(--success-color,#059669)!important;color:#fff!important}
       #dm-appliance-editor-modal .dm-appliance-editor-dialog{overflow:hidden!important}
 
-      #page-appliances-main .appl-wide-card .appl-wide-stat,
-      #appl-grid-overview .appl-wide-card .appl-wide-stat,
-      #page-appliances-main .appl-wide-card .appl-energy,
-      #appl-grid-overview .appl-wide-card .appl-energy,
-      #page-appliances-main .appl-wide-card .appl-kwh,
-      #appl-grid-overview .appl-wide-card .appl-kwh{
-        color:var(--primary-text-color,var(--text,#0f172a))!important;opacity:1!important
-      }
-      #page-appliances-main .appl-wide-status,#appl-grid-overview .appl-wide-status,
-      #page-appliances-main .appl-status,#appl-grid-overview .appl-status{
-        align-self:center!important;vertical-align:middle!important
-      }
+      #page-appliances-main .appl-wide-card .appl-wide-stat,#appl-grid-overview .appl-wide-card .appl-wide-stat,
+      #page-appliances-main .appl-wide-card .appl-energy,#appl-grid-overview .appl-wide-card .appl-energy,
+      #page-appliances-main .appl-wide-card .appl-kwh,#appl-grid-overview .appl-wide-card .appl-kwh{color:var(--primary-text-color,var(--text,#0f172a))!important;opacity:1!important}
+      #page-appliances-main .appl-wide-status,#appl-grid-overview .appl-wide-status,#page-appliances-main .appl-status,#appl-grid-overview .appl-status{align-self:center!important;vertical-align:middle!important}
       @media(max-width:620px){
         #editor-modal .dm-energy-help-compact{grid-template-columns:1fr!important}
-        .dm-section-modal{padding:0!important;place-items:stretch!important}.dm-section-modal .dm-section-dialog{width:100%!important;max-height:100dvh!important;height:100dvh!important;border-radius:0!important}.dm-section-modal .dm-section-dialog>form{padding-left:16px!important;padding-right:16px!important}.dm-section-modal .dm-section-dialog>form>footer{margin-left:-16px!important;margin-right:-16px!important;padding-left:16px!important;padding-right:16px!important}
+        .dm-section-modal{padding:0!important;place-items:stretch!important}
+        .dm-section-modal .dm-section-dialog{width:100%!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important}
+        .dm-section-modal .dm-section-dialog>form{padding-left:16px!important;padding-right:16px!important}
+        .dm-section-modal .dm-section-dialog>form>footer{margin-left:-16px!important;margin-right:-16px!important;padding-left:16px!important;padding-right:16px!important}
       }
     `,
   );
@@ -282,8 +268,6 @@ export function installEditorContractsSection() {
       "click",
       (event) => {
         if (event.target?.closest?.("[data-report-save]")) synchronizeReportFields();
-        // A click is the common entry point for opening/switching editors. Run
-        // once on the next frame, after the legacy handler has mounted the modal.
         schedule();
       },
       true,
@@ -291,6 +275,8 @@ export function installEditorContractsSection() {
   }
 }
 
-if (doc?.readyState === "loading")
+if (doc?.readyState === "loading") {
   doc.addEventListener("DOMContentLoaded", installEditorContractsSection, { once: true });
-else installEditorContractsSection();
+} else {
+  installEditorContractsSection();
+}
