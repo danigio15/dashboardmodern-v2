@@ -142,6 +142,7 @@ export function openApplianceEditor(index) {
       return;
     }
     const visualKey = clean(values.icon) || "generico";
+    const existingReport = clean(device.report_entity);
     const next = {
       ...device,
       name,
@@ -157,7 +158,9 @@ export function openApplianceEditor(index) {
       monthly_energy_entity: clean(values.monthly_energy_entity),
       total_energy_entity: total,
       history_entity: total,
-      report_entity: total,
+      // Report can intentionally use a monthly/current-period sensor. Editing
+      // the lifetime meter must not overwrite that independent Report choice.
+      report_entity: existingReport || total,
     };
     next.energy_entity = clean(device.energy_entity) || next.total_energy_entity || next.monthly_energy_entity || next.daily_energy_entity;
     next.entities = normalizeEntities(device, next);
