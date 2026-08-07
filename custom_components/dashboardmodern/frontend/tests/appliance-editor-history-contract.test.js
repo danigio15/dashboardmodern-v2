@@ -11,6 +11,12 @@ test("appliance editor never copies monthly energy into history or Report", () =
   assert.doesNotMatch(source, /report_entity:\s*total\s*\|\|\s*clean\(values\.monthly_energy_entity\)/);
 });
 
+test("legacy history only prefills Total energy when it is actually cumulative", () => {
+  assert.match(source, /const totalInitial = \[device\.total_energy_entity, device\.history_entity, device\.report_entity\]/);
+  assert.match(source, /\.find\(cumulativeEntity\)/);
+  assert.doesNotMatch(source, /device\.total_energy_entity \|\| device\.history_entity/);
+});
+
 test("total-energy help explicitly rejects the monthly sensor role", () => {
   assert.match(source, /Non usare qui il sensore mensile/);
   assert.match(source, /state_class total o total_increasing/);
