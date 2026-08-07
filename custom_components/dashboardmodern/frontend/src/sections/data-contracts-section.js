@@ -209,8 +209,11 @@ function inferApplianceContract(device = {}) {
     "";
   const explicitHistory = clean(device.history_entity);
   const explicitReport = clean(device.report_entity);
+  // History is lifetime-only. Report, instead, may intentionally use a monthly
+  // measurement for the current period; canonicalReportDevices keeps that
+  // current-period entity separate from its cumulative history source.
   const history = isLifetimeEnergyEntity(explicitHistory) ? explicitHistory : total;
-  const report = isLifetimeEnergyEntity(explicitReport) ? explicitReport : total;
+  const report = explicitReport || monthly || energy || total;
 
   const nextEntities = [
     ...new Set(
