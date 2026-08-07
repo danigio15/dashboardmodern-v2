@@ -15,7 +15,7 @@ test("home consumption matches Home Assistant energy flow balance", () => {
     period,
     new Set(["house", "solar", "gridImport", "gridExport", "batteryCharged", "batteryDischarged"]),
   );
-  assert.equal(reconciled.house, 155.8);
+  assert.ok(Math.abs(reconciled.house - 155.8) < 1e-9);
   assert.equal(reconciled.solar, 239.8);
   assert.equal(reconciled.gridImport, 19.7);
 });
