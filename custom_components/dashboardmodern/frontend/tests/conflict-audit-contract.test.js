@@ -10,6 +10,7 @@ const calculations = await read("../src/sections/energy-calculations-section.js"
 const appliances = await read("../src/sections/appliances-section.js");
 const shutters = await read("../src/sections/shutter-section.js");
 const ev = await read("../src/sections/ev-section.js");
+const applianceEditor = await read("../src/sections/appliance-editor-section.js");
 
 test("live state changes cannot restart migration or retry loops", () => {
   assert.doesNotMatch(dataContracts, /dashboardmodern:state-changed/);
@@ -31,11 +32,13 @@ test("Home Assistant energy balance has a single canonical owner", () => {
   assert.doesNotMatch(calculations, /addEventListener/);
 });
 
-test("monthly helpers can never be promoted to lifetime history by data contracts", () => {
+test("monthly Report helpers stay separate from lifetime history", () => {
   assert.match(dataContracts, /isLifetimeEnergyEntity/);
   assert.match(dataContracts, /const history = isLifetimeEnergyEntity\(explicitHistory\) \? explicitHistory : total/);
-  assert.match(dataContracts, /const report = isLifetimeEnergyEntity\(explicitReport\) \? explicitReport : total/);
-  assert.doesNotMatch(dataContracts, /total \|\| monthly \|\| energy/);
+  assert.match(dataContracts, /const report = explicitReport \|\| monthly \|\| energy \|\| total/);
+  assert.match(applianceEditor, /history_entity: total/);
+  assert.match(applianceEditor, /report_entity: existingReport \|\| total/);
+  assert.doesNotMatch(dataContracts, /const history = .*monthly/);
 });
 
 test("obsolete shutter skin module is physically absent", async () => {
