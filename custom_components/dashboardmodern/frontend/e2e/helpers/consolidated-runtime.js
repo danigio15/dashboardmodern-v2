@@ -19,6 +19,7 @@ export const consolidatedStates = [
   },
   { entity_id: "sensor.boiler_power", state: "2", attributes: { unit_of_measurement: "W", device_class: "power" } },
   { entity_id: "sensor.microwave_power", state: "0", attributes: { unit_of_measurement: "W", device_class: "power" } },
+  { entity_id: "switch.microwave", state: "on", attributes: { friendly_name: "Microwave plug" } },
   ...[
     "house_total",
     "solar_total",
@@ -91,7 +92,10 @@ export const consolidatedSeed = {
         room_id: "room-salone",
         total_energy_entity: "sensor.microwave_total",
         power_entity: "sensor.microwave_power",
-        entities: ["sensor.microwave_power", "sensor.microwave_total"],
+        control_entity: "switch.microwave",
+        threshold_standby: 1,
+        threshold_run: 5,
+        entities: ["switch.microwave", "sensor.microwave_power", "sensor.microwave_total"],
         show_in_dashboard: true,
         show_in_report: true,
       },
@@ -149,8 +153,12 @@ const dayValues = {
   "sensor.oven_total": 0,
 };
 
+// Intentionally inconsistent direct Home total (28.2) versus HA-style flows
+// (50.2 + 0 + 5.5 - 7.2 - 8.6 = 39.9). The browser test must prove that
+// DashboardModern displays the flow-derived value rather than trusting the
+// inverter-specific direct meter.
 const currentMonthValues = {
-  "sensor.house_total": 39.9,
+  "sensor.house_total": 28.2,
   "sensor.solar_total": 50.2,
   "sensor.grid_import_total": 0,
   "sensor.grid_export_total": 7.2,

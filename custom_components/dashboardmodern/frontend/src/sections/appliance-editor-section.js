@@ -46,6 +46,16 @@ function iconGlyph(value) {
   return ICONS.find(([name]) => name === key)?.[1] || (key.startsWith("mdi:") ? "⚡" : "🔌");
 }
 
+function cumulativeEntity(value) {
+  const entity = clean(value);
+  if (!entity) return false;
+  const current = root.STATES?.[entity] || root._RAW_STATES?.[entity];
+  const stateClass = clean(current?.attributes?.state_class).toLowerCase();
+  if (stateClass === "total" || stateClass === "total_increasing") return true;
+  if (current && stateClass) return false;
+  return /(?:^|[._-])(total|totale|lifetime|meter|contatore)(?:[._-]|$)/i.test(entity);
+}
+
 function entityField(name, label, value, help = "") {
   return `<label class="ed-slot"><span class="ed-slot-lbl">${label}</span><span class="ed-form-row"><input class="ed-input mono" name="${name}" value="${esc(value)}"><button type="button" class="dm-entity-picker" data-pick="${name}" aria-label="${t("Seleziona entità", "Select entity")}">🔍</button></span>${help ? `<small>${help}</small>` : ""}</label>`;
 }
@@ -85,6 +95,9 @@ export function openApplianceEditor(index) {
   if (!device) return false;
   doc?.getElementById("dm-appliance-editor-modal")?.remove();
   const visual = clean(device.visual_key || device.device_type || device.icon || "generico").toLowerCase();
+  const totalInitial = [device.total_energy_entity, device.history_entity, device.report_entity]
+    .map(clean)
+    .find(cumulativeEntity) || "";
   const modal = doc.createElement("div");
   modal.id = "dm-appliance-editor-modal";
   modal.className = "dm-section-modal";
@@ -102,7 +115,7 @@ export function openApplianceEditor(index) {
         ${entityField("power_entity", t("Potenza istantanea", "Instant power"), device.power_entity, t("Sensore W o kW mostrato nella card.", "W or kW sensor shown on the card."))}
         ${entityField("daily_energy_entity", t("Energia giornaliera", "Daily energy"), device.daily_energy_entity, t("Facoltativa: sostituisce il calcolo del giorno.", "Optional: overrides the daily calculation."))}
         ${entityField("monthly_energy_entity", t("Energia mensile", "Monthly energy"), device.monthly_energy_entity, t("Facoltativa: sostituisce il calcolo del mese corrente.", "Optional: overrides the current-month calculation."))}
-        ${entityField("total_energy_entity", t("Energia totale per storico e Report", "Total energy for history and Report"), device.total_energy_entity || device.history_entity, t("Contatore cumulativo kWh con state_class total o total_increasing: calcola anche i mesi precedenti.", "Cumulative kWh meter with state_class total or total_increasing: also calculates previous months."))}
+        ${entityField("total_energy_entity", t("Energia totale per storico e Report", "Total energy for history and Report"), totalInitial, t("Deve essere un contatore cumulativo kWh con state_class total o total_increasing. Non usare qui il sensore mensile: questo campo serve per ricostruire anche i mesi precedenti.", "This must be a cumulative kWh meter with state_class total or total_increasing. Do not use the monthly sensor here: this field is required to reconstruct previous months."))}
       </section>
       <output data-error></output>
       <footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="submit" class="ed-save-btn">💾 ${t("Salva modifiche", "Save changes")}</button></footer>
@@ -143,8 +156,8 @@ export function openApplianceEditor(index) {
       daily_energy_entity: clean(values.daily_energy_entity),
       monthly_energy_entity: clean(values.monthly_energy_entity),
       total_energy_entity: total,
-      history_entity: total || clean(values.monthly_energy_entity),
-      report_entity: total || clean(values.monthly_energy_entity),
+      history_entity: total,
+      report_entity: total,
     };
     next.energy_entity = clean(device.energy_entity) || next.total_energy_entity || next.monthly_energy_entity || next.daily_energy_entity;
     next.entities = normalizeEntities(device, next);
@@ -163,7 +176,7 @@ function installStyles() {
   if (doc.getElementById("dm-appliance-editor-preview-style")) return;
   const style = doc.createElement("style");
   style.id = "dm-appliance-editor-preview-style";
-  style.textContent = `.dm-appliance-icon-row{display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;gap:12px!important;align-items:center!important}.dm-appliance-icon-preview{display:grid!important;place-items:center!important;width:72px!important;height:72px!important;border-radius:18px!important;background:var(--secondary-background-color,#eef3f8)!important;border:1px solid var(--divider-color,#dbe4ee)!important;font-size:36px!important}.dm-appliance-editor-dialog{max-height:min(92dvh,920px)!important;overflow:auto!important}`;
+  style.textContent = `.dm-appliance-icon-row{display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;gap:12px!important;align-items:center!important}.dm-appliance-icon-preview{display:grid!important;place-items:center!important;width:72px!important;height:72px!important;border-radius:18px!important;background:var(--secondary-background-color,#eef3f8)!important;border:1px solid var(--divider-color,#dbe4ee)!important;font-size:36px!important}.dm-appliance-editor-dialog{max-height:min(92dvh,920px)!important;overflow:hidden!important}`;
   doc.head.append(style);
 }
 

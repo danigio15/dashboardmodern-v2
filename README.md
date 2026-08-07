@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/assets/logo@2x.png" alt="DashboardModern" width="420">
+  <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/brand/logo@2x.png" alt="DashboardModern" width="420">
 </p>
 
 <h1 align="center">DashboardModern</h1>
@@ -10,36 +10,47 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.10-0ea5e9" alt="Versione 0.15.10">
+  <img src="https://img.shields.io/badge/version-0.15.11-0ea5e9" alt="Versione 0.15.11">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.10
-> fixes a startup event storm on real Home Assistant installations, bounds live
-> UI refreshes and strengthens production orphan-file auditing.
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.11
+> reconciles Home energy with Home Assistant's energy-flow balance, fixes
+> appliance state/history semantics, unifies editor dialogs and further reduces
+> unnecessary live-state rendering.
 
 ---
 
-## Novità 0.15.10
+## Novità 0.15.11
 
-La 0.15.10 è una release correttiva per la regressione di avvio introdotta nella 0.15.9 su installazioni Home Assistant reali con molte entità.
+La 0.15.11 corregge le regressioni rilevate sull'installazione Home Assistant reale dopo la 0.15.10.
 
-### Stabilità runtime
+### Energia
 
-- lo snapshot iniziale `get_states` aggiorna tutti gli stati interni senza generare un evento UI per ogni entità;
-- gli aggiornamenti live ravvicinati vengono coalescati e la frequenza delle notifiche UI è limitata;
-- Energia, Elettrodomestici, Temperature ed EV non ricevono più una tempesta di rendering durante l'apertura;
-- aggiunti test di carico con 2.500 entità iniziali e 500 aggiornamenti live consecutivi.
+- quando Fotovoltaico e Rete sono configurati, il consumo **Casa** viene riconciliato con lo stesso bilancio dei flussi usato dalla dashboard Energia di Home Assistant;
+- il contatore Casa diretto resta un fallback quando non esistono sorgenti sufficienti per ricostruire il bilancio;
+- i sensori mensili degli elettrodomestici non vengono più interpretati come contatori lifetime per storico e mesi precedenti;
+- le righe Report restano entro i bordi dell'Editor anche su viewport stretti.
 
-### Pulizia e verifica
+### Elettrodomestici ed Editor
 
-- l'audit dei file non si limita più ai JavaScript legacy ma copre anche tutti i moduli `frontend/src` raggiungibili dagli entrypoint reali;
-- rimosso `energy-total-source.js`, facciata di compatibilità non referenziata dal runtime;
-- i moduli caricati da `modules-entry.js`, `panel.js` e `dashboard-card.js` vengono riconosciuti correttamente come produzione;
-- test, E2E e strumenti di sviluppo restano nel repository sorgente ma sono esclusi dal pacchetto HACS quando non servono a runtime.
+- un dispositivo a **0 W** con smart plug ancora ON non viene più mostrato come **IN FUNZIONE**;
+- la card mostra un solo comando **Accendi/Spegni**;
+- `state_entity` e `status_entity` restano separati dall'entità di comando;
+- il campo **Energia totale per storico e Report** accetta il ruolo lifetime solo per sorgenti cumulative `total`/`total_increasing`;
+- i modal di modifica condividono shell, header, campi, scroll e footer coerenti;
+- le informazioni specifiche Energia non rimangono più visibili passando ad Avvisi o ad altre sezioni.
+
+### Prestazioni e pulizia
+
+- gli aggiornamenti Home Assistant non configurati vengono memorizzati senza provocare render della dashboard;
+- EV e Temperature reagiscono soltanto alle proprie entità configurate;
+- l'observer dell'Editor ignora le mutazioni DOM non appartenenti agli editor;
+- le configurazioni legacy, compresi i profili EV, restano incluse nel filtro degli aggiornamenti live;
+- rimossi test di vecchie release e copie di asset non necessarie, mantenendo i contratti correnti sotto test.
 
 ---
 
@@ -90,7 +101,9 @@ Le configurazioni precedenti vengono migrate senza eliminare le entità lifetime
 
 Per ottenere giorno, mese, anno e mesi precedenti in modo affidabile, configura preferibilmente un sensore con `device_class: energy` e `state_class: total_increasing` nel campo **Energia totale**. Il runtime calcola i periodi tramite le statistiche Recorder di Home Assistant.
 
-Per ogni elettrodomestico, il campo **Energia totale** alimenta anche il Report storico quando non sono disponibili sensori giornalieri o mensili dedicati.
+Per gli elettrodomestici, un sensore **mensile** può sostituire il valore del mese corrente ma non sostituisce il contatore **totale/lifetime** necessario per ricostruire i mesi precedenti. Il campo **Energia totale per storico e Report** deve quindi puntare a un contatore cumulativo con `state_class: total` o `total_increasing`.
+
+Quando sono disponibili Fotovoltaico e Rete, DashboardModern ricava il consumo Casa dal bilancio dei flussi per mantenere parità con la dashboard Energia di Home Assistant. Il contatore Casa diretto resta disponibile come fallback quando il bilancio non può essere ricostruito.
 
 ## Supporto e problemi
 

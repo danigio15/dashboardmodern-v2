@@ -46,6 +46,29 @@ function rooms() {
   return Array.isArray(values) ? values : [];
 }
 
+function eventEntityIds(event) {
+  const values = event?.detail?.entity_ids || [event?.detail?.entity_id];
+  return new Set((Array.isArray(values) ? values : [values]).map(clean).filter(Boolean));
+}
+
+function temperatureEntityIds() {
+  const ids = new Set();
+  rooms().forEach((room) => {
+    const temperature = clean(room.temp);
+    const humidity = clean(room.hum || temperature.replace("_temperature", "_humidity"));
+    if (temperature) ids.add(temperature);
+    if (humidity) ids.add(humidity);
+  });
+  return ids;
+}
+
+export function stateChangeAffectsTemperature(event) {
+  const changed = eventEntityIds(event);
+  if (!changed.size) return false;
+  const configured = temperatureEntityIds();
+  return [...changed].some((id) => configured.has(id));
+}
+
 function exactState(entity) {
   return allStates()[clean(entity)] || null;
 }
@@ -229,7 +252,9 @@ export function installTemperatureSection() {
   normalizeTemperatureEditor();
   if (!state.listeners) {
     state.listeners = true;
-    root.addEventListener?.("dashboardmodern:state-changed", normalizeTemperatureCards);
+    root.addEventListener?.("dashboardmodern:state-changed", (event) => {
+      if (stateChangeAffectsTemperature(event)) normalizeTemperatureCards();
+    });
     root.addEventListener?.("dashboardmodern:legacy-ready", () => {
       installWrappers();
       installObserver();

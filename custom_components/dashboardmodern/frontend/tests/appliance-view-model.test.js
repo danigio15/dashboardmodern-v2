@@ -24,6 +24,18 @@ test("appliance thresholds produce STANDBY and SPENTO deterministically", () => 
   assert.equal(createApplianceViewModel(device, states(0, "off"), [], "it").label, "SPENTO");
 });
 
+test("a powered smart plug at 0 W is not reported as IN FUNZIONE", () => {
+  const model = createApplianceViewModel(
+    { ...device, entities: ["switch.washer", "sensor.washer_power", "sensor.washer_energy"] },
+    states(0, "on"),
+    [],
+    "it",
+  );
+  assert.equal(model.stateEntity, "");
+  assert.equal(model.mode, "standby");
+  assert.equal(model.label, "STANDBY");
+});
+
 test("canonical state_entity drives status even without power or control entities", () => {
   const model = createApplianceViewModel(
     { id: "dryer", name: "Asciugatrice", state_entity: "sensor.dryer_state" },
@@ -34,6 +46,38 @@ test("canonical state_entity drives status even without power or control entitie
   assert.equal(model.stateEntity, "sensor.dryer_state");
   assert.equal(model.mode, "running");
   assert.equal(model.label, "IN FUNZIONE");
+});
+
+test("generic ON state means standby when a power sensor says 0 W", () => {
+  const model = createApplianceViewModel(
+    { ...device, state_entity: "binary_sensor.washer_ready" },
+    { ...states(0, "on"), "binary_sensor.washer_ready": { state: "on", attributes: {} } },
+    [],
+    "it",
+  );
+  assert.equal(model.mode, "standby");
+  assert.equal(model.label, "STANDBY");
+});
+
+test("monthly energy measurements do not masquerade as lifetime history", () => {
+  const monthly = "sensor.energy_mese_microonde";
+  const model = createApplianceViewModel(
+    {
+      id: "microwave",
+      monthly_energy_entity: monthly,
+      history_entity: monthly,
+      report_entity: monthly,
+    },
+    {
+      [monthly]: {
+        state: "3.2",
+        attributes: { unit_of_measurement: "kWh", state_class: "measurement", device_class: "energy" },
+      },
+    },
+    [],
+    "it",
+  );
+  assert.equal(model.historyEntity, "");
 });
 
 test("legacy status_entity remains supported after migration", () => {

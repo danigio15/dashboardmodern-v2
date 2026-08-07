@@ -108,6 +108,30 @@ function profiles() {
   return Array.isArray(cars) ? cars : [];
 }
 
+function eventEntityIds(event) {
+  const values = event?.detail?.entity_ids || [event?.detail?.entity_id];
+  return new Set((Array.isArray(values) ? values : [values]).map(clean).filter(Boolean));
+}
+
+function configuredEvEntityIds() {
+  const ids = new Set();
+  profiles().forEach((car) => {
+    Object.values(car?.ov || {}).forEach((value) => {
+      const id = clean(value);
+      if (/^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i.test(id)) ids.add(id);
+    });
+  });
+  return ids;
+}
+
+export function stateChangeAffectsEv(event) {
+  const changed = eventEntityIds(event);
+  if (!changed.size) return false;
+  const configured = configuredEvEntityIds();
+  if (!configured.size) return false;
+  return [...changed].some((id) => configured.has(id));
+}
+
 function activeIndex() {
   const index = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "-1", 10);
   return Number.isFinite(index) ? index : -1;
@@ -265,17 +289,17 @@ export function installEvSection() {
       },
       true,
     );
-    for (const event of [
-      "dashboardmodern:legacy-ready",
-      "dashboardmodern:runtime-ready",
-      "dashboardmodern:state-changed",
-      "pageshow",
-    ]) {
+    for (const event of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
       root.addEventListener?.(event, () => {
         state.attempts = 0;
         schedule(0);
       });
     }
+    root.addEventListener?.("dashboardmodern:state-changed", (event) => {
+      if (!stateChangeAffectsEv(event)) return;
+      state.attempts = 0;
+      schedule(0);
+    });
   }
 }
 

@@ -21,6 +21,45 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(config).toContainText(variant.includes("-en") ? /State of charge/i : /Stato di carica/i);
     const sourceGroups = config.locator('details.ed-acc:has([data-energy-total-field="true"])');
     await expect(sourceGroups).toHaveCount(6);
+    await expect(page.locator("#editor-modal .dm-energy-source-guide")).toBeVisible();
+
+    // The real report screenshot showed cards wider than the editor modal. Open
+    // the Report tab and enforce the browser geometry instead of only checking CSS.
+    const reportButton = config.getByRole("button", { name: /^REPORT$/i });
+    await reportButton.click();
+    const reportPanel = page.locator('#editor-modal [data-energy-panel="report"]');
+    await expect(reportPanel).toBeVisible();
+    await expect(reportPanel.locator(".dm-report-row").first()).toBeVisible();
+    expect(
+      await page.evaluate(() => {
+        const modal = document.querySelector("#editor-modal .ed-shell") || document.querySelector("#editor-modal");
+        const rows = [...document.querySelectorAll('#editor-modal [data-energy-panel="report"] .dm-report-row')];
+        if (!modal || !rows.length) return false;
+        const bounds = modal.getBoundingClientRect();
+        return rows.every((row) => {
+          const rect = row.getBoundingClientRect();
+          return rect.left >= bounds.left - 2 && rect.right <= bounds.right + 2;
+        });
+      }),
+    ).toBeTruthy();
+
+    // Return to the main flow/entity sub-tab before switching top-level editor
+    // sections, so the Energy guide is mounted in its normal context.
+    const flowButton = config.getByRole("button", {
+      name: variant.includes("-en") ? /FLOW|ENTIT/i : /FLUSSI|ENTIT/i,
+    }).first();
+    await flowButton.click();
+    await expect(page.locator("#editor-modal .dm-energy-source-guide")).toBeVisible();
+
+    // Energy-specific guidance must not leak into Alerts or any other top-level
+    // editor section, which was visible in the real 0.15.10 screenshot.
+    await page.evaluate(() => window.editorSwitch("avvisi"));
+    await expect(page.locator("#editor-modal .ed-tab.active")).toHaveAttribute("data-tab", "avvisi");
+    await expect(page.locator("#editor-modal .dm-energy-source-guide")).toHaveCount(0);
+    await expect(page.locator("#editor-modal .dm-energy-help-compact:visible")).toHaveCount(0);
+    await page.evaluate(() => window.editorSwitch("sez1"));
+    await expect(config).toBeVisible();
+
     if (testInfo.project.name === "mobile")
       await page.screenshot({ path: `test-results/${variant}-config-energy-mobile.png`, fullPage: true });
 
@@ -37,19 +76,33 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     // Appliance cards are rendered in multiple sub-views (overview/room/other).
     // Only the active sub-view is visible to the user; scope assertions to it so
-    // duplicate cards in hidden views do not inflate status counts.
-    const cards = page.locator("#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id]");
-    await expect(cards.filter({ hasText: variant.includes("-en") ? "RUNNING" : "IN FUNZIONE" })).toHaveCount(1);
-    await expect(cards.filter({ hasText: "STANDBY" })).toHaveCount(1);
-    await expect(cards.filter({ hasText: variant.includes("-en") ? "OFF" : "SPENTO" })).toHaveCount(3);
+    // duplicate cards in hidden views do not inflate status counts. Use the
+    // canonical card state marker rather than free text: in English the power
+    // action "Turn off" must never be mistaken for an OFF device state.
+    const cardSelector = "#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id]";
+    const cards = page.locator(cardSelector);
+    await expect(page.locator(`${cardSelector}[data-appliance-state="running"]`)).toHaveCount(1);
+    await expect(page.locator(`${cardSelector}[data-appliance-state="standby"]`)).toHaveCount(2);
+    await expect(page.locator(`${cardSelector}[data-appliance-state="off"]`)).toHaveCount(2);
+
+    const microwave = page.locator(
+      '#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id="appl-microwave"]',
+    );
+    await expect(microwave).toContainText("0 W");
+    await expect(microwave).toHaveAttribute("data-appliance-state", "standby");
+    await expect(microwave.locator(".appl-st")).toContainText("STANDBY");
+    await expect(microwave.locator('[data-dm-power-toggle="true"]')).toBeVisible();
+    // The old icon-only toggle may remain in legacy markup for compatibility,
+    // but it must not be visible beside the modern Accendi/Spegni control.
+    await expect(microwave.locator(".appl-action-btn").first()).toBeHidden();
+
     const noHistory = page.locator(
       '#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id="appl-no-history"]',
     );
     await expect(noHistory).toHaveCount(1);
     await expect(noHistory.getByRole("button", { name: /Storico|History/ })).toBeDisabled();
-    const statuses = await cards.locator(".appl-st").allTextContents();
-    const normalized = await cards.locator("[data-appliance-state]").allTextContents();
-    expect(normalized.every((label) => statuses.some((status) => status.includes(label)))).toBeTruthy();
+    const normalizedStates = await cards.evaluateAll((nodes) => nodes.map((node) => node.dataset.applianceState).sort());
+    expect(normalizedStates).toEqual(["off", "off", "running", "standby", "standby"]);
     if (testInfo.project.name === "mobile") {
       const mobileContentFits = await page.evaluate(() => {
         const viewport = innerWidth;
@@ -70,6 +123,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     }
 
     await page.locator('.tab[data-tab="energy"]').evaluate((button) => button.click());
+    // The fixture deliberately reports 28.2 kWh from the direct Home meter but
+    // 39.9 kWh from the same flow balance used by Home Assistant. The browser
+    // must show the reconciled value, not the direct meter.
     await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house === 39.9);
     await expect(page.locator("#ed-kpi-cons")).toContainText(/39[,.]9/);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy-monthly.png`, fullPage: true });
