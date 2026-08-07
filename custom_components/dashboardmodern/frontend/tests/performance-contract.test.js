@@ -4,6 +4,7 @@ import test from "node:test";
 
 const stateGate = await readFile(new URL("../src/core/state-event-gate.js", import.meta.url), "utf8");
 const editorContracts = await readFile(new URL("../src/sections/editor-contracts-section.js", import.meta.url), "utf8");
+const evSection = await readFile(new URL("../src/sections/ev-section.js", import.meta.url), "utf8");
 
 test("live HA event gate filters against configured dashboard entities", () => {
   assert.match(stateGate, /configuredEntities/);
@@ -12,4 +13,10 @@ test("live HA event gate filters against configured dashboard entities", () => {
 
 test("editor contract work is scheduled only for editor mutations", () => {
   assert.match(editorContracts, /if \(mutationTouchesEditor\(records\)\) schedule\(\)/);
+});
+
+test("EV runtime ignores state changes that are not referenced by EV profiles", () => {
+  assert.match(evSection, /stateChangeAffectsEv/);
+  assert.match(evSection, /configuredEvEntityIds/);
+  assert.match(evSection, /if \(!stateChangeAffectsEv\(event\)\) return/);
 });
