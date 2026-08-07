@@ -5,6 +5,7 @@ import {
   recorderBucketConsumptions,
   sourcePlans,
 } from "../core/period-service.js";
+import { reconcileEnergyBundle } from "./energy-calculations-section.js";
 import {
   allStates,
   clean,
@@ -30,7 +31,7 @@ import {
 import { runtimeMetrics } from "../core/runtime-metrics.js";
 
 const KEY = "__DASHBOARDMODERN_RUNTIME_ROOT__";
-const VERSION = "0.15.4";
+const VERSION = "0.15.12";
 const state = (root[KEY] ||= {});
 Object.assign(state, {
   installed: true,
@@ -126,6 +127,7 @@ const FLOW_IDS = Object.freeze([
   "ed-kpi-prod",
   "ed-kpi-cons",
 ]);
+const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
 
 function energyModel() {
   return section("energy", {});
@@ -147,6 +149,45 @@ function hasConfiguredEnergy() {
         Object.values(definition.periodKeys).some((key) => clean(group[key])),
     );
   });
+}
+
+function collectEntityIds(value, output, depth = 0) {
+  if (depth > 10 || value == null) return;
+  if (typeof value === "string") {
+    const id = clean(value);
+    if (ENTITY_ID.test(id)) output.add(id);
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((entry) => collectEntityIds(entry, output, depth + 1));
+    return;
+  }
+  if (typeof value === "object")
+    Object.values(value).forEach((entry) => collectEntityIds(entry, output, depth + 1));
+}
+
+function eventEntityIds(event) {
+  const values = event?.detail?.entity_ids || [event?.detail?.entity_id];
+  return new Set((Array.isArray(values) ? values : [values]).map(clean).filter(Boolean));
+}
+
+function energyRefreshEntityIds() {
+  const ids = new Set();
+  collectEntityIds(energyModel(), ids);
+  canonicalDevices().forEach((device) => {
+    for (const value of [device.entity, device.history, device.total_energy_entity]) {
+      const id = clean(value);
+      if (ENTITY_ID.test(id)) ids.add(id);
+    }
+  });
+  return ids;
+}
+
+export function stateChangeAffectsEnergy(event) {
+  const changed = eventEntityIds(event);
+  if (!changed.size) return false;
+  const configured = energyRefreshEntityIds();
+  return [...changed].some((id) => configured.has(id));
 }
 
 function selectedDate(period = selectedPeriod()) {
@@ -209,7 +250,8 @@ function canonicalDevices() {
 
 async function loadDevicePeriod(kind, date) {
   const devices = canonicalDevices();
-  const ids = [...new Set(devices.map((item) => clean(item.entity)).filter(Boolean))];
+  const cumulative = devices.filter((item) => item.cumulative !== false);
+  const ids = [...new Set(cumulative.map((item) => clean(item.history || item.entity)).filter(Boolean))];
   if (!ids.length) return { devices, values: new Map() };
   return { devices, values: await broker.valuesForEntities(ids, kind, date) };
 }
@@ -255,7 +297,7 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
     throw new Error(`Incomplete Home Assistant statistics: ${incompleteMessage(results)}`);
   }
 
-  return Object.freeze({
+  return reconcileEnergyBundle(Object.freeze({
     generation,
     period: Object.freeze({ ...period }),
     day: dayResult.data,
@@ -265,7 +307,7 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
     deviceMonth,
     deviceYear,
     rates: Object.freeze(rates()),
-  });
+  }));
 }
 
 function writeDerived(plan, value, kind, date) {
@@ -401,14 +443,15 @@ function applyDeviceRows(bundle) {
   if (!list) return;
   const { devices, values } = bundle.deviceMonth;
   const available = devices
-    .map((device) => values.get(device.entity))
+    .map((device) => values.get(device.history || device.entity))
     .filter((value) => Number.isFinite(value));
   const maximum = Math.max(0.001, ...available);
   let total = 0;
   list.querySelectorAll(".ed-device-row").forEach((row) => {
     const direct = clean(row.dataset.entity || row.dataset.sensor);
     const name = clean(row.querySelector(".ed-dev-name")?.childNodes?.[0]?.textContent);
-    const entity = direct || clean(devices.find((device) => clean(device.name) === name)?.entity);
+    const device = devices.find((item) => clean(item.name) === name || clean(item.entity) === direct);
+    const entity = clean(device?.history || device?.entity || direct);
     const value = values.get(entity) ?? values.get(root.resolveEntity?.(entity) || entity);
     if (!Number.isFinite(value)) return;
     total += value;
@@ -443,8 +486,10 @@ function applyDeviceDetail(bundle) {
   const selector = doc?.getElementById("ed-dev-selector");
   const entity = clean(selector?.value);
   if (!entity || !bundle?.deviceMonth || !bundle?.deviceYear) return false;
-  const monthValue = valueFrom(bundle.deviceMonth.values, entity);
-  const yearValue = valueFrom(bundle.deviceYear.values, entity);
+  const device = bundle.deviceMonth.devices.find((item) => item.entity === entity || item.history === entity);
+  const source = clean(device?.history || entity);
+  const monthValue = valueFrom(bundle.deviceMonth.values, source);
+  const yearValue = valueFrom(bundle.deviceYear.values, source);
   if (monthValue == null || yearValue == null) return false;
   const selectedMonth = Number(bundle.period?.month) || new Date().getMonth() + 1;
   const selectedYear = Number(bundle.period?.year) || new Date().getFullYear();
@@ -681,7 +726,9 @@ function installObserver() {
   state.observer = new root.MutationObserver(() => {
     if (!state.applying && state.bundle) scheduleProjection();
   });
-  nodes.forEach((node) => state.observer.observe(node, { childList: true, characterData: true, subtree: true }));
+  nodes.forEach((node) =>
+    state.observer.observe(node, { childList: true, characterData: true, subtree: true }),
+  );
 }
 
 function installStyles() {
@@ -728,7 +775,9 @@ function bindEvents() {
     },
     true,
   );
-  root.addEventListener?.("dashboardmodern:state-changed", () => scheduleEnergyRefresh(false));
+  root.addEventListener?.("dashboardmodern:state-changed", (event) => {
+    if (stateChangeAffectsEnergy(event)) scheduleEnergyRefresh(false);
+  });
   root.addEventListener?.("dashboardmodern:legacy-ready", () => {
     installWrappers();
     installObserver();
@@ -757,6 +806,11 @@ async function startBroker() {
   state.brokerStarted = true;
   try {
     await broker.startStateFeed();
+    root.dispatchEvent?.(
+      new CustomEvent("dashboardmodern:states-ready", {
+        detail: { count: Object.keys(allStates()).length },
+      }),
+    );
   } catch (error) {
     state.brokerStarted = false;
     state.lastError = clean(error?.message || error);
