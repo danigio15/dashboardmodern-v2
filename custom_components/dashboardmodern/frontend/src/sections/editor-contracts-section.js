@@ -5,6 +5,7 @@ import {
   installStyle,
   root,
   t,
+  wrapFunction,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EDITOR_CONTRACTS_SECTION__";
@@ -185,6 +186,11 @@ function schedule() {
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0);
 }
 
+function installWrappers() {
+  wrapFunction("editorSwitch", "__dmEditorContractsSection", schedule);
+  wrapFunction("apriConfigEntita", "__dmEditorContractsOpen", schedule);
+}
+
 function installStyles() {
   installStyle(
     "dm-editor-contracts-style",
@@ -262,11 +268,15 @@ export function installEditorContractsSection() {
   if (!doc) return;
   installStyles();
   installExplicitReportSaveContract();
+  installWrappers();
   schedule();
   if (!state.installed) {
     state.installed = true;
     for (const event of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
-      root.addEventListener?.(event, schedule);
+      root.addEventListener?.(event, () => {
+        installWrappers();
+        schedule();
+      });
     }
     doc.addEventListener(
       "click",
