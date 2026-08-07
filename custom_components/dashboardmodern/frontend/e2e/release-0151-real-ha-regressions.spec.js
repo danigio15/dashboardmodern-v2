@@ -92,7 +92,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       variant.includes("-en") ? /previous months/i : /mesi precedenti/i,
     );
     await expect(page.locator(".dm-energy-source-guide")).toContainText(
-      variant.includes("-en") ? /total kWh meter/i : /contatore totale kWh/i,
+      variant.includes("-en") ? /total kWh meter/i : /contator(?:e|i) total(?:e|i) kWh/i,
     );
 
     await page.evaluate(() => {
