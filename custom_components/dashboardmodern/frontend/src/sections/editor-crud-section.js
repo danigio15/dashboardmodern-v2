@@ -286,6 +286,20 @@ function installStyles() {
       #editor-modal[data-dm-editor-theme="dark"] .ed-tabs,#editor-modal[data-dm-editor-theme="dark"] .ed-inner-tabs,#editor-modal[data-dm-editor-theme="dark"] .sub-tabs-energy,#editor-modal[data-dm-editor-theme="dark"] .ed-row,#editor-modal[data-dm-editor-theme="dark"] .dm-report-row,#editor-modal[data-dm-editor-theme="dark"] .ed-acc,#editor-modal[data-dm-editor-theme="dark"] .ed-acc-body{background:var(--dm-editor-panel)!important;color:var(--dm-editor-text)!important;border-color:var(--dm-editor-border)!important}
       #editor-modal[data-dm-editor-theme="dark"] input,#editor-modal[data-dm-editor-theme="dark"] select,#editor-modal[data-dm-editor-theme="dark"] textarea,#editor-modal[data-dm-editor-theme="dark"] .ed-input{background:var(--dm-editor-control)!important;color:var(--dm-editor-text)!important;border-color:var(--dm-editor-border)!important}
       #editor-modal[data-dm-editor-theme="dark"] .ed-row-old,#editor-modal[data-dm-editor-theme="dark"] .ed-intro,#editor-modal[data-dm-editor-theme="dark"] .ed-hint,#editor-modal[data-dm-editor-theme="dark"] .ed-empty{color:var(--dm-editor-muted)!important}
+
+      /* The legacy editor puts width:100% inputs inside flex rows with fixed-size
+         picker/icon buttons. Without min-width:0 those controls enlarge the
+         whole editor on mobile, pushing full-width buttons and text offscreen. */
+      #editor-modal .ed-shell,#editor-modal .ed-body,#editor-modal .ed-form,#editor-modal .ed-list,#editor-modal .ed-row{box-sizing:border-box!important;min-width:0!important;max-width:100%!important}
+      #editor-modal .ed-body{overflow-x:hidden!important}
+      #editor-modal .ed-form-row,#editor-modal .ed-form>[style*="display:flex"]{box-sizing:border-box!important;min-width:0!important;max-width:100%!important}
+      #editor-modal .ed-form-row>.ed-input,#editor-modal .ed-form>[style*="display:flex"]>.ed-input{min-width:0!important;max-width:100%!important}
+      #editor-modal #appl-name,#editor-modal #appl-ent{width:0!important;min-width:0!important;max-width:100%!important;flex:1 1 0!important}
+      #editor-modal #appl-room{min-width:0!important;max-width:100%!important}
+      #editor-modal .ed-btn-add,#editor-modal .ed-btn,#editor-modal .ed-save-btn{box-sizing:border-box!important;max-width:100%!important}
+      #editor-modal .ed-intro,#editor-modal .ed-row-old{max-width:100%!important;overflow-wrap:anywhere!important}
+      #editor-modal .ed-row-main{min-width:0!important;overflow:hidden!important}
+
       #editor-modal [data-energy-panel="report"] .dm-report-row{display:grid!important;grid-template-columns:minmax(120px,.8fr) minmax(150px,1.25fr) minmax(110px,.6fr) minmax(220px,1.8fr) auto!important;gap:10px!important;align-items:end!important;padding:14px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important}
       #editor-modal [data-energy-panel="report"] .dm-report-row .dm-entity-field{min-width:0!important;margin:0!important}
       #editor-modal .dm-report-history-help{grid-column:1/-1;color:var(--secondary-text-color,#64748b);font-size:11px;line-height:1.4}
@@ -294,7 +308,13 @@ function installStyles() {
       #editor-modal .dm-edit-cancel{width:100%;margin-top:7px;background:var(--secondary-background-color,#e8eef5)!important;color:var(--primary-text-color,#0f172a)!important}
       #editor-modal [data-dm-editing="true"]{outline:2px solid color-mix(in srgb,var(--info-color,#0ea5e9) 45%,transparent);outline-offset:2px}
       @media(max-width:900px){#editor-modal [data-energy-panel="report"] .dm-report-row{grid-template-columns:1fr 1fr!important}#editor-modal [data-energy-panel="report"] .dm-report-row .dm-entity-field,#editor-modal .dm-report-history-help{grid-column:1/-1!important}}
-      @media(max-width:560px){#editor-modal [data-energy-panel="report"] .dm-report-row{grid-template-columns:1fr!important}#editor-modal [data-energy-panel="report"] .dm-report-row>*{grid-column:1!important}}
+      @media(max-width:560px){
+        #editor-modal .ed-shell{box-sizing:border-box!important;width:calc(100vw - 12px)!important;max-width:calc(100vw - 12px)!important}
+        #editor-modal .ed-body{padding-left:12px!important;padding-right:12px!important}
+        #editor-modal .ed-form>[style*="display:flex"]{width:100%!important}
+        #editor-modal [data-energy-panel="report"] .dm-report-row{grid-template-columns:1fr!important}
+        #editor-modal [data-energy-panel="report"] .dm-report-row>*{grid-column:1!important}
+      }
     `,
   );
 }
