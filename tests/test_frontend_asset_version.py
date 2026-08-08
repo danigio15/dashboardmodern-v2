@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
 from custom_components.dashboardmodern import frontend as frontend_module
 
 
 def test_frontend_asset_version_changes_when_runtime_file_changes(
-    tmp_path, monkeypatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A HACS in-place update must produce a fresh immutable asset URL."""
     panel = tmp_path / "panel.js"
