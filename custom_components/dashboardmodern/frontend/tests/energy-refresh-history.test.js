@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { initializeEnergyPeriodControls } from "../src/sections/energy-refresh-section.js";
-import { normalizeHistoryRows } from "../src/sections/history-section.js";
+import {
+  applianceHistorySource,
+  normalizeHistoryRows,
+} from "../src/sections/history-section.js";
 
 test("first Energy refresh initializes the legacy January select to the current month", () => {
   const month = { value: "1", dataset: {} };
@@ -32,6 +35,35 @@ test("an already initialized user period is never overwritten", () => {
   initializeEnergyPeriodControls(new Date(2026, 7, 8), fakeDocument);
   assert.equal(month.value, "6");
   assert.equal(year.value, "2025");
+});
+
+test("short appliance history prefers power over lifetime energy", () => {
+  const device = {
+    power_entity: "sensor.microwave_power",
+    history_entity: "sensor.microwave_total",
+    total_energy_entity: "sensor.microwave_total",
+    entities: ["sensor.microwave_power", "sensor.microwave_total"],
+  };
+  const states = {
+    "sensor.microwave_power": {
+      state: "0",
+      attributes: { unit_of_measurement: "W", device_class: "power" },
+    },
+    "sensor.microwave_total": {
+      state: "82",
+      attributes: { unit_of_measurement: "kWh", state_class: "total_increasing" },
+    },
+  };
+  assert.equal(applianceHistorySource(device, states), "sensor.microwave_power");
+});
+
+test("short appliance history falls back to lifetime energy only without power or state", () => {
+  const device = {
+    history_entity: "sensor.oven_total",
+    total_energy_entity: "sensor.oven_total",
+    entities: ["sensor.oven_total"],
+  };
+  assert.equal(applianceHistorySource(device, {}), "sensor.oven_total");
 });
 
 test("Home Assistant compressed WebSocket history is normalized for the popup", () => {
