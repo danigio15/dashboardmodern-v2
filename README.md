@@ -10,61 +10,54 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.14-0ea5e9" alt="Versione 0.15.14">
+  <img src="https://img.shields.io/badge/version-0.15.15-0ea5e9" alt="Versione 0.15.15">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.14
-> fixes Energy configuration persistence and refines the appliance and
-> temperature layouts on real mobile screens without duplicating runtime owners.
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.15
+> fixes stale frontend asset URLs after HACS updates so a valid release cannot
+> keep rendering the previous cached UI after an integration reload.
 
 ---
 
-## Novità 0.15.14
+## Novità 0.15.15
 
-La 0.15.14 è una hotfix mirata ai problemi rilevati su dispositivo reale dopo la 0.15.13. Mantiene il runtime event-driven e non introduce nuovi owner, polling o copie di artwork.
+La 0.15.15 corregge il meccanismo di cache che poteva far sembrare invariata una release realmente aggiornata. Le correzioni funzionali e visuali della 0.15.14 restano invariate; questa hotfix interviene sul modo in cui Home Assistant pubblica gli asset frontend dopo un aggiornamento HACS.
 
-### Energia: il campo annuale resta davvero vuoto
+### Cache frontend e aggiornamenti HACS
 
-- corretto il problema per cui, dopo aver eliminato **Energia annuale** e premuto Salva, il contatore **Energia totale** veniva reinserito automaticamente nel campo annuale al caricamento successivo;
-- il salvataggio del DashboardStore era già corretto: la causa era una migrazione di compatibilità che veniva applicata ripetutamente;
-- la compatibilità annuale/lifetime ora viene applicata una sola volta ai dati vecchi e passa a `semantics_version: 4`;
-- dopo la migrazione, un campo annuale lasciato intenzionalmente vuoto resta vuoto attraverso salvataggio, reload e snapshot multi-dispositivo;
-- i contatori lifetime continuano a essere usati da Recorder per ricostruire periodi precedenti senza trasformarsi in falsi sensori annuali.
+- il digest usato nell'URL statico versionato non viene più conservato in una `lru_cache` per tutta la vita del processo Home Assistant;
+- il digest viene ricalcolato dagli asset runtime realmente presenti su disco quando l'integrazione registra di nuovo il frontend;
+- se HACS sostituisce i file della dashboard, il nuovo contenuto produce un URL statico differente invece di riutilizzare quello della release precedente;
+- il nome del custom panel e il modulo `dashboard-card.js` usano lo stesso digest aggiornato;
+- aggiunto un test di regressione che modifica fisicamente `panel.js` e verifica che digest e URL statico cambino senza svuotare manualmente cache interne;
+- nessun nuovo polling, observer o owner visuale è stato introdotto.
 
-### Elettrodomestici
+### Perché la 0.15.14 poteva sembrare identica
 
-- corretto il selettore CSS sul DOM reale: il corpo della card legacy è `.appl-info`, non `.appl-wide-body`;
-- card mobile centrata e limitata a 370 px;
-- artwork mantenuto a 80 × 80 px e lasciato al proprietario esistente `appliance-artwork.js`;
-- nome, stato, consumo e kWh hanno spaziatura coerente;
-- pulsanti Storico e comando sono più compatti e non dominano più la card;
-- nessuna modifica alle immagini configurate o alla logica di scelta artwork.
+La 0.15.14 contiene realmente le correzioni a Energia, card Elettrodomestici e Temperature. Il problema era nel layer che serve il frontend: `_frontend_asset_version()` veniva memorizzato nel processo Python. Dopo l'aggiornamento HACS, un reload dell'integrazione poteva quindi continuare a registrare lo stesso URL immutabile già presente nella cache del browser, anche se i file su disco erano cambiati.
 
-### Temperature
+### Primo aggiornamento alla 0.15.15
 
-- card mobile centrata e limitata a 350 px;
-- altezza, icona, badge, temperatura e umidità ridimensionati per eliminare l'effetto “card enorme” visto sui telefoni;
-- il layout resta nel solo `temperature-layout-section.js` già esistente.
+La 0.15.15 non può sostituire retroattivamente il codice Python della 0.15.14 già caricato in memoria. Dopo aver installato questa release con HACS, esegui **un riavvio completo di Home Assistant** se compare **In attesa di riavvio**. Dopo quel riavvio, chiudi e riapri l'app/browser oppure esegui un refresh completo. Da quel momento il runtime non mantiene più il digest frontend obsoleto attraverso i reload dell'integrazione.
 
-### Branding HACS
+### Correzioni ereditate dalla 0.15.14
 
-Il repository continua a distribuire gli asset locali `brand/` e `custom_components/dashboardmodern/brand/`. La schermata elenco HACS può però mostrare **icon not available** finché il dominio `dashboardmodern` non è registrato anche nel catalogo esterno Home Assistant Brands usato dal frontend HACS. Non vengono aggiunte ulteriori copie dell'icona nel repository perché non risolverebbero quel lookup esterno. La registrazione nel catalogo Brands è un passaggio separato dall'aggiornamento dell'integrazione.
+- **Energia:** un campo annuale lasciato intenzionalmente vuoto non viene più ripopolato dal contatore lifetime dopo Salva/reload;
+- **Elettrodomestici:** il layout usa il vero body `.appl-info`, card mobile fino a 370 px, artwork almeno 80 × 80 px e pulsanti più compatti;
+- **Temperature:** card mobile fino a 350 px con tipografia e spaziature ridotte;
+- **Branding HACS:** gli asset locali restano presenti; l'eventuale `icon not available` nella lista HACS dipende dal catalogo esterno Home Assistant Brands, non da copie locali mancanti.
 
 ### Conflitti e ownership
 
 - nessun nuovo `MutationObserver` globale;
 - nessun nuovo `setInterval`;
-- nessun nuovo modulo visuale per Energia, Elettrodomestici o Temperature: le correzioni sono nei rispettivi owner esistenti;
-- test dedicati verificano che un annuale vuoto non venga ripopolato e che i layout mobile usino il DOM reale;
-- i contratti import-graph/orphan continuano a impedire moduli moderni scollegati e proprietari duplicati.
-
-### HACS e aggiornamento
-
-Dopo un aggiornamento HACS, se compare **In attesa di riavvio**, la nuova versione non va considerata attiva finché Home Assistant non è stato riavviato. Dopo il riavvio chiudi e riapri l'app/browser oppure esegui un refresh completo: il frontend usa asset versionati e una sessione aperta può continuare a mostrare contenuti della release precedente.
+- nessun nuovo modulo visuale per Energia, Elettrodomestici o Temperature;
+- il test cache-busting si aggiunge ai contratti import-graph/orphan e ai test della persistenza Energia e layout mobile;
+- il vecchio contratto release 0.15.14 viene sostituito da quello 0.15.15, non duplicato.
 
 ---
 
