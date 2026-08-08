@@ -66,10 +66,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#appl-room")).toBeVisible();
     await expect(page.locator("#appl-ent")).toBeVisible();
     if (testInfo.project.name === "mobile") {
-      const applianceEditorFits = await page.evaluate(() => {
+      const applianceEditorGeometry = await page.evaluate(() => {
         const shell = document.querySelector("#editor-modal .ed-shell");
         const body = document.querySelector("#editor-modal #ed-body");
-        if (!shell || !body) return false;
+        if (!shell || !body) return [{ target: "missing-shell-or-body" }];
         const bounds = shell.getBoundingClientRect();
         const viewport = innerWidth;
         const nodes = [
@@ -78,18 +78,30 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
             ".ed-list,.ed-row,.ed-form,.ed-form-row,.ed-btn-add,#appl-name,#appl-room,#appl-ent",
           ),
         ];
-        return nodes.every((node) => {
-          const rect = node.getBoundingClientRect();
-          return (
-            rect.left >= bounds.left - 2 &&
-            rect.right <= bounds.right + 2 &&
-            rect.left >= -2 &&
-            rect.right <= viewport + 2
+        return nodes
+          .filter((node) => node.getClientRects().length > 0 && getComputedStyle(node).visibility !== "hidden")
+          .map((node) => {
+            const rect = node.getBoundingClientRect();
+            return {
+              target: node.id ? `#${node.id}` : `${node.tagName.toLowerCase()}.${[...node.classList].join(".")}`,
+              left: Math.round(rect.left * 10) / 10,
+              right: Math.round(rect.right * 10) / 10,
+              width: Math.round(rect.width * 10) / 10,
+              shellLeft: Math.round(bounds.left * 10) / 10,
+              shellRight: Math.round(bounds.right * 10) / 10,
+              viewport,
+            };
+          })
+          .filter(
+            (item) =>
+              item.left < item.shellLeft - 2 ||
+              item.right > item.shellRight + 2 ||
+              item.left < -2 ||
+              item.right > viewport + 2,
           );
-        });
       });
-      expect(applianceEditorFits).toBeTruthy();
       await page.screenshot({ path: `test-results/${variant}-config-appliances-mobile.png`, fullPage: true });
+      expect(applianceEditorGeometry).toEqual([]);
     }
 
     await page.evaluate(() => window.editorSwitch("sez1"));
