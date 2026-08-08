@@ -154,9 +154,9 @@ const dayValues = {
 };
 
 // Intentionally inconsistent direct Home total (28.2) versus HA-style flows
-// (50.2 + 0 + 5.5 - 7.2 - 8.6 = 39.9). The browser test must prove that
-// DashboardModern displays the flow-derived value rather than trusting the
-// inverter-specific direct meter.
+// (50.2 + 0 + 5.5 - 7.2 - 8.6 = 39.9). The configured Home/Casa period
+// source is authoritative; flow reconstruction is fallback only when Home is
+// not configured.
 const currentMonthValues = {
   "sensor.house_total": 28.2,
   "sensor.solar_total": 50.2,
@@ -293,5 +293,5 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.ready === true);
   await expect
     .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house))
-    .toBe(39.9);
+    .toBe(28.2);
 }
