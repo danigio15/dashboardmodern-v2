@@ -1,0 +1,73 @@
+name: Final 0.15.20 E2E fixes
+
+on:
+  push:
+    branches:
+      - fix/0.15.20-release-hardening-appliance-artwork
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/0.15.20-release-hardening-appliance-artwork
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Apply final E2E fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new, label):
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected one match, found {count}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          namespaced = Path("custom_components/dashboardmodern/frontend/e2e/helpers/namespaced-dashboard.js")
+          replace_once(
+              namespaced,
+              'export async function bootNamespacedDashboard(page, variant, testInfo, seed) {\n',
+              '''async function disableSriForMockedExternalScripts(page) {\n  // Browser E2E deliberately replaces remote CDN scripts with deterministic\n  // local stubs. SRI correctly rejects those stubs because their bytes differ\n  // from production. Strip integrity only from the served E2E document; the\n  // committed legacy HTML remains pinned/SRI-protected and is checked by the\n  // frontend hardening tests.\n  await page.route(/\\/legacy\\/dashboard(?:-en)?\\.html(?:\\?.*)?$/, async (route) => {\n    const response = await route.fetch();\n    const body = (await response.text()).replace(\n      /\\s+integrity="sha384-[^"]+"\\s+crossorigin="anonymous"/g,\n      "",\n    );\n    await route.fulfill({ response, body });\n  });\n}\n\nexport async function bootNamespacedDashboard(page, variant, testInfo, seed) {\n  await disableSriForMockedExternalScripts(page);\n''',
+              "namespaced E2E SRI isolation",
+          )
+
+          editor = Path("custom_components/dashboardmodern/frontend/src/sections/appliance-editor-section.js")
+          replace_once(
+              editor,
+              '<span class="dm-appliance-icon-preview" data-icon-preview aria-hidden="true">${artworkPreview(visual)}</span>',
+              '<span class="dm-appliance-icon-preview" data-icon-preview data-dm-preview-source="artwork" aria-hidden="true">${artworkPreview(visual)}</span>',
+              "appliance initial preview provenance",
+          )
+          replace_once(
+              editor,
+              '''  form.elements.icon.addEventListener("change", () => {\n    preview.innerHTML = artworkPreview(form.elements.icon.value);\n  });''',
+              '''  form.elements.icon.addEventListener("change", () => {\n    preview.innerHTML = artworkPreview(form.elements.icon.value);\n    preview.dataset.dmPreviewSource = "artwork";\n  });''',
+              "appliance preview change provenance",
+          )
+          PY
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Verify frontend contracts
+        run: |
+          npm run check:inline-syntax
+          npm run test:frontend
+      - name: Commit fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/dashboardmodern/frontend/e2e/helpers/namespaced-dashboard.js \
+                  custom_components/dashboardmodern/frontend/src/sections/appliance-editor-section.js
+          git diff --cached --check
+          git commit -m "fix: isolate E2E CDN stubs and mark appliance artwork preview"
+          git push origin HEAD:fix/0.15.20-release-hardening-appliance-artwork
