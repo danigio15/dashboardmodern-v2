@@ -1,0 +1,28 @@
+name: Restore HACS brand icon
+
+on:
+  push:
+    branches:
+      - fix/0.15.20-release-hardening-appliance-artwork
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/0.15.20-release-hardening-appliance-artwork
+          fetch-depth: 0
+      - name: Restore only the HACS-required installed icon
+        run: |
+          git fetch origin main
+          git checkout origin/main -- custom_components/dashboardmodern/brand/icon.png
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/dashboardmodern/brand/icon.png
+          git commit -m "fix: restore HACS-required integration brand icon"
+          git push origin HEAD:fix/0.15.20-release-hardening-appliance-artwork
