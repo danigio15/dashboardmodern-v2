@@ -82,6 +82,9 @@ async def test_admin_only_option_hides_the_panel(
 
     monkeypatch.setattr(frontend_module, "_register_or_update_panel", fake_register)
     monkeypatch.setattr(frontend_module, "_ensure_static_registered", _async_noop)
+    monkeypatch.setattr(
+        frontend_module, "_ensure_dashboard_card_registered", lambda *_args: None
+    )
 
     entry = MockConfigEntry(
         domain=DOMAIN, entry_id="entry-1", options={OPTION_ADMIN_ONLY: True}
