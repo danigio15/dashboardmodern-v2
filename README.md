@@ -35,7 +35,7 @@ La 0.15.20 corregge la regressione dell'anteprima **Modifica elettrodomestico** 
 - la release fallisce se il tag della versione esiste già e gli E2E girano anche su push a `main` e nel gate di release;
 - il marker Energia usa `build-info.js` e non una versione hardcoded obsoleta;
 - `strings.json` torna alla sorgente inglese prevista da Home Assistant e la selezione utenti è documentata correttamente come filtro UI;
-- rimossi duplicati bridge, riferimenti di packaging morti e la copia brand installata non usata.
+- rimossi duplicati bridge e riferimenti di packaging morti; della copia brand installata resta solo `brand/icon.png`, obbligatorio per la validazione HACS.
 
 ### 0.15.19 — Analisi settimanale e polish Editor
 
