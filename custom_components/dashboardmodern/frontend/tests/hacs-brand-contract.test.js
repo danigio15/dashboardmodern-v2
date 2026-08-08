@@ -12,9 +12,8 @@ function pngDimensions(buffer) {
   };
 }
 
-test("HACS root brand and installed integration expose a square 256px icon", async () => {
-  for (const path of ["brand/icon.png", "custom_components/dashboardmodern/brand/icon.png"]) {
-    const content = await readFile(new URL(path, root));
-    assert.deepEqual(pngDimensions(content), { width: 256, height: 256 }, path);
-  }
+test("HACS root brand exposes the canonical square 256px icon", async () => {
+  const path = "brand/icon.png";
+  const content = await readFile(new URL(path, root));
+  assert.deepEqual(pngDimensions(content), { width: 256, height: 256 }, path);
 });

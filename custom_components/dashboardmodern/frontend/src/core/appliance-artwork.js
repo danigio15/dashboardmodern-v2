@@ -1,4 +1,4 @@
-/* DashboardModern 0.15.0 — pure appliance artwork helpers. */
+/* Pure appliance artwork helpers. */
 
 export function canonicalArtworkType(value) {
   const token = String(value || "").toLowerCase();

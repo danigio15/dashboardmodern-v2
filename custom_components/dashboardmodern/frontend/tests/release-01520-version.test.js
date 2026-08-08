@@ -15,14 +15,14 @@ const refreshUrl = new URL("../src/sections/energy-refresh-section.js", import.m
 const analysisUrl = new URL("../src/sections/energy-analysis-section.js", import.meta.url);
 const contractsUrl = new URL("../src/sections/editor-contracts-section.js", import.meta.url);
 
-test("the weekly Analysis and editor polish release is consistently versioned as 0.15.19", async () => {
+test("the hardening and appliance artwork release is consistently versioned as 0.15.20", async () => {
   const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
   const readme = await readFile(readmeUrl, "utf8");
   const buildInfo = await readFile(buildInfoUrl, "utf8");
 
-  assert.equal(manifest.version, "0.15.19");
-  assert.match(readme, /version-0\.15\.19/);
-  assert.match(readme, /Novità 0\.15\.19/);
+  assert.equal(manifest.version, "0.15.20");
+  assert.match(readme, /version-0\.15\.20/);
+  assert.match(readme, /Novità 0\.15\.20/);
   assert.match(readme, /Confronto settimanale dei consumi Casa/i);
   assert.match(readme, /contatore totale kWh/i);
   assert.match(readme, /SALVA MODIFICHE/);
@@ -32,8 +32,8 @@ test("the weekly Analysis and editor polish release is consistently versioned as
     /https:\/\/raw\.githubusercontent\.com\/danigio15\/dashboardmodern-v2\/main\/brand\/logo\.png/,
   );
   assert.doesNotMatch(readme, /main\/assets\/logo|brand\/logo@2x\.png/);
-  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']0\.15\.19["']/);
-  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']0\.15\.19["']/);
+  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']0\.15\.20["']/);
+  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']0\.15\.20["']/);
   assert.match(buildInfo, /["']?moduleVersion["']?\s*:\s*14/);
 });
 
@@ -49,7 +49,8 @@ test("weekly Analysis uses authenticated Recorder statistics and the canonical H
 test("canonical editor contracts cover Energy, appliance preview, Lights and Temperature polish", async () => {
   const contracts = await readFile(contractsUrl, "utf8");
   assert.match(contracts, /dm-energy-guide-steps/);
-  assert.match(contracts, /dm-appliance-menu-glyph/);
+  assert.match(contracts, /applianceArtwork/);
+  assert.match(contracts, /dmPreviewSource = "artwork"/);
   assert.match(contracts, /grid-template-areas:\"main edit delete\"/);
   assert.match(contracts, /dmTemperatureMode/);
   assert.doesNotMatch(contracts, /MutationObserver|setInterval\s*\(/);

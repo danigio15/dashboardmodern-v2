@@ -40,6 +40,7 @@ ASSET_SUFFIXES = frozenset(
 RUNTIME_ROOT_FILES = frozenset({"panel.js", "dashboard-card.js"})
 RUNTIME_DIRECTORIES = ("legacy", "src")
 IGNORED_RUNTIME_PARTS = frozenset({"e2e", "tests", "__pycache__"})
+IGNORED_RUNTIME_FILES = frozenset({"legacy/VENDOR.json"})
 
 
 def _runtime_assets() -> Iterator[Path]:
@@ -53,9 +54,11 @@ def _runtime_assets() -> Iterator[Path]:
         if not directory.is_dir():
             continue
         for path in sorted(directory.rglob("*")):
+            relative = path.relative_to(FRONTEND_DIR).as_posix()
             if (
                 path.is_file()
                 and path.suffix in ASSET_SUFFIXES
+                and relative not in IGNORED_RUNTIME_FILES
                 and not IGNORED_RUNTIME_PARTS.intersection(path.parts)
             ):
                 yield path
@@ -126,12 +129,20 @@ def _allowed_user_ids(entry: Any) -> list[str]:
     return [str(user_id) for user_id in value if user_id]
 
 
-def _panel_config(hass: HomeAssistant, entry: Any) -> dict[str, Any]:
+def _panel_config(
+    hass: HomeAssistant,
+    entry: Any,
+    *,
+    asset_version: str | None = None,
+    static_url_path: str | None = None,
+) -> dict[str, Any]:
     """Build the panel config snapshot for one plancia."""
     from .config_flow import OPTION_ADMIN_ONLY, OPTION_REGISTER_LOVELACE
 
-    asset_version = _frontend_asset_version()
-    static_url_path = f"{STATIC_URL_PATH}/{asset_version}"
+    if asset_version is None:
+        asset_version = _frontend_asset_version()
+    if static_url_path is None:
+        static_url_path = f"{STATIC_URL_PATH}/{asset_version}"
     return {
         "entry_ids": [entry.entry_id],
         "instance_id": entry.entry_id,
@@ -156,7 +167,13 @@ def _panel_config(hass: HomeAssistant, entry: Any) -> dict[str, Any]:
 
 
 def _register_or_update_panel(
-    hass: HomeAssistant, entry: Any, url_path: str, *, update: bool
+    hass: HomeAssistant,
+    entry: Any,
+    url_path: str,
+    *,
+    update: bool,
+    asset_version: str,
+    static_url_path: str,
 ) -> None:
     """Register or update the custom panel for one plancia."""
     from homeassistant.components import frontend
@@ -169,7 +186,12 @@ def _register_or_update_panel(
         sidebar_title=entry.title or "DashboardModern",
         sidebar_icon="mdi:view-dashboard-edit",
         frontend_url_path=url_path,
-        config=_panel_config(hass, entry),
+        config=_panel_config(
+            hass,
+            entry,
+            asset_version=asset_version,
+            static_url_path=static_url_path,
+        ),
         require_admin=bool(entry.options.get(OPTION_ADMIN_ONLY, False)),
         show_in_sidebar=True,
         update=update,
@@ -184,10 +206,9 @@ def _remove_panel(hass: HomeAssistant, url_path: str) -> None:
 
 
 async def _ensure_static_registered(
-    hass: HomeAssistant, domain_data: dict[str, Any]
+    hass: HomeAssistant, domain_data: dict[str, Any], static_url_path: str
 ) -> None:
-    """Register current versioned modules and the stable shared-asset path."""
-    static_url_path = _versioned_static_url_path()
+    """Register only production runtime assets on stable/versioned URLs."""
     if domain_data.get(DATA_STATIC_REGISTERED) == static_url_path:
         return
 
@@ -197,47 +218,41 @@ async def _ensure_static_registered(
     if hass.http is None:
         await async_setup_component(hass, "http", {})
 
-    configs = [
-        StaticPathConfig(
-            url_path=static_url_path,
-            path=str(FRONTEND_DIR),
-            cache_headers=True,
-        )
-    ]
-    if not domain_data.get(DATA_STATIC_BASE_REGISTERED):
-        configs.insert(
-            0,
-            StaticPathConfig(
-                url_path=STATIC_URL_PATH,
-                path=str(FRONTEND_DIR),
-                cache_headers=False,
-            ),
-        )
+    assets = list(_runtime_assets())
 
-    await hass.http.async_register_static_paths(configs)
+    def configs(prefix: str, cache_headers: bool) -> list[StaticPathConfig]:
+        return [
+            StaticPathConfig(
+                url_path=f"{prefix}/{path.relative_to(FRONTEND_DIR).as_posix()}",
+                path=str(path),
+                cache_headers=cache_headers,
+            )
+            for path in assets
+        ]
+
+    paths = configs(static_url_path, True)
+    if not domain_data.get(DATA_STATIC_BASE_REGISTERED):
+        paths = configs(STATIC_URL_PATH, False) + paths
+
+    await hass.http.async_register_static_paths(paths)
     domain_data[DATA_STATIC_BASE_REGISTERED] = True
     domain_data[DATA_STATIC_REGISTERED] = static_url_path
 
 
 def _ensure_dashboard_card_registered(
-    hass: HomeAssistant, domain_data: dict[str, Any]
+    hass: HomeAssistant, domain_data: dict[str, Any], static_url_path: str
 ) -> None:
-    """Load the companion custom card on every Home Assistant frontend page."""
+    """Load the companion custom card through the public frontend API."""
     from homeassistant.components import frontend
 
-    module_url = f"{_versioned_static_url_path()}/dashboard-card.js"
+    module_url = f"{static_url_path}/dashboard-card.js"
     if domain_data.get(DATA_DASHBOARD_CARD_REGISTERED) == module_url:
         return
 
-    manager = hass.data.get(frontend.DATA_EXTRA_MODULE_URL)
-    if manager is None:
-        return
-
     previous = domain_data.get(DATA_DASHBOARD_CARD_REGISTERED)
-    if previous and previous in manager.urls:
-        manager.remove(previous)
-    if module_url not in manager.urls:
-        manager.add(module_url)
+    if previous:
+        frontend.remove_extra_js_url(hass, previous)
+    frontend.add_extra_js_url(hass, module_url)
     domain_data[DATA_DASHBOARD_CARD_REGISTERED] = module_url
 
 
@@ -248,8 +263,11 @@ async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
     if entry is None:
         return
 
-    await _ensure_static_registered(hass, domain_data)
-    _ensure_dashboard_card_registered(hass, domain_data)
+    asset_version = await hass.async_add_executor_job(_frontend_asset_version)
+    static_url_path = f"{STATIC_URL_PATH}/{asset_version}"
+
+    await _ensure_static_registered(hass, domain_data, static_url_path)
+    _ensure_dashboard_card_registered(hass, domain_data, static_url_path)
 
     paths: dict[str, str] = domain_data.setdefault(DATA_PANEL_PATHS, {})
     taken = {p for eid, p in paths.items() if eid != entry_id}
@@ -257,7 +275,14 @@ async def async_register_frontend(hass: HomeAssistant, entry_id: str) -> None:
     old_path = paths.get(entry_id)
     if old_path and old_path != new_path:
         _remove_panel(hass, old_path)
-    _register_or_update_panel(hass, entry, new_path, update=old_path == new_path)
+    _register_or_update_panel(
+        hass,
+        entry,
+        new_path,
+        update=old_path == new_path,
+        asset_version=asset_version,
+        static_url_path=static_url_path,
+    )
     paths[entry_id] = new_path
 
 

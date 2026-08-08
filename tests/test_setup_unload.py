@@ -75,6 +75,8 @@ async def test_admin_only_option_hides_the_panel(
         _url_path: str,
         *,
         update: bool,
+        asset_version: str,
+        static_url_path: str,
     ) -> None:
         captured["admin_only"] = bool(entry.options.get(OPTION_ADMIN_ONLY, False))
 
