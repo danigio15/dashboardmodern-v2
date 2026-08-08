@@ -117,7 +117,7 @@ export function openApplianceEditor(index) {
     <form data-form>
       <div class="dm-modal-grid dm-appliance-main-fields">
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(device.name)}" required></label>
-        <label class="ed-slot dm-appliance-icon-field"><span class="ed-slot-lbl">${t("Tipo / immagine", "Type / artwork")}</span><span class="dm-appliance-icon-row"><span class="dm-appliance-icon-preview" data-icon-preview aria-hidden="true">${artworkPreview(visual)}</span><select class="ed-input" name="icon">${iconOptions(visual)}</select></span><small>${t("L’anteprima usa esattamente l’immagine renderizzata nella card.", "The preview uses exactly the artwork rendered in the card.")}</small></label>
+        <label class="ed-slot dm-appliance-icon-field"><span class="ed-slot-lbl">${t("Tipo / immagine", "Type / artwork")}</span><span class="dm-appliance-icon-row"><span class="dm-appliance-icon-preview" data-icon-preview data-dm-preview-source="artwork" aria-hidden="true">${artworkPreview(visual)}</span><select class="ed-input" name="icon">${iconOptions(visual)}</select></span><small>${t("L’anteprima usa esattamente l’immagine renderizzata nella card.", "The preview uses exactly the artwork rendered in the card.")}</small></label>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room_id">${roomOptions(device.room_id || device.room)}</select></label>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Soglia in funzione", "Running threshold")}</span><input class="ed-input" type="number" step="0.1" min="0" name="threshold_run" value="${esc(device.threshold_run ?? 5)}"><small>${t("Potenza in watt oltre la quale la card risulta accesa.", "Power in watts above which the card is shown as running.")}</small></label>
       </div>
@@ -138,6 +138,7 @@ export function openApplianceEditor(index) {
   const preview = modal.querySelector("[data-icon-preview]");
   form.elements.icon.addEventListener("change", () => {
     preview.innerHTML = artworkPreview(form.elements.icon.value);
+    preview.dataset.dmPreviewSource = "artwork";
   });
   modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
   modal.querySelectorAll("[data-pick]").forEach((button) => button.addEventListener("click", () => root.wzPickEntity?.(form.elements[button.dataset.pick])));
