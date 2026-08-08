@@ -42,12 +42,16 @@ jobs:
           python -m compileall -q custom_components scripts tests
           npm run check:inline-syntax
           npm run test:frontend
-      - name: Remove one-shot patcher and commit result
+      - name: Commit non-workflow fixes
         run: |
-          rm -f scripts/apply_01520_fixes.py .github/workflows/branch-01520-patcher.yml
+          git restore --source=HEAD -- \
+            .github/workflows/e2e.yml \
+            .github/workflows/release.yml \
+            .github/workflows/branch-01520-patcher.yml \
+            scripts/apply_01520_fixes.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git diff --cached --check
-          git commit -m "fix: harden 0.15.20 release and restore appliance artwork"
+          git commit -m "fix: harden 0.15.20 runtime and restore appliance artwork"
           git push origin HEAD:fix/0.15.20-release-hardening-appliance-artwork
