@@ -1,16 +1,28 @@
 import assert from "node:assert/strict";
-import { readdir, readFile } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const importPattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
+const staticImportPattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
+const dynamicImportPattern = /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
 const productionEntries = Object.freeze([
-  "legacy/report-mobile-fixes.js",
+  "legacy/config.js",
   "legacy/modules-entry.js",
   "panel.js",
   "dashboard-card.js",
+]);
+const obsoleteFacades = Object.freeze([
+  "src/sections/home-section.js",
+  "src/sections/climate-section.js",
+  "src/sections/security-section.js",
+  "src/sections/solar-thermal-section.js",
+  "src/sections/pool-section.js",
+  "src/sections/irrigation-section.js",
+  "src/sections/minipc-section.js",
+  "src/sections/legacy-section-adapter.js",
+  "legacy/report-mobile-fixes.js",
 ]);
 
 async function filesBelow(directory) {
@@ -21,6 +33,13 @@ async function filesBelow(directory) {
     else output.push(absolute);
   }
   return output;
+}
+
+function importSpecifiers(source) {
+  return [
+    ...[...source.matchAll(staticImportPattern)].map((match) => match[1]),
+    ...[...source.matchAll(dynamicImportPattern)].map((match) => match[1]),
+  ];
 }
 
 async function productionGraph(entries = productionEntries) {
@@ -34,8 +53,7 @@ async function productionGraph(entries = productionEntries) {
     seen.set(normalized, source);
     const dependencies = [];
     edges.set(normalized, dependencies);
-    for (const match of source.matchAll(importPattern)) {
-      const specifier = match[1];
+    for (const specifier of importSpecifiers(source)) {
       if (!specifier.startsWith(".")) continue;
       let next = path.resolve(path.dirname(normalized), specifier);
       if (!path.extname(next)) next += ".js";
@@ -52,7 +70,6 @@ async function productionGraph(entries = productionEntries) {
 function assertAcyclic(edges) {
   const active = new Set();
   const complete = new Set();
-
   function visit(file, chain = []) {
     if (complete.has(file)) return;
     if (active.has(file)) {
@@ -66,67 +83,37 @@ function assertAcyclic(edges) {
     active.delete(file);
     complete.add(file);
   }
-
   for (const file of edges.keys()) visit(file);
 }
 
-test("production has one dedicated owner per section and no patch cascade", async () => {
+test("production graph is single-owner, acyclic and contains no facade pass-throughs", async () => {
   const { seen: graph, edges } = await productionGraph();
   const relative = [...graph.keys()].map((file) =>
     path.relative(frontendRoot, file).replaceAll("\\", "/"),
   );
   const combined = [...graph.values()].join("\n");
-  const sectionOwners = [
-    "sections/data-contracts-section.js",
-    "sections/energy-section.js",
-    "sections/energy-stability-section.js",
-    "sections/energy-guidance-section.js",
-    "sections/temperature-section.js",
-    "sections/temperature-layout-section.js",
-    "sections/appliances-section.js",
-    "sections/appliance-layout-section.js",
-    "sections/appliance-editor-section.js",
-    "sections/lights-alerts-section.js",
-    "sections/alerts-section.js",
-    "sections/unified-editors-section.js",
-    "sections/editor-crud-section.js",
-    "sections/editor-contracts-section.js",
-    "sections/report-editor-section.js",
-    "sections/shutter-section.js",
-    "sections/shutter-alert-layout-section.js",
-    "sections/ev-section.js",
-  ];
 
   assert.equal(relative.filter((file) => file.endsWith("section-runtime.js")).length, 1);
-  assert.equal(relative.filter((file) => file.endsWith("runtime-consolidated.js")).length, 0);
-  for (const owner of sectionOwners) {
-    assert.equal(
-      relative.filter((file) => file.endsWith(owner)).length,
-      1,
-      `${owner} must have exactly one production owner`,
-    );
-  }
+  assert.equal(relative.filter((file) => file.endsWith("legacy-sections-registry.js")).length, 1);
   assert.deepEqual(relative.filter((file) => /legacy\/release-\d+/.test(file)), []);
   assert.deepEqual(
     relative.filter((file) =>
-      /runtime-real-ha|runtime-residual|runtime-release-owner|runtime-regression-guard/.test(file),
+      /runtime-real-ha|runtime-residual|runtime-release-owner|runtime-regression-guard|runtime-consolidated/.test(file),
     ),
     [],
   );
   assert.deepEqual(
     relative.filter((file) =>
-      /mobile-ui-fixes|alerts-runtime|vehicle-image-runtime|runtime-startup-coordinator/.test(file),
+      /mobile-ui-fixes|alerts-runtime|vehicle-image-runtime|runtime-startup-coordinator|report-mobile-fixes/.test(file),
     ),
     [],
   );
-  assert.ok(relative.length <= 60, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 52, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
-  const observers = [...graph.entries()].filter(([, source]) =>
-    /new\s+MutationObserver\s*\(/.test(source),
-  );
-  assert.ok(observers.length <= 2, `too many section observers: ${observers.length}`);
+  const observers = [...graph.entries()].filter(([, source]) => /new\s+(?:root\.)?MutationObserver\s*\(/.test(source));
+  assert.ok(observers.length <= 2, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,
@@ -135,8 +122,6 @@ test("production has one dedicated owner per section and no patch cascade", asyn
     );
   }
 
-  // Every modern source module must be reachable from at least one real
-  // production entrypoint: runtime, canonical legacy bridge, panel or card.
   const srcRoot = path.join(frontendRoot, "src");
   const srcFiles = (await filesBelow(srcRoot)).filter((file) => file.endsWith(".js"));
   const srcOrphans = srcFiles
@@ -145,3 +130,9 @@ test("production has one dedicated owner per section and no patch cascade", asyn
     .sort();
   assert.deepEqual(srcOrphans, [], `orphan src modules:\n${srcOrphans.join("\n")}`);
 });
+
+for (const relative of obsoleteFacades) {
+  test(`${relative} is physically absent`, async () => {
+    await assert.rejects(access(path.join(frontendRoot, relative)));
+  });
+}

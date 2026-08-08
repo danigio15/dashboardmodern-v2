@@ -270,6 +270,19 @@ export function reportEntityForDevice(item = {}, states = globalThis.STATES || {
   );
 }
 
+function lifetimeHistoryForDevice(item = {}, entity = "", states = globalThis.STATES || {}) {
+  const candidates = [
+    item.history_entity,
+    item.total_energy_entity,
+    item.report_entity,
+    entity,
+    ...entityIds(item),
+  ]
+    .map(configured)
+    .filter(Boolean);
+  return candidates.find((candidate) => isCumulativeEnergyEntity(candidate, states)) || "";
+}
+
 function glyphForMdi(icon) {
   const value = configured(icon).toLowerCase();
   if (MDI_ICON_GLYPHS[value]) return MDI_ICON_GLYPHS[value];
@@ -323,7 +336,7 @@ export function canonicalReportDevices(
     .map((item, index) => {
       const entity = reportEntityForDevice(item, states);
       const visual = getDeviceVisual(item);
-      const history = item.history_entity || item.total_energy_entity || entity || "";
+      const history = lifetimeHistoryForDevice(item, entity, states);
       return {
         key: item.id || `report-${index}`,
         name: item.report_label || item.name || item.id,
@@ -333,7 +346,7 @@ export function canonicalReportDevices(
         image: visual?.kind === "image" ? visual.value : "",
         entity,
         history,
-        cumulative: isCumulativeEnergyEntity(history, states),
+        cumulative: Boolean(history),
       };
     })
     .filter((item) => {

@@ -395,13 +395,7 @@ function installStyles() {
   installStyle(
     "dm-lights-alerts-section-style",
     `
-      .dm-section-modal{position:fixed!important;inset:0!important;z-index:100000!important;display:grid!important;place-items:center!important;box-sizing:border-box!important;padding:16px!important;background:rgba(2,6,23,.68)!important;pointer-events:auto!important}
-      .dm-section-dialog{display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;box-sizing:border-box!important;width:min(720px,100%)!important;max-height:min(760px,92dvh)!important;overflow:hidden!important;border:1px solid var(--divider-color,rgba(148,163,184,.25))!important;border-radius:22px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--primary-text-color,var(--text,#0f172a))!important;box-shadow:0 28px 90px rgba(0,0,0,.38)!important}
-      .dm-section-dialog>header,.dm-section-dialog>footer{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;padding:14px 16px!important;background:var(--secondary-background-color,rgba(148,163,184,.10))!important;border-color:var(--divider-color,rgba(148,163,184,.22))!important}
-      .dm-section-dialog>header{border-bottom:1px solid}.dm-section-dialog>footer{border-top:1px solid}
-      .dm-section-dialog>header button{display:grid!important;place-items:center!important;width:38px!important;height:38px!important;border:0!important;border-radius:50%!important;background:var(--secondary-background-color,#eef2f7)!important;color:var(--primary-text-color,#0f172a)!important;cursor:pointer!important}
-      .dm-section-dialog>form{display:grid!important;gap:14px!important;overflow:auto!important;padding:18px!important}
-      .dm-section-dialog>form>footer{display:flex!important;justify-content:flex-end!important;gap:10px!important}
+      /* Modal shell/headers/forms/footers are owned only by editor-contracts-section.js. */
       .dm-section-dialog [data-error]{min-height:18px;color:var(--error-color,#dc2626);font-weight:800}
       .dm-light-picker-dialog{grid-template-rows:auto auto minmax(0,1fr) auto!important}
       .dm-light-picker-dialog>[data-search]{box-sizing:border-box!important;width:auto!important;margin:14px 16px 8px!important}
@@ -413,10 +407,8 @@ function installStyles() {
       .dm-light-order{display:grid!important;gap:3px!important}.dm-light-room-order{display:inline-flex!important;gap:4px!important}
       .dm-light-row .dm-light-room{width:100%!important;min-width:0!important}
       @media(max-width:720px){
-        .dm-section-modal{padding:8px!important}.dm-section-dialog{max-height:96dvh!important;border-radius:18px!important}
         .dm-light-row{grid-template-columns:auto minmax(0,1fr) 42px 42px!important}.dm-light-row .dm-light-room{grid-column:1/-1!important;grid-row:2!important}
         .dm-light-picker-row{grid-template-columns:auto minmax(0,1fr) 36px 36px!important;padding:10px!important}
-        .dm-section-dialog>form>footer{flex-direction:column-reverse!important}.dm-section-dialog>form>footer button{width:100%!important}
       }
     `,
   );

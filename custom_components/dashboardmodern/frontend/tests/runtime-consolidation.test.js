@@ -124,8 +124,8 @@ test("legacy overrides still classify total increasing meters safely", () => {
   );
 });
 
-test("production entry delegates once to the section runtime, which owns the guard", async () => {
-  const loader = await readFile(new URL("../legacy/report-mobile-fixes.js", import.meta.url), "utf8");
+test("one hosted bootstrap delegates to the section runtime, which owns the guard", async () => {
+  const loader = await readFile(new URL("../legacy/config.js", import.meta.url), "utf8");
   const prelude = await readFile(new URL("../legacy/bridge-prelude.js", import.meta.url), "utf8");
   const sections = await readFile(new URL("../src/sections/section-runtime.js", import.meta.url), "utf8");
   const energy = await readFile(new URL("../src/sections/energy-section.js", import.meta.url), "utf8");
@@ -156,7 +156,10 @@ test("production entry delegates once to the section runtime, which owns the gua
   );
 
   assert.doesNotMatch(loader, /transport\/hosted-bridge-guard\.js/);
-  assert.match(loader, /sections\/section-runtime\.js/);
+  assert.match(loader, /\.\.\/src\/sections\/section-runtime\.js/);
+  assert.match(loader, /__DASHBOARDMODERN_LEGACY_READY__/);
+  assert.match(loader, /DashboardModernModules/);
+  assert.doesNotMatch(loader, /report-mobile-fixes/);
   assert.match(sections, /transport\/hosted-bridge-guard\.js/);
   assert.doesNotMatch(
     loader,
@@ -180,11 +183,12 @@ test("production entry delegates once to the section runtime, which owns the gua
     "editor-contracts",
     "report-editor",
     "shutter",
-    "shutter-alert-layout",
     "ev",
   ]) {
     assert.match(sections, new RegExp(`${name}-section\\.js`));
   }
+  assert.match(sections, /legacy-sections-registry\.js/);
+  assert.doesNotMatch(sections, /shutter-alert-layout-section\.js/);
 
   assert.equal((energy.match(/new\s+SafeHomeAssistantBroker\s*\(/g) || []).length, 1);
   assert.match(energy, /loadEnergyPeriod\("day"/);
@@ -192,8 +196,9 @@ test("production entry delegates once to the section runtime, which owns the gua
   assert.match(energy, /loadEnergyPeriod\("year"/);
   assert.match(energy, /Promise\.all/);
   assert.match(energy, /Incomplete Home Assistant statistics/);
-  assert.match(stability, /waitForHostedBridge/);
-  assert.match(stability, /refreshEnergy/);
+  assert.doesNotMatch(stability, /waitForHostedBridge/);
+  assert.doesNotMatch(stability, /refreshEnergy/);
+  assert.match(stability, /energy-section\.js is the sole owner of Recorder requests/);
   assert.match(stability, /dm-energy-awaiting/);
   assert.match(guidance, /consumo Casa usa lo stesso bilancio dei flussi di Home Assistant/);
   assert.match(guidance, /energyEditorActive/);
@@ -219,11 +224,21 @@ test("production entry delegates once to the section runtime, which owns the gua
   assert.doesNotMatch(prelude, /access_token/);
 
   for (const deleted of [
+    "../legacy/report-mobile-fixes.js",
     "../legacy/mobile-ui-fixes.js",
     "../legacy/runtime-consolidated.js",
     "../src/core/alerts-runtime.js",
     "../src/core/vehicle-image-runtime.js",
     "../src/core/runtime-startup-coordinator.js",
+    "../src/sections/shutter-alert-layout-section.js",
+    "../src/sections/home-section.js",
+    "../src/sections/climate-section.js",
+    "../src/sections/security-section.js",
+    "../src/sections/solar-thermal-section.js",
+    "../src/sections/pool-section.js",
+    "../src/sections/irrigation-section.js",
+    "../src/sections/minipc-section.js",
+    "../src/sections/legacy-section-adapter.js",
   ]) {
     await assert.rejects(readFile(new URL(deleted, import.meta.url), "utf8"), {
       code: "ENOENT",

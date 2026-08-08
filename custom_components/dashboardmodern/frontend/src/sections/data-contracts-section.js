@@ -13,7 +13,6 @@ const state = (root[KEY] ||= {
   installed: false,
   applying: false,
   timer: 0,
-  attempts: 0,
   storeUnsubscribe: null,
 });
 
@@ -45,6 +44,7 @@ function uniqueEntities(device = {}) {
       [
         device.control_entity,
         device.state_entity,
+        device.status_entity,
         device.power_entity,
         device.energy_entity,
         device.daily_energy_entity,
@@ -73,11 +73,7 @@ function unitFrom(states, entity) {
   return clean(stateData(states, entity).unit_of_measurement).toLowerCase();
 }
 
-export function inferApplianceEntity(
-  device = {},
-  states = allStates(),
-  kind = "energy",
-) {
+export function inferApplianceEntity(device = {}, states = allStates(), kind = "energy") {
   const entities = uniqueEntities(device);
   if (kind === "control") return entities.find((entity) => CONTROL_DOMAIN.test(entity)) || "";
   if (kind === "power") {
@@ -130,9 +126,7 @@ function deviceTokens(device = {}) {
     .flatMap((value) => slug(value).split("-"))
     .filter(
       (value, index, values) =>
-        value.length >= 3 &&
-        !GENERIC_TOKENS.has(value) &&
-        values.indexOf(value) === index,
+        value.length >= 3 && !GENERIC_TOKENS.has(value) && values.indexOf(value) === index,
     );
 }
 
@@ -173,13 +167,20 @@ function isEnergyEntity(entity) {
   );
 }
 
+export function isLifetimeEnergyEntity(entity) {
+  const id = clean(entity);
+  if (!id) return false;
+  const attributes = stateAttributes(id);
+  const stateClass = clean(attributes.state_class).toLowerCase();
+  if (stateClass === "total" || stateClass === "total_increasing") return true;
+  return TOTAL_NAME.test(`${id} ${clean(attributes.friendly_name)}`);
+}
+
 function candidateEntities(device = {}) {
   const explicit = uniqueEntities(device);
   const tokens = deviceTokens(device);
   if (!tokens.length) return explicit;
-  const recovered = Object.keys(allStates()).filter((entity) =>
-    belongsToDevice(entity, tokens),
-  );
+  const recovered = Object.keys(allStates()).filter((entity) => belongsToDevice(entity, tokens));
   return [...new Set([...explicit, ...recovered])];
 }
 
@@ -192,7 +193,6 @@ function inferApplianceContract(device = {}) {
   const power = clean(device.power_entity) || sensors.find(isPowerEntity) || find(POWER_NAME);
   const daily = clean(device.daily_energy_entity) || find(DAILY_NAME, energySensors);
   const monthly = clean(device.monthly_energy_entity) || find(MONTHLY_NAME, energySensors);
-  const namedTotal = find(TOTAL_NAME, energySensors);
   const energy =
     clean(device.energy_entity) ||
     energySensors.find(
@@ -200,14 +200,24 @@ function inferApplianceContract(device = {}) {
     ) ||
     energySensors[0] ||
     "";
-  const total = clean(device.total_energy_entity) || namedTotal;
-  const history = clean(device.history_entity) || total || monthly || energy;
-  const report = clean(device.report_entity) || total || monthly || energy;
+
+  const explicitTotal = clean(device.total_energy_entity);
+  const namedTotal = find(TOTAL_NAME, energySensors);
+  const total =
+    (isLifetimeEnergyEntity(explicitTotal) && explicitTotal) ||
+    (isLifetimeEnergyEntity(namedTotal) && namedTotal) ||
+    "";
+  const explicitHistory = clean(device.history_entity);
+  const explicitReport = clean(device.report_entity);
+  // History is lifetime-only. Report, instead, may intentionally use a monthly
+  // measurement for the current period; canonicalReportDevices keeps that
+  // current-period entity separate from its cumulative history source.
+  const history = isLifetimeEnergyEntity(explicitHistory) ? explicitHistory : total;
+  const report = explicitReport || monthly || energy || total;
+
   const nextEntities = [
     ...new Set(
-      [control, power, energy, daily, monthly, total, history, report, ...entities].filter(
-        Boolean,
-      ),
+      [control, power, energy, daily, monthly, total, history, report, ...entities].filter(Boolean),
     ),
   ];
   return {
@@ -226,12 +236,6 @@ function inferApplianceContract(device = {}) {
 
 function same(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function sectionNeedsRepair(section) {
-  const current = dashboardStore()?.getSection?.(section);
-  if (!Array.isArray(current) || !current.length) return false;
-  return current.some((device) => !same(device, inferApplianceContract(device)));
 }
 
 async function normalizeDeviceSection(section) {
@@ -310,20 +314,9 @@ function schedule(delay = 0) {
   if (!doc || state.timer) return;
   state.timer = root.setTimeout?.(async () => {
     state.timer = 0;
-    state.attempts += 1;
-    const store = dashboardStore();
-    if (store) {
-      subscribeStore();
-      await applyDataContracts();
-    }
-    const hydrating =
-      !store ||
-      sectionNeedsRepair("appliances") ||
-      sectionNeedsRepair("loads") ||
-      !(store.getSection?.("rooms") || []).length;
-    if ((hydrating || state.attempts < 80) && state.attempts < 240)
-      schedule(hydrating ? 25 : 100);
-  }, delay);
+    subscribeStore();
+    await applyDataContracts();
+  }, Math.max(0, Number(delay) || 0));
 }
 
 function subscribeStore() {
@@ -337,19 +330,18 @@ function subscribeStore() {
 
 export function installDataContractsSection() {
   if (!doc) return false;
-  schedule(0);
   subscribeStore();
+  schedule(0);
   if (!state.installed) {
     state.installed = true;
     for (const event of [
       "dashboardmodern:legacy-ready",
       "dashboardmodern:runtime-ready",
-      "dashboardmodern:state-changed",
+      "dashboardmodern:states-ready",
       "pageshow",
     ]) {
       root.addEventListener?.(event, () => {
         subscribeStore();
-        state.attempts = 0;
         schedule(0);
       });
     }

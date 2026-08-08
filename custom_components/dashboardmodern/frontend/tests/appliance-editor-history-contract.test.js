@@ -4,11 +4,15 @@ import test from "node:test";
 
 const source = await readFile(new URL("../src/sections/appliance-editor-section.js", import.meta.url), "utf8");
 
-test("appliance editor never copies monthly energy into history or Report", () => {
+test("appliance editor never copies monthly energy into lifetime history", () => {
   assert.match(source, /history_entity:\s*total,/);
-  assert.match(source, /report_entity:\s*total,/);
   assert.doesNotMatch(source, /history_entity:\s*total\s*\|\|\s*clean\(values\.monthly_energy_entity\)/);
-  assert.doesNotMatch(source, /report_entity:\s*total\s*\|\|\s*clean\(values\.monthly_energy_entity\)/);
+});
+
+test("editing the lifetime meter preserves an independent current-period Report source", () => {
+  assert.match(source, /const existingReport = clean\(device\.report_entity\)/);
+  assert.match(source, /report_entity:\s*existingReport\s*\|\|\s*total,/);
+  assert.doesNotMatch(source, /report_entity:\s*total,/);
 });
 
 test("legacy history only prefills Total energy when it is actually cumulative", () => {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../../../../", import.meta.url);
@@ -15,21 +15,21 @@ async function assertSame(paths) {
   assert.equal(new Set(digests).size, 1, `brand assets differ: ${paths.join(", ")}`);
 }
 
-test("HACS root and installed Home Assistant brand assets stay byte-identical", async () => {
-  await assertSame([
-    "brand/icon.png",
-    "custom_components/dashboardmodern/brand/icon.png",
-  ]);
+test("brand copies are limited to packaging and the vendored runtime logo", async () => {
+  await assertSame(["brand/icon.png", "custom_components/dashboardmodern/brand/icon.png"]);
   await assertSame([
     "brand/icon@2x.png",
     "custom_components/dashboardmodern/brand/icon@2x.png",
+    "custom_components/dashboardmodern/frontend/legacy/logo.png",
   ]);
-  await assertSame([
-    "brand/logo.png",
-    "custom_components/dashboardmodern/brand/logo.png",
-  ]);
+  await assertSame(["brand/logo.png", "custom_components/dashboardmodern/brand/logo.png"]);
   await assertSame([
     "brand/logo@2x.png",
     "custom_components/dashboardmodern/brand/logo@2x.png",
   ]);
+
+  await access(new URL("custom_components/dashboardmodern/frontend/legacy/logo.png", root));
+  await assert.rejects(
+    access(new URL("custom_components/dashboardmodern/frontend/legacy/icon.png", root)),
+  );
 });

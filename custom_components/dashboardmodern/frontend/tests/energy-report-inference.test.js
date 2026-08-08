@@ -14,11 +14,11 @@ import {
 } from "../src/sections/data-contracts-section.js";
 import { resolveVehicleAsset } from "../src/sections/ev-section.js";
 
-test("infers a report entity from a generic kWh appliance entity", () => {
+test("infers a current-period report entity without pretending it is lifetime history", () => {
   const states = {
     "sensor.forno_consumo": {
       state: "12.4",
-      attributes: { unit_of_measurement: "kWh" },
+      attributes: { unit_of_measurement: "kWh", state_class: "measurement" },
     },
   };
   const appliance = {
@@ -38,7 +38,7 @@ test("infers a report entity from a generic kWh appliance entity", () => {
       visual_key: "",
       image: "",
       entity: "sensor.forno_consumo",
-      history: "sensor.forno_consumo",
+      history: "",
       cumulative: false,
     },
   ]);
@@ -56,10 +56,37 @@ test("prefers an explicit monthly report entity when no cumulative meter is conf
   assert.equal(reportEntityForDevice(appliance, {}), "sensor.forno_mese");
 });
 
+test("monthly Microonde measurement stays current-period only even if legacy history points to it", () => {
+  const states = {
+    "sensor.energy_mese_microonde": {
+      state: "8.13",
+      attributes: {
+        unit_of_measurement: "kWh",
+        device_class: "energy",
+        state_class: "measurement",
+      },
+    },
+  };
+  const appliance = {
+    id: "appl-microwave",
+    name: "Microonde",
+    monthly_energy_entity: "sensor.energy_mese_microonde",
+    history_entity: "sensor.energy_mese_microonde",
+    report_entity: "sensor.energy_mese_microonde",
+    entities: ["sensor.energy_mese_microonde"],
+    show_in_report: true,
+  };
+
+  const [report] = canonicalReportDevices([appliance], [], states);
+  assert.equal(report.entity, "sensor.energy_mese_microonde");
+  assert.equal(report.history, "");
+  assert.equal(report.cumulative, false);
+});
+
 test("prefers a cumulative total meter so Report can calculate months and years", () => {
   const states = {
     "sensor.forno_mese": {
-      attributes: { unit_of_measurement: "kWh", device_class: "energy" },
+      attributes: { unit_of_measurement: "kWh", device_class: "energy", state_class: "measurement" },
     },
     "sensor.forno_totale": {
       attributes: {
@@ -107,6 +134,7 @@ test("uses entity naming as fallback when HA state metadata is not loaded", () =
   };
 
   assert.equal(reportEntityForDevice(appliance, {}), "sensor.forno_energia_totale");
+  assert.equal(canonicalReportDevices([appliance], [], {})[0].history, "sensor.forno_energia_totale");
 });
 
 test("does not expose a power-only appliance as an energy report item", () => {
@@ -135,7 +163,7 @@ test("Forno in Salone selects kWh and never W for the canonical Report", () => {
     },
     "sensor.forno_energy": {
       state: "3.7",
-      attributes: { unit_of_measurement: "kWh" },
+      attributes: { unit_of_measurement: "kWh", state_class: "measurement" },
     },
   };
   const forno = {
@@ -156,6 +184,7 @@ test("Forno in Salone selects kWh and never W for the canonical Report", () => {
   assert.equal(report[0].name, "Forno");
   assert.equal(report[0].icon, "♨️");
   assert.equal(report[0].entity, "sensor.forno_energy");
+  assert.equal(report[0].history, "");
   assert.equal(reportIconForDevice(forno), "♨️");
 });
 

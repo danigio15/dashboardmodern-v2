@@ -323,7 +323,7 @@ export class HomeAssistantBroker {
     } catch (_error) {}
   }
 
-  ingestState(state) {
+  ingestState(state, { emitEvent = true } = {}) {
     const id = String(state?.entity_id || "").trim();
     if (!id) return false;
     const copy = { ...state, attributes: { ...(state.attributes || {}) } };
@@ -340,7 +340,7 @@ export class HomeAssistantBroker {
     [...new Set(registries)].forEach((registry) => {
       registry[id] = copy;
     });
-    if (!copy.attributes?.dashboardmodern_derived && typeof globalThis.CustomEvent === "function") {
+    if (emitEvent && !copy.attributes?.dashboardmodern_derived && typeof globalThis.CustomEvent === "function") {
       globalThis.dispatchEvent?.(new globalThis.CustomEvent("dashboardmodern:state-changed", {
         detail: { entity_id: id, state: copy },
       }));
@@ -549,7 +549,7 @@ export class HomeAssistantBroker {
     this.statesStarted = true;
     try {
       const states = await this.cachedRequest({ type: "get_states" }, "get_states", 5000);
-      (Array.isArray(states) ? states : []).forEach((state) => this.ingestState(state));
+      (Array.isArray(states) ? states : []).forEach((state) => this.ingestState(state, { emitEvent: false }));
       const socket = await this.connect();
       const id = ++this.nextId;
       this.subscription = id;

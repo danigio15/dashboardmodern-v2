@@ -4,7 +4,11 @@ import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 const state = {
   entity_id: "cover.salone",
   state: "open",
-  attributes: { friendly_name: "Tapparella salone", current_position: 65 },
+  attributes: {
+    friendly_name: "Tapparella salone",
+    current_position: 65,
+    icon: "mdi:window-shutter",
+  },
 };
 
 const seed = {
@@ -14,7 +18,16 @@ const seed = {
     lights: [],
     appliances: [],
     loads: [],
-    covers: [{ id: "cover-salone", name: "Tapparella salone", entity: "cover.salone", entities: ["cover.salone"], room_id: "room-salone" }],
+    covers: [
+      {
+        id: "cover-salone",
+        name: "Tapparella salone",
+        entity: "cover.salone",
+        entities: ["cover.salone"],
+        room_id: "room-salone",
+        icon: "mdi:window-shutter",
+      },
+    ],
   },
   visibility: { home: true, tapparelle: true },
 };
@@ -37,8 +50,15 @@ async function boot(page, testInfo) {
       send(raw) {
         const message = JSON.parse(raw);
         if (message.type === "auth") return;
-        const result = message.type === "get_states" ? [haState] : message.type === "frontend/get_user_data" ? { value: null } : null;
-        this.onmessage?.({ data: JSON.stringify({ id: message.id, type: "result", success: true, result }) });
+        const result =
+          message.type === "get_states"
+            ? [haState]
+            : message.type === "frontend/get_user_data"
+              ? { value: null }
+              : null;
+        this.onmessage?.({
+          data: JSON.stringify({ id: message.id, type: "result", success: true, result }),
+        });
       }
       close() {}
     }
@@ -56,29 +76,50 @@ async function boot(page, testInfo) {
   await page.evaluate(() => window.render?.());
 }
 
-test("real HA: shutter popup keeps close control and three actions aligned", async ({ page }, testInfo) => {
+test("real HA: shutter popup uses the compact shared modal contract", async ({ page }, testInfo) => {
   await boot(page, testInfo);
   const alert = page.locator("#tapp-avvisi .dm-shutter-alert");
   await expect(alert).toBeVisible();
   await alert.click();
 
   const popup = page.locator("#dm-shutter-popup");
+  const card = popup.locator(".dm-shutter-popup-card");
   const title = popup.locator(".ev-waw-title");
+  const titleIcon = popup.locator(".dm-shutter-title-icon");
   const close = popup.locator("[data-shutter-popup-close]");
+  const rowIcon = popup.locator(".dm-shutter-row-icon").first();
   const actions = popup.locator(".dm-shutter-actions button");
+
   await expect(popup).toBeVisible();
+  await expect(card).toBeVisible();
   await expect(title).toBeVisible();
+  await expect(titleIcon).toBeVisible();
+  await expect(rowIcon).toBeVisible();
   await expect(close).toBeVisible();
   await expect(actions).toHaveCount(3);
 
-  const [titleBox, closeBox] = await Promise.all([title.boundingBox(), close.boundingBox()]);
-  if (!titleBox || !closeBox) throw new Error("Shutter popup header has no bounding box");
-  expect(Math.abs((titleBox.y + titleBox.height / 2) - (closeBox.y + closeBox.height / 2))).toBeLessThanOrEqual(8);
+  const [titleBox, closeBox, cardBox] = await Promise.all([
+    title.boundingBox(),
+    close.boundingBox(),
+    card.boundingBox(),
+  ]);
+  if (!titleBox || !closeBox || !cardBox) throw new Error("Shutter popup has no bounding box");
+  expect(Math.abs(titleBox.y + titleBox.height / 2 - (closeBox.y + closeBox.height / 2))).toBeLessThanOrEqual(8);
   expect(closeBox.x).toBeGreaterThanOrEqual(titleBox.x + titleBox.width);
+  expect(cardBox.width).toBeLessThanOrEqual(Math.min(682, testInfo.project.name === "mobile" ? 480 : 682));
 
-  const widths = await actions.evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().width));
-  expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(2);
-  for (const width of widths) expect(width).toBeGreaterThan(60);
+  const boxes = await actions.evaluateAll((buttons) =>
+    buttons.map((button) => {
+      const rect = button.getBoundingClientRect();
+      return { width: rect.width, height: rect.height };
+    }),
+  );
+  expect(Math.max(...boxes.map((box) => box.width)) - Math.min(...boxes.map((box) => box.width))).toBeLessThanOrEqual(2);
+  for (const box of boxes) {
+    expect(box.width).toBeGreaterThan(60);
+    expect(box.height).toBeLessThanOrEqual(48);
+  }
 
+  await expect(popup.locator(".dm-shutter-details .d-state")).toContainText(/Salone.*Aperta.*65%/i);
   await page.screenshot({ path: `test-results/${testInfo.project.name}-real-ha-shutter-popup-layout.png` });
 });

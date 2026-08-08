@@ -100,6 +100,88 @@
   if (!isHosted()) return;
 
   window.__DASHBOARDMODERN_HOSTED__ = true;
+
+  // The historical hosted runtime completes cd_sections after page load. Once
+  // DashboardStore installs its legacy-write bridge, that compatibility write
+  // is indistinguishable from a user edit: it syncs to HA, renders globally and
+  // can retrigger expensive sections. Complete missing visibility keys here,
+  // before modules-entry.js installs the bridge, so the later legacy pass is
+  // genuinely idempotent. This only runs behind storage-namespace.js, therefore
+  // no shared standalone localStorage is touched.
+  function normalizeHostedVisibility() {
+    if (!window.__DASHBOARDMODERN_STORAGE_NS__) return false;
+    var raw = window.localStorage && window.localStorage.getItem("dm_dashboard_state");
+    if (!raw) return false;
+    var state;
+    try {
+      state = JSON.parse(raw);
+    } catch (_error) {
+      return false;
+    }
+    if (!state || Number(state.schema_version || 0) < 4 || !state.sections) return false;
+
+    var sections = state.sections || {};
+    var visibility = Object.assign({}, state.visibility || {});
+    var overrides = sections.entityOverrides || {};
+    var hasEntity = function (value) {
+      return typeof value === "string" && value.trim().indexOf(".") > 0;
+    };
+    var hasSlotPrefix = function (prefix) {
+      return Object.keys(overrides).some(function (slot) {
+        return slot.indexOf(prefix) === 0 && hasEntity(overrides[slot]);
+      });
+    };
+    var hasNestedEntity = function (value) {
+      if (hasEntity(value)) return true;
+      if (!value || typeof value !== "object") return false;
+      return Object.keys(value).some(function (key) {
+        if (key === "metadata") return false;
+        return hasNestedEntity(value[key]);
+      });
+    };
+    var listHasItems = function (value) {
+      return Array.isArray(value) && value.length > 0;
+    };
+    var irrigation = sections.irrigation || {};
+    var pool = sections.pool || {};
+    var defaults = {
+      energy: hasNestedEntity(sections.energy) || hasSlotPrefix("dm.energy_"),
+      appliances: listHasItems(sections.appliances),
+      ev: listHasItems(sections.ev) || hasSlotPrefix("dm.ev_"),
+      boiler: hasSlotPrefix("dm.boiler_"),
+      clima: listHasItems(sections.climate),
+      temp:
+        Array.isArray(sections.rooms) &&
+        sections.rooms.some(function (room) {
+          return hasEntity(room && room.temp) || hasEntity(room && room.hum);
+        }),
+      security:
+        listHasItems(sections.cameras) ||
+        hasSlotPrefix("dm.security_") ||
+        hasEntity(overrides["dm.home_interruttore_antifurto"]),
+      server: hasSlotPrefix("dm.server_"),
+      tapparelle: listHasItems(sections.covers),
+      irrigazione: Array.isArray(irrigation.zones) && irrigation.zones.length > 0,
+      piscina: Object.keys(pool).length > 0,
+    };
+
+    var changed = false;
+    Object.keys(defaults).forEach(function (key) {
+      if (!Object.prototype.hasOwnProperty.call(visibility, key)) {
+        visibility[key] = Boolean(defaults[key]);
+        changed = true;
+      }
+    });
+    if (!changed) return false;
+
+    state.visibility = visibility;
+    window.localStorage.setItem("dm_dashboard_state", JSON.stringify(state));
+    window.localStorage.setItem("cd_sections", JSON.stringify(visibility));
+    return true;
+  }
+
+  normalizeHostedVisibility();
+
   if (isInjectedSocket(PRELUDE_WEBSOCKET))
     window.__DASHBOARDMODERN_PRELUDE_WS__ = PRELUDE_WEBSOCKET;
 

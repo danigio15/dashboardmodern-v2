@@ -14,7 +14,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "custom_components/dashboardmodern/frontend"
 DEFAULT_OUT = FRONTEND / "legacy/build-info.js"
-DASHBOARD_RUNTIME = FRONTEND / "legacy/dashboard-runtime-it.js"
 ASSET_SUFFIXES = frozenset(
     {".js", ".css", ".html", ".json", ".png", ".svg", ".gif", ".webp"}
 )
@@ -30,7 +29,7 @@ def git_head() -> str:
 
 
 def runtime_assets() -> Iterator[Path]:
-    """Yield only assets reachable from the production panel and card."""
+    """Yield release assets included in frontend provenance."""
     for name in sorted(RUNTIME_ROOT_FILES):
         path = FRONTEND / name
         if path.is_file():
@@ -79,10 +78,11 @@ def main() -> None:
     manifest = json.loads(
         (ROOT / "custom_components/dashboardmodern/manifest.json").read_text()
     )
+    release_version = str(manifest["version"])
     payload = {
         "generated": True,
-        "integrationVersion": manifest["version"],
-        "dashboardVersion": source_constant(DASHBOARD_RUNTIME, "DASHBOARD_VERSION"),
+        "integrationVersion": release_version,
+        "dashboardVersion": release_version,
         "moduleVersion": int(
             source_constant(FRONTEND / "legacy/modules-entry.js", "MODULES_VERSION")
         ),

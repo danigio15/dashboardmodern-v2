@@ -21,10 +21,9 @@ const expectedTabs = [
   "server",
   "config",
 ];
-const cssSnapshots = {
+const vendoredCssSnapshots = {
   "dashboard-runtime-it.css": "66f53524119a4733c29bd4d9f8843cf1d25a0eac936d0e925ed08d6794007bbc",
   "dashboard-runtime-en.css": "1ddfc841177236d8318eebcb04d160c84756f064a60f9081abe0f07e36fcfcd2",
-  "dashboard-runtime.css": "713f42ce629b0afa242cf561991f02f62c5e7c68ae3831bfb7ac178db3fcd59e",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {
@@ -68,9 +67,17 @@ for (const file of ["dashboard.html", "dashboard-en.html"]) {
   });
 }
 
-test("external legacy layout styles retain byte-for-byte snapshots", () => {
-  for (const [file, expected] of Object.entries(cssSnapshots)) {
+test("language-specific vendored layout styles retain byte-for-byte snapshots", () => {
+  for (const [file, expected] of Object.entries(vendoredCssSnapshots)) {
     const value = readFileSync(new URL(`../legacy/${file}`, import.meta.url));
     assert.equal(createHash("sha256").update(value).digest("hex"), expected, file);
   }
+});
+
+test("shared legacy CSS does not own appliance card geometry", () => {
+  const source = readFileSync(new URL("../legacy/dashboard-runtime.css", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /#page-appliances-main\s+\.appl-page-grid/);
+  assert.doesNotMatch(source, /#page-appliances-main\s+\.appl-wide-card/);
+  assert.doesNotMatch(source, /#page-appliances-main\s+\.appl-ic/);
+  assert.doesNotMatch(source, /\.appl-action-btn\s*\{/);
 });

@@ -1,14 +1,14 @@
-import { clean, doc, esc, installStyle, readJson, root, t } from "./shared.js";
+import { clean, doc, esc, installStyle, readJson, root, section, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EV_SECTION__";
 const state = (root[KEY] ||= {
   installed: false,
   lastUrl: "",
-  attempts: 0,
-  timer: 0,
+  frame: 0,
   previousRefresh: null,
   previousApply: null,
 });
+const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
 
 function integrationAssetRoot(base) {
   try {
@@ -103,9 +103,34 @@ export function applyVehicleAsset() {
   return mounted;
 }
 
-function profiles() {
+function legacyProfiles() {
   const cars = readJson("cd_ev_cars", []);
   return Array.isArray(cars) ? cars : [];
+}
+
+function canonicalProfiles() {
+  const cars = section("ev", []);
+  return Array.isArray(cars) ? cars : [];
+}
+
+function profiles() {
+  const legacy = legacyProfiles();
+  return legacy.length ? legacy : canonicalProfiles();
+}
+
+function collectEntityIds(value, output, depth = 0) {
+  if (depth > 10 || value == null) return;
+  if (typeof value === "string") {
+    const id = clean(value);
+    if (ENTITY_ID.test(id)) output.add(id);
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((entry) => collectEntityIds(entry, output, depth + 1));
+    return;
+  }
+  if (typeof value === "object")
+    Object.values(value).forEach((entry) => collectEntityIds(entry, output, depth + 1));
 }
 
 function eventEntityIds(event) {
@@ -115,12 +140,8 @@ function eventEntityIds(event) {
 
 function configuredEvEntityIds() {
   const ids = new Set();
-  profiles().forEach((car) => {
-    Object.values(car?.ov || {}).forEach((value) => {
-      const id = clean(value);
-      if (/^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i.test(id)) ids.add(id);
-    });
-  });
+  collectEntityIds(legacyProfiles(), ids);
+  collectEntityIds(canonicalProfiles(), ids);
   return ids;
 }
 
@@ -138,11 +159,13 @@ function activeIndex() {
 }
 
 function profileMeta(car = {}) {
-  const overrides = car.ov || {};
+  const overrides = car.ov || car.overrides || {};
   const batteryEntity =
     overrides["dm.ev_batteria_auto"] ||
     overrides["dm.ev_battery"] ||
     overrides["dm.ev_soc"] ||
+    car.battery_entity ||
+    car.soc_entity ||
     "";
   const current =
     batteryEntity && (root.STATES?.[batteryEntity] || root._RAW_STATES?.[batteryEntity]);
@@ -166,10 +189,7 @@ function chooseProfile(index) {
     select.dispatchEvent(new Event("input", { bubbles: true }));
     select.dispatchEvent(new Event("change", { bubbles: true }));
   } else root.localStorage?.setItem("cd_ev_car_active", String(index));
-  root.queueMicrotask?.(() => {
-    renderVehicleSelector();
-    applyVehicleAsset();
-  });
+  root.queueMicrotask?.(scheduleEvSync);
 }
 
 export function renderVehicleSelector() {
@@ -220,7 +240,7 @@ function installLegacyWrappers() {
     const previous = root.cdEvCarsRefresh;
     function refreshProfiles(...args) {
       const result = previous.apply(this, args);
-      renderVehicleSelector();
+      root.queueMicrotask?.(scheduleEvSync);
       return result;
     }
     refreshProfiles.__dmEvSection = true;
@@ -231,10 +251,7 @@ function installLegacyWrappers() {
     const previous = root.cdEvApplyCar;
     function applyProfile(...args) {
       const result = previous.apply(this, args);
-      root.queueMicrotask?.(() => {
-        renderVehicleSelector();
-        applyVehicleAsset();
-      });
+      root.queueMicrotask?.(scheduleEvSync);
       return result;
     }
     applyProfile.__dmEvSection = true;
@@ -243,17 +260,15 @@ function installLegacyWrappers() {
   return Boolean(root.cdEvCarsRefresh || root.cdEvApplyCar);
 }
 
-function schedule(delay = 0) {
-  root.clearTimeout?.(state.timer);
-  state.timer = root.setTimeout?.(() => {
-    state.timer = 0;
-    state.attempts += 1;
+export function scheduleEvSync() {
+  if (state.frame) return;
+  const run = () => {
+    state.frame = 0;
     installLegacyWrappers();
-    const ready = renderVehicleSelector();
+    renderVehicleSelector();
     applyVehicleAsset();
-    if ((!ready || !nativeSelect()) && state.attempts < 80)
-      schedule(state.attempts < 20 ? 50 : 250);
-  }, delay);
+  };
+  state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
 }
 
 function installStyles() {
@@ -276,29 +291,22 @@ export function installEvSection() {
   if (!doc) return;
   installStyles();
   installLegacyWrappers();
-  schedule(0);
+  scheduleEvSync();
   if (!state.installed) {
     state.installed = true;
     doc.addEventListener(
       "click",
       (event) => {
-        if (event.target?.closest?.('[data-tab="ev"],[data-page="ev"],.ed-tab[data-tab="sez2"]')) {
-          state.attempts = 0;
-          schedule(0);
-        }
+        if (event.target?.closest?.('[data-tab="ev"],[data-page="ev"],.ed-tab[data-tab="sez2"]'))
+          scheduleEvSync();
       },
       true,
     );
-    for (const event of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
-      root.addEventListener?.(event, () => {
-        state.attempts = 0;
-        schedule(0);
-      });
+    for (const eventName of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
+      root.addEventListener?.(eventName, scheduleEvSync);
     }
     root.addEventListener?.("dashboardmodern:state-changed", (event) => {
-      if (!stateChangeAffectsEv(event)) return;
-      state.attempts = 0;
-      schedule(0);
+      if (stateChangeAffectsEv(event)) scheduleEvSync();
     });
   }
 }

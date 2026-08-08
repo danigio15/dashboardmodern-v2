@@ -104,3 +104,85 @@ test("live Home Assistant states emit refresh events but derived period states d
   assert.equal(events[0].type, "dashboardmodern:state-changed");
   assert.equal(events[0].detail.entity_id, "sensor.house_power");
 });
+
+test("initial Home Assistant snapshot is silent while later subscription events remain live", async () => {
+  const broker = new HomeAssistantBroker({ timeout: 1000 });
+  const previousDispatch = globalThis.dispatchEvent;
+  const previousCustomEvent = globalThis.CustomEvent;
+  const previousStates = globalThis.STATES;
+  const previousRawStates = globalThis._RAW_STATES;
+  const events = [];
+  class TestCustomEvent {
+    constructor(type, init = {}) {
+      this.type = type;
+      this.detail = init.detail;
+    }
+  }
+
+  globalThis.CustomEvent = TestCustomEvent;
+  globalThis.dispatchEvent = (event) => {
+    events.push(event);
+    return true;
+  };
+  globalThis.STATES = {};
+  globalThis._RAW_STATES = {};
+
+  broker.cachedRequest = async (payload) => {
+    assert.equal(payload.type, "get_states");
+    return [{ entity_id: "sensor.house_power", state: "400", attributes: {} }];
+  };
+  let subscriptionRequest = null;
+  const socket = {
+    send(raw) {
+      subscriptionRequest = JSON.parse(raw);
+      queueMicrotask(() => {
+        broker.handleMessage(
+          JSON.stringify({
+            type: "result",
+            id: subscriptionRequest.id,
+            success: true,
+            result: null,
+          }),
+          () => {},
+          () => {},
+        );
+      });
+    },
+  };
+  broker.connect = async () => socket;
+
+  try {
+    await broker.startStateFeed();
+    assert.equal(globalThis.STATES["sensor.house_power"].state, "400");
+    assert.equal(globalThis._RAW_STATES["sensor.house_power"].state, "400");
+    assert.equal(events.length, 0);
+    assert.equal(subscriptionRequest.type, "subscribe_events");
+    assert.equal(subscriptionRequest.event_type, "state_changed");
+
+    broker.handleMessage(
+      JSON.stringify({
+        type: "event",
+        id: broker.subscription,
+        event: {
+          data: {
+            new_state: { entity_id: "sensor.house_power", state: "401", attributes: {} },
+          },
+        },
+      }),
+      () => {},
+      () => {},
+    );
+
+    assert.equal(events.length, 1);
+    assert.equal(events[0].type, "dashboardmodern:state-changed");
+    assert.equal(events[0].detail.entity_id, "sensor.house_power");
+    assert.equal(events[0].detail.state.state, "401");
+  } finally {
+    globalThis.dispatchEvent = previousDispatch;
+    globalThis.CustomEvent = previousCustomEvent;
+    if (previousStates === undefined) delete globalThis.STATES;
+    else globalThis.STATES = previousStates;
+    if (previousRawStates === undefined) delete globalThis._RAW_STATES;
+    else globalThis._RAW_STATES = previousRawStates;
+  }
+});

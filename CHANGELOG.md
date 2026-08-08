@@ -3,6 +3,53 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 0.15.12 — 2026-08-07
+
+### Architettura e prestazioni
+
+- Eliminata la catena Data Contracts che poteva riavviare decine di passaggi di
+  normalizzazione dopo ogni `state_changed`; la migrazione ora reagisce soltanto
+  a bootstrap, stato iniziale e modifiche reali della configurazione.
+- Eliminato il polling permanente Tapparelle a 120/350 ms: la sezione è
+  event-driven e reagisce soltanto alle cover configurate.
+- Eliminato il retry EV fino a 80 tentativi; profili e immagine auto vengono
+  aggiornati su eventi runtime, navigazione e sole entità EV pertinenti.
+- Eliminato il `MutationObserver` globale dell'Editor su `document.body` e la
+  scansione incrociata delle card Elettrodomestici dal layer Editor.
+- Elettrodomestici normalizza le card soltanto per le proprie entità e quando la
+  pagina è visibile.
+- Energia filtra i refresh Recorder alle sole sorgenti Energia/Report e non
+  ricarica più statistiche per luci, clima, tapparelle o altre entità estranee.
+- Il consumo Casa viene riconciliato nel bundle canonico prima della proiezione;
+  rimosso il secondo listener che correggeva lo stesso bundle dopo il render.
+
+### Corretto
+
+- Il popup **Tapparelle aperte** usa un solo proprietario visuale e il contratto
+  modal responsive comune, con icona titolo, icona riga, close coerente e tre
+  comandi compatti Apri/Ferma/Chiudi.
+- Rimosso `shutter-alert-layout-section.js`, layer CSS separato che stilizzava
+  classi non create dal popup reale.
+- Un sensore mensile `measurement` può rappresentare il periodo corrente ma non
+  viene più esposto come `history` lifetime; mesi precedenti e anno richiedono
+  una sorgente cumulativa `total`/`total_increasing`.
+- Data Contracts non può più ripromuovere automaticamente mensile/energia a
+  `history_entity` o `report_entity`; coperto esplicitamente il caso
+  `sensor.energy_mese_microonde`.
+- README/HACS allineati alla 0.15.12 e immagine hero semplificata su
+  `brand/logo.png`.
+
+### Verifica e diagnostica
+
+- Aggiunti contratti automatici che vietano il ritorno di polling/retry noti,
+  owner Energia duplicati, observer globali dell'Editor e storico mensile
+  spacciato per lifetime.
+- Browser E2E Tapparelle verifica icone, geometria modal e tre pulsanti compatti
+  anche su mobile.
+- Documentato che, quando HACS mostra **In attesa di riavvio**, il nuovo
+  frontend non va considerato attivo finché Home Assistant non è stato
+  riavviato e l'app/browser non è stata riaperta o ricaricata completamente.
+
 ## 0.15.11 — 2026-08-07
 
 ### Corretto

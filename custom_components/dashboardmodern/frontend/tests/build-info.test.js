@@ -9,7 +9,7 @@ const manifest = JSON.parse(
   readFileSync("custom_components/dashboardmodern/manifest.json", "utf8"),
 );
 
-test("build info is generated from the checked-out HEAD with real provenance", () => {
+test("build info is generated from HEAD and exposes one canonical release version", () => {
   const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
   const output = join(mkdtempSync(join(tmpdir(), "dm-build-")), "build-info.js");
   execFileSync("python", [
@@ -22,7 +22,8 @@ test("build info is generated from the checked-out HEAD with real provenance", (
   const source = readFileSync(output, "utf8");
   assert.match(source, new RegExp(head));
   assert.match(source, new RegExp(`"integrationVersion":"${manifest.version}"`));
-  assert.match(source, /"dashboardVersion":"0\.14\.0"/);
+  assert.match(source, new RegExp(`"dashboardVersion":"${manifest.version}"`));
+  assert.doesNotMatch(source, /"dashboardVersion":"0\.14\.0"/);
   assert.match(source, /"moduleVersion":14/);
   assert.match(source, /"schemaVersion":4/);
   assert.match(source, /"assetHash":"[a-f0-9]{16}"/);
