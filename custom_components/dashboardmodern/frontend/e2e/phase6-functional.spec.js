@@ -142,6 +142,28 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     // but it must not be visible beside the modern Accendi/Spegni control.
     await expect(microwave.locator(".appl-action-btn").first()).toBeHidden();
 
+    // The real hosted popup used a REST request with LONG_LIVED_TOKEN and showed
+    // "Errore caricamento storico". The canonical owner must use the already
+    // authenticated Home Assistant WebSocket and render the returned history.
+    await microwave.getByRole("button", { name: /Storico|History/ }).click();
+    const historyModal = page.locator("#history-modal");
+    await expect(historyModal).toHaveClass(/show/);
+    await expect(historyModal).toHaveAttribute("data-dm-history-transport", "websocket");
+    await expect(historyModal).toHaveAttribute("data-dm-history-entity", "sensor.microwave_power");
+    await expect(historyModal).toHaveAttribute("data-dm-history-loaded", "true");
+    await expect(page.locator("#hist-canvas-container")).toBeVisible();
+    await expect(page.locator("#hist-loading")).not.toContainText(/Errore|Error/i);
+    expect(
+      await page.evaluate(() =>
+        window.__dmHistoryRequests.some(
+          (request) =>
+            request.type === "history/history_during_period" &&
+            request.entity_ids?.includes("sensor.microwave_power"),
+        ),
+      ),
+    ).toBeTruthy();
+    await page.evaluate(() => window.forceClose("history-modal"));
+
     const noHistory = page.locator(
       '#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id="appl-no-history"]',
     );
@@ -169,11 +191,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     }
 
     await page.locator('.tab[data-tab="energy"]').evaluate((button) => button.click());
-    // The fixture reports 28.2 kWh from the explicitly configured monthly Home
-    // meter while the other flow legs happen to balance to 39.9 kWh. The direct
-    // Home period source is authoritative; flow balance is fallback only.
-    await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house === 28.2);
-    await expect(page.locator("#ed-kpi-cons")).toContainText(/28[,.]2/);
+    // Report and Monthly share the canonical Home Assistant flow boundary.
+    // Direct Home is 28.2 kWh, but complete flows balance to 39.9 kWh.
+    await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house === 39.9);
+    await expect(page.locator("#ed-kpi-cons")).toContainText(/39[,.]9/);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy-monthly.png`, fullPage: true });
     expect(await page.evaluate(() => window.__dmStatisticsRequests.every((request) => request.types?.includes("sum")))).toBeTruthy();
     expect(errors).toEqual([]);
