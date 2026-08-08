@@ -10,58 +10,61 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.13-0ea5e9" alt="Versione 0.15.13">
+  <img src="https://img.shields.io/badge/version-0.15.14-0ea5e9" alt="Versione 0.15.14">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.13
-> restores live light/camera updates without reintroducing global rendering,
-> fixes current-period Energy semantics, and repairs the affected mobile layouts.
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.14
+> fixes Energy configuration persistence and refines the appliance and
+> temperature layouts on real mobile screens without duplicating runtime owners.
 
 ---
 
-## Novità 0.15.13
+## Novità 0.15.14
 
-La 0.15.13 corregge le regressioni visuali e live emerse dopo il conflict audit della 0.15.12, mantenendo il runtime event-driven e i proprietari delle sezioni separati.
+La 0.15.14 è una hotfix mirata ai problemi rilevati su dispositivo reale dopo la 0.15.13. Mantiene il runtime event-driven e non introduce nuovi owner, polling o copie di artwork.
 
-### Energia
+### Energia: il campo annuale resta davvero vuoto
 
-- i sensori esplicitamente configurati per **Giorno / Mese / Anno** sono autorevoli per il periodo corrente anche quando Home Assistant li espone come `total` o `total_increasing` (caso tipico dei `utility_meter`);
-- per i periodi precedenti continua a essere preferito il contatore **Totale/lifetime** tramite Recorder;
-- il bilancio Casa usa la stessa relazione dei flussi della dashboard Energia di Home Assistant: produzione + prelievo + scarica batteria − immissione − carica batteria;
-- ripristinata nell'Editor l'opzione per mostrare/nascondere **Energia** dalla navbar;
-- la configurazione Energia distingue più chiaramente sensori del periodo corrente e contatori totali per lo storico.
+- corretto il problema per cui, dopo aver eliminato **Energia annuale** e premuto Salva, il contatore **Energia totale** veniva reinserito automaticamente nel campo annuale al caricamento successivo;
+- il salvataggio del DashboardStore era già corretto: la causa era una migrazione di compatibilità che veniva applicata ripetutamente;
+- la compatibilità annuale/lifetime ora viene applicata una sola volta ai dati vecchi e passa a `semantics_version: 4`;
+- dopo la migrazione, un campo annuale lasciato intenzionalmente vuoto resta vuoto attraverso salvataggio, reload e snapshot multi-dispositivo;
+- i contatori lifetime continuano a essere usati da Recorder per ricostruire periodi precedenti senza trasformarsi in falsi sensori annuali.
 
-### Aggiornamenti live
+### Elettrodomestici
 
-- il contatore **Luci accese** della Home viene aggiornato sugli `state_changed` delle sole luci configurate;
-- il popup Gestione Luci riflette lo stato nuovo senza dover essere chiuso e riaperto;
-- le telecamere hanno un proprietario event-driven: le anteprime vengono aggiornate entrando in Sicurezza o quando cambia una camera configurata;
-- il vecchio refresh periodico delle telecamere viene disattivato dal proprietario canonico invece di essere sostituito con un altro polling.
+- corretto il selettore CSS sul DOM reale: il corpo della card legacy è `.appl-info`, non `.appl-wide-body`;
+- card mobile centrata e limitata a 370 px;
+- artwork mantenuto a 80 × 80 px e lasciato al proprietario esistente `appliance-artwork.js`;
+- nome, stato, consumo e kWh hanno spaziatura coerente;
+- pulsanti Storico e comando sono più compatti e non dominano più la card;
+- nessuna modifica alle immagini configurate o alla logica di scelta artwork.
 
-### Interfaccia mobile
+### Temperature
 
-- corretta la geometria delle card Elettrodomestici senza modificare immagini o logica artwork;
-- selettore EV reso compatto e dimensionato sul nome del veicolo;
-- popup **Tapparelle aperte** riallineato al contratto modal usato dagli altri avvisi;
-- card Temperature rese più compatte e leggibili;
-- aumentato il contrasto della navbar in modalità scura;
-- ripristinata la lente 🔍 dell'Editor anche quando accanto al campo è già presente un altro pulsante, ad esempio la matita ✏️.
+- card mobile centrata e limitata a 350 px;
+- altezza, icona, badge, temperatura e umidità ridimensionati per eliminare l'effetto “card enorme” visto sui telefoni;
+- il layout resta nel solo `temperature-layout-section.js` già esistente.
+
+### Branding HACS
+
+Il repository continua a distribuire gli asset locali `brand/` e `custom_components/dashboardmodern/brand/`. La schermata elenco HACS può però mostrare **icon not available** finché il dominio `dashboardmodern` non è registrato anche nel catalogo esterno Home Assistant Brands usato dal frontend HACS. Non vengono aggiunte ulteriori copie dell'icona nel repository perché non risolverebbero quel lookup esterno. La registrazione nel catalogo Brands è un passaggio separato dall'aggiornamento dell'integrazione.
 
 ### Conflitti e ownership
 
 - nessun nuovo `MutationObserver` globale;
-- `live-ui` gestisce soltanto luci e telecamere, mentre la navbar ha un unico owner visuale dedicato;
-- i test automatici verificano owner singoli, assenza di moduli moderni orfani e assenza di polling nei moduli `frontend/src`.
+- nessun nuovo `setInterval`;
+- nessun nuovo modulo visuale per Energia, Elettrodomestici o Temperature: le correzioni sono nei rispettivi owner esistenti;
+- test dedicati verificano che un annuale vuoto non venga ripopolato e che i layout mobile usino il DOM reale;
+- i contratti import-graph/orphan continuano a impedire moduli moderni scollegati e proprietari duplicati.
 
 ### HACS e aggiornamento
 
 Dopo un aggiornamento HACS, se compare **In attesa di riavvio**, la nuova versione non va considerata attiva finché Home Assistant non è stato riavviato. Dopo il riavvio chiudi e riapri l'app/browser oppure esegui un refresh completo: il frontend usa asset versionati e una sessione aperta può continuare a mostrare contenuti della release precedente.
-
-Il repository contiene sia `brand/` per HACS sia `custom_components/dashboardmodern/brand/` per le versioni Home Assistant che supportano il branding locale delle custom integration. Su versioni Home Assistant precedenti al supporto del brand locale, l'icona della scheda integrazione può dipendere dal catalogo Brands centrale.
 
 ---
 
@@ -110,7 +113,9 @@ Le configurazioni precedenti vengono migrate senza eliminare le entità lifetime
 
 ## Energia e Report
 
-Per il **periodo corrente**, i campi Giorno / Mese / Anno possono puntare ai rispettivi sensori di periodo, compresi i `utility_meter` con `state_class: total` o `total_increasing`. Per ottenere in modo affidabile **mesi e anni precedenti**, configura anche il campo **Energia totale** con un contatore lifetime dotato di `device_class: energy` e `state_class: total` o `total_increasing`: il runtime ricostruisce lo storico tramite le statistiche Recorder di Home Assistant.
+Per il **periodo corrente**, i campi Giorno / Mese / Anno possono puntare ai rispettivi sensori di periodo, compresi i `utility_meter` con `state_class: total` o `total_increasing`. Se non disponi di un sensore annuale dedicato, il campo **Energia annuale** può rimanere vuoto: non viene più ripopolato automaticamente dal contatore totale.
+
+Per ottenere in modo affidabile **mesi e anni precedenti**, configura il campo **Energia totale** con un contatore lifetime dotato di `device_class: energy` e `state_class: total` o `total_increasing`: il runtime ricostruisce lo storico tramite le statistiche Recorder di Home Assistant.
 
 Per gli elettrodomestici, un sensore **mensile** può sostituire il valore del mese corrente ma non sostituisce il contatore **totale/lifetime** necessario per ricostruire i mesi precedenti. Il campo **Energia totale per storico e Report** deve quindi puntare a un contatore cumulativo con `state_class: total` o `total_increasing`.
 
