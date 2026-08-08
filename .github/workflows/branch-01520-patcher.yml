@@ -1,0 +1,42 @@
+name: One-shot 0.15.20 branch patcher
+
+on:
+  push:
+    branches:
+      - fix/0.15.20-release-hardening-appliance-artwork
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/0.15.20-release-hardening-appliance-artwork
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Apply audited fixes
+        run: python scripts/apply_01520_fixes.py
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Verify syntax and frontend contracts before committing
+        run: |
+          python -m compileall -q custom_components scripts tests
+          npm run check:inline-syntax
+          npm run test:frontend
+      - name: Remove one-shot patcher and commit result
+        run: |
+          rm -f scripts/apply_01520_fixes.py .github/workflows/branch-01520-patcher.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: harden 0.15.20 release and restore appliance artwork"
+          git push origin HEAD:fix/0.15.20-release-hardening-appliance-artwork
