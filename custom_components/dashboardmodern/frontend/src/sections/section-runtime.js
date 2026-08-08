@@ -23,7 +23,6 @@ import { installNavigationSection } from "./navigation-section.js";
 import { installUnifiedEditorsSection } from "./unified-editors-section.js";
 import { installEditorCrudSection } from "./editor-crud-section.js";
 import { installEditorContractsSection } from "./editor-contracts-section.js";
-import { installEditorPolishSection } from "./editor-polish-section.js";
 import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
 import { installEvSection } from "./ev-section.js";
@@ -65,7 +64,6 @@ export function installSectionRuntime() {
     installUnifiedEditorsSection();
     installEditorCrudSection();
     installEditorContractsSection();
-    installEditorPolishSection();
     installReportEditorSection();
     installShutterSection();
     installEvSection();
@@ -98,7 +96,6 @@ export function installSectionRuntime() {
         "unified-editors",
         "editor-crud",
         "editor-contracts",
-        "editor-polish",
         "report-editor",
         "shutters",
         "ev",
