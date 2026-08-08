@@ -15,25 +15,34 @@ function plannedKeys(bundle, kind) {
 }
 
 /**
- * Keep an explicitly configured Home/Casa period source authoritative.
+ * Home Assistant's Energy distribution derives Home/Casa from the complete
+ * electrical flow boundary. A direct inverter "load consumption" counter can
+ * represent a different boundary (for example loads behind a specific meter),
+ * so it is a fallback rather than the canonical Home value whenever the full
+ * Solar/Grid flow set is available.
  *
- * The flow balance is a useful fallback when Home is not configured at all,
- * but it must never overwrite a Day / Month / Year (or Recorder-derived total)
- * Home value that sourcePlans() already resolved successfully. Mixing flow
- * sources from different meters can otherwise produce a mathematically valid
- * number for a different electrical boundary and make Monthly + Report show
- * the same wrong consumption.
+ * Battery charge/discharge are optional as a pair: an installation without a
+ * battery can still derive Home, while a half-configured battery must never be
+ * silently treated as zero in one direction.
  */
+export function hasCompleteHomeFlow(planKeys = new Set()) {
+  if (!planKeys.has("solar") || !planKeys.has("gridImport") || !planKeys.has("gridExport"))
+    return false;
+  const hasCharge = planKeys.has("batteryCharged");
+  const hasDischarge = planKeys.has("batteryDischarged");
+  return hasCharge === hasDischarge;
+}
+
 export function reconcileEnergyPeriod(data = {}, planKeys = new Set()) {
-  if (planKeys.has("house")) return data;
-  if (!planKeys.has("solar") || !planKeys.has("gridImport")) return data;
+  if (!hasCompleteHomeFlow(planKeys)) return data;
   const balance = energyBalance({
     solar: data.solar,
     gridImport: data.gridImport,
-    gridExport: planKeys.has("gridExport") ? data.gridExport : 0,
+    gridExport: data.gridExport,
     batteryCharge: planKeys.has("batteryCharged") ? data.batteryCharged : 0,
     batteryDischarge: planKeys.has("batteryDischarged") ? data.batteryDischarged : 0,
   });
+  if (Math.abs(nonNegative(data.house) - balance.consumption) < 0.0005) return data;
   return Object.freeze({ ...data, house: balance.consumption });
 }
 
@@ -43,7 +52,13 @@ export function reconcileEnergyBundle(bundle) {
   const month = reconcileEnergyPeriod(bundle.month, plannedKeys(bundle, "month"));
   const year = reconcileEnergyPeriod(bundle.year, plannedKeys(bundle, "year"));
   if (day === bundle.day && month === bundle.month && year === bundle.year) return bundle;
-  return Object.freeze({ ...bundle, day, month, year, home_source: "flow-balance-fallback" });
+  return Object.freeze({
+    ...bundle,
+    day,
+    month,
+    year,
+    home_source: "home-assistant-flow-balance",
+  });
 }
 
 export function installEnergyCalculationsSection() {
@@ -55,6 +70,7 @@ export function installEnergyCalculationsSection() {
       energyBalance,
       energyPercentages,
       energyCost,
+      hasCompleteHomeFlow,
       reconcileEnergyPeriod,
       reconcileEnergyBundle,
     });
