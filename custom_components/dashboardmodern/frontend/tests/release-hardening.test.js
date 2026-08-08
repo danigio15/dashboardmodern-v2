@@ -44,9 +44,9 @@ test("build provenance is canonical and bridge message types are unique", async 
   assert.equal(ALLOWED_MESSAGE_TYPES.length, new Set(ALLOWED_MESSAGE_TYPES).size);
 });
 
-test("Home Assistant strings use English source and installed brand ballast is absent", async () => {
+test("Home Assistant strings use English source and the required HACS icon stays installed", async () => {
   const strings = JSON.parse(await read("custom_components/dashboardmodern/strings.json"));
   assert.equal(strings.config.step.user.title, "New DashboardModern panel");
   assert.match(strings.options.step.init.data_description.allowed_users, /UI visibility filter/);
-  await assert.rejects(access(new URL("custom_components/dashboardmodern/brand/icon.png", root)));
+  await access(new URL("custom_components/dashboardmodern/brand/icon.png", root));
 });
