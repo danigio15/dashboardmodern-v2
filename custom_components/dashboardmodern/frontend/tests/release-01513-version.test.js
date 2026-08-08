@@ -26,8 +26,8 @@ test("the UI live-regression hotfix is consistently versioned as 0.15.13", async
     /https:\/\/raw\.githubusercontent\.com\/danigio15\/dashboardmodern-v2\/main\/brand\/logo\.png/,
   );
   assert.doesNotMatch(readme, /main\/assets\/logo|brand\/logo@2x\.png/);
-  assert.match(buildInfo, /integrationVersion: "0\.15\.13"/);
-  assert.match(buildInfo, /dashboardVersion: "0\.15\.13"/);
+  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']0\.15\.13["']/);
+  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']0\.15\.13["']/);
 });
 
 test("HACS canonical root brand assets are shipped", async () => {
