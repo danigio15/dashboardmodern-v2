@@ -4,10 +4,22 @@
 // canonical store/API, avoiding a second bootstrap racing during HTML parsing.
 (function bootstrapDashboardModernRuntime() {
   const KEY = "__DASHBOARDMODERN_RUNTIME_BOOTSTRAP__";
-  const state = (globalThis[KEY] ||= { started: false, promise: null });
+  const state = (globalThis[KEY] ||= {
+    started: false,
+    promise: null,
+    unloading: false,
+  });
+
+  globalThis.addEventListener?.(
+    "pagehide",
+    () => {
+      state.unloading = true;
+    },
+    { once: true },
+  );
 
   const start = () => {
-    if (state.started) return true;
+    if (state.started || state.unloading) return true;
     const modules = globalThis.DashboardModernModules;
     if (
       !globalThis.__DASHBOARDMODERN_LEGACY_READY__ ||
@@ -23,11 +35,13 @@
     state.started = true;
     state.promise = import("../src/sections/section-runtime.js").catch((error) => {
       state.started = false;
+      state.promise = null;
+      if (state.unloading) return null;
       globalThis.__DASHBOARDMODERN_RUNTIME_BOOTSTRAP_ERROR__ = String(
         error?.message || error || "runtime bootstrap failed",
       );
       globalThis.console?.error?.("[DashboardModern] modular runtime bootstrap failed", error);
-      throw error;
+      return null;
     });
     return true;
   };
