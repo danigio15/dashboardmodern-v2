@@ -10,8 +10,10 @@ test("appliance fix changes layout but not the artwork owner", async () => {
   const appliances = await read("src/sections/appliances-section.js");
   assert.match(layout, /grid-template-columns:102px minmax\(0,1fr\)/);
   assert.match(layout, /dm-appliance-image/);
-  assert.doesNotMatch(layout, /resolveApplianceArtwork|applianceArtworkCandidates/);
-  assert.match(appliances, /applianceArtworkCandidates/);
+  assert.doesNotMatch(layout, /resolveApplianceArtwork|applianceArtworkCandidates|canonicalArtworkType|applianceArtwork\(/);
+  assert.match(appliances, /from "\.\.\/core\/appliance-artwork\.js"/);
+  assert.match(appliances, /canonicalArtworkType/);
+  assert.match(appliances, /applianceArtwork/);
 });
 
 test("energy editor restores section visibility, readable guidance and entity search", async () => {
