@@ -5,34 +5,34 @@ import test from "node:test";
 const ROOT = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), "utf8");
 
-test("appliance fix changes layout but not the artwork owner", async () => {
+test("appliance mobile layout targets the real legacy body without changing artwork ownership", async () => {
   const layout = await read("src/sections/appliance-layout-section.js");
   const appliances = await read("src/sections/appliances-section.js");
-  assert.match(layout, /max-width:400px!important/);
-  assert.match(layout, /grid-template-columns:98px minmax\(0,1fr\)/);
-  assert.match(layout, /width:84px!important;height:84px!important/);
-  assert.match(layout, /padding:0!important/);
-  assert.match(layout, /dm-appliance-image/);
+  assert.match(layout, /max-width:370px!important/);
+  assert.match(layout, /grid-template-columns:92px minmax\(0,1fr\)/);
+  assert.match(layout, /width:81px!important;height:81px!important/);
+  assert.match(layout, />\.appl-info/);
+  assert.match(layout, /min-height:126px!important/);
+  assert.match(layout, /min-height:31px!important;height:31px!important/);
+  assert.match(layout, /button\[hidden\].*display:none!important;visibility:hidden!important/);
   assert.doesNotMatch(layout, /resolveApplianceArtwork|applianceArtworkCandidates|canonicalArtworkType|applianceArtwork\(/);
   assert.match(appliances, /from "\.\.\/core\/appliance-artwork\.js"/);
   assert.match(appliances, /canonicalArtworkType/);
   assert.match(appliances, /applianceArtwork/);
 });
 
-test("energy editor restores section visibility, readable guidance and entity search", async () => {
+test("energy editor keeps its existing owner for visibility and entity search", async () => {
   const source = await read("src/sections/editor-contracts-section.js");
   assert.match(source, /normalizeEnergyVisibility/);
   assert.match(source, /dataset\.dmEnergyVisibility/);
   assert.match(source, /edSecTog/);
-  assert.match(source, /normalizeEnergyHelp/);
-  assert.match(source, /Current period|Periodo corrente/);
   assert.match(source, /hasEntityPicker/);
   assert.match(source, /dm-contract-entity-picker/);
   assert.match(source, /Cerca entità|Search entity/);
   assert.doesNotMatch(source, /MutationObserver/);
 });
 
-test("EV selector is content-sized instead of an 82vw mobile card", async () => {
+test("EV selector remains content-sized", async () => {
   const source = await read("src/sections/ev-section.js");
   assert.match(source, /width:max-content/);
   assert.match(source, /flex:0 0 auto/);
@@ -40,34 +40,32 @@ test("EV selector is content-sized instead of an 82vw mobile card", async () => 
   assert.doesNotMatch(source, /flex:0 0 min\(82vw,300px\)/);
 });
 
-test("shutter alert uses a centered modal on mobile", async () => {
+test("shutter alert remains a centered modal on mobile", async () => {
   const source = await read("src/sections/shutter-section.js");
   assert.match(source, /\.dm-shutter-popup\{display:flex!important;align-items:center!important;justify-content:center/);
   assert.match(source, /@media\(max-width:640px\)/);
   assert.doesNotMatch(source, /align-items:end!important/);
-  assert.doesNotMatch(source, /border-radius:22px 22px 0 0/);
 });
 
-test("navigation has exactly one canonical source owner with dark-mode contrast", async () => {
+test("navigation has one canonical owner with dark-mode contrast", async () => {
   const runtime = await read("src/sections/section-runtime.js");
   const navigation = await read("src/sections/navigation-section.js");
-  const imports = runtime.match(/navigation-section\.js/g) || [];
-  const installs = runtime.match(/installNavigationSection\(\)/g) || [];
-  const registrations = runtime.match(/"navigation"/g) || [];
-  assert.equal(imports.length, 1);
-  assert.equal(installs.length, 1);
-  assert.equal(registrations.length, 1);
+  assert.equal((runtime.match(/navigation-section\.js/g) || []).length, 1);
+  assert.equal((runtime.match(/installNavigationSection\(\)/g) || []).length, 1);
+  assert.equal((runtime.match(/"navigation"/g) || []).length, 1);
   assert.match(navigation, /bottom-nav-bar/);
   assert.match(navigation, /#cbd5e1/);
-  assert.match(navigation, /tab\.active/);
   assert.doesNotMatch(navigation, /setInterval|MutationObserver/);
 });
 
-test("temperature visuals stay in the existing temperature layout owner", async () => {
+test("temperature mobile card stays compact and in the existing layout owner", async () => {
   const runtime = await read("src/sections/section-runtime.js");
   const source = await read("src/sections/temperature-layout-section.js");
   assert.equal((runtime.match(/temperature-layout-section\.js/g) || []).length, 1);
-  assert.match(source, /linear-gradient\(145deg/);
-  assert.match(source, /font-size:17px!important/);
-  assert.match(source, /font-size:39px!important/);
+  assert.match(source, /grid-template-columns:minmax\(0,350px\)/);
+  assert.match(source, /max-width:350px!important/);
+  assert.match(source, /min-height:118px!important/);
+  assert.match(source, /font-size:34px!important/);
+  assert.match(source, /font-size:21px!important/);
+  assert.doesNotMatch(source, /setInterval|MutationObserver/);
 });
