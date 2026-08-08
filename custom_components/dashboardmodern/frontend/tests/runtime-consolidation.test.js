@@ -196,8 +196,9 @@ test("one hosted bootstrap delegates to the section runtime, which owns the guar
   assert.match(energy, /loadEnergyPeriod\("year"/);
   assert.match(energy, /Promise\.all/);
   assert.match(energy, /Incomplete Home Assistant statistics/);
-  assert.match(stability, /waitForHostedBridge/);
-  assert.match(stability, /refreshEnergy/);
+  assert.doesNotMatch(stability, /waitForHostedBridge/);
+  assert.doesNotMatch(stability, /refreshEnergy/);
+  assert.match(stability, /energy-section\.js is the sole owner of Recorder requests/);
   assert.match(stability, /dm-energy-awaiting/);
   assert.match(guidance, /consumo Casa usa lo stesso bilancio dei flussi di Home Assistant/);
   assert.match(guidance, /energyEditorActive/);
