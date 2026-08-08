@@ -2,9 +2,22 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const source = await readFile(new URL("../src/sections/appliance-layout-section.js", import.meta.url), "utf8");
+const layout = await readFile(
+  new URL("../src/sections/appliance-layout-section.js", import.meta.url),
+  "utf8",
+);
+const behavior = await readFile(
+  new URL("../src/sections/appliances-section.js", import.meta.url),
+  "utf8",
+);
 
-test("legacy icon-only power button is hidden when the modern text toggle exists", () => {
-  assert.match(source, /:has\(\[data-dm-power-toggle=\\?"true\\?"\]\)/);
-  assert.match(source, />\.appl-action-btn:first-child/);
+test("appliance layout never hides an action by DOM position", () => {
+  assert.doesNotMatch(layout, /\.appl-action-btn:first-child/);
+  assert.doesNotMatch(layout, /:has\(\[data-dm-power-toggle/);
+});
+
+test("appliance behavior hides only the legacy power action and preserves History", () => {
+  assert.match(behavior, /hideLegacyPowerOnly/);
+  assert.match(behavior, /storico\|history/i);
+  assert.match(behavior, /restoreLegacyActions/);
 });
