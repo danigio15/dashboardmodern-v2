@@ -1,4 +1,4 @@
-name: Restore HACS brand icon
+name: Repair 0.15.20 release docs
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  restore:
+  repair:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -17,12 +17,31 @@ jobs:
         with:
           ref: fix/0.15.20-release-hardening-appliance-artwork
           fetch-depth: 0
-      - name: Restore only the HACS-required installed icon
+      - name: Restore full changelog and correct HACS brand notes
         run: |
-          git fetch origin main
-          git checkout origin/main -- custom_components/dashboardmodern/brand/icon.png
+          git checkout 1a38638d0a4c89cc52fcd0c366fed0029135d3ff -- CHANGELOG.md
+          python - <<'PY'
+          from pathlib import Path
+
+          changelog = Path("CHANGELOG.md")
+          source = changelog.read_text(encoding="utf-8")
+          old = "- Rimossi riferimenti di packaging morti, `dashboardmodern.zip` è ignorato e la copia brand interna non usata non entra più nel componente."
+          new = "- Rimossi riferimenti di packaging morti e `dashboardmodern.zip` è ignorato; della copia brand installata resta soltanto `brand/icon.png`, richiesto esplicitamente dalla validazione HACS."
+          if old not in source:
+              raise SystemExit("CHANGELOG brand note anchor not found")
+          changelog.write_text(source.replace(old, new, 1), encoding="utf-8")
+
+          readme = Path("README.md")
+          source = readme.read_text(encoding="utf-8")
+          old = "- rimossi duplicati bridge, riferimenti di packaging morti e la copia brand installata non usata."
+          new = "- rimossi duplicati bridge e riferimenti di packaging morti; della copia brand installata resta solo `brand/icon.png`, obbligatorio per la validazione HACS."
+          if old not in source:
+              raise SystemExit("README brand note anchor not found")
+          readme.write_text(source.replace(old, new, 1), encoding="utf-8")
+          PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add custom_components/dashboardmodern/brand/icon.png
-          git commit -m "fix: restore HACS-required integration brand icon"
+          git add CHANGELOG.md README.md
+          git diff --cached --check
+          git commit -m "docs: preserve full changelog and HACS brand requirement"
           git push origin HEAD:fix/0.15.20-release-hardening-appliance-artwork
