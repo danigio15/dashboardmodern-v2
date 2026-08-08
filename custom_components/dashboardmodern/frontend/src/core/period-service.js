@@ -210,18 +210,25 @@ export function sourcePlans(
     const explicit = String(group?.[explicitKey] || "").trim();
     const total = String(group?.[definition.totalKey] || "").trim();
     const legacy = String(overrides?.[definition.slots[kind]] || "").trim();
+    const resolvedExplicit = resolveEntity(explicit, resolver);
+    const resolvedTotal = resolveEntity(total, resolver);
+    const explicitAliasesTotal = Boolean(
+      explicit && total && resolvedExplicit && resolvedExplicit === resolvedTotal,
+    );
 
-    // An entity explicitly configured for a period is authoritative for the
-    // current period even when Home Assistant marks it total/total_increasing.
-    // utility_meter helpers commonly use those state classes while still
-    // representing exactly the current day/month/year selected by the user.
-    if (explicit) {
+    // A real period helper is authoritative for the current period even when
+    // Home Assistant marks it total/total_increasing (utility_meter does this).
+    // Migrations historically mirrored the lifetime Total sensor into the
+    // annual field for compatibility. When both fields resolve to the same
+    // entity it is still a lifetime counter and must be derived with Recorder,
+    // never read directly as the current year's consumption.
+    if (explicit && !explicitAliasesTotal) {
       const plans = [
         {
           ...definition,
           kind,
           slot: definition.slots[kind],
-          entity: resolveEntity(explicit, resolver),
+          entity: resolvedExplicit,
           source: explicit,
           direct: true,
           reason: "explicit-period",
@@ -249,9 +256,9 @@ export function sourcePlans(
       return plans;
     }
 
-    const source = total || legacy;
+    const source = total || explicit || legacy;
     if (!source) return [];
-    if (!total && !isCumulativeEnergyEntity(legacy, states, resolver)) return [];
+    if (!total && !explicit && !isCumulativeEnergyEntity(legacy, states, resolver)) return [];
     return [
       {
         ...definition,
@@ -260,7 +267,11 @@ export function sourcePlans(
         entity: resolveEntity(source, resolver),
         source,
         direct: false,
-        reason: total ? "canonical-total" : "legacy-cumulative",
+        reason: explicitAliasesTotal
+          ? "period-aliases-total"
+          : total
+            ? "canonical-total"
+            : "legacy-cumulative",
       },
     ];
   });
