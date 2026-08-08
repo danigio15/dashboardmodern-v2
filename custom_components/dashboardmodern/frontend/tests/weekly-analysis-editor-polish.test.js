@@ -8,7 +8,7 @@ import {
   weeklySourcePlans,
 } from "../src/sections/energy-analysis-section.js";
 
-const polishUrl = new URL("../src/sections/editor-polish-section.js", import.meta.url);
+const contractsUrl = new URL("../src/sections/editor-contracts-section.js", import.meta.url);
 const runtimeUrl = new URL("../src/sections/section-runtime.js", import.meta.url);
 
 test("weekly Energy ranges compare Monday-to-now with the previous complete Monday-to-Monday week", () => {
@@ -92,16 +92,20 @@ test("weekly sources use cumulative Recorder-capable meters instead of current-p
   assert.ok(plans.every((plan) => !plan.entity.includes("_month")));
 });
 
-test("editor polish owns the requested mobile contracts without changing the Energy calculation engine", async () => {
-  const polish = await readFile(polishUrl, "utf8");
+test("canonical editor contracts own the requested mobile polish without changing the Energy engine", async () => {
+  const contracts = await readFile(contractsUrl, "utf8");
   const runtime = await readFile(runtimeUrl, "utf8");
 
-  assert.match(polish, /grid-template-areas:\"main edit delete\" \"room room room\" \"order order order\"/);
-  assert.match(polish, /ASSOCIA SENSORI/);
-  assert.match(polish, /SALVA MODIFICHE/);
-  assert.match(polish, /select\[name=\\?"icon\\?"\]/);
-  assert.match(polish, /data-dm-preview-source=|dmPreviewSource/);
-  assert.match(polish, /contatore totale kWh/);
+  assert.match(
+    contracts,
+    /grid-template-areas:\"main edit delete\" \"room room room\" \"order order order\"/,
+  );
+  assert.match(contracts, /ASSOCIA SENSORI/);
+  assert.match(contracts, /SALVA MODIFICHE/);
+  assert.match(contracts, /select\[name=\\?"icon\\?"\]/);
+  assert.match(contracts, /data-dm-preview-source=|dmPreviewSource/);
+  assert.match(contracts, /contatore totale kWh/);
+  assert.doesNotMatch(contracts, /MutationObserver|setInterval\s*\(/);
   assert.match(runtime, /installEnergyAnalysisSection/);
-  assert.match(runtime, /installEditorPolishSection/);
+  assert.doesNotMatch(runtime, /installEditorPolishSection|editor-polish-section/);
 });
