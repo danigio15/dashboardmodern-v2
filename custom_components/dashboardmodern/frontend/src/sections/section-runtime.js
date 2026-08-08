@@ -15,6 +15,8 @@ import { installApplianceLayoutSection } from "./appliance-layout-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installAlertsSection } from "./alerts-section.js";
+import { installLiveUiSection } from "./live-ui-section.js";
+import { installNavigationSection } from "./navigation-section.js";
 import { installUnifiedEditorsSection } from "./unified-editors-section.js";
 import { installEditorCrudSection } from "./editor-crud-section.js";
 import { installEditorContractsSection } from "./editor-contracts-section.js";
@@ -51,6 +53,8 @@ export function installSectionRuntime() {
     installApplianceEditorSection();
     installLightsAlertsSection();
     installAlertsSection();
+    installLiveUiSection();
+    installNavigationSection();
     installUnifiedEditorsSection();
     installEditorCrudSection();
     installEditorContractsSection();
@@ -78,6 +82,8 @@ export function installSectionRuntime() {
         "appliance-editor",
         "lights",
         "alerts",
+        "live-ui",
+        "navigation",
         "unified-editors",
         "editor-crud",
         "editor-contracts",

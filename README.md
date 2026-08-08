@@ -10,50 +10,52 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.12-0ea5e9" alt="Versione 0.15.12">
+  <img src="https://img.shields.io/badge/version-0.15.13-0ea5e9" alt="Versione 0.15.13">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.12
-> removes conflicting live-update layers and retry loops, makes Energy and
-> appliance history semantics single-owner, and rebuilds the shutter popup on
-> the shared responsive modal contract.
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.13
+> restores live light/camera updates without reintroducing global rendering,
+> fixes current-period Energy semantics, and repairs the affected mobile layouts.
 
 ---
 
-## Novità 0.15.12
+## Novità 0.15.13
 
-La 0.15.12 è un **conflict audit** del runtime. Non aggiunge altri layer sopra quelli esistenti: elimina i proprietari duplicati e i cicli che continuavano a lavorare anche quando la dashboard sembrava ferma.
+La 0.15.13 corregge le regressioni visuali e live emerse dopo il conflict audit della 0.15.12, mantenendo il runtime event-driven e i proprietari delle sezioni separati.
 
-### Prestazioni e conflitti runtime
+### Energia
 
-- eliminata la catena Data Contracts che poteva ripartire fino a decine di volte dopo ogni cambio stato;
-- eliminate le scansioni/polling permanenti delle Tapparelle;
-- eliminato il retry ripetuto del runtime EV;
-- eliminato il `MutationObserver` globale dell'Editor sul `document.body`;
-- Elettrodomestici, EV, Temperature, Tapparelle ed Energia reagiscono solo alle proprie entità configurate;
-- Energia non ricarica più Recorder perché è cambiata una luce, una temperatura o un'entità estranea;
-- il bilancio Casa viene riconciliato una sola volta nel bundle canonico, senza un secondo correttore post-render.
+- i sensori esplicitamente configurati per **Giorno / Mese / Anno** sono autorevoli per il periodo corrente anche quando Home Assistant li espone come `total` o `total_increasing` (caso tipico dei `utility_meter`);
+- per i periodi precedenti continua a essere preferito il contatore **Totale/lifetime** tramite Recorder;
+- il bilancio Casa usa la stessa relazione dei flussi della dashboard Energia di Home Assistant: produzione + prelievo + scarica batteria − immissione − carica batteria;
+- ripristinata nell'Editor l'opzione per mostrare/nascondere **Energia** dalla navbar;
+- la configurazione Energia distingue più chiaramente sensori del periodo corrente e contatori totali per lo storico.
 
-### Energia, Report ed elettrodomestici
+### Aggiornamenti live
 
-- un sensore mensile `measurement` può alimentare il **periodo corrente**, ma non viene più esposto come sorgente lifetime per i mesi precedenti;
-- `history_entity` e `report_entity` vengono considerati storici solo se realmente cumulativi (`total`/`total_increasing`);
-- il caso `sensor.energy_mese_microonde` non può più essere ripromosso automaticamente a contatore totale da un altro layer;
-- Casa continua a usare lo stesso bilancio dei flussi della dashboard Energia di Home Assistant quando le sorgenti necessarie sono disponibili;
-- le card Elettrodomestici non vengono più ricalcolate per stati Home Assistant estranei alla sezione.
+- il contatore **Luci accese** della Home viene aggiornato sugli `state_changed` delle sole luci configurate;
+- il popup Gestione Luci riflette lo stato nuovo senza dover essere chiuso e riaperto;
+- le telecamere hanno un proprietario event-driven: le anteprime vengono aggiornate entrando in Sicurezza o quando cambia una camera configurata;
+- il vecchio refresh periodico delle telecamere viene disattivato dal proprietario canonico invece di essere sostituito con un altro polling.
 
-### Tapparelle ed Editor
+### Interfaccia mobile
 
-- il popup **Tapparelle aperte** usa ora un solo proprietario visuale;
-- aggiunte icona nel titolo e icona nella riga della tapparella;
-- header, chiusura, contenuto, scroll e pulsanti seguono il contratto responsive comune;
-- i tre comandi Apri/Ferma/Chiudi sono compatti e coerenti anche su mobile;
-- eliminato il vecchio layer CSS Tapparelle che stilizzava classi non presenti nel popup reale;
-- i contratti Editor vengono applicati solo quando un editor è effettivamente aperto, senza osservare tutte le mutazioni della dashboard.
+- corretta la geometria delle card Elettrodomestici senza modificare immagini o logica artwork;
+- selettore EV reso compatto e dimensionato sul nome del veicolo;
+- popup **Tapparelle aperte** riallineato al contratto modal usato dagli altri avvisi;
+- card Temperature rese più compatte e leggibili;
+- aumentato il contrasto della navbar in modalità scura;
+- ripristinata la lente 🔍 dell'Editor anche quando accanto al campo è già presente un altro pulsante, ad esempio la matita ✏️.
+
+### Conflitti e ownership
+
+- nessun nuovo `MutationObserver` globale;
+- `live-ui` gestisce soltanto luci e telecamere, mentre la navbar ha un unico owner visuale dedicato;
+- i test automatici verificano owner singoli, assenza di moduli moderni orfani e assenza di polling nei moduli `frontend/src`.
 
 ### HACS e aggiornamento
 
@@ -108,11 +110,11 @@ Le configurazioni precedenti vengono migrate senza eliminare le entità lifetime
 
 ## Energia e Report
 
-Per ottenere giorno, mese, anno e mesi precedenti in modo affidabile, configura preferibilmente un sensore con `device_class: energy` e `state_class: total_increasing` nel campo **Energia totale**. Il runtime calcola i periodi tramite le statistiche Recorder di Home Assistant.
+Per il **periodo corrente**, i campi Giorno / Mese / Anno possono puntare ai rispettivi sensori di periodo, compresi i `utility_meter` con `state_class: total` o `total_increasing`. Per ottenere in modo affidabile **mesi e anni precedenti**, configura anche il campo **Energia totale** con un contatore lifetime dotato di `device_class: energy` e `state_class: total` o `total_increasing`: il runtime ricostruisce lo storico tramite le statistiche Recorder di Home Assistant.
 
 Per gli elettrodomestici, un sensore **mensile** può sostituire il valore del mese corrente ma non sostituisce il contatore **totale/lifetime** necessario per ricostruire i mesi precedenti. Il campo **Energia totale per storico e Report** deve quindi puntare a un contatore cumulativo con `state_class: total` o `total_increasing`.
 
-Quando sono disponibili Fotovoltaico e Rete, DashboardModern ricava il consumo Casa dal bilancio dei flussi per mantenere parità con la dashboard Energia di Home Assistant. Il contatore Casa diretto resta disponibile come fallback quando il bilancio non può essere ricostruito.
+Quando sono disponibili Fotovoltaico, Rete e Batteria, DashboardModern ricava il consumo Casa dal bilancio dei flussi per mantenere parità con la dashboard Energia di Home Assistant. Il contatore Casa diretto resta disponibile come fallback quando il bilancio non può essere ricostruito.
 
 ## Supporto e problemi
 

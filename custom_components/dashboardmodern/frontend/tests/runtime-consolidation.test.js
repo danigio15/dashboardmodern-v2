@@ -87,14 +87,16 @@ test("canonical total sensor derives every Energy period", () => {
   }
 });
 
-test("cumulative monthly fields are derived while genuine measurements remain direct", () => {
-  const cumulative = sourcePlans(
-    { solar: { monthly_energy: "sensor.solar_total" } },
+test("configured monthly fields remain direct even when Home Assistant marks them total_increasing", () => {
+  const cumulativePlans = sourcePlans(
+    { solar: { monthly_energy: "sensor.solar_month" } },
     "month",
-    { "sensor.solar_total": totalState("sensor.solar_total") },
-  )[0];
-  assert.equal(cumulative.direct, false);
-  assert.equal(cumulative.reason, "explicit-cumulative");
+    { "sensor.solar_month": totalState("sensor.solar_month") },
+  );
+  assert.equal(cumulativePlans[0].direct, true);
+  assert.equal(cumulativePlans[0].reason, "explicit-period");
+  assert.equal(cumulativePlans[1].fallback, true);
+  assert.equal(cumulativePlans[1].reason, "explicit-cumulative-fallback");
 
   const direct = sourcePlans(
     { solar: { monthly_energy: "sensor.solar_month" } },

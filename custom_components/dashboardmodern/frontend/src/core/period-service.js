@@ -210,40 +210,55 @@ export function sourcePlans(
     const explicit = String(group?.[explicitKey] || "").trim();
     const total = String(group?.[definition.totalKey] || "").trim();
     const legacy = String(overrides?.[definition.slots[kind]] || "").trim();
+    const resolvedExplicit = resolveEntity(explicit, resolver);
+    const resolvedTotal = resolveEntity(total, resolver);
+    const explicitAliasesTotal = Boolean(
+      explicit && total && resolvedExplicit && resolvedExplicit === resolvedTotal,
+    );
 
-    if (explicit && !isCumulativeEnergyEntity(explicit, states, resolver)) {
+    // A real period helper is authoritative for the current period even when
+    // Home Assistant marks it total/total_increasing (utility_meter does this).
+    // Migrations historically mirrored the lifetime Total sensor into the
+    // annual field for compatibility. When both fields resolve to the same
+    // entity it is still a lifetime counter and must be derived with Recorder,
+    // never read directly as the current year's consumption.
+    if (explicit && !explicitAliasesTotal) {
       const plans = [
         {
           ...definition,
           kind,
           slot: definition.slots[kind],
-          entity: resolveEntity(explicit, resolver),
+          entity: resolvedExplicit,
           source: explicit,
           direct: true,
           reason: "explicit-period",
         },
       ];
-      // Period helpers are only authoritative for the current period. Keep the
-      // cumulative meter as a derived fallback so previous months/years remain
-      // available without forcing users to remove their current-period sensor.
-      if (total) {
+      // Direct helpers are not authoritative for a previous period. Prefer the
+      // configured lifetime counter there. If no dedicated lifetime counter is
+      // available, a cumulative explicit helper may still provide reset-aware
+      // Recorder growth for historical periods.
+      const historicalSource = total || (
+        isCumulativeEnergyEntity(explicit, states, resolver) ? explicit : ""
+      );
+      if (historicalSource) {
         plans.push({
           ...definition,
           kind,
           slot: definition.slots[kind],
-          entity: resolveEntity(total, resolver),
-          source: total,
+          entity: resolveEntity(historicalSource, resolver),
+          source: historicalSource,
           direct: false,
           fallback: true,
-          reason: "canonical-total-fallback",
+          reason: total ? "canonical-total-fallback" : "explicit-cumulative-fallback",
         });
       }
       return plans;
     }
 
-    const source = explicit || total || legacy;
+    const source = total || explicit || legacy;
     if (!source) return [];
-    if (!explicit && !total && !isCumulativeEnergyEntity(legacy, states, resolver)) return [];
+    if (!total && !explicit && !isCumulativeEnergyEntity(legacy, states, resolver)) return [];
     return [
       {
         ...definition,
@@ -252,8 +267,8 @@ export function sourcePlans(
         entity: resolveEntity(source, resolver),
         source,
         direct: false,
-        reason: explicit
-          ? "explicit-cumulative"
+        reason: explicitAliasesTotal
+          ? "period-aliases-total"
           : total
             ? "canonical-total"
             : "legacy-cumulative",
@@ -510,7 +525,9 @@ export class HomeAssistantBroker {
       if (value != null) output.set(plan.key, value);
     });
 
-    const derived = plans.filter((plan) => !plan.direct);
+    const derived = plans.filter(
+      (plan) => !plan.direct && !(plan.fallback && output.has(plan.key)),
+    );
     if (!derived.length) return output;
     const kind = derived[0].kind;
     const range = periodRange(kind, selected);
@@ -523,7 +540,6 @@ export class HomeAssistantBroker {
     const rows = await this.statistics(ids, baseline.start, range.end, range.period);
 
     derived.forEach((plan) => {
-      if (plan.fallback && output.has(plan.key)) return;
       const entityRows = (rows[plan.entity] || []).slice().sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
       const before = entityRows.filter((row) => rowTimestamp(row) < range.start.getTime());
       const within = entityRows.filter((row) => rowTimestamp(row) >= range.start.getTime() && rowTimestamp(row) < range.end.getTime());
