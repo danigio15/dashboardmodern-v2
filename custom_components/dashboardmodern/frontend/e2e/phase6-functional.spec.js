@@ -57,9 +57,43 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#editor-modal .ed-tab.active")).toHaveAttribute("data-tab", "avvisi");
     await expect(page.locator("#editor-modal .dm-energy-source-guide")).toHaveCount(0);
     await expect(page.locator("#editor-modal .dm-energy-help-compact:visible")).toHaveCount(0);
+
+    // Real 0.15.16 mobile regression: the appliance editor's width:100% inputs
+    // lived beside fixed icon/picker buttons in flex rows. The resulting min
+    // content width pushed the green/blue full-width actions off the viewport.
+    await page.evaluate(() => window.editorSwitch("appliances"));
+    await expect(page.locator("#appl-name")).toBeVisible();
+    await expect(page.locator("#appl-room")).toBeVisible();
+    await expect(page.locator("#appl-ent")).toBeVisible();
+    if (testInfo.project.name === "mobile") {
+      const applianceEditorFits = await page.evaluate(() => {
+        const shell = document.querySelector("#editor-modal .ed-shell");
+        const body = document.querySelector("#editor-modal #ed-body");
+        if (!shell || !body) return false;
+        const bounds = shell.getBoundingClientRect();
+        const viewport = innerWidth;
+        const nodes = [
+          body,
+          ...body.querySelectorAll(
+            ".ed-list,.ed-row,.ed-form,.ed-form-row,.ed-btn-add,#appl-name,#appl-room,#appl-ent",
+          ),
+        ];
+        return nodes.every((node) => {
+          const rect = node.getBoundingClientRect();
+          return (
+            rect.left >= bounds.left - 2 &&
+            rect.right <= bounds.right + 2 &&
+            rect.left >= -2 &&
+            rect.right <= viewport + 2
+          );
+        });
+      });
+      expect(applianceEditorFits).toBeTruthy();
+      await page.screenshot({ path: `test-results/${variant}-config-appliances-mobile.png`, fullPage: true });
+    }
+
     await page.evaluate(() => window.editorSwitch("sez1"));
     await expect(config).toBeVisible();
-
     if (testInfo.project.name === "mobile")
       await page.screenshot({ path: `test-results/${variant}-config-energy-mobile.png`, fullPage: true });
 
@@ -123,11 +157,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     }
 
     await page.locator('.tab[data-tab="energy"]').evaluate((button) => button.click());
-    // The fixture deliberately reports 28.2 kWh from the direct Home meter but
-    // 39.9 kWh from the same flow balance used by Home Assistant. The browser
-    // must show the reconciled value, not the direct meter.
-    await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house === 39.9);
-    await expect(page.locator("#ed-kpi-cons")).toContainText(/39[,.]9/);
+    // The fixture reports 28.2 kWh from the explicitly configured monthly Home
+    // meter while the other flow legs happen to balance to 39.9 kWh. The direct
+    // Home period source is authoritative; flow balance is fallback only.
+    await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house === 28.2);
+    await expect(page.locator("#ed-kpi-cons")).toContainText(/28[,.]2/);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy-monthly.png`, fullPage: true });
     expect(await page.evaluate(() => window.__dmStatisticsRequests.every((request) => request.types?.includes("sum")))).toBeTruthy();
     expect(errors).toEqual([]);
