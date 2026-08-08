@@ -10,13 +10,15 @@
     unloading: false,
   });
 
-  globalThis.addEventListener?.(
-    "pagehide",
-    () => {
-      state.unloading = true;
-    },
-    { once: true },
-  );
+  const markUnloading = () => {
+    state.unloading = true;
+  };
+  // WebKit can reject pending dynamic module imports as soon as navigation
+  // starts, before pagehide is dispatched. beforeunload marks that same real
+  // document teardown earlier; genuine bootstrap failures while the document
+  // remains active are still reported below.
+  globalThis.addEventListener?.("beforeunload", markUnloading, { once: true });
+  globalThis.addEventListener?.("pagehide", markUnloading, { once: true });
 
   const start = () => {
     if (state.started || state.unloading) return true;
