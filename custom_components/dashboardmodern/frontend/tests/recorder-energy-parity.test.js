@@ -110,6 +110,43 @@ test("a total_increasing monthly helper is authoritative for the current month",
   assert.equal(recorderCalls, 0);
 });
 
+test("a migrated annual alias that equals the lifetime total is derived with Recorder", async () => {
+  const now = new Date();
+  const states = {
+    "sensor.house_total": {
+      state: "5000",
+      attributes: { unit_of_measurement: "kWh", state_class: "total_increasing" },
+    },
+  };
+  const plans = sourcePlans(
+    { house: { annual_energy: "sensor.house_total", total_energy: "sensor.house_total" } },
+    "year",
+    states,
+  ).filter((plan) => plan.key === "house");
+  assert.equal(plans.length, 1);
+  assert.equal(plans[0].direct, false);
+  assert.equal(plans[0].reason, "period-aliases-total");
+
+  const broker = new HomeAssistantBroker();
+  let recorderCalls = 0;
+  broker.statistics = async (_ids, start, end) => {
+    recorderCalls += 1;
+    return {
+      "sensor.house_total": [
+        { start: new Date(new Date(start).getTime() + 1000).toISOString(), sum: 1000 },
+        { start: new Date(new Date(end).getTime() - 1000).toISOString(), sum: 1937 },
+      ],
+    };
+  };
+  const values = await broker.valuesForPlans(
+    plans,
+    new Date(now.getFullYear(), 0, 1),
+    states,
+  );
+  assert.equal(values.get("house"), 937);
+  assert.equal(recorderCalls, 1);
+});
+
 test("a cumulative period helper can still backfill an older month when no lifetime meter exists", async () => {
   const states = {
     "sensor.house_month": {
