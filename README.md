@@ -10,54 +10,45 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.15-0ea5e9" alt="Versione 0.15.15">
+  <img src="https://img.shields.io/badge/version-0.15.16-0ea5e9" alt="Versione 0.15.16">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.15
-> fixes stale frontend asset URLs after HACS updates so a valid release cannot
-> keep rendering the previous cached UI after an integration reload.
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.16
+> fixes monthly Energy fallback when an old period entity no longer exists and
+> aligns editor previews with the visuals actually rendered by the dashboard.
 
 ---
 
-## Novità 0.15.15
+## Novità 0.15.16
 
-La 0.15.15 corregge il meccanismo di cache che poteva far sembrare invariata una release realmente aggiornata. Le correzioni funzionali e visuali della 0.15.14 restano invariate; questa hotfix interviene sul modo in cui Home Assistant pubblica gli asset frontend dopo un aggiornamento HACS.
+La 0.15.16 interviene sui due problemi verificati dopo la 0.15.15: **Energia mensile** che poteva restare vuota/non aggiornata nonostante il giornaliero funzionasse, e **icone/anteprime degli editor** non coerenti con le sezioni reali.
 
-### Cache frontend e aggiornamenti HACS
+### Energia mensile: fallback Recorder reale
 
-- il digest usato nell'URL statico versionato non viene più conservato in una `lru_cache` per tutta la vita del processo Home Assistant;
-- il digest viene ricalcolato dagli asset runtime realmente presenti su disco quando l'integrazione registra di nuovo il frontend;
-- se HACS sostituisce i file della dashboard, il nuovo contenuto produce un URL statico differente invece di riutilizzare quello della release precedente;
-- il nome del custom panel e il modulo `dashboard-card.js` usano lo stesso digest aggiornato;
-- aggiunto un test di regressione che modifica fisicamente `panel.js` e verifica che digest e URL statico cambino senza svuotare manualmente cache interne;
-- nessun nuovo polling, observer o owner visuale è stato introdotto.
+- un riferimento mensile salvato in passato ma non più presente in Home Assistant non può più bloccare il calcolo del mese;
+- i riferimenti di periodo inesistenti vengono ignorati soltanto nella proiezione runtime: la configurazione salvata dall'utente non viene riscritta automaticamente;
+- se il campo Totale/lifetime è vuoto, DashboardModern può usare come sorgente storica un helper Giorno/Mese/Anno realmente esistente con `state_class: total` o `total_increasing`;
+- il valore mensile viene ricostruito dalle **Long-Term Statistics / Recorder** usando la crescita del `sum`, quindi resta compatibile con i reset degli `utility_meter`;
+- un sensore mensile esplicito e valido continua invece ad avere precedenza per il mese corrente;
+- aggiunti test che riproducono il caso reale: giornaliero cumulativo funzionante, vecchio `sensor.monthly_energy` inesistente e nessun lifetime configurato.
 
-### Perché la 0.15.14 poteva sembrare identica
+Questo rende il comportamento del mese coerente con quello del giorno: la presenza di un vecchio ID non deve trasformarsi in un valore mancante quando Home Assistant possiede già statistiche utilizzabili.
 
-La 0.15.14 contiene realmente le correzioni a Energia, card Elettrodomestici e Temperature. Il problema era nel layer che serve il frontend: `_frontend_asset_version()` veniva memorizzato nel processo Python. Dopo l'aggiornamento HACS, un reload dell'integrazione poteva quindi continuare a registrare lo stesso URL immutabile già presente nella cache del browser, anche se i file su disco erano cambiati.
+### Editor e icone coerenti con le sezioni
 
-### Primo aggiornamento alla 0.15.15
+- **Elettrodomestici:** la preview Tipo/immagine usa ora lo stesso `applianceArtwork()` SVG usato nella card; Microonde, Lavatrice, Forno, Frigorifero, Lavastoviglie, Asciugatrice, Boiler, Piano cottura e TV non sono più rappresentati da un'emoji diversa dall'immagine reale;
+- **Azioni:** le azioni integrate (Gestione Luci, Clima, Antifurto, Lavatrice) ricevono automaticamente l'icona canonica del tipo; il campo entità viene nascosto quando non è pertinente e la preview segue la scelta effettuata;
+- **Stanze:** il campo Icona mostra una preview tramite lo stesso renderer `cdIconMarkup` usato dalla dashboard, compresi gli identificatori `mdi:*`;
+- **Avvisi:** l'icona dell'editor segue il gruppo reale (Luci, Tapparelle, Sicurezza, Clima, Elettrodomestici, Altro) invece di mostrare sempre un simbolo generico non collegato alla sezione;
+- gli editor continuano a usare gli owner già esistenti: non sono stati aggiunti polling o `MutationObserver` globali.
 
-La 0.15.15 non può sostituire retroattivamente il codice Python della 0.15.14 già caricato in memoria. Dopo aver installato questa release con HACS, esegui **un riavvio completo di Home Assistant** se compare **In attesa di riavvio**. Dopo quel riavvio, chiudi e riapri l'app/browser oppure esegui un refresh completo. Da quel momento il runtime non mantiene più il digest frontend obsoleto attraverso i reload dell'integrazione.
+### 0.15.15: cache frontend
 
-### Correzioni ereditate dalla 0.15.14
-
-- **Energia:** un campo annuale lasciato intenzionalmente vuoto non viene più ripopolato dal contatore lifetime dopo Salva/reload;
-- **Elettrodomestici:** il layout usa il vero body `.appl-info`, card mobile fino a 370 px, artwork almeno 80 × 80 px e pulsanti più compatti;
-- **Temperature:** card mobile fino a 350 px con tipografia e spaziature ridotte;
-- **Branding HACS:** gli asset locali restano presenti; l'eventuale `icon not available` nella lista HACS dipende dal catalogo esterno Home Assistant Brands, non da copie locali mancanti.
-
-### Conflitti e ownership
-
-- nessun nuovo `MutationObserver` globale;
-- nessun nuovo `setInterval`;
-- nessun nuovo modulo visuale per Energia, Elettrodomestici o Temperature;
-- il test cache-busting si aggiunge ai contratti import-graph/orphan e ai test della persistenza Energia e layout mobile;
-- il vecchio contratto release 0.15.14 viene sostituito da quello 0.15.15, non duplicato.
+La 0.15.15 ha rimosso il caching di processo del digest frontend. Dopo un aggiornamento HACS, DashboardModern ricalcola l'URL statico dai file realmente presenti su disco, evitando che browser/app continuino a mostrare gli asset della release precedente.
 
 ---
 
@@ -106,11 +97,11 @@ Le configurazioni precedenti vengono migrate senza eliminare le entità lifetime
 
 ## Energia e Report
 
-Per il **periodo corrente**, i campi Giorno / Mese / Anno possono puntare ai rispettivi sensori di periodo, compresi i `utility_meter` con `state_class: total` o `total_increasing`. Se non disponi di un sensore annuale dedicato, il campo **Energia annuale** può rimanere vuoto: non viene più ripopolato automaticamente dal contatore totale.
+Per il **periodo corrente**, i campi Giorno / Mese / Anno possono puntare ai rispettivi sensori di periodo, compresi gli `utility_meter` con `state_class: total` o `total_increasing`. Se un vecchio riferimento di periodo non esiste più, non viene usato come sorgente runtime.
 
-Per ottenere in modo affidabile **mesi e anni precedenti**, configura il campo **Energia totale** con un contatore lifetime dotato di `device_class: energy` e `state_class: total` o `total_increasing`: il runtime ricostruisce lo storico tramite le statistiche Recorder di Home Assistant.
+Per ottenere in modo affidabile **mesi e anni precedenti**, il percorso preferito resta configurare il campo **Energia totale** con un contatore lifetime dotato di `device_class: energy` e `state_class: total` o `total_increasing`: il runtime ricostruisce lo storico tramite le statistiche Recorder di Home Assistant. Quando quel campo manca, la 0.15.16 può riutilizzare un helper cumulativo di periodo esistente come sorgente Recorder, senza confondere il suo stato corrente con il consumo storico.
 
-Per gli elettrodomestici, un sensore **mensile** può sostituire il valore del mese corrente ma non sostituisce il contatore **totale/lifetime** necessario per ricostruire i mesi precedenti. Il campo **Energia totale per storico e Report** deve quindi puntare a un contatore cumulativo con `state_class: total` o `total_increasing`.
+Per gli elettrodomestici, un sensore **mensile** può sostituire il valore del mese corrente ma non sostituisce il contatore **totale/lifetime** necessario per ricostruire in modo stabile i mesi precedenti. Il campo **Energia totale per storico e Report** resta quindi la scelta raccomandata quando disponibile.
 
 Quando sono disponibili Fotovoltaico, Rete e Batteria, DashboardModern ricava il consumo Casa dal bilancio dei flussi per mantenere parità con la dashboard Energia di Home Assistant. Il contatore Casa diretto resta disponibile come fallback quando il bilancio non può essere ricostruito.
 

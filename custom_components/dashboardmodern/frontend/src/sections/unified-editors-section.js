@@ -11,6 +11,16 @@ import {
 const KEY = "__DASHBOARDMODERN_UNIFIED_EDITORS_SECTION__";
 const state = (root[KEY] ||= { installed: false });
 
+const ACTION_TYPES = Object.freeze([
+  ["builtin_luci", "💡", "Gestione Luci", "Lights control"],
+  ["builtin_clima", "❄️", "Clima", "Climate"],
+  ["builtin_antifurto", "🛡️", "Antifurto", "Alarm"],
+  ["builtin_lavatrice", "🧺", "Lavatrice", "Washing machine"],
+  ["toggle", "⚡", "Toggle entità", "Toggle entity"],
+  ["script", "▶️", "Script", "Script"],
+  ["scene", "🎬", "Scena", "Scene"],
+]);
+
 function listFor(kind) {
   if (kind === "action") return root.getQuickActions?.().slice?.() || readJson("cd_quick_actions", []);
   if (kind === "climate") return root.getClimaUnits?.().slice?.() || readJson("cd_clima_units", []);
@@ -30,28 +40,36 @@ function roomsOptions(selected) {
   ].join("");
 }
 
+function actionTypeValue(item) {
+  return item.type === "builtin" ? `builtin_${item.builtin || "luci"}` : item.type || "toggle";
+}
+
+function actionTypeIcon(value) {
+  return ACTION_TYPES.find(([type]) => type === clean(value))?.[1] || "⚡";
+}
+
 function actionTypeOptions(item) {
-  const selected = item.type === "builtin" ? `builtin_${item.builtin || "luci"}` : item.type || "toggle";
-  const choices = [
-    ["builtin_luci", "💡", "Gestione Luci", "Lights control"],
-    ["builtin_clima", "❄️", "Clima", "Climate"],
-    ["builtin_antifurto", "🛡️", "Antifurto", "Alarm"],
-    ["builtin_lavatrice", "🧺", "Lavatrice", "Washing machine"],
-    ["toggle", "⚡", "Toggle entità", "Toggle entity"],
-    ["script", "▶️", "Script", "Script"],
-    ["scene", "🎬", "Scena", "Scene"],
-  ];
-  return choices
+  const selected = actionTypeValue(item);
+  return ACTION_TYPES
     .map(([value, icon, it, en]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${icon} ${t(it, en)}</option>`)
     .join("");
 }
 
-function modalShell(kind, title, body) {
+function iconMarkup(value, fallback = "🔘", size = 34) {
+  const icon = clean(value) || fallback;
+  try {
+    const markup = root.cdIconMarkup?.(icon, size);
+    if (markup) return markup;
+  } catch (_error) {}
+  return esc(icon.startsWith("mdi:") ? fallback : icon);
+}
+
+function modalShell(kind, title, body, headerIcon = "✏️") {
   const modal = doc.createElement("div");
   modal.id = `dm-${kind}-editor-modal`;
   modal.className = "dm-section-modal";
   modal.innerHTML = `<section class="dm-section-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-${kind}-editor-title">
-    <header><strong id="dm-${kind}-editor-title">✏️ ${title}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header>
+    <header><strong id="dm-${kind}-editor-title"><span class="dm-editor-header-icon" aria-hidden="true">${headerIcon}</span> ${title}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header>
     <form data-form>${body}<output data-error></output><footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="submit" class="ed-save-btn">💾 ${t("Salva modifiche", "Save changes")}</button></footer></form>
   </section>`;
   doc.body.append(modal);
@@ -87,21 +105,48 @@ function currentTab(kind) {
   return { action: "sezioni", climate: "sezioni", shutter: "tapp", room: "stanze" }[kind];
 }
 
+function syncActionEditor(form) {
+  const type = clean(form.elements.type.value) || "toggle";
+  const builtin = type.startsWith("builtin_");
+  const canonical = actionTypeIcon(type);
+  const icon = form.elements.icon;
+  const previousCanonical = clean(icon.dataset.canonicalIcon);
+  if (builtin || !clean(icon.value) || clean(icon.value) === previousCanonical) icon.value = canonical;
+  icon.dataset.canonicalIcon = canonical;
+  icon.readOnly = builtin;
+  icon.closest("label")?.classList.toggle("dm-canonical-icon", builtin);
+  const entityField = form.querySelector("[data-action-entity-field]");
+  if (entityField) entityField.hidden = builtin;
+  const preview = form.querySelector("[data-action-icon-preview]");
+  if (preview) preview.innerHTML = iconMarkup(icon.value, canonical, 36);
+  const header = form.closest(".dm-section-dialog")?.querySelector(".dm-editor-header-icon");
+  if (header) header.textContent = canonical;
+}
+
 function openActionEditor(item, index) {
   if (item.type === "luci_group" && typeof root.edEditLightGroup === "function") {
     root.edEditLightGroup(index);
     return;
   }
+  const selectedType = actionTypeValue(item);
+  const initialIcon = clean(item.icon) || actionTypeIcon(selectedType);
   const { form, close } = modalShell(
     "action",
     t("Modifica azione", "Edit action"),
     `<label class="ed-slot"><span class="ed-slot-lbl">${t("Tipo", "Type")}</span><select class="ed-input" name="type">${actionTypeOptions(item)}</select></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(item.name)}" required></label>
-     <label class="ed-slot"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><input class="ed-input" name="icon" value="${esc(item.icon)}"></label>
-     <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}"><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="dm-unified-icon-row"><span class="dm-unified-icon-preview" data-action-icon-preview aria-hidden="true">${iconMarkup(initialIcon, actionTypeIcon(selectedType), 36)}</span><input class="ed-input" name="icon" value="${esc(initialIcon)}"></span><small>${t("Per le azioni integrate l’icona è definita dal tipo e coincide con quella mostrata nella dashboard.", "For built-in actions the icon is defined by the type and matches the dashboard.")}</small></label>
+     <label class="ed-slot" data-action-entity-field><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}"><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Conferma opzionale", "Optional confirmation")}</span><textarea class="ed-input" name="confirm">${esc(item.confirm || item.confirmation)}</textarea></label>`,
+    actionTypeIcon(selectedType),
   );
   form.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
+  form.elements.type.addEventListener("change", () => syncActionEditor(form));
+  form.elements.icon.addEventListener("input", () => {
+    const preview = form.querySelector("[data-action-icon-preview]");
+    if (preview) preview.innerHTML = iconMarkup(form.elements.icon.value, actionTypeIcon(form.elements.type.value), 36);
+  });
+  syncActionEditor(form);
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const name = clean(form.elements.name.value);
@@ -111,8 +156,14 @@ function openActionEditor(item, index) {
       return;
     }
     const list = listFor("action");
-    const next = { ...item, name, icon: clean(form.elements.icon.value), confirm: clean(form.elements.confirm.value) };
-    if (type.startsWith("builtin_")) {
+    const builtin = type.startsWith("builtin_");
+    const next = {
+      ...item,
+      name,
+      icon: builtin ? actionTypeIcon(type) : clean(form.elements.icon.value) || actionTypeIcon(type),
+      confirm: clean(form.elements.confirm.value),
+    };
+    if (builtin) {
       next.type = "builtin";
       next.builtin = type.slice(8);
       delete next.entity;
@@ -136,6 +187,7 @@ function openClimateEditor(item, index) {
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(item.name)}" required></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}" required><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>`,
+    item.type === "termostato" ? "🌡️" : "❄️",
   );
   form.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
   form.addEventListener("submit", (event) => {
@@ -165,6 +217,7 @@ function openShutterEditor(item, index) {
     `<label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(item.name)}" required></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}" required><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>`,
+    "🪟",
   );
   form.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
   form.addEventListener("submit", (event) => {
@@ -187,20 +240,26 @@ function openShutterEditor(item, index) {
 }
 
 function openRoomEditor(item, index) {
+  const initialIcon = clean(item.icon) || "mdi:home";
   const { form, close } = modalShell(
     "room",
     t("Modifica stanza", "Edit room"),
     `<label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(item.name)}" required></label>
-     <label class="ed-slot"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><input class="ed-input" name="icon" value="${esc(item.icon || "🏠")}"></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="dm-unified-icon-row"><span class="dm-unified-icon-preview" data-room-icon-preview aria-hidden="true">${iconMarkup(initialIcon, "🏠", 36)}</span><input class="ed-input" name="icon" value="${esc(initialIcon)}"></span><small>${t("L’anteprima usa lo stesso renderer dell’icona stanza nella dashboard.", "The preview uses the same room-icon renderer as the dashboard.")}</small></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Piano", "Floor")}</span><input class="ed-input" name="floor" value="${esc(item.floor)}"></label>`,
+    "🏠",
   );
+  form.elements.icon.addEventListener("input", () => {
+    const preview = form.querySelector("[data-room-icon-preview]");
+    if (preview) preview.innerHTML = iconMarkup(form.elements.icon.value, "🏠", 36);
+  });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const list = listFor("room");
     list[index] = {
       ...item,
       name: clean(form.elements.name.value),
-      icon: clean(form.elements.icon.value) || "🏠",
+      icon: clean(form.elements.icon.value) || "mdi:home",
       floor: clean(form.elements.floor.value),
     };
     if (!list[index].name) {
@@ -212,6 +271,14 @@ function openRoomEditor(item, index) {
     close();
     root.editorSwitch?.(currentTab("room"));
   });
+}
+
+function installStyles() {
+  if (doc?.getElementById("dm-unified-editor-visual-style")) return;
+  const style = doc.createElement("style");
+  style.id = "dm-unified-editor-visual-style";
+  style.textContent = `.dm-unified-icon-row{display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;gap:12px!important;align-items:center!important}.dm-unified-icon-preview{display:grid!important;place-items:center!important;width:72px!important;height:72px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:18px!important;background:var(--secondary-background-color,#eef3f8)!important;font-size:34px!important;overflow:hidden!important}.dm-unified-icon-preview ha-icon{--mdc-icon-size:36px!important}.dm-canonical-icon input{opacity:.78!important}.dm-editor-header-icon ha-icon{--mdc-icon-size:28px!important}`;
+  doc.head.append(style);
 }
 
 export function openUnifiedEditor(kind, index) {
@@ -229,6 +296,7 @@ export function openUnifiedEditor(kind, index) {
 export function installUnifiedEditorsSection() {
   if (!doc || state.installed) return;
   state.installed = true;
+  installStyles();
   doc.addEventListener(
     "click",
     (event) => {
