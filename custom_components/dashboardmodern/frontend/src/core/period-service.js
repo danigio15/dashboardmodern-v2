@@ -211,7 +211,11 @@ export function sourcePlans(
     const total = String(group?.[definition.totalKey] || "").trim();
     const legacy = String(overrides?.[definition.slots[kind]] || "").trim();
 
-    if (explicit && !isCumulativeEnergyEntity(explicit, states, resolver)) {
+    // An entity explicitly configured for a period is authoritative for the
+    // current period even when Home Assistant marks it total/total_increasing.
+    // utility_meter helpers commonly use those state classes while still
+    // representing exactly the current day/month/year selected by the user.
+    if (explicit) {
       const plans = [
         {
           ...definition,
@@ -223,27 +227,31 @@ export function sourcePlans(
           reason: "explicit-period",
         },
       ];
-      // Period helpers are only authoritative for the current period. Keep the
-      // cumulative meter as a derived fallback so previous months/years remain
-      // available without forcing users to remove their current-period sensor.
-      if (total) {
+      // Direct helpers are not authoritative for a previous period. Prefer the
+      // configured lifetime counter there. If no dedicated lifetime counter is
+      // available, a cumulative explicit helper may still provide reset-aware
+      // Recorder growth for historical periods.
+      const historicalSource = total || (
+        isCumulativeEnergyEntity(explicit, states, resolver) ? explicit : ""
+      );
+      if (historicalSource) {
         plans.push({
           ...definition,
           kind,
           slot: definition.slots[kind],
-          entity: resolveEntity(total, resolver),
-          source: total,
+          entity: resolveEntity(historicalSource, resolver),
+          source: historicalSource,
           direct: false,
           fallback: true,
-          reason: "canonical-total-fallback",
+          reason: total ? "canonical-total-fallback" : "explicit-cumulative-fallback",
         });
       }
       return plans;
     }
 
-    const source = explicit || total || legacy;
+    const source = total || legacy;
     if (!source) return [];
-    if (!explicit && !total && !isCumulativeEnergyEntity(legacy, states, resolver)) return [];
+    if (!total && !isCumulativeEnergyEntity(legacy, states, resolver)) return [];
     return [
       {
         ...definition,
@@ -252,11 +260,7 @@ export function sourcePlans(
         entity: resolveEntity(source, resolver),
         source,
         direct: false,
-        reason: explicit
-          ? "explicit-cumulative"
-          : total
-            ? "canonical-total"
-            : "legacy-cumulative",
+        reason: total ? "canonical-total" : "legacy-cumulative",
       },
     ];
   });
@@ -510,7 +514,9 @@ export class HomeAssistantBroker {
       if (value != null) output.set(plan.key, value);
     });
 
-    const derived = plans.filter((plan) => !plan.direct);
+    const derived = plans.filter(
+      (plan) => !plan.direct && !(plan.fallback && output.has(plan.key)),
+    );
     if (!derived.length) return output;
     const kind = derived[0].kind;
     const range = periodRange(kind, selected);
@@ -523,7 +529,6 @@ export class HomeAssistantBroker {
     const rows = await this.statistics(ids, baseline.start, range.end, range.period);
 
     derived.forEach((plan) => {
-      if (plan.fallback && output.has(plan.key)) return;
       const entityRows = (rows[plan.entity] || []).slice().sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
       const before = entityRows.filter((row) => rowTimestamp(row) < range.start.getTime());
       const within = entityRows.filter((row) => rowTimestamp(row) >= range.start.getTime() && rowTimestamp(row) < range.end.getTime());
