@@ -9,7 +9,13 @@ const PRELUDE = readFileSync(
   "utf8",
 );
 
-function runPrelude({ parent: parentValue, host = "ha.local:8123", storage = {}, query = "" }) {
+function runPrelude({
+  parent: parentValue,
+  host = "ha.local:8123",
+  storage = {},
+  query = "",
+  namespaced = false,
+}) {
   const writes = [];
   const listeners = new Map();
   class MockWebSocket {
@@ -52,6 +58,7 @@ function runPrelude({ parent: parentValue, host = "ha.local:8123", storage = {},
       listeners.set(type, handler);
     },
   };
+  if (namespaced) window.__DASHBOARDMODERN_STORAGE_NS__ = "test-instance";
   window.parent = parentValue === "self" ? window : parent;
   const context = createContext({
     window,
@@ -115,6 +122,47 @@ test("the prelude never writes to shared localStorage", () => {
 
   assert.deepEqual(writes, []);
   assert.equal(JSON.parse(storage.cd_connection).token, "real-standalone-token");
+});
+
+test("hosted namespaced state completes visibility before the legacy write bridge starts", () => {
+  const state = {
+    schema_version: 4,
+    sections: {
+      rooms: [],
+      cameras: [],
+      appliances: [],
+      loads: [],
+      lights: [],
+      climate: [],
+      ev: [],
+      covers: [],
+      pool: {},
+      irrigation: { zones: [] },
+      energy: { house: { total_energy: "sensor.house_total" } },
+      entityOverrides: { "dm.server_cpu": "sensor.server_cpu" },
+    },
+    visibility: { energy: true, appliances: true },
+  };
+  const storage = { dm_dashboard_state: JSON.stringify(state) };
+  const { writes } = runPrelude({
+    parent: { __DASHBOARDMODERN_HOST__: true },
+    storage,
+    namespaced: true,
+  });
+
+  assert.deepEqual(writes, ["dm_dashboard_state", "cd_sections"]);
+  const migrated = JSON.parse(storage.dm_dashboard_state);
+  assert.equal(migrated.visibility.energy, true);
+  assert.equal(migrated.visibility.appliances, true, "explicit visibility is preserved");
+  assert.equal(migrated.visibility.server, true);
+  assert.equal(migrated.visibility.ev, false);
+  assert.equal(migrated.visibility.clima, false);
+  assert.equal(migrated.visibility.temp, false);
+  assert.equal(migrated.visibility.security, false);
+  assert.equal(migrated.visibility.tapparelle, false);
+  assert.equal(migrated.visibility.irrigazione, false);
+  assert.equal(migrated.visibility.piscina, false);
+  assert.deepEqual(JSON.parse(storage.cd_sections), migrated.visibility);
 });
 
 test("host query markers enable hosted mode without a readable parent", () => {
