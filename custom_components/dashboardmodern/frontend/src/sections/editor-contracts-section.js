@@ -145,25 +145,130 @@ function energyEditorActive() {
   return tab === "sez1" || tab === "energy";
 }
 
+function readSectionsVisibility() {
+  try {
+    const parsed = JSON.parse(root.localStorage?.getItem("cd_sections") || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function updateEnergyVisibilityButton(button) {
+  if (!button) return;
+  const visible = readSectionsVisibility().energy !== false;
+  button.dataset.visible = String(visible);
+  button.textContent = visible
+    ? t("🟢 Sezione visibile in dashboard — tocca per nascondere", "🟢 Section visible — tap to hide")
+    : t("⚪ Sezione nascosta — tocca per mostrare", "⚪ Section hidden — tap to show");
+  button.setAttribute("aria-pressed", String(visible));
+}
+
+function normalizeEnergyVisibility() {
+  if (!energyEditorActive()) return false;
+  const body = doc?.getElementById("ed-body");
+  if (!body) return false;
+  let host = body.querySelector(".dm-energy-visibility-contract");
+  if (!host) {
+    host = doc.createElement("div");
+    host.className = "dm-energy-visibility-contract";
+    const button = doc.createElement("button");
+    button.type = "button";
+    button.className = "ed-btn-add dm-energy-visibility-toggle";
+    button.dataset.key = "energy";
+    button.dataset.dmEnergyVisibility = "true";
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      if (typeof root.edSecTog === "function") {
+        root.edSecTog(button);
+        root.queueMicrotask?.(schedule);
+        return;
+      }
+      const current = readSectionsVisibility();
+      current.energy = current.energy === false;
+      root.localStorage?.setItem("cd_sections", JSON.stringify(current));
+      root.cdMarkDirty?.();
+      root.cdSyncPush?.();
+      root.cdApplyNavVis?.();
+      updateEnergyVisibilityButton(button);
+    });
+    host.append(button);
+    body.prepend(host);
+  }
+  updateEnergyVisibilityButton(host.querySelector("[data-dm-energy-visibility]"));
+  return true;
+}
+
 function normalizeEnergyHelp() {
   const active = energyEditorActive();
   doc?.querySelectorAll("#editor-modal .dm-energy-help-compact").forEach((overview) => {
     overview.hidden = !active;
   });
   if (!active) return false;
-  const overview = doc?.querySelector("#editor-modal .dm-energy-help-compact");
-  if (overview) {
-    const markup = t(
-      "<strong>Storico consumi</strong><span>Seleziona i contatori totali kWh per Recorder e mesi precedenti; il consumo Casa viene riconciliato con i flussi come in Home Assistant.</span>",
-      "<strong>Consumption history</strong><span>Select total kWh meters for Recorder and previous months; Home consumption is reconciled from flows like Home Assistant.</span>",
-    );
-    if (overview.innerHTML !== markup) overview.innerHTML = markup;
+  const body = doc?.getElementById("ed-body");
+  if (!body) return false;
+  body.classList.add("dm-energy-editor-body");
+  body.querySelectorAll(":scope > details.ed-acc").forEach((group, index) => {
+    group.classList.add("dm-energy-config-group");
+    group.dataset.energyGroupIndex = String(index);
+  });
+
+  let overview = body.querySelector(".dm-energy-help-compact");
+  if (!overview) {
+    overview = doc.createElement("div");
+    overview.className = "dm-energy-help-compact";
+    const visibility = body.querySelector(".dm-energy-visibility-contract");
+    visibility?.after(overview);
+    if (!visibility) body.prepend(overview);
   }
+  const markup = t(
+    "<strong>⚡ Configurazione Energia</strong><span><b>Periodo corrente:</b> usa i sensori Giorno / Mese / Anno configurati. <b>Mesi precedenti:</b> usa i contatori Totali kWh tramite Recorder. Casa viene calcolata con lo stesso bilancio dei flussi di Home Assistant.</span>",
+    "<strong>⚡ Energy configuration</strong><span><b>Current period:</b> uses configured Day / Month / Year sensors. <b>Previous periods:</b> uses Total kWh counters through Recorder. Home is calculated with the same Home Assistant flow balance.</span>",
+  );
+  if (overview.innerHTML !== markup) overview.innerHTML = markup;
   doc?.querySelectorAll("#editor-modal .dm-energy-total-note").forEach((note) => {
-    const label = t("Totale kWh · total_increasing", "Total kWh · total_increasing");
+    const label = t(
+      "Storico · contatore totale kWh (total / total_increasing)",
+      "History · total kWh counter (total / total_increasing)",
+    );
     if (clean(note.textContent) !== label) note.textContent = label;
   });
-  return Boolean(overview);
+  return true;
+}
+
+function hasEntityPicker(container) {
+  return [...(container?.querySelectorAll?.("button") || [])].some((button) =>
+    button.classList.contains("dm-entity-picker") ||
+    button.dataset.dmEntityPicker === "true" ||
+    clean(button.textContent).includes("🔍"),
+  );
+}
+
+function normalizeEntityPickers() {
+  const modal = doc?.getElementById("editor-modal");
+  if (!modal) return false;
+  let changed = false;
+  modal.querySelectorAll("input.ed-slot-in[data-ref],input[data-ref].ed-input").forEach((input) => {
+    if (input.type === "hidden" || input.disabled) return;
+    const row = input.parentElement;
+    if (!row || hasEntityPicker(row)) return;
+    const picker = doc.createElement("button");
+    picker.type = "button";
+    picker.className = "dm-entity-picker dm-contract-entity-picker";
+    picker.dataset.dmEntityPicker = "true";
+    picker.setAttribute("aria-label", t("Cerca entità", "Search entity"));
+    picker.textContent = "🔍";
+    picker.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const ref = clean(input.dataset.ref);
+      root.wzPickEntity?.(ref || input);
+    });
+    row.classList.add("dm-editor-entity-row");
+    input.insertAdjacentElement("afterend", picker);
+    changed = true;
+  });
+  return changed;
 }
 
 export function applyEditorContracts() {
@@ -173,7 +278,9 @@ export function applyEditorContracts() {
   normalizeLightEditCompatibility();
   normalizeAlertsEditor();
   normalizeTemperatureEditor();
+  normalizeEnergyVisibility();
   normalizeEnergyHelp();
+  normalizeEntityPickers();
   return true;
 }
 
@@ -213,11 +320,24 @@ function installStyles() {
       #editor-modal[data-dm-editor-theme="dark"] .ed-slot-lbl{color:var(--text-dim,#92a4c2)!important}
       #editor-modal [data-energy-panel="report"] [data-report-manual][hidden]{display:none!important}
       #editor-modal [data-energy-panel="report"] [data-report-manual]:not([hidden]){display:grid!important;gap:10px!important;margin-top:10px!important}
+      #editor-modal .dm-energy-visibility-contract{display:block!important;margin:0 0 12px!important}
+      #editor-modal .dm-energy-visibility-toggle{box-sizing:border-box!important;width:100%!important;min-height:52px!important;margin:0!important;padding:11px 14px!important;border:0!important;border-radius:15px!important;color:#fff!important;font-size:13px!important;font-weight:900!important;line-height:1.3!important;white-space:normal!important}
+      #editor-modal .dm-energy-visibility-toggle[data-visible="true"]{background:linear-gradient(135deg,#10b981,#047857)!important}
+      #editor-modal .dm-energy-visibility-toggle[data-visible="false"]{background:linear-gradient(135deg,#94a3b8,#64748b)!important}
       #editor-modal .dm-energy-help-compact[hidden]{display:none!important}
-      #editor-modal .dm-energy-help-compact{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:center!important;gap:8px 12px!important;margin:0 0 12px!important;padding:10px 12px!important;border-radius:14px!important;background:color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 8%,transparent)!important;color:var(--primary-text-color,var(--text,#0f172a))!important}
-      #editor-modal .dm-energy-help-compact strong{white-space:nowrap!important}
-      #editor-modal .dm-energy-help-compact span{color:var(--secondary-text-color,var(--text-dim,#64748b))!important;font-size:12px!important;line-height:1.35!important}
-      #editor-modal .dm-energy-total-note{display:block!important;margin-top:4px!important;font-size:10px!important;line-height:1.2!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
+      #editor-modal .dm-energy-help-compact{display:grid!important;grid-template-columns:1fr!important;gap:6px!important;margin:0 0 14px!important;padding:13px 14px!important;border:1px solid color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 18%,transparent)!important;border-radius:15px!important;background:color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 8%,transparent)!important;color:var(--primary-text-color,var(--text,#0f172a))!important}
+      #editor-modal .dm-energy-help-compact strong{font-size:13px!important;font-weight:900!important}
+      #editor-modal .dm-energy-help-compact span{color:var(--secondary-text-color,var(--text-dim,#64748b))!important;font-size:11.5px!important;line-height:1.5!important}
+      #editor-modal .dm-energy-total-note{display:block!important;margin-top:5px!important;font-size:10px!important;line-height:1.3!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
+      #editor-modal .dm-energy-editor-body{display:grid!important;align-content:start!important;gap:11px!important}
+      #editor-modal .dm-energy-editor-body>.dm-energy-visibility-contract,#editor-modal .dm-energy-editor-body>.dm-energy-help-compact{margin-bottom:0!important}
+      #editor-modal .dm-energy-config-group{box-sizing:border-box!important;margin:0!important;border:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;border-radius:16px!important;overflow:hidden!important;background:color-mix(in srgb,var(--ha-card-background,var(--card-bg,#fff)) 95%,var(--secondary-background-color,#f8fafc))!important}
+      #editor-modal .dm-energy-config-group>summary{min-height:48px!important;padding:12px 14px!important;font-size:13px!important;font-weight:900!important}
+      #editor-modal .dm-energy-config-group>.ed-acc-body{display:grid!important;gap:10px!important;padding:12px 14px 14px!important;border-top:1px solid var(--divider-color,var(--card-border,#e2e8f0))!important}
+      #editor-modal .dm-energy-config-group .ed-slot{margin:0!important;padding:0!important}
+      #editor-modal .dm-editor-entity-row{display:flex!important;align-items:stretch!important;gap:7px!important;min-width:0!important}
+      #editor-modal .dm-editor-entity-row>input{min-width:0!important;flex:1 1 auto!important}
+      #editor-modal .dm-contract-entity-picker{display:grid!important;place-items:center!important;flex:0 0 42px!important;width:42px!important;min-width:42px!important;height:42px!important;margin:0!important;padding:0!important;border:0!important;border-radius:11px!important;background:linear-gradient(135deg,#0ea5e9,#0369a1)!important;color:#fff!important;font-size:15px!important;cursor:pointer!important}
 
       /* Canonical geometry for every section editor. */
       .dm-section-modal{position:fixed!important;inset:0!important;z-index:100040!important;display:grid!important;place-items:center!important;padding:16px!important;background:rgba(15,23,42,.58)!important;backdrop-filter:blur(5px)!important}
@@ -241,6 +361,9 @@ function installStyles() {
       #page-appliances-main .appl-wide-status,#appl-grid-overview .appl-wide-status,#page-appliances-main .appl-status,#appl-grid-overview .appl-status{align-self:center!important;vertical-align:middle!important}
       @media(max-width:620px){
         #editor-modal .dm-energy-help-compact{grid-template-columns:1fr!important}
+        #editor-modal .dm-energy-editor-body{gap:9px!important}
+        #editor-modal .dm-energy-config-group>summary{padding:11px 12px!important}
+        #editor-modal .dm-energy-config-group>.ed-acc-body{padding:11px 12px 13px!important}
         .dm-section-modal{padding:0!important;place-items:stretch!important}
         .dm-section-modal .dm-section-dialog{width:100%!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important}
         .dm-section-modal .dm-section-dialog>form{padding-left:16px!important;padding-right:16px!important}
