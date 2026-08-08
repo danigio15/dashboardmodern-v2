@@ -12,36 +12,57 @@ const buildInfoUrl = new URL("../legacy/build-info.js", import.meta.url);
 const obsoleteEntryUrl = new URL("../legacy/report-mobile-fixes.js", import.meta.url);
 const historyUrl = new URL("../src/sections/history-section.js", import.meta.url);
 const refreshUrl = new URL("../src/sections/energy-refresh-section.js", import.meta.url);
+const analysisUrl = new URL("../src/sections/energy-analysis-section.js", import.meta.url);
+const contractsUrl = new URL("../src/sections/editor-contracts-section.js", import.meta.url);
 
-test("the Energy parity, refresh and history release is consistently versioned as 0.15.18", async () => {
+test("the weekly Analysis and editor polish release is consistently versioned as 0.15.19", async () => {
   const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
   const readme = await readFile(readmeUrl, "utf8");
   const buildInfo = await readFile(buildInfoUrl, "utf8");
 
-  assert.equal(manifest.version, "0.15.18");
-  assert.match(readme, /version-0\.15\.18/);
-  assert.match(readme, /Novità 0\.15\.18/);
+  assert.equal(manifest.version, "0.15.19");
+  assert.match(readme, /version-0\.15\.19/);
+  assert.match(readme, /Novità 0\.15\.19/);
+  assert.match(readme, /Confronto settimanale dei consumi Casa/i);
+  assert.match(readme, /contatore totale kWh/i);
+  assert.match(readme, /SALVA MODIFICHE/);
   assert.match(readme, /165,1 kWh/);
-  assert.match(readme, /history\/history_during_period/);
-  assert.match(readme, /Mese\/Anno al periodo corrente/);
   assert.match(
     readme,
     /https:\/\/raw\.githubusercontent\.com\/danigio15\/dashboardmodern-v2\/main\/brand\/logo\.png/,
   );
   assert.doesNotMatch(readme, /main\/assets\/logo|brand\/logo@2x\.png/);
-  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']0\.15\.18["']/);
-  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']0\.15\.18["']/);
+  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']0\.15\.19["']/);
+  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']0\.15\.19["']/);
   assert.match(buildInfo, /["']?moduleVersion["']?\s*:\s*14/);
 });
 
-test("canonical history does not use the legacy REST token transport", async () => {
+test("weekly Analysis uses authenticated Recorder statistics and the canonical Home balance", async () => {
+  const analysis = await readFile(analysisUrl, "utf8");
+  assert.match(analysis, /statisticsWithGrowth/);
+  assert.match(analysis, /weeklySourcePlans/);
+  assert.match(analysis, /reconcileEnergyPeriod/);
+  assert.match(analysis, /home-assistant-flow-balance/);
+  assert.doesNotMatch(analysis, /setInterval\s*\(/);
+});
+
+test("canonical editor contracts cover Energy, appliance preview, Lights and Temperature polish", async () => {
+  const contracts = await readFile(contractsUrl, "utf8");
+  assert.match(contracts, /dm-energy-guide-steps/);
+  assert.match(contracts, /dm-appliance-menu-glyph/);
+  assert.match(contracts, /grid-template-areas:\"main edit delete\"/);
+  assert.match(contracts, /dmTemperatureMode/);
+  assert.doesNotMatch(contracts, /MutationObserver|setInterval\s*\(/);
+});
+
+test("canonical appliance history still does not use the legacy REST token transport", async () => {
   const history = await readFile(historyUrl, "utf8");
   assert.match(history, /history\/history_during_period/);
   assert.match(history, /DashboardModernEnergyService\?\.broker/);
   assert.doesNotMatch(history, /LONG_LIVED_TOKEN|\/api\/history\/period|fetch\s*\(/);
 });
 
-test("Energy refresh owns initial current-period synchronization", async () => {
+test("Energy refresh still owns initial current-period synchronization", async () => {
   const refresh = await readFile(refreshUrl, "utf8");
   assert.match(refresh, /dashboardmodern:states-ready/);
   assert.match(refresh, /month\.dataset\.init/);

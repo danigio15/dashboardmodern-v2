@@ -9,6 +9,7 @@ import { installEnergyLegacyGuardSection } from "./energy-legacy-guard-section.j
 import { installEnergyStabilitySection } from "./energy-stability-section.js";
 import { installEnergyGuidanceSection } from "./energy-guidance-section.js";
 import { installEnergyFlowSection } from "./energy-flow-section.js";
+import { installEnergyAnalysisSection } from "./energy-analysis-section.js";
 import { installHistorySection } from "./history-section.js";
 import { installTemperatureSection } from "./temperature-section.js";
 import { installTemperatureLayoutSection } from "./temperature-layout-section.js";
@@ -49,6 +50,7 @@ export function installSectionRuntime() {
     installEnergyStabilitySection();
     installEnergyGuidanceSection();
     installEnergyFlowSection();
+    installEnergyAnalysisSection();
     installHistorySection();
     installTemperatureSection();
     installTemperatureLayoutSection();
@@ -80,6 +82,7 @@ export function installSectionRuntime() {
         "energy-stability",
         "energy-guidance",
         "energy-flow",
+        "energy-analysis",
         "history",
         "temperature",
         "temperature-layout",
