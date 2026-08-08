@@ -46,8 +46,8 @@ jobs:
           python -m pytest -q
           npm run check:inline-syntax
           npm run test:frontend
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers used by the suite
+        run: npx playwright install --with-deps chromium webkit
       - name: Browser E2E release gate
         run: npm run test:e2e
       - name: Resolve and verify release version
