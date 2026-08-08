@@ -105,7 +105,7 @@ test("live UI filters unrelated Home Assistant events", () => {
 
 test("canonical live UI owns camera refresh without introducing another polling loop", () => {
   assert.doesNotMatch(source, /setInterval\s*\(/);
-  assert.match(source, /clearInterval\?\.\(root\.camInterval\)/);
+  assert.match(source, /root\.clearInterval\?\.\(root\.camInterval\)/);
   assert.match(source, /root\.refreshCameras = refreshCamerasCanonical/);
   assert.match(source, /dashboardmodern:state-changed/);
 });
