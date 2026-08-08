@@ -223,23 +223,31 @@ export function migrateV3ToV4(input, legacy = {}) {
 
 function preserveEnergySemantics(energy) {
   if (!energy) return false;
+  const previous = Number(energy.metadata?.semantics_version) || 0;
   let changed = false;
-  for (const group of ["house", "solar"]) {
-    const model = (energy[group] ||= {});
-    const total = String(model.total_energy || "").trim();
-    const annual = String(model.annual_energy || "").trim();
-    if (total && !annual) {
-      model.annual_energy = total;
-      changed = true;
-    }
-    if (annual && !total) {
-      model.total_energy = annual;
-      changed = true;
+
+  // Compatibility aliases were required only when upgrading the old Energy
+  // model to semantics v3. Never recreate them after that point: an empty
+  // annual field is a valid, intentional user choice and must survive save,
+  // reload, sync snapshots and subsequent migrations.
+  if (previous < 3) {
+    for (const group of ["house", "solar"]) {
+      const model = (energy[group] ||= {});
+      const total = String(model.total_energy || "").trim();
+      const annual = String(model.annual_energy || "").trim();
+      if (total && !annual) {
+        model.annual_energy = total;
+        changed = true;
+      }
+      if (annual && !total) {
+        model.total_energy = annual;
+        changed = true;
+      }
     }
   }
-  const previous = Number(energy.metadata?.semantics_version) || 0;
-  if (previous !== 3) changed = true;
-  energy.metadata = { ...(energy.metadata || {}), semantics_version: 3 };
+
+  if (previous !== 4) changed = true;
+  energy.metadata = { ...(energy.metadata || {}), semantics_version: 4 };
   return changed;
 }
 
@@ -258,7 +266,7 @@ export function migrateState(input = {}, legacy = {}) {
     changes.push("schema 3 → 4");
   }
   if (+state.schema_version >= 4 && preserveEnergySemantics(state.sections?.energy))
-    changes.push("energy annual/lifetime semantics preserved");
+    changes.push("energy annual/lifetime semantics migrated");
   return { state, changes };
 }
 
