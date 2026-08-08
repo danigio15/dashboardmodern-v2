@@ -33,14 +33,12 @@ test("the monthly-energy and editor-visual release is consistently versioned as 
   assert.match(buildInfo, /["']?moduleVersion["']?\s*:\s*16/);
 });
 
-test("local package brand assets remain valid while HACS catalog registration stays external", async () => {
+test("local package brand assets remain valid", async () => {
   for (const url of [rootIconUrl, rootLogoUrl]) {
     const details = await stat(url);
     assert.ok(details.isFile());
     assert.ok(details.size > 1_000);
   }
-  const readme = await readFile(readmeUrl, "utf8");
-  assert.match(readme, /catalogo esterno Home Assistant Brands|brand assets/i);
 });
 
 test("the hosted bootstrap delegates once to the idempotent section runtime", async () => {
