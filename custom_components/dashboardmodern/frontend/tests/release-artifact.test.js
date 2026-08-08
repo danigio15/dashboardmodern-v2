@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-test("HACS release artifact has root integration layout without duplicated brand ballast and exact provenance", () => {
+test("HACS release artifact has root integration layout, required brand icon and exact provenance", () => {
   const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
   const archive = join(mkdtempSync(join(tmpdir(), "dm-release-")), "dashboardmodern.zip");
   execFileSync("python", [
@@ -40,7 +40,10 @@ test("HACS release artifact has root integration layout without duplicated brand
 
   assert.ok(names.includes("__init__.py"));
   assert.ok(names.includes("manifest.json"));
-  assert.equal(names.some((name) => name.startsWith("brand/")), false);
+  assert.ok(names.includes("brand/icon.png"));
+  assert.equal(names.includes("brand/icon@2x.png"), false);
+  assert.equal(names.includes("brand/logo.png"), false);
+  assert.equal(names.includes("brand/logo@2x.png"), false);
   assert.ok(names.includes("frontend/legacy/build-info.js"));
   assert.equal(names.some((name) => name.startsWith("custom_components/")), false);
   assert.equal(names.some((name) => name.includes("/e2e/")), false);
