@@ -18,9 +18,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 180_000 : 110_000);
     await bootConsolidatedDashboard(page, variant, testInfo);
 
-    // Home consumption is reconciled from the same Energy flows used by Home
-    // Assistant for every period. The fixture's direct Home meter is deliberately
-    // inconsistent, so day/month/year must all resolve from the flow balance.
+    // An explicitly configured Home/Casa period source is authoritative for
+    // day/month/year. The fixture's flow legs are deliberately inconsistent so
+    // this browser contract catches any future flow-balance overwrite.
     await expect
       .poll(() =>
         page.evaluate(() => ({
@@ -30,11 +30,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           year: window.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle?.year?.house,
         })),
       )
-      .toMatchObject({ ready: true, day: 6.5, month: 39.9, year: 937 });
+      .toMatchObject({ ready: true, day: 5.7, month: 28.2, year: 760 });
 
-    await expect(page.locator("#v-home-day")).toContainText(/6[,.]5/);
-    await expect(page.locator("#v-home-month")).toContainText(/39[,.]9/);
-    await expect(page.locator("#ed-kpi-cons")).toContainText(/39[,.]9/);
+    await expect(page.locator("#v-home-day")).toContainText(/5[,.]7/);
+    await expect(page.locator("#v-home-month")).toContainText(/28[,.]2/);
+    await expect(page.locator("#ed-kpi-cons")).toContainText(/28[,.]2/);
     const generations = await page.locator("#view-day,#view-month,#view-panoramica").evaluateAll((nodes) =>
       nodes.map((node) => node.dataset.dmEnergyBundle),
     );
@@ -56,8 +56,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       return samples;
     });
     for (const sample of stableSamples) {
-      expect(sample.month).toMatch(/39[,.]9/);
-      expect(sample.report).toMatch(/39[,.]9/);
+      expect(sample.month).toMatch(/28[,.]2/);
+      expect(sample.report).toMatch(/28[,.]2/);
       expect(`${sample.month} ${sample.report}`).not.toContain("614");
     }
 
