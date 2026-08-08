@@ -23,13 +23,165 @@ export const esc = (value) =>
     .replaceAll("<", "&lt;")
     .replaceAll('"', "&quot;");
 
+const ENERGY_RUNTIME_SOURCES = Object.freeze([
+  {
+    group: "house",
+    totalKey: "total_energy",
+    totalSlot: "dm.core_043",
+    periodKeys: ["annual_energy", "monthly_energy", "daily_energy"],
+  },
+  {
+    group: "solar",
+    totalKey: "total_energy",
+    totalSlot: "dm.core_046",
+    periodKeys: ["annual_energy", "monthly_energy", "daily_energy"],
+  },
+  {
+    group: "grid",
+    totalKey: "total_import_energy",
+    totalSlot: "dm.core_045",
+    periodKeys: ["annual_import_energy", "monthly_import_energy", "daily_import_energy"],
+  },
+  {
+    group: "grid",
+    totalKey: "total_export_energy",
+    totalSlot: "dm.core_044",
+    periodKeys: ["annual_export_energy", "monthly_export_energy", "daily_export_energy"],
+  },
+  {
+    group: "battery",
+    totalKey: "total_charged_energy",
+    totalSlot: "dm.core_041",
+    periodKeys: ["annual_charged_energy", "monthly_charged_energy", "daily_charged_energy"],
+  },
+  {
+    group: "battery",
+    totalKey: "total_discharged_energy",
+    totalSlot: "dm.core_042",
+    periodKeys: [
+      "annual_discharged_energy",
+      "monthly_discharged_energy",
+      "daily_discharged_energy",
+    ],
+  },
+]);
+
+const ENERGY_PERIOD_KEYS = Object.freeze(
+  Object.fromEntries(
+    ["house", "solar", "grid", "battery"].map((group) => [
+      group,
+      [...new Set(
+        ENERGY_RUNTIME_SOURCES.filter((source) => source.group === group).flatMap(
+          (source) => source.periodKeys,
+        ),
+      )],
+    ]),
+  ),
+);
+
+function resolveConfiguredEntity(reference, resolver = root.resolveEntity) {
+  const original = clean(reference);
+  if (!original) return "";
+  try {
+    return clean(resolver?.(original) || original);
+  } catch (_error) {
+    return original;
+  }
+}
+
+function entityExists(reference, states = {}, resolver = root.resolveEntity) {
+  const original = clean(reference);
+  if (!original) return false;
+  const resolved = resolveConfiguredEntity(original, resolver);
+  return Boolean(states?.[original] || states?.[resolved]);
+}
+
+function cumulativeEntity(reference, states = {}, resolver = root.resolveEntity) {
+  const original = clean(reference);
+  if (!original) return false;
+  const resolved = resolveConfiguredEntity(original, resolver);
+  const state = states?.[resolved] || states?.[original];
+  const stateClass = clean(state?.attributes?.state_class).toLowerCase();
+  if (stateClass === "total" || stateClass === "total_increasing") return true;
+  if (state) return false;
+  return /(?:^|[._-])(total|totale|lifetime|meter|contatore)(?:[._-]|$)/i.test(original);
+}
+
+/**
+ * Return the Energy model that the live runtime should use.
+ *
+ * Old configurations can retain period entity ids that no longer exist. Those
+ * references must not block Recorder fallback. Also, Home Assistant utility
+ * meters with state_class total/total_increasing are valid reset-aware Recorder
+ * sources: when a dedicated lifetime field is empty, an existing cumulative
+ * day/month/year helper can provide the same sum-growth calculation for the
+ * selected month and year.
+ *
+ * This is a runtime projection only. The persisted user configuration is never
+ * rewritten here.
+ */
+export function sanitizeEnergyModel(
+  value = {},
+  states = allStates(),
+  resolver = root.resolveEntity,
+  overrides = {},
+) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const snapshot = states && typeof states === "object" ? states : {};
+  if (!Object.keys(snapshot).length) return value;
+
+  let result = value;
+  let changed = false;
+  const ensureGroup = (group) => {
+    if (!changed) {
+      result = { ...value };
+      changed = true;
+    }
+    if (result[group] === value[group]) result[group] = { ...(value[group] || {}) };
+    else if (!result[group]) result[group] = {};
+    return result[group];
+  };
+
+  for (const [group, keys] of Object.entries(ENERGY_PERIOD_KEYS)) {
+    for (const key of keys) {
+      const reference = clean(value[group]?.[key]);
+      if (!reference || reference.startsWith("dm.")) continue;
+      if (!entityExists(reference, snapshot, resolver)) ensureGroup(group)[key] = "";
+    }
+  }
+
+  for (const source of ENERGY_RUNTIME_SOURCES) {
+    const originalGroup = result[source.group] || value[source.group] || {};
+    const configuredTotal = clean(originalGroup[source.totalKey]);
+    if (configuredTotal && entityExists(configuredTotal, snapshot, resolver)) continue;
+
+    const overrideTotal = clean(overrides?.[source.totalSlot]);
+    const candidates = [
+      overrideTotal,
+      ...source.periodKeys.map((key) => clean(originalGroup[key])),
+    ].filter(Boolean);
+    const fallback = candidates.find(
+      (reference) =>
+        entityExists(reference, snapshot, resolver) &&
+        cumulativeEntity(reference, snapshot, resolver),
+    );
+    if (fallback && fallback !== configuredTotal) ensureGroup(source.group)[source.totalKey] = fallback;
+  }
+
+  return result;
+}
+
 export function dashboardStore() {
   return root.DashboardModernModules?.store || null;
 }
 
 export function section(name, fallback) {
   try {
-    return dashboardStore()?.getSection?.(name) ?? fallback;
+    const store = dashboardStore();
+    const value = store?.getSection?.(name) ?? fallback;
+    if (name !== "energy") return value;
+    const overrides = store?.getSection?.("entityOverrides") || {};
+    return sanitizeEnergyModel(value, allStates(), root.resolveEntity, overrides);
   } catch (_error) {
     return fallback;
   }
