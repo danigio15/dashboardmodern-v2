@@ -30,7 +30,7 @@ test("the monthly-energy and editor-visual release is consistently versioned as 
   assert.doesNotMatch(readme, /main\/assets\/logo|brand\/logo@2x\.png/);
   assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']0\.15\.16["']/);
   assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']0\.15\.16["']/);
-  assert.match(buildInfo, /["']?moduleVersion["']?\s*:\s*16/);
+  assert.match(buildInfo, /["']?moduleVersion["']?\s*:\s*14/);
 });
 
 test("local package brand assets remain valid", async () => {
