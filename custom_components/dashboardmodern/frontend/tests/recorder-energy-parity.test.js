@@ -73,6 +73,70 @@ test("period sensors keep the cumulative total as historical fallback", async ()
   assert.equal(values.get("house"), 30);
 });
 
+test("a total_increasing monthly helper is authoritative for the current month", async () => {
+  const now = new Date();
+  const states = {
+    "sensor.house_month": {
+      state: "160.7",
+      attributes: { unit_of_measurement: "kWh", state_class: "total_increasing" },
+    },
+    "sensor.house_total": {
+      state: "5300",
+      attributes: { unit_of_measurement: "kWh", state_class: "total_increasing" },
+    },
+  };
+  const plans = sourcePlans(
+    { house: { monthly_energy: "sensor.house_month", total_energy: "sensor.house_total" } },
+    "month",
+    states,
+  ).filter((plan) => plan.key === "house");
+  assert.equal(plans.length, 2);
+  assert.equal(plans[0].direct, true);
+  assert.equal(plans[0].reason, "explicit-period");
+  assert.equal(plans[1].fallback, true);
+
+  const broker = new HomeAssistantBroker();
+  let recorderCalls = 0;
+  broker.statistics = async () => {
+    recorderCalls += 1;
+    return {};
+  };
+  const values = await broker.valuesForPlans(
+    plans,
+    new Date(now.getFullYear(), now.getMonth(), 1),
+    states,
+  );
+  assert.equal(values.get("house"), 160.7);
+  assert.equal(recorderCalls, 0);
+});
+
+test("a cumulative period helper can still backfill an older month when no lifetime meter exists", async () => {
+  const states = {
+    "sensor.house_month": {
+      state: "9.5",
+      attributes: { unit_of_measurement: "kWh", state_class: "total_increasing" },
+    },
+  };
+  const plans = sourcePlans(
+    { house: { monthly_energy: "sensor.house_month" } },
+    "month",
+    states,
+  ).filter((plan) => plan.key === "house");
+  assert.equal(plans.length, 2);
+  assert.equal(plans[1].reason, "explicit-cumulative-fallback");
+
+  const broker = new HomeAssistantBroker();
+  broker.statistics = async () => ({
+    "sensor.house_month": [
+      { start: "2025-05-31T12:00:00.000Z", sum: 200 },
+      { start: "2025-06-15T12:00:00.000Z", sum: 215 },
+      { start: "2025-06-30T12:00:00.000Z", sum: 229 },
+    ],
+  });
+  const values = await broker.valuesForPlans(plans, new Date(2025, 5, 1), states);
+  assert.equal(values.get("house"), 29);
+});
+
 test("live Home Assistant states emit refresh events but derived period states do not", () => {
   const broker = new HomeAssistantBroker();
   const previousDispatch = globalThis.dispatchEvent;
