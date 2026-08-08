@@ -1,92 +1,97 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  hasCompleteHomeFlow,
   reconcileEnergyBundle,
   reconcileEnergyPeriod,
 } from "../src/sections/energy-calculations-section.js";
 
-test("configured Home/Casa period sensor remains authoritative", () => {
+const COMPLETE = new Set([
+  "house",
+  "solar",
+  "gridImport",
+  "gridExport",
+  "batteryCharged",
+  "batteryDischarged",
+]);
+
+test("real August Home Assistant flows produce the same Casa value", () => {
   const period = Object.freeze({
-    house: 128.2,
-    solar: 239.8,
+    // Solarman total_load_consumption shown by DashboardModern after 0.15.17.
+    house: 134.0,
+    solar: 270.6,
     gridImport: 19.7,
-    gridExport: 97.7,
-    batteryCharged: 45.6,
-    batteryDischarged: 39.6,
+    gridExport: 118.8,
+    batteryCharged: 49.3,
+    batteryDischarged: 42.9,
   });
-  const reconciled = reconcileEnergyPeriod(
-    period,
-    new Set(["house", "solar", "gridImport", "gridExport", "batteryCharged", "batteryDischarged"]),
-  );
-  assert.equal(reconciled, period);
-  assert.equal(reconciled.house, 128.2);
+  const reconciled = reconcileEnergyPeriod(period, COMPLETE);
+  assert.notEqual(reconciled, period);
+  assert.ok(Math.abs(reconciled.house - 165.1) < 1e-9);
 });
 
-test("August screenshot flows cannot overwrite a configured monthly Casa value", () => {
+test("Casa direct meter remains fallback when the electrical boundary is incomplete", () => {
   const period = Object.freeze({
-    house: 321.7,
-    solar: 288.8,
-    gridImport: 222.0,
-    gridExport: 5.8,
-    batteryCharged: 142.4,
-    batteryDischarged: 136.3,
+    house: 134,
+    solar: 270.6,
+    gridImport: 19.7,
+    gridExport: 118.8,
+    batteryCharged: 49.3,
+    batteryDischarged: 42.9,
   });
-  // Those five flow legs equal 498.9 kWh. 0.15.16 replaced the configured
-  // monthly Casa value with that number; this is the real-device regression.
-  const flowBalance = 288.8 + 222.0 + 136.3 - 5.8 - 142.4;
-  assert.ok(Math.abs(flowBalance - 498.9) < 1e-9);
+  const missingExport = new Set(["house", "solar", "gridImport"]);
+  assert.equal(hasCompleteHomeFlow(missingExport), false);
+  assert.equal(reconcileEnergyPeriod(period, missingExport), period);
 
-  const reconciled = reconcileEnergyPeriod(
-    period,
-    new Set(["house", "solar", "gridImport", "gridExport", "batteryCharged", "batteryDischarged"]),
-  );
-  assert.equal(reconciled.house, 321.7);
+  const halfBattery = new Set(["house", "solar", "gridImport", "gridExport", "batteryCharged"]);
+  assert.equal(hasCompleteHomeFlow(halfBattery), false);
+  assert.equal(reconcileEnergyPeriod(period, halfBattery), period);
 });
 
-test("flow balance still derives Casa when no Home source is configured", () => {
-  const period = Object.freeze({
-    house: 0,
-    solar: 288.8,
-    gridImport: 222.0,
-    gridExport: 5.8,
-    batteryCharged: 142.4,
-    batteryDischarged: 136.3,
-  });
+test("batteryless installations can derive Casa from Solar and both Grid directions", () => {
+  const keys = new Set(["house", "solar", "gridImport", "gridExport"]);
+  assert.equal(hasCompleteHomeFlow(keys), true);
   const reconciled = reconcileEnergyPeriod(
-    period,
-    new Set(["solar", "gridImport", "gridExport", "batteryCharged", "batteryDischarged"]),
+    { house: 80, solar: 100, gridImport: 20, gridExport: 30, batteryCharged: 0, batteryDischarged: 0 },
+    keys,
   );
-  assert.ok(Math.abs(reconciled.house - 498.9) < 1e-9);
+  assert.equal(reconciled.house, 90);
 });
 
-test("Monthly and Report canonical bundle keep the same configured Casa source", () => {
+test("Monthly and Report canonical bundle share the HA-style Casa balance", () => {
   const bundle = Object.freeze({
-    day: Object.freeze({ house: 12.5, solar: 10, gridImport: 4 }),
-    month: Object.freeze({
-      house: 321.7,
-      solar: 288.8,
-      gridImport: 222.0,
-      gridExport: 5.8,
-      batteryCharged: 142.4,
-      batteryDischarged: 136.3,
+    day: Object.freeze({
+      house: 5.7,
+      solar: 7.3,
+      gridImport: 0.8,
+      gridExport: 1.1,
+      batteryCharged: 1.4,
+      batteryDischarged: 0.9,
     }),
-    year: Object.freeze({ house: 1200, solar: 900, gridImport: 500 }),
+    month: Object.freeze({
+      house: 134.0,
+      solar: 270.6,
+      gridImport: 19.7,
+      gridExport: 118.8,
+      batteryCharged: 49.3,
+      batteryDischarged: 42.9,
+    }),
+    year: Object.freeze({
+      house: 760,
+      solar: 900,
+      gridImport: 100,
+      gridExport: 40,
+      batteryCharged: 95,
+      batteryDischarged: 72,
+    }),
     sources: Object.freeze({
-      day: { plans: [{ key: "house" }, { key: "solar" }, { key: "gridImport" }] },
-      month: {
-        plans: [
-          { key: "house" },
-          { key: "solar" },
-          { key: "gridImport" },
-          { key: "gridExport" },
-          { key: "batteryCharged" },
-          { key: "batteryDischarged" },
-        ],
-      },
-      year: { plans: [{ key: "house" }, { key: "solar" }, { key: "gridImport" }] },
+      day: { plans: [...COMPLETE].map((key) => ({ key })) },
+      month: { plans: [...COMPLETE].map((key) => ({ key })) },
+      year: { plans: [...COMPLETE].map((key) => ({ key })) },
     }),
   });
   const reconciled = reconcileEnergyBundle(bundle);
-  assert.equal(reconciled, bundle);
-  assert.equal(reconciled.month.house, 321.7);
+  assert.ok(Math.abs(reconciled.month.house - 165.1) < 1e-9);
+  assert.equal(reconciled.home_source, "home-assistant-flow-balance");
+  assert.equal(reconciled.year.house, 937);
 });
