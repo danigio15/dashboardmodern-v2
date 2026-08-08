@@ -1,4 +1,4 @@
-import { clean, doc, root, t } from "./shared.js";
+import { clean, doc, root, section, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_HISTORY_SECTION__";
 const state = (root[KEY] ||= {
@@ -17,6 +17,49 @@ function resolvedEntity(reference) {
   } catch (_error) {
     return original;
   }
+}
+
+function configuredEntity(entry) {
+  return clean(typeof entry === "string" ? entry : entry?.entity || entry?.entity_id);
+}
+
+/**
+ * Pick the entity used by the 1/6/12/24 hour appliance popup.
+ *
+ * Short-term history is a usage graph, therefore instantaneous power is the
+ * canonical source. Lifetime/total energy belongs to Report and month/year
+ * reconstruction and is only a last-resort history source when the appliance
+ * has no power/state entity at all.
+ */
+export function applianceHistorySource(device = {}, states = {}) {
+  const entries = (device.entities || []).map(configuredEntity).filter(Boolean);
+  const explicitPower = resolvedEntity(device.power_entity);
+  if (explicitPower) return explicitPower;
+
+  const powerFromEntities = entries
+    .map(resolvedEntity)
+    .find((id) => /^(w|kw)$/i.test(clean(states?.[id]?.attributes?.unit_of_measurement)));
+  if (powerFromEntities) return powerFromEntities;
+
+  for (const value of [device.state_entity, device.status_entity, device.control_entity]) {
+    const id = resolvedEntity(value);
+    if (id) return id;
+  }
+
+  const namedPower = entries.map(resolvedEntity).find((id) => /power|potenza|watt/i.test(id));
+  if (namedPower) return namedPower;
+
+  for (const value of [
+    device.history_entity,
+    device.total_energy_entity,
+    device.energy_entity,
+    device.monthly_energy_entity,
+    device.daily_energy_entity,
+  ]) {
+    const id = resolvedEntity(value);
+    if (id) return id;
+  }
+  return entries.map(resolvedEntity).find(Boolean) || "";
 }
 
 function rowState(row) {
@@ -181,6 +224,7 @@ export async function openHistory(event, entityId, name, hours = 24) {
   modal.classList.add("show");
   modal.dataset.dmHistoryTransport = "websocket";
   modal.dataset.dmHistoryEntity = entity;
+  delete modal.dataset.dmHistoryError;
   const title = doc.getElementById("hist-title");
   if (title) title.textContent = state.currentName;
   doc.querySelectorAll(".hist-time-btn").forEach((button) =>
@@ -193,10 +237,12 @@ export async function openHistory(event, entityId, name, hours = 24) {
     if (generation !== state.generation) return false;
     const rows = normalizeHistoryRows(result, entity);
     if (!rows.length) {
+      modal.dataset.dmHistoryLoaded = "empty";
       setLoading("empty");
       return true;
     }
     if (!renderChart(entity, state.currentName, rows)) {
+      modal.dataset.dmHistoryLoaded = "empty";
       setLoading("empty");
       return true;
     }
@@ -219,6 +265,34 @@ export function changeHistoryRange(hours) {
   return true;
 }
 
+function appliances() {
+  const values = section("appliances", []);
+  return Array.isArray(values) ? values : [];
+}
+
+function interceptApplianceHistory(event) {
+  const button = event.target?.closest?.(
+    "#page-appliances-main .appl-wide-card button,#appl-grid-overview .appl-wide-card button",
+  );
+  if (!button || button.disabled) return;
+  if (!/storico|history/i.test(clean(button.textContent || button.getAttribute("aria-label")))) return;
+
+  const card = button.closest(".appl-wide-card[data-appliance-id]");
+  const id = clean(card?.dataset.applianceId);
+  if (!card || !id) return;
+  const device = appliances().find((item) => clean(item.id) === id);
+  if (!device) return;
+  const states = { ...(root._RAW_STATES || {}), ...(root.STATES || {}) };
+  const entity = applianceHistorySource(device, states);
+  if (!entity) return;
+
+  // Capture phase: stop the legacy inline onclick before it can reopen history
+  // with total_energy_entity. The canonical popup owns short-term history.
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  openHistory(event, entity, device.name || id, 24);
+}
+
 function installOwner() {
   root.apriStorico = openHistory;
   root.cambiaTempoStorico = changeHistoryRange;
@@ -229,6 +303,7 @@ export function installHistorySection() {
   installOwner();
   if (state.installed) return;
   state.installed = true;
+  doc.addEventListener("click", interceptApplianceHistory, true);
   root.addEventListener?.("dashboardmodern:legacy-ready", installOwner);
   root.addEventListener?.("pageshow", installOwner);
 }
