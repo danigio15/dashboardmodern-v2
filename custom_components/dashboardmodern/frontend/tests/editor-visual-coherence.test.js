@@ -10,8 +10,9 @@ test("appliance editor preview uses the same SVG artwork owner as appliance card
   const cards = await read("src/sections/appliances-section.js");
 
   assert.match(editor, /import \{ applianceArtwork \} from "\.\.\/core\/appliance-artwork\.js"/);
+  assert.match(editor, /canonicalApplianceVisualKey/);
   assert.match(editor, /function artworkPreview/);
-  assert.match(editor, /applianceArtwork\(value, 72\)/);
+  assert.match(editor, /applianceArtwork\(editorVisualKey\(value\), 72\)/);
   assert.match(editor, /preview\.innerHTML = artworkPreview/);
   assert.doesNotMatch(editor, /preview\.textContent = iconGlyph/);
   assert.match(cards, /applianceArtwork\(kind, 96\)/);
