@@ -15,12 +15,17 @@ function plannedKeys(bundle, kind) {
 }
 
 /**
- * Home Assistant's Energy dashboard derives Home consumption from the energy
- * flows. When Solar + Grid import are available, use the same balance instead
- * of trusting an inverter-specific load meter that can represent a different
- * electrical boundary.
+ * Keep an explicitly configured Home/Casa period source authoritative.
+ *
+ * The flow balance is a useful fallback when Home is not configured at all,
+ * but it must never overwrite a Day / Month / Year (or Recorder-derived total)
+ * Home value that sourcePlans() already resolved successfully. Mixing flow
+ * sources from different meters can otherwise produce a mathematically valid
+ * number for a different electrical boundary and make Monthly + Report show
+ * the same wrong consumption.
  */
 export function reconcileEnergyPeriod(data = {}, planKeys = new Set()) {
+  if (planKeys.has("house")) return data;
   if (!planKeys.has("solar") || !planKeys.has("gridImport")) return data;
   const balance = energyBalance({
     solar: data.solar,
@@ -29,7 +34,6 @@ export function reconcileEnergyPeriod(data = {}, planKeys = new Set()) {
     batteryCharge: planKeys.has("batteryCharged") ? data.batteryCharged : 0,
     batteryDischarge: planKeys.has("batteryDischarged") ? data.batteryDischarged : 0,
   });
-  if (Math.abs(Number(data.house || 0) - balance.consumption) < 0.0005) return data;
   return Object.freeze({ ...data, house: balance.consumption });
 }
 
@@ -39,7 +43,7 @@ export function reconcileEnergyBundle(bundle) {
   const month = reconcileEnergyPeriod(bundle.month, plannedKeys(bundle, "month"));
   const year = reconcileEnergyPeriod(bundle.year, plannedKeys(bundle, "year"));
   if (day === bundle.day && month === bundle.month && year === bundle.year) return bundle;
-  return Object.freeze({ ...bundle, day, month, year, home_source: "ha-energy-balance" });
+  return Object.freeze({ ...bundle, day, month, year, home_source: "flow-balance-fallback" });
 }
 
 export function installEnergyCalculationsSection() {
