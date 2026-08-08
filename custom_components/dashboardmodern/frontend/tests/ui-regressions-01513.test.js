@@ -17,7 +17,7 @@ test("appliance fix changes layout but not the artwork owner", async () => {
 test("energy editor restores section visibility, readable guidance and entity search", async () => {
   const source = await read("src/sections/editor-contracts-section.js");
   assert.match(source, /normalizeEnergyVisibility/);
-  assert.match(source, /data\.dmEnergyVisibility/);
+  assert.match(source, /dataset\.dmEnergyVisibility/);
   assert.match(source, /edSecTog/);
   assert.match(source, /normalizeEnergyHelp/);
   assert.match(source, /Current period|Periodo corrente/);
