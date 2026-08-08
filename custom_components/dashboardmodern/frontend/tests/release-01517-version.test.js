@@ -11,25 +11,24 @@ const bootstrapUrl = new URL("../legacy/config.js", import.meta.url);
 const buildInfoUrl = new URL("../legacy/build-info.js", import.meta.url);
 const obsoleteEntryUrl = new URL("../legacy/report-mobile-fixes.js", import.meta.url);
 
-test("the monthly-energy and editor-visual release is consistently versioned as 0.15.16", async () => {
+test("the Casa authority and mobile editor release is consistently versioned as 0.15.17", async () => {
   const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
   const readme = await readFile(readmeUrl, "utf8");
   const buildInfo = await readFile(buildInfoUrl, "utf8");
 
-  assert.equal(manifest.version, "0.15.16");
-  assert.match(readme, /version-0\.15\.16/);
-  assert.match(readme, /Novità 0\.15\.16/);
-  assert.match(readme, /Energia mensile/);
-  assert.match(readme, /Long-Term Statistics \/ Recorder/);
-  assert.match(readme, /Elettrodomestici/);
-  assert.match(readme, /Avvisi/);
+  assert.equal(manifest.version, "0.15.17");
+  assert.match(readme, /version-0\.15\.17/);
+  assert.match(readme, /Novità 0\.15\.17/);
+  assert.match(readme, /sensore configurato è autorevole/i);
+  assert.match(readme, /Config.*mobile/i);
+  assert.match(readme, /498,9/);
   assert.match(
     readme,
     /https:\/\/raw\.githubusercontent\.com\/danigio15\/dashboardmodern-v2\/main\/brand\/logo\.png/,
   );
   assert.doesNotMatch(readme, /main\/assets\/logo|brand\/logo@2x\.png/);
-  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']0\.15\.16["']/);
-  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']0\.15\.16["']/);
+  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']0\.15\.17["']/);
+  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']0\.15\.17["']/);
   assert.match(buildInfo, /["']?moduleVersion["']?\s*:\s*14/);
 });
 
