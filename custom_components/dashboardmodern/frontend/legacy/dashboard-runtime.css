@@ -46,21 +46,8 @@
   cursor: pointer;
 }
 
-.appl-st.on {
-  color: #38bdf8;
-  background: rgba(14, 165, 233, 0.14);
-}
-
-.appl-st.run {
-  color: #4ade80;
-  background: rgba(34, 197, 94, 0.14);
-}
-
-/*
- * Safari inside the Home Assistant iframe is unreliable with a fixed 100dvh
- * inner scroller. The modal overlay is now the only scrolling surface: the
- * shell follows its natural height and can never trap content below ed-body.
- */
+/* Safari inside the Home Assistant iframe uses the modal overlay as the only
+ * scrolling surface. Section-dialog geometry is owned by editor-contracts. */
 #editor-modal.modal-wrapper {
   overflow-x: hidden !important;
   overflow-y: auto !important;
@@ -93,129 +80,116 @@
   touch-action: auto;
 }
 
-/*
- * Appliance cards: avoid display:contents, which produced an empty narrow
- * visual column in Safari. The icon now lives in a stable header row and the
- * card stays compact at every width.
- */
-#page-appliances-main .appl-page-grid {
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+/* Covers retain their legacy page-card layout. The modern shutter section owns
+ * only the Home warning/popup, so these selectors do not overlap that owner. */
+#page-tapparelle > div {
+  max-width: 1100px !important;
+  padding: 0 16px 80px;
+}
+#tapp-grid {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 380px)) !important;
+  justify-content: center !important;
   align-items: stretch;
-  gap: 16px;
+  gap: 18px !important;
+  padding: 18px 4px 80px !important;
 }
-
-#page-appliances-main .appl-wide-card {
-  display: flex !important;
-  flex-direction: column;
-  gap: 14px;
-  min-width: 0;
-  min-height: 0;
-  padding: 16px;
-  overflow: hidden;
-}
-
-#page-appliances-main .appl-wide-top {
-  display: flex !important;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-}
-
-#page-appliances-main .appl-wide-top > div:first-child {
-  display: flex !important;
-  align-items: center;
-  flex: 1 1 auto;
-  gap: 12px !important;
-  min-width: 0;
-}
-
-#page-appliances-main .appl-wide-top > div:first-child > div:last-child {
-  min-width: 0;
-  padding-right: 0;
-}
-
-#page-appliances-main .appl-ic {
+#tapp-grid > div:first-child {
+  width: min(100%, 778px);
+  justify-self: center;
   display: grid !important;
-  place-items: center;
-  flex: 0 0 72px;
-  width: 72px;
-  height: 72px;
-  min-height: 72px;
-  padding: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px !important;
+  padding: 12px;
+  border: 1px solid var(--card-border, #e2e8f0);
   border-radius: 20px;
-  color: #0284c7;
-  background: linear-gradient(145deg, rgba(224, 242, 254, 0.95), rgba(186, 230, 253, 0.72));
-  box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.12);
-  overflow: hidden;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow-sculpted);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
-
-#page-appliances-main .appl-ic:empty::before {
-  content: "⚙️";
-  font-size: 34px;
-  line-height: 1;
+.tapp-card {
+  min-height: 330px !important;
+  padding: 18px !important;
+  gap: 12px !important;
+  border: 1px solid var(--card-border, #e2e8f0);
+  border-radius: 26px !important;
+  background: var(--card-bg, #fff) !important;
+  box-shadow: var(--shadow-sculpted) !important;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
 }
-
-#page-appliances-main .appl-ic svg,
-#page-appliances-main .appl-ic img,
-#page-appliances-main .appl-ic ha-icon {
-  display: block !important;
-  width: 52px !important;
-  height: 52px !important;
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  --mdc-icon-size: 52px;
-  visibility: visible !important;
+.tapp-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover) !important;
+}
+.tapp-head { min-height: 34px; }
+.tapp-name {
+  font-family: "Oswald", sans-serif;
+  font-size: 18px !important;
+  letter-spacing: 0.3px;
+}
+.tapp-state {
+  padding: 5px 10px !important;
+  font-size: 10px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.65px;
+}
+.tapp-win {
+  height: 178px !important;
+  border: 0 !important;
+  border-radius: 20px !important;
+  background: linear-gradient(180deg, #dff5ff 0%, #bfe8fb 48%, #eef8ff 49%, #d9eef8 100%) !important;
+  box-shadow: inset 0 0 0 4px #dbe5ef, inset 0 0 0 6px rgba(100, 116, 139, 0.38), 0 12px 24px rgba(15, 23, 42, 0.1);
+  isolation: isolate;
+}
+.tapp-win::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  background: rgba(100, 116, 139, 0.3);
+  z-index: 0;
+}
+.tapp-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.62), transparent 45%), linear-gradient(45deg, transparent 58%, rgba(255, 255, 255, 0.35)) !important;
+}
+.tapp-shutter {
+  z-index: 2;
+  background: linear-gradient(180deg, #dbe4ee, #aab8c8);
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.2);
+}
+.tapp-shutter i {
+  flex-basis: 18px !important;
+  height: 18px !important;
+  border-bottom: 2px solid rgba(51, 65, 85, 0.42) !important;
+  background: linear-gradient(180deg, #d9e2ec, #9aa9ba) !important;
+}
+.tapp-pos {
+  min-height: 28px !important;
+  font-family: "Oswald", sans-serif;
+  font-size: 18px !important;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--text, #0f172a);
   opacity: 1 !important;
 }
-
-#page-appliances-main .appl-wide-top > .appl-st {
-  flex: 0 0 auto;
-  align-self: flex-start;
+.tapp-ctl { gap: 8px !important; }
+.tapp-btn {
+  min-height: 44px !important;
+  height: auto !important;
+  border-radius: 14px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 6px 14px rgba(2, 132, 199, 0.2);
+  transition: transform 0.16s ease, filter 0.16s ease;
 }
-
-#page-appliances-main .appl-metrics {
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  min-width: 0;
-  margin: 0;
-  gap: 8px;
+.tapp-btn:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
 }
-
-#page-appliances-main .appl-metric {
-  min-width: 0;
-}
-
-#page-appliances-main .appl-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin-top: auto;
-}
-
-/* Covers: replace the tiny generic tile with a dashboard-sized control card. */
-#page-tapparelle>div { max-width:1100px!important;padding:0 16px 80px }
-#tapp-grid { grid-template-columns:repeat(auto-fit,minmax(320px,380px))!important;justify-content:center!important;align-items:stretch;gap:18px!important;padding:18px 4px 80px!important }
-#tapp-grid>div:first-child { width:min(100%,778px);justify-self:center;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px!important;padding:12px;border:1px solid var(--card-border,#e2e8f0);border-radius:20px;background:rgba(255,255,255,.72);box-shadow:var(--shadow-sculpted);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px) }
-.tapp-card { min-height:330px!important;padding:18px!important;gap:12px!important;border:1px solid var(--card-border,#e2e8f0);border-radius:26px!important;background:var(--card-bg,#fff)!important;box-shadow:var(--shadow-sculpted)!important;transition:transform .22s ease,box-shadow .22s ease }
-.tapp-card:hover { transform:translateY(-4px);box-shadow:var(--shadow-hover)!important }
-.tapp-head { min-height:34px }
-.tapp-name { font-family:'Oswald',sans-serif;font-size:18px!important;letter-spacing:.3px }
-.tapp-state { padding:5px 10px!important;font-size:10px!important;text-transform:uppercase;letter-spacing:.65px }
-.tapp-win { height:178px!important;border:0!important;border-radius:20px!important;background:linear-gradient(180deg,#dff5ff 0%,#bfe8fb 48%,#eef8ff 49%,#d9eef8 100%)!important;box-shadow:inset 0 0 0 4px #dbe5ef,inset 0 0 0 6px rgba(100,116,139,.38),0 12px 24px rgba(15,23,42,.10);isolation:isolate }
-.tapp-win::before { content:"";position:absolute;left:50%;top:5px;bottom:5px;width:2px;background:rgba(100,116,139,.30);z-index:0 }
-.tapp-glass { background:linear-gradient(135deg,rgba(255,255,255,.62),transparent 45%),linear-gradient(45deg,transparent 58%,rgba(255,255,255,.35))!important }
-.tapp-shutter { z-index:2;background:linear-gradient(180deg,#dbe4ee,#aab8c8);box-shadow:0 8px 16px rgba(15,23,42,.20) }
-.tapp-shutter i { flex-basis:18px!important;height:18px!important;border-bottom:2px solid rgba(51,65,85,.42)!important;background:linear-gradient(180deg,#d9e2ec,#9aa9ba)!important }
-.tapp-pos { min-height:28px!important;font-family:'Oswald',sans-serif;font-size:18px!important;font-weight:700;line-height:28px;color:var(--text,#0f172a);opacity:1!important }
-.tapp-ctl { gap:8px!important }
-.tapp-btn { min-height:44px!important;height:auto!important;border-radius:14px!important;font-weight:800!important;box-shadow:0 6px 14px rgba(2,132,199,.20);transition:transform .16s ease,filter .16s ease }
-.tapp-btn:hover { filter:brightness(1.06);transform:translateY(-1px) }
-.tapp-card .tapp-btn[data-svc="open_cover"]::after { content:" Apri" }
-.tapp-card .tapp-btn[data-svc="stop_cover"]::after { content:" Stop" }
-.tapp-card .tapp-btn[data-svc="close_cover"]::after { content:" Chiudi" }
+.tapp-card .tapp-btn[data-svc="open_cover"]::after { content: " Apri"; }
+.tapp-card .tapp-btn[data-svc="stop_cover"]::after { content: " Stop"; }
+.tapp-card .tapp-btn[data-svc="close_cover"]::after { content: " Chiudi"; }
 
 .dm-energy-cost-card {
   margin-top: 12px;
@@ -225,15 +199,32 @@
   background: var(--card-bg, #fff);
 }
 
-.dm-light-add-form .ed-input {
+.dm-light-add-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 16px !important;
+  border: 1px solid var(--card-border, #dbe4ee);
+  border-radius: 18px;
+  background: var(--card-bg, #fff);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+}
+.dm-light-add-form .ed-input { margin: 0; }
+.dm-light-add-form .ed-sec-title {
   margin: 0;
+  font-size: 16px;
+  text-transform: none;
+}
+.dm-light-add-form .ed-sec-title::after {
+  content: "Inserisci o cerca un’entità";
+  display: block;
+  margin-top: 3px;
+  color: var(--text-dim, #64748b);
+  font: 500 11px/1.4 system-ui;
 }
 
 @media (max-width: 760px) {
-  #editor-modal.modal-wrapper {
-    padding: 0 !important;
-  }
-
+  #editor-modal.modal-wrapper { padding: 0 !important; }
   #editor-modal .ed-shell {
     width: 100%;
     max-width: none;
@@ -241,84 +232,33 @@
     margin: 0;
     border-radius: 0;
   }
-
-  #editor-modal .ed-head {
-    padding-top: max(14px, env(safe-area-inset-top));
-  }
-
-  #editor-modal .ed-body {
-    padding-bottom: max(28px, env(safe-area-inset-bottom));
-  }
-
+  #editor-modal .ed-head { padding-top: max(14px, env(safe-area-inset-top)); }
+  #editor-modal .ed-body { padding-bottom: max(28px, env(safe-area-inset-bottom)); }
   .dm-energy-cost-card .ed-form-row {
     display: grid;
     grid-template-columns: 1fr;
   }
-
-  #page-appliances-main .appl-page-grid {
-    grid-template-columns: 1fr;
-  }
-
-  #page-appliances-main .appl-wide-card {
-    padding: 12px;
-    gap: 10px;
-  }
-
-  #page-appliances-main .appl-ic {
-    flex-basis: 58px;
-    width: 58px;
-    height: 58px;
-    min-height: 58px;
-    border-radius: 16px;
-    padding: 8px;
-  }
-
-  #page-appliances-main .appl-ic svg,
-  #page-appliances-main .appl-ic img,
-  #page-appliances-main .appl-ic ha-icon {
-    width: 42px !important;
-    height: 42px !important;
-    --mdc-icon-size: 42px;
-  }
-
-  #page-appliances-main .appl-metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   #tapp-grid {
     grid-template-columns: 1fr !important;
     padding-inline: 0 !important;
   }
-
-  #tapp-grid > div:first-child {
-    width: 100%;
+  #tapp-grid > div:first-child { width: 100%; }
+  .tapp-card { min-height: 312px !important; }
+  .ed-lrow { flex-wrap: wrap !important; }
+  .ed-lrow select {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    order: 3;
   }
-
-  .tapp-card {
-    min-height: 312px !important;
+  .ed-inner-tab,
+  .sub-tab-btn {
+    font-size: 12px !important;
+    min-height: 40px;
   }
+  .dm-report-row,
+  .ed-acc-body { min-width: 0; }
+  .dm-report-row .ed-input { font-size: 13px !important; }
 }
-
-/* Canonical compact control-center appliance cards. */
-#page-appliances-main .appl-page-grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
-#page-appliances-main .appl-wide-card.dm-control-device{display:grid!important;grid-template-columns:116px minmax(0,1fr);gap:0;padding:0;min-height:166px;border:1px solid rgba(56,189,248,.2);border-radius:24px;background:linear-gradient(145deg,#07111f,#0b1728 58%,#081321);color:#f8fafc;box-shadow:0 16px 36px rgba(2,8,23,.25);overflow:hidden}
-#page-appliances-main .appl-visual{display:grid;place-items:center;min-width:0;background:radial-gradient(circle at 50% 42%,rgba(14,165,233,.2),transparent 65%),#050d18;border-right:1px solid rgba(56,189,248,.12)}
-#page-appliances-main .appl-ic{width:92px;height:112px;min-height:0;flex:none;padding:8px;border:0;border-radius:0;background:transparent;color:#7dd3fc;box-shadow:none}
-#page-appliances-main .appl-ic svg,#page-appliances-main .appl-ic img,#page-appliances-main .appl-ic ha-icon{width:76px!important;height:76px!important;--mdc-icon-size:76px;filter:drop-shadow(0 8px 16px rgba(14,165,233,.25))}
-#page-appliances-main .appl-info{display:flex;flex-direction:column;min-width:0;padding:14px 14px 11px;gap:9px}
-#page-appliances-main .appl-heading{display:flex;justify-content:space-between;gap:8px;min-width:0}
-#page-appliances-main .appl-wide-name{font-size:16px;color:#f8fafc;white-space:normal;line-height:1.2}
-#page-appliances-main .appl-wide-cat{margin-top:4px;color:#94a3b8;text-transform:none;font-size:11px;letter-spacing:0}
-#page-appliances-main .appl-st{padding:4px 7px;background:rgba(148,163,184,.1);font-size:9px;white-space:nowrap}
-#page-appliances-main .appl-live{display:flex;align-items:end;gap:7px;flex-wrap:wrap}
-#page-appliances-main .appl-primary{display:grid;gap:1px}.appl-primary span{font-size:9px;color:#7dd3fc;text-transform:uppercase;letter-spacing:.08em}.appl-primary strong{font-family:'Oswald',sans-serif;font-size:25px;line-height:1;color:#fff}
-#page-appliances-main .appl-mini{font-size:10px;padding:4px 6px;border-radius:8px;background:rgba(56,189,248,.09);color:#cbd5e1}
-#page-appliances-main .appl-spark{height:15px;display:flex;align-items:end;gap:3px;margin-top:auto;border-bottom:1px solid rgba(56,189,248,.17)}
-#page-appliances-main .appl-spark i{flex:1;height:35%;border-radius:3px 3px 0 0;background:#0ea5e9}.appl-spark i:nth-child(2){height:65%}.appl-spark i:nth-child(3){height:45%}.appl-spark i:nth-child(4){height:85%}.appl-spark i:nth-child(5){height:55%}
-#page-appliances-main .appl-actions{margin:0;gap:6px}.appl-action-btn{min-height:28px!important;padding:4px 9px!important;border-color:rgba(56,189,248,.18)!important;background:rgba(14,165,233,.11)!important;color:#bae6fd!important}
-.dm-light-add-form{display:grid;gap:10px;margin-top:16px;padding:16px!important;border:1px solid var(--card-border,#dbe4ee);border-radius:18px;background:var(--card-bg,#fff);box-shadow:0 10px 25px rgba(15,23,42,.08)}
-.dm-light-add-form .ed-sec-title{margin:0;font-size:16px;text-transform:none}.dm-light-add-form .ed-sec-title::after{content:'Inserisci o cerca un’entità';display:block;margin-top:3px;color:var(--text-dim,#64748b);font:500 11px/1.4 system-ui}
-@media(max-width:760px){#page-appliances-main .appl-page-grid{grid-template-columns:1fr}#page-appliances-main .appl-wide-card.dm-control-device{grid-template-columns:104px minmax(0,1fr);min-height:154px}#page-appliances-main .appl-info{padding:12px 10px}.ed-lrow{flex-wrap:wrap!important}.ed-lrow select{flex:1 1 100%!important;width:100%!important;order:3}.ed-inner-tab,.sub-tab-btn{font-size:12px!important;min-height:40px}.dm-report-row,.ed-acc-body{min-width:0}.dm-report-row .ed-input{font-size:13px!important}}
 
 /* Keep a configured EV hero visible when the local artwork is unavailable. */
 #ev-mod-car-img[data-ev-failed="1"],
