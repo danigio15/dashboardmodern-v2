@@ -4,6 +4,7 @@ import { installDataContractsSection } from "./data-contracts-section.js";
 import { installEnergyCalculationsSection } from "./energy-calculations-section.js";
 import { installEnergyServicesSection } from "./energy-services-section.js";
 import { installEnergySection } from "./energy-section.js";
+import { installEnergyLegacyGuardSection } from "./energy-legacy-guard-section.js";
 import { installEnergyStabilitySection } from "./energy-stability-section.js";
 import { installEnergyGuidanceSection } from "./energy-guidance-section.js";
 import { installEnergyFlowSection } from "./energy-flow-section.js";
@@ -39,6 +40,7 @@ export function installSectionRuntime() {
     installEnergyServicesSection();
     installEnergySection();
     installStateEventGate(root.DashboardModernEnergyService?.broker, root);
+    installEnergyLegacyGuardSection();
     installEnergyStabilitySection();
     installEnergyGuidanceSection();
     installEnergyFlowSection();
@@ -65,6 +67,7 @@ export function installSectionRuntime() {
         "energy-services",
         "energy",
         "state-event-gate",
+        "energy-legacy-guard",
         "energy-stability",
         "energy-guidance",
         "energy-flow",
