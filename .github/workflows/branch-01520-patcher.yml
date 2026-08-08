@@ -23,7 +23,18 @@ jobs:
           node-version: "22"
           cache: npm
       - name: Apply audited fixes
-        run: python scripts/apply_01520_fixes.py
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("scripts/apply_01520_fixes.py")
+          source = path.read_text(encoding="utf-8")
+          old = "text, count = re.subn(pattern, replacement, text, count=1, flags=flags)"
+          new = "text, count = re.subn(pattern, lambda _match: replacement, text, count=1, flags=flags)"
+          if old not in source:
+              raise SystemExit("regex helper anchor not found")
+          path.write_text(source.replace(old, new, 1), encoding="utf-8")
+          PY
+          python scripts/apply_01520_fixes.py
       - name: Install frontend dependencies
         run: npm ci
       - name: Verify syntax and frontend contracts before committing
