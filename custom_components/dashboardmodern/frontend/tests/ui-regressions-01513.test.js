@@ -8,7 +8,10 @@ const read = (path) => readFile(new URL(path, ROOT), "utf8");
 test("appliance fix changes layout but not the artwork owner", async () => {
   const layout = await read("src/sections/appliance-layout-section.js");
   const appliances = await read("src/sections/appliances-section.js");
-  assert.match(layout, /grid-template-columns:102px minmax\(0,1fr\)/);
+  assert.match(layout, /max-width:400px!important/);
+  assert.match(layout, /grid-template-columns:98px minmax\(0,1fr\)/);
+  assert.match(layout, /width:84px!important;height:84px!important/);
+  assert.match(layout, /padding:0!important/);
   assert.match(layout, /dm-appliance-image/);
   assert.doesNotMatch(layout, /resolveApplianceArtwork|applianceArtworkCandidates|canonicalArtworkType|applianceArtwork\(/);
   assert.match(appliances, /from "\.\.\/core\/appliance-artwork\.js"/);
