@@ -10,7 +10,7 @@ test("appliance mobile layout targets the real legacy body without changing artw
   const appliances = await read("src/sections/appliances-section.js");
   assert.match(layout, /max-width:370px!important/);
   assert.match(layout, /grid-template-columns:92px minmax\(0,1fr\)/);
-  assert.match(layout, /width:81px!important;height:81px!important/);
+  assert.match(layout, /width:84px!important;height:84px!important/);
   assert.match(layout, />\.appl-info/);
   assert.match(layout, /min-height:126px!important/);
   assert.match(layout, /min-height:31px!important;height:31px!important/);

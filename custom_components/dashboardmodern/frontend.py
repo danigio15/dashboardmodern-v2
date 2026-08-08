@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Iterator
-from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -62,9 +61,14 @@ def _runtime_assets() -> Iterator[Path]:
                 yield path
 
 
-@lru_cache(maxsize=1)
 def _frontend_asset_version() -> str:
-    """Return a stable digest that changes whenever a runtime asset changes."""
+    """Return the live digest of the runtime assets currently on disk.
+
+    Do not cache this value across integration reloads. HACS replaces frontend
+    files in place while the Home Assistant Python process may stay alive; a
+    process-lifetime cache would keep publishing the previous versioned URL and
+    let browsers reuse stale immutable assets after a successful update.
+    """
     digest = hashlib.blake2b(digest_size=8)
     for path in _runtime_assets():
         digest.update(str(path.relative_to(FRONTEND_DIR).as_posix()).encode())
@@ -126,7 +130,8 @@ def _panel_config(hass: HomeAssistant, entry: Any) -> dict[str, Any]:
     """Build the panel config snapshot for one plancia."""
     from .config_flow import OPTION_ADMIN_ONLY, OPTION_REGISTER_LOVELACE
 
-    static_url_path = _versioned_static_url_path()
+    asset_version = _frontend_asset_version()
+    static_url_path = f"{STATIC_URL_PATH}/{asset_version}"
     return {
         "entry_ids": [entry.entry_id],
         "instance_id": entry.entry_id,
@@ -142,7 +147,7 @@ def _panel_config(hass: HomeAssistant, entry: Any) -> dict[str, Any]:
         "lovelace_url_path": _lovelace_url_path(entry),
         "dashboard_card_module": f"{static_url_path}/dashboard-card.js",
         "_panel_custom": {
-            "name": f"{PANEL_COMPONENT_NAME}-{_frontend_asset_version()[:8]}",
+            "name": f"{PANEL_COMPONENT_NAME}-{asset_version[:8]}",
             "embed_iframe": False,
             "trust_external": False,
             "module_url": f"{static_url_path}/panel.js",
