@@ -153,10 +153,9 @@ const dayValues = {
   "sensor.oven_total": 0,
 };
 
-// Intentionally inconsistent direct Home total (28.2) versus HA-style flows
-// (50.2 + 0 + 5.5 - 7.2 - 8.6 = 39.9). The configured Home/Casa period
-// source is authoritative; flow reconstruction is fallback only when Home is
-// not configured.
+// Direct Home is intentionally inconsistent with the complete electrical flow
+// boundary. The canonical Energy view must match Home Assistant's balance:
+// 50.2 + 0 + 5.5 - 7.2 - 8.6 = 39.9 kWh.
 const currentMonthValues = {
   "sensor.house_total": 28.2,
   "sensor.solar_total": 50.2,
@@ -196,14 +195,29 @@ const yearValues = {
   "sensor.oven_total": 3,
 };
 
+const wrongMonthValues = Object.fromEntries(
+  Object.keys(currentMonthValues).map((id) => [id, id === "sensor.house_total" ? 666 : 111]),
+);
+
 export async function bootConsolidatedDashboard(page, variant, testInfo) {
-  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await page.route("https://**", (route) => {
+    const url = route.request().url();
+    if (url.includes("chart.js")) {
+      return route.fulfill({
+        contentType: "application/javascript",
+        body: "window.Chart=class{static defaults={color:'',font:{}};static getChart(){return null}constructor(){this.data={};}destroy(){}}",
+      });
+    }
+    return route.fulfill({ status: 200, body: "" });
+  });
   await page.addInitScript(
-    ({ haStates, daily, currentMonthly, monthly, annual }) => {
+    ({ haStates, daily, currentMonthly, monthly, annual, wrongMonthly }) => {
       window.DASHBOARDMODERN_AUTH_TOKEN = "e2e-token";
       window.__dmSocketInstances = 0;
       window.__dmStatisticsRequests = [];
+      window.__dmHistoryRequests = [];
       const now = new Date();
+      const current = new Date(now.getFullYear(), now.getMonth(), 1);
       const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       window.__dmCurrentPeriod = { month: now.getMonth() + 1, year: now.getFullYear() };
       window.__dmSelectedPeriod = {
@@ -244,13 +258,32 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
             this.emit({ id: message.id, type: "result", success: true, result: null });
             return;
           }
+          if (message.type === "history/history_during_period") {
+            window.__dmHistoryRequests.push(structuredClone(message));
+            const entity = message.entity_ids?.[0];
+            const end = new Date(message.end_time || Date.now()).getTime() / 1000;
+            const result = entity
+              ? {
+                  [entity]: [
+                    { s: "0", lu: end - 3600 },
+                    { s: "850", lu: end - 1800 },
+                    { s: "12", lu: end - 60 },
+                  ],
+                }
+              : {};
+            this.emit({ id: message.id, type: "result", success: true, result });
+            return;
+          }
           if (message.type === "recorder/statistics_during_period") {
             window.__dmStatisticsRequests.push(structuredClone(message));
-            const start = new Date(message.start_time);
             const end = new Date(message.end_time);
-            const previousPeriod = window.__dmSelectedPeriod;
+            const endTime = end.getTime();
+            const currentTime = current.getTime();
+            const previousTime = previous.getTime();
             const isPreviousMonth =
-              start.getMonth() + 1 === previousPeriod.month && start.getFullYear() === previousPeriod.year;
+              message.period === "day" && endTime <= currentTime + 1000 && endTime > previousTime;
+            const isCurrentMonth =
+              message.period === "day" && endTime > currentTime && endTime <= now.getTime() + 86_400_000;
             const selected =
               message.period === "hour"
                 ? daily
@@ -258,7 +291,9 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
                   ? annual
                   : isPreviousMonth
                     ? monthly
-                    : currentMonthly;
+                    : isCurrentMonth
+                      ? currentMonthly
+                      : wrongMonthly;
             const result = Object.fromEntries(
               (message.statistic_ids || []).map((id) => {
                 const initial = base[id];
@@ -285,6 +320,7 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
       currentMonthly: currentMonthValues,
       monthly: monthValues,
       annual: yearValues,
+      wrongMonthly: wrongMonthValues,
     },
   );
 
@@ -293,5 +329,8 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.ready === true);
   await expect
     .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house))
-    .toBe(28.2);
+    .toBe(39.9);
+  await expect
+    .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.period))
+    .toEqual(await page.evaluate(() => window.__dmCurrentPeriod));
 }
