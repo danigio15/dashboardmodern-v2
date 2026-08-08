@@ -223,7 +223,7 @@ function normalizeEnergyHelp() {
   }
   const markup = t(
     "<strong>⚡ Configurazione Energia</strong><span><b>Periodo corrente:</b> usa i sensori Giorno / Mese / Anno configurati. <b>Mesi precedenti:</b> usa i contatori Totali kWh tramite Recorder. Casa viene calcolata con lo stesso bilancio dei flussi di Home Assistant.</span>",
-    "<strong>⚡ Energy configuration</strong><span><b>Current period:</b> uses configured Day / Month / Year sensors. <b>Previous periods:</b> uses Total kWh counters through Recorder. Home is calculated with the same Home Assistant flow balance.</span>",
+    "<strong>⚡ Energy configuration</strong><span><b>Current period:</b> uses configured Day / Month / Year sensors. <b>Previous months/years:</b> uses Total kWh counters through Recorder. Home is calculated with the same Home Assistant flow balance.</span>",
   );
   if (overview.innerHTML !== markup) overview.innerHTML = markup;
   doc?.querySelectorAll("#editor-modal .dm-energy-total-note").forEach((note) => {
