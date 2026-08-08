@@ -10,77 +10,97 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.18-0ea5e9" alt="Versione 0.15.18">
+  <img src="https://img.shields.io/badge/version-0.15.19-0ea5e9" alt="Versione 0.15.19">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.18
-> restores Home Assistant Energy flow-balance parity, initializes/refreshes the
-> selected month automatically, and moves popup history to the authenticated HA
-> WebSocket transport.
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.19
+> adds a Recorder-backed current-week vs previous-week Home consumption
+> comparison and polishes the Energy, Appliances, Lights and Temperature editors
+> without changing the Energy calculation engine stabilized in 0.15.18.
 
 ---
 
-## Novità 0.15.18
+## Novità 0.15.19
 
-La 0.15.18 corregge insieme i tre problemi emersi sul dispositivo reale: **Casa diversa dalla dashboard Energia di Home Assistant**, **ricalcolo che partiva solo cambiando mese** e **popup Storico degli elettrodomestici in errore**.
+La 0.15.19 parte dal motore Energia della 0.15.18, già allineato alla distribuzione Energia di Home Assistant, e interviene soltanto su **Analisi** e sull'esperienza grafica dell'Editor Dashboard.
 
-### Casa allineata al bilancio Energia di Home Assistant
+### Confronto settimanale dei consumi Casa
 
-Il contatore diretto dell'inverter può rappresentare un confine elettrico diverso dalla distribuzione Energia di Home Assistant. Quando sono disponibili i flussi completi, DashboardModern usa quindi il bilancio canonico:
+La scheda **Analisi → Confronto Settimanale** non mostra più trattini: confronta ora il consumo **Casa** della settimana corrente con quello della settimana precedente.
+
+- la settimana parte da lunedì;
+- **Questa settimana** copre da lunedì a questo momento;
+- **Settimana scorsa** copre il precedente intervallo completo lunedì → lunedì;
+- lo storico viene ricostruito dai contatori cumulativi tramite Recorder;
+- quando FV + Rete import/export e l'eventuale coppia Batteria sono completi, Casa usa lo **stesso bilancio Home Assistant** del Report;
+- il contatore totale Casa resta fallback se il confine dei flussi è incompleto;
+- viene mostrata anche la variazione percentuale rispetto alla settimana precedente.
+
+I sensori Giorno/Mese/Anno non vengono riutilizzati impropriamente come storico settimanale: per il confronto vengono preferiti i contatori `total` / `total_increasing`.
+
+### Config Energia più leggibile
+
+La guida delle sorgenti Energia è stata riorganizzata in tre concetti visivi:
+
+1. **Storico e mesi precedenti** → usa il **contatore totale kWh** tramite Recorder.
+2. **Giorno / Mese / Anno** → sono override facoltativi del singolo periodo.
+3. **Consumo Casa** → usa il bilancio Home Assistant quando i flussi sono completi; il sensore Casa resta fallback.
+
+Le entità possono andare a capo invece di essere troncate e, soprattutto su mobile, Giorno/Mese/Anno/Storico sono separati in righe più leggibili.
+
+### Config Elettrodomestici
+
+Nel modal **Modifica elettrodomestico** l'icona di anteprima segue ora esattamente il simbolo della voce selezionata nel menu a tendina. La card continua a usare l'illustrazione coordinata dello stesso tipo, ma nell'Editor non c'è più discordanza tra menu e riquadro di anteprima.
+
+### Config Luci
+
+Le righe Luci su mobile usano una geometria compatta: nome, modifica ed elimina restano nella prima riga; stanza e ordinamento hanno aree dedicate sotto. Viene eliminato il grande spazio vuoto che separava i controlli e tutte le righe rimangono dentro la larghezza del modal.
+
+### Config Temperatura
+
+Temperatura adotta lo stesso linguaggio visivo degli altri editor canonici:
+
+- sensori già configurati in card compatte;
+- form Aggiungi racchiuso in un pannello coerente;
+- campi a due colonne su desktop e una colonna su mobile;
+- modalità **Modifica** evidenziata;
+- il pulsante mostra **ASSOCIA SENSORI** in aggiunta e **SALVA MODIFICHE** durante la modifica, senza essere riscritto dal contratto globale dell'Editor.
+
+### Verifica 0.15.19
+
+La suite copre esplicitamente:
+
+- intervalli settimanali lunedì → lunedì;
+- consumo Casa settimanale con lo stesso flow-balance del Report;
+- fallback al contatore totale Casa se i flussi sono incompleti;
+- uso dei contatori cumulativi Recorder per il confronto storico;
+- preview Elettrodomestico sincronizzata col menu;
+- layout Luci mobile senza overflow;
+- Temperatura add/edit con etichette corrette;
+- leggibilità della guida Energia su viewport stretti.
+
+Nessun nuovo polling globale viene introdotto dalla 0.15.19.
+
+### 0.15.18 — stabilizzazione Energia e Storico
+
+La 0.15.18 ha corretto insieme **Casa diversa dalla dashboard Energia di Home Assistant**, **ricalcolo che partiva solo cambiando mese** e **popup Storico degli elettrodomestici in errore**.
+
+Quando sono disponibili i flussi completi, DashboardModern usa il bilancio canonico:
 
 `Casa = FV + Rete prelevata + Batteria scaricata − Rete immessa − Batteria caricata`
 
-Con i dati reali osservati ad agosto (`270,6 + 19,7 + 42,9 − 118,8 − 49,3`) il risultato è **165,1 kWh**, coerente con i circa **165 kWh** mostrati dalla dashboard Energia di Home Assistant. Il valore diretto Casa (`sensor.solarman_total_load_consumption` nel caso verificato) resta un **fallback** quando il confine dei flussi non è completo.
+Con i dati reali osservati ad agosto (`270,6 + 19,7 + 42,9 − 118,8 − 49,3`) il risultato è **165,1 kWh**, coerente con i circa **165 kWh** mostrati dalla dashboard Energia di Home Assistant. Il valore diretto Casa resta fallback quando il confine dei flussi non è completo.
 
-Per evitare calcoli parziali:
+La stessa release ha inoltre:
 
-- FV, Rete prelevata e Rete immessa devono essere tutti disponibili;
-- carica e scarica batteria sono usate soltanto come coppia completa;
-- un impianto senza batteria può comunque usare il bilancio FV + Rete;
-- se manca una direzione indispensabile, DashboardModern conserva il contatore Casa configurato invece di assumere zero.
-
-### Mese corrente inizializzato e ricalcolato automaticamente
-
-L'HTML legacy nasce con gennaio come prima voce del selettore e imposta il mese corrente solo durante il primo `renderEnergyDashboard()`. Il runtime moderno poteva iniziare la richiesta Recorder pochi istanti prima, caricando un periodo differente e poi lasciando sullo schermo l'etichetta del mese corrente. Per questo cambiare mese manualmente faceva comparire valori diversi.
-
-La 0.15.18:
-
-- inizializza sincronicamente Mese/Anno al periodo corrente prima della prima richiesta Recorder;
-- non sovrascrive un periodo già scelto dall'utente;
-- rilancia il caricamento quando arriva `dashboardmodern:states-ready`;
-- aggiorna i dati quando si entra in Energia, Report o Mensile e al ritorno della pagina;
-- mantiene Report e Mensile sullo stesso bundle canonico.
-
-### Storico elettrodomestici via WebSocket Home Assistant
-
-Il vecchio `apriStorico()` usava `/api/history/period/...` con `LONG_LIVED_TOKEN`. Nel pannello hosted/HACS questo percorso non usa la stessa sessione/trasporto già stabilita dall'integrazione e poteva terminare con **Errore caricamento storico**.
-
-La 0.15.18 introduce un owner moderno dello Storico che:
-
-- usa `history/history_during_period` sullo stesso WebSocket Home Assistant già autenticato dal runtime;
-- non dipende da un Long-Lived Access Token separato;
-- supporta gli stati compressi restituiti dall'API WebSocket e i formati history completi;
-- continua a gestire intervalli 1 / 6 / 12 / 24 ore;
-- funziona per sensori numerici e stati categoriali;
-- riusa il modal e il grafico esistenti senza introdurre polling globali.
-
-### Test di regressione
-
-La suite include ora contratti espliciti per:
-
-- i numeri reali di agosto: Casa deve risultare circa `165,1 kWh`, non `134,0 kWh`;
-- il fallback Casa quando il confine dei flussi è incompleto;
-- l'inizializzazione automatica agosto 2026 invece del gennaio predefinito del markup;
-- il popup Microonde che deve effettuare `history/history_during_period`, mostrare il grafico e non visualizzare l'errore;
-- il browser E2E deve caricare il mese corrente senza richiedere un cambio manuale del selettore.
-
-### 0.15.17
-
-La 0.15.17 ha corretto l'overflow mobile della Configurazione. La regola che rendeva autorevole il contatore Casa diretto è stata invece superata dalla 0.15.18 dopo il confronto con i valori reali della distribuzione Energia di Home Assistant e l'individuazione della race sul mese iniziale.
+- inizializzato Mese/Anno prima della prima richiesta Recorder, eliminando il cambio mese manuale necessario al ricalcolo;
+- mantenuto Report e Mensile sullo stesso bundle canonico;
+- spostato lo Storico elettrodomestici su `history/history_during_period` tramite il WebSocket Home Assistant autenticato;
+- dato priorità alla potenza istantanea nei grafici 1 / 6 / 12 / 24 ore, lasciando il totale kWh a Report e storico energetico.
 
 ---
 
@@ -88,7 +108,7 @@ La 0.15.17 ha corretto l'overflow mobile della Configurazione. La regola che ren
 
 - dashboard italiana e inglese;
 - configurazione visuale delle entità Home Assistant;
-- Energia con viste giornaliera, mensile, annuale e Report;
+- Energia con viste giornaliera, mensile, annuale, Report e Analisi;
 - fotovoltaico, rete e batteria;
 - elettrodomestici con potenza, energia, stato, storico e comando;
 - temperatura e umidità associate alle stanze;
@@ -131,11 +151,11 @@ Le configurazioni precedenti vengono migrate senza eliminare le entità lifetime
 
 Per il **periodo corrente**, i campi Giorno / Mese / Anno possono puntare ai rispettivi sensori di periodo, compresi gli `utility_meter` con `state_class: total` o `total_increasing`. Se un vecchio riferimento di periodo non esiste più, non viene usato come sorgente runtime.
 
-Per ottenere in modo affidabile **mesi e anni precedenti**, configura preferibilmente i contatori lifetime dotati di `device_class: energy` e `state_class: total` o `total_increasing`: il runtime ricostruisce lo storico tramite le statistiche Recorder di Home Assistant. Quando un totale manca, DashboardModern può riutilizzare un helper cumulativo compatibile come sorgente Recorder.
+Per ottenere in modo affidabile **mesi, anni e settimane precedenti**, configura preferibilmente i contatori lifetime dotati di `device_class: energy` e `state_class: total` o `total_increasing`: il runtime ricostruisce lo storico tramite le statistiche Recorder di Home Assistant.
 
 Per gli elettrodomestici, un sensore **mensile** può alimentare il mese corrente ma non sostituisce un contatore **totale/lifetime** per ricostruire stabilmente i mesi precedenti. Il campo **Energia totale per storico e Report** resta quindi la scelta raccomandata quando disponibile.
 
-Per **Casa**, quando FV + Rete import/export e l'eventuale coppia Batteria charge/discharge sono disponibili, viene usato il bilancio dei flussi coerente con la distribuzione Energia di Home Assistant. Il sensore Casa diretto resta il fallback per configurazioni incomplete.
+Per **Casa**, quando FV + Rete import/export e l'eventuale coppia Batteria charge/discharge sono disponibili, viene usato il bilancio dei flussi coerente con la distribuzione Energia di Home Assistant. Il sensore Casa diretto resta il fallback per configurazioni incomplete. Lo stesso criterio viene usato dal confronto settimanale in Analisi.
 
 ## Supporto e problemi
 
