@@ -15,21 +15,27 @@ async function assertSame(paths) {
   assert.equal(new Set(digests).size, 1, `brand assets differ: ${paths.join(", ")}`);
 }
 
-test("root HACS brand stays canonical without a duplicated installed copy", async () => {
+test("HACS brand keeps one required installed icon without duplicating the full brand set", async () => {
   for (const path of [
     "brand/icon.png",
     "brand/icon@2x.png",
     "brand/logo.png",
     "brand/logo@2x.png",
+    "custom_components/dashboardmodern/brand/icon.png",
   ]) {
     await access(new URL(path, root));
   }
+  await assertSame(["brand/icon.png", "custom_components/dashboardmodern/brand/icon.png"]);
   await assertSame([
     "brand/icon@2x.png",
     "custom_components/dashboardmodern/frontend/legacy/logo.png",
   ]);
-  await assert.rejects(access(new URL("custom_components/dashboardmodern/brand/icon.png", root)));
-  await assert.rejects(
-    access(new URL("custom_components/dashboardmodern/frontend/legacy/icon.png", root)),
-  );
+  for (const path of [
+    "custom_components/dashboardmodern/brand/icon@2x.png",
+    "custom_components/dashboardmodern/brand/logo.png",
+    "custom_components/dashboardmodern/brand/logo@2x.png",
+    "custom_components/dashboardmodern/frontend/legacy/icon.png",
+  ]) {
+    await assert.rejects(access(new URL(path, root)));
+  }
 });
