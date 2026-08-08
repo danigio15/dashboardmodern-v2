@@ -1,4 +1,4 @@
-/* DashboardModern 0.15.0 — pure period/statistics service. */
+/* Pure period/statistics service. */
 import { runtimeMetrics } from "./runtime-metrics.js";
 
 export const PERIOD_SOURCES = Object.freeze([

@@ -2,12 +2,12 @@
   "config": {
     "step": {
       "user": {
-        "title": "Nuova plancia DashboardModern",
+        "title": "New DashboardModern panel",
         "data": {
-          "name": "Nome della plancia"
+          "name": "Panel name"
         },
         "data_description": {
-          "name": "Compare nella barra laterale. Puoi aggiungere più plance, ognuna con la propria configurazione."
+          "name": "Shown in the sidebar. You can add multiple panels, each with its own configuration."
         }
       }
     }
@@ -15,17 +15,17 @@
   "options": {
     "step": {
       "init": {
-        "title": "Accesso e integrazione con le plance",
-        "description": "Scegli gli utenti autorizzati. Lascia vuoto per consentire l'accesso a tutti. La registrazione Lovelace fa comparire DashboardModern in Impostazioni → Plance e consente di sceglierla come plancia predefinita.",
+        "title": "Access and dashboard integration",
+        "description": "Choose which signed-in users should see this dashboard in the DashboardModern UI. This is a frontend visibility filter, not a replacement for Home Assistant permissions. Lovelace registration makes DashboardModern appear in Settings → Dashboards.",
         "data": {
-          "allowed_users": "Utenti autorizzati",
-          "register_lovelace_dashboard": "Registra anche come plancia Home Assistant",
-          "admin_only": "Visibile solo agli amministratori"
+          "allowed_users": "Allowed users",
+          "register_lovelace_dashboard": "Also register as a Home Assistant dashboard",
+          "admin_only": "Visible to administrators only"
         },
         "data_description": {
-          "allowed_users": "Gli utenti non selezionati ricevono un blocco di accesso anche aprendo direttamente l'URL.",
-          "register_lovelace_dashboard": "La plancia viene creata alla prima apertura effettuata da un amministratore.",
-          "admin_only": "Filtro nativo Home Assistant; prevale sulla selezione utenti per gli account non amministratori."
+          "allowed_users": "UI visibility filter only. Home Assistant permissions still govern data and service access.",
+          "register_lovelace_dashboard": "The dashboard is created the first time an administrator opens DashboardModern.",
+          "admin_only": "Native Home Assistant filter; it takes precedence for non-administrator accounts."
         }
       }
     }

@@ -82,13 +82,19 @@ function normalizedToken(value = "") {
     .replace(/^_+|_+$/g, "");
 }
 
+export function canonicalApplianceVisualKey(value = "") {
+  const token = normalizedToken(value);
+  const key = VISUAL_ALIASES[token] || token;
+  return APPLIANCE_VISUAL_KEYS.includes(key) ? key : "";
+}
+
 function legacyVisualKey(input = {}, rawIcon = "", type = "") {
   const candidates = [input.visual_key, rawIcon, type, input.device_type, input.type]
     .map(normalizedToken)
     .filter(Boolean);
   for (const candidate of candidates) {
-    const key = VISUAL_ALIASES[candidate] || candidate;
-    if (APPLIANCE_VISUAL_KEYS.includes(key)) return key;
+    const key = canonicalApplianceVisualKey(candidate);
+    if (key) return key;
   }
   return "";
 }
@@ -177,7 +183,7 @@ export function normalizeDevice(input = {}, section, context = {}) {
     image,
     image_url: image,
     visual_type: String(input.visual_type || (visualKey ? "asset" : "")),
-    visual_key: String(input.visual_key || visualKey),
+    visual_key: String(visualKey || input.visual_key || ""),
     emoji_icon: emoji,
     room_id: String(roomId),
     entities,

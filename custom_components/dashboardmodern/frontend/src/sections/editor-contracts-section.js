@@ -1,3 +1,4 @@
+import { applianceArtwork } from "../core/appliance-artwork.js";
 import {
   clean,
   doc,
@@ -185,23 +186,24 @@ export function syncApplianceEditorPreview(
   const select = modal?.querySelector('select[name="icon"]');
   const preview = modal?.querySelector("[data-icon-preview]");
   if (!select || !preview) return false;
-  const glyph = selectedOptionGlyph(select);
-  let icon = preview.querySelector(".dm-appliance-menu-glyph");
-  if (!icon) {
-    icon = doc.createElement("span");
-    icon.className = "dm-appliance-menu-glyph";
+
+  const value = clean(select.value).toLowerCase();
+  const artwork = applianceArtwork(value, 72);
+  if (artwork) {
+    if (preview.innerHTML !== artwork) preview.innerHTML = artwork;
+  } else {
+    const glyph = selectedOptionGlyph(select);
+    preview.innerHTML = `<span class="dm-appliance-menu-glyph">${glyph}</span>`;
   }
-  if (icon.textContent !== glyph) icon.textContent = glyph;
-  preview.replaceChildren(icon);
-  preview.dataset.dmPreviewSource = "dropdown";
-  preview.setAttribute("aria-label", clean(select.selectedOptions?.[0]?.textContent) || glyph);
+  preview.dataset.dmPreviewSource = "artwork";
+  preview.setAttribute("aria-label", clean(select.selectedOptions?.[0]?.textContent) || value);
 
   const field = select.closest(".dm-appliance-icon-field");
   const help = field?.querySelector("small");
   if (help) {
     help.textContent = t(
-      "L’icona nel riquadro segue esattamente il menu. La card usa l’illustrazione coordinata dello stesso tipo.",
-      "The icon in the preview follows the menu exactly. The card uses the matching illustration for the same type.",
+      "L’anteprima usa la stessa illustrazione della card per il tipo selezionato.",
+      "The preview uses the same card artwork for the selected appliance type.",
     );
   }
   return true;
@@ -465,7 +467,7 @@ function installStyles() {
       #editor-modal .dm-energy-source-contract dd{overflow:visible!important;text-overflow:clip!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important;font-size:10.5px!important;line-height:1.45!important}
 
       /* Appliance editor: preview mirrors the native select glyph exactly. */
-      #dm-appliance-editor-modal .dm-appliance-icon-preview[data-dm-preview-source="dropdown"]{background:linear-gradient(145deg,color-mix(in srgb,var(--info-color,#0ea5e9) 10%,var(--ha-card-background,#fff)),var(--ha-card-background,var(--card-bg,#fff)))!important}
+      #dm-appliance-editor-modal .dm-appliance-icon-preview[data-dm-preview-source="artwork"]{background:linear-gradient(145deg,color-mix(in srgb,var(--info-color,#0ea5e9) 10%,var(--ha-card-background,#fff)),var(--ha-card-background,var(--card-bg,#fff)))!important}
       #dm-appliance-editor-modal .dm-appliance-menu-glyph{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-size:38px!important;line-height:1!important}
       #dm-appliance-editor-modal .dm-appliance-icon-field>small{font-size:11px!important;line-height:1.4!important;color:var(--secondary-text-color,#64748b)!important}
 

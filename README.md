@@ -10,21 +10,34 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.19-0ea5e9" alt="Versione 0.15.19">
+  <img src="https://img.shields.io/badge/version-0.15.20-0ea5e9" alt="Versione 0.15.20">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.19
-> adds a Recorder-backed current-week vs previous-week Home consumption
-> comparison and polishes the Energy, Appliances, Lights and Temperature editors
-> without changing the Energy calculation engine stabilized in 0.15.18.
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.20
+> restores identical appliance artwork between Add/Edit/card views and hardens
+> frontend delivery, release immutability, version provenance and CI against the
+> class of regressions that can leave a green build but a stale/broken dashboard.
 
 ---
 
-## Novità 0.15.19
+## Novità 0.15.20
+
+La 0.15.20 corregge la regressione dell'anteprima **Modifica elettrodomestico** e chiude i problemi emersi dall'audit della pipeline e del runtime.
+
+- l'anteprima Modifica usa di nuovo lo stesso `applianceArtwork()` della prima configurazione e della card, non l'emoji del menu;
+- Chart.js, panzoom e hls.js sono versionati esattamente e protetti da SRI;
+- il digest frontend viene calcolato una sola volta fuori dall'event loop e riusato per statici, custom card e pannello;
+- i file statici pubblici sono limitati agli asset runtime realmente raggiungibili;
+- la release fallisce se il tag della versione esiste già e gli E2E girano anche su push a `main` e nel gate di release;
+- il marker Energia usa `build-info.js` e non una versione hardcoded obsoleta;
+- `strings.json` torna alla sorgente inglese prevista da Home Assistant e la selezione utenti è documentata correttamente come filtro UI;
+- rimossi duplicati bridge e riferimenti di packaging morti; della copia brand installata resta solo `brand/icon.png`, obbligatorio per la validazione HACS.
+
+### 0.15.19 — Analisi settimanale e polish Editor
 
 La 0.15.19 parte dal motore Energia della 0.15.18, già allineato alla distribuzione Energia di Home Assistant, e interviene soltanto su **Analisi** e sull'esperienza grafica dell'Editor Dashboard.
 

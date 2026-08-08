@@ -1,4 +1,5 @@
 import { applianceArtwork } from "../core/appliance-artwork.js";
+import { canonicalApplianceVisualKey } from "../core/device-model.js";
 import {
   clean,
   dashboardStore,
@@ -37,18 +38,23 @@ function roomOptions(selected) {
   ].join("");
 }
 
+function editorVisualKey(value) {
+  const raw = clean(value).toLowerCase();
+  return canonicalApplianceVisualKey(raw) || raw || "generico";
+}
+
 function iconOptions(selected) {
-  const value = clean(selected).toLowerCase();
+  const value = editorVisualKey(selected);
   return ICONS.map(([key, glyph]) => `<option value="${key}" ${key === value ? "selected" : ""}>${glyph} ${key}</option>`).join("");
 }
 
 function iconGlyph(value) {
-  const key = clean(value).toLowerCase();
+  const key = editorVisualKey(value);
   return ICONS.find(([name]) => name === key)?.[1] || (key.startsWith("mdi:") ? "⚡" : "🔌");
 }
 
 function artworkPreview(value) {
-  return applianceArtwork(value, 72) || `<span class="dm-appliance-editor-fallback">${iconGlyph(value)}</span>`;
+  return applianceArtwork(editorVisualKey(value), 72) || `<span class="dm-appliance-editor-fallback">${iconGlyph(value)}</span>`;
 }
 
 function cumulativeEntity(value) {
@@ -99,7 +105,7 @@ export function openApplianceEditor(index) {
   const device = appliances()[index];
   if (!device) return false;
   doc?.getElementById("dm-appliance-editor-modal")?.remove();
-  const visual = clean(device.visual_key || device.device_type || device.icon || "generico").toLowerCase();
+  const visual = editorVisualKey(device.visual_key || device.device_type || device.icon || "generico");
   const totalInitial = [device.total_energy_entity, device.history_entity, device.report_entity]
     .map(clean)
     .find(cumulativeEntity) || "";
@@ -111,7 +117,7 @@ export function openApplianceEditor(index) {
     <form data-form>
       <div class="dm-modal-grid dm-appliance-main-fields">
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(device.name)}" required></label>
-        <label class="ed-slot dm-appliance-icon-field"><span class="ed-slot-lbl">${t("Tipo / immagine", "Type / artwork")}</span><span class="dm-appliance-icon-row"><span class="dm-appliance-icon-preview" data-icon-preview aria-hidden="true">${artworkPreview(visual)}</span><select class="ed-input" name="icon">${iconOptions(visual)}</select></span><small>${t("L’anteprima usa esattamente l’immagine renderizzata nella card.", "The preview uses exactly the artwork rendered in the card.")}</small></label>
+        <label class="ed-slot dm-appliance-icon-field"><span class="ed-slot-lbl">${t("Tipo / immagine", "Type / artwork")}</span><span class="dm-appliance-icon-row"><span class="dm-appliance-icon-preview" data-icon-preview data-dm-preview-source="artwork" aria-hidden="true">${artworkPreview(visual)}</span><select class="ed-input" name="icon">${iconOptions(visual)}</select></span><small>${t("L’anteprima usa esattamente l’immagine renderizzata nella card.", "The preview uses exactly the artwork rendered in the card.")}</small></label>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room_id">${roomOptions(device.room_id || device.room)}</select></label>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Soglia in funzione", "Running threshold")}</span><input class="ed-input" type="number" step="0.1" min="0" name="threshold_run" value="${esc(device.threshold_run ?? 5)}"><small>${t("Potenza in watt oltre la quale la card risulta accesa.", "Power in watts above which the card is shown as running.")}</small></label>
       </div>
@@ -132,6 +138,7 @@ export function openApplianceEditor(index) {
   const preview = modal.querySelector("[data-icon-preview]");
   form.elements.icon.addEventListener("change", () => {
     preview.innerHTML = artworkPreview(form.elements.icon.value);
+    preview.dataset.dmPreviewSource = "artwork";
   });
   modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
   modal.querySelectorAll("[data-pick]").forEach((button) => button.addEventListener("click", () => root.wzPickEntity?.(form.elements[button.dataset.pick])));
@@ -148,7 +155,7 @@ export function openApplianceEditor(index) {
       form.querySelector("[data-error]").textContent = t("Il sensore Energia totale deve avere state_class total o total_increasing.", "The Total energy sensor must have state_class total or total_increasing.");
       return;
     }
-    const visualKey = clean(values.icon) || "generico";
+    const visualKey = editorVisualKey(values.icon);
     const existingReport = clean(device.report_entity);
     const next = {
       ...device,

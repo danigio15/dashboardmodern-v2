@@ -29,9 +29,10 @@ import {
   waitForHostedBridge,
 } from "../transport/hosted-bridge-guard.js";
 import { runtimeMetrics } from "../core/runtime-metrics.js";
+import { BUILD_INFO } from "../../legacy/build-info.js";
 
 const KEY = "__DASHBOARDMODERN_RUNTIME_ROOT__";
-const VERSION = "0.15.12";
+const VERSION = BUILD_INFO.dashboardVersion || BUILD_INFO.integrationVersion || "UNBUILT";
 const state = (root[KEY] ||= {});
 Object.assign(state, {
   installed: true,

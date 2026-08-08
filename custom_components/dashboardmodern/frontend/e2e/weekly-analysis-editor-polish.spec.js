@@ -68,13 +68,24 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const applianceModal = page.locator("#dm-appliance-editor-modal");
     await expect(applianceModal).toBeVisible();
     const typeSelect = applianceModal.locator('select[name="icon"]');
+    const preview = applianceModal.locator("[data-icon-preview]");
+
+    // The fixture is named Microonde and intentionally stores the historical
+    // English alias visual_key="microwave". Edit must reopen on the canonical
+    // Microonde option and show the exact SVG used by the public card.
+    await expect(typeSelect).toHaveValue("microonde");
+    await expect(preview).toHaveAttribute("data-dm-preview-source", "artwork");
+    await expect(preview.locator('.dm-appliance-art[data-dm-art="microwave"]')).toHaveCount(1);
+    await expect(preview.locator("svg")).toHaveCount(1);
+    await expect(preview.locator(".dm-appliance-menu-glyph")).toHaveCount(0);
+
     await typeSelect.selectOption("lavastoviglie");
     await typeSelect.dispatchEvent("input");
     await typeSelect.dispatchEvent("change");
-    const preview = applianceModal.locator("[data-icon-preview]");
-    await expect(preview).toHaveAttribute("data-dm-preview-source", "dropdown");
-    await expect(preview.locator(".dm-appliance-menu-glyph")).toHaveText("🍽️");
-    await expect(preview.locator("svg")).toHaveCount(0);
+    await expect(preview).toHaveAttribute("data-dm-preview-source", "artwork");
+    await expect(preview.locator('.dm-appliance-art[data-dm-art="dishwasher"]')).toHaveCount(1);
+    await expect(preview.locator("svg")).toHaveCount(1);
+    await expect(preview.locator(".dm-appliance-menu-glyph")).toHaveCount(0);
     await applianceModal.locator("[data-close]").click();
 
     await page.evaluate(() => {
