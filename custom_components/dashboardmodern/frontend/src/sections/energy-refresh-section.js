@@ -1,11 +1,11 @@
-import { clean, doc, root } from "./shared.js";
+import { doc, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENERGY_REFRESH_SECTION__";
 const state = (root[KEY] ||= { installed: false, refreshQueued: false });
 
-export function initializeEnergyPeriodControls(now = new Date()) {
-  const month = doc?.getElementById("ed-sel-month");
-  const year = doc?.getElementById("ed-sel-year");
+export function initializeEnergyPeriodControls(now = new Date(), documentRef = doc) {
+  const month = documentRef?.getElementById("ed-sel-month");
+  const year = documentRef?.getElementById("ed-sel-year");
   if (!month || !year) return false;
 
   // The legacy HTML starts with January selected and only changes it later in
