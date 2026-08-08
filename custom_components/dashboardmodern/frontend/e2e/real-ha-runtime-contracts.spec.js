@@ -18,9 +18,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 180_000 : 110_000);
     await bootConsolidatedDashboard(page, variant, testInfo);
 
-    // An explicitly configured Home/Casa period source is authoritative for
-    // day/month/year. The fixture's flow legs are deliberately inconsistent so
-    // this browser contract catches any future flow-balance overwrite.
+    // With a complete Solar/Grid/Battery boundary, Home/Casa must match the
+    // Home Assistant Energy distribution instead of the inverter-specific direct
+    // load counter. Fixture balances: day=6.5, month=39.9, year=937 kWh.
     await expect
       .poll(() =>
         page.evaluate(() => ({
@@ -30,11 +30,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           year: window.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle?.year?.house,
         })),
       )
-      .toMatchObject({ ready: true, day: 5.7, month: 28.2, year: 760 });
+      .toMatchObject({ ready: true, day: 6.5, month: 39.9, year: 937 });
 
-    await expect(page.locator("#v-home-day")).toContainText(/5[,.]7/);
-    await expect(page.locator("#v-home-month")).toContainText(/28[,.]2/);
-    await expect(page.locator("#ed-kpi-cons")).toContainText(/28[,.]2/);
+    await expect(page.locator("#v-home-day")).toContainText(/6[,.]5/);
+    await expect(page.locator("#v-home-month")).toContainText(/39[,.]9/);
+    await expect(page.locator("#ed-kpi-cons")).toContainText(/39[,.]9/);
     const generations = await page.locator("#view-day,#view-month,#view-panoramica").evaluateAll((nodes) =>
       nodes.map((node) => node.dataset.dmEnergyBundle),
     );
@@ -56,8 +56,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       return samples;
     });
     for (const sample of stableSamples) {
-      expect(sample.month).toMatch(/28[,.]2/);
-      expect(sample.report).toMatch(/28[,.]2/);
+      expect(sample.month).toMatch(/39[,.]9/);
+      expect(sample.report).toMatch(/39[,.]9/);
       expect(`${sample.month} ${sample.report}`).not.toContain("614");
     }
 

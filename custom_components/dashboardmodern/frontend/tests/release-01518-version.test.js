@@ -10,26 +10,42 @@ const rootLogoUrl = new URL("../../../../brand/logo.png", import.meta.url);
 const bootstrapUrl = new URL("../legacy/config.js", import.meta.url);
 const buildInfoUrl = new URL("../legacy/build-info.js", import.meta.url);
 const obsoleteEntryUrl = new URL("../legacy/report-mobile-fixes.js", import.meta.url);
+const historyUrl = new URL("../src/sections/history-section.js", import.meta.url);
+const refreshUrl = new URL("../src/sections/energy-refresh-section.js", import.meta.url);
 
-test("the Casa authority and mobile editor release is consistently versioned as 0.15.17", async () => {
+test("the Energy parity, refresh and history release is consistently versioned as 0.15.18", async () => {
   const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
   const readme = await readFile(readmeUrl, "utf8");
   const buildInfo = await readFile(buildInfoUrl, "utf8");
 
-  assert.equal(manifest.version, "0.15.17");
-  assert.match(readme, /version-0\.15\.17/);
-  assert.match(readme, /Novità 0\.15\.17/);
-  assert.match(readme, /sensore configurato è autorevole/i);
-  assert.match(readme, /Config.*mobile/i);
-  assert.match(readme, /498,9/);
+  assert.equal(manifest.version, "0.15.18");
+  assert.match(readme, /version-0\.15\.18/);
+  assert.match(readme, /Novità 0\.15\.18/);
+  assert.match(readme, /165,1 kWh/);
+  assert.match(readme, /history\/history_during_period/);
+  assert.match(readme, /Mese\/Anno al periodo corrente/);
   assert.match(
     readme,
     /https:\/\/raw\.githubusercontent\.com\/danigio15\/dashboardmodern-v2\/main\/brand\/logo\.png/,
   );
   assert.doesNotMatch(readme, /main\/assets\/logo|brand\/logo@2x\.png/);
-  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']0\.15\.17["']/);
-  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']0\.15\.17["']/);
+  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']0\.15\.18["']/);
+  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']0\.15\.18["']/);
   assert.match(buildInfo, /["']?moduleVersion["']?\s*:\s*14/);
+});
+
+test("canonical history does not use the legacy REST token transport", async () => {
+  const history = await readFile(historyUrl, "utf8");
+  assert.match(history, /history\/history_during_period/);
+  assert.match(history, /DashboardModernEnergyService\?\.broker/);
+  assert.doesNotMatch(history, /LONG_LIVED_TOKEN|\/api\/history\/period|fetch\s*\(/);
+});
+
+test("Energy refresh owns initial current-period synchronization", async () => {
+  const refresh = await readFile(refreshUrl, "utf8");
+  assert.match(refresh, /dashboardmodern:states-ready/);
+  assert.match(refresh, /month\.dataset\.init/);
+  assert.match(refresh, /DashboardModernEnergyService/);
 });
 
 test("local package brand assets remain valid", async () => {

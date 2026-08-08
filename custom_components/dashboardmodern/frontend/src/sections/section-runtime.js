@@ -4,10 +4,12 @@ import { installDataContractsSection } from "./data-contracts-section.js";
 import { installEnergyCalculationsSection } from "./energy-calculations-section.js";
 import { installEnergyServicesSection } from "./energy-services-section.js";
 import { installEnergySection } from "./energy-section.js";
+import { installEnergyRefreshSection } from "./energy-refresh-section.js";
 import { installEnergyLegacyGuardSection } from "./energy-legacy-guard-section.js";
 import { installEnergyStabilitySection } from "./energy-stability-section.js";
 import { installEnergyGuidanceSection } from "./energy-guidance-section.js";
 import { installEnergyFlowSection } from "./energy-flow-section.js";
+import { installHistorySection } from "./history-section.js";
 import { installTemperatureSection } from "./temperature-section.js";
 import { installTemperatureLayoutSection } from "./temperature-layout-section.js";
 import { installAppliancesSection } from "./appliances-section.js";
@@ -41,11 +43,13 @@ export function installSectionRuntime() {
     installEnergyCalculationsSection();
     installEnergyServicesSection();
     installEnergySection();
+    installEnergyRefreshSection();
     installStateEventGate(root.DashboardModernEnergyService?.broker, root);
     installEnergyLegacyGuardSection();
     installEnergyStabilitySection();
     installEnergyGuidanceSection();
     installEnergyFlowSection();
+    installHistorySection();
     installTemperatureSection();
     installTemperatureLayoutSection();
     installAppliancesSection();
@@ -70,11 +74,13 @@ export function installSectionRuntime() {
         "energy-calculations",
         "energy-services",
         "energy",
+        "energy-refresh",
         "state-event-gate",
         "energy-legacy-guard",
         "energy-stability",
         "energy-guidance",
         "energy-flow",
+        "history",
         "temperature",
         "temperature-layout",
         "appliances",
