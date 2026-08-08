@@ -47,7 +47,7 @@ test("the hosted bootstrap delegates once to the idempotent section runtime", as
   await assert.rejects(access(obsoleteEntryUrl));
 });
 
-test("schema migration preserves lifetime and annual Energy sources together", () => {
+test("schema migration preserves legacy lifetime/annual aliases once, then moves to semantics v4", () => {
   const totalOnly = migrateState({
     schema_version: 4,
     sections: {
@@ -68,7 +68,7 @@ test("schema migration preserves lifetime and annual Energy sources together", (
     total_energy: "sensor.solar_total",
     annual_energy: "sensor.solar_total",
   });
-  assert.equal(totalOnly.metadata.semantics_version, 3);
+  assert.equal(totalOnly.metadata.semantics_version, 4);
 
   const annualOnly = migrateState({
     schema_version: 4,
@@ -84,5 +84,5 @@ test("schema migration preserves lifetime and annual Energy sources together", (
   }).state.sections.energy;
   assert.equal(annualOnly.house.total_energy, "sensor.house_year");
   assert.equal(annualOnly.solar.total_energy, "sensor.solar_year");
-  assert.equal(annualOnly.metadata.semantics_version, 3);
+  assert.equal(annualOnly.metadata.semantics_version, 4);
 });
