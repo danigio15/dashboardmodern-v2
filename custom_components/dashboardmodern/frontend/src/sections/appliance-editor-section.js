@@ -1,3 +1,4 @@
+import { applianceArtwork } from "../core/appliance-artwork.js";
 import {
   clean,
   dashboardStore,
@@ -44,6 +45,10 @@ function iconOptions(selected) {
 function iconGlyph(value) {
   const key = clean(value).toLowerCase();
   return ICONS.find(([name]) => name === key)?.[1] || (key.startsWith("mdi:") ? "⚡" : "🔌");
+}
+
+function artworkPreview(value) {
+  return applianceArtwork(value, 72) || `<span class="dm-appliance-editor-fallback">${iconGlyph(value)}</span>`;
 }
 
 function cumulativeEntity(value) {
@@ -106,7 +111,7 @@ export function openApplianceEditor(index) {
     <form data-form>
       <div class="dm-modal-grid dm-appliance-main-fields">
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(device.name)}" required></label>
-        <label class="ed-slot dm-appliance-icon-field"><span class="ed-slot-lbl">${t("Tipo / icona", "Type / icon")}</span><span class="dm-appliance-icon-row"><span class="dm-appliance-icon-preview" data-icon-preview aria-hidden="true">${iconGlyph(visual)}</span><select class="ed-input" name="icon">${iconOptions(visual)}</select></span><small>${t("L’anteprima è la stessa usata nella card e nel Report.", "The preview is the same one used by the card and Report.")}</small></label>
+        <label class="ed-slot dm-appliance-icon-field"><span class="ed-slot-lbl">${t("Tipo / immagine", "Type / artwork")}</span><span class="dm-appliance-icon-row"><span class="dm-appliance-icon-preview" data-icon-preview aria-hidden="true">${artworkPreview(visual)}</span><select class="ed-input" name="icon">${iconOptions(visual)}</select></span><small>${t("L’anteprima usa esattamente l’immagine renderizzata nella card.", "The preview uses exactly the artwork rendered in the card.")}</small></label>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room_id">${roomOptions(device.room_id || device.room)}</select></label>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Soglia in funzione", "Running threshold")}</span><input class="ed-input" type="number" step="0.1" min="0" name="threshold_run" value="${esc(device.threshold_run ?? 5)}"><small>${t("Potenza in watt oltre la quale la card risulta accesa.", "Power in watts above which the card is shown as running.")}</small></label>
       </div>
@@ -125,7 +130,9 @@ export function openApplianceEditor(index) {
   const form = modal.querySelector("[data-form]");
   const close = () => modal.remove();
   const preview = modal.querySelector("[data-icon-preview]");
-  form.elements.icon.addEventListener("change", () => { preview.textContent = iconGlyph(form.elements.icon.value); });
+  form.elements.icon.addEventListener("change", () => {
+    preview.innerHTML = artworkPreview(form.elements.icon.value);
+  });
   modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
   modal.querySelectorAll("[data-pick]").forEach((button) => button.addEventListener("click", () => root.wzPickEntity?.(form.elements[button.dataset.pick])));
   modal.addEventListener("click", (event) => { if (event.target === modal) close(); });
@@ -179,7 +186,7 @@ function installStyles() {
   if (doc.getElementById("dm-appliance-editor-preview-style")) return;
   const style = doc.createElement("style");
   style.id = "dm-appliance-editor-preview-style";
-  style.textContent = `.dm-appliance-icon-row{display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;gap:12px!important;align-items:center!important}.dm-appliance-icon-preview{display:grid!important;place-items:center!important;width:72px!important;height:72px!important;border-radius:18px!important;background:var(--secondary-background-color,#eef3f8)!important;border:1px solid var(--divider-color,#dbe4ee)!important;font-size:36px!important}.dm-appliance-editor-dialog{max-height:min(92dvh,920px)!important;overflow:hidden!important}`;
+  style.textContent = `.dm-appliance-icon-row{display:grid!important;grid-template-columns:84px minmax(0,1fr)!important;gap:12px!important;align-items:center!important}.dm-appliance-icon-preview{display:grid!important;place-items:center!important;width:84px!important;height:84px!important;border-radius:18px!important;background:var(--secondary-background-color,#eef3f8)!important;border:1px solid var(--divider-color,#dbe4ee)!important;overflow:hidden!important}.dm-appliance-icon-preview .dm-appliance-art,.dm-appliance-icon-preview svg{display:block!important;width:84px!important;height:84px!important;max-width:84px!important;max-height:84px!important}.dm-appliance-editor-fallback{font-size:36px!important;line-height:1!important}.dm-appliance-editor-dialog{max-height:min(92dvh,920px)!important;overflow:hidden!important}`;
   doc.head.append(style);
 }
 
