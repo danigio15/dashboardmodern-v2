@@ -291,7 +291,7 @@ function installStyles() {
          and fixed icon/picker buttons. Every flex/grid boundary must be allowed
          to shrink, otherwise one long entity id expands the whole mobile modal. */
       #editor-modal .ed-shell,#editor-modal .ed-body,#editor-modal .ed-form,#editor-modal .ed-list,#editor-modal .ed-row,#editor-modal .ed-form-row{box-sizing:border-box!important;min-width:0!important;max-width:100%!important;width:100%!important}
-      #editor-modal .ed-body{overflow-x:hidden!important}
+      #editor-modal .ed-body{overflow-x:clip!important;overflow-y:visible!important}
       #editor-modal .ed-body>*,#editor-modal .ed-form>*,#editor-modal .ed-list>*,#editor-modal .ed-row>*,#editor-modal .ed-form-row>*,#editor-modal .ed-form [style*="display:flex"]>*{box-sizing:border-box!important;min-width:0!important;max-width:100%!important}
       #editor-modal .ed-form>[style*="display:flex"],#editor-modal .ed-form-row{box-sizing:border-box!important;min-width:0!important;max-width:100%!important;width:100%!important}
       #editor-modal .ed-form-row>.ed-input,#editor-modal .ed-form>[style*="display:flex"]>.ed-input{width:0!important;min-width:0!important;max-width:100%!important;flex:1 1 0!important}
