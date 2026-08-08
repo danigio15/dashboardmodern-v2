@@ -18,9 +18,7 @@ def _include_release_file(path: Path) -> bool:
     if not path.is_file() or path.name == "build-info.js":
         return False
     relative = path.relative_to(COMPONENT)
-    if EXCLUDED_RELEASE_PARTS.intersection(relative.parts):
-        return False
-    return True
+    return not EXCLUDED_RELEASE_PARTS.intersection(relative.parts)
 
 
 def main() -> None:
