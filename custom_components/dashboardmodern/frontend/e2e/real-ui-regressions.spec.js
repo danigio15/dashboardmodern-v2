@@ -237,6 +237,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.evaluate(() => {
       STATES["cover.salone"].state = "opening";
       STATES["cover.salone"].attributes.current_position = 25;
+      window.dispatchEvent(
+        new CustomEvent("dashboardmodern:state-changed", {
+          detail: {
+            entity_id: "cover.salone",
+            entity_ids: ["cover.salone"],
+            state: STATES["cover.salone"],
+          },
+        }),
+      );
     });
     await expect(page.locator("#dm-shutter-popup")).toContainText("25%");
     await page.evaluate(() => {
@@ -244,6 +253,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         STATES[id].state = "closed";
         STATES[id].attributes.current_position = 0;
       }
+      window.dispatchEvent(
+        new CustomEvent("dashboardmodern:state-changed", {
+          detail: {
+            entity_id: "cover.cucina",
+            entity_ids: ["cover.salone", "cover.cucina"],
+            state: STATES["cover.cucina"],
+          },
+        }),
+      );
     });
     await expect(shutter).toHaveCount(0);
     await expect(page.locator("#dm-shutter-popup")).toHaveCount(0);
