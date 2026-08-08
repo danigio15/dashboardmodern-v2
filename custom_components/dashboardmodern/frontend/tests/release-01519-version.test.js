@@ -13,7 +13,7 @@ const obsoleteEntryUrl = new URL("../legacy/report-mobile-fixes.js", import.meta
 const historyUrl = new URL("../src/sections/history-section.js", import.meta.url);
 const refreshUrl = new URL("../src/sections/energy-refresh-section.js", import.meta.url);
 const analysisUrl = new URL("../src/sections/energy-analysis-section.js", import.meta.url);
-const polishUrl = new URL("../src/sections/editor-polish-section.js", import.meta.url);
+const contractsUrl = new URL("../src/sections/editor-contracts-section.js", import.meta.url);
 
 test("the weekly Analysis and editor polish release is consistently versioned as 0.15.19", async () => {
   const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
@@ -46,13 +46,13 @@ test("weekly Analysis uses authenticated Recorder statistics and the canonical H
   assert.doesNotMatch(analysis, /setInterval\s*\(/);
 });
 
-test("editor polish covers Energy, appliance preview, Lights and Temperature without a global observer", async () => {
-  const polish = await readFile(polishUrl, "utf8");
-  assert.match(polish, /dm-energy-guide-steps/);
-  assert.match(polish, /dm-appliance-menu-glyph/);
-  assert.match(polish, /grid-template-areas:\"main edit delete\"/);
-  assert.match(polish, /dmTemperatureMode/);
-  assert.doesNotMatch(polish, /MutationObserver|setInterval\s*\(/);
+test("canonical editor contracts cover Energy, appliance preview, Lights and Temperature polish", async () => {
+  const contracts = await readFile(contractsUrl, "utf8");
+  assert.match(contracts, /dm-energy-guide-steps/);
+  assert.match(contracts, /dm-appliance-menu-glyph/);
+  assert.match(contracts, /grid-template-areas:\"main edit delete\"/);
+  assert.match(contracts, /dmTemperatureMode/);
+  assert.doesNotMatch(contracts, /MutationObserver|setInterval\s*\(/);
 });
 
 test("canonical appliance history still does not use the legacy REST token transport", async () => {
