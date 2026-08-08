@@ -1,4 +1,5 @@
 import { applianceArtwork } from "../core/appliance-artwork.js";
+import { canonicalApplianceVisualKey } from "../core/device-model.js";
 import {
   clean,
   dashboardStore,
@@ -37,18 +38,23 @@ function roomOptions(selected) {
   ].join("");
 }
 
+function editorVisualKey(value) {
+  const raw = clean(value).toLowerCase();
+  return canonicalApplianceVisualKey(raw) || raw || "generico";
+}
+
 function iconOptions(selected) {
-  const value = clean(selected).toLowerCase();
+  const value = editorVisualKey(selected);
   return ICONS.map(([key, glyph]) => `<option value="${key}" ${key === value ? "selected" : ""}>${glyph} ${key}</option>`).join("");
 }
 
 function iconGlyph(value) {
-  const key = clean(value).toLowerCase();
+  const key = editorVisualKey(value);
   return ICONS.find(([name]) => name === key)?.[1] || (key.startsWith("mdi:") ? "⚡" : "🔌");
 }
 
 function artworkPreview(value) {
-  return applianceArtwork(value, 72) || `<span class="dm-appliance-editor-fallback">${iconGlyph(value)}</span>`;
+  return applianceArtwork(editorVisualKey(value), 72) || `<span class="dm-appliance-editor-fallback">${iconGlyph(value)}</span>`;
 }
 
 function cumulativeEntity(value) {
@@ -99,7 +105,7 @@ export function openApplianceEditor(index) {
   const device = appliances()[index];
   if (!device) return false;
   doc?.getElementById("dm-appliance-editor-modal")?.remove();
-  const visual = clean(device.visual_key || device.device_type || device.icon || "generico").toLowerCase();
+  const visual = editorVisualKey(device.visual_key || device.device_type || device.icon || "generico");
   const totalInitial = [device.total_energy_entity, device.history_entity, device.report_entity]
     .map(clean)
     .find(cumulativeEntity) || "";
@@ -148,7 +154,7 @@ export function openApplianceEditor(index) {
       form.querySelector("[data-error]").textContent = t("Il sensore Energia totale deve avere state_class total o total_increasing.", "The Total energy sensor must have state_class total or total_increasing.");
       return;
     }
-    const visualKey = clean(values.icon) || "generico";
+    const visualKey = editorVisualKey(values.icon);
     const existingReport = clean(device.report_entity);
     const next = {
       ...device,
