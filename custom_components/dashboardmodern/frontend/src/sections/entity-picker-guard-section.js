@@ -26,6 +26,10 @@ function ensureId(input) {
 
 function choose(input) {
   if (!input?.isConnected) return;
+  // Defensive cleanup only for stale overlays. There must never be two entity
+  // picker dialogs with the same legacy id, otherwise selectors and focus break.
+  const open = [...doc.querySelectorAll("#cd-entpick")];
+  if (open.length > 1) open.slice(1).forEach((node) => node.remove());
   try {
     root.wzPickEntity?.(input);
   } catch (_error) {
@@ -38,30 +42,30 @@ function mountOne(input) {
   const id = ensureId(input);
   input.dataset.entityInput = "true";
   let button = input.nextElementSibling?.matches?.(".dm-entity-picker,button[onclick*='wzPickEntity']") ? input.nextElementSibling : null;
-  if (!button) {
-    button = input.parentElement?.querySelector?.(`.dm-entity-picker[data-entity-target="${CSS.escape(id)}"]`) || null;
-  }
-  if (!button) {
+  if (!button) button = input.parentElement?.querySelector?.(`.dm-entity-picker[data-entity-target="${CSS.escape(id)}"]`) || null;
+
+  // Existing buttons belong to the canonical editor and already own their
+  // click handler. Never layer another listener on top: that was the source of
+  // the intermittent double #cd-entpick dialog and the disappearing lens.
+  const created = !button;
+  if (created) {
     button = doc.createElement("button");
     button.type = "button";
     button.className = "dm-entity-picker";
     button.textContent = "🔍";
-    input.insertAdjacentElement("afterend", button);
-  }
-  button.classList.add("dm-entity-picker");
-  button.type = "button";
-  button.dataset.entityTarget = id;
-  button.setAttribute("aria-label", `Seleziona entità per ${input.getAttribute("aria-label") || input.name || id}`);
-  button.removeAttribute("onclick");
-  button.onclick = null;
-  if (button.dataset.dmPersistentPicker !== "true") {
     button.dataset.dmPersistentPicker = "true";
     button.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
       choose(input);
     });
+    input.insertAdjacentElement("afterend", button);
   }
+
+  button.classList.add("dm-entity-picker");
+  button.type = "button";
+  button.dataset.entityTarget = id;
+  button.setAttribute("aria-label", button.getAttribute("aria-label") || `Seleziona entità per ${input.getAttribute("aria-label") || input.name || id}`);
   const parent = input.parentElement;
   if (parent && ["LABEL", "SPAN", "DIV"].includes(parent.tagName)) parent.classList.add("dm-entity-picker-row");
   return true;
@@ -69,6 +73,7 @@ function mountOne(input) {
 
 export function reconcileEntityPickers(scope = doc) {
   if (!scope?.querySelectorAll) return 0;
+  // Let the canonical renderer mount first. The guard only fills genuine gaps.
   try { root.DashboardModernModules?.render?.mountEntityPickers?.(scope); } catch (_error) {}
   let count = 0;
   scope.querySelectorAll("input").forEach((input) => { if (mountOne(input)) count += 1; });
@@ -82,6 +87,8 @@ function schedule() {
     for (const scope of [doc.getElementById("ed-body"), doc.getElementById("editor-modal"), doc.getElementById("setup-wizard"), ...doc.querySelectorAll(".dm-section-modal")].filter(Boolean)) {
       reconcileEntityPickers(scope);
     }
+    const duplicates = [...doc.querySelectorAll("#cd-entpick")];
+    if (duplicates.length > 1) duplicates.slice(1).forEach((node) => node.remove());
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0);
 }
