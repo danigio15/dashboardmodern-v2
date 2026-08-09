@@ -1,7 +1,98 @@
-import { doc, installStyle } from "./shared.js";
+import { clean, doc, installStyle, root, section } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_APPLIANCE_LAYOUT_SECTION__";
-const state = (globalThis[KEY] ||= { installed: false });
+const state = (globalThis[KEY] ||= { installed: false, popupObserver: null });
+
+function configuredEntity(value) {
+  return clean(typeof value === "string" ? value : value?.entity || value?.entity_id);
+}
+
+function applianceEntities(device = {}) {
+  return new Set(
+    [
+      device.daily_energy_entity,
+      device.energy_today,
+      device.daily_energy,
+      device.total_energy_entity,
+      device.history_entity,
+      device.report_entity,
+      device.energy_entity,
+      device.energy,
+      ...(device.entities || []),
+    ]
+      .map(configuredEntity)
+      .filter(Boolean),
+  );
+}
+
+function popupDeviceForRow(row, appliances) {
+  const entity = clean(row?.dataset?.dmDailyEntity);
+  if (entity) {
+    const direct = appliances.find((device) => applianceEntities(device).has(entity));
+    if (direct) return direct;
+  }
+  const name = clean(row?.querySelector?.(".dm-appliance-daily-row-main strong")?.textContent).toLowerCase();
+  if (!name) return null;
+  return appliances.find((device) => clean(device?.name).toLowerCase() === name) || null;
+}
+
+function cardArtworkForDevice(device) {
+  const id = clean(device?.id);
+  const cards = [
+    ...(doc?.querySelectorAll?.(
+      "#page-appliances-main .appl-wide-card[data-appliance-id],#appl-grid-overview .appl-wide-card[data-appliance-id]",
+    ) || []),
+  ];
+  let card = id ? cards.find((candidate) => clean(candidate.dataset.applianceId) === id) : null;
+  if (!card) {
+    const name = clean(device?.name).toLowerCase();
+    card = cards.find(
+      (candidate) => clean(candidate.querySelector(".appl-wide-name")?.textContent).toLowerCase() === name,
+    );
+  }
+  return card?.querySelector?.(".appl-visual .appl-ic") || null;
+}
+
+function syncDailyPopupArtwork() {
+  const list = doc?.querySelector?.("#dm-appliance-daily-popup [data-dm-daily-popup-list]");
+  if (!list) return false;
+  const appliances = section("appliances", []);
+  if (!Array.isArray(appliances) || !appliances.length) return false;
+
+  list.querySelectorAll(".dm-appliance-daily-row").forEach((row) => {
+    const device = popupDeviceForRow(row, appliances);
+    if (!device) return;
+    const source = cardArtworkForDevice(device);
+    if (!source) return;
+
+    let visual = row.querySelector(":scope > .dm-appliance-daily-visual");
+    if (!visual) {
+      visual = doc.createElement("span");
+      visual.className = "dm-appliance-daily-visual";
+      row.prepend(visual);
+    }
+    const deviceId = clean(device.id);
+    if (visual.dataset.applianceId === deviceId && visual.firstElementChild) return;
+    const clone = source.cloneNode(true);
+    clone.removeAttribute("id");
+    visual.replaceChildren(clone);
+    visual.dataset.applianceId = deviceId;
+  });
+  return true;
+}
+
+function installDailyPopupArtwork() {
+  if (!doc || state.popupObserver) return;
+  const list = doc.querySelector("#dm-appliance-daily-popup [data-dm-daily-popup-list]");
+  if (!list) {
+    root.queueMicrotask?.(installDailyPopupArtwork);
+    return;
+  }
+  syncDailyPopupArtwork();
+  if (typeof root.MutationObserver !== "function") return;
+  state.popupObserver = new root.MutationObserver(() => syncDailyPopupArtwork());
+  state.popupObserver.observe(list, { childList: true });
+}
 
 function installStyles() {
   installStyle(
@@ -37,6 +128,15 @@ function installStyles() {
       #page-appliances-main [data-dm-power-toggle="true"],#appl-grid-overview [data-dm-power-toggle="true"]{width:100%!important;background:var(--success-color,#059669)!important;color:#fff!important;border:0!important}
       #page-appliances-main .appl-actions button[hidden],#appl-grid-overview .appl-actions button[hidden],#page-appliances-main [data-dm-power-toggle="true"][hidden],#appl-grid-overview [data-dm-power-toggle="true"][hidden]{display:none!important;visibility:hidden!important}
 
+      /* The daily popup reuses the exact rendered artwork of each appliance
+         card. This higher-specificity rule replaces the generic lightning
+         pseudo-element installed by the dashboard-style popup layer. */
+      html #dm-appliance-daily-popup .dm-appliance-daily-row::before{content:none!important;display:none!important}
+      #dm-appliance-daily-popup .dm-appliance-daily-visual{position:absolute!important;left:18px!important;top:50%!important;width:54px!important;height:54px!important;transform:translateY(-50%)!important;display:grid!important;place-items:center!important;overflow:hidden!important;border-radius:18px!important;background:linear-gradient(145deg,#e0f2fe,#f0f9ff)!important;box-shadow:inset 0 0 0 1px rgba(14,165,233,.12),0 8px 22px rgba(14,165,233,.09)!important}
+      #dm-appliance-daily-popup .dm-appliance-daily-visual>.appl-ic{display:grid!important;place-items:center!important;width:54px!important;height:54px!important;min-width:54px!important;min-height:54px!important;margin:0!important;padding:0!important;border:0!important;border-radius:17px!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important}
+      #dm-appliance-daily-popup .dm-appliance-daily-visual .dm-appliance-image-wrap,#dm-appliance-daily-popup .dm-appliance-daily-visual .dm-appliance-image{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;border-radius:15px!important;object-fit:cover!important;object-position:center!important}
+      #dm-appliance-daily-popup .dm-appliance-daily-visual svg,#dm-appliance-daily-popup .dm-appliance-daily-visual ha-icon{display:block!important;width:50px!important;height:50px!important;max-width:50px!important;max-height:50px!important;--mdc-icon-size:50px}
+
       @media(max-width:520px){
         #appl-grid-overview,#page-appliances-main .appl-page-grid,#page-appliances-main .appl-grid,#page-appliances-main [data-appliance-grid]{grid-template-columns:minmax(0,370px)!important;justify-content:center!important;gap:12px!important;padding-inline:10px!important}
         #page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{grid-template-columns:92px minmax(0,1fr)!important;width:100%!important;max-width:370px!important;min-height:126px!important;border-radius:18px!important}
@@ -47,6 +147,9 @@ function installStyles() {
         #page-appliances-main .appl-st,#appl-grid-overview .appl-st{max-width:80px!important;font-size:8.5px!important;padding-inline:5px!important}
         #page-appliances-main .appl-actions,#appl-grid-overview .appl-actions{grid-template-columns:minmax(78px,.72fr) minmax(92px,1fr)!important;gap:5px!important}
         #page-appliances-main .appl-actions button,#appl-grid-overview .appl-actions button,#page-appliances-main [data-dm-power-toggle="true"],#appl-grid-overview [data-dm-power-toggle="true"]{min-height:31px!important;height:31px!important;padding:5px 6px!important;font-size:9.5px!important}
+        #dm-appliance-daily-popup .dm-appliance-daily-visual{left:14px!important;width:50px!important;height:50px!important;border-radius:17px!important}
+        #dm-appliance-daily-popup .dm-appliance-daily-visual>.appl-ic{width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important}
+        #dm-appliance-daily-popup .dm-appliance-daily-visual svg,#dm-appliance-daily-popup .dm-appliance-daily-visual ha-icon{width:46px!important;height:46px!important;max-width:46px!important;max-height:46px!important;--mdc-icon-size:46px}
       }
     `,
   );
@@ -56,6 +159,7 @@ export function installApplianceLayoutSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
+  installDailyPopupArtwork();
 }
 
 if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", installApplianceLayoutSection, { once: true });
