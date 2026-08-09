@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { clickBottomTab } from "./helpers/navigation.js";
 
 const states = [
   {
@@ -139,7 +140,7 @@ async function boot(page, variant, testInfo) {
     }),
     states,
   );
-  await page.locator(".tab[data-tab='appliances-main']").click();
+  await clickBottomTab(page, "appliances", testInfo);
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
