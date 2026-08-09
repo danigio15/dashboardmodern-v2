@@ -10,20 +10,33 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.24-0ea5e9" alt="Versione 0.15.24">
+  <img src="https://img.shields.io/badge/version-0.15.25-0ea5e9" alt="Versione 0.15.25">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.24
-> makes the daily appliance breakdown reuse the exact configured appliance
-> artwork and ships the complete local integration brand asset set.
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.25
+> adds running and instant-power appliance details, removes the obsolete Alerts
+> KPI and keeps appliance popups centered across desktop and mobile.
 
 ---
 
-## Novità 0.15.24
+## Novità 0.15.25
+
+La 0.15.25 rifinisce i KPI della sezione **Elettrodomestici** senza modificare il motore Energia.
+
+- **Dispositivi accesi** diventa **In funzione** e conta soltanto gli elettrodomestici realmente in stato `running`, non una presa semplicemente accesa;
+- cliccando **In funzione** si apre un popup con i soli apparecchi realmente attivi, artwork, stanza, potenza e stato;
+- **Consumo istantaneo** è cliccabile e mostra il dettaglio Watt per apparecchio, ordinato per assorbimento, con percentuale sul totale;
+- la KPI **Avvisi** viene rimossa dalla sezione Elettrodomestici;
+- i popup In funzione, Consumo istantaneo ed Energia giornaliera restano centrati anche su mobile;
+- il popup Energia giornaliera usa un raggio angoli di 12 px;
+- la sincronizzazione dei KPI segue lo stesso lifecycle dei renderer Elettrodomestici, senza introdurre polling periodico o nuovi `MutationObserver`;
+- Browser E2E verifica italiano/inglese, desktop/mobile/WebKit, conteggi, potenze, artwork e centratura dei popup.
+
+### 0.15.24 — artwork popup e brand
 
 La 0.15.24 rifinisce l'identità visiva del popup **Energia giornaliera** e il packaging del brand dell'integrazione.
 
