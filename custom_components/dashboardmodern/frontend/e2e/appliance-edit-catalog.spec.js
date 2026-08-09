@@ -103,10 +103,17 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(modal.locator('input[name="control_entity"]')).toHaveValue("switch.frigo");
     await expect(modal.locator('input[name="power_entity"]')).toHaveValue("sensor.frigo_power");
 
-    const iconParity = await modal.locator("[data-icon-preview]").evaluate((node) => ({
-      actual: node.innerHTML,
-      expected: window.cdApplianceIcon("frigo", 58),
-    }));
+    // Compare the browser-normalized SVG DOM, not raw HTML source syntax. HTML
+    // parsers expand SVG self-closing tags, while cdApplianceIcon() returns the
+    // source string; both must still resolve to the exact same rendered SVG.
+    const iconParity = await modal.locator("[data-icon-preview]").evaluate((node) => {
+      const expectedHost = document.createElement("span");
+      expectedHost.innerHTML = window.cdApplianceIcon("frigo", 58);
+      return {
+        actual: node.querySelector("svg")?.outerHTML || "",
+        expected: expectedHost.querySelector("svg")?.outerHTML || "",
+      };
+    });
     expect(iconParity.actual).toBe(iconParity.expected);
 
     await trigger.click();
