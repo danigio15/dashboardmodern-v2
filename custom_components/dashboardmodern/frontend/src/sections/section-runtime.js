@@ -29,7 +29,7 @@ import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
 import { installEvSection } from "./ev-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
-import { allStates, clean, english, section } from "./shared.js";
+import { allStates, clean, english, section, wrapFunction } from "./shared.js";
 
 const root = globalThis;
 const RUNTIME_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME__";
@@ -81,7 +81,7 @@ function installApplianceDailyPopupStyle() {
       width:min(620px,100%)!important;
       max-height:min(82vh,760px)!important;
       border:1px solid rgba(148,163,184,.24)!important;
-      border-radius:34px!important;
+      border-radius:12px!important;
       background:
         radial-gradient(circle at 8% 2%,rgba(125,211,252,.24),transparent 33%),
         radial-gradient(circle at 94% 18%,rgba(167,243,208,.18),transparent 30%),
@@ -251,7 +251,7 @@ function installApplianceDailyPopupStyle() {
       #dm-appliance-daily-popup .dm-appliance-daily-dialog {
         width:min(620px,calc(100vw - 28px))!important;
         max-height:min(82vh,720px)!important;
-        border-radius:30px!important;
+        border-radius:12px!important;
       }
       #dm-appliance-daily-popup .dm-appliance-daily-head {
         padding:22px 18px 13px!important;
@@ -544,6 +544,9 @@ function installApplianceKpiPopups() {
     };
     state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0);
   };
+  for (const name of ["renderAppliances", "renderApplianceSection", "render"]) {
+    wrapFunction(name, "__dmApplianceKpiPopups", schedule);
+  }
   doc.addEventListener("click", (event) => {
     const card = event.target?.closest?.('#appl-kpi-grid [data-dm-appliance-kpi="running"],#appl-kpi-grid [data-dm-appliance-kpi="power"]');
     if (card) {
