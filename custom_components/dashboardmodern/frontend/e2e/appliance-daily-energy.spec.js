@@ -144,7 +144,7 @@ async function boot(page, variant, testInfo) {
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: daily appliance KPI opens dashboard-style breakdown without visible entity labels`, async ({ page }, testInfo) => {
+  test(`${variant}: daily appliance KPI opens dashboard-style breakdown with the configured appliance artwork`, async ({ page }, testInfo) => {
     if (testInfo.project.name === "webkit-ipad") test.slow(true, "Recorder-backed popup is slower on WebKit/iPad");
     await boot(page, variant, testInfo);
 
@@ -152,6 +152,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(dailyCard).toBeVisible();
     await expect.poll(async () => dailyCard.locator(".g-val").textContent()).toMatch(/0[.,]86 kWh/i);
     await expect(dailyCard.locator(".g-val")).not.toContainText("20.0");
+
+    const fridgeCardArt = page.locator('.appl-wide-card[data-appliance-id="fridge"] .appl-ic [data-dm-art="fridge"]');
+    const microwaveCardArt = page.locator('.appl-wide-card[data-appliance-id="microwave"] .appl-ic [data-dm-art="microwave"]');
+    await expect(fridgeCardArt).toBeVisible();
+    await expect(microwaveCardArt).toBeVisible();
 
     await dailyCard.click();
     const popup = page.locator("#dm-appliance-daily-popup");
@@ -163,6 +168,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(popup.locator(".dm-appliance-daily-note")).toBeHidden();
     await expect(popup).toContainText(/0[.,]81 kWh/i);
     await expect(popup).toContainText(/0[.,]05 kWh/i);
+
+    const fridgeRow = popup.locator('[data-dm-daily-entity="sensor.fridge_today"]');
+    const microwaveRow = popup.locator('[data-dm-daily-entity="sensor.microwave_total"]');
+    await expect(fridgeRow.locator('.dm-appliance-daily-visual [data-dm-art="fridge"]')).toBeVisible();
+    await expect(microwaveRow.locator('.dm-appliance-daily-visual [data-dm-art="microwave"]')).toBeVisible();
+    await expect
+      .poll(async () => fridgeRow.evaluate((node) => getComputedStyle(node, "::before").content))
+      .not.toContain("⚡");
 
     const visibleCopy = await popup.evaluate((node) => node.innerText);
     expect(visibleCopy).not.toContain("sensor.fridge_today");
