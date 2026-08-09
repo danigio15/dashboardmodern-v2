@@ -1,7 +1,7 @@
 import { clean, doc, installStyle, root, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENTITY_PICKER_GUARD__";
-const state = (root[KEY] ||= { installed: false, observer: null, frame: 0 });
+const state = (root[KEY] ||= { installed: false, frame: 0, subscribed: false });
 const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
 
 function isEntityInput(input) {
@@ -86,6 +86,14 @@ function schedule() {
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0);
 }
 
+function subscribeStore() {
+  if (state.subscribed) return;
+  const store = root.DashboardModernModules?.store;
+  if (typeof store?.subscribe !== "function") return;
+  state.subscribed = true;
+  store.subscribe(() => schedule());
+}
+
 function installStyles() {
   installStyle("dm-entity-picker-guard-style", `
     .dm-entity-picker-row{display:flex!important;align-items:stretch!important;gap:8px!important;min-width:0!important}
@@ -101,20 +109,21 @@ export function installEntityPickerGuardSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
-  const observe = () => {
-    if (!doc.body || state.observer) return;
-    state.observer = new MutationObserver(schedule);
-    state.observer.observe(doc.body, { childList: true, subtree: true });
-    schedule();
-  };
-  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", observe, { once: true }); else observe();
   root.addEventListener?.("dashboardmodern:legacy-ready", () => {
-    for (const name of ["editorSwitch", "edFilterSez", "renderEditorTab", "renderEnergyEditorTab"]) wrapFunction(name, `__dmPickerGuard_${name}`, schedule);
+    for (const name of ["editorSwitch", "edFilterSez", "renderEditorTab", "renderEnergyEditorTab", "editorRenderLuci", "editorRenderStanze"]) {
+      wrapFunction(name, `__dmPickerGuard_${name}`, schedule);
+    }
+    subscribeStore();
     schedule();
   });
-  root.addEventListener?.("dashboardmodern:runtime-ready", schedule);
+  root.addEventListener?.("dashboardmodern:runtime-ready", () => { subscribeStore(); schedule(); });
+  root.addEventListener?.("dashboardmodern:period-bundle", schedule);
+  root.addEventListener?.("dashboardmodern:energy-bundle", schedule);
   doc.addEventListener("click", (event) => {
-    if (event.target?.closest?.(".ed-tab,[data-tab],[data-dm-edit-kind]")) root.setTimeout?.(schedule, 0);
+    if (event.target?.closest?.(".ed-tab,[data-tab],[data-dm-edit-kind],.ed-btn-add,.ed-save-btn,.ed-del")) root.setTimeout?.(schedule, 0);
+  }, true);
+  doc.addEventListener("change", (event) => {
+    if (event.target?.closest?.("#editor-modal,#ed-body,.dm-section-modal,#setup-wizard")) root.setTimeout?.(schedule, 0);
   }, true);
   schedule();
 }
