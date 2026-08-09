@@ -153,8 +153,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect.poll(async () => dailyCard.locator(".g-val").textContent()).toMatch(/0[.,]86 kWh/i);
     await expect(dailyCard.locator(".g-val")).not.toContainText("20.0");
 
-    const fridgeCardArt = page.locator('.appl-wide-card[data-appliance-id="fridge"] .appl-ic [data-dm-art="fridge"]');
-    const microwaveCardArt = page.locator('.appl-wide-card[data-appliance-id="microwave"] .appl-ic [data-dm-art="microwave"]');
+    const overview = page.locator("#appl-grid-overview");
+    const fridgeCardArt = overview.locator('.appl-wide-card[data-appliance-id="fridge"] .appl-ic [data-dm-art="fridge"]');
+    const microwaveCardArt = overview.locator('.appl-wide-card[data-appliance-id="microwave"] .appl-ic [data-dm-art="microwave"]');
     await expect(fridgeCardArt).toBeVisible();
     await expect(microwaveCardArt).toBeVisible();
 
