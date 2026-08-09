@@ -278,7 +278,11 @@ function ensureEvAppearanceEditor() {
     button.disabled = true;
     panel.dataset.saved = "saving";
     try {
-      await saveEvAppearance(clean(brandSelect.value), clean(iconInput.value) || "mdi:car-electric");
+      const livePanel = button.closest("[data-ev-appearance]") || panel;
+      const liveBrand = clean(livePanel?.querySelector("select[data-brand]")?.value);
+      const liveIcon = clean(livePanel?.querySelector("input[data-icon]")?.value) || "mdi:car-electric";
+      if (!liveBrand) throw new Error(t("Seleziona un brand auto.", "Choose a car brand."));
+      await saveEvAppearance(liveBrand, liveIcon);
       panel.dataset.saved = "true";
     } catch (error) {
       panel.dataset.saved = "error";

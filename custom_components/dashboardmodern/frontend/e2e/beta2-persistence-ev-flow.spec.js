@@ -132,6 +132,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(appearance).toBeVisible();
     await appearance.locator("select[data-brand]").selectOption("BMW");
     await appearance.locator("input[data-icon]").fill("mdi:car-sports");
+    await expect(appearance.locator("select[data-brand]")).toHaveValue("BMW");
     await appearance.locator("button[data-save]").click();
 
     await expect.poll(() =>
