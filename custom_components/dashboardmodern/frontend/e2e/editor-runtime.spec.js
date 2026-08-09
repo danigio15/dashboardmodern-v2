@@ -1,10 +1,27 @@
 import { expect, test } from "@playwright/test";
 import { clickStableButton } from "./helpers/navigation.js";
 
+async function disableSriForMockedExternalScripts(page) {
+  // These E2E routes replace the pinned CDN files with deterministic stubs.
+  // Their bytes intentionally differ from production, so SRI would reject the
+  // stubs. Strip SRI only from the document served inside this test; the
+  // committed legacy HTML remains pinned/SRI-protected and is validated by the
+  // release-hardening frontend contract.
+  await page.route(/\/legacy\/dashboard(?:-en)?\.html(?:\?.*)?$/, async (route) => {
+    const response = await route.fetch();
+    const body = (await response.text()).replace(
+      /\s+integrity="sha384-[^"]+"\s+crossorigin="anonymous"/g,
+      "",
+    );
+    await route.fulfill({ response, body });
+  });
+}
+
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: missing Chart.js still reaches legacy readiness`, async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(`${error.message}\n${error.stack || ""}`));
+    await disableSriForMockedExternalScripts(page);
     await page.route("https://**", (route) => {
       const url = route.request().url();
       if (url.startsWith("https://fonts.googleapis.com/"))
@@ -106,6 +123,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       pageErrors.push(detail);
       rejectEarlyPageError(new Error(`Page error before runtime readiness:\n${detail}`));
     });
+    await disableSriForMockedExternalScripts(page);
     await page.route("https://**", async (route) => {
       const url = route.request().url();
       if (url.startsWith("https://fonts.googleapis.com/"))
