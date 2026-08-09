@@ -10,20 +10,33 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.21-0ea5e9" alt="Versione 0.15.21">
+  <img src="https://img.shields.io/badge/version-0.15.22-0ea5e9" alt="Versione 0.15.22">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.21
-> restores full appliance catalog parity between Add and Edit, preserves linked
-> entities while editing, and hardens stale frontend asset recovery after updates.
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.22
+> fixes current-day Energy freshness, prevents appliance lifetime counters from
+> being displayed as daily consumption, and adds a per-entity daily breakdown.
 
 ---
 
-## Novità 0.15.21
+## Novità 0.15.22
+
+La 0.15.22 corregge i valori **Energia giornaliera** e il totale giornaliero degli **Elettrodomestici** verificati contro i dati reali dell'impianto.
+
+- i contatori cumulativi usati per il giorno corrente vengono letti con statistiche Recorder a breve intervallo, evitando che FV, rete, batteria e Casa restino indietro dell'ora ancora aperta;
+- il bilancio Casa resta quello canonico: `FV + Rete prelevata + Batteria scaricata − Rete immessa − Batteria caricata`;
+- un sensore totale/lifetime di un elettrodomestico non viene mai più sommato direttamente nel KPI **Energia giornaliera**;
+- se esiste un sensore giornaliero esplicito viene usato direttamente; altrimenti un contatore `total` / `total_increasing` viene trasformato nel delta di oggi tramite Recorder;
+- sensori energia non cumulativi e non dichiarati come giornalieri non entrano nel totale;
+- cliccando il totale **Energia giornaliera** degli Elettrodomestici si apre un popup responsive con dispositivo, entità sorgente, kWh, percentuale e tipo di sorgente;
+- dal dettaglio è possibile passare allo storico della singola entità quando disponibile;
+- Browser E2E e test unitari coprono esplicitamente il caso in cui un contatore lifetime da 20 kWh non deve diventare consumo di oggi.
+
+### 0.15.21 — catalogo Elettrodomestici e runtime frontend
 
 La 0.15.21 completa la correzione Elettrodomestici e del runtime frontend emersa dopo la 0.15.20.
 
