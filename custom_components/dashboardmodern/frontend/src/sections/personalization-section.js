@@ -76,15 +76,6 @@ function decorateRoomModal() {
   refresh();
 }
 
-function persistActionIcon(index, chosen) {
-  if (index < 0 || !chosen) return;
-  const list = readJson("cd_quick_actions", []);
-  if (!Array.isArray(list) || !list[index]) return;
-  list[index] = { ...list[index], icon: chosen };
-  writeJsonIfChanged("cd_quick_actions", list);
-  root.buildQuickActions?.();
-}
-
 function decorateActionModal() {
   const modal = doc?.getElementById("dm-action-editor-modal");
   if (!modal || modal.dataset.dmPersonalized === "true") return;
@@ -106,11 +97,6 @@ function decorateActionModal() {
   button.setAttribute("aria-label", t("Scegli icona azione", "Choose action icon"));
   button.addEventListener("click", () => openVisualPicker(input, "action"));
   row.append(button);
-  form.addEventListener("submit", () => {
-    const chosen = clean(input.value);
-    const index = state.actionEditIndex;
-    root.setTimeout?.(() => persistActionIcon(index, chosen), 0);
-  });
 }
 
 function temperatureRoomVisuals() {
@@ -217,19 +203,36 @@ function ensureSectionRenamer() {
 }
 
 function evVisual() {
-  const cars = readJson("cd_ev_cars", []);
-  const active = Number(root.localStorage?.getItem("cd_ev_car_active") ?? -1);
-  const current = Array.isArray(cars) && active >= 0 ? cars[active] : null;
+  const storeCars = root.DashboardModernModules?.store?.getSection?.("ev");
+  const legacyCars = readJson("cd_ev_cars", []);
+  const cars = Array.isArray(storeCars) && storeCars.length
+    ? storeCars
+    : Array.isArray(legacyCars)
+      ? legacyCars
+      : [];
+  const requested = Number(root.localStorage?.getItem("cd_ev_car_active") ?? -1);
+  const active = cars.length
+    ? Math.max(0, Math.min(cars.length - 1, Number.isFinite(requested) ? requested : 0))
+    : -1;
+  const current = active >= 0 ? cars[active] : null;
   return { cars, active, current, fallback: readJson("cd_ev_visual", {}) };
 }
 
-function saveEvAppearance(brand, icon) {
-  const { cars, active } = evVisual();
-  if (Array.isArray(cars) && active >= 0 && cars[active]) {
+async function saveEvAppearance(brand, icon) {
+  const { cars, active, current } = evVisual();
+  const store = root.DashboardModernModules?.store;
+  if (current?.id && typeof store?.updateItem === "function") {
+    await store.updateItem("ev", current.id, { brand, icon });
+  } else if (Array.isArray(cars) && active >= 0 && cars[active]) {
     cars[active] = { ...cars[active], brand, icon };
     writeJsonIfChanged("cd_ev_cars", cars);
-  } else writeJsonIfChanged("cd_ev_visual", { brand, icon });
+  } else {
+    writeJsonIfChanged("cd_ev_visual", { brand, icon });
+  }
+  root.cdEvCarsRefresh?.();
+  root.dmRenderVehicleSelector?.();
   applyEvAppearance();
+  schedule();
 }
 
 function applyEvAppearance() {
@@ -270,7 +273,20 @@ function ensureEvAppearanceEditor() {
   panel.querySelector("[data-brand-preview]").addEventListener("click", () => openVisualPicker(brandSelect, "car"));
   panel.querySelector("[data-icon-pick]").addEventListener("click", () => openVisualPicker(iconInput, "action"));
   iconInput.addEventListener("input", () => { panel.querySelector("[data-icon-preview]").innerHTML = iconMarkup(iconInput.value, 42); });
-  panel.querySelector("[data-save]").addEventListener("click", () => saveEvAppearance(clean(brandSelect.value), clean(iconInput.value) || "mdi:car-electric"));
+  panel.querySelector("[data-save]").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    panel.dataset.saved = "saving";
+    try {
+      await saveEvAppearance(clean(brandSelect.value), clean(iconInput.value) || "mdi:car-electric");
+      panel.dataset.saved = "true";
+    } catch (error) {
+      panel.dataset.saved = "error";
+      console.error("[DashboardModern] EV appearance save failed", error);
+    } finally {
+      button.disabled = false;
+    }
+  });
 }
 
 function correctDisplayedVersion() {

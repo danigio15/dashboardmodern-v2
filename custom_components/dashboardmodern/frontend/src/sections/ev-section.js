@@ -1,3 +1,4 @@
+import { carBrandVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, readJson, root, section, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EV_SECTION__";
@@ -173,6 +174,17 @@ function profileMeta(car = {}) {
   return Number.isFinite(value) ? `${Math.round(value)}%` : t("Profilo EV", "EV profile");
 }
 
+function vehicleProfileVisual(car = {}) {
+  const brand = clean(car.brand);
+  if (brand) return carBrandVisual(brand, 30);
+  const icon = clean(car.icon || "mdi:car-electric");
+  try {
+    return root.cdIconMarkup?.(icon, 28) || "🚗";
+  } catch (_error) {
+    return "🚗";
+  }
+}
+
 function nativeHost() {
   return doc?.getElementById("ev-car-picker") || null;
 }
@@ -210,11 +222,11 @@ export function renderVehicleSelector() {
     nav.setAttribute("aria-label", t("Seleziona auto", "Select vehicle"));
     host.append(nav);
   }
-  if (cars.length < 2) {
+  if (!cars.length) {
     nav.replaceChildren();
-    host.dataset.profileCount = String(cars.length);
-    host.style.display = cars.length ? "" : "none";
-    return Boolean(cars.length);
+    host.dataset.profileCount = "0";
+    host.style.display = "none";
+    return false;
   }
   host.style.display = "";
   host.dataset.profileCount = String(cars.length);
@@ -226,7 +238,7 @@ export function renderVehicleSelector() {
     button.dataset.vehicleIndex = String(index);
     button.classList.toggle("active", index === selected);
     button.setAttribute("aria-pressed", String(index === selected));
-    button.innerHTML = `<span class="dm-vehicle-profile-icon">🚗</span><span class="dm-vehicle-profile-copy"><strong>${esc(car.name || `${t("Auto", "Vehicle")} ${index + 1}`)}</strong><small>${esc(profileMeta(car))}</small></span><span class="dm-vehicle-profile-check" aria-hidden="true">${index === selected ? "✓" : ""}</span>`;
+    button.innerHTML = `<span class="dm-vehicle-profile-icon">${vehicleProfileVisual(car)}</span><span class="dm-vehicle-profile-copy"><strong>${esc(car.name || `${t("Auto", "Vehicle")} ${index + 1}`)}</strong><small>${esc(profileMeta(car))}</small></span><span class="dm-vehicle-profile-check" aria-hidden="true">${index === selected ? "✓" : ""}</span>`;
     button.addEventListener("click", () => chooseProfile(index));
     return button;
   });
@@ -289,6 +301,7 @@ function installStyles() {
 
 export function installEvSection() {
   if (!doc) return;
+  root.dmRenderVehicleSelector = renderVehicleSelector;
   installStyles();
   installLegacyWrappers();
   scheduleEvSync();

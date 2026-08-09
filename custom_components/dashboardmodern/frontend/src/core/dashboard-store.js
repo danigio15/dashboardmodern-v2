@@ -134,7 +134,7 @@ export class DashboardStore {
     const store = this;
     this.storage.setItem = function (key, value) {
       const result = original(key, value);
-      if (!store.projecting && (key === "cd_sections" || Object.values(SECTION_KEYS).includes(key)))
+      if (!store.projecting && !globalThis.__DASHBOARDMODERN_PERSIST_RESTORE__ && (key === "cd_sections" || Object.values(SECTION_KEYS).includes(key)))
         queueMicrotask(() => store.reconcileLegacyWrite(key, value));
       return result;
     };
