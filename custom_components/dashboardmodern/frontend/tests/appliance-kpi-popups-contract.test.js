@@ -9,8 +9,9 @@ test("appliance KPI runtime keeps running semantics, removes alerts and centers 
   assert.match(source, /model\.mode === "running"/);
   assert.match(source, /alerts\.remove\(\)/);
   assert.match(source, /IN FUNZIONE/);
-  assert.match(source, /dm-appliance-running-popup/);
-  assert.match(source, /dm-appliance-power-popup/);
+  assert.match(source, /const id = `dm-appliance-\$\{kind\}-popup`/);
+  assert.match(source, /ensureApplianceKpiPopup\("running"\)/);
+  assert.match(source, /ensureApplianceKpiPopup\("power"\)/);
   assert.match(source, /place-items:center!important/);
   assert.match(source, /#dm-appliance-daily-popup\.dm-appliance-daily-overlay[\s\S]*align-items:center!important/);
   assert.doesNotMatch(source, /align-items:flex-end!important/);
