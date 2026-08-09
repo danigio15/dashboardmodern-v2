@@ -1,7 +1,7 @@
 import { clean, doc, esc, installStyle, readJson, root, t, writeJsonIfChanged, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EDITOR_POLISH__";
-const state = (root[KEY] ||= { installed: false, observer: null, frame: 0 });
+const state = (root[KEY] ||= { installed: false, frame: 0, subscribed: false });
 
 function rooms() {
   const list = readJson("cd_stanze", []);
@@ -196,6 +196,16 @@ function schedule() {
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0);
 }
 
+function subscribeStore() {
+  if (state.subscribed) return;
+  const store = root.DashboardModernModules?.store;
+  if (typeof store?.subscribe !== "function") return;
+  state.subscribed = true;
+  store.subscribe((change) => {
+    if (["lights", "rooms", "entityOverrides", "snapshot"].includes(change?.section)) schedule();
+  });
+}
+
 function installStyles() {
   installStyle("dm-editor-polish-style", `
     .dm-lights-card,.dm-light-add,.dm-server-compact{margin-bottom:18px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:20px!important;background:var(--card-background-color,#fff)!important;padding:18px!important}.dm-light-row{display:grid!important;grid-template-columns:46px minmax(0,1fr) minmax(180px,280px) 48px!important;gap:12px!important;align-items:center!important;padding:13px!important}.dm-light-bulb,.dm-server-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:color-mix(in srgb,#f59e0b 12%,transparent);font-size:20px}.dm-light-entity{font-size:12px!important;margin-top:5px!important;overflow-wrap:anywhere}.dm-light-room{margin:0!important}.dm-light-add>.ed-form-row{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important}.dm-light-add .ed-slot{margin:0!important}.dm-server-add{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;margin:12px 0 16px}.dm-server-list{display:grid!important;gap:10px!important}.dm-server-row{display:grid!important;grid-template-columns:48px minmax(0,1fr) 48px!important;gap:12px!important;align-items:start!important}.dm-server-row .ed-form-row{margin-top:9px!important}.dm-server-row .dm-entity-picker{height:48px!important;min-height:48px!important}.dm-actions-editor{display:grid!important;gap:16px!important}.dm-actions-editor .ed-acc,.dm-actions-editor>.ed-form,.dm-actions-editor>.ed-list{border-radius:20px!important}.dm-actions-editor .ed-row{border-radius:14px!important}.dm-action-picker-button{display:grid;place-items:center;flex:0 0 48px;width:48px;height:48px;border:0;border-radius:13px;background:linear-gradient(145deg,#dff4ff,#b9e6fb);color:#0369a1;cursor:pointer;font-size:18px}
@@ -207,17 +217,15 @@ export function installEditorPolishSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
-  const observe = () => {
-    if (state.observer || !doc.body) return;
-    state.observer = new MutationObserver(schedule);
-    state.observer.observe(doc.body, { childList: true, subtree: true });
-    schedule();
-  };
-  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", observe, { once: true }); else observe();
   root.addEventListener?.("dashboardmodern:legacy-ready", () => {
-    wrapFunction("editorSwitch", "__dmEditorPolish_editorSwitch", schedule);
+    for (const name of ["editorSwitch", "editorRenderLuci", "editorRenderServer"]) wrapFunction(name, `__dmEditorPolish_${name}`, schedule);
+    subscribeStore();
     schedule();
   });
+  root.addEventListener?.("dashboardmodern:runtime-ready", () => { subscribeStore(); schedule(); });
+  doc.addEventListener("click", (event) => {
+    if (event.target?.closest?.(".ed-tab,[data-tab],.ed-btn-add,.ed-save-btn,.ed-del")) root.setTimeout?.(schedule, 0);
+  }, true);
   schedule();
 }
 
