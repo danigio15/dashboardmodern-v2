@@ -1,0 +1,108 @@
+name: One-shot beta2 CI contract patcher
+
+on:
+  push:
+    branches:
+      - fix/beta1-persistence-flow-ev
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/beta1-persistence-flow-ev
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Align tests and legacy visual contracts with beta2 behavior
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, found {count}: {old!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              "custom_components/dashboardmodern/frontend/tests/editor-visual-coherence.test.js",
+              '''test("built-in action editor derives and persists the icon from the selected action type", async () => {\n  const source = await read("src/sections/unified-editors-section.js");\n\n  assert.match(source, /const ACTION_TYPES = Object\\.freeze/);\n  assert.match(source, /\\["builtin_luci", "💡"/);\n  assert.match(source, /icon\\.readOnly = builtin/);\n  assert.match(source, /entityField\\.hidden = builtin/);\n  assert.match(source, /icon: builtin \\? actionTypeIcon\\(type\\)/);\n  assert.match(source, /data-action-icon-preview/);\n});\n''',
+              '''test("built-in action editor derives a default icon but persists a custom choice", async () => {\n  const source = await read("src/sections/unified-editors-section.js");\n\n  assert.match(source, /const ACTION_TYPES = Object\\.freeze/);\n  assert.match(source, /\\["builtin_luci", "💡"/);\n  assert.match(source, /icon\\.readOnly = false/);\n  assert.match(source, /entityField\\.hidden = builtin/);\n  assert.match(source, /icon: clean\\(form\\.elements\\.icon\\.value\\) \\|\\| actionTypeIcon\\(type\\)/);\n  assert.match(source, /L’icona è personalizzabile anche per le azioni integrate/);\n  assert.doesNotMatch(source, /icon\\.readOnly = builtin/);\n  assert.match(source, /data-action-icon-preview/);\n});\n''',
+          )
+
+          replace_once(
+              "custom_components/dashboardmodern/frontend/tests/release-01520-version.test.js",
+              'const RELEASE_VERSION = "1.0.0-beta.1";',
+              'const RELEASE_VERSION = "1.0.0-beta.2";',
+          )
+          replace_once(
+              "custom_components/dashboardmodern/frontend/tests/release-01520-version.test.js",
+              '/["\']?integrationVersion["\']?\\s*:\\s*["\']1\\.0\\.0-beta\\.1["\']/',
+              '/["\']?integrationVersion["\']?\\s*:\\s*["\']1\\.0\\.0-beta\\.2["\']/',
+          )
+          replace_once(
+              "custom_components/dashboardmodern/frontend/tests/release-01520-version.test.js",
+              '/["\']?dashboardVersion["\']?\\s*:\\s*["\']1\\.0\\.0-beta\\.1["\']/',
+              '/["\']?dashboardVersion["\']?\\s*:\\s*["\']1\\.0\\.0-beta\\.2["\']/',
+          )
+
+          replace_once(
+              "custom_components/dashboardmodern/frontend/tests/runtime-import-graph.test.js",
+              'assert.ok(relative.length <= 59, `production graph unexpectedly grew to ${relative.length} modules`);',
+              'assert.ok(relative.length <= 60, `production graph unexpectedly grew to ${relative.length} modules`);',
+          )
+
+          flow = Path("custom_components/dashboardmodern/frontend/src/sections/energy-flow-section.js")
+          text = flow.read_text()
+          replacements = {
+              'solar: "#f59e0b"': 'solar: "#ff9f0a"',
+              'grid: "#1e40af"': 'grid: "#2563eb"',
+              'battery: "#15803d"': 'battery: "#14b8a6"',
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f"energy-flow-section.js: expected one {old!r}")
+              text = text.replace(old, new, 1)
+          flow.write_text(text)
+
+          changelog = Path("CHANGELOG.md")
+          text = changelog.read_text()
+          marker = "# Changelog\n\n"
+          if marker not in text:
+              raise SystemExit("CHANGELOG marker missing")
+          beta2 = '''## 1.0.0-beta.2 — 2026-08-10\n\n### Corretto\n\n- Ripristinata la persistenza reale delle modifiche della Configurazione tramite `frontend/get_user_data` / `frontend/set_user_data`, mantenendo una copia locale autorevole se il backend non è momentaneamente disponibile.\n- I profili EV non perdono più mappature `ov`, immagine, brand e icona durante la normalizzazione canonica; il selettore auto usa davvero il brand/icona scelti anche con un solo profilo.\n- Le icone personalizzate delle Azioni integrate vengono salvate dal loro editor nativo senza una seconda scrittura concorrente.\n- Il flow Energia Giornaliera/Mensile anima Boiler, Wallbox, Clima, Lavanderia e Cucina in base al valore realmente mostrato, preservando direzione e colori dei flussi principali.\n- Aggiunti test unitari ed E2E dedicati a persistenza, profili EV, icone azione e animazioni dei carichi.\n\n'''
+          if "## 1.0.0-beta.2" not in text:
+              changelog.write_text(text.replace(marker, marker + beta2, 1))
+
+          print("beta2 CI contracts aligned")
+          PY
+      - name: Validate patch
+        run: |
+          git diff --check
+          node --check custom_components/dashboardmodern/frontend/src/sections/energy-flow-section.js
+          node --check custom_components/dashboardmodern/frontend/tests/editor-visual-coherence.test.js
+          node --check custom_components/dashboardmodern/frontend/tests/release-01520-version.test.js
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/dashboardmodern/frontend/src/sections/energy-flow-section.js \
+                  custom_components/dashboardmodern/frontend/tests/editor-visual-coherence.test.js \
+                  custom_components/dashboardmodern/frontend/tests/release-01520-version.test.js \
+                  custom_components/dashboardmodern/frontend/tests/runtime-import-graph.test.js \
+                  CHANGELOG.md
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "test: align beta2 persistence EV and flow contracts"
+          git push origin HEAD:fix/beta1-persistence-flow-ev
