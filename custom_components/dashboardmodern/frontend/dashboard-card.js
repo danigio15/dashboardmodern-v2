@@ -8,6 +8,14 @@ export function canAccess(config = {}, user = {}) {
   return allowed.length === 0 || allowed.includes(user?.id);
 }
 
+export function runtimeStaticBase(moduleUrl = import.meta.url) {
+  try {
+    return new URL(".", moduleUrl).href.replace(/\/$/, "");
+  } catch (_error) {
+    return "";
+  }
+}
+
 export class DashboardModernCard extends HTMLElement {
   constructor() {
     super();
@@ -17,8 +25,8 @@ export class DashboardModernCard extends HTMLElement {
   }
 
   setConfig(config) {
-    if (!config?.entry_id || !config?.static_base) {
-      throw new Error("DashboardModern requires entry_id and static_base.");
+    if (!config?.entry_id) {
+      throw new Error("DashboardModern requires entry_id.");
     }
     const previous = JSON.stringify(this._config || {});
     this._config = { ...config };
@@ -58,7 +66,14 @@ export class DashboardModernCard extends HTMLElement {
       return;
     }
     const variant = legacyVariantForLocale(this._hass?.locale?.language);
-    const key = `${this._config.entry_id}|${this._config.static_base}|${variant}`;
+    // Never trust the static_base persisted inside the generated Lovelace
+    // dashboard. It contains an asset digest and can outlive that digest after
+    // an integration update/restart. The currently executing dashboard-card.js
+    // is itself loaded from the live versioned static mount, so its own module
+    // URL is the authoritative base for the complete runtime graph.
+    const staticBase = runtimeStaticBase() || this._config.static_base;
+    if (!staticBase) return;
+    const key = `${this._config.entry_id}|${staticBase}|${variant}`;
     if (this.host && this.mountedKey === key) return;
     this.resetHost();
 
@@ -70,7 +85,7 @@ export class DashboardModernCard extends HTMLElement {
     this.host = mountLegacyHost(surface, {
       hass: this._hass,
       connection: this._hass.connection,
-      staticBase: this._config.static_base,
+      staticBase,
       variant,
       instanceId: this._config.entry_id,
       primary: this._config.primary !== false,
