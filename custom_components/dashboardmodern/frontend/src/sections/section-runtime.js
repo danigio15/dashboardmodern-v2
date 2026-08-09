@@ -16,7 +16,6 @@ import { installTemperatureLayoutSection } from "./temperature-layout-section.js
 import { installAppliancesSection } from "./appliances-section.js";
 import { installApplianceLayoutSection } from "./appliance-layout-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
-import { installAppliancePickerLayer } from "./appliance-picker-layer.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installAlertsSection } from "./alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
@@ -32,6 +31,30 @@ import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-re
 const root = globalThis;
 const RUNTIME_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME__";
 const INSTALLING_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME_INSTALLING__";
+const APPLIANCE_PICKER_LAYER_STYLE_ID = "dm-appliance-picker-layer-style";
+
+function installAppliancePickerLayer() {
+  const doc = root.document;
+  if (!doc?.head || doc.getElementById(APPLIANCE_PICKER_LAYER_STYLE_ID)) return;
+  const style = doc.createElement("style");
+  style.id = APPLIANCE_PICKER_LAYER_STYLE_ID;
+  style.textContent = `
+    /* The canonical appliance picker may be opened from inside the Edit modal.
+       Keep it above every editor overlay so visible options also own pointer input. */
+    #dm-applpick.dm-appliance-type-picker {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 2147483647 !important;
+      pointer-events: auto !important;
+    }
+    #dm-applpick .dm-appliance-type-picker-dialog,
+    #dm-applpick .dm-appliance-type-grid,
+    #dm-applpick .dm-appliance-type-option {
+      pointer-events: auto !important;
+    }
+  `;
+  doc.head.append(style);
+}
 
 export function installSectionRuntime() {
   if (root[RUNTIME_KEY]?.installed) return root[RUNTIME_KEY];
