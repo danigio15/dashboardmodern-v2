@@ -81,7 +81,7 @@ function installApplianceDailyPopupStyle() {
       width:min(620px,100%)!important;
       max-height:min(82vh,760px)!important;
       border:1px solid rgba(148,163,184,.24)!important;
-      border-radius:12px!important;
+      border-radius:34px!important;
       background:
         radial-gradient(circle at 8% 2%,rgba(125,211,252,.24),transparent 33%),
         radial-gradient(circle at 94% 18%,rgba(167,243,208,.18),transparent 30%),
@@ -251,7 +251,7 @@ function installApplianceDailyPopupStyle() {
       #dm-appliance-daily-popup .dm-appliance-daily-dialog {
         width:min(620px,calc(100vw - 28px))!important;
         max-height:min(82vh,720px)!important;
-        border-radius:12px!important;
+        border-radius:32px!important;
       }
       #dm-appliance-daily-popup .dm-appliance-daily-head {
         padding:22px 18px 13px!important;
@@ -325,7 +325,7 @@ function applianceKpiCard(kind) {
   const mounted = grid.querySelector(`[data-dm-appliance-kpi="${kind}"]`);
   if (mounted) return mounted;
   const patterns = {
-    running: /dispositivi\s+accesi|devices\s+on|active\s+devices|in\s+funzione|running/i,
+    running: /dispositivi\s+accesi|devices\s+on|active\s+devices|powered\s+on|in\s+funzione|running/i,
     power: /consumo\s+istantaneo|instant(?:aneous)?\s+(?:power|consumption)|power\s+now/i,
     daily: /energia\s+giornaliera|daily\s+energy/i,
     alerts: /avvisi|alerts|warnings/i,
@@ -338,7 +338,7 @@ function applianceKpiCard(kind) {
 function applianceKpiLabelNode(card, kind) {
   if (!card) return null;
   const patterns = {
-    running: /dispositivi\s+accesi|devices\s+on|active\s+devices|in\s+funzione|running/i,
+    running: /dispositivi\s+accesi|devices\s+on|active\s+devices|powered\s+on|in\s+funzione|running/i,
     power: /consumo\s+istantaneo|instant(?:aneous)?\s+(?:power|consumption)|power\s+now/i,
   };
   const preferred = card.querySelector(".g-label,.glance-label,[data-glance-label]");
