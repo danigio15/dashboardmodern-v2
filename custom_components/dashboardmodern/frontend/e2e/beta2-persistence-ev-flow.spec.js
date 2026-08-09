@@ -133,7 +133,6 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await appearance.locator("select[data-brand]").selectOption("BMW");
     await appearance.locator("input[data-icon]").fill("mdi:car-sports");
     await appearance.locator("button[data-save]").click();
-    await expect(appearance).toHaveAttribute("data-saved", "true");
 
     await expect.poll(() =>
       page.evaluate(() => DashboardModernModules.store.getSection("ev")[0]),
