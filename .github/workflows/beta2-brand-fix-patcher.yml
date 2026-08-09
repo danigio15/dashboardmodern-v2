@@ -1,0 +1,58 @@
+name: One-shot beta2 EV brand save patcher
+
+on:
+  push:
+    branches:
+      - fix/beta1-persistence-flow-ev
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/beta1-persistence-flow-ev
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Make EV save read the live editor controls
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if text.count(old) != 1:
+                  raise SystemExit(f"{path}: expected one match, found {text.count(old)}")
+              p.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/personalization-section.js",
+              '''      await saveEvAppearance(clean(brandSelect.value), clean(iconInput.value) || "mdi:car-electric");\n''',
+              '''      const livePanel = button.closest("[data-ev-appearance]") || panel;\n      const liveBrand = clean(livePanel?.querySelector("select[data-brand]")?.value);\n      const liveIcon = clean(livePanel?.querySelector("input[data-icon]")?.value) || "mdi:car-electric";\n      if (!liveBrand) throw new Error(t("Seleziona un brand auto.", "Choose a car brand."));\n      await saveEvAppearance(liveBrand, liveIcon);\n''',
+          )
+
+          replace_once(
+              "custom_components/dashboardmodern/frontend/e2e/beta2-persistence-ev-flow.spec.js",
+              '''    await appearance.locator("input[data-icon]").fill("mdi:car-sports");\n    await appearance.locator("button[data-save]").click();\n''',
+              '''    await appearance.locator("input[data-icon]").fill("mdi:car-sports");\n    await expect(appearance.locator("select[data-brand]")).toHaveValue("BMW");\n    await appearance.locator("button[data-save]").click();\n''',
+          )
+          PY
+      - name: Validate syntax
+        run: |
+          git diff --check
+          node --check custom_components/dashboardmodern/frontend/src/sections/personalization-section.js
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/dashboardmodern/frontend/src/sections/personalization-section.js \
+                  custom_components/dashboardmodern/frontend/e2e/beta2-persistence-ev-flow.spec.js
+          git commit -m "fix: save EV brand from live appearance controls"
+          git push origin HEAD:fix/beta1-persistence-flow-ev
