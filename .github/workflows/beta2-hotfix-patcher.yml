@@ -1,0 +1,165 @@
+name: One-shot beta2 persistence EV flow patcher
+
+on:
+  push:
+    branches:
+      - fix/beta1-persistence-flow-ev
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/beta1-persistence-flow-ev
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Apply deterministic beta2 fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, found {count}: {old[:100]!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          # EV profiles are not generic devices: preserve the legacy override map,
+          # image and all profile metadata when DashboardStore canonicalizes them.
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/core/device-model.js",
+              '  if (section === "appliances" || section === "loads")\n',
+              '''  if (section === "ev") {\n    const legacy = cloneValue(input) || {};\n    const overrideSource =\n      input.ov && typeof input.ov === "object" && !Array.isArray(input.ov)\n        ? input.ov\n        : input.overrides && typeof input.overrides === "object" && !Array.isArray(input.overrides)\n          ? input.overrides\n          : {};\n    const evImage = String(input.img || input.image || input.image_url || "");\n    return {\n      ...legacy,\n      ...base,\n      name: base.name || String(input.name || "").trim(),\n      icon: base.icon || String(input.icon || ""),\n      image: base.image || evImage,\n      image_url: base.image_url || evImage,\n      img: evImage,\n      brand: String(input.brand || ""),\n      ov: cloneValue(overrideSource),\n      overrides: cloneValue(overrideSource),\n    };\n  }\n  if (section === "appliances" || section === "loads")\n''',
+          )
+
+          # A remote config restore writes all legacy keys in one batch. Do not
+          # spawn one canonical transaction for each intermediate key.
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/core/dashboard-store.js",
+              '      if (!store.projecting && (key === "cd_sections" || Object.values(SECTION_KEYS).includes(key)))\n',
+              '      if (!store.projecting && !globalThis.__DASHBOARDMODERN_PERSIST_RESTORE__ && (key === "cd_sections" || Object.values(SECTION_KEYS).includes(key)))\n',
+          )
+
+          # EV selector: render the configured brand/icon instead of the hardcoded
+          # car emoji, including when only one profile exists.
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/ev-section.js",
+              'import { clean, doc, esc, installStyle, readJson, root, section, t } from "./shared.js";\n',
+              'import { carBrandVisual } from "../core/personalization-catalog.js";\nimport { clean, doc, esc, installStyle, readJson, root, section, t } from "./shared.js";\n',
+          )
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/ev-section.js",
+              '''function nativeHost() {\n''',
+              '''function vehicleProfileVisual(car = {}) {\n  const brand = clean(car.brand);\n  if (brand) return carBrandVisual(brand, 30);\n  const icon = clean(car.icon || "mdi:car-electric");\n  try {\n    return root.cdIconMarkup?.(icon, 28) || "🚗";\n  } catch (_error) {\n    return "🚗";\n  }\n}\n\nfunction nativeHost() {\n''',
+          )
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/ev-section.js",
+              '''  if (cars.length < 2) {\n    nav.replaceChildren();\n    host.dataset.profileCount = String(cars.length);\n    host.style.display = cars.length ? "" : "none";\n    return Boolean(cars.length);\n  }\n''',
+              '''  if (!cars.length) {\n    nav.replaceChildren();\n    host.dataset.profileCount = "0";\n    host.style.display = "none";\n    return false;\n  }\n''',
+          )
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/ev-section.js",
+              '<span class="dm-vehicle-profile-icon">🚗</span>',
+              '<span class="dm-vehicle-profile-icon">${vehicleProfileVisual(car)}</span>',
+          )
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/ev-section.js",
+              '''export function installEvSection() {\n  if (!doc) return;\n  installStyles();\n''',
+              '''export function installEvSection() {\n  if (!doc) return;\n  root.dmRenderVehicleSelector = renderVehicleSelector;\n  installStyles();\n''',
+          )
+
+          # The native action editor must own icon persistence. beta.1 made
+          # builtin icons read-only and then tried to overwrite them after submit.
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/unified-editors-section.js",
+              '  if (builtin || !clean(icon.value) || clean(icon.value) === previousCanonical) icon.value = canonical;\n',
+              '  if (!clean(icon.value) || clean(icon.value) === previousCanonical) icon.value = canonical;\n',
+          )
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/unified-editors-section.js",
+              '  icon.readOnly = builtin;\n  icon.closest("label")?.classList.toggle("dm-canonical-icon", builtin);\n',
+              '  icon.readOnly = false;\n  icon.closest("label")?.classList.remove("dm-canonical-icon");\n',
+          )
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/unified-editors-section.js",
+              '      icon: builtin ? actionTypeIcon(type) : clean(form.elements.icon.value) || actionTypeIcon(type),\n',
+              '      icon: clean(form.elements.icon.value) || actionTypeIcon(type),\n',
+          )
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/unified-editors-section.js",
+              '     <label class="ed-slot"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="dm-unified-icon-row"><span class="dm-unified-icon-preview" data-action-icon-preview aria-hidden="true">${iconMarkup(initialIcon, actionTypeIcon(selectedType), 36)}</span><input class="ed-input" name="icon" value="${esc(initialIcon)}"></span><small>${t("Per le azioni integrate l’icona è definita dal tipo e coincide con quella mostrata nella dashboard.", "For built-in actions the icon is defined by the type and matches the dashboard.")}</small></label>\n',
+              '     <label class="ed-slot"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="dm-unified-icon-row"><span class="dm-unified-icon-preview" data-action-icon-preview aria-hidden="true">${iconMarkup(initialIcon, actionTypeIcon(selectedType), 36)}</span><input class="ed-input" name="icon" value="${esc(initialIcon)}"></span><small>${t("L’icona è personalizzabile anche per le azioni integrate e viene mostrata nella Home.", "The icon is customizable for built-in actions too and is shown on Home.")}</small></label>\n',
+          )
+
+          # Personalization must update the canonical EV section, not race it by
+          # writing cd_ev_cars behind DashboardStore's back.
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/personalization-section.js",
+              '''function persistActionIcon(index, chosen) {\n  if (index < 0 || !chosen) return;\n  const list = readJson("cd_quick_actions", []);\n  if (!Array.isArray(list) || !list[index]) return;\n  list[index] = { ...list[index], icon: chosen };\n  writeJsonIfChanged("cd_quick_actions", list);\n  root.buildQuickActions?.();\n}\n\n''',
+              '',
+          )
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/personalization-section.js",
+              '''  form.addEventListener("submit", () => {\n    const chosen = clean(input.value);\n    const index = state.actionEditIndex;\n    root.setTimeout?.(() => persistActionIcon(index, chosen), 0);\n  });\n''',
+              '',
+          )
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/personalization-section.js",
+              '''function evVisual() {\n  const cars = readJson("cd_ev_cars", []);\n  const active = Number(root.localStorage?.getItem("cd_ev_car_active") ?? -1);\n  const current = Array.isArray(cars) && active >= 0 ? cars[active] : null;\n  return { cars, active, current, fallback: readJson("cd_ev_visual", {}) };\n}\n\nfunction saveEvAppearance(brand, icon) {\n  const { cars, active } = evVisual();\n  if (Array.isArray(cars) && active >= 0 && cars[active]) {\n    cars[active] = { ...cars[active], brand, icon };\n    writeJsonIfChanged("cd_ev_cars", cars);\n  } else writeJsonIfChanged("cd_ev_visual", { brand, icon });\n  applyEvAppearance();\n}\n''',
+              '''function evVisual() {\n  const storeCars = root.DashboardModernModules?.store?.getSection?.("ev");\n  const legacyCars = readJson("cd_ev_cars", []);\n  const cars = Array.isArray(storeCars) && storeCars.length\n    ? storeCars\n    : Array.isArray(legacyCars)\n      ? legacyCars\n      : [];\n  const requested = Number(root.localStorage?.getItem("cd_ev_car_active") ?? -1);\n  const active = cars.length\n    ? Math.max(0, Math.min(cars.length - 1, Number.isFinite(requested) ? requested : 0))\n    : -1;\n  const current = active >= 0 ? cars[active] : null;\n  return { cars, active, current, fallback: readJson("cd_ev_visual", {}) };\n}\n\nasync function saveEvAppearance(brand, icon) {\n  const { cars, active, current } = evVisual();\n  const store = root.DashboardModernModules?.store;\n  if (current?.id && typeof store?.updateItem === "function") {\n    await store.updateItem("ev", current.id, { brand, icon });\n  } else if (Array.isArray(cars) && active >= 0 && cars[active]) {\n    cars[active] = { ...cars[active], brand, icon };\n    writeJsonIfChanged("cd_ev_cars", cars);\n  } else {\n    writeJsonIfChanged("cd_ev_visual", { brand, icon });\n  }\n  root.cdEvCarsRefresh?.();\n  root.dmRenderVehicleSelector?.();\n  applyEvAppearance();\n  schedule();\n}\n''',
+          )
+          replace_once(
+              "custom_components/dashboardmodern/frontend/src/sections/personalization-section.js",
+              '  panel.querySelector("[data-save]").addEventListener("click", () => saveEvAppearance(clean(brandSelect.value), clean(iconInput.value) || "mdi:car-electric"));\n',
+              '''  panel.querySelector("[data-save]").addEventListener("click", async (event) => {\n    const button = event.currentTarget;\n    button.disabled = true;\n    panel.dataset.saved = "saving";\n    try {\n      await saveEvAppearance(clean(brandSelect.value), clean(iconInput.value) || "mdi:car-electric");\n      panel.dataset.saved = "true";\n    } catch (error) {\n      panel.dataset.saved = "error";\n      console.error("[DashboardModern] EV appearance save failed", error);\n    } finally {\n      button.disabled = false;\n    }\n  });\n''',
+          )
+
+          # New persistence owner increases the intentionally exact graph budget.
+          replace_once(
+              "custom_components/dashboardmodern/frontend/tests/runtime-import-graph.test.js",
+              '  // v1 beta adds six substantive UI owners (picker guard, report polish,\n  // personalization catalog/section, editor polish and their entrypoint).\n  // Keep the budget exact so future facade growth still fails loudly.\n  assert.ok(relative.length <= 58, `production graph unexpectedly grew to ${relative.length} modules`);\n',
+              '  // v1 beta adds the persistence owner plus the substantive UI owners.\n  // Keep the budget exact so future facade growth still fails loudly.\n  assert.ok(relative.length <= 59, `production graph unexpectedly grew to ${relative.length} modules`);\n',
+          )
+
+          # beta.2 hotfix version.
+          for path in [
+              "custom_components/dashboardmodern/manifest.json",
+              "custom_components/dashboardmodern/frontend/legacy/build-info.js",
+          ]:
+              p = Path(path)
+              text = p.read_text()
+              if "1.0.0-beta.1" not in text:
+                  raise SystemExit(f"{path}: beta.1 marker missing")
+              p.write_text(text.replace("1.0.0-beta.1", "1.0.0-beta.2"))
+
+          print("beta2 deterministic patches applied")
+          PY
+      - name: Validate patch syntax quickly
+        run: |
+          git diff --check
+          node --check custom_components/dashboardmodern/frontend/src/sections/config-persistence-section.js
+          node --check custom_components/dashboardmodern/frontend/src/sections/energy-flow-section.js
+          node --check custom_components/dashboardmodern/frontend/src/sections/personalization-section.js
+          node --check custom_components/dashboardmodern/frontend/src/sections/unified-editors-section.js
+          node --check custom_components/dashboardmodern/frontend/src/sections/ev-section.js
+      - name: Commit generated hotfix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/dashboardmodern .github/workflows/beta2-hotfix-patcher.yml
+          git add custom_components/dashboardmodern/frontend/tests/runtime-import-graph.test.js
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "fix: persist beta configuration and repair EV flow UI"
+          git push origin HEAD:fix/beta1-persistence-flow-ev
