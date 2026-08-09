@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.0-beta.2 — 2026-08-10
+
+### Corretto
+
+- Ripristinata la persistenza reale delle modifiche della Configurazione tramite `frontend/get_user_data` / `frontend/set_user_data`, mantenendo una copia locale autorevole se il backend non è momentaneamente disponibile.
+- I profili EV non perdono più mappature `ov`, immagine, brand e icona durante la normalizzazione canonica; il selettore auto usa davvero il brand/icona scelti anche con un solo profilo.
+- Le icone personalizzate delle Azioni integrate vengono salvate dal loro editor nativo senza una seconda scrittura concorrente.
+- Il flow Energia Giornaliera/Mensile anima Boiler, Wallbox, Clima, Lavanderia e Cucina in base al valore realmente mostrato, preservando direzione e colori dei flussi principali.
+- Aggiunti test unitari ed E2E dedicati a persistenza, profili EV, icone azione e animazioni dei carichi.
+
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 

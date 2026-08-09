@@ -4,9 +4,9 @@ const KEY = "__DASHBOARDMODERN_ENERGY_FLOW_SECTION__";
 const state = (root[KEY] ||= { installed: false, frame: 0 });
 
 const COLORS = Object.freeze({
-  solar: "#f59e0b",
-  grid: "#1e40af",
-  battery: "#15803d",
+  solar: "#ff9f0a",
+  grid: "#2563eb",
+  battery: "#14b8a6",
   home: "#2563eb",
   boiler: "#ea580c",
   wb: "#06b6d4",
