@@ -5,17 +5,20 @@ import test from "node:test";
 const ROOT = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), "utf8");
 
-test("appliance editor preview uses the same SVG artwork owner as appliance cards", async () => {
+test("appliance Edit uses the same blue SVG owner and catalog as the original Add picker", async () => {
   const editor = await read("src/sections/appliance-editor-section.js");
-  const cards = await read("src/sections/appliances-section.js");
+  const model = await read("src/core/device-model.js");
 
-  assert.match(editor, /import \{ applianceArtwork \} from "\.\.\/core\/appliance-artwork\.js"/);
+  assert.match(editor, /APPLIANCE_CATALOG/);
   assert.match(editor, /canonicalApplianceVisualKey/);
-  assert.match(editor, /function artworkPreview/);
-  assert.match(editor, /applianceArtwork\(editorVisualKey\(value\), 72\)/);
-  assert.match(editor, /preview\.innerHTML = artworkPreview/);
-  assert.doesNotMatch(editor, /preview\.textContent = iconGlyph/);
-  assert.match(cards, /applianceArtwork\(kind, 96\)/);
+  assert.match(editor, /root\.cdApplianceIcon\?\.\(key, size\)/);
+  assert.match(editor, /preview\.innerHTML = typeIconMarkup\(canonical, 58\)/);
+  assert.match(editor, /button\.innerHTML = typeIconMarkup\(key, 30\)/);
+  assert.match(editor, /input type="hidden" name="icon"/);
+  assert.doesNotMatch(editor, /<select class="ed-input" name="icon">/);
+  assert.match(model, /export const APPLIANCE_CATALOG = Object\.freeze/);
+  assert.match(model, /\{ key: "frigo", it: "Frigorifero"/);
+  assert.match(model, /\{ key: "robot", it: "Robot aspirapolvere"/);
 });
 
 test("built-in action editor derives and persists the icon from the selected action type", async () => {
