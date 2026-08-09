@@ -7,40 +7,35 @@ const COLORS = Object.freeze({
   solar: "#ff9f0a",
   grid: "#2563eb",
   battery: "#14b8a6",
-  home: "#8b5cf6",
-  load: "#e11d48",
+  home: "#2563eb",
+  boiler: "#ea580c",
+  wb: "#06b6d4",
+  clima: "#0ea5e9",
+  lav: "#7c3aed",
+  cuc: "#e11d48",
 });
 
+const LOADS = Object.freeze([
+  { key: "boiler", instant: "v-boiler-p" },
+  { key: "wb", instant: "v-wb-p" },
+  { key: "clima", instant: "v-clima-p" },
+  { key: "lav", instant: "v-lav-p" },
+  { key: "cuc", instant: "v-cuc-p" },
+]);
+
 function numberFrom(node) {
-  const text = String(node?.textContent || "").replace(/\./g, "").replace(",", ".");
-  const match = text.match(/-?\d+(?:\.\d+)?/);
-  return match ? Math.abs(Number(match[0])) : 0;
-}
-
-function periodActive(period, key) {
-  const suffix = period === "day" ? "day" : "month";
-  const id = key === "home" ? `v-home-${suffix}` : key === "solar" ? `v-solar-${suffix}` : key === "grid" ? `v-grid-${suffix}` : `v-battery-${suffix}`;
-  return numberFrom(doc?.getElementById(id)) > 0.001;
-}
-
-function candidates(scope, key) {
-  const words = key === "grid"
-    ? ["grid", "rete"]
-    : key === "solar"
-      ? ["solar", "solare", "pv"]
-      : key === "battery"
-        ? ["battery", "batteria"]
-        : key === "load"
-          ? ["load", "carico", "clima", "lavander", "cucina", "boiler"]
-          : ["home", "house", "casa"];
-  const selector = words.flatMap((word) => [
-    `[id*="${word}" i]`,
-    `[class*="${word}" i]`,
-    `[data-flow*="${word}" i]`,
-    `[data-source*="${word}" i]`,
-    `[data-target*="${word}" i]`,
-  ]).join(",");
-  return [...scope.querySelectorAll(selector)].filter((node) => /^(path|line|polyline|circle|g|div|span)$/i.test(node.tagName));
+  const source = String(node?.textContent || "").trim();
+  const match = source.match(/-?\d[\d.,]*/);
+  if (!match) return 0;
+  let token = match[0];
+  const comma = token.lastIndexOf(",");
+  const dot = token.lastIndexOf(".");
+  if (comma >= 0 && dot >= 0) {
+    if (comma > dot) token = token.replaceAll(".", "").replace(",", ".");
+    else token = token.replaceAll(",", "");
+  } else if (comma >= 0) token = token.replace(",", ".");
+  const value = Number(token);
+  return Number.isFinite(value) ? Math.abs(value) : 0;
 }
 
 function nodeVisible(node) {
@@ -51,83 +46,118 @@ function nodeVisible(node) {
 }
 
 function colorNode(node, color, active) {
+  if (!node) return;
+  node.classList.toggle("active", active);
   node.classList.toggle("dm-energy-flow-active", active);
   node.classList.toggle("dm-energy-flow-idle", !active);
   node.style.setProperty("--dm-flow-color", color);
   if (/^(path|line|polyline|circle)$/i.test(node.tagName)) {
     node.style.stroke = active ? color : "var(--divider-color,#dbe4ee)";
-    if (node.getAttribute("fill") && node.getAttribute("fill") !== "none") node.style.fill = active ? color : "var(--divider-color,#dbe4ee)";
+    if (node.getAttribute("fill") && node.getAttribute("fill") !== "none")
+      node.style.fill = active ? color : "var(--divider-color,#dbe4ee)";
   }
 }
 
-function genericFlowLines(scope) {
-  return [...scope.querySelectorAll(".flow-line,path[id*='line-' i],line[id*='line-' i],polyline[id*='line-' i],[data-flow-line]")]
-    .filter((node) => /^(path|line|polyline)$/i.test(node.tagName));
+function scopeFor(period) {
+  if (period === "day") return doc?.getElementById("view-day");
+  if (period === "month") return doc?.getElementById("view-month");
+  return doc?.getElementById("view-ist");
 }
 
-function colorForLine(node) {
-  const token = `${node.id || ""} ${node.className?.baseVal || node.className || ""} ${node.dataset?.source || ""} ${node.dataset?.target || ""}`.toLowerCase();
-  if (/solar|solare|pv/.test(token)) return COLORS.solar;
-  if (/battery|batteria/.test(token)) return COLORS.battery;
-  if (/grid|rete/.test(token)) return COLORS.grid;
-  if (/home|house|casa/.test(token) && !/load|carico|clima|lavander|cucina|boiler/.test(token)) return COLORS.home;
-  return COLORS.load;
+function loadValueId(load, period) {
+  return period ? `v-${load.key}-${period}` : load.instant;
+}
+
+function loadLineIds(load, period) {
+  const suffix = period ? `-${period}` : "";
+  return [
+    `line-home-${load.key}${suffix}`,
+    `m-line-home-${load.key}${suffix}`,
+  ];
+}
+
+function syncLoadFlows(period) {
+  const scope = scopeFor(period);
+  if (!scope) return false;
+  let touched = false;
+  for (const load of LOADS) {
+    const valueNode = doc.getElementById(loadValueId(load, period));
+    const threshold = period ? 0.0005 : 0.5;
+    const active = nodeVisible(valueNode) && numberFrom(valueNode) > threshold;
+    for (const id of loadLineIds(load, period)) {
+      const line = doc.getElementById(id);
+      if (!line) continue;
+      colorNode(line, COLORS[load.key], active && nodeVisible(line));
+      line.dataset.dmFlowValue = String(numberFrom(valueNode));
+      touched = true;
+    }
+  }
+  return touched;
+}
+
+function mainLineColor(node) {
+  const id = String(node?.id || "").toLowerCase();
+  if (id.includes("solar")) return COLORS.solar;
+  if (id.includes("battery")) return COLORS.battery;
+  if (id.includes("grid")) return COLORS.grid;
+  if (id.includes("home")) return COLORS.home;
+  return "var(--line-color,#64748b)";
+}
+
+function isLoadLine(node) {
+  const id = String(node?.id || "");
+  return /line-home-(?:boiler|wb|clima|lav|cuc)(?:-(?:day|month))?$/i.test(id);
+}
+
+function mirrorLegacyMainFlows(scope) {
+  if (!scope) return;
+  scope
+    .querySelectorAll(".flow-line,path[id*='line-' i],line[id*='line-' i],polyline[id*='line-' i]")
+    .forEach((node) => {
+      if (!/^(path|line|polyline)$/i.test(node.tagName) || isLoadLine(node)) return;
+      // The legacy energy engine owns directionality for grid/solar/battery.
+      // Mirror its authoritative `.active` state instead of guessing from
+      // visibility (the beta.1 implementation animated inactive orphan lines).
+      const active = node.classList.contains("active") && nodeVisible(node);
+      node.classList.toggle("dm-energy-flow-active", active);
+      node.classList.toggle("dm-energy-flow-idle", !active);
+      node.style.setProperty("--dm-flow-color", mainLineColor(node));
+    });
 }
 
 export function refreshEnergyFlows() {
   if (!doc) return false;
-  const scopes = [
-    doc.getElementById("view-day"),
-    doc.getElementById("view-month"),
-    doc.getElementById("view-ist"),
-    doc.getElementById("page-energy-day"),
-    doc.getElementById("page-energy-month"),
-    doc.getElementById("dp-day"),
-    doc.getElementById("dp-month"),
-    ...doc.querySelectorAll(".energy-flow,.energy-diagram,[data-energy-flow],.flow-diagram,.flow-view"),
-  ].filter((node, index, values) => node && values.indexOf(node) === index);
-  if (!scopes.length) return false;
-
-  for (const scope of scopes) {
-    const period = /day|giorn/i.test(`${scope.id} ${scope.className}`) ? "day" : "month";
-    for (const key of ["solar", "grid", "battery", "home"]) {
-      const active = periodActive(period, key);
-      candidates(scope, key).forEach((node) => colorNode(node, COLORS[key], active && nodeVisible(node)));
-    }
-
-    // Legacy and custom load paths do not all carry a stable source class. Any
-    // visible path left on the diagram represents an active rendered flow and
-    // must animate instead of becoming a static orphan line.
-    genericFlowLines(scope).forEach((node) => {
-      if (node.classList.contains("dm-energy-flow-active")) return;
-      const active = nodeVisible(node);
-      colorNode(node, colorForLine(node), active);
-    });
-    candidates(scope, "load").forEach((node) => {
-      if (/^(path|line|polyline)$/i.test(node.tagName)) colorNode(node, colorForLine(node), nodeVisible(node));
-    });
-    scope.dataset.dmEnergyFlows = "active";
+  let touched = false;
+  for (const period of ["", "day", "month"]) {
+    const scope = scopeFor(period);
+    if (!scope) continue;
+    mirrorLegacyMainFlows(scope);
+    touched = syncLoadFlows(period) || touched;
+    scope.dataset.dmEnergyFlows = "value-bound";
   }
-  return true;
+  return touched;
 }
 
 function schedule() {
   if (state.frame) return;
-  state.frame = root.requestAnimationFrame?.(() => {
+  const run = () => {
     state.frame = 0;
     refreshEnergyFlows();
-  }) || root.setTimeout?.(() => {
-    state.frame = 0;
-    refreshEnergyFlows();
-  }, 0);
+  };
+  state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0);
+}
+
+function scheduleSettled() {
+  schedule();
+  root.setTimeout?.(schedule, 80);
 }
 
 function installStyles() {
   installStyle("dm-energy-flow-section-style", `
     .dm-energy-flow-active{opacity:1!important;filter:drop-shadow(0 0 5px color-mix(in srgb,var(--dm-flow-color) 42%,transparent))!important;transition:stroke .2s ease,fill .2s ease,opacity .2s ease!important}
-    .dm-energy-flow-idle{opacity:.35!important;filter:none!important;transition:stroke .2s ease,fill .2s ease,opacity .2s ease!important}
-    .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke-dasharray:10 12!important;animation:dmEnergyFlowDash 1.45s linear infinite!important}
-    @keyframes dmEnergyFlowDash{to{stroke-dashoffset:-44}}
+    .dm-energy-flow-idle{opacity:.3!important;filter:none!important;transition:stroke .2s ease,fill .2s ease,opacity .2s ease!important}
+    .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke-dasharray:10 10!important;animation:dmEnergyFlowDash 1s linear infinite!important}
+    @keyframes dmEnergyFlowDash{to{stroke-dashoffset:-40}}
     @media(prefers-reduced-motion:reduce){.flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{animation:none!important}}
   `);
 }
@@ -136,17 +166,27 @@ export function installEnergyFlowSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
-  for (const name of ["renderEnergyMonth", "renderEnergyDay", "renderEnergyDashboard", "applyAtomicEnergyBundle"]) wrapFunction(name, `__dmEnergyFlow_${name}`, schedule);
-  root.addEventListener?.("dashboardmodern:period-bundle", schedule);
-  root.addEventListener?.("dashboardmodern:energy-bundle", schedule);
-  root.addEventListener?.("dashboardmodern:energy-stable", schedule);
-  root.addEventListener?.("dashboardmodern:runtime-ready", schedule);
-  root.addEventListener?.("dashboardmodern:legacy-ready", schedule);
+  root.dmRefreshEnergyFlows = refreshEnergyFlows;
+  for (const name of [
+    "renderEnergyMonth",
+    "renderEnergyDay",
+    "renderEnergyDashboard",
+    "applyAtomicEnergyBundle",
+    "switchEnergyView",
+    "render",
+  ]) wrapFunction(name, `__dmEnergyFlow_${name}`, scheduleSettled);
+  root.addEventListener?.("dashboardmodern:period-bundle", scheduleSettled);
+  root.addEventListener?.("dashboardmodern:energy-bundle", scheduleSettled);
+  root.addEventListener?.("dashboardmodern:energy-stable", scheduleSettled);
+  root.addEventListener?.("dashboardmodern:states-ready", scheduleSettled);
+  root.addEventListener?.("dashboardmodern:runtime-ready", scheduleSettled);
+  root.addEventListener?.("dashboardmodern:legacy-ready", scheduleSettled);
   doc.addEventListener("click", (event) => {
-    if (event.target?.closest?.("[data-energy-tab],.energy-tab,.sub-tab-btn")) schedule();
+    if (event.target?.closest?.("[data-energy-tab],.energy-tab,.sub-tab-btn")) scheduleSettled();
   }, true);
-  schedule();
+  scheduleSettled();
 }
 
-if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", installEnergyFlowSection, { once: true });
+if (doc?.readyState === "loading")
+  doc.addEventListener("DOMContentLoaded", installEnergyFlowSection, { once: true });
 else installEnergyFlowSection();

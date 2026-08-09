@@ -298,6 +298,28 @@ export function normalizeDevice(input = {}, section, context = {}) {
     base.stream = String(input.stream || input.stream_url || input.url);
   if (input.threshold_run != null) base.metadata.threshold_run = +input.threshold_run;
   if (input.threshold_standby != null) base.metadata.threshold_standby = +input.threshold_standby;
+  if (section === "ev") {
+    const legacy = cloneValue(input) || {};
+    const overrideSource =
+      input.ov && typeof input.ov === "object" && !Array.isArray(input.ov)
+        ? input.ov
+        : input.overrides && typeof input.overrides === "object" && !Array.isArray(input.overrides)
+          ? input.overrides
+          : {};
+    const evImage = String(input.img || input.image || input.image_url || "");
+    return {
+      ...legacy,
+      ...base,
+      name: base.name || String(input.name || "").trim(),
+      icon: base.icon || String(input.icon || ""),
+      image: base.image || evImage,
+      image_url: base.image_url || evImage,
+      img: evImage,
+      brand: String(input.brand || ""),
+      ov: cloneValue(overrideSource),
+      overrides: cloneValue(overrideSource),
+    };
+  }
   if (section === "appliances" || section === "loads")
     Object.assign(base, {
       power_entity: input.power_entity || input.power || "",

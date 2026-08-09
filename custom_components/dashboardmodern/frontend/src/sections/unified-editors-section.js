@@ -111,10 +111,10 @@ function syncActionEditor(form) {
   const canonical = actionTypeIcon(type);
   const icon = form.elements.icon;
   const previousCanonical = clean(icon.dataset.canonicalIcon);
-  if (builtin || !clean(icon.value) || clean(icon.value) === previousCanonical) icon.value = canonical;
+  if (!clean(icon.value) || clean(icon.value) === previousCanonical) icon.value = canonical;
   icon.dataset.canonicalIcon = canonical;
-  icon.readOnly = builtin;
-  icon.closest("label")?.classList.toggle("dm-canonical-icon", builtin);
+  icon.readOnly = false;
+  icon.closest("label")?.classList.remove("dm-canonical-icon");
   const entityField = form.querySelector("[data-action-entity-field]");
   if (entityField) entityField.hidden = builtin;
   const preview = form.querySelector("[data-action-icon-preview]");
@@ -135,7 +135,7 @@ function openActionEditor(item, index) {
     t("Modifica azione", "Edit action"),
     `<label class="ed-slot"><span class="ed-slot-lbl">${t("Tipo", "Type")}</span><select class="ed-input" name="type">${actionTypeOptions(item)}</select></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(item.name)}" required></label>
-     <label class="ed-slot"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="dm-unified-icon-row"><span class="dm-unified-icon-preview" data-action-icon-preview aria-hidden="true">${iconMarkup(initialIcon, actionTypeIcon(selectedType), 36)}</span><input class="ed-input" name="icon" value="${esc(initialIcon)}"></span><small>${t("Per le azioni integrate l’icona è definita dal tipo e coincide con quella mostrata nella dashboard.", "For built-in actions the icon is defined by the type and matches the dashboard.")}</small></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Icona", "Icon")}</span><span class="dm-unified-icon-row"><span class="dm-unified-icon-preview" data-action-icon-preview aria-hidden="true">${iconMarkup(initialIcon, actionTypeIcon(selectedType), 36)}</span><input class="ed-input" name="icon" value="${esc(initialIcon)}"></span><small>${t("L’icona è personalizzabile anche per le azioni integrate e viene mostrata nella Home.", "The icon is customizable for built-in actions too and is shown on Home.")}</small></label>
      <label class="ed-slot" data-action-entity-field><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}"><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Conferma opzionale", "Optional confirmation")}</span><textarea class="ed-input" name="confirm">${esc(item.confirm || item.confirmation)}</textarea></label>`,
     actionTypeIcon(selectedType),
@@ -160,7 +160,7 @@ function openActionEditor(item, index) {
     const next = {
       ...item,
       name,
-      icon: builtin ? actionTypeIcon(type) : clean(form.elements.icon.value) || actionTypeIcon(type),
+      icon: clean(form.elements.icon.value) || actionTypeIcon(type),
       confirm: clean(form.elements.confirm.value),
     };
     if (builtin) {
