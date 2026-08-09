@@ -34,7 +34,9 @@ function dashboardView(config) {
         entry_id: config.entry_ids?.[0] || config.instance_id,
         title: config.title || "DashboardModern",
         primary: config.primary !== false,
-        static_base: config.static_base,
+        // Do not persist config.static_base here. It contains the current asset
+        // digest and becomes stale after an update/restart. dashboard-card.js
+        // derives the live base from its own import.meta.url instead.
         allowed_user_ids: allowed,
       },
     ],
@@ -62,7 +64,6 @@ export async function ensureCompanionDashboard(hass, panel) {
     entryId,
     config.title,
     config.primary,
-    config.static_base,
     config.allowed_user_ids,
     config.admin_only,
   ]);

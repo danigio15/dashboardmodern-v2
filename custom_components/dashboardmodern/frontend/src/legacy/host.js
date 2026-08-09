@@ -52,13 +52,49 @@ function absoluteUrl(path, hostWindow) {
   }
 }
 
+export function stableStaticBase(staticBase, hostWindow = globalThis.window) {
+  try {
+    const url = new URL(String(staticBase || ""), hostWindow?.location?.href || "http://localhost/");
+    const marker = "/dashboardmodern_static";
+    const index = url.pathname.indexOf(marker);
+    if (index < 0) return "";
+    url.pathname = url.pathname.slice(0, index + marker.length);
+    url.search = "";
+    url.hash = "";
+    return url.href.replace(/\/$/, "");
+  } catch (_error) {
+    return "";
+  }
+}
+
 async function loadHostedDocument(frame, { staticBase, file, instanceId, primary, fetchRef, hostWindow }) {
-  const relativeBase = `${String(staticBase).replace(/\/$/, "")}/legacy/`;
-  const requestUrl = absoluteUrl(`${relativeBase}${file}`, hostWindow);
-  const response = await fetchRef(requestUrl, { credentials: "same-origin", cache: "no-store" });
-  if (!response.ok) throw new Error(`DashboardModern document load failed: ${response.status}`);
-  const html = await response.text();
-  frame.srcdoc = injectHostedPrelude(html, { baseUrl: absoluteUrl(relativeBase, hostWindow), instanceId, primary });
+  const requestedBase = String(staticBase).replace(/\/$/, "");
+  const fallbackBase = stableStaticBase(requestedBase, hostWindow);
+  const bases = [...new Set([requestedBase, fallbackBase].filter(Boolean))];
+  let lastResponse = null;
+
+  for (const base of bases) {
+    const relativeBase = `${base}/legacy/`;
+    const requestUrl = absoluteUrl(`${relativeBase}${file}`, hostWindow);
+    const response = await fetchRef(requestUrl, { credentials: "same-origin", cache: "no-store" });
+    lastResponse = response;
+    if (response.ok) {
+      const html = await response.text();
+      frame.srcdoc = injectHostedPrelude(html, {
+        baseUrl: absoluteUrl(relativeBase, hostWindow),
+        instanceId,
+        primary,
+      });
+      frame.dataset.runtimeBase = base;
+      frame.dataset.usedStableFallback = String(base !== requestedBase);
+      return true;
+    }
+    // The stable route is a recovery path for stale versioned URLs. Do not hide
+    // authentication/authorization/server failures behind another request.
+    if (response.status !== 404) break;
+  }
+
+  throw new Error(`DashboardModern document load failed: ${lastResponse?.status ?? "network"}`);
 }
 
 export function mountLegacyHost(
@@ -132,7 +168,7 @@ export function mountLegacyHost(
     ? fetchRef
     : hostWindow?.location?.href
       ? globalThis.fetch?.bind(globalThis)
-      : async () => ({ ok: true, text: async () => "<!doctype html><html><head></head><body></body></html>" });
+      : async () => ({ ok: true, status: 200, text: async () => "<!doctype html><html><head></head><body></body></html>" });
   if (typeof loader !== "function") throw new Error("A fetch implementation is required.");
 
   const ready = loadHostedDocument(frame, { staticBase, file, instanceId, primary, fetchRef: loader, hostWindow }).catch((error) => {

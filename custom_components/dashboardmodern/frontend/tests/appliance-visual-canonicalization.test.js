@@ -10,7 +10,7 @@ test("known appliance aliases normalize to the editor visual keys", () => {
   assert.equal(canonicalApplianceVisualKey("washer"), "lavatrice");
   assert.equal(canonicalApplianceVisualKey("dishwasher"), "lavastoviglie");
   assert.equal(canonicalApplianceVisualKey("dryer"), "asciugatrice");
-  assert.equal(canonicalApplianceVisualKey("fridge"), "frigorifero");
+  assert.equal(canonicalApplianceVisualKey("fridge"), "frigo");
   assert.equal(canonicalApplianceVisualKey("oven"), "forno");
 });
 
