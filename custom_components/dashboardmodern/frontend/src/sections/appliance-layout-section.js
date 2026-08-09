@@ -1,7 +1,7 @@
 import { clean, doc, installStyle, root, section } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_APPLIANCE_LAYOUT_SECTION__";
-const state = (globalThis[KEY] ||= { installed: false, popupObserver: null });
+const state = (globalThis[KEY] ||= { installed: false, listeners: false });
 
 function configuredEntity(value) {
   return clean(typeof value === "string" ? value : value?.entity || value?.entity_id);
@@ -81,17 +81,29 @@ function syncDailyPopupArtwork() {
   return true;
 }
 
-function installDailyPopupArtwork() {
-  if (!doc || state.popupObserver) return;
-  const list = doc.querySelector("#dm-appliance-daily-popup [data-dm-daily-popup-list]");
-  if (!list) {
-    root.queueMicrotask?.(installDailyPopupArtwork);
-    return;
-  }
+function syncAfterDailyPopupRefresh() {
   syncDailyPopupArtwork();
-  if (typeof root.MutationObserver !== "function") return;
-  state.popupObserver = new root.MutationObserver(() => syncDailyPopupArtwork());
-  state.popupObserver.observe(list, { childList: true });
+  const pending = root.__DASHBOARDMODERN_APPLIANCES_SECTION__?.dailyPromise;
+  if (pending?.then) pending.then(() => syncDailyPopupArtwork()).catch(() => {});
+}
+
+function installPopupArtworkBridge() {
+  if (!doc || state.listeners) return;
+  state.listeners = true;
+  doc.addEventListener("click", (event) => {
+    if (!event.target?.closest?.('#appl-kpi-grid [data-dm-appliance-daily-total="true"]')) return;
+    root.queueMicrotask?.(syncAfterDailyPopupRefresh);
+  });
+  doc.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    if (!event.target?.closest?.('#appl-kpi-grid [data-dm-appliance-daily-total="true"]')) return;
+    root.queueMicrotask?.(syncAfterDailyPopupRefresh);
+  });
+  root.addEventListener?.("dashboardmodern:state-changed", () => {
+    const popup = doc.getElementById("dm-appliance-daily-popup");
+    if (!popup || popup.hidden) return;
+    root.requestAnimationFrame?.(syncAfterDailyPopupRefresh);
+  });
 }
 
 function installStyles() {
@@ -159,7 +171,7 @@ export function installApplianceLayoutSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
-  installDailyPopupArtwork();
+  installPopupArtworkBridge();
 }
 
 if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", installApplianceLayoutSection, { once: true });
