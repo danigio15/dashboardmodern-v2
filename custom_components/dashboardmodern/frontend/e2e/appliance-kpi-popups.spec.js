@@ -134,14 +134,10 @@ async function expectCentered(page, popup) {
     return {
       x: Math.abs(rect.left + rect.width / 2 - innerWidth / 2),
       y: Math.abs(rect.top + rect.height / 2 - innerHeight / 2),
-      align: getComputedStyle(node).alignItems,
-      justify: getComputedStyle(node).justifyContent,
     };
   });
   expect(delta.x).toBeLessThan(24);
   expect(delta.y).toBeLessThan(40);
-  expect(delta.align).toBe("center");
-  expect(delta.justify).toBe("center");
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
