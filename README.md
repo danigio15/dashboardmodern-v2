@@ -10,21 +10,32 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.20-0ea5e9" alt="Versione 0.15.20">
+  <img src="https://img.shields.io/badge/version-0.15.21-0ea5e9" alt="Versione 0.15.21">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.20
-> restores identical appliance artwork between Add/Edit/card views and hardens
-> frontend delivery, release immutability, version provenance and CI against the
-> class of regressions that can leave a green build but a stale/broken dashboard.
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.21
+> restores full appliance catalog parity between Add and Edit, preserves linked
+> entities while editing, and hardens stale frontend asset recovery after updates.
 
 ---
 
-## Novità 0.15.20
+## Novità 0.15.21
+
+La 0.15.21 completa la correzione Elettrodomestici e del runtime frontend emersa dopo la 0.15.20.
+
+- **Aggiungi** e **Modifica elettrodomestico** usano lo stesso catalogo canonico completo di 20 tipi e gli stessi SVG;
+- i tipi esistenti non vengono più degradati a `generico` quando il record arriva da configurazioni precedenti;
+- Modifica conserva e ricostruisce correttamente comando, potenza e collegamenti delle entità già associate;
+- il picker dei tipi resta sopra il modal di modifica e riceve correttamente gli eventi pointer anche su mobile e WebKit;
+- il companion non conserva più un digest statico obsoleto e il runtime può ripiegare sulla route stabile quando un vecchio asset versionato risponde 404;
+- il builder verifica che i documenti dashboard e i runtime necessari siano realmente presenti nello ZIP della release;
+- la suite Browser E2E copre la parità Add/Edit in italiano e inglese su desktop, mobile e WebKit/iPad.
+
+### 0.15.20 — hardening release e artwork
 
 La 0.15.20 corregge la regressione dell'anteprima **Modifica elettrodomestico** e chiude i problemi emersi dall'audit della pipeline e del runtime.
 
