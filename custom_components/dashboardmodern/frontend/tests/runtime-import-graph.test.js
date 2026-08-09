@@ -108,7 +108,10 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
     ),
     [],
   );
-  assert.ok(relative.length <= 52, `production graph unexpectedly grew to ${relative.length} modules`);
+  // v1 beta adds seven substantive UI owners: picker guard, report polish,
+  // personalization catalog/section, editor polish, compatibility owner and
+  // their entrypoint. Keep the budget exact so facade growth still fails.
+  assert.ok(relative.length <= 59, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 

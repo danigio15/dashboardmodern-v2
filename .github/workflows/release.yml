@@ -82,4 +82,5 @@ jobs:
           tag_name: ${{ needs.verify.outputs.release_tag }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
+          prerelease: ${{ contains(needs.verify.outputs.release_tag, '-') }}
           files: dashboardmodern.zip

@@ -11,6 +11,16 @@ export function canonicalArtworkType(value) {
   if (/lavastoviglie|dishwasher/.test(token)) return "dishwasher";
   if (/piano[_ -]?cottura|cooktop|hob/.test(token)) return "cooktop";
   if (/televis|\btv\b|monitor/.test(token)) return "television";
+  if (/cappa|hood|extractor/.test(token)) return "hood";
+  if (/ferro|iron/.test(token)) return "iron";
+  if (/robot.*aspir|robot.*vac|roomba/.test(token)) return "robot-vacuum";
+  if (/aspirapolvere|vacuum/.test(token)) return "vacuum";
+  if (/condizionatore|air[_ -]?condition|split|climatizzatore/.test(token)) return "air-conditioner";
+  if (/ventilatore|\bfan\b/.test(token)) return "fan";
+  if (/caffe|caffè|coffee/.test(token)) return "coffee";
+  if (/tostapane|toaster/.test(token)) return "toaster";
+  if (/bollitore|kettle/.test(token)) return "kettle";
+  if (/generico|altro|generic|presa|plug/.test(token)) return "generic";
   return "";
 }
 
@@ -33,6 +43,16 @@ function artworkBody(type) {
     dishwasher: `${panel}<rect ${shell} x="14" y="10" width="68" height="76" rx="9"/><rect ${face} x="20" y="16" width="56" height="14" rx="5"/><circle ${accent} cx="28" cy="23" r="3"/><rect ${face} x="20" y="36" width="56" height="41" rx="6"/><path ${line} d="M27 49h42M30 64h36M33 49v15M44 49v15M55 49v15M66 49v15"/><path ${window} d="M23 67c9-6 16 5 25-2 8-6 14 4 25-1v10H23Z"/>`,
     cooktop: `${panel}<rect ${shell} x="12" y="18" width="72" height="60" rx="10"/><rect ${face} x="18" y="24" width="60" height="48" rx="7"/><circle ${window} cx="35" cy="40" r="10"/><circle ${window} cx="61" cy="40" r="10"/><circle ${window} cx="35" cy="61" r="8"/><circle ${window} cx="61" cy="61" r="8"/><circle ${accent} cx="35" cy="40" r="3"/><circle ${accent} cx="61" cy="61" r="3"/>`,
     television: `${panel}<rect ${shell} x="10" y="18" width="76" height="54" rx="9"/><rect ${window} x="17" y="25" width="62" height="40" rx="5"/><path ${line} d="M39 78h18M48 70v8"/><path ${lightLine} d="M27 53c10-17 29-21 43-9"/>`,
+    hood: `${panel}<path ${shell} d="M24 13h48l-5 20H29z"/><rect ${shell} x="18" y="33" width="60" height="12" rx="5"/><rect ${face} x="25" y="37" width="46" height="4" rx="2"/><path ${line} d="M35 54c-5 6-5 12 0 18M48 51c-5 7-5 14 0 22M61 54c-5 6-5 12 0 18"/>`,
+    iron: `${panel}<path ${shell} d="M15 62c14-25 28-33 47-24 9 4 15 12 18 24H15z"/><path ${face} d="M27 56c10-13 20-18 32-13 4 2 8 6 10 13H27z"/><path ${line} d="M40 35V24c0-5 4-9 9-9h8M19 69h58"/>`,
+    vacuum: `${panel}<rect ${shell} x="24" y="13" width="44" height="51" rx="18"/><circle ${window} cx="46" cy="33" r="10"/><circle ${accent} cx="37" cy="58" r="6"/><path ${line} d="M26 56C12 60 12 75 22 80c8 4 14-1 17-8M68 53h11v10H68"/>`,
+    "robot-vacuum": `${panel}<ellipse ${shell} cx="48" cy="52" rx="31" ry="25"/><ellipse ${face} cx="48" cy="47" rx="24" ry="18"/><circle ${window} cx="48" cy="43" r="9"/><circle ${accent} cx="48" cy="43" r="4"/><path ${line} d="M23 62h50M31 72l-7 8M65 72l7 8"/>`,
+    "air-conditioner": `${panel}<rect ${shell} x="10" y="18" width="76" height="38" rx="10"/><rect ${face} x="17" y="25" width="62" height="18" rx="6"/><circle ${accent} cx="71" cy="34" r="3"/><path ${line} d="M20 51h56M30 62c-5 6-5 12 0 18M48 62c-5 6-5 12 0 18M66 62c-5 6-5 12 0 18"/>`,
+    fan: `${panel}<circle ${shell} cx="48" cy="43" r="29"/><circle ${face} cx="48" cy="43" r="7"/><path ${window} d="M48 35c-7-14 3-22 12-18 8 4 4 13-3 19zM55 47c14-7 22 3 18 12-4 8-13 4-19-3zM41 50c7 14-3 22-12 18-8-4-4-13 3-19z"/><path ${line} d="M48 72v12M35 87h26"/>`,
+    coffee: `${panel}<rect ${shell} x="18" y="11" width="50" height="65" rx="10"/><rect ${face} x="25" y="18" width="36" height="14" rx="5"/><circle ${accent} cx="33" cy="25" r="3"/><path ${line} d="M31 39h24v8H31zM43 47v8M56 59h11v16H34V59h11"/><path ${window} d="M39 65h22v6H39z"/>`,
+    toaster: `${panel}<rect ${shell} x="16" y="31" width="64" height="43" rx="15"/><rect ${face} x="23" y="38" width="50" height="27" rx="9"/><path ${line} d="M28 31c0-13 7-20 17-20s17 7 17 20M31 24h28M73 43h9M80 43v17"/>`,
+    kettle: `${panel}<path ${shell} d="M29 23h34l8 14v35a12 12 0 0 1-12 12H33a12 12 0 0 1-12-12V37z"/><path ${face} d="M31 31h26l6 10v26a8 8 0 0 1-8 8H37a8 8 0 0 1-8-8V41z"/><path ${window} d="M34 51h24v16H34z"/><path ${line} d="M63 32c17 2 19 26 4 32M36 16h20"/>`,
+    generic: `${panel}<rect ${shell} x="19" y="17" width="58" height="62" rx="15"/><rect ${face} x="27" y="25" width="42" height="46" rx="10"/><path ${line} d="M39 36v13M57 36v13M38 50h20c0 9-4 14-10 14s-10-5-10-14z"/><circle ${accent} cx="65" cy="29" r="3"/>`,
   };
   return bodies[type] || "";
 }

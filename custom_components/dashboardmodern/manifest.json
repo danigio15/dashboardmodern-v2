@@ -1,19 +1,12 @@
 {
   "domain": "dashboardmodern",
-  "name": "DashboardModern v2",
-  "codeowners": [
-    "@danigio15"
-  ],
+  "name": "Dashboard Modern V2",
+  "codeowners": ["@danigio15"],
   "config_flow": true,
-  "dependencies": [
-    "frontend",
-    "http",
-    "lovelace"
-  ],
+  "dependencies": ["http"],
   "documentation": "https://github.com/danigio15/dashboardmodern-v2",
-  "integration_type": "hub",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/danigio15/dashboardmodern-v2/issues",
   "requirements": [],
-  "version": "0.15.25"
+  "version": "1.0.0-beta.1"
 }

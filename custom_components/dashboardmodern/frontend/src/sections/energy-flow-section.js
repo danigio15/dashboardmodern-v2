@@ -8,7 +8,7 @@ const COLORS = Object.freeze({
   grid: "#2563eb",
   battery: "#14b8a6",
   home: "#8b5cf6",
-  export: "#7c3aed",
+  load: "#e11d48",
 });
 
 function numberFrom(node) {
@@ -24,9 +24,30 @@ function periodActive(period, key) {
 }
 
 function candidates(scope, key) {
-  const words = key === "grid" ? ["grid", "rete"] : key === "solar" ? ["solar", "solare", "pv"] : key === "battery" ? ["battery", "batteria"] : ["home", "house", "casa"];
-  const selector = words.flatMap((word) => [`[id*="${word}" i]`, `[class*="${word}" i]`, `[data-flow*="${word}" i]`, `[data-source*="${word}" i]`]).join(",");
+  const words = key === "grid"
+    ? ["grid", "rete"]
+    : key === "solar"
+      ? ["solar", "solare", "pv"]
+      : key === "battery"
+        ? ["battery", "batteria"]
+        : key === "load"
+          ? ["load", "carico", "clima", "lavander", "cucina", "boiler"]
+          : ["home", "house", "casa"];
+  const selector = words.flatMap((word) => [
+    `[id*="${word}" i]`,
+    `[class*="${word}" i]`,
+    `[data-flow*="${word}" i]`,
+    `[data-source*="${word}" i]`,
+    `[data-target*="${word}" i]`,
+  ]).join(",");
   return [...scope.querySelectorAll(selector)].filter((node) => /^(path|line|polyline|circle|g|div|span)$/i.test(node.tagName));
+}
+
+function nodeVisible(node) {
+  if (!node || node.hidden) return false;
+  const style = root.getComputedStyle?.(node);
+  if (style && (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0)) return false;
+  return true;
 }
 
 function colorNode(node, color, active) {
@@ -39,23 +60,52 @@ function colorNode(node, color, active) {
   }
 }
 
+function genericFlowLines(scope) {
+  return [...scope.querySelectorAll(".flow-line,path[id*='line-' i],line[id*='line-' i],polyline[id*='line-' i],[data-flow-line]")]
+    .filter((node) => /^(path|line|polyline)$/i.test(node.tagName));
+}
+
+function colorForLine(node) {
+  const token = `${node.id || ""} ${node.className?.baseVal || node.className || ""} ${node.dataset?.source || ""} ${node.dataset?.target || ""}`.toLowerCase();
+  if (/solar|solare|pv/.test(token)) return COLORS.solar;
+  if (/battery|batteria/.test(token)) return COLORS.battery;
+  if (/grid|rete/.test(token)) return COLORS.grid;
+  if (/home|house|casa/.test(token) && !/load|carico|clima|lavander|cucina|boiler/.test(token)) return COLORS.home;
+  return COLORS.load;
+}
+
 export function refreshEnergyFlows() {
   if (!doc) return false;
   const scopes = [
-    doc.getElementById("page-energy-month"),
+    doc.getElementById("view-day"),
+    doc.getElementById("view-month"),
+    doc.getElementById("view-ist"),
     doc.getElementById("page-energy-day"),
-    doc.getElementById("dp-month"),
+    doc.getElementById("page-energy-month"),
     doc.getElementById("dp-day"),
-    ...doc.querySelectorAll(".energy-flow,.energy-diagram,[data-energy-flow],.flow-diagram"),
-  ].filter(Boolean);
+    doc.getElementById("dp-month"),
+    ...doc.querySelectorAll(".energy-flow,.energy-diagram,[data-energy-flow],.flow-diagram,.flow-view"),
+  ].filter((node, index, values) => node && values.indexOf(node) === index);
   if (!scopes.length) return false;
+
   for (const scope of scopes) {
     const period = /day|giorn/i.test(`${scope.id} ${scope.className}`) ? "day" : "month";
-    for (const [key, color] of Object.entries(COLORS)) {
-      if (key === "export") continue;
+    for (const key of ["solar", "grid", "battery", "home"]) {
       const active = periodActive(period, key);
-      candidates(scope, key).forEach((node) => colorNode(node, color, active));
+      candidates(scope, key).forEach((node) => colorNode(node, COLORS[key], active && nodeVisible(node)));
     }
+
+    // Legacy and custom load paths do not all carry a stable source class. Any
+    // visible path left on the diagram represents an active rendered flow and
+    // must animate instead of becoming a static orphan line.
+    genericFlowLines(scope).forEach((node) => {
+      if (node.classList.contains("dm-energy-flow-active")) return;
+      const active = nodeVisible(node);
+      colorNode(node, colorForLine(node), active);
+    });
+    candidates(scope, "load").forEach((node) => {
+      if (/^(path|line|polyline)$/i.test(node.tagName)) colorNode(node, colorForLine(node), nodeVisible(node));
+    });
     scope.dataset.dmEnergyFlows = "active";
   }
   return true;
@@ -76,9 +126,9 @@ function installStyles() {
   installStyle("dm-energy-flow-section-style", `
     .dm-energy-flow-active{opacity:1!important;filter:drop-shadow(0 0 5px color-mix(in srgb,var(--dm-flow-color) 42%,transparent))!important;transition:stroke .2s ease,fill .2s ease,opacity .2s ease!important}
     .dm-energy-flow-idle{opacity:.35!important;filter:none!important;transition:stroke .2s ease,fill .2s ease,opacity .2s ease!important}
-    .dm-energy-flow-active[stroke-dasharray],path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{animation:dmEnergyFlowDash 1.8s linear infinite!important}
-    @keyframes dmEnergyFlowDash{to{stroke-dashoffset:-28}}
-    @media(prefers-reduced-motion:reduce){.dm-energy-flow-active{animation:none!important}}
+    .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke-dasharray:10 12!important;animation:dmEnergyFlowDash 1.45s linear infinite!important}
+    @keyframes dmEnergyFlowDash{to{stroke-dashoffset:-44}}
+    @media(prefers-reduced-motion:reduce){.flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{animation:none!important}}
   `);
 }
 
@@ -87,7 +137,9 @@ export function installEnergyFlowSection() {
   state.installed = true;
   installStyles();
   for (const name of ["renderEnergyMonth", "renderEnergyDay", "renderEnergyDashboard", "applyAtomicEnergyBundle"]) wrapFunction(name, `__dmEnergyFlow_${name}`, schedule);
+  root.addEventListener?.("dashboardmodern:period-bundle", schedule);
   root.addEventListener?.("dashboardmodern:energy-bundle", schedule);
+  root.addEventListener?.("dashboardmodern:energy-stable", schedule);
   root.addEventListener?.("dashboardmodern:runtime-ready", schedule);
   root.addEventListener?.("dashboardmodern:legacy-ready", schedule);
   doc.addEventListener("click", (event) => {

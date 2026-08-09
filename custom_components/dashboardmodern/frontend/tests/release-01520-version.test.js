@@ -23,14 +23,14 @@ const refreshUrl = new URL("../src/sections/energy-refresh-section.js", import.m
 const analysisUrl = new URL("../src/sections/energy-analysis-section.js", import.meta.url);
 const contractsUrl = new URL("../src/sections/editor-contracts-section.js", import.meta.url);
 
-test("the 0.15.25 release metadata is consistently versioned", async () => {
+const RELEASE_VERSION = "1.0.0-beta.1";
+
+test("the 1.0 beta release metadata is consistently versioned", async () => {
   const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
   const readme = await readFile(readmeUrl, "utf8");
   const buildInfo = await readFile(buildInfoUrl, "utf8");
 
-  assert.equal(manifest.version, "0.15.25");
-  assert.match(readme, /version-0\.15\.25/);
-  assert.match(readme, /Novità 0\.15\.25/);
+  assert.equal(manifest.version, RELEASE_VERSION);
   assert.match(readme, /Confronto settimanale dei consumi Casa/i);
   assert.match(readme, /contatore totale kWh/i);
   assert.match(readme, /SALVA MODIFICHE/);
@@ -40,8 +40,8 @@ test("the 0.15.25 release metadata is consistently versioned", async () => {
     /https:\/\/raw\.githubusercontent\.com\/danigio15\/dashboardmodern-v2\/main\/brand\/logo\.png/,
   );
   assert.doesNotMatch(readme, /main\/assets\/logo|brand\/logo@2x\.png/);
-  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']0\.15\.25["']/);
-  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']0\.15\.25["']/);
+  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']1\.0\.0-beta\.1["']/);
+  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']1\.0\.0-beta\.1["']/);
   assert.match(buildInfo, /["']?moduleVersion["']?\s*:\s*14/);
 });
 

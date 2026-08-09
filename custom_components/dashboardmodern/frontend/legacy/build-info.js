@@ -1,8 +1,10 @@
 // Source-tree sentinel. Release/test workflows replace this file from the checked-out HEAD.
+import "../src/sections/beta-entry-section.js";
+
 export const BUILD_INFO = Object.freeze({
   generated: false,
-  integrationVersion: "0.15.20",
-  dashboardVersion: "0.15.20",
+  integrationVersion: "1.0.0-beta.1",
+  dashboardVersion: "1.0.0-beta.1",
   moduleVersion: 14,
   schemaVersion: 4,
   date: "UNBUILT",
