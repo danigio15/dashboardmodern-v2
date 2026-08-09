@@ -1,19 +1,39 @@
 export const SCHEMA_VERSION = 4;
 
-export const APPLIANCE_VISUAL_KEYS = Object.freeze([
-  "forno",
-  "lavatrice",
-  "lavastoviglie",
-  "asciugatrice",
-  "frigorifero",
-  "frigo",
-  "microonde",
-  "piano_cottura",
-  "condizionatore",
-  "boiler",
-  "scaldabagno",
-  "generico",
+/**
+ * Canonical appliance catalog.
+ *
+ * The keys intentionally match the original blue-icon appliance picker used by
+ * the Add flow. Edit, rendering and migration must consume this same catalog so
+ * a device can never silently fall back to `generico` just because a second
+ * editor happened to know fewer appliance types.
+ */
+export const APPLIANCE_CATALOG = Object.freeze([
+  { key: "lavatrice", it: "Lavatrice", en: "Washing machine" },
+  { key: "lavastoviglie", it: "Lavastoviglie", en: "Dishwasher" },
+  { key: "asciugatrice", it: "Asciugatrice", en: "Dryer" },
+  { key: "forno", it: "Forno", en: "Oven" },
+  { key: "microonde", it: "Microonde", en: "Microwave" },
+  { key: "frigo", it: "Frigorifero", en: "Refrigerator" },
+  { key: "congelatore", it: "Congelatore", en: "Freezer" },
+  { key: "piano_cottura", it: "Piano cottura", en: "Cooktop" },
+  { key: "cappa", it: "Cappa", en: "Hood" },
+  { key: "ferro", it: "Ferro da stiro", en: "Iron" },
+  { key: "aspirapolvere", it: "Aspirapolvere", en: "Vacuum cleaner" },
+  { key: "robot", it: "Robot aspirapolvere", en: "Robot vacuum" },
+  { key: "condizionatore", it: "Condizionatore", en: "Air conditioner" },
+  { key: "ventilatore", it: "Ventilatore", en: "Fan" },
+  { key: "scaldabagno", it: "Scaldabagno", en: "Water heater" },
+  { key: "tv", it: "TV", en: "TV" },
+  { key: "caffe", it: "Caffettiera", en: "Coffee maker" },
+  { key: "tostapane", it: "Tostapane", en: "Toaster" },
+  { key: "bollitore", it: "Bollitore", en: "Kettle" },
+  { key: "generico", it: "Altro", en: "Other" },
 ]);
+
+export const APPLIANCE_VISUAL_KEYS = Object.freeze(
+  APPLIANCE_CATALOG.map((item) => item.key),
+);
 
 export function cloneValue(value) {
   if (typeof globalThis.structuredClone === "function") return globalThis.structuredClone(value);
@@ -40,15 +60,34 @@ const TYPE_ICONS = Object.freeze({
   frigo: "mdi:fridge-outline",
   freezer: "mdi:snowflake",
   congelatore: "mdi:snowflake",
+  cooktop: "mdi:stove",
+  piano_cottura: "mdi:stove",
+  hood: "mdi:air-filter",
+  cappa: "mdi:air-filter",
+  iron: "mdi:iron",
+  ferro: "mdi:iron",
+  vacuum: "mdi:vacuum",
+  aspirapolvere: "mdi:vacuum",
+  robot_vacuum: "mdi:robot-vacuum",
+  robot: "mdi:robot-vacuum",
   boiler: "mdi:water-boiler",
   water_heater: "mdi:water-boiler",
   scaldabagno: "mdi:water-boiler",
   toaster: "mdi:toaster",
   tostapane: "mdi:toaster",
   coffee_machine: "mdi:coffee-maker",
+  coffee_maker: "mdi:coffee-maker",
   caffe: "mdi:coffee-maker",
+  kettle: "mdi:kettle",
+  bollitore: "mdi:kettle",
+  television: "mdi:television",
+  televisore: "mdi:television",
+  tv: "mdi:television",
   air_conditioner: "mdi:air-conditioner",
+  climatizzatore: "mdi:air-conditioner",
   condizionatore: "mdi:air-conditioner",
+  fan: "mdi:fan",
+  ventilatore: "mdi:fan",
   camera: "mdi:cctv",
   light: "mdi:lightbulb",
   climate: "mdi:thermostat",
@@ -64,12 +103,36 @@ const VISUAL_ALIASES = Object.freeze({
   washing_machine: "lavatrice",
   dishwasher: "lavastoviglie",
   dryer: "asciugatrice",
-  fridge: "frigorifero",
-  refrigerator: "frigorifero",
+  fridge: "frigo",
+  refrigerator: "frigo",
+  frigorifero: "frigo",
   microwave: "microonde",
+  freezer: "congelatore",
   cooktop: "piano_cottura",
   hob: "piano_cottura",
-  water_heater: "boiler",
+  hood: "cappa",
+  iron: "ferro",
+  vacuum: "aspirapolvere",
+  vacuum_cleaner: "aspirapolvere",
+  robot_vacuum: "robot",
+  robot_aspirapolvere: "robot",
+  air_conditioner: "condizionatore",
+  climatizzatore: "condizionatore",
+  fan: "ventilatore",
+  boiler: "scaldabagno",
+  water_heater: "scaldabagno",
+  television: "tv",
+  televisore: "tv",
+  coffee: "caffe",
+  coffee_machine: "caffe",
+  coffee_maker: "caffe",
+  caffettiera: "caffe",
+  toaster: "tostapane",
+  kettle: "bollitore",
+  generic: "generico",
+  other: "generico",
+  altro: "generico",
+  appliance: "generico",
 });
 
 function normalizedToken(value = "") {
@@ -82,21 +145,60 @@ function normalizedToken(value = "") {
     .replace(/^_+|_+$/g, "");
 }
 
+function tokenContains(token, candidate) {
+  return (
+    token === candidate ||
+    token.startsWith(`${candidate}_`) ||
+    token.endsWith(`_${candidate}`) ||
+    token.includes(`_${candidate}_`)
+  );
+}
+
 export function canonicalApplianceVisualKey(value = "") {
   const token = normalizedToken(value);
-  const key = VISUAL_ALIASES[token] || token;
-  return APPLIANCE_VISUAL_KEYS.includes(key) ? key : "";
+  if (!token) return "";
+  const direct = VISUAL_ALIASES[token] || token;
+  if (APPLIANCE_VISUAL_KEYS.includes(direct)) return direct;
+
+  // Recover old records where the visual was accidentally saved as generic but
+  // the human name still contains a known appliance type (for example
+  // "Frigorifero cucina" or "Robot aspirapolvere"). Prefer longer aliases so a
+  // specific type wins before a short token such as "tv".
+  const candidates = [
+    ...Object.entries(VISUAL_ALIASES),
+    ...APPLIANCE_VISUAL_KEYS.map((key) => [key, key]),
+  ].sort((a, b) => b[0].length - a[0].length);
+  for (const [alias, key] of candidates) {
+    if (key !== "generico" && tokenContains(token, alias)) return key;
+  }
+  return "";
+}
+
+export function applianceCatalogLabel(value = "", locale = "it") {
+  const key = canonicalApplianceVisualKey(value) || "generico";
+  const item = APPLIANCE_CATALOG.find((entry) => entry.key === key);
+  return item?.[locale === "en" ? "en" : "it"] || item?.it || key;
 }
 
 function legacyVisualKey(input = {}, rawIcon = "", type = "") {
-  const candidates = [input.visual_key, rawIcon, type, input.device_type, input.type]
+  const candidates = [
+    input.visual_key,
+    rawIcon,
+    type,
+    input.device_type,
+    input.type,
+    input.name,
+  ]
     .map(normalizedToken)
     .filter(Boolean);
+  let generic = "";
   for (const candidate of candidates) {
     const key = canonicalApplianceVisualKey(candidate);
-    if (key) return key;
+    if (!key) continue;
+    if (key !== "generico") return key;
+    generic ||= key;
   }
-  return "";
+  return generic;
 }
 
 export function entityLabel(entityId = "") {
@@ -148,6 +250,8 @@ export function getDeviceVisual(device = {}) {
   const icon = String(device.icon || "").trim();
   if (/^mdi:[a-z0-9-]+$/i.test(icon)) return { kind: "icon", value: icon };
   const type = String(device.device_type || device.type || "").toLowerCase().trim();
+  const canonical = canonicalApplianceVisualKey(type || device.name);
+  if (canonical) return { kind: "asset", value: canonical };
   return { kind: "icon", value: TYPE_ICONS[type] || TYPE_ICONS[device.section] || "mdi:devices" };
 }
 
