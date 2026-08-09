@@ -98,6 +98,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(trigger).toContainText(/Frigorifero|Refrigerator/);
     await expect(trigger).not.toContainText(/generico|generic/i);
 
+    // The legacy record contains only `entities`. Edit must recover the actual
+    // control and power links from the canonical Home Assistant state registry.
+    await expect(modal.locator('input[name="control_entity"]')).toHaveValue("switch.frigo");
+    await expect(modal.locator('input[name="power_entity"]')).toHaveValue("sensor.frigo_power");
+
     const iconParity = await modal.locator("[data-icon-preview]").evaluate((node) => ({
       actual: node.innerHTML,
       expected: window.cdApplianceIcon("frigo", 58),
@@ -111,11 +116,6 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     for (const type of ["frigo", "congelatore", "ferro", "aspirapolvere", "robot", "tv", "caffe", "bollitore"]) {
       await expect(picker.locator(`[data-appliance-type="${type}"]`)).toHaveCount(1);
     }
-    const addPickerKeys = await page.evaluate(() => window.DM_APPLIANCES?.map?.((item) => item.t) || []);
-    // DM_APPLIANCES is a legacy lexical const and may not be a window property;
-    // the runtime picker contract is therefore compared through its actual 20
-    // rendered buttons rather than relying on that implementation detail.
-    expect(addPickerKeys.length === 0 || addPickerKeys.length === 20).toBe(true);
     await picker.locator('[data-appliance-type="frigo"]').click();
 
     await expect(trigger).toContainText(/Frigorifero|Refrigerator/);
@@ -124,7 +124,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     await expect
       .poll(() => page.evaluate(() => {
-        const item = DashboardModernModules.store.getSection("appliances")[0];
+        const state = JSON.parse(localStorage.getItem("dm_dashboard_state") || "{}");
+        const item = state.sections?.appliances?.[0] || {};
         return {
           visual: item.visual_key,
           type: item.device_type,
