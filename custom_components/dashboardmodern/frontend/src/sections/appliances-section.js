@@ -1,5 +1,6 @@
 import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
+import { isCumulativeEnergyEntity, resolveEntity } from "../core/period-service.js";
 import { runtimeMetrics } from "../core/runtime-metrics.js";
 import {
   allStates,
@@ -7,6 +8,7 @@ import {
   dashboardStore,
   doc,
   english,
+  esc,
   installStyle,
   root,
   section,
@@ -14,13 +16,143 @@ import {
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_APPLIANCES_SECTION__";
+const DAILY_REFRESH_MS = 5000;
 const state = (root[KEY] ||= {
   installed: false,
   listeners: false,
   normalizing: false,
   frame: 0,
   storeUnsubscribe: null,
+  dailyBreakdown: Object.freeze({ total: 0, rows: [] }),
+  dailyUpdatedAt: 0,
+  dailyPromise: null,
+  dailyGeneration: 0,
 });
+
+function configuredEntity(value) {
+  return clean(typeof value === "string" ? value : value?.entity || value?.entity_id);
+}
+
+function resolvedEntity(value) {
+  const entity = configuredEntity(value);
+  return entity ? resolveEntity(entity) : "";
+}
+
+function energyValueKwh(entity, states = {}) {
+  const id = resolvedEntity(entity);
+  const snapshot = states[id] || states[configuredEntity(entity)];
+  const numeric = Number(snapshot?.state);
+  if (!Number.isFinite(numeric)) return null;
+  const unit = clean(snapshot?.attributes?.unit_of_measurement).toLowerCase();
+  if (unit === "wh") return Math.max(0, numeric / 1000);
+  if (unit === "mwh") return Math.max(0, numeric * 1000);
+  if (unit && unit !== "kwh") return null;
+  return Math.max(0, numeric);
+}
+
+export function applianceDailySource(device = {}, states = {}) {
+  const directCandidates = [
+    device.daily_energy_entity,
+    device.energy_today,
+    device.daily_energy,
+  ]
+    .map(configuredEntity)
+    .filter(Boolean);
+  const direct = directCandidates.find((entity) => energyValueKwh(entity, states) != null);
+  if (direct) {
+    return {
+      entity: resolvedEntity(direct),
+      source: direct,
+      direct: true,
+      reason: "explicit-daily",
+    };
+  }
+
+  const cumulativeCandidates = [
+    device.total_energy_entity,
+    device.history_entity,
+    device.report_entity,
+    device.energy_entity,
+    device.energy,
+    ...(device.entities || []),
+  ]
+    .map(configuredEntity)
+    .filter(Boolean);
+  const seen = new Set();
+  const cumulative = cumulativeCandidates.find((entity) => {
+    if (seen.has(entity)) return false;
+    seen.add(entity);
+    return isCumulativeEnergyEntity(entity, states, (value) => resolveEntity(value));
+  });
+  if (!cumulative) return null;
+  return {
+    entity: resolvedEntity(cumulative),
+    source: cumulative,
+    direct: false,
+    reason: "cumulative-recorder",
+  };
+}
+
+export async function buildApplianceDailyBreakdown(
+  applianceList = [],
+  states = {},
+  broker = root.DashboardModernEnergyService?.broker,
+  selected = new Date(),
+) {
+  const rows = [];
+  const plans = [];
+  const planRows = new Map();
+
+  applianceList.forEach((device, index) => {
+    const source = applianceDailySource(device, states);
+    if (!source) return;
+    const row = {
+      id: clean(device.id) || `appliance-${index}`,
+      name: clean(device.name) || (english() ? "Appliance" : "Elettrodomestico"),
+      entity: source.entity,
+      source: source.source,
+      direct: source.direct,
+      reason: source.reason,
+      value: null,
+    };
+    if (source.direct) {
+      row.value = energyValueKwh(source.source, states);
+    } else {
+      const key = `appliance:${row.id}:${index}`;
+      plans.push({
+        key,
+        entity: source.entity,
+        source: source.source,
+        kind: "day",
+        direct: false,
+        reason: source.reason,
+      });
+      planRows.set(key, row);
+    }
+    rows.push(row);
+  });
+
+  if (plans.length && broker?.valuesForPlans) {
+    try {
+      const values = await broker.valuesForPlans(plans, selected, states);
+      planRows.forEach((row, key) => {
+        const value = Number(values?.get?.(key));
+        row.value = Number.isFinite(value) ? Math.max(0, value) : null;
+      });
+    } catch (error) {
+      root.console?.warn?.("[DashboardModern] appliance daily Recorder lookup failed", error);
+    }
+  }
+
+  const consumed = rows
+    .filter((row) => Number.isFinite(row.value) && row.value > 0.0005)
+    .sort((left, right) => right.value - left.value);
+  const total = consumed.reduce((sum, row) => sum + row.value, 0);
+  return Object.freeze({
+    total: Math.round(total * 1000) / 1000,
+    rows: Object.freeze(consumed.map((row) => Object.freeze({ ...row }))),
+  });
+}
 
 export function inferApplianceEntity(device = {}, states = {}, kind = "energy") {
   const candidates = [
@@ -72,7 +204,7 @@ function applianceEntityIds() {
       device.report_entity,
       ...(device.entities || []),
     ]) {
-      const id = clean(typeof value === "string" ? value : value?.entity || value?.entity_id);
+      const id = configuredEntity(value);
       if (id) ids.add(id);
     }
   });
@@ -232,6 +364,147 @@ function ensureToggle(card, model) {
   hideLegacyPowerOnly(card);
 }
 
+function dailyCard() {
+  const cards = [...(doc?.querySelectorAll?.("#appl-kpi-grid .glance-card") || [])];
+  return (
+    cards.find((card) => /energia giornaliera|daily energy/i.test(clean(card.textContent))) ||
+    cards[2] ||
+    null
+  );
+}
+
+function formatDaily(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "— kWh";
+  if (numeric >= 10) return `${numeric.toFixed(1)} kWh`;
+  return `${numeric.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")} kWh`;
+}
+
+function renderDailyPopup(breakdown = state.dailyBreakdown, { loading = false } = {}) {
+  const popup = doc?.getElementById("dm-appliance-daily-popup");
+  if (!popup) return;
+  const total = popup.querySelector("[data-dm-daily-popup-total]");
+  const list = popup.querySelector("[data-dm-daily-popup-list]");
+  if (total) total.textContent = loading ? "…" : formatDaily(breakdown.total);
+  if (!list) return;
+  if (loading) {
+    list.innerHTML = `<div class="dm-appliance-daily-empty">${english() ? "Updating Recorder data…" : "Aggiornamento dati Recorder…"}</div>`;
+    return;
+  }
+  if (!breakdown.rows.length) {
+    list.innerHTML = `<div class="dm-appliance-daily-empty">${english() ? "No appliance has measurable consumption today." : "Nessun elettrodomestico ha un consumo giornaliero misurabile."}</div>`;
+    return;
+  }
+  list.innerHTML = breakdown.rows
+    .map((row) => {
+      const pct = breakdown.total > 0 ? Math.round((row.value / breakdown.total) * 100) : 0;
+      const source = row.direct
+        ? english() ? "Daily sensor" : "Sensore giornaliero"
+        : english() ? "Total meter → Recorder" : "Contatore totale → Recorder";
+      return `<button type="button" class="dm-appliance-daily-row" data-dm-daily-entity="${esc(row.entity)}">
+        <span class="dm-appliance-daily-row-main"><strong>${esc(row.name)}</strong><small>${esc(row.entity)}</small><small>${source}</small></span>
+        <span class="dm-appliance-daily-row-value"><strong>${formatDaily(row.value)}</strong><small>${pct}%</small></span>
+      </button>`;
+    })
+    .join("");
+  list.querySelectorAll("[data-dm-daily-entity]").forEach((row) => {
+    row.addEventListener("click", (event) => {
+      const entity = clean(row.dataset.dmDailyEntity);
+      if (!entity || typeof root.apriStorico !== "function") return;
+      event.stopPropagation();
+      root.apriStorico(event, entity, row.querySelector("strong")?.textContent || entity);
+    });
+  });
+}
+
+function ensureDailyPopup() {
+  if (!doc?.body) return null;
+  let popup = doc.getElementById("dm-appliance-daily-popup");
+  if (popup) return popup;
+  popup = doc.createElement("div");
+  popup.id = "dm-appliance-daily-popup";
+  popup.className = "dm-appliance-daily-overlay";
+  popup.hidden = true;
+  popup.innerHTML = `<div class="dm-appliance-daily-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-appliance-daily-title">
+    <div class="dm-appliance-daily-head"><div><small>${english() ? "TODAY" : "OGGI"}</small><h3 id="dm-appliance-daily-title">${english() ? "Appliance energy" : "Energia elettrodomestici"}</h3></div><button type="button" data-dm-daily-close aria-label="${english() ? "Close" : "Chiudi"}">✕</button></div>
+    <div class="dm-appliance-daily-total"><span>${english() ? "Measured total" : "Totale misurato"}</span><strong data-dm-daily-popup-total>— kWh</strong></div>
+    <div class="dm-appliance-daily-list" data-dm-daily-popup-list></div>
+    <div class="dm-appliance-daily-note">${english() ? "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly." : "Sono conteggiati solo sensori giornalieri o delta Recorder dei contatori cumulativi. I valori lifetime non vengono mai sommati direttamente."}</div>
+  </div>`;
+  const close = () => {
+    popup.hidden = true;
+    popup.classList.remove("show");
+  };
+  popup.addEventListener("click", (event) => {
+    if (event.target === popup) close();
+  });
+  popup.querySelector("[data-dm-daily-close]")?.addEventListener("click", close);
+  doc.body.append(popup);
+  return popup;
+}
+
+async function refreshApplianceDailyKpi({ force = false, openPopup = false } = {}) {
+  const card = dailyCard();
+  if (!card) return state.dailyBreakdown;
+  if (openPopup) {
+    const popup = ensureDailyPopup();
+    if (popup) {
+      popup.hidden = false;
+      popup.classList.add("show");
+      renderDailyPopup(state.dailyBreakdown, { loading: true });
+    }
+  }
+  const age = Date.now() - state.dailyUpdatedAt;
+  if (!force && state.dailyUpdatedAt && age < DAILY_REFRESH_MS) {
+    applyDailyKpi(state.dailyBreakdown);
+    if (openPopup) renderDailyPopup(state.dailyBreakdown);
+    return state.dailyBreakdown;
+  }
+  if (state.dailyPromise) return state.dailyPromise;
+  const generation = ++state.dailyGeneration;
+  const applianceList = devices();
+  const states = allStates();
+  const broker = root.DashboardModernEnergyService?.broker;
+  state.dailyPromise = buildApplianceDailyBreakdown(applianceList, states, broker)
+    .then((breakdown) => {
+      if (generation !== state.dailyGeneration) return state.dailyBreakdown;
+      state.dailyBreakdown = breakdown;
+      state.dailyUpdatedAt = Date.now();
+      applyDailyKpi(breakdown);
+      if (!ensureDailyPopup()?.hidden) renderDailyPopup(breakdown);
+      return breakdown;
+    })
+    .finally(() => {
+      if (generation === state.dailyGeneration) state.dailyPromise = null;
+    });
+  return state.dailyPromise;
+}
+
+function applyDailyKpi(breakdown = state.dailyBreakdown) {
+  const card = dailyCard();
+  if (!card) return false;
+  card.dataset.dmApplianceDailyTotal = "true";
+  card.setAttribute("role", "button");
+  card.tabIndex = 0;
+  card.setAttribute(
+    "aria-label",
+    english() ? "Open today's appliance energy breakdown" : "Apri dettaglio energia elettrodomestici di oggi",
+  );
+  card.title = english() ? "Show devices and energy sources" : "Mostra dispositivi ed entità che hanno consumato";
+  const value = card.querySelector(".g-val");
+  if (value) value.textContent = formatDaily(breakdown.total);
+  if (!card.dataset.dmDailyMounted) {
+    card.dataset.dmDailyMounted = "true";
+    card.addEventListener("click", () => refreshApplianceDailyKpi({ force: true, openPopup: true }));
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      refreshApplianceDailyKpi({ force: true, openPopup: true });
+    });
+  }
+  return true;
+}
+
 export function normalizeApplianceCards() {
   if (!doc || state.normalizing) return false;
   const configured = devices();
@@ -275,7 +548,9 @@ export function scheduleApplianceNormalization() {
   if (!appliancesVisible() || state.frame) return;
   const run = () => {
     state.frame = 0;
-    if (appliancesVisible()) normalizeApplianceCards();
+    if (!appliancesVisible()) return;
+    normalizeApplianceCards();
+    refreshApplianceDailyKpi();
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0);
 }
@@ -303,6 +578,15 @@ function installStyles() {
       #page-appliances-main .dm-appliance-image,#appl-grid-overview .dm-appliance-image{
         object-fit:cover!important;object-position:center!important
       }
+      #appl-kpi-grid [data-dm-appliance-daily-total="true"]{cursor:pointer!important;outline-offset:3px}
+      #appl-kpi-grid [data-dm-appliance-daily-total="true"]:active{transform:scale(.985)}
+      .dm-appliance-daily-overlay[hidden]{display:none!important}
+      .dm-appliance-daily-overlay{position:fixed;inset:0;z-index:2147483000;background:rgba(15,23,42,.58);display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(7px)}
+      .dm-appliance-daily-dialog{width:min(560px,100%);max-height:min(78vh,720px);overflow:hidden;background:var(--card-bg,#fff);color:var(--text,#0f172a);border:1px solid var(--card-border,#e2e8f0);border-radius:24px;box-shadow:0 24px 70px rgba(15,23,42,.28);display:flex;flex-direction:column}
+      .dm-appliance-daily-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 20px 12px}.dm-appliance-daily-head small{font-size:10px;letter-spacing:2px;font-weight:900;color:var(--text-dim,#64748b)}.dm-appliance-daily-head h3{margin:2px 0 0;font-size:22px}.dm-appliance-daily-head button{width:40px;height:40px;border:0;border-radius:12px;background:rgba(148,163,184,.14);color:inherit;font-size:18px;cursor:pointer}
+      .dm-appliance-daily-total{margin:0 20px 12px;padding:16px 18px;border-radius:18px;background:linear-gradient(135deg,rgba(14,165,233,.14),rgba(56,189,248,.05));display:flex;align-items:center;justify-content:space-between;gap:14px}.dm-appliance-daily-total span{font-size:12px;font-weight:800;color:var(--text-dim,#64748b);text-transform:uppercase;letter-spacing:1px}.dm-appliance-daily-total strong{font-size:24px;color:#0284c7;white-space:nowrap}
+      .dm-appliance-daily-list{overflow:auto;padding:0 20px 10px;display:grid;gap:8px}.dm-appliance-daily-row{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left;padding:13px 14px;border:1px solid var(--card-border,#e2e8f0);border-radius:15px;background:rgba(148,163,184,.06);color:inherit;cursor:pointer}.dm-appliance-daily-row-main,.dm-appliance-daily-row-value{display:flex;flex-direction:column;min-width:0}.dm-appliance-daily-row-main{gap:2px}.dm-appliance-daily-row-main strong{font-size:14px}.dm-appliance-daily-row-main small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim,#64748b);font:10px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}.dm-appliance-daily-row-value{align-items:flex-end;flex:0 0 auto}.dm-appliance-daily-row-value strong{color:#0284c7;font-size:14px}.dm-appliance-daily-row-value small{color:var(--text-dim,#64748b);font-size:10px;font-weight:800}.dm-appliance-daily-empty{padding:22px;text-align:center;color:var(--text-dim,#64748b);font-weight:700}.dm-appliance-daily-note{margin:0 20px 18px;padding-top:10px;border-top:1px solid var(--card-border,#e2e8f0);color:var(--text-dim,#64748b);font-size:10px;line-height:1.45}
+      @media(max-width:520px){.dm-appliance-daily-overlay{align-items:flex-end;padding:10px}.dm-appliance-daily-dialog{max-height:82vh;border-radius:24px 24px 18px 18px}.dm-appliance-daily-head{padding:18px 16px 10px}.dm-appliance-daily-total{margin:0 16px 10px}.dm-appliance-daily-list{padding:0 16px 10px}.dm-appliance-daily-note{margin:0 16px 16px}.dm-appliance-daily-row{padding:12px}}
     `,
   );
 }
@@ -322,7 +606,11 @@ function installWrappers() {
 function subscribeStore() {
   if (state.storeUnsubscribe || !dashboardStore()?.subscribe) return;
   state.storeUnsubscribe = dashboardStore().subscribe((change) => {
-    if (change.section === "appliances" && appliancesVisible()) scheduleApplianceNormalization();
+    if (change.section === "appliances" && appliancesVisible()) {
+      state.dailyUpdatedAt = 0;
+      state.dailyGeneration += 1;
+      scheduleApplianceNormalization();
+    }
   });
 }
 
@@ -331,10 +619,12 @@ export function installAppliancesSection() {
   installStyles();
   installWrappers();
   subscribeStore();
+  ensureDailyPopup();
   if (!state.listeners) {
     state.listeners = true;
     root.addEventListener?.("dashboardmodern:state-changed", (event) => {
       if (appliancesVisible() && stateChangeAffectsAppliances(event)) {
+        state.dailyUpdatedAt = 0;
         scheduleApplianceNormalization();
       }
     });

@@ -285,7 +285,7 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
             const isCurrentMonth =
               message.period === "day" && endTime > currentTime && endTime <= now.getTime() + 86_400_000;
             const selected =
-              message.period === "hour"
+              message.period === "hour" || message.period === "5minute"
                 ? daily
                 : message.period === "month"
                   ? annual

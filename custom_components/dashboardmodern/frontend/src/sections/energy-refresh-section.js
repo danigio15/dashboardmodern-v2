@@ -1,7 +1,12 @@
 import { doc, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENERGY_REFRESH_SECTION__";
-const state = (root[KEY] ||= { installed: false, refreshQueued: false });
+const LIVE_WINDOW_MS = 10 * 60 * 1000;
+const state = (root[KEY] ||= {
+  installed: false,
+  refreshQueued: false,
+  liveStatisticsInstalled: false,
+});
 
 export function initializeEnergyPeriodControls(now = new Date(), documentRef = doc) {
   const month = documentRef?.getElementById("ed-sel-month");
@@ -21,6 +26,31 @@ export function initializeEnergyPeriodControls(now = new Date(), documentRef = d
   return true;
 }
 
+export function liveStatisticsPeriod(period, end, now = Date.now()) {
+  if (period !== "hour") return period;
+  const endMs = new Date(end).getTime();
+  if (!Number.isFinite(endMs) || Math.abs(now - endMs) > LIVE_WINDOW_MS) return period;
+  // Current-day totals previously used hourly Recorder buckets. During the open
+  // hour that can leave Solar/Grid/Battery almost one hour behind the live
+  // inverter. Short-term 5-minute statistics keep the same reset-aware `sum`
+  // contract while reducing that live gap to one short-statistics interval.
+  return "5minute";
+}
+
+export function installLiveStatisticsGranularity(service = root.DashboardModernEnergyService) {
+  const broker = service?.broker;
+  if (!broker?.statistics || broker.__dmLiveStatisticsGranularity) return false;
+  const original = broker.statistics.bind(broker);
+  broker.statistics = (ids, start, end, period = "day") =>
+    original(ids, start, end, liveStatisticsPeriod(period, end));
+  Object.defineProperty(broker, "__dmLiveStatisticsGranularity", {
+    value: true,
+    configurable: true,
+  });
+  state.liveStatisticsInstalled = true;
+  return true;
+}
+
 function energyVisible() {
   return Boolean(
     doc?.querySelector("#page-energy.active,#page-energy-main.active") ||
@@ -30,6 +60,7 @@ function energyVisible() {
 
 function queueRefresh({ force = true } = {}) {
   initializeEnergyPeriodControls();
+  installLiveStatisticsGranularity();
   if (state.refreshQueued) return;
   state.refreshQueued = true;
   root.queueMicrotask?.(() => {
@@ -47,6 +78,7 @@ export function installEnergyRefreshSection() {
   // Synchronous on purpose: this runs in the same module turn as Energy and
   // therefore beats the setTimeout(0) used by its first scheduled refresh.
   initializeEnergyPeriodControls();
+  installLiveStatisticsGranularity();
 
   root.addEventListener?.("dashboardmodern:states-ready", () => queueRefresh({ force: true }));
   root.addEventListener?.("dashboardmodern:legacy-ready", () => queueRefresh({ force: true }));
