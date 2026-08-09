@@ -103,7 +103,8 @@ test("canonical editor contracts own the requested mobile polish without changin
   assert.match(contracts, /ASSOCIA SENSORI/);
   assert.match(contracts, /SALVA MODIFICHE/);
   assert.match(contracts, /select\[name=\\?"icon\\?"\]/);
-  assert.match(contracts, /data-dm-preview-source=|dmPreviewSource/);
+  assert.match(contracts, /applianceArtwork/);
+  assert.match(contracts, /dmPreviewSource = "artwork"/);
   assert.match(contracts, /contatore totale kWh/);
   assert.doesNotMatch(contracts, /MutationObserver|setInterval\s*\(/);
   assert.match(runtime, /installEnergyAnalysisSection/);

@@ -16,14 +16,14 @@
     "step": {
       "init": {
         "title": "Accesso e integrazione con le plance",
-        "description": "Scegli gli utenti autorizzati. Lascia vuoto per consentire l'accesso a tutti. La registrazione Lovelace fa comparire DashboardModern in Impostazioni → Plance e consente di sceglierla come plancia predefinita.",
+        "description": "Scegli quali utenti già autenticati devono vedere questa plancia nell'interfaccia DashboardModern. È un filtro di visibilità frontend, non sostituisce i permessi Home Assistant. La registrazione Lovelace fa comparire DashboardModern in Impostazioni → Plance.",
         "data": {
           "allowed_users": "Utenti autorizzati",
           "register_lovelace_dashboard": "Registra anche come plancia Home Assistant",
           "admin_only": "Visibile solo agli amministratori"
         },
         "data_description": {
-          "allowed_users": "Gli utenti non selezionati ricevono un blocco di accesso anche aprendo direttamente l'URL.",
+          "allowed_users": "Solo filtro di visibilità UI. Dati e servizi restano soggetti ai permessi Home Assistant dell'utente autenticato.",
           "register_lovelace_dashboard": "La plancia viene creata alla prima apertura effettuata da un amministratore.",
           "admin_only": "Filtro nativo Home Assistant; prevale sulla selezione utenti per gli account non amministratori."
         }

@@ -12,16 +12,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / "custom_components/dashboardmodern"
 EXCLUDED_RELEASE_PARTS = frozenset({"__pycache__", "e2e", "tests"})
-EXCLUDED_RELEASE_FILES = frozenset({"frontend/index.html", "frontend/styles.css"})
 
 
 def _include_release_file(path: Path) -> bool:
     if not path.is_file() or path.name == "build-info.js":
         return False
     relative = path.relative_to(COMPONENT)
-    if EXCLUDED_RELEASE_PARTS.intersection(relative.parts):
-        return False
-    return relative.as_posix() not in EXCLUDED_RELEASE_FILES
+    return not EXCLUDED_RELEASE_PARTS.intersection(relative.parts)
 
 
 def main() -> None:
@@ -60,8 +57,6 @@ def main() -> None:
             required = {
                 "__init__.py",
                 "manifest.json",
-                "brand/icon.png",
-                "brand/icon@2x.png",
                 "frontend/legacy/build-info.js",
             }
             missing = required - names

@@ -43,6 +43,13 @@ MODULES_TAG = '<script type="module" src="./modules-entry.js"></script>'
 FIXES_STYLE_TAG = '<link rel="stylesheet" href="./dashboard-runtime.css">'
 HEAD_ANCHOR = "<head>"
 
+CHART_CDN_ANCHOR = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>'
+CHART_CDN_PINNED = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>'
+PANZOOM_CDN_ANCHOR = '<script src="https://cdn.jsdelivr.net/npm/panzoom@9.4.0/dist/panzoom.min.js"></script>'
+PANZOOM_CDN_PINNED = '<script src="https://cdn.jsdelivr.net/npm/panzoom@9.4.0/dist/panzoom.min.js" integrity="sha384-eexGhKur8uM8+ZcFzz42RmxqFkn5dlKkACVXVptLAlKhEkBGbGpyMfVxcRNjK6ka" crossorigin="anonymous"></script>'
+HLS_CDN_ANCHOR = '<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>'
+HLS_CDN_PINNED = '<script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.17/dist/hls.min.js" integrity="sha384-A+DTEBcAPU1Pk7Lby1xo6mi1AwflNlm+ojz8+BPFLErHgB1ZIgxfykSGIG+sPtC5" crossorigin="anonymous"></script>'
+
 WIZARD_ANCHOR = "\n        step: 1,\n        token: conn.token"
 WIZARD_PATCHED = (
     "\n        // Integration-hosted: the connection step has nothing left to ask,"
@@ -103,6 +110,18 @@ def _apply_all(source: str, anchor: str, replacement: str, label: str) -> str:
             "Upstream changed; update this script instead of loosening the anchor."
         )
     return source.replace(anchor, replacement)
+
+
+def _pin_cdn_dependencies(source: str, name: str) -> str:
+    """Pin third-party scripts and enforce Subresource Integrity."""
+    dependencies = (
+        ("chart.js", CHART_CDN_ANCHOR, CHART_CDN_PINNED),
+        ("panzoom", PANZOOM_CDN_ANCHOR, PANZOOM_CDN_PINNED),
+        ("hls.js", HLS_CDN_ANCHOR, HLS_CDN_PINNED),
+    )
+    for label, anchor, replacement in dependencies:
+        source = _apply_once(source, anchor, replacement, f"{name} {label} CDN")
+    return source
 
 
 def _hide_bake_download(source: str, name: str) -> str:
@@ -301,6 +320,7 @@ def patch_variant(source: str, name: str) -> str:
         f"{HEAD_ANCHOR}\n{NS_TAG}\n{PRELUDE_TAG}\n{MODULES_TAG}\n{FIXES_STYLE_TAG}",
         f"{name} prelude",
     )
+    patched = _pin_cdn_dependencies(patched, name)
     patched = _apply_once(patched, CONN_ANCHOR, CONN_PATCHED, f"{name} connection")
     patched = _apply_once(
         patched,
