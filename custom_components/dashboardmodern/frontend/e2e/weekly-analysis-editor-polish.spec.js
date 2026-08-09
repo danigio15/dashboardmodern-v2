@@ -27,6 +27,17 @@ async function openEditor(page, tab) {
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
 }
 
+async function canonicalPreviewMarkup(preview, key) {
+  return preview.evaluate((node, applianceKey) => {
+    const expectedHost = document.createElement("span");
+    expectedHost.innerHTML = window.cdApplianceIcon(applianceKey, 58);
+    return {
+      actual: node.querySelector("svg")?.outerHTML || "",
+      expected: expectedHost.querySelector("svg")?.outerHTML || "",
+    };
+  }, key);
+}
+
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: weekly Home analysis and editor polish match the mobile contracts`, async ({
     page,
@@ -67,25 +78,33 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.evaluate(() => edApplEdit(2));
     const applianceModal = page.locator("#dm-appliance-editor-modal");
     await expect(applianceModal).toBeVisible();
-    const typeSelect = applianceModal.locator('select[name="icon"]');
+    const typeInput = applianceModal.locator('input[name="icon"]');
+    const typeTrigger = applianceModal.locator("[data-type-trigger]");
     const preview = applianceModal.locator("[data-icon-preview]");
 
     // The fixture is named Microonde and intentionally stores the historical
     // English alias visual_key="microwave". Edit must reopen on the canonical
-    // Microonde option and show the exact SVG used by the public card.
-    await expect(typeSelect).toHaveValue("microonde");
-    await expect(preview).toHaveAttribute("data-dm-preview-source", "artwork");
-    await expect(preview.locator('.dm-appliance-art[data-dm-art="microwave"]')).toHaveCount(1);
+    // Microonde type and render exactly the same SVG used by first setup.
+    await expect(typeInput).toHaveValue("microonde");
+    await expect(typeTrigger).toContainText(/Microonde|Microwave/i);
+    await expect(preview).toHaveAttribute("data-dm-preview-source", "canonical-picker");
     await expect(preview.locator("svg")).toHaveCount(1);
     await expect(preview.locator(".dm-appliance-menu-glyph")).toHaveCount(0);
+    const microwaveParity = await canonicalPreviewMarkup(preview, "microonde");
+    expect(microwaveParity.actual).toBe(microwaveParity.expected);
 
-    await typeSelect.selectOption("lavastoviglie");
-    await typeSelect.dispatchEvent("input");
-    await typeSelect.dispatchEvent("change");
-    await expect(preview).toHaveAttribute("data-dm-preview-source", "artwork");
-    await expect(preview.locator('.dm-appliance-art[data-dm-art="dishwasher"]')).toHaveCount(1);
+    await typeTrigger.click();
+    const picker = page.locator("#dm-applpick");
+    await expect(picker).toBeVisible();
+    await expect(picker.locator("[data-appliance-type]")).toHaveCount(20);
+    await picker.locator('[data-appliance-type="lavastoviglie"]').click();
+    await expect(typeInput).toHaveValue("lavastoviglie");
+    await expect(typeTrigger).toContainText(/Lavastoviglie|Dishwasher/i);
+    await expect(preview).toHaveAttribute("data-dm-preview-source", "canonical-picker");
     await expect(preview.locator("svg")).toHaveCount(1);
     await expect(preview.locator(".dm-appliance-menu-glyph")).toHaveCount(0);
+    const dishwasherParity = await canonicalPreviewMarkup(preview, "lavastoviglie");
+    expect(dishwasherParity.actual).toBe(dishwasherParity.expected);
     await applianceModal.locator("[data-close]").click();
 
     await page.evaluate(() => {
