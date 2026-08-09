@@ -7,6 +7,14 @@ const manifestUrl = new URL("../../manifest.json", import.meta.url);
 const readmeUrl = new URL("../../../../README.md", import.meta.url);
 const rootIconUrl = new URL("../../../../brand/icon.png", import.meta.url);
 const rootLogoUrl = new URL("../../../../brand/logo.png", import.meta.url);
+const installedBrandUrls = [
+  new URL("../../brand/icon.png", import.meta.url),
+  new URL("../../brand/dark_icon.png", import.meta.url),
+  new URL("../../brand/icon@2x.png", import.meta.url),
+  new URL("../../brand/dark_icon@2x.png", import.meta.url),
+  new URL("../../brand/logo.png", import.meta.url),
+  new URL("../../brand/logo@2x.png", import.meta.url),
+];
 const bootstrapUrl = new URL("../legacy/config.js", import.meta.url);
 const buildInfoUrl = new URL("../legacy/build-info.js", import.meta.url);
 const obsoleteEntryUrl = new URL("../legacy/report-mobile-fixes.js", import.meta.url);
@@ -15,14 +23,14 @@ const refreshUrl = new URL("../src/sections/energy-refresh-section.js", import.m
 const analysisUrl = new URL("../src/sections/energy-analysis-section.js", import.meta.url);
 const contractsUrl = new URL("../src/sections/editor-contracts-section.js", import.meta.url);
 
-test("the appliance daily popup polish release is consistently versioned as 0.15.23", async () => {
+test("the popup artwork/brand release is consistently versioned as 0.15.24", async () => {
   const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
   const readme = await readFile(readmeUrl, "utf8");
   const buildInfo = await readFile(buildInfoUrl, "utf8");
 
-  assert.equal(manifest.version, "0.15.23");
-  assert.match(readme, /version-0\.15\.23/);
-  assert.match(readme, /Novità 0\.15\.23/);
+  assert.equal(manifest.version, "0.15.24");
+  assert.match(readme, /version-0\.15\.24/);
+  assert.match(readme, /Novità 0\.15\.24/);
   assert.match(readme, /Confronto settimanale dei consumi Casa/i);
   assert.match(readme, /contatore totale kWh/i);
   assert.match(readme, /SALVA MODIFICHE/);
@@ -32,8 +40,8 @@ test("the appliance daily popup polish release is consistently versioned as 0.15
     /https:\/\/raw\.githubusercontent\.com\/danigio15\/dashboardmodern-v2\/main\/brand\/logo\.png/,
   );
   assert.doesNotMatch(readme, /main\/assets\/logo|brand\/logo@2x\.png/);
-  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']0\.15\.23["']/);
-  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']0\.15\.23["']/);
+  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']0\.15\.24["']/);
+  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']0\.15\.24["']/);
   assert.match(buildInfo, /["']?moduleVersion["']?\s*:\s*14/);
 });
 
@@ -70,8 +78,8 @@ test("Energy refresh still owns initial current-period synchronization", async (
   assert.match(refresh, /DashboardModernEnergyService/);
 });
 
-test("local package brand assets remain valid", async () => {
-  for (const url of [rootIconUrl, rootLogoUrl]) {
+test("root and installed package brand assets remain valid", async () => {
+  for (const url of [rootIconUrl, rootLogoUrl, ...installedBrandUrls]) {
     const details = await stat(url);
     assert.ok(details.isFile());
     assert.ok(details.size > 1_000);

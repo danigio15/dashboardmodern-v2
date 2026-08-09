@@ -57,6 +57,7 @@ def main() -> None:
             required = {
                 "__init__.py",
                 "manifest.json",
+                "brand/icon.png",
                 "frontend/panel.js",
                 "frontend/dashboard-card.js",
                 "frontend/legacy/dashboard.html",

@@ -10,20 +10,32 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.23-0ea5e9" alt="Versione 0.15.23">
+  <img src="https://img.shields.io/badge/version-0.15.24-0ea5e9" alt="Versione 0.15.24">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
 </p>
 
 > **English overview** — DashboardModern is a responsive, multi-instance Home
-> Assistant dashboard distributed as a HACS custom integration. Release 0.15.23
-> restyles the appliance daily-energy popup to match the dashboard and hides
-> technical entity/source labels from the visible breakdown.
+> Assistant dashboard distributed as a HACS custom integration. Release 0.15.24
+> makes the daily appliance breakdown reuse the exact configured appliance
+> artwork and ships the complete local integration brand asset set.
 
 ---
 
-## Novità 0.15.23
+## Novità 0.15.24
+
+La 0.15.24 rifinisce l'identità visiva del popup **Energia giornaliera** e il packaging del brand dell'integrazione.
+
+- ogni riga del popup usa **la stessa immagine o lo stesso SVG realmente associato alla card dell'elettrodomestico**: Frigorifero mostra il frigorifero, Microonde il microonde e le immagini personalizzate restano identiche alla card;
+- il fulmine generico non viene più usato come icona delle singole righe del dettaglio;
+- nome, kWh giornalieri e percentuale restano gli unici dati tecnici visibili nel popup;
+- il calcolo giornaliero introdotto nella 0.15.22 resta invariato;
+- il pacchetto installato include `icon.png`, `dark_icon.png`, le varianti `@2x` e i logo locali dell'integrazione;
+- il builder della release fallisce se manca `brand/icon.png` nello ZIP HACS;
+- Browser E2E verifica che il popup riusi gli artwork canonici Frigorifero/Microonde e che il fulmine non torni come pseudo-elemento delle righe.
+
+### 0.15.23 — popup Energia elettrodomestici
 
 La 0.15.23 rifinisce il popup **Energia giornaliera** degli Elettrodomestici senza cambiare i calcoli introdotti nella 0.15.22.
 
@@ -70,7 +82,7 @@ La 0.15.20 corregge la regressione dell'anteprima **Modifica elettrodomestico** 
 - la release fallisce se il tag della versione esiste già e gli E2E girano anche su push a `main` e nel gate di release;
 - il marker Energia usa `build-info.js` e non una versione hardcoded obsoleta;
 - `strings.json` torna alla sorgente inglese prevista da Home Assistant e la selezione utenti è documentata correttamente come filtro UI;
-- rimossi duplicati bridge e riferimenti di packaging morti; della copia brand installata resta solo `brand/icon.png`, obbligatorio per la validazione HACS.
+- rimossi duplicati bridge e riferimenti di packaging morti; il brand installato è verificato esplicitamente dalla pipeline di release.
 
 ### 0.15.19 — Analisi settimanale e polish Editor
 
