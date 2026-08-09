@@ -130,9 +130,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await openEditor(page, "sez2");
     const appearance = page.locator("#ed-body [data-ev-appearance]");
     await expect(appearance).toBeVisible();
-    await appearance.locator("[data-brand]").selectOption("BMW");
-    await appearance.locator("[data-icon]").fill("mdi:car-sports");
-    await appearance.locator("[data-save]").click();
+    await appearance.locator("select[data-brand]").selectOption("BMW");
+    await appearance.locator("input[data-icon]").fill("mdi:car-sports");
+    await appearance.locator("button[data-save]").click();
     await expect(appearance).toHaveAttribute("data-saved", "true");
 
     await expect.poll(() =>
@@ -210,7 +210,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       window.buildQuickActions?.();
     });
 
-    await openEditor(page, "sezioni");
+    await openEditor(page, "sez8");
     const edit = page.locator('#ed-body [data-dm-edit-kind="action"]').first();
     await expect(edit).toBeVisible();
     await edit.click();
