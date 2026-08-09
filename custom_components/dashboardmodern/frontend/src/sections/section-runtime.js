@@ -1,5 +1,7 @@
-import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
+import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
+import { createApplianceViewModel } from "../core/appliance-view-model.js";
 import { installStateEventGate } from "../core/state-event-gate.js";
+import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
 import { installDataContractsSection } from "./data-contracts-section.js";
 import { installEnergyCalculationsSection } from "./energy-calculations-section.js";
 import { installEnergyServicesSection } from "./energy-services-section.js";
@@ -27,12 +29,15 @@ import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
 import { installEvSection } from "./ev-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
+import { allStates, clean, english, section, wrapFunction } from "./shared.js";
 
 const root = globalThis;
 const RUNTIME_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME__";
 const INSTALLING_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME_INSTALLING__";
 const APPLIANCE_PICKER_LAYER_STYLE_ID = "dm-appliance-picker-layer-style";
 const APPLIANCE_DAILY_POPUP_STYLE_ID = "dm-appliance-daily-dashboard-style";
+const APPLIANCE_KPI_POPUP_STYLE_ID = "dm-appliance-kpi-popup-style";
+const APPLIANCE_KPI_STATE_KEY = "__DASHBOARDMODERN_APPLIANCE_KPI_POPUPS__";
 
 function installAppliancePickerLayer() {
   const doc = root.document;
@@ -239,12 +244,14 @@ function installApplianceDailyPopupStyle() {
     }
     @media(max-width:520px) {
       #dm-appliance-daily-popup.dm-appliance-daily-overlay {
-        align-items:flex-end!important;
-        padding:10px!important;
+        align-items:center!important;
+        justify-content:center!important;
+        padding:14px!important;
       }
       #dm-appliance-daily-popup .dm-appliance-daily-dialog {
-        max-height:86vh!important;
-        border-radius:32px 32px 22px 22px!important;
+        width:min(620px,calc(100vw - 28px))!important;
+        max-height:min(82vh,720px)!important;
+        border-radius:32px!important;
       }
       #dm-appliance-daily-popup .dm-appliance-daily-head {
         padding:22px 18px 13px!important;
@@ -270,7 +277,7 @@ function installApplianceDailyPopupStyle() {
       }
       #dm-appliance-daily-popup .dm-appliance-daily-list {
         gap:10px!important;
-        padding:0 18px max(20px,env(safe-area-inset-bottom))!important;
+        padding:0 18px 18px!important;
       }
       #dm-appliance-daily-popup .dm-appliance-daily-row {
         min-height:84px!important;
@@ -291,6 +298,287 @@ function installApplianceDailyPopupStyle() {
     }
   `;
   doc.head.append(style);
+}
+
+function htmlEscape(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function applianceKpiModels() {
+  const appliances = section("appliances", []);
+  if (!Array.isArray(appliances)) return [];
+  const rooms = section("rooms", []);
+  const states = allStates();
+  const locale = english() ? "en" : "it";
+  return appliances.map((device) => createApplianceViewModel(device, states, rooms, locale));
+}
+
+function applianceKpiCard(kind) {
+  const doc = root.document;
+  const grid = doc?.getElementById("appl-kpi-grid");
+  if (!grid) return null;
+  const mounted = grid.querySelector(`[data-dm-appliance-kpi="${kind}"]`);
+  if (mounted) return mounted;
+  const patterns = {
+    running: /dispositivi\s+accesi|devices\s+on|active\s+devices|powered\s+on|in\s+funzione|running/i,
+    power: /consumo\s+istantaneo|instant(?:aneous)?\s+(?:power|consumption)|power\s+now/i,
+    daily: /energia\s+giornaliera|daily\s+energy/i,
+    alerts: /avvisi|alerts|warnings/i,
+  };
+  const pattern = patterns[kind];
+  if (!pattern) return null;
+  return [...grid.querySelectorAll(".glance-card")].find((card) => pattern.test(clean(card.textContent))) || null;
+}
+
+function applianceKpiLabelNode(card, kind) {
+  if (!card) return null;
+  const patterns = {
+    running: /dispositivi\s+accesi|devices\s+on|active\s+devices|powered\s+on|in\s+funzione|running/i,
+    power: /consumo\s+istantaneo|instant(?:aneous)?\s+(?:power|consumption)|power\s+now/i,
+  };
+  const preferred = card.querySelector(".g-label,.glance-label,[data-glance-label]");
+  if (preferred) return preferred;
+  const pattern = patterns[kind];
+  return [...card.querySelectorAll("span,small,div")].find(
+    (node) => node.childElementCount === 0 && pattern?.test(clean(node.textContent)),
+  ) || null;
+}
+
+function formatApplianceWatts(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "— W";
+  const watts = Math.max(0, numeric);
+  if (watts >= 1000) {
+    const digits = watts >= 10000 ? 1 : 2;
+    return `${(watts / 1000).toFixed(digits).replace(/0+$/, "").replace(/\.$/, "")} kW`;
+  }
+  if (watts > 0 && watts < 10) return `${watts.toFixed(1).replace(/\.0$/, "")} W`;
+  return `${Math.round(watts)} W`;
+}
+
+function applianceKpiArtwork(model) {
+  const visual = model?.visual || {};
+  if (visual.kind === "image" && clean(visual.value)) {
+    const name = htmlEscape(model.name);
+    const source = htmlEscape(visual.value);
+    return `<span class="dm-appliance-kpi-image-wrap"><img class="dm-appliance-kpi-image" src="${source}" alt="${name}"></span>`;
+  }
+  const fallback = clean(
+    visual.value ||
+      model?.device?.visual_key ||
+      model?.device?.device_type ||
+      model?.device?.type ||
+      model?.device?.icon ||
+      model?.name,
+  );
+  const kind = canonicalArtworkType(fallback);
+  return (kind && applianceArtwork(kind, 72)) || '<span class="dm-appliance-kpi-fallback">⚡</span>';
+}
+
+function ensureApplianceKpiPopup(kind) {
+  const doc = root.document;
+  if (!doc?.body) return null;
+  const id = `dm-appliance-${kind}-popup`;
+  let popup = doc.getElementById(id);
+  if (popup) return popup;
+  const isRunning = kind === "running";
+  const title = isRunning
+    ? english() ? "Appliances running" : "Elettrodomestici in funzione"
+    : english() ? "Instant power" : "Consumo istantaneo";
+  const summaryLabel = isRunning
+    ? english() ? "Currently running" : "In funzione adesso"
+    : english() ? "Measured power" : "Potenza misurata";
+  popup = doc.createElement("div");
+  popup.id = id;
+  popup.className = `dm-appliance-kpi-overlay dm-appliance-kpi-${kind}`;
+  popup.hidden = true;
+  popup.innerHTML = `<div class="dm-appliance-kpi-dialog" role="dialog" aria-modal="true" aria-labelledby="${id}-title">
+    <div class="dm-appliance-kpi-head">
+      <div><small>${english() ? "NOW" : "ADESSO"}</small><h3 id="${id}-title">${title}</h3></div>
+      <button type="button" data-dm-appliance-kpi-close aria-label="${english() ? "Close" : "Chiudi"}">✕</button>
+    </div>
+    <div class="dm-appliance-kpi-summary">
+      <span class="dm-appliance-kpi-summary-icon">${isRunning ? "●" : "⚡"}</span>
+      <span class="dm-appliance-kpi-summary-copy"><small>${summaryLabel}</small><strong data-dm-appliance-kpi-summary>—</strong></span>
+    </div>
+    <div class="dm-appliance-kpi-list" data-dm-appliance-kpi-list></div>
+  </div>`;
+  const close = () => {
+    popup.hidden = true;
+    popup.classList.remove("show");
+  };
+  popup.addEventListener("click", (event) => {
+    if (event.target === popup) close();
+  });
+  popup.querySelector("[data-dm-appliance-kpi-close]")?.addEventListener("click", close);
+  doc.body.append(popup);
+  return popup;
+}
+
+function applianceKpiRow(model, kind, totalWatts = 0) {
+  const room = clean(model?.room?.name);
+  const watts = Number(model?.watts);
+  const measurable = Number.isFinite(watts);
+  const right = kind === "running"
+    ? `<strong>${measurable ? formatApplianceWatts(watts) : htmlEscape(model.label)}</strong><small>${htmlEscape(model.label)}</small>`
+    : `<strong>${formatApplianceWatts(watts)}</strong><small>${totalWatts > 0 ? `${Math.round((Math.max(0, watts) / totalWatts) * 100)}%` : "0%"}</small>`;
+  return `<div class="dm-appliance-kpi-row" data-appliance-id="${htmlEscape(model.id)}">
+    <span class="dm-appliance-kpi-visual">${applianceKpiArtwork(model)}</span>
+    <span class="dm-appliance-kpi-row-main"><strong>${htmlEscape(model.name)}</strong>${room ? `<small>🏠 ${htmlEscape(room)}</small>` : ""}</span>
+    <span class="dm-appliance-kpi-row-value">${right}</span>
+  </div>`;
+}
+
+function renderApplianceKpiPopup(kind) {
+  const popup = ensureApplianceKpiPopup(kind);
+  if (!popup) return;
+  const summary = popup.querySelector("[data-dm-appliance-kpi-summary]");
+  const list = popup.querySelector("[data-dm-appliance-kpi-list]");
+  if (!summary || !list) return;
+  const models = applianceKpiModels();
+  if (kind === "running") {
+    const running = models.filter((model) => model.mode === "running");
+    summary.textContent = String(running.length);
+    list.innerHTML = running.length
+      ? running.map((model) => applianceKpiRow(model, kind)).join("")
+      : `<div class="dm-appliance-kpi-empty">${english() ? "No appliance is running right now." : "Nessun elettrodomestico è in funzione in questo momento."}</div>`;
+    return;
+  }
+  const consuming = models
+    .filter((model) => Number.isFinite(model.watts) && model.watts > 0.05)
+    .sort((left, right) => right.watts - left.watts);
+  const totalWatts = consuming.reduce((sum, model) => sum + Math.max(0, model.watts), 0);
+  summary.textContent = formatApplianceWatts(totalWatts);
+  list.innerHTML = consuming.length
+    ? consuming.map((model) => applianceKpiRow(model, kind, totalWatts)).join("")
+    : `<div class="dm-appliance-kpi-empty">${english() ? "No measurable instant appliance consumption." : "Nessun consumo istantaneo misurabile dagli elettrodomestici."}</div>`;
+}
+
+function syncApplianceKpis() {
+  const doc = root.document;
+  const grid = doc?.getElementById("appl-kpi-grid");
+  if (!grid) return false;
+  const models = applianceKpiModels();
+  const running = models.filter((model) => model.mode === "running");
+  const totalWatts = models.reduce(
+    (sum, model) => sum + (Number.isFinite(model.watts) ? Math.max(0, model.watts) : 0),
+    0,
+  );
+
+  const runningCard = applianceKpiCard("running");
+  if (runningCard) {
+    runningCard.dataset.dmApplianceKpi = "running";
+    runningCard.setAttribute("role", "button");
+    runningCard.tabIndex = 0;
+    runningCard.setAttribute("aria-label", english() ? "Open appliances running" : "Apri elettrodomestici in funzione");
+    const label = applianceKpiLabelNode(runningCard, "running");
+    if (label) label.textContent = english() ? "RUNNING" : "IN FUNZIONE";
+    const value = runningCard.querySelector(".g-val");
+    if (value) value.textContent = String(running.length);
+  }
+
+  const powerCard = applianceKpiCard("power");
+  if (powerCard) {
+    powerCard.dataset.dmApplianceKpi = "power";
+    powerCard.setAttribute("role", "button");
+    powerCard.tabIndex = 0;
+    powerCard.setAttribute("aria-label", english() ? "Open instant appliance power" : "Apri consumo istantaneo elettrodomestici");
+    const value = powerCard.querySelector(".g-val");
+    if (value) value.textContent = formatApplianceWatts(totalWatts);
+  }
+
+  const daily = applianceKpiCard("daily");
+  if (daily) daily.dataset.dmApplianceKpi = "daily";
+
+  const alerts = applianceKpiCard("alerts");
+  if (alerts) alerts.remove();
+
+  for (const kind of ["running", "power"]) {
+    const popup = doc.getElementById(`dm-appliance-${kind}-popup`);
+    if (popup && !popup.hidden) renderApplianceKpiPopup(kind);
+  }
+  return true;
+}
+
+function installApplianceKpiPopupStyle() {
+  const doc = root.document;
+  if (!doc?.head || doc.getElementById(APPLIANCE_KPI_POPUP_STYLE_ID)) return;
+  const style = doc.createElement("style");
+  style.id = APPLIANCE_KPI_POPUP_STYLE_ID;
+  style.textContent = `
+    #appl-kpi-grid [data-dm-appliance-kpi="running"],
+    #appl-kpi-grid [data-dm-appliance-kpi="power"]{cursor:pointer!important;outline-offset:3px}
+    #appl-kpi-grid [data-dm-appliance-kpi="running"]:active,
+    #appl-kpi-grid [data-dm-appliance-kpi="power"]:active{transform:scale(.985)}
+    .dm-appliance-kpi-overlay[hidden]{display:none!important}
+    .dm-appliance-kpi-overlay{position:fixed!important;inset:0!important;z-index:2147483000!important;display:grid!important;place-items:center!important;padding:18px!important;background:rgba(30,41,59,.42)!important;backdrop-filter:blur(15px) saturate(120%)!important;-webkit-backdrop-filter:blur(15px) saturate(120%)!important}
+    .dm-appliance-kpi-dialog{width:min(620px,100%)!important;max-height:min(80vh,720px)!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;border:1px solid rgba(148,163,184,.24)!important;border-radius:34px!important;background:radial-gradient(circle at 8% 2%,rgba(125,211,252,.24),transparent 33%),radial-gradient(circle at 94% 18%,rgba(167,243,208,.18),transparent 30%),linear-gradient(180deg,rgba(255,255,255,.99),rgba(244,249,255,.98))!important;color:#111827!important;box-shadow:0 26px 80px rgba(15,23,42,.30)!important}
+    .dm-appliance-kpi-head{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:16px!important;padding:26px 26px 15px!important}.dm-appliance-kpi-head small{display:inline-flex!important;align-items:center!important;min-height:28px!important;padding:0 12px!important;border:1px solid rgba(14,165,233,.18)!important;border-radius:999px!important;background:rgba(224,242,254,.72)!important;color:#0284c7!important;font-size:10px!important;font-weight:900!important;letter-spacing:2px!important}.dm-appliance-kpi-head h3{margin:8px 0 0!important;color:#111827!important;font-size:clamp(24px,4vw,32px)!important;font-weight:950!important;line-height:1.04!important;letter-spacing:1px!important;text-transform:uppercase!important}.dm-appliance-kpi-head button{width:48px!important;height:48px!important;flex:0 0 48px!important;border:1px solid rgba(148,163,184,.18)!important;border-radius:17px!important;background:rgba(248,250,252,.92)!important;color:#0f172a!important;box-shadow:0 8px 24px rgba(15,23,42,.07)!important;font-size:21px!important;cursor:pointer!important}
+    .dm-appliance-kpi-summary{min-height:108px!important;margin:0 26px 18px!important;padding:18px 22px!important;display:flex!important;align-items:center!important;gap:18px!important;border:1px solid rgba(14,165,233,.18)!important;border-radius:26px!important;background:linear-gradient(135deg,rgba(224,242,254,.96),rgba(240,249,255,.84))!important;box-shadow:0 13px 34px rgba(14,165,233,.10)!important}.dm-appliance-kpi-running .dm-appliance-kpi-summary{border-color:rgba(16,185,129,.18)!important;background:linear-gradient(135deg,rgba(209,250,229,.88),rgba(240,253,250,.90))!important}.dm-appliance-kpi-summary-icon{width:58px!important;height:58px!important;flex:0 0 58px!important;display:grid!important;place-items:center!important;border:1px solid rgba(14,165,233,.16)!important;border-radius:19px!important;background:rgba(255,255,255,.82)!important;color:#0284c7!important;font-size:30px!important;box-shadow:0 8px 24px rgba(14,165,233,.10)!important}.dm-appliance-kpi-running .dm-appliance-kpi-summary-icon{color:#10b981!important;font-size:42px!important}.dm-appliance-kpi-summary-copy{display:flex!important;flex-direction:column!important;gap:4px!important;min-width:0!important}.dm-appliance-kpi-summary-copy small{color:#64748b!important;font-size:12px!important;font-weight:900!important;letter-spacing:1.5px!important;text-transform:uppercase!important}.dm-appliance-kpi-summary-copy strong{color:#0797d5!important;font-size:clamp(30px,5vw,40px)!important;font-weight:950!important;line-height:1!important}.dm-appliance-kpi-running .dm-appliance-kpi-summary-copy strong{color:#059669!important}
+    .dm-appliance-kpi-list{overflow:auto!important;display:grid!important;gap:11px!important;padding:0 26px 26px!important}.dm-appliance-kpi-row{min-height:92px!important;padding:13px 16px!important;display:grid!important;grid-template-columns:62px minmax(0,1fr) auto!important;align-items:center!important;gap:14px!important;border:1px solid rgba(148,163,184,.20)!important;border-radius:24px!important;background:rgba(255,255,255,.92)!important;box-shadow:0 10px 30px rgba(15,23,42,.07)!important}.dm-appliance-kpi-visual{width:58px!important;height:58px!important;display:grid!important;place-items:center!important;overflow:hidden!important;border-radius:18px!important;background:linear-gradient(145deg,#e0f2fe,#f0f9ff)!important}.dm-appliance-kpi-visual .dm-appliance-art,.dm-appliance-kpi-visual svg{width:56px!important;height:56px!important;max-width:56px!important;max-height:56px!important}.dm-appliance-kpi-image-wrap,.dm-appliance-kpi-image{display:block!important;width:100%!important;height:100%!important}.dm-appliance-kpi-image{object-fit:cover!important;object-position:center!important;border-radius:16px!important}.dm-appliance-kpi-fallback{font-size:27px!important}.dm-appliance-kpi-row-main,.dm-appliance-kpi-row-value{display:flex!important;flex-direction:column!important;min-width:0!important}.dm-appliance-kpi-row-main{gap:4px!important}.dm-appliance-kpi-row-main>strong{overflow:hidden!important;color:#111827!important;font-size:17px!important;font-weight:900!important;line-height:1.15!important;text-overflow:ellipsis!important;white-space:nowrap!important}.dm-appliance-kpi-row-main>small{overflow:hidden!important;color:#64748b!important;font-size:11px!important;font-weight:800!important;letter-spacing:.7px!important;text-overflow:ellipsis!important;white-space:nowrap!important;text-transform:uppercase!important}.dm-appliance-kpi-row-value{align-items:flex-end!important;gap:5px!important;flex:0 0 auto!important}.dm-appliance-kpi-row-value>strong{color:#078dc7!important;font-size:18px!important;font-weight:950!important;white-space:nowrap!important}.dm-appliance-kpi-row-value>small{padding:4px 8px!important;border-radius:999px!important;background:#e0f2fe!important;color:#0369a1!important;font-size:10px!important;font-weight:900!important;white-space:nowrap!important}.dm-appliance-kpi-running .dm-appliance-kpi-row-value>small{background:#d1fae5!important;color:#047857!important}.dm-appliance-kpi-empty{padding:28px 20px!important;text-align:center!important;border:1px solid rgba(148,163,184,.18)!important;border-radius:22px!important;background:rgba(255,255,255,.76)!important;color:#64748b!important;font-size:14px!important;font-weight:800!important}
+    @media(max-width:700px){#appl-kpi-grid [data-dm-appliance-kpi="daily"]{grid-column:1/-1!important}}
+    @media(max-width:520px){.dm-appliance-kpi-overlay{place-items:center!important;padding:14px!important}.dm-appliance-kpi-dialog{width:min(620px,calc(100vw - 28px))!important;max-height:min(82vh,700px)!important;border-radius:30px!important}.dm-appliance-kpi-head{padding:22px 18px 13px!important}.dm-appliance-kpi-head h3{font-size:25px!important}.dm-appliance-kpi-head button{width:46px!important;height:46px!important;flex-basis:46px!important}.dm-appliance-kpi-summary{min-height:94px!important;margin:0 18px 14px!important;padding:16px 18px!important;border-radius:23px!important}.dm-appliance-kpi-summary-icon{width:52px!important;height:52px!important;flex-basis:52px!important}.dm-appliance-kpi-list{gap:9px!important;padding:0 18px 18px!important}.dm-appliance-kpi-row{min-height:82px!important;padding:11px 12px!important;grid-template-columns:54px minmax(0,1fr) auto!important;gap:11px!important;border-radius:21px!important}.dm-appliance-kpi-visual{width:50px!important;height:50px!important;border-radius:16px!important}.dm-appliance-kpi-visual .dm-appliance-art,.dm-appliance-kpi-visual svg{width:48px!important;height:48px!important;max-width:48px!important;max-height:48px!important}.dm-appliance-kpi-row-main>strong{font-size:15.5px!important}.dm-appliance-kpi-row-main>small{font-size:9.5px!important}.dm-appliance-kpi-row-value>strong{font-size:16px!important}}
+  `;
+  doc.head.append(style);
+}
+
+function installApplianceKpiPopups() {
+  const doc = root.document;
+  if (!doc) return;
+  const state = (root[APPLIANCE_KPI_STATE_KEY] ||= { installed: false, frame: 0 });
+  if (state.installed) return;
+  state.installed = true;
+  installApplianceKpiPopupStyle();
+  ensureApplianceKpiPopup("running");
+  ensureApplianceKpiPopup("power");
+  const schedule = () => {
+    if (state.frame) return;
+    const run = () => {
+      state.frame = 0;
+      syncApplianceKpis();
+    };
+    state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0);
+  };
+  for (const name of ["renderAppliances", "renderApplianceSection", "render"]) {
+    wrapFunction(name, "__dmApplianceKpiPopups", schedule);
+  }
+  doc.addEventListener("click", (event) => {
+    const card = event.target?.closest?.('#appl-kpi-grid [data-dm-appliance-kpi="running"],#appl-kpi-grid [data-dm-appliance-kpi="power"]');
+    if (card) {
+      const kind = card.dataset.dmApplianceKpi;
+      const popup = ensureApplianceKpiPopup(kind);
+      renderApplianceKpiPopup(kind);
+      if (popup) {
+        popup.hidden = false;
+        popup.classList.add("show");
+      }
+      return;
+    }
+    if (event.target?.closest?.("[data-tab='appliances-main'],[data-tab='appliances'],.tab[data-tab='appliances-main']")) {
+      root.queueMicrotask?.(schedule);
+    }
+  }, true);
+  doc.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const card = event.target?.closest?.('#appl-kpi-grid [data-dm-appliance-kpi="running"],#appl-kpi-grid [data-dm-appliance-kpi="power"]');
+    if (!card) return;
+    event.preventDefault();
+    const kind = card.dataset.dmApplianceKpi;
+    const popup = ensureApplianceKpiPopup(kind);
+    renderApplianceKpiPopup(kind);
+    if (popup) {
+      popup.hidden = false;
+      popup.classList.add("show");
+    }
+  });
+  root.addEventListener?.("dashboardmodern:state-changed", schedule);
+  root.addEventListener?.("dashboardmodern:legacy-ready", schedule);
+  root.queueMicrotask?.(schedule);
 }
 
 export function installSectionRuntime() {
@@ -318,6 +606,7 @@ export function installSectionRuntime() {
     installAppliancesSection();
     installApplianceLayoutSection();
     installApplianceDailyPopupStyle();
+    installApplianceKpiPopups();
     installAppliancePickerLayer();
     installApplianceEditorSection();
     installLightsAlertsSection();
