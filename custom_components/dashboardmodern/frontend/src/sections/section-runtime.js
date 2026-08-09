@@ -16,6 +16,7 @@ import { installTemperatureLayoutSection } from "./temperature-layout-section.js
 import { installAppliancesSection } from "./appliances-section.js";
 import { installApplianceLayoutSection } from "./appliance-layout-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
+import { installAppliancePickerLayer } from "./appliance-picker-layer.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installAlertsSection } from "./alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
@@ -56,6 +57,7 @@ export function installSectionRuntime() {
     installTemperatureLayoutSection();
     installAppliancesSection();
     installApplianceLayoutSection();
+    installAppliancePickerLayer();
     installApplianceEditorSection();
     installLightsAlertsSection();
     installAlertsSection();
