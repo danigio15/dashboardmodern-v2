@@ -2,7 +2,7 @@ import { applianceArtwork } from "../core/appliance-artwork.js";
 import { clean, doc, formatNumber, installStyle, root, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENERGY_REPORT_POLISH__";
-const state = (root[KEY] ||= { installed: false, observer: null, frame: 0, dailyChart: null, legacyDailyChart: null });
+const state = (root[KEY] ||= { installed: false, frame: 0, dailyChart: null, legacyDailyChart: null, subscribed: false });
 
 function model() {
   try { return root.DashboardModernModules?.store?.getSection?.("energy") || {}; } catch (_error) { return {}; }
@@ -212,6 +212,16 @@ function schedule() {
   }, 0);
 }
 
+function subscribeStore() {
+  if (state.subscribed) return;
+  const store = root.DashboardModernModules?.store;
+  if (typeof store?.subscribe !== "function") return;
+  state.subscribed = true;
+  store.subscribe((change) => {
+    if (["appliances", "loads", "energy", "report", "snapshot"].includes(change?.section)) schedule();
+  });
+}
+
 function installStyles() {
   installStyle("dm-energy-report-polish-style", `
     #ed-w-diff{display:none!important}
@@ -228,17 +238,15 @@ export function installEnergyReportPolishSection() {
   root.addEventListener?.("dashboardmodern:legacy-ready", () => {
     installDailyChartOverride();
     for (const name of ["renderEnergyDashboard", "renderEdDeviceList"]) wrapFunction(name, `__dmEnergyReport_${name}`, schedule);
+    subscribeStore();
     schedule();
   });
+  root.addEventListener?.("dashboardmodern:runtime-ready", () => { subscribeStore(); schedule(); });
   root.addEventListener?.("dashboardmodern:period-bundle", (event) => { applyAutonomy(event.detail); schedule(); });
   root.addEventListener?.("dashboardmodern:energy-stable", (event) => { applyAutonomy(event.detail); schedule(); });
-  if (doc.body) {
-    state.observer = new MutationObserver(schedule);
-    state.observer.observe(doc.body, { childList: true, subtree: true });
-  } else doc.addEventListener("DOMContentLoaded", () => {
-    state.observer = new MutationObserver(schedule);
-    state.observer.observe(doc.body, { childList: true, subtree: true });
-  }, { once: true });
+  doc.addEventListener("click", (event) => {
+    if (event.target?.closest?.("[data-energy-tab],.energy-tab,.sub-tab-btn,.ed-tab")) root.setTimeout?.(schedule, 0);
+  }, true);
   schedule();
 }
 
