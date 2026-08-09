@@ -57,7 +57,14 @@ def main() -> None:
             required = {
                 "__init__.py",
                 "manifest.json",
+                "frontend/panel.js",
+                "frontend/dashboard-card.js",
+                "frontend/legacy/dashboard.html",
+                "frontend/legacy/dashboard-en.html",
+                "frontend/legacy/dashboard-runtime-it.js",
+                "frontend/legacy/dashboard-runtime-en.js",
                 "frontend/legacy/build-info.js",
+                "frontend/src/legacy/host.js",
             }
             missing = required - names
             if missing:
