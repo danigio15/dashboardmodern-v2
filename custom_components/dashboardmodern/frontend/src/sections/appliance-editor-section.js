@@ -5,6 +5,7 @@ import {
   canonicalApplianceVisualKey,
 } from "../core/device-model.js";
 import {
+  allStates,
   clean,
   dashboardStore,
   doc,
@@ -158,8 +159,9 @@ function inferredControlEntity(device) {
 
 function inferredPowerEntity(device) {
   const candidates = entityCandidates(device);
+  const states = allStates();
   return candidates.find((entity) => {
-    const current = root.STATES?.[entity] || root._RAW_STATES?.[entity];
+    const current = states[entity];
     const unit = clean(current?.attributes?.unit_of_measurement).toLowerCase();
     return ["w", "kw", "mw"].includes(unit);
   }) || "";
@@ -168,7 +170,7 @@ function inferredPowerEntity(device) {
 function cumulativeEntity(value) {
   const entity = clean(value);
   if (!entity) return false;
-  const current = root.STATES?.[entity] || root._RAW_STATES?.[entity];
+  const current = allStates()[entity];
   const stateClass = clean(current?.attributes?.state_class).toLowerCase();
   if (stateClass === "total" || stateClass === "total_increasing") return true;
   if (current && stateClass) return false;
@@ -278,7 +280,7 @@ export function openApplianceEditor(index) {
     const values = Object.fromEntries(new FormData(form).entries());
     const name = clean(values.name);
     const total = clean(values.total_energy_entity);
-    const totalState = root.STATES?.[total] || root._RAW_STATES?.[total];
+    const totalState = allStates()[total];
     const stateClass = clean(totalState?.attributes?.state_class).toLowerCase();
     if (!name) { form.querySelector("[data-error]").textContent = t("Inserisci il nome.", "Enter a name."); return; }
     if (total && totalState && !["total", "total_increasing"].includes(stateClass)) {
