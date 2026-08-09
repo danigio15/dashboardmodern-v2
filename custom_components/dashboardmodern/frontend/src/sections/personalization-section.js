@@ -2,7 +2,7 @@ import { ACTION_ICON_CATALOG, CAR_BRANDS, ROOM_CATALOG, carBrandVisual, roomVisu
 import { clean, doc, esc, installStyle, readJson, root, t, writeJsonIfChanged, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_PERSONALIZATION_SECTION__";
-const state = (root[KEY] ||= { installed: false, observer: null, frame: 0, actionEditIndex: -1 });
+const state = (root[KEY] ||= { installed: false, frame: 0, actionEditIndex: -1, subscribed: false });
 
 function actualVersion() {
   const info = root.DashboardModernModules?.diagnostics?.BUILD_INFO;
@@ -304,6 +304,14 @@ function schedule() {
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0);
 }
 
+function subscribeStore() {
+  if (state.subscribed) return;
+  const store = root.DashboardModernModules?.store;
+  if (typeof store?.subscribe !== "function") return;
+  state.subscribed = true;
+  store.subscribe(() => schedule());
+}
+
 function installStyles() {
   installStyle("dm-personalization-style", `
     .dm-visual-picker{z-index:100020!important}.dm-picker-dialog{width:min(760px,calc(100vw - 24px))!important;max-height:min(82vh,760px)!important}.dm-picker-search{padding:14px 18px 6px}.dm-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;padding:12px 18px 20px;overflow:auto}.dm-picker-option{display:grid;place-items:center;gap:7px;min-height:98px;padding:10px;border:1px solid var(--divider-color,#dbe4ee);border-radius:16px;background:var(--card-background-color,#fff);color:var(--primary-text-color,#0f172a);cursor:pointer}.dm-picker-option:hover{border-color:var(--primary-color,#0ea5e9);transform:translateY(-1px)}.dm-picker-option b{font-size:11px;line-height:1.2;text-align:center}.dm-picker-option[hidden]{display:none!important}.dm-room-art,.dm-car-brand{display:inline-grid;place-items:center;color:var(--primary-color,#0ea5e9)}
@@ -332,20 +340,18 @@ export function installPersonalizationSection() {
         openVisualPicker(input, "room");
       }
     }
+    if (event.target?.closest?.(".ed-tab,[data-tab],[data-dm-edit-kind],.ed-btn-add,.ed-save-btn,.ed-del")) root.setTimeout?.(schedule, 0);
   }, true);
-  const observe = () => {
-    if (state.observer || !doc.body) return;
-    state.observer = new MutationObserver(schedule);
-    state.observer.observe(doc.body, { childList: true, subtree: true });
-    schedule();
-  };
-  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", observe, { once: true }); else observe();
   root.addEventListener?.("dashboardmodern:legacy-ready", () => {
-    for (const name of ["editorSwitch", "buildTempCards", "buildClimaCards", "cdApplyNavOrder", "cdApplyNavVis", "cdEvCarsRefresh"]) wrapFunction(name, `__dmPersonal_${name}`, schedule);
+    for (const name of ["editorSwitch", "buildTempCards", "buildClimaCards", "cdApplyNavOrder", "cdApplyNavVis", "cdEvCarsRefresh", "editorRenderStanze"]) wrapFunction(name, `__dmPersonal_${name}`, schedule);
+    subscribeStore();
     schedule();
   });
-  root.addEventListener?.("dashboardmodern:runtime-ready", schedule);
+  root.addEventListener?.("dashboardmodern:runtime-ready", () => { subscribeStore(); schedule(); });
   root.addEventListener?.("dashboardmodern:period-bundle", schedule);
+  doc.addEventListener("change", (event) => {
+    if (event.target?.closest?.("#editor-modal,#ed-body,.dm-section-modal")) root.setTimeout?.(schedule, 0);
+  }, true);
   schedule();
 }
 
