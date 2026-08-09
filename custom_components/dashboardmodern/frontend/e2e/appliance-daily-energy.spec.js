@@ -144,7 +144,7 @@ async function boot(page, variant, testInfo) {
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: daily appliance KPI uses period-safe values and opens entity breakdown`, async ({ page }, testInfo) => {
+  test(`${variant}: daily appliance KPI opens dashboard-style breakdown without visible entity labels`, async ({ page }, testInfo) => {
     if (testInfo.project.name === "webkit-ipad") test.slow(true, "Recorder-backed popup is slower on WebKit/iPad");
     await boot(page, variant, testInfo);
 
@@ -158,10 +158,25 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(popup).toBeVisible();
     await expect(popup.locator("[data-dm-daily-popup-total]")).toContainText(/0[.,]86 kWh/i);
     await expect(popup.locator("[data-dm-daily-entity]")).toHaveCount(2);
-    await expect(popup).toContainText("sensor.fridge_today");
-    await expect(popup).toContainText("sensor.microwave_total");
+    await expect(popup.locator(".dm-appliance-daily-row-main strong")).toHaveText(["Frigorifero", "Microonde"]);
+    await expect(popup.locator(".dm-appliance-daily-row-main small").first()).toBeHidden();
+    await expect(popup.locator(".dm-appliance-daily-note")).toBeHidden();
     await expect(popup).toContainText(/0[.,]81 kWh/i);
     await expect(popup).toContainText(/0[.,]05 kWh/i);
+
+    const visibleCopy = await popup.evaluate((node) => node.innerText);
+    expect(visibleCopy).not.toContain("sensor.fridge_today");
+    expect(visibleCopy).not.toContain("sensor.microwave_total");
+    expect(visibleCopy).not.toMatch(/Recorder|Sensore giornaliero|Daily sensor|Total meter/i);
+
+    const dialog = popup.locator(".dm-appliance-daily-dialog");
+    const row = popup.locator(".dm-appliance-daily-row").first();
+    await expect
+      .poll(async () => dialog.evaluate((node) => getComputedStyle(node).borderRadius))
+      .toMatch(/3[24]px/);
+    await expect
+      .poll(async () => row.evaluate((node) => getComputedStyle(node).borderRadius))
+      .toMatch(/2[14]px/);
 
     const periods = await page.evaluate(() => window.__dmStatisticsPeriods);
     expect(periods).toContain("5minute");
