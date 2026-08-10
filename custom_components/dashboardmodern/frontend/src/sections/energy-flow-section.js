@@ -49,8 +49,23 @@ function nodeVisible(node) {
   return true;
 }
 
+function exposeConnector(node, active) {
+  if (!node) return;
+  if (active) {
+    node.hidden = false;
+    node.removeAttribute?.("hidden");
+    node.style.setProperty("display", "inline", "important");
+    node.style.setProperty("visibility", "visible", "important");
+  } else if (node.dataset.dmFlowForcedVisible === "true") {
+    node.style.removeProperty("display");
+    node.style.removeProperty("visibility");
+  }
+  node.dataset.dmFlowForcedVisible = active ? "true" : "false";
+}
+
 function colorNode(node, color, active) {
   if (!node) return;
+  exposeConnector(node, active);
   node.classList.toggle("active", active);
   node.classList.toggle("dm-energy-flow-active", active);
   node.classList.toggle("dm-energy-flow-idle", !active);
@@ -91,7 +106,7 @@ function syncLoadFlows(period) {
     for (const id of loadLineIds(load, period)) {
       const line = doc.getElementById(id);
       if (!line) continue;
-      colorNode(line, COLORS[load.key], active && nodeVisible(line));
+      colorNode(line, COLORS[load.key], active);
       line.dataset.dmFlowValue = String(numberFrom(valueNode));
       touched = true;
     }
@@ -166,16 +181,13 @@ function mirrorLegacyMainFlows(scope, period) {
     .querySelectorAll(".flow-line,path[id*='line-' i],line[id*='line-' i],polyline[id*='line-' i]")
     .forEach((node) => {
       if (!/^(path|line|polyline)$/i.test(node.tagName) || isLoadLine(node)) return;
-      const legacyActive = node.classList.contains("active") && nodeVisible(node);
+      // Visibility is an output of the flow renderer, not an input. Legacy
+      // renderers often leave a valued connector at display:none; using
+      // nodeVisible() here permanently prevented beta7 from reviving it.
+      const legacyActive = node.classList.contains("active");
       const displayedActive = displayedMainFlow(node, period);
-      // When a displayed directional value is available it is authoritative.
-      // Falling back to legacy state is only safe when the new view cannot
-      // determine a direction at all; OR-ing both states can light both arrows.
-      const active = nodeVisible(node) && (displayedActive === null ? legacyActive : displayedActive);
-      node.classList.toggle("active", active);
-      node.classList.toggle("dm-energy-flow-active", active);
-      node.classList.toggle("dm-energy-flow-idle", !active);
-      node.style.setProperty("--dm-flow-color", mainLineColor(node));
+      const active = displayedActive === null ? legacyActive : displayedActive;
+      colorNode(node, mainLineColor(node), active);
       const kinds = mainKinds(node);
       node.dataset.dmMainFlow = kinds.join("-");
       node.dataset.dmFlowPeriod = period || "instant";
@@ -211,10 +223,10 @@ function scheduleSettled() {
 
 function installStyles() {
   installStyle("dm-energy-flow-section-style", `
-    .dm-energy-flow-active{opacity:1!important;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--dm-flow-color) 52%,transparent))!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
-    .dm-energy-flow-idle{opacity:.38!important;filter:none!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
-    .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke:var(--dm-flow-color)!important;stroke-dasharray:12 9!important;stroke-linecap:round!important;animation:dmEnergyFlowDash .8s linear infinite!important;will-change:stroke-dashoffset}
-    @keyframes dmEnergyFlowDash{to{stroke-dashoffset:-42}}
+    .dm-energy-flow-active{display:inline!important;visibility:visible!important;opacity:1!important;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--dm-flow-color) 52%,transparent))!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
+    .dm-energy-flow-idle{opacity:.30!important;filter:none!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
+    .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke:var(--dm-flow-color)!important;stroke-dasharray:12 9!important;stroke-linecap:round!important;animation:dmEnergyFlowDash .8s linear infinite!important;will-change:stroke-dashoffset!important}
+    @keyframes dmEnergyFlowDash{from{stroke-dashoffset:0}to{stroke-dashoffset:-42}}
     @media(prefers-reduced-motion:reduce){.flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{animation:none!important}}
   `);
 }
