@@ -159,7 +159,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await picker.locator("[data-close]").click();
 
     await page.locator("#editor-modal .ed-head-close").last().click();
-    await page.locator('.tab[data-tab="clima"]').click();
+    // On narrow hosted frames the horizontal navbar can live outside the
+    // physical viewport. DOM click exercises the same application handler
+    // without turning navbar scrolling into a prerequisite for this layout test.
+    await page.locator('.tab[data-tab="clima"]').evaluate((button) => button.click());
     await expect(page.locator("#page-clima.active .cp-card").first()).toBeVisible();
     if (testInfo.project.name === "mobile") {
       const climateHeight = await page.locator("#page-clima.active .cp-card").first().evaluate((card) => card.getBoundingClientRect().height);
@@ -178,6 +181,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     });
     await expect(page.locator("#n-wb-day")).toHaveAttribute("data-dm-beta5-flow-complete", "true");
     await expect(page.locator("#n-wb-day")).not.toHaveCSS("display", "none");
+    await expect(page.locator("#line-home-wb-day")).not.toHaveCSS("display", "none");
 
     const result = await page.evaluate(async () => {
       let loading = document.getElementById("ed-chart-loading");
@@ -194,7 +198,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       }
       class MockChart {
         static getChart() { return null; }
-        constructor(_context, config) { window.__BETA5_CHART_CONFIG__ = structuredClone(config); }
+        constructor(_context, config) {
+          window.__BETA5_CHART_CONFIG__ = {
+            labels: [...(config?.data?.labels || [])],
+            production: [...(config?.data?.datasets?.[0]?.data || [])],
+            consumption: [...(config?.data?.datasets?.[1]?.data || [])],
+          };
+        }
         destroy() {}
       }
       window.Chart = MockChart;
@@ -219,13 +229,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         314,
         165,
       );
-      const config = window.__BETA5_CHART_CONFIG__;
+      const config = window.__BETA5_CHART_CONFIG__ || {};
       return {
         ok,
         today: today.getDate(),
-        labels: config?.data?.labels || [],
-        production: config?.data?.datasets?.[0]?.data || [],
-        consumption: config?.data?.datasets?.[1]?.data || [],
+        labels: config.labels || [],
+        production: config.production || [],
+        consumption: config.consumption || [],
         marker: canvas.dataset.dmBeta5RealHistory || "",
       };
     });
