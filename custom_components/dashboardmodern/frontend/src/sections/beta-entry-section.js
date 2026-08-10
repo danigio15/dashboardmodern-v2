@@ -6,6 +6,7 @@ import "./energy-report-polish-section.js";
 import "./personalization-section.js";
 import "./editor-polish-section.js";
 import "./beta4-mobile-polish-section.js";
+import "./beta6-feedback-section.js";
 
 // First insert keeps the new direct icon trigger, but delegates the actual
 // catalog to the mature multilingual picker already used by the legacy editor.
