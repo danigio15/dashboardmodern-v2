@@ -27,6 +27,10 @@ jobs:
           start = source.index(marker) + len(marker)
           end = source.index("\n          PY\n", start)
           script = dedent(source[start:end])
+          script = script.replace(
+              "updated, count = re.subn(pattern, replacement, text, count=1, flags=flags)",
+              "updated, count = re.subn(pattern, lambda _match: replacement, text, count=1, flags=flags)",
+          )
           exec(compile(script, '<beta3-ui-patcher>', 'exec'))
           PY
       - name: Validate syntax
