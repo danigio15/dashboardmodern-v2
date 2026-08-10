@@ -1,0 +1,47 @@
+name: Beta3 changelog patch
+
+on:
+  push:
+    branches: [fix/beta2-ui-coherence-report]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/beta2-ui-coherence-report
+      - name: Prepend beta3 changelog
+        shell: bash
+        run: |
+          tail -n +2 CHANGELOG.md > /tmp/changelog-rest
+          cat > /tmp/changelog-head <<'EOF'
+          # Changelog
+
+          ## 1.0.0-beta.3 — 2026-08-10
+
+          ### Corretto
+
+          - **Aspetto auto** compare soltanto nella Config EV e usa picker distinti per brand e icona vettura, senza riutilizzare il catalogo Stanze/Azioni.
+          - Stanze e Azioni mostrano anteprime locali visibili; la tavolozza separata viene rimossa e il picker si apre cliccando direttamente sull'icona.
+          - Il **Rinomina sezione** è integrato accanto all'ordine navbar con una matita e aggiorna anche il nome della relativa scheda Config.
+          - Le card **Clima** su mobile non ereditano più il rapporto 1:1 che le rendeva enormi; il contenuto torna compatto e ad altezza naturale.
+          - La Config **MiniPC** mostra esplicitamente nome parametro, riferimento ed entità configurata invece di card apparentemente vuote.
+          - L'**Andamento giornaliero** del Report Energia ritenta le statistiche Recorder con payload compatibile e, se necessario, usa il renderer storico compatibile prima di mostrare errore.
+          - Aggiunti contratti automatici ed E2E per scoping EV, picker auto dedicati, icone, rinomina, MiniPC, Clima e compatibilità Recorder.
+
+          EOF
+          cat /tmp/changelog-head /tmp/changelog-rest > CHANGELOG.md
+          git diff --check
+      - name: Commit changelog
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "docs: add 1.0.0-beta.3 changelog"
+          git push origin HEAD:fix/beta2-ui-coherence-report
