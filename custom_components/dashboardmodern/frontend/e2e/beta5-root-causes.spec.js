@@ -102,9 +102,9 @@ async function boot(page, variant, testInfo) {
 }
 
 async function openEditor(page, tab) {
-  await page.evaluate(() => {
+  await page.evaluate((target) => {
     if (!document.getElementById("editor-modal")?.classList.contains("show")) apriConfigEntita();
-    editorSwitch(arguments[0]);
+    editorSwitch(target);
   }, tab);
   await expect(page.locator("#editor-modal")).toBeVisible();
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
