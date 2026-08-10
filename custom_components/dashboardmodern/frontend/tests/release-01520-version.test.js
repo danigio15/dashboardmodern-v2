@@ -42,7 +42,7 @@ test("the 1.0 beta release metadata is consistently versioned", async () => {
   assert.doesNotMatch(readme, /main\/assets\/logo|brand\/logo@2x\.png/);
   assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']1\.0\.0-beta\.6["']/);
   assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']1\.0\.0-beta\.6["']/);
-  assert.match(buildInfo, /["']?moduleVersion["']?\s*:\s*15/);
+  assert.match(buildInfo, /["']?moduleVersion["']?\s*:\s*14/);
 });
 
 test("weekly Analysis uses authenticated Recorder statistics and the canonical Home balance", async () => {
