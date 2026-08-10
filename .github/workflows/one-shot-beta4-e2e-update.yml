@@ -1,0 +1,73 @@
+name: Beta4 E2E contract update
+
+on:
+  push:
+    branches:
+      - fix/beta4-mobile-polish
+    paths:
+      - .github/workflows/one-shot-beta4-e2e-update.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Update room picker E2E contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('custom_components/dashboardmodern/frontend/e2e/editor-runtime.spec.js')
+          text = path.read_text()
+          old = '''    await page.evaluate(() => window.editorSwitch("stanze"));
+    await clickStableButton(
+      page,
+      page.locator('#ed-body button[title="Selettore icone"]'),
+      testInfo,
+    );
+    await expect(page.locator("#dm-icon-grid button")).toHaveCount(19);
+    for (const icon of ["🛏️", "🛋️", "🍳", "🛁", "💻", "🚗", "🌇", "🧺"])
+      await expect(page.locator("#dm-icon-grid button", { hasText: icon })).toHaveCount(1);
+    await page.locator("#dm-icon-search").fill("camera");
+    await expect(page.locator("#dm-icon-grid button", { hasText: "🛏️" })).toHaveCount(1);
+    await page.locator("#dm-icon-search").fill("bedroom");
+    await expect(page.locator("#dm-icon-grid button", { hasText: "🛏️" })).toHaveCount(1);
+    await page.screenshot({
+      path: `test-results/${testInfo.project.name}-${variant}-room-picker.png`,
+    });
+    const closeIconPicker = page.getByRole("button", {
+      name: /Chiudi selettore icone|Close icon picker/i,
+    });
+    await clickStableButton(page, closeIconPicker, testInfo);
+    await expect(page.locator("#dm-iconpick")).toHaveCount(0);
+'''
+          new = '''    await page.evaluate(() => window.editorSwitch("stanze"));
+    const roomIconTrigger = page.locator("#ed-body .dm-beta4-room-icon-trigger");
+    await expect(roomIconTrigger).toBeVisible();
+    await clickStableButton(page, roomIconTrigger, testInfo);
+    const roomPicker = page.locator("#dm-beta4-room-picker");
+    await expect(roomPicker).toBeVisible();
+    await expect(roomPicker.locator(".dm-picker-option")).toHaveCount(26);
+    await roomPicker.locator("[data-search]").fill("camera");
+    await expect(roomPicker.locator(".dm-picker-option:not([hidden])").first()).toBeVisible();
+    await roomPicker.locator("[data-search]").fill("bedroom");
+    await expect(roomPicker.locator(".dm-picker-option:not([hidden])").first()).toBeVisible();
+    await page.screenshot({
+      path: `test-results/${testInfo.project.name}-${variant}-room-picker.png`,
+    });
+    await clickStableButton(page, roomPicker.locator("[data-close]"), testInfo);
+    await expect(roomPicker).toHaveCount(0);
+'''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one room picker block, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/dashboardmodern/frontend/e2e/editor-runtime.spec.js
+          git commit -m "test: align room picker e2e with beta4 direct icon flow"
+          git push
