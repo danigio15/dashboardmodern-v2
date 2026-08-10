@@ -1,4 +1,4 @@
-import { ACTION_ICON_CATALOG, CAR_BRANDS, ROOM_CATALOG, carBrandVisual, roomVisual } from "../core/personalization-catalog.js";
+import { ACTION_ICON_CATALOG, CAR_BRANDS, ROOM_CATALOG, actionVisual, carBrandVisual, roomVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, readJson, root, t, writeJsonIfChanged, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_PERSONALIZATION_SECTION__";
@@ -28,14 +28,16 @@ function openVisualPicker(input, kind = "room") {
   const modal = doc.createElement("div");
   modal.id = "dm-visual-picker";
   modal.className = "dm-section-modal dm-visual-picker";
+  modal.dataset.kind = kind;
   const english = doc.documentElement.lang === "en";
   const title = kind === "car" ? t("Scegli il brand auto", "Choose car brand") : kind === "action" ? t("Scegli l'icona azione", "Choose action icon") : t("Scegli l'icona stanza", "Choose room icon");
+  const titleIcon = kind === "car" ? "🚘" : kind === "action" ? "⚡" : "🏠";
   const rows = kind === "car"
-    ? CAR_BRANDS.map((item) => ({ value: item.name, label: item.name, visual: carBrandVisual(item.name, 42), search: item.name }))
+    ? CAR_BRANDS.map((item) => ({ value: item.name, label: item.name, visual: carBrandVisual(item.name, 48), search: item.name }))
     : kind === "action"
-      ? ACTION_ICON_CATALOG.map((item) => ({ value: item.mdi, label: english ? item.en : item.it, visual: iconMarkup(item.mdi, 38), search: `${item.it} ${item.en} ${item.id}` }))
-      : ROOM_CATALOG.map((item) => ({ value: item.mdi, label: english ? item.en : item.it, visual: roomVisual(item.mdi, 42), search: `${item.it} ${item.en} ${item.keywords}` }));
-  modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>🎨 ${title}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${t("Cerca…", "Search…")}" data-search></div><div class="dm-picker-grid">${rows.map((item, index) => `<button type="button" class="dm-picker-option" data-index="${index}" data-search-text="${esc(item.search.toLowerCase())}"><span>${item.visual}</span><b>${esc(item.label)}</b></button>`).join("")}</div></section>`;
+      ? ACTION_ICON_CATALOG.map((item) => ({ value: item.mdi, label: english ? item.en : item.it, visual: actionVisual(item.mdi, 46), search: `${item.it} ${item.en} ${item.id} ${item.mdi}` }))
+      : ROOM_CATALOG.map((item) => ({ value: item.mdi, label: english ? item.en : item.it, visual: roomVisual(item.mdi, 46), search: `${item.it} ${item.en} ${item.keywords}` }));
+  modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>${titleIcon} ${title}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${t("Cerca…", "Search…")}" data-search></div><div class="dm-picker-grid">${rows.map((item, index) => `<button type="button" class="dm-picker-option" data-index="${index}" data-search-text="${esc(item.search.toLowerCase())}"><span class="dm-picker-visual">${item.visual}</span><b>${esc(item.label)}</b></button>`).join("")}</div></section>`;
   doc.body.append(modal);
   modal.querySelector("[data-close]")?.addEventListener("click", closePicker);
   modal.addEventListener("click", (event) => { if (event.target === modal) closePicker(); });
@@ -59,17 +61,17 @@ function decorateRoomModal() {
   modal.dataset.dmPersonalized = "true";
   const input = modal.querySelector('input[name="icon"]');
   const row = input?.closest(".dm-unified-icon-row");
-  if (!input || !row) return;
-  const button = doc.createElement("button");
-  button.type = "button";
-  button.className = "dm-visual-pick-btn";
-  button.textContent = "🎨";
-  button.setAttribute("aria-label", t("Scegli icona stanza", "Choose room icon"));
-  button.addEventListener("click", () => openVisualPicker(input, "room"));
-  row.append(button);
+  const preview = modal.querySelector("[data-room-icon-preview]");
+  if (!input || !row || !preview) return;
+  row.querySelectorAll(".dm-visual-pick-btn").forEach((node) => node.remove());
+  preview.classList.add("dm-visual-trigger");
+  preview.setAttribute("role", "button");
+  preview.setAttribute("tabindex", "0");
+  preview.setAttribute("aria-label", t("Scegli icona stanza", "Choose room icon"));
+  const open = () => openVisualPicker(input, "room");
+  preview.addEventListener("click", open);
+  preview.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } });
   const refresh = () => {
-    const preview = modal.querySelector("[data-room-icon-preview]");
-    if (!preview) return;
     preview.innerHTML = roomVisual(input.value, 52) || iconMarkup(input.value || "mdi:home", 42);
   };
   input.addEventListener("input", refresh);
@@ -83,20 +85,26 @@ function decorateActionModal() {
   const form = modal.querySelector("form");
   const input = form?.elements?.icon;
   const row = input?.closest(".dm-unified-icon-row");
-  if (!input || !row) return;
+  const preview = form?.querySelector?.("[data-action-icon-preview]");
+  if (!input || !row || !preview) return;
   const unlock = () => {
     input.readOnly = false;
     input.closest("label")?.classList.remove("dm-canonical-icon");
   };
   unlock();
   form.elements.type?.addEventListener("change", () => root.queueMicrotask?.(unlock));
-  const button = doc.createElement("button");
-  button.type = "button";
-  button.className = "dm-visual-pick-btn";
-  button.textContent = "🎨";
-  button.setAttribute("aria-label", t("Scegli icona azione", "Choose action icon"));
-  button.addEventListener("click", () => openVisualPicker(input, "action"));
-  row.append(button);
+  row.querySelectorAll(".dm-visual-pick-btn").forEach((node) => node.remove());
+  preview.classList.add("dm-visual-trigger");
+  preview.setAttribute("role", "button");
+  preview.setAttribute("tabindex", "0");
+  preview.setAttribute("aria-label", t("Scegli icona azione", "Choose action icon"));
+  const open = () => openVisualPicker(input, "action");
+  preview.addEventListener("click", open);
+  preview.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } });
+  const refresh = () => { preview.innerHTML = actionVisual(input.value, 46) || iconMarkup(input.value, 40); };
+  input.addEventListener("input", refresh);
+  input.addEventListener("change", refresh);
+  refresh();
 }
 
 function temperatureRoomVisuals() {
@@ -118,6 +126,27 @@ function temperatureRoomVisuals() {
   }
 }
 
+function decorateLegacyIconPickers() {
+  doc?.querySelectorAll?.("button.dm-icon-picker").forEach((button) => {
+    const targetId = clean(button.dataset.iconTarget || button.dataset.entityTarget);
+    const input = (targetId && doc.getElementById(targetId)) || button.closest(".dm-icon-field,.ed-form-row")?.querySelector("input.ed-icon-input,input");
+    if (!input) return;
+    const category = clean(button.dataset.iconCategory || input.dataset.iconCategory);
+    button.classList.add("dm-icon-preview-button");
+    button.setAttribute("aria-label", category === "rooms" ? t("Scegli icona stanza", "Choose room icon") : t("Scegli icona", "Choose icon"));
+    const refresh = () => {
+      const value = clean(input.value);
+      button.innerHTML = category === "rooms" ? (roomVisual(value, 34) || iconMarkup(value || "mdi:home", 30)) : (actionVisual(value, 34) || iconMarkup(value || "mdi:star", 30));
+    };
+    if (button.dataset.dmVisualBound !== "true") {
+      button.dataset.dmVisualBound = "true";
+      input.addEventListener("input", refresh);
+      input.addEventListener("change", refresh);
+    }
+    refresh();
+  });
+}
+
 function sectionNames() {
   const value = readJson("cd_section_names", {});
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -134,6 +163,25 @@ function setTitleText(node, value) {
   else if (!node.querySelector?.("[data-dm-section-name]")) node.insertAdjacentHTML("beforeend", `<span data-dm-section-name>${esc(value)}</span>`);
 }
 
+const EDITOR_TABS_FOR_SECTION = Object.freeze({
+  home: ["sez0"], energy: ["sez1"], ev: ["sez2"], solar: ["sez3"], security: ["sez4"],
+  server: ["sez6"], temp: ["sez7"], actions: ["sez8"], clima: ["sez9"],
+  "appliances-main": ["appliances"], tapparelle: ["tapp"], irrigazione: ["irr"], piscina: ["pool"],
+});
+
+function replaceButtonLabel(button, value) {
+  if (!button || !value) return;
+  const textNodes = [...button.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE && clean(node.textContent));
+  const target = textNodes.at(-1);
+  if (target) target.textContent = ` ${value}`;
+  else {
+    const label = button.querySelector("[data-dm-config-name]") || doc.createElement("span");
+    label.dataset.dmConfigName = "true";
+    label.textContent = value;
+    if (!label.isConnected) button.append(label);
+  }
+}
+
 export function applySectionNames() {
   const names = sectionNames();
   Object.entries(names).forEach(([rawKey, name]) => {
@@ -142,6 +190,9 @@ export function applySectionNames() {
     const key = PAGE_ALIASES[rawKey] || rawKey;
     doc?.querySelectorAll?.(`.tab[data-tab="${CSS.escape(key)}"] .text`).forEach((node) => { node.textContent = value; });
     if (rawKey === "appliances") doc?.querySelectorAll?.('.tab[data-tab="appliances-main"] .text').forEach((node) => { node.textContent = value; });
+    for (const editorTab of EDITOR_TABS_FOR_SECTION[key] || []) {
+      doc?.querySelectorAll?.(`.ed-tab[data-tab="${CSS.escape(editorTab)}"]`).forEach((button) => replaceButtonLabel(button, value));
+    }
     const page = doc?.getElementById?.(`page-${key}`);
     const selectors = key === "energy"
       ? [".ed-title-text h2"]
@@ -179,27 +230,34 @@ function renameSection(key, current) {
 
 function ensureSectionRenamer() {
   const body = doc?.getElementById("ed-body");
-  if (!body || body.querySelector("[data-section-renamer]")) return;
-  const text = clean(body.textContent).toLowerCase();
-  if (!/ordine navbar|navbar order|rilevamento e manutenzione|detection and maintenance/.test(text)) return;
-  const tabs = [...doc.querySelectorAll(".bottom-nav-bar .tab[data-tab]")];
-  if (!tabs.length) return;
-  const names = sectionNames();
-  const panel = doc.createElement("section");
-  panel.className = "ed-form dm-section-renamer";
-  panel.dataset.sectionRenamer = "true";
-  panel.innerHTML = `<div class="ed-sec-title">✏️ ${t("Nomi sezioni", "Section names")}</div><div class="ed-intro">${t("Rinomina una sezione: il nome cambia sia nella navbar sia nel titolo della pagina.", "Rename a section: the name changes in both the navbar and page title.")}</div><div class="ed-list">${tabs.map((tab) => {
-    const key = clean(tab.dataset.tab);
-    const icon = clean(tab.querySelector(".icon")?.textContent);
-    const current = clean(names[key] || names[key === "appliances-main" ? "appliances" : key] || tab.querySelector(".text")?.textContent || key);
-    return `<div class="ed-row" data-section-key="${esc(key)}"><div class="ed-row-main"><div class="ed-row-new">${esc(icon)} ${esc(current)}</div><div class="ed-row-old mono">${esc(key)}</div></div><button type="button" class="ed-del" data-rename aria-label="${t("Rinomina", "Rename")}">✏️</button></div>`;
-  }).join("")}</div>`;
-  const anchor = body.querySelector(".ed-intro") || body.firstChild;
-  body.insertBefore(panel, anchor || null);
-  panel.querySelectorAll("[data-rename]").forEach((button) => button.addEventListener("click", () => {
-    const row = button.closest("[data-section-key]");
-    renameSection(row.dataset.sectionKey, clean(row.querySelector(".ed-row-new").textContent).replace(/^\S+\s*/, ""));
-  }));
+  if (!body) return;
+  body.querySelectorAll("[data-section-renamer]").forEach((node) => node.remove());
+  const intro = [...body.querySelectorAll(".ed-intro")].find((node) => /ordine navbar|navbar order/i.test(clean(node.textContent)));
+  if (!intro) return;
+  const keys = typeof root.cdNavKeys === "function" ? root.cdNavKeys() : [];
+  if (!Array.isArray(keys) || !keys.length) return;
+  let row = intro.nextElementSibling;
+  for (const key of keys) {
+    while (row && !row.classList.contains("ed-row")) row = row.nextElementSibling;
+    if (!row) break;
+    row.dataset.sectionKey = key;
+    const main = row.querySelector(".ed-row-main");
+    const labelNode = main?.querySelector(".ed-row-new");
+    if (main && !main.querySelector("[data-rename]")) {
+      const button = doc.createElement("button");
+      button.type = "button";
+      button.className = "dm-inline-rename";
+      button.dataset.rename = "true";
+      button.setAttribute("aria-label", t("Rinomina sezione", "Rename section"));
+      button.textContent = "✏️";
+      button.addEventListener("click", () => {
+        const current = clean(labelNode?.textContent).replace(/^\S+\s*/, "") || key;
+        renameSection(key, current);
+      });
+      main.append(button);
+    }
+    row = row.nextElementSibling;
+  }
 }
 
 function evVisual() {
@@ -254,10 +312,13 @@ function applyEvAppearance() {
 
 function ensureEvAppearanceEditor() {
   const body = doc?.getElementById("ed-body");
-  if (!body || body.querySelector("[data-ev-appearance]")) return;
+  if (!body) return;
   const activeTab = clean(doc.querySelector(".ed-tab.active")?.dataset?.tab);
-  const text = clean(body.textContent).toLowerCase();
-  if (activeTab !== "sez2" && !/auto elettric|electric car|profilo auto|car profile/.test(text)) return;
+  if (activeTab !== "sez2") {
+    body.querySelectorAll("[data-ev-appearance]").forEach((node) => node.remove());
+    return;
+  }
+  if (body.querySelector("[data-ev-appearance]")) return;
   const { current, fallback } = evVisual();
   const visual = current || fallback || {};
   const panel = doc.createElement("section");
@@ -265,14 +326,16 @@ function ensureEvAppearanceEditor() {
   panel.dataset.evAppearance = "true";
   const brand = clean(visual.brand || "Leapmotor");
   const icon = clean(visual.icon || "mdi:car-electric");
-  panel.innerHTML = `<div class="ed-sec-title">🚘 ${t("Aspetto auto", "Car appearance")}</div><div class="ed-intro">${t("Scegli brand e icona del profilo attivo. I badge sono grafica neutra integrata e non dipendono da CDN.", "Choose the brand and icon for the active profile. Badges are built-in neutral artwork with no CDN dependency.")}</div><div class="dm-ev-appearance-grid"><button type="button" class="dm-brand-preview" data-brand-preview>${carBrandVisual(brand, 54)}<b>${esc(brand)}</b></button><select class="ed-input" data-brand>${CAR_BRANDS.map((item) => `<option value="${esc(item.name)}" ${item.name === brand ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select><span class="dm-action-icon-preview" data-icon-preview>${iconMarkup(icon, 42)}</span><input class="ed-input" data-icon value="${esc(icon)}"><button type="button" class="dm-visual-pick-btn" data-icon-pick>🎨</button></div><button type="button" class="ed-save-btn" data-save>💾 ${t("Salva aspetto auto", "Save car appearance")}</button>`;
-  body.prepend(panel);
+  panel.innerHTML = `<div class="ed-sec-title">🚘 ${t("Aspetto auto", "Car appearance")}</div><div class="ed-intro">${t("Aspetto del profilo auto selezionato.", "Appearance of the selected vehicle profile.")}</div><div class="dm-ev-appearance-grid"><button type="button" class="dm-brand-preview dm-visual-trigger" data-brand-preview aria-label="${t("Scegli brand auto", "Choose car brand")}">${carBrandVisual(brand, 56)}<b>${esc(brand)}</b></button><select class="ed-input" data-brand>${CAR_BRANDS.map((item) => `<option value="${esc(item.name)}" ${item.name === brand ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select><button type="button" class="dm-action-icon-preview dm-visual-trigger" data-icon-preview aria-label="${t("Scegli icona auto", "Choose car icon")}">${actionVisual(icon, 48) || iconMarkup(icon, 42)}</button><input class="ed-input" data-icon value="${esc(icon)}"></div><button type="button" class="ed-save-btn" data-save>💾 ${t("Salva aspetto auto", "Save car appearance")}</button>`;
+  const visibleEvBlock = [...body.querySelectorAll("details,.ed-acc,.ed-form")].find((node) => node !== panel && /auto elettric|electric car|profilo auto|car profile|vettur|vehicle/i.test(clean(node.textContent)));
+  if (visibleEvBlock?.parentElement) visibleEvBlock.insertAdjacentElement("afterend", panel);
+  else body.prepend(panel);
   const brandSelect = panel.querySelector("[data-brand]");
   const iconInput = panel.querySelector("[data-icon]");
-  brandSelect.addEventListener("change", () => { panel.querySelector("[data-brand-preview]").innerHTML = `${carBrandVisual(brandSelect.value, 54)}<b>${esc(brandSelect.value)}</b>`; });
+  brandSelect.addEventListener("change", () => { panel.querySelector("[data-brand-preview]").innerHTML = `${carBrandVisual(brandSelect.value, 56)}<b>${esc(brandSelect.value)}</b>`; });
   panel.querySelector("[data-brand-preview]").addEventListener("click", () => openVisualPicker(brandSelect, "car"));
-  panel.querySelector("[data-icon-pick]").addEventListener("click", () => openVisualPicker(iconInput, "action"));
-  iconInput.addEventListener("input", () => { panel.querySelector("[data-icon-preview]").innerHTML = iconMarkup(iconInput.value, 42); });
+  panel.querySelector("[data-icon-preview]").addEventListener("click", () => openVisualPicker(iconInput, "action"));
+  iconInput.addEventListener("input", () => { panel.querySelector("[data-icon-preview]").innerHTML = actionVisual(iconInput.value, 48) || iconMarkup(iconInput.value, 42); });
   panel.querySelector("[data-save]").addEventListener("click", async (event) => {
     const button = event.currentTarget;
     button.disabled = true;
@@ -314,6 +377,7 @@ function schedule() {
     state.frame = 0;
     decorateRoomModal();
     decorateActionModal();
+    decorateLegacyIconPickers();
     temperatureRoomVisuals();
     ensureSectionRenamer();
     ensureEvAppearanceEditor();
@@ -334,12 +398,13 @@ function subscribeStore() {
 
 function installStyles() {
   installStyle("dm-personalization-style", `
-    .dm-visual-picker{z-index:100020!important}.dm-picker-dialog{width:min(760px,calc(100vw - 24px))!important;max-height:min(82vh,760px)!important}.dm-picker-search{padding:14px 18px 6px}.dm-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;padding:12px 18px 20px;overflow:auto}.dm-picker-option{display:grid;place-items:center;gap:7px;min-height:98px;padding:10px;border:1px solid var(--divider-color,#dbe4ee);border-radius:16px;background:var(--card-background-color,#fff);color:var(--primary-text-color,#0f172a);cursor:pointer}.dm-picker-option:hover{border-color:var(--primary-color,#0ea5e9);transform:translateY(-1px)}.dm-picker-option b{font-size:11px;line-height:1.2;text-align:center}.dm-picker-option[hidden]{display:none!important}.dm-room-art,.dm-car-brand{display:inline-grid;place-items:center;color:var(--primary-color,#0ea5e9)}
-    .dm-unified-icon-row{grid-template-columns:72px minmax(0,1fr) 52px!important}.dm-visual-pick-btn{display:grid;place-items:center;width:52px;height:52px;border:0;border-radius:13px;background:linear-gradient(145deg,#dff4ff,#b9e6fb);color:#0369a1;font-size:18px;cursor:pointer}.dm-temperature-card-icon{display:grid!important;place-items:center!important;width:52px!important;height:52px!important;border-radius:16px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,transparent)!important;overflow:hidden!important}.dm-temperature-form{border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:20px!important;padding:18px!important;background:var(--card-background-color,#fff)!important;display:grid!important;gap:14px!important}.dm-temperature-form>.ed-slot{margin:0!important}.dm-temperature-actions{display:flex!important;gap:10px!important;justify-content:flex-end!important}
-    .dm-section-renamer{margin:0 0 18px!important}.dm-section-renamer .ed-list{display:grid!important;gap:8px!important}.dm-section-renamer .ed-row{min-height:64px!important}.dm-ev-appearance{margin:0 0 18px!important}.dm-ev-appearance-grid{display:grid;grid-template-columns:auto minmax(170px,1fr) auto minmax(170px,1fr) auto;gap:10px;align-items:center;margin:12px 0}.dm-brand-preview{display:flex;align-items:center;gap:8px;border:0;border-radius:14px;background:var(--secondary-background-color,#eef3f8);padding:6px 10px;cursor:pointer;color:var(--primary-text-color,#0f172a)}.dm-ev-brand-badge{display:inline-flex;align-items:center;gap:6px;margin-right:10px}.dm-action-icon-preview{display:grid;place-items:center;width:52px;height:52px;border-radius:13px;background:var(--secondary-background-color,#eef3f8)}
-    #page-clima .clima-premium-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))!important;gap:18px!important;align-items:start!important}#page-clima .clima-premium-grid>:not([style*="grid-column"]){min-height:280px!important;height:auto!important;max-width:none!important;border-radius:26px!important;padding:20px!important;box-sizing:border-box!important}#page-clima .clima-dashboard{max-width:1500px!important;margin-inline:auto!important}#page-clima [class*="clima-controls"],#page-clima [class*="clima-ctl"]{margin-top:22px!important}
+    .dm-visual-picker{z-index:100020!important}.dm-picker-dialog{width:min(760px,calc(100vw - 24px))!important;max-height:min(82vh,760px)!important}.dm-picker-search{padding:14px 18px 6px}.dm-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;padding:12px 18px 20px;overflow:auto}.dm-picker-option{display:grid;place-items:center;gap:7px;min-height:108px;padding:10px;border:1px solid var(--divider-color,#dbe4ee);border-radius:16px;background:var(--card-background-color,#fff);color:var(--primary-text-color,#0f172a);cursor:pointer}.dm-picker-option:hover{border-color:var(--primary-color,#0ea5e9);transform:translateY(-1px)}.dm-picker-option b{font-size:12px;line-height:1.2;text-align:center}.dm-picker-option[hidden]{display:none!important}.dm-picker-visual{display:grid;place-items:center;min-width:52px;min-height:52px}.dm-room-art,.dm-car-brand{display:inline-grid;place-items:center;color:var(--primary-color,#0ea5e9)}.dm-action-glyph{display:inline-grid;place-items:center;border-radius:14px;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,var(--card-background-color,#fff));line-height:1}
+    .dm-unified-icon-row{grid-template-columns:72px minmax(0,1fr)!important}.dm-visual-pick-btn{display:none!important}.dm-visual-trigger,.dm-icon-preview-button{cursor:pointer!important;transition:transform .15s ease,box-shadow .15s ease!important}.dm-visual-trigger:hover,.dm-icon-preview-button:hover{transform:translateY(-1px)!important}.dm-unified-icon-preview.dm-visual-trigger,.dm-action-icon-preview.dm-visual-trigger{display:grid!important;place-items:center!important;width:72px!important;height:72px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:18px!important;background:var(--secondary-background-color,#eef3f8)!important}.dm-icon-picker.dm-icon-preview-button{display:grid!important;place-items:center!important;min-width:54px!important;width:54px!important;height:54px!important;padding:0!important;border-radius:14px!important;font-size:0!important}.dm-temperature-card-icon{display:grid!important;place-items:center!important;width:52px!important;height:52px!important;border-radius:16px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,transparent)!important;overflow:hidden!important}.dm-temperature-form{border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:20px!important;padding:18px!important;background:var(--card-background-color,#fff)!important;display:grid!important;gap:14px!important}.dm-temperature-form>.ed-slot{margin:0!important}.dm-temperature-actions{display:flex!important;gap:10px!important;justify-content:flex-end!important}
+    .dm-inline-rename{display:grid;place-items:center;position:absolute;right:8px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:1px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 28%,var(--divider-color,#dbe4ee));border-radius:12px;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 8%,var(--card-background-color,#fff));cursor:pointer}.ed-row[data-section-key] .ed-row-main{position:relative;padding-right:48px!important}
+    .dm-ev-appearance{margin:12px 0 18px!important}.dm-ev-appearance-grid{display:grid;grid-template-columns:auto minmax(170px,1fr) auto minmax(170px,1fr);gap:10px;align-items:center;margin:12px 0}.dm-brand-preview{display:flex;align-items:center;gap:8px;border:1px solid var(--divider-color,#dbe4ee);border-radius:14px;background:var(--secondary-background-color,#eef3f8);padding:6px 10px;cursor:pointer;color:var(--primary-text-color,#0f172a)}.dm-ev-brand-badge{display:inline-flex;align-items:center;gap:6px;margin-right:10px}.dm-action-icon-preview{display:grid;place-items:center;width:58px;height:58px;border:1px solid var(--divider-color,#dbe4ee);border-radius:15px;background:var(--secondary-background-color,#eef3f8)}
+    #page-clima .clima-dashboard{max-width:1180px!important;margin-inline:auto!important}#page-clima .clima-premium-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))!important;gap:16px!important;align-items:start!important}#page-clima .clima-premium-grid>:not([style*="grid-column"]){box-sizing:border-box!important;min-height:300px!important;height:clamp(300px,38vw,390px)!important;max-height:390px!important;border-radius:24px!important;padding:18px!important;overflow:hidden!important}#page-clima [class*="clima-controls"],#page-clima [class*="clima-ctl"]{margin-top:auto!important}
     #ed-body [data-dm-edit-kind="action"]{border-radius:14px!important}#ed-body [data-dm-edit-kind="action"]+button{border-radius:12px!important}
-    @media(max-width:760px){.dm-ev-appearance-grid{grid-template-columns:1fr auto}.dm-brand-preview{grid-column:1/-1}.dm-ev-appearance-grid select{grid-column:1/-1}.dm-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.dm-unified-icon-row{grid-template-columns:64px minmax(0,1fr) 48px!important}}
+    @media(max-width:760px){.dm-ev-appearance-grid{grid-template-columns:1fr auto}.dm-brand-preview{grid-column:1/-1}.dm-ev-appearance-grid select{grid-column:1/-1}.dm-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.dm-picker-option{min-height:102px;padding:8px}.dm-unified-icon-row{grid-template-columns:64px minmax(0,1fr)!important}.dm-unified-icon-preview.dm-visual-trigger,.dm-action-icon-preview.dm-visual-trigger{width:64px!important;height:64px!important}.dm-inline-rename{right:5px;width:36px;height:36px}#page-clima .clima-premium-grid{grid-template-columns:1fr!important;gap:12px!important}#page-clima .clima-premium-grid>:not([style*="grid-column"]){min-height:300px!important;height:clamp(300px,48vh,370px)!important;max-height:370px!important;padding:14px!important}}
   `);
 }
 

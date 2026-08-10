@@ -492,19 +492,32 @@ export class HomeAssistantBroker {
     const endIso = new Date(end).toISOString();
     const historical = Date.parse(endIso) < Date.now() - 86400000;
     const key = `statistics|${period}|${startIso}|${endIso}|${statisticIds.join(",")}`;
-    const result = await this.cachedRequest(
-      {
-        type: "recorder/statistics_during_period",
-        start_time: startIso,
-        end_time: endIso,
-        statistic_ids: statisticIds,
-        period,
-        types: ["sum"],
-        units: { energy: "kWh" },
-      },
-      key,
-      historical ? this.cacheHistoricalMs : this.cacheCurrentMs,
-    );
+    const payload = {
+      type: "recorder/statistics_during_period",
+      start_time: startIso,
+      end_time: endIso,
+      statistic_ids: statisticIds,
+      period,
+      types: ["sum"],
+      units: { energy: "kWh" },
+    };
+    let result;
+    try {
+      result = await this.cachedRequest(
+        payload,
+        key,
+        historical ? this.cacheHistoricalMs : this.cacheCurrentMs,
+      );
+    } catch (error) {
+      const compatiblePayload = { ...payload };
+      delete compatiblePayload.units;
+      const compatibleKey = `${key}|compat`;
+      result = await this.cachedRequest(
+        compatiblePayload,
+        compatibleKey,
+        historical ? this.cacheHistoricalMs : this.cacheCurrentMs,
+      );
+    }
     return Object.fromEntries(
       originals.map((id) => [id, result?.[mapped.get(id)] || result?.[id] || []]),
     );
