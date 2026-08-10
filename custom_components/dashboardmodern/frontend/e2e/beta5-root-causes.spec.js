@@ -167,7 +167,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     if (testInfo.project.name === "mobile") {
       const climateHeight = await page.locator("#page-clima.active .cp-card").first().evaluate((card) => card.getBoundingClientRect().height);
       expect(climateHeight).toBeLessThan(260);
-      await expect(page.locator("#page-clima.active .clima-premium-grid")).toHaveCSS("grid-template-columns", /.+/);
+      await expect(page.locator("#page-clima.active .clima-premium-grid").first()).toHaveCSS("grid-template-columns", /.+/);
     }
   });
 
