@@ -201,6 +201,86 @@ function applyAutonomy(bundle) {
   if (card) card.dataset.dmAutonomyFormula = "(house-gridImport)/house";
 }
 
+function rateValue(key) {
+  const configured = root.cdCfg?.(key);
+  const raw = configured !== undefined && configured !== null && configured !== ""
+    ? configured
+    : root.localStorage?.getItem(key);
+  const value = Number(String(raw ?? "").replace(",", "."));
+  return Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+function money(value) {
+  return `${formatNumber(Math.max(0, Number(value) || 0), 2)} €`;
+}
+
+export function applyFinancialOverview(bundle) {
+  if (!bundle?.month) return false;
+  const importPrice = rateValue("cd_costo_kwh");
+  const exportPrice = rateValue("cd_prezzo_immissione");
+  const data = bundle.month;
+  const importCost = Math.max(0, Number(data.gridImport) || 0) * importPrice;
+  const withoutSolar = Math.max(0, Number(data.house) || 0) * importPrice;
+  const exportIncome = Math.max(0, Number(data.gridExport) || 0) * exportPrice;
+  // "Venduto" is already reported separately. Subtracting that income from
+  // purchase cost made COSTO REALE collapse to zero whenever export revenue was
+  // higher than the bill. Real cost is therefore strictly imported kWh × rate.
+  const realCost = importCost;
+  const saved = Math.max(0, withoutSolar - importCost);
+
+  const set = (id, value) => {
+    const node = doc?.getElementById(id);
+    if (node) node.textContent = value;
+  };
+  set("ed-fin-pagato", money(withoutSolar));
+  set("ed-fin-pagato-sub", `${formatNumber(data.house, 1)} kWh`);
+  set("ed-fin-costo", money(realCost));
+  set("ed-fin-costo-sub", `${formatNumber(data.gridImport, 1)} kWh ${t("dalla rete", "from grid")}`);
+  set("ed-fin-risp", money(saved));
+  set("ed-fin-imm", money(exportIncome));
+
+  if (bundle.year) {
+    const annualImport = Math.max(0, Number(bundle.year.gridImport) || 0) * importPrice;
+    const annualWithoutSolar = Math.max(0, Number(bundle.year.house) || 0) * importPrice;
+    set("ed-year-pagato", money(annualImport));
+    set("ed-year-risparmio", money(Math.max(0, annualWithoutSolar - annualImport)));
+  }
+  const overview = doc?.getElementById("view-panoramica");
+  if (overview) {
+    overview.dataset.dmFinancialFormula = "gridImport*importPrice";
+    overview.dataset.dmImportPrice = String(importPrice);
+    overview.dataset.dmExportPrice = String(exportPrice);
+  }
+  return true;
+}
+
+function installCostSettingsOwner() {
+  const current = root.edSaveCosti;
+  if (typeof current === "function" && current.__dmCanonicalEnergyRates) return true;
+  function saveCanonicalEnergyRates() {
+    const importInput = doc?.getElementById("ed-costo-kwh");
+    const exportInput = doc?.getElementById("ed-prezzo-imm");
+    const normalize = (input) => {
+      const parsed = Number(String(input?.value ?? "").replace(",", "."));
+      return Number.isFinite(parsed) && parsed >= 0 ? String(parsed) : "0";
+    };
+    const importRate = normalize(importInput);
+    const exportRate = normalize(exportInput);
+    root.localStorage?.setItem("cd_costo_kwh", importRate);
+    root.localStorage?.setItem("cd_prezzo_immissione", exportRate);
+    root.cdMarkDirty?.();
+    root.cdSyncPush?.();
+    root.DashboardModernEnergyService?.refresh?.();
+    const runtimeBundle = root.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle;
+    if (runtimeBundle) root.setTimeout?.(() => applyFinancialOverview(runtimeBundle), 0);
+    return true;
+  }
+  saveCanonicalEnergyRates.__dmCanonicalEnergyRates = true;
+  saveCanonicalEnergyRates.__dmPrevious = current;
+  root.edSaveCosti = saveCanonicalEnergyRates;
+  return true;
+}
+
 function removeWeeklyDash() {
   const diff = doc?.getElementById("ed-w-diff");
   if (diff) {
@@ -216,11 +296,15 @@ function schedule() {
     removeWeeklyDash();
     applyReportArtwork();
     installDailyChartOverride();
+    installCostSettingsOwner();
+    applyFinancialOverview(root.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle);
   }) || root.setTimeout?.(() => {
     state.frame = 0;
     removeWeeklyDash();
     applyReportArtwork();
     installDailyChartOverride();
+    installCostSettingsOwner();
+    applyFinancialOverview(root.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle);
   }, 0);
 }
 
@@ -247,15 +331,17 @@ export function installEnergyReportPolishSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
+  installCostSettingsOwner();
   root.addEventListener?.("dashboardmodern:legacy-ready", () => {
     installDailyChartOverride();
+    installCostSettingsOwner();
     for (const name of ["renderEnergyDashboard", "renderEdDeviceList"]) wrapFunction(name, `__dmEnergyReport_${name}`, schedule);
     subscribeStore();
     schedule();
   });
-  root.addEventListener?.("dashboardmodern:runtime-ready", () => { subscribeStore(); schedule(); });
-  root.addEventListener?.("dashboardmodern:period-bundle", (event) => { applyAutonomy(event.detail); schedule(); });
-  root.addEventListener?.("dashboardmodern:energy-stable", (event) => { applyAutonomy(event.detail); schedule(); });
+  root.addEventListener?.("dashboardmodern:runtime-ready", () => { subscribeStore(); installCostSettingsOwner(); schedule(); });
+  root.addEventListener?.("dashboardmodern:period-bundle", (event) => { applyAutonomy(event.detail); applyFinancialOverview(event.detail); schedule(); });
+  root.addEventListener?.("dashboardmodern:energy-stable", (event) => { applyAutonomy(event.detail); applyFinancialOverview(event.detail); schedule(); });
   doc.addEventListener("click", (event) => {
     if (event.target?.closest?.("[data-energy-tab],.energy-tab,.sub-tab-btn,.ed-tab")) root.setTimeout?.(schedule, 0);
   }, true);
