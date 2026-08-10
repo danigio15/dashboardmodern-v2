@@ -156,7 +156,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(realBrandImages.first()).toHaveAttribute("src", /simple-icons@16\.27\.1/);
     expect(await realBrandImages.count()).toBeGreaterThan(20);
     const leap = picker.locator(".dm-picker-option", { hasText: "Leapmotor" });
-    await expect(leap.locator('img[data-dm-brand-image="leapmotor"]')).toHaveAttribute("src", /Leapmotor_logo_en\.svg/);
+    const leapMark = leap.locator('.dm-leapmotor-mark[data-brand="leapmotor"][data-brand-source="inline"]');
+    await expect(leapMark).toHaveCount(1);
+    await expect(leapMark.locator("svg")).toHaveCount(1);
+    await expect(leap.locator('img[data-dm-brand-image="leapmotor"]')).toHaveCount(0);
     await picker.locator("[data-close]").click();
 
     await page.locator("#editor-modal .ed-head-close").last().click();
