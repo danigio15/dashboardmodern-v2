@@ -152,10 +152,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await brandPreview.click();
     const picker = page.locator('#dm-visual-picker[data-kind="car"]');
     await expect(picker).toBeVisible();
-    await expect(picker.locator(".dm-beta5-brand-logo svg").first()).toBeVisible();
-    expect(await picker.locator(".dm-beta5-brand-logo svg").count()).toBeGreaterThan(20);
+    const realBrandImages = picker.locator(".dm-car-brand img[data-dm-brand-image]");
+    await expect(realBrandImages.first()).toHaveAttribute("src", /simple-icons@16\.27\.1/);
+    expect(await realBrandImages.count()).toBeGreaterThan(20);
     const leap = picker.locator(".dm-picker-option", { hasText: "Leapmotor" });
-    await expect(leap.locator('[data-brand-logo="leapmotor"] svg')).toBeVisible();
+    await expect(leap.locator('img[data-dm-brand-image="leapmotor"]')).toHaveAttribute("src", /Leapmotor_logo_en\.svg/);
     await picker.locator("[data-close]").click();
 
     await page.locator("#editor-modal .ed-head-close").last().click();
