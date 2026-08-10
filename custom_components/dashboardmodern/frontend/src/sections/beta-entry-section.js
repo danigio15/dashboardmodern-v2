@@ -7,11 +7,13 @@ import "./personalization-section.js";
 import "./editor-polish-section.js";
 import "./beta4-mobile-polish-section.js";
 import "./beta6-feedback-section.js";
+import "./beta7-brand-guard-section.js";
 import "./beta7-regression-section.js";
 
 // Keep only compatibility/layout bridges that belong at the entrypoint. The
-// beta7 hardening module is the final visible fallback for WebView-only UI
-// regressions; it runs after the mature beta6 editor/quick-action owner.
+// beta7 guards run after the mature beta6 editor owner; the brand guard is
+// installed first so a broken remote logo keeps its DOM contract and receives
+// a visible inline fallback instead of a broken-image placeholder.
 if (typeof document !== "undefined") {
   const marker = "__DASHBOARDMODERN_BETA5_ENTRY_BRIDGE__";
   if (!globalThis[marker]) {
