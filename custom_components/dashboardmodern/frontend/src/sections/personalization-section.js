@@ -62,6 +62,15 @@ function modelsForBrand(brand) {
   return CAR_MODELS[clean(brand)] || [];
 }
 
+function modelBelongsToBrand(brand, value) {
+  const token = normalizedModel(value);
+  if (!token) return false;
+  return modelsForBrand(brand).some((model) => {
+    const candidate = normalizedModel(model);
+    return token === candidate || token.includes(candidate) || candidate.includes(token);
+  });
+}
+
 function brandForModel(value) {
   const token = normalizedModel(value);
   if (!token) return "";
@@ -75,7 +84,8 @@ function brandForModel(value) {
 }
 
 function effectiveBrand(vehicle = {}) {
-  return brandForModel(vehicle.model || vehicle.name) || clean(vehicle.brand);
+  const explicit = clean(vehicle.brand);
+  return explicit || brandForModel(vehicle.model || vehicle.name);
 }
 
 function effectiveModel(vehicle = {}) {
@@ -227,6 +237,8 @@ function decorateRoomEditorRows() {
     }
     const markup = roomVisual(room.icon || room.name, 34) || iconMarkup(room.icon || "mdi:home", 30);
     if (visual.innerHTML !== markup) visual.innerHTML = markup;
+    const label = main.querySelector(".ed-row-new");
+    if (label) label.textContent = clean(room.name) || t("Stanza", "Room");
     main.dataset.dmRoomIconVisible = "true";
   });
   return changed;
@@ -349,7 +361,6 @@ function ensureSectionRenamer() {
   if (!intro) return;
   const keys = typeof root.cdNavKeys === "function" ? root.cdNavKeys() : [];
   if (!Array.isArray(keys) || !keys.length) return;
-  const savedNames = sectionNames();
   let row = intro.nextElementSibling;
   for (const key of keys) {
     while (row && !row.classList.contains("ed-row")) row = row.nextElementSibling;
@@ -365,7 +376,8 @@ function ensureSectionRenamer() {
       button.setAttribute("aria-label", t("Rinomina sezione", "Rename section"));
       button.textContent = "✏️";
       button.addEventListener("click", () => {
-        const persisted = clean(savedNames[key] || (key === "appliances-main" ? savedNames.appliances : ""));
+        const currentNames = sectionNames();
+        const persisted = clean(currentNames[key] || (key === "appliances-main" ? currentNames.appliances : ""));
         const rendered = clean(labelNode?.textContent).replace(/^\S+\s*/, "");
         renameSection(key, persisted || rendered || key);
       });
@@ -468,7 +480,7 @@ function ensureEvAppearanceEditor() {
   };
   brandSelect.addEventListener("change", () => {
     const previous = clean(modelSelect.value);
-    modelSelect.innerHTML = modelOptions(brandSelect.value, brandForModel(previous) === brandSelect.value ? previous : "");
+    modelSelect.innerHTML = modelOptions(brandSelect.value, modelBelongsToBrand(brandSelect.value, previous) ? previous : "");
     refreshPreview();
   });
   modelSelect.addEventListener("change", refreshPreview);
@@ -479,11 +491,11 @@ function ensureEvAppearanceEditor() {
     panel.dataset.saved = "saving";
     try {
       const livePanel = button.closest("[data-ev-appearance]") || panel;
-      let liveBrand = clean(livePanel?.querySelector("select[data-brand]")?.value);
+      const liveBrand = clean(livePanel?.querySelector("select[data-brand]")?.value);
       const liveModel = clean(livePanel?.querySelector("select[data-model]")?.value);
-      liveBrand = brandForModel(liveModel) || liveBrand;
       if (!liveBrand) throw new Error(t("Seleziona un brand auto.", "Choose a car brand."));
       if (!liveModel) throw new Error(t("Seleziona un modello elettrico o ibrido.", "Choose an electric or hybrid model."));
+      if (!modelBelongsToBrand(liveBrand, liveModel)) throw new Error(t("Il modello selezionato non appartiene al marchio scelto.", "The selected model does not belong to the chosen brand."));
       await saveEvAppearance(liveBrand, liveModel);
       panel.dataset.saved = "true";
     } catch (error) {
