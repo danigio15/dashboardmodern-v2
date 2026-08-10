@@ -5,14 +5,17 @@ import test from "node:test";
 const entryUrl = new URL("../src/sections/beta-entry-section.js", import.meta.url);
 const guardUrl = new URL("../src/sections/beta7-brand-guard-section.js", import.meta.url);
 const regressionsUrl = new URL("../src/sections/beta7-regression-section.js", import.meta.url);
+const reviewFixesUrl = new URL("../src/sections/beta7-review-fixes-section.js", import.meta.url);
 const flowsUrl = new URL("../src/sections/energy-flow-section.js", import.meta.url);
 
-test("beta7 entry loads the brand guard before final regression polish", async () => {
+test("beta7 entry loads guards and review follow-ups in ownership order", async () => {
   const source = await readFile(entryUrl, "utf8");
   const guard = source.indexOf('import "./beta7-brand-guard-section.js"');
   const polish = source.indexOf('import "./beta7-regression-section.js"');
+  const review = source.indexOf('import "./beta7-review-fixes-section.js"');
   assert.ok(guard >= 0);
   assert.ok(polish > guard);
+  assert.ok(review > polish);
 });
 
 test("broken remote car logos keep their image contract and get an inline fallback", async () => {
@@ -46,10 +49,23 @@ test("beta7 final polish owns quick actions, climate and stable shutters", async
   assert.doesNotMatch(source, /MutationObserver|setInterval\s*\(/);
 });
 
-test("period energy main connectors animate from displayed values, not only legacy active classes", async () => {
+test("review follow-ups keep action text in column two and rerender shutter config changes", async () => {
+  const source = await readFile(reviewFixesUrl, "utf8");
+  assert.match(source, /dm-beta7-action-main/);
+  assert.match(source, /grid-column:2!important/);
+  assert.match(source, /dm-beta7-legacy-action-icon/);
+  assert.match(source, /currentShutterConfigSignature/);
+  assert.match(source, /JSON\.stringify\(Array\.isArray\(list\) \? list : \[\]\)/);
+  assert.match(source, /regression\.shutterSignature = ""/);
+});
+
+test("period energy main connectors use direction-specific displayed values", async () => {
   const source = await readFile(flowsUrl, "utf8");
-  assert.match(source, /function displayedMainFlow/);
-  assert.match(source, /function mainValueNode/);
-  assert.match(source, /displayedActive === null \? legacyActive : displayedActive \|\| legacyActive/);
+  assert.match(source, /function parseNumber/);
+  assert.match(source, /function periodDirectionalValue/);
+  assert.match(source, /id\.includes\("solar-grid"\) \? "export" : "import"/);
+  assert.match(source, /id\.includes\("solar-battery"\) \? "charge" : "discharge"/);
+  assert.match(source, /displayedActive === null \? legacyActive : displayedActive/);
+  assert.doesNotMatch(source, /displayedActive \|\| legacyActive/);
   assert.match(source, /animation:dmEnergyFlowDash \.8s linear infinite/);
 });
