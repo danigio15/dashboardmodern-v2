@@ -20,10 +20,15 @@ function fallbackMarkup(img) {
 
 function guardImage(img) {
   if (!img?.matches?.("img[data-dm-brand-image]")) return false;
+
+  // Claim the DOM contract immediately, before the remote image has finished
+  // loading. The later beta7 polish must never replace the <img> node while a
+  // WebView/CDN failure is still pending.
+  img.dataset.dmBeta7Repaired = "true";
   if (!(img.complete && Number(img.naturalWidth) === 0)) return false;
+
   const parent = img.parentElement;
   if (!parent) return false;
-  img.dataset.dmBeta7Repaired = "true";
   img.dataset.dmBeta7Broken = "true";
   img.style.setProperty("display", "none", "important");
   if (!parent.querySelector(".dm-beta7-brand-guard-fallback"))
@@ -32,14 +37,38 @@ function guardImage(img) {
   return true;
 }
 
+function guardAll() {
+  doc?.querySelectorAll?.("img[data-dm-brand-image]").forEach(guardImage);
+}
+
 function scan() {
   state.frame = 0;
-  doc?.querySelectorAll?.("img[data-dm-brand-image]").forEach(guardImage);
+  installVehicleOwner();
+  guardAll();
 }
 
 function schedule() {
   if (state.frame) return;
   state.frame = root.requestAnimationFrame?.(scan) || root.setTimeout?.(scan, 0) || 0;
+}
+
+function installVehicleOwner() {
+  const current = root.dmRenderVehicleSelector;
+  if (typeof current !== "function" || current.__dmBeta7BrandContractOwner) return false;
+
+  function ownedVehicleSelector(...args) {
+    const result = current.apply(this, args);
+    // Protect newly-created brand nodes synchronously. beta7-regression wraps
+    // this same renderer and schedules its polish after the call returns.
+    guardAll();
+    return result;
+  }
+
+  Object.assign(ownedVehicleSelector, current);
+  ownedVehicleSelector.__dmBeta7BrandContractOwner = true;
+  ownedVehicleSelector.__dmPrevious = current;
+  root.dmRenderVehicleSelector = ownedVehicleSelector;
+  return true;
 }
 
 function installStyles() {
@@ -55,14 +84,19 @@ export function installBeta7BrandGuardSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
+  installVehicleOwner();
   doc.addEventListener("error", (event) => {
     if (event.target?.matches?.("img[data-dm-brand-image]")) {
       guardImage(event.target);
       schedule();
     }
   }, true);
-  for (const name of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "dashboardmodern:states-ready"])
-    root.addEventListener?.(name, schedule);
+  for (const name of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"])
+    root.addEventListener?.(name, () => {
+      installVehicleOwner();
+      schedule();
+    });
+  root.addEventListener?.("dashboardmodern:states-ready", schedule);
   doc.addEventListener("click", (event) => {
     if (event.target?.closest?.('[data-brand-preview],.tab[data-tab="ev"],.ed-tab[data-tab="sez2"]'))
       root.setTimeout?.(schedule, 0);
