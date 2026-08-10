@@ -24,6 +24,17 @@ test("broken remote car logos keep their image contract and get an inline fallba
   assert.doesNotMatch(source, /MutationObserver|setInterval\s*\(/);
 });
 
+test("brand contract is claimed before load failure and after every vehicle render", async () => {
+  const source = await readFile(guardUrl, "utf8");
+  const claimed = source.indexOf('img.dataset.dmBeta7Repaired = "true"');
+  const failedCheck = source.indexOf("img.complete && Number(img.naturalWidth) === 0");
+  assert.ok(claimed >= 0);
+  assert.ok(failedCheck > claimed);
+  assert.match(source, /__dmBeta7BrandContractOwner/);
+  assert.match(source, /function ownedVehicleSelector/);
+  assert.match(source, /guardAll\(\);\n\s*return result;/);
+});
+
 test("beta7 final polish owns quick actions, climate and stable shutters", async () => {
   const source = await readFile(regressionsUrl, "utf8");
   assert.match(source, /polishQuickActionCards/);
