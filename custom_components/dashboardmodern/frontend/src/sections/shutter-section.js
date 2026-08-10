@@ -1,4 +1,4 @@
-import { allStates, clean, dashboardStore, doc, installStyle, root, t } from "./shared.js";
+import { allStates, clean, dashboardStore, doc, installStyle, root, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SHUTTER_SECTION__";
 const state = (root[KEY] ||= {
@@ -122,9 +122,6 @@ async function callCoverService(entity, service) {
   scheduleShutterSync();
   try {
     await root.dmCallHaService?.("cover", service, { entity_id: entity });
-    // The RPC result only confirms that Home Assistant accepted the command.
-    // Keep the action busy until the actual cover state changes. This bounded
-    // timeout is only a safety net for a lost state event; it is not polling.
     pending.timeout = root.setTimeout?.(() => {
       if (state.busy.get(entity) !== pending) return;
       state.busy.delete(entity);
@@ -287,6 +284,14 @@ export function scheduleShutterSync() {
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
 }
 
+function installShutterWrapper() {
+  return wrapFunction(
+    "renderTapparelle",
+    "__dmBeta9ShutterPagePolish",
+    () => root.setTimeout?.(scheduleShutterSync, 0),
+  );
+}
+
 function subscribeStore() {
   const store = dashboardStore();
   if (state.storeUnsubscribe || !store?.subscribe) return;
@@ -317,9 +322,6 @@ function installStyles() {
       .dm-shutter-actions button[data-shutter-service="stop_cover"]{background:var(--ha-card-background,var(--card-bg,#fff))!important}
       .dm-shutter-actions button[data-shutter-service="close_cover"]{background:var(--accent-color,var(--accent,#0ea5e9))!important;color:#fff!important}
       .dm-shutter-actions button:disabled{cursor:wait!important;opacity:.65!important}
-
-      /* beta9 page visual language: compact sculpted cards, neutral window
-         artwork and green/blue controls matching the rest of DashboardModern. */
       html body #page-tapparelle[data-dm-shutter-design="beta9"]{max-width:1180px!important;margin-inline:auto!important}
       html body #page-tapparelle[data-dm-shutter-design="beta9"] .dm-beta9-shutter-master{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;max-width:760px!important;margin:0 auto 20px!important;padding:9px!important;border:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;border-radius:20px!important;background:var(--card-background-color,var(--card-bg,#fff))!important;box-shadow:var(--shadow-sculpted,0 5px 18px rgba(15,23,42,.08))!important}
       html body #page-tapparelle[data-dm-shutter-design="beta9"] .dm-beta9-shutter-master-button{min-height:48px!important;margin:0!important;border:0!important;border-radius:14px!important;font-weight:900!important;box-shadow:none!important;color:#fff!important}
@@ -337,7 +339,6 @@ function installStyles() {
       html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-shutter::before{height:8px!important;background:linear-gradient(180deg,#fff,#dbe4ec)!important}.tapp-card.dm-beta9-shutter-card .tapp-shutter::after{height:5px!important;background:#94a3b8!important}
       html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-pos{font-size:13px!important;font-weight:850!important;color:var(--secondary-text-color,#64748b)!important}
       html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-ctl{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}.tapp-card.dm-beta9-shutter-card .tapp-btn{height:42px!important;border-radius:12px!important;background:var(--secondary-background-color,#eef3f8)!important;color:var(--primary-text-color,#0f172a)!important;border:1px solid var(--divider-color,#dbe4ee)!important;box-shadow:none!important;font-size:12px!important;font-weight:850!important}.tapp-card.dm-beta9-shutter-card .tapp-btn:first-child{background:color-mix(in srgb,#10b981 12%,#fff)!important;color:#047857!important;border-color:color-mix(in srgb,#10b981 28%,#dbe4ee)!important}.tapp-card.dm-beta9-shutter-card .tapp-btn:last-child{background:color-mix(in srgb,#0ea5e9 12%,#fff)!important;color:#0369a1!important;border-color:color-mix(in srgb,#0ea5e9 28%,#dbe4ee)!important}
-
       @media(max-width:640px){
         .dm-shutter-popup{align-items:center!important;justify-content:center!important;padding:14px 12px!important}
         .dm-shutter-popup-card{width:calc(100% - 4px)!important;max-width:560px!important;max-height:84dvh!important;border-radius:22px!important}
@@ -359,11 +360,13 @@ function installStyles() {
 export function installShutterSection() {
   if (!doc) return;
   installStyles();
+  installShutterWrapper();
   subscribeStore();
   if (!state.installed) {
     state.installed = true;
     for (const eventName of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
       root.addEventListener?.(eventName, () => {
+        installShutterWrapper();
         subscribeStore();
         scheduleShutterSync();
       });
