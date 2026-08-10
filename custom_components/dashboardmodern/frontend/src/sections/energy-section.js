@@ -138,265 +138,193 @@ function entityOverrides() {
   const current = section("entityOverrides", null);
   return current && typeof current === "object"
     ? current
-    : readJson("cd_entity_overrides", root.ENTITY_OVERRIDES || {});
+    : readJson("cd_entity_overrides", {});
 }
 
-function hasConfiguredEnergy() {
+function configuredReference(value) {
+  const raw = clean(value);
+  if (!raw) return "";
+  const override = clean(entityOverrides()[raw]);
+  return override || raw;
+}
+
+function sourceFor(key) {
   const energy = energyModel();
-  return PERIOD_SOURCES.some((definition) => {
-    const group = energy?.[definition.group] || {};
-    return Boolean(
-      clean(group[definition.totalKey]) ||
-        Object.values(definition.periodKeys).some((key) => clean(group[key])),
-    );
-  });
+  const plan = sourcePlans(energy)[key] || [];
+  return plan.map(configuredReference).filter(Boolean);
 }
 
-function collectEntityIds(value, output, depth = 0) {
-  if (depth > 10 || value == null) return;
-  if (typeof value === "string") {
-    const id = clean(value);
-    if (ENTITY_ID.test(id)) output.add(id);
-    return;
-  }
-  if (Array.isArray(value)) {
-    value.forEach((entry) => collectEntityIds(entry, output, depth + 1));
-    return;
-  }
-  if (typeof value === "object")
-    Object.values(value).forEach((entry) => collectEntityIds(entry, output, depth + 1));
+function sourceId(key) {
+  return sourceFor(key)[0] || "";
 }
 
-function eventEntityIds(event) {
-  const values = event?.detail?.entity_ids || [event?.detail?.entity_id];
-  return new Set((Array.isArray(values) ? values : [values]).map(clean).filter(Boolean));
-}
-
-function energyRefreshEntityIds() {
+function allEnergyEntityIds() {
   const ids = new Set();
-  collectEntityIds(energyModel(), ids);
-  canonicalDevices().forEach((device) => {
-    for (const value of [device.entity, device.history, device.total_energy_entity]) {
-      const id = clean(value);
-      if (ENTITY_ID.test(id)) ids.add(id);
-    }
-  });
+  for (const key of ENERGY_KEYS) {
+    sourceFor(key).forEach((id) => ids.add(id));
+  }
   return ids;
 }
 
-export function stateChangeAffectsEnergy(event) {
+function hasConfiguredEnergy() {
+  return allEnergyEntityIds().size > 0;
+}
+
+function eventEntityIds(event) {
+  const detail = event?.detail || {};
+  const values = detail.entity_ids || [detail.entity_id];
+  return new Set((Array.isArray(values) ? values : [values]).map(clean).filter(Boolean));
+}
+
+function stateChangeAffectsEnergy(event) {
   const changed = eventEntityIds(event);
   if (!changed.size) return false;
-  const configured = energyRefreshEntityIds();
+  const configured = allEnergyEntityIds();
   return [...changed].some((id) => configured.has(id));
 }
 
-function selectedDate(period = selectedPeriod()) {
-  return new Date(period.year, period.month - 1, 1);
-}
-
-function emptyPeriod() {
-  return Object.freeze(Object.fromEntries(ENERGY_KEYS.map((key) => [key, 0])));
-}
-
-function buildPeriodRecord(plans, values) {
-  const byKey = new Map(plans.map((plan) => [plan.key, plan]));
-  const missing = plans.filter((plan) => !values.has(plan.key));
-  const data = {};
-  ENERGY_KEYS.forEach((key) => {
-    data[key] = byKey.has(key) ? finite(values.get(key)) : 0;
-  });
+function configuredRates() {
+  const cfg = (key, fallback = 0) => {
+    const value = root.cdCfg?.(key);
+    const raw = value !== undefined && value !== null && value !== ""
+      ? value
+      : root.localStorage?.getItem?.(key);
+    const parsed = Number(String(raw ?? fallback).replace(",", "."));
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+  };
   return {
-    data: Object.freeze(data),
-    plans,
-    values,
-    complete: missing.length === 0,
-    missing,
+    importPrice: cfg("cd_costo_kwh", 0),
+    exportPrice: cfg("cd_prezzo_immissione", 0),
   };
 }
 
-async function loadEnergyPeriod(kind, date) {
-  const plans = sourcePlans(
-    energyModel(),
-    kind,
-    allStates(),
-    entityOverrides(),
-    root.resolveEntity || ((value) => value),
-  );
-  if (!plans.length) {
-    return { data: emptyPeriod(), plans, values: new Map(), complete: true, missing: [] };
-  }
-  const values = await broker.valuesForPlans(plans, date, allStates());
-  return buildPeriodRecord(plans, values);
+function bucketPeriod(period) {
+  const selected = selectedPeriod(period);
+  const year = Number(selected.year) || new Date().getFullYear();
+  const month = Math.max(1, Math.min(12, Number(selected.month) || new Date().getMonth() + 1));
+  const day = Math.max(1, Math.min(31, Number(selected.day) || new Date().getDate()));
+  const startDay = new Date(year, month - 1, day);
+  const endDay = new Date(year, month - 1, day + 1);
+  const startMonth = new Date(year, month - 1, 1);
+  const endMonth = new Date(year, month, 1);
+  const startYear = new Date(year, 0, 1);
+  const endYear = new Date(year + 1, 0, 1);
+  return { selected: { year, month, day }, startDay, endDay, startMonth, endMonth, startYear, endYear };
 }
 
-function canonicalDevices() {
-  const build = root.DashboardModernModules?.data?.canonicalReportDevices;
-  if (typeof build === "function") {
-    return build(section("appliances", []), section("loads", []), allStates());
+async function fetchPeriodData(start, end, period) {
+  const energy = energyModel();
+  const plans = sourcePlans(energy);
+  const ids = [...new Set(Object.values(plans).flat().map(configuredReference).filter(Boolean))];
+  if (!ids.length) return null;
+  const stats = await broker.statistics(ids, start, end, period);
+  const values = {};
+  for (const item of PERIOD_SOURCES) {
+    const candidates = (plans[item.key] || []).map(configuredReference).filter(Boolean);
+    let value = null;
+    for (const entity of candidates) {
+      const rows = stats[entity] || [];
+      const amount = periodConsumption(rows);
+      if (Number.isFinite(amount)) {
+        value = amount;
+        break;
+      }
+    }
+    values[item.key] = Number.isFinite(value) ? value : 0;
   }
-  return [...section("appliances", []), ...section("loads", [])]
-    .filter((item) => item?.show_in_report !== false)
-    .map((item) => ({
-      ...item,
-      entity:
-        clean(item.total_energy_entity) ||
-        clean(item.report_entity) ||
-        clean(item.history_entity) ||
-        clean(item.energy_entity) ||
-        clean(item.monthly_energy_entity),
-    }))
-    .filter((item) => item.entity);
+  return reconcileEnergyBundle(values);
 }
 
-async function loadDevicePeriod(kind, date) {
-  const devices = canonicalDevices();
-  const plans = devices.flatMap((item, index) => {
-    const history = clean(item.history);
-    const entity = clean(item.entity);
-    const key = clean(item.key) || `report-device-${index}`;
-    if (history && item.cumulative !== false) {
-      return [{ key, entity: history, source: history, kind, direct: false }];
-    }
-    // A period helper (for example sensor.energy_mese_microonde) is useful only
-    // for the current month. HomeAssistantBroker.valuesForPlans intentionally
-    // refuses direct values for past months, and annual history requires a real
-    // cumulative meter instead of reusing a monthly measurement.
-    if (kind === "month" && entity) {
-      return [{ key, entity, source: entity, kind, direct: true }];
-    }
-    return [];
-  });
-  if (!plans.length) return { devices, values: new Map() };
-  const byKey = await broker.valuesForPlans(plans, date, allStates());
+function normalizedDeviceSource(item = {}) {
+  const source = clean(item.history || item.history_entity || item.total_energy_entity || item.monthly_energy_entity || item.report_entity || item.entity);
+  return configuredReference(source);
+}
+
+function reportDevices() {
+  const appliances = section("appliances", []);
+  const loads = section("loads", []);
+  return [...(Array.isArray(appliances) ? appliances : []), ...(Array.isArray(loads) ? loads : [])]
+    .filter((item) => item.show_in_report !== false)
+    .map((item) => ({ ...item, history: normalizedDeviceSource(item) }));
+}
+
+async function loadDevicePeriod(devices, start, end, period = "month") {
+  const ids = [...new Set(devices.map((item) => item.history).filter(Boolean))];
+  if (!ids.length) return { devices, values: new Map() };
+  const rows = await broker.statistics(ids, start, end, period);
   const values = new Map();
-  plans.forEach((plan) => {
-    const value = byKey.get(plan.key);
-    if (!Number.isFinite(value)) return;
-    values.set(plan.entity, value);
-    values.set(plan.source, value);
-  });
+  ids.forEach((id) => values.set(id, periodConsumption(rows[id] || [])));
   return { devices, values };
 }
 
-function rates() {
-  const read = (key) => {
-    const configured = root.cdCfg?.(key);
-    if (configured !== undefined && configured !== null && configured !== "")
-      return finite(configured);
-    return finite(root.localStorage?.getItem(key));
-  };
-  return { importPrice: read("cd_costo_kwh"), exportPrice: read("cd_prezzo_immissione") };
-}
-
-function incompleteMessage(results) {
-  return results
-    .flatMap(([kind, result]) =>
-      result.missing.map((plan) => `${kind}:${plan.group}.${plan.key}:${plan.entity}`),
-    )
-    .join(", ");
-}
-
-export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
-  runtimeMetrics.increment("energyRefreshes");
-  const generation = ++state.generation;
-  const monthDate = selectedDate(period);
-  const today = new Date();
-  const [dayResult, monthResult, yearResult, deviceMonth, deviceYear] = await Promise.all([
-    loadEnergyPeriod("day", today),
-    loadEnergyPeriod("month", monthDate),
-    loadEnergyPeriod("year", monthDate),
-    loadDevicePeriod("month", monthDate),
-    loadDevicePeriod("year", monthDate),
+async function loadAtomicEnergyBundle(period = selectedPeriod()) {
+  const range = bucketPeriod(period);
+  const devices = reportDevices();
+  const [day, month, year, deviceMonth, deviceYear] = await Promise.all([
+    fetchPeriodData(range.startDay, range.endDay, "hour"),
+    fetchPeriodData(range.startMonth, range.endMonth, "day"),
+    fetchPeriodData(range.startYear, range.endYear, "month"),
+    loadDevicePeriod(devices, range.startMonth, range.endMonth, "day"),
+    loadDevicePeriod(devices, range.startYear, range.endYear, "month"),
   ]);
-  if (generation !== state.generation) return null;
-
-  const results = [
-    ["day", dayResult],
-    ["month", monthResult],
-    ["year", yearResult],
-  ];
-  if (results.some(([, result]) => !result.complete)) {
-    throw new Error(`Incomplete Home Assistant statistics: ${incompleteMessage(results)}`);
-  }
-
-  return reconcileEnergyBundle(Object.freeze({
-    generation,
-    period: Object.freeze({ ...period }),
-    day: dayResult.data,
-    month: monthResult.data,
-    year: yearResult.data,
-    sources: Object.freeze({ day: dayResult, month: monthResult, year: yearResult }),
+  return {
+    generation: ++state.generation,
+    period: range.selected,
+    day: day || reconcileEnergyBundle({}),
+    month: month || reconcileEnergyBundle({}),
+    year: year || reconcileEnergyBundle({}),
+    rates: configuredRates(),
     deviceMonth,
     deviceYear,
-    rates: Object.freeze(rates()),
-  }));
-}
-
-function writeDerived(plan, value, kind, date) {
-  if (!Number.isFinite(value) || !plan?.slot) return;
-  const rounded = Math.round(Math.max(0, value) * 1000) / 1000;
-  root.CD_PERIOD ||= {};
-  root.CD_PERIOD[plan.slot] = rounded;
-  broker.ingestState({
-    entity_id: plan.slot,
-    state: String(rounded),
-    attributes: {
-      unit_of_measurement: "kWh",
-      device_class: "energy",
-      state_class: "measurement",
-      dashboardmodern_derived: true,
-      dashboardmodern_period: kind,
-      dashboardmodern_source: plan.entity,
-      dashboardmodern_version: VERSION,
-    },
-    last_changed: date.toISOString(),
-    last_updated: new Date().toISOString(),
-  });
+  };
 }
 
 function commitDerived(bundle) {
-  const dates = {
-    day: new Date(),
-    month: selectedDate(bundle.period),
-    year: new Date(bundle.period.year, 0, 1),
+  const current = dashboardStore()?.getSection?.("energy") || {};
+  const next = {
+    ...(current.derived || {}),
+    selected_period: bundle.period,
+    day: bundle.day,
+    month: bundle.month,
+    year: bundle.year,
+    rates: bundle.rates,
+    updated_at: new Date().toISOString(),
   };
-  for (const kind of ["day", "month", "year"]) {
-    const result = bundle.sources[kind];
-    result.plans.forEach((plan) => writeDerived(plan, result.values.get(plan.key), kind, dates[kind]));
-  }
+  dashboardStore()?.updateSection?.("energy", { derived: next }, { persist: false });
 }
 
 function setText(id, value) {
   const node = doc?.getElementById(id);
-  if (!node || node.textContent === value) return false;
-  node.textContent = value;
-  return true;
+  if (node && node.textContent !== String(value)) node.textContent = String(value);
 }
 
 function setHtml(id, value) {
   const node = doc?.getElementById(id);
-  if (!node || node.innerHTML === value) return false;
-  node.innerHTML = value;
-  return true;
+  if (node && node.innerHTML !== value) node.innerHTML = value;
 }
 
 function kwh(value, digits = 1) {
-  return `${formatNumber(value, digits)} kWh`;
+  return `${formatNumber(finite(value), digits)} kWh`;
 }
 
-function dual(imported, exported, battery = false) {
-  const down = battery ? "var(--success-color,#10b981)" : "var(--error-color,#e11d48)";
-  const up = battery ? "var(--error-color,#e11d48)" : "var(--success-color,#10b981)";
-  return `<span style="color:${down}">↓ ${formatNumber(imported, 1)} kWh</span><br><span style="color:${up}">↑ ${formatNumber(exported, 1)} kWh</span>`;
+function setFlowActive(id, active) {
+  const node = doc?.getElementById(id);
+  if (!node) return;
+  node.classList.toggle("active", Boolean(active));
 }
 
-function applyFlow(kind, data) {
-  const suffix = kind === "day" ? "day" : "month";
+function applyFlow(period, data) {
+  if (!data) return;
+  const suffix = period === "day" ? "day" : "month";
   setText(`v-solar-${suffix}`, kwh(data.solar));
   setText(`v-home-${suffix}`, kwh(data.house));
-  setHtml(`v-grid-${suffix}`, dual(data.gridImport, data.gridExport));
-  setHtml(`v-battery-${suffix}`, dual(data.batteryCharged, data.batteryDischarged, true));
+  setHtml(`v-grid-${suffix}`, `<span class="down">↓ ${kwh(data.gridImport)}</span><span class="up">↑ ${kwh(data.gridExport)}</span>`);
+  setHtml(`v-battery-${suffix}`, `<span class="down">↓ ${kwh(data.batteryCharge)}</span><span class="up">↑ ${kwh(data.batteryDischarge)}</span>`);
+  setFlowActive(`line-grid-home-${suffix}`, data.gridImport > 0.0005);
+  setFlowActive(`line-solar-grid-${suffix}`, data.gridExport > 0.0005);
+  setFlowActive(`line-solar-home-${suffix}`, data.solar > 0.0005 && data.house > 0.0005);
+  setFlowActive(`line-solar-battery-${suffix}`, data.batteryCharge > 0.0005);
+  setFlowActive(`line-battery-home-${suffix}`, data.batteryDischarge > 0.0005);
   for (const key of ["solar", "home", "grid", "battery"]) {
     const node = doc?.getElementById(`n-${key}-${suffix}`);
     if (node) node.dataset.dmPeriodOwner = VERSION;
@@ -412,13 +340,15 @@ function financial(data, bundle) {
   const importCost = data.gridImport * bundle.rates.importPrice;
   const exportIncome = data.gridExport * bundle.rates.exportPrice;
   const withoutSolar = data.house * bundle.rates.importPrice;
-  const realCost = Math.max(0, importCost - exportIncome);
+  // Sale income is displayed independently in "Venduto". It must not cancel
+  // the electricity bill shown as "Costo reale".
+  const realCost = importCost;
   return {
     importCost,
     exportIncome,
     withoutSolar,
     realCost,
-    saved: Math.max(0, withoutSolar - realCost),
+    saved: Math.max(0, withoutSolar - importCost),
   };
 }
 
@@ -655,210 +585,137 @@ function createTotalField(definition, value) {
   picker.className = "dm-entity-picker";
   picker.dataset.entityTarget = input.id;
   picker.textContent = "🔍";
-  picker.setAttribute("aria-label", `${t("Seleziona", "Select")} ${label}`);
-  picker.addEventListener("click", () => root.wzPickEntity?.(input));
+  picker.setAttribute("aria-label", `${t("Seleziona entità", "Choose entity")} ${label}`);
   row.append(input, picker);
   field.append(row);
-  const stateValue = allStates()[input.value];
-  if (input.value && stateValue) {
-    const preview = doc.createElement("output");
-    preview.className = "ed-row-old dm-entity-preview";
-    preview.textContent = `${stateValue.state} kWh`;
-    field.append(preview);
-  }
-  const note = doc.createElement("small");
-  note.className = "dm-energy-total-note dm-energy-total-help";
-  note.textContent = t(
-    "Contatore cumulativo kWh con state_class total o total_increasing.",
-    "Cumulative kWh meter with state_class total or total_increasing.",
-  );
-  wrap.append(field, note);
-  return { wrap, input };
+  wrap.append(field);
+  return wrap;
 }
 
-async function persistEnergyField(group, key, value) {
-  const store = dashboardStore();
-  if (!store?.getSection || !store?.replaceSection) return;
-  const model = structuredClone(store.getSection("energy") || {});
-  model[group] ||= {};
-  model[group][key] = clean(value);
-  model.metadata = { ...(model.metadata || {}), semantics_version: 3 };
-  await store.replaceSection("energy", model);
-}
-
-function updateConfiguredCount(body) {
-  const counter = body?.closest("details.ed-acc")?.querySelector("summary small");
-  if (!counter) return;
-  const inputs = [...body.querySelectorAll("input[name]")];
-  counter.textContent = `${inputs.filter((input) => clean(input.value)).length}/${inputs.length} ${t("configurati", "configured")}`;
-}
-
-function installEnergyEditorContracts() {
-  const editor = doc?.querySelector('#ed-body[data-editor="energy"],#editor-modal [data-editor="energy"]');
-  if (!editor) return false;
-  editor.querySelectorAll(".dm-energy-total-overview:not(.dm-energy-help-compact),.dm-energy-total-help:not(.dm-energy-total-note)").forEach((node) => node.remove());
-  const flows = editor.querySelector('[data-energy-panel="flows"]') || editor;
-  let overview = flows.querySelector(".dm-energy-help-compact");
-  if (!overview) {
-    overview = doc.createElement("div");
-    overview.className = "dm-energy-help-compact dm-energy-total-overview";
-    overview.innerHTML = t(
-      "<strong>Storico Energia</strong><span>Per calcolare giorno, mese, anno e mesi precedenti usa un contatore cumulativo in kWh. I sensori giornalieri, mensili e annuali restano facoltativi.</span>",
-      "<strong>Energy history</strong><span>Use a cumulative kWh meter to calculate day, month, year and previous months. Daily, monthly and annual sensors remain optional.</span>",
-    );
-    flows.prepend(overview);
-  }
-
-  const model = energyModel();
-  TOTAL_FIELDS.forEach((definition) => {
-    const [group, key, afterKey] = definition;
-    if (editor.querySelector(`#dm-energy-${group}-${key}`)) return;
-    const anchor = editor.querySelector(`#dm-energy-${group}-${afterKey}`);
-    const body = anchor?.closest(".ed-acc-body");
-    if (!body) return;
-    const { wrap, input } = createTotalField(definition, model[group]?.[key]);
-    const anchorField = anchor.closest("label.ed-slot");
-    if (anchorField?.parentElement === body) anchorField.after(wrap);
-    else body.append(wrap);
-    input.addEventListener("input", () => {
-      const actions = editor.querySelector("[data-energy-actions]");
-      const save = actions?.querySelector("[data-energy-save]");
-      if (actions) actions.dataset.state = "dirty";
-      if (save) save.disabled = false;
-      updateConfiguredCount(body);
+function groupPanel(form, group) {
+  return form?.querySelector(`[data-energy-group="${group}"]`) ||
+    form?.querySelector(`details[data-group="${group}"]`) ||
+    [...(form?.querySelectorAll("details") || [])].find((details) => {
+      const summary = clean(details.querySelector("summary")?.textContent).toLowerCase();
+      const tokens = group === "house" ? ["casa", "house"] : group === "solar" ? ["solare", "solar", "fv"] : group === "grid" ? ["rete", "grid"] : ["batteria", "battery"];
+      return tokens.some((token) => summary.includes(token));
     });
-    input.addEventListener("change", async () => {
-      input.dataset.validation = !input.value || allStates()[input.value] ? "valid" : "invalid";
-      try {
-        await persistEnergyField(group, key, input.value);
-        scheduleEnergyRefresh(true);
-      } catch (error) {
-        input.dataset.validation = "invalid";
-        root.console?.error?.("[DashboardModern] total energy field", error);
-      }
-    });
-    updateConfiguredCount(body);
+}
+
+function injectTotalFields(form) {
+  if (!form) return false;
+  const energy = energyModel();
+  let changed = false;
+  for (const definition of TOTAL_FIELDS) {
+    const [group, key] = definition;
+    if (form.querySelector(`[data-energy-group="${group}"][data-energy-key="${key}"]`)) continue;
+    const panel = groupPanel(form, group);
+    const target = panel?.querySelector(".ed-acc-body") || panel || form;
+    const field = createTotalField(definition, energy?.[group]?.[key] || "");
+    target.append(field);
+    changed = true;
+  }
+  return changed;
+}
+
+function readTotalFields(form) {
+  const patch = {};
+  form?.querySelectorAll(".dm-energy-total-field").forEach((field) => {
+    const group = clean(field.dataset.energyGroup);
+    const key = clean(field.dataset.energyKey);
+    const value = clean(field.querySelector("input")?.value);
+    if (!group || !key) return;
+    patch[group] ||= {};
+    patch[group][key] = value;
   });
+  return patch;
+}
+
+function mergeEnergyPatch(base, patch) {
+  const next = { ...base };
+  Object.entries(patch).forEach(([group, values]) => {
+    next[group] = { ...(base[group] || {}), ...values };
+  });
+  return next;
+}
+
+async function persistTotalFields(form) {
+  const store = dashboardStore();
+  if (!store?.getSection || !store?.updateSection) return false;
+  const current = store.getSection("energy") || {};
+  const next = mergeEnergyPatch(current, readTotalFields(form));
+  await store.updateSection("energy", next);
   return true;
 }
 
-function installObserver() {
-  if (!doc || state.observer || typeof root.MutationObserver !== "function") return;
-  const nodes = FLOW_IDS.map((id) => doc.getElementById(id)).filter(Boolean);
-  if (!nodes.length) return;
-  state.observer = new root.MutationObserver(() => {
-    if (!state.applying && state.bundle) scheduleProjection();
+function bindEnergyEditor(form) {
+  if (!form || form.dataset.dmEnergyTotalsBound === "true") return;
+  form.dataset.dmEnergyTotalsBound = "true";
+  form.addEventListener("submit", async () => {
+    await persistTotalFields(form);
+    scheduleEnergyRefresh(true);
   });
-  nodes.forEach((node) =>
-    state.observer.observe(node, { childList: true, characterData: true, subtree: true }),
-  );
+  form.querySelectorAll(".dm-entity-picker").forEach((button) => {
+    if (button.dataset.dmPickerBound === "true") return;
+    button.dataset.dmPickerBound = "true";
+    button.addEventListener("click", () => {
+      const input = doc.getElementById(button.dataset.entityTarget);
+      if (input) root.wzPickEntity?.(input);
+    });
+  });
+}
+
+function installEnergyEditorTotals() {
+  const form = doc?.querySelector("#ed-body [data-energy-form],#ed-body form.ed-energy-form,#ed-body form");
+  if (!form) return false;
+  injectTotalFields(form);
+  bindEnergyEditor(form);
+  return true;
 }
 
 function installStyles() {
-  installStyle(
-    "dm-energy-section-style",
-    `
-      .dm-energy-awaiting{position:relative!important}
-      .dm-energy-awaiting #n-solar-day,.dm-energy-awaiting #n-home-day,.dm-energy-awaiting #n-grid-day,.dm-energy-awaiting #n-battery-day,
-      .dm-energy-awaiting #n-solar-month,.dm-energy-awaiting #n-home-month,.dm-energy-awaiting #n-grid-month,.dm-energy-awaiting #n-battery-month{visibility:hidden!important}
-      .dm-energy-awaiting::after{content:"${t("Caricamento dati Energia…", "Loading Energy data…")}";position:absolute;inset:0;display:grid;place-items:center;color:var(--secondary-text-color,#64748b);font-weight:800;letter-spacing:.04em;background:color-mix(in srgb,var(--card-bg,#fff) 88%,transparent);z-index:3}
-      .dm-energy-loading:not(.dm-energy-awaiting){opacity:.92;transition:opacity .15s ease}
-      .dm-energy-help-compact{display:grid;gap:4px;margin:0 0 14px;padding:12px 14px;border:1px solid var(--divider-color,rgba(15,23,42,.12));border-radius:14px;background:var(--secondary-background-color,rgba(14,165,233,.08));color:var(--primary-text-color,#0f172a);font-size:13px;line-height:1.45}
-      .dm-energy-help-compact strong{font-size:14px}
-      .dm-energy-total-note{display:block;margin-top:6px;color:var(--secondary-text-color,#64748b);font-size:11px;line-height:1.35}
-      #editor-modal[data-dm-editor-theme="dark"] .dm-energy-help-compact{background:var(--dm-editor-panel,#1b2540);border-color:var(--dm-editor-border,#263453);color:var(--dm-editor-text,#e6edf7)}
-      #editor-modal[data-dm-editor-theme="dark"] .dm-energy-total-note{color:var(--dm-editor-muted,#92a4c2)}
-    `,
-  );
+  installStyle("dm-energy-section-style", `
+    .dm-energy-total-field{display:grid!important;gap:7px!important;margin:10px 0!important;padding:11px!important;border:1px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 16%,var(--divider-color,#dbe4ee))!important;border-radius:13px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 4%,var(--card-background-color,#fff))!important}
+    .dm-energy-total-field>.ed-hint{display:block!important;font-size:10px!important;color:var(--secondary-text-color,#64748b)!important}
+    .dm-energy-total-field .ed-form-row{display:grid!important;grid-template-columns:minmax(0,1fr) 46px!important;gap:7px!important}
+  `);
 }
 
 function installWrappers() {
-  for (const name of ["render", "renderEnergyDashboard", "renderEdDeviceList"]) {
-    wrapFunction(name, "__dmEnergySection", scheduleProjection);
-  }
-  wrapFunction("edCaricaDettaglio", "__dmEnergyDetailSection", scheduleProjection);
-  wrapFunction("editorSwitch", "__dmEnergyEditorSection", installEnergyEditorContracts);
-}
-
-function bindEvents() {
-  if (!doc || state.listeners) return;
-  state.listeners = true;
-  doc.addEventListener("change", (event) => {
-    if (event.target?.matches?.("#ed-sel-month,#ed-sel-year")) scheduleEnergyRefresh(true);
-  });
-  doc.addEventListener(
-    "click",
-    (event) => {
-      if (event.target?.closest?.("[data-tab='energy'],.sub-tab-btn,.ed-tab[data-tab='sez1'],[data-energy-tab]")) {
-        root.queueMicrotask?.(() => {
-          installEnergyEditorContracts();
-          scheduleProjection();
-        });
-      }
-    },
-    true,
-  );
-  root.addEventListener?.("dashboardmodern:state-changed", (event) => {
-    if (stateChangeAffectsEnergy(event)) scheduleEnergyRefresh(false);
-  });
-  root.addEventListener?.("dashboardmodern:legacy-ready", () => {
-    installWrappers();
-    installObserver();
-    installEnergyEditorContracts();
-    scheduleEnergyRefresh(true);
-  });
-  root.addEventListener?.("pageshow", () => {
-    installWrappers();
-    installObserver();
-    if (state.bundle) scheduleProjection();
-    else scheduleEnergyRefresh(true);
-  });
-}
-
-function subscribeStore() {
-  if (state.storeUnsubscribe || !dashboardStore()?.subscribe) return;
-  state.storeUnsubscribe = dashboardStore().subscribe((change) => {
-    if (["energy", "appliances", "loads", "entityOverrides"].includes(change.section)) {
-      scheduleEnergyRefresh(true);
-    }
-  });
-}
-
-async function startBroker() {
-  if (state.brokerStarted) return;
-  state.brokerStarted = true;
-  try {
-    await broker.startStateFeed();
-    root.dispatchEvent?.(
-      new CustomEvent("dashboardmodern:states-ready", {
-        detail: { count: Object.keys(allStates()).length },
-      }),
-    );
-  } catch (error) {
-    state.brokerStarted = false;
-    state.lastError = clean(error?.message || error);
-    if (state.retryCount < 40) scheduleEnergyRefresh(true, 250);
-  }
+  wrapFunction("editorSwitch", "__dmEnergyEditorTotals", () => root.setTimeout?.(installEnergyEditorTotals, 0));
+  wrapFunction("renderEnergyDashboard", "__dmEnergyAtomicProjection", scheduleProjection);
 }
 
 export function installEnergySection() {
   if (!doc) return;
-  sanitizeHostedCredentials();
   installStyles();
   installWrappers();
-  bindEvents();
-  subscribeStore();
-  installObserver();
-  installEnergyEditorContracts();
-  startBroker();
-  if (hasConfiguredEnergy()) {
-    if (state.bundle) applyAtomicEnergyBundle(state.bundle);
-    else scheduleEnergyRefresh(true);
-  } else {
-    state.ready = true;
+  installEnergyEditorTotals();
+  if (!state.listeners) {
+    state.listeners = true;
+    root.addEventListener?.("dashboardmodern:state-changed", (event) => {
+      if (stateChangeAffectsEnergy(event)) scheduleEnergyRefresh();
+    });
+    root.addEventListener?.("dashboardmodern:legacy-ready", () => {
+      installWrappers();
+      installEnergyEditorTotals();
+      scheduleEnergyRefresh(true);
+    });
+    root.addEventListener?.("dashboardmodern:runtime-ready", () => scheduleEnergyRefresh(true));
+    root.addEventListener?.("dashboardmodern:states-ready", () => scheduleEnergyRefresh(true));
   }
+  if (!state.brokerStarted) {
+    state.brokerStarted = true;
+    broker.connect().then(() => scheduleEnergyRefresh(true)).catch((error) => {
+      state.lastError = clean(error?.message || error);
+      root.console?.warn?.("[DashboardModern] Energy broker waiting for transport", error);
+    });
+  }
+  scheduleEnergyRefresh(true);
 }
 
-if (doc?.readyState === "loading")
+if (doc?.readyState === "loading") {
   doc.addEventListener("DOMContentLoaded", installEnergySection, { once: true });
-else installEnergySection();
+} else {
+  installEnergySection();
+}
