@@ -49,18 +49,49 @@ function nodeVisible(node) {
   return true;
 }
 
+function rememberConnectorVisibility(node) {
+  if (!node || node.dataset.dmFlowVisibilityCaptured === "true") return;
+  node.dataset.dmFlowVisibilityCaptured = "true";
+  node.dataset.dmFlowWasHidden = node.hidden ? "true" : "false";
+  node.dataset.dmFlowDisplay = node.style.getPropertyValue("display") || "";
+  node.dataset.dmFlowDisplayPriority = node.style.getPropertyPriority("display") || "";
+  node.dataset.dmFlowVisibility = node.style.getPropertyValue("visibility") || "";
+  node.dataset.dmFlowVisibilityPriority = node.style.getPropertyPriority("visibility") || "";
+}
+
+function restoreConnectorVisibility(node) {
+  if (!node || node.dataset.dmFlowVisibilityCaptured !== "true") return;
+  node.hidden = node.dataset.dmFlowWasHidden === "true";
+  const display = node.dataset.dmFlowDisplay || "";
+  const displayPriority = node.dataset.dmFlowDisplayPriority || "";
+  const visibility = node.dataset.dmFlowVisibility || "";
+  const visibilityPriority = node.dataset.dmFlowVisibilityPriority || "";
+  if (display) node.style.setProperty("display", display, displayPriority);
+  else node.style.removeProperty("display");
+  if (visibility) node.style.setProperty("visibility", visibility, visibilityPriority);
+  else node.style.removeProperty("visibility");
+  for (const key of [
+    "dmFlowVisibilityCaptured",
+    "dmFlowWasHidden",
+    "dmFlowDisplay",
+    "dmFlowDisplayPriority",
+    "dmFlowVisibility",
+    "dmFlowVisibilityPriority",
+  ]) delete node.dataset[key];
+}
+
 function exposeConnector(node, active) {
   if (!node) return;
   if (active) {
+    if (node.dataset.dmFlowForcedVisible !== "true") rememberConnectorVisibility(node);
     node.hidden = false;
-    node.removeAttribute?.("hidden");
     node.style.setProperty("display", "inline", "important");
     node.style.setProperty("visibility", "visible", "important");
+    node.dataset.dmFlowForcedVisible = "true";
   } else if (node.dataset.dmFlowForcedVisible === "true") {
-    node.style.removeProperty("display");
-    node.style.removeProperty("visibility");
+    restoreConnectorVisibility(node);
+    node.dataset.dmFlowForcedVisible = "false";
   }
-  node.dataset.dmFlowForcedVisible = active ? "true" : "false";
 }
 
 function colorNode(node, color, active) {
