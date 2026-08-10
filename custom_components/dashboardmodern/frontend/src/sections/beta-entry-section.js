@@ -8,7 +8,7 @@ import "./editor-polish-section.js";
 import "./beta4-mobile-polish-section.js";
 import "./beta6-feedback-section.js";
 
-// Keep only the two compatibility bridges that still belong at the entrypoint.
+// Keep only compatibility/layout bridges that belong at the entrypoint.
 // Quick-action icons are owned exclusively by beta6-feedback-section so editor
 // and Home cards cannot race against a second renderer anymore.
 if (typeof document !== "undefined") {
@@ -41,5 +41,43 @@ if (typeof document !== "undefined") {
       .map((selector) => `${selector}{display:block!important}`)
       .join("");
     document.head?.append(style);
+
+    // EV config: the real manufacturer mark belongs above the brand label. The
+    // old horizontal box let wide wordmarks overflow beneath the text on phones.
+    const evBrandStyle = document.createElement("style");
+    evBrandStyle.id = "dm-beta7-ev-brand-layout";
+    evBrandStyle.textContent = `
+      .dm-ev-appearance-grid .dm-brand-preview{
+        display:flex!important;
+        flex-direction:column!important;
+        align-items:flex-start!important;
+        justify-content:flex-start!important;
+        gap:5px!important;
+        min-height:82px!important;
+        padding:10px 12px!important;
+        overflow:hidden!important;
+      }
+      .dm-ev-appearance-grid .dm-brand-preview .dm-car-brand{
+        order:-1!important;
+        display:grid!important;
+        place-items:center start!important;
+        width:min(132px,100%)!important;
+        max-width:132px!important;
+        height:34px!important;
+        margin:0!important;
+      }
+      .dm-ev-appearance-grid .dm-brand-preview .dm-car-brand img{
+        display:block!important;
+        width:100%!important;
+        height:100%!important;
+        object-fit:contain!important;
+        object-position:left center!important;
+      }
+      .dm-ev-appearance-grid .dm-brand-preview b{display:block!important;line-height:1.1!important}
+      @media(hover:none){
+        .dm-visual-trigger:hover,.dm-icon-preview-button:hover,.dm-picker-option:hover{transform:none!important}
+      }
+    `;
+    document.head?.append(evBrandStyle);
   }
 }
