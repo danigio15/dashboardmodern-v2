@@ -4,7 +4,7 @@ const KEY = "__DASHBOARDMODERN_BETA7_BRAND_GUARD__";
 const state = (root[KEY] ||= { installed: false, frame: 0 });
 
 const INLINE_BRANDS = Object.freeze({
-  abarth: "<path d='M20 5h24l-3 9-9 4 6 5-4 12-8 5-8-5-4-12 6-5-9-4z' fill='none' stroke='currentColor' stroke-width='2.8'/><path d='M27 13l-5 8 6 1-4 8 11-11-7-1 4-5z' fill='currentColor'/>",
+  abarth: "<path d='M20 5h24l-3 9-9 4 6 5-8 5-8-5-4-12 6-5-9-4z' fill='none' stroke='currentColor' stroke-width='2.8'/><path d='M27 13l-5 8 6 1-4 8 11-11-7-1 4-5z' fill='currentColor'/>",
   "alfa-romeo": "<circle cx='32' cy='22' r='16' fill='none' stroke='currentColor' stroke-width='2.7'/><path d='M24 10v24M17 17h14' stroke='currentColor' stroke-width='2.3'/><path d='M38 11c-7 6-2 9-7 13 8 0 10 5 5 11 9-4 12-13 2-24z' fill='currentColor' opacity='.78'/>",
   byd: "<ellipse cx='32' cy='22' rx='25' ry='13' fill='none' stroke='currentColor' stroke-width='2.6'/><text x='32' y='27' text-anchor='middle' font-size='14' font-weight='900' font-family='system-ui'>BYD</text>",
   cupra: "<path d='M12 15l13 4 7 12 7-12 13-4-9 11 7 8-14-5-4 8-4-8-14 5 7-8z' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linejoin='round'/>",
@@ -41,15 +41,27 @@ function guardAll() {
   doc?.querySelectorAll?.("img[data-dm-brand-image]").forEach(guardImage);
 }
 
-function scan() {
-  state.frame = 0;
-  installVehicleOwner();
-  guardAll();
+function resetShutterSignature() {
+  const regression = root.__DASHBOARDMODERN_BETA7_REGRESSIONS__;
+  if (regression) regression.shutterSignature = "";
 }
 
-function schedule() {
-  if (state.frame) return;
-  state.frame = root.requestAnimationFrame?.(scan) || root.setTimeout?.(scan, 0) || 0;
+function installShutterEditOwner() {
+  const current = root.edTappAdd;
+  if (typeof current !== "function" || current.__dmBeta7ShutterConfigOwner) return false;
+
+  function configAwareShutterSave(...args) {
+    // A saved room/name/entity change must reach the existing beta7 stable
+    // renderer even when Home Assistant state and position did not change.
+    resetShutterSignature();
+    return current.apply(this, args);
+  }
+
+  Object.assign(configAwareShutterSave, current);
+  configAwareShutterSave.__dmBeta7ShutterConfigOwner = true;
+  configAwareShutterSave.__dmPrevious = current;
+  root.edTappAdd = configAwareShutterSave;
+  return true;
 }
 
 function installVehicleOwner() {
@@ -71,12 +83,46 @@ function installVehicleOwner() {
   return true;
 }
 
+function installOwners() {
+  installVehicleOwner();
+  installShutterEditOwner();
+}
+
+function scan() {
+  state.frame = 0;
+  installOwners();
+  guardAll();
+}
+
+function schedule() {
+  if (state.frame) return;
+  state.frame = root.requestAnimationFrame?.(scan) || root.setTimeout?.(scan, 0) || 0;
+}
+
 function installStyles() {
   installStyle("dm-beta7-brand-guard-style", `
     img[data-dm-brand-image][data-dm-beta7-broken="true"]{display:none!important}
     .dm-beta7-brand-guard-fallback{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;color:var(--primary-text-color,var(--text,#0f172a))!important}
     .dm-beta7-brand-guard-fallback svg{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;overflow:visible!important}
     .dm-car-brand[data-brand-source="inline-fallback"]{display:grid!important;place-items:center!important}
+
+    /* The regression owner creates a fixed four-column action row. Pin the
+       readable label to column two so a pre-existing emoji/icon can never push
+       it into an implicit clipped fifth column. */
+    #editor-modal .ed-row.dm-beta7-action-row>.ed-row-main{
+      grid-column:2!important;
+      grid-row:1!important;
+      min-width:0!important;
+      max-width:100%!important;
+      overflow:hidden!important;
+    }
+    #editor-modal .ed-row.dm-beta7-action-row>.ed-row-main .ed-row-new,
+    #editor-modal .ed-row.dm-beta7-action-row>.ed-row-main .ed-row-old{
+      display:block!important;
+      min-width:0!important;
+      overflow:hidden!important;
+      text-overflow:ellipsis!important;
+    }
   `);
 }
 
@@ -84,7 +130,7 @@ export function installBeta7BrandGuardSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
-  installVehicleOwner();
+  installOwners();
   doc.addEventListener("error", (event) => {
     if (event.target?.matches?.("img[data-dm-brand-image]")) {
       guardImage(event.target);
@@ -93,7 +139,7 @@ export function installBeta7BrandGuardSection() {
   }, true);
   for (const name of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"])
     root.addEventListener?.(name, () => {
-      installVehicleOwner();
+      installOwners();
       schedule();
     });
   root.addEventListener?.("dashboardmodern:states-ready", schedule);
