@@ -23,7 +23,7 @@ const LOADS = Object.freeze([
   { key: "cuc", instant: "v-cuc-p" },
 ]);
 
-function numberFrom(node) {
+function parseNumber(node) {
   const source = String(node?.textContent || "").trim();
   const match = source.match(/-?\d[\d.,]*/);
   if (!match) return 0;
@@ -35,7 +35,11 @@ function numberFrom(node) {
     else token = token.replaceAll(",", "");
   } else if (comma >= 0) token = token.replace(",", ".");
   const value = Number(token);
-  return Number.isFinite(value) ? Math.abs(value) : 0;
+  return Number.isFinite(value) ? value : 0;
+}
+
+function numberFrom(node) {
+  return Math.abs(parseNumber(node));
 }
 
 function nodeVisible(node) {
@@ -109,19 +113,72 @@ function isLoadLine(node) {
   return /line-home-(?:boiler|wb|clima|lav|cuc)(?:-(?:day|month))?$/i.test(id);
 }
 
-function mirrorLegacyMainFlows(scope) {
+function mainValueNode(kind, period) {
+  const suffix = period ? `-${period}` : "";
+  return doc?.getElementById(`v-${kind}${suffix}`) || null;
+}
+
+function mainKinds(node) {
+  const id = String(node?.id || "").toLowerCase();
+  return ["solar", "grid", "battery", "home"].filter((kind) => id.includes(kind));
+}
+
+function periodDirectionalValue(node, direction) {
+  if (!nodeVisible(node)) return null;
+  const parts = [...node.querySelectorAll?.("span") || []].filter(nodeVisible);
+  const index = direction === "import" || direction === "charge" ? 0 : 1;
+  const part = parts[index];
+  return part ? numberFrom(part) : null;
+}
+
+function directionalEndpointValue(kind, node, period) {
+  const valueNode = mainValueNode(kind, period);
+  if (!valueNode || !nodeVisible(valueNode)) return null;
+  const id = String(node?.id || "").toLowerCase();
+
+  if (kind === "grid") {
+    if (period) return periodDirectionalValue(valueNode, id.includes("solar-grid") ? "export" : "import");
+    const signed = parseNumber(valueNode);
+    return id.includes("solar-grid") ? Math.max(0, -signed) : Math.max(0, signed);
+  }
+
+  if (kind === "battery") {
+    if (period) return periodDirectionalValue(valueNode, id.includes("solar-battery") ? "charge" : "discharge");
+    const signed = parseNumber(valueNode);
+    return id.includes("solar-battery") ? Math.max(0, -signed) : Math.max(0, signed);
+  }
+
+  return numberFrom(valueNode);
+}
+
+function displayedMainFlow(node, period) {
+  const kinds = mainKinds(node);
+  if (kinds.length < 2) return null;
+  const threshold = period ? 0.0005 : 0.5;
+  const values = kinds.map((kind) => directionalEndpointValue(kind, node, period));
+  if (values.some((value) => value === null)) return null;
+  return values.every((value) => value > threshold);
+}
+
+function mirrorLegacyMainFlows(scope, period) {
   if (!scope) return;
   scope
     .querySelectorAll(".flow-line,path[id*='line-' i],line[id*='line-' i],polyline[id*='line-' i]")
     .forEach((node) => {
       if (!/^(path|line|polyline)$/i.test(node.tagName) || isLoadLine(node)) return;
-      // The legacy energy engine owns directionality for grid/solar/battery.
-      // Mirror its authoritative `.active` state instead of guessing from
-      // visibility (the beta.1 implementation animated inactive orphan lines).
-      const active = node.classList.contains("active") && nodeVisible(node);
+      const legacyActive = node.classList.contains("active") && nodeVisible(node);
+      const displayedActive = displayedMainFlow(node, period);
+      // When a displayed directional value is available it is authoritative.
+      // Falling back to legacy state is only safe when the new view cannot
+      // determine a direction at all; OR-ing both states can light both arrows.
+      const active = nodeVisible(node) && (displayedActive === null ? legacyActive : displayedActive);
+      node.classList.toggle("active", active);
       node.classList.toggle("dm-energy-flow-active", active);
       node.classList.toggle("dm-energy-flow-idle", !active);
       node.style.setProperty("--dm-flow-color", mainLineColor(node));
+      const kinds = mainKinds(node);
+      node.dataset.dmMainFlow = kinds.join("-");
+      node.dataset.dmFlowPeriod = period || "instant";
     });
 }
 
@@ -131,7 +188,7 @@ export function refreshEnergyFlows() {
   for (const period of ["", "day", "month"]) {
     const scope = scopeFor(period);
     if (!scope) continue;
-    mirrorLegacyMainFlows(scope);
+    mirrorLegacyMainFlows(scope, period);
     touched = syncLoadFlows(period) || touched;
     scope.dataset.dmEnergyFlows = "value-bound";
   }
@@ -154,10 +211,10 @@ function scheduleSettled() {
 
 function installStyles() {
   installStyle("dm-energy-flow-section-style", `
-    .dm-energy-flow-active{opacity:1!important;filter:drop-shadow(0 0 5px color-mix(in srgb,var(--dm-flow-color) 42%,transparent))!important;transition:stroke .2s ease,fill .2s ease,opacity .2s ease!important}
-    .dm-energy-flow-idle{opacity:.3!important;filter:none!important;transition:stroke .2s ease,fill .2s ease,opacity .2s ease!important}
-    .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke-dasharray:10 10!important;animation:dmEnergyFlowDash 1s linear infinite!important}
-    @keyframes dmEnergyFlowDash{to{stroke-dashoffset:-40}}
+    .dm-energy-flow-active{opacity:1!important;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--dm-flow-color) 52%,transparent))!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
+    .dm-energy-flow-idle{opacity:.38!important;filter:none!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
+    .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke:var(--dm-flow-color)!important;stroke-dasharray:12 9!important;stroke-linecap:round!important;animation:dmEnergyFlowDash .8s linear infinite!important;will-change:stroke-dashoffset}
+    @keyframes dmEnergyFlowDash{to{stroke-dashoffset:-42}}
     @media(prefers-reduced-motion:reduce){.flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{animation:none!important}}
   `);
 }

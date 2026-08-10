@@ -7,10 +7,13 @@ import "./personalization-section.js";
 import "./editor-polish-section.js";
 import "./beta4-mobile-polish-section.js";
 import "./beta6-feedback-section.js";
+import "./beta7-brand-guard-section.js";
+import "./beta7-regression-section.js";
 
-// Keep only compatibility/layout bridges that belong at the entrypoint.
-// Quick-action icons are owned exclusively by beta6-feedback-section so editor
-// and Home cards cannot race against a second renderer anymore.
+// Keep only compatibility/layout bridges that belong at the entrypoint. The
+// beta7 guards run after the mature beta6 editor owner; the guard is installed
+// first so a broken remote logo keeps its DOM contract while the final beta7
+// polish owns the visible mobile regression layout.
 if (typeof document !== "undefined") {
   const marker = "__DASHBOARDMODERN_BETA5_ENTRY_BRIDGE__";
   if (!globalThis[marker]) {

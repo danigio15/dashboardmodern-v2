@@ -110,8 +110,9 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   );
   // v1 beta adds the persistence owner plus substantive UI owners. Beta4/Beta5
   // keep one scoped mobile-polish owner; Beta6 adds one event-driven feedback
-  // owner for quick-action icons, car artwork, chart presentation and light controls.
-  assert.ok(relative.length <= 62, `production graph unexpectedly grew to ${relative.length} modules`);
+  // owner. Beta7 adds exactly two scoped, event-driven guards for real WebView
+  // failures: brand-image fallback and the final mobile regression polish.
+  assert.ok(relative.length <= 64, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
