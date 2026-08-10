@@ -149,14 +149,100 @@ export function normalizeTemperatureCards() {
   }
 }
 
+function temperatureEditMode(form) {
+  const title = clean(form?.querySelector("[data-temperature-form-title]")?.textContent).toLowerCase();
+  return /^(modifica|edit)\b/.test(title);
+}
+
+function syncEditRoomPresentation(form, roomId) {
+  const room = rooms().find((item) => clean(item.id) === clean(roomId));
+  const floor = form?.querySelector("[data-temperature-floor]");
+  const icon = form?.querySelector("#dm-temperature-icon");
+  if (floor) floor.textContent = room?.floor ? `🏢 ${room.floor}` : "";
+  if (icon) icon.value = clean(room?.icon || "mdi:thermometer");
+}
+
+function bindTemperatureRoomReassignment(form) {
+  const select = form?.querySelector("#dm-temperature-room");
+  if (!select) return false;
+
+  if (temperatureEditMode(form)) {
+    form.dataset.dmOriginalRoom ||= clean(select.value);
+    select.disabled = false;
+    select.dataset.dmTemperatureRoomEditable = "true";
+  } else if (form.dataset.dmOriginalRoom) {
+    delete form.dataset.dmOriginalRoom;
+    delete select.dataset.dmTemperatureRoomEditable;
+  }
+
+  if (select.dataset.dmTemperatureReassignBound !== "true") {
+    select.dataset.dmTemperatureReassignBound = "true";
+    // The legacy editor switches back to add mode on every select change. In
+    // edit mode stop that handler and keep the current sensor values intact.
+    select.addEventListener("change", (event) => {
+      if (!form.dataset.dmOriginalRoom) return;
+      event.stopImmediatePropagation();
+      syncEditRoomPresentation(form, select.value);
+    }, true);
+  }
+
+  if (form.dataset.dmTemperatureReassignSubmit !== "true") {
+    form.dataset.dmTemperatureReassignSubmit = "true";
+    form.addEventListener("submit", async (event) => {
+      const originalId = clean(form.dataset.dmOriginalRoom);
+      if (!originalId) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      const targetId = clean(select.value);
+      const temp = clean(form.querySelector("#ed-pl-temp")?.value);
+      const hum = clean(form.querySelector("#dm-humidity-new")?.value);
+      if (!targetId || !temp.includes(".")) {
+        root.alert?.(english() ? "Select a room and a valid temperature entity." : "Seleziona una stanza e un'entità temperatura valida.");
+        return;
+      }
+
+      const store = root.DashboardModernModules?.store;
+      const currentRooms = store?.getSection?.("rooms") || [];
+      const target = currentRooms.find((room) => clean(room.id) === targetId);
+      if (!target) return;
+      const conflict = targetId !== originalId && (clean(target.temp) || clean(target.hum));
+      if (conflict) {
+        root.alert?.(english() ? "The selected room already has temperature sensors configured." : "La stanza selezionata ha già sensori temperatura configurati.");
+        return;
+      }
+
+      const next = currentRooms.map((room) => {
+        const id = clean(room.id);
+        if (id === originalId && originalId !== targetId) return { ...room, temp: "", hum: "" };
+        if (id === targetId) return { ...room, temp, hum };
+        return room;
+      });
+      try {
+        if (typeof store?.replaceSection === "function") await store.replaceSection("rooms", next);
+        else {
+          if (originalId !== targetId) await store?.updateItem?.("rooms", originalId, { temp: "", hum: "" });
+          await store?.updateItem?.("rooms", targetId, { temp, hum });
+        }
+        delete form.dataset.dmOriginalRoom;
+        root.buildTempCards?.();
+        root.setTimeout?.(() => root.editorSwitch?.("sez7"), 0);
+      } catch (error) {
+        root.console?.error?.("[DashboardModern] temperature room reassignment", error);
+      }
+    }, true);
+  }
+  return true;
+}
+
 function normalizeTemperatureEditor() {
   const form = doc?.querySelector("#editor-modal [data-temperature-form]");
   if (!form) return false;
   const intro = form.parentElement?.querySelector("[data-temperature-editor]");
   if (intro) {
     intro.textContent = english()
-      ? "Select an existing room and associate its temperature and humidity sensors. Edit its name and icon in Rooms."
-      : "Seleziona una stanza esistente e associa i sensori di temperatura e umidità. Nome e icona si modificano in Stanze.";
+      ? "Select an existing room and associate its temperature and humidity sensors. You can also move the sensors to another room while editing. Edit room name and icon in Rooms."
+      : "Seleziona una stanza esistente e associa i sensori di temperatura e umidità. In modifica puoi anche spostare i sensori in un'altra stanza. Nome e icona si modificano in Stanze.";
   }
   const iconInput = form.querySelector("#dm-temperature-icon");
   if (iconInput) {
@@ -180,6 +266,7 @@ function normalizeTemperatureEditor() {
     }
     sync();
   }
+  bindTemperatureRoomReassignment(form);
   return true;
 }
 
@@ -221,6 +308,7 @@ function installStyles() {
       #editor-modal [data-temperature-form] #dm-temperature-icon,
       #editor-modal [data-temperature-form] [data-icon-field],
       #editor-modal [data-temperature-form] label.ed-slot:has(#dm-temperature-icon){display:none!important}
+      #editor-modal [data-temperature-form] #dm-temperature-room[data-dm-temperature-room-editable="true"]{border-color:var(--primary-color,#0ea5e9)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,transparent)!important}
       @media(max-width:520px){
         #temp-grid .temp-card{min-height:138px!important;padding-inline:12px!important}
         #temp-grid .temp-card .cp-name,#temp-grid .temp-card .temp-room-name{margin-right:66px!important;margin-left:50px!important}
@@ -263,7 +351,7 @@ export function installTemperatureSection() {
     doc.addEventListener(
       "click",
       (event) => {
-        if (event.target?.closest?.("[data-tab='temp'],[data-tab='temperature'],.ed-tab[data-tab='sez7']"))
+        if (event.target?.closest?.("[data-tab='temp'],[data-tab='temperature'],.ed-tab[data-tab='sez7'],[data-temperature-edit]"))
           root.queueMicrotask?.(() => {
             normalizeTemperatureCards();
             normalizeTemperatureEditor();
