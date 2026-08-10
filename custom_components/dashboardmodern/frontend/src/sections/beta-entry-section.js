@@ -43,6 +43,32 @@ if (typeof document !== "undefined") {
       .join("");
     document.head?.append(style);
 
+    // The legacy form class is ed-form-row (not ed-qa-form-row). Lock the
+    // quick-action editor to three clean columns so the icon selector keeps a
+    // compact square footprint on phone screens instead of stretching the row.
+    const quickActionStyle = document.createElement("style");
+    quickActionStyle.id = "dm-beta6-quick-action-layout";
+    quickActionStyle.textContent = `
+      .ed-form-row[data-dm-beta6-quick-action="true"]{
+        display:grid!important;
+        grid-template-columns:minmax(0,1.15fr) 64px minmax(0,1fr)!important;
+        align-items:stretch!important;
+        gap:8px!important;
+      }
+      .ed-form-row[data-dm-beta6-quick-action="true"] #ed-qa-type,
+      .ed-form-row[data-dm-beta6-quick-action="true"] #ed-qa-name{
+        width:100%!important;
+        min-width:0!important;
+        margin:0!important;
+      }
+      .ed-form-row[data-dm-beta6-quick-action="true"] .dm-beta6-qa-icon-trigger{
+        width:64px!important;
+        min-width:64px!important;
+        max-width:64px!important;
+      }
+    `;
+    document.head?.append(quickActionStyle);
+
     // Legacy quick actions persist their icon as text and inject that value
     // directly into the Home card. The beta6 picker renders MDI artwork, so
     // convert its selected MDI token to the corresponding portable glyph before
