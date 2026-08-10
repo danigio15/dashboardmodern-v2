@@ -1,0 +1,52 @@
+name: One-shot beta3 UI runner
+
+on:
+  push:
+    branches:
+      - fix/beta2-ui-coherence-report
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/beta2-ui-coherence-report
+          fetch-depth: 0
+      - name: Execute patch script from patcher workflow
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from textwrap import dedent
+          source = Path('.github/workflows/one-shot-beta3-ui-fix.yml').read_text()
+          marker = "          python - <<'PY'\n"
+          start = source.index(marker) + len(marker)
+          end = source.index("\n          PY\n", start)
+          script = dedent(source[start:end])
+          exec(compile(script, '<beta3-ui-patcher>', 'exec'))
+          PY
+      - name: Validate syntax
+        run: |
+          git diff --check
+          node --check custom_components/dashboardmodern/frontend/src/core/personalization-catalog.js
+          node --check custom_components/dashboardmodern/frontend/src/sections/personalization-section.js
+          node --check custom_components/dashboardmodern/frontend/src/sections/editor-polish-section.js
+          node --check custom_components/dashboardmodern/frontend/src/sections/energy-report-polish-section.js
+          node --check custom_components/dashboardmodern/frontend/src/core/period-service.js
+          node --test custom_components/dashboardmodern/frontend/tests/beta3-ui-coherence.test.js
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/dashboardmodern/frontend/src/core/personalization-catalog.js \
+                  custom_components/dashboardmodern/frontend/src/core/period-service.js \
+                  custom_components/dashboardmodern/frontend/src/sections/personalization-section.js \
+                  custom_components/dashboardmodern/frontend/src/sections/editor-polish-section.js \
+                  custom_components/dashboardmodern/frontend/src/sections/energy-report-polish-section.js \
+                  custom_components/dashboardmodern/frontend/tests/beta3-ui-coherence.test.js
+          git commit -m "fix: cohere beta UI editors and energy history"
+          git push origin HEAD:fix/beta2-ui-coherence-report
