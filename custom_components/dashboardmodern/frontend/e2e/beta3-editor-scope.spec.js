@@ -77,7 +77,7 @@ async function switchEditor(page, tab) {
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: car appearance exists only in EV and car pickers are dedicated`, async ({ page }, testInfo) => {
+  test(`${variant}: car appearance exists only in EV and brand/model controls are dedicated`, async ({ page }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
@@ -93,15 +93,19 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const brandPicker = page.locator('#dm-visual-picker[data-kind="car"]');
     await expect(brandPicker).toBeVisible();
     await expect(brandPicker.locator(".dm-car-brand").first()).toBeVisible();
+    const leap = brandPicker.locator(".dm-picker-option", { hasText: "Leapmotor" });
+    await expect(leap.locator('.dm-leapmotor-mark[data-brand="leapmotor"][data-brand-source="inline"]')).toHaveCount(1);
     await brandPicker.locator("[data-close]").click();
 
-    await appearance.locator("[data-icon-preview]").click();
-    const carIconPicker = page.locator('#dm-visual-picker[data-kind="car-icon"]');
-    await expect(carIconPicker).toBeVisible();
-    await expect(carIconPicker.locator(".dm-car-icon-glyph")).toHaveCount(8);
-    await expect(carIconPicker).not.toContainText("Casa");
-    await expect(carIconPicker).not.toContainText("Luci");
-    await carIconPicker.locator("[data-close]").click();
+    await expect(appearance.locator("[data-icon-preview]")).toHaveCount(0);
+    await expect(page.locator('#dm-visual-picker[data-kind="car-icon"]')).toHaveCount(0);
+    const modelSelect = appearance.locator("select[data-model]");
+    await expect(modelSelect).toBeVisible();
+    await expect(modelSelect).toContainText("T03");
+    await expect(modelSelect).toContainText("B10");
+    await expect(modelSelect).toContainText("C10");
+    await modelSelect.selectOption("B10");
+    await expect(appearance.locator("[data-brand-preview]")).toContainText("B10");
 
     await switchEditor(page, "sez0");
     await expect(page.locator("#ed-body [data-ev-appearance]")).toHaveCount(0);
