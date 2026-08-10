@@ -20,6 +20,20 @@ test("quick action editor replaces the flash field with a real icon trigger", as
   assert.match(source, /ACTION_ICON_CATALOG/);
 });
 
+test("quick action bridge stores portable glyphs and renders real HA icons", async () => {
+  const entry = await read("src/sections/beta-entry-section.js");
+  assert.match(entry, /luci_group: "💡"/);
+  assert.match(entry, /builtin_clima: "❄️"/);
+  assert.match(entry, /builtin_antifurto: "🛡️"/);
+  assert.match(entry, /builtin_lavatrice: "🧺"/);
+  assert.match(entry, /toggle: "🔀"/);
+  assert.match(entry, /script: "▶️"/);
+  assert.match(entry, /scene: "🎬"/);
+  assert.match(entry, /quickActionGlyphByMdi/);
+  assert.match(entry, /globalThis\.cdIconMarkup\(mdi, size\)/);
+  assert.match(entry, /buildQuickActions/);
+});
+
 test("car brand picker uses real pinned brand images and the official Leapmotor wordmark", async () => {
   const source = await read("src/sections/beta6-feedback-section.js");
   assert.match(source, /SIMPLE_ICONS_VERSION = "16\.27\.1"/);
