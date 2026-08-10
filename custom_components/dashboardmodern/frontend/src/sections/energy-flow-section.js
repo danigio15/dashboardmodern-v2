@@ -23,7 +23,7 @@ const LOADS = Object.freeze([
   { key: "cuc", instant: "v-cuc-p" },
 ]);
 
-function numberFrom(node) {
+function parseNumber(node) {
   const source = String(node?.textContent || "").trim();
   const match = source.match(/-?\d[\d.,]*/);
   if (!match) return 0;
@@ -35,7 +35,11 @@ function numberFrom(node) {
     else token = token.replaceAll(",", "");
   } else if (comma >= 0) token = token.replace(",", ".");
   const value = Number(token);
-  return Number.isFinite(value) ? Math.abs(value) : 0;
+  return Number.isFinite(value) ? value : 0;
+}
+
+function numberFrom(node) {
+  return Math.abs(parseNumber(node));
 }
 
 function nodeVisible(node) {
@@ -119,14 +123,39 @@ function mainKinds(node) {
   return ["solar", "grid", "battery", "home"].filter((kind) => id.includes(kind));
 }
 
+function periodDirectionalValue(node, direction) {
+  if (!nodeVisible(node)) return null;
+  const parts = [...node.querySelectorAll?.("span") || []].filter(nodeVisible);
+  const index = direction === "import" || direction === "charge" ? 0 : 1;
+  const part = parts[index];
+  return part ? numberFrom(part) : null;
+}
+
+function directionalEndpointValue(kind, node, period) {
+  const valueNode = mainValueNode(kind, period);
+  if (!valueNode || !nodeVisible(valueNode)) return null;
+  const id = String(node?.id || "").toLowerCase();
+
+  if (kind === "grid") {
+    if (period) return periodDirectionalValue(valueNode, id.includes("solar-grid") ? "export" : "import");
+    const signed = parseNumber(valueNode);
+    return id.includes("solar-grid") ? Math.max(0, -signed) : Math.max(0, signed);
+  }
+
+  if (kind === "battery") {
+    if (period) return periodDirectionalValue(valueNode, id.includes("solar-battery") ? "charge" : "discharge");
+    const signed = parseNumber(valueNode);
+    return id.includes("solar-battery") ? Math.max(0, -signed) : Math.max(0, signed);
+  }
+
+  return numberFrom(valueNode);
+}
+
 function displayedMainFlow(node, period) {
   const kinds = mainKinds(node);
   if (kinds.length < 2) return null;
   const threshold = period ? 0.0005 : 0.5;
-  const values = kinds.map((kind) => {
-    const valueNode = mainValueNode(kind, period);
-    return valueNode && nodeVisible(valueNode) ? numberFrom(valueNode) : null;
-  });
+  const values = kinds.map((kind) => directionalEndpointValue(kind, node, period));
   if (values.some((value) => value === null)) return null;
   return values.every((value) => value > threshold);
 }
@@ -139,7 +168,10 @@ function mirrorLegacyMainFlows(scope, period) {
       if (!/^(path|line|polyline)$/i.test(node.tagName) || isLoadLine(node)) return;
       const legacyActive = node.classList.contains("active") && nodeVisible(node);
       const displayedActive = displayedMainFlow(node, period);
-      const active = nodeVisible(node) && (displayedActive === null ? legacyActive : displayedActive || legacyActive);
+      // When a displayed directional value is available it is authoritative.
+      // Falling back to legacy state is only safe when the new view cannot
+      // determine a direction at all; OR-ing both states can light both arrows.
+      const active = nodeVisible(node) && (displayedActive === null ? legacyActive : displayedActive);
       node.classList.toggle("active", active);
       node.classList.toggle("dm-energy-flow-active", active);
       node.classList.toggle("dm-energy-flow-idle", !active);
