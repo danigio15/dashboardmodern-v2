@@ -5,10 +5,13 @@ import test from "node:test";
 const ROOT = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), "utf8");
 
-test("final mobile owner is loaded last without a second room click interceptor", async () => {
+test("final mobile owner is loaded last and the room icon delegates to the mature picker", async () => {
   const entry = await read("src/sections/beta-entry-section.js");
   assert.match(entry, /editor-polish-section\.js";\nimport "\.\/beta4-mobile-polish-section\.js";/);
-  assert.doesNotMatch(entry, /dm-beta4-room-icon-trigger|stopImmediatePropagation/);
+  assert.match(entry, /dm-beta5-room-icon-trigger/);
+  assert.match(entry, /globalThis\.dmIconPicker\("#ed-room-icon", "rooms"\)/);
+  assert.match(entry, /event\.stopImmediatePropagation\(\)/);
+  assert.doesNotMatch(entry, /dm-beta4-room-icon-trigger/);
 });
 
 test("section rename keeps exactly one button inside its canonical row owner", async () => {
@@ -26,12 +29,13 @@ test("config tab names preserve their dedicated icon nodes", async () => {
   assert.match(source, /iconNode\.textContent = icon/);
 });
 
-test("room first insert uses its icon as the only picker trigger", async () => {
+test("room first insert uses its icon as the only visible picker trigger", async () => {
   const source = await read("src/sections/beta4-mobile-polish-section.js");
-  assert.match(source, /openRoomPicker\(input\)/);
+  const entry = await read("src/sections/beta-entry-section.js");
   assert.match(source, /trigger\.removeAttribute\("onclick"\)/);
   assert.match(source, /trigger\.className = "dm-beta5-room-icon-trigger"/);
   assert.match(source, /#ed-room-icon-preview\{display:none!important\}/);
+  assert.match(entry, /dmIconPicker\("#ed-room-icon", "rooms"\)/);
 });
 
 test("alerts hide custom-only controls and physically remove the orphan flash", async () => {
@@ -75,17 +79,18 @@ test("daily Energy chart is real-only, stops at today and never calls the synthe
   assert.match(source, /reportState\.legacyDailyChart = null/);
   assert.match(source, /renderRealDailyChart\.__dmBeta5RealOnly = true/);
   assert.doesNotMatch(source, /legacy\(\.\.\.args\)|Math\.sin|Math\.cos/);
-  // The old vendored fallback may remain for backwards compatibility, but the
-  // beta owner must explicitly make it unreachable.
   assert.match(legacy, /if \(!fetchOk && prodMese > 0\)/);
 });
 
-test("day and month Energy maps keep every secondary load node visible", async () => {
+test("day and month Energy maps keep every secondary load node and connector visible", async () => {
   const source = await read("src/sections/beta4-mobile-polish-section.js");
+  const entry = await read("src/sections/beta-entry-section.js");
   assert.match(source, /wb: \{ day: "dm\.ev_energia_wallbox_oggi", month: "dm\.ev_energia_wallbox_mese" \}/);
   assert.match(source, /for \(const period of \["day", "month"\]\)/);
   assert.match(source, /node\.style\.display = ""/);
   assert.match(source, /node\.dataset\.dmBeta5FlowComplete = "true"/);
+  assert.match(entry, /line-home-\$\{load\}-\$\{period\}/);
+  assert.match(entry, /display:block!important/);
 });
 
 test("climate cards have one-column natural compact geometry on mobile", async () => {
