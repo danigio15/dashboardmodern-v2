@@ -5,50 +5,94 @@ import test from "node:test";
 const ROOT = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), "utf8");
 
-test("beta4 polish is loaded last so it can repair legacy editor markup", async () => {
+test("final mobile owner is loaded last without a second room click interceptor", async () => {
   const entry = await read("src/sections/beta-entry-section.js");
   assert.match(entry, /editor-polish-section\.js";\nimport "\.\/beta4-mobile-polish-section\.js";/);
+  assert.doesNotMatch(entry, /dm-beta4-room-icon-trigger|stopImmediatePropagation/);
 });
 
-test("section rename button is moved out of the label and config icons have dedicated nodes", async () => {
+test("section rename keeps exactly one button inside its canonical row owner", async () => {
   const source = await read("src/sections/beta4-mobile-polish-section.js");
-  assert.match(source, /if \(button\.parentElement !== row\) row\.append\(button\)/);
+  assert.match(source, /buttons\.forEach\(\(button\) => \{\s*if \(button !== primary\) button\.remove\(\)/s);
+  assert.match(source, /primary\.dataset\.dmBeta5Primary = "true"/);
+  assert.doesNotMatch(source, /button\.parentElement !== row\) row\.append\(button\)/);
+  assert.match(source, /dm-inline-rename\[data-rename\]:not\(\[data-dm-beta5-primary/);
+});
+
+test("config tab names preserve their dedicated icon nodes", async () => {
+  const source = await read("src/sections/beta4-mobile-polish-section.js");
   assert.match(source, /labelNode\.dataset\.dmConfigName = "true"/);
   assert.match(source, /dm-beta4-tab-icon/);
-  assert.match(source, />\.dm-inline-rename\.dm-beta4-section-rename/);
+  assert.match(source, /iconNode\.textContent = icon/);
 });
 
-test("room first insert uses its icon as the picker trigger and removes palette semantics", async () => {
+test("room first insert uses its icon as the only picker trigger", async () => {
   const source = await read("src/sections/beta4-mobile-polish-section.js");
   assert.match(source, /openRoomPicker\(input\)/);
-  assert.match(source, /legacyPalette\.removeAttribute\("onclick"\)/);
-  assert.match(source, /legacyPalette\.className = "dm-beta4-room-icon-trigger"/);
+  assert.match(source, /trigger\.removeAttribute\("onclick"\)/);
+  assert.match(source, /trigger\.className = "dm-beta5-room-icon-trigger"/);
   assert.match(source, /#ed-room-icon-preview\{display:none!important\}/);
 });
 
-test("alerts keep custom controls hidden for predefined groups and stack entity controls", async () => {
+test("alerts hide custom-only controls and physically remove the orphan flash", async () => {
   const source = await read("src/sections/beta4-mobile-polish-section.js");
   assert.match(source, /const visible = clean\(group\.value\) === "custom"/);
   assert.match(source, /custom\.hidden = !visible/);
-  assert.match(source, /dm-beta4-alert-entity-row/);
-  assert.match(source, /grid-template-columns:minmax\(0,1fr\) 50px/);
+  assert.match(source, /removeAlertFlash\(form, visible\)/);
+  assert.match(source, /text === "⚡" \|\| powerGlyph/);
+  assert.match(source, /dm-beta5-alert-entity-row/);
+  assert.match(source, /grid-template-columns:minmax\(0,1fr\) 52px/);
 });
 
-test("daily Energy chart restores the Casa and Fotovoltaico legacy path with all arguments", async () => {
+test("lights have one explicit compact mobile grid with visible name and entity", async () => {
+  const source = await read("src/sections/beta4-mobile-polish-section.js");
+  assert.match(source, /grid-template-areas:"main edit delete" "room room room"/);
+  assert.match(source, /data-dm-light-main/);
+  assert.match(source, />\.ed-row-new\{display:block!important/s);
+  assert.match(source, />\.ed-row-old\{display:block!important/s);
+  assert.match(source, /\.dm-light-order\{display:none!important\}/);
+});
+
+test("brand picker renders local vector brand graphics instead of initial badges", async () => {
+  const source = await read("src/sections/beta4-mobile-polish-section.js");
+  assert.match(source, /const BRAND_LOGOS/);
+  assert.match(source, /leapmotor:/);
+  assert.match(source, /audi:/);
+  assert.match(source, /volkswagen:/);
+  assert.match(source, /data-brand-logo/);
+  assert.match(source, /dm-beta5-brand-logo/);
+  assert.doesNotMatch(source, /BRAND_SIGNS|dm-beta4-brand-symbol/);
+});
+
+test("daily Energy chart is real-only, stops at today and never calls the synthetic legacy renderer", async () => {
   const source = await read("src/sections/beta4-mobile-polish-section.js");
   const legacy = await read("legacy/dashboard-runtime-it.js");
-  assert.match(source, /const render = async \(\.\.\.args\) => legacy\(\.\.\.args\)/);
-  assert.match(source, /render\.__dmBeta4CasaSolar = true/);
-  assert.match(source, /render\.__dmActualHistory = true/);
-  assert.match(legacy, /dm\.energy_produzione_solare_oggi/);
-  assert.match(legacy, /dm\.energy_consumo_casa_oggi/);
+  assert.match(source, /async function renderRealDailyChart/);
+  assert.match(source, /statisticsWithGrowth\(ids, start\.toISOString\(\), end\.toISOString\(\), "day"\)/);
+  assert.match(source, /visibleDays = currentMonth \? Math\.min\(now\.getDate\(\), monthDays\) : monthDays/);
+  assert.match(source, /currentBundleDay\(\)/);
+  assert.match(source, /balancedHouse\(values, index, refs\)/);
+  assert.match(source, /reportState\.legacyDailyChart = null/);
+  assert.match(source, /renderRealDailyChart\.__dmBeta5RealOnly = true/);
+  assert.doesNotMatch(source, /legacy\(\.\.\.args\)|Math\.sin|Math\.cos/);
+  // The old vendored fallback may remain for backwards compatibility, but the
+  // beta owner must explicitly make it unreachable.
   assert.match(legacy, /if \(!fetchOk && prodMese > 0\)/);
 });
 
-test("climate cards are truly natural-height on mobile and brand marks are readable locally", async () => {
+test("day and month Energy maps keep every secondary load node visible", async () => {
   const source = await read("src/sections/beta4-mobile-polish-section.js");
-  assert.match(source, /\.cp-card\{aspect-ratio:auto!important;min-height:0!important;height:auto!important/);
+  assert.match(source, /wb: \{ day: "dm\.ev_energia_wallbox_oggi", month: "dm\.ev_energia_wallbox_mese" \}/);
+  assert.match(source, /for \(const period of \["day", "month"\]\)/);
+  assert.match(source, /node\.style\.display = ""/);
+  assert.match(source, /node\.dataset\.dmBeta5FlowComplete = "true"/);
+});
+
+test("climate cards have one-column natural compact geometry on mobile", async () => {
+  const source = await read("src/sections/beta4-mobile-polish-section.js");
+  assert.match(source, /data-dm-beta5-climate/);
   assert.match(source, /\.clima-premium-grid\{grid-template-columns:1fr!important/);
-  assert.match(source, /BRAND_SIGNS/);
-  assert.match(source, /dm-beta4-brand-symbol/);
+  assert.match(source, /\.cp-card\{min-height:0!important;height:auto!important;max-height:none!important/);
+  assert.match(source, /\.cp-body\{display:grid!important;grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/);
+  assert.match(source, /\.cp-controls\{min-height:52px!important;height:52px!important/);
 });
