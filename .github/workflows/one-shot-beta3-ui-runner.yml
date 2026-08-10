@@ -32,6 +32,11 @@ jobs:
               "updated, count = re.subn(pattern, lambda _match: replacement, text, count=1, flags=flags)",
           )
           exec(compile(script, '<beta3-ui-patcher>', 'exec'))
+          test_path = Path('custom_components/dashboardmodern/frontend/tests/beta3-ui-coherence.test.js')
+          if test_path.exists():
+              test_source = test_path.read_text()
+              if '\\n' in test_source:
+                  test_path.write_text(test_source.replace('\\n', '\n'))
           PY
       - name: Validate syntax
         run: |
