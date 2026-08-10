@@ -130,7 +130,19 @@ export async function renderActualDailyChart(daysInMonth, selMonth, selYear) {
     return true;
   } catch (error) {
     root.console?.warn?.("[DashboardModern] real daily chart unavailable", error);
-    chartMessage(t("Storico Home Assistant non raggiungibile: nessun dato stimato viene mostrato.", "Home Assistant history is unavailable: no estimated data is shown."));
+    if (typeof state.legacyDailyChart === "function") {
+      try {
+        destroyDailyChart(canvas);
+        loading.style.display = "none";
+        canvas.style.display = "block";
+        await state.legacyDailyChart(daysInMonth, selMonth, selYear);
+        canvas.dataset.dmHistoryFallback = "legacy-compatible";
+        return true;
+      } catch (fallbackError) {
+        root.console?.warn?.("[DashboardModern] compatible daily chart fallback unavailable", fallbackError);
+      }
+    }
+    chartMessage(t("Storico Home Assistant non raggiungibile per il periodo selezionato.", "Home Assistant history is unavailable for the selected period."));
     return false;
   }
 }

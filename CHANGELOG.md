@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.0-beta.3 — 2026-08-10
+
+### Corretto
+
+- **Aspetto auto** compare soltanto nella Config EV e usa picker distinti per brand e icona vettura, senza riutilizzare il catalogo Stanze/Azioni.
+- Stanze e Azioni mostrano anteprime locali visibili; la tavolozza separata viene rimossa e il picker si apre cliccando direttamente sull'icona.
+- Il **Rinomina sezione** è integrato accanto all'ordine navbar con una matita e aggiorna anche il nome della relativa scheda Config.
+- Le card **Clima** su mobile non ereditano più il rapporto 1:1 che le rendeva enormi; il contenuto torna compatto e ad altezza naturale.
+- La Config **MiniPC** mostra esplicitamente nome parametro, riferimento ed entità configurata invece di card apparentemente vuote.
+- L'**Andamento giornaliero** del Report Energia ritenta le statistiche Recorder con payload compatibile e, se necessario, usa il renderer storico compatibile prima di mostrare errore.
+- Aggiunti contratti automatici ed E2E per scoping EV, picker auto dedicati, icone, rinomina, MiniPC, Clima e compatibilità Recorder.
+
+
 ## 1.0.0-beta.2 — 2026-08-10
 
 ### Corretto
