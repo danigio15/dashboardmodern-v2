@@ -1,4 +1,4 @@
-import { ACTION_ICON_CATALOG, CAR_BRANDS, ROOM_CATALOG, actionVisual, carBrandVisual, roomVisual } from "../core/personalization-catalog.js";
+import { ACTION_ICON_CATALOG, CAR_BRANDS, CAR_ICON_CATALOG, ROOM_CATALOG, actionVisual, carBrandVisual, carIconVisual, roomVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, readJson, root, t, writeJsonIfChanged, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_PERSONALIZATION_SECTION__";
@@ -30,13 +30,15 @@ function openVisualPicker(input, kind = "room") {
   modal.className = "dm-section-modal dm-visual-picker";
   modal.dataset.kind = kind;
   const english = doc.documentElement.lang === "en";
-  const title = kind === "car" ? t("Scegli il brand auto", "Choose car brand") : kind === "action" ? t("Scegli l'icona azione", "Choose action icon") : t("Scegli l'icona stanza", "Choose room icon");
-  const titleIcon = kind === "car" ? "🚘" : kind === "action" ? "⚡" : "🏠";
+  const title = kind === "car" ? t("Scegli il brand auto", "Choose car brand") : kind === "car-icon" ? t("Scegli l'icona auto", "Choose car icon") : kind === "action" ? t("Scegli l'icona azione", "Choose action icon") : t("Scegli l'icona stanza", "Choose room icon");
+  const titleIcon = kind === "car" || kind === "car-icon" ? "🚘" : kind === "action" ? "⚡" : "🏠";
   const rows = kind === "car"
     ? CAR_BRANDS.map((item) => ({ value: item.name, label: item.name, visual: carBrandVisual(item.name, 48), search: item.name }))
-    : kind === "action"
-      ? ACTION_ICON_CATALOG.map((item) => ({ value: item.mdi, label: english ? item.en : item.it, visual: actionVisual(item.mdi, 46), search: `${item.it} ${item.en} ${item.id} ${item.mdi}` }))
-      : ROOM_CATALOG.map((item) => ({ value: item.mdi, label: english ? item.en : item.it, visual: roomVisual(item.mdi, 46), search: `${item.it} ${item.en} ${item.keywords}` }));
+    : kind === "car-icon"
+      ? CAR_ICON_CATALOG.map((item) => ({ value: item.mdi, label: english ? item.en : item.it, visual: carIconVisual(item.mdi, 46), search: `${item.it} ${item.en} ${item.id} ${item.mdi}` }))
+      : kind === "action"
+        ? ACTION_ICON_CATALOG.map((item) => ({ value: item.mdi, label: english ? item.en : item.it, visual: actionVisual(item.mdi, 46), search: `${item.it} ${item.en} ${item.id} ${item.mdi}` }))
+        : ROOM_CATALOG.map((item) => ({ value: item.mdi, label: english ? item.en : item.it, visual: roomVisual(item.mdi, 46), search: `${item.it} ${item.en} ${item.keywords}` }));
   modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>${titleIcon} ${title}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${t("Cerca…", "Search…")}" data-search></div><div class="dm-picker-grid">${rows.map((item, index) => `<button type="button" class="dm-picker-option" data-index="${index}" data-search-text="${esc(item.search.toLowerCase())}"><span class="dm-picker-visual">${item.visual}</span><b>${esc(item.label)}</b></button>`).join("")}</div></section>`;
   doc.body.append(modal);
   modal.querySelector("[data-close]")?.addEventListener("click", closePicker);
@@ -131,7 +133,9 @@ function decorateLegacyIconPickers() {
     const targetId = clean(button.dataset.iconTarget || button.dataset.entityTarget);
     const input = (targetId && doc.getElementById(targetId)) || button.closest(".dm-icon-field,.ed-form-row")?.querySelector("input.ed-icon-input,input");
     if (!input) return;
-    const category = clean(button.dataset.iconCategory || input.dataset.iconCategory);
+    const explicitCategory = clean(button.dataset.iconCategory || input.dataset.iconCategory);
+    const looksLikeRoom = explicitCategory === "rooms" || /room|stanza|ed-st|floor/i.test(`${input.id || ""} ${button.title || ""} ${button.getAttribute("onclick") || ""}`);
+    const category = looksLikeRoom ? "rooms" : explicitCategory;
     button.classList.add("dm-icon-preview-button");
     button.setAttribute("aria-label", category === "rooms" ? t("Scegli icona stanza", "Choose room icon") : t("Scegli icona", "Choose icon"));
     const refresh = () => {
@@ -193,6 +197,11 @@ export function applySectionNames() {
     for (const editorTab of EDITOR_TABS_FOR_SECTION[key] || []) {
       doc?.querySelectorAll?.(`.ed-tab[data-tab="${CSS.escape(editorTab)}"]`).forEach((button) => replaceButtonLabel(button, value));
     }
+    doc?.querySelectorAll?.(`.ed-row[data-section-key="${CSS.escape(key)}"] .ed-row-new`).forEach((node) => {
+      const raw = clean(node.textContent);
+      const icon = raw.match(/^[^\p{L}\p{N}]+/u)?.[0] || "";
+      node.textContent = `${icon}${value}`;
+    });
     const page = doc?.getElementById?.(`page-${key}`);
     const selectors = key === "energy"
       ? [".ed-title-text h2"]
@@ -326,7 +335,7 @@ function ensureEvAppearanceEditor() {
   panel.dataset.evAppearance = "true";
   const brand = clean(visual.brand || "Leapmotor");
   const icon = clean(visual.icon || "mdi:car-electric");
-  panel.innerHTML = `<div class="ed-sec-title">🚘 ${t("Aspetto auto", "Car appearance")}</div><div class="ed-intro">${t("Aspetto del profilo auto selezionato.", "Appearance of the selected vehicle profile.")}</div><div class="dm-ev-appearance-grid"><button type="button" class="dm-brand-preview dm-visual-trigger" data-brand-preview aria-label="${t("Scegli brand auto", "Choose car brand")}">${carBrandVisual(brand, 56)}<b>${esc(brand)}</b></button><select class="ed-input" data-brand>${CAR_BRANDS.map((item) => `<option value="${esc(item.name)}" ${item.name === brand ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select><button type="button" class="dm-action-icon-preview dm-visual-trigger" data-icon-preview aria-label="${t("Scegli icona auto", "Choose car icon")}">${actionVisual(icon, 48) || iconMarkup(icon, 42)}</button><input class="ed-input" data-icon value="${esc(icon)}"></div><button type="button" class="ed-save-btn" data-save>💾 ${t("Salva aspetto auto", "Save car appearance")}</button>`;
+  panel.innerHTML = `<div class="ed-sec-title">🚘 ${t("Aspetto auto", "Car appearance")}</div><div class="ed-intro">${t("Aspetto del profilo auto selezionato.", "Appearance of the selected vehicle profile.")}</div><div class="dm-ev-appearance-grid"><button type="button" class="dm-brand-preview dm-visual-trigger" data-brand-preview aria-label="${t("Scegli brand auto", "Choose car brand")}">${carBrandVisual(brand, 56)}<b>${esc(brand)}</b></button><select class="ed-input" data-brand>${CAR_BRANDS.map((item) => `<option value="${esc(item.name)}" ${item.name === brand ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select><button type="button" class="dm-action-icon-preview dm-visual-trigger" data-icon-preview aria-label="${t("Scegli icona auto", "Choose car icon")}">${carIconVisual(icon, 48) || iconMarkup(icon, 42)}</button><input class="ed-input" data-icon value="${esc(icon)}"></div><button type="button" class="ed-save-btn" data-save>💾 ${t("Salva aspetto auto", "Save car appearance")}</button>`;
   const visibleEvBlock = [...body.querySelectorAll("details,.ed-acc,.ed-form")].find((node) => node !== panel && /auto elettric|electric car|profilo auto|car profile|vettur|vehicle/i.test(clean(node.textContent)));
   if (visibleEvBlock?.parentElement) visibleEvBlock.insertAdjacentElement("afterend", panel);
   else body.prepend(panel);
@@ -334,8 +343,8 @@ function ensureEvAppearanceEditor() {
   const iconInput = panel.querySelector("[data-icon]");
   brandSelect.addEventListener("change", () => { panel.querySelector("[data-brand-preview]").innerHTML = `${carBrandVisual(brandSelect.value, 56)}<b>${esc(brandSelect.value)}</b>`; });
   panel.querySelector("[data-brand-preview]").addEventListener("click", () => openVisualPicker(brandSelect, "car"));
-  panel.querySelector("[data-icon-preview]").addEventListener("click", () => openVisualPicker(iconInput, "action"));
-  iconInput.addEventListener("input", () => { panel.querySelector("[data-icon-preview]").innerHTML = actionVisual(iconInput.value, 48) || iconMarkup(iconInput.value, 42); });
+  panel.querySelector("[data-icon-preview]").addEventListener("click", () => openVisualPicker(iconInput, "car-icon"));
+  iconInput.addEventListener("input", () => { panel.querySelector("[data-icon-preview]").innerHTML = carIconVisual(iconInput.value, 48) || iconMarkup(iconInput.value, 42); });
   panel.querySelector("[data-save]").addEventListener("click", async (event) => {
     const button = event.currentTarget;
     button.disabled = true;
@@ -398,13 +407,13 @@ function subscribeStore() {
 
 function installStyles() {
   installStyle("dm-personalization-style", `
-    .dm-visual-picker{z-index:100020!important}.dm-picker-dialog{width:min(760px,calc(100vw - 24px))!important;max-height:min(82vh,760px)!important}.dm-picker-search{padding:14px 18px 6px}.dm-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;padding:12px 18px 20px;overflow:auto}.dm-picker-option{display:grid;place-items:center;gap:7px;min-height:108px;padding:10px;border:1px solid var(--divider-color,#dbe4ee);border-radius:16px;background:var(--card-background-color,#fff);color:var(--primary-text-color,#0f172a);cursor:pointer}.dm-picker-option:hover{border-color:var(--primary-color,#0ea5e9);transform:translateY(-1px)}.dm-picker-option b{font-size:12px;line-height:1.2;text-align:center}.dm-picker-option[hidden]{display:none!important}.dm-picker-visual{display:grid;place-items:center;min-width:52px;min-height:52px}.dm-room-art,.dm-car-brand{display:inline-grid;place-items:center;color:var(--primary-color,#0ea5e9)}.dm-action-glyph{display:inline-grid;place-items:center;border-radius:14px;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,var(--card-background-color,#fff));line-height:1}
+    .dm-visual-picker{z-index:100020!important}.dm-picker-dialog{width:min(760px,calc(100vw - 24px))!important;max-height:min(82vh,760px)!important}.dm-picker-search{padding:14px 18px 6px}.dm-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;padding:12px 18px 20px;overflow:auto}.dm-picker-option{display:grid;place-items:center;gap:7px;min-height:108px;padding:10px;border:1px solid var(--divider-color,#dbe4ee);border-radius:16px;background:var(--card-background-color,#fff);color:var(--primary-text-color,#0f172a);cursor:pointer}.dm-picker-option:hover{border-color:var(--primary-color,#0ea5e9);transform:translateY(-1px)}.dm-picker-option b{font-size:12px;line-height:1.2;text-align:center}.dm-picker-option[hidden]{display:none!important}.dm-picker-visual{display:grid;place-items:center;min-width:52px;min-height:52px}.dm-room-art,.dm-car-brand{display:inline-grid;place-items:center;color:var(--primary-color,#0ea5e9)}.dm-action-glyph,.dm-car-icon-glyph{display:inline-grid;place-items:center;border-radius:14px;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,var(--card-background-color,#fff));line-height:1}
     .dm-unified-icon-row{grid-template-columns:72px minmax(0,1fr)!important}.dm-visual-pick-btn{display:none!important}.dm-visual-trigger,.dm-icon-preview-button{cursor:pointer!important;transition:transform .15s ease,box-shadow .15s ease!important}.dm-visual-trigger:hover,.dm-icon-preview-button:hover{transform:translateY(-1px)!important}.dm-unified-icon-preview.dm-visual-trigger,.dm-action-icon-preview.dm-visual-trigger{display:grid!important;place-items:center!important;width:72px!important;height:72px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:18px!important;background:var(--secondary-background-color,#eef3f8)!important}.dm-icon-picker.dm-icon-preview-button{display:grid!important;place-items:center!important;min-width:54px!important;width:54px!important;height:54px!important;padding:0!important;border-radius:14px!important;font-size:0!important}.dm-temperature-card-icon{display:grid!important;place-items:center!important;width:52px!important;height:52px!important;border-radius:16px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,transparent)!important;overflow:hidden!important}.dm-temperature-form{border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:20px!important;padding:18px!important;background:var(--card-background-color,#fff)!important;display:grid!important;gap:14px!important}.dm-temperature-form>.ed-slot{margin:0!important}.dm-temperature-actions{display:flex!important;gap:10px!important;justify-content:flex-end!important}
     .dm-inline-rename{display:grid;place-items:center;position:absolute;right:8px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:1px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 28%,var(--divider-color,#dbe4ee));border-radius:12px;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 8%,var(--card-background-color,#fff));cursor:pointer}.ed-row[data-section-key] .ed-row-main{position:relative;padding-right:48px!important}
     .dm-ev-appearance{margin:12px 0 18px!important}.dm-ev-appearance-grid{display:grid;grid-template-columns:auto minmax(170px,1fr) auto minmax(170px,1fr);gap:10px;align-items:center;margin:12px 0}.dm-brand-preview{display:flex;align-items:center;gap:8px;border:1px solid var(--divider-color,#dbe4ee);border-radius:14px;background:var(--secondary-background-color,#eef3f8);padding:6px 10px;cursor:pointer;color:var(--primary-text-color,#0f172a)}.dm-ev-brand-badge{display:inline-flex;align-items:center;gap:6px;margin-right:10px}.dm-action-icon-preview{display:grid;place-items:center;width:58px;height:58px;border:1px solid var(--divider-color,#dbe4ee);border-radius:15px;background:var(--secondary-background-color,#eef3f8)}
     #page-clima .clima-dashboard{max-width:1180px!important;margin-inline:auto!important}#page-clima .clima-premium-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))!important;gap:16px!important;align-items:start!important}#page-clima .clima-premium-grid>:not([style*="grid-column"]){box-sizing:border-box!important;min-height:300px!important;height:clamp(300px,38vw,390px)!important;max-height:390px!important;border-radius:24px!important;padding:18px!important;overflow:hidden!important}#page-clima [class*="clima-controls"],#page-clima [class*="clima-ctl"]{margin-top:auto!important}
     #ed-body [data-dm-edit-kind="action"]{border-radius:14px!important}#ed-body [data-dm-edit-kind="action"]+button{border-radius:12px!important}
-    @media(max-width:760px){.dm-ev-appearance-grid{grid-template-columns:1fr auto}.dm-brand-preview{grid-column:1/-1}.dm-ev-appearance-grid select{grid-column:1/-1}.dm-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.dm-picker-option{min-height:102px;padding:8px}.dm-unified-icon-row{grid-template-columns:64px minmax(0,1fr)!important}.dm-unified-icon-preview.dm-visual-trigger,.dm-action-icon-preview.dm-visual-trigger{width:64px!important;height:64px!important}.dm-inline-rename{right:5px;width:36px;height:36px}#page-clima .clima-premium-grid{grid-template-columns:1fr!important;gap:12px!important}#page-clima .clima-premium-grid>:not([style*="grid-column"]){min-height:300px!important;height:clamp(300px,48vh,370px)!important;max-height:370px!important;padding:14px!important}}
+    @media(max-width:760px){.dm-ev-appearance-grid{grid-template-columns:1fr auto}.dm-brand-preview{grid-column:1/-1}.dm-ev-appearance-grid select{grid-column:1/-1}.dm-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.dm-picker-option{min-height:102px;padding:8px}.dm-unified-icon-row{grid-template-columns:64px minmax(0,1fr)!important}.dm-unified-icon-preview.dm-visual-trigger,.dm-action-icon-preview.dm-visual-trigger{width:64px!important;height:64px!important}.dm-inline-rename{right:5px;width:36px;height:36px}#page-clima .clima-premium-grid{grid-template-columns:1fr!important;gap:12px!important}#page-clima .cp-card,#page-clima .clima-premium-grid>:not([style*="grid-column"]){aspect-ratio:auto!important;min-height:270px!important;height:auto!important;max-height:none!important;padding:14px!important}}
   `);
 }
 

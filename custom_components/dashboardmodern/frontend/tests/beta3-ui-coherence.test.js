@@ -41,7 +41,7 @@ test("section rename is inline with navbar order and updates editor tab labels",
 test("climate cards are capped on mobile and server rows expose their configured values", async () => {
   const personal = await read("src/sections/personalization-section.js");
   const polish = await read("src/sections/editor-polish-section.js");
-  assert.match(personal, /max-height:370px!important/);
+  assert.match(personal, /aspect-ratio:auto!important/);
   assert.match(polish, /dm-server-copy/);
   assert.match(polish, /dm-server-entity-row/);
 });

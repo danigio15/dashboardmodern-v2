@@ -43,6 +43,12 @@ export const CAR_BRANDS = Object.freeze(CAR_NAMES.map((name) => Object.freeze({
   initials: name.split(/[\s-]+/).map((part) => part[0]).join("").slice(0, 3).toUpperCase(),
 })));
 
+export const CAR_ICON_CATALOG = Object.freeze([
+  ["electric","Elettrica","Electric","mdi:car-electric","⚡"],["car","Auto","Car","mdi:car","🚗"],["sports","Sportiva","Sports","mdi:car-sports","🏎️"],
+  ["hatchback","Compatta","Hatchback","mdi:car-hatchback","🚙"],["estate","Station wagon","Estate","mdi:car-estate","🚘"],["pickup","Pickup","Pickup","mdi:car-pickup","🛻"],
+  ["convertible","Cabrio","Convertible","mdi:car-convertible","🏎️"],["wagon","SUV / Wagon","SUV / Wagon","mdi:car-wagon","🚙"],
+].map(([id,it,en,mdi,glyph]) => Object.freeze({ id,it,en,mdi,glyph })));
+
 export const ACTION_ICON_CATALOG = Object.freeze([
   ["home","Casa","Home","mdi:home","🏠"],["lights","Luci","Lights","mdi:lightbulb","💡"],["climate","Clima","Climate","mdi:snowflake","❄️"],
   ["heat","Riscaldamento","Heating","mdi:radiator","🔥"],["security","Sicurezza","Security","mdi:shield-home","🛡️"],["gate","Cancello","Gate","mdi:gate","🚪"],
@@ -81,6 +87,22 @@ export function carBrandVisual(value, size = 48) {
   const initials = item.initials || item.name.slice(0, 2).toUpperCase();
   const fontSize = initials.length > 2 ? 10 : initials.length === 2 ? 13 : 16;
   return `<span class="dm-car-brand" data-brand="${item.id}" title="${item.name}"><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="3" width="42" height="42" rx="14" fill="currentColor" opacity=".12"/><circle cx="24" cy="24" r="15.5" fill="none" stroke="currentColor" stroke-width="2.4" opacity=".9"/><path d="M12.5 29.5h23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".45"/><text x="24" y="28.5" text-anchor="middle" font-size="${fontSize}" font-family="system-ui,sans-serif" font-weight="900" fill="currentColor">${initials}</text></svg></span>`;
+}
+
+export function carIconMatch(value) {
+  const token = normalized(value).replace(/^mdi:/, "").replace(/[-_]+/g, " ");
+  if (!token) return CAR_ICON_CATALOG[0];
+  return CAR_ICON_CATALOG.find((item) =>
+    normalized(item.id) === token || normalized(item.mdi).replace(/^mdi:/, "").replace(/[-_]+/g, " ") === token ||
+    normalized(item.it) === token || normalized(item.en) === token
+  ) || CAR_ICON_CATALOG.find((item) => token.includes(normalized(item.id))) || null;
+}
+
+export function carIconVisual(value, size = 48) {
+  const item = carIconMatch(value) || CAR_ICON_CATALOG[0];
+  const safeSize = Math.max(20, Math.min(160, Number(size) || 48));
+  const glyphSize = Math.max(16, Math.round(safeSize * 0.52));
+  return `<span class="dm-car-icon-glyph" data-car-icon="${item.id}" title="${item.it}" style="width:${safeSize}px;height:${safeSize}px;font-size:${glyphSize}px"><span aria-hidden="true">${item.glyph}</span></span>`;
 }
 
 export function actionCatalogMatch(value) {
