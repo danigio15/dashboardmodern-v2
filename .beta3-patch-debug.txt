@@ -1,13 +1,5 @@
 Traceback (most recent call last):
   File "<stdin>", line 10, in <module>
-  File "<beta3-ui-patcher>", line 85, in <module>
-  File "<beta3-ui-patcher>", line 14, in sub_once
-  File "/usr/lib/python3.12/re/__init__.py", line 197, in subn
-    return _compile(pattern, flags).subn(repl, string, count)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.12/re/__init__.py", line 334, in _compile_template
-    return _sre.template(pattern, _parser.parse_template(repl, pattern))
-                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.12/re/_parser.py", line 1075, in parse_template
-    raise s.error('bad escape %s' % this, len(this)) from None
-re.error: bad escape \S at position 1229 (line 24, column 65)
+  File "<beta3-ui-patcher>", line 25, in <module>
+  File "<beta3-ui-patcher>", line 16, in sub_once
+SystemExit: custom_components/dashboardmodern/frontend/src/core/personalization-catalog.js: expected one replacement, found 0: export const ACTION_ICON_CATALOG = Object\.freeze\(\[.*?\]\.map\(\(\[id,it,en,md
