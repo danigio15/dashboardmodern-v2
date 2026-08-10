@@ -5,3 +5,4 @@ import "./entity-picker-guard-section.js";
 import "./energy-report-polish-section.js";
 import "./personalization-section.js";
 import "./editor-polish-section.js";
+import "./beta4-mobile-polish-section.js";
