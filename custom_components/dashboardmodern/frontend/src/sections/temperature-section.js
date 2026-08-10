@@ -162,6 +162,13 @@ function syncEditRoomPresentation(form, roomId) {
   if (icon) icon.value = clean(room?.icon || "mdi:thermometer");
 }
 
+function resetTemperatureReassignment(form) {
+  if (!form) return;
+  delete form.dataset.dmOriginalRoom;
+  const select = form.querySelector("#dm-temperature-room");
+  if (select) delete select.dataset.dmTemperatureRoomEditable;
+}
+
 function bindTemperatureRoomReassignment(form) {
   const select = form?.querySelector("#dm-temperature-room");
   if (!select) return false;
@@ -171,8 +178,7 @@ function bindTemperatureRoomReassignment(form) {
     select.disabled = false;
     select.dataset.dmTemperatureRoomEditable = "true";
   } else if (form.dataset.dmOriginalRoom) {
-    delete form.dataset.dmOriginalRoom;
-    delete select.dataset.dmTemperatureRoomEditable;
+    resetTemperatureReassignment(form);
   }
 
   if (select.dataset.dmTemperatureReassignBound !== "true") {
@@ -224,7 +230,7 @@ function bindTemperatureRoomReassignment(form) {
           if (originalId !== targetId) await store?.updateItem?.("rooms", originalId, { temp: "", hum: "" });
           await store?.updateItem?.("rooms", targetId, { temp, hum });
         }
-        delete form.dataset.dmOriginalRoom;
+        resetTemperatureReassignment(form);
         root.buildTempCards?.();
         root.setTimeout?.(() => root.editorSwitch?.("sez7"), 0);
       } catch (error) {
@@ -351,6 +357,8 @@ export function installTemperatureSection() {
     doc.addEventListener(
       "click",
       (event) => {
+        const cancel = event.target?.closest?.("[data-temperature-cancel]");
+        if (cancel) resetTemperatureReassignment(cancel.closest("[data-temperature-form]"));
         if (event.target?.closest?.("[data-tab='temp'],[data-tab='temperature'],.ed-tab[data-tab='sez7'],[data-temperature-edit]"))
           root.queueMicrotask?.(() => {
             normalizeTemperatureCards();
