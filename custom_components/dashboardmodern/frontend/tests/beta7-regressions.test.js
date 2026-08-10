@@ -5,17 +5,15 @@ import test from "node:test";
 const entryUrl = new URL("../src/sections/beta-entry-section.js", import.meta.url);
 const guardUrl = new URL("../src/sections/beta7-brand-guard-section.js", import.meta.url);
 const regressionsUrl = new URL("../src/sections/beta7-regression-section.js", import.meta.url);
-const reviewFixesUrl = new URL("../src/sections/beta7-review-fixes-section.js", import.meta.url);
 const flowsUrl = new URL("../src/sections/energy-flow-section.js", import.meta.url);
 
-test("beta7 entry loads guards and review follow-ups in ownership order", async () => {
+test("beta7 entry keeps the two scoped owners in order", async () => {
   const source = await readFile(entryUrl, "utf8");
   const guard = source.indexOf('import "./beta7-brand-guard-section.js"');
   const polish = source.indexOf('import "./beta7-regression-section.js"');
-  const review = source.indexOf('import "./beta7-review-fixes-section.js"');
   assert.ok(guard >= 0);
   assert.ok(polish > guard);
-  assert.ok(review > polish);
+  assert.doesNotMatch(source, /beta7-review-fixes-section/);
 });
 
 test("broken remote car logos keep their image contract and get an inline fallback", async () => {
@@ -49,14 +47,13 @@ test("beta7 final polish owns quick actions, climate and stable shutters", async
   assert.doesNotMatch(source, /MutationObserver|setInterval\s*\(/);
 });
 
-test("review follow-ups keep action text in column two and rerender shutter config changes", async () => {
-  const source = await readFile(reviewFixesUrl, "utf8");
-  assert.match(source, /dm-beta7-action-main/);
+test("existing guard keeps action text in column two and invalidates shutter saves", async () => {
+  const source = await readFile(guardUrl, "utf8");
+  assert.match(source, /dm-beta7-action-row>\.ed-row-main/);
   assert.match(source, /grid-column:2!important/);
-  assert.match(source, /dm-beta7-legacy-action-icon/);
-  assert.match(source, /currentShutterConfigSignature/);
-  assert.match(source, /JSON\.stringify\(Array\.isArray\(list\) \? list : \[\]\)/);
+  assert.match(source, /__dmBeta7ShutterConfigOwner/);
   assert.match(source, /regression\.shutterSignature = ""/);
+  assert.match(source, /root\.edTappAdd = configAwareShutterSave/);
 });
 
 test("period energy main connectors use direction-specific displayed values", async () => {
