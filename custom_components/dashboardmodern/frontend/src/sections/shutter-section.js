@@ -1,4 +1,4 @@
-import { allStates, clean, dashboardStore, doc, installStyle, root, t } from "./shared.js";
+import { allStates, clean, dashboardStore, doc, installStyle, root, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SHUTTER_SECTION__";
 const state = (root[KEY] ||= {
@@ -122,9 +122,6 @@ async function callCoverService(entity, service) {
   scheduleShutterSync();
   try {
     await root.dmCallHaService?.("cover", service, { entity_id: entity });
-    // The RPC result only confirms that Home Assistant accepted the command.
-    // Keep the action busy until the actual cover state changes. This bounded
-    // timeout is only a safety net for a lost state event; it is not polling.
     pending.timeout = root.setTimeout?.(() => {
       if (state.busy.get(entity) !== pending) return;
       state.busy.delete(entity);
@@ -242,8 +239,26 @@ function ensureAlert(items) {
   return true;
 }
 
+function polishShutterPage() {
+  const page = doc?.getElementById("page-tapparelle");
+  if (!page) return false;
+  page.dataset.dmShutterDesign = "beta9";
+  page.querySelectorAll(".tapp-card").forEach((card) => card.classList.add("dm-beta9-shutter-card"));
+  page.querySelectorAll(".tapp-win").forEach((windowNode) => windowNode.classList.add("dm-beta9-shutter-window"));
+
+  const masterButtons = [...page.querySelectorAll("button")].filter((button) => /(?:tutte|all)/i.test(clean(button.textContent)));
+  masterButtons.forEach((button) => {
+    button.classList.add("dm-beta9-shutter-master-button");
+    button.parentElement?.classList.add("dm-beta9-shutter-master");
+    if (/apri|open/i.test(clean(button.textContent))) button.dataset.masterAction = "open";
+    else if (/chiudi|close/i.test(clean(button.textContent))) button.dataset.masterAction = "close";
+  });
+  return true;
+}
+
 export function syncShutterSection() {
   if (!doc) return false;
+  polishShutterPage();
   const items = openCovers();
   if (!items.length) {
     doc.querySelector("#tapp-avvisi .dm-shutter-alert")?.remove();
@@ -267,6 +282,14 @@ export function scheduleShutterSync() {
     syncShutterSection();
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
+}
+
+function installShutterWrapper() {
+  return wrapFunction(
+    "renderTapparelle",
+    "__dmBeta9ShutterPagePolish",
+    () => root.setTimeout?.(scheduleShutterSync, 0),
+  );
 }
 
 function subscribeStore() {
@@ -299,6 +322,23 @@ function installStyles() {
       .dm-shutter-actions button[data-shutter-service="stop_cover"]{background:var(--ha-card-background,var(--card-bg,#fff))!important}
       .dm-shutter-actions button[data-shutter-service="close_cover"]{background:var(--accent-color,var(--accent,#0ea5e9))!important;color:#fff!important}
       .dm-shutter-actions button:disabled{cursor:wait!important;opacity:.65!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"]{max-width:1180px!important;margin-inline:auto!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .dm-beta9-shutter-master{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;max-width:760px!important;margin:0 auto 20px!important;padding:9px!important;border:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;border-radius:20px!important;background:var(--card-background-color,var(--card-bg,#fff))!important;box-shadow:var(--shadow-sculpted,0 5px 18px rgba(15,23,42,.08))!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .dm-beta9-shutter-master-button{min-height:48px!important;margin:0!important;border:0!important;border-radius:14px!important;font-weight:900!important;box-shadow:none!important;color:#fff!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .dm-beta9-shutter-master-button[data-master-action="open"]{background:linear-gradient(135deg,#10b981,#15803d)!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .dm-beta9-shutter-master-button[data-master-action="close"]{background:linear-gradient(135deg,#0ea5e9,#0369a1)!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] #tapp-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(260px,330px))!important;justify-content:start!important;gap:16px!important;padding:0!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-card.dm-beta9-shutter-card{box-sizing:border-box!important;width:100%!important;max-width:330px!important;min-height:0!important;padding:16px!important;gap:12px!important;border:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;border-radius:22px!important;background:var(--card-background-color,var(--card-bg,#fff))!important;box-shadow:var(--shadow-sculpted,0 5px 18px rgba(15,23,42,.08))!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-head{min-height:34px!important;padding:0!important}.tapp-card.dm-beta9-shutter-card .tapp-name{font-size:15px!important;font-weight:900!important;text-transform:none!important;letter-spacing:0!important}.tapp-card.dm-beta9-shutter-card .tapp-state{padding:5px 9px!important;border-radius:999px!important;font-size:10px!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-win.dm-beta9-shutter-window{position:relative!important;height:142px!important;margin:0!important;border:8px solid var(--secondary-background-color,#f1f5f9)!important;outline:1px solid var(--divider-color,#dbe4ee)!important;border-radius:18px!important;overflow:hidden!important;background:linear-gradient(160deg,#dff6ff 0%,#eff9ff 52%,#d9f7e8 100%)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.9)!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-win.dm-beta9-shutter-window::before{content:"";position:absolute!important;left:50%!important;top:0!important;bottom:0!important;width:3px!important;transform:translateX(-1.5px)!important;background:rgba(148,163,184,.34)!important;z-index:1!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-win.dm-beta9-shutter-window::after{content:"";position:absolute!important;left:0!important;right:0!important;bottom:0!important;height:9px!important;background:#e2e8f0!important;box-shadow:0 -1px 0 rgba(100,116,139,.18)!important;z-index:3!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-glass{inset:0!important;border-radius:8px!important;background:linear-gradient(135deg,rgba(255,255,255,.62),rgba(255,255,255,.08) 48%,rgba(16,185,129,.07))!important;box-shadow:none!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-glass::before,html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-glass::after{display:none!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-shutter{left:0!important;right:0!important;top:0!important;width:auto!important;border-radius:7px 7px 3px 3px!important;background:repeating-linear-gradient(180deg,#ffffff 0 8px,#dfe7ef 8px 10px,#cbd5e1 10px 11px)!important;box-shadow:0 5px 12px rgba(15,23,42,.15)!important;transition:height .55s cubic-bezier(.2,.8,.2,1)!important;z-index:2!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-shutter::before{height:8px!important;background:linear-gradient(180deg,#fff,#dbe4ec)!important}.tapp-card.dm-beta9-shutter-card .tapp-shutter::after{height:5px!important;background:#94a3b8!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-pos{font-size:13px!important;font-weight:850!important;color:var(--secondary-text-color,#64748b)!important}
+      html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-ctl{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}.tapp-card.dm-beta9-shutter-card .tapp-btn{height:42px!important;border-radius:12px!important;background:var(--secondary-background-color,#eef3f8)!important;color:var(--primary-text-color,#0f172a)!important;border:1px solid var(--divider-color,#dbe4ee)!important;box-shadow:none!important;font-size:12px!important;font-weight:850!important}.tapp-card.dm-beta9-shutter-card .tapp-btn:first-child{background:color-mix(in srgb,#10b981 12%,#fff)!important;color:#047857!important;border-color:color-mix(in srgb,#10b981 28%,#dbe4ee)!important}.tapp-card.dm-beta9-shutter-card .tapp-btn:last-child{background:color-mix(in srgb,#0ea5e9 12%,#fff)!important;color:#0369a1!important;border-color:color-mix(in srgb,#0ea5e9 28%,#dbe4ee)!important}
       @media(max-width:640px){
         .dm-shutter-popup{align-items:center!important;justify-content:center!important;padding:14px 12px!important}
         .dm-shutter-popup-card{width:calc(100% - 4px)!important;max-width:560px!important;max-height:84dvh!important;border-radius:22px!important}
@@ -309,6 +349,9 @@ function installStyles() {
         .dm-shutter-popup-row{grid-template-columns:42px minmax(0,1fr)!important;gap:9px!important;padding:10px!important;border-radius:14px!important}
         .dm-shutter-actions{grid-column:1/-1!important;gap:5px!important}
         .dm-shutter-actions button{min-height:38px!important;padding:6px 7px!important;font-size:11px!important}
+        html body #page-tapparelle[data-dm-shutter-design="beta9"] #tapp-grid{grid-template-columns:1fr!important;justify-content:stretch!important}
+        html body #page-tapparelle[data-dm-shutter-design="beta9"] .tapp-card.dm-beta9-shutter-card{max-width:none!important}
+        html body #page-tapparelle[data-dm-shutter-design="beta9"] .dm-beta9-shutter-master{grid-template-columns:1fr 1fr!important;margin-inline:0!important}
       }
     `,
   );
@@ -317,11 +360,13 @@ function installStyles() {
 export function installShutterSection() {
   if (!doc) return;
   installStyles();
+  installShutterWrapper();
   subscribeStore();
   if (!state.installed) {
     state.installed = true;
     for (const eventName of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
       root.addEventListener?.(eventName, () => {
+        installShutterWrapper();
         subscribeStore();
         scheduleShutterSync();
       });
@@ -331,6 +376,9 @@ export function installShutterSection() {
       for (const entity of eventEntityIds(event)) clearBusy(entity);
       scheduleShutterSync();
     });
+    doc.addEventListener("click", (event) => {
+      if (event.target?.closest?.('.tab[data-tab="tapparelle"]')) root.setTimeout?.(scheduleShutterSync, 0);
+    }, true);
   }
   scheduleShutterSync();
 }

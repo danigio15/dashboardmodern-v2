@@ -5,9 +5,10 @@ import test from "node:test";
 const ROOT = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), "utf8");
 
-test("feedback layer remains the only quick-action icon owner", async () => {
+test("feedback layer keeps legacy quick-action defaults while beta9 owns stable visual picking", async () => {
   const entry = await read("src/sections/beta-entry-section.js");
   const feedback = await read("src/sections/beta6-feedback-section.js");
+  const guard = await read("src/sections/beta7-brand-guard-section.js");
   assert.match(entry, /beta4-mobile-polish-section\.js";\nimport "\.\/beta6-feedback-section\.js";/);
   assert.doesNotMatch(entry, /quickActionGlyphByType|buildQuickActions|dm-beta6-quick-action-layout/);
   assert.match(feedback, /luci_group:\{glyph:"💡",mdi:"mdi:lightbulb-group"\}/);
@@ -17,26 +18,33 @@ test("feedback layer remains the only quick-action icon owner", async () => {
   assert.match(feedback, /toggle:\{glyph:"🔀",mdi:"mdi:toggle-switch-outline"\}/);
   assert.match(feedback, /script:\{glyph:"▶️",mdi:"mdi:script-text-play"\}/);
   assert.match(feedback, /scene:\{glyph:"🎬",mdi:"mdi:movie-open"\}/);
+  assert.match(guard, /openStableActionPicker/);
+  assert.match(guard, /input\.value = item\.mdi/);
 });
 
-test("quick-action editor stores short glyphs and keeps a readable mobile layout", async () => {
+test("legacy quick-action editor remains compatible while beta9 replaces blank WebView icon picking", async () => {
   const source = await read("src/sections/beta6-feedback-section.js");
+  const guard = await read("src/sections/beta7-brand-guard-section.js");
   assert.match(source, /input\.closest\?\.\("\.ed-form-row"\)/);
-  assert.match(source, /input\.value = item\.glyph/);
   assert.match(source, /input\.insertAdjacentElement\("afterend",preview\)/);
   assert.match(source, /#ed-qa-icon\.dm-beta6-qa-icon-value\{display:none!important\}/);
   assert.match(source, /grid-template-columns:minmax\(0,1fr\) 56px!important/);
   assert.match(source, /#ed-qa-name\{grid-column:1\/-1!important\}/);
   assert.match(source, /root\.cdIconMarkup\?\.\(mdi, size\)/);
   assert.match(source, /__dmBeta7QuickIcons/);
+  assert.match(guard, /\.dm-beta6-qa-icon-trigger/);
+  assert.match(guard, /event\.stopImmediatePropagation\(\)/);
+  assert.match(guard, /actionVisual\(item\.mdi, 40\)/);
 });
 
-test("manufacturer art is canonical and is not swapped after render", async () => {
+test("manufacturer art is canonical, with a local Leapmotor emblem and no post-render swapping", async () => {
   const catalog = await read("src/core/personalization-catalog.js");
   const feedback = await read("src/sections/beta6-feedback-section.js");
   assert.match(catalog, /SIMPLE_ICONS_VERSION = "16\.27\.1"/);
   assert.match(catalog, /simple-icons@\$\{SIMPLE_ICONS_VERSION\}\/icons\/\$\{slug\}\.svg/);
-  assert.match(catalog, /upload\.wikimedia\.org\/wikipedia\/commons\/d\/d8\/Leapmotor_logo_en\.svg/);
+  assert.match(catalog, /function leapmotorVisual/);
+  assert.match(catalog, /dm-leapmotor-mark/);
+  assert.doesNotMatch(catalog, /upload\.wikimedia\.org\/wikipedia\/commons\/d\/d8\/Leapmotor_logo_en\.svg/);
   assert.match(catalog, /data-brand-source="canonical"/);
   assert.match(catalog, /data-dm-beta5-brand="\$\{item\.name\}"/);
   assert.match(catalog, /data-brand-logo="\$\{item\.id\}"/);

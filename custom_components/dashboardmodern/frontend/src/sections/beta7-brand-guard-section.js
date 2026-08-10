@@ -1,3 +1,4 @@
+import { ACTION_ICON_CATALOG, actionVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_BETA7_BRAND_GUARD__";
@@ -39,6 +40,46 @@ function guardImage(img) {
 
 function guardAll() {
   doc?.querySelectorAll?.("img[data-dm-brand-image]").forEach(guardImage);
+}
+
+function closeStableActionPicker() {
+  doc?.getElementById("dm-beta9-action-picker")?.remove();
+  // Also remove the beta6 picker if an old handler managed to mount it first.
+  doc?.getElementById("dm-beta6-quick-icon-picker")?.remove();
+}
+
+function openStableActionPicker(input) {
+  if (!input || !doc) return false;
+  closeStableActionPicker();
+  const english = clean(doc.documentElement?.lang).toLowerCase().startsWith("en");
+  const modal = doc.createElement("div");
+  modal.id = "dm-beta9-action-picker";
+  modal.className = "dm-section-modal dm-visual-picker";
+  modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>⚡ ${english ? "Choose action icon" : "Scegli icona azione"}</strong><button type="button" data-close aria-label="Close">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${english ? "Search…" : "Cerca…"}" data-search></div><div class="dm-picker-grid dm-beta9-action-icon-grid">${ACTION_ICON_CATALOG.map((item, index) => `<button type="button" class="dm-picker-option" data-index="${index}" data-search-text="${esc(`${item.it} ${item.en} ${item.id} ${item.mdi}`.toLowerCase())}"><span class="dm-picker-visual">${actionVisual(item.mdi, 40)}</span><b>${esc(english ? item.en : item.it)}</b></button>`).join("")}</div></section>`;
+  doc.body.append(modal);
+  modal.querySelector("[data-close]")?.addEventListener("click", closeStableActionPicker);
+  modal.addEventListener("click", (event) => { if (event.target === modal) closeStableActionPicker(); });
+  modal.querySelector("[data-search]")?.addEventListener("input", (event) => {
+    const query = clean(event.target.value).toLowerCase();
+    modal.querySelectorAll(".dm-picker-option").forEach((button) => {
+      button.hidden = Boolean(query) && !button.dataset.searchText.includes(query);
+    });
+  });
+  modal.querySelectorAll(".dm-picker-option").forEach((button) => button.addEventListener("click", () => {
+    const item = ACTION_ICON_CATALOG[Number(button.dataset.index)];
+    if (!item) return;
+    // Persist MDI tokens, not platform-dependent emoji. Every surface then uses
+    // the same local SVG renderer from personalization-catalog.
+    input.value = item.mdi;
+    input.dataset.dmBeta7DefaultGlyph = "";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    const trigger = input.closest?.(".ed-form-row")?.querySelector?.(".dm-beta6-qa-icon-trigger");
+    if (trigger) trigger.innerHTML = actionVisual(item.mdi, 30);
+    closeStableActionPicker();
+  }));
+  root.setTimeout?.(() => modal.querySelector("[data-search]")?.focus(), 20);
+  return true;
 }
 
 function resetShutterSignature() {
@@ -123,6 +164,16 @@ function installStyles() {
       overflow:hidden!important;
       text-overflow:ellipsis!important;
     }
+
+    /* beta9: restore compact Home quick actions. One configured action must not
+       grow into a full-width empty billboard, and its vector icon stays small. */
+    html body #page-home #qa-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,210px))!important;justify-content:start!important;align-items:stretch!important;gap:14px!important;width:100%!important}
+    html body #page-home #qa-grid .qa-btn{box-sizing:border-box!important;width:100%!important;max-width:210px!important;min-height:116px!important;height:auto!important;padding:16px 14px!important;border-radius:22px!important;justify-content:center!important;gap:9px!important;background:var(--card-background-color,var(--card-bg,#fff))!important;box-shadow:var(--shadow-sculpted,0 5px 18px rgba(15,23,42,.08))!important}
+    html body #page-home #qa-grid .qa-btn .icon{display:grid!important;place-items:center!important;width:46px!important;height:46px!important;min-width:46px!important;min-height:46px!important;padding:9px!important;border-radius:14px!important;background:color-mix(in srgb,var(--accent,#0ea5e9) 10%,var(--card-background-color,#fff))!important;color:var(--accent,#0ea5e9)!important;box-shadow:none!important}
+    html body #page-home #qa-grid .qa-btn .icon .dm-action-glyph{display:grid!important;place-items:center!important;width:28px!important;height:28px!important;max-width:28px!important;max-height:28px!important;color:inherit!important}
+    html body #page-home #qa-grid .qa-btn .icon .dm-action-glyph svg{display:block!important;width:28px!important;height:28px!important;max-width:28px!important;max-height:28px!important}
+    #dm-beta9-action-picker{z-index:100030!important}#dm-beta9-action-picker .dm-beta9-action-icon-grid .dm-picker-option{min-height:106px!important}#dm-beta9-action-picker .dm-picker-visual{display:grid!important;place-items:center!important;width:46px!important;height:46px!important;color:var(--accent,#0ea5e9)!important}#dm-beta9-action-picker .dm-action-glyph,#dm-beta9-action-picker .dm-action-glyph svg{display:block!important;width:40px!important;height:40px!important;max-width:40px!important;max-height:40px!important}
+    @media(max-width:560px){html body #page-home #qa-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;justify-content:stretch!important}html body #page-home #qa-grid .qa-btn{max-width:none!important;min-height:108px!important}}
   `);
 }
 
@@ -144,6 +195,16 @@ export function installBeta7BrandGuardSection() {
     });
   root.addEventListener?.("dashboardmodern:states-ready", schedule);
   doc.addEventListener("click", (event) => {
+    const actionTrigger = event.target?.closest?.(".dm-beta6-qa-icon-trigger");
+    if (actionTrigger) {
+      const input = doc.getElementById("ed-qa-icon");
+      if (input) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        openStableActionPicker(input);
+        return;
+      }
+    }
     if (event.target?.closest?.('[data-brand-preview],.tab[data-tab="ev"],.ed-tab[data-tab="sez2"]'))
       root.setTimeout?.(schedule, 0);
   }, true);

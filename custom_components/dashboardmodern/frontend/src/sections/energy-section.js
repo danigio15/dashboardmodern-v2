@@ -412,13 +412,13 @@ function financial(data, bundle) {
   const importCost = data.gridImport * bundle.rates.importPrice;
   const exportIncome = data.gridExport * bundle.rates.exportPrice;
   const withoutSolar = data.house * bundle.rates.importPrice;
-  const realCost = Math.max(0, importCost - exportIncome);
+  const realCost = importCost;
   return {
     importCost,
     exportIncome,
     withoutSolar,
     realCost,
-    saved: Math.max(0, withoutSolar - realCost),
+    saved: Math.max(0, withoutSolar - importCost),
   };
 }
 
