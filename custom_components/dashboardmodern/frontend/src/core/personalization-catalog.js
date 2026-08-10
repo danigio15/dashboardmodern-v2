@@ -55,9 +55,7 @@ const SIMPLE_ICON_SLUGS = Object.freeze({
   renault:"renault", seat:"seat", skoda:"skoda", smart:"smart", subaru:"subaru", suzuki:"suzuki",
   tesla:"tesla", toyota:"toyota", volkswagen:"volkswagen", volvo:"volvo", xpeng:"xpeng",
 });
-const CAR_BRAND_OVERRIDES = Object.freeze({
-  leapmotor: "https://upload.wikimedia.org/wikipedia/commons/d/d8/Leapmotor_logo_en.svg",
-});
+const CAR_BRAND_OVERRIDES = Object.freeze({});
 
 export function carBrandImageSource(value) {
   const item = brandMatch(value);
@@ -82,9 +80,36 @@ export const ACTION_ICON_CATALOG = Object.freeze([
   ["water","Acqua","Water","mdi:water","💧"],["camera","Telecamera","Camera","mdi:cctv","📷"],["bell","Avviso","Alert","mdi:bell","🔔"],["star","Preferito","Favorite","mdi:star","⭐"],
 ].map(([id,it,en,mdi,glyph]) => Object.freeze({ id,it,en,mdi,glyph })));
 
+const ACTION_ARTWORK = Object.freeze({
+  home:"<path d='M7 22L24 8l17 14v18H29V29H19v11H7z'/>",
+  lights:"<path d='M17 30c-4-3-6-7-6-12a13 13 0 0 1 26 0c0 5-2 9-6 12l-2 3H19z'/><path d='M19 37h10M20 41h8'/>",
+  "lights-group":"<path d='M7 27c-3-2-4-5-4-8a9 9 0 0 1 18 0c0 3-1 6-4 8l-1 3H8z'/><path d='M31 27c-3-2-4-5-4-8a9 9 0 0 1 18 0c0 3-1 6-4 8l-1 3h-8z'/><path d='M9 34h6m18 0h6'/>",
+  climate:"<path d='M24 5v38M8 14l32 20M8 34l32-20'/><path d='M19 10l5-5 5 5M19 38l5 5 5-5M9 20l-1-6 6-1M34 35l6-1-1-6M14 35l-6-1 1-6M39 20l1-6-6-1'/>",
+  heat:"<rect x='9' y='12' width='30' height='27' rx='4'/><path d='M16 12v27m8-27v27m8-27v27M12 8v4m24-4v4M14 43v-4m20 4v-4'/>",
+  security:"<path d='M24 5l15 6v11c0 10-6 17-15 21C15 39 9 32 9 22V11z'/><path d='M18 23l4 4 8-9'/>",
+  gate:"<path d='M8 41V9h32v32M14 41V15h20v26M14 23h20M14 31h20'/>",
+  shutters:"<rect x='8' y='7' width='32' height='34' rx='3'/><path d='M12 13h24M12 19h24M12 25h24M12 31h24M12 37h24'/>",
+  scene:"<rect x='7' y='17' width='34' height='24' rx='3'/><path d='M7 17l5-10h29l-5 10M17 7l-5 10M29 7l-5 10'/>",
+  script:"<path d='M12 6h18l7 7v29H12z'/><path d='M30 6v8h7M18 23l12 7-12 7z'/>",
+  toggle:"<rect x='5' y='15' width='38' height='18' rx='9'/><circle cx='31' cy='24' r='6'/>",
+  laundry:"<rect x='9' y='5' width='30' height='38' rx='5'/><circle cx='24' cy='27' r='10'/><path d='M14 11h3m5 0h12'/>",
+  power:"<path d='M27 4L11 27h11l-2 17 17-25H26z'/>",
+  ev:"<path d='M10 31l3-12h22l4 12v8H9v-8z'/><path d='M15 19l4-7h10l4 7M15 31h18'/><circle cx='15' cy='37' r='3'/><circle cx='33' cy='37' r='3'/><path d='M24 21v8m-3-4h6'/>",
+  boiler:"<rect x='11' y='7' width='26' height='34' rx='6'/><path d='M18 27c0-5 6-7 6-13 5 5 8 9 6 14-1 4-4 7-7 7s-5-3-5-8z'/>",
+  water:"<path d='M24 5S11 21 11 30a13 13 0 0 0 26 0C37 21 24 5 24 5z'/>",
+  camera:"<rect x='7' y='13' width='34' height='26' rx='5'/><circle cx='24' cy='26' r='8'/><path d='M14 13l4-6h12l4 6'/>",
+  bell:"<path d='M11 34h26l-4-6v-8a9 9 0 0 0-18 0v8z'/><path d='M20 39c2 4 6 4 8 0'/>",
+  star:"<path d='M24 5l6 12 13 2-9 9 2 13-12-6-12 6 2-13-9-9 13-2z'/>",
+});
+
 function svg(body, size, className, token) {
   const safeSize = Math.max(16, Math.min(160, Number(size) || 48));
   return `<span class="${className}" data-visual="${token}"><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg></span>`;
+}
+
+function leapmotorVisual(size = 48) {
+  const safeSize = Math.max(20, Math.min(160, Number(size) || 48));
+  return `<span class="dm-car-brand dm-leapmotor-mark" data-brand="leapmotor" data-brand-source="inline" data-dm-beta5-brand="Leapmotor" title="Leapmotor" style="width:${safeSize}px;height:${safeSize}px"><span data-brand-logo="leapmotor" style="display:grid;place-items:center;width:100%;height:100%"><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" aria-hidden="true" fill="currentColor"><path d="M6 16 17 10v19l6 4v9L6 32z"/><path d="M24 5l18 10v17l-14 8V28l7-4v-6l-7-4v31l-4-2z"/></svg></span></span>`;
 }
 
 export function roomCatalogMatch(value) {
@@ -109,6 +134,7 @@ export function brandMatch(value) {
 export function carBrandVisual(value, size = 48) {
   const item = brandMatch(value) || CAR_BRANDS.find((brand) => brand.name === "Leapmotor") || CAR_BRANDS[0];
   const safeSize = Math.max(20, Math.min(160, Number(size) || 48));
+  if (item.id === "leapmotor") return leapmotorVisual(safeSize);
   const source = carBrandImageSource(item.name);
   if (source) {
     const width = Math.max(safeSize, Math.round(safeSize * 1.75));
@@ -147,9 +173,7 @@ export function actionCatalogMatch(value) {
 export function actionVisual(value, size = 48) {
   const item = actionCatalogMatch(value);
   if (!item) return "";
-  const safeSize = Math.max(20, Math.min(160, Number(size) || 48));
-  const glyphSize = Math.max(16, Math.round(safeSize * 0.55));
-  return `<span class="dm-action-glyph" data-action="${item.id}" title="${item.it}" style="width:${safeSize}px;height:${safeSize}px;font-size:${glyphSize}px"><span aria-hidden="true">${item.glyph}</span></span>`;
+  return svg(ACTION_ARTWORK[item.id] || ACTION_ARTWORK.star, size, "dm-action-glyph", item.id);
 }
 
 export function roomOptionsMarkup({ selected = "", english = false } = {}) {
