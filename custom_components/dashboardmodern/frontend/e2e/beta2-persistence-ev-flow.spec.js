@@ -99,7 +99,7 @@ async function openEditor(page, tab) {
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: beta2 saves EV appearance and keeps legacy mappings`, async ({ page }, testInfo) => {
+  test(`${variant}: beta2 saves EV brand/model and keeps legacy mappings`, async ({ page }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 150_000 : 90_000);
     await boot(page, variant, testInfo);
 
@@ -124,17 +124,21 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const profile = page.locator("#ev-car-picker .dm-vehicle-profile-card").first();
     await expect(profile).toBeVisible();
     await expect(profile).toContainText("Pluto");
-    const brandImage = profile.locator('.dm-vehicle-profile-icon img[data-dm-brand-image="leapmotor"]');
-    await expect(brandImage).toHaveCount(1);
-    await expect(brandImage).toHaveAttribute("src", /Leapmotor_logo_en\.svg/);
+    const brandMark = profile.locator('.dm-vehicle-profile-icon .dm-leapmotor-mark[data-brand="leapmotor"][data-brand-source="inline"]');
+    await expect(brandMark).toHaveCount(1);
+    await expect(brandMark.locator("svg")).toHaveCount(1);
+    await expect(profile.locator('.dm-vehicle-profile-icon img[data-dm-brand-image="leapmotor"]')).toHaveCount(0);
     await expect(profile.locator(".dm-vehicle-profile-icon")).not.toContainText("🚗");
 
     await openEditor(page, "sez2");
     const appearance = page.locator("#ed-body [data-ev-appearance]");
     await expect(appearance).toBeVisible();
     await appearance.locator("select[data-brand]").selectOption("BMW");
-    await appearance.locator("input[data-icon]").fill("mdi:car-sports");
+    const modelSelect = appearance.locator("select[data-model]");
+    await expect(modelSelect).toContainText("i4");
+    await modelSelect.selectOption("i4");
     await expect(appearance.locator("select[data-brand]")).toHaveValue("BMW");
+    await expect(modelSelect).toHaveValue("i4");
     await appearance.locator("button[data-save]").click();
 
     await expect.poll(() =>
@@ -142,7 +146,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     ).toMatchObject({
       id: "ev-pluto",
       brand: "BMW",
-      icon: "mdi:car-sports",
+      model: "i4",
+      icon: "mdi:car-electric",
       img: "/local/pluto.png",
       ov: {
         "dm.ev_batteria_auto": "sensor.pluto_soc",
@@ -162,11 +167,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       }),
     }));
 
-    const persistedBrand = await page.evaluate(() => {
+    const persisted = await page.evaluate(() => {
       const remote = JSON.parse(localStorage.getItem("__beta2_remote_user_data__"));
-      return JSON.parse(remote.values.cd_ev_cars)[0].brand;
+      const car = JSON.parse(remote.values.cd_ev_cars)[0];
+      return { brand: car.brand, model: car.model };
     });
-    expect(persistedBrand).toBe("BMW");
+    expect(persisted).toEqual({ brand: "BMW", model: "i4" });
   });
 
   test(`${variant}: beta2 binds daily and monthly load flow animation to displayed energy`, async ({ page }, testInfo) => {
