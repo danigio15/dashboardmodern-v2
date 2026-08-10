@@ -124,7 +124,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const profile = page.locator("#ev-car-picker .dm-vehicle-profile-card").first();
     await expect(profile).toBeVisible();
     await expect(profile).toContainText("Pluto");
-    await expect(profile.locator(".dm-vehicle-profile-icon svg")).toHaveCount(1);
+    const brandImage = profile.locator('.dm-vehicle-profile-icon img[data-dm-brand-image="leapmotor"]');
+    await expect(brandImage).toHaveCount(1);
+    await expect(brandImage).toHaveAttribute("src", /Leapmotor_logo_en\.svg/);
     await expect(profile.locator(".dm-vehicle-profile-icon")).not.toContainText("🚗");
 
     await openEditor(page, "sez2");

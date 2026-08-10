@@ -1,4 +1,6 @@
-/* DashboardModern personalization visuals. Pure helpers, no external assets. */
+/* DashboardModern personalization visuals. Room/action artwork is local; vehicle
+   brand marks use pinned public SVG sources so the same canonical helper owns
+   picker, editor, profile cards and EV header without post-render swapping. */
 
 const clean = (value) => String(value ?? "").trim();
 const normalized = (value) => clean(value).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -43,6 +45,28 @@ export const CAR_BRANDS = Object.freeze(CAR_NAMES.map((name) => Object.freeze({
   initials: name.split(/[\s-]+/).map((part) => part[0]).join("").slice(0, 3).toUpperCase(),
 })));
 
+const SIMPLE_ICONS_VERSION = "16.27.1";
+const SIMPLE_ICON_SLUGS = Object.freeze({
+  abarth:"abarth", "alfa-romeo":"alfaromeo", audi:"audi", bmw:"bmw", byd:"byd",
+  citroen:"citroen", cupra:"cupra", dacia:"dacia", ds:"dsautomobiles", fiat:"fiat",
+  ford:"ford", honda:"honda", hyundai:"hyundai", jeep:"jeep", kia:"kia", lancia:"lancia",
+  lexus:"lexus", mazda:"mazda", "mercedes-benz":"mercedesbenz", mg:"mg", mini:"mini",
+  nissan:"nissan", opel:"opel", peugeot:"peugeot", polestar:"polestar", porsche:"porsche",
+  renault:"renault", seat:"seat", skoda:"skoda", smart:"smart", subaru:"subaru", suzuki:"suzuki",
+  tesla:"tesla", toyota:"toyota", volkswagen:"volkswagen", volvo:"volvo", xpeng:"xpeng",
+});
+const CAR_BRAND_OVERRIDES = Object.freeze({
+  leapmotor: "https://upload.wikimedia.org/wikipedia/commons/d/d8/Leapmotor_logo_en.svg",
+});
+
+export function carBrandImageSource(value) {
+  const item = brandMatch(value);
+  if (!item) return "";
+  if (CAR_BRAND_OVERRIDES[item.id]) return CAR_BRAND_OVERRIDES[item.id];
+  const slug = SIMPLE_ICON_SLUGS[item.id];
+  return slug ? `https://cdn.jsdelivr.net/npm/simple-icons@${SIMPLE_ICONS_VERSION}/icons/${slug}.svg` : "";
+}
+
 export const CAR_ICON_CATALOG = Object.freeze([
   ["electric","Elettrica","Electric","mdi:car-electric","⚡"],["car","Auto","Car","mdi:car","🚗"],["sports","Sportiva","Sports","mdi:car-sports","🏎️"],
   ["hatchback","Compatta","Hatchback","mdi:car-hatchback","🚙"],["estate","Station wagon","Estate","mdi:car-estate","🚘"],["pickup","Pickup","Pickup","mdi:car-pickup","🛻"],
@@ -50,9 +74,10 @@ export const CAR_ICON_CATALOG = Object.freeze([
 ].map(([id,it,en,mdi,glyph]) => Object.freeze({ id,it,en,mdi,glyph })));
 
 export const ACTION_ICON_CATALOG = Object.freeze([
-  ["home","Casa","Home","mdi:home","🏠"],["lights","Luci","Lights","mdi:lightbulb","💡"],["climate","Clima","Climate","mdi:snowflake","❄️"],
-  ["heat","Riscaldamento","Heating","mdi:radiator","🔥"],["security","Sicurezza","Security","mdi:shield-home","🛡️"],["gate","Cancello","Gate","mdi:gate","🚪"],
-  ["shutters","Tapparelle","Shutters","mdi:window-shutter","🪟"],["scene","Scena","Scene","mdi:movie-open","🎬"],["script","Script","Script","mdi:script-text-play","▶️"],
+  ["home","Casa","Home","mdi:home","🏠"],["lights","Luci","Lights","mdi:lightbulb","💡"],["lights-group","Gruppo luci","Light group","mdi:lightbulb-group","💡"],
+  ["climate","Clima","Climate","mdi:snowflake","❄️"],["heat","Riscaldamento","Heating","mdi:radiator","🔥"],["security","Sicurezza","Security","mdi:shield-home","🛡️"],
+  ["gate","Cancello","Gate","mdi:gate","🚪"],["shutters","Tapparelle","Shutters","mdi:window-shutter","🪟"],["scene","Scena","Scene","mdi:movie-open","🎬"],
+  ["script","Script","Script","mdi:script-text-play","▶️"],["toggle","Interruttore","Toggle","mdi:toggle-switch-outline","🔀"],["laundry","Lavatrice","Washing machine","mdi:washing-machine","🧺"],
   ["power","Energia","Power","mdi:flash","⚡"],["ev","Auto","Car","mdi:car-electric","🚗"],["boiler","Boiler","Boiler","mdi:water-boiler","♨️"],
   ["water","Acqua","Water","mdi:water","💧"],["camera","Telecamera","Camera","mdi:cctv","📷"],["bell","Avviso","Alert","mdi:bell","🔔"],["star","Preferito","Favorite","mdi:star","⭐"],
 ].map(([id,it,en,mdi,glyph]) => Object.freeze({ id,it,en,mdi,glyph })));
@@ -84,9 +109,14 @@ export function brandMatch(value) {
 export function carBrandVisual(value, size = 48) {
   const item = brandMatch(value) || CAR_BRANDS.find((brand) => brand.name === "Leapmotor") || CAR_BRANDS[0];
   const safeSize = Math.max(20, Math.min(160, Number(size) || 48));
+  const source = carBrandImageSource(item.name);
+  if (source) {
+    const width = Math.max(safeSize, Math.round(safeSize * 1.75));
+    return `<span class="dm-car-brand" data-brand="${item.id}" data-brand-source="canonical" data-dm-beta5-brand="${item.name}" title="${item.name}" style="width:${width}px;height:${safeSize}px"><span data-brand-logo="${item.id}" style="display:grid;place-items:center;width:100%;height:100%"><img data-dm-brand-image="${item.id}" src="${source}" alt="${item.name}" decoding="async" loading="eager" referrerpolicy="no-referrer" style="display:block;width:100%;height:100%;object-fit:contain;object-position:center"></span></span>`;
+  }
   const initials = item.initials || item.name.slice(0, 2).toUpperCase();
   const fontSize = initials.length > 2 ? 10 : initials.length === 2 ? 13 : 16;
-  return `<span class="dm-car-brand" data-brand="${item.id}" title="${item.name}"><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="3" width="42" height="42" rx="14" fill="currentColor" opacity=".12"/><circle cx="24" cy="24" r="15.5" fill="none" stroke="currentColor" stroke-width="2.4" opacity=".9"/><path d="M12.5 29.5h23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".45"/><text x="24" y="28.5" text-anchor="middle" font-size="${fontSize}" font-family="system-ui,sans-serif" font-weight="900" fill="currentColor">${initials}</text></svg></span>`;
+  return `<span class="dm-car-brand" data-brand="${item.id}" data-brand-source="fallback" data-dm-beta5-brand="${item.name}" title="${item.name}" style="width:${safeSize}px;height:${safeSize}px"><span data-brand-logo="${item.id}"><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="3" width="42" height="42" rx="14" fill="currentColor" opacity=".12"/><circle cx="24" cy="24" r="15.5" fill="none" stroke="currentColor" stroke-width="2.4" opacity=".9"/><text x="24" y="28.5" text-anchor="middle" font-size="${fontSize}" font-family="system-ui,sans-serif" font-weight="900" fill="currentColor">${initials}</text></svg></span></span>`;
 }
 
 export function carIconMatch(value) {
