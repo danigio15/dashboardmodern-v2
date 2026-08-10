@@ -1,0 +1,44 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const entryUrl = new URL("../src/sections/beta-entry-section.js", import.meta.url);
+const guardUrl = new URL("../src/sections/beta7-brand-guard-section.js", import.meta.url);
+const regressionsUrl = new URL("../src/sections/beta7-regression-section.js", import.meta.url);
+const flowsUrl = new URL("../src/sections/energy-flow-section.js", import.meta.url);
+
+test("beta7 entry loads the brand guard before final regression polish", async () => {
+  const source = await readFile(entryUrl, "utf8");
+  const guard = source.indexOf('import "./beta7-brand-guard-section.js"');
+  const polish = source.indexOf('import "./beta7-regression-section.js"');
+  assert.ok(guard >= 0);
+  assert.ok(polish > guard);
+});
+
+test("broken remote car logos keep their image contract and get an inline fallback", async () => {
+  const source = await readFile(guardUrl, "utf8");
+  assert.match(source, /img\[data-dm-brand-image\]/);
+  assert.match(source, /data-dm-brand-fallback/);
+  assert.match(source, /dmBeta7Repaired/);
+  assert.match(source, /insertAdjacentHTML\("afterend"/);
+  assert.doesNotMatch(source, /MutationObserver|setInterval\s*\(/);
+});
+
+test("beta7 final polish owns quick actions, climate and stable shutters", async () => {
+  const source = await readFile(regressionsUrl, "utf8");
+  assert.match(source, /polishQuickActionCards/);
+  assert.match(source, /dm-beta7-existing-action-icon/);
+  assert.match(source, /dm-beta7-action-form-row/);
+  assert.match(source, /aspect-ratio:auto/);
+  assert.match(source, /dmBeta7ShutterRoll/);
+  assert.match(source, /__dmBeta7StableShutters/);
+  assert.doesNotMatch(source, /MutationObserver|setInterval\s*\(/);
+});
+
+test("period energy main connectors animate from displayed values, not only legacy active classes", async () => {
+  const source = await readFile(flowsUrl, "utf8");
+  assert.match(source, /function displayedMainFlow/);
+  assert.match(source, /function mainValueNode/);
+  assert.match(source, /displayedActive === null \? legacyActive : displayedActive \|\| legacyActive/);
+  assert.match(source, /animation:dmEnergyFlowDash \.8s linear infinite/);
+});
