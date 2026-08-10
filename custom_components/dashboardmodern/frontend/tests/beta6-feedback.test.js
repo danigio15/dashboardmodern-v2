@@ -13,10 +13,11 @@ test("beta6 feedback layer loads after the beta5 root-cause owner", async () => 
 test("quick action editor replaces the flash field with a real icon trigger", async () => {
   const source = await read("src/sections/beta6-feedback-section.js");
   assert.match(source, /lights: "mdi:lightbulb-group"/);
-  assert.match(source, /input\.insertAdjacentElement\("afterend", trigger\)/);
+  assert.match(source, /input\.insertAdjacentElement\("afterend", preview\)/);
   assert.match(source, /dm-beta6-qa-icon-trigger/);
   assert.match(source, /#ed-qa-icon\.dm-beta6-qa-icon-value\{display:none!important\}/);
-  assert.match(source, /openQuickIconPicker\(input, trigger\)/);
+  assert.match(source, /openActionPicker\(input, preview\)/);
+  assert.match(source, /ACTION_ICON_CATALOG/);
 });
 
 test("car brand picker uses real pinned brand images and the official Leapmotor wordmark", async () => {
@@ -30,8 +31,8 @@ test("car brand picker uses real pinned brand images and the official Leapmotor 
 
 test("daily chart polish changes presentation only and stays inside the mobile card", async () => {
   const source = await read("src/sections/beta6-feedback-section.js");
-  assert.match(source, /const chart = beta5\?\.dailyChart/);
-  assert.match(source, /second[\s\S]*fill: false/);
+  assert.match(source, /const chart = root\.__DASHBOARDMODERN_BETA5_ROOT_CAUSES__\?\.dailyChart/);
+  assert.match(source, /consumption[\s\S]*fill: false/);
   assert.match(source, /maxTicksLimit: mobile \? 6 : 10/);
   assert.match(source, /#ed-daily-chart \.ed-chart-wrap\{[\s\S]*overflow:hidden!important/);
   assert.match(source, /height:252px!important;min-height:252px!important;max-height:252px!important/);
