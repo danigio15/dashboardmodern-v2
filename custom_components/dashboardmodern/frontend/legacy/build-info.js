@@ -5,7 +5,7 @@ export const BUILD_INFO = Object.freeze({
   generated: false,
   integrationVersion: "1.0.0-beta.6",
   dashboardVersion: "1.0.0-beta.6",
-  moduleVersion: 15,
+  moduleVersion: 14,
   schemaVersion: 4,
   date: "UNBUILT",
   commit: "UNBUILT",
