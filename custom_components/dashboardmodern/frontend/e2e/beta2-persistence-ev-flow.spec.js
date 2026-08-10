@@ -133,20 +133,19 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await openEditor(page, "sez2");
     const appearance = page.locator("#ed-body [data-ev-appearance]");
     await expect(appearance).toBeVisible();
-    await appearance.locator("select[data-brand]").selectOption("BMW");
+    await expect(appearance.locator("select[data-brand]")).toHaveValue("Leapmotor");
     const modelSelect = appearance.locator("select[data-model]");
-    await expect(modelSelect).toContainText("i4");
-    await modelSelect.selectOption("i4");
-    await expect(appearance.locator("select[data-brand]")).toHaveValue("BMW");
-    await expect(modelSelect).toHaveValue("i4");
+    await expect(modelSelect).toContainText("B10");
+    await modelSelect.selectOption("B10");
+    await expect(modelSelect).toHaveValue("B10");
     await appearance.locator("button[data-save]").click();
 
     await expect.poll(() =>
       page.evaluate(() => DashboardModernModules.store.getSection("ev")[0]),
     ).toMatchObject({
       id: "ev-pluto",
-      brand: "BMW",
-      model: "i4",
+      brand: "Leapmotor",
+      model: "B10",
       icon: "mdi:car-electric",
       img: "/local/pluto.png",
       ov: {
@@ -172,7 +171,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       const car = JSON.parse(remote.values.cd_ev_cars)[0];
       return { brand: car.brand, model: car.model };
     });
-    expect(persisted).toEqual({ brand: "BMW", model: "i4" });
+    expect(persisted).toEqual({ brand: "Leapmotor", model: "B10" });
   });
 
   test(`${variant}: beta2 binds daily and monthly load flow animation to displayed energy`, async ({ page }, testInfo) => {
