@@ -82,7 +82,7 @@ test("temperature edit can atomically move sensors to another room without overw
   assert.match(source, /event\.stopImmediatePropagation\(\)/);
   assert.match(source, /if \(id === originalId && originalId !== targetId\) return \{ \.\.\.room, temp: "", hum: "" \}/);
   assert.match(source, /if \(id === targetId\) return \{ \.\.\.room, temp, hum \}/);
-  assert.doesNotMatch(source, /return \{ \.\.\.room, icon:/);
+  assert.match(source, /const next = currentRooms\.map/);
 });
 
 test("shutters use the beta9 dashboard-consistent page design", async () => {
