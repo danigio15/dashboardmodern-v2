@@ -50,8 +50,10 @@ if (typeof document !== "undefined") {
 
     // EV config: the real manufacturer mark belongs above the brand label. The
     // old horizontal box let wide wordmarks overflow beneath the text on phones.
-    // Shutter windows are measured by their border box in the real-device test;
-    // legacy padding must therefore stay inside the compact 132px owner height.
+    // Shutter layout is also pinned here because this entrypoint style is mounted
+    // after all imported section styles. The rules deliberately match fresh
+    // legacy shutter DOM too, so a render race cannot briefly restore the old
+    // 178/190px window or its page/lamella pulse before beta9 decorates nodes.
     const evBrandStyle = document.createElement("style");
     evBrandStyle.id = "dm-beta7-ev-brand-layout";
     evBrandStyle.textContent = `
@@ -82,8 +84,44 @@ if (typeof document !== "undefined") {
         object-position:left center!important;
       }
       .dm-ev-appearance-grid .dm-brand-preview b{display:block!important;line-height:1.1!important}
-      html body #page-tapparelle .tapp-win.dm-beta9-real-shutter-window{
+      html body #page-tapparelle#page-tapparelle.page{
+        animation:none!important;
+        transform:none!important;
+        opacity:1!important;
+      }
+      html body #page-tapparelle#page-tapparelle #tapp-grid{
+        grid-template-columns:repeat(auto-fit,minmax(280px,360px))!important;
+        justify-content:center!important;
+        align-items:start!important;
+        gap:14px!important;
+      }
+      html body #page-tapparelle#page-tapparelle .tapp-card{
         box-sizing:border-box!important;
+        width:100%!important;
+        max-width:360px!important;
+        min-height:0!important;
+        animation:none!important;
+        transform:none!important;
+      }
+      html body #page-tapparelle#page-tapparelle .tapp-win{
+        box-sizing:border-box!important;
+        height:132px!important;
+        min-height:132px!important;
+        max-height:132px!important;
+        margin:0!important;
+        animation:none!important;
+        transition:none!important;
+        transform:none!important;
+      }
+      html body #page-tapparelle#page-tapparelle .tapp-shutter{
+        animation:none!important;
+        filter:none!important;
+        transition:height .55s cubic-bezier(.2,.8,.2,1)!important;
+      }
+      html body #page-tapparelle#page-tapparelle .tapp-shutter i{
+        animation:none!important;
+        filter:none!important;
+        transform:none!important;
       }
       @media(hover:none){
         .dm-visual-trigger:hover,.dm-icon-preview-button:hover,.dm-picker-option:hover{transform:none!important}
