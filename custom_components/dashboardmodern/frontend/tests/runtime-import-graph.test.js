@@ -112,7 +112,9 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // keep one scoped mobile-polish owner; Beta6 adds one event-driven feedback
   // owner. Beta7 adds exactly two scoped, event-driven guards for real WebView
   // failures: brand-image fallback and the final mobile regression polish.
-  assert.ok(relative.length <= 64, `production graph unexpectedly grew to ${relative.length} modules`);
+  // Beta9 adds one final scoped event-driven real-device reconciler for the
+  // screenshot-proven EV/editor/shutter conflicts, with no polling or observer.
+  assert.ok(relative.length <= 65, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
