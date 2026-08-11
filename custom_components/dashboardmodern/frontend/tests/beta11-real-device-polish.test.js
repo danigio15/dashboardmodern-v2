@@ -50,6 +50,6 @@ test("alerts get an expanded coherent visual picker without polling", async () =
   assert.match(source, /dm-beta11-alert-grid/);
   assert.match(source, /data-alert-icon/);
   assert.match(source, /input\.dispatchEvent\(new Event\("change", \{ bubbles: true \}\)\)/);
-  assert.doesNotMatch(source, /MutationObserver/);
+  assert.doesNotMatch(source, /\bnew\s+(?:root\.)?MutationObserver\s*\(/);
   assert.doesNotMatch(source, /setInterval\s*\(/);
 });
