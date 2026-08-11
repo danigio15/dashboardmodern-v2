@@ -3,19 +3,39 @@ import { clean, doc, installStyle, root, wrapFunction } from "./shared.js";
 const KEY = "__DASHBOARDMODERN_ENTITY_PICKER_GUARD__";
 const state = (root[KEY] ||= { installed: false, frame: 0, subscribed: false });
 const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
+const ALERT_NON_ENTITY_IDS = new Set(["ed-avv-name", "ed-avv-val", "ed-avv-icon"]);
 
 function isEntityInput(input) {
   if (!(input instanceof HTMLInputElement) || input.type === "hidden") return false;
+  const id = clean(input.id).toLowerCase();
+  // The Alerts form historically uses the same ed-avv-* prefix for entity,
+  // display name, comparison value and icon. Only ed-avv-ent is an entity_id.
+  // Check this before the generic data-entity marker because an older guard may
+  // already have decorated one of those text inputs during the current render.
+  if (id.startsWith("ed-avv-")) return id === "ed-avv-ent";
   if (input.dataset.entityInput === "true" || input.closest("[data-entity-field]")) return true;
   if (input.matches(".ed-slot-in[data-ref],input[data-domain]")) return true;
-  const id = clean(input.id).toLowerCase();
-  if (/^(?:luce|light)-add-ent$|^appl-ent-new$|^ed-(?:pl-|irr-|tp-|luce-|cam-|avv-)/.test(id)) return true;
+  if (/^(?:luce|light)-add-ent$|^appl-ent-new$|^ed-(?:pl-|irr-|tp-|luce-|cam-)/.test(id)) return true;
   const reference = clean(input.dataset.ref);
   if (reference && /(?:entity|entita|sensore|sensor|switch|climate|light|cover|camera|power|energy|temp|humid|weather|rain|pump)/i.test(reference)) return true;
   const placeholder = clean(input.placeholder);
   if (/^(sensor|binary_sensor|switch|light|cover|climate|camera|weather|automation|script|scene|select|number|input_[a-z_]+)\./i.test(placeholder)) return true;
   if (ENTITY_ID.test(clean(input.value)) && input.classList.contains("mono")) return true;
   return Boolean(input.nextElementSibling?.matches?.(".dm-entity-picker,button[onclick*='wzPickEntity']"));
+}
+
+function cleanupFalseAlertPicker(input) {
+  if (!(input instanceof HTMLInputElement) || !ALERT_NON_ENTITY_IDS.has(clean(input.id).toLowerCase())) return false;
+  const parent = input.parentElement;
+  const generated = input.nextElementSibling?.matches?.(".dm-entity-picker[data-dm-persistent-picker='true']")
+    ? input.nextElementSibling
+    : parent?.querySelector?.(`.dm-entity-picker[data-entity-target="${CSS.escape(input.id)}"][data-dm-persistent-picker="true"]`);
+  generated?.remove();
+  delete input.dataset.entityInput;
+  if (parent?.classList.contains("dm-entity-picker-row") && !parent.querySelector("input[data-entity-input='true']")) {
+    parent.classList.remove("dm-entity-picker-row");
+  }
+  return Boolean(generated);
 }
 
 function ensureId(input) {
@@ -38,6 +58,7 @@ function choose(input) {
 }
 
 function mountOne(input) {
+  cleanupFalseAlertPicker(input);
   if (!isEntityInput(input)) return false;
   const id = ensureId(input);
   input.dataset.entityInput = "true";
