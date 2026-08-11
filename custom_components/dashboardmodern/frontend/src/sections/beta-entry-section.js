@@ -87,9 +87,9 @@ if (typeof document !== "undefined") {
     document.head?.append(evBrandStyle);
 
     // v0.15.25 Quick Actions used readable colour emoji/glyphs. The beta9
-    // catalog normalizer can transiently rebuild those icons with the wrong
-    // fallback. Keep this one grid authoritative without polling the page: a
-    // scoped observer repairs only mutations inside #qa-grid.
+    // catalog normalizer can transiently rebuild an empty builtin icon as Home.
+    // Reconcile only after the two real render owners finish. This is bounded,
+    // event-driven work: no polling and no additional MutationObserver.
     const actionGlyphs = Object.freeze({
       "mdi:home": "🏠",
       "mdi:lightbulb": "💡",
@@ -180,12 +180,10 @@ if (typeof document !== "undefined") {
     };
     const scheduleV01525QuickActionRepair = () => {
       requestAnimationFrame?.(repairV01525QuickActionGlyphs);
-      setTimeout(repairV01525QuickActionGlyphs, 0);
-      setTimeout(repairV01525QuickActionGlyphs, 90);
-      setTimeout(repairV01525QuickActionGlyphs, 320);
+      for (const delay of [0, 90, 320, 900]) setTimeout(repairV01525QuickActionGlyphs, delay);
     };
-    const installQuickActionRepairOwner = () => {
-      const current = globalThis.buildQuickActions;
+    const wrapQuickActionRenderOwner = (name) => {
+      const current = globalThis[name];
       if (typeof current !== "function" || current.__dmV01525GlyphRepair) return;
       const wrapped = function (...args) {
         const result = current.apply(this, args);
@@ -194,18 +192,11 @@ if (typeof document !== "undefined") {
       };
       wrapped.__dmV01525GlyphRepair = true;
       wrapped.__dmWrappedOriginal = current;
-      globalThis.buildQuickActions = wrapped;
+      globalThis[name] = wrapped;
     };
-    let quickActionObservedGrid = null;
-    let quickActionObserver = null;
-    const installQuickActionGridObserver = () => {
-      const grid = document.getElementById("qa-grid");
-      if (!grid || grid === quickActionObservedGrid) return;
-      quickActionObserver?.disconnect?.();
-      quickActionObservedGrid = grid;
-      quickActionObserver = new MutationObserver(() => repairV01525QuickActionGlyphs());
-      quickActionObserver.observe(grid, { childList: true, subtree: true, characterData: true });
-      repairV01525QuickActionGlyphs();
+    const installQuickActionRepairOwner = () => {
+      wrapQuickActionRenderOwner("buildQuickActions");
+      wrapQuickActionRenderOwner("render");
     };
     for (const eventName of [
       "dashboardmodern:legacy-ready",
@@ -213,7 +204,10 @@ if (typeof document !== "undefined") {
       "dashboardmodern:states-ready",
     ]) globalThis.addEventListener?.(eventName, () => {
       installQuickActionRepairOwner();
-      installQuickActionGridObserver();
+      scheduleV01525QuickActionRepair();
+    });
+    globalThis.addEventListener?.("dashboardmodern:state-changed", () => {
+      installQuickActionRepairOwner();
       scheduleV01525QuickActionRepair();
     });
     document.addEventListener("click", (event) => {
@@ -250,7 +244,6 @@ if (typeof document !== "undefined") {
     }, true);
 
     installQuickActionRepairOwner();
-    installQuickActionGridObserver();
     scheduleV01525QuickActionRepair();
   }
 }
