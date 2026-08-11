@@ -147,7 +147,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await openEditor(page, "sez2");
     const appearance = page.locator("#ed-body [data-ev-appearance]");
     await expect(appearance).toBeVisible();
-    expect(await appearance.evaluate((node) => node.parentElement?.firstElementChild === node)).toBe(true);
+    const appearanceIsVisuallyFirst = await appearance.evaluate((node) => {
+      const parent = node.parentElement;
+      if (!parent) return false;
+      const top = node.getBoundingClientRect().top;
+      return [...parent.children]
+        .filter((sibling) => sibling !== node && sibling.getClientRects().length > 0)
+        .every((sibling) => sibling.getBoundingClientRect().top >= top - 1);
+    });
+    expect(appearanceIsVisuallyFirst).toBe(true);
     const brand = appearance.locator("select[data-brand]");
     const model = appearance.locator("select[data-model]");
     await brand.selectOption("MINI");
