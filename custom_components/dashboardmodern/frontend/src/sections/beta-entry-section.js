@@ -87,11 +87,9 @@ if (typeof document !== "undefined") {
     document.head?.append(evBrandStyle);
 
     // v0.15.25 Quick Actions used readable colour emoji/glyphs. The beta9
-    // catalog normalizer intentionally strips non-ASCII characters, so a
-    // persisted emoji can otherwise compare as an empty token and resolve to
-    // the first catalog item (Home). Reconcile explicit configured icons first,
-    // then the historical builtin glyph, and use the rendered MDI token only as
-    // a compatibility fallback. This stays finite/event-driven.
+    // catalog normalizer can transiently rebuild those icons with the wrong
+    // fallback. Keep this one grid authoritative without polling the page: a
+    // scoped observer repairs only mutations inside #qa-grid.
     const actionGlyphs = Object.freeze({
       "mdi:home": "🏠",
       "mdi:lightbulb": "💡",
@@ -124,10 +122,20 @@ if (typeof document !== "undefined") {
       lavatrice: "🧺",
       builtin_lavatrice: "🧺",
     });
+    const actionBuiltinColors = Object.freeze({
+      luci: "#f59e0b",
+      luci_group: "#f59e0b",
+      builtin_luci: "#f59e0b",
+      clima: "#0ea5e9",
+      builtin_clima: "#0ea5e9",
+      antifurto: "#7c3aed",
+      builtin_antifurto: "#7c3aed",
+      lavatrice: "#0ea5e9",
+      builtin_lavatrice: "#0ea5e9",
+    });
     const configuredQuickActions = () => {
       // Persisted Quick Actions are authoritative. getQuickActions() can still
-      // expose the pre-render snapshot for one turn immediately after an edit,
-      // which is exactly when the real-device renderer is rebuilt.
+      // expose the pre-render snapshot for one turn immediately after an edit.
       try {
         const actions = JSON.parse(globalThis.localStorage?.getItem("cd_quick_actions") || "[]");
         if (Array.isArray(actions) && actions.length) return actions;
@@ -154,15 +162,27 @@ if (typeof document !== "undefined") {
           actionGlyphs[configuredMdi] ||
           actionBuiltinGlyphs[builtin] ||
           actionGlyphs[mdiToken] ||
-          (persistedGlyph && !persistedGlyph.startsWith("mdi:") ? persistedGlyph : "");
-        const target = icon.querySelector(".dm-v01525-action-glyph");
-        if (target && glyph) target.textContent = glyph;
+          (persistedGlyph && !persistedGlyph.startsWith("mdi:") ? persistedGlyph : "") ||
+          "⭐";
+        const color = String(action.color || actionBuiltinColors[builtin] || "#0ea5e9").trim();
+        let target = icon.querySelector(".dm-v01525-action-glyph");
+        if (!target) {
+          target = document.createElement("span");
+          target.className = "dm-v01525-action-glyph";
+          target.setAttribute("aria-hidden", "true");
+          icon.replaceChildren(target);
+        }
+        if (target.textContent !== glyph) target.textContent = glyph;
+        icon.dataset.dmActionStyle = "v01525";
+        icon.style.setProperty("color", color, "important");
+        icon.style.setProperty("filter", `drop-shadow(0 6px 12px ${color}66)`, "important");
       });
     };
     const scheduleV01525QuickActionRepair = () => {
       requestAnimationFrame?.(repairV01525QuickActionGlyphs);
       setTimeout(repairV01525QuickActionGlyphs, 0);
       setTimeout(repairV01525QuickActionGlyphs, 90);
+      setTimeout(repairV01525QuickActionGlyphs, 320);
     };
     const installQuickActionRepairOwner = () => {
       const current = globalThis.buildQuickActions;
@@ -176,12 +196,24 @@ if (typeof document !== "undefined") {
       wrapped.__dmWrappedOriginal = current;
       globalThis.buildQuickActions = wrapped;
     };
+    let quickActionObservedGrid = null;
+    let quickActionObserver = null;
+    const installQuickActionGridObserver = () => {
+      const grid = document.getElementById("qa-grid");
+      if (!grid || grid === quickActionObservedGrid) return;
+      quickActionObserver?.disconnect?.();
+      quickActionObservedGrid = grid;
+      quickActionObserver = new MutationObserver(() => repairV01525QuickActionGlyphs());
+      quickActionObserver.observe(grid, { childList: true, subtree: true, characterData: true });
+      repairV01525QuickActionGlyphs();
+    };
     for (const eventName of [
       "dashboardmodern:legacy-ready",
       "dashboardmodern:runtime-ready",
       "dashboardmodern:states-ready",
     ]) globalThis.addEventListener?.(eventName, () => {
       installQuickActionRepairOwner();
+      installQuickActionGridObserver();
       scheduleV01525QuickActionRepair();
     });
     document.addEventListener("click", (event) => {
@@ -218,6 +250,7 @@ if (typeof document !== "undefined") {
     }, true);
 
     installQuickActionRepairOwner();
+    installQuickActionGridObserver();
     scheduleV01525QuickActionRepair();
   }
 }
