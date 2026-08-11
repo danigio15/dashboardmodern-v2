@@ -87,7 +87,42 @@ function install() {
 
   const style = doc.createElement("style");
   style.id = "dm-beta-room-picker-style";
-  style.textContent = `.dm-beta-room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:10px;padding:12px 18px 20px;max-height:55vh;overflow:auto}.dm-beta-room-grid button{min-height:62px;border:1px solid var(--divider-color,#dbe4ee);border-radius:15px;background:var(--card-background-color,#fff);font-size:28px;cursor:pointer}.dm-beta-room-grid button:hover{border-color:var(--primary-color,#0ea5e9);transform:translateY(-1px)}.dm-beta-room-grid button[hidden]{display:none!important}#ed-body:has(>[data-ev-appearance]){display:flex!important;flex-direction:column!important}#ed-body:has(>[data-ev-appearance])>[data-ev-appearance]{order:-10000!important}`;
+  style.textContent = `
+    .dm-beta-room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:10px;padding:12px 18px 20px;max-height:55vh;overflow:auto}
+    .dm-beta-room-grid button{min-height:62px;border:1px solid var(--divider-color,#dbe4ee);border-radius:15px;background:var(--card-background-color,#fff);font-size:28px;cursor:pointer}
+    .dm-beta-room-grid button:hover{border-color:var(--primary-color,#0ea5e9);transform:translateY(-1px)}
+    .dm-beta-room-grid button[hidden]{display:none!important}
+    #ed-body:has(>[data-ev-appearance]){display:flex!important;flex-direction:column!important}
+    #ed-body:has(>[data-ev-appearance])>[data-ev-appearance]{order:-10000!important}
+
+    /* Beta11 geometry contracts must outrank historical beta4/beta9 visual
+       normalizers even if those modules repaint the mark/room row later. */
+    html body #editor-modal #ed-body [data-ev-appearance] [data-brand-preview].dm-brand-preview[data-dm-beta11-ev-preview="true"] > .dm-car-brand{
+      box-sizing:border-box!important;width:108px!important;max-width:108px!important;min-width:0!important;height:48px!important;max-height:48px!important;min-height:0!important;overflow:hidden!important;transform:none!important
+    }
+    html body #editor-modal #ed-body [data-ev-appearance] [data-brand-preview].dm-brand-preview[data-dm-beta11-ev-preview="true"] > .dm-car-brand .dm-beta5-brand-logo,
+    html body #editor-modal #ed-body [data-ev-appearance] [data-brand-preview].dm-brand-preview[data-dm-beta11-ev-preview="true"] > .dm-car-brand [data-brand-logo]{
+      box-sizing:border-box!important;display:grid!important;place-items:center!important;width:100%!important;max-width:100%!important;min-width:0!important;height:100%!important;max-height:100%!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;transform:none!important
+    }
+    html body #editor-modal #ed-body [data-ev-appearance] [data-brand-preview].dm-brand-preview[data-dm-beta11-ev-preview="true"] > .dm-car-brand svg,
+    html body #editor-modal #ed-body [data-ev-appearance] [data-brand-preview].dm-brand-preview[data-dm-beta11-ev-preview="true"] > .dm-car-brand img{
+      box-sizing:border-box!important;display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;height:100%!important;max-height:100%!important;min-height:0!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center!important;overflow:hidden!important;transform:none!important
+    }
+    html body #editor-modal #ed-body .ed-row.dm-room-config-row.dm-beta11-room-row{
+      grid-template-columns:58px minmax(0,1fr) 48px 48px!important
+    }
+    html body #editor-modal #ed-body .ed-row.dm-room-config-row.dm-beta11-room-row > .dm-room-list-icon{
+      box-sizing:border-box!important;width:56px!important;max-width:56px!important;min-width:56px!important;height:56px!important;max-height:56px!important;min-height:56px!important;overflow:hidden!important
+    }
+    html body #editor-modal #ed-body .ed-row.dm-room-config-row.dm-beta11-room-row > .dm-room-list-icon svg,
+    html body #editor-modal #ed-body .ed-row.dm-room-config-row.dm-beta11-room-row > .dm-room-list-icon ha-icon{
+      display:block!important;width:38px!important;max-width:38px!important;height:38px!important;max-height:38px!important;transform:none!important
+    }
+    @media(max-width:560px){
+      html body #editor-modal #ed-body [data-ev-appearance] [data-brand-preview].dm-brand-preview[data-dm-beta11-ev-preview="true"] > .dm-car-brand{width:88px!important;max-width:88px!important;height:44px!important;max-height:44px!important}
+      html body #editor-modal #ed-body .ed-row.dm-room-config-row.dm-beta11-room-row{grid-template-columns:58px minmax(0,1fr) 46px 46px!important}
+    }
+  `;
   doc.head?.append(style);
 }
 
