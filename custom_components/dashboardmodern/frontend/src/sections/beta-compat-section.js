@@ -56,6 +56,43 @@ function openCanonicalRoomPicker(input) {
   root.setTimeout?.(() => modal.querySelector("#dm-icon-search")?.focus(), 20);
 }
 
+function activeVehicleSignature() {
+  let cars = [];
+  try {
+    const legacy = JSON.parse(root.localStorage?.getItem("cd_ev_cars") || "[]");
+    if (Array.isArray(legacy) && legacy.length) cars = legacy;
+  } catch (_error) {}
+  if (!cars.length) {
+    try {
+      const canonical = root.DashboardModernModules?.store?.getSection?.("ev");
+      if (Array.isArray(canonical)) cars = canonical;
+    } catch (_error) {}
+  }
+  if (!cars.length) return "";
+  const raw = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "0", 10);
+  const index = Math.max(0, Math.min(cars.length - 1, Number.isFinite(raw) ? raw : 0));
+  const car = cars[index] || {};
+  const brand = String(car.brand || "").trim();
+  const model = String(car.model || car.vehicle_model || car.name || "").trim();
+  const identity = String(car.id || car.entity || car.name || index).trim();
+  return `${index}|${identity}|${brand}|${model}`;
+}
+
+function preserveManualEvAppearanceEdit(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLSelectElement)) return;
+  if (!target.matches('#editor-modal [data-ev-appearance] select[data-brand],#editor-modal [data-ev-appearance] select[data-model]')) return;
+  const panel = target.closest("[data-ev-appearance]");
+  const signature = activeVehicleSignature();
+  if (!panel || !signature) return;
+  // Mark the current active vehicle as already synchronized before Beta11's
+  // document-level change reconciler runs. This protects a user's unsaved
+  // Brand/Model choice, while a later cd_ev_car_active change still produces a
+  // different signature and therefore triggers the intended active-car sync.
+  panel.dataset.dmBeta11VehicleSignature = signature;
+  panel.dataset.dmBeta11ManualEdit = "true";
+}
+
 function install() {
   if (!doc || state.installed) return;
   state.installed = true;
@@ -63,6 +100,12 @@ function install() {
   // The legacy KPI updater still reads this historical global flag. v1 beta
   // does not fabricate estimated Overview history, so the safe value is false.
   if (typeof root.consStimato === "undefined") root.consStimato = false;
+
+  // Run before Beta11's later document-level change reconciler. The handler does
+  // not stop propagation: beta9/personalization still rebuild dependent model
+  // options and preview artwork normally.
+  doc.addEventListener("input", preserveManualEvAppearanceEdit, true);
+  doc.addEventListener("change", preserveManualEvAppearanceEdit, true);
 
   // Preserve the long-standing Rooms/Temperature picker contract while the
   // richer SVG catalog is used by the dedicated room edit modal.
