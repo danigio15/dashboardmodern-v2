@@ -89,9 +89,9 @@ if (typeof document !== "undefined") {
     // v0.15.25 Quick Actions used readable colour emoji/glyphs. The beta9
     // catalog normalizer intentionally strips non-ASCII characters, so a
     // persisted emoji can otherwise compare as an empty token and resolve to
-    // the first catalog item (Home). Reconcile from the canonical MDI token
-    // already attached to each rendered icon. This is finite/event-driven and
-    // deliberately runs after the beta9 renderer instead of adding polling.
+    // the first catalog item (Home). Reconcile explicit configured icons first,
+    // then the historical builtin glyph, and use the rendered MDI token only as
+    // a compatibility fallback. This stays finite/event-driven.
     const actionGlyphs = Object.freeze({
       "mdi:home": "🏠",
       "mdi:lightbulb": "💡",
@@ -113,11 +113,45 @@ if (typeof document !== "undefined") {
       "mdi:bell": "🔔",
       "mdi:star": "⭐",
     });
+    const actionBuiltinGlyphs = Object.freeze({
+      luci: "💡",
+      luci_group: "💡",
+      builtin_luci: "💡",
+      clima: "❄️",
+      builtin_clima: "❄️",
+      antifurto: "🛡️",
+      builtin_antifurto: "🛡️",
+      lavatrice: "🧺",
+      builtin_lavatrice: "🧺",
+    });
+    const configuredQuickActions = () => {
+      try {
+        const actions = globalThis.getQuickActions?.();
+        if (Array.isArray(actions)) return actions;
+      } catch (_error) {}
+      try {
+        const actions = JSON.parse(globalThis.localStorage?.getItem("cd_quick_actions") || "[]");
+        return Array.isArray(actions) ? actions : [];
+      } catch (_error) {
+        return [];
+      }
+    };
     const repairV01525QuickActionGlyphs = () => {
-      document.querySelectorAll("#qa-grid .qa-btn .icon").forEach((icon) => {
+      const actions = configuredQuickActions();
+      document.querySelectorAll("#qa-grid .qa-btn .icon").forEach((icon, index) => {
+        const action = actions[index] || {};
+        const builtin = String(action.builtin || "").trim().toLowerCase();
+        const configured = String(action.icon || "").trim();
+        const configuredMdi = configured.toLowerCase().startsWith("mdi:") ? configured : "";
+        const configuredGlyph = configured && !configuredMdi ? configured : "";
         const raw = String(icon.dataset.dmBeta7IconToken || "");
         const [mdiToken, persistedGlyph] = raw.split("|");
-        const glyph = actionGlyphs[mdiToken] || (persistedGlyph && !persistedGlyph.startsWith("mdi:") ? persistedGlyph : "");
+        const glyph =
+          configuredGlyph ||
+          actionGlyphs[configuredMdi] ||
+          actionBuiltinGlyphs[builtin] ||
+          actionGlyphs[mdiToken] ||
+          (persistedGlyph && !persistedGlyph.startsWith("mdi:") ? persistedGlyph : "");
         const target = icon.querySelector(".dm-v01525-action-glyph");
         if (target && glyph) target.textContent = glyph;
       });
