@@ -138,7 +138,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(name).toHaveText("Cameretta");
     await expect(name).toHaveCSS("opacity", "1");
     await expect(row.locator('.dm-room-list-icon[data-room-icon="mdi:sofa"]')).toBeVisible();
-    await expect(row.locator(".dm-room-list-icon svg")).toHaveCount(1);
+    await expect(row.locator(".dm-room-list-icon .dm-beta12-room-glyph")).toHaveText("🛋️");
     const roomGeometry = await row.evaluate((node) => {
       const label = node.querySelector(".ed-row-new");
       const icon = node.querySelector(".dm-room-list-icon");
