@@ -125,12 +125,15 @@ if (typeof document !== "undefined") {
       builtin_lavatrice: "🧺",
     });
     const configuredQuickActions = () => {
-      try {
-        const actions = globalThis.getQuickActions?.();
-        if (Array.isArray(actions)) return actions;
-      } catch (_error) {}
+      // Persisted Quick Actions are authoritative. getQuickActions() can still
+      // expose the pre-render snapshot for one turn immediately after an edit,
+      // which is exactly when the real-device renderer is rebuilt.
       try {
         const actions = JSON.parse(globalThis.localStorage?.getItem("cd_quick_actions") || "[]");
+        if (Array.isArray(actions) && actions.length) return actions;
+      } catch (_error) {}
+      try {
+        const actions = globalThis.getQuickActions?.();
         return Array.isArray(actions) ? actions : [];
       } catch (_error) {
         return [];
