@@ -63,5 +63,5 @@ test("add-light layout cannot collapse its entity field", async () => {
   assert.match(source, /dm-light-add-entity-row/);
   assert.match(source, /grid-template-columns:minmax\(0,1fr\) 58px!important/);
   assert.match(source, /#luce-add-ent/);
-  assert.match(source, /position","static","important"/);
+  assert.match(source, /setProperty\("position", "static", "important"\)/);
 });
