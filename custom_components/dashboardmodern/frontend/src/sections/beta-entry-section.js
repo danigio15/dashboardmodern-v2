@@ -85,5 +85,73 @@ if (typeof document !== "undefined") {
       }
     `;
     document.head?.append(evBrandStyle);
+
+    // v0.15.25 Quick Actions used readable colour emoji/glyphs. The beta9
+    // catalog normalizer intentionally strips non-ASCII characters, so a
+    // persisted emoji can otherwise compare as an empty token and resolve to
+    // the first catalog item (Home). Reconcile from the canonical MDI token
+    // already attached to each rendered icon. This is finite/event-driven and
+    // deliberately runs after the beta9 renderer instead of adding polling.
+    const actionGlyphs = Object.freeze({
+      "mdi:home": "🏠",
+      "mdi:lightbulb": "💡",
+      "mdi:lightbulb-group": "💡",
+      "mdi:snowflake": "❄️",
+      "mdi:radiator": "🔥",
+      "mdi:shield-home": "🛡️",
+      "mdi:gate": "🚪",
+      "mdi:window-shutter": "🪟",
+      "mdi:movie-open": "🎬",
+      "mdi:script-text-play": "▶️",
+      "mdi:toggle-switch-outline": "🔀",
+      "mdi:washing-machine": "🧺",
+      "mdi:flash": "⚡",
+      "mdi:car-electric": "🚗",
+      "mdi:water-boiler": "♨️",
+      "mdi:water": "💧",
+      "mdi:cctv": "📷",
+      "mdi:bell": "🔔",
+      "mdi:star": "⭐",
+    });
+    const repairV01525QuickActionGlyphs = () => {
+      document.querySelectorAll("#qa-grid .qa-btn .icon").forEach((icon) => {
+        const raw = String(icon.dataset.dmBeta7IconToken || "");
+        const [mdiToken, persistedGlyph] = raw.split("|");
+        const glyph = actionGlyphs[mdiToken] || (persistedGlyph && !persistedGlyph.startsWith("mdi:") ? persistedGlyph : "");
+        const target = icon.querySelector(".dm-v01525-action-glyph");
+        if (target && glyph) target.textContent = glyph;
+      });
+    };
+    const scheduleV01525QuickActionRepair = () => {
+      requestAnimationFrame?.(repairV01525QuickActionGlyphs);
+      setTimeout(repairV01525QuickActionGlyphs, 0);
+      setTimeout(repairV01525QuickActionGlyphs, 90);
+    };
+    const installQuickActionRepairOwner = () => {
+      const current = globalThis.buildQuickActions;
+      if (typeof current !== "function" || current.__dmV01525GlyphRepair) return;
+      const wrapped = function (...args) {
+        const result = current.apply(this, args);
+        scheduleV01525QuickActionRepair();
+        return result;
+      };
+      wrapped.__dmV01525GlyphRepair = true;
+      wrapped.__dmWrappedOriginal = current;
+      globalThis.buildQuickActions = wrapped;
+    };
+    for (const eventName of [
+      "dashboardmodern:legacy-ready",
+      "dashboardmodern:runtime-ready",
+      "dashboardmodern:states-ready",
+    ]) globalThis.addEventListener?.(eventName, () => {
+      installQuickActionRepairOwner();
+      scheduleV01525QuickActionRepair();
+    });
+    document.addEventListener("click", (event) => {
+      if (event.target?.closest?.("#dm-action-editor-modal,#dm-beta9-action-picker,.dm-beta6-qa-icon-trigger"))
+        scheduleV01525QuickActionRepair();
+    }, true);
+    installQuickActionRepairOwner();
+    scheduleV01525QuickActionRepair();
   }
 }
