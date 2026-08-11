@@ -30,6 +30,7 @@ test("beta11 pool uses a semantic responsive plant schematic", () => {
   assert.match(css, /\.pool-tg\[data-act="light"\]/);
   assert.match(css, /\.pool-card:not\(:has\(\.pool-bar\)\)/);
   assert.match(css, /\.pool-card:has\(\.pool-bar\)/);
+  assert.match(css, /#page-piscina #pool-wrap > \.pool-card \.pool-sub\s*\{[^}]*position:\s*static\s*!important/s);
   assert.match(css, /@media \(max-width:\s*760px\)[\s\S]*?#page-piscina \.pool-hero/);
   assert.equal(balancedBraces(css), true);
 });
