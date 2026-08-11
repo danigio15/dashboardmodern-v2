@@ -9,11 +9,14 @@ import "./beta4-mobile-polish-section.js";
 import "./beta6-feedback-section.js";
 import "./beta7-brand-guard-section.js";
 import "./beta7-regression-section.js";
+import "./beta9-real-device-polish-section.js";
 
 // Keep only compatibility/layout bridges that belong at the entrypoint. The
 // beta7 guards run after the mature beta6 editor owner; the guard is installed
 // first so a broken remote logo keeps its DOM contract while the final beta7
-// polish owns the visible mobile regression layout.
+// polish owns the visible mobile regression layout. The beta9 real-device pass
+// is intentionally last: it reconciles only conflicts reproduced in the real
+// Home Assistant WebView and does not introduce polling or global observers.
 if (typeof document !== "undefined") {
   const marker = "__DASHBOARDMODERN_BETA5_ENTRY_BRIDGE__";
   if (!globalThis[marker]) {
@@ -47,6 +50,10 @@ if (typeof document !== "undefined") {
 
     // EV config: the real manufacturer mark belongs above the brand label. The
     // old horizontal box let wide wordmarks overflow beneath the text on phones.
+    // Shutter layout is also pinned here because this entrypoint style is mounted
+    // after all imported section styles. The rules deliberately match fresh
+    // legacy shutter DOM too, so a render race cannot briefly restore the old
+    // 178/190px window or its page/lamella pulse before beta9 decorates nodes.
     const evBrandStyle = document.createElement("style");
     evBrandStyle.id = "dm-beta7-ev-brand-layout";
     evBrandStyle.textContent = `
@@ -77,10 +84,261 @@ if (typeof document !== "undefined") {
         object-position:left center!important;
       }
       .dm-ev-appearance-grid .dm-brand-preview b{display:block!important;line-height:1.1!important}
+      html body #page-tapparelle#page-tapparelle.page{
+        animation:none!important;
+        transform:none!important;
+        opacity:1!important;
+      }
+      html body #page-tapparelle#page-tapparelle #tapp-grid{
+        grid-template-columns:repeat(auto-fit,minmax(280px,360px))!important;
+        justify-content:center!important;
+        align-items:start!important;
+        gap:14px!important;
+      }
+      html body #page-tapparelle#page-tapparelle .tapp-card{
+        box-sizing:border-box!important;
+        width:100%!important;
+        max-width:360px!important;
+        min-height:0!important;
+        animation:none!important;
+        transform:none!important;
+      }
+      html body #page-tapparelle#page-tapparelle .tapp-win{
+        box-sizing:border-box!important;
+        height:132px!important;
+        min-height:132px!important;
+        max-height:132px!important;
+        margin:0!important;
+        animation:none!important;
+        transition:none!important;
+        transform:none!important;
+      }
+      html body #page-tapparelle#page-tapparelle .tapp-shutter{
+        animation:none!important;
+        filter:none!important;
+        transition:height .55s cubic-bezier(.2,.8,.2,1)!important;
+      }
+      html body #page-tapparelle#page-tapparelle .tapp-shutter i{
+        animation:none!important;
+        filter:none!important;
+        transform:none!important;
+      }
       @media(hover:none){
         .dm-visual-trigger:hover,.dm-icon-preview-button:hover,.dm-picker-option:hover{transform:none!important}
       }
     `;
     document.head?.append(evBrandStyle);
+
+    // Personalization creates the EV appearance card only after the legacy EV
+    // editor has rendered. On WebKit that first render can land after beta9's
+    // own reconciliation frame, leaving Brand/Model below the long entity list
+    // or leaving the freshly-created selects before beta9's direct bindings.
+    // Reconcile position on the following frame and, when bindings are still
+    // absent, issue one ordinary scoped state tick so beta9 runs its existing
+    // bindEvAppearance owner. No observer or permanent polling is introduced.
+    const repairEvAppearanceTop = () => {
+      const body = document.getElementById("ed-body");
+      if (!body) return;
+      const activeTab = String(document.querySelector(".ed-tab.active")?.dataset?.tab || "");
+      if (activeTab !== "sez2") return;
+      const panel = body.querySelector("[data-ev-appearance]");
+      if (!panel) return;
+      if (body.firstElementChild !== panel) body.prepend(panel);
+      panel.dataset.dmEvTop = "true";
+
+      const brandSelect = panel.querySelector("select[data-brand]");
+      if (brandSelect && brandSelect.dataset.dmRealDeviceBound !== "true") {
+        globalThis.dispatchEvent?.(new CustomEvent("dashboardmodern:state-changed", {
+          detail: { entity_id: "sensor.dashboardmodern_ev_appearance_sync" },
+        }));
+      }
+    };
+    const scheduleEvAppearanceTopRepair = () => {
+      const secondFrame = () => {
+        if (typeof requestAnimationFrame === "function") requestAnimationFrame(repairEvAppearanceTop);
+        else setTimeout(repairEvAppearanceTop, 0);
+      };
+      if (typeof requestAnimationFrame === "function") requestAnimationFrame(secondFrame);
+      else setTimeout(secondFrame, 0);
+      setTimeout(repairEvAppearanceTop, 70);
+    };
+    const installEvAppearanceTopOwner = () => {
+      const current = globalThis.editorSwitch;
+      if (typeof current !== "function" || current.__dmBeta9EvTopRepair) return;
+      const wrapped = function (...args) {
+        const result = current.apply(this, args);
+        if (result && typeof result.finally === "function") result.finally(scheduleEvAppearanceTopRepair);
+        else scheduleEvAppearanceTopRepair();
+        return result;
+      };
+      wrapped.__dmBeta9EvTopRepair = true;
+      wrapped.__dmWrappedOriginal = current;
+      globalThis.editorSwitch = wrapped;
+    };
+
+    // v0.15.25 Quick Actions used readable colour emoji/glyphs. The beta9
+    // catalog normalizer can transiently rebuild an empty builtin icon as Home.
+    // Reconcile only after the two real render owners finish. This is bounded,
+    // event-driven work: no polling and no additional MutationObserver.
+    const actionGlyphs = Object.freeze({
+      "mdi:home": "🏠",
+      "mdi:lightbulb": "💡",
+      "mdi:lightbulb-group": "💡",
+      "mdi:snowflake": "❄️",
+      "mdi:radiator": "🔥",
+      "mdi:shield-home": "🛡️",
+      "mdi:gate": "🚪",
+      "mdi:window-shutter": "🪟",
+      "mdi:movie-open": "🎬",
+      "mdi:script-text-play": "▶️",
+      "mdi:toggle-switch-outline": "🔀",
+      "mdi:washing-machine": "🧺",
+      "mdi:flash": "⚡",
+      "mdi:car-electric": "🚗",
+      "mdi:water-boiler": "♨️",
+      "mdi:water": "💧",
+      "mdi:cctv": "📷",
+      "mdi:bell": "🔔",
+      "mdi:star": "⭐",
+    });
+    const actionBuiltinGlyphs = Object.freeze({
+      luci: "💡",
+      luci_group: "💡",
+      builtin_luci: "💡",
+      clima: "❄️",
+      builtin_clima: "❄️",
+      antifurto: "🛡️",
+      builtin_antifurto: "🛡️",
+      lavatrice: "🧺",
+      builtin_lavatrice: "🧺",
+    });
+    const actionBuiltinColors = Object.freeze({
+      luci: "#f59e0b",
+      luci_group: "#f59e0b",
+      builtin_luci: "#f59e0b",
+      clima: "#0ea5e9",
+      builtin_clima: "#0ea5e9",
+      antifurto: "#7c3aed",
+      builtin_antifurto: "#7c3aed",
+      lavatrice: "#0ea5e9",
+      builtin_lavatrice: "#0ea5e9",
+    });
+    const configuredQuickActions = () => {
+      // Persisted Quick Actions are authoritative. getQuickActions() can still
+      // expose the pre-render snapshot for one turn immediately after an edit.
+      try {
+        const actions = JSON.parse(globalThis.localStorage?.getItem("cd_quick_actions") || "[]");
+        if (Array.isArray(actions) && actions.length) return actions;
+      } catch (_error) {}
+      try {
+        const actions = globalThis.getQuickActions?.();
+        return Array.isArray(actions) ? actions : [];
+      } catch (_error) {
+        return [];
+      }
+    };
+    const repairV01525QuickActionGlyphs = () => {
+      const actions = configuredQuickActions();
+      document.querySelectorAll("#qa-grid .qa-btn .icon").forEach((icon, index) => {
+        const action = actions[index] || {};
+        const builtin = String(action.builtin || "").trim().toLowerCase();
+        const configured = String(action.icon || "").trim();
+        const configuredMdi = configured.toLowerCase().startsWith("mdi:") ? configured : "";
+        const configuredGlyph = configured && !configuredMdi ? configured : "";
+        const raw = String(icon.dataset.dmBeta7IconToken || "");
+        const [mdiToken, persistedGlyph] = raw.split("|");
+        const glyph =
+          configuredGlyph ||
+          actionGlyphs[configuredMdi] ||
+          actionBuiltinGlyphs[builtin] ||
+          actionGlyphs[mdiToken] ||
+          (persistedGlyph && !persistedGlyph.startsWith("mdi:") ? persistedGlyph : "") ||
+          "⭐";
+        const color = String(action.color || actionBuiltinColors[builtin] || "#0ea5e9").trim();
+        let target = icon.querySelector(".dm-v01525-action-glyph");
+        if (!target) {
+          target = document.createElement("span");
+          target.className = "dm-v01525-action-glyph";
+          target.setAttribute("aria-hidden", "true");
+          icon.replaceChildren(target);
+        }
+        if (target.textContent !== glyph) target.textContent = glyph;
+        icon.dataset.dmActionStyle = "v01525";
+        icon.style.setProperty("color", color, "important");
+        icon.style.setProperty("filter", `drop-shadow(0 6px 12px ${color}66)`, "important");
+      });
+    };
+    const scheduleV01525QuickActionRepair = () => {
+      requestAnimationFrame?.(repairV01525QuickActionGlyphs);
+      for (const delay of [0, 90, 320, 900]) setTimeout(repairV01525QuickActionGlyphs, delay);
+    };
+    const wrapQuickActionRenderOwner = (name) => {
+      const current = globalThis[name];
+      if (typeof current !== "function" || current.__dmV01525GlyphRepair) return;
+      const wrapped = function (...args) {
+        const result = current.apply(this, args);
+        scheduleV01525QuickActionRepair();
+        return result;
+      };
+      wrapped.__dmV01525GlyphRepair = true;
+      wrapped.__dmWrappedOriginal = current;
+      globalThis[name] = wrapped;
+    };
+    const installQuickActionRepairOwner = () => {
+      wrapQuickActionRenderOwner("buildQuickActions");
+      wrapQuickActionRenderOwner("render");
+    };
+    for (const eventName of [
+      "dashboardmodern:legacy-ready",
+      "dashboardmodern:runtime-ready",
+      "dashboardmodern:states-ready",
+    ]) globalThis.addEventListener?.(eventName, () => {
+      installEvAppearanceTopOwner();
+      scheduleEvAppearanceTopRepair();
+      installQuickActionRepairOwner();
+      scheduleV01525QuickActionRepair();
+    });
+    globalThis.addEventListener?.("dashboardmodern:state-changed", () => {
+      installEvAppearanceTopOwner();
+      installQuickActionRepairOwner();
+      scheduleV01525QuickActionRepair();
+    });
+    document.addEventListener("click", (event) => {
+      if (event.target?.closest?.("#dm-action-editor-modal,#dm-beta9-action-picker,.dm-beta6-qa-icon-trigger"))
+        scheduleV01525QuickActionRepair();
+    }, true);
+
+    // The legacy Temperature edit handler creates a correctly populated room
+    // select and then disables it. The beta9 reconciler runs when the tab opens,
+    // but that happens before the edit form exists. Re-enable the select after
+    // the actual Edit click, without polling or observing the whole document.
+    const repairTemperatureRoomSelect = () => {
+      const form = document.querySelector("#editor-modal [data-temperature-form]");
+      const select = form?.querySelector("#dm-temperature-room");
+      const title = String(form?.querySelector("[data-temperature-form-title]")?.textContent || "").trim();
+      if (!select || !/^(modifica|edit)\b/i.test(title)) return;
+      select.disabled = false;
+      select.removeAttribute("disabled");
+      select.removeAttribute("aria-disabled");
+      select.tabIndex = 0;
+      select.dataset.dmTemperatureRoomEditable = "true";
+      select.dataset.dmRealDeviceEditable = "true";
+      select.style.setProperty("pointer-events", "auto", "important");
+      select.style.setProperty("opacity", "1", "important");
+      select.style.setProperty("cursor", "pointer", "important");
+    };
+    const scheduleTemperatureRoomRepair = () => {
+      requestAnimationFrame?.(repairTemperatureRoomSelect);
+      setTimeout(repairTemperatureRoomSelect, 0);
+      setTimeout(repairTemperatureRoomSelect, 90);
+    };
+    document.addEventListener("click", (event) => {
+      if (event.target?.closest?.("[data-temperature-edit]")) scheduleTemperatureRoomRepair();
+    }, true);
+
+    installEvAppearanceTopOwner();
+    scheduleEvAppearanceTopRepair();
+    installQuickActionRepairOwner();
+    scheduleV01525QuickActionRepair();
   }
 }
