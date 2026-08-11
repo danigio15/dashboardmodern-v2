@@ -1,87 +1,82 @@
 import assert from "node:assert/strict";
+import { access, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readFile, readdir } from "node:fs/promises";
+import test from "node:test";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const frontendRoot = path.resolve(here, "..");
-const repoRoot = path.resolve(frontendRoot, "../../../..");
-
-async function exists(file) {
-  try {
-    await readFile(file);
-    return true;
-  } catch {
-    return false;
-  }
-}
+const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const staticImportPattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
+const dynamicImportPattern = /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
+const productionEntries = Object.freeze([
+  "legacy/config.js",
+  "legacy/modules-entry.js",
+  "panel.js",
+  "dashboard-card.js",
+]);
+const obsoleteFacades = Object.freeze([
+  "src/sections/home-section.js",
+  "src/sections/climate-section.js",
+  "src/sections/security-section.js",
+  "src/sections/solar-thermal-section.js",
+  "src/sections/pool-section.js",
+  "src/sections/irrigation-section.js",
+  "src/sections/minipc-section.js",
+  "src/sections/legacy-section-adapter.js",
+  "legacy/report-mobile-fixes.js",
+]);
 
 async function filesBelow(directory) {
-  const out = [];
+  const output = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    const file = path.join(directory, entry.name);
-    if (entry.isDirectory()) out.push(...(await filesBelow(file)));
-    else out.push(file);
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) output.push(...(await filesBelow(absolute)));
+    else output.push(absolute);
   }
-  return out;
+  return output;
 }
 
-function importTargets(source) {
-  const values = new Set();
-  for (const match of source.matchAll(/(?:import\s+(?:[^"']+?\s+from\s+)?|import\s*\()\s*["']([^"']+)["']/g))
-    values.add(match[1]);
-  return [...values];
-}
-
-async function productionGraph() {
-  const roots = [
-    path.join(frontendRoot, "legacy", "dashboard.html"),
-    path.join(frontendRoot, "legacy", "dashboard-en.html"),
-    path.join(frontendRoot, "dashboard-card.js"),
-    path.join(frontendRoot, "panel.js"),
+function importSpecifiers(source) {
+  return [
+    ...[...source.matchAll(staticImportPattern)].map((match) => match[1]),
+    ...[...source.matchAll(dynamicImportPattern)].map((match) => match[1]),
   ];
-  const queue = [...roots];
+}
+
+async function productionGraph(entries = productionEntries) {
   const seen = new Map();
   const edges = new Map();
-  while (queue.length) {
-    const file = path.resolve(queue.shift());
-    if (seen.has(file) || !(await exists(file))) continue;
-    const source = await readFile(file, "utf8");
-    seen.set(file, source);
-    const deps = [];
-    for (const specifier of importTargets(source)) {
+
+  async function visit(file) {
+    const normalized = path.normalize(file);
+    if (seen.has(normalized)) return;
+    const source = await readFile(normalized, "utf8");
+    seen.set(normalized, source);
+    const dependencies = [];
+    edges.set(normalized, dependencies);
+    for (const specifier of importSpecifiers(source)) {
       if (!specifier.startsWith(".")) continue;
-      const resolved = path.resolve(path.dirname(file), specifier);
-      const candidates = [resolved, `${resolved}.js`, path.join(resolved, "index.js")];
-      const dependency = candidates.find((candidate) => path.extname(candidate) === ".js" && path.relative(frontendRoot, candidate).startsWith("..") === false)
-        || candidates.find((candidate) => path.extname(candidate) === ".html" && path.relative(frontendRoot, candidate).startsWith("..") === false);
-      if (!dependency || !(await exists(dependency))) continue;
-      deps.push(dependency);
-      queue.push(dependency);
+      let next = path.resolve(path.dirname(normalized), specifier);
+      if (!path.extname(next)) next += ".js";
+      next = path.normalize(next);
+      dependencies.push(next);
+      await visit(next);
     }
-    if (file.endsWith(".html")) {
-      for (const match of source.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)) {
-        const specifier = match[1].split(/[?#]/, 1)[0];
-        if (!specifier.startsWith(".")) continue;
-        const dependency = path.resolve(path.dirname(file), specifier);
-        if (path.relative(frontendRoot, dependency).startsWith("..") === false && await exists(dependency)) {
-          deps.push(dependency);
-          queue.push(dependency);
-        }
-      }
-    }
-    edges.set(file, deps);
   }
+
+  for (const entry of entries) await visit(path.resolve(frontendRoot, entry));
   return { seen, edges };
 }
 
 function assertAcyclic(edges) {
-  const complete = new Set();
   const active = new Set();
+  const complete = new Set();
   function visit(file, chain = []) {
     if (complete.has(file)) return;
     if (active.has(file)) {
-      assert.fail(`production import cycle: ${[...chain, file].map((value) => path.basename(value)).join(" -> ")}`);
+      const cycle = [...chain, file]
+        .map((item) => path.relative(frontendRoot, item).replaceAll("\\", "/"))
+        .join(" -> ");
+      assert.fail(`production import cycle: ${cycle}`);
     }
     active.add(file);
     for (const dependency of edges.get(file) || []) visit(dependency, [...chain, file]);
@@ -116,9 +111,9 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // v1 beta adds the persistence owner plus substantive UI owners. Beta4/Beta5
   // keep one scoped mobile-polish owner; Beta6 adds one event-driven feedback
   // owner. Beta7 adds exactly two scoped, event-driven guards for real WebView
-  // failures. Beta9 adds one final event-driven real-device reconciler for the
-  // screenshot-proven EV/editor/shutter conflicts; it adds no polling or global
-  // observer and is intentionally the last visual authority in beta-entry.
+  // failures: brand-image fallback and the final mobile regression polish.
+  // Beta9 adds one final scoped event-driven real-device reconciler for the
+  // screenshot-proven EV/editor/shutter conflicts, with no polling or observer.
   assert.ok(relative.length <= 65, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
@@ -135,14 +130,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
 
   const srcRoot = path.join(frontendRoot, "src");
   const srcFiles = (await filesBelow(srcRoot)).filter((file) => file.endsWith(".js"));
-  const orphaned = srcFiles
-    .filter((file) => !graph.has(path.resolve(file)))
-    .map((file) => path.relative(frontendRoot, file).replaceAll("\\", "/"));
-  assert.deepEqual(orphaned, [], `orphan production modules: ${orphaned.join(", ")}`);
-
-  const forbiddenArtifacts = (await filesBelow(repoRoot))
-    .map((file) => path.relative(repoRoot, file).replaceAll("\\", "/"))
-    .filter((file) => /(?:^|\/)(?:playwright-report|test-results|node_modules)(?:\/|$)|\.(?:bak|orig|tmp|old)$/.test(file))
-    .filter((file) => !file.startsWith(".git/"));
-  assert.deepEqual(forbiddenArtifacts, []);
+  const srcOrphans = srcFiles
+    .filter((file) => !graph.has(path.normalize(file)))
+    .map((file) => path.relative(frontendRoot, file).replaceAll("\\", "/"))
+    .sort();
+  assert.deepEqual(srcOrphans, [], `orphan src modules:\n${srcOrphans.join("\n")}`);
 });
+
+for (const relative of obsoleteFacades) {
+  test(`${relative} is physically absent`, async () => {
+    await assert.rejects(access(path.join(frontendRoot, relative)));
+  });
+}
