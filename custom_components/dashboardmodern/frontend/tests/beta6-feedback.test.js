@@ -10,7 +10,13 @@ test("feedback layer keeps legacy quick-action defaults while beta9 owns stable 
   const feedback = await read("src/sections/beta6-feedback-section.js");
   const guard = await read("src/sections/beta7-brand-guard-section.js");
   assert.match(entry, /beta4-mobile-polish-section\.js";\nimport "\.\/beta6-feedback-section\.js";/);
-  assert.doesNotMatch(entry, /quickActionGlyphByType|buildQuickActions|dm-beta6-quick-action-layout/);
+  assert.doesNotMatch(entry, /quickActionGlyphByType|dm-beta6-quick-action-layout/);
+  assert.match(entry, /__dmV01525GlyphRepair/);
+  assert.match(entry, /dmBeta7IconToken/);
+  assert.match(entry, /"mdi:lightbulb": "💡"/);
+  assert.match(entry, /"mdi:snowflake": "❄️"/);
+  assert.match(entry, /"mdi:shield-home": "🛡️"/);
+  assert.match(entry, /"mdi:washing-machine": "🧺"/);
   assert.match(feedback, /luci_group:\{glyph:"💡",mdi:"mdi:lightbulb-group"\}/);
   assert.match(feedback, /builtin_clima:\{glyph:"❄️",mdi:"mdi:snowflake"\}/);
   assert.match(feedback, /builtin_antifurto:\{glyph:"🛡️",mdi:"mdi:shield-home"\}/);
