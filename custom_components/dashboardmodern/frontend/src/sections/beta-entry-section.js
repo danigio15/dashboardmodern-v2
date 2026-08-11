@@ -86,6 +86,45 @@ if (typeof document !== "undefined") {
     `;
     document.head?.append(evBrandStyle);
 
+    // Personalization creates the EV appearance card only after the legacy EV
+    // editor has rendered. On WebKit that first render can land after beta9's
+    // own reconciliation frame, leaving Brand/Model below the long entity list.
+    // Wrap the actual tab switch and reconcile on the following animation frame,
+    // after sibling requestAnimationFrame renderers have completed. This is
+    // bounded/event-driven and does not add another DOM observer or polling loop.
+    const repairEvAppearanceTop = () => {
+      const body = document.getElementById("ed-body");
+      if (!body) return;
+      const activeTab = String(document.querySelector(".ed-tab.active")?.dataset?.tab || "");
+      if (activeTab !== "sez2") return;
+      const panel = body.querySelector("[data-ev-appearance]");
+      if (!panel) return;
+      if (body.firstElementChild !== panel) body.prepend(panel);
+      panel.dataset.dmEvTop = "true";
+    };
+    const scheduleEvAppearanceTopRepair = () => {
+      const secondFrame = () => {
+        if (typeof requestAnimationFrame === "function") requestAnimationFrame(repairEvAppearanceTop);
+        else setTimeout(repairEvAppearanceTop, 0);
+      };
+      if (typeof requestAnimationFrame === "function") requestAnimationFrame(secondFrame);
+      else setTimeout(secondFrame, 0);
+      setTimeout(repairEvAppearanceTop, 70);
+    };
+    const installEvAppearanceTopOwner = () => {
+      const current = globalThis.editorSwitch;
+      if (typeof current !== "function" || current.__dmBeta9EvTopRepair) return;
+      const wrapped = function (...args) {
+        const result = current.apply(this, args);
+        if (result && typeof result.finally === "function") result.finally(scheduleEvAppearanceTopRepair);
+        else scheduleEvAppearanceTopRepair();
+        return result;
+      };
+      wrapped.__dmBeta9EvTopRepair = true;
+      wrapped.__dmWrappedOriginal = current;
+      globalThis.editorSwitch = wrapped;
+    };
+
     // v0.15.25 Quick Actions used readable colour emoji/glyphs. The beta9
     // catalog normalizer can transiently rebuild an empty builtin icon as Home.
     // Reconcile only after the two real render owners finish. This is bounded,
@@ -203,10 +242,13 @@ if (typeof document !== "undefined") {
       "dashboardmodern:runtime-ready",
       "dashboardmodern:states-ready",
     ]) globalThis.addEventListener?.(eventName, () => {
+      installEvAppearanceTopOwner();
+      scheduleEvAppearanceTopRepair();
       installQuickActionRepairOwner();
       scheduleV01525QuickActionRepair();
     });
     globalThis.addEventListener?.("dashboardmodern:state-changed", () => {
+      installEvAppearanceTopOwner();
       installQuickActionRepairOwner();
       scheduleV01525QuickActionRepair();
     });
@@ -243,6 +285,8 @@ if (typeof document !== "undefined") {
       if (event.target?.closest?.("[data-temperature-edit]")) scheduleTemperatureRoomRepair();
     }, true);
 
+    installEvAppearanceTopOwner();
+    scheduleEvAppearanceTopRepair();
     installQuickActionRepairOwner();
     scheduleV01525QuickActionRepair();
   }
