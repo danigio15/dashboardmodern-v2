@@ -681,3 +681,60 @@
   opacity: .75 !important;
   text-shadow: none !important;
 }
+
+/* beta.11 final real-device geometry guards. These deliberately outrank the
+ * dynamically injected beta compatibility styles so inner SVG/image boxes can
+ * never remain larger than their visible preview container. */
+html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-car-brand > [data-brand-logo],
+html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-leapmotor-mark > [data-brand-logo] {
+  display: grid !important;
+  place-items: center !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 48px !important;
+  max-height: 48px !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  transform: none !important;
+}
+html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-car-brand [data-brand-logo] > svg,
+html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-car-brand [data-brand-logo] > img,
+html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-leapmotor-mark [data-brand-logo] > svg {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 48px !important;
+  max-height: 48px !important;
+  min-height: 0 !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  transform: none !important;
+}
+html body #editor-modal #ed-body .ed-row.dm-room-config-row.dm-beta11-room-row > .dm-room-list-icon {
+  box-sizing: border-box !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+  flex: 0 0 56px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  justify-self: start !important;
+  align-self: center !important;
+  overflow: hidden !important;
+  transform: none !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
