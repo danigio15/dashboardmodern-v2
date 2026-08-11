@@ -151,6 +151,35 @@ if (typeof document !== "undefined") {
       if (event.target?.closest?.("#dm-action-editor-modal,#dm-beta9-action-picker,.dm-beta6-qa-icon-trigger"))
         scheduleV01525QuickActionRepair();
     }, true);
+
+    // The legacy Temperature edit handler creates a correctly populated room
+    // select and then disables it. The beta9 reconciler runs when the tab opens,
+    // but that happens before the edit form exists. Re-enable the select after
+    // the actual Edit click, without polling or observing the whole document.
+    const repairTemperatureRoomSelect = () => {
+      const form = document.querySelector("#editor-modal [data-temperature-form]");
+      const select = form?.querySelector("#dm-temperature-room");
+      const title = String(form?.querySelector("[data-temperature-form-title]")?.textContent || "").trim();
+      if (!select || !/^(modifica|edit)\b/i.test(title)) return;
+      select.disabled = false;
+      select.removeAttribute("disabled");
+      select.removeAttribute("aria-disabled");
+      select.tabIndex = 0;
+      select.dataset.dmTemperatureRoomEditable = "true";
+      select.dataset.dmRealDeviceEditable = "true";
+      select.style.setProperty("pointer-events", "auto", "important");
+      select.style.setProperty("opacity", "1", "important");
+      select.style.setProperty("cursor", "pointer", "important");
+    };
+    const scheduleTemperatureRoomRepair = () => {
+      requestAnimationFrame?.(repairTemperatureRoomSelect);
+      setTimeout(repairTemperatureRoomSelect, 0);
+      setTimeout(repairTemperatureRoomSelect, 90);
+    };
+    document.addEventListener("click", (event) => {
+      if (event.target?.closest?.("[data-temperature-edit]")) scheduleTemperatureRoomRepair();
+    }, true);
+
     installQuickActionRepairOwner();
     scheduleV01525QuickActionRepair();
   }
