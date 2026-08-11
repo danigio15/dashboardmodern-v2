@@ -74,6 +74,9 @@ function install() {
     const targetId = button.dataset.iconTarget || button.closest(".dm-icon-field")?.querySelector("input")?.id || button.previousElementSibling?.id;
     const input = targetId ? doc.getElementById(targetId) : button.previousElementSibling;
     if (!(input instanceof HTMLInputElement)) return;
+    // Alerts have their own semantic Beta11 catalog. Do not let the historical
+    // broad "id contains icon" heuristic steal #ed-avv-icon as a room picker.
+    if (input.id === "ed-avv-icon" || button.classList.contains("dm-beta5-alert-icon-trigger") || button.dataset.iconCategory === "alerts") return;
     const category = button.dataset.iconCategory || input.dataset.iconCategory || "";
     const looksLikeRoom = category === "rooms" || /room|stanza|icon/i.test(input.id || "") || button.title === "Selettore icone" || button.title === "Icon picker";
     if (!looksLikeRoom) return;
