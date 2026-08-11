@@ -50,6 +50,8 @@ if (typeof document !== "undefined") {
 
     // EV config: the real manufacturer mark belongs above the brand label. The
     // old horizontal box let wide wordmarks overflow beneath the text on phones.
+    // Shutter windows are measured by their border box in the real-device test;
+    // legacy padding must therefore stay inside the compact 132px owner height.
     const evBrandStyle = document.createElement("style");
     evBrandStyle.id = "dm-beta7-ev-brand-layout";
     evBrandStyle.textContent = `
@@ -80,6 +82,9 @@ if (typeof document !== "undefined") {
         object-position:left center!important;
       }
       .dm-ev-appearance-grid .dm-brand-preview b{display:block!important;line-height:1.1!important}
+      html body #page-tapparelle .tapp-win.dm-beta9-real-shutter-window{
+        box-sizing:border-box!important;
+      }
       @media(hover:none){
         .dm-visual-trigger:hover,.dm-icon-preview-button:hover,.dm-picker-option:hover{transform:none!important}
       }
@@ -88,10 +93,11 @@ if (typeof document !== "undefined") {
 
     // Personalization creates the EV appearance card only after the legacy EV
     // editor has rendered. On WebKit that first render can land after beta9's
-    // own reconciliation frame, leaving Brand/Model below the long entity list.
-    // Wrap the actual tab switch and reconcile on the following animation frame,
-    // after sibling requestAnimationFrame renderers have completed. This is
-    // bounded/event-driven and does not add another DOM observer or polling loop.
+    // own reconciliation frame, leaving Brand/Model below the long entity list
+    // or leaving the freshly-created selects before beta9's direct bindings.
+    // Reconcile position on the following frame and, when bindings are still
+    // absent, issue one ordinary scoped state tick so beta9 runs its existing
+    // bindEvAppearance owner. No observer or permanent polling is introduced.
     const repairEvAppearanceTop = () => {
       const body = document.getElementById("ed-body");
       if (!body) return;
@@ -101,6 +107,13 @@ if (typeof document !== "undefined") {
       if (!panel) return;
       if (body.firstElementChild !== panel) body.prepend(panel);
       panel.dataset.dmEvTop = "true";
+
+      const brandSelect = panel.querySelector("select[data-brand]");
+      if (brandSelect && brandSelect.dataset.dmRealDeviceBound !== "true") {
+        globalThis.dispatchEvent?.(new CustomEvent("dashboardmodern:state-changed", {
+          detail: { entity_id: "sensor.dashboardmodern_ev_appearance_sync" },
+        }));
+      }
     };
     const scheduleEvAppearanceTopRepair = () => {
       const secondFrame = () => {
