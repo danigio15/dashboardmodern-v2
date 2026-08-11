@@ -1,5 +1,6 @@
 // Source-tree sentinel. Release/test workflows replace this file from the checked-out HEAD.
 import "../src/sections/beta-entry-section.js";
+import "../src/sections/beta11-real-device-polish-section.js";
 
 export const BUILD_INFO = Object.freeze({
   generated: false,
