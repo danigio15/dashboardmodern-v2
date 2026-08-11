@@ -278,3 +278,392 @@
   background-repeat: no-repeat !important;
   background-size: contain !important;
 }
+
+/* beta.11 real-device: the daily Chart.js canvas is dimensioned by one stable
+ * parent. This prevents inline canvas dimensions/min-height from escaping the
+ * report card in Android/Home Assistant WebViews. */
+.energy-dashboard .ed-chart-card {
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+.energy-dashboard .ed-chart-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 10px 16px !important;
+  min-width: 0 !important;
+}
+.energy-dashboard .ed-chart-title,
+.energy-dashboard .ed-chart-legend {
+  min-width: 0 !important;
+}
+.energy-dashboard .ed-chart-legend {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+  gap: 8px 16px !important;
+}
+.energy-dashboard .ed-chart-wrap {
+  position: relative !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: clamp(250px, 38vw, 330px) !important;
+  min-height: 250px !important;
+  max-height: 330px !important;
+  margin: 0 !important;
+  padding: 8px 0 2px !important;
+  overflow: hidden !important;
+  contain: layout paint !important;
+}
+.energy-dashboard #ed-daily-canvas[data-dm-actual-history],
+.energy-dashboard #ed-daily-canvas[data-dm-history-fallback] {
+  position: static !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+}
+.energy-dashboard #ed-chart-loading {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 16px !important;
+  text-align: center !important;
+}
+
+/* beta.11 pool schematic. The legacy runtime still owns entities and services;
+ * this layer only turns its live controls/values into a semantic plant drawing. */
+#page-piscina #pool-wrap {
+  position: relative !important;
+  box-sizing: border-box !important;
+  width: min(100%, 1000px) !important;
+  max-width: 1000px !important;
+  min-width: 0 !important;
+  margin: 0 auto !important;
+  padding: 8px 8px 92px !important;
+  isolation: isolate;
+}
+#page-piscina .pool-hero {
+  position: relative !important;
+  box-sizing: border-box !important;
+  min-height: 430px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid color-mix(in srgb, #0ea5e9 28%, var(--card-border, #dbe4ee)) !important;
+  border-radius: 30px !important;
+  color: var(--text, #0f172a) !important;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(56,189,248,.16), transparent 30%),
+    radial-gradient(circle at 82% 75%, rgba(16,185,129,.10), transparent 28%),
+    var(--card-bg, #fff) !important;
+  box-shadow: var(--shadow-sculpted, 0 8px 28px rgba(15,23,42,.08)) !important;
+}
+#page-piscina .pool-hero::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 6%;
+  right: 31%;
+  top: 72px;
+  bottom: 96px;
+  border: 10px solid #e7eef5;
+  border-radius: 34px 34px 48px 48px;
+  background:
+    repeating-linear-gradient(173deg, transparent 0 23px, rgba(255,255,255,.17) 24px 27px),
+    radial-gradient(ellipse at 25% 22%, rgba(255,255,255,.48), transparent 26%),
+    linear-gradient(155deg, #67e8f9 0%, #22d3ee 28%, #0ea5e9 66%, #0284c7 100%);
+  box-shadow:
+    inset 0 0 0 3px rgba(255,255,255,.75),
+    inset 0 -34px 58px rgba(3,105,161,.25),
+    0 18px 36px rgba(2,132,199,.24);
+  transform: perspective(900px) rotateX(2deg);
+}
+#page-piscina .pool-hero::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 74px;
+  right: 3.5%;
+  width: 23%;
+  height: 246px;
+  border: 1px solid var(--card-border, #dbe4ee);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 22%, rgba(14,165,233,.16), transparent 24%),
+    linear-gradient(180deg, color-mix(in srgb, var(--card-bg, #fff) 96%, #e0f2fe), color-mix(in srgb, var(--card-bg, #fff) 92%, #f1f5f9));
+  box-shadow: 0 12px 28px rgba(15,23,42,.10), inset 0 0 0 1px rgba(255,255,255,.55);
+}
+#page-piscina .pool-temp {
+  position: absolute !important;
+  z-index: 5 !important;
+  left: 12% !important;
+  top: 118px !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 98px !important;
+  height: 98px !important;
+  border: 1px solid rgba(255,255,255,.75) !important;
+  border-radius: 50% !important;
+  color: #fff !important;
+  background: rgba(3,105,161,.28) !important;
+  box-shadow: 0 10px 24px rgba(3,105,161,.22), inset 0 0 0 7px rgba(255,255,255,.10) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 34px !important;
+  text-shadow: 0 2px 8px rgba(3,105,161,.35);
+}
+#page-piscina .pool-sub {
+  position: absolute !important;
+  z-index: 5 !important;
+  left: 11% !important;
+  top: 224px !important;
+  width: 120px !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 850 !important;
+  text-align: center !important;
+  opacity: .95 !important;
+  text-shadow: 0 1px 4px rgba(3,105,161,.45);
+}
+#page-piscina .pool-chips {
+  display: contents !important;
+}
+#page-piscina .pool-tg {
+  position: absolute !important;
+  z-index: 6 !important;
+  box-sizing: border-box !important;
+  min-height: 50px !important;
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  border: 1px solid var(--card-border, #dbe4ee) !important;
+  border-radius: 16px !important;
+  color: var(--text, #0f172a) !important;
+  background: color-mix(in srgb, var(--card-bg, #fff) 94%, #e0f2fe) !important;
+  box-shadow: 0 8px 18px rgba(15,23,42,.10) !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+}
+#page-piscina .pool-tg.on {
+  border-color: rgba(14,165,233,.48) !important;
+  color: #0369a1 !important;
+  background: #e0f2fe !important;
+  box-shadow: 0 0 0 3px rgba(14,165,233,.10), 0 9px 20px rgba(2,132,199,.16) !important;
+}
+#page-piscina .pool-tg[data-act="pump"] {
+  top: 100px !important;
+  right: 6% !important;
+  width: 18% !important;
+}
+#page-piscina .pool-tg[data-act="heat"] {
+  top: 164px !important;
+  right: 6% !important;
+  width: 18% !important;
+}
+#page-piscina .pool-tg[data-act="light"] {
+  left: 39% !important;
+  bottom: 118px !important;
+  width: 19% !important;
+  border-color: rgba(250,204,21,.46) !important;
+  background: rgba(255,255,255,.90) !important;
+}
+#page-piscina .pool-tg[data-act="light"].on {
+  color: #a16207 !important;
+  background: #fef9c3 !important;
+  box-shadow: 0 0 26px rgba(250,204,21,.32) !important;
+}
+#page-piscina .pool-wave {
+  z-index: 2 !important;
+  left: 9% !important;
+  right: 34% !important;
+  bottom: 112px !important;
+  height: 26px !important;
+  opacity: .40 !important;
+  border-radius: 50% !important;
+  background: repeating-radial-gradient(ellipse at center, transparent 0 14px, rgba(255,255,255,.56) 15px 17px, transparent 18px 30px) !important;
+  background-size: 76px 25px !important;
+  pointer-events: none !important;
+}
+#page-piscina .pool-wave.w2 {
+  bottom: 142px !important;
+  opacity: .24 !important;
+}
+#page-piscina #pool-wrap > .pool-card {
+  z-index: 8 !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  border: 1px solid var(--card-border, #dbe4ee) !important;
+  border-radius: 20px !important;
+  background: color-mix(in srgb, var(--card-bg, #fff) 96%, #f0f9ff) !important;
+  box-shadow: 0 12px 28px rgba(15,23,42,.10) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+#page-piscina #pool-wrap > .pool-card:not(:has(.pool-bar)) {
+  position: absolute !important;
+  left: 7% !important;
+  bottom: 24px !important;
+  width: 39% !important;
+  min-height: 118px !important;
+}
+#page-piscina #pool-wrap > .pool-card:has(.pool-bar) {
+  position: absolute !important;
+  right: 4.2% !important;
+  bottom: 18px !important;
+  width: 45% !important;
+  min-height: 142px !important;
+}
+#page-piscina .pool-card .pool-k {
+  color: var(--text, #0f172a) !important;
+}
+#page-piscina .pool-card .pool-v {
+  color: var(--text, #0f172a) !important;
+}
+#page-piscina .pool-card:has(.pool-bar)::before {
+  content: "⚙️";
+  display: grid;
+  place-items: center;
+  position: absolute;
+  right: 13%;
+  top: -202px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #e2e8f0, #f8fafc);
+  box-shadow: inset 0 0 0 8px #cbd5e1, 0 8px 18px rgba(15,23,42,.15);
+  font-size: 24px;
+  pointer-events: none;
+}
+#page-piscina .pool-card:has(.pool-bar)::after {
+  content: "";
+  position: absolute;
+  right: 20%;
+  top: -143px;
+  width: 3px;
+  height: 134px;
+  border-radius: 999px;
+  background: linear-gradient(#0ea5e9, #22d3ee);
+  box-shadow: 0 0 9px rgba(14,165,233,.38);
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .energy-dashboard .ed-chart-card {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .energy-dashboard .ed-chart-header {
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  .energy-dashboard .ed-chart-title {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    font-size: 16px !important;
+  }
+  .energy-dashboard .ed-chart-legend {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    font-size: 11px !important;
+  }
+  .energy-dashboard .ed-chart-wrap {
+    height: 270px !important;
+    min-height: 270px !important;
+    max-height: 270px !important;
+    padding-top: 6px !important;
+  }
+
+  #page-piscina #pool-wrap {
+    padding: 4px 4px 18px !important;
+  }
+  #page-piscina .pool-hero {
+    min-height: 398px !important;
+    border-radius: 24px !important;
+  }
+  #page-piscina .pool-hero::before {
+    left: 5% !important;
+    right: 5% !important;
+    top: 62px !important;
+    bottom: 144px !important;
+    border-width: 8px !important;
+    border-radius: 26px 26px 38px 38px !important;
+  }
+  #page-piscina .pool-hero::after {
+    top: auto !important;
+    right: 5% !important;
+    bottom: 22px !important;
+    width: 45% !important;
+    height: 96px !important;
+    border-radius: 18px !important;
+  }
+  #page-piscina .pool-temp {
+    left: 10% !important;
+    top: 94px !important;
+    width: 84px !important;
+    height: 84px !important;
+    font-size: 29px !important;
+  }
+  #page-piscina .pool-sub {
+    left: 7.5% !important;
+    top: 184px !important;
+    width: 105px !important;
+    font-size: 10px !important;
+  }
+  #page-piscina .pool-tg {
+    min-height: 44px !important;
+    padding: 7px 8px !important;
+    border-radius: 14px !important;
+    font-size: 10px !important;
+  }
+  #page-piscina .pool-tg[data-act="pump"] {
+    top: auto !important;
+    right: 8% !important;
+    bottom: 70px !important;
+    width: 38% !important;
+  }
+  #page-piscina .pool-tg[data-act="heat"] {
+    top: auto !important;
+    right: 8% !important;
+    bottom: 24px !important;
+    width: 38% !important;
+  }
+  #page-piscina .pool-tg[data-act="light"] {
+    left: 10% !important;
+    bottom: 150px !important;
+    width: 34% !important;
+  }
+  #page-piscina .pool-wave {
+    left: 8% !important;
+    right: 8% !important;
+    bottom: 165px !important;
+  }
+  #page-piscina .pool-wave.w2 {
+    bottom: 192px !important;
+  }
+  #page-piscina #pool-wrap > .pool-card,
+  #page-piscina #pool-wrap > .pool-card:not(:has(.pool-bar)),
+  #page-piscina #pool-wrap > .pool-card:has(.pool-bar) {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    margin: 12px 0 0 !important;
+    padding: 14px !important;
+  }
+  #page-piscina .pool-card:has(.pool-bar)::before,
+  #page-piscina .pool-card:has(.pool-bar)::after {
+    display: none !important;
+  }
+}
