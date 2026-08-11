@@ -84,7 +84,7 @@ function install() {
 
   const style = doc.createElement("style");
   style.id = "dm-beta-room-picker-style";
-  style.textContent = `.dm-beta-room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:10px;padding:12px 18px 20px;max-height:55vh;overflow:auto}.dm-beta-room-grid button{min-height:62px;border:1px solid var(--divider-color,#dbe4ee);border-radius:15px;background:var(--card-background-color,#fff);font-size:28px;cursor:pointer}.dm-beta-room-grid button:hover{border-color:var(--primary-color,#0ea5e9);transform:translateY(-1px)}.dm-beta-room-grid button[hidden]{display:none!important}`;
+  style.textContent = `.dm-beta-room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:10px;padding:12px 18px 20px;max-height:55vh;overflow:auto}.dm-beta-room-grid button{min-height:62px;border:1px solid var(--divider-color,#dbe4ee);border-radius:15px;background:var(--card-background-color,#fff);font-size:28px;cursor:pointer}.dm-beta-room-grid button:hover{border-color:var(--primary-color,#0ea5e9);transform:translateY(-1px)}.dm-beta-room-grid button[hidden]{display:none!important}#ed-body:has(>[data-ev-appearance]){display:flex!important;flex-direction:column!important}#ed-body:has(>[data-ev-appearance])>[data-ev-appearance]{order:-10000!important}`;
   doc.head?.append(style);
 }
 
