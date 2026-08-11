@@ -557,7 +557,6 @@
   box-shadow: 0 0 9px rgba(14,165,233,.38);
   pointer-events: none;
 }
-
 @media (max-width: 760px) {
   .energy-dashboard .ed-chart-card {
     padding-left: 12px !important;
@@ -666,4 +665,19 @@
   #page-piscina .pool-card:has(.pool-bar)::after {
     display: none !important;
   }
+}
+
+/* The filtration card reuses the historical .pool-sub class used by the water
+ * temperature caption. Keep that status copy in normal card flow. */
+#page-piscina #pool-wrap > .pool-card .pool-sub {
+  position: static !important;
+  inset: auto !important;
+  width: auto !important;
+  color: inherit !important;
+  font-size: 12px !important;
+  font-weight: inherit !important;
+  line-height: 1.35 !important;
+  text-align: left !important;
+  opacity: .75 !important;
+  text-shadow: none !important;
 }
