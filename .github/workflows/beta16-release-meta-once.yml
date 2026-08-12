@@ -22,48 +22,44 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import json
-
           version = "1.0.0-beta.16"
-
           manifest_path = Path("custom_components/dashboardmodern/manifest.json")
           manifest = json.loads(manifest_path.read_text())
           manifest["version"] = version
           manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
-
           readme_path = Path("README.md")
           readme = readme_path.read_text()
           readme = readme.replace("version-1.0.0--beta.15-0ea5e9", "version-1.0.0--beta.16-0ea5e9", 1)
           readme = readme.replace('alt="Versione 1.0.0-beta.15"', 'alt="Versione 1.0.0-beta.16"', 1)
           readme_path.write_text(readme)
-
           changelog_path = Path("CHANGELOG.md")
           changelog = changelog_path.read_text()
           anchor = "## 1.0.0-beta.15 — 2026-08-12\n"
-          section = """## 1.0.0-beta.16 — 2026-08-13
-
-### Corretto
-
-- Ridotto il selettore mobile **Freddo / Caldo** e consolidati tutti gli owner legacy che forzavano ancora Clima a una singola colonna.
-- Le card **Clima** restano ora a **2 per riga su smartphone**, con dimensioni, font, badge, temperature e controlli compatti.
-- Gli ID stanza canonici come `room_msqjk307` vengono risolti nel nome leggibile della stanza; su mobile il nome stanza è mostrato dentro la card senza spezzare la griglia.
-- Gli editor **Clima** e **Temperature** ricostruiscono le stanze dal `DashboardStore` canonico e mostrano nomi, entità e sensori già configurati.
-- Ripristinata nella pagina **Temperature** la barra/tab delle stanze con filtro per `room-id` canonico.
-- Ripristinato il nome salvato delle **Azioni rapide** nelle righe dell'editor.
-- Ridisegnata la geometria responsive della **Piscina**: vasca contenuta nel viewport, temperatura e descrizione non sovrapposte, comandi compatti e tre chip su una riga mobile.
-- Aggiunti test unitari ed E2E real-device per mapping stanza, nomi editor, tab Temperature e layout Clima a due colonne su Chromium desktop/mobile e WebKit/iPad.
-
-"""
+          lines = [
+              "## 1.0.0-beta.16 — 2026-08-13",
+              "",
+              "### Corretto",
+              "",
+              "- Ridotto il selettore mobile **Freddo / Caldo** e consolidati tutti gli owner legacy che forzavano ancora Clima a una singola colonna.",
+              "- Le card **Clima** restano ora a **2 per riga su smartphone**, con dimensioni, font, badge, temperature e controlli compatti.",
+              "- Gli ID stanza canonici come `room_msqjk307` vengono risolti nel nome leggibile della stanza; su mobile il nome stanza è mostrato dentro la card senza spezzare la griglia.",
+              "- Gli editor **Clima** e **Temperature** ricostruiscono le stanze dal `DashboardStore` canonico e mostrano nomi, entità e sensori già configurati.",
+              "- Ripristinata nella pagina **Temperature** la barra/tab delle stanze con filtro per `room-id` canonico.",
+              "- Ripristinato il nome salvato delle **Azioni rapide** nelle righe dell'editor.",
+              "- Ridisegnata la geometria responsive della **Piscina**: vasca contenuta nel viewport, temperatura e descrizione non sovrapposte, comandi compatti e tre chip su una riga mobile.",
+              "- Aggiunti test unitari ed E2E real-device per mapping stanza, nomi editor, tab Temperature e layout Clima a due colonne su Chromium desktop/mobile e WebKit/iPad.",
+              "",
+          ]
+          section = "\n".join(lines) + "\n"
           if "## 1.0.0-beta.16" not in changelog:
               if anchor not in changelog:
                   raise SystemExit("beta15 changelog anchor not found")
               changelog = changelog.replace(anchor, section + anchor, 1)
           changelog_path.write_text(changelog)
-
           test_path = Path("custom_components/dashboardmodern/frontend/tests/release-01520-version.test.js")
           test = test_path.read_text().replace('const RELEASE_VERSION = "1.0.0-beta.15";', 'const RELEASE_VERSION = "1.0.0-beta.16";', 1)
           test = test.replace("1\\.0\\.0-beta\\.15", "1\\.0\\.0-beta\\.16")
           test_path.write_text(test)
-
           build_path = Path("custom_components/dashboardmodern/frontend/legacy/build-info.js")
           build = build_path.read_text().replace('"integrationVersion":"1.0.0-beta.15"', '"integrationVersion":"1.0.0-beta.16"', 1)
           build = build.replace('"dashboardVersion":"1.0.0-beta.15"', '"dashboardVersion":"1.0.0-beta.16"', 1)
