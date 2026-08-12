@@ -119,7 +119,9 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // Beta12 keeps its final action/room first-paint contract inside the existing
   // room-color lock; reset, temperature, shutters and energy flows were
   // consolidated into their existing production owners rather than new modules.
-  assert.ok(relative.length <= 68, `production graph unexpectedly grew to ${relative.length} modules`);
+  // Beta14 adds one final event-driven recovery owner because it must snapshot
+  // legacy room data before DashboardStore migration can project over it.
+  assert.ok(relative.length <= 69, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
