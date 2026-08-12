@@ -207,17 +207,58 @@ function repairRoomSelects() {
 
 function repairClimateRoomHeadings() {
   const rooms = canonicalRooms();
-  const headings = [...(doc?.querySelectorAll?.("#page-clima .clima-section-title") || [])];
-  headings.forEach((heading) => {
-    const raw = clean(heading.textContent).replace(/^🏠\s*/u, "");
-    const room = matchCanonicalRoom(rooms, raw);
-    if (!room) return;
-    const name = clean(room.name) || raw;
-    heading.textContent = `🏠 ${name}`;
-    heading.dataset.dmBeta16RoomLabel = clean(room.id || name);
-    heading.title = name;
-  });
-  return headings.length > 0;
+  let repaired = false;
+  for (const [gridId, glyph] of [
+    ["clima-grid-freddo", "❄️"],
+    ["clima-grid-caldo", "🔥"],
+  ]) {
+    const grid = doc?.getElementById?.(gridId);
+    if (!grid) continue;
+    let currentRoom = null;
+    [...grid.children].forEach((node) => {
+      if (node.classList.contains("cp-card")) {
+        const icon = node.querySelector(".cp-icon");
+        if (icon) icon.textContent = glyph;
+        let badge = node.querySelector(":scope > .dm-beta16-climate-room");
+        if (currentRoom) {
+          if (!badge) {
+            badge = doc.createElement("div");
+            badge.className = "dm-beta16-climate-room";
+            const header = node.querySelector(":scope > .cp-header");
+            if (header) header.after(badge);
+            else node.prepend(badge);
+          }
+          badge.textContent = `🏠 ${clean(currentRoom.name)}`;
+          badge.title = clean(currentRoom.name);
+          node.dataset.dmBeta16RoomId = clean(currentRoom.id || currentRoom.name);
+        } else {
+          badge?.remove();
+          delete node.dataset.dmBeta16RoomId;
+        }
+        repaired = true;
+        return;
+      }
+
+      const text = clean(node.textContent);
+      if (!text.includes("🏠")) return;
+      const roomReference = clean(text.split("🏠").pop());
+      const room = matchCanonicalRoom(rooms, roomReference);
+      const noRoom = /^(nessuna stanza|no room)$/i.test(roomReference);
+      currentRoom = room || null;
+      node.classList.add("clima-section-title", "dm-beta16-climate-group-heading");
+      if (room) {
+        const prefix = text.includes("🏢") ? `${clean(text.split("🏠")[0])} ` : "";
+        const name = clean(room.name) || roomReference;
+        node.textContent = `${prefix}🏠 ${name}`.trim();
+        node.dataset.dmBeta16RoomLabel = clean(room.id || name);
+        node.title = name;
+      } else if (noRoom) {
+        node.dataset.dmBeta16RoomLabel = "";
+      }
+      repaired = true;
+    });
+  }
+  return repaired;
 }
 
 function applyTemperatureFilter() {
@@ -335,6 +376,8 @@ function installStyles() {
     #editor-modal #ed-body [data-dm-beta16-readable="true"]>.ed-row-new{display:block!important;color:var(--primary-text-color,var(--text,#0f172a))!important;font-weight:900!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
     #editor-modal #ed-body [data-dm-beta16-readable="true"]>.ed-row-old{display:block!important;margin-top:3px!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 
+    #page-clima .dm-beta16-climate-room{display:none}
+
     #page-temp .dm-temperature-room-tabs{display:flex!important;align-items:center!important;gap:8px!important;width:100%!important;max-width:100%!important;margin:10px 0 4px!important;padding:4px 18px 6px!important;overflow-x:auto!important;scrollbar-width:none!important}
     #page-temp .dm-temperature-room-tabs::-webkit-scrollbar{display:none!important}
     #page-temp .dm-temperature-room-tabs>button{flex:0 0 auto!important;display:flex!important;align-items:center!important;gap:7px!important;min-height:42px!important;padding:8px 13px!important;border:1px solid var(--card-border,#e2e8f0)!important;border-radius:15px!important;background:var(--card-bg,#fff)!important;color:var(--text-dim,#64748b)!important;font:800 12px/1 Inter,system-ui,sans-serif!important;box-shadow:0 4px 12px rgba(15,23,42,.05)!important}
@@ -356,7 +399,9 @@ function installStyles() {
       #page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"] .clima-page-mode-btn .icon{font-size:21px!important}
 
       #page-clima .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
-      #page-clima .cp-card{box-sizing:border-box!important;min-width:0!important;padding:10px 8px!important;border-radius:17px!important;gap:8px!important}
+      #page-clima .dm-beta16-climate-group-heading{display:none!important}
+      #page-clima .dm-beta16-climate-room{display:flex!important;align-items:center!important;min-width:0!important;margin:-2px 0 0!important;padding:3px 6px!important;border-radius:9px!important;background:rgba(14,165,233,.08)!important;color:var(--text-dim,#64748b)!important;font-size:8px!important;font-weight:850!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+      #page-clima .cp-card{box-sizing:border-box!important;min-width:0!important;padding:10px 8px!important;border-radius:17px!important;gap:7px!important}
       #page-clima .cp-header{gap:5px!important;min-width:0!important}
       #page-clima .cp-title-wrap{gap:5px!important;min-width:0!important}
       #page-clima .cp-icon{width:29px!important;height:29px!important;min-width:29px!important;border-radius:9px!important;font-size:15px!important}
@@ -387,6 +432,7 @@ function installStyles() {
       #page-clima .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
       #page-clima .cp-card{padding:9px 7px!important;border-radius:15px!important}
       #page-clima .cp-name{font-size:11px!important}
+      #page-clima .dm-beta16-climate-room{font-size:7.5px!important;padding:3px 5px!important}
       #page-clima .cp-temp-target .val{font-size:25px!important}
       #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"]{height:300px!important}
     }
