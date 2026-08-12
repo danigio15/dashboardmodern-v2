@@ -69,6 +69,15 @@ async function openEditor(page, tab) {
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
 }
 
+async function expectColoredRoomIcon(locator, glyph) {
+  await expect(locator).toBeVisible();
+  await expect.poll(async () => locator.evaluate((node) => {
+    const semantic = node.querySelector(".dm-beta12-room-glyph")?.textContent || "";
+    const fallback = getComputedStyle(node, "::before").content || "";
+    return `${semantic}${fallback}`;
+  })).toContain(glyph);
+}
+
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: beta12 paints quick actions colored in the same render turn`, async ({ page }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
@@ -91,7 +100,21 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(immediate.text).toBe("💡");
     expect(immediate.colored).toBe(true);
     expect(immediate.svgCount).toBe(0);
-    await expect(page.locator("#qa-grid .qa-btn .dm-beta12-action-glyph")).toHaveText("💡");
+
+    const settled = page.locator("#qa-grid .qa-btn .icon").first();
+    await expect(settled).toBeVisible();
+    await expect.poll(async () => settled.evaluate((node) => {
+      const semantic = node.querySelector(".dm-beta12-action-glyph")?.textContent || "";
+      const visible = node.textContent || "";
+      return `${semantic}${visible}`;
+    })).toContain("💡");
+
+    // A click used to let a legacy painter win for one visible frame. Beta12 now
+    // captures before that handler and reconciles in a microtask, before paint.
+    await page.locator("#qa-grid .qa-btn").first().dispatchEvent("click");
+    await expect.poll(async () => page.locator("#qa-grid .qa-btn .icon").first().evaluate((node) =>
+      Boolean(node.querySelector(".dm-beta12-action-glyph")) && (node.textContent || "").includes("💡"),
+    )).toBe(true);
   });
 
   test(`${variant}: beta12 keeps room artwork visible and colored in rows and picker`, async ({ page }, testInfo) => {
@@ -102,14 +125,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const row = page.locator('#ed-body .ed-row:has([data-dm-edit-kind="room"][data-dm-edit-index="0"])').first();
     const rowIcon = row.locator(".dm-room-list-icon");
     await expect(row).toBeVisible();
-    await expect(rowIcon).toBeVisible();
-    await expect(rowIcon.locator(".dm-beta12-room-glyph")).toHaveText("🛋️");
+    await expectColoredRoomIcon(rowIcon, "🛋️");
 
     await row.locator('[data-dm-edit-kind="room"]').click();
     const modal = page.locator("#dm-room-editor-modal");
     await expect(modal).toBeVisible();
     const preview = modal.locator("[data-room-icon-preview]");
     await expect(preview.locator(".dm-beta12-room-glyph")).toHaveText("🛋️");
+    await expect(preview).toHaveAttribute("data-dm-beta12-colored", "true");
     await preview.click();
 
     const picker = page.locator('#dm-visual-picker[data-kind="room"]');
@@ -191,3 +214,41 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(geometry.inside).toBe(true);
   });
 }
+
+test("dashboard.html: beta12 iPhone kiosk is opt-in, reversible and uses the dynamic viewport", async ({ page }, testInfo) => {
+  test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      get: () => "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
+    });
+  });
+  await boot(page, "dashboard.html", testInfo);
+
+  await page.evaluate(() => {
+    const url = new URL(location.href);
+    url.searchParams.set("kiosk", "1");
+    history.replaceState({}, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+
+  await expect(page.locator("html")).toHaveAttribute("data-dm-ios-kiosk", "true");
+  await expect(page.locator("body")).toHaveAttribute("data-dm-ios-kiosk", "true");
+  const viewportContract = await page.evaluate(() => ({
+    height: getComputedStyle(document.documentElement).getPropertyValue("--dm-ios-kiosk-height").trim(),
+    overflowX: getComputedStyle(document.body).overflowX,
+    minHeight: getComputedStyle(document.documentElement).minHeight,
+  }));
+  expect(viewportContract.height).toMatch(/^\d+px$/);
+  expect(Number.parseInt(viewportContract.height, 10)).toBeGreaterThan(300);
+  expect(viewportContract.overflowX).toBe("hidden");
+  expect(viewportContract.minHeight).not.toBe("0px");
+
+  await page.evaluate(() => {
+    const url = new URL(location.href);
+    url.searchParams.set("kiosk", "0");
+    history.replaceState({}, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.locator("html")).not.toHaveAttribute("data-dm-ios-kiosk", "true");
+});
