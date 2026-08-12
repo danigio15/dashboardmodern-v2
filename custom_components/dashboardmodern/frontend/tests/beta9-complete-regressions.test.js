@@ -37,7 +37,11 @@ test("valued energy connectors are revived, animated and restore legacy visibili
   assert.match(source, /const active = displayedActive === null \? legacyActive : displayedActive/);
   assert.doesNotMatch(source, /active && nodeVisible\(line\)/);
   assert.doesNotMatch(source, /removeAttribute\?\.\("hidden"\)/);
-  assert.match(source, /animation:dmEnergyFlowDash \.8s linear infinite!important/);
+  assert.match(source, /animation-name:dmEnergyFlowDash!important/);
+  assert.match(source, /animation-duration:\.8s!important/);
+  assert.match(source, /animation-timing-function:linear!important/);
+  assert.match(source, /animation-iteration-count:infinite!important/);
+  assert.match(source, /animation-play-state:running!important/);
 });
 
 test("financial overview and canonical Energy owner keep sold income separate from real cost", async () => {
@@ -101,15 +105,15 @@ test("temperature edit can move sensors and cancel clears reassignment state", a
   assert.match(source, /resetTemperatureReassignment\(cancel\.closest/);
 });
 
-test("shutters use beta9 design and reapply it after every legacy render", async () => {
+test("shutters use one stable first-paint geometry without wrapping the legacy renderer", async () => {
   const source = await readFile(shutterUrl, "utf8");
-  assert.match(source, /function polishShutterPage/);
-  assert.match(source, /dmShutterDesign = "beta9"/);
-  assert.match(source, /dm-beta9-shutter-master/);
-  assert.match(source, /dm-beta9-shutter-window/);
-  assert.match(source, /function installShutterWrapper/);
-  assert.match(source, /"renderTapparelle"/);
-  assert.match(source, /__dmBeta9ShutterPagePolish/);
-  assert.match(source, /linear-gradient\(135deg,#10b981,#15803d\)/);
-  assert.match(source, /repeat\(auto-fit,minmax\(260px,330px\)\)/);
+  assert.match(source, /First paint is already the final Beta9 geometry/);
+  assert.match(source, /#tapp-grid\{display:grid!important;grid-template-columns:repeat\(auto-fit,minmax\(280px,360px\)\)!important/);
+  assert.match(source, /\.tapp-card\{box-sizing:border-box!important;width:100%!important;max-width:360px!important/);
+  assert.match(source, /\.tapp-win\{box-sizing:border-box!important;height:132px!important;min-height:132px!important;max-height:132px!important/);
+  assert.match(source, /\.tapp-shutter\{animation:none!important;filter:none!important;transition:height \.55s/);
+  assert.doesNotMatch(source, /function polishShutterPage/);
+  assert.doesNotMatch(source, /function installShutterWrapper/);
+  assert.doesNotMatch(source, /__dmBeta9ShutterPagePolish/);
+  assert.doesNotMatch(source, /wrapFunction\([^\n]*renderTapparelle/);
 });
