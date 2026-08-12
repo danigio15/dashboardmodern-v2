@@ -1,0 +1,45 @@
+name: Beta16 align climate grid once
+
+on:
+  push:
+    branches:
+      - fix/beta16-mobile-ui-room-mapping
+    paths:
+      - ".github/workflows/beta16-align-climate-grid-once.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/beta16-mobile-ui-room-mapping
+      - name: Align obsolete beta7 mobile climate rule
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('custom_components/dashboardmodern/frontend/src/sections/beta7-regression-section.js')
+          text = path.read_text()
+          old = '#page-clima .clima-premium-grid{grid-template-columns:1fr!important;gap:14px!important}'
+          new = '#page-clima .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}'
+          if old not in text:
+              raise SystemExit('expected stale beta7 climate rule not found')
+          text = text.replace(old, new, 1)
+          text = text.replace(
+              '/* Clima: su telefono una card compatta per riga, senza aspect-ratio quadrato',
+              '/* Clima: su telefono due card compatte per riga, senza aspect-ratio quadrato',
+              1,
+          )
+          path.write_text(text)
+          PY
+      - name: Commit aligned owner
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/dashboardmodern/frontend/src/sections/beta7-regression-section.js
+          git commit -m "fix: align beta7 mobile climate grid with beta16"
+          git push origin HEAD:fix/beta16-mobile-ui-room-mapping
