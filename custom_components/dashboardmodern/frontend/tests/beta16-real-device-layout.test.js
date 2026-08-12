@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { matchCanonicalRoom } from "../src/sections/beta16-real-device-layout-section.js";
 
+// Release gate for the screenshot-proven room and responsive regressions fixed in beta16.
 const rooms = [
   { id: "room_msqjk307", name: "Cameretta", icon: "mdi:bed" },
   { id: "room_salone", name: "Salone", icon: "mdi:sofa" },
