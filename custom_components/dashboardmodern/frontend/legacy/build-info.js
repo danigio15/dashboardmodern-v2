@@ -3,6 +3,7 @@ import "../src/sections/beta-entry-section.js";
 import "../src/sections/beta11-real-device-polish-section.js";
 import "../src/sections/beta12-real-device-polish-section.js";
 import "../src/sections/beta12-room-color-lock-section.js";
+import "../src/sections/beta14-real-device-hotfix-section.js";
 
 export const BUILD_INFO = Object.freeze({
   generated: false,
