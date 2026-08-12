@@ -180,6 +180,15 @@ export function normalizeAlertsEditor() {
   return true;
 }
 
+function clearAlertsAfterReset() {
+  doc?.getElementById("dm-alert-editor-modal")?.remove();
+  doc?.getElementById("glance-custom-wrap")?.replaceChildren();
+  if (doc?.querySelector(".ed-tab.active")?.dataset?.tab === "avvisi") {
+    const body = doc.getElementById("ed-body");
+    if (body) body.replaceChildren();
+  }
+}
+
 function installStyles() {
   installStyle(
     "dm-alerts-section-style",
@@ -215,6 +224,7 @@ export function installAlertsSection() {
       true,
     );
     root.addEventListener?.("dashboardmodern:legacy-ready", normalizeAlertsEditor);
+    root.addEventListener?.("dashboardmodern:config-reset", clearAlertsAfterReset);
   }
   state.installed = true;
 }

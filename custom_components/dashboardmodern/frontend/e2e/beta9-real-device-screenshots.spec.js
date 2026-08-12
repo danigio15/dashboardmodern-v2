@@ -109,6 +109,7 @@ async function boot(page, variant, testInfo) {
       _RAW_STATES[item.entity_id] = structuredClone(item);
       STATES[item.entity_id] = structuredClone(item);
     });
+    buildTempCards?.();
   }, states);
 }
 
@@ -137,11 +138,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       ]));
       window.buildQuickActions?.();
     });
-    await expect(page.locator("#qa-grid .dm-v01525-action-glyph")).toHaveCount(5);
-    await expect(page.locator("#qa-grid .dm-v01525-action-glyph").nth(0)).toHaveText("💡");
-    await expect(page.locator("#qa-grid .dm-v01525-action-glyph").nth(1)).toHaveText("❄️");
-    await expect(page.locator("#qa-grid .dm-v01525-action-glyph").nth(2)).toHaveText("🛡️");
-    await expect(page.locator("#qa-grid .dm-v01525-action-glyph").nth(3)).toHaveText("🧺");
+    const actionIcons = page.locator("#qa-grid .qa-btn .icon");
+    await expect(actionIcons).toHaveCount(5);
+    for (const [index, glyph] of ["💡", "❄️", "🛡️", "🧺", "⛩️"].entries()) {
+      await expect.poll(() => actionIcons.nth(index).evaluate((node) =>
+        `${node.dataset.dmBeta12DisplayGlyph || ""}${getComputedStyle(node, "::before").content || ""}`,
+      )).toContain(glyph);
+    }
     await expect(page.locator("#page-home")).not.toContainText(/AZIONI RAPIDE PREMIUM|PREMIUM QUICK ACTIONS/i);
 
     await openEditor(page, "sez2");
@@ -185,8 +188,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await openEditor(page, "stanze");
     const roomRow = page.locator("#ed-body .dm-room-config-row", { hasText: "Cameretta" }).first();
     await expect(roomRow).toBeVisible();
-    await expect(roomRow.locator('.dm-room-list-icon[data-room-icon="mdi:sofa"]')).toBeVisible();
-    await expect(roomRow.locator(".dm-room-list-icon svg")).toHaveCount(1);
+    const roomIcon = roomRow.locator('.dm-room-list-icon[data-room-icon="mdi:sofa"]');
+    await expect(roomIcon).toBeVisible();
+    await expect.poll(() => roomIcon.evaluate((node) => {
+      const semantic = node.querySelector(".dm-beta12-room-glyph")?.textContent || "";
+      const fallback = getComputedStyle(node, "::before").content || "";
+      return `${semantic}${fallback}`;
+    })).toContain("🛋️");
 
     await openEditor(page, "sez7");
     const configuredTemperature = page.locator('#editor-modal [data-temperature-room][data-room-id="room-cameretta"]');

@@ -137,8 +137,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(name).toBeVisible();
     await expect(name).toHaveText("Cameretta");
     await expect(name).toHaveCSS("opacity", "1");
-    await expect(row.locator('.dm-room-list-icon[data-room-icon="mdi:sofa"]')).toBeVisible();
-    await expect(row.locator(".dm-room-list-icon svg")).toHaveCount(1);
+    const roomIcon = row.locator('.dm-room-list-icon[data-room-icon="mdi:sofa"]');
+    await expect(roomIcon).toBeVisible();
+    await expect.poll(async () => roomIcon.evaluate((node) => {
+      const semantic = node.querySelector(".dm-beta12-room-glyph")?.textContent || "";
+      const fallback = getComputedStyle(node, "::before").content || "";
+      return `${semantic}${fallback}`;
+    })).toContain("🛋️");
     const roomGeometry = await row.evaluate((node) => {
       const label = node.querySelector(".ed-row-new");
       const icon = node.querySelector(".dm-room-list-icon");

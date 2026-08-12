@@ -101,6 +101,7 @@ function colorNode(node, color, active) {
   node.classList.toggle("dm-energy-flow-active", active);
   node.classList.toggle("dm-energy-flow-idle", !active);
   node.style.setProperty("--dm-flow-color", color);
+  node.dataset.dmFlowAnimated = active ? "true" : "false";
   if (/^(path|line|polyline|circle)$/i.test(node.tagName)) {
     node.style.stroke = active ? color : "var(--divider-color,#dbe4ee)";
     if (node.getAttribute("fill") && node.getAttribute("fill") !== "none")
@@ -197,24 +198,39 @@ function directionalEndpointValue(kind, node, period) {
   return numberFrom(valueNode);
 }
 
-function displayedMainFlow(node, period) {
+function directionalMainFlowValue(node, period) {
+  const id = String(node?.id || "").toLowerCase();
+  // A connector is driven by its directional source. Requiring both endpoints
+  // to be >0 made every main flow stop whenever the aggregate Home node was
+  // temporarily blank/zero even though PV/grid/battery had a valid live value.
+  if (id.includes("solar-grid")) return directionalEndpointValue("grid", node, period);
+  if (id.includes("solar-battery")) return directionalEndpointValue("battery", node, period);
+  if (id.includes("grid-home")) return directionalEndpointValue("grid", node, period);
+  if (id.includes("battery-home")) return directionalEndpointValue("battery", node, period);
+  if (id.includes("solar-home")) return directionalEndpointValue("solar", node, period);
+
   const kinds = mainKinds(node);
-  if (kinds.length < 2) return null;
+  for (const kind of kinds) {
+    if (kind === "home") continue;
+    const value = directionalEndpointValue(kind, node, period);
+    if (value !== null) return value;
+  }
+  return kinds.includes("home") ? directionalEndpointValue("home", node, period) : null;
+}
+
+function displayedMainFlow(node, period) {
   const threshold = period ? 0.0005 : 0.5;
-  const values = kinds.map((kind) => directionalEndpointValue(kind, node, period));
-  if (values.some((value) => value === null)) return null;
-  return values.every((value) => value > threshold);
+  const value = directionalMainFlowValue(node, period);
+  return value === null ? null : value > threshold;
 }
 
 function mirrorLegacyMainFlows(scope, period) {
-  if (!scope) return;
+  if (!scope) return false;
+  let touched = false;
   scope
     .querySelectorAll(".flow-line,path[id*='line-' i],line[id*='line-' i],polyline[id*='line-' i]")
     .forEach((node) => {
       if (!/^(path|line|polyline)$/i.test(node.tagName) || isLoadLine(node)) return;
-      // Visibility is an output of the flow renderer, not an input. Legacy
-      // renderers often leave a valued connector at display:none; using
-      // nodeVisible() here permanently prevented beta7 from reviving it.
       const legacyActive = node.classList.contains("active");
       const displayedActive = displayedMainFlow(node, period);
       const active = displayedActive === null ? legacyActive : displayedActive;
@@ -222,7 +238,11 @@ function mirrorLegacyMainFlows(scope, period) {
       const kinds = mainKinds(node);
       node.dataset.dmMainFlow = kinds.join("-");
       node.dataset.dmFlowPeriod = period || "instant";
+      const value = directionalMainFlowValue(node, period);
+      if (value !== null) node.dataset.dmFlowValue = String(value);
+      touched = true;
     });
+  return touched;
 }
 
 export function refreshEnergyFlows() {
@@ -231,9 +251,9 @@ export function refreshEnergyFlows() {
   for (const period of ["", "day", "month"]) {
     const scope = scopeFor(period);
     if (!scope) continue;
-    mirrorLegacyMainFlows(scope, period);
+    touched = mirrorLegacyMainFlows(scope, period) || touched;
     touched = syncLoadFlows(period) || touched;
-    scope.dataset.dmEnergyFlows = "value-bound";
+    scope.dataset.dmEnergyFlows = "directional-value-bound";
   }
   return touched;
 }
@@ -256,7 +276,7 @@ function installStyles() {
   installStyle("dm-energy-flow-section-style", `
     .dm-energy-flow-active{display:inline!important;visibility:visible!important;opacity:1!important;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--dm-flow-color) 52%,transparent))!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
     .dm-energy-flow-idle{opacity:.30!important;filter:none!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
-    .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke:var(--dm-flow-color)!important;stroke-dasharray:12 9!important;stroke-linecap:round!important;animation:dmEnergyFlowDash .8s linear infinite!important;will-change:stroke-dashoffset!important}
+    .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke:var(--dm-flow-color)!important;stroke-dasharray:12 9!important;stroke-linecap:round!important;animation-name:dmEnergyFlowDash!important;animation-duration:.8s!important;animation-timing-function:linear!important;animation-iteration-count:infinite!important;animation-play-state:running!important;will-change:stroke-dashoffset!important}
     @keyframes dmEnergyFlowDash{from{stroke-dashoffset:0}to{stroke-dashoffset:-42}}
     @media(prefers-reduced-motion:reduce){.flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{animation:none!important}}
   `);

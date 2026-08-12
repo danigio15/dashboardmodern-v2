@@ -11,6 +11,8 @@ const state = (root[KEY] ||= {
   hydrating: false,
   hydrated: false,
   localWasConfigured: false,
+  resetOwnerInstalled: false,
+  resetting: false,
 });
 
 const CONFIG_KEYS = Object.freeze([
@@ -145,9 +147,6 @@ function bridgeRequest(type, payload = {}) {
         else finish(resolve, message.result);
       };
       socket.onerror = () => finish(reject, new Error(`${type} bridge error`));
-      // DashboardModern's hosted BridgeSocket is already authenticated and
-      // delivers auth_ok immediately. A fallback keeps deterministic mocks
-      // working if they expose OPEN without an explicit auth frame.
       root.setTimeout?.(() => {
         if (!sent && socket?.readyState === 1 && root.__DASHBOARDMODERN_BRIDGE_WS__) send();
       }, 25);
@@ -166,9 +165,6 @@ async function pushNow() {
     root.dispatchEvent?.(new CustomEvent("dashboardmodern:persistence-saved", { detail: value }));
     return true;
   } catch (error) {
-    // Local storage remains authoritative if Home Assistant user-data storage
-    // is temporarily unavailable. Never roll a user edit back because the
-    // secondary sync path failed.
     console.warn("[DashboardModern] config sync failed; local copy kept", error);
     return false;
   }
@@ -209,7 +205,7 @@ function restoreValues(values) {
 }
 
 async function hydrateRemote() {
-  if (state.hydrating || state.hydrated || !hostedBridge()) return false;
+  if (state.hydrating || state.hydrated || state.resetting || !hostedBridge()) return false;
   state.hydrating = true;
   try {
     const result = await bridgeRequest("frontend/get_user_data", { key: userDataKey() });
@@ -245,8 +241,82 @@ async function hydrateRemote() {
   }
 }
 
+function resetConfirmation() {
+  const english = root.document?.documentElement?.lang === "en";
+  return english
+    ? "Delete all DashboardModern configuration for this dashboard?"
+    : "Eliminare tutta la configurazione DashboardModern di questa plancia?";
+}
+
+export async function resetAllConfig({ skipConfirm = false, reload = true } = {}) {
+  if (state.resetting) return false;
+  if (!skipConfirm && root.confirm && !root.confirm(resetConfirmation())) return false;
+  state.resetting = true;
+  state.hydrated = true;
+  state.localWasConfigured = false;
+  root.__DASHBOARDMODERN_CONFIG_RESETTING__ = true;
+
+  // Let a push or legacy-store reconciliation already queued before the click
+  // finish first. The reset is then the final writer both locally and remotely.
+  try {
+    if (state.pushPromise) await state.pushPromise;
+    await Promise.resolve();
+  } catch (_error) {}
+
+  // storage-namespace.js makes clear() instance-scoped: this removes every
+  // cd_/dm_ key for this dashboard, including alert keys unknown to older
+  // snapshots, without touching another DashboardModern instance or HA data.
+  try { root.localStorage?.clear?.(); } catch (error) {
+    state.resetting = false;
+    delete root.__DASHBOARDMODERN_CONFIG_RESETTING__;
+    root.console?.error?.("[DashboardModern] local reset failed", error);
+    return false;
+  }
+
+  const empty = snapshot();
+  try {
+    if (hostedBridge())
+      await bridgeRequest("frontend/set_user_data", { key: userDataKey(), value: empty });
+  } catch (error) {
+    // Local reset remains valid; a later sync still carries the empty snapshot.
+    root.console?.warn?.("[DashboardModern] remote reset deferred", error);
+    state.needsPush = true;
+    schedulePush();
+  }
+
+  // Rendering/store bridges may have completed work while the remote reset was
+  // in flight. Clear once more so Reset totale always wins that race too.
+  try { root.localStorage?.clear?.(); } catch (_error) {}
+
+  root.dispatchEvent?.(new CustomEvent("dashboardmodern:config-reset", { detail: empty }));
+  if (reload) {
+    // Reload the exact versioned iframe URL. Rebuilding pathname/search with
+    // location.replace() caused 404s inside the Home Assistant panel mount.
+    root.setTimeout?.(() => root.location?.reload?.(), 40);
+  } else {
+    state.resetting = false;
+    delete root.__DASHBOARDMODERN_CONFIG_RESETTING__;
+  }
+  return true;
+}
+
+function installResetOwner() {
+  if (typeof root.wzResetAll !== "function" || root.wzResetAll.__dmCanonicalReset) return false;
+  const canonical = function dashboardModernResetAll() {
+    return resetAllConfig();
+  };
+  canonical.__dmCanonicalReset = true;
+  canonical.__dmPrevious = root.wzResetAll;
+  root.wzResetAll = canonical;
+  state.resetOwnerInstalled = true;
+  return true;
+}
+
 export function installConfigPersistenceSection() {
-  if (state.installed) return;
+  if (state.installed) {
+    installResetOwner();
+    return;
+  }
   state.installed = true;
   state.localWasConfigured = meaningfulLocal();
 
@@ -264,8 +334,16 @@ export function installConfigPersistenceSection() {
   };
 
   root.cdSyncPull = hydrateRemote;
-  root.addEventListener?.("dashboardmodern:legacy-ready", () => root.setTimeout?.(hydrateRemote, 0), { once: true });
-  root.addEventListener?.("dashboardmodern:runtime-ready", () => root.setTimeout?.(hydrateRemote, 0), { once: true });
+  root.dmResetAllConfig = resetAllConfig;
+  installResetOwner();
+  root.addEventListener?.("dashboardmodern:legacy-ready", () => {
+    installResetOwner();
+    root.setTimeout?.(hydrateRemote, 0);
+  });
+  root.addEventListener?.("dashboardmodern:runtime-ready", () => {
+    installResetOwner();
+    root.setTimeout?.(hydrateRemote, 0);
+  });
 }
 
 installConfigPersistenceSection();
