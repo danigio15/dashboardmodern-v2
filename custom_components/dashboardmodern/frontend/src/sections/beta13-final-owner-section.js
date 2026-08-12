@@ -1,5 +1,6 @@
 import {
   ACTION_ICON_CATALOG,
+  ROOM_CATALOG,
   actionCatalogMatch,
   roomCatalogMatch,
 } from "../core/personalization-catalog.js";
@@ -184,10 +185,10 @@ function repairPickerNode(node) {
   if (!picker || !button || index < 0 || !["room", "action"].includes(kind)) return false;
 
   if (kind === "room") {
-    const item = root.DashboardModernModules?.personalization?.ROOM_CATALOG?.[index] || null;
-    const fallback = item || null;
-    const token = clean(fallback?.mdi || fallback?.id || button.dataset.value || "mdi:home");
-    ownNode(node, "dm-beta12-room-glyph", token, roomGlyph(token));
+    const item = ROOM_CATALOG[index];
+    if (!item) return false;
+    const token = clean(item.mdi || item.id || "mdi:home");
+    ownNode(node, "dm-beta12-room-glyph", token, ROOM_GLYPHS[item.id] || roomGlyph(token));
   } else {
     const item = ACTION_ICON_CATALOG[index];
     if (!item) return false;
