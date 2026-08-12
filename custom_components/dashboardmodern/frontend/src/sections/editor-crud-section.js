@@ -13,6 +13,13 @@ import {
 const KEY = "__DASHBOARDMODERN_EDITOR_CRUD_SECTION__";
 const state = (root[KEY] ||= { installed: false, listeners: false, editing: null });
 
+function canonicalClimateType(value) {
+  const token = clean(value).toLowerCase();
+  return ["termo", "termostato", "thermostat", "heat", "heating", "caldo"].includes(token)
+    ? "termo"
+    : "clima";
+}
+
 function syncEditorTheme() {
   const modal = doc?.getElementById("editor-modal");
   if (!modal) return;
@@ -71,7 +78,10 @@ function normalizeReportEditor() {
 
 function listFor(kind) {
   if (kind === "action") return root.getQuickActions?.().slice?.() || readJson("cd_quick_actions", []);
-  if (kind === "climate") return root.getClimaUnits?.().slice?.() || readJson("cd_clima_units", []);
+  if (kind === "climate") {
+    const values = root.getClimaUnits?.().slice?.() || readJson("cd_clima_units", []);
+    return (Array.isArray(values) ? values : []).map((item) => ({ ...item, type: canonicalClimateType(item?.type) }));
+  }
   if (kind === "shutter") return root.getTapparelle?.().slice?.() || readJson("cd_tapparelle", []);
   if (kind === "room") return root.getStanze?.().slice?.() || readJson("cd_stanze", []);
   return [];
@@ -166,7 +176,7 @@ function beginEdit(kind, index) {
     setField("ed-qa-confirm", item.confirm || item.confirmation || "");
     root.edQaTypeChanged?.();
   } else if (kind === "climate") {
-    setField("ed-cl-type", item.type || "clima");
+    setField("ed-cl-type", canonicalClimateType(item.type));
     setField("ed-cl-name", item.name || "");
     setField("ed-cl-ent", item.entity || "");
     setField("ed-cl-room", item.room || item.room_id || "");
@@ -234,7 +244,7 @@ function installAddWrappers() {
     const list = listFor("climate");
     list[index] = {
       ...(list[index] || {}),
-      type: clean(doc.getElementById("ed-cl-type")?.value) || "clima",
+      type: canonicalClimateType(doc.getElementById("ed-cl-type")?.value),
       name: clean(doc.getElementById("ed-cl-name")?.value),
       entity: clean(doc.getElementById("ed-cl-ent")?.value),
       room: clean(doc.getElementById("ed-cl-room")?.value),
@@ -303,6 +313,18 @@ function installStyles() {
       #editor-modal .ed-row-main{width:0!important;min-width:0!important;max-width:100%!important;flex:1 1 0!important;overflow:hidden!important}
       #editor-modal .ed-list .ed-row{width:100%!important}
 
+      /* Irrigation is legacy markup without an .ed-form wrapper. Force the
+         whole editor back to a one-column mobile flow instead of inheriting an
+         old grid/flex width that turns every sentence into vertical letters. */
+      #editor-modal #ed-body:has(#ed-irr-ent){display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:hidden!important}
+      #editor-modal #ed-body:has(#ed-irr-ent)>*{box-sizing:border-box!important;width:100%!important;max-width:100%!important;min-width:0!important;margin-left:0!important;margin-right:0!important;white-space:normal!important;overflow-wrap:normal!important;word-break:normal!important}
+      #editor-modal #ed-body:has(#ed-irr-ent) .ed-intro,#editor-modal #ed-body:has(#ed-irr-ent) .ed-hint{display:block!important;width:100%!important;max-width:100%!important;white-space:normal!important;overflow-wrap:break-word!important;word-break:normal!important;line-height:1.45!important}
+      #editor-modal #ed-body:has(#ed-irr-ent) div:has(>#ed-irr-ent),#editor-modal #ed-body:has(#ed-irr-ent) div:has(>#ed-irr-rain),#editor-modal #ed-body:has(#ed-irr-ent) div:has(>#ed-irr-weather){display:grid!important;grid-template-columns:minmax(0,1fr) 48px!important;gap:8px!important;align-items:center!important;width:100%!important;max-width:100%!important;min-width:0!important}
+      #editor-modal #ed-body:has(#ed-irr-ent) div:has(>#ed-irr-room),#editor-modal #ed-body:has(#ed-irr-ent) div:has(>#ed-irr-min),#editor-modal #ed-body:has(#ed-irr-ent) div:has(>#ed-irr-thr),#editor-modal #ed-body:has(#ed-irr-ent) div:has(>#ed-irr-time){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(84px,.42fr)!important;gap:8px!important;align-items:center!important;width:100%!important;max-width:100%!important;min-width:0!important}
+      #editor-modal #ed-body:has(#ed-irr-ent) input,#editor-modal #ed-body:has(#ed-irr-ent) select,#editor-modal #ed-body:has(#ed-irr-ent) textarea,#editor-modal #ed-body:has(#ed-irr-ent) .ed-input{box-sizing:border-box!important;width:100%!important;max-width:100%!important;min-width:0!important;min-height:44px!important}
+      #editor-modal #ed-body:has(#ed-irr-ent) button{box-sizing:border-box!important;min-width:44px!important;min-height:44px!important;max-width:100%!important;white-space:normal!important}
+      #editor-modal #ed-body:has(#ed-irr-ent) .ed-btn-add,#editor-modal #ed-body:has(#ed-irr-ent) .ed-save-btn{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;max-width:100%!important;min-height:48px!important;margin:10px 0 0!important;padding:10px 12px!important}
+
       #editor-modal [data-energy-panel="report"] .dm-report-row{display:grid!important;grid-template-columns:minmax(120px,.8fr) minmax(150px,1.25fr) minmax(110px,.6fr) minmax(220px,1.8fr) auto!important;gap:10px!important;align-items:end!important;padding:14px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important}
       #editor-modal [data-energy-panel="report"] .dm-report-row .dm-entity-field{min-width:0!important;margin:0!important}
       #editor-modal .dm-report-history-help{grid-column:1/-1;color:var(--secondary-text-color,#64748b);font-size:11px;line-height:1.4}
@@ -317,6 +339,7 @@ function installStyles() {
         #editor-modal .ed-form>[style*="display:flex"]{width:100%!important}
         #editor-modal [data-energy-panel="report"] .dm-report-row{grid-template-columns:1fr!important}
         #editor-modal [data-energy-panel="report"] .dm-report-row>*{grid-column:1!important}
+        #editor-modal #ed-body:has(#ed-irr-ent) div:has(>#ed-irr-room),#editor-modal #ed-body:has(#ed-irr-ent) div:has(>#ed-irr-min),#editor-modal #ed-body:has(#ed-irr-ent) div:has(>#ed-irr-thr),#editor-modal #ed-body:has(#ed-irr-ent) div:has(>#ed-irr-time){grid-template-columns:1fr!important}
       }
     `,
   );
