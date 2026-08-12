@@ -294,6 +294,12 @@ export function normalizeDevice(input = {}, section, context = {}) {
     metadata: { ...(input.metadata || {}) },
   };
   if (input.entity || entities[0]) base.entity = String(input.entity || entities[0]);
+  if (section === "climate") {
+    const climateType = normalizedToken(input.type);
+    base.type = ["termo", "termostato", "thermostat", "heat", "heating", "caldo"].includes(climateType)
+      ? "termo"
+      : "clima";
+  }
   if (input.stream || input.stream_url || input.url)
     base.stream = String(input.stream || input.stream_url || input.url);
   if (input.threshold_run != null) base.metadata.threshold_run = +input.threshold_run;
