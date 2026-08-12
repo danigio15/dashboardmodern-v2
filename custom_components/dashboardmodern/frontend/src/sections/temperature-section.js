@@ -1,3 +1,5 @@
+// DM-FIX-20260812B
+import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
 import {
   allStates,
   clean,
@@ -17,28 +19,9 @@ const state = (root[KEY] ||= {
   signature: "",
 });
 
-const ROOM_GLYPHS = Object.freeze({
-  "mdi:sofa": "🛋️",
-  "mdi:balcony": "🌿",
-  "mdi:bed": "🛏️",
-  "mdi:bed-king-outline": "🛏️",
-  "mdi:chef-hat": "🍳",
-  "mdi:stove": "🍳",
-  "mdi:shower": "🚿",
-  "mdi:bathtub-outline": "🛁",
-  "mdi:desk": "🖥️",
-  "mdi:garage": "🚗",
-  "mdi:home": "🏠",
-  "mdi:home-outline": "🏠",
-  "mdi:thermometer": "🌡️",
-});
 
 function glyph(icon) {
-  const value = clean(icon);
-  const key = value.toLowerCase();
-  if (ROOM_GLYPHS[key]) return ROOM_GLYPHS[key];
-  if (!value || key.startsWith("mdi:")) return "🏠";
-  return value;
+  return directEmoji(icon) || roomGlyph(icon);
 }
 
 function rooms() {

@@ -1,11 +1,16 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootConsolidatedDashboard } from "./helpers/consolidated-runtime.js";
 
 async function runtimeSnapshot(page) {
   return page.evaluate(async () => {
-    const entry = [...document.scripts].find((script) => /\/legacy\/modules-entry\.js(?:\?|$)/.test(script.src));
+    const entry = [...document.scripts].find((script) =>
+      /\/legacy\/modules-entry\.js(?:\?|$)/.test(script.src),
+    );
     if (!entry?.src) throw new Error("DashboardModern module entry not found");
-    const { runtimeMetrics } = await import(new URL("../src/core/runtime-metrics.js", entry.src).href);
+    const { runtimeMetrics } = await import(
+      new URL("../src/core/runtime-metrics.js", entry.src).href
+    );
     return {
       metrics: runtimeMetrics.snapshot(),
       energyRefreshPending: Boolean(window.__DASHBOARDMODERN_RUNTIME_ROOT__?.refreshTimer),
@@ -27,20 +32,28 @@ async function waitForExpensiveRuntimeQuiescence(page) {
     if (stable) return current.metrics;
     previous = current;
   }
-  throw new Error("DashboardModern runtime did not become quiescent before the live-event conflict probe");
+  throw new Error(
+    "DashboardModern runtime did not become quiescent before the live-event conflict probe",
+  );
 }
 
 async function resetRuntimeMetrics(page) {
   await page.evaluate(async () => {
-    const entry = [...document.scripts].find((script) => /\/legacy\/modules-entry\.js(?:\?|$)/.test(script.src));
+    const entry = [...document.scripts].find((script) =>
+      /\/legacy\/modules-entry\.js(?:\?|$)/.test(script.src),
+    );
     if (!entry?.src) throw new Error("DashboardModern module entry not found");
-    const { runtimeMetrics } = await import(new URL("../src/core/runtime-metrics.js", entry.src).href);
+    const { runtimeMetrics } = await import(
+      new URL("../src/core/runtime-metrics.js", entry.src).href
+    );
     runtimeMetrics.reset();
   });
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: unrelated Home Assistant state storms trigger no expensive section work`, async ({ page }, testInfo) => {
+  test(`${variant}: unrelated Home Assistant state storms trigger no expensive section work`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 180_000 : 100_000);
     await bootConsolidatedDashboard(page, variant, testInfo);
 

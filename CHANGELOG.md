@@ -1,4 +1,87 @@
+# DM-FIX-20260812B
 # Changelog
+
+Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
+versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
+
+## 1.0.0-beta.15 — 2026-08-12
+
+### Corretto
+
+- Impedita la resurrezione delle stanze eliminate, limitando il recupero ai campi mancanti e proteggendo la riconciliazione con un circuit breaker.
+- Coalescenti per frame le riparazioni UI beta12/beta14, senza riscritture dei glifi invariati né tick Piscina.
+- Unificate canonicalizzazione, migrazione e lettura del tipo clima; le etichette Freddo/Caldo ora nascono nel template.
+- Corretto l'abbinamento delle icone Temperatura esclusivamente per id o nome stanza.
+- Allineati release metadata, badge e gate Prettier CI; aggiunti test unitari mirati.
+
+## 1.0.0-beta.14 — 2026-08-11
+
+### Corretto
+
+- Recuperati icona e sensori stanza persi da snapshot canonici stantii all'avvio.
+- Introdotte etichette Freddo/Caldo, scala corretta delle quick-action e proporzioni mobile esplicite per la vasca Piscina.
+- Caricato l'hotfix dopo l'owner dei glifi beta12.
+
+## 1.0.0-beta.13 — 2026-08-11
+
+### Corretto
+
+- Canonizzato `termo` negli editor e nel modello dispositivi; corretti layout mobile Irrigazione, chip Piscina e riga icona Temperatura.
+- Stabilizzati i glifi con observer limitati ai nodi e aggiunti E2E real-device.
+
+## 1.0.0-beta.12 — 2026-08-11
+
+### Corretto
+
+- Polish real-device, owner definitivo dei glifi, blocco colore stanza e modalità kiosk iOS.
+
+## 1.0.0-beta.11 — 2026-08-11
+
+### Corretto
+
+- Polish real-device, grafico Energia e schema Piscina (#92).
+
+## 1.0.0-beta.10 — 2026-08-11
+
+### Modificato
+
+- Preparazione e metadata della release (#91).
+
+## 1.0.0-beta.9 — 2026-08-11
+
+### Corretto
+
+- Completate le correzioni delle regressioni UI real-device (#90).
+
+## 1.0.0-beta.8 — 2026-08-10
+
+### Corretto
+
+- Consolidati i fix di compatibilità e i contratti della release beta.
+
+## 1.0.0-beta.7 — 2026-08-10
+
+### Corretto
+
+- Risolte regressioni real-device e aggiunta la protezione del brand.
+
+## 1.0.0-beta.6 — 2026-08-10
+
+### Corretto
+
+- Applicati i miglioramenti derivati dal feedback UI.
+
+## 1.0.0-beta.5 — 2026-08-10
+
+### Corretto
+
+- Risolte le cause radice delle regressioni di persistenza e rendering.
+
+## 1.0.0-beta.4 — 2026-08-10
+
+### Corretto
+
+- Rifinito il layout mobile degli editor e delle card.
 
 ## 1.0.0-beta.3 — 2026-08-10
 
@@ -23,8 +106,12 @@
 - Il flow Energia Giornaliera/Mensile anima Boiler, Wallbox, Clima, Lavanderia e Cucina in base al valore realmente mostrato, preservando direzione e colori dei flussi principali.
 - Aggiunti test unitari ed E2E dedicati a persistenza, profili EV, icone azione e animazioni dei carichi.
 
-Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
-versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
+
+## 1.0.0-beta.1 — 2026-08-09
+
+### Aggiunto
+
+- Prima beta 1.0 con personalizzazione e persistenza multiutente tramite `frontend/get_user_data` e `frontend/set_user_data`.
 
 ## 0.15.20 — 2026-08-08
 

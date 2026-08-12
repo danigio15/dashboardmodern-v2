@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
@@ -10,7 +11,11 @@ const states = [
   {
     entity_id: "sensor.frigo_energy",
     state: "12.7",
-    attributes: { friendly_name: "Frigo energia", unit_of_measurement: "kWh", device_class: "energy" },
+    attributes: {
+      friendly_name: "Frigo energia",
+      unit_of_measurement: "kWh",
+      device_class: "energy",
+    },
   },
   {
     entity_id: "switch.frigo",
@@ -24,16 +29,18 @@ const seed = {
   sections: {
     rooms: [{ id: "room-cucina", name: "Cucina", icon: "mdi:silverware-fork-knife" }],
     lights: [],
-    appliances: [{
-      id: "appl-frigo",
-      name: "Frigo",
-      device_type: "frigo",
-      visual_type: "asset",
-      visual_key: "frigo",
-      entities: [],
-      room_id: "room-cucina",
-      show_in_report: true,
-    }],
+    appliances: [
+      {
+        id: "appl-frigo",
+        name: "Frigo",
+        device_type: "frigo",
+        visual_type: "asset",
+        visual_key: "frigo",
+        entities: [],
+        room_id: "room-cucina",
+        show_in_report: true,
+      },
+    ],
     loads: [],
     covers: [],
   },
@@ -58,8 +65,15 @@ async function boot(page, testInfo) {
       send(raw) {
         const message = JSON.parse(raw);
         if (message.type === "auth") return;
-        const result = message.type === "get_states" ? haStates : message.type === "frontend/get_user_data" ? { value: null } : null;
-        this.onmessage?.({ data: JSON.stringify({ id: message.id, type: "result", success: true, result }) });
+        const result =
+          message.type === "get_states"
+            ? haStates
+            : message.type === "frontend/get_user_data"
+              ? { value: null }
+              : null;
+        this.onmessage?.({
+          data: JSON.stringify({ id: message.id, type: "result", success: true, result }),
+        });
       }
       close() {}
     }
@@ -67,26 +81,38 @@ async function boot(page, testInfo) {
     window.WebSocket = MockSocket;
   }, states);
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
-  await page.evaluate((haStates) => haStates.forEach((state) => {
-    _RAW_STATES[state.entity_id] = structuredClone(state);
-    STATES[state.entity_id] = structuredClone(state);
-  }), states);
-  await expect.poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true)).toBe(true);
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page.evaluate(
+    (haStates) =>
+      haStates.forEach((state) => {
+        _RAW_STATES[state.entity_id] = structuredClone(state);
+        STATES[state.entity_id] = structuredClone(state);
+      }),
+    states,
+  );
+  await expect
+    .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true))
+    .toBe(true);
 }
 
-test("real HA: recover a saved Frigo with missing power, energy and control entities", async ({ page }, testInfo) => {
+test("real HA: recover a saved Frigo with missing power, energy and control entities", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 60_000);
   await boot(page, testInfo);
 
-  await expect.poll(() => page.evaluate(() => DashboardModernModules.store.getSection("appliances")[0])).toMatchObject({
-    id: "appl-frigo",
-    power_entity: "sensor.frigo_power",
-    energy_entity: "sensor.frigo_energy",
-    report_entity: "sensor.frigo_energy",
-    control_entity: "switch.frigo",
-    show_in_report: true,
-  });
+  await expect
+    .poll(() => page.evaluate(() => DashboardModernModules.store.getSection("appliances")[0]))
+    .toMatchObject({
+      id: "appl-frigo",
+      power_entity: "sensor.frigo_power",
+      energy_entity: "sensor.frigo_energy",
+      report_entity: "sensor.frigo_energy",
+      control_entity: "switch.frigo",
+      show_in_report: true,
+    });
 
   await page.evaluate(() => {
     apriConfigEntita();
@@ -100,5 +126,7 @@ test("real HA: recover a saved Frigo with missing power, energy and control enti
     cdRebuildReportDevices();
     buildReportSelect();
   });
-  await expect(page.locator('#ed-dev-selector option[value="sensor.frigo_energy"]')).toContainText("Frigo");
+  await expect(page.locator('#ed-dev-selector option[value="sensor.frigo_energy"]')).toContainText(
+    "Frigo",
+  );
 });

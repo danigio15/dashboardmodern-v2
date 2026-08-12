@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
@@ -24,10 +25,30 @@ const seed = {
   sections: {
     rooms: [{ id: "room-cucina", name: "Cucina", icon: "mdi:stove" }],
     lights: [
-      { id: "light-cucina-1", name: "Luce cucina 1", entities: ["light.cucina_1"], room_id: "room-cucina" },
-      { id: "light-cucina-2", name: "Luce cucina 2", entities: ["light.cucina_2"], room_id: "room-cucina" },
-      { id: "light-cucina-3", name: "Luce cucina 3", entities: ["light.cucina_3"], room_id: "room-cucina" },
-      { id: "light-cucina-4", name: "Luce cucina 4", entities: ["light.cucina_4"], room_id: "room-cucina" },
+      {
+        id: "light-cucina-1",
+        name: "Luce cucina 1",
+        entities: ["light.cucina_1"],
+        room_id: "room-cucina",
+      },
+      {
+        id: "light-cucina-2",
+        name: "Luce cucina 2",
+        entities: ["light.cucina_2"],
+        room_id: "room-cucina",
+      },
+      {
+        id: "light-cucina-3",
+        name: "Luce cucina 3",
+        entities: ["light.cucina_3"],
+        room_id: "room-cucina",
+      },
+      {
+        id: "light-cucina-4",
+        name: "Luce cucina 4",
+        entities: ["light.cucina_4"],
+        room_id: "room-cucina",
+      },
     ],
     appliances: [],
     loads: [],
@@ -57,8 +78,17 @@ async function boot(page, variant, testInfo) {
       send(raw) {
         const message = JSON.parse(raw);
         if (message.type === "auth") return;
-        const result = message.type === "get_states" ? haStates : message.type === "frontend/get_user_data" ? { value: null } : null;
-        queueMicrotask(() => this.onmessage?.({ data: JSON.stringify({ id: message.id, type: "result", success: true, result }) }));
+        const result =
+          message.type === "get_states"
+            ? haStates
+            : message.type === "frontend/get_user_data"
+              ? { value: null }
+              : null;
+        queueMicrotask(() =>
+          this.onmessage?.({
+            data: JSON.stringify({ id: message.id, type: "result", success: true, result }),
+          }),
+        );
       }
       close() {
         this.readyState = 3;
@@ -71,26 +101,39 @@ async function boot(page, variant, testInfo) {
 
   await bootNamespacedDashboard(page, variant, testInfo, seed);
   await page.evaluate(() => {
-    localStorage.setItem("cd_luci", JSON.stringify({
-      "light.cucina_1": "Luce cucina 1",
-      "light.cucina_2": "Luce cucina 2",
-      "light.cucina_3": "Luce cucina 3",
-      "light.cucina_4": "Luce cucina 4",
-    }));
-    localStorage.setItem("cd_luci_rooms", JSON.stringify({
-      "light.cucina_1": "room-cucina",
-      "light.cucina_2": "room-cucina",
-      "light.cucina_3": "room-cucina",
-      "light.cucina_4": "room-cucina",
-    }));
-    localStorage.setItem("cd_clima_units", JSON.stringify([
-      { entity: "climate.cucina", name: "Cucina", type: "clima", room: "Cucina" },
-      { entity: "climate.salone", name: "Salone", type: "clima", room: "Cucina" },
-    ]));
+    localStorage.setItem(
+      "cd_luci",
+      JSON.stringify({
+        "light.cucina_1": "Luce cucina 1",
+        "light.cucina_2": "Luce cucina 2",
+        "light.cucina_3": "Luce cucina 3",
+        "light.cucina_4": "Luce cucina 4",
+      }),
+    );
+    localStorage.setItem(
+      "cd_luci_rooms",
+      JSON.stringify({
+        "light.cucina_1": "room-cucina",
+        "light.cucina_2": "room-cucina",
+        "light.cucina_3": "room-cucina",
+        "light.cucina_4": "room-cucina",
+      }),
+    );
+    localStorage.setItem(
+      "cd_clima_units",
+      JSON.stringify([
+        { entity: "climate.cucina", name: "Cucina", type: "clima", room: "Cucina" },
+        { entity: "climate.salone", name: "Salone", type: "clima", room: "Cucina" },
+      ]),
+    );
   });
   await page.reload();
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
-  await expect.poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true)).toBe(true);
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await expect
+    .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true))
+    .toBe(true);
   await page.evaluate((haStates) => {
     haStates.forEach((item) => {
       _RAW_STATES[item.entity_id] = structuredClone(item);
@@ -112,17 +155,23 @@ async function openEditor(page, tab) {
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: beta5 fixes the exact mobile editor regressions`, async ({ page }, testInfo) => {
+  test(`${variant}: beta5 fixes the exact mobile editor regressions`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
     await openEditor(page, "visib");
     const renameRows = page.locator("#ed-body .ed-row[data-section-key]");
     await expect(renameRows.first()).toBeVisible();
-    const renameCounts = await renameRows.evaluateAll((rows) => rows.map((row) => ({
-      total: row.querySelectorAll(".dm-inline-rename[data-rename]").length,
-      visible: [...row.querySelectorAll(".dm-inline-rename[data-rename]")].filter((button) => getComputedStyle(button).display !== "none").length,
-    })));
+    const renameCounts = await renameRows.evaluateAll((rows) =>
+      rows.map((row) => ({
+        total: row.querySelectorAll(".dm-inline-rename[data-rename]").length,
+        visible: [...row.querySelectorAll(".dm-inline-rename[data-rename]")].filter(
+          (button) => getComputedStyle(button).display !== "none",
+        ).length,
+      })),
+    );
     expect(renameCounts.length).toBeGreaterThan(3);
     expect(renameCounts.every((count) => count.total === 1 && count.visible === 1)).toBe(true);
 
@@ -139,12 +188,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     await openEditor(page, "avvisi");
     await expect(page.locator("#ed-avv-custom")).toBeHidden();
-    await expect(page.locator('#ed-body button', { hasText: /^⚡$/ })).toHaveCount(0);
+    await expect(page.locator("#ed-body button", { hasText: /^⚡$/ })).toHaveCount(0);
     await page.locator("#ed-avv-grp").selectOption("custom");
     await expect(page.locator("#ed-avv-custom")).toBeVisible();
     await page.locator("#ed-avv-grp").selectOption("win");
     await expect(page.locator("#ed-avv-custom")).toBeHidden();
-    await expect(page.locator('#ed-body button', { hasText: /^⚡$/ })).toHaveCount(0);
+    await expect(page.locator("#ed-body button", { hasText: /^⚡$/ })).toHaveCount(0);
 
     await openEditor(page, "sez2");
     const brandPreview = page.locator("#ed-body [data-brand-preview]");
@@ -156,7 +205,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(realBrandImages.first()).toHaveAttribute("src", /simple-icons@16\.27\.1/);
     expect(await realBrandImages.count()).toBeGreaterThan(20);
     const leap = picker.locator(".dm-picker-option", { hasText: "Leapmotor" });
-    const leapMark = leap.locator('.dm-leapmotor-mark[data-brand="leapmotor"][data-brand-source="inline"]');
+    const leapMark = leap.locator(
+      '.dm-leapmotor-mark[data-brand="leapmotor"][data-brand-source="inline"]',
+    );
     await expect(leapMark).toHaveCount(1);
     await expect(leapMark.locator("svg")).toHaveCount(1);
     await expect(leap.locator('img[data-dm-brand-image="leapmotor"]')).toHaveCount(0);
@@ -169,13 +220,21 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.locator('.tab[data-tab="clima"]').evaluate((button) => button.click());
     await expect(page.locator("#page-clima.active .cp-card").first()).toBeVisible();
     if (testInfo.project.name === "mobile") {
-      const climateHeight = await page.locator("#page-clima.active .cp-card").first().evaluate((card) => card.getBoundingClientRect().height);
+      const climateHeight = await page
+        .locator("#page-clima.active .cp-card")
+        .first()
+        .evaluate((card) => card.getBoundingClientRect().height);
       expect(climateHeight).toBeLessThan(260);
-      await expect(page.locator("#page-clima.active .clima-premium-grid").first()).toHaveCSS("grid-template-columns", /.+/);
+      await expect(page.locator("#page-clima.active .clima-premium-grid").first()).toHaveCSS(
+        "grid-template-columns",
+        /.+/,
+      );
     }
   });
 
-  test(`${variant}: beta5 Energy chart never invents future days and keeps Wallbox in the flow`, async ({ page }, testInfo) => {
+  test(`${variant}: beta5 Energy chart never invents future days and keeps Wallbox in the flow`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
@@ -201,7 +260,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         document.body.append(canvas);
       }
       class MockChart {
-        static getChart() { return null; }
+        static getChart() {
+          return null;
+        }
         constructor(_context, config) {
           window.__BETA5_CHART_CONFIG__ = {
             labels: [...(config?.data?.labels || [])],

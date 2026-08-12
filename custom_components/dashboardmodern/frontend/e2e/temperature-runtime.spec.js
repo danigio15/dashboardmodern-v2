@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { clickBottomTab } from "./helpers/navigation.js";
@@ -122,7 +123,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     // The room owns its icon. Temperature must not expose the old duplicate
     // symbol editor that regressed in the real Home Assistant installation.
     await expect(page.locator("#dm-temperature-icon")).toBeHidden();
-    await expect(page.locator('[data-temperature-form] [data-icon-field]')).toHaveCount(0);
+    await expect(page.locator("[data-temperature-form] [data-icon-field]")).toHaveCount(0);
     await expect(page.locator("[data-temperature-submit]")).toHaveText(
       variant === "dashboard-en.html" ? "ASSOCIATE SENSORS" : "ASSOCIA SENSORI",
     );

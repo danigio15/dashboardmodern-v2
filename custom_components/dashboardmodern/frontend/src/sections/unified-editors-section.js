@@ -1,8 +1,11 @@
+// DM-FIX-20260812B
+import { canonicalClimateType } from "../core/device-model.js";
 import {
   clean,
   doc,
   esc,
   readJson,
+  readClimateUnits,
   root,
   t,
   writeJsonIfChanged,
@@ -21,12 +24,6 @@ const ACTION_TYPES = Object.freeze([
   ["scene", "🎬", "Scena", "Scene"],
 ]);
 
-function canonicalClimateType(value) {
-  const token = clean(value).toLowerCase();
-  if (["termo", "termostato", "thermostat", "heat", "heating", "caldo"].includes(token)) return "termo";
-  return "clima";
-}
-
 function normalizeClimateList(values) {
   return (Array.isArray(values) ? values : []).map((item) => ({
     ...item,
@@ -34,7 +31,7 @@ function normalizeClimateList(values) {
   }));
 }
 
-function migrateClimateTypes() {
+export function migrateClimateTypes() {
   const stored = readJson("cd_clima_units", []);
   if (!Array.isArray(stored) || !stored.length) return false;
   const normalized = normalizeClimateList(stored);
@@ -49,15 +46,7 @@ function migrateClimateTypes() {
 function listFor(kind) {
   if (kind === "action") return root.getQuickActions?.().slice?.() || readJson("cd_quick_actions", []);
   if (kind === "climate") {
-    const stored = readJson("cd_clima_units", []);
-    let hasPersistedConfig = false;
-    try {
-      hasPersistedConfig = root.localStorage?.getItem?.("cd_clima_units") !== null;
-    } catch (_error) {}
-    const values = hasPersistedConfig
-      ? stored
-      : (root.getClimaUnits?.().slice?.() || stored);
-    return normalizeClimateList(values);
+    return readClimateUnits();
   }
   if (kind === "shutter") return root.getTapparelle?.().slice?.() || readJson("cd_tapparelle", []);
   if (kind === "room") return root.getStanze?.().slice?.() || readJson("cd_stanze", []);
@@ -219,12 +208,12 @@ function openClimateEditor(item, index) {
   const selectedType = canonicalClimateType(item.type);
   const { form, close } = modalShell(
     "climate",
-    t("Modifica clima", "Edit climate"),
-    `<label class="ed-slot"><span class="ed-slot-lbl">${t("Tipo", "Type")}</span><select class="ed-input" name="type"><option value="clima" ${selectedType === "clima" ? "selected" : ""}>❄️ ${t("Clima", "Climate")}</option><option value="termo" ${selectedType === "termo" ? "selected" : ""}>🌡️ ${t("Termostato", "Thermostat")}</option></select></label>
+    t("Modifica Freddo / Caldo", "Edit Cool / Heat"),
+    `<label class="ed-slot"><span class="ed-slot-lbl">${t("Tipo", "Type")}</span><select class="ed-input" name="type"><option value="clima" ${selectedType === "clima" ? "selected" : ""}>❄️ ${t("Freddo", "Cool")}</option><option value="termo" ${selectedType === "termo" ? "selected" : ""}>🔥 ${t("Caldo", "Heat")}</option></select></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(item.name)}" required></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}" required><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>`,
-    selectedType === "termo" ? "🌡️" : "❄️",
+    selectedType === "termo" ? "🔥" : "❄️",
   );
   form.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
   form.addEventListener("submit", (event) => {

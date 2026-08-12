@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
@@ -53,9 +54,11 @@ async function boot(page, testInfo) {
         let result = null;
         if (message.type === "get_states") result = [];
         if (message.type === "frontend/get_user_data") result = { value: null };
-        queueMicrotask(() => this.onmessage?.({
-          data: JSON.stringify({ id: message.id, type: "result", success: true, result }),
-        }));
+        queueMicrotask(() =>
+          this.onmessage?.({
+            data: JSON.stringify({ id: message.id, type: "result", success: true, result }),
+          }),
+        );
       }
       close() {
         this.readyState = 3;
@@ -67,8 +70,12 @@ async function boot(page, testInfo) {
     window.WebSocket = MockBridgeSocket;
   });
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
-  await expect.poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true)).toBe(true);
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await expect
+    .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true))
+    .toBe(true);
 }
 
 async function openEditor(page, tab) {
@@ -82,39 +89,51 @@ async function openEditor(page, tab) {
 
 async function oneVisibleGlyph(locator, className, text) {
   await expect(locator).toBeVisible();
-  await expect.poll(() => locator.evaluate((node, args) => {
-    const before = getComputedStyle(node, "::before");
-    const after = getComputedStyle(node, "::after");
-    const semantic = node.querySelectorAll(`:scope > .${args.className}`);
-    const pseudoVisible = (style) => {
-      const content = style.content || "";
-      return !["none", "normal", "\"\"", "''", ""].includes(content) && style.display !== "none";
-    };
-    return {
-      children: node.children.length,
-      semantic: semantic.length,
-      text: semantic[0]?.textContent || "",
-      before: pseudoVisible(before),
-      after: pseudoVisible(after),
-      svg: node.querySelectorAll("svg").length,
-    };
-  }, { className })).toEqual({
-    children: 1,
-    semantic: 1,
-    text,
-    before: false,
-    after: false,
-    svg: 0,
-  });
+  await expect
+    .poll(() =>
+      locator.evaluate(
+        (node, args) => {
+          const before = getComputedStyle(node, "::before");
+          const after = getComputedStyle(node, "::after");
+          const semantic = node.querySelectorAll(`:scope > .${args.className}`);
+          const pseudoVisible = (style) => {
+            const content = style.content || "";
+            return (
+              !["none", "normal", '""', "''", ""].includes(content) && style.display !== "none"
+            );
+          };
+          return {
+            children: node.children.length,
+            semantic: semantic.length,
+            text: semantic[0]?.textContent || "",
+            before: pseudoVisible(before),
+            after: pseudoVisible(after),
+            svg: node.querySelectorAll("svg").length,
+          };
+        },
+        { className },
+      ),
+    )
+    .toEqual({
+      children: 1,
+      semantic: 1,
+      text,
+      before: false,
+      after: false,
+      svg: 0,
+    });
 }
 
-test("beta13: Home quick action has exactly one icon even after delayed legacy repaint", async ({ page }, testInfo) => {
+test("beta13: Home quick action has exactly one icon even after delayed legacy repaint", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await boot(page, testInfo);
   await page.evaluate(() => {
-    localStorage.setItem("cd_quick_actions", JSON.stringify([
-      { type: "builtin", builtin: "luci", name: "Luci", icon: "mdi:lightbulb" },
-    ]));
+    localStorage.setItem(
+      "cd_quick_actions",
+      JSON.stringify([{ type: "builtin", builtin: "luci", name: "Luci", icon: "mdi:lightbulb" }]),
+    );
     buildQuickActions();
   });
 
@@ -124,20 +143,27 @@ test("beta13: Home quick action has exactly one icon even after delayed legacy r
   await oneVisibleGlyph(icon, "dm-beta12-action-glyph", "💡");
 });
 
-test("beta13: room rows and action picker never expose a second vector/pseudo icon", async ({ page }, testInfo) => {
+test("beta13: room rows and action picker never expose a second vector/pseudo icon", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await boot(page, testInfo);
 
   await openEditor(page, "stanze");
-  const roomIcon = page.locator('#ed-body .ed-row:has([data-dm-edit-kind="room"][data-dm-edit-index="0"]) .dm-room-list-icon').first();
+  const roomIcon = page
+    .locator(
+      '#ed-body .ed-row:has([data-dm-edit-kind="room"][data-dm-edit-index="0"]) .dm-room-list-icon',
+    )
+    .first();
   await oneVisibleGlyph(roomIcon, "dm-beta12-room-glyph", "🛋️");
   await page.waitForTimeout(1000);
   await oneVisibleGlyph(roomIcon, "dm-beta12-room-glyph", "🛋️");
 
   await page.evaluate(() => {
-    localStorage.setItem("cd_quick_actions", JSON.stringify([
-      { type: "builtin", builtin: "luci", name: "Luci", icon: "mdi:lightbulb" },
-    ]));
+    localStorage.setItem(
+      "cd_quick_actions",
+      JSON.stringify([{ type: "builtin", builtin: "luci", name: "Luci", icon: "mdi:lightbulb" }]),
+    );
     buildQuickActions();
   });
   await openEditor(page, "sez8");
@@ -154,7 +180,9 @@ test("beta13: room rows and action picker never expose a second vector/pseudo ic
   await oneVisibleGlyph(first, "dm-beta12-action-glyph", "🏠");
 });
 
-test("beta13: Temperature has no orphan icon row and Irrigation keeps a usable mobile width", async ({ page }, testInfo) => {
+test("beta13: Temperature has no orphan icon row and Irrigation keeps a usable mobile width", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await boot(page, testInfo);
 
@@ -164,11 +192,13 @@ test("beta13: Temperature has no orphan icon row and Irrigation keeps a usable m
   expect(await form.locator("[data-icon-field]").count()).toBe(0);
   const hiddenIcon = form.locator("#dm-temperature-icon");
   await expect(hiddenIcon).toHaveCount(1);
-  expect(await hiddenIcon.evaluate((node) => ({
-    type: node.type,
-    hidden: node.hidden,
-    label: Boolean(node.closest("label")),
-  }))).toEqual({ type: "hidden", hidden: true, label: false });
+  expect(
+    await hiddenIcon.evaluate((node) => ({
+      type: node.type,
+      hidden: node.hidden,
+      label: Boolean(node.closest("label")),
+    })),
+  ).toEqual({ type: "hidden", hidden: true, label: false });
 
   await openEditor(page, "irr");
   const irrigation = await page.evaluate(() => {
@@ -193,13 +223,16 @@ test("beta13: Temperature has no orphan icon row and Irrigation keeps a usable m
   expect(irrigation.overflow).toBeLessThanOrEqual(2);
 });
 
-test("beta13: Thermostat edit persists the legacy heating type and renders in Caldo", async ({ page }, testInfo) => {
+test("beta13: Thermostat edit persists the legacy heating type and renders in Caldo", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await boot(page, testInfo);
   await page.evaluate(() => {
-    localStorage.setItem("cd_clima_units", JSON.stringify([
-      { type: "termostato", name: "Studio", entity: "climate.studio", room: "" },
-    ]));
+    localStorage.setItem(
+      "cd_clima_units",
+      JSON.stringify([{ type: "termostato", name: "Studio", entity: "climate.studio", room: "" }]),
+    );
     buildClimaCards();
   });
 
@@ -213,7 +246,11 @@ test("beta13: Thermostat edit persists the legacy heating type and renders in Ca
   await modal.locator('button[type="submit"]').click();
   await expect(modal).toHaveCount(0);
 
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cd_clima_units") || "[]")[0]?.type)).toBe("termo");
+  await expect
+    .poll(() =>
+      page.evaluate(() => JSON.parse(localStorage.getItem("cd_clima_units") || "[]")[0]?.type),
+    )
+    .toBe("termo");
   await page.evaluate(() => {
     document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
     document.getElementById("page-clima")?.classList.add("active");
@@ -221,28 +258,37 @@ test("beta13: Thermostat edit persists the legacy heating type and renders in Ca
     setClimaPageMode("caldo", true);
   });
   await expect(page.locator("#page-clima .clima-zone-caldo")).toContainText("Studio");
-  await expect(page.locator("#page-clima .clima-zone-caldo")).not.toContainText("Nessun termosifone configurato");
+  await expect(page.locator("#page-clima .clima-zone-caldo")).not.toContainText(
+    "Nessun termosifone configurato",
+  );
 });
 
-test("beta13: Pool uses equal mobile controls and keeps temperature copy clear of them", async ({ page }, testInfo) => {
+test("beta13: Pool uses equal mobile controls and keeps temperature copy clear of them", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await boot(page, testInfo);
   await page.evaluate(() => {
-    localStorage.setItem("cd_piscina", JSON.stringify({
-      tempEnt: "sensor.pool_temperature",
-      pumpEnt: "switch.pool_pump",
-      heatEnt: "switch.pool_heat",
-      lightEnt: "switch.pool_light",
-      filterHours: 8,
-      autoHours: true,
-    }));
+    localStorage.setItem(
+      "cd_piscina",
+      JSON.stringify({
+        tempEnt: "sensor.pool_temperature",
+        pumpEnt: "switch.pool_pump",
+        heatEnt: "switch.pool_heat",
+        lightEnt: "switch.pool_light",
+        filterHours: 8,
+        autoHours: true,
+      }),
+    );
     document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
     document.getElementById("page-piscina")?.classList.add("active");
     renderPiscina();
   });
 
   const layout = await page.locator("#page-piscina .pool-hero").evaluate((hero) => {
-    const controls = [...hero.querySelectorAll(".pool-tg[data-act]")].map((node) => node.getBoundingClientRect());
+    const controls = [...hero.querySelectorAll(".pool-tg[data-act]")].map((node) =>
+      node.getBoundingClientRect(),
+    );
     const copy = hero.querySelector(".pool-sub")?.getBoundingClientRect();
     const chips = hero.querySelector(".pool-chips")?.getBoundingClientRect();
     const widths = controls.map((box) => box.width);

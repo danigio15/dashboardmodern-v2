@@ -1,4 +1,24 @@
+// DM-FIX-20260812B
 export const SCHEMA_VERSION = 4;
+
+export const CLIMATE_HEAT_TOKENS = Object.freeze([
+  "termo",
+  "termostato",
+  "thermostat",
+  "heat",
+  "heating",
+  "caldo",
+]);
+
+export function canonicalClimateType(value) {
+  return CLIMATE_HEAT_TOKENS.includes(
+    String(value ?? "")
+      .trim()
+      .toLowerCase(),
+  )
+    ? "termo"
+    : "clima";
+}
 
 /**
  * Canonical appliance catalog.
@@ -31,9 +51,7 @@ export const APPLIANCE_CATALOG = Object.freeze([
   { key: "generico", it: "Altro", en: "Other" },
 ]);
 
-export const APPLIANCE_VISUAL_KEYS = Object.freeze(
-  APPLIANCE_CATALOG.map((item) => item.key),
-);
+export const APPLIANCE_VISUAL_KEYS = Object.freeze(APPLIANCE_CATALOG.map((item) => item.key));
 
 export function cloneValue(value) {
   if (typeof globalThis.structuredClone === "function") return globalThis.structuredClone(value);
@@ -181,14 +199,7 @@ export function applianceCatalogLabel(value = "", locale = "it") {
 }
 
 function legacyVisualKey(input = {}, rawIcon = "", type = "") {
-  const candidates = [
-    input.visual_key,
-    rawIcon,
-    type,
-    input.device_type,
-    input.type,
-    input.name,
-  ]
+  const candidates = [input.visual_key, rawIcon, type, input.device_type, input.type, input.name]
     .map(normalizedToken)
     .filter(Boolean);
   let generic = "";
@@ -249,7 +260,9 @@ export function getDeviceVisual(device = {}) {
     return { kind: device.visual_type, value: device.visual_key };
   const icon = String(device.icon || "").trim();
   if (/^mdi:[a-z0-9-]+$/i.test(icon)) return { kind: "icon", value: icon };
-  const type = String(device.device_type || device.type || "").toLowerCase().trim();
+  const type = String(device.device_type || device.type || "")
+    .toLowerCase()
+    .trim();
   return { kind: "icon", value: TYPE_ICONS[type] || TYPE_ICONS[device.section] || "mdi:devices" };
 }
 
@@ -295,10 +308,7 @@ export function normalizeDevice(input = {}, section, context = {}) {
   };
   if (input.entity || entities[0]) base.entity = String(input.entity || entities[0]);
   if (section === "climate") {
-    const climateType = normalizedToken(input.type);
-    base.type = ["termo", "termostato", "thermostat", "heat", "heating", "caldo"].includes(climateType)
-      ? "termo"
-      : "clima";
+    base.type = canonicalClimateType(input.type);
   }
   if (input.stream || input.stream_url || input.url)
     base.stream = String(input.stream || input.stream_url || input.url);

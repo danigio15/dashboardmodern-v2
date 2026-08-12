@@ -1,11 +1,15 @@
+// DM-FIX-20260812B
 import { expect } from "@playwright/test";
 
 export async function waitForStableBox(locator) {
   await expect
-    .poll(async () => {
-      const box = await locator.boundingBox();
-      return Boolean(box && box.width > 0 && box.height > 0);
-    }, { timeout: 3000, intervals: [40, 80, 120] })
+    .poll(
+      async () => {
+        const box = await locator.boundingBox();
+        return Boolean(box && box.width > 0 && box.height > 0);
+      },
+      { timeout: 3000, intervals: [40, 80, 120] },
+    )
     .toBeTruthy();
 }
 
@@ -67,7 +71,8 @@ export async function clickBottomTab(page, tabName, testInfo) {
   const runtimeTab = tabName === "temperature" ? "temp" : tabName;
   const nav = page.locator("nav.bottom-nav-bar");
   const tab = page.locator(`.tab[data-tab="${runtimeTab}"]`);
-  const touchProject = testInfo.project.name === "mobile" || testInfo.project.name === "webkit-ipad";
+  const touchProject =
+    testInfo.project.name === "mobile" || testInfo.project.name === "webkit-ipad";
 
   if (touchProject) {
     await revealTouchNavigation(page, nav, page.locator("#bottomNavHandle"));

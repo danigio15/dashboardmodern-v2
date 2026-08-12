@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { cloneValue, SCHEMA_VERSION, normalizeDevice } from "./device-model.js";
 import { migrateState, normalizeSection, readLegacyState, SECTION_KEYS } from "./migrations.js";
 import { sectionForEditorSlot } from "./editor-slots.js";
@@ -134,7 +135,11 @@ export class DashboardStore {
     const store = this;
     this.storage.setItem = function (key, value) {
       const result = original(key, value);
-      if (!store.projecting && !globalThis.__DASHBOARDMODERN_PERSIST_RESTORE__ && (key === "cd_sections" || Object.values(SECTION_KEYS).includes(key)))
+      if (
+        !store.projecting &&
+        !globalThis.__DASHBOARDMODERN_PERSIST_RESTORE__ &&
+        (key === "cd_sections" || Object.values(SECTION_KEYS).includes(key))
+      )
         queueMicrotask(() => store.reconcileLegacyWrite(key, value));
       return result;
     };
@@ -263,11 +268,7 @@ export class DashboardStore {
     if (sameValue(this.state.sections[section] ?? [], normalized)) {
       return Promise.resolve(cloneValue(normalized));
     }
-    return this.transact(
-      section,
-      "replace",
-      () => (this.state.sections[section] = normalized),
-    );
+    return this.transact(section, "replace", () => (this.state.sections[section] = normalized));
   }
   saveReport(items) {
     return this.transact("report", "save", () => {

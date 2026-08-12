@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
@@ -14,8 +15,22 @@ const seed = {
     lights: [],
     climate: [],
     ev: [
-      { id: "ev-b10", name: "B10", brand: "Leapmotor", model: "B10", icon: "mdi:car-electric", ov: {} },
-      { id: "ev-mini", name: "Cooper Electric", brand: "MINI", model: "Cooper Electric", icon: "mdi:car-electric", ov: {} },
+      {
+        id: "ev-b10",
+        name: "B10",
+        brand: "Leapmotor",
+        model: "B10",
+        icon: "mdi:car-electric",
+        ov: {},
+      },
+      {
+        id: "ev-mini",
+        name: "Cooper Electric",
+        brand: "MINI",
+        model: "Cooper Electric",
+        icon: "mdi:car-electric",
+        ov: {},
+      },
     ],
     covers: [],
     pool: {},
@@ -45,8 +60,17 @@ async function boot(page, variant, testInfo) {
       send(raw) {
         const message = JSON.parse(raw);
         if (message.type === "auth") return;
-        const result = message.type === "get_states" ? [] : message.type === "frontend/get_user_data" ? { value: null } : null;
-        queueMicrotask(() => this.onmessage?.({ data: JSON.stringify({ id: message.id, type: "result", success: true, result }) }));
+        const result =
+          message.type === "get_states"
+            ? []
+            : message.type === "frontend/get_user_data"
+              ? { value: null }
+              : null;
+        queueMicrotask(() =>
+          this.onmessage?.({
+            data: JSON.stringify({ id: message.id, type: "result", success: true, result }),
+          }),
+        );
       }
       close() {
         this.readyState = 3;
@@ -59,8 +83,12 @@ async function boot(page, variant, testInfo) {
   });
 
   await bootNamespacedDashboard(page, variant, testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
-  await expect.poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true)).toBe(true);
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await expect
+    .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true))
+    .toBe(true);
   await page.evaluate((cars) => {
     localStorage.setItem("cd_ev_cars", JSON.stringify(cars));
     localStorage.setItem("cd_ev_car_active", "0");
@@ -78,7 +106,9 @@ async function openEditor(page, tab) {
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: beta11 keeps EV logo proportional and follows the active vehicle`, async ({ page }, testInfo) => {
+  test(`${variant}: beta11 keeps EV logo proportional and follows the active vehicle`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
     await openEditor(page, "sez2");
@@ -126,7 +156,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(panel.locator("[data-brand-preview]")).toContainText("Cooper Electric");
   });
 
-  test(`${variant}: beta11 restores configured room name/icon and expands alert icons`, async ({ page }, testInfo) => {
+  test(`${variant}: beta11 restores configured room name/icon and expands alert icons`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
@@ -139,11 +171,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(name).toHaveCSS("opacity", "1");
     const roomIcon = row.locator('.dm-room-list-icon[data-room-icon="mdi:sofa"]');
     await expect(roomIcon).toBeVisible();
-    await expect.poll(async () => roomIcon.evaluate((node) => {
-      const semantic = node.querySelector(".dm-beta12-room-glyph")?.textContent || "";
-      const fallback = getComputedStyle(node, "::before").content || "";
-      return `${semantic}${fallback}`;
-    })).toContain("🛋️");
+    await expect
+      .poll(async () =>
+        roomIcon.evaluate((node) => {
+          const semantic = node.querySelector(".dm-beta12-room-glyph")?.textContent || "";
+          const fallback = getComputedStyle(node, "::before").content || "";
+          return `${semantic}${fallback}`;
+        }),
+      )
+      .toContain("🛋️");
     const roomGeometry = await row.evaluate((node) => {
       const label = node.querySelector(".ed-row-new");
       const icon = node.querySelector(".dm-room-list-icon");

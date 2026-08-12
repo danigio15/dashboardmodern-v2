@@ -1,8 +1,11 @@
+// DM-FIX-20260812B
 import {
   ACTION_ICON_CATALOG,
   ROOM_CATALOG,
   actionCatalogMatch,
-  roomCatalogMatch,
+  directEmoji,
+  roomGlyph,
+  ROOM_GLYPHS,
 } from "../core/personalization-catalog.js";
 import { clean, doc, installStyle, root } from "./shared.js";
 
@@ -28,35 +31,6 @@ const ACTION_BUILTINS = Object.freeze({
   scene: "mdi:movie-open",
 });
 
-const ROOM_GLYPHS = Object.freeze({
-  living: "🛋️",
-  kitchen: "🍳",
-  bedroom: "🛏️",
-  kids: "🧸",
-  nursery: "👶",
-  bathroom: "🚿",
-  wc: "🚽",
-  dining: "🍽️",
-  office: "💻",
-  guest: "🛏️",
-  entrance: "🚪",
-  hallway: "🚪",
-  laundry: "🧺",
-  pantry: "🥫",
-  wardrobe: "👗",
-  storage: "📦",
-  balcony: "🌇",
-  terrace: "🌤️",
-  garage: "🚗",
-  cellar: "🍷",
-  attic: "🏠",
-  utility: "🛠️",
-  gym: "🏋️",
-  media: "🎬",
-  garden: "🌿",
-  pool: "🏊",
-});
-
 const state = (root.__DASHBOARDMODERN_BETA12_FINAL_LOCK__ ||= {
   listeners: false,
   kioskHost: null,
@@ -67,25 +41,11 @@ const state = (root.__DASHBOARDMODERN_BETA12_FINAL_LOCK__ ||= {
 });
 state.observedGlyphNodes ||= new WeakSet();
 
-function directEmoji(value) {
-  const token = clean(value);
-  if (!token || token.startsWith("mdi:")) return "";
-  return /[^\p{L}\p{N}\s:_-]/u.test(token) && token.length <= 12 ? token : "";
-}
-
 function actionGlyph(value) {
   const token = clean(value);
   const direct = directEmoji(token);
   if (direct) return direct;
   return actionCatalogMatch(token)?.glyph || "⭐";
-}
-
-function roomGlyph(value) {
-  const token = clean(value);
-  const direct = directEmoji(token);
-  if (direct) return direct;
-  const item = roomCatalogMatch(token);
-  return ROOM_GLYPHS[item?.id] || "🏠";
 }
 
 function parseActionList(raw) {
@@ -168,6 +128,11 @@ function repairQuickActionNode(target) {
   const token = tokenForAction(action, target);
   const glyph = actionGlyph(token);
   const signature = `${token}|${glyph}`;
+
+  if (
+    target.dataset.dmBeta12ConfigAction === signature &&
+    hasExactGlyph(target, "dm-beta12-action-glyph", token, glyph)
+  ) return true;
 
   target.dataset.dmBeta12DisplayGlyph = glyph;
   target.dataset.dmBeta12DisplayToken = token;
@@ -302,12 +267,25 @@ function scheduleStableVisuals() {
   root.setTimeout?.(repairOwned, 0);
 }
 
+function scheduleFrameRepair() {
+  if (state.repairQueued) return;
+  state.repairQueued = true;
+  const run = () => {
+    state.repairQueued = false;
+    installOwners();
+    repairStableVisuals();
+  };
+  if (typeof root.requestAnimationFrame === "function") root.requestAnimationFrame(run);
+  else root.setTimeout?.(run, 0);
+}
+
 function wrapOwner(name, marker) {
   const current = root[name];
   if (typeof current !== "function" || current[marker]) return false;
   function wrapped(...args) {
     const result = current.apply(this, args);
-    const repair = () => scheduleStableVisuals();
+    const repair = () =>
+      name === "render" ? scheduleFrameRepair() : scheduleStableVisuals();
     if (result && typeof result.finally === "function") result.finally(repair);
     else repair();
     return result;
@@ -324,33 +302,6 @@ function installOwners() {
   wrapOwner("buildQuickActions", QUICK_OWNER_FLAG);
   wrapOwner("editorSwitch", EDITOR_OWNER_FLAG);
   wrapOwner("render", RENDER_OWNER_FLAG);
-}
-
-function canonicalClimateType(value) {
-  const token = clean(value).toLowerCase();
-  return ["termo", "termostato", "thermostat", "heat", "heating", "caldo"].includes(token)
-    ? "termo"
-    : "clima";
-}
-
-function normalizePersistedClimateTypes() {
-  let values = [];
-  try {
-    values = JSON.parse(root.localStorage?.getItem?.("cd_clima_units") || "[]");
-  } catch (_error) {
-    return false;
-  }
-  if (!Array.isArray(values) || !values.length) return false;
-  let changed = false;
-  const normalized = values.map((item) => {
-    const type = canonicalClimateType(item?.type);
-    if (clean(item?.type) !== type) changed = true;
-    return { ...item, type };
-  });
-  if (changed) {
-    try { root.localStorage?.setItem?.("cd_clima_units", JSON.stringify(normalized)); } catch (_error) {}
-  }
-  return changed;
 }
 
 function isIosDevice() {
@@ -482,7 +433,6 @@ function syncIosKiosk() {
 }
 
 function installCompatibilityOwner() {
-  normalizePersistedClimateTypes();
   installOwners();
   scheduleStableVisuals();
   syncIosKiosk();
@@ -500,7 +450,6 @@ if (!state.listeners) {
   // thermostat values before either editor reads them, then repair only the
   // scoped visual nodes involved in this interaction.
   root.addEventListener?.("click", (event) => {
-    if (event.target?.closest?.('[data-dm-edit-kind="climate"]')) normalizePersistedClimateTypes();
     if (event.target?.closest?.("#qa-grid .qa-btn,[data-dm-edit-kind='room'],[data-dm-edit-kind='action'],#dm-room-editor-modal,#dm-action-editor-modal,.dm-visual-trigger,.dm-icon-preview-button,.dm-icon-picker,.dm-beta6-qa-icon-trigger,.dm-beta5-room-icon-trigger,#dm-visual-picker")) {
       scheduleStableVisuals();
     }

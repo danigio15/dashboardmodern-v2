@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 const STATE_EVENT = "dashboardmodern:state-changed";
 const SERVICE_KEY = "DashboardModernEnergyService";
 const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
@@ -76,7 +77,8 @@ function configuredEntities(root) {
  * State registries are still updated synchronously by the original broker.
  */
 export function installStateEventGate(broker, root = globalThis, { delay = 500 } = {}) {
-  if (!broker || typeof broker.ingestState !== "function" || broker.__dmStateEventGate) return false;
+  if (!broker || typeof broker.ingestState !== "function" || broker.__dmStateEventGate)
+    return false;
 
   const original = broker.ingestState;
   const pendingIds = new Set();

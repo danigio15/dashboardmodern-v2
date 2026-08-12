@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
@@ -71,20 +72,26 @@ async function boot(page, variant, testInfo) {
     window.WebSocket = MockSocket;
   }, states);
   await bootNamespacedDashboard(page, variant, testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true);
   await page.evaluate(
-    (haStates) => haStates.forEach((item) => {
-      _RAW_STATES[item.entity_id] = structuredClone(item);
-      STATES[item.entity_id] = structuredClone(item);
-    }),
+    (haStates) =>
+      haStates.forEach((item) => {
+        _RAW_STATES[item.entity_id] = structuredClone(item);
+        STATES[item.entity_id] = structuredClone(item);
+      }),
     states,
   );
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: Edit shares all 20 blue appliance icons and preserves links`, async ({ page }, testInfo) => {
-    if (testInfo.project.name === "webkit-ipad") test.slow(true, "Full editor flow is slower on WebKit/iPad");
+  test(`${variant}: Edit shares all 20 blue appliance icons and preserves links`, async ({
+    page,
+  }, testInfo) => {
+    if (testInfo.project.name === "webkit-ipad")
+      test.slow(true, "Full editor flow is slower on WebKit/iPad");
     await boot(page, variant, testInfo);
     await page.evaluate(() => {
       window.apriConfigEntita();
@@ -120,7 +127,16 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const picker = page.locator("#dm-applpick");
     await expect(picker).toBeVisible();
     await expect(picker.locator("[data-appliance-type]")).toHaveCount(20);
-    for (const type of ["frigo", "congelatore", "ferro", "aspirapolvere", "robot", "tv", "caffe", "bollitore"]) {
+    for (const type of [
+      "frigo",
+      "congelatore",
+      "ferro",
+      "aspirapolvere",
+      "robot",
+      "tv",
+      "caffe",
+      "bollitore",
+    ]) {
       await expect(picker.locator(`[data-appliance-type="${type}"]`)).toHaveCount(1);
     }
     await picker.locator('[data-appliance-type="frigo"]').click();
@@ -130,17 +146,19 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(modal).toHaveCount(0);
 
     await expect
-      .poll(() => page.evaluate(() => {
-        const state = JSON.parse(localStorage.getItem("dm_dashboard_state") || "{}");
-        const item = state.sections?.appliances?.[0] || {};
-        return {
-          visual: item.visual_key,
-          type: item.device_type,
-          control: item.control_entity,
-          power: item.power_entity,
-          entities: item.entities,
-        };
-      }))
+      .poll(() =>
+        page.evaluate(() => {
+          const state = JSON.parse(localStorage.getItem("dm_dashboard_state") || "{}");
+          const item = state.sections?.appliances?.[0] || {};
+          return {
+            visual: item.visual_key,
+            type: item.device_type,
+            control: item.control_entity,
+            power: item.power_entity,
+            entities: item.entities,
+          };
+        }),
+      )
       .toEqual({
         visual: "frigo",
         type: "frigo",

@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
@@ -41,7 +42,12 @@ const seed = {
     appliances: [],
     loads: [],
     lights: [
-      { id: "light-ingresso", name: "Ingresso", entities: ["light.ingresso"], room_id: "room-cameretta" },
+      {
+        id: "light-ingresso",
+        name: "Ingresso",
+        entities: ["light.ingresso"],
+        room_id: "room-cameretta",
+      },
     ],
     climate: [],
     ev: [
@@ -55,7 +61,12 @@ const seed = {
       },
     ],
     covers: [
-      { id: "cover-main", name: "Tapparella", entity: "cover.tapparella", room_id: "room-cameretta" },
+      {
+        id: "cover-main",
+        name: "Tapparella",
+        entity: "cover.tapparella",
+        room_id: "room-cameretta",
+      },
     ],
     pool: {},
     irrigation: { zones: [] },
@@ -87,9 +98,11 @@ async function boot(page, variant, testInfo) {
         let result = null;
         if (message.type === "get_states") result = haStates;
         if (message.type === "frontend/get_user_data") result = { value: null };
-        queueMicrotask(() => this.onmessage?.({
-          data: JSON.stringify({ id: message.id, type: "result", success: true, result }),
-        }));
+        queueMicrotask(() =>
+          this.onmessage?.({
+            data: JSON.stringify({ id: message.id, type: "result", success: true, result }),
+          }),
+        );
       }
       close() {
         this.readyState = 3;
@@ -102,8 +115,12 @@ async function boot(page, variant, testInfo) {
   }, states);
 
   await bootNamespacedDashboard(page, variant, testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
-  await expect.poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true)).toBe(true);
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await expect
+    .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true))
+    .toBe(true);
   await page.evaluate((haStates) => {
     haStates.forEach((item) => {
       _RAW_STATES[item.entity_id] = structuredClone(item);
@@ -124,28 +141,42 @@ async function openEditor(page, tab) {
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: beta9 matches the real-device screenshot contracts`, async ({ page }, testInfo) => {
+  test(`${variant}: beta9 matches the real-device screenshot contracts`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 180_000 : 120_000);
     await boot(page, variant, testInfo);
 
     await page.evaluate(() => {
-      localStorage.setItem("cd_quick_actions", JSON.stringify([
-        { type: "builtin", builtin: "luci", name: "Gestione Luci" },
-        { type: "builtin", builtin: "clima", name: "Clima" },
-        { type: "builtin", builtin: "antifurto", name: "Antifurto" },
-        { type: "builtin", builtin: "lavatrice", name: "Lavatrice" },
-        { type: "toggle", name: "Cancello", icon: "⛩️", entity: "switch.cancello" },
-      ]));
+      localStorage.setItem(
+        "cd_quick_actions",
+        JSON.stringify([
+          { type: "builtin", builtin: "luci", name: "Gestione Luci" },
+          { type: "builtin", builtin: "clima", name: "Clima" },
+          { type: "builtin", builtin: "antifurto", name: "Antifurto" },
+          { type: "builtin", builtin: "lavatrice", name: "Lavatrice" },
+          { type: "toggle", name: "Cancello", icon: "⛩️", entity: "switch.cancello" },
+        ]),
+      );
       window.buildQuickActions?.();
     });
     const actionIcons = page.locator("#qa-grid .qa-btn .icon");
     await expect(actionIcons).toHaveCount(5);
     for (const [index, glyph] of ["💡", "❄️", "🛡️", "🧺", "⛩️"].entries()) {
-      await expect.poll(() => actionIcons.nth(index).evaluate((node) =>
-        `${node.dataset.dmBeta12DisplayGlyph || ""}${getComputedStyle(node, "::before").content || ""}`,
-      )).toContain(glyph);
+      await expect
+        .poll(() =>
+          actionIcons
+            .nth(index)
+            .evaluate(
+              (node) =>
+                `${node.dataset.dmBeta12DisplayGlyph || ""}${getComputedStyle(node, "::before").content || ""}`,
+            ),
+        )
+        .toContain(glyph);
     }
-    await expect(page.locator("#page-home")).not.toContainText(/AZIONI RAPIDE PREMIUM|PREMIUM QUICK ACTIONS/i);
+    await expect(page.locator("#page-home")).not.toContainText(
+      /AZIONI RAPIDE PREMIUM|PREMIUM QUICK ACTIONS/i,
+    );
 
     await openEditor(page, "sez2");
     const appearance = page.locator("#ed-body [data-ev-appearance]");
@@ -162,7 +193,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const brand = appearance.locator("select[data-brand]");
     const model = appearance.locator("select[data-model]");
     await brand.selectOption("MINI");
-    await expect(appearance.locator('[data-brand-preview] .dm-car-brand[data-brand="mini"]')).toHaveCount(1);
+    await expect(
+      appearance.locator('[data-brand-preview] .dm-car-brand[data-brand="mini"]'),
+    ).toHaveCount(1);
     await expect(model).toContainText("Cooper Electric");
     await expect(model).toContainText("Aceman");
     await expect(model).toContainText("Countryman Electric");
@@ -175,13 +208,19 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(brandPicker).toBeVisible();
     const brandVisuals = brandPicker.locator(".dm-picker-option .dm-picker-visual");
     expect(await brandVisuals.count()).toBeGreaterThan(20);
-    expect(await brandVisuals.evaluateAll((nodes) => nodes.every((node) => {
-      const box = node.getBoundingClientRect();
-      return box.width >= 70 && box.height >= 38 && getComputedStyle(node).overflow === "hidden";
-    }))).toBe(true);
-    const brandColors = await brandPicker.locator(".dm-car-brand").evaluateAll((nodes) =>
-      [...new Set(nodes.map((node) => getComputedStyle(node).color))],
-    );
+    expect(
+      await brandVisuals.evaluateAll((nodes) =>
+        nodes.every((node) => {
+          const box = node.getBoundingClientRect();
+          return (
+            box.width >= 70 && box.height >= 38 && getComputedStyle(node).overflow === "hidden"
+          );
+        }),
+      ),
+    ).toBe(true);
+    const brandColors = await brandPicker
+      .locator(".dm-car-brand")
+      .evaluateAll((nodes) => [...new Set(nodes.map((node) => getComputedStyle(node).color))]);
     expect(brandColors).toHaveLength(1);
     await brandPicker.locator("[data-close]").click();
 
@@ -190,14 +229,20 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(roomRow).toBeVisible();
     const roomIcon = roomRow.locator('.dm-room-list-icon[data-room-icon="mdi:sofa"]');
     await expect(roomIcon).toBeVisible();
-    await expect.poll(() => roomIcon.evaluate((node) => {
-      const semantic = node.querySelector(".dm-beta12-room-glyph")?.textContent || "";
-      const fallback = getComputedStyle(node, "::before").content || "";
-      return `${semantic}${fallback}`;
-    })).toContain("🛋️");
+    await expect
+      .poll(() =>
+        roomIcon.evaluate((node) => {
+          const semantic = node.querySelector(".dm-beta12-room-glyph")?.textContent || "";
+          const fallback = getComputedStyle(node, "::before").content || "";
+          return `${semantic}${fallback}`;
+        }),
+      )
+      .toContain("🛋️");
 
     await openEditor(page, "sez7");
-    const configuredTemperature = page.locator('#editor-modal [data-temperature-room][data-room-id="room-cameretta"]');
+    const configuredTemperature = page.locator(
+      '#editor-modal [data-temperature-room][data-room-id="room-cameretta"]',
+    );
     await expect(configuredTemperature).toBeVisible();
     await configuredTemperature.locator("[data-temperature-edit]").click();
     const temperatureSelect = page.locator("#dm-temperature-room");
@@ -208,7 +253,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(temperatureSelect).toHaveValue("room-bagno");
 
     await openEditor(page, "luci");
-    const lightForm = page.locator('#ed-body .dm-light-add-form[data-dm-light-add-layout="beta9-real"]');
+    const lightForm = page.locator(
+      '#ed-body .dm-light-add-form[data-dm-light-add-layout="beta9-real"]',
+    );
     await expect(lightForm).toBeVisible();
     const lightGeometry = await lightForm.evaluate((form) => {
       const row = form.querySelector(".dm-light-add-entity-row");
@@ -248,7 +295,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.evaluate(() => {
       document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
       document.getElementById("page-home")?.classList.add("active");
-      window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: { entity_id: "cover.tapparella" } }));
+      window.dispatchEvent(
+        new CustomEvent("dashboardmodern:state-changed", {
+          detail: { entity_id: "cover.tapparella" },
+        }),
+      );
     });
     const shutterAlertIcon = page.locator("#page-home .dm-shutter-alert .g-icon-wrap");
     await expect(shutterAlertIcon).toBeVisible();

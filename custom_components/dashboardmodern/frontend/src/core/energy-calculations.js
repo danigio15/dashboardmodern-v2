@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 const number = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -20,7 +21,13 @@ export function sumEnergy(values = []) {
   return values.reduce((total, value) => total + nonNegative(value), 0);
 }
 
-export function energyBalance({ solar = 0, gridImport = 0, gridExport = 0, batteryCharge = 0, batteryDischarge = 0 } = {}) {
+export function energyBalance({
+  solar = 0,
+  gridImport = 0,
+  gridExport = 0,
+  batteryCharge = 0,
+  batteryDischarge = 0,
+} = {}) {
   const production = nonNegative(solar);
   const imported = nonNegative(gridImport);
   const exported = nonNegative(gridExport);
@@ -28,7 +35,15 @@ export function energyBalance({ solar = 0, gridImport = 0, gridExport = 0, batte
   const discharged = nonNegative(batteryDischarge);
   const consumption = nonNegative(production + imported + discharged - exported - charged);
   const selfConsumed = Math.min(production, nonNegative(production - exported));
-  return Object.freeze({ production, consumption, imported, exported, charged, discharged, selfConsumed });
+  return Object.freeze({
+    production,
+    consumption,
+    imported,
+    exported,
+    charged,
+    discharged,
+    selfConsumed,
+  });
 }
 
 export function energyPercentages(balance = {}) {
@@ -41,7 +56,10 @@ export function energyPercentages(balance = {}) {
   });
 }
 
-export function energyCost({ imported = 0, exported = 0 } = {}, { importPrice = 0, exportPrice = 0 } = {}) {
+export function energyCost(
+  { imported = 0, exported = 0 } = {},
+  { importPrice = 0, exportPrice = 0 } = {},
+) {
   const importCost = nonNegative(imported) * nonNegative(importPrice);
   const exportCredit = nonNegative(exported) * nonNegative(exportPrice);
   return Object.freeze({ importCost, exportCredit, netCost: importCost - exportCredit });
