@@ -133,7 +133,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         logoHeight: logoBox?.height || 0,
         artWidth: artBox?.width || 0,
         artHeight: artBox?.height || 0,
-        separated: Boolean(logoBox && copyBox && logoBox.right <= copyBox.left + 1),
+        separated: Boolean(
+          logoBox &&
+            copyBox &&
+            (logoBox.right <= copyBox.left + 1 || logoBox.bottom <= copyBox.top + 1),
+        ),
         overflow: getComputedStyle(preview).overflow,
       };
     });
