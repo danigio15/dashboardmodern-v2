@@ -49,7 +49,14 @@ function migrateClimateTypes() {
 function listFor(kind) {
   if (kind === "action") return root.getQuickActions?.().slice?.() || readJson("cd_quick_actions", []);
   if (kind === "climate") {
-    const values = root.getClimaUnits?.().slice?.() || readJson("cd_clima_units", []);
+    const stored = readJson("cd_clima_units", []);
+    let hasPersistedConfig = false;
+    try {
+      hasPersistedConfig = root.localStorage?.getItem?.("cd_clima_units") !== null;
+    } catch (_error) {}
+    const values = hasPersistedConfig
+      ? stored
+      : (root.getClimaUnits?.().slice?.() || stored);
     return normalizeClimateList(values);
   }
   if (kind === "shutter") return root.getTapparelle?.().slice?.() || readJson("cd_tapparelle", []);
