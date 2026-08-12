@@ -1,9 +1,14 @@
-import { actionCatalogMatch, roomCatalogMatch } from "../core/personalization-catalog.js";
+import {
+  ACTION_ICON_CATALOG,
+  ROOM_CATALOG,
+  actionCatalogMatch,
+  roomCatalogMatch,
+} from "../core/personalization-catalog.js";
 import { clean, doc, installStyle, root } from "./shared.js";
 
-// Final compatibility owner for quick-action and room glyphs. The visible
-// contract is now one real DOM glyph only. Older repair layers may still replace
-// children, but this owner never duplicates that child with a pseudo-element.
+// Final compatibility owner for quick-action, room and picker glyphs. The
+// visible contract is one real DOM glyph only. Older repair layers may still
+// replace children, but this owner never duplicates that child with a pseudo.
 const STYLE_ID = "dm-beta12-room-color-lock-style";
 const QUICK_OWNER_FLAG = "__dmBeta12ConfigAwareQuickActions";
 const EDITOR_OWNER_FLAG = "__dmBeta12StableRoomRows";
@@ -207,10 +212,38 @@ function repairRoomModalPreview() {
   return true;
 }
 
+function repairVisualPicker() {
+  const picker = doc?.getElementById?.("dm-visual-picker");
+  if (!picker) return false;
+  const kind = clean(picker.dataset.kind);
+  if (kind !== "room" && kind !== "action") return false;
+  const catalog = kind === "room" ? ROOM_CATALOG : ACTION_ICON_CATALOG;
+  picker.dataset.dmBeta12Colored = "true";
+  picker.dataset.dmSingleGlyphOwner = "true";
+  picker.querySelectorAll(".dm-picker-option[data-index]").forEach((button) => {
+    const index = Number.parseInt(button.dataset.index || "-1", 10);
+    const item = index >= 0 ? catalog[index] : null;
+    const target = button.querySelector(".dm-picker-visual");
+    if (!item || !target) return;
+    const token = clean(item.mdi || item.id);
+    const glyph = kind === "room" ? (ROOM_GLYPHS[item.id] || "🏠") : (item.glyph || "⭐");
+    const className = kind === "room" ? "dm-beta12-room-glyph" : "dm-beta12-action-glyph";
+    const children = [...target.children];
+    const current = children.length === 1 && children[0].classList.contains(className)
+      ? children[0]
+      : null;
+    if (!current || clean(current.dataset.token) !== token || clean(current.textContent) !== glyph) {
+      target.replaceChildren(makeGlyph(className, token, glyph));
+    }
+  });
+  return true;
+}
+
 function repairStableVisuals() {
   repairQuickActionsFromRuntime();
   repairRoomRowsFromTokens();
   repairRoomModalPreview();
+  repairVisualPicker();
 }
 
 function scheduleStableVisuals() {
@@ -389,8 +422,11 @@ for (const eventName of [
 
 if (!state.listeners) {
   state.listeners = true;
+  // Window capture runs before document-capture handlers that may stop immediate
+  // propagation. The queued repair therefore sees a picker created later in the
+  // same click and normalizes it before the browser paints the next frame.
   root.addEventListener?.("click", (event) => {
-    if (event.target?.closest?.("#qa-grid .qa-btn,[data-dm-edit-kind='room'],#dm-room-editor-modal")) {
+    if (event.target?.closest?.("#qa-grid .qa-btn,[data-dm-edit-kind='room'],#dm-room-editor-modal,.dm-visual-trigger,.dm-icon-preview-button,.dm-icon-picker,.dm-beta6-qa-icon-trigger,.dm-beta5-room-icon-trigger,#dm-visual-picker")) {
       scheduleStableVisuals();
     }
   }, true);
@@ -437,6 +473,18 @@ installStyle(STYLE_ID, `
     display:block!important;line-height:1!important
   }
   #editor-modal #ed-body .dm-room-list-icon[data-room-icon]>*:not(.dm-beta12-room-glyph){display:none!important}
+
+  #dm-visual-picker[data-dm-single-glyph-owner="true"] .dm-picker-visual{
+    position:relative!important;display:grid!important;place-items:center!important;color:initial!important
+  }
+  #dm-visual-picker[data-dm-single-glyph-owner="true"] .dm-picker-visual::before,
+  #dm-visual-picker[data-dm-single-glyph-owner="true"] .dm-picker-visual::after{content:none!important;display:none!important}
+  #dm-visual-picker[data-dm-single-glyph-owner="true"] .dm-picker-visual>*:not(.dm-beta12-room-glyph):not(.dm-beta12-action-glyph){display:none!important}
+  #dm-visual-picker[data-dm-single-glyph-owner="true"] .dm-beta12-room-glyph,
+  #dm-visual-picker[data-dm-single-glyph-owner="true"] .dm-beta12-action-glyph{
+    display:grid!important;place-items:center!important;width:100%!important;height:100%!important;
+    font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-size:38px!important;line-height:1!important;color:initial!important
+  }
 
   #dm-room-editor-modal [data-room-icon-preview][data-dm-beta12-colored="true"]{
     display:grid!important;place-items:center!important;color:initial!important;overflow:visible!important
