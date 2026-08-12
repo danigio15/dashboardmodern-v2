@@ -344,10 +344,13 @@ function normalizeTemperatureEditor() {
   if (iconInput) {
     iconInput.type = "hidden";
     iconInput.hidden = true;
-    const field = iconInput.closest("[data-icon-field]") || iconInput.closest("label.ed-slot");
-    if (field && field !== form) {
+    const label = iconInput.closest("label.ed-slot");
+    if (label && label !== form) {
       iconInput.remove();
-      field.remove();
+      label.remove();
+      form.append(iconInput);
+    } else {
+      iconInput.closest("[data-icon-field]")?.remove();
       form.append(iconInput);
     }
     const sync = () => {
