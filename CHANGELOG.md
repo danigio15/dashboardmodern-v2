@@ -4,6 +4,19 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.16 — 2026-08-13
+
+### Corretto
+
+- Ridotto il selettore mobile **Freddo / Caldo** e consolidati tutti gli owner legacy che forzavano ancora Clima a una singola colonna.
+- Le card **Clima** restano ora a **2 per riga su smartphone**, con dimensioni, font, badge, temperature e controlli compatti.
+- Gli ID stanza canonici come `room_msqjk307` vengono risolti nel nome leggibile della stanza; su mobile il nome stanza è mostrato dentro la card senza spezzare la griglia.
+- Gli editor **Clima** e **Temperature** ricostruiscono le stanze dal `DashboardStore` canonico e mostrano nomi, entità e sensori già configurati.
+- Ripristinata nella pagina **Temperature** la barra/tab delle stanze con filtro per `room-id` canonico.
+- Ripristinato il nome salvato delle **Azioni rapide** nelle righe dell'editor.
+- Ridisegnata la geometria responsive della **Piscina**: vasca contenuta nel viewport, temperatura e descrizione non sovrapposte, comandi compatti e tre chip su una riga mobile.
+- Aggiunti test unitari ed E2E real-device per mapping stanza, nomi editor, tab Temperature e layout Clima a due colonne su Chromium desktop/mobile e WebKit/iPad.
+
 ## 1.0.0-beta.15 — 2026-08-12
 
 ### Corretto
