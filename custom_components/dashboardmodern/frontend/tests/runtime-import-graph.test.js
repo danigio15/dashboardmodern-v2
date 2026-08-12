@@ -116,9 +116,10 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // screenshot-proven EV/editor/shutter conflicts, with no polling or observer.
   // Beta11 intentionally adds one final, scoped and event-driven owner for the
   // screenshot-proven EV logo, alert picker and room-label regressions.
-  // Beta12 adds the real-device visual reconciler plus one CSS-only room color
-  // lock that survives beta11's bounded delayed compatibility repaint.
-  assert.ok(relative.length <= 68, `production graph unexpectedly grew to ${relative.length} modules`);
+  // Beta12 adds the real-device visual reconciler, room color lock and one
+  // data-backed Quick Action first-paint lock that survives bounded late legacy
+  // child repaints without polling or a document-wide observer.
+  assert.ok(relative.length <= 69, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
