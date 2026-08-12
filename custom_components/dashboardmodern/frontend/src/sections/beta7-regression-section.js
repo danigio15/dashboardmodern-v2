@@ -239,7 +239,7 @@ function installStyles() {
     #editor-modal .dm-beta7-action-form-row #ed-qa-icon{display:none!important}
     #editor-modal .dm-beta7-action-form-row .dm-beta6-qa-icon-trigger{grid-area:icon!important;display:grid!important;place-items:center!important;width:64px!important;min-width:64px!important;max-width:64px!important;height:54px!important;min-height:54px!important;margin:0!important;padding:8px!important;border-radius:16px!important;background:var(--card-background-color,var(--card-bg,#fff))!important;border:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;color:var(--accent,#0ea5e9)!important;overflow:hidden!important}
 
-    /* Clima: su telefono una card compatta per riga, senza aspect-ratio quadrato
+    /* Clima: su telefono due card compatte per riga, senza aspect-ratio quadrato
        che dilata target, temperatura ambiente e barra comandi. */
     #page-clima .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}
     #page-clima .cp-card{aspect-ratio:auto!important;min-height:248px!important;height:auto!important;padding:18px!important;gap:14px!important;border-radius:22px!important;justify-content:space-between!important}
@@ -274,7 +274,7 @@ function installStyles() {
     #page-tapparelle .tapp-btn{height:46px!important;border-radius:14px!important;font-weight:850!important;box-shadow:0 6px 14px rgba(14,165,233,.18)!important}
 
     @media(max-width:760px){
-      #page-clima .clima-premium-grid{grid-template-columns:1fr!important;gap:14px!important}
+      #page-clima .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
       #page-clima .cp-card{min-height:0!important;padding:18px 20px!important;gap:16px!important}
       #page-clima .cp-temp-target .val{font-size:43px!important}
       #page-tapparelle #tapp-grid{grid-template-columns:1fr!important;padding:10px 0!important;gap:14px!important}
