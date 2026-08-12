@@ -1,18 +1,14 @@
-import { actionCatalogMatch } from "../core/personalization-catalog.js";
+import { actionCatalogMatch, roomCatalogMatch } from "../core/personalization-catalog.js";
 import { clean, doc, installStyle, root } from "./shared.js";
 
-// The beta11 compatibility layer intentionally performs one last room-row repair
-// 80ms after the editor renders. It preserves data-room-icon, so beta12 can use
-// that stable semantic token as the visual owner and cannot regress to a blue
-// outline even when the delayed compatibility pass rewrites the child markup.
-//
-// This final compatibility owner also resolves quick-action artwork from the
-// actual legacy config source. In the hosted/namespaced runtime the legacy
-// renderer reads browser localStorage while shared readJson() is intentionally
-// scoped to the injected runtime root. Reading both sources here prevents the
-// beta12 same-turn repair from falling back to a star before first paint.
+// Final beta.12 compatibility owner. Older beta7/beta9/beta11 layers still run
+// bounded post-render repairs (beta11 has an 80ms room pass). Keep the semantic
+// beta12 emoji markup authoritative after those passes without polling or a
+// MutationObserver: repair synchronously, on the next frame and once after the
+// known delayed legacy window.
 const STYLE_ID = "dm-beta12-room-color-lock-style";
-const OWNER_FLAG = "__dmBeta12ConfigAwareQuickActions";
+const QUICK_OWNER_FLAG = "__dmBeta12ConfigAwareQuickActions";
+const EDITOR_OWNER_FLAG = "__dmBeta12StableRoomRows";
 
 const ACTION_BUILTINS = Object.freeze({
   luci: "mdi:lightbulb",
@@ -23,6 +19,35 @@ const ACTION_BUILTINS = Object.freeze({
   toggle: "mdi:toggle-switch-outline",
   script: "mdi:script-text-play",
   scene: "mdi:movie-open",
+});
+
+const ROOM_GLYPHS = Object.freeze({
+  living: "🛋️",
+  kitchen: "🍳",
+  bedroom: "🛏️",
+  kids: "🧸",
+  nursery: "👶",
+  bathroom: "🚿",
+  wc: "🚽",
+  dining: "🍽️",
+  office: "💻",
+  guest: "🛏️",
+  entrance: "🚪",
+  hallway: "🚪",
+  laundry: "🧺",
+  pantry: "🥫",
+  wardrobe: "👗",
+  storage: "📦",
+  balcony: "🌇",
+  terrace: "🌤️",
+  garage: "🚗",
+  cellar: "🍷",
+  attic: "🏠",
+  utility: "🛠️",
+  gym: "🏋️",
+  media: "🎬",
+  garden: "🌿",
+  pool: "🏊",
 });
 
 function directEmoji(value) {
@@ -36,6 +61,14 @@ function actionGlyph(value) {
   const direct = directEmoji(token);
   if (direct) return direct;
   return actionCatalogMatch(token)?.glyph || "⭐";
+}
+
+function roomGlyph(value) {
+  const token = clean(value);
+  const direct = directEmoji(token);
+  if (direct) return direct;
+  const item = roomCatalogMatch(token);
+  return ROOM_GLYPHS[item?.id] || "🏠";
 }
 
 function parseActionList(raw) {
@@ -73,11 +106,20 @@ function tokenForAction(action = {}, target = null) {
     || ACTION_BUILTINS[type.replace(/^builtin_/, "")];
   if (builtinToken) return builtinToken;
 
-  // The legacy renderer writes the icon token/emoji as the icon node's text.
-  // Preserve that source when no canonical action array is visible yet.
   const rendered = clean(target?.textContent);
   if (rendered && rendered !== "⭐" && rendered !== "★") return rendered;
   return "mdi:star";
+}
+
+function makeGlyph(className, token, glyph) {
+  const holder = doc.createElement("span");
+  holder.className = className;
+  holder.dataset.token = token;
+  const visual = doc.createElement("span");
+  visual.setAttribute("aria-hidden", "true");
+  visual.textContent = glyph;
+  holder.appendChild(visual);
+  return holder;
 }
 
 function repairQuickActionsFromRuntime() {
@@ -93,52 +135,77 @@ function repairQuickActionsFromRuntime() {
     if (target.dataset.dmBeta12ConfigAction === signature
       && target.querySelector(".dm-beta12-action-glyph")) return;
 
-    const holder = doc.createElement("span");
-    holder.className = "dm-beta12-action-glyph";
-    holder.dataset.token = token;
-    const visual = doc.createElement("span");
-    visual.setAttribute("aria-hidden", "true");
-    visual.textContent = glyph;
-    holder.appendChild(visual);
-    target.replaceChildren(holder);
+    target.replaceChildren(makeGlyph("dm-beta12-action-glyph", token, glyph));
     target.dataset.dmBeta12ConfigAction = signature;
     target.dataset.dmActionStyle = "beta12-color";
   });
   return true;
 }
 
-function wrapQuickActionOwner() {
-  const current = root.buildQuickActions;
-  if (typeof current !== "function" || current[OWNER_FLAG]) return false;
+function repairRoomRowsFromTokens() {
+  const nodes = [...(doc?.querySelectorAll?.("#editor-modal #ed-body .dm-room-list-icon[data-room-icon]") || [])];
+  nodes.forEach((target) => {
+    const token = clean(target.dataset.roomIcon || "mdi:home");
+    const glyph = roomGlyph(token);
+    const signature = `${token}|${glyph}`;
+    if (target.dataset.dmBeta12StableRoom === signature
+      && target.querySelector(".dm-beta12-room-glyph")) return;
 
+    target.replaceChildren(makeGlyph("dm-beta12-room-glyph", token, glyph));
+    target.dataset.dmBeta12StableRoom = signature;
+    target.dataset.dmBeta12Room = "true";
+  });
+  return nodes.length > 0;
+}
+
+function repairStableVisuals() {
+  repairQuickActionsFromRuntime();
+  repairRoomRowsFromTokens();
+}
+
+function scheduleStableVisuals() {
+  repairStableVisuals();
+  root.queueMicrotask?.(repairStableVisuals);
+  root.requestAnimationFrame?.(repairStableVisuals);
+  root.setTimeout?.(repairStableVisuals, 0);
+  // beta11 deliberately schedules its final room compatibility pass at 80ms.
+  // One finite pass after that window makes beta12 the final owner.
+  root.setTimeout?.(repairStableVisuals, 120);
+}
+
+function wrapOwner(name, marker) {
+  const current = root[name];
+  if (typeof current !== "function" || current[marker]) return false;
   function wrapped(...args) {
     const result = current.apply(this, args);
-    const repair = () => repairQuickActionsFromRuntime();
+    const repair = () => scheduleStableVisuals();
     if (result && typeof result.finally === "function") result.finally(repair);
     else repair();
     return result;
   }
   Object.assign(wrapped, current);
-  wrapped[OWNER_FLAG] = true;
-  // Beta12's earlier owner detector uses this marker; retaining it keeps this
-  // config-aware wrapper outermost rather than letting a later ready event put
-  // the generic fallback back on top.
+  wrapped[marker] = true;
   wrapped.__dmBeta12SynchronousPolish = true;
   wrapped.__dmPrevious = current;
-  root.buildQuickActions = wrapped;
+  root[name] = wrapped;
   return true;
 }
 
-function installQuickActionOwner() {
-  wrapQuickActionOwner();
-  repairQuickActionsFromRuntime();
+function installOwners() {
+  wrapOwner("buildQuickActions", QUICK_OWNER_FLAG);
+  wrapOwner("editorSwitch", EDITOR_OWNER_FLAG);
+}
+
+function installCompatibilityOwner() {
+  installOwners();
+  scheduleStableVisuals();
 }
 
 for (const eventName of [
   "dashboardmodern:legacy-ready",
   "dashboardmodern:runtime-ready",
   "dashboardmodern:states-ready",
-]) root.addEventListener?.(eventName, installQuickActionOwner);
+]) root.addEventListener?.(eventName, installCompatibilityOwner);
 
 installStyle(STYLE_ID, `
   #editor-modal #ed-body .dm-room-list-icon[data-room-icon]{
@@ -146,12 +213,22 @@ installStyle(STYLE_ID, `
     color:initial!important;overflow:visible!important
   }
   #editor-modal #ed-body .dm-room-list-icon[data-room-icon]>*{display:none!important}
+  #editor-modal #ed-body .dm-room-list-icon[data-room-icon]>.dm-beta12-room-glyph{
+    display:grid!important;place-items:center!important;width:100%!important;height:100%!important;
+    font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;
+    font-size:31px!important;font-style:normal!important;font-weight:400!important;line-height:1!important;
+    color:initial!important;filter:drop-shadow(0 5px 8px rgba(15,23,42,.12))!important
+  }
+  #editor-modal #ed-body .dm-room-list-icon[data-room-icon]>.dm-beta12-room-glyph>span{
+    display:block!important;line-height:1!important
+  }
   #editor-modal #ed-body .dm-room-list-icon[data-room-icon]::before{
     content:"🏠";display:grid!important;place-items:center!important;width:100%!important;height:100%!important;
     font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-size:31px!important;
     font-style:normal!important;font-weight:400!important;line-height:1!important;color:initial!important;
     filter:drop-shadow(0 5px 8px rgba(15,23,42,.12))!important
   }
+  #editor-modal #ed-body .dm-room-list-icon[data-room-icon]:has(>.dm-beta12-room-glyph)::before{content:none!important;display:none!important}
   #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:sofa"]::before{content:"🛋️"}
   #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:stove"]::before{content:"🍳"}
   #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:bed-king-outline"]::before{content:"🛏️"}
@@ -180,4 +257,4 @@ installStyle(STYLE_ID, `
   #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:pool"]::before{content:"🏊"}
 `);
 
-installQuickActionOwner();
+installCompatibilityOwner();
