@@ -60,6 +60,9 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
       - name: Run frontend tests
         run: |
           python scripts/generate_build_info.py --expected-commit "$GITHUB_SHA"
