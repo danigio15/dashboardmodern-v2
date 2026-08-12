@@ -128,16 +128,16 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       const logoBox = logo?.getBoundingClientRect();
       const artBox = art?.getBoundingClientRect();
       const copyBox = preview.querySelector(".dm-ev-brand-copy")?.getBoundingClientRect();
+      const logoBeforeCopy =
+        logoBox &&
+        copyBox &&
+        (logoBox.right <= copyBox.left + 1 || logoBox.bottom <= copyBox.top + 1);
       return {
         logoWidth: logoBox?.width || 0,
         logoHeight: logoBox?.height || 0,
         artWidth: artBox?.width || 0,
         artHeight: artBox?.height || 0,
-        separated: Boolean(
-          logoBox &&
-            copyBox &&
-            (logoBox.right <= copyBox.left + 1 || logoBox.bottom <= copyBox.top + 1),
-        ),
+        separated: Boolean(logoBeforeCopy),
         overflow: getComputedStyle(preview).overflow,
       };
     });
