@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootConsolidatedDashboard } from "./helpers/consolidated-runtime.js";
 
@@ -18,7 +19,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       await expect(config).toContainText(new RegExp(label, "i"));
     }
     await expect(config.locator('input[name="battery.soc"]')).toBeAttached();
-    await expect(config).toContainText(variant.includes("-en") ? /State of charge/i : /Stato di carica/i);
+    await expect(config).toContainText(
+      variant.includes("-en") ? /State of charge/i : /Stato di carica/i,
+    );
     const sourceGroups = config.locator('details.ed-acc:has([data-energy-total-field="true"])');
     await expect(sourceGroups).toHaveCount(6);
     await expect(page.locator("#editor-modal .dm-energy-source-guide")).toBeVisible();
@@ -32,8 +35,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(reportPanel.locator(".dm-report-row").first()).toBeVisible();
     expect(
       await page.evaluate(() => {
-        const modal = document.querySelector("#editor-modal .ed-shell") || document.querySelector("#editor-modal");
-        const rows = [...document.querySelectorAll('#editor-modal [data-energy-panel="report"] .dm-report-row')];
+        const modal =
+          document.querySelector("#editor-modal .ed-shell") ||
+          document.querySelector("#editor-modal");
+        const rows = [
+          ...document.querySelectorAll('#editor-modal [data-energy-panel="report"] .dm-report-row'),
+        ];
         if (!modal || !rows.length) return false;
         const bounds = modal.getBoundingClientRect();
         return rows.every((row) => {
@@ -45,16 +52,21 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     // Return to the main flow/entity sub-tab before switching top-level editor
     // sections, so the Energy guide is mounted in its normal context.
-    const flowButton = config.getByRole("button", {
-      name: variant.includes("-en") ? /FLOW|ENTIT/i : /FLUSSI|ENTIT/i,
-    }).first();
+    const flowButton = config
+      .getByRole("button", {
+        name: variant.includes("-en") ? /FLOW|ENTIT/i : /FLUSSI|ENTIT/i,
+      })
+      .first();
     await flowButton.click();
     await expect(page.locator("#editor-modal .dm-energy-source-guide")).toBeVisible();
 
     // Energy-specific guidance must not leak into Alerts or any other top-level
     // editor section, which was visible in the real 0.15.10 screenshot.
     await page.evaluate(() => window.editorSwitch("avvisi"));
-    await expect(page.locator("#editor-modal .ed-tab.active")).toHaveAttribute("data-tab", "avvisi");
+    await expect(page.locator("#editor-modal .ed-tab.active")).toHaveAttribute(
+      "data-tab",
+      "avvisi",
+    );
     await expect(page.locator("#editor-modal .dm-energy-source-guide")).toHaveCount(0);
     await expect(page.locator("#editor-modal .dm-energy-help-compact:visible")).toHaveCount(0);
 
@@ -79,11 +91,16 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           ),
         ];
         return nodes
-          .filter((node) => node.getClientRects().length > 0 && getComputedStyle(node).visibility !== "hidden")
+          .filter(
+            (node) =>
+              node.getClientRects().length > 0 && getComputedStyle(node).visibility !== "hidden",
+          )
           .map((node) => {
             const rect = node.getBoundingClientRect();
             return {
-              target: node.id ? `#${node.id}` : `${node.tagName.toLowerCase()}.${[...node.classList].join(".")}`,
+              target: node.id
+                ? `#${node.id}`
+                : `${node.tagName.toLowerCase()}.${[...node.classList].join(".")}`,
               left: Math.round(rect.left * 10) / 10,
               right: Math.round(rect.right * 10) / 10,
               width: Math.round(rect.width * 10) / 10,
@@ -100,14 +117,20 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
               item.right > viewport + 2,
           );
       });
-      await page.screenshot({ path: `test-results/${variant}-config-appliances-mobile.png`, fullPage: true });
+      await page.screenshot({
+        path: `test-results/${variant}-config-appliances-mobile.png`,
+        fullPage: true,
+      });
       expect(applianceEditorGeometry).toEqual([]);
     }
 
     await page.evaluate(() => window.editorSwitch("sez1"));
     await expect(config).toBeVisible();
     if (testInfo.project.name === "mobile")
-      await page.screenshot({ path: `test-results/${variant}-config-energy-mobile.png`, fullPage: true });
+      await page.screenshot({
+        path: `test-results/${variant}-config-energy-mobile.png`,
+        fullPage: true,
+      });
 
     // Leave the editor through the real UI instead of deleting its DOM node.
     // The real modal is #editor-modal; the old #ed-modal selector never closed it.
@@ -125,7 +148,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     // duplicate cards in hidden views do not inflate status counts. Use the
     // canonical card state marker rather than free text: in English the power
     // action "Turn off" must never be mistaken for an OFF device state.
-    const cardSelector = "#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id]";
+    const cardSelector =
+      "#page-appliances-main .appl-main-view.active .appl-wide-card[data-appliance-id]";
     const cards = page.locator(cardSelector);
     await expect(page.locator(`${cardSelector}[data-appliance-state="running"]`)).toHaveCount(1);
     await expect(page.locator(`${cardSelector}[data-appliance-state="standby"]`)).toHaveCount(2);
@@ -169,7 +193,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     );
     await expect(noHistory).toHaveCount(1);
     await expect(noHistory.getByRole("button", { name: /Storico|History/ })).toBeDisabled();
-    const normalizedStates = await cards.evaluateAll((nodes) => nodes.map((node) => node.dataset.applianceState).sort());
+    const normalizedStates = await cards.evaluateAll((nodes) =>
+      nodes.map((node) => node.dataset.applianceState).sort(),
+    );
     expect(normalizedStates).toEqual(["off", "off", "running", "standby", "standby"]);
     if (testInfo.project.name === "mobile") {
       const mobileContentFits = await page.evaluate(() => {
@@ -187,16 +213,28 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         });
       });
       expect(mobileContentFits).toBeTruthy();
-      await page.screenshot({ path: `test-results/${variant}-appliances-mobile.png`, fullPage: true });
+      await page.screenshot({
+        path: `test-results/${variant}-appliances-mobile.png`,
+        fullPage: true,
+      });
     }
 
     await page.locator('.tab[data-tab="energy"]').evaluate((button) => button.click());
     // Report and Monthly share the canonical Home Assistant flow boundary.
     // Direct Home is 28.2 kWh, but complete flows balance to 39.9 kWh.
-    await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house === 39.9);
+    await page.waitForFunction(
+      () => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house === 39.9,
+    );
     await expect(page.locator("#ed-kpi-cons")).toContainText(/39[,.]9/);
-    await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy-monthly.png`, fullPage: true });
-    expect(await page.evaluate(() => window.__dmStatisticsRequests.every((request) => request.types?.includes("sum")))).toBeTruthy();
+    await page.screenshot({
+      path: `test-results/${testInfo.project.name}-${variant}-energy-monthly.png`,
+      fullPage: true,
+    });
+    expect(
+      await page.evaluate(() =>
+        window.__dmStatisticsRequests.every((request) => request.types?.includes("sum")),
+      ),
+    ).toBeTruthy();
     expect(errors).toEqual([]);
   });
 }

@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 /* Pure period/statistics service. */
 import { runtimeMetrics } from "./runtime-metrics.js";
 
@@ -125,10 +126,12 @@ export function recorderBucketConsumptions(rows = [], baseline = null) {
   const ordered = [baseline, ...(Array.isArray(rows) ? rows : [])]
     .filter((row) => row && cumulativeValue(row) != null)
     .sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
-  return ordered.slice(1).map((row, index) => Object.freeze({
-    ...row,
-    change: Math.max(0, cumulativeValue(row) - cumulativeValue(ordered[index])),
-  }));
+  return ordered.slice(1).map((row, index) =>
+    Object.freeze({
+      ...row,
+      change: Math.max(0, cumulativeValue(row) - cumulativeValue(ordered[index])),
+    }),
+  );
 }
 
 function endOfClosedRange(nextBoundary, now) {
@@ -238,9 +241,8 @@ export function sourcePlans(
       // configured lifetime counter there. If no dedicated lifetime counter is
       // available, a cumulative explicit helper may still provide reset-aware
       // Recorder growth for historical periods.
-      const historicalSource = total || (
-        isCumulativeEnergyEntity(explicit, states, resolver) ? explicit : ""
-      );
+      const historicalSource =
+        total || (isCumulativeEnergyEntity(explicit, states, resolver) ? explicit : "");
       if (historicalSource) {
         plans.push({
           ...definition,
@@ -355,10 +357,16 @@ export class HomeAssistantBroker {
     [...new Set(registries)].forEach((registry) => {
       registry[id] = copy;
     });
-    if (emitEvent && !copy.attributes?.dashboardmodern_derived && typeof globalThis.CustomEvent === "function") {
-      globalThis.dispatchEvent?.(new globalThis.CustomEvent("dashboardmodern:state-changed", {
-        detail: { entity_id: id, state: copy },
-      }));
+    if (
+      emitEvent &&
+      !copy.attributes?.dashboardmodern_derived &&
+      typeof globalThis.CustomEvent === "function"
+    ) {
+      globalThis.dispatchEvent?.(
+        new globalThis.CustomEvent("dashboardmodern:state-changed", {
+          detail: { entity_id: id, state: copy },
+        }),
+      );
     }
     return true;
   }
@@ -398,7 +406,8 @@ export class HomeAssistantBroker {
     if (!pending) return;
     this.pending.delete(message.id);
     globalThis.clearTimeout?.(pending.timer);
-    if (message.success === false) pending.reject(new Error(message.error?.message || "HA request failed"));
+    if (message.success === false)
+      pending.reject(new Error(message.error?.message || "HA request failed"));
     else pending.resolve(message.result ?? null);
   }
 
@@ -452,7 +461,8 @@ export class HomeAssistantBroker {
   async request(payload) {
     const socket = await this.connect();
     const id = ++this.nextId;
-    if (payload?.type === "recorder/statistics_during_period") runtimeMetrics.increment("recorderRequests");
+    if (payload?.type === "recorder/statistics_during_period")
+      runtimeMetrics.increment("recorderRequests");
     return new Promise((resolve, reject) => {
       const timer = globalThis.setTimeout?.(() => {
         this.pending.delete(id);
@@ -528,15 +538,19 @@ export class HomeAssistantBroker {
     const direct = plans.filter((plan) => plan.direct);
     const selectedDate = new Date(selected);
     const today = new Date();
-    const directIsCurrent = (kind) => kind === "day"
-      ? selectedDate.toDateString() === today.toDateString()
-      : kind === "year"
-        ? selectedDate.getFullYear() === today.getFullYear()
-        : selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() === today.getMonth();
-    direct.filter((plan) => directIsCurrent(plan.kind)).forEach((plan) => {
-      const value = readDirectState(plan.entity, states);
-      if (value != null) output.set(plan.key, value);
-    });
+    const directIsCurrent = (kind) =>
+      kind === "day"
+        ? selectedDate.toDateString() === today.toDateString()
+        : kind === "year"
+          ? selectedDate.getFullYear() === today.getFullYear()
+          : selectedDate.getFullYear() === today.getFullYear() &&
+            selectedDate.getMonth() === today.getMonth();
+    direct
+      .filter((plan) => directIsCurrent(plan.kind))
+      .forEach((plan) => {
+        const value = readDirectState(plan.entity, states);
+        if (value != null) output.set(plan.key, value);
+      });
 
     const derived = plans.filter(
       (plan) => !plan.direct && !(plan.fallback && output.has(plan.key)),
@@ -553,9 +567,14 @@ export class HomeAssistantBroker {
     const rows = await this.statistics(ids, baseline.start, range.end, range.period);
 
     derived.forEach((plan) => {
-      const entityRows = (rows[plan.entity] || []).slice().sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
+      const entityRows = (rows[plan.entity] || [])
+        .slice()
+        .sort((left, right) => rowTimestamp(left) - rowTimestamp(right));
       const before = entityRows.filter((row) => rowTimestamp(row) < range.start.getTime());
-      const within = entityRows.filter((row) => rowTimestamp(row) >= range.start.getTime() && rowTimestamp(row) < range.end.getTime());
+      const within = entityRows.filter(
+        (row) =>
+          rowTimestamp(row) >= range.start.getTime() && rowTimestamp(row) < range.end.getTime(),
+      );
       const value = periodConsumption(within, before.at(-1) || null);
       if (value != null) output.set(plan.key, Math.round(value * 1000) / 1000);
     });
@@ -578,7 +597,9 @@ export class HomeAssistantBroker {
     this.statesStarted = true;
     try {
       const states = await this.cachedRequest({ type: "get_states" }, "get_states", 5000);
-      (Array.isArray(states) ? states : []).forEach((state) => this.ingestState(state, { emitEvent: false }));
+      (Array.isArray(states) ? states : []).forEach((state) =>
+        this.ingestState(state, { emitEvent: false }),
+      );
       const socket = await this.connect();
       const id = ++this.nextId;
       this.subscription = id;

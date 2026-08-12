@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
@@ -45,11 +46,11 @@ async function boot(page, variant, testInfo) {
   });
 
   await bootNamespacedDashboard(page, variant, testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await expect
-    .poll(() =>
-      page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true),
-    )
+    .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true))
     .toBe(true);
 
   await page.evaluate(() => {

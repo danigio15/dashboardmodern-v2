@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
@@ -47,9 +48,11 @@ async function boot(page, variant, testInfo) {
         let result = null;
         if (message.type === "get_states") result = [];
         if (message.type === "frontend/get_user_data") result = { value: null };
-        queueMicrotask(() => this.onmessage?.({
-          data: JSON.stringify({ id: message.id, type: "result", success: true, result }),
-        }));
+        queueMicrotask(() =>
+          this.onmessage?.({
+            data: JSON.stringify({ id: message.id, type: "result", success: true, result }),
+          }),
+        );
       }
 
       close() {
@@ -64,8 +67,12 @@ async function boot(page, variant, testInfo) {
   });
 
   await bootNamespacedDashboard(page, variant, testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
-  await expect.poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true)).toBe(true);
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await expect
+    .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true))
+    .toBe(true);
 }
 
 async function switchEditor(page, tab) {
@@ -77,7 +84,9 @@ async function switchEditor(page, tab) {
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: car appearance exists only in EV and brand/model controls are dedicated`, async ({ page }, testInfo) => {
+  test(`${variant}: car appearance exists only in EV and brand/model controls are dedicated`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
@@ -94,7 +103,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(brandPicker).toBeVisible();
     await expect(brandPicker.locator(".dm-car-brand").first()).toBeVisible();
     const leap = brandPicker.locator(".dm-picker-option", { hasText: "Leapmotor" });
-    await expect(leap.locator('.dm-leapmotor-mark[data-brand="leapmotor"][data-brand-source="inline"]')).toHaveCount(1);
+    await expect(
+      leap.locator('.dm-leapmotor-mark[data-brand="leapmotor"][data-brand-source="inline"]'),
+    ).toHaveCount(1);
     await brandPicker.locator("[data-close]").click();
 
     await expect(appearance.locator("[data-icon-preview]")).toHaveCount(0);

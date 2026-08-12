@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { clickBottomTab } from "./helpers/navigation.js";
@@ -131,31 +132,43 @@ async function boot(page, variant, testInfo) {
   }, states);
 
   await bootNamespacedDashboard(page, variant, testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true);
   await page.evaluate(
-    (haStates) => haStates.forEach((item) => {
-      _RAW_STATES[item.entity_id] = structuredClone(item);
-      STATES[item.entity_id] = structuredClone(item);
-    }),
+    (haStates) =>
+      haStates.forEach((item) => {
+        _RAW_STATES[item.entity_id] = structuredClone(item);
+        STATES[item.entity_id] = structuredClone(item);
+      }),
     states,
   );
   await clickBottomTab(page, "appliances", testInfo);
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: daily appliance KPI opens dashboard-style breakdown with the configured appliance artwork`, async ({ page }, testInfo) => {
-    if (testInfo.project.name === "webkit-ipad") test.slow(true, "Recorder-backed popup is slower on WebKit/iPad");
+  test(`${variant}: daily appliance KPI opens dashboard-style breakdown with the configured appliance artwork`, async ({
+    page,
+  }, testInfo) => {
+    if (testInfo.project.name === "webkit-ipad")
+      test.slow(true, "Recorder-backed popup is slower on WebKit/iPad");
     await boot(page, variant, testInfo);
 
     const dailyCard = page.locator('#appl-kpi-grid [data-dm-appliance-daily-total="true"]');
     await expect(dailyCard).toBeVisible();
-    await expect.poll(async () => dailyCard.locator(".g-val").textContent()).toMatch(/0[.,]86 kWh/i);
+    await expect
+      .poll(async () => dailyCard.locator(".g-val").textContent())
+      .toMatch(/0[.,]86 kWh/i);
     await expect(dailyCard.locator(".g-val")).not.toContainText("20.0");
 
     const overview = page.locator("#appl-grid-overview");
-    const fridgeCardArt = overview.locator('.appl-wide-card[data-appliance-id="fridge"] .appl-ic [data-dm-art="fridge"]');
-    const microwaveCardArt = overview.locator('.appl-wide-card[data-appliance-id="microwave"] .appl-ic [data-dm-art="microwave"]');
+    const fridgeCardArt = overview.locator(
+      '.appl-wide-card[data-appliance-id="fridge"] .appl-ic [data-dm-art="fridge"]',
+    );
+    const microwaveCardArt = overview.locator(
+      '.appl-wide-card[data-appliance-id="microwave"] .appl-ic [data-dm-art="microwave"]',
+    );
     await expect(fridgeCardArt).toBeVisible();
     await expect(microwaveCardArt).toBeVisible();
 
@@ -164,7 +177,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(popup).toBeVisible();
     await expect(popup.locator("[data-dm-daily-popup-total]")).toContainText(/0[.,]86 kWh/i);
     await expect(popup.locator("[data-dm-daily-entity]")).toHaveCount(2);
-    await expect(popup.locator(".dm-appliance-daily-row-main strong")).toHaveText(["Frigorifero", "Microonde"]);
+    await expect(popup.locator(".dm-appliance-daily-row-main strong")).toHaveText([
+      "Frigorifero",
+      "Microonde",
+    ]);
     await expect(popup.locator(".dm-appliance-daily-row-main small").first()).toBeHidden();
     await expect(popup.locator(".dm-appliance-daily-note")).toBeHidden();
     await expect(popup).toContainText(/0[.,]81 kWh/i);
@@ -172,8 +188,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     const fridgeRow = popup.locator('[data-dm-daily-entity="sensor.fridge_today"]');
     const microwaveRow = popup.locator('[data-dm-daily-entity="sensor.microwave_total"]');
-    await expect(fridgeRow.locator('.dm-appliance-daily-visual [data-dm-art="fridge"]')).toBeVisible();
-    await expect(microwaveRow.locator('.dm-appliance-daily-visual [data-dm-art="microwave"]')).toBeVisible();
+    await expect(
+      fridgeRow.locator('.dm-appliance-daily-visual [data-dm-art="fridge"]'),
+    ).toBeVisible();
+    await expect(
+      microwaveRow.locator('.dm-appliance-daily-visual [data-dm-art="microwave"]'),
+    ).toBeVisible();
     await expect
       .poll(async () => fridgeRow.evaluate((node) => getComputedStyle(node, "::before").content))
       .not.toContain("⚡");

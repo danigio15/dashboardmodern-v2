@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync } from "node:fs";
@@ -51,9 +52,18 @@ test("HACS release artifact has root integration layout, complete brand assets a
     assert.ok(names.includes(asset), `release is missing ${asset}`);
   }
   assert.ok(names.includes("frontend/legacy/build-info.js"));
-  assert.equal(names.some((name) => name.startsWith("custom_components/")), false);
-  assert.equal(names.some((name) => name.includes("/e2e/")), false);
-  assert.equal(names.some((name) => name.includes("/tests/")), false);
+  assert.equal(
+    names.some((name) => name.startsWith("custom_components/")),
+    false,
+  );
+  assert.equal(
+    names.some((name) => name.includes("/e2e/")),
+    false,
+  );
+  assert.equal(
+    names.some((name) => name.includes("/tests/")),
+    false,
+  );
   assert.equal(names.includes("frontend/index.html"), false);
   assert.equal(names.includes("frontend/styles.css"), false);
 

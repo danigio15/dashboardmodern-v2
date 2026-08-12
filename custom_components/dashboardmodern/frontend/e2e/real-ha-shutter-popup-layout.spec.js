@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
@@ -67,7 +68,9 @@ async function boot(page, testInfo) {
   }, state);
 
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await page.evaluate((haState) => {
     _RAW_STATES[haState.entity_id] = structuredClone(haState);
     STATES[haState.entity_id] = structuredClone(haState);
@@ -76,7 +79,9 @@ async function boot(page, testInfo) {
   await page.evaluate(() => window.render?.());
 }
 
-test("real HA: shutter popup uses the compact shared modal contract", async ({ page }, testInfo) => {
+test("real HA: shutter popup uses the compact shared modal contract", async ({
+  page,
+}, testInfo) => {
   await boot(page, testInfo);
   const alert = page.locator("#tapp-avvisi .dm-shutter-alert");
   await expect(alert).toBeVisible();
@@ -104,9 +109,13 @@ test("real HA: shutter popup uses the compact shared modal contract", async ({ p
     card.boundingBox(),
   ]);
   if (!titleBox || !closeBox || !cardBox) throw new Error("Shutter popup has no bounding box");
-  expect(Math.abs(titleBox.y + titleBox.height / 2 - (closeBox.y + closeBox.height / 2))).toBeLessThanOrEqual(8);
+  expect(
+    Math.abs(titleBox.y + titleBox.height / 2 - (closeBox.y + closeBox.height / 2)),
+  ).toBeLessThanOrEqual(8);
   expect(closeBox.x).toBeGreaterThanOrEqual(titleBox.x + titleBox.width);
-  expect(cardBox.width).toBeLessThanOrEqual(Math.min(682, testInfo.project.name === "mobile" ? 480 : 682));
+  expect(cardBox.width).toBeLessThanOrEqual(
+    Math.min(682, testInfo.project.name === "mobile" ? 480 : 682),
+  );
 
   const boxes = await actions.evaluateAll((buttons) =>
     buttons.map((button) => {
@@ -114,12 +123,16 @@ test("real HA: shutter popup uses the compact shared modal contract", async ({ p
       return { width: rect.width, height: rect.height };
     }),
   );
-  expect(Math.max(...boxes.map((box) => box.width)) - Math.min(...boxes.map((box) => box.width))).toBeLessThanOrEqual(2);
+  expect(
+    Math.max(...boxes.map((box) => box.width)) - Math.min(...boxes.map((box) => box.width)),
+  ).toBeLessThanOrEqual(2);
   for (const box of boxes) {
     expect(box.width).toBeGreaterThan(60);
     expect(box.height).toBeLessThanOrEqual(48);
   }
 
   await expect(popup.locator(".dm-shutter-details .d-state")).toContainText(/Salone.*Aperta.*65%/i);
-  await page.screenshot({ path: `test-results/${testInfo.project.name}-real-ha-shutter-popup-layout.png` });
+  await page.screenshot({
+    path: `test-results/${testInfo.project.name}-real-ha-shutter-popup-layout.png`,
+  });
 });

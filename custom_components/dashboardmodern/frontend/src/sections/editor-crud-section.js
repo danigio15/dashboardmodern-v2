@@ -1,9 +1,12 @@
+// DM-FIX-20260812B
+import { canonicalClimateType } from "../core/device-model.js";
 import {
   clean,
   doc,
   english,
   installStyle,
   readJson,
+  readClimateUnits,
   root,
   t,
   wrapFunction,
@@ -12,13 +15,6 @@ import {
 
 const KEY = "__DASHBOARDMODERN_EDITOR_CRUD_SECTION__";
 const state = (root[KEY] ||= { installed: false, listeners: false, editing: null });
-
-function canonicalClimateType(value) {
-  const token = clean(value).toLowerCase();
-  return ["termo", "termostato", "thermostat", "heat", "heating", "caldo"].includes(token)
-    ? "termo"
-    : "clima";
-}
 
 function syncEditorTheme() {
   const modal = doc?.getElementById("editor-modal");
@@ -79,8 +75,7 @@ function normalizeReportEditor() {
 function listFor(kind) {
   if (kind === "action") return root.getQuickActions?.().slice?.() || readJson("cd_quick_actions", []);
   if (kind === "climate") {
-    const values = root.getClimaUnits?.().slice?.() || readJson("cd_clima_units", []);
-    return (Array.isArray(values) ? values : []).map((item) => ({ ...item, type: canonicalClimateType(item?.type) }));
+    return readClimateUnits();
   }
   if (kind === "shutter") return root.getTapparelle?.().slice?.() || readJson("cd_tapparelle", []);
   if (kind === "room") return root.getStanze?.().slice?.() || readJson("cd_stanze", []);

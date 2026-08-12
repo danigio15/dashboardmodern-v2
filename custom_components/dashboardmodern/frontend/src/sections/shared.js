@@ -1,3 +1,6 @@
+// DM-FIX-20260812B
+import { canonicalClimateType } from "../core/device-model.js";
+
 export const root = globalThis;
 export const doc = root.document;
 
@@ -22,6 +25,18 @@ export const esc = (value) =>
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll('"', "&quot;");
+
+export function readClimateUnits() {
+  let values;
+  try {
+    const raw = root.localStorage?.getItem?.("cd_clima_units");
+    if (raw !== null && raw !== undefined) values = JSON.parse(raw);
+  } catch (_error) {
+    values = [];
+  }
+  if (!Array.isArray(values)) values = root.getClimaUnits?.().slice?.() || [];
+  return values.map((item) => ({ ...item, type: canonicalClimateType(item?.type) }));
+}
 
 const ENERGY_RUNTIME_SOURCES = Object.freeze([
   {

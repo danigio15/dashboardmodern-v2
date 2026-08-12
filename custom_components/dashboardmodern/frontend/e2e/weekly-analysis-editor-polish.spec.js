@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootConsolidatedDashboard } from "./helpers/consolidated-runtime.js";
 import { clickBottomTab, clickStableButton } from "./helpers/navigation.js";
@@ -70,9 +71,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(guide).toContainText(
       variant.includes("-en") ? /Home Assistant balance/i : /bilancio Home Assistant/i,
     );
-    expect(
-      await guide.evaluate((node) => node.scrollWidth <= node.clientWidth + 1),
-    ).toBe(true);
+    expect(await guide.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
 
     await openEditor(page, "appliances");
     await page.evaluate(() => edApplEdit(2));

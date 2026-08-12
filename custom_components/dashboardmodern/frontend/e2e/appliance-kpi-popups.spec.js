@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { clickBottomTab } from "./helpers/navigation.js";
@@ -108,13 +109,16 @@ async function boot(page, variant, testInfo) {
   }, states);
 
   await bootNamespacedDashboard(page, variant, testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true);
   await page.evaluate(
-    (haStates) => haStates.forEach((item) => {
-      _RAW_STATES[item.entity_id] = structuredClone(item);
-      STATES[item.entity_id] = structuredClone(item);
-    }),
+    (haStates) =>
+      haStates.forEach((item) => {
+        _RAW_STATES[item.entity_id] = structuredClone(item);
+        STATES[item.entity_id] = structuredClone(item);
+      }),
     states,
   );
   await clickBottomTab(page, "appliances", testInfo);
@@ -141,7 +145,9 @@ async function expectCentered(page, popup) {
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: appliance KPI cards expose centered running/power popups and remove alerts`, async ({ page }, testInfo) => {
+  test(`${variant}: appliance KPI cards expose centered running/power popups and remove alerts`, async ({
+    page,
+  }, testInfo) => {
     await boot(page, variant, testInfo);
 
     const grid = page.locator("#appl-kpi-grid");
@@ -150,7 +156,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const dailyCard = grid.locator('[data-dm-appliance-kpi="daily"]');
 
     await expect(runningCard).toBeVisible();
-    await expect(runningCard).toContainText(variant === "dashboard.html" ? /IN FUNZIONE/i : /RUNNING/i);
+    await expect(runningCard).toContainText(
+      variant === "dashboard.html" ? /IN FUNZIONE/i : /RUNNING/i,
+    );
     await expect(runningCard.locator(".g-val")).toHaveText("1");
     await expect(powerCard).toBeVisible();
     await expect(powerCard.locator(".g-val")).toContainText(/922 W/i);
@@ -163,7 +171,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(runningPopup.locator(".dm-appliance-kpi-row")).toHaveCount(1);
     await expect(runningPopup).toContainText("Microonde");
     await expect(runningPopup).not.toContainText("Frigorifero");
-    await expect(runningPopup.locator('[data-appliance-id="microwave"] [data-dm-art="microwave"]')).toBeVisible();
+    await expect(
+      runningPopup.locator('[data-appliance-id="microwave"] [data-dm-art="microwave"]'),
+    ).toBeVisible();
     await expectCentered(page, runningPopup);
     await runningPopup.locator("[data-dm-appliance-kpi-close]").click();
 
@@ -172,10 +182,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(powerPopup).toBeVisible();
     await expect(powerPopup.locator("[data-dm-appliance-kpi-summary]")).toContainText(/922 W/i);
     await expect(powerPopup.locator(".dm-appliance-kpi-row")).toHaveCount(2);
-    await expect(powerPopup.locator(".dm-appliance-kpi-row-main>strong")).toHaveText(["Microonde", "Frigorifero"]);
+    await expect(powerPopup.locator(".dm-appliance-kpi-row-main>strong")).toHaveText([
+      "Microonde",
+      "Frigorifero",
+    ]);
     await expect(powerPopup).toContainText(/920 W/i);
     await expect(powerPopup).toContainText(/2 W/i);
-    await expect(powerPopup.locator('[data-appliance-id="fridge"] [data-dm-art="fridge"]')).toBeVisible();
+    await expect(
+      powerPopup.locator('[data-appliance-id="fridge"] [data-dm-art="fridge"]'),
+    ).toBeVisible();
     await expectCentered(page, powerPopup);
     await powerPopup.locator("[data-dm-appliance-kpi-close]").click();
 

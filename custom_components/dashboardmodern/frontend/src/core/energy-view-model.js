@@ -1,4 +1,10 @@
-import { energyBalance, energyCost, energyPercentages, nonNegative } from "./energy-calculations.js";
+// DM-FIX-20260812B
+import {
+  energyBalance,
+  energyCost,
+  energyPercentages,
+  nonNegative,
+} from "./energy-calculations.js";
 
 function metrics(period = {}, rates = {}) {
   const balance = energyBalance({

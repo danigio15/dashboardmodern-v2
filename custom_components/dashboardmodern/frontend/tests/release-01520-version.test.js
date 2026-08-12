@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import assert from "node:assert/strict";
 import { access, readFile, stat } from "node:fs/promises";
 import test from "node:test";
@@ -23,12 +24,15 @@ const refreshUrl = new URL("../src/sections/energy-refresh-section.js", import.m
 const analysisUrl = new URL("../src/sections/energy-analysis-section.js", import.meta.url);
 const contractsUrl = new URL("../src/sections/editor-contracts-section.js", import.meta.url);
 
-const RELEASE_VERSION = "1.0.0-beta.13";
+const RELEASE_VERSION = "1.0.0-beta.15";
 
 test("the 1.0 beta release metadata is consistently versioned", async () => {
   const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
   const readme = await readFile(readmeUrl, "utf8");
   const buildInfo = await readFile(buildInfoUrl, "utf8");
+
+  const badgeVersion = RELEASE_VERSION.replaceAll("-", "--");
+  assert.match(readme, new RegExp(`badge/version-${badgeVersion}-`));
 
   assert.equal(manifest.version, RELEASE_VERSION);
   assert.match(readme, /Confronto settimanale dei consumi Casa/i);
@@ -40,8 +44,8 @@ test("the 1.0 beta release metadata is consistently versioned", async () => {
     /https:\/\/raw\.githubusercontent\.com\/danigio15\/dashboardmodern-v2\/main\/brand\/logo\.png/,
   );
   assert.doesNotMatch(readme, /main\/assets\/logo|brand\/logo@2x\.png/);
-  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']1\.0\.0-beta\.13["']/);
-  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']1\.0\.0-beta\.13["']/);
+  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']1\.0\.0-beta\.15["']/);
+  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']1\.0\.0-beta\.15["']/);
   assert.match(buildInfo, /["']?moduleVersion["']?\s*:\s*14/);
 });
 

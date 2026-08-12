@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect } from "@playwright/test";
 import { bootNamespacedDashboard } from "./namespaced-dashboard.js";
 
@@ -17,8 +18,16 @@ export const consolidatedStates = [
     state: "82",
     attributes: { unit_of_measurement: "W", device_class: "power" },
   },
-  { entity_id: "sensor.boiler_power", state: "2", attributes: { unit_of_measurement: "W", device_class: "power" } },
-  { entity_id: "sensor.microwave_power", state: "0", attributes: { unit_of_measurement: "W", device_class: "power" } },
+  {
+    entity_id: "sensor.boiler_power",
+    state: "2",
+    attributes: { unit_of_measurement: "W", device_class: "power" },
+  },
+  {
+    entity_id: "sensor.microwave_power",
+    state: "0",
+    attributes: { unit_of_measurement: "W", device_class: "power" },
+  },
   { entity_id: "switch.microwave", state: "on", attributes: { friendly_name: "Microwave plug" } },
   ...[
     "house_total",
@@ -283,7 +292,9 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
             const isPreviousMonth =
               message.period === "day" && endTime <= currentTime + 1000 && endTime > previousTime;
             const isCurrentMonth =
-              message.period === "day" && endTime > currentTime && endTime <= now.getTime() + 86_400_000;
+              message.period === "day" &&
+              endTime > currentTime &&
+              endTime <= now.getTime() + 86_400_000;
             const selected =
               message.period === "hour" || message.period === "5minute"
                 ? daily
@@ -298,10 +309,13 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
               (message.statistic_ids || []).map((id) => {
                 const initial = base[id];
                 const final = initial + (selected[id] || 0);
-                return [id, [
-                  { start: message.start_time, sum: initial, state: initial },
-                  { start: new Date(end.getTime() - 1).toISOString(), sum: final, state: final },
-                ]];
+                return [
+                  id,
+                  [
+                    { start: message.start_time, sum: initial, state: initial },
+                    { start: new Date(end.getTime() - 1).toISOString(), sum: final, state: final },
+                  ],
+                ];
               }),
             );
             this.emit({ id: message.id, type: "result", success: true, result });
@@ -325,7 +339,9 @@ export async function bootConsolidatedDashboard(page, variant, testInfo) {
   );
 
   await bootNamespacedDashboard(page, variant, testInfo, consolidatedSeed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.ready === true);
   await expect
     .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_0150__?.bundle?.month?.house))

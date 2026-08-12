@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootConsolidatedDashboard } from "./helpers/consolidated-runtime.js";
 import { clickBottomTab } from "./helpers/navigation.js";
@@ -35,9 +36,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#v-home-day")).toContainText(/6[,.]5/);
     await expect(page.locator("#v-home-month")).toContainText(/39[,.]9/);
     await expect(page.locator("#ed-kpi-cons")).toContainText(/39[,.]9/);
-    const generations = await page.locator("#view-day,#view-month,#view-panoramica").evaluateAll((nodes) =>
-      nodes.map((node) => node.dataset.dmEnergyBundle),
-    );
+    const generations = await page
+      .locator("#view-day,#view-month,#view-panoramica")
+      .evaluateAll((nodes) => nodes.map((node) => node.dataset.dmEnergyBundle));
     expect(new Set(generations).size).toBe(1);
 
     const stableSamples = await page.evaluate(async () => {
@@ -81,7 +82,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       });
       await expect(field).toBeVisible();
       await expect(field).toHaveValue(value);
-      const nativeTotalField = field.locator("xpath=ancestor::label[@data-energy-total-field='true'][1]");
+      const nativeTotalField = field.locator(
+        "xpath=ancestor::label[@data-energy-total-field='true'][1]",
+      );
       await expect(nativeTotalField).toBeAttached();
       await expect(nativeTotalField).toContainText(
         variant.includes("-en") ? /Total energy meter/i : /Contatore energia totale/i,
@@ -96,11 +99,23 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     );
 
     await page.evaluate(() => {
-      localStorage.setItem("cd_quick_actions", JSON.stringify([{ type: "builtin", builtin: "luci", name: "Luci" }]));
-      localStorage.setItem("cd_clima_units", JSON.stringify([{ type: "clima", name: "Salone", entity: "climate.salone", room: "Salone" }]));
-      localStorage.setItem("cd_tapparelle", JSON.stringify([{ name: "Tapparella salone", entity: "cover.salone", room: "Salone" }]));
+      localStorage.setItem(
+        "cd_quick_actions",
+        JSON.stringify([{ type: "builtin", builtin: "luci", name: "Luci" }]),
+      );
+      localStorage.setItem(
+        "cd_clima_units",
+        JSON.stringify([
+          { type: "clima", name: "Salone", entity: "climate.salone", room: "Salone" },
+        ]),
+      );
+      localStorage.setItem(
+        "cd_tapparelle",
+        JSON.stringify([{ name: "Tapparella salone", entity: "cover.salone", room: "Salone" }]),
+      );
       const rooms = DashboardModernModules.store.getSection("rooms");
-      if (!rooms.some((room) => room.id === "room-edit")) rooms.push({ id: "room-edit", name: "Studio", icon: "mdi:desk", floor: "Terra" });
+      if (!rooms.some((room) => room.id === "room-edit"))
+        rooms.push({ id: "room-edit", name: "Studio", icon: "mdi:desk", floor: "Terra" });
       localStorage.setItem("cd_stanze", JSON.stringify(rooms));
     });
 
@@ -173,7 +188,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const temperatureCard = page.locator("#temp-grid .temp-card").first();
     await expect(temperatureCard).toBeVisible();
     await expect(temperatureCard.locator(".temp-comfort-badge,[id^='tc_']")).toContainText(
-      variant.includes("-en") ? /Cold|Cool|Comfort|Warm|Hot|Unavailable/ : /Freddo|Fresco|Comfort|Tiepido|Caldo|Non disponibile/,
+      variant.includes("-en")
+        ? /Cold|Cool|Comfort|Warm|Hot|Unavailable/
+        : /Freddo|Fresco|Comfort|Tiepido|Caldo|Non disponibile/,
     );
   });
 }

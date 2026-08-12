@@ -1,8 +1,10 @@
+// DM-FIX-20260812B
 import {
   ACTION_ICON_CATALOG,
   ROOM_CATALOG,
   actionCatalogMatch,
-  roomCatalogMatch,
+  directEmoji,
+  roomGlyph,
 } from "../core/personalization-catalog.js";
 import {
   clean,
@@ -27,34 +29,6 @@ const state = (root[KEY] ||= {
   storeUnsubscribe: null,
 });
 
-const ROOM_GLYPHS = Object.freeze({
-  living: "🛋️",
-  kitchen: "🍳",
-  bedroom: "🛏️",
-  kids: "🧸",
-  nursery: "👶",
-  bathroom: "🚿",
-  wc: "🚽",
-  dining: "🍽️",
-  office: "💻",
-  guest: "🛏️",
-  entrance: "🚪",
-  hallway: "🚪",
-  laundry: "🧺",
-  pantry: "🥫",
-  wardrobe: "👗",
-  storage: "📦",
-  balcony: "🌇",
-  terrace: "🌤️",
-  garage: "🚗",
-  cellar: "🍷",
-  attic: "🏠",
-  utility: "🛠️",
-  gym: "🏋️",
-  media: "🎬",
-  garden: "🌿",
-  pool: "🏊",
-});
 
 const ACTION_BUILTIN_TOKENS = Object.freeze({
   luci: "mdi:lightbulb",
@@ -75,20 +49,6 @@ function nativeGlyphMarkup(glyph, className, token = "") {
   return `<span class="${className}" data-token="${esc(token)}"><span aria-hidden="true">${esc(glyph)}</span></span>`;
 }
 
-function directEmoji(value) {
-  const token = clean(value);
-  if (!token || token.startsWith("mdi:")) return "";
-  // Configured emoji/glyphs remain authoritative. Textual room names are not
-  // treated as glyphs, otherwise legacy names would be rendered literally.
-  return /[^\p{L}\p{N}\s:_-]/u.test(token) && token.length <= 12 ? token : "";
-}
-
-function roomGlyph(value) {
-  const direct = directEmoji(value);
-  if (direct) return direct;
-  const item = roomCatalogMatch(value);
-  return ROOM_GLYPHS[item?.id] || "🏠";
-}
 
 function actionToken(action = {}) {
   const configured = clean(action.icon);
@@ -241,7 +201,7 @@ function decorateVisualPicker() {
     const item = index >= 0 ? catalog[index] : null;
     const target = button.querySelector(".dm-picker-visual");
     if (!item || !target) return;
-    const glyph = kind === "room" ? (ROOM_GLYPHS[item.id] || "🏠") : (item.glyph || "⭐");
+    const glyph = kind === "room" ? roomGlyph(item.mdi || item.id) : (item.glyph || "⭐");
     const token = item.mdi || item.id;
     target.innerHTML = nativeGlyphMarkup(glyph, kind === "room" ? "dm-beta12-room-glyph" : "dm-beta12-action-glyph", token);
   });

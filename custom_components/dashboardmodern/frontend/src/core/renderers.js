@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { getDeviceDisplayName, getDeviceVisual } from "./device-model.js";
 import { runtimeMetrics } from "./runtime-metrics.js";
 
@@ -128,7 +129,17 @@ const ENERGY_GROUPS = [
       ["total_import_energy", "Contatore energia totale", "kWh", "sensor.rete_prelievo_totale"],
     ],
   ],
-  ["grid", "Rete · immissione", [["power", "Potenza", "W", "sensor.rete_power"], ["daily_export_energy", "Energia immessa giornaliera", "kWh", "sensor.rete_immissione_oggi"], ["monthly_export_energy", "Energia immessa mensile", "kWh", "sensor.rete_immissione_mese"], ["annual_export_energy", "Energia immessa annuale", "kWh", "sensor.rete_immissione_anno"], ["total_export_energy", "Contatore energia totale", "kWh", "sensor.rete_immissione_totale"]]],
+  [
+    "grid",
+    "Rete · immissione",
+    [
+      ["power", "Potenza", "W", "sensor.rete_power"],
+      ["daily_export_energy", "Energia immessa giornaliera", "kWh", "sensor.rete_immissione_oggi"],
+      ["monthly_export_energy", "Energia immessa mensile", "kWh", "sensor.rete_immissione_mese"],
+      ["annual_export_energy", "Energia immessa annuale", "kWh", "sensor.rete_immissione_anno"],
+      ["total_export_energy", "Contatore energia totale", "kWh", "sensor.rete_immissione_totale"],
+    ],
+  ],
   [
     "solar",
     "Fotovoltaico",
@@ -149,10 +160,40 @@ const ENERGY_GROUPS = [
       ["daily_charged_energy", "Caricata oggi", "kWh", "sensor.batteria_caricata_oggi"],
       ["monthly_charged_energy", "Caricata questo mese", "kWh", "sensor.batteria_caricata_mese"],
       ["annual_charged_energy", "Caricata questo anno", "kWh", "sensor.batteria_caricata_anno"],
-      ["total_charged_energy", "Contatore energia totale", "kWh", "sensor.batteria_caricata_totale"],
+      [
+        "total_charged_energy",
+        "Contatore energia totale",
+        "kWh",
+        "sensor.batteria_caricata_totale",
+      ],
     ],
   ],
-  ["battery", "Batteria · scarica", [["power", "Potenza", "W", "sensor.batteria_power"], ["daily_discharged_energy", "Scaricata oggi", "kWh", "sensor.batteria_scaricata_oggi"], ["monthly_discharged_energy", "Scaricata questo mese", "kWh", "sensor.batteria_scaricata_mese"], ["annual_discharged_energy", "Scaricata questo anno", "kWh", "sensor.batteria_scaricata_anno"], ["total_discharged_energy", "Contatore energia totale", "kWh", "sensor.batteria_scaricata_totale"]]],
+  [
+    "battery",
+    "Batteria · scarica",
+    [
+      ["power", "Potenza", "W", "sensor.batteria_power"],
+      ["daily_discharged_energy", "Scaricata oggi", "kWh", "sensor.batteria_scaricata_oggi"],
+      [
+        "monthly_discharged_energy",
+        "Scaricata questo mese",
+        "kWh",
+        "sensor.batteria_scaricata_mese",
+      ],
+      [
+        "annual_discharged_energy",
+        "Scaricata questo anno",
+        "kWh",
+        "sensor.batteria_scaricata_anno",
+      ],
+      [
+        "total_discharged_energy",
+        "Contatore energia totale",
+        "kWh",
+        "sensor.batteria_scaricata_totale",
+      ],
+    ],
+  ],
 ];
 
 const ENERGY_ICONS = { house: "🏠", grid: "🔌", solar: "☀️", battery: "🔋" };
@@ -299,9 +340,10 @@ export function renderEnergyEditor(
   flows.dataset.energyPanel = "flows";
   const intro = document.createElement("p");
   intro.className = "ed-intro dm-energy-recorder-explanation";
-  intro.textContent = locale === "en"
-    ? "For every source, Total energy meter is the cumulative Recorder source (normally state_class: total_increasing). It is not a period value: day, month and year are calculated as final Recorder sum minus initial Recorder sum, so meter resets are preserved. Period sensors are optional current-period overrides."
-    : "Per ogni sorgente, Contatore energia totale è il sensore cumulativo Recorder (normalmente state_class: total_increasing). Non è un valore di periodo: giorno, mese e anno sono calcolati come somma Recorder finale meno somma Recorder iniziale, preservando i reset. I sensori di periodo sono override facoltativi del periodo corrente.";
+  intro.textContent =
+    locale === "en"
+      ? "For every source, Total energy meter is the cumulative Recorder source (normally state_class: total_increasing). It is not a period value: day, month and year are calculated as final Recorder sum minus initial Recorder sum, so meter resets are preserved. Period sensors are optional current-period overrides."
+      : "Per ogni sorgente, Contatore energia totale è il sensore cumulativo Recorder (normalmente state_class: total_increasing). Non è un valore di periodo: giorno, mese e anno sono calcolati come somma Recorder finale meno somma Recorder iniziale, preservando i reset. I sensori di periodo sono override facoltativi del periodo corrente.";
   flows.append(intro);
   const settings = document.createElement("section");
   settings.dataset.energyPanel = "settings";
@@ -345,11 +387,13 @@ export function renderEnergyEditor(
       const field = document.createElement("label");
       field.className = "ed-slot";
       field.innerHTML = `<span class="ed-slot-lbl">${label} <span class="ed-acc-n">${unit}</span> <span class="ed-acc-n">${copy.optional}</span></span><span class="ed-hint">${copy.entityHint} ${example}</span>`;
-      if (key.startsWith("total_" ) || key === "total_energy") field.dataset.energyTotalField = "true";
+      if (key.startsWith("total_") || key === "total_energy")
+        field.dataset.energyTotalField = "true";
       const { field: entity, input } = createEntityPickerField(document, {
-        id: key === "power" && (groupIndex === 2 || groupIndex === 5)
-          ? `dm-energy-${group}-${key}-${groupIndex}`
-          : `dm-energy-${group}-${key}`,
+        id:
+          key === "power" && (groupIndex === 2 || groupIndex === 5)
+            ? `dm-energy-${group}-${key}-${groupIndex}`
+            : `dm-energy-${group}-${key}`,
         value: model[group]?.[key] || "",
         placeholder: example,
         label,

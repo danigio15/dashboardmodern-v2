@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
@@ -86,8 +87,12 @@ async function boot(page, variant, testInfo) {
   });
 
   await bootNamespacedDashboard(page, variant, testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
-  await expect.poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true)).toBe(true);
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await expect
+    .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true))
+    .toBe(true);
 }
 
 async function openEditor(page, tab) {
@@ -99,22 +104,24 @@ async function openEditor(page, tab) {
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: beta2 saves EV brand/model and keeps legacy mappings`, async ({ page }, testInfo) => {
+  test(`${variant}: beta2 saves EV brand/model and keeps legacy mappings`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 150_000 : 90_000);
     await boot(page, variant, testInfo);
 
-    await expect.poll(() =>
-      page.evaluate(() => DashboardModernModules.store.getSection("ev")[0]),
-    ).toMatchObject({
-      id: "ev-pluto",
-      brand: "Leapmotor",
-      icon: "mdi:car-electric",
-      img: "/local/pluto.png",
-      ov: {
-        "dm.ev_batteria_auto": "sensor.pluto_soc",
-        "dm.ev_autonomia": "sensor.pluto_range",
-      },
-    });
+    await expect
+      .poll(() => page.evaluate(() => DashboardModernModules.store.getSection("ev")[0]))
+      .toMatchObject({
+        id: "ev-pluto",
+        brand: "Leapmotor",
+        icon: "mdi:car-electric",
+        img: "/local/pluto.png",
+        ov: {
+          "dm.ev_batteria_auto": "sensor.pluto_soc",
+          "dm.ev_autonomia": "sensor.pluto_range",
+        },
+      });
 
     await page.evaluate(() => {
       document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
@@ -124,10 +131,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const profile = page.locator("#ev-car-picker .dm-vehicle-profile-card").first();
     await expect(profile).toBeVisible();
     await expect(profile).toContainText("Pluto");
-    const brandMark = profile.locator('.dm-vehicle-profile-icon .dm-leapmotor-mark[data-brand="leapmotor"][data-brand-source="inline"]');
+    const brandMark = profile.locator(
+      '.dm-vehicle-profile-icon .dm-leapmotor-mark[data-brand="leapmotor"][data-brand-source="inline"]',
+    );
     await expect(brandMark).toHaveCount(1);
     await expect(brandMark.locator("svg")).toHaveCount(1);
-    await expect(profile.locator('.dm-vehicle-profile-icon img[data-dm-brand-image="leapmotor"]')).toHaveCount(0);
+    await expect(
+      profile.locator('.dm-vehicle-profile-icon img[data-dm-brand-image="leapmotor"]'),
+    ).toHaveCount(0);
     await expect(profile.locator(".dm-vehicle-profile-icon")).not.toContainText("🚗");
 
     await openEditor(page, "sez2");
@@ -140,31 +151,37 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(modelSelect).toHaveValue("B10");
     await appearance.locator("button[data-save]").click();
 
-    await expect.poll(() =>
-      page.evaluate(() => DashboardModernModules.store.getSection("ev")[0]),
-    ).toMatchObject({
-      id: "ev-pluto",
-      brand: "Leapmotor",
-      model: "B10",
-      icon: "mdi:car-electric",
-      img: "/local/pluto.png",
-      ov: {
-        "dm.ev_batteria_auto": "sensor.pluto_soc",
-        "dm.ev_autonomia": "sensor.pluto_range",
-      },
-    });
+    await expect
+      .poll(() => page.evaluate(() => DashboardModernModules.store.getSection("ev")[0]))
+      .toMatchObject({
+        id: "ev-pluto",
+        brand: "Leapmotor",
+        model: "B10",
+        icon: "mdi:car-electric",
+        img: "/local/pluto.png",
+        ov: {
+          "dm.ev_batteria_auto": "sensor.pluto_soc",
+          "dm.ev_autonomia": "sensor.pluto_range",
+        },
+      });
 
-    await expect.poll(() =>
-      page.evaluate(() =>
-        (window.__BETA2_WS_CALLS__ || []).filter((message) => message.type === "frontend/set_user_data").at(-1),
-      ),
-    ).toEqual(expect.objectContaining({
-      type: "frontend/set_user_data",
-      value: expect.objectContaining({
-        version: 1,
-        values: expect.objectContaining({ cd_ev_cars: expect.any(String) }),
-      }),
-    }));
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          (window.__BETA2_WS_CALLS__ || [])
+            .filter((message) => message.type === "frontend/set_user_data")
+            .at(-1),
+        ),
+      )
+      .toEqual(
+        expect.objectContaining({
+          type: "frontend/set_user_data",
+          value: expect.objectContaining({
+            version: 1,
+            values: expect.objectContaining({ cd_ev_cars: expect.any(String) }),
+          }),
+        }),
+      );
 
     const persisted = await page.evaluate(() => {
       const remote = JSON.parse(localStorage.getItem("__beta2_remote_user_data__"));
@@ -174,7 +191,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(persisted).toEqual({ brand: "Leapmotor", model: "B10" });
   });
 
-  test(`${variant}: beta2 binds daily and monthly load flow animation to displayed energy`, async ({ page }, testInfo) => {
+  test(`${variant}: beta2 binds daily and monthly load flow animation to displayed energy`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
@@ -206,7 +225,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#line-home-cuc-month")).not.toHaveClass(/active/);
   });
 
-  test(`${variant}: built-in quick action keeps the custom icon on save`, async ({ page }, testInfo) => {
+  test(`${variant}: built-in quick action keeps the custom icon on save`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
     await page.evaluate(() => {
@@ -229,8 +250,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await modal.locator('button[type="submit"]').click();
     await expect(modal).toHaveCount(0);
 
-    await expect.poll(() =>
-      page.evaluate(() => JSON.parse(localStorage.getItem("cd_quick_actions"))[0]),
-    ).toMatchObject({ type: "builtin", builtin: "luci", name: "Luci", icon: "mdi:star" });
+    await expect
+      .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cd_quick_actions"))[0]))
+      .toMatchObject({ type: "builtin", builtin: "luci", name: "Luci", icon: "mdi:star" });
   });
 }

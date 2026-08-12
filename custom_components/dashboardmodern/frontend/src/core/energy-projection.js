@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { getDeviceVisual } from "./device-model.js";
 
 export const ENERGY_SLOT_MAP = Object.freeze({
@@ -303,13 +304,9 @@ export function reportIconForDevice(item = {}) {
   const explicit = configured(item.report_icon || item.emoji_icon || item.icon);
   if (explicit && !explicit.startsWith("mdi:")) return explicit;
   if (explicit.startsWith("mdi:")) return glyphForMdi(explicit);
-  const candidates = [
-    item.visual_key,
-    item.device_type,
-    item.type,
-    item.category,
-    item.name,
-  ].map(normalizedToken);
+  const candidates = [item.visual_key, item.device_type, item.type, item.category, item.name].map(
+    normalizedToken,
+  );
   for (const candidate of candidates) {
     if (REPORT_ICON_BY_TYPE[candidate]) return REPORT_ICON_BY_TYPE[candidate];
     const match = Object.keys(REPORT_ICON_BY_TYPE).find((key) => candidate.includes(key));

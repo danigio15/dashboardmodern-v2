@@ -1,3 +1,4 @@
+# DM-FIX-20260812B
 name: Release
 
 on:
@@ -45,6 +46,7 @@ jobs:
           python scripts/generate_build_info.py --expected-commit "$GITHUB_SHA"
           python -m pytest -q
           npm run check:inline-syntax
+          npm run format:check
           npm run test:frontend
       - name: Install Playwright browsers used by the suite
         run: npx playwright install --with-deps chromium webkit

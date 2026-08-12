@@ -1,3 +1,4 @@
+<!-- DM-FIX-20260812B -->
 <p align="center">
   <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/brand/logo.png" alt="DashboardModern" width="420">
 </p>
@@ -10,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.25-0ea5e9" alt="Versione 0.15.25">
+  <img src="https://img.shields.io/badge/version-1.0.0--beta.15-0ea5e9" alt="Versione 1.0.0-beta.15">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-1e3a8a" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">

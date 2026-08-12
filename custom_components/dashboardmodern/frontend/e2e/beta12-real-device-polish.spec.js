@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
@@ -20,7 +21,15 @@ const seed = {
     energy: {},
     entityOverrides: {},
   },
-  visibility: { home: true, energy: true, clima: true, temp: true, temperature: true, tapparelle: true, piscina: true },
+  visibility: {
+    home: true,
+    energy: true,
+    clima: true,
+    temp: true,
+    temperature: true,
+    tapparelle: true,
+    piscina: true,
+  },
 };
 
 async function boot(page, variant, testInfo) {
@@ -46,9 +55,15 @@ async function boot(page, variant, testInfo) {
         window.__BETA12_WS_CALLS__.push(structuredClone(message));
         let result = null;
         if (message.type === "get_states") result = [];
-        if (message.type === "frontend/get_user_data") result = { value: window.__BETA12_REMOTE__ || null };
-        if (message.type === "frontend/set_user_data") window.__BETA12_REMOTE__ = structuredClone(message.value);
-        queueMicrotask(() => this.onmessage?.({ data: JSON.stringify({ id: message.id, type: "result", success: true, result }) }));
+        if (message.type === "frontend/get_user_data")
+          result = { value: window.__BETA12_REMOTE__ || null };
+        if (message.type === "frontend/set_user_data")
+          window.__BETA12_REMOTE__ = structuredClone(message.value);
+        queueMicrotask(() =>
+          this.onmessage?.({
+            data: JSON.stringify({ id: message.id, type: "result", success: true, result }),
+          }),
+        );
       }
       close() {
         this.readyState = 3;
@@ -61,8 +76,12 @@ async function boot(page, variant, testInfo) {
   });
 
   await bootNamespacedDashboard(page, variant, testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
-  await expect.poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true)).toBe(true);
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await expect
+    .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true))
+    .toBe(true);
 }
 
 async function openEditor(page, tab) {
@@ -76,32 +95,51 @@ async function openEditor(page, tab) {
 
 async function expectColoredRoomIcon(locator, glyph) {
   await expect(locator).toBeVisible();
-  await expect.poll(async () => locator.evaluate((node) => {
-    const semantic = node.querySelector(".dm-beta12-room-glyph")?.textContent || "";
-    const fallback = getComputedStyle(node, "::before").content || "";
-    return `${semantic}${fallback}`;
-  })).toContain(glyph);
+  await expect
+    .poll(async () =>
+      locator.evaluate((node) => {
+        const semantic = node.querySelector(".dm-beta12-room-glyph")?.textContent || "";
+        const fallback = getComputedStyle(node, "::before").content || "";
+        return `${semantic}${fallback}`;
+      }),
+    )
+    .toContain(glyph);
 }
 
 async function expectQuickActionDisplayGlyph(locator, glyph) {
   await expect(locator).toBeVisible();
-  await expect.poll(async () => locator.evaluate((node) => {
-    const stable = node.dataset.dmBeta12DisplayGlyph || "";
-    const pseudo = getComputedStyle(node, "::before").content || "";
-    const semantic = node.querySelector(".dm-beta12-action-glyph")?.textContent || "";
-    return `${stable}${pseudo}${semantic}`;
-  })).toContain(glyph);
+  await expect
+    .poll(async () =>
+      locator.evaluate((node) => {
+        const stable = node.dataset.dmBeta12DisplayGlyph || "";
+        const pseudo = getComputedStyle(node, "::before").content || "";
+        const semantic = node.querySelector(".dm-beta12-action-glyph")?.textContent || "";
+        return `${stable}${pseudo}${semantic}`;
+      }),
+    )
+    .toContain(glyph);
 }
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: beta12 paints quick actions colored in the same render turn`, async ({ page }, testInfo) => {
+  test(`${variant}: beta12 paints quick actions colored in the same render turn`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
     const immediate = await page.evaluate(() => {
-      localStorage.setItem("cd_quick_actions", JSON.stringify([
-        { type: "builtin", builtin: "luci", name: "Luci", icon: "mdi:lightbulb", color: "#f59e0b" },
-      ]));
+      localStorage.setItem(
+        "cd_quick_actions",
+        JSON.stringify([
+          {
+            type: "builtin",
+            builtin: "luci",
+            name: "Luci",
+            icon: "mdi:lightbulb",
+            color: "#f59e0b",
+          },
+        ]),
+      );
       window.dispatchEvent(new CustomEvent("dashboardmodern:legacy-ready"));
       buildQuickActions();
       const icon = document.querySelector("#qa-grid .qa-btn .icon");
@@ -126,12 +164,16 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expectQuickActionDisplayGlyph(page.locator("#qa-grid .qa-btn .icon").first(), "💡");
   });
 
-  test(`${variant}: beta12 keeps room artwork visible and colored in rows and picker`, async ({ page }, testInfo) => {
+  test(`${variant}: beta12 keeps room artwork visible and colored in rows and picker`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
     await openEditor(page, "stanze");
 
-    const row = page.locator('#ed-body .ed-row:has([data-dm-edit-kind="room"][data-dm-edit-index="0"])').first();
+    const row = page
+      .locator('#ed-body .ed-row:has([data-dm-edit-kind="room"][data-dm-edit-index="0"])')
+      .first();
     const rowIcon = row.locator(".dm-room-list-icon");
     await expect(row).toBeVisible();
     await expectColoredRoomIcon(rowIcon, "🛋️");
@@ -147,12 +189,20 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const picker = page.locator('#dm-visual-picker[data-kind="room"]');
     await expect(picker).toBeVisible();
     await expect(picker).toHaveAttribute("data-dm-beta12-colored", "true");
-    expect(await picker.locator(".dm-picker-option .dm-beta12-room-glyph").count()).toBeGreaterThanOrEqual(20);
-    await expect(picker.locator('.dm-picker-option[data-index="0"] .dm-beta12-room-glyph')).toHaveText("🛋️");
-    await expect(picker.locator('.dm-picker-option[data-index="5"] .dm-beta12-room-glyph')).toHaveText("🚿");
+    expect(
+      await picker.locator(".dm-picker-option .dm-beta12-room-glyph").count(),
+    ).toBeGreaterThanOrEqual(20);
+    await expect(
+      picker.locator('.dm-picker-option[data-index="0"] .dm-beta12-room-glyph'),
+    ).toHaveText("🛋️");
+    await expect(
+      picker.locator('.dm-picker-option[data-index="5"] .dm-beta12-room-glyph'),
+    ).toHaveText("🚿");
   });
 
-  test(`${variant}: configured temperatures render from the canonical room registry`, async ({ page }, testInfo) => {
+  test(`${variant}: configured temperatures render from the canonical room registry`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
@@ -165,8 +215,16 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         hum: "sensor.salone_humidity",
       };
       const states = [
-        { entity_id: room.temp, state: "22.4", attributes: { device_class: "temperature", unit_of_measurement: "°C" } },
-        { entity_id: room.hum, state: "48", attributes: { device_class: "humidity", unit_of_measurement: "%" } },
+        {
+          entity_id: room.temp,
+          state: "22.4",
+          attributes: { device_class: "temperature", unit_of_measurement: "°C" },
+        },
+        {
+          entity_id: room.hum,
+          state: "48",
+          attributes: { device_class: "humidity", unit_of_measurement: "%" },
+        },
       ];
       for (const item of states) {
         _RAW_STATES[item.entity_id] = structuredClone(item);
@@ -178,24 +236,34 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       buildTempCards();
     });
 
-    const card = page.locator('#temp-grid .temp-card[data-dm-temperature-canonical="true"][data-room-id="room-salone"]');
+    const card = page.locator(
+      '#temp-grid .temp-card[data-dm-temperature-canonical="true"][data-room-id="room-salone"]',
+    );
     await expect(card).toBeVisible();
     await expect(card.locator(".temp-room-name")).toHaveText("Salone");
     await expect(card.locator(".temp-value")).toHaveText("22.4");
     await expect(card.locator(".temp-hum-val")).toHaveText("48%");
     await expect(card.locator(".dm-temperature-icon-fallback")).toHaveText("🛋️");
-    await expect(page.locator("#temp-grid")).toHaveAttribute("data-dm-temperature-renderer", "canonical");
+    await expect(page.locator("#temp-grid")).toHaveAttribute(
+      "data-dm-temperature-renderer",
+      "canonical",
+    );
   });
 
-  test(`${variant}: beta12 climate uses a persistent cold/warm segmented tab`, async ({ page }, testInfo) => {
+  test(`${variant}: beta12 climate uses a persistent cold/warm segmented tab`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
     await page.evaluate(() => {
-      localStorage.setItem("cd_clima_units", JSON.stringify([
-        { entity: "climate.salone", name: "Salone", room: "Salone", type: "clima" },
-        { entity: "climate.bagno", name: "Bagno", room: "Bagno", type: "termo" },
-      ]));
+      localStorage.setItem(
+        "cd_clima_units",
+        JSON.stringify([
+          { entity: "climate.salone", name: "Salone", room: "Salone", type: "clima" },
+          { entity: "climate.bagno", name: "Bagno", room: "Bagno", type: "termo" },
+        ]),
+      );
       document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
       document.getElementById("page-clima")?.classList.add("active");
       buildClimaCards();
@@ -213,7 +281,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#page-clima .clima-zone-freddo")).not.toHaveClass(/show/);
   });
 
-  test(`${variant}: energy flow animation is directional on desktop and mobile`, async ({ page }, testInfo) => {
+  test(`${variant}: energy flow animation is directional on desktop and mobile`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
@@ -232,7 +302,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       await expect(line).toHaveAttribute("data-dm-flow-animated", "true");
       const animation = await line.evaluate((node) => {
         const style = getComputedStyle(node);
-        return { name: style.animationName, state: style.animationPlayState, dash: style.strokeDasharray };
+        return {
+          name: style.animationName,
+          state: style.animationPlayState,
+          dash: style.strokeDasharray,
+        };
       });
       expect(animation.name).toContain("dmEnergyFlowDash");
       expect(animation.state).toBe("running");
@@ -240,14 +314,19 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     }
   });
 
-  test(`${variant}: shutter page has one stable geometry before and after delayed polish`, async ({ page }, testInfo) => {
+  test(`${variant}: shutter page has one stable geometry before and after delayed polish`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
     const first = await page.evaluate(() => {
-      localStorage.setItem("cd_tapparelle", JSON.stringify([
-        { name: "Tapparella", entity: "cover.tapparella", room_id: "room-salone" },
-      ]));
+      localStorage.setItem(
+        "cd_tapparelle",
+        JSON.stringify([
+          { name: "Tapparella", entity: "cover.tapparella", room_id: "room-salone" },
+        ]),
+      );
       const state = {
         entity_id: "cover.tapparella",
         state: "open",
@@ -274,31 +353,39 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(first.padding).toContain("14px");
 
     await page.waitForTimeout(140);
-    const settled = await page.locator("#page-tapparelle .tapp-card").first().evaluate((card) => ({
-      width: card.getBoundingClientRect().width,
-      height: card.querySelector(".tapp-win")?.getBoundingClientRect().height || 0,
-      padding: getComputedStyle(card).padding,
-      radius: getComputedStyle(card).borderRadius,
-    }));
+    const settled = await page
+      .locator("#page-tapparelle .tapp-card")
+      .first()
+      .evaluate((card) => ({
+        width: card.getBoundingClientRect().width,
+        height: card.querySelector(".tapp-win")?.getBoundingClientRect().height || 0,
+        padding: getComputedStyle(card).padding,
+        radius: getComputedStyle(card).borderRadius,
+      }));
     expect(Math.abs(settled.width - first.width)).toBeLessThanOrEqual(1);
     expect(settled.height).toBe(first.height);
     expect(settled.padding).toBe(first.padding);
     expect(settled.radius).toBe(first.radius);
   });
 
-  test(`${variant}: beta12 pool renders a recognizable tiled basin without changing controls`, async ({ page }, testInfo) => {
+  test(`${variant}: beta12 pool renders a recognizable tiled basin without changing controls`, async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
     await page.evaluate(() => {
-      localStorage.setItem("cd_piscina", JSON.stringify({
-        tempEnt: "sensor.pool_temperature",
-        pumpEnt: "switch.pool_pump",
-        heatEnt: "switch.pool_heat",
-        lightEnt: "switch.pool_light",
-        filterHours: 8,
-        autoHours: true,
-      }));
+      localStorage.setItem(
+        "cd_piscina",
+        JSON.stringify({
+          tempEnt: "sensor.pool_temperature",
+          pumpEnt: "switch.pool_pump",
+          heatEnt: "switch.pool_heat",
+          lightEnt: "switch.pool_light",
+          filterHours: 8,
+          autoHours: true,
+        }),
+      );
       document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
       document.getElementById("page-piscina")?.classList.add("active");
       renderPiscina();
@@ -332,14 +419,22 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   });
 }
 
-test("dashboard.html: total reset clears alerts and remote config without changing the panel URL", async ({ page }, testInfo) => {
+test("dashboard.html: total reset clears alerts and remote config without changing the panel URL", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await boot(page, "dashboard.html", testInfo);
 
   const result = await page.evaluate(async () => {
-    localStorage.setItem("cd_gruppi_extra", JSON.stringify({ altro: ["binary_sensor.test_alert"] }));
+    localStorage.setItem(
+      "cd_gruppi_extra",
+      JSON.stringify({ altro: ["binary_sensor.test_alert"] }),
+    );
     localStorage.setItem("cd_gruppi_removed", JSON.stringify({ altro: [] }));
-    localStorage.setItem("cd_avvisi_names_extra", JSON.stringify({ "binary_sensor.test_alert": "Test alert" }));
+    localStorage.setItem(
+      "cd_avvisi_names_extra",
+      JSON.stringify({ "binary_sensor.test_alert": "Test alert" }),
+    );
     localStorage.setItem("cd_stanze", JSON.stringify([{ id: "room-test", name: "Test" }]));
     const before = location.href;
     const ok = await dmResetAllConfig({ skipConfirm: true, reload: false });
@@ -367,12 +462,15 @@ test("dashboard.html: total reset clears alerts and remote config without changi
   expect(result.remoteValues).toEqual({});
 });
 
-test("dashboard.html: beta12 iPhone kiosk is opt-in, reversible and uses the dynamic viewport", async ({ page }, testInfo) => {
+test("dashboard.html: beta12 iPhone kiosk is opt-in, reversible and uses the dynamic viewport", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "userAgent", {
       configurable: true,
-      get: () => "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
+      get: () =>
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
     });
   });
   await boot(page, "dashboard.html", testInfo);
@@ -387,7 +485,9 @@ test("dashboard.html: beta12 iPhone kiosk is opt-in, reversible and uses the dyn
   await expect(page.locator("html")).toHaveAttribute("data-dm-ios-kiosk", "true");
   await expect(page.locator("body")).toHaveAttribute("data-dm-ios-kiosk", "true");
   const viewportContract = await page.evaluate(() => ({
-    height: getComputedStyle(document.documentElement).getPropertyValue("--dm-ios-kiosk-height").trim(),
+    height: getComputedStyle(document.documentElement)
+      .getPropertyValue("--dm-ios-kiosk-height")
+      .trim(),
     overflowX: getComputedStyle(document.body).overflowX,
     minHeight: getComputedStyle(document.documentElement).minHeight,
   }));

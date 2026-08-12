@@ -1,3 +1,4 @@
+// DM-FIX-20260812B
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -25,7 +26,7 @@ test("action and car pickers always contain visible local artwork", async () => 
   const catalog = await read("src/core/personalization-catalog.js");
   const source = await read("src/sections/personalization-section.js");
   assert.match(catalog, /export function actionVisual/);
-  assert.match(catalog, /"mdi:lightbulb","💡"/);
+  assert.match(catalog, /"mdi:lightbulb",\s*"💡"/);
   assert.match(source, /actionVisual\(item\.mdi, 46\)/);
   assert.match(catalog, /const fontSize = initials\.length/);
 });
