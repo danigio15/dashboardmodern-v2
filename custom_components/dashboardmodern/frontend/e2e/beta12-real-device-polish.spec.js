@@ -20,7 +20,7 @@ const seed = {
     energy: {},
     entityOverrides: {},
   },
-  visibility: { home: true, clima: true, temp: true, temperature: true, piscina: true },
+  visibility: { home: true, energy: true, clima: true, temp: true, temperature: true, tapparelle: true, piscina: true },
 };
 
 async function boot(page, variant, testInfo) {
@@ -42,7 +42,12 @@ async function boot(page, variant, testInfo) {
       send(raw) {
         const message = JSON.parse(raw);
         if (message.type === "auth") return;
-        const result = message.type === "get_states" ? [] : message.type === "frontend/get_user_data" ? { value: null } : null;
+        window.__BETA12_WS_CALLS__ ||= [];
+        window.__BETA12_WS_CALLS__.push(structuredClone(message));
+        let result = null;
+        if (message.type === "get_states") result = [];
+        if (message.type === "frontend/get_user_data") result = { value: window.__BETA12_REMOTE__ || null };
+        if (message.type === "frontend/set_user_data") window.__BETA12_REMOTE__ = structuredClone(message.value);
         queueMicrotask(() => this.onmessage?.({ data: JSON.stringify({ id: message.id, type: "result", success: true, result }) }));
       }
       close() {
@@ -115,10 +120,6 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     const settled = page.locator("#qa-grid .qa-btn .icon").first();
     await expectQuickActionDisplayGlyph(settled, "💡");
-
-    // A click used to let a late legacy painter win for a visible frame. The
-    // visible pseudo glyph is now data-backed on the stable icon host, so child
-    // repaint order is irrelevant before and after the action popup opens.
     await page.locator("#qa-grid .qa-btn").first().dispatchEvent("click");
     await expectQuickActionDisplayGlyph(page.locator("#qa-grid .qa-btn .icon").first(), "💡");
     await page.waitForTimeout(950);
@@ -151,6 +152,41 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(picker.locator('.dm-picker-option[data-index="5"] .dm-beta12-room-glyph')).toHaveText("🚿");
   });
 
+  test(`${variant}: configured temperatures render from the canonical room registry`, async ({ page }, testInfo) => {
+    test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
+    await boot(page, variant, testInfo);
+
+    await page.evaluate(async () => {
+      const room = {
+        id: "room-salone",
+        name: "Salone",
+        icon: "mdi:sofa",
+        temp: "sensor.salone_temperature",
+        hum: "sensor.salone_humidity",
+      };
+      const states = [
+        { entity_id: room.temp, state: "22.4", attributes: { device_class: "temperature", unit_of_measurement: "°C" } },
+        { entity_id: room.hum, state: "48", attributes: { device_class: "humidity", unit_of_measurement: "%" } },
+      ];
+      for (const item of states) {
+        _RAW_STATES[item.entity_id] = structuredClone(item);
+        STATES[item.entity_id] = structuredClone(item);
+      }
+      await DashboardModernModules.store.replaceSection("rooms", [room]);
+      document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
+      document.getElementById("page-temp")?.classList.add("active");
+      buildTempCards();
+    });
+
+    const card = page.locator('#temp-grid .temp-card[data-dm-temperature-canonical="true"][data-room-id="room-salone"]');
+    await expect(card).toBeVisible();
+    await expect(card.locator(".temp-room-name")).toHaveText("Salone");
+    await expect(card.locator(".temp-value")).toHaveText("22.4");
+    await expect(card.locator(".temp-hum-val")).toHaveText("48%");
+    await expect(card.locator(".dm-temperature-icon-fallback")).toHaveText("🛋️");
+    await expect(page.locator("#temp-grid")).toHaveAttribute("data-dm-temperature-renderer", "canonical");
+  });
+
   test(`${variant}: beta12 climate uses a persistent cold/warm segmented tab`, async ({ page }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
@@ -175,6 +211,79 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("#clima-page-mode-caldo")).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator("#page-clima .clima-zone-caldo")).toHaveClass(/show/);
     await expect(page.locator("#page-clima .clima-zone-freddo")).not.toHaveClass(/show/);
+  });
+
+  test(`${variant}: energy flow animation is directional on desktop and mobile`, async ({ page }, testInfo) => {
+    test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
+    await boot(page, variant, testInfo);
+
+    await page.evaluate(() => {
+      const solar = document.getElementById("v-solar");
+      const home = document.getElementById("v-home");
+      if (!solar || !home) throw new Error("missing instant energy values");
+      solar.textContent = "2.60 kW";
+      home.textContent = "0 W";
+      dmRefreshEnergyFlows();
+    });
+
+    for (const selector of ["#line-solar-home", "#m-line-solar-home"]) {
+      const line = page.locator(selector);
+      await expect(line).toHaveClass(/dm-energy-flow-active/);
+      await expect(line).toHaveAttribute("data-dm-flow-animated", "true");
+      const animation = await line.evaluate((node) => {
+        const style = getComputedStyle(node);
+        return { name: style.animationName, state: style.animationPlayState, dash: style.strokeDasharray };
+      });
+      expect(animation.name).toContain("dmEnergyFlowDash");
+      expect(animation.state).toBe("running");
+      expect(animation.dash).not.toBe("none");
+    }
+  });
+
+  test(`${variant}: shutter page has one stable geometry before and after delayed polish`, async ({ page }, testInfo) => {
+    test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
+    await boot(page, variant, testInfo);
+
+    const first = await page.evaluate(() => {
+      localStorage.setItem("cd_tapparelle", JSON.stringify([
+        { name: "Tapparella", entity: "cover.tapparella", room_id: "room-salone" },
+      ]));
+      const state = {
+        entity_id: "cover.tapparella",
+        state: "open",
+        attributes: { friendly_name: "Tapparella", current_position: 63 },
+      };
+      _RAW_STATES[state.entity_id] = structuredClone(state);
+      STATES[state.entity_id] = structuredClone(state);
+      document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
+      document.getElementById("page-tapparelle")?.classList.add("active");
+      renderTapparelle();
+      const card = document.querySelector("#page-tapparelle .tapp-card");
+      const windowNode = card?.querySelector(".tapp-win");
+      const style = card ? getComputedStyle(card) : null;
+      return {
+        width: card?.getBoundingClientRect().width || 0,
+        height: windowNode?.getBoundingClientRect().height || 0,
+        padding: style?.padding || "",
+        radius: style?.borderRadius || "",
+      };
+    });
+    expect(first.width).toBeGreaterThan(0);
+    expect(first.width).toBeLessThanOrEqual(361);
+    expect(first.height).toBe(132);
+    expect(first.padding).toContain("14px");
+
+    await page.waitForTimeout(140);
+    const settled = await page.locator("#page-tapparelle .tapp-card").first().evaluate((card) => ({
+      width: card.getBoundingClientRect().width,
+      height: card.querySelector(".tapp-win")?.getBoundingClientRect().height || 0,
+      padding: getComputedStyle(card).padding,
+      radius: getComputedStyle(card).borderRadius,
+    }));
+    expect(Math.abs(settled.width - first.width)).toBeLessThanOrEqual(1);
+    expect(settled.height).toBe(first.height);
+    expect(settled.padding).toBe(first.padding);
+    expect(settled.radius).toBe(first.radius);
   });
 
   test(`${variant}: beta12 pool renders a recognizable tiled basin without changing controls`, async ({ page }, testInfo) => {
@@ -222,6 +331,41 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(geometry.inside).toBe(true);
   });
 }
+
+test("dashboard.html: total reset clears alerts and remote config without changing the panel URL", async ({ page }, testInfo) => {
+  test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
+  await boot(page, "dashboard.html", testInfo);
+
+  const result = await page.evaluate(async () => {
+    localStorage.setItem("cd_gruppi_extra", JSON.stringify({ altro: ["binary_sensor.test_alert"] }));
+    localStorage.setItem("cd_gruppi_removed", JSON.stringify({ altro: [] }));
+    localStorage.setItem("cd_avvisi_names_extra", JSON.stringify({ "binary_sensor.test_alert": "Test alert" }));
+    localStorage.setItem("cd_stanze", JSON.stringify([{ id: "room-test", name: "Test" }]));
+    const before = location.href;
+    const ok = await dmResetAllConfig({ skipConfirm: true, reload: false });
+    const lastSet = (window.__BETA12_WS_CALLS__ || [])
+      .filter((message) => message.type === "frontend/set_user_data")
+      .at(-1);
+    return {
+      ok,
+      before,
+      after: location.href,
+      alertGroups: localStorage.getItem("cd_gruppi_extra"),
+      alertRemoved: localStorage.getItem("cd_gruppi_removed"),
+      alertNames: localStorage.getItem("cd_avvisi_names_extra"),
+      rooms: localStorage.getItem("cd_stanze"),
+      remoteValues: lastSet?.value?.values || null,
+    };
+  });
+
+  expect(result.ok).toBe(true);
+  expect(result.after).toBe(result.before);
+  expect(result.alertGroups).toBeNull();
+  expect(result.alertRemoved).toBeNull();
+  expect(result.alertNames).toBeNull();
+  expect(result.rooms).toBeNull();
+  expect(result.remoteValues).toEqual({});
+});
 
 test("dashboard.html: beta12 iPhone kiosk is opt-in, reversible and uses the dynamic viewport", async ({ page }, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
