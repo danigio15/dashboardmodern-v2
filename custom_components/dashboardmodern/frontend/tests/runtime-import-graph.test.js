@@ -120,7 +120,9 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // Beta12 keeps its final action/room first-paint contract inside the existing
   // room-color lock; reset, temperature, shutters and energy flows were
   // consolidated into their existing production owners rather than new modules.
-  assert.ok(relative.length <= 69, `production graph unexpectedly grew to ${relative.length} modules`);
+  // Beta16 intentionally adds one scoped owner for the screenshot-proven room
+  // label, Temperature tab, compact Climate and Pool responsive contracts.
+  assert.ok(relative.length <= 70, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
