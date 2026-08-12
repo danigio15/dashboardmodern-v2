@@ -2,10 +2,9 @@ import { actionCatalogMatch, roomCatalogMatch } from "../core/personalization-ca
 import { clean, doc, installStyle, root } from "./shared.js";
 
 // Final beta.12 compatibility owner. Older beta7/beta9/beta11 layers still run
-// bounded post-render repairs (beta11 has an 80ms room pass). Keep the semantic
-// beta12 emoji markup authoritative after those passes without polling or a
-// MutationObserver: repair synchronously, on the next frame and once after the
-// known delayed legacy window.
+// bounded post-render repairs. Keep the visible Beta12 glyph on the stable icon
+// host so late child-only compatibility repaints cannot flash an obsolete icon.
+// No polling and no document-wide MutationObserver are used.
 const STYLE_ID = "dm-beta12-room-color-lock-style";
 const QUICK_OWNER_FLAG = "__dmBeta12ConfigAwareQuickActions";
 const EDITOR_OWNER_FLAG = "__dmBeta12StableRoomRows";
@@ -142,12 +141,19 @@ function repairQuickActionsFromRuntime() {
     const token = tokenForAction(action, target);
     const glyph = actionGlyph(token);
     const signature = `${token}|${glyph}`;
-    if (target.dataset.dmBeta12ConfigAction === signature
-      && target.querySelector(".dm-beta12-action-glyph")) return;
 
-    target.replaceChildren(makeGlyph("dm-beta12-action-glyph", token, glyph));
+    // The host data is the visual contract. Legacy Beta9/v0.15.25 passes may
+    // replace children at 90/320/900ms, but they do not replace the .icon host;
+    // the data-backed ::before glyph therefore stays correct for every frame.
+    target.dataset.dmBeta12DisplayGlyph = glyph;
+    target.dataset.dmBeta12DisplayToken = token;
     target.dataset.dmBeta12ConfigAction = signature;
     target.dataset.dmActionStyle = "beta12-color";
+
+    const current = target.querySelector(":scope > .dm-beta12-action-glyph");
+    if (!current || clean(current.dataset.token) !== token || clean(current.textContent) !== glyph) {
+      target.replaceChildren(makeGlyph("dm-beta12-action-glyph", token, glyph));
+    }
   });
   return true;
 }
@@ -206,7 +212,7 @@ function scheduleStableVisuals() {
   root.requestAnimationFrame?.(repairStableVisuals);
   root.setTimeout?.(repairStableVisuals, 0);
   // beta11 deliberately schedules its final room compatibility pass at 80ms.
-  // One finite pass after that window makes beta12 the final owner.
+  // One finite pass after that window makes beta12 the final room owner.
   root.setTimeout?.(repairStableVisuals, 120);
 }
 
@@ -389,6 +395,19 @@ if (!state.listeners) {
 }
 
 installStyle(STYLE_ID, `
+  #page-home #qa-grid .qa-btn .icon[data-dm-beta12-display-glyph]{
+    position:relative!important;display:grid!important;place-items:center!important;
+    overflow:visible!important;color:initial!important
+  }
+  #page-home #qa-grid .qa-btn .icon[data-dm-beta12-display-glyph]>*{display:none!important}
+  #page-home #qa-grid .qa-btn .icon[data-dm-beta12-display-glyph]::before{
+    content:attr(data-dm-beta12-display-glyph)!important;
+    display:grid!important;place-items:center!important;width:100%!important;height:100%!important;
+    font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;
+    font-size:42px!important;font-style:normal!important;font-weight:400!important;line-height:1!important;
+    color:initial!important;filter:drop-shadow(0 5px 8px rgba(15,23,42,.12))!important
+  }
+
   #editor-modal #ed-body .dm-room-list-icon[data-room-icon]{
     position:relative!important;display:grid!important;place-items:center!important;
     color:initial!important;overflow:visible!important
