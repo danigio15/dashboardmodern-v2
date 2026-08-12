@@ -170,6 +170,9 @@ test("beta16: Climate resolves canonical room labels and stays two cards per row
     "room_msqjk307",
   );
   await expect(page.locator("#page-clima .cp-card")).toHaveCount(2);
+  await expect(page.locator("#page-clima .cp-card .dm-beta16-climate-room").first()).toContainText(
+    "Cameretta",
+  );
 
   const layout = await page.evaluate(() => {
     const grid = document.querySelector("#page-clima .clima-premium-grid");
@@ -177,18 +180,22 @@ test("beta16: Climate resolves canonical room labels and stays two cards per row
       '#page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"]',
     );
     const buttons = [...(switchNode?.querySelectorAll(".clima-page-mode-btn") || [])];
-    const card = document.querySelector("#page-clima .cp-card");
+    const cards = [...document.querySelectorAll("#page-clima .cp-card")].map((card) =>
+      card.getBoundingClientRect(),
+    );
     const gridBox = grid?.getBoundingClientRect();
-    const cardBox = card?.getBoundingClientRect();
     const columns = grid ? getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean) : [];
+    const headings = [...document.querySelectorAll("#page-clima .dm-beta16-climate-group-heading")];
     return {
       columns: columns.length,
       switchHeight: switchNode?.getBoundingClientRect().height || 0,
       maxButtonHeight: buttons.length
         ? Math.max(...buttons.map((button) => button.getBoundingClientRect().height))
         : 0,
-      cardWidth: cardBox?.width || 0,
+      cardWidth: cards[0]?.width || 0,
       gridWidth: gridBox?.width || 0,
+      sameRow: cards.length >= 2 && Math.abs(cards[0].top - cards[1].top) <= 3,
+      hiddenHeadings: headings.length > 0 && headings.every((heading) => getComputedStyle(heading).display === "none"),
       overflow: grid ? grid.scrollWidth - grid.clientWidth : 999,
     };
   });
@@ -196,6 +203,8 @@ test("beta16: Climate resolves canonical room labels and stays two cards per row
   expect(layout.switchHeight).toBeLessThan(75);
   expect(layout.maxButtonHeight).toBeLessThanOrEqual(60);
   expect(layout.cardWidth).toBeLessThan(layout.gridWidth * 0.55);
+  expect(layout.sameRow).toBe(true);
+  expect(layout.hiddenHeadings).toBe(true);
   expect(layout.overflow).toBeLessThanOrEqual(2);
 });
 
