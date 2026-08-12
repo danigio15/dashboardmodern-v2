@@ -254,12 +254,21 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
   state.resetting = true;
   state.hydrated = true;
   state.localWasConfigured = false;
+  root.__DASHBOARDMODERN_CONFIG_RESETTING__ = true;
+
+  // Let a push or legacy-store reconciliation already queued before the click
+  // finish first. The reset is then the final writer both locally and remotely.
+  try {
+    if (state.pushPromise) await state.pushPromise;
+    await Promise.resolve();
+  } catch (_error) {}
 
   // storage-namespace.js makes clear() instance-scoped: this removes every
   // cd_/dm_ key for this dashboard, including alert keys unknown to older
   // snapshots, without touching another DashboardModern instance or HA data.
   try { root.localStorage?.clear?.(); } catch (error) {
     state.resetting = false;
+    delete root.__DASHBOARDMODERN_CONFIG_RESETTING__;
     root.console?.error?.("[DashboardModern] local reset failed", error);
     return false;
   }
@@ -275,6 +284,10 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
     schedulePush();
   }
 
+  // Rendering/store bridges may have completed work while the remote reset was
+  // in flight. Clear once more so Reset totale always wins that race too.
+  try { root.localStorage?.clear?.(); } catch (_error) {}
+
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:config-reset", { detail: empty }));
   if (reload) {
     // Reload the exact versioned iframe URL. Rebuilding pathname/search with
@@ -282,6 +295,7 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
     root.setTimeout?.(() => root.location?.reload?.(), 40);
   } else {
     state.resetting = false;
+    delete root.__DASHBOARDMODERN_CONFIG_RESETTING__;
   }
   return true;
 }
