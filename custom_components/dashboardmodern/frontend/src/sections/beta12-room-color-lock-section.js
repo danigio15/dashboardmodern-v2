@@ -247,14 +247,19 @@ function repairStableVisuals() {
 }
 
 function scheduleStableVisuals() {
-  repairStableVisuals();
-  root.queueMicrotask?.(repairStableVisuals);
-  root.requestAnimationFrame?.(repairStableVisuals);
-  root.setTimeout?.(repairStableVisuals, 0);
+  const repairOwned = () => {
+    installOwners();
+    repairStableVisuals();
+  };
+  repairOwned();
+  root.queueMicrotask?.(repairOwned);
+  root.requestAnimationFrame?.(repairOwned);
+  root.setTimeout?.(repairOwned, 0);
   // Older bounded compatibility work can still repaint after the synchronous
   // owner. These finite repairs preserve one child without introducing polling.
-  root.setTimeout?.(repairStableVisuals, 120);
-  root.setTimeout?.(repairStableVisuals, 960);
+  root.setTimeout?.(repairOwned, 120);
+  root.setTimeout?.(repairOwned, 960);
+  root.setTimeout?.(repairOwned, 1080);
 }
 
 function wrapOwner(name, marker) {
