@@ -229,7 +229,15 @@ function repairTemperatureRoomIcons() {
   doc?.querySelectorAll?.("#temp-grid .temp-card[data-room-id]").forEach((card, index) => {
     const room = rooms.find((item) => clean(item?.id) === clean(card.dataset.roomId)) || rooms[index];
     const target = card.querySelector(".temp-room-icon,.dm-temperature-card-icon,.cp-icon");
-    if (room && target) setRoomGlyph(target, room.icon || room.name || "mdi:home");
+    if (!room || !target) return;
+    const token = clean(room.icon || room.name || "mdi:home") || "mdi:home";
+    target.dataset.roomIcon = token;
+    const fallback = target.querySelector(":scope > .dm-temperature-icon-fallback");
+    if (fallback) {
+      fallback.textContent = roomGlyph(token);
+      return;
+    }
+    setRoomGlyph(target, token);
   });
 }
 
