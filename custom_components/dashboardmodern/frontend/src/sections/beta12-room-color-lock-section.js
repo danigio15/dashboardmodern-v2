@@ -7,11 +7,14 @@ import {
 import { clean, doc, installStyle, root } from "./shared.js";
 
 // Final compatibility owner for quick-action, room and picker glyphs. The
-// visible contract is one real DOM glyph only. Older repair layers may still
-// replace children, but this owner never duplicates that child with a pseudo.
+// visible contract is one real DOM glyph only. Older compatibility layers may
+// still replace children, so this owner observes only the exact glyph nodes it
+// owns and restores their canonical child before the next paint. No polling or
+// document-wide observer is used.
 const STYLE_ID = "dm-beta12-room-color-lock-style";
 const QUICK_OWNER_FLAG = "__dmBeta12ConfigAwareQuickActions";
 const EDITOR_OWNER_FLAG = "__dmBeta12StableRoomRows";
+const RENDER_OWNER_FLAG = "__dmBeta12StableRender";
 const KIOSK_ATTR = "data-dm-ios-kiosk";
 
 const ACTION_BUILTINS = Object.freeze({
@@ -62,6 +65,7 @@ const state = (root.__DASHBOARDMODERN_BETA12_FINAL_LOCK__ ||= {
   kioskFrameCss: "",
   kioskViewportBound: false,
 });
+state.observedGlyphNodes ||= new WeakSet();
 
 function directEmoji(value) {
   const token = clean(value);
@@ -119,7 +123,7 @@ function tokenForAction(action = {}, target = null) {
     || ACTION_BUILTINS[type.replace(/^builtin_/, "")];
   if (builtinToken) return builtinToken;
 
-  const rendered = clean(target?.textContent);
+  const rendered = clean(target?.dataset?.dmBeta12DisplayToken || target?.textContent);
   if (rendered && rendered !== "⭐" && rendered !== "★") return rendered;
   return "mdi:star";
 }
@@ -135,80 +139,136 @@ function makeGlyph(className, token, glyph) {
   return holder;
 }
 
+function hasExactGlyph(target, className, token, glyph) {
+  const children = [...(target?.children || [])];
+  const current = children.length === 1 && children[0].classList.contains(className)
+    ? children[0]
+    : null;
+  return Boolean(
+    current
+    && clean(current.dataset.token) === token
+    && clean(current.textContent) === glyph
+    && !current.querySelector("svg,ha-icon"),
+  );
+}
+
+function observeGlyphNode(target, repair) {
+  if (!target || state.observedGlyphNodes.has(target) || typeof root.MutationObserver !== "function") return;
+  state.observedGlyphNodes.add(target);
+  const observer = new root.MutationObserver(() => repair(target));
+  observer.observe(target, { childList: true, subtree: true });
+}
+
+function repairQuickActionNode(target) {
+  if (!target?.isConnected) return false;
+  const nodes = [...(doc?.querySelectorAll?.("#qa-grid .qa-btn .icon") || [])];
+  const index = nodes.indexOf(target);
+  if (index < 0) return false;
+  const action = quickActionsFromRuntime()[index] || {};
+  const token = tokenForAction(action, target);
+  const glyph = actionGlyph(token);
+  const signature = `${token}|${glyph}`;
+
+  target.dataset.dmBeta12DisplayGlyph = glyph;
+  target.dataset.dmBeta12DisplayToken = token;
+  target.dataset.dmBeta12ConfigAction = signature;
+  target.dataset.dmActionStyle = "beta12-color";
+  target.dataset.dmSingleGlyphOwner = "true";
+
+  if (!hasExactGlyph(target, "dm-beta12-action-glyph", token, glyph)) {
+    target.replaceChildren(makeGlyph("dm-beta12-action-glyph", token, glyph));
+  }
+  observeGlyphNode(target, repairQuickActionNode);
+  return true;
+}
+
 function repairQuickActionsFromRuntime() {
   const nodes = [...(doc?.querySelectorAll?.("#qa-grid .qa-btn .icon") || [])];
-  if (!nodes.length) return false;
-  const actions = quickActionsFromRuntime();
+  nodes.forEach(repairQuickActionNode);
+  return nodes.length > 0;
+}
 
-  nodes.forEach((target, index) => {
-    const action = actions[index] || {};
-    const token = tokenForAction(action, target);
-    const glyph = actionGlyph(token);
-    const signature = `${token}|${glyph}`;
-
-    target.dataset.dmBeta12DisplayGlyph = glyph;
-    target.dataset.dmBeta12DisplayToken = token;
-    target.dataset.dmBeta12ConfigAction = signature;
-    target.dataset.dmActionStyle = "beta12-color";
-
-    const children = [...target.children];
-    const current = children.length === 1 && children[0].classList.contains("dm-beta12-action-glyph")
-      ? children[0]
-      : null;
-    if (!current || clean(current.dataset.token) !== token || clean(current.textContent) !== glyph) {
-      target.replaceChildren(makeGlyph("dm-beta12-action-glyph", token, glyph));
-    }
-  });
+function repairRoomNode(target) {
+  if (!target?.isConnected) return false;
+  const token = clean(target.dataset.roomIcon || "mdi:home");
+  const glyph = roomGlyph(token);
+  const signature = `${token}|${glyph}`;
+  if (!hasExactGlyph(target, "dm-beta12-room-glyph", token, glyph)) {
+    target.replaceChildren(makeGlyph("dm-beta12-room-glyph", token, glyph));
+  }
+  target.dataset.dmBeta12StableRoom = signature;
+  target.dataset.dmBeta12Room = "true";
+  target.dataset.dmSingleGlyphOwner = "true";
+  observeGlyphNode(target, repairRoomNode);
   return true;
 }
 
 function repairRoomRowsFromTokens() {
   const nodes = [...(doc?.querySelectorAll?.("#editor-modal #ed-body .dm-room-list-icon[data-room-icon]") || [])];
-  nodes.forEach((target) => {
-    const token = clean(target.dataset.roomIcon || "mdi:home");
-    const glyph = roomGlyph(token);
-    const signature = `${token}|${glyph}`;
-    const children = [...target.children];
-    const current = children.length === 1 && children[0].classList.contains("dm-beta12-room-glyph")
-      ? children[0]
-      : null;
-    if (target.dataset.dmBeta12StableRoom === signature && current
-      && clean(current.dataset.token) === token && clean(current.textContent) === glyph) return;
-
-    target.replaceChildren(makeGlyph("dm-beta12-room-glyph", token, glyph));
-    target.dataset.dmBeta12StableRoom = signature;
-    target.dataset.dmBeta12Room = "true";
-  });
+  nodes.forEach(repairRoomNode);
   return nodes.length > 0;
 }
 
-function repairRoomModalPreview() {
-  const modal = doc?.getElementById?.("dm-room-editor-modal");
+function repairPreviewNode(preview, input, kind) {
+  if (!preview?.isConnected || !input?.isConnected) return false;
+  const token = clean(input.value || (kind === "room" ? "mdi:home" : "mdi:star"));
+  const glyph = kind === "room" ? roomGlyph(token) : actionGlyph(token);
+  const className = kind === "room" ? "dm-beta12-room-glyph" : "dm-beta12-action-glyph";
+  const signature = `${token}|${glyph}`;
+  if (!hasExactGlyph(preview, className, token, glyph)) {
+    preview.replaceChildren(makeGlyph(className, token, glyph));
+  }
+  preview.dataset.dmBeta12StablePreview = signature;
+  preview.dataset.dmBeta12Colored = "true";
+  preview.dataset.dmSingleGlyphOwner = "true";
+  return true;
+}
+
+function bindPreview(modalId, previewSelector, kind) {
+  const modal = doc?.getElementById?.(modalId);
   const input = modal?.querySelector?.('input[name="icon"]');
-  const preview = modal?.querySelector?.("[data-room-icon-preview]");
+  const preview = modal?.querySelector?.(previewSelector);
   if (!modal || !input || !preview) return false;
 
-  const refresh = () => {
-    const token = clean(input.value || "mdi:home");
-    const glyph = roomGlyph(token);
-    const signature = `${token}|${glyph}`;
-    const children = [...preview.children];
-    const current = children.length === 1 && children[0].classList.contains("dm-beta12-room-glyph")
-      ? children[0]
-      : null;
-    if (preview.dataset.dmBeta12StablePreview === signature && current
-      && clean(current.dataset.token) === token && clean(current.textContent) === glyph) return;
-    preview.replaceChildren(makeGlyph("dm-beta12-room-glyph", token, glyph));
-    preview.dataset.dmBeta12StablePreview = signature;
-    preview.dataset.dmBeta12Colored = "true";
-  };
-
+  const refresh = () => repairPreviewNode(preview, input, kind);
   if (input.dataset.dmBeta12StablePreviewBound !== "true") {
     input.dataset.dmBeta12StablePreviewBound = "true";
     input.addEventListener("input", refresh);
     input.addEventListener("change", refresh);
   }
   refresh();
+  observeGlyphNode(preview, () => refresh());
+  return true;
+}
+
+function repairRoomModalPreview() {
+  return bindPreview("dm-room-editor-modal", "[data-room-icon-preview]", "room");
+}
+
+function repairActionModalPreview() {
+  return bindPreview("dm-action-editor-modal", "[data-action-icon-preview]", "action");
+}
+
+function repairPickerNode(target) {
+  if (!target?.isConnected) return false;
+  const picker = target.closest?.("#dm-visual-picker");
+  const button = target.closest?.(".dm-picker-option[data-index]");
+  const kind = clean(picker?.dataset?.kind);
+  const index = Number.parseInt(button?.dataset?.index || "-1", 10);
+  if (!picker || !button || index < 0 || !["room", "action"].includes(kind)) return false;
+  const catalog = kind === "room" ? ROOM_CATALOG : ACTION_ICON_CATALOG;
+  const item = catalog[index];
+  if (!item) return false;
+  const token = clean(item.mdi || item.id);
+  const glyph = kind === "room" ? (ROOM_GLYPHS[item.id] || "🏠") : (item.glyph || "⭐");
+  const className = kind === "room" ? "dm-beta12-room-glyph" : "dm-beta12-action-glyph";
+  if (!hasExactGlyph(target, className, token, glyph)) {
+    target.replaceChildren(makeGlyph(className, token, glyph));
+  }
+  target.dataset.dmSingleGlyphOwner = "true";
+  picker.dataset.dmBeta12Colored = "true";
+  picker.dataset.dmSingleGlyphOwner = "true";
+  observeGlyphNode(target, repairPickerNode);
   return true;
 }
 
@@ -217,25 +277,9 @@ function repairVisualPicker() {
   if (!picker) return false;
   const kind = clean(picker.dataset.kind);
   if (kind !== "room" && kind !== "action") return false;
-  const catalog = kind === "room" ? ROOM_CATALOG : ACTION_ICON_CATALOG;
   picker.dataset.dmBeta12Colored = "true";
   picker.dataset.dmSingleGlyphOwner = "true";
-  picker.querySelectorAll(".dm-picker-option[data-index]").forEach((button) => {
-    const index = Number.parseInt(button.dataset.index || "-1", 10);
-    const item = index >= 0 ? catalog[index] : null;
-    const target = button.querySelector(".dm-picker-visual");
-    if (!item || !target) return;
-    const token = clean(item.mdi || item.id);
-    const glyph = kind === "room" ? (ROOM_GLYPHS[item.id] || "🏠") : (item.glyph || "⭐");
-    const className = kind === "room" ? "dm-beta12-room-glyph" : "dm-beta12-action-glyph";
-    const children = [...target.children];
-    const current = children.length === 1 && children[0].classList.contains(className)
-      ? children[0]
-      : null;
-    if (!current || clean(current.dataset.token) !== token || clean(current.textContent) !== glyph) {
-      target.replaceChildren(makeGlyph(className, token, glyph));
-    }
-  });
+  picker.querySelectorAll(".dm-picker-option[data-index] .dm-picker-visual").forEach(repairPickerNode);
   return true;
 }
 
@@ -243,6 +287,7 @@ function repairStableVisuals() {
   repairQuickActionsFromRuntime();
   repairRoomRowsFromTokens();
   repairRoomModalPreview();
+  repairActionModalPreview();
   repairVisualPicker();
 }
 
@@ -255,11 +300,6 @@ function scheduleStableVisuals() {
   root.queueMicrotask?.(repairOwned);
   root.requestAnimationFrame?.(repairOwned);
   root.setTimeout?.(repairOwned, 0);
-  // Older bounded compatibility work can still repaint after the synchronous
-  // owner. These finite repairs preserve one child without introducing polling.
-  root.setTimeout?.(repairOwned, 120);
-  root.setTimeout?.(repairOwned, 960);
-  root.setTimeout?.(repairOwned, 1080);
 }
 
 function wrapOwner(name, marker) {
@@ -283,6 +323,34 @@ function wrapOwner(name, marker) {
 function installOwners() {
   wrapOwner("buildQuickActions", QUICK_OWNER_FLAG);
   wrapOwner("editorSwitch", EDITOR_OWNER_FLAG);
+  wrapOwner("render", RENDER_OWNER_FLAG);
+}
+
+function canonicalClimateType(value) {
+  const token = clean(value).toLowerCase();
+  return ["termo", "termostato", "thermostat", "heat", "heating", "caldo"].includes(token)
+    ? "termo"
+    : "clima";
+}
+
+function normalizePersistedClimateTypes() {
+  let values = [];
+  try {
+    values = JSON.parse(root.localStorage?.getItem?.("cd_clima_units") || "[]");
+  } catch (_error) {
+    return false;
+  }
+  if (!Array.isArray(values) || !values.length) return false;
+  let changed = false;
+  const normalized = values.map((item) => {
+    const type = canonicalClimateType(item?.type);
+    if (clean(item?.type) !== type) changed = true;
+    return { ...item, type };
+  });
+  if (changed) {
+    try { root.localStorage?.setItem?.("cd_clima_units", JSON.stringify(normalized)); } catch (_error) {}
+  }
+  return changed;
 }
 
 function isIosDevice() {
@@ -414,6 +482,7 @@ function syncIosKiosk() {
 }
 
 function installCompatibilityOwner() {
+  normalizePersistedClimateTypes();
   installOwners();
   scheduleStableVisuals();
   syncIosKiosk();
@@ -427,11 +496,12 @@ for (const eventName of [
 
 if (!state.listeners) {
   state.listeners = true;
-  // Window capture runs before document-capture handlers that may stop immediate
-  // propagation. The queued repair therefore sees a picker created later in the
-  // same click and normalizes it before the browser paints the next frame.
+  // Window capture runs before document-capture editor handlers. Normalize old
+  // thermostat values before either editor reads them, then repair only the
+  // scoped visual nodes involved in this interaction.
   root.addEventListener?.("click", (event) => {
-    if (event.target?.closest?.("#qa-grid .qa-btn,[data-dm-edit-kind='room'],#dm-room-editor-modal,.dm-visual-trigger,.dm-icon-preview-button,.dm-icon-picker,.dm-beta6-qa-icon-trigger,.dm-beta5-room-icon-trigger,#dm-visual-picker")) {
+    if (event.target?.closest?.('[data-dm-edit-kind="climate"]')) normalizePersistedClimateTypes();
+    if (event.target?.closest?.("#qa-grid .qa-btn,[data-dm-edit-kind='room'],[data-dm-edit-kind='action'],#dm-room-editor-modal,#dm-action-editor-modal,.dm-visual-trigger,.dm-icon-preview-button,.dm-icon-picker,.dm-beta6-qa-icon-trigger,.dm-beta5-room-icon-trigger,#dm-visual-picker")) {
       scheduleStableVisuals();
     }
   }, true);
@@ -491,17 +561,22 @@ installStyle(STYLE_ID, `
     font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-size:38px!important;line-height:1!important;color:initial!important
   }
 
-  #dm-room-editor-modal [data-room-icon-preview][data-dm-beta12-colored="true"]{
+  #dm-room-editor-modal [data-room-icon-preview][data-dm-beta12-colored="true"],
+  #dm-action-editor-modal [data-action-icon-preview][data-dm-beta12-colored="true"]{
     display:grid!important;place-items:center!important;color:initial!important;overflow:visible!important
   }
   #dm-room-editor-modal [data-room-icon-preview]::before,
-  #dm-room-editor-modal [data-room-icon-preview]::after{content:none!important;display:none!important}
-  #dm-room-editor-modal [data-room-icon-preview]>.dm-beta12-room-glyph{
+  #dm-room-editor-modal [data-room-icon-preview]::after,
+  #dm-action-editor-modal [data-action-icon-preview]::before,
+  #dm-action-editor-modal [data-action-icon-preview]::after{content:none!important;display:none!important}
+  #dm-room-editor-modal [data-room-icon-preview]>.dm-beta12-room-glyph,
+  #dm-action-editor-modal [data-action-icon-preview]>.dm-beta12-action-glyph{
     display:grid!important;place-items:center!important;width:100%!important;height:100%!important;
     font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;
     font-size:38px!important;font-style:normal!important;font-weight:400!important;line-height:1!important;color:initial!important
   }
-  #dm-room-editor-modal [data-room-icon-preview]>.dm-beta12-room-glyph>span{display:block!important;line-height:1!important}
+  #dm-room-editor-modal [data-room-icon-preview]>.dm-beta12-room-glyph>span,
+  #dm-action-editor-modal [data-action-icon-preview]>.dm-beta12-action-glyph>span{display:block!important;line-height:1!important}
 
   html[data-dm-ios-kiosk="true"],html[data-dm-ios-kiosk="true"] body{
     width:100%!important;min-width:0!important;height:var(--dm-ios-kiosk-height,100dvh)!important;
