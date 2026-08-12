@@ -378,9 +378,24 @@ function installRenderOwner(name) {
   return true;
 }
 
+function installEditorNormalizerOwner() {
+  const current = root.editorSwitch;
+  if (typeof current !== "function" || current.__dmCanonicalTemperatureEditor) return false;
+  function canonicalTemperatureEditorSwitch(...args) {
+    const result = current.apply(this, args);
+    normalizeTemperatureEditor();
+    return result;
+  }
+  canonicalTemperatureEditorSwitch.__dmCanonicalTemperatureEditor = true;
+  canonicalTemperatureEditorSwitch.__dmPrevious = current;
+  root.editorSwitch = canonicalTemperatureEditorSwitch;
+  return true;
+}
+
 function installOwners() {
   installRenderOwner("buildTempCards");
   installRenderOwner("renderTemperature");
+  installEditorNormalizerOwner();
 }
 
 function subscribeStore() {
