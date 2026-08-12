@@ -100,6 +100,7 @@ def main() -> None:
         'import "../src/sections/beta11-real-device-polish-section.js";\n'
         'import "../src/sections/beta12-real-device-polish-section.js";\n'
         'import "../src/sections/beta12-room-color-lock-section.js";\n'
+        'import "../src/sections/beta12-action-first-paint-lock-section.js";\n'
     )
     args.output.write_text(
         header
