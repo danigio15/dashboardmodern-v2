@@ -164,16 +164,25 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await openEditor(page, "visib");
     const renameRows = page.locator("#ed-body .ed-row[data-section-key]");
     await expect(renameRows.first()).toBeVisible();
-    const renameCounts = await renameRows.evaluateAll((rows) =>
-      rows.map((row) => ({
-        total: row.querySelectorAll(".dm-inline-rename[data-rename]").length,
-        visible: [...row.querySelectorAll(".dm-inline-rename[data-rename]")].filter(
-          (button) => getComputedStyle(button).display !== "none",
-        ).length,
-      })),
-    );
-    expect(renameCounts.length).toBeGreaterThan(3);
-    expect(renameCounts.every((count) => count.total === 1 && count.visible === 1)).toBe(true);
+    await expect
+      .poll(
+        async () => {
+          const renameCounts = await renameRows.evaluateAll((rows) =>
+            rows.map((row) => ({
+              total: row.querySelectorAll(".dm-inline-rename[data-rename]").length,
+              visible: [...row.querySelectorAll(".dm-inline-rename[data-rename]")].filter(
+                (button) => getComputedStyle(button).display !== "none",
+              ).length,
+            })),
+          );
+          return (
+            renameCounts.length > 3 &&
+            renameCounts.every((count) => count.total === 1 && count.visible === 1)
+          );
+        },
+        { timeout: 5_000 },
+      )
+      .toBe(true);
 
     await openEditor(page, "luci");
     const lightRows = page.locator("#ed-body .dm-light-row");
