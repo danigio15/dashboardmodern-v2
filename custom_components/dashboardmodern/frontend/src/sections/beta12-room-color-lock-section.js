@@ -1,10 +1,9 @@
 import { actionCatalogMatch, roomCatalogMatch } from "../core/personalization-catalog.js";
 import { clean, doc, installStyle, root } from "./shared.js";
 
-// Final beta.12 compatibility owner. Older beta7/beta9/beta11 layers still run
-// bounded post-render repairs. Keep the visible Beta12 glyph on the stable icon
-// host so late child-only compatibility repaints cannot flash an obsolete icon.
-// No polling and no document-wide MutationObserver are used.
+// Final compatibility owner for quick-action and room glyphs. The visible
+// contract is now one real DOM glyph only. Older repair layers may still replace
+// children, but this owner never duplicates that child with a pseudo-element.
 const STYLE_ID = "dm-beta12-room-color-lock-style";
 const QUICK_OWNER_FLAG = "__dmBeta12ConfigAwareQuickActions";
 const EDITOR_OWNER_FLAG = "__dmBeta12StableRoomRows";
@@ -142,15 +141,15 @@ function repairQuickActionsFromRuntime() {
     const glyph = actionGlyph(token);
     const signature = `${token}|${glyph}`;
 
-    // The host data is the visual contract. Legacy Beta9/v0.15.25 passes may
-    // replace children at 90/320/900ms, but they do not replace the .icon host;
-    // the data-backed ::before glyph therefore stays correct for every frame.
     target.dataset.dmBeta12DisplayGlyph = glyph;
     target.dataset.dmBeta12DisplayToken = token;
     target.dataset.dmBeta12ConfigAction = signature;
     target.dataset.dmActionStyle = "beta12-color";
 
-    const current = target.querySelector(":scope > .dm-beta12-action-glyph");
+    const children = [...target.children];
+    const current = children.length === 1 && children[0].classList.contains("dm-beta12-action-glyph")
+      ? children[0]
+      : null;
     if (!current || clean(current.dataset.token) !== token || clean(current.textContent) !== glyph) {
       target.replaceChildren(makeGlyph("dm-beta12-action-glyph", token, glyph));
     }
@@ -164,8 +163,12 @@ function repairRoomRowsFromTokens() {
     const token = clean(target.dataset.roomIcon || "mdi:home");
     const glyph = roomGlyph(token);
     const signature = `${token}|${glyph}`;
-    if (target.dataset.dmBeta12StableRoom === signature
-      && target.querySelector(".dm-beta12-room-glyph")) return;
+    const children = [...target.children];
+    const current = children.length === 1 && children[0].classList.contains("dm-beta12-room-glyph")
+      ? children[0]
+      : null;
+    if (target.dataset.dmBeta12StableRoom === signature && current
+      && clean(current.dataset.token) === token && clean(current.textContent) === glyph) return;
 
     target.replaceChildren(makeGlyph("dm-beta12-room-glyph", token, glyph));
     target.dataset.dmBeta12StableRoom = signature;
@@ -184,8 +187,12 @@ function repairRoomModalPreview() {
     const token = clean(input.value || "mdi:home");
     const glyph = roomGlyph(token);
     const signature = `${token}|${glyph}`;
-    if (preview.dataset.dmBeta12StablePreview === signature
-      && preview.querySelector(".dm-beta12-room-glyph")) return;
+    const children = [...preview.children];
+    const current = children.length === 1 && children[0].classList.contains("dm-beta12-room-glyph")
+      ? children[0]
+      : null;
+    if (preview.dataset.dmBeta12StablePreview === signature && current
+      && clean(current.dataset.token) === token && clean(current.textContent) === glyph) return;
     preview.replaceChildren(makeGlyph("dm-beta12-room-glyph", token, glyph));
     preview.dataset.dmBeta12StablePreview = signature;
     preview.dataset.dmBeta12Colored = "true";
@@ -211,9 +218,10 @@ function scheduleStableVisuals() {
   root.queueMicrotask?.(repairStableVisuals);
   root.requestAnimationFrame?.(repairStableVisuals);
   root.setTimeout?.(repairStableVisuals, 0);
-  // beta11 deliberately schedules its final room compatibility pass at 80ms.
-  // One finite pass after that window makes beta12 the final room owner.
+  // Older bounded compatibility work can still repaint after the synchronous
+  // owner. These finite repairs preserve one child without introducing polling.
   root.setTimeout?.(repairStableVisuals, 120);
+  root.setTimeout?.(repairStableVisuals, 960);
 }
 
 function wrapOwner(name, marker) {
@@ -381,9 +389,6 @@ for (const eventName of [
 
 if (!state.listeners) {
   state.listeners = true;
-  // Capture on window, before the unified editor's document-capture listener.
-  // Its stopImmediatePropagation therefore cannot prevent beta12 from scheduling
-  // the colored preview after the modal has been created synchronously.
   root.addEventListener?.("click", (event) => {
     if (event.target?.closest?.("#qa-grid .qa-btn,[data-dm-edit-kind='room'],#dm-room-editor-modal")) {
       scheduleStableVisuals();
@@ -399,20 +404,29 @@ installStyle(STYLE_ID, `
     position:relative!important;display:grid!important;place-items:center!important;
     overflow:visible!important;color:initial!important
   }
-  #page-home #qa-grid .qa-btn .icon[data-dm-beta12-display-glyph]>*{display:none!important}
-  #page-home #qa-grid .qa-btn .icon[data-dm-beta12-display-glyph]::before{
-    content:attr(data-dm-beta12-display-glyph)!important;
+  #page-home #qa-grid .qa-btn .icon[data-dm-beta12-display-glyph]::before,
+  #page-home #qa-grid .qa-btn .icon[data-dm-beta12-display-glyph]::after{
+    content:none!important;display:none!important
+  }
+  #page-home #qa-grid .qa-btn .icon[data-dm-beta12-display-glyph]>.dm-beta12-action-glyph{
     display:grid!important;place-items:center!important;width:100%!important;height:100%!important;
     font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;
     font-size:42px!important;font-style:normal!important;font-weight:400!important;line-height:1!important;
     color:initial!important;filter:drop-shadow(0 5px 8px rgba(15,23,42,.12))!important
   }
+  #page-home #qa-grid .qa-btn .icon[data-dm-beta12-display-glyph]>.dm-beta12-action-glyph>span{
+    display:block!important;line-height:1!important
+  }
+  #page-home #qa-grid .qa-btn .icon[data-dm-beta12-display-glyph]>*:not(.dm-beta12-action-glyph){display:none!important}
 
   #editor-modal #ed-body .dm-room-list-icon[data-room-icon]{
     position:relative!important;display:grid!important;place-items:center!important;
     color:initial!important;overflow:visible!important
   }
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon]>*{display:none!important}
+  #editor-modal #ed-body .dm-room-list-icon[data-room-icon]::before,
+  #editor-modal #ed-body .dm-room-list-icon[data-room-icon]::after{
+    content:none!important;display:none!important
+  }
   #editor-modal #ed-body .dm-room-list-icon[data-room-icon]>.dm-beta12-room-glyph{
     display:grid!important;place-items:center!important;width:100%!important;height:100%!important;
     font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;
@@ -422,43 +436,13 @@ installStyle(STYLE_ID, `
   #editor-modal #ed-body .dm-room-list-icon[data-room-icon]>.dm-beta12-room-glyph>span{
     display:block!important;line-height:1!important
   }
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon]::before{
-    content:"🏠";display:grid!important;place-items:center!important;width:100%!important;height:100%!important;
-    font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-size:31px!important;
-    font-style:normal!important;font-weight:400!important;line-height:1!important;color:initial!important;
-    filter:drop-shadow(0 5px 8px rgba(15,23,42,.12))!important
-  }
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon]:has(>.dm-beta12-room-glyph)::before{content:none!important;display:none!important}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:sofa"]::before{content:"🛋️"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:stove"]::before{content:"🍳"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:bed-king-outline"]::before{content:"🛏️"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:teddy-bear"]::before{content:"🧸"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:baby-face-outline"]::before{content:"👶"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:shower"]::before{content:"🚿"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:toilet"]::before{content:"🚽"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:table-chair"]::before{content:"🍽️"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:desk"]::before{content:"💻"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:account-group-outline"]::before{content:"🛏️"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:door-open"]::before,
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:door"]::before{content:"🚪"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:washing-machine"]::before{content:"🧺"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:food-variant"]::before{content:"🥫"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:hanger"]::before{content:"👗"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:archive-outline"]::before{content:"📦"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:balcony"]::before{content:"🌇"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:patio-heater"]::before{content:"🌤️"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:garage"]::before{content:"🚗"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:glass-wine"]::before{content:"🍷"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:home-roof"]::before{content:"🏠"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:tools"]::before{content:"🛠️"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:dumbbell"]::before{content:"🏋️"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:movie-open-outline"]::before{content:"🎬"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:flower"]::before{content:"🌿"}
-  #editor-modal #ed-body .dm-room-list-icon[data-room-icon="mdi:pool"]::before{content:"🏊"}
+  #editor-modal #ed-body .dm-room-list-icon[data-room-icon]>*:not(.dm-beta12-room-glyph){display:none!important}
 
   #dm-room-editor-modal [data-room-icon-preview][data-dm-beta12-colored="true"]{
     display:grid!important;place-items:center!important;color:initial!important;overflow:visible!important
   }
+  #dm-room-editor-modal [data-room-icon-preview]::before,
+  #dm-room-editor-modal [data-room-icon-preview]::after{content:none!important;display:none!important}
   #dm-room-editor-modal [data-room-icon-preview]>.dm-beta12-room-glyph{
     display:grid!important;place-items:center!important;width:100%!important;height:100%!important;
     font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;
