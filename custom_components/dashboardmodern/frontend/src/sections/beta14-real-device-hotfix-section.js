@@ -143,12 +143,12 @@ function reconcileRooms() {
   if (!state.bootRecovered) {
     next = recoverRoomSnapshot(canonical, state.capturedRooms);
     state.bootRecovered = true;
-  }
-  // After startup, a legacy edit is authoritative until DashboardStore's write
-  // bridge has reconciled it. This closes the small real-device race visible
-  // when editing a room and immediately reopening Temperature/Rooms.
-  if (current.length && !same(current, canonical) && state.bootRecovered)
+  } else if (current.length && !same(current, canonical)) {
+    // After startup, a legacy edit is authoritative until DashboardStore's
+    // write bridge has reconciled it. This closes the small real-device race
+    // visible when editing a room and immediately reopening Temperature/Rooms.
     next = recoverRoomSnapshot(current, canonical);
+  }
 
   if (same(next, canonical)) return false;
   state.recovering = true;
@@ -253,7 +253,7 @@ function repairClimateLabels() {
   if (modalTitle) {
     const icon = modalTitle.querySelector(".dm-editor-header-icon");
     const wanted = english() ? "Edit Cool / Heat" : "Modifica Freddo / Caldo";
-    const textNode = [...modalTitle.childNodes].find((node) => node.nodeType === Node.TEXT_NODE);
+    const textNode = [...modalTitle.childNodes].find((node) => node.nodeType === 3);
     if (textNode) textNode.textContent = ` ${wanted}`;
     else if (!icon) modalTitle.textContent = wanted;
   }
@@ -381,7 +381,9 @@ function installListeners() {
     "dashboardmodern:states-ready",
     "dashboardmodern:persistence-restored",
   ]) root.addEventListener?.(eventName, schedule);
-  doc.addEventListener("click", (event) => {
+  // Listen on window capture: the unified editor deliberately stops the click at
+  // document capture, so a document listener could miss the newly-created modal.
+  root.addEventListener?.("click", (event) => {
     if (!event.target?.closest?.("#editor-modal,#dm-climate-editor-modal,#dm-room-editor-modal,#page-temp,#page-piscina,#qa-grid")) return;
     root.queueMicrotask?.(runUiRepairs);
     schedule();
