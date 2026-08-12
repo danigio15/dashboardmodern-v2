@@ -1,0 +1,49 @@
+name: Beta16 consolidate climate grid once
+
+on:
+  push:
+    branches:
+      - fix/beta16-mobile-ui-room-mapping
+    paths:
+      - ".github/workflows/beta16-consolidate-climate-grid-once.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/beta16-mobile-ui-room-mapping
+      - name: Remove remaining one-column Climate owners
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              Path('custom_components/dashboardmodern/frontend/src/sections/personalization-section.js'): (
+                  '#page-clima .clima-premium-grid{grid-template-columns:1fr!important;gap:12px!important}',
+                  '#page-clima .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}',
+              ),
+              Path('custom_components/dashboardmodern/frontend/src/sections/beta4-mobile-polish-section.js'): (
+                  '#page-clima[data-dm-beta5-climate="canonical"] .clima-premium-grid{grid-template-columns:1fr!important;gap:12px!important}',
+                  '#page-clima[data-dm-beta5-climate="canonical"] .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}',
+              ),
+          }
+
+          for path, (old, new) in replacements.items():
+              text = path.read_text()
+              if old not in text:
+                  raise SystemExit(f'expected stale Climate rule not found in {path}')
+              path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Commit consolidated owners
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/dashboardmodern/frontend/src/sections/personalization-section.js custom_components/dashboardmodern/frontend/src/sections/beta4-mobile-polish-section.js
+          git commit -m "fix: consolidate mobile climate grid at two columns"
+          git push origin HEAD:fix/beta16-mobile-ui-room-mapping
