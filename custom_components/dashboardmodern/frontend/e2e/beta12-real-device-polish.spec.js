@@ -78,6 +78,16 @@ async function expectColoredRoomIcon(locator, glyph) {
   })).toContain(glyph);
 }
 
+async function expectQuickActionDisplayGlyph(locator, glyph) {
+  await expect(locator).toBeVisible();
+  await expect.poll(async () => locator.evaluate((node) => {
+    const stable = node.dataset.dmBeta12DisplayGlyph || "";
+    const pseudo = getComputedStyle(node, "::before").content || "";
+    const semantic = node.querySelector(".dm-beta12-action-glyph")?.textContent || "";
+    return `${stable}${pseudo}${semantic}`;
+  })).toContain(glyph);
+}
+
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: beta12 paints quick actions colored in the same render turn`, async ({ page }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
@@ -93,28 +103,26 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       return {
         text: icon?.textContent || "",
         colored: Boolean(icon?.querySelector(".dm-beta12-action-glyph")),
+        displayGlyph: icon?.dataset.dmBeta12DisplayGlyph || "",
         svgCount: icon?.querySelectorAll("svg").length || 0,
       };
     });
 
     expect(immediate.text).toBe("💡");
     expect(immediate.colored).toBe(true);
+    expect(immediate.displayGlyph).toBe("💡");
     expect(immediate.svgCount).toBe(0);
 
     const settled = page.locator("#qa-grid .qa-btn .icon").first();
-    await expect(settled).toBeVisible();
-    await expect.poll(async () => settled.evaluate((node) => {
-      const semantic = node.querySelector(".dm-beta12-action-glyph")?.textContent || "";
-      const visible = node.textContent || "";
-      return `${semantic}${visible}`;
-    })).toContain("💡");
+    await expectQuickActionDisplayGlyph(settled, "💡");
 
-    // A click used to let a legacy painter win for one visible frame. Beta12 now
-    // captures before that handler and reconciles in a microtask, before paint.
+    // A click used to let a late legacy painter win for a visible frame. The
+    // visible pseudo glyph is now data-backed on the stable icon host, so child
+    // repaint order is irrelevant before and after the action popup opens.
     await page.locator("#qa-grid .qa-btn").first().dispatchEvent("click");
-    await expect.poll(async () => page.locator("#qa-grid .qa-btn .icon").first().evaluate((node) =>
-      Boolean(node.querySelector(".dm-beta12-action-glyph")) && (node.textContent || "").includes("💡"),
-    )).toBe(true);
+    await expectQuickActionDisplayGlyph(page.locator("#qa-grid .qa-btn .icon").first(), "💡");
+    await page.waitForTimeout(950);
+    await expectQuickActionDisplayGlyph(page.locator("#qa-grid .qa-btn .icon").first(), "💡");
   });
 
   test(`${variant}: beta12 keeps room artwork visible and colored in rows and picker`, async ({ page }, testInfo) => {
