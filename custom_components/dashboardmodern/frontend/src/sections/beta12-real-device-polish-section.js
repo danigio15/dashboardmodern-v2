@@ -517,15 +517,21 @@ function installStyles() {
       #page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"]{margin:14px auto 22px!important;padding:5px!important;border-radius:26px!important}
       #page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"] .clima-page-mode-btn{min-height:72px!important;padding:10px 8px!important;gap:9px!important;border-radius:21px!important;font-size:16px!important;letter-spacing:1.2px!important}
       #page-clima .clima-page-mode-switch .clima-page-mode-btn .icon{font-size:27px!important}
-      #page-piscina .pool-hero[data-dm-beta12-pool="true"]{min-height:430px!important;border-radius:25px!important}
-      #page-piscina .dm-beta12-pool-basin{left:5%!important;right:5%!important;top:58px!important;bottom:164px!important;border-width:8px!important;border-radius:27px 35px 29px 24px!important}
-      #page-piscina .pool-hero[data-dm-beta12-pool="true"]>.pool-temp{left:9%!important;top:88px!important;width:96px!important;height:96px!important}
-      #page-piscina .pool-hero[data-dm-beta12-pool="true"]>.pool-sub{left:8%!important;top:191px!important;font-size:12px!important}
-      #page-piscina .pool-hero[data-dm-beta12-pool="true"]>.pool-chips{left:5%!important;right:5%!important;top:auto!important;bottom:22px!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;height:auto!important;pointer-events:auto!important}
-      #page-piscina .pool-hero[data-dm-beta12-pool="true"] .pool-tg{position:static!important;width:100%!important;min-width:0!important;min-height:58px!important;margin:0!important;padding:10px!important;border-radius:17px!important}
-      #page-piscina .pool-hero[data-dm-beta12-pool="true"] .pool-tg[data-act="light"]{grid-column:1/-1!important}
+      #page-piscina .pool-hero[data-dm-beta12-pool="true"]{min-height:410px!important;border-radius:25px!important}
+      #page-piscina .dm-beta12-pool-basin{left:5%!important;right:5%!important;top:48px!important;bottom:138px!important;border-width:8px!important;border-radius:27px 35px 29px 24px!important}
+      #page-piscina .pool-hero[data-dm-beta12-pool="true"]>.pool-temp{left:8%!important;top:69px!important;width:88px!important;height:88px!important;font-size:clamp(20px,7vw,31px)!important}
+      #page-piscina .pool-hero[data-dm-beta12-pool="true"]>.pool-sub{box-sizing:border-box!important;left:7%!important;top:164px!important;width:126px!important;max-width:34%!important;margin:0!important;padding:6px 8px!important;border:1px solid rgba(255,255,255,.46)!important;border-radius:11px!important;background:rgba(3,105,161,.32)!important;color:#fff!important;font-size:10.5px!important;font-weight:850!important;line-height:1.2!important;text-align:center!important;white-space:normal!important;text-shadow:0 1px 5px rgba(3,105,161,.48)!important;backdrop-filter:blur(6px)!important;-webkit-backdrop-filter:blur(6px)!important}
+      #page-piscina .pool-hero[data-dm-beta12-pool="true"]>.pool-chips{left:5%!important;right:5%!important;top:auto!important;bottom:18px!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;height:auto!important;pointer-events:auto!important}
+      #page-piscina .pool-hero[data-dm-beta12-pool="true"] .pool-tg{position:static!important;display:grid!important;place-items:center!important;width:100%!important;min-width:0!important;min-height:60px!important;margin:0!important;padding:8px 6px!important;border-radius:17px!important;text-align:center!important;overflow:hidden!important}
+      #page-piscina .pool-hero[data-dm-beta12-pool="true"] .pool-tg[data-act="light"]{grid-column:auto!important;border-color:rgba(245,158,11,.34)!important}
       #page-piscina .dm-beta12-pool-depth{font-size:9px!important}.dm-beta12-pool-ladder{transform:scale(.82)!important;transform-origin:top right!important}
       #dm-visual-picker[data-kind="room"] .dm-picker-visual .dm-beta12-room-glyph,#dm-visual-picker[data-kind="action"] .dm-picker-visual .dm-beta12-action-glyph{font-size:34px!important}
+    }
+    @media(max-width:390px){
+      #page-piscina .pool-hero[data-dm-beta12-pool="true"]{min-height:474px!important}
+      #page-piscina .dm-beta12-pool-basin{bottom:204px!important}
+      #page-piscina .pool-hero[data-dm-beta12-pool="true"]>.pool-chips{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+      #page-piscina .pool-hero[data-dm-beta12-pool="true"] .pool-tg[data-act="light"]{grid-column:auto!important}
     }
   `);
 }
