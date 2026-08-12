@@ -344,7 +344,7 @@ function normalizeTemperatureEditor() {
   if (iconInput) {
     iconInput.type = "hidden";
     iconInput.hidden = true;
-    const field = iconInput.closest("label.ed-slot") || iconInput.closest("[data-icon-field]");
+    const field = iconInput.closest("[data-icon-field]") || iconInput.closest("label.ed-slot");
     if (field && field !== form) {
       iconInput.remove();
       field.remove();
@@ -414,6 +414,7 @@ function installStyles() {
     #temp-grid .dm-temperature-icon-fallback{display:block!important;font-size:23px!important;line-height:1!important}
     #temp-grid .dm-temperature-empty{grid-column:1/-1!important;box-sizing:border-box!important;width:100%!important;padding:28px 20px!important;border:1px dashed var(--divider-color,#dbe4ee)!important;border-radius:20px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--secondary-text-color,#64748b)!important;text-align:center!important;font-weight:750!important}
     #editor-modal [data-temperature-form] #dm-temperature-icon,#editor-modal [data-temperature-form] [data-icon-field],#editor-modal [data-temperature-form] label.ed-slot:has(#dm-temperature-icon){display:none!important}
+    #editor-modal [data-temperature-form] .dm-temperature-actions button{min-height:44px!important}
     #editor-modal [data-temperature-form] #dm-temperature-room[data-dm-temperature-room-editable="true"]{border-color:var(--primary-color,#0ea5e9)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,transparent)!important}
     @media(max-width:680px){#page-temp #temp-grid,.temp-grid{grid-template-columns:minmax(0,350px)!important;justify-content:center!important;gap:12px!important;margin-top:12px!important;padding:0 14px 22px!important}#page-temp .temp-card,#temp-grid .temp-card{width:100%!important;max-width:350px!important;min-height:118px!important;padding:12px 13px!important;border-radius:18px!important;gap:9px!important}#page-temp .cp-temp-current,#temp-grid .cp-temp-current{font-size:34px!important}.cp-temp-target .val{font-size:21px!important}}
   `);
