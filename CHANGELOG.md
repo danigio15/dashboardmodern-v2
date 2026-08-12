@@ -1,4 +1,4 @@
-# DM-FIX-20260812B
+<!-- DM-FIX-20260812B -->
 # Changelog
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
@@ -10,17 +10,12 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 - Impedita la resurrezione delle stanze eliminate, limitando il recupero ai campi mancanti e proteggendo la riconciliazione con un circuit breaker.
 - Coalescenti per frame le riparazioni UI beta12/beta14, senza riscritture dei glifi invariati né tick Piscina.
+- Recuperati icona e sensori stanza persi da snapshot canonici stantii all'avvio.
 - Unificate canonicalizzazione, migrazione e lettura del tipo clima; le etichette Freddo/Caldo ora nascono nel template.
+- Ripristinate la scala corretta delle quick-action e le proporzioni esplicite della vasca Piscina su mobile.
+- Caricato l'hotfix dopo l'owner definitivo dei glifi beta12.
 - Corretto l'abbinamento delle icone Temperatura esclusivamente per id o nome stanza.
 - Allineati release metadata, badge e gate Prettier CI; aggiunti test unitari mirati.
-
-## 1.0.0-beta.14 — 2026-08-11
-
-### Corretto
-
-- Recuperati icona e sensori stanza persi da snapshot canonici stantii all'avvio.
-- Introdotte etichette Freddo/Caldo, scala corretta delle quick-action e proporzioni mobile esplicite per la vasca Piscina.
-- Caricato l'hotfix dopo l'owner dei glifi beta12.
 
 ## 1.0.0-beta.13 — 2026-08-11
 

@@ -1,4 +1,4 @@
-# DM-FIX-20260812B
+<!-- DM-FIX-20260812B -->
 <p align="center">
   <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/brand/logo.png" alt="DashboardModern" width="420">
 </p>

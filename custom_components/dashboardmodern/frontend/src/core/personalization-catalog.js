@@ -260,6 +260,12 @@ export function roomGlyph(value) {
   const token = clean(value);
   const direct = directEmoji(token);
   if (direct) return direct;
+  const legacyAliases = {
+    "mdi:bathtub-outline": "🛁",
+    "mdi:chef-hat": "🍳",
+    "mdi:desk": "💻",
+  };
+  if (legacyAliases[token.toLowerCase()]) return legacyAliases[token.toLowerCase()];
   return ROOM_GLYPHS[roomCatalogMatch(token)?.id] || "🏠";
 }
 
