@@ -58,14 +58,23 @@ test("navigation has one canonical owner with dark-mode contrast", async () => {
   assert.doesNotMatch(navigation, /setInterval|MutationObserver/);
 });
 
-test("temperature mobile card stays compact and in the existing layout owner", async () => {
+test("temperature mobile card is owned by the canonical temperature renderer", async () => {
   const runtime = await read("src/sections/section-runtime.js");
-  const source = await read("src/sections/temperature-layout-section.js");
-  assert.equal((runtime.match(/temperature-layout-section\.js/g) || []).length, 1);
+  const source = await read("src/sections/temperature-section.js");
+  const legacyLayout = await read("src/sections/temperature-layout-section.js");
+
+  assert.equal((runtime.match(/temperature-section\.js/g) || []).length, 1);
+  assert.equal((runtime.match(/installTemperatureSection\(\)/g) || []).length, 1);
+  assert.match(source, /renderTemperatureCards/);
+  assert.match(source, /data-dm-temperature-canonical/);
   assert.match(source, /grid-template-columns:minmax\(0,350px\)/);
   assert.match(source, /max-width:350px!important/);
   assert.match(source, /min-height:118px!important/);
   assert.match(source, /font-size:34px!important/);
   assert.match(source, /font-size:21px!important/);
   assert.doesNotMatch(source, /setInterval|MutationObserver/);
+
+  // Temporary import compatibility only: it must not render, style or observe.
+  assert.match(legacyLayout, /return false/);
+  assert.doesNotMatch(legacyLayout, /installStyle|setInterval|MutationObserver|querySelector|innerHTML/);
 });
