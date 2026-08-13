@@ -198,6 +198,83 @@ if (typeof document !== "undefined") {
       if (event.target?.closest?.("[data-temperature-edit]")) scheduleTemperatureRoomRepair();
     }, true);
 
+    // Historical beta polishers can still replace the children of room/action
+    // icon containers after the canonical engine has rendered them. Observe only
+    // the three icon-owning roots; MutationObserver callbacks run before paint,
+    // so a legacy child replacement is reconciled without a visible old frame.
+    const iconGuardMarker = "__DASHBOARDMODERN_ICON_ENGINE_OWNER_GUARD__";
+    if (!globalThis[iconGuardMarker]) {
+      const iconGuard = (globalThis[iconGuardMarker] = {
+        queued: false,
+        observed: new WeakSet(),
+        observers: [],
+      });
+      const configuredRooms = () => {
+        try {
+          const values = globalThis.DashboardModernModules?.store?.getSection?.("rooms");
+          if (Array.isArray(values) && values.length) return values;
+        } catch (_error) {}
+        try {
+          const values = JSON.parse(localStorage.getItem("cd_stanze") || "[]");
+          return Array.isArray(values) ? values : [];
+        } catch (_error) {
+          return [];
+        }
+      };
+      const syncTemperatureIcons = () => {
+        const engine = globalThis.DashboardModernIconEngine;
+        if (!engine?.render) return;
+        const rooms = configuredRooms();
+        document.querySelectorAll("#temp-grid .dm-temperature-card[data-room-id]").forEach((card) => {
+          const target = card.querySelector(".dm-temperature-card-icon,.temp-room-icon,.cp-icon");
+          if (!target) return;
+          const room = rooms.find((item) => String(item?.id || "").trim() === String(card.dataset.roomId || "").trim());
+          const token = String(target.dataset.roomIcon || room?.icon || room?.name || "mdi:home").trim();
+          target.dataset.roomIcon = token;
+          engine.render(target, "room", token, { size: 31 });
+        });
+      };
+      const syncOwnedIconSurfaces = () => {
+        iconGuard.queued = false;
+        const engine = globalThis.DashboardModernIconEngine;
+        if (!engine) return;
+        engine.syncQuickActions?.();
+        engine.syncEditor?.();
+        syncTemperatureIcons();
+      };
+      const queueOwnedIconSync = () => {
+        if (iconGuard.queued) return;
+        iconGuard.queued = true;
+        if (typeof queueMicrotask === "function") queueMicrotask(syncOwnedIconSurfaces);
+        else Promise.resolve().then(syncOwnedIconSurfaces);
+      };
+      const observeIconRoot = (node) => {
+        if (!node || iconGuard.observed.has(node) || typeof MutationObserver !== "function") return;
+        iconGuard.observed.add(node);
+        const observer = new MutationObserver(queueOwnedIconSync);
+        observer.observe(node, { childList: true, subtree: true });
+        iconGuard.observers.push(observer);
+      };
+      const installScopedIconObservers = () => {
+        for (const id of ["ed-body", "qa-grid", "temp-grid"]) observeIconRoot(document.getElementById(id));
+      };
+      const reconcileOwnedIcons = () => {
+        installScopedIconObservers();
+        queueOwnedIconSync();
+      };
+      for (const eventName of [
+        "dashboardmodern:legacy-ready",
+        "dashboardmodern:runtime-ready",
+        "dashboardmodern:states-ready",
+      ]) globalThis.addEventListener?.(eventName, reconcileOwnedIcons);
+      document.addEventListener("click", (event) => {
+        if (event.target?.closest?.("#editor-modal,.ed-tab,[data-dm-edit-kind],[data-temperature-edit]")) {
+          reconcileOwnedIcons();
+        }
+      }, true);
+      reconcileOwnedIcons();
+    }
+
     installEvAppearanceTopOwner();
     scheduleEvAppearanceTopRepair();
   }
