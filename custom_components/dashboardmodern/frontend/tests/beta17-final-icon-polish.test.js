@@ -15,12 +15,13 @@ test("beta17 removes the meaningless Temperature progress copy", () => {
   assert.equal(isTemperatureProgressText("Temperatura"), false);
 });
 
-test("beta17 renders action choices as direct colour glyphs and shares one room palette", () => {
+test("beta17 renders action choices as direct colour glyphs and shares one canonical room palette", () => {
   assert.equal(actionPickerGlyph("mdi:home"), "🏠");
   assert.equal(actionPickerGlyph("mdi:lightbulb"), "💡");
   assert.ok(ROOM_ICON_CHOICES.some(([icon]) => icon === "🛏️"));
   assert.ok(ROOM_ICON_CHOICES.some(([icon]) => icon === "🏠"));
   assert.ok(ROOM_ICON_CHOICES.some(([icon]) => icon === "🏊"));
+  assert.ok(ROOM_ICON_CHOICES.length >= 20);
 });
 
 test("beta17 loads before beta-entry and owns both insert/edit picker activation paths", async () => {
@@ -39,7 +40,9 @@ test("beta17 loads before beta-entry and owns both insert/edit picker activation
   assert.match(source, /\.dm-beta5-room-icon-trigger/);
   assert.match(source, /#dm-room-editor-modal \[data-room-icon-preview\]/);
   assert.match(source, /#dm-action-editor-modal \[data-action-icon-preview\]/);
-  assert.match(source, /dm-beta17-room-picker/);
-  assert.match(source, /dm-beta17-action-picker/);
+  assert.match(source, /modal\.id = "dm-visual-picker"/);
+  assert.match(source, /dmBeta17Picker/);
   assert.match(source, /MutationObserver/);
+  assert.match(source, /dm-beta12-action-glyph/);
+  assert.match(source, /dm-beta12-room-glyph/);
 });
