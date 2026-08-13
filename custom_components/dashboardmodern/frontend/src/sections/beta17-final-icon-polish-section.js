@@ -74,6 +74,31 @@ function bindTemperatureProgressGuard() {
   return true;
 }
 
+// Beta18 owns Room/Action preview DOM through DashboardModernIconEngine. The
+// legacy personalization decorator still schedules a later refresh after an
+// edit click; claim the freshly-created modal in the same event microtask so
+// that decorator never becomes a second writer (not even for one WebKit frame).
+function claimCanonicalModalIconOwner() {
+  const engine = root.DashboardModernIconEngine;
+  if (typeof engine?.syncEditor !== "function") return false;
+  let claimed = false;
+  for (const id of ["dm-action-editor-modal", "dm-room-editor-modal"]) {
+    const modal = doc?.getElementById(id);
+    if (!modal) continue;
+    modal.dataset.dmPersonalized = "true";
+    modal.dataset.dmSingleGlyphOwner = "true";
+    claimed = true;
+  }
+  if (claimed) engine.syncEditor();
+  return claimed;
+}
+
+function scheduleCanonicalModalClaim(event) {
+  if (!event.target?.closest?.('[data-dm-edit-kind="action"],[data-dm-edit-kind="room"]')) return;
+  if (typeof root.queueMicrotask === "function") root.queueMicrotask(claimCanonicalModalIconOwner);
+  else Promise.resolve().then(claimCanonicalModalIconOwner);
+}
+
 function install() {
   if (!doc || state.installed) return;
   state.installed = true;
@@ -84,6 +109,7 @@ function install() {
     "dashboardmodern:persistence-restored",
   ]) root.addEventListener?.(eventName, bindTemperatureProgressGuard);
   root.addEventListener?.("dashboardmodern:state-changed", hideTemperatureProgressCopy);
+  doc.addEventListener("click", scheduleCanonicalModalClaim, true);
   if (doc.readyState === "loading") {
     doc.addEventListener("DOMContentLoaded", bindTemperatureProgressGuard, { once: true });
   } else {
