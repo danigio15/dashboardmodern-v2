@@ -1,4 +1,4 @@
-// DM-FIX-20260812B
+// DM-FIX-20260813A
 import assert from "node:assert/strict";
 import { access, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
@@ -122,7 +122,10 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // consolidated into their existing production owners rather than new modules.
   // Beta16 intentionally adds one scoped owner for the screenshot-proven room
   // label, Temperature tab, compact Climate and Pool responsive contracts.
-  assert.ok(relative.length <= 70, `production graph unexpectedly grew to ${relative.length} modules`);
+  // Beta17 adds exactly one scoped owner for first-paint icon stability and the
+  // Temperature progress-copy guard; all legacy facade/cycle/orphan checks stay
+  // unchanged and still run below.
+  assert.ok(relative.length <= 71, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
