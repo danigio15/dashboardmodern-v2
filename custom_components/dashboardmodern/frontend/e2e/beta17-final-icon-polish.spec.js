@@ -182,9 +182,7 @@ test("beta17: Action picker is colored from first mutation", async ({ page }, te
     buildQuickActions();
   });
   await openEditor(page, "sez8");
-  const edit = page.locator(
-    '#ed-body [data-dm-edit-kind="action"][data-dm-edit-index="0"]',
-  );
+  const edit = page.locator('#ed-body [data-dm-edit-kind="action"][data-dm-edit-index="0"]');
   await edit.click();
   const preview = page.locator("#dm-action-editor-modal [data-action-icon-preview]");
   await expect(preview).toBeVisible();
@@ -217,9 +215,7 @@ test("beta17: Action picker is colored from first mutation", async ({ page }, te
   await expect(picker).toHaveAttribute("data-dm-beta17-picker", "action");
   await expect(picker).toHaveAttribute("data-dm-single-glyph-owner", "true");
   await expect(picker.locator("svg,ha-icon")).toHaveCount(0);
-  const firstGlyph = picker.locator(
-    '.dm-picker-option[data-index="0"] .dm-beta12-action-glyph',
-  );
+  const firstGlyph = picker.locator('.dm-picker-option[data-index="0"] .dm-beta12-action-glyph');
   await expect(firstGlyph).toHaveText("🏠");
 
   const mutations = await page.evaluate(() => {

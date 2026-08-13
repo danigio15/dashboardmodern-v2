@@ -390,13 +390,17 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const roomOptions = roomPicker.locator(".dm-beta17-room-option");
     expect(await roomOptions.count()).toBeGreaterThanOrEqual(20);
     for (const icon of ["🛏️", "🛋️", "🍳", "🚿", "💻", "🚗", "🌇", "🧺"]) {
-      expect(await roomPicker.locator(".dm-beta12-room-glyph", { hasText: icon }).count()).toBeGreaterThanOrEqual(1);
+      expect(
+        await roomPicker.locator(".dm-beta12-room-glyph", { hasText: icon }).count(),
+      ).toBeGreaterThanOrEqual(1);
     }
     const roomSearch = roomPicker.locator("[data-search]");
     await roomSearch.fill("bedroom");
     await expect(roomPicker.getByRole("button", { name: /Camera|Bedroom/i })).toBeVisible();
     await roomSearch.fill("camera");
-    expect(await roomPicker.locator(".dm-beta17-room-option:not([hidden])").count()).toBeGreaterThanOrEqual(1);
+    expect(
+      await roomPicker.locator(".dm-beta17-room-option:not([hidden])").count(),
+    ).toBeGreaterThanOrEqual(1);
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-room-picker.png`,
     });
