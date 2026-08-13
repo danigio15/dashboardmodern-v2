@@ -1,4 +1,4 @@
-// DM-FIX-20260813D
+// DM-FIX-20260813E
 import {
   ACTION_ICON_CATALOG,
   CAR_BRANDS,
@@ -48,9 +48,18 @@ export function actionGlyph(value) {
   return directEmoji(token) || actionCatalogMatch(token)?.glyph || "⭐";
 }
 
+function canonicalRoomGlyph(value) {
+  const token = clean(value);
+  const direct = directEmoji(token);
+  if (direct) return direct;
+  const lower = token.toLowerCase();
+  const exact = ROOM_CATALOG.find((item) => clean(item.mdi).toLowerCase() === lower);
+  return ROOM_GLYPHS[exact?.id] || roomGlyph(token);
+}
+
 export function iconGlyph(kind, value) {
   const normalized = normalizeKind(kind);
-  if (normalized === "room") return roomGlyph(value);
+  if (normalized === "room") return canonicalRoomGlyph(value);
   if (normalized === "action") return actionGlyph(value);
   return "🚘";
 }
@@ -126,7 +135,7 @@ function rowsFor(kind) {
       value: item.mdi,
       label: english ? item.en : item.it,
       search: `${item.it} ${item.en} ${item.keywords} ${item.mdi}`.toLowerCase(),
-      glyph: ROOM_GLYPHS[item.id] || roomGlyph(item.mdi),
+      glyph: ROOM_GLYPHS[item.id] || canonicalRoomGlyph(item.mdi),
       size: 31,
       visual: iconGlyphMarkup("room", item.mdi, { size: 31 }),
     }));
@@ -196,8 +205,6 @@ export function openIconPicker(input, kind = "action", options = {}) {
   modal.dataset.kind = normalized;
   modal.dataset.dmIconEngine = "single-owner";
   modal.dataset.dmSingleGlyphOwner = "true";
-  // Compatibility markers keep older regression contracts readable while the
-  // actual ownership lives here and nowhere in the beta compatibility layers.
   modal.dataset.dmBeta17Picker = normalized;
   modal.dataset.dmBeta12Colored = "true";
   modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>${copy.icon} ${copy.title}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${esc(copy.placeholder)}" data-search></div><div class="dm-picker-grid">${rows
@@ -230,8 +237,6 @@ export function openIconPicker(input, kind = "action", options = {}) {
     });
   });
 
-  // Never summon the software keyboard just because a picker opened on a
-  // phone/tablet. Keyboard activation or a fine desktop pointer may focus it.
   const autofocus = options.autofocus === true || (options.autofocus !== false && pointerCanAutofocus());
   if (autofocus) root.requestAnimationFrame?.(() => search?.focus({ preventScroll: true }));
   return true;
@@ -509,11 +514,7 @@ export function installIconEngine() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
-  // Queue the canonical owner before activation stops older handlers. The
-  // microtask runs after the full event dispatch, so target listeners finish
-  // first but no legacy frame can paint between them and the canonical glyph.
   root.addEventListener?.("click", scheduleEditorSyncAfterClick, true);
-  // Window capture precedes every historical document-capture picker handler.
   root.addEventListener?.("click", handleActivation, true);
   root.addEventListener?.("keydown", handleActivation, true);
   doc.addEventListener(
