@@ -55,7 +55,7 @@ const CAR_MODELS = Object.freeze({
   "MINI": ["Cooper Electric", "Aceman", "Countryman Electric"],
   "Nissan": ["Micra EV", "Leaf", "Ariya", "Juke Hybrid", "Qashqai e-POWER", "X-Trail e-POWER"],
   "Opel": ["Corsa Electric", "Corsa Hybrid", "Mokka Electric", "Mokka Hybrid", "Astra Electric", "Astra Plug-In Hybrid", "Astra Hybrid", "Frontera Electric", "Frontera Hybrid", "Grandland Electric", "Grandland Plug-In Hybrid", "Grandland Hybrid", "Combo Electric", "Zafira Electric"],
-  "Peugeot": ["e-208", "208 Hybrid", "e-2008", "2008 Hybrid", "e-308", "308 Plug-In Hybrid", "308 Hybrid", "e-3008", "3008 Plug-In Hybrid", "3008 Hybrid", "e-5008", "5008 Plug-In Hybrid", "5008 Hybrid", "e-Rifter"],
+  "Peugeot": ["e-208", "208 Hybrid", "e-2008", "2008 Hybrid", "e-308", "308 Plug-In Hybrid", "308 Hybrid", "e-3008", "3008 Plug-In Hybrid", "e-5008", "5008 Plug-In Hybrid", "e-Rifter"],
   "Polestar": ["Polestar 2", "Polestar 3", "Polestar 4", "Polestar 5"],
   "Porsche": ["Macan Electric", "Taycan", "Cayenne E-Hybrid", "Panamera E-Hybrid"],
   "Renault": ["5 E-Tech electric", "4 E-Tech electric", "Megane E-Tech electric", "Scenic E-Tech electric", "Captur E-Tech full hybrid", "Symbioz E-Tech full hybrid", "Austral E-Tech full hybrid", "Espace E-Tech full hybrid", "Rafale E-Tech full hybrid", "Rafale E-Tech 4x4 Plug-In Hybrid"],
@@ -289,8 +289,11 @@ function polishRoomRows() {
       visual.className = "dm-room-list-icon";
       row.prepend(visual);
     }
-    visual.innerHTML = roomMarkup(room, 34);
-    visual.dataset.roomIcon = clean(room.icon || "mdi:home");
+    const token = clean(room.icon || room.name || "mdi:home");
+    visual.dataset.roomIcon = token;
+    if (!root.DashboardModernIconEngine?.render?.(visual, "room", token, { size: 31 })) {
+      visual.innerHTML = roomMarkup(room, 34);
+    }
     visual.setAttribute("title", clean(room.name));
   });
   return true;
