@@ -1,0 +1,41 @@
+name: Debug Beta18 Frontend
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Capture frontend output
+        id: frontend
+        shell: bash
+        run: |
+          set +e
+          npm run test:frontend > frontend-test.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          cat frontend-test.log
+          exit 0
+      - name: Upload frontend log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beta18-frontend-log
+          path: frontend-test.log
+          if-no-files-found: error
+          retention-days: 1
+      - name: Fail when frontend failed
+        if: steps.frontend.outputs.exit_code != '0'
+        run: exit 1
