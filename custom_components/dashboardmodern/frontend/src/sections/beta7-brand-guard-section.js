@@ -1,4 +1,3 @@
-import { ACTION_ICON_CATALOG, actionVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_BETA7_BRAND_GUARD__";
@@ -14,8 +13,15 @@ const INLINE_BRANDS = Object.freeze({
 function fallbackMarkup(img) {
   const key = clean(img?.dataset?.dmBrandImage).toLowerCase();
   const name = clean(img?.alt || key || "Auto");
-  const initials = name.split(/[\s-]+/).map((part) => part[0] || "").join("").slice(0, 3).toUpperCase();
-  const body = INLINE_BRANDS[key] || `<rect x='7' y='5' width='50' height='34' rx='12' fill='none' stroke='currentColor' stroke-width='2.4'/><text x='32' y='27' text-anchor='middle' font-size='13' font-weight='900' font-family='system-ui'>${esc(initials || "EV")}</text>`;
+  const initials = name
+    .split(/[\s-]+/)
+    .map((part) => part[0] || "")
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
+  const body =
+    INLINE_BRANDS[key] ||
+    `<rect x='7' y='5' width='50' height='34' rx='12' fill='none' stroke='currentColor' stroke-width='2.4'/><text x='32' y='27' text-anchor='middle' font-size='13' font-weight='900' font-family='system-ui'>${esc(initials || "EV")}</text>`;
   return `<span class="dm-beta7-brand-guard-fallback" data-dm-brand-fallback="${esc(key)}" title="${esc(name)}"><svg viewBox="0 0 64 44" role="img" aria-label="${esc(name)}">${body}</svg></span>`;
 }
 
@@ -40,46 +46,6 @@ function guardImage(img) {
 
 function guardAll() {
   doc?.querySelectorAll?.("img[data-dm-brand-image]").forEach(guardImage);
-}
-
-function closeStableActionPicker() {
-  doc?.getElementById("dm-beta9-action-picker")?.remove();
-  // Also remove the beta6 picker if an old handler managed to mount it first.
-  doc?.getElementById("dm-beta6-quick-icon-picker")?.remove();
-}
-
-function openStableActionPicker(input) {
-  if (!input || !doc) return false;
-  closeStableActionPicker();
-  const english = clean(doc.documentElement?.lang).toLowerCase().startsWith("en");
-  const modal = doc.createElement("div");
-  modal.id = "dm-beta9-action-picker";
-  modal.className = "dm-section-modal dm-visual-picker";
-  modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>⚡ ${english ? "Choose action icon" : "Scegli icona azione"}</strong><button type="button" data-close aria-label="Close">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${english ? "Search…" : "Cerca…"}" data-search></div><div class="dm-picker-grid dm-beta9-action-icon-grid">${ACTION_ICON_CATALOG.map((item, index) => `<button type="button" class="dm-picker-option" data-index="${index}" data-search-text="${esc(`${item.it} ${item.en} ${item.id} ${item.mdi}`.toLowerCase())}"><span class="dm-picker-visual">${actionVisual(item.mdi, 40)}</span><b>${esc(english ? item.en : item.it)}</b></button>`).join("")}</div></section>`;
-  doc.body.append(modal);
-  modal.querySelector("[data-close]")?.addEventListener("click", closeStableActionPicker);
-  modal.addEventListener("click", (event) => { if (event.target === modal) closeStableActionPicker(); });
-  modal.querySelector("[data-search]")?.addEventListener("input", (event) => {
-    const query = clean(event.target.value).toLowerCase();
-    modal.querySelectorAll(".dm-picker-option").forEach((button) => {
-      button.hidden = Boolean(query) && !button.dataset.searchText.includes(query);
-    });
-  });
-  modal.querySelectorAll(".dm-picker-option").forEach((button) => button.addEventListener("click", () => {
-    const item = ACTION_ICON_CATALOG[Number(button.dataset.index)];
-    if (!item) return;
-    // Persist MDI tokens, not platform-dependent emoji. Every surface then uses
-    // the same local SVG renderer from personalization-catalog.
-    input.value = item.mdi;
-    input.dataset.dmBeta7DefaultGlyph = "";
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-    const trigger = input.closest?.(".ed-form-row")?.querySelector?.(".dm-beta6-qa-icon-trigger");
-    if (trigger) trigger.innerHTML = actionVisual(item.mdi, 30);
-    closeStableActionPicker();
-  }));
-  root.setTimeout?.(() => modal.querySelector("[data-search]")?.focus(), 20);
-  return true;
 }
 
 function resetShutterSignature() {
@@ -141,15 +107,18 @@ function schedule() {
 }
 
 function installStyles() {
-  installStyle("dm-beta7-brand-guard-style", `
+  installStyle(
+    "dm-beta7-brand-guard-style",
+    `
     img[data-dm-brand-image][data-dm-beta7-broken="true"]{display:none!important}
     .dm-beta7-brand-guard-fallback{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;color:var(--primary-text-color,var(--text,#0f172a))!important}
     .dm-beta7-brand-guard-fallback svg{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;overflow:visible!important}
     .dm-car-brand[data-brand-source="inline-fallback"]{display:grid!important;place-items:center!important}
 
     /* The regression owner creates a fixed four-column action row. Pin the
-       readable label to column two so a pre-existing emoji/icon can never push
-       it into an implicit clipped fifth column. */
+       readable label to column two so a pre-existing icon can never push it
+       into an implicit clipped fifth column. Icon rendering itself belongs to
+       icon-engine-section and is intentionally not styled/repainted here. */
     #editor-modal .ed-row.dm-beta7-action-row>.ed-row-main{
       grid-column:2!important;
       grid-row:1!important;
@@ -165,16 +134,13 @@ function installStyles() {
       text-overflow:ellipsis!important;
     }
 
-    /* beta9: restore compact Home quick actions. One configured action must not
-       grow into a full-width empty billboard, and its vector icon stays small. */
+    /* Keep only the compact quick-action card geometry. The icon glyph and its
+       picker are canonicalized synchronously by icon-engine-section. */
     html body #page-home #qa-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,210px))!important;justify-content:start!important;align-items:stretch!important;gap:14px!important;width:100%!important}
     html body #page-home #qa-grid .qa-btn{box-sizing:border-box!important;width:100%!important;max-width:210px!important;min-height:116px!important;height:auto!important;padding:16px 14px!important;border-radius:22px!important;justify-content:center!important;gap:9px!important;background:var(--card-background-color,var(--card-bg,#fff))!important;box-shadow:var(--shadow-sculpted,0 5px 18px rgba(15,23,42,.08))!important}
-    html body #page-home #qa-grid .qa-btn .icon{display:grid!important;place-items:center!important;width:46px!important;height:46px!important;min-width:46px!important;min-height:46px!important;padding:9px!important;border-radius:14px!important;background:color-mix(in srgb,var(--accent,#0ea5e9) 10%,var(--card-background-color,#fff))!important;color:var(--accent,#0ea5e9)!important;box-shadow:none!important}
-    html body #page-home #qa-grid .qa-btn .icon .dm-action-glyph{display:grid!important;place-items:center!important;width:28px!important;height:28px!important;max-width:28px!important;max-height:28px!important;color:inherit!important}
-    html body #page-home #qa-grid .qa-btn .icon .dm-action-glyph svg{display:block!important;width:28px!important;height:28px!important;max-width:28px!important;max-height:28px!important}
-    #dm-beta9-action-picker{z-index:100030!important}#dm-beta9-action-picker .dm-beta9-action-icon-grid .dm-picker-option{min-height:106px!important}#dm-beta9-action-picker .dm-picker-visual{display:grid!important;place-items:center!important;width:46px!important;height:46px!important;color:var(--accent,#0ea5e9)!important}#dm-beta9-action-picker .dm-action-glyph,#dm-beta9-action-picker .dm-action-glyph svg{display:block!important;width:40px!important;height:40px!important;max-width:40px!important;max-height:40px!important}
     @media(max-width:560px){html body #page-home #qa-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;justify-content:stretch!important}html body #page-home #qa-grid .qa-btn{max-width:none!important;min-height:108px!important}}
-  `);
+  `,
+  );
 }
 
 export function installBeta7BrandGuardSection() {
@@ -182,32 +148,35 @@ export function installBeta7BrandGuardSection() {
   state.installed = true;
   installStyles();
   installOwners();
-  doc.addEventListener("error", (event) => {
-    if (event.target?.matches?.("img[data-dm-brand-image]")) {
-      guardImage(event.target);
-      schedule();
-    }
-  }, true);
+  doc.addEventListener(
+    "error",
+    (event) => {
+      if (event.target?.matches?.("img[data-dm-brand-image]")) {
+        guardImage(event.target);
+        schedule();
+      }
+    },
+    true,
+  );
   for (const name of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"])
     root.addEventListener?.(name, () => {
       installOwners();
       schedule();
     });
   root.addEventListener?.("dashboardmodern:states-ready", schedule);
-  doc.addEventListener("click", (event) => {
-    const actionTrigger = event.target?.closest?.(".dm-beta6-qa-icon-trigger");
-    if (actionTrigger) {
-      const input = doc.getElementById("ed-qa-icon");
-      if (input) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        openStableActionPicker(input);
-        return;
-      }
-    }
-    if (event.target?.closest?.('[data-brand-preview],.tab[data-tab="ev"],.ed-tab[data-tab="sez2"]'))
-      root.setTimeout?.(schedule, 0);
-  }, true);
+  doc.addEventListener(
+    "click",
+    (event) => {
+      // Action/room icon activation is deliberately absent here. The canonical
+      // icon engine owns picker activation at window capture, so no second
+      // picker, delayed autofocus or post-open repaint can race it.
+      if (
+        event.target?.closest?.('[data-brand-preview],.tab[data-tab="ev"],.ed-tab[data-tab="sez2"]')
+      )
+        root.setTimeout?.(schedule, 0);
+    },
+    true,
+  );
   schedule();
 }
 
