@@ -60,6 +60,11 @@ function activeTab() {
   return clean(doc?.querySelector(".ed-tab.active")?.dataset?.tab);
 }
 
+function queueMicrotaskSafe(callback) {
+  if (typeof root.queueMicrotask === "function") root.queueMicrotask(callback);
+  else Promise.resolve().then(callback);
+}
+
 function vehicles() {
   const legacy = readJson("cd_ev_cars", []);
   if (Array.isArray(legacy) && legacy.length) return legacy;
@@ -101,7 +106,9 @@ function normalizeEvPreview(panel) {
   if (!preview || !brandSelect || !modelSelect) return false;
   preview.dataset.dmBeta11EvPreview = "true";
   preview.dataset.dmBeta11Brand = clean(brandSelect.value).toLowerCase();
-  preview.querySelector(".dm-car-brand,.dm-leapmotor-mark")?.setAttribute?.("data-dm-beta11-logo", "true");
+  preview
+    .querySelector(".dm-car-brand,.dm-leapmotor-mark")
+    ?.setAttribute?.("data-dm-beta11-logo", "true");
   const copy = preview.querySelector(".dm-ev-brand-copy");
   if (copy) {
     copy.dataset.dmBeta11Copy = "true";
@@ -126,19 +133,46 @@ function syncEvPanelToActiveVehicle() {
   const model = clean(car.model || car.vehicle_model || car.name);
   const identity = clean(car.id || car.entity || car.name || index);
   const signature = `${index}|${identity}|${brand}|${model}`;
+  const sameVehicle = panel.dataset.dmBeta11VehicleIndex === String(index);
 
-  if (panel.dataset.dmBeta11VehicleSignature === signature && panel.dataset.dmBeta11ManualEdit !== "true") {
+  // A manual brand/model choice belongs to the editor draft. Do not let the
+  // compatibility synchronizer overwrite it until the active vehicle changes.
+  if (panel.dataset.dmBeta11ManualEdit === "true" && sameVehicle) {
     normalizeEvPreview(panel);
     return true;
   }
-  if (brand && hasOption(brandSelect, brand)) dispatchValue(brandSelect, brand, { force: true });
-  root.queueMicrotask?.(() => {
+  if (panel.dataset.dmBeta11ManualEdit === "true" && !sameVehicle) {
+    delete panel.dataset.dmBeta11ManualEdit;
+  }
+  if (panel.dataset.dmBeta11VehicleSignature === signature) {
+    normalizeEvPreview(panel);
+    return true;
+  }
+
+  panel.dataset.dmBeta11Syncing = "true";
+  if (brand && hasOption(brandSelect, brand)) {
+    dispatchValue(brandSelect, brand, { force: true });
+  }
+  queueMicrotaskSafe(() => {
     if (model && hasOption(modelSelect, model)) dispatchValue(modelSelect, model);
     panel.dataset.dmBeta11VehicleSignature = signature;
     panel.dataset.dmBeta11VehicleIndex = String(index);
     delete panel.dataset.dmBeta11ManualEdit;
+    delete panel.dataset.dmBeta11Syncing;
     normalizeEvPreview(panel);
   });
+  return true;
+}
+
+function markManualEvEdit(event) {
+  const input = event.target;
+  if (!input?.matches?.("[data-ev-appearance] select[data-brand],[data-ev-appearance] select[data-model]")) {
+    return false;
+  }
+  const panel = input.closest("[data-ev-appearance]");
+  if (!panel || panel.dataset.dmBeta11Syncing === "true") return false;
+  panel.dataset.dmBeta11ManualEdit = "true";
+  normalizeEvPreview(panel);
   return true;
 }
 
@@ -153,10 +187,11 @@ function mergedRooms() {
   return legacy.map((room, index) => {
     const id = clean(room?.id);
     const name = clean(room?.name).toLowerCase();
-    const fallback = canonical.find((candidate) => id && clean(candidate?.id) === id)
-      || canonical.find((candidate) => name && clean(candidate?.name).toLowerCase() === name)
-      || canonical[index]
-      || {};
+    const fallback =
+      canonical.find((candidate) => id && clean(candidate?.id) === id) ||
+      canonical.find((candidate) => name && clean(candidate?.name).toLowerCase() === name) ||
+      canonical[index] ||
+      {};
     return { ...fallback, ...room };
   });
 }
@@ -164,7 +199,11 @@ function mergedRooms() {
 function decorateRoomRows() {
   if (activeTab() !== "stanze") return false;
   const rooms = mergedRooms();
-  const rows = [...(doc?.querySelectorAll?.('#ed-body .ed-row:has([data-dm-edit-kind="room"][data-dm-edit-index])') || [])];
+  const rows = [
+    ...(doc?.querySelectorAll?.(
+      '#ed-body .ed-row:has([data-dm-edit-kind="room"][data-dm-edit-index])',
+    ) || []),
+  ];
   rows.forEach((row) => {
     const edit = row.querySelector('[data-dm-edit-kind="room"][data-dm-edit-index]');
     const index = Number.parseInt(edit?.dataset?.dmEditIndex || "-1", 10);
@@ -173,14 +212,25 @@ function decorateRoomRows() {
     const name = clean(room.name || room.id || `Stanza ${index + 1}`);
     row.classList.add("dm-room-config-row", "dm-beta11-room-row");
     row.dataset.dmRoomId = clean(room.id);
+
     const icon = row.querySelector(":scope > .dm-room-list-icon");
     if (icon) {
       icon.dataset.roomIcon = clean(room.icon || icon.dataset.roomIcon || "mdi:home");
       icon.setAttribute("aria-label", name);
       icon.setAttribute("title", name);
     }
+
     const label = row.querySelector(".ed-row-new");
     if (label) {
+      const main = label.closest(".ed-row-main");
+      if (main) {
+        main.hidden = false;
+        main.removeAttribute("hidden");
+        main.removeAttribute("aria-hidden");
+      }
+      label.hidden = false;
+      label.removeAttribute("hidden");
+      label.removeAttribute("aria-hidden");
       label.textContent = name;
       label.dataset.dmRoomName = "true";
       label.setAttribute("title", name);
@@ -205,19 +255,23 @@ function openAlertPicker(input) {
   doc.body.append(modal);
   const close = () => modal.remove();
   modal.querySelector("[data-close]")?.addEventListener("click", close);
-  modal.addEventListener("click", (event) => { if (event.target === modal) close(); });
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) close();
+  });
   modal.querySelector("[data-search]")?.addEventListener("input", (event) => {
     const query = clean(event.target.value).toLowerCase();
     modal.querySelectorAll(".dm-beta11-alert-option").forEach((button) => {
       button.hidden = Boolean(query) && !clean(button.dataset.searchText).includes(query);
     });
   });
-  modal.querySelectorAll(".dm-beta11-alert-option").forEach((button) => button.addEventListener("click", () => {
-    input.value = button.dataset.alertIcon || "🔔";
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-    close();
-  }));
+  modal.querySelectorAll(".dm-beta11-alert-option").forEach((button) =>
+    button.addEventListener("click", () => {
+      input.value = button.dataset.alertIcon || "🔔";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      close();
+    }),
+  );
   return true;
 }
 
@@ -278,20 +332,26 @@ function subscribeStore() {
 }
 
 function installStyles() {
-  installStyle("dm-beta11-real-device-polish-style", `
+  installStyle(
+    "dm-beta11-real-device-polish-style",
+    `
     html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview[data-dm-beta11-ev-preview="true"]{box-sizing:border-box!important;display:grid!important;grid-template-columns:112px minmax(0,1fr)!important;align-items:center!important;gap:12px!important;width:100%!important;min-height:88px!important;padding:12px!important;overflow:hidden!important;text-align:left!important}
     html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-car-brand,html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-leapmotor-mark{display:grid!important;place-items:center!important;box-sizing:border-box!important;width:108px!important;max-width:108px!important;height:48px!important;max-height:48px!important;overflow:hidden!important;transform:none!important}
     html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-car-brand img,html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-car-brand svg,html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-leapmotor-mark svg{display:block!important;width:100%!important;max-width:100%!important;height:100%!important;max-height:100%!important;object-fit:contain!important;object-position:center!important;transform:none!important}
     #ed-body .ed-row.dm-room-config-row.dm-beta11-room-row{box-sizing:border-box!important;display:grid!important;grid-template-columns:58px minmax(0,1fr) 48px 48px!important;gap:10px!important;align-items:center!important;width:100%!important;min-height:88px!important;padding:12px 14px!important;overflow:visible!important}
-    #ed-body .dm-beta11-room-row>.dm-room-list-icon{display:grid!important;place-items:center!important;width:56px!important;height:56px!important;min-width:56px!important;min-height:56px!important;visibility:visible!important;opacity:1!important;border-radius:16px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 11%,transparent)!important;overflow:hidden!important}
-    #ed-body .dm-beta11-room-row .ed-row-new{display:block!important;visibility:visible!important;opacity:1!important;color:var(--primary-text-color,#0f172a)!important;font-size:16px!important;font-weight:850!important;line-height:1.25!important;overflow:visible!important}
+    #ed-body .dm-beta11-room-row>.dm-room-list-icon{grid-column:1!important;grid-row:1!important;display:grid!important;place-items:center!important;width:56px!important;height:56px!important;min-width:56px!important;min-height:56px!important;visibility:visible!important;opacity:1!important;border-radius:16px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 11%,transparent)!important;overflow:hidden!important}
+    #ed-body .dm-beta11-room-row>.ed-row-main{grid-column:2!important;grid-row:1!important;display:grid!important;position:static!important;align-content:center!important;gap:4px!important;min-width:0!important;width:100%!important;height:auto!important;max-height:none!important;visibility:visible!important;opacity:1!important;overflow:visible!important}
+    #ed-body .dm-beta11-room-row .ed-row-new{display:block!important;position:static!important;min-width:0!important;width:auto!important;max-width:100%!important;height:auto!important;min-height:1em!important;visibility:visible!important;opacity:1!important;color:var(--primary-text-color,#0f172a)!important;font-size:16px!important;font-weight:850!important;line-height:1.25!important;text-align:left!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;clip:auto!important;clip-path:none!important;transform:none!important}
+    #ed-body .dm-beta11-room-row>[data-dm-edit-kind="room"]{grid-column:3!important;grid-row:1!important}
+    #ed-body .dm-beta11-room-row>.ed-del:last-child{grid-column:4!important;grid-row:1!important}
     #ed-body .dm-beta11-alert-icon-row{display:grid!important;grid-template-columns:64px minmax(0,1fr) 52px!important;gap:10px!important;align-items:center!important;min-width:0!important;width:100%!important}
     #ed-body .dm-beta11-alert-preview{display:grid!important;place-items:center!important;width:64px!important;height:64px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:18px!important;background:var(--card-background-color,#fff)!important;font-size:32px!important;cursor:pointer!important}
     #ed-body .dm-beta11-alert-icon-row>#ed-avv-icon{min-width:0!important;width:100%!important;grid-column:2!important}
     #ed-body .dm-beta11-alert-icon-row>.dm-beta5-alert-icon-trigger{grid-column:3!important;position:static!important;width:52px!important;height:52px!important;margin:0!important;transform:none!important}
     .dm-beta11-alert-dialog{width:min(720px,calc(100vw - 24px))!important;max-height:min(82vh,760px)!important;overflow:hidden!important}.dm-beta11-alert-search{padding:14px 16px 8px!important}.dm-beta11-alert-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;padding:8px 16px 18px!important;max-height:60vh!important;overflow:auto!important}.dm-beta11-alert-option{display:grid!important;grid-template-rows:48px auto!important;place-items:center!important;gap:7px!important;min-height:94px!important;padding:10px 7px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;cursor:pointer!important}.dm-beta11-alert-option[hidden]{display:none!important}.dm-beta11-alert-glyph{font-size:31px!important}.dm-beta11-alert-option b{font-size:11px!important;text-align:center!important}
     @media(max-width:560px){html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview[data-dm-beta11-ev-preview="true"]{grid-template-columns:92px minmax(0,1fr)!important;gap:9px!important;padding:10px!important}html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-car-brand,html body #editor-modal #ed-body [data-ev-appearance] .dm-brand-preview .dm-leapmotor-mark{width:88px!important;max-width:88px!important;height:44px!important;max-height:44px!important}#ed-body .ed-row.dm-room-config-row.dm-beta11-room-row{grid-template-columns:56px minmax(0,1fr) 46px 46px!important;gap:8px!important;padding:11px 10px!important}.dm-beta11-alert-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
-  `);
+  `,
+  );
 }
 
 function install() {
@@ -302,26 +362,44 @@ function install() {
   subscribeStore();
   if (!state.listeners) {
     state.listeners = true;
-    doc.addEventListener("click", (event) => {
-      const trigger = event.target?.closest?.(".dm-beta5-alert-icon-trigger[data-dm-beta11-alert-picker='true']");
-      if (trigger) {
-        const input = trigger.closest(".dm-beta11-alert-icon-row")?.querySelector("#ed-avv-icon");
-        if (input) {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          openAlertPicker(input);
-          return;
+    doc.addEventListener(
+      "click",
+      (event) => {
+        const trigger = event.target?.closest?.(
+          ".dm-beta5-alert-icon-trigger[data-dm-beta11-alert-picker='true']",
+        );
+        if (trigger) {
+          const input = trigger.closest(".dm-beta11-alert-icon-row")?.querySelector("#ed-avv-icon");
+          if (input) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            openAlertPicker(input);
+            return;
+          }
         }
-      }
-      if (event.target?.closest?.(".ed-tab,.dm-vehicle-profile-card")) schedule();
-    }, true);
-    doc.addEventListener("change", (event) => {
-      if (event.target?.closest?.("#editor-modal,#ed-body")) schedule();
-    }, true);
+        if (event.target?.closest?.(".dm-vehicle-profile-card")) {
+          const panel = doc.querySelector("#ed-body [data-ev-appearance]");
+          if (panel) delete panel.dataset.dmBeta11ManualEdit;
+        }
+        if (event.target?.closest?.(".ed-tab,.dm-vehicle-profile-card")) schedule();
+      },
+      true,
+    );
+    doc.addEventListener(
+      "change",
+      (event) => {
+        markManualEvEdit(event);
+        if (event.target?.closest?.("#editor-modal,#ed-body")) schedule();
+      },
+      true,
+    );
     root.addEventListener?.("dashboardmodern:legacy-ready", schedule);
   }
   schedule();
 }
 
-if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", install, { once: true });
-else install();
+if (doc?.readyState === "loading") {
+  doc.addEventListener("DOMContentLoaded", install, { once: true });
+} else {
+  install();
+}
