@@ -1,0 +1,467 @@
+// DM-FIX-20260812C
+import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
+import {
+  clean,
+  dashboardStore,
+  doc,
+  english,
+  installStyle,
+  readClimateUnits,
+  readJson,
+  root,
+  wrapFunction,
+  writeJsonIfChanged,
+} from "./shared.js";
+
+const KEY = "__DASHBOARDMODERN_BETA16_REAL_DEVICE_LAYOUT__";
+const state = (root[KEY] ||= {
+  installed: false,
+  frame: 0,
+  listeners: false,
+  storeUnsubscribe: null,
+  climateMigration: "",
+  temperatureFilter: "all",
+  temperatureTabsSignature: "",
+});
+
+export function matchCanonicalRoom(rooms, reference, fallbackName = "") {
+  const values = Array.isArray(rooms) ? rooms : [];
+  const ref = clean(reference);
+  const name = clean(fallbackName).toLowerCase();
+  return (
+    values.find((room) => ref && clean(room?.id) === ref) ||
+    values.find((room) => ref && clean(room?.name).toLowerCase() === ref.toLowerCase()) ||
+    values.find((room) => name && clean(room?.name).toLowerCase() === name) ||
+    null
+  );
+}
+
+function canonicalRooms() {
+  try {
+    const values = dashboardStore()?.getSection?.("rooms");
+    if (Array.isArray(values) && values.length) return values;
+  } catch (_error) {}
+  const legacy = readJson("cd_stanze", []);
+  return Array.isArray(legacy) ? legacy : [];
+}
+
+function configuredActions() {
+  const persisted = readJson("cd_quick_actions", []);
+  if (Array.isArray(persisted) && persisted.length) return persisted;
+  try {
+    const values = root.getQuickActions?.();
+    return Array.isArray(values) ? values : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function roomLabel(reference, fallbackName = "") {
+  const room = matchCanonicalRoom(canonicalRooms(), reference, fallbackName);
+  return clean(room?.name || fallbackName || reference);
+}
+
+function climateRoomMigration() {
+  const rooms = canonicalRooms();
+  const units = readClimateUnits();
+  if (!rooms.length || !units.length) return false;
+
+  let changed = false;
+  const next = units.map((unit) => {
+    const room = matchCanonicalRoom(rooms, unit?.room || unit?.room_id, unit?.name);
+    if (!room) return unit;
+    const id = clean(room.id || room.name);
+    if (!id || clean(unit?.room) === id) return unit;
+    changed = true;
+    return { ...unit, room: id };
+  });
+  if (!changed) return false;
+
+  const signature = JSON.stringify(next.map((item) => [item.entity, item.room]));
+  if (signature === state.climateMigration) return false;
+  state.climateMigration = signature;
+  writeJsonIfChanged("cd_clima_units", next, { sync: false });
+  root.cdMarkDirty?.();
+  root.cdSyncPush?.();
+  root.queueMicrotask?.(() => root.buildClimaCards?.());
+  return true;
+}
+
+function ensureRowMain(row, anchor = null) {
+  if (!row) return null;
+  let main = row.querySelector(":scope > .ed-row-main");
+  if (!main) {
+    main = doc.createElement("div");
+    main.className = "ed-row-main";
+    if (anchor?.parentElement === row) anchor.after(main);
+    else row.prepend(main);
+  }
+  let primary = main.querySelector(".ed-row-new");
+  if (!primary) {
+    primary = doc.createElement("div");
+    primary.className = "ed-row-new";
+    main.prepend(primary);
+  }
+  let secondary = main.querySelector(".ed-row-old");
+  if (!secondary) {
+    secondary = doc.createElement("div");
+    secondary.className = "ed-row-old";
+    main.append(secondary);
+  }
+  main.dataset.dmBeta16Readable = "true";
+  return { main, primary, secondary };
+}
+
+function repairQuickActionRows() {
+  const actions = configuredActions();
+  const edits = [...(doc?.querySelectorAll?.('#editor-modal #ed-body [data-dm-edit-kind="action"][data-dm-edit-index]') || [])];
+  edits.forEach((edit) => {
+    const index = Number.parseInt(edit.dataset.dmEditIndex || "-1", 10);
+    const action = index >= 0 ? actions[index] : null;
+    const row = edit.closest(".ed-row");
+    if (!action || !row) return;
+    const anchor = row.querySelector(":scope > .dm-beta7-existing-action-icon,:scope > .dm-room-list-icon");
+    const nodes = ensureRowMain(row, anchor);
+    if (!nodes) return;
+    const name = clean(action.name) || (english() ? "Quick action" : "Azione rapida");
+    const type = clean(action.builtin || action.type).replace(/^builtin_/, "");
+    nodes.primary.textContent = name;
+    nodes.primary.title = name;
+    nodes.secondary.textContent = clean(action.entity) || type;
+    row.dataset.dmBeta16ActionName = "true";
+  });
+  return edits.length > 0;
+}
+
+function repairClimateEditorRows() {
+  const units = readClimateUnits();
+  const edits = [...(doc?.querySelectorAll?.('#editor-modal #ed-body [data-dm-edit-kind="climate"][data-dm-edit-index]') || [])];
+  edits.forEach((edit) => {
+    const index = Number.parseInt(edit.dataset.dmEditIndex || "-1", 10);
+    const unit = index >= 0 ? units[index] : null;
+    const row = edit.closest(".ed-row");
+    if (!unit || !row) return;
+    const anchor = row.querySelector(":scope > .dm-room-list-icon,:scope > .dm-beta7-existing-action-icon");
+    const nodes = ensureRowMain(row, anchor);
+    if (!nodes) return;
+    const name = clean(unit.name) || clean(unit.entity) || (english() ? "Climate" : "Clima");
+    const room = roomLabel(unit.room || unit.room_id, unit.name);
+    nodes.primary.textContent = name;
+    nodes.primary.title = name;
+    nodes.secondary.textContent = [clean(unit.entity), room ? `🏠 ${room}` : ""].filter(Boolean).join(" · ");
+    nodes.secondary.title = nodes.secondary.textContent;
+    row.dataset.dmBeta16ClimateName = "true";
+  });
+  return edits.length > 0;
+}
+
+function repairTemperatureEditorRows() {
+  const rooms = canonicalRooms();
+  const rows = [...(doc?.querySelectorAll?.("#editor-modal #ed-body [data-temperature-room][data-room-id]") || [])];
+  rows.forEach((row) => {
+    const room = matchCanonicalRoom(rooms, row.dataset.roomId);
+    if (!room) return;
+    const anchor = row.querySelector(":scope > .dm-temperature-card-icon");
+    const nodes = ensureRowMain(row, anchor);
+    if (!nodes) return;
+    const name = clean(room.name) || clean(room.id) || (english() ? "Room" : "Stanza");
+    const sensors = [clean(room.temp), clean(room.hum)].filter(Boolean).join(" · ");
+    nodes.primary.textContent = name;
+    nodes.primary.title = name;
+    nodes.secondary.textContent = sensors;
+    nodes.secondary.title = sensors;
+    row.dataset.dmBeta16TemperatureName = "true";
+  });
+  return rows.length > 0;
+}
+
+function replaceRoomOptions(select, { temperature = false } = {}) {
+  if (!select) return false;
+  const rooms = canonicalRooms();
+  if (!rooms.length) return false;
+  const current = clean(select.value);
+  const form = select.closest("[data-temperature-form]");
+  const editing = Boolean(form?.dataset?.dmOriginalRoom) || /^(modifica|edit)\b/i.test(clean(form?.querySelector?.("[data-temperature-form-title]")?.textContent));
+  const placeholder = doc.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = `— ${english() ? "Select room" : "Seleziona stanza"} —`;
+  const options = [placeholder];
+  rooms.forEach((room) => {
+    const option = doc.createElement("option");
+    option.value = clean(room.id || room.name);
+    option.textContent = `${directEmoji(room.icon) || roomGlyph(room.icon)} ${clean(room.name) || option.value}`;
+    if (temperature && !editing && (clean(room.temp) || clean(room.hum)) && option.value !== current) option.disabled = true;
+    options.push(option);
+  });
+  select.replaceChildren(...options);
+  if ([...select.options].some((option) => option.value === current)) select.value = current;
+  select.dataset.dmBeta16CanonicalRooms = "true";
+  return true;
+}
+
+function repairRoomSelects() {
+  replaceRoomOptions(doc?.getElementById?.("ed-cl-room"));
+  doc?.querySelectorAll?.('#dm-climate-editor-modal select[name="room"],#dm-shutter-editor-modal select[name="room"]')?.forEach((select) => replaceRoomOptions(select));
+  replaceRoomOptions(doc?.getElementById?.("dm-temperature-room"), { temperature: true });
+}
+
+function repairClimateRoomHeadings() {
+  const rooms = canonicalRooms();
+  let repaired = false;
+  for (const [gridId, glyph] of [
+    ["clima-grid-freddo", "❄️"],
+    ["clima-grid-caldo", "🔥"],
+  ]) {
+    const grid = doc?.getElementById?.(gridId);
+    if (!grid) continue;
+    let currentRoom = null;
+    [...grid.children].forEach((node) => {
+      if (node.classList.contains("cp-card")) {
+        const icon = node.querySelector(".cp-icon");
+        if (icon) icon.textContent = glyph;
+        let badge = node.querySelector(":scope > .dm-beta16-climate-room");
+        if (currentRoom) {
+          if (!badge) {
+            badge = doc.createElement("div");
+            badge.className = "dm-beta16-climate-room";
+            const header = node.querySelector(":scope > .cp-header");
+            if (header) header.after(badge);
+            else node.prepend(badge);
+          }
+          badge.textContent = `🏠 ${clean(currentRoom.name)}`;
+          badge.title = clean(currentRoom.name);
+          node.dataset.dmBeta16RoomId = clean(currentRoom.id || currentRoom.name);
+        } else {
+          badge?.remove();
+          delete node.dataset.dmBeta16RoomId;
+        }
+        repaired = true;
+        return;
+      }
+
+      const text = clean(node.textContent);
+      if (!text.includes("🏠")) return;
+      const roomReference = clean(text.split("🏠").pop());
+      const room = matchCanonicalRoom(rooms, roomReference);
+      const noRoom = /^(nessuna stanza|no room)$/i.test(roomReference);
+      currentRoom = room || null;
+      node.classList.add("clima-section-title", "dm-beta16-climate-group-heading");
+      if (room) {
+        const prefix = text.includes("🏢") ? `${clean(text.split("🏠")[0])} ` : "";
+        const name = clean(room.name) || roomReference;
+        node.textContent = `${prefix}🏠 ${name}`.trim();
+        node.dataset.dmBeta16RoomLabel = clean(room.id || name);
+        node.title = name;
+      } else if (noRoom) {
+        node.dataset.dmBeta16RoomLabel = "";
+      }
+      repaired = true;
+    });
+  }
+  return repaired;
+}
+
+function applyTemperatureFilter() {
+  const grid = doc?.getElementById?.("temp-grid");
+  if (!grid) return false;
+  const filter = state.temperatureFilter;
+  grid.querySelectorAll(".temp-card[data-room-id],.dm-temperature-card[data-room-id]").forEach((card) => {
+    const visible = filter === "all" || clean(card.dataset.roomId) === filter;
+    if (visible) card.style.removeProperty("display");
+    else card.style.setProperty("display", "none", "important");
+  });
+  const tabs = doc?.getElementById?.("dm-beta16-temperature-tabs");
+  tabs?.querySelectorAll?.("button[data-room-filter]").forEach((button) => {
+    const active = clean(button.dataset.roomFilter) === filter;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  return true;
+}
+
+function repairTemperatureTabs() {
+  const page = doc?.getElementById?.("page-temp");
+  const grid = doc?.getElementById?.("temp-grid");
+  if (!page || !grid) return false;
+  const rooms = canonicalRooms().filter((room) => clean(room.temp) || clean(room.hum));
+  const signature = JSON.stringify(rooms.map((room) => [room.id, room.name, room.icon]));
+  let tabs = doc.getElementById("dm-beta16-temperature-tabs");
+  if (!tabs) {
+    tabs = doc.createElement("nav");
+    tabs.id = "dm-beta16-temperature-tabs";
+    tabs.className = "dm-temperature-room-tabs";
+    tabs.setAttribute("aria-label", english() ? "Temperature rooms" : "Stanze temperatura");
+    grid.before(tabs);
+  }
+  if (signature !== state.temperatureTabsSignature) {
+    state.temperatureTabsSignature = signature;
+    const values = [
+      { id: "all", name: english() ? "All" : "Tutte", icon: "🏠" },
+      ...rooms.map((room) => ({
+        id: clean(room.id),
+        name: clean(room.name) || clean(room.id),
+        icon: directEmoji(room.icon) || roomGlyph(room.icon),
+      })),
+    ];
+    tabs.replaceChildren(...values.map((room) => {
+      const button = doc.createElement("button");
+      button.type = "button";
+      button.dataset.roomFilter = room.id;
+      button.innerHTML = `<span aria-hidden="true">${room.icon}</span><b></b>`;
+      button.querySelector("b").textContent = room.name;
+      button.addEventListener("click", () => {
+        state.temperatureFilter = room.id;
+        applyTemperatureFilter();
+      });
+      return button;
+    }));
+    if (state.temperatureFilter !== "all" && !rooms.some((room) => clean(room.id) === state.temperatureFilter)) state.temperatureFilter = "all";
+  }
+  tabs.hidden = rooms.length === 0;
+  applyTemperatureFilter();
+  return true;
+}
+
+function decoratePool() {
+  const hero = doc?.querySelector?.("#page-piscina #pool-wrap .pool-hero");
+  if (!hero) return false;
+  hero.dataset.dmBeta16Pool = "true";
+  hero.closest("#pool-wrap")?.setAttribute?.("data-dm-beta16-pool-wrap", "true");
+  return true;
+}
+
+function run() {
+  state.frame = 0;
+  climateRoomMigration();
+  repairQuickActionRows();
+  repairClimateEditorRows();
+  repairTemperatureEditorRows();
+  repairRoomSelects();
+  repairClimateRoomHeadings();
+  repairTemperatureTabs();
+  decoratePool();
+}
+
+function schedule() {
+  if (state.frame) return;
+  state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
+}
+
+function installOwners() {
+  for (const name of [
+    "buildQuickActions",
+    "editorSwitch",
+    "edAddQA",
+    "edAddClima",
+    "buildTempCards",
+    "renderTemperature",
+    "buildClimaCards",
+    "setClimaPageMode",
+    "renderPiscina",
+  ]) wrapFunction(name, `__dmBeta16_${name}`, schedule);
+}
+
+function subscribeStore() {
+  if (state.storeUnsubscribe) return;
+  const store = dashboardStore();
+  if (typeof store?.subscribe !== "function") return;
+  state.storeUnsubscribe = store.subscribe((change) => {
+    if (["rooms", "snapshot"].includes(change?.section)) schedule();
+  });
+}
+
+function installStyles() {
+  installStyle("dm-beta16-real-device-layout-style", `
+    #editor-modal #ed-body [data-dm-beta16-readable="true"]{display:block!important;min-width:0!important;overflow:hidden!important}
+    #editor-modal #ed-body [data-dm-beta16-readable="true"]>.ed-row-new{display:block!important;color:var(--primary-text-color,var(--text,#0f172a))!important;font-weight:900!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    #editor-modal #ed-body [data-dm-beta16-readable="true"]>.ed-row-old{display:block!important;margin-top:3px!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+
+    #page-clima .dm-beta16-climate-room{display:none}
+
+    #page-temp .dm-temperature-room-tabs{display:flex!important;align-items:center!important;gap:8px!important;width:100%!important;max-width:100%!important;margin:10px 0 4px!important;padding:4px 18px 6px!important;overflow-x:auto!important;scrollbar-width:none!important}
+    #page-temp .dm-temperature-room-tabs::-webkit-scrollbar{display:none!important}
+    #page-temp .dm-temperature-room-tabs>button{flex:0 0 auto!important;display:flex!important;align-items:center!important;gap:7px!important;min-height:42px!important;padding:8px 13px!important;border:1px solid var(--card-border,#e2e8f0)!important;border-radius:15px!important;background:var(--card-bg,#fff)!important;color:var(--text-dim,#64748b)!important;font:800 12px/1 Inter,system-ui,sans-serif!important;box-shadow:0 4px 12px rgba(15,23,42,.05)!important}
+    #page-temp .dm-temperature-room-tabs>button>span{font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-size:18px!important;line-height:1!important}
+    #page-temp .dm-temperature-room-tabs>button.active{border-color:rgba(14,165,233,.28)!important;background:linear-gradient(135deg,#e0f7ff,#c9efff)!important;color:#036995!important;box-shadow:0 7px 18px rgba(14,165,233,.12)!important}
+
+    #page-piscina #pool-wrap[data-dm-beta16-pool-wrap="true"]{box-sizing:border-box!important;width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}
+    #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"]{box-sizing:border-box!important;width:100%!important;max-width:100%!important;min-width:0!important;height:420px!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;border-radius:28px!important}
+    #page-piscina .pool-hero[data-dm-beta16-pool="true"]>.dm-beta12-pool-scene{inset:24px 24px 112px!important}
+    #page-piscina .pool-hero[data-dm-beta16-pool="true"] .dm-beta12-pool-basin{inset:0!important;border-width:8px!important;border-radius:32px!important}
+    #page-piscina .pool-hero[data-dm-beta16-pool="true"]>.pool-temp{z-index:4!important;left:52px!important;top:52px!important;width:104px!important;height:104px!important;font-size:34px!important}
+    #page-piscina .pool-hero[data-dm-beta16-pool="true"]>.pool-sub{z-index:4!important;left:48px!important;top:166px!important;width:auto!important;max-width:220px!important;margin:0!important;padding:7px 11px!important;border-radius:12px!important;background:rgba(3,105,161,.38)!important;color:#fff!important;font-size:12px!important;font-weight:850!important}
+    #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"]>.pool-chips{z-index:5!important;position:absolute!important;left:24px!important;right:24px!important;top:auto!important;bottom:22px!important;display:grid!important;grid-template-columns:repeat(auto-fit,minmax(110px,1fr))!important;gap:10px!important;width:auto!important;max-width:none!important;margin:0!important}
+    #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"] .pool-tg{position:static!important;inset:auto!important;display:grid!important;place-items:center!important;width:100%!important;min-width:0!important;max-width:none!important;min-height:60px!important;margin:0!important;padding:9px 8px!important;border-radius:18px!important;text-align:center!important}
+
+    @media(max-width:760px){
+      #page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"]{width:calc(100% - 12px)!important;margin:8px auto 14px!important;padding:4px!important;gap:3px!important;border-radius:20px!important}
+      #page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"] .clima-page-mode-btn{min-height:52px!important;padding:7px 6px!important;gap:6px!important;border-radius:16px!important;font-size:13px!important;letter-spacing:.8px!important}
+      #page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"] .clima-page-mode-btn .icon{font-size:21px!important}
+
+      #page-clima .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+      #page-clima .dm-beta16-climate-group-heading{display:none!important}
+      #page-clima .dm-beta16-climate-room{display:flex!important;align-items:center!important;min-width:0!important;margin:-2px 0 0!important;padding:3px 6px!important;border-radius:9px!important;background:rgba(14,165,233,.08)!important;color:var(--text-dim,#64748b)!important;font-size:8px!important;font-weight:850!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+      #page-clima .cp-card{box-sizing:border-box!important;min-width:0!important;padding:10px 8px!important;border-radius:17px!important;gap:7px!important}
+      #page-clima .cp-header{gap:5px!important;min-width:0!important}
+      #page-clima .cp-title-wrap{gap:5px!important;min-width:0!important}
+      #page-clima .cp-icon{width:29px!important;height:29px!important;min-width:29px!important;border-radius:9px!important;font-size:15px!important}
+      #page-clima .cp-name{min-width:0!important;max-width:100%!important;font-size:12px!important;line-height:1.1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+      #page-clima .cp-badge{padding:3px 6px!important;font-size:8px!important;white-space:nowrap!important}
+      #page-clima .cp-body{gap:6px!important;min-width:0!important}
+      #page-clima .cp-temp-target .lbl,#page-clima .cp-temp-current-lbl{font-size:7px!important;letter-spacing:.4px!important}
+      #page-clima .cp-temp-target .val{font-size:28px!important;line-height:1!important}
+      #page-clima .cp-temp-current{font-size:16px!important;line-height:1!important}
+      #page-clima .cp-controls{min-height:42px!important;padding:3px!important;border-radius:13px!important}
+      #page-clima .cp-btn{min-width:0!important;min-height:36px!important;font-size:22px!important}
+      #page-clima .cp-pwr{min-width:0!important;font-size:18px!important}
+      #page-clima .clima-section-title{margin:14px 0 8px 3px!important;font-size:11px!important;line-height:1.2!important}
+
+      #page-temp .dm-temperature-room-tabs{padding-left:8px!important;padding-right:8px!important;margin-top:6px!important}
+      #page-temp .dm-temperature-room-tabs>button{min-height:38px!important;padding:7px 10px!important;font-size:11px!important;border-radius:13px!important}
+
+      #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"]{height:318px!important;border-radius:22px!important}
+      #page-piscina .pool-hero[data-dm-beta16-pool="true"]>.dm-beta12-pool-scene{inset:12px 10px 88px!important}
+      #page-piscina .pool-hero[data-dm-beta16-pool="true"] .dm-beta12-pool-basin{inset:0!important;border-width:6px!important;border-radius:24px!important}
+      #page-piscina .pool-hero[data-dm-beta16-pool="true"]>.pool-temp{left:28px!important;top:31px!important;width:76px!important;height:76px!important;font-size:25px!important}
+      #page-piscina .pool-hero[data-dm-beta16-pool="true"]>.pool-sub{left:24px!important;top:112px!important;max-width:150px!important;padding:5px 8px!important;font-size:10px!important}
+      #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"]>.pool-chips{left:10px!important;right:10px!important;bottom:12px!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+      #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"] .pool-tg{min-height:52px!important;padding:7px 4px!important;border-radius:15px!important;font-size:11px!important;line-height:1.15!important}
+    }
+
+    @media(max-width:360px){
+      #page-clima .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+      #page-clima .cp-card{padding:9px 7px!important;border-radius:15px!important}
+      #page-clima .cp-name{font-size:11px!important}
+      #page-clima .dm-beta16-climate-room{font-size:7.5px!important;padding:3px 5px!important}
+      #page-clima .cp-temp-target .val{font-size:25px!important}
+      #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"]{height:300px!important}
+    }
+  `);
+}
+
+export function installBeta16RealDeviceLayout() {
+  installOwners();
+  subscribeStore();
+  if (state.installed || !doc) return;
+  state.installed = true;
+  installStyles();
+  for (const eventName of [
+    "dashboardmodern:legacy-ready",
+    "dashboardmodern:runtime-ready",
+    "dashboardmodern:states-ready",
+  ]) root.addEventListener?.(eventName, () => {
+    installOwners();
+    subscribeStore();
+    schedule();
+  });
+  doc.addEventListener("click", (event) => {
+    if (event.target?.closest?.("#editor-modal,#page-clima,#page-temp,#page-piscina")) schedule();
+  }, true);
+  doc.addEventListener("change", (event) => {
+    if (event.target?.closest?.("#editor-modal")) schedule();
+  }, true);
+  schedule();
+}
+
+if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", installBeta16RealDeviceLayout, { once: true });
+else installBeta16RealDeviceLayout();

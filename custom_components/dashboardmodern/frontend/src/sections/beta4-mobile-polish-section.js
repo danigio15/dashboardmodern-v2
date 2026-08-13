@@ -604,7 +604,7 @@ function installStyles() {
       #ed-body[data-dm-beta5-lights="true"] .dm-light-add-form{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;width:100%!important;min-width:0!important}
       #ed-body[data-dm-beta5-lights="true"] .dm-beta5-light-entity-row{display:grid!important;grid-template-columns:minmax(0,1fr) 52px!important;gap:8px!important;width:100%!important;min-width:0!important}
 
-      #page-clima[data-dm-beta5-climate="canonical"] .clima-premium-grid{grid-template-columns:1fr!important;gap:12px!important}
+      #page-clima[data-dm-beta5-climate="canonical"] .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
       #page-clima[data-dm-beta5-climate="canonical"] .cp-card{min-height:0!important;height:auto!important;max-height:none!important;padding:14px!important;gap:11px!important;border-radius:20px!important}
       #page-clima[data-dm-beta5-climate="canonical"] .cp-body{padding:6px 3px!important;gap:12px!important}
       #page-clima[data-dm-beta5-climate="canonical"] .cp-temp-target .val{font-size:34px!important}

@@ -93,10 +93,13 @@ test("day and month Energy maps keep every secondary load node and connector vis
   assert.match(entry, /display:block!important/);
 });
 
-test("climate cards have one-column natural compact geometry on mobile", async () => {
+test("climate cards have two-column natural compact geometry on mobile", async () => {
   const source = await read("src/sections/beta4-mobile-polish-section.js");
   assert.match(source, /data-dm-beta5-climate/);
-  assert.match(source, /\.clima-premium-grid\{grid-template-columns:1fr!important/);
+  assert.match(
+    source,
+    /\.clima-premium-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important;gap:8px!important\}/,
+  );
   assert.match(source, /\.cp-card\{min-height:0!important;height:auto!important;max-height:none!important/);
   assert.match(source, /\.cp-body\{display:grid!important;grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/);
   assert.match(source, /\.cp-controls\{min-height:52px!important;height:52px!important/);
