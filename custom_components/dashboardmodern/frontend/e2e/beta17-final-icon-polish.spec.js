@@ -122,20 +122,20 @@ async function openEditor(page, tab) {
 }
 
 async function pickerPalette(page) {
-  return page.locator('#dm-visual-picker[data-kind="room"] .dm-picker-option').evaluateAll((buttons) =>
-    buttons.map((button) => {
-      const glyph = button.querySelector(".dm-beta12-room-glyph");
-      return {
-        token: glyph?.dataset.token || "",
-        glyph: glyph?.textContent?.trim() || "",
-      };
-    }),
-  );
+  return page
+    .locator('#dm-visual-picker[data-kind="room"] .dm-picker-option')
+    .evaluateAll((buttons) =>
+      buttons.map((button) => {
+        const glyph = button.querySelector(".dm-beta12-room-glyph");
+        return {
+          token: glyph?.dataset.token || "",
+          glyph: glyph?.textContent?.trim() || "",
+        };
+      }),
+    );
 }
 
-test("beta17: Temperature never shows the meaningless update-in-progress subtitle", async ({
-  page,
-}, testInfo) => {
+test("beta17: Temperature hides progress copy", async ({ page }, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await boot(page, testInfo);
   await page.evaluate(() => {
@@ -144,19 +144,18 @@ test("beta17: Temperature never shows the meaningless update-in-progress subtitl
     renderTemperature();
   });
 
-  const initiallyVisible = await page.evaluate(() =>
-    [...document.querySelectorAll("#page-temp div,#page-temp span,#page-temp p,#page-temp small")].some(
+  const initiallyVisible = await page.evaluate(() => {
+    const selector = "#page-temp div,#page-temp span,#page-temp p,#page-temp small";
+    return [...document.querySelectorAll(selector)].some(
       (node) =>
         node.children.length === 0 &&
         /aggiornamento in corso/i.test(node.textContent || "") &&
         getComputedStyle(node).display !== "none" &&
         node.getClientRects().length > 0,
-    ),
-  );
+    );
+  });
   expect(initiallyVisible).toBe(false);
 
-  // Reproduce the legacy late write seen on the real HA WebView. The scoped
-  // guard must hide it before it can become a visible frame.
   await page.evaluate(() => {
     const status = document.createElement("span");
     status.id = "beta17-late-temperature-status";
@@ -170,9 +169,7 @@ test("beta17: Temperature never shows the meaningless update-in-progress subtitl
   );
 });
 
-test("beta17: Action picker is coloured in its first DOM mutation and never creates the old SVG picker", async ({
-  page,
-}, testInfo) => {
+test("beta17: Action picker is colored from first mutation", async ({ page }, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await boot(page, testInfo);
   await page.evaluate(() => {
@@ -185,7 +182,10 @@ test("beta17: Action picker is coloured in its first DOM mutation and never crea
     buildQuickActions();
   });
   await openEditor(page, "sez8");
-  await page.locator('#ed-body [data-dm-edit-kind="action"][data-dm-edit-index="0"]').click();
+  const edit = page.locator(
+    '#ed-body [data-dm-edit-kind="action"][data-dm-edit-index="0"]',
+  );
+  await edit.click();
   const preview = page.locator("#dm-action-editor-modal [data-action-icon-preview]");
   await expect(preview).toBeVisible();
   await expect(preview.locator("svg,ha-icon")).toHaveCount(0);
@@ -197,13 +197,12 @@ test("beta17: Action picker is coloured in its first DOM mutation and never crea
       records.forEach((record) => {
         record.addedNodes.forEach((node) => {
           if (!(node instanceof Element) || node.id !== "dm-visual-picker") return;
+          const first = ".dm-picker-option .dm-beta12-action-glyph";
           window.__beta17PickerMutations.push({
             kind: node.getAttribute("data-kind"),
             owner: node.getAttribute("data-dm-beta17-picker"),
             svgCount: node.querySelectorAll("svg,ha-icon").length,
-            firstGlyph:
-              node.querySelector(".dm-picker-option .dm-beta12-action-glyph")?.textContent?.trim() ||
-              "",
+            firstGlyph: node.querySelector(first)?.textContent?.trim() || "",
           });
         });
       });
@@ -218,9 +217,10 @@ test("beta17: Action picker is coloured in its first DOM mutation and never crea
   await expect(picker).toHaveAttribute("data-dm-beta17-picker", "action");
   await expect(picker).toHaveAttribute("data-dm-single-glyph-owner", "true");
   await expect(picker.locator("svg,ha-icon")).toHaveCount(0);
-  await expect(
-    picker.locator('.dm-picker-option[data-index="0"] .dm-beta12-action-glyph'),
-  ).toHaveText("🏠");
+  const firstGlyph = picker.locator(
+    '.dm-picker-option[data-index="0"] .dm-beta12-action-glyph',
+  );
+  await expect(firstGlyph).toHaveText("🏠");
 
   const mutations = await page.evaluate(() => {
     window.__beta17PickerObserver?.disconnect();
@@ -235,9 +235,7 @@ test("beta17: Action picker is coloured in its first DOM mutation and never crea
   });
 });
 
-test("beta17: room first insertion and modification open the exact same colour picker", async ({
-  page,
-}, testInfo) => {
+test("beta17: room add/edit share one color picker", async ({ page }, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await boot(page, testInfo);
   await openEditor(page, "stanze");
