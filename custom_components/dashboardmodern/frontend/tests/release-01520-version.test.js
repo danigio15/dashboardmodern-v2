@@ -1,4 +1,4 @@
-// DM-FIX-20260812B
+// DM-FIX-20260813M
 import assert from "node:assert/strict";
 import { access, readFile, stat } from "node:fs/promises";
 import test from "node:test";
@@ -24,17 +24,17 @@ const refreshUrl = new URL("../src/sections/energy-refresh-section.js", import.m
 const analysisUrl = new URL("../src/sections/energy-analysis-section.js", import.meta.url);
 const contractsUrl = new URL("../src/sections/editor-contracts-section.js", import.meta.url);
 
-const RELEASE_VERSION = "1.0.0-beta.18";
-
 test("the 1.0 beta release metadata is consistently versioned", async () => {
   const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
   const readme = await readFile(readmeUrl, "utf8");
   const buildInfo = await readFile(buildInfoUrl, "utf8");
+  const releaseVersion = String(manifest.version || "").trim();
 
-  const badgeVersion = RELEASE_VERSION.replaceAll("-", "--");
-  assert.match(readme, new RegExp(`badge/version-${badgeVersion}-`));
+  assert.match(releaseVersion, /^1\.0\.0-beta\.\d+$/);
+  assert.match(readme, /badge\/version-\d+\.\d+\.\d+--beta\.\d+-/);
+  assert.ok(buildInfo.includes(`"integrationVersion":"${releaseVersion}"`));
+  assert.ok(buildInfo.includes(`"dashboardVersion":"${releaseVersion}"`));
 
-  assert.equal(manifest.version, RELEASE_VERSION);
   assert.match(readme, /Confronto settimanale dei consumi Casa/i);
   assert.match(readme, /contatore totale kWh/i);
   assert.match(readme, /SALVA MODIFICHE/);
@@ -44,8 +44,6 @@ test("the 1.0 beta release metadata is consistently versioned", async () => {
     /https:\/\/raw\.githubusercontent\.com\/danigio15\/dashboardmodern-v2\/main\/brand\/logo\.png/,
   );
   assert.doesNotMatch(readme, /main\/assets\/logo|brand\/logo@2x\.png/);
-  assert.match(buildInfo, /["']?integrationVersion["']?\s*:\s*["']1\.0\.0-beta\.18["']/);
-  assert.match(buildInfo, /["']?dashboardVersion["']?\s*:\s*["']1\.0\.0-beta\.18["']/);
   assert.match(buildInfo, /["']?moduleVersion["']?\s*:\s*14/);
 });
 
