@@ -1,4 +1,4 @@
-// DM-FIX-20260813E
+// DM-FIX-20260812B
 /* DashboardModern personalization visuals. Room/action artwork is local; vehicle
    brand marks use pinned public SVG sources so the same canonical helper owns
    picker, editor, profile cards and EV header without post-render swapping. */
@@ -464,16 +464,14 @@ export function roomCatalogMatch(value) {
   const token = normalized(value).replace(/^mdi:/, "").replace(/[-_]+/g, " ");
   if (!token) return ROOM_CATALOG[0];
   return (
-    ROOM_CATALOG.find((item) => {
-      const itemMdi = normalized(item.mdi).replace(/^mdi:/, "").replace(/[-_]+/g, " ");
-      return (
+    ROOM_CATALOG.find(
+      (item) =>
         item.id === token ||
-        itemMdi === token ||
+        normalized(item.mdi).includes(token) ||
         `${item.keywords} ${item.it} ${item.en}`
           .split(/\s+/)
-          .some((word) => token.includes(normalized(word)))
-      );
-    }) || null
+          .some((word) => token.includes(normalized(word))),
+    ) || null
   );
 }
 
@@ -482,7 +480,7 @@ export function roomVisual(value, size = 48) {
   if (!item) return "";
   const safeSize = Math.max(16, Math.min(160, Number(size) || 48));
   const glyph = ROOM_GLYPHS[item.id] || roomGlyph(item.mdi);
-  return `<span class="dm-room-art dm-room-glyph dm-icon-engine-glyph dm-beta12-room-glyph" data-visual="${item.id}" data-dm-icon-engine-glyph="room" data-token="${item.mdi}" style="font-size:${safeSize}px"><span aria-hidden="true">${glyph}</span></span>`;
+  return `<span class="dm-room-art dm-room-glyph" data-visual="${item.id}" style="font-size:${safeSize}px"><span aria-hidden="true">${glyph}</span></span>`;
 }
 
 export function brandMatch(value) {
