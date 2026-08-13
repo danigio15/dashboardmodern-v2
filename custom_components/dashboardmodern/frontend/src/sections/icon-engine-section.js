@@ -1,4 +1,4 @@
-// DM-FIX-20260813C
+// DM-FIX-20260813D
 import {
   ACTION_ICON_CATALOG,
   CAR_BRANDS,
@@ -26,6 +26,14 @@ const ACTION_BUILTINS = Object.freeze({
   toggle: "mdi:toggle-switch-outline",
   script: "mdi:script-text-play",
   scene: "mdi:movie-open",
+});
+
+const ACTION_BUILTIN_COLORS = Object.freeze({
+  luci: "#f59e0b",
+  luci_group: "#f59e0b",
+  clima: "#0ea5e9",
+  antifurto: "#7c3aed",
+  lavatrice: "#0ea5e9",
 });
 
 function normalizeKind(value) {
@@ -57,7 +65,7 @@ export function iconGlyphMarkup(kind, value, { size = 38 } = {}) {
   const token = clean(value || (normalized === "room" ? "mdi:home" : "mdi:star"));
   const glyph = iconGlyph(normalized, token);
   const safeSize = Math.max(18, Math.min(72, Number(size) || 38));
-  return `<span class="dm-icon-engine-glyph ${glyphClass(normalized)}" data-dm-icon-engine-glyph="${normalized}" data-token="${esc(token)}" style="font-size:${safeSize}px"><span aria-hidden="true">${glyph}</span></span>`;
+  return `<span class="dm-icon-engine-glyph ${glyphClass(normalized)}" data-dm-icon-engine-glyph="${normalized}" data-token="${esc(token)}" style="font-size:${safeSize}px"><span aria-hidden="true">${esc(glyph)}</span></span>`;
 }
 
 function exactGlyph(target, kind, token, glyph) {
@@ -98,6 +106,7 @@ export function renderIconGlyph(target, kind, value, { size = 38 } = {}) {
   target.style.setProperty("--dm-icon-engine-glyph-size", `${Math.max(18, Math.min(72, Number(size) || 38))}px`);
   target.dataset.dmSingleGlyphOwner = "true";
   target.dataset.dmBeta12Colored = "true";
+  target.dataset.dmBeta12DisplayGlyph = glyph;
   return true;
 }
 
@@ -193,7 +202,7 @@ export function openIconPicker(input, kind = "action", options = {}) {
   modal.dataset.dmBeta12Colored = "true";
   modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>${copy.icon} ${copy.title}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${esc(copy.placeholder)}" data-search></div><div class="dm-picker-grid">${rows
     .map(
-      (item, index) => `<button type="button" class="dm-picker-option" data-index="${index}" data-search-text="${esc(item.search)}" aria-label="${esc(item.label)}" title="${esc(item.label)}"><span class="dm-picker-visual"${normalized === "car" ? "" : ` data-dm-icon-engine-owner="single" data-dm-icon-engine-glyph-value="${item.glyph}" style="--dm-icon-engine-glyph-size:${item.size}px"`}>${item.visual}</span>${normalized === "action" || normalized === "car" ? `<b>${esc(item.label)}</b>` : ""}</button>`,
+      (item, index) => `<button type="button" class="dm-picker-option${normalized === "room" ? " dm-beta17-room-option" : ""}" data-index="${index}" data-search-text="${esc(item.search)}" aria-label="${esc(item.label)}" title="${esc(item.label)}"><span class="dm-picker-visual"${normalized === "car" ? "" : ` data-dm-icon-engine-owner="single" data-dm-icon-engine-glyph-value="${esc(item.glyph)}" style="--dm-icon-engine-glyph-size:${item.size}px"`}>${item.visual}</span>${normalized === "action" || normalized === "car" ? `<b>${esc(item.label)}</b>` : ""}</button>`,
     )
     .join("")}</div></section>`;
   doc.body.append(modal);
@@ -241,11 +250,18 @@ function quickActionsFromRuntime() {
   }
 }
 
+function actionBuiltinKey(action = {}) {
+  return clean(action.builtin || action.type).replace(/^builtin_/, "").toLowerCase();
+}
+
 function actionToken(action = {}) {
   const configured = clean(action.icon);
   if (configured) return configured;
-  const builtin = clean(action.builtin || action.type).replace(/^builtin_/, "").toLowerCase();
-  return ACTION_BUILTINS[builtin] || "mdi:star";
+  return ACTION_BUILTINS[actionBuiltinKey(action)] || "mdi:star";
+}
+
+function actionColor(action = {}) {
+  return clean(action.color) || ACTION_BUILTIN_COLORS[actionBuiltinKey(action)] || "#0ea5e9";
 }
 
 export function syncQuickActionIcons() {
@@ -255,7 +271,7 @@ export function syncQuickActionIcons() {
   nodes.forEach((target, index) => {
     const action = actions[index] || {};
     const token = actionToken(action);
-    const color = clean(action.color) || "#0ea5e9";
+    const color = actionColor(action);
     renderIconGlyph(target, "action", token, { size: 42 });
     target.dataset.dmActionStyle = "icon-engine";
     target.style.setProperty("color", color, "important");
@@ -300,7 +316,11 @@ export function syncEditorIconSurfaces() {
     rooms = root.DashboardModernModules?.store?.getSection?.("rooms") || [];
   } catch (_error) {}
   if (!Array.isArray(rooms) || !rooms.length) {
-    try { rooms = JSON.parse(root.localStorage?.getItem("cd_stanze") || "[]"); } catch (_error) { rooms = []; }
+    try {
+      rooms = JSON.parse(root.localStorage?.getItem("cd_stanze") || "[]");
+    } catch (_error) {
+      rooms = [];
+    }
   }
   doc.querySelectorAll('#ed-body [data-dm-edit-kind="room"][data-dm-edit-index]').forEach((edit) => {
     const row = edit.closest(".ed-row");
@@ -332,6 +352,26 @@ export function syncEditorIconSurfaces() {
     changed = true;
   }
   return changed;
+}
+
+let editorSyncQueued = false;
+
+function scheduleEditorIconSurfaces() {
+  if (editorSyncQueued) return;
+  editorSyncQueued = true;
+  const run = () => {
+    editorSyncQueued = false;
+    syncEditorIconSurfaces();
+  };
+  if (typeof root.queueMicrotask === "function") root.queueMicrotask(run);
+  else Promise.resolve().then(run);
+}
+
+function scheduleEditorSyncAfterClick(event) {
+  if (!event.target?.closest?.(
+    '[data-dm-edit-kind="action"],[data-dm-edit-kind="room"],#dm-action-editor-modal,#dm-room-editor-modal,.dm-beta5-room-icon-trigger,.dm-beta6-qa-icon-trigger',
+  )) return;
+  scheduleEditorIconSurfaces();
 }
 
 function inputForLegacyButton(button) {
@@ -414,7 +454,7 @@ function wrapAfter(name, marker, callback) {
 function installRenderOwners() {
   wrapAfter("buildQuickActions", "__dmIconEngineQuickActions", syncQuickActionIcons);
   wrapAfter("render", "__dmIconEngineRender", syncQuickActionIcons);
-  wrapAfter("editorSwitch", "__dmIconEngineEditor", syncEditorIconSurfaces);
+  wrapAfter("editorSwitch", "__dmIconEngineEditor", scheduleEditorIconSurfaces);
 }
 
 function installLegacyBridge() {
@@ -438,8 +478,6 @@ function installStyles() {
       .dm-icon-engine-glyph{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-style:normal!important;font-weight:400!important;line-height:1!important;color:initial!important}
       .dm-icon-engine-glyph>span{display:block!important;line-height:1!important}
       [data-dm-icon-engine-owner="single"][data-dm-icon-engine-glyph-value]{position:relative!important;color:initial!important}
-      [data-dm-icon-engine-owner="single"][data-dm-icon-engine-glyph-value]>*{visibility:hidden!important;opacity:0!important}
-      [data-dm-icon-engine-owner="single"][data-dm-icon-engine-glyph-value]::before{content:attr(data-dm-icon-engine-glyph-value)!important;display:grid!important;place-items:center!important;position:absolute!important;inset:0!important;z-index:3!important;visibility:visible!important;opacity:1!important;font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-size:var(--dm-icon-engine-glyph-size,38px)!important;font-style:normal!important;font-weight:400!important;line-height:1!important;color:initial!important;pointer-events:none!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"]{z-index:100040!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-dialog{width:min(820px,calc(100vw - 22px))!important;max-height:min(88dvh,800px)!important;overflow:hidden!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-search{padding:12px 18px 8px!important}
@@ -471,6 +509,10 @@ export function installIconEngine() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
+  // Queue the canonical owner before activation stops older handlers. The
+  // microtask runs after the full event dispatch, so target listeners finish
+  // first but no legacy frame can paint between them and the canonical glyph.
+  root.addEventListener?.("click", scheduleEditorSyncAfterClick, true);
   // Window capture precedes every historical document-capture picker handler.
   root.addEventListener?.("click", handleActivation, true);
   root.addEventListener?.("keydown", handleActivation, true);
@@ -478,7 +520,7 @@ export function installIconEngine() {
     "input",
     (event) => {
       if (event.target?.matches?.("#dm-action-editor-modal input[name='icon'],#dm-room-editor-modal input[name='icon'],#ed-qa-icon")) {
-        syncEditorIconSurfaces();
+        scheduleEditorIconSurfaces();
       }
     },
     true,
@@ -487,7 +529,7 @@ export function installIconEngine() {
     "change",
     (event) => {
       if (event.target?.matches?.("#dm-action-editor-modal input[name='icon'],#dm-room-editor-modal input[name='icon'],#ed-qa-icon")) {
-        syncEditorIconSurfaces();
+        scheduleEditorIconSurfaces();
       }
     },
     true,
@@ -505,7 +547,7 @@ export function installIconEngine() {
       installLegacyBridge();
       installRenderOwners();
       syncQuickActionIcons();
-      syncEditorIconSurfaces();
+      scheduleEditorIconSurfaces();
     });
   }
 }
