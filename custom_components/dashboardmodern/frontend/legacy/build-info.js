@@ -7,5 +7,4 @@ import "../src/sections/beta12-real-device-polish-section.js";
 import "../src/sections/beta12-room-color-lock-section.js";
 import "../src/sections/beta14-real-device-hotfix-section.js";
 import "../src/sections/beta16-real-device-layout-section.js";
-import "../src/sections/icon-engine-owner-guard-section.js";
 export const BUILD_INFO = Object.freeze({"generated":true,"integrationVersion":"1.0.0-beta.17","dashboardVersion":"1.0.0-beta.17","moduleVersion":14,"schemaVersion":4,"date":"2026-08-12T18:17:51+00:00","commit":"6e7303980cf17c2e2931e15878eab3c4045d2c0b","assetHash":"4c9e657b79fadb14"});
