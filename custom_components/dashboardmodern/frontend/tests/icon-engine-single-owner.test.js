@@ -1,4 +1,4 @@
-// DM-FIX-20260813C
+// DM-FIX-20260813D
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
@@ -42,4 +42,23 @@ test("legacy icon owners delegate and no delayed public repaint loop remains", a
   assert.match(engine, /window capture|Window capture/i);
   assert.match(engine, /pointer:fine/);
   assert.doesNotMatch(engine, /setTimeout\?\.\([^)]*focus|setTimeout\([^)]*focus/);
+});
+
+test("single owner survives legacy listeners without pseudo duplicates", async () => {
+  const engine = await readFile(path.join(sections, "icon-engine-section.js"), "utf8");
+  assert.match(engine, /scheduleEditorIconSurfaces/);
+  assert.match(engine, /queueMicrotask/);
+  assert.match(engine, /dmBeta12DisplayGlyph = glyph/);
+  assert.doesNotMatch(
+    engine,
+    /data-dm-icon-engine-glyph-value[^\n]*::before\s*\{[^}]*content\s*:\s*attr\(/s,
+  );
+});
+
+test("single owner escapes custom glyph markup and preserves builtin action colors", async () => {
+  const engine = await readFile(path.join(sections, "icon-engine-section.js"), "utf8");
+  assert.match(engine, /\$\{esc\(glyph\)\}/);
+  assert.match(engine, /luci: "#f59e0b"/);
+  assert.match(engine, /antifurto: "#7c3aed"/);
+  assert.match(engine, /ACTION_BUILTIN_COLORS\[actionBuiltinKey\(action\)\]/);
 });
