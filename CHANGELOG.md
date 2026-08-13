@@ -4,6 +4,17 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.17 — 2026-08-13
+
+### Corretto
+
+- Eliminato lo sfarfallio delle icone nelle **Azioni rapide**: picker e preview nascono direttamente con il glifo colorato definitivo, senza passaggi SVG intermedi.
+- Unificato il picker icone delle **Stanze** tra primo inserimento e modifica usando il catalogo canonico, con ricerca bilingue e nomi accessibili per ogni scelta.
+- Rimossa dalla pagina **Temperature** la copia transitoria `Aggiornamento in corso...` senza nascondere il timestamp `Aggiornato alle ...` quando arriva il dato reale.
+- Caricato l'owner Beta17 anche dal `legacy/build-info.js` versionato, così checkout sorgente, sviluppo ed E2E usano lo stesso runtime del pacchetto generato.
+- Allineati gli E2E storici al picker Beta17 mantenendo i guard architetturali su ownership, cicli, polling e observer confinati al solo `#page-temp`.
+- Copertura Browser E2E su italiano/inglese e Chromium/WebKit desktop/mobile per picker stanze, stabilità first-paint e regressioni del runtime editor.
+
 ## 1.0.0-beta.16 — 2026-08-13
 
 ### Corretto

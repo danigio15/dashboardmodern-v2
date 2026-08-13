@@ -384,21 +384,28 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       page.locator('#ed-body button[title="Selettore icone"]'),
       testInfo,
     );
-    await expect(page.locator("#dm-icon-grid button")).toHaveCount(19);
-    for (const icon of ["🛏️", "🛋️", "🍳", "🛁", "💻", "🚗", "🌇", "🧺"])
-      await expect(page.locator("#dm-icon-grid button", { hasText: icon })).toHaveCount(1);
-    await page.locator("#dm-icon-search").fill("camera");
-    await expect(page.locator("#dm-icon-grid button", { hasText: "🛏️" })).toHaveCount(1);
-    await page.locator("#dm-icon-search").fill("bedroom");
-    await expect(page.locator("#dm-icon-grid button", { hasText: "🛏️" })).toHaveCount(1);
+    const roomPicker = page.locator('#dm-visual-picker[data-kind="room"]');
+    await expect(roomPicker).toBeVisible();
+    await expect(roomPicker).toHaveAttribute("data-dm-beta17-picker", "room");
+    const roomOptions = roomPicker.locator(".dm-beta17-room-option");
+    expect(await roomOptions.count()).toBeGreaterThanOrEqual(20);
+    for (const icon of ["🛏️", "🛋️", "🍳", "🚿", "💻", "🚗", "🌇", "🧺"]) {
+      expect(
+        await roomPicker.locator(".dm-beta12-room-glyph", { hasText: icon }).count(),
+      ).toBeGreaterThanOrEqual(1);
+    }
+    const roomSearch = roomPicker.locator("[data-search]");
+    await roomSearch.fill("bedroom");
+    await expect(roomPicker.getByRole("button", { name: /Camera|Bedroom/i })).toBeVisible();
+    await roomSearch.fill("camera");
+    expect(
+      await roomPicker.locator(".dm-beta17-room-option:not([hidden])").count(),
+    ).toBeGreaterThanOrEqual(1);
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-room-picker.png`,
     });
-    const closeIconPicker = page.getByRole("button", {
-      name: /Chiudi selettore icone|Close icon picker/i,
-    });
-    await clickStableButton(page, closeIconPicker, testInfo);
-    await expect(page.locator("#dm-iconpick")).toHaveCount(0);
+    await clickStableButton(page, roomPicker.locator("[data-close]"), testInfo);
+    await expect(roomPicker).toHaveCount(0);
     await page.evaluate(() => window.editorSwitch("luci"));
     await assertPickerInvariant();
     const lightAddEntity = page.locator("#ed-body [data-light-add-entity]");
