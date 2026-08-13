@@ -4,6 +4,7 @@ import test from "node:test";
 
 const catalogUrl = new URL("../src/core/personalization-catalog.js", import.meta.url);
 const personalizationUrl = new URL("../src/sections/personalization-section.js", import.meta.url);
+const iconEngineUrl = new URL("../src/sections/icon-engine-section.js", import.meta.url);
 const flowUrl = new URL("../src/sections/energy-flow-section.js", import.meta.url);
 const energyUrl = new URL("../src/sections/energy-section.js", import.meta.url);
 const reportUrl = new URL("../src/sections/energy-report-polish-section.js", import.meta.url);
@@ -12,14 +13,20 @@ const temperatureUrl = new URL("../src/sections/temperature-section.js", import.
 const shutterUrl = new URL("../src/sections/shutter-section.js", import.meta.url);
 const guardUrl = new URL("../src/sections/beta7-brand-guard-section.js", import.meta.url);
 
-test("quick actions use local SVG artwork and the stable beta9 picker", async () => {
-  const [catalog, guard, personalization] = await Promise.all([
+test("quick actions use canonical colour glyphs and the single-owner icon picker", async () => {
+  const [catalog, guard, personalization, engine] = await Promise.all([
     readFile(catalogUrl, "utf8"),
     readFile(guardUrl, "utf8"),
     readFile(personalizationUrl, "utf8"),
+    readFile(iconEngineUrl, "utf8"),
   ]);
-  assert.match(catalog, /const ACTION_ARTWORK = Object\.freeze/);
-  assert.match(catalog, /return svg\(ACTION_ARTWORK\[item\.id\]/);
+  assert.match(catalog, /export const ACTION_ICON_CATALOG/);
+  assert.match(catalog, /"mdi:lightbulb",\s*"💡"/);
+  assert.match(catalog, /class=\"dm-action-glyph\"/);
+  assert.match(engine, /modal\.id = "dm-visual-picker"/);
+  assert.match(engine, /event\.stopImmediatePropagation\(\)/);
+  assert.match(engine, /openIconPicker\(activation\.input, activation\.kind/);
+  assert.match(engine, /dm-beta9-action-picker/);
   assert.match(guard, /dm-beta9-action-picker/);
   assert.match(guard, /input\.value = item\.mdi/);
   assert.match(guard, /html body #page-home #qa-grid/);
