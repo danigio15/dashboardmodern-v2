@@ -1,4 +1,4 @@
-// DM-FIX-20260812B
+// DM-FIX-20260813E
 import { canonicalClimateType } from "../core/device-model.js";
 import {
   clean,
@@ -94,6 +94,16 @@ function iconMarkup(value, fallback = "🔘", size = 34) {
   return esc(fallback);
 }
 
+function renderIconPreview(target, kind, value, fallback, size = 36) {
+  if (!target) return false;
+  const icon = clean(value) || fallback;
+  try {
+    if (root.DashboardModernIconEngine?.render?.(target, kind, icon, { size })) return true;
+  } catch (_error) {}
+  target.innerHTML = iconMarkup(icon, fallback, size);
+  return true;
+}
+
 function modalShell(kind, title, body, headerIcon = "✏️") {
   const modal = doc.createElement("div");
   modal.id = `dm-${kind}-editor-modal`;
@@ -148,8 +158,7 @@ function syncActionEditor(form) {
   icon.closest("label")?.classList.remove("dm-canonical-icon");
   const entityField = form.querySelector("[data-action-entity-field]");
   if (entityField) entityField.hidden = builtin;
-  const preview = form.querySelector("[data-action-icon-preview]");
-  if (preview) preview.innerHTML = iconMarkup(icon.value, canonical, 36);
+  renderIconPreview(form.querySelector("[data-action-icon-preview]"), "action", icon.value, canonical, 36);
   const header = form.closest(".dm-section-dialog")?.querySelector(".dm-editor-header-icon");
   if (header) header.textContent = canonical;
 }
@@ -174,8 +183,13 @@ function openActionEditor(item, index) {
   form.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
   form.elements.type.addEventListener("change", () => syncActionEditor(form));
   form.elements.icon.addEventListener("input", () => {
-    const preview = form.querySelector("[data-action-icon-preview]");
-    if (preview) preview.innerHTML = iconMarkup(form.elements.icon.value, actionTypeIcon(form.elements.type.value), 36);
+    renderIconPreview(
+      form.querySelector("[data-action-icon-preview]"),
+      "action",
+      form.elements.icon.value,
+      actionTypeIcon(form.elements.type.value),
+      36,
+    );
   });
   syncActionEditor(form);
   form.addEventListener("submit", (event) => {
@@ -281,9 +295,10 @@ function openRoomEditor(item, index) {
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Piano", "Floor")}</span><input class="ed-input" name="floor" value="${esc(item.floor)}"></label>`,
     "🏠",
   );
+  const preview = form.querySelector("[data-room-icon-preview]");
+  renderIconPreview(preview, "room", initialIcon, "🏠", 36);
   form.elements.icon.addEventListener("input", () => {
-    const preview = form.querySelector("[data-room-icon-preview]");
-    if (preview) preview.innerHTML = iconMarkup(form.elements.icon.value, "🏠", 36);
+    renderIconPreview(preview, "room", form.elements.icon.value, "🏠", 36);
   });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
