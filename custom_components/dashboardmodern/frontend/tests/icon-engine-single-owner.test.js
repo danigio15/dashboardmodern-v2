@@ -1,4 +1,4 @@
-// DM-FIX-20260813F
+// DM-FIX-20260813G
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
@@ -8,6 +8,8 @@ import { actionVisual, roomVisual } from "../src/core/personalization-catalog.js
 
 const frontend = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sections = path.join(frontend, "src", "sections");
+const generatorUrl = new URL("../../../../scripts/generate_build_info.py", import.meta.url);
+const sentinelUrl = new URL("../legacy/build-info.js", import.meta.url);
 
 async function sectionSources() {
   const files = (await readdir(sections)).filter((name) => name.endsWith(".js"));
@@ -63,4 +65,24 @@ test("single owner escapes custom glyph markup and preserves builtin action colo
   assert.match(engine, /luci: "#f59e0b"/);
   assert.match(engine, /antifurto: "#7c3aed"/);
   assert.match(engine, /ACTION_BUILTIN_COLORS\[actionBuiltinKey\(action\)\]/);
+});
+
+test("final owner guard is scoped, microtask-driven and loaded after legacy polish", async () => {
+  const guard = await readFile(path.join(sections, "icon-engine-owner-guard-section.js"), "utf8");
+  const [generator, sentinel] = await Promise.all([
+    readFile(generatorUrl, "utf8"),
+    readFile(sentinelUrl, "utf8"),
+  ]);
+  for (const source of [generator, sentinel]) {
+    const beta16 = source.indexOf("beta16-real-device-layout-section.js");
+    const guardImport = source.indexOf("icon-engine-owner-guard-section.js");
+    assert.ok(beta16 >= 0);
+    assert.ok(guardImport > beta16);
+  }
+  assert.match(guard, /new root\.MutationObserver/);
+  assert.match(guard, /\["ed-body", "qa-grid", "temp-grid"\]/);
+  assert.match(guard, /queueMicrotask/);
+  assert.match(guard, /engine\.syncQuickActions\?\.\(\)/);
+  assert.match(guard, /engine\.syncEditor\?\.\(\)/);
+  assert.doesNotMatch(guard, /observe\(doc\.body|observe\(document\.body|setInterval\s*\(/);
 });
