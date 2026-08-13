@@ -130,7 +130,10 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
   const observers = [...graph.entries()].filter(([, source]) => /new\s+(?:root\.)?MutationObserver\s*\(/.test(source));
-  assert.ok(observers.length <= 2, `too many production observers: ${observers.length}`);
+  // Beta17 contributes one page-scoped observer so delayed legacy writes on
+  // #page-temp cannot resurrect the progress placeholder. The loop below still
+  // rejects any observer rooted at document/body/documentElement.
+  assert.ok(observers.length <= 3, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,
