@@ -43,7 +43,8 @@ test("EV brand dropdown owns logo preview and model options and stays at the top
 test("room and temperature editors are repaired without a global observer", async () => {
   const source = await readFile(polishUrl, "utf8");
   assert.match(source, /dm-room-config-row/);
-  assert.match(source, /visual\.innerHTML = roomMarkup\(room, 34\)/);
+  assert.match(source, /DashboardModernIconEngine\?\.render\?\.\(visual, "room", token, \{ size: 31 \}\)/);
+  assert.doesNotMatch(source, /visual\.innerHTML = roomMarkup\(room, 34\);\s*visual\.dataset\.roomIcon/);
   assert.match(source, /select\.disabled = false/);
   assert.match(source, /select\.removeAttribute\("disabled"\)/);
   assert.match(source, /pointer-events", "auto", "important"/);
