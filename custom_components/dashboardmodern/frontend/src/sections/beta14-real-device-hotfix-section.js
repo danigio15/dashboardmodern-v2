@@ -1,4 +1,4 @@
-// DM-FIX-20260812B
+// DM-FIX-20260813J
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
 import {
   clean,
@@ -79,9 +79,14 @@ export function repairClimateLabels() {
 
 function setRoomGlyph(target, room) {
   const token = clean(room?.icon || "mdi:home");
-  const glyph = directEmoji(token) || roomGlyph(token);
   target.dataset.roomIcon = token;
   target.setAttribute("title", clean(room?.name));
+  const engine = root.DashboardModernIconEngine;
+  if (engine?.render) {
+    engine.render(target, "room", token, { size: 31 });
+    return;
+  }
+  const glyph = directEmoji(token) || roomGlyph(token);
   let visual = target.querySelector(".dm-beta14-room-glyph");
   if (!visual) {
     visual = doc.createElement("span");
@@ -124,6 +129,9 @@ export function repairRoomRows() {
 export function repairTemperatureRoomIcons() {
   const rooms = readJson("cd_stanze", []);
   doc?.querySelectorAll?.("#temp-grid [data-room-id],#temp-grid .temp-card")?.forEach((card) => {
+    // Canonical Temperature cards own their fallback node. beta14 must never
+    // flatten that node with textContent; the icon-engine owner reconciles it.
+    if (card.dataset?.dmTemperatureCanonical === "true") return;
     const id = clean(card.dataset?.roomId);
     const name = clean(card.dataset?.roomName || card.querySelector?.("[data-room-name],.name")?.textContent);
     const room = rooms.find((item) => id && clean(item.id) === id)
