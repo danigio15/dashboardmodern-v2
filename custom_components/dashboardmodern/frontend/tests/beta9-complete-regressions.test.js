@@ -13,7 +13,7 @@ const temperatureUrl = new URL("../src/sections/temperature-section.js", import.
 const shutterUrl = new URL("../src/sections/shutter-section.js", import.meta.url);
 const guardUrl = new URL("../src/sections/beta7-brand-guard-section.js", import.meta.url);
 
-test("quick actions use canonical colour glyphs and the single-owner icon picker", async () => {
+test("quick actions use canonical colour glyphs and only the single-owner icon picker", async () => {
   const [catalog, guard, personalization, engine] = await Promise.all([
     readFile(catalogUrl, "utf8"),
     readFile(guardUrl, "utf8"),
@@ -27,8 +27,8 @@ test("quick actions use canonical colour glyphs and the single-owner icon picker
   assert.match(engine, /event\.stopImmediatePropagation\(\)/);
   assert.match(engine, /openIconPicker\(activation\.input, activation\.kind/);
   assert.match(engine, /dm-beta9-action-picker/);
-  assert.match(guard, /dm-beta9-action-picker/);
-  assert.match(guard, /input\.value = item\.mdi/);
+  assert.doesNotMatch(guard, /openStableActionPicker|modal\.id = "dm-beta9-action-picker"/);
+  assert.doesNotMatch(guard, /ACTION_ICON_CATALOG|actionVisual/);
   assert.match(guard, /html body #page-home #qa-grid/);
   assert.match(personalization, /AZIONI\\s\+RAPIDE\\s\+PREMIUM/);
   assert.match(personalization, /"AZIONI RAPIDE"/);
