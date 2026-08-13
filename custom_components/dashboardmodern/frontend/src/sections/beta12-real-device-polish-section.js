@@ -99,141 +99,28 @@ function mergedRooms() {
 }
 
 function repairQuickActionHome() {
-  const actions = configuredQuickActions();
-  const nodes = [...(doc?.querySelectorAll?.("#qa-grid .qa-btn .icon") || [])];
-  nodes.forEach((target, index) => {
-    const action = actions[index] || {};
-    const token = actionToken(action);
-    const glyph = actionGlyphFromToken(token);
-    const signature = `${token}|${glyph}`;
-    if (target.dataset.dmBeta12Action === signature && target.querySelector(".dm-beta12-action-glyph")) return;
-    target.dataset.dmBeta12Action = signature;
-    target.dataset.dmActionStyle = "beta12-color";
-    target.innerHTML = nativeGlyphMarkup(glyph, "dm-beta12-action-glyph", token);
-  });
-  return nodes.length > 0;
+  return Boolean(root.DashboardModernIconEngine?.syncQuickActions?.());
 }
 
 function repairQuickActionRows() {
-  const actions = configuredQuickActions();
-  const edits = [...(doc?.querySelectorAll?.('#ed-body [data-dm-edit-kind="action"][data-dm-edit-index]') || [])];
-  edits.forEach((edit) => {
-    const row = edit.closest(".ed-row");
-    if (!row) return;
-    const index = Number.parseInt(edit.dataset.dmEditIndex || "-1", 10);
-    const action = index >= 0 ? actions[index] || {} : {};
-    const token = actionToken(action);
-    let target = row.querySelector(".dm-beta7-existing-action-icon");
-    if (!target) {
-      target = doc.createElement("span");
-      target.className = "dm-beta7-existing-action-icon";
-      row.prepend(target);
-    }
-    target.dataset.dmBeta12Action = token;
-    target.innerHTML = nativeGlyphMarkup(actionGlyphFromToken(token), "dm-beta12-action-glyph", token);
-  });
-
-  const trigger = doc?.querySelector?.("#ed-body .dm-beta6-qa-icon-trigger");
-  const iconInput = doc?.getElementById?.("ed-qa-icon");
-  const type = doc?.getElementById?.("ed-qa-type");
-  if (trigger && iconInput && type) {
-    const rawType = clean(type.value).toLowerCase();
-    const action = {
-      type: rawType.startsWith("builtin_") ? "builtin" : rawType,
-      builtin: rawType.startsWith("builtin_") ? rawType.slice(8) : "",
-      icon: clean(iconInput.value),
-    };
-    const token = actionToken(action);
-    trigger.dataset.dmBeta12Action = token;
-    trigger.innerHTML = nativeGlyphMarkup(actionGlyphFromToken(token), "dm-beta12-action-glyph", token);
-  }
-  return edits.length > 0 || Boolean(trigger);
+  return Boolean(root.DashboardModernIconEngine?.syncEditor?.());
 }
 
 function repairRoomRows() {
-  const rooms = mergedRooms();
-  if (!rooms.length) return false;
-  const edits = [...(doc?.querySelectorAll?.('#ed-body [data-dm-edit-kind="room"][data-dm-edit-index]') || [])];
-  edits.forEach((edit) => {
-    const row = edit.closest(".ed-row");
-    if (!row) return;
-    const index = Number.parseInt(edit.dataset.dmEditIndex || "-1", 10);
-    const room = index >= 0 ? rooms[index] : null;
-    if (!room) return;
-    row.classList.add("dm-beta12-room-row");
-    let target = row.querySelector(":scope > .dm-room-list-icon");
-    if (!target) {
-      target = doc.createElement("span");
-      target.className = "dm-room-list-icon";
-      row.prepend(target);
-    }
-    const token = clean(room.icon || room.name || "mdi:home");
-    target.dataset.roomIcon = token;
-    target.dataset.dmBeta12Room = "true";
-    target.innerHTML = nativeGlyphMarkup(roomGlyph(token), "dm-beta12-room-glyph", token);
-  });
-  return edits.length > 0;
+  return Boolean(root.DashboardModernIconEngine?.syncEditor?.());
 }
 
 function repairRoomCards() {
-  const rooms = mergedRooms();
-  if (!rooms.length) return false;
-  doc?.querySelectorAll?.(".dm-temperature-card[data-room-id]").forEach((card) => {
-    const room = rooms.find((item) => clean(item?.id) === clean(card.dataset.roomId));
-    const target = card.querySelector(".dm-temperature-card-icon");
-    if (!room || !target) return;
-    const token = clean(room.icon || room.name || "mdi:home");
-    target.dataset.roomIcon = token;
-    target.innerHTML = nativeGlyphMarkup(roomGlyph(token), "dm-beta12-room-glyph", token);
-  });
-  return true;
+  return Boolean(root.DashboardModernIconEngine?.syncEditor?.());
 }
 
 function decorateVisualPicker() {
-  const picker = doc?.getElementById?.("dm-visual-picker");
-  if (!picker) return false;
-  const kind = clean(picker.dataset.kind);
-  if (kind !== "room" && kind !== "action") return false;
-  const catalog = kind === "room" ? ROOM_CATALOG : ACTION_ICON_CATALOG;
-  picker.dataset.dmBeta12Colored = "true";
-  picker.querySelectorAll(".dm-picker-option[data-index]").forEach((button) => {
-    const index = Number.parseInt(button.dataset.index || "-1", 10);
-    const item = index >= 0 ? catalog[index] : null;
-    const target = button.querySelector(".dm-picker-visual");
-    if (!item || !target) return;
-    const glyph = kind === "room" ? roomGlyph(item.mdi || item.id) : (item.glyph || "⭐");
-    const token = item.mdi || item.id;
-    target.innerHTML = nativeGlyphMarkup(glyph, kind === "room" ? "dm-beta12-room-glyph" : "dm-beta12-action-glyph", token);
-  });
-  return true;
+  return Boolean(doc?.querySelector?.('#dm-visual-picker[data-dm-icon-engine="single-owner"]'));
 }
 
-function bindPreview(input, preview, kind) {
-  if (!input || !preview) return false;
-  const refresh = () => {
-    const token = clean(input.value || (kind === "room" ? "mdi:home" : "mdi:star"));
-    const glyph = kind === "room" ? roomGlyph(token) : actionGlyphFromToken(token);
-    preview.dataset.dmBeta12Colored = "true";
-    preview.innerHTML = nativeGlyphMarkup(glyph, kind === "room" ? "dm-beta12-room-glyph" : "dm-beta12-action-glyph", token);
-  };
-  if (preview.dataset.dmBeta12Bound !== "true") {
-    preview.dataset.dmBeta12Bound = "true";
-    input.addEventListener("input", refresh);
-    input.addEventListener("change", refresh);
-  }
-  refresh();
-  return true;
-}
 
 function repairModalPreviews() {
-  const roomModal = doc?.getElementById?.("dm-room-editor-modal");
-  if (roomModal) bindPreview(roomModal.querySelector('input[name="icon"]'), roomModal.querySelector("[data-room-icon-preview]"), "room");
-  const actionModal = doc?.getElementById?.("dm-action-editor-modal");
-  if (actionModal) {
-    const form = actionModal.querySelector("form");
-    bindPreview(form?.elements?.icon, form?.querySelector?.("[data-action-icon-preview]"), "action");
-  }
-  return Boolean(roomModal || actionModal);
+  return Boolean(root.DashboardModernIconEngine?.syncEditor?.());
 }
 
 function repairClimateSwitch() {

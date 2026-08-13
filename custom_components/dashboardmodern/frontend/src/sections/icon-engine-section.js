@@ -94,6 +94,8 @@ export function renderIconGlyph(target, kind, value, { size = 38 } = {}) {
   }
   target.dataset.dmIconEngineSignature = signature;
   target.dataset.dmIconEngineOwner = "single";
+  target.dataset.dmIconEngineGlyphValue = glyph;
+  target.style.setProperty("--dm-icon-engine-glyph-size", `${Math.max(18, Math.min(72, Number(size) || 38))}px`);
   target.dataset.dmSingleGlyphOwner = "true";
   target.dataset.dmBeta12Colored = "true";
   return true;
@@ -115,6 +117,8 @@ function rowsFor(kind) {
       value: item.mdi,
       label: english ? item.en : item.it,
       search: `${item.it} ${item.en} ${item.keywords} ${item.mdi}`.toLowerCase(),
+      glyph: ROOM_GLYPHS[item.id] || roomGlyph(item.mdi),
+      size: 31,
       visual: iconGlyphMarkup("room", item.mdi, { size: 31 }),
     }));
   }
@@ -122,6 +126,8 @@ function rowsFor(kind) {
     value: item.mdi,
     label: english ? item.en : item.it,
     search: `${item.it} ${item.en} ${item.id} ${item.mdi}`.toLowerCase(),
+    glyph: item.glyph || actionGlyph(item.mdi),
+    size: 36,
     visual: iconGlyphMarkup("action", item.mdi, { size: 36 }),
   }));
 }
@@ -187,7 +193,7 @@ export function openIconPicker(input, kind = "action", options = {}) {
   modal.dataset.dmBeta12Colored = "true";
   modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>${copy.icon} ${copy.title}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${esc(copy.placeholder)}" data-search></div><div class="dm-picker-grid">${rows
     .map(
-      (item, index) => `<button type="button" class="dm-picker-option" data-index="${index}" data-search-text="${esc(item.search)}" aria-label="${esc(item.label)}" title="${esc(item.label)}"><span class="dm-picker-visual">${item.visual}</span>${normalized === "action" || normalized === "car" ? `<b>${esc(item.label)}</b>` : ""}</button>`,
+      (item, index) => `<button type="button" class="dm-picker-option" data-index="${index}" data-search-text="${esc(item.search)}" aria-label="${esc(item.label)}" title="${esc(item.label)}"><span class="dm-picker-visual"${normalized === "car" ? "" : ` data-dm-icon-engine-owner="single" data-dm-icon-engine-glyph-value="${item.glyph}" style="--dm-icon-engine-glyph-size:${item.size}px"`}>${item.visual}</span>${normalized === "action" || normalized === "car" ? `<b>${esc(item.label)}</b>` : ""}</button>`,
     )
     .join("")}</div></section>`;
   doc.body.append(modal);
@@ -275,6 +281,50 @@ export function syncEditorIconSurfaces() {
     renderIconGlyph(roomPreview, "room", roomInput.value, { size: 38 });
     changed = true;
   }
+  const actions = quickActionsFromRuntime();
+  doc.querySelectorAll('#ed-body [data-dm-edit-kind="action"][data-dm-edit-index]').forEach((edit) => {
+    const row = edit.closest(".ed-row");
+    const index = Number.parseInt(edit.dataset.dmEditIndex || "-1", 10);
+    if (!row || index < 0) return;
+    let target = row.querySelector(".dm-beta7-existing-action-icon");
+    if (!target) {
+      target = doc.createElement("span");
+      target.className = "dm-beta7-existing-action-icon";
+      row.prepend(target);
+    }
+    renderIconGlyph(target, "action", actionToken(actions[index] || {}), { size: 29 });
+    changed = true;
+  });
+  let rooms = [];
+  try {
+    rooms = root.DashboardModernModules?.store?.getSection?.("rooms") || [];
+  } catch (_error) {}
+  if (!Array.isArray(rooms) || !rooms.length) {
+    try { rooms = JSON.parse(root.localStorage?.getItem("cd_stanze") || "[]"); } catch (_error) { rooms = []; }
+  }
+  doc.querySelectorAll('#ed-body [data-dm-edit-kind="room"][data-dm-edit-index]').forEach((edit) => {
+    const row = edit.closest(".ed-row");
+    const index = Number.parseInt(edit.dataset.dmEditIndex || "-1", 10);
+    const room = index >= 0 ? rooms[index] : null;
+    if (!row || !room) return;
+    let target = row.querySelector(":scope > .dm-room-list-icon");
+    if (!target) {
+      target = doc.createElement("span");
+      target.className = "dm-room-list-icon";
+      row.prepend(target);
+    }
+    const token = clean(room.icon || room.name || "mdi:home");
+    target.dataset.roomIcon = token;
+    renderIconGlyph(target, "room", token, { size: 31 });
+    changed = true;
+  });
+  doc.querySelectorAll(".dm-temperature-card[data-room-id]").forEach((card) => {
+    const room = rooms.find((item) => clean(item?.id) === clean(card.dataset.roomId));
+    const target = card.querySelector(".dm-temperature-card-icon");
+    if (!room || !target) return;
+    renderIconGlyph(target, "room", room.icon || room.name || "mdi:home", { size: 29 });
+    changed = true;
+  });
   const quickInput = doc.getElementById("ed-qa-icon");
   const quickPreview = doc.querySelector(".dm-beta6-qa-icon-trigger");
   if (quickInput && quickPreview) {
@@ -387,6 +437,9 @@ function installStyles() {
     `
       .dm-icon-engine-glyph{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-style:normal!important;font-weight:400!important;line-height:1!important;color:initial!important}
       .dm-icon-engine-glyph>span{display:block!important;line-height:1!important}
+      [data-dm-icon-engine-owner="single"][data-dm-icon-engine-glyph-value]{position:relative!important;color:initial!important}
+      [data-dm-icon-engine-owner="single"][data-dm-icon-engine-glyph-value]>*{visibility:hidden!important;opacity:0!important}
+      [data-dm-icon-engine-owner="single"][data-dm-icon-engine-glyph-value]::before{content:attr(data-dm-icon-engine-glyph-value)!important;display:grid!important;place-items:center!important;position:absolute!important;inset:0!important;z-index:3!important;visibility:visible!important;opacity:1!important;font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-size:var(--dm-icon-engine-glyph-size,38px)!important;font-style:normal!important;font-weight:400!important;line-height:1!important;color:initial!important;pointer-events:none!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"]{z-index:100040!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-dialog{width:min(820px,calc(100vw - 22px))!important;max-height:min(88dvh,800px)!important;overflow:hidden!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-search{padding:12px 18px 8px!important}

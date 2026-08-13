@@ -30,33 +30,18 @@ function qaMdi(value, type) {
 function qaType(action = {}) { return action.type === "builtin" ? `builtin_${clean(action.builtin)}` : clean(action.type); }
 function qaMarkup(value, type, size = 32) {
   const mdi = qaMdi(value, type);
-  try { const html = root.cdIconMarkup?.(mdi, size); if (clean(html)) return html; } catch (_error) {}
+  const canonical = root.DashboardModernIconEngine?.markup?.("action", mdi, { size });
+  if (clean(canonical)) return canonical;
   return actionVisual(mdi, size) || esc(qaPortable(value, type));
 }
 
-function closeQaPicker() { doc?.getElementById("dm-beta6-quick-icon-picker")?.remove(); }
-function openQaPicker(input, preview) {
-  if (!input) return;
-  closeQaPicker();
-  const modal = doc.createElement("div");
-  modal.id = "dm-beta6-quick-icon-picker";
-  modal.className = "dm-section-modal dm-visual-picker";
-  const english = clean(doc.documentElement?.lang).toLowerCase().startsWith("en");
-  modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>${t("Scegli icona azione","Choose action icon")}</strong><button type="button" data-close>✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${t("Cerca…","Search…")}" data-search></div><div class="dm-picker-grid dm-beta6-quick-icon-grid">${ACTION_ICON_CATALOG.map((item,index)=>`<button type="button" class="dm-picker-option" data-index="${index}" data-search-text="${esc(`${item.it} ${item.en} ${item.id} ${item.mdi}`.toLowerCase())}"><span class="dm-picker-visual">${qaMarkup(item.mdi,"",42)}</span><b>${esc(english?item.en:item.it)}</b></button>`).join("")}</div></section>`;
-  doc.body.append(modal);
-  modal.querySelector("[data-close]")?.addEventListener("click", closeQaPicker);
-  modal.addEventListener("click", (event) => { if (event.target === modal) closeQaPicker(); });
-  modal.querySelector("[data-search]")?.addEventListener("input", (event) => {
-    const query = clean(event.target.value).toLowerCase();
-    modal.querySelectorAll(".dm-picker-option").forEach((button) => { button.hidden = Boolean(query) && !button.dataset.searchText.includes(query); });
-  });
-  modal.querySelectorAll(".dm-picker-option").forEach((button) => button.addEventListener("click", () => {
-    const item = ACTION_ICON_CATALOG[Number(button.dataset.index)]; if (!item) return;
-    input.value = item.glyph; input.dataset.dmBeta7DefaultGlyph = "";
-    input.dispatchEvent(new Event("input",{bubbles:true})); input.dispatchEvent(new Event("change",{bubbles:true}));
-    if (preview) preview.innerHTML = qaMarkup(item.glyph, doc.getElementById("ed-qa-type")?.value, 32);
-    closeQaPicker();
-  }));
+function closeQaPicker() {
+  root.DashboardModernIconEngine?.closePicker?.();
+}
+function openQaPicker(input) {
+  return Boolean(
+    root.DashboardModernIconEngine?.openPicker?.(input, "action", { autofocus: false }),
+  );
 }
 
 function polishQaEditor() {
@@ -86,18 +71,11 @@ function polishQaEditor() {
   return true;
 }
 function polishQaCards() {
-  const grid=doc?.getElementById?.("qa-grid"); if (!grid) return false;
-  const actions=typeof root.getQuickActions==="function"?root.getQuickActions():[];
-  grid.querySelectorAll(".qa-btn").forEach((button,index)=>{
-    const action=actions[index]||{}, type=qaType(action), icon=qaPortable(action.icon,type), target=button.querySelector(".icon"); if(!target)return;
-    const token=`${qaMdi(icon,type)}|${icon}`; if(target.dataset.dmBeta7IconToken===token)return;
-    target.dataset.dmBeta7IconToken=token; target.innerHTML=qaMarkup(icon,type,30);
-  }); return true;
+  return Boolean(root.DashboardModernIconEngine?.syncQuickActions?.());
 }
 function installQaRenderer() {
-  const current=root.buildQuickActions; if(typeof current!=="function"||current.__dmBeta7QuickIcons)return false;
-  function wrapped(...args){const result=current.apply(this,args);root.queueMicrotask?.(polishQaCards);return result;}
-  Object.assign(wrapped,current); wrapped.__dmBeta7QuickIcons=true; wrapped.__dmPrevious=current; root.buildQuickActions=wrapped; polishQaCards(); return true;
+  polishQaCards();
+  return true;
 }
 
 function lightState(id){return allStates()?.[id]||root.currentEntity?.(id)||root.haState?.(id)||null;}

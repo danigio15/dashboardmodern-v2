@@ -81,11 +81,17 @@ function actionTypeOptions(item) {
 
 function iconMarkup(value, fallback = "🔘", size = 34) {
   const icon = clean(value) || fallback;
+  const kind = fallback === "🏠" ? "room" : "action";
   try {
-    const markup = root.cdIconMarkup?.(icon, size);
+    const markup = root.DashboardModernIconEngine?.markup?.(kind, icon, { size });
     if (markup) return markup;
   } catch (_error) {}
-  return esc(icon.startsWith("mdi:") ? fallback : icon);
+  if (!icon.startsWith("mdi:")) return esc(icon);
+  try {
+    const legacy = root.cdIconMarkup?.(icon, size);
+    if (legacy) return legacy;
+  } catch (_error) {}
+  return esc(fallback);
 }
 
 function modalShell(kind, title, body, headerIcon = "✏️") {

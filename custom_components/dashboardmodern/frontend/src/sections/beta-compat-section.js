@@ -30,30 +30,9 @@ function closeCanonicalRoomPicker() {
 }
 
 function openCanonicalRoomPicker(input) {
-  if (!input) return;
-  closeCanonicalRoomPicker();
-  const english = doc.documentElement.lang === "en";
-  const modal = doc.createElement("div");
-  modal.id = "dm-icon-picker";
-  modal.className = "dm-section-modal";
-  modal.innerHTML = `<section class="dm-section-dialog" role="dialog" aria-modal="true"><header><strong>🎨 ${english ? "Choose room icon" : "Scegli icona stanza"}</strong><button type="button" data-close aria-label="${english ? "Close icon picker" : "Chiudi selettore icone"}">✕</button></header><div style="padding:14px 18px 6px"><input id="dm-icon-search" class="ed-input" type="search" placeholder="🔎 ${english ? "Search…" : "Cerca…"}"></div><div id="dm-icon-grid" class="dm-beta-room-grid">${ROOM_PICKER.map(([icon, keywords]) => `<button type="button" data-icon="${icon}" data-keywords="${keywords}">${icon}</button>`).join("")}</div></section>`;
-  doc.body.append(modal);
-  const close = () => modal.remove();
-  modal.querySelector("[data-close]")?.addEventListener("click", close);
-  modal.addEventListener("click", (event) => { if (event.target === modal) close(); });
-  modal.querySelector("#dm-icon-search")?.addEventListener("input", (event) => {
-    const query = String(event.target.value || "").trim().toLowerCase();
-    modal.querySelectorAll("#dm-icon-grid button").forEach((button) => {
-      button.hidden = Boolean(query) && !String(button.dataset.keywords || "").includes(query);
-    });
-  });
-  modal.querySelectorAll("#dm-icon-grid button").forEach((button) => button.addEventListener("click", () => {
-    input.value = button.dataset.icon || "🏠";
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-    close();
-  }));
-  root.setTimeout?.(() => modal.querySelector("#dm-icon-search")?.focus(), 20);
+  return Boolean(
+    root.DashboardModernIconEngine?.openPicker?.(input, "room", { autofocus: false }),
+  );
 }
 
 function activeVehicleSignature() {

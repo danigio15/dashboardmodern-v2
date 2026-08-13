@@ -116,36 +116,9 @@ function iconMarkup(value, size = 38) {
 }
 
 function openVisualPicker(input, kind = "room") {
-  if (!input) return;
-  closePicker();
-  const modal = doc.createElement("div");
-  modal.id = "dm-visual-picker";
-  modal.className = "dm-section-modal dm-visual-picker";
-  modal.dataset.kind = kind;
-  const english = doc.documentElement.lang === "en";
-  const title = kind === "car" ? t("Scegli il brand auto", "Choose car brand") : kind === "action" ? t("Scegli l'icona azione", "Choose action icon") : t("Scegli l'icona stanza", "Choose room icon");
-  const titleIcon = kind === "car" ? "🚘" : kind === "action" ? "⚡" : "🏠";
-  const rows = kind === "car"
-    ? CAR_BRANDS.map((item) => ({ value: item.name, label: item.name, visual: carBrandVisual(item.name, 48), search: item.name }))
-    : kind === "action"
-      ? ACTION_ICON_CATALOG.map((item) => ({ value: item.mdi, label: english ? item.en : item.it, visual: actionVisual(item.mdi, 46), search: `${item.it} ${item.en} ${item.id} ${item.mdi}` }))
-      : ROOM_CATALOG.map((item) => ({ value: item.mdi, label: english ? item.en : item.it, visual: roomVisual(item.mdi, 46), search: `${item.it} ${item.en} ${item.keywords}` }));
-  modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>${titleIcon} ${title}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${t("Cerca…", "Search…")}" data-search></div><div class="dm-picker-grid">${rows.map((item, index) => `<button type="button" class="dm-picker-option" data-index="${index}" data-search-text="${esc(item.search.toLowerCase())}"><span class="dm-picker-visual">${item.visual}</span><b>${esc(item.label)}</b></button>`).join("")}</div></section>`;
-  doc.body.append(modal);
-  modal.querySelector("[data-close]")?.addEventListener("click", closePicker);
-  modal.addEventListener("click", (event) => { if (event.target === modal) closePicker(); });
-  modal.querySelector("[data-search]")?.addEventListener("input", (event) => {
-    const q = clean(event.target.value).toLowerCase();
-    modal.querySelectorAll(".dm-picker-option").forEach((button) => { button.hidden = Boolean(q) && !button.dataset.searchText.includes(q); });
-  });
-  modal.querySelectorAll(".dm-picker-option").forEach((button) => button.addEventListener("click", () => {
-    const item = rows[Number(button.dataset.index)];
-    if (!item) return;
-    input.value = item.value;
-    emitChange(input);
-    closePicker();
-  }));
-  root.setTimeout?.(() => modal.querySelector("[data-search]")?.focus(), 30);
+  return Boolean(
+    root.DashboardModernIconEngine?.openPicker?.(input, kind, { autofocus: false }),
+  );
 }
 
 function decorateRoomModal() {

@@ -113,42 +113,12 @@ function configuredActions() {
 }
 
 function polishQuickActions() {
-  const grid = doc?.getElementById("qa-grid");
-  if (!grid) return false;
-  const actions = configuredActions();
-  grid.querySelectorAll(".qa-btn").forEach((card, index) => {
-    const icon = card.querySelector(".icon");
-    if (!icon) return;
-    const visual = actionVisual(actions[index] || {});
-    icon.innerHTML = `<span class="dm-v01525-action-glyph" aria-hidden="true">${esc(visual.glyph)}</span>`;
-    icon.style.setProperty("filter", `drop-shadow(0 6px 12px ${visual.color}66)`, "important");
-    icon.style.setProperty("color", visual.color, "important");
-    icon.dataset.dmActionStyle = "v01525";
-  });
-
-  [...doc.querySelectorAll("#page-home h1,#page-home h2,#page-home h3,#page-home .section-title,#page-home .section-heading")]
-    .forEach((heading) => {
-      const value = clean(heading.textContent);
-      if (/azioni\s+rapide\s+premium/i.test(value))
-        heading.textContent = value.replace(/\s+premium/i, "");
-      if (/premium\s+quick\s+actions/i.test(value))
-        heading.textContent = value.replace(/premium\s+/i, "");
-    });
-  return true;
+  return Boolean(root.DashboardModernIconEngine?.syncQuickActions?.());
 }
 
 function polishActionPicker() {
-  const picker = doc?.getElementById("dm-beta9-action-picker") || doc?.querySelector('#dm-visual-picker[data-kind="action"]');
-  if (!picker) return false;
-  picker.querySelectorAll(".dm-picker-option").forEach((button) => {
-    const index = Number.parseInt(button.dataset.index || "-1", 10);
-    const item = ACTION_ICON_CATALOG[index];
-    if (!item) return;
-    const visual = button.querySelector(".dm-picker-visual");
-    if (visual) visual.innerHTML = `<span class="dm-v01525-picker-glyph" aria-hidden="true">${esc(item.glyph)}</span>`;
-  });
-  picker.dataset.dmActionStyle = "v01525";
-  return true;
+  const picker = doc?.querySelector?.('#dm-visual-picker[data-kind="action"][data-dm-icon-engine="single-owner"]');
+  return Boolean(picker);
 }
 
 function modelBelongsToBrand(brand, model) {
