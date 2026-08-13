@@ -1,0 +1,470 @@
+// DM-FIX-20260813C
+import {
+  ACTION_ICON_CATALOG,
+  CAR_BRANDS,
+  ROOM_CATALOG,
+  ROOM_GLYPHS,
+  actionCatalogMatch,
+  carBrandVisual,
+  directEmoji,
+  roomGlyph,
+} from "../core/personalization-catalog.js";
+import { clean, doc, esc, installStyle, root, t } from "./shared.js";
+
+const KEY = "__DASHBOARDMODERN_ICON_ENGINE__";
+const state = (root[KEY] ||= {
+  installed: false,
+  legacyBridge: null,
+});
+
+const ACTION_BUILTINS = Object.freeze({
+  luci: "mdi:lightbulb",
+  luci_group: "mdi:lightbulb-group",
+  clima: "mdi:snowflake",
+  antifurto: "mdi:shield-home",
+  lavatrice: "mdi:washing-machine",
+  toggle: "mdi:toggle-switch-outline",
+  script: "mdi:script-text-play",
+  scene: "mdi:movie-open",
+});
+
+function normalizeKind(value) {
+  const kind = clean(value).toLowerCase();
+  if (["room", "rooms", "stanza", "stanze"].includes(kind)) return "room";
+  if (["car", "cars", "vehicle", "brand"].includes(kind)) return "car";
+  return "action";
+}
+
+export function actionGlyph(value) {
+  const token = clean(value);
+  return directEmoji(token) || actionCatalogMatch(token)?.glyph || "⭐";
+}
+
+export function iconGlyph(kind, value) {
+  const normalized = normalizeKind(kind);
+  if (normalized === "room") return roomGlyph(value);
+  if (normalized === "action") return actionGlyph(value);
+  return "🚘";
+}
+
+function glyphClass(kind) {
+  return normalizeKind(kind) === "room" ? "dm-beta12-room-glyph" : "dm-beta12-action-glyph";
+}
+
+export function iconGlyphMarkup(kind, value, { size = 38 } = {}) {
+  const normalized = normalizeKind(kind);
+  if (normalized === "car") return carBrandVisual(value, size);
+  const token = clean(value || (normalized === "room" ? "mdi:home" : "mdi:star"));
+  const glyph = iconGlyph(normalized, token);
+  const safeSize = Math.max(18, Math.min(72, Number(size) || 38));
+  return `<span class="dm-icon-engine-glyph ${glyphClass(normalized)}" data-dm-icon-engine-glyph="${normalized}" data-token="${esc(token)}" style="font-size:${safeSize}px"><span aria-hidden="true">${glyph}</span></span>`;
+}
+
+function exactGlyph(target, kind, token, glyph) {
+  const normalized = normalizeKind(kind);
+  const child = target?.children?.length === 1 ? target.firstElementChild : null;
+  return Boolean(
+    child &&
+      child.classList.contains("dm-icon-engine-glyph") &&
+      child.classList.contains(glyphClass(normalized)) &&
+      clean(child.dataset.token) === token &&
+      clean(child.textContent) === glyph &&
+      !child.querySelector("svg,ha-icon,img"),
+  );
+}
+
+export function renderIconGlyph(target, kind, value, { size = 38 } = {}) {
+  if (!target) return false;
+  const normalized = normalizeKind(kind);
+  if (normalized === "car") {
+    const markup = iconGlyphMarkup("car", value, { size });
+    const signature = `car|${clean(value)}|${size}`;
+    if (target.dataset.dmIconEngineSignature !== signature || target.innerHTML !== markup) {
+      target.innerHTML = markup;
+      target.dataset.dmIconEngineSignature = signature;
+    }
+    target.dataset.dmIconEngineOwner = "single";
+    return true;
+  }
+  const token = clean(value || (normalized === "room" ? "mdi:home" : "mdi:star"));
+  const glyph = iconGlyph(normalized, token);
+  const signature = `${normalized}|${token}|${glyph}|${size}`;
+  if (!exactGlyph(target, normalized, token, glyph)) {
+    target.innerHTML = iconGlyphMarkup(normalized, token, { size });
+  }
+  target.dataset.dmIconEngineSignature = signature;
+  target.dataset.dmIconEngineOwner = "single";
+  target.dataset.dmSingleGlyphOwner = "true";
+  target.dataset.dmBeta12Colored = "true";
+  return true;
+}
+
+function rowsFor(kind) {
+  const normalized = normalizeKind(kind);
+  const english = doc?.documentElement?.lang === "en";
+  if (normalized === "car") {
+    return CAR_BRANDS.map((item) => ({
+      value: item.name,
+      label: item.name,
+      search: item.name.toLowerCase(),
+      visual: iconGlyphMarkup("car", item.name, { size: 48 }),
+    }));
+  }
+  if (normalized === "room") {
+    return ROOM_CATALOG.map((item) => ({
+      value: item.mdi,
+      label: english ? item.en : item.it,
+      search: `${item.it} ${item.en} ${item.keywords} ${item.mdi}`.toLowerCase(),
+      visual: iconGlyphMarkup("room", item.mdi, { size: 31 }),
+    }));
+  }
+  return ACTION_ICON_CATALOG.map((item) => ({
+    value: item.mdi,
+    label: english ? item.en : item.it,
+    search: `${item.it} ${item.en} ${item.id} ${item.mdi}`.toLowerCase(),
+    visual: iconGlyphMarkup("action", item.mdi, { size: 36 }),
+  }));
+}
+
+function pickerCopy(kind) {
+  const normalized = normalizeKind(kind);
+  if (normalized === "car") {
+    return {
+      icon: "🚘",
+      title: t("Scegli il brand auto", "Choose car brand"),
+      placeholder: t("Cerca brand…", "Search brand…"),
+    };
+  }
+  if (normalized === "room") {
+    return {
+      icon: "😀",
+      title: t("Scegli l'icona", "Choose icon"),
+      placeholder: t("Cerca (es. acqua, porta, fuoco)…", "Search (e.g. water, door, fire)…"),
+    };
+  }
+  return {
+    icon: "⚡",
+    title: t("Scegli icona azione", "Choose action icon"),
+    placeholder: t("Cerca…", "Search…"),
+  };
+}
+
+export function closeIconPicker() {
+  for (const id of [
+    "dm-visual-picker",
+    "dm-icon-picker",
+    "dm-beta6-quick-icon-picker",
+    "dm-beta9-action-picker",
+    "dm-beta5-room-picker",
+  ]) {
+    doc?.getElementById(id)?.remove();
+  }
+}
+
+function pointerCanAutofocus() {
+  try {
+    return Boolean(root.matchMedia?.("(hover:hover) and (pointer:fine)")?.matches);
+  } catch (_error) {
+    return false;
+  }
+}
+
+export function openIconPicker(input, kind = "action", options = {}) {
+  if (!doc || !input) return false;
+  const normalized = normalizeKind(kind);
+  closeIconPicker();
+  const rows = rowsFor(normalized);
+  const copy = pickerCopy(normalized);
+  const modal = doc.createElement("div");
+  modal.id = "dm-visual-picker";
+  modal.className = `dm-section-modal dm-visual-picker dm-icon-engine-picker dm-icon-engine-${normalized}-picker`;
+  modal.dataset.kind = normalized;
+  modal.dataset.dmIconEngine = "single-owner";
+  modal.dataset.dmSingleGlyphOwner = "true";
+  // Compatibility markers keep older regression contracts readable while the
+  // actual ownership lives here and nowhere in the beta compatibility layers.
+  modal.dataset.dmBeta17Picker = normalized;
+  modal.dataset.dmBeta12Colored = "true";
+  modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>${copy.icon} ${copy.title}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${esc(copy.placeholder)}" data-search></div><div class="dm-picker-grid">${rows
+    .map(
+      (item, index) => `<button type="button" class="dm-picker-option" data-index="${index}" data-search-text="${esc(item.search)}" aria-label="${esc(item.label)}" title="${esc(item.label)}"><span class="dm-picker-visual">${item.visual}</span>${normalized === "action" || normalized === "car" ? `<b>${esc(item.label)}</b>` : ""}</button>`,
+    )
+    .join("")}</div></section>`;
+  doc.body.append(modal);
+
+  const close = () => modal.remove();
+  modal.querySelector("[data-close]")?.addEventListener("click", close);
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) close();
+  });
+  const search = modal.querySelector("[data-search]");
+  search?.addEventListener("input", () => {
+    const query = clean(search.value).toLowerCase();
+    modal.querySelectorAll(".dm-picker-option").forEach((button) => {
+      button.hidden = Boolean(query) && !clean(button.dataset.searchText).includes(query);
+    });
+  });
+  modal.querySelectorAll(".dm-picker-option").forEach((button) => {
+    button.addEventListener("click", () => {
+      const item = rows[Number(button.dataset.index)];
+      if (!item) return;
+      input.value = item.value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      close();
+    });
+  });
+
+  // Never summon the software keyboard just because a picker opened on a
+  // phone/tablet. Keyboard activation or a fine desktop pointer may focus it.
+  const autofocus = options.autofocus === true || (options.autofocus !== false && pointerCanAutofocus());
+  if (autofocus) root.requestAnimationFrame?.(() => search?.focus({ preventScroll: true }));
+  return true;
+}
+
+function quickActionsFromRuntime() {
+  try {
+    const stored = JSON.parse(root.localStorage?.getItem("cd_quick_actions") || "[]");
+    if (Array.isArray(stored) && stored.length) return stored;
+  } catch (_error) {}
+  try {
+    const values = root.getQuickActions?.();
+    return Array.isArray(values) ? values : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function actionToken(action = {}) {
+  const configured = clean(action.icon);
+  if (configured) return configured;
+  const builtin = clean(action.builtin || action.type).replace(/^builtin_/, "").toLowerCase();
+  return ACTION_BUILTINS[builtin] || "mdi:star";
+}
+
+export function syncQuickActionIcons() {
+  if (!doc) return false;
+  const actions = quickActionsFromRuntime();
+  const nodes = [...doc.querySelectorAll("#qa-grid .qa-btn .icon")];
+  nodes.forEach((target, index) => {
+    const action = actions[index] || {};
+    const token = actionToken(action);
+    const color = clean(action.color) || "#0ea5e9";
+    renderIconGlyph(target, "action", token, { size: 42 });
+    target.dataset.dmActionStyle = "icon-engine";
+    target.style.setProperty("color", color, "important");
+    target.style.setProperty("filter", `drop-shadow(0 6px 12px ${color}4d)`, "important");
+  });
+  return nodes.length > 0;
+}
+
+export function syncEditorIconSurfaces() {
+  if (!doc) return false;
+  let changed = false;
+  const actionModal = doc.getElementById("dm-action-editor-modal");
+  const actionInput = actionModal?.querySelector('input[name="icon"]');
+  const actionPreview = actionModal?.querySelector("[data-action-icon-preview]");
+  if (actionInput && actionPreview) {
+    renderIconGlyph(actionPreview, "action", actionInput.value, { size: 38 });
+    changed = true;
+  }
+  const roomModal = doc.getElementById("dm-room-editor-modal");
+  const roomInput = roomModal?.querySelector('input[name="icon"]');
+  const roomPreview = roomModal?.querySelector("[data-room-icon-preview]");
+  if (roomInput && roomPreview) {
+    renderIconGlyph(roomPreview, "room", roomInput.value, { size: 38 });
+    changed = true;
+  }
+  const quickInput = doc.getElementById("ed-qa-icon");
+  const quickPreview = doc.querySelector(".dm-beta6-qa-icon-trigger");
+  if (quickInput && quickPreview) {
+    renderIconGlyph(quickPreview, "action", quickInput.value, { size: 32 });
+    changed = true;
+  }
+  return changed;
+}
+
+function inputForLegacyButton(button) {
+  const targetId = clean(button?.dataset?.iconTarget || button?.dataset?.entityTarget);
+  return (
+    (targetId && doc.getElementById(targetId)) ||
+    button?.closest?.(".dm-icon-field,.ed-form-row")?.querySelector?.("input.ed-icon-input,input") ||
+    button?.previousElementSibling ||
+    null
+  );
+}
+
+function activationFor(target) {
+  if (!target?.closest) return null;
+  if (target.closest(".dm-beta5-room-icon-trigger")) {
+    return { input: doc.getElementById("ed-room-icon"), kind: "room" };
+  }
+  if (target.closest(".dm-beta6-qa-icon-trigger")) {
+    return { input: doc.getElementById("ed-qa-icon"), kind: "action" };
+  }
+  const roomPreview = target.closest("#dm-room-editor-modal [data-room-icon-preview]");
+  if (roomPreview) {
+    return {
+      input: roomPreview.closest("#dm-room-editor-modal")?.querySelector('input[name="icon"]'),
+      kind: "room",
+    };
+  }
+  const actionPreview = target.closest("#dm-action-editor-modal [data-action-icon-preview]");
+  if (actionPreview) {
+    return {
+      input: actionPreview.closest("#dm-action-editor-modal")?.querySelector('input[name="icon"]'),
+      kind: "action",
+    };
+  }
+  const brandPreview = target.closest("[data-brand-preview]");
+  if (brandPreview) {
+    return {
+      input: brandPreview.closest("[data-ev-appearance]")?.querySelector("select[data-brand]"),
+      kind: "car",
+    };
+  }
+  const legacy = target.closest("button.dm-icon-picker,.dm-icon-preview-button");
+  if (legacy) {
+    const input = inputForLegacyButton(legacy);
+    if (!input || input.id === "ed-avv-icon" || legacy.dataset.iconCategory === "alerts") return null;
+    const category = clean(legacy.dataset.iconCategory || input.dataset?.iconCategory);
+    const hint = `${category} ${input.id || ""} ${legacy.title || ""}`;
+    return { input, kind: /room|stanza|rooms/i.test(hint) ? "room" : "action" };
+  }
+  return null;
+}
+
+function handleActivation(event) {
+  if (event.type === "keydown" && !["Enter", " "].includes(event.key)) return;
+  const activation = activationFor(event.target);
+  if (!activation?.input) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  openIconPicker(activation.input, activation.kind, {
+    autofocus: event.type === "keydown" ? true : undefined,
+  });
+}
+
+function wrapAfter(name, marker, callback) {
+  const current = root[name];
+  if (typeof current !== "function" || current[marker]) return false;
+  function wrapped(...args) {
+    const result = current.apply(this, args);
+    if (result && typeof result.finally === "function") result.finally(callback);
+    else callback();
+    return result;
+  }
+  Object.assign(wrapped, current);
+  wrapped[marker] = true;
+  wrapped.__dmPrevious = current;
+  root[name] = wrapped;
+  return true;
+}
+
+function installRenderOwners() {
+  wrapAfter("buildQuickActions", "__dmIconEngineQuickActions", syncQuickActionIcons);
+  wrapAfter("render", "__dmIconEngineRender", syncQuickActionIcons);
+  wrapAfter("editorSwitch", "__dmIconEngineEditor", syncEditorIconSurfaces);
+}
+
+function installLegacyBridge() {
+  const bridge = (target, category = "") => {
+    const input =
+      typeof target === "string" ? doc?.querySelector?.(target) : target instanceof Element ? target : null;
+    if (!input) return false;
+    return openIconPicker(input, normalizeKind(category || input.dataset?.iconCategory || "action"), {
+      autofocus: false,
+    });
+  };
+  bridge.__dmIconEngineBridge = true;
+  state.legacyBridge = bridge;
+  root.dmIconPicker = bridge;
+}
+
+function installStyles() {
+  installStyle(
+    "dm-icon-engine-style",
+    `
+      .dm-icon-engine-glyph{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-style:normal!important;font-weight:400!important;line-height:1!important;color:initial!important}
+      .dm-icon-engine-glyph>span{display:block!important;line-height:1!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"]{z-index:100040!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-dialog{width:min(820px,calc(100vw - 22px))!important;max-height:min(88dvh,800px)!important;overflow:hidden!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-search{padding:12px 18px 8px!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-search .ed-input{width:100%!important;box-sizing:border-box!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-grid{display:grid!important;gap:8px!important;padding:6px 16px 18px!important;max-height:60dvh!important;overflow:auto!important;overscroll-behavior:contain!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="room"] .dm-picker-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="action"] .dm-picker-grid,
+      #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="car"] .dm-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-option{box-sizing:border-box!important;min-width:0!important;min-height:94px!important;padding:9px 6px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:15px!important;background:var(--ha-card-background,var(--card-background-color,#fff))!important;color:var(--primary-text-color,#0f172a)!important;transform:none!important;transition:border-color .12s ease,box-shadow .12s ease!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="room"] .dm-picker-option{min-height:54px!important;padding:5px!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-option[hidden]{display:none!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-option:focus-visible{outline:2px solid var(--primary-color,#0ea5e9)!important;outline-offset:2px!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-visual{display:grid!important;place-items:center!important;min-width:0!important;min-height:44px!important;color:initial!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-option b{font-size:12px!important;line-height:1.15!important;text-align:center!important;white-space:normal!important}
+      @media (hover:none),(pointer:coarse){
+        .dm-visual-trigger,.dm-icon-preview-button,.dm-picker-option,.dm-beta6-qa-icon-trigger{transition:none!important;transform:none!important}
+      }
+      @media(max-width:560px){
+        #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-dialog{width:calc(100vw - 12px)!important;max-height:92dvh!important}
+        #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-grid{padding:5px 9px 14px!important;gap:6px!important;max-height:64dvh!important}
+        #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="room"] .dm-picker-option{min-height:48px!important;border-radius:12px!important}
+        #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="action"] .dm-picker-option{min-height:92px!important;border-radius:14px!important}
+      }
+    `,
+  );
+}
+
+export function installIconEngine() {
+  if (!doc || state.installed) return;
+  state.installed = true;
+  installStyles();
+  // Window capture precedes every historical document-capture picker handler.
+  root.addEventListener?.("click", handleActivation, true);
+  root.addEventListener?.("keydown", handleActivation, true);
+  doc.addEventListener(
+    "input",
+    (event) => {
+      if (event.target?.matches?.("#dm-action-editor-modal input[name='icon'],#dm-room-editor-modal input[name='icon'],#ed-qa-icon")) {
+        syncEditorIconSurfaces();
+      }
+    },
+    true,
+  );
+  doc.addEventListener(
+    "change",
+    (event) => {
+      if (event.target?.matches?.("#dm-action-editor-modal input[name='icon'],#dm-room-editor-modal input[name='icon'],#ed-qa-icon")) {
+        syncEditorIconSurfaces();
+      }
+    },
+    true,
+  );
+  installLegacyBridge();
+  installRenderOwners();
+  syncQuickActionIcons();
+  syncEditorIconSurfaces();
+  for (const eventName of [
+    "dashboardmodern:legacy-ready",
+    "dashboardmodern:runtime-ready",
+    "dashboardmodern:states-ready",
+  ]) {
+    root.addEventListener?.(eventName, () => {
+      installLegacyBridge();
+      installRenderOwners();
+      syncQuickActionIcons();
+      syncEditorIconSurfaces();
+    });
+  }
+}
+
+root.DashboardModernIconEngine = Object.freeze({
+  openPicker: openIconPicker,
+  closePicker: closeIconPicker,
+  markup: iconGlyphMarkup,
+  render: renderIconGlyph,
+  glyph: iconGlyph,
+  syncQuickActions: syncQuickActionIcons,
+  syncEditor: syncEditorIconSurfaces,
+});
+
+installIconEngine();
