@@ -167,8 +167,8 @@ if (typeof document !== "undefined") {
       globalThis.editorSwitch = wrapped;
     };
 
-    // Quick Action icon rendering is now owned synchronously by icon-engine-section.
-    // No delayed 0/90/320/900 ms repaint is permitted in the public runtime.
+    // Quick Action icon rendering is owned synchronously by icon-engine-section.
+    // No delayed public icon repaint is installed here.
 
     // The legacy Temperature edit handler creates a correctly populated room
     // select and then disables it. The beta9 reconciler runs when the tab opens,
@@ -200,7 +200,5 @@ if (typeof document !== "undefined") {
 
     installEvAppearanceTopOwner();
     scheduleEvAppearanceTopRepair();
-    installQuickActionRepairOwner();
-    scheduleV01525QuickActionRepair();
   }
 }
