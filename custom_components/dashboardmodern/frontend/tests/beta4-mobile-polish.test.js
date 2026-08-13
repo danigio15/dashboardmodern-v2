@@ -5,12 +5,15 @@ import test from "node:test";
 const ROOT = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), "utf8");
 
-test("final mobile owner is loaded last and the room icon delegates to the mature picker", async () => {
+test("final mobile owner loads before the canonical icon engine handles room activation", async () => {
   const entry = await read("src/sections/beta-entry-section.js");
+  const engine = await read("src/sections/icon-engine-section.js");
   assert.match(entry, /editor-polish-section\.js";\nimport "\.\/beta4-mobile-polish-section\.js";/);
-  assert.match(entry, /dm-beta5-room-icon-trigger/);
-  assert.match(entry, /globalThis\.dmIconPicker\("#ed-room-icon", "rooms"\)/);
-  assert.match(entry, /event\.stopImmediatePropagation\(\)/);
+  assert.match(entry, /import "\.\/icon-engine-section\.js"/);
+  assert.match(engine, /\.dm-beta5-room-icon-trigger/);
+  assert.match(engine, /openIconPicker\(activation\.input, activation\.kind/);
+  assert.match(engine, /event\.stopImmediatePropagation\(\)/);
+  assert.doesNotMatch(entry, /globalThis\.dmIconPicker\("#ed-room-icon", "rooms"\)/);
   assert.doesNotMatch(entry, /dm-beta4-room-icon-trigger/);
 });
 
@@ -31,11 +34,13 @@ test("config tab names preserve their dedicated icon nodes", async () => {
 
 test("room first insert uses its icon as the only visible picker trigger", async () => {
   const source = await read("src/sections/beta4-mobile-polish-section.js");
-  const entry = await read("src/sections/beta-entry-section.js");
+  const engine = await read("src/sections/icon-engine-section.js");
   assert.match(source, /trigger\.removeAttribute\("onclick"\)/);
   assert.match(source, /trigger\.className = "dm-beta5-room-icon-trigger"/);
   assert.match(source, /#ed-room-icon-preview\{display:none!important\}/);
-  assert.match(entry, /dmIconPicker\("#ed-room-icon", "rooms"\)/);
+  assert.match(engine, /\.dm-beta5-room-icon-trigger/);
+  assert.match(engine, /kind: "room"/);
+  assert.doesNotMatch(source, /dmIconPicker\("#ed-room-icon", "rooms"\)/);
 });
 
 test("alerts hide custom-only controls and physically remove the orphan flash", async () => {

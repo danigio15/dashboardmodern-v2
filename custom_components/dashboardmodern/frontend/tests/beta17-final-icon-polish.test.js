@@ -24,25 +24,23 @@ test("beta17 renders action choices as direct colour glyphs and shares one canon
   assert.ok(ROOM_ICON_CHOICES.length >= 20);
 });
 
-test("beta17 loads before beta-entry and owns both insert/edit picker activation paths", async () => {
+test("beta18 moves picker ownership to the canonical icon engine", async () => {
   const generator = await readFile(
     new URL("../../../../scripts/generate_build_info.py", import.meta.url),
     "utf8",
   );
-  const source = await readFile(
+  const betaEntry = await readFile(new URL("../src/sections/beta-entry-section.js", import.meta.url), "utf8");
+  const beta17 = await readFile(
     new URL("../src/sections/beta17-final-icon-polish-section.js", import.meta.url),
     "utf8",
   );
-  const beta17 = generator.indexOf("beta17-final-icon-polish-section.js");
-  const betaEntry = generator.indexOf("beta-entry-section.js");
-  assert.ok(beta17 >= 0, "beta17 import is generated");
-  assert.ok(betaEntry > beta17, "beta17 capture owner loads before beta-entry legacy handlers");
-  assert.match(source, /\.dm-beta5-room-icon-trigger/);
-  assert.match(source, /#dm-room-editor-modal \[data-room-icon-preview\]/);
-  assert.match(source, /#dm-action-editor-modal \[data-action-icon-preview\]/);
-  assert.match(source, /modal\.id = "dm-visual-picker"/);
-  assert.match(source, /dmBeta17Picker/);
-  assert.match(source, /MutationObserver/);
-  assert.match(source, /dm-beta12-action-glyph/);
-  assert.match(source, /dm-beta12-room-glyph/);
+  const engine = await readFile(new URL("../src/sections/icon-engine-section.js", import.meta.url), "utf8");
+  assert.ok(generator.includes("beta17-final-icon-polish-section.js"));
+  assert.match(betaEntry, /icon-engine-section\.js/);
+  assert.match(engine, /modal\.id = "dm-visual-picker"/);
+  assert.match(engine, /\.dm-beta5-room-icon-trigger/);
+  assert.match(engine, /\.dm-beta6-qa-icon-trigger/);
+  assert.match(engine, /data-dm-icon-engine/);
+  assert.doesNotMatch(beta17, /openStableRoomPicker|openStableActionPicker|queuePreviewRepair/);
+  assert.doesNotMatch(beta17, /dm-visual-picker/);
 });

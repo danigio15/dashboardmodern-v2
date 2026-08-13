@@ -477,7 +477,10 @@ export function roomCatalogMatch(value) {
 
 export function roomVisual(value, size = 48) {
   const item = roomCatalogMatch(value);
-  return item ? svg(item.body, size, "dm-room-art", item.id) : "";
+  if (!item) return "";
+  const safeSize = Math.max(16, Math.min(160, Number(size) || 48));
+  const glyph = ROOM_GLYPHS[item.id] || roomGlyph(item.mdi);
+  return `<span class="dm-room-art dm-room-glyph" data-visual="${item.id}" style="font-size:${safeSize}px"><span aria-hidden="true">${glyph}</span></span>`;
 }
 
 export function brandMatch(value) {
@@ -548,7 +551,8 @@ export function actionCatalogMatch(value) {
 export function actionVisual(value, size = 48) {
   const item = actionCatalogMatch(value);
   if (!item) return "";
-  return svg(ACTION_ARTWORK[item.id] || ACTION_ARTWORK.star, size, "dm-action-glyph", item.id);
+  const safeSize = Math.max(16, Math.min(160, Number(size) || 48));
+  return `<span class="dm-action-glyph" data-visual="${item.id}" style="font-size:${safeSize}px"><span aria-hidden="true">${item.glyph || "⭐"}</span></span>`;
 }
 
 export function roomOptionsMarkup({ selected = "", english = false } = {}) {

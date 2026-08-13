@@ -6,6 +6,9 @@ line-length = 88
 select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC", "ANN"]
 ignore = ["ANN401"]
 
+[tool.ruff.lint.per-file-ignores]
+"scripts/generate_build_info.py" = ["E501"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

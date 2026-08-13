@@ -24,7 +24,7 @@ test("EV preview constrains inline and remote logos and follows active vehicle i
   const source = await readFile(polishUrl, "utf8");
   assert.match(source, /cd_ev_car_active/);
   assert.match(source, /panel\.dataset\.dmBeta11VehicleSignature/);
-  assert.match(source, /dispatchValue\(brandSelect, brand\)/);
+  assert.match(source, /dispatchValue\(brandSelect, brand(?:, \{ force: true \})?\)/);
   assert.match(source, /dispatchValue\(modelSelect, model\)/);
   assert.match(source, /\.dm-leapmotor-mark/);
   assert.match(source, /width:108px!important/);
@@ -32,11 +32,15 @@ test("EV preview constrains inline and remote logos and follows active vehicle i
   assert.match(source, /grid-template-columns:112px minmax\(0,1fr\)!important/);
 });
 
-test("room rows restore configured icon and configured room name", async () => {
+test("room rows preserve metadata and delegate icon rendering to the canonical engine", async () => {
   const source = await readFile(polishUrl, "utf8");
   assert.match(source, /function mergedRooms\(\)/);
   assert.match(source, /return \{ \.\.\.fallback, \.\.\.room \}/);
-  assert.match(source, /icon\.innerHTML = roomMarkup\(room, 38\)/);
+  assert.match(source, /icon\.dataset\.roomIcon = clean\(room\.icon \|\| icon\.dataset\.roomIcon \|\| "mdi:home"\)/);
+  assert.match(source, /DashboardModernIconEngine\?\.syncEditor\?\.\(\)/);
+  assert.doesNotMatch(source, /icon\.innerHTML\s*=/);
+  assert.doesNotMatch(source, /target\.innerHTML\s*=\s*roomMarkup/);
+  assert.doesNotMatch(source, /function roomMarkup\(/);
   assert.match(source, /label\.textContent = name/);
   assert.match(source, /label\.dataset\.dmRoomName = "true"/);
   assert.match(source, /visibility:visible!important;opacity:1!important/);

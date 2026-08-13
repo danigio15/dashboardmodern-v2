@@ -1,4 +1,4 @@
-// DM-FIX-20260812B
+// DM-FIX-20260813D
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -22,12 +22,16 @@ test("room and action icon previews are the picker buttons and palette buttons a
   assert.match(source, /dm-icon-preview-button/);
 });
 
-test("action and car pickers always contain visible local artwork", async () => {
+test("action and room picking delegates to the canonical icon engine", async () => {
   const catalog = await read("src/core/personalization-catalog.js");
   const source = await read("src/sections/personalization-section.js");
+  const engine = await read("src/sections/icon-engine-section.js");
   assert.match(catalog, /export function actionVisual/);
   assert.match(catalog, /"mdi:lightbulb",\s*"💡"/);
-  assert.match(source, /actionVisual\(item\.mdi, 46\)/);
+  assert.match(source, /DashboardModernIconEngine\?\.openPicker/);
+  assert.doesNotMatch(source, /modal\.id\s*=\s*"dm-visual-picker"/);
+  assert.match(engine, /ACTION_ICON_CATALOG/);
+  assert.match(engine, /iconGlyphMarkup\("action", item\.mdi, \{ size: 36 \}\)/);
   assert.match(catalog, /const fontSize = initials\.length/);
 });
 

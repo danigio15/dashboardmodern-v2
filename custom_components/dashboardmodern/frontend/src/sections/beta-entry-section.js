@@ -1,5 +1,6 @@
 /* v1 beta UI entrypoint. Imported by generated build-info so legacy and hosted dashboards share it. */
 import "./config-persistence-section.js";
+import "./icon-engine-section.js";
 import "./beta-compat-section.js";
 import "./entity-picker-guard-section.js";
 import "./energy-report-polish-section.js";
@@ -21,17 +22,7 @@ if (typeof document !== "undefined") {
   const marker = "__DASHBOARDMODERN_BETA5_ENTRY_BRIDGE__";
   if (!globalThis[marker]) {
     globalThis[marker] = true;
-    document.addEventListener(
-      "click",
-      (event) => {
-        const trigger = event.target?.closest?.(".dm-beta5-room-icon-trigger");
-        if (!trigger || typeof globalThis.dmIconPicker !== "function") return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        globalThis.dmIconPicker("#ed-room-icon", "rooms");
-      },
-      true,
-    );
+    // Room/action picker activation is owned by icon-engine-section at window capture.
 
     // The canonical period renderer may mark a secondary load as unmapped and
     // hide its SVG connector inline. Keep the topology complete: a load with no
@@ -176,137 +167,8 @@ if (typeof document !== "undefined") {
       globalThis.editorSwitch = wrapped;
     };
 
-    // v0.15.25 Quick Actions used readable colour emoji/glyphs. The beta9
-    // catalog normalizer can transiently rebuild an empty builtin icon as Home.
-    // Reconcile only after the two real render owners finish. This is bounded,
-    // event-driven work: no polling and no additional MutationObserver.
-    const actionGlyphs = Object.freeze({
-      "mdi:home": "🏠",
-      "mdi:lightbulb": "💡",
-      "mdi:lightbulb-group": "💡",
-      "mdi:snowflake": "❄️",
-      "mdi:radiator": "🔥",
-      "mdi:shield-home": "🛡️",
-      "mdi:gate": "🚪",
-      "mdi:window-shutter": "🪟",
-      "mdi:movie-open": "🎬",
-      "mdi:script-text-play": "▶️",
-      "mdi:toggle-switch-outline": "🔀",
-      "mdi:washing-machine": "🧺",
-      "mdi:flash": "⚡",
-      "mdi:car-electric": "🚗",
-      "mdi:water-boiler": "♨️",
-      "mdi:water": "💧",
-      "mdi:cctv": "📷",
-      "mdi:bell": "🔔",
-      "mdi:star": "⭐",
-    });
-    const actionBuiltinGlyphs = Object.freeze({
-      luci: "💡",
-      luci_group: "💡",
-      builtin_luci: "💡",
-      clima: "❄️",
-      builtin_clima: "❄️",
-      antifurto: "🛡️",
-      builtin_antifurto: "🛡️",
-      lavatrice: "🧺",
-      builtin_lavatrice: "🧺",
-    });
-    const actionBuiltinColors = Object.freeze({
-      luci: "#f59e0b",
-      luci_group: "#f59e0b",
-      builtin_luci: "#f59e0b",
-      clima: "#0ea5e9",
-      builtin_clima: "#0ea5e9",
-      antifurto: "#7c3aed",
-      builtin_antifurto: "#7c3aed",
-      lavatrice: "#0ea5e9",
-      builtin_lavatrice: "#0ea5e9",
-    });
-    const configuredQuickActions = () => {
-      // Persisted Quick Actions are authoritative. getQuickActions() can still
-      // expose the pre-render snapshot for one turn immediately after an edit.
-      try {
-        const actions = JSON.parse(globalThis.localStorage?.getItem("cd_quick_actions") || "[]");
-        if (Array.isArray(actions) && actions.length) return actions;
-      } catch (_error) {}
-      try {
-        const actions = globalThis.getQuickActions?.();
-        return Array.isArray(actions) ? actions : [];
-      } catch (_error) {
-        return [];
-      }
-    };
-    const repairV01525QuickActionGlyphs = () => {
-      const actions = configuredQuickActions();
-      document.querySelectorAll("#qa-grid .qa-btn .icon").forEach((icon, index) => {
-        const action = actions[index] || {};
-        const builtin = String(action.builtin || "").trim().toLowerCase();
-        const configured = String(action.icon || "").trim();
-        const configuredMdi = configured.toLowerCase().startsWith("mdi:") ? configured : "";
-        const configuredGlyph = configured && !configuredMdi ? configured : "";
-        const raw = String(icon.dataset.dmBeta7IconToken || "");
-        const [mdiToken, persistedGlyph] = raw.split("|");
-        const glyph =
-          configuredGlyph ||
-          actionGlyphs[configuredMdi] ||
-          actionBuiltinGlyphs[builtin] ||
-          actionGlyphs[mdiToken] ||
-          (persistedGlyph && !persistedGlyph.startsWith("mdi:") ? persistedGlyph : "") ||
-          "⭐";
-        const color = String(action.color || actionBuiltinColors[builtin] || "#0ea5e9").trim();
-        let target = icon.querySelector(".dm-v01525-action-glyph");
-        if (!target) {
-          target = document.createElement("span");
-          target.className = "dm-v01525-action-glyph";
-          target.setAttribute("aria-hidden", "true");
-          icon.replaceChildren(target);
-        }
-        if (target.textContent !== glyph) target.textContent = glyph;
-        icon.dataset.dmActionStyle = "v01525";
-        icon.style.setProperty("color", color, "important");
-        icon.style.setProperty("filter", `drop-shadow(0 6px 12px ${color}66)`, "important");
-      });
-    };
-    const scheduleV01525QuickActionRepair = () => {
-      requestAnimationFrame?.(repairV01525QuickActionGlyphs);
-      for (const delay of [0, 90, 320, 900]) setTimeout(repairV01525QuickActionGlyphs, delay);
-    };
-    const wrapQuickActionRenderOwner = (name) => {
-      const current = globalThis[name];
-      if (typeof current !== "function" || current.__dmV01525GlyphRepair) return;
-      const wrapped = function (...args) {
-        const result = current.apply(this, args);
-        scheduleV01525QuickActionRepair();
-        return result;
-      };
-      wrapped.__dmV01525GlyphRepair = true;
-      wrapped.__dmWrappedOriginal = current;
-      globalThis[name] = wrapped;
-    };
-    const installQuickActionRepairOwner = () => {
-      wrapQuickActionRenderOwner("buildQuickActions");
-      wrapQuickActionRenderOwner("render");
-    };
-    for (const eventName of [
-      "dashboardmodern:legacy-ready",
-      "dashboardmodern:runtime-ready",
-      "dashboardmodern:states-ready",
-    ]) globalThis.addEventListener?.(eventName, () => {
-      installEvAppearanceTopOwner();
-      scheduleEvAppearanceTopRepair();
-      installQuickActionRepairOwner();
-      scheduleV01525QuickActionRepair();
-    });
-    globalThis.addEventListener?.("dashboardmodern:state-changed", () => {
-      installEvAppearanceTopOwner();
-      installQuickActionRepairOwner();
-      scheduleV01525QuickActionRepair();
-    });
-    document.addEventListener("click", (event) => {
-      if (event.target?.closest?.("#dm-action-editor-modal,#dm-beta9-action-picker,.dm-beta6-qa-icon-trigger"))
-        scheduleV01525QuickActionRepair();
-    }, true);
+    // Quick Action icon rendering is owned synchronously by icon-engine-section.
+    // No delayed public icon repaint is installed here.
 
     // The legacy Temperature edit handler creates a correctly populated room
     // select and then disables it. The beta9 reconciler runs when the tab opens,
@@ -336,9 +198,84 @@ if (typeof document !== "undefined") {
       if (event.target?.closest?.("[data-temperature-edit]")) scheduleTemperatureRoomRepair();
     }, true);
 
+    // Historical beta polishers can still replace the children of room/action
+    // icon containers after the canonical engine has rendered them. Observe only
+    // the three icon-owning roots; MutationObserver callbacks run before paint,
+    // so a legacy child replacement is reconciled without a visible old frame.
+    const iconGuardMarker = "__DASHBOARDMODERN_ICON_ENGINE_OWNER_GUARD__";
+    if (!globalThis[iconGuardMarker]) {
+      const iconGuard = (globalThis[iconGuardMarker] = {
+        queued: false,
+        observed: new WeakSet(),
+        observers: [],
+      });
+      const configuredRooms = () => {
+        try {
+          const values = globalThis.DashboardModernModules?.store?.getSection?.("rooms");
+          if (Array.isArray(values) && values.length) return values;
+        } catch (_error) {}
+        try {
+          const values = JSON.parse(localStorage.getItem("cd_stanze") || "[]");
+          return Array.isArray(values) ? values : [];
+        } catch (_error) {
+          return [];
+        }
+      };
+      const syncTemperatureIcons = () => {
+        const engine = globalThis.DashboardModernIconEngine;
+        if (!engine?.render) return;
+        const rooms = configuredRooms();
+        document.querySelectorAll("#temp-grid .dm-temperature-card[data-room-id]").forEach((card) => {
+          const target = card.querySelector(".dm-temperature-card-icon,.temp-room-icon,.cp-icon");
+          if (!target) return;
+          const room = rooms.find((item) => String(item?.id || "").trim() === String(card.dataset.roomId || "").trim());
+          const token = String(target.dataset.roomIcon || room?.icon || room?.name || "mdi:home").trim();
+          target.dataset.roomIcon = token;
+          engine.render(target, "room", token, { size: 31 });
+        });
+      };
+      const syncOwnedIconSurfaces = () => {
+        iconGuard.queued = false;
+        const engine = globalThis.DashboardModernIconEngine;
+        if (!engine) return;
+        engine.syncQuickActions?.();
+        engine.syncEditor?.();
+        syncTemperatureIcons();
+      };
+      const queueOwnedIconSync = () => {
+        if (iconGuard.queued) return;
+        iconGuard.queued = true;
+        if (typeof queueMicrotask === "function") queueMicrotask(syncOwnedIconSurfaces);
+        else Promise.resolve().then(syncOwnedIconSurfaces);
+      };
+      const observeIconRoot = (node) => {
+        if (!node || iconGuard.observed.has(node) || typeof MutationObserver !== "function") return;
+        iconGuard.observed.add(node);
+        const observer = new MutationObserver(queueOwnedIconSync);
+        observer.observe(node, { childList: true, subtree: true });
+        iconGuard.observers.push(observer);
+      };
+      const installScopedIconObservers = () => {
+        for (const id of ["ed-body", "qa-grid", "temp-grid"]) observeIconRoot(document.getElementById(id));
+      };
+      const reconcileOwnedIcons = () => {
+        installScopedIconObservers();
+        queueOwnedIconSync();
+      };
+      for (const eventName of [
+        "dashboardmodern:legacy-ready",
+        "dashboardmodern:runtime-ready",
+        "dashboardmodern:states-ready",
+      ]) globalThis.addEventListener?.(eventName, reconcileOwnedIcons);
+      document.addEventListener("click", (event) => {
+        if (event.target?.closest?.("#editor-modal,.ed-tab,[data-dm-edit-kind],[data-temperature-edit]")) {
+          reconcileOwnedIcons();
+        }
+      }, true);
+      reconcileOwnedIcons();
+    }
+
     installEvAppearanceTopOwner();
     scheduleEvAppearanceTopRepair();
-    installQuickActionRepairOwner();
-    scheduleV01525QuickActionRepair();
   }
 }

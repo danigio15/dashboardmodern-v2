@@ -55,7 +55,7 @@ const CAR_MODELS = Object.freeze({
   "MINI": ["Cooper Electric", "Aceman", "Countryman Electric"],
   "Nissan": ["Micra EV", "Leaf", "Ariya", "Juke Hybrid", "Qashqai e-POWER", "X-Trail e-POWER"],
   "Opel": ["Corsa Electric", "Corsa Hybrid", "Mokka Electric", "Mokka Hybrid", "Astra Electric", "Astra Plug-In Hybrid", "Astra Hybrid", "Frontera Electric", "Frontera Hybrid", "Grandland Electric", "Grandland Plug-In Hybrid", "Grandland Hybrid", "Combo Electric", "Zafira Electric"],
-  "Peugeot": ["e-208", "208 Hybrid", "e-2008", "2008 Hybrid", "e-308", "308 Plug-In Hybrid", "308 Hybrid", "e-3008", "3008 Plug-In Hybrid", "3008 Hybrid", "e-5008", "5008 Plug-In Hybrid", "5008 Hybrid", "e-Rifter"],
+  "Peugeot": ["e-208", "208 Hybrid", "e-2008", "2008 Hybrid", "e-308", "308 Plug-In Hybrid", "308 Hybrid", "e-3008", "3008 Plug-In Hybrid", "e-5008", "5008 Plug-In Hybrid", "e-Rifter"],
   "Polestar": ["Polestar 2", "Polestar 3", "Polestar 4", "Polestar 5"],
   "Porsche": ["Macan Electric", "Taycan", "Cayenne E-Hybrid", "Panamera E-Hybrid"],
   "Renault": ["5 E-Tech electric", "4 E-Tech electric", "Megane E-Tech electric", "Scenic E-Tech electric", "Captur E-Tech full hybrid", "Symbioz E-Tech full hybrid", "Austral E-Tech full hybrid", "Espace E-Tech full hybrid", "Rafale E-Tech full hybrid", "Rafale E-Tech 4x4 Plug-In Hybrid"],
@@ -113,42 +113,12 @@ function configuredActions() {
 }
 
 function polishQuickActions() {
-  const grid = doc?.getElementById("qa-grid");
-  if (!grid) return false;
-  const actions = configuredActions();
-  grid.querySelectorAll(".qa-btn").forEach((card, index) => {
-    const icon = card.querySelector(".icon");
-    if (!icon) return;
-    const visual = actionVisual(actions[index] || {});
-    icon.innerHTML = `<span class="dm-v01525-action-glyph" aria-hidden="true">${esc(visual.glyph)}</span>`;
-    icon.style.setProperty("filter", `drop-shadow(0 6px 12px ${visual.color}66)`, "important");
-    icon.style.setProperty("color", visual.color, "important");
-    icon.dataset.dmActionStyle = "v01525";
-  });
-
-  [...doc.querySelectorAll("#page-home h1,#page-home h2,#page-home h3,#page-home .section-title,#page-home .section-heading")]
-    .forEach((heading) => {
-      const value = clean(heading.textContent);
-      if (/azioni\s+rapide\s+premium/i.test(value))
-        heading.textContent = value.replace(/\s+premium/i, "");
-      if (/premium\s+quick\s+actions/i.test(value))
-        heading.textContent = value.replace(/premium\s+/i, "");
-    });
-  return true;
+  return Boolean(root.DashboardModernIconEngine?.syncQuickActions?.());
 }
 
 function polishActionPicker() {
-  const picker = doc?.getElementById("dm-beta9-action-picker") || doc?.querySelector('#dm-visual-picker[data-kind="action"]');
-  if (!picker) return false;
-  picker.querySelectorAll(".dm-picker-option").forEach((button) => {
-    const index = Number.parseInt(button.dataset.index || "-1", 10);
-    const item = ACTION_ICON_CATALOG[index];
-    if (!item) return;
-    const visual = button.querySelector(".dm-picker-visual");
-    if (visual) visual.innerHTML = `<span class="dm-v01525-picker-glyph" aria-hidden="true">${esc(item.glyph)}</span>`;
-  });
-  picker.dataset.dmActionStyle = "v01525";
-  return true;
+  const picker = doc?.querySelector?.('#dm-visual-picker[data-kind="action"][data-dm-icon-engine="single-owner"]');
+  return Boolean(picker);
 }
 
 function modelBelongsToBrand(brand, model) {
@@ -319,8 +289,11 @@ function polishRoomRows() {
       visual.className = "dm-room-list-icon";
       row.prepend(visual);
     }
-    visual.innerHTML = roomMarkup(room, 34);
-    visual.dataset.roomIcon = clean(room.icon || "mdi:home");
+    const token = clean(room.icon || room.name || "mdi:home");
+    visual.dataset.roomIcon = token;
+    if (!root.DashboardModernIconEngine?.render?.(visual, "room", token, { size: 31 })) {
+      visual.innerHTML = roomMarkup(room, 34);
+    }
     visual.setAttribute("title", clean(room.name));
   });
   return true;

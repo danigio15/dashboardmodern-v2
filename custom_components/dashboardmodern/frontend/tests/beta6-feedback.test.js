@@ -5,18 +5,14 @@ import test from "node:test";
 const ROOT = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), "utf8");
 
-test("feedback layer keeps legacy quick-action defaults while beta9 owns stable visual picking", async () => {
+test("feedback layer keeps legacy quick-action defaults while the icon engine owns visual picking", async () => {
   const entry = await read("src/sections/beta-entry-section.js");
   const feedback = await read("src/sections/beta6-feedback-section.js");
-  const guard = await read("src/sections/beta7-brand-guard-section.js");
+  const engine = await read("src/sections/icon-engine-section.js");
   assert.match(entry, /beta4-mobile-polish-section\.js";\nimport "\.\/beta6-feedback-section\.js";/);
+  assert.match(entry, /import "\.\/icon-engine-section\.js";/);
   assert.doesNotMatch(entry, /quickActionGlyphByType|dm-beta6-quick-action-layout/);
-  assert.match(entry, /__dmV01525GlyphRepair/);
-  assert.match(entry, /dmBeta7IconToken/);
-  assert.match(entry, /"mdi:lightbulb": "💡"/);
-  assert.match(entry, /"mdi:snowflake": "❄️"/);
-  assert.match(entry, /"mdi:shield-home": "🛡️"/);
-  assert.match(entry, /"mdi:washing-machine": "🧺"/);
+  assert.doesNotMatch(entry, /__dmV01525GlyphRepair|dmBeta7IconToken|scheduleV01525QuickActionRepair/);
   assert.match(feedback, /luci_group:\{glyph:"💡",mdi:"mdi:lightbulb-group"\}/);
   assert.match(feedback, /builtin_clima:\{glyph:"❄️",mdi:"mdi:snowflake"\}/);
   assert.match(feedback, /builtin_antifurto:\{glyph:"🛡️",mdi:"mdi:shield-home"\}/);
@@ -24,23 +20,25 @@ test("feedback layer keeps legacy quick-action defaults while beta9 owns stable 
   assert.match(feedback, /toggle:\{glyph:"🔀",mdi:"mdi:toggle-switch-outline"\}/);
   assert.match(feedback, /script:\{glyph:"▶️",mdi:"mdi:script-text-play"\}/);
   assert.match(feedback, /scene:\{glyph:"🎬",mdi:"mdi:movie-open"\}/);
-  assert.match(guard, /openStableActionPicker/);
-  assert.match(guard, /input\.value = item\.mdi/);
+  assert.match(feedback, /DashboardModernIconEngine\?\.syncQuickActions\?\.\(\)/);
+  assert.match(engine, /modal\.id = "dm-visual-picker"/);
+  assert.match(engine, /input\.value = item\.value/);
 });
 
-test("legacy quick-action editor remains compatible while beta9 replaces blank WebView icon picking", async () => {
+test("legacy quick-action editor delegates picker and glyph rendering to the icon engine", async () => {
   const source = await read("src/sections/beta6-feedback-section.js");
-  const guard = await read("src/sections/beta7-brand-guard-section.js");
+  const engine = await read("src/sections/icon-engine-section.js");
   assert.match(source, /input\.closest\?\.\("\.ed-form-row"\)/);
   assert.match(source, /input\.insertAdjacentElement\("afterend",preview\)/);
   assert.match(source, /#ed-qa-icon\.dm-beta6-qa-icon-value\{display:none!important\}/);
   assert.match(source, /grid-template-columns:minmax\(0,1fr\) 56px!important/);
   assert.match(source, /#ed-qa-name\{grid-column:1\/-1!important\}/);
-  assert.match(source, /root\.cdIconMarkup\?\.\(mdi, size\)/);
-  assert.match(source, /__dmBeta7QuickIcons/);
-  assert.match(guard, /\.dm-beta6-qa-icon-trigger/);
-  assert.match(guard, /event\.stopImmediatePropagation\(\)/);
-  assert.match(guard, /actionVisual\(item\.mdi, 40\)/);
+  assert.match(source, /DashboardModernIconEngine\?\.markup\?\./);
+  assert.match(source, /DashboardModernIconEngine\?\.openPicker\?\./);
+  assert.doesNotMatch(source, /__dmBeta7QuickIcons/);
+  assert.match(engine, /\.dm-beta6-qa-icon-trigger/);
+  assert.match(engine, /event\.stopImmediatePropagation\(\)/);
+  assert.match(engine, /openIconPicker\(activation\.input, activation\.kind/);
 });
 
 test("manufacturer art is canonical, with a local Leapmotor emblem and no post-render swapping", async () => {

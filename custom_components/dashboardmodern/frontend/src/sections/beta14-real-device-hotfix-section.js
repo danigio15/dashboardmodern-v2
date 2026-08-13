@@ -1,4 +1,4 @@
-// DM-FIX-20260812B
+// DM-FIX-20260813L
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
 import {
   clean,
@@ -77,11 +77,43 @@ export function repairClimateLabels() {
   return true;
 }
 
+function installTemperatureCompatibleIconEngine() {
+  const engine = root.DashboardModernIconEngine;
+  if (!engine?.render || engine.render.__dmTemperatureFallbackCompatible) return;
+  const render = function (target, kind, value, options = {}) {
+    const canonicalTemperature =
+      clean(kind).toLowerCase() === "room"
+      && target?.closest?.('.dm-temperature-card[data-dm-temperature-canonical="true"]');
+    if (!canonicalTemperature) return engine.render(target, kind, value, options);
+
+    const token = clean(value || target?.dataset?.roomIcon || "mdi:home");
+    const glyph = engine.glyph?.("room", token) || directEmoji(token) || roomGlyph(token);
+    target.dataset.roomIcon = token;
+    let fallback = target.querySelector(":scope > .dm-temperature-icon-fallback");
+    if (!fallback) {
+      fallback = doc.createElement("span");
+      fallback.className = "dm-temperature-icon-fallback";
+    }
+    if (clean(fallback.textContent) !== glyph) fallback.textContent = glyph;
+    if (target.children.length !== 1 || target.firstElementChild !== fallback) {
+      target.replaceChildren(fallback);
+    }
+    return true;
+  };
+  render.__dmTemperatureFallbackCompatible = true;
+  root.DashboardModernIconEngine = Object.freeze({ ...engine, render });
+}
+
 function setRoomGlyph(target, room) {
   const token = clean(room?.icon || "mdi:home");
-  const glyph = directEmoji(token) || roomGlyph(token);
   target.dataset.roomIcon = token;
   target.setAttribute("title", clean(room?.name));
+  const engine = root.DashboardModernIconEngine;
+  if (engine?.render) {
+    engine.render(target, "room", token, { size: 31 });
+    return;
+  }
+  const glyph = directEmoji(token) || roomGlyph(token);
   let visual = target.querySelector(".dm-beta14-room-glyph");
   if (!visual) {
     visual = doc.createElement("span");
@@ -124,6 +156,7 @@ export function repairRoomRows() {
 export function repairTemperatureRoomIcons() {
   const rooms = readJson("cd_stanze", []);
   doc?.querySelectorAll?.("#temp-grid [data-room-id],#temp-grid .temp-card")?.forEach((card) => {
+    if (card.dataset?.dmTemperatureCanonical === "true") return;
     const id = clean(card.dataset?.roomId);
     const name = clean(card.dataset?.roomName || card.querySelector?.("[data-room-name],.name")?.textContent);
     const room = rooms.find((item) => id && clean(item.id) === id)
@@ -135,6 +168,7 @@ export function repairTemperatureRoomIcons() {
 }
 
 function runUiRepairs() {
+  installTemperatureCompatibleIconEngine();
   reconcileRooms();
   repairClimateLabels();
   repairRoomRows();
@@ -192,6 +226,7 @@ function wrapOwner(name) {
 }
 function installOwners() { ["editorSwitch", "buildQuickActions", "buildTempCards"].forEach(wrapOwner); }
 export function installBeta14RealDeviceHotfix() {
+  installTemperatureCompatibleIconEngine();
   installOwners();
   if (state.installed || !doc) return;
   state.installed = true;
