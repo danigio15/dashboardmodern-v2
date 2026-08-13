@@ -1,4 +1,4 @@
-// DM-FIX-20260813D
+// DM-FIX-20260813E
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
@@ -18,6 +18,9 @@ async function sectionSources() {
 
 test("canonical room/action visuals never create blue SVG first frames", () => {
   assert.match(roomVisual("mdi:bed-king-outline", 40), /🛏️/);
+  assert.match(roomVisual("mdi:teddy-bear", 40), /🧸/);
+  assert.match(roomVisual("mdi:table-chair", 40), /🍽️/);
+  assert.match(roomVisual("mdi:washing-machine", 40), /🧺/);
   assert.match(actionVisual("mdi:lightbulb", 40), /💡/);
   assert.doesNotMatch(roomVisual("mdi:bed-king-outline", 40), /<svg|ha-icon/);
   assert.doesNotMatch(actionVisual("mdi:lightbulb", 40), /<svg|ha-icon/);
@@ -39,7 +42,7 @@ test("legacy icon owners delegate and no delayed public repaint loop remains", a
   assert.doesNotMatch(betaEntry, /scheduleV01525QuickActionRepair|\[0, 90, 320, 900\]/);
   assert.doesNotMatch(beta12Lock, /MutationObserver|repairVisualPicker|repairQuickActionNode/);
   assert.doesNotMatch(beta17, /openStableRoomPicker|openStableActionPicker|queuePreviewRepair/);
-  assert.match(engine, /window capture|Window capture/i);
+  assert.match(engine, /addEventListener\?\.\("click", handleActivation, true\)/);
   assert.match(engine, /pointer:fine/);
   assert.doesNotMatch(engine, /setTimeout\?\.\([^)]*focus|setTimeout\([^)]*focus/);
 });
