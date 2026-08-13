@@ -13,6 +13,7 @@ const state = (root[KEY] ||= {
   installed: false,
   temperaturePage: null,
   temperatureObserver: null,
+  modalObserver: null,
 });
 
 // Kept as public compatibility exports for diagnostics/tests. Picker ownership
@@ -76,8 +77,8 @@ function bindTemperatureProgressGuard() {
 
 // Beta18 owns Room/Action preview DOM through DashboardModernIconEngine. The
 // legacy personalization decorator still schedules a later refresh after an
-// edit click; claim the freshly-created modal in the same event microtask so
-// that decorator never becomes a second writer (not even for one WebKit frame).
+// edit click. Claim the modal before that scheduled frame so personalization
+// never becomes a second writer.
 function claimCanonicalModalIconOwner() {
   const engine = root.DashboardModernIconEngine;
   if (typeof engine?.syncEditor !== "function") return false;
@@ -99,6 +100,23 @@ function scheduleCanonicalModalClaim(event) {
   else Promise.resolve().then(claimCanonicalModalIconOwner);
 }
 
+function addedEditorModal(node) {
+  if (!node || node.nodeType !== 1) return false;
+  if (node.id === "dm-action-editor-modal" || node.id === "dm-room-editor-modal") return true;
+  return Boolean(node.querySelector?.("#dm-action-editor-modal,#dm-room-editor-modal"));
+}
+
+function bindCanonicalModalObserver() {
+  if (state.modalObserver || typeof root.MutationObserver !== "function" || !doc?.documentElement) return false;
+  state.modalObserver = new root.MutationObserver((records) => {
+    const inserted = records.some((record) => [...record.addedNodes].some(addedEditorModal));
+    if (inserted) claimCanonicalModalIconOwner();
+  });
+  state.modalObserver.observe(doc.documentElement, { childList: true, subtree: true });
+  claimCanonicalModalIconOwner();
+  return true;
+}
+
 function install() {
   if (!doc || state.installed) return;
   state.installed = true;
@@ -110,6 +128,7 @@ function install() {
   ]) root.addEventListener?.(eventName, bindTemperatureProgressGuard);
   root.addEventListener?.("dashboardmodern:state-changed", hideTemperatureProgressCopy);
   doc.addEventListener("click", scheduleCanonicalModalClaim, true);
+  bindCanonicalModalObserver();
   if (doc.readyState === "loading") {
     doc.addEventListener("DOMContentLoaded", bindTemperatureProgressGuard, { once: true });
   } else {
