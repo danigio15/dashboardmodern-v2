@@ -153,12 +153,13 @@ export function openStableRoomPicker(input) {
   const english = doc.documentElement.lang === "en";
   const rows = ROOM_CATALOG.map((item) => ({
     value: item.mdi,
+    label: english ? item.en : item.it,
     glyph: ROOM_GLYPHS[item.id] || roomGlyph(item.mdi),
     search: `${item.it} ${item.en} ${item.keywords} ${item.mdi}`.toLowerCase(),
   }));
   const buttons = rows
     .map(
-      (item, index) => `<button type="button" class="dm-picker-option dm-beta17-room-option" data-index="${index}" data-search-text="${esc(item.search)}"><span class="dm-picker-visual">${stableGlyphMarkup("room", item.value, item.glyph)}</span></button>`,
+      (item, index) => `<button type="button" class="dm-picker-option dm-beta17-room-option" data-index="${index}" data-search-text="${esc(item.search)}" aria-label="${esc(item.label)}" title="${esc(item.label)}"><span class="dm-picker-visual">${stableGlyphMarkup("room", item.value, item.glyph)}</span></button>`,
     )
     .join("");
   const { modal, close } = pickerShell(
@@ -235,7 +236,15 @@ function hideTemperatureProgressCopy() {
   if (!page) return false;
   let hidden = false;
   page.querySelectorAll("div,span,p,small").forEach((node) => {
-    if (!isTemperatureProgressText(node.textContent)) return;
+    if (!isTemperatureProgressText(node.textContent)) {
+      if (node.dataset.dmBeta17TemperatureProgressHidden === "true") {
+        delete node.dataset.dmBeta17TemperatureProgressHidden;
+        node.hidden = false;
+        node.removeAttribute("aria-hidden");
+        node.style.removeProperty("display");
+      }
+      return;
+    }
     node.dataset.dmBeta17TemperatureProgressHidden = "true";
     node.hidden = true;
     node.setAttribute("aria-hidden", "true");
