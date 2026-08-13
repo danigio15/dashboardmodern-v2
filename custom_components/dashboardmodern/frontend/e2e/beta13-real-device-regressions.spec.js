@@ -285,7 +285,11 @@ test("beta13: Pool uses equal mobile controls and keeps temperature copy clear o
     renderPiscina();
   });
 
-  const layout = await page.locator("#page-piscina .pool-hero").evaluate((hero) => {
+  const hero = page.locator("#page-piscina .pool-hero");
+  await expect(hero).toBeVisible();
+  await expect(hero).toHaveAttribute("data-dm-beta16-pool", "true");
+
+  const layout = await hero.evaluate((hero) => {
     const controls = [...hero.querySelectorAll(".pool-tg[data-act]")].map((node) =>
       node.getBoundingClientRect(),
     );

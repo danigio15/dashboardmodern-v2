@@ -121,6 +121,20 @@ async function openEditor(page, tab) {
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
 }
 
+async function waitForIconEngine(page) {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            typeof window.DashboardModernIconEngine?.render === "function" &&
+            typeof window.DashboardModernIconEngine?.openPicker === "function",
+        ),
+      { timeout: 15_000 },
+    )
+    .toBe(true);
+}
+
 async function pickerPalette(page) {
   return page
     .locator('#dm-visual-picker[data-kind="room"] .dm-picker-option')
@@ -172,6 +186,7 @@ test("beta17: Temperature hides progress copy", async ({ page }, testInfo) => {
 test("beta17: Action picker is colored from first mutation", async ({ page }, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await boot(page, testInfo);
+  await waitForIconEngine(page);
   await page.evaluate(() => {
     localStorage.setItem(
       "cd_quick_actions",
@@ -234,6 +249,7 @@ test("beta17: Action picker is colored from first mutation", async ({ page }, te
 test("beta17: room add/edit share one color picker", async ({ page }, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await boot(page, testInfo);
+  await waitForIconEngine(page);
   await openEditor(page, "stanze");
 
   const firstInsert = page.locator("#ed-body .dm-beta5-room-icon-trigger");
