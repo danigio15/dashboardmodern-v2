@@ -29,6 +29,16 @@ test("Temperature editor exposes and persists both optional display names", asyn
   assert.doesNotMatch(source, /MutationObserver|setInterval\s*\(/);
 });
 
+test("legacy real-device row repair cannot overwrite custom Temperature names with raw entity ids", async () => {
+  const source = await readFile(
+    new URL("../src/sections/beta16-real-device-layout-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /room\.temp_name \|\| room\.temperature_name/);
+  assert.match(source, /room\.hum_name \|\| room\.humidity_name/);
+  assert.match(source, /nodes\.secondary\.textContent = labels\.join\(" · "\)/);
+});
+
 test("Temperature card renders optional entity names below the room and preserves generic metric labels", async () => {
   const source = await readFile(temperatureUrl, "utf8");
   assert.match(source, /temp-room-entity-name/);
