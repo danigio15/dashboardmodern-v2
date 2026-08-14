@@ -76,6 +76,17 @@ async function boot(page, testInfo) {
   await expect
     .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true))
     .toBe(true);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            typeof window.DashboardModernIconEngine?.render === "function" &&
+            typeof window.DashboardModernIconEngine?.syncEditor === "function",
+        ),
+      { timeout: 15_000 },
+    )
+    .toBe(true);
 }
 
 async function openEditor(page, tab) {

@@ -6,7 +6,7 @@ import {
   directEmoji,
   roomGlyph,
 } from "../core/personalization-catalog.js";
-import { clean, doc, root } from "./shared.js";
+import { clean, doc, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_BETA17_FINAL_ICON_POLISH__";
 const state = (root[KEY] ||= {
@@ -74,19 +74,52 @@ function bindTemperatureProgressGuard() {
   return true;
 }
 
+function bindCanonicalPreview(modal, kind, engine) {
+  const selector = kind === "action" ? "[data-action-icon-preview]" : "[data-room-icon-preview]";
+  const preview = modal.querySelector(selector);
+  const input = modal.querySelector('input[name="icon"]');
+  if (!preview || !input) return false;
+
+  preview.classList.add("dm-visual-trigger");
+  preview.setAttribute("role", "button");
+  preview.setAttribute("tabindex", "0");
+  preview.removeAttribute("aria-hidden");
+  preview.setAttribute(
+    "aria-label",
+    kind === "action" ? t("Scegli icona azione", "Choose action icon") : t("Scegli icona stanza", "Choose room icon"),
+  );
+
+  if (preview.dataset.dmCanonicalPickerBound !== "true") {
+    preview.dataset.dmCanonicalPickerBound = "true";
+    const open = () => engine.openPicker?.(input, kind, { autofocus: false });
+    preview.addEventListener("click", open);
+    preview.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      open();
+    });
+  }
+  return true;
+}
+
 // Beta18 owns Room/Action preview DOM through DashboardModernIconEngine. The
-// legacy personalization decorator still schedules a later refresh after an
-// edit click; claim the freshly-created modal in the same event microtask so
-// that decorator never becomes a second writer (not even for one WebKit frame).
+// unified editor is created by a document-capture listener that can stop
+// propagation. Listen one level earlier (window capture), but defer the claim
+// to the next task: by then the modal exists, while the legacy personalization
+// repaint scheduled by that same click has not taken ownership of the preview.
 function claimCanonicalModalIconOwner() {
   const engine = root.DashboardModernIconEngine;
   if (typeof engine?.syncEditor !== "function") return false;
   let claimed = false;
-  for (const id of ["dm-action-editor-modal", "dm-room-editor-modal"]) {
+  for (const [id, kind] of [
+    ["dm-action-editor-modal", "action"],
+    ["dm-room-editor-modal", "room"],
+  ]) {
     const modal = doc?.getElementById(id);
     if (!modal) continue;
     modal.dataset.dmPersonalized = "true";
     modal.dataset.dmSingleGlyphOwner = "true";
+    bindCanonicalPreview(modal, kind, engine);
     claimed = true;
   }
   if (claimed) engine.syncEditor();
@@ -95,8 +128,7 @@ function claimCanonicalModalIconOwner() {
 
 function scheduleCanonicalModalClaim(event) {
   if (!event.target?.closest?.('[data-dm-edit-kind="action"],[data-dm-edit-kind="room"]')) return;
-  if (typeof root.queueMicrotask === "function") root.queueMicrotask(claimCanonicalModalIconOwner);
-  else Promise.resolve().then(claimCanonicalModalIconOwner);
+  root.setTimeout?.(claimCanonicalModalIconOwner, 0);
 }
 
 function install() {
@@ -109,7 +141,7 @@ function install() {
     "dashboardmodern:persistence-restored",
   ]) root.addEventListener?.(eventName, bindTemperatureProgressGuard);
   root.addEventListener?.("dashboardmodern:state-changed", hideTemperatureProgressCopy);
-  doc.addEventListener("click", scheduleCanonicalModalClaim, true);
+  root.addEventListener?.("click", scheduleCanonicalModalClaim, true);
   if (doc.readyState === "loading") {
     doc.addEventListener("DOMContentLoaded", bindTemperatureProgressGuard, { once: true });
   } else {

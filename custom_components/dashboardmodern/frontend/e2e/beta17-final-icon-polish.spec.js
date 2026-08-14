@@ -128,7 +128,8 @@ async function waitForIconEngine(page) {
         page.evaluate(
           () =>
             typeof window.DashboardModernIconEngine?.render === "function" &&
-            typeof window.DashboardModernIconEngine?.openPicker === "function",
+            typeof window.DashboardModernIconEngine?.openPicker === "function" &&
+            Boolean(document.getElementById("dm-unified-editor-visual-style")),
         ),
       { timeout: 15_000 },
     )
