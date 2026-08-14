@@ -328,8 +328,7 @@ function bindTemperatureRoomReassignment(form) {
 
         const next = currentRooms.map((room) => {
           const id = clean(room.id);
-          if (id === originalId && originalId !== targetId)
-            return { ...room, temp: "", hum: "" };
+          if (id === originalId && originalId !== targetId) return { ...room, temp: "", hum: "" };
           if (id === targetId) return { ...room, temp, hum };
           return room;
         });
