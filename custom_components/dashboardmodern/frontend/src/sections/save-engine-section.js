@@ -1,4 +1,5 @@
-import { hasConfiguredData } from "../core/dashboard-store.js";
+import { hasConfiguredData, VISIBILITY_SECTION } from "../core/dashboard-store.js";
+import { sectionForEditorSlot } from "../core/editor-slots.js";
 import { SECTION_KEYS } from "../core/migrations.js";
 import { clean, dashboardStore, doc, root, t } from "./shared.js";
 
@@ -37,13 +38,15 @@ function pendingApplianceDraft(body = editorBody()) {
 
 function applianceCommitButton(body = editorBody()) {
   if (!body) return null;
-  return [...body.querySelectorAll("button.ed-btn-add,button")].find((button) => {
-    const label = clean(button.textContent).toLowerCase();
-    return (
-      /(?:aggiungi\s+elettrodomestico|add\s+appliance)/i.test(label) &&
-      !/(?:questa\s+entit|this\s+entity|salva\s+sezione|save\s+section)/i.test(label)
-    );
-  }) || null;
+  return (
+    [...body.querySelectorAll("button.ed-btn-add,button")].find((button) => {
+      const label = clean(button.textContent).toLowerCase();
+      return (
+        /(?:aggiungi\s+elettrodomestico|add\s+appliance)/i.test(label) &&
+        !/(?:questa\s+entit|this\s+entity|salva\s+sezione|save\s+section)/i.test(label)
+      );
+    }) || null
+  );
 }
 
 async function reconcileLegacyKey(key) {
@@ -73,7 +76,10 @@ async function commitPendingAppliance() {
   if (!pendingApplianceDraft(body)) return false;
 
   const button = applianceCommitButton(body);
-  if (!button) throw new Error(t("Pulsante Aggiungi elettrodomestico non trovato", "Add appliance button not found"));
+  if (!button)
+    throw new Error(
+      t("Pulsante Aggiungi elettrodomestico non trovato", "Add appliance button not found"),
+    );
 
   const store = dashboardStore();
   const before = JSON.stringify(store?.getSection?.("appliances") || []);
@@ -94,6 +100,10 @@ async function commitPendingAppliance() {
   return after !== before;
 }
 
+function entityReference(value) {
+  return typeof value === "string" && value.trim().includes(".");
+}
+
 async function repairConfiguredVisibility() {
   const store = dashboardStore();
   if (!store?.getState || !store?.getSection || !store?.transact || state.visibilityRepairing)
@@ -105,17 +115,29 @@ async function repairConfiguredVisibility() {
     for (const section of Object.keys(SECTION_KEYS)) {
       if (section === "entityOverrides") continue;
       const value = store.getSection(section);
-      if (!hasConfiguredData(section, value)) continue;
-      const before = JSON.stringify(store.getState().visibility || {});
+      const visibilityKey = VISIBILITY_SECTION[section] || section;
+      if (
+        !hasConfiguredData(section, value) ||
+        store.getState().visibility?.[visibilityKey] === true
+      )
+        continue;
       await store.transact(section, "visibility-reconcile", () => null);
-      if (JSON.stringify(store.getState().visibility || {}) !== before) changed = true;
+      changed = true;
     }
+
     // Entity overrides own several legacy sections (security/server/boiler/etc.).
+    // Reconcile only when at least one populated slot maps to a currently-hidden
+    // section, otherwise startup remains a no-op and performs no extra sync.
     const overrides = store.getSection("entityOverrides");
-    if (overrides && Object.keys(overrides).length) {
-      const before = JSON.stringify(store.getState().visibility || {});
+    const visibility = store.getState().visibility || {};
+    const needsOverrideVisibility = Object.entries(overrides || {}).some(([slot, entity]) => {
+      if (!entityReference(entity)) return false;
+      const mapped = sectionForEditorSlot(slot);
+      return mapped && visibility[mapped] !== true;
+    });
+    if (needsOverrideVisibility) {
       await store.transact("entityOverrides", "visibility-reconcile", () => null);
-      if (JSON.stringify(store.getState().visibility || {}) !== before) changed = true;
+      changed = true;
     }
   } finally {
     state.visibilityRepairing = false;
@@ -156,7 +178,9 @@ function installSectionSaveOwner() {
       return await saveCurrentSection();
     } catch (error) {
       root.console?.error?.("[DashboardModern] section save failed", error);
-      root.edToast?.(`${t("Salvataggio fallito", "Save failed")}: ${clean(error?.message || error)}`);
+      root.edToast?.(
+        `${t("Salvataggio fallito", "Save failed")}: ${clean(error?.message || error)}`,
+      );
       return false;
     }
   }
@@ -232,7 +256,11 @@ export function installSaveEngineSection() {
   for (const event of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"])
     root.addEventListener?.(event, () => {
       installOwners();
-      root.queueMicrotask?.(() => reconcileSaveEngine().catch((error) => root.console?.warn?.("[DashboardModern] save engine reconcile", error)));
+      root.queueMicrotask?.(() =>
+        reconcileSaveEngine().catch((error) =>
+          root.console?.warn?.("[DashboardModern] save engine reconcile", error),
+        ),
+      );
     });
 }
 
