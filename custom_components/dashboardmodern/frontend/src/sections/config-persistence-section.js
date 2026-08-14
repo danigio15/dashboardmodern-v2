@@ -63,8 +63,32 @@ function instanceId() {
   );
 }
 
+export function integrationUserDataKey({ primary = true, instance = "" } = {}) {
+  const suffix =
+    primary === false && instance
+      ? `__${String(instance).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 16)}`
+      : "";
+  return `dashboardmodern_integration_config${suffix}`;
+}
+
 function userDataKey() {
+  return integrationUserDataKey({
+    primary: root.__DASHBOARDMODERN_PRIMARY__ !== false,
+    instance: root.__DASHBOARDMODERN_INSTANCE__,
+  });
+}
+
+function legacyUserDataKey() {
   return `dashboardmodern_v2_config:${instanceId()}`;
+}
+
+export async function migrateLegacyUserData(fetchValue, pushValue) {
+  const current = await fetchValue(userDataKey());
+  if (current) return current;
+  const legacy = await fetchValue(legacyUserDataKey());
+  if (!legacy) return null;
+  await pushValue(userDataKey(), legacy);
+  return legacy;
 }
 
 function localValues() {
@@ -208,8 +232,10 @@ async function hydrateRemote() {
   if (state.hydrating || state.hydrated || state.resetting || !hostedBridge()) return false;
   state.hydrating = true;
   try {
-    const result = await bridgeRequest("frontend/get_user_data", { key: userDataKey() });
-    const remote = result?.value;
+    const remote = await migrateLegacyUserData(
+      async (key) => (await bridgeRequest("frontend/get_user_data", { key }))?.value,
+      (key, value) => bridgeRequest("frontend/set_user_data", { key, value }),
+    );
     if (
       !state.localWasConfigured &&
       remote &&
