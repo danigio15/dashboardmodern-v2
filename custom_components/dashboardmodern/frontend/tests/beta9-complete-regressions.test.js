@@ -7,11 +7,11 @@ const personalizationUrl = new URL("../src/sections/personalization-section.js",
 const iconEngineUrl = new URL("../src/sections/icon-engine-section.js", import.meta.url);
 const flowUrl = new URL("../src/sections/energy-flow-section.js", import.meta.url);
 const energyUrl = new URL("../src/sections/energy-section.js", import.meta.url);
-const reportUrl = new URL("../src/sections/energy-report-polish-section.js", import.meta.url);
-const editorUrl = new URL("../src/sections/editor-polish-section.js", import.meta.url);
+const reportUrl = new URL("../src/sections/energy-report-section.js", import.meta.url);
+const editorUrl = new URL("../src/sections/editor-refinement-section.js", import.meta.url);
 const temperatureUrl = new URL("../src/sections/temperature-section.js", import.meta.url);
 const shutterUrl = new URL("../src/sections/shutter-section.js", import.meta.url);
-const guardUrl = new URL("../src/sections/beta7-brand-guard-section.js", import.meta.url);
+const guardUrl = new URL("../src/sections/brand-guard-section.js", import.meta.url);
 
 test("quick actions use canonical colour glyphs and only the single-owner icon picker", async () => {
   const [catalog, guard, personalization, engine] = await Promise.all([

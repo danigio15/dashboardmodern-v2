@@ -4,6 +4,12 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.23 — 2026-08-14
+
+### Manutenzione
+
+- Rinominati 7 moduli frontend con nomi funzionali per sezione (nessuna modifica di comportamento): rimossi i prefissi "beta" e i suffissi "polish" dai moduli a scopo singolo.
+
 ## 1.0.0-beta.22 — 2026-08-14
 
 ### Corretto

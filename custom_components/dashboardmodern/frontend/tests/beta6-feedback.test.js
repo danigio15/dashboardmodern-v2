@@ -6,10 +6,10 @@ const ROOT = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), "utf8");
 
 test("feedback layer keeps legacy quick-action defaults while the icon engine owns visual picking", async () => {
-  const entry = await read("src/sections/beta-entry-section.js");
-  const feedback = await read("src/sections/beta6-feedback-section.js");
+  const entry = await read("src/sections/bootstrap-section.js");
+  const feedback = await read("src/sections/interaction-feedback-section.js");
   const engine = await read("src/sections/icon-engine-section.js");
-  assert.match(entry, /beta4-mobile-polish-section\.js";\nimport "\.\/beta6-feedback-section\.js";/);
+  assert.match(entry, /beta4-mobile-polish-section\.js";\nimport "\.\/interaction-feedback-section\.js";/);
   assert.match(entry, /import "\.\/icon-engine-section\.js";/);
   assert.doesNotMatch(entry, /quickActionGlyphByType|dm-beta6-quick-action-layout/);
   assert.doesNotMatch(entry, /__dmV01525GlyphRepair|dmBeta7IconToken|scheduleV01525QuickActionRepair/);
@@ -26,7 +26,7 @@ test("feedback layer keeps legacy quick-action defaults while the icon engine ow
 });
 
 test("legacy quick-action editor delegates picker and glyph rendering to the icon engine", async () => {
-  const source = await read("src/sections/beta6-feedback-section.js");
+  const source = await read("src/sections/interaction-feedback-section.js");
   const engine = await read("src/sections/icon-engine-section.js");
   assert.match(source, /input\.closest\?\.\("\.ed-form-row"\)/);
   assert.match(source, /input\.insertAdjacentElement\("afterend",preview\)/);
@@ -43,7 +43,7 @@ test("legacy quick-action editor delegates picker and glyph rendering to the ico
 
 test("manufacturer art is canonical, with a local Leapmotor emblem and no post-render swapping", async () => {
   const catalog = await read("src/core/personalization-catalog.js");
-  const feedback = await read("src/sections/beta6-feedback-section.js");
+  const feedback = await read("src/sections/interaction-feedback-section.js");
   assert.match(catalog, /SIMPLE_ICONS_VERSION = "16\.27\.1"/);
   assert.match(catalog, /simple-icons@\$\{SIMPLE_ICONS_VERSION\}\/icons\/\$\{slug\}\.svg/);
   assert.match(catalog, /function leapmotorVisual/);
@@ -56,7 +56,7 @@ test("manufacturer art is canonical, with a local Leapmotor emblem and no post-r
 });
 
 test("feedback layer no longer repaints the whole dashboard or resizes Chart.js", async () => {
-  const source = await read("src/sections/beta6-feedback-section.js");
+  const source = await read("src/sections/interaction-feedback-section.js");
   assert.doesNotMatch(source, /wrapFunction\("render"/);
   assert.doesNotMatch(source, /chart\.resize|chart\.update|__DASHBOARDMODERN_BETA5_ROOT_CAUSES__/);
   assert.doesNotMatch(source, /setInterval\s*\(/);
@@ -74,7 +74,7 @@ test("EV selector updates existing cards instead of rebuilding them on every sta
 });
 
 test("EV configuration puts the manufacturer logo above the label", async () => {
-  const entry = await read("src/sections/beta-entry-section.js");
+  const entry = await read("src/sections/bootstrap-section.js");
   assert.match(entry, /dm-beta7-ev-brand-layout/);
   assert.match(entry, /flex-direction:column!important/);
   assert.match(entry, /\.dm-brand-preview \.dm-car-brand/);
@@ -82,7 +82,7 @@ test("EV configuration puts the manufacturer logo above the label", async () => 
 });
 
 test("Lights popup keeps dimmer and RGB controls based on HA capabilities", async () => {
-  const source = await read("src/sections/beta6-feedback-section.js");
+  const source = await read("src/sections/interaction-feedback-section.js");
   assert.match(source, /supported_color_modes/);
   assert.match(source, /BRIGHTNESS_MODES/);
   assert.match(source, /RGB_MODES/);

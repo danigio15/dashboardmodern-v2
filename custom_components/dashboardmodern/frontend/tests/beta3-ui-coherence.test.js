@@ -45,7 +45,7 @@ test("section rename is inline with navbar order and updates editor tab labels",
 
 test("climate cards are capped on mobile and server rows expose their configured values", async () => {
   const personal = await read("src/sections/personalization-section.js");
-  const polish = await read("src/sections/editor-polish-section.js");
+  const polish = await read("src/sections/editor-refinement-section.js");
   assert.match(personal, /aspect-ratio:auto!important/);
   assert.match(polish, /dm-server-copy/);
   assert.match(polish, /dm-server-entity-row/);
@@ -53,7 +53,7 @@ test("climate cards are capped on mobile and server rows expose their configured
 
 test("energy history retries compatible Recorder payload and can fall back to legacy chart", async () => {
   const service = await read("src/core/period-service.js");
-  const report = await read("src/sections/energy-report-polish-section.js");
+  const report = await read("src/sections/energy-report-section.js");
   assert.match(service, /delete compatiblePayload\.units/);
   assert.match(report, /state\.legacyDailyChart/);
   assert.match(report, /dmHistoryFallback = "legacy-compatible"/);

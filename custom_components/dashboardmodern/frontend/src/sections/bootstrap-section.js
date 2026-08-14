@@ -1,14 +1,14 @@
 /* v1 beta UI entrypoint. Imported by generated build-info so legacy and hosted dashboards share it. */
 import "./config-persistence-section.js";
 import "./icon-engine-section.js";
-import "./beta-compat-section.js";
+import "./legacy-compat-section.js";
 import "./entity-picker-guard-section.js";
-import "./energy-report-polish-section.js";
+import "./energy-report-section.js";
 import "./personalization-section.js";
-import "./editor-polish-section.js";
+import "./editor-refinement-section.js";
 import "./beta4-mobile-polish-section.js";
-import "./beta6-feedback-section.js";
-import "./beta7-brand-guard-section.js";
+import "./interaction-feedback-section.js";
+import "./brand-guard-section.js";
 import "./beta7-regression-section.js";
 import "./beta9-real-device-polish-section.js";
 

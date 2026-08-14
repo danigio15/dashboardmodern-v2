@@ -29,7 +29,7 @@ test("beta18 moves picker ownership to the canonical icon engine", async () => {
     new URL("../../../../scripts/generate_build_info.py", import.meta.url),
     "utf8",
   );
-  const betaEntry = await readFile(new URL("../src/sections/beta-entry-section.js", import.meta.url), "utf8");
+  const betaEntry = await readFile(new URL("../src/sections/bootstrap-section.js", import.meta.url), "utf8");
   const beta17 = await readFile(
     new URL("../src/sections/beta17-final-icon-polish-section.js", import.meta.url),
     "utf8",

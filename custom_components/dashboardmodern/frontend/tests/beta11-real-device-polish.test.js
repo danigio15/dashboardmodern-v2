@@ -13,7 +13,7 @@ test("beta11 is loaded after the existing beta entry in generated and source bui
     readFile(sentinelUrl, "utf8"),
   ]);
   for (const source of [generator, sentinel]) {
-    const entry = source.indexOf("beta-entry-section.js");
+    const entry = source.indexOf("bootstrap-section.js");
     const beta11 = source.indexOf("beta11-real-device-polish-section.js");
     assert.ok(entry >= 0);
     assert.ok(beta11 > entry);

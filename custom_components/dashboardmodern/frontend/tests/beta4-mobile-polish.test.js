@@ -6,9 +6,9 @@ const ROOT = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), "utf8");
 
 test("final mobile owner loads before the canonical icon engine handles room activation", async () => {
-  const entry = await read("src/sections/beta-entry-section.js");
+  const entry = await read("src/sections/bootstrap-section.js");
   const engine = await read("src/sections/icon-engine-section.js");
-  assert.match(entry, /editor-polish-section\.js";\nimport "\.\/beta4-mobile-polish-section\.js";/);
+  assert.match(entry, /editor-refinement-section\.js";\nimport "\.\/beta4-mobile-polish-section\.js";/);
   assert.match(entry, /import "\.\/icon-engine-section\.js"/);
   assert.match(engine, /\.dm-beta5-room-icon-trigger/);
   assert.match(engine, /openIconPicker\(activation\.input, activation\.kind/);
@@ -89,7 +89,7 @@ test("daily Energy chart is real-only, stops at today and never calls the synthe
 
 test("day and month Energy maps keep every secondary load node and connector visible", async () => {
   const source = await read("src/sections/beta4-mobile-polish-section.js");
-  const entry = await read("src/sections/beta-entry-section.js");
+  const entry = await read("src/sections/bootstrap-section.js");
   assert.match(source, /wb: \{ day: "dm\.ev_energia_wallbox_oggi", month: "dm\.ev_energia_wallbox_mese" \}/);
   assert.match(source, /for \(const period of \["day", "month"\]\)/);
   assert.match(source, /node\.style\.display = ""/);
