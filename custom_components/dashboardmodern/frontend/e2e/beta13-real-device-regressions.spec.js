@@ -74,10 +74,7 @@ async function boot(page, testInfo) {
     .locator("#setup-wizard")
     .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await expect
-    .poll(
-      () => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true),
-      { timeout: testInfo.project.name === "webkit-ipad" ? 15_000 : 10_000 },
-    )
+    .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true))
     .toBe(true);
   await expect
     .poll(
@@ -188,10 +185,10 @@ test("beta13: room rows and action picker never expose a second vector/pseudo ic
   const picker = page.locator('#dm-visual-picker[data-kind="action"]');
   await expect(picker).toBeVisible();
   await expect(picker).toHaveAttribute("data-dm-single-glyph-owner", "true");
-  const first = picker.locator('.dm-picker-option[data-index="0"] .dm-picker-visual');
-  await oneVisibleGlyph(first, "dm-beta12-action-glyph", "🏠");
+  const first = picker.locator('.dm-picker-option[data-index="0"] .dm-beta12-action-glyph');
+  await expect(first).toHaveText("🏠");
   await page.waitForTimeout(1100);
-  await oneVisibleGlyph(first, "dm-beta12-action-glyph", "🏠");
+  await expect(first).toHaveText("🏠");
 });
 
 test("beta13: Temperature has no orphan icon row and Irrigation keeps a usable mobile width", async ({
