@@ -36,6 +36,8 @@ export function migrateRooms(input = []) {
     let collision = 2;
     while (used.has(id)) id = `${base}-${collision++}`;
     used.add(id);
+    const tempName = String(room.temp_name || room.temperature_name || "");
+    const humName = String(room.hum_name || room.humidity_name || "");
     return {
       id,
       name: String(room.name || `Room ${index + 1}`),
@@ -46,8 +48,8 @@ export function migrateRooms(input = []) {
       // DashboardStore.persist() destructively rewrite cd_stanze.
       temp: String(room.temp || room.temperature_entity || ""),
       hum: String(room.hum || room.humidity_entity || ""),
-      temp_name: String(room.temp_name || room.temperature_name || ""),
-      hum_name: String(room.hum_name || room.humidity_name || ""),
+      ...(tempName ? { temp_name: tempName } : {}),
+      ...(humName ? { hum_name: humName } : {}),
       rgb: room.rgb || "",
       order: Number.isFinite(+room.order) ? +room.order : index,
       metadata: { ...(room.metadata || {}) },
