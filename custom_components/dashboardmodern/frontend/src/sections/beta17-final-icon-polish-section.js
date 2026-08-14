@@ -1,4 +1,4 @@
-// DM-FIX-20260813C
+// DM-FIX-20260814C
 import {
   ROOM_CATALOG,
   ROOM_GLYPHS,
@@ -6,13 +6,18 @@ import {
   directEmoji,
   roomGlyph,
 } from "../core/personalization-catalog.js";
-import { clean, doc, root, t } from "./shared.js";
+import { clean, dashboardStore, doc, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_BETA17_FINAL_ICON_POLISH__";
 const state = (root[KEY] ||= {
   installed: false,
   temperaturePage: null,
   temperatureObserver: null,
+  temperatureEditorFrame: 0,
+  storeUnsubscribe: null,
+  pendingLabels: new Map(),
+  flushingLabels: false,
+  clearingLabels: false,
 });
 
 // Kept as public compatibility exports for diagnostics/tests. Picker ownership
@@ -31,6 +36,28 @@ export function isTemperatureProgressText(value) {
 export function actionPickerGlyph(value) {
   const token = clean(value);
   return directEmoji(token) || actionCatalogMatch(token)?.glyph || "⭐";
+}
+
+function temperatureRooms() {
+  try {
+    const values = dashboardStore()?.getSection?.("rooms");
+    return Array.isArray(values) ? values : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function temperatureRoom(id) {
+  const token = clean(id);
+  return temperatureRooms().find((room) => clean(room?.id) === token) || null;
+}
+
+function temperatureLabel(room) {
+  return clean(room?.temp_name || room?.temperature_name) || t("Temperatura", "Temperature");
+}
+
+function humidityLabel(room) {
+  return clean(room?.hum_name || room?.humidity_name) || t("Umidità", "Humidity");
 }
 
 function hideTemperatureProgressCopy() {
@@ -74,6 +101,259 @@ function bindTemperatureProgressGuard() {
   return true;
 }
 
+function ensureTemperatureRowMain(row, room) {
+  if (!row || !room) return false;
+  const icon = row.querySelector(":scope > .dm-temperature-card-icon");
+  let main = row.querySelector(":scope > .ed-row-main");
+  if (!main) {
+    main = doc.createElement("div");
+    main.className = "ed-row-main";
+    if (icon?.parentElement === row) icon.after(main);
+    else row.prepend(main);
+  }
+  let primary = main.querySelector(":scope > .ed-row-new");
+  if (!primary) {
+    primary = doc.createElement("div");
+    primary.className = "ed-row-new";
+    main.prepend(primary);
+  }
+  let secondary = main.querySelector(":scope > .ed-row-old");
+  if (!secondary) {
+    secondary = doc.createElement("div");
+    secondary.className = "ed-row-old";
+    main.append(secondary);
+  }
+
+  const name = clean(room.name) || clean(room.id) || t("Stanza", "Room");
+  const details = [];
+  if (clean(room.temp)) details.push(`${temperatureLabel(room)}: ${clean(room.temp)}`);
+  if (clean(room.hum)) details.push(`${humidityLabel(room)}: ${clean(room.hum)}`);
+  primary.textContent = name;
+  primary.title = name;
+  secondary.textContent = details.join(" · ");
+  secondary.title = secondary.textContent;
+  row.dataset.dmTemperatureNameVisible = "true";
+  row.dataset.dmBeta20TemperatureRoomName = name;
+
+  for (const node of [main, primary, secondary]) {
+    node.style.setProperty("display", "block", "important");
+    node.style.setProperty("visibility", "visible", "important");
+    node.style.setProperty("opacity", "1", "important");
+    node.style.setProperty("min-width", "0", "important");
+  }
+  main.style.setProperty("overflow", "hidden", "important");
+  primary.style.setProperty("color", "var(--primary-text-color,var(--text,#0f172a))", "important");
+  primary.style.setProperty("font-size", "14px", "important");
+  primary.style.setProperty("font-weight", "900", "important");
+  primary.style.setProperty("line-height", "1.25", "important");
+  secondary.style.setProperty(
+    "color",
+    "var(--secondary-text-color,var(--text-dim,#64748b))",
+    "important",
+  );
+  secondary.style.setProperty("font-size", "10px", "important");
+  secondary.style.setProperty("line-height", "1.3", "important");
+  for (const node of [primary, secondary]) {
+    node.style.setProperty("white-space", "nowrap", "important");
+    node.style.setProperty("overflow", "hidden", "important");
+    node.style.setProperty("text-overflow", "ellipsis", "important");
+  }
+  return true;
+}
+
+function repairTemperatureConfiguredRows() {
+  const body = doc?.getElementById("ed-body");
+  if (!body) return false;
+  let repaired = false;
+  body.querySelectorAll("[data-temperature-room][data-room-id]").forEach((row) => {
+    const room = temperatureRoom(row.dataset.roomId);
+    if (room) repaired = ensureTemperatureRowMain(row, room) || repaired;
+  });
+  return repaired;
+}
+
+function makeTemperatureNameField(id, label) {
+  const field = doc.createElement("label");
+  field.className = "ed-slot dm-temperature-name-field";
+  field.dataset.temperatureNameField = id;
+  const title = doc.createElement("span");
+  title.className = "ed-slot-lbl";
+  title.textContent = label;
+  const input = doc.createElement("input");
+  input.id = id;
+  input.type = "text";
+  input.autocomplete = "off";
+  input.className = "ed-input ed-slot-in";
+  input.placeholder = t("Nome visualizzato facoltativo", "Optional display name");
+  field.append(title, input);
+  return field;
+}
+
+function temperatureLabelSourceRoom(form) {
+  const original = clean(form?.dataset?.dmOriginalRoom);
+  const selected = clean(form?.querySelector("#dm-temperature-room")?.value);
+  return temperatureRoom(original || selected);
+}
+
+function ensureTemperatureNameFields(form) {
+  if (!form) return false;
+  let tempInput = form.querySelector("#dm-temperature-name");
+  if (!tempInput) {
+    const field = makeTemperatureNameField(
+      "dm-temperature-name",
+      t("Nome temperatura", "Temperature name"),
+    );
+    const anchor = form.querySelector("#ed-pl-temp")?.closest("[data-entity-field],label.ed-slot");
+    if (anchor) anchor.before(field);
+    else form.append(field);
+    tempInput = field.querySelector("input");
+  }
+
+  let humInput = form.querySelector("#dm-humidity-name");
+  if (!humInput) {
+    const field = makeTemperatureNameField(
+      "dm-humidity-name",
+      t("Nome umidità", "Humidity name"),
+    );
+    const anchor = form
+      .querySelector("#dm-humidity-new")
+      ?.closest("[data-entity-field],label.ed-slot");
+    if (anchor) anchor.before(field);
+    else form.append(field);
+    humInput = field.querySelector("input");
+  }
+
+  const selected = clean(form.querySelector("#dm-temperature-room")?.value);
+  const original = clean(form.dataset.dmOriginalRoom);
+  const editing = Boolean(original) || /^(modifica|edit)\b/i.test(
+    clean(form.querySelector("[data-temperature-form-title]")?.textContent),
+  );
+  const context = `${editing ? "edit" : "add"}|${original || selected}`;
+  if (form.dataset.dmBeta20TemperatureLabelContext !== context) {
+    const room = temperatureLabelSourceRoom(form);
+    tempInput.value = room ? clean(room.temp_name || room.temperature_name) : "";
+    humInput.value = room ? clean(room.hum_name || room.humidity_name) : "";
+    form.dataset.dmBeta20TemperatureLabelContext = context;
+  }
+  return true;
+}
+
+function repairTemperatureEditor() {
+  repairTemperatureConfiguredRows();
+  const form = doc?.querySelector("#editor-modal [data-temperature-form]");
+  if (!form) return false;
+  return ensureTemperatureNameFields(form);
+}
+
+function repairTemperatureDashboardLabels() {
+  const grid = doc?.getElementById("temp-grid");
+  if (!grid) return false;
+  let repaired = false;
+  grid.querySelectorAll(".temp-card[data-room-id]").forEach((card) => {
+    const room = temperatureRoom(card.dataset.roomId);
+    if (!room) return;
+    const temp = card.querySelector(".cp-temp-current-lbl");
+    const hum = card.querySelector(".cp-temp-target .lbl");
+    if (temp) {
+      temp.textContent = temperatureLabel(room);
+      temp.title = temperatureLabel(room);
+    }
+    if (hum) {
+      hum.textContent = `💧 ${humidityLabel(room)}`;
+      hum.title = humidityLabel(room);
+    }
+    card.dataset.dmBeta20TemperatureEntityLabels = "true";
+    repaired = true;
+  });
+  return repaired;
+}
+
+function runTemperatureRepair() {
+  repairTemperatureEditor();
+  repairTemperatureDashboardLabels();
+}
+
+function scheduleTemperatureRepair() {
+  if (state.temperatureEditorFrame) return;
+  const run = () => {
+    state.temperatureEditorFrame = 0;
+    runTemperatureRepair();
+    root.requestAnimationFrame?.(runTemperatureRepair);
+  };
+  state.temperatureEditorFrame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
+}
+
+function captureTemperatureLabels(event) {
+  const form = event.target?.closest?.("[data-temperature-form]");
+  if (!form) return;
+  const id = clean(form.querySelector("#dm-temperature-room")?.value);
+  const temp = clean(form.querySelector("#ed-pl-temp")?.value);
+  if (!id || !temp.includes(".")) return;
+  state.pendingLabels.set(id, {
+    temp_name: clean(form.querySelector("#dm-temperature-name")?.value),
+    hum_name: clean(form.querySelector("#dm-humidity-name")?.value),
+  });
+}
+
+async function flushPendingTemperatureLabels() {
+  if (state.flushingLabels || !state.pendingLabels.size) return;
+  const store = dashboardStore();
+  if (!store?.updateItem) return;
+  state.flushingLabels = true;
+  try {
+    for (const [id, labels] of [...state.pendingLabels.entries()]) {
+      const room = temperatureRoom(id);
+      if (!room || (!clean(room.temp) && !clean(room.hum))) continue;
+      const patch = {
+        temp_name: clean(labels.temp_name),
+        hum_name: clean(labels.hum_name),
+      };
+      state.pendingLabels.delete(id);
+      if (clean(room.temp_name) === patch.temp_name && clean(room.hum_name) === patch.hum_name) {
+        continue;
+      }
+      await store.updateItem("rooms", id, patch);
+    }
+  } catch (error) {
+    root.console?.error?.("[DashboardModern] temperature entity labels", error);
+  } finally {
+    state.flushingLabels = false;
+  }
+}
+
+async function clearOrphanTemperatureLabels() {
+  if (state.clearingLabels) return;
+  const store = dashboardStore();
+  if (!store?.updateItem) return;
+  const orphan = temperatureRooms().find(
+    (room) =>
+      !clean(room.temp) &&
+      !clean(room.hum) &&
+      (clean(room.temp_name) || clean(room.hum_name)),
+  );
+  if (!orphan) return;
+  state.clearingLabels = true;
+  try {
+    await store.updateItem("rooms", orphan.id, { temp_name: "", hum_name: "" });
+  } catch (error) {
+    root.console?.error?.("[DashboardModern] clear temperature entity labels", error);
+  } finally {
+    state.clearingLabels = false;
+  }
+}
+
+function subscribeTemperatureLabels() {
+  if (state.storeUnsubscribe) return;
+  const store = dashboardStore();
+  if (typeof store?.subscribe !== "function") return;
+  state.storeUnsubscribe = store.subscribe((change) => {
+    if (change?.section !== "rooms" && change?.section !== "snapshot") return;
+    flushPendingTemperatureLabels();
+    clearOrphanTemperatureLabels();
+    scheduleTemperatureRepair();
+  });
+}
+
 function bindCanonicalPreview(modal, kind, engine) {
   const selector = kind === "action" ? "[data-action-icon-preview]" : "[data-room-icon-preview]";
   const preview = modal.querySelector(selector);
@@ -86,7 +366,9 @@ function bindCanonicalPreview(modal, kind, engine) {
   preview.removeAttribute("aria-hidden");
   preview.setAttribute(
     "aria-label",
-    kind === "action" ? t("Scegli icona azione", "Choose action icon") : t("Scegli icona stanza", "Choose room icon"),
+    kind === "action"
+      ? t("Scegli icona azione", "Choose action icon")
+      : t("Scegli icona stanza", "Choose room icon"),
   );
 
   if (preview.dataset.dmCanonicalPickerBound !== "true") {
@@ -131,6 +413,16 @@ function scheduleCanonicalModalClaim(event) {
   root.setTimeout?.(claimCanonicalModalIconOwner, 0);
 }
 
+function scheduleTemperatureRepairFromEvent(event) {
+  if (
+    event.target?.closest?.(
+      "#editor-modal,[data-tab='temp'],[data-tab='temperature'],.ed-tab[data-tab='sez7'],#page-temp",
+    )
+  ) {
+    scheduleTemperatureRepair();
+  }
+}
+
 function install() {
   if (!doc || state.installed) return;
   state.installed = true;
@@ -139,13 +431,35 @@ function install() {
     "dashboardmodern:runtime-ready",
     "dashboardmodern:states-ready",
     "dashboardmodern:persistence-restored",
-  ]) root.addEventListener?.(eventName, bindTemperatureProgressGuard);
-  root.addEventListener?.("dashboardmodern:state-changed", hideTemperatureProgressCopy);
+  ]) {
+    root.addEventListener?.(eventName, () => {
+      bindTemperatureProgressGuard();
+      subscribeTemperatureLabels();
+      scheduleTemperatureRepair();
+    });
+  }
+  root.addEventListener?.("dashboardmodern:state-changed", () => {
+    hideTemperatureProgressCopy();
+    repairTemperatureDashboardLabels();
+  });
   root.addEventListener?.("click", scheduleCanonicalModalClaim, true);
+  doc.addEventListener("click", scheduleTemperatureRepairFromEvent, true);
+  doc.addEventListener("change", scheduleTemperatureRepairFromEvent, true);
+  doc.addEventListener("submit", captureTemperatureLabels, true);
   if (doc.readyState === "loading") {
-    doc.addEventListener("DOMContentLoaded", bindTemperatureProgressGuard, { once: true });
+    doc.addEventListener(
+      "DOMContentLoaded",
+      () => {
+        bindTemperatureProgressGuard();
+        subscribeTemperatureLabels();
+        scheduleTemperatureRepair();
+      },
+      { once: true },
+    );
   } else {
     bindTemperatureProgressGuard();
+    subscribeTemperatureLabels();
+    scheduleTemperatureRepair();
   }
 }
 
