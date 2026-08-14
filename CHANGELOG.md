@@ -4,6 +4,17 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.22 — 2026-08-14
+
+### Corretto
+
+- Ripristinato integralmente il comportamento Temperatura della beta.20 (nomi personalizzati al posto delle etichette sulla card, righe editor originali): la riscrittura della beta.21 causava il collasso della catena dei moduli sezione su dispositivi reali, facendo regredire visivamente tutte le sezioni al rendering legacy.
+- Reincluso `build-info.js` nell'hash asset runtime per garantire l'invalidazione della cache anche nelle release solo-metadata.
+
+### Manutenzione
+
+- Conservate tutte le correzioni di release della beta.21 (guard versione build-info, documentazione HACS, policy di sicurezza, template bug, validator).
+
 ## 1.0.0-beta.21 — 2026-08-14
 
 ### Corretto
