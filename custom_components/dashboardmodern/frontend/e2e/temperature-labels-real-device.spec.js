@@ -90,16 +90,28 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(
       row.locator(":scope > .ed-row-main > .ed-row-new"),
     ).toHaveText("Cameretta");
-    await expect(row).toContainText("Temperatura cameretta");
-    await expect(row).toContainText("Umidità cameretta");
 
     await row.locator("[data-temperature-edit]").click();
-    await expect(page.locator("#dm-temperature-name")).toHaveValue(
-      "Temperatura cameretta",
-    );
-    await expect(page.locator("#dm-humidity-name")).toHaveValue(
-      "Umidità cameretta",
-    );
+    const tempName = page.locator("#dm-temperature-name");
+    const humName = page.locator("#dm-humidity-name");
+    await expect(tempName).toHaveValue("Temperatura cameretta");
+    await expect(humName).toHaveValue("Umidità cameretta");
+
+    await tempName.fill("Temperatura Camera");
+    await humName.fill("Umidità Camera");
+    await page.locator("[data-temperature-submit]").click();
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          DashboardModernModules.store
+            .getSection("rooms")
+            .find((room) => room.id === "room-cameretta"),
+        ),
+      )
+      .toMatchObject({
+        temp_name: "Temperatura Camera",
+        hum_name: "Umidità Camera",
+      });
 
     await page.locator("#editor-modal .ed-head-close").last().click();
     await clickBottomTab(page, "temp", testInfo);
@@ -108,10 +120,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     );
     await expect(card).toContainText("Cameretta");
     await expect(card.locator(".cp-temp-current-lbl")).toHaveText(
-      "Temperatura cameretta",
+      "Temperatura Camera",
     );
     await expect(card.locator(".cp-temp-target .lbl")).toContainText(
-      "Umidità cameretta",
+      "Umidità Camera",
     );
   });
 }
