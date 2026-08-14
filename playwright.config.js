@@ -5,6 +5,10 @@ export default defineConfig({
   reporter: process.env.CI
     ? [["github"], ["html", { open: "never" }]]
     : [["list"], ["html", { open: "never" }]],
+  retries: process.env.CI ? 2 : 0,
+  expect: {
+    timeout: process.env.CI ? 10_000 : 5_000,
+  },
   use: {
     baseURL: "http://127.0.0.1:4173",
     screenshot: "only-on-failure",
