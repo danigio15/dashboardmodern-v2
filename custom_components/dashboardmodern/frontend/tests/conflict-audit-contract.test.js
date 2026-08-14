@@ -10,7 +10,7 @@ const calculations = await read("../src/sections/energy-calculations-section.js"
 const appliances = await read("../src/sections/appliances-section.js");
 const shutters = await read("../src/sections/shutter-section.js");
 const ev = await read("../src/sections/ev-section.js");
-const applianceEditor = await read("../src/sections/appliance-editor-section.js");
+const applianceEditor = await read("../src/sections/appliances-section.js");
 
 test("live state changes cannot restart migration or retry loops", () => {
   assert.doesNotMatch(dataContracts, /dashboardmodern:state-changed/);

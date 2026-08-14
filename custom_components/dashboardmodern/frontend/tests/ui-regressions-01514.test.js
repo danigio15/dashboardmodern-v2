@@ -6,7 +6,7 @@ const ROOT = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), "utf8");
 
 test("appliance mobile layout targets the real legacy body without changing artwork ownership", async () => {
-  const layout = await read("src/sections/appliance-layout-section.js");
+  const layout = (await read("src/sections/appliances-section.js")).split("// --- ex appliance-layout-section.js ---")[1];
   const appliances = await read("src/sections/appliances-section.js");
   assert.match(layout, /max-width:370px!important/);
   assert.match(layout, /grid-template-columns:92px minmax\(0,1fr\)/);
@@ -61,7 +61,7 @@ test("navigation has one canonical owner with dark-mode contrast", async () => {
 test("temperature mobile card is owned by the canonical temperature renderer", async () => {
   const runtime = await read("src/sections/section-runtime.js");
   const source = await read("src/sections/temperature-section.js");
-  const legacyLayout = await read("src/sections/temperature-layout-section.js");
+  const legacyLayout = (await read("src/sections/temperature-section.js")).split("// --- ex temperature-layout-section.js ---")[1];
 
   assert.equal((runtime.match(/temperature-section\.js/g) || []).length, 1);
   assert.equal((runtime.match(/installTemperatureSection\(\)/g) || []).length, 1);

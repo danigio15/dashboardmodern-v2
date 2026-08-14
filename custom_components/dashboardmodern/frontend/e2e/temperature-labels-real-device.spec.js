@@ -90,6 +90,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(
       row.locator(":scope > .ed-row-main > .ed-row-new"),
     ).toHaveText("Cameretta");
+    await expect(row.locator(":scope > .dm-temperature-card-icon")).toBeVisible();
+    await expect(row.locator(":scope > .ed-row-main")).toBeVisible();
 
     await row.locator("[data-temperature-edit]").click();
     const tempName = page.locator("#dm-temperature-name");

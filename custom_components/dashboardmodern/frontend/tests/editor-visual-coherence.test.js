@@ -6,7 +6,7 @@ const ROOT = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), "utf8");
 
 test("appliance Edit uses the same blue SVG owner and catalog as the original Add picker", async () => {
-  const editor = await read("src/sections/appliance-editor-section.js");
+  const editor = await read("src/sections/appliances-section.js");
   const model = await read("src/core/device-model.js");
 
   assert.match(editor, /APPLIANCE_CATALOG/);

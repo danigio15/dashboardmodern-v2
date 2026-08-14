@@ -13,11 +13,15 @@ import { installEnergyGuidanceSection } from "./energy-guidance-section.js";
 import { installEnergyFlowSection } from "./energy-flow-section.js";
 import { installEnergyAnalysisSection } from "./energy-analysis-section.js";
 import { installHistorySection } from "./history-section.js";
-import { installTemperatureSection } from "./temperature-section.js";
-import { installTemperatureLayoutSection } from "./temperature-layout-section.js";
-import { installAppliancesSection } from "./appliances-section.js";
-import { installApplianceLayoutSection } from "./appliance-layout-section.js";
-import { installApplianceEditorSection } from "./appliance-editor-section.js";
+import {
+  installTemperatureSection,
+  installTemperatureLayoutSection,
+} from "./temperature-section.js";
+import {
+  installAppliancesSection,
+  installApplianceLayoutSection,
+  installApplianceEditorSection,
+} from "./appliances-section.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installAlertsSection } from "./alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";

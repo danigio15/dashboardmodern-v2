@@ -148,7 +148,7 @@ test("one hosted bootstrap delegates to the section runtime, which owns the guar
     "utf8",
   );
   const applianceLayout = await readFile(
-    new URL("../src/sections/appliance-layout-section.js", import.meta.url),
+    new URL("../src/sections/appliances-section.js", import.meta.url),
     "utf8",
   );
   const ev = await readFile(new URL("../src/sections/ev-section.js", import.meta.url), "utf8");
@@ -174,10 +174,7 @@ test("one hosted bootstrap delegates to the section runtime, which owns the guar
     "energy-stability",
     "energy-guidance",
     "temperature",
-    "temperature-layout",
     "appliances",
-    "appliance-layout",
-    "appliance-editor",
     "lights-alerts",
     "alerts",
     "unified-editors",

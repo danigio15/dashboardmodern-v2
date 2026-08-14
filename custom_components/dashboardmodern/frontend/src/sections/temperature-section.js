@@ -1,5 +1,6 @@
 // DM-FIX-20260814A
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
+import { matchCanonicalRoom } from "./beta16-real-device-layout-section.js";
 import {
   allStates,
   clean,
@@ -348,7 +349,29 @@ function bindTemperatureRoomReassignment(form) {
   return true;
 }
 
+export function tagTemperatureEditorRows() {
+  const values = configuredRooms();
+  const candidates = [
+    ...(doc?.querySelectorAll?.(
+      "#editor-modal #ed-body .ed-list > .ed-row:has(> .dm-temperature-card-icon)",
+    ) || []),
+  ];
+  candidates.forEach((row, index) => {
+    const reference = String(row.dataset.roomId || "").trim();
+    const fallbackName = clean(row.querySelector?.(":scope > .ed-row-main > .ed-row-new")?.textContent);
+    const room = values[index] || matchCanonicalRoom(values, reference, fallbackName);
+    if (!room) return;
+    const roomId = String(room.id).trim();
+    if (row.dataset.temperatureRoom !== "true") row.dataset.temperatureRoom = "true";
+    if (String(row.dataset.roomId || "").trim() !== roomId) row.dataset.roomId = roomId;
+    if (row.dataset.dmTemperatureNameVisible !== "true")
+      row.dataset.dmTemperatureNameVisible = "true";
+  });
+  return candidates.length > 0;
+}
+
 function normalizeTemperatureConfiguredRows() {
+  tagTemperatureEditorRows();
   const values = rooms();
   let normalized = false;
   doc
@@ -542,3 +565,29 @@ export function installTemperatureSection() {
 if (doc?.readyState === "loading")
   doc.addEventListener("DOMContentLoaded", installTemperatureSection, { once: true });
 else installTemperatureSection();
+// --- ex temperature-layout-section.js ---
+// Compatibility shim retained while section-runtime still imports this module.
+// Temperature layout and rendering are now owned entirely by temperature-section.js.
+// This shim only preserves the two optional Temperature display-name fields
+// through the canonical room normalizer; it does not render, style or observe DOM.
+const TEMPERATURE_LAYOUT_KEY = "__DASHBOARDMODERN_TEMPERATURE_LABEL_MODEL_COMPAT__";
+const temperatureLayoutState = (root[TEMPERATURE_LAYOUT_KEY] ||= { patched: false });
+
+function preserveTemperatureLabels(store) {
+  if (!store || temperatureLayoutState.patched || typeof store._normalizeItem !== "function") return false;
+  const current = store._normalizeItem.bind(store);
+  store._normalizeItem = function normalizeItemWithTemperatureLabels(section, item, index) {
+    const normalized = current(section, item, index);
+    if (section !== "rooms" || !normalized) return normalized;
+    normalized.temp_name = clean(item?.temp_name || item?.temperature_name);
+    normalized.hum_name = clean(item?.hum_name || item?.humidity_name);
+    return normalized;
+  };
+  temperatureLayoutState.patched = true;
+  return true;
+}
+
+export function installTemperatureLayoutSection() {
+  preserveTemperatureLabels(dashboardStore());
+  return false;
+}

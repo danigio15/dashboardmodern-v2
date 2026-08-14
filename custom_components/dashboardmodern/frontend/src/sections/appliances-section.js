@@ -1,5 +1,10 @@
 import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
+import {
+  APPLIANCE_CATALOG,
+  applianceCatalogLabel,
+  canonicalApplianceVisualKey,
+} from "../core/device-model.js";
 import { isCumulativeEnergyEntity, resolveEntity } from "../core/period-service.js";
 import { runtimeMetrics } from "../core/runtime-metrics.js";
 import {
@@ -10,11 +15,13 @@ import {
   english,
   esc,
   installStyle,
+  readJson,
   root,
   section,
+  t,
   wrapFunction,
+  writeJsonIfChanged,
 } from "./shared.js";
-
 const KEY = "__DASHBOARDMODERN_APPLIANCES_SECTION__";
 const DAILY_REFRESH_MS = 5000;
 const state = (root[KEY] ||= {
@@ -654,3 +661,538 @@ if (doc?.readyState === "loading") {
 } else {
   installAppliancesSection();
 }
+// --- ex appliance-editor-section.js ---
+
+const APPLIANCE_EDITOR_KEY = "__DASHBOARDMODERN_APPLIANCE_EDITOR_SECTION__";
+const applianceEditorState = (root[APPLIANCE_EDITOR_KEY] ||= { installed: false, previousEdit: null, previousPicker: null });
+
+function locale() {
+  return doc?.documentElement?.lang === "en" ? "en" : "it";
+}
+
+function appliances() {
+  const stored = dashboardStore()?.getSection?.("appliances");
+  return Array.isArray(stored) ? stored.slice() : readJson("cd_appliances", []);
+}
+
+function roomOptions(selected) {
+  const rooms = section("rooms", readJson("cd_stanze", []));
+  return [
+    `<option value="">— ${t("Nessuna stanza", "No room")} —</option>`,
+    ...rooms.map((room) => {
+      const value = clean(room.id || room.name);
+      const active = [room.id, room.name].map(clean).includes(clean(selected));
+      return `<option value="${esc(value)}" ${active ? "selected" : ""}>${esc(room.icon || "🏠")} ${esc(room.name || value)}</option>`;
+    }),
+  ].join("");
+}
+
+function editorVisualKey(value) {
+  return canonicalApplianceVisualKey(value) || "";
+}
+
+function deviceVisualKey(device = {}) {
+  const explicit = [device.visual_key, device.device_type, device.icon, device.type]
+    .map(editorVisualKey)
+    .filter(Boolean);
+  const specific = explicit.find((key) => key !== "generico");
+  if (specific) return specific;
+  // 0.15.19/0.15.20 could save the first select option (`generico`) when an
+  // appliance type was absent from the short Edit-only list. Recover those
+  // records from their human name without touching their entity links.
+  const named = editorVisualKey(device.name);
+  return named || explicit[0] || "generico";
+}
+
+function catalogItem(value) {
+  const key = editorVisualKey(value) || "generico";
+  return APPLIANCE_CATALOG.find((item) => item.key === key) || APPLIANCE_CATALOG.at(-1);
+}
+
+function typeIconMarkup(value, size = 42) {
+  const key = editorVisualKey(value) || "generico";
+  const legacy = root.cdApplianceIcon?.(key, size);
+  if (legacy) return legacy;
+  const artwork = applianceArtwork(key, size);
+  if (artwork) return artwork;
+  return `<span class="dm-appliance-editor-fallback">🔌</span>`;
+}
+
+function typeLabel(value) {
+  return applianceCatalogLabel(value, locale());
+}
+
+function openTypePicker({ selected = "generico", onSelect } = {}) {
+  doc?.getElementById("dm-applpick")?.remove();
+  const selectedKey = editorVisualKey(selected) || "generico";
+  const overlay = doc.createElement("div");
+  overlay.id = "dm-applpick";
+  overlay.className = "dm-appliance-type-picker";
+  overlay.innerHTML = `<section class="dm-appliance-type-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-appliance-type-picker-title">
+    <strong id="dm-appliance-type-picker-title">${t("Scegli l'elettrodomestico", "Choose appliance")}</strong>
+    <div class="dm-appliance-type-grid" role="listbox"></div>
+    <button type="button" class="dm-appliance-type-close">${t("Chiudi", "Close")}</button>
+  </section>`;
+  const grid = overlay.querySelector(".dm-appliance-type-grid");
+  APPLIANCE_CATALOG.forEach((item) => {
+    const button = doc.createElement("button");
+    button.type = "button";
+    button.className = "dm-appliance-type-option";
+    button.dataset.applianceType = item.key;
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", String(item.key === selectedKey));
+    button.innerHTML = `<span class="dm-appliance-type-option-icon">${typeIconMarkup(item.key, 30)}</span><span>${esc(item[locale()] || item.it)}</span>`;
+    button.addEventListener("click", () => {
+      overlay.remove();
+      onSelect?.(item.key);
+    });
+    grid.append(button);
+  });
+  overlay.querySelector(".dm-appliance-type-close")?.addEventListener("click", () => overlay.remove());
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) overlay.remove();
+  });
+  doc.body.append(overlay);
+  return overlay;
+}
+
+function installPickerOverride() {
+  const current = root.dmAppliancePicker;
+  if (typeof current !== "function" || current.__dmCanonicalAppliancePicker) return false;
+  applianceEditorState.previousPicker ||= current;
+  function canonicalAppliancePicker() {
+    const hidden = doc.getElementById("appl-icon");
+    const button = doc.getElementById("appl-icon-btn");
+    const name = doc.getElementById("appl-name");
+    openTypePicker({
+      selected: hidden?.value || "generico",
+      onSelect(key) {
+        if (hidden) hidden.value = key;
+        if (button) {
+          button.innerHTML = typeIconMarkup(key, 30);
+          button.dataset.applianceType = key;
+          button.setAttribute("aria-label", typeLabel(key));
+        }
+        if (name && !clean(name.value)) name.value = typeLabel(key);
+      },
+    });
+  }
+  canonicalAppliancePicker.__dmCanonicalAppliancePicker = true;
+  canonicalAppliancePicker.__dmPrevious = current;
+  root.dmAppliancePicker = canonicalAppliancePicker;
+  return true;
+}
+
+function entityCandidates(device = {}) {
+  return [...new Set([
+    device.control_entity,
+    device.switch_entity,
+    device.switch,
+    device.light,
+    device.fan,
+    device.power_entity,
+    device.power,
+    device.power_sensor,
+    ...(device.entities || []).map((entry) =>
+      clean(typeof entry === "string" ? entry : entry?.entity || entry?.entity_id),
+    ),
+  ].map(clean).filter(Boolean))];
+}
+
+function inferredControlEntity(device) {
+  return entityCandidates(device).find((entity) => /^(switch|light|input_boolean|fan)\./i.test(entity)) || "";
+}
+
+function inferredPowerEntity(device) {
+  const candidates = entityCandidates(device);
+  const states = allStates();
+  return candidates.find((entity) => {
+    const current = states[entity];
+    const unit = clean(current?.attributes?.unit_of_measurement).toLowerCase();
+    return ["w", "kw", "mw"].includes(unit);
+  }) || "";
+}
+
+function cumulativeEntity(value) {
+  const entity = clean(value);
+  if (!entity) return false;
+  const current = allStates()[entity];
+  const stateClass = clean(current?.attributes?.state_class).toLowerCase();
+  if (stateClass === "total" || stateClass === "total_increasing") return true;
+  if (current && stateClass) return false;
+  return /(?:^|[._-])(total|totale|lifetime|meter|contatore)(?:[._-]|$)/i.test(entity);
+}
+
+function entityField(name, label, value, help = "") {
+  return `<label class="ed-slot"><span class="ed-slot-lbl">${label}</span><span class="ed-form-row"><input class="ed-input mono" name="${name}" value="${esc(value)}"><button type="button" class="dm-entity-picker" data-pick="${name}" aria-label="${t("Seleziona entità", "Select entity")}">🔍</button></span>${help ? `<small>${help}</small>` : ""}</label>`;
+}
+
+function normalizeEntities(device, values) {
+  return [...new Set([
+    values.control_entity,
+    values.power_entity,
+    values.energy_entity,
+    values.daily_energy_entity,
+    values.monthly_energy_entity,
+    values.total_energy_entity,
+    values.history_entity,
+    values.report_entity,
+    ...(device.entities || []).map((entry) => clean(typeof entry === "string" ? entry : entry?.entity || entry?.entity_id)),
+  ].filter(Boolean))];
+}
+
+async function saveAppliance(index, next) {
+  const list = appliances();
+  list[index] = next;
+  const store = dashboardStore();
+  if (store?.replaceSection) await store.replaceSection("appliances", list);
+  else {
+    writeJsonIfChanged("cd_appliances", list);
+    root.cdMarkDirty?.();
+    root.cdSyncPush?.();
+  }
+  root.renderAppliances?.();
+  root.renderApplianceSection?.(true);
+  root.cdRebuildReportDevices?.();
+  root.buildReportSelect?.();
+}
+
+function updateEditType(modal, key) {
+  const canonical = editorVisualKey(key) || "generico";
+  const hidden = modal.querySelector('input[name="icon"]');
+  const preview = modal.querySelector("[data-icon-preview]");
+  const trigger = modal.querySelector("[data-type-trigger]");
+  if (hidden) hidden.value = canonical;
+  if (preview) {
+    preview.innerHTML = typeIconMarkup(canonical, 58);
+    preview.dataset.dmPreviewSource = "canonical-picker";
+    preview.setAttribute("aria-label", typeLabel(canonical));
+  }
+  if (trigger) {
+    trigger.dataset.applianceType = canonical;
+    trigger.innerHTML = `<span class="dm-appliance-type-trigger-icon">${typeIconMarkup(canonical, 30)}</span><span class="dm-appliance-type-trigger-label">${esc(typeLabel(canonical))}</span><span class="dm-appliance-type-chevron" aria-hidden="true">⌄</span>`;
+    trigger.setAttribute("aria-label", `${t("Tipo / immagine", "Type / artwork")}: ${typeLabel(canonical)}`);
+  }
+}
+
+export function openApplianceEditor(index) {
+  const device = appliances()[index];
+  if (!device) return false;
+  doc?.getElementById("dm-appliance-editor-modal")?.remove();
+  const visual = deviceVisualKey(device);
+  const totalInitial = [device.total_energy_entity, device.history_entity, device.report_entity]
+    .map(clean)
+    .find(cumulativeEntity) || "";
+  const controlInitial = clean(device.control_entity || device.switch_entity) || inferredControlEntity(device);
+  const powerInitial = clean(device.power_entity || device.power || device.power_sensor) || inferredPowerEntity(device);
+  const modal = doc.createElement("div");
+  modal.id = "dm-appliance-editor-modal";
+  modal.className = "dm-section-modal";
+  modal.innerHTML = `<section class="dm-section-dialog dm-appliance-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-appliance-editor-title">
+    <header><strong id="dm-appliance-editor-title">🔌 ${t("Modifica elettrodomestico", "Edit appliance")}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header>
+    <form data-form>
+      <div class="dm-modal-grid dm-appliance-main-fields">
+        <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(device.name)}" required></label>
+        <label class="ed-slot dm-appliance-icon-field"><span class="ed-slot-lbl">${t("Tipo / immagine", "Type / artwork")}</span><input type="hidden" name="icon" value="${esc(visual)}"><span class="dm-appliance-icon-row"><span class="dm-appliance-icon-preview" data-icon-preview data-dm-preview-source="canonical-picker" aria-hidden="false"></span><button type="button" class="ed-input dm-appliance-type-trigger" data-type-trigger aria-haspopup="listbox"></button></span><small>${t("Usa lo stesso catalogo e la stessa icona azzurra della prima configurazione.", "Uses the same catalog and blue icon as the first configuration.")}</small></label>
+        <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room_id">${roomOptions(device.room_id || device.room)}</select></label>
+        <label class="ed-slot"><span class="ed-slot-lbl">${t("Soglia in funzione", "Running threshold")}</span><input class="ed-input" type="number" step="0.1" min="0" name="threshold_run" value="${esc(device.threshold_run ?? device.metadata?.threshold_run ?? 5)}"><small>${t("Potenza in watt oltre la quale la card risulta accesa.", "Power in watts above which the card is shown as running.")}</small></label>
+      </div>
+      <section class="dm-appliance-entity-grid">
+        ${entityField("control_entity", t("Entità comando", "Control entity"), controlInitial, t("Switch, light, fan o input_boolean usato dal pulsante Accendi/Spegni.", "Switch, light, fan or input_boolean used by the On/Off button."))}
+        ${entityField("power_entity", t("Potenza istantanea", "Instant power"), powerInitial, t("Sensore W o kW mostrato nella card.", "W or kW sensor shown on the card."))}
+        ${entityField("daily_energy_entity", t("Energia giornaliera", "Daily energy"), device.daily_energy_entity, t("Facoltativa: sostituisce il calcolo del giorno.", "Optional: overrides the daily calculation."))}
+        ${entityField("monthly_energy_entity", t("Energia mensile", "Monthly energy"), device.monthly_energy_entity, t("Facoltativa: sostituisce il calcolo del mese corrente.", "Optional: overrides the current-month calculation."))}
+        ${entityField("total_energy_entity", t("Energia totale per storico e Report", "Total energy for history and Report"), totalInitial, t("Deve essere un contatore cumulativo kWh con state_class total o total_increasing. Non usare qui il sensore mensile: questo campo serve per ricostruire anche i mesi precedenti.", "This must be a cumulative kWh meter with state_class total or total_increasing. Do not use the monthly sensor here: this field is required to reconstruct previous months."))}
+      </section>
+      <output data-error></output>
+      <footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="submit" class="ed-save-btn">💾 ${t("Salva modifiche", "Save changes")}</button></footer>
+    </form>
+  </section>`;
+  doc.body.append(modal);
+  const form = modal.querySelector("[data-form]");
+  const close = () => modal.remove();
+  updateEditType(modal, visual);
+  modal.querySelector("[data-type-trigger]")?.addEventListener("click", () => {
+    openTypePicker({
+      selected: form.elements.icon.value,
+      onSelect: (key) => updateEditType(modal, key),
+    });
+  });
+  modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
+  modal.querySelectorAll("[data-pick]").forEach((button) => button.addEventListener("click", () => root.wzPickEntity?.(form.elements[button.dataset.pick])));
+  modal.addEventListener("click", (event) => { if (event.target === modal) close(); });
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const values = Object.fromEntries(new FormData(form).entries());
+    const name = clean(values.name);
+    const total = clean(values.total_energy_entity);
+    const totalState = allStates()[total];
+    const stateClass = clean(totalState?.attributes?.state_class).toLowerCase();
+    if (!name) { form.querySelector("[data-error]").textContent = t("Inserisci il nome.", "Enter a name."); return; }
+    if (total && totalState && !["total", "total_increasing"].includes(stateClass)) {
+      form.querySelector("[data-error]").textContent = t("Il sensore Energia totale deve avere state_class total o total_increasing.", "The Total energy sensor must have state_class total or total_increasing.");
+      return;
+    }
+    const visualKey = editorVisualKey(values.icon) || deviceVisualKey(device);
+    const existingReport = clean(device.report_entity);
+    const next = {
+      ...device,
+      name,
+      icon: visualKey,
+      visual_key: visualKey,
+      device_type: visualKey,
+      visual_type: "asset",
+      room_id: clean(values.room_id),
+      threshold_run: Number.isFinite(Number(values.threshold_run)) ? Number(values.threshold_run) : 5,
+      control_entity: clean(values.control_entity),
+      power_entity: clean(values.power_entity),
+      daily_energy_entity: clean(values.daily_energy_entity),
+      monthly_energy_entity: clean(values.monthly_energy_entity),
+      total_energy_entity: total,
+      history_entity: total,
+      // Report can intentionally use a monthly/current-period sensor. Editing
+      // the lifetime meter must not overwrite that independent Report choice.
+      report_entity: existingReport || total,
+    };
+    next.energy_entity = clean(device.energy_entity) || next.total_energy_entity || next.monthly_energy_entity || next.daily_energy_entity;
+    next.entities = normalizeEntities(device, next);
+    try {
+      await saveAppliance(index, next);
+      close();
+      root.editorSwitch?.("appliances");
+    } catch (error) {
+      form.querySelector("[data-error]").textContent = error?.message || String(error);
+    }
+  });
+  return true;
+}
+
+function installApplianceEditorStyles() {
+  if (doc.getElementById("dm-appliance-editor-preview-style")) return;
+  const style = doc.createElement("style");
+  style.id = "dm-appliance-editor-preview-style";
+  style.textContent = `
+    .dm-appliance-icon-row{display:grid!important;grid-template-columns:84px minmax(0,1fr)!important;gap:12px!important;align-items:center!important}
+    .dm-appliance-icon-preview{display:grid!important;place-items:center!important;width:84px!important;height:84px!important;border-radius:18px!important;background:var(--secondary-background-color,#eef3f8)!important;border:1px solid var(--divider-color,#dbe4ee)!important;overflow:hidden!important;color:#0ea5e9!important}
+    .dm-appliance-icon-preview svg{display:block!important;width:58px!important;height:58px!important;max-width:58px!important;max-height:58px!important}
+    .dm-appliance-editor-fallback{font-size:36px!important;line-height:1!important}
+    .dm-appliance-type-trigger{display:grid!important;grid-template-columns:38px minmax(0,1fr) 22px!important;align-items:center!important;gap:10px!important;width:100%!important;min-height:58px!important;padding:8px 12px!important;text-align:left!important;cursor:pointer!important;color:var(--primary-text-color,#0f172a)!important;background:var(--card-background-color,#fff)!important}
+    .dm-appliance-type-trigger-icon{display:grid!important;place-items:center!important;width:36px!important;height:36px!important;color:#0ea5e9!important}.dm-appliance-type-trigger-icon svg{width:30px!important;height:30px!important}.dm-appliance-type-trigger-label{min-width:0!important;font-weight:750!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.dm-appliance-type-chevron{font-size:20px!important;justify-self:end!important}
+    .dm-appliance-editor-dialog{max-height:min(92dvh,920px)!important;overflow:hidden!important}
+    .dm-appliance-type-picker{position:fixed!important;inset:0!important;z-index:100002!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:16px!important;background:rgba(15,23,42,.60)!important}
+    .dm-appliance-type-picker-dialog{display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:min(460px,100%)!important;max-height:80dvh!important;padding:18px!important;border-radius:22px!important;background:var(--card-background-color,#fff)!important;color:var(--primary-text-color,#0f172a)!important;box-shadow:0 20px 60px rgba(0,0,0,.35)!important}
+    .dm-appliance-type-picker-dialog>strong{margin-bottom:10px!important;font-size:14.5px!important;font-weight:900!important}.dm-appliance-type-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(88px,1fr))!important;gap:8px!important;overflow-y:auto!important;min-height:0!important}
+    .dm-appliance-type-option{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:5px!important;min-height:92px!important;padding:10px 4px!important;border:1px solid var(--divider-color,#e2e8f0)!important;border-radius:14px!important;background:color-mix(in srgb,var(--secondary-background-color,#f1f5f9) 70%,transparent)!important;color:inherit!important;cursor:pointer!important}.dm-appliance-type-option[aria-selected="true"]{border-color:#0ea5e9!important;box-shadow:0 0 0 2px color-mix(in srgb,#0ea5e9 18%,transparent)!important}.dm-appliance-type-option-icon{display:grid!important;place-items:center!important;height:34px!important;color:#0ea5e9!important}.dm-appliance-type-option-icon svg{width:30px!important;height:30px!important}.dm-appliance-type-option>span:last-child{font-size:10px!important;font-weight:800!important;line-height:1.15!important;text-align:center!important}
+    .dm-appliance-type-close{margin-top:10px!important;min-height:44px!important;padding:11px!important;border:0!important;border-radius:12px!important;background:#94a3b8!important;color:#fff!important;font-weight:800!important;cursor:pointer!important}
+    @media(max-width:520px){.dm-appliance-icon-row{grid-template-columns:84px minmax(0,1fr)!important}.dm-appliance-type-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}.dm-appliance-type-option{min-width:0!important;min-height:92px!important}}
+  `;
+  doc.head.append(style);
+}
+
+function installOverride() {
+  if (typeof root.edApplEdit !== "function" || root.edApplEdit.__dmModalEditor) return false;
+  applianceEditorState.previousEdit ||= root.edApplEdit;
+  function modalApplianceEditor(index) { return openApplianceEditor(Number(index)); }
+  modalApplianceEditor.__dmModalEditor = true;
+  modalApplianceEditor.__dmPrevious = applianceEditorState.previousEdit;
+  root.edApplEdit = modalApplianceEditor;
+  return true;
+}
+
+function installRuntimeOverrides() {
+  installOverride();
+  installPickerOverride();
+}
+
+export function installApplianceEditorSection() {
+  if (!doc) return;
+  installApplianceEditorStyles();
+  installRuntimeOverrides();
+  if (!applianceEditorState.installed) {
+    applianceEditorState.installed = true;
+    root.addEventListener?.("dashboardmodern:legacy-ready", installRuntimeOverrides);
+    root.addEventListener?.("dashboardmodern:runtime-ready", installRuntimeOverrides);
+    root.addEventListener?.("pageshow", installRuntimeOverrides);
+  }
+}
+
+if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", installApplianceEditorSection, { once: true });
+else installApplianceEditorSection();
+// --- ex appliance-layout-section.js ---
+
+const APPLIANCE_LAYOUT_KEY = "__DASHBOARDMODERN_APPLIANCE_LAYOUT_SECTION__";
+const applianceLayoutState = (globalThis[APPLIANCE_LAYOUT_KEY] ||= { installed: false, listeners: false });
+
+function layoutConfiguredEntity(value) {
+  return clean(typeof value === "string" ? value : value?.entity || value?.entity_id);
+}
+
+function applianceEntities(device = {}) {
+  return new Set(
+    [
+      device.daily_energy_entity,
+      device.energy_today,
+      device.daily_energy,
+      device.total_energy_entity,
+      device.history_entity,
+      device.report_entity,
+      device.energy_entity,
+      device.energy,
+      ...(device.entities || []),
+    ]
+      .map(layoutConfiguredEntity)
+      .filter(Boolean),
+  );
+}
+
+function popupDeviceForRow(row, appliances) {
+  const entity = clean(row?.dataset?.dmDailyEntity);
+  if (entity) {
+    const direct = appliances.find((device) => applianceEntities(device).has(entity));
+    if (direct) return direct;
+  }
+  const name = clean(row?.querySelector?.(".dm-appliance-daily-row-main strong")?.textContent).toLowerCase();
+  if (!name) return null;
+  return appliances.find((device) => clean(device?.name).toLowerCase() === name) || null;
+}
+
+function cardArtworkForDevice(device) {
+  const id = clean(device?.id);
+  const cards = [
+    ...(doc?.querySelectorAll?.(
+      "#page-appliances-main .appl-wide-card[data-appliance-id],#appl-grid-overview .appl-wide-card[data-appliance-id]",
+    ) || []),
+  ];
+  let card = id ? cards.find((candidate) => clean(candidate.dataset.applianceId) === id) : null;
+  if (!card) {
+    const name = clean(device?.name).toLowerCase();
+    card = cards.find(
+      (candidate) => clean(candidate.querySelector(".appl-wide-name")?.textContent).toLowerCase() === name,
+    );
+  }
+  return card?.querySelector?.(".appl-visual .appl-ic") || null;
+}
+
+function syncDailyPopupArtwork() {
+  const list = doc?.querySelector?.("#dm-appliance-daily-popup [data-dm-daily-popup-list]");
+  if (!list) return false;
+  const appliances = section("appliances", []);
+  if (!Array.isArray(appliances) || !appliances.length) return false;
+
+  list.querySelectorAll(".dm-appliance-daily-row").forEach((row) => {
+    const device = popupDeviceForRow(row, appliances);
+    if (!device) return;
+    const source = cardArtworkForDevice(device);
+    if (!source) return;
+
+    let visual = row.querySelector(":scope > .dm-appliance-daily-visual");
+    if (!visual) {
+      visual = doc.createElement("span");
+      visual.className = "dm-appliance-daily-visual";
+      row.prepend(visual);
+    }
+    const deviceId = clean(device.id);
+    if (visual.dataset.applianceId === deviceId && visual.firstElementChild) return;
+    const clone = source.cloneNode(true);
+    clone.removeAttribute("id");
+    visual.replaceChildren(clone);
+    visual.dataset.applianceId = deviceId;
+  });
+  return true;
+}
+
+function syncAfterDailyPopupRefresh() {
+  syncDailyPopupArtwork();
+  const pending = root.__DASHBOARDMODERN_APPLIANCES_SECTION__?.dailyPromise;
+  if (pending?.then) pending.then(() => syncDailyPopupArtwork()).catch(() => {});
+}
+
+function installPopupArtworkBridge() {
+  if (!doc || applianceLayoutState.listeners) return;
+  applianceLayoutState.listeners = true;
+  doc.addEventListener("click", (event) => {
+    if (!event.target?.closest?.('#appl-kpi-grid [data-dm-appliance-daily-total="true"]')) return;
+    root.queueMicrotask?.(syncAfterDailyPopupRefresh);
+  });
+  doc.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    if (!event.target?.closest?.('#appl-kpi-grid [data-dm-appliance-daily-total="true"]')) return;
+    root.queueMicrotask?.(syncAfterDailyPopupRefresh);
+  });
+  root.addEventListener?.("dashboardmodern:state-changed", () => {
+    const popup = doc.getElementById("dm-appliance-daily-popup");
+    if (!popup || popup.hidden) return;
+    root.requestAnimationFrame?.(syncAfterDailyPopupRefresh);
+  });
+}
+
+function installApplianceLayoutStyles() {
+  installStyle(
+    "dm-appliance-layout-section-style",
+    `
+      #appl-grid-overview,#page-appliances-main .appl-page-grid,#page-appliances-main .appl-grid,#page-appliances-main [data-appliance-grid]{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),370px))!important;justify-content:start!important;align-items:stretch!important;gap:14px!important}
+      #page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{display:grid!important;box-sizing:border-box!important;width:100%!important;max-width:370px!important;min-width:0!important;min-height:132px!important;height:auto!important;padding:0!important;gap:0!important;border:1px solid color-mix(in srgb,var(--primary-color,#0284c7) 16%,var(--divider-color,#e2e8f0))!important;border-radius:22px!important;overflow:hidden!important;grid-template-columns:96px minmax(0,1fr)!important;background:var(--ha-card-background,var(--card-background-color,#fff))!important;color:var(--primary-text-color,#0f172a)!important;box-shadow:0 10px 24px color-mix(in srgb,#0f172a 10%,transparent)!important}
+      html[data-theme="dark"] #page-appliances-main .appl-wide-card,html[data-theme="dark"] #appl-grid-overview .appl-wide-card,body.dark #page-appliances-main .appl-wide-card,body.dark #appl-grid-overview .appl-wide-card{background:#172033!important;color:#f8fafc!important;border-color:#2b3a58!important}
+      #page-appliances-main .appl-visual,#appl-grid-overview .appl-visual{display:grid!important;place-items:center!important;box-sizing:border-box!important;min-width:96px!important;height:100%!important;min-height:132px!important;padding:7px!important;border-right:1px solid color-mix(in srgb,var(--primary-color,#0284c7) 11%,var(--divider-color,#e2e8f0))!important;background:color-mix(in srgb,var(--primary-color,#0284c7) 6%,var(--ha-card-background,#fff))!important}
+      html[data-theme="dark"] #page-appliances-main .appl-visual,html[data-theme="dark"] #appl-grid-overview .appl-visual,body.dark #page-appliances-main .appl-visual,body.dark #appl-grid-overview .appl-visual{background:#202c43!important;border-color:#2b3a58!important}
+      #page-appliances-main .appl-wide-card .appl-ic,#appl-grid-overview .appl-wide-card .appl-ic{display:grid!important;place-items:center!important;box-sizing:border-box!important;width:84px!important;height:84px!important;min-width:84px!important;min-height:84px!important;margin:0!important;padding:0!important;border:0!important;border-radius:18px!important;background:color-mix(in srgb,var(--primary-color,#0284c7) 7%,transparent)!important;box-shadow:none!important;overflow:hidden!important}
+      #page-appliances-main .appl-wide-card .dm-appliance-image-wrap,#appl-grid-overview .appl-wide-card .dm-appliance-image-wrap{display:block!important;box-sizing:border-box!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;max-width:100%!important;max-height:100%!important;overflow:hidden!important;border-radius:14px!important}
+      #page-appliances-main .appl-wide-card .dm-appliance-image,#appl-grid-overview .appl-wide-card .dm-appliance-image{display:block!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;object-fit:cover!important;object-position:center!important}
+      #page-appliances-main .appl-wide-card .appl-ic svg,#appl-grid-overview .appl-wide-card .appl-ic svg,#page-appliances-main .appl-wide-card .appl-ic ha-icon,#appl-grid-overview .appl-wide-card .appl-ic ha-icon{display:block!important;width:68px!important;height:68px!important;max-width:100%!important;max-height:100%!important;--mdc-icon-size:68px}
+
+      /* The legacy card body is .appl-info (not .appl-wide-body). Target the
+         real DOM owner so padding and vertical rhythm cannot be bypassed. */
+      #page-appliances-main .appl-wide-card>.appl-info,#appl-grid-overview .appl-wide-card>.appl-info{display:grid!important;box-sizing:border-box!important;grid-template-rows:auto auto minmax(0,1fr) auto!important;align-content:stretch!important;gap:5px!important;min-width:0!important;min-height:132px!important;height:auto!important;margin:0!important;padding:12px 12px 10px!important;overflow:hidden!important;color:inherit!important}
+      #page-appliances-main .appl-heading,#appl-grid-overview .appl-heading{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:8px!important;min-width:0!important;margin:0!important;padding:0!important}
+      #page-appliances-main .appl-heading>div,#appl-grid-overview .appl-heading>div{min-width:0!important;flex:1 1 auto!important}
+      #page-appliances-main .appl-wide-name,#appl-grid-overview .appl-wide-name{min-width:0!important;margin:0!important;padding:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:inherit!important;font-size:15px!important;font-weight:900!important;line-height:1.18!important}
+      #page-appliances-main .appl-wide-cat,#appl-grid-overview .appl-wide-cat{min-width:0!important;margin:3px 0 0!important;color:var(--secondary-text-color,#64748b)!important;font-size:10px!important;font-weight:800!important;line-height:1.2!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+      #page-appliances-main .appl-st,#appl-grid-overview .appl-st{display:inline-flex!important;align-items:center!important;flex:0 0 auto!important;width:max-content!important;max-width:92px!important;min-height:20px!important;margin:0!important;padding:3px 6px!important;border-radius:7px!important;font-size:9px!important;font-weight:900!important;line-height:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+      #page-appliances-main .appl-live,#appl-grid-overview .appl-live{display:flex!important;align-items:center!important;flex-wrap:wrap!important;column-gap:9px!important;row-gap:2px!important;min-width:0!important;margin:0!important;padding:0!important}
+      #page-appliances-main .appl-primary,#appl-grid-overview .appl-primary{display:flex!important;align-items:baseline!important;gap:3px!important;min-width:0!important;margin:0!important;font-size:12.5px!important;line-height:1.2!important}
+      #page-appliances-main .appl-primary strong,#appl-grid-overview .appl-primary strong{font-weight:900!important}
+      #page-appliances-main .appl-mini,#appl-grid-overview .appl-mini{display:inline-flex!important;align-items:center!important;gap:3px!important;min-width:0!important;margin:0!important;color:var(--secondary-text-color,#64748b)!important;font-size:10.5px!important;font-weight:750!important;line-height:1.2!important}
+      html[data-theme="dark"] #page-appliances-main .appl-wide-cat,html[data-theme="dark"] #appl-grid-overview .appl-wide-cat,html[data-theme="dark"] #page-appliances-main .appl-mini,html[data-theme="dark"] #appl-grid-overview .appl-mini,body.dark #page-appliances-main .appl-wide-cat,body.dark #appl-grid-overview .appl-wide-cat,body.dark #page-appliances-main .appl-mini,body.dark #appl-grid-overview .appl-mini{color:#cbd5e1!important}
+      #page-appliances-main .appl-spark,#appl-grid-overview .appl-spark{min-height:8px!important;margin:0!important;align-self:end!important;opacity:.55!important}
+      #page-appliances-main .appl-actions,#appl-grid-overview .appl-actions{display:grid!important;grid-template-columns:minmax(82px,.78fr) minmax(94px,1fr)!important;align-self:end!important;align-items:stretch!important;gap:6px!important;min-width:0!important;margin:2px 0 0!important;padding:0!important}
+      #page-appliances-main .appl-actions button,#appl-grid-overview .appl-actions button,#page-appliances-main [data-dm-power-toggle="true"],#appl-grid-overview [data-dm-power-toggle="true"]{display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;min-width:0!important;min-height:32px!important;height:32px!important;margin:0!important;padding:5px 8px!important;border-radius:9px!important;opacity:1!important;visibility:visible!important;font-size:10px!important;font-weight:900!important;line-height:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+      #page-appliances-main .appl-actions .appl-action-btn,#appl-grid-overview .appl-actions .appl-action-btn{background:color-mix(in srgb,var(--primary-color,#0284c7) 12%,transparent)!important;color:var(--primary-color,#0369a1)!important;border:0!important}
+      #page-appliances-main [data-dm-power-toggle="true"],#appl-grid-overview [data-dm-power-toggle="true"]{width:100%!important;background:var(--success-color,#059669)!important;color:#fff!important;border:0!important}
+      #page-appliances-main .appl-actions button[hidden],#appl-grid-overview .appl-actions button[hidden],#page-appliances-main [data-dm-power-toggle="true"][hidden],#appl-grid-overview [data-dm-power-toggle="true"][hidden]{display:none!important;visibility:hidden!important}
+
+      /* The daily popup reuses the exact rendered artwork of each appliance
+         card. This higher-specificity rule replaces the generic lightning
+         pseudo-element installed by the dashboard-style popup layer. */
+      html #dm-appliance-daily-popup .dm-appliance-daily-row::before{content:none!important;display:none!important}
+      #dm-appliance-daily-popup .dm-appliance-daily-visual{position:absolute!important;left:18px!important;top:50%!important;width:54px!important;height:54px!important;transform:translateY(-50%)!important;display:grid!important;place-items:center!important;overflow:hidden!important;border-radius:18px!important;background:linear-gradient(145deg,#e0f2fe,#f0f9ff)!important;box-shadow:inset 0 0 0 1px rgba(14,165,233,.12),0 8px 22px rgba(14,165,233,.09)!important}
+      #dm-appliance-daily-popup .dm-appliance-daily-visual>.appl-ic{display:grid!important;place-items:center!important;width:54px!important;height:54px!important;min-width:54px!important;min-height:54px!important;margin:0!important;padding:0!important;border:0!important;border-radius:17px!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important}
+      #dm-appliance-daily-popup .dm-appliance-daily-visual .dm-appliance-image-wrap,#dm-appliance-daily-popup .dm-appliance-daily-visual .dm-appliance-image{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;border-radius:15px!important;object-fit:cover!important;object-position:center!important}
+      #dm-appliance-daily-popup .dm-appliance-daily-visual svg,#dm-appliance-daily-popup .dm-appliance-daily-visual ha-icon{display:block!important;width:50px!important;height:50px!important;max-width:50px!important;max-height:50px!important;--mdc-icon-size:50px}
+
+      @media(max-width:520px){
+        #appl-grid-overview,#page-appliances-main .appl-page-grid,#page-appliances-main .appl-grid,#page-appliances-main [data-appliance-grid]{grid-template-columns:minmax(0,370px)!important;justify-content:center!important;gap:12px!important;padding-inline:10px!important}
+        #page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{grid-template-columns:92px minmax(0,1fr)!important;width:100%!important;max-width:370px!important;min-height:126px!important;border-radius:18px!important}
+        #page-appliances-main .appl-visual,#appl-grid-overview .appl-visual{min-width:92px!important;min-height:126px!important;padding:5px!important}
+        #page-appliances-main .appl-wide-card .appl-ic,#appl-grid-overview .appl-wide-card .appl-ic{width:84px!important;height:84px!important;min-width:84px!important;min-height:84px!important;padding:0!important;border-radius:17px!important}
+        #page-appliances-main .appl-wide-card>.appl-info,#appl-grid-overview .appl-wide-card>.appl-info{min-height:126px!important;padding:11px 10px 9px!important;gap:4px!important}
+        #page-appliances-main .appl-wide-name,#appl-grid-overview .appl-wide-name{font-size:14.5px!important}
+        #page-appliances-main .appl-st,#appl-grid-overview .appl-st{max-width:80px!important;font-size:8.5px!important;padding-inline:5px!important}
+        #page-appliances-main .appl-actions,#appl-grid-overview .appl-actions{grid-template-columns:minmax(78px,.72fr) minmax(92px,1fr)!important;gap:5px!important}
+        #page-appliances-main .appl-actions button,#appl-grid-overview .appl-actions button,#page-appliances-main [data-dm-power-toggle="true"],#appl-grid-overview [data-dm-power-toggle="true"]{min-height:31px!important;height:31px!important;padding:5px 6px!important;font-size:9.5px!important}
+        #dm-appliance-daily-popup .dm-appliance-daily-visual{left:14px!important;width:50px!important;height:50px!important;border-radius:17px!important}
+        #dm-appliance-daily-popup .dm-appliance-daily-visual>.appl-ic{width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important}
+        #dm-appliance-daily-popup .dm-appliance-daily-visual svg,#dm-appliance-daily-popup .dm-appliance-daily-visual ha-icon{width:46px!important;height:46px!important;max-width:46px!important;max-height:46px!important;--mdc-icon-size:46px}
+      }
+    `,
+  );
+}
+
+export function installApplianceLayoutSection() {
+  if (!doc || applianceLayoutState.installed) return;
+  applianceLayoutState.installed = true;
+  installApplianceLayoutStyles();
+  installPopupArtworkBridge();
+}
+
+if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", installApplianceLayoutSection, { once: true });
+else installApplianceLayoutSection();

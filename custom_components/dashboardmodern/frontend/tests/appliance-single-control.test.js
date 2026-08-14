@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const layout = await readFile(
-  new URL("../src/sections/appliance-layout-section.js", import.meta.url),
+  new URL("../src/sections/appliances-section.js", import.meta.url),
   "utf8",
 );
 const behavior = await readFile(

@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const guardUrl = new URL("../src/sections/beta17-final-icon-polish-section.js", import.meta.url);
-const layoutUrl = new URL("../src/sections/temperature-layout-section.js", import.meta.url);
+const layoutUrl = new URL("../src/sections/temperature-section.js", import.meta.url);
 
 test("configured Temperature rows restore the canonical room name beside the icon", async () => {
   const source = await readFile(guardUrl, "utf8");
@@ -34,7 +34,7 @@ test("custom Temperature entity names are projected onto live dashboard labels",
 
 test("Beta20 label hardening reuses an existing scoped owner and keeps the layout shim passive", async () => {
   const source = await readFile(guardUrl, "utf8");
-  const layout = await readFile(layoutUrl, "utf8");
+  const layout = (await readFile(layoutUrl, "utf8")).split("// --- ex temperature-layout-section.js ---")[1];
   assert.doesNotMatch(source, /setInterval\s*\(/);
   assert.match(source, /store\.subscribe/);
   assert.match(source, /requestAnimationFrame/);

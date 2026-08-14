@@ -4,6 +4,16 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.24 — 2026-08-14
+
+### Corretto
+
+- Mostrato il nome della stanza e dei sensori accanto all'icona nelle righe già configurate dell'editor Temperatura (mancava il tagger delle righe; i renderer erano già presenti).
+
+### Manutenzione
+
+- Consolidati i moduli Temperatura ed Elettrodomestici in un file unico per sezione (nessuna modifica di comportamento).
+
 ## 1.0.0-beta.23 — 2026-08-14
 
 ### Manutenzione

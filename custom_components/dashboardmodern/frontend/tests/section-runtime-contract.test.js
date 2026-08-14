@@ -39,8 +39,8 @@ test("energy flow module restores active source colors", async () => {
 });
 
 test("appliance editor and cards keep icon and controls visible", async () => {
-  const editor = await read("src/sections/appliance-editor-section.js");
-  const layout = await read("src/sections/appliance-layout-section.js");
+  const editor = await read("src/sections/appliances-section.js");
+  const layout = await read("src/sections/appliances-section.js");
   assert.match(editor, /dm-appliance-icon-preview/);
   assert.match(editor, /visual_key: visualKey/);
   assert.match(editor, /device_type: visualKey/);

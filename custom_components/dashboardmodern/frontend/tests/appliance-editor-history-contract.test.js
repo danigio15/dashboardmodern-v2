@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const source = await readFile(new URL("../src/sections/appliance-editor-section.js", import.meta.url), "utf8");
+const source = await readFile(new URL("../src/sections/appliances-section.js", import.meta.url), "utf8");
 
 test("appliance editor never copies monthly energy into lifetime history", () => {
   assert.match(source, /history_entity:\s*total,/);
