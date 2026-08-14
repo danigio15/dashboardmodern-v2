@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { clickBottomTab } from "./helpers/navigation.js";
 
 const haStates = [
   {
@@ -166,7 +167,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       .toBe(true);
 
     await page.locator("#editor-modal .ed-head-close").last().click();
-    await page.locator('.tab[data-tab="appliances-main"]').click();
+    await clickBottomTab(page, "appliances-main", testInfo);
     await expect(page.locator("#page-appliances-main")).toContainText("Lavatrice");
 
     await page.reload();
