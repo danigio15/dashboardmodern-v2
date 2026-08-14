@@ -33,6 +33,7 @@ const states = [
   },
 ];
 
+// prettier-ignore
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: configured Temperature keeps room name and custom entity names`, async ({
     page,
