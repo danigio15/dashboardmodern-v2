@@ -164,15 +164,24 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(configuredRow).toContainText("sensor.kitchen_temperature");
     await expect(configuredRow.locator(".ed-row-new")).toBeVisible();
     await expect(configuredRow.locator(".ed-row-new")).toHaveText("Kitchen");
-    await expect(configuredRow).toHaveAttribute("data-dm-temperature-name-visible", "true");
+    await expect(configuredRow).toHaveAttribute(
+      "data-dm-temperature-name-visible",
+      "true",
+    );
     await page.evaluate(() => editorSwitch("sez1"));
     await page.evaluate(() => editorSwitch("sez7"));
     const configuredRowAfterNavigation = page.locator(
       '[data-temperature-room][data-room-id="room-kitchen"]',
     );
-    await expect(configuredRowAfterNavigation).toContainText("sensor.kitchen_temperature");
-    await expect(configuredRowAfterNavigation.locator(".ed-row-new")).toBeVisible();
-    await expect(configuredRowAfterNavigation.locator(".ed-row-new")).toHaveText("Kitchen");
+    await expect(configuredRowAfterNavigation).toContainText(
+      "sensor.kitchen_temperature",
+    );
+    await expect(
+      configuredRowAfterNavigation.locator(".ed-row-new"),
+    ).toBeVisible();
+    await expect(configuredRowAfterNavigation.locator(".ed-row-new")).toHaveText(
+      "Kitchen",
+    );
     await expect(configuredRowAfterNavigation).toHaveAttribute(
       "data-dm-temperature-name-visible",
       "true",
