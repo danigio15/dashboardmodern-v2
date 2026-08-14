@@ -2,7 +2,7 @@
   <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/brand/logo.png" alt="DashboardModern" width="430">
 </p>
 
-<h1 align="center">DashboardModern v2</h1>
+<h1 align="center">Dashboard Modern V2</h1>
 
 <p align="center">
   <strong>Una dashboard moderna, completa e responsive per Home Assistant.</strong><br>
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0--beta.19-0ea5e9" alt="Versione 1.0.0-beta.19">
+  <img src="https://img.shields.io/github/v/release/danigio15/dashboardmodern-v2?include_prereleases&sort=semver&display_name=tag&label=version" alt="Ultima versione Dashboard Modern V2">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-18BCF2" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
@@ -82,11 +82,12 @@ La UI è disponibile in **italiano e inglese**, supporta più istanze della plan
    ```
 
 5. Tipo repository: **Integrazione**.
-6. Cerca **Dashboard Modern V2** e installa la release desiderata.
-7. Riavvia Home Assistant.
-8. Vai in **Impostazioni → Dispositivi e servizi → Aggiungi integrazione**.
-9. Cerca **Dashboard Modern V2**.
-10. Assegna un nome alla plancia e completa la configurazione.
+6. Apri il repository **Dashboard Modern V2** in HACS, entra nel menu del repository e abilita **Mostra versioni beta** / **Show beta versions**: la serie `1.0.0-beta.x` è pubblicata come prerelease.
+7. Installa la release beta desiderata.
+8. Riavvia Home Assistant.
+9. Vai in **Impostazioni → Dispositivi e servizi → Aggiungi integrazione**.
+10. Cerca **Dashboard Modern V2**.
+11. Assegna un nome alla plancia e completa la configurazione.
 
 ### Dopo un aggiornamento
 
@@ -140,12 +141,14 @@ La configurazione Temperatura usa una stanza già presente in **Stanze**.
 Campi principali:
 
 - **Stanza** — obbligatoria;
+- **Nome visualizzato temperatura** — facoltativo, mostrato sotto il nome della stanza;
 - **Entità temperatura** — per esempio `sensor.camera_temperature`;
+- **Nome visualizzato umidità** — facoltativo, mostrato sotto il nome della stanza;
 - **Entità umidità** — facoltativa, per esempio `sensor.camera_humidity`.
 
-Nome e icona si modificano dalla sezione **Stanze**. Durante la modifica è possibile spostare i sensori da una stanza a un'altra, purché la stanza di destinazione non abbia già un'associazione Temperatura.
+Nome e icona della stanza si modificano dalla sezione **Stanze**; i due nomi visualizzati dei sensori si modificano invece direttamente in **Temperatura**. Durante la modifica è possibile spostare i sensori da una stanza a un'altra, purché la stanza di destinazione non abbia già un'associazione Temperatura.
 
-La dashboard mostra il **nome della stanza accanto all'icona**, la temperatura corrente, l'umidità e un'indicazione sintetica di comfort.
+La dashboard mostra il **nome della stanza accanto all'icona**, gli eventuali nomi personalizzati dei sensori subito sotto la stanza, la temperatura corrente, l'umidità e un'indicazione sintetica di comfort.
 
 ---
 

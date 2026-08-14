@@ -33,14 +33,11 @@ const states = [
   },
 ];
 
-// prettier-ignore
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
-  test(`${variant}: configured Temperature keeps room name and custom entity names`, async ({
+  test(`${variant}: Temperature shows room and entity display names on a real-device layout`, async ({
     page,
   }, testInfo) => {
-    await page.route("https://**", (route) =>
-      route.fulfill({ status: 200, body: "" }),
-    );
+    await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
     await page.addInitScript((haStates) => {
       window.WebSocket = class extends EventTarget {
         static OPEN = 1;
@@ -87,19 +84,28 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       '[data-temperature-room][data-room-id="room-cameretta"]',
     );
     await expect(row).toBeVisible();
-    await expect(
-      row.locator(":scope > .ed-row-main > .ed-row-new"),
-    ).toHaveText("Cameretta");
+    const rowName = row.locator(":scope > .ed-row-main > .ed-row-new");
+    await expect(rowName).toBeVisible();
+    await expect(rowName).toHaveText("Cameretta");
+    await expect(row.locator(":scope > .ed-row-main > .ed-row-old")).toContainText(
+      "Temperatura cameretta",
+    );
+    await expect(row.locator(":scope > .ed-row-main > .ed-row-old")).toContainText(
+      "Umidità cameretta",
+    );
+    expect((await rowName.boundingBox())?.width || 0).toBeGreaterThan(20);
 
     await row.locator("[data-temperature-edit]").click();
     const tempName = page.locator("#dm-temperature-name");
     const humName = page.locator("#dm-humidity-name");
+    await expect(tempName).toBeVisible();
+    await expect(humName).toBeVisible();
     await expect(tempName).toHaveValue("Temperatura cameretta");
     await expect(humName).toHaveValue("Umidità cameretta");
-
     await tempName.fill("Temperatura Camera");
     await humName.fill("Umidità Camera");
     await page.locator("[data-temperature-submit]").click();
+
     await expect
       .poll(() =>
         page.evaluate(() =>
@@ -118,12 +124,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const card = page.locator(
       '#temp-grid .temp-card[data-room-id="room-cameretta"]',
     );
-    await expect(card).toContainText("Cameretta");
+    await expect(card.locator(".temp-room-name")).toHaveText("Cameretta");
+    await expect(card.locator(".temp-room-entity-name")).toHaveText(
+      "Temperatura Camera · Umidità Camera",
+    );
     await expect(card.locator(".cp-temp-current-lbl")).toHaveText(
-      "Temperatura Camera",
+      variant === "dashboard-en.html" ? "Temperature" : "Temperatura",
     );
     await expect(card.locator(".cp-temp-target .lbl")).toContainText(
-      "Umidità Camera",
+      variant === "dashboard-en.html" ? "Humidity" : "Umidità",
     );
   });
 }

@@ -2,42 +2,38 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const guardUrl = new URL("../src/sections/beta17-final-icon-polish-section.js", import.meta.url);
+const temperatureUrl = new URL("../src/sections/temperature-section.js", import.meta.url);
 const layoutUrl = new URL("../src/sections/temperature-layout-section.js", import.meta.url);
+const migrationsUrl = new URL("../src/core/migrations.js", import.meta.url);
 
-test("configured Temperature rows restore the canonical room name beside the icon", async () => {
-  const source = await readFile(guardUrl, "utf8");
-  assert.match(source, /function ensureTemperatureRowMain\(row, room\)/);
+test("Temperature configured rows keep a visible room name beside the icon", async () => {
+  const source = await readFile(temperatureUrl, "utf8");
+  assert.match(source, /function normalizeTemperatureConfiguredRows\(\)/);
   assert.match(source, /primary\.textContent = name/);
-  assert.match(source, /data-temperature-room\]\[data-room-id\]/);
-  assert.match(source, /dmTemperatureNameVisible/);
-  assert.match(source, /style\.setProperty\("display", "block", "important"\)/);
+  assert.match(source, /width:auto!important/);
+  assert.match(source, /grid-template-columns:56px minmax\(0,1fr\) 48px 48px/);
 });
 
-test("Temperature editor exposes and persists custom display names for both entities", async () => {
-  const source = await readFile(guardUrl, "utf8");
+test("Temperature optional entity names are canonical room fields", async () => {
+  const source = await readFile(migrationsUrl, "utf8");
+  assert.match(source, /temp_name: String\(room\.temp_name \|\| room\.temperature_name \|\| ""\)/);
+  assert.match(source, /hum_name: String\(room\.hum_name \|\| room\.humidity_name \|\| ""\)/);
+});
+
+test("Temperature editor exposes and persists both optional display names", async () => {
+  const source = await readFile(layoutUrl, "utf8");
   assert.match(source, /dm-temperature-name/);
   assert.match(source, /dm-humidity-name/);
-  assert.match(source, /temp_name/);
-  assert.match(source, /hum_name/);
   assert.match(source, /pendingLabels/);
   assert.match(source, /store\.updateItem\("rooms", id, patch\)/);
+  assert.doesNotMatch(source, /MutationObserver|setInterval\s*\(/);
 });
 
-test("custom Temperature entity names are projected onto live dashboard labels", async () => {
-  const source = await readFile(guardUrl, "utf8");
-  assert.match(source, /function repairTemperatureDashboardLabels\(\)/);
-  assert.match(source, /\.cp-temp-current-lbl/);
-  assert.match(source, /\.cp-temp-target \.lbl/);
-  assert.match(source, /dmBeta20TemperatureEntityLabels/);
-});
-
-test("Beta20 label hardening reuses an existing scoped owner and keeps the layout shim passive", async () => {
-  const source = await readFile(guardUrl, "utf8");
-  const layout = await readFile(layoutUrl, "utf8");
-  assert.doesNotMatch(source, /setInterval\s*\(/);
-  assert.match(source, /store\.subscribe/);
-  assert.match(source, /requestAnimationFrame/);
-  assert.match(layout, /return false/);
-  assert.doesNotMatch(layout, /installStyle|setInterval|MutationObserver|querySelector|innerHTML/);
+test("Temperature card renders optional entity names below the room and preserves generic metric labels", async () => {
+  const source = await readFile(temperatureUrl, "utf8");
+  assert.match(source, /temp-room-entity-name/);
+  assert.match(source, /roomCopy\.append\(name, entityName\)/);
+  assert.match(source, /entityName\.textContent = labels\.join\(" · "\)/);
+  assert.match(source, /cp-temp-current-lbl/);
+  assert.match(source, /cp-temp-target/);
 });

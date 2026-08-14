@@ -50,6 +50,8 @@ test("room updates preserve canonical metadata and only clear Temperature config
     metadata: { source: "e2e" },
     temp: "",
     hum: "",
+    temp_name: "Sonda cucina",
+    hum_name: "Umidità cucina",
   };
   await store.replaceSection("rooms", [original]);
   await store.updateItem("rooms", "room-kitchen", {
@@ -63,6 +65,21 @@ test("room updates preserve canonical metadata and only clear Temperature config
   });
   await store.updateItem("rooms", "room-kitchen", { temp: "", hum: "" });
   assert.deepEqual(store.getSection("rooms")[0], original);
+});
+
+test("room migration preserves optional Temperature display names", () => {
+  const [room] = migrateRooms([
+    {
+      id: "room-kitchen",
+      name: "Kitchen",
+      temp: "sensor.kitchen_temperature",
+      hum: "sensor.kitchen_humidity",
+      temp_name: "Kitchen probe",
+      hum_name: "Kitchen humidity",
+    },
+  ]);
+  assert.equal(room.temp_name, "Kitchen probe");
+  assert.equal(room.hum_name, "Kitchen humidity");
 });
 
 test("cover legacy room references resolve stable room ids", () => {

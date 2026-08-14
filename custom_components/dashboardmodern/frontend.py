@@ -40,7 +40,7 @@ ASSET_SUFFIXES = frozenset(
 RUNTIME_ROOT_FILES = frozenset({"panel.js", "dashboard-card.js"})
 RUNTIME_DIRECTORIES = ("legacy", "src")
 IGNORED_RUNTIME_PARTS = frozenset({"e2e", "tests", "__pycache__"})
-IGNORED_RUNTIME_FILES = frozenset({"legacy/VENDOR.json"})
+IGNORED_RUNTIME_FILES = frozenset({"legacy/build-info.js", "legacy/VENDOR.json"})
 
 
 def _runtime_assets() -> Iterator[Path]:

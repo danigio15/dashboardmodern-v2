@@ -1,0 +1,42 @@
+name: Bug report
+description: Segnala un problema riproducibile di Dashboard Modern V2
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Grazie per la segnalazione. Non inserire token, password, URL Nabu Casa, IP pubblici o altri segreti.
+  - type: input
+    id: dashboard_version
+    attributes:
+      label: Versione Dashboard Modern V2
+      placeholder: 1.0.0-beta.21
+    validations:
+      required: true
+  - type: input
+    id: home_assistant_version
+    attributes:
+      label: Versione Home Assistant
+      placeholder: 2026.x.x
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Dispositivo / browser / app
+      placeholder: Android Companion, iPhone kiosk, Chrome desktop...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passaggi per riprodurre
+      description: Indica cosa fai, cosa ti aspetti e cosa accade invece.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log o screenshot
+      description: Rimuovi dati personali e segreti prima di allegarli.

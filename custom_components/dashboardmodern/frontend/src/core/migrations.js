@@ -46,6 +46,8 @@ export function migrateRooms(input = []) {
       // DashboardStore.persist() destructively rewrite cd_stanze.
       temp: String(room.temp || room.temperature_entity || ""),
       hum: String(room.hum || room.humidity_entity || ""),
+      temp_name: String(room.temp_name || room.temperature_name || ""),
+      hum_name: String(room.hum_name || room.humidity_name || ""),
       rgb: room.rgb || "",
       order: Number.isFinite(+room.order) ? +room.order : index,
       metadata: { ...(room.metadata || {}) },
