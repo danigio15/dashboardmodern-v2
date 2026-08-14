@@ -246,26 +246,9 @@ function repairTemperatureEditor() {
 }
 
 function repairTemperatureDashboardLabels() {
-  const grid = doc?.getElementById("temp-grid");
-  if (!grid) return false;
-  let repaired = false;
-  grid.querySelectorAll(".temp-card[data-room-id]").forEach((card) => {
-    const room = temperatureRoom(card.dataset.roomId);
-    if (!room) return;
-    const temp = card.querySelector(".cp-temp-current-lbl");
-    const hum = card.querySelector(".cp-temp-target .lbl");
-    if (temp) {
-      temp.textContent = temperatureLabel(room);
-      temp.title = temperatureLabel(room);
-    }
-    if (hum) {
-      hum.textContent = `💧 ${humidityLabel(room)}`;
-      hum.title = humidityLabel(room);
-    }
-    card.dataset.dmBeta20TemperatureEntityLabels = "true";
-    repaired = true;
-  });
-  return repaired;
+  // The canonical Temperature card owns metric labels. Optional sensor display
+  // names are rendered as a subtitle beneath the room by temperature-section.
+  return false;
 }
 
 function runTemperatureRepair() {

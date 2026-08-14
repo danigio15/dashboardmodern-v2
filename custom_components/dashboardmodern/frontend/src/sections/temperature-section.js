@@ -90,6 +90,8 @@ function cardSignature(values = configuredRooms()) {
         clean(room.floor),
         clean(room.temp),
         roomHumidity(room),
+        clean(room.temp_name || room.temperature_name),
+        clean(room.hum_name || room.humidity_name),
       ].join("|"),
     )
     .join(";");
@@ -128,10 +130,15 @@ function createTemperatureCard(room) {
   icon.className = "cp-icon temp-room-icon";
   icon.dataset.roomIcon = clean(room.icon || "mdi:home");
   icon.append(makeText("dm-temperature-icon-fallback", glyph(room.icon)));
+  const roomCopy = doc.createElement("div");
+  roomCopy.className = "dm-temperature-room-copy";
   const name = doc.createElement("div");
   name.className = "cp-name temp-room-name";
   name.textContent = clean(room.name) || (english() ? "Room" : "Stanza");
-  title.append(icon, name);
+  const entityName = doc.createElement("small");
+  entityName.className = "temp-room-entity-name";
+  roomCopy.append(name, entityName);
+  title.append(icon, roomCopy);
   const badge = doc.createElement("div");
   badge.className = "cp-badge temp-comfort-badge";
   badge.id = `tc_${tid}`;
@@ -172,6 +179,7 @@ function updateCard(card, room) {
   const comfort = card.querySelector(".temp-comfort-badge");
   const icon = card.querySelector(".cp-icon,.temp-room-icon");
   const name = card.querySelector(".cp-name,.temp-room-name");
+  const entityName = card.querySelector(".temp-room-entity-name");
 
   if (value) value.textContent = temperature == null ? "—" : temperature.toFixed(1);
   if (humidityValue)
@@ -192,6 +200,15 @@ function updateCard(card, room) {
     if (!fallback.parentElement) icon.replaceChildren(fallback);
   }
   if (name) name.textContent = clean(room.name) || (english() ? "Room" : "Stanza");
+  if (entityName) {
+    const labels = [
+      clean(room.temp_name || room.temperature_name),
+      clean(room.hum_name || room.humidity_name),
+    ].filter(Boolean);
+    entityName.textContent = labels.join(" · ");
+    entityName.hidden = labels.length === 0;
+    entityName.title = labels.join(" · ");
+  }
 }
 
 export function normalizeTemperatureCards() {
@@ -355,23 +372,40 @@ function normalizeTemperatureConfiguredRows() {
     ?.querySelectorAll?.("#editor-modal [data-temperature-room][data-room-id]")
     .forEach((row) => {
       const room = values.find((item) => clean(item?.id) === clean(row.dataset.roomId));
+      if (!room) return;
+      const icon = row.querySelector(":scope > .dm-temperature-card-icon");
+      let main = row.querySelector(":scope > .ed-row-main");
+      if (!main) {
+        main = doc.createElement("div");
+        main.className = "ed-row-main";
+        if (icon?.parentElement === row) icon.after(main);
+        else row.prepend(main);
+      }
+      let primary = main.querySelector(":scope > .ed-row-new");
+      if (!primary) {
+        primary = doc.createElement("div");
+        primary.className = "ed-row-new";
+        main.prepend(primary);
+      }
+      let secondary = main.querySelector(":scope > .ed-row-old");
+      if (!secondary) {
+        secondary = doc.createElement("div");
+        secondary.className = "ed-row-old";
+        main.append(secondary);
+      }
       const name =
-        clean(room?.name) || clean(row.dataset.roomId) || (english() ? "Room" : "Stanza");
-      const primary = row.querySelector(".ed-row-new");
-      const secondary = row.querySelector(".ed-row-old");
-      if (primary) {
-        primary.textContent = name;
-        primary.title = name;
-        normalized = true;
-      }
-      if (secondary && room) {
-        const sensors = [clean(room.temp), clean(room.hum)].filter(Boolean).join(" · ");
-        if (sensors) {
-          secondary.textContent = sensors;
-          secondary.title = sensors;
-        }
-      }
+        clean(room.name) || clean(row.dataset.roomId) || (english() ? "Room" : "Stanza");
+      const labels = [];
+      if (clean(room.temp))
+        labels.push(clean(room.temp_name || room.temperature_name) || clean(room.temp));
+      if (clean(room.hum))
+        labels.push(clean(room.hum_name || room.humidity_name) || clean(room.hum));
+      primary.textContent = name;
+      primary.title = name;
+      secondary.textContent = labels.join(" · ");
+      secondary.title = [clean(room.temp), clean(room.hum)].filter(Boolean).join(" · ");
       row.dataset.dmTemperatureNameVisible = "true";
+      normalized = true;
     });
   return normalized;
 }
@@ -468,6 +502,8 @@ function installStyles() {
     #page-temp .cp-title-wrap,#temp-grid .cp-title-wrap{display:flex!important;align-items:center!important;gap:9px!important;min-width:0!important;flex:1 1 auto!important}
     #page-temp .cp-icon,#temp-grid .cp-icon{display:grid!important;place-items:center!important;flex:0 0 36px!important;width:36px!important;height:36px!important;margin:0!important;border:1px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 12%,transparent)!important;border-radius:12px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 8%,var(--ha-card-background,#fff))!important;box-shadow:0 4px 12px rgba(15,23,42,.05)!important;font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important}
     #page-temp .cp-name,#temp-grid .cp-name{min-width:0!important;margin:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:16px!important;font-weight:900!important;line-height:1.15!important;color:var(--primary-text-color,var(--text,#0f172a))!important}
+    #page-temp .dm-temperature-room-copy,#temp-grid .dm-temperature-room-copy{display:grid!important;gap:2px!important;min-width:0!important;flex:1 1 auto!important}
+    #page-temp .temp-room-entity-name,#temp-grid .temp-room-entity-name{display:block!important;min-width:0!important;margin:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important;font-size:9px!important;font-weight:800!important;line-height:1.2!important;text-transform:none!important;letter-spacing:0!important}
     #page-temp .temp-comfort-badge,#temp-grid .temp-comfort-badge{position:static!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;min-width:48px!important;max-width:82px!important;min-height:24px!important;padding:4px 8px!important;border-radius:999px!important;font-size:8.5px!important;font-weight:900!important;line-height:1!important;white-space:nowrap!important;transform:none!important}
     #temp-grid .temp-comfort-badge[data-comfort="freddo"],#temp-grid .temp-comfort-badge[data-comfort="cold"]{background:color-mix(in srgb,var(--info-color,#0ea5e9) 16%,transparent)!important;color:var(--info-color,#0284c7)!important}
     #temp-grid .temp-comfort-badge[data-comfort="comfort"]{background:color-mix(in srgb,var(--success-color,#10b981) 16%,transparent)!important;color:var(--success-color,#047857)!important}
@@ -478,9 +514,10 @@ function installStyles() {
     #page-temp .cp-temp-target,#temp-grid .cp-temp-target{display:grid!important;align-content:end!important;gap:4px!important;min-width:0!important;margin:0!important;padding:5px 0 1px 11px!important;border-left:1px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 18%,var(--divider-color,#dbe4ee))!important;text-align:left!important}.cp-temp-target .lbl{font-size:8px!important;font-weight:900!important;letter-spacing:.05em!important;text-transform:uppercase!important;white-space:nowrap!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}.cp-temp-target .val{font-size:22px!important;font-weight:850!important;line-height:1!important;white-space:nowrap!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
     #temp-grid .dm-temperature-icon-fallback{display:block!important;font-size:23px!important;line-height:1!important}
     #temp-grid .dm-temperature-empty{grid-column:1/-1!important;box-sizing:border-box!important;width:100%!important;padding:28px 20px!important;border:1px dashed var(--divider-color,#dbe4ee)!important;border-radius:20px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--secondary-text-color,#64748b)!important;text-align:center!important;font-weight:750!important}
-    #editor-modal [data-temperature-room][data-dm-temperature-name-visible="true"]>.ed-row-main{display:block!important;visibility:visible!important;opacity:1!important;min-width:0!important;align-self:center!important;overflow:hidden!important}
+    #editor-modal [data-temperature-room][data-dm-temperature-name-visible="true"]>.ed-row-main{display:block!important;visibility:visible!important;opacity:1!important;width:auto!important;min-width:0!important;max-width:none!important;flex:1 1 auto!important;align-self:center!important;overflow:hidden!important}
     #editor-modal [data-temperature-room][data-dm-temperature-name-visible="true"]>.ed-row-main>.ed-row-new{display:block!important;visibility:visible!important;opacity:1!important;color:var(--primary-text-color,var(--text,#0f172a))!important;font-weight:900!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
     #editor-modal [data-temperature-room][data-dm-temperature-name-visible="true"]>.ed-row-main>.ed-row-old{display:block!important;visibility:visible!important;opacity:1!important;margin-top:3px!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    #editor-modal #ed-body [data-temperature-room][data-room-id]{display:grid!important;grid-template-columns:56px minmax(0,1fr) 48px 48px!important;align-items:center!important;gap:10px!important}
     #editor-modal [data-temperature-form] #dm-temperature-icon,#editor-modal [data-temperature-form] [data-icon-field],#editor-modal [data-temperature-form] label.ed-slot:has(#dm-temperature-icon){display:none!important}
     #editor-modal [data-temperature-form] .dm-temperature-actions button{min-height:44px!important}
     #editor-modal [data-temperature-form] #dm-temperature-room[data-dm-temperature-room-editable="true"]{border-color:var(--primary-color,#0ea5e9)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,transparent)!important}

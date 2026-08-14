@@ -31,7 +31,10 @@ test("the 1.0 beta release metadata is consistently versioned", async () => {
   const releaseVersion = String(manifest.version || "").trim();
 
   assert.match(releaseVersion, /^1\.0\.0-beta\.\d+$/);
-  assert.match(readme, /badge\/version-\d+\.\d+\.\d+--beta\.\d+-/);
+  assert.match(
+    readme,
+    /img\.shields\.io\/github\/v\/release\/danigio15\/dashboardmodern-v2\?[^"\s]*include_prereleases/,
+  );
   assert.ok(buildInfo.includes(`"integrationVersion":"${releaseVersion}"`));
   assert.ok(buildInfo.includes(`"dashboardVersion":"${releaseVersion}"`));
 

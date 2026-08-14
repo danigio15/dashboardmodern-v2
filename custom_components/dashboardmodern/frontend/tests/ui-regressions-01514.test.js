@@ -74,7 +74,9 @@ test("temperature mobile card is owned by the canonical temperature renderer", a
   assert.match(source, /font-size:21px!important/);
   assert.doesNotMatch(source, /setInterval|MutationObserver/);
 
-  // Temporary import compatibility only: it must not render, style or observe.
-  assert.match(legacyLayout, /return false/);
-  assert.doesNotMatch(legacyLayout, /installStyle|setInterval|MutationObserver|querySelector|innerHTML/);
+  // The companion may own the two optional editor-name fields, but never
+  // the Temperature card renderer or a global polling/observer loop.
+  assert.match(legacyLayout, /ensureTemperatureNameFields/);
+  assert.doesNotMatch(legacyLayout, /renderTemperatureCards|replaceChildren/);
+  assert.doesNotMatch(legacyLayout, /setInterval|MutationObserver/);
 });

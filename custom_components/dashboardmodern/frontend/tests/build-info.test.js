@@ -8,6 +8,15 @@ import test from "node:test";
 const manifest = JSON.parse(
   readFileSync("custom_components/dashboardmodern/manifest.json", "utf8"),
 );
+const committedBuildInfoPath = "custom_components/dashboardmodern/frontend/legacy/build-info.js";
+
+test("committed build info cannot lag behind the manifest version", () => {
+  const source = execFileSync("git", ["show", `HEAD:${committedBuildInfoPath}`], {
+    encoding: "utf8",
+  });
+  assert.match(source, new RegExp(`"integrationVersion":"${manifest.version}"`));
+  assert.match(source, new RegExp(`"dashboardVersion":"${manifest.version}"`));
+});
 
 test("build info is generated from HEAD and exposes one canonical release version", () => {
   const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();

@@ -4,6 +4,38 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.21 — 2026-08-14
+
+### Corretto
+
+- Resi sempre visibili nell'editor Temperatura il nome della stanza e i nomi visualizzati dei sensori accanto all'icona, anche sul layout mobile reale.
+- Aggiunti i campi persistenti **Nome visualizzato temperatura** e **Nome visualizzato umidità** e mantenuti durante migrazioni, salvataggi e sincronizzazione.
+- Mostrati i nomi personalizzati dei sensori sotto il nome della stanza nelle card Temperatura, lasciando **Temperatura** e **Umidità** come etichette KPI stabili.
+- Allineati metadata di build, hash asset, documentazione HACS e controlli di release per evitare versioni committate obsolete.
+
+### Manutenzione
+
+- Uniformato il nome pubblico in **Dashboard Modern V2**, aggiunti template bug e policy di sicurezza.
+- Il validator HACS non ignora più la LICENSE; resta temporaneamente ignorato solo il controllo `topics` finché i topic repository non vengono configurati nelle impostazioni GitHub.
+
+## 1.0.0-beta.20 — 2026-08-14
+
+### Corretto
+
+- Prima iterazione dei nomi visualizzati Temperatura e delle correzioni real-device delle righe configurate.
+
+## 1.0.0-beta.19 — 2026-08-14
+
+### Corretto
+
+- Consolidato il renderer canonico Temperatura e stabilizzato il gate Browser E2E/WebKit per il rilascio.
+
+## 1.0.0-beta.18 — 2026-08-14
+
+### Modificato
+
+- Introdotto il motore icone single-owner per Stanze e Azioni rapide, eliminando renderer concorrenti e sfarfallii residui.
+
 ## 1.0.0-beta.17 — 2026-08-13
 
 ### Corretto

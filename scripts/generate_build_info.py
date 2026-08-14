@@ -19,6 +19,7 @@ ASSET_SUFFIXES = frozenset(
 RUNTIME_ROOT_FILES = frozenset({"panel.js", "dashboard-card.js"})
 RUNTIME_DIRECTORIES = ("legacy", "src")
 IGNORED_RUNTIME_PARTS = frozenset({"e2e", "tests", "__pycache__"})
+IGNORED_RUNTIME_FILES = frozenset({"legacy/build-info.js", "legacy/VENDOR.json"})
 
 
 def _git_dir() -> Path:
@@ -60,10 +61,11 @@ def runtime_assets() -> Iterator[Path]:
         if not directory.is_dir():
             continue
         for path in sorted(directory.rglob("*")):
+            relative = path.relative_to(FRONTEND).as_posix()
             if (
                 path.is_file()
-                and path != DEFAULT_OUT
                 and path.suffix in ASSET_SUFFIXES
+                and relative not in IGNORED_RUNTIME_FILES
                 and not IGNORED_RUNTIME_PARTS.intersection(path.parts)
             ):
                 yield path

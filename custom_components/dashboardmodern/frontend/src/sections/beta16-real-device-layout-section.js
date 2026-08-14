@@ -166,9 +166,14 @@ function repairTemperatureEditorRows() {
     if (!nodes) return;
     const name = clean(room.name) || clean(room.id) || (english() ? "Room" : "Stanza");
     const sensors = [clean(room.temp), clean(room.hum)].filter(Boolean).join(" · ");
+    const labels = [];
+    if (clean(room.temp))
+      labels.push(clean(room.temp_name || room.temperature_name) || clean(room.temp));
+    if (clean(room.hum))
+      labels.push(clean(room.hum_name || room.humidity_name) || clean(room.hum));
     nodes.primary.textContent = name;
     nodes.primary.title = name;
-    nodes.secondary.textContent = sensors;
+    nodes.secondary.textContent = labels.join(" · ");
     nodes.secondary.title = sensors;
     row.dataset.dmBeta16TemperatureName = "true";
   });
