@@ -1,0 +1,34 @@
+name: Beta21 format
+
+on:
+  push:
+    branches:
+      - fix/beta21-temperature-labels-release-hygiene
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/beta21-temperature-labels-release-hygiene
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Format changed JS
+        run: npx prettier --write custom_components/dashboardmodern/frontend/tests/build-info.test.js custom_components/dashboardmodern/frontend/e2e/temperature-labels-real-device.spec.js
+      - name: Commit formatting
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/dashboardmodern/frontend/tests/build-info.test.js custom_components/dashboardmodern/frontend/e2e/temperature-labels-real-device.spec.js
+          git diff --cached --quiet && exit 0
+          git commit -m "style: format beta21 temperature tests"
+          git push origin HEAD:fix/beta21-temperature-labels-release-hygiene
