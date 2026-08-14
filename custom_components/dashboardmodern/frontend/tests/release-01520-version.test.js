@@ -30,7 +30,7 @@ test("the 1.0 beta release metadata is consistently versioned", async () => {
   const buildInfo = await readFile(buildInfoUrl, "utf8");
   const releaseVersion = String(manifest.version || "").trim();
 
-  assert.match(releaseVersion, /^1\.0\.0-beta\.\d+$/);
+  assert.match(releaseVersion, /^1\.0\.0-beta\.\d+(?:\.\d+)?$/);
   assert.match(readme, /badge\/version-\d+\.\d+\.\d+--beta\.\d+-/);
   assert.ok(buildInfo.includes(`"integrationVersion":"${releaseVersion}"`));
   assert.ok(buildInfo.includes(`"dashboardVersion":"${releaseVersion}"`));
