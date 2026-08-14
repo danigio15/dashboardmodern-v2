@@ -3,26 +3,36 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 function row() {
-  return {
+  const roomRow = {
     dataset: {},
     querySelector() {
       return null;
     },
   };
+  return {
+    roomRow,
+    editButton: {
+      closest(selector) {
+        assert.equal(selector, ".ed-row");
+        return roomRow;
+      },
+    },
+  };
 }
 
 test("Temperature configured rows are tagged in store order, including numeric legacy ids", async () => {
-  const temperatureRows = [row(), row()];
-  const unrelatedRow = row();
+  const temperatureFixtures = [row(), row()];
+  const temperatureRows = temperatureFixtures.map(({ roomRow }) => roomRow);
+  const unrelatedRow = row().roomRow;
   globalThis.document = {
     readyState: "loading",
     addEventListener() {},
     querySelectorAll(selector) {
       assert.equal(
         selector,
-        "#editor-modal #ed-body .ed-list > .ed-row:has(> .dm-temperature-card-icon)",
+        "#editor-modal #ed-body [data-temperature-edit]",
       );
-      return temperatureRows;
+      return temperatureFixtures.map(({ editButton }) => editButton);
     },
   };
   globalThis.DashboardModernModules = {

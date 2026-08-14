@@ -352,10 +352,10 @@ function bindTemperatureRoomReassignment(form) {
 export function tagTemperatureEditorRows() {
   const values = configuredRooms();
   const candidates = [
-    ...(doc?.querySelectorAll?.(
-      "#editor-modal #ed-body .ed-list > .ed-row:has(> .dm-temperature-card-icon)",
-    ) || []),
-  ];
+    ...(doc?.querySelectorAll?.("#editor-modal #ed-body [data-temperature-edit]") || []),
+  ]
+    .map((btn) => btn.closest(".ed-row"))
+    .filter((row, i, all) => row && all.indexOf(row) === i);
   candidates.forEach((row, index) => {
     const reference = String(row.dataset.roomId || "").trim();
     const fallbackName = clean(row.querySelector?.(":scope > .ed-row-main > .ed-row-new")?.textContent);
