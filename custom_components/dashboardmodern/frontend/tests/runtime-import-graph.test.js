@@ -124,8 +124,10 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // label, Temperature tab, compact Climate and Pool responsive contracts.
   // Beta17 keeps the scoped Temperature progress-copy guard. Beta18 adds one
   // canonical icon-engine owner while historical beta modules delegate instead
-  // of repainting the same icon DOM. All facade/cycle/orphan checks stay active.
-  assert.ok(relative.length <= 72, `production graph unexpectedly grew to ${relative.length} modules`);
+  // of repainting the same icon DOM. Beta20.2 adds exactly one canonical save
+  // owner to close the legacy editor -> store -> visibility -> HA persistence
+  // transaction. All facade/cycle/orphan/polling/observer checks stay active.
+  assert.ok(relative.length <= 73, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
