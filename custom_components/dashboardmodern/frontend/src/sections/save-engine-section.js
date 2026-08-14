@@ -246,9 +246,13 @@ function installOwners() {
 }
 
 export async function reconcileSaveEngine() {
+  // Lifecycle events only install/refresh ownership. Importing every legacy key
+  // here races with canonical section edits (notably Beta20 Temperature labels)
+  // and can overwrite freshly committed store data with an older localStorage
+  // snapshot. Legacy reconciliation and visibility repair remain part of the
+  // explicit Save transaction in saveCurrentSection(), where ordering is known.
   installOwners();
-  await reconcileAllLegacyConfig();
-  return repairConfiguredVisibility();
+  return false;
 }
 
 export function installSaveEngineSection() {
