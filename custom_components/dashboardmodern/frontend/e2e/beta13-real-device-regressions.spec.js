@@ -185,10 +185,10 @@ test("beta13: room rows and action picker never expose a second vector/pseudo ic
   const picker = page.locator('#dm-visual-picker[data-kind="action"]');
   await expect(picker).toBeVisible();
   await expect(picker).toHaveAttribute("data-dm-single-glyph-owner", "true");
-  const first = picker.locator('.dm-picker-option[data-index="0"] .dm-beta12-action-glyph');
-  await expect(first).toHaveText("🏠");
+  const first = picker.locator('.dm-picker-option[data-index="0"] .dm-picker-visual');
+  await oneVisibleGlyph(first, "dm-beta12-action-glyph", "🏠");
   await page.waitForTimeout(1100);
-  await expect(first).toHaveText("🏠");
+  await oneVisibleGlyph(first, "dm-beta12-action-glyph", "🏠");
 });
 
 test("beta13: Temperature has no orphan icon row and Irrigation keeps a usable mobile width", async ({
