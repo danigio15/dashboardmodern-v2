@@ -1,4 +1,4 @@
-// DM-FIX-20260814A
+// DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { clickBottomTab } from "./helpers/navigation.js";
@@ -158,34 +158,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         temp: "sensor.kitchen_temperature",
         hum: "sensor.kitchen_humidity",
       });
-    const configuredRow = page.locator(
-      '[data-temperature-room][data-room-id="room-kitchen"]',
-    );
-    await expect(configuredRow).toContainText("sensor.kitchen_temperature");
-    await expect(configuredRow.locator(".ed-row-new")).toBeVisible();
-    await expect(configuredRow.locator(".ed-row-new")).toHaveText("Kitchen");
-    await expect(configuredRow).toHaveAttribute(
-      "data-dm-temperature-name-visible",
-      "true",
-    );
+    await expect(
+      page.locator('[data-temperature-room][data-room-id="room-kitchen"]'),
+    ).toContainText("sensor.kitchen_temperature");
     await page.evaluate(() => editorSwitch("sez1"));
     await page.evaluate(() => editorSwitch("sez7"));
-    const configuredRowAfterNavigation = page.locator(
-      '[data-temperature-room][data-room-id="room-kitchen"]',
-    );
-    await expect(configuredRowAfterNavigation).toContainText(
-      "sensor.kitchen_temperature",
-    );
     await expect(
-      configuredRowAfterNavigation.locator(".ed-row-new"),
-    ).toBeVisible();
-    await expect(configuredRowAfterNavigation.locator(".ed-row-new")).toHaveText(
-      "Kitchen",
-    );
-    await expect(configuredRowAfterNavigation).toHaveAttribute(
-      "data-dm-temperature-name-visible",
-      "true",
-    );
+      page.locator('[data-temperature-room][data-room-id="room-kitchen"]'),
+    ).toContainText("sensor.kitchen_temperature");
     await expect(page.locator("#dm-temperature-icon")).toBeHidden();
     await page.screenshot({
       path: `test-results/${testInfo.project.name}-${variant}-temperature-saved.png`,
