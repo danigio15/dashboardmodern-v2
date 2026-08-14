@@ -104,7 +104,9 @@ async function boot(page, variant, testInfo) {
   }, haStates);
 
   await bootNamespacedDashboard(page, variant, testInfo, structuredClone(dashboardSeed));
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true);
   await page.evaluate(
     (states) =>
@@ -137,17 +139,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.locator("#appl-room").selectOption("room-matrimoniale");
     for (const entity of ["switch.lavatrice", "sensor.lavatrice_power"]) {
       await page.locator("#appl-ent").fill(entity);
-      await page
-        .locator("#ed-body .ed-btn-add", { hasText: /questa entità|this entity/i })
-        .click();
+      await page.locator("#ed-body .ed-btn-add", { hasText: /questa entità|this entity/i }).click();
     }
 
     // This is the exact real-device flow that was broken: the user filled the
     // pending appliance and pressed Save section instead of the separate Add
     // appliance button. The old implementation only displayed a success toast.
-    await page
-      .locator("#ed-body .ed-btn-add", { hasText: /Salva sezione|Save section/i })
-      .click();
+    await page.locator("#ed-body .ed-btn-add", { hasText: /Salva sezione|Save section/i }).click();
 
     await expect
       .poll(() =>
@@ -162,7 +160,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         entities: ["switch.lavatrice", "sensor.lavatrice_power"],
       });
     await expect
-      .poll(() => page.evaluate(() => DashboardModernModules.store.getState().visibility.appliances))
+      .poll(() =>
+        page.evaluate(() => DashboardModernModules.store.getState().visibility.appliances),
+      )
       .toBe(true);
 
     await page.locator("#editor-modal .ed-head-close").last().click();
@@ -183,7 +183,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       )
       .toBe(true);
     await expect
-      .poll(() => page.evaluate(() => DashboardModernModules.store.getState().visibility.appliances))
+      .poll(() =>
+        page.evaluate(() => DashboardModernModules.store.getState().visibility.appliances),
+      )
       .toBe(true);
   });
 
