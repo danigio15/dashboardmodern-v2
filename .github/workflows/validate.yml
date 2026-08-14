@@ -9,8 +9,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
 
 jobs:
   validate-hacs:
@@ -20,8 +18,6 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
-          # HACS reads repository-level metadata for these checks. During this
-          # pull request GitHub does not expose the new LICENSE file as the
-          # repository license until it is merged into the default branch.
-          # Topics are optional for installation as a custom HACS repository.
-          ignore: topics license
+          # Repository topics are still empty. Keep only this temporary
+          # metadata ignore until topics are configured in GitHub settings.
+          ignore: topics
