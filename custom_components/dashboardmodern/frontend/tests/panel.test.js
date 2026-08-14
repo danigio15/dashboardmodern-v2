@@ -5,7 +5,13 @@ import test from "node:test";
 globalThis.HTMLElement = class {};
 globalThis.customElements = { get: () => undefined, define: () => {} };
 
-const { resolveLegacyVariant } = await import("../panel.js");
+const { dashboardModulesActive, resolveLegacyVariant } = await import("../panel.js");
+
+test("module sentinel decision requires the canonical store", () => {
+  assert.equal(dashboardModulesActive(undefined), false);
+  assert.equal(dashboardModulesActive({ DashboardModernModules: {} }), false);
+  assert.equal(dashboardModulesActive({ DashboardModernModules: { store: {} } }), true);
+});
 
 test("the Italian locale selects the Italian dashboard", () => {
   const panel = { config: { legacy_variants: ["dashboard.html", "dashboard-en.html"] } };

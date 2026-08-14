@@ -116,6 +116,38 @@ function setup(seed = {}) {
   return { store, storage, synced };
 }
 
+test("persist imports a fresh legacy sections write instead of overwriting it", () => {
+  const { store, storage } = setup({ cd_sections: { home: false } });
+  const external = { home: true, energy: false };
+  storage.setItem("cd_sections", JSON.stringify(external));
+  store.persist();
+  assert.deepEqual(JSON.parse(storage.getItem("cd_sections")), external);
+  assert.deepEqual(store.getState().visibility, external);
+});
+
+test("persist writes canonical state normally without an external legacy write", () => {
+  const { store, storage } = setup({ cd_sections: { home: false } });
+  store.state.visibility = { home: true };
+  store.persist();
+  assert.deepEqual(JSON.parse(storage.getItem("cd_sections")), { home: true });
+});
+
+test("fresh legacy rooms round-trip Temperature display names", () => {
+  const { store, storage } = setup();
+  const rooms = [
+    {
+      id: "room-kitchen",
+      name: "Kitchen",
+      temp: "sensor.kitchen",
+      temp_name: "Sonda cucina",
+    },
+  ];
+  storage.setItem("cd_stanze", JSON.stringify(rooms));
+  store.persist();
+  assert.equal(JSON.parse(storage.getItem("cd_stanze"))[0].temp_name, "Sonda cucina");
+  assert.equal(store.getSection("rooms")[0].temp_name, "Sonda cucina");
+});
+
 test("canonical display names never concatenate category/type", () => {
   assert.equal(getDeviceDisplayName({ name: "Forno", type: "forno" }), "Forno");
   assert.equal(getDeviceDisplayName({ name: "fOrNo", device_type: "forno" }), "fOrNo");

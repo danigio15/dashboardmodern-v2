@@ -4,6 +4,14 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.24 — 2026-08-14
+
+### Corretto
+
+- Unificata la chiave di sincronizzazione HA tra runtime e moduli (con migrazione automatica del payload esistente): i salvataggi ora si consolidano su un unico archivio.
+- Lo store canonico non sovrascrive più le modifiche appena salvate dai flussi legacy (protezione single-writer).
+- Aggiunta sentinella nel pannello: se i moduli non si caricano compare un avviso con l'azione da fare, invece di un'interfaccia silenziosamente degradata.
+
 ## 1.0.0-beta.23 — 2026-08-14
 
 ### Manutenzione

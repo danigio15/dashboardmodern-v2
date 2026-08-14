@@ -66,6 +66,7 @@ export class DashboardStore {
     this.syncAdapter = sync;
     this.onStatus = onStatus;
     this.listeners = new Set();
+    this.persistedLegacyDigests = new Map();
     this.state = { schema_version: SCHEMA_VERSION, sections: {}, visibility: {} };
   }
   migrate() {
@@ -110,22 +111,54 @@ export class DashboardStore {
     return () => this.listeners.delete(listener);
   }
   persist() {
+    const legacyKeys = ["cd_sections", ...Object.values(SECTION_KEYS)];
+    for (const key of legacyKeys) {
+      if (this.canonicalWriteKeys?.has(key)) continue;
+      if (!this.persistedLegacyDigests.has(key)) continue;
+      const current = this.storage.getItem(key);
+      if (current === this.persistedLegacyDigests.get(key)) continue;
+      let value;
+      try {
+        value = JSON.parse(current);
+      } catch {
+        continue;
+      }
+      if (key === "cd_sections") {
+        if (value && typeof value === "object" && !Array.isArray(value))
+          this.state.visibility = { ...value };
+        continue;
+      }
+      const section = Object.entries(SECTION_KEYS).find(
+        ([, storageKey]) => storageKey === key,
+      )?.[0];
+      if (section)
+        this.state.sections[section] = normalizeSection(section, value, {
+          rooms: this.state.sections.rooms || [],
+        });
+    }
     this.state.sections.entityOverrides = projectEnergySlots(
       this.state.sections.energy || {},
       this.state.sections.entityOverrides || {},
     );
     this.projecting = true;
+    this.storage.__dashboardStoreProjecting = (this.storage.__dashboardStoreProjecting || 0) + 1;
     try {
       this.storage.setItem("dm_dashboard_state", JSON.stringify(this.state));
       this.storage.setItem("dm_schema_version", String(SCHEMA_VERSION));
-      this.storage.setItem("cd_sections", JSON.stringify(this.state.visibility));
+      const writeLegacy = (key, value) => {
+        const serialized = JSON.stringify(value);
+        this.storage.setItem(key, serialized);
+        this.persistedLegacyDigests.set(key, serialized);
+      };
+      writeLegacy("cd_sections", this.state.visibility);
       for (const [section, key] of Object.entries(SECTION_KEYS)) {
         let value = this.state.sections[section] || [];
         if (section === "lights")
           value = Object.fromEntries(value.map((item) => [item.entities[0], item.name]));
-        this.storage.setItem(key, JSON.stringify(value));
+        writeLegacy(key, value);
       }
     } finally {
+      this.storage.__dashboardStoreProjecting--;
       this.projecting = false;
     }
   }
@@ -137,6 +170,7 @@ export class DashboardStore {
       const result = original(key, value);
       if (
         !store.projecting &&
+        !store.storage.__dashboardStoreProjecting &&
         !globalThis.__DASHBOARDMODERN_PERSIST_RESTORE__ &&
         (key === "cd_sections" || Object.values(SECTION_KEYS).includes(key))
       )
@@ -193,7 +227,17 @@ export class DashboardStore {
     try {
       const detail = mutate();
       visibilityChanged = this.ensureSectionVisibleForData(section);
-      this.persist();
+      this.canonicalWriteKeys = new Set(
+        [
+          section === "visibility" ? "cd_sections" : SECTION_KEYS[section],
+          ...(visibilityChanged ? ["cd_sections"] : []),
+        ].filter(Boolean),
+      );
+      try {
+        this.persist();
+      } finally {
+        this.canonicalWriteKeys = null;
+      }
       const change = {
         section,
         operation,

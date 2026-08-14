@@ -3,6 +3,10 @@ import { legacyVariantForLocale, mountLegacyHost } from "./src/legacy/host.js";
 
 const dashboardJobs = new Map();
 
+export function dashboardModulesActive(frameWindow) {
+  return Boolean(frameWindow?.DashboardModernModules?.store);
+}
+
 export function resolveLegacyVariant(panel, hass) {
   const variants = panel?.config?.legacy_variants;
   if (!Array.isArray(variants) || variants.length === 0) return null;
@@ -133,9 +137,38 @@ export class DashboardModernPanel extends HTMLElement {
   }
 
   resetHost() {
+    if (this.modulesTimer) clearTimeout(this.modulesTimer);
+    this.modulesTimer = null;
     this.host?.destroy();
     this.host = null;
     this.mounted = false;
+  }
+
+  showModulesWarning() {
+    if (this.shadowRoot.querySelector?.("[data-dashboardmodern-modules-warning]")) return;
+    const banner = document.createElement("aside");
+    banner.dataset.dashboardmodernModulesWarning = "";
+    banner.setAttribute("role", "alert");
+    const message = this._hass?.locale?.language?.startsWith("it")
+      ? "⚠️ Aggiornamento incompleto: i moduli della dashboard non si sono caricati. Riavvia Home Assistant e svuota la cache del browser."
+      : "⚠️ Incomplete update: the dashboard modules did not load. Restart Home Assistant and clear your browser cache.";
+    banner.innerHTML = `<span>${message}</span><button type="button" aria-label="${
+      this._hass?.locale?.language?.startsWith("it") ? "Chiudi" : "Dismiss"
+    }">×</button>`;
+    banner.style.cssText = "position:fixed;z-index:10000;top:0;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 18px;background:#b91c1c;color:#fff;font:600 14px/1.4 sans-serif;box-shadow:0 2px 8px #0005";
+    banner.querySelector("button").style.cssText = "border:0;background:transparent;color:inherit;font-size:24px;cursor:pointer";
+    banner.querySelector("button").addEventListener("click", () => banner.remove());
+    this.shadowRoot.append(banner);
+  }
+
+  scheduleModulesCheck(frame) {
+    if (this.modulesTimer) clearTimeout(this.modulesTimer);
+    this.modulesTimer = setTimeout(() => {
+      this.modulesTimer = null;
+      const active = dashboardModulesActive(frame?.contentWindow);
+      console.log(`[DashboardModern] moduli attivi: ${active ? "sì" : "no"}`);
+      if (!active) this.showModulesWarning();
+    }, 6000);
   }
 
   renderDenied() {
@@ -180,6 +213,7 @@ export class DashboardModernPanel extends HTMLElement {
         "integration",
       primary: this._panel.config?.primary !== false,
     });
+    this.host.frame.addEventListener?.("load", () => this.scheduleModulesCheck(this.host?.frame));
   }
 
   disconnectedCallback() {
