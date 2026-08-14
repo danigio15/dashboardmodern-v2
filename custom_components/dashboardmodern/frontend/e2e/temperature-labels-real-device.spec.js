@@ -37,7 +37,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: configured Temperature keeps room name and custom entity names`, async ({
     page,
   }, testInfo) => {
-    await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+    await page.route("https://**", (route) =>
+      route.fulfill({ status: 200, body: "" }),
+    );
     await page.addInitScript((haStates) => {
       window.WebSocket = class extends EventTarget {
         static OPEN = 1;
@@ -68,7 +70,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     }, states);
 
     await bootNamespacedDashboard(page, variant, testInfo, seed);
-    await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+    await page
+      .locator("#setup-wizard")
+      .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
     await page.evaluate((haStates) => {
       haStates.forEach((state) => {
         _RAW_STATES[state.entity_id] = state;
@@ -78,21 +82,35 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       editorSwitch("sez7");
     }, states);
 
-    const row = page.locator('[data-temperature-room][data-room-id="room-cameretta"]');
+    const row = page.locator(
+      '[data-temperature-room][data-room-id="room-cameretta"]',
+    );
     await expect(row).toBeVisible();
-    await expect(row.locator(":scope > .ed-row-main > .ed-row-new")).toHaveText("Cameretta");
+    await expect(
+      row.locator(":scope > .ed-row-main > .ed-row-new"),
+    ).toHaveText("Cameretta");
     await expect(row).toContainText("Temperatura cameretta");
     await expect(row).toContainText("Umidità cameretta");
 
     await row.locator("[data-temperature-edit]").click();
-    await expect(page.locator("#dm-temperature-name")).toHaveValue("Temperatura cameretta");
-    await expect(page.locator("#dm-humidity-name")).toHaveValue("Umidità cameretta");
+    await expect(page.locator("#dm-temperature-name")).toHaveValue(
+      "Temperatura cameretta",
+    );
+    await expect(page.locator("#dm-humidity-name")).toHaveValue(
+      "Umidità cameretta",
+    );
 
     await page.locator("#editor-modal .ed-head-close").last().click();
     await clickBottomTab(page, "temp", testInfo);
-    const card = page.locator('#temp-grid .temp-card[data-room-id="room-cameretta"]');
+    const card = page.locator(
+      '#temp-grid .temp-card[data-room-id="room-cameretta"]',
+    );
     await expect(card).toContainText("Cameretta");
-    await expect(card.locator(".cp-temp-current-lbl")).toHaveText("Temperatura cameretta");
-    await expect(card.locator(".cp-temp-target .lbl")).toContainText("Umidità cameretta");
+    await expect(card.locator(".cp-temp-current-lbl")).toHaveText(
+      "Temperatura cameretta",
+    );
+    await expect(card.locator(".cp-temp-target .lbl")).toContainText(
+      "Umidità cameretta",
+    );
   });
 }
