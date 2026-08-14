@@ -70,7 +70,7 @@ test("beta14 hotfix loads after the beta12 glyph owner in both sentinels", async
     "utf8",
   );
   for (const source of [buildInfo, generator]) {
-    const beta12 = source.indexOf("beta12-room-color-lock-section.js");
+    const beta12 = source.indexOf("room-color-lock-section.js");
     const beta14 = source.indexOf("beta14-real-device-hotfix-section.js");
     assert.ok(beta12 >= 0, "beta12 owner import is present");
     assert.ok(beta14 > beta12, "beta14 hotfix loads after beta12 owner");

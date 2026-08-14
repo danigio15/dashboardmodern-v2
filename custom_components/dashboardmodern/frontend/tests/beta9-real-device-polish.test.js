@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const entryUrl = new URL("../src/sections/beta-entry-section.js", import.meta.url);
+const entryUrl = new URL("../src/sections/bootstrap-section.js", import.meta.url);
 const polishUrl = new URL("../src/sections/beta9-real-device-polish-section.js", import.meta.url);
 const engineUrl = new URL("../src/sections/icon-engine-section.js", import.meta.url);
 

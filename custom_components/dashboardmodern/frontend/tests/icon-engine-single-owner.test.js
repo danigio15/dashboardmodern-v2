@@ -32,8 +32,8 @@ test("only icon-engine creates the shared visual picker", async () => {
 });
 
 test("legacy icon owners delegate and no delayed public repaint loop remains", async () => {
-  const betaEntry = await readFile(path.join(sections, "beta-entry-section.js"), "utf8");
-  const beta12Lock = await readFile(path.join(sections, "beta12-room-color-lock-section.js"), "utf8");
+  const betaEntry = await readFile(path.join(sections, "bootstrap-section.js"), "utf8");
+  const beta12Lock = await readFile(path.join(sections, "room-color-lock-section.js"), "utf8");
   const beta17 = await readFile(path.join(sections, "beta17-final-icon-polish-section.js"), "utf8");
   const engine = await readFile(path.join(sections, "icon-engine-section.js"), "utf8");
   assert.doesNotMatch(betaEntry, /scheduleV01525QuickActionRepair|\[0, 90, 320, 900\]/);
@@ -66,7 +66,7 @@ test("single owner escapes custom glyph markup and preserves builtin action colo
 });
 
 test("final owner guard is scoped and microtask-driven inside the existing beta entry", async () => {
-  const betaEntry = await readFile(path.join(sections, "beta-entry-section.js"), "utf8");
+  const betaEntry = await readFile(path.join(sections, "bootstrap-section.js"), "utf8");
   assert.match(betaEntry, /__DASHBOARDMODERN_ICON_ENGINE_OWNER_GUARD__/);
   assert.match(betaEntry, /new MutationObserver\(queueOwnedIconSync\)/);
   assert.match(betaEntry, /\["ed-body", "qa-grid", "temp-grid"\]/);

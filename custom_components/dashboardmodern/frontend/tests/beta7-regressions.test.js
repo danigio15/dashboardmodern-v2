@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const entryUrl = new URL("../src/sections/beta-entry-section.js", import.meta.url);
-const guardUrl = new URL("../src/sections/beta7-brand-guard-section.js", import.meta.url);
+const entryUrl = new URL("../src/sections/bootstrap-section.js", import.meta.url);
+const guardUrl = new URL("../src/sections/brand-guard-section.js", import.meta.url);
 const regressionsUrl = new URL("../src/sections/beta7-regression-section.js", import.meta.url);
 const flowsUrl = new URL("../src/sections/energy-flow-section.js", import.meta.url);
 
 test("beta7 entry keeps the two scoped owners in order", async () => {
   const source = await readFile(entryUrl, "utf8");
-  const guard = source.indexOf('import "./beta7-brand-guard-section.js"');
+  const guard = source.indexOf('import "./brand-guard-section.js"');
   const polish = source.indexOf('import "./beta7-regression-section.js"');
   assert.ok(guard >= 0);
   assert.ok(polish > guard);

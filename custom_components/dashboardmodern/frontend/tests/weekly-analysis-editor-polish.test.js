@@ -108,5 +108,5 @@ test("canonical editor contracts own the requested mobile polish without changin
   assert.match(contracts, /contatore totale kWh/);
   assert.doesNotMatch(contracts, /MutationObserver|setInterval\s*\(/);
   assert.match(runtime, /installEnergyAnalysisSection/);
-  assert.doesNotMatch(runtime, /installEditorPolishSection|editor-polish-section/);
+  assert.doesNotMatch(runtime, /installEditorPolishSection|editor-refinement-section/);
 });
