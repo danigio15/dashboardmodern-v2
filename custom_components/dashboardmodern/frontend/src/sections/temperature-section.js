@@ -1,4 +1,4 @@
-// DM-FIX-20260812B
+// DM-FIX-20260814A
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
 import {
   allStates,
@@ -18,7 +18,6 @@ const state = (root[KEY] ||= {
   storeUnsubscribe: null,
   signature: "",
 });
-
 
 function glyph(icon) {
   return directEmoji(icon) || roomGlyph(icon);
@@ -82,9 +81,18 @@ function roomHumidity(room) {
 }
 
 function cardSignature(values = configuredRooms()) {
-  return values.map((room) => [
-    clean(room.id), clean(room.name), clean(room.icon), clean(room.floor), clean(room.temp), roomHumidity(room),
-  ].join("|")).join(";");
+  return values
+    .map((room) =>
+      [
+        clean(room.id),
+        clean(room.name),
+        clean(room.icon),
+        clean(room.floor),
+        clean(room.temp),
+        roomHumidity(room),
+      ].join("|"),
+    )
+    .join(";");
 }
 
 function makeText(className, value) {
@@ -166,7 +174,8 @@ function updateCard(card, room) {
   const name = card.querySelector(".cp-name,.temp-room-name");
 
   if (value) value.textContent = temperature == null ? "—" : temperature.toFixed(1);
-  if (humidityValue) humidityValue.textContent = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
+  if (humidityValue)
+    humidityValue.textContent = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
   if (comfort) {
     const label = comfortLabel(temperature);
     comfort.textContent = label;
@@ -176,7 +185,9 @@ function updateCard(card, room) {
   }
   if (icon) {
     icon.dataset.roomIcon = clean(room.icon || "mdi:home");
-    const fallback = icon.querySelector(".dm-temperature-icon-fallback") || makeText("dm-temperature-icon-fallback", "");
+    const fallback =
+      icon.querySelector(".dm-temperature-icon-fallback") ||
+      makeText("dm-temperature-icon-fallback", "");
     fallback.textContent = glyph(room.icon);
     if (!fallback.parentElement) icon.replaceChildren(fallback);
   }
@@ -200,8 +211,12 @@ export function renderTemperatureCards({ force = false } = {}) {
   const values = configuredRooms();
   const signature = cardSignature(values);
 
-  if (!force && signature === state.signature
-      && grid.querySelectorAll(".temp-card[data-dm-temperature-canonical='true']").length === values.length) {
+  if (
+    !force &&
+    signature === state.signature &&
+    grid.querySelectorAll(".temp-card[data-dm-temperature-canonical='true']").length ===
+      values.length
+  ) {
     normalizeTemperatureCards();
     return values.length > 0;
   }
@@ -228,7 +243,9 @@ export function renderTemperatureCards({ force = false } = {}) {
 }
 
 function temperatureEditMode(form) {
-  const title = clean(form?.querySelector("[data-temperature-form-title]")?.textContent).toLowerCase();
+  const title = clean(
+    form?.querySelector("[data-temperature-form-title]")?.textContent,
+  ).toLowerCase();
   return /^(modifica|edit)\b/.test(title);
 }
 
@@ -261,60 +278,107 @@ function bindTemperatureRoomReassignment(form) {
 
   if (select.dataset.dmTemperatureReassignBound !== "true") {
     select.dataset.dmTemperatureReassignBound = "true";
-    select.addEventListener("change", (event) => {
-      if (!form.dataset.dmOriginalRoom) return;
-      event.stopImmediatePropagation();
-      syncEditRoomPresentation(form, select.value);
-    }, true);
+    select.addEventListener(
+      "change",
+      (event) => {
+        if (!form.dataset.dmOriginalRoom) return;
+        event.stopImmediatePropagation();
+        syncEditRoomPresentation(form, select.value);
+      },
+      true,
+    );
   }
 
   if (form.dataset.dmTemperatureReassignSubmit !== "true") {
     form.dataset.dmTemperatureReassignSubmit = "true";
-    form.addEventListener("submit", async (event) => {
-      const originalId = clean(form.dataset.dmOriginalRoom);
-      if (!originalId) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
+    form.addEventListener(
+      "submit",
+      async (event) => {
+        const originalId = clean(form.dataset.dmOriginalRoom);
+        if (!originalId) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
 
-      const targetId = clean(select.value);
-      const temp = clean(form.querySelector("#ed-pl-temp")?.value);
-      const hum = clean(form.querySelector("#dm-humidity-new")?.value);
-      if (!targetId || !temp.includes(".")) {
-        root.alert?.(english() ? "Select a room and a valid temperature entity." : "Seleziona una stanza e un'entità temperatura valida.");
-        return;
-      }
+        const targetId = clean(select.value);
+        const temp = clean(form.querySelector("#ed-pl-temp")?.value);
+        const hum = clean(form.querySelector("#dm-humidity-new")?.value);
+        if (!targetId || !temp.includes(".")) {
+          root.alert?.(
+            english()
+              ? "Select a room and a valid temperature entity."
+              : "Seleziona una stanza e un'entità temperatura valida.",
+          );
+          return;
+        }
 
-      const store = dashboardStore();
-      const currentRooms = store?.getSection?.("rooms") || [];
-      const target = currentRooms.find((room) => clean(room.id) === targetId);
-      if (!target) return;
-      const conflict = targetId !== originalId && (clean(target.temp) || clean(target.hum));
-      if (conflict) {
-        root.alert?.(english() ? "The selected room already has temperature sensors configured." : "La stanza selezionata ha già sensori temperatura configurati.");
-        return;
-      }
+        const store = dashboardStore();
+        const currentRooms = store?.getSection?.("rooms") || [];
+        const target = currentRooms.find((room) => clean(room.id) === targetId);
+        if (!target) return;
+        const conflict =
+          targetId !== originalId && (clean(target.temp) || clean(target.hum));
+        if (conflict) {
+          root.alert?.(
+            english()
+              ? "The selected room already has temperature sensors configured."
+              : "La stanza selezionata ha già sensori temperatura configurati.",
+          );
+          return;
+        }
 
-      const next = currentRooms.map((room) => {
-        const id = clean(room.id);
-        if (id === originalId && originalId !== targetId) return { ...room, temp: "", hum: "" };
-        if (id === targetId) return { ...room, temp, hum };
-        return room;
-      });
-      try {
-        await store?.replaceSection?.("rooms", next);
-        resetTemperatureReassignment(form);
-        state.signature = "";
-        renderTemperatureCards({ force: true });
-        root.setTimeout?.(() => root.editorSwitch?.("sez7"), 0);
-      } catch (error) {
-        root.console?.error?.("[DashboardModern] temperature room reassignment", error);
-      }
-    }, true);
+        const next = currentRooms.map((room) => {
+          const id = clean(room.id);
+          if (id === originalId && originalId !== targetId)
+            return { ...room, temp: "", hum: "" };
+          if (id === targetId) return { ...room, temp, hum };
+          return room;
+        });
+        try {
+          await store?.replaceSection?.("rooms", next);
+          resetTemperatureReassignment(form);
+          state.signature = "";
+          renderTemperatureCards({ force: true });
+          root.setTimeout?.(() => root.editorSwitch?.("sez7"), 0);
+        } catch (error) {
+          root.console?.error?.("[DashboardModern] temperature room reassignment", error);
+        }
+      },
+      true,
+    );
   }
   return true;
 }
 
+function normalizeTemperatureConfiguredRows() {
+  const values = rooms();
+  let normalized = false;
+  doc
+    ?.querySelectorAll?.("#editor-modal [data-temperature-room][data-room-id]")
+    .forEach((row) => {
+      const room = values.find((item) => clean(item?.id) === clean(row.dataset.roomId));
+      const name =
+        clean(room?.name) || clean(row.dataset.roomId) || (english() ? "Room" : "Stanza");
+      const primary = row.querySelector(".ed-row-new");
+      const secondary = row.querySelector(".ed-row-old");
+      if (primary) {
+        primary.textContent = name;
+        primary.title = name;
+        normalized = true;
+      }
+      if (secondary && room) {
+        const sensors = [clean(room.temp), clean(room.hum)].filter(Boolean).join(" · ");
+        if (sensors) {
+          secondary.textContent = sensors;
+          secondary.title = sensors;
+        }
+      }
+      row.dataset.dmTemperatureNameVisible = "true";
+    });
+  return normalized;
+}
+
 function normalizeTemperatureEditor() {
+  normalizeTemperatureConfiguredRows();
   const form = doc?.querySelector("#editor-modal [data-temperature-form]");
   if (!form) return false;
   const intro = form.parentElement?.querySelector("[data-temperature-editor]");
@@ -392,6 +456,7 @@ function subscribeStore() {
     if (change?.section !== "rooms" && change?.section !== "snapshot") return;
     state.signature = "";
     renderTemperatureCards({ force: true });
+    root.queueMicrotask?.(normalizeTemperatureConfiguredRows);
   });
 }
 
@@ -414,6 +479,9 @@ function installStyles() {
     #page-temp .cp-temp-target,#temp-grid .cp-temp-target{display:grid!important;align-content:end!important;gap:4px!important;min-width:0!important;margin:0!important;padding:5px 0 1px 11px!important;border-left:1px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 18%,var(--divider-color,#dbe4ee))!important;text-align:left!important}.cp-temp-target .lbl{font-size:8px!important;font-weight:900!important;letter-spacing:.05em!important;text-transform:uppercase!important;white-space:nowrap!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}.cp-temp-target .val{font-size:22px!important;font-weight:850!important;line-height:1!important;white-space:nowrap!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
     #temp-grid .dm-temperature-icon-fallback{display:block!important;font-size:23px!important;line-height:1!important}
     #temp-grid .dm-temperature-empty{grid-column:1/-1!important;box-sizing:border-box!important;width:100%!important;padding:28px 20px!important;border:1px dashed var(--divider-color,#dbe4ee)!important;border-radius:20px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--secondary-text-color,#64748b)!important;text-align:center!important;font-weight:750!important}
+    #editor-modal [data-temperature-room][data-dm-temperature-name-visible="true"]>.ed-row-main{display:block!important;visibility:visible!important;opacity:1!important;min-width:0!important;align-self:center!important;overflow:hidden!important}
+    #editor-modal [data-temperature-room][data-dm-temperature-name-visible="true"]>.ed-row-main>.ed-row-new{display:block!important;visibility:visible!important;opacity:1!important;color:var(--primary-text-color,var(--text,#0f172a))!important;font-weight:900!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    #editor-modal [data-temperature-room][data-dm-temperature-name-visible="true"]>.ed-row-main>.ed-row-old{display:block!important;visibility:visible!important;opacity:1!important;margin-top:3px!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
     #editor-modal [data-temperature-form] #dm-temperature-icon,#editor-modal [data-temperature-form] [data-icon-field],#editor-modal [data-temperature-form] label.ed-slot:has(#dm-temperature-icon){display:none!important}
     #editor-modal [data-temperature-form] .dm-temperature-actions button{min-height:44px!important}
     #editor-modal [data-temperature-form] #dm-temperature-room[data-dm-temperature-room-editable="true"]{border-color:var(--primary-color,#0ea5e9)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,transparent)!important}
@@ -433,28 +501,41 @@ export function installTemperatureSection() {
     root.addEventListener?.("dashboardmodern:state-changed", (event) => {
       if (stateChangeAffectsTemperature(event)) normalizeTemperatureCards();
     });
-    for (const eventName of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "dashboardmodern:persistence-restored"]) {
+    for (const eventName of [
+      "dashboardmodern:legacy-ready",
+      "dashboardmodern:runtime-ready",
+      "dashboardmodern:persistence-restored",
+    ]) {
       root.addEventListener?.(eventName, () => {
         installOwners();
         subscribeStore();
         state.signature = "";
         renderTemperatureCards({ force: true });
+        normalizeTemperatureConfiguredRows();
       });
     }
     root.addEventListener?.("dashboardmodern:config-reset", () => {
       state.signature = "";
       renderTemperatureCards({ force: true });
     });
-    doc.addEventListener("click", (event) => {
-      const cancel = event.target?.closest?.("[data-temperature-cancel]");
-      if (cancel) resetTemperatureReassignment(cancel.closest("[data-temperature-form]"));
-      if (event.target?.closest?.("[data-tab='temp'],[data-tab='temperature'],.ed-tab[data-tab='sez7'],[data-temperature-edit]"))
-        root.queueMicrotask?.(() => {
-          installOwners();
-          renderTemperatureCards();
-          normalizeTemperatureEditor();
-        });
-    }, true);
+    doc.addEventListener(
+      "click",
+      (event) => {
+        const cancel = event.target?.closest?.("[data-temperature-cancel]");
+        if (cancel) resetTemperatureReassignment(cancel.closest("[data-temperature-form]"));
+        if (
+          event.target?.closest?.(
+            "[data-tab='temp'],[data-tab='temperature'],.ed-tab[data-tab='sez7'],[data-temperature-edit]",
+          )
+        )
+          root.queueMicrotask?.(() => {
+            installOwners();
+            renderTemperatureCards();
+            normalizeTemperatureEditor();
+          });
+      },
+      true,
+    );
   }
   state.installed = true;
 }
