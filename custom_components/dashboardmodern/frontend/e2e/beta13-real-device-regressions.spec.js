@@ -74,7 +74,21 @@ async function boot(page, testInfo) {
     .locator("#setup-wizard")
     .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await expect
-    .poll(() => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true))
+    .poll(
+      () => page.evaluate(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true),
+      { timeout: testInfo.project.name === "webkit-ipad" ? 15_000 : 10_000 },
+    )
+    .toBe(true);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            typeof window.DashboardModernIconEngine?.render === "function" &&
+            typeof window.DashboardModernIconEngine?.syncEditor === "function",
+        ),
+      { timeout: 15_000 },
+    )
     .toBe(true);
 }
 
