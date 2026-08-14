@@ -8,8 +8,7 @@ import test from "node:test";
 const manifest = JSON.parse(
   readFileSync("custom_components/dashboardmodern/manifest.json", "utf8"),
 );
-const committedBuildInfoPath =
-  "custom_components/dashboardmodern/frontend/legacy/build-info.js";
+const committedBuildInfoPath = "custom_components/dashboardmodern/frontend/legacy/build-info.js";
 
 test("committed build info cannot lag behind the manifest version", () => {
   const source = execFileSync("git", ["show", `HEAD:${committedBuildInfoPath}`], {

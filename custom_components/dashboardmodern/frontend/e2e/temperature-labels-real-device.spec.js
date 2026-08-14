@@ -80,9 +80,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       editorSwitch("sez7");
     }, states);
 
-    const row = page.locator(
-      '[data-temperature-room][data-room-id="room-cameretta"]',
-    );
+    const row = page.locator('[data-temperature-room][data-room-id="room-cameretta"]');
     await expect(row).toBeVisible();
     const rowName = row.locator(":scope > .ed-row-main > .ed-row-new");
     await expect(rowName).toBeVisible();
@@ -121,9 +119,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     await page.locator("#editor-modal .ed-head-close").last().click();
     await clickBottomTab(page, "temp", testInfo);
-    const card = page.locator(
-      '#temp-grid .temp-card[data-room-id="room-cameretta"]',
-    );
+    const card = page.locator('#temp-grid .temp-card[data-room-id="room-cameretta"]');
     await expect(card.locator(".temp-room-name")).toHaveText("Cameretta");
     await expect(card.locator(".temp-room-entity-name")).toHaveText(
       "Temperatura Camera · Umidità Camera",
