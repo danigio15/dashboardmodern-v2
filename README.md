@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0--beta.18-0ea5e9" alt="Versione 1.0.0-beta.18">
+  <img src="https://img.shields.io/badge/version-1.0.0--beta.19-0ea5e9" alt="Versione 1.0.0-beta.19">
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-18BCF2" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
@@ -23,6 +23,12 @@
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="ROADMAP.md">Roadmap</a> ·
   <a href="CONTRIBUTING.md">Contribuire</a>
+</p>
+
+<p align="center">
+  <a href="https://www.paypal.com/paypalme/giovannidaniello15">
+    <img src="https://img.shields.io/badge/PayPal-Supporta%20DashboardModern-003087?logo=paypal&logoColor=white" alt="Supporta DashboardModern con PayPal">
+  </a>
 </p>
 
 ---
@@ -102,7 +108,7 @@ Un ordine pratico di configurazione è:
 6. **EV / Wallbox, Sicurezza, Piscina e Irrigazione** — abilita solo le sezioni realmente usate.
 7. **Azioni rapide e personalizzazione** — scegli icone, ordine e comandi preferiti.
 
-DashboardModern salva la configurazione della plancia e mantiene le entità Home Assistant come sorgente dello stato reale.
+Quando modifichi una configurazione usa il pulsante **SALVA MODIFICHE** dell'editor prima di chiudere la finestra. DashboardModern salva la configurazione della plancia e mantiene le entità Home Assistant come sorgente dello stato reale.
 
 ---
 
@@ -139,7 +145,7 @@ Campi principali:
 
 Nome e icona si modificano dalla sezione **Stanze**. Durante la modifica è possibile spostare i sensori da una stanza a un'altra, purché la stanza di destinazione non abbia già un'associazione Temperatura.
 
-La dashboard mostra il nome della stanza, la temperatura corrente, l'umidità e un'indicazione sintetica di comfort.
+La dashboard mostra il **nome della stanza accanto all'icona**, la temperatura corrente, l'umidità e un'indicazione sintetica di comfort.
 
 ---
 
@@ -154,6 +160,8 @@ Per lo storico affidabile di mesi, anni e settimane precedenti usa preferibilmen
 - `device_class: energy`;
 - unità coerente, tipicamente `kWh`;
 - `state_class: total` oppure `total_increasing`.
+
+In pratica, quando disponibile, configura un **contatore totale kWh**: è il riferimento migliore per ricostruire correttamente i periodi storici tramite le statistiche di Home Assistant.
 
 I campi **Giorno / Mese / Anno** possono invece essere usati come override del periodo corrente, ad esempio con `utility_meter` dedicati.
 
@@ -192,6 +200,10 @@ Casa = FV + Rete prelevata + Batteria scaricata
 ```
 
 Se il confine dei flussi non è completo, un sensore Casa configurato può essere usato come fallback.
+
+### Confronto settimanale
+
+Il **Confronto settimanale dei consumi Casa** usa le statistiche Recorder autenticate e il bilancio canonico della Casa per confrontare il periodo corrente con quello precedente. I valori mostrati dipendono naturalmente dai tuoi sensori: per esempio un riepilogo può riportare **165,1 kWh** senza trasformare quel valore in una costante della dashboard.
 
 ### Storico
 
@@ -511,9 +523,17 @@ Se il progetto ti è utile, puoi anche lasciare una ⭐ alla repository: aiuta a
 
 # 💙 Supporta il progetto
 
-DashboardModern è un progetto indipendente e open source. Se vuoi sostenere sviluppo, test su dispositivi reali e nuove funzionalità, sarà disponibile anche una **donazione PayPal**.
+DashboardModern è un progetto indipendente e open source. Se vuoi sostenere sviluppo, test su dispositivi reali, manutenzione e nuove funzionalità, puoi effettuare una donazione tramite il PayPal ufficiale del progetto.
 
-> Il pulsante PayPal verrà attivato qui appena viene inserito l'URL PayPal ufficiale verificato del maintainer. Non viene pubblicato un indirizzo di pagamento presunto o non verificato.
+<p align="center">
+  <a href="https://www.paypal.com/paypalme/giovannidaniello15">
+    <img src="https://img.shields.io/badge/PayPal-Fai%20una%20donazione-003087?logo=paypal&logoColor=white" alt="Fai una donazione con PayPal">
+  </a>
+</p>
+
+👉 **PayPal:** https://www.paypal.com/paypalme/giovannidaniello15
+
+Ogni contributo è facoltativo e aiuta a sostenere il tempo dedicato a sviluppo, test su dispositivi reali, documentazione e manutenzione della compatibilità con Home Assistant.
 
 ---
 
