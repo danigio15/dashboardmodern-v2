@@ -10,3 +10,12 @@
    </div>
    <div class="glance-grid appl-kpi-grid" id="appl-kpi-grid"></div>
    <div class="appl-main-view active" id="appl-view-overview"><h3 class="section-title">Panoramica</h3><div class="appl-page-grid" id="appl-grid-overview"></div></div>
+@@ -252,7 +251,7 @@
+           <div class="ed-year-summary-header">
+             <span class="ed-year-summary-icon">📊</span>
+             <div class="ed-year-summary-title">
+-              <div class="ed-year-summary-lbl">Bilancio Anno</div>
++              <div class="ed-year-summary-lbl">Totale</div>
+               <div class="ed-year-summary-year" id="ed-year-summary-year">2026</div>
+             </div>
+           </div>

@@ -41,3 +41,10 @@
  /* ================= FIX OVERFLOW TESTO VISTE MESE/GIORNO ================= */
  
  /* Riduce leggermente i numeri singoli nei cerchi principali (es. Casa, Solare) */
+@@ -4588,4 +4604,6 @@
+ body.cd-nav-fixed .bottom-nav-handle { display: none !important; }
+ body.cd-nav-fixed { padding-bottom: 96px !important; }
+ 
+-#cd-boot-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:#e8edf3;transition:opacity .26s ease}html[data-theme="dark"] #cd-boot-overlay{background:#0b1220}#cd-boot-overlay .s{width:44px;height:44px;border:4px solid rgba(14,165,233,.22);border-top-color:#0ea5e9;border-radius:50%;animation:cdBootSpin .8s linear infinite}@keyframes cdBootSpin{to{transform:rotate(360deg)}}+#cd-boot-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:#e8edf3;transition:opacity .26s ease}html[data-theme="dark"] #cd-boot-overlay{background:#0b1220}#cd-boot-overlay .s{width:44px;height:44px;border:4px solid rgba(14,165,233,.22);border-top-color:#0ea5e9;border-radius:50%;animation:cdBootSpin .8s linear infinite}@keyframes cdBootSpin{to{transform:rotate(360deg)}}
++
++@keyframes cdSpin{to{transform:rotate(360deg)}}
