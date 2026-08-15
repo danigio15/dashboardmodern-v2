@@ -407,8 +407,6 @@ function wrapAfter(name) {
 }
 
 function installWrappers() {
-  if (flowState.wrappersBound) return;
-  let wrapped = false;
   for (const name of [
     "dmRefreshEnergyFlows",
     "renderEnergyDashboard",
@@ -418,8 +416,7 @@ function installWrappers() {
     "render",
     "editorSwitch",
   ])
-    wrapped = wrapAfter(name) || wrapped;
-  if (wrapped) flowState.wrappersBound = true;
+    wrapAfter(name);
 }
 
 function bindStore() {
