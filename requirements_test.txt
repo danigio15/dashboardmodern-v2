@@ -1,4 +1,4 @@
 pytest-homeassistant-custom-component==0.13.205
 # Required by homeassistant.components.frontend, which this integration
 # depends on. Without it every entry setup fails with ModuleNotFoundError.
-home-assistant-frontend==20250109.2
+home-assistant-frontend==20260729.6
