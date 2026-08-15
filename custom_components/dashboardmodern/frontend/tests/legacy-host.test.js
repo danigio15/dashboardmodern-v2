@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { HOST_KEY, legacyVariantForLocale, mountLegacyHost } from "../src/legacy/host.js";
-import { ALLOWED_MESSAGE_TYPES, createBridgeSocket } from "../src/legacy/bridge-socket.js";
+import {
+  ALLOWED_MESSAGE_TYPES,
+  createBridgeSocket,
+  isLegacyDashboardPersistenceMessage,
+} from "../src/legacy/bridge-socket.js";
 
 function fakeElement(tag) {
   return {
@@ -40,14 +44,19 @@ function connectionWith(handler = async () => ({}), subscribe = async () => () =
 
 function mount(overrides = {}) {
   const container = fakeElement("div");
-  const hostWindow = { location: { href: "http://ha.local:8123/dashboardmodern", host: "ha.local:8123" } };
+  const hostWindow = {
+    location: { href: "http://ha.local:8123/dashboardmodern", host: "ha.local:8123" },
+  };
   const host = mountLegacyHost(container, {
     hass: { locale: { language: "it" } },
     connection: connectionWith(),
     staticBase: "/dashboardmodern_static/abc",
     documentRef,
     hostWindow,
-    fetchRef: async () => ({ ok: true, text: async () => "<!doctype html><html><head></head><body></body></html>" }),
+    fetchRef: async () => ({
+      ok: true,
+      text: async () => "<!doctype html><html><head></head><body></body></html>",
+    }),
     ...overrides,
   });
   return { host, container, hostWindow };
@@ -99,7 +108,10 @@ test("the frame records the versioned source and keeps playback permissions", as
     "/dashboardmodern_static/abc/legacy/dashboard.html?dmi=integration&dmp=1",
   );
   assert.equal(host.frame.getAttribute("src"), undefined);
-  assert.match(host.frame.srcdoc, /<base href="http:\/\/ha\.local:8123\/dashboardmodern_static\/abc\/legacy\/">/);
+  assert.match(
+    host.frame.srcdoc,
+    /<base href="http:\/\/ha\.local:8123\/dashboardmodern_static\/abc\/legacy\/">/,
+  );
   assert.match(host.frame.srcdoc, /__DASHBOARDMODERN_BRIDGE_WS__/);
   for (const permission of ["autoplay", "fullscreen", "picture-in-picture"]) {
     assert.equal(host.frame.getAttribute("allow").includes(permission), true);
@@ -117,8 +129,13 @@ test("a container with no height falls back to viewport units", () => {
     connection: connectionWith(),
     staticBase: "/dashboardmodern_static/abc",
     documentRef: { createElement: () => frame },
-    hostWindow: { location: { href: "http://ha.local:8123/dashboardmodern", host: "ha.local:8123" } },
-    fetchRef: async () => ({ ok: true, text: async () => "<!doctype html><html><head></head><body></body></html>" }),
+    hostWindow: {
+      location: { href: "http://ha.local:8123/dashboardmodern", host: "ha.local:8123" },
+    },
+    fetchRef: async () => ({
+      ok: true,
+      text: async () => "<!doctype html><html><head></head><body></body></html>",
+    }),
   });
   assert.equal(host.frame.style.height, "100dvh");
 });
@@ -161,6 +178,76 @@ test("permitted messages are forwarded and their replies returned", async () => 
   const result = received.find((item) => item.id === 7);
   assert.equal(result.success, true);
   assert.deepEqual(result.result, [{ entity_id: "light.x" }]);
+});
+
+test("legacy hosted config reads and writes are recognized by request id", () => {
+  assert.equal(
+    isLegacyDashboardPersistenceMessage({
+      id: 17,
+      type: "frontend/get_user_data",
+      key: "dashboardmodern_integration_config",
+    }),
+    true,
+  );
+  assert.equal(
+    isLegacyDashboardPersistenceMessage({
+      id: 22,
+      type: "frontend/set_user_data",
+      key: "dashboardmodern_integration_config__secondary",
+    }),
+    true,
+  );
+  assert.equal(
+    isLegacyDashboardPersistenceMessage({
+      id: 700001,
+      type: "frontend/get_user_data",
+      key: "dashboardmodern_integration_config",
+    }),
+    false,
+  );
+});
+
+test("legacy hosted config writer is acknowledged but never reaches Home Assistant", async () => {
+  const sent = [];
+  const Socket = createBridgeSocket({
+    connection: connectionWith(async (message) => {
+      sent.push(message);
+      return { value: "remote" };
+    }),
+  });
+  const read = await exchange(new Socket(), {
+    id: 18,
+    type: "frontend/get_user_data",
+    key: "dashboardmodern_integration_config",
+  });
+  assert.deepEqual(read.find((item) => item.id === 18)?.result, { value: null });
+  const write = await exchange(new Socket(), {
+    id: 19,
+    type: "frontend/set_user_data",
+    key: "dashboardmodern_integration_config",
+    value: { __ts: Date.now(), cd_sections: "{}" },
+  });
+  assert.equal(write.find((item) => item.id === 19)?.success, true);
+  assert.deepEqual(sent, []);
+});
+
+test("modern persistence requests still reach Home Assistant", async () => {
+  const sent = [];
+  const Socket = createBridgeSocket({
+    connection: connectionWith(async (message) => {
+      sent.push(message);
+      return message.type === "frontend/get_user_data" ? { value: { version: 1 } } : null;
+    }),
+  });
+  const received = await exchange(new Socket(), {
+    id: 700123,
+    type: "frontend/get_user_data",
+    key: "dashboardmodern_integration_config",
+  });
+  assert.equal(received.find((item) => item.id === 700123)?.success, true);
+  assert.deepEqual(sent, [
+    { type: "frontend/get_user_data", key: "dashboardmodern_integration_config" },
+  ]);
 });
 
 test("a message type outside the allowed set is refused and reported", async () => {

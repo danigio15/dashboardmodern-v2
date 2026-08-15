@@ -126,8 +126,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // canonical icon-engine owner while historical beta modules delegate instead
   // of repainting the same icon DOM. Beta20.2 adds exactly one canonical save
   // owner to close the legacy editor -> store -> visibility -> HA persistence
-  // transaction. All facade/cycle/orphan/polling/observer checks stay active.
-  assert.ok(relative.length <= 73, `production graph unexpectedly grew to ${relative.length} modules`);
+  // transaction. Beta22 adds one final scoped, event-driven corrective owner
+  // that binds canonical Loads to the existing Energy flow slots, restores SOC,
+  // Temperature room labels and Energy cost fields, without polling or a global
+  // observer. All facade/cycle/orphan/polling/observer checks stay active.
+  assert.ok(relative.length <= 74, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 

@@ -241,7 +241,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     }
   });
 
-  test(`${variant}: beta5 Energy chart never invents future days and keeps Wallbox in the flow`, async ({
+  test(`${variant}: beta5 Energy chart hides unconfigured load circles and keeps configured Wallbox in the flow`, async ({
     page,
   }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
@@ -250,10 +250,31 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.evaluate(async () => {
       window.render?.();
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await new Promise((resolve) => setTimeout(resolve, 120));
+    });
+    for (const id of ["n-wb", "n-wb-day", "n-wb-month"]) {
+      await expect(page.locator(`#${id}`)).toHaveCSS("display", "none");
+    }
+    for (const id of ["line-home-wb", "line-home-wb-day", "line-home-wb-month"]) {
+      await expect(page.locator(`#${id}`)).toHaveCSS("display", "none");
+    }
+
+    await page.evaluate(async () => {
+      await DashboardModernModules.store.replaceSection("loads", [
+        { id: "flow-boiler", name: "Boiler", order: 0, show_in_dashboard: true },
+        { id: "flow-wallbox", name: "Wallbox", order: 1, show_in_dashboard: true },
+      ]);
+      window.render?.();
+      await new Promise((resolve) => setTimeout(resolve, 180));
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     });
     await expect(page.locator("#n-wb-day")).toHaveAttribute("data-dm-beta5-flow-complete", "true");
+    await expect(page.locator("#n-wb")).not.toHaveCSS("display", "none");
     await expect(page.locator("#n-wb-day")).not.toHaveCSS("display", "none");
+    await expect(page.locator("#n-wb-month")).not.toHaveCSS("display", "none");
+    await expect(page.locator("#line-home-wb")).not.toHaveCSS("display", "none");
     await expect(page.locator("#line-home-wb-day")).not.toHaveCSS("display", "none");
+    await expect(page.locator("#line-home-wb-month")).not.toHaveCSS("display", "none");
 
     const result = await page.evaluate(async () => {
       let loading = document.getElementById("ed-chart-loading");

@@ -87,9 +87,24 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       '[data-temperature-room][data-room-id="room-cameretta"]',
     );
     await expect(row).toBeVisible();
-    await expect(
-      row.locator(":scope > .ed-row-main > .ed-row-new"),
-    ).toHaveText("Cameretta");
+    const roomName = row.locator(":scope > .ed-row-main > .ed-row-new");
+    await expect(roomName).toHaveText("Cameretta");
+    const roomNameGeometry = await roomName.evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      const style = getComputedStyle(node);
+      return {
+        width: rect.width,
+        height: rect.height,
+        display: style.display,
+        visibility: style.visibility,
+        opacity: Number(style.opacity || 1),
+      };
+    });
+    expect(roomNameGeometry.width).toBeGreaterThan(24);
+    expect(roomNameGeometry.height).toBeGreaterThan(12);
+    expect(roomNameGeometry.display).not.toBe("none");
+    expect(roomNameGeometry.visibility).toBe("visible");
+    expect(roomNameGeometry.opacity).toBeGreaterThan(0);
 
     await row.locator("[data-temperature-edit]").click();
     const tempName = page.locator("#dm-temperature-name");
