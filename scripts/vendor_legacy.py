@@ -365,17 +365,22 @@ def patch_variant(source: str, name: str) -> str:
 
 def _checkout(ref: str, destination: Path) -> str:
     """Clone the pinned ref and return the resolved commit sha."""
+    # `git clone --branch` does not accept an arbitrary commit SHA. Supporting
+    # one here is what makes VENDOR.json's resolved commit reproducible even
+    # after its source branch moves.
+    destination.mkdir(parents=True)
     subprocess.run(
-        [
-            "git",
-            "clone",
-            "--depth",
-            "1",
-            "--branch",
-            ref,
-            SOURCE_REPO,
-            str(destination),
-        ],
+        ["git", "-C", str(destination), "init", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(destination), "fetch", "--depth", "1", SOURCE_REPO, ref],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(destination), "checkout", "--quiet", "FETCH_HEAD"],
         check=True,
         capture_output=True,
     )

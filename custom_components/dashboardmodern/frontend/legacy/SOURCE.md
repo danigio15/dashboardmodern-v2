@@ -2,8 +2,9 @@
 
 Source repository: <https://github.com/danigio15/dashboardmodern>
 
-These files are produced by `scripts/vendor_legacy.py`, not copied by hand and
-not copied by a workflow. The script applies a small set of anchored patches —
+These files are produced by `scripts/vendor_legacy.py` followed by
+`scripts/split_legacy.py`, not copied by hand and not copied by a workflow. The
+vendor script applies a small set of anchored patches —
 the bridge prelude, the wizard connection step, the bake-download control, and
 four confirmed upstream bug fixes — and each one must match exactly once or the
 run fails rather than shipping an unverified vendor.
@@ -15,13 +16,20 @@ whether a fix has landed upstream yet.
 To update:
 
 ```bash
-python scripts/vendor_legacy.py --ref <tag>
+python scripts/vendor_legacy.py --ref <tag-or-commit>
+python scripts/split_legacy.py
 npm run test:frontend
 python -m pytest
 ```
 
+For the reproducibility check, use the exact `commit` recorded in `VENDOR.json`
+as `<tag-or-commit>`, run both scripts, and verify that `git status --short` is
+empty. The first script deliberately creates patched monolithic HTML; the
+second extracts its inline styles and scripts into the committed locale runtime,
+debug, theme, and watchdog assets and leaves the small HTML shells behind.
+
 Do not copy files into this directory by any other route. A copy that skips the
-script produces a dashboard with no bridge — it will ask for a long-lived token
+pipeline produces a dashboard with no bridge — it will ask for a long-lived token
 — and silently reintroduces the camera configuration data loss.
 
 `config.js` is optional and loaded with an `onerror` fallback; the dashboard
