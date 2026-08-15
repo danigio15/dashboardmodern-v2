@@ -128,7 +128,6 @@ def main() -> None:
         'import "../src/sections/beta14-real-device-hotfix-section.js";\n'
         'import "../src/sections/beta16-real-device-layout-section.js";\n'
         'import "../src/sections/beta22-load-slots-hotfix-section.js";\n'
-        'import "../src/sections/beta23-release-guard-section.js";\n'
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
