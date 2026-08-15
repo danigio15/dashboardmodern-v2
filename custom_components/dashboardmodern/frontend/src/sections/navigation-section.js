@@ -10,7 +10,7 @@ function installStyles() {
       .bottom-nav-bar{isolation:isolate!important}
       .bottom-nav-bar .tab{color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
       .bottom-nav-bar .tab .icon,.bottom-nav-bar .tab .text{opacity:.78!important;transition:opacity .16s ease,color .16s ease!important}
-      .bottom-nav-bar .tab.active{color:var(--primary-text-color,var(--text,#0f172a))!important}
+      .bottom-nav-bar .tab.active{color:var(--text,#0f172a)!important}
       .bottom-nav-bar .tab.active .icon,.bottom-nav-bar .tab.active .text{opacity:1!important}
       html[data-theme="dark"] .bottom-nav-bar,html.dark .bottom-nav-bar,body[data-theme="dark"] .bottom-nav-bar,body.dark .bottom-nav-bar,.dark .bottom-nav-bar{background:rgba(19,28,48,.94)!important;border-color:#40506f!important;box-shadow:0 14px 38px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.07)!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important}
       html[data-theme="dark"] .bottom-nav-bar .tab,html.dark .bottom-nav-bar .tab,body[data-theme="dark"] .bottom-nav-bar .tab,body.dark .bottom-nav-bar .tab,.dark .bottom-nav-bar .tab{color:#cbd5e1!important}

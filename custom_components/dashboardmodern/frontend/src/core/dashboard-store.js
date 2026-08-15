@@ -13,6 +13,7 @@ export const VISIBILITY_SECTION = Object.freeze({
   climate: "clima",
   ev: "ev",
   energy: "energy",
+  energyLoads: "energy",
   entityOverrides: "entityOverrides",
   covers: "tapparelle",
   pool: "piscina",

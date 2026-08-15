@@ -3,6 +3,7 @@ import { clean, dashboardStore, doc, installStyle, readJson, root, wrapFunction 
 // Compatibility owner kept temporarily while EV and Alerts are absorbed by their
 // canonical sections. Room/Temperature icon DOM is single-owner: this module may
 // decorate metadata and labels, but it must never repaint icon children.
+globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_BETA11_REAL_DEVICE_POLISH__";
 const state = (root[KEY] ||= {
   installed: false,
@@ -341,7 +342,7 @@ function installStyles() {
     #ed-body .ed-row.dm-room-config-row.dm-beta11-room-row{box-sizing:border-box!important;display:grid!important;grid-template-columns:58px minmax(0,1fr) 48px 48px!important;gap:10px!important;align-items:center!important;width:100%!important;min-height:88px!important;padding:12px 14px!important;overflow:visible!important}
     #ed-body .dm-beta11-room-row>.dm-room-list-icon{grid-column:1!important;grid-row:1!important;display:grid!important;place-items:center!important;width:56px!important;height:56px!important;min-width:56px!important;min-height:56px!important;visibility:visible!important;opacity:1!important;border-radius:16px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 11%,transparent)!important;overflow:hidden!important}
     #ed-body .dm-beta11-room-row>.ed-row-main{grid-column:2!important;grid-row:1!important;display:grid!important;position:static!important;align-content:center!important;gap:4px!important;min-width:0!important;width:100%!important;height:auto!important;max-height:none!important;visibility:visible!important;opacity:1!important;overflow:visible!important}
-    #ed-body .dm-beta11-room-row .ed-row-new{display:block!important;position:static!important;min-width:0!important;width:auto!important;max-width:100%!important;height:auto!important;min-height:1em!important;visibility:visible!important;opacity:1!important;color:var(--primary-text-color,#0f172a)!important;font-size:16px!important;font-weight:850!important;line-height:1.25!important;text-align:left!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;clip:auto!important;clip-path:none!important;transform:none!important}
+    #ed-body .dm-beta11-room-row .ed-row-new{display:block!important;position:static!important;min-width:0!important;width:auto!important;max-width:100%!important;height:auto!important;min-height:1em!important;visibility:visible!important;opacity:1!important;color:var(--text,#0f172a)!important;font-size:16px!important;font-weight:850!important;line-height:1.25!important;text-align:left!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;clip:auto!important;clip-path:none!important;transform:none!important}
     #ed-body .dm-beta11-room-row>[data-dm-edit-kind="room"]{grid-column:3!important;grid-row:1!important}
     #ed-body .dm-beta11-room-row>.ed-del:last-child{grid-column:4!important;grid-row:1!important}
     #ed-body .dm-beta11-alert-icon-row{display:grid!important;grid-template-columns:64px minmax(0,1fr) 52px!important;gap:10px!important;align-items:center!important;min-width:0!important;width:100%!important}

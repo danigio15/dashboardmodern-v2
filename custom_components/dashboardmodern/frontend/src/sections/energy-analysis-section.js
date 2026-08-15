@@ -18,6 +18,7 @@ import {
   t,
 } from "./shared.js";
 
+globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_ENERGY_ANALYSIS_SECTION__";
 const state = (root[KEY] ||= {
   installed: false,
@@ -272,7 +273,7 @@ function installStyles() {
       #ed-pane-analisi .ed-weekly-title>small{display:inline-flex!important;align-items:center!important;gap:5px!important;padding:6px 10px!important;border-radius:999px!important;background:color-mix(in srgb,var(--info-color,#0ea5e9) 10%,transparent)!important;color:var(--info-color,#0369a1)!important;font-size:11px!important;font-weight:900!important;letter-spacing:.02em!important}
       #ed-pane-analisi .ed-weekly-row{display:grid!important;grid-template-columns:minmax(108px,140px) minmax(0,1fr) minmax(76px,96px)!important;align-items:center!important;gap:12px!important}
       #ed-pane-analisi .ed-weekly-lbl{font-size:12px!important;font-weight:800!important;color:var(--secondary-text-color,#64748b)!important}
-      #ed-pane-analisi .ed-weekly-val{text-align:right!important;font-weight:900!important;color:var(--primary-text-color,#0f172a)!important}
+      #ed-pane-analisi .ed-weekly-val{text-align:right!important;font-weight:900!important;color:var(--text,#0f172a)!important}
       #ed-pane-analisi .ed-weekly-bar-bg{height:12px!important;border-radius:999px!important;overflow:hidden!important;background:var(--secondary-background-color,#eef2f7)!important}
       #ed-pane-analisi .ed-weekly-bar-fill{height:100%!important;border-radius:inherit!important;transition:width .25s ease!important}
       #ed-pane-analisi .dm-weekly-delta{justify-self:end!important;padding:6px 10px!important;border-radius:999px!important;background:color-mix(in srgb,var(--secondary-text-color,#64748b) 9%,transparent)!important;color:var(--secondary-text-color,#64748b)!important;font-size:11px!important;font-weight:800!important}

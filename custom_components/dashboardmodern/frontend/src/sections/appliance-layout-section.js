@@ -1,5 +1,6 @@
 import { clean, doc, installStyle, root, section } from "./shared.js";
 
+globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_APPLIANCE_LAYOUT_SECTION__";
 const state = (globalThis[KEY] ||= { installed: false, listeners: false });
 
@@ -111,7 +112,7 @@ function installStyles() {
     "dm-appliance-layout-section-style",
     `
       #appl-grid-overview,#page-appliances-main .appl-page-grid,#page-appliances-main .appl-grid,#page-appliances-main [data-appliance-grid]{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),370px))!important;justify-content:start!important;align-items:stretch!important;gap:14px!important}
-      #page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{display:grid!important;box-sizing:border-box!important;width:100%!important;max-width:370px!important;min-width:0!important;min-height:132px!important;height:auto!important;padding:0!important;gap:0!important;border:1px solid color-mix(in srgb,var(--primary-color,#0284c7) 16%,var(--divider-color,#e2e8f0))!important;border-radius:22px!important;overflow:hidden!important;grid-template-columns:96px minmax(0,1fr)!important;background:var(--ha-card-background,var(--card-background-color,#fff))!important;color:var(--primary-text-color,#0f172a)!important;box-shadow:0 10px 24px color-mix(in srgb,#0f172a 10%,transparent)!important}
+      #page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{display:grid!important;box-sizing:border-box!important;width:100%!important;max-width:370px!important;min-width:0!important;min-height:132px!important;height:auto!important;padding:0!important;gap:0!important;border:1px solid color-mix(in srgb,var(--primary-color,#0284c7) 16%,var(--divider-color,#e2e8f0))!important;border-radius:22px!important;overflow:hidden!important;grid-template-columns:96px minmax(0,1fr)!important;background:var(--ha-card-background,var(--card-background-color,#fff))!important;color:var(--text,#0f172a)!important;box-shadow:0 10px 24px color-mix(in srgb,#0f172a 10%,transparent)!important}
       html[data-theme="dark"] #page-appliances-main .appl-wide-card,html[data-theme="dark"] #appl-grid-overview .appl-wide-card,body.dark #page-appliances-main .appl-wide-card,body.dark #appl-grid-overview .appl-wide-card{background:#172033!important;color:#f8fafc!important;border-color:#2b3a58!important}
       #page-appliances-main .appl-visual,#appl-grid-overview .appl-visual{display:grid!important;place-items:center!important;box-sizing:border-box!important;min-width:96px!important;height:100%!important;min-height:132px!important;padding:7px!important;border-right:1px solid color-mix(in srgb,var(--primary-color,#0284c7) 11%,var(--divider-color,#e2e8f0))!important;background:color-mix(in srgb,var(--primary-color,#0284c7) 6%,var(--ha-card-background,#fff))!important}
       html[data-theme="dark"] #page-appliances-main .appl-visual,html[data-theme="dark"] #appl-grid-overview .appl-visual,body.dark #page-appliances-main .appl-visual,body.dark #appl-grid-overview .appl-visual{background:#202c43!important;border-color:#2b3a58!important}

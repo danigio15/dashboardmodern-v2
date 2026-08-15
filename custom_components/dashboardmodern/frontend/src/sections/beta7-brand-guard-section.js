@@ -1,5 +1,6 @@
 import { clean, doc, esc, installStyle, root } from "./shared.js";
 
+globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_BETA7_BRAND_GUARD__";
 const state = (root[KEY] ||= { installed: false, frame: 0 });
 
@@ -111,7 +112,7 @@ function installStyles() {
     "dm-beta7-brand-guard-style",
     `
     img[data-dm-brand-image][data-dm-beta7-broken="true"]{display:none!important}
-    .dm-beta7-brand-guard-fallback{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;color:var(--primary-text-color,var(--text,#0f172a))!important}
+    .dm-beta7-brand-guard-fallback{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;color:var(--text,#0f172a)!important}
     .dm-beta7-brand-guard-fallback svg{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;overflow:visible!important}
     .dm-car-brand[data-brand-source="inline-fallback"]{display:grid!important;place-items:center!important}
 
