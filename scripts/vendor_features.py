@@ -15,6 +15,188 @@ and cameras next, so a room means the same thing everywhere.
 
 from __future__ import annotations
 
+import difflib
+import re
+from pathlib import Path
+
+LEGACY_DIR = (
+    Path(__file__).resolve().parents[1]
+    / "custom_components/dashboardmodern/frontend/legacy"
+)
+EXTRACTED_HEADER = "/* Extracted from {filename}; {description} */\n"
+
+
+class AssetDeltaError(RuntimeError):
+    """Raised when a committed production delta cannot be anchored safely."""
+
+
+def _asset_body(name: str, header: str) -> str:
+    content = (LEGACY_DIR / name).read_text(encoding="utf-8")
+    if not content.startswith(header):
+        raise AssetDeltaError(f"{name}: missing expected extraction header")
+    return content.removeprefix(header).removesuffix("\n")
+
+
+def _apply_line_delta(source: str, target: str, label: str) -> str:
+    """Rebuild target lines positionally from one source/target diff."""
+    old_lines = source.splitlines(keepends=True)
+    new_lines = target.splitlines(keepends=True)
+    opcodes = difflib.SequenceMatcher(None, old_lines, new_lines).get_opcodes()
+    output: list[str] = []
+    for operation, old_start, old_end, new_start, new_end in opcodes:
+        if operation == "equal":
+            output.extend(old_lines[old_start:old_end])
+        else:
+            output.extend(new_lines[new_start:new_end])
+    rebuilt = "".join(output)
+    if rebuilt != target:
+        raise AssetDeltaError(f"{label}: positional delta did not reproduce target")
+    return rebuilt
+
+
+def _write_delta(filename: str, asset_name: str, source: str, target: str) -> None:
+    """Write a deterministic review artifact for one production delta."""
+    patch_dir = LEGACY_DIR / "patches"
+    patch_dir.mkdir(parents=True, exist_ok=True)
+    diff = difflib.unified_diff(
+        source.splitlines(keepends=True),
+        target.splitlines(keepends=True),
+        fromfile=f"upstream-fresh/{asset_name}",
+        tofile=f"committed/{asset_name}",
+        lineterm="\n",
+    )
+    (patch_dir / filename).write_text("".join(diff), encoding="utf-8")
+
+
+def _apply_shell_delta(source: str, filename: str, locale: str) -> str:
+    """Reconcile non-asset HTML while preserving the patched inline bodies."""
+    bodies: dict[str, str] = {}
+
+    styles = list(re.finditer(r"<style[^>]*>.*?</style>", source, re.S | re.I))
+    if len(styles) != 1:
+        raise AssetDeltaError(f"{filename}: expected one consolidated style block")
+    bodies["styles"] = styles[0].group(0)
+    source_template = source[: styles[0].start()] + "@@DM_STYLES@@" + source[styles[0].end() :]
+
+    def mask_inline(match: re.Match[str]) -> str:
+        attrs, body = match.group("attrs"), match.group("body").strip()
+        if re.search(r"\bsrc\s*=", attrs, re.I) or not body:
+            return match.group(0)
+        if body.startswith("function toggleDebug"):
+            role = "debug"
+        elif body.startswith("(function(){try{var p=localStorage.getItem('cd_theme')"):
+            role = "theme"
+        elif body.startswith("/* ═"):
+            role = "runtime"
+        else:
+            raise AssetDeltaError(f"{filename}: unknown inline script in shell delta")
+        if role in bodies:
+            raise AssetDeltaError(f"{filename}: duplicate {role} shell body")
+        bodies[role] = match.group(0)
+        return f"@@DM_{role.upper()}@@"
+
+    source_template = re.sub(
+        r"<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>",
+        mask_inline,
+        source_template,
+        flags=re.S | re.I,
+    )
+    expected = {"styles", "debug", "theme", "runtime"}
+    if bodies.keys() != expected:
+        raise AssetDeltaError(
+            f"{filename}: expected shell bodies {sorted(expected)}, got {sorted(bodies)}"
+        )
+
+    target_template = (LEGACY_DIR / filename).read_text(encoding="utf-8")
+    target_template = target_template.replace(
+        f'<link rel="stylesheet" href="./dashboard-runtime-{locale}.css">',
+        "@@DM_STYLES@@",
+        1,
+    )
+    for role in ("debug", "theme", "runtime"):
+        target_template = target_template.replace(
+            f'<script src="./dashboard-{role}-{locale}.js"></script>',
+            f"@@DM_{role.upper()}@@",
+            1,
+        )
+    target_template = re.sub(
+        rf'<script data-dashboardmodern-bootstrap-watchdog src="\./dashboard-watchdog-{locale}\.js"></script>\n?',
+        "",
+        target_template,
+        count=1,
+    )
+    rebuilt = _apply_line_delta(
+        source_template, target_template, f"{filename} shell"
+    )
+    _write_delta(
+        f"shell-{locale}.diff", filename, source_template, target_template
+    )
+    for role, body in bodies.items():
+        rebuilt = rebuilt.replace(f"@@DM_{role.upper()}@@", body, 1)
+    if "@@DM_" in rebuilt:
+        raise AssetDeltaError(f"{filename}: unresolved shell placeholder")
+    return rebuilt
+
+
+def apply_production_asset_deltas(source: str, filename: str) -> str:
+    """Reapply audited JS/CSS consolidation hunks and the boot watchdog."""
+    locale = "en" if filename == "dashboard-en.html" else "it"
+    runtime_name = f"dashboard-runtime-{locale}.js"
+    css_name = f"dashboard-runtime-{locale}.css"
+    runtime_header = EXTRACTED_HEADER.format(
+        filename=filename, description="feature changes belong in src/sections."
+    )
+    css_header = EXTRACTED_HEADER.format(
+        filename=filename, description="section overrides live in src/sections."
+    )
+    runtime_target = _asset_body(runtime_name, runtime_header)
+    css_target = _asset_body(css_name, css_header)
+
+    scripts = list(re.finditer(r"<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>", source, re.S | re.I))
+    runtime = [m for m in scripts if m.group("body").strip().startswith("/* ═")]
+    if len(runtime) != 1:
+        raise AssetDeltaError(f"{filename}: expected one runtime body, found {len(runtime)}")
+    match = runtime[0]
+    patched_runtime = _apply_line_delta(
+        match.group("body").strip(), runtime_target, f"{filename} runtime"
+    )
+    _write_delta(
+        f"runtime-{locale}.diff",
+        runtime_name,
+        match.group("body").strip(),
+        runtime_target,
+    )
+    source = source[: match.start("body")] + "\n" + patched_runtime + "\n" + source[match.end("body") :]
+
+    styles = list(re.finditer(r"<style(?P<attrs>[^>]*)>(?P<body>.*?)</style>", source, re.S | re.I))
+    css_source = "\n\n".join(m.group("body").strip() for m in styles if m.group("body").strip())
+    patched_css = _apply_line_delta(css_source, css_target, f"{filename} css")
+    _write_delta(f"css-{locale}.diff", css_name, css_source, css_target)
+    first = True
+
+    def replace_style(_match: re.Match[str]) -> str:
+        nonlocal first
+        if first:
+            first = False
+            return f"<style>\n{patched_css}\n</style>"
+        return ""
+
+    source = re.sub(r"<style[^>]*>.*?</style>", replace_style, source, flags=re.S | re.I)
+    source = _apply_shell_delta(source, filename, locale)
+
+    watchdog_name = f"dashboard-watchdog-{locale}.js"
+    watchdog = _asset_body(watchdog_name, runtime_header)
+    anchor = '<div id="cd-boot-overlay"><div class="s"></div></div>'
+    if source.count(anchor) != 1:
+        raise AssetDeltaError(f"{filename}: watchdog anchor must occur exactly once")
+    injection = (
+        anchor
+        + "\n<script data-dashboardmodern-bootstrap-watchdog>\n"
+        + watchdog
+        + "\n</script>"
+    )
+    return source.replace(anchor, injection, 1)
+
 # A reusable room helper, injected just before getAppliances so it is defined
 # before anything that renders.
 ROOM_HELPER_ANCHOR = "function getAppliances(){"

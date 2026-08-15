@@ -49,6 +49,7 @@ PRELUDE_TAG = '<script src="./bridge-prelude.js"></script>'
 MODULES_TAG = '<script type="module" src="./modules-entry.js"></script>'
 FIXES_STYLE_TAG = '<link rel="stylesheet" href="./dashboard-runtime.css">'
 HEAD_ANCHOR = "<head>"
+HEAD_CLOSE_ANCHOR = "\n</head>"
 
 CHART_CDN_ANCHOR = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>'
 CHART_CDN_PINNED = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>'
@@ -238,7 +239,12 @@ CONN_WRITE_IMPORT_PATCHED = (
 )
 
 
-from vendor_features import FEATURE_PATCHES, RENAME_PATCHES  # noqa: E402
+from vendor_features import (  # noqa: E402
+    FEATURE_PATCHES,
+    RENAME_PATCHES,
+    AssetDeltaError,
+    apply_production_asset_deltas,
+)
 
 # User-facing vocabulary that must never leak from one vendored locale into
 # the other.  Apply this during vending as well as testing the committed
@@ -328,10 +334,16 @@ def patch_variant(source: str, name: str) -> str:
     patched = _apply_once(
         source,
         HEAD_ANCHOR,
-        f"{HEAD_ANCHOR}\n{NS_TAG}\n{PRELUDE_TAG}\n{MODULES_TAG}\n{FIXES_STYLE_TAG}",
+        f"{HEAD_ANCHOR}\n{NS_TAG}\n{PRELUDE_TAG}\n{MODULES_TAG}",
         f"{name} prelude",
     )
     patched = _pin_cdn_dependencies(patched, name)
+    patched = _apply_once(
+        patched,
+        HEAD_CLOSE_ANCHOR,
+        f"\n{FIXES_STYLE_TAG}{HEAD_CLOSE_ANCHOR}",
+        f"{name} integration stylesheet",
+    )
     patched = _apply_once(patched, CONN_ANCHOR, CONN_PATCHED, f"{name} connection")
     patched = _apply_once(
         patched,
@@ -360,22 +372,31 @@ def patch_variant(source: str, name: str) -> str:
     for old_label, new_label in RENAME_PATCHES:
         patched = patched.replace(old_label, new_label)
     patched = _localize_variant(_apply_upstream_fixes(patched, name), name)
-    return _fix_boiler_entity_picker(patched, name)
+    patched = _fix_boiler_entity_picker(patched, name)
+    try:
+        return apply_production_asset_deltas(patched, name)
+    except AssetDeltaError as error:
+        raise PatchError(str(error)) from error
 
 
 def _checkout(ref: str, destination: Path) -> str:
     """Clone the pinned ref and return the resolved commit sha."""
+    # `git clone --branch` does not accept an arbitrary commit SHA. Supporting
+    # one here is what makes VENDOR.json's resolved commit reproducible even
+    # after its source branch moves.
+    destination.mkdir(parents=True)
     subprocess.run(
-        [
-            "git",
-            "clone",
-            "--depth",
-            "1",
-            "--branch",
-            ref,
-            SOURCE_REPO,
-            str(destination),
-        ],
+        ["git", "-C", str(destination), "init", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(destination), "fetch", "--depth", "1", SOURCE_REPO, ref],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(destination), "checkout", "--quiet", "FETCH_HEAD"],
         check=True,
         capture_output=True,
     )
@@ -388,22 +409,59 @@ def _checkout(ref: str, destination: Path) -> str:
     return result.stdout.strip()
 
 
-def vendor(ref: str) -> dict[str, str]:
+def _expected_upstream_digests() -> dict[str, str]:
+    """Read the reviewed upstream digests from committed vendor metadata."""
+    metadata_path = VENDOR_DIR / "VENDOR.json"
+    try:
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        return metadata["sha256"]
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as error:
+        raise PatchError(f"cannot read pinned upstream hashes: {error}") from error
+
+
+def _validate_upstream_digests(
+    digests: dict[str, str], *, update_upstream: bool
+) -> None:
+    """Block source drift unless the maintainer explicitly accepts it."""
+    if update_upstream:
+        return
+    expected = _expected_upstream_digests()
+    mismatches = [
+        f"{name}: expected {expected.get(name, '<missing>')}, got {digest}"
+        for name, digest in digests.items()
+        if expected.get(name) != digest
+    ]
+    if mismatches:
+        raise PatchError(
+            "upstream sha256 mismatch; review upstream changes and rerun with "
+            "--update-upstream:\n  " + "\n  ".join(mismatches)
+        )
+
+
+def vendor(ref: str, *, update_upstream: bool = False) -> dict[str, str]:
     """Copy and patch the pinned legacy dashboard, returning vendor metadata."""
     with tempfile.TemporaryDirectory() as tmp:
         source_dir = Path(tmp) / "legacy"
         commit = _checkout(ref, source_dir)
 
-        digests: dict[str, str] = {}
+        sources = {
+            name: (source_dir / name).read_text(encoding="utf-8")
+            for name in VARIANTS
+        }
+        digests = {
+            name: hashlib.sha256(source.encode("utf-8")).hexdigest()
+            for name, source in sources.items()
+        }
+        _validate_upstream_digests(digests, update_upstream=update_upstream)
+
         for name in VARIANTS:
-            source = (source_dir / name).read_text(encoding="utf-8")
-            patched = patch_variant(source, name)
+            patched = patch_variant(sources[name], name)
             (VENDOR_DIR / name).write_text(patched, encoding="utf-8")
-            digests[name] = hashlib.sha256(source.encode("utf-8")).hexdigest()
 
     metadata = {
         "source": SOURCE_REPO,
-        "ref": ref,
+        "ref": commit,
+        "requested_ref": ref,
         "commit": commit,
         "sha256": digests,
         "_note": (
@@ -423,11 +481,16 @@ def main() -> int:
     """Vendor the legacy dashboard at the requested ref."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ref", required=True, help="Tag or branch to vendor.")
+    parser.add_argument(
+        "--update-upstream",
+        action="store_true",
+        help="accept and record reviewed upstream source hash changes",
+    )
     args = parser.parse_args()
 
     VENDOR_DIR.mkdir(parents=True, exist_ok=True)
     try:
-        metadata = vendor(args.ref)
+        metadata = vendor(args.ref, update_upstream=args.update_upstream)
     except PatchError as error:
         print(f"error: {error}", file=sys.stderr)
         return 1

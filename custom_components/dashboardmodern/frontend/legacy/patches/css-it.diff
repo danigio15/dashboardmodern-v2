@@ -1,0 +1,50 @@
+--- upstream-fresh/dashboard-runtime-it.css
++++ committed/dashboard-runtime-it.css
+@@ -1766,7 +1766,7 @@
+ }
+ 
+ /* ================= COMPORTAMENTO DESKTOP (DOCK MAC OS) ================= */
+-@media (min-width: 769px) {
++@media (min-width: 769px) and (hover: hover) and (pointer: fine) {
+     body { padding-bottom: 20px !important; } 
+     
+     nav.tabs.bottom-nav-bar {
+@@ -1828,7 +1828,7 @@
+ 
+ /* ================= COMPORTAMENTO SMARTPHONE (HIDE/SHOW CON GESTO) ================= */
+ /* Si attiva su: portrait fino a 768px LARGHEZZA  OPPURE  landscape con altezza ≤ 500px (smartphone ruotato) */
+-@media (max-width: 768px), (orientation: landscape) and (max-height: 500px) {
++@media (max-width: 768px), (orientation: landscape) and (max-height: 500px), (hover: none) and (pointer: coarse) {
+     body { padding-bottom: 30px !important; } 
+ 
+     /* Barra NASCOSTA di default su mobile */
+@@ -1923,6 +1923,22 @@
+         white-space: nowrap !important;
+     }
+ }
++html.dm-touch-navigation nav.tabs.bottom-nav-bar {
++    bottom: -120px !important;
++    width: calc(100% - 20px) !important;
++    min-width: auto !important;
++    opacity: 0 !important;
++    pointer-events: none !important;
++    transform: translateX(-50%) scale(.95) !important;
++    overflow-x: auto !important;
++}
++html.dm-touch-navigation nav.tabs.bottom-nav-bar.visible {
++    bottom: 18px !important;
++    opacity: 1 !important;
++    pointer-events: auto !important;
++    transform: translateX(-50%) scale(1) !important;
++}
++html.dm-touch-navigation .bottom-nav-handle { display: block !important; }
+ /* ================= FIX OVERFLOW TESTO VISTE MESE/GIORNO ================= */
+ 
+ /* Riduce leggermente i numeri singoli nei cerchi principali (es. Casa, Solare) */
+@@ -4594,4 +4610,6 @@
+ .temp-room-icon-wrap { gap: 12px !important; align-items: center !important; }
+ .temp-card { padding-top: 18px !important; }
+ 
+-#cd-boot-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:#e8edf3;transition:opacity .26s ease}html[data-theme="dark"] #cd-boot-overlay{background:#0b1220}#cd-boot-overlay .s{width:44px;height:44px;border:4px solid rgba(14,165,233,.22);border-top-color:#0ea5e9;border-radius:50%;animation:cdBootSpin .8s linear infinite}@keyframes cdBootSpin{to{transform:rotate(360deg)}}+#cd-boot-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:#e8edf3;transition:opacity .26s ease}html[data-theme="dark"] #cd-boot-overlay{background:#0b1220}#cd-boot-overlay .s{width:44px;height:44px;border:4px solid rgba(14,165,233,.22);border-top-color:#0ea5e9;border-radius:50%;animation:cdBootSpin .8s linear infinite}@keyframes cdBootSpin{to{transform:rotate(360deg)}}
++
++@keyframes cdSpin{to{transform:rotate(360deg)}}

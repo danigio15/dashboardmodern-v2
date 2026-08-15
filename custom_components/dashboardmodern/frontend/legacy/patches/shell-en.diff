@@ -1,0 +1,20 @@
+--- upstream-fresh/dashboard-en.html
++++ committed/dashboard-en.html
+@@ -146,7 +146,7 @@
+   </div>
+   <div class="appl-main-hero">
+     <div><div class="appl-main-title">🧺 Appliances</div><div class="appl-main-sub" id="appl-main-sub">Configure cd_appliances in config.js or in the integrated editor.</div></div>
+-    <button class="ed-btn-add appl-main-config" onclick="apriConfigEntita(); setTimeout(()=>editorSwitch('appliances'),250)">⚙️ Configure</button>
++
+   </div>
+   <div class="glance-grid appl-kpi-grid" id="appl-kpi-grid"></div>
+   <div class="appl-main-view active" id="appl-view-overview"><h3 class="section-title">Overview</h3><div class="appl-page-grid" id="appl-grid-overview"></div></div>
+@@ -252,7 +252,7 @@
+           <div class="ed-year-summary-header">
+             <span class="ed-year-summary-icon">📊</span>
+             <div class="ed-year-summary-title">
+-              <div class="ed-year-summary-lbl">Bilancio Anno</div>
++              <div class="ed-year-summary-lbl">Total</div>
+               <div class="ed-year-summary-year" id="ed-year-summary-year">2026</div>
+             </div>
+           </div>

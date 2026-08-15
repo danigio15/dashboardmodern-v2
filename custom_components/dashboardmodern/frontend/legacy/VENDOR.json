@@ -1,6 +1,7 @@
 {
   "source": "https://github.com/danigio15/dashboardmodern.git",
-  "ref": "main",
+  "ref": "c03182ef76faf7d3648b0b6c8bcd94a62012c852",
+  "requested_ref": "c03182ef76faf7d3648b0b6c8bcd94a62012c852",
   "commit": "c03182ef76faf7d3648b0b6c8bcd94a62012c852",
   "sha256": {
     "dashboard.html": "cc3083ebc059213093abd7c2175c810feff5f97cf1c19753fbac3d16f9f6148e",
