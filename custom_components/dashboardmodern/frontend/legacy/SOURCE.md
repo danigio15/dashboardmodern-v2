@@ -29,8 +29,8 @@ second extracts its inline styles and scripts into the committed locale runtime,
 debug, theme, and watchdog assets and leaves the small HTML shells behind.
 The vendor step verifies the unpatched upstream sha256 values before applying
 any patch. Use `--update-upstream` only when intentionally reviewing a new
-upstream snapshot. Deterministic unified diffs under `patches/` make the runtime
-and CSS production deltas part of the same clean-tree/review contract.
+upstream snapshot. Deterministic unified diffs under `patches/` make the shell,
+runtime, and CSS production deltas part of the same clean-tree/review contract.
 
 Do not copy files into this directory by any other route. A copy that skips the
 pipeline produces a dashboard with no bridge — it will ask for a long-lived token

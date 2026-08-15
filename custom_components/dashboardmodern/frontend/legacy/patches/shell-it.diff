@@ -1,0 +1,12 @@
+--- upstream-fresh/dashboard.html
++++ committed/dashboard.html
+@@ -145,8 +145,7 @@
+     </div>
+   </div>
+   <div class="appl-main-hero">
+-    <div><div class="appl-main-title">🧺 Elettrodomestici</div><div class="appl-main-sub" id="appl-main-sub">Configura cd_appliances in config.js o dall'editor integrato.</div></div>
+-    <button class="ed-btn-add appl-main-config" onclick="apriConfigEntita(); setTimeout(()=>editorSwitch('appliances'),250)">⚙️ Configura</button>
++    <div><div class="appl-main-title">🧺 Elettrodomestici</div><div class="appl-main-sub" id="appl-main-sub"></div></div>
+   </div>
+   <div class="glance-grid appl-kpi-grid" id="appl-kpi-grid"></div>
+   <div class="appl-main-view active" id="appl-view-overview"><h3 class="section-title">Panoramica</h3><div class="appl-page-grid" id="appl-grid-overview"></div></div>

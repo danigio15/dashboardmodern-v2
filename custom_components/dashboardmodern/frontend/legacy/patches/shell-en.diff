@@ -1,0 +1,10 @@
+--- upstream-fresh/dashboard-en.html
++++ committed/dashboard-en.html
+@@ -146,7 +146,6 @@
+   </div>
+   <div class="appl-main-hero">
+     <div><div class="appl-main-title">🧺 Appliances</div><div class="appl-main-sub" id="appl-main-sub">Configure cd_appliances in config.js or in the integrated editor.</div></div>
+-    <button class="ed-btn-add appl-main-config" onclick="apriConfigEntita(); setTimeout(()=>editorSwitch('appliances'),250)">⚙️ Configure</button>
+ 
+   </div>
+   <div class="glance-grid appl-kpi-grid" id="appl-kpi-grid"></div>

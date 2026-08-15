@@ -68,6 +68,76 @@ def _write_delta(filename: str, asset_name: str, source: str, target: str) -> No
     (patch_dir / filename).write_text("".join(diff), encoding="utf-8")
 
 
+def _apply_shell_delta(source: str, filename: str, locale: str) -> str:
+    """Reconcile non-asset HTML while preserving the patched inline bodies."""
+    bodies: dict[str, str] = {}
+
+    styles = list(re.finditer(r"<style[^>]*>.*?</style>", source, re.S | re.I))
+    if len(styles) != 1:
+        raise AssetDeltaError(f"{filename}: expected one consolidated style block")
+    bodies["styles"] = styles[0].group(0)
+    source_template = source[: styles[0].start()] + "@@DM_STYLES@@" + source[styles[0].end() :]
+
+    def mask_inline(match: re.Match[str]) -> str:
+        attrs, body = match.group("attrs"), match.group("body").strip()
+        if re.search(r"\bsrc\s*=", attrs, re.I) or not body:
+            return match.group(0)
+        if body.startswith("function toggleDebug"):
+            role = "debug"
+        elif body.startswith("(function(){try{var p=localStorage.getItem('cd_theme')"):
+            role = "theme"
+        elif body.startswith("/* ═"):
+            role = "runtime"
+        else:
+            raise AssetDeltaError(f"{filename}: unknown inline script in shell delta")
+        if role in bodies:
+            raise AssetDeltaError(f"{filename}: duplicate {role} shell body")
+        bodies[role] = match.group(0)
+        return f"@@DM_{role.upper()}@@"
+
+    source_template = re.sub(
+        r"<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>",
+        mask_inline,
+        source_template,
+        flags=re.S | re.I,
+    )
+    expected = {"styles", "debug", "theme", "runtime"}
+    if bodies.keys() != expected:
+        raise AssetDeltaError(
+            f"{filename}: expected shell bodies {sorted(expected)}, got {sorted(bodies)}"
+        )
+
+    target_template = (LEGACY_DIR / filename).read_text(encoding="utf-8")
+    target_template = target_template.replace(
+        f'<link rel="stylesheet" href="./dashboard-runtime-{locale}.css">',
+        "@@DM_STYLES@@",
+        1,
+    )
+    for role in ("debug", "theme", "runtime"):
+        target_template = target_template.replace(
+            f'<script src="./dashboard-{role}-{locale}.js"></script>',
+            f"@@DM_{role.upper()}@@",
+            1,
+        )
+    target_template = re.sub(
+        rf'<script data-dashboardmodern-bootstrap-watchdog src="\./dashboard-watchdog-{locale}\.js"></script>\n?',
+        "",
+        target_template,
+        count=1,
+    )
+    rebuilt = _apply_line_delta(
+        source_template, target_template, f"{filename} shell"
+    )
+    _write_delta(
+        f"shell-{locale}.diff", filename, source_template, target_template
+    )
+    for role, body in bodies.items():
+        rebuilt = rebuilt.replace(f"@@DM_{role.upper()}@@", body, 1)
+    if "@@DM_" in rebuilt:
+        raise AssetDeltaError(f"{filename}: unresolved shell placeholder")
+    return rebuilt
+
+
 def apply_production_asset_deltas(source: str, filename: str) -> str:
     """Reapply audited JS/CSS consolidation hunks and the boot watchdog."""
     locale = "en" if filename == "dashboard-en.html" else "it"
@@ -112,6 +182,7 @@ def apply_production_asset_deltas(source: str, filename: str) -> str:
         return ""
 
     source = re.sub(r"<style[^>]*>.*?</style>", replace_style, source, flags=re.S | re.I)
+    source = _apply_shell_delta(source, filename, locale)
 
     watchdog_name = f"dashboard-watchdog-{locale}.js"
     watchdog = _asset_body(watchdog_name, runtime_header)

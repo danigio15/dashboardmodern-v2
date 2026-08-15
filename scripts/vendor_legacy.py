@@ -49,6 +49,7 @@ PRELUDE_TAG = '<script src="./bridge-prelude.js"></script>'
 MODULES_TAG = '<script type="module" src="./modules-entry.js"></script>'
 FIXES_STYLE_TAG = '<link rel="stylesheet" href="./dashboard-runtime.css">'
 HEAD_ANCHOR = "<head>"
+HEAD_CLOSE_ANCHOR = "\n</head>"
 
 CHART_CDN_ANCHOR = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>'
 CHART_CDN_PINNED = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>'
@@ -333,10 +334,16 @@ def patch_variant(source: str, name: str) -> str:
     patched = _apply_once(
         source,
         HEAD_ANCHOR,
-        f"{HEAD_ANCHOR}\n{NS_TAG}\n{PRELUDE_TAG}\n{MODULES_TAG}\n{FIXES_STYLE_TAG}",
+        f"{HEAD_ANCHOR}\n{NS_TAG}\n{PRELUDE_TAG}\n{MODULES_TAG}",
         f"{name} prelude",
     )
     patched = _pin_cdn_dependencies(patched, name)
+    patched = _apply_once(
+        patched,
+        HEAD_CLOSE_ANCHOR,
+        f"\n{FIXES_STYLE_TAG}{HEAD_CLOSE_ANCHOR}",
+        f"{name} integration stylesheet",
+    )
     patched = _apply_once(patched, CONN_ANCHOR, CONN_PATCHED, f"{name} connection")
     patched = _apply_once(
         patched,
