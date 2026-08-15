@@ -15,6 +15,111 @@ and cameras next, so a room means the same thing everywhere.
 
 from __future__ import annotations
 
+import difflib
+import re
+from pathlib import Path
+
+LEGACY_DIR = (
+    Path(__file__).resolve().parents[1]
+    / "custom_components/dashboardmodern/frontend/legacy"
+)
+EXTRACTED_HEADER = "/* Extracted from {filename}; {description} */\n"
+
+
+class AssetDeltaError(RuntimeError):
+    """Raised when a committed production delta cannot be anchored safely."""
+
+
+def _asset_body(name: str, header: str) -> str:
+    content = (LEGACY_DIR / name).read_text(encoding="utf-8")
+    if not content.startswith(header):
+        raise AssetDeltaError(f"{name}: missing expected extraction header")
+    return content.removeprefix(header).removesuffix("\n")
+
+
+def _apply_line_delta(source: str, target: str, label: str) -> str:
+    """Apply each generated replace/delete hunk with an exact-once anchor."""
+    old_lines = source.splitlines(keepends=True)
+    new_lines = target.splitlines(keepends=True)
+    opcodes = difflib.SequenceMatcher(None, old_lines, new_lines).get_opcodes()
+    for index, (operation, old_start, old_end, new_start, new_end) in enumerate(
+        reversed(opcodes)
+    ):
+        if operation == "equal":
+            continue
+        anchor = "".join(old_lines[old_start:old_end])
+        replacement = "".join(new_lines[new_start:new_end])
+        if not anchor:
+            # Anchor a pure insertion between its unchanged neighbours. This
+            # remains exact-once while avoiding a position/line-number patch.
+            before = "".join(old_lines[max(0, old_start - 2) : old_start])
+            after = "".join(old_lines[old_start : old_start + 2])
+            anchor = before + after
+            replacement = before + replacement + after
+            if not before or not after:
+                raise AssetDeltaError(
+                    f"{label}: hunk {index} has no two-sided insertion context"
+                )
+        count = source.count(anchor)
+        if count != 1:
+            raise AssetDeltaError(
+                f"{label}: hunk {index} anchor occurs {count} times instead of once"
+            )
+        source = source.replace(anchor, replacement, 1)
+    return source
+
+
+def apply_production_asset_deltas(source: str, filename: str) -> str:
+    """Reapply audited JS/CSS consolidation hunks and the boot watchdog."""
+    locale = "en" if filename == "dashboard-en.html" else "it"
+    runtime_name = f"dashboard-runtime-{locale}.js"
+    css_name = f"dashboard-runtime-{locale}.css"
+    runtime_header = EXTRACTED_HEADER.format(
+        filename=filename, description="feature changes belong in src/sections."
+    )
+    css_header = EXTRACTED_HEADER.format(
+        filename=filename, description="section overrides live in src/sections."
+    )
+    runtime_target = _asset_body(runtime_name, runtime_header)
+    css_target = _asset_body(css_name, css_header)
+
+    scripts = list(re.finditer(r"<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>", source, re.S | re.I))
+    runtime = [m for m in scripts if m.group("body").strip().startswith("/* ═")]
+    if len(runtime) != 1:
+        raise AssetDeltaError(f"{filename}: expected one runtime body, found {len(runtime)}")
+    match = runtime[0]
+    patched_runtime = _apply_line_delta(
+        match.group("body").strip(), runtime_target, f"{filename} runtime"
+    )
+    source = source[: match.start("body")] + "\n" + patched_runtime + "\n" + source[match.end("body") :]
+
+    styles = list(re.finditer(r"<style(?P<attrs>[^>]*)>(?P<body>.*?)</style>", source, re.S | re.I))
+    css_source = "\n\n".join(m.group("body").strip() for m in styles if m.group("body").strip())
+    patched_css = _apply_line_delta(css_source, css_target, f"{filename} css")
+    first = True
+
+    def replace_style(_match: re.Match[str]) -> str:
+        nonlocal first
+        if first:
+            first = False
+            return f"<style>\n{patched_css}\n</style>"
+        return ""
+
+    source = re.sub(r"<style[^>]*>.*?</style>", replace_style, source, flags=re.S | re.I)
+
+    watchdog_name = f"dashboard-watchdog-{locale}.js"
+    watchdog = _asset_body(watchdog_name, runtime_header)
+    anchor = '<div id="cd-boot-overlay"><div class="s"></div></div>'
+    if source.count(anchor) != 1:
+        raise AssetDeltaError(f"{filename}: watchdog anchor must occur exactly once")
+    injection = (
+        anchor
+        + "\n<script data-dashboardmodern-bootstrap-watchdog>\n"
+        + watchdog
+        + "\n</script>"
+    )
+    return source.replace(anchor, injection, 1)
+
 # A reusable room helper, injected just before getAppliances so it is defined
 # before anything that renders.
 ROOM_HELPER_ANCHOR = "function getAppliances(){"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Split vendored monolithic dashboards into HTML shells and runtime assets."""
+"""Split vendored monoliths into shells and cacheable locale assets."""
 
 from __future__ import annotations
 
@@ -8,64 +8,52 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LEGACY = ROOT / "custom_components/dashboardmodern/frontend/legacy"
-VARIANTS = {
-    "dashboard.html": "it",
-    "dashboard-en.html": "en",
-}
-
-STYLE_RE = re.compile(
-    r"<style(?P<attrs>[^>]*)>(?P<body>.*?)</style>",
-    re.IGNORECASE | re.DOTALL,
-)
-SCRIPT_RE = re.compile(
-    r"<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>",
-    re.IGNORECASE | re.DOTALL,
-)
-
-# Inline script positions are part of the pinned upstream document structure.
-# Naming unexpected positions would silently change the committed asset tree, so
-# fail and require an intentional splitter update when upstream changes.
-SCRIPT_NAMES = {
-    5: "dashboard-debug-{locale}.js",
-    8: "dashboard-theme-{locale}.js",
-    10: "dashboard-runtime-{locale}.js",
-}
+VARIANTS = {"dashboard.html": "it", "dashboard-en.html": "en"}
+STYLE_RE = re.compile(r"<style(?P<attrs>[^>]*)>(?P<body>.*?)</style>", re.I | re.S)
+SCRIPT_RE = re.compile(r"<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>", re.I | re.S)
+HEADER = "/* Extracted from {filename}; feature changes belong in src/sections. */\n"
 
 
 class SplitError(RuntimeError):
-    """Raised when a monolith no longer has the audited structure."""
+    """Raised when the audited monolith structure is not present."""
 
 
-def _script_name(index: int, attrs: str, locale: str) -> str:
-    if "data-dashboardmodern-bootstrap-watchdog" in attrs:
-        return f"dashboard-watchdog-{locale}.js"
-    pattern = SCRIPT_NAMES.get(index)
-    if pattern is None:
-        raise SplitError(f"unexpected inline script at index {index} ({locale})")
-    return pattern.format(locale=locale)
+def _classify_script(attrs: str, body: str) -> str:
+    """Return the content-anchored role of one inline script."""
+    signatures = {
+        "debug": body.startswith("function toggleDebug"),
+        "theme": body.startswith(
+            "(function(){try{var p=localStorage.getItem('cd_theme')"
+        ),
+        "runtime": body.startswith("/* ═"),
+        "watchdog": "data-dashboardmodern-bootstrap-watchdog" in attrs,
+    }
+    matches = [name for name, matched in signatures.items() if matched]
+    if len(matches) != 1:
+        raise SplitError(
+            "inline script must match exactly one signature; "
+            f"matched {matches or 'none'}"
+        )
+    return matches[0]
 
 
-def split_variant(filename: str, locale: str) -> None:
-    """Extract one patched monolith, refusing partially split input."""
-    path = LEGACY / filename
-    html = path.read_text(encoding="utf-8")
-    if f'./dashboard-runtime-{locale}.css' in html:
+def build_variant(filename: str, locale: str, source: str) -> dict[str, str]:
+    """Build every output for one variant without touching the filesystem."""
+    if f'./dashboard-runtime-{locale}.css' in source:
         raise SplitError(f"{filename} is already split")
-
-    styles = list(STYLE_RE.finditer(html))
+    styles = list(STYLE_RE.finditer(source))
     if not styles:
         raise SplitError(f"{filename} contains no inline styles")
     css = "\n\n".join(
-        match.group("body").strip()
-        for match in styles
-        if match.group("body").strip()
+        m.group("body").strip() for m in styles if m.group("body").strip()
     )
-    (LEGACY / f"dashboard-runtime-{locale}.css").write_text(
-        f"/* Extracted from {filename}; section overrides live in src/sections. */\n"
-        f"{css}\n",
-        encoding="utf-8",
-    )
-
+    outputs = {
+        f"dashboard-runtime-{locale}.css": (
+            f"/* Extracted from {filename}; "
+            "section overrides live in src/sections. */\n"
+            f"{css}\n"
+        )
+    }
     first_style = True
 
     def replace_style(_match: re.Match[str]) -> str:
@@ -75,52 +63,49 @@ def split_variant(filename: str, locale: str) -> None:
             return f'<link rel="stylesheet" href="./dashboard-runtime-{locale}.css">'
         return ""
 
-    html = STYLE_RE.sub(replace_style, html)
-    script_index = 0
-    extracted: set[str] = set()
+    shell = STYLE_RE.sub(replace_style, source)
+    roles: set[str] = set()
 
     def replace_script(match: re.Match[str]) -> str:
-        nonlocal script_index
-        index = script_index
-        script_index += 1
-        attrs = match.group("attrs")
-        body = match.group("body")
-        if re.search(r"\bsrc\s*=", attrs, re.IGNORECASE) or not body.strip():
+        attrs, body = match.group("attrs"), match.group("body").strip()
+        if re.search(r"\bsrc\s*=", attrs, re.I) or not body:
             return match.group(0)
-        output_name = _script_name(index, attrs, locale)
-        if output_name in extracted:
-            raise SplitError(f"duplicate output asset {output_name}")
-        extracted.add(output_name)
-        (LEGACY / output_name).write_text(
-            f"/* Extracted from {filename}; "
-            "feature changes belong in src/sections. */\n"
-            f"{body.strip()}\n",
-            encoding="utf-8",
-        )
+        role = _classify_script(attrs, body)
+        if role in roles:
+            raise SplitError(f"{filename} contains duplicate {role} scripts")
+        roles.add(role)
+        output_name = f"dashboard-{role}-{locale}.js"
+        outputs[output_name] = HEADER.format(filename=filename) + body + "\n"
         return f'<script{attrs.rstrip()} src="./{output_name}"></script>'
 
-    html = SCRIPT_RE.sub(replace_script, html)
-    expected = {
-        f"dashboard-debug-{locale}.js",
-        f"dashboard-theme-{locale}.js",
-        f"dashboard-watchdog-{locale}.js",
-        f"dashboard-runtime-{locale}.js",
-    }
-    if extracted != expected:
+    shell = SCRIPT_RE.sub(replace_script, shell)
+    expected = {"debug", "theme", "runtime", "watchdog"}
+    if roles != expected:
         raise SplitError(
-            f"{filename}: expected {sorted(expected)}, extracted {sorted(extracted)}"
+            f"{filename}: expected {sorted(expected)}, found {sorted(roles)}"
         )
-    path.write_text(html, encoding="utf-8")
+    outputs[filename] = shell
+    return outputs
 
 
 def main() -> int:
-    """Split both language variants."""
+    """Validate the complete two-locale output set, then commit it to disk."""
     try:
+        outputs: dict[str, str] = {}
         for filename, locale in VARIANTS.items():
-            split_variant(filename, locale)
-    except SplitError as error:
+            source = (LEGACY / filename).read_text(encoding="utf-8")
+            variant = build_variant(filename, locale, source)
+            overlap = outputs.keys() & variant.keys()
+            if overlap:
+                raise SplitError(f"duplicate outputs: {sorted(overlap)}")
+            outputs.update(variant)
+    except (OSError, SplitError) as error:
         print(f"error: {error}")
         return 1
+
+    # No write occurs until both variants and their complete asset sets pass.
+    for name, content in outputs.items():
+        (LEGACY / name).write_text(content, encoding="utf-8")
     return 0
 
 

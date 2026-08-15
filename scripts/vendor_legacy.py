@@ -238,7 +238,12 @@ CONN_WRITE_IMPORT_PATCHED = (
 )
 
 
-from vendor_features import FEATURE_PATCHES, RENAME_PATCHES  # noqa: E402
+from vendor_features import (  # noqa: E402
+    FEATURE_PATCHES,
+    RENAME_PATCHES,
+    AssetDeltaError,
+    apply_production_asset_deltas,
+)
 
 # User-facing vocabulary that must never leak from one vendored locale into
 # the other.  Apply this during vending as well as testing the committed
@@ -360,7 +365,11 @@ def patch_variant(source: str, name: str) -> str:
     for old_label, new_label in RENAME_PATCHES:
         patched = patched.replace(old_label, new_label)
     patched = _localize_variant(_apply_upstream_fixes(patched, name), name)
-    return _fix_boiler_entity_picker(patched, name)
+    patched = _fix_boiler_entity_picker(patched, name)
+    try:
+        return apply_production_asset_deltas(patched, name)
+    except AssetDeltaError as error:
+        raise PatchError(str(error)) from error
 
 
 def _checkout(ref: str, destination: Path) -> str:
@@ -408,7 +417,8 @@ def vendor(ref: str) -> dict[str, str]:
 
     metadata = {
         "source": SOURCE_REPO,
-        "ref": ref,
+        "ref": commit,
+        "requested_ref": ref,
         "commit": commit,
         "sha256": digests,
         "_note": (
