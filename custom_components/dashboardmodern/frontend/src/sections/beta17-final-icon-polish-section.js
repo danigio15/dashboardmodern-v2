@@ -8,6 +8,8 @@ import {
 } from "../core/personalization-catalog.js";
 import { clean, dashboardStore, doc, root, t } from "./shared.js";
 
+root.__DM_20260815C__ = true;
+
 const KEY = "__DASHBOARDMODERN_BETA17_FINAL_ICON_POLISH__";
 const state = (root[KEY] ||= {
   installed: false,
@@ -142,7 +144,7 @@ function ensureTemperatureRowMain(row, room) {
     node.style.setProperty("min-width", "0", "important");
   }
   main.style.setProperty("overflow", "hidden", "important");
-  primary.style.setProperty("color", "var(--primary-text-color,var(--text,#0f172a))", "important");
+  primary.style.setProperty("color", "var(--text,#0f172a)", "important");
   primary.style.setProperty("font-size", "14px", "important");
   primary.style.setProperty("font-weight", "900", "important");
   primary.style.setProperty("line-height", "1.25", "important");

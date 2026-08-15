@@ -13,6 +13,8 @@ import {
   writeJsonIfChanged,
 } from "./shared.js";
 
+root.__DM_20260815C__ = true;
+
 const KEY = "__DASHBOARDMODERN_BETA16_REAL_DEVICE_LAYOUT__";
 const state = (root[KEY] ||= {
   installed: false,
@@ -373,7 +375,7 @@ function subscribeStore() {
 function installStyles() {
   installStyle("dm-beta16-real-device-layout-style", `
     #editor-modal #ed-body [data-dm-beta16-readable="true"]{display:block!important;min-width:0!important;overflow:hidden!important}
-    #editor-modal #ed-body [data-dm-beta16-readable="true"]>.ed-row-new{display:block!important;color:var(--primary-text-color,var(--text,#0f172a))!important;font-weight:900!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    #editor-modal #ed-body [data-dm-beta16-readable="true"]>.ed-row-new{display:block!important;color:var(--text,#0f172a)!important;font-weight:900!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
     #editor-modal #ed-body [data-dm-beta16-readable="true"]>.ed-row-old{display:block!important;margin-top:3px!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 
     #page-clima .dm-beta16-climate-room{display:none}

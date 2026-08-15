@@ -22,6 +22,9 @@ import { createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, rend
 import { SCHEMA_VERSION } from "../src/core/device-model.js";
 import { BUILD_INFO } from "./build-info.js";
 import { canonicalReportDevices, reportEntityForDevice } from "../src/core/energy-projection.js";
+import { isCumulativeEnergyEntity } from "../src/core/period-service.js";
+
+globalThis.__DM_20260815C__ = true;
 
 export const MODULES_VERSION = 14;
 const LOCALE = globalThis.document?.documentElement?.lang === "en" ? "en" : "it";
@@ -69,7 +72,7 @@ createRenderCoordinator(store, {
   renderCurrentEditor(section) {
     const tab = globalThis.document?.querySelector?.(".ed-tab.active")?.dataset?.tab;
     const sectionTabs = {
-      appliances: "appliances", loads: "sez1", report: "sez1", energy: "sez1", cameras: "sezioni", rooms: "stanze",
+      appliances: "appliances", loads: "sez1", energyLoads: "sez1", report: "sez1", energy: "sez1", cameras: "sezioni", rooms: "stanze",
       ev: "sezioni", lights: "luci", climate: "sezioni", covers: "tapp",
       pool: "pool", irrigation: "irr",
     };
@@ -90,6 +93,20 @@ createRenderCoordinator(store, {
     if (tab === "sez1" && section === "loads") {
       const panel = body.querySelector('[data-energy-panel="loads"]');
       if (panel) { mountLoadsEditor(panel); mountCurrentEditor("loads", panel); panel.hidden = false; }
+      return;
+    }
+    if (tab === "sez1" && section === "energyLoads") {
+      const panel = body.querySelector('[data-energy-panel="loads"]');
+      if (panel) {
+        let dynamic = panel.querySelector("[data-energy-dynamic-loads]");
+        if (!dynamic) {
+          dynamic = globalThis.document.createElement("section");
+          dynamic.dataset.energyDynamicLoads = "";
+          panel.append(dynamic);
+        }
+        mountEnergyLoadsEditor(dynamic);
+        panel.hidden = false;
+      }
       return;
     }
     if (tab === "sez1" && section === "report") {
@@ -123,7 +140,14 @@ function renderEnergyEditorTab(target) {
   renderEnergyEditor(globalThis.document, target, model, store.getSection("appliances"), globalThis.STATES || {},
     globalThis.document?.documentElement?.lang === "en" ? "en" : "it", {
       onPick: (input) => globalThis.wzPickEntity?.(input),
-      renderLoads: (loads) => { mountLoadsEditor(loads); mountCurrentEditor("loads", loads); },
+      renderLoads: (loads) => {
+        mountLoadsEditor(loads);
+        const dynamic = globalThis.document.createElement("section");
+        dynamic.dataset.energyDynamicLoads = "";
+        loads.append(dynamic);
+        mountEnergyLoadsEditor(dynamic);
+        mountCurrentEditor("loads", loads);
+      },
       renderReport: (report) => { renderReportEditor(report); mountReportEditor("report", report); },
       renderSettings: (settings) => {
         settings.innerHTML = `${globalThis.cdEnViewsHtml?.() || ""}
@@ -470,6 +494,26 @@ function mountLoadsEditor(target, editId = "") {
     if (!item.name) return globalThis.alert?.(t("loadNameRequired"));
     try { await (editId ? store.updateItem("loads", editId, item) : store.addItem("loads", item)); }
     catch (error) { globalThis.alert?.(error.message); }
+  });
+}
+
+const ENERGY_LOAD_COLORS = ["#0ea5e9", "#06b6d4", "#10b981", "#f59e0b", "#ea580c", "#e11d48", "#7c3aed", "#64748b"];
+function mountEnergyLoadsEditor(target, editId = "") {
+  const loads = store.getSection("energyLoads");
+  const current = loads.find((item) => item.id === editId) || {};
+  const rows = loads.map((item) => `<article class="ed-row dm-energy-load-row" data-energy-load-id="${esc(item.id)}"><span class="dm-temperature-card-icon">${globalThis.cdIconMarkup?.(item.icon, 26) || esc(item.icon)}</span><div class="ed-row-main"><div class="ed-row-new">${esc(item.name)}</div><div class="ed-row-old mono">${esc(item.power_entity)}${item.energy_entity ? ` · ${esc(item.energy_entity)}` : ""}</div></div><button type="button" class="ed-del" data-edit-energy-load="${esc(item.id)}">✏️</button><button type="button" class="ed-del" data-delete-energy-load="${esc(item.id)}">🗑️</button></article>`).join("");
+  target.innerHTML = `<div class="ed-intro">Carichi mostrati sotto Casa nei flussi istantanei e del periodo (massimo 8).</div><div class="ed-list">${rows || '<div class="ed-empty">Nessun carico configurato.</div>'}</div><form class="ed-form dm-energy-load-form"><div class="ed-sec-title">${editId ? "Modifica carico" : "＋ Aggiungi carico"}</div><input id="dm-energy-load-name" class="ed-input" required placeholder="Nome" value="${esc(current.name)}">${createIconField("dm-energy-load-icon", current.icon || "mdi:power-plug", "energy")}${createEntityField({ id: "dm-energy-load-power", label: "Entità potenza", value: current.power_entity, optional: false })}${createEntityField({ id: "dm-energy-load-energy", label: "Entità energia cumulativa", value: current.energy_entity, optional: false })}<label class="ed-slot"><span class="ed-slot-lbl">Colore</span><select id="dm-energy-load-color" class="ed-input">${ENERGY_LOAD_COLORS.map((color) => `<option value="${color}" ${color === current.color ? "selected" : ""}>${color}</option>`).join("")}</select></label><button type="submit" class="ed-btn-add">💾 ${editId ? "Salva modifiche" : "Aggiungi carico"}</button></form>`;
+  mountEntityPickers(target);
+  target.querySelectorAll("[data-edit-energy-load]").forEach((button) => button.addEventListener("click", () => mountEnergyLoadsEditor(target, button.dataset.editEnergyLoad)));
+  target.querySelectorAll("[data-delete-energy-load]").forEach((button) => button.addEventListener("click", () => store.removeItem("energyLoads", button.dataset.deleteEnergyLoad)));
+  target.querySelector("form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const value = (id) => target.querySelector(`#${id}`)?.value?.trim() || "";
+    const energyEntity = value("dm-energy-load-energy");
+    if (loads.length >= 8 && !editId) return globalThis.alert?.("Puoi configurare al massimo 8 carichi.");
+    if (!isCumulativeEnergyEntity(energyEntity, globalThis.STATES || {}, globalThis.resolveEntity)) return globalThis.alert?.("L'entità energia deve essere un contatore cumulativo Recorder (total/total_increasing).");
+    const item = { name: value("dm-energy-load-name"), icon: value("dm-energy-load-icon"), power_entity: value("dm-energy-load-power"), energy_entity: energyEntity, color: value("dm-energy-load-color"), order: current.order ?? loads.length };
+    await (editId ? store.updateItem("energyLoads", editId, item) : store.addItem("energyLoads", item));
   });
 }
 

@@ -1,6 +1,8 @@
 import { ACTION_ICON_CATALOG, actionVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, readJson, root, t } from "./shared.js";
 
+root.__DM_20260815C__ = true;
+
 const KEY = "__DASHBOARDMODERN_BETA7_REGRESSIONS__";
 const state = (root[KEY] ||= {
   installed: false,
@@ -214,7 +216,7 @@ function installStyles() {
   installStyle("dm-beta7-regression-style", `
     /* Brand auto: nessun riquadro rotto. Se il CDN non risponde viene mostrato
        immediatamente un marchio SVG locale e stabile. */
-    .dm-beta7-brand-fallback{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;color:var(--primary-text-color,var(--text,#0f172a))!important}
+    .dm-beta7-brand-fallback{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;color:var(--text,#0f172a)!important}
     .dm-beta7-brand-fallback svg{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;overflow:visible!important}
     .dm-car-brand[data-brand-source="inline-fallback"]{display:grid!important;place-items:center!important}
 
@@ -234,7 +236,7 @@ function installStyles() {
 
     /* Form Azioni: tipo + icona sulla prima riga, nome a tutta larghezza. */
     #editor-modal .ed-form-row.dm-beta7-action-form-row{display:grid!important;grid-template-columns:minmax(0,1fr) 64px!important;grid-template-areas:"type icon" "name name"!important;align-items:stretch!important;gap:10px!important;width:100%!important}
-    #editor-modal .dm-beta7-action-form-row #ed-qa-type{grid-area:type!important;display:block!important;width:100%!important;min-width:0!important;min-height:54px!important;margin:0!important;padding:0 14px!important;font-size:14px!important;color:var(--primary-text-color,var(--text,#0f172a))!important;background:var(--card-background-color,var(--card-bg,#fff))!important}
+    #editor-modal .dm-beta7-action-form-row #ed-qa-type{grid-area:type!important;display:block!important;width:100%!important;min-width:0!important;min-height:54px!important;margin:0!important;padding:0 14px!important;font-size:14px!important;color:var(--text,#0f172a)!important;background:var(--card-background-color,var(--card-bg,#fff))!important}
     #editor-modal .dm-beta7-action-form-row #ed-qa-name{grid-area:name!important;display:block!important;width:100%!important;min-width:0!important;min-height:54px!important;margin:0!important;padding:0 14px!important}
     #editor-modal .dm-beta7-action-form-row #ed-qa-icon{display:none!important}
     #editor-modal .dm-beta7-action-form-row .dm-beta6-qa-icon-trigger{grid-area:icon!important;display:grid!important;place-items:center!important;width:64px!important;min-width:64px!important;max-width:64px!important;height:54px!important;min-height:54px!important;margin:0!important;padding:8px!important;border-radius:16px!important;background:var(--card-background-color,var(--card-bg,#fff))!important;border:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;color:var(--accent,#0ea5e9)!important;overflow:hidden!important}
@@ -269,7 +271,7 @@ function installStyles() {
     #page-tapparelle .tapp-shutter i{opacity:0!important;flex:0 0 11px!important;height:11px!important;border:0!important;background:transparent!important}
     #page-tapparelle .tapp-shutter.opening,#page-tapparelle .tapp-shutter.closing{animation:dmBeta7ShutterRoll .55s linear infinite!important}
     @keyframes dmBeta7ShutterRoll{to{background-position:0 26px}}
-    #page-tapparelle .tapp-pos{font-size:15px!important;font-weight:900!important;opacity:1!important;color:var(--primary-text-color,var(--text,#0f172a))!important}
+    #page-tapparelle .tapp-pos{font-size:15px!important;font-weight:900!important;opacity:1!important;color:var(--text,#0f172a)!important}
     #page-tapparelle .tapp-ctl{gap:9px!important}
     #page-tapparelle .tapp-btn{height:46px!important;border-radius:14px!important;font-weight:850!important;box-shadow:0 6px 14px rgba(14,165,233,.18)!important}
 

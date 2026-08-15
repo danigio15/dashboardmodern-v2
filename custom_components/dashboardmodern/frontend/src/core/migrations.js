@@ -13,6 +13,7 @@ export const SECTION_KEYS = Object.freeze({
   pool: "cd_piscina",
   irrigation: "cd_irrigazione",
   energy: "cd_energy_model",
+  energyLoads: "cd_energy_loads",
   entityOverrides: "cd_entity_overrides",
 });
 
@@ -96,6 +97,32 @@ export function migrateEnergy(input = {}) {
   };
 }
 
+export function migrateEnergyLoads(input = []) {
+  const used = new Set();
+  return (Array.isArray(input) ? input : [])
+    .filter(Boolean)
+    .slice(0, 8)
+    .map((item, index) => {
+      const seed = slug(item.name) || `load-${index + 1}`;
+      const base = String(item.id || `energy-load-${seed}`);
+      let id = base;
+      let collision = 2;
+      while (used.has(id)) id = `${base}-${collision++}`;
+      used.add(id);
+      return {
+        id,
+        name: String(item.name || `Carico ${index + 1}`),
+        icon: String(item.icon || "mdi:power-plug"),
+        power_entity: String(item.power_entity || "").trim(),
+        energy_entity: String(item.energy_entity || item.total_energy_entity || "").trim(),
+        color: String(item.color || "#0ea5e9"),
+        order: Number.isFinite(+item.order) ? +item.order : index,
+      };
+    })
+    .sort((left, right) => left.order - right.order)
+    .map((item, order) => ({ ...item, order }));
+}
+
 export function migrateEntityOverrides(input = {}) {
   return input && !Array.isArray(input) ? cloneValue(input) : {};
 }
@@ -114,6 +141,7 @@ export function normalizeSection(section, input, context = {}) {
     pool: migratePool,
     irrigation: migrateIrrigation,
     energy: migrateEnergy,
+    energyLoads: migrateEnergyLoads,
     entityOverrides: migrateEntityOverrides,
   };
   return migrations[section]?.(input, rooms) ?? cloneValue(input);
@@ -271,6 +299,64 @@ export function migrateState(input = {}, legacy = {}) {
   }
   if (+state.schema_version >= 4 && preserveEnergySemantics(state.sections?.energy))
     changes.push("energy annual/lifetime semantics migrated");
+  state.sections ||= {};
+  const existingEnergyLoads = migrateEnergyLoads(state.sections.energyLoads || []);
+  if (existingEnergyLoads.length) state.sections.energyLoads = existingEnergyLoads;
+  else {
+    const fixed = [
+      [
+        "boiler",
+        "Boiler",
+        "mdi:water-boiler",
+        "#ea580c",
+        "dm.boiler_potenza_resistenza_boiler",
+        "dm.energy_boiler_mese",
+      ],
+      [
+        "wallbox",
+        "Wallbox",
+        "mdi:ev-station",
+        "#06b6d4",
+        "dm.ev_potenza_wallbox",
+        "dm.ev_energia_wallbox_mese",
+      ],
+      [
+        "clima",
+        "Clima",
+        "mdi:snowflake",
+        "#0ea5e9",
+        "dm.energy_potenza_condizionatori",
+        "dm.energy_condizionatori_mese",
+      ],
+      [
+        "lavanderia",
+        "Lavanderia",
+        "mdi:washing-machine",
+        "#7c3aed",
+        "dm.energy_somma_lavanderia",
+        "dm.energy_somma_lavanderia_mese",
+      ],
+      [
+        "cucina",
+        "Cucina",
+        "mdi:stove",
+        "#e11d48",
+        "dm.energy_somma_cucina",
+        "dm.energy_somma_cucina_mese",
+      ],
+    ];
+    const overrides = legacy.entityOverrides || state.sections.entityOverrides || {};
+    state.sections.energyLoads = migrateEnergyLoads(
+      fixed.flatMap(([id, name, icon, color, powerSlot, energySlot]) => {
+        const power_entity = String(overrides[powerSlot] || "").trim();
+        const energy_entity = String(overrides[energySlot] || "").trim();
+        return power_entity || energy_entity
+          ? [{ id: `energy-load-${id}`, name, icon, color, power_entity, energy_entity }]
+          : [];
+      }),
+    );
+    if (state.sections.energyLoads.length) changes.push("fixed energy slots → energy_loads");
+  }
   return { state, changes };
 }
 

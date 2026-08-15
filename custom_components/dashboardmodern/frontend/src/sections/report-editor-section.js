@@ -1,5 +1,7 @@
 import { clean, doc, esc, installStyle, root, t, wrapFunction } from "./shared.js";
 
+root.__DM_20260815C__ = true;
+
 const KEY = "__DASHBOARDMODERN_REPORT_EDITOR_SECTION__";
 const state = (root[KEY] ||= { installed: false, listeners: false });
 
@@ -142,7 +144,7 @@ function installStyles() {
       #editor-modal .dm-report-history .ed-form-row,#editor-modal .dm-report-history .dm-entity-field{box-sizing:border-box!important;width:100%!important;max-width:100%!important;min-width:0!important}
       #editor-modal .dm-report-history .ed-slot-lbl{display:block!important;min-height:18px!important;font-size:11px!important;font-weight:850!important;color:var(--secondary-text-color,#64748b)!important}
       #editor-modal .dm-report-actions{grid-area:actions!important;display:grid!important;grid-template-columns:repeat(3,36px)!important;justify-content:end!important;align-items:center!important;gap:5px!important;min-width:0!important;max-width:100%!important}
-      #editor-modal .dm-report-actions button{display:grid!important;place-items:center!important;box-sizing:border-box!important;width:36px!important;height:36px!important;margin:0!important;padding:0!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:10px!important;background:var(--secondary-background-color,#eef2f7)!important;color:var(--primary-text-color,#0f172a)!important}
+      #editor-modal .dm-report-actions button{display:grid!important;place-items:center!important;box-sizing:border-box!important;width:36px!important;height:36px!important;margin:0!important;padding:0!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:10px!important;background:var(--secondary-background-color,#eef2f7)!important;color:var(--text,#0f172a)!important}
       #editor-modal .dm-report-history-help{grid-area:help!important;display:block!important;min-width:0!important;margin:0!important;color:var(--secondary-text-color,#64748b)!important;font-size:11px!important;line-height:1.4!important;overflow-wrap:anywhere!important}
       #editor-modal .dm-report-row[data-history-valid="false"] .dm-report-history-help{color:var(--warning-color,#b45309)!important;font-weight:850!important}
       #editor-modal[data-dm-editor-theme="dark"] [data-energy-panel="report"] .dm-report-row{background:var(--dm-editor-panel,#1b2540)!important;border-color:var(--dm-editor-border,#31405f)!important}

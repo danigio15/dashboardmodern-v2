@@ -618,3 +618,86 @@ export class HomeAssistantBroker {
     }
   }
 }
+
+export const ENERGY_LOAD_LIMIT = 8;
+
+export function energyLoadPeriodPlans(
+  loads = [],
+  kind = "day",
+  states = {},
+  resolver = (value) => value,
+) {
+  return loads.flatMap((load) => {
+    if (!isCumulativeEnergyEntity(load.energy_entity, states, resolver)) return [];
+    return [
+      {
+        key: `energyLoad:${load.id}`,
+        entity: load.energy_entity,
+        source: load.energy_entity,
+        kind,
+        direct: false,
+      },
+    ];
+  });
+}
+
+const numericState = (states, entity) => {
+  const value = Number(states?.[entity]?.state);
+  return Number.isFinite(value) ? value : null;
+};
+
+export function batterySocLabel(energy = {}, states = {}) {
+  const entity = String(energy?.battery?.soc || energy?.battery?.soc_entity || "").trim();
+  const value = numericState(states, entity);
+  return entity && value != null ? `${Math.round(value)}%` : "—";
+}
+
+export function energyLoadViewModels(loads = [], { states = {}, periodValues = null } = {}) {
+  return loads.slice(0, ENERGY_LOAD_LIMIT).map((load) => {
+    const periodValue = periodValues?.get?.(`energyLoad:${load.id}`);
+    const liveValue = numericState(states, load.power_entity);
+    const periodic = periodValues != null;
+    return {
+      ...load,
+      value: periodic
+        ? Number.isFinite(periodValue)
+          ? `${periodValue.toFixed(1)} kWh`
+          : "—"
+        : liveValue == null
+          ? "—"
+          : `${Math.round(liveValue)} W`,
+    };
+  });
+}
+
+export function renderEnergyLoadNodes(document, stage, loads = [], options = {}) {
+  stage
+    ?.querySelectorAll?.("[data-energy-load-node],[data-energy-load-arc]")
+    .forEach((node) => node.remove());
+  if (!stage || !loads.length) return [];
+  const models = energyLoadViewModels(loads, options);
+  const svg = stage.querySelector("svg.desktop-svg");
+  models.forEach((load, index) => {
+    if (svg) {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const x = ((index + 1) * 1000) / (models.length + 1);
+      path.dataset.energyLoadArc = load.id;
+      path.classList.add("flow-line");
+      path.style.setProperty("--line-color", load.color);
+      path.setAttribute("d", `M 500 365 Q ${x} 420 ${x} 445`);
+      svg.append(path);
+    }
+    const node = document.createElement("div");
+    node.className = "node n-load hist-clickable";
+    node.dataset.energyLoadNode = load.id;
+    node.style.left = `${((index + 1) * 100) / (models.length + 1)}%`;
+    node.style.top = "83%";
+    node.style.setProperty("--n-color", load.color);
+    node.innerHTML = `<div class="node-label"></div><div class="node-icon"></div><span></span>`;
+    node.querySelector(".node-label").textContent = load.name;
+    node.querySelector(".node-icon").textContent = load.icon;
+    node.querySelector("span").textContent = load.value;
+    stage.append(node);
+  });
+  return models;
+}

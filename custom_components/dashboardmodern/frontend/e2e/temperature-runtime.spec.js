@@ -1,4 +1,4 @@
-// DM-FIX-20260815A
+// DM-FIX-20260815A · DM-20260815C
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { clickBottomTab } from "./helpers/navigation.js";
@@ -58,6 +58,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   }, testInfo) => {
     await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
     await page.addInitScript((haStates) => {
+      document.documentElement.style.setProperty("--primary-text-color", "#ffffff");
       window.WebSocket = class extends EventTarget {
         static OPEN = 1;
         readyState = 1;
@@ -115,6 +116,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           ),
       )
       .toBe(true);
+    expect(
+      await page.locator("[data-temperature-room] .ed-row-new").evaluateAll((names) =>
+        names.every((name) => {
+          const color = getComputedStyle(name).color.replaceAll(" ", "");
+          return Boolean(name.textContent?.trim()) && color !== "rgb(255,255,255)";
+        }),
+      ),
+    ).toBe(true);
     await expect(page.locator("#ed-pl-temp")).toBeVisible();
     for (let index = 0; index < 20; index++) await page.evaluate(() => editorSwitch("sez7"));
     expect(

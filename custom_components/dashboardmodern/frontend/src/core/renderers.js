@@ -404,7 +404,20 @@ export function renderEnergyEditor(
         onChange: (value) => handlers.onChange?.(group, key, value),
       });
       input.name = `${group}.${key}`;
-      input.dataset.validation = !input.value || states[input.value] ? "valid" : "invalid";
+      const configuredState = states[input.value];
+      const validSoc =
+        key !== "soc" ||
+        !input.value ||
+        (String(configuredState?.attributes?.device_class || "").toLowerCase() === "battery" &&
+          String(configuredState?.attributes?.unit_of_measurement || "").trim() === "%");
+      input.dataset.validation =
+        (!input.value || Boolean(configuredState)) && validSoc ? "valid" : "invalid";
+      if (!validSoc)
+        input.setCustomValidity(
+          locale === "en"
+            ? "Select a battery device-class entity measured in %."
+            : "Seleziona un'entità device_class battery misurata in %.",
+        );
       field.append(entity);
       body.append(field);
     }

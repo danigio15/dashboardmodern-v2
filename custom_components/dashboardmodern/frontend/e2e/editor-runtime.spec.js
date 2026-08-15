@@ -302,6 +302,40 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     ).toBeVisible();
     await clickStableButton(page, page.getByRole("button", { name: /CARICHI|LOADS/ }), testInfo);
     const loads = await page.locator('[data-energy-panel="loads"]').innerHTML();
+    await page.evaluate(() => {
+      STATES["sensor.oven_total"] = {
+        state: "123.4",
+        attributes: {
+          device_class: "energy",
+          state_class: "total_increasing",
+          unit_of_measurement: "kWh",
+        },
+      };
+      STATES["sensor.oven_power"] = {
+        state: "780",
+        attributes: { device_class: "power", unit_of_measurement: "W" },
+      };
+    });
+    await page.locator("#dm-energy-load-name").fill("Forno dinamico");
+    await page.locator("#dm-energy-load-power").fill("sensor.oven_power");
+    await page.locator("#dm-energy-load-energy").fill("sensor.oven_total");
+    await page.locator(".dm-energy-load-form button[type='submit']").click();
+    await expect(
+      page.locator("[data-energy-dynamic-loads] [data-energy-load-id]", {
+        hasText: "Forno dinamico",
+      }),
+    ).toHaveCount(1);
+    await expect
+      .poll(() =>
+        page.evaluate(() => DashboardModernModules.store.getSection("energyLoads")[0]?.name),
+      )
+      .toBe("Forno dinamico");
+    await expect(
+      page.locator('#view-ist [data-energy-load-node="energy-load-forno-dinamico"]'),
+    ).toContainText("Forno dinamico");
+    await expect(
+      page.locator('#view-ist [data-energy-load-node="energy-load-forno-dinamico"]'),
+    ).toContainText("780 W");
     await page.locator("#dm-load-name").fill("Booster");
     await page.locator("#dm-load-power").fill("sensor.pump_power");
     await page.locator("#dm-load-dashboard").uncheck();

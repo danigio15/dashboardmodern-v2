@@ -1,5 +1,7 @@
 import { clean, doc, english, installStyle, root, section, t, wrapFunction } from "./shared.js";
 
+root.__DM_20260815C__ = true;
+
 const KEY = "__DASHBOARDMODERN_ENERGY_GUIDANCE_SECTION__";
 const state = (root[KEY] ||= { installed: false, listeners: false });
 
@@ -98,7 +100,7 @@ function installStyles() {
       #editor-modal .dm-energy-source-guide-intro strong{font-size:14px!important}.dm-energy-source-guide-intro span{color:var(--secondary-text-color,#64748b)!important;font-size:12px!important}
       #editor-modal .dm-energy-source-guide-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important}
       #editor-modal .dm-energy-source-contract{min-width:0!important;padding:12px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:14px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important}
-      #editor-modal .dm-energy-source-contract header{display:flex!important;align-items:center!important;gap:8px!important;margin-bottom:8px!important}.dm-energy-source-contract dl{display:grid!important;gap:7px!important;margin:0!important}.dm-energy-source-contract dl>div{display:grid!important;gap:2px!important}.dm-energy-source-contract dt{font-size:10px!important;font-weight:900!important;letter-spacing:.08em!important;text-transform:uppercase!important;color:var(--secondary-text-color,#64748b)!important}.dm-energy-source-contract dd{min-width:0!important;margin:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:10px!important;color:var(--primary-text-color,#0f172a)!important}
+      #editor-modal .dm-energy-source-contract header{display:flex!important;align-items:center!important;gap:8px!important;margin-bottom:8px!important}.dm-energy-source-contract dl{display:grid!important;gap:7px!important;margin:0!important}.dm-energy-source-contract dl>div{display:grid!important;gap:2px!important}.dm-energy-source-contract dt{font-size:10px!important;font-weight:900!important;letter-spacing:.08em!important;text-transform:uppercase!important;color:var(--secondary-text-color,#64748b)!important}.dm-energy-source-contract dd{min-width:0!important;margin:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:10px!important;color:var(--text,#0f172a)!important}
       #editor-modal .dm-energy-total-purpose{display:block!important;margin-top:7px!important;color:var(--info-color,#0369a1)!important;font-size:11px!important;line-height:1.35!important}
       #editor-modal[data-dm-editor-theme="dark"] .dm-energy-source-guide-intro,#editor-modal[data-dm-editor-theme="dark"] .dm-energy-source-contract{background:var(--dm-editor-panel,#1b2540)!important;border-color:var(--dm-editor-border,#31405f)!important}
       #editor-modal[data-dm-editor-theme="dark"] .dm-energy-source-contract dd{color:var(--dm-editor-text,#edf4ff)!important}

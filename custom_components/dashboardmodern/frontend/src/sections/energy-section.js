@@ -30,6 +30,13 @@ import {
 } from "../transport/hosted-bridge-guard.js";
 import { runtimeMetrics } from "../core/runtime-metrics.js";
 import { BUILD_INFO } from "../../legacy/build-info.js";
+import {
+  batterySocLabel,
+  energyLoadPeriodPlans,
+  renderEnergyLoadNodes,
+} from "../core/period-service.js";
+
+root.__DM_20260815C__ = true;
 
 const KEY = "__DASHBOARDMODERN_RUNTIME_ROOT__";
 const VERSION = BUILD_INFO.dashboardVersion || BUILD_INFO.integrationVersion || "UNBUILT";
@@ -102,12 +109,18 @@ root.DashboardModernEnergyService = Object.freeze({
     else if (period === "month") baselineStart.setMonth(baselineStart.getMonth() - 1);
     else baselineStart.setDate(baselineStart.getDate() - 2);
     const result = await broker.statistics(ids, baselineStart, end, period);
-    return Object.fromEntries(ids.map((id) => {
-      const ordered = (result[id] || []).slice().sort((a, b) => new Date(a.start) - new Date(b.start));
-      const before = ordered.filter((row) => new Date(row.start) < boundary);
-      const within = ordered.filter((row) => new Date(row.start) >= boundary && new Date(row.start) < new Date(end));
-      return [id, recorderBucketConsumptions(within, before.at(-1) || null)];
-    }));
+    return Object.fromEntries(
+      ids.map((id) => {
+        const ordered = (result[id] || [])
+          .slice()
+          .sort((a, b) => new Date(a.start) - new Date(b.start));
+        const before = ordered.filter((row) => new Date(row.start) < boundary);
+        const within = ordered.filter(
+          (row) => new Date(row.start) >= boundary && new Date(row.start) < new Date(end),
+        );
+        return [id, recorderBucketConsumptions(within, before.at(-1) || null)];
+      }),
+    );
   },
   consumption: periodConsumption,
   buckets: recorderBucketConsumptions,
@@ -134,6 +147,10 @@ function energyModel() {
   return section("energy", {});
 }
 
+function energyLoads() {
+  return section("energyLoads", []);
+}
+
 function entityOverrides() {
   const current = section("entityOverrides", null);
   return current && typeof current === "object"
@@ -147,7 +164,7 @@ function hasConfiguredEnergy() {
     const group = energy?.[definition.group] || {};
     return Boolean(
       clean(group[definition.totalKey]) ||
-        Object.values(definition.periodKeys).some((key) => clean(group[key])),
+      Object.values(definition.periodKeys).some((key) => clean(group[key])),
     );
   });
 }
@@ -302,12 +319,26 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
   const generation = ++state.generation;
   const monthDate = selectedDate(period);
   const today = new Date();
-  const [dayResult, monthResult, yearResult, deviceMonth, deviceYear] = await Promise.all([
+  const loadValues = async (kind, date) => {
+    const plans = energyLoadPeriodPlans(energyLoads(), kind, allStates(), root.resolveEntity);
+    return plans.length ? broker.valuesForPlans(plans, date, allStates()) : new Map();
+  };
+  const [
+    dayResult,
+    monthResult,
+    yearResult,
+    deviceMonth,
+    deviceYear,
+    energyLoadDay,
+    energyLoadMonth,
+  ] = await Promise.all([
     loadEnergyPeriod("day", today),
     loadEnergyPeriod("month", monthDate),
     loadEnergyPeriod("year", monthDate),
     loadDevicePeriod("month", monthDate),
     loadDevicePeriod("year", monthDate),
+    loadValues("day", today),
+    loadValues("month", monthDate),
   ]);
   if (generation !== state.generation) return null;
 
@@ -320,17 +351,21 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
     throw new Error(`Incomplete Home Assistant statistics: ${incompleteMessage(results)}`);
   }
 
-  return reconcileEnergyBundle(Object.freeze({
-    generation,
-    period: Object.freeze({ ...period }),
-    day: dayResult.data,
-    month: monthResult.data,
-    year: yearResult.data,
-    sources: Object.freeze({ day: dayResult, month: monthResult, year: yearResult }),
-    deviceMonth,
-    deviceYear,
-    rates: Object.freeze(rates()),
-  }));
+  return reconcileEnergyBundle(
+    Object.freeze({
+      generation,
+      period: Object.freeze({ ...period }),
+      day: dayResult.data,
+      month: monthResult.data,
+      year: yearResult.data,
+      sources: Object.freeze({ day: dayResult, month: monthResult, year: yearResult }),
+      deviceMonth,
+      deviceYear,
+      energyLoadDay,
+      energyLoadMonth,
+      rates: Object.freeze(rates()),
+    }),
+  );
 }
 
 function writeDerived(plan, value, kind, date) {
@@ -363,7 +398,9 @@ function commitDerived(bundle) {
   };
   for (const kind of ["day", "month", "year"]) {
     const result = bundle.sources[kind];
-    result.plans.forEach((plan) => writeDerived(plan, result.values.get(plan.key), kind, dates[kind]));
+    result.plans.forEach((plan) =>
+      writeDerived(plan, result.values.get(plan.key), kind, dates[kind]),
+    );
   }
 }
 
@@ -401,11 +438,33 @@ function applyFlow(kind, data) {
     const node = doc?.getElementById(`n-${key}-${suffix}`);
     if (node) node.dataset.dmPeriodOwner = VERSION;
   }
+  renderDynamicLoads(kind, state.bundle?.[`energyLoad${kind === "day" ? "Day" : "Month"}`]);
+}
+
+const LEGACY_LOAD_SELECTOR = ["boiler", "wb", "clima", "lav", "cuc"]
+  .flatMap((key) => [`#n-${key}`, `[id^="line-home-${key}"]`, `[id^="m-line-home-${key}"]`])
+  .join(",");
+
+function renderDynamicLoads(kind = "instant", periodValues = null) {
+  const view = doc?.querySelector(kind === "instant" ? "#view-ist" : `#view-${kind}`);
+  const stage = view?.querySelector(".flow-stage");
+  stage?.querySelectorAll?.(LEGACY_LOAD_SELECTOR).forEach((node) => node.remove());
+  renderEnergyLoadNodes(doc, stage, energyLoads(), {
+    states: allStates(),
+    periodValues: kind === "instant" ? null : periodValues || new Map(),
+  });
+}
+
+function applyBatterySoc() {
+  setText("v-battery-soc", batterySocLabel(energyModel(), allStates()));
 }
 
 function autonomy(data) {
   if (data.house <= 0) return 0;
-  return Math.max(0, Math.min(100, Math.round(((data.house - data.gridImport) / data.house) * 100)));
+  return Math.max(
+    0,
+    Math.min(100, Math.round(((data.house - data.gridImport) / data.house) * 100)),
+  );
 }
 
 function financial(data, bundle) {
@@ -473,7 +532,9 @@ function applyDeviceRows(bundle) {
   list.querySelectorAll(".ed-device-row").forEach((row) => {
     const direct = clean(row.dataset.entity || row.dataset.sensor);
     const name = clean(row.querySelector(".ed-dev-name")?.childNodes?.[0]?.textContent);
-    const device = devices.find((item) => clean(item.name) === name || clean(item.entity) === direct);
+    const device = devices.find(
+      (item) => clean(item.name) === name || clean(item.entity) === direct,
+    );
     const entity = clean(device?.history || device?.entity || direct);
     const value = values.get(entity) ?? values.get(root.resolveEntity?.(entity) || entity);
     if (!Number.isFinite(value)) return;
@@ -509,7 +570,9 @@ function applyDeviceDetail(bundle) {
   const selector = doc?.getElementById("ed-dev-selector");
   const entity = clean(selector?.value);
   if (!entity || !bundle?.deviceMonth || !bundle?.deviceYear) return false;
-  const device = bundle.deviceMonth.devices.find((item) => item.entity === entity || item.history === entity);
+  const device = bundle.deviceMonth.devices.find(
+    (item) => item.entity === entity || item.history === entity,
+  );
   const source = clean(device?.history || entity);
   const monthValue = valueFrom(bundle.deviceMonth.values, source);
   const yearValue = valueFrom(bundle.deviceYear.values, source);
@@ -526,14 +589,26 @@ function applyDeviceDetail(bundle) {
   setText("ed-dkpi-media", `${formatNumber(days ? monthValue / days : 0, 2)} kWh`);
   setText("ed-dkpi-media-sub", t("Media/giorno", "Daily average"));
   setText("ed-dkpi-risp-eur", `+ ${formatNumber(monthSplit.solar * importPrice, 2)} €`);
-  setText("ed-dkpi-risp-kwh", `${formatNumber(monthSplit.solar, 1)} kWh ${t("da FV", "from solar")}`);
+  setText(
+    "ed-dkpi-risp-kwh",
+    `${formatNumber(monthSplit.solar, 1)} kWh ${t("da FV", "from solar")}`,
+  );
   setText("ed-dkpi-costo-eur", `- ${formatNumber(monthSplit.grid * importPrice, 2)} €`);
-  setText("ed-dkpi-costo-kwh", `${formatNumber(monthSplit.grid, 1)} kWh ${t("dalla rete", "from grid")}`);
+  setText(
+    "ed-dkpi-costo-kwh",
+    `${formatNumber(monthSplit.grid, 1)} kWh ${t("dalla rete", "from grid")}`,
+  );
   setText("ed-dkpi-year-lbl", String(selectedYear));
   setText("ed-dkpi-anno-risp-eur", `+ ${formatNumber(yearSplit.solar * importPrice, 2)} €`);
-  setText("ed-dkpi-anno-risp-kwh", `${formatNumber(yearSplit.solar, 1)} kWh ${t("da FV", "from solar")}`);
+  setText(
+    "ed-dkpi-anno-risp-kwh",
+    `${formatNumber(yearSplit.solar, 1)} kWh ${t("da FV", "from solar")}`,
+  );
   setText("ed-dkpi-anno-costo-eur", `- ${formatNumber(yearSplit.grid * importPrice, 2)} €`);
-  setText("ed-dkpi-anno-costo-kwh", `${formatNumber(yearSplit.grid, 1)} kWh ${t("dalla rete", "from grid")}`);
+  setText(
+    "ed-dkpi-anno-costo-kwh",
+    `${formatNumber(yearSplit.grid, 1)} kWh ${t("dalla rete", "from grid")}`,
+  );
 
   const panel = doc?.querySelector(".ed-device-detail,#ed-device-detail");
   if (panel)
@@ -550,6 +625,8 @@ export function applyAtomicEnergyBundle(bundle = state.bundle) {
     applyReportOverview(bundle);
     applyAnnual(bundle);
     applyDeviceRows(bundle);
+    applyBatterySoc();
+    renderDynamicLoads("instant");
     applyDeviceDetail(bundle);
     doc.querySelectorAll("#view-day,#view-month,#view-panoramica").forEach((node) => {
       node.dataset.dmEnergyBundle = String(bundle.generation);
@@ -588,7 +665,10 @@ export async function refreshEnergy(period = selectedPeriod()) {
     return true;
   } catch (error) {
     state.lastError = clean(error?.message || error);
-    root.console?.warn?.("[DashboardModern] atomic energy refresh retained the last good bundle", error);
+    root.console?.warn?.(
+      "[DashboardModern] atomic energy refresh retained the last good bundle",
+      error,
+    );
     if (!state.bundle && state.retryCount < 40) {
       state.retryCount += 1;
       scheduleEnergyRefresh(true, 250);
@@ -619,14 +699,63 @@ function scheduleEnergyRefresh(force = false, explicitDelay = null) {
 }
 
 const TOTAL_FIELDS = Object.freeze([
-  ["house", "total_energy", "annual_energy", "Energia totale", "Total energy", "sensor.casa_totale"],
+  [
+    "house",
+    "total_energy",
+    "annual_energy",
+    "Energia totale",
+    "Total energy",
+    "sensor.casa_totale",
+  ],
   ["solar", "total_energy", "annual_energy", "Energia totale", "Total energy", "sensor.fv_totale"],
-  ["grid", "total_import_energy", "monthly_import_energy", "Energia totale prelevata", "Total imported energy", "sensor.rete_prelievo_totale"],
-  ["grid", "total_export_energy", "monthly_export_energy", "Energia totale immessa", "Total exported energy", "sensor.rete_immissione_totale"],
-  ["battery", "daily_discharged_energy", "daily_charged_energy", "Scaricata oggi", "Discharged today", "sensor.batteria_scaricata_oggi"],
-  ["battery", "monthly_discharged_energy", "monthly_charged_energy", "Scaricata questo mese", "Discharged this month", "sensor.batteria_scaricata_mese"],
-  ["battery", "total_charged_energy", "monthly_charged_energy", "Energia totale caricata", "Total charged energy", "sensor.batteria_caricata_totale"],
-  ["battery", "total_discharged_energy", "monthly_discharged_energy", "Energia totale scaricata", "Total discharged energy", "sensor.batteria_scaricata_totale"],
+  [
+    "grid",
+    "total_import_energy",
+    "monthly_import_energy",
+    "Energia totale prelevata",
+    "Total imported energy",
+    "sensor.rete_prelievo_totale",
+  ],
+  [
+    "grid",
+    "total_export_energy",
+    "monthly_export_energy",
+    "Energia totale immessa",
+    "Total exported energy",
+    "sensor.rete_immissione_totale",
+  ],
+  [
+    "battery",
+    "daily_discharged_energy",
+    "daily_charged_energy",
+    "Scaricata oggi",
+    "Discharged today",
+    "sensor.batteria_scaricata_oggi",
+  ],
+  [
+    "battery",
+    "monthly_discharged_energy",
+    "monthly_charged_energy",
+    "Scaricata questo mese",
+    "Discharged this month",
+    "sensor.batteria_scaricata_mese",
+  ],
+  [
+    "battery",
+    "total_charged_energy",
+    "monthly_charged_energy",
+    "Energia totale caricata",
+    "Total charged energy",
+    "sensor.batteria_caricata_totale",
+  ],
+  [
+    "battery",
+    "total_discharged_energy",
+    "monthly_discharged_energy",
+    "Energia totale scaricata",
+    "Total discharged energy",
+    "sensor.batteria_scaricata_totale",
+  ],
 ]);
 
 function createTotalField(definition, value) {
@@ -694,9 +823,15 @@ function updateConfiguredCount(body) {
 }
 
 function installEnergyEditorContracts() {
-  const editor = doc?.querySelector('#ed-body[data-editor="energy"],#editor-modal [data-editor="energy"]');
+  const editor = doc?.querySelector(
+    '#ed-body[data-editor="energy"],#editor-modal [data-editor="energy"]',
+  );
   if (!editor) return false;
-  editor.querySelectorAll(".dm-energy-total-overview:not(.dm-energy-help-compact),.dm-energy-total-help:not(.dm-energy-total-note)").forEach((node) => node.remove());
+  editor
+    .querySelectorAll(
+      ".dm-energy-total-overview:not(.dm-energy-help-compact),.dm-energy-total-help:not(.dm-energy-total-note)",
+    )
+    .forEach((node) => node.remove());
   const flows = editor.querySelector('[data-energy-panel="flows"]') || editor;
   let overview = flows.querySelector(".dm-energy-help-compact");
   if (!overview) {
@@ -789,7 +924,11 @@ function bindEvents() {
   doc.addEventListener(
     "click",
     (event) => {
-      if (event.target?.closest?.("[data-tab='energy'],.sub-tab-btn,.ed-tab[data-tab='sez1'],[data-energy-tab]")) {
+      if (
+        event.target?.closest?.(
+          "[data-tab='energy'],.sub-tab-btn,.ed-tab[data-tab='sez1'],[data-energy-tab]",
+        )
+      ) {
         root.queueMicrotask?.(() => {
           installEnergyEditorContracts();
           scheduleProjection();
@@ -818,7 +957,9 @@ function bindEvents() {
 function subscribeStore() {
   if (state.storeUnsubscribe || !dashboardStore()?.subscribe) return;
   state.storeUnsubscribe = dashboardStore().subscribe((change) => {
-    if (["energy", "appliances", "loads", "entityOverrides"].includes(change.section)) {
+    if (
+      ["energy", "energyLoads", "appliances", "loads", "entityOverrides"].includes(change.section)
+    ) {
       scheduleEnergyRefresh(true);
     }
   });
