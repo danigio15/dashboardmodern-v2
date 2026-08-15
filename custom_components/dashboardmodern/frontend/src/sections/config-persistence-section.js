@@ -1,4 +1,4 @@
-// DM-FIX-20260815H
+// DM-FIX-20260815I
 import { normalizeSection } from "../core/migrations.js";
 import { root } from "./shared.js";
 
@@ -49,6 +49,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_ev_car_active",
   "cd_ev_visual",
   "cd_ev_image",
+  "cd_visual_prefer_image",
   "cd_tapparelle",
   "cd_piscina",
   "cd_irrigazione",
