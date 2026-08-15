@@ -8,6 +8,7 @@ import {
 } from "../core/personalization-catalog.js";
 import { clean, dashboardStore, doc, root, t } from "./shared.js";
 
+root.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_BETA17_FINAL_ICON_POLISH__";
 const state = (root[KEY] ||= {
   installed: false,
@@ -142,7 +143,7 @@ function ensureTemperatureRowMain(row, room) {
     node.style.setProperty("min-width", "0", "important");
   }
   main.style.setProperty("overflow", "hidden", "important");
-  primary.style.setProperty("color", "var(--primary-text-color,var(--text,#0f172a))", "important");
+  primary.style.setProperty("color", "var(--text,#0f172a)", "important");
   primary.style.setProperty("font-size", "14px", "important");
   primary.style.setProperty("font-weight", "900", "important");
   primary.style.setProperty("line-height", "1.25", "important");
@@ -211,10 +212,7 @@ function ensureTemperatureNameFields(form) {
 
   let humInput = form.querySelector("#dm-humidity-name");
   if (!humInput) {
-    const field = makeTemperatureNameField(
-      "dm-humidity-name",
-      t("Nome umidità", "Humidity name"),
-    );
+    const field = makeTemperatureNameField("dm-humidity-name", t("Nome umidità", "Humidity name"));
     const anchor = form
       .querySelector("#dm-humidity-new")
       ?.closest("[data-entity-field],label.ed-slot");
@@ -225,9 +223,11 @@ function ensureTemperatureNameFields(form) {
 
   const selected = clean(form.querySelector("#dm-temperature-room")?.value);
   const original = clean(form.dataset.dmOriginalRoom);
-  const editing = Boolean(original) || /^(modifica|edit)\b/i.test(
-    clean(form.querySelector("[data-temperature-form-title]")?.textContent),
-  );
+  const editing =
+    Boolean(original) ||
+    /^(modifica|edit)\b/i.test(
+      clean(form.querySelector("[data-temperature-form-title]")?.textContent),
+    );
   const context = `${editing ? "edit" : "add"}|${original || selected}`;
   if (form.dataset.dmBeta20TemperatureLabelContext !== context) {
     const room = temperatureLabelSourceRoom(form);
@@ -280,7 +280,8 @@ function scheduleTemperatureRepair() {
     runTemperatureRepair();
     root.requestAnimationFrame?.(runTemperatureRepair);
   };
-  state.temperatureEditorFrame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
+  state.temperatureEditorFrame =
+    root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
 }
 
 function captureTemperatureLabels(event) {
@@ -327,9 +328,7 @@ async function clearOrphanTemperatureLabels() {
   if (!store?.updateItem) return;
   const orphan = temperatureRooms().find(
     (room) =>
-      !clean(room.temp) &&
-      !clean(room.hum) &&
-      (clean(room.temp_name) || clean(room.hum_name)),
+      !clean(room.temp) && !clean(room.hum) && (clean(room.temp_name) || clean(room.hum_name)),
   );
   if (!orphan) return;
   state.clearingLabels = true;

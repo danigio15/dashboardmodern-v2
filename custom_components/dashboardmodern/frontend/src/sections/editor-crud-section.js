@@ -13,6 +13,7 @@ import {
   writeJsonIfChanged,
 } from "./shared.js";
 
+globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EDITOR_CRUD_SECTION__";
 const state = (root[KEY] ||= { installed: false, listeners: false, editing: null });
 
@@ -325,7 +326,7 @@ function installStyles() {
       #editor-modal .dm-report-history-help{grid-column:1/-1;color:var(--secondary-text-color,#64748b);font-size:11px;line-height:1.4}
       #editor-modal .dm-report-row[data-history-valid="false"] .dm-report-history-help{color:var(--warning-color,#b45309);font-weight:800}
       #editor-modal .dm-edit-existing{background:color-mix(in srgb,var(--info-color,#0ea5e9) 14%,transparent)!important;color:var(--info-color,#0369a1)!important}
-      #editor-modal .dm-edit-cancel{width:100%;margin-top:7px;background:var(--secondary-background-color,#e8eef5)!important;color:var(--primary-text-color,#0f172a)!important}
+      #editor-modal .dm-edit-cancel{width:100%;margin-top:7px;background:var(--secondary-background-color,#e8eef5)!important;color:var(--text,#0f172a)!important}
       #editor-modal [data-dm-editing="true"]{outline:2px solid color-mix(in srgb,var(--info-color,#0ea5e9) 45%,transparent);outline-offset:2px}
       @media(max-width:900px){#editor-modal [data-energy-panel="report"] .dm-report-row{grid-template-columns:1fr 1fr!important}#editor-modal [data-energy-panel="report"] .dm-report-row .dm-entity-field,#editor-modal .dm-report-history-help{grid-column:1/-1!important}}
       @media(max-width:560px){

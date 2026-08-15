@@ -4,6 +4,7 @@ import {
   periodConsumption,
   recorderBucketConsumptions,
   sourcePlans,
+  isCumulativeEnergyEntity,
 } from "../core/period-service.js";
 import { reconcileEnergyBundle } from "./energy-calculations-section.js";
 import {
@@ -31,6 +32,7 @@ import {
 import { runtimeMetrics } from "../core/runtime-metrics.js";
 import { BUILD_INFO } from "../../legacy/build-info.js";
 
+root.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_RUNTIME_ROOT__";
 const VERSION = BUILD_INFO.dashboardVersion || BUILD_INFO.integrationVersion || "UNBUILT";
 const state = (root[KEY] ||= {});
@@ -102,12 +104,18 @@ root.DashboardModernEnergyService = Object.freeze({
     else if (period === "month") baselineStart.setMonth(baselineStart.getMonth() - 1);
     else baselineStart.setDate(baselineStart.getDate() - 2);
     const result = await broker.statistics(ids, baselineStart, end, period);
-    return Object.fromEntries(ids.map((id) => {
-      const ordered = (result[id] || []).slice().sort((a, b) => new Date(a.start) - new Date(b.start));
-      const before = ordered.filter((row) => new Date(row.start) < boundary);
-      const within = ordered.filter((row) => new Date(row.start) >= boundary && new Date(row.start) < new Date(end));
-      return [id, recorderBucketConsumptions(within, before.at(-1) || null)];
-    }));
+    return Object.fromEntries(
+      ids.map((id) => {
+        const ordered = (result[id] || [])
+          .slice()
+          .sort((a, b) => new Date(a.start) - new Date(b.start));
+        const before = ordered.filter((row) => new Date(row.start) < boundary);
+        const within = ordered.filter(
+          (row) => new Date(row.start) >= boundary && new Date(row.start) < new Date(end),
+        );
+        return [id, recorderBucketConsumptions(within, before.at(-1) || null)];
+      }),
+    );
   },
   consumption: periodConsumption,
   buckets: recorderBucketConsumptions,
@@ -147,7 +155,7 @@ function hasConfiguredEnergy() {
     const group = energy?.[definition.group] || {};
     return Boolean(
       clean(group[definition.totalKey]) ||
-        Object.values(definition.periodKeys).some((key) => clean(group[key])),
+      Object.values(definition.periodKeys).some((key) => clean(group[key])),
     );
   });
 }
@@ -249,6 +257,16 @@ function canonicalDevices() {
     .filter((item) => item.entity);
 }
 
+async function loadEnergyLoadsDay(date) {
+  const loads = section("energyLoads", []);
+  const plans = loads.flatMap((load) => {
+    const entity = clean(load.energy_entity);
+    return entity ? [{ key: load.id, entity, source: entity, kind: "day", direct: false }] : [];
+  });
+  if (!plans.length) return new Map();
+  return broker.valuesForPlans(plans, date, allStates());
+}
+
 async function loadDevicePeriod(kind, date) {
   const devices = canonicalDevices();
   const plans = devices.flatMap((item, index) => {
@@ -302,13 +320,15 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
   const generation = ++state.generation;
   const monthDate = selectedDate(period);
   const today = new Date();
-  const [dayResult, monthResult, yearResult, deviceMonth, deviceYear] = await Promise.all([
-    loadEnergyPeriod("day", today),
-    loadEnergyPeriod("month", monthDate),
-    loadEnergyPeriod("year", monthDate),
-    loadDevicePeriod("month", monthDate),
-    loadDevicePeriod("year", monthDate),
-  ]);
+  const [dayResult, monthResult, yearResult, deviceMonth, deviceYear, energyLoadsDay] =
+    await Promise.all([
+      loadEnergyPeriod("day", today),
+      loadEnergyPeriod("month", monthDate),
+      loadEnergyPeriod("year", monthDate),
+      loadDevicePeriod("month", monthDate),
+      loadDevicePeriod("year", monthDate),
+      loadEnergyLoadsDay(today),
+    ]);
   if (generation !== state.generation) return null;
 
   const results = [
@@ -320,17 +340,20 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
     throw new Error(`Incomplete Home Assistant statistics: ${incompleteMessage(results)}`);
   }
 
-  return reconcileEnergyBundle(Object.freeze({
-    generation,
-    period: Object.freeze({ ...period }),
-    day: dayResult.data,
-    month: monthResult.data,
-    year: yearResult.data,
-    sources: Object.freeze({ day: dayResult, month: monthResult, year: yearResult }),
-    deviceMonth,
-    deviceYear,
-    rates: Object.freeze(rates()),
-  }));
+  return reconcileEnergyBundle(
+    Object.freeze({
+      generation,
+      period: Object.freeze({ ...period }),
+      day: dayResult.data,
+      month: monthResult.data,
+      year: yearResult.data,
+      sources: Object.freeze({ day: dayResult, month: monthResult, year: yearResult }),
+      deviceMonth,
+      deviceYear,
+      energyLoadsDay,
+      rates: Object.freeze(rates()),
+    }),
+  );
 }
 
 function writeDerived(plan, value, kind, date) {
@@ -363,7 +386,9 @@ function commitDerived(bundle) {
   };
   for (const kind of ["day", "month", "year"]) {
     const result = bundle.sources[kind];
-    result.plans.forEach((plan) => writeDerived(plan, result.values.get(plan.key), kind, dates[kind]));
+    result.plans.forEach((plan) =>
+      writeDerived(plan, result.values.get(plan.key), kind, dates[kind]),
+    );
   }
 }
 
@@ -405,7 +430,10 @@ function applyFlow(kind, data) {
 
 function autonomy(data) {
   if (data.house <= 0) return 0;
-  return Math.max(0, Math.min(100, Math.round(((data.house - data.gridImport) / data.house) * 100)));
+  return Math.max(
+    0,
+    Math.min(100, Math.round(((data.house - data.gridImport) / data.house) * 100)),
+  );
 }
 
 function financial(data, bundle) {
@@ -473,7 +501,9 @@ function applyDeviceRows(bundle) {
   list.querySelectorAll(".ed-device-row").forEach((row) => {
     const direct = clean(row.dataset.entity || row.dataset.sensor);
     const name = clean(row.querySelector(".ed-dev-name")?.childNodes?.[0]?.textContent);
-    const device = devices.find((item) => clean(item.name) === name || clean(item.entity) === direct);
+    const device = devices.find(
+      (item) => clean(item.name) === name || clean(item.entity) === direct,
+    );
     const entity = clean(device?.history || device?.entity || direct);
     const value = values.get(entity) ?? values.get(root.resolveEntity?.(entity) || entity);
     if (!Number.isFinite(value)) return;
@@ -509,7 +539,9 @@ function applyDeviceDetail(bundle) {
   const selector = doc?.getElementById("ed-dev-selector");
   const entity = clean(selector?.value);
   if (!entity || !bundle?.deviceMonth || !bundle?.deviceYear) return false;
-  const device = bundle.deviceMonth.devices.find((item) => item.entity === entity || item.history === entity);
+  const device = bundle.deviceMonth.devices.find(
+    (item) => item.entity === entity || item.history === entity,
+  );
   const source = clean(device?.history || entity);
   const monthValue = valueFrom(bundle.deviceMonth.values, source);
   const yearValue = valueFrom(bundle.deviceYear.values, source);
@@ -526,14 +558,26 @@ function applyDeviceDetail(bundle) {
   setText("ed-dkpi-media", `${formatNumber(days ? monthValue / days : 0, 2)} kWh`);
   setText("ed-dkpi-media-sub", t("Media/giorno", "Daily average"));
   setText("ed-dkpi-risp-eur", `+ ${formatNumber(monthSplit.solar * importPrice, 2)} €`);
-  setText("ed-dkpi-risp-kwh", `${formatNumber(monthSplit.solar, 1)} kWh ${t("da FV", "from solar")}`);
+  setText(
+    "ed-dkpi-risp-kwh",
+    `${formatNumber(monthSplit.solar, 1)} kWh ${t("da FV", "from solar")}`,
+  );
   setText("ed-dkpi-costo-eur", `- ${formatNumber(monthSplit.grid * importPrice, 2)} €`);
-  setText("ed-dkpi-costo-kwh", `${formatNumber(monthSplit.grid, 1)} kWh ${t("dalla rete", "from grid")}`);
+  setText(
+    "ed-dkpi-costo-kwh",
+    `${formatNumber(monthSplit.grid, 1)} kWh ${t("dalla rete", "from grid")}`,
+  );
   setText("ed-dkpi-year-lbl", String(selectedYear));
   setText("ed-dkpi-anno-risp-eur", `+ ${formatNumber(yearSplit.solar * importPrice, 2)} €`);
-  setText("ed-dkpi-anno-risp-kwh", `${formatNumber(yearSplit.solar, 1)} kWh ${t("da FV", "from solar")}`);
+  setText(
+    "ed-dkpi-anno-risp-kwh",
+    `${formatNumber(yearSplit.solar, 1)} kWh ${t("da FV", "from solar")}`,
+  );
   setText("ed-dkpi-anno-costo-eur", `- ${formatNumber(yearSplit.grid * importPrice, 2)} €`);
-  setText("ed-dkpi-anno-costo-kwh", `${formatNumber(yearSplit.grid, 1)} kWh ${t("dalla rete", "from grid")}`);
+  setText(
+    "ed-dkpi-anno-costo-kwh",
+    `${formatNumber(yearSplit.grid, 1)} kWh ${t("dalla rete", "from grid")}`,
+  );
 
   const panel = doc?.querySelector(".ed-device-detail,#ed-device-detail");
   if (panel)
@@ -588,7 +632,10 @@ export async function refreshEnergy(period = selectedPeriod()) {
     return true;
   } catch (error) {
     state.lastError = clean(error?.message || error);
-    root.console?.warn?.("[DashboardModern] atomic energy refresh retained the last good bundle", error);
+    root.console?.warn?.(
+      "[DashboardModern] atomic energy refresh retained the last good bundle",
+      error,
+    );
     if (!state.bundle && state.retryCount < 40) {
       state.retryCount += 1;
       scheduleEnergyRefresh(true, 250);
@@ -619,14 +666,63 @@ function scheduleEnergyRefresh(force = false, explicitDelay = null) {
 }
 
 const TOTAL_FIELDS = Object.freeze([
-  ["house", "total_energy", "annual_energy", "Energia totale", "Total energy", "sensor.casa_totale"],
+  [
+    "house",
+    "total_energy",
+    "annual_energy",
+    "Energia totale",
+    "Total energy",
+    "sensor.casa_totale",
+  ],
   ["solar", "total_energy", "annual_energy", "Energia totale", "Total energy", "sensor.fv_totale"],
-  ["grid", "total_import_energy", "monthly_import_energy", "Energia totale prelevata", "Total imported energy", "sensor.rete_prelievo_totale"],
-  ["grid", "total_export_energy", "monthly_export_energy", "Energia totale immessa", "Total exported energy", "sensor.rete_immissione_totale"],
-  ["battery", "daily_discharged_energy", "daily_charged_energy", "Scaricata oggi", "Discharged today", "sensor.batteria_scaricata_oggi"],
-  ["battery", "monthly_discharged_energy", "monthly_charged_energy", "Scaricata questo mese", "Discharged this month", "sensor.batteria_scaricata_mese"],
-  ["battery", "total_charged_energy", "monthly_charged_energy", "Energia totale caricata", "Total charged energy", "sensor.batteria_caricata_totale"],
-  ["battery", "total_discharged_energy", "monthly_discharged_energy", "Energia totale scaricata", "Total discharged energy", "sensor.batteria_scaricata_totale"],
+  [
+    "grid",
+    "total_import_energy",
+    "monthly_import_energy",
+    "Energia totale prelevata",
+    "Total imported energy",
+    "sensor.rete_prelievo_totale",
+  ],
+  [
+    "grid",
+    "total_export_energy",
+    "monthly_export_energy",
+    "Energia totale immessa",
+    "Total exported energy",
+    "sensor.rete_immissione_totale",
+  ],
+  [
+    "battery",
+    "daily_discharged_energy",
+    "daily_charged_energy",
+    "Scaricata oggi",
+    "Discharged today",
+    "sensor.batteria_scaricata_oggi",
+  ],
+  [
+    "battery",
+    "monthly_discharged_energy",
+    "monthly_charged_energy",
+    "Scaricata questo mese",
+    "Discharged this month",
+    "sensor.batteria_scaricata_mese",
+  ],
+  [
+    "battery",
+    "total_charged_energy",
+    "monthly_charged_energy",
+    "Energia totale caricata",
+    "Total charged energy",
+    "sensor.batteria_caricata_totale",
+  ],
+  [
+    "battery",
+    "total_discharged_energy",
+    "monthly_discharged_energy",
+    "Energia totale scaricata",
+    "Total discharged energy",
+    "sensor.batteria_scaricata_totale",
+  ],
 ]);
 
 function createTotalField(definition, value) {
@@ -686,6 +782,125 @@ async function persistEnergyField(group, key, value) {
   await store.replaceSection("energy", model);
 }
 
+function entityField(label, key, value, placeholder) {
+  const wrap = doc.createElement("label");
+  wrap.className = "ed-slot dm-energy-load-field";
+  wrap.innerHTML = `<span class="ed-slot-lbl">${esc(label)}</span>`;
+  const row = doc.createElement("span");
+  row.className = "ed-form-row";
+  const input = doc.createElement("input");
+  input.className = "ed-input ed-slot-in mono";
+  input.name = key;
+  input.value = clean(value);
+  input.placeholder = placeholder;
+  input.dataset.entityInput = "true";
+  input.id = `dm-energy-${key}-${Math.random().toString(36).slice(2)}`;
+  const picker = doc.createElement("button");
+  picker.type = "button";
+  picker.className = "dm-entity-picker";
+  picker.textContent = "🔍";
+  picker.addEventListener("click", () => root.wzPickEntity?.(input));
+  row.append(input, picker);
+  wrap.append(row);
+  return { wrap, input };
+}
+
+function validSocEntity(entity) {
+  if (!entity) return true;
+  const attrs = allStates()[entity]?.attributes || {};
+  return attrs.device_class === "battery" || attrs.unit_of_measurement === "%";
+}
+
+async function persistEnergyLoads(loads) {
+  const store = dashboardStore();
+  if (store?.replaceSection) await store.replaceSection("energyLoads", loads.slice(0, 8));
+}
+
+function installBatterySocField(editor, model) {
+  if (editor.querySelector("#dm-energy-battery-soc")) return;
+  const anchor = editor.querySelector("#dm-energy-battery-daily_discharged_energy");
+  const body = anchor?.closest(".ed-acc-body");
+  if (!body) return;
+  const { wrap, input } = entityField(
+    t("Entità SOC batteria", "Battery SOC entity"),
+    "battery-soc",
+    model.battery?.battery_soc_entity || model.battery?.battery_soc,
+    "sensor.batteria_soc",
+  );
+  input.id = "dm-energy-battery-soc";
+  input.addEventListener("change", async () => {
+    const valid = validSocEntity(clean(input.value));
+    input.dataset.validation = valid ? "valid" : "invalid";
+    if (!valid) return;
+    await persistEnergyField("battery", "battery_soc_entity", input.value);
+    scheduleProjection();
+  });
+  body.prepend(wrap);
+}
+
+function installEnergyLoadsEditor(editor) {
+  let panel = editor.querySelector("[data-energy-loads-editor]");
+  if (!panel) {
+    panel = doc.createElement("section");
+    panel.className = "dm-energy-loads-editor";
+    panel.dataset.energyLoadsEditor = "true";
+    (editor.querySelector('[data-energy-panel="flows"]') || editor).append(panel);
+  }
+  const loads = section("energyLoads", []);
+  panel.innerHTML = `<h3>${t("Carichi", "Loads")}</h3><div class="dm-energy-load-list"></div>${loads.length < 8 ? `<button type="button" data-energy-load-add>＋ ${t("Aggiungi carico", "Add load")}</button>` : ""}`;
+  const list = panel.querySelector(".dm-energy-load-list");
+  loads.forEach((load, index) => {
+    const row = doc.createElement("div");
+    row.className = "ed-row dm-energy-load-row";
+    row.dataset.energyLoadId = load.id;
+    row.innerHTML = `<span class="dm-energy-load-icon">${esc(load.icon)}</span><span class="ed-row-main"><strong class="ed-row-new">${esc(load.name)}</strong><small>${esc(load.power_entity)}${load.energy_entity ? ` · ${esc(load.energy_entity)}` : ""}</small></span><button type="button" data-edit>✎</button><button type="button" data-delete>🗑</button>`;
+    row.querySelector("[data-delete]").addEventListener("click", async () => {
+      await persistEnergyLoads(loads.filter((_, position) => position !== index));
+      installEnergyLoadsEditor(editor);
+    });
+    row
+      .querySelector("[data-edit]")
+      .addEventListener("click", () => showEnergyLoadForm(editor, load, index));
+    list.append(row);
+  });
+  panel
+    .querySelector("[data-energy-load-add]")
+    ?.addEventListener("click", () => showEnergyLoadForm(editor));
+}
+
+function showEnergyLoadForm(editor, load = {}, editIndex = -1) {
+  const panel = editor.querySelector("[data-energy-loads-editor]");
+  let form = panel.querySelector("form");
+  form?.remove();
+  form = doc.createElement("form");
+  form.className = "dm-energy-load-form";
+  form.innerHTML = `<input class="ed-input" name="name" required maxlength="48" placeholder="${t("Nome", "Name")}" value="${esc(load.name)}"><input class="ed-input" name="icon" placeholder="mdi:flash" value="${esc(load.icon || "mdi:flash")}"><input class="ed-input" name="power_entity" required placeholder="sensor.potenza" value="${esc(load.power_entity)}"><input class="ed-input" name="energy_entity" placeholder="sensor.energia_totale" value="${esc(load.energy_entity)}"><input name="color" type="color" value="${esc(load.color || "#0ea5e9")}"><button type="submit">${t("Salva", "Save")}</button>`;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(form));
+    if (
+      data.energy_entity &&
+      !isCumulativeEnergyEntity(data.energy_entity, allStates(), root.resolveEntity)
+    ) {
+      form.elements.energy_entity.dataset.validation = "invalid";
+      return;
+    }
+    const loads = section("energyLoads", []);
+    const item = {
+      ...load,
+      ...data,
+      id: load.id || "",
+      order: editIndex < 0 ? loads.length : editIndex,
+    };
+    if (editIndex < 0) loads.push(item);
+    else loads[editIndex] = item;
+    await persistEnergyLoads(loads);
+    installEnergyLoadsEditor(editor);
+    scheduleProjection();
+  });
+  panel.append(form);
+}
+
 function updateConfiguredCount(body) {
   const counter = body?.closest("details.ed-acc")?.querySelector("summary small");
   if (!counter) return;
@@ -694,9 +909,15 @@ function updateConfiguredCount(body) {
 }
 
 function installEnergyEditorContracts() {
-  const editor = doc?.querySelector('#ed-body[data-editor="energy"],#editor-modal [data-editor="energy"]');
+  const editor = doc?.querySelector(
+    '#ed-body[data-editor="energy"],#editor-modal [data-editor="energy"]',
+  );
   if (!editor) return false;
-  editor.querySelectorAll(".dm-energy-total-overview:not(.dm-energy-help-compact),.dm-energy-total-help:not(.dm-energy-total-note)").forEach((node) => node.remove());
+  editor
+    .querySelectorAll(
+      ".dm-energy-total-overview:not(.dm-energy-help-compact),.dm-energy-total-help:not(.dm-energy-total-note)",
+    )
+    .forEach((node) => node.remove());
   const flows = editor.querySelector('[data-energy-panel="flows"]') || editor;
   let overview = flows.querySelector(".dm-energy-help-compact");
   if (!overview) {
@@ -710,6 +931,8 @@ function installEnergyEditorContracts() {
   }
 
   const model = energyModel();
+  installBatterySocField(editor, model);
+  installEnergyLoadsEditor(editor);
   TOTAL_FIELDS.forEach((definition) => {
     const [group, key, afterKey] = definition;
     if (editor.querySelector(`#dm-energy-${group}-${key}`)) return;
@@ -763,7 +986,7 @@ function installStyles() {
       .dm-energy-awaiting #n-solar-month,.dm-energy-awaiting #n-home-month,.dm-energy-awaiting #n-grid-month,.dm-energy-awaiting #n-battery-month{visibility:hidden!important}
       .dm-energy-awaiting::after{content:"${t("Caricamento dati Energia…", "Loading Energy data…")}";position:absolute;inset:0;display:grid;place-items:center;color:var(--secondary-text-color,#64748b);font-weight:800;letter-spacing:.04em;background:color-mix(in srgb,var(--card-bg,#fff) 88%,transparent);z-index:3}
       .dm-energy-loading:not(.dm-energy-awaiting){opacity:.92;transition:opacity .15s ease}
-      .dm-energy-help-compact{display:grid;gap:4px;margin:0 0 14px;padding:12px 14px;border:1px solid var(--divider-color,rgba(15,23,42,.12));border-radius:14px;background:var(--secondary-background-color,rgba(14,165,233,.08));color:var(--primary-text-color,#0f172a);font-size:13px;line-height:1.45}
+      .dm-energy-help-compact{display:grid;gap:4px;margin:0 0 14px;padding:12px 14px;border:1px solid var(--divider-color,rgba(15,23,42,.12));border-radius:14px;background:var(--secondary-background-color,rgba(14,165,233,.08));color:var(--text,#0f172a);font-size:13px;line-height:1.45}
       .dm-energy-help-compact strong{font-size:14px}
       .dm-energy-total-note{display:block;margin-top:6px;color:var(--secondary-text-color,#64748b);font-size:11px;line-height:1.35}
       #editor-modal[data-dm-editor-theme="dark"] .dm-energy-help-compact{background:var(--dm-editor-panel,#1b2540);border-color:var(--dm-editor-border,#263453);color:var(--dm-editor-text,#e6edf7)}
@@ -789,7 +1012,11 @@ function bindEvents() {
   doc.addEventListener(
     "click",
     (event) => {
-      if (event.target?.closest?.("[data-tab='energy'],.sub-tab-btn,.ed-tab[data-tab='sez1'],[data-energy-tab]")) {
+      if (
+        event.target?.closest?.(
+          "[data-tab='energy'],.sub-tab-btn,.ed-tab[data-tab='sez1'],[data-energy-tab]",
+        )
+      ) {
         root.queueMicrotask?.(() => {
           installEnergyEditorContracts();
           scheduleProjection();

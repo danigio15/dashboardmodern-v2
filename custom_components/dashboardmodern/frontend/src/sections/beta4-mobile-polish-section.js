@@ -3,6 +3,7 @@ import { clean, doc, esc, formatNumber, installStyle, root, t, wrapFunction } fr
 
 // Kept in the beta4 entry filename for release compatibility, but this module is
 // now the final root-cause owner for the regressions reported after beta.4.
+globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_BETA5_ROOT_CAUSES__";
 const state = (root[KEY] ||= { installed: false, frame: 0, listeners: false, dailyChart: null });
 
@@ -547,7 +548,7 @@ function installStyles() {
 
     #ed-body .ed-row[data-section-key] .ed-row-main{display:grid!important;grid-template-columns:minmax(0,1fr) 44px!important;grid-template-rows:auto!important;align-items:center!important;gap:8px!important;min-width:0!important;padding-right:0!important;position:relative!important}
     #ed-body .ed-row[data-section-key] .ed-row-main>.ed-row-new{grid-column:1!important;grid-row:1!important;min-width:0!important}
-    #ed-body .ed-row[data-section-key] .dm-inline-rename[data-dm-beta5-primary="true"]{grid-column:2!important;grid-row:1!important;position:static!important;inset:auto!important;transform:none!important;display:grid!important;place-items:center!important;width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;margin:0!important;padding:0!important;border:1px solid color-mix(in srgb,var(--info-color,#0ea5e9) 28%,var(--divider-color,#dbe4ee))!important;border-radius:13px!important;background:color-mix(in srgb,var(--info-color,#0ea5e9) 10%,var(--card-background-color,#fff))!important;color:var(--primary-text-color,#0f172a)!important;font-size:19px!important;line-height:1!important;box-shadow:none!important;overflow:visible!important}
+    #ed-body .ed-row[data-section-key] .dm-inline-rename[data-dm-beta5-primary="true"]{grid-column:2!important;grid-row:1!important;position:static!important;inset:auto!important;transform:none!important;display:grid!important;place-items:center!important;width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;margin:0!important;padding:0!important;border:1px solid color-mix(in srgb,var(--info-color,#0ea5e9) 28%,var(--divider-color,#dbe4ee))!important;border-radius:13px!important;background:color-mix(in srgb,var(--info-color,#0ea5e9) 10%,var(--card-background-color,#fff))!important;color:var(--text,#0f172a)!important;font-size:19px!important;line-height:1!important;box-shadow:none!important;overflow:visible!important}
     #ed-body .ed-row[data-section-key] .dm-inline-rename[data-rename]:not([data-dm-beta5-primary="true"]){display:none!important}
 
     .dm-car-brand{display:grid!important;place-items:center!important;color:var(--info-color,#0284c7)!important;background:transparent!important}

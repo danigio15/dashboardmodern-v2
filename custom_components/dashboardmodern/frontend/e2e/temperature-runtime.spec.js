@@ -102,6 +102,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         _RAW_STATES[state.entity_id] = state;
         STATES[state.entity_id] = state;
       });
+      document.documentElement.style.setProperty("--primary-text-color", "#ffffff");
       apriConfigEntita();
       editorSwitch("sez7");
     }, states);
@@ -115,6 +116,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           ),
       )
       .toBe(true);
+    expect(
+      await page.locator("[data-temperature-room] .ed-row-new").evaluateAll((nodes) =>
+        nodes.every((node) => {
+          const text = node.textContent?.trim();
+          const color = getComputedStyle(node).color.replaceAll(" ", "");
+          return Boolean(text) && color !== "rgb(255,255,255)" && color !== "rgba(255,255,255,1)";
+        }),
+      ),
+    ).toBe(true);
     await expect(page.locator("#ed-pl-temp")).toBeVisible();
     for (let index = 0; index < 20; index++) await page.evaluate(() => editorSwitch("sez7"));
     expect(
@@ -236,6 +246,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       return room;
     });
     await page.evaluate(() => {
+      document.documentElement.style.setProperty("--primary-text-color", "#ffffff");
       apriConfigEntita();
       editorSwitch("sez7");
     });

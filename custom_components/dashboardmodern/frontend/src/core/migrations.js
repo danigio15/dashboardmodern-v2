@@ -13,6 +13,7 @@ export const SECTION_KEYS = Object.freeze({
   pool: "cd_piscina",
   irrigation: "cd_irrigazione",
   energy: "cd_energy_model",
+  energyLoads: "cd_energy_loads",
   entityOverrides: "cd_entity_overrides",
 });
 
@@ -96,6 +97,31 @@ export function migrateEnergy(input = {}) {
   };
 }
 
+export function normalizeEnergyLoads(input = []) {
+  const used = new Set();
+  return (Array.isArray(input) ? input : [])
+    .filter(Boolean)
+    .slice(0, 8)
+    .map((item, index) => {
+      const seed = slug(item.id || item.name) || `load-${index + 1}`;
+      const base = String(item.id || `energy-load-${seed}`);
+      let id = base;
+      let collision = 2;
+      while (used.has(id)) id = `${base}-${collision++}`;
+      used.add(id);
+      return {
+        id,
+        name: String(item.name || `Carico ${index + 1}`),
+        icon: String(item.icon || "mdi:flash"),
+        power_entity: String(item.power_entity || ""),
+        energy_entity: String(item.energy_entity || ""),
+        color: String(item.color || "#0ea5e9"),
+        order: Number.isFinite(+item.order) ? +item.order : index,
+      };
+    })
+    .sort((left, right) => left.order - right.order);
+}
+
 export function migrateEntityOverrides(input = {}) {
   return input && !Array.isArray(input) ? cloneValue(input) : {};
 }
@@ -114,6 +140,7 @@ export function normalizeSection(section, input, context = {}) {
     pool: migratePool,
     irrigation: migrateIrrigation,
     energy: migrateEnergy,
+    energyLoads: normalizeEnergyLoads,
     entityOverrides: migrateEntityOverrides,
   };
   return migrations[section]?.(input, rooms) ?? cloneValue(input);
@@ -255,6 +282,56 @@ function preserveEnergySemantics(energy) {
   return changed;
 }
 
+const LEGACY_FLOW_LOADS = Object.freeze([
+  [
+    "boiler",
+    "Boiler",
+    "mdi:water-boiler",
+    "#ea580c",
+    "dm.boiler_potenza_resistenza_boiler",
+    "dm.energy_boiler_oggi",
+  ],
+  [
+    "wb",
+    "Wallbox",
+    "mdi:car-electric",
+    "#06b6d4",
+    "dm.ev_potenza_wallbox",
+    "dm.ev_energia_wallbox_oggi",
+  ],
+  [
+    "clima",
+    "Clima",
+    "mdi:snowflake",
+    "#0ea5e9",
+    "dm.energy_potenza_condizionatori",
+    "dm.energy_condizionatori_oggi",
+  ],
+  [
+    "lav",
+    "Lavanderia",
+    "mdi:washing-machine",
+    "#7c3aed",
+    "dm.energy_potenza_lavanderia",
+    "dm.energy_lavanderia_oggi",
+  ],
+  ["cuc", "Cucina", "mdi:stove", "#e11d48", "dm.energy_potenza_cucina", "dm.energy_cucina_oggi"],
+]);
+
+export function migrateLegacyEnergyLoads(energyLoads = [], overrides = {}, energy = {}) {
+  if (Array.isArray(energyLoads) && energyLoads.length) return normalizeEnergyLoads(energyLoads);
+  if (energy?.metadata?.energy_loads_migrated) return [];
+  return normalizeEnergyLoads(
+    LEGACY_FLOW_LOADS.flatMap(([id, name, icon, color, powerSlot, energySlot]) => {
+      const power_entity = String(overrides[powerSlot] || "").trim();
+      const energy_entity = String(overrides[energySlot] || "").trim();
+      return power_entity || energy_entity
+        ? [{ id: `energy-load-${id}`, name, icon, color, power_entity, energy_entity }]
+        : [];
+    }),
+  );
+}
+
 export function migrateState(input = {}, legacy = {}) {
   let state = cloneValue(input);
   const changes = [];
@@ -271,6 +348,19 @@ export function migrateState(input = {}, legacy = {}) {
   }
   if (+state.schema_version >= 4 && preserveEnergySemantics(state.sections?.energy))
     changes.push("energy annual/lifetime semantics migrated");
+  if (+state.schema_version >= 4) {
+    const energy = (state.sections.energy ||= migrateEnergy());
+    const loads = migrateLegacyEnergyLoads(
+      state.sections.energyLoads,
+      { ...(state.sections.entityOverrides || {}), ...(legacy.entityOverrides || {}) },
+      energy,
+    );
+    if (!energy.metadata?.energy_loads_migrated) {
+      state.sections.energyLoads = loads;
+      energy.metadata = { ...(energy.metadata || {}), energy_loads_migrated: true };
+      changes.push(`legacy energy flow loads migrated (${loads.length})`);
+    } else state.sections.energyLoads = normalizeEnergyLoads(state.sections.energyLoads);
+  }
   return { state, changes };
 }
 

@@ -1,5 +1,15 @@
-import { doc, installStyle, root, wrapFunction } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  formatNumber,
+  installStyle,
+  root,
+  section,
+  wrapFunction,
+} from "./shared.js";
 
+root.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_ENERGY_FLOW_SECTION__";
 const state = (root[KEY] ||= { installed: false, frame: 0 });
 
@@ -23,6 +33,81 @@ const LOADS = Object.freeze([
   { key: "cuc", instant: "v-cuc-p" },
 ]);
 
+const LEGACY_LOAD_SELECTOR = ".node.n-load,[id^='line-home-'],[id^='m-line-home-']";
+
+function stateNumber(states, entity) {
+  const value = states?.[entity]?.state ?? states?.[entity];
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function renderDynamicEnergyLoads(
+  targetDocument,
+  loads = [],
+  states = {},
+  periodValues = null,
+) {
+  if (!targetDocument) return 0;
+  const normalized = (Array.isArray(loads) ? loads : []).slice(0, 8);
+  for (const view of ["view-ist", "view-day"]) {
+    const stage = targetDocument.getElementById(view)?.querySelector?.(".flow-stage");
+    if (!stage) continue;
+    stage.querySelectorAll(LEGACY_LOAD_SELECTOR).forEach((node) => {
+      node.hidden = true;
+      node.dataset.dmLegacyEnergyLoad = "hidden";
+    });
+    stage
+      .querySelectorAll("[data-energy-load-node],[data-energy-load-arc]")
+      .forEach((node) => node.remove());
+    if (!normalized.length) {
+      stage.dataset.energyLoads = "0";
+      continue;
+    }
+    const svg = stage.querySelector("svg.desktop-svg") || stage.querySelector("svg");
+    normalized.forEach((load, index) => {
+      const x = ((index + 1) * 100) / (normalized.length + 1);
+      if (svg) {
+        const path = targetDocument.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.dataset.energyLoadArc = load.id;
+        path.classList.add("flow-line", "dm-energy-load-arc");
+        path.setAttribute("d", `M 500 365 Q ${x * 10} 420 ${x * 10} 445`);
+        path.style.setProperty("--line-color", load.color || "#0ea5e9");
+        svg.append(path);
+      }
+      const node = targetDocument.createElement("div");
+      node.className = "node n-load dm-energy-load-node";
+      node.dataset.energyLoadNode = load.id;
+      node.style.left = `${x}%`;
+      node.style.top = "83%";
+      node.style.setProperty("--n-color", load.color || "#0ea5e9");
+      const isDaily = view === "view-day";
+      const value = isDaily
+        ? periodValues instanceof Map
+          ? periodValues.get(load.id)
+          : periodValues?.[load.id]
+        : stateNumber(states, load.power_entity);
+      const formatted = Number.isFinite(Number(value))
+        ? `${formatNumber(Number(value), isDaily ? 2 : 0)} ${isDaily ? "kWh" : "W"}`
+        : "—";
+      node.innerHTML = `<div class="node-label">${clean(load.name)}</div><div class="node-icon">${clean(load.icon || "⚡")}</div><span>${formatted}</span>`;
+      stage.append(node);
+    });
+    stage.dataset.energyLoads = String(normalized.length);
+  }
+  return normalized.length;
+}
+
+export function renderBatterySoc(targetDocument, energy = {}, states = {}) {
+  const node = targetDocument?.getElementById?.("v-battery-soc");
+  if (!node) return "—";
+  const entity = clean(energy?.battery?.battery_soc_entity || energy?.battery?.battery_soc);
+  const value = stateNumber(states, entity);
+  const text = entity && value !== null ? `${Math.round(value)}%` : "—";
+  node.textContent = text;
+  node.dataset.entity = entity;
+  return text;
+}
+
 function parseNumber(node) {
   const source = String(node?.textContent || "").trim();
   const match = source.match(/-?\d[\d.,]*/);
@@ -45,7 +130,11 @@ function numberFrom(node) {
 function nodeVisible(node) {
   if (!node || node.hidden) return false;
   const style = root.getComputedStyle?.(node);
-  if (style && (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0)) return false;
+  if (
+    style &&
+    (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0)
+  )
+    return false;
   return true;
 }
 
@@ -77,7 +166,8 @@ function restoreConnectorVisibility(node) {
     "dmFlowDisplayPriority",
     "dmFlowVisibility",
     "dmFlowVisibilityPriority",
-  ]) delete node.dataset[key];
+  ])
+    delete node.dataset[key];
 }
 
 function exposeConnector(node, active) {
@@ -121,10 +211,7 @@ function loadValueId(load, period) {
 
 function loadLineIds(load, period) {
   const suffix = period ? `-${period}` : "";
-  return [
-    `line-home-${load.key}${suffix}`,
-    `m-line-home-${load.key}${suffix}`,
-  ];
+  return [`line-home-${load.key}${suffix}`, `m-line-home-${load.key}${suffix}`];
 }
 
 function syncLoadFlows(period) {
@@ -172,7 +259,7 @@ function mainKinds(node) {
 
 function periodDirectionalValue(node, direction) {
   if (!nodeVisible(node)) return null;
-  const parts = [...node.querySelectorAll?.("span") || []].filter(nodeVisible);
+  const parts = [...(node.querySelectorAll?.("span") || [])].filter(nodeVisible);
   const index = direction === "import" || direction === "charge" ? 0 : 1;
   const part = parts[index];
   return part ? numberFrom(part) : null;
@@ -184,13 +271,18 @@ function directionalEndpointValue(kind, node, period) {
   const id = String(node?.id || "").toLowerCase();
 
   if (kind === "grid") {
-    if (period) return periodDirectionalValue(valueNode, id.includes("solar-grid") ? "export" : "import");
+    if (period)
+      return periodDirectionalValue(valueNode, id.includes("solar-grid") ? "export" : "import");
     const signed = parseNumber(valueNode);
     return id.includes("solar-grid") ? Math.max(0, -signed) : Math.max(0, signed);
   }
 
   if (kind === "battery") {
-    if (period) return periodDirectionalValue(valueNode, id.includes("solar-battery") ? "charge" : "discharge");
+    if (period)
+      return periodDirectionalValue(
+        valueNode,
+        id.includes("solar-battery") ? "charge" : "discharge",
+      );
     const signed = parseNumber(valueNode);
     return id.includes("solar-battery") ? Math.max(0, -signed) : Math.max(0, signed);
   }
@@ -255,6 +347,8 @@ export function refreshEnergyFlows() {
     touched = syncLoadFlows(period) || touched;
     scope.dataset.dmEnergyFlows = "directional-value-bound";
   }
+  renderDynamicEnergyLoads(doc, section("energyLoads", []), allStates(), state.periodValues);
+  renderBatterySoc(doc, section("energy", {}), allStates());
   return touched;
 }
 
@@ -273,13 +367,16 @@ function scheduleSettled() {
 }
 
 function installStyles() {
-  installStyle("dm-energy-flow-section-style", `
+  installStyle(
+    "dm-energy-flow-section-style",
+    `
     .dm-energy-flow-active{display:inline!important;visibility:visible!important;opacity:1!important;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--dm-flow-color) 52%,transparent))!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
     .dm-energy-flow-idle{opacity:.30!important;filter:none!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
     .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke:var(--dm-flow-color)!important;stroke-dasharray:12 9!important;stroke-linecap:round!important;animation-name:dmEnergyFlowDash!important;animation-duration:.8s!important;animation-timing-function:linear!important;animation-iteration-count:infinite!important;animation-play-state:running!important;will-change:stroke-dashoffset!important}
     @keyframes dmEnergyFlowDash{from{stroke-dashoffset:0}to{stroke-dashoffset:-42}}
     @media(prefers-reduced-motion:reduce){.flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{animation:none!important}}
-  `);
+  `,
+  );
 }
 
 export function installEnergyFlowSection() {
@@ -294,16 +391,24 @@ export function installEnergyFlowSection() {
     "applyAtomicEnergyBundle",
     "switchEnergyView",
     "render",
-  ]) wrapFunction(name, `__dmEnergyFlow_${name}`, scheduleSettled);
-  root.addEventListener?.("dashboardmodern:period-bundle", scheduleSettled);
+  ])
+    wrapFunction(name, `__dmEnergyFlow_${name}`, scheduleSettled);
+  root.addEventListener?.("dashboardmodern:period-bundle", (event) => {
+    state.periodValues = event?.detail?.energyLoadsDay || null;
+    scheduleSettled();
+  });
   root.addEventListener?.("dashboardmodern:energy-bundle", scheduleSettled);
   root.addEventListener?.("dashboardmodern:energy-stable", scheduleSettled);
   root.addEventListener?.("dashboardmodern:states-ready", scheduleSettled);
   root.addEventListener?.("dashboardmodern:runtime-ready", scheduleSettled);
   root.addEventListener?.("dashboardmodern:legacy-ready", scheduleSettled);
-  doc.addEventListener("click", (event) => {
-    if (event.target?.closest?.("[data-energy-tab],.energy-tab,.sub-tab-btn")) scheduleSettled();
-  }, true);
+  doc.addEventListener(
+    "click",
+    (event) => {
+      if (event.target?.closest?.("[data-energy-tab],.energy-tab,.sub-tab-btn")) scheduleSettled();
+    },
+    true,
+  );
   scheduleSettled();
 }
 

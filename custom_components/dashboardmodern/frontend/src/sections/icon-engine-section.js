@@ -11,6 +11,7 @@ import {
 } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, root, t } from "./shared.js";
 
+globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_ICON_ENGINE__";
 const state = (root[KEY] ||= {
   installed: false,
@@ -491,7 +492,7 @@ function installStyles() {
       #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="room"] .dm-picker-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="action"] .dm-picker-grid,
       #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="car"] .dm-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-option{box-sizing:border-box!important;min-width:0!important;min-height:94px!important;padding:9px 6px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:15px!important;background:var(--ha-card-background,var(--card-background-color,#fff))!important;color:var(--primary-text-color,#0f172a)!important;transform:none!important;transition:border-color .12s ease,box-shadow .12s ease!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-option{box-sizing:border-box!important;min-width:0!important;min-height:94px!important;padding:9px 6px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:15px!important;background:var(--ha-card-background,var(--card-background-color,#fff))!important;color:var(--text,#0f172a)!important;transform:none!important;transition:border-color .12s ease,box-shadow .12s ease!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="room"] .dm-picker-option{min-height:54px!important;padding:5px!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-option[hidden]{display:none!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-option:focus-visible{outline:2px solid var(--primary-color,#0ea5e9)!important;outline-offset:2px!important}

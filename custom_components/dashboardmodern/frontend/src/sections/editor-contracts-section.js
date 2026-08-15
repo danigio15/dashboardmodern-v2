@@ -1,14 +1,7 @@
 import { applianceArtwork } from "../core/appliance-artwork.js";
-import {
-  clean,
-  doc,
-  english,
-  installStyle,
-  root,
-  t,
-  wrapFunction,
-} from "./shared.js";
+import { clean, doc, english, installStyle, root, t, wrapFunction } from "./shared.js";
 
+root.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EDITOR_CONTRACTS_SECTION__";
 const state = (root[KEY] ||= {
   installed: false,
@@ -22,10 +15,9 @@ function installExplicitReportSaveContract() {
 
   function explicitReportSave(items) {
     const existingById = new Map(
-      [
-        ...(this.getSection?.("appliances") || []),
-        ...(this.getSection?.("loads") || []),
-      ].map((item) => [item.id, item]),
+      [...(this.getSection?.("appliances") || []), ...(this.getSection?.("loads") || [])].map(
+        (item) => [item.id, item],
+      ),
     );
     const marked = (Array.isArray(items) ? items : []).map((item) => {
       const existing = existingById.get(item.id);
@@ -100,26 +92,30 @@ function normalizeReportManualPanel() {
 }
 
 function synchronizeReportFields() {
-  doc?.querySelectorAll('#editor-modal [data-energy-panel="report"] .dm-report-row').forEach((row) => {
-    row.querySelectorAll("input,select,textarea").forEach((field) => {
-      if (field instanceof HTMLInputElement && ["checkbox", "radio"].includes(field.type)) {
-        field.toggleAttribute("checked", field.checked);
-      } else {
-        field.setAttribute("value", field.value);
-      }
-      field.dispatchEvent(new Event("change", { bubbles: true }));
+  doc
+    ?.querySelectorAll('#editor-modal [data-energy-panel="report"] .dm-report-row')
+    .forEach((row) => {
+      row.querySelectorAll("input,select,textarea").forEach((field) => {
+        if (field instanceof HTMLInputElement && ["checkbox", "radio"].includes(field.type)) {
+          field.toggleAttribute("checked", field.checked);
+        } else {
+          field.setAttribute("value", field.value);
+        }
+        field.dispatchEvent(new Event("change", { bubbles: true }));
+      });
     });
-  });
 }
 
 function normalizeLightEditCompatibility() {
   let changed = false;
-  doc?.querySelectorAll('#editor-modal [data-light-entity] button[onclick^="dmOpenLightEditor"]').forEach((button) => {
-    const entity = clean(button.closest("[data-light-entity]")?.dataset?.lightEntity);
-    if (!entity) return;
-    button.setAttribute("onclick", `cdLuceRen(${JSON.stringify(entity)})`);
-    changed = true;
-  });
+  doc
+    ?.querySelectorAll('#editor-modal [data-light-entity] button[onclick^="dmOpenLightEditor"]')
+    .forEach((button) => {
+      const entity = clean(button.closest("[data-light-entity]")?.dataset?.lightEntity);
+      if (!entity) return;
+      button.setAttribute("onclick", `cdLuceRen(${JSON.stringify(entity)})`);
+      changed = true;
+    });
   return changed;
 }
 
@@ -148,7 +144,9 @@ function normalizeAlertsEditor() {
 function temperatureEditMode(form) {
   const cancel = form?.querySelector("[data-temperature-cancel]");
   if (cancel && !cancel.hidden) return true;
-  const title = clean(form?.querySelector("[data-temperature-form-title]")?.textContent).toLowerCase();
+  const title = clean(
+    form?.querySelector("[data-temperature-form-title]")?.textContent,
+  ).toLowerCase();
   return /^(modifica|edit)\b/.test(title);
 }
 
@@ -433,7 +431,7 @@ function installStyles() {
       #editor-modal .dm-energy-visibility-toggle[data-visible="true"]{background:linear-gradient(135deg,#10b981,#047857)!important}
       #editor-modal .dm-energy-visibility-toggle[data-visible="false"]{background:linear-gradient(135deg,#94a3b8,#64748b)!important}
       #editor-modal .dm-energy-help-compact[hidden]{display:none!important}
-      #editor-modal .dm-energy-help-compact{display:grid!important;grid-template-columns:1fr!important;gap:6px!important;margin:0 0 14px!important;padding:13px 14px!important;border:1px solid color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 18%,transparent)!important;border-radius:15px!important;background:color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 8%,transparent)!important;color:var(--primary-text-color,var(--text,#0f172a))!important}
+      #editor-modal .dm-energy-help-compact{display:grid!important;grid-template-columns:1fr!important;gap:6px!important;margin:0 0 14px!important;padding:13px 14px!important;border:1px solid color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 18%,transparent)!important;border-radius:15px!important;background:color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 8%,transparent)!important;color:var(--text,#0f172a)!important}
       #editor-modal .dm-energy-help-compact strong{font-size:13px!important;font-weight:900!important}
       #editor-modal .dm-energy-help-compact span{color:var(--secondary-text-color,var(--text-dim,#64748b))!important;font-size:11.5px!important;line-height:1.5!important}
       #editor-modal .dm-energy-total-note{display:block!important;margin-top:5px!important;font-size:10px!important;line-height:1.3!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
@@ -453,7 +451,7 @@ function installStyles() {
       #editor-modal .dm-energy-source-guide-intro>strong{font-size:15px!important}
       #editor-modal .dm-energy-guide-steps{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
       #editor-modal .dm-energy-guide-steps>span{display:grid!important;align-content:start!important;gap:4px!important;padding:10px 11px!important;border-radius:12px!important;background:color-mix(in srgb,var(--ha-card-background,var(--card-bg,#fff)) 78%,transparent)!important;border:1px solid color-mix(in srgb,var(--info-color,#0ea5e9) 14%,transparent)!important}
-      #editor-modal .dm-energy-guide-steps b{font-size:11px!important;color:var(--primary-text-color,var(--text,#0f172a))!important}
+      #editor-modal .dm-energy-guide-steps b{font-size:11px!important;color:var(--text,#0f172a)!important}
       #editor-modal .dm-energy-guide-steps small{font-size:10.5px!important;line-height:1.4!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}
       #editor-modal .dm-energy-source-guide-grid{gap:12px!important}
       #editor-modal .dm-energy-source-contract{padding:14px!important;border-radius:16px!important}
@@ -503,7 +501,7 @@ function installStyles() {
 
       /* Canonical geometry for every section editor. */
       .dm-section-modal{position:fixed!important;inset:0!important;z-index:100040!important;display:grid!important;place-items:center!important;padding:16px!important;background:rgba(15,23,42,.58)!important;backdrop-filter:blur(5px)!important}
-      .dm-section-modal .dm-section-dialog{box-sizing:border-box!important;width:min(880px,calc(100vw - 24px))!important;height:min(760px,calc(100dvh - 32px))!important;max-height:min(760px,calc(100dvh - 32px))!important;display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;overflow:hidden!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:26px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--primary-text-color,var(--text,#0f172a))!important;box-shadow:0 28px 80px rgba(15,23,42,.3)!important}
+      .dm-section-modal .dm-section-dialog{box-sizing:border-box!important;width:min(880px,calc(100vw - 24px))!important;height:min(760px,calc(100dvh - 32px))!important;max-height:min(760px,calc(100dvh - 32px))!important;display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;overflow:hidden!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:26px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--text,#0f172a)!important;box-shadow:0 28px 80px rgba(15,23,42,.3)!important}
       .dm-section-modal .dm-section-dialog>header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:18px 22px!important;border-bottom:1px solid var(--divider-color,#e2e8f0)!important;font-size:18px!important}
       .dm-section-modal .dm-section-dialog>header [data-close]{display:grid!important;place-items:center!important;width:42px!important;height:42px!important;border:0!important;border-radius:50%!important;background:var(--secondary-background-color,#f1f5f9)!important;color:var(--secondary-text-color,#64748b)!important;font-size:20px!important;cursor:pointer!important}
       .dm-section-modal .dm-section-dialog>form{box-sizing:border-box!important;min-height:0!important;overflow:auto!important;display:grid!important;align-content:start!important;gap:14px!important;padding:20px 22px 0!important}
@@ -519,7 +517,7 @@ function installStyles() {
 
       #page-appliances-main .appl-wide-card .appl-wide-stat,#appl-grid-overview .appl-wide-card .appl-wide-stat,
       #page-appliances-main .appl-wide-card .appl-energy,#appl-grid-overview .appl-wide-card .appl-energy,
-      #page-appliances-main .appl-wide-card .appl-kwh,#appl-grid-overview .appl-wide-card .appl-kwh{color:var(--primary-text-color,var(--text,#0f172a))!important;opacity:1!important}
+      #page-appliances-main .appl-wide-card .appl-kwh,#appl-grid-overview .appl-wide-card .appl-kwh{color:var(--text,#0f172a)!important;opacity:1!important}
       #page-appliances-main .appl-wide-status,#appl-grid-overview .appl-wide-status,#page-appliances-main .appl-status,#appl-grid-overview .appl-status{align-self:center!important;vertical-align:middle!important}
 
       #editor-modal[data-dm-editor-theme="dark"] .dm-energy-guide-steps>span,
@@ -574,7 +572,11 @@ export function installEditorContractsSection() {
   schedule();
   if (!state.installed) {
     state.installed = true;
-    for (const event of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready", "pageshow"]) {
+    for (const event of [
+      "dashboardmodern:legacy-ready",
+      "dashboardmodern:runtime-ready",
+      "pageshow",
+    ]) {
       root.addEventListener?.(event, () => {
         installWrappers();
         schedule();
