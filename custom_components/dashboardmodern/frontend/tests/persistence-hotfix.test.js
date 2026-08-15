@@ -3,10 +3,16 @@ import test from "node:test";
 import { DashboardStore } from "../src/core/dashboard-store.js";
 
 globalThis.addEventListener = () => {};
-const { integrationUserDataKey, migrateLegacyUserData, normalizeRestoredValues } =
-  await import("../src/sections/config-persistence-section.js");
+const {
+  applyRestoredValues,
+  integrationUserDataKey,
+  migrateLegacyUserData,
+  normalizeRestoredValues,
+  persistenceReconcileAction,
+  sameConfigValues,
+} = await import("../src/sections/config-persistence-section.js");
 
-// DM-FIX-20260815A
+// DM-FIX-20260815E
 
 class MemoryStorage {
   values = new Map();
@@ -95,4 +101,82 @@ test("restore normalizes room names in canonical and legacy snapshots", () => {
   });
   assert.equal(JSON.parse(restored.cd_stanze)[0].name, "Room 1");
   assert.equal(JSON.parse(restored.dm_dashboard_state).sections.rooms[0].name, "Room 1");
+});
+
+test("configured desktop restores the newer remote phone snapshot", () => {
+  const local = {
+    cd_stanze: JSON.stringify([{ id: "room-old", name: "Vecchia" }]),
+    cd_sections: JSON.stringify({ temp: true }),
+  };
+  const remote = {
+    version: 1,
+    updated_at: 5000,
+    values: {
+      cd_stanze: JSON.stringify([{ id: "room-new", name: "Nuova" }]),
+      cd_sections: JSON.stringify({ temp: true, energy: true }),
+    },
+  };
+  assert.equal(
+    persistenceReconcileAction({ remote, localConfigured: true, pendingAt: 0, local }),
+    "restore-remote",
+  );
+});
+
+test("newer unsynced local edit wins over an older remote snapshot", () => {
+  const local = { cd_sections: JSON.stringify({ energy: true }) };
+  const remote = {
+    version: 1,
+    updated_at: 4000,
+    values: { cd_sections: JSON.stringify({ energy: false }) },
+  };
+  assert.equal(
+    persistenceReconcileAction({ remote, localConfigured: true, pendingAt: 5000, local }),
+    "push-local",
+  );
+});
+
+test("first configured device seeds remote storage when no remote exists", () => {
+  assert.equal(
+    persistenceReconcileAction({
+      remote: null,
+      localConfigured: true,
+      local: { cd_stanze: "[]" },
+    }),
+    "push-local",
+  );
+});
+
+test("identical local and remote snapshots do not rewrite either side", () => {
+  const values = {
+    cd_sections: JSON.stringify({ energy: true }),
+    cd_costo_kwh: "0.28",
+  };
+  assert.equal(sameConfigValues(values, { ...values }), true);
+  assert.equal(
+    persistenceReconcileAction({
+      remote: { version: 1, updated_at: 100, values: { ...values } },
+      localConfigured: true,
+      pendingAt: 200,
+      local: values,
+    }),
+    "in-sync",
+  );
+});
+
+test("remote restore propagates deletions instead of leaving stale desktop keys", () => {
+  const storage = new MemoryStorage();
+  storage.setItem("cd_sections", JSON.stringify({ energy: true }));
+  storage.setItem("cd_stanze", JSON.stringify([{ id: "stale", name: "Stale" }]));
+  storage.setItem("cd_costo_kwh", "0.31");
+
+  assert.equal(
+    applyRestoredValues(storage, {
+      cd_sections: JSON.stringify({ energy: false }),
+      cd_costo_kwh: "0.27",
+    }),
+    true,
+  );
+  assert.equal(storage.getItem("cd_stanze"), null);
+  assert.equal(storage.getItem("cd_costo_kwh"), "0.27");
+  assert.deepEqual(JSON.parse(storage.getItem("cd_sections")), { energy: false });
 });
