@@ -1,0 +1,24 @@
+name: Richiesta funzionalità
+description: Proponi un miglioramento per DashboardModern.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Esigenza
+      description: Quale problema o necessità dovrebbe risolvere la funzionalità?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Soluzione proposta
+      description: Descrivi il comportamento desiderato e, se utile, possibili alternative.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Contesto aggiuntivo
+      description: Aggiungi mockup, screenshot o altri dettagli utili.
