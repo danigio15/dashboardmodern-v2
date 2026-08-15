@@ -7,6 +7,7 @@ const {
   applyRestoredValues,
   CONFIG_KEYS,
   integrationUserDataKey,
+  mergeLegacyMissingConfig,
   migrateLegacyUserData,
   normalizeRemoteSnapshot,
   normalizeRestoredValues,
@@ -14,7 +15,7 @@ const {
   sameConfigValues,
 } = await import("../src/sections/config-persistence-section.js");
 
-// DM-FIX-20260815F
+// DM-FIX-20260815G
 
 class MemoryStorage {
   values = new Map();
@@ -85,6 +86,7 @@ test("flat legacy cloud payload is accepted and upgraded to the modern envelope"
   });
   assert.deepEqual(remote, {
     version: 1,
+    keys_revision: 0,
     updated_at: 12345,
     migrated_from: "legacy-flat",
     values: {
@@ -92,6 +94,36 @@ test("flat legacy cloud payload is accepted and upgraded to the modern envelope"
       cd_devices: '[{"name":"Pompa"}]',
     },
   });
+});
+
+test("old incomplete cloud snapshot keeps local fields that were never synchronized", () => {
+  const local = {
+    cd_sections: '{"energy":true}',
+    cd_devices: '[{"name":"Pompa smartphone"}]',
+    cd_avvisi_custom: '[{"name":"Allarme"}]',
+  };
+  const oldRemote = normalizeRemoteSnapshot({
+    version: 1,
+    updated_at: 5000,
+    values: { cd_sections: '{"energy":false}' },
+  });
+  const merged = mergeLegacyMissingConfig(oldRemote, local);
+  assert.equal(merged.values.cd_sections, '{"energy":false}');
+  assert.equal(merged.values.cd_devices, local.cd_devices);
+  assert.equal(merged.values.cd_avvisi_custom, local.cd_avvisi_custom);
+});
+
+test("revision-2 cloud absence is authoritative and is not filled from stale local data", () => {
+  const remote = normalizeRemoteSnapshot({
+    version: 1,
+    keys_revision: 2,
+    updated_at: 5000,
+    values: { cd_sections: '{"energy":false}' },
+  });
+  const merged = mergeLegacyMissingConfig(remote, {
+    cd_devices: '[{"name":"Stale"}]',
+  });
+  assert.equal(Object.hasOwn(merged.values, "cd_devices"), false);
 });
 
 test("store preserves a fresh legacy visibility write instead of overwriting it", () => {
@@ -142,6 +174,7 @@ test("configured desktop restores the newer remote phone snapshot", () => {
   };
   const remote = {
     version: 1,
+    keys_revision: 2,
     updated_at: 5000,
     values: {
       cd_stanze: JSON.stringify([{ id: "room-new", name: "Nuova" }]),
@@ -167,6 +200,7 @@ test("newer unsynced local edit wins over an older remote snapshot", () => {
   const local = { cd_sections: JSON.stringify({ energy: true }) };
   const remote = {
     version: 1,
+    keys_revision: 2,
     updated_at: 4000,
     values: { cd_sections: JSON.stringify({ energy: false }) },
   };
@@ -195,7 +229,7 @@ test("identical local and remote snapshots do not rewrite either side", () => {
   assert.equal(sameConfigValues(values, { ...values }), true);
   assert.equal(
     persistenceReconcileAction({
-      remote: { version: 1, updated_at: 100, values: { ...values } },
+      remote: { version: 1, keys_revision: 2, updated_at: 100, values: { ...values } },
       localConfigured: true,
       pendingAt: 200,
       local: values,
