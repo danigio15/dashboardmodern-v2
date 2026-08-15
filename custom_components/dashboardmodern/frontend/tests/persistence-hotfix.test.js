@@ -15,7 +15,7 @@ const {
   sameConfigValues,
 } = await import("../src/sections/config-persistence-section.js");
 
-// DM-FIX-20260815G
+// DM-FIX-20260815H
 
 class MemoryStorage {
   values = new Map();
@@ -65,16 +65,20 @@ test("legacy remote payload migrates once to the unified key", async () => {
   assert.deepEqual(pushes, [["dashboardmodern_integration_config", legacy]]);
 });
 
-test("modern persistence covers legacy user-editable keys that used to stay device-local", () => {
+test("modern persistence covers every shared legacy editor key that used to stay device-local", () => {
   for (const key of [
     "cd_branding",
     "cd_devices",
+    "cd_floor_icons",
     "cd_flow_nodes",
+    "cd_subload_groups",
     "cd_avvisi_custom",
     "cd_text_overrides",
     "cd_hidden_elements",
   ])
     assert.ok(CONFIG_KEYS.includes(key), `${key} must be synchronized`);
+  for (const key of ["cd_connection", "cd_theme", "cd_navbar_mode", "cd_nav_mode"])
+    assert.equal(CONFIG_KEYS.includes(key), false, `${key} must remain device-local`);
 });
 
 test("flat legacy cloud payload is accepted and upgraded to the modern envelope", () => {
