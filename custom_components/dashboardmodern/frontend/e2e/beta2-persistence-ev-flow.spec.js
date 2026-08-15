@@ -198,35 +198,73 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await boot(page, variant, testInfo);
 
     await page.evaluate(async () => {
+      const state = (entity_id, value) => ({
+        entity_id,
+        state: String(value),
+        attributes: { unit_of_measurement: "kWh" },
+      });
+      const seeded = [
+        state("sensor.flow_boiler_day", 1.25),
+        state("sensor.flow_clima_day", 0.16),
+        state("sensor.flow_lav_day", 0),
+        state("sensor.flow_cuc_month", 12.4),
+      ];
+      for (const item of seeded) {
+        _RAW_STATES[item.entity_id] = structuredClone(item);
+        STATES[item.entity_id] = structuredClone(item);
+      }
       await DashboardModernModules.store.replaceSection("loads", [
-        { id: "flow-boiler", name: "Boiler", order: 0, show_in_dashboard: true },
+        {
+          id: "flow-boiler",
+          name: "Boiler",
+          order: 0,
+          show_in_dashboard: true,
+          daily_energy_entity: "sensor.flow_boiler_day",
+        },
         { id: "flow-wallbox", name: "Wallbox", order: 1, show_in_dashboard: true },
-        { id: "flow-clima", name: "Clima", order: 2, show_in_dashboard: true },
-        { id: "flow-lav", name: "Lavanderia", order: 3, show_in_dashboard: true },
-        { id: "flow-cuc", name: "Cucina", order: 4, show_in_dashboard: true },
+        {
+          id: "flow-clima",
+          name: "Clima",
+          order: 2,
+          show_in_dashboard: true,
+          daily_energy_entity: "sensor.flow_clima_day",
+        },
+        {
+          id: "flow-lav",
+          name: "Lavanderia",
+          order: 3,
+          show_in_dashboard: true,
+          daily_energy_entity: "sensor.flow_lav_day",
+        },
+        {
+          id: "flow-cuc",
+          name: "Cucina",
+          order: 4,
+          show_in_dashboard: true,
+          monthly_energy_entity: "sensor.flow_cuc_month",
+        },
       ]);
-      await new Promise((resolve) => setTimeout(resolve, 180));
-      const set = (id, value) => {
-        const node = document.getElementById(id);
-        if (!node) throw new Error(`missing ${id}`);
-        node.textContent = value;
-      };
-      set("v-boiler-day", "1,25 kWh");
-      set("v-clima-day", "0.16 kWh");
-      set("v-lav-day", "0 kWh");
-      set("v-cuc-month", "12.4 kWh");
+      dispatchEvent(new CustomEvent("dashboardmodern:states-ready"));
+      await new Promise((resolve) => setTimeout(resolve, 260));
       window.dmRefreshEnergyFlows?.();
     });
 
+    await expect(page.locator("#v-boiler-day")).toContainText(/1[,.]3|1[,.]25/);
+    await expect(page.locator("#v-clima-day")).toContainText(/0[,.]2|0[,.]16/);
+    await expect(page.locator("#v-cuc-month")).toContainText(/12[,.]4/);
     await expect(page.locator("#line-home-boiler-day")).toHaveClass(/active/);
     await expect(page.locator("#line-home-boiler-day")).toHaveClass(/dm-energy-flow-active/);
     await expect(page.locator("#line-home-clima-day")).toHaveClass(/active/);
     await expect(page.locator("#line-home-lav-day")).not.toHaveClass(/active/);
     await expect(page.locator("#line-home-cuc-month")).toHaveClass(/active/);
 
-    await page.evaluate(() => {
-      document.getElementById("v-boiler-day").textContent = "0 kWh";
-      document.getElementById("v-cuc-month").textContent = "0 kWh";
+    await page.evaluate(async () => {
+      _RAW_STATES["sensor.flow_boiler_day"].state = "0";
+      STATES["sensor.flow_boiler_day"].state = "0";
+      _RAW_STATES["sensor.flow_cuc_month"].state = "0";
+      STATES["sensor.flow_cuc_month"].state = "0";
+      dispatchEvent(new CustomEvent("dashboardmodern:states-ready"));
+      await new Promise((resolve) => setTimeout(resolve, 180));
       window.dmRefreshEnergyFlows?.();
     });
     await expect(page.locator("#line-home-boiler-day")).not.toHaveClass(/active/);
