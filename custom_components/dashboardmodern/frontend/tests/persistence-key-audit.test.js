@@ -11,7 +11,7 @@ const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 
 // These are intentionally not shared dashboard configuration:
 // - connection can contain credentials/endpoint data;
 // - navbar mode/theme are per-device presentation preferences;
-// - sync bookkeeping and irrigation/pool run markers are runtime state.
+// - sync bookkeeping, reset/fresh-start state and irrigation/pool run markers are runtime state.
 const DEVICE_LOCAL_OR_RUNTIME = new Set([
   "cd_connection",
   "cd_theme",
@@ -22,6 +22,7 @@ const DEVICE_LOCAL_OR_RUNTIME = new Set([
   "cd_irr_lastrun",
   "cd_pool_run",
   "cd_pool_lastrun",
+  "dm_fresh_start",
 ]);
 
 function literalStorageWrites(source) {
