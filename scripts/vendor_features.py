@@ -170,7 +170,7 @@ WIZARD_STEP_REPLACEMENT = "WIZ = { step: (window.__DASHBOARDMODERN_HOSTED__ ? 2 
 
 # ── Visible build marker: prove the served HTML actually updated ───────────
 VERSION_ANCHOR = "const DASHBOARD_VERSION = '0.11.1';"
-VERSION_REPLACEMENT = "const DASHBOARD_VERSION = '0.13.3';"
+VERSION_REPLACEMENT = "const DASHBOARD_VERSION = '0.14.0';"
 
 # ── Temperature section: the Piano (floor) fields are hidden via CSS below ─
 
@@ -663,8 +663,6 @@ R17_2_A = "if (n > 0) { sessionStorage.setItem('cd_sync_reloading', '1'); consol
 R17_2_R = "if (n > 0) { if (sessionStorage.getItem('cd_sync_rl2')) { console.log('[Sync] applicato senza reload (loop-guard)'); try { if (typeof render === 'function') render(); } catch(e2) {} } else { sessionStorage.setItem('cd_sync_rl2', '1'); sessionStorage.setItem('cd_sync_reloading', '1'); console.log('[Sync] config più recente da HA — ricarico'); location.reload(); } }"
 R17_3_A = "function cdCheckUpdate(isBoot) {\n    try {"
 R17_3_R = "function cdCheckUpdate(isBoot) {\n    if (window.__DASHBOARDMODERN_HOSTED__) { try { if (isBoot) cdHideBoot(); } catch(e) {} return; }\n    try {"
-R17_4_A = "DASHBOARD_VERSION = '0.11.1-int'"
-R17_4_R = "DASHBOARD_VERSION = '0.12.0-int'"
 R17_5_A = "v0.11.1"
 R17_5_R = "v0.12.0-int"
 R17_6_A = '<button class="ed-tab" data-tab="sezioni" onclick="editorSwitch(\'sezioni\')">📑 Sezioni</button>\n          '
@@ -866,8 +864,6 @@ R29B_en_A = "if (tab) tab.style.display = 'none';\n            if (page) page.re
 R29B_en_R = "/* remover secondario neutralizzato (cdApplyNavVis comanda) */"
 
 # Round 30: provable build marker, run counters, one-tap nav diagnosis.
-R30_1_A = "'0.12.0-int'"
-R30_1_R = "'0.12.1-int'"
 R30_2_A = "function cdApplyNavVis(){ try {"
 R30_2_R = "window.__CD_NVRUN=(window.__CD_NVRUN||0); function cdApplyNavVis(){ try { window.__CD_NVRUN++;"
 R30_3_A = "function cdSecBoot(){ try {"
@@ -1062,7 +1058,6 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("sync-loop-guard-it?", R17_1_A, R17_1_R),
     ("sync-loop-guard-en?", R17_2_A, R17_2_R),
     ("update-check-hosted", R17_3_A, R17_3_R),
-    ("version-bump", R17_4_A, R17_4_R),
     ("version-bump-txt?", R17_5_A, R17_5_R),
     ("rm-tab-sezioni-it?", R17_6_A, R17_6_R),
     ("rm-tab-sezioni-en?", R17_7_A, R17_7_R),
@@ -1136,7 +1131,6 @@ FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
     ("temp-render-on-show", R29_5_A, R29_5_R),
     ("kill-section-remover-2-it?", R29B_it_A, R29B_it_R),
     ("kill-section-remover-2-en?", R29B_en_A, R29B_en_R),
-    ("ver-0121", R30_1_A, R30_1_R),
     ("nav-counters", R30_2_A, R30_2_R),
     ("boot-counter", R30_3_A, R30_3_R),
     ("nav-diag-fn", R30_4_A, R30_4_R),

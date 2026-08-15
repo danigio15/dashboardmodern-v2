@@ -35,6 +35,12 @@ VENDOR_DIR = REPO_ROOT / "custom_components/dashboardmodern/frontend/legacy"
 SOURCE_REPO = "https://github.com/danigio15/dashboardmodern.git"
 VARIANTS = ("dashboard.html", "dashboard-en.html")
 LOCAL_FIXES = ("en-lang",)
+PENDING_UPSTREAM_FIXES = (
+    "cameras-wipe",
+    "alarm-entity",
+    "pin-length",
+    "pin-display",
+)
 
 NS_TAG = '<script src="./storage-namespace.js"></script>'
 PRELUDE_TAG = '<script src="./bridge-prelude.js"></script>'
@@ -405,7 +411,7 @@ def vendor(ref: str) -> dict[str, str]:
             "scripts/vendor_legacy.py."
         ),
         "local_fixes": list(LOCAL_FIXES),
-        "upstream_fixes_pending": [fix[0] for fix in UPSTREAM_FIXES[1:]],
+        "upstream_fixes_pending": list(PENDING_UPSTREAM_FIXES),
     }
     (VENDOR_DIR / "VENDOR.json").write_text(
         json.dumps(metadata, indent=2) + "\n", encoding="utf-8"
