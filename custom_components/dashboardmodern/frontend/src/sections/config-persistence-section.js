@@ -1,9 +1,10 @@
-// DM-FIX-20260815F
+// DM-FIX-20260815G
 import { normalizeSection } from "../core/migrations.js";
 import { root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CONFIG_PERSISTENCE__";
 const USER_DATA_VERSION = 1;
+const CONFIG_KEYS_REVISION = 2;
 const PERSIST_META_KEY = "dm_persistence_meta";
 const REMOTE_REFRESH_MIN_MS = 1200;
 const state = (root[KEY] ||= {
@@ -69,8 +70,6 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_hidden_elements",
   "cd_costo_kwh",
   "cd_prezzo_immissione",
-  // Kept for compatibility with the modern editor. Legacy deliberately treated
-  // appearance as device-local; these keys do not affect entity configuration.
   "cd_theme",
   "cd_nav_mode",
 ]);
@@ -178,6 +177,7 @@ export function normalizeRemoteSnapshot(remote) {
   ) {
     return {
       version: USER_DATA_VERSION,
+      keys_revision: Number(remote.keys_revision) || 0,
       updated_at: Number(remote.updated_at) || 0,
       values: Object.fromEntries(
         CONFIG_KEYS.flatMap((key) =>
@@ -202,12 +202,29 @@ export function normalizeRemoteSnapshot(remote) {
   ) {
     return {
       version: USER_DATA_VERSION,
+      keys_revision: 0,
       updated_at: Number(remote.__ts || remote._savedAt) || 0,
       values: legacyValues,
       migrated_from: "legacy-flat",
     };
   }
   return null;
+}
+
+/**
+ * Before revision 2 several real editor keys were not part of the modern cloud
+ * snapshot at all. Absence in those old payloads therefore cannot mean
+ * "deleted". Fill only the missing old fields from this device once, while
+ * remote values still win wherever the old snapshot actually contains a key.
+ * The upgraded revision-2 snapshot is then complete and future absence again
+ * has normal deletion semantics.
+ */
+export function mergeLegacyMissingConfig(remote, local = {}) {
+  if (!remote || Number(remote.keys_revision) >= CONFIG_KEYS_REVISION) return remote;
+  return {
+    ...remote,
+    values: { ...local, ...(remote.values || {}) },
+  };
 }
 
 export function sameConfigValues(left = {}, right = {}) {
@@ -251,9 +268,20 @@ function writeMeta(patch = {}, storage = root.localStorage) {
   return next;
 }
 
+function legacyPendingTimestamp(storage = root.localStorage) {
+  try {
+    if (!storage?.getItem?.("cd_sync_dirty")) return 0;
+    const value = Number(storage.getItem("cd_sync_ts"));
+    return Number.isFinite(value) ? value : 0;
+  } catch (_error) {
+    return 0;
+  }
+}
+
 function snapshot() {
   return {
     version: USER_DATA_VERSION,
+    keys_revision: CONFIG_KEYS_REVISION,
     updated_at: Date.now(),
     values: localValues(),
   };
@@ -460,20 +488,13 @@ async function hydrateRemote(options = {}) {
       (key, value) => bridgeRequest("frontend/set_user_data", { key, value }),
     );
     state.lastPullAt = Date.now();
-    const remote = normalizeRemoteSnapshot(rawRemote);
     const local = localValues();
+    const normalizedRemote = normalizeRemoteSnapshot(rawRemote);
+    const remote = mergeLegacyMissingConfig(normalizedRemote, local);
     const meta = readMeta();
     const pendingAt = Math.max(Number(state.dirtyAt) || 0, Number(meta.pending_at) || 0);
-    // On the very first pull use the pre-module value captured before
-    // DashboardStore.migrate() writes empty canonical defaults. Otherwise a
-    // pristine desktop could incorrectly seed an empty cloud snapshot.
     const localConfigured = state.hydrated ? meaningfulLocal(local) : state.localWasConfigured;
-    const action = persistenceReconcileAction({
-      remote: rawRemote,
-      localConfigured,
-      pendingAt,
-      local,
-    });
+    const action = persistenceReconcileAction({ remote, localConfigured, pendingAt, local });
 
     if (action === "push-local") return await pushNow();
     if (action === "restore-remote" && remote) {
@@ -482,10 +503,11 @@ async function hydrateRemote(options = {}) {
       state.localWasConfigured = meaningfulLocal(localValues());
       writeMeta({ synced_at: Number(remote.updated_at) || Date.now(), pending_at: 0 });
       refreshRuntimeAfterRestore(remote);
-      // Migration/normalization can legitimately add canonical empty keys or
-      // convert legacy room shapes. Upgrade the remote envelope once so later
-      // focus pulls compare against the exact canonical local snapshot.
-      if (remote.migrated_from === "legacy-flat" || !sameConfigValues(localValues(), remote.values))
+      if (
+        Number(remote.keys_revision) < CONFIG_KEYS_REVISION ||
+        remote.migrated_from === "legacy-flat" ||
+        !sameConfigValues(localValues(), remote.values)
+      )
         await pushNow();
       return true;
     }
@@ -493,7 +515,8 @@ async function hydrateRemote(options = {}) {
       state.dirtyAt = 0;
       state.localWasConfigured = localConfigured;
       writeMeta({ synced_at: Number(remote.updated_at) || Date.now(), pending_at: 0 });
-      if (remote.migrated_from === "legacy-flat") await pushNow();
+      if (Number(remote.keys_revision) < CONFIG_KEYS_REVISION || remote.migrated_from === "legacy-flat")
+        await pushNow();
       return false;
     }
     if (action === "unsupported")
@@ -635,8 +658,6 @@ function installResetOwner() {
 }
 
 function disableLegacySyncState() {
-  // The vendored runtime and this module used to write incompatible payloads to
-  // the same frontend user_data key. The modern module is now the only owner.
   root.__DASHBOARDMODERN_PERSISTENCE_OWNER__ = "modern-v1";
   for (const key of LEGACY_SYNC_CONTROL_KEYS) {
     try {
@@ -658,7 +679,9 @@ export function installConfigPersistenceSection() {
   state.installed = true;
   state.localWasConfigured = meaningfulLocal();
   const initialMeta = readMeta();
-  state.dirtyAt = Number(initialMeta.pending_at) || 0;
+  const legacyPending = legacyPendingTimestamp();
+  state.dirtyAt = Math.max(Number(initialMeta.pending_at) || 0, legacyPending);
+  if (legacyPending) writeMeta({ pending_at: state.dirtyAt });
   disableLegacySyncState();
 
   // Intentionally do NOT invoke the legacy cdMarkDirty/cdSyncPush functions.
@@ -671,7 +694,6 @@ export function installConfigPersistenceSection() {
 
   root.cdSyncPush = function dashboardModernSyncPush() {
     if (!state.hydrated || state.hydrating) {
-      // Remote must be read before a local snapshot is allowed to overwrite it.
       return hydrateRemote().then(() => true);
     }
     markPending({ schedule: false });
