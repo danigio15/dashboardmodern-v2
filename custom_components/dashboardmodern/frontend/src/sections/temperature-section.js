@@ -1,4 +1,4 @@
-// DM-FIX-20260814A
+// DM-FIX-20260815A
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
 import {
   allStates,
@@ -18,6 +18,7 @@ const state = (root[KEY] ||= {
   storeUnsubscribe: null,
   signature: "",
 });
+root.__DM_FIX_20260815A__ = true;
 
 function glyph(icon) {
   return directEmoji(icon) || roomGlyph(icon);
@@ -315,8 +316,7 @@ function bindTemperatureRoomReassignment(form) {
         const currentRooms = store?.getSection?.("rooms") || [];
         const target = currentRooms.find((room) => clean(room.id) === targetId);
         if (!target) return;
-        const conflict =
-          targetId !== originalId && (clean(target.temp) || clean(target.hum));
+        const conflict = targetId !== originalId && (clean(target.temp) || clean(target.hum));
         if (conflict) {
           root.alert?.(
             english()
@@ -348,31 +348,47 @@ function bindTemperatureRoomReassignment(form) {
   return true;
 }
 
-function normalizeTemperatureConfiguredRows() {
+export function normalizeTemperatureConfiguredRows() {
   const values = rooms();
   let normalized = false;
-  doc
-    ?.querySelectorAll?.("#editor-modal [data-temperature-room][data-room-id]")
-    .forEach((row) => {
-      const room = values.find((item) => clean(item?.id) === clean(row.dataset.roomId));
-      const name =
-        clean(room?.name) || clean(row.dataset.roomId) || (english() ? "Room" : "Stanza");
-      const primary = row.querySelector(".ed-row-new");
-      const secondary = row.querySelector(".ed-row-old");
-      if (primary) {
-        primary.textContent = name;
-        primary.title = name;
-        normalized = true;
+  doc?.querySelectorAll?.("#editor-modal [data-temperature-room][data-room-id]").forEach((row) => {
+    const room = values.find((item) => clean(item?.id) === clean(row.dataset.roomId));
+    const name =
+      clean(room?.name) ||
+      clean(row.dataset.roomName) ||
+      clean(row.dataset.roomId) ||
+      (english() ? "Room" : "Stanza");
+    let main = row.querySelector(".ed-row-main");
+    if (!main) {
+      main = doc.createElement("div");
+      main.className = "ed-row-main";
+      row.querySelector(".dm-temperature-card-icon")?.after(main);
+      if (!main.parentElement) row.prepend(main);
+    }
+    let primary = main.querySelector(".ed-row-new");
+    if (!primary) {
+      primary = doc.createElement("div");
+      primary.className = "ed-row-new";
+      main.prepend(primary);
+    }
+    let secondary = main.querySelector(".ed-row-old");
+    if (!secondary) {
+      secondary = doc.createElement("div");
+      secondary.className = "ed-row-old";
+      main.append(secondary);
+    }
+    primary.textContent = name;
+    primary.title = name;
+    normalized = true;
+    if (room) {
+      const sensors = [clean(room.temp), clean(room.hum)].filter(Boolean).join(" · ");
+      if (sensors) {
+        secondary.textContent = sensors;
+        secondary.title = sensors;
       }
-      if (secondary && room) {
-        const sensors = [clean(room.temp), clean(room.hum)].filter(Boolean).join(" · ");
-        if (sensors) {
-          secondary.textContent = sensors;
-          secondary.title = sensors;
-        }
-      }
-      row.dataset.dmTemperatureNameVisible = "true";
-    });
+    }
+    row.dataset.dmTemperatureNameVisible = "true";
+  });
   return normalized;
 }
 
@@ -460,7 +476,9 @@ function subscribeStore() {
 }
 
 function installStyles() {
-  installStyle("dm-temperature-section-style", `
+  installStyle(
+    "dm-temperature-section-style",
+    `
     #page-temp #temp-grid,.temp-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(250px,310px))!important;justify-content:start!important;align-items:start!important;gap:14px!important;width:100%!important;margin:14px 0 0!important;padding:0 18px 26px!important}
     #page-temp .temp-card,#temp-grid .temp-card{position:relative!important;display:grid!important;box-sizing:border-box!important;aspect-ratio:auto!important;width:100%!important;max-width:310px!important;min-height:126px!important;margin:0!important;padding:14px 15px!important;border:1px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 14%,var(--divider-color,#e2e8f0))!important;border-radius:19px!important;gap:11px!important;overflow:hidden!important;background:linear-gradient(145deg,var(--ha-card-background,var(--card-bg,#fff)) 0%,color-mix(in srgb,var(--primary-color,#0ea5e9) 4%,var(--ha-card-background,#fff)) 100%)!important;box-shadow:0 10px 24px rgba(15,23,42,.08)!important}
     #page-temp .temp-card::before,#temp-grid .temp-card::before{content:""!important;position:absolute!important;inset:0 auto 0 0!important;width:3px!important;background:linear-gradient(180deg,var(--primary-color,#0ea5e9),color-mix(in srgb,var(--primary-color,#0ea5e9) 35%,transparent))!important;opacity:.72!important}
@@ -485,7 +503,8 @@ function installStyles() {
     #editor-modal [data-temperature-form] .dm-temperature-actions button{min-height:44px!important}
     #editor-modal [data-temperature-form] #dm-temperature-room[data-dm-temperature-room-editable="true"]{border-color:var(--primary-color,#0ea5e9)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,transparent)!important}
     @media(max-width:680px){#page-temp #temp-grid,.temp-grid{grid-template-columns:minmax(0,350px)!important;justify-content:center!important;gap:12px!important;margin-top:12px!important;padding:0 14px 22px!important}#page-temp .temp-card,#temp-grid .temp-card{width:100%!important;max-width:350px!important;min-height:118px!important;padding:12px 13px!important;border-radius:18px!important;gap:9px!important}#page-temp .cp-temp-current,#temp-grid .cp-temp-current{font-size:34px!important}.cp-temp-target .val{font-size:21px!important}}
-  `);
+  `,
+  );
 }
 
 export function installTemperatureSection() {
@@ -504,6 +523,7 @@ export function installTemperatureSection() {
       "dashboardmodern:legacy-ready",
       "dashboardmodern:runtime-ready",
       "dashboardmodern:persistence-restored",
+      "dashboardmodern:temperature-editor-rendered",
     ]) {
       root.addEventListener?.(eventName, () => {
         installOwners();

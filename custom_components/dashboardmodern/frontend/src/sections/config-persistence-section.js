@@ -1,3 +1,5 @@
+// DM-FIX-20260815A
+import { normalizeSection } from "../core/migrations.js";
 import { root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CONFIG_PERSISTENCE__";
@@ -57,16 +59,16 @@ const CONFIG_KEYS = Object.freeze([
 
 function instanceId() {
   return String(
-    root.__DASHBOARDMODERN_INSTANCE__ ||
-      root.__DASHBOARDMODERN_STORAGE_NS__ ||
-      "integration",
+    root.__DASHBOARDMODERN_INSTANCE__ || root.__DASHBOARDMODERN_STORAGE_NS__ || "integration",
   );
 }
 
 export function integrationUserDataKey({ primary = true, instance = "" } = {}) {
   const suffix =
     primary === false && instance
-      ? `__${String(instance).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 16)}`
+      ? `__${String(instance)
+          .replace(/[^a-zA-Z0-9_-]/g, "")
+          .slice(0, 16)}`
       : "";
   return `dashboardmodern_integration_config${suffix}`;
 }
@@ -106,13 +108,21 @@ function meaningfulLocal(values = localValues()) {
     try {
       const parsed = JSON.parse(stateValue);
       const sections = parsed?.sections || {};
-      if (Object.values(sections).some((value) =>
-        Array.isArray(value) ? value.length > 0 : value && typeof value === "object" ? Object.keys(value).length > 0 : Boolean(value),
-      )) return true;
+      if (
+        Object.values(sections).some((value) =>
+          Array.isArray(value)
+            ? value.length > 0
+            : value && typeof value === "object"
+              ? Object.keys(value).length > 0
+              : Boolean(value),
+        )
+      )
+        return true;
     } catch (_error) {}
   }
-  return Object.entries(values).some(([key, value]) =>
-    !["dm_schema_version", "cd_sections"].includes(key) && String(value || "").length > 2,
+  return Object.entries(values).some(
+    ([key, value]) =>
+      !["dm_schema_version", "cd_sections"].includes(key) && String(value || "").length > 2,
   );
 }
 
@@ -126,8 +136,7 @@ function snapshot() {
 
 function hostedBridge() {
   return Boolean(
-    root.__DASHBOARDMODERN_HOSTED__ &&
-      (root.__DASHBOARDMODERN_BRIDGE_WS__ || root.WebSocket),
+    root.__DASHBOARDMODERN_HOSTED__ && (root.__DASHBOARDMODERN_BRIDGE_WS__ || root.WebSocket),
   );
 }
 
@@ -139,12 +148,16 @@ function bridgeRequest(type, payload = {}) {
     let sent = false;
     let socket;
     const timer = root.setTimeout?.(() => {
-      try { socket?.close?.(); } catch (_error) {}
+      try {
+        socket?.close?.();
+      } catch (_error) {}
       reject(new Error(`${type} timed out`));
     }, 8000);
     const finish = (callback, value) => {
       if (timer) root.clearTimeout?.(timer);
-      try { socket?.close?.(); } catch (_error) {}
+      try {
+        socket?.close?.();
+      } catch (_error) {}
       callback(value);
     };
     const send = () => {
@@ -160,7 +173,11 @@ function bridgeRequest(type, payload = {}) {
       socket = new Socket("ws://dashboardmodern.invalid/api/websocket");
       socket.onmessage = (event) => {
         let message;
-        try { message = JSON.parse(event?.data || "{}"); } catch (_error) { return; }
+        try {
+          message = JSON.parse(event?.data || "{}");
+        } catch (_error) {
+          return;
+        }
         if (message.type === "auth_ok") {
           send();
           return;
@@ -214,11 +231,31 @@ function schedulePush() {
   return state.pushPromise;
 }
 
+export function normalizeRestoredValues(values) {
+  const restored = { ...values };
+  if (typeof restored.cd_stanze === "string") {
+    try {
+      restored.cd_stanze = JSON.stringify(
+        normalizeSection("rooms", JSON.parse(restored.cd_stanze)),
+      );
+    } catch (_error) {}
+  }
+  if (typeof restored.dm_dashboard_state === "string") {
+    try {
+      const snapshot = JSON.parse(restored.dm_dashboard_state);
+      snapshot.sections ||= {};
+      snapshot.sections.rooms = normalizeSection("rooms", snapshot.sections.rooms || []);
+      restored.dm_dashboard_state = JSON.stringify(snapshot);
+    } catch (_error) {}
+  }
+  return restored;
+}
+
 function restoreValues(values) {
   if (!values || typeof values !== "object" || Array.isArray(values)) return false;
   root.__DASHBOARDMODERN_PERSIST_RESTORE__ = true;
   try {
-    for (const [key, value] of Object.entries(values)) {
+    for (const [key, value] of Object.entries(normalizeRestoredValues(values))) {
       if (!CONFIG_KEYS.includes(key) || typeof value !== "string") continue;
       root.localStorage?.setItem(key, value);
     }
@@ -243,8 +280,13 @@ async function hydrateRemote() {
       remote.version === USER_DATA_VERSION &&
       restoreValues(remote.values)
     ) {
-      try { root.DashboardModernModules?.store?.migrate?.(); } catch (error) {
-        console.warn("[DashboardModern] canonical state reload after persistence restore failed", error);
+      try {
+        root.DashboardModernModules?.store?.migrate?.();
+      } catch (error) {
+        console.warn(
+          "[DashboardModern] canonical state reload after persistence restore failed",
+          error,
+        );
       }
       root.cdEvCarsRefresh?.();
       root.buildQuickActions?.();
@@ -253,7 +295,9 @@ async function hydrateRemote() {
       root.buildTempCards?.();
       root.buildClimaCards?.();
       root.render?.();
-      root.dispatchEvent?.(new CustomEvent("dashboardmodern:persistence-restored", { detail: remote }));
+      root.dispatchEvent?.(
+        new CustomEvent("dashboardmodern:persistence-restored", { detail: remote }),
+      );
       return true;
     }
     if (!remote && state.localWasConfigured) await pushNow();
@@ -292,7 +336,9 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
   // storage-namespace.js makes clear() instance-scoped: this removes every
   // cd_/dm_ key for this dashboard, including alert keys unknown to older
   // snapshots, without touching another DashboardModern instance or HA data.
-  try { root.localStorage?.clear?.(); } catch (error) {
+  try {
+    root.localStorage?.clear?.();
+  } catch (error) {
     state.resetting = false;
     delete root.__DASHBOARDMODERN_CONFIG_RESETTING__;
     root.console?.error?.("[DashboardModern] local reset failed", error);
@@ -312,7 +358,9 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
 
   // Rendering/store bridges may have completed work while the remote reset was
   // in flight. Clear once more so Reset totale always wins that race too.
-  try { root.localStorage?.clear?.(); } catch (_error) {}
+  try {
+    root.localStorage?.clear?.();
+  } catch (_error) {}
 
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:config-reset", { detail: empty }));
   if (reload) {
@@ -348,14 +396,18 @@ export function installConfigPersistenceSection() {
 
   const previousMarkDirty = typeof root.cdMarkDirty === "function" ? root.cdMarkDirty : null;
   root.cdMarkDirty = function dashboardModernMarkDirty(...args) {
-    try { previousMarkDirty?.apply(this, args); } catch (_error) {}
+    try {
+      previousMarkDirty?.apply(this, args);
+    } catch (_error) {}
     state.dirtyAt = Date.now();
     return state.dirtyAt;
   };
 
   const previousSyncPush = typeof root.cdSyncPush === "function" ? root.cdSyncPush : null;
   root.cdSyncPush = function dashboardModernSyncPush(...args) {
-    try { previousSyncPush?.apply(this, args); } catch (_error) {}
+    try {
+      previousSyncPush?.apply(this, args);
+    } catch (_error) {}
     return schedulePush();
   };
 

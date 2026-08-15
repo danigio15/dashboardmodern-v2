@@ -3,9 +3,10 @@ import test from "node:test";
 import { DashboardStore } from "../src/core/dashboard-store.js";
 
 globalThis.addEventListener = () => {};
-const { integrationUserDataKey, migrateLegacyUserData } = await import(
-  "../src/sections/config-persistence-section.js"
-);
+const { integrationUserDataKey, migrateLegacyUserData, normalizeRestoredValues } =
+  await import("../src/sections/config-persistence-section.js");
+
+// DM-FIX-20260815A
 
 class MemoryStorage {
   values = new Map();
@@ -82,4 +83,16 @@ test("store preserves fresh room edits including Temperature display names", () 
   assert.equal(saved.temp_name, "Sonda cucina");
   assert.equal(saved.hum_name, "Umidità cucina");
   assert.equal(store.getSection("rooms")[0].temp_name, "Sonda cucina");
+});
+
+test("restore normalizes room names in canonical and legacy snapshots", () => {
+  const restored = normalizeRestoredValues({
+    cd_stanze: JSON.stringify([{ id: "room_x", name: "", temp: "sensor.t" }]),
+    dm_dashboard_state: JSON.stringify({
+      schema_version: 4,
+      sections: { rooms: [{ id: "room_y", name: "", temp: "sensor.y" }] },
+    }),
+  });
+  assert.equal(JSON.parse(restored.cd_stanze)[0].name, "Room 1");
+  assert.equal(JSON.parse(restored.dm_dashboard_state).sections.rooms[0].name, "Room 1");
 });
