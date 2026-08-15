@@ -34,6 +34,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 VENDOR_DIR = REPO_ROOT / "custom_components/dashboardmodern/frontend/legacy"
 SOURCE_REPO = "https://github.com/danigio15/dashboardmodern.git"
 VARIANTS = ("dashboard.html", "dashboard-en.html")
+LOCAL_FIXES = ("en-lang",)
 
 NS_TAG = '<script src="./storage-namespace.js"></script>'
 PRELUDE_TAG = '<script src="./bridge-prelude.js"></script>'
@@ -314,6 +315,10 @@ def patch_variant(source: str, name: str) -> str:
     """Apply both bridge patches to one legacy dashboard file."""
     if PRELUDE_TAG in source:
         raise PatchError(f"{name}: already vendored; re-run against a clean checkout.")
+    if name == "dashboard-en.html":
+        source = _apply_once(
+            source, '<html lang="it">', '<html lang="en">', f"{name} en-lang"
+        )
     patched = _apply_once(
         source,
         HEAD_ANCHOR,
@@ -390,7 +395,18 @@ def vendor(ref: str) -> dict[str, str]:
             (VENDOR_DIR / name).write_text(patched, encoding="utf-8")
             digests[name] = hashlib.sha256(source.encode("utf-8")).hexdigest()
 
-    metadata = {"source": SOURCE_REPO, "ref": ref, "commit": commit, "sha256": digests}
+    metadata = {
+        "source": SOURCE_REPO,
+        "ref": ref,
+        "commit": commit,
+        "sha256": digests,
+        "_note": (
+            "sha256 is of the unpatched upstream source; every patch is applied by "
+            "scripts/vendor_legacy.py."
+        ),
+        "local_fixes": list(LOCAL_FIXES),
+        "upstream_fixes_pending": [fix[0] for fix in UPSTREAM_FIXES[1:]],
+    }
     (VENDOR_DIR / "VENDOR.json").write_text(
         json.dumps(metadata, indent=2) + "\n", encoding="utf-8"
     )

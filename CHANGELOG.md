@@ -4,6 +4,47 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## Non rilasciato
+
+### Corretto
+
+- **DM-FIX-20260815A** — Corretta la tab stanza di **Elettrodomestici**, che mostrava il token MDI grezzo; ripristinati i nomi stanza assenti nelle righe dell'editor **Temperatura** e normalizzate le stanze durante il ripristino remoto.
+- **DM-FIX-20260815B** — Dichiarata correttamente la lingua inglese nella shell vendorizzata e aggiunte protezioni automatiche; completati changelog, badge, validazione HACS, template issue e aggiornamenti Dependabot.
+
+## 1.0.0-beta.20.2 — 2026-08-14
+
+### Corretto
+
+- Ripristinato un unico motore canonico di salvataggio per gli editor, incluso nel build generato e coperto da E2E sui salvataggi reali di Energia ed Elettrodomestici (#116).
+- Evitate riconciliazioni di visibilità inutili e conflitti con gli edit canonici.
+
+## 1.0.0-beta.20.1 — 2026-08-14
+
+### Corretto
+
+- Ripristinata la persistenza affidabile su base beta.20, preservando configurazioni locali e remote durante migrazioni e hotfix (#115).
+
+## 1.0.0-beta.20 — 2026-08-14
+
+### Corretto
+
+- Ripristinati nell'editor **Temperatura** i nomi leggibili delle stanze e delle entità, senza alterare le stanze legacy vuote.
+- Aggiunta copertura E2E e unitaria dedicata alle etichette Temperatura e alla compatibilità dell'hotfix.
+
+## 1.0.0-beta.19 — 2026-08-14
+
+### Corretto
+
+- Rifinita la sezione **Temperatura**, completata la documentazione README e preparata la release beta.19 (#107).
+- Stabilizzati i gate WebKit necessari alla release (#108).
+
+## 1.0.0-beta.18 — 2026-08-13
+
+### Corretto
+
+- Reso il motore icone single-owner per eliminare sfarfallii e scritture concorrenti; stabilizzati i relativi gate WebKit.
+- Usato il manifest come unica fonte della versione di release e completata la preparazione beta.18.
+
 ## 1.0.0-beta.17 — 2026-08-13
 
 ### Corretto

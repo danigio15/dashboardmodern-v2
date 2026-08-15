@@ -1,0 +1,49 @@
+name: Segnalazione bug
+description: Segnala un comportamento inatteso di DashboardModern.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Grazie per averci aiutato a migliorare DashboardModern.
+  - type: input
+    id: integration-version
+    attributes:
+      label: Versione integrazione
+      placeholder: es. 1.0.0-beta.20.2
+    validations:
+      required: true
+  - type: input
+    id: ha-version
+    attributes:
+      label: Versione Home Assistant
+      placeholder: es. 2026.8.0
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Metodo di installazione
+      options:
+        - HACS
+        - Manuale
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passi per riprodurre il problema
+      placeholder: Elenca i passaggi, il risultato atteso e quello osservato.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log e console
+      description: Incolla i log di Home Assistant e gli errori della console browser, rimuovendo token e dati sensibili.
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshot
+      description: Trascina qui eventuali immagini utili a mostrare il problema.

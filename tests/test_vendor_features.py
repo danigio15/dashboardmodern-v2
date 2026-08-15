@@ -34,6 +34,14 @@ def _variant_source(name: str) -> str:
     return "\n".join(parts)
 
 
+def test_html_shells_declare_their_language() -> None:
+    """Each vendored shell exposes the locale used by its interface."""
+    italian = (VENDORED / "dashboard.html").read_text(encoding="utf-8")
+    english = (VENDORED / "dashboard-en.html").read_text(encoding="utf-8")
+    assert italian.count('<html lang="it">') == 1
+    assert english.count('<html lang="en">') == 1
+
+
 def test_the_room_field_is_present_in_every_section_and_language() -> None:
     """Appliances, climate and cameras all gain the same room dropdown."""
     for name in vendor_legacy.VARIANTS:

@@ -1,4 +1,13 @@
 <p align="center">
+  <a href="https://github.com/danigio15/dashboardmodern-v2/releases"><img src="https://img.shields.io/github/v/release/danigio15/dashboardmodern-v2?include_prereleases" alt="GitHub release"></a>
+  <a href="https://github.com/danigio15/dashboardmodern-v2/actions/workflows/tests.yml"><img src="https://github.com/danigio15/dashboardmodern-v2/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/danigio15/dashboardmodern-v2" alt="Licenza"></a>
+</p>
+
+<!-- TODO screenshot: panoramica della dashboard su desktop e mobile -->
+
+<p align="center">
   <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/brand/logo.png" alt="DashboardModern" width="430">
 </p>
 
@@ -32,6 +41,8 @@
 </p>
 
 ---
+
+<!-- TODO screenshot: editor di configurazione e principali sezioni -->
 
 ## Cos'è DashboardModern
 

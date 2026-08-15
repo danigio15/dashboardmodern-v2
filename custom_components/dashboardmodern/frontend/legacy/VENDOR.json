@@ -7,6 +7,9 @@
     "dashboard-en.html": "e8069dcef481c2c529587359b01a1864168ae21084db824cc084eec410321069"
   },
   "_note": "sha256 is of the unpatched upstream source; every patch is applied by scripts/vendor_legacy.py.",
+  "local_fixes": [
+    "en-lang"
+  ],
   "upstream_fixes_pending": [
     "cameras-wipe",
     "alarm-entity",
