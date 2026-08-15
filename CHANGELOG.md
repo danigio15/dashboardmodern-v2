@@ -4,7 +4,12 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## Non rilasciato
+## 1.0.0-beta.21 — 2026-08-15
+
+### Modificato
+
+- Ripristinata la pipeline vendor riproducibile end-to-end: ricostruito lo step di split (`scripts/split_legacy.py`), delta upstream→committato versionati e leggibili in `legacy/patches/*.diff`, gate sha256 sull'upstream pinnato e checkout per commit (#127).
+- Aggiunto il workflow "Regenerate vendor artifacts" per rigenerare gli artefatti vendor con un click dalla tab Actions (#128).
 
 ### Corretto
 
