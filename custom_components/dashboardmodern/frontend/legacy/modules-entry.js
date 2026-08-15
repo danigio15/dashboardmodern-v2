@@ -1,3 +1,4 @@
+// DM-FIX-20260815A
 /* Canonical runtime helpers consumed directly by both vendored dashboards. */
 import {
   applianceGroups,
@@ -166,12 +167,15 @@ const entityField = (id, label, value, placeholder) => createEntityField({ id, l
 export function renderTemperatureEditor(target) {
   const allRooms = store.getSection("rooms");
   const configured = allRooms.filter((room) => room.temp || room.hum);
-  const rows = configured.map((room) => `<article class="ed-row dm-temperature-card" data-temperature-room data-room-id="${esc(room.id)}">
+  const rows = configured.map((room) => {
+    const label = String(room.name || "").trim() || String(room.id || "").trim() || (LOCALE === "en" ? "Room" : "Stanza");
+    return `<article class="ed-row dm-temperature-card" data-temperature-room data-room-id="${esc(room.id)}" data-room-name="${esc(label)}">
     <div class="dm-temperature-card-icon">${globalThis.cdIconMarkup?.(room.icon || "🌡️", 28) || esc(room.icon || "🌡️")}</div>
-    <div class="ed-row-main"><div class="ed-row-new">${esc(room.name)}</div><div class="ed-row-old">${room.floor ? `🏢 ${esc(room.floor)} · ` : ""}<span class="mono">${esc(room.temp)}</span>${room.hum ? ` · <span class="mono">${esc(room.hum)}</span>` : ""}</div></div>
+    <div class="ed-row-main"><div class="ed-row-new">${esc(label)}</div><div class="ed-row-old">${room.floor ? `🏢 ${esc(room.floor)} · ` : ""}<span class="mono">${esc(room.temp)}</span>${room.hum ? ` · <span class="mono">${esc(room.hum)}</span>` : ""}</div></div>
     <button type="button" class="ed-del dm-temperature-edit" data-temperature-edit aria-label="${LOCALE === "en" ? "Edit" : "Modifica"}">✏️</button>
     <button type="button" class="ed-del" data-temperature-delete aria-label="${t("remove")}">🗑️</button>
-  </article>`).join("");
+  </article>`;
+  }).join("");
   const options = allRooms.map((room) => `<option value="${esc(room.id)}" ${(room.temp || room.hum) ? "disabled" : ""}>${esc(room.name)}${(room.temp || room.hum) ? (LOCALE === "en" ? " — configured" : " — configurata") : ""}</option>`).join("");
   const empty = LOCALE === "en" ? "Configure at least one room first in the Rooms section." : "Configura prima almeno una stanza nella sezione Stanze.";
   target.innerHTML = `<div class="ed-intro" data-temperature-editor>${LOCALE === "en" ? "Temperature uses canonical rooms: it adds sensors without creating duplicate rooms." : "Temperatura usa le stanze canoniche: aggiunge i sensori senza creare stanze duplicate."}</div><div class="ed-list" data-temperature-list>${rows || `<div class="ed-empty">${t("empty")}</div>`}</div>
@@ -179,6 +183,7 @@ export function renderTemperatureEditor(target) {
 }
 
 export function mountTemperatureEditor(_section, target) {
+  globalThis.dispatchEvent?.(new CustomEvent("dashboardmodern:temperature-editor-rendered"));
   mountEntityPickers(target);
   const select = target.querySelector("#dm-temperature-room");
   const form = target.querySelector("[data-temperature-form]");

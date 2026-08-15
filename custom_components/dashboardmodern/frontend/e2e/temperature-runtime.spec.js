@@ -1,4 +1,4 @@
-// DM-FIX-20260812B
+// DM-FIX-20260815A
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { clickBottomTab } from "./helpers/navigation.js";
@@ -106,6 +106,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       editorSwitch("sez7");
     }, states);
     await expect(page.locator('#ed-body[data-renderer="temperature"]')).toBeVisible();
+    await expect
+      .poll(() =>
+        page
+          .locator("[data-temperature-room]")
+          .evaluateAll((rows) =>
+            rows.every((row) => Boolean(row.querySelector(".ed-row-new")?.textContent?.trim())),
+          ),
+      )
+      .toBe(true);
     await expect(page.locator("#ed-pl-temp")).toBeVisible();
     for (let index = 0; index < 20; index++) await page.evaluate(() => editorSwitch("sez7"));
     expect(
@@ -161,6 +170,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(
       page.locator('[data-temperature-room][data-room-id="room-kitchen"]'),
     ).toContainText("sensor.kitchen_temperature");
+    await expect
+      .poll(() =>
+        page
+          .locator("[data-temperature-room]")
+          .evaluateAll((rows) =>
+            rows.every((row) => Boolean(row.querySelector(".ed-row-new")?.textContent?.trim())),
+          ),
+      )
+      .toBe(true);
     await page.evaluate(() => editorSwitch("sez1"));
     await page.evaluate(() => editorSwitch("sez7"));
     await expect(

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+// DM-FIX-20260815A
+
 test("the exact module shipped by the HTML loads and exposes the canonical model", async () => {
   delete globalThis.DashboardModernModules;
   const module = await import(`../legacy/modules-entry.js?functional=${Date.now()}`);
@@ -39,6 +41,23 @@ test("appliance media retains the backwards-compatible priority", async () => {
   });
   assert.deepEqual(applianceMedia({ icon: "mdi:stove" }), { kind: "icon", value: "mdi:stove" });
   assert.deepEqual(applianceMedia({ device_type: "forno" }), { kind: "icon", value: "mdi:stove" });
+});
+
+test("Temperature editor always renders a room label", async () => {
+  const module = await import(`../legacy/modules-entry.js?temperature-label=${Date.now()}`);
+  await module.default.store.replaceSection("rooms", [
+    { id: "room_x", name: "", temp: "sensor.t" },
+  ]);
+  const fallback = { innerHTML: "" };
+  module.renderTemperatureEditor(fallback);
+  assert.match(fallback.innerHTML, /data-room-name="Room 1"/);
+  assert.match(fallback.innerHTML, /class="ed-row-new">Room 1</);
+  await module.default.store.replaceSection("rooms", [
+    { id: "room_x", name: "Cameretta", temp: "sensor.t" },
+  ]);
+  const named = { innerHTML: "" };
+  module.renderTemperatureEditor(named);
+  assert.match(named.innerHTML, /class="ed-row-new">Cameretta</);
 });
 
 test("energy report is derived from appliances and normalizes power and energy", async () => {

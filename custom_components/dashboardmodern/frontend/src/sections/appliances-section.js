@@ -1,7 +1,9 @@
+// DM-FIX-20260815A
 import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
 import { isCumulativeEnergyEntity, resolveEntity } from "../core/period-service.js";
 import { runtimeMetrics } from "../core/runtime-metrics.js";
+import { iconGlyph } from "./icon-engine-section.js";
 import {
   allStates,
   clean,
@@ -28,6 +30,21 @@ const state = (root[KEY] ||= {
   dailyPromise: null,
   dailyGeneration: 0,
 });
+root.__DM_FIX_20260815A__ = true;
+
+export function normalizeApplianceRoomTabs() {
+  let normalized = false;
+  doc
+    ?.querySelectorAll?.("#page-appliances-main .sub-tabs-energy .appl-section-tab")
+    .forEach((button) => {
+      const label = button.textContent || "";
+      const match = label.match(/^mdi:[a-z0-9][a-z0-9-]*/i);
+      if (!match) return;
+      button.textContent = `${iconGlyph("room", match[0])}${label.slice(match[0].length)}`;
+      normalized = true;
+    });
+  return normalized;
+}
 
 function configuredEntity(value) {
   return clean(typeof value === "string" ? value : value?.entity || value?.entity_id);
@@ -51,11 +68,7 @@ function energyValueKwh(entity, states = {}) {
 }
 
 export function applianceDailySource(device = {}, states = {}) {
-  const directCandidates = [
-    device.daily_energy_entity,
-    device.energy_today,
-    device.daily_energy,
-  ]
+  const directCandidates = [device.daily_energy_entity, device.energy_today, device.daily_energy]
     .map(configuredEntity)
     .filter(Boolean);
   const direct = directCandidates.find((entity) => energyValueKwh(entity, states) != null);
@@ -168,9 +181,7 @@ export function inferApplianceEntity(device = {}, states = {}, kind = "energy") 
     .filter(Boolean);
   const unit = kind === "power" ? /^(w|kw)$/i : /^(wh|kwh|mwh)$/i;
   const name =
-    kind === "power"
-      ? /power|potenza|watt/i
-      : /energy|energia|kwh|consum|total|totale|mese|month/i;
+    kind === "power" ? /power|potenza|watt/i : /energy|energia|kwh|consum|total|totale|mese|month/i;
   return (
     candidates.find((id) => unit.test(clean(states[id]?.attributes?.unit_of_measurement))) ||
     candidates.find((id) => name.test(id)) ||
@@ -315,7 +326,8 @@ function restoreLegacyActions(card) {
 function hideLegacyPowerOnly(card) {
   const buttons = [...card.querySelectorAll(".appl-action-btn")];
   const legacyPower = buttons.find(
-    (button) => !/storico|history/i.test(clean(button.textContent || button.getAttribute("aria-label"))),
+    (button) =>
+      !/storico|history/i.test(clean(button.textContent || button.getAttribute("aria-label"))),
   );
   if (!legacyPower) return;
   legacyPower.hidden = true;
@@ -399,8 +411,12 @@ function renderDailyPopup(breakdown = state.dailyBreakdown, { loading = false } 
     .map((row) => {
       const pct = breakdown.total > 0 ? Math.round((row.value / breakdown.total) * 100) : 0;
       const source = row.direct
-        ? english() ? "Daily sensor" : "Sensore giornaliero"
-        : english() ? "Total meter → Recorder" : "Contatore totale → Recorder";
+        ? english()
+          ? "Daily sensor"
+          : "Sensore giornaliero"
+        : english()
+          ? "Total meter → Recorder"
+          : "Contatore totale → Recorder";
       return `<button type="button" class="dm-appliance-daily-row" data-dm-daily-entity="${esc(row.entity)}">
         <span class="dm-appliance-daily-row-main"><strong>${esc(row.name)}</strong><small>${esc(row.entity)}</small><small>${source}</small></span>
         <span class="dm-appliance-daily-row-value"><strong>${formatDaily(row.value)}</strong><small>${pct}%</small></span>
@@ -488,14 +504,20 @@ function applyDailyKpi(breakdown = state.dailyBreakdown) {
   card.tabIndex = 0;
   card.setAttribute(
     "aria-label",
-    english() ? "Open today's appliance energy breakdown" : "Apri dettaglio energia elettrodomestici di oggi",
+    english()
+      ? "Open today's appliance energy breakdown"
+      : "Apri dettaglio energia elettrodomestici di oggi",
   );
-  card.title = english() ? "Show devices and energy sources" : "Mostra dispositivi ed entità che hanno consumato";
+  card.title = english()
+    ? "Show devices and energy sources"
+    : "Mostra dispositivi ed entità che hanno consumato";
   const value = card.querySelector(".g-val");
   if (value) value.textContent = formatDaily(breakdown.total);
   if (!card.dataset.dmDailyMounted) {
     card.dataset.dmDailyMounted = "true";
-    card.addEventListener("click", () => refreshApplianceDailyKpi({ force: true, openPopup: true }));
+    card.addEventListener("click", () =>
+      refreshApplianceDailyKpi({ force: true, openPopup: true }),
+    );
     card.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
@@ -549,6 +571,7 @@ export function scheduleApplianceNormalization() {
   const run = () => {
     state.frame = 0;
     if (!appliancesVisible()) return;
+    normalizeApplianceRoomTabs();
     normalizeApplianceCards();
     refreshApplianceDailyKpi();
   };
