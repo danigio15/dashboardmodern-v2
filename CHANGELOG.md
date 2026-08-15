@@ -4,6 +4,23 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.22 — 2026-08-15
+
+### Corretto
+
+- Testo invisibile con tema Home Assistant scuro: tutte le superfici di proprietà
+  della dashboard (editor, card, barra di navigazione) ora usano i token propri
+  invece di --primary-text-color del tema host; i nomi stanza nell'editor
+  Temperatura tornano visibili (DM-20260815C).
+
+### Aggiunto
+
+- Carichi energia sotto Casa dinamici: configurabili dall'editor (nome, icona,
+  entità potenza/energia, colore, max 8) con migrazione automatica dei vecchi slot
+  fissi; con zero carichi le bolle e gli archi non vengono più mostrati.
+- Campo SOC batteria nella configurazione energia, mostrato nella bolla Batteria
+  del flusso istantaneo (DM-20260815C).
+
 ## 1.0.0-beta.21 — 2026-08-15
 
 ### Modificato

@@ -7,4 +7,4 @@ import "../src/sections/beta12-real-device-polish-section.js";
 import "../src/sections/beta12-room-color-lock-section.js";
 import "../src/sections/beta14-real-device-hotfix-section.js";
 import "../src/sections/beta16-real-device-layout-section.js";
-export const BUILD_INFO = Object.freeze({"generated":true,"integrationVersion":"1.0.0-beta.21","dashboardVersion":"1.0.0-beta.21","moduleVersion":14,"schemaVersion":4,"date":"2026-08-15T11:22:25+00:00","commit":"50b0b05e7e6f347c23e740a36977cc3ab757b662","assetHash":"8fa27df5d839e6c7"});
+export const BUILD_INFO = Object.freeze({"generated":true,"integrationVersion":"1.0.0-beta.22","dashboardVersion":"1.0.0-beta.22","moduleVersion":14,"schemaVersion":4,"date":"2026-08-15T13:24:11+00:00","commit":"fb51bd47267c2dd51fbbe9afb0cb2125f0988c56","assetHash":"873ab4bfc9b01341"});
