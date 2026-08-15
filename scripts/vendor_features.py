@@ -76,7 +76,9 @@ def _apply_shell_delta(source: str, filename: str, locale: str) -> str:
     if len(styles) != 1:
         raise AssetDeltaError(f"{filename}: expected one consolidated style block")
     bodies["styles"] = styles[0].group(0)
-    source_template = source[: styles[0].start()] + "@@DM_STYLES@@" + source[styles[0].end() :]
+    source_template = (
+        source[: styles[0].start()] + "@@DM_STYLES@@" + source[styles[0].end() :]
+    )
 
     def mask_inline(match: re.Match[str]) -> str:
         attrs, body = match.group("attrs"), match.group("body").strip()
@@ -125,12 +127,8 @@ def _apply_shell_delta(source: str, filename: str, locale: str) -> str:
         target_template,
         count=1,
     )
-    rebuilt = _apply_line_delta(
-        source_template, target_template, f"{filename} shell"
-    )
-    _write_delta(
-        f"shell-{locale}.diff", filename, source_template, target_template
-    )
+    rebuilt = _apply_line_delta(source_template, target_template, f"{filename} shell")
+    _write_delta(f"shell-{locale}.diff", filename, source_template, target_template)
     for role, body in bodies.items():
         rebuilt = rebuilt.replace(f"@@DM_{role.upper()}@@", body, 1)
     if "@@DM_" in rebuilt:
@@ -152,10 +150,16 @@ def apply_production_asset_deltas(source: str, filename: str) -> str:
     runtime_target = _asset_body(runtime_name, runtime_header)
     css_target = _asset_body(css_name, css_header)
 
-    scripts = list(re.finditer(r"<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>", source, re.S | re.I))
+    scripts = list(
+        re.finditer(
+            r"<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>", source, re.S | re.I
+        )
+    )
     runtime = [m for m in scripts if m.group("body").strip().startswith("/* ═")]
     if len(runtime) != 1:
-        raise AssetDeltaError(f"{filename}: expected one runtime body, found {len(runtime)}")
+        raise AssetDeltaError(
+            f"{filename}: expected one runtime body, found {len(runtime)}"
+        )
     match = runtime[0]
     patched_runtime = _apply_line_delta(
         match.group("body").strip(), runtime_target, f"{filename} runtime"
@@ -166,10 +170,22 @@ def apply_production_asset_deltas(source: str, filename: str) -> str:
         match.group("body").strip(),
         runtime_target,
     )
-    source = source[: match.start("body")] + "\n" + patched_runtime + "\n" + source[match.end("body") :]
+    source = (
+        source[: match.start("body")]
+        + "\n"
+        + patched_runtime
+        + "\n"
+        + source[match.end("body") :]
+    )
 
-    styles = list(re.finditer(r"<style(?P<attrs>[^>]*)>(?P<body>.*?)</style>", source, re.S | re.I))
-    css_source = "\n\n".join(m.group("body").strip() for m in styles if m.group("body").strip())
+    styles = list(
+        re.finditer(
+            r"<style(?P<attrs>[^>]*)>(?P<body>.*?)</style>", source, re.S | re.I
+        )
+    )
+    css_source = "\n\n".join(
+        m.group("body").strip() for m in styles if m.group("body").strip()
+    )
     patched_css = _apply_line_delta(css_source, css_target, f"{filename} css")
     _write_delta(f"css-{locale}.diff", css_name, css_source, css_target)
     first = True
@@ -181,7 +197,9 @@ def apply_production_asset_deltas(source: str, filename: str) -> str:
             return f"<style>\n{patched_css}\n</style>"
         return ""
 
-    source = re.sub(r"<style[^>]*>.*?</style>", replace_style, source, flags=re.S | re.I)
+    source = re.sub(
+        r"<style[^>]*>.*?</style>", replace_style, source, flags=re.S | re.I
+    )
     source = _apply_shell_delta(source, filename, locale)
 
     watchdog_name = f"dashboard-watchdog-{locale}.js"
@@ -196,6 +214,7 @@ def apply_production_asset_deltas(source: str, filename: str) -> str:
         + "\n</script>"
     )
     return source.replace(anchor, injection, 1)
+
 
 # A reusable room helper, injected just before getAppliances so it is defined
 # before anything that renders.

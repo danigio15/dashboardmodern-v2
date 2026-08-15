@@ -445,8 +445,7 @@ def vendor(ref: str, *, update_upstream: bool = False) -> dict[str, str]:
         commit = _checkout(ref, source_dir)
 
         sources = {
-            name: (source_dir / name).read_text(encoding="utf-8")
-            for name in VARIANTS
+            name: (source_dir / name).read_text(encoding="utf-8") for name in VARIANTS
         }
         digests = {
             name: hashlib.sha256(source.encode("utf-8")).hexdigest()

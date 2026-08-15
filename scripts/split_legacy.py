@@ -39,7 +39,7 @@ def _classify_script(attrs: str, body: str) -> str:
 
 def build_variant(filename: str, locale: str, source: str) -> dict[str, str]:
     """Build every output for one variant without touching the filesystem."""
-    if f'./dashboard-runtime-{locale}.css' in source:
+    if f"./dashboard-runtime-{locale}.css" in source:
         raise SplitError(f"{filename} is already split")
     styles = list(STYLE_RE.finditer(source))
     if not styles:
