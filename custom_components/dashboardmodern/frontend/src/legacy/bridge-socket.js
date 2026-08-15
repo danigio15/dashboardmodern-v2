@@ -47,6 +47,23 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
 
 const OPEN = 1;
 const CLOSED = 3;
+const MODERN_PERSISTENCE_ID_MIN = 700000;
+const DASHBOARD_CONFIG_KEY_PREFIX = "dashboardmodern_integration_config";
+
+/**
+ * The vendored runtime still contains its historical flat user_data sync.
+ * Modern persistence uses request ids >= 700000 and an envelope
+ * `{version, updated_at, values}`. Both used to write the same HA key, so a
+ * phone and a desktop could alternately overwrite it with incompatible shapes.
+ * The hosted bridge is early enough to stop the old writer before modules load.
+ */
+export function isLegacyDashboardPersistenceMessage(message = {}) {
+  const type = String(message?.type || "");
+  if (type !== "frontend/get_user_data" && type !== "frontend/set_user_data") return false;
+  if (!String(message?.key || "").startsWith(DASHBOARD_CONFIG_KEY_PREFIX)) return false;
+  const id = Number(message?.id);
+  return !Number.isFinite(id) || id < MODERN_PERSISTENCE_ID_MIN;
+}
 
 /**
  * Create the shim class.
@@ -119,6 +136,16 @@ export function createBridgeSocket({
           "not_allowed",
           `Message type not permitted through the bridge: ${type}`,
         );
+        return;
+      }
+
+      // The classic runtime executes before deferred ES modules, therefore
+      // merely replacing cdSyncPush later is not enough: its auth_ok handler can
+      // already have issued a flat get/set_user_data request. A harmless success
+      // reply keeps that old code from hanging while guaranteeing only the
+      // canonical modern owner reaches Home Assistant for this config key.
+      if (isLegacyDashboardPersistenceMessage(message)) {
+        this._reply(id, type === "frontend/get_user_data" ? { value: null } : null);
         return;
       }
 
