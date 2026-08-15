@@ -1,7 +1,9 @@
 {
   "domain": "dashboardmodern",
   "name": "Dashboard Modern V2",
-  "codeowners": ["@danigio15"],
+  "codeowners": [
+    "@danigio15"
+  ],
   "config_flow": true,
   "dependencies": ["http"],
   "documentation": "https://github.com/danigio15/dashboardmodern-v2",
