@@ -75,6 +75,63 @@ function nodeVisible(node) {
   return true;
 }
 
+function canonicalFlowLoads() {
+  const configured = section("loads", []);
+  return (Array.isArray(configured) ? configured : [])
+    .filter(
+      (item) =>
+        item &&
+        item.category !== "manual-report" &&
+        item.show_in_dashboard !== false &&
+        (clean(item.name) ||
+          clean(item.power_entity) ||
+          clean(item.daily_energy_entity) ||
+          clean(item.monthly_energy_entity) ||
+          clean(item.total_energy_entity) ||
+          clean(item.history_entity)),
+    )
+    .slice()
+    .sort((left, right) => (Number(left.order) || 0) - (Number(right.order) || 0))
+    .slice(0, LOADS.length);
+}
+
+function periodEntity(load, period) {
+  if (period === "day") return clean(load?.daily_energy_entity);
+  if (period === "month") return clean(load?.monthly_energy_entity);
+  return clean(load?.power_entity);
+}
+
+function formatPeriodValue(value) {
+  const locale = doc?.documentElement?.lang === "en" ? "en-GB" : "it-IT";
+  return `${new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(value)} kWh`;
+}
+
+function syncCanonicalPeriodValues() {
+  if (!doc) return false;
+  const configured = canonicalFlowLoads();
+  const states = allStates();
+  let touched = false;
+  for (const period of ["day", "month"]) {
+    LOADS.forEach((slot, index) => {
+      const load = configured[index];
+      const entity = periodEntity(load, period);
+      if (!load || !entity) return;
+      const value = stateNumber(states, entity);
+      if (value === null) return;
+      const node = doc.getElementById(loadValueId(slot, period));
+      if (!node) return;
+      node.textContent = formatPeriodValue(value);
+      node.dataset.dmCanonicalLoad = clean(load.id) || clean(load.name);
+      node.dataset.dmCanonicalEntity = entity;
+      touched = true;
+    });
+  }
+  return touched;
+}
+
 function rememberConnectorVisibility(node) {
   if (!node || node.dataset.dmFlowVisibilityCaptured === "true") return;
   node.dataset.dmFlowVisibilityCaptured = "true";
@@ -273,7 +330,7 @@ function mirrorLegacyMainFlows(scope, period) {
 
 export function refreshEnergyFlows() {
   if (!doc) return false;
-  let touched = false;
+  let touched = syncCanonicalPeriodValues();
   for (const period of ["", "day", "month"]) {
     const scope = scopeFor(period);
     if (!scope) continue;
