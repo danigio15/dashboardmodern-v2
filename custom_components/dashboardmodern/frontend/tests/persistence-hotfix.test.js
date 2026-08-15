@@ -5,14 +5,16 @@ import { DashboardStore } from "../src/core/dashboard-store.js";
 globalThis.addEventListener = () => {};
 const {
   applyRestoredValues,
+  CONFIG_KEYS,
   integrationUserDataKey,
   migrateLegacyUserData,
+  normalizeRemoteSnapshot,
   normalizeRestoredValues,
   persistenceReconcileAction,
   sameConfigValues,
 } = await import("../src/sections/config-persistence-section.js");
 
-// DM-FIX-20260815E
+// DM-FIX-20260815F
 
 class MemoryStorage {
   values = new Map();
@@ -60,6 +62,36 @@ test("legacy remote payload migrates once to the unified key", async () => {
   assert.equal(await migrateLegacyUserData(fetchValue, pushValue), legacy);
   assert.equal(await migrateLegacyUserData(fetchValue, pushValue), legacy);
   assert.deepEqual(pushes, [["dashboardmodern_integration_config", legacy]]);
+});
+
+test("modern persistence covers legacy user-editable keys that used to stay device-local", () => {
+  for (const key of [
+    "cd_branding",
+    "cd_devices",
+    "cd_flow_nodes",
+    "cd_avvisi_custom",
+    "cd_text_overrides",
+    "cd_hidden_elements",
+  ])
+    assert.ok(CONFIG_KEYS.includes(key), `${key} must be synchronized`);
+});
+
+test("flat legacy cloud payload is accepted and upgraded to the modern envelope", () => {
+  const remote = normalizeRemoteSnapshot({
+    __ts: 12345,
+    _savedAt: 12000,
+    cd_sections: '{"energy":true}',
+    cd_devices: '[{"name":"Pompa"}]',
+  });
+  assert.deepEqual(remote, {
+    version: 1,
+    updated_at: 12345,
+    migrated_from: "legacy-flat",
+    values: {
+      cd_sections: '{"energy":true}',
+      cd_devices: '[{"name":"Pompa"}]',
+    },
+  });
 });
 
 test("store preserves a fresh legacy visibility write instead of overwriting it", () => {
@@ -122,6 +154,15 @@ test("configured desktop restores the newer remote phone snapshot", () => {
   );
 });
 
+test("configured desktop also restores a newer flat legacy phone snapshot", () => {
+  const local = { cd_devices: '[{"name":"Vecchio"}]' };
+  const remote = { __ts: 5000, cd_devices: '[{"name":"Nuovo"}]' };
+  assert.equal(
+    persistenceReconcileAction({ remote, localConfigured: true, pendingAt: 0, local }),
+    "restore-remote",
+  );
+});
+
 test("newer unsynced local edit wins over an older remote snapshot", () => {
   const local = { cd_sections: JSON.stringify({ energy: true }) };
   const remote = {
@@ -167,6 +208,7 @@ test("remote restore propagates deletions instead of leaving stale desktop keys"
   const storage = new MemoryStorage();
   storage.setItem("cd_sections", JSON.stringify({ energy: true }));
   storage.setItem("cd_stanze", JSON.stringify([{ id: "stale", name: "Stale" }]));
+  storage.setItem("cd_devices", JSON.stringify([{ name: "Stale device" }]));
   storage.setItem("cd_costo_kwh", "0.31");
 
   assert.equal(
@@ -177,6 +219,7 @@ test("remote restore propagates deletions instead of leaving stale desktop keys"
     true,
   );
   assert.equal(storage.getItem("cd_stanze"), null);
+  assert.equal(storage.getItem("cd_devices"), null);
   assert.equal(storage.getItem("cd_costo_kwh"), "0.27");
   assert.deepEqual(JSON.parse(storage.getItem("cd_sections")), { energy: false });
 });
