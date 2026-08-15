@@ -1,4 +1,4 @@
-// DM-FIX-20260815E
+// DM-FIX-20260815F
 import { normalizeSection } from "../core/migrations.js";
 import { root } from "./shared.js";
 
@@ -23,15 +23,22 @@ const state = (root[KEY] ||= {
   mutationBridgeInstalled: false,
 });
 
+// Complete dashboard configuration snapshot. Runtime counters/timers such as
+// cd_pool_run and cd_irr_lastrun are intentionally excluded, while every
+// user-editable legacy/canonical key is included so phone and desktop cannot
+// silently diverge just because one editor still writes a legacy key.
 export const CONFIG_KEYS = Object.freeze([
   "dm_dashboard_state",
   "dm_schema_version",
+  "cd_branding",
   "cd_sections",
+  "cd_section_names",
   "cd_stanze",
   "cd_floors",
   "cd_cameras",
   "cd_appliances",
   "cd_loads",
+  "cd_devices",
   "cd_luci",
   "cd_luci_rooms",
   "cd_luci_order",
@@ -47,21 +54,28 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_energy_model",
   "cd_entity_overrides",
   "cd_quick_actions",
-  "cd_section_names",
   "cd_navbar_order",
   "cd_energy_views",
   "cd_slot_labels",
+  "cd_flow_nodes",
   "cd_gruppi_extra",
   "cd_gruppi_removed",
   "cd_avvisi_names_extra",
+  "cd_avvisi_custom",
   "cd_subloads_extra",
   "cd_report_devices",
   "cd_lavatrice_visual",
+  "cd_text_overrides",
+  "cd_hidden_elements",
   "cd_costo_kwh",
   "cd_prezzo_immissione",
+  // Kept for compatibility with the modern editor. Legacy deliberately treated
+  // appearance as device-local; these keys do not affect entity configuration.
   "cd_theme",
   "cd_nav_mode",
 ]);
+
+const LEGACY_SYNC_CONTROL_KEYS = Object.freeze(["cd_sync_ts", "cd_sync_dirty"]);
 
 function instanceId() {
   return String(
@@ -112,6 +126,22 @@ function localValues() {
   return valuesFromStorage(root.localStorage);
 }
 
+function meaningfulScalar(value) {
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "number") return Number.isFinite(value) && value !== 0;
+  if (typeof value === "boolean") return value;
+  return false;
+}
+
+function meaningfulNested(value, { ignoreMetadata = false } = {}) {
+  if (Array.isArray(value)) return value.some((item) => meaningfulNested(item));
+  if (value && typeof value === "object")
+    return Object.entries(value).some(
+      ([key, child]) => !(ignoreMetadata && key === "metadata") && meaningfulNested(child),
+    );
+  return meaningfulScalar(value);
+}
+
 function meaningfulLocal(values = localValues()) {
   const stateValue = values.dm_dashboard_state;
   if (stateValue) {
@@ -119,21 +149,65 @@ function meaningfulLocal(values = localValues()) {
       const parsed = JSON.parse(stateValue);
       const sections = parsed?.sections || {};
       if (
-        Object.values(sections).some((value) =>
-          Array.isArray(value)
-            ? value.length > 0
-            : value && typeof value === "object"
-              ? Object.keys(value).length > 0
-              : Boolean(value),
+        Object.entries(sections).some(([name, value]) =>
+          name === "energy"
+            ? meaningfulNested(value, { ignoreMetadata: true })
+            : meaningfulNested(value),
         )
       )
         return true;
     } catch (_error) {}
   }
-  return Object.entries(values).some(
-    ([key, value]) =>
-      !["dm_schema_version", "cd_sections"].includes(key) && String(value || "").length > 2,
+  return Object.entries(values).some(([key, value]) => {
+    if (["dm_dashboard_state", "dm_schema_version", "cd_sections"].includes(key)) return false;
+    try {
+      return meaningfulNested(JSON.parse(value));
+    } catch (_error) {
+      return String(value || "").trim().length > 0;
+    }
+  });
+}
+
+export function normalizeRemoteSnapshot(remote) {
+  if (!remote || typeof remote !== "object" || Array.isArray(remote)) return null;
+  if (
+    Number(remote.version) === USER_DATA_VERSION &&
+    remote.values &&
+    typeof remote.values === "object" &&
+    !Array.isArray(remote.values)
+  ) {
+    return {
+      version: USER_DATA_VERSION,
+      updated_at: Number(remote.updated_at) || 0,
+      values: Object.fromEntries(
+        CONFIG_KEYS.flatMap((key) =>
+          typeof remote.values[key] === "string" ? [[key, remote.values[key]]] : [],
+        ),
+      ),
+      migrated_from: remote.migrated_from || "",
+    };
+  }
+
+  // beta20/beta21 and the vendored legacy runtime wrote a flat payload to the
+  // very same frontend user_data key. Accept it once, then upgrade it to the
+  // single modern envelope after reconciliation. Without this compatibility
+  // path whichever device wrote last could make the other format unreadable.
+  const legacyValues = Object.fromEntries(
+    CONFIG_KEYS.flatMap((key) => (typeof remote[key] === "string" ? [[key, remote[key]]] : [])),
   );
+  if (
+    Object.keys(legacyValues).length ||
+    Object.prototype.hasOwnProperty.call(remote, "__ts") ||
+    Object.prototype.hasOwnProperty.call(remote, "_savedAt")
+  ) {
+    return {
+      version: USER_DATA_VERSION,
+      updated_at: Number(remote.__ts || remote._savedAt) || 0,
+      values: legacyValues,
+      migrated_from: "legacy-flat",
+    };
+  }
+  return null;
 }
 
 export function sameConfigValues(left = {}, right = {}) {
@@ -151,18 +225,12 @@ export function persistenceReconcileAction({
   local = {},
 } = {}) {
   if (!remote) return localConfigured ? "push-local" : "none";
-  if (
-    typeof remote !== "object" ||
-    Array.isArray(remote) ||
-    Number(remote.version) !== USER_DATA_VERSION ||
-    !remote.values ||
-    typeof remote.values !== "object" ||
-    Array.isArray(remote.values)
-  )
-    return "unsupported";
-  if (sameConfigValues(local, remote.values)) return "in-sync";
-  const remoteUpdated = Number(remote.updated_at) || 0;
-  return Number(pendingAt) > remoteUpdated ? "push-local" : "restore-remote";
+  const normalized = normalizeRemoteSnapshot(remote);
+  if (!normalized) return "unsupported";
+  if (sameConfigValues(local, normalized.values)) return "in-sync";
+  return Number(pendingAt) > Number(normalized.updated_at || 0)
+    ? "push-local"
+    : "restore-remote";
 }
 
 function readMeta(storage = root.localStorage) {
@@ -316,8 +384,6 @@ function schedulePush() {
       state.pushPromise = null;
       resolve(result);
     };
-    // Give the canonical store/legacy bridge one turn to finish before taking
-    // the remote snapshot. This also coalesces several fields saved together.
     state.pushTimer = root.setTimeout?.(run, 140) || 0;
     if (!state.pushTimer) run();
   });
@@ -350,9 +416,6 @@ export function normalizeRestoredValues(values) {
 export function applyRestoredValues(storage, values) {
   if (!storage || !values || typeof values !== "object" || Array.isArray(values)) return false;
   const restored = normalizeRestoredValues(values);
-  // Remote is the authoritative full snapshot. Removing keys absent remotely is
-  // essential: otherwise a deletion made on the phone survives forever on a
-  // desktop that still has the old localStorage value.
   for (const key of CONFIG_KEYS) {
     const value = restored[key];
     if (typeof value === "string") storage.setItem(key, value);
@@ -388,44 +451,53 @@ function refreshRuntimeAfterRestore(remote) {
 
 async function hydrateRemote(options = {}) {
   const force = options?.force === true;
-  if (
-    state.hydrating ||
-    state.resetting ||
-    (!force && state.hydrated) ||
-    !hostedBridge()
-  )
+  if (state.hydrating || state.resetting || (!force && state.hydrated) || !hostedBridge())
     return false;
   state.hydrating = true;
   try {
-    const remote = await migrateLegacyUserData(
+    const rawRemote = await migrateLegacyUserData(
       async (key) => (await bridgeRequest("frontend/get_user_data", { key }))?.value,
       (key, value) => bridgeRequest("frontend/set_user_data", { key, value }),
     );
     state.lastPullAt = Date.now();
+    const remote = normalizeRemoteSnapshot(rawRemote);
     const local = localValues();
     const meta = readMeta();
     const pendingAt = Math.max(Number(state.dirtyAt) || 0, Number(meta.pending_at) || 0);
-    const localConfigured = meaningfulLocal(local);
-    const action = persistenceReconcileAction({ remote, localConfigured, pendingAt, local });
+    // On the very first pull use the pre-module value captured before
+    // DashboardStore.migrate() writes empty canonical defaults. Otherwise a
+    // pristine desktop could incorrectly seed an empty cloud snapshot.
+    const localConfigured = state.hydrated ? meaningfulLocal(local) : state.localWasConfigured;
+    const action = persistenceReconcileAction({
+      remote: rawRemote,
+      localConfigured,
+      pendingAt,
+      local,
+    });
 
     if (action === "push-local") return await pushNow();
-    if (action === "restore-remote") {
+    if (action === "restore-remote" && remote) {
       if (!restoreValues(remote.values)) return false;
       state.dirtyAt = 0;
       state.localWasConfigured = meaningfulLocal(localValues());
       writeMeta({ synced_at: Number(remote.updated_at) || Date.now(), pending_at: 0 });
       refreshRuntimeAfterRestore(remote);
+      // Migration/normalization can legitimately add canonical empty keys or
+      // convert legacy room shapes. Upgrade the remote envelope once so later
+      // focus pulls compare against the exact canonical local snapshot.
+      if (remote.migrated_from === "legacy-flat" || !sameConfigValues(localValues(), remote.values))
+        await pushNow();
       return true;
     }
-    if (action === "in-sync") {
+    if (action === "in-sync" && remote) {
       state.dirtyAt = 0;
       state.localWasConfigured = localConfigured;
       writeMeta({ synced_at: Number(remote.updated_at) || Date.now(), pending_at: 0 });
+      if (remote.migrated_from === "legacy-flat") await pushNow();
       return false;
     }
-    if (action === "unsupported") {
+    if (action === "unsupported")
       console.warn("[DashboardModern] unsupported remote config snapshot retained without overwrite");
-    }
     return false;
   } catch (error) {
     console.warn("[DashboardModern] config restore skipped", error);
@@ -529,7 +601,6 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
   try {
     if (hostedBridge())
       await bridgeRequest("frontend/set_user_data", { key: userDataKey(), value: empty });
-    writeMeta({ synced_at: empty.updated_at, pending_at: 0 });
   } catch (error) {
     root.console?.warn?.("[DashboardModern] remote reset deferred", error);
     state.dirtyAt = Date.now();
@@ -543,9 +614,8 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
   } catch (_error) {}
 
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:config-reset", { detail: empty }));
-  if (reload) {
-    root.setTimeout?.(() => root.location?.reload?.(), 40);
-  } else {
+  if (reload) root.setTimeout?.(() => root.location?.reload?.(), 40);
+  else {
     state.resetting = false;
     delete root.__DASHBOARDMODERN_CONFIG_RESETTING__;
   }
@@ -564,8 +634,23 @@ function installResetOwner() {
   return true;
 }
 
+function disableLegacySyncState() {
+  // The vendored runtime and this module used to write incompatible payloads to
+  // the same frontend user_data key. The modern module is now the only owner.
+  root.__DASHBOARDMODERN_PERSISTENCE_OWNER__ = "modern-v1";
+  for (const key of LEGACY_SYNC_CONTROL_KEYS) {
+    try {
+      root.localStorage?.removeItem?.(key);
+    } catch (_error) {}
+  }
+  try {
+    root._cdSyncReqId = -1;
+  } catch (_error) {}
+}
+
 export function installConfigPersistenceSection() {
   if (state.installed) {
+    disableLegacySyncState();
     installResetOwner();
     installStorageMutationBridge();
     return;
@@ -574,21 +659,22 @@ export function installConfigPersistenceSection() {
   state.localWasConfigured = meaningfulLocal();
   const initialMeta = readMeta();
   state.dirtyAt = Number(initialMeta.pending_at) || 0;
+  disableLegacySyncState();
 
-  const previousMarkDirty = typeof root.cdMarkDirty === "function" ? root.cdMarkDirty : null;
-  root.cdMarkDirty = function dashboardModernMarkDirty(...args) {
-    try {
-      previousMarkDirty?.apply(this, args);
-    } catch (_error) {}
+  // Intentionally do NOT invoke the legacy cdMarkDirty/cdSyncPush functions.
+  // They used a flat payload while this owner uses {version, updated_at, values}
+  // and the two writers racing on the same HA key is the root cause of devices
+  // showing different configurations.
+  root.cdMarkDirty = function dashboardModernMarkDirty() {
     return markPending();
   };
 
-  const previousSyncPush = typeof root.cdSyncPush === "function" ? root.cdSyncPush : null;
-  root.cdSyncPush = function dashboardModernSyncPush(...args) {
-    try {
-      previousSyncPush?.apply(this, args);
-    } catch (_error) {}
-    if (state.hydrated && !state.hydrating && !state.resetting) markPending({ schedule: false });
+  root.cdSyncPush = function dashboardModernSyncPush() {
+    if (!state.hydrated || state.hydrating) {
+      // Remote must be read before a local snapshot is allowed to overwrite it.
+      return hydrateRemote().then(() => true);
+    }
+    markPending({ schedule: false });
     return schedulePush();
   };
 
@@ -598,19 +684,18 @@ export function installConfigPersistenceSection() {
   installStorageMutationBridge();
 
   root.addEventListener?.("dashboardmodern:legacy-ready", () => {
+    disableLegacySyncState();
     installResetOwner();
     installStorageMutationBridge();
     root.setTimeout?.(() => hydrateRemote(), 0);
   });
   root.addEventListener?.("dashboardmodern:runtime-ready", () => {
+    disableLegacySyncState();
     installResetOwner();
     installStorageMutationBridge();
     root.setTimeout?.(() => hydrateRemote(), 0);
   });
 
-  // A dashboard that remains open on desktop must not freeze on yesterday's
-  // local copy after edits made from the phone. Reconcile when the user returns
-  // to the page; no polling, interval or document-wide observer is used.
   root.addEventListener?.("focus", () => scheduleRemoteRefresh(40));
   root.addEventListener?.("pageshow", () => scheduleRemoteRefresh(40));
   root.addEventListener?.("storage", () => scheduleRemoteRefresh(40));
