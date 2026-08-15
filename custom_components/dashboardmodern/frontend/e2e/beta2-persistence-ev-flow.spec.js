@@ -191,13 +191,21 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(persisted).toEqual({ brand: "Leapmotor", model: "B10" });
   });
 
-  test(`${variant}: beta2 binds daily and monthly load flow animation to displayed energy`, async ({
+  test(`${variant}: beta2 binds daily and monthly load flow animation to configured canonical loads`, async ({
     page,
   }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
     await boot(page, variant, testInfo);
 
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
+      await DashboardModernModules.store.replaceSection("loads", [
+        { id: "flow-boiler", name: "Boiler", order: 0, show_in_dashboard: true },
+        { id: "flow-wallbox", name: "Wallbox", order: 1, show_in_dashboard: true },
+        { id: "flow-clima", name: "Clima", order: 2, show_in_dashboard: true },
+        { id: "flow-lav", name: "Lavanderia", order: 3, show_in_dashboard: true },
+        { id: "flow-cuc", name: "Cucina", order: 4, show_in_dashboard: true },
+      ]);
+      await new Promise((resolve) => setTimeout(resolve, 180));
       const set = (id, value) => {
         const node = document.getElementById(id);
         if (!node) throw new Error(`missing ${id}`);
