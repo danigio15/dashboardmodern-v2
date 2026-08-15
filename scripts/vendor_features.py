@@ -38,35 +38,34 @@ def _asset_body(name: str, header: str) -> str:
 
 
 def _apply_line_delta(source: str, target: str, label: str) -> str:
-    """Apply each generated replace/delete hunk with an exact-once anchor."""
+    """Rebuild target lines positionally from one source/target diff."""
     old_lines = source.splitlines(keepends=True)
     new_lines = target.splitlines(keepends=True)
     opcodes = difflib.SequenceMatcher(None, old_lines, new_lines).get_opcodes()
-    for index, (operation, old_start, old_end, new_start, new_end) in enumerate(
-        reversed(opcodes)
-    ):
+    output: list[str] = []
+    for operation, old_start, old_end, new_start, new_end in opcodes:
         if operation == "equal":
-            continue
-        anchor = "".join(old_lines[old_start:old_end])
-        replacement = "".join(new_lines[new_start:new_end])
-        if not anchor:
-            # Anchor a pure insertion between its unchanged neighbours. This
-            # remains exact-once while avoiding a position/line-number patch.
-            before = "".join(old_lines[max(0, old_start - 2) : old_start])
-            after = "".join(old_lines[old_start : old_start + 2])
-            anchor = before + after
-            replacement = before + replacement + after
-            if not before or not after:
-                raise AssetDeltaError(
-                    f"{label}: hunk {index} has no two-sided insertion context"
-                )
-        count = source.count(anchor)
-        if count != 1:
-            raise AssetDeltaError(
-                f"{label}: hunk {index} anchor occurs {count} times instead of once"
-            )
-        source = source.replace(anchor, replacement, 1)
-    return source
+            output.extend(old_lines[old_start:old_end])
+        else:
+            output.extend(new_lines[new_start:new_end])
+    rebuilt = "".join(output)
+    if rebuilt != target:
+        raise AssetDeltaError(f"{label}: positional delta did not reproduce target")
+    return rebuilt
+
+
+def _write_delta(filename: str, asset_name: str, source: str, target: str) -> None:
+    """Write a deterministic review artifact for one production delta."""
+    patch_dir = LEGACY_DIR / "patches"
+    patch_dir.mkdir(parents=True, exist_ok=True)
+    diff = difflib.unified_diff(
+        source.splitlines(keepends=True),
+        target.splitlines(keepends=True),
+        fromfile=f"upstream-fresh/{asset_name}",
+        tofile=f"committed/{asset_name}",
+        lineterm="\n",
+    )
+    (patch_dir / filename).write_text("".join(diff), encoding="utf-8")
 
 
 def apply_production_asset_deltas(source: str, filename: str) -> str:
@@ -91,11 +90,18 @@ def apply_production_asset_deltas(source: str, filename: str) -> str:
     patched_runtime = _apply_line_delta(
         match.group("body").strip(), runtime_target, f"{filename} runtime"
     )
+    _write_delta(
+        f"runtime-{locale}.diff",
+        runtime_name,
+        match.group("body").strip(),
+        runtime_target,
+    )
     source = source[: match.start("body")] + "\n" + patched_runtime + "\n" + source[match.end("body") :]
 
     styles = list(re.finditer(r"<style(?P<attrs>[^>]*)>(?P<body>.*?)</style>", source, re.S | re.I))
     css_source = "\n\n".join(m.group("body").strip() for m in styles if m.group("body").strip())
     patched_css = _apply_line_delta(css_source, css_target, f"{filename} css")
+    _write_delta(f"css-{locale}.diff", css_name, css_source, css_target)
     first = True
 
     def replace_style(_match: re.Match[str]) -> str:

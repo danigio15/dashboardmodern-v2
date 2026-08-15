@@ -1,0 +1,215 @@
+--- upstream-fresh/dashboard-runtime-en.js
++++ committed/dashboard-runtime-en.js
+@@ -244,7 +244,7 @@
+ /* Stato ricavato dalle entità: numeriche = potenza (W), on/heat/playing = acceso */
+ function cdApplStatus(a){
+   const api=window.DashboardModernModules&&DashboardModernModules.data;
+-  if(api&&api.applianceState){ const r=api.applianceState(a,STATES); return r.state==='running'?{label:'Running',cls:'run',w:r.watts}:r.state==='on'?{label:'On',cls:'on',w:r.watts}:{label:'Off',cls:'off',w:r.watts}; }
++  if(api&&api.applianceState){ const r=api.applianceState(a,STATES); return r.state==='running'?{label:'RUNNING',cls:'run',w:r.watts}:r.state==='standby'?{label:'STANDBY',cls:'standby',w:r.watts}:{label:'OFF',cls:'off',w:r.watts}; }
+   return {label:'Off',cls:'off',w:null};
+ }
+ function renderAppliances(){
+@@ -328,7 +328,7 @@
+     <div class="appl-info"><div class="appl-heading"><div><div class="appl-wide-name">${nm}</div>${roomValid?`<div class="appl-wide-cat dm-room-label">🏠 ${String(room.name).replace(/</g,'&lt;')}</div>`:''}</div><span class="appl-st ${st.cls}">● ${st.label}</span></div>
+     <div class="appl-live">${metrics.join('')}</div>
+     ${h?'<div class="appl-spark" aria-label="Historical data available"><i></i><i></i><i></i><i></i><i></i></div>':''}
+-    <div class="appl-actions">${sw?`<button class="appl-action-btn ${((STATES[sw]&&STATES[sw].state)==='on')?'on':''}" onclick="event.stopPropagation();cdApplEntTog('${sw}',this)">⏻</button>`:''}${h?`<button class="appl-action-btn" onclick="apriStorico(event,'${h}','${nm.replace(/'/g,'&#39;')}')">📈 History</button>`:''}</div></div>
++    <div class="appl-actions">${sw?`<button class="appl-action-btn ${((STATES[sw]&&STATES[sw].state)==='on')?'on':''}" onclick="event.stopPropagation();cdApplEntTog('${sw}',this)">⏻</button>`:''}${h?`<button class="appl-action-btn" onclick="apriStorico(event,'${h}','${nm.replace(/'/g,'&#39;')}')">📈 History</button>`:`<button class="appl-action-btn" disabled aria-disabled="true">📈 History</button>`}</div></div>
+   </article>`;
+ }
+ function switchApplianceView(view, ev) {
+@@ -2321,70 +2321,10 @@
+    cumulativi (gli stessi della dashboard Energy di HA) mappa quelli, e la dashboard
+    calcola da sola oggi/mese/anno usando le statistiche a lungo termine di HA — che
+    conservano lo storico per sempre, senza helper e senza perdere nulla. ═══ */
+-const CD_TOTALS_MAP = {
+-    'dm.core_046':   { day: 'dm.energy_produzione_solare_oggi',      month: 'dm.energy_produzione_solare_mese',     year: 'dm.energy_produzione_solare_anno' },
+-    'dm.core_043':    { day: 'dm.energy_consumo_casa_oggi', month: 'dm.energy_consumo_casa_mese',          year: 'dm.energy_consumo_casa_anno' },
+-    'dm.core_045':   { day: 'dm.energy_energia_prelevata_oggi',    month: 'dm.energy_rete_acquistata_mese' },
+-    'dm.core_044': { day: 'dm.energy_energia_immessa_oggi',      month: 'dm.energy_rete_venduta_mese' },
+-    'dm.core_041': { day: 'dm.energy_batteria_caricata_oggi',   month: 'dm.energy_batteria_caricata_mese' },
+-    'dm.core_042':{ day: 'dm.energy_batteria_scaricata_oggi',month: 'dm.energy_batteria_usata_mese' }
+-};
+-
+-function cdTotalsRun() {
+-    try {
+-        if (!ws || ws.readyState !== 1) return;
+-        const jobs = [];
+-        Object.entries(CD_TOTALS_MAP).forEach(([totRef, targets]) => {
+-            const real = ENTITY_OVERRIDES[totRef];
+-            if (real) jobs.push({ real, targets });
+-        });
+-        if (!jobs.length) return;
+-        const ids = jobs.map(j => j.real);
+-        const now = new Date();
+-        const startYear = new Date(now.getFullYear(), 0, 1).toISOString();
+-        const startDay  = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+-        window._cdStatMonthly = msgId;
+-        ws.send(JSON.stringify({ id: msgId++, type: 'recorder/statistics_during_period', start_time: startYear, statistic_ids: ids, period: 'month', types: ['change'] }));
+-        window._cdStatDaily = msgId;
+-        ws.send(JSON.stringify({ id: msgId++, type: 'recorder/statistics_during_period', start_time: startDay, statistic_ids: ids, period: 'day', types: ['change'] }));
+-        window._cdStatJobs = jobs;
+-    } catch(e) { console.warn('[Totali]', e); }
+-}
+-
+-function cdTotalsInject(ref, value) {
+-    // stato virtuale SOLO se l'utente non ha già collegato quello slot
+-    if (ENTITY_OVERRIDES[ref]) return;
+-    _RAW_STATES[ref] = { entity_id: ref, state: String(Math.round(value * 10) / 10), attributes: { unit_of_measurement: 'kWh', friendly_name: ref } };
+-}
+-
+-function cdTotalsHandle(m) {
+-    try {
+-        const jobs = window._cdStatJobs || [];
+-        if (m.id === window._cdStatMonthly && m.result) {
+-            jobs.forEach(j => {
+-                const rows = m.result[j.real] || [];
+-                if (!rows.length) return;
+-                const monthSum = rows[rows.length - 1].change || 0;                 // mese corrente
+-                const yearSum  = rows.reduce((s, r) => s + (r.change || 0), 0);     // anno
+-                if (j.targets.month) cdTotalsInject(j.targets.month, monthSum);
+-                if (j.targets.year)  cdTotalsInject(j.targets.year, yearSum);
+-            });
+-            if (typeof render === 'function') try { render(); } catch(e) {}
+-            return true;
+-        }
+-        if (m.id === window._cdStatDaily && m.result) {
+-            jobs.forEach(j => {
+-                const rows = m.result[j.real] || [];
+-                if (!rows.length) return;
+-                const today = rows.reduce((s, r) => s + (r.change || 0), 0);
+-                if (j.targets.day) cdTotalsInject(j.targets.day, today);
+-            });
+-            if (typeof render === 'function') try { render(); } catch(e) {}
+-            return true;
+-        }
+-    } catch(e) { console.warn('[Totali] handle:', e); }
+-    return false;
+-}
++const CD_TOTALS_MAP = Object.freeze({});
++function cdTotalsRun() { return window.DashboardModernEnergyService?.refresh?.(); }
++function cdTotalsInject() {}
++function cdTotalsHandle() { return false; }
+ 
+ function cdSyncPush(silent = true) {
+     try {
+@@ -7609,69 +7549,8 @@
+    i valori di giornaliera, mensile e Report vengono RICOSTRUITI come delta del periodo
+    tramite le Long-Term Statistics di HA. Con entità che si azzerano da sole il delta
+    coincide col valore attuale, quindi il motore è universale. */
+-const CD_PERIOD = {};
+-let _cdPerLast = 0;
+-/* v0.8.2: corrispondenze giorno↔mese con nomi diversi (rete e batteria) */
+-const CD_DAY_FROM_MONTH = {
+-    'dm.energy_energia_prelevata_oggi':  'dm.energy_rete_acquistata_mese',
+-    'dm.energy_energia_immessa_oggi':    'dm.energy_rete_venduta_mese',
+-    'dm.energy_batteria_caricata_oggi':  'dm.energy_batteria_caricata_mese',
+-    'dm.energy_batteria_scaricata_oggi': 'dm.energy_batteria_usata_mese',
+-};
+-async function cdRefreshPeriodDeltas(force) {
+-    if (window._cdResetting) return;
+-    try {
+-        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+-        if (!force && Date.now() - _cdPerLast < 240000) return;
+-        _cdPerLast = Date.now();
+-        const dayRefs = [], monRefs = [], entOf = {};
+-        Object.keys(ENTITY_OVERRIDES || {}).forEach(r => {
+-            if (/(_oggi|_giorno)$/.test(r)) { dayRefs.push(r); entOf[r] = resolveEntity(r); }
+-            else if (/_mese$/.test(r)) { monRefs.push(r); entOf[r] = resolveEntity(r); }
+-        });
+-        /* v0.8.2: every entity mapped in the MONTH field (even a cumulative TOTAL counter)
+-           automatically feeds the matching "today" ref when that one is unmapped:
+-           the daily delta is computed from the SAME entity. */
+-        monRefs.forEach(mr => {
+-            let dr = mr.replace(/_mese$/, '_oggi');
+-            const ecc = Object.entries(CD_DAY_FROM_MONTH).find(([d, m]) => m === mr);
+-            if (ecc) dr = ecc[0];
+-            if (!ENTITY_OVERRIDES[dr] && !dayRefs.includes(dr)) { dayRefs.push(dr); entOf[dr] = resolveEntity(mr); }
+-        });
+-        const now = new Date();
+-        const endISO = now.toISOString();
+-        const run = async (refs, startISO, period) => {
+-            if (!refs.length) return;
+-            const ids = refs.map(r => entOf[r]);
+-            const stats = await fetchHAStatistics(ids, startISO, endISO, period);
+-            refs.forEach((r, i) => {
+-                const arr = stats[ids[i]];
+-                if (!Array.isArray(arr) || !arr.length) return;
+-                let tot = 0, any = false;
+-                arr.forEach(p => {
+-                    if (p.change !== null && p.change !== undefined && !isNaN(p.change)) { tot += p.change; any = true; }
+-                });
+-                let extra = 0; /* v0.8.5: extra SOLO se l'ultimo punto statistico è più vecchio di 65 min
+-                   (le versioni recenti di HA includono già l'ora in corso: aggiungerlo sempre raddoppiava) */
+-                try {
+-                    const lp = arr[arr.length - 1];
+-                    const st0 = typeof lp.start === 'number' ? lp.start : Date.parse(lp.start);
+-                    if (!isNaN(st0) && Date.now() - st0 > 3900000) {
+-                        const lastSt = parseFloat(lp.state);
+-                        const nowV = parseFloat((STATES[ids[i]] || {}).state);
+-                        if (!isNaN(lastSt) && !isNaN(nowV)) { const d = nowV - lastSt; if (d > 0 && d < 50) extra = d; }
+-                    }
+-                } catch(e) {}
+-                if (any && tot + extra >= 0) CD_PERIOD[r] = Math.round((tot + extra) * 100) / 100;
+-            });
+-        };
+-        await run(dayRefs, new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString(), 'day');
+-        await run(monRefs, new Date(now.getFullYear(), now.getMonth(), 1).toISOString(), 'month');
+-        try { render(); } catch(e) {}
+-        try { cdAutoHide(); } catch(e) {}
+-    } catch(e) { console.warn('[Periodi] refresh fallito:', e && e.message); }
+-}
+-setInterval(() => cdRefreshPeriodDeltas(false), 300000);
++const CD_PERIOD = window.CD_PERIOD ||= {};
++async function cdRefreshPeriodDeltas() { return window.DashboardModernEnergyService?.refresh?.(); }
+ 
+ /* Valore numerico del periodo: statistica se disponibile, altrimenti stato grezzo */
+ function cdPNum(ref) {
+@@ -7692,44 +7571,9 @@
+ // Helper: legge le Long-Term Statistics tramite WebSocket
+ // HA mantiene queste statistiche per anni (non vengono purgate come la cronologia dettagliata)
+ function fetchHAStatistics(entityIds, startISO, endISO, period = 'day') {
+-    /* v0.8.1 fix: internal dm.* refs must be RESOLVED to real entities before asking HA
+-       (which knows nothing about dm.*): this is why past months and the Year Balance stayed
+-       at zero. The response is remapped onto the original keys, so all callers keep working. */
+-    const _res = entityIds.map(id => { try { return resolveEntity(id); } catch(e) { return id; } });
+-    return new Promise((resolve, reject) => {
+-        if (!ws || ws.readyState !== WebSocket.OPEN) { reject(new Error('WebSocket non connesso')); return; }
+-        const reqId = msgId++;
+-        const handler = (ev) => {
+-            try {
+-                const m = JSON.parse(ev.data);
+-                if (m.id === reqId && m.type === 'result') {
+-                    ws.removeEventListener('message', handler);
+-                    clearTimeout(timeoutId);
+-                    if (m.success) {
+-                        const raw = m.result || {};
+-                        const out = {};
+-                        entityIds.forEach((orig, idx) => { out[orig] = raw[_res[idx]] || raw[orig] || []; });
+-                        resolve(out);
+-                    }
+-                    else reject(new Error((m.error && m.error.message) || 'Errore statistics'));
+-                }
+-            } catch(e) { /* ignora messaggi non JSON */ }
+-        };
+-        ws.addEventListener('message', handler);
+-        const timeoutId = setTimeout(() => {
+-            ws.removeEventListener('message', handler);
+-            reject(new Error('Timeout statistics (20s)'));
+-        }, 20000);
+-        ws.send(JSON.stringify({
+-            id: reqId,
+-            type: 'recorder/statistics_during_period',
+-            start_time: startISO,
+-            end_time: endISO,
+-            statistic_ids: _res,
+-            period: period,
+-            types: ['max', 'state', 'sum', 'change']
+-        }));
+-    });
++    const service = window.DashboardModernEnergyService;
++    if (!service) return Promise.reject(new Error('Canonical Energy service unavailable'));
++    return service.statisticsWithGrowth(entityIds, startISO, endISO, period);
+ }
+ 
+ async function renderEdDailyChart(daysInMonth, selMonth, selYear, isCurrentMonth, prodMese, consMese) {

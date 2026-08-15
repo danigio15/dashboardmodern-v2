@@ -1,0 +1,43 @@
+--- upstream-fresh/dashboard-runtime-en.css
++++ committed/dashboard-runtime-en.css
+@@ -1766,7 +1766,7 @@
+ }
+ 
+ /* ================= COMPORTAMENTO DESKTOP (DOCK MAC OS) ================= */
+-@media (min-width: 769px) {
++@media (min-width: 769px) and (hover: hover) and (pointer: fine) {
+     body { padding-bottom: 20px !important; } 
+     
+     nav.tabs.bottom-nav-bar {
+@@ -1828,7 +1828,7 @@
+ 
+ /* ================= COMPORTAMENTO SMARTPHONE (HIDE/SHOW CON GESTO) ================= */
+ /* Si attiva su: portrait fino a 768px LARGHEZZA  OPPURE  landscape con altezza ≤ 500px (smartphone ruotato) */
+-@media (max-width: 768px), (orientation: landscape) and (max-height: 500px) {
++@media (max-width: 768px), (orientation: landscape) and (max-height: 500px), (hover: none) and (pointer: coarse) {
+     body { padding-bottom: 30px !important; } 
+ 
+     /* Barra NASCOSTA di default su mobile */
+@@ -1923,6 +1923,22 @@
+         white-space: nowrap !important;
+     }
+ }
++html.dm-touch-navigation nav.tabs.bottom-nav-bar {
++    bottom: -120px !important;
++    width: calc(100% - 20px) !important;
++    min-width: auto !important;
++    opacity: 0 !important;
++    pointer-events: none !important;
++    transform: translateX(-50%) scale(.95) !important;
++    overflow-x: auto !important;
++}
++html.dm-touch-navigation nav.tabs.bottom-nav-bar.visible {
++    bottom: 18px !important;
++    opacity: 1 !important;
++    pointer-events: auto !important;
++    transform: translateX(-50%) scale(1) !important;
++}
++html.dm-touch-navigation .bottom-nav-handle { display: block !important; }
+ /* ================= FIX OVERFLOW TESTO VISTE MESE/GIORNO ================= */
+ 
+ /* Riduce leggermente i numeri singoli nei cerchi principali (es. Casa, Solare) */

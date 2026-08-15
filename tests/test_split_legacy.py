@@ -3,13 +3,31 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 
+from pytest import MonkeyPatch
+
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/split_legacy.py"
+sys.path.insert(0, str(SCRIPT.parent))
 SPEC = importlib.util.spec_from_file_location("split_legacy", SCRIPT)
 assert SPEC and SPEC.loader
 split_legacy = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(split_legacy)
+
+FEATURE_SPEC = importlib.util.spec_from_file_location(
+    "vendor_features_for_delta", SCRIPT.parent / "vendor_features.py"
+)
+assert FEATURE_SPEC and FEATURE_SPEC.loader
+vendor_features = importlib.util.module_from_spec(FEATURE_SPEC)
+FEATURE_SPEC.loader.exec_module(vendor_features)
+
+VENDOR_SPEC = importlib.util.spec_from_file_location(
+    "vendor_legacy_for_hash_gate", SCRIPT.parent / "vendor_legacy.py"
+)
+assert VENDOR_SPEC and VENDOR_SPEC.loader
+vendor_legacy = importlib.util.module_from_spec(VENDOR_SPEC)
+VENDOR_SPEC.loader.exec_module(vendor_legacy)
 
 
 def _monolith(locale: str, *, bad: bool = False) -> str:
@@ -56,3 +74,37 @@ def test_ambiguous_inline_script_is_rejected() -> None:
         assert "exactly one signature" in str(error)
     else:
         raise AssertionError("ambiguous runtime/watchdog body was accepted")
+
+
+def test_positional_delta_handles_adjacent_replace_and_insert_hunks() -> None:
+    """Adjacent hunks must not invalidate one another's textual context."""
+    source = "header\nold value\nshared\ntail\n"
+    target = "header\nnew value\ninserted\nshared\ntail\n"
+
+    assert (
+        vendor_features._apply_line_delta(source, target, "adjacent regression")
+        == target
+    )
+
+
+def test_upstream_hash_drift_requires_explicit_update(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        vendor_legacy,
+        "_expected_upstream_digests",
+        lambda: {"dashboard.html": "reviewed"},
+    )
+    try:
+        vendor_legacy._validate_upstream_digests(
+            {"dashboard.html": "tampered"}, update_upstream=False
+        )
+    except vendor_legacy.PatchError as error:
+        assert "upstream sha256 mismatch" in str(error)
+        assert "--update-upstream" in str(error)
+    else:
+        raise AssertionError("tampered upstream hash was accepted")
+
+    vendor_legacy._validate_upstream_digests(
+        {"dashboard.html": "tampered"}, update_upstream=True
+    )

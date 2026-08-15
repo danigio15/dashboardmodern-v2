@@ -402,18 +402,54 @@ def _checkout(ref: str, destination: Path) -> str:
     return result.stdout.strip()
 
 
-def vendor(ref: str) -> dict[str, str]:
+def _expected_upstream_digests() -> dict[str, str]:
+    """Read the reviewed upstream digests from committed vendor metadata."""
+    metadata_path = VENDOR_DIR / "VENDOR.json"
+    try:
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        return metadata["sha256"]
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as error:
+        raise PatchError(f"cannot read pinned upstream hashes: {error}") from error
+
+
+def _validate_upstream_digests(
+    digests: dict[str, str], *, update_upstream: bool
+) -> None:
+    """Block source drift unless the maintainer explicitly accepts it."""
+    if update_upstream:
+        return
+    expected = _expected_upstream_digests()
+    mismatches = [
+        f"{name}: expected {expected.get(name, '<missing>')}, got {digest}"
+        for name, digest in digests.items()
+        if expected.get(name) != digest
+    ]
+    if mismatches:
+        raise PatchError(
+            "upstream sha256 mismatch; review upstream changes and rerun with "
+            "--update-upstream:\n  " + "\n  ".join(mismatches)
+        )
+
+
+def vendor(ref: str, *, update_upstream: bool = False) -> dict[str, str]:
     """Copy and patch the pinned legacy dashboard, returning vendor metadata."""
     with tempfile.TemporaryDirectory() as tmp:
         source_dir = Path(tmp) / "legacy"
         commit = _checkout(ref, source_dir)
 
-        digests: dict[str, str] = {}
+        sources = {
+            name: (source_dir / name).read_text(encoding="utf-8")
+            for name in VARIANTS
+        }
+        digests = {
+            name: hashlib.sha256(source.encode("utf-8")).hexdigest()
+            for name, source in sources.items()
+        }
+        _validate_upstream_digests(digests, update_upstream=update_upstream)
+
         for name in VARIANTS:
-            source = (source_dir / name).read_text(encoding="utf-8")
-            patched = patch_variant(source, name)
+            patched = patch_variant(sources[name], name)
             (VENDOR_DIR / name).write_text(patched, encoding="utf-8")
-            digests[name] = hashlib.sha256(source.encode("utf-8")).hexdigest()
 
     metadata = {
         "source": SOURCE_REPO,
@@ -438,11 +474,16 @@ def main() -> int:
     """Vendor the legacy dashboard at the requested ref."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ref", required=True, help="Tag or branch to vendor.")
+    parser.add_argument(
+        "--update-upstream",
+        action="store_true",
+        help="accept and record reviewed upstream source hash changes",
+    )
     args = parser.parse_args()
 
     VENDOR_DIR.mkdir(parents=True, exist_ok=True)
     try:
-        metadata = vendor(args.ref)
+        metadata = vendor(args.ref, update_upstream=args.update_upstream)
     except PatchError as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
