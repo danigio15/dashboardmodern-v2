@@ -1,0 +1,69 @@
+name: Regenerate vendor artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: Branch on which to regenerate the vendor artifacts
+        required: true
+        default: codex/ricostruire-step-di-split-per-vendor
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate-vendor-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_branch }}
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Regenerate patch artifacts
+        shell: bash
+        run: |
+          REF=$(python -c "import json;print(json.load(open('custom_components/dashboardmodern/frontend/legacy/VENDOR.json'))['commit'])")
+          python scripts/vendor_legacy.py --ref "$REF" && python scripts/split_legacy.py
+
+      - name: Guard generated changes
+        shell: bash
+        run: |
+          PATCH_DIR="custom_components/dashboardmodern/frontend/legacy/patches"
+          git status --porcelain
+          if [[ -n "$(git status --porcelain -- . ":(exclude)$PATCH_DIR" ":(exclude)$PATCH_DIR/**")" ]]; then
+            echo "vendor non riproducibile" >&2
+            exit 1
+          fi
+
+      - name: Commit and push changed patches
+        shell: bash
+        env:
+          TARGET_BRANCH: ${{ inputs.target_branch }}
+        run: |
+          PATCH_DIR="custom_components/dashboardmodern/frontend/legacy/patches"
+          if [[ -n "$(git status --porcelain -- "$PATCH_DIR")" ]]; then
+            git add -- "$PATCH_DIR"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Rigenera artefatti patches dalla pipeline"
+            git push origin "HEAD:$TARGET_BRANCH"
+          fi
+
+      - name: Verify reproducibility
+        shell: bash
+        run: |
+          REF=$(python -c "import json;print(json.load(open('custom_components/dashboardmodern/frontend/legacy/VENDOR.json'))['commit'])")
+          python scripts/vendor_legacy.py --ref "$REF" && python scripts/split_legacy.py
+          STATUS=$(git status --porcelain)
+          printf '%s\n' "$STATUS"
+          if [[ -n "$STATUS" ]]; then
+            exit 1
+          fi
