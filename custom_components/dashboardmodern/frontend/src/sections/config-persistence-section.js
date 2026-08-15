@@ -1,4 +1,4 @@
-// DM-FIX-20260815G
+// DM-FIX-20260815H
 import { normalizeSection } from "../core/migrations.js";
 import { root } from "./shared.js";
 
@@ -24,10 +24,9 @@ const state = (root[KEY] ||= {
   mutationBridgeInstalled: false,
 });
 
-// Complete dashboard configuration snapshot. Runtime counters/timers such as
-// cd_pool_run and cd_irr_lastrun are intentionally excluded, while every
-// user-editable legacy/canonical key is included so phone and desktop cannot
-// silently diverge just because one editor still writes a legacy key.
+// Complete shared dashboard configuration snapshot. Runtime counters/timers and
+// true per-device preferences (connection credentials, theme/navbar mode) stay
+// local. Everything edited as dashboard content is shared across devices.
 export const CONFIG_KEYS = Object.freeze([
   "dm_dashboard_state",
   "dm_schema_version",
@@ -36,6 +35,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_section_names",
   "cd_stanze",
   "cd_floors",
+  "cd_floor_icons",
   "cd_cameras",
   "cd_appliances",
   "cd_loads",
@@ -63,6 +63,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_gruppi_removed",
   "cd_avvisi_names_extra",
   "cd_avvisi_custom",
+  "cd_subload_groups",
   "cd_subloads_extra",
   "cd_report_devices",
   "cd_lavatrice_visual",
@@ -70,8 +71,6 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_hidden_elements",
   "cd_costo_kwh",
   "cd_prezzo_immissione",
-  "cd_theme",
-  "cd_nav_mode",
 ]);
 
 const LEGACY_SYNC_CONTROL_KEYS = Object.freeze(["cd_sync_ts", "cd_sync_dirty"]);
@@ -188,10 +187,8 @@ export function normalizeRemoteSnapshot(remote) {
     };
   }
 
-  // beta20/beta21 and the vendored legacy runtime wrote a flat payload to the
-  // very same frontend user_data key. Accept it once, then upgrade it to the
-  // single modern envelope after reconciliation. Without this compatibility
-  // path whichever device wrote last could make the other format unreadable.
+  // Older releases and the vendored legacy runtime wrote a flat payload to the
+  // same user_data key. Accept it once and upgrade it to the canonical envelope.
   const legacyValues = Object.fromEntries(
     CONFIG_KEYS.flatMap((key) => (typeof remote[key] === "string" ? [[key, remote[key]]] : [])),
   );
@@ -213,11 +210,9 @@ export function normalizeRemoteSnapshot(remote) {
 
 /**
  * Before revision 2 several real editor keys were not part of the modern cloud
- * snapshot at all. Absence in those old payloads therefore cannot mean
- * "deleted". Fill only the missing old fields from this device once, while
- * remote values still win wherever the old snapshot actually contains a key.
- * The upgraded revision-2 snapshot is then complete and future absence again
- * has normal deletion semantics.
+ * snapshot. Absence in those payloads cannot mean "deleted". Fill only missing
+ * old fields from the current device once; values actually present remotely
+ * still win. Revision 2 is complete, so future absence means deletion again.
  */
 export function mergeLegacyMissingConfig(remote, local = {}) {
   if (!remote || Number(remote.keys_revision) >= CONFIG_KEYS_REVISION) return remote;
