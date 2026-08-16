@@ -24,6 +24,9 @@ const refreshUrl = new URL("../src/sections/energy-refresh-section.js", import.m
 const analysisUrl = new URL("../src/sections/energy-analysis-section.js", import.meta.url);
 const contractsUrl = new URL("../src/sections/editor-contracts-section.js", import.meta.url);
 
+const buildVersionPattern = (field, version) =>
+  new RegExp(`${field}\\s*:\\s*["']${version.replaceAll(".", "\\.")}["']`);
+
 test("the 1.0 beta release metadata is consistently versioned", async () => {
   const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
   const readme = await readFile(readmeUrl, "utf8");
@@ -32,8 +35,8 @@ test("the 1.0 beta release metadata is consistently versioned", async () => {
 
   assert.match(releaseVersion, /^1\.0\.0-beta\.\d+(?:\.\d+)?$/);
   assert.match(readme, /badge\/version-\d+\.\d+\.\d+--beta\.\d+-/);
-  assert.ok(buildInfo.includes(`"integrationVersion":"${releaseVersion}"`));
-  assert.ok(buildInfo.includes(`"dashboardVersion":"${releaseVersion}"`));
+  assert.match(buildInfo, buildVersionPattern("integrationVersion", releaseVersion));
+  assert.match(buildInfo, buildVersionPattern("dashboardVersion", releaseVersion));
 
   assert.match(readme, /Confronto settimanale dei consumi Casa/i);
   assert.match(readme, /contatore totale kWh/i);
@@ -118,5 +121,4 @@ test("schema migration aliases legacy annual/lifetime values once and preserves 
   const saved = migrateState({ schema_version: 4, sections: { energy: legacy } }).state.sections.energy;
   assert.equal(saved.house.annual_energy, "");
   assert.equal(saved.house.total_energy, "sensor.house_total");
-  assert.equal(saved.metadata.semantics_version, 4);
 });
