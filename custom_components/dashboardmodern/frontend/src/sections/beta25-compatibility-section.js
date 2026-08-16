@@ -9,8 +9,6 @@ const state = (root[KEY] ||= {
   listeners: false,
   storeUnsubscribe: null,
   storeWritesWrapped: false,
-  temperatureNameDraft: "",
-  temperatureEditingId: "",
 });
 
 function appliances() {
@@ -66,20 +64,6 @@ function restoreHiddenTemperatureIcon(form) {
   return true;
 }
 
-function syncLegacyTemperatureLabelContext(form) {
-  if (!form || state.temperatureEditingId === "primary") return false;
-  const selected = clean(form.querySelector("#dm-temperature-room")?.value);
-  // Beta17's legacy label helper treats a room-selection change as a new
-  // context and rewrites #dm-temperature-name from room.temp_name. Beta25 owns
-  // this field for new/extra associations, so mark that context synchronized.
-  // The primary association deliberately stays under Beta17 label ownership so
-  // separate temperature/humidity labels remain backward compatible.
-  form.dataset.dmBeta20TemperatureLabelContext = `add|${selected}`;
-  const nameInput = form.querySelector("#dm-temperature-name");
-  if (clean(nameInput?.value)) state.temperatureNameDraft = nameInput.value;
-  return true;
-}
-
 /**
  * Beta 25 supports more than one temperature association per room. Keep the
  * pre-Beta25 selectors/markers as aliases so older editor/layout owners do not
@@ -123,7 +107,6 @@ export function restoreTemperatureContracts() {
     roomSelect.dataset.dmRealDeviceEditable = "true";
     roomSelect.style.pointerEvents = "auto";
   }
-  syncLegacyTemperatureLabelContext(form);
   if (submit) {
     submit.style.minHeight = "44px";
     submit.textContent = editing
@@ -271,42 +254,6 @@ function subscribeStore() {
   });
 }
 
-function selectedTemperatureRoom(form) {
-  const roomId = clean(form?.querySelector("#dm-temperature-room")?.value);
-  return section("rooms", []).find?.((item) => clean(item.id) === roomId) || null;
-}
-
-function shouldIsolateTemperatureSubmit(form) {
-  if (state.temperatureEditingId)
-    return state.temperatureEditingId !== "primary";
-  const room = selectedTemperatureRoom(form);
-  return Boolean(clean(room?.temp) || clean(room?.hum));
-}
-
-function protectBeta25TemperatureSubmit(event) {
-  const form = event.target;
-  if (!form?.matches?.("[data-beta25-temperature-form]")) return;
-  const isolate = shouldIsolateTemperatureSubmit(form);
-  if (isolate) {
-    const nameInput = form.querySelector("#dm-temperature-name");
-    if (nameInput && !clean(nameInput.value) && clean(state.temperatureNameDraft))
-      nameInput.value = state.temperatureNameDraft;
-
-    // The Beta17 listener runs on document capture and only recognizes the
-    // legacy alias. Hide that alias only for extra associations so it cannot
-    // project their per-association label back onto the primary room labels.
-    const hadLegacyAlias = form.hasAttribute("data-temperature-form");
-    if (hadLegacyAlias) form.removeAttribute("data-temperature-form");
-    root.queueMicrotask?.(() => {
-      if (hadLegacyAlias && form.isConnected) form.setAttribute("data-temperature-form", "");
-    });
-  }
-  root.queueMicrotask?.(() => {
-    state.temperatureNameDraft = "";
-    state.temperatureEditingId = "";
-  });
-}
-
 export function installBeta25Compatibility() {
   if (!doc) return false;
   bindRuntimeOwners();
@@ -334,43 +281,7 @@ export function installBeta25Compatibility() {
     root.addEventListener?.("dashboardmodern:state-changed", () =>
       schedule(repairExplicitCatalogArtwork),
     );
-    root.addEventListener?.("submit", protectBeta25TemperatureSubmit, true);
-    doc.addEventListener(
-      "input",
-      (event) => {
-        const form = event.target?.closest?.("[data-beta25-temperature-form]");
-        if (!form) return;
-        if (event.target?.matches?.("#dm-temperature-name"))
-          state.temperatureNameDraft = event.target.value;
-        syncLegacyTemperatureLabelContext(form);
-      },
-      true,
-    );
-    doc.addEventListener(
-      "change",
-      (event) => {
-        const form = event.target?.closest?.("[data-beta25-temperature-form]");
-        if (!form) return;
-        syncLegacyTemperatureLabelContext(form);
-        schedule(restoreTemperatureContracts);
-      },
-      true,
-    );
     doc.addEventListener("click", (event) => {
-      const edit = event.target?.closest?.("[data-beta25-temperature-edit]");
-      if (edit) {
-        const row = edit.closest("[data-beta25-temperature-row]");
-        state.temperatureEditingId = clean(row?.dataset?.temperatureId);
-        state.temperatureNameDraft = "";
-      }
-      if (event.target?.closest?.("[data-beta25-temperature-cancel]")) {
-        state.temperatureNameDraft = "";
-        state.temperatureEditingId = "";
-      }
-      if (event.target?.closest?.(".ed-tab[data-tab='sez7'],[data-tab='temperature'],[data-tab='temp']")) {
-        state.temperatureNameDraft = "";
-        state.temperatureEditingId = "";
-      }
       if (
         event.target?.closest?.(
           "[data-beta25-temperature-edit],[data-beta25-temperature-cancel],.ed-tab[data-tab='sez7'],[data-tab='temperature'],[data-tab='temp']",
