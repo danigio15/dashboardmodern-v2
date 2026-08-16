@@ -321,6 +321,8 @@ function numericState(reference) {
 function keepSecondaryEnergyFlowsComplete() {
   for (const [load, references] of Object.entries(FLOW_LOADS)) {
     for (const period of ["day", "month"]) {
+      const view = doc?.getElementById(`view-${period}`);
+      if (view?.hasAttribute?.("data-dm-canonical-load-count")) continue;
       const node = doc?.getElementById(`n-${load}-${period}`);
       const valueNode = doc?.getElementById(`v-${load}-${period}`);
       if (node) {
