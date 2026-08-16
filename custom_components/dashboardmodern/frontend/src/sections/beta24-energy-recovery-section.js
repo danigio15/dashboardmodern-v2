@@ -17,6 +17,7 @@ const root = globalThis;
 const doc = root.document;
 const PATCH_MARKER = "__DASHBOARDMODERN_BETA24_STORE_RECOVERY__";
 const SOC_MARKER = "dmBeta24SocOwner";
+const PERSIST_META_KEY = "dm_persistence_meta";
 
 const clean = (value) => String(value ?? "").trim();
 const objectValue = (value) =>
@@ -238,11 +239,30 @@ export function recoverCanonicalLoads(state, captured = {}) {
   return added;
 }
 
+export function markRecoveredConfigPending(storage, now = Date.now()) {
+  if (!storage?.setItem) return false;
+  let current = {};
+  try {
+    const parsed = JSON.parse(storage.getItem?.(PERSIST_META_KEY) || "null");
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) current = parsed;
+  } catch (_error) {}
+  const timestamp = Math.max(Number(current.pending_at) || 0, Number(now) || Date.now());
+  storage.setItem(PERSIST_META_KEY, JSON.stringify({ ...current, pending_at: timestamp }));
+  return true;
+}
+
 export function recoverStoreState(store, captured = {}) {
   if (!store?.state) return { energy: 0, loads: 0 };
   const energy = recoverEnergyConfiguration(store.state, captured);
   const loads = recoverCanonicalLoads(store.state, captured);
-  if (energy || loads) store.persist();
+  if (energy || loads) {
+    store.persist();
+    // The persistence owner is already installed but intentionally ignores
+    // pre-hydration writes. Mark this repair explicitly as pending so the first
+    // cloud reconciliation pushes the recovered configuration instead of
+    // restoring a newer-but-damaged Beta23 remote snapshot over it.
+    markRecoveredConfigPending(store.storage);
+  }
   return { energy, loads };
 }
 
@@ -307,8 +327,9 @@ function scheduleSocOwner() {
 function requestInitialRemoteReconcile() {
   // config-persistence-section is imported before this module.  Defer one task
   // so modules-entry can construct/migrate the store first, then perform an
-  // unconditional initial pull.  Previously some WebViews missed both runtime
-  // events and never hydrated until a later focus/pageshow.
+  // unconditional initial pull. If migration recovered damaged Beta23 data,
+  // dm_persistence_meta.pending_at makes that first reconciliation push the
+  // repaired local snapshot to Home Assistant instead of restoring stale data.
   root.setTimeout?.(() => root.cdSyncPull?.(), 0);
 }
 
@@ -333,6 +354,7 @@ installRuntimeRecovery();
 export const beta24EnergyRecovery = Object.freeze({
   recoverEnergyConfiguration,
   recoverCanonicalLoads,
+  markRecoveredConfigPending,
   recoverStoreState,
   normalizeBatterySocText,
 });
