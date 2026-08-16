@@ -7,13 +7,115 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: tests-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  beta27-reconcile:
+    name: Beta27 source reconcile
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/beta27-config-visibility-load-flow-temperature-tabs'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Reconcile appliance layout contracts
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('custom_components/dashboardmodern/frontend/src/sections/appliance-layout-section.js')
+          s = p.read_text()
+          if 'canonicalArtworkType' not in s:
+              raise SystemExit(0)
+          s = s.replace('import { canonicalArtworkType } from "../core/appliance-artwork.js";\n', '')
+          old = '''function visualTypeFor(device = {}) {
+            return (
+              canonicalArtworkType(
+                clean(
+                  device.visual_key ||
+                    device.device_type ||
+                    device.type ||
+                    device.icon ||
+                    device.name,
+                ),
+              ) || "generic"
+            );
+          }'''
+          new = '''function visualTypeFor(card) {
+            const owned = clean(card?.dataset?.dmArtwork);
+            return owned && owned !== "custom" ? owned : "generic";
+          }'''
+          s = s.replace(old, new).replace('const type = visualTypeFor(device);', 'const type = visualTypeFor(card);')
+          old = '''function installReferenceWrappers() {
+            if (state.wrappers) return;
+            state.wrappers = true;
+            for (const name of ["renderAppliances", "renderApplianceSection", "render"]) {
+              wrapFunction(name, `__dmBeta27ApplianceReference_${name}`, scheduleReferenceCards);
+            }
+          }'''
+          new = '''function installReferenceWrappers() {
+            if (state.wrappers) return;
+            state.wrappers = true;
+            wrapFunction("renderAppliances", "__dmBeta27ApplianceReference_renderAppliances", scheduleReferenceCards);
+            wrapFunction(
+              "renderApplianceSection",
+              "__dmBeta27ApplianceReference_renderApplianceSection",
+              scheduleReferenceCards,
+            );
+            wrapFunction("render", "__dmBeta27ApplianceReference_render", scheduleReferenceCards);
+          }'''
+          s = s.replace(old, new)
+          old = '''  const clone = source.cloneNode(true);
+            clone.removeAttribute("id");
+            clone.querySelectorAll?.("[id]").forEach((node) => node.removeAttribute("id"));
+            icon.replaceChildren(clone);'''
+          new = '''  const clone = source.cloneNode(true);
+            clone.removeAttribute("id");
+            clone.querySelectorAll?.("[id]").forEach((node) => node.removeAttribute("id"));
+            clone.classList.remove("appl-ic", "appliance-icon-card", "appl-ic-emoji");
+            clone.classList.add("dm-appliance-head-art");
+            clone.setAttribute("aria-hidden", "true");
+            icon.replaceChildren(clone);'''
+          s = s.replace(old, new)
+          s = s.replace('border-radius:30px!important', 'border-radius:22px!important')
+          s = s.replace('border-radius:999px!important', 'border-radius:11px!important')
+          s = s.replace('.dm-appliance-head-icon>.appl-ic', '.dm-appliance-head-icon>.dm-appliance-head-art')
+          start = s.index('      @media(max-width:720px){')
+          end = s.index('\n\n      @media(prefers-reduced-motion:reduce)', start)
+          mobile = '''      @media(max-width:520px){
+                  #appl-grid-overview,#page-appliances-main .appl-page-grid,#page-appliances-main .appl-grid,#page-appliances-main [data-appliance-grid]{grid-template-columns:minmax(0,370px)!important;justify-content:center!important;gap:12px!important;padding-inline:10px!important}
+                  #page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{grid-template-columns:92px minmax(0,1fr)!important;grid-template-rows:auto minmax(0,1fr) auto!important;grid-template-areas:"visual head" "visual live" "visual actions"!important;width:100%!important;max-width:370px!important;min-height:126px!important;border-radius:18px!important}
+                  #page-appliances-main .appl-wide-card>.appl-info,#appl-grid-overview .appl-wide-card>.appl-info{min-height:126px!important}
+                  #page-appliances-main .appl-heading,#appl-grid-overview .appl-heading{grid-template-columns:minmax(0,1fr) auto!important;padding:11px 10px 4px!important;gap:7px!important}
+                  #page-appliances-main .dm-appliance-head-icon,#appl-grid-overview .dm-appliance-head-icon{display:none!important}
+                  #page-appliances-main .appl-wide-name,#appl-grid-overview .appl-wide-name{font-size:14.5px!important}
+                  #page-appliances-main .appl-st,#appl-grid-overview .appl-st{max-width:80px!important;min-height:24px!important;padding:4px 6px!important;font-size:8.5px!important}
+                  #page-appliances-main .appl-visual,#appl-grid-overview .appl-visual{min-width:92px!important;min-height:126px!important;height:126px!important;padding:5px!important;border-right:1px solid rgba(148,163,184,.12)!important}
+                  #page-appliances-main .appl-wide-card .appl-visual>.appl-ic,#appl-grid-overview .appl-wide-card .appl-visual>.appl-ic{width:84px!important;height:84px!important;min-width:84px!important;min-height:84px!important;border-radius:17px!important}
+                  #page-appliances-main .appl-wide-card .appl-visual .dm-appliance-art,#appl-grid-overview .appl-wide-card .appl-visual .dm-appliance-art,#page-appliances-main .appl-wide-card .dm-appliance-image-wrap,#appl-grid-overview .appl-wide-card .dm-appliance-image-wrap{width:80px!important;height:80px!important;min-width:80px!important;min-height:80px!important}
+                  #page-appliances-main .appl-wide-card .appl-visual svg,#appl-grid-overview .appl-wide-card .appl-visual svg{width:78px!important;height:78px!important;max-width:78px!important;max-height:78px!important}
+                  #page-appliances-main .appl-live,#appl-grid-overview .appl-live{min-height:0!important;padding:3px 8px 4px 10px!important;border-top:0!important;background:transparent!important}
+                  #page-appliances-main .appl-actions,#appl-grid-overview .appl-actions{min-height:0!important;padding:3px 10px 9px 8px!important;border-top:0!important;background:transparent!important}
+                  #page-appliances-main .appl-primary strong,#appl-grid-overview .appl-primary strong,#page-appliances-main .appl-pwr,#appl-grid-overview .appl-pwr{font-size:19px!important}
+                  #page-appliances-main .appl-actions button,#appl-grid-overview .appl-actions button,#page-appliances-main [data-dm-power-toggle="true"],#appl-grid-overview [data-dm-power-toggle="true"]{min-height:31px!important;height:31px!important;border-radius:10px!important;padding:5px 7px!important;font-size:9.5px!important}
+                  #page-appliances-main [data-dm-power-toggle="true"],#appl-grid-overview [data-dm-power-toggle="true"]{min-width:86px!important}
+                  #dm-appliance-daily-popup .dm-appliance-daily-visual{left:14px!important;width:50px!important;height:50px!important;border-radius:17px!important}
+                  #dm-appliance-daily-popup .dm-appliance-daily-visual>.appl-ic{width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important}
+                  #dm-appliance-daily-popup .dm-appliance-daily-visual svg,#dm-appliance-daily-popup .dm-appliance-daily-visual ha-icon{width:46px!important;height:46px!important;max-width:46px!important;max-height:46px!important;--mdc-icon-size:46px}
+                }'''
+          s = s[:start] + mobile + s[end:]
+          p.write_text(s)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/dashboardmodern/frontend/src/sections/appliance-layout-section.js
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "fix(beta27): consolidate responsive appliance layout"
+          git push
+
   lint:
     name: Ruff
     runs-on: ubuntu-latest
