@@ -20,6 +20,7 @@ function schedule(callback) {
   root.queueMicrotask?.(callback);
   root.setTimeout?.(callback, 0);
   root.setTimeout?.(callback, 60);
+  root.setTimeout?.(callback, 250);
 }
 
 function restoreTemperatureEntityPickers(form) {
@@ -122,17 +123,30 @@ export function restoreTemperatureContracts() {
 
 function withVisualIntent(item = {}) {
   if (!item || typeof item !== "object" || Array.isArray(item)) return item;
+  const hasType = Object.prototype.hasOwnProperty.call(item, "visual_type");
+  const hasKey = Object.prototype.hasOwnProperty.call(item, "visual_key");
+  const hasImage =
+    Object.prototype.hasOwnProperty.call(item, "image") ||
+    Object.prototype.hasOwnProperty.call(item, "image_url");
+  if (!hasType && !hasKey && !hasImage) return item;
+
   const visualType = clean(item.visual_type).toLowerCase();
   const visualKey = clean(item.visual_key);
   const image = clean(item.image || item.image_url);
-  const metadata = { ...(item.metadata || {}) };
   const explicitCatalog = Boolean(visualType && visualKey);
-  if (explicitCatalog) metadata.visual_selection_explicit = true;
-  else if (image) metadata.visual_selection_explicit = false;
+  const metadata = { ...(item.metadata || {}) };
+  let markMetadata = false;
+  if (explicitCatalog) {
+    metadata.visual_selection_explicit = true;
+    markMetadata = true;
+  } else if (hasImage && image) {
+    metadata.visual_selection_explicit = false;
+    markMetadata = true;
+  }
   return {
     ...item,
     ...(image && !explicitCatalog ? { visual_type: "image" } : {}),
-    metadata,
+    ...(markMetadata ? { metadata } : {}),
   };
 }
 
