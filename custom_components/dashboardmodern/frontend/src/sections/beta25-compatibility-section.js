@@ -10,6 +10,7 @@ const state = (root[KEY] ||= {
   storeUnsubscribe: null,
   storeWritesWrapped: false,
   temperatureNameDraft: "",
+  temperatureEditingId: "",
 });
 
 function appliances() {
@@ -66,11 +67,13 @@ function restoreHiddenTemperatureIcon(form) {
 }
 
 function syncLegacyTemperatureLabelContext(form) {
-  if (!form) return false;
+  if (!form || state.temperatureEditingId === "primary") return false;
   const selected = clean(form.querySelector("#dm-temperature-room")?.value);
   // Beta17's legacy label helper treats a room-selection change as a new
   // context and rewrites #dm-temperature-name from room.temp_name. Beta25 owns
-  // this field per association, so mark the context as already synchronized.
+  // this field for new/extra associations, so mark that context synchronized.
+  // The primary association deliberately stays under Beta17 label ownership so
+  // separate temperature/humidity labels remain backward compatible.
   form.dataset.dmBeta20TemperatureLabelContext = `add|${selected}`;
   const nameInput = form.querySelector("#dm-temperature-name");
   if (clean(nameInput?.value)) state.temperatureNameDraft = nameInput.value;
@@ -268,22 +271,40 @@ function subscribeStore() {
   });
 }
 
+function selectedTemperatureRoom(form) {
+  const roomId = clean(form?.querySelector("#dm-temperature-room")?.value);
+  return section("rooms", []).find?.((item) => clean(item.id) === roomId) || null;
+}
+
+function shouldIsolateTemperatureSubmit(form) {
+  if (state.temperatureEditingId)
+    return state.temperatureEditingId !== "primary";
+  const room = selectedTemperatureRoom(form);
+  return Boolean(clean(room?.temp) || clean(room?.hum));
+}
+
 function protectBeta25TemperatureSubmit(event) {
   const form = event.target;
   if (!form?.matches?.("[data-beta25-temperature-form]")) return;
-  const nameInput = form.querySelector("#dm-temperature-name");
-  if (nameInput && !clean(nameInput.value) && clean(state.temperatureNameDraft))
-    nameInput.value = state.temperatureNameDraft;
+  const isolate = shouldIsolateTemperatureSubmit(form);
+  if (isolate) {
+    const nameInput = form.querySelector("#dm-temperature-name");
+    if (nameInput && !clean(nameInput.value) && clean(state.temperatureNameDraft))
+      nameInput.value = state.temperatureNameDraft;
 
-  // The Beta17 listener runs on document capture and only recognizes the
-  // legacy alias. Hide that alias for this one event so it cannot project the
-  // per-association Beta25 label back onto room.temp_name/hum_name.
-  const hadLegacyAlias = form.hasAttribute("data-temperature-form");
-  if (hadLegacyAlias) form.removeAttribute("data-temperature-form");
+    // The Beta17 listener runs on document capture and only recognizes the
+    // legacy alias. Hide that alias only for extra associations so it cannot
+    // project their per-association label back onto the primary room labels.
+    const hadLegacyAlias = form.hasAttribute("data-temperature-form");
+    if (hadLegacyAlias) form.removeAttribute("data-temperature-form");
+    root.queueMicrotask?.(() => {
+      if (hadLegacyAlias && form.isConnected) form.setAttribute("data-temperature-form", "");
+    });
+  }
   root.queueMicrotask?.(() => {
-    if (hadLegacyAlias && form.isConnected) form.setAttribute("data-temperature-form", "");
+    state.temperatureNameDraft = "";
+    state.temperatureEditingId = "";
   });
-  state.temperatureNameDraft = "";
 }
 
 export function installBeta25Compatibility() {
@@ -336,8 +357,20 @@ export function installBeta25Compatibility() {
       true,
     );
     doc.addEventListener("click", (event) => {
-      if (event.target?.closest?.("[data-beta25-temperature-cancel]"))
+      const edit = event.target?.closest?.("[data-beta25-temperature-edit]");
+      if (edit) {
+        const row = edit.closest("[data-beta25-temperature-row]");
+        state.temperatureEditingId = clean(row?.dataset?.temperatureId);
         state.temperatureNameDraft = "";
+      }
+      if (event.target?.closest?.("[data-beta25-temperature-cancel]")) {
+        state.temperatureNameDraft = "";
+        state.temperatureEditingId = "";
+      }
+      if (event.target?.closest?.(".ed-tab[data-tab='sez7'],[data-tab='temperature'],[data-tab='temp']")) {
+        state.temperatureNameDraft = "";
+        state.temperatureEditingId = "";
+      }
       if (
         event.target?.closest?.(
           "[data-beta25-temperature-edit],[data-beta25-temperature-cancel],.ed-tab[data-tab='sez7'],[data-tab='temperature'],[data-tab='temp']",
