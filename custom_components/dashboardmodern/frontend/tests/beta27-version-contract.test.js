@@ -3,7 +3,7 @@ import fs from "node:fs";
 import test from "node:test";
 
 const manifest = JSON.parse(
-  fs.readFileSync(new URL("../../../manifest.json", import.meta.url), "utf8"),
+  fs.readFileSync(new URL("../../manifest.json", import.meta.url), "utf8"),
 );
 
 test("beta27 release manifest is versioned correctly", () => {
