@@ -63,6 +63,16 @@
       const style = document.createElement("style");
       style.id = "dm-beta27-appliance-runtime-fixes";
       style.textContent = `
+        #page-appliances-main .appl-wide-card[data-dm-beta27-appliance-card="true"],
+        #appl-grid-overview .appl-wide-card[data-dm-beta27-appliance-card="true"] {
+          background-color: rgb(248, 250, 252) !important;
+        }
+        html[data-theme="dark"] #page-appliances-main .appl-wide-card[data-dm-beta27-appliance-card="true"],
+        html[data-theme="dark"] #appl-grid-overview .appl-wide-card[data-dm-beta27-appliance-card="true"],
+        body.dark #page-appliances-main .appl-wide-card[data-dm-beta27-appliance-card="true"],
+        body.dark #appl-grid-overview .appl-wide-card[data-dm-beta27-appliance-card="true"] {
+          background-color: rgb(17, 24, 39) !important;
+        }
         #page-appliances-main .appl-wide-card .appl-visual > .appl-ic,
         #appl-grid-overview .appl-wide-card .appl-visual > .appl-ic {
           background-color: rgba(240, 249, 255, .92) !important;
