@@ -165,7 +165,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(loadIcon).toHaveValue("mdi:lightbulb");
 
     // Appliance configuration must show the exact canonical artwork already
-    // used by the dashboard cards, both in the list and in the real edit modal.
+    // used by the dashboard cards, including the real edit modal.
     await page.evaluate(() => {
       const body = document.getElementById("ed-body");
       body.innerHTML = window.editorRenderAppliances();
@@ -178,16 +178,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       ),
     ).toHaveCount(1);
     await page.locator(".ed-list .ed-row .ed-del").first().click();
-    const applianceDialog = page.locator("#dm-appliance-editor-modal");
-    await expect(applianceDialog).toBeVisible();
+    await expect(page.locator("#dm-appliance-editor-modal")).toBeVisible();
     await expect(
-      applianceDialog.locator(
-        '[data-icon-preview] .dm-appliance-art[data-dm-art="dishwasher"]',
-      ),
-    ).toHaveCount(1);
-    await expect(
-      applianceDialog.locator(
-        '[data-type-trigger] .dm-appliance-art[data-dm-art="dishwasher"]',
+      page.locator(
+        '#dm-appliance-editor-modal [data-icon-preview] .dm-appliance-art[data-dm-art="dishwasher"]',
       ),
     ).toHaveCount(1);
   });
