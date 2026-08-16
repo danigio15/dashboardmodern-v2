@@ -29,7 +29,6 @@ const state = (root[KEY] ||= {
   temperatureSignature: "",
   activeTemperatureRoom: "all",
   visibilityTimer: 0,
-  loadsObserver: null,
   loadsRendering: false,
   editingChild: null,
   popupGroup: "",
@@ -856,24 +855,6 @@ function scheduleLoadsEditor() {
   });
 }
 
-function installLoadsObserver() {
-  if (state.loadsObserver || typeof root.MutationObserver !== "function" || !doc?.body) return false;
-  state.loadsObserver = new root.MutationObserver((mutations) => {
-    if (state.loadsRendering) return;
-    const relevant = mutations.some((mutation) =>
-      [...(mutation.addedNodes || [])].some(
-        (node) =>
-          node?.nodeType === 1 &&
-          (node.matches?.('[data-energy-panel="loads"]') ||
-            node.querySelector?.('[data-energy-panel="loads"]')),
-      ),
-    );
-    if (relevant) scheduleLoadsEditor();
-  });
-  state.loadsObserver.observe(doc.body, { childList: true, subtree: true });
-  return true;
-}
-
 function applyFlowColor(node, color) {
   if (!node || !clean(color)) return;
   node.dataset.dmBeta27Color = color;
@@ -997,7 +978,6 @@ export function installBeta26RealDeviceStability() {
   installPopupOwner();
   subscribeStore();
   synchronizeLegacySubloadRuntime();
-  installLoadsObserver();
   renderStableBeta27Temperature();
   scheduleLoadsEditor();
   scheduleVisibilityRepair(0);
