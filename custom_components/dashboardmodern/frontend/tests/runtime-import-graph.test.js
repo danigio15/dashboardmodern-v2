@@ -1,82 +1,70 @@
+// DM-FIX-20260813A
 import assert from "node:assert/strict";
-import { readFile, readdir } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import test from "node:test";
 import { fileURLToPath } from "node:url";
+import test from "node:test";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const frontendRoot = path.resolve(here, "..");
-const roots = [
-  path.join(frontendRoot, "panel.js"),
-  path.join(frontendRoot, "dashboard-card.js"),
-  path.join(frontendRoot, "legacy", "dashboard.html"),
-  path.join(frontendRoot, "legacy", "dashboard-en.html"),
-];
+const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const staticImportPattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
+const dynamicImportPattern = /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
+const productionEntries = Object.freeze([
+  "legacy/config.js",
+  "legacy/modules-entry.js",
+  "panel.js",
+  "dashboard-card.js",
+]);
+const obsoleteFacades = Object.freeze([
+  "src/sections/home-section.js",
+  "src/sections/climate-section.js",
+  "src/sections/security-section.js",
+  "src/sections/solar-thermal-section.js",
+  "src/sections/pool-section.js",
+  "src/sections/irrigation-section.js",
+  "src/sections/minipc-section.js",
+  "src/sections/legacy-section-adapter.js",
+  "legacy/report-mobile-fixes.js",
+]);
 
 async function filesBelow(directory) {
-  const entries = await readdir(directory, { withFileTypes: true });
-  const files = [];
-  for (const entry of entries) {
-    const resolved = path.join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...(await filesBelow(resolved)));
-    else files.push(resolved);
+  const output = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) output.push(...(await filesBelow(absolute)));
+    else output.push(absolute);
   }
-  return files;
+  return output;
 }
 
-function cleanSpecifier(specifier) {
-  return String(specifier || "")
-    .split(/[?#]/, 1)[0]
-    .trim();
-}
-
-function staticSpecifiers(source) {
-  const found = new Set();
-  const patterns = [
-    /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g,
-    /import\s*\(\s*["']([^"']+)["']\s*\)/g,
+function importSpecifiers(source) {
+  return [
+    ...[...source.matchAll(staticImportPattern)].map((match) => match[1]),
+    ...[...source.matchAll(dynamicImportPattern)].map((match) => match[1]),
   ];
-  for (const pattern of patterns) {
-    let match;
-    while ((match = pattern.exec(source))) found.add(cleanSpecifier(match[1]));
-  }
-  return [...found];
 }
 
-function htmlSpecifiers(source) {
-  const found = new Set();
-  const pattern = /<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi;
-  let match;
-  while ((match = pattern.exec(source))) found.add(cleanSpecifier(match[1]));
-  return [...found];
-}
-
-function resolveSpecifier(fromFile, specifier) {
-  if (!specifier.startsWith(".")) return null;
-  const resolved = path.resolve(path.dirname(fromFile), specifier);
-  const candidates = path.extname(resolved)
-    ? [resolved]
-    : [resolved, `${resolved}.js`, path.join(resolved, "index.js")];
-  return candidates.find((candidate) => candidate.startsWith(frontendRoot)) || null;
-}
-
-async function productionGraph() {
+async function productionGraph(entries = productionEntries) {
   const seen = new Map();
   const edges = new Map();
-  const queue = [...roots];
-  while (queue.length) {
-    const file = path.normalize(queue.shift());
-    if (seen.has(file)) continue;
-    const source = await readFile(file, "utf8");
-    seen.set(file, source);
-    const specifiers = file.endsWith(".html") ? htmlSpecifiers(source) : staticSpecifiers(source);
-    const dependencies = specifiers
-      .map((specifier) => resolveSpecifier(file, specifier))
-      .filter(Boolean)
-      .map(path.normalize);
-    edges.set(file, dependencies);
-    for (const dependency of dependencies) if (!seen.has(dependency)) queue.push(dependency);
+
+  async function visit(file) {
+    const normalized = path.normalize(file);
+    if (seen.has(normalized)) return;
+    const source = await readFile(normalized, "utf8");
+    seen.set(normalized, source);
+    const dependencies = [];
+    edges.set(normalized, dependencies);
+    for (const specifier of importSpecifiers(source)) {
+      if (!specifier.startsWith(".")) continue;
+      let next = path.resolve(path.dirname(normalized), specifier);
+      if (!path.extname(next)) next += ".js";
+      next = path.normalize(next);
+      dependencies.push(next);
+      await visit(next);
+    }
   }
+
+  for (const entry of entries) await visit(path.resolve(frontendRoot, entry));
   return { seen, edges };
 }
 
@@ -149,9 +137,9 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // contracts after those targeted renders. Neither adds polling or observers.
   // Beta26 adds exactly one real-device stability owner; its only observer is
   // scoped to #temp-grid so saved primary labels win over delayed legacy repaints.
-  // This screenshot-driven follow-up adds one scoped configuration owner for the
-  // hierarchical load flow, save-to-visible contract and delayed Temperature
-  // reconciliation. Its single observer is restricted to #temp-grid and #ed-body.
+  // The screenshot follow-up adds one scoped owner for save visibility,
+  // hierarchical Energy loads and delayed Temperature reconciliation; its single
+  // observer is restricted to #temp-grid and #ed-body.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
   assert.ok(relative.length <= 79, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
@@ -161,8 +149,8 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // Beta17 contributes one page-scoped observer so delayed legacy writes on
   // #page-temp cannot resurrect the progress placeholder. Beta24 may add one
   // node-scoped SOC observer. Beta26 adds one #temp-grid-scoped observer. The
-  // follow-up contributes one editor/grid-scoped observer shared by both targets.
-  // The loop below still rejects observers rooted at document/body/documentElement.
+  // follow-up adds one observer shared by #temp-grid and #ed-body. The loop
+  // below still rejects observers rooted at document/body/documentElement.
   assert.ok(observers.length <= 5, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
@@ -180,3 +168,9 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
     .sort();
   assert.deepEqual(srcOrphans, [], `orphan src modules:\n${srcOrphans.join("\n")}`);
 });
+
+for (const relative of obsoleteFacades) {
+  test(`${relative} is physically absent`, async () => {
+    await assert.rejects(access(path.join(frontendRoot, relative)));
+  });
+}
