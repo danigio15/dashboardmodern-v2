@@ -269,12 +269,20 @@ function renderBeta25TemperatureEditor() {
 
   const form = target.querySelector("[data-beta25-temperature-form]");
   const select = form.querySelector("#dm-temperature-room");
+  const nameInput = form.querySelector("#dm-temperature-name");
   let editingRoomId = "";
   let editingEntryId = "";
+  let temperatureNameDraft = clean(nameInput?.value);
+
+  nameInput?.addEventListener("input", () => {
+    temperatureNameDraft = nameInput.value;
+  });
 
   const reset = () => {
     editingRoomId = "";
     editingEntryId = "";
+    temperatureNameDraft = "";
+    delete form.dataset.beta25EditingId;
     form.reset();
     select.disabled = false;
     target.querySelector("[data-beta25-temperature-title]").textContent = `＋ ${english() ? "Add temperature" : "Aggiungi temperatura"}`;
@@ -294,9 +302,11 @@ function renderBeta25TemperatureEditor() {
       if (!room || !entry) return;
       editingRoomId = clean(room.id);
       editingEntryId = clean(entry.id);
+      form.dataset.beta25EditingId = editingEntryId;
       select.value = editingRoomId;
       select.disabled = true;
-      form.querySelector("#dm-temperature-name").value = clean(entry.name);
+      nameInput.value = clean(entry.name);
+      temperatureNameDraft = nameInput.value;
       form.querySelector("#ed-pl-temp").value = clean(entry.temp);
       form.querySelector("#dm-humidity-new").value = clean(entry.hum);
       target.querySelector("[data-beta25-temperature-title]").textContent = `${english() ? "Edit" : "Modifica"} ${clean(room.name)}`;
@@ -333,7 +343,7 @@ function renderBeta25TemperatureEditor() {
       room,
       {
         id: editingEntryId || `temperature-${Date.now().toString(36)}`,
-        name: clean(form.querySelector("#dm-temperature-name")?.value),
+        name: clean(temperatureNameDraft),
         temp,
         hum: clean(form.querySelector("#dm-humidity-new")?.value),
       },
