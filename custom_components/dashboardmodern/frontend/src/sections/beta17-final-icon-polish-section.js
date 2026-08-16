@@ -167,6 +167,11 @@ function repairTemperatureConfiguredRows() {
   if (!body) return false;
   let repaired = false;
   body.querySelectorAll("[data-temperature-room][data-room-id]").forEach((row) => {
+    if (
+      row.matches?.("[data-beta25-temperature-row]") &&
+      clean(row.dataset.temperatureId) !== "primary"
+    )
+      return;
     const room = temperatureRoom(row.dataset.roomId);
     if (room) repaired = ensureTemperatureRowMain(row, room) || repaired;
   });
@@ -196,6 +201,14 @@ function temperatureLabelSourceRoom(form) {
   return temperatureRoom(original || selected);
 }
 
+function beta25TemperatureAssociationMode(form) {
+  if (!form?.matches?.("[data-beta25-temperature-form]")) return "legacy";
+  const editingId = clean(form.dataset.beta25EditingId);
+  if (editingId) return editingId === "primary" ? "primary" : "extra";
+  const room = temperatureLabelSourceRoom(form);
+  return room && (clean(room.temp) || clean(room.hum)) ? "extra" : "primary";
+}
+
 function ensureTemperatureNameFields(form) {
   if (!form) return false;
   let tempInput = form.querySelector("#dm-temperature-name");
@@ -222,6 +235,12 @@ function ensureTemperatureNameFields(form) {
   }
 
   const selected = clean(form.querySelector("#dm-temperature-room")?.value);
+  const mode = beta25TemperatureAssociationMode(form);
+  if (mode === "extra") {
+    form.dataset.dmBeta20TemperatureLabelContext = `beta25-extra|${selected}`;
+    return true;
+  }
+
   const original = clean(form.dataset.dmOriginalRoom);
   const editing =
     Boolean(original) ||
@@ -286,7 +305,7 @@ function scheduleTemperatureRepair() {
 
 function captureTemperatureLabels(event) {
   const form = event.target?.closest?.("[data-temperature-form]");
-  if (!form) return;
+  if (!form || beta25TemperatureAssociationMode(form) === "extra") return;
   const id = clean(form.querySelector("#dm-temperature-room")?.value);
   const temp = clean(form.querySelector("#ed-pl-temp")?.value);
   if (!id || !temp.includes(".")) return;
