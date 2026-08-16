@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   hasCompleteHomeFlow,
+  hasExplicitHousePeriod,
   reconcileEnergyBundle,
   reconcileEnergyPeriod,
 } from "../src/sections/energy-calculations-section.js";
@@ -15,9 +16,11 @@ const COMPLETE = new Set([
   "batteryDischarged",
 ]);
 
-test("real August Home Assistant flows produce the same Casa value", () => {
+const plans = (keys = COMPLETE, overrides = {}) =>
+  [...keys].map((key) => ({ key, ...(overrides[key] || {}) }));
+
+test("complete flows can derive Casa when no explicit period helper exists", () => {
   const period = Object.freeze({
-    // Solarman total_load_consumption shown by DashboardModern after 0.15.17.
     house: 134.0,
     solar: 270.6,
     gridImport: 19.7,
@@ -58,7 +61,35 @@ test("batteryless installations can derive Casa from Solar and both Grid directi
   assert.equal(reconciled.house, 90);
 });
 
-test("Monthly and Report canonical bundle share the HA-style Casa balance", () => {
+test("explicit daily Casa helper wins over a different reconstructed flow balance", () => {
+  const bundle = Object.freeze({
+    day: Object.freeze({
+      house: 3.4,
+      solar: 1.9,
+      gridImport: 0.1,
+      gridExport: 0,
+      batteryCharged: 1.0,
+      batteryDischarged: 2.7,
+    }),
+    month: Object.freeze({ house: 10, solar: 10, gridImport: 0, gridExport: 0, batteryCharged: 0, batteryDischarged: 0 }),
+    year: Object.freeze({ house: 10, solar: 10, gridImport: 0, gridExport: 0, batteryCharged: 0, batteryDischarged: 0 }),
+    sources: Object.freeze({
+      day: {
+        plans: plans(COMPLETE, {
+          house: { direct: true, reason: "explicit-period", source: "sensor.house_today" },
+        }),
+      },
+      month: { plans: [{ key: "house", direct: true, reason: "explicit-period" }] },
+      year: { plans: [{ key: "house", direct: true, reason: "explicit-period" }] },
+    }),
+  });
+  assert.equal(hasExplicitHousePeriod(bundle, "day"), true);
+  const reconciled = reconcileEnergyBundle(bundle);
+  assert.equal(reconciled.day.house, 3.4);
+  assert.equal(reconciled.day, bundle.day);
+});
+
+test("Monthly and Report canonical bundle use flow balance only where no direct Casa period helper exists", () => {
   const bundle = Object.freeze({
     day: Object.freeze({
       house: 5.7,
@@ -85,13 +116,14 @@ test("Monthly and Report canonical bundle share the HA-style Casa balance", () =
       batteryDischarged: 72,
     }),
     sources: Object.freeze({
-      day: { plans: [...COMPLETE].map((key) => ({ key })) },
-      month: { plans: [...COMPLETE].map((key) => ({ key })) },
-      year: { plans: [...COMPLETE].map((key) => ({ key })) },
+      day: { plans: plans(COMPLETE, { house: { direct: true, reason: "explicit-period" } }) },
+      month: { plans: plans() },
+      year: { plans: plans() },
     }),
   });
   const reconciled = reconcileEnergyBundle(bundle);
+  assert.equal(reconciled.day.house, 5.7);
   assert.ok(Math.abs(reconciled.month.house - 165.1) < 1e-9);
-  assert.equal(reconciled.home_source, "home-assistant-flow-balance");
   assert.equal(reconciled.year.house, 937);
+  assert.equal(reconciled.home_source, "configured-house-period+flow-fallback");
 });
