@@ -73,9 +73,9 @@ test("HACS release artifact has root integration layout, complete brand assets a
     readFileSync("custom_components/dashboardmodern/manifest.json", "utf8"),
   );
 
-  assert.match(buildInfo, /"generated":true/);
-  assert.match(buildInfo, new RegExp(`"commit":"${head}"`));
+  assert.match(buildInfo, /generated\s*:\s*true/);
+  assert.match(buildInfo, new RegExp(`commit\\s*:\\s*["']${head}["']`));
   assert.doesNotMatch(buildInfo, /UNBUILT/);
-  assert.match(buildInfo, /"assetHash":"[a-f0-9]{16}"/);
+  assert.match(buildInfo, /assetHash\s*:\s*["'][a-f0-9]{16}["']/);
   assert.equal(manifest.version, sourceManifest.version);
 });
