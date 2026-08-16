@@ -6,7 +6,7 @@ import {
   normalizeFlowNodesForEditor,
   temperatureRoomTabsModel,
 } from "../src/sections/beta26-real-device-stability-section.js";
-import { mergePreservedSubloadItems } from "../src/sections/beta27-subload-preserve-section.js";
+import { mergePreservedSubloadItems } from "../src/sections/energy-legacy-guard-section.js";
 
 function memoryStorage(initial = {}) {
   const values = new Map(Object.entries(initial));
