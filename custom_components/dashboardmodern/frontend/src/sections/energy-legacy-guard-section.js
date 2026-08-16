@@ -160,12 +160,7 @@ function scheduleBeta27EntityPickerContract() {
 }
 
 function installBeta27EditorContractBridge() {
-  const state = (root[BETA27_PICKER_KEY] ||= { installed: false });
-  if (state.installed) {
-    scheduleBeta27EntityPickerContract();
-    return true;
-  }
-  state.installed = true;
+  const state = (root[BETA27_PICKER_KEY] ||= { installed: false, wrapped: new Set() });
 
   for (const name of ["editorSwitch", "apriConfigEntita"]) {
     const current = root[name];
@@ -178,26 +173,31 @@ function installBeta27EditorContractBridge() {
     beta27PickerContractOwner.__dmBeta27PickerContract = true;
     beta27PickerContractOwner.__dmPrevious = current;
     root[name] = beta27PickerContractOwner;
+    state.wrapped.add(name);
   }
 
-  doc?.addEventListener?.(
-    "click",
-    (event) => {
-      if (
-        event.target?.closest?.(
-          ".ed-tab,.ed-inner-tab,[data-energy-panel],[data-beta27-child-add],[data-beta27-child-edit]",
+  if (!state.installed) {
+    state.installed = true;
+    doc?.addEventListener?.(
+      "click",
+      (event) => {
+        if (
+          event.target?.closest?.(
+            ".ed-tab,.ed-inner-tab,[data-energy-panel],[data-beta27-child-add],[data-beta27-child-edit]",
+          )
         )
-      )
-        scheduleBeta27EntityPickerContract();
-    },
-    true,
-  );
+          scheduleBeta27EntityPickerContract();
+      },
+      true,
+    );
+  }
   scheduleBeta27EntityPickerContract();
   return true;
 }
 
 installEnergyLegacyGuardSection();
 installBeta27SubloadPreservation();
+installBeta27EditorContractBridge();
 root.addEventListener?.("dashboardmodern:legacy-ready", () => {
   installBeta27SubloadPreservation();
   installBeta27EditorContractBridge();
