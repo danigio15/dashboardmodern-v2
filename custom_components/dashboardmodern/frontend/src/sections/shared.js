@@ -189,7 +189,14 @@ export function section(name, fallback) {
 }
 
 export function allStates() {
-  const values = {};
+  // Hosted Home Assistant surfaces do not all expose the live registry through
+  // the same object at the same moment. Merge every supported source instead of
+  // making the period engine and the compatibility layer observe different
+  // universes on Chrome vs the HA mobile WebView.
+  const values = {
+    ...(root.__HASS__?.states || {}),
+    ...(root.hass?.states || {}),
+  };
   for (const name of ["_RAW_STATES", "STATES"]) {
     let lexical = null;
     try {
