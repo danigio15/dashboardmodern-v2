@@ -159,8 +159,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(loadPicker).toBeVisible();
     await loadPicker.click();
     await expect(page.locator("#dm-visual-picker")).toBeVisible();
-    await page.locator("#dm-visual-picker .dm-picker-option").nth(1).click();
-    await expect(loadIcon).not.toHaveValue("mdi:power-plug");
+    await page
+      .locator('#dm-visual-picker .dm-picker-option:has([data-token="mdi:lightbulb"])')
+      .click();
+    await expect(loadIcon).toHaveValue("mdi:lightbulb");
 
     // Appliance configuration must show the exact canonical artwork already
     // used by the dashboard cards, not the old line-SVG helper.
