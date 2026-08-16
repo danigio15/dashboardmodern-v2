@@ -87,6 +87,24 @@ def source_constant(path: Path, name: str) -> str:
     return match.group(1)
 
 
+def build_info_javascript(payload: dict[str, object]) -> str:
+    return "\n".join(
+        [
+            "export const BUILD_INFO = Object.freeze({",
+            f"  generated: {str(bool(payload['generated'])).lower()},",
+            f"  integrationVersion: {json.dumps(payload['integrationVersion'])},",
+            f"  dashboardVersion: {json.dumps(payload['dashboardVersion'])},",
+            f"  moduleVersion: {payload['moduleVersion']},",
+            f"  schemaVersion: {payload['schemaVersion']},",
+            f"  date: {json.dumps(payload['date'])},",
+            f"  commit: {json.dumps(payload['commit'])},",
+            f"  assetHash: {json.dumps(payload['assetHash'])},",
+            "});",
+            "",
+        ]
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--expected-commit")
@@ -135,12 +153,7 @@ def main() -> None:
         'import "../src/sections/beta26-config-followup-section.js";\n'
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        header
-        + "export const BUILD_INFO = Object.freeze("
-        + json.dumps(payload, separators=(",", ":"))
-        + ");\n"
-    )
+    args.output.write_text(header + build_info_javascript(payload))
 
 
 if __name__ == "__main__":
