@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { applianceEditorVisualMarkup } from "../src/sections/beta26-real-device-editor-fixes-section.js";
+import { applianceEditorVisualMarkup } from "../src/sections/beta25-compatibility-section.js";
 
 test("beta26 appliance editor uses the canonical dishwasher artwork", () => {
   const markup = applianceEditorVisualMarkup(
