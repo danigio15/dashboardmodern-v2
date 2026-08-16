@@ -24,11 +24,15 @@
   // Beta 27 keeps the large, interactive artwork inside .appl-visual. The
   // compact artwork copied into the card heading is decorative only: strip the
   // interactive selector classes from that copy so click targets and strict
-  // E2E locators continue to resolve to exactly one real appliance artwork.
+  // locators continue to resolve to exactly one real appliance artwork.
   const sanitizeApplianceHeaderArtwork = (scope) => {
     if (!scope) return;
     const sanitize = (node) => {
-      if (!node?.matches?.(".dm-appliance-head-icon > .appl-ic, .dm-appliance-head-icon > .appliance-icon-card"))
+      if (
+        !node?.matches?.(
+          ".dm-appliance-head-icon > .appl-ic, .dm-appliance-head-icon > .appliance-icon-card",
+        )
+      )
         return;
       node.classList.remove("appl-ic", "appliance-icon-card", "appl-ic-emoji");
       node.classList.add("dm-appliance-head-art");
@@ -46,16 +50,23 @@
     const document = globalThis.document;
     if (!document) return;
 
-    sanitizeApplianceHeaderArtwork(document);
-    if (!state.applianceObserver && globalThis.MutationObserver && document.documentElement) {
+    const applianceRoots = [
+      document.getElementById("page-appliances-main"),
+      document.getElementById("appl-grid-overview"),
+    ].filter(Boolean);
+    applianceRoots.forEach(sanitizeApplianceHeaderArtwork);
+
+    if (!state.applianceObserver && globalThis.MutationObserver && applianceRoots.length) {
       state.applianceObserver = new MutationObserver((records) => {
         for (const record of records) {
           for (const node of record.addedNodes || []) sanitizeApplianceHeaderArtwork(node);
         }
       });
-      state.applianceObserver.observe(document.documentElement, {
-        childList: true,
-        subtree: true,
+      applianceRoots.forEach((applianceRoot) => {
+        state.applianceObserver.observe(applianceRoot, {
+          childList: true,
+          subtree: true,
+        });
       });
     }
 
