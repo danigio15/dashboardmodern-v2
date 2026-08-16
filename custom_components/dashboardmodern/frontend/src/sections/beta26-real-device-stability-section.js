@@ -976,7 +976,11 @@ function mountBeta27LoadsEditor(target, panel = target) {
 function scheduleLoadsEditor() {
   root.queueMicrotask?.(() => {
     const panel = doc?.querySelector?.('[data-energy-panel="loads"]');
-    if (panel) renderBeta27LoadsEditor(panel);
+    // Preserve unsaved hierarchy input while slower mobile runtimes finish
+    // unrelated readiness/store work. Explicit add/edit/save handlers render
+    // synchronously; background reconciliation must not blank an open form.
+    if (panel && !panel.querySelector("[data-beta27-child-form]"))
+      renderBeta27LoadsEditor(panel);
   });
 }
 
