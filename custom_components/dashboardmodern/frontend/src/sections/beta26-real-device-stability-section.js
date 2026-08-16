@@ -348,6 +348,13 @@ export function renderStableBeta27Temperature() {
     state.temperatureSignature = signature;
     renderBeta25TemperatureCards();
   }
+  // The stable owner replaces the compatibility wrapper on slower WebKit
+  // boots, so restore the long-standing canonical marker in the same render
+  // turn instead of relying on a later scheduled reconciliation.
+  if (records.length) {
+    grid.dataset.beta25TemperatureRenderer = "multi";
+    grid.dataset.dmTemperatureRenderer = "canonical";
+  }
   ensureTemperatureRoomTabs();
   updateStableTemperatureValues();
   return records.length > 0;

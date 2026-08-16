@@ -40,7 +40,7 @@ function installReleaseStyles() {
       }
       #page-appliances-main .appl-wide-card .appl-visual .dm-appliance-art,#appl-grid-overview .appl-wide-card .appl-visual .dm-appliance-art,
       #page-appliances-main .appl-wide-card .dm-appliance-image-wrap,#appl-grid-overview .appl-wide-card .dm-appliance-image-wrap{
-        width:82px!important;height:82px!important;min-width:82px!important;min-height:82px!important;border-radius:16px!important;
+        width:84px!important;height:84px!important;min-width:84px!important;min-height:84px!important;border-radius:17px!important;
       }
       #page-appliances-main .appl-wide-card .appl-visual svg,#appl-grid-overview .appl-wide-card .appl-visual svg{
         width:78px!important;height:78px!important;max-width:78px!important;max-height:78px!important;
