@@ -132,8 +132,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // observer. Beta24 adds one boot-time recovery module for schema-v4 snapshots
   // that crossed the persistence rewrite; its only observer is scoped to the
   // single Battery SOC text node so competing legacy writes cannot visibly win.
+  // Beta25 adds one event-driven owner for the three screenshot-proven real-device
+  // regressions plus one compatibility owner that restores stable DOM/runtime
+  // contracts after those targeted renders. Neither adds polling or observers.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 75, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 77, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
