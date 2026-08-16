@@ -1,4 +1,3 @@
-import { canonicalArtworkType } from "../core/appliance-artwork.js";
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
 import {
   allStates,
@@ -148,18 +147,9 @@ function roomForDevice(device = {}, rooms = []) {
   );
 }
 
-function visualTypeFor(device = {}) {
-  return (
-    canonicalArtworkType(
-      clean(
-        device.visual_key ||
-          device.device_type ||
-          device.type ||
-          device.icon ||
-          device.name,
-      ),
-    ) || "generic"
-  );
+function visualTypeFor(card) {
+  const owned = clean(card?.dataset?.dmArtwork);
+  return owned && owned !== "custom" ? owned : "generic";
 }
 
 function roomText(room) {
@@ -191,6 +181,9 @@ function syncHeaderArtwork(card, device) {
   const clone = source.cloneNode(true);
   clone.removeAttribute("id");
   clone.querySelectorAll?.("[id]").forEach((node) => node.removeAttribute("id"));
+  clone.classList.remove("appl-ic", "appliance-icon-card", "appl-ic-emoji");
+  clone.classList.add("dm-appliance-head-art");
+  clone.setAttribute("aria-hidden", "true");
   icon.replaceChildren(clone);
   return true;
 }
@@ -215,7 +208,7 @@ export function syncReferenceApplianceCards() {
     if (!device) return;
     const model = createApplianceViewModel(device, states, roomList, locale);
     const room = model.room || roomForDevice(device, roomList);
-    const type = visualTypeFor(device);
+    const type = visualTypeFor(card);
 
     card.dataset.dmBeta27ApplianceCard = "true";
     card.dataset.dmApplianceType = type;
@@ -254,9 +247,13 @@ function scheduleReferenceCards() {
 function installReferenceWrappers() {
   if (state.wrappers) return;
   state.wrappers = true;
-  for (const name of ["renderAppliances", "renderApplianceSection", "render"]) {
-    wrapFunction(name, `__dmBeta27ApplianceReference_${name}`, scheduleReferenceCards);
-  }
+  wrapFunction("renderAppliances", "__dmBeta27ApplianceReference_renderAppliances", scheduleReferenceCards);
+  wrapFunction(
+    "renderApplianceSection",
+    "__dmBeta27ApplianceReference_renderApplianceSection",
+    scheduleReferenceCards,
+  );
+  wrapFunction("render", "__dmBeta27ApplianceReference_render", scheduleReferenceCards);
 }
 
 function installStyles() {
@@ -265,7 +262,7 @@ function installStyles() {
     `
       #appl-grid-overview,#page-appliances-main .appl-page-grid,#page-appliances-main .appl-grid,#page-appliances-main [data-appliance-grid]{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),350px))!important;justify-content:start!important;align-items:stretch!important;gap:18px!important}
 
-      #page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{position:relative!important;display:grid!important;box-sizing:border-box!important;width:100%!important;max-width:350px!important;min-width:0!important;min-height:390px!important;height:auto!important;padding:0!important;gap:0!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto minmax(190px,1fr) auto!important;grid-template-areas:"head head" "visual visual" "live actions"!important;border:1px solid rgba(148,163,184,.20)!important;border-radius:30px!important;overflow:hidden!important;background:radial-gradient(circle at 18% 8%,rgba(125,211,252,.14),transparent 31%),linear-gradient(180deg,rgba(255,255,255,.99),rgba(248,250,252,.98))!important;color:var(--text,#0f172a)!important;box-shadow:0 18px 48px rgba(15,23,42,.12)!important;isolation:isolate!important;transition:border-color .22s ease,box-shadow .22s ease,transform .22s ease!important}
+      #page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{position:relative!important;display:grid!important;box-sizing:border-box!important;width:100%!important;max-width:350px!important;min-width:0!important;min-height:390px!important;height:auto!important;padding:0!important;gap:0!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto minmax(190px,1fr) auto!important;grid-template-areas:"head head" "visual visual" "live actions"!important;border:1px solid rgba(148,163,184,.20)!important;border-radius:22px!important;overflow:hidden!important;background:radial-gradient(circle at 18% 8%,rgba(125,211,252,.14),transparent 31%),linear-gradient(180deg,rgba(255,255,255,.99),rgba(248,250,252,.98))!important;color:var(--text,#0f172a)!important;box-shadow:0 18px 48px rgba(15,23,42,.12)!important;isolation:isolate!important;transition:border-color .22s ease,box-shadow .22s ease,transform .22s ease!important}
       #page-appliances-main .appl-wide-card::after,#appl-grid-overview .appl-wide-card::after{content:"";position:absolute;inset:auto -70px -85px auto;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,rgba(14,165,233,.11),transparent 67%);pointer-events:none;z-index:-1}
       #page-appliances-main .appl-wide-card[data-appliance-state="running"],#appl-grid-overview .appl-wide-card[data-appliance-state="running"]{border-color:rgba(16,185,129,.32)!important;box-shadow:0 20px 54px rgba(15,23,42,.12),0 0 0 1px rgba(16,185,129,.05),0 0 38px rgba(16,185,129,.08)!important}
       #page-appliances-main .appl-wide-card[data-appliance-state="standby"],#appl-grid-overview .appl-wide-card[data-appliance-state="standby"]{border-color:rgba(245,158,11,.27)!important;box-shadow:0 18px 48px rgba(15,23,42,.11),0 0 30px rgba(245,158,11,.06)!important}
@@ -274,12 +271,12 @@ function installStyles() {
       #page-appliances-main .appl-wide-card>.appl-info,#appl-grid-overview .appl-wide-card>.appl-info{display:contents!important}
       #page-appliances-main .appl-heading,#appl-grid-overview .appl-heading{grid-area:head!important;display:grid!important;grid-template-columns:54px minmax(0,1fr) auto!important;align-items:center!important;gap:12px!important;min-width:0!important;margin:0!important;padding:20px 20px 8px!important;background:transparent!important}
       #page-appliances-main .dm-appliance-head-icon,#appl-grid-overview .dm-appliance-head-icon{display:grid!important;place-items:center!important;width:52px!important;height:52px!important;min-width:52px!important;min-height:52px!important;border-radius:50%!important;background:linear-gradient(145deg,#e0f2fe,#f0f9ff)!important;box-shadow:inset 0 0 0 1px rgba(14,165,233,.12),0 8px 22px rgba(14,165,233,.10)!important;overflow:hidden!important}
-      #page-appliances-main .dm-appliance-head-icon>.appl-ic,#appl-grid-overview .dm-appliance-head-icon>.appl-ic{display:grid!important;place-items:center!important;width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important}
+      #page-appliances-main .dm-appliance-head-icon>.dm-appliance-head-art,#appl-grid-overview .dm-appliance-head-icon>.dm-appliance-head-art{display:grid!important;place-items:center!important;width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important}
       #page-appliances-main .dm-appliance-head-icon svg,#appl-grid-overview .dm-appliance-head-icon svg,#page-appliances-main .dm-appliance-head-icon img,#appl-grid-overview .dm-appliance-head-icon img,#page-appliances-main .dm-appliance-head-icon ha-icon,#appl-grid-overview .dm-appliance-head-icon ha-icon{display:block!important;width:44px!important;height:44px!important;max-width:44px!important;max-height:44px!important;object-fit:contain!important;--mdc-icon-size:44px!important}
       #page-appliances-main .appl-heading>div,#appl-grid-overview .appl-heading>div{min-width:0!important;align-self:center!important}
       #page-appliances-main .appl-wide-name,#appl-grid-overview .appl-wide-name{min-width:0!important;margin:0!important;padding:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:inherit!important;font-size:20px!important;font-weight:950!important;line-height:1.12!important;letter-spacing:-.35px!important}
       #page-appliances-main .appl-wide-cat,#appl-grid-overview .appl-wide-cat{display:flex!important;align-items:center!important;min-width:0!important;width:max-content!important;max-width:100%!important;margin:5px 0 0!important;padding:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:var(--secondary-text-color,#64748b)!important;font-size:11.5px!important;font-weight:850!important;line-height:1.2!important}
-      #page-appliances-main .appl-st,#appl-grid-overview .appl-st{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;width:max-content!important;max-width:116px!important;min-height:31px!important;margin:0!important;padding:6px 10px!important;border-radius:999px!important;font-size:9.5px!important;font-weight:950!important;line-height:1!important;letter-spacing:.6px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;text-transform:uppercase!important}
+      #page-appliances-main .appl-st,#appl-grid-overview .appl-st{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;width:max-content!important;max-width:116px!important;min-height:31px!important;margin:0!important;padding:6px 10px!important;border-radius:11px!important;font-size:9.5px!important;font-weight:950!important;line-height:1!important;letter-spacing:.6px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;text-transform:uppercase!important}
 
       #page-appliances-main .appl-visual,#appl-grid-overview .appl-visual{grid-area:visual!important;display:grid!important;place-items:center!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;height:100%!important;min-height:200px!important;margin:0!important;padding:8px 22px 4px!important;border:0!important;background:transparent!important;overflow:visible!important}
       #page-appliances-main .appl-wide-card .appl-visual>.appl-ic,#appl-grid-overview .appl-wide-card .appl-visual>.appl-ic{position:relative!important;display:grid!important;place-items:center!important;box-sizing:border-box!important;width:178px!important;height:178px!important;min-width:178px!important;min-height:178px!important;margin:0!important;padding:0!important;border:0!important;border-radius:38px!important;background:radial-gradient(circle at 48% 42%,rgba(255,255,255,.95),rgba(224,242,254,.62) 55%,rgba(186,230,253,.26))!important;box-shadow:inset 0 0 0 1px rgba(14,165,233,.09),0 18px 42px rgba(14,165,233,.10)!important;overflow:visible!important;transform:translateZ(0)!important}
@@ -343,7 +340,27 @@ function installStyles() {
       #dm-appliance-daily-popup .dm-appliance-daily-visual .dm-appliance-image-wrap,#dm-appliance-daily-popup .dm-appliance-daily-visual .dm-appliance-image{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;border-radius:15px!important;object-fit:cover!important;object-position:center!important}
       #dm-appliance-daily-popup .dm-appliance-daily-visual svg,#dm-appliance-daily-popup .dm-appliance-daily-visual ha-icon{display:block!important;width:50px!important;height:50px!important;max-width:50px!important;max-height:50px!important;--mdc-icon-size:50px}
 
-      @media(max-width:720px){#appl-grid-overview,#page-appliances-main .appl-page-grid,#page-appliances-main .appl-grid,#page-appliances-main [data-appliance-grid]{grid-template-columns:minmax(0,1fr)!important;justify-content:stretch!important;gap:14px!important;padding-inline:8px!important}#page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{max-width:none!important;min-height:372px!important;border-radius:26px!important}#page-appliances-main .appl-heading,#appl-grid-overview .appl-heading{grid-template-columns:50px minmax(0,1fr) auto!important;padding:17px 16px 7px!important;gap:10px!important}#page-appliances-main .dm-appliance-head-icon,#appl-grid-overview .dm-appliance-head-icon{width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important}#page-appliances-main .appl-wide-name,#appl-grid-overview .appl-wide-name{font-size:18px!important}#page-appliances-main .appl-st,#appl-grid-overview .appl-st{max-width:102px!important;min-height:28px!important;padding:5px 8px!important;font-size:8.7px!important}#page-appliances-main .appl-visual,#appl-grid-overview .appl-visual{min-height:190px!important;padding-top:4px!important}#page-appliances-main .appl-wide-card .appl-visual>.appl-ic,#appl-grid-overview .appl-wide-card .appl-visual>.appl-ic{width:166px!important;height:166px!important;min-width:166px!important;min-height:166px!important;border-radius:35px!important}#page-appliances-main .appl-wide-card .appl-visual .dm-appliance-art,#appl-grid-overview .appl-wide-card .appl-visual .dm-appliance-art,#page-appliances-main .appl-wide-card .dm-appliance-image-wrap,#appl-grid-overview .appl-wide-card .dm-appliance-image-wrap{width:154px!important;height:154px!important;min-width:154px!important;min-height:154px!important}#page-appliances-main .appl-wide-card .appl-visual svg,#appl-grid-overview .appl-wide-card .appl-visual svg{width:150px!important;height:150px!important;max-width:150px!important;max-height:150px!important}#page-appliances-main .appl-live,#appl-grid-overview .appl-live{min-height:58px!important;padding:7px 6px 15px 17px!important}#page-appliances-main .appl-actions,#appl-grid-overview .appl-actions{min-height:58px!important;padding:7px 16px 15px 6px!important}#page-appliances-main .appl-primary strong,#appl-grid-overview .appl-primary strong,#page-appliances-main .appl-pwr,#appl-grid-overview .appl-pwr{font-size:22px!important}#page-appliances-main .appl-actions button,#appl-grid-overview .appl-actions button,#page-appliances-main [data-dm-power-toggle="true"],#appl-grid-overview [data-dm-power-toggle="true"]{height:43px!important;min-height:43px!important;border-radius:14px!important}#page-appliances-main [data-dm-power-toggle="true"],#appl-grid-overview [data-dm-power-toggle="true"]{min-width:96px!important}}
+      @media(max-width:520px){
+        #appl-grid-overview,#page-appliances-main .appl-page-grid,#page-appliances-main .appl-grid,#page-appliances-main [data-appliance-grid]{grid-template-columns:minmax(0,370px)!important;justify-content:center!important;gap:12px!important;padding-inline:10px!important}
+        #page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{grid-template-columns:92px minmax(0,1fr)!important;grid-template-rows:auto minmax(0,1fr) auto!important;grid-template-areas:"visual head" "visual live" "visual actions"!important;width:100%!important;max-width:370px!important;min-height:126px!important;border-radius:18px!important}
+        #page-appliances-main .appl-wide-card>.appl-info,#appl-grid-overview .appl-wide-card>.appl-info{min-height:126px!important}
+        #page-appliances-main .appl-heading,#appl-grid-overview .appl-heading{grid-template-columns:minmax(0,1fr) auto!important;padding:11px 10px 4px!important;gap:7px!important}
+        #page-appliances-main .dm-appliance-head-icon,#appl-grid-overview .dm-appliance-head-icon{display:none!important}
+        #page-appliances-main .appl-wide-name,#appl-grid-overview .appl-wide-name{font-size:14.5px!important}
+        #page-appliances-main .appl-st,#appl-grid-overview .appl-st{max-width:80px!important;min-height:24px!important;padding:4px 6px!important;font-size:8.5px!important}
+        #page-appliances-main .appl-visual,#appl-grid-overview .appl-visual{min-width:92px!important;min-height:126px!important;height:126px!important;padding:5px!important;border-right:1px solid rgba(148,163,184,.12)!important}
+        #page-appliances-main .appl-wide-card .appl-visual>.appl-ic,#appl-grid-overview .appl-wide-card .appl-visual>.appl-ic{width:84px!important;height:84px!important;min-width:84px!important;min-height:84px!important;border-radius:17px!important}
+        #page-appliances-main .appl-wide-card .appl-visual .dm-appliance-art,#appl-grid-overview .appl-wide-card .appl-visual .dm-appliance-art,#page-appliances-main .appl-wide-card .dm-appliance-image-wrap,#appl-grid-overview .appl-wide-card .dm-appliance-image-wrap{width:80px!important;height:80px!important;min-width:80px!important;min-height:80px!important}
+        #page-appliances-main .appl-wide-card .appl-visual svg,#appl-grid-overview .appl-wide-card .appl-visual svg{width:78px!important;height:78px!important;max-width:78px!important;max-height:78px!important}
+        #page-appliances-main .appl-live,#appl-grid-overview .appl-live{min-height:0!important;padding:3px 8px 4px 10px!important;border-top:0!important;background:transparent!important}
+        #page-appliances-main .appl-actions,#appl-grid-overview .appl-actions{min-height:0!important;padding:3px 10px 9px 8px!important;border-top:0!important;background:transparent!important}
+        #page-appliances-main .appl-primary strong,#appl-grid-overview .appl-primary strong,#page-appliances-main .appl-pwr,#appl-grid-overview .appl-pwr{font-size:19px!important}
+        #page-appliances-main .appl-actions button,#appl-grid-overview .appl-actions button,#page-appliances-main [data-dm-power-toggle="true"],#appl-grid-overview [data-dm-power-toggle="true"]{min-height:31px!important;height:31px!important;border-radius:10px!important;padding:5px 7px!important;font-size:9.5px!important}
+        #page-appliances-main [data-dm-power-toggle="true"],#appl-grid-overview [data-dm-power-toggle="true"]{min-width:86px!important}
+        #dm-appliance-daily-popup .dm-appliance-daily-visual{left:14px!important;width:50px!important;height:50px!important;border-radius:17px!important}
+        #dm-appliance-daily-popup .dm-appliance-daily-visual>.appl-ic{width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important}
+        #dm-appliance-daily-popup .dm-appliance-daily-visual svg,#dm-appliance-daily-popup .dm-appliance-daily-visual ha-icon{width:46px!important;height:46px!important;max-width:46px!important;max-height:46px!important;--mdc-icon-size:46px}
+      }
 
       @media(prefers-reduced-motion:reduce){#page-appliances-main .appl-wide-card *,#appl-grid-overview .appl-wide-card *{animation:none!important;transition:none!important}}
     `,
