@@ -10,16 +10,33 @@ import { root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENERGY_CALCULATIONS__";
 
+function plansFor(bundle, kind) {
+  return Array.isArray(bundle?.sources?.[kind]?.plans) ? bundle.sources[kind].plans : [];
+}
+
 function plannedKeys(bundle, kind) {
-  return new Set((bundle?.sources?.[kind]?.plans || []).map((plan) => plan?.key).filter(Boolean));
+  return new Set(plansFor(bundle, kind).map((plan) => plan?.key).filter(Boolean));
 }
 
 /**
- * Home Assistant's Energy distribution derives Home/Casa from the complete
- * electrical flow boundary. A direct inverter "load consumption" counter can
- * represent a different boundary (for example loads behind a specific meter),
- * so it is a fallback rather than the canonical Home value whenever the full
- * Solar/Grid flow set is available.
+ * A configured period-specific Casa/Home helper is an explicit measurement of
+ * the value the user wants to display for that period.  Do not replace it with
+ * a reconstruction made from Solar/Grid/Battery counters: different inverter
+ * boundaries and independently rounded helpers can legitimately differ by a
+ * few hundred Wh (the real-device Beta24 regression was 3.40 vs 3.70 kWh).
+ *
+ * Recorder/lifetime fallbacks are not explicit period measurements and may
+ * still be reconciled from a complete electrical boundary.
+ */
+export function hasExplicitHousePeriod(bundle, kind) {
+  return plansFor(bundle, kind).some(
+    (plan) => plan?.key === "house" && plan?.direct === true && plan?.reason === "explicit-period",
+  );
+}
+
+/**
+ * Derive Home/Casa from the complete electrical flow boundary only when an
+ * explicit Casa helper is not authoritative for the selected period.
  *
  * Battery charge/discharge are optional as a pair: an installation without a
  * battery can still derive Home, while a half-configured battery must never be
@@ -33,8 +50,8 @@ export function hasCompleteHomeFlow(planKeys = new Set()) {
   return hasCharge === hasDischarge;
 }
 
-export function reconcileEnergyPeriod(data = {}, planKeys = new Set()) {
-  if (!hasCompleteHomeFlow(planKeys)) return data;
+export function reconcileEnergyPeriod(data = {}, planKeys = new Set(), options = {}) {
+  if (options?.preferDirectHouse === true || !hasCompleteHomeFlow(planKeys)) return data;
   const balance = energyBalance({
     solar: data.solar,
     gridImport: data.gridImport,
@@ -48,16 +65,29 @@ export function reconcileEnergyPeriod(data = {}, planKeys = new Set()) {
 
 export function reconcileEnergyBundle(bundle) {
   if (!bundle?.day || !bundle?.month || !bundle?.year) return bundle;
-  const day = reconcileEnergyPeriod(bundle.day, plannedKeys(bundle, "day"));
-  const month = reconcileEnergyPeriod(bundle.month, plannedKeys(bundle, "month"));
-  const year = reconcileEnergyPeriod(bundle.year, plannedKeys(bundle, "year"));
+  const direct = {
+    day: hasExplicitHousePeriod(bundle, "day"),
+    month: hasExplicitHousePeriod(bundle, "month"),
+    year: hasExplicitHousePeriod(bundle, "year"),
+  };
+  const day = reconcileEnergyPeriod(bundle.day, plannedKeys(bundle, "day"), {
+    preferDirectHouse: direct.day,
+  });
+  const month = reconcileEnergyPeriod(bundle.month, plannedKeys(bundle, "month"), {
+    preferDirectHouse: direct.month,
+  });
+  const year = reconcileEnergyPeriod(bundle.year, plannedKeys(bundle, "year"), {
+    preferDirectHouse: direct.year,
+  });
   if (day === bundle.day && month === bundle.month && year === bundle.year) return bundle;
   return Object.freeze({
     ...bundle,
     day,
     month,
     year,
-    home_source: "home-assistant-flow-balance",
+    home_source: Object.values(direct).some(Boolean)
+      ? "configured-house-period+flow-fallback"
+      : "home-assistant-flow-balance",
   });
 }
 
@@ -70,6 +100,7 @@ export function installEnergyCalculationsSection() {
       energyBalance,
       energyPercentages,
       energyCost,
+      hasExplicitHousePeriod,
       hasCompleteHomeFlow,
       reconcileEnergyPeriod,
       reconcileEnergyBundle,
