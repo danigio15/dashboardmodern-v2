@@ -8,6 +8,7 @@ const state = (root[KEY] ||= {
   installed: false,
   listeners: false,
   storeUnsubscribe: null,
+  storeWritesWrapped: false,
 });
 
 function appliances() {
@@ -19,6 +20,47 @@ function schedule(callback) {
   root.queueMicrotask?.(callback);
   root.setTimeout?.(callback, 0);
   root.setTimeout?.(callback, 60);
+}
+
+function restoreTemperatureEntityPickers(form) {
+  if (!form) return false;
+  let changed = false;
+  form.querySelectorAll("#ed-pl-temp,#dm-humidity-new").forEach((input) => {
+    input.dataset.entityInput = "true";
+  });
+
+  // Beta25 originally attached its own anonymous click handler before the
+  // canonical entity-picker mount also attached one. Clone only those buttons
+  // once to drop the first handler, then let the canonical mount own the click.
+  form.querySelectorAll(".dm-entity-picker[data-beta25-pick]").forEach((button) => {
+    const target = clean(button.dataset.beta25Pick);
+    if (!target) return;
+    const clone = button.cloneNode(true);
+    clone.dataset.entityTarget = target;
+    clone.dataset.dmBeta25PickerCompat = "true";
+    clone.removeAttribute("data-beta25-pick");
+    clone.removeAttribute("data-picker-mounted");
+    button.replaceWith(clone);
+    changed = true;
+  });
+
+  try {
+    root.DashboardModernModules?.render?.mountEntityPickers?.(form);
+  } catch (_error) {}
+  return changed;
+}
+
+function restoreHiddenTemperatureIcon(form) {
+  if (!form || form.querySelector("#dm-temperature-icon")) return false;
+  const input = doc.createElement("input");
+  input.type = "hidden";
+  input.id = "dm-temperature-icon";
+  input.hidden = true;
+  const roomId = clean(form.querySelector("#dm-temperature-room")?.value);
+  const room = section("rooms", []).find?.((item) => clean(item.id) === roomId);
+  input.value = clean(room?.icon || "🌡️");
+  form.append(input);
+  return true;
 }
 
 /**
@@ -49,12 +91,21 @@ export function restoreTemperatureContracts() {
   const form = body.querySelector("[data-beta25-temperature-form]");
   if (!form) return Boolean(grid);
   form.setAttribute("data-temperature-form", "");
+  restoreHiddenTemperatureIcon(form);
+  restoreTemperatureEntityPickers(form);
+
   const submit = form.querySelector("[data-beta25-temperature-submit]");
   const cancel = form.querySelector("[data-beta25-temperature-cancel]");
+  const roomSelect = form.querySelector("#dm-temperature-room");
   submit?.setAttribute("data-temperature-submit", "");
   cancel?.setAttribute("data-temperature-cancel", "");
   const editing = Boolean(cancel && !cancel.hidden);
   form.dataset.dmTemperatureMode = editing ? "edit" : "add";
+  if (roomSelect) {
+    roomSelect.disabled = false;
+    roomSelect.dataset.dmRealDeviceEditable = "true";
+    roomSelect.style.pointerEvents = "auto";
+  }
   if (submit) {
     submit.style.minHeight = "44px";
     submit.textContent = editing
@@ -69,10 +120,51 @@ export function restoreTemperatureContracts() {
   return true;
 }
 
+function withVisualIntent(item = {}) {
+  if (!item || typeof item !== "object" || Array.isArray(item)) return item;
+  const visualType = clean(item.visual_type).toLowerCase();
+  const visualKey = clean(item.visual_key);
+  const image = clean(item.image || item.image_url);
+  const metadata = { ...(item.metadata || {}) };
+  const explicitCatalog = Boolean(visualType && visualKey);
+  if (explicitCatalog) metadata.visual_selection_explicit = true;
+  else if (image) metadata.visual_selection_explicit = false;
+  return {
+    ...item,
+    ...(image && !explicitCatalog ? { visual_type: "image" } : {}),
+    metadata,
+  };
+}
+
+function wrapApplianceStoreWrites() {
+  const store = dashboardStore();
+  if (!store || state.storeWritesWrapped) return false;
+  state.storeWritesWrapped = true;
+
+  const originalReplace = store.replaceSection?.bind(store);
+  if (originalReplace)
+    store.replaceSection = (name, value) =>
+      originalReplace(
+        name,
+        name === "appliances" && Array.isArray(value) ? value.map(withVisualIntent) : value,
+      );
+
+  const originalAdd = store.addItem?.bind(store);
+  if (originalAdd)
+    store.addItem = (name, item) =>
+      originalAdd(name, name === "appliances" ? withVisualIntent(item) : item);
+
+  const originalUpdate = store.updateItem?.bind(store);
+  if (originalUpdate)
+    store.updateItem = (name, id, patch) =>
+      originalUpdate(name, id, name === "appliances" ? withVisualIntent(patch) : patch);
+  return true;
+}
+
 /**
  * Old configurations can legitimately have a custom image and no explicit
- * visual_key. Device normalization may infer visual_type=asset from device_type;
- * mark those entries as image before the Beta25 stale-image cleanup runs.
+ * visual selection. New writes should identify those records as image before
+ * the Beta25 stale-image cleanup runs.
  */
 export function protectLegacyCustomImages() {
   const store = dashboardStore();
@@ -81,10 +173,12 @@ export function protectLegacyCustomImages() {
   let changed = false;
   for (const device of list) {
     const image = clean(device?.image || device?.image_url);
-    const explicitKey = clean(device?.visual_key);
-    if (!image || explicitKey || clean(device?.visual_type).toLowerCase() === "image") continue;
-    device.visual_type = "image";
-    changed = true;
+    if (!image || clean(device?.visual_type).toLowerCase() === "image") continue;
+    if (device?.metadata?.visual_selection_explicit === true) continue;
+    if (device?.metadata?.visual_selection_explicit === false) {
+      device.visual_type = "image";
+      changed = true;
+    }
   }
   if (changed) store.persist?.();
   return changed;
@@ -127,7 +221,7 @@ function bindRuntimeOwners() {
   for (const name of ["buildTempCards", "renderTemperature"])
     wrapFunction(name, "__dmBeta25CompatTemperature", restoreTemperatureContracts);
   for (const name of ["renderAppliances", "renderApplianceSection"])
-    wrapFunction(name, "__dmBeta25CompatAppliances", reconcileAppliances);
+    wrapFunction(name, "__dmBeta25CompatAppliances", () => schedule(reconcileAppliances));
 }
 
 function subscribeStore() {
@@ -135,8 +229,6 @@ function subscribeStore() {
   if (state.storeUnsubscribe || !store?.subscribe) return;
   state.storeUnsubscribe = store.subscribe((change) => {
     if (change?.section === "appliances" || change?.section === "snapshot") {
-      // This runs synchronously while Beta25's stale-image repair is queued as a
-      // microtask, so valid legacy custom images are protected first.
       protectLegacyCustomImages();
       schedule(repairExplicitCatalogArtwork);
     }
@@ -148,6 +240,7 @@ function subscribeStore() {
 export function installBeta25Compatibility() {
   if (!doc) return false;
   bindRuntimeOwners();
+  wrapApplianceStoreWrites();
   subscribeStore();
   protectLegacyCustomImages();
   schedule(restoreTemperatureContracts);
@@ -162,6 +255,7 @@ export function installBeta25Compatibility() {
     ])
       root.addEventListener?.(name, () => {
         bindRuntimeOwners();
+        wrapApplianceStoreWrites();
         subscribeStore();
         protectLegacyCustomImages();
         schedule(restoreTemperatureContracts);
