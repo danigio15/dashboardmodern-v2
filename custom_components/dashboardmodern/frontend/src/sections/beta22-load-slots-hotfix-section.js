@@ -45,7 +45,22 @@ function readSection(name, fallback) {
 }
 
 function states() {
-  return root.STATES || root.hass?.states || root.__HASS__?.states || {};
+  const values = {
+    ...(root.__HASS__?.states || {}),
+    ...(root.hass?.states || {}),
+  };
+  for (const name of ["_RAW_STATES", "STATES"]) {
+    let lexical = null;
+    try {
+      lexical = root.eval?.(`typeof ${name} !== "undefined" && ${name} ? ${name} : null`);
+    } catch (_error) {}
+    if (lexical && typeof lexical === "object") {
+      Object.assign(values, lexical);
+      continue;
+    }
+    if (root[name] && typeof root[name] === "object") Object.assign(values, root[name]);
+  }
+  return values;
 }
 
 export function configuredFlowLoads(loads = []) {
@@ -429,6 +444,12 @@ function bindStore() {
   });
 }
 
+function rebindAndSchedule() {
+  installWrappers();
+  bindStore();
+  scheduleSettled();
+}
+
 function installStyle() {
   if (!doc || doc.getElementById("dm-beta22-load-slots-hotfix-style")) return;
   const style = doc.createElement("style");
@@ -464,10 +485,10 @@ function install() {
     "dashboardmodern:energy-bundle",
     "dashboardmodern:temperature-editor-rendered",
   ])
-    root.addEventListener?.(eventName, scheduleSettled);
+    root.addEventListener?.(eventName, rebindAndSchedule);
   root.addEventListener?.("dashboardmodern:period-bundle", (event) => {
     flowState.bundle = event?.detail || null;
-    scheduleSettled();
+    rebindAndSchedule();
   });
   doc.addEventListener(
     "click",
@@ -477,16 +498,12 @@ function install() {
           "[data-energy-tab],.energy-tab,.sub-tab-btn,.ed-inner-tab,[data-temperature-edit],[data-tab='sez1'],[data-tab='sez7']",
         )
       )
-        scheduleSettled();
+        rebindAndSchedule();
     },
     true,
   );
   scheduleSettled();
-  root.setTimeout?.(() => {
-    installWrappers();
-    bindStore();
-    scheduleSettled();
-  }, 250);
+  root.setTimeout?.(rebindAndSchedule, 250);
 }
 
 if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", install, { once: true });
@@ -497,7 +514,7 @@ export const beta22LoadSlotsHotfix = Object.freeze({
   loadPeriodEntity,
   socEntity,
   sync: () => {
-    scheduleSettled();
+    rebindAndSchedule();
     return true;
   },
 });
