@@ -8,4 +8,5 @@ import "../src/sections/beta12-room-color-lock-section.js";
 import "../src/sections/beta14-real-device-hotfix-section.js";
 import "../src/sections/beta16-real-device-layout-section.js";
 import "../src/sections/beta22-load-slots-hotfix-section.js";
-export const BUILD_INFO = Object.freeze({"generated":true,"integrationVersion":"1.0.0-beta.23","dashboardVersion":"1.0.0-beta.23","moduleVersion":14,"schemaVersion":4,"date":"2026-08-15T13:24:11+00:00","commit":"fb51bd47267c2dd51fbbe9afb0cb2125f0988c56","assetHash":"873ab4bfc9b01341"});
+import "../src/sections/beta24-energy-recovery-section.js";
+export const BUILD_INFO = Object.freeze({"generated":true,"integrationVersion":"1.0.0-beta.24","dashboardVersion":"1.0.0-beta.24","moduleVersion":14,"schemaVersion":4,"date":"2026-08-16T03:30:00+00:00","commit":"e6fd0f44f5c4d967a99b4d870aa7c83bf5c93d4f","assetHash":"873ab4bfc9b01341"});
