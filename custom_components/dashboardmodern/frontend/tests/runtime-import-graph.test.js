@@ -135,17 +135,19 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // Beta25 adds one event-driven owner for the three screenshot-proven real-device
   // regressions plus one compatibility owner that restores stable DOM/runtime
   // contracts after those targeted renders. Neither adds polling or observers.
+  // Beta26 adds exactly one real-device stability owner; its only observer is
+  // scoped to #temp-grid so saved primary labels win over delayed legacy repaints.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 77, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 78, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
   const observers = [...graph.entries()].filter(([, source]) => /new\s+(?:root\.)?MutationObserver\s*\(/.test(source));
   // Beta17 contributes one page-scoped observer so delayed legacy writes on
   // #page-temp cannot resurrect the progress placeholder. Beta24 may add one
-  // node-scoped SOC observer. The loop below still rejects observers rooted at
-  // document/body/documentElement.
-  assert.ok(observers.length <= 4, `too many production observers: ${observers.length}`);
+  // node-scoped SOC observer. Beta26 adds one #temp-grid-scoped observer. The
+  // loop below still rejects observers rooted at document/body/documentElement.
+  assert.ok(observers.length <= 5, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,

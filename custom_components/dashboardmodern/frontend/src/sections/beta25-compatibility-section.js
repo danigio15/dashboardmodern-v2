@@ -1,7 +1,18 @@
-// Beta 25 compatibility owner: keep the new real-device fixes while preserving
+// Beta 25/26 compatibility owner: keep the real-device fixes while preserving
 // the stable DOM/runtime contracts used by the existing dashboard renderers.
 import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
-import { clean, dashboardStore, doc, english, root, section, wrapFunction } from "./shared.js";
+import { preferredApplianceVisual } from "./beta25-real-device-fixes-section.js";
+import {
+  clean,
+  dashboardStore,
+  doc,
+  english,
+  esc,
+  installStyle,
+  root,
+  section,
+  wrapFunction,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_BETA25_COMPATIBILITY__";
 const state = (root[KEY] ||= {
@@ -18,6 +29,7 @@ function appliances() {
 
 function schedule(callback) {
   root.queueMicrotask?.(callback);
+  root.requestAnimationFrame?.(callback);
   root.setTimeout?.(callback, 0);
   root.setTimeout?.(callback, 60);
   root.setTimeout?.(callback, 250);
@@ -65,6 +77,35 @@ function restoreHiddenTemperatureIcon(form) {
 }
 
 /**
+ * A configured room remains a valid target for a second Beta25 association.
+ * The legacy mount can restore disabled attributes after the Beta25 form has
+ * rendered, including immediately before Android/iOS opens its native select.
+ */
+export function enableTemperatureRoomOptions(
+  select = doc?.getElementById?.("dm-temperature-room"),
+) {
+  if (!select) return false;
+  const form = select.closest?.("[data-beta25-temperature-form]");
+  if (!form) return false;
+
+  select.disabled = false;
+  select.removeAttribute("disabled");
+  select.removeAttribute("aria-disabled");
+  select.tabIndex = 0;
+  select.dataset.dmRealDeviceEditable = "true";
+  select.dataset.dmBeta26RoomReuse = "true";
+  select.style.setProperty("pointer-events", "auto", "important");
+  select.style.setProperty("opacity", "1", "important");
+  select.style.setProperty("cursor", "pointer", "important");
+  for (const option of select.options || []) {
+    option.disabled = false;
+    option.removeAttribute("disabled");
+    option.removeAttribute("aria-disabled");
+  }
+  return true;
+}
+
+/**
  * Beta 25 supports more than one temperature association per room. Keep the
  * pre-Beta25 selectors/markers as aliases so older editor/layout owners do not
  * fight the new renderer.
@@ -102,11 +143,7 @@ export function restoreTemperatureContracts() {
   cancel?.setAttribute("data-temperature-cancel", "");
   const editing = Boolean(cancel && !cancel.hidden);
   form.dataset.dmTemperatureMode = editing ? "edit" : "add";
-  if (roomSelect) {
-    roomSelect.disabled = false;
-    roomSelect.dataset.dmRealDeviceEditable = "true";
-    roomSelect.style.pointerEvents = "auto";
-  }
+  enableTemperatureRoomOptions(roomSelect);
   if (submit) {
     submit.style.minHeight = "44px";
     submit.textContent = editing
@@ -229,9 +266,121 @@ export function repairExplicitCatalogArtwork() {
   return repaired;
 }
 
+function iconPreviewMarkup(token, size = 27) {
+  return (
+    root.DashboardModernIconEngine?.markup?.("action", clean(token) || "mdi:power-plug", {
+      size,
+    }) || "🎨"
+  );
+}
+
+/** Beta26: Loads now exposes the same searchable canonical icon picker. */
+export function ensureLoadIconPicker() {
+  const input = doc?.getElementById?.("dm-load-icon");
+  if (!input) return false;
+  input.classList.add("ed-icon-input");
+  input.dataset.iconCategory = "action";
+
+  let wrapper = input.closest?.(".dm-beta26-load-icon-field");
+  if (!wrapper) {
+    wrapper = doc.createElement("span");
+    wrapper.className = "dm-beta26-load-icon-field";
+    input.replaceWith(wrapper);
+    wrapper.append(input);
+  }
+
+  let button = wrapper.querySelector(".dm-beta26-load-icon-picker");
+  if (!button) {
+    button = doc.createElement("button");
+    button.type = "button";
+    button.className = "dm-icon-picker dm-beta26-load-icon-picker";
+    button.dataset.iconTarget = "dm-load-icon";
+    button.dataset.iconCategory = "action";
+    button.setAttribute("aria-label", english() ? "Choose load icon" : "Scegli icona carico");
+    wrapper.append(button);
+  }
+
+  const paint = () => {
+    button.innerHTML = iconPreviewMarkup(input.value);
+    button.dataset.dmLoadIcon = clean(input.value) || "mdi:power-plug";
+  };
+  if (input.dataset.dmBeta26IconPreviewBound !== "true") {
+    input.dataset.dmBeta26IconPreviewBound = "true";
+    input.addEventListener("input", paint);
+    input.addEventListener("change", paint);
+  }
+  paint();
+  input.closest?.(".ed-form-row")?.classList.add("dm-beta26-load-name-icon-row");
+  return true;
+}
+
+/** Return the same appliance visual already used by the public card. */
+export function applianceEditorVisualMarkup(device = {}, size = 48) {
+  const visual = preferredApplianceVisual(device) || {
+    kind: "asset",
+    value: clean(device.icon || device.name || "generic"),
+    artwork: "",
+  };
+  if (visual.kind === "image" && clean(visual.value)) {
+    return `<span class="dm-beta26-appliance-image" data-dm-media-kind="image"><img src="${esc(visual.value)}" alt="" loading="lazy"></span>`;
+  }
+  const token = clean(visual.value || visual.artwork || device.icon || device.name || "generic");
+  return applianceArtwork(token, size) || applianceArtwork("generic", size);
+}
+
+function currentApplianceForForm() {
+  const name = clean(doc?.getElementById?.("appl-name")?.value);
+  const icon = clean(doc?.getElementById?.("appl-icon")?.value);
+  const list = appliances();
+  return (
+    list.find(
+      (item) =>
+        name &&
+        clean(item.name) === name &&
+        (!icon || clean(item.icon || item.visual_key || item.device_type) === icon),
+    ) ||
+    list.find((item) => name && clean(item.name) === name) ||
+    { icon: icon || "generico", name }
+  );
+}
+
+/** Beta26: editor list/form previews use the exact canonical dashboard artwork. */
+export function syncApplianceEditorVisuals() {
+  const button = doc?.getElementById?.("appl-icon-btn");
+  if (!button) return false;
+  const body = button.closest?.("#ed-body") || doc.getElementById?.("ed-body");
+  const list = appliances();
+  const rows = [...(body?.querySelectorAll?.(".ed-list > .ed-row") || [])];
+
+  rows.slice(0, list.length).forEach((row, index) => {
+    const title = row.querySelector(".ed-row-new");
+    if (!title) return;
+    let visual = title.querySelector(":scope > .dm-beta26-appliance-row-art");
+    if (!visual) {
+      const first = title.querySelector(":scope > span");
+      visual = first || doc.createElement("span");
+      visual.className = "dm-beta26-appliance-row-art";
+      if (!visual.parentElement) title.prepend(visual, " ");
+    }
+    visual.innerHTML = applianceEditorVisualMarkup(list[index], 30);
+    visual.dataset.applianceId = clean(list[index]?.id);
+  });
+
+  button.innerHTML = applianceEditorVisualMarkup(currentApplianceForForm(), 54);
+  button.dataset.dmBeta26Artwork = "canonical";
+  button.title = english() ? "Choose appliance" : "Scegli elettrodomestico";
+  return true;
+}
+
 function reconcileAppliances() {
   protectLegacyCustomImages();
   repairExplicitCatalogArtwork();
+}
+
+function restoreEditorVisualContracts() {
+  restoreTemperatureContracts();
+  ensureLoadIconPicker();
+  syncApplianceEditorVisuals();
 }
 
 function bindRuntimeOwners() {
@@ -239,6 +388,8 @@ function bindRuntimeOwners() {
     wrapFunction(name, "__dmBeta25CompatTemperature", restoreTemperatureContracts);
   for (const name of ["renderAppliances", "renderApplianceSection"])
     wrapFunction(name, "__dmBeta25CompatAppliances", () => schedule(reconcileAppliances));
+  for (const name of ["editorSwitch", "edApplEdit", "dmApplianceChoose"])
+    wrapFunction(name, "__dmBeta26CompatEditor", () => schedule(restoreEditorVisualContracts));
 }
 
 function subscribeStore() {
@@ -248,19 +399,43 @@ function subscribeStore() {
     if (change?.section === "appliances" || change?.section === "snapshot") {
       protectLegacyCustomImages();
       schedule(repairExplicitCatalogArtwork);
+      schedule(syncApplianceEditorVisuals);
     }
+    if (change?.section === "loads" || change?.section === "snapshot")
+      schedule(ensureLoadIconPicker);
     if (change?.section === "rooms" || change?.section === "snapshot")
       schedule(restoreTemperatureContracts);
   });
 }
 
+function installEditorStyles() {
+  installStyle(
+    "dm-beta26-real-device-editor-style",
+    `
+      #ed-body .dm-beta26-load-icon-field{display:flex!important;align-items:stretch!important;gap:8px!important;min-width:0!important;flex:1 1 auto!important}
+      #ed-body .dm-beta26-load-icon-field>#dm-load-icon{min-width:0!important;flex:1 1 auto!important}
+      #ed-body .dm-beta26-load-icon-picker{display:grid!important;place-items:center!important;flex:0 0 54px!important;width:54px!important;height:54px!important;padding:8px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:linear-gradient(145deg,color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,var(--ha-card-background,#fff)),var(--ha-card-background,#fff))!important;cursor:pointer!important;overflow:hidden!important}
+      #ed-body .dm-beta26-load-icon-picker .dm-icon-engine-glyph{font-size:27px!important}
+      #ed-body .dm-beta26-appliance-row-art{display:inline-grid!important;place-items:center!important;width:34px!important;height:34px!important;margin-right:7px!important;vertical-align:middle!important;color:initial!important}
+      #ed-body .dm-beta26-appliance-row-art .dm-appliance-art,#ed-body .dm-beta26-appliance-row-art .dm-appliance-art svg{display:block!important;width:32px!important;height:32px!important}
+      #ed-body #appl-icon-btn{overflow:hidden!important;padding:4px!important;color:initial!important}
+      #ed-body #appl-icon-btn .dm-appliance-art,#ed-body #appl-icon-btn .dm-appliance-art svg,#ed-body #appl-icon-btn .dm-beta26-appliance-image,#ed-body #appl-icon-btn .dm-beta26-appliance-image img{display:block!important;width:52px!important;height:52px!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important}
+      #ed-body .dm-beta26-appliance-image{display:grid!important;place-items:center!important;overflow:hidden!important;border-radius:10px!important}
+      #ed-body .dm-beta26-appliance-image img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important}
+      #ed-body #dm-temperature-room[data-dm-beta26-room-reuse="true"] option{opacity:1!important;color:var(--text,#0f172a)!important}
+      @media(max-width:640px){#ed-body .dm-beta26-load-name-icon-row{align-items:stretch!important}#ed-body .dm-beta26-load-icon-picker{flex-basis:52px!important;width:52px!important;height:52px!important}}
+    `,
+  );
+}
+
 export function installBeta25Compatibility() {
   if (!doc) return false;
+  installEditorStyles();
   bindRuntimeOwners();
   wrapApplianceStoreWrites();
   subscribeStore();
   protectLegacyCustomImages();
-  schedule(restoreTemperatureContracts);
+  schedule(restoreEditorVisualContracts);
   schedule(repairExplicitCatalogArtwork);
   if (!state.listeners) {
     state.listeners = true;
@@ -275,22 +450,46 @@ export function installBeta25Compatibility() {
         wrapApplianceStoreWrites();
         subscribeStore();
         protectLegacyCustomImages();
-        schedule(restoreTemperatureContracts);
+        schedule(restoreEditorVisualContracts);
         schedule(repairExplicitCatalogArtwork);
       });
     root.addEventListener?.("dashboardmodern:state-changed", () =>
       schedule(repairExplicitCatalogArtwork),
     );
-    doc.addEventListener("click", (event) => {
-      if (
-        event.target?.closest?.(
-          "[data-beta25-temperature-edit],[data-beta25-temperature-cancel],.ed-tab[data-tab='sez7'],[data-tab='temperature'],[data-tab='temp']",
+
+    // Capture before Android/iOS opens its native select UI. A late legacy
+    // refresh is allowed to run, but it can no longer make configured rooms
+    // unavailable to the multi-association editor.
+    for (const type of ["pointerdown", "touchstart", "mousedown", "focusin"])
+      doc.addEventListener(
+        type,
+        (event) => {
+          const select = event.target?.closest?.("#dm-temperature-room");
+          if (select) enableTemperatureRoomOptions(select);
+        },
+        true,
+      );
+
+    doc.addEventListener(
+      "click",
+      (event) => {
+        if (
+          event.target?.closest?.(
+            "[data-beta25-temperature-edit],[data-beta25-temperature-cancel],.ed-tab[data-tab='sez7'],[data-tab='temperature'],[data-tab='temp']",
+          )
         )
-      )
-        schedule(restoreTemperatureContracts);
-      if (event.target?.closest?.("#page-appliances-main,.appl-section-tab"))
-        schedule(repairExplicitCatalogArtwork);
-    });
+          schedule(restoreTemperatureContracts);
+        if (event.target?.closest?.("#page-appliances-main,.appl-section-tab"))
+          schedule(repairExplicitCatalogArtwork);
+        if (
+          event.target?.closest?.(
+            "#editor-modal,.ed-tab,[data-edit-load],#appl-icon-btn",
+          )
+        )
+          schedule(restoreEditorVisualContracts);
+      },
+      true,
+    );
     doc.addEventListener("submit", (event) => {
       if (event.target?.matches?.("[data-beta25-temperature-form]"))
         schedule(restoreTemperatureContracts);
@@ -306,6 +505,10 @@ else installBeta25Compatibility();
 
 export const beta25Compatibility = Object.freeze({
   restoreTemperatureContracts,
+  enableTemperatureRoomOptions,
   protectLegacyCustomImages,
   repairExplicitCatalogArtwork,
+  ensureLoadIconPicker,
+  applianceEditorVisualMarkup,
+  syncApplianceEditorVisuals,
 });
