@@ -1,6 +1,8 @@
 // Beta 26 real-device stability: keep primary temperature/humidity labels
 // deterministic even when legacy and multi-association renderers repaint the
 // same cards in different animation frames.
+import { applianceArtwork } from "../core/appliance-artwork.js";
+import { canonicalApplianceVisualKey } from "../core/device-model.js";
 import { clean, dashboardStore, doc, english, root, section } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_BETA26_REAL_DEVICE_STABILITY__";
@@ -40,6 +42,28 @@ function cardLabels(card, room) {
       clean(room?.temp_name || room?.temperature_name) || defaultTemperatureLabel(),
     humidity: clean(room?.hum_name || room?.humidity_name) || defaultHumidityLabel(),
   };
+}
+
+/**
+ * Beta26 must not expose two different appliance artwork renderers: the legacy
+ * add/edit flow historically calls cdApplianceIcon(), while dashboard cards use
+ * the canonical appliance artwork helper. Bridge the public legacy function to
+ * the canonical helper so add, edit and cards render the same visual without
+ * changing the existing catalog keys or callers.
+ */
+export function installCanonicalApplianceArtworkBridge() {
+  const current = root.cdApplianceIcon;
+  if (typeof current !== "function") return false;
+  if (current.__dmBeta26CanonicalArtwork === true) return true;
+
+  function canonicalApplianceIcon(type, size = 96) {
+    const visualKey = canonicalApplianceVisualKey(type) || clean(type) || "generico";
+    return applianceArtwork(visualKey, size) || current(type, size);
+  }
+  canonicalApplianceIcon.__dmBeta26CanonicalArtwork = true;
+  canonicalApplianceIcon.__dmPrevious = current;
+  root.cdApplianceIcon = canonicalApplianceIcon;
+  return true;
 }
 
 /**
@@ -114,6 +138,7 @@ function subscribeStore() {
 
 export function installBeta26RealDeviceStability() {
   if (!doc) return false;
+  installCanonicalApplianceArtworkBridge();
   subscribeStore();
   bindTemperatureObserver();
   scheduleTemperatureLabels();
@@ -128,6 +153,7 @@ export function installBeta26RealDeviceStability() {
       "dashboardmodern:temperature-editor-rendered",
     ])
       root.addEventListener?.(eventName, () => {
+        installCanonicalApplianceArtworkBridge();
         subscribeStore();
         scheduleTemperatureLabels();
       });
@@ -155,6 +181,7 @@ if (doc?.readyState === "loading")
 else installBeta26RealDeviceStability();
 
 export const beta26RealDeviceStability = Object.freeze({
+  installCanonicalApplianceArtworkBridge,
   syncBeta26TemperatureLabels,
   installBeta26RealDeviceStability,
 });
