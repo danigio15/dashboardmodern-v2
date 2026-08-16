@@ -129,16 +129,20 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // transaction. Beta22 adds one final scoped, event-driven corrective owner
   // that binds canonical Loads to the existing Energy flow slots, restores SOC,
   // Temperature room labels and Energy cost fields, without polling or a global
-  // observer. All facade/cycle/orphan/polling/observer checks stay active.
-  assert.ok(relative.length <= 74, `production graph unexpectedly grew to ${relative.length} modules`);
+  // observer. Beta24 adds one boot-time recovery module for schema-v4 snapshots
+  // that crossed the persistence rewrite; its only observer is scoped to the
+  // single Battery SOC text node so competing legacy writes cannot visibly win.
+  // All facade/cycle/orphan/polling/global-observer checks stay active.
+  assert.ok(relative.length <= 75, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
   const observers = [...graph.entries()].filter(([, source]) => /new\s+(?:root\.)?MutationObserver\s*\(/.test(source));
   // Beta17 contributes one page-scoped observer so delayed legacy writes on
-  // #page-temp cannot resurrect the progress placeholder. The loop below still
-  // rejects any observer rooted at document/body/documentElement.
-  assert.ok(observers.length <= 3, `too many production observers: ${observers.length}`);
+  // #page-temp cannot resurrect the progress placeholder. Beta24 may add one
+  // node-scoped SOC observer. The loop below still rejects observers rooted at
+  // document/body/documentElement.
+  assert.ok(observers.length <= 4, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,
