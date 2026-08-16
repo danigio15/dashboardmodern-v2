@@ -3,6 +3,7 @@ import test from "node:test";
 import { DashboardStore } from "../src/core/dashboard-store.js";
 import { allStates } from "../src/sections/shared.js";
 import {
+  markRecoveredConfigPending,
   normalizeBatterySocText,
   recoverCanonicalLoads,
   recoverEnergyConfiguration,
@@ -98,8 +99,26 @@ test("schema-v4 migration recovers newer energy/load sibling keys before they ar
 
   const persistedEnergy = JSON.parse(storage.getItem("cd_energy_model"));
   const persistedLoads = JSON.parse(storage.getItem("cd_loads"));
+  const persistenceMeta = JSON.parse(storage.getItem("dm_persistence_meta"));
   assert.equal(persistedEnergy.house.daily_energy, "sensor.house_today");
   assert.equal(persistedLoads[0].daily_energy_entity, "sensor.boiler_today");
+  assert.ok(Number(persistenceMeta.pending_at) > 0);
+});
+
+test("recovered config keeps the newest pending timestamp so stale cloud data cannot win", () => {
+  const storage = new MemoryStorage({
+    dm_persistence_meta: json({ synced_at: 100, pending_at: 250 }),
+  });
+  assert.equal(markRecoveredConfigPending(storage, 200), true);
+  assert.deepEqual(JSON.parse(storage.getItem("dm_persistence_meta")), {
+    synced_at: 100,
+    pending_at: 250,
+  });
+  assert.equal(markRecoveredConfigPending(storage, 500), true);
+  assert.deepEqual(JSON.parse(storage.getItem("dm_persistence_meta")), {
+    synced_at: 100,
+    pending_at: 500,
+  });
 });
 
 test("energy recovery fills only missing canonical fields and never overwrites configured ones", () => {
