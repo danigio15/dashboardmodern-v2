@@ -1,0 +1,22 @@
+name: Beta26 format helper
+
+on:
+  push:
+    branches:
+      - fix/beta26-real-device-editor-regressions
+
+permissions:
+  contents: read
+
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Print formatted beta26 E2E
+        run: npx prettier custom_components/dashboardmodern/frontend/e2e/beta26-real-device-editor-regressions.spec.js
