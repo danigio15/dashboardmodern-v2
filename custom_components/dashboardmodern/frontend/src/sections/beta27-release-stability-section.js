@@ -68,11 +68,15 @@ function installReleaseStyles() {
       }
     `,
   );
+  // This owner is intentionally last in the cascade even when the module was
+  // evaluated as a dependency before the section runtime installed its styles.
+  const style = doc?.getElementById?.("dm-beta27-release-stability-style");
+  if (style?.parentElement) style.parentElement.append(style);
 }
 
 export function reconcileBeta27TemperatureTabs() {
   if (!doc?.querySelectorAll) return 0;
-  const owner = doc.getElementById("dm-beta27-temperature-tabs");
+  const owner = doc.getElementById("dm-beta16-temperature-tabs");
   if (!owner) return 0;
   let removed = 0;
   for (const candidate of doc.querySelectorAll(

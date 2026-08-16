@@ -111,7 +111,7 @@ export function removeTemperatureEntry(room = {}, entryId = "") {
 function temperatureRecords() {
   return roomList().flatMap((room) =>
     temperatureEntries(room)
-      .filter((entry) => clean(entry.temp))
+      .filter((entry) => clean(entry.temp) || clean(entry.hum))
       .map((entry) => ({ room, entry })),
   );
 }

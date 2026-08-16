@@ -57,6 +57,16 @@ function subloadIdentity(item = {}) {
   ].join("|");
 }
 
+function configuredSubloadIdentities(groupId) {
+  try {
+    const parsed = JSON.parse(root.localStorage?.getItem?.("cd_subloads_extra") || "{}");
+    const items = Array.isArray(parsed?.[groupId]) ? parsed[groupId] : [];
+    return new Set(items.map(subloadIdentity));
+  } catch (_error) {
+    return new Set();
+  }
+}
+
 /**
  * Beta 27 projects the configurable Energy hierarchy into the legacy popup
  * contract. Keep the baked/previously configured children and append only new
@@ -95,7 +105,10 @@ function protectBeta27SubloadGroup(groupId, group, state) {
   if (descriptor?.get?.__dmBeta27Preserved) return true;
   if (descriptor && !descriptor.configurable) return false;
 
-  const preserved = Array.isArray(group.items) ? [...group.items] : [];
+  const configured = configuredSubloadIdentities(groupId);
+  const preserved = Array.isArray(group.items)
+    ? group.items.filter((item) => !configured.has(subloadIdentity(item)))
+    : [];
   const record = state.groups.get(groupId) || { preserved, current: preserved };
   if (!state.groups.has(groupId)) state.groups.set(groupId, record);
 

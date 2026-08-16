@@ -161,30 +161,11 @@ function roomText(room) {
 
 function syncHeaderArtwork(card, device) {
   const heading = card.querySelector(".appl-heading");
-  const source = card.querySelector(".appl-visual .appl-ic");
-  if (!heading || !source) return false;
-  let icon = heading.querySelector(":scope > .dm-appliance-head-icon");
-  if (!icon) {
-    icon = doc.createElement("span");
-    icon.className = "dm-appliance-head-icon";
-    icon.setAttribute("aria-hidden", "true");
-    heading.prepend(icon);
-  }
-  const signature = [
-    clean(device.id),
-    card.dataset.dmArtwork || "",
-    card.dataset.dmMediaKind || "",
-    clean(device.image || device.image_url),
-  ].join("|");
-  if (icon.dataset.signature === signature && icon.firstElementChild) return true;
-  icon.dataset.signature = signature;
-  const clone = source.cloneNode(true);
-  clone.removeAttribute("id");
-  clone.querySelectorAll?.("[id]").forEach((node) => node.removeAttribute("id"));
-  clone.classList.remove("appl-ic", "appliance-icon-card", "appl-ic-emoji");
-  clone.classList.add("dm-appliance-head-art");
-  clone.setAttribute("aria-hidden", "true");
-  icon.replaceChildren(clone);
+  if (!heading) return false;
+  // The large artwork inside .appl-visual is the single visual owner. Keeping a
+  // cloned copy in the heading duplicated accessible/runtime artwork and made
+  // the desktop card grow into a second poster.
+  heading.querySelector(":scope > .dm-appliance-head-icon")?.remove();
   return true;
 }
 
