@@ -163,11 +163,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(dailyCard.locator(".g-val")).not.toContainText("20.0");
 
     const overview = page.locator("#appl-grid-overview");
+    // The showcase card hosts the artwork in its hero (.dm-ap-hero) instead of
+    // the legacy .appl-ic media slot.
     const fridgeCardArt = overview.locator(
-      '.appl-wide-card[data-appliance-id="fridge"] .appl-ic [data-dm-art="fridge"]',
+      '.appl-wide-card[data-appliance-id="fridge"] .dm-ap-hero [data-dm-hero="fridge"]',
     );
     const microwaveCardArt = overview.locator(
-      '.appl-wide-card[data-appliance-id="microwave"] .appl-ic [data-dm-art="microwave"]',
+      '.appl-wide-card[data-appliance-id="microwave"] .dm-ap-hero [data-dm-hero="microwave"]',
     );
     await expect(fridgeCardArt).toBeVisible();
     await expect(microwaveCardArt).toBeVisible();
@@ -189,10 +191,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const fridgeRow = popup.locator('[data-dm-daily-entity="sensor.fridge_today"]');
     const microwaveRow = popup.locator('[data-dm-daily-entity="sensor.microwave_total"]');
     await expect(
-      fridgeRow.locator('.dm-appliance-daily-visual [data-dm-art="fridge"]'),
+      fridgeRow.locator('.dm-appliance-daily-visual [data-dm-hero="fridge"]'),
     ).toBeVisible();
     await expect(
-      microwaveRow.locator('.dm-appliance-daily-visual [data-dm-art="microwave"]'),
+      microwaveRow.locator('.dm-appliance-daily-visual [data-dm-hero="microwave"]'),
     ).toBeVisible();
     await expect
       .poll(async () => fridgeRow.evaluate((node) => getComputedStyle(node, "::before").content))

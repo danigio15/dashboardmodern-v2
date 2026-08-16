@@ -270,6 +270,17 @@ export function createId(section = "device", random = globalThis.crypto?.randomU
   return `${section}-${random || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`}`;
 }
 
+function assignFiniteNumber(target, key, ...values) {
+  for (const value of values) {
+    if (value === "" || value == null) continue;
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) {
+      target[key] = numeric;
+      return;
+    }
+  }
+}
+
 export function normalizeDevice(input = {}, section, context = {}) {
   const entities = deviceEntities(input);
   const explicitRoomId = input.room_id || input.roomId || "";
@@ -336,7 +347,7 @@ export function normalizeDevice(input = {}, section, context = {}) {
       overrides: cloneValue(overrideSource),
     };
   }
-  if (section === "appliances" || section === "loads")
+  if (section === "appliances" || section === "loads") {
     Object.assign(base, {
       power_entity: input.power_entity || input.power || "",
       energy_entity: input.energy_entity || input.energy || "",
@@ -356,6 +367,33 @@ export function normalizeDevice(input = {}, section, context = {}) {
       report_order: Number.isFinite(+input.report_order) ? +input.report_order : context.index || 0,
       category: String(input.category || type || (section === "loads" ? "secondary" : "appliance")),
       device_type: String(type || (section === "loads" ? "secondary" : "appliance")).toLowerCase(),
+      // Appliance card (showcase) contract: countdown, temperature, alarm and
+      // last-cycle sources are first-class persisted fields, so the section
+      // renderer and the config editor share one canonical schema.
+      remaining_entity: input.remaining_entity || input.remaining_time_entity || "",
+      cycle_duration_entity: input.cycle_duration_entity || "",
+      temperature_entity: input.temperature_entity || input.temp_entity || "",
+      alert_entity: input.alert_entity || input.problem_entity || "",
+      last_start_entity: input.last_start_entity || input.start_time_entity || "",
+      last_duration_entity: input.last_duration_entity || "",
+      last_energy_entity: input.last_energy_entity || "",
+      last_cost_entity: input.last_cost_entity || "",
     });
+    // Optional numbers are stored only when finite: an empty string must never
+    // reach Number() consumers as 0 (a 0 W running threshold would mark every
+    // plugged appliance as running).
+    assignFiniteNumber(base, "threshold_run", input.threshold_run, input.metadata?.threshold_run);
+    assignFiniteNumber(
+      base,
+      "threshold_standby",
+      input.threshold_standby,
+      input.metadata?.threshold_standby,
+    );
+    assignFiniteNumber(base, "cycle_minutes", input.cycle_minutes);
+    assignFiniteNumber(base, "temp_min", input.temp_min);
+    assignFiniteNumber(base, "temp_max", input.temp_max);
+    assignFiniteNumber(base, "max_power", input.max_power);
+    assignFiniteNumber(base, "price_kwh", input.price_kwh);
+  }
   return base;
 }

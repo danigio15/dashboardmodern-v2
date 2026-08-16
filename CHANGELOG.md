@@ -4,6 +4,43 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.28 — 2026-08-16
+
+### Modificato
+
+- Sezione **Elettrodomestici** completamente ridisegnata sul riferimento grafico:
+  header con "Aggiungi elettrodomestico" e vista griglia/elenco, sidebar con
+  Panoramica, stanze e stati con contatori (usabili come filtri) e card
+  "Consumo totale" con sparkline, dispositivi attivi ed energia di oggi; chips
+  Tutti/In funzione/Standby/Spenti e ordinamento per potenza, nome, stanza o
+  stato. I popup KPI, il dettaglio energia giornaliera, lo storico e il popup
+  dispositivo restano quelli canonici.
+
+### Aggiunto
+
+- Card elettrodomestico "vetrina": artwork fotorealistico animato per tutti i
+  20 tipi a catalogo (cestello che gira, ventola forno con alone di calore,
+  getti della lavastoviglie, interno frigo illuminato, vapore, frost…), anello
+  countdown del tempo rimanente, barra della potenza scalata sulla potenza
+  massima, barra temperatura per frigo/congelatore e striscia ULTIMO CICLO con
+  avvio, durata, consumo e costo.
+- Calcolo automatico dei cicli dalle transizioni di potenza (delta del sensore
+  giornaliero robusto al reset di mezzanotte, oppure integrale della potenza)
+  con costo da tariffa Energia o €/kWh per dispositivo.
+- Configurazione avanzata della card nell'editor: immagine personalizzata,
+  entità stato programma, tempo rimanente, durata ciclo, temperatura con
+  min/max barra, potenza massima, €/kWh, soglia standby, entità allarme ed
+  entità dell'ultimo ciclo (avvio/durata/consumo/costo). I campi numerici
+  vuoti non vengono salvati come 0.
+
+### Corretto
+
+- La lavastoviglie non mostra più l'artwork della lavatrice: la
+  canonicalizzazione del tipo ("dishwasher" → "washer" per il suffisso) è ora
+  idempotente; il tipo "robot" non degrada più al generico.
+- Le soglie In funzione/Standby personalizzate vengono ripersistite anche dove
+  le legge il view-model (non solo nei metadata).
+
 ## 1.0.0-beta.22 — 2026-08-15
 
 ### Corretto

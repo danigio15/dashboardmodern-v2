@@ -179,7 +179,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     });
     const card = page.locator('[data-appliance-id="appliance-dishwasher"]').first();
     await expect(card).toBeVisible();
-    await expect(card.locator('.dm-appliance-art[data-dm-art="dishwasher"]')).toHaveCount(1);
+    // Showcase card: the hero hosts the standard dishwasher artwork; no stale
+    // image may survive anywhere on the card (legacy or showcase image nodes).
+    await expect(card.locator('.dm-ap-hero .dm-hero-art[data-dm-hero="dishwasher"]')).toHaveCount(
+      1,
+    );
     await expect(card.locator(".dm-appliance-image")).toHaveCount(0);
+    await expect(card.locator(".dm-ap-img")).toHaveCount(0);
   });
 }
