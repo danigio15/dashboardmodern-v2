@@ -1,19 +1,98 @@
-// Beta 26 real-device stability: keep primary temperature/humidity labels
-// deterministic even when legacy and multi-association renderers repaint the
-// same cards in different animation frames.
+// Beta 27 real-device stability: deterministic temperature room tabs, automatic
+// section visibility after configuration saves, and a hierarchical Energy load
+// editor that projects directly to the existing flow/subload runtime contracts.
 import { applianceArtwork } from "../core/appliance-artwork.js";
 import { canonicalApplianceVisualKey } from "../core/device-model.js";
-import { clean, dashboardStore, doc, english, root, section } from "./shared.js";
+import {
+  renderBeta25TemperatureCards,
+  temperatureEntries,
+} from "./beta25-real-device-fixes-section.js";
+import {
+  allStates,
+  clean,
+  dashboardStore,
+  doc,
+  english,
+  esc,
+  installStyle,
+  readJson,
+  root,
+  section,
+  writeJsonIfChanged,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_BETA26_REAL_DEVICE_STABILITY__";
 const state = (root[KEY] ||= {
   installed: false,
   listeners: false,
-  observer: null,
-  grid: null,
   storeUnsubscribe: null,
-  scheduled: false,
+  temperatureSignature: "",
+  activeTemperatureRoom: "all",
+  visibilityTimer: 0,
+  loadsObserver: null,
+  loadsRendering: false,
+  editingChild: null,
+  popupGroup: "",
 });
+
+const FLOW_NODE_DEFAULTS = Object.freeze({
+  lav: Object.freeze({
+    label: "Carico 1",
+    name: "Lavanderia",
+    icon: "🧺",
+    group: "lavanderia",
+    color: "#0ea5e9",
+    nodeId: "n-lav",
+    lineId: "line-home-lav",
+  }),
+  cuc: Object.freeze({
+    label: "Carico 2",
+    name: "Cucina",
+    icon: "🍳",
+    group: "cucina",
+    color: "#f97316",
+    nodeId: "n-cuc",
+    lineId: "line-home-cuc",
+  }),
+  boiler: Object.freeze({
+    label: "Boiler",
+    name: "Boiler",
+    icon: "🌞",
+    group: "",
+    color: "#ea580c",
+    nodeId: "n-boiler",
+    lineId: "line-home-boiler",
+  }),
+  wb: Object.freeze({
+    label: "Wallbox",
+    name: "Wallbox",
+    icon: "🚗",
+    group: "",
+    color: "#2563eb",
+    nodeId: "n-wb",
+    lineId: "line-home-wb",
+  }),
+  clima: Object.freeze({
+    label: "Clima",
+    name: "Clima",
+    icon: "❄️",
+    group: "",
+    color: "#06b6d4",
+    nodeId: "n-clima",
+    lineId: "line-home-clima",
+  }),
+});
+
+const BUILTIN_LOAD_GROUPS = Object.freeze([
+  Object.freeze({ id: "cucina", name: "Cucina", icon: "🍳", color: "#f97316", builtin: true }),
+  Object.freeze({
+    id: "lavanderia",
+    name: "Lavanderia",
+    icon: "🧺",
+    color: "#0ea5e9",
+    builtin: true,
+  }),
+]);
 
 function rooms() {
   const values = section("rooms", []);
@@ -26,6 +105,72 @@ function defaultTemperatureLabel() {
 
 function defaultHumidityLabel() {
   return english() ? "Humidity" : "Umidità";
+}
+
+function humidityEntity(entry = {}) {
+  const explicit = clean(entry.hum);
+  if (explicit) return explicit;
+  return clean(entry.temp).replace("_temperature", "_humidity");
+}
+
+function numericState(entity) {
+  const value = Number.parseFloat(allStates()[clean(entity)]?.state);
+  return Number.isFinite(value) ? value : null;
+}
+
+function comfortLabel(value) {
+  if (value == null) return english() ? "Unavailable" : "Non disponibile";
+  if (value < 18) return english() ? "Cold" : "Freddo";
+  if (value > 26) return english() ? "Hot" : "Caldo";
+  return "Comfort";
+}
+
+function temperatureRecords(roomValues = rooms()) {
+  return roomValues.flatMap((room) =>
+    temperatureEntries(room)
+      .filter((entry) => clean(entry.temp) || clean(entry.hum))
+      .map((entry) => ({ room, entry })),
+  );
+}
+
+function temperatureRecordKey(roomId, temperatureId) {
+  return `${clean(roomId)}::${clean(temperatureId) || "primary"}`;
+}
+
+function temperatureSignature(roomValues = rooms()) {
+  return temperatureRecords(roomValues)
+    .map(({ room, entry }) =>
+      [
+        clean(room.id),
+        clean(room.name),
+        clean(room.icon),
+        clean(entry.id),
+        clean(entry.name),
+        clean(entry.temp),
+        clean(entry.hum),
+        clean(room.temp_name),
+        clean(room.hum_name),
+      ].join("|"),
+    )
+    .join(";");
+}
+
+export function temperatureRoomTabsModel(roomValues = rooms()) {
+  const configured = roomValues.filter((room) => temperatureEntries(room).length > 0);
+  return [
+    {
+      id: "all",
+      name: english() ? "All" : "Tutte",
+      icon: "🏠",
+      count: configured.reduce((total, room) => total + temperatureEntries(room).length, 0),
+    },
+    ...configured.map((room) => ({
+      id: clean(room.id),
+      name: clean(room.name) || (english() ? "Room" : "Stanza"),
+      icon: clean(room.icon) || "🏠",
+      count: temperatureEntries(room).length,
+    })),
+  ];
 }
 
 function cardLabels(card, room) {
@@ -44,13 +189,6 @@ function cardLabels(card, room) {
   };
 }
 
-/**
- * Beta26 must not expose two different appliance artwork renderers: the legacy
- * add/edit flow historically calls cdApplianceIcon(), while dashboard cards use
- * the canonical appliance artwork helper. Bridge the public legacy function to
- * the canonical helper so add, edit and cards render the same visual without
- * changing the existing catalog keys or callers.
- */
 export function installCanonicalApplianceArtworkBridge() {
   const current = root.cdApplianceIcon;
   if (typeof current !== "function") return false;
@@ -66,11 +204,6 @@ export function installCanonicalApplianceArtworkBridge() {
   return true;
 }
 
-/**
- * The Beta25 renderer owns multiple cards per room while Beta17 keeps the
- * legacy primary labels. Apply the saved labels directly to the primary card
- * so a later repaint cannot leave only the humidity label at its generic text.
- */
 export function syncBeta26TemperatureLabels() {
   const grid = doc?.getElementById?.("temp-grid");
   if (!grid) return false;
@@ -98,31 +231,714 @@ export function syncBeta26TemperatureLabels() {
   return synced;
 }
 
-function bindTemperatureObserver() {
+function updateStableTemperatureValues() {
   const grid = doc?.getElementById?.("temp-grid");
   if (!grid) return false;
-  if (state.grid === grid && state.observer) return true;
-  state.observer?.disconnect?.();
-  state.grid = grid;
-  if (typeof root.MutationObserver !== "function") return false;
-  state.observer = new root.MutationObserver(() => scheduleTemperatureLabels());
-  state.observer.observe(grid, { childList: true, subtree: true });
+  const records = new Map(
+    temperatureRecords().map((record) => [
+      temperatureRecordKey(record.room.id, record.entry.id),
+      record,
+    ]),
+  );
+
+  grid.querySelectorAll(".temp-card[data-room-id]").forEach((card) => {
+    const record = records.get(
+      temperatureRecordKey(card.dataset.roomId, card.dataset.temperatureId),
+    );
+    if (!record) return;
+    const value = numericState(record.entry.temp);
+    const humidity = numericState(humidityEntity(record.entry));
+    const temperatureValue = card.querySelector(".temp-value");
+    const humidityValue = card.querySelector(".temp-hum-val");
+    const comfort = card.querySelector(".temp-comfort-badge");
+    if (temperatureValue)
+      temperatureValue.textContent = value == null ? "—" : value.toFixed(1);
+    if (humidityValue)
+      humidityValue.textContent = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
+    if (comfort) {
+      const label = comfortLabel(value);
+      comfort.textContent = label;
+      comfort.dataset.comfort = label.toLowerCase().replaceAll(" ", "-");
+    }
+  });
+  syncBeta26TemperatureLabels();
   return true;
 }
 
-function runTemperatureLabels() {
-  state.scheduled = false;
-  bindTemperatureObserver();
-  syncBeta26TemperatureLabels();
+function roomIconMarkup(icon) {
+  const value = clean(icon) || "🏠";
+  try {
+    return root.cdIconMarkup?.(value, 22) || esc(value);
+  } catch (_error) {
+    return esc(value);
+  }
 }
 
-function scheduleTemperatureLabels() {
-  if (state.scheduled) return;
-  state.scheduled = true;
-  root.queueMicrotask?.(runTemperatureLabels);
-  root.requestAnimationFrame?.(runTemperatureLabels);
-  root.setTimeout?.(runTemperatureLabels, 0);
-  root.setTimeout?.(runTemperatureLabels, 80);
+function applyTemperatureRoomFilter() {
+  const grid = doc?.getElementById?.("temp-grid");
+  if (!grid) return false;
+  const tabs = temperatureRoomTabsModel();
+  if (!tabs.some((tab) => tab.id === state.activeTemperatureRoom))
+    state.activeTemperatureRoom = "all";
+
+  grid.querySelectorAll(".temp-card[data-room-id]").forEach((card) => {
+    const visible =
+      state.activeTemperatureRoom === "all" ||
+      clean(card.dataset.roomId) === state.activeTemperatureRoom;
+    card.hidden = !visible;
+    card.dataset.dmBeta27Filtered = visible ? "visible" : "hidden";
+  });
+
+  doc?.querySelectorAll?.("#dm-beta27-temperature-tabs [data-beta27-temperature-room]").forEach(
+    (button) => {
+      const active = button.dataset.beta27TemperatureRoom === state.activeTemperatureRoom;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    },
+  );
+  return true;
+}
+
+function ensureTemperatureRoomTabs() {
+  const grid = doc?.getElementById?.("temp-grid");
+  if (!grid?.parentElement) return false;
+  const tabs = temperatureRoomTabsModel();
+  let host = doc.getElementById("dm-beta27-temperature-tabs");
+  if (!host) {
+    host = doc.createElement("nav");
+    host.id = "dm-beta27-temperature-tabs";
+    host.className = "dm-beta27-temperature-tabs";
+    host.setAttribute("aria-label", english() ? "Temperature rooms" : "Stanze temperatura");
+    grid.before(host);
+  }
+  const signature = tabs.map((tab) => `${tab.id}|${tab.name}|${tab.icon}|${tab.count}`).join(";");
+  if (host.dataset.signature !== signature) {
+    host.dataset.signature = signature;
+    host.replaceChildren(
+      ...tabs.map((tab) => {
+        const button = doc.createElement("button");
+        button.type = "button";
+        button.className = "sub-tab-btn dm-beta27-temperature-tab";
+        button.dataset.beta27TemperatureRoom = tab.id;
+        button.innerHTML = `<span class="dm-beta27-temperature-tab-icon">${roomIconMarkup(tab.icon)}</span><span>${esc(tab.name)}</span>${tab.count > 1 ? `<small>${tab.count}</small>` : ""}`;
+        button.addEventListener("click", () => {
+          state.activeTemperatureRoom = tab.id;
+          applyTemperatureRoomFilter();
+        });
+        return button;
+      }),
+    );
+  }
+  applyTemperatureRoomFilter();
+  return true;
+}
+
+export function renderStableBeta27Temperature() {
+  const grid = doc?.getElementById?.("temp-grid");
+  if (!grid) return false;
+  const records = temperatureRecords();
+  const signature = temperatureSignature();
+  const cards = grid.querySelectorAll(".temp-card[data-room-id]");
+  const needsStructure =
+    signature !== state.temperatureSignature || cards.length !== records.length;
+
+  if (needsStructure) {
+    state.temperatureSignature = signature;
+    renderBeta25TemperatureCards();
+  }
+  ensureTemperatureRoomTabs();
+  updateStableTemperatureValues();
+  return records.length > 0;
+}
+
+function installStableTemperatureOwners() {
+  let installed = false;
+  for (const name of ["buildTempCards", "renderTemperature"]) {
+    const current = root[name];
+    if (current?.__dmBeta27StableTemperatureOwner) continue;
+    function stableTemperatureOwner() {
+      return renderStableBeta27Temperature();
+    }
+    stableTemperatureOwner.__dmBeta27StableTemperatureOwner = true;
+    stableTemperatureOwner.__dmPrevious = current;
+    root[name] = stableTemperatureOwner;
+    installed = true;
+  }
+  return installed;
+}
+
+function hasEntityLikeValue(value) {
+  if (Array.isArray(value)) return value.some(hasEntityLikeValue);
+  if (value && typeof value === "object")
+    return Object.entries(value).some(
+      ([key, child]) =>
+        key !== "metadata" &&
+        (/ent|entity|power|energy|soc|camera|stream|switch|sensor|clima|temp|humid/i.test(key)
+          ? hasEntityLikeValue(child)
+          : typeof child === "object" && hasEntityLikeValue(child)),
+    );
+  return typeof value === "string" && value.trim().includes(".");
+}
+
+function listConfigured(key, predicate = hasEntityLikeValue) {
+  const value = readJson(key, null);
+  if (Array.isArray(value)) return value.some(predicate);
+  if (value && typeof value === "object") return predicate(value);
+  return false;
+}
+
+function objectHasValues(key) {
+  const value = readJson(key, null);
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value).length,
+  );
+}
+
+export function legacyVisibilityTargets() {
+  const targets = new Set();
+  if (listConfigured("cd_stanze", (room) => Boolean(clean(room?.temp) || clean(room?.hum))))
+    targets.add("temp");
+  if (listConfigured("cd_cameras")) targets.add("security");
+  if (objectHasValues("cd_luci")) targets.add("home");
+  if (listConfigured("cd_appliances")) targets.add("appliances");
+  if (listConfigured("cd_clima_units")) targets.add("clima");
+  if (listConfigured("cd_tapparelle")) targets.add("tapparelle");
+  if (listConfigured("cd_piscina") || objectHasValues("cd_piscina")) targets.add("piscina");
+  if (listConfigured("cd_irrigazione") || objectHasValues("cd_irrigazione"))
+    targets.add("irrigazione");
+  if (
+    listConfigured("cd_loads") ||
+    objectHasValues("cd_energy_model") ||
+    objectHasValues("cd_flow_nodes") ||
+    objectHasValues("cd_subloads_extra")
+  )
+    targets.add("energy");
+  if (listConfigured("cd_ev_cars") || clean(root.localStorage?.getItem?.("cd_ev_image")))
+    targets.add("ev");
+
+  const overrides = readJson("cd_entity_overrides", {});
+  for (const [slot, value] of Object.entries(overrides || {})) {
+    if (!clean(value).includes(".")) continue;
+    const token = clean(slot).toLowerCase();
+    if (/boiler|solare_term|solar_thermal/.test(token)) targets.add("boiler");
+    else if (/ev|wallbox|auto/.test(token)) targets.add("ev");
+    else if (/camera|alarm|security|sicurezza/.test(token)) targets.add("security");
+    else if (/clima|climate|thermostat|termo/.test(token)) targets.add("clima");
+    else if (/temp|humid/.test(token)) targets.add("temp");
+    else if (/server|minipc|cpu|ram|disk/.test(token)) targets.add("server");
+    else if (/grid|rete|solar|fv|battery|batt|energy|energia|house|casa/.test(token))
+      targets.add("energy");
+    else targets.add("home");
+  }
+  return [...targets];
+}
+
+export function ensureConfiguredSectionsVisible({ sync = true } = {}) {
+  let changed = false;
+  const store = dashboardStore();
+  if (store?.getState && store?.ensureSectionVisibleForData) {
+    const sections = Object.keys(store.getState()?.sections || {});
+    for (const name of sections)
+      if (store.ensureSectionVisibleForData(name)) changed = true;
+    if (changed) store.persist?.();
+  }
+
+  const visibility = readJson("cd_sections", {});
+  const next = visibility && typeof visibility === "object" && !Array.isArray(visibility)
+    ? { ...visibility }
+    : {};
+  for (const key of legacyVisibilityTargets()) {
+    if (next[key] === true) continue;
+    next[key] = true;
+    changed = true;
+  }
+  if (changed) {
+    writeJsonIfChanged("cd_sections", next, { sync });
+    root.cdApplyNavVis?.();
+    root.render?.();
+  }
+  return changed;
+}
+
+function scheduleVisibilityRepair(delay = 80) {
+  root.clearTimeout?.(state.visibilityTimer);
+  state.visibilityTimer = root.setTimeout?.(() => {
+    state.visibilityTimer = 0;
+    ensureConfiguredSectionsVisible();
+  }, delay);
+}
+
+function customGroups() {
+  const values = readJson("cd_subload_groups", []);
+  return Array.isArray(values) ? values.filter((group) => clean(group?.id)) : [];
+}
+
+export function loadGroupsModel() {
+  const custom = customGroups();
+  const byId = new Map(custom.map((group) => [clean(group.id), group]));
+  const builtins = BUILTIN_LOAD_GROUPS.map((group) => ({
+    ...group,
+    ...(byId.get(group.id) || {}),
+    id: group.id,
+    builtin: true,
+  }));
+  const extras = custom
+    .filter((group) => !BUILTIN_LOAD_GROUPS.some((builtin) => builtin.id === clean(group.id)))
+    .map((group) => ({
+      id: clean(group.id),
+      name: clean(group.name) || clean(group.id),
+      icon: clean(group.icon) || "🔌",
+      color: clean(group.color) || "#64748b",
+      builtin: false,
+    }));
+  return [...builtins, ...extras];
+}
+
+export function normalizeFlowNodesForEditor(value = readJson("cd_flow_nodes", {})) {
+  const current = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  return Object.fromEntries(
+    Object.entries(FLOW_NODE_DEFAULTS).map(([key, defaults]) => {
+      const saved = current[key] || {};
+      return [
+        key,
+        {
+          ...defaults,
+          ...saved,
+          key,
+          enabled: saved.enabled !== false,
+          name: clean(saved.name) || defaults.name,
+          icon: clean(saved.icon) || defaults.icon,
+          group: Object.prototype.hasOwnProperty.call(saved, "group")
+            ? clean(saved.group)
+            : defaults.group,
+          pwr: clean(saved.pwr),
+          color: clean(saved.color) || defaults.color,
+        },
+      ];
+    }),
+  );
+}
+
+function loadExtras() {
+  const value = readJson("cd_subloads_extra", {});
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function groupChildren(groupId) {
+  const values = loadExtras()[clean(groupId)];
+  return Array.isArray(values) ? values : [];
+}
+
+function legacySubloadsConfig() {
+  try {
+    const value = root.eval?.(
+      "typeof SUBLOADS_CONFIG !== 'undefined' ? SUBLOADS_CONFIG : null",
+    );
+    return value && typeof value === "object" ? value : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function synchronizeLegacySubloadRuntime() {
+  const runtime = legacySubloadsConfig();
+  if (!runtime) return false;
+  const extras = loadExtras();
+  for (const group of loadGroupsModel()) {
+    runtime[group.id] ||= {
+      title: group.name,
+      icon: group.icon || "🔌",
+      items: [],
+      custom: !group.builtin,
+    };
+    runtime[group.id].title = group.name;
+    runtime[group.id].icon = group.icon || "🔌";
+    runtime[group.id].items = Array.isArray(extras[group.id]) ? [...extras[group.id]] : [];
+  }
+  return true;
+}
+
+function groupOptions(selected = "") {
+  return [
+    `<option value="">— ${english() ? "No group" : "Nessun gruppo"} —</option>`,
+    ...loadGroupsModel().map(
+      (group) =>
+        `<option value="${esc(group.id)}"${clean(selected) === group.id ? " selected" : ""}>${esc(group.icon)} ${esc(group.name)}</option>`,
+    ),
+  ].join("");
+}
+
+function entityEditorField(id, label, value = "", placeholder = "sensor.entity") {
+  return `<label class="ed-slot"><span class="ed-slot-lbl">${esc(label)}</span><span class="ed-form-row"><input id="${esc(id)}" class="ed-input ed-slot-in mono" value="${esc(value)}" placeholder="${esc(placeholder)}"><button type="button" class="dm-entity-picker" data-beta27-entity-target="${esc(id)}" aria-label="${english() ? "Select" : "Seleziona"} ${esc(label)}">🔍</button></span></label>`;
+}
+
+function flowNodeMarkup(node) {
+  return `<details class="ed-acc dm-beta27-flow-node" data-beta27-flow-node="${esc(node.key)}" open><summary class="ed-acc-head"><span>${esc(node.icon)} ${esc(node.label)} · ${esc(node.name)}</span><small>${node.group ? `${english() ? "group" : "gruppo"}: ${esc(node.group)}` : clean(node.pwr) ? "sensore" : english() ? "automatic" : "automatico"}</small></summary><div class="ed-acc-body"><label class="dm-beta27-switch"><input type="checkbox" data-flow-enabled${node.enabled ? " checked" : ""}><span>${english() ? "Show node when configured" : "Mostra il cerchio quando configurato"}</span></label><div class="ed-form-row"><input class="ed-input" data-flow-name placeholder="${english() ? "Displayed name" : "Nome visualizzato"}" value="${esc(node.name)}"><input class="ed-input ed-icon-input" data-flow-icon placeholder="🍳 / mdi:power-plug" value="${esc(node.icon)}"><input class="dm-beta27-color" data-flow-color type="color" value="${esc(node.color)}" title="${english() ? "Color" : "Colore"}"></div><label class="ed-slot"><span class="ed-slot-lbl">${english() ? "Linked load group" : "Gruppo carichi collegato"}</span><select class="ed-input" data-flow-group>${groupOptions(node.group)}</select></label>${entityEditorField(`dm-beta27-flow-power-${node.key}`, english() ? "Direct power entity (optional)" : "Entità potenza diretta (facoltativa)", node.pwr, "sensor.cucina_power")}</div></details>`;
+}
+
+function childSummary(child = {}) {
+  const power = clean(child.pwrLive || child.pwr);
+  return [power, clean(child.daily), clean(child.monthly), clean(child.total)].filter(Boolean).join(" · ");
+}
+
+function groupMarkup(group) {
+  const children = groupChildren(group.id);
+  const rows = children
+    .map(
+      (child, index) =>
+        `<article class="ed-row dm-beta27-child-row" data-beta27-child-group="${esc(group.id)}" data-beta27-child-index="${index}"><div class="ed-row-main"><div class="ed-row-new">${esc(child.icon || "🔌")} ${esc(child.name || (english() ? "Load" : "Carico"))}</div><div class="ed-row-old mono">${esc(childSummary(child))}</div></div><button type="button" class="ed-del" data-beta27-child-up title="${english() ? "Move up" : "Sposta su"}">▲</button><button type="button" class="ed-del" data-beta27-child-down title="${english() ? "Move down" : "Sposta giù"}">▼</button><button type="button" class="ed-del" data-beta27-child-edit title="${english() ? "Edit" : "Modifica"}">✏️</button><button type="button" class="ed-del" data-beta27-child-delete title="${english() ? "Delete" : "Elimina"}">🗑️</button></article>`,
+    )
+    .join("");
+  return `<details class="ed-acc dm-beta27-load-group" data-beta27-group="${esc(group.id)}" open><summary class="ed-acc-head"><span>${esc(group.icon || "🔌")} ${esc(group.name)}</span><small>${children.length} ${english() ? "loads" : "carichi"}</small></summary><div class="ed-acc-body"><div class="ed-form-row dm-beta27-group-meta"><input class="ed-input" data-group-name value="${esc(group.name)}" aria-label="${english() ? "Group name" : "Nome gruppo"}"><input class="ed-input ed-icon-input" data-group-icon value="${esc(group.icon || "🔌")}" aria-label="${english() ? "Group icon" : "Icona gruppo"}"><input class="dm-beta27-color" data-group-color type="color" value="${esc(group.color || "#64748b")}" title="${english() ? "Color" : "Colore"}"><button type="button" class="ed-btn-secondary" data-beta27-group-save>💾</button>${group.builtin ? "" : `<button type="button" class="ed-del" data-beta27-group-delete>🗑️</button>`}</div><div class="ed-list dm-beta27-child-list">${rows || `<div class="ed-empty">${english() ? "No loads in this group." : "Nessun carico in questo gruppo."}</div>`}</div><button type="button" class="ed-btn-add" data-beta27-child-add>＋ ${english() ? "Add load" : "Aggiungi carico"}</button></div></details>`;
+}
+
+function childFormMarkup() {
+  const editing = state.editingChild;
+  if (!editing) return "";
+  const children = groupChildren(editing.groupId);
+  const child = Number.isInteger(editing.index) ? children[editing.index] || {} : {};
+  const title = Number.isInteger(editing.index)
+    ? english()
+      ? "Edit load"
+      : "Modifica carico"
+    : english()
+      ? "New load"
+      : "Nuovo carico";
+  return `<div class="ed-form dm-beta27-child-form" data-beta27-child-form><div class="ed-sec-title">🔌 ${title}</div><label class="ed-slot"><span class="ed-slot-lbl">${english() ? "Group" : "Gruppo"}</span><select class="ed-input" data-child-group>${groupOptions(editing.groupId)}</select></label><div class="ed-form-row"><input class="ed-input" data-child-name placeholder="${english() ? "Name" : "Nome"}" value="${esc(child.name)}"><input class="ed-input ed-icon-input" data-child-icon placeholder="🔥 / mdi:stove" value="${esc(child.icon)}"></div>${entityEditorField("dm-beta27-child-power", english() ? "Instant power" : "Potenza istantanea", child.pwrLive || child.pwr, "sensor.forno_power")}${entityEditorField("dm-beta27-child-state", english() ? "State (optional)" : "Stato (facoltativo)", child.bin, "binary_sensor.forno")}${entityEditorField("dm-beta27-child-daily", english() ? "Daily energy" : "Energia giornaliera", child.daily, "sensor.forno_oggi")}${entityEditorField("dm-beta27-child-monthly", english() ? "Monthly energy" : "Energia mensile", child.monthly, "sensor.forno_mese")}${entityEditorField("dm-beta27-child-total", english() ? "Total energy" : "Energia totale", child.total, "sensor.forno_totale")}<div class="dm-beta27-form-actions"><button type="button" class="ed-btn-add" data-beta27-child-save>💾 ${english() ? "Save load" : "Salva carico"}</button><button type="button" class="ed-btn-secondary" data-beta27-child-cancel>${english() ? "Cancel" : "Annulla"}</button></div></div>`;
+}
+
+function newGroupMarkup() {
+  return `<div class="ed-form dm-beta27-new-group"><div class="ed-sec-title">＋ ${english() ? "New group" : "Nuovo gruppo"}</div><div class="ed-form-row"><input id="dm-beta27-new-group-name" class="ed-input" placeholder="${english() ? "Name, e.g. Kitchen" : "Nome, es. Cucina"}"><input id="dm-beta27-new-group-icon" class="ed-input ed-icon-input" value="🔌" placeholder="🔌"><input id="dm-beta27-new-group-color" class="dm-beta27-color" type="color" value="#64748b"></div><button type="button" class="ed-btn-add" data-beta27-group-add>＋ ${english() ? "Create group" : "Crea gruppo"}</button></div>`;
+}
+
+export function renderBeta27LoadsEditor(target) {
+  if (!target || state.loadsRendering) return false;
+  if (!target.matches?.('[data-energy-panel="loads"]')) return false;
+  state.loadsRendering = true;
+  try {
+    const nodes = normalizeFlowNodesForEditor();
+    const groups = loadGroupsModel();
+    target.dataset.dmBeta27LoadsEditor = "true";
+    target.innerHTML = `<div class="dm-beta27-load-editor"><div class="ed-intro dm-beta27-load-intro"><b>${english() ? "Energy load flow" : "Flow carichi Energia"}</b><br>${english() ? "First configure the circles connected to Home. Each circle can use a direct power sensor or automatically sum every child of a load group. Then create the appliances inside each group. Empty or disabled nodes are not forced into the flow." : "Prima configura i cerchi collegati a Casa. Ogni cerchio può usare un sensore di potenza diretto oppure sommare automaticamente tutti i carichi del gruppo collegato. Poi inserisci forno, frigo, lavastoviglie e gli altri dispositivi dentro il gruppo. I nodi vuoti o disabilitati non vengono forzati nel flow."}</div><section class="dm-beta27-load-section"><div class="ed-sec-title">① ${english() ? "CIRCLES UNDER HOME" : "CERCHI SOTTO CASA"}</div><div class="ed-intro">${english() ? "Name, icon, color, visibility, group and direct power are independent for every flow node." : "Nome, icona, colore, visibilità, gruppo e potenza diretta sono indipendenti per ogni nodo del flow."}</div>${Object.values(nodes).map(flowNodeMarkup).join("")}<button type="button" class="ed-save-btn" data-beta27-flow-save>💾 ${english() ? "Save flow circles" : "Salva cerchi flow"}</button></section><section class="dm-beta27-load-section"><div class="ed-sec-title">② ${english() ? "GROUPS AND CHILD LOADS" : "GRUPPI E CARICHI INTERNI"}</div><div class="ed-intro">${english() ? "Groups are the popup opened from a flow circle. Their children are the cards shown inside, such as Oven, Fridge or Dishwasher." : "Il gruppo è il popup aperto dal cerchio del flow. I figli sono le card interne, per esempio Forno, Frigorifero o Lavastoviglie."}</div>${groups.map(groupMarkup).join("")}${newGroupMarkup()}${childFormMarkup()}</section></div>`;
+    mountBeta27LoadsEditor(target);
+  } finally {
+    state.loadsRendering = false;
+  }
+  return true;
+}
+
+function pickEntity(input) {
+  if (!input) return;
+  root.wzPickEntity?.(input);
+}
+
+function persistGroup(groupId, patch) {
+  const values = customGroups();
+  const index = values.findIndex((group) => clean(group.id) === clean(groupId));
+  const builtin = BUILTIN_LOAD_GROUPS.find((group) => group.id === clean(groupId));
+  const current = index >= 0 ? values[index] : builtin || { id: clean(groupId) };
+  const next = {
+    ...current,
+    ...patch,
+    id: clean(groupId),
+    name: clean(patch.name || current.name || groupId),
+    icon: clean(patch.icon || current.icon) || "🔌",
+    color: clean(patch.color || current.color) || "#64748b",
+  };
+  if (index >= 0) values[index] = next;
+  else values.push(next);
+  writeJsonIfChanged("cd_subload_groups", values);
+  synchronizeLegacySubloadRuntime();
+  return next;
+}
+
+function deleteGroup(groupId) {
+  if (BUILTIN_LOAD_GROUPS.some((group) => group.id === clean(groupId))) return false;
+  const groups = customGroups().filter((group) => clean(group.id) !== clean(groupId));
+  const extras = loadExtras();
+  delete extras[clean(groupId)];
+  writeJsonIfChanged("cd_subload_groups", groups, { sync: false });
+  writeJsonIfChanged("cd_subloads_extra", extras);
+  const nodes = readJson("cd_flow_nodes", {});
+  for (const value of Object.values(nodes || {}))
+    if (clean(value?.group) === clean(groupId)) value.group = "";
+  writeJsonIfChanged("cd_flow_nodes", nodes);
+  synchronizeLegacySubloadRuntime();
+  return true;
+}
+
+function saveChild(groupId, index, child) {
+  const extras = loadExtras();
+  const values = Array.isArray(extras[groupId]) ? [...extras[groupId]] : [];
+  if (Number.isInteger(index) && index >= 0 && index < values.length) values[index] = child;
+  else values.push(child);
+  extras[groupId] = values;
+  writeJsonIfChanged("cd_subloads_extra", extras);
+  synchronizeLegacySubloadRuntime();
+}
+
+function mutateChild(groupId, index, operation) {
+  const extras = loadExtras();
+  const values = Array.isArray(extras[groupId]) ? [...extras[groupId]] : [];
+  if (index < 0 || index >= values.length) return false;
+  if (operation === "delete") values.splice(index, 1);
+  if (operation === "up" && index > 0)
+    [values[index - 1], values[index]] = [values[index], values[index - 1]];
+  if (operation === "down" && index < values.length - 1)
+    [values[index + 1], values[index]] = [values[index], values[index + 1]];
+  extras[groupId] = values;
+  writeJsonIfChanged("cd_subloads_extra", extras);
+  synchronizeLegacySubloadRuntime();
+  return true;
+}
+
+function saveFlowNodes(target) {
+  const next = {};
+  target.querySelectorAll("[data-beta27-flow-node]").forEach((block) => {
+    const key = clean(block.dataset.beta27FlowNode);
+    if (!FLOW_NODE_DEFAULTS[key]) return;
+    next[key] = {
+      enabled: Boolean(block.querySelector("[data-flow-enabled]")?.checked),
+      name: clean(block.querySelector("[data-flow-name]")?.value),
+      icon: clean(block.querySelector("[data-flow-icon]")?.value),
+      color: clean(block.querySelector("[data-flow-color]")?.value),
+      group: clean(block.querySelector("[data-flow-group]")?.value),
+      pwr: clean(block.querySelector(`#dm-beta27-flow-power-${key}`)?.value),
+    };
+  });
+  writeJsonIfChanged("cd_flow_nodes", next);
+  synchronizeLegacySubloadRuntime();
+  ensureConfiguredSectionsVisible();
+  root.render?.();
+  applyFlowNodeCustomization();
+}
+
+function groupIdFromName(name) {
+  const token = clean(name)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return `cl_${token || Date.now().toString(36)}`;
+}
+
+function mountBeta27LoadsEditor(target) {
+  target.querySelectorAll("[data-beta27-entity-target]").forEach((button) => {
+    button.addEventListener("click", () =>
+      pickEntity(target.querySelector(`#${button.dataset.beta27EntityTarget}`)),
+    );
+  });
+  target.querySelector("[data-beta27-flow-save]")?.addEventListener("click", () => {
+    saveFlowNodes(target);
+    renderBeta27LoadsEditor(target);
+  });
+  target.querySelectorAll("[data-beta27-group-save]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const block = button.closest("[data-beta27-group]");
+      persistGroup(block.dataset.beta27Group, {
+        name: block.querySelector("[data-group-name]")?.value,
+        icon: block.querySelector("[data-group-icon]")?.value,
+        color: block.querySelector("[data-group-color]")?.value,
+      });
+      renderBeta27LoadsEditor(target);
+    });
+  });
+  target.querySelectorAll("[data-beta27-group-delete]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const block = button.closest("[data-beta27-group]");
+      deleteGroup(block.dataset.beta27Group);
+      state.editingChild = null;
+      renderBeta27LoadsEditor(target);
+    });
+  });
+  target.querySelector("[data-beta27-group-add]")?.addEventListener("click", () => {
+    const name = clean(target.querySelector("#dm-beta27-new-group-name")?.value);
+    if (!name) return root.alert?.(english() ? "Enter the group name." : "Inserisci il nome del gruppo.");
+    const id = groupIdFromName(name);
+    if (loadGroupsModel().some((group) => group.id === id))
+      return root.alert?.(english() ? "A group with this name already exists." : "Esiste già un gruppo con questo nome.");
+    persistGroup(id, {
+      name,
+      icon: clean(target.querySelector("#dm-beta27-new-group-icon")?.value) || "🔌",
+      color: clean(target.querySelector("#dm-beta27-new-group-color")?.value) || "#64748b",
+    });
+    synchronizeLegacySubloadRuntime();
+    renderBeta27LoadsEditor(target);
+  });
+  target.querySelectorAll("[data-beta27-child-add]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const groupId = button.closest("[data-beta27-group]").dataset.beta27Group;
+      state.editingChild = { groupId, index: null };
+      renderBeta27LoadsEditor(target);
+      target.querySelector("[data-beta27-child-form]")?.scrollIntoView?.({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+  });
+  target.querySelectorAll("[data-beta27-child-edit]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const row = button.closest("[data-beta27-child-group]");
+      state.editingChild = {
+        groupId: clean(row.dataset.beta27ChildGroup),
+        index: Number(row.dataset.beta27ChildIndex),
+      };
+      renderBeta27LoadsEditor(target);
+    });
+  });
+  for (const [selector, operation] of [
+    ["[data-beta27-child-delete]", "delete"],
+    ["[data-beta27-child-up]", "up"],
+    ["[data-beta27-child-down]", "down"],
+  ]) {
+    target.querySelectorAll(selector).forEach((button) => {
+      button.addEventListener("click", () => {
+        const row = button.closest("[data-beta27-child-group]");
+        mutateChild(
+          clean(row.dataset.beta27ChildGroup),
+          Number(row.dataset.beta27ChildIndex),
+          operation,
+        );
+        renderBeta27LoadsEditor(target);
+      });
+    });
+  }
+  target.querySelector("[data-beta27-child-cancel]")?.addEventListener("click", () => {
+    state.editingChild = null;
+    renderBeta27LoadsEditor(target);
+  });
+  target.querySelector("[data-beta27-child-save]")?.addEventListener("click", () => {
+    const form = target.querySelector("[data-beta27-child-form]");
+    const groupId = clean(form?.querySelector("[data-child-group]")?.value);
+    const name = clean(form?.querySelector("[data-child-name]")?.value);
+    const power = clean(form?.querySelector("#dm-beta27-child-power")?.value);
+    if (!groupId || !name)
+      return root.alert?.(english() ? "Choose a group and enter the load name." : "Scegli il gruppo e inserisci il nome del carico.");
+    if (!power.includes("."))
+      return root.alert?.(english() ? "Configure a valid instant power entity." : "Configura una entità valida per la potenza istantanea.");
+    const child = {
+      name,
+      icon: clean(form.querySelector("[data-child-icon]")?.value) || "🔌",
+      pwr: power,
+      pwrLive: power,
+      bin: clean(form.querySelector("#dm-beta27-child-state")?.value),
+      daily: clean(form.querySelector("#dm-beta27-child-daily")?.value),
+      monthly: clean(form.querySelector("#dm-beta27-child-monthly")?.value),
+      total: clean(form.querySelector("#dm-beta27-child-total")?.value),
+    };
+    const index =
+      state.editingChild?.groupId === groupId && Number.isInteger(state.editingChild?.index)
+        ? state.editingChild.index
+        : null;
+    if (
+      state.editingChild?.groupId &&
+      state.editingChild.groupId !== groupId &&
+      Number.isInteger(state.editingChild.index)
+    ) {
+      mutateChild(state.editingChild.groupId, state.editingChild.index, "delete");
+    }
+    saveChild(groupId, index, child);
+    state.editingChild = null;
+    ensureConfiguredSectionsVisible();
+    root.render?.();
+    renderBeta27LoadsEditor(target);
+  });
+}
+
+function scheduleLoadsEditor() {
+  root.queueMicrotask?.(() => {
+    const panel = doc?.querySelector?.('[data-energy-panel="loads"]');
+    if (panel) renderBeta27LoadsEditor(panel);
+  });
+}
+
+function installLoadsObserver() {
+  if (state.loadsObserver || typeof root.MutationObserver !== "function" || !doc?.body) return false;
+  state.loadsObserver = new root.MutationObserver((mutations) => {
+    if (state.loadsRendering) return;
+    const relevant = mutations.some((mutation) =>
+      [...(mutation.addedNodes || [])].some(
+        (node) =>
+          node?.nodeType === 1 &&
+          (node.matches?.('[data-energy-panel="loads"]') ||
+            node.querySelector?.('[data-energy-panel="loads"]')),
+      ),
+    );
+    if (relevant) scheduleLoadsEditor();
+  });
+  state.loadsObserver.observe(doc.body, { childList: true, subtree: true });
+  return true;
+}
+
+function applyFlowColor(node, color) {
+  if (!node || !clean(color)) return;
+  node.dataset.dmBeta27Color = color;
+  node.style.setProperty("--dm-flow-color", color);
+  node.style.setProperty("--primary-color", color);
+  node.style.setProperty("border-color", color);
+  node.querySelectorAll?.("circle,.flow-ring,.energy-ring,.node-ring").forEach((part) => {
+    part.style.setProperty("stroke", color);
+    part.style.setProperty("border-color", color);
+  });
+}
+
+export function applyFlowNodeCustomization() {
+  const raw = readJson("cd_flow_nodes", {});
+  const nodes = normalizeFlowNodesForEditor(raw);
+  for (const [key, node] of Object.entries(nodes)) {
+    const target = doc?.getElementById?.(node.nodeId);
+    const line = doc?.getElementById?.(node.lineId);
+    const explicit = raw && Object.prototype.hasOwnProperty.call(raw, key) ? raw[key] : null;
+    if (explicit?.enabled === false) {
+      if (target) {
+        target.dataset.dmBeta27ForcedHidden = "true";
+        target.style.setProperty("display", "none", "important");
+      }
+      if (line) {
+        line.dataset.dmBeta27ForcedHidden = "true";
+        line.style.setProperty("display", "none", "important");
+      }
+      continue;
+    }
+    for (const element of [target, line]) {
+      if (element?.dataset?.dmBeta27ForcedHidden === "true") {
+        delete element.dataset.dmBeta27ForcedHidden;
+        element.style.removeProperty("display");
+      }
+    }
+    if (target && explicit?.color) applyFlowColor(target, node.color);
+  }
+  return true;
+}
+
+function patchSubloadPopup(groupId = state.popupGroup) {
+  const id = clean(groupId);
+  if (!id) return false;
+  const group = loadGroupsModel().find((item) => item.id === id);
+  const title = doc?.getElementById?.("subloads-title");
+  if (!group || !title) return false;
+  title.innerHTML = `<span style="font-size:24px;">${esc(group.icon || "🔌")}</span> ${esc(group.name)} ${english() ? "INSTANT" : "ISTANTANEO"}`;
+  title.style.setProperty("--dm-beta27-group-color", group.color || "#0ea5e9");
+  return true;
+}
+
+function installPopupOwner() {
+  const current = root.openSubLoads;
+  if (typeof current !== "function" || current.__dmBeta27PopupOwner) return false;
+  function beta27OpenSubLoads(type, ...args) {
+    state.popupGroup = clean(type);
+    const result = current.call(this, type, ...args);
+    root.queueMicrotask?.(() => patchSubloadPopup(type));
+    return result;
+  }
+  beta27OpenSubLoads.__dmBeta27PopupOwner = true;
+  beta27OpenSubLoads.__dmPrevious = current;
+  root.openSubLoads = beta27OpenSubLoads;
+  return true;
 }
 
 function subscribeStore() {
@@ -130,18 +946,62 @@ function subscribeStore() {
   const store = dashboardStore();
   if (typeof store?.subscribe !== "function") return false;
   state.storeUnsubscribe = store.subscribe((change) => {
-    if (change?.section === "rooms" || change?.section === "snapshot")
-      scheduleTemperatureLabels();
+    if (change?.status !== "optimistic" && change?.status !== "success") return;
+    if (change?.section === "rooms" || change?.section === "snapshot") {
+      state.temperatureSignature = "";
+      renderStableBeta27Temperature();
+    }
+    if (change?.section !== "visibility") scheduleVisibilityRepair(40);
+    if (change?.section === "loads" || change?.section === "energy") scheduleLoadsEditor();
   });
   return true;
 }
 
+function installStyles() {
+  installStyle(
+    "dm-beta27-real-device-stability-style",
+    `
+      #dm-beta27-temperature-tabs{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;width:100%!important;margin:12px 0 8px!important;padding:0 18px!important;overflow-x:auto!important;scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important}
+      #dm-beta27-temperature-tabs::-webkit-scrollbar{display:none!important}
+      #dm-beta27-temperature-tabs .dm-beta27-temperature-tab{display:inline-flex!important;align-items:center!important;gap:8px!important;flex:0 0 auto!important;min-height:42px!important;padding:8px 13px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:15px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--secondary-text-color,#64748b)!important;font:inherit!important;font-size:13px!important;font-weight:850!important;box-shadow:0 7px 18px rgba(15,23,42,.06)!important;transition:background .12s ease,border-color .12s ease,color .12s ease!important}
+      #dm-beta27-temperature-tabs .dm-beta27-temperature-tab.active{border-color:color-mix(in srgb,var(--primary-color,#0ea5e9) 46%,transparent)!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 11%,var(--ha-card-background,#fff))!important;color:var(--primary-color,#0284c7)!important}
+      #dm-beta27-temperature-tabs .dm-beta27-temperature-tab-icon{display:grid!important;place-items:center!important;width:24px!important;height:24px!important;font-size:20px!important;line-height:1!important}
+      #dm-beta27-temperature-tabs small{display:grid!important;place-items:center!important;min-width:20px!important;height:20px!important;padding:0 5px!important;border-radius:999px!important;background:rgba(148,163,184,.15)!important;font-size:9px!important;font-weight:900!important}
+      #temp-grid .temp-card[hidden]{display:none!important}
+      #temp-grid .temp-room-icon,#temp-grid .temp-room-icon *,#editor-modal .dm-temperature-card-icon,#editor-modal .dm-temperature-card-icon *{animation:none!important;transition:none!important;transform:none!important;will-change:auto!important}
+      [data-energy-panel="loads"][data-dm-beta27-loads-editor="true"]{display:block!important}
+      .dm-beta27-load-editor{display:grid!important;gap:18px!important;padding-bottom:22px!important}
+      .dm-beta27-load-section{display:grid!important;gap:10px!important;padding:14px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:20px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 2%,var(--ha-card-background,#fff))!important}
+      .dm-beta27-load-intro{margin:0!important;padding:14px 16px!important;border:1px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 18%,transparent)!important;border-radius:18px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 6%,var(--ha-card-background,#fff))!important}
+      .dm-beta27-flow-node,.dm-beta27-load-group{margin:0!important;border-radius:16px!important;overflow:hidden!important}
+      .dm-beta27-switch{display:flex!important;align-items:center!important;gap:9px!important;min-height:38px!important;font-size:12px!important;font-weight:800!important;color:var(--secondary-text-color,#64748b)!important}
+      .dm-beta27-switch input{width:20px!important;height:20px!important}
+      .dm-beta27-color{flex:0 0 52px!important;width:52px!important;min-width:52px!important;height:46px!important;padding:4px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:12px!important;background:var(--ha-card-background,#fff)!important}
+      .dm-beta27-group-meta{align-items:center!important}
+      .dm-beta27-child-list{display:grid!important;gap:8px!important;margin:8px 0!important}
+      .dm-beta27-child-row{grid-template-columns:minmax(0,1fr) repeat(4,42px)!important;gap:6px!important}
+      .dm-beta27-child-row>.ed-del{display:grid!important;place-items:center!important;width:42px!important;height:42px!important;margin:0!important}
+      .dm-beta27-child-form{margin-top:12px!important;padding:14px!important;border:1px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 24%,transparent)!important;border-radius:18px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;box-shadow:0 12px 28px rgba(15,23,42,.08)!important}
+      .dm-beta27-form-actions{display:flex!important;gap:8px!important;flex-wrap:wrap!important}
+      .dm-beta27-form-actions>*{flex:1 1 180px!important}
+      @media(max-width:640px){#dm-beta27-temperature-tabs{padding:0 14px!important}.dm-beta27-load-section{padding:11px!important}.dm-beta27-flow-node .ed-form-row,.dm-beta27-group-meta,.dm-beta27-new-group>.ed-form-row{display:grid!important;grid-template-columns:minmax(0,1fr) 70px!important}.dm-beta27-flow-node .ed-form-row>.dm-beta27-color,.dm-beta27-group-meta>.dm-beta27-color,.dm-beta27-new-group .dm-beta27-color{width:100%!important;min-width:0!important}.dm-beta27-child-row{grid-template-columns:minmax(0,1fr) repeat(2,42px)!important}.dm-beta27-child-row>.ed-del:nth-of-type(1),.dm-beta27-child-row>.ed-del:nth-of-type(2){display:none!important}}
+    `,
+  );
+}
+
 export function installBeta26RealDeviceStability() {
   if (!doc) return false;
+  installStyles();
   installCanonicalApplianceArtworkBridge();
+  installStableTemperatureOwners();
+  installPopupOwner();
   subscribeStore();
-  bindTemperatureObserver();
-  scheduleTemperatureLabels();
+  synchronizeLegacySubloadRuntime();
+  installLoadsObserver();
+  renderStableBeta27Temperature();
+  scheduleLoadsEditor();
+  scheduleVisibilityRepair(0);
+  root.queueMicrotask?.(applyFlowNodeCustomization);
 
   if (!state.listeners) {
     state.listeners = true;
@@ -154,11 +1014,20 @@ export function installBeta26RealDeviceStability() {
     ])
       root.addEventListener?.(eventName, () => {
         installCanonicalApplianceArtworkBridge();
+        installStableTemperatureOwners();
+        installPopupOwner();
         subscribeStore();
-        scheduleTemperatureLabels();
+        synchronizeLegacySubloadRuntime();
+        renderStableBeta27Temperature();
+        scheduleLoadsEditor();
+        scheduleVisibilityRepair(30);
+        root.queueMicrotask?.(applyFlowNodeCustomization);
       });
 
-    root.addEventListener?.("dashboardmodern:state-changed", scheduleTemperatureLabels);
+    root.addEventListener?.("dashboardmodern:state-changed", () => {
+      updateStableTemperatureValues();
+      applyFlowNodeCustomization();
+    });
     doc.addEventListener(
       "click",
       (event) => {
@@ -167,7 +1036,31 @@ export function installBeta26RealDeviceStability() {
             "#page-temp,[data-tab='temp'],[data-tab='temperature'],.ed-tab[data-tab='sez7']",
           )
         )
-          scheduleTemperatureLabels();
+          root.queueMicrotask?.(renderStableBeta27Temperature);
+        if (
+          event.target?.closest?.(
+            "[data-energy-panel='loads'],.ed-inner-tab,.ed-tab[data-tab='sez1'],[data-tab='energy']",
+          )
+        )
+          scheduleLoadsEditor();
+        const button = event.target?.closest?.("button");
+        const text = clean(button?.textContent).toLowerCase();
+        const manualVisibility =
+          button?.matches?.("[data-key]") ||
+          /sezione visibile|sezione nascosta|section visible|section hidden/.test(text);
+        if (
+          button &&
+          !manualVisibility &&
+          /salva|save|aggiungi|add|crea|create/.test(text)
+        )
+          scheduleVisibilityRepair(120);
+      },
+      true,
+    );
+    doc.addEventListener(
+      "submit",
+      () => {
+        scheduleVisibilityRepair(120);
       },
       true,
     );
@@ -183,5 +1076,13 @@ else installBeta26RealDeviceStability();
 export const beta26RealDeviceStability = Object.freeze({
   installCanonicalApplianceArtworkBridge,
   syncBeta26TemperatureLabels,
+  renderStableBeta27Temperature,
+  temperatureRoomTabsModel,
+  legacyVisibilityTargets,
+  ensureConfiguredSectionsVisible,
+  loadGroupsModel,
+  normalizeFlowNodesForEditor,
+  renderBeta27LoadsEditor,
+  applyFlowNodeCustomization,
   installBeta26RealDeviceStability,
 });
