@@ -6,6 +6,7 @@ import {
   normalizeFlowNodesForEditor,
   temperatureRoomTabsModel,
 } from "../src/sections/beta26-real-device-stability-section.js";
+import { mergePreservedSubloadItems } from "../src/sections/beta27-subload-preserve-section.js";
 
 function memoryStorage(initial = {}) {
   const values = new Map(Object.entries(initial));
@@ -105,4 +106,15 @@ test("beta27 automatically turns configured legacy sections visible after save",
     if (previous === undefined) delete globalThis.localStorage;
     else globalThis.localStorage = previous;
   }
+});
+
+test("beta27 hierarchical loads preserve existing appliances and deduplicate projected children", () => {
+  const oven = { name: "Forno", pwrLive: "sensor.forno_power" };
+  const fridge = { name: "Frigorifero", pwrLive: "sensor.frigo_power" };
+  const custom = { name: "Microonde", pwrLive: "sensor.microonde_power" };
+
+  assert.deepEqual(
+    mergePreservedSubloadItems([oven, fridge], [fridge, custom]),
+    [oven, fridge, custom],
+  );
 });
