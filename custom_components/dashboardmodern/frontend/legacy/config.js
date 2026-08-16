@@ -8,7 +8,8 @@
     started: false,
     promise: null,
     unloading: false,
-    applianceObserver: null,
+    applianceCompatibilityListeners: false,
+    applianceCompatibilityFrame: 0,
   });
 
   const markUnloading = () => {
@@ -46,28 +47,49 @@
       .forEach(sanitize);
   };
 
+  const applianceRoots = () => {
+    const document = globalThis.document;
+    if (!document) return [];
+    return [
+      document.getElementById("page-appliances-main"),
+      document.getElementById("appl-grid-overview"),
+    ].filter(Boolean);
+  };
+
+  const scheduleApplianceSanitize = () => {
+    if (state.applianceCompatibilityFrame || state.unloading) return;
+    const run = () => {
+      state.applianceCompatibilityFrame = 0;
+      applianceRoots().forEach(sanitizeApplianceHeaderArtwork);
+    };
+    state.applianceCompatibilityFrame =
+      globalThis.requestAnimationFrame?.(run) || globalThis.setTimeout?.(run, 0);
+  };
+
   const installApplianceCompatibility = () => {
     const document = globalThis.document;
     if (!document) return;
 
-    const applianceRoots = [
-      document.getElementById("page-appliances-main"),
-      document.getElementById("appl-grid-overview"),
-    ].filter(Boolean);
-    applianceRoots.forEach(sanitizeApplianceHeaderArtwork);
+    applianceRoots().forEach(sanitizeApplianceHeaderArtwork);
+    scheduleApplianceSanitize();
 
-    if (!state.applianceObserver && globalThis.MutationObserver && applianceRoots.length) {
-      state.applianceObserver = new MutationObserver((records) => {
-        for (const record of records) {
-          for (const node of record.addedNodes || []) sanitizeApplianceHeaderArtwork(node);
-        }
-      });
-      applianceRoots.forEach((applianceRoot) => {
-        state.applianceObserver.observe(applianceRoot, {
-          childList: true,
-          subtree: true,
-        });
-      });
+    if (!state.applianceCompatibilityListeners) {
+      state.applianceCompatibilityListeners = true;
+      globalThis.addEventListener?.("dashboardmodern:state-changed", scheduleApplianceSanitize);
+      globalThis.addEventListener?.("dashboardmodern:runtime-ready", scheduleApplianceSanitize);
+      globalThis.addEventListener?.("dashboardmodern:energy-bundle", scheduleApplianceSanitize);
+      document.addEventListener(
+        "click",
+        (event) => {
+          if (
+            event.target?.closest?.(
+              "[data-tab='appliances-main'],[data-tab='appliances'],.appl-section-tab",
+            )
+          )
+            scheduleApplianceSanitize();
+        },
+        true,
+      );
     }
 
     if (!document.getElementById("dm-beta27-appliance-runtime-fixes")) {
