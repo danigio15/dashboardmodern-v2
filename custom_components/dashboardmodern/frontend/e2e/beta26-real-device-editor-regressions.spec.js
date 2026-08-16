@@ -181,10 +181,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const applianceDialog = page.locator("#dm-appliance-editor-modal");
     await expect(applianceDialog).toBeVisible();
     await expect(
-      applianceDialog.locator('[data-icon-preview] .dm-appliance-art[data-dm-art="dishwasher"]'),
+      applianceDialog.locator(
+        '[data-icon-preview] .dm-appliance-art[data-dm-art="dishwasher"]',
+      ),
     ).toHaveCount(1);
     await expect(
-      applianceDialog.locator('[data-type-trigger] .dm-appliance-art[data-dm-art="dishwasher"]'),
+      applianceDialog.locator(
+        '[data-type-trigger] .dm-appliance-art[data-dm-art="dishwasher"]',
+      ),
     ).toHaveCount(1);
   });
 }
