@@ -1,7 +1,9 @@
 const root = globalThis;
+const doc = root.document;
 const KEY = "__DASHBOARDMODERN_ENERGY_LEGACY_GUARD__";
 const FRESH_BUNDLE_MS = 15000;
 const BETA27_SUBLOAD_KEY = "__DASHBOARDMODERN_BETA27_SUBLOAD_PRESERVE__";
+const BETA27_PICKER_KEY = "__DASHBOARDMODERN_BETA27_PICKER_CONTRACT__";
 
 /**
  * Legacy DashboardModern still calls cdTotalsRun() once after Home Assistant
@@ -129,7 +131,78 @@ export function installBeta27SubloadPreservation() {
   return protectedAny;
 }
 
+/**
+ * Keep every Beta 27 entity field on the same DOM contract used by the shipped
+ * entity-picker guard. The hierarchical Loads renderer owns the click handler;
+ * this bridge only declares the canonical input/target relationship so the
+ * global guard never creates a second lens/dialog and E2E/runtime diagnostics
+ * can verify a strict 1:1 picker invariant.
+ */
+export function reconcileBeta27EntityPickerContract(scope = doc) {
+  if (!scope?.querySelectorAll) return 0;
+  let count = 0;
+  scope
+    .querySelectorAll(".dm-beta27-load-editor .dm-entity-picker[data-beta27-entity-target]")
+    .forEach((button) => {
+      const targetId = cleanSubloadValue(button.dataset.beta27EntityTarget);
+      if (!targetId) return;
+      const input = doc?.getElementById?.(targetId);
+      if (!input) return;
+      input.dataset.entityInput = "true";
+      button.dataset.entityTarget = targetId;
+      count += 1;
+    });
+  return count;
+}
+
+function scheduleBeta27EntityPickerContract() {
+  root.queueMicrotask?.(() => reconcileBeta27EntityPickerContract());
+}
+
+function installBeta27EditorContractBridge() {
+  const state = (root[BETA27_PICKER_KEY] ||= { installed: false });
+  if (state.installed) {
+    scheduleBeta27EntityPickerContract();
+    return true;
+  }
+  state.installed = true;
+
+  for (const name of ["editorSwitch", "apriConfigEntita"]) {
+    const current = root[name];
+    if (typeof current !== "function" || current.__dmBeta27PickerContract) continue;
+    function beta27PickerContractOwner(...args) {
+      const result = current.apply(this, args);
+      scheduleBeta27EntityPickerContract();
+      return result;
+    }
+    beta27PickerContractOwner.__dmBeta27PickerContract = true;
+    beta27PickerContractOwner.__dmPrevious = current;
+    root[name] = beta27PickerContractOwner;
+  }
+
+  doc?.addEventListener?.(
+    "click",
+    (event) => {
+      if (
+        event.target?.closest?.(
+          ".ed-tab,.ed-inner-tab,[data-energy-panel],[data-beta27-child-add],[data-beta27-child-edit]",
+        )
+      )
+        scheduleBeta27EntityPickerContract();
+    },
+    true,
+  );
+  scheduleBeta27EntityPickerContract();
+  return true;
+}
+
 installEnergyLegacyGuardSection();
 installBeta27SubloadPreservation();
-root.addEventListener?.("dashboardmodern:legacy-ready", installBeta27SubloadPreservation);
-root.addEventListener?.("dashboardmodern:runtime-ready", installBeta27SubloadPreservation);
+root.addEventListener?.("dashboardmodern:legacy-ready", () => {
+  installBeta27SubloadPreservation();
+  installBeta27EditorContractBridge();
+});
+root.addEventListener?.("dashboardmodern:runtime-ready", () => {
+  installBeta27SubloadPreservation();
+  installBeta27EditorContractBridge();
+});
