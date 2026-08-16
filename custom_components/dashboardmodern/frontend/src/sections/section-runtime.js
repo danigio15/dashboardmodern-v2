@@ -17,6 +17,7 @@ import { installTemperatureSection } from "./temperature-section.js";
 import { installTemperatureLayoutSection } from "./temperature-layout-section.js";
 import { installAppliancesSection } from "./appliances-section.js";
 import { installApplianceLayoutSection } from "./appliance-layout-section.js";
+import { installBeta27ReleaseStability } from "./beta27-release-stability-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installAlertsSection } from "./alerts-section.js";
@@ -619,6 +620,7 @@ export function installSectionRuntime() {
     installReportEditorSection();
     installShutterSection();
     installEvSection();
+    installBeta27ReleaseStability();
 
     root[RUNTIME_KEY] = Object.freeze({
       installed: true,
@@ -651,6 +653,7 @@ export function installSectionRuntime() {
         "report-editor",
         "shutters",
         "ev",
+        "beta27-release-stability",
       ]),
       registry: root.__DASHBOARDMODERN_SECTIONS__,
       energyServices: root.__DASHBOARDMODERN_ENERGY_SERVICES__,

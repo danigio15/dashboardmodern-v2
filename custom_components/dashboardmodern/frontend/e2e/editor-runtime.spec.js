@@ -302,29 +302,32 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     ).toBeVisible();
     await clickStableButton(page, page.getByRole("button", { name: /CARICHI|LOADS/ }), testInfo);
     const loads = await page.locator('[data-energy-panel="loads"]').innerHTML();
-    await page.locator("#dm-load-name").fill("Booster");
-    await page.locator("#dm-load-power").fill("sensor.pump_power");
-    await page.locator("#dm-load-dashboard").uncheck();
-    await page.locator("[data-save-load]").click();
+    const kitchenGroup = page.locator('[data-beta27-group="cucina"]');
+    await expect(kitchenGroup).toBeVisible();
+    await clickStableButton(page, kitchenGroup.locator("[data-beta27-child-add]"), testInfo);
+    await page.locator("[data-beta27-child-form] [data-child-name]").fill("Booster");
+    await page.locator("#dm-beta27-child-power").fill("sensor.pump_power");
+    await clickStableButton(page, page.locator("[data-beta27-child-save]"), testInfo);
     await expect(
-      page.locator('[data-energy-panel="loads"] [data-load-id]', { hasText: "Booster" }),
+      page.locator('[data-beta27-child-group="cucina"]', { hasText: "Booster" }),
     ).toHaveCount(1);
     await page
-      .locator('[data-energy-panel="loads"] [data-load-id]', { hasText: "Booster" })
-      .locator("[data-edit-load]")
+      .locator('[data-beta27-child-group="cucina"]', { hasText: "Booster" })
+      .locator("[data-beta27-child-edit]")
       .click();
-    await page.locator("#dm-load-name").fill("Booster updated");
-    await page.locator("[data-save-load]").click();
+    await page.locator("[data-beta27-child-form] [data-child-name]").fill("Booster updated");
+    await clickStableButton(page, page.locator("[data-beta27-child-save]"), testInfo);
     await expect(
-      page.locator('[data-energy-panel="loads"] [data-load-id]', { hasText: "Booster updated" }),
+      page.locator('[data-beta27-child-group="cucina"]', { hasText: "Booster updated" }),
     ).toHaveCount(1);
-    await page.locator("#dm-load-name").fill("Temporary load");
-    await page.locator("#dm-load-power").fill("sensor.temporary_power");
-    await page.locator("[data-save-load]").click();
-    const temporary = page.locator('[data-energy-panel="loads"] [data-load-id]', {
+    await clickStableButton(page, kitchenGroup.locator("[data-beta27-child-add]"), testInfo);
+    await page.locator("[data-beta27-child-form] [data-child-name]").fill("Temporary load");
+    await page.locator("#dm-beta27-child-power").fill("sensor.temporary_power");
+    await clickStableButton(page, page.locator("[data-beta27-child-save]"), testInfo);
+    const temporary = page.locator('[data-beta27-child-group="cucina"]', {
       hasText: "Temporary load",
     });
-    await temporary.locator("[data-delete-load]").click();
+    await temporary.locator("[data-beta27-child-delete]").click();
     await expect(temporary).toHaveCount(0);
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-loads.png` });
     await clickStableButton(page, page.getByRole("button", { name: "REPORT" }), testInfo);
@@ -356,13 +359,13 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(page.locator("[data-report-actions]")).toHaveAttribute("data-state", "success");
     await expect(page.locator('[data-energy-panel="report"]')).toBeVisible();
     expect(
-      await page.evaluate(
-        () =>
-          window.DashboardModernModules.store
-            .getSection("loads")
-            .find((item) => item.name === "Booster updated")?.show_in_dashboard,
-      ),
-    ).toBe(false);
+      await page.evaluate(() => {
+        const groups = JSON.parse(localStorage.getItem("cd_subloads_extra") || "{}");
+        return groups.cucina?.some(
+          (item) => item.name === "Booster updated" && item.pwr === "sensor.pump_power",
+        );
+      }),
+    ).toBe(true);
     await clickStableButton(page, page.getByRole("button", { name: /CARICHI|LOADS/ }), testInfo);
     await clickStableButton(page, page.getByRole("button", { name: "REPORT" }), testInfo);
     await expect(page.locator('[data-report-name][value="Manual water"]')).toHaveCount(1);

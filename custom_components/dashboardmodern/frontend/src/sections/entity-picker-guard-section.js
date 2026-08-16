@@ -102,6 +102,11 @@ export function reconcileEntityPickers(scope = doc) {
 }
 
 function schedule() {
+  // Energy Beta 27 can add a small group of entity fields synchronously during
+  // editorSwitch(). Reconcile the active editor before returning so callers do
+  // not observe a transient state with more picker buttons than entity inputs.
+  const activeEditor = doc.getElementById("ed-body");
+  if (activeEditor) reconcileEntityPickers(activeEditor);
   if (state.frame) return;
   const run = () => {
     state.frame = 0;

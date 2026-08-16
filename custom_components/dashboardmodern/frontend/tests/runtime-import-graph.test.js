@@ -137,8 +137,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // contracts after those targeted renders. Neither adds polling or observers.
   // Beta26 adds exactly one real-device stability owner; its only observer is
   // scoped to #temp-grid so saved primary labels win over delayed legacy repaints.
-  // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 78, `production graph unexpectedly grew to ${relative.length} modules`);
+  // Beta27 adds one final event-driven real-device owner for compact appliance
+  // geometry/theme/media contracts and single-owner Temperature room tabs. It
+  // adds no polling or document-wide observer. All facade/cycle/orphan/polling/
+  // global-observer checks stay active.
+  assert.ok(relative.length <= 79, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
