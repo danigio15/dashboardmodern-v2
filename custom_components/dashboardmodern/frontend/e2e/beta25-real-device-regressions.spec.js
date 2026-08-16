@@ -106,8 +106,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   }, testInfo) => {
     await boot(page, variant, testInfo);
     await page.evaluate(() => {
-      if (!document.getElementById("editor-modal")?.classList.contains("show"))
-        apriConfigEntita();
+      if (!document.getElementById("editor-modal")?.classList.contains("show")) apriConfigEntita();
       editorSwitch("sez7");
     });
 
@@ -143,9 +142,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       });
 
     await page.evaluate(() => buildTempCards?.());
-    await expect(
-      page.locator('#temp-grid .temp-card[data-room-id="room-cameretta"]'),
-    ).toHaveCount(2);
+    await expect(page.locator('#temp-grid .temp-card[data-room-id="room-cameretta"]')).toHaveCount(
+      2,
+    );
   });
 
   test(`${variant}: beta25 standard dishwasher artwork removes a stale washer image`, async ({
@@ -173,18 +172,14 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       });
 
     await page.evaluate(() => {
-      document
-        .querySelectorAll(".page")
-        .forEach((node) => node.classList.remove("active"));
+      document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
       document.getElementById("page-appliances-main")?.classList.add("active");
       renderAppliances?.();
       renderApplianceSection?.(true);
     });
     const card = page.locator('[data-appliance-id="appliance-dishwasher"]').first();
     await expect(card).toBeVisible();
-    await expect(
-      card.locator('.dm-appliance-art[data-dm-art="dishwasher"]'),
-    ).toHaveCount(1);
+    await expect(card.locator('.dm-appliance-art[data-dm-art="dishwasher"]')).toHaveCount(1);
     await expect(card.locator(".dm-appliance-image")).toHaveCount(0);
   });
 }
