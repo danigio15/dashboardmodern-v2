@@ -3,14 +3,20 @@
 // same cards in different animation frames.
 import { applianceArtwork } from "../core/appliance-artwork.js";
 import { canonicalApplianceVisualKey } from "../core/device-model.js";
-import { clean, dashboardStore, doc, english, root, section } from "./shared.js";
+import {
+  clean,
+  dashboardStore,
+  doc,
+  english,
+  root,
+  section,
+  wrapFunction,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_BETA26_REAL_DEVICE_STABILITY__";
 const state = (root[KEY] ||= {
   installed: false,
   listeners: false,
-  observer: null,
-  grid: null,
   storeUnsubscribe: null,
   scheduled: false,
 });
@@ -98,21 +104,14 @@ export function syncBeta26TemperatureLabels() {
   return synced;
 }
 
-function bindTemperatureObserver() {
-  const grid = doc?.getElementById?.("temp-grid");
-  if (!grid) return false;
-  if (state.grid === grid && state.observer) return true;
-  state.observer?.disconnect?.();
-  state.grid = grid;
-  if (typeof root.MutationObserver !== "function") return false;
-  state.observer = new root.MutationObserver(() => scheduleTemperatureLabels());
-  state.observer.observe(grid, { childList: true, subtree: true });
-  return true;
+function installTemperatureRenderHooks() {
+  for (const name of ["buildTempCards", "renderTemperature", "render"])
+    wrapFunction(name, `__dmBeta26TemperatureLabels_${name}`, scheduleTemperatureLabels);
 }
 
 function runTemperatureLabels() {
   state.scheduled = false;
-  bindTemperatureObserver();
+  installTemperatureRenderHooks();
   syncBeta26TemperatureLabels();
 }
 
@@ -123,6 +122,7 @@ function scheduleTemperatureLabels() {
   root.requestAnimationFrame?.(runTemperatureLabels);
   root.setTimeout?.(runTemperatureLabels, 0);
   root.setTimeout?.(runTemperatureLabels, 80);
+  root.setTimeout?.(runTemperatureLabels, 180);
 }
 
 function subscribeStore() {
@@ -139,8 +139,8 @@ function subscribeStore() {
 export function installBeta26RealDeviceStability() {
   if (!doc) return false;
   installCanonicalApplianceArtworkBridge();
+  installTemperatureRenderHooks();
   subscribeStore();
-  bindTemperatureObserver();
   scheduleTemperatureLabels();
 
   if (!state.listeners) {
@@ -154,6 +154,7 @@ export function installBeta26RealDeviceStability() {
     ])
       root.addEventListener?.(eventName, () => {
         installCanonicalApplianceArtworkBridge();
+        installTemperatureRenderHooks();
         subscribeStore();
         scheduleTemperatureLabels();
       });
