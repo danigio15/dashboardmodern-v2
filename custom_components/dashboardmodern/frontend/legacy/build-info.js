@@ -10,4 +10,5 @@ import "../src/sections/beta16-real-device-layout-section.js";
 import "../src/sections/beta22-load-slots-hotfix-section.js";
 import "../src/sections/beta24-energy-recovery-section.js";
 import "../src/sections/beta25-real-device-fixes-section.js";
+import "../src/sections/beta25-compatibility-section.js";
 export const BUILD_INFO = Object.freeze({"generated":true,"integrationVersion":"1.0.0-beta.25","dashboardVersion":"1.0.0-beta.25","moduleVersion":14,"schemaVersion":4,"date":"2026-08-16T07:05:00+00:00","commit":"455ce28b02a7e788f36907829fc26f49d4f1aaf8","assetHash":"be7a250000000000"});
