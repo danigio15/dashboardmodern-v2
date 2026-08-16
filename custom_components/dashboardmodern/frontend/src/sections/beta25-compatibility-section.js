@@ -218,7 +218,10 @@ export function repairExplicitCatalogArtwork() {
       const media = card.querySelector(".appl-visual .appl-ic,.appl-ic");
       if (!media) return;
       const current = media.querySelector(":scope > .dm-appliance-art");
-      if (!current || current.dataset.dmArt !== artwork) media.innerHTML = applianceArtwork(artwork, 96);
+      // Pass the original catalog key to applianceArtwork. Passing the already
+      // canonical English token "dishwasher" would be canonicalized a second
+      // time and can collide with the substring "washer".
+      if (!current || current.dataset.dmArt !== artwork) media.innerHTML = applianceArtwork(key, 96);
       card.dataset.dmArtwork = artwork;
       card.dataset.dmMediaKind = "asset";
       repaired = true;
@@ -275,6 +278,9 @@ export function installBeta25Compatibility() {
         schedule(restoreTemperatureContracts);
         schedule(repairExplicitCatalogArtwork);
       });
+    root.addEventListener?.("dashboardmodern:state-changed", () =>
+      schedule(repairExplicitCatalogArtwork),
+    );
     doc.addEventListener("click", (event) => {
       if (
         event.target?.closest?.(
