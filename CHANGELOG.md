@@ -40,6 +40,26 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Modificato
 
+- **Tapparelle** è stata ridisegnata. Ogni scheda non mostra più un rettangolo
+  azzurro con delle righe grigie: adesso c'è una finestra vera, con il telaio,
+  il montante centrale, le guide laterali, il cassonetto in alto e, dietro il
+  vetro, il cielo con il sole, le nuvole, il prato e le siepi. Di notte la
+  stessa finestra passa al cielo scuro con la luna e le stelle.
+- La tapparella è disegnata come una tapparella: stecche con la loro curvatura,
+  la stecca finale più scura con la maniglia e l'ombra che cade sul vetro
+  sotto. **Mentre sale o scende le stecche scorrono davvero**, nel verso
+  giusto, e la scheda in movimento si illumina di azzurro sul bordo.
+- Risolto un difetto della vecchia grafica: a tapparella completamente chiusa
+  la parte alta restava trasparente e si vedeva il cielo attraverso le fessure.
+  Ora la tapparella chiusa copre tutta la finestra.
+- Lo stato ("Aperta", "Chiusa", "In apertura", "In chiusura") è una pastiglia
+  con il pallino colorato che pulsa quando la tapparella si muove, la
+  percentuale è una pastiglia con l'icona della tapparella e i tre comandi
+  hanno colori diversi tra loro: salire, fermare e scendere non si confondono
+  più. La barra "Apri tutte / Chiudi tutte" è centrata e più alta da toccare, e
+  i titoli di piano e stanza hanno la loro riga con la linea che sfuma.
+- Tutta la pagina segue il tema chiaro e scuro, si adatta al telefono e chi ha
+  attivato "riduci animazioni" vede la scena ferma.
 - **Piscina** e **Irrigazione** sono state ridisegnate: ognuna ha ora una scena
   vera al posto del pannello azzurro piatto e della lista di riquadri grigi.
 - La Piscina disegna il giardino, il bordo in pietra, la vasca in prospettiva
