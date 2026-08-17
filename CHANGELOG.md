@@ -18,6 +18,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   solo proprietario, quello che disegna anche le schede: la stanza scelta resta
   selezionata e viene riapplicata dopo ogni ridisegno, da qualunque livello
   arrivi.
+- Un'azione rapida già configurata mostrava solo l'icona, la matita e il
+  cestino: il nome c'era ma restava largo zero. La riga delle azioni è disposta
+  a griglia, dove la larghezza zero pensata per le righe flex non viene più
+  compensata da `flex`, così il testo finiva tagliato. Ora il riquadro del nome
+  occupa la sua colonna e nome e dettaglio dell'azione tornano leggibili.
+- La pulizia delle icone `mdi:` non tocca più il nome dell'azione: un'azione
+  chiamata come la propria icona conserva la sua etichetta.
 
 ## 1.0.0-beta.30.6 — 2026-08-17
 

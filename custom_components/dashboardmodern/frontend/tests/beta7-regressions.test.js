@@ -51,6 +51,8 @@ test("existing guard keeps action text in column two and invalidates shutter sav
   const source = await readFile(guardUrl, "utf8");
   assert.match(source, /dm-beta7-action-row>\.ed-row-main/);
   assert.match(source, /grid-column:2!important/);
+  assert.match(source, /width:auto!important/);
+  assert.match(source, /justify-self:stretch!important/);
   assert.match(source, /__dmBeta7ShutterConfigOwner/);
   assert.match(source, /regression\.shutterSignature = ""/);
   assert.match(source, /root\.edTappAdd = configAwareShutterSave/);
@@ -69,4 +71,21 @@ test("period energy main connectors use direction-specific displayed values", as
   assert.match(source, /animation-timing-function:linear!important/);
   assert.match(source, /animation-iteration-count:infinite!important/);
   assert.match(source, /animation-play-state:running!important/);
+});
+
+test("configured rows keep a shrinkable label instead of a collapsed one", async () => {
+  const crud = await readFile(
+    new URL("../src/sections/editor-crud-section.js", import.meta.url),
+    "utf8",
+  );
+  const rule = crud.match(/#editor-modal \.ed-row-main\{[^}]*\}/)?.[0];
+  assert.ok(rule, "editor-crud owns the shared label box");
+  assert.doesNotMatch(rule, /[{;]width:0!important/);
+  assert.match(rule, /min-width:0!important/);
+  assert.match(rule, /flex:1 1 0!important/);
+});
+
+test("the mdi cleanup never blanks the readable label of an action row", async () => {
+  const source = await readFile(regressionsUrl, "utf8");
+  assert.match(source, /node\.closest\?\.\("\.ed-row-main"\)/);
 });
