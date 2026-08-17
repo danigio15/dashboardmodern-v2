@@ -6,6 +6,6 @@ const manifest = JSON.parse(
   fs.readFileSync(new URL("../../manifest.json", import.meta.url), "utf8"),
 );
 
-test("beta28 release manifest is versioned correctly", () => {
-  assert.equal(manifest.version, "1.0.0-beta.28");
+test("beta29 release manifest is versioned correctly", () => {
+  assert.equal(manifest.version, "1.0.0-beta.29");
 });
