@@ -22,22 +22,6 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   sono carichi. Nessuna icona è offerta due volte e la ricerca nasconde le
   intestazioni dei gruppi rimasti vuoti.
 
-### Corretto
-
-- In **Temperature** l'etichetta sopra il numero cambiava da sola: la stessa
-  scheda mostrava "TEMPERATURA" e un istante dopo il nome dato al sensore. Quel
-  testo aveva tre proprietari che non erano d'accordo — i renderer scrivevano la
-  parola generica alla creazione, la passata di rifinitura beta17 scriveva il
-  nome della stanza su **tutte** le schede di quella stanza (seconda sonda
-  compresa) a ogni frame, e il livello beta27 lo scriveva per associazione. Su un
-  impianto vero i sensori aggiornano di continuo, quindi l'etichetta ballava a
-  ogni ridisegno. Ora la regola sta in un punto solo: la prima associazione porta
-  il nome dato in configurazione, una sonda aggiuntiva porta il proprio, e senza
-  nome resta la parola "Temperatura". La passata beta17 continua a occuparsi
-  dell'editor e non tocca più le schede.
-
-## 1.0.0-beta.30.6 — 2026-08-17
-
 ### Modificato
 
 - **Tapparelle** ha ora una testata con il riepilogo — quante sono aperte,
@@ -78,6 +62,25 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   i titoli di piano e stanza hanno la loro riga con la linea che sfuma.
 - Tutta la pagina segue il tema chiaro e scuro, si adatta al telefono e chi ha
   attivato "riduci animazioni" vede la scena ferma.
+
+### Corretto
+
+- In **Temperature** l'etichetta sopra il numero cambiava da sola: la stessa
+  scheda mostrava "TEMPERATURA" e un istante dopo il nome dato al sensore. Quel
+  testo aveva tre proprietari che non erano d'accordo — i renderer scrivevano la
+  parola generica alla creazione, la passata di rifinitura beta17 scriveva il
+  nome della stanza su **tutte** le schede di quella stanza (seconda sonda
+  compresa) a ogni frame, e il livello beta27 lo scriveva per associazione. Su un
+  impianto vero i sensori aggiornano di continuo, quindi l'etichetta ballava a
+  ogni ridisegno. Ora la regola sta in un punto solo: la prima associazione porta
+  il nome dato in configurazione, una sonda aggiuntiva porta il proprio, e senza
+  nome resta la parola "Temperatura". La passata beta17 continua a occuparsi
+  dell'editor e non tocca più le schede.
+
+## 1.0.0-beta.30.6 — 2026-08-17
+
+### Modificato
+
 - **Piscina** e **Irrigazione** sono state ridisegnate: ognuna ha ora una scena
   vera al posto del pannello azzurro piatto e della lista di riquadri grigi.
 - La Piscina disegna il giardino, il bordo in pietra, la vasca in prospettiva
