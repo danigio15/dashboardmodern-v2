@@ -340,6 +340,8 @@ function installStyles() {
       --tapp-box:linear-gradient(180deg,#f4f7fb 0 2px,#e2e9f2 2px 5px,#c8d2df 5px 6px,#dfe6ef 6px 8px,#a9b5c5 8px 10px,rgba(15,23,42,.38) 10px 11px);
       --tapp-slat:linear-gradient(180deg,#fdfeff 0 1px,#eaf0f7 1px 4px,#c6d1df 4px 9px,#9daabc 9px 11px,rgba(15,23,42,.34) 11px 12px);
       --tapp-slat-base:#b7c2d1;
+      --tapp-track-sky:#bfe6fb;
+      --tapp-spill:rgba(255,214,120,.80);
       --tapp-rail:linear-gradient(180deg,#b3bdcc 0 2px,#7d8898 2px 5px,#4d5766 5px 7px);
       --tapp-grip:radial-gradient(20px 3px at 50% 50%,rgba(15,23,42,.5),transparent 72%);
       --tapp-pill:rgba(148,163,184,.13);
@@ -369,6 +371,8 @@ function installStyles() {
       --tapp-box:linear-gradient(180deg,#454f64 0 2px,#333d50 2px 5px,#222b3b 5px 6px,#303a4c 6px 8px,#1b2331 8px 10px,rgba(0,0,0,.65) 10px 11px);
       --tapp-slat:linear-gradient(180deg,#7c8ca6 0 1px,#5d6c85 1px 4px,#41506a 4px 9px,#2d3950 9px 11px,rgba(0,0,0,.58) 11px 12px);
       --tapp-slat-base:#39455a;
+      --tapp-track-sky:#1e4370;
+      --tapp-spill:rgba(191,219,254,.42);
       --tapp-rail:linear-gradient(180deg,#5a6779 0 2px,#3b4557 2px 5px,#1b222e 5px 7px);
       --tapp-grip:radial-gradient(20px 3px at 50% 50%,rgba(0,0,0,.65),transparent 72%);
       --tapp-pill:rgba(148,163,184,.14);--tapp-pill-line:rgba(148,163,184,.24);

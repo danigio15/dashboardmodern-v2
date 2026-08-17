@@ -157,6 +157,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // replaces both legacy paint functions. Beta11's stylesheet block and the
   // Beta12/14/16 pool correctives stood down into it, so the two pages have one
   // renderer and one stylesheet instead of five competing layers.
+  // The Tapparelle redesign adds exactly one owner: the scene section that
+  // replaces the legacy paint function so the page can carry a summary header,
+  // per-room headings and a position track. It renders per structural
+  // signature rather than per tick, keeps commands on the legacy cdTappCmd
+  // handler, and adds no polling and no observer. The window skin stays in the
+  // existing shutter section, which is still the single owner of the
+  // first-paint geometry, so the two modules split structure from paint rather
+  // than competing over the same declarations.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
   // The Solar Thermal redesign adds exactly one owner: a style-and-labels module
   // for #page-boiler. It installs one stylesheet, fills the decorative labels the
@@ -168,7 +176,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // (state-changed + legacy render loop), adds no polling and no observer, and
   // keeps the camera engine — apriCamera, the streaming strategies and
   // toggleFullScreenCam — in the legacy runtime instead of forking it.
-  assert.ok(relative.length <= 91, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 92, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 

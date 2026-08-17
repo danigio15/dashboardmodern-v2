@@ -32,6 +32,7 @@ import { installEditorCrudSection } from "./editor-crud-section.js";
 import { installEditorContractsSection } from "./editor-contracts-section.js";
 import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
+import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
 import { installEvSection } from "./ev-section.js";
 import { installSolarThermalDesignSection } from "./solar-thermal-design-section.js";
@@ -635,6 +636,7 @@ export function installSectionRuntime() {
     installEditorContractsSection();
     installReportEditorSection();
     installShutterSection();
+    installShutterSceneSection();
     installPoolIrrigationSceneSection();
     installEvSection();
     installSolarThermalDesignSection();

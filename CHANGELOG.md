@@ -40,6 +40,21 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Modificato
 
+- **Tapparelle** ha ora una testata con il riepilogo — quante sono aperte,
+  chiuse e in movimento in questo momento — e i comandi "Apri tutte / Chiudi
+  tutte" dentro la testata invece che come due bottoni nudi in cima alla
+  pagina. Le tapparelle sono raggruppate per piano e stanza, ogni gruppo ha il
+  suo titolo con il numero di tapparelle, e sotto il nome di ogni scheda si
+  legge la stanza a cui appartiene.
+- **Accanto a ogni finestra c'è il cursore della posizione.** Si trascina in
+  verticale come la tapparella vera: la parte grigia in alto è la tapparella,
+  quella azzurra sotto è il cielo, e la tapparella nella finestra segue il dito
+  mentre trascini. Al rilascio la tapparella va esattamente a quella posizione.
+  La posizione scelta resta ferma mentre il motore si muove, invece di tornare
+  indietro al primo aggiornamento. Le tapparelle che non accettano una
+  posizione mostrano lo stesso indicatore, in sola lettura.
+- Quando la tapparella è alzata, sotto la finestra si vede la luce che entra
+  nella stanza, tanta quanta ne lascia passare.
 - **Tapparelle** è stata ridisegnata. Ogni scheda non mostra più un rettangolo
   azzurro con delle righe grigie: adesso c'è una finestra vera, con il telaio,
   il montante centrale, le guide laterali, il cassonetto in alto e, dietro il
