@@ -13,6 +13,7 @@ import {
   root,
   section,
   wrapFunction,
+  writeIconGlyph,
 } from "./shared.js";
 
 root.__DM_20260817A__ = true;
@@ -236,9 +237,7 @@ function hideLegacyLoadTopology(stage) {
 function writeIcon(target, icon) {
   if (!target || target.dataset.dmFlowIcon === icon) return;
   target.dataset.dmFlowIcon = icon;
-  if (/^mdi:/i.test(icon) && typeof root.cdIconMarkup === "function")
-    target.innerHTML = root.cdIconMarkup(icon, 28);
-  else target.textContent = icon;
+  writeIconGlyph(target, icon, { size: 28 });
 }
 
 function bindNodeClick(element, node, period) {
@@ -497,6 +496,10 @@ function installStyles() {
     .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke:var(--dm-flow-color)!important;stroke-dasharray:12 9!important;stroke-linecap:round!important;animation-name:dmEnergyFlowDash!important;animation-duration:.8s!important;animation-timing-function:linear!important;animation-iteration-count:infinite!important;animation-play-state:running!important;will-change:stroke-dashoffset!important}
     @keyframes dmEnergyFlowDash{from{stroke-dashoffset:0}to{stroke-dashoffset:-42}}
     @media(prefers-reduced-motion:reduce){.flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{animation:none!important}}
+    /* An mdi icon resolved by the engine sits inside .node-icon, which already
+       sizes the emoji of the hand-authored circles at every breakpoint: the
+       glyph inherits it so a configured circle matches its neighbours. */
+    .dm-flow-node .node-icon .dm-icon-engine-glyph{font-size:inherit!important;height:auto!important}
     /* Computed load bubbles. Width and speed of a connector follow the reading,
        so a wallbox at 7 kW is visibly heavier than a fridge at 60 W. */
     .flow-stage .node.dm-flow-node{display:flex!important;visibility:visible!important;transform:translate(-50%,-50%) scale(var(--dm-flow-scale,1))!important;transition:left .28s ease,top .28s ease,transform .28s ease!important}

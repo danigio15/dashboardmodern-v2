@@ -346,6 +346,41 @@ test("the labelled fields stay stacked on a phone, where they were unreadable", 
   assert.match(css, /\.dm-loads-identity\{display:grid;gap:12px/);
 });
 
+test("an mdi icon is drawn as a glyph, in the preview and in the picker button", () => {
+  // The token was written as `<ha-icon>` markup, which paints nothing where
+  // that element is undefined: the bubble and the button were empty boxes even
+  // though the icon had been picked. The engine resolves the same token to the
+  // glyph the picker shows while choosing it.
+  const asked = [];
+  globalThis.DashboardModernIconEngine = {
+    render: (target, kind, value, options) => {
+      asked.push([kind, value, options?.size]);
+      target.innerHTML = '<span class="dm-icon-engine-glyph">🚘</span>';
+      return true;
+    },
+  };
+  globalThis.cdIconMarkup = () => "<ha-icon></ha-icon>";
+  try {
+    render();
+    const input = cards()[0].querySelector("[data-dm-load-icon]");
+    input.value = "mdi:car-electric";
+    input.dispatch("input");
+    input.dispatch("change");
+
+    const card = cards()[0];
+    const bubble = card.querySelector(".dm-loads-preview-bubble");
+    const pick = card.querySelector("[data-dm-load-icon-pick]");
+    assert.deepEqual(asked[0], ["action", "mdi:car-electric", 24]);
+    assert.match(bubble.innerHTML, /🚘/);
+    assert.match(pick.innerHTML, /🚘/);
+    assert.equal(bubble.textContent, "", "the token is never printed as text");
+    assert.equal(pick.textContent, "");
+  } finally {
+    delete globalThis.DashboardModernIconEngine;
+    delete globalThis.cdIconMarkup;
+  }
+});
+
 test("the panel stays hidden when another Energy tab is open", () => {
   render();
   const css = globalThis.document.head.descendants().map((node) => node.textContent).join("\n");
