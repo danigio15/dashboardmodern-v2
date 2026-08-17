@@ -14,7 +14,10 @@ pytest.importorskip(
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
-from custom_components.dashboardmodern.config_store import PRIMARY_PROFILE
+from custom_components.dashboardmodern.config_store import (
+    PRIMARY_PROFILE,
+    async_get_config_store,
+)
 from custom_components.dashboardmodern.websocket_api import (
     TYPE_GET,
     TYPE_RESTORE,
@@ -47,27 +50,44 @@ async def _websocket_api(hass: HomeAssistant) -> None:
     async_register_websocket_api(hass)
 
 
-async def test_a_second_user_reads_the_same_configuration(
+async def test_another_user_reads_the_configuration_it_never_wrote(
     hass: HomeAssistant,
     hass_ws_client: Any,
-    hass_access_token: str,
     hass_read_only_access_token: str,
 ) -> None:
-    """The wipe that was really a per-user copy: both users see one plancia."""
-    admin = await hass_ws_client(hass, hass_access_token)
-    saved = await _command(
-        admin,
-        {"type": TYPE_SET, "snapshot": {"values": VALUES, "keys_revision": 2}},
-        1,
-    )
-    assert saved["status"] == "saved"
+    """The wipe that was really a per-user copy: one plancia for everybody.
 
-    # frontend/set_user_data would have given this user an empty copy.
-    other = await hass_ws_client(hass, hass_read_only_access_token)
-    read = await _command(other, {"type": TYPE_GET}, 2)
+    The configuration is stored by somebody else, and then read over the API by
+    a different — and non-admin — user, which is precisely what
+    frontend/get_user_data could not do: it would have answered this user with
+    an empty copy of their own.
+    """
+    store = await async_get_config_store(hass)
+    await store.async_set(PRIMARY_PROFILE, VALUES, keys_revision=2)
+
+    other_user = await hass_ws_client(hass, hass_read_only_access_token)
+    read = await _command(other_user, {"type": TYPE_GET}, 1)
 
     assert read["profile"] == PRIMARY_PROFILE
     assert read["snapshot"]["values"] == VALUES
+
+    # And that user may save too: a non-admin plancia has to be able to keep its
+    # own edits, so the commands are deliberately not admin-only.
+    saved = await _command(
+        other_user,
+        {
+            "type": TYPE_SET,
+            "snapshot": {
+                "values": {**VALUES, "cd_costo_kwh": "0.28"},
+                "keys_revision": 2,
+            },
+            "expected_revision": read["snapshot"]["revision"],
+        },
+        2,
+    )
+    assert saved["status"] == "saved"
+    stored = await store.async_get(PRIMARY_PROFILE)
+    assert stored["snapshot"]["values"]["cd_costo_kwh"] == "0.28"
 
 
 async def test_an_empty_write_is_refused_over_the_api(
