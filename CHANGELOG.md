@@ -4,6 +4,23 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.30.6 — 2026-08-17
+
+### Corretto
+
+- Un'icona `mdi:` scelta per un carico non si vedeva da nessuna parte: né
+  nell'anteprima della scheda in **Carichi e dispositivi**, né sul pulsante del
+  selettore, né nel cerchio del flusso a cui il carico appartiene. Il token
+  veniva scritto come markup `<ha-icon>`, che dipinge qualcosa solo dove quel
+  componente è definito: qui non lo è, quindi il riquadro restava vuoto — senza
+  glifo e senza nemmeno il token come testo. Ora il token passa per il motore
+  icone canonico, lo stesso che disegna il glifo mostrato nel selettore mentre
+  la si sceglie, così quello che si sceglie è quello che si vede; `<ha-icon>`
+  resta come ripiego per le superfici che lo risolvono, e il token non viene
+  mai stampato come testo. Il glifo eredita la misura del riquadro che lo
+  contiene, quindi un cerchio configurato con un'icona `mdi:` resta della
+  stessa dimensione di quelli accanto a ogni breakpoint.
+
 ## 1.0.0-beta.30.5 — 2026-08-17
 
 ### Modificato
