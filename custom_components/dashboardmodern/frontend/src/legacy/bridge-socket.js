@@ -42,6 +42,11 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   "camera_thumbnail",
   "frontend/get_user_data",
   "frontend/set_user_data",
+  // Shared plancia configuration. frontend/*_user_data stays allowed only so
+  // the per-user copy it used to write can be migrated into the shared store.
+  "dashboardmodern/config/get",
+  "dashboardmodern/config/set",
+  "dashboardmodern/config/restore",
   "auth/sign_path",
 ]);
 

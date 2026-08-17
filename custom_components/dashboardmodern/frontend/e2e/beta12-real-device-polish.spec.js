@@ -59,6 +59,31 @@ async function boot(page, variant, testInfo) {
           result = { value: window.__BETA12_REMOTE__ || null };
         if (message.type === "frontend/set_user_data")
           window.__BETA12_REMOTE__ = structuredClone(message.value);
+        // The shared configuration store of the integration, which replaced the
+        // per-user frontend/*_user_data copy as the authoritative one.
+        if (message.type === "dashboardmodern/config/get")
+          result = {
+            profile: "primary",
+            requested_profile: null,
+            snapshot: window.__BETA12_SHARED__ || null,
+            recoverable: [],
+            profiles: [],
+          };
+        if (message.type === "dashboardmodern/config/set") {
+          window.__BETA12_SHARED__ = {
+            revision: (window.__BETA12_SHARED__?.revision || 0) + 1,
+            updated_at: message.snapshot.updated_at || 0,
+            keys_revision: message.snapshot.keys_revision || 0,
+            reset: message.reset === true,
+            values: structuredClone(message.snapshot.values),
+          };
+          result = {
+            status: "saved",
+            profile: "primary",
+            snapshot: window.__BETA12_SHARED__,
+            recoverable: [],
+          };
+        }
         queueMicrotask(() =>
           this.onmessage?.({
             data: JSON.stringify({ id: message.id, type: "result", success: true, result }),
@@ -439,7 +464,7 @@ test("dashboard.html: total reset clears alerts and remote config without changi
     const before = location.href;
     const ok = await dmResetAllConfig({ skipConfirm: true, reload: false });
     const lastSet = (window.__BETA12_WS_CALLS__ || [])
-      .filter((message) => message.type === "frontend/set_user_data")
+      .filter((message) => message.type === "dashboardmodern/config/set")
       .at(-1);
     return {
       ok,
@@ -449,7 +474,9 @@ test("dashboard.html: total reset clears alerts and remote config without changi
       alertRemoved: localStorage.getItem("cd_gruppi_removed"),
       alertNames: localStorage.getItem("cd_avvisi_names_extra"),
       rooms: localStorage.getItem("cd_stanze"),
-      remoteValues: lastSet?.value?.values || null,
+      remoteValues: lastSet?.snapshot?.values || null,
+      // Only an explicit reset may empty the shared plancia, and it says so.
+      remoteReset: lastSet?.reset === true,
     };
   });
 
@@ -460,6 +487,7 @@ test("dashboard.html: total reset clears alerts and remote config without changi
   expect(result.alertNames).toBeNull();
   expect(result.rooms).toBeNull();
   expect(result.remoteValues).toEqual({});
+  expect(result.remoteReset).toBe(true);
 });
 
 test("dashboard.html: beta12 iPhone kiosk is opt-in, reversible and uses the dynamic viewport", async ({

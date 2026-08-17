@@ -121,6 +121,19 @@ Un ordine pratico di configurazione è:
 
 Quando modifichi una configurazione usa il pulsante **SALVA MODIFICHE** dell'editor prima di chiudere la finestra. DashboardModern salva la configurazione della plancia e mantiene le entità Home Assistant come sorgente dello stato reale.
 
+### Dove viene salvata la configurazione
+
+La configurazione della plancia è salvata dentro Home Assistant, in un archivio dell'integrazione (`.storage/dashboardmodern.config`), non nel browser. Non c'è niente da esportare o importare: il salvataggio e il ripristino sono automatici.
+
+Di conseguenza:
+
+- **è la stessa su tutti i dispositivi e per tutti gli utenti** dell'installazione: aprendo la plancia da un altro browser, da un altro account Home Assistant o dall'app Companion la ritrovi già configurata;
+- **sopravvive agli aggiornamenti**, al riavvio di Home Assistant, alla pulizia della cache del browser e anche alla rimozione e riaggiunta dell'integrazione;
+- **non può essere svuotata per sbaglio da un dispositivo**: un dispositivo che non riesce a leggere la configurazione non ne scrive una vuota al suo posto, e l'archivio rifiuta un salvataggio che sostituirebbe una plancia configurata con una vuota;
+- **conserva le ultime cinque versioni configurate**, quindi una plancia svuotata da una versione precedente viene ripristinata automaticamente. L'unico svuotamento definitivo è quello chiesto esplicitamente con il reset della configurazione.
+
+Restano legate al singolo dispositivo solo le preferenze che hanno senso solo lì: tema, modalità della barra di navigazione e dati di connessione.
+
 ---
 
 # Guida alle configurazioni
@@ -366,8 +379,10 @@ dashboardmodern-v2/
 │   └── dashboardmodern/
 │       ├── __init__.py              # lifecycle della custom integration
 │       ├── config_flow.py           # configurazione e opzioni Home Assistant
+│       ├── config_store.py          # archivio condiviso della configurazione plancia
 │       ├── const.py                 # costanti del dominio
 │       ├── frontend.py              # registrazione e servizio degli asset frontend
+│       ├── websocket_api.py         # comandi WebSocket della configurazione condivisa
 │       ├── manifest.json            # metadati/versione integrazione
 │       ├── strings.json             # stringhe base Home Assistant
 │       ├── translations/            # traduzioni config flow

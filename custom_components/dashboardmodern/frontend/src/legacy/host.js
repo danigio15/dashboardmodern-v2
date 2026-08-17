@@ -23,11 +23,12 @@ function escapeAttribute(value) {
   return String(value ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
-function injectHostedPrelude(html, { baseUrl, instanceId, primary }) {
+function injectHostedPrelude(html, { baseUrl, instanceId, primary, configProfile }) {
   const prelude = `<base href="${escapeAttribute(baseUrl)}"><script>(function(){
     const p=parent;
     const bridge=p&&p.__DASHBOARDMODERN_BRIDGE_WS__;
     window.__DASHBOARDMODERN_INSTANCE__=${JSON.stringify(instanceId)};
+    window.__DASHBOARDMODERN_PROFILE__=${JSON.stringify(configProfile || "")};
     window.__DASHBOARDMODERN_PRIMARY__=${primary !== false};
     window.__DASHBOARDMODERN_HOSTED__=true;
     window.__DASHBOARDMODERN_BRIDGED__=typeof bridge==='function';
@@ -67,7 +68,7 @@ export function stableStaticBase(staticBase, hostWindow = globalThis.window) {
   }
 }
 
-async function loadHostedDocument(frame, { staticBase, file, instanceId, primary, fetchRef, hostWindow }) {
+async function loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, fetchRef, hostWindow }) {
   const requestedBase = String(staticBase).replace(/\/$/, "");
   const fallbackBase = stableStaticBase(requestedBase, hostWindow);
   const bases = [...new Set([requestedBase, fallbackBase].filter(Boolean))];
@@ -84,6 +85,7 @@ async function loadHostedDocument(frame, { staticBase, file, instanceId, primary
         baseUrl: absoluteUrl(relativeBase, hostWindow),
         instanceId,
         primary,
+        configProfile,
       });
       frame.dataset.runtimeBase = base;
       frame.dataset.usedStableFallback = String(base !== requestedBase);
@@ -109,6 +111,7 @@ export function mountLegacyHost(
     variant = null,
     instanceId = "integration",
     primary = true,
+    configProfile = "",
     onDenied = () => {},
   } = {},
 ) {
@@ -118,6 +121,7 @@ export function mountLegacyHost(
 
   hostWindow[HOST_KEY] = true;
   hostWindow.__DASHBOARDMODERN_INSTANCE__ = instanceId;
+  hostWindow.__DASHBOARDMODERN_PROFILE__ = configProfile || "";
   hostWindow.__DASHBOARDMODERN_PRIMARY__ = primary !== false;
   delete hostWindow.__DASHBOARDMODERN_REAL_TOKEN__;
   delete hostWindow.DASHBOARDMODERN_AUTH_TOKEN;
@@ -128,7 +132,8 @@ export function mountLegacyHost(
   frame.setAttribute("title", "DashboardModern");
   frame.setAttribute("allow", LEGACY_FRAME_PERMISSIONS);
   frame.dataset ||= {};
-  frame.dataset.source = `${String(staticBase).replace(/\/$/, "")}/legacy/${file}?dmi=${encodeURIComponent(instanceId)}&dmp=${primary !== false ? 1 : 0}`;
+  const profileQuery = configProfile ? `&dmc=${encodeURIComponent(configProfile)}` : "";
+  frame.dataset.source = `${String(staticBase).replace(/\/$/, "")}/legacy/${file}?dmi=${encodeURIComponent(instanceId)}&dmp=${primary !== false ? 1 : 0}${profileQuery}`;
   frame.style.cssText = "width:100%;height:100%;min-height:0;border:0;display:block";
   frame.style.width = "100%";
   frame.style.height = "100%";
@@ -145,6 +150,7 @@ export function mountLegacyHost(
     const child = frame.contentWindow;
     if (!child) return false;
     child.__DASHBOARDMODERN_INSTANCE__ = instanceId;
+    child.__DASHBOARDMODERN_PROFILE__ = configProfile || "";
     child.__DASHBOARDMODERN_PRIMARY__ = primary !== false;
     child.__DASHBOARDMODERN_HOSTED__ = true;
     child.__DASHBOARDMODERN_BRIDGED__ = true;
@@ -171,7 +177,7 @@ export function mountLegacyHost(
       : async () => ({ ok: true, status: 200, text: async () => "<!doctype html><html><head></head><body></body></html>" });
   if (typeof loader !== "function") throw new Error("A fetch implementation is required.");
 
-  const ready = loadHostedDocument(frame, { staticBase, file, instanceId, primary, fetchRef: loader, hostWindow }).catch((error) => {
+  const ready = loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, fetchRef: loader, hostWindow }).catch((error) => {
     console.error("[DashboardModern] hosted document bootstrap failed", error);
     frame.srcdoc = `<main role="alert" style="padding:24px;font:16px sans-serif">DashboardModern: ${escapeAttribute(error.message)}</main>`;
     return false;
@@ -186,6 +192,7 @@ export function mountLegacyHost(
       frame.remove();
       delete hostWindow[HOST_KEY];
       delete hostWindow.__DASHBOARDMODERN_INSTANCE__;
+      delete hostWindow.__DASHBOARDMODERN_PROFILE__;
       delete hostWindow.__DASHBOARDMODERN_PRIMARY__;
       delete hostWindow.__DASHBOARDMODERN_BRIDGE_WS__;
       delete hostWindow.__DASHBOARDMODERN_REAL_TOKEN__;

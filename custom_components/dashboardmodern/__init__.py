@@ -39,8 +39,14 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Register the frontend that serves the HTML dashboard."""
+    from .config_store import async_get_config_store
     from .frontend import async_register_frontend
+    from .websocket_api import async_register_websocket_api
 
+    # The shared configuration store is the authoritative copy of every plancia,
+    # so it is loaded and reachable before the panel can ask for it.
+    await async_get_config_store(hass)
+    async_register_websocket_api(hass)
     await async_register_frontend(hass, entry.entry_id)
     entry.async_on_unload(entry.add_update_listener(_reload_on_options_change))
     return True

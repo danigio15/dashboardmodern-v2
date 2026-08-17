@@ -1,4 +1,4 @@
-// DM-FIX-20260815I
+// DM-FIX-20260817A
 import { normalizeSection } from "../core/migrations.js";
 import { root } from "./shared.js";
 
@@ -7,6 +7,22 @@ const USER_DATA_VERSION = 1;
 const CONFIG_KEYS_REVISION = 2;
 const PERSIST_META_KEY = "dm_persistence_meta";
 const REMOTE_REFRESH_MIN_MS = 1200;
+
+// Shared configuration store of the integration. Unlike frontend/*_user_data it
+// is one copy for the whole installation instead of one per Home Assistant user,
+// and its key does not contain the entry_id, so removing and re-adding the
+// integration finds the same configuration again.
+const SHARED_GET = "dashboardmodern/config/get";
+const SHARED_SET = "dashboardmodern/config/set";
+const SHARED_RESTORE = "dashboardmodern/config/restore";
+const PRIMARY_PROFILE = "primary";
+
+// A failed read must never promote this device to authoritative: it retries
+// instead, because the previous behaviour let a transient socket failure turn an
+// unconfigured device into the writer that emptied everybody else's plancia.
+const HYDRATE_RETRY_MS = Object.freeze([1500, 3000, 6000, 12000, 30000]);
+const PUSH_CONFLICT_RETRIES = 2;
+
 const state = (root[KEY] ||= {
   installed: false,
   dirtyAt: 0,
@@ -22,6 +38,10 @@ const state = (root[KEY] ||= {
   resetOwnerInstalled: false,
   resetting: false,
   mutationBridgeInstalled: false,
+  remoteRevision: 0,
+  remoteConfigured: false,
+  hydrateRetryTimer: 0,
+  transportFailures: 0,
 });
 
 // Complete shared dashboard configuration snapshot. Runtime counters/timers and
@@ -112,6 +132,40 @@ export async function migrateLegacyUserData(fetchValue, pushValue) {
   return legacy;
 }
 
+export function sanitizeProfile(value) {
+  return String(value ?? "")
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .slice(0, 64);
+}
+
+function parentProfile() {
+  try {
+    if (root.parent && root.parent !== root) return root.parent.__DASHBOARDMODERN_PROFILE__;
+  } catch (_error) {}
+  return undefined;
+}
+
+/**
+ * Resolve the shared storage profile of this plancia.
+ *
+ * The integration injects it, and it is intentionally not derived from the
+ * entry_id. A profile is never invented: an older cached panel that does not
+ * provide one keeps the historical per-user transport for a secondary plancia
+ * rather than writing a guessed key that the integration would not find again.
+ */
+export function configProfileFor({ profile = "", primary = true } = {}) {
+  const explicit = sanitizeProfile(profile);
+  if (explicit) return explicit;
+  return primary !== false ? PRIMARY_PROFILE : "";
+}
+
+function currentProfile() {
+  return configProfileFor({
+    profile: root.__DASHBOARDMODERN_PROFILE__ || parentProfile() || "",
+    primary: root.__DASHBOARDMODERN_PRIMARY__ !== false,
+  });
+}
+
 function valuesFromStorage(storage = root.localStorage) {
   const values = {};
   for (const key of CONFIG_KEYS) {
@@ -141,7 +195,7 @@ function meaningfulNested(value, { ignoreMetadata = false } = {}) {
   return meaningfulScalar(value);
 }
 
-function meaningfulLocal(values = localValues()) {
+export function meaningfulConfigValues(values = {}) {
   const stateValue = values.dm_dashboard_state;
   if (stateValue) {
     try {
@@ -165,6 +219,10 @@ function meaningfulLocal(values = localValues()) {
       return String(value || "").trim().length > 0;
     }
   });
+}
+
+function meaningfulLocal(values = localValues()) {
+  return meaningfulConfigValues(values);
 }
 
 export function normalizeRemoteSnapshot(remote) {
@@ -210,6 +268,24 @@ export function normalizeRemoteSnapshot(remote) {
 }
 
 /**
+ * Normalize one shared-store snapshot as returned by dashboardmodern/config/get.
+ */
+export function normalizeSharedSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return null;
+  const values = snapshot.values;
+  if (!values || typeof values !== "object" || Array.isArray(values)) return null;
+  return {
+    revision: Number(snapshot.revision) || 0,
+    updated_at: Number(snapshot.updated_at) || 0,
+    keys_revision: Number(snapshot.keys_revision) || 0,
+    reset: snapshot.reset === true,
+    values: Object.fromEntries(
+      CONFIG_KEYS.flatMap((key) => (typeof values[key] === "string" ? [[key, values[key]]] : [])),
+    ),
+  };
+}
+
+/**
  * Before revision 2 several real editor keys were not part of the modern cloud
  * snapshot. Absence in those payloads cannot mean "deleted". Fill only missing
  * old fields from the current device once; values actually present remotely
@@ -241,9 +317,44 @@ export function persistenceReconcileAction({
   const normalized = normalizeRemoteSnapshot(remote);
   if (!normalized) return "unsupported";
   if (sameConfigValues(local, normalized.values)) return "in-sync";
-  return Number(pendingAt) > Number(normalized.updated_at || 0)
-    ? "push-local"
-    : "restore-remote";
+  return Number(pendingAt) > Number(normalized.updated_at || 0) ? "push-local" : "restore-remote";
+}
+
+/**
+ * Decide what to do with the shared snapshot of this plancia.
+ *
+ * Conflicts are resolved on the store's own monotonic revision, never on a
+ * device clock: comparing timestamps let a device whose clock ran ahead push a
+ * stale snapshot over a newer one. Local edits therefore only win when they were
+ * made on top of the revision this device last saw.
+ *
+ * - `auto-recover` — the shared plancia is empty although a configured revision
+ *   is still kept and the emptying was not an explicit reset. This repairs an
+ *   installation that a previous version already emptied, with no user action.
+ */
+export function sharedReconcileAction({
+  snapshot = null,
+  recoverable = [],
+  local = {},
+  localConfigured = false,
+  pendingAt = 0,
+  syncedRevision = 0,
+} = {}) {
+  const normalized = snapshot ? normalizeSharedSnapshot(snapshot) : null;
+  if (!normalized) return localConfigured ? "push-local" : "none";
+  if (!meaningfulConfigValues(normalized.values)) {
+    if (localConfigured) return "push-local";
+    if (!normalized.reset && recoverable.length > 0) return "auto-recover";
+    return "none";
+  }
+  if (sameConfigValues(local, normalized.values)) return "in-sync";
+  if (
+    Number(pendingAt) > 0 &&
+    localConfigured &&
+    Number(syncedRevision) === Number(normalized.revision)
+  )
+    return "push-local";
+  return "restore-remote";
 }
 
 function readMeta(storage = root.localStorage) {
@@ -287,6 +398,10 @@ function hostedBridge() {
   return Boolean(
     root.__DASHBOARDMODERN_HOSTED__ && (root.__DASHBOARDMODERN_BRIDGE_WS__ || root.WebSocket),
   );
+}
+
+function sharedStoreEnabled() {
+  return Boolean(hostedBridge() && currentProfile());
 }
 
 function bridgeRequest(type, payload = {}) {
@@ -352,11 +467,49 @@ function bridgeRequest(type, payload = {}) {
   });
 }
 
+function sharedPayload(extra = {}) {
+  const payload = { profile: currentProfile(), ...extra };
+  const instance = String(root.__DASHBOARDMODERN_INSTANCE__ || "");
+  if (instance) payload.entry_id = instance;
+  return payload;
+}
+
+function sharedGet() {
+  return bridgeRequest(SHARED_GET, sharedPayload());
+}
+
+function sharedSet(value, { expectedRevision = null, reset = false } = {}) {
+  return bridgeRequest(
+    SHARED_SET,
+    sharedPayload({
+      snapshot: {
+        values: value.values,
+        keys_revision: value.keys_revision,
+        updated_at: value.updated_at,
+      },
+      ...(expectedRevision === null ? {} : { expected_revision: Number(expectedRevision) }),
+      ...(reset ? { reset: true } : {}),
+    }),
+  );
+}
+
+function sharedRestoreRevision(revision) {
+  return bridgeRequest(SHARED_RESTORE, sharedPayload({ revision: Number(revision) }));
+}
+
+/**
+ * Record that this device holds edits that are not in the shared store yet.
+ *
+ * The flag is written even before the first successful read, so an edit made
+ * while Home Assistant was unreachable is not silently dropped: it is the
+ * revision comparison in `sharedReconcileAction`, not the mere existence of the
+ * flag, that decides whether those edits may overwrite the shared copy. Pushing
+ * still waits for a successful read.
+ */
 function markPending({ schedule = true } = {}) {
   if (
     state.resetting ||
     state.hydrating ||
-    !state.hydrated ||
     root.__DASHBOARDMODERN_PERSIST_RESTORE__ ||
     root.__DASHBOARDMODERN_CONFIG_RESETTING__
   )
@@ -364,7 +517,7 @@ function markPending({ schedule = true } = {}) {
   const now = Date.now();
   state.dirtyAt = now;
   writeMeta({ pending_at: now });
-  if (schedule && hostedBridge()) schedulePush();
+  if (schedule && state.hydrated && hostedBridge()) schedulePush();
   return now;
 }
 
@@ -378,8 +531,70 @@ function queuePendingFromStorage() {
   if (!state.dirtyMarkTimer) markPending();
 }
 
-async function pushNow() {
-  if (!hostedBridge()) return true;
+function rememberSynced(revision, updatedAt) {
+  state.dirtyAt = 0;
+  state.remoteRevision = Number(revision) || 0;
+  writeMeta({
+    synced_at: Number(updatedAt) || Date.now(),
+    synced_revision: state.remoteRevision,
+    pending_at: 0,
+  });
+}
+
+async function pushShared(attempt = 0) {
+  const value = snapshot();
+  const configured = meaningfulLocal(value.values);
+
+  // The wipe this integration used to perform: a device with nothing configured
+  // writing over a configured plancia. The store refuses it too; refusing here
+  // as well means it never even leaves the device.
+  if (!state.resetting && !configured && state.remoteConfigured) {
+    console.warn("[DashboardModern] empty local configuration not pushed; re-reading shared copy");
+    await hydrateRemote({ force: true });
+    return false;
+  }
+
+  let result;
+  try {
+    result = await sharedSet(value, {
+      expectedRevision: state.remoteRevision,
+      reset: state.resetting,
+    });
+  } catch (error) {
+    console.warn("[DashboardModern] shared config sync failed; local copy kept", error);
+    return false;
+  }
+
+  const status = String(result?.status || "");
+  if (status === "saved" || status === "unchanged") {
+    state.localWasConfigured = configured;
+    state.remoteConfigured = meaningfulConfigValues(result?.snapshot?.values || value.values);
+    rememberSynced(result?.snapshot?.revision, result?.snapshot?.updated_at);
+    root.dispatchEvent?.(new CustomEvent("dashboardmodern:persistence-saved", { detail: value }));
+    return true;
+  }
+
+  if (status === "refused-empty") {
+    // Nothing was lost: adopt the copy the store protected.
+    console.warn("[DashboardModern] shared store refused an empty snapshot; restoring it locally");
+    return applySharedSnapshot(result.snapshot);
+  }
+
+  if (status === "conflict") {
+    state.remoteRevision = Number(result?.snapshot?.revision) || 0;
+    state.remoteConfigured = meaningfulConfigValues(result?.snapshot?.values || {});
+    if (attempt >= PUSH_CONFLICT_RETRIES) {
+      console.warn("[DashboardModern] shared config conflict persisted; keeping the stored copy");
+      return applySharedSnapshot(result.snapshot);
+    }
+    return pushShared(attempt + 1);
+  }
+
+  console.warn("[DashboardModern] unexpected shared config result", result);
+  return false;
+}
+
+async function pushLegacyUserData() {
   const value = snapshot();
   try {
     await bridgeRequest("frontend/set_user_data", { key: userDataKey(), value });
@@ -392,6 +607,17 @@ async function pushNow() {
     console.warn("[DashboardModern] config sync failed; local copy kept", error);
     return false;
   }
+}
+
+async function pushNow() {
+  if (!hostedBridge()) return true;
+  if (!sharedStoreEnabled()) return pushLegacyUserData();
+  if (!state.hydrated && !state.resetting) {
+    // Never write before knowing what the installation already holds.
+    scheduleHydrateRetry(0);
+    return false;
+  }
+  return pushShared();
 }
 
 function schedulePush() {
@@ -473,57 +699,168 @@ function refreshRuntimeAfterRestore(remote) {
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:persistence-restored", { detail: remote }));
 }
 
+/** Apply one shared snapshot to this device and refresh the runtime. */
+function applySharedSnapshot(rawSnapshot) {
+  const normalized = normalizeSharedSnapshot(rawSnapshot);
+  if (!normalized) return false;
+  const merged = mergeLegacyMissingConfig(normalized, localValues());
+  if (!restoreValues(merged.values)) return false;
+  state.remoteRevision = normalized.revision;
+  state.remoteConfigured = meaningfulConfigValues(normalized.values);
+  state.localWasConfigured = meaningfulLocal(localValues());
+  rememberSynced(normalized.revision, normalized.updated_at);
+  refreshRuntimeAfterRestore(merged);
+  return true;
+}
+
+/** Read the per-user copy written by earlier releases, without writing to it. */
+async function readLegacyUserData() {
+  try {
+    const fetchValue = async (key) =>
+      (await bridgeRequest("frontend/get_user_data", { key }))?.value;
+    const current = await fetchValue(userDataKey());
+    return normalizeRemoteSnapshot(current || (await fetchValue(legacyUserDataKey())));
+  } catch (error) {
+    console.warn("[DashboardModern] legacy per-user config not readable", error);
+    return null;
+  }
+}
+
+async function hydrateShared() {
+  const response = await sharedGet();
+  state.lastPullAt = Date.now();
+  const local = localValues();
+  const meta = readMeta();
+  const pendingAt = Math.max(Number(state.dirtyAt) || 0, Number(meta.pending_at) || 0);
+  const syncedRevision = Number(meta.synced_revision) || 0;
+  let stored = normalizeSharedSnapshot(response?.snapshot);
+  const recoverable = Array.isArray(response?.recoverable) ? response.recoverable : [];
+
+  // First run against the shared store: adopt the per-user copy of this device
+  // so an existing installation keeps its configuration.
+  if (!stored || !meaningfulConfigValues(stored.values)) {
+    const legacy = await readLegacyUserData();
+    if (legacy && meaningfulConfigValues(legacy.values)) {
+      const migrated = await sharedSet(
+        {
+          values: mergeLegacyMissingConfig(legacy, local).values,
+          keys_revision: legacy.keys_revision,
+          updated_at: legacy.updated_at || Date.now(),
+        },
+        { expectedRevision: stored?.revision ?? 0 },
+      );
+      const adopted = normalizeSharedSnapshot(migrated?.snapshot);
+      if (adopted) stored = adopted;
+    }
+  }
+
+  state.remoteRevision = stored?.revision || 0;
+  state.remoteConfigured = Boolean(stored && meaningfulConfigValues(stored.values));
+  const localConfigured = state.hydrated ? meaningfulLocal(local) : state.localWasConfigured;
+  const action = sharedReconcileAction({
+    snapshot: stored,
+    recoverable,
+    local,
+    localConfigured,
+    pendingAt,
+    syncedRevision,
+  });
+
+  if (action === "push-local") return await pushShared();
+  if (action === "restore-remote") return applySharedSnapshot(stored);
+  if (action === "auto-recover") {
+    console.warn("[DashboardModern] shared configuration was empty; restoring the kept revision");
+    const restored = await sharedRestoreRevision(recoverable[0].revision);
+    return applySharedSnapshot(restored?.snapshot);
+  }
+  if (action === "in-sync") {
+    state.localWasConfigured = localConfigured;
+    rememberSynced(stored.revision, stored.updated_at);
+    if (Number(stored.keys_revision) < CONFIG_KEYS_REVISION) await pushShared();
+    return false;
+  }
+  return false;
+}
+
+async function hydrateLegacyUserData() {
+  const rawRemote = await migrateLegacyUserData(
+    async (key) => (await bridgeRequest("frontend/get_user_data", { key }))?.value,
+    (key, value) => bridgeRequest("frontend/set_user_data", { key, value }),
+  );
+  state.lastPullAt = Date.now();
+  const local = localValues();
+  const normalizedRemote = normalizeRemoteSnapshot(rawRemote);
+  const remote = mergeLegacyMissingConfig(normalizedRemote, local);
+  const meta = readMeta();
+  const pendingAt = Math.max(Number(state.dirtyAt) || 0, Number(meta.pending_at) || 0);
+  const localConfigured = state.hydrated ? meaningfulLocal(local) : state.localWasConfigured;
+  const action = persistenceReconcileAction({ remote, localConfigured, pendingAt, local });
+
+  if (action === "push-local") return await pushLegacyUserData();
+  if (action === "restore-remote" && remote) {
+    if (!restoreValues(remote.values)) return false;
+    state.dirtyAt = 0;
+    state.localWasConfigured = meaningfulLocal(localValues());
+    writeMeta({ synced_at: Number(remote.updated_at) || Date.now(), pending_at: 0 });
+    refreshRuntimeAfterRestore(remote);
+    if (
+      Number(remote.keys_revision) < CONFIG_KEYS_REVISION ||
+      remote.migrated_from === "legacy-flat" ||
+      !sameConfigValues(localValues(), remote.values)
+    )
+      await pushLegacyUserData();
+    return true;
+  }
+  if (action === "in-sync" && remote) {
+    state.dirtyAt = 0;
+    state.localWasConfigured = localConfigured;
+    writeMeta({ synced_at: Number(remote.updated_at) || Date.now(), pending_at: 0 });
+    if (Number(remote.keys_revision) < CONFIG_KEYS_REVISION || remote.migrated_from === "legacy-flat")
+      await pushLegacyUserData();
+    return false;
+  }
+  if (action === "unsupported")
+    console.warn("[DashboardModern] unsupported remote config snapshot retained without overwrite");
+  return false;
+}
+
+function scheduleHydrateRetry(failures = state.transportFailures) {
+  if (state.resetting || !hostedBridge() || state.hydrateRetryTimer) return;
+  const index = Math.min(Math.max(Number(failures) || 0, 0), HYDRATE_RETRY_MS.length - 1);
+  state.hydrateRetryTimer =
+    root.setTimeout?.(() => {
+      state.hydrateRetryTimer = 0;
+      hydrateRemote({ force: true }).catch((error) =>
+        root.console?.warn?.("[DashboardModern] config hydration retry failed", error),
+      );
+    }, HYDRATE_RETRY_MS[index]) || 0;
+}
+
 async function hydrateRemote(options = {}) {
   const force = options?.force === true;
   if (state.hydrating || state.resetting || (!force && state.hydrated) || !hostedBridge())
     return false;
   state.hydrating = true;
+  const shared = sharedStoreEnabled();
   try {
-    const rawRemote = await migrateLegacyUserData(
-      async (key) => (await bridgeRequest("frontend/get_user_data", { key }))?.value,
-      (key, value) => bridgeRequest("frontend/set_user_data", { key, value }),
-    );
-    state.lastPullAt = Date.now();
-    const local = localValues();
-    const normalizedRemote = normalizeRemoteSnapshot(rawRemote);
-    const remote = mergeLegacyMissingConfig(normalizedRemote, local);
-    const meta = readMeta();
-    const pendingAt = Math.max(Number(state.dirtyAt) || 0, Number(meta.pending_at) || 0);
-    const localConfigured = state.hydrated ? meaningfulLocal(local) : state.localWasConfigured;
-    const action = persistenceReconcileAction({ remote, localConfigured, pendingAt, local });
-
-    if (action === "push-local") return await pushNow();
-    if (action === "restore-remote" && remote) {
-      if (!restoreValues(remote.values)) return false;
-      state.dirtyAt = 0;
-      state.localWasConfigured = meaningfulLocal(localValues());
-      writeMeta({ synced_at: Number(remote.updated_at) || Date.now(), pending_at: 0 });
-      refreshRuntimeAfterRestore(remote);
-      if (
-        Number(remote.keys_revision) < CONFIG_KEYS_REVISION ||
-        remote.migrated_from === "legacy-flat" ||
-        !sameConfigValues(localValues(), remote.values)
-      )
-        await pushNow();
-      return true;
-    }
-    if (action === "in-sync" && remote) {
-      state.dirtyAt = 0;
-      state.localWasConfigured = localConfigured;
-      writeMeta({ synced_at: Number(remote.updated_at) || Date.now(), pending_at: 0 });
-      if (Number(remote.keys_revision) < CONFIG_KEYS_REVISION || remote.migrated_from === "legacy-flat")
-        await pushNow();
-      return false;
-    }
-    if (action === "unsupported")
-      console.warn("[DashboardModern] unsupported remote config snapshot retained without overwrite");
-    return false;
+    const changed = shared ? await hydrateShared() : await hydrateLegacyUserData();
+    state.hydrated = true;
+    state.transportFailures = 0;
+    return changed;
   } catch (error) {
+    // A read that never completed says nothing about the stored configuration.
+    // Leaving `hydrated` false keeps this device out of the writer role and
+    // retries, instead of pushing whatever it happens to hold locally.
     console.warn("[DashboardModern] config restore skipped", error);
+    if (shared) {
+      state.transportFailures += 1;
+      scheduleHydrateRetry();
+    } else {
+      state.hydrated = true;
+    }
     return false;
   } finally {
     state.hydrating = false;
-    state.hydrated = true;
   }
 }
 
@@ -557,7 +894,6 @@ function installStorageMutationBridge() {
     if (
       managed &&
       before !== String(value) &&
-      state.hydrated &&
       !state.hydrating &&
       !state.resetting &&
       !root.__DASHBOARDMODERN_PERSIST_RESTORE__ &&
@@ -573,7 +909,6 @@ function installStorageMutationBridge() {
     if (
       managed &&
       before !== null &&
-      state.hydrated &&
       !state.hydrating &&
       !state.resetting &&
       !root.__DASHBOARDMODERN_PERSIST_RESTORE__ &&
@@ -618,8 +953,16 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
 
   const empty = snapshot();
   try {
-    if (hostedBridge())
+    if (sharedStoreEnabled()) {
+      // An explicit reset is the one write allowed to empty the plancia. It is
+      // flagged as such so the store keeps the previous revision without ever
+      // restoring it behind the user's back.
+      await sharedSet(empty, { reset: true });
+      state.remoteConfigured = false;
+      state.remoteRevision = 0;
+    } else if (hostedBridge()) {
       await bridgeRequest("frontend/set_user_data", { key: userDataKey(), value: empty });
+    }
   } catch (error) {
     root.console?.warn?.("[DashboardModern] remote reset deferred", error);
     state.dirtyAt = Date.now();
@@ -677,6 +1020,7 @@ export function installConfigPersistenceSection() {
   const initialMeta = readMeta();
   const legacyPending = legacyPendingTimestamp();
   state.dirtyAt = Math.max(Number(initialMeta.pending_at) || 0, legacyPending);
+  state.remoteRevision = Number(initialMeta.synced_revision) || 0;
   if (legacyPending) writeMeta({ pending_at: state.dirtyAt });
   disableLegacySyncState();
 

@@ -85,11 +85,26 @@ legacy one stays until the native one is at parity. When the last section lands,
 delete `frontend/legacy/`, `scripts/vendor_legacy.py`, and this document.
 
 Configuration is the one piece that needs deliberate work. The legacy dashboard
-keeps ~133 `localStorage` keys plus a per-user copy synced through
-`frontend/set_user_data`. Native modules read DashboardModern's own storage. A
-one-way importer that reads the legacy keys and writes DashboardModern
-configuration should land before the first native section replaces a legacy one,
-so users do not reconfigure anything twice.
+keeps ~133 `localStorage` keys. The subset that is dashboard content (see
+`CONFIG_KEYS` in `src/sections/config-persistence-section.js`) is synchronized
+through the integration's own shared store — `config_store.py`, exposed as
+`dashboardmodern/config/{get,set,restore}` — which replaced the per-user
+`frontend/set_user_data` copy earlier releases used. One installation therefore
+has one configuration, shared by every user and device, keyed by a profile name
+that does not contain the `entry_id`, so re-adding the integration finds it
+again. The per-user copy is still read once, to migrate it.
+
+Two invariants live in the store rather than in the client, because a client that
+cannot read cannot be trusted to decide: a snapshot with no configured content
+never overwrites a configured plancia unless it is flagged as an explicit reset,
+and the last five configured revisions are kept so an installation emptied by an
+earlier version repairs itself. Conflicts are resolved on the store's monotonic
+revision, never on a device clock.
+
+Native modules read DashboardModern's own storage. A one-way importer that reads
+the legacy keys and writes DashboardModern configuration should land before the
+first native section replaces a legacy one, so users do not reconfigure anything
+twice.
 
 ## Status
 

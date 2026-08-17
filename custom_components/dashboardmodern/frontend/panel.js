@@ -34,6 +34,9 @@ function dashboardView(config) {
         entry_id: config.entry_ids?.[0] || config.instance_id,
         title: config.title || "DashboardModern",
         primary: config.primary !== false,
+        // The card hosts the same plancia, so it must read and write the same
+        // shared configuration profile the panel uses.
+        config_profile: config.config_profile || "",
         // Do not persist config.static_base here. It contains the current asset
         // digest and becomes stale after an update/restart. dashboard-card.js
         // derives the live base from its own import.meta.url instead.
@@ -178,6 +181,10 @@ export class DashboardModernPanel extends HTMLElement {
       instanceId:
         (this._panel.config?.entry_ids && this._panel.config.entry_ids[0]) ||
         "integration",
+      // Storage profile of the shared configuration. Unlike the instance id it
+      // does not contain the entry_id, so removing and re-adding the
+      // integration keeps the plancia configured.
+      configProfile: this._panel.config?.config_profile || "",
       primary: this._panel.config?.primary !== false,
     });
   }
