@@ -4,6 +4,49 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.30.5 — 2026-08-17
+
+### Modificato
+
+- La configurazione della plancia non vive più in una copia per singolo utente
+  Home Assistant (`frontend/set_user_data`) ma in un archivio condiviso
+  dell'integrazione (`.storage/dashboardmodern.config`). È lo stesso archivio per
+  tutti gli utenti e tutti i dispositivi dell'installazione: chi apre la plancia
+  con un altro account, da un altro browser o dall'app companion senza cache
+  ritrova la configurazione già fatta, invece di una plancia vuota da
+  riconfigurare. Non c'è nulla da esportare, importare o premere: la migrazione
+  dalla vecchia copia per utente avviene automaticamente alla prima apertura.
+- La chiave dell'archivio non contiene più l'`entry_id`. Rimuovere e riaggiungere
+  l'integrazione — la cosa che si fa più spesso quando un aggiornamento sembra
+  non prendere — non abbandona più la configurazione sotto una chiave orfana, e
+  rinominare una plancia continua a essere servito dallo stesso archivio.
+
+### Corretto
+
+- **La plancia che si svuotava dopo un aggiornamento.** Se la prima lettura
+  della configurazione non andava a buon fine (WebSocket lento, Home Assistant
+  che stava riavviando, telefono lento, iframe non ancora pronto), il dispositivo
+  si considerava comunque autorevole: la prima modifica successiva scriveva il
+  proprio stato vuoto sopra quello buono, e la perdita diventava definitiva per
+  tutti i dispositivi. Ora una lettura fallita non promuove mai il dispositivo a
+  scrittore: riprova con attese crescenti, e nel frattempo non scrive nulla.
+- Un salvataggio che sostituirebbe una plancia configurata con una vuota viene
+  rifiutato anche dall'archivio, non solo dal dispositivo, e la copia protetta
+  viene restituita e riapplicata. Solo il reset esplicito può svuotare la
+  plancia.
+- I conflitti tra dispositivi non si risolvono più confrontando gli orologi ma la
+  revisione dell'archivio: un telefono con l'ora avanti non può più sovrascrivere
+  con dati vecchi le modifiche appena fatte su un altro dispositivo. Le modifiche
+  locali vincono solo se sono state fatte sulla revisione che quel dispositivo
+  aveva davvero letto.
+- L'archivio conserva le ultime cinque revisioni configurate. Un'installazione
+  già svuotata da una versione precedente viene ripristinata da sola alla
+  revisione buona più recente, senza che l'utente debba fare niente; un reset
+  chiesto esplicitamente non viene mai annullato di nascosto.
+- Una modifica fatta mentre Home Assistant non era raggiungibile non viene più
+  dimenticata in silenzio: resta segnata come da sincronizzare e viene inviata
+  quando la lettura riesce, se nel frattempo nessun altro dispositivo ha scritto.
+
 ## 1.0.0-beta.30.4 — 2026-08-17
 
 ### Modificato

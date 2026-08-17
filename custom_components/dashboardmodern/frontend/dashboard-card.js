@@ -88,6 +88,10 @@ export class DashboardModernCard extends HTMLElement {
       staticBase,
       variant,
       instanceId: this._config.entry_id,
+      // Same plancia as the panel, therefore the same shared configuration
+      // profile. The store keeps answering from one bucket even if this
+      // persisted value predates a rename.
+      configProfile: this._config.config_profile || "",
       primary: this._config.primary !== false,
     });
     this.mountedKey = key;

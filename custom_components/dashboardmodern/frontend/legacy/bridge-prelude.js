@@ -82,12 +82,20 @@
       hasHostQuery = true;
       window.__DASHBOARDMODERN_PRIMARY__ = primary[1] === "1";
     }
+    // Shared configuration profile. Without it a secondary plancia keeps the
+    // historical per-user transport instead of guessing a storage key.
+    var profile = /[?&]dmc=([^&]*)/.exec(query);
+    if (profile && profile[1]) {
+      window.__DASHBOARDMODERN_PROFILE__ ||= decodeURIComponent(profile[1]);
+    }
   } catch (_error) {}
 
   if (parentValue("__DASHBOARDMODERN_INSTANCE__") && !window.__DASHBOARDMODERN_INSTANCE__)
     window.__DASHBOARDMODERN_INSTANCE__ = parentValue("__DASHBOARDMODERN_INSTANCE__");
   if (typeof parentValue("__DASHBOARDMODERN_PRIMARY__") !== "undefined")
     window.__DASHBOARDMODERN_PRIMARY__ = parentValue("__DASHBOARDMODERN_PRIMARY__") !== false;
+  if (parentValue("__DASHBOARDMODERN_PROFILE__") && !window.__DASHBOARDMODERN_PROFILE__)
+    window.__DASHBOARDMODERN_PROFILE__ = parentValue("__DASHBOARDMODERN_PROFILE__");
 
   function isHosted() {
     if (window.__DASHBOARDMODERN_HOSTED__ === true) return true;

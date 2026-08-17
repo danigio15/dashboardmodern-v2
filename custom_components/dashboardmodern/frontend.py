@@ -114,6 +114,23 @@ def _panel_url_path(hass: HomeAssistant, entry: Any, taken: set[str]) -> str:
     return path
 
 
+def _config_profile(hass: HomeAssistant, entry: Any) -> str:
+    """Return the shared configuration profile of this plancia.
+
+    Deliberately independent of the entry_id: removing and re-adding the
+    integration used to change the storage key of the configuration and left the
+    plancia empty. The primary plancia keeps a fixed profile, the others follow
+    their title, and a rename is followed by the store itself.
+    """
+    from .config_store import profile_for_entry
+
+    return profile_for_entry(
+        primary=_entry_is_primary(hass, entry),
+        title=entry.title or "",
+        entry_id=entry.entry_id,
+    )
+
+
 def _lovelace_url_path(entry: Any) -> str:
     """Return the stable URL of the companion Lovelace dashboard."""
     return f"dashboardmodern-{entry.entry_id[:8].lower()}"
@@ -146,6 +163,7 @@ def _panel_config(
     return {
         "entry_ids": [entry.entry_id],
         "instance_id": entry.entry_id,
+        "config_profile": _config_profile(hass, entry),
         "title": entry.title or "DashboardModern",
         "primary": _entry_is_primary(hass, entry),
         "static_base": static_url_path,
