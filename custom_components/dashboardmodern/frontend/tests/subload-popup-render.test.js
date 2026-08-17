@@ -180,6 +180,41 @@ test("an mdi token is drawn as a glyph, in the title and in every card", () => {
   assert.match(list.querySelector(".dm-subload-icon").innerHTML, /mdi:toaster-oven/);
 });
 
+test("where the icon engine is installed, it is what resolves an mdi token", () => {
+  // `<ha-icon>` is the fallback, not the first choice: on the device it paints
+  // an empty box, so the popup must draw the glyph the picker showed.
+  const asked = [];
+  globalThis.DashboardModernIconEngine = {
+    render: (target, kind, value, options) => {
+      asked.push([kind, value, options?.size]);
+      target.innerHTML = '<span class="dm-icon-engine-glyph">🚘</span>';
+      return true;
+    },
+  };
+  try {
+    configure({
+      loads: [
+        { id: "cucina", name: "Cucina", icon: "mdi:car-electric", order: 0 },
+        {
+          id: "forno",
+          name: "Forno",
+          power_entity: "sensor.forno_power",
+          metadata: { beta27_subload_group: "cucina" },
+        },
+      ],
+      states: { "sensor.forno_power": { state: "1800" } },
+    });
+    popup.renderSubloadPopup("cucina");
+
+    const icon = title.querySelector(".dm-subload-title-icon");
+    assert.deepEqual(asked[0], ["action", "mdi:car-electric", 24]);
+    assert.match(icon.innerHTML, /🚘/);
+    assert.doesNotMatch(icon.innerHTML, /data-icon=/, "the legacy markup is not used");
+  } finally {
+    delete globalThis.DashboardModernIconEngine;
+  }
+});
+
 test("an emoji is still written as text, not through the mdi renderer", () => {
   configure({ loads: KITCHEN, states: {} });
   popup.renderSubloadPopup("cucina");

@@ -239,6 +239,53 @@ export function installStyle(id, css) {
   return true;
 }
 
+/* The comfort pill next to a room name is sized for a word like CALDO. The
+ * unavailable state is the only label long enough to paint out of that pill and
+ * over the room name beside it, so the pill carries a short form while the full
+ * wording stays in `title` and `aria-label`, and `data-comfort` keeps the value
+ * the badge colours key off. */
+export function comfortBadgeText(label) {
+  const value = clean(label);
+  if (/^(non disponibile|unavailable)$/i.test(value)) return english() ? "N/A" : "N/D";
+  return value;
+}
+
+/* One way to draw an icon token, wherever it is shown.
+ *
+ * An `mdi:` token was written as `<ha-icon>` markup, which only paints where
+ * that element is defined: in this document it is not, so the box came out
+ * empty — no glyph, and not even the token as text. The canonical icon engine
+ * resolves the same token to the glyph the picker itself shows while choosing,
+ * so what is picked is what is drawn. `<ha-icon>` stays as a fallback for the
+ * surfaces that do resolve it, and the raw token is never printed as text. */
+export function writeIconGlyph(target, icon, { size = 26, fallback = "🔌", kind = "action" } = {}) {
+  if (!target) return false;
+  const token = clean(icon) || fallback;
+  if (!/^mdi:/i.test(token)) {
+    if (target.textContent !== token) target.textContent = token;
+    return true;
+  }
+  try {
+    if (root.DashboardModernIconEngine?.render?.(target, kind, token, { size })) return true;
+  } catch (_error) {}
+  try {
+    const markup = root.DashboardModernIconEngine?.markup?.(kind, token, { size });
+    if (markup) {
+      target.innerHTML = markup;
+      return true;
+    }
+  } catch (_error) {}
+  try {
+    const legacy = root.cdIconMarkup?.(token, size);
+    if (legacy && legacy !== token) {
+      target.innerHTML = legacy;
+      return true;
+    }
+  } catch (_error) {}
+  target.textContent = fallback;
+  return true;
+}
+
 export function afterResult(result, callback) {
   if (result && typeof result.finally === "function") return result.finally(callback);
   callback();

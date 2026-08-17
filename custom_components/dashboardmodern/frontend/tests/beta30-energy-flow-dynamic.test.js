@@ -311,6 +311,42 @@ test("a bubble carries the load name, icon and reading of its period", () => {
   assert.equal(textOf(bubbles(views.month)[0], ".dm-flow-value"), "260,0 kWh");
 });
 
+test("an mdi icon is drawn through the icon engine, not as an empty ha-icon box", () => {
+  // `<ha-icon>` only paints where that element is defined; here it is not, so a
+  // circle configured with `mdi:car-electric` came out with no glyph at all.
+  const asked = [];
+  globalThis.DashboardModernIconEngine = {
+    render: (target, kind, value, options) => {
+      asked.push([kind, value, options?.size]);
+      target.innerHTML = '<span class="dm-icon-engine-glyph">🚘</span>';
+      return true;
+    },
+  };
+  globalThis.cdIconMarkup = () => "<ha-icon></ha-icon>";
+  try {
+    configure({
+      loads: [load("auto", 0, { name: "Auto", icon: "mdi:car-electric" })],
+      states: { "sensor.auto_power": { state: "3200" } },
+    });
+
+    const icon = bubbles(views.instant)[0].querySelector(".node-icon");
+    assert.deepEqual(asked[0], ["action", "mdi:car-electric", 28]);
+    assert.match(icon.innerHTML, /🚘/);
+    assert.equal(icon.textContent, "", "the token is never printed as text");
+  } finally {
+    delete globalThis.DashboardModernIconEngine;
+    delete globalThis.cdIconMarkup;
+  }
+});
+
+test("an emoji icon still goes straight into the bubble", () => {
+  configure({
+    loads: [load("auto", 0, { name: "Auto", icon: "🚗" })],
+    states: { "sensor.auto_power": { state: "3200" } },
+  });
+  assert.equal(textOf(bubbles(views.instant)[0], ".node-icon"), "🚗");
+});
+
 test("an active connector animates in its load colour, an idle one does not", () => {
   configure({
     loads: [load("oven", 0, { color: "#ea580c" }), load("fridge", 1, { color: "#0ea5e9" })],

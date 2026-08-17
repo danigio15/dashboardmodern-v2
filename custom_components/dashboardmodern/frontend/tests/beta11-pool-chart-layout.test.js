@@ -22,15 +22,13 @@ test("beta11 daily chart stays inside one bounded responsive parent", () => {
   assert.match(css, /@media \(max-width:\s*760px\)[\s\S]*?\.energy-dashboard \.ed-chart-wrap\s*\{[^}]*height:\s*270px\s*!important/s);
 });
 
-test("beta11 pool uses a semantic responsive plant schematic", () => {
-  assert.match(css, /#page-piscina \.pool-hero::before/);
-  assert.match(css, /#page-piscina \.pool-hero::after/);
-  assert.match(css, /\.pool-tg\[data-act="pump"\]/);
-  assert.match(css, /\.pool-tg\[data-act="heat"\]/);
-  assert.match(css, /\.pool-tg\[data-act="light"\]/);
-  assert.match(css, /\.pool-card:not\(:has\(\.pool-bar\)\)/);
-  assert.match(css, /\.pool-card:has\(\.pool-bar\)/);
-  assert.match(css, /#page-piscina #pool-wrap > \.pool-card \.pool-sub\s*\{[^}]*position:\s*static\s*!important/s);
-  assert.match(css, /@media \(max-width:\s*760px\)[\s\S]*?#page-piscina \.pool-hero/);
+test("the beta11 pool schematic stood down for the dedicated scene owner", () => {
+  // Pool geometry now belongs to pool-irrigation-scene-section.js, which draws
+  // its own markup. Leaving these absolute-position overrides here would only
+  // re-apply to whatever element happened to reuse a legacy .pool-* class.
+  assert.doesNotMatch(css, /#page-piscina/);
+  assert.doesNotMatch(css, /\.pool-hero/);
+  assert.doesNotMatch(css, /\.pool-tg/);
+  assert.doesNotMatch(css, /\.pool-card/);
   assert.equal(balancedBraces(css), true);
 });

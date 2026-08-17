@@ -4,6 +4,121 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.30.6 — 2026-08-17
+
+### Modificato
+
+- **Piscina** e **Irrigazione** sono state ridisegnate: ognuna ha ora una scena
+  vera al posto del pannello azzurro piatto e della lista di riquadri grigi.
+- La Piscina disegna il giardino, il bordo in pietra, la vasca in prospettiva
+  con l'acqua che scorre, la scaletta, i gradini e il salvagente che galleggia.
+  La temperatura dell'acqua è un quadrante di vetro sopra la scena; pompa,
+  riscaldamento e luce sono tre riquadri sotto la vasca, tutti della stessa
+  misura, e non stanno più sopra la scritta della temperatura. Quando la pompa
+  gira si vedono le bolle nell'acqua, con il riscaldamento acceso sale il
+  vapore e con la luce accesa la vasca si illumina da sotto.
+- pH e cloro non sono più due righe di testo: ognuno ha la sua barra con la
+  fascia ideale evidenziata e l'indicatore nel punto della lettura, così si
+  vede a colpo d'occhio quanto un valore è fuori soglia. La filtrazione mostra
+  le ore fatte oggi su quelle previste in un anello di avanzamento.
+- L'Irrigazione disegna il prato: erba rasata a strisce, siepe, alberi, fiori e
+  i fili d'erba che ondeggiano sul bordo, con un irrigatore per ogni zona
+  configurata (fino a otto sul prato, tutte nelle schede sotto).
+- **Quando parte l'irrigazione l'irrigatore spruzza davvero**: il ventaglio
+  d'acqua oscilla, le gocce partono dalla testina e ricadono sull'erba, dove
+  ogni goccia apre il suo schizzo, e sotto l'irrigatore il prato si bagna e si
+  scurisce. Il conto alla rovescia della zona resta sull'etichetta e sulla
+  scheda. Chi ha attivato "riduci animazioni" vede la scena ferma.
+- Le schede di **Temperature** sono state ridisegnate. Lo stato colora la
+  scheda, così una stanza si legge a colpo d'occhio senza rileggere i numeri:
+  azzurro se fa freddo, verde in comfort, rosso se fa caldo, e barra laterale,
+  icona, bordo e ombra seguono lo stesso colore. La temperatura è più grande e
+  ha il segno di grado, le cifre non ballano più a ogni aggiornamento perché
+  hanno tutte la stessa larghezza, l'umidità sta oltre una linea che sfuma
+  invece di un tratto pieno, e le pastiglie dei tab sono più alte da toccare,
+  con l'etichetta accorciata quando il nome della stanza è lungo.
+
+### Corretto
+
+- Sul telefono la pagina Piscina non sovrapponeva più le schede alla vasca solo
+  grazie a quattro livelli di correzioni impilati (beta.11, beta.12, beta.14 e
+  beta.16), che continuavano a contendersi le stesse regole. Ora le due pagine
+  hanno un solo proprietario: le correzioni precedenti sono state ritirate.
+- Le due pagine venivano ridisegnate da capo ogni secondo dal ciclo legacy, e a
+  ogni giro le animazioni ripartivano da zero. Ora il disegno viene ricostruito
+  solo quando cambia la configurazione: fra un aggiornamento e l'altro
+  cambiano i valori, non il markup, e l'acqua continua a scorrere.
+- Una soglia non configurata veniva letta come zero, così il pH senza soglie
+  risultava "troppo alto". Ora un valore assente resta assente.
+- I tab delle stanze in **Temperature** non filtravano: toccando una stanza le
+  schede delle altre tornavano subito visibili. I tab avevano due proprietari —
+  il livello di stabilità beta26/27 e la vecchia passata di layout beta16 — che
+  scrivevano nella stessa barra: il tocco finiva nello stato di uno mentre
+  l'altro rimetteva la pastiglia attiva su **Tutte** e ridava visibilità a tutte
+  le schede al primo ridisegno. Su un impianto vero i sensori aggiornano di
+  continuo, quindi il filtro si annullava dopo un istante. Ora la barra ha un
+  solo proprietario, quello che disegna anche le schede: la stanza scelta resta
+  selezionata e viene riapplicata dopo ogni ridisegno, da qualunque livello
+  arrivi.
+- Un'azione rapida già configurata mostrava solo l'icona, la matita e il
+  cestino: il nome c'era ma restava largo zero. La riga delle azioni è disposta
+  a griglia, dove la larghezza zero pensata per le righe flex non viene più
+  compensata da `flex`, così il testo finiva tagliato. Ora il riquadro del nome
+  occupa la sua colonna e nome e dettaglio dell'azione tornano leggibili.
+- La pulizia delle icone `mdi:` non tocca più il nome dell'azione: un'azione
+  chiamata come la propria icona conserva la sua etichetta.
+- **Temperature era illeggibile in tema scuro.** Le schede mescolavano il
+  proprio sfondo con `--ha-card-background`, che esiste solo dentro Home
+  Assistant: fuori da lì la miscela ripiegava sul bianco, e il risultato era
+  testo chiaro su schede bianche. Ora ogni miscela parte dal token della
+  plancia, quindi chiaro e scuro sono entrambi corretti.
+- La pastiglia dello stato scriveva **NON DISPONIBILE** sopra il nome della
+  stanza e oltre il bordo della scheda: il testo era largo 82px in una pastiglia
+  da 48px, e niente lo tagliava. La pastiglia mostra ora `N/D` — le parole
+  intere restano nel tooltip e per i lettori di schermo — ed è larga abbastanza
+  per ogni altro stato, con il troppo ritagliato invece che dipinto fuori.
+- Il nome lungo di una stanza allargava la scheda oltre la propria larghezza e
+  spingeva la pastiglia fuori dal bordo, perché la colonna della scheda cresceva
+  con il contenuto. Ora il nome si accorcia con i puntini e la pastiglia resta
+  al suo posto.
+
+
+- Un'icona `mdi:` scelta per un carico non si vedeva da nessuna parte: né
+  nell'anteprima della scheda in **Carichi e dispositivi**, né sul pulsante del
+  selettore, né nel cerchio del flusso a cui il carico appartiene. Il token
+  veniva scritto come markup `<ha-icon>`, che dipinge qualcosa solo dove quel
+  componente è definito: qui non lo è, quindi il riquadro restava vuoto — senza
+  glifo e senza nemmeno il token come testo. Ora il token passa per il motore
+  icone canonico, lo stesso che disegna il glifo mostrato nel selettore mentre
+  la si sceglie, così quello che si sceglie è quello che si vede; `<ha-icon>`
+  resta come ripiego per le superfici che lo risolvono, e il token non viene
+  mai stampato come testo. Il glifo eredita la misura del riquadro che lo
+  contiene, quindi un cerchio configurato con un'icona `mdi:` resta della
+  stessa dimensione di quelli accanto a ogni breakpoint.
+- **Su iPhone la plancia non partiva mai a schermo intero.** La modalità kiosk
+  esisteva già, ma si accendeva solo se l'indirizzo conteneva `?kiosk=1` scritto
+  a mano: nell'app companion non c'è una barra degli indirizzi da modificare,
+  quindi la plancia restava sempre sotto la barra di Home Assistant. Ora, su un
+  telefono iOS che apre la plancia dentro Home Assistant, il kiosk parte da
+  solo; l'ultima scelta esplicita viene ricordata, così `?kiosk=0` una volta
+  sola basta a spegnerlo per sempre su quel dispositivo, e `?kiosk=1` a
+  riaccenderlo. Fuori da lì nulla cambia: su desktop, tablet in orizzontale e
+  plancia aperta da sola il kiosk resta a richiesta.
+- Tenendo premuto per mezzo secondo l'hamburger della plancia il kiosk si
+  accende e si spegne, con la conferma a schermo. Il tocco breve continua ad
+  aprire la barra laterale di Home Assistant come prima.
+- Il kiosk copriva sé stesso in due casi da impianto vero: la plancia veniva
+  ancorata al riquadro del pannello invece che allo schermo quando Home
+  Assistant dipingeva una superficie sopra di essa, e l'altezza arrivava da
+  `100dvh`, che dentro la WebView di iOS tiene occupato lo spazio della barra
+  di sistema e lasciava una fascia morta. Ora l'altezza è quella misurata sul
+  posto e gli ancoraggi di troppo vengono sciolti finché il kiosk è acceso, per
+  poi tornare esattamente com'erano.
+- Con il kiosk acceso la barra laterale di Home Assistant si vede di nuovo: la
+  plancia si abbassa mentre la barra è aperta, invece di coprirla. E se la
+  plancia viene chiusa mentre il kiosk è acceso, la pagina di Home Assistant
+  torna scorrevole come prima invece di restare bloccata.
+
 ## 1.0.0-beta.30.5 — 2026-08-17
 
 ### Modificato

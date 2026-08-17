@@ -10,6 +10,7 @@ import {
 import {
   allStates,
   clean,
+  comfortBadgeText,
   dashboardStore,
   doc,
   english,
@@ -18,6 +19,7 @@ import {
   readJson,
   root,
   section,
+  writeIconGlyph,
   writeJsonIfChanged,
 } from "./shared.js";
 
@@ -28,6 +30,9 @@ const state = (root[KEY] ||= {
   storeUnsubscribe: null,
   temperatureSignature: "",
   activeTemperatureRoom: "all",
+  temperatureGridObserver: null,
+  temperatureGridObserved: null,
+  temperatureFilterReentrant: false,
   visibilityTimer: 0,
   loadsRendering: false,
   editingChild: null,
@@ -258,21 +263,14 @@ function updateStableTemperatureValues() {
       humidityValue.textContent = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
     if (comfort) {
       const label = comfortLabel(value);
-      comfort.textContent = label;
+      comfort.textContent = comfortBadgeText(label);
+      comfort.title = label;
+      comfort.setAttribute("aria-label", label);
       comfort.dataset.comfort = label.toLowerCase().replaceAll(" ", "-");
     }
   });
   syncBeta26TemperatureLabels();
   return true;
-}
-
-function roomIconMarkup(icon) {
-  const value = clean(icon) || "🏠";
-  try {
-    return root.cdIconMarkup?.(value, 22) || esc(value);
-  } catch (_error) {
-    return esc(value);
-  }
 }
 
 function applyTemperatureRoomFilter() {
@@ -287,6 +285,11 @@ function applyTemperatureRoomFilter() {
       state.activeTemperatureRoom === "all" ||
       clean(card.dataset.roomId) === state.activeTemperatureRoom;
     card.hidden = !visible;
+    // The card layout owners declare `display:grid!important`, so the hidden
+    // attribute alone is one cascade tweak away from being outranked. The
+    // inline important declaration keeps the filter authoritative.
+    if (visible) card.style?.removeProperty?.("display");
+    else card.style?.setProperty?.("display", "none", "important");
     card.dataset.dmBeta27Filtered = visible ? "visible" : "hidden";
   });
 
@@ -297,6 +300,30 @@ function applyTemperatureRoomFilter() {
       button.setAttribute("aria-pressed", active ? "true" : "false");
     },
   );
+  return true;
+}
+
+/* Several layers can rebuild #temp-grid (this owner, the canonical temperature
+ * section, the legacy runtime). Every rebuild drops the per-card filter state,
+ * so watch the grid and restore the active room instead of trusting each
+ * renderer to remember it. */
+function observeTemperatureGrid() {
+  const grid = doc?.getElementById?.("temp-grid");
+  if (!grid || typeof root.MutationObserver !== "function") return false;
+  if (state.temperatureGridObserved === grid) return true;
+  state.temperatureGridObserver?.disconnect?.();
+  const observer = new root.MutationObserver(() => {
+    if (state.temperatureFilterReentrant) return;
+    state.temperatureFilterReentrant = true;
+    try {
+      applyTemperatureRoomFilter();
+    } finally {
+      state.temperatureFilterReentrant = false;
+    }
+  });
+  observer.observe(grid, { childList: true });
+  state.temperatureGridObserver = observer;
+  state.temperatureGridObserved = grid;
   return true;
 }
 
@@ -322,7 +349,15 @@ function ensureTemperatureRoomTabs() {
         button.className = "sub-tab-btn dm-beta27-temperature-tab";
         button.dataset.roomFilter = tab.id;
         button.dataset.beta27TemperatureRoom = tab.id;
-        button.innerHTML = `<span class="dm-beta27-temperature-tab-icon">${roomIconMarkup(tab.icon)}</span><span>${esc(tab.name)}</span>${tab.count > 1 ? `<small>${tab.count}</small>` : ""}`;
+        button.innerHTML = `<span class="dm-beta27-temperature-tab-icon"></span><span>${esc(tab.name)}</span>${tab.count > 1 ? `<small>${tab.count}</small>` : ""}`;
+        // Same painter as the load icons: an `mdi:` token goes through the icon
+        // engine instead of being written as `ha-icon` markup this document
+        // cannot resolve, and an emoji stays text.
+        writeIconGlyph(button.querySelector(".dm-beta27-temperature-tab-icon"), tab.icon, {
+          size: 22,
+          fallback: "🏠",
+          kind: "room",
+        });
         button.addEventListener("click", () => {
           state.activeTemperatureRoom = tab.id;
           applyTemperatureRoomFilter();
@@ -331,6 +366,9 @@ function ensureTemperatureRoomTabs() {
       }),
     );
   }
+  // Only the "all" entry means no room owns a sensor yet: nothing to filter.
+  host.hidden = tabs.length <= 1;
+  observeTemperatureGrid();
   applyTemperatureRoomFilter();
   return true;
 }
@@ -1094,11 +1132,13 @@ function installStyles() {
     "dm-beta27-real-device-stability-style",
     `
       #dm-beta16-temperature-tabs{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;width:100%!important;margin:12px 0 8px!important;padding:0 18px!important;overflow-x:auto!important;scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important}
+      #dm-beta16-temperature-tabs[hidden]{display:none!important}
       #dm-beta16-temperature-tabs::-webkit-scrollbar{display:none!important}
-      #dm-beta16-temperature-tabs .dm-beta27-temperature-tab{display:inline-flex!important;align-items:center!important;gap:8px!important;flex:0 0 auto!important;min-height:42px!important;padding:8px 13px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:15px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--secondary-text-color,#64748b)!important;font:inherit!important;font-size:13px!important;font-weight:850!important;box-shadow:0 7px 18px rgba(15,23,42,.06)!important;transition:background .12s ease,border-color .12s ease,color .12s ease!important}
-      #dm-beta16-temperature-tabs .dm-beta27-temperature-tab.active{border-color:color-mix(in srgb,var(--primary-color,#0ea5e9) 46%,transparent)!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 11%,var(--ha-card-background,#fff))!important;color:var(--primary-color,#0284c7)!important}
+      #dm-beta16-temperature-tabs .dm-beta27-temperature-tab{--dm-tab-surface:var(--ha-card-background,var(--card-bg,#fff));display:inline-flex!important;align-items:center!important;gap:8px!important;flex:0 0 auto!important;min-height:44px!important;padding:8px 14px!important;border:1px solid var(--card-border,var(--divider-color,#dbe4ee))!important;border-radius:16px!important;background:var(--dm-tab-surface)!important;color:var(--text-dim,var(--secondary-text-color,#64748b))!important;font:inherit!important;font-size:13px!important;font-weight:850!important;letter-spacing:-.1px!important;box-shadow:0 8px 20px -12px rgba(15,23,42,.28)!important;transition:background .14s ease,border-color .14s ease,color .14s ease,transform .14s ease!important}
+      #dm-beta16-temperature-tabs .dm-beta27-temperature-tab.active{border-color:color-mix(in srgb,var(--primary-color,#0ea5e9) 46%,transparent)!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 12%,var(--dm-tab-surface))!important;color:var(--primary-color,#0284c7)!important;box-shadow:0 10px 22px -12px color-mix(in srgb,var(--primary-color,#0ea5e9) 55%,transparent)!important}
+      #dm-beta16-temperature-tabs .dm-beta27-temperature-tab>span:not(.dm-beta27-temperature-tab-icon){display:block!important;max-width:148px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
       #dm-beta16-temperature-tabs .dm-beta27-temperature-tab-icon{display:grid!important;place-items:center!important;width:24px!important;height:24px!important;font-size:20px!important;line-height:1!important}
-      #dm-beta16-temperature-tabs small{display:grid!important;place-items:center!important;min-width:20px!important;height:20px!important;padding:0 5px!important;border-radius:999px!important;background:rgba(148,163,184,.15)!important;font-size:9px!important;font-weight:900!important}
+      #dm-beta16-temperature-tabs small{display:grid!important;place-items:center!important;min-width:19px!important;height:19px!important;padding:0 5px!important;border-radius:999px!important;background:color-mix(in srgb,currentColor 15%,transparent)!important;color:inherit!important;font-size:9px!important;font-weight:900!important}
       #temp-grid .temp-card[hidden]{display:none!important}
       #temp-grid .temp-room-icon,#temp-grid .temp-room-icon *,#editor-modal .dm-temperature-card-icon,#editor-modal .dm-temperature-card-icon *{animation:none!important;transition:none!important;transform:none!important;will-change:auto!important}
       [data-energy-panel="loads"][data-dm-beta27-loads-editor="true"]{display:block!important}

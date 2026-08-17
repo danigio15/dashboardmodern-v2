@@ -306,7 +306,11 @@ function installStyles() {
       #editor-modal #appl-room{width:100%!important;min-width:0!important;max-width:100%!important}
       #editor-modal .ed-btn-add,#editor-modal .ed-btn,#editor-modal .ed-save-btn,#editor-modal .ed-form button{box-sizing:border-box!important;max-width:100%!important}
       #editor-modal .ed-intro,#editor-modal .ed-row-old,#editor-modal .ed-row-new{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere!important;word-break:break-word!important}
-      #editor-modal .ed-row-main{width:0!important;min-width:0!important;max-width:100%!important;flex:1 1 0!important;overflow:hidden!important}
+      /* The label box only needs to be allowed to shrink. In a flex row that is
+         already covered by flex-basis:0, and a hard width:0 would collapse the
+         very same box on the grid rows other owners build (quick actions,
+         rooms, temperature), hiding name and detail behind overflow:hidden. */
+      #editor-modal .ed-row-main{min-width:0!important;max-width:100%!important;flex:1 1 0!important;overflow:hidden!important}
       #editor-modal .ed-list .ed-row{width:100%!important}
 
       /* Irrigation is legacy markup without an .ed-form wrapper. Force the

@@ -36,6 +36,7 @@ import {
   readJson,
   root,
   section,
+  writeIconGlyph,
   writeJsonIfChanged,
 } from "./shared.js";
 
@@ -103,9 +104,7 @@ function element(tag, className = "", text = "") {
 }
 
 function iconInto(target, icon) {
-  if (/^mdi:/i.test(icon) && typeof root.cdIconMarkup === "function")
-    target.innerHTML = root.cdIconMarkup(icon, 24);
-  else target.textContent = icon || "🔌";
+  writeIconGlyph(target, icon, { size: 24 });
 }
 
 /* The bubble this card will draw. Same icon, name and colour as the stage, so
@@ -605,6 +604,9 @@ function installStyles() {
     /* The display rule must not defeat the panel's own hidden attribute: the
        editor set it once and the section then showed under Flows too. */
     [data-energy-panel="loads"][data-dm-loads-editor="true"]:not([hidden]){display:block!important}
+    /* An mdi icon is resolved by the engine into its own glyph span: it takes
+       the size of the box it sits in, so preview and button stay as drawn. */
+    .dm-loads-preview-bubble .dm-icon-engine-glyph,.dm-loads-icon-btn .dm-icon-engine-glyph{font-size:inherit!important}
     .dm-loads-list{display:grid;gap:10px}
     .dm-loads-card>.ed-acc-head{display:flex;align-items:center;gap:10px;justify-content:space-between}
     .dm-loads-preview{display:flex;align-items:center;gap:10px;min-width:0}

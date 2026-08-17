@@ -41,3 +41,49 @@ test("Beta20 label hardening reuses an existing scoped owner and keeps the layou
   assert.match(layout, /return false/);
   assert.doesNotMatch(layout, /installStyle|setInterval|MutationObserver|querySelector|innerHTML/);
 });
+test("the comfort pill carries a short unavailable label and keeps the full wording", async () => {
+  const { comfortBadgeText } = await import("../src/sections/shared.js");
+  // The pill is sized for a word like CALDO; "Non disponibile" is the only label
+  // long enough to paint out of it and over the room name beside it.
+  assert.equal(comfortBadgeText("Non disponibile"), "N/D");
+  assert.equal(comfortBadgeText("Unavailable"), "N/D");
+  for (const label of ["Caldo", "Comfort", "Freddo"])
+    assert.equal(comfortBadgeText(label), label);
+
+  // Every renderer of the pill shows the short form while `title`, `aria-label`
+  // and `data-comfort` keep the full label the badge colours key off.
+  for (const name of [
+    "temperature-section.js",
+    "beta25-real-device-fixes-section.js",
+    "beta26-real-device-stability-section.js",
+  ]) {
+    const source = await readFile(new URL(`../src/sections/${name}`, import.meta.url), "utf8");
+    assert.match(source, /comfort\.textContent = comfortBadgeText\(label\)/, name);
+    assert.match(source, /comfort\.title = label/, name);
+    assert.match(source, /comfort\.dataset\.comfort = label\.toLowerCase\(\)/, name);
+  }
+});
+
+test("Temperature cards are theme-safe and cannot spill out of their own box", async () => {
+  const source = await readFile(
+    new URL("../src/sections/temperature-section.js", import.meta.url),
+    "utf8",
+  );
+
+  // --ha-card-background only exists inside Home Assistant. Mixing against it
+  // with a #fff fallback painted white cards under light text in dark theme.
+  assert.match(source, /--dm-temp-surface:var\(--ha-card-background,var\(--card-bg,#fff\)\)/);
+  assert.doesNotMatch(source, /color-mix\([^)]*var\(--ha-card-background,#fff\)/);
+
+  // A long room name grew the card's own grid track and pushed the state pill
+  // past the border, so the track is capped and the name shrinks instead.
+  assert.match(source, /grid-template-columns:minmax\(0,1fr\)!important/);
+  assert.match(source, /\.cp-name[^{]*\{flex:1 1 0!important;min-width:0!important/);
+
+  // The comfort state colours the tile, and the reading carries a degree mark
+  // that goes away on a card with nothing to show.
+  for (const state of ["freddo", "cold", "comfort", "caldo", "hot"])
+    assert.match(source, new RegExp(`data-comfort="${state}"\\]\\)`), state);
+  assert.match(source, /\.cp-temp-current::after\{content:"°"!important/);
+  assert.match(source, /data-comfort="non-disponibile"\]\) \.cp-temp-current::after/);
+});

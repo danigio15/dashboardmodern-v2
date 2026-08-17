@@ -21,8 +21,6 @@ const state = (root[KEY] ||= {
   listeners: false,
   storeUnsubscribe: null,
   climateMigration: "",
-  temperatureFilter: "all",
-  temperatureTabsSignature: "",
 });
 
 export function matchCanonicalRoom(rooms, reference, fallbackName = "") {
@@ -262,74 +260,12 @@ function repairClimateRoomHeadings() {
   return repaired;
 }
 
-function applyTemperatureFilter() {
-  const grid = doc?.getElementById?.("temp-grid");
-  if (!grid) return false;
-  const filter = state.temperatureFilter;
-  grid.querySelectorAll(".temp-card[data-room-id],.dm-temperature-card[data-room-id]").forEach((card) => {
-    const visible = filter === "all" || clean(card.dataset.roomId) === filter;
-    if (visible) card.style.removeProperty("display");
-    else card.style.setProperty("display", "none", "important");
-  });
-  const tabs = doc?.getElementById?.("dm-beta16-temperature-tabs");
-  tabs?.querySelectorAll?.("button[data-room-filter]").forEach((button) => {
-    const active = clean(button.dataset.roomFilter) === filter;
-    button.classList.toggle("active", active);
-    button.setAttribute("aria-pressed", String(active));
-  });
-  return true;
-}
-
-function repairTemperatureTabs() {
-  const page = doc?.getElementById?.("page-temp");
-  const grid = doc?.getElementById?.("temp-grid");
-  if (!page || !grid) return false;
-  const rooms = canonicalRooms().filter((room) => clean(room.temp) || clean(room.hum));
-  const signature = JSON.stringify(rooms.map((room) => [room.id, room.name, room.icon]));
-  let tabs = doc.getElementById("dm-beta16-temperature-tabs");
-  if (!tabs) {
-    tabs = doc.createElement("nav");
-    tabs.id = "dm-beta16-temperature-tabs";
-    tabs.className = "dm-temperature-room-tabs";
-    tabs.setAttribute("aria-label", english() ? "Temperature rooms" : "Stanze temperatura");
-    grid.before(tabs);
-  }
-  if (signature !== state.temperatureTabsSignature) {
-    state.temperatureTabsSignature = signature;
-    const values = [
-      { id: "all", name: english() ? "All" : "Tutte", icon: "🏠" },
-      ...rooms.map((room) => ({
-        id: clean(room.id),
-        name: clean(room.name) || clean(room.id),
-        icon: directEmoji(room.icon) || roomGlyph(room.icon),
-      })),
-    ];
-    tabs.replaceChildren(...values.map((room) => {
-      const button = doc.createElement("button");
-      button.type = "button";
-      button.dataset.roomFilter = room.id;
-      button.innerHTML = `<span aria-hidden="true">${room.icon}</span><b></b>`;
-      button.querySelector("b").textContent = room.name;
-      button.addEventListener("click", () => {
-        state.temperatureFilter = room.id;
-        applyTemperatureFilter();
-      });
-      return button;
-    }));
-    if (state.temperatureFilter !== "all" && !rooms.some((room) => clean(room.id) === state.temperatureFilter)) state.temperatureFilter = "all";
-  }
-  tabs.hidden = rooms.length === 0;
-  applyTemperatureFilter();
-  return true;
-}
-
-function decoratePool() {
-  const hero = doc?.querySelector?.("#page-piscina #pool-wrap .pool-hero");
-  if (!hero) return false;
-  hero.dataset.dmBeta16Pool = "true";
-  hero.closest("#pool-wrap")?.setAttribute?.("data-dm-beta16-pool-wrap", "true");
-  return true;
-}
+/* The temperature room tabs and their filter live in the Beta 27 stability
+ * owner (beta26-real-device-stability-section.js), which also renders the cards
+ * and therefore can restore the active room after every rebuild. This layer
+ * only keeps the tab styling below; a second filter here used to fight that
+ * owner, resetting the active pill and dropping the filter on every re-render.
+ */
 
 function run() {
   state.frame = 0;
@@ -339,8 +275,6 @@ function run() {
   repairTemperatureEditorRows();
   repairRoomSelects();
   repairClimateRoomHeadings();
-  repairTemperatureTabs();
-  decoratePool();
 }
 
 function schedule() {
@@ -358,7 +292,6 @@ function installOwners() {
     "renderTemperature",
     "buildClimaCards",
     "setClimaPageMode",
-    "renderPiscina",
   ]) wrapFunction(name, `__dmBeta16_${name}`, schedule);
 }
 
@@ -385,14 +318,6 @@ function installStyles() {
     #page-temp .dm-temperature-room-tabs>button>span{font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important;font-size:18px!important;line-height:1!important}
     #page-temp .dm-temperature-room-tabs>button.active{border-color:rgba(14,165,233,.28)!important;background:linear-gradient(135deg,#e0f7ff,#c9efff)!important;color:#036995!important;box-shadow:0 7px 18px rgba(14,165,233,.12)!important}
 
-    #page-piscina #pool-wrap[data-dm-beta16-pool-wrap="true"]{box-sizing:border-box!important;width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}
-    #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"]{box-sizing:border-box!important;width:100%!important;max-width:100%!important;min-width:0!important;height:420px!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;border-radius:28px!important}
-    #page-piscina .pool-hero[data-dm-beta16-pool="true"]>.dm-beta12-pool-scene{inset:24px 24px 112px!important}
-    #page-piscina .pool-hero[data-dm-beta16-pool="true"] .dm-beta12-pool-basin{inset:0!important;border-width:8px!important;border-radius:32px!important}
-    #page-piscina .pool-hero[data-dm-beta16-pool="true"]>.pool-temp{z-index:4!important;left:52px!important;top:52px!important;width:104px!important;height:104px!important;font-size:34px!important}
-    #page-piscina .pool-hero[data-dm-beta16-pool="true"]>.pool-sub{z-index:4!important;left:48px!important;top:166px!important;width:auto!important;max-width:220px!important;margin:0!important;padding:7px 11px!important;border-radius:12px!important;background:rgba(3,105,161,.38)!important;color:#fff!important;font-size:12px!important;font-weight:850!important}
-    #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"]>.pool-chips{z-index:5!important;position:absolute!important;left:24px!important;right:24px!important;top:auto!important;bottom:22px!important;display:grid!important;grid-template-columns:repeat(auto-fit,minmax(110px,1fr))!important;gap:10px!important;width:auto!important;max-width:none!important;margin:0!important}
-    #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"] .pool-tg{position:static!important;inset:auto!important;display:grid!important;place-items:center!important;width:100%!important;min-width:0!important;max-width:none!important;min-height:60px!important;margin:0!important;padding:9px 8px!important;border-radius:18px!important;text-align:center!important}
 
     @media(max-width:760px){
       #page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"]{width:calc(100% - 12px)!important;margin:8px auto 14px!important;padding:4px!important;gap:3px!important;border-radius:20px!important}
@@ -420,13 +345,6 @@ function installStyles() {
       #page-temp .dm-temperature-room-tabs{padding-left:8px!important;padding-right:8px!important;margin-top:6px!important}
       #page-temp .dm-temperature-room-tabs>button{min-height:38px!important;padding:7px 10px!important;font-size:11px!important;border-radius:13px!important}
 
-      #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"]{height:318px!important;border-radius:22px!important}
-      #page-piscina .pool-hero[data-dm-beta16-pool="true"]>.dm-beta12-pool-scene{inset:12px 10px 88px!important}
-      #page-piscina .pool-hero[data-dm-beta16-pool="true"] .dm-beta12-pool-basin{inset:0!important;border-width:6px!important;border-radius:24px!important}
-      #page-piscina .pool-hero[data-dm-beta16-pool="true"]>.pool-temp{left:28px!important;top:31px!important;width:76px!important;height:76px!important;font-size:25px!important}
-      #page-piscina .pool-hero[data-dm-beta16-pool="true"]>.pool-sub{left:24px!important;top:112px!important;max-width:150px!important;padding:5px 8px!important;font-size:10px!important}
-      #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"]>.pool-chips{left:10px!important;right:10px!important;bottom:12px!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
-      #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"] .pool-tg{min-height:52px!important;padding:7px 4px!important;border-radius:15px!important;font-size:11px!important;line-height:1.15!important}
     }
 
     @media(max-width:360px){
@@ -435,7 +353,6 @@ function installStyles() {
       #page-clima .cp-name{font-size:11px!important}
       #page-clima .dm-beta16-climate-room{font-size:7.5px!important;padding:3px 5px!important}
       #page-clima .cp-temp-target .val{font-size:25px!important}
-      #page-piscina #pool-wrap .pool-hero[data-dm-beta16-pool="true"]{height:300px!important}
     }
   `);
 }
@@ -456,7 +373,7 @@ export function installBeta16RealDeviceLayout() {
     schedule();
   });
   doc.addEventListener("click", (event) => {
-    if (event.target?.closest?.("#editor-modal,#page-clima,#page-temp,#page-piscina")) schedule();
+    if (event.target?.closest?.("#editor-modal,#page-clima,#page-temp")) schedule();
   }, true);
   doc.addEventListener("change", (event) => {
     if (event.target?.closest?.("#editor-modal")) schedule();

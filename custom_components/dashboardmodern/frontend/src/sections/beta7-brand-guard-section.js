@@ -118,11 +118,16 @@ function installStyles() {
 
     /* The regression owner creates a fixed four-column action row. Pin the
        readable label to column two so a pre-existing icon can never push it
-       into an implicit clipped fifth column. Icon rendering itself belongs to
-       icon-engine-section and is intentionally not styled/repainted here. */
+       into an implicit clipped fifth column, and let it fill that column: the
+       flex widths the legacy rows share do not apply on a grid row, so without
+       an explicit width the name of an already configured action is clipped to
+       nothing. Icon rendering itself belongs to icon-engine-section and is
+       intentionally not styled/repainted here. */
     #editor-modal .ed-row.dm-beta7-action-row>.ed-row-main{
       grid-column:2!important;
       grid-row:1!important;
+      justify-self:stretch!important;
+      width:auto!important;
       min-width:0!important;
       max-width:100%!important;
       overflow:hidden!important;

@@ -31,6 +31,7 @@ import { installEditorCrudSection } from "./editor-crud-section.js";
 import { installEditorContractsSection } from "./editor-contracts-section.js";
 import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
+import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
 import { installEvSection } from "./ev-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { allStates, clean, english, section, wrapFunction } from "./shared.js";
@@ -628,6 +629,7 @@ export function installSectionRuntime() {
     installEditorContractsSection();
     installReportEditorSection();
     installShutterSection();
+    installPoolIrrigationSceneSection();
     installEvSection();
     installBeta27ReleaseStability();
 
@@ -662,6 +664,7 @@ export function installSectionRuntime() {
         "editor-contracts",
         "report-editor",
         "shutters",
+        "pool-irrigation-scene",
         "ev",
         "beta27-release-stability",
       ]),

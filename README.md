@@ -337,6 +337,13 @@ La sezione Piscina è pensata per raggruppare in una vista dedicata i sensori e 
 - luci;
 - altri switch o sensori configurati.
 
+La pagina disegna la vasca con l'acqua in movimento e mostra sopra la scena la
+temperatura dell'acqua. Le bolle compaiono quando la pompa sta filtrando, il
+vapore quando il riscaldamento è acceso e la vasca si illumina da sotto quando
+accendi la luce. pH e cloro, se configurati, sono due barre con la fascia
+ideale evidenziata; la filtrazione mostra in un anello le ore fatte oggi su
+quelle previste.
+
 Abilita solo i controlli realmente presenti nel tuo impianto.
 
 ---
@@ -344,6 +351,13 @@ Abilita solo i controlli realmente presenti nel tuo impianto.
 ## 💧 Irrigazione
 
 La sezione Irrigazione può essere usata per rappresentare zone e comandi disponibili in Home Assistant. Il comportamento effettivo dipende dalle entità configurate e dalle automazioni già presenti nell'impianto.
+
+La pagina disegna il prato con un irrigatore per ogni zona configurata (le
+prime otto sul prato, tutte nelle schede sotto). Quando una zona è in funzione
+l'irrigatore spruzza: il ventaglio d'acqua oscilla, le gocce ricadono sull'erba
+e ognuna apre il suo schizzo, mentre il prato sotto si bagna. Il tempo che
+manca alla fine resta sull'etichetta della zona e sulla sua scheda. Se hai
+attivato "riduci animazioni" nel sistema, la scena resta ferma.
 
 ---
 
@@ -366,6 +380,18 @@ Nelle opzioni dell'integrazione sono disponibili:
 - **Registra dashboard Lovelace** — abilita/disabilita la registrazione della dashboard companion.
 
 > Le opzioni di visibilità della plancia non sostituiscono il sistema di autenticazione e autorizzazione di Home Assistant.
+
+---
+
+## 📱 Modalità kiosk su iPhone e iPad
+
+Su un telefono iOS che apre la plancia dentro Home Assistant — pannello nella barra laterale, dashboard companion o app Companion — la plancia parte **a schermo intero**: copre la barra di Home Assistant e usa tutta l'altezza dello schermo, comprese le aree sicure attorno alla tacca. La plancia ha già una sua intestazione e un suo hamburger, quindi non si perde nulla.
+
+- **L'hamburger della plancia apre la barra laterale di Home Assistant**, come prima: mentre la barra è aperta la plancia si abbassa per lasciarla vedere.
+- **Tieni premuto l'hamburger per mezzo secondo** per accendere o spegnere il kiosk, con conferma a schermo.
+- In alternativa apri la plancia con `?kiosk=0` per spegnerlo o `?kiosk=1` per accenderlo: **la scelta viene ricordata su quel dispositivo**, quindi va fatta una volta sola. Vale anche `dm_kiosk`, e il parametro può stare nella query o nell'hash.
+
+Fuori da quel caso il kiosk resta a richiesta: su desktop, su tablet in orizzontale e sulla plancia aperta da sola serve `?kiosk=1` esplicito.
 
 ---
 

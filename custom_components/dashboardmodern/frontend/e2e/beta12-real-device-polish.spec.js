@@ -392,56 +392,6 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(settled.padding).toBe(first.padding);
     expect(settled.radius).toBe(first.radius);
   });
-
-  test(`${variant}: beta12 pool renders a recognizable tiled basin without changing controls`, async ({
-    page,
-  }, testInfo) => {
-    test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
-    await boot(page, variant, testInfo);
-
-    await page.evaluate(() => {
-      localStorage.setItem(
-        "cd_piscina",
-        JSON.stringify({
-          tempEnt: "sensor.pool_temperature",
-          pumpEnt: "switch.pool_pump",
-          heatEnt: "switch.pool_heat",
-          lightEnt: "switch.pool_light",
-          filterHours: 8,
-          autoHours: true,
-        }),
-      );
-      document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
-      document.getElementById("page-piscina")?.classList.add("active");
-      renderPiscina();
-    });
-
-    const hero = page.locator("#page-piscina .pool-hero");
-    await expect(hero).toBeVisible();
-    await expect(hero).toHaveAttribute("data-dm-beta12-pool", "true");
-    await expect(hero.locator(".dm-beta12-pool-basin")).toBeVisible();
-    await expect(hero.locator(".dm-beta12-pool-ladder")).toBeVisible();
-    await expect(hero.locator(".dm-beta12-pool-steps")).toBeVisible();
-    await expect(hero.locator('.pool-tg[data-act="pump"]')).toBeVisible();
-    await expect(hero.locator('.pool-tg[data-act="heat"]')).toBeVisible();
-    await expect(hero.locator('.pool-tg[data-act="light"]')).toBeVisible();
-    await expect(hero.locator(".pool-wave").first()).toHaveCSS("display", "none");
-
-    const geometry = await hero.evaluate((node) => {
-      const basin = node.querySelector(".dm-beta12-pool-basin")?.getBoundingClientRect();
-      const box = node.getBoundingClientRect();
-      return {
-        basinWidth: basin?.width || 0,
-        basinHeight: basin?.height || 0,
-        overflowX: node.scrollWidth - node.clientWidth,
-        inside: Boolean(basin && basin.left >= box.left && basin.right <= box.right + 1),
-      };
-    });
-    expect(geometry.basinWidth).toBeGreaterThan(180);
-    expect(geometry.basinHeight).toBeGreaterThan(120);
-    expect(geometry.overflowX).toBeLessThanOrEqual(1);
-    expect(geometry.inside).toBe(true);
-  });
 }
 
 test("dashboard.html: total reset clears alerts and remote config without changing the panel URL", async ({
@@ -490,7 +440,7 @@ test("dashboard.html: total reset clears alerts and remote config without changi
   expect(result.remoteReset).toBe(true);
 });
 
-test("dashboard.html: beta12 iPhone kiosk is opt-in, reversible and uses the dynamic viewport", async ({
+test("dashboard.html: beta12 iPhone kiosk is remembered, reversible and uses the dynamic viewport", async ({
   page,
 }, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
@@ -524,9 +474,27 @@ test("dashboard.html: beta12 iPhone kiosk is opt-in, reversible and uses the dyn
   expect(viewportContract.overflowX).toBe("hidden");
   expect(viewportContract.minHeight).not.toBe("0px");
 
+  // The Home Assistant companion app reopens the plancia without any query
+  // string, so the last explicit choice has to survive on its own.
+  await page.evaluate(() => {
+    const url = new URL(location.href);
+    url.searchParams.delete("kiosk");
+    history.replaceState({}, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.locator("html")).toHaveAttribute("data-dm-ios-kiosk", "true");
+
   await page.evaluate(() => {
     const url = new URL(location.href);
     url.searchParams.set("kiosk", "0");
+    history.replaceState({}, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.locator("html")).not.toHaveAttribute("data-dm-ios-kiosk", "true");
+
+  await page.evaluate(() => {
+    const url = new URL(location.href);
+    url.searchParams.delete("kiosk");
     history.replaceState({}, "", url);
     window.dispatchEvent(new PopStateEvent("popstate"));
   });

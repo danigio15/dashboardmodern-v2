@@ -96,6 +96,9 @@ function polishQuickActionCards() {
 function hideRawMdiText(row, token) {
   row?.querySelectorAll?.("span,div,b,strong,small").forEach((node) => {
     if (node.children.length) return;
+    // The readable label belongs to the row, not to the icon slot: an action
+    // named after its own icon must still show that name.
+    if (node.closest?.(".ed-row-main")) return;
     const text = clean(node.textContent);
     if (/^mdi:[a-z0-9-]+$/i.test(text) || (token && text === token)) {
       node.textContent = "";

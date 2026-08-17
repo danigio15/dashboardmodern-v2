@@ -153,8 +153,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // the Loads panel keeps exactly one renderer. The circle popup adds two more,
   // the same split: a pure model and the owner that renders it over the legacy
   // list, which is what makes the circle total and the popup total one number.
+  // The Pool/Irrigation redesign adds exactly one owner: the scene section that
+  // replaces both legacy paint functions. Beta11's stylesheet block and the
+  // Beta12/14/16 pool correctives stood down into it, so the two pages have one
+  // renderer and one stylesheet instead of five competing layers.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 88, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 89, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 

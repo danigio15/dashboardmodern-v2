@@ -1,56 +1,192 @@
-// DM-FIX-20260813C
-import { clean, doc, installStyle, root } from "./shared.js";
+// DM-FIX-20260817A
+import { clean, doc, installStyle, root, t } from "./shared.js";
 
 // Beta18: all room/action icons are owned by icon-engine-section. This historical
 // module keeps only the iOS kiosk contract; it must never observe or repaint icon DOM.
+//
+// Beta30.6: the kiosk used to require a hand written ?kiosk=1 on the URL. Nobody
+// can type a query string inside the Home Assistant companion app, so on a real
+// iPhone the plancia always rendered under the Lovelace toolbar. The contract is
+// now: an explicit request always wins, the last explicit choice is remembered,
+// and an iOS phone that hosts the plancia inside Home Assistant starts in kiosk.
 const KEY = "__DASHBOARDMODERN_BETA12_FINAL_LOCK__";
 const KIOSK_ATTR = "data-dm-ios-kiosk";
+const KIOSK_STORE_KEY = "dm_kiosk";
+const KIOSK_KEYS = ["kiosk", "dm_kiosk"];
+const KIOSK_OFF_VALUES = ["0", "false", "off", "no"];
+const KIOSK_Z_INDEX = "2147483000";
+const NARROW_VIEWPORT = "(max-width: 870px)";
+const LONG_PRESS_MS = 650;
+// A fixed overlay resolves against the closest ancestor that owns a containing
+// block. Home Assistant paints some surfaces through these properties, and any
+// of them would pin the plancia inside the panel box instead of over the app.
+const TRAP_PROPERTIES = Object.freeze([
+  "transform",
+  "filter",
+  "backdrop-filter",
+  "perspective",
+  "contain",
+  "will-change",
+]);
+
 const state = (root[KEY] ||= {
   listeners: false,
-  kioskHost: null,
-  kioskHostCss: "",
-  kioskFrame: null,
-  kioskFrameCss: "",
+  gestureBound: false,
   kioskViewportBound: false,
 });
+state.active ||= false;
+state.override ??= null;
+state.kioskHost ||= null;
+state.kioskHostCss ||= "";
+state.kioskFrame ||= null;
+state.kioskFrameCss ||= "";
+state.ancestors ||= [];
+state.scrollLock ||= [];
+state.drawer ||= null;
+state.drawerFrame ||= null;
+state.drawerBound ||= false;
 
-function isIosDevice() {
-  const nav = root.navigator;
+export function isIosDevice(nav = root.navigator) {
   const ua = clean(nav?.userAgent);
   if (/iPhone|iPad|iPod/i.test(ua)) return true;
   return clean(nav?.platform) === "MacIntel" && Number(nav?.maxTouchPoints || 0) > 1;
 }
 
-function kioskValueFromLocation(locationLike) {
+function booleanFromValue(value) {
+  return !KIOSK_OFF_VALUES.includes(clean(value).toLowerCase());
+}
+
+export function kioskValueFromLocation(locationLike) {
   if (!locationLike) return null;
   try {
     const params = new URLSearchParams(locationLike.search || "");
-    for (const key of ["kiosk", "dm_kiosk"]) {
-      if (!params.has(key)) continue;
-      const value = clean(params.get(key)).toLowerCase();
-      return !["0", "false", "off", "no"].includes(value);
+    for (const key of KIOSK_KEYS) {
+      if (params.has(key)) return booleanFromValue(params.get(key));
     }
     const hash = clean(locationLike.hash).replace(/^#/, "");
     if (hash.includes("=")) {
       const hashParams = new URLSearchParams(hash.includes("?") ? hash.split("?").pop() : hash);
-      for (const key of ["kiosk", "dm_kiosk"]) {
-        if (!hashParams.has(key)) continue;
-        const value = clean(hashParams.get(key)).toLowerCase();
-        return !["0", "false", "off", "no"].includes(value);
+      for (const key of KIOSK_KEYS) {
+        if (hashParams.has(key)) return booleanFromValue(hashParams.get(key));
       }
     }
   } catch (_error) {}
   return null;
 }
 
-function kioskRequested() {
-  for (const candidate of [root.parent, root]) {
+/** The explicit request carried by this load, or null when there is none. */
+export function explicitKioskRequest(candidates = [root.parent, root]) {
+  for (const candidate of candidates) {
     try {
       const value = kioskValueFromLocation(candidate?.location);
       if (value !== null) return value;
     } catch (_error) {}
   }
+  return null;
+}
+
+export function readStoredKiosk(storage = root.localStorage) {
+  try {
+    const raw = storage?.getItem?.(KIOSK_STORE_KEY);
+    if (raw === null || raw === undefined || clean(raw) === "") return null;
+    return booleanFromValue(raw);
+  } catch (_error) {
+    return null;
+  }
+}
+
+export function writeStoredKiosk(value, storage = root.localStorage) {
+  try {
+    storage?.setItem?.(KIOSK_STORE_KEY, value ? "1" : "0");
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
+/**
+ * Resolve the kiosk mode without touching the DOM.
+ *
+ * `override` is the in-session choice (long press on the plancia hamburger) and
+ * outranks everything, so the gesture keeps working on a URL that still carries
+ * ?kiosk=1. Without any explicit choice an iOS phone hosting the plancia inside
+ * Home Assistant starts full screen: that surface has no editable address bar,
+ * and the plancia already carries its own header and its own hamburger.
+ */
+export function resolveKioskMode({
+  override = null,
+  explicit = null,
+  stored = null,
+  ios = false,
+  hosted = false,
+  standalone = false,
+  narrow = false,
+} = {}) {
+  if (override !== null && override !== undefined) return Boolean(override);
+  if (explicit !== null && explicit !== undefined) return Boolean(explicit);
+  if (stored !== null && stored !== undefined) return Boolean(stored);
+  return Boolean(ios && (standalone || (hosted && narrow)));
+}
+
+function parentWindow() {
+  try {
+    const parent = root.parent;
+    if (parent && parent !== root && parent.document) return parent;
+  } catch (_error) {}
+  return null;
+}
+
+function ownerWindow() {
+  return parentWindow() || root;
+}
+
+export function hostedContext() {
+  if (root.__DASHBOARDMODERN_HOSTED__ === true) return true;
+  try {
+    if (root.frameElement) return true;
+  } catch (_error) {
+    // A cross origin frameElement still means the plancia is hosted.
+    return true;
+  }
+  return Boolean(parentWindow());
+}
+
+function standaloneDisplay() {
+  if (root.navigator?.standalone === true) return true;
+  try {
+    return Boolean(root.matchMedia?.("(display-mode: standalone)")?.matches);
+  } catch (_error) {
+    return false;
+  }
+}
+
+function narrowViewport() {
+  // The hosting Home Assistant page is the only window that sees the real
+  // device width: a frame ignores the viewport meta and can report a legacy
+  // 980px layout instead of the phone it is painted on.
+  for (const view of [ownerWindow(), root]) {
+    try {
+      const query = view?.matchMedia?.(NARROW_VIEWPORT);
+      if (query) return Boolean(query.matches);
+    } catch (_error) {}
+  }
   return false;
+}
+
+function kioskEnabled() {
+  const explicit = explicitKioskRequest();
+  // A link opened with ?kiosk=0/1 is also the user's new default: the companion
+  // app reopens the plancia without any query string.
+  if (explicit !== null && readStoredKiosk() !== explicit) writeStoredKiosk(explicit);
+  return resolveKioskMode({
+    override: state.override,
+    explicit,
+    stored: readStoredKiosk(),
+    ios: isIosDevice(),
+    hosted: hostedContext(),
+    standalone: standaloneDisplay(),
+    narrow: narrowViewport(),
+  });
 }
 
 function hostForFrame() {
@@ -64,19 +200,193 @@ function hostForFrame() {
   }
 }
 
+function viewportHeightValue(height) {
+  // The measured viewport is authoritative: dvh keeps the iOS toolbar space
+  // reserved inside the Home Assistant WebView and leaves a dead band.
+  return height > 300 ? `${height}px` : "100dvh";
+}
+
 function updateKioskViewport() {
-  const viewport = root.visualViewport;
-  const height = Math.max(1, Math.round(viewport?.height || root.innerHeight || 0));
-  const width = Math.max(1, Math.round(viewport?.width || root.innerWidth || 0));
+  const target = ownerWindow();
+  const viewport = target.visualViewport;
+  const height = Math.max(1, Math.round(viewport?.height || target.innerHeight || 0));
+  const width = Math.max(1, Math.round(viewport?.width || target.innerWidth || 0));
   doc?.documentElement?.style?.setProperty?.("--dm-ios-kiosk-height", `${height}px`);
   doc?.documentElement?.style?.setProperty?.("--dm-ios-kiosk-width", `${width}px`);
+  if (state.active && state.kioskHost?.style) {
+    const value = viewportHeightValue(height);
+    for (const property of ["height", "min-height", "max-height"]) {
+      state.kioskHost.style.setProperty(property, value, "important");
+    }
+  }
+  return { height, width };
+}
+
+/** Whether a computed value turns an ancestor into a containing block. */
+export function trapsFixedPosition(property, value) {
+  if (!TRAP_PROPERTIES.includes(property)) return false;
+  const normalized = clean(value).toLowerCase();
+  if (!normalized || ["none", "auto", "normal"].includes(normalized)) return false;
+  if (property === "contain") return /strict|content|paint|layout/.test(normalized);
+  if (property === "will-change") return /transform|filter|perspective|contain/.test(normalized);
+  return true;
+}
+
+/**
+ * The inline declaration that lifts the plancia over the Home Assistant chrome.
+ * While the native sidebar is open the overlay steps down instead of swallowing
+ * it: the drawer lives outside the panel subtree with a small z-index.
+ */
+export function kioskHostStyles({ height = 0, drawerOpen = false } = {}) {
+  const viewport = viewportHeightValue(height);
+  return {
+    position: "fixed",
+    inset: "0",
+    "z-index": drawerOpen ? "1" : KIOSK_Z_INDEX,
+    width: "100%",
+    "max-width": "100%",
+    height: viewport,
+    "min-height": viewport,
+    "max-height": viewport,
+    margin: "0",
+    padding: "0",
+    background: "var(--primary-background-color,#f8fafc)",
+    overflow: "hidden",
+  };
+}
+
+/** Drop every containing block between the plancia host and the app root. */
+function releaseAncestors(host) {
+  if (host && state.ancestorHost === host) return;
+  restoreAncestors();
+  const view = ownerWindow();
+  if (!host || typeof view.getComputedStyle !== "function") return;
+  state.ancestorHost = host;
+  let node = host.parentNode || null;
+  const touched = [];
+  while (node && touched.length < 40) {
+    if (node.nodeType === 11) {
+      node = node.host || null;
+      continue;
+    }
+    if (node.nodeType !== 1) break;
+    let computed = null;
+    try {
+      computed = view.getComputedStyle(node);
+    } catch (_error) {}
+    if (
+      computed &&
+      TRAP_PROPERTIES.some((property) =>
+        trapsFixedPosition(property, computed.getPropertyValue(property)),
+      )
+    ) {
+      touched.push({ element: node, css: node.style?.cssText || "" });
+      for (const property of TRAP_PROPERTIES) {
+        node.style?.setProperty?.(property, property === "will-change" ? "auto" : "none", "important");
+      }
+    }
+    node = node.parentNode;
+  }
+  state.ancestors = touched;
+}
+
+function restoreAncestors() {
+  for (const entry of state.ancestors) {
+    if (entry?.element?.style) entry.element.style.cssText = entry.css;
+  }
+  state.ancestors = [];
+  state.ancestorHost = null;
+}
+
+/** Stop the Home Assistant document behind the overlay from rubber banding. */
+function lockOwnerDocument() {
+  if (state.scrollLock.length) return;
+  const view = parentWindow();
+  const target = view?.document;
+  if (!target) return;
+  for (const element of [target.documentElement, target.body]) {
+    if (!element?.style) continue;
+    state.scrollLock.push({ element, css: element.style.cssText || "" });
+    element.style.setProperty("overflow", "hidden", "important");
+    element.setAttribute?.(KIOSK_ATTR, "true");
+  }
+}
+
+function unlockOwnerDocument() {
+  for (const entry of state.scrollLock) {
+    if (!entry?.element?.style) continue;
+    entry.element.style.cssText = entry.css;
+    entry.element.removeAttribute?.(KIOSK_ATTR);
+  }
+  state.scrollLock = [];
+}
+
+function haDrawer() {
+  const view = parentWindow();
+  if (!view) return null;
+  try {
+    const app = view.document.querySelector("home-assistant");
+    const main = app?.shadowRoot?.querySelector("home-assistant-main");
+    return main?.shadowRoot?.querySelector("ha-drawer") || null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+/**
+ * The plancia hamburger still opens the native Home Assistant sidebar. That
+ * sidebar lives outside the panel subtree with a small z-index, so the overlay
+ * steps aside while the drawer is open instead of swallowing it.
+ *
+ * The drawer state is sampled on animation frames for as long as it stays open,
+ * never through a DOM observer: this module is forbidden from observing DOM.
+ */
+function applyDrawerRetraction(open) {
+  const host = state.kioskHost;
+  if (!host?.style) return;
+  host.style.setProperty("z-index", open ? "1" : KIOSK_Z_INDEX, "important");
+}
+
+function nextFrame(callback) {
+  const view = parentWindow() || root;
+  if (typeof view.requestAnimationFrame === "function") return view.requestAnimationFrame(callback);
+  return root.setTimeout?.(callback, 100) ?? null;
+}
+
+/** Follow the drawer for a few frames after a toggle, then while it stays open. */
+function trackDrawer(frames = 20) {
+  state.drawer ||= haDrawer();
+  if (!state.drawer || state.drawerFrame) return false;
+  const step = () => {
+    const open = Boolean(state.drawer?.hasAttribute?.("open"));
+    applyDrawerRetraction(open);
+    frames -= 1;
+    state.drawerFrame = state.active && (open || frames > 0) ? nextFrame(step) : null;
+  };
+  state.drawerFrame = nextFrame(step);
+  return true;
+}
+
+function bindDrawerToggle() {
+  if (state.drawerBound) return false;
+  const view = parentWindow();
+  if (!view?.addEventListener) return false;
+  state.drawerBound = true;
+  // Dispatched by the plancia hamburger and by every native sidebar toggle.
+  view.addEventListener("hass-toggle-menu", () => trackDrawer(), true);
+  return true;
+}
+
+function releaseDrawer() {
+  state.drawer = null;
+  state.drawerFrame = null;
 }
 
 function activateIosKiosk() {
-  if (!doc || !isIosDevice() || !kioskRequested()) return false;
+  if (!doc) return false;
   doc.documentElement?.setAttribute?.(KIOSK_ATTR, "true");
   doc.body?.setAttribute?.(KIOSK_ATTR, "true");
-  updateKioskViewport();
+  const { height } = updateKioskViewport();
   if (!state.kioskViewportBound) {
     state.kioskViewportBound = true;
     root.visualViewport?.addEventListener?.("resize", updateKioskViewport, { passive: true });
@@ -97,16 +407,17 @@ function activateIosKiosk() {
   }
   if (host) {
     host.dataset.dmIosKiosk = "true";
-    host.style.setProperty("position", "fixed", "important");
-    host.style.setProperty("inset", "0", "important");
-    host.style.setProperty("z-index", "2147483000", "important");
-    host.style.setProperty("width", "100vw", "important");
-    host.style.setProperty("height", "100dvh", "important");
-    host.style.setProperty("min-height", "100dvh", "important");
-    host.style.setProperty("margin", "0", "important");
-    host.style.setProperty("padding", "0", "important");
-    host.style.setProperty("background", "var(--primary-background-color,#f8fafc)", "important");
-    host.style.setProperty("overflow", "hidden", "important");
+    const styles = kioskHostStyles({
+      height,
+      drawerOpen: Boolean(state.drawer?.hasAttribute?.("open")),
+    });
+    for (const [property, value] of Object.entries(styles)) {
+      host.style.setProperty(property, value, "important");
+    }
+    releaseAncestors(host);
+    lockOwnerDocument();
+    bindDrawerToggle();
+    trackDrawer(1);
   }
   if (frame) {
     frame.dataset.dmIosKiosk = "true";
@@ -114,12 +425,16 @@ function activateIosKiosk() {
     frame.style.setProperty("height", "100%", "important");
     frame.style.setProperty("min-height", "100%", "important");
   }
+  state.active = true;
   return true;
 }
 
 function deactivateIosKiosk() {
   doc?.documentElement?.removeAttribute?.(KIOSK_ATTR);
   doc?.body?.removeAttribute?.(KIOSK_ATTR);
+  releaseDrawer();
+  unlockOwnerDocument();
+  restoreAncestors();
   if (state.kioskHost) {
     state.kioskHost.style.cssText = state.kioskHostCss;
     delete state.kioskHost.dataset.dmIosKiosk;
@@ -132,24 +447,126 @@ function deactivateIosKiosk() {
     state.kioskFrame = null;
     state.kioskFrameCss = "";
   }
+  state.active = false;
+}
+
+/**
+ * Everything this module writes outside its own document must survive the frame
+ * going away: Home Assistant keeps the page when the plancia panel is replaced.
+ */
+function releaseOwnerDocument() {
+  unlockOwnerDocument();
+  restoreAncestors();
+  if (state.kioskHost) {
+    state.kioskHost.style.cssText = state.kioskHostCss;
+    state.kioskHost = null;
+  }
 }
 
 function syncIosKiosk() {
-  if (isIosDevice() && kioskRequested()) activateIosKiosk();
+  bindKioskGesture();
+  if (kioskEnabled()) activateIosKiosk();
   else deactivateIosKiosk();
+  return state.active;
+}
+
+function kioskToast(message) {
+  if (!doc?.body) return;
+  let toast = doc.getElementById("dm-kiosk-toast");
+  if (!toast) {
+    toast = doc.createElement("div");
+    toast.id = "dm-kiosk-toast";
+    doc.body.append(toast);
+  }
+  toast.textContent = message;
+  toast.dataset.visible = "true";
+  root.clearTimeout?.(state.toastTimer);
+  state.toastTimer = root.setTimeout?.(() => {
+    toast.dataset.visible = "false";
+  }, 2200);
+}
+
+export function setKioskMode(value) {
+  state.override = Boolean(value);
+  writeStoredKiosk(state.override);
+  syncIosKiosk();
+  root.dispatchEvent?.(
+    new CustomEvent("dashboardmodern:kiosk", { detail: { active: state.active } }),
+  );
+  return state.active;
+}
+
+/**
+ * Long press on the plancia hamburger toggles the kiosk. A short tap keeps its
+ * historical behavior (native Home Assistant sidebar when hosted), so this is
+ * the only reachable switch on a phone that cannot edit the address bar.
+ */
+function bindKioskGesture() {
+  if (state.gestureBound) return false;
+  const button = doc?.querySelector?.(".ha-menu-btn");
+  if (!button) return false;
+  state.gestureBound = true;
+  let timer = null;
+  let fired = false;
+  const cancel = () => {
+    if (timer !== null) root.clearTimeout?.(timer);
+    timer = null;
+  };
+  const start = () => {
+    cancel();
+    fired = false;
+    timer = root.setTimeout?.(() => {
+      timer = null;
+      fired = true;
+      root.navigator?.vibrate?.(15);
+      const active = setKioskMode(!state.active);
+      kioskToast(
+        active
+          ? t("Modalità kiosk attiva", "Kiosk mode on")
+          : t("Modalità kiosk disattivata", "Kiosk mode off"),
+      );
+    }, LONG_PRESS_MS);
+  };
+  button.addEventListener("touchstart", start, { passive: true });
+  for (const name of ["touchend", "touchcancel", "touchmove"]) {
+    button.addEventListener(name, cancel, { passive: true });
+  }
+  button.addEventListener("mousedown", start);
+  for (const name of ["mouseup", "mouseleave"]) button.addEventListener(name, cancel);
+  button.addEventListener("contextmenu", (event) => event.preventDefault?.());
+  // The hamburger carries an inline onclick. Capturing on the document is the
+  // only hook that runs before it, so the long press never also opens a menu.
+  doc?.addEventListener?.(
+    "click",
+    (event) => {
+      if (!fired) return;
+      fired = false;
+      if (!button.contains?.(event.target)) return;
+      event.preventDefault?.();
+      event.stopPropagation?.();
+    },
+    true,
+  );
+  return true;
 }
 
 if (!state.listeners) {
   state.listeners = true;
-  root.addEventListener?.("popstate", syncIosKiosk);
-  root.addEventListener?.("hashchange", syncIosKiosk);
-  root.addEventListener?.("pageshow", syncIosKiosk);
+  for (const eventName of ["popstate", "hashchange", "pageshow", "orientationchange"]) {
+    root.addEventListener?.(eventName, syncIosKiosk);
+  }
+  for (const eventName of [
+    "dashboardmodern:legacy-ready",
+    "dashboardmodern:runtime-ready",
+    "dashboardmodern:states-ready",
+  ]) {
+    root.addEventListener?.(eventName, syncIosKiosk);
+  }
+  doc?.addEventListener?.("visibilitychange", syncIosKiosk);
+  for (const eventName of ["pagehide", "unload"]) {
+    root.addEventListener?.(eventName, releaseOwnerDocument);
+  }
 }
-for (const eventName of [
-  "dashboardmodern:legacy-ready",
-  "dashboardmodern:runtime-ready",
-  "dashboardmodern:states-ready",
-]) root.addEventListener?.(eventName, syncIosKiosk);
 
 installStyle("dm-beta12-room-color-lock-style", `
   html[data-dm-ios-kiosk="true"],html[data-dm-ios-kiosk="true"] body{
@@ -163,6 +580,11 @@ installStyle("dm-beta12-room-color-lock-style", `
     -webkit-overflow-scrolling:touch!important
   }
   html[data-dm-ios-kiosk="true"] #bottomNav{padding-bottom:max(env(safe-area-inset-bottom),0px)!important}
+  #dm-kiosk-toast{position:fixed;left:50%;bottom:calc(24px + max(env(safe-area-inset-bottom),0px));
+    transform:translate(-50%,12px);z-index:2147483001;padding:10px 18px;border-radius:999px;
+    background:rgba(15,23,42,.92);color:#f8fafc;font-size:13px;font-weight:800;letter-spacing:.02em;
+    pointer-events:none;opacity:0;transition:opacity .2s ease,transform .2s ease}
+  #dm-kiosk-toast[data-visible="true"]{opacity:1;transform:translate(-50%,0)}
 `);
 
 syncIosKiosk();

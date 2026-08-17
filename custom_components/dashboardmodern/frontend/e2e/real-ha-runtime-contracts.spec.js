@@ -189,8 +189,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(temperatureCard).toBeVisible();
     await expect(temperatureCard.locator(".temp-comfort-badge,[id^='tc_']")).toContainText(
       variant.includes("-en")
-        ? /Cold|Cool|Comfort|Warm|Hot|Unavailable/
-        : /Freddo|Fresco|Comfort|Tiepido|Caldo|Non disponibile/,
+        ? /Cold|Cool|Comfort|Warm|Hot|N\/A/
+        : /Freddo|Fresco|Comfort|Tiepido|Caldo|N\/D/,
     );
   });
 }

@@ -13,7 +13,17 @@
  */
 import { subloadPopupModel } from "../core/subload-popup-model.js";
 import { flowStageModel, subloadsOf } from "../core/energy-flow-topology.js";
-import { allStates, clean, doc, english, installStyle, readJson, root, section } from "./shared.js";
+import {
+  allStates,
+  clean,
+  doc,
+  english,
+  installStyle,
+  readJson,
+  root,
+  section,
+  writeIconGlyph,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SUBLOAD_POPUP__";
 const state = (root[KEY] ||= { installed: false, group: "" });
@@ -80,10 +90,7 @@ function element(tag, className = "", text = "") {
  * either. A token printed as text would show "mdi:stove" where the circle
  * shows the glyph. */
 function iconInto(target, icon) {
-  const value = clean(icon) || "🔌";
-  if (/^mdi:/i.test(value) && typeof root.cdIconMarkup === "function")
-    target.innerHTML = root.cdIconMarkup(value, 24);
-  else target.textContent = value;
+  writeIconGlyph(target, icon, { size: 24 });
   return target;
 }
 
@@ -225,6 +232,7 @@ function installStyles() {
     #subloads-list[data-dm-subload-owner="beta30"]{display:block!important}
     #subloads-title[data-dm-subload-title]{display:flex!important;align-items:center;gap:10px;flex-wrap:wrap}
     .dm-subload-title-icon{font-size:26px;line-height:1}
+    .dm-subload-title-icon .dm-icon-engine-glyph,.dm-subload-summary-icon .dm-icon-engine-glyph,.dm-subload-icon .dm-icon-engine-glyph{font-size:inherit!important;height:auto!important}
     .dm-subload-title-name{color:var(--text,#0f172a);font-weight:900;letter-spacing:.5px}
     .dm-subload-title-period{color:var(--muted,#64748b);font-size:11px;font-weight:800;letter-spacing:1.4px}
     .dm-subload-summary{display:flex;align-items:center;gap:14px;margin:0 0 16px;padding:14px 18px;border-radius:22px;border:1px solid color-mix(in srgb,var(--dm-subload-color,#0ea5e9) 24%,transparent);background:color-mix(in srgb,var(--dm-subload-color,#0ea5e9) 10%,var(--card-bg,#fff))}
