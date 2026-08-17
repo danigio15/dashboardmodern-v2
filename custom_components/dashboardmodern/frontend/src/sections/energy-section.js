@@ -320,11 +320,14 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
   const generation = ++state.generation;
   const monthDate = selectedDate(period);
   const today = new Date();
-  const [dayResult, monthResult, yearResult, deviceMonth, deviceYear, energyLoadsDay] =
+  const [dayResult, monthResult, yearResult, deviceDay, deviceMonth, deviceYear, energyLoadsDay] =
     await Promise.all([
       loadEnergyPeriod("day", today),
       loadEnergyPeriod("month", monthDate),
       loadEnergyPeriod("year", monthDate),
+      // Today's per-device delta, so a device metered only by its lifetime
+      // counter has a daily figure too instead of only a monthly one.
+      loadDevicePeriod("day", today),
       loadDevicePeriod("month", monthDate),
       loadDevicePeriod("year", monthDate),
       loadEnergyLoadsDay(today),
@@ -348,6 +351,7 @@ export async function loadAtomicEnergyBundle(period = selectedPeriod()) {
       month: monthResult.data,
       year: yearResult.data,
       sources: Object.freeze({ day: dayResult, month: monthResult, year: yearResult }),
+      deviceDay,
       deviceMonth,
       deviceYear,
       energyLoadsDay,

@@ -224,8 +224,16 @@ function removeTemporaryEnergyLoads() {
     .forEach((node) => node.remove());
 }
 
+/* Beta 30 renders one computed bubble per configured Load and owns the whole
+ * stage topology. When it is installed this corrective stands down instead of
+ * re-showing the five fixed circles underneath it; the SOC, Temperature and
+ * Energy-cost repairs below are untouched and still run. */
+function dynamicFlowOwnerInstalled() {
+  return root.__DM_20260817A__ === true;
+}
+
 function syncCanonicalLoadBubbles() {
-  if (!doc) return false;
+  if (!doc || dynamicFlowOwnerInstalled()) return false;
   removeTemporaryEnergyLoads();
   const loads = configuredFlowLoads(readSection("loads", []));
   for (const period of ["instant", "day", "month"]) {

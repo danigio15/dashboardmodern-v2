@@ -719,8 +719,17 @@ function newGroupMarkup() {
   return `<div class="ed-form dm-beta27-new-group"><div class="ed-sec-title">＋ ${english() ? "New group" : "Nuovo gruppo"}</div><div class="ed-form-row"><input id="dm-beta27-new-group-name" class="ed-input" placeholder="${english() ? "Name, e.g. Kitchen" : "Nome, es. Cucina"}"><input id="dm-beta27-new-group-icon" class="ed-input ed-icon-input" value="🔌" placeholder="🔌"><input id="dm-beta27-new-group-color" class="dm-beta27-color" type="color" value="#64748b"></div><button type="button" class="ed-btn-add" data-beta27-group-add>＋ ${english() ? "Create group" : "Crea gruppo"}</button></div>`;
 }
 
+/* The Loads panel now belongs to the single-list editor, which configures the
+ * dynamic stage directly. This two-section hierarchy — five fixed circles plus
+ * separately bound groups — stands down rather than rendering underneath it.
+ * The group and flow-node models below stay exported: the new editor reads the
+ * same legacy keys once, to carry an existing configuration across. */
+function loadsPanelOwnedElsewhere() {
+  return root.__DM_20260817B__ === true;
+}
+
 export function renderBeta27LoadsEditor(target) {
-  if (!target || state.loadsRendering) return false;
+  if (!target || state.loadsRendering || loadsPanelOwnedElsewhere()) return false;
   if (!target.matches?.('[data-energy-panel="loads"]')) return false;
   state.loadsRendering = true;
   try {

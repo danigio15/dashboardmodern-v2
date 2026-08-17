@@ -249,14 +249,21 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       window.dmRefreshEnergyFlows?.();
     });
 
-    await expect(page.locator("#v-boiler-day")).toContainText(/1[,.]3|1[,.]25/);
-    await expect(page.locator("#v-clima-day")).toContainText(/0[,.]2|0[,.]16/);
-    await expect(page.locator("#v-cuc-month")).toContainText(/12[,.]4/);
-    await expect(page.locator("#line-home-boiler-day")).toHaveClass(/active/);
-    await expect(page.locator("#line-home-boiler-day")).toHaveClass(/dm-energy-flow-active/);
-    await expect(page.locator("#line-home-clima-day")).toHaveClass(/active/);
-    await expect(page.locator("#line-home-lav-day")).not.toHaveClass(/active/);
-    await expect(page.locator("#line-home-cuc-month")).toHaveClass(/active/);
+    // The stage is drawn from the canonical Loads themselves: one bubble and one
+    // connector per configured load, addressed by load id rather than by the
+    // five fixed slots the legacy markup used to hard-code.
+    const bubble = (view, id) =>
+      page.locator(`#${view} [data-dm-flow-node="${id}"] .dm-flow-value`);
+    const arc = (view, id) => page.locator(`#${view} svg.desktop-svg [data-dm-flow-arc="${id}"]`);
+
+    await expect(bubble("view-day", "flow-boiler")).toContainText(/1[,.]3|1[,.]25/);
+    await expect(bubble("view-day", "flow-clima")).toContainText(/0[,.]2|0[,.]16/);
+    await expect(bubble("view-month", "flow-cuc")).toContainText(/12[,.]4/);
+    await expect(arc("view-day", "flow-boiler")).toHaveClass(/active/);
+    await expect(arc("view-day", "flow-boiler")).toHaveClass(/dm-energy-flow-active/);
+    await expect(arc("view-day", "flow-clima")).toHaveClass(/active/);
+    await expect(arc("view-day", "flow-lav")).not.toHaveClass(/active/);
+    await expect(arc("view-month", "flow-cuc")).toHaveClass(/active/);
 
     await page.evaluate(async () => {
       _RAW_STATES["sensor.flow_boiler_day"].state = "0";
