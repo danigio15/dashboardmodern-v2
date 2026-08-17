@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head><link rel="stylesheet" href="./dashboard-runtime-en.css">
+<!-- config.js imports section-runtime.js dynamically, but only once the legacy
+     runtime has booted. Without this hint the module graph starts downloading
+     after that boot finishes, so a tab clicked in the meantime paints the
+     legacy render before the modular sections can take it over. -->
+<link rel="modulepreload" href="../src/sections/section-runtime.js">
 <script src="./storage-namespace.js"></script>
 <script src="./bridge-prelude.js"></script>
 <script type="module" src="./modules-entry.js"></script>
