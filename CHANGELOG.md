@@ -4,6 +4,22 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.30.7 — 2026-08-17
+
+### Corretto
+
+- In **Temperature** l'etichetta sopra il numero cambiava da sola: la stessa
+  scheda mostrava "TEMPERATURA" e un istante dopo il nome dato al sensore. Quel
+  testo aveva tre proprietari che non erano d'accordo — i renderer scrivevano la
+  parola generica alla creazione, la passata di rifinitura beta17 scriveva il
+  nome della stanza su **tutte** le schede di quella stanza (seconda sonda
+  compresa) a ogni frame, e il livello beta27 lo scriveva per associazione. Su un
+  impianto vero i sensori aggiornano di continuo, quindi l'etichetta ballava a
+  ogni ridisegno. Ora la regola sta in un punto solo: la prima associazione porta
+  il nome dato in configurazione, una sonda aggiuntiva porta il proprio, e senza
+  nome resta la parola "Temperatura". La passata beta17 continua a occuparsi
+  dell'editor e non tocca più le schede.
+
 ## 1.0.0-beta.30.6 — 2026-08-17
 
 ### Modificato

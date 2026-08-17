@@ -10,6 +10,7 @@ import {
   installStyle,
   root,
   section,
+  temperatureCardLabels,
 } from "./shared.js";
 
 root.__DM_20260815C__ = true;
@@ -144,8 +145,9 @@ function createTemperatureCard(room) {
   body.className = "cp-body temp-card-body";
   const current = doc.createElement("div");
   current.className = "cp-temp-current-wrap";
+  const labels = temperatureCardLabels(room);
   current.append(
-    makeText("cp-temp-current-lbl", english() ? "Temperature" : "Temperatura"),
+    makeText("cp-temp-current-lbl", labels.temperature),
     makeText("cp-temp-current temp-value", "—"),
   );
   current.lastElementChild.id = `tv_${tid}`;
@@ -153,7 +155,7 @@ function createTemperatureCard(room) {
   const humidityBox = doc.createElement("div");
   humidityBox.className = "cp-temp-target";
   humidityBox.append(
-    makeText("lbl", `💧 ${english() ? "Humidity" : "Umidità"}`),
+    makeText("lbl", `💧 ${labels.humidity}`),
     makeText("val temp-hum-val", "—%"),
   );
   humidityBox.lastElementChild.id = `hv_${hid}`;

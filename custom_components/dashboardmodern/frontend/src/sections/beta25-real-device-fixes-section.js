@@ -11,6 +11,7 @@ import {
   esc,
   root,
   section,
+  temperatureCardLabels,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_BETA25_REAL_DEVICE_FIXES__";
@@ -188,14 +189,15 @@ function createTemperatureCard(record) {
   body.className = "cp-body temp-card-body";
   const current = doc.createElement("div");
   current.className = "cp-temp-current-wrap";
+  const labels = temperatureCardLabels(room, entry);
   current.append(
-    makeText("cp-temp-current-lbl", english() ? "Temperature" : "Temperatura"),
+    makeText("cp-temp-current-lbl", labels.temperature),
     makeText("cp-temp-current temp-value", "—"),
   );
   const humidity = doc.createElement("div");
   humidity.className = "cp-temp-target";
   humidity.append(
-    makeText("lbl", `💧 ${english() ? "Humidity" : "Umidità"}`),
+    makeText("lbl", `💧 ${labels.humidity}`),
     makeText("val temp-hum-val", "—%"),
   );
   humidity.addEventListener("click", (event) => {

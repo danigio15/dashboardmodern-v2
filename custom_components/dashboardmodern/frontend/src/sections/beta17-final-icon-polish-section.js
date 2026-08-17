@@ -264,32 +264,13 @@ function repairTemperatureEditor() {
   return ensureTemperatureNameFields(form);
 }
 
-function repairTemperatureDashboardLabels() {
-  const grid = doc?.getElementById("temp-grid");
-  if (!grid) return false;
-  let repaired = false;
-  grid.querySelectorAll(".temp-card[data-room-id]").forEach((card) => {
-    const room = temperatureRoom(card.dataset.roomId);
-    if (!room) return;
-    const temp = card.querySelector(".cp-temp-current-lbl");
-    const hum = card.querySelector(".cp-temp-target .lbl");
-    if (temp) {
-      temp.textContent = temperatureLabel(room);
-      temp.title = temperatureLabel(room);
-    }
-    if (hum) {
-      hum.textContent = `💧 ${humidityLabel(room)}`;
-      hum.title = humidityLabel(room);
-    }
-    card.dataset.dmBeta20TemperatureEntityLabels = "true";
-    repaired = true;
-  });
-  return repaired;
-}
+/* The dashboard labels are written by the layer that renders the cards, from
+ * temperatureCardLabels() in shared.js. This pass used to rewrite them every
+ * frame with the room's name — on every card of the room, extra probes
+ * included — so the label flipped on each repaint. Editor repairs stay here. */
 
 function runTemperatureRepair() {
   repairTemperatureEditor();
-  repairTemperatureDashboardLabels();
 }
 
 function scheduleTemperatureRepair() {
@@ -458,7 +439,6 @@ function install() {
   }
   root.addEventListener?.("dashboardmodern:state-changed", () => {
     hideTemperatureProgressCopy();
-    repairTemperatureDashboardLabels();
   });
   root.addEventListener?.("click", scheduleCanonicalModalClaim, true);
   doc.addEventListener("click", scheduleTemperatureRepairFromEvent, true);
