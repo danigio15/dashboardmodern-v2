@@ -4,6 +4,21 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.30.7 — 2026-08-17
+
+### Corretto
+
+- I tab delle stanze in **Temperature** non filtravano: toccando una stanza le
+  schede delle altre tornavano subito visibili. I tab avevano due proprietari —
+  il livello di stabilità beta26/27 e la vecchia passata di layout beta16 — che
+  scrivevano nella stessa barra: il tocco finiva nello stato di uno mentre
+  l'altro rimetteva la pastiglia attiva su **Tutte** e ridava visibilità a tutte
+  le schede al primo ridisegno. Su un impianto vero i sensori aggiornano di
+  continuo, quindi il filtro si annullava dopo un istante. Ora la barra ha un
+  solo proprietario, quello che disegna anche le schede: la stanza scelta resta
+  selezionata e viene riapplicata dopo ogni ridisegno, da qualunque livello
+  arrivi.
+
 ## 1.0.0-beta.30.6 — 2026-08-17
 
 ### Corretto

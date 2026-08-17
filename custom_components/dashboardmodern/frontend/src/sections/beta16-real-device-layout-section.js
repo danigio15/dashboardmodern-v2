@@ -21,8 +21,6 @@ const state = (root[KEY] ||= {
   listeners: false,
   storeUnsubscribe: null,
   climateMigration: "",
-  temperatureFilter: "all",
-  temperatureTabsSignature: "",
 });
 
 export function matchCanonicalRoom(rooms, reference, fallbackName = "") {
@@ -262,66 +260,12 @@ function repairClimateRoomHeadings() {
   return repaired;
 }
 
-function applyTemperatureFilter() {
-  const grid = doc?.getElementById?.("temp-grid");
-  if (!grid) return false;
-  const filter = state.temperatureFilter;
-  grid.querySelectorAll(".temp-card[data-room-id],.dm-temperature-card[data-room-id]").forEach((card) => {
-    const visible = filter === "all" || clean(card.dataset.roomId) === filter;
-    if (visible) card.style.removeProperty("display");
-    else card.style.setProperty("display", "none", "important");
-  });
-  const tabs = doc?.getElementById?.("dm-beta16-temperature-tabs");
-  tabs?.querySelectorAll?.("button[data-room-filter]").forEach((button) => {
-    const active = clean(button.dataset.roomFilter) === filter;
-    button.classList.toggle("active", active);
-    button.setAttribute("aria-pressed", String(active));
-  });
-  return true;
-}
-
-function repairTemperatureTabs() {
-  const page = doc?.getElementById?.("page-temp");
-  const grid = doc?.getElementById?.("temp-grid");
-  if (!page || !grid) return false;
-  const rooms = canonicalRooms().filter((room) => clean(room.temp) || clean(room.hum));
-  const signature = JSON.stringify(rooms.map((room) => [room.id, room.name, room.icon]));
-  let tabs = doc.getElementById("dm-beta16-temperature-tabs");
-  if (!tabs) {
-    tabs = doc.createElement("nav");
-    tabs.id = "dm-beta16-temperature-tabs";
-    tabs.className = "dm-temperature-room-tabs";
-    tabs.setAttribute("aria-label", english() ? "Temperature rooms" : "Stanze temperatura");
-    grid.before(tabs);
-  }
-  if (signature !== state.temperatureTabsSignature) {
-    state.temperatureTabsSignature = signature;
-    const values = [
-      { id: "all", name: english() ? "All" : "Tutte", icon: "🏠" },
-      ...rooms.map((room) => ({
-        id: clean(room.id),
-        name: clean(room.name) || clean(room.id),
-        icon: directEmoji(room.icon) || roomGlyph(room.icon),
-      })),
-    ];
-    tabs.replaceChildren(...values.map((room) => {
-      const button = doc.createElement("button");
-      button.type = "button";
-      button.dataset.roomFilter = room.id;
-      button.innerHTML = `<span aria-hidden="true">${room.icon}</span><b></b>`;
-      button.querySelector("b").textContent = room.name;
-      button.addEventListener("click", () => {
-        state.temperatureFilter = room.id;
-        applyTemperatureFilter();
-      });
-      return button;
-    }));
-    if (state.temperatureFilter !== "all" && !rooms.some((room) => clean(room.id) === state.temperatureFilter)) state.temperatureFilter = "all";
-  }
-  tabs.hidden = rooms.length === 0;
-  applyTemperatureFilter();
-  return true;
-}
+/* The temperature room tabs and their filter live in the Beta 27 stability
+ * owner (beta26-real-device-stability-section.js), which also renders the cards
+ * and therefore can restore the active room after every rebuild. This layer
+ * only keeps the tab styling below; a second filter here used to fight that
+ * owner, resetting the active pill and dropping the filter on every re-render.
+ */
 
 function decoratePool() {
   const hero = doc?.querySelector?.("#page-piscina #pool-wrap .pool-hero");
@@ -339,7 +283,6 @@ function run() {
   repairTemperatureEditorRows();
   repairRoomSelects();
   repairClimateRoomHeadings();
-  repairTemperatureTabs();
   decoratePool();
 }
 
