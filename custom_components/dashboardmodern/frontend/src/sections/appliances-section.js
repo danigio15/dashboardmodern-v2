@@ -607,10 +607,13 @@ function installStyles() {
       #page-appliances-main [data-state="unavailable"],#appl-grid-overview [data-state="unavailable"]{
         background:color-mix(in srgb,var(--error-color,#dc2626) 12%,transparent)!important;color:var(--error-color,#b91c1c)!important
       }
-      /* Square: the 88px floor existed to fit the word, and it is what pushed
-         the button into the history control on a narrow card. */
+      /* Square, the size of the .appl-action-btn beside it: the 88px floor
+         existed to fit the word, and it is what pushed the button into the
+         History control on a narrow card. beta27-release-stability-section
+         sizes the same control and is deliberately last in the cascade, so
+         the two must agree — see the note on its rule. */
       #page-appliances-main .dm-appliance-power-toggle,#appl-grid-overview .dm-appliance-power-toggle{
-        min-width:0!important;width:40px!important;height:40px!important;padding:0!important;
+        min-width:0!important;width:32px!important;height:32px!important;padding:0!important;
         flex:0 0 auto!important;display:inline-grid!important;place-items:center!important;
         border:0!important;color:#fff!important;cursor:pointer!important;
         background:var(--success-color,#059669)!important

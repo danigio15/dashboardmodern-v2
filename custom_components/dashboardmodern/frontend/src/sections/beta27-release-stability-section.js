@@ -60,7 +60,14 @@ function installReleaseStyles() {
       #page-appliances-main .appl-actions button,#appl-grid-overview .appl-actions button,#page-appliances-main [data-dm-power-toggle="true"]:not(.dm-ap-power),#appl-grid-overview [data-dm-power-toggle="true"]:not(.dm-ap-power){
         min-height:32px!important;height:32px!important;border-radius:10px!important;padding:5px 8px!important;font-size:9.5px!important;
       }
-      #page-appliances-main [data-dm-power-toggle="true"]:not(.dm-ap-power),#appl-grid-overview [data-dm-power-toggle="true"]:not(.dm-ap-power){min-width:88px!important}
+      /* Square, matching the .appl-action-btn beside it. The 88px floor here
+         sized a pill around the word "Spegni"; that control draws a glyph now,
+         and this sheet is deliberately last in the cascade (see below), so a
+         stale floor here would quietly outrank the owner's own sizing. */
+      #page-appliances-main [data-dm-power-toggle="true"]:not(.dm-ap-power),#appl-grid-overview [data-dm-power-toggle="true"]:not(.dm-ap-power){
+        min-width:32px!important;width:32px!important;padding:0!important;
+        display:inline-grid!important;place-items:center!important;
+      }
       #page-appliances-main .appl-actions .appl-action-btn,#appl-grid-overview .appl-actions .appl-action-btn{width:32px!important;max-width:32px!important}
 
       @media(max-width:520px){

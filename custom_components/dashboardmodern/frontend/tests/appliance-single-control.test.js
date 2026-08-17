@@ -10,6 +10,10 @@ const behavior = await readFile(
   new URL("../src/sections/appliances-section.js", import.meta.url),
   "utf8",
 );
+const stability = await readFile(
+  new URL("../src/sections/beta27-release-stability-section.js", import.meta.url),
+  "utf8",
+);
 
 test("appliance layout never hides an action by DOM position", () => {
   assert.doesNotMatch(layout, /\.appl-action-btn:first-child/);
@@ -37,6 +41,20 @@ test("the power toggle is sized for its glyph, not for the widest label", () => 
   // button into the control beside it.
   assert.doesNotMatch(behavior, /min-width:88px/);
   assert.match(behavior, /\.dm-appliance-power-toggle svg/);
+});
+
+test("no later sheet restores the pill the owner just squared off", () => {
+  // beta27-release-stability-section sizes the same control with a more
+  // specific selector AND re-appends itself last in the cascade, so a floor
+  // left behind there silently outranks the owner and the fix does nothing.
+  assert.doesNotMatch(stability, /min-width:88px/);
+  const width = /\[data-dm-power-toggle="true"\]:not\(\.dm-ap-power\)[^{]*\{[^}]*width:(\d+)px/s.exec(
+    stability,
+  );
+  assert.ok(width, "the stability sheet still sizes the toggle");
+  const owner = /\.dm-appliance-power-toggle,[^{]*\{[^}]*[^-]width:(\d+)px/s.exec(behavior);
+  assert.ok(owner, "and so does the owner");
+  assert.equal(width[1], owner[1], "the two sizings must agree");
 });
 
 test("a toggle drawn by an earlier build is redrawn, not left showing the word", () => {
