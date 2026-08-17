@@ -91,7 +91,7 @@ test("Energy real DOM opens Flussi by default, switches settings and reuses the 
   const tabs = root.queryAll((node) => node.classList.contains("ed-inner-tab"));
   assert.deepEqual(
     tabs.map((tab) => tab.textContent),
-    ["FLUSSI ED ENTITÀ", "CARICHI", "REPORT", "IMPOSTAZIONI"],
+    ["FLUSSI ED ENTITÀ", "CARICHI E DISPOSITIVI", "REPORT", "IMPOSTAZIONI"],
   );
   tabs[3].click();
   assert.equal(panels.find((node) => node.dataset.energyPanel === "flows").hidden, true);

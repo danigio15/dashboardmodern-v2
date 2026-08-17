@@ -308,12 +308,13 @@ test("name, icon and colour are labelled fields, with the canonical icon picker"
   assert.equal(name.value, previewName(first), "the field shows the name it is editing");
   assert.ok(name.value, "and that name is not blank");
 
-  // The picker button points at the icon input, which is how the canonical
-  // icon engine finds what to write into.
+  // The picker button is drawn by this editor, not decorated by the legacy
+  // `.dm-icon-picker` owner, which repainted it into an empty box.
   const icon = first.querySelector("[data-dm-load-icon]");
-  const picker = first.querySelector(".dm-icon-picker");
-  assert.equal(picker.dataset.iconTarget, icon.id);
-  assert.ok(icon.id);
+  const picker = first.querySelector("[data-dm-load-icon-pick]");
+  assert.ok(icon.id, "the input is addressable, so the picker can write into it");
+  assert.equal(picker.classList.contains("dm-icon-picker"), false);
+  assert.equal(picker.textContent, icon.value, "the button previews the current icon");
 
   // The engine writes the glyph and fires change; the card must persist it.
   icon.value = "🔥";
@@ -343,4 +344,17 @@ test("the labelled fields stay stacked on a phone, where they were unreadable", 
   // put name, icon and colour back on one row.
   assert.doesNotMatch(narrow, /\.dm-loads-identity\s*\{[^}]*grid-template-columns/);
   assert.match(css, /\.dm-loads-identity\{display:grid;gap:12px/);
+});
+
+test("the panel stays hidden when another Energy tab is open", () => {
+  render();
+  const css = globalThis.document.head.descendants().map((node) => node.textContent).join("\n");
+  // The editor set `display:block` unconditionally, which defeats the panel's
+  // own `hidden` attribute: the section then showed under Flows & entities too.
+  assert.match(css, /\[data-energy-panel="loads"\]\[data-dm-loads-editor="true"\]:not\(\[hidden\]\)/);
+  assert.doesNotMatch(
+    css,
+    /\[data-dm-loads-editor="true"\]\{display:block/,
+    "no unconditional display rule survives",
+  );
 });
