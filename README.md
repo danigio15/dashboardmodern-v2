@@ -337,6 +337,13 @@ La sezione Piscina è pensata per raggruppare in una vista dedicata i sensori e 
 - luci;
 - altri switch o sensori configurati.
 
+La pagina disegna la vasca con l'acqua in movimento e mostra sopra la scena la
+temperatura dell'acqua. Le bolle compaiono quando la pompa sta filtrando, il
+vapore quando il riscaldamento è acceso e la vasca si illumina da sotto quando
+accendi la luce. pH e cloro, se configurati, sono due barre con la fascia
+ideale evidenziata; la filtrazione mostra in un anello le ore fatte oggi su
+quelle previste.
+
 Abilita solo i controlli realmente presenti nel tuo impianto.
 
 ---
@@ -344,6 +351,13 @@ Abilita solo i controlli realmente presenti nel tuo impianto.
 ## 💧 Irrigazione
 
 La sezione Irrigazione può essere usata per rappresentare zone e comandi disponibili in Home Assistant. Il comportamento effettivo dipende dalle entità configurate e dalle automazioni già presenti nell'impianto.
+
+La pagina disegna il prato con un irrigatore per ogni zona configurata (le
+prime otto sul prato, tutte nelle schede sotto). Quando una zona è in funzione
+l'irrigatore spruzza: il ventaglio d'acqua oscilla, le gocce ricadono sull'erba
+e ognuna apre il suo schizzo, mentre il prato sotto si bagna. Il tempo che
+manca alla fine resta sull'etichetta della zona e sulla sua scheda. Se hai
+attivato "riduci animazioni" nel sistema, la scena resta ferma.
 
 ---
 

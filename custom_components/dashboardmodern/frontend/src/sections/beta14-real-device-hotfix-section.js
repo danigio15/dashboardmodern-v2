@@ -192,17 +192,6 @@ function installStyles() {
     }
     @media(max-width:760px){
       #page-home #qa-grid .qa-btn .icon[data-dm-beta12-display-glyph]>.dm-beta12-action-glyph{font-size:28px!important}
-      #page-piscina .pool-hero{min-height:0!important;aspect-ratio:1.78 / 1!important}
-      #page-piscina .pool-hero::before{left:50%!important;right:auto!important;top:15%!important;bottom:auto!important;width:90%!important;height:60%!important;box-sizing:border-box!important;transform:translateX(-50%)!important}
-      #page-piscina .pool-temp{left:8%!important;top:25%!important}
-      #page-piscina .pool-sub{left:6%!important;top:55%!important}
-      #page-piscina .pool-chips{position:absolute!important;left:5%!important;right:5%!important;bottom:5%!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
-      #page-piscina .pool-tg{position:static!important;inset:auto!important;width:auto!important;min-width:0!important}
-    }
-    @media(max-width:390px){
-      #page-piscina .pool-hero{aspect-ratio:1.74 / 1!important}
-      #page-piscina .pool-temp{left:7%!important;top:23%!important}
-      #page-piscina .pool-sub{left:5%!important;top:54%!important}
     }
   `);
 }
@@ -231,7 +220,7 @@ export function installBeta14RealDeviceHotfix() {
   if (state.installed || !doc) return;
   state.installed = true;
   installStyles();
-  doc.addEventListener("click", (event) => { if (event.target?.closest?.("#page-piscina,[data-dm-edit-kind]")) schedule(); });
+  doc.addEventListener("click", (event) => { if (event.target?.closest?.("[data-dm-edit-kind]")) schedule(); });
   schedule();
 }
 if (doc?.readyState === "loading") doc.addEventListener("DOMContentLoaded", installBeta14RealDeviceHotfix, { once: true });

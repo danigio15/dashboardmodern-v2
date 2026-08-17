@@ -392,56 +392,6 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(settled.padding).toBe(first.padding);
     expect(settled.radius).toBe(first.radius);
   });
-
-  test(`${variant}: beta12 pool renders a recognizable tiled basin without changing controls`, async ({
-    page,
-  }, testInfo) => {
-    test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
-    await boot(page, variant, testInfo);
-
-    await page.evaluate(() => {
-      localStorage.setItem(
-        "cd_piscina",
-        JSON.stringify({
-          tempEnt: "sensor.pool_temperature",
-          pumpEnt: "switch.pool_pump",
-          heatEnt: "switch.pool_heat",
-          lightEnt: "switch.pool_light",
-          filterHours: 8,
-          autoHours: true,
-        }),
-      );
-      document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
-      document.getElementById("page-piscina")?.classList.add("active");
-      renderPiscina();
-    });
-
-    const hero = page.locator("#page-piscina .pool-hero");
-    await expect(hero).toBeVisible();
-    await expect(hero).toHaveAttribute("data-dm-beta12-pool", "true");
-    await expect(hero.locator(".dm-beta12-pool-basin")).toBeVisible();
-    await expect(hero.locator(".dm-beta12-pool-ladder")).toBeVisible();
-    await expect(hero.locator(".dm-beta12-pool-steps")).toBeVisible();
-    await expect(hero.locator('.pool-tg[data-act="pump"]')).toBeVisible();
-    await expect(hero.locator('.pool-tg[data-act="heat"]')).toBeVisible();
-    await expect(hero.locator('.pool-tg[data-act="light"]')).toBeVisible();
-    await expect(hero.locator(".pool-wave").first()).toHaveCSS("display", "none");
-
-    const geometry = await hero.evaluate((node) => {
-      const basin = node.querySelector(".dm-beta12-pool-basin")?.getBoundingClientRect();
-      const box = node.getBoundingClientRect();
-      return {
-        basinWidth: basin?.width || 0,
-        basinHeight: basin?.height || 0,
-        overflowX: node.scrollWidth - node.clientWidth,
-        inside: Boolean(basin && basin.left >= box.left && basin.right <= box.right + 1),
-      };
-    });
-    expect(geometry.basinWidth).toBeGreaterThan(180);
-    expect(geometry.basinHeight).toBeGreaterThan(120);
-    expect(geometry.overflowX).toBeLessThanOrEqual(1);
-    expect(geometry.inside).toBe(true);
-  });
 }
 
 test("dashboard.html: total reset clears alerts and remote config without changing the panel URL", async ({

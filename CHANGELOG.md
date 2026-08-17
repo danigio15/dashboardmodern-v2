@@ -4,6 +4,45 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.31 — 2026-08-17
+
+### Modificato
+
+- **Piscina** e **Irrigazione** sono state ridisegnate: ognuna ha ora una scena
+  vera al posto del pannello azzurro piatto e della lista di riquadri grigi.
+- La Piscina disegna il giardino, il bordo in pietra, la vasca in prospettiva
+  con l'acqua che scorre, la scaletta, i gradini e il salvagente che galleggia.
+  La temperatura dell'acqua è un quadrante di vetro sopra la scena; pompa,
+  riscaldamento e luce sono tre riquadri sotto la vasca, tutti della stessa
+  misura, e non stanno più sopra la scritta della temperatura. Quando la pompa
+  gira si vedono le bolle nell'acqua, con il riscaldamento acceso sale il
+  vapore e con la luce accesa la vasca si illumina da sotto.
+- pH e cloro non sono più due righe di testo: ognuno ha la sua barra con la
+  fascia ideale evidenziata e l'indicatore nel punto della lettura, così si
+  vede a colpo d'occhio quanto un valore è fuori soglia. La filtrazione mostra
+  le ore fatte oggi su quelle previste in un anello di avanzamento.
+- L'Irrigazione disegna il prato: erba rasata a strisce, siepe, alberi, fiori e
+  i fili d'erba che ondeggiano sul bordo, con un irrigatore per ogni zona
+  configurata (fino a otto sul prato, tutte nelle schede sotto).
+- **Quando parte l'irrigazione l'irrigatore spruzza davvero**: il ventaglio
+  d'acqua oscilla, le gocce partono dalla testina e ricadono sull'erba, dove
+  ogni goccia apre il suo schizzo, e sotto l'irrigatore il prato si bagna e si
+  scurisce. Il conto alla rovescia della zona resta sull'etichetta e sulla
+  scheda. Chi ha attivato "riduci animazioni" vede la scena ferma.
+
+### Corretto
+
+- Sul telefono la pagina Piscina non sovrapponeva più le schede alla vasca solo
+  grazie a quattro livelli di correzioni impilati (beta.11, beta.12, beta.14 e
+  beta.16), che continuavano a contendersi le stesse regole. Ora le due pagine
+  hanno un solo proprietario: le correzioni precedenti sono state ritirate.
+- Le due pagine venivano ridisegnate da capo ogni secondo dal ciclo legacy, e a
+  ogni giro le animazioni ripartivano da zero. Ora il disegno viene ricostruito
+  solo quando cambia la configurazione: fra un aggiornamento e l'altro
+  cambiano i valori, non il markup, e l'acqua continua a scorrere.
+- Una soglia non configurata veniva letta come zero, così il pH senza soglie
+  risultava "troppo alto". Ora un valore assente resta assente.
+
 ## 1.0.0-beta.30.7 — 2026-08-17
 
 ### Corretto

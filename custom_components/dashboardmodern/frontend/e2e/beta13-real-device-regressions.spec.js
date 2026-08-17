@@ -296,30 +296,33 @@ test("beta13: Pool uses equal mobile controls and keeps temperature copy clear o
     renderPiscina();
   });
 
-  const hero = page.locator("#page-piscina .pool-hero");
-  await expect(hero).toBeVisible();
-  await expect(hero).toHaveAttribute("data-dm-beta16-pool", "true");
+  // The same contract the beta13 screenshots asked for, now owned by the pool
+  // scene: three equally sized controls that no longer sit on top of the water
+  // temperature copy.
+  const wrap = page.locator("#page-piscina #pool-wrap[data-dm-pool-scene]");
+  await expect(wrap).toBeVisible();
+  await expect(wrap.locator("[data-dm-pool-stage]")).toBeVisible();
 
-  const layout = await hero.evaluate((hero) => {
-    const controls = [...hero.querySelectorAll(".pool-tg[data-act]")].map((node) =>
+  const layout = await wrap.evaluate((wrap) => {
+    const controls = [...wrap.querySelectorAll("[data-dm-pool-tile]")].map((node) =>
       node.getBoundingClientRect(),
     );
-    const copy = hero.querySelector(".pool-sub")?.getBoundingClientRect();
-    const chips = hero.querySelector(".pool-chips")?.getBoundingClientRect();
+    const readout = wrap.querySelector(".dm-pool-readout")?.getBoundingClientRect();
+    const tiles = wrap.querySelector("[data-dm-pool-tiles]")?.getBoundingClientRect();
     const widths = controls.map((box) => box.width);
     return {
       count: controls.length,
       minWidth: Math.min(...widths),
       maxWidth: Math.max(...widths),
-      copyWidth: copy?.width || 0,
-      separated: Boolean(copy && chips && copy.bottom <= chips.top + 1),
-      overflow: hero.scrollWidth - hero.clientWidth,
+      readoutWidth: readout?.width || 0,
+      separated: Boolean(readout && tiles && readout.bottom <= tiles.top + 1),
+      overflow: wrap.scrollWidth - wrap.clientWidth,
     };
   });
   expect(layout.count).toBe(3);
   expect(layout.minWidth).toBeGreaterThan(90);
   expect(layout.maxWidth - layout.minWidth).toBeLessThanOrEqual(3);
-  expect(layout.copyWidth).toBeGreaterThan(90);
+  expect(layout.readoutWidth).toBeGreaterThan(60);
   expect(layout.separated).toBe(true);
   expect(layout.overflow).toBeLessThanOrEqual(2);
 });

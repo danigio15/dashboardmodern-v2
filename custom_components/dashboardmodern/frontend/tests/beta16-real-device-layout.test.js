@@ -42,5 +42,6 @@ test("beta16 runtime loads after beta14 and owns the requested mobile contracts"
   assert.match(source, /dmBeta16ActionName/);
   assert.match(source, /dmBeta16ClimateName/);
   assert.match(source, /dmBeta16TemperatureName/);
-  assert.match(source, /data-dm-beta16-pool-wrap/);
+  // The Pool page moved to its own scene owner; beta16 no longer decorates it.
+  assert.doesNotMatch(source, /page-piscina|pool-wrap/);
 });
