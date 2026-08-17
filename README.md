@@ -383,6 +383,18 @@ Nelle opzioni dell'integrazione sono disponibili:
 
 ---
 
+## 📱 Modalità kiosk su iPhone e iPad
+
+Su un telefono iOS che apre la plancia dentro Home Assistant — pannello nella barra laterale, dashboard companion o app Companion — la plancia parte **a schermo intero**: copre la barra di Home Assistant e usa tutta l'altezza dello schermo, comprese le aree sicure attorno alla tacca. La plancia ha già una sua intestazione e un suo hamburger, quindi non si perde nulla.
+
+- **L'hamburger della plancia apre la barra laterale di Home Assistant**, come prima: mentre la barra è aperta la plancia si abbassa per lasciarla vedere.
+- **Tieni premuto l'hamburger per mezzo secondo** per accendere o spegnere il kiosk, con conferma a schermo.
+- In alternativa apri la plancia con `?kiosk=0` per spegnerlo o `?kiosk=1` per accenderlo: **la scelta viene ricordata su quel dispositivo**, quindi va fatta una volta sola. Vale anche `dm_kiosk`, e il parametro può stare nella query o nell'hash.
+
+Fuori da quel caso il kiosk resta a richiesta: su desktop, su tablet in orizzontale e sulla plancia aperta da sola serve `?kiosk=1` esplicito.
+
+---
+
 # Come è fatta la repository
 
 ```text

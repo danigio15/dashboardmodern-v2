@@ -440,7 +440,7 @@ test("dashboard.html: total reset clears alerts and remote config without changi
   expect(result.remoteReset).toBe(true);
 });
 
-test("dashboard.html: beta12 iPhone kiosk is opt-in, reversible and uses the dynamic viewport", async ({
+test("dashboard.html: beta12 iPhone kiosk is remembered, reversible and uses the dynamic viewport", async ({
   page,
 }, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
@@ -474,9 +474,27 @@ test("dashboard.html: beta12 iPhone kiosk is opt-in, reversible and uses the dyn
   expect(viewportContract.overflowX).toBe("hidden");
   expect(viewportContract.minHeight).not.toBe("0px");
 
+  // The Home Assistant companion app reopens the plancia without any query
+  // string, so the last explicit choice has to survive on its own.
+  await page.evaluate(() => {
+    const url = new URL(location.href);
+    url.searchParams.delete("kiosk");
+    history.replaceState({}, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.locator("html")).toHaveAttribute("data-dm-ios-kiosk", "true");
+
   await page.evaluate(() => {
     const url = new URL(location.href);
     url.searchParams.set("kiosk", "0");
+    history.replaceState({}, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.locator("html")).not.toHaveAttribute("data-dm-ios-kiosk", "true");
+
+  await page.evaluate(() => {
+    const url = new URL(location.href);
+    url.searchParams.delete("kiosk");
     history.replaceState({}, "", url);
     window.dispatchEvent(new PopStateEvent("popstate"));
   });

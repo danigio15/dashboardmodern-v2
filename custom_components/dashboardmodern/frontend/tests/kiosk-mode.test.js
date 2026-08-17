@@ -1,0 +1,137 @@
+// DM-FIX-20260817A
+import assert from "node:assert/strict";
+import test from "node:test";
+import {
+  explicitKioskRequest,
+  isIosDevice,
+  kioskHostStyles,
+  kioskValueFromLocation,
+  readStoredKiosk,
+  resolveKioskMode,
+  trapsFixedPosition,
+  writeStoredKiosk,
+} from "../src/sections/beta12-room-color-lock-section.js";
+
+const fakeStorage = (initial = {}) => {
+  const values = { ...initial };
+  return {
+    values,
+    getItem: (key) => (key in values ? values[key] : null),
+    setItem: (key, value) => {
+      values[key] = String(value);
+    },
+  };
+};
+
+test("an explicit kiosk request is read from query string and hash", () => {
+  assert.equal(kioskValueFromLocation({ search: "?kiosk=1" }), true);
+  assert.equal(kioskValueFromLocation({ search: "?dm_kiosk=on" }), true);
+  assert.equal(kioskValueFromLocation({ search: "?kiosk=0" }), false);
+  assert.equal(kioskValueFromLocation({ search: "?kiosk=false" }), false);
+  assert.equal(kioskValueFromLocation({ hash: "#kiosk=1" }), true);
+  assert.equal(kioskValueFromLocation({ hash: "#/lovelace/home?kiosk=off" }), false);
+  assert.equal(kioskValueFromLocation({ search: "?other=1" }), null);
+  assert.equal(kioskValueFromLocation(null), null);
+});
+
+test("the hosting Home Assistant page owns the request of a srcdoc plancia", () => {
+  const parent = { location: { search: "?kiosk=1" } };
+  const frame = { location: { search: "" } };
+  assert.equal(explicitKioskRequest([parent, frame]), true);
+  assert.equal(explicitKioskRequest([{ location: {} }, { location: {} }]), null);
+  assert.equal(explicitKioskRequest([undefined, { location: { search: "?kiosk=0" } }]), false);
+});
+
+test("a cross origin parent never blocks the request lookup", () => {
+  const hostile = {
+    get location() {
+      throw new Error("cross origin");
+    },
+  };
+  assert.equal(explicitKioskRequest([hostile, { location: { search: "?kiosk=1" } }]), true);
+});
+
+test("the stored preference round trips and stays optional", () => {
+  const storage = fakeStorage();
+  assert.equal(readStoredKiosk(storage), null);
+  writeStoredKiosk(true, storage);
+  assert.equal(storage.values.dm_kiosk, "1");
+  assert.equal(readStoredKiosk(storage), true);
+  writeStoredKiosk(false, storage);
+  assert.equal(storage.values.dm_kiosk, "0");
+  assert.equal(readStoredKiosk(storage), false);
+  assert.equal(readStoredKiosk(fakeStorage({ dm_kiosk: "" })), null);
+  assert.equal(readStoredKiosk(undefined), null);
+});
+
+test("a hosted iPhone starts the plancia in kiosk without any query string", () => {
+  assert.equal(resolveKioskMode({ ios: true, hosted: true, narrow: true }), true);
+  assert.equal(resolveKioskMode({ ios: true, standalone: true }), true);
+});
+
+test("kiosk never auto starts outside a narrow hosted iOS surface", () => {
+  assert.equal(resolveKioskMode({}), false);
+  assert.equal(resolveKioskMode({ ios: true, hosted: true, narrow: false }), false);
+  assert.equal(resolveKioskMode({ ios: false, hosted: true, narrow: true }), false);
+  assert.equal(resolveKioskMode({ ios: true, hosted: false, narrow: true }), false);
+});
+
+test("an explicit request outranks the auto default and the stored preference", () => {
+  assert.equal(
+    resolveKioskMode({ explicit: false, stored: true, ios: true, hosted: true, narrow: true }),
+    false,
+  );
+  assert.equal(resolveKioskMode({ explicit: true, stored: false }), true);
+});
+
+test("the stored preference outranks the auto default", () => {
+  assert.equal(resolveKioskMode({ stored: false, ios: true, hosted: true, narrow: true }), false);
+  assert.equal(resolveKioskMode({ stored: true }), true);
+});
+
+test("the in session choice outranks a query string that cannot be edited", () => {
+  assert.equal(resolveKioskMode({ override: false, explicit: true, stored: true }), false);
+  assert.equal(resolveKioskMode({ override: true, explicit: false }), true);
+});
+
+test("the kiosk overlay covers the Home Assistant chrome at the measured height", () => {
+  const styles = kioskHostStyles({ height: 844 });
+  assert.equal(styles.position, "fixed");
+  assert.equal(styles.inset, "0");
+  assert.equal(styles.height, "844px");
+  assert.equal(styles["min-height"], "844px");
+  assert.equal(styles["max-height"], "844px");
+  assert.equal(styles.width, "100%");
+  assert.equal(styles.overflow, "hidden");
+  assert.ok(Number(styles["z-index"]) > 1000);
+});
+
+test("an unusable measurement falls back to the dynamic viewport unit", () => {
+  assert.equal(kioskHostStyles({ height: 0 }).height, "100dvh");
+  assert.equal(kioskHostStyles().height, "100dvh");
+});
+
+test("the overlay steps down while the native sidebar is open", () => {
+  assert.equal(kioskHostStyles({ height: 844, drawerOpen: true })["z-index"], "1");
+});
+
+test("only a real containing block on an ancestor is neutralized", () => {
+  assert.equal(trapsFixedPosition("transform", "matrix(1, 0, 0, 1, 0, 0)"), true);
+  assert.equal(trapsFixedPosition("transform", "none"), false);
+  assert.equal(trapsFixedPosition("filter", "blur(2px)"), true);
+  assert.equal(trapsFixedPosition("contain", "paint"), true);
+  assert.equal(trapsFixedPosition("contain", "size"), false);
+  assert.equal(trapsFixedPosition("will-change", "transform"), true);
+  assert.equal(trapsFixedPosition("will-change", "auto"), false);
+  assert.equal(trapsFixedPosition("will-change", "opacity"), false);
+  assert.equal(trapsFixedPosition("color", "red"), false);
+});
+
+test("iOS detection covers iPhone, iPad and desktop class iPadOS", () => {
+  assert.equal(isIosDevice({ userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)" }), true);
+  assert.equal(isIosDevice({ userAgent: "Mozilla/5.0 (iPad; CPU OS 17_0)" }), true);
+  assert.equal(isIosDevice({ platform: "MacIntel", maxTouchPoints: 5, userAgent: "" }), true);
+  assert.equal(isIosDevice({ platform: "MacIntel", maxTouchPoints: 0, userAgent: "" }), false);
+  assert.equal(isIosDevice({ userAgent: "Mozilla/5.0 (Linux; Android 14)" }), false);
+  assert.equal(isIosDevice({}), false);
+});

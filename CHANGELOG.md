@@ -95,6 +95,29 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   mai stampato come testo. Il glifo eredita la misura del riquadro che lo
   contiene, quindi un cerchio configurato con un'icona `mdi:` resta della
   stessa dimensione di quelli accanto a ogni breakpoint.
+- **Su iPhone la plancia non partiva mai a schermo intero.** La modalità kiosk
+  esisteva già, ma si accendeva solo se l'indirizzo conteneva `?kiosk=1` scritto
+  a mano: nell'app companion non c'è una barra degli indirizzi da modificare,
+  quindi la plancia restava sempre sotto la barra di Home Assistant. Ora, su un
+  telefono iOS che apre la plancia dentro Home Assistant, il kiosk parte da
+  solo; l'ultima scelta esplicita viene ricordata, così `?kiosk=0` una volta
+  sola basta a spegnerlo per sempre su quel dispositivo, e `?kiosk=1` a
+  riaccenderlo. Fuori da lì nulla cambia: su desktop, tablet in orizzontale e
+  plancia aperta da sola il kiosk resta a richiesta.
+- Tenendo premuto per mezzo secondo l'hamburger della plancia il kiosk si
+  accende e si spegne, con la conferma a schermo. Il tocco breve continua ad
+  aprire la barra laterale di Home Assistant come prima.
+- Il kiosk copriva sé stesso in due casi da impianto vero: la plancia veniva
+  ancorata al riquadro del pannello invece che allo schermo quando Home
+  Assistant dipingeva una superficie sopra di essa, e l'altezza arrivava da
+  `100dvh`, che dentro la WebView di iOS tiene occupato lo spazio della barra
+  di sistema e lasciava una fascia morta. Ora l'altezza è quella misurata sul
+  posto e gli ancoraggi di troppo vengono sciolti finché il kiosk è acceso, per
+  poi tornare esattamente com'erano.
+- Con il kiosk acceso la barra laterale di Home Assistant si vede di nuovo: la
+  plancia si abbassa mentre la barra è aperta, invece di coprirla. E se la
+  plancia viene chiusa mentre il kiosk è acceso, la pagina di Home Assistant
+  torna scorrevole come prima invece di restare bloccata.
 
 ## 1.0.0-beta.30.5 — 2026-08-17
 
