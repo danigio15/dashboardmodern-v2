@@ -70,6 +70,23 @@ test("only a cover that reports SET_POSITION becomes draggable", () => {
   assert.match(scene, /if \(!view\.settable\) return `<div class="dm-tapp-track" data-dm-static/);
 });
 
+test("the page keeps the same way back home as every other section", () => {
+  // Same class, same label and the same inline handler the legacy runtime uses,
+  // so it looks and behaves like the button on Clima or Temperature.
+  assert.match(scene, /class="back-home-btn dm-tapp-back"/);
+  assert.match(scene, /<span class="bh-icon">←<\/span>/);
+  assert.match(scene, /onclick="document\.querySelector\('\[data-tab=&quot;home&quot;\]'\)\.click\(\); if\(navigator\.vibrate\)navigator\.vibrate\(5\);"/);
+  // Rendered inside the grid, so it lines up with the header and the cards
+  // instead of sitting against the viewport edge where the runtime puts it.
+  assert.match(scene, /let markup = backHomeMarkup\(\) \+ heroMarkup\(\)/);
+  assert.match(scene, /grid\.innerHTML = `\$\{backHomeMarkup\(\)\}<div class="ed-empty/);
+  assert.match(scene, /\.back-home-btn\.dm-tapp-back\{grid-column:1\/-1!important;justify-self:start!important/);
+  // And the runtime's own copy is dropped, so the page never shows two.
+  assert.match(scene, /function dropLegacyBackHome\(\)/);
+  assert.match(scene, /querySelectorAll\(":scope > \.back-home-btn"\)/);
+  assert.match(scene, /dropLegacyBackHome\(\);\n {2}const views = coverList\(\);/);
+});
+
 test("a position the user asked for survives the next legacy repaint", () => {
   // Home Assistant keeps reporting the old position until the motor arrives.
   assert.match(scene, /const GRAB_MS = \d+/);

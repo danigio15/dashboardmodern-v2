@@ -133,6 +133,30 @@ function summaryText(views) {
 
 /* ─────────────────────────────── markup ─────────────────────────────────── */
 
+/**
+ * The way back home, kept identical to the button the legacy runtime injects
+ * into every other page — same class, same label, same behaviour, so it looks
+ * and acts like the one on Clima or Temperature.
+ *
+ * It is rendered as the first item of the grid rather than left where the
+ * legacy runtime puts it, which is as a direct child of the page section. That
+ * position sits against the left edge of the viewport while the cards sit in a
+ * centred column: on a 1440px screen the two were 180px apart. As a grid item
+ * it lines up with the header and the cards at every width and column count.
+ */
+function backHomeMarkup() {
+  return `<button type="button" class="back-home-btn dm-tapp-back" onclick="document.querySelector('[data-tab=&quot;home&quot;]').click(); if(navigator.vibrate)navigator.vibrate(5);">
+    <span class="bh-icon">←</span><span>${esc(t("Home", "Home"))}</span>
+  </button>`;
+}
+
+/** The legacy runtime's own copy, which would otherwise show up twice. */
+function dropLegacyBackHome() {
+  doc?.getElementById("page-tapparelle")
+    ?.querySelectorAll(":scope > .back-home-btn")
+    .forEach((button) => button.remove());
+}
+
 function heroMarkup() {
   return `<section class="dm-tapp-hero" data-dm-tapp-hero role="group" aria-labelledby="dm-tapp-hero-title">
     <div class="dm-tapp-hero-icon" aria-hidden="true">🪟</div>
@@ -198,7 +222,7 @@ function cardMarkup(view) {
 
 function gridMarkup(views) {
   const grouped = views.some((view) => view.room);
-  let markup = heroMarkup();
+  let markup = backHomeMarkup() + heroMarkup();
   let lastKey = null;
   views.forEach((view) => {
     if (grouped && groupKey(view) !== lastKey) {
@@ -242,11 +266,12 @@ function syncCard(card, view) {
 function renderShutters() {
   const grid = doc?.getElementById("tapp-grid");
   if (!grid) return;
+  dropLegacyBackHome();
   const views = coverList();
 
   if (!views.length) {
     state.signature = "";
-    grid.innerHTML = `<div class="ed-empty dm-tapp-empty">${esc(t("Nessuna tapparella configurata", "No shutter configured"))}</div>`;
+    grid.innerHTML = `${backHomeMarkup()}<div class="ed-empty dm-tapp-empty">${esc(t("Nessuna tapparella configurata", "No shutter configured"))}</div>`;
     return;
   }
 
@@ -434,6 +459,7 @@ function installStyles() {
       opacity:var(--tapp-open,0)!important;pointer-events:none!important}
 
     html body #page-tapparelle#page-tapparelle .dm-tapp-empty{grid-column:1/-1!important}
+    html body #page-tapparelle#page-tapparelle .back-home-btn.dm-tapp-back{grid-column:1/-1!important;justify-self:start!important;margin:0 0 4px!important}
 
     @media(max-width:560px){
       html body #page-tapparelle#page-tapparelle .dm-tapp-hero{padding:14px!important;gap:12px!important}

@@ -55,6 +55,9 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   posizione mostrano lo stesso indicatore, in sola lettura.
 - Quando la tapparella è alzata, sotto la finestra si vede la luce che entra
   nella stanza, tanta quanta ne lascia passare.
+- La freccia **← Home** è sempre in alto, come nelle altre sezioni, e ora è
+  allineata con la testata e con le schede invece di stare attaccata al bordo
+  sinistro dello schermo.
 - **Tapparelle** è stata ridisegnata. Ogni scheda non mostra più un rettangolo
   azzurro con delle righe grigie: adesso c'è una finestra vera, con il telaio,
   il montante centrale, le guide laterali, il cassonetto in alto e, dietro il
