@@ -227,14 +227,17 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     // physical viewport. DOM click exercises the same application handler
     // without turning navbar scrolling into a prerequisite for this layout test.
     await page.locator('.tab[data-tab="clima"]').evaluate((button) => button.click());
-    await expect(page.locator("#page-clima.active .cp-card").first()).toBeVisible();
+    // The climate redesign owns this page: cards are .dm-cl-card inside
+    // .dm-cl-grid, which is what keeps the legacy .cp-card corrections from
+    // fighting over the layout.
+    await expect(page.locator("#page-clima.active .dm-cl-card").first()).toBeVisible();
     if (testInfo.project.name === "mobile") {
       const climateHeight = await page
-        .locator("#page-clima.active .cp-card")
+        .locator("#page-clima.active .dm-cl-card")
         .first()
         .evaluate((card) => card.getBoundingClientRect().height);
       expect(climateHeight).toBeLessThan(260);
-      await expect(page.locator("#page-clima.active .clima-premium-grid").first()).toHaveCSS(
+      await expect(page.locator("#page-clima.active .dm-cl-grid").first()).toHaveCSS(
         "grid-template-columns",
         /.+/,
       );

@@ -26,6 +26,7 @@ import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installAlertsSection } from "./alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
+import { installClimateThermalSection } from "./climate-thermal-section.js";
 import { installNavigationSection } from "./navigation-section.js";
 import { installUnifiedEditorsSection } from "./unified-editors-section.js";
 import { installEntitySearchSection } from "./entity-search-section.js";
@@ -631,6 +632,7 @@ export function installSectionRuntime() {
     // owner starts filling the thumbnails, so the first paint is already the new
     // wall instead of the legacy cards.
     installSecurityShowcaseSection();
+    installClimateThermalSection();
     installLiveUiSection();
     installNavigationSection();
     installUnifiedEditorsSection();
@@ -673,6 +675,7 @@ export function installSectionRuntime() {
         "lights",
         "alerts",
         "security-showcase",
+        "climate-thermal",
         "live-ui",
         "navigation",
         "unified-editors",

@@ -186,8 +186,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // vendored `cdEpFilter`. No new picker is introduced — the canonical dialog
   // stays the only one — and the section is event-driven, with no polling and
   // no observer.
+  // The Climate redesign adds exactly one owner: the section renderer for
+  // #page-clima. It replaces buildClimaCards/updateClimaCards instead of adding
+  // a layer on top, so the Beta 4 / Beta 7 / Beta 16 / personalization
+  // corrections for the old .cp-card markup stop matching and the page keeps one
+  // renderer and one stylesheet. It is event-driven (state-changed + the legacy
+  // render loop) and leaves every service call — setTemp, toggleClima and the
+  // HVAC/fan popup — in the legacy runtime.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 95, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 96, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
