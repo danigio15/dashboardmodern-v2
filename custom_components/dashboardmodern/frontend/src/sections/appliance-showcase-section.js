@@ -1,8 +1,8 @@
-// DM-FIX-20260816A
+// DM-FIX-20260817A
 /* Appliance showcase section.
  *
  * Replaces the legacy Elettrodomestici page with the reference design:
- * header (title + "Aggiungi elettrodomestico" + grid/list toggle), a left
+ * header (title + grid/list toggle), a left
  * sidebar (Panoramica, rooms with counters, state counters, total consumption
  * card with sparkline), filter chips + power sort, and rich cards with the
  * animated artwork, countdown ring, power meter, fridge temperature strip and
@@ -63,7 +63,6 @@ const copy = () => ({
     "Monitora e controlla tutti i tuoi elettrodomestici in tempo reale",
     "Monitor and control all your appliances in real time",
   ),
-  add: t("Aggiungi elettrodomestico", "Add appliance"),
   gridView: t("Vista griglia", "Grid view"),
   listView: t("Vista elenco", "List view"),
   overview: t("Panoramica", "Overview"),
@@ -98,8 +97,8 @@ const copy = () => ({
   history: t("Storico", "History"),
   toggle: t("Accendi/Spegni", "Turn on/off"),
   empty: t(
-    "Nessun elettrodomestico configurato. Aggiungi il primo dal pulsante qui sopra.",
-    "No appliance configured yet. Add the first one with the button above.",
+    "Nessun elettrodomestico configurato. Usa il menu Impostazioni per aggiungerne uno.",
+    "No appliance configured. Use the Settings menu to add one.",
   ),
   emptyFilter: t(
     "Nessun elettrodomestico corrisponde ai filtri selezionati.",
@@ -235,6 +234,8 @@ export function sparklinePath(samples = [], width = 100, height = 28) {
 const ICONS = {
   grid: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></svg>',
   list: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20.5" y2="6"/><line x1="9" y1="12" x2="20.5" y2="12"/><line x1="9" y1="18" x2="20.5" y2="18"/><circle cx="4.8" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.8" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.8" cy="18" r="1.3" fill="currentColor" stroke="none"/></svg>',
+  power:
+    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>',
   chart:
     '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="20" x2="5" y2="12"/><line x1="12" y1="20" x2="12" y2="5"/><line x1="19" y1="20" x2="19" y2="9"/></svg>',
   snow: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.2" y1="7.5" x2="19.8" y2="16.5"/><line x1="19.8" y1="7.5" x2="4.2" y2="16.5"/></svg>',
@@ -344,7 +345,7 @@ export function buildCardMarkup(model, labels = copy()) {
   const controls = `<span class="dm-ap-tools">
       ${
         model.action?.visible
-          ? `<button type="button" class="dm-ap-tool dm-ap-power${model.action.pressed ? " on" : ""}" data-dm-power-toggle="true" data-entity="${esc(model.action.entity)}" aria-pressed="${model.action.pressed ? "true" : "false"}" title="${esc(labels.toggle)}">⏻</button>`
+          ? `<button type="button" class="dm-ap-tool dm-ap-power${model.action.pressed ? " on" : ""}" data-dm-power-toggle="true" data-entity="${esc(model.action.entity)}" aria-pressed="${model.action.pressed ? "true" : "false"}" title="${esc(labels.toggle)}">${ICONS.power}</button>`
           : ""
       }
       ${
@@ -405,7 +406,6 @@ function skeletonMarkup(labels) {
         </div>
       </div>
       <div class="dm-appl-head-actions">
-        <button type="button" class="dm-appl-add" data-dm-appl-add>＋ ${esc(labels.add)}</button>
         <div class="dm-appl-viewtoggle" role="group" aria-label="${esc(labels.gridView)} / ${esc(labels.listView)}">
           <button type="button" data-dm-view="grid" class="${state.ui.view === "grid" ? "active" : ""}" aria-label="${esc(labels.gridView)}">${ICONS.grid}</button>
           <button type="button" data-dm-view="list" class="${state.ui.view === "list" ? "active" : ""}" aria-label="${esc(labels.listView)}">${ICONS.list}</button>
@@ -470,7 +470,10 @@ function skeletonMarkup(labels) {
 
 function ensureSkeleton(host, labels) {
   if (host.querySelector(":scope > .dm-appl-shell")) return false;
+  /* Preserve the "← Home" button injected by the legacy runtime. */
+  const backBtn = host.querySelector(":scope > .back-home-btn");
   host.innerHTML = skeletonMarkup(labels);
+  if (backBtn) host.insertBefore(backBtn, host.firstChild);
   const sort = host.querySelector("[data-dm-sort]");
   if (sort) sort.value = state.ui.sort;
   return true;
@@ -772,12 +775,6 @@ function onShellClick(event) {
   const host = doc?.getElementById?.("page-appliances-main");
   if (!host || !host.contains(event.target)) return;
   const target = event.target;
-  const add = target.closest?.("[data-dm-appl-add]");
-  if (add) {
-    root.apriConfigEntita?.();
-    root.editorSwitch?.("appliances");
-    return;
-  }
   const view = target.closest?.("[data-dm-view]");
   if (view) {
     setUi({ view: view.dataset.dmView === "list" ? "list" : "grid" });
@@ -863,6 +860,20 @@ function installOverrides() {
     showcaseSwitchApplianceView.__dmPrevious = currentSwitch;
     root.switchApplianceView = showcaseSwitchApplianceView;
   }
+  /* Prevent the legacy render loop from overwriting the appliance detail popup.
+   * The loop calls apriDettagli(null, currentPopupType) on every state change;
+   * when currentPopupType is 'appliance_view' it falls through to the generic
+   * monitoring-groups handler which shows "Nessun elemento attivo" because
+   * GRUPPI_MONITORAGGIO has no 'appliance_view' entry. */
+  const currentDettagli = root.apriDettagli;
+  if (typeof currentDettagli === "function" && !currentDettagli.__dmShowcase) {
+    function showcaseDettagli(event, type) {
+      if (type === "appliance_view") return;
+      return currentDettagli.call(root, event, type);
+    }
+    showcaseDettagli.__dmShowcase = true;
+    root.apriDettagli = showcaseDettagli;
+  }
 }
 
 export function installApplianceShowcaseSection() {
@@ -926,8 +937,6 @@ function showcaseCss() {
 .dm-appl-brand-copy h2{margin:0;font-size:clamp(21px,2.6vw,27px);font-weight:900;letter-spacing:-.3px}
 .dm-appl-brand-copy p{margin:2px 0 0;font-size:12.5px;font-weight:600;color:var(--dm-dim)}
 .dm-appl-head-actions{display:flex;align-items:center;gap:10px}
-.dm-appl-add{border:0;cursor:pointer;border-radius:999px;padding:13px 20px;font-size:13px;font-weight:800;color:#fff;background:linear-gradient(135deg,#38bdf8,#2563eb);box-shadow:0 10px 24px rgba(37,99,235,.28);transition:transform .15s ease,box-shadow .15s ease}
-.dm-appl-add:hover{transform:translateY(-1px);box-shadow:0 13px 28px rgba(37,99,235,.34)}
 .dm-appl-viewtoggle{display:flex;gap:4px;padding:4px;border-radius:14px;background:var(--dm-card);border:1px solid var(--dm-border);box-shadow:0 4px 14px rgba(15,23,42,.05)}
 .dm-appl-viewtoggle button{width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:10px;background:transparent;color:var(--dm-dim);cursor:pointer}
 .dm-appl-viewtoggle button.active{background:#e0f2fe;color:var(--dm-blue-deep)}
@@ -1010,8 +1019,7 @@ function showcaseCss() {
 .dm-ap-tool svg{width:13px;height:13px}
 .dm-ap-tool:hover{border-color:#bae6fd;color:var(--dm-blue-deep)}
 .dm-ap-tool:disabled{opacity:.38;cursor:not-allowed}
-.dm-ap-power{font-size:0}
-.dm-ap-power::before{content:"⏻";font-size:14px;font-weight:900}
+.dm-ap-power svg{width:14px;height:14px}
 .dm-ap-power.on{background:#dcfce7;border-color:rgba(34,197,94,.35);color:#15803d}
 /* hero */
 .dm-ap-hero{position:relative;display:grid;place-items:center;height:172px;margin:0 13px;border-radius:18px;background:radial-gradient(120% 90% at 50% 8%,rgba(224,242,254,.65),rgba(241,245,249,.35) 60%,transparent);overflow:hidden}
