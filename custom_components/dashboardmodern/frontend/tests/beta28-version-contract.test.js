@@ -7,5 +7,5 @@ const manifest = JSON.parse(
 );
 
 test("beta29 release manifest is versioned correctly", () => {
-  assert.equal(manifest.version, "1.0.0-beta.29");
+  assert.equal(manifest.version, "1.0.0-beta.29.1");
 });
