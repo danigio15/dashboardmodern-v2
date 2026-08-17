@@ -33,6 +33,7 @@ import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
 import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
 import { installEvSection } from "./ev-section.js";
+import { installSolarThermalDesignSection } from "./solar-thermal-design-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { allStates, clean, english, section, wrapFunction } from "./shared.js";
 
@@ -631,6 +632,7 @@ export function installSectionRuntime() {
     installShutterSection();
     installPoolIrrigationSceneSection();
     installEvSection();
+    installSolarThermalDesignSection();
     installBeta27ReleaseStability();
 
     root[RUNTIME_KEY] = Object.freeze({
@@ -666,6 +668,7 @@ export function installSectionRuntime() {
         "shutters",
         "pool-irrigation-scene",
         "ev",
+        "solar-thermal-design",
         "beta27-release-stability",
       ]),
       registry: root.__DASHBOARDMODERN_SECTIONS__,

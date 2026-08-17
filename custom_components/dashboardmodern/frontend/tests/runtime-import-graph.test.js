@@ -158,7 +158,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // Beta12/14/16 pool correctives stood down into it, so the two pages have one
   // renderer and one stylesheet instead of five competing layers.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 89, `production graph unexpectedly grew to ${relative.length} modules`);
+  // The Solar Thermal redesign adds exactly one owner: a style-and-labels module
+  // for #page-boiler. It installs one stylesheet, fills the decorative labels the
+  // legacy markup left empty and reads no Home Assistant state, so the page keeps
+  // the legacy runtime as its single behavioural owner. It adds no polling, and
+  // its only listener is a media query that swaps the portrait scene in.
+  assert.ok(relative.length <= 90, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
