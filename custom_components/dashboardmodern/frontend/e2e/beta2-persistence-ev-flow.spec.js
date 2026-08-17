@@ -68,6 +68,30 @@ async function boot(page, variant, testInfo) {
         if (message.type === "frontend/set_user_data") {
           localStorage.setItem("__beta2_remote_user_data__", JSON.stringify(message.value));
         }
+        // The shared configuration store of the integration, which replaced the
+        // per-user frontend/*_user_data copy as the authoritative one.
+        if (message.type === "dashboardmodern/config/get") {
+          const stored = localStorage.getItem("__beta2_remote_config__");
+          result = {
+            profile: "primary",
+            requested_profile: null,
+            snapshot: stored ? JSON.parse(stored) : null,
+            recoverable: [],
+            profiles: [],
+          };
+        }
+        if (message.type === "dashboardmodern/config/set") {
+          const previous = JSON.parse(localStorage.getItem("__beta2_remote_config__") || "null");
+          const snapshot = {
+            revision: (previous?.revision || 0) + 1,
+            updated_at: message.snapshot.updated_at || 0,
+            keys_revision: message.snapshot.keys_revision || 0,
+            reset: message.reset === true,
+            values: message.snapshot.values,
+          };
+          localStorage.setItem("__beta2_remote_config__", JSON.stringify(snapshot));
+          result = { status: "saved", profile: "primary", snapshot, recoverable: [] };
+        }
         queueMicrotask(() =>
           this.onmessage?.({
             data: JSON.stringify({ id: message.id, type: "result", success: true, result }),
@@ -165,26 +189,30 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         },
       });
 
+    // Poll on the saved model itself, not merely on the presence of the key: the
+    // shared store is written by a debounced push, so an earlier snapshot of the
+    // same key would otherwise satisfy the assertion before the edit is sent.
     await expect
       .poll(() =>
-        page.evaluate(() =>
-          (window.__BETA2_WS_CALLS__ || [])
-            .filter((message) => message.type === "frontend/set_user_data")
-            .at(-1),
-        ),
-      )
-      .toEqual(
-        expect.objectContaining({
-          type: "frontend/set_user_data",
-          value: expect.objectContaining({
-            version: 1,
-            values: expect.objectContaining({ cd_ev_cars: expect.any(String) }),
-          }),
+        page.evaluate(() => {
+          const last = (window.__BETA2_WS_CALLS__ || [])
+            .filter((message) => message.type === "dashboardmodern/config/set")
+            .at(-1);
+          if (!last) return null;
+          const cars = last.snapshot?.values?.cd_ev_cars
+            ? JSON.parse(last.snapshot.values.cd_ev_cars)
+            : [];
+          return {
+            profile: last.profile,
+            keysRevision: last.snapshot?.keys_revision,
+            model: cars[0]?.model,
+          };
         }),
-      );
+      )
+      .toEqual({ profile: "primary", keysRevision: 2, model: "B10" });
 
     const persisted = await page.evaluate(() => {
-      const remote = JSON.parse(localStorage.getItem("__beta2_remote_user_data__"));
+      const remote = JSON.parse(localStorage.getItem("__beta2_remote_config__"));
       const car = JSON.parse(remote.values.cd_ev_cars)[0];
       return { brand: car.brand, model: car.model };
     });
