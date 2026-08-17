@@ -30,6 +30,12 @@ function appliances() {
   return Array.isArray(stored) ? stored.slice() : readJson("cd_appliances", []);
 }
 
+function roomIconEmoji(icon) {
+  if (!icon || typeof icon !== "string") return "🏠";
+  if (icon.startsWith("mdi:")) return "🏠";
+  return icon;
+}
+
 function roomOptions(selected) {
   const rooms = section("rooms", readJson("cd_stanze", []));
   return [
@@ -37,7 +43,7 @@ function roomOptions(selected) {
     ...rooms.map((room) => {
       const value = clean(room.id || room.name);
       const active = [room.id, room.name].map(clean).includes(clean(selected));
-      return `<option value="${esc(value)}" ${active ? "selected" : ""}>${esc(room.icon || "🏠")} ${esc(room.name || value)}</option>`;
+      return `<option value="${esc(value)}" ${active ? "selected" : ""}>${roomIconEmoji(room.icon)} ${esc(room.name || value)}</option>`;
     }),
   ].join("");
 }
