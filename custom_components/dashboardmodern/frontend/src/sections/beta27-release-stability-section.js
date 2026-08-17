@@ -12,8 +12,9 @@ function installReleaseStyles() {
     `
       /* Keep the animated appliance design compact on desktop/tablet as well as
          phones. The main artwork remains the single large visual owner; the
-         header copy is text-only so cards never grow into a second poster. */
-      #page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{
+         header copy is text-only so cards never grow into a second poster.
+         Showcase cards (.dm-ap-card) own their layout and are excluded. */
+      #page-appliances-main .appl-wide-card:not(.dm-ap-card),#appl-grid-overview .appl-wide-card:not(.dm-ap-card){
         width:100%!important;max-width:370px!important;min-height:150px!important;height:auto!important;
         grid-template-columns:96px minmax(0,1fr)!important;
         grid-template-rows:auto minmax(0,1fr) auto!important;
@@ -21,7 +22,7 @@ function installReleaseStyles() {
         background-color:var(--ha-card-background,var(--card-background-color,#fff))!important;
         background-image:radial-gradient(circle at 18% 8%,rgba(125,211,252,.14),transparent 31%),linear-gradient(180deg,rgba(255,255,255,.99),rgba(248,250,252,.98))!important;
       }
-      html[data-theme="dark"] #page-appliances-main .appl-wide-card,html[data-theme="dark"] #appl-grid-overview .appl-wide-card,body.dark #page-appliances-main .appl-wide-card,body.dark #appl-grid-overview .appl-wide-card{
+      html[data-theme="dark"] #page-appliances-main .appl-wide-card:not(.dm-ap-card),html[data-theme="dark"] #appl-grid-overview .appl-wide-card:not(.dm-ap-card),body.dark #page-appliances-main .appl-wide-card:not(.dm-ap-card),body.dark #appl-grid-overview .appl-wide-card:not(.dm-ap-card){
         background-color:#172033!important;
         background-image:radial-gradient(circle at 16% 8%,rgba(14,165,233,.14),transparent 30%),linear-gradient(180deg,#172033,#111827)!important;
       }
@@ -56,14 +57,14 @@ function installReleaseStyles() {
       #page-appliances-main .appl-actions,#appl-grid-overview .appl-actions{
         min-height:0!important;padding:4px 12px 10px 8px!important;border-top:0!important;background:transparent!important;
       }
-      #page-appliances-main .appl-actions button,#appl-grid-overview .appl-actions button,#page-appliances-main [data-dm-power-toggle="true"],#appl-grid-overview [data-dm-power-toggle="true"]{
+      #page-appliances-main .appl-actions button,#appl-grid-overview .appl-actions button,#page-appliances-main [data-dm-power-toggle="true"]:not(.dm-ap-power),#appl-grid-overview [data-dm-power-toggle="true"]:not(.dm-ap-power){
         min-height:32px!important;height:32px!important;border-radius:10px!important;padding:5px 8px!important;font-size:9.5px!important;
       }
-      #page-appliances-main [data-dm-power-toggle="true"],#appl-grid-overview [data-dm-power-toggle="true"]{min-width:88px!important}
+      #page-appliances-main [data-dm-power-toggle="true"]:not(.dm-ap-power),#appl-grid-overview [data-dm-power-toggle="true"]:not(.dm-ap-power){min-width:88px!important}
       #page-appliances-main .appl-actions .appl-action-btn,#appl-grid-overview .appl-actions .appl-action-btn{width:32px!important;max-width:32px!important}
 
       @media(max-width:520px){
-        #page-appliances-main .appl-wide-card,#appl-grid-overview .appl-wide-card{min-height:126px!important}
+        #page-appliances-main .appl-wide-card:not(.dm-ap-card),#appl-grid-overview .appl-wide-card:not(.dm-ap-card){min-height:126px!important}
         #page-appliances-main .appl-visual,#appl-grid-overview .appl-visual{height:126px!important;min-height:126px!important}
       }
     `,

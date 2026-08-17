@@ -160,7 +160,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     );
     await expect(microwave).toContainText("0 W");
     await expect(microwave).toHaveAttribute("data-appliance-state", "standby");
-    await expect(microwave.locator(".appl-st")).toContainText("STANDBY");
+    await expect(microwave.locator(".dm-ap-badge")).toContainText("STANDBY");
     await expect(microwave.locator('[data-dm-power-toggle="true"]')).toBeVisible();
     // The old icon-only toggle may remain in legacy markup for compatibility,
     // but it must not be visible beside the modern Accendi/Spegni control.

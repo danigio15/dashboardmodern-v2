@@ -139,9 +139,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // scoped to #temp-grid so saved primary labels win over delayed legacy repaints.
   // Beta27 adds one final event-driven real-device owner for compact appliance
   // geometry/theme/media contracts and single-owner Temperature room tabs. It
-  // adds no polling or document-wide observer. All facade/cycle/orphan/polling/
-  // global-observer checks stay active.
-  assert.ok(relative.length <= 79, `production graph unexpectedly grew to ${relative.length} modules`);
+  // adds no polling or document-wide observer.
+  // The appliance showcase redesign adds exactly four owners: the pure card
+  // view-model, the cycle tracker, the photorealistic hero artwork and the
+  // showcase section renderer. All four are event-driven (state-changed +
+  // legacy render loop), with no polling and no observers.
+  // All facade/cycle/orphan/polling/global-observer checks stay active.
+  assert.ok(relative.length <= 83, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 

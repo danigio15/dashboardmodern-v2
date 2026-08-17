@@ -7,14 +7,18 @@ export function canonicalArtworkType(value) {
   if (/forno|oven|stove/.test(token)) return "oven";
   if (/frigo|fridge|refriger|frigorifero|freezer|congelatore/.test(token)) return "fridge";
   if (/scaldabagno|boiler|water[_ -]?heater/.test(token)) return "boiler";
+  // "dishwasher" must resolve before the washer pattern: /washer/ would match
+  // the "…washer" suffix and canonicalArtworkType would not be idempotent.
+  if (/lavastoviglie|dishwasher/.test(token)) return "dishwasher";
   if (/lavatrice|washing[_ -]?machine|washer/.test(token)) return "washer";
   if (/asciugatrice|tumble[_ -]?dryer|dryer/.test(token)) return "dryer";
-  if (/lavastoviglie|dishwasher/.test(token)) return "dishwasher";
   if (/piano[_ -]?cottura|cooktop|hob/.test(token)) return "cooktop";
   if (/televis|\btv\b|monitor/.test(token)) return "television";
   if (/cappa|hood|extractor/.test(token)) return "hood";
   if (/ferro|iron/.test(token)) return "iron";
-  if (/robot.*aspir|robot.*vac|roomba/.test(token)) return "robot-vacuum";
+  // The catalog key is the bare "robot": it must resolve before the generic
+  // vacuum pattern, and never fall through to "generic".
+  if (/robot|roomba/.test(token)) return "robot-vacuum";
   if (/aspirapolvere|vacuum/.test(token)) return "vacuum";
   if (/condizionatore|air[_ -]?condition|split|climatizzatore/.test(token))
     return "air-conditioner";

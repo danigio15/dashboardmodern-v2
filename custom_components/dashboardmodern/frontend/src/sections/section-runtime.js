@@ -18,6 +18,7 @@ import { installTemperatureLayoutSection } from "./temperature-layout-section.js
 import { installAppliancesSection } from "./appliances-section.js";
 import { installApplianceLayoutSection } from "./appliance-layout-section.js";
 import { installBeta27ReleaseStability } from "./beta27-release-stability-section.js";
+import { installApplianceShowcaseSection } from "./appliance-showcase-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installAlertsSection } from "./alerts-section.js";
@@ -606,6 +607,10 @@ export function installSectionRuntime() {
     installTemperatureLayoutSection();
     installAppliancesSection();
     installApplianceLayoutSection();
+    // The showcase renderer must install before the KPI popups wrap
+    // renderApplianceSection, so the popup sync keeps firing after every
+    // showcase render.
+    installApplianceShowcaseSection();
     installApplianceDailyPopupStyle();
     installApplianceKpiPopups();
     installAppliancePickerLayer();
@@ -642,6 +647,7 @@ export function installSectionRuntime() {
         "temperature-layout",
         "appliances",
         "appliance-layout",
+        "appliance-showcase",
         "appliance-editor",
         "lights",
         "alerts",
