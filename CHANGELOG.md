@@ -4,6 +4,34 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.30 — 2026-08-17
+
+### Modificato
+
+- Vista **Energia → Flussi** dinamica: le bolle sotto Casa non sono più le
+  cinque fisse disegnate nell'HTML, ma una per ogni carico configurato
+  nell'editor Carichi (fino a otto), con nome, icona, colore ed entità presi
+  dalla configurazione. Posizioni e connettori sono calcolati: su desktop una
+  fila spaziata uniformemente, su mobile due file, e le bolle si rimpiccioliscono
+  oltre le cinque invece di sovrapporsi. Vale per Istantaneo, Giorno e Mese.
+- Spessore e velocità di ogni connettore seguono la lettura del carico: un
+  wallbox a 7 kW disegna una linea più marcata e veloce di un frigo a 60 W. Un
+  carico sotto soglia resta visibile ma spento, e un carico senza entità legata
+  mostra "—" invece di uno zero inventato.
+- Aggiungere, rinominare, riordinare o eliminare un carico ridisegna subito il
+  flusso: la topologia si richiude sui carichi rimasti senza lasciare buchi.
+
+### Corretto
+
+- Un carico oltre il quinto non è più invisibile nel flusso: la vecchia
+  topologia ne poteva mostrare al massimo cinque, mentre l'editor ne accetta
+  otto.
+- La vista Mese usa il valore del bundle Recorder quando c'è, invece di
+  ricadere sempre sul sensore mensile istantaneo.
+- La personalizzazione del nodo di flusso (nome, icona, colore, gruppo
+  sottocarichi, nodo disattivato) continua a valere e non viene più
+  sovrascritta dai nomi legacy di default quando non è mai stata salvata.
+
 ## 1.0.0-beta.28 — 2026-08-16
 
 ### Modificato

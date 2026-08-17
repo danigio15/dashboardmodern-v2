@@ -1,6 +1,21 @@
-import { allStates, clean, doc, installStyle, root, section, wrapFunction } from "./shared.js";
+import {
+  flowPeriodEntity,
+  flowRecorderEntity,
+  flowStageModel,
+} from "../core/energy-flow-topology.js";
+import {
+  allStates,
+  clean,
+  dashboardStore,
+  doc,
+  installStyle,
+  readJson,
+  root,
+  section,
+  wrapFunction,
+} from "./shared.js";
 
-root.__DM_20260815E__ = true;
+root.__DM_20260817A__ = true;
 const KEY = "__DASHBOARDMODERN_ENERGY_FLOW_SECTION__";
 const state = (root[KEY] ||= { installed: false, frame: 0 });
 
@@ -9,20 +24,19 @@ const COLORS = Object.freeze({
   grid: "#2563eb",
   battery: "#14b8a6",
   home: "#2563eb",
-  boiler: "#ea580c",
-  wb: "#06b6d4",
-  clima: "#0ea5e9",
-  lav: "#7c3aed",
-  cuc: "#e11d48",
 });
 
-const LOADS = Object.freeze([
-  { key: "boiler", instant: "v-boiler-p" },
-  { key: "wb", instant: "v-wb-p" },
-  { key: "clima", instant: "v-clima-p" },
-  { key: "lav", instant: "v-lav-p" },
-  { key: "cuc", instant: "v-cuc-p" },
+/* Beta 30 owns every load bubble below Home. The five hand-authored circles in
+ * the legacy stage stay in the document — other owners still address them — but
+ * they are hidden and replaced by one computed bubble per configured Load. */
+const FLOW_VIEWS = Object.freeze([
+  { period: "instant", id: "view-ist", suffix: "" },
+  { period: "day", id: "view-day", suffix: "-day" },
+  { period: "month", id: "view-month", suffix: "-month" },
 ]);
+
+const LEGACY_LOAD_SELECTOR = ".node.n-load,[id^='line-home-'],[id^='m-line-home-']";
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 function stateNumber(states, entity) {
   const value = states?.[entity]?.state ?? states?.[entity];
@@ -75,61 +89,57 @@ function nodeVisible(node) {
   return true;
 }
 
-function canonicalFlowLoads() {
-  const configured = section("loads", []);
-  return (Array.isArray(configured) ? configured : [])
-    .filter(
+/* Saved per-slot flow-node customization (Beta 26/27). Only the values the user
+ * actually stored are read: the normalized editor model would otherwise hand
+ * back legacy defaults and rename the canonical Load. */
+function flowNodeOverrides() {
+  const raw = readJson("cd_flow_nodes", null);
+  return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : null;
+}
+
+/* The hosted dashboard can render before the store exists; the legacy mirror in
+ * localStorage is the same document. */
+function configuredLoads() {
+  const value = section("loads", null);
+  if (Array.isArray(value)) return value;
+  const stored = readJson("cd_loads", []);
+  return Array.isArray(stored) ? stored : [];
+}
+
+/* The month bundle is keyed by the recorder entity, not by load id. Resolve it
+ * once here so the pure model keeps taking a plain id -> value map. */
+function monthValuesFor(loads) {
+  const devices = state.bundle?.deviceMonth?.devices || [];
+  const values = state.bundle?.deviceMonth?.values;
+  if (!values?.get || !devices.length) return null;
+  const resolved = {};
+  for (const load of loads) {
+    const device = devices.find(
       (item) =>
-        item &&
-        item.category !== "manual-report" &&
-        item.show_in_dashboard !== false &&
-        (clean(item.name) ||
-          clean(item.power_entity) ||
-          clean(item.daily_energy_entity) ||
-          clean(item.monthly_energy_entity) ||
-          clean(item.total_energy_entity) ||
-          clean(item.history_entity)),
-    )
-    .slice()
-    .sort((left, right) => (Number(left.order) || 0) - (Number(right.order) || 0))
-    .slice(0, LOADS.length);
-}
-
-function periodEntity(load, period) {
-  if (period === "day") return clean(load?.daily_energy_entity);
-  if (period === "month") return clean(load?.monthly_energy_entity);
-  return clean(load?.power_entity);
-}
-
-function formatPeriodValue(value) {
-  const locale = doc?.documentElement?.lang === "en" ? "en-GB" : "it-IT";
-  return `${new Intl.NumberFormat(locale, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).format(value)} kWh`;
-}
-
-function syncCanonicalPeriodValues() {
-  if (!doc) return false;
-  const configured = canonicalFlowLoads();
-  const states = allStates();
-  let touched = false;
-  for (const period of ["day", "month"]) {
-    LOADS.forEach((slot, index) => {
-      const load = configured[index];
-      const entity = periodEntity(load, period);
-      if (!load || !entity) return;
-      const value = stateNumber(states, entity);
-      if (value === null) return;
-      const node = doc.getElementById(loadValueId(slot, period));
-      if (!node) return;
-      node.textContent = formatPeriodValue(value);
-      node.dataset.dmCanonicalLoad = clean(load.id) || clean(load.name);
-      node.dataset.dmCanonicalEntity = entity;
-      touched = true;
-    });
+        clean(item.id) === clean(load.id) ||
+        clean(item.key) === clean(load.id) ||
+        clean(item.name) === clean(load.name),
+    );
+    const source =
+      clean(device?.history || device?.entity) ||
+      flowRecorderEntity(load) ||
+      flowPeriodEntity(load, "month");
+    const value = Number(values.get(source));
+    if (Number.isFinite(value)) resolved[clean(load.id) || clean(load.name)] = value;
   }
-  return touched;
+  return Object.keys(resolved).length ? resolved : null;
+}
+
+function stageModel(period) {
+  const loads = configuredLoads();
+  return flowStageModel({
+    loads,
+    flowNodes: flowNodeOverrides(),
+    states: allStates(),
+    period,
+    monthValues: period === "month" ? monthValuesFor(loads) : null,
+    locale: doc?.documentElement?.lang === "en" ? "en-GB" : "it-IT",
+  });
 }
 
 function rememberConnectorVisibility(node) {
@@ -199,32 +209,129 @@ function scopeFor(period) {
   return doc?.getElementById("view-ist");
 }
 
-function loadValueId(load, period) {
-  return period ? `v-${load.key}-${period}` : load.instant;
+/* Escaping an id for a CSS attribute selector: ids come from persisted config
+ * and are not guaranteed to be identifier-safe. */
+const cssEscape = (value) => String(value).replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+
+function hideLegacyLoadTopology(stage) {
+  stage?.querySelectorAll?.(LEGACY_LOAD_SELECTOR).forEach((node) => {
+    if (node.dataset.dmFlowNode || node.dataset.dmFlowArc) return;
+    node.hidden = true;
+    node.style.setProperty("display", "none", "important");
+    node.dataset.dmLegacyEnergyLoad = "replaced";
+  });
 }
 
-function loadLineIds(load, period) {
-  const suffix = period ? `-${period}` : "";
-  return [`line-home-${load.key}${suffix}`, `m-line-home-${load.key}${suffix}`];
+function writeIcon(target, icon) {
+  if (!target || target.dataset.dmFlowIcon === icon) return;
+  target.dataset.dmFlowIcon = icon;
+  if (/^mdi:/i.test(icon) && typeof root.cdIconMarkup === "function")
+    target.innerHTML = root.cdIconMarkup(icon, 28);
+  else target.textContent = icon;
 }
 
-function syncLoadFlows(period) {
-  const scope = scopeFor(period);
-  if (!scope) return false;
-  let touched = false;
-  for (const load of LOADS) {
-    const valueNode = doc.getElementById(loadValueId(load, period));
-    const threshold = period ? 0.0005 : 0.5;
-    const active = nodeVisible(valueNode) && numberFrom(valueNode) > threshold;
-    for (const id of loadLineIds(load, period)) {
-      const line = doc.getElementById(id);
-      if (!line) continue;
-      colorNode(line, COLORS[load.key], active);
-      line.dataset.dmFlowValue = String(numberFrom(valueNode));
-      touched = true;
+function bindNodeClick(element, node, period) {
+  const click = node.click;
+  const signature = click ? `${click.kind}:${click.target || click.entity}` : "";
+  if (element.dataset.dmFlowClick === signature) return;
+  element.dataset.dmFlowClick = signature;
+  element.classList.toggle("hist-clickable", Boolean(click));
+  element.onclick = click
+    ? (event) => {
+        if (click.kind === "subloads") root.apriSubLoads?.(click.target);
+        else root.apriStorico?.(event, click.entity, click.title);
+      }
+    : null;
+  if (click) element.dataset.dmFlowClickPeriod = period;
+}
+
+function ensureBubble(stage, node, period, scale) {
+  let element = stage.querySelector(`[data-dm-flow-node="${cssEscape(node.id)}"]`);
+  if (!element) {
+    element = doc.createElement("div");
+    element.className = "node n-load dm-flow-node";
+    element.dataset.dmFlowNode = node.id;
+    for (const [tag, className] of [
+      ["div", "node-label"],
+      ["div", "node-icon"],
+      ["span", "dm-flow-value"],
+    ]) {
+      const child = doc.createElement(tag);
+      child.className = className;
+      element.append(child);
     }
+    stage.append(element);
   }
-  return touched;
+  element.style.left = `${node.desktop.left}%`;
+  element.style.top = `${node.desktop.top}%`;
+  element.style.setProperty("--n-color", node.color);
+  element.style.setProperty("--dm-flow-color", node.color);
+  element.style.setProperty("--dm-flow-scale", String(scale));
+  element.style.setProperty("--dm-flow-mobile-left", `${node.mobile.left}%`);
+  element.style.setProperty("--dm-flow-mobile-top", `${node.mobile.top}%`);
+  const label = element.querySelector(".node-label");
+  if (label && label.textContent !== node.name) label.textContent = node.name;
+  writeIcon(element.querySelector(".node-icon"), node.icon);
+  const value = element.querySelector(".dm-flow-value");
+  if (value && value.textContent !== node.text) value.textContent = node.text;
+  element.dataset.dmCanonicalLoad = node.id;
+  element.dataset.dmFlowPeriod = period;
+  element.dataset.dmFlowActive = node.active ? "true" : "false";
+  bindNodeClick(element, node, period);
+  return element;
+}
+
+function ensureArc(svg, node, variant) {
+  if (!svg) return null;
+  let path = svg.querySelector(`[data-dm-flow-arc="${cssEscape(node.id)}"]`);
+  if (!path) {
+    path = doc.createElementNS(SVG_NS, "path");
+    path.dataset.dmFlowArc = node.id;
+    path.classList.add("flow-line", "dm-flow-arc");
+    svg.append(path);
+  }
+  const geometry = variant === "mobile" ? node.mobile : node.desktop;
+  if (path.getAttribute("d") !== geometry.path) path.setAttribute("d", geometry.path);
+  path.style.setProperty("--line-color", node.color);
+  path.style.setProperty("--dm-flow-width", `${node.intensity.width}px`);
+  path.style.setProperty("--dm-flow-duration", `${node.intensity.duration}s`);
+  path.dataset.dmFlowValue = String(node.value ?? "");
+  colorNode(path, node.color, node.active);
+  return path;
+}
+
+function pruneStale(stage, keep) {
+  stage.querySelectorAll("[data-dm-flow-node],[data-dm-flow-arc]").forEach((node) => {
+    const id = node.dataset.dmFlowNode || node.dataset.dmFlowArc;
+    if (!keep.has(id)) node.remove();
+  });
+}
+
+/* Recovered from the Beta 22 dynamic renderer and adapted: it now replaces the
+ * fixed topology instead of doubling it, covers the month view as well, and
+ * draws its connectors in both the desktop and the mobile viewBox. */
+export function renderDynamicFlowLoads(period, model = stageModel(period)) {
+  const view = FLOW_VIEWS.find((entry) => entry.period === period);
+  const scope = view ? doc?.getElementById(view.id) : null;
+  const stage = scope?.querySelector?.(".flow-stage");
+  if (!stage) return 0;
+  hideLegacyLoadTopology(stage);
+  const desktopSvg = stage.querySelector("svg.desktop-svg") || stage.querySelector("svg");
+  const mobileSvg = stage.querySelector("svg.mobile-svg");
+  const keep = new Set();
+  for (const node of model.nodes) {
+    keep.add(node.id);
+    ensureBubble(stage, node, period, model.scale);
+    ensureArc(desktopSvg, node, "desktop");
+    ensureArc(mobileSvg, node, "mobile");
+  }
+  pruneStale(stage, keep);
+  stage.dataset.dmFlowLoads = String(model.count);
+  // Beta 5's secondary-flow completer stands down on a stage that already has a
+  // canonical owner; keep publishing the count it looks for.
+  scope.dataset.dmCanonicalLoadCount = String(model.count);
+  scope.dataset.dmFlowOwner = "beta30";
+  return model.count;
 }
 
 function mainLineColor(node) {
@@ -237,6 +344,7 @@ function mainLineColor(node) {
 }
 
 function isLoadLine(node) {
+  if (node?.dataset?.dmFlowArc) return true;
   const id = String(node?.id || "");
   return /line-home-(?:boiler|wb|clima|lav|cuc)(?:-(?:day|month))?$/i.test(id);
 }
@@ -330,16 +438,15 @@ function mirrorLegacyMainFlows(scope, period) {
 
 export function refreshEnergyFlows() {
   if (!doc) return false;
-  let touched = syncCanonicalPeriodValues();
-  for (const period of ["", "day", "month"]) {
+  let touched = false;
+  for (const view of FLOW_VIEWS) {
+    const period = view.period === "instant" ? "" : view.period;
     const scope = scopeFor(period);
     if (!scope) continue;
     touched = mirrorLegacyMainFlows(scope, period) || touched;
-    touched = syncLoadFlows(period) || touched;
+    touched = renderDynamicFlowLoads(view.period) > 0 || touched;
     scope.dataset.dmEnergyFlows = "directional-value-bound";
   }
-  // Beta22's second dynamic `energyLoads` topology is deliberately gone.
-  // The canonical Loads editor owns the five existing circles below Home.
   renderBatterySoc(doc, section("energy", {}), allStates());
   return touched;
 }
@@ -358,6 +465,18 @@ function scheduleSettled() {
   root.setTimeout?.(schedule, 80);
 }
 
+/* Adding, renaming or removing a Load must redraw the stage immediately: the
+ * topology itself changed, not just a reading. */
+function bindStore() {
+  if (state.storeBound) return;
+  const store = dashboardStore();
+  if (!store?.subscribe) return;
+  state.storeBound = true;
+  store.subscribe((change) => {
+    if (["loads", "energy"].includes(change?.section)) scheduleSettled();
+  });
+}
+
 function installStyles() {
   installStyle(
     "dm-energy-flow-section-style",
@@ -367,6 +486,15 @@ function installStyles() {
     .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke:var(--dm-flow-color)!important;stroke-dasharray:12 9!important;stroke-linecap:round!important;animation-name:dmEnergyFlowDash!important;animation-duration:.8s!important;animation-timing-function:linear!important;animation-iteration-count:infinite!important;animation-play-state:running!important;will-change:stroke-dashoffset!important}
     @keyframes dmEnergyFlowDash{from{stroke-dashoffset:0}to{stroke-dashoffset:-42}}
     @media(prefers-reduced-motion:reduce){.flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{animation:none!important}}
+    /* Computed load bubbles. Width and speed of a connector follow the reading,
+       so a wallbox at 7 kW is visibly heavier than a fridge at 60 W. */
+    .flow-stage .node.dm-flow-node{display:flex!important;visibility:visible!important;transform:translate(-50%,-50%) scale(var(--dm-flow-scale,1))!important;transition:left .28s ease,top .28s ease,transform .28s ease!important}
+    .flow-stage .node.dm-flow-node[data-dm-flow-active="false"]{opacity:.62!important}
+    .flow-stage path.dm-flow-arc{stroke-width:var(--dm-flow-width,3px)!important;fill:none!important}
+    .flow-stage path.dm-flow-arc.dm-energy-flow-active{animation-duration:var(--dm-flow-duration,.8s)!important}
+    @media(max-width:820px){
+      .flow-stage .node.dm-flow-node{left:var(--dm-flow-mobile-left,50%)!important;top:var(--dm-flow-mobile-top,83%)!important}
+    }
   `,
   );
 }
@@ -385,7 +513,10 @@ export function installEnergyFlowSection() {
     "render",
   ])
     wrapFunction(name, `__dmEnergyFlow_${name}`, scheduleSettled);
-  root.addEventListener?.("dashboardmodern:period-bundle", scheduleSettled);
+  root.addEventListener?.("dashboardmodern:period-bundle", (event) => {
+    state.bundle = event?.detail || null;
+    scheduleSettled();
+  });
   root.addEventListener?.("dashboardmodern:energy-bundle", scheduleSettled);
   root.addEventListener?.("dashboardmodern:energy-stable", scheduleSettled);
   root.addEventListener?.("dashboardmodern:states-ready", scheduleSettled);
@@ -398,6 +529,7 @@ export function installEnergyFlowSection() {
     },
     true,
   );
+  bindStore();
   scheduleSettled();
 }
 

@@ -144,8 +144,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // view-model, the cycle tracker, the photorealistic hero artwork and the
   // showcase section renderer. All four are event-driven (state-changed +
   // legacy render loop), with no polling and no observers.
+  // The dynamic energy-flow stage adds exactly one owner: the pure topology and
+  // view-model. The renderer itself lives in the existing energy-flow section,
+  // which stays the single owner of the Flows stage; the Beta 22 corrective
+  // stands down instead of a second module arriving to arbitrate between them.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 83, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 84, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 

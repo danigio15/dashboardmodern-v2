@@ -241,7 +241,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     }
   });
 
-  test(`${variant}: beta5 Energy chart hides unconfigured load circles and keeps configured Wallbox in the flow`, async ({
+  test(`${variant}: beta5 Energy chart draws one flow bubble per configured load and none otherwise`, async ({
     page,
   }, testInfo) => {
     test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
@@ -252,11 +252,16 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       await new Promise((resolve) => setTimeout(resolve, 120));
     });
+    // The hand-authored circles and connectors are never the stage any more:
+    // with nothing configured the area below Home is simply empty.
     for (const id of ["n-wb", "n-wb-day", "n-wb-month"]) {
       await expect(page.locator(`#${id}`)).toHaveCSS("display", "none");
     }
     for (const id of ["line-home-wb", "line-home-wb-day", "line-home-wb-month"]) {
       await expect(page.locator(`#${id}`)).toHaveCSS("display", "none");
+    }
+    for (const view of ["view-ist", "view-day", "view-month"]) {
+      await expect(page.locator(`#${view} [data-dm-flow-node]`)).toHaveCount(0);
     }
 
     await page.evaluate(async () => {
@@ -268,13 +273,18 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       await new Promise((resolve) => setTimeout(resolve, 180));
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     });
-    await expect(page.locator("#n-wb-day")).toHaveAttribute("data-dm-beta5-flow-complete", "true");
-    await expect(page.locator("#n-wb")).not.toHaveCSS("display", "none");
-    await expect(page.locator("#n-wb-day")).not.toHaveCSS("display", "none");
-    await expect(page.locator("#n-wb-month")).not.toHaveCSS("display", "none");
-    await expect(page.locator("#line-home-wb")).not.toHaveCSS("display", "none");
-    await expect(page.locator("#line-home-wb-day")).not.toHaveCSS("display", "none");
-    await expect(page.locator("#line-home-wb-month")).not.toHaveCSS("display", "none");
+    for (const view of ["view-ist", "view-day", "view-month"]) {
+      await expect(page.locator(`#${view} [data-dm-flow-node]`)).toHaveCount(2);
+      await expect(
+        page.locator(`#${view} [data-dm-flow-node="flow-wallbox"] .node-label`),
+      ).toHaveText("Wallbox");
+      await expect(
+        page.locator(`#${view} svg.desktop-svg [data-dm-flow-arc="flow-wallbox"]`),
+      ).toHaveCount(1);
+    }
+    // The legacy circles stay out of the way instead of doubling the new ones.
+    await expect(page.locator("#n-wb")).toHaveCSS("display", "none");
+    await expect(page.locator("#line-home-wb")).toHaveCSS("display", "none");
 
     const result = await page.evaluate(async () => {
       let loading = document.getElementById("ed-chart-loading");
