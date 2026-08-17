@@ -106,11 +106,14 @@ function configuredLoads() {
   return Array.isArray(stored) ? stored : [];
 }
 
-/* The month bundle is keyed by the recorder entity, not by load id. Resolve it
- * once here so the pure model keeps taking a plain id -> value map. */
-function monthValuesFor(loads) {
-  const devices = state.bundle?.deviceMonth?.devices || [];
-  const values = state.bundle?.deviceMonth?.values;
+/* The Recorder bundle is keyed by the meter entity, not by load id. Resolve it
+ * once here so the pure model keeps taking a plain id -> value map. Day and
+ * month are both available: a load metered only by its lifetime counter gets a
+ * real figure for today, not just for the month. */
+function recorderValuesFor(loads, period) {
+  const bundle = period === "day" ? state.bundle?.deviceDay : state.bundle?.deviceMonth;
+  const devices = bundle?.devices || [];
+  const values = bundle?.values;
   if (!values?.get || !devices.length) return null;
   const resolved = {};
   for (const load of loads) {
@@ -123,7 +126,7 @@ function monthValuesFor(loads) {
     const source =
       clean(device?.history || device?.entity) ||
       flowRecorderEntity(load) ||
-      flowPeriodEntity(load, "month");
+      flowPeriodEntity(load, period);
     const value = Number(values.get(source));
     if (Number.isFinite(value)) resolved[clean(load.id) || clean(load.name)] = value;
   }
@@ -137,7 +140,7 @@ function stageModel(period) {
     flowNodes: flowNodeOverrides(),
     states: allStates(),
     period,
-    monthValues: period === "month" ? monthValuesFor(loads) : null,
+    recorderValues: period === "instant" ? null : recorderValuesFor(loads, period),
     locale: doc?.documentElement?.lang === "en" ? "en-GB" : "it-IT",
   });
 }

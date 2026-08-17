@@ -201,16 +201,18 @@ function stateNumber(states, entity) {
   return finiteOrNull(source?.state ?? source);
 }
 
-/* Month first asks the Recorder bundle, which already holds the period delta of
- * the cumulative meter. Only an explicit monthly helper is read from state; a
- * load that has nothing but a lifetime meter and no bundle sample reads as
- * absent, because the alternative is printing a lifetime total as a month. */
-function periodValue(load, period, states, monthValues) {
+/* Day and month first ask the Recorder bundle, which already holds that
+ * period's delta of the cumulative meter — the only correct way to turn a
+ * lifetime counter into a period figure. Only an explicit day/month helper is
+ * read from state; a load that has nothing but a lifetime meter and no bundle
+ * sample reads as absent, because the alternative is printing a running total
+ * as today's or this month's consumption. */
+function periodValue(load, period, states, recorderValues) {
   const entity = flowPeriodEntity(load, period);
-  if (period === "month" && monthValues) {
+  if (period !== "instant" && recorderValues) {
     const key = clean(load.id) || clean(load.name);
     const fromBundle =
-      typeof monthValues.get === "function" ? monthValues.get(key) : monthValues[key];
+      typeof recorderValues.get === "function" ? recorderValues.get(key) : recorderValues[key];
     const numeric = finiteOrNull(fromBundle);
     if (numeric !== null) return { entity: entity || flowRecorderEntity(load), value: numeric };
   }
@@ -248,7 +250,7 @@ export function flowStageModel(options = {}) {
     flowNodes = null,
     states = {},
     period = "instant",
-    monthValues = null,
+    recorderValues = null,
     locale = "it-IT",
   } = options;
 
@@ -264,7 +266,7 @@ export function flowStageModel(options = {}) {
   const desktop = flowStageLayout(visible.length, "desktop");
   const mobile = flowStageLayout(visible.length, "mobile");
   const threshold = period === "instant" ? INSTANT_THRESHOLD : ENERGY_THRESHOLD;
-  const readings = visible.map(({ load }) => periodValue(load, period, states, monthValues));
+  const readings = visible.map(({ load }) => periodValue(load, period, states, recorderValues));
   const peak = readings.reduce((top, item) => Math.max(top, Math.abs(item.value ?? 0)), 0);
 
   const nodes = visible.map(({ load, slotKey, override, order }, index) => {

@@ -227,12 +227,18 @@ function memoryStorage(seed = {}) {
 const { document, views } = legacyDocument();
 globalThis.document = document;
 globalThis.localStorage = memoryStorage();
+// The section subscribes to the runtime's period bundle on the global object,
+// so the tests need somewhere for that event to actually land.
+const events = new EventTarget();
+globalThis.addEventListener = events.addEventListener.bind(events);
+globalThis.dispatchEvent = events.dispatchEvent.bind(events);
 const section = await import("../src/sections/energy-flow-section.js");
 
-function configure({ loads = [], states = {}, flowNodes = null } = {}) {
+function configure({ loads = [], states = {}, flowNodes = null, bundle = null } = {}) {
   globalThis.DashboardModernModules = { store: { getSection: (name) => ({ loads })[name] } };
   globalThis.localStorage = memoryStorage(flowNodes ? { cd_flow_nodes: flowNodes } : {});
   globalThis.__HASS__ = { states };
+  if (bundle) globalThis.dispatchEvent(new CustomEvent("dashboardmodern:period-bundle", { detail: bundle }));
   section.refreshEnergyFlows();
 }
 
@@ -393,4 +399,43 @@ test("the main solar/grid/battery connectors are still owned by the mirror", () 
   assert.equal(main.dataset.dmMainFlow, "solar-home");
   assert.equal(main.dataset.dmFlowPeriod, "instant");
   assert.equal(views.instant.dataset.dmEnergyFlows, "directional-value-bound");
+});
+
+test("a load metered only by its lifetime counter reads today and this month from the bundle", () => {
+  const lifetime = {
+    id: "boiler",
+    name: "Boiler",
+    order: 0,
+    power_entity: "sensor.boiler_power",
+    total_energy_entity: "sensor.boiler_total",
+  };
+  // The running total must never reach a bubble: it is energy since the meter
+  // was installed, not consumption of a period.
+  const states = {
+    "sensor.boiler_power": { state: "1500" },
+    "sensor.boiler_total": { state: "4134.18" },
+  };
+
+  configure({ loads: [lifetime], states });
+  assert.equal(textOf(bubbles(views.instant)[0], ".dm-flow-value"), "1500 W");
+  assert.equal(textOf(bubbles(views.day)[0], ".dm-flow-value"), "—");
+  assert.equal(textOf(bubbles(views.month)[0], ".dm-flow-value"), "—");
+
+  configure({
+    loads: [lifetime],
+    states,
+    bundle: {
+      deviceDay: {
+        devices: [{ key: "boiler", name: "Boiler", history: "sensor.boiler_total" }],
+        values: new Map([["sensor.boiler_total", 1.44]]),
+      },
+      deviceMonth: {
+        devices: [{ key: "boiler", name: "Boiler", history: "sensor.boiler_total" }],
+        values: new Map([["sensor.boiler_total", 7.843]]),
+      },
+    },
+  });
+  assert.equal(textOf(bubbles(views.day)[0], ".dm-flow-value"), "1,4 kWh");
+  assert.equal(textOf(bubbles(views.month)[0], ".dm-flow-value"), "7,8 kWh");
+  assert.equal(textOf(bubbles(views.instant)[0], ".dm-flow-value"), "1500 W");
 });

@@ -26,8 +26,15 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - Un carico oltre il quinto non è più invisibile nel flusso: la vecchia
   topologia ne poteva mostrare al massimo cinque, mentre l'editor ne accetta
   otto.
-- La vista Mese usa il valore del bundle Recorder quando c'è, invece di
-  ricadere sempre sul sensore mensile istantaneo.
+- Il consumo di Giorno e Mese non viene più letto dallo **stato del contatore
+  totale** del carico: quel valore è l'energia da quando il contatore esiste, e
+  mostrarlo come consumo del periodo sarebbe sbagliato di anni. Il periodo
+  arriva dal delta Recorder (`sum(fine) − sum(inizio)`, come da
+  `docs/ENERGY_RECORDER_PARITY.md`); senza quel dato la bolla mostra "—" invece
+  di un numero inventato.
+- Il bundle energia calcola ora il delta per dispositivo anche sul **giorno**,
+  non solo su mese e anno: un carico misurato solo dal contatore totale ha
+  finalmente un valore giornaliero corretto nel flusso.
 - La personalizzazione del nodo di flusso (nome, icona, colore, gruppo
   sottocarichi, nodo disattivato) continua a valere e non viene più
   sovrascritta dai nomi legacy di default quando non è mai stata salvata.

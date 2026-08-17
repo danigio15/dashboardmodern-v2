@@ -144,16 +144,30 @@ test("a load metered only by its lifetime counter reads absent, never the total"
   const day = flowStageModel({ loads: [lifetime], states, period: "day" });
   assert.equal(day.nodes[0].text, "—");
 
-  // With a Recorder delta for the period there is a real value to show.
-  const withBundle = flowStageModel({
+  // With a Recorder delta there is a real value to show, for today as well as
+  // for the month: the lifetime counter feeds both, through the bundle.
+  for (const [period, value, text] of [
+    ["day", 1.44, "1,4 kWh"],
+    ["month", 7.843, "7,8 kWh"],
+  ]) {
+    const withBundle = flowStageModel({
+      loads: [lifetime],
+      states,
+      recorderValues: { boiler: value },
+      period,
+    });
+    assert.equal(withBundle.nodes[0].value, value);
+    assert.equal(withBundle.nodes[0].text, text);
+    assert.equal(withBundle.nodes[0].entity, "sensor.boiler_total");
+  }
+
+  // The instant view reads live power and never a Recorder delta.
+  const instant = flowStageModel({
     loads: [lifetime],
-    states,
-    monthValues: { boiler: 7.843 },
-    period: "month",
+    states: { ...states, "sensor.boiler_power": { state: "1500" } },
+    recorderValues: { boiler: 7.843 },
   });
-  assert.equal(withBundle.nodes[0].value, 7.843);
-  assert.equal(withBundle.nodes[0].text, "7,8 kWh");
-  assert.equal(withBundle.nodes[0].entity, "sensor.boiler_total");
+  assert.equal(instant.nodes[0].text, "1500 W");
 });
 
 test("eight configured loads produce eight bound bubbles", () => {
@@ -241,13 +255,21 @@ test("clicking a bubble opens its subload group, or its history when it has none
   assert.deepEqual(instant.nodes[0].click, { kind: "subloads", target: "cucina" });
 });
 
-test("the month view prefers the recorder bundle over the live sensor", () => {
+test("day and month prefer the recorder bundle over the period helper", () => {
   const model = flowStageModel({
     loads: [load("wallbox", { order: 0 })],
     states: { "sensor.wallbox_month": { state: "12" } },
-    monthValues: { wallbox: 148.2 },
+    recorderValues: { wallbox: 148.2 },
     period: "month",
   });
   assert.equal(model.nodes[0].value, 148.2);
   assert.equal(model.nodes[0].text, "148,2 kWh");
+
+  const day = flowStageModel({
+    loads: [load("wallbox", { order: 0 })],
+    states: { "sensor.wallbox_day": { state: "3" } },
+    recorderValues: { wallbox: 18.4 },
+    period: "day",
+  });
+  assert.equal(day.nodes[0].value, 18.4);
 });
