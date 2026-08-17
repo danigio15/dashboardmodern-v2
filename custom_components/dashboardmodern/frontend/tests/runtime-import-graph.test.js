@@ -148,8 +148,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // view-model. The renderer itself lives in the existing energy-flow section,
   // which stays the single owner of the Flows stage; the Beta 22 corrective
   // stands down instead of a second module arriving to arbitrate between them.
+  // The rebuilt Loads config adds two: the pure config model and the panel that
+  // edits it. The Beta 26/27 hierarchy editor stands down in the same way, so
+  // the Loads panel keeps exactly one renderer.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 84, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 86, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 

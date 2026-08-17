@@ -302,33 +302,42 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     ).toBeVisible();
     await clickStableButton(page, page.getByRole("button", { name: /CARICHI|LOADS/ }), testInfo);
     const loads = await page.locator('[data-energy-panel="loads"]').innerHTML();
-    const kitchenGroup = page.locator('[data-beta27-group="cucina"]');
-    await expect(kitchenGroup).toBeVisible();
-    await clickStableButton(page, kitchenGroup.locator("[data-beta27-child-add]"), testInfo);
-    await page.locator("[data-beta27-child-form] [data-child-name]").fill("Booster");
-    await page.locator("#dm-beta27-child-power").fill("sensor.pump_power");
-    await clickStableButton(page, page.locator("[data-beta27-child-save]"), testInfo);
-    await expect(
-      page.locator('[data-beta27-child-group="cucina"]', { hasText: "Booster" }),
-    ).toHaveCount(1);
-    await page
-      .locator('[data-beta27-child-group="cucina"]', { hasText: "Booster" })
-      .locator("[data-beta27-child-edit]")
-      .click();
-    await page.locator("[data-beta27-child-form] [data-child-name]").fill("Booster updated");
-    await clickStableButton(page, page.locator("[data-beta27-child-save]"), testInfo);
-    await expect(
-      page.locator('[data-beta27-child-group="cucina"]', { hasText: "Booster updated" }),
-    ).toHaveCount(1);
-    await clickStableButton(page, kitchenGroup.locator("[data-beta27-child-add]"), testInfo);
-    await page.locator("[data-beta27-child-form] [data-child-name]").fill("Temporary load");
-    await page.locator("#dm-beta27-child-power").fill("sensor.temporary_power");
-    await clickStableButton(page, page.locator("[data-beta27-child-save]"), testInfo);
-    const temporary = page.locator('[data-beta27-child-group="cucina"]', {
-      hasText: "Temporary load",
-    });
-    await temporary.locator("[data-beta27-child-delete]").click();
+    // One card per circle under Home, in the order the flow draws them, and the
+    // appliances live inside their own load instead of a separately bound group.
+    const seeded = page.locator('[data-dm-load="load-seed"]');
+    await expect(seeded).toHaveCount(1);
+    await expect(seeded.locator(".dm-loads-preview-text b")).toHaveText("Seed pump");
+    // The manual report row is not a circle and must not appear here.
+    await expect(page.locator('[data-dm-load="manual-seed"]')).toHaveCount(0);
+
+    await seeded.locator(".dm-loads-preview").click();
+    await clickStableButton(page, seeded.locator("[data-dm-subload-add]"), testInfo);
+    await seeded.locator("[data-dm-subload-name]").fill("Booster");
+    await seeded.locator("[data-dm-subload-name]").blur();
+    await expect(seeded.locator(".dm-loads-subload", { hasText: "Booster" })).toHaveCount(1);
+
+    await clickStableButton(page, seeded.locator("[data-dm-subload-add]"), testInfo);
+    await seeded.locator("[data-dm-subload-name]").fill("Temporary load");
+    await seeded.locator("[data-dm-subload-name]").blur();
+    const temporary = seeded.locator(".dm-loads-subload", { hasText: "Temporary load" });
+    await expect(temporary).toHaveCount(1);
+    await temporary.locator("[data-dm-subload-delete]").click();
     await expect(temporary).toHaveCount(0);
+
+    // Saving goes through the canonical section, and the appliance is stored
+    // inside the load that owns it.
+    await clickStableButton(page, page.locator("[data-dm-loads-save]"), testInfo);
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          (window.DashboardModernModules?.store?.getSection("loads") || []).some(
+            (item) =>
+              item.name === "Booster" && item.metadata?.beta27_subload_group === "load-seed",
+          ),
+        ),
+      )
+      .toBe(true);
+    await expect(page.locator("[data-dm-loads-save]")).toBeDisabled();
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-loads.png` });
     await clickStableButton(page, page.getByRole("button", { name: "REPORT" }), testInfo);
     const report = await page.locator('[data-energy-panel="report"]').innerHTML();
@@ -358,12 +367,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.locator("[data-report-save]").click();
     await expect(page.locator("[data-report-actions]")).toHaveAttribute("data-state", "success");
     await expect(page.locator('[data-energy-panel="report"]')).toBeVisible();
+    // The popup mirror is derived from the loads on save: the appliance sits
+    // under the load that owns it, with no group left to bind by hand.
     expect(
       await page.evaluate(() => {
         const groups = JSON.parse(localStorage.getItem("cd_subloads_extra") || "{}");
-        return groups.cucina?.some(
-          (item) => item.name === "Booster updated" && item.pwr === "sensor.pump_power",
-        );
+        return groups["load-seed"]?.some((item) => item.name === "Booster");
       }),
     ).toBe(true);
     await clickStableButton(page, page.getByRole("button", { name: /CARICHI|LOADS/ }), testInfo);

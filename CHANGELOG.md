@@ -21,8 +21,27 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - Aggiungere, rinominare, riordinare o eliminare un carico ridisegna subito il
   flusso: la topologia si richiude sui carichi rimasti senza lasciare buchi.
 
+- Editor **Carichi** rifatto da zero sulla struttura del flusso: una sola lista,
+  una card per ogni cerchio sotto Casa, nell'ordine in cui vengono disegnati.
+  Ogni card apre con l'anteprima della bolla che produce — stessa icona, stesso
+  nome, stesso colore — e contiene identità, entità, visibilità, riordino e i
+  dispositivi che stanno nel suo popup. Sparisce il doppio livello di prima
+  (cinque cerchi fissi da una parte, gruppi da collegare a mano dall'altra):
+  il gruppo è il carico, e i dispositivi stanno dentro.
+- Ogni card dice cosa manca invece di lasciarlo scoprire dal flusso vuoto:
+  nessuna entità collegata, potenza assente, nessun contatore energia. Il
+  campo del contatore totale spiega che giorno e mese si calcolano da lì, così
+  i sensori di periodo restano quello che sono, facoltativi.
+- La configurazione esistente viene ripresa così com'è: nomi, icone, colori,
+  visibilità e dispositivi già inseriti finiscono nella nuova lista senza
+  doverli riscrivere. La sezione canonica `loads` resta l'unica verità e le tre
+  chiavi legacy vengono riscritte come specchio derivato, così il popup dei
+  sottocarichi continua a funzionare.
+
 ### Corretto
 
+- Il colore di un carico veniva perso al salvataggio, perché non fa parte dello
+  schema canonico del dispositivo: ora viaggia nei metadata e sopravvive.
 - Un carico oltre il quinto non è più invisibile nel flusso: la vecchia
   topologia ne poteva mostrare al massimo cinque, mentre l'editor ne accetta
   otto.
