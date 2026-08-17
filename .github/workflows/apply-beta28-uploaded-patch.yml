@@ -1,0 +1,28 @@
+name: Apply beta28 uploaded patch
+
+on:
+  push:
+    branches:
+      - agent/beta28-appliance-showcase
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, 'regenerate build info for 1.0.0-beta.28') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/beta28-appliance-showcase
+          fetch-depth: 0
+      - name: Reconstruct and apply beta28 patch series
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/beta28-upload/beta28.xz.b64.* | base64 -d | xz -d > /tmp/beta28.patch
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git am /tmp/beta28.patch
+          git push origin HEAD:agent/beta28-appliance-showcase
