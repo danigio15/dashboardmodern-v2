@@ -12,6 +12,7 @@ import { installEnergyStabilitySection } from "./energy-stability-section.js";
 import { installEnergyGuidanceSection } from "./energy-guidance-section.js";
 import { installEnergyFlowSection } from "./energy-flow-section.js";
 import { installEnergyLoadsEditor } from "./energy-loads-editor-section.js";
+import { installSubloadPopupSection } from "./subload-popup-section.js";
 import { installEnergyAnalysisSection } from "./energy-analysis-section.js";
 import { installHistorySection } from "./history-section.js";
 import { installTemperatureSection } from "./temperature-section.js";
@@ -603,6 +604,7 @@ export function installSectionRuntime() {
     installEnergyGuidanceSection();
     installEnergyFlowSection();
     installEnergyLoadsEditor();
+    installSubloadPopupSection();
     installEnergyAnalysisSection();
     installHistorySection();
     installTemperatureSection();

@@ -133,10 +133,18 @@ function recorderValuesFor(loads, period) {
   return Object.keys(resolved).length ? resolved : null;
 }
 
+function configuredAppliances() {
+  const value = section("appliances", null);
+  if (Array.isArray(value)) return value;
+  const stored = readJson("cd_appliances", []);
+  return Array.isArray(stored) ? stored : [];
+}
+
 function stageModel(period) {
   const loads = configuredLoads();
   return flowStageModel({
     loads,
+    appliances: configuredAppliances(),
     flowNodes: flowNodeOverrides(),
     states: allStates(),
     period,

@@ -42,6 +42,26 @@ function roomOptions(selected) {
   ].join("");
 }
 
+/* The flow circles an appliance can be filed under. Picking one here is the
+ * whole configuration: the circle's value starts including this appliance, the
+ * popup behind the circle starts listing it, and nothing has to be typed a
+ * second time in the Loads editor. */
+function flowLoadOptions(selected) {
+  const loads = section("loads", readJson("cd_loads", []));
+  const circles = (Array.isArray(loads) ? loads : []).filter(
+    (item) => item && item.category !== "manual-report" && !clean(item?.metadata?.beta27_subload_group),
+  );
+  return [
+    `<option value="">— ${t("Nessuno", "None")} —</option>`,
+    ...circles.map((load) => {
+      const value = clean(load?.metadata?.flow_group) || clean(load.id);
+      const label = clean(load.name) || value;
+      const icon = clean(load.emoji_icon || load.icon) || "🔌";
+      return `<option value="${esc(value)}" ${value === clean(selected) ? "selected" : ""}>${esc(icon)} ${esc(label)}</option>`;
+    }),
+  ].join("");
+}
+
 function editorVisualKey(value) {
   return canonicalApplianceVisualKey(value) || "";
 }
@@ -307,6 +327,7 @@ export function openApplianceEditor(index) {
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(device.name)}" required></label>
         <label class="ed-slot dm-appliance-icon-field"><span class="ed-slot-lbl">${t("Tipo / immagine", "Type / artwork")}</span><input type="hidden" name="icon" value="${esc(visual)}"><span class="dm-appliance-icon-row"><span class="dm-appliance-icon-preview" data-icon-preview data-dm-preview-source="canonical-picker" aria-hidden="false"></span><button type="button" class="ed-input dm-appliance-type-trigger" data-type-trigger aria-haspopup="listbox"></button></span><small>${t("Usa lo stesso catalogo e la stessa icona azzurra della prima configurazione.", "Uses the same catalog and blue icon as the first configuration.")}</small></label>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room_id">${roomOptions(device.room_id || device.room)}</select></label>
+        <label class="ed-slot"><span class="ed-slot-lbl">${t("Carico energia", "Energy load")}</span><select class="ed-input" name="flow_group" data-dm-appliance-flow-group>${flowLoadOptions(device.metadata?.beta27_subload_group)}</select><small>${t("Il cerchio del flusso in cui rientra. Il suo valore diventa la somma dei dispositivi assegnati, e il popup del cerchio lo elenca: non serve riconfigurarlo nei Carichi.", "The flow circle it belongs to. That circle becomes the total of the appliances assigned to it and its popup lists them, with nothing to configure again under Loads.")}</small></label>
         <label class="ed-slot"><span class="ed-slot-lbl">${t("Soglia in funzione", "Running threshold")}</span><input class="ed-input" type="number" step="0.1" min="0" name="threshold_run" value="${esc(device.threshold_run ?? device.metadata?.threshold_run ?? 5)}"><small>${t("Potenza in watt oltre la quale la card risulta accesa.", "Power in watts above which the card is shown as running.")}</small></label>
       </div>
       <section class="dm-appliance-entity-grid">
@@ -357,6 +378,7 @@ export function openApplianceEditor(index) {
       device_type: visualKey,
       visual_type: "asset",
       room_id: clean(values.room_id),
+      metadata: { ...(device.metadata || {}), beta27_subload_group: clean(values.flow_group) },
       threshold_run: Number.isFinite(Number(values.threshold_run)) ? Number(values.threshold_run) : 5,
       control_entity: clean(values.control_entity),
       power_entity: clean(values.power_entity),

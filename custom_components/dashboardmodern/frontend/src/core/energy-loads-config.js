@@ -64,17 +64,33 @@ function uniqueId(base, used) {
   return id;
 }
 
-/* A load's group id: the popup key its appliances are stored under. */
+/* A circle's group id: the key its appliances are stored under.
+ *
+ * `flow_group` is written on save, so a load migrated from the old world keeps
+ * whatever key its appliances already use ("cucina"), and a load created now
+ * simply groups under its own id. `beta27_subload_group` on a load means the
+ * opposite — that load *is* an appliance inside someone else's circle. */
 export function loadGroupId(load = {}) {
-  return clean(load?.metadata?.beta27_subload_group) || clean(load.id);
+  return clean(load?.metadata?.flow_group) || clean(load.id);
+}
+
+/* Which legacy group an existing circle owns: the one its own appliances are
+ * already tagged with, matched by id or by the load's name. */
+function legacyGroupFor(load, id, groupIds) {
+  const stored = clean(load?.metadata?.flow_group);
+  if (stored) return stored;
+  const named = slug(load?.name);
+  for (const candidate of [id, named]) if (candidate && groupIds.has(candidate)) return candidate;
+  return id;
 }
 
 function subloadOf(parentId) {
   return (item) => clean(item?.metadata?.beta27_subload_group) === clean(parentId);
 }
 
-function normalizeChild(child = {}, index = 0) {
+function normalizeChild(child = {}, index = 0, source = "load") {
   return {
+    source,
     id: clean(child.id) || `${slug(child.name) || "sottocarico"}-${index + 1}`,
     name: clean(child.name) || `Carico ${index + 1}`,
     icon: clean(child.icon) || "🔌",
@@ -120,6 +136,7 @@ function eligible(load) {
  * retyping it. */
 export function loadsConfigModel({
   loads = [],
+  appliances = [],
   flowNodes = null,
   groups = [],
   subloads = null,
@@ -137,19 +154,31 @@ export function loadsConfigModel({
       .map((group) => [clean(group.id), group]),
   );
   const extras = isPlainObject(subloads) ? subloads : {};
+  // Every group key that actually holds appliances, from either source.
+  const groupIds = new Set([
+    ...all.map((item) => clean(item?.metadata?.beta27_subload_group)).filter(Boolean),
+    ...Object.keys(extras).filter((key) => array(extras[key]).length),
+  ]);
   const used = new Set();
 
   return parents.map((load, index) => {
     const override = slotOverride(flowNodes, index);
     const id = uniqueId(clean(load.id) || slug(load.name) || `carico-${index + 1}`, used);
-    const group = loadGroupId({ ...load, id });
+    const group = legacyGroupFor(load, id, groupIds);
     const groupMeta = groupById.get(group);
     // Appliances live in the canonical section; the legacy extras are only
     // consulted for the ones a previous release never mirrored across.
-    const canonical = all.filter(subloadOf(group)).map(normalizeChild);
+    const canonical = all.filter(subloadOf(group)).map((child, at) => normalizeChild(child, at));
     const known = new Set(canonical.map((child) => child.id));
+    // An appliance assigned to this circle from the Appliances editor belongs
+    // here too, but it is configured over there: shown, never rewritten.
+    const assigned = array(appliances)
+      .filter(subloadOf(group))
+      .map((child, at) => normalizeChild(child, at, "appliance"))
+      .filter((child) => !known.has(child.id));
+    for (const child of assigned) known.add(child.id);
     const legacy = array(extras[group])
-      .map(normalizeChild)
+      .map((child, at) => normalizeChild(child, at))
       .filter((child) => !known.has(child.id));
 
     return {
@@ -180,7 +209,7 @@ export function loadsConfigModel({
       total: clean(load.total_energy_entity || load.history_entity),
       daily: clean(load.daily_energy_entity),
       monthly: clean(load.monthly_energy_entity),
-      children: [...canonical, ...legacy].slice(0, MAX_SUBLOADS),
+      children: [...canonical, ...assigned, ...legacy].slice(0, MAX_SUBLOADS),
     };
   });
 }
@@ -265,7 +294,9 @@ export function loadsConfigToSections(model = [], previous = []) {
         monthly_energy_entity: clean(load.monthly),
         metadata: {
           ...(kept.metadata || {}),
+          // A circle is never an appliance, and it owns its group explicitly.
           beta27_subload_group: "",
+          flow_group: group,
           flow_color: clean(load.color) || PALETTE[index % PALETTE.length],
         },
       });
@@ -291,6 +322,9 @@ export function loadsConfigToSections(model = [], previous = []) {
       }));
 
       for (const child of children) {
+        // Appliances stay owned by their own section; writing them here would
+        // be the second copy this rewrite exists to remove.
+        if (child.source === "appliance") continue;
         const childKept = before.get(clean(child.id)) || {};
         loads.push({
           ...childKept,
@@ -343,12 +377,18 @@ export function loadsConfigToSections(model = [], previous = []) {
  * without opening it. */
 export function loadConfigSummary(load = {}, locale = "it") {
   const english = locale === "en";
+  const children = array(load.children).length;
+  // A circle with appliances and no sensor of its own is their total; saying so
+  // first is more useful than listing which fields happen to be filled in.
+  if (!clean(load.power) && children)
+    return english
+      ? `sum of ${children} ${children === 1 ? "appliance" : "appliances"}`
+      : `somma di ${children} ${children === 1 ? "dispositivo" : "dispositivi"}`;
   const parts = [];
   if (clean(load.power)) parts.push(english ? "power" : "potenza");
   if (clean(load.total)) parts.push(english ? "total meter" : "contatore totale");
   if (clean(load.daily)) parts.push(english ? "day" : "giorno");
   if (clean(load.monthly)) parts.push(english ? "month" : "mese");
-  const children = array(load.children).length;
   if (children)
     parts.push(
       children === 1
@@ -367,20 +407,24 @@ export function loadConfigSummary(load = {}, locale = "it") {
 export function loadConfigWarnings(load = {}, locale = "it") {
   const english = locale === "en";
   const warnings = [];
+  const children = array(load.children).length;
   const energy = clean(load.total) || clean(load.daily) || clean(load.monthly);
+  // Nothing is missing when the circle is meant to be the total of what is
+  // inside it: that is a complete configuration, not an empty one.
+  if (!clean(load.power) && !energy && children) return [];
   if (!clean(load.power) && !energy)
     return [
       english
         ? "No entity bound: the circle stays empty in every view."
         : "Nessuna entità collegata: il cerchio resta vuoto in tutte le viste.",
     ];
-  if (!clean(load.power) && energy)
+  if (!clean(load.power) && energy && !children)
     warnings.push(
       english
         ? "No power entity: the Instant view has nothing to show for this load."
         : "Manca la potenza: la vista Istantaneo non ha niente da mostrare per questo carico.",
     );
-  if (!clean(load.total) && !clean(load.daily) && !clean(load.monthly))
+  if (!clean(load.total) && !clean(load.daily) && !clean(load.monthly) && !children)
     warnings.push(
       english
         ? "No energy meter: Day and Month stay empty. A total meter is enough — the period is computed from it."

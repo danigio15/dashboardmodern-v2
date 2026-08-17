@@ -80,6 +80,8 @@ export function flowStageLoads(loads = []) {
         item &&
         item.category !== "manual-report" &&
         item.show_in_dashboard !== false &&
+        // An appliance inside a circle is never a circle of its own.
+        !clean(item?.metadata?.beta27_subload_group) &&
         (clean(item.name) ||
           clean(item.power_entity) ||
           clean(item.daily_energy_entity) ||
@@ -219,6 +221,47 @@ function periodValue(load, period, states, recorderValues) {
   return { entity, value: stateNumber(states, entity) };
 }
 
+/* Everything filed under a circle: the appliances created inside it from the
+ * Loads editor, plus the ones assigned to it from the Appliances editor. Both
+ * carry the same tag, so an appliance is configured once and the circle, its
+ * popup and the report all follow. */
+export function subloadsOf(load = {}, loads = [], appliances = []) {
+  const group = clean(load?.metadata?.flow_group) || clean(load.id);
+  if (!group) return [];
+  const tagged = (item) => item && clean(item?.metadata?.beta27_subload_group) === group;
+  const own = (Array.isArray(loads) ? loads : []).filter(tagged);
+  const known = new Set(own.map((item) => clean(item.id)));
+  const fromAppliances = (Array.isArray(appliances) ? appliances : []).filter(
+    (item) => tagged(item) && !known.has(clean(item.id)),
+  );
+  return [...own, ...fromAppliances];
+}
+
+/* A circle holding appliances reads as their sum.
+ *
+ * A load bound to its own sensor keeps using it — a clamp meter on the kitchen
+ * line is more accurate than adding up the sockets. Only when the circle has no
+ * reading of its own does it become the total of what is inside it, which is
+ * what makes a group circle worth having: add an appliance and the circle
+ * grows, with nothing else to configure. */
+function readingFor(load, children, period, states, recorderValues) {
+  const own = periodValue(load, period, states, recorderValues);
+  if (own.value !== null) return { ...own, source: "direct", children: children.length };
+  if (!children.length) return { ...own, source: "direct", children: 0 };
+  let total = null;
+  for (const child of children) {
+    const { value } = periodValue(child, period, states, recorderValues);
+    if (value === null) continue;
+    total = (total ?? 0) + value;
+  }
+  return {
+    entity: own.entity,
+    value: total,
+    source: total === null ? "direct" : "sum",
+    children: children.length,
+  };
+}
+
 /* Only values the user actually saved override the canonical Load. The
  * normalized editor model fills every field with a legacy default, so reading
  * that instead would rename "Pompa di calore" back to "Lavanderia". */
@@ -228,8 +271,13 @@ function savedOverride(flowNodes, slotKey) {
   return saved && typeof saved === "object" ? saved : null;
 }
 
-function clickTarget(load, override, period, name) {
-  const group = clean(override?.group ?? load?.metadata?.beta27_subload_group ?? load?.group);
+/* A circle holding appliances opens the popup listing them; the group is the
+ * circle itself, so there is nothing to bind by hand. Only a circle with none
+ * falls back to the history of its own entity. */
+function clickTarget(load, override, period, name, children = 0) {
+  const group = children
+    ? clean(load?.metadata?.flow_group) || clean(load.id)
+    : clean(override?.group ?? load?.group);
   if (group)
     return { kind: "subloads", target: period === "instant" ? group : `${group}_${period}` };
   // History reads a series, so there the cumulative meter is the better source.
@@ -247,6 +295,7 @@ function clickTarget(load, override, period, name) {
 export function flowStageModel(options = {}) {
   const {
     loads = [],
+    appliances = [],
     flowNodes = null,
     states = {},
     period = "instant",
@@ -266,12 +315,14 @@ export function flowStageModel(options = {}) {
   const desktop = flowStageLayout(visible.length, "desktop");
   const mobile = flowStageLayout(visible.length, "mobile");
   const threshold = period === "instant" ? INSTANT_THRESHOLD : ENERGY_THRESHOLD;
-  const readings = visible.map(({ load }) => periodValue(load, period, states, recorderValues));
+  const readings = visible.map(({ load }) =>
+    readingFor(load, subloadsOf(load, loads, appliances), period, states, recorderValues),
+  );
   const peak = readings.reduce((top, item) => Math.max(top, Math.abs(item.value ?? 0)), 0);
 
   const nodes = visible.map(({ load, slotKey, override, order }, index) => {
     const name = clean(override?.name) || clean(load.name) || "Carico";
-    const { entity, value } = readings[index];
+    const { entity, value, source, children } = readings[index];
     const active = value !== null && Math.abs(value) > threshold;
     return {
       id: clean(load.id) || `${slotKey || "flow-load"}-${index}`,
@@ -283,12 +334,16 @@ export function flowStageModel(options = {}) {
         clean(override?.color) || clean(load.color) || FLOW_PALETTE[index % FLOW_PALETTE.length],
       entity,
       value,
+      // `sum` means the circle is the total of the appliances inside it rather
+      // than a sensor of its own; the popup and the editor both say so.
+      source,
+      children,
       text: formatFlowValue(value, period, locale),
       active,
       intensity: flowIntensity(active ? value : 0, peak),
       desktop: desktop[index],
       mobile: mobile[index],
-      click: clickTarget(load, override, period, name),
+      click: clickTarget(load, override, period, name, children),
     };
   });
 

@@ -349,24 +349,30 @@ test("removing a load removes its bubble and its connectors", () => {
   assert.equal(views.instant.dataset.dmCanonicalLoadCount, "2");
 });
 
-test("a bubble opens its subload group, or the history of its entity", () => {
+test("a bubble opens its own appliances, or the history of its entity", () => {
   const opened = [];
   globalThis.apriSubLoads = (group) => opened.push(["subloads", group]);
   globalThis.apriStorico = (_event, entity, title) => opened.push(["history", entity, title]);
   configure({
     loads: [
-      load("kitchen", 0, { name: "Cucina", metadata: { beta27_subload_group: "cucina" } }),
+      load("kitchen", 0, { name: "Cucina" }),
+      // An appliance inside the circle, not a circle of its own.
+      { id: "forno", name: "Forno", metadata: { beta27_subload_group: "kitchen" } },
       load("boiler", 1, { name: "Boiler" }),
     ],
   });
 
+  assert.deepEqual(
+    bubbles(views.instant).map((node) => node.dataset.dmFlowNode),
+    ["kitchen", "boiler"],
+  );
   bubbles(views.instant)[0].click();
   bubbles(views.instant)[1].click();
   bubbles(views.month)[0].click();
   assert.deepEqual(opened, [
-    ["subloads", "cucina"],
+    ["subloads", "kitchen"],
     ["history", "sensor.boiler_power", "Boiler"],
-    ["subloads", "cucina_month"],
+    ["subloads", "kitchen_month"],
   ]);
   delete globalThis.apriSubLoads;
   delete globalThis.apriStorico;

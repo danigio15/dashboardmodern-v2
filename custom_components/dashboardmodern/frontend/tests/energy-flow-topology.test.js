@@ -233,26 +233,32 @@ test("a flow node switched off in the editor leaves the stage entirely", () => {
   );
 });
 
-test("clicking a bubble opens its subload group, or its history when it has none", () => {
+test("clicking a circle opens its own appliances, or its history when it has none", () => {
   const model = flowStageModel({
     loads: [
-      load("kitchen", { order: 0, metadata: { beta27_subload_group: "cucina" } }),
+      load("kitchen", { order: 0, name: "Cucina" }),
+      { id: "forno", name: "Forno", metadata: { beta27_subload_group: "kitchen" } },
       load("boiler", { order: 1 }),
     ],
     states: {},
     period: "day",
   });
-  assert.deepEqual(model.nodes[0].click, { kind: "subloads", target: "cucina_day" });
+  // A circle holding appliances opens the popup listing them; the group is the
+  // circle itself, with nothing to bind by hand.
+  assert.deepEqual(model.nodes[0].click, { kind: "subloads", target: "kitchen_day" });
   assert.deepEqual(model.nodes[1].click, {
     kind: "history",
     entity: "sensor.boiler_day",
     title: "boiler",
   });
   const instant = flowStageModel({
-    loads: [load("kitchen", { metadata: { beta27_subload_group: "cucina" } })],
+    loads: [
+      load("kitchen", { name: "Cucina" }),
+      { id: "forno", name: "Forno", metadata: { beta27_subload_group: "kitchen" } },
+    ],
     states: {},
   });
-  assert.deepEqual(instant.nodes[0].click, { kind: "subloads", target: "cucina" });
+  assert.deepEqual(instant.nodes[0].click, { kind: "subloads", target: "kitchen" });
 });
 
 test("day and month prefer the recorder bundle over the period helper", () => {
@@ -272,4 +278,171 @@ test("day and month prefer the recorder bundle over the period helper", () => {
     period: "day",
   });
   assert.equal(day.nodes[0].value, 18.4);
+});
+
+test("a circle holding appliances reads as their sum", () => {
+  const loads = [
+    { id: "cucina", name: "Cucina", order: 0 },
+    {
+      id: "forno",
+      name: "Forno",
+      power_entity: "sensor.forno_power",
+      metadata: { beta27_subload_group: "cucina" },
+    },
+    {
+      id: "frigo",
+      name: "Frigorifero",
+      power_entity: "sensor.frigo_power",
+      metadata: { beta27_subload_group: "cucina" },
+    },
+  ];
+  const states = {
+    "sensor.forno_power": { state: "1800" },
+    "sensor.frigo_power": { state: "95" },
+  };
+
+  const model = flowStageModel({ loads, states });
+  // The appliances are inside the circle, never circles of their own.
+  assert.deepEqual(
+    model.nodes.map(({ id }) => id),
+    ["cucina"],
+  );
+  assert.equal(model.nodes[0].value, 1895);
+  assert.equal(model.nodes[0].source, "sum");
+  assert.equal(model.nodes[0].children, 2);
+  assert.equal(model.nodes[0].active, true);
+
+  // Adding an appliance grows the circle with nothing else to configure.
+  const grown = flowStageModel({
+    loads: [
+      ...loads,
+      {
+        id: "lavastoviglie",
+        name: "Lavastoviglie",
+        power_entity: "sensor.lavastoviglie_power",
+        metadata: { beta27_subload_group: "cucina" },
+      },
+    ],
+    states: { ...states, "sensor.lavastoviglie_power": { state: "200" } },
+  });
+  assert.equal(grown.nodes[0].value, 2095);
+});
+
+test("a clamp meter on the circle wins over the sum of what is inside it", () => {
+  const loads = [
+    { id: "cucina", name: "Cucina", order: 0, power_entity: "sensor.cucina_clamp" },
+    {
+      id: "forno",
+      name: "Forno",
+      power_entity: "sensor.forno_power",
+      metadata: { beta27_subload_group: "cucina" },
+    },
+  ];
+  const model = flowStageModel({
+    loads,
+    states: { "sensor.cucina_clamp": { state: "2000" }, "sensor.forno_power": { state: "1800" } },
+  });
+  assert.equal(model.nodes[0].value, 2000);
+  assert.equal(model.nodes[0].source, "direct");
+});
+
+test("the sum covers day and month, through the same Recorder deltas", () => {
+  const loads = [
+    { id: "cucina", name: "Cucina", order: 0 },
+    { id: "forno", name: "Forno", metadata: { beta27_subload_group: "cucina" } },
+    { id: "frigo", name: "Frigorifero", metadata: { beta27_subload_group: "cucina" } },
+  ];
+  const model = flowStageModel({
+    loads,
+    states: {},
+    recorderValues: { forno: 1.2, frigo: 0.8 },
+    period: "day",
+  });
+  assert.equal(model.nodes[0].value, 2);
+  assert.equal(model.nodes[0].text, "2,0 kWh");
+  assert.equal(model.nodes[0].source, "sum");
+});
+
+test("an appliance with no reading is skipped, it does not zero the group", () => {
+  const loads = [
+    { id: "cucina", name: "Cucina", order: 0 },
+    {
+      id: "forno",
+      name: "Forno",
+      power_entity: "sensor.forno_power",
+      metadata: { beta27_subload_group: "cucina" },
+    },
+    { id: "frigo", name: "Frigorifero", metadata: { beta27_subload_group: "cucina" } },
+  ];
+  const model = flowStageModel({ loads, states: { "sensor.forno_power": { state: "1800" } } });
+  assert.equal(model.nodes[0].value, 1800);
+
+  // With nothing readable at all the circle is absent, not a zero.
+  const blank = flowStageModel({ loads, states: {} });
+  assert.equal(blank.nodes[0].value, null);
+  assert.equal(blank.nodes[0].text, "—");
+});
+
+test("an appliance assigned to a circle counts in it, configured only once", () => {
+  const loads = [{ id: "cucina", name: "Cucina", order: 0 }];
+  const appliances = [
+    {
+      id: "appl-forno",
+      name: "Forno",
+      power_entity: "sensor.forno_power",
+      metadata: { beta27_subload_group: "cucina" },
+    },
+    { id: "appl-lavatrice", name: "Lavatrice", power_entity: "sensor.lavatrice_power" },
+  ];
+  const states = {
+    "sensor.forno_power": { state: "1800" },
+    "sensor.lavatrice_power": { state: "900" },
+  };
+
+  const model = flowStageModel({ loads, appliances, states });
+  // Only the assigned one is inside the circle; the unassigned appliance is
+  // not silently added to a load it was never filed under.
+  assert.equal(model.nodes[0].value, 1800);
+  assert.equal(model.nodes[0].children, 1);
+  assert.equal(model.nodes[0].source, "sum");
+  // And an appliance is never a circle of its own on the stage.
+  assert.deepEqual(
+    model.nodes.map(({ id }) => id),
+    ["cucina"],
+  );
+});
+
+test("appliances and loads-editor children add up in the same circle, once each", () => {
+  const model = flowStageModel({
+    loads: [
+      { id: "cucina", name: "Cucina", order: 0 },
+      {
+        id: "frigo",
+        name: "Frigorifero",
+        power_entity: "sensor.frigo_power",
+        metadata: { beta27_subload_group: "cucina" },
+      },
+    ],
+    appliances: [
+      {
+        id: "appl-forno",
+        name: "Forno",
+        power_entity: "sensor.forno_power",
+        metadata: { beta27_subload_group: "cucina" },
+      },
+      // The same device present in both sections must not be counted twice.
+      {
+        id: "frigo",
+        name: "Frigorifero",
+        power_entity: "sensor.frigo_power",
+        metadata: { beta27_subload_group: "cucina" },
+      },
+    ],
+    states: {
+      "sensor.frigo_power": { state: "100" },
+      "sensor.forno_power": { state: "1800" },
+    },
+  });
+  assert.equal(model.nodes[0].value, 1900);
+  assert.equal(model.nodes[0].children, 2);
 });

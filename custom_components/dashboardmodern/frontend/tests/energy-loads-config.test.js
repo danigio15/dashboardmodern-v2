@@ -220,9 +220,28 @@ test("a new appliance is created inside its load, never loose", () => {
   assert.equal(loads[1].metadata.beta27_subload_group, "cucina");
 });
 
-test("the group id of a migrated load is preserved, a new one groups under itself", () => {
-  assert.equal(loadGroupId({ id: "x", metadata: { beta27_subload_group: "cucina" } }), "cucina");
+test("a circle owns its group explicitly, a new one groups under itself", () => {
+  // `flow_group` is what a circle owns; `beta27_subload_group` on a load means
+  // that load is an appliance inside someone else's circle, not a circle.
+  assert.equal(loadGroupId({ id: "x", metadata: { flow_group: "cucina" } }), "cucina");
   assert.equal(loadGroupId({ id: "carico-3" }), "carico-3");
+
+  // A migrated circle adopts the legacy group its appliances already use, even
+  // when its id differs from the group name.
+  const model = loadsConfigModel({
+    loads: [
+      { id: "load-7", name: "Cucina", order: 0 },
+      { id: "forno", name: "Forno", metadata: { beta27_subload_group: "cucina" } },
+    ],
+    subloads: { cucina: [{ id: "frigo", name: "Frigorifero" }] },
+  });
+  assert.equal(model[0].group, "cucina");
+  assert.deepEqual(
+    model[0].children.map(({ id }) => id),
+    ["forno", "frigo"],
+  );
+  const { loads } = loadsConfigToSections(model, []);
+  assert.equal(loads[0].metadata.flow_group, "cucina");
 });
 
 test("each card says what it is bound to and what is still missing", () => {

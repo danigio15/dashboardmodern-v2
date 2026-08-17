@@ -32,6 +32,23 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   nessuna entità collegata, potenza assente, nessun contatore energia. Il
   campo del contatore totale spiega che giorno e mese si calcolano da lì, così
   i sensori di periodo restano quello che sono, facoltativi.
+- **Il cerchio di un carico con dispositivi dentro vale la somma dei suoi
+  dispositivi.** Aggiungerne uno fa crescere il cerchio senza altro da
+  configurare; vale per Istantaneo, Giorno e Mese, dove la somma usa gli stessi
+  delta Recorder. Un carico con un sensore proprio (una pinza amperometrica
+  sull'intera linea) continua a usare quello: è più preciso della somma delle
+  prese.
+- Nell'editor **Elettrodomestici** c'è ora il campo **Carico energia**: si
+  sceglie il cerchio del flusso a cui l'elettrodomestico appartiene e basta.
+  Da lì rientra nella somma del cerchio, compare nel popup e viene elencato
+  nell'editor Carichi come "da Elettrodomestici", in sola lettura. Nessuna
+  configurazione da ripetere: la fa il motore, non l'utente.
+- Popup dei sottocarichi ridisegnato: intestazione con il totale del gruppo e
+  quanti dispositivi sono in funzione, card ordinate per consumo con barra
+  della quota sul gruppo, energia di oggi quando c'è. Lo stato "spento" non è
+  più dipinto del rosso degli allarmi — una cucina ferma non è un guasto:
+  in funzione ha l'accento verde, standby ambra, spento e non disponibile
+  restano neutri.
 - La configurazione esistente viene ripresa così com'è: nomi, icone, colori,
   visibilità e dispositivi già inseriti finiscono nella nuova lista senza
   doverli riscrivere. La sezione canonica `loads` resta l'unica verità e le tre

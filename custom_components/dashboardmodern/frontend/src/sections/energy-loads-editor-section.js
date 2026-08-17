@@ -57,6 +57,9 @@ function configuredLoads() {
 function readModel() {
   return loadsConfigModel({
     loads: configuredLoads(),
+    appliances: Array.isArray(section("appliances", null))
+      ? section("appliances", [])
+      : readJson("cd_appliances", []),
     flowNodes: readJson("cd_flow_nodes", null),
     groups: readJson("cd_subload_groups", []),
     subloads: readJson("cd_subloads_extra", null),
@@ -163,6 +166,7 @@ function warnings(load) {
 function subloadRow(panel, load, child, index) {
   const row = element("article", "ed-row dm-loads-subload");
   row.dataset.dmSubload = child.id;
+  row.dataset.dmSubloadSource = child.source || "load";
   const main = element("div", "ed-row-main");
   const title = element("div", "ed-row-new");
   title.textContent = `${child.icon || "🔌"} ${child.name}`;
@@ -172,6 +176,16 @@ function subloadRow(panel, load, child, index) {
     t("nessuna entità", "no entity yet");
   main.append(title, detail);
   row.append(main);
+
+  /* Assigned from the Appliances editor: it counts in the circle and shows in
+   * the popup, but it is configured there, so this row only reports it. */
+  if (child.source === "appliance") {
+    detail.textContent =
+      [child.power, child.daily, child.total].filter(Boolean).join(" · ") ||
+      t("nessuna entità", "no entity yet");
+    row.append(element("span", "dm-loads-source-tag", t("da Elettrodomestici", "from Appliances")));
+    return [row];
+  }
 
   const edit = element("button", "ed-del", "✏️");
   edit.type = "button";
@@ -332,7 +346,12 @@ function loadCard(panel, load, index, total) {
       `dm-loads-${load.id}-power`,
       t("Potenza istantanea", "Instant power"),
       load.power,
-      t("Il valore della vista Istantaneo.", "What the Instant view shows."),
+      load.children.length && !clean(load.power)
+        ? t(
+            "Lascia vuoto e il cerchio vale la somma dei dispositivi qui sotto. Compilalo solo se hai una pinza amperometrica sull'intera linea.",
+            "Leave it empty and the circle is the total of the appliances below. Fill it in only if a clamp meter covers the whole line.",
+          )
+        : t("Il valore della vista Istantaneo.", "What the Instant view shows."),
       (value) => {
         load.power = value;
         state.dirty = true;
@@ -403,8 +422,8 @@ function loadCard(panel, load, index, total) {
       "div",
       "ed-hint",
       t(
-        "Sono le card del popup che si apre cliccando il cerchio nel flusso.",
-        "These are the cards of the popup opened by clicking the circle in the flow.",
+        "Sono le card del popup che si apre cliccando il cerchio nel flusso, e la somma di cui il cerchio è il totale. Un elettrodomestico assegnato a questo carico dall'editor Elettrodomestici compare qui da solo.",
+        "These are the cards of the popup opened by clicking the circle in the flow, and the total the circle shows. An appliance assigned to this load from the Appliances editor appears here on its own.",
       ),
     ),
   );
@@ -552,6 +571,8 @@ function installStyles() {
     .dm-loads-switch{display:flex;align-items:center;gap:9px;margin:10px 0;color:var(--text,#0f172a);font-weight:700}
     .dm-loads-warnings{margin:10px 0 0;padding-left:18px;color:var(--muted,#64748b);font-size:13px;line-height:1.45}
     .dm-loads-children{margin-top:14px}
+    .dm-loads-subload[data-dm-subload-source="appliance"]{opacity:.9}
+    .dm-loads-source-tag{flex:none;padding:4px 10px;border-radius:999px;background:var(--divider-color,#e2e8f0);color:var(--muted,#64748b);font-size:11px;font-weight:800;letter-spacing:.3px}
     .dm-loads-subload-form{margin:0 0 10px;padding:12px;border-radius:14px;background:color-mix(in srgb,var(--card-bg,#fff) 92%,var(--divider-color,#e2e8f0))}
     @media(max-width:640px){.dm-loads-identity{grid-template-columns:minmax(0,1fr) 72px 46px}}
   `,
