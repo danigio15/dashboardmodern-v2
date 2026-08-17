@@ -4,7 +4,7 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## 1.0.0-beta.31 — 2026-08-17
+## 1.0.0-beta.30.6 — 2026-08-17
 
 ### Modificato
 
@@ -42,11 +42,6 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   cambiano i valori, non il markup, e l'acqua continua a scorrere.
 - Una soglia non configurata veniva letta come zero, così il pH senza soglie
   risultava "troppo alto". Ora un valore assente resta assente.
-
-## 1.0.0-beta.30.7 — 2026-08-17
-
-### Corretto
-
 - I tab delle stanze in **Temperature** non filtravano: toccando una stanza le
   schede delle altre tornavano subito visibili. I tab avevano due proprietari —
   il livello di stabilità beta26/27 e la vecchia passata di layout beta16 — che
@@ -64,11 +59,6 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   occupa la sua colonna e nome e dettaglio dell'azione tornano leggibili.
 - La pulizia delle icone `mdi:` non tocca più il nome dell'azione: un'azione
   chiamata come la propria icona conserva la sua etichetta.
-
-## 1.0.0-beta.30.6 — 2026-08-17
-
-### Corretto
-
 - Un'icona `mdi:` scelta per un carico non si vedeva da nessuna parte: né
   nell'anteprima della scheda in **Carichi e dispositivi**, né sul pulsante del
   selettore, né nel cerchio del flusso a cui il carico appartiene. Il token
