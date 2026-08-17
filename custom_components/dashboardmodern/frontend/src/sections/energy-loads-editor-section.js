@@ -14,6 +14,7 @@
  * Every write goes through the canonical `loads` section; the legacy popup keys
  * are re-derived from it on save. Event driven: no polling, no observer.
  */
+import { openIconPicker } from "./icon-engine-section.js";
 import { createEntityPickerField } from "../core/renderers.js";
 import {
   MAX_FLOW_LOADS,
@@ -319,25 +320,34 @@ function loadCard(panel, load, index, total) {
 
   const iconField = element("label", "ed-slot dm-loads-field");
   iconField.append(element("span", "ed-slot-lbl", t("Icona", "Icon")));
-  const iconRow = element("span", "ed-form-row dm-loads-icon-row");
+  const iconRow = element("span", "dm-loads-icon-row");
   const icon = doc.createElement("input");
-  icon.className = "ed-input ed-icon-input";
+  icon.className = "ed-input dm-loads-icon-input";
   icon.id = `dm-loads-${load.id}-icon`;
   icon.dataset.dmLoadIcon = "true";
   icon.value = load.icon;
   icon.placeholder = "🍳 / mdi:stove";
+  icon.addEventListener("input", () => iconInto(pick, clean(icon.value)));
   icon.addEventListener("change", () => {
     load.icon = clean(icon.value);
     markDirty(panel);
   });
-  // The canonical icon picker: it writes the chosen glyph into the input it is
-  // pointed at and fires `change`, so the same handler persists either way.
-  const pick = element("button", "dm-icon-picker", "🎨");
+  /* The canonical picker is opened directly instead of through the legacy
+   * `.dm-icon-picker` hook: that class is decorated by another owner, which
+   * repaints the button with its own preview markup and zeroes the font size,
+   * so the button came out blank. Opening the picker by hand keeps the same
+   * catalogue — it writes the glyph into this input and fires `change` — while
+   * the button stays ours to draw. */
+  const pick = element("button", "dm-loads-icon-btn");
   pick.type = "button";
-  pick.dataset.iconTarget = icon.id;
-  pick.dataset.iconCategory = "action";
+  pick.dataset.dmLoadIconPick = "true";
   pick.title = t("Scegli icona", "Choose icon");
   pick.setAttribute("aria-label", t("Scegli icona", "Choose icon"));
+  iconInto(pick, load.icon);
+  pick.addEventListener("click", (event) => {
+    event.preventDefault();
+    openIconPicker(icon, "action");
+  });
   iconRow.append(icon, pick);
   iconField.append(iconRow);
   iconField.append(
@@ -513,8 +523,8 @@ export function renderEnergyLoadsEditor(panel = doc?.querySelector?.(PANEL)) {
         "div",
         "ed-intro",
         t(
-          "Ogni carico è un cerchio sotto Casa, nell'ordine di questa lista. Quello che scrivi qui è quello che vedi nel flusso.",
-          "Every load is a circle under Home, in the order of this list. What you write here is what the flow shows.",
+          "Ogni carico qui sotto è un cerchio del flusso Energia, sotto Casa, nell'ordine di questa lista. Quello che scrivi qui è quello che vedi nel flusso, e i dispositivi che gli assegni sono quelli che compaiono toccando il cerchio.",
+          "Every load below is a circle of the Energy flow, under Home, in the order of this list. What you write here is what the flow shows, and the devices you file under it are the ones that appear when you tap the circle.",
         ),
       ),
     );
@@ -592,7 +602,9 @@ function installStyles() {
   installStyle(
     "dm-energy-loads-editor-style",
     `
-    [data-energy-panel="loads"][data-dm-loads-editor="true"]{display:block!important}
+    /* The display rule must not defeat the panel's own hidden attribute: the
+       editor set it once and the section then showed under Flows too. */
+    [data-energy-panel="loads"][data-dm-loads-editor="true"]:not([hidden]){display:block!important}
     .dm-loads-list{display:grid;gap:10px}
     .dm-loads-card>.ed-acc-head{display:flex;align-items:center;gap:10px;justify-content:space-between}
     .dm-loads-preview{display:flex;align-items:center;gap:10px;min-width:0}
@@ -608,8 +620,10 @@ function installStyles() {
     .dm-loads-field{display:grid;gap:6px;min-width:0}
     .dm-loads-field .ed-slot-lbl{color:var(--text,#0f172a);font-size:13px;font-weight:800;letter-spacing:.2px}
     .dm-loads-field .ed-input{width:100%;min-width:0;min-height:46px;box-sizing:border-box}
-    .dm-loads-icon-row{display:grid!important;grid-template-columns:minmax(0,1fr) 54px;gap:10px;align-items:center}
-    .dm-loads-icon-row .dm-icon-picker{display:grid;place-items:center;width:54px;height:46px;padding:0;border:1px solid var(--border,rgba(15,23,42,.14));border-radius:14px;background:var(--card-bg,#fff);font-size:20px;cursor:pointer}
+    .dm-loads-icon-row{display:grid!important;grid-template-columns:minmax(0,1fr) 56px!important;gap:10px!important;align-items:center!important}
+    .dm-loads-icon-input{width:100%!important;min-width:0!important;flex:none!important;text-align:left!important;font-size:18px!important;color:var(--text,#0f172a)!important}
+    .dm-loads-icon-btn{display:grid!important;place-items:center!important;width:56px!important;height:46px!important;padding:0!important;border:1px solid var(--border,rgba(15,23,42,.14))!important;border-radius:14px!important;background:var(--card-bg,#fff)!important;font-size:22px!important;line-height:1!important;color:var(--text,#0f172a)!important;cursor:pointer}
+    .dm-loads-icon-btn svg,.dm-loads-icon-btn img{width:26px!important;height:26px!important}
     .dm-loads-color-field{grid-template-columns:minmax(0,1fr) 64px;align-items:center}
     .dm-loads-color{width:64px;height:46px;padding:2px;border:1px solid var(--border,rgba(15,23,42,.14));border-radius:12px;background:var(--card-bg,#fff)}
     .dm-loads-switch{display:flex;align-items:center;gap:9px;margin:10px 0;color:var(--text,#0f172a);font-weight:700}
@@ -620,7 +634,7 @@ function installStyles() {
     .dm-loads-subload-form{margin:0 0 10px;padding:12px;border-radius:14px;background:color-mix(in srgb,var(--card-bg,#fff) 92%,var(--divider-color,#e2e8f0))}
     /* The phone is exactly where the three squeezed fields were unreadable, so
        there is no narrow variant that puts them back side by side. */
-    @media(max-width:640px){.dm-loads-color-field{grid-template-columns:minmax(0,1fr) 56px}.dm-loads-icon-row{grid-template-columns:minmax(0,1fr) 48px}.dm-loads-icon-row .dm-icon-picker{width:48px}}
+    @media(max-width:640px){.dm-loads-color-field{grid-template-columns:minmax(0,1fr) 56px}.dm-loads-icon-row{grid-template-columns:minmax(0,1fr) 50px!important}.dm-loads-icon-btn{width:50px!important}}
   `,
   );
 }

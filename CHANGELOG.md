@@ -4,6 +4,26 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.30.4 — 2026-08-17
+
+### Modificato
+
+- La scheda dell'editor Energia si chiama ora **CARICHI E DISPOSITIVI**: dice
+  quello che ci si configura — i cerchi del flusso e i dispositivi dentro
+  ciascuno — invece della parola interna "carichi".
+
+### Corretto
+
+- La sezione dei carichi compariva anche sotto **Flussi ed entità**: la regola
+  di visibilità dell'editor scavalcava l'attributo `hidden` del pannello, che è
+  come l'editor Energia nasconde le schede non attive. Ora il pannello resta
+  nascosto quando è aperta un'altra scheda.
+- L'icona di un carico e il pulsante per sceglierla erano due riquadri vuoti:
+  il campo usava le classi legacy, larghe 72px fisse, e il pulsante veniva
+  ridipinto dal proprietario canonico delle icone con il proprio markup e il
+  font azzerato. Ora la riga è disegnata da questo editor: il campo mostra
+  l'icona e il pulsante ne è l'anteprima, e apre lo stesso catalogo di prima.
+
 ## 1.0.0-beta.30.2 — 2026-08-17
 
 ### Corretto

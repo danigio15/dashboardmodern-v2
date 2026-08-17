@@ -331,7 +331,9 @@ export function renderEnergyEditor(
   const loadsButton = document.createElement("button");
   loadsButton.className = "ed-inner-tab";
   loadsButton.type = "button";
-  loadsButton.textContent = locale === "it" ? "CARICHI" : "LOADS";
+  // The panel configures the circles under Home and the devices inside each
+  // one, so it is named after both rather than after the internal word "loads".
+  loadsButton.textContent = locale === "it" ? "CARICHI E DISPOSITIVI" : "LOADS & DEVICES";
   const reportButton = document.createElement("button");
   reportButton.className = "ed-inner-tab";
   reportButton.type = "button";
