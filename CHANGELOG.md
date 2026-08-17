@@ -4,6 +4,22 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.29 — 2026-08-17
+
+### Modificato
+
+- Pulsante "Aggiungi elettrodomestico" rimosso dalla sezione Elettrodomestici;
+  la configurazione avviene interamente dal menu Impostazioni.
+- Icona potenza della card showcase: sostituito il simbolo Unicode ⏻ con un'icona
+  SVG per garantire il rendering affidabile su tutti i dispositivi mobile.
+
+### Corretto
+
+- Pulsante "← Home" ripristinato quando la skeleton della showcase rimpiazza il
+  contenuto della pagina (ensureSkeleton ora lo preserva e reinserisce).
+- Popup dettagli elettrodomestici: il render loop legacy non lo sovrascrive più
+  con "Nessun elemento attivo" (apriDettagli è stato overridden per 'appliance_view').
+
 ## 1.0.0-beta.28 — 2026-08-16
 
 ### Modificato
