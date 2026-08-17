@@ -35,6 +35,7 @@ import { installShutterSection } from "./shutter-section.js";
 import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
 import { installEvSection } from "./ev-section.js";
+import { installEvShowcaseSection } from "./ev-showcase-section.js";
 import { installSolarThermalDesignSection } from "./solar-thermal-design-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { allStates, clean, english, section, wrapFunction } from "./shared.js";
@@ -639,6 +640,9 @@ export function installSectionRuntime() {
     installShutterSceneSection();
     installPoolIrrigationSceneSection();
     installEvSection();
+    // The skin installs after the EV owner so the vehicle picker it restyles is
+    // already mounted, and re-renders itself on the same runtime events.
+    installEvShowcaseSection();
     installSolarThermalDesignSection();
     installBeta27ReleaseStability();
 
@@ -676,6 +680,7 @@ export function installSectionRuntime() {
         "shutters",
         "pool-irrigation-scene",
         "ev",
+        "ev-showcase",
         "solar-thermal-design",
         "beta27-release-stability",
       ]),

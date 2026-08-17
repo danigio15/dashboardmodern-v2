@@ -176,7 +176,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // (state-changed + legacy render loop), adds no polling and no observer, and
   // keeps the camera engine — apriCamera, the streaming strategies and
   // toggleFullScreenCam — in the legacy runtime instead of forking it.
-  assert.ok(relative.length <= 92, `production graph unexpectedly grew to ${relative.length} modules`);
+  // The EV redesign adds exactly one owner: the skin for #page-ev. It moves the
+  // battery block into a charge ring, mirrors the active EVCC mode onto the page
+  // as an attribute and restyles the picker that ev-section.js keeps building.
+  // It reads no Home Assistant state — the ring reads #ev-mod-batt-fill, the
+  // rows carry legacy value classes — and adds no polling and no observer.
+  assert.ok(relative.length <= 93, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
