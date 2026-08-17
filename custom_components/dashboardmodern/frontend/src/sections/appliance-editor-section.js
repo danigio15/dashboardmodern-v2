@@ -32,8 +32,10 @@ function appliances() {
 
 function roomIconEmoji(icon) {
   if (!icon || typeof icon !== "string") return "🏠";
+  // Skip MDI icons (mdi:*) and return the actual emoji/icon from room config
   if (icon.startsWith("mdi:")) return "🏠";
-  return icon;
+  // Return the configured emoji as-is (e.g. user's chosen icon for the room)
+  return icon || "🏠";
 }
 
 function roomOptions(selected) {
