@@ -28,6 +28,7 @@ import { installLiveUiSection } from "./live-ui-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installNavigationSection } from "./navigation-section.js";
 import { installUnifiedEditorsSection } from "./unified-editors-section.js";
+import { installEntitySearchSection } from "./entity-search-section.js";
 import { installEditorCrudSection } from "./editor-crud-section.js";
 import { installEditorContractsSection } from "./editor-contracts-section.js";
 import { installReportEditorSection } from "./report-editor-section.js";
@@ -633,6 +634,7 @@ export function installSectionRuntime() {
     installLiveUiSection();
     installNavigationSection();
     installUnifiedEditorsSection();
+    installEntitySearchSection();
     installEditorCrudSection();
     installEditorContractsSection();
     installReportEditorSection();
@@ -674,6 +676,7 @@ export function installSectionRuntime() {
         "live-ui",
         "navigation",
         "unified-editors",
+        "entity-search",
         "editor-crud",
         "editor-contracts",
         "report-editor",

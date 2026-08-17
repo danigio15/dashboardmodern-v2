@@ -62,6 +62,27 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   i titoli di piano e stanza hanno la loro riga con la linea che sfuma.
 - Tutta la pagina segue il tema chiaro e scuro, si adatta al telefono e chi ha
   attivato "riduci animazioni" vede la scena ferma.
+- **La ricerca delle entità nella configurazione è diventata istantanea.** Il
+  selettore (la lente 🔍 accanto a ogni campo entità) rileggeva tutte le entità
+  della casa a ogni lettera digitata e ridisegnava trecento righe ogni volta: su
+  un impianto con qualche migliaio di entità la lista arrancava dietro alla
+  tastiera. Ora l'elenco viene preparato una volta sola, mentre la
+  configurazione è aperta, e ogni lettera successiva ricerca soltanto dentro i
+  risultati della lettera precedente. Si vede una pagina di risultati per volta,
+  che si allunga scorrendo, quindi la fluidità non dipende più da quante entità
+  ci sono.
+- **Il selettore ora propone da solo le entità giuste per il campo.** Ogni campo
+  dice già cosa gli serve — "Entità temperatura", `sensor.` nel segnaposto,
+  "(kWh)" nell'etichetta — e il selettore lo legge: aprendo la lente sul campo
+  della temperatura di una stanza, in cima ci sono i sensori di temperatura
+  della casa, contrassegnati con ✨, senza digitare nulla. Il filtro
+  **✨ Suggerite** mostra solo quelli, e le pastiglie accanto (`sensor`,
+  `light`, `switch`…) restringono per dominio.
+- La ricerca ignora accenti e maiuscole (cercando `citta` si trova "Città"),
+  richiede tutte le parole digitate in qualsiasi ordine, e mette in fondo le
+  entità che Home Assistant riporta come non disponibili. Ogni riga mostra ora
+  anche il valore attuale e la stanza dell'entità, e la lista si comanda da
+  tastiera con ↑ ↓ e Invio.
 
 ### Corretto
 

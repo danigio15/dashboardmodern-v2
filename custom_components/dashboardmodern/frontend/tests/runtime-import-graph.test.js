@@ -181,7 +181,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // as an attribute and restyles the picker that ev-section.js keeps building.
   // It reads no Home Assistant state — the ring reads #ev-mod-batt-fill, the
   // rows carry legacy value classes — and adds no polling and no observer.
-  assert.ok(relative.length <= 93, `production graph unexpectedly grew to ${relative.length} modules`);
+  // The fast entity search adds exactly two: the pure search index (folding,
+  // ranking and field auto-detection) and the section that installs it over the
+  // vendored `cdEpFilter`. No new picker is introduced — the canonical dialog
+  // stays the only one — and the section is event-driven, with no polling and
+  // no observer.
+  // All facade/cycle/orphan/polling/global-observer checks stay active.
+  assert.ok(relative.length <= 95, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
