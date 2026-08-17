@@ -1,6 +1,18 @@
 --- upstream-fresh/dashboard-en.html
 +++ committed/dashboard-en.html
-@@ -146,7 +146,7 @@
+@@ -1,6 +1,11 @@
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>@@DM_STYLES@@
++<!-- config.js imports section-runtime.js dynamically, but only once the legacy
++     runtime has booted. Without this hint the module graph starts downloading
++     after that boot finishes, so a tab clicked in the meantime paints the
++     legacy render before the modular sections can take it over. -->
++<link rel="modulepreload" href="../src/sections/section-runtime.js">
+ <script src="./storage-namespace.js"></script>
+ <script src="./bridge-prelude.js"></script>
+ <script type="module" src="./modules-entry.js"></script>
+@@ -146,7 +151,7 @@
    </div>
    <div class="appl-main-hero">
      <div><div class="appl-main-title">🧺 Appliances</div><div class="appl-main-sub" id="appl-main-sub">Configure cd_appliances in config.js or in the integrated editor.</div></div>
@@ -9,7 +21,7 @@
    </div>
    <div class="glance-grid appl-kpi-grid" id="appl-kpi-grid"></div>
    <div class="appl-main-view active" id="appl-view-overview"><h3 class="section-title">Overview</h3><div class="appl-page-grid" id="appl-grid-overview"></div></div>
-@@ -252,7 +252,7 @@
+@@ -252,7 +257,7 @@
            <div class="ed-year-summary-header">
              <span class="ed-year-summary-icon">📊</span>
              <div class="ed-year-summary-title">
