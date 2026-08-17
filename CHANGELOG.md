@@ -4,6 +4,21 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.30.2 — 2026-08-17
+
+### Corretto
+
+- Il pannello **Carichi** mostrava ancora la vecchia lista piatta sopra il
+  nuovo editor: il renderer legacy riscriveva il pannello e il nuovo si
+  accodava sotto, così si vedevano due configurazioni per gli stessi carichi.
+  Ora il pannello ha un solo proprietario e la lista vecchia cede il posto.
+- Nome, icona e colore di un carico erano tre campi affiancati senza etichetta:
+  su telefono non si capiva quale fosse quale, e niente diceva che l'icona si
+  potesse scegliere. Ora ognuno ha la sua riga con l'etichetta, e accanto
+  all'icona c'è il pulsante che apre il catalogo icone canonico.
+- Il popup di un cerchio si intitolava "CARICHI" e non diceva quale cerchio
+  fosse stato aperto: ora in alto compaiono icona, nome del carico e periodo.
+
 ## 1.0.0-beta.30 — 2026-08-17
 
 ### Modificato
@@ -74,6 +89,7 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - La personalizzazione del nodo di flusso (nome, icona, colore, gruppo
   sottocarichi, nodo disattivato) continua a valere e non viene più
   sovrascritta dai nomi legacy di default quando non è mai stata salvata.
+
 ## 1.0.0-beta.29 — 2026-08-17
 
 ### Modificato

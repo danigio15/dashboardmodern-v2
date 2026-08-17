@@ -123,7 +123,7 @@ function renderEnergyEditorTab(target) {
   renderEnergyEditor(globalThis.document, target, model, store.getSection("appliances"), globalThis.STATES || {},
     globalThis.document?.documentElement?.lang === "en" ? "en" : "it", {
       onPick: (input) => globalThis.wzPickEntity?.(input),
-      renderLoads: (loads) => { mountLoadsEditor(loads); mountCurrentEditor("loads", loads); },
+      renderLoads: (loads) => { if (renderLoadsPanel(loads)) return; mountLoadsEditor(loads); mountCurrentEditor("loads", loads); },
       renderReport: (report) => { renderReportEditor(report); mountReportEditor("report", report); },
       renderSettings: (settings) => {
         settings.innerHTML = `${globalThis.cdEnViewsHtml?.() || ""}
@@ -454,6 +454,15 @@ export function mountCurrentEditor(section, target = globalThis.document?.getEle
   target.querySelectorAll?.("details.ed-acc").forEach((details) => details.dataset.editorMounted = "true");
   target.dataset.mountedSection = section || "";
 }
+/* The Loads panel belongs to the rebuilt editor when that owner is installed.
+   This flat A/B list described the same loads a second time, and because it
+   writes innerHTML it also wiped whatever the new panel had already drawn. */
+function renderLoadsPanel(target) {
+  if (globalThis.__DM_20260817B__ !== true) return false;
+  if (typeof globalThis.dmRenderEnergyLoadsEditor !== "function") return false;
+  return globalThis.dmRenderEnergyLoadsEditor(target) === true;
+}
+
 function mountLoadsEditor(target, editId = "") {
   const loads = store.getSection("loads");
   const appliances = store.getSection("appliances");

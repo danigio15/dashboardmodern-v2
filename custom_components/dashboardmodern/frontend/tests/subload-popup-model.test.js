@@ -119,3 +119,11 @@ test("a circle with nothing inside says so instead of showing an empty grid", ()
   assert.equal(model.total, null);
   assert.deepEqual(model.items, []);
 });
+
+test("the popup names the circle it was opened from, with its period", () => {
+  const model = subloadPopupModel({ load: KITCHEN, children: [child("forno", "Forno")], states: {} });
+  // The modal heading was a static "CARICHI": nothing said which circle it was.
+  assert.equal(model.name, "Cucina");
+  assert.equal(model.icon, "🍳");
+  assert.equal(model.id, "cucina");
+});

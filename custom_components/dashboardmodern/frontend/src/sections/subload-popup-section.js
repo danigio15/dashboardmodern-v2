@@ -18,6 +18,7 @@ import { allStates, clean, doc, english, installStyle, readJson, root, section }
 const KEY = "__DASHBOARDMODERN_SUBLOAD_POPUP__";
 const state = (root[KEY] ||= { installed: false, group: "" });
 const LIST = "subloads-list";
+const TITLE = "subloads-title";
 const t = (it, en) => (english() ? en : it);
 
 function configuredLoads() {
@@ -43,6 +44,29 @@ function loadForGroup(groupId) {
           clean(item?.name).toLowerCase() === group.toLowerCase()),
     ) || null
   );
+}
+
+/* Which period the circle was clicked in, so the title reads like the rest of
+ * the dashboard: "CUCINA · ISTANTANEO". */
+function periodLabel(groupId) {
+  const match = /_(day|month)$/.exec(clean(groupId));
+  if (match?.[1] === "day") return t("GIORNO", "DAY");
+  if (match?.[1] === "month") return t("MESE", "MONTH");
+  return t("ISTANTANEO", "INSTANT");
+}
+
+/* The modal keeps its static "CARICHI" heading otherwise, which says nothing
+ * about which circle was opened. */
+function writeTitle(model, groupId) {
+  const title = doc?.getElementById?.(TITLE);
+  if (!title) return false;
+  title.replaceChildren();
+  const icon = element("span", "dm-subload-title-icon", model.icon);
+  const name = element("span", "dm-subload-title-name", model.name.toUpperCase());
+  const period = element("small", "dm-subload-title-period", periodLabel(groupId));
+  title.append(icon, name, period);
+  title.dataset.dmSubloadTitle = model.id || model.name;
+  return true;
 }
 
 function element(tag, className = "", text = "") {
@@ -135,6 +159,7 @@ export function renderSubloadPopup(groupId = state.group) {
     locale: english() ? "en-GB" : "it-IT",
   });
 
+  writeTitle(model, groupId);
   list.dataset.dmSubloadOwner = "beta30";
   list.dataset.dmSubloadCount = String(model.count);
   list.replaceChildren();
@@ -161,6 +186,10 @@ function installStyles() {
     "dm-subload-popup-style",
     `
     #subloads-list[data-dm-subload-owner="beta30"]{display:block!important}
+    #subloads-title[data-dm-subload-title]{display:flex!important;align-items:center;gap:10px;flex-wrap:wrap}
+    .dm-subload-title-icon{font-size:26px;line-height:1}
+    .dm-subload-title-name{color:var(--text,#0f172a);font-weight:900;letter-spacing:.5px}
+    .dm-subload-title-period{color:var(--muted,#64748b);font-size:11px;font-weight:800;letter-spacing:1.4px}
     .dm-subload-summary{display:flex;align-items:center;gap:14px;margin:0 0 16px;padding:14px 18px;border-radius:22px;border:1px solid color-mix(in srgb,var(--dm-subload-color,#0ea5e9) 24%,transparent);background:color-mix(in srgb,var(--dm-subload-color,#0ea5e9) 10%,var(--card-bg,#fff))}
     .dm-subload-summary-icon{font-size:30px;line-height:1}
     .dm-subload-total{display:flex;flex-direction:column;min-width:0}

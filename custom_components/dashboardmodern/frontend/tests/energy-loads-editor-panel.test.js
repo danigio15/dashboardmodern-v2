@@ -237,7 +237,7 @@ test("each card previews the bubble it draws, with its own colour and index", ()
 
 test("renaming a load updates its preview before it is saved", () => {
   render();
-  const input = cards()[0].querySelector(".dm-loads-identity").children[0];
+  const input = cards()[0].querySelector("[data-dm-load-name]");
   input.value = "Pompa di calore";
   input.dispatch("change");
   assert.equal(previewName(cards()[0]), "Pompa di calore");
@@ -292,4 +292,45 @@ test("an unbound load says so instead of silently drawing nothing", () => {
   const notes = added.querySelector(".dm-loads-warnings");
   assert.equal(notes.children.length, 1);
   assert.match(notes.children[0].textContent, /Nessuna entità collegata/);
+});
+
+test("name, icon and colour are labelled fields, with the canonical icon picker", () => {
+  render();
+  const [first] = cards();
+  // Each field says what it is: squeezed side by side and unlabelled, nothing
+  // told the user which box was the name and which the icon.
+  const labels = first
+    .querySelectorAll(".dm-loads-field")
+    .map((field) => field.querySelector(".ed-slot-lbl").textContent);
+  assert.deepEqual(labels, ["Nome del carico", "Icona", "Colore"]);
+
+  const name = first.querySelector("[data-dm-load-name]");
+  assert.equal(name.value, previewName(first), "the field shows the name it is editing");
+  assert.ok(name.value, "and that name is not blank");
+
+  // The picker button points at the icon input, which is how the canonical
+  // icon engine finds what to write into.
+  const icon = first.querySelector("[data-dm-load-icon]");
+  const picker = first.querySelector(".dm-icon-picker");
+  assert.equal(picker.dataset.iconTarget, icon.id);
+  assert.ok(icon.id);
+
+  // The engine writes the glyph and fires change; the card must persist it.
+  icon.value = "🔥";
+  icon.dispatch("change");
+  // The card is rebuilt on every edit, so the preview is read from the new one.
+  assert.equal(cards()[0].querySelector(".dm-loads-preview-bubble").textContent, "🔥");
+});
+
+test("the panel is the only renderer: an older list is cleared, not stacked on", () => {
+  const legacy = new Element("div");
+  legacy.className = "ed-intro";
+  legacy.textContent = "Carichi e Report condividono il modello canonico senza duplicati.";
+  panel.append(legacy);
+  assert.equal(panel.children.includes(legacy), true);
+
+  render();
+  assert.equal(panel.children.includes(legacy), false, "the legacy block is gone");
+  assert.equal(panel.children.length, 1, "only the editor host is left");
+  assert.ok(cards().length);
 });

@@ -299,34 +299,69 @@ function loadCard(panel, load, index, total) {
 
   const body = element("div", "ed-acc-body");
 
-  const identity = element("div", "ed-form-row dm-loads-identity");
+  /* Name, icon and colour each get their own labelled row. Squeezed side by
+   * side and unlabelled they were unreadable on a phone: the fields were there
+   * but nothing said what they were, or that the icon could be picked. */
+  const identity = element("section", "dm-loads-identity");
+
+  const nameField = element("label", "ed-slot dm-loads-field");
+  nameField.append(element("span", "ed-slot-lbl", t("Nome del carico", "Load name")));
   const name = doc.createElement("input");
   name.className = "ed-input";
+  name.dataset.dmLoadName = "true";
   name.value = load.name;
-  name.setAttribute("aria-label", t("Nome del carico", "Load name"));
+  name.placeholder = t("Es. Cucina", "e.g. Kitchen");
   name.addEventListener("change", () => {
     load.name = clean(name.value);
     markDirty(panel);
   });
+  nameField.append(name);
+
+  const iconField = element("label", "ed-slot dm-loads-field");
+  iconField.append(element("span", "ed-slot-lbl", t("Icona", "Icon")));
+  const iconRow = element("span", "ed-form-row dm-loads-icon-row");
   const icon = doc.createElement("input");
   icon.className = "ed-input ed-icon-input";
+  icon.id = `dm-loads-${load.id}-icon`;
+  icon.dataset.dmLoadIcon = "true";
   icon.value = load.icon;
   icon.placeholder = "🍳 / mdi:stove";
-  icon.setAttribute("aria-label", t("Icona", "Icon"));
   icon.addEventListener("change", () => {
     load.icon = clean(icon.value);
     markDirty(panel);
   });
+  // The canonical icon picker: it writes the chosen glyph into the input it is
+  // pointed at and fires `change`, so the same handler persists either way.
+  const pick = element("button", "dm-icon-picker", "🎨");
+  pick.type = "button";
+  pick.dataset.iconTarget = icon.id;
+  pick.dataset.iconCategory = "action";
+  pick.title = t("Scegli icona", "Choose icon");
+  pick.setAttribute("aria-label", t("Scegli icona", "Choose icon"));
+  iconRow.append(icon, pick);
+  iconField.append(iconRow);
+  iconField.append(
+    element(
+      "span",
+      "ed-hint",
+      t("Un'emoji o un'icona mdi:. Tocca 🎨 per sceglierla.", "An emoji or an mdi: icon. Tap 🎨 to pick one."),
+    ),
+  );
+
+  const colorField = element("label", "ed-slot dm-loads-field dm-loads-color-field");
+  colorField.append(element("span", "ed-slot-lbl", t("Colore", "Colour")));
   const color = doc.createElement("input");
   color.className = "dm-loads-color";
   color.type = "color";
+  color.dataset.dmLoadColor = "true";
   color.value = load.color;
-  color.setAttribute("aria-label", t("Colore", "Colour"));
   color.addEventListener("change", () => {
     load.color = clean(color.value);
     markDirty(panel);
   });
-  identity.append(name, icon, color);
+  colorField.append(color);
+
+  identity.append(nameField, iconField, colorField);
   body.append(identity);
 
   const visible = element("label", "dm-loads-switch");
@@ -467,6 +502,9 @@ export function renderEnergyLoadsEditor(panel = doc?.querySelector?.(PANEL)) {
       host.dataset.dmLoadsHost = "true";
       panel.append(host);
     }
+    // Another renderer may have written the panel before standing down; this
+    // owner is the only one allowed to describe a load.
+    for (const node of [...panel.children]) if (node !== host) node.remove();
     host.replaceChildren();
 
     const values = model();
@@ -566,8 +604,14 @@ function installStyles() {
     .dm-loads-preview-text small{color:var(--muted,#64748b);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .dm-loads-card-controls{display:flex;gap:6px;flex:none}
     .dm-loads-card-controls button[disabled]{opacity:.35;pointer-events:none}
-    .dm-loads-identity{display:grid;grid-template-columns:minmax(0,1fr) 92px 52px;gap:10px;align-items:center}
-    .dm-loads-color{width:52px;height:44px;padding:2px;border:1px solid var(--border,rgba(15,23,42,.14));border-radius:12px;background:var(--card-bg,#fff)}
+    .dm-loads-identity{display:grid;gap:12px;margin-bottom:4px}
+    .dm-loads-field{display:grid;gap:6px;min-width:0}
+    .dm-loads-field .ed-slot-lbl{color:var(--text,#0f172a);font-size:13px;font-weight:800;letter-spacing:.2px}
+    .dm-loads-field .ed-input{width:100%;min-width:0;min-height:46px;box-sizing:border-box}
+    .dm-loads-icon-row{display:grid!important;grid-template-columns:minmax(0,1fr) 54px;gap:10px;align-items:center}
+    .dm-loads-icon-row .dm-icon-picker{display:grid;place-items:center;width:54px;height:46px;padding:0;border:1px solid var(--border,rgba(15,23,42,.14));border-radius:14px;background:var(--card-bg,#fff);font-size:20px;cursor:pointer}
+    .dm-loads-color-field{grid-template-columns:minmax(0,1fr) 64px;align-items:center}
+    .dm-loads-color{width:64px;height:46px;padding:2px;border:1px solid var(--border,rgba(15,23,42,.14));border-radius:12px;background:var(--card-bg,#fff)}
     .dm-loads-switch{display:flex;align-items:center;gap:9px;margin:10px 0;color:var(--text,#0f172a);font-weight:700}
     .dm-loads-warnings{margin:10px 0 0;padding-left:18px;color:var(--muted,#64748b);font-size:13px;line-height:1.45}
     .dm-loads-children{margin-top:14px}
@@ -599,7 +643,7 @@ export function installEnergyLoadsEditor() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
-  root.dmRenderEnergyLoadsEditor = () => renderEnergyLoadsEditor();
+  root.dmRenderEnergyLoadsEditor = (target) => renderEnergyLoadsEditor(target || undefined);
   doc.addEventListener(
     "click",
     (event) => {
