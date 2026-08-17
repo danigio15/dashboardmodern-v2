@@ -163,7 +163,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // legacy markup left empty and reads no Home Assistant state, so the page keeps
   // the legacy runtime as its single behavioural owner. It adds no polling, and
   // its only listener is a media query that swaps the portrait scene in.
-  assert.ok(relative.length <= 90, `production graph unexpectedly grew to ${relative.length} modules`);
+  // The Security redesign adds exactly one owner: the section renderer that
+  // repaints the alarm console and the camera grid. It is event-driven
+  // (state-changed + legacy render loop), adds no polling and no observer, and
+  // keeps the camera engine — apriCamera, the streaming strategies and
+  // toggleFullScreenCam — in the legacy runtime instead of forking it.
+  assert.ok(relative.length <= 91, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 
