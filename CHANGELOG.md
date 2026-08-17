@@ -18,6 +18,11 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   all'icona c'è il pulsante che apre il catalogo icone canonico.
 - Il popup di un cerchio si intitolava "CARICHI" e non diceva quale cerchio
   fosse stato aperto: ora in alto compaiono icona, nome del carico e periodo.
+  Il nome è quello che il flusso mostra davvero, personalizzazione compresa,
+  così il titolo non può divergere dal cerchio che hai toccato.
+- Un'icona `mdi:` scelta dal catalogo veniva stampata come testo nel popup
+  ("mdi:stove") invece che disegnata: titolo, intestazione e card passano ora
+  dal renderer icone canonico, e le emoji restano testo.
 
 ## 1.0.0-beta.30 — 2026-08-17
 

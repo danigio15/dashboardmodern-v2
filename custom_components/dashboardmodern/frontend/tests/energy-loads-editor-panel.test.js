@@ -334,3 +334,13 @@ test("the panel is the only renderer: an older list is cleared, not stacked on",
   assert.equal(panel.children.length, 1, "only the editor host is left");
   assert.ok(cards().length);
 });
+
+test("the labelled fields stay stacked on a phone, where they were unreadable", () => {
+  render();
+  const css = globalThis.document.head.descendants().map((node) => node.textContent).join("\n");
+  const narrow = css.slice(css.indexOf("@media(max-width:640px)"));
+  // The phone is exactly the case this change targets: no narrow variant may
+  // put name, icon and colour back on one row.
+  assert.doesNotMatch(narrow, /\.dm-loads-identity\s*\{[^}]*grid-template-columns/);
+  assert.match(css, /\.dm-loads-identity\{display:grid;gap:12px/);
+});

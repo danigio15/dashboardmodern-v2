@@ -618,7 +618,9 @@ function installStyles() {
     .dm-loads-subload[data-dm-subload-source="appliance"]{opacity:.9}
     .dm-loads-source-tag{flex:none;padding:4px 10px;border-radius:999px;background:var(--divider-color,#e2e8f0);color:var(--muted,#64748b);font-size:11px;font-weight:800;letter-spacing:.3px}
     .dm-loads-subload-form{margin:0 0 10px;padding:12px;border-radius:14px;background:color-mix(in srgb,var(--card-bg,#fff) 92%,var(--divider-color,#e2e8f0))}
-    @media(max-width:640px){.dm-loads-identity{grid-template-columns:minmax(0,1fr) 72px 46px}}
+    /* The phone is exactly where the three squeezed fields were unreadable, so
+       there is no narrow variant that puts them back side by side. */
+    @media(max-width:640px){.dm-loads-color-field{grid-template-columns:minmax(0,1fr) 56px}.dm-loads-icon-row{grid-template-columns:minmax(0,1fr) 48px}.dm-loads-icon-row .dm-icon-picker{width:48px}}
   `,
   );
 }

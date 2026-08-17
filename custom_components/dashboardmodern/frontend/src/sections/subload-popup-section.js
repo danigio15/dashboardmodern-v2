@@ -12,7 +12,7 @@
  * Event driven: it wraps the popup opener, with no polling and no observer.
  */
 import { subloadPopupModel } from "../core/subload-popup-model.js";
-import { subloadsOf } from "../core/energy-flow-topology.js";
+import { flowStageModel, subloadsOf } from "../core/energy-flow-topology.js";
 import { allStates, clean, doc, english, installStyle, readJson, root, section } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SUBLOAD_POPUP__";
@@ -61,7 +61,7 @@ function writeTitle(model, groupId) {
   const title = doc?.getElementById?.(TITLE);
   if (!title) return false;
   title.replaceChildren();
-  const icon = element("span", "dm-subload-title-icon", model.icon);
+  const icon = iconSpan("dm-subload-title-icon", model.icon);
   const name = element("span", "dm-subload-title-name", model.name.toUpperCase());
   const period = element("small", "dm-subload-title-period", periodLabel(groupId));
   title.append(icon, name, period);
@@ -76,6 +76,21 @@ function element(tag, className = "", text = "") {
   return node;
 }
 
+/* An icon may be an emoji or an `mdi:` token — the canonical picker writes
+ * either. A token printed as text would show "mdi:stove" where the circle
+ * shows the glyph. */
+function iconInto(target, icon) {
+  const value = clean(icon) || "🔌";
+  if (/^mdi:/i.test(value) && typeof root.cdIconMarkup === "function")
+    target.innerHTML = root.cdIconMarkup(value, 24);
+  else target.textContent = value;
+  return target;
+}
+
+function iconSpan(className, icon) {
+  return iconInto(element("span", className), icon);
+}
+
 function card(item, model) {
   const node = element("article", "dm-subload-card hist-clickable");
   node.dataset.dmSubloadCard = item.id;
@@ -86,7 +101,7 @@ function card(item, model) {
     node.addEventListener("click", (event) => root.apriStorico?.(event, item.entity, item.name));
 
   const head = element("div", "dm-subload-head");
-  head.append(element("span", "dm-subload-icon", item.icon));
+  head.append(iconSpan("dm-subload-icon", item.icon));
   const title = element("div", "dm-subload-title");
   title.append(
     element("b", "", item.name),
@@ -134,8 +149,36 @@ function header(model) {
         : t("nessun dispositivo", "no appliance"),
     ),
   );
-  node.append(element("span", "dm-subload-summary-icon", model.icon), total);
+  node.append(iconSpan("dm-subload-summary-icon", model.icon), total);
   return node;
+}
+
+/* The circle's name, icon and colour as the stage resolved them.
+ *
+ * A saved `cd_flow_nodes` customization renames a circle on the stage before
+ * that customization has been folded into the load, so reading the canonical
+ * load here would head the popup with a different name from the circle that
+ * was clicked. Asking the same model the stage asks keeps the two identical by
+ * construction rather than by agreement. */
+function stageIdentity(load, loads, appliances) {
+  const fallback = {
+    id: clean(load.id),
+    name: clean(load.name),
+    icon: clean(load.emoji_icon || load.icon),
+    color: clean(load.color || load.metadata?.flow_color),
+  };
+  try {
+    const stage = flowStageModel({
+      loads,
+      appliances,
+      flowNodes: readJson("cd_flow_nodes", null),
+      states: allStates(),
+    });
+    const node = stage.nodes.find((item) => clean(item.id) === fallback.id);
+    return node ? { id: node.id, name: node.name, icon: node.icon, color: node.color } : fallback;
+  } catch (_error) {
+    return fallback;
+  }
 }
 
 export function renderSubloadPopup(groupId = state.group) {
@@ -144,16 +187,10 @@ export function renderSubloadPopup(groupId = state.group) {
   const load = loadForGroup(groupId);
   if (!load) return false;
   const loads = configuredLoads();
-  const appliances = Array.isArray(section("appliances", null))
-    ? section("appliances", [])
-    : readJson("cd_appliances", []);
+  const stored = section("appliances", null);
+  const appliances = Array.isArray(stored) ? stored : readJson("cd_appliances", []);
   const model = subloadPopupModel({
-    load: {
-      id: load.id,
-      name: load.name,
-      icon: load.emoji_icon || load.icon,
-      color: load.color || load.metadata?.flow_color,
-    },
+    load: stageIdentity(load, loads, appliances),
     children: subloadsOf(load, loads, Array.isArray(appliances) ? appliances : []),
     states: allStates(),
     locale: english() ? "en-GB" : "it-IT",
