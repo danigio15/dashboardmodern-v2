@@ -67,11 +67,12 @@ test("temperature mobile card is owned by the canonical temperature renderer", a
   assert.equal((runtime.match(/installTemperatureSection\(\)/g) || []).length, 1);
   assert.match(source, /renderTemperatureCards/);
   assert.match(source, /data-dm-temperature-canonical/);
-  assert.match(source, /grid-template-columns:minmax\(0,350px\)/);
-  assert.match(source, /max-width:350px!important/);
-  assert.match(source, /min-height:118px!important/);
-  assert.match(source, /font-size:34px!important/);
-  assert.match(source, /font-size:21px!important/);
+  // Mobile card metrics of the current design; update deliberately with it.
+  assert.match(source, /grid-template-columns:minmax\(0,360px\)/);
+  assert.match(source, /max-width:360px!important/);
+  assert.match(source, /min-height:124px!important/);
+  assert.match(source, /font-size:36px!important/);
+  assert.match(source, /font-size:22px!important/);
   assert.doesNotMatch(source, /setInterval|MutationObserver/);
 
   // Temporary import compatibility only: it must not render, style or observe.

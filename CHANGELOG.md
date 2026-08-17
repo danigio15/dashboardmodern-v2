@@ -29,6 +29,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   ogni goccia apre il suo schizzo, e sotto l'irrigatore il prato si bagna e si
   scurisce. Il conto alla rovescia della zona resta sull'etichetta e sulla
   scheda. Chi ha attivato "riduci animazioni" vede la scena ferma.
+- Le schede di **Temperature** sono state ridisegnate. Lo stato colora la
+  scheda, così una stanza si legge a colpo d'occhio senza rileggere i numeri:
+  azzurro se fa freddo, verde in comfort, rosso se fa caldo, e barra laterale,
+  icona, bordo e ombra seguono lo stesso colore. La temperatura è più grande e
+  ha il segno di grado, le cifre non ballano più a ogni aggiornamento perché
+  hanno tutte la stessa larghezza, l'umidità sta oltre una linea che sfuma
+  invece di un tratto pieno, e le pastiglie dei tab sono più alte da toccare,
+  con l'etichetta accorciata quando il nome della stanza è lungo.
 
 ### Corretto
 
@@ -59,6 +67,22 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   occupa la sua colonna e nome e dettaglio dell'azione tornano leggibili.
 - La pulizia delle icone `mdi:` non tocca più il nome dell'azione: un'azione
   chiamata come la propria icona conserva la sua etichetta.
+- **Temperature era illeggibile in tema scuro.** Le schede mescolavano il
+  proprio sfondo con `--ha-card-background`, che esiste solo dentro Home
+  Assistant: fuori da lì la miscela ripiegava sul bianco, e il risultato era
+  testo chiaro su schede bianche. Ora ogni miscela parte dal token della
+  plancia, quindi chiaro e scuro sono entrambi corretti.
+- La pastiglia dello stato scriveva **NON DISPONIBILE** sopra il nome della
+  stanza e oltre il bordo della scheda: il testo era largo 82px in una pastiglia
+  da 48px, e niente lo tagliava. La pastiglia mostra ora `N/D` — le parole
+  intere restano nel tooltip e per i lettori di schermo — ed è larga abbastanza
+  per ogni altro stato, con il troppo ritagliato invece che dipinto fuori.
+- Il nome lungo di una stanza allargava la scheda oltre la propria larghezza e
+  spingeva la pastiglia fuori dal bordo, perché la colonna della scheda cresceva
+  con il contenuto. Ora il nome si accorcia con i puntini e la pastiglia resta
+  al suo posto.
+
+
 - Un'icona `mdi:` scelta per un carico non si vedeva da nessuna parte: né
   nell'anteprima della scheda in **Carichi e dispositivi**, né sul pulsante del
   selettore, né nel cerchio del flusso a cui il carico appartiene. Il token

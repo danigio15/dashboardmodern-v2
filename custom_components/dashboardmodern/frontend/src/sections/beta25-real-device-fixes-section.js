@@ -1,7 +1,17 @@
 // Beta 25 real-device fixes: multi-sensor temperatures and appliance artwork ownership.
 import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
-import { allStates, clean, dashboardStore, doc, english, esc, root, section } from "./shared.js";
+import {
+  allStates,
+  clean,
+  comfortBadgeText,
+  dashboardStore,
+  doc,
+  english,
+  esc,
+  root,
+  section,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_BETA25_REAL_DEVICE_FIXES__";
 const state = (root[KEY] ||= {
@@ -210,7 +220,9 @@ function updateTemperatureCard(card, record) {
   if (hum) hum.textContent = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
   if (comfort) {
     const label = comfortLabel(temperature);
-    comfort.textContent = label;
+    comfort.textContent = comfortBadgeText(label);
+    comfort.title = label;
+    comfort.setAttribute("aria-label", label);
     comfort.dataset.comfort = label.toLowerCase().replaceAll(" ", "-");
   }
   if (name) name.textContent = cardName(room, entry);

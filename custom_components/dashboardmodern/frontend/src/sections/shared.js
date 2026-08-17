@@ -239,6 +239,17 @@ export function installStyle(id, css) {
   return true;
 }
 
+/* The comfort pill next to a room name is sized for a word like CALDO. The
+ * unavailable state is the only label long enough to paint out of that pill and
+ * over the room name beside it, so the pill carries a short form while the full
+ * wording stays in `title` and `aria-label`, and `data-comfort` keeps the value
+ * the badge colours key off. */
+export function comfortBadgeText(label) {
+  const value = clean(label);
+  if (/^(non disponibile|unavailable)$/i.test(value)) return english() ? "N/A" : "N/D";
+  return value;
+}
+
 /* One way to draw an icon token, wherever it is shown.
  *
  * An `mdi:` token was written as `<ha-icon>` markup, which only paints where
