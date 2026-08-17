@@ -90,7 +90,7 @@ function element(tag, className = "", text = "") {
  * either. A token printed as text would show "mdi:stove" where the circle
  * shows the glyph. */
 function iconInto(target, icon) {
-  writeIconGlyph(target, icon, { size: 24 });
+  writeIconGlyph(target, icon, { size: 24, kind: "load" });
   return target;
 }
 

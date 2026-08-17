@@ -2,11 +2,13 @@
 import {
   ACTION_ICON_CATALOG,
   CAR_BRANDS,
+  LOAD_ICON_CATALOG,
   ROOM_CATALOG,
   ROOM_GLYPHS,
   actionCatalogMatch,
   carBrandVisual,
   directEmoji,
+  loadGlyph,
   roomGlyph,
 } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, root, t } from "./shared.js";
@@ -41,6 +43,7 @@ function normalizeKind(value) {
   const kind = clean(value).toLowerCase();
   if (["room", "rooms", "stanza", "stanze"].includes(kind)) return "room";
   if (["car", "cars", "vehicle", "brand"].includes(kind)) return "car";
+  if (["load", "loads", "carico", "carichi"].includes(kind)) return "load";
   return "action";
 }
 
@@ -61,6 +64,7 @@ function canonicalRoomGlyph(value) {
 export function iconGlyph(kind, value) {
   const normalized = normalizeKind(kind);
   if (normalized === "room") return canonicalRoomGlyph(value);
+  if (normalized === "load") return loadGlyph(value);
   if (normalized === "action") return actionGlyph(value);
   return "🚘";
 }
@@ -141,6 +145,20 @@ function rowsFor(kind) {
       visual: iconGlyphMarkup("room", item.mdi, { size: 31 }),
     }));
   }
+  if (normalized === "load") {
+    return LOAD_ICON_CATALOG.map((item) => ({
+      value: item.mdi,
+      label: english ? item.en : item.it,
+      search: `${item.it} ${item.en} ${item.keywords} ${item.id} ${item.mdi}`.toLowerCase(),
+      glyph: item.glyph,
+      size: 36,
+      group:
+        item.group === "room"
+          ? t("Aree della casa", "Areas of the home")
+          : t("Apparecchi e impianti", "Appliances and plants"),
+      visual: iconGlyphMarkup("load", item.mdi, { size: 36 }),
+    }));
+  }
   return ACTION_ICON_CATALOG.map((item) => ({
     value: item.mdi,
     label: english ? item.en : item.it,
@@ -165,6 +183,13 @@ function pickerCopy(kind) {
       icon: "😀",
       title: t("Scegli l'icona", "Choose icon"),
       placeholder: t("Cerca (es. acqua, porta, fuoco)…", "Search (e.g. water, door, fire)…"),
+    };
+  }
+  if (normalized === "load") {
+    return {
+      icon: "🔌",
+      title: t("Scegli icona del carico", "Choose load icon"),
+      placeholder: t("Cerca (es. cucina, forno, garage)…", "Search (e.g. kitchen, oven, garage)…"),
     };
   }
   return {
@@ -194,6 +219,50 @@ function pointerCanAutofocus() {
   }
 }
 
+function optionMarkup(item, index, kind) {
+  const owned =
+    kind === "car"
+      ? ""
+      : ` data-dm-icon-engine-owner="single" data-dm-icon-engine-glyph-value="${esc(item.glyph)}" style="--dm-icon-engine-glyph-size:${item.size}px"`;
+  const label = kind === "room" ? "" : `<b>${esc(item.label)}</b>`;
+  return `<button type="button" class="dm-picker-option${kind === "room" ? " dm-beta17-room-option" : ""}" data-index="${index}" data-search-text="${esc(item.search)}" aria-label="${esc(item.label)}" title="${esc(item.label)}"><span class="dm-picker-visual"${owned}>${item.visual}</span>${label}</button>`;
+}
+
+/* One tile per catalogue entry, with a heading wherever the group changes: a
+ * catalogue long enough to cover a whole house buries what is being looked for
+ * if it is drawn as one flat grid. Catalogues without groups are unchanged. */
+function gridMarkup(rows, kind) {
+  const parts = [];
+  let group = "";
+  rows.forEach((item, index) => {
+    if (item.group && item.group !== group) {
+      group = item.group;
+      parts.push(`<h4 class="dm-picker-group">${esc(group)}</h4>`);
+    }
+    parts.push(optionMarkup(item, index, kind));
+  });
+  return parts.join("");
+}
+
+/* A heading whose whole group was filtered out would otherwise sit above the
+ * next group's tiles and mislabel them. */
+function syncPickerGroups(modal) {
+  const grid = modal.querySelector(".dm-picker-grid");
+  if (!grid) return;
+  let heading = null;
+  let visible = 0;
+  for (const node of [...grid.children]) {
+    if (node.classList.contains("dm-picker-group")) {
+      if (heading) heading.hidden = visible === 0;
+      heading = node;
+      visible = 0;
+      continue;
+    }
+    if (!node.hidden) visible += 1;
+  }
+  if (heading) heading.hidden = visible === 0;
+}
+
 export function openIconPicker(input, kind = "action", options = {}) {
   if (!doc || !input) return false;
   const normalized = normalizeKind(kind);
@@ -208,11 +277,7 @@ export function openIconPicker(input, kind = "action", options = {}) {
   modal.dataset.dmSingleGlyphOwner = "true";
   modal.dataset.dmBeta17Picker = normalized;
   modal.dataset.dmBeta12Colored = "true";
-  modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>${copy.icon} ${copy.title}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${esc(copy.placeholder)}" data-search></div><div class="dm-picker-grid">${rows
-    .map(
-      (item, index) => `<button type="button" class="dm-picker-option${normalized === "room" ? " dm-beta17-room-option" : ""}" data-index="${index}" data-search-text="${esc(item.search)}" aria-label="${esc(item.label)}" title="${esc(item.label)}"><span class="dm-picker-visual"${normalized === "car" ? "" : ` data-dm-icon-engine-owner="single" data-dm-icon-engine-glyph-value="${esc(item.glyph)}" style="--dm-icon-engine-glyph-size:${item.size}px"`}>${item.visual}</span>${normalized === "action" || normalized === "car" ? `<b>${esc(item.label)}</b>` : ""}</button>`,
-    )
-    .join("")}</div></section>`;
+  modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>${copy.icon} ${copy.title}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${esc(copy.placeholder)}" data-search></div><div class="dm-picker-grid">${gridMarkup(rows, normalized)}</div></section>`;
   doc.body.append(modal);
 
   const close = () => modal.remove();
@@ -226,6 +291,7 @@ export function openIconPicker(input, kind = "action", options = {}) {
     modal.querySelectorAll(".dm-picker-option").forEach((button) => {
       button.hidden = Boolean(query) && !clean(button.dataset.searchText).includes(query);
     });
+    syncPickerGroups(modal);
   });
   modal.querySelectorAll(".dm-picker-option").forEach((button) => {
     button.addEventListener("click", () => {
@@ -491,7 +557,11 @@ function installStyles() {
       #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-grid{display:grid!important;gap:8px!important;padding:6px 16px 18px!important;max-height:60dvh!important;overflow:auto!important;overscroll-behavior:contain!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="room"] .dm-picker-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="action"] .dm-picker-grid,
+      #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="load"] .dm-picker-grid,
       #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="car"] .dm-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-group{grid-column:1/-1!important;margin:10px 2px 2px!important;font-size:11px!important;font-weight:900!important;letter-spacing:1.2px!important;text-transform:uppercase!important;color:var(--secondary-text-color,#64748b)!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-group:first-child{margin-top:0!important}
+      #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-group[hidden]{display:none!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-option{box-sizing:border-box!important;min-width:0!important;min-height:94px!important;padding:9px 6px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:15px!important;background:var(--ha-card-background,var(--card-background-color,#fff))!important;color:var(--text,#0f172a)!important;transform:none!important;transition:border-color .12s ease,box-shadow .12s ease!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="room"] .dm-picker-option{min-height:54px!important;padding:5px!important}
       #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-option[hidden]{display:none!important}
@@ -505,7 +575,8 @@ function installStyles() {
         #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-dialog{width:calc(100vw - 12px)!important;max-height:92dvh!important}
         #dm-visual-picker[data-dm-icon-engine="single-owner"] .dm-picker-grid{padding:5px 9px 14px!important;gap:6px!important;max-height:64dvh!important}
         #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="room"] .dm-picker-option{min-height:48px!important;border-radius:12px!important}
-        #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="action"] .dm-picker-option{min-height:92px!important;border-radius:14px!important}
+        #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="action"] .dm-picker-option,
+        #dm-visual-picker[data-dm-icon-engine="single-owner"][data-kind="load"] .dm-picker-option{min-height:92px!important;border-radius:14px!important}
       }
     `,
   );

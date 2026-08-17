@@ -6,6 +6,22 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## 1.0.0-beta.30.7 — 2026-08-17
 
+### Aggiunto
+
+- Il selettore delle icone di un carico ha ora un catalogo suo, diviso in **Aree
+  della casa** e **Apparecchi e impianti**. Prima offriva quello delle azioni
+  rapide, che è costruito attorno a quello che un pulsante *fa* — una scena, uno
+  script, un avviso, l'antifurto, una telecamera — e che quindi si intitolava
+  "Scegli icona azione" e non conteneva nessuna stanza. Ora ci sono tutte le
+  aree della casa (cucina, salone, garage, bagno, cantina, giardino…) e una
+  quarantina di apparecchi che consumano davvero: forno, piano cottura, cappa,
+  frigorifero, congelatore, lavastoviglie, lavatrice, asciugatrice, boiler,
+  pompa di calore, condizionatore, stufa a pellet, auto elettrica e colonnina,
+  fotovoltaico, batteria, pompe, irrigazione, tapparelle, cancello, ascensore e
+  altro. Antifurto, telecamere, scene, script e avvisi non compaiono più: non
+  sono carichi. Nessuna icona è offerta due volte e la ricerca nasconde le
+  intestazioni dei gruppi rimasti vuoti.
+
 ### Corretto
 
 - In **Temperature** l'etichetta sopra il numero cambiava da sola: la stessa

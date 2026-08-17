@@ -370,7 +370,7 @@ test("an mdi icon is drawn as a glyph, in the preview and in the picker button",
     const card = cards()[0];
     const bubble = card.querySelector(".dm-loads-preview-bubble");
     const pick = card.querySelector("[data-dm-load-icon-pick]");
-    assert.deepEqual(asked[0], ["action", "mdi:car-electric", 24]);
+    assert.deepEqual(asked[0], ["load", "mdi:car-electric", 24]);
     assert.match(bubble.innerHTML, /🚘/);
     assert.match(pick.innerHTML, /🚘/);
     assert.equal(bubble.textContent, "", "the token is never printed as text");

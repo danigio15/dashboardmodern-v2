@@ -555,6 +555,190 @@ export function actionVisual(value, size = 48) {
   return `<span class="dm-action-glyph" data-visual="${item.id}" style="font-size:${safeSize}px"><span aria-hidden="true">${item.glyph || "⭐"}</span></span>`;
 }
 
+/* What can actually draw power in a home. The action catalogue was the wrong
+ * list to offer here: it is built around what a button on the dashboard *does*
+ * — a scene, a script, an alert, the alarm, a camera — and none of those is a
+ * load. This one is built around what consumes: the appliances and plants
+ * themselves, and the areas a load is measured in, because a circle is just as
+ * often "the kitchen" as it is "the oven".
+ *
+ * Every entry keeps a distinct `mdi`, so the same icon is never offered twice;
+ * `LOAD_ROOM_SKIP` drops the areas whose icon is already an appliance here. */
+const LOAD_APPLIANCE_DEFINITIONS = [
+  ["power", "Energia", "Power", "mdi:flash", "⚡", "consumo generale casa totale"],
+  ["socket", "Presa", "Socket", "mdi:power-socket-eu", "🔌", "presa spina generica"],
+  ["light", "Illuminazione", "Lighting", "mdi:lightbulb", "💡", "luce luci lampada"],
+  ["lights-group", "Gruppo luci", "Light group", "mdi:lightbulb-group", "🪔", "luci gruppo"],
+  ["boiler", "Boiler", "Boiler", "mdi:water-boiler", "♨️", "scaldabagno acqua calda resistenza"],
+  ["heat-pump", "Pompa di calore", "Heat pump", "mdi:heat-pump", "🌡️", "pompa calore termica"],
+  [
+    "air-conditioner",
+    "Condizionatore",
+    "Air conditioner",
+    "mdi:air-conditioner",
+    "❄️",
+    "clima split freddo",
+  ],
+  ["radiator", "Riscaldamento", "Heating", "mdi:radiator", "🔥", "termosifone calorifero caldo"],
+  [
+    "floor-heating",
+    "Riscaldamento a pavimento",
+    "Underfloor heating",
+    "mdi:heating-coil",
+    "🌡️",
+    "pavimento radiante",
+  ],
+  [
+    "fireplace",
+    "Stufa a pellet",
+    "Pellet stove",
+    "mdi:fireplace",
+    "🪵",
+    "stufa camino pellet legna",
+  ],
+  ["oven", "Forno", "Oven", "mdi:toaster-oven", "🍕", "forno cottura"],
+  ["hob", "Piano cottura", "Hob", "mdi:countertop", "🍳", "fornelli induzione piastra"],
+  ["hood", "Cappa", "Cooker hood", "mdi:air-filter", "💨", "cappa aspirazione cucina"],
+  ["microwave", "Microonde", "Microwave", "mdi:microwave", "🍲", "microonde forno"],
+  ["fridge", "Frigorifero", "Fridge", "mdi:fridge", "🧊", "frigo frigorifero"],
+  [
+    "freezer",
+    "Congelatore",
+    "Freezer",
+    "mdi:snowflake-variant",
+    "🥶",
+    "freezer congelatore surgelati",
+  ],
+  ["dishwasher", "Lavastoviglie", "Dishwasher", "mdi:dishwasher", "🍽️", "lavastoviglie piatti"],
+  [
+    "washer",
+    "Lavatrice",
+    "Washing machine",
+    "mdi:washing-machine",
+    "🧺",
+    "lavatrice bucato lavaggio",
+  ],
+  [
+    "dryer",
+    "Asciugatrice",
+    "Tumble dryer",
+    "mdi:tumble-dryer",
+    "👕",
+    "asciugatrice asciugabiancheria",
+  ],
+  ["iron", "Ferro da stiro", "Iron", "mdi:iron", "👔", "ferro stiro stireria"],
+  ["coffee", "Macchina caffè", "Coffee machine", "mdi:coffee-maker", "☕", "caffe espresso"],
+  ["kettle", "Bollitore", "Kettle", "mdi:kettle", "🫖", "bollitore te acqua"],
+  ["grill", "Barbecue", "Grill", "mdi:grill", "🍖", "barbecue griglia bbq"],
+  ["vacuum", "Aspirapolvere", "Vacuum", "mdi:robot-vacuum", "🤖", "aspirapolvere robot pulizia"],
+  ["fan", "Ventilatore", "Fan", "mdi:fan", "🌀", "ventilatore ventola aria"],
+  [
+    "dehumidifier",
+    "Deumidificatore",
+    "Dehumidifier",
+    "mdi:air-humidifier",
+    "🌫️",
+    "deumidificatore umidita umidificatore",
+  ],
+  ["hairdryer", "Asciugacapelli", "Hair dryer", "mdi:hair-dryer", "💇", "phon asciugacapelli"],
+  ["tv", "TV", "TV", "mdi:television", "📺", "televisore tv salotto"],
+  ["computer", "Computer", "Computer", "mdi:desktop-tower-monitor", "💻", "pc computer postazione"],
+  ["server", "Server / NAS", "Server / NAS", "mdi:server", "🖥️", "server nas rack homelab"],
+  ["router", "Rete e router", "Network", "mdi:router-wireless", "📶", "router modem rete wifi"],
+  ["printer", "Stampante", "Printer", "mdi:printer", "🖨️", "stampante stampa"],
+  [
+    "ev",
+    "Auto elettrica",
+    "Electric car",
+    "mdi:car-electric",
+    "🚗",
+    "auto macchina veicolo elettrica",
+  ],
+  [
+    "wallbox",
+    "Colonnina di ricarica",
+    "Charging station",
+    "mdi:ev-station",
+    "⛽",
+    "wallbox colonnina ricarica",
+  ],
+  ["solar", "Fotovoltaico", "Solar", "mdi:solar-power", "☀️", "solare fotovoltaico pannelli"],
+  ["battery", "Batteria", "Battery", "mdi:battery-charging", "🔋", "batteria accumulo"],
+  ["pump", "Pompa", "Pump", "mdi:pump", "💧", "pompa autoclave rilancio"],
+  ["water", "Acqua", "Water", "mdi:water", "🚰", "acqua idrico"],
+  [
+    "irrigation",
+    "Irrigazione",
+    "Irrigation",
+    "mdi:sprinkler-variant",
+    "🌱",
+    "irrigazione giardino annaffiare",
+  ],
+  [
+    "sauna",
+    "Sauna e idromassaggio",
+    "Sauna and hot tub",
+    "mdi:hot-tub",
+    "🧖",
+    "sauna idromassaggio jacuzzi",
+  ],
+  ["gate", "Cancello", "Gate", "mdi:gate", "🚪", "cancello portone motore"],
+  [
+    "shutters",
+    "Tapparelle",
+    "Shutters",
+    "mdi:window-shutter",
+    "🪟",
+    "tapparelle serrande persiane",
+  ],
+  ["lift", "Ascensore", "Lift", "mdi:elevator", "🛗", "ascensore montacarichi"],
+];
+
+// Areas whose icon is an appliance offered above: the appliance wins, so the
+// same tile is never drawn twice.
+const LOAD_ROOM_SKIP = Object.freeze(new Set(["laundry"]));
+
+export const LOAD_ICON_CATALOG = Object.freeze([
+  ...ROOM_CATALOG.filter((item) => !LOAD_ROOM_SKIP.has(item.id)).map((item) =>
+    Object.freeze({
+      id: `room-${item.id}`,
+      it: item.it,
+      en: item.en,
+      mdi: item.mdi,
+      glyph: ROOM_GLYPHS[item.id] || "🏠",
+      group: "room",
+      keywords: item.keywords,
+    }),
+  ),
+  ...LOAD_APPLIANCE_DEFINITIONS.map(([id, it, en, mdi, glyph, keywords]) =>
+    Object.freeze({ id, it, en, mdi, glyph, group: "appliance", keywords }),
+  ),
+]);
+
+export function loadCatalogMatch(value) {
+  const token = normalized(value).replace(/^mdi:/, "").replace(/[-_]+/g, " ");
+  if (!token) return null;
+  return (
+    LOAD_ICON_CATALOG.find(
+      (item) =>
+        normalized(item.id) === token ||
+        normalized(item.mdi).replace(/^mdi:/, "").replace(/[-_]+/g, " ") === token ||
+        normalized(item.it) === token ||
+        normalized(item.en) === token,
+    ) || null
+  );
+}
+
+export function loadGlyph(value) {
+  const token = clean(value);
+  // An unset icon is a plug, like every other default in the loads model — not
+  // the first entry of the action catalogue, which is a house.
+  if (!token) return "🔌";
+  const direct = directEmoji(token);
+  if (direct) return direct;
+  return loadCatalogMatch(token)?.glyph || actionCatalogMatch(token)?.glyph || "🔌";
+}
+
 export function roomOptionsMarkup({ selected = "", english = false } = {}) {
   return ROOM_CATALOG.map(
     (item) =>

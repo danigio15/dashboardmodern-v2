@@ -207,7 +207,7 @@ test("where the icon engine is installed, it is what resolves an mdi token", () 
     popup.renderSubloadPopup("cucina");
 
     const icon = title.querySelector(".dm-subload-title-icon");
-    assert.deepEqual(asked[0], ["action", "mdi:car-electric", 24]);
+    assert.deepEqual(asked[0], ["load", "mdi:car-electric", 24]);
     assert.match(icon.innerHTML, /🚘/);
     assert.doesNotMatch(icon.innerHTML, /data-icon=/, "the legacy markup is not used");
   } finally {
