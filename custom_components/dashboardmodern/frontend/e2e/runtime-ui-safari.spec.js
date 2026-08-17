@@ -198,22 +198,25 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(cardLayout.width).toBeGreaterThan(0);
     expect(cardLayout.height).toBeGreaterThan(0);
 
-    const roomLabel = card.locator(".appl-wide-cat");
+    const roomLabel = card.locator(".dm-ap-room");
     await expect(roomLabel).toContainText("Salone");
     await expect(roomLabel).not.toContainText(/other|altro/i);
 
-    const visual = card.locator(".appl-ic");
+    // Showcase card: the custom photo renders in the hero, fully contained,
+    // and never falls back to a glyph when the URL is valid.
+    const visual = card.locator(".dm-ap-hero");
     const visualBox = await visual.boundingBox();
     expect(visualBox?.width ?? 0).toBeGreaterThanOrEqual(50);
     expect(visualBox?.height ?? 0).toBeGreaterThanOrEqual(50);
-    const image = visual.locator("img.dm-appliance-image");
+    const image = visual.locator("img.dm-ap-img");
     await expect(image).toBeVisible();
     await expect(visual.locator(".dm-appliance-glyph")).toHaveCount(0);
+    await expect(visual.locator(".dm-ap-hero-fallback")).toHaveCount(0);
     const imageMetrics = await image.evaluate((node) => {
       const imageStyle = getComputedStyle(node);
       const imageRect = node.getBoundingClientRect();
-      const wrapper = node.closest(".dm-appliance-image-wrap");
-      if (!wrapper) throw new Error("Normalized appliance image wrapper is missing");
+      const wrapper = node.closest(".dm-ap-hero");
+      if (!wrapper) throw new Error("Showcase hero wrapper is missing");
       const wrapperStyle = getComputedStyle(wrapper);
       const wrapperRect = wrapper.getBoundingClientRect();
       return {
@@ -222,9 +225,6 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         width: imageRect.width,
         height: imageRect.height,
         objectFit: imageStyle.objectFit,
-        objectPosition: imageStyle.objectPosition,
-        fillsWidth: Math.abs(imageRect.width - wrapperRect.width) <= 1,
-        fillsHeight: Math.abs(imageRect.height - wrapperRect.height) <= 1,
         contained:
           imageRect.left >= wrapperRect.left - 1 &&
           imageRect.top >= wrapperRect.top - 1 &&
@@ -237,10 +237,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(imageMetrics.naturalHeight).toBeGreaterThan(0);
     expect(imageMetrics.width).toBeGreaterThanOrEqual(80);
     expect(imageMetrics.height).toBeGreaterThanOrEqual(80);
-    expect(imageMetrics.objectFit).toBe("cover");
-    expect(imageMetrics.objectPosition).toBe("50% 50%");
-    expect(imageMetrics.fillsWidth).toBe(true);
-    expect(imageMetrics.fillsHeight).toBe(true);
+    expect(imageMetrics.objectFit).toBe("contain");
     expect(imageMetrics.contained).toBe(true);
     expect(imageMetrics.overflow).toBe("hidden");
 

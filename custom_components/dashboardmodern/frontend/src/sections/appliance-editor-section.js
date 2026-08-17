@@ -182,6 +182,63 @@ function entityField(name, label, value, help = "") {
   return `<label class="ed-slot"><span class="ed-slot-lbl">${label}</span><span class="ed-form-row"><input class="ed-input mono" name="${name}" value="${esc(value)}"><button type="button" class="dm-entity-picker" data-pick="${name}" aria-label="${t("Seleziona entità", "Select entity")}">🔍</button></span>${help ? `<small>${help}</small>` : ""}</label>`;
 }
 
+function numberField(name, label, value, help = "", { step = "0.1", placeholder = "" } = {}) {
+  return `<label class="ed-slot"><span class="ed-slot-lbl">${label}</span><input class="ed-input" type="number" step="${step}" name="${name}" value="${esc(value ?? "")}" placeholder="${esc(placeholder)}">${help ? `<small>${help}</small>` : ""}</label>`;
+}
+
+function textField(name, label, value, help = "", placeholder = "") {
+  return `<label class="ed-slot"><span class="ed-slot-lbl">${label}</span><input class="ed-input" name="${name}" value="${esc(value ?? "")}" placeholder="${esc(placeholder)}" autocomplete="off">${help ? `<small>${help}</small>` : ""}</label>`;
+}
+
+const CARD_FIELD_KEYS = [
+  "state_entity",
+  "remaining_entity",
+  "cycle_duration_entity",
+  "cycle_minutes",
+  "temperature_entity",
+  "temp_min",
+  "temp_max",
+  "max_power",
+  "price_kwh",
+  "alert_entity",
+  "last_start_entity",
+  "last_duration_entity",
+  "last_energy_entity",
+  "last_cost_entity",
+];
+
+function cardFieldsMarkup(device = {}) {
+  const value = (key) => (device[key] == null ? "" : device[key]);
+  const configured =
+    clean(device.image || device.image_url) ||
+    CARD_FIELD_KEYS.some((key) => clean(device[key]) !== "");
+  return `<details class="dm-appliance-card-fields"${configured ? " open" : ""}>
+    <summary>🧩 ${t("Card avanzata — immagine, ciclo, temperatura, costi", "Advanced card — image, cycle, temperature, costs")}</summary>
+    <div class="dm-appliance-card-fields-intro">${t(
+      "Tutti i campi sono facoltativi: la card mostra automaticamente ciò che è disponibile. Avvio, durata, consumo e costo dell'ultimo ciclo vengono calcolati da soli dalle transizioni di potenza se non indichi entità dedicate.",
+      "Every field is optional: the card automatically shows what is available. Start, duration, energy and cost of the last cycle are computed automatically from power transitions unless you provide dedicated entities.",
+    )}</div>
+    <section class="dm-appliance-entity-grid">
+      ${textField("image_url", t("Immagine personalizzata (URL)", "Custom image (URL)"), device.image || device.image_url, t("Foto reale del tuo elettrodomestico mostrata al posto dell'illustrazione.", "Real photo of your appliance shown instead of the artwork."), "https://…/lavatrice.png")}
+      ${entityField("state_entity", t("Entità stato programma", "Program state entity"), device.state_entity, t("Sensore con lo stato del programma (running, idle…): ha priorità sulle soglie in watt.", "Sensor with the program state (running, idle…): takes priority over the watt thresholds."))}
+      ${entityField("remaining_entity", t("Tempo rimanente", "Remaining time"), device.remaining_entity, t("Sensore minuti, hh:mm o timestamp di fine: alimenta l'anello del conto alla rovescia.", "Minutes, hh:mm or end timestamp sensor: feeds the countdown ring."))}
+      ${entityField("cycle_duration_entity", t("Durata programma", "Program duration"), device.cycle_duration_entity, t("Facoltativa: durata totale del programma per la percentuale dell'anello.", "Optional: total program duration for the ring percentage."))}
+      ${numberField("cycle_minutes", t("Durata ciclo fissa (minuti)", "Fixed cycle duration (minutes)"), value("cycle_minutes"), t("Alternativa semplice alla durata da entità.", "Simple alternative to the duration entity."), { step: "1", placeholder: "es. 120" })}
+      ${entityField("temperature_entity", t("Entità temperatura", "Temperature entity"), device.temperature_entity, t("Per frigo e congelatore: mostra la barra temperatura al posto della potenza.", "For fridge and freezer: shows the temperature strip instead of the power bar."))}
+      ${numberField("temp_min", t("Temperatura min (barra)", "Min temperature (bar)"), value("temp_min"), "", { step: "0.5", placeholder: "0" })}
+      ${numberField("temp_max", t("Temperatura max (barra)", "Max temperature (bar)"), value("temp_max"), "", { step: "0.5", placeholder: "10" })}
+      ${numberField("max_power", t("Potenza massima (W)", "Maximum power (W)"), value("max_power"), t("Scala della barra Potenza attuale. Vuoto = valore tipico per il tipo.", "Scale of the current power bar. Empty = typical value for the type."), { step: "50", placeholder: "es. 2200" })}
+      ${numberField("price_kwh", t("Costo energia (€/kWh)", "Energy cost (€/kWh)"), value("price_kwh"), t("Vuoto = tariffa della sezione Energia.", "Empty = tariff from the Energy section."), { step: "0.001", placeholder: "es. 0.25" })}
+      ${numberField("threshold_standby", t("Soglia standby (W)", "Standby threshold (W)"), value("threshold_standby") === "" ? (device.metadata?.threshold_standby ?? "") : value("threshold_standby"), t("Sotto la soglia In funzione e sopra questa = Standby.", "Below the running threshold and above this = Standby."), { step: "0.1", placeholder: "1" })}
+      ${entityField("alert_entity", t("Entità allarme/anomalia", "Alarm/problem entity"), device.alert_entity, t("binary_sensor di problema: accende il contatore Allarme.", "Problem binary_sensor: feeds the Alarm counter."))}
+      ${entityField("last_start_entity", t("Ultimo ciclo · avvio", "Last cycle · start"), device.last_start_entity, t("Timestamp di avvio fornito dall'integrazione (es. Home Connect).", "Start timestamp provided by the integration (e.g. Home Connect)."))}
+      ${entityField("last_duration_entity", t("Ultimo ciclo · durata", "Last cycle · duration"), device.last_duration_entity)}
+      ${entityField("last_energy_entity", t("Ultimo ciclo · consumo (kWh)", "Last cycle · energy (kWh)"), device.last_energy_entity)}
+      ${entityField("last_cost_entity", t("Ultimo ciclo · costo (€)", "Last cycle · cost (€)"), device.last_cost_entity)}
+    </section>
+  </details>`;
+}
+
 function normalizeEntities(device, values) {
   return [...new Set([
     values.control_entity,
@@ -259,6 +316,7 @@ export function openApplianceEditor(index) {
         ${entityField("monthly_energy_entity", t("Energia mensile", "Monthly energy"), device.monthly_energy_entity, t("Facoltativa: sostituisce il calcolo del mese corrente.", "Optional: overrides the current-month calculation."))}
         ${entityField("total_energy_entity", t("Energia totale per storico e Report", "Total energy for history and Report"), totalInitial, t("Deve essere un contatore cumulativo kWh con state_class total o total_increasing. Non usare qui il sensore mensile: questo campo serve per ricostruire anche i mesi precedenti.", "This must be a cumulative kWh meter with state_class total or total_increasing. Do not use the monthly sensor here: this field is required to reconstruct previous months."))}
       </section>
+      ${cardFieldsMarkup(device)}
       <output data-error></output>
       <footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="submit" class="ed-save-btn">💾 ${t("Salva modifiche", "Save changes")}</button></footer>
     </form>
@@ -290,6 +348,7 @@ export function openApplianceEditor(index) {
     }
     const visualKey = editorVisualKey(values.icon) || deviceVisualKey(device);
     const existingReport = clean(device.report_entity);
+    const image = clean(values.image_url);
     const next = {
       ...device,
       name,
@@ -308,7 +367,30 @@ export function openApplianceEditor(index) {
       // Report can intentionally use a monthly/current-period sensor. Editing
       // the lifetime meter must not overwrite that independent Report choice.
       report_entity: existingReport || total,
+      // Showcase card fields: strings stay as typed, numbers are validated by
+      // normalizeDevice (empty values are dropped instead of becoming 0).
+      image,
+      image_url: image,
+      state_entity: clean(values.state_entity),
+      remaining_entity: clean(values.remaining_entity),
+      cycle_duration_entity: clean(values.cycle_duration_entity),
+      cycle_minutes: clean(values.cycle_minutes),
+      temperature_entity: clean(values.temperature_entity),
+      temp_min: clean(values.temp_min),
+      temp_max: clean(values.temp_max),
+      max_power: clean(values.max_power),
+      price_kwh: clean(values.price_kwh),
+      threshold_standby: clean(values.threshold_standby),
+      alert_entity: clean(values.alert_entity),
+      last_start_entity: clean(values.last_start_entity),
+      last_duration_entity: clean(values.last_duration_entity),
+      last_energy_entity: clean(values.last_energy_entity),
+      last_cost_entity: clean(values.last_cost_entity),
     };
+    if (next.threshold_standby === "") delete next.threshold_standby;
+    for (const key of ["cycle_minutes", "temp_min", "temp_max", "max_power", "price_kwh"]) {
+      if (next[key] === "") delete next[key];
+    }
     next.energy_entity = clean(device.energy_entity) || next.total_energy_entity || next.monthly_energy_entity || next.daily_energy_entity;
     next.entities = normalizeEntities(device, next);
     try {
@@ -334,6 +416,13 @@ function installStyles() {
     .dm-appliance-type-trigger{display:grid!important;grid-template-columns:38px minmax(0,1fr) 22px!important;align-items:center!important;gap:10px!important;width:100%!important;min-height:58px!important;padding:8px 12px!important;text-align:left!important;cursor:pointer!important;color:var(--text,#0f172a)!important;background:var(--card-background-color,#fff)!important}
     .dm-appliance-type-trigger-icon{display:grid!important;place-items:center!important;width:36px!important;height:36px!important;color:#0ea5e9!important}.dm-appliance-type-trigger-icon svg{width:30px!important;height:30px!important}.dm-appliance-type-trigger-label{min-width:0!important;font-weight:750!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.dm-appliance-type-chevron{font-size:20px!important;justify-self:end!important}
     .dm-appliance-editor-dialog{max-height:min(92dvh,920px)!important;overflow:hidden!important}
+    .dm-appliance-card-fields{margin-top:14px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:color-mix(in srgb,var(--secondary-background-color,#f1f5f9) 45%,transparent)!important;overflow:hidden!important}
+    .dm-appliance-card-fields>summary{padding:13px 16px!important;font-size:13px!important;font-weight:850!important;cursor:pointer!important;list-style:none!important;user-select:none!important}
+    .dm-appliance-card-fields>summary::-webkit-details-marker{display:none!important}
+    .dm-appliance-card-fields>summary::after{content:"⌄";float:right;font-size:16px;transition:transform .2s ease}
+    .dm-appliance-card-fields[open]>summary::after{transform:rotate(180deg)}
+    .dm-appliance-card-fields-intro{padding:0 16px 10px!important;font-size:11.5px!important;line-height:1.5!important;color:var(--secondary-text-color,#64748b)!important}
+    .dm-appliance-card-fields .dm-appliance-entity-grid{padding:0 12px 12px!important}
     .dm-appliance-type-picker{position:fixed!important;inset:0!important;z-index:100002!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:16px!important;background:rgba(15,23,42,.60)!important}
     .dm-appliance-type-picker-dialog{display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:min(460px,100%)!important;max-height:80dvh!important;padding:18px!important;border-radius:22px!important;background:var(--card-background-color,#fff)!important;color:var(--text,#0f172a)!important;box-shadow:0 20px 60px rgba(0,0,0,.35)!important}
     .dm-appliance-type-picker-dialog>strong{margin-bottom:10px!important;font-size:14.5px!important;font-weight:900!important}.dm-appliance-type-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(88px,1fr))!important;gap:8px!important;overflow-y:auto!important;min-height:0!important}

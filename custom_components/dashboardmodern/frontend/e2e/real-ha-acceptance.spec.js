@@ -199,14 +199,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       renderApplianceSection(true);
     });
     const card = page
-      .locator("#appl-view-overview.active .appl-wide-card.dm-control-device")
+      .locator("#appl-grid-overview.active .appl-wide-card")
       .filter({ hasText: "Forno" })
       .first();
     await expect(card).toBeVisible();
     await expect(card.locator(".appl-spark")).toHaveCount(0);
     const cardBox = await card.boundingBox();
-    expect(cardBox.width).toBeLessThanOrEqual(410);
-    expect(cardBox.height).toBeLessThanOrEqual(190);
+    // Showcase card envelope: one grid column wide, hero + meters + cycle tall.
+    expect(cardBox.width).toBeLessThanOrEqual(480);
+    expect(cardBox.height).toBeLessThanOrEqual(640);
     const toggle = card.locator('[data-dm-power-toggle="true"]');
     await expect(toggle).toHaveText(/Accendi|Spegni|Turn on|Turn off/);
     await expect(toggle).not.toHaveText(/[⏻×✕]/);

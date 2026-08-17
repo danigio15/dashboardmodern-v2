@@ -434,11 +434,18 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     });
     const applianceCards = page.locator("#appl-grid-overview .appl-wide-card");
     await expect(applianceCards).toHaveCount(1);
-    await expect(applianceCards.first().locator(".appl-ic svg, .appl-ic img")).toHaveCount(1);
+    // Showcase card: the artwork/image lives in the hero.
+    await expect(
+      applianceCards
+        .first()
+        .locator(
+          ".dm-ap-hero > .dm-hero-art svg, .dm-ap-hero > .dm-appliance-art svg, .dm-ap-hero > img.dm-ap-img",
+        ),
+    ).toHaveCount(1);
     expect(
       await applianceCards
         .first()
-        .locator(".appl-ic")
+        .locator(".dm-ap-hero")
         .evaluate(
           (visual) =>
             visual.getBoundingClientRect().width > 0 &&
