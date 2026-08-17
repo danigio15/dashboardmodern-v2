@@ -209,7 +209,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(cardBox.width).toBeLessThanOrEqual(480);
     expect(cardBox.height).toBeLessThanOrEqual(640);
     const toggle = card.locator('[data-dm-power-toggle="true"]');
-    await expect(toggle).toHaveText(/Accendi|Spegni|Turn on|Turn off/);
+    // The control is a power glyph now — the word did not fit the card on a
+    // phone and was clipped mid-way. It still has to say which action it
+    // performs, so the wording moved to the accessible name.
+    await expect(toggle).toHaveAccessibleName(/Accendi|Spegni|Turn on|Turn off/);
     await expect(toggle).not.toHaveText(/[⏻×✕]/);
 
     // Appliance and Alert editors perform the same job and therefore must use

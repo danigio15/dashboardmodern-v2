@@ -19,6 +19,12 @@ import {
 
 const KEY = "__DASHBOARDMODERN_APPLIANCES_SECTION__";
 const DAILY_REFRESH_MS = 5000;
+/* "Spegni" / "Turn off" needs a button wide enough to hold it, and on a phone
+ * that width is not there: the label was clipped mid-word against the history
+ * button beside it. The glyph says the same thing in a square, and the words
+ * survive as the button's accessible name. */
+const POWER_ICON =
+  '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>';
 const state = (root[KEY] ||= {
   installed: false,
   listeners: false,
@@ -372,7 +378,14 @@ function ensureToggle(card, model) {
   button.dataset.entity = entity;
   button.dataset.state = model.action.pressed ? "on" : "off";
   button.setAttribute("aria-pressed", model.action.pressed ? "true" : "false");
-  setText(button, model.action.label);
+  // Rewritten rather than set once at creation: a button drawn by an earlier
+  // build is reused here, and it still carries the old text label.
+  if (button.dataset.dmIcon !== "power") {
+    button.innerHTML = POWER_ICON;
+    button.dataset.dmIcon = "power";
+  }
+  button.setAttribute("aria-label", model.action.label);
+  button.setAttribute("title", model.action.label);
   hideLegacyPowerOnly(card);
 }
 
@@ -594,9 +607,16 @@ function installStyles() {
       #page-appliances-main [data-state="unavailable"],#appl-grid-overview [data-state="unavailable"]{
         background:color-mix(in srgb,var(--error-color,#dc2626) 12%,transparent)!important;color:var(--error-color,#b91c1c)!important
       }
+      /* Square: the 88px floor existed to fit the word, and it is what pushed
+         the button into the history control on a narrow card. */
       #page-appliances-main .dm-appliance-power-toggle,#appl-grid-overview .dm-appliance-power-toggle{
-        min-width:88px!important;border:0!important;color:#fff!important;cursor:pointer!important;
+        min-width:0!important;width:40px!important;height:40px!important;padding:0!important;
+        flex:0 0 auto!important;display:inline-grid!important;place-items:center!important;
+        border:0!important;color:#fff!important;cursor:pointer!important;
         background:var(--success-color,#059669)!important
+      }
+      #page-appliances-main .dm-appliance-power-toggle svg,#appl-grid-overview .dm-appliance-power-toggle svg{
+        width:18px!important;height:18px!important
       }
       #page-appliances-main .dm-appliance-image,#appl-grid-overview .dm-appliance-image{
         object-fit:cover!important;object-position:center!important
