@@ -294,3 +294,18 @@ test("normalizeDevice persists every showcase config field", async () => {
   assert.equal("max_power" in emptied, false);
   assert.equal("threshold_run" in emptied, false);
 });
+
+test("the power icon's CSS size matches its markup, so neither shrinks the other", async () => {
+  const source = await readFile(
+    new URL("../src/sections/appliance-showcase-section.js", import.meta.url),
+    "utf8",
+  );
+  // CSS wins over the SVG presentation attributes, so a stale rule here made
+  // an earlier resize of ICONS.power a no-op with nothing to show for it.
+  const markup = /power:\s*\n?\s*'<svg[^']*?width="(\d+)" height="(\d+)"/.exec(source);
+  assert.ok(markup, "the power icon markup declares a size");
+  const rule = /\.dm-ap-power svg\{width:(\d+)px;height:(\d+)px\}/.exec(source);
+  assert.ok(rule, "and a CSS rule sizes it");
+  assert.equal(rule[1], markup[1]);
+  assert.equal(rule[2], markup[2]);
+});

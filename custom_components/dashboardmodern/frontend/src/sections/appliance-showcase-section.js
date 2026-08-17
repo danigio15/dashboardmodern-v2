@@ -1019,7 +1019,9 @@ function showcaseCss() {
 .dm-ap-tool svg{width:13px;height:13px}
 .dm-ap-tool:hover{border-color:#bae6fd;color:var(--dm-blue-deep)}
 .dm-ap-tool:disabled{opacity:.38;cursor:not-allowed}
-.dm-ap-power svg{width:14px;height:14px}
+/* Must track the width/height in ICONS.power: CSS beats the SVG presentation
+   attributes, so a smaller value here silently shrinks the markup back. */
+.dm-ap-power svg{width:16px;height:16px}
 .dm-ap-power.on{background:#dcfce7;border-color:rgba(34,197,94,.35);color:#15803d}
 /* hero */
 .dm-ap-hero{position:relative;display:grid;place-items:center;height:172px;margin:0 13px;border-radius:18px;background:radial-gradient(120% 90% at 50% 8%,rgba(224,242,254,.65),rgba(241,245,249,.35) 60%,transparent);overflow:hidden}
