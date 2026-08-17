@@ -4,6 +4,7 @@ import {
   applianceCatalogLabel,
   canonicalApplianceVisualKey,
 } from "../core/device-model.js";
+import { iconGlyph } from "./icon-engine-section.js";
 import {
   allStates,
   clean,
@@ -31,11 +32,7 @@ function appliances() {
 }
 
 function roomIconEmoji(icon) {
-  if (!icon || typeof icon !== "string") return "🏠";
-  // Skip MDI icons (mdi:*) and return the actual emoji/icon from room config
-  if (icon.startsWith("mdi:")) return "🏠";
-  // Return the configured emoji as-is (e.g. user's chosen icon for the room)
-  return icon || "🏠";
+  return iconGlyph("room", clean(icon) || "mdi:home") || "🏠";
 }
 
 function roomOptions(selected) {
