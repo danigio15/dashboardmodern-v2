@@ -59,10 +59,24 @@ test("alerts get an expanded coherent visual picker without polling", async () =
   assert.doesNotMatch(source, /setInterval\s*\(/);
 });
 
-test("alert name, value and icon never receive entity picker buttons", async () => {
+test("plain-text and typed editor fields never receive entity picker buttons", async () => {
   const source = await readFile(entityGuardUrl, "utf8");
   assert.match(source, /id\.startsWith\("ed-avv-"\)\) return id === "ed-avv-ent"/);
-  assert.match(source, /ALERT_NON_ENTITY_IDS = new Set\(\["ed-avv-name", "ed-avv-val", "ed-avv-icon"\]\)/);
-  assert.match(source, /cleanupFalseAlertPicker\(input\)/);
+  // Alert name/value/icon plus the camera, irrigation and shutter names sit
+  // under an entity-shaped prefix but hold plain text.
+  for (const id of [
+    "ed-avv-name",
+    "ed-avv-val",
+    "ed-avv-icon",
+    "ed-cam-name",
+    "ed-cam-stream",
+    "ed-irr-name",
+    "ed-tp-name",
+  ])
+    assert.match(source, new RegExp(`NON_ENTITY_IDS = new Set\\(\\[[^\\]]*"${id}"`, "s"), id);
+  // Durations, thresholds, times and flags cannot hold an entity_id at all.
+  assert.match(source, /PICKABLE_TYPES = new Set\(\["text", "search", "url"\]\)/);
+  assert.match(source, /!PICKABLE_TYPES\.has\(input\.type\)\) return false/);
+  assert.match(source, /cleanupFalsePicker\(input\)/);
   assert.doesNotMatch(source, /\|avv-\)/);
 });

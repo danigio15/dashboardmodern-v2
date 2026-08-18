@@ -207,7 +207,6 @@ function cardMarkup(model, labels) {
   return `<article class="cam-card dm-cam" data-dm-cam="${esc(model.slug)}" data-dm-entity="${esc(model.entity)}" data-dm-title="${esc(model.title)}" role="button" tabindex="0" aria-label="${esc(labels.openCamera)}: ${esc(model.name)}">
       <div class="dm-cam-feed">
         <img id="${esc(model.slug)}" alt="" decoding="async">
-        <span class="dm-cam-scan" aria-hidden="true"></span>
         <span class="dm-cam-frame" aria-hidden="true"></span>
         <div class="dm-cam-top">
           <span class="dm-cam-live"><i aria-hidden="true"></i>${esc(labels.live)}</span>
@@ -619,11 +618,6 @@ function securityCss() {
   transition:transform .6s cubic-bezier(.16,1,.3,1),filter .35s ease
 }
 .dm-cam:hover .dm-cam-feed>img{transform:scale(1.05)}
-/* interlaced scan texture — very faint, reads as a monitor rather than a photo */
-.dm-cam-scan{
-  position:absolute;inset:0;z-index:2;pointer-events:none;opacity:.16;
-  background:repeating-linear-gradient(180deg,rgba(255,255,255,.14) 0 1px,transparent 1px 3px)
-}
 .dm-cam-frame{position:absolute;inset:9px;z-index:3;pointer-events:none;opacity:.45;transition:opacity .35s ease}
 .dm-cam-frame::before,.dm-cam-frame::after{
   content:"";position:absolute;width:15px;height:15px;border:2px solid rgba(226,238,251,.8)
@@ -678,7 +672,7 @@ function securityCss() {
 .dm-cam-off b{font-family:var(--dm-sec-mono);font-size:11px;letter-spacing:2.2px;text-transform:uppercase}
 .dm-cam.is-off .dm-cam-off{display:flex}
 .dm-cam.is-off .dm-cam-feed>img{filter:grayscale(1) brightness(.35)}
-.dm-cam.is-off .dm-cam-live,.dm-cam.is-off .dm-cam-open,.dm-cam.is-off .dm-cam-scan{display:none}
+.dm-cam.is-off .dm-cam-live,.dm-cam.is-off .dm-cam-open{display:none}
 .dm-cam.is-off .dm-cam-name{color:var(--dm-sec-dim)}
 
 /* empty state */
