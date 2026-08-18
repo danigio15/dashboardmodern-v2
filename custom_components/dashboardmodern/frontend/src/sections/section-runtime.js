@@ -17,6 +17,7 @@ import { installEnergyAnalysisSection } from "./energy-analysis-section.js";
 import { installHistorySection } from "./history-section.js";
 import { installTemperatureSection } from "./temperature-section.js";
 import { installTemperatureLayoutSection } from "./temperature-layout-section.js";
+import { installTemperatureTrendSection } from "./temperature-trend-section.js";
 import { installAppliancesSection } from "./appliances-section.js";
 import { installApplianceLayoutSection } from "./appliance-layout-section.js";
 import { installBeta27ReleaseStability } from "./beta27-release-stability-section.js";
@@ -617,6 +618,7 @@ export function installSectionRuntime() {
     installHistorySection();
     installTemperatureSection();
     installTemperatureLayoutSection();
+    installTemperatureTrendSection();
     installAppliancesSection();
     installApplianceLayoutSection();
     // The showcase renderer must install before the KPI popups wrap

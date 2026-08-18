@@ -197,8 +197,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // editor prints, hides the raw entity field behind "Modifica manuale" and
   // routes the tap to the legacy wzPickEntity(), which the fast search above
   // owns. No polling, no observer.
+  // The Temperature trend panel adds exactly one owner: it draws the history
+  // chart under the cards from the same history/history_during_period the card
+  // popup already uses, follows the room tabs by reading the active tab, and
+  // watches #temp-grid so any renderer rebuild redraws it. No polling.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 97, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 98, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 

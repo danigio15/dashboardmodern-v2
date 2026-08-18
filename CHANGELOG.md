@@ -83,6 +83,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   entità che Home Assistant riporta come non disponibili. Ogni riga mostra ora
   anche il valore attuale e la stanza dell'entità, e la lista si comanda da
   tastiera con ↑ ↓ e Invio.
+- **Temperature** ha ora un pannello **Andamento** sotto le schede, che segue i
+  tab delle stanze: scelta una stanza disegna le sue sonde, su "Tutte" mette una
+  linea per stanza per confrontarle. Il grafico mostra la fascia comfort dove
+  rientra nell'inquadratura, le ore notturne in ombra, il valore corrente in
+  fondo a ogni linea e, sotto, una pastiglia per serie con valore attuale e
+  minimo/massimo del periodo; si passa fra 24 ore e 7 giorni. I dati sono lo
+  stesso storico che la plancia chiede già toccando una scheda, disegnato in SVG
+  senza librerie di grafici.
 - Ogni scheda di **Temperature** porta ora in fondo la scala del comfort, dal
   freddo al caldo, con una tacca nel punto della lettura: si vede quanto una
   stanza è fuori dal comfort, non solo se lo è. Sotto la percentuale di umidità
