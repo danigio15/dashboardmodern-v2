@@ -1,21 +1,22 @@
 // DM-FIX-20260818A
 /* MiniPC section redesign — "Sala macchine".
  *
- * Reskins `#page-server` around the machine itself: the hero becomes the panel
- * of the machine, with the mini PC drawn in isometry, its LEDs and its fan, and
- * a live trace of the CPU load under it. CPU / RAM / Disk turn from flat bars
- * into ring gauges, the CPU temperature gets a thermal scale next to its ring,
- * the telemetry tiles trade emoji for line icons and three headings split the
- * page into thermal, telemetry and network. The panel follows the theme: it is
- * light on a light dashboard and deep navy only when the theme is dark.
+ * Reskins `#page-server` as one composition instead of a column of boxes: the
+ * machine is drawn in isometry at the centre of the panel and CPU, RAM and Disk
+ * orbit it as three concentric arcs, each with its reading on the right. Under
+ * them runs a live curve of the CPU load, the CPU temperature gets a thermal
+ * scale next to its ring, download and upload carry a moving stream, and three
+ * headings split the page into thermal, telemetry and network. The page follows
+ * the theme: light on a light dashboard, deep navy only when the theme is dark.
  *
  * Contracts preserved on purpose — the legacy runtime keeps owning every value:
  * - the three metric bars `#srv-fill-cpu` / `#srv-fill-ram` / `#srv-fill-disk`
- *   stay in the DOM and keep being the only writers of the load: the rings read
- *   their width instead of parsing a sensor again;
- * - `#v-srv-cpu`, `#v-srv-ram` + `#u-srv-ram` and `#v-srv-disk` are moved into
- *   the middle of their ring, never copied, so the dynamic RAM unit (%, GB) the
- *   render loop writes still lands on screen;
+ *   stay in the DOM and keep being the only writers of the load: the arcs read
+ *   their width instead of parsing a sensor again, and the colour of each arc
+ *   comes from the colour that bar was configured with;
+ * - `#v-srv-cpu`, `#v-srv-ram` + `#u-srv-ram` and `#v-srv-disk` are placed by
+ *   the grid, never copied into a second node, so the dynamic RAM unit (%, GB)
+ *   the render loop writes still lands on screen;
  * - `#srv-temp-circle` keeps its `stroke-dasharray` and its `stroke`: the
  *   threshold colour stays the legacy one and the thermal scale reads the arc
  *   the runtime drew rather than re-deriving it from the sensor;
@@ -25,13 +26,15 @@
  * - `#waw-net-badge` / `#waw-inv-badge` keep the `srv-status-badge online` and
  *   `offline` class the render loop rewrites on every tick; the page mirrors the
  *   connectivity one onto `#page-server` as `data-dm-srv-net`, which is what
- *   turns the panel, the LEDs and the trace red when the machine drops off the
+ *   turns the panel, the LEDs and the curve red when the machine drops off the
  *   network;
  * - every card keeps its `onclick`, so `apriStorico()` and `apriSrvHistory()`
- *   still open the history popups, and no `display` is forced with `!important`
- *   on a card `cdAutoHide()` shows or hides by writing an inline `display`.
+ *   still open the history popups. A metric card becomes `display:contents` so
+ *   its arc and its row can live in the same grid: that is a layout mode, not a
+ *   forced display, so the inline `display:none` that `cdAutoHide()` writes on
+ *   an unmapped card still wins and takes both pieces off the page together.
  *
- * The live CPU trace is the one thing drawn from more than the current tick: it
+ * The live curve is the one thing drawn from more than the current tick: it
  * keeps the last readings of `#srv-fill-cpu` in memory for the session, so it is
  * a picture of what the page already showed rather than a second history engine.
  *
@@ -46,24 +49,24 @@ const STYLE_ID = "dm-minipc-showcase-style";
 const state = (root[KEY] ||= { installed: false, listeners: false, frame: 0, trace: [] });
 if (!Array.isArray(state.trace)) state.trace = [];
 
-const RING_RADIUS = 52;
-const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
-/* Same pair as the legacy setRing(): above 85% the gauge is red, above 65%
-   amber, below that it keeps the colour configured on the card. */
+/* Same pair as the legacy setRing(): above 85% the arc is red, above 65% amber,
+   below that it keeps the colour the card was configured with. */
 const WARN_LEVEL = 65;
 const ALERT_LEVEL = 85;
 const WARN_COLOUR = "#f59e0b";
 const ALERT_COLOUR = "#ef4444";
 
-/* Readings kept for the trace: about ten minutes of a dashboard that ticks
+/* The arcs follow the order of the cards in the hero, which is the order the
+   legacy markup writes the bars in: CPU outside, RAM in the middle, Disk in. */
+const METRIC_BARS = Object.freeze(["srv-fill-cpu", "srv-fill-ram", "srv-fill-disk"]);
+const RING_RADII = Object.freeze([86, 68, 50]);
+const RING_BOX = 200;
+
+/* Readings kept for the curve: about ten minutes of a dashboard that ticks
    every few seconds, and short enough to stay a glance rather than a chart. */
 const TRACE_SAMPLES = 96;
 const TRACE_WIDTH = 300;
 const TRACE_HEIGHT = 56;
-
-/* The gauges follow the order of the cards in the hero, which is the order the
-   legacy markup writes the bars in. */
-const METRIC_BARS = Object.freeze(["srv-fill-cpu", "srv-fill-ram", "srv-fill-disk"]);
 
 const ICONS = Object.freeze({
   cpu: '<rect x="8.4" y="8.4" width="7.2" height="7.2" rx="1.6"/><rect x="4.6" y="4.6" width="14.8" height="14.8" rx="3"/><path d="M9 2.6v2M15 2.6v2M9 19.4v2M15 19.4v2M2.6 9h2M2.6 15h2M19.4 9h2M19.4 15h2"/>',
@@ -75,7 +78,6 @@ const ICONS = Object.freeze({
   up: '<path d="M12 20.4v-13M6.8 12.6 12 7.4l5.2 5.2M4.6 3.6h14.8"/>',
   wifi: '<path d="M2.6 8.8a14 14 0 0 1 18.8 0M5.8 12.4a9.4 9.4 0 0 1 12.4 0M9 16a4.8 4.8 0 0 1 6 0"/><circle cx="12" cy="19.4" r="1.1" fill="currentColor" stroke="none"/>',
   grid: '<path d="M12 2.6 4 8.4V21h16V8.4L12 2.6Z"/><path d="M12.8 10.2 9.4 15.4h3l-.8 4 3.8-5.6h-2.8l.2-3.6Z"/>',
-  thermo: '<path d="M14 14.4V5.2a2 2 0 1 0-4 0v9.2a3.9 3.9 0 1 0 4 0Z"/>',
 });
 
 /* The telemetry tiles are static markup: their emoji is decoration, so it can be
@@ -85,6 +87,12 @@ const TELEMETRY_ICONS = Object.freeze({
   "dm.server_uptime_home_assistant": "clock",
   "dm.server_speedtest_download": "down",
   "dm.server_speedtest_upload": "up",
+});
+
+/* Download and upload get a stream that runs the way the bytes go. */
+const TELEMETRY_FLOW = Object.freeze({
+  "dm.server_speedtest_download": "in",
+  "dm.server_speedtest_upload": "out",
 });
 
 const METRIC_ICONS = Object.freeze({
@@ -113,8 +121,8 @@ export function metricLevel(barId, scope = doc) {
   return Math.max(0, Math.min(100, width));
 }
 
-/** Dash pair drawing `level` percent of a ring. */
-export function ringDash(level, circumference = RING_LENGTH) {
+/** Dash pair drawing `level` percent of a ring of that circumference. */
+export function ringDash(level, circumference) {
   const value = Number.isFinite(level) ? Math.max(0, Math.min(100, level)) : 0;
   const drawn = (value / 100) * circumference;
   return `${drawn.toFixed(1)} ${(circumference - drawn).toFixed(1)}`;
@@ -125,6 +133,14 @@ export function ringColour(level, colour) {
   if (Number.isFinite(level) && level > ALERT_LEVEL) return ALERT_COLOUR;
   if (Number.isFinite(level) && level > WARN_LEVEL) return WARN_COLOUR;
   return colour;
+}
+
+/** How loaded a gauge reads, for the styling of its row. */
+export function ringLevelName(level) {
+  if (!Number.isFinite(level)) return "";
+  if (level > ALERT_LEVEL) return "alert";
+  if (level > WARN_LEVEL) return "warn";
+  return "ok";
 }
 
 /**
@@ -155,28 +171,6 @@ export function tempWording(text) {
   return clean(clean(text).replace(/^[🔴🟡🟢]\s*/u, ""));
 }
 
-/**
- * The trace, as the two paths that draw it: the line and the area under it.
- * A single reading is drawn flat across the band instead of as a lone dot.
- */
-/** Height of one reading inside the band, as a share of the band. */
-export function traceOffset(value, height = TRACE_HEIGHT) {
-  const level = Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
-  return (height - 3 - (level / 100) * (height - 6)) / height;
-}
-
-export function tracePaths(values, width = TRACE_WIDTH, height = TRACE_HEIGHT) {
-  const points = (values || []).filter((value) => Number.isFinite(value));
-  if (!points.length) return { line: "", area: "" };
-  const span = points.length > 1 ? width / (points.length - 1) : width;
-  const y = (value) => traceOffset(value, height) * height;
-  const line =
-    points.length === 1
-      ? `M0 ${y(points[0]).toFixed(1)} L${width} ${y(points[0]).toFixed(1)}`
-      : points.map((value, index) => `${index ? "L" : "M"}${(index * span).toFixed(1)} ${y(value).toFixed(1)}`).join(" ");
-  return { line, area: `${line} L${width} ${height} L0 ${height} Z` };
-}
-
 /** Connectivity, read from the badge class the render loop rewrites per tick. */
 export function networkState(scope = doc) {
   const badge = scope?.getElementById?.("waw-net-badge");
@@ -185,9 +179,56 @@ export function networkState(scope = doc) {
   return "";
 }
 
+/** Height of one reading inside the curve band, as a share of the band. */
+export function traceOffset(value, height = TRACE_HEIGHT) {
+  const level = Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+  return (height - 3 - (level / 100) * (height - 6)) / height;
+}
+
+/**
+ * A Catmull-Rom spline through the readings, as cubic segments. The controls
+ * are clamped inside the band, so a spike cannot bow the curve out of the card.
+ */
+export function smoothPath(points, height = TRACE_HEIGHT) {
+  if (!points.length) return "";
+  const at = (index) => points[Math.max(0, Math.min(points.length - 1, index))];
+  const clamp = (y) => Math.max(1, Math.min(height - 1, y));
+  const round = (value) => value.toFixed(1);
+  let path = `M${round(points[0].x)} ${round(points[0].y)}`;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const previous = at(index - 1);
+    const start = at(index);
+    const end = at(index + 1);
+    const next = at(index + 2);
+    const firstX = start.x + (end.x - previous.x) / 6;
+    const firstY = clamp(start.y + (end.y - previous.y) / 6);
+    const secondX = end.x - (next.x - start.x) / 6;
+    const secondY = clamp(end.y - (next.y - start.y) / 6);
+    path += ` C${round(firstX)} ${round(firstY)} ${round(secondX)} ${round(secondY)} ${round(end.x)} ${round(end.y)}`;
+  }
+  return path;
+}
+
+/**
+ * The curve, as the two paths that draw it: the line and the area under it.
+ * A single reading is drawn flat across the band instead of as a lone dot.
+ */
+export function tracePaths(values, width = TRACE_WIDTH, height = TRACE_HEIGHT) {
+  const levels = (values || []).filter((value) => Number.isFinite(value));
+  if (!levels.length) return { line: "", area: "" };
+  const span = levels.length > 1 ? width / (levels.length - 1) : width;
+  const points = levels.map((value, index) => ({
+    x: levels.length === 1 ? 0 : index * span,
+    y: traceOffset(value, height) * height,
+  }));
+  if (levels.length === 1) points.push({ x: width, y: points[0].y });
+  const line = smoothPath(points, height);
+  return { line, area: `${line} L${width} ${height} L0 ${height} Z` };
+}
+
 /**
  * Keep the reading the page is showing. Sampling happens on every state event,
- * page open or not, so the trace is already drawn when the section is opened.
+ * page open or not, so the curve is already drawn when the section is opened.
  */
 export function sampleCpu(scope = doc, samples = state.trace) {
   const level = metricLevel("srv-fill-cpu", scope);
@@ -199,42 +240,7 @@ export function sampleCpu(scope = doc, samples = state.trace) {
 
 /* ── mount ────────────────────────────────────────────────────────────── */
 
-function ringMarkup() {
-  return `
-    <svg class="dm-srvx-ring" viewBox="0 0 120 120" aria-hidden="true">
-      <circle class="dm-srvx-ring-track" cx="60" cy="60" r="${RING_RADIUS}" fill="none" stroke-width="8"/>
-      <circle class="dm-srvx-ring-arc" cx="60" cy="60" r="${RING_RADIUS}" fill="none" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 ${RING_LENGTH.toFixed(1)}"/>
-    </svg>`;
-}
-
-/**
- * Turn one metric card into a ring gauge. The value nodes are moved into the
- * middle of the ring, never copied, so the render loop keeps one target.
- */
-function mountGauge(card) {
-  if (card.dataset.dmSrvxGauge) return;
-  card.dataset.dmSrvxGauge = "true";
-  const gauge = doc.createElement("div");
-  gauge.className = "dm-srvx-gauge";
-  gauge.innerHTML = `${ringMarkup()}<div class="dm-srvx-gauge-val"></div>`;
-  const value = card.querySelector(".srv-metric-val")?.parentElement;
-  card.prepend(gauge);
-  if (value) gauge.querySelector(".dm-srvx-gauge-val")?.append(value);
-  const glyph = card.querySelector(".srv-metric-icon");
-  const name = METRIC_ICONS[cardEntity(card)];
-  if (glyph && name) glyph.innerHTML = icon(name, 16);
-}
-
-/**
- * The machine itself: an isometric chassis drawn once in the slot the hero
- * already has. Only the LEDs and the fan move, and both stop when the badge
- * says the machine is off the network.
- */
-function mountChassis(page) {
-  const slot = page.querySelector(".srv-hero-icon");
-  if (!slot || slot.dataset.dmSrvxChassis) return;
-  slot.dataset.dmSrvxChassis = "true";
-  slot.innerHTML = `
+const CHASSIS = `
     <svg class="dm-srvx-box" viewBox="0 0 120 104" aria-hidden="true">
       <defs>
         <linearGradient id="dmSrvxTop" x1="0" y1="0" x2="1" y2="1">
@@ -282,16 +288,69 @@ function mountChassis(page) {
         <path d="M70 63.5v9M76 60v9M82 56.5v9M88 53v9"/>
       </g>
     </svg>`;
+
+/**
+ * Turn one metric card into a layer of the dial: an arc at its own radius over
+ * the machine, and its label and value as a row beside it. The card becomes
+ * `display:contents`, so both pieces sit in the hero grid and both leave the
+ * page together when the auto-hide writes `display:none` on the card.
+ */
+function mountGauge(card, index) {
+  if (card.dataset.dmSrvxGauge) return;
+  card.dataset.dmSrvxGauge = "true";
+  card.style.setProperty("--dm-srvx-row", String(index + 1));
+  const radius = RING_RADII[index] ?? RING_RADII[RING_RADII.length - 1];
+  const length = 2 * Math.PI * radius;
+  const gauge = doc.createElement("div");
+  gauge.className = "dm-srvx-gauge";
+  gauge.innerHTML = `
+    <svg class="dm-srvx-ring" viewBox="0 0 ${RING_BOX} ${RING_BOX}" aria-hidden="true">
+      <circle class="dm-srvx-ring-track" cx="100" cy="100" r="${radius}" fill="none" stroke-width="13"/>
+      <circle class="dm-srvx-ring-arc" cx="100" cy="100" r="${radius}" fill="none" stroke-width="13" stroke-linecap="round" stroke-dasharray="0 ${length.toFixed(1)}"/>
+    </svg>`;
+  card.prepend(gauge);
+  const label = card.querySelector(".srv-metric-lbl");
+  if (label && !card.querySelector(".dm-srvx-key")) {
+    const key = doc.createElement("span");
+    key.className = "dm-srvx-key";
+    label.insertAdjacentElement("beforebegin", key);
+  }
+  const glyph = card.querySelector(".srv-metric-icon");
+  const name = METRIC_ICONS[cardEntity(card)];
+  if (glyph && name) glyph.innerHTML = icon(name, 15);
 }
 
 /**
- * The band under the header: the readings this page has already shown, kept for
+ * The machine itself, at the centre of the dial. The drawing goes into the slot
+ * the hero already had and that slot is moved, never copied, so the header
+ * keeps owning its own markup.
+ */
+function mountCore(page) {
+  const metrics = page.querySelector(".srv-hero-metrics");
+  const slot = page.querySelector(".srv-hero-icon");
+  if (!metrics || !slot) return;
+  if (!slot.dataset.dmSrvxChassis) {
+    slot.dataset.dmSrvxChassis = "true";
+    slot.innerHTML = CHASSIS;
+  }
+  let core = metrics.querySelector(":scope > .dm-srvx-core");
+  if (!core) {
+    core = doc.createElement("div");
+    core.className = "dm-srvx-core";
+    core.innerHTML = '<span class="dm-srvx-core-halo" aria-hidden="true"></span>';
+    metrics.prepend(core);
+  }
+  if (slot.parentElement !== core) core.append(slot);
+}
+
+/**
+ * The band under the dial: the readings this page has already shown, kept for
  * the session so the machine has a shape over time and not just a number.
  */
 function mountTrace(page) {
   const hero = page.querySelector(".srv-hero");
-  const top = hero?.querySelector(".srv-hero-top");
-  if (!top) return null;
+  const metrics = hero?.querySelector(".srv-hero-metrics");
+  if (!metrics) return null;
   let trace = hero.querySelector(":scope > .dm-srvx-trace");
   if (trace) return trace;
   trace = doc.createElement("div");
@@ -306,7 +365,7 @@ function mountTrace(page) {
       <svg class="dm-srvx-trace-svg" viewBox="0 0 ${TRACE_WIDTH} ${TRACE_HEIGHT}" preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id="dmSrvxTraceFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="currentColor" stop-opacity=".42"/>
+            <stop offset="0" stop-color="currentColor" stop-opacity=".38"/>
             <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
           </linearGradient>
         </defs>
@@ -316,7 +375,7 @@ function mountTrace(page) {
       </svg>
       <span class="dm-srvx-trace-dot"></span>
     </div>`;
-  top.insertAdjacentElement("afterend", trace);
+  metrics.insertAdjacentElement("afterend", trace);
   return trace;
 }
 
@@ -353,7 +412,7 @@ function syncHeadings(page) {
   }
 }
 
-/** Aurora and sweep behind the chassis panel — decoration, not a reading. */
+/** Aurora and board grid behind the panel — decoration, not a reading. */
 function mountHeroEffect(page) {
   const hero = page.querySelector(".srv-hero");
   if (!hero || hero.dataset.dmSrvxFx) return;
@@ -385,13 +444,24 @@ function mountThermal(page) {
   return card;
 }
 
-function mountTelemetryIcons(page) {
+/** Line icons on the telemetry tiles, and a stream on the two speed tiles. */
+function mountTelemetry(page) {
   for (const tile of page.querySelectorAll(".srv-tel-card")) {
+    const entity = cardEntity(tile);
     const glyph = tile.querySelector(".srv-tel-icon");
-    const name = TELEMETRY_ICONS[cardEntity(tile)];
-    if (!glyph || !name || glyph.dataset.dmSrvxIcon) continue;
-    glyph.dataset.dmSrvxIcon = name;
-    glyph.innerHTML = icon(name, 19);
+    const name = TELEMETRY_ICONS[entity];
+    if (glyph && name && !glyph.dataset.dmSrvxIcon) {
+      glyph.dataset.dmSrvxIcon = name;
+      glyph.innerHTML = icon(name, 19);
+    }
+    const flow = TELEMETRY_FLOW[entity];
+    if (flow && !tile.dataset.dmSrvxFlow) {
+      tile.dataset.dmSrvxFlow = flow;
+      const stream = doc.createElement("span");
+      stream.className = "dm-srvx-stream";
+      stream.setAttribute("aria-hidden", "true");
+      tile.append(stream);
+    }
   }
 }
 
@@ -411,7 +481,7 @@ function mountStatusIcons(page) {
 
 /* ── render ───────────────────────────────────────────────────────────── */
 
-/** Draw the samples collected so far; an empty trace keeps the band hidden. */
+/** Draw the samples collected so far; an empty curve keeps the band hidden. */
 function renderTrace(trace) {
   if (!trace) return;
   const samples = state.trace;
@@ -432,34 +502,44 @@ function renderTrace(trace) {
   if (peak && peak.textContent !== value) peak.textContent = value;
 }
 
+/** Draw one layer of the dial from the bar the legacy loop keeps writing. */
+function renderGauge(card, index) {
+  const arc = card.querySelector(".dm-srvx-ring-arc");
+  if (!arc) return;
+  const radius = RING_RADII[index] ?? RING_RADII[RING_RADII.length - 1];
+  const level = metricLevel(METRIC_BARS[index] || "", doc);
+  const dash = ringDash(level ?? 0, 2 * Math.PI * radius);
+  if (arc.getAttribute("stroke-dasharray") !== dash) arc.setAttribute("stroke-dasharray", dash);
+  // The bar carries the colour the markup configured for this metric.
+  const own = clean(card.querySelector(".srv-metric-fill")?.style?.background) || "currentColor";
+  const colour = ringColour(level, own);
+  // The key next to the label is the legend of that arc, so it takes the colour
+  // the arc ended up with rather than the one the card was configured with.
+  if (clean(card.style.getPropertyValue("--dm-srvx-col")) !== colour) {
+    card.style.setProperty("--dm-srvx-col", colour);
+  }
+  if (arc.getAttribute("stroke") !== colour) arc.setAttribute("stroke", colour);
+  const name = ringLevelName(level);
+  if (card.dataset.dmSrvxLevel !== name) card.dataset.dmSrvxLevel = name;
+}
+
 export function renderMinipcShowcase() {
   const page = doc?.getElementById?.("page-server");
   if (!page) return false;
   page.classList.add("dm-srvx");
   page.querySelector(".srv-hero")?.parentElement?.classList.add("dm-srvx-shell");
   mountHeroEffect(page);
-  mountChassis(page);
-  mountTelemetryIcons(page);
+  mountCore(page);
+  mountTelemetry(page);
   mountStatusIcons(page);
   mountHeadings(page);
   syncHeadings(page);
   renderTrace(mountTrace(page));
   const thermal = mountThermal(page) || page.querySelector(".srv-temp-card");
 
-  const cards = [...page.querySelectorAll(".srv-hero-metrics .srv-metric")];
-  cards.forEach((card, index) => {
-    mountGauge(card);
-    const arc = card.querySelector(".dm-srvx-ring-arc");
-    if (!arc) return;
-    const level = metricLevel(METRIC_BARS[index] || "", doc);
-    const dash = ringDash(level ?? 0);
-    if (arc.getAttribute("stroke-dasharray") !== dash) arc.setAttribute("stroke-dasharray", dash);
-    // The bar carries the colour the markup configured for this metric.
-    const own = clean(card.querySelector(".srv-metric-fill")?.style?.background) || "currentColor";
-    const colour = ringColour(level, own);
-    if (arc.getAttribute("stroke") !== colour) arc.setAttribute("stroke", colour);
-    const loaded = level === null ? "" : level > ALERT_LEVEL ? "alert" : level > WARN_LEVEL ? "warn" : "ok";
-    if (card.dataset.dmSrvxLevel !== loaded) card.dataset.dmSrvxLevel = loaded;
+  [...page.querySelectorAll(".srv-hero-metrics .srv-metric")].forEach((card, index) => {
+    mountGauge(card, index);
+    renderGauge(card, index);
   });
 
   if (thermal) {
@@ -506,7 +586,7 @@ export function installMinipcShowcaseSection() {
       root.addEventListener?.(eventName, scheduleMinipcShowcase);
     }
     // The bars, the temperature arc and the badges repaint through the legacy
-    // render loop, so the gauges follow the same events instead of a timer.
+    // render loop, so the dial follows the same events instead of a timer.
     root.addEventListener?.("dashboardmodern:state-changed", () => {
       // Sampling is three DOM reads, so it runs on every tick; the repaint only
       // happens while the page is the one on screen.
@@ -541,16 +621,14 @@ function minipcShowcaseCss() {
   --srvx-shadow:0 20px 38px -26px rgba(10,26,44,.55),0 2px 6px -3px rgba(10,26,44,.12);
   --srvx-shadow-s:0 16px 30px -24px rgba(10,26,44,.6),0 2px 5px -3px rgba(10,26,44,.12);
   --srvx-live:#10b981;--srvx-live-rgb:16,185,129;
-  /* the hero follows the theme: light surfaces on a light dashboard */
-  --srvx-hero-bg:linear-gradient(150deg,#fbfdff 0%,#edf3fa 55%,#e4ecf6 100%);
+  /* the panel follows the theme: light surfaces on a light dashboard */
+  --srvx-hero-bg:linear-gradient(150deg,#fbfdff 0%,#eef4fb 55%,#e5edf7 100%);
   --srvx-hero-text:var(--srvx-text);
   --srvx-hero-dim:var(--srvx-dim);
-  --srvx-hero-tile:#ffffff;
-  --srvx-hero-tile-shadow:0 12px 24px -18px rgba(10,26,44,.5);
   --srvx-hero-line:rgba(15,23,42,.08);
   --srvx-hero-shadow:0 24px 44px -30px rgba(10,26,44,.55),0 2px 6px -3px rgba(10,26,44,.1);
   --srvx-hero-inset:inset 0 0 0 1px rgba(15,23,42,.05);
-  --srvx-track:rgba(15,23,42,.09);
+  --srvx-track:rgba(15,23,42,.07);
   --srvx-case-top-a:#eef3fa;--srvx-case-top-b:#c3d0e0;
   --srvx-case-left-a:#a9b7ca;--srvx-case-left-b:#8b9bb1;
   --srvx-case-right-a:#93a2b8;--srvx-case-right-b:#76869d;
@@ -564,49 +642,91 @@ function minipcShowcaseCss() {
 #page-server.dm-srvx .dm-srvx-shell{display:grid;gap:14px}
 #page-server.dm-srvx .dm-srvx-ico{display:block;flex:0 0 auto}
 
-/* ── the chassis panel ────────────────────────────────────────────────── */
+/* ── the panel ────────────────────────────────────────────────────────── */
 #page-server.dm-srvx .srv-hero{
-  margin-bottom:0!important;padding:20px!important;border:0!important;
+  margin-bottom:0!important;padding:22px 24px 24px!important;border:0!important;
   border-radius:var(--srvx-r)!important;
   background:var(--srvx-hero-bg)!important;
   box-shadow:var(--srvx-hero-shadow),var(--srvx-hero-inset)!important;
   color:var(--srvx-hero-text)!important
 }
 #page-server.dm-srvx .srv-hero::before{
-  top:-46%!important;right:-12%!important;width:340px!important;height:340px!important;
+  top:-46%!important;right:-12%!important;width:360px!important;height:360px!important;
   background:radial-gradient(circle,rgba(var(--srvx-live-rgb),.14) 0%,transparent 68%)!important
 }
 #page-server.dm-srvx .srv-hero::after{
-  bottom:-34%!important;left:-8%!important;width:280px!important;height:280px!important;
+  bottom:-34%!important;left:-8%!important;width:300px!important;height:300px!important;
   background:radial-gradient(circle,rgba(56,189,248,.14) 0%,transparent 70%)!important
 }
-/* faint board traces plus a sweep that crosses the panel */
 #page-server.dm-srvx .dm-srvx-fx{
   position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden;
-  border-radius:inherit;opacity:.5;
+  border-radius:inherit;opacity:.55;
   background-image:
     linear-gradient(var(--srvx-hero-line) 1px,transparent 1px),
     linear-gradient(90deg,var(--srvx-hero-line) 1px,transparent 1px);
   background-size:34px 34px,34px 34px;
-  -webkit-mask-image:radial-gradient(120% 90% at 78% 8%,#000 0%,transparent 72%);
-  mask-image:radial-gradient(120% 90% at 78% 8%,#000 0%,transparent 72%)
+  -webkit-mask-image:radial-gradient(120% 90% at 78% 6%,#000 0%,transparent 72%);
+  mask-image:radial-gradient(120% 90% at 78% 6%,#000 0%,transparent 72%)
 }
 #page-server.dm-srvx .dm-srvx-fx::after{
   content:"";position:absolute;top:0;bottom:0;width:34%;left:-40%;
   background:linear-gradient(90deg,transparent,rgba(var(--srvx-live-rgb),.10),transparent);
   animation:dmSrvxSweep 9s ease-in-out infinite
 }
-#page-server.dm-srvx .srv-hero-top{margin-bottom:20px!important;z-index:2}
-/* the machine stands on the panel instead of sitting in a chip */
+#page-server.dm-srvx .srv-hero-top{margin-bottom:14px!important;z-index:2}
+#page-server.dm-srvx .srv-hero-brand>div{min-width:0}
+#page-server.dm-srvx .srv-hero-title{color:var(--srvx-hero-text)!important;font-size:23px!important;letter-spacing:.06em!important}
+#page-server.dm-srvx .srv-hero-sub{color:var(--srvx-hero-dim)!important;letter-spacing:.14em!important}
+#page-server.dm-srvx .srv-hero-pill{
+  background:rgba(var(--srvx-live-rgb),.12)!important;
+  border:1px solid rgba(var(--srvx-live-rgb),.32)!important;
+  color:var(--srvx-live)!important;padding:8px 15px!important
+}
+#page-server.dm-srvx .srv-hero-dot{
+  background:var(--srvx-live)!important;
+  box-shadow:0 0 0 4px rgba(var(--srvx-live-rgb),.16)!important
+}
+
+/* ── the dial: three arcs around the machine ──────────────────────────── */
+#page-server.dm-srvx .srv-hero-metrics{
+  --srvx-dial:244px;--srvx-gap:22px;
+  display:grid!important;
+  grid-template-columns:var(--srvx-dial) minmax(120px,210px) minmax(74px,auto)!important;
+  grid-template-rows:repeat(3,auto)!important;
+  align-items:center!important;justify-content:center!important;
+  column-gap:var(--srvx-gap)!important;row-gap:0!important
+}
+/* display:contents is a layout mode, not a forced display: the inline
+   display:none cdAutoHide() writes on an unmapped card still wins. */
+#page-server.dm-srvx .srv-metric{
+  display:contents;background:none!important;border:0!important;box-shadow:none!important;padding:0!important
+}
+#page-server.dm-srvx .dm-srvx-core,
+#page-server.dm-srvx .dm-srvx-gauge{
+  grid-column:1;grid-row:1 / span 3;place-self:center;position:relative;
+  width:var(--srvx-dial);height:var(--srvx-dial)
+}
+#page-server.dm-srvx .dm-srvx-gauge{pointer-events:none}
+#page-server.dm-srvx .dm-srvx-ring{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+#page-server.dm-srvx .dm-srvx-ring-track{stroke:var(--srvx-track)}
+#page-server.dm-srvx .dm-srvx-ring-arc{
+  pointer-events:stroke;cursor:pointer;
+  transition:stroke-dasharray 1.1s cubic-bezier(.2,.8,.25,1),stroke .45s ease;
+  filter:drop-shadow(0 3px 7px rgba(10,26,44,.2))
+}
+#page-server.dm-srvx .dm-srvx-core{display:grid;place-items:center}
+#page-server.dm-srvx .dm-srvx-core-halo{
+  position:absolute;width:48%;height:48%;border-radius:50%;
+  background:radial-gradient(circle,rgba(var(--srvx-live-rgb),.16) 0%,transparent 70%)
+}
 #page-server.dm-srvx .srv-hero-icon{
-  width:112px!important;height:100px!important;border:0!important;border-radius:0!important;
+  position:relative;z-index:1;
+  width:104px!important;height:92px!important;border:0!important;border-radius:0!important;
   background:none!important;box-shadow:none!important;padding:0!important;overflow:visible!important
 }
 #page-server.dm-srvx .dm-srvx-box{width:100%;height:100%;display:block;overflow:visible}
 #page-server.dm-srvx .dm-srvx-box-body{filter:drop-shadow(var(--srvx-case-shadow))}
-#page-server.dm-srvx .dm-srvx-box-glow{
-  fill:rgba(var(--srvx-live-rgb),.20);filter:blur(7px);transition:fill .5s ease
-}
+#page-server.dm-srvx .dm-srvx-box-glow{fill:rgba(var(--srvx-live-rgb),.2);filter:blur(7px);transition:fill .5s ease}
 #page-server.dm-srvx .dm-srvx-box-edge{stroke:var(--srvx-case-edge)}
 #page-server.dm-srvx .dm-srvx-box-edge-soft{opacity:.45}
 #page-server.dm-srvx .dm-srvx-vents{stroke:var(--srvx-case-ink)}
@@ -619,29 +739,62 @@ function minipcShowcaseCss() {
   animation:dmSrvxSpin 3.4s linear infinite
 }
 #page-server.dm-srvx .dm-srvx-strip{
-  stroke:var(--srvx-live);stroke-width:2.4;stroke-linecap:round;opacity:.85;
-  filter:drop-shadow(0 0 5px rgba(var(--srvx-live-rgb),.8))
+  stroke:var(--srvx-live);stroke-width:2.4;stroke-linecap:round;opacity:.9;
+  filter:drop-shadow(0 0 5px rgba(var(--srvx-live-rgb),.75))
 }
 #page-server.dm-srvx .dm-srvx-led{fill:var(--srvx-live)}
 #page-server.dm-srvx .dm-srvx-led-pwr{filter:drop-shadow(0 0 5px rgba(var(--srvx-live-rgb),.95))}
-#page-server.dm-srvx .dm-srvx-led-act{fill:#60a5fa;animation:dmSrvxBlink 2.6s steps(1,end) infinite}
-#page-server.dm-srvx[data-dm-srv-net="off"] .dm-srvx-led-act{fill:#64748b;animation:none}
+#page-server.dm-srvx .dm-srvx-led-act{fill:#38bdf8;animation:dmSrvxBlink 2.6s steps(1,end) infinite}
+#page-server.dm-srvx[data-dm-srv-net="off"] .dm-srvx-led-act{fill:#94a3b8;animation:none}
 #page-server.dm-srvx[data-dm-srv-net="off"] .dm-srvx-fan{animation:none}
-#page-server.dm-srvx .srv-hero-brand>div{min-width:0}
-#page-server.dm-srvx .srv-hero-title{color:var(--srvx-hero-text)!important;font-size:23px!important;letter-spacing:.06em!important}
-#page-server.dm-srvx .srv-hero-sub{color:var(--srvx-hero-dim)!important;letter-spacing:.14em!important}
-#page-server.dm-srvx .srv-hero-pill{
-  background:rgba(var(--srvx-live-rgb),.14)!important;
-  border:1px solid rgba(var(--srvx-live-rgb),.34)!important;
-  color:var(--srvx-live)!important;padding:8px 15px!important
-}
-#page-server.dm-srvx .srv-hero-dot{
-  background:var(--srvx-live)!important;
-  box-shadow:0 0 0 4px rgba(var(--srvx-live-rgb),.18)!important
-}
 
-/* ── the live CPU trace ───────────────────────────────────────────────── */
-#page-server.dm-srvx .dm-srvx-trace{position:relative;z-index:2;margin:0 0 16px;display:grid;gap:6px}
+/* ── the readings, one row per arc ────────────────────────────────────── */
+/* Two cells, one row: the label cell reaches under the gap so a hover lights up
+   the whole reading instead of two halves with a hole between them. */
+#page-server.dm-srvx .srv-metric-top{
+  grid-column:2;grid-row:var(--dm-srvx-row,1);
+  display:flex!important;align-items:center!important;justify-content:flex-start!important;
+  gap:9px!important;cursor:pointer;
+  padding:15px var(--srvx-gap) 15px 12px!important;margin-right:calc(var(--srvx-gap) * -1);
+  border-radius:14px 0 0 14px;transition:background .25s ease
+}
+#page-server.dm-srvx .srv-metric>div:not(.srv-metric-top):not(.dm-srvx-gauge):not(.srv-metric-bar){
+  grid-column:3;grid-row:var(--dm-srvx-row,1);
+  display:flex;align-items:baseline;justify-content:flex-end;gap:2px;
+  padding:15px 12px 15px 0;cursor:pointer;
+  border-radius:0 14px 14px 0;transition:background .25s ease
+}
+#page-server.dm-srvx .srv-metric:hover .srv-metric-top,
+#page-server.dm-srvx .srv-metric:hover>div:not(.srv-metric-top):not(.dm-srvx-gauge):not(.srv-metric-bar){
+  background:color-mix(in srgb,var(--dm-srvx-col,#94a3b8) 9%,transparent)
+}
+#page-server.dm-srvx .dm-srvx-key{
+  width:10px;height:10px;border-radius:50%;flex:0 0 auto;
+  background:var(--dm-srvx-col,#94a3b8);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--dm-srvx-col,#94a3b8) 16%,transparent)
+}
+#page-server.dm-srvx .srv-metric-lbl{
+  font-size:11px!important;letter-spacing:.16em!important;color:var(--srvx-hero-dim)!important
+}
+#page-server.dm-srvx .srv-metric-icon{
+  display:grid!important;place-items:center!important;
+  font-size:0!important;color:var(--srvx-hero-dim)!important;opacity:.5!important
+}
+#page-server.dm-srvx .srv-metric-val{
+  font-size:30px!important;font-weight:300!important;letter-spacing:-.04em!important;
+  color:var(--srvx-hero-text)!important;line-height:1!important
+}
+#page-server.dm-srvx .srv-metric-unit{
+  font-size:13px!important;font-weight:700!important;color:var(--srvx-hero-dim)!important
+}
+#page-server.dm-srvx .srv-metric[data-dm-srvx-level="alert"] .srv-metric-lbl,
+#page-server.dm-srvx .srv-metric[data-dm-srvx-level="alert"] .srv-metric-val{color:#dc2626!important}
+#page-server.dm-srvx .srv-metric:hover .srv-metric-lbl{color:var(--srvx-hero-text)!important}
+/* the bar stays: it is the value the arcs read, so it is hidden, not removed */
+#page-server.dm-srvx .srv-metric-bar{display:none!important}
+
+/* ── the live curve ───────────────────────────────────────────────────── */
+#page-server.dm-srvx .dm-srvx-trace{position:relative;z-index:2;margin:16px 0 0;display:grid;gap:6px}
 #page-server.dm-srvx .dm-srvx-trace[data-dm-srvx-trace="empty"]{display:none}
 #page-server.dm-srvx .dm-srvx-trace-head{
   display:flex;align-items:baseline;justify-content:space-between;gap:10px;
@@ -651,23 +804,22 @@ function minipcShowcaseCss() {
 #page-server.dm-srvx .dm-srvx-trace-peak{color:var(--srvx-live);letter-spacing:.1em}
 #page-server.dm-srvx .dm-srvx-trace-plot{position:relative}
 #page-server.dm-srvx .dm-srvx-trace-svg{
-  display:block;width:100%;height:46px;
+  display:block;width:100%;height:46px;color:var(--srvx-live);
   border-bottom:1px solid var(--srvx-hero-line)
 }
 #page-server.dm-srvx .dm-srvx-trace-mid{
   stroke:var(--srvx-hero-line);stroke-width:1;stroke-dasharray:3 5;vector-effect:non-scaling-stroke
 }
-#page-server.dm-srvx .dm-srvx-trace-dot{
-  position:absolute;right:0;top:var(--dm-srvx-last,50%);
-  width:8px;height:8px;margin:-4px -4px 0 0;border-radius:50%;background:var(--srvx-live);
-  box-shadow:0 0 0 3px rgba(var(--srvx-live-rgb),.22);
-  transition:top .6s cubic-bezier(.2,.8,.25,1)
-}
-#page-server.dm-srvx .dm-srvx-trace-svg{color:var(--srvx-live)}
 #page-server.dm-srvx .dm-srvx-trace-area{fill:url(#dmSrvxTraceFill)}
 #page-server.dm-srvx .dm-srvx-trace-line{
   stroke:var(--srvx-live);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;
   vector-effect:non-scaling-stroke
+}
+#page-server.dm-srvx .dm-srvx-trace-dot{
+  position:absolute;right:0;top:var(--dm-srvx-last,50%);
+  width:8px;height:8px;margin:-4px -4px 0 0;border-radius:50%;background:var(--srvx-live);
+  box-shadow:0 0 0 3px rgba(var(--srvx-live-rgb),.2);
+  transition:top .6s cubic-bezier(.2,.8,.25,1)
 }
 
 /* ── section headings ─────────────────────────────────────────────────── */
@@ -680,48 +832,6 @@ function minipcShowcaseCss() {
   content:"";flex:1;height:1px;
   background:linear-gradient(90deg,color-mix(in srgb,var(--srvx-dim) 32%,transparent),transparent)
 }
-
-/* ── the three ring gauges ────────────────────────────────────────────── */
-#page-server.dm-srvx .srv-hero-metrics{gap:14px!important}
-/* no !important on display: cdAutoHide() writes it inline on unmapped cards */
-#page-server.dm-srvx .srv-metric{
-  display:grid;grid-template-rows:auto auto;justify-items:center;gap:10px;
-  padding:16px 12px 14px!important;border-radius:var(--srvx-r-s)!important;
-  background:var(--srvx-hero-tile)!important;border:1px solid var(--srvx-hero-line)!important;
-  box-shadow:var(--srvx-hero-tile-shadow,none)!important;
-  transition:transform .3s cubic-bezier(.34,1.4,.5,1),background .3s ease,border-color .3s ease,box-shadow .3s ease!important
-}
-#page-server.dm-srvx .srv-metric:hover{
-  transform:translateY(-3px)!important;
-  box-shadow:0 18px 28px -20px rgba(10,26,44,.45)!important
-}
-#page-server.dm-srvx .dm-srvx-gauge{position:relative;width:104px;height:104px}
-#page-server.dm-srvx .dm-srvx-ring{width:100%;height:100%;transform:rotate(-90deg)}
-#page-server.dm-srvx .dm-srvx-ring-track{stroke:var(--srvx-track)}
-#page-server.dm-srvx .dm-srvx-ring-arc{transition:stroke-dasharray 1.1s cubic-bezier(.2,.8,.25,1),stroke .45s ease}
-#page-server.dm-srvx .dm-srvx-gauge-val{
-  position:absolute;inset:0;display:grid;place-content:center;text-align:center
-}
-#page-server.dm-srvx .srv-metric-val{
-  font-size:30px!important;font-weight:300!important;letter-spacing:-.04em!important;
-  color:var(--srvx-hero-text)!important;line-height:1!important
-}
-#page-server.dm-srvx .srv-metric-unit{
-  font-size:13px!important;font-weight:700!important;color:var(--srvx-hero-dim)!important;margin-left:2px!important
-}
-#page-server.dm-srvx .srv-metric-top{width:100%;justify-content:center!important;gap:7px}
-#page-server.dm-srvx .srv-metric-icon{order:-1}
-#page-server.dm-srvx .srv-metric-lbl{
-  font-size:10px!important;letter-spacing:.16em!important;color:var(--srvx-hero-dim)!important
-}
-#page-server.dm-srvx .srv-metric-icon{
-  display:grid!important;place-items:center!important;font-size:0!important;
-  color:var(--srvx-hero-dim)!important;opacity:.8!important
-}
-#page-server.dm-srvx .srv-metric[data-dm-srvx-level="alert"] .srv-metric-lbl{color:#dc2626!important}
-#page-server.dm-srvx .srv-metric[data-dm-srvx-level="alert"]{border-color:rgba(239,68,68,.35)!important}
-/* the bar stays: it is the value the rings read, so it is hidden, not removed */
-#page-server.dm-srvx .srv-metric-bar{display:none!important}
 
 /* ── CPU temperature ──────────────────────────────────────────────────── */
 #page-server.dm-srvx .srv-temp-card{
@@ -754,15 +864,15 @@ function minipcShowcaseCss() {
   background:linear-gradient(90deg,#38bdf8 0%,#34d399 34%,#fbbf24 68%,#ef4444 100%);
   opacity:.85
 }
+#page-server.dm-srvx .dm-srvx-scale-limit{
+  position:absolute;left:68.75%;top:-3px;bottom:-3px;width:2px;border-radius:2px;
+  background:var(--srvx-surface);opacity:.85
+}
 #page-server.dm-srvx .dm-srvx-scale-pin{
   position:absolute;top:50%;left:var(--dm-srvx-temp,0%);width:14px;height:14px;margin:-7px 0 0 -7px;
   border-radius:50%;background:var(--srvx-surface);border:3px solid var(--srvx-text);
   box-shadow:0 4px 10px -3px rgba(10,26,44,.6);
   transition:left 1.1s cubic-bezier(.2,.8,.25,1)
-}
-#page-server.dm-srvx .dm-srvx-scale-limit{
-  position:absolute;left:68.75%;top:-3px;bottom:-3px;width:2px;border-radius:2px;
-  background:var(--srvx-surface);opacity:.85
 }
 #page-server.dm-srvx .dm-srvx-scale-ends{
   position:relative;display:flex;justify-content:space-between;font-size:9px;font-weight:800;
@@ -775,7 +885,7 @@ function minipcShowcaseCss() {
 /* ── telemetry ────────────────────────────────────────────────────────── */
 #page-server.dm-srvx .srv-tel-grid{grid-template-columns:repeat(4,1fr)!important;gap:12px!important;margin-bottom:0!important}
 #page-server.dm-srvx .srv-tel-card{
-  padding:16px 15px!important;border:0!important;border-radius:var(--srvx-r-s)!important;
+  padding:16px 15px 19px!important;border:0!important;border-radius:var(--srvx-r-s)!important;
   background:var(--srvx-surface)!important;box-shadow:var(--srvx-shadow-s)!important;gap:10px!important
 }
 #page-server.dm-srvx .srv-tel-card::before{
@@ -791,6 +901,18 @@ function minipcShowcaseCss() {
 #page-server.dm-srvx .srv-tel-lbl{font-size:9.5px!important;letter-spacing:.12em!important}
 #page-server.dm-srvx .srv-tel-val{font-size:26px!important;letter-spacing:-.02em!important}
 #page-server.dm-srvx .srv-tel-sub{font-size:9.5px!important;color:var(--srvx-dim)!important}
+/* download and upload run their own stream along the foot of the tile */
+#page-server.dm-srvx .dm-srvx-stream{
+  position:absolute;left:15px;right:15px;bottom:11px;height:2px;border-radius:2px;overflow:hidden;
+  background:rgba(var(--tc-rgb,14,165,233),.14)
+}
+#page-server.dm-srvx .dm-srvx-stream::after{
+  content:"";position:absolute;top:0;bottom:0;left:0;width:52%;
+  background:linear-gradient(90deg,transparent,rgb(var(--tc-rgb,14,165,233)),transparent);
+  opacity:.75
+}
+#page-server.dm-srvx [data-dm-srvx-flow="in"] .dm-srvx-stream::after{animation:dmSrvxFlowIn 2.6s linear infinite}
+#page-server.dm-srvx [data-dm-srvx-flow="out"] .dm-srvx-stream::after{animation:dmSrvxFlowOut 2.6s linear infinite}
 
 /* ── connectivity and inverter ────────────────────────────────────────── */
 #page-server.dm-srvx .srv-status-grid{gap:12px!important}
@@ -817,44 +939,56 @@ function minipcShowcaseCss() {
 @keyframes dmSrvxSpin{to{transform:rotate(360deg)}}
 @keyframes dmSrvxSweep{0%{left:-40%}55%{left:106%}100%{left:106%}}
 @keyframes dmSrvxBlink{0%,44%{opacity:.25}50%,58%{opacity:1}64%,100%{opacity:.25}}
+@keyframes dmSrvxFlowIn{from{transform:translateX(-100%)}to{transform:translateX(192%)}}
+@keyframes dmSrvxFlowOut{from{transform:translateX(192%)}to{transform:translateX(-100%)}}
 
 /* ── responsive ───────────────────────────────────────────────────────── */
+@media(max-width:860px){
+  #page-server.dm-srvx .srv-hero-metrics{--srvx-dial:204px;column-gap:18px!important}
+  #page-server.dm-srvx .srv-metric-val{font-size:26px!important}
+}
 @media(max-width:760px){
   #page-server.dm-srvx .srv-tel-grid{grid-template-columns:repeat(2,1fr)!important}
 }
 @media(max-width:620px){
   #page-server.dm-srvx{--srvx-r:22px;--srvx-r-s:17px}
-  #page-server.dm-srvx .srv-hero{padding:16px!important}
-  /* the legacy sheet stacks these two: the pill belongs next to the name and
-     the temperature ring next to its scale, on a phone as much as on a desk */
+  #page-server.dm-srvx .srv-hero{padding:16px 16px 18px!important}
+  /* the dial goes above the readings, which become three full-width rows */
+  #page-server.dm-srvx .srv-hero-metrics{
+    --srvx-dial:min(232px,64vw);
+    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-rows:auto repeat(3,auto)!important;
+    column-gap:12px!important
+  }
+  #page-server.dm-srvx .dm-srvx-core,
+  #page-server.dm-srvx .dm-srvx-gauge{grid-column:1 / -1;grid-row:1}
+  #page-server.dm-srvx .srv-metric-top{grid-column:1;grid-row:calc(var(--dm-srvx-row,1) + 1);padding:12px 12px 12px 10px!important}
+  #page-server.dm-srvx .srv-metric>div:not(.srv-metric-top):not(.dm-srvx-gauge):not(.srv-metric-bar){
+    grid-column:2;grid-row:calc(var(--dm-srvx-row,1) + 1);padding:12px 10px 12px 0
+  }
+  #page-server.dm-srvx .srv-metric-val{font-size:24px!important}
+  #page-server.dm-srvx .srv-hero-icon{width:96px!important;height:86px!important}
+  /* the legacy sheet stacks the header: the pill belongs next to the name */
   #page-server.dm-srvx .srv-hero-top{
-    flex-direction:row!important;align-items:center!important;gap:10px!important;margin-bottom:16px!important
+    flex-direction:row!important;align-items:center!important;gap:10px!important;margin-bottom:6px!important
   }
   #page-server.dm-srvx .srv-hero-pill{padding:6px 11px!important;font-size:10px!important;letter-spacing:.08em!important;flex-shrink:0!important}
   #page-server.dm-srvx .srv-hero-brand{gap:11px!important;min-width:0!important}
-  /* the subtitle gives way instead of pushing the pill onto its own line */
   #page-server.dm-srvx .srv-hero-title,
   #page-server.dm-srvx .srv-hero-sub{
     white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important
   }
+  #page-server.dm-srvx .dm-srvx-trace{margin-top:14px}
+  #page-server.dm-srvx .dm-srvx-trace-svg{height:44px}
+  #page-server.dm-srvx .dm-srvx-head{letter-spacing:.14em}
   #page-server.dm-srvx .srv-temp-card{
-    flex-direction:row!important;text-align:left!important;align-items:center!important
+    flex-direction:row!important;text-align:left!important;align-items:center!important;
+    gap:15px!important;padding:16px!important
   }
+  #page-server.dm-srvx .srv-temp-ring{width:92px!important;height:92px!important}
   #page-server.dm-srvx .srv-temp-num{font-size:24px!important}
   #page-server.dm-srvx .dm-srvx-temp-badge{font-size:12px!important;padding:5px 11px 5px 9px!important}
   #page-server.dm-srvx .dm-srvx-scale-ends{font-size:8px!important}
-  #page-server.dm-srvx .srv-hero-metrics{gap:9px!important}
-  #page-server.dm-srvx .srv-metric{padding:13px 6px 11px!important}
-  #page-server.dm-srvx .dm-srvx-gauge{width:82px;height:82px}
-  #page-server.dm-srvx .srv-metric-val{font-size:23px!important}
-  #page-server.dm-srvx .srv-metric-unit{font-size:11px!important}
-  #page-server.dm-srvx .srv-hero-icon{width:78px!important;height:70px!important}
-  #page-server.dm-srvx .dm-srvx-trace{margin-bottom:13px}
-  #page-server.dm-srvx .dm-srvx-trace-svg{height:44px}
-  #page-server.dm-srvx .dm-srvx-head{letter-spacing:.14em}
-  #page-server.dm-srvx .srv-hero-title{font-size:19px!important}
-  #page-server.dm-srvx .srv-temp-card{gap:15px!important;padding:16px!important}
-  #page-server.dm-srvx .srv-temp-ring{width:92px!important;height:92px!important}
   #page-server.dm-srvx .srv-tel-val{font-size:22px!important}
   #page-server.dm-srvx .srv-status-grid{grid-template-columns:1fr!important}
 }
@@ -867,12 +1001,10 @@ html[data-theme="dark"] #page-server.dm-srvx{
   --srvx-hero-bg:linear-gradient(150deg,#1b2740 0%,#111a2c 54%,#0a111e 100%);
   --srvx-hero-text:#f2f6ff;
   --srvx-hero-dim:rgba(198,214,240,.74);
-  --srvx-hero-tile:rgba(255,255,255,.055);
-  --srvx-hero-tile-shadow:inset 0 1px 0 rgba(255,255,255,.07);
-  --srvx-hero-line:rgba(255,255,255,.10);
+  --srvx-hero-line:rgba(255,255,255,.1);
   --srvx-hero-shadow:0 28px 48px -28px rgba(0,0,0,.85),0 2px 6px -3px rgba(0,0,0,.5);
   --srvx-hero-inset:inset 0 1px 0 rgba(255,255,255,.06);
-  --srvx-track:rgba(255,255,255,.10);
+  --srvx-track:rgba(255,255,255,.09);
   --srvx-case-top-a:#6a80a8;--srvx-case-top-b:#2f3f5e;
   --srvx-case-left-a:#2b3a56;--srvx-case-left-b:#141d31;
   --srvx-case-right-a:#1b2540;--srvx-case-right-b:#0d1424;
@@ -883,6 +1015,7 @@ html[data-theme="dark"] #page-server.dm-srvx{
   --srvx-case-shadow:0 14px 18px rgba(4,10,20,.55)
 }
 html[data-theme="dark"] #page-server.dm-srvx[data-dm-srv-net="off"]{--srvx-live:#f87171;--srvx-live-rgb:248,113,113}
+html[data-theme="dark"] #page-server.dm-srvx .dm-srvx-ring-arc{filter:none}
 html[data-theme="dark"] #page-server.dm-srvx .dm-srvx-scale-pin{border-color:#dbe6f7!important}
 html[data-theme="dark"] #page-server.dm-srvx .dm-srvx-status-ico{background:rgba(255,255,255,.06)}
 

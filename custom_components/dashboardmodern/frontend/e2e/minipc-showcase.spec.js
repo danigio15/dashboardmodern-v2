@@ -90,10 +90,18 @@ test.describe("MiniPC page redesign", () => {
     for (const id of ["srv-fill-cpu", "srv-fill-ram", "srv-fill-disk"])
       await expect(page.locator(`#${id}`)).toHaveCount(1);
 
-    // The value nodes moved into the middle of their ring, and only there.
-    await expect(page.locator(".dm-srvx-gauge-val #v-srv-cpu")).toHaveText("23.4");
+    // The reading stays the node the render loop writes, one of each.
+    await expect(page.locator(".srv-metric #v-srv-cpu")).toHaveText("23.4");
     await expect(page.locator("#v-srv-ram")).toHaveCount(1);
-    await expect(page.locator(".dm-srvx-gauge-val #u-srv-ram")).toHaveCount(1);
+    await expect(page.locator("#u-srv-ram")).toHaveCount(1);
+
+    // Three arcs around one machine, drawn at three radii.
+    await expect(page.locator(".dm-srvx-ring-arc")).toHaveCount(3);
+    await expect(page.locator(".dm-srvx-core .srv-hero-icon .dm-srvx-box")).toHaveCount(1);
+    const radii = await page.locator(".dm-srvx-ring-arc").evaluateAll((arcs) =>
+      arcs.map((arc) => Number(arc.getAttribute("r"))),
+    );
+    expect(radii).toEqual([86, 68, 50]);
 
     const arcs = page.locator(".dm-srvx-ring-arc");
     expect(await arcShare(arcs.nth(0))).toBe(23);
@@ -162,6 +170,11 @@ test.describe("MiniPC page redesign", () => {
 
     await expect(page.locator(".srv-temp-card")).toBeHidden();
     await expect(page.locator('.dm-srvx-head[data-dm-srvx-head=".srv-temp-card"]')).toBeHidden();
+    // A hidden metric card takes its arc and its row off the dial together.
+    await expect(page.locator(".dm-srvx-ring-arc").first()).toBeHidden();
+    await expect(page.locator("#v-srv-cpu")).toBeHidden();
+    // The machine keeps standing in the middle of the empty dial.
+    await expect(page.locator(".dm-srvx-core .dm-srvx-box")).toBeVisible();
     // The rows that open no entity stay, and so does their heading.
     await expect(page.locator('.dm-srvx-head[data-dm-srvx-head=".srv-status-grid"]')).toBeVisible();
     await expect(page.locator(".srv-status-card").first()).toBeVisible();

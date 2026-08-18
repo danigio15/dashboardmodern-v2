@@ -114,23 +114,55 @@ test("the trace keeps only the readings the page already showed", async () => {
   assert.equal(long.length, 96);
 });
 
-test("the trace draws the samples as a line and the area under it", async () => {
+test("the curve draws the samples as a spline and the area under it", async () => {
   const { tracePaths, traceOffset } = await loadSection();
   const empty = tracePaths([]);
   assert.equal(empty.line, "");
   assert.equal(empty.area, "");
   // A single reading is drawn flat across the band instead of as a lone dot.
   const single = tracePaths([50], 100, 50);
-  assert.match(single.line, /^M0 [\d.]+ L100 [\d.]+$/);
-  const many = tracePaths([0, 100], 100, 50);
+  assert.match(single.line, /^M0\.0 ([\d.]+) C[\d.]+ \1 [\d.]+ \1 100\.0 \1$/);
+  const many = tracePaths([0, 60, 100], 100, 50);
   assert.match(many.line, /^M0\.0 /);
-  assert.match(many.line, /L100\.0 /);
+  // One cubic segment per gap between readings: the curve is smooth.
+  assert.equal(many.line.match(/C/g)?.length, 2);
+  assert.match(many.line, /100\.0 [\d.]+$/);
   // The area closes onto the baseline so the fill never leaks upwards.
   assert.equal(many.area.endsWith("L100 50 L0 50 Z"), true);
   // Higher load sits higher in the band, and the dot uses the same geometry.
   assert.ok(traceOffset(90) < traceOffset(10));
   assert.ok(traceOffset(100) >= 0 && traceOffset(0) <= 1);
   assert.equal(traceOffset(Number.NaN), traceOffset(0));
+});
+
+test("a spike cannot bow the curve out of its band", async () => {
+  const { smoothPath } = await loadSection();
+  assert.equal(smoothPath([]), "");
+  const height = 50;
+  // Alternating floor and ceiling readings: the control points of a
+  // Catmull-Rom spline overshoot, so they are clamped inside the band.
+  const points = [0, 100, 0, 100].map((level, index) => ({
+    x: index * 10,
+    y: level ? 1 : height - 1,
+  }));
+  const numbers = smoothPath(points, height)
+    .split(/[\sC]+/)
+    .map(Number)
+    .filter((value) => Number.isFinite(value));
+  for (const value of numbers.filter((_, index) => index % 2 === 1)) {
+    assert.ok(value >= 1 && value <= height - 1, `${value} outside the band`);
+  }
+});
+
+test("a gauge past a legacy threshold says so on its row too", async () => {
+  const { ringLevelName } = await loadSection();
+  assert.equal(ringLevelName(12), "ok");
+  assert.equal(ringLevelName(65), "ok");
+  assert.equal(ringLevelName(70), "warn");
+  assert.equal(ringLevelName(85), "warn");
+  assert.equal(ringLevelName(92), "alert");
+  // No reading yet: the row stays neutral instead of claiming a level.
+  assert.equal(ringLevelName(null), "");
 });
 
 test("the redesigned page keeps every legacy runtime hook", () => {
@@ -169,24 +201,39 @@ test("the section owns presentation only and never reads Home Assistant state", 
   assert.doesNotMatch(body, /MutationObserver/);
 });
 
-test("the value nodes are moved into the rings, never duplicated", () => {
-  const mount = source.slice(source.indexOf("function mountGauge"), source.indexOf("function mountChassis"));
-  // append() moves the node; cloneNode would leave two writers of one value.
-  assert.match(mount, /\.append\(value\)/);
-  assert.doesNotMatch(mount, /cloneNode/);
-  // Mounting twice must not build a second ring.
+test("the dial is built once and copies no value node", () => {
+  const mount = source.slice(source.indexOf("function mountGauge"), source.indexOf("function mountCore"));
+  // Mounting twice must not build a second arc for the same card.
   assert.match(mount, /if \(card\.dataset\.dmSrvxGauge\) return/);
+  // The reading stays the node the render loop writes: nothing is cloned and no
+  // value is read out of the DOM to be printed somewhere else.
+  assert.doesNotMatch(mount, /cloneNode/);
+  assert.doesNotMatch(mount, /textContent/);
+  // Each card owns one radius of the dial, in the order the bars come in.
+  assert.match(source, /const RING_RADII = Object\.freeze\(\[86, 68, 50\]\)/);
+  assert.match(mount, /RING_RADII\[index\]/);
+});
+
+test("the machine is moved to the centre of the dial, not redrawn there", () => {
+  const mount = source.slice(source.indexOf("function mountCore"), source.indexOf("function mountTrace"));
+  // The hero slot itself travels into the dial: one drawing, one owner.
+  assert.match(mount, /core\.append\(slot\)/);
+  assert.doesNotMatch(mount, /cloneNode/);
+  assert.match(mount, /if \(slot\.parentElement !== core\)/);
 });
 
 test("nothing forces a display the auto-hide writes inline on a card", () => {
   // cdAutoHide() shows and hides these cards by writing an inline display, so a
-  // display:none|flex marked !important would either strand a hidden card on
-  // the page or hide one the user mapped.
+  // display marked !important would either strand a hidden card on the page or
+  // show one the user never mapped.
   const styles = source.slice(source.indexOf("function minipcShowcaseCss"));
   for (const card of [".srv-metric", ".srv-temp-card", ".srv-tel-card", ".srv-status-card"]) {
     const pattern = new RegExp(`${card.replace(".", "\\.")}\\{[^}]*display:[^};]*!important`);
     assert.doesNotMatch(styles, pattern, card);
   }
+  // The metric card carries its arc and its row into the same grid through
+  // display:contents, which the inline display:none still overrides.
+  assert.match(styles, /\.srv-metric\{\s*display:contents;/);
   // A block emptied by the auto-hide drops its heading too.
   assert.match(source, /cards\.every\(\(card\) => card\.style\.display === "none"\)/);
 });
