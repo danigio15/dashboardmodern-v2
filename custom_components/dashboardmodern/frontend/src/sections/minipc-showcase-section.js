@@ -1,21 +1,22 @@
 // DM-FIX-20260818A
 /* MiniPC section redesign — "Sala macchine".
  *
- * Reskins `#page-server` as one composition instead of a column of boxes: the
- * machine is drawn in isometry at the centre of the panel and CPU, RAM and Disk
- * orbit it as three concentric arcs, each with its reading on the right. Under
- * them runs a live curve of the CPU load, the CPU temperature gets a thermal
- * scale next to its ring, download and upload carry a moving stream, and three
- * headings split the page into thermal, telemetry and network. The page follows
- * the theme: light on a light dashboard, deep navy only when the theme is dark.
+ * `#page-server` becomes a small 3D scene plus a two column board. The machine
+ * is a real CSS box — six faces in one perspective, vents and a turning fan on
+ * the top face, LEDs on the front — and CPU, RAM and Disk stand next to it as
+ * three prisms that grow with the load, each casting its own shadow on the
+ * floor. Under the scene runs a live curve of the CPU load. Below, the page is
+ * a board rather than a stack: thermal on the left, telemetry on the right,
+ * network across the bottom. The page follows the theme: light on a light
+ * dashboard, deep navy only when the theme is dark.
  *
  * Contracts preserved on purpose — the legacy runtime keeps owning every value:
  * - the three metric bars `#srv-fill-cpu` / `#srv-fill-ram` / `#srv-fill-disk`
- *   stay in the DOM and keep being the only writers of the load: the arcs read
- *   their width instead of parsing a sensor again, and the colour of each arc
- *   comes from the colour that bar was configured with;
+ *   stay in the DOM and keep being the only writers of the load: each prism
+ *   reads the width of its bar instead of parsing a sensor again, and takes the
+ *   colour that bar was configured with;
  * - `#v-srv-cpu`, `#v-srv-ram` + `#u-srv-ram` and `#v-srv-disk` are placed by
- *   the grid, never copied into a second node, so the dynamic RAM unit (%, GB)
+ *   the scene, never copied into a second node, so the dynamic RAM unit (%, GB)
  *   the render loop writes still lands on screen;
  * - `#srv-temp-circle` keeps its `stroke-dasharray` and its `stroke`: the
  *   threshold colour stays the legacy one and the thermal scale reads the arc
@@ -26,13 +27,13 @@
  * - `#waw-net-badge` / `#waw-inv-badge` keep the `srv-status-badge online` and
  *   `offline` class the render loop rewrites on every tick; the page mirrors the
  *   connectivity one onto `#page-server` as `data-dm-srv-net`, which is what
- *   turns the panel, the LEDs and the curve red when the machine drops off the
+ *   turns the scene, the LEDs and the curve red when the machine drops off the
  *   network;
  * - every card keeps its `onclick`, so `apriStorico()` and `apriSrvHistory()`
- *   still open the history popups. A metric card becomes `display:contents` so
- *   its arc and its row can live in the same grid: that is a layout mode, not a
- *   forced display, so the inline `display:none` that `cdAutoHide()` writes on
- *   an unmapped card still wins and takes both pieces off the page together.
+ *   still open the history popups, and no `display` is forced with `!important`
+ *   on a card `cdAutoHide()` shows or hides by writing an inline `display`. When
+ *   the thermal card is the one hidden, the board is told through
+ *   `data-dm-srvx-thermal` so telemetry widens instead of leaving a hole.
  *
  * The live curve is the one thing drawn from more than the current tick: it
  * keeps the last readings of `#srv-fill-cpu` in memory for the session, so it is
@@ -49,18 +50,18 @@ const STYLE_ID = "dm-minipc-showcase-style";
 const state = (root[KEY] ||= { installed: false, listeners: false, frame: 0, trace: [] });
 if (!Array.isArray(state.trace)) state.trace = [];
 
-/* Same pair as the legacy setRing(): above 85% the arc is red, above 65% amber,
-   below that it keeps the colour the card was configured with. */
+/* Same pair as the legacy setRing(): above 85% the prism is red, above 65%
+   amber, below that it keeps the colour the card was configured with. */
 const WARN_LEVEL = 65;
 const ALERT_LEVEL = 85;
 const WARN_COLOUR = "#f59e0b";
 const ALERT_COLOUR = "#ef4444";
 
-/* The arcs follow the order of the cards in the hero, which is the order the
-   legacy markup writes the bars in: CPU outside, RAM in the middle, Disk in. */
+/* The prisms follow the order of the cards in the hero, which is the order the
+   legacy markup writes the bars in: CPU, RAM, Disk. */
 const METRIC_BARS = Object.freeze(["srv-fill-cpu", "srv-fill-ram", "srv-fill-disk"]);
-const RING_RADII = Object.freeze([86, 68, 50]);
-const RING_BOX = 200;
+/* Height of a prism at 100%, in the units the scene is laid out with. */
+const BAR_MAX = 168;
 
 /* Readings kept for the curve: about ten minutes of a dashboard that ticks
    every few seconds, and short enough to stay a glance rather than a chart. */
@@ -121,22 +122,21 @@ export function metricLevel(barId, scope = doc) {
   return Math.max(0, Math.min(100, width));
 }
 
-/** Dash pair drawing `level` percent of a ring of that circumference. */
-export function ringDash(level, circumference) {
+/** Height of a prism for that load, so a reading of 0 still shows a base. */
+export function barHeight(level, max = BAR_MAX) {
   const value = Number.isFinite(level) ? Math.max(0, Math.min(100, level)) : 0;
-  const drawn = (value / 100) * circumference;
-  return `${drawn.toFixed(1)} ${(circumference - drawn).toFixed(1)}`;
+  return Math.round((6 + (value / 100) * (max - 6)) * 10) / 10;
 }
 
-/** Colour of a gauge: the card's own colour until the legacy thresholds bite. */
-export function ringColour(level, colour) {
+/** Colour of a prism: the card's own colour until the legacy thresholds bite. */
+export function levelColour(level, colour) {
   if (Number.isFinite(level) && level > ALERT_LEVEL) return ALERT_COLOUR;
   if (Number.isFinite(level) && level > WARN_LEVEL) return WARN_COLOUR;
   return colour;
 }
 
-/** How loaded a gauge reads, for the styling of its row. */
-export function ringLevelName(level) {
+/** How loaded a gauge reads, for the styling of its label and value. */
+export function levelName(level) {
   if (!Number.isFinite(level)) return "";
   if (level > ALERT_LEVEL) return "alert";
   if (level > WARN_LEVEL) return "warn";
@@ -238,119 +238,89 @@ export function sampleCpu(scope = doc, samples = state.trace) {
   return samples;
 }
 
-/* ── mount ────────────────────────────────────────────────────────────── */
+/* ── the scene ────────────────────────────────────────────────────────── */
 
-const CHASSIS = `
-    <svg class="dm-srvx-box" viewBox="0 0 120 104" aria-hidden="true">
-      <defs>
-        <linearGradient id="dmSrvxTop" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" style="stop-color:var(--srvx-case-top-a)"/>
-          <stop offset="1" style="stop-color:var(--srvx-case-top-b)"/>
-        </linearGradient>
-        <linearGradient id="dmSrvxLeft" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" style="stop-color:var(--srvx-case-left-a)"/>
-          <stop offset="1" style="stop-color:var(--srvx-case-left-b)"/>
-        </linearGradient>
-        <linearGradient id="dmSrvxRight" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" style="stop-color:var(--srvx-case-right-a)"/>
-          <stop offset="1" style="stop-color:var(--srvx-case-right-b)"/>
-        </linearGradient>
-      </defs>
-      <ellipse class="dm-srvx-box-glow" cx="60" cy="86" rx="40" ry="9"/>
-      <g class="dm-srvx-box-body">
-        <path d="M60 16 100 39 60 62 20 39Z" fill="url(#dmSrvxTop)"/>
-        <path d="M20 39 60 62v20L20 59Z" fill="url(#dmSrvxLeft)"/>
-        <path d="M100 39 60 62v20l40-23Z" fill="url(#dmSrvxRight)"/>
-        <path class="dm-srvx-box-edge" d="M60 16 100 39 60 62 20 39Z" fill="none" stroke-width="1.1" stroke-linejoin="round"/>
-        <path class="dm-srvx-box-edge dm-srvx-box-edge-soft" d="M20 39v20l40 23 40-23V39" fill="none" stroke-width="1.1" stroke-linejoin="round"/>
-      </g>
-      <g class="dm-srvx-vents" stroke-width="1.6" stroke-linecap="round">
-        <path d="M74 34.5 87 42M70 37 83 44.5M66 39.5 79 47"/>
-      </g>
-      <g transform="rotate(-29.7 45 39)">
-        <ellipse class="dm-srvx-fan-hole" cx="45" cy="39" rx="12.8" ry="12.8" stroke-width="1.2" transform="scale(1 .5)" transform-origin="45 39"/>
-        <g class="dm-srvx-fan" transform="scale(1 .5)" transform-origin="45 39">
-          <path d="M45 39c1.4-4.4 4.6-7.4 8.4-7.9.4 4.2-2.8 8.1-8.4 7.9Z" transform="rotate(0 45 39)"/>
-          <path d="M45 39c1.4-4.4 4.6-7.4 8.4-7.9.4 4.2-2.8 8.1-8.4 7.9Z" transform="rotate(72 45 39)"/>
-          <path d="M45 39c1.4-4.4 4.6-7.4 8.4-7.9.4 4.2-2.8 8.1-8.4 7.9Z" transform="rotate(144 45 39)"/>
-          <path d="M45 39c1.4-4.4 4.6-7.4 8.4-7.9.4 4.2-2.8 8.1-8.4 7.9Z" transform="rotate(216 45 39)"/>
-          <path d="M45 39c1.4-4.4 4.6-7.4 8.4-7.9.4 4.2-2.8 8.1-8.4 7.9Z" transform="rotate(288 45 39)"/>
-          <circle class="dm-srvx-fan-hub" cx="45" cy="39" r="2.2" stroke-width="1"/>
-        </g>
-      </g>
-      <g class="dm-srvx-front">
-        <path class="dm-srvx-strip" d="M25.5 47.5 54 63.8"/>
-        <circle class="dm-srvx-led dm-srvx-led-pwr" cx="28" cy="57" r="2.6"/>
-        <circle class="dm-srvx-led dm-srvx-led-act" cx="35.5" cy="61.4" r="2.6"/>
-        <path class="dm-srvx-port" d="M44 66.5 52 71" stroke-width="3.4" stroke-linecap="round"/>
-      </g>
-      <g class="dm-srvx-side" stroke-width="1.5" stroke-linecap="round">
-        <path d="M70 63.5v9M76 60v9M82 56.5v9M88 53v9"/>
-      </g>
-    </svg>`;
+/* One CSS box, six faces, laid out by the stylesheet from --w / --h / --d. */
+const BOX_FACES = ["front", "back", "left", "right", "top", "bottom"]
+  .map((face) => `<span class="dm-srvx-f dm-srvx-f-${face}"></span>`)
+  .join("");
+
+/** The machine: a real box in the scene, with vents, a fan and its LEDs. */
+function mountMachine(scene) {
+  let machine = scene.querySelector(":scope > .dm-srvx-machine");
+  if (machine) return machine;
+  machine = doc.createElement("div");
+  machine.className = "dm-srvx-machine";
+  machine.setAttribute("aria-hidden", "true");
+  machine.innerHTML = `
+    <span class="dm-srvx-drop"></span>
+    <div class="dm-srvx-box">
+      ${BOX_FACES}
+      <span class="dm-srvx-panel">
+        <i class="dm-srvx-led dm-srvx-led-pwr"></i>
+        <i class="dm-srvx-led dm-srvx-led-act"></i>
+        <i class="dm-srvx-slot"></i>
+      </span>
+    </div>`;
+  scene.prepend(machine);
+  return machine;
+}
+
+/** The floor the machine and the prisms stand on. */
+function mountFloor(scene) {
+  if (scene.querySelector(":scope > .dm-srvx-floor")) return;
+  const floor = doc.createElement("div");
+  floor.className = "dm-srvx-floor";
+  floor.setAttribute("aria-hidden", "true");
+  scene.prepend(floor);
+}
 
 /**
- * Turn one metric card into a layer of the dial: an arc at its own radius over
- * the machine, and its label and value as a row beside it. The card becomes
- * `display:contents`, so both pieces sit in the hero grid and both leave the
- * page together when the auto-hide writes `display:none` on the card.
+ * Turn one metric card into a prism standing on the floor: the bar, its shadow
+ * and the two legacy nodes — label and value — placed around it. Nothing is
+ * copied: the card keeps its own reading and its own click.
  */
-function mountGauge(card, index) {
-  if (card.dataset.dmSrvxGauge) return;
-  card.dataset.dmSrvxGauge = "true";
-  card.style.setProperty("--dm-srvx-row", String(index + 1));
-  const radius = RING_RADII[index] ?? RING_RADII[RING_RADII.length - 1];
-  const length = 2 * Math.PI * radius;
-  const gauge = doc.createElement("div");
-  gauge.className = "dm-srvx-gauge";
-  gauge.innerHTML = `
-    <svg class="dm-srvx-ring" viewBox="0 0 ${RING_BOX} ${RING_BOX}" aria-hidden="true">
-      <circle class="dm-srvx-ring-track" cx="100" cy="100" r="${radius}" fill="none" stroke-width="13"/>
-      <circle class="dm-srvx-ring-arc" cx="100" cy="100" r="${radius}" fill="none" stroke-width="13" stroke-linecap="round" stroke-dasharray="0 ${length.toFixed(1)}"/>
-    </svg>`;
-  card.prepend(gauge);
-  const label = card.querySelector(".srv-metric-lbl");
-  if (label && !card.querySelector(".dm-srvx-key")) {
-    const key = doc.createElement("span");
-    key.className = "dm-srvx-key";
-    label.insertAdjacentElement("beforebegin", key);
-  }
+function mountPrism(card, index) {
+  if (card.dataset.dmSrvxPrism) return;
+  card.dataset.dmSrvxPrism = "true";
+  card.style.setProperty("--dm-srvx-slot", String(index));
+  const bar = doc.createElement("div");
+  bar.className = "dm-srvx-bar";
+  bar.setAttribute("aria-hidden", "true");
+  bar.innerHTML = BOX_FACES;
+  card.prepend(bar);
+  const shadow = doc.createElement("span");
+  shadow.className = "dm-srvx-drop";
+  shadow.setAttribute("aria-hidden", "true");
+  card.prepend(shadow);
   const glyph = card.querySelector(".srv-metric-icon");
   const name = METRIC_ICONS[cardEntity(card)];
-  if (glyph && name) glyph.innerHTML = icon(name, 15);
+  if (glyph && name) glyph.innerHTML = icon(name, 14);
 }
 
-/**
- * The machine itself, at the centre of the dial. The drawing goes into the slot
- * the hero already had and that slot is moved, never copied, so the header
- * keeps owning its own markup.
- */
-function mountCore(page) {
-  const metrics = page.querySelector(".srv-hero-metrics");
+/** Move the three cards into the scene so they share one perspective. */
+function mountScene(page) {
+  const scene = page.querySelector(".srv-hero-metrics");
+  if (!scene) return null;
+  mountFloor(scene);
+  mountMachine(scene);
+  // The hero slot is emptied: the machine is a box now, not a glyph.
   const slot = page.querySelector(".srv-hero-icon");
-  if (!metrics || !slot) return;
-  if (!slot.dataset.dmSrvxChassis) {
-    slot.dataset.dmSrvxChassis = "true";
-    slot.innerHTML = CHASSIS;
+  if (slot && !slot.dataset.dmSrvxRetired) {
+    slot.dataset.dmSrvxRetired = "true";
+    slot.textContent = "";
   }
-  let core = metrics.querySelector(":scope > .dm-srvx-core");
-  if (!core) {
-    core = doc.createElement("div");
-    core.className = "dm-srvx-core";
-    core.innerHTML = '<span class="dm-srvx-core-halo" aria-hidden="true"></span>';
-    metrics.prepend(core);
-  }
-  if (slot.parentElement !== core) core.append(slot);
+  return scene;
 }
 
 /**
- * The band under the dial: the readings this page has already shown, kept for
+ * The band under the scene: the readings this page has already shown, kept for
  * the session so the machine has a shape over time and not just a number.
  */
 function mountTrace(page) {
   const hero = page.querySelector(".srv-hero");
-  const metrics = hero?.querySelector(".srv-hero-metrics");
-  if (!metrics) return null;
+  const scene = hero?.querySelector(".srv-hero-metrics");
+  if (!scene) return null;
   let trace = hero.querySelector(":scope > .dm-srvx-trace");
   if (trace) return trace;
   trace = doc.createElement("div");
@@ -375,12 +345,12 @@ function mountTrace(page) {
       </svg>
       <span class="dm-srvx-trace-dot"></span>
     </div>`;
-  metrics.insertAdjacentElement("afterend", trace);
+  scene.insertAdjacentElement("afterend", trace);
   return trace;
 }
 
-/* Headings that give the page its three blocks. Each one is tied to the block
-   below it, so a block emptied by cdAutoHide() does not leave a title behind. */
+/* Headings that name the three blocks of the board. Each one is tied to the
+   block it labels, so a block emptied by cdAutoHide() drops its title too. */
 const GROUPS = Object.freeze([
   { block: ".srv-temp-card", card: ".srv-temp-card", it: "Termica", en: "Thermal" },
   { block: ".srv-tel-grid", card: ".srv-tel-card", it: "Telemetria", en: "Telemetry" },
@@ -399,7 +369,10 @@ function mountHeadings(page) {
   }
 }
 
-/** Hide a heading whose whole block the auto-hide has taken off the page. */
+/**
+ * Hide a heading whose whole block the auto-hide has taken off the page, and
+ * tell the board when the thermal column is gone so telemetry can widen.
+ */
 function syncHeadings(page) {
   for (const group of GROUPS) {
     const block = page.querySelector(group.block);
@@ -409,18 +382,11 @@ function syncHeadings(page) {
     const empty = cards.length > 0 && cards.every((card) => card.style.display === "none");
     const display = empty ? "none" : "";
     if (heading.style.display !== display) heading.style.display = display;
+    if (group.block === ".srv-temp-card") {
+      const value = empty ? "off" : "on";
+      if (page.dataset.dmSrvxThermal !== value) page.dataset.dmSrvxThermal = value;
+    }
   }
-}
-
-/** Aurora and board grid behind the panel — decoration, not a reading. */
-function mountHeroEffect(page) {
-  const hero = page.querySelector(".srv-hero");
-  if (!hero || hero.dataset.dmSrvxFx) return;
-  hero.dataset.dmSrvxFx = "true";
-  const effect = doc.createElement("div");
-  effect.className = "dm-srvx-fx";
-  effect.setAttribute("aria-hidden", "true");
-  hero.prepend(effect);
 }
 
 /** Thermal scale and mirrored status badge next to the temperature ring. */
@@ -502,24 +468,20 @@ function renderTrace(trace) {
   if (peak && peak.textContent !== value) peak.textContent = value;
 }
 
-/** Draw one layer of the dial from the bar the legacy loop keeps writing. */
-function renderGauge(card, index) {
-  const arc = card.querySelector(".dm-srvx-ring-arc");
-  if (!arc) return;
-  const radius = RING_RADII[index] ?? RING_RADII[RING_RADII.length - 1];
+/** Stand one prism at the height of the bar the legacy loop keeps writing. */
+function renderPrism(card, index) {
   const level = metricLevel(METRIC_BARS[index] || "", doc);
-  const dash = ringDash(level ?? 0, 2 * Math.PI * radius);
-  if (arc.getAttribute("stroke-dasharray") !== dash) arc.setAttribute("stroke-dasharray", dash);
+  const height = `${barHeight(level)}px`;
+  if (clean(card.style.getPropertyValue("--dm-srvx-h")) !== height) {
+    card.style.setProperty("--dm-srvx-h", height);
+  }
   // The bar carries the colour the markup configured for this metric.
-  const own = clean(card.querySelector(".srv-metric-fill")?.style?.background) || "currentColor";
-  const colour = ringColour(level, own);
-  // The key next to the label is the legend of that arc, so it takes the colour
-  // the arc ended up with rather than the one the card was configured with.
+  const own = clean(card.querySelector(".srv-metric-fill")?.style?.background) || "#94a3b8";
+  const colour = levelColour(level, own);
   if (clean(card.style.getPropertyValue("--dm-srvx-col")) !== colour) {
     card.style.setProperty("--dm-srvx-col", colour);
   }
-  if (arc.getAttribute("stroke") !== colour) arc.setAttribute("stroke", colour);
-  const name = ringLevelName(level);
+  const name = levelName(level);
   if (card.dataset.dmSrvxLevel !== name) card.dataset.dmSrvxLevel = name;
 }
 
@@ -528,8 +490,7 @@ export function renderMinipcShowcase() {
   if (!page) return false;
   page.classList.add("dm-srvx");
   page.querySelector(".srv-hero")?.parentElement?.classList.add("dm-srvx-shell");
-  mountHeroEffect(page);
-  mountCore(page);
+  mountScene(page);
   mountTelemetry(page);
   mountStatusIcons(page);
   mountHeadings(page);
@@ -538,8 +499,8 @@ export function renderMinipcShowcase() {
   const thermal = mountThermal(page) || page.querySelector(".srv-temp-card");
 
   [...page.querySelectorAll(".srv-hero-metrics .srv-metric")].forEach((card, index) => {
-    mountGauge(card, index);
-    renderGauge(card, index);
+    mountPrism(card, index);
+    renderPrism(card, index);
   });
 
   if (thermal) {
@@ -586,7 +547,7 @@ export function installMinipcShowcaseSection() {
       root.addEventListener?.(eventName, scheduleMinipcShowcase);
     }
     // The bars, the temperature arc and the badges repaint through the legacy
-    // render loop, so the dial follows the same events instead of a timer.
+    // render loop, so the scene follows the same events instead of a timer.
     root.addEventListener?.("dashboardmodern:state-changed", () => {
       // Sampling is three DOM reads, so it runs on every tick; the repaint only
       // happens while the page is the one on screen.
@@ -621,60 +582,64 @@ function minipcShowcaseCss() {
   --srvx-shadow:0 20px 38px -26px rgba(10,26,44,.55),0 2px 6px -3px rgba(10,26,44,.12);
   --srvx-shadow-s:0 16px 30px -24px rgba(10,26,44,.6),0 2px 5px -3px rgba(10,26,44,.12);
   --srvx-live:#10b981;--srvx-live-rgb:16,185,129;
-  /* the panel follows the theme: light surfaces on a light dashboard */
-  --srvx-hero-bg:linear-gradient(150deg,#fbfdff 0%,#eef4fb 55%,#e5edf7 100%);
+  /* the scene follows the theme: light surfaces on a light dashboard */
+  --srvx-hero-bg:linear-gradient(170deg,#fdfeff 0%,#eef4fb 52%,#e2ebf6 100%);
   --srvx-hero-text:var(--srvx-text);
   --srvx-hero-dim:var(--srvx-dim);
-  --srvx-hero-line:rgba(15,23,42,.08);
+  --srvx-hero-line:rgba(15,23,42,.09);
   --srvx-hero-shadow:0 24px 44px -30px rgba(10,26,44,.55),0 2px 6px -3px rgba(10,26,44,.1);
   --srvx-hero-inset:inset 0 0 0 1px rgba(15,23,42,.05);
-  --srvx-track:rgba(15,23,42,.07);
-  --srvx-case-top-a:#eef3fa;--srvx-case-top-b:#c3d0e0;
-  --srvx-case-left-a:#a9b7ca;--srvx-case-left-b:#8b9bb1;
-  --srvx-case-right-a:#93a2b8;--srvx-case-right-b:#76869d;
-  --srvx-case-edge:rgba(255,255,255,.9);
-  --srvx-case-ink:rgba(15,23,42,.34);
-  --srvx-case-hole:rgba(15,23,42,.18);
-  --srvx-case-blade:rgba(15,23,42,.3);
-  --srvx-case-shadow:0 12px 16px rgba(15,32,56,.22);
+  --srvx-floor:rgba(15,23,42,.07);
+  --srvx-floor-line:rgba(15,23,42,.09);
+  --srvx-drop:rgba(15,32,56,.4);
+  --srvx-case:#dfe7f1;--srvx-case-top:#f2f6fb;--srvx-case-side:#b9c6d6;
+  --srvx-case-front:#cfd9e6;--srvx-case-edge:rgba(255,255,255,.75);
+  --srvx-ink:rgba(15,23,42,.45);--srvx-vane:rgba(15,23,42,.3);
 }
 #page-server.dm-srvx[data-dm-srv-net="off"]{--srvx-live:#ef4444;--srvx-live-rgb:239,68,68}
-#page-server.dm-srvx .dm-srvx-shell{display:grid;gap:14px}
 #page-server.dm-srvx .dm-srvx-ico{display:block;flex:0 0 auto}
 
-/* ── the panel ────────────────────────────────────────────────────────── */
+/* ── the board ────────────────────────────────────────────────────────── */
+#page-server.dm-srvx .dm-srvx-shell{
+  display:grid;gap:14px 16px;align-content:start;
+  grid-template-columns:minmax(0,1.02fr) minmax(0,1fr)
+}
+#page-server.dm-srvx .srv-hero,
+#page-server.dm-srvx .srv-status-grid,
+#page-server.dm-srvx .dm-srvx-head[data-dm-srvx-head=".srv-status-grid"]{grid-column:1 / -1}
+#page-server.dm-srvx .dm-srvx-head[data-dm-srvx-head=".srv-temp-card"],
+#page-server.dm-srvx .srv-temp-card{grid-column:1}
+#page-server.dm-srvx .dm-srvx-head[data-dm-srvx-head=".srv-tel-grid"],
+#page-server.dm-srvx .srv-tel-grid{grid-column:2}
+#page-server.dm-srvx .dm-srvx-head[data-dm-srvx-head=".srv-temp-card"],
+#page-server.dm-srvx .dm-srvx-head[data-dm-srvx-head=".srv-tel-grid"]{grid-row:2}
+#page-server.dm-srvx .srv-temp-card,
+#page-server.dm-srvx .srv-tel-grid{grid-row:3}
+/* the thermal card hidden by the auto-hide: telemetry takes the whole row */
+#page-server.dm-srvx[data-dm-srvx-thermal="off"] .dm-srvx-head[data-dm-srvx-head=".srv-tel-grid"],
+#page-server.dm-srvx[data-dm-srvx-thermal="off"] .srv-tel-grid{grid-column:1 / -1}
+
+/* ── the panel that holds the scene ───────────────────────────────────── */
 #page-server.dm-srvx .srv-hero{
-  margin-bottom:0!important;padding:22px 24px 24px!important;border:0!important;
+  margin-bottom:0!important;padding:20px 22px 22px!important;border:0!important;
   border-radius:var(--srvx-r)!important;
   background:var(--srvx-hero-bg)!important;
   box-shadow:var(--srvx-hero-shadow),var(--srvx-hero-inset)!important;
-  color:var(--srvx-hero-text)!important
+  color:var(--srvx-hero-text)!important;
+  perspective:1250px;perspective-origin:50% 34%
 }
 #page-server.dm-srvx .srv-hero::before{
-  top:-46%!important;right:-12%!important;width:360px!important;height:360px!important;
-  background:radial-gradient(circle,rgba(var(--srvx-live-rgb),.14) 0%,transparent 68%)!important
+  top:-40%!important;right:-10%!important;width:340px!important;height:340px!important;
+  background:radial-gradient(circle,rgba(var(--srvx-live-rgb),.13) 0%,transparent 68%)!important
 }
 #page-server.dm-srvx .srv-hero::after{
-  bottom:-34%!important;left:-8%!important;width:300px!important;height:300px!important;
-  background:radial-gradient(circle,rgba(56,189,248,.14) 0%,transparent 70%)!important
+  bottom:-30%!important;left:-6%!important;width:280px!important;height:280px!important;
+  background:radial-gradient(circle,rgba(56,189,248,.13) 0%,transparent 70%)!important
 }
-#page-server.dm-srvx .dm-srvx-fx{
-  position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden;
-  border-radius:inherit;opacity:.55;
-  background-image:
-    linear-gradient(var(--srvx-hero-line) 1px,transparent 1px),
-    linear-gradient(90deg,var(--srvx-hero-line) 1px,transparent 1px);
-  background-size:34px 34px,34px 34px;
-  -webkit-mask-image:radial-gradient(120% 90% at 78% 6%,#000 0%,transparent 72%);
-  mask-image:radial-gradient(120% 90% at 78% 6%,#000 0%,transparent 72%)
-}
-#page-server.dm-srvx .dm-srvx-fx::after{
-  content:"";position:absolute;top:0;bottom:0;width:34%;left:-40%;
-  background:linear-gradient(90deg,transparent,rgba(var(--srvx-live-rgb),.10),transparent);
-  animation:dmSrvxSweep 9s ease-in-out infinite
-}
-#page-server.dm-srvx .srv-hero-top{margin-bottom:14px!important;z-index:2}
-#page-server.dm-srvx .srv-hero-brand>div{min-width:0}
+#page-server.dm-srvx .srv-hero-top{margin-bottom:8px!important;z-index:3}
+#page-server.dm-srvx .srv-hero-brand{gap:0!important}
+/* the glyph slot is retired: the machine below is the real one */
+#page-server.dm-srvx .srv-hero-icon{display:none!important}
 #page-server.dm-srvx .srv-hero-title{color:var(--srvx-hero-text)!important;font-size:23px!important;letter-spacing:.06em!important}
 #page-server.dm-srvx .srv-hero-sub{color:var(--srvx-hero-dim)!important;letter-spacing:.14em!important}
 #page-server.dm-srvx .srv-hero-pill{
@@ -687,114 +652,171 @@ function minipcShowcaseCss() {
   box-shadow:0 0 0 4px rgba(var(--srvx-live-rgb),.16)!important
 }
 
-/* ── the dial: three arcs around the machine ──────────────────────────── */
+/* ── the 3D scene ─────────────────────────────────────────────────────── */
 #page-server.dm-srvx .srv-hero-metrics{
-  --srvx-dial:244px;--srvx-gap:22px;
-  display:grid!important;
-  grid-template-columns:var(--srvx-dial) minmax(120px,210px) minmax(74px,auto)!important;
-  grid-template-rows:repeat(3,auto)!important;
-  align-items:center!important;justify-content:center!important;
-  column-gap:var(--srvx-gap)!important;row-gap:0!important
+  --srvx-scene-h:300px;--srvx-bar-w:54px;--srvx-bar-d:54px;--srvx-gap:84px;
+  display:block!important;position:relative;height:var(--srvx-scene-h);
+  transform-style:preserve-3d;transform:rotateX(-20deg) rotateY(-17deg) translateY(-6px);
+  margin:0 auto!important;max-width:680px
 }
-/* display:contents is a layout mode, not a forced display: the inline
-   display:none cdAutoHide() writes on an unmapped card still wins. */
-#page-server.dm-srvx .srv-metric{
-  display:contents;background:none!important;border:0!important;box-shadow:none!important;padding:0!important
+#page-server.dm-srvx .dm-srvx-floor{
+  position:absolute;left:-30%;right:-30%;top:calc(var(--srvx-scene-h) - 56px);height:520px;
+  transform-origin:top center;transform:translateZ(-14px) rotateX(-90deg);
+  background:
+    linear-gradient(to bottom,var(--srvx-floor) 0%,transparent 70%),
+    repeating-linear-gradient(90deg,var(--srvx-floor-line) 0 1px,transparent 1px 54px),
+    repeating-linear-gradient(0deg,var(--srvx-floor-line) 0 1px,transparent 1px 54px);
+  -webkit-mask-image:radial-gradient(62% 58% at 50% 4%,#000 0%,transparent 76%);
+  mask-image:radial-gradient(62% 58% at 50% 4%,#000 0%,transparent 76%)
 }
-#page-server.dm-srvx .dm-srvx-core,
-#page-server.dm-srvx .dm-srvx-gauge{
-  grid-column:1;grid-row:1 / span 3;place-self:center;position:relative;
-  width:var(--srvx-dial);height:var(--srvx-dial)
+/* the soft contact shadow every object drops on that floor */
+#page-server.dm-srvx .dm-srvx-drop{
+  position:absolute;left:50%;top:100%;width:var(--srvx-drop-w,130%);height:var(--srvx-drop-h,120px);
+  transform-origin:top center;
+  transform:translateX(-50%) rotateX(-90deg) translateY(calc(var(--srvx-drop-h,120px) / -2 + 10px));
+  background:radial-gradient(ellipse 44% 40% at center,var(--srvx-drop) 0%,transparent 74%);
+  filter:blur(5px);pointer-events:none
 }
-#page-server.dm-srvx .dm-srvx-gauge{pointer-events:none}
-#page-server.dm-srvx .dm-srvx-ring{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
-#page-server.dm-srvx .dm-srvx-ring-track{stroke:var(--srvx-track)}
-#page-server.dm-srvx .dm-srvx-ring-arc{
-  pointer-events:stroke;cursor:pointer;
-  transition:stroke-dasharray 1.1s cubic-bezier(.2,.8,.25,1),stroke .45s ease;
-  filter:drop-shadow(0 3px 7px rgba(10,26,44,.2))
-}
-#page-server.dm-srvx .dm-srvx-core{display:grid;place-items:center}
-#page-server.dm-srvx .dm-srvx-core-halo{
-  position:absolute;width:48%;height:48%;border-radius:50%;
-  background:radial-gradient(circle,rgba(var(--srvx-live-rgb),.16) 0%,transparent 70%)
-}
-#page-server.dm-srvx .srv-hero-icon{
-  position:relative;z-index:1;
-  width:104px!important;height:92px!important;border:0!important;border-radius:0!important;
-  background:none!important;box-shadow:none!important;padding:0!important;overflow:visible!important
-}
-#page-server.dm-srvx .dm-srvx-box{width:100%;height:100%;display:block;overflow:visible}
-#page-server.dm-srvx .dm-srvx-box-body{filter:drop-shadow(var(--srvx-case-shadow))}
-#page-server.dm-srvx .dm-srvx-box-glow{fill:rgba(var(--srvx-live-rgb),.2);filter:blur(7px);transition:fill .5s ease}
-#page-server.dm-srvx .dm-srvx-box-edge{stroke:var(--srvx-case-edge)}
-#page-server.dm-srvx .dm-srvx-box-edge-soft{opacity:.45}
-#page-server.dm-srvx .dm-srvx-vents{stroke:var(--srvx-case-ink)}
-#page-server.dm-srvx .dm-srvx-side{stroke:var(--srvx-case-ink);opacity:.6}
-#page-server.dm-srvx .dm-srvx-port{stroke:var(--srvx-case-ink);opacity:.55}
-#page-server.dm-srvx .dm-srvx-fan-hole{fill:var(--srvx-case-hole);stroke:var(--srvx-case-edge);opacity:.9}
-#page-server.dm-srvx .dm-srvx-fan-hub{fill:var(--srvx-case-hole);stroke:var(--srvx-case-edge)}
-#page-server.dm-srvx .dm-srvx-fan{
-  fill:var(--srvx-case-blade);transform-box:fill-box;transform-origin:center;
-  animation:dmSrvxSpin 3.4s linear infinite
-}
-#page-server.dm-srvx .dm-srvx-strip{
-  stroke:var(--srvx-live);stroke-width:2.4;stroke-linecap:round;opacity:.9;
-  filter:drop-shadow(0 0 5px rgba(var(--srvx-live-rgb),.75))
-}
-#page-server.dm-srvx .dm-srvx-led{fill:var(--srvx-live)}
-#page-server.dm-srvx .dm-srvx-led-pwr{filter:drop-shadow(0 0 5px rgba(var(--srvx-live-rgb),.95))}
-#page-server.dm-srvx .dm-srvx-led-act{fill:#38bdf8;animation:dmSrvxBlink 2.6s steps(1,end) infinite}
-#page-server.dm-srvx[data-dm-srv-net="off"] .dm-srvx-led-act{fill:#94a3b8;animation:none}
-#page-server.dm-srvx[data-dm-srv-net="off"] .dm-srvx-fan{animation:none}
 
-/* ── the readings, one row per arc ────────────────────────────────────── */
-/* Two cells, one row: the label cell reaches under the gap so a hover lights up
-   the whole reading instead of two halves with a hole between them. */
+/* the machine: one box, six faces */
+#page-server.dm-srvx .dm-srvx-machine{
+  --w:206px;--h:48px;--d:132px;--srvx-drop-w:120%;--srvx-drop-h:150px;
+  position:absolute;left:6px;bottom:60px;width:var(--w);height:var(--h);
+  transform-style:preserve-3d
+}
+#page-server.dm-srvx .dm-srvx-box,
+#page-server.dm-srvx .dm-srvx-bar{position:absolute;inset:0;transform-style:preserve-3d}
+#page-server.dm-srvx .dm-srvx-f{position:absolute;left:50%;top:50%;background:var(--srvx-case)}
+#page-server.dm-srvx .dm-srvx-f-front,
+#page-server.dm-srvx .dm-srvx-f-back{
+  width:var(--w);height:var(--h);margin:calc(var(--h) / -2) 0 0 calc(var(--w) / -2)
+}
+#page-server.dm-srvx .dm-srvx-f-front{transform:translateZ(calc(var(--d) / 2));background:var(--srvx-case-front)}
+#page-server.dm-srvx .dm-srvx-f-back{transform:rotateY(180deg) translateZ(calc(var(--d) / 2));background:var(--srvx-case-side)}
+#page-server.dm-srvx .dm-srvx-f-left,
+#page-server.dm-srvx .dm-srvx-f-right{
+  width:var(--d);height:var(--h);margin:calc(var(--h) / -2) 0 0 calc(var(--d) / -2)
+}
+#page-server.dm-srvx .dm-srvx-f-right{transform:rotateY(90deg) translateZ(calc(var(--w) / 2));background:var(--srvx-case-side)}
+#page-server.dm-srvx .dm-srvx-f-left{transform:rotateY(-90deg) translateZ(calc(var(--w) / 2));background:var(--srvx-case-side)}
+#page-server.dm-srvx .dm-srvx-f-top,
+#page-server.dm-srvx .dm-srvx-f-bottom{
+  width:var(--w);height:var(--d);margin:calc(var(--d) / -2) 0 0 calc(var(--w) / -2)
+}
+#page-server.dm-srvx .dm-srvx-f-top{
+  transform:rotateX(90deg) translateZ(calc(var(--h) / 2));backface-visibility:visible;
+  background:linear-gradient(150deg,var(--srvx-case-top),var(--srvx-case));
+  box-shadow:inset 0 0 0 1px var(--srvx-case-edge)
+}
+#page-server.dm-srvx .dm-srvx-f-front,
+#page-server.dm-srvx .dm-srvx-f-right,
+#page-server.dm-srvx .dm-srvx-f-left{box-shadow:inset 0 0 0 1px rgba(15,23,42,.06)}
+#page-server.dm-srvx .dm-srvx-f-bottom{transform:rotateX(-90deg) translateZ(calc(var(--h) / 2));background:var(--srvx-case-side)}
+/* the lid of the machine, with its vent grille and its fan drawn into it: one
+   plane, painted, because a child element does not follow a rotated face */
+#page-server.dm-srvx .dm-srvx-machine .dm-srvx-f-top{
+  border-radius:3px;
+  background-image:
+    repeating-linear-gradient(0deg,var(--srvx-ink) 0 2px,transparent 2px 9px),
+    radial-gradient(circle,transparent 0 22%,var(--srvx-ink) 22% 24%,transparent 25%),
+    conic-gradient(from 0deg,var(--srvx-vane) 0 26deg,transparent 26deg 72deg,
+      var(--srvx-vane) 72deg 98deg,transparent 98deg 144deg,
+      var(--srvx-vane) 144deg 170deg,transparent 170deg 216deg,
+      var(--srvx-vane) 216deg 242deg,transparent 242deg 288deg,
+      var(--srvx-vane) 288deg 314deg,transparent 314deg 360deg),
+    linear-gradient(150deg,var(--srvx-case-top),var(--srvx-case));
+  background-size:34% 52%,40% 62%,32% 50%,cover;
+  background-position:76% 42%,17% 44%,18.6% 44%,0 0;
+  background-repeat:no-repeat,no-repeat,no-repeat,no-repeat
+}
+
+/* the front panel: LEDs and a slot, on the front face */
+#page-server.dm-srvx .dm-srvx-panel{
+  position:absolute;left:50%;top:50%;width:var(--w);height:var(--h);
+  margin:calc(var(--h) / -2) 0 0 calc(var(--w) / -2);
+  transform:translateZ(calc(var(--d) / 2 + .4px));
+  display:flex;align-items:center;gap:9px;padding:0 16px
+}
+#page-server.dm-srvx .dm-srvx-led{width:7px;height:7px;border-radius:50%;background:var(--srvx-live)}
+#page-server.dm-srvx .dm-srvx-led-pwr{box-shadow:0 0 9px 1px rgba(var(--srvx-live-rgb),.85)}
+#page-server.dm-srvx .dm-srvx-led-act{background:#38bdf8;animation:dmSrvxBlink 2.6s steps(1,end) infinite}
+#page-server.dm-srvx[data-dm-srv-net="off"] .dm-srvx-led-act{background:#94a3b8;animation:none}
+#page-server.dm-srvx .dm-srvx-slot{
+  margin-left:auto;width:52px;height:6px;border-radius:99px;background:var(--srvx-ink);opacity:.35
+}
+
+/* the three prisms */
+#page-server.dm-srvx .srv-hero-metrics .srv-metric{
+  position:absolute;bottom:60px;
+  left:calc(292px + var(--dm-srvx-slot,0) * var(--srvx-gap));
+  width:var(--srvx-bar-w);height:var(--dm-srvx-h,6px);
+  background:none!important;border:0!important;box-shadow:none!important;padding:0!important;
+  transform-style:preserve-3d;cursor:pointer;
+  transition:height .9s cubic-bezier(.2,.8,.25,1)
+}
+#page-server.dm-srvx .dm-srvx-bar{--w:var(--srvx-bar-w);--h:100%;--d:var(--srvx-bar-d)}
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f{background:var(--dm-srvx-col,#94a3b8)}
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-front,
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-back{
+  width:var(--srvx-bar-w);height:100%;margin:0;left:0;top:0
+}
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-front{transform:translateZ(calc(var(--srvx-bar-d) / 2))}
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-back{
+  transform:rotateY(180deg) translateZ(calc(var(--srvx-bar-d) / 2));filter:brightness(.7)
+}
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-left,
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-right{
+  width:var(--srvx-bar-d);height:100%;margin:0;left:0;top:0;filter:brightness(.78)
+}
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-right{
+  transform:rotateY(90deg) translateZ(calc(var(--srvx-bar-w) - var(--srvx-bar-d) / 2))
+}
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-left{transform:rotateY(-90deg) translateZ(calc(var(--srvx-bar-d) / 2))}
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-top,
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-bottom{
+  width:var(--srvx-bar-w);height:var(--srvx-bar-d);margin:0;left:0;top:0
+}
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-top{
+  transform:translateY(calc(var(--srvx-bar-d) / -2)) rotateX(90deg);
+  backface-visibility:visible;filter:brightness(1.16)
+}
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-bottom,
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-back,
+#page-server.dm-srvx .dm-srvx-bar .dm-srvx-f-left{display:none}
+#page-server.dm-srvx .srv-hero-metrics .srv-metric .dm-srvx-drop{--srvx-drop-w:190%;--srvx-drop-h:150px}
+/* label under the prism and value above it, both turned back to the viewer */
 #page-server.dm-srvx .srv-metric-top{
-  grid-column:2;grid-row:var(--dm-srvx-row,1);
-  display:flex!important;align-items:center!important;justify-content:flex-start!important;
-  gap:9px!important;cursor:pointer;
-  padding:15px var(--srvx-gap) 15px 12px!important;margin-right:calc(var(--srvx-gap) * -1);
-  border-radius:14px 0 0 14px;transition:background .25s ease
+  position:absolute;left:50%;top:100%;width:120px;margin:30px 0 0 -60px;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  gap:6px!important;transform:rotateY(17deg) rotateX(20deg)
 }
-#page-server.dm-srvx .srv-metric>div:not(.srv-metric-top):not(.dm-srvx-gauge):not(.srv-metric-bar){
-  grid-column:3;grid-row:var(--dm-srvx-row,1);
-  display:flex;align-items:baseline;justify-content:flex-end;gap:2px;
-  padding:15px 12px 15px 0;cursor:pointer;
-  border-radius:0 14px 14px 0;transition:background .25s ease
-}
-#page-server.dm-srvx .srv-metric:hover .srv-metric-top,
-#page-server.dm-srvx .srv-metric:hover>div:not(.srv-metric-top):not(.dm-srvx-gauge):not(.srv-metric-bar){
-  background:color-mix(in srgb,var(--dm-srvx-col,#94a3b8) 9%,transparent)
-}
-#page-server.dm-srvx .dm-srvx-key{
-  width:10px;height:10px;border-radius:50%;flex:0 0 auto;
-  background:var(--dm-srvx-col,#94a3b8);
-  box-shadow:0 0 0 4px color-mix(in srgb,var(--dm-srvx-col,#94a3b8) 16%,transparent)
+#page-server.dm-srvx .srv-metric>div:not(.srv-metric-top):not(.dm-srvx-bar):not(.srv-metric-bar){
+  position:absolute;left:50%;bottom:100%;width:120px;margin:0 0 18px -60px;
+  display:flex;align-items:baseline;justify-content:center;gap:2px;
+  transform:rotateY(17deg) rotateX(20deg)
 }
 #page-server.dm-srvx .srv-metric-lbl{
-  font-size:11px!important;letter-spacing:.16em!important;color:var(--srvx-hero-dim)!important
+  font-size:10px!important;letter-spacing:.14em!important;color:var(--srvx-hero-dim)!important
 }
 #page-server.dm-srvx .srv-metric-icon{
-  display:grid!important;place-items:center!important;
-  font-size:0!important;color:var(--srvx-hero-dim)!important;opacity:.5!important
+  display:grid!important;place-items:center!important;font-size:0!important;
+  color:var(--srvx-hero-dim)!important;opacity:.5!important
 }
 #page-server.dm-srvx .srv-metric-val{
-  font-size:30px!important;font-weight:300!important;letter-spacing:-.04em!important;
+  font-size:25px!important;font-weight:300!important;letter-spacing:-.03em!important;
   color:var(--srvx-hero-text)!important;line-height:1!important
 }
 #page-server.dm-srvx .srv-metric-unit{
-  font-size:13px!important;font-weight:700!important;color:var(--srvx-hero-dim)!important
+  font-size:12px!important;font-weight:700!important;color:var(--srvx-hero-dim)!important
 }
-#page-server.dm-srvx .srv-metric[data-dm-srvx-level="alert"] .srv-metric-lbl,
-#page-server.dm-srvx .srv-metric[data-dm-srvx-level="alert"] .srv-metric-val{color:#dc2626!important}
-#page-server.dm-srvx .srv-metric:hover .srv-metric-lbl{color:var(--srvx-hero-text)!important}
-/* the bar stays: it is the value the arcs read, so it is hidden, not removed */
+#page-server.dm-srvx .srv-metric[data-dm-srvx-level="alert"] .srv-metric-val,
+#page-server.dm-srvx .srv-metric[data-dm-srvx-level="alert"] .srv-metric-lbl{color:#dc2626!important}
+#page-server.dm-srvx .srv-metric:hover .dm-srvx-bar{filter:brightness(1.06)}
+/* the bar stays: it is the value the prisms read, so it is hidden, not removed */
 #page-server.dm-srvx .srv-metric-bar{display:none!important}
 
 /* ── the live curve ───────────────────────────────────────────────────── */
-#page-server.dm-srvx .dm-srvx-trace{position:relative;z-index:2;margin:16px 0 0;display:grid;gap:6px}
+#page-server.dm-srvx .dm-srvx-trace{position:relative;z-index:2;margin:14px 0 0;display:grid;gap:6px}
 #page-server.dm-srvx .dm-srvx-trace[data-dm-srvx-trace="empty"]{display:none}
 #page-server.dm-srvx .dm-srvx-trace-head{
   display:flex;align-items:baseline;justify-content:space-between;gap:10px;
@@ -824,7 +846,7 @@ function minipcShowcaseCss() {
 
 /* ── section headings ─────────────────────────────────────────────────── */
 #page-server.dm-srvx .dm-srvx-head{
-  display:flex;align-items:center;gap:12px;margin:6px 2px -2px;
+  display:flex;align-items:center;gap:12px;margin:6px 2px -4px;
   font-size:9.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;
   color:var(--srvx-dim)
 }
@@ -835,16 +857,16 @@ function minipcShowcaseCss() {
 
 /* ── CPU temperature ──────────────────────────────────────────────────── */
 #page-server.dm-srvx .srv-temp-card{
-  gap:24px!important;padding:20px 22px!important;margin-bottom:0!important;border:0!important;
+  gap:18px!important;padding:20px!important;margin-bottom:0!important;border:0!important;
   border-radius:var(--srvx-r)!important;background:var(--srvx-surface)!important;
-  box-shadow:var(--srvx-shadow)!important
+  box-shadow:var(--srvx-shadow)!important;align-items:center!important
 }
-#page-server.dm-srvx .srv-temp-ring{width:116px!important;height:116px!important}
+#page-server.dm-srvx .srv-temp-ring{width:112px!important;height:112px!important}
 #page-server.dm-srvx .srv-temp-ring svg{width:100%!important;height:100%!important}
 /* only the track: #srv-temp-circle keeps the stroke the legacy loop writes */
 #page-server.dm-srvx .srv-temp-ring circle:not([id]){stroke:var(--srvx-surface-2)!important;stroke-width:8!important}
 #page-server.dm-srvx #srv-temp-circle{stroke-width:8!important}
-#page-server.dm-srvx .srv-temp-num{font-size:30px!important;font-weight:300!important;letter-spacing:-.04em!important}
+#page-server.dm-srvx .srv-temp-num{font-size:29px!important;font-weight:300!important;letter-spacing:-.04em!important}
 #page-server.dm-srvx .srv-temp-unit{font-size:10px!important;letter-spacing:.12em!important;margin-top:2px!important}
 #page-server.dm-srvx .srv-temp-title{font-size:9.5px!important;letter-spacing:.18em!important;margin-bottom:8px!important}
 /* the legacy line stays the owner of the wording; the badge shows it */
@@ -883,23 +905,30 @@ function minipcShowcaseCss() {
 }
 
 /* ── telemetry ────────────────────────────────────────────────────────── */
-#page-server.dm-srvx .srv-tel-grid{grid-template-columns:repeat(4,1fr)!important;gap:12px!important;margin-bottom:0!important}
+#page-server.dm-srvx .srv-tel-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;margin-bottom:0!important;
+  perspective:800px
+}
 #page-server.dm-srvx .srv-tel-card{
-  padding:16px 15px 19px!important;border:0!important;border-radius:var(--srvx-r-s)!important;
-  background:var(--srvx-surface)!important;box-shadow:var(--srvx-shadow-s)!important;gap:10px!important
+  padding:15px 15px 18px!important;border:0!important;border-radius:var(--srvx-r-s)!important;
+  background:var(--srvx-surface)!important;box-shadow:var(--srvx-shadow-s)!important;gap:8px!important;
+  transition:transform .35s cubic-bezier(.2,.8,.25,1),box-shadow .35s ease!important
 }
 #page-server.dm-srvx .srv-tel-card::before{
   width:120px!important;height:120px!important;
   background:radial-gradient(circle at top right,rgba(var(--tc-rgb,14,165,233),.14) 0%,transparent 68%)!important
 }
-#page-server.dm-srvx .srv-tel-card:hover{transform:translateY(-4px)!important;box-shadow:0 24px 36px -22px rgba(10,26,44,.62)!important}
+#page-server.dm-srvx .srv-tel-card:hover{
+  transform:translateY(-4px) rotateX(6deg)!important;
+  box-shadow:0 26px 38px -22px rgba(10,26,44,.62)!important
+}
 #page-server.dm-srvx .srv-tel-icon{
-  width:32px!important;height:32px!important;border-radius:11px!important;font-size:0!important;
+  width:30px!important;height:30px!important;border-radius:10px!important;font-size:0!important;
   background:rgba(var(--tc-rgb,14,165,233),.13)!important;border:0!important;
   color:rgb(var(--tc-rgb,14,165,233))!important
 }
 #page-server.dm-srvx .srv-tel-lbl{font-size:9.5px!important;letter-spacing:.12em!important}
-#page-server.dm-srvx .srv-tel-val{font-size:26px!important;letter-spacing:-.02em!important}
+#page-server.dm-srvx .srv-tel-val{font-size:24px!important;letter-spacing:-.02em!important}
 #page-server.dm-srvx .srv-tel-sub{font-size:9.5px!important;color:var(--srvx-dim)!important}
 /* download and upload run their own stream along the foot of the tile */
 #page-server.dm-srvx .dm-srvx-stream{
@@ -937,59 +966,57 @@ function minipcShowcaseCss() {
 }
 
 @keyframes dmSrvxSpin{to{transform:rotate(360deg)}}
-@keyframes dmSrvxSweep{0%{left:-40%}55%{left:106%}100%{left:106%}}
 @keyframes dmSrvxBlink{0%,44%{opacity:.25}50%,58%{opacity:1}64%,100%{opacity:.25}}
 @keyframes dmSrvxFlowIn{from{transform:translateX(-100%)}to{transform:translateX(192%)}}
 @keyframes dmSrvxFlowOut{from{transform:translateX(192%)}to{transform:translateX(-100%)}}
 
 /* ── responsive ───────────────────────────────────────────────────────── */
-@media(max-width:860px){
-  #page-server.dm-srvx .srv-hero-metrics{--srvx-dial:204px;column-gap:18px!important}
-  #page-server.dm-srvx .srv-metric-val{font-size:26px!important}
+@media(max-width:900px){
+  #page-server.dm-srvx .srv-hero-metrics{--srvx-gap:70px;--srvx-bar-w:46px;--srvx-bar-d:46px}
+  #page-server.dm-srvx .dm-srvx-machine{--w:160px;--d:104px}
+  #page-server.dm-srvx .srv-hero-metrics .srv-metric{left:calc(200px + var(--dm-srvx-slot,0) * var(--srvx-gap))}
 }
-@media(max-width:760px){
-  #page-server.dm-srvx .srv-tel-grid{grid-template-columns:repeat(2,1fr)!important}
+@media(max-width:820px){
+  #page-server.dm-srvx .dm-srvx-shell{grid-template-columns:minmax(0,1fr)}
+  #page-server.dm-srvx .dm-srvx-head,
+  #page-server.dm-srvx .srv-temp-card,
+  #page-server.dm-srvx .srv-tel-grid{grid-column:1 / -1!important;grid-row:auto!important}
 }
 @media(max-width:620px){
   #page-server.dm-srvx{--srvx-r:22px;--srvx-r-s:17px}
-  #page-server.dm-srvx .srv-hero{padding:16px 16px 18px!important}
-  /* the dial goes above the readings, which become three full-width rows */
+  #page-server.dm-srvx .srv-hero{padding:16px 14px 18px!important;perspective:900px}
   #page-server.dm-srvx .srv-hero-metrics{
-    --srvx-dial:min(232px,64vw);
-    grid-template-columns:minmax(0,1fr) auto!important;
-    grid-template-rows:auto repeat(3,auto)!important;
-    column-gap:12px!important
+    --srvx-scene-h:250px;--srvx-gap:clamp(52px,17vw,68px);--srvx-bar-w:40px;--srvx-bar-d:40px;
+    transform:rotateX(-18deg) rotateY(-15deg)
   }
-  #page-server.dm-srvx .dm-srvx-core,
-  #page-server.dm-srvx .dm-srvx-gauge{grid-column:1 / -1;grid-row:1}
-  #page-server.dm-srvx .srv-metric-top{grid-column:1;grid-row:calc(var(--dm-srvx-row,1) + 1);padding:12px 12px 12px 10px!important}
-  #page-server.dm-srvx .srv-metric>div:not(.srv-metric-top):not(.dm-srvx-gauge):not(.srv-metric-bar){
-    grid-column:2;grid-row:calc(var(--dm-srvx-row,1) + 1);padding:12px 10px 12px 0
+  #page-server.dm-srvx .dm-srvx-machine{--w:126px;--h:36px;--d:84px;left:2px;bottom:46px}
+  #page-server.dm-srvx .dm-srvx-panel{gap:7px;padding:0 11px}
+  #page-server.dm-srvx .dm-srvx-slot{width:34px;height:5px}
+  #page-server.dm-srvx .srv-hero-metrics .srv-metric{
+    bottom:46px;left:calc(148px + var(--dm-srvx-slot,0) * var(--srvx-gap))
   }
-  #page-server.dm-srvx .srv-metric-val{font-size:24px!important}
-  #page-server.dm-srvx .srv-hero-icon{width:96px!important;height:86px!important}
-  /* the legacy sheet stacks the header: the pill belongs next to the name */
-  #page-server.dm-srvx .srv-hero-top{
-    flex-direction:row!important;align-items:center!important;gap:10px!important;margin-bottom:6px!important
+  #page-server.dm-srvx .srv-metric-top{width:86px;margin:12px 0 0 -43px;gap:5px!important}
+  #page-server.dm-srvx .srv-metric>div:not(.srv-metric-top):not(.dm-srvx-bar):not(.srv-metric-bar){
+    width:86px;margin:0 0 10px -43px
   }
+  #page-server.dm-srvx .srv-metric-val{font-size:20px!important}
+  #page-server.dm-srvx .srv-metric-lbl{font-size:9px!important;letter-spacing:.1em!important}
+  #page-server.dm-srvx .srv-hero-top{margin-bottom:2px!important;flex-direction:row!important;align-items:center!important;gap:10px!important}
   #page-server.dm-srvx .srv-hero-pill{padding:6px 11px!important;font-size:10px!important;letter-spacing:.08em!important;flex-shrink:0!important}
-  #page-server.dm-srvx .srv-hero-brand{gap:11px!important;min-width:0!important}
+  #page-server.dm-srvx .srv-hero-brand{min-width:0!important}
   #page-server.dm-srvx .srv-hero-title,
   #page-server.dm-srvx .srv-hero-sub{
     white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important
   }
-  #page-server.dm-srvx .dm-srvx-trace{margin-top:14px}
-  #page-server.dm-srvx .dm-srvx-trace-svg{height:44px}
-  #page-server.dm-srvx .dm-srvx-head{letter-spacing:.14em}
+  #page-server.dm-srvx .dm-srvx-trace-svg{height:42px}
   #page-server.dm-srvx .srv-temp-card{
-    flex-direction:row!important;text-align:left!important;align-items:center!important;
-    gap:15px!important;padding:16px!important
+    flex-direction:row!important;text-align:left!important;gap:14px!important;padding:16px!important
   }
   #page-server.dm-srvx .srv-temp-ring{width:92px!important;height:92px!important}
   #page-server.dm-srvx .srv-temp-num{font-size:24px!important}
   #page-server.dm-srvx .dm-srvx-temp-badge{font-size:12px!important;padding:5px 11px 5px 9px!important}
   #page-server.dm-srvx .dm-srvx-scale-ends{font-size:8px!important}
-  #page-server.dm-srvx .srv-tel-val{font-size:22px!important}
+  #page-server.dm-srvx .srv-tel-val{font-size:21px!important}
   #page-server.dm-srvx .srv-status-grid{grid-template-columns:1fr!important}
 }
 
@@ -998,24 +1025,20 @@ html[data-theme="dark"] #page-server.dm-srvx{
   --srvx-shadow:0 22px 40px -26px rgba(0,0,0,.78),0 2px 6px -3px rgba(0,0,0,.5);
   --srvx-shadow-s:0 16px 30px -24px rgba(0,0,0,.72),0 2px 5px -3px rgba(0,0,0,.45);
   --srvx-live:#34d399;--srvx-live-rgb:52,211,153;
-  --srvx-hero-bg:linear-gradient(150deg,#1b2740 0%,#111a2c 54%,#0a111e 100%);
+  --srvx-hero-bg:linear-gradient(170deg,#1c2842 0%,#111a2c 54%,#0a111e 100%);
   --srvx-hero-text:#f2f6ff;
   --srvx-hero-dim:rgba(198,214,240,.74);
   --srvx-hero-line:rgba(255,255,255,.1);
   --srvx-hero-shadow:0 28px 48px -28px rgba(0,0,0,.85),0 2px 6px -3px rgba(0,0,0,.5);
   --srvx-hero-inset:inset 0 1px 0 rgba(255,255,255,.06);
-  --srvx-track:rgba(255,255,255,.09);
-  --srvx-case-top-a:#6a80a8;--srvx-case-top-b:#2f3f5e;
-  --srvx-case-left-a:#2b3a56;--srvx-case-left-b:#141d31;
-  --srvx-case-right-a:#1b2540;--srvx-case-right-b:#0d1424;
-  --srvx-case-edge:rgba(224,239,255,.38);
-  --srvx-case-ink:rgba(190,220,255,.34);
-  --srvx-case-hole:rgba(6,12,24,.6);
-  --srvx-case-blade:rgba(198,224,255,.42);
-  --srvx-case-shadow:0 14px 18px rgba(4,10,20,.55)
+  --srvx-floor:rgba(148,197,255,.08);
+  --srvx-floor-line:rgba(148,197,255,.09);
+  --srvx-drop:rgba(0,0,0,.5);
+  --srvx-case:#33415c;--srvx-case-top:#4a5c7e;--srvx-case-side:#1d2740;
+  --srvx-case-front:#28344c;--srvx-case-edge:rgba(214,232,255,.22);
+  --srvx-ink:rgba(198,224,255,.4);--srvx-vane:rgba(198,224,255,.28)
 }
 html[data-theme="dark"] #page-server.dm-srvx[data-dm-srv-net="off"]{--srvx-live:#f87171;--srvx-live-rgb:248,113,113}
-html[data-theme="dark"] #page-server.dm-srvx .dm-srvx-ring-arc{filter:none}
 html[data-theme="dark"] #page-server.dm-srvx .dm-srvx-scale-pin{border-color:#dbe6f7!important}
 html[data-theme="dark"] #page-server.dm-srvx .dm-srvx-status-ico{background:rgba(255,255,255,.06)}
 

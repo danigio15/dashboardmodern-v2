@@ -8,27 +8,29 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Modificato
 
-- **La pagina MiniPC è stata ridisegnata.** Prima erano tre barrette piatte,
-  quattro riquadri con un'emoji e molto bianco in mezzo. Ora la macchina è al
-  centro: il mini PC disegnato in assonometria, con i LED e la ventola che gira
-  finché risponde in rete, e attorno tre anelli concentrici — CPU, RAM e Disco —
-  con la loro lettura in fila accanto. Gli anelli si riempiono con il carico e
-  passano all'ambra e al rosso alle stesse soglie di prima, e il pallino accanto
-  all'etichetta prende il colore dell'anello. Sotto scorre la curva dal vivo del
-  carico CPU: le letture che la pagina ha già mostrato nella sessione, con il
-  picco a destra e il punto sull'ultimo valore.
+- **La pagina MiniPC è stata ridisegnata come una scena 3D.** Prima erano tre
+  barrette piatte, quattro riquadri con un'emoji e molto bianco in mezzo. Ora la
+  testata è una scena in prospettiva: il mini PC è un volume vero — sei facce,
+  con la griglia di ventilazione e la ventola disegnate sul coperchio e i LED sul
+  frontale — e accanto stanno CPU, RAM e Disco come tre prismi che crescono con
+  il carico, ciascuno con la sua ombra sul pavimento. I prismi passano all'ambra
+  e al rosso alle stesse soglie di prima, con il valore sopra e l'etichetta sotto.
+  Sotto la scena scorre la curva dal vivo del carico CPU: le letture che la
+  pagina ha già mostrato nella sessione, con il picco a destra.
+- **La pagina non è più una pila di blocchi ma una board a due colonne**: la
+  scena in alto, Termica a sinistra, Telemetria a destra, Rete e impianto in
+  fondo. Se l'auto-nascondi toglie la card della temperatura, la telemetria si
+  allarga su tutta la riga invece di lasciare un buco.
 - La temperatura della CPU ha la sua scala da 20° a 100° con la tacca del limite
   a 75°, e lo stato ("Ottimale", "Nella norma", "Alta") diventa una pastiglia con
   il pallino colorato. Telemetria e stato rete hanno icone disegnate al posto
   delle emoji, Download e Upload mostrano un flusso che scorre nel verso del
-  traffico, e tre titoletti dividono la pagina in Termica, Telemetria e Rete e
-  impianto. Quando la connettività cade, il pannello, i LED e la curva diventano
+  traffico. Quando la connettività cade, la scena, i LED e la curva diventano
   rossi.
 - La pagina segue il tema: chiara su tema chiaro, scura su tema scuro. Nessun
   valore è ricalcolato — le barre, l'arco della temperatura, il testo di stato e
-  le pastiglie restano scritti dal runtime della dashboard — e le card che
-  l'auto-nascondi toglie dalla pagina si portano dietro sia il loro anello sia il
-  loro titoletto.
+  le pastiglie restano scritti dal runtime della dashboard — e una card che
+  l'auto-nascondi toglie si porta via anche il suo prisma e il suo titoletto.
 
 ## 1.0.0-beta.30.8 — 2026-08-18
 

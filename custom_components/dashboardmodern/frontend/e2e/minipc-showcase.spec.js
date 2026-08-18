@@ -68,12 +68,11 @@ async function openServerPage(page) {
   });
 }
 
-/** Share of the ring an arc covers, as the page drew it. */
-async function arcShare(locator) {
-  const [drawn, gap] = ((await locator.getAttribute("stroke-dasharray")) || "")
-    .split(" ")
-    .map(Number);
-  return Math.round((drawn / (drawn + gap)) * 100);
+/** Height a prism was given, in pixels, as the scene drew it. */
+async function prismHeight(page, index) {
+  return page.locator(".srv-hero-metrics .srv-metric").nth(index).evaluate((card) =>
+    Number.parseFloat(getComputedStyle(card).getPropertyValue("--dm-srvx-h")),
+  );
 }
 
 test.describe("MiniPC page redesign", () => {
@@ -95,20 +94,21 @@ test.describe("MiniPC page redesign", () => {
     await expect(page.locator("#v-srv-ram")).toHaveCount(1);
     await expect(page.locator("#u-srv-ram")).toHaveCount(1);
 
-    // Three arcs around one machine, drawn at three radii.
-    await expect(page.locator(".dm-srvx-ring-arc")).toHaveCount(3);
-    await expect(page.locator(".dm-srvx-core .srv-hero-icon .dm-srvx-box")).toHaveCount(1);
-    const radii = await page.locator(".dm-srvx-ring-arc").evaluateAll((arcs) =>
-      arcs.map((arc) => Number(arc.getAttribute("r"))),
-    );
-    expect(radii).toEqual([86, 68, 50]);
+    // One machine and three prisms, six faces each, in a single scene.
+    await expect(page.locator(".dm-srvx-machine .dm-srvx-f")).toHaveCount(6);
+    await expect(page.locator(".dm-srvx-bar")).toHaveCount(3);
 
-    const arcs = page.locator(".dm-srvx-ring-arc");
-    expect(await arcShare(arcs.nth(0))).toBe(23);
-    expect(await arcShare(arcs.nth(1))).toBe(61);
-    expect(await arcShare(arcs.nth(2))).toBe(88);
-    // Past the legacy alert threshold the disk gauge turns red on its own.
-    await expect(arcs.nth(2)).toHaveAttribute("stroke", "#ef4444");
+    // The prisms stand as tall as the loads they carry.
+    const heights = [await prismHeight(page, 0), await prismHeight(page, 1), await prismHeight(page, 2)];
+    expect(heights[0]).toBeLessThan(heights[1]);
+    expect(heights[1]).toBeLessThan(heights[2]);
+    expect(heights[0]).toBeGreaterThan(6);
+
+    // Past the legacy alert threshold the disk prism turns red on its own.
+    const diskColour = await page.locator(".srv-metric").nth(2).evaluate((card) =>
+      getComputedStyle(card).getPropertyValue("--dm-srvx-col").trim(),
+    );
+    expect(diskColour).toBe("#ef4444");
     await expect(page.locator(".srv-metric").nth(2)).toHaveAttribute("data-dm-srvx-level", "alert");
     await expect(page.locator(".srv-metric").nth(0)).toHaveAttribute("data-dm-srvx-level", "ok");
   });
@@ -170,11 +170,13 @@ test.describe("MiniPC page redesign", () => {
 
     await expect(page.locator(".srv-temp-card")).toBeHidden();
     await expect(page.locator('.dm-srvx-head[data-dm-srvx-head=".srv-temp-card"]')).toBeHidden();
-    // A hidden metric card takes its arc and its row off the dial together.
-    await expect(page.locator(".dm-srvx-ring-arc").first()).toBeHidden();
+    // A hidden metric card takes its prism, its label and its value with it.
+    await expect(page.locator(".dm-srvx-bar").first()).toBeHidden();
     await expect(page.locator("#v-srv-cpu")).toBeHidden();
-    // The machine keeps standing in the middle of the empty dial.
-    await expect(page.locator(".dm-srvx-core .dm-srvx-box")).toBeVisible();
+    // The machine keeps standing on the empty floor.
+    await expect(page.locator(".dm-srvx-machine")).toBeVisible();
+    // Telemetry takes the whole row instead of leaving the thermal column empty.
+    await expect(page.locator("#page-server")).toHaveAttribute("data-dm-srvx-thermal", "off");
     // The rows that open no entity stay, and so does their heading.
     await expect(page.locator('.dm-srvx-head[data-dm-srvx-head=".srv-status-grid"]')).toBeVisible();
     await expect(page.locator(".srv-status-card").first()).toBeVisible();

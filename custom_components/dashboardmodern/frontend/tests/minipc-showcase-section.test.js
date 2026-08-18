@@ -42,28 +42,30 @@ test("each gauge reads the load from the bar the render loop writes", async () =
   assert.equal(metricLevel("srv-fill-cpu", fakeDocument()), null);
 });
 
-test("the ring draws exactly the percentage it was given", async () => {
-  const { ringDash } = await loadSection();
-  const [drawn, gap] = ringDash(40, 100).split(" ").map(Number);
-  assert.equal(drawn, 40);
-  assert.equal(gap, 60);
-  assert.equal(ringDash(0, 100), "0.0 100.0");
-  assert.equal(ringDash(100, 100), "100.0 0.0");
-  // A missing reading draws an empty ring instead of a full one.
-  assert.equal(ringDash(null, 100), "0.0 100.0");
-  assert.equal(ringDash(Number.NaN, 100), "0.0 100.0");
+test("a prism stands as tall as the load it carries", async () => {
+  const { barHeight } = await loadSection();
+  // 0% still leaves a base plate, 100% reaches the top of the scene.
+  assert.equal(barHeight(0, 100), 6);
+  assert.equal(barHeight(100, 100), 100);
+  assert.equal(barHeight(50, 100), 53);
+  // Out of range readings are clamped instead of growing out of the panel.
+  assert.equal(barHeight(140, 100), 100);
+  assert.equal(barHeight(-20, 100), 6);
+  // No reading yet: the base plate, not a full prism.
+  assert.equal(barHeight(null, 100), 6);
+  assert.equal(barHeight(Number.NaN, 100), 6);
 });
 
-test("the gauge keeps its own colour until the legacy thresholds bite", async () => {
-  const { ringColour } = await loadSection();
+test("a prism keeps its own colour until the legacy thresholds bite", async () => {
+  const { levelColour } = await loadSection();
   // Same 65 / 85 pair the legacy setRing() uses for these three gauges.
-  assert.equal(ringColour(20, "#06b6d4"), "#06b6d4");
-  assert.equal(ringColour(65, "#06b6d4"), "#06b6d4");
-  assert.equal(ringColour(66, "#06b6d4"), "#f59e0b");
-  assert.equal(ringColour(85, "#06b6d4"), "#f59e0b");
-  assert.equal(ringColour(86, "#06b6d4"), "#ef4444");
+  assert.equal(levelColour(20, "#06b6d4"), "#06b6d4");
+  assert.equal(levelColour(65, "#06b6d4"), "#06b6d4");
+  assert.equal(levelColour(66, "#06b6d4"), "#f59e0b");
+  assert.equal(levelColour(85, "#06b6d4"), "#f59e0b");
+  assert.equal(levelColour(86, "#06b6d4"), "#ef4444");
   // No reading at all keeps the configured colour instead of raising an alarm.
-  assert.equal(ringColour(null, "#10b981"), "#10b981");
+  assert.equal(levelColour(null, "#10b981"), "#10b981");
 });
 
 test("the thermal scale follows the arc the runtime drew, never a sensor", async () => {
@@ -154,15 +156,15 @@ test("a spike cannot bow the curve out of its band", async () => {
   }
 });
 
-test("a gauge past a legacy threshold says so on its row too", async () => {
-  const { ringLevelName } = await loadSection();
-  assert.equal(ringLevelName(12), "ok");
-  assert.equal(ringLevelName(65), "ok");
-  assert.equal(ringLevelName(70), "warn");
-  assert.equal(ringLevelName(85), "warn");
-  assert.equal(ringLevelName(92), "alert");
-  // No reading yet: the row stays neutral instead of claiming a level.
-  assert.equal(ringLevelName(null), "");
+test("a gauge past a legacy threshold says so on its label too", async () => {
+  const { levelName } = await loadSection();
+  assert.equal(levelName(12), "ok");
+  assert.equal(levelName(65), "ok");
+  assert.equal(levelName(70), "warn");
+  assert.equal(levelName(85), "warn");
+  assert.equal(levelName(92), "alert");
+  // No reading yet: the label stays neutral instead of claiming a level.
+  assert.equal(levelName(null), "");
 });
 
 test("the redesigned page keeps every legacy runtime hook", () => {
@@ -201,25 +203,26 @@ test("the section owns presentation only and never reads Home Assistant state", 
   assert.doesNotMatch(body, /MutationObserver/);
 });
 
-test("the dial is built once and copies no value node", () => {
-  const mount = source.slice(source.indexOf("function mountGauge"), source.indexOf("function mountCore"));
-  // Mounting twice must not build a second arc for the same card.
-  assert.match(mount, /if \(card\.dataset\.dmSrvxGauge\) return/);
+test("a prism is built once and copies no value node", () => {
+  const mount = source.slice(source.indexOf("function mountPrism"), source.indexOf("function mountScene"));
+  // Mounting twice must not stack a second prism on the same card.
+  assert.match(mount, /if \(card\.dataset\.dmSrvxPrism\) return/);
   // The reading stays the node the render loop writes: nothing is cloned and no
   // value is read out of the DOM to be printed somewhere else.
   assert.doesNotMatch(mount, /cloneNode/);
   assert.doesNotMatch(mount, /textContent/);
-  // Each card owns one radius of the dial, in the order the bars come in.
-  assert.match(source, /const RING_RADII = Object\.freeze\(\[86, 68, 50\]\)/);
-  assert.match(mount, /RING_RADII\[index\]/);
+  // Each prism knows which slot of the scene it stands in.
+  assert.match(mount, /--dm-srvx-slot/);
 });
 
-test("the machine is moved to the centre of the dial, not redrawn there", () => {
-  const mount = source.slice(source.indexOf("function mountCore"), source.indexOf("function mountTrace"));
-  // The hero slot itself travels into the dial: one drawing, one owner.
-  assert.match(mount, /core\.append\(slot\)/);
-  assert.doesNotMatch(mount, /cloneNode/);
-  assert.match(mount, /if \(slot\.parentElement !== core\)/);
+test("the machine is a box of six faces, and the old glyph slot is emptied", () => {
+  // One face list drives both the machine and the prisms.
+  assert.match(source, /const BOX_FACES = \["front", "back", "left", "right", "top", "bottom"\]/);
+  const mount = source.slice(source.indexOf("function mountScene"), source.indexOf("function mountTrace"));
+  // The legacy icon slot keeps existing — the runtime owns that markup — it is
+  // just emptied, never removed from the header.
+  assert.match(mount, /slot\.textContent = ""/);
+  assert.doesNotMatch(mount, /\.remove\(\)/);
 });
 
 test("nothing forces a display the auto-hide writes inline on a card", () => {
@@ -231,11 +234,10 @@ test("nothing forces a display the auto-hide writes inline on a card", () => {
     const pattern = new RegExp(`${card.replace(".", "\\.")}\\{[^}]*display:[^};]*!important`);
     assert.doesNotMatch(styles, pattern, card);
   }
-  // The metric card carries its arc and its row into the same grid through
-  // display:contents, which the inline display:none still overrides.
-  assert.match(styles, /\.srv-metric\{\s*display:contents;/);
-  // A block emptied by the auto-hide drops its heading too.
+  // A block emptied by the auto-hide drops its heading too, and the board is
+  // told so telemetry can take the whole row instead of leaving a hole.
   assert.match(source, /cards\.every\(\(card\) => card\.style\.display === "none"\)/);
+  assert.match(styles, /\[data-dm-srvx-thermal="off"\][\s\S]*?\.srv-tel-grid\{grid-column:1 \/ -1\}/);
 });
 
 test("the page dresses both locales and both themes", () => {
