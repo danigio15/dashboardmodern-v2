@@ -101,20 +101,18 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   intatto, e quando le sezioni ci stanno tutte la barra è identica a prima:
   niente frecce, larghezza sul contenuto. Su smartphone e tablet non cambia
   nulla, la barra continua a scorrere da sé come ha sempre fatto.
-
-- Sul desktop i flussi non si animavano: se nel sistema e' attivo **"riduci
-  movimento"** — impostazione comune su Windows e macOS e quasi mai su un
-  telefono, il che spiega perche' il moto si vedeva solo li' — ogni linea
-  restava ferma, comprese quelle principali di solare, rete e batteria. Il
-  motore dei flussi introdotto con la Beta 30 rispetta quella preferenza, ma la
-  rispettava azzerando l'animazione e lasciando il tratteggio: una linea
-  tratteggiata e immobile e' pero' indistinguibile da una spenta, e il moto era
-  l'unico segnale che l'energia stesse passando. Ora, con la preferenza attiva,
-  la linea di un flusso attivo viene disegnata **piena, colorata e a piena
-  intensita'**, mentre quella inattiva resta tratteggiata e sbiadita: lo stato
-  si legge lo stesso, senza movimento. Con la preferenza disattivata il
-  tratteggio scorre come prima.
-
+- **Sul desktop i flussi non si animavano.** Se nel sistema è attiva
+  l'impostazione **"riduci movimento"** — spesso attiva su un computer e quasi
+  mai su un telefono, il che spiega perché il moto si vedeva solo lì — ogni
+  linea restava ferma, comprese quelle principali di solare, rete e batteria.
+  Il motore dei flussi introdotto con la Beta 30 rispettava quella preferenza,
+  cosa che per un'animazione decorativa sarebbe giusta; qui però il tratteggio
+  che scorre non è una decorazione, è l'unico segnale che l'energia sta
+  passando, e la stessa plancia finiva per raccontare due cose diverse a
+  seconda dello schermo. Ora le linee dei flussi scorrono su ogni schermo,
+  indipendentemente da quell'impostazione: il desktop mostra esattamente quello
+  che mostra il telefono. Le altre sezioni continuano a rispettarla, perché lì
+  il movimento è effettivamente decorativo.
 - In **Temperature** l'etichetta sopra il numero cambiava da sola: la stessa
   scheda mostrava "TEMPERATURA" e un istante dopo il nome dato al sensore. Quel
   testo aveva tre proprietari che non erano d'accordo — i renderer scrivevano la

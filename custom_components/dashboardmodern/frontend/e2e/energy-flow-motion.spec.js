@@ -137,24 +137,30 @@ test("il connettore di un carico acceso scorre davvero", async ({ page }, testIn
   expect(new Set(offsets).size).toBeGreaterThan(1);
 });
 
-test("con 'riduci movimento' la linea attiva resta leggibile invece di sparire", async ({
+test("le linee scorrono anche con 'riduci movimento': stessa lettura su ogni schermo", async ({
   page,
 }, testInfo) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await boot(page, testInfo);
 
-  const active = await readArc(page, "boiler");
-  await page.waitForTimeout(300);
-  const later = await readArc(page, "boiler");
-  // Nessun movimento: la preferenza di sistema va rispettata.
-  expect(later.offset).toBe(active.offset);
-  // Ma il tratteggio congelato sarebbe identico a una linea spenta: la linea
-  // attiva diventa piena e a piena intensita', quella spenta resta tratteggiata
-  // e sbiadita, cosi' "sta passando energia" si legge lo stesso.
-  expect(active.dash).toBe("none");
-  expect(active.opacity).toBe(1);
+  /* La preferenza di sistema e' spesso attiva su un computer e quasi mai su un
+   * telefono: rispettarla qui lasciava il desktop immobile mentre il telefono
+   * scorreva, cioe' la stessa plancia raccontava due cose diverse. Il
+   * tratteggio in movimento non e' una decorazione, e' l'unico segnale che
+   * l'energia sta passando. */
+  const first = await readArc(page, "boiler");
+  expect(first.animations).toBeGreaterThan(0);
+  expect(first.opacity).toBe(1);
+  expect(first.dash).not.toBe("none");
 
+  const offsets = [first.offset];
+  for (let index = 0; index < 4; index += 1) {
+    await page.waitForTimeout(130);
+    offsets.push((await readArc(page, "boiler")).offset);
+  }
+  expect(new Set(offsets).size).toBeGreaterThan(1);
+
+  // Il carico spento resta comunque distinguibile: sbiadito e senza moto.
   const idle = await readArc(page, "wallbox");
-  expect(idle.dash).not.toBe("none");
   expect(idle.opacity).toBeLessThan(1);
 });

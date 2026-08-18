@@ -495,11 +495,13 @@ function installStyles() {
     .dm-energy-flow-idle{opacity:.30!important;filter:none!important;transition:stroke .18s ease,fill .18s ease,opacity .18s ease!important}
     .flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{stroke:var(--dm-flow-color)!important;stroke-dasharray:12 9!important;stroke-linecap:round!important;animation-name:dmEnergyFlowDash!important;animation-duration:.8s!important;animation-timing-function:linear!important;animation-iteration-count:infinite!important;animation-play-state:running!important;will-change:stroke-dashoffset!important}
     @keyframes dmEnergyFlowDash{from{stroke-dashoffset:0}to{stroke-dashoffset:-42}}
-    /* Con "riduci movimento" attivo il tratteggio non scorre, ma una linea
-       tratteggiata e ferma e' indistinguibile da una spenta: il moto era
-       l'unico segnale che l'energia sta passando. La linea attiva resta quindi
-       piena, colorata e a piena intensita', cosi' lo stato si legge lo stesso. */
-    @media(prefers-reduced-motion:reduce){.flow-line.dm-energy-flow-active,path.dm-energy-flow-active,line.dm-energy-flow-active,polyline.dm-energy-flow-active{animation:none!important;stroke-dasharray:none!important}}
+    /* Nessuna eccezione per "riduci movimento": il tratteggio che scorre non e'
+       una decorazione ma l'unico segnale che l'energia sta passando, e la
+       plancia deve mostrare le stesse linee su ogni schermo. Quella preferenza
+       e' spesso attiva su un computer e quasi mai su un telefono, quindi
+       rispettarla qui rendeva il desktop immobile mentre il telefono scorreva:
+       stessa plancia, due letture diverse. Le altre sezioni continuano a
+       rispettarla, perche' li' il moto e' effettivamente decorativo. */
     /* An mdi icon resolved by the engine sits inside .node-icon, which already
        sizes the emoji of the hand-authored circles at every breakpoint: the
        glyph inherits it so a configured circle matches its neighbours. */

@@ -339,7 +339,7 @@ test("an mdi icon is drawn through the icon engine, not as an empty ha-icon box"
   }
 });
 
-test("with reduced motion the active line stays readable instead of freezing dashed", () => {
+test("the flow lines animate on every screen, reduced motion included", () => {
   configure({
     loads: [load("auto", 0, { name: "Auto" })],
     states: { "sensor.auto_power": { state: "3200" } },
@@ -348,11 +348,15 @@ test("with reduced motion the active line stays readable instead of freezing das
     .descendants()
     .map((node) => node.textContent)
     .join("\n");
-  const guard = css.slice(css.indexOf("@media(prefers-reduced-motion:reduce)"));
-  // The dash is the only signal that energy is moving: frozen, a dashed active
-  // line is indistinguishable from an idle one, so it is drawn solid instead.
-  assert.match(guard, /animation:none!important/);
-  assert.match(guard, /stroke-dasharray:none!important/);
+  const flow = css.slice(css.indexOf(".flow-line.dm-energy-flow-active"));
+
+  // The moving dash is not decoration: it is the only signal that energy is
+  // flowing, and the same dashboard must read the same on every screen. The
+  // preference is often on for a computer and almost never for a phone, so
+  // honouring it here froze the desktop while the phone kept moving.
+  assert.doesNotMatch(flow, /prefers-reduced-motion/);
+  assert.match(flow, /animation-name:dmEnergyFlowDash!important/);
+  assert.match(flow, /animation-play-state:running!important/);
 });
 
 test("an emoji icon still goes straight into the bubble", () => {
