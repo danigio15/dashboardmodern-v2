@@ -87,6 +87,20 @@ test("the page keeps the same way back home as every other section", () => {
   assert.match(scene, /dropLegacyBackHome\(\);\n {2}const views = coverList\(\);/);
 });
 
+test("nothing shares the row with the window", () => {
+  // The track used to stand beside the window, which narrowed the window and
+  // left the panel short of the card edge with an empty column next to it.
+  assert.match(scene, /\.dm-tapp-stage\{display:block!important;min-width:0!important\}/);
+  assert.match(scene, /\.dm-tapp-stage \.tapp-win\{width:100%!important/);
+  // The position is a full-width rail under the window with the readout at its
+  // end, so it is one horizontal control instead of a vertical one at the side.
+  assert.match(scene, /<div class="dm-tapp-bar">\n\s+\$\{trackMarkup\(view\)\}\n\s+<div class="tapp-pos" data-dm-readout><\/div>\n\s+<\/div>/);
+  assert.match(scene, /\.dm-tapp-track\{\n\s+position:relative!important;flex:1 1 auto!important/);
+  assert.match(scene, /background:linear-gradient\(90deg,var\(--tapp-track-sky\) 0 calc\(var\(--tapp-open,0\) \* 100%\)/);
+  assert.doesNotMatch(scene, /rotate\(-90deg\)/);
+  assert.doesNotMatch(scene, /cursor:ns-resize/);
+});
+
 test("a position the user asked for survives the next legacy repaint", () => {
   // Home Assistant keeps reporting the old position until the motor arrives.
   assert.match(scene, /const GRAB_MS = \d+/);
