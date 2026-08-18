@@ -1,6 +1,7 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { saveSection } from "./helpers/entity-field.js";
 
 const seed = {
   schema_version: 4,
@@ -173,7 +174,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(modelSelect).toContainText("B10");
     await modelSelect.selectOption("B10");
     await expect(modelSelect).toHaveValue("B10");
-    await appearance.locator("button[data-save]").click();
+    await saveSection(page);
 
     await expect
       .poll(() => page.evaluate(() => DashboardModernModules.store.getSection("ev")[0]))
@@ -209,7 +210,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           };
         }),
       )
-      .toEqual({ profile: "primary", keysRevision: 2, model: "B10" });
+      .toEqual({ profile: "primary", keysRevision: 3, model: "B10" });
 
     const persisted = await page.evaluate(() => {
       const remote = JSON.parse(localStorage.getItem("__beta2_remote_config__"));

@@ -70,9 +70,10 @@ async function openServerPage(page) {
 
 /** Height a prism was given, in pixels, as the scene drew it. */
 async function prismHeight(page, index) {
-  return page.locator(".srv-hero-metrics .srv-metric").nth(index).evaluate((card) =>
-    Number.parseFloat(getComputedStyle(card).getPropertyValue("--dm-srvx-h")),
-  );
+  return page
+    .locator(".srv-hero-metrics .srv-metric")
+    .nth(index)
+    .evaluate((card) => Number.parseFloat(getComputedStyle(card).getPropertyValue("--dm-srvx-h")));
 }
 
 test.describe("MiniPC page redesign", () => {
@@ -99,15 +100,20 @@ test.describe("MiniPC page redesign", () => {
     await expect(page.locator(".dm-srvx-bar")).toHaveCount(3);
 
     // The prisms stand as tall as the loads they carry.
-    const heights = [await prismHeight(page, 0), await prismHeight(page, 1), await prismHeight(page, 2)];
+    const heights = [
+      await prismHeight(page, 0),
+      await prismHeight(page, 1),
+      await prismHeight(page, 2),
+    ];
     expect(heights[0]).toBeLessThan(heights[1]);
     expect(heights[1]).toBeLessThan(heights[2]);
     expect(heights[0]).toBeGreaterThan(6);
 
     // Past the legacy alert threshold the disk prism turns red on its own.
-    const diskColour = await page.locator(".srv-metric").nth(2).evaluate((card) =>
-      getComputedStyle(card).getPropertyValue("--dm-srvx-col").trim(),
-    );
+    const diskColour = await page
+      .locator(".srv-metric")
+      .nth(2)
+      .evaluate((card) => getComputedStyle(card).getPropertyValue("--dm-srvx-col").trim());
     expect(diskColour).toBe("#ef4444");
     await expect(page.locator(".srv-metric").nth(2)).toHaveAttribute("data-dm-srvx-level", "alert");
     await expect(page.locator(".srv-metric").nth(0)).toHaveAttribute("data-dm-srvx-level", "ok");
@@ -152,7 +158,9 @@ test.describe("MiniPC page redesign", () => {
     });
     await expect(page.locator(".dm-srvx-trace")).toHaveAttribute("data-dm-srvx-trace", "on");
     await expect(page.locator(".dm-srvx-trace-peak")).toContainText("71%");
-    expect((await page.locator(".dm-srvx-trace-line").getAttribute("d"))?.length).toBeGreaterThan(10);
+    expect((await page.locator(".dm-srvx-trace-line").getAttribute("d"))?.length).toBeGreaterThan(
+      10,
+    );
 
     await page.evaluate(() => {
       const badge = document.getElementById("waw-net-badge");

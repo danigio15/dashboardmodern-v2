@@ -203,15 +203,33 @@ export function lexicalGlobal(name) {
   return root[name] ?? null;
 }
 
+/* The live registry, without a copy of it.
+ *
+ * This used to build a fresh merged object on every call: spread the two hosted
+ * maps, then `Object.assign` `_RAW_STATES` and `STATES` on top. `STATES` is a
+ * Proxy whose target *is* `_RAW_STATES`, so the second assign copied the same
+ * entries again — through a trap that consults the override table on every
+ * key. On a house with a few thousand entities one call cost more than a
+ * millisecond, and the renderers call it per card, several of them per row,
+ * twice a second. That is the dashboard feeling slow.
+ *
+ * When the runtime is the only source — which is every hosted dashboard, since
+ * `__HASS__`/`hass` live in the parent document and not in this one — the
+ * registry is handed back as it is: no copy, no traps, and never one repaint
+ * behind. The merge stays for the surfaces that really do expose a second map,
+ * and it never merges `STATES` over its own target.
+ *
+ * The returned map is the runtime's own object. Callers read it; writing to it
+ * would write into the mirror of Home Assistant itself.
+ */
 export function allStates() {
-  // Hosted Home Assistant surfaces do not all expose the live registry through
-  // the same object at the same moment. Merge every supported source instead of
-  // making the period engine and the compatibility layer observe different
-  // universes on Chrome vs the HA mobile WebView.
-  const values = {
-    ...(root.__HASS__?.states || {}),
-    ...(root.hass?.states || {}),
-  };
+  const raw = lexicalGlobal("_RAW_STATES");
+  const registry = raw && typeof raw === "object" ? raw : lexicalGlobal("STATES");
+  const hosted = [root.__HASS__?.states, root.hass?.states].filter(
+    (value) => value && typeof value === "object",
+  );
+  if (!hosted.length && !globalThis.__DM_SLOW_STATES__) return registry && typeof registry === "object" ? registry : {};
+  const values = hosted.length ? Object.assign({}, ...hosted) : {};
   for (const name of ["_RAW_STATES", "STATES"]) {
     const lexical = lexicalGlobal(name);
     if (lexical && typeof lexical === "object") Object.assign(values, lexical);
@@ -236,6 +254,25 @@ export function writeJsonIfChanged(key, value, { sync = true } = {}) {
     root.cdSyncPush?.();
   }
   return true;
+}
+
+/* Start the dashboard over.
+ *
+ * Hosted, the document comes from an iframe `srcdoc`, so its URL is
+ * `about:srcdoc` and `location.reload()` replaces it with a blank page in the
+ * Home Assistant WebView — the plancia goes white and stays white, which is
+ * what resetting the configuration used to do. The host rebuilds the document
+ * when asked; standalone, an ordinary reload is still an ordinary reload. */
+export function reloadDashboard() {
+  try {
+    if (root.__DASHBOARDMODERN_RELOAD__?.()) return true;
+  } catch (_error) {}
+  try {
+    root.location?.reload?.();
+    return true;
+  } catch (_error) {
+    return false;
+  }
 }
 
 export function installStyle(id, css) {

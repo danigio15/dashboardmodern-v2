@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { fillEntityFieldByHand, showRawEntityFields } from "./helpers/entity-field.js";
 import { clickBottomTab, clickStableButton } from "./helpers/navigation.js";
 
 const haStates = [
@@ -159,7 +160,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       ["Tapparella cucina", "cover.cucina"],
     ]) {
       await page.locator("#ed-tp-name").fill(name);
-      await page.locator("#ed-tp-ent").fill(entity);
+      await fillEntityFieldByHand(page, "#ed-tp-ent", entity);
       await page.locator("#ed-tp-room").selectOption("room-salone");
       await page.locator("#ed-body .ed-btn-add", { hasText: /tapparella|shutter/i }).click();
     }
@@ -277,6 +278,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     for (let index = 0; index < 20; index += 1)
       await page.evaluate(() => editorSwitch("appliances"));
     await expect(page.locator("#ed-body #appl-ent")).toHaveCount(1);
+    await showRawEntityFields(page);
     await expect(
       page.locator('#ed-body .dm-entity-picker[data-entity-target="appl-ent"]'),
     ).toHaveCount(1);

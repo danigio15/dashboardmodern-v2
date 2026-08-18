@@ -39,7 +39,7 @@ import {
 
 const KEY = "__DASHBOARDMODERN_SECURITY_SHOWCASE__";
 const STYLE_ID = "dm-security-showcase-style";
-const state = (root[KEY] ||= { installed: false, listeners: false });
+const state = (root[KEY] ||= { installed: false, listeners: false, requestingFrames: false });
 
 const OFFLINE_STATES = new Set(["", "unavailable", "unknown", "none", "null"]);
 
@@ -235,6 +235,23 @@ function ensureSkeleton(host, labels) {
   return true;
 }
 
+/* The frames belong to the live owner in live-ui-section.js: it holds the
+ * object URLs, the auth fallback and the refresh timer. This is the one call
+ * that asks it to paint, deferred so the wall is in the document first, and
+ * guarded so a wall the owner itself just asked to be built does not ask back. */
+function requestCameraFrames() {
+  if (state.requestingFrames) return;
+  state.requestingFrames = true;
+  root.setTimeout?.(() => {
+    state.requestingFrames = false;
+    try {
+      root.refreshCameras?.();
+    } catch (error) {
+      root.console?.warn?.("[DashboardModern] camera frames", error);
+    }
+  }, 0);
+}
+
 function cardsSignature(models) {
   return JSON.stringify(models.map((model) => [model.slug, model.entity, model.name, model.channel]));
 }
@@ -263,7 +280,11 @@ export function renderSecurity() {
   if (!shell || !grid) return false;
 
   const models = cameraModels();
-  syncCards(grid, models, labels);
+  // A rebuilt wall is a wall of empty <img> elements: whatever frame the live
+  // owner had already written is gone with the markup it lived in, and nothing
+  // in a camera's Home Assistant state changes to ask for another one. So the
+  // wall asks for it itself, right after it rebuilds.
+  if (syncCards(grid, models, labels) && models.length) requestCameraFrames();
 
   const states = allStates();
   let online = 0;

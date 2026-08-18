@@ -258,36 +258,25 @@ function installStyles() {
     #page-clima .cp-controls{min-height:58px!important;padding:6px!important;border-radius:17px!important}
     #page-clima .cp-btn{height:46px!important;font-size:20px!important}
 
-    /* Tapparella: finestra moderna, cassonetto e lamelle metalliche continue.
-       La funzione legacy viene anche protetta dai rerender identici ogni 2 s. */
-    #page-tapparelle .tapp-card{padding:16px!important;gap:12px!important;border-radius:24px!important;overflow:hidden!important}
-    #page-tapparelle .tapp-head{padding:0 2px!important}
-    #page-tapparelle .tapp-name{font-size:16px!important}
-    #page-tapparelle .tapp-win{position:relative!important;height:180px!important;border:1px solid rgba(100,116,139,.22)!important;border-radius:22px!important;overflow:hidden!important;background:linear-gradient(180deg,#dff4ff 0%,#cce9f7 45%,#eef7fb 100%)!important;box-shadow:inset 0 0 0 9px rgba(255,255,255,.82),inset 0 -28px 42px rgba(30,64,175,.08),0 10px 26px rgba(15,23,42,.08)!important}
-    #page-tapparelle .tapp-glass{position:absolute!important;inset:10px!important;border-radius:15px!important;background:linear-gradient(135deg,rgba(255,255,255,.72),rgba(255,255,255,.12) 42%,rgba(14,165,233,.08))!important;box-shadow:inset 0 0 0 1px rgba(100,116,139,.12)!important}
-    #page-tapparelle .tapp-glass::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-1px);background:rgba(148,163,184,.32)!important}
-    #page-tapparelle .tapp-glass::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-1px);background:rgba(148,163,184,.24)!important}
-    #page-tapparelle .tapp-shutter{left:9px!important;right:9px!important;top:9px!important;width:auto!important;border-radius:14px 14px 9px 9px!important;overflow:hidden!important;background:repeating-linear-gradient(180deg,#edf3f8 0 9px,#cbd6e0 9px 11px,#aab9c8 11px 13px)!important;box-shadow:0 10px 18px rgba(15,23,42,.18),inset 0 -1px 0 rgba(51,65,85,.28)!important;transition:height .58s cubic-bezier(.22,.82,.28,1)!important;will-change:height,background-position!important}
-    #page-tapparelle .tapp-shutter::before{content:"";position:absolute;left:0;right:0;top:0;height:12px;background:linear-gradient(180deg,#f8fbfd,#b9c7d4)!important;box-shadow:0 2px 4px rgba(15,23,42,.18)!important;z-index:2}
-    #page-tapparelle .tapp-shutter::after{content:"";position:absolute;left:5px;right:5px;bottom:0;height:7px;border-radius:0 0 7px 7px;background:linear-gradient(180deg,#9baabb,#718296)!important;box-shadow:0 2px 5px rgba(15,23,42,.2)!important}
-    #page-tapparelle .tapp-shutter i{opacity:0!important;flex:0 0 11px!important;height:11px!important;border:0!important;background:transparent!important}
-    #page-tapparelle .tapp-shutter.opening,#page-tapparelle .tapp-shutter.closing{animation:dmBeta7ShutterRoll .55s linear infinite!important}
-    @keyframes dmBeta7ShutterRoll{to{background-position:0 26px}}
-    #page-tapparelle .tapp-pos{font-size:15px!important;font-weight:900!important;opacity:1!important;color:var(--text,#0f172a)!important}
-    #page-tapparelle .tapp-ctl{gap:9px!important}
-    #page-tapparelle .tapp-btn{height:46px!important;border-radius:14px!important;font-weight:850!important;box-shadow:0 6px 14px rgba(14,165,233,.18)!important}
+    /* La Tapparella non è più skinnata qui.
+       Quella pelle risale a Beta 7 e disegnava una finestra alta 180px con il
+       pannello staccato di 9px dai bordi. Il disegno attuale è di
+       shutter-section.js (geometria e materiali) e di shutter-scene-section.js
+       (struttura della pagina): dei due fogli sopravviveva comunque questo
+       left/right/top:9px, perché è l'unico punto in cui quelle proprietà
+       venivano dichiarate. Risultato: con la tapparella chiusa restavano
+       scoperti il cielo in alto e le colline negli angoli in basso.
+       Un solo proprietario per pagina: qui non si tocca più. */
 
     @media(max-width:760px){
       #page-clima .clima-premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
       #page-clima .cp-card{min-height:0!important;padding:18px 20px!important;gap:16px!important}
       #page-clima .cp-temp-target .val{font-size:43px!important}
-      #page-tapparelle #tapp-grid{grid-template-columns:1fr!important;padding:10px 0!important;gap:14px!important}
-      #page-tapparelle .tapp-win{height:190px!important}
       #editor-modal .ed-row.dm-beta7-action-row{grid-template-columns:44px minmax(0,1fr) 40px 40px!important;gap:7px!important;padding:9px!important}
     }
 
     @media(hover:none){
-      #page-clima .cp-card:hover,#page-tapparelle .tapp-card:hover,#qa-grid .qa-btn:hover{transform:none!important}
+      #page-clima .cp-card:hover,#qa-grid .qa-btn:hover{transform:none!important}
     }
   `);
 }

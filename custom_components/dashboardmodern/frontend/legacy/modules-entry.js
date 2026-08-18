@@ -21,7 +21,7 @@ import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/c
 import { createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
 import { SCHEMA_VERSION } from "../src/core/device-model.js";
 import { BUILD_INFO } from "./build-info.js";
-import { canonicalReportDevices, reportEntityForDevice } from "../src/core/energy-projection.js";
+import { canonicalReportDevices, reportEntityForDevice, reportIconForDevice } from "../src/core/energy-projection.js";
 
 export const MODULES_VERSION = 14;
 const LOCALE = globalThis.document?.documentElement?.lang === "en" ? "en" : "it";
@@ -316,7 +316,7 @@ export function renderReportRow(item, index) {
   return `<div class="ed-row dm-report-row" data-report-id="${esc(item.id)}" data-section="${esc(item.section || "loads")}">
     <label><input type="checkbox" data-report-toggle ${item.show_in_report !== false ? "checked" : ""}> Report</label>
     <input class="ed-input" data-report-label placeholder="${t("reportLabel")}" value="${esc(item.report_label || item.name)}">
-    ${createIconField(`dm-report-icon-${fieldToken}`, item.report_icon || item.emoji_icon || item.icon)}
+    ${createIconField(`dm-report-icon-${fieldToken}`, item.report_icon || reportIconForDevice(item))}
     ${createEntityField({ id: `dm-report-entity-${fieldToken}`, label: t("reportEntity"), value: reportEntityForDevice(item, globalThis.STATES || {}), optional: false })}
     ${item.category === "manual-report" ? createEntityField({ id: `dm-report-history-${fieldToken}`, label: t("history"), value: item.history_entity }) : ""}
     <span><button type="button" data-report-up aria-label="${t("moveUp")}">▲</button><button type="button" data-report-down aria-label="${t("moveDown")}">▼</button>${item.category === "manual-report" ? `<button type="button" data-report-delete aria-label="${t("remove")}">🗑️</button>` : ""}</span>

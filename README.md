@@ -121,6 +121,8 @@ Un ordine pratico di configurazione è:
 
 Quando modifichi una configurazione usa il pulsante **SALVA MODIFICHE** dell'editor prima di chiudere la finestra. DashboardModern salva la configurazione della plancia e mantiene le entità Home Assistant come sorgente dello stato reale.
 
+Ogni campo che accetta un'entità è una riga: dice quale entità è collegata, con il nome che le dà Home Assistant e l'id sotto. Toccala per aprire la ricerca entità, che propone per prime quelle adatte a quel campo. L'id da scrivere a mano resta dietro la matita accanto alla riga.
+
 ### Dove viene salvata la configurazione
 
 La configurazione della plancia è salvata dentro Home Assistant, in un archivio dell'integrazione (`.storage/dashboardmodern.config`), non nel browser. Non c'è niente da esportare o importare: il salvataggio e il ripristino sono automatici.
@@ -340,6 +342,8 @@ A seconda delle entità disponibili puoi collegare dati come:
 
 DashboardModern non sostituisce l'integrazione del veicolo o della wallbox: ne utilizza le entità presenti in Home Assistant.
 
+Nella scheda **EV** della configurazione puoi caricare due foto della stessa auto — una con il cavo staccato e una con il cavo attaccato — indicando il percorso sotto `/local`. La plancia mostra quella con il cavo attaccato mentre l'auto è in ricarica e l'altra nel resto del tempo. La seconda è facoltativa: senza, resta sempre la prima.
+
 ---
 
 ## 🛡️ Sicurezza e telecamere
@@ -347,6 +351,8 @@ DashboardModern non sostituisce l'integrazione del veicolo o della wallbox: ne u
 La sezione Sicurezza può raccogliere allarme, sensori e telecamere configurati. Le sorgenti restano le entità e i flussi già disponibili in Home Assistant.
 
 Per le telecamere verifica sempre che lo stream funzioni correttamente in Home Assistant prima di collegarlo alla plancia.
+
+Le anteprime si aggiornano ogni quattro secondi mentre la pagina Sicurezza è aperta; fuori da quella pagina, e con la scheda del browser in secondo piano, non viene scaricato nulla.
 
 ---
 

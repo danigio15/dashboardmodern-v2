@@ -25,11 +25,12 @@
  * Nothing here reads or writes Home Assistant state beyond the friendly name of
  * an entity already in `_RAW_STATES`.
  */
+import { isRetiredEditorSlot } from "../core/editor-slots.js";
 import { clean, doc, root, installStyle, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EDITOR_SLOTS__";
 const STYLE_ID = "dm-editor-slots-style";
-const state = (root[KEY] ||= { installed: false, frame: 0 });
+const state = (root[KEY] ||= { installed: false, frame: 0, pending: 0, retries: 0 });
 
 /** Friendly name Home Assistant knows for an entity, "" when it knows none. */
 export function entityLabel(entity, states = root._RAW_STATES || root.STATES || {}) {
@@ -126,18 +127,199 @@ function decorateBody(body) {
   return true;
 }
 
+/* Rows the configuration no longer offers, taken out of the form.
+ *
+ * The runtime tries to hide these two itself, with an inline `display:none`
+ * that the row skin below overrides — an inline declaration cannot beat
+ * `!important`, so they came back. Taking the whole row out is the one answer
+ * that holds whichever owner paints last. The editor's save walks the rows that
+ * are present, so a row that is gone simply stops being written, and the
+ * override already stored behind it is never touched.
+ *
+ * Only a complete `.ed-slot` row is ever removed. A bare field with no row of
+ * its own belongs to some other form and is left exactly where it is — the
+ * fields this section decorates are never removed, only hidden. */
+export function dropRetiredSlots(scope = doc?.getElementById("ed-body")) {
+  if (!scope?.querySelectorAll) return 0;
+  let dropped = 0;
+  for (const input of scope.querySelectorAll(".ed-slot-in[data-ref]")) {
+    if (!isRetiredEditorSlot(input.dataset.ref)) continue;
+    const row = input.closest(".ed-slot");
+    if (!row) continue;
+    row.remove();
+    dropped += 1;
+  }
+  return dropped;
+}
+
+/* The same readable row, on every entity field in the configuration.
+ *
+ * The accordions of the Sezioni tab were the only place that got it. Everywhere
+ * else — Luci, Telecamere, Report, Temperature, Irrigazione — a field still
+ * asked for an entity id in a text box with a lens beside it, so the same job
+ * was done two different ways depending on which tab you happened to open.
+ *
+ * The rule for what is an entity field is not restated here: the picker guard
+ * already decides that, and marks what it decides with `data-entity-input`.
+ * This turns each of those into the same row: what is chosen, or an invitation
+ * to choose. The field and its lens stay in the document, one tap away under
+ * the pencil, because they are what the editors read when they save.
+ */
+const CHIP_MARKER = "dmEntityChip";
+
+const NEVER_A_HOST = "#ed-body,.ed-body,.ed-list,.ed-form,.ed-shell,#editor-modal,#setup-wizard,.dm-section-dialog,form,body";
+
+/** The lens the editors put next to an entity field, if it is there. */
+function lensOf(input) {
+  return input.nextElementSibling?.matches?.(".dm-entity-picker") ? input.nextElementSibling : null;
+}
+
+/* Where the row goes.
+ *
+ * The lens has to stay exactly where it is — it is the input's next sibling,
+ * and that pair is what the picker guard and the editors' own mount step
+ * reconcile; moving it makes them mount a second lens. So the row is built
+ * around it: the host is the element that already holds the pair. */
+function chipHost(input, lens) {
+  const wrapper = input.parentElement;
+  if (!wrapper || wrapper.matches(NEVER_A_HOST) || !wrapper.contains(lens)) return null;
+  return wrapper;
+}
+
+function paintFieldChip(host) {
+  const input = host.querySelector("input[data-entity-input]");
+  const chip = host.querySelector(".dm-entity-picker.dm-slot-chip");
+  if (!input || !chip) return;
+  const value = clean(input.value);
+  const label = entityLabel(value);
+  // Only ever write what actually changed. The editors watch their own panels
+  // for mutations and re-render when they see one, and a re-render throws away
+  // the draft the open form is collecting — so a row that repaints itself with
+  // identical content would quietly cost the user the value being typed.
+  const mapped = value ? "mapped" : "empty";
+  if (host.dataset.dmSlot !== mapped) host.dataset.dmSlot = mapped;
+  const name = chip.querySelector("[data-chip-name]");
+  const id = chip.querySelector("[data-chip-id]");
+  if (!name || !id) return;
+  const nameText = value ? label || value : t("Scegli entità", "Choose entity");
+  const idText = value && label ? value : "";
+  if (name.textContent !== nameText) name.textContent = nameText;
+  if (id.textContent !== idText) id.textContent = idText;
+  const fieldName =
+    clean(input.closest(".ed-slot,[data-entity-field]")?.querySelector(".ed-slot-lbl")?.textContent) ||
+    clean(input.getAttribute("aria-label")) ||
+    t("Entità", "Entity");
+  chip.setAttribute("aria-label", `${fieldName}: ${nameText}`);
+}
+
+/* One entity field, made readable.
+ *
+ * The lens becomes the row: same button, same handler, same
+ * `data-entity-target` — it simply stops being a 50px square with a magnifier
+ * in it and starts saying what is chosen, or inviting a choice. The raw id
+ * field goes behind the pencil next to it, which is where the Sezioni tab has
+ * kept it since it got these rows. */
+function decorateField(input) {
+  // A slot of a section accordion belongs to the row decorator above, which
+  // builds its own chip: giving it a second one leaves two rows saying the same
+  // thing, and the one the editor repaints is then anyone's guess.
+  if (input.closest(".dm-slot") || input.matches(".ed-slot-in[data-ref]")) return false;
+  const lens = lensOf(input);
+  if (!lens) return false;
+  const host = chipHost(input, lens);
+  if (!host) return false;
+  if (host.dataset[CHIP_MARKER] === "true") {
+    paintFieldChip(host);
+    return false;
+  }
+  host.dataset[CHIP_MARKER] = "true";
+  input.classList.add("dm-chip-raw");
+  lens.classList.add("dm-slot-chip");
+  lens.innerHTML = chipMarkup();
+
+  const manual = doc.createElement("button");
+  manual.type = "button";
+  manual.className = "dm-chip-manual";
+  manual.textContent = "✎";
+  manual.setAttribute("aria-label", t("Modifica manuale", "Edit by hand"));
+  manual.setAttribute("aria-pressed", "false");
+  manual.addEventListener("click", (event) => {
+    event.preventDefault();
+    const on = host.dataset.dmEntityRaw !== "true";
+    host.dataset.dmEntityRaw = on ? "true" : "false";
+    manual.setAttribute("aria-pressed", String(on));
+    if (on) input.focus();
+  });
+  // After the lens, never between the field and the lens: that pair is a
+  // contract every other owner of these forms reconciles.
+  lens.insertAdjacentElement("afterend", manual);
+
+  // After the form's own change handlers, never during them.
+  input.addEventListener("change", () => {
+    if (typeof root.requestAnimationFrame !== "function") {
+      paintFieldChip(host);
+      return;
+    }
+    root.requestAnimationFrame(() => paintFieldChip(host));
+  });
+  paintFieldChip(host);
+  return true;
+}
+
+/* Returns how many fields are still waiting for their row.
+ *
+ * The lens is mounted by the picker guard on its own frame, and the row is
+ * built around the lens — so a field reached before its lens exists has to be
+ * come back for, or it stays a bare id box while every other field is a row. */
+export function decorateEntityFields(scope = doc?.getElementById("ed-body")) {
+  if (!scope?.querySelectorAll) return 0;
+  let pending = 0;
+  for (const input of scope.querySelectorAll('input[data-entity-input="true"]')) {
+    if (
+      input.closest(".dm-slot") ||
+      input.matches(".ed-slot-in[data-ref]") ||
+      input.closest('[data-dm-entity-chip="true"]')
+    ) {
+      continue;
+    }
+    if (!decorateField(input)) pending += 1;
+  }
+  return pending;
+}
+
 export function decorateEditorSlots(scope = doc?.getElementById("ed-body")) {
   if (!scope) return 0;
+  dropRetiredSlots(scope);
   let count = 0;
   for (const body of scope.querySelectorAll(".ed-acc-body")) if (decorateBody(body)) count += 1;
+  state.pending = decorateEntityFields(scope);
   return count;
 }
+
+const MAX_RETRIES = 6;
 
 function schedule() {
   if (state.frame) return;
   const run = () => {
     state.frame = 0;
-    decorateEditorSlots();
+    let pending = 0;
+    for (const scope of [
+      doc?.getElementById("ed-body"),
+      doc?.getElementById("editor-modal"),
+      doc?.getElementById("setup-wizard"),
+      ...(doc?.querySelectorAll?.(".dm-section-modal") || []),
+    ].filter(Boolean)) {
+      decorateEditorSlots(scope);
+      pending += state.pending;
+    }
+    // A field whose lens has not been mounted yet gets one more frame, a
+    // bounded number of times, instead of staying a bare id box for good.
+    if (pending && (state.retries || 0) < MAX_RETRIES) {
+      state.retries = (state.retries || 0) + 1;
+      schedule();
+      return;
+    }
+    state.retries = 0;
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0);
 }
@@ -193,6 +375,32 @@ function installStyles() {
 }
 .dm-slot[data-dm-slot="empty"] .dm-slot-chip-copy b{color:var(--secondary-text-color,#64748b)!important;font-weight:650!important}
 .dm-slot-chip-go{flex:0 0 auto!important;font-size:18px!important;color:var(--secondary-text-color,#94a3b8)!important;line-height:1!important}
+
+/* the same row, on every other entity field in the configuration */
+[data-dm-entity-chip="true"]{min-width:0!important;flex-wrap:wrap!important}
+[data-dm-entity-chip="true"]>.dm-entity-picker.dm-slot-chip{
+  display:flex!important;align-items:center!important;gap:10px!important;
+  flex:1 1 auto!important;width:auto!important;min-width:0!important;
+  height:auto!important;min-height:44px!important;padding:9px 11px!important;
+  border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:12px!important;
+  background:var(--secondary-background-color,#f6f8fb)!important;color:var(--text,#0f172a)!important;
+  box-shadow:none!important;font:inherit!important;font-size:inherit!important;text-align:left!important
+}
+[data-dm-entity-chip="true"]>.dm-entity-picker.dm-slot-chip:hover{
+  transform:none!important;filter:none!important;border-color:var(--primary-color,#0ea5e9)!important
+}
+[data-dm-entity-chip="true"] .dm-chip-manual{
+  flex:0 0 44px!important;width:44px!important;min-width:44px!important;height:44px!important;padding:0!important;
+  border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:12px!important;
+  background:var(--secondary-background-color,#f6f8fb)!important;color:var(--secondary-text-color,#64748b)!important;
+  font-size:14px!important;line-height:1!important;cursor:pointer!important
+}
+[data-dm-entity-chip="true"] .dm-chip-manual[aria-pressed="true"]{
+  border-color:var(--primary-color,#0ea5e9)!important;color:var(--primary-color,#0ea5e9)!important;
+  background:color-mix(in srgb,var(--primary-color,#0ea5e9) 8%,transparent)!important
+}
+[data-dm-entity-chip="true"]:not([data-dm-entity-raw="true"])>.dm-chip-raw{display:none!important}
+[data-dm-entity-chip="true"][data-dm-entity-raw="true"]>.dm-chip-raw{flex:1 1 100%!important;order:9!important;grid-column:1/-1!important}
   `);
 }
 

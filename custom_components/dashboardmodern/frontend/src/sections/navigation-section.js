@@ -1,7 +1,7 @@
-import { doc, installStyle, root, t } from "./shared.js";
+import { clean, doc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_NAVIGATION_SECTION__";
-const state = (root[KEY] ||= { installed: false, scroller: null });
+const state = (root[KEY] ||= { installed: false, scroller: null, autoHide: 0, behaviour: false });
 
 /* The dock is sized on its content (`width:max-content`), so with every section
  * enabled the thirteen tabs are wider than the screen and the ones past the
@@ -291,10 +291,146 @@ function installScroller() {
   return true;
 }
 
+/* ── one behaviour for the bar, on every page ─────────────────────────────
+ *
+ * The dock is shown by a tap on its handle and hidden again by the same three
+ * things everywhere: choosing a section, tapping away from it, or leaving it
+ * alone. The vendored runtime already does this, but it listens on the bubble
+ * phase, and several redesigned pages stop propagation on their own cards — so
+ * on Elettrodomestici or Temperature a tap outside the dock never reached the
+ * handler that closes it, while on Home it did. Same gesture, different answer
+ * depending on which section was open.
+ *
+ * These listeners run in the capture phase, before any page can swallow them,
+ * and they are delegated rather than bound to the tabs that existed at load —
+ * a tab reordered or reinserted later behaves like all the others. The
+ * "barra fissa" preference still wins: when it is on, nothing auto-hides. */
+const AUTO_HIDE_MS = 4000;
+const TAB_HIDE_MS = 800;
+
+function navFixed() {
+  try {
+    return clean(root.localStorage?.getItem("cd_navbar_mode")) === "fixed";
+  } catch (_error) {
+    return false;
+  }
+}
+
+/* Touch layouts are the ones with a hideable dock. On a desktop the bar is
+ * revealed by the pointer and must never be closed from here. The marker class
+ * is the runtime's own answer to the same question; the media query is the
+ * fallback for a document that has not been marked yet. */
+function touchNavigation() {
+  if (doc?.documentElement?.classList.contains("dm-touch-navigation")) return true;
+  try {
+    return Boolean(root.matchMedia?.("(hover: none) and (pointer: coarse)")?.matches);
+  } catch (_error) {
+    return false;
+  }
+}
+
+function clearAutoHide() {
+  if (!state.autoHide) return;
+  root.clearTimeout?.(state.autoHide);
+  state.autoHide = 0;
+}
+
+export function hideNavigation() {
+  clearAutoHide();
+  if (navFixed()) return false;
+  const nav = navigationBar();
+  if (!nav) return false;
+  nav.classList.remove("visible");
+  doc.body?.classList.remove("nav-visible");
+  return true;
+}
+
+export function scheduleNavigationAutoHide(delay = AUTO_HIDE_MS) {
+  clearAutoHide();
+  if (navFixed() || !touchNavigation()) return false;
+  state.autoHide = root.setTimeout?.(() => {
+    state.autoHide = 0;
+    hideNavigation();
+  }, delay) || 0;
+  return Boolean(state.autoHide);
+}
+
+export function showNavigation() {
+  const nav = navigationBar();
+  if (!nav) return false;
+  nav.classList.add("visible");
+  doc.body?.classList.add("nav-visible");
+  scheduleNavigationAutoHide();
+  return true;
+}
+
+function installBarBehaviour() {
+  if (state.behaviour) return false;
+  state.behaviour = true;
+
+  doc.addEventListener(
+    "click",
+    (event) => {
+      if (!touchNavigation()) return;
+      const nav = navigationBar();
+      if (!nav) return;
+      const target = event.target;
+      if (target?.closest?.("#bottomNavHandle")) {
+        // The runtime binds its own toggle to the handle whenever it decided
+        // this is a touch layout, and it announces that by publishing
+        // cdApplyNavMode. Toggling here too would toggle twice on one tap and
+        // the dock would never open. Where it did not bind — a layout it
+        // decided was a desktop, and a handle that would otherwise do nothing —
+        // this is the toggle.
+        if (typeof root.cdApplyNavMode !== "function") {
+          if (nav.classList.contains("visible")) hideNavigation();
+          else showNavigation();
+        } else if (nav.classList.contains("visible")) {
+          scheduleNavigationAutoHide();
+        }
+        return;
+      }
+      if (target?.closest?.(".tab")) {
+        // Give the section time to come up, then get out of its way.
+        scheduleNavigationAutoHide(TAB_HIDE_MS);
+        return;
+      }
+      if (!nav.contains(target)) {
+        if (nav.classList.contains("visible")) hideNavigation();
+        return;
+      }
+      scheduleNavigationAutoHide();
+    },
+    true,
+  );
+
+  for (const eventName of ["pointerdown", "touchstart", "wheel", "keydown"]) {
+    doc.addEventListener(
+      eventName,
+      (event) => {
+        const nav = navigationBar();
+        if (nav?.classList.contains("visible") && nav.contains(event.target)) {
+          scheduleNavigationAutoHide();
+        }
+      },
+      { capture: true, passive: true },
+    );
+  }
+
+  // The bar sits over the page, so the last row of every section needs the same
+  // room underneath it — not only the sections that happened to reserve it.
+  installStyle(
+    "dm-navigation-room-style",
+    `body.nav-visible .page{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))!important}`,
+  );
+  return true;
+}
+
 export function installNavigationSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
+  installBarBehaviour();
   if (!installScroller()) {
     doc.addEventListener("DOMContentLoaded", () => installScroller(), { once: true });
   }

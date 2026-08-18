@@ -300,21 +300,54 @@ function glyphForMdi(icon) {
   return "⚡";
 }
 
-export function reportIconForDevice(item = {}) {
-  const explicit = configured(item.report_icon || item.emoji_icon || item.icon);
-  if (explicit && !explicit.startsWith("mdi:")) return explicit;
-  if (explicit.startsWith("mdi:")) return glyphForMdi(explicit);
-  const candidates = [item.visual_key, item.device_type, item.type, item.category, item.name].map(
-    normalizedToken,
-  );
-  for (const candidate of candidates) {
+function reportGlyphByType(...tokens) {
+  for (const candidate of tokens.map(normalizedToken).filter(Boolean)) {
     if (REPORT_ICON_BY_TYPE[candidate]) return REPORT_ICON_BY_TYPE[candidate];
     const match = Object.keys(REPORT_ICON_BY_TYPE).find((key) => candidate.includes(key));
     if (match) return REPORT_ICON_BY_TYPE[match];
   }
+  return "";
+}
+
+/* The Report entry shows the appliance it is about.
+ *
+ * This used to start from `emoji_icon`, which the appliance card itself never
+ * draws: the card draws what `getDeviceVisual()` returns — the artwork chosen
+ * in Elettrodomestici, or the mdi icon, or the one implied by the device type.
+ * So an appliance set up as a washing machine appeared in the Report as
+ * whatever emoji had been typed into some other field, and the two lists
+ * disagreed about the same device.
+ *
+ * The order here is the card's order, with one addition in front: `report_icon`
+ * is the icon deliberately given to the Report entry and always wins. Anything
+ * loose — an emoji field the card ignores — is the last resort, not the first.
+ */
+export function reportIconForDevice(item = {}) {
+  const override = configured(item.report_icon);
+  if (override) return override.startsWith("mdi:") ? glyphForMdi(override) : override;
+
   const visual = getDeviceVisual(item);
-  if (visual?.kind === "icon" && visual.value) return glyphForMdi(visual.value);
-  return "⚡";
+  // Anything but the generic fallback is a deliberate choice, and the card
+  // draws it: the Report follows it rather than inventing its own.
+  const chosenIcon =
+    visual?.kind === "icon" && visual.value && !/^mdi:devices?$/i.test(visual.value)
+      ? visual.value
+      : "";
+  if (chosenIcon) return glyphForMdi(chosenIcon);
+
+  const byType = reportGlyphByType(
+    visual?.kind === "asset" ? visual.value : "",
+    item.visual_key,
+    item.device_type,
+    item.type,
+    item.category,
+    item.name,
+  );
+  if (byType) return byType;
+
+  const loose = configured(item.emoji_icon || item.icon);
+  if (loose) return loose.startsWith("mdi:") ? glyphForMdi(loose) : loose;
+  return visual?.kind === "icon" && visual.value ? glyphForMdi(visual.value) : "⚡";
 }
 
 export function canonicalReportDevices(
