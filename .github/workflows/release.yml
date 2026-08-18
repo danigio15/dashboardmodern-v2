@@ -48,13 +48,19 @@ jobs:
           cache: npm
       - name: Install test dependencies
         run: |
+          # `python -m pip`, not `pip`: the container has no pip on PATH, only
+          # the module. On a bare runner setup-python leaves both, which is why
+          # this only broke once the job moved into the image.
           python -m pip install --upgrade pip
-          pip install -r requirements_test.txt ruff
+          python -m pip install -r requirements_test.txt ruff
           npm ci
       - name: Lint
         run: |
-          ruff check .
-          ruff format --check .
+          # Through the interpreter for the same reason as the install above:
+          # nothing in this job should depend on a console script being on the
+          # container's PATH.
+          python -m ruff check .
+          python -m ruff format --check .
       - name: Test
         run: |
           python scripts/generate_build_info.py --expected-commit "$GITHUB_SHA"
