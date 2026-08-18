@@ -157,8 +157,44 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // replaces both legacy paint functions. Beta11's stylesheet block and the
   // Beta12/14/16 pool correctives stood down into it, so the two pages have one
   // renderer and one stylesheet instead of five competing layers.
+  // The Tapparelle redesign adds exactly one owner: the scene section that
+  // replaces the legacy paint function so the page can carry a summary header,
+  // per-room headings and a position track. It renders per structural
+  // signature rather than per tick, keeps commands on the legacy cdTappCmd
+  // handler, and adds no polling and no observer. The window skin stays in the
+  // existing shutter section, which is still the single owner of the
+  // first-paint geometry, so the two modules split structure from paint rather
+  // than competing over the same declarations.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 89, `production graph unexpectedly grew to ${relative.length} modules`);
+  // The Solar Thermal redesign adds exactly one owner: a style-and-labels module
+  // for #page-boiler. It installs one stylesheet, fills the decorative labels the
+  // legacy markup left empty and reads no Home Assistant state, so the page keeps
+  // the legacy runtime as its single behavioural owner. It adds no polling, and
+  // its only listener is a media query that swaps the portrait scene in.
+  // The Security redesign adds exactly one owner: the section renderer that
+  // repaints the alarm console and the camera grid. It is event-driven
+  // (state-changed + legacy render loop), adds no polling and no observer, and
+  // keeps the camera engine — apriCamera, the streaming strategies and
+  // toggleFullScreenCam — in the legacy runtime instead of forking it.
+  // The EV redesign adds exactly one owner: the skin for #page-ev. It moves the
+  // battery block into a charge ring, mirrors the active EVCC mode onto the page
+  // as an attribute and restyles the picker that ev-section.js keeps building.
+  // It reads no Home Assistant state — the ring reads #ev-mod-batt-fill, the
+  // rows carry legacy value classes — and adds no polling and no observer.
+  // The fast entity search adds exactly two: the pure search index (folding,
+  // ranking and field auto-detection) and the section that installs it over the
+  // vendored `cdEpFilter`. No new picker is introduced — the canonical dialog
+  // stays the only one — and the section is event-driven, with no polling and
+  // no observer.
+  // The Climate redesign adds exactly one owner: the section renderer for
+  // #page-clima. It replaces buildClimaCards/updateClimaCards instead of adding
+  // a layer on top, so the Beta 4 / Beta 7 / Beta 16 / personalization
+  // corrections for the old .cp-card markup stop matching and the page keeps one
+  // renderer and one stylesheet. It is event-driven (state-changed + the legacy
+  // render loop) and leaves every service call — setTemp, toggleClima and the
+  // HVAC/fan popup — in the legacy runtime.
+  // All facade/cycle/orphan/polling/global-observer checks stay active.
+  assert.ok(relative.length <= 96, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 

@@ -25,11 +25,56 @@ test("Temperature editor exposes and persists custom display names for both enti
 });
 
 test("custom Temperature entity names are projected onto live dashboard labels", async () => {
-  const source = await readFile(guardUrl, "utf8");
-  assert.match(source, /function repairTemperatureDashboardLabels\(\)/);
-  assert.match(source, /\.cp-temp-current-lbl/);
-  assert.match(source, /\.cp-temp-target \.lbl/);
-  assert.match(source, /dmBeta20TemperatureEntityLabels/);
+  const { temperatureCardLabels } = await import("../src/sections/shared.js");
+  const room = {
+    temp_name: "Temperatura Camera",
+    hum_name: "Umidità Camera",
+  };
+
+  // The first association carries the room's custom names.
+  assert.deepEqual(temperatureCardLabels(room), {
+    temperature: "Temperatura Camera",
+    humidity: "Umidità Camera",
+  });
+  assert.deepEqual(temperatureCardLabels(room, { id: "primary" }), {
+    temperature: "Temperatura Camera",
+    humidity: "Umidità Camera",
+  });
+
+  // An extra probe carries its own name, never the room's — that is what used
+  // to make the label flip between the two on every repaint.
+  assert.deepEqual(
+    temperatureCardLabels(room, { id: "temperature-extra-1", name: "Seconda sonda" }),
+    {
+      temperature: "Seconda sonda",
+      humidity: "Umidità",
+    },
+  );
+  assert.deepEqual(temperatureCardLabels(room, { id: "temperature-extra-1" }), {
+    temperature: "Temperatura",
+    humidity: "Umidità",
+  });
+  assert.deepEqual(temperatureCardLabels({}), {
+    temperature: "Temperatura",
+    humidity: "Umidità",
+  });
+});
+
+test("the label above the reading has a single owner", async () => {
+  const guard = await readFile(guardUrl, "utf8");
+  for (const name of [
+    "temperature-section.js",
+    "beta25-real-device-fixes-section.js",
+    "beta26-real-device-stability-section.js",
+  ]) {
+    const source = await readFile(new URL(`../src/sections/${name}`, import.meta.url), "utf8");
+    assert.match(source, /temperatureCardLabels\(/, name);
+    // No renderer may hard-code the generic word beside the reading any more.
+    assert.doesNotMatch(source, /"cp-temp-current-lbl", english\(\)/, name);
+  }
+  // The Beta 17 pass keeps its editor repairs and no longer writes card labels.
+  assert.doesNotMatch(guard, /repairTemperatureDashboardLabels/);
+  assert.match(guard, /function repairTemperatureEditor\(\)/);
 });
 
 test("Beta20 label hardening reuses an existing scoped owner and keeps the layout shim passive", async () => {
@@ -47,8 +92,7 @@ test("the comfort pill carries a short unavailable label and keeps the full word
   // long enough to paint out of it and over the room name beside it.
   assert.equal(comfortBadgeText("Non disponibile"), "N/D");
   assert.equal(comfortBadgeText("Unavailable"), "N/D");
-  for (const label of ["Caldo", "Comfort", "Freddo"])
-    assert.equal(comfortBadgeText(label), label);
+  for (const label of ["Caldo", "Comfort", "Freddo"]) assert.equal(comfortBadgeText(label), label);
 
   // Every renderer of the pill shows the short form while `title`, `aria-label`
   // and `data-comfort` keep the full label the badge colours key off.

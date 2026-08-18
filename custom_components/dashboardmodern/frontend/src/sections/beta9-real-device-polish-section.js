@@ -404,12 +404,9 @@ function polishShutters() {
     slat.style.setProperty("filter", "none", "important");
     slat.style.setProperty("transform", "none", "important");
   });
-  page.querySelectorAll(".tapp-btn").forEach((button) => {
-    button.style.setProperty("height", "40px", "important");
-    button.style.setProperty("min-height", "40px", "important");
-    button.style.setProperty("font-size", "12px", "important");
-    button.style.setProperty("border-radius", "12px", "important");
-  });
+  // Buttons are deliberately absent here: the shutter section skins the card
+  // controls and the "open/close everything" bar at two different sizes, and an
+  // inline rule would flatten both back to one.
   return true;
 }
 

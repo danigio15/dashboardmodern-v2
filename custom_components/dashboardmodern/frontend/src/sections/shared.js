@@ -239,6 +239,28 @@ export function installStyle(id, css) {
   return true;
 }
 
+/* One rule for the small label above the reading, wherever a card is drawn.
+ *
+ * It used to have three writers: the renderers wrote the generic word at
+ * creation, the Beta 17 repair pass wrote the room's custom name on every card
+ * of that room, and the Beta 27 sync wrote it per association. They disagreed,
+ * so the label flipped between "Temperatura" and the custom name on every
+ * repaint — and a real install repaints on every sensor update. The custom name
+ * belongs to one association: the first one takes the room's name, an extra
+ * probe takes its own, and anything unnamed falls back to the plain word. */
+export function temperatureCardLabels(room = {}, entry = {}) {
+  const id = clean(entry.id);
+  const primary = !id || id === "primary";
+  const temperature = primary
+    ? clean(room.temp_name || room.temperature_name)
+    : clean(entry.name);
+  const humidity = primary ? clean(room.hum_name || room.humidity_name) : "";
+  return {
+    temperature: temperature || (english() ? "Temperature" : "Temperatura"),
+    humidity: humidity || (english() ? "Humidity" : "Umidità"),
+  };
+}
+
 /* The comfort pill next to a room name is sized for a word like CALDO. The
  * unavailable state is the only label long enough to paint out of that pill and
  * over the room name beside it, so the pill carries a short form while the full

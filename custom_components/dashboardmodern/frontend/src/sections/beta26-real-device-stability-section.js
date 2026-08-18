@@ -19,6 +19,7 @@ import {
   readJson,
   root,
   section,
+  temperatureCardLabels,
   writeIconGlyph,
   writeJsonIfChanged,
 } from "./shared.js";
@@ -105,14 +106,6 @@ function rooms() {
   return Array.isArray(values) ? values : [];
 }
 
-function defaultTemperatureLabel() {
-  return english() ? "Temperature" : "Temperatura";
-}
-
-function defaultHumidityLabel() {
-  return english() ? "Humidity" : "Umidità";
-}
-
 function humidityEntity(entry = {}) {
   const explicit = clean(entry.hum);
   if (explicit) return explicit;
@@ -181,18 +174,10 @@ export function temperatureRoomTabsModel(roomValues = rooms()) {
 
 function cardLabels(card, room) {
   const associationId = clean(card?.dataset?.temperatureId);
-  const primary = !associationId || associationId === "primary";
-  if (!primary) {
-    return {
-      temperature: defaultTemperatureLabel(),
-      humidity: defaultHumidityLabel(),
-    };
-  }
-  return {
-    temperature:
-      clean(room?.temp_name || room?.temperature_name) || defaultTemperatureLabel(),
-    humidity: clean(room?.hum_name || room?.humidity_name) || defaultHumidityLabel(),
-  };
+  const entry =
+    temperatureEntries(room).find((item) => clean(item.id) === associationId) ||
+    (associationId && associationId !== "primary" ? { id: associationId } : {});
+  return temperatureCardLabels(room, entry);
 }
 
 export function installCanonicalApplianceArtworkBridge() {

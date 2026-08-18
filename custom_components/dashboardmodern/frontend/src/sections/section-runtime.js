@@ -25,14 +25,20 @@ import { installApplianceEditorSection } from "./appliance-editor-section.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installAlertsSection } from "./alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
+import { installSecurityShowcaseSection } from "./security-showcase-section.js";
+import { installClimateThermalSection } from "./climate-thermal-section.js";
 import { installNavigationSection } from "./navigation-section.js";
 import { installUnifiedEditorsSection } from "./unified-editors-section.js";
+import { installEntitySearchSection } from "./entity-search-section.js";
 import { installEditorCrudSection } from "./editor-crud-section.js";
 import { installEditorContractsSection } from "./editor-contracts-section.js";
 import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
+import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
 import { installEvSection } from "./ev-section.js";
+import { installEvShowcaseSection } from "./ev-showcase-section.js";
+import { installSolarThermalDesignSection } from "./solar-thermal-design-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { allStates, clean, english, section, wrapFunction } from "./shared.js";
 
@@ -622,15 +628,26 @@ export function installSectionRuntime() {
     installApplianceEditorSection();
     installLightsAlertsSection();
     installAlertsSection();
+    // The redesigned Security page must own #cam-grid before the live-ui camera
+    // owner starts filling the thumbnails, so the first paint is already the new
+    // wall instead of the legacy cards.
+    installSecurityShowcaseSection();
+    installClimateThermalSection();
     installLiveUiSection();
     installNavigationSection();
     installUnifiedEditorsSection();
+    installEntitySearchSection();
     installEditorCrudSection();
     installEditorContractsSection();
     installReportEditorSection();
     installShutterSection();
+    installShutterSceneSection();
     installPoolIrrigationSceneSection();
     installEvSection();
+    // The skin installs after the EV owner so the vehicle picker it restyles is
+    // already mounted, and re-renders itself on the same runtime events.
+    installEvShowcaseSection();
+    installSolarThermalDesignSection();
     installBeta27ReleaseStability();
 
     root[RUNTIME_KEY] = Object.freeze({
@@ -657,15 +674,20 @@ export function installSectionRuntime() {
         "appliance-editor",
         "lights",
         "alerts",
+        "security-showcase",
+        "climate-thermal",
         "live-ui",
         "navigation",
         "unified-editors",
+        "entity-search",
         "editor-crud",
         "editor-contracts",
         "report-editor",
         "shutters",
         "pool-irrigation-scene",
         "ev",
+        "ev-showcase",
+        "solar-thermal-design",
         "beta27-release-stability",
       ]),
       registry: root.__DASHBOARDMODERN_SECTIONS__,

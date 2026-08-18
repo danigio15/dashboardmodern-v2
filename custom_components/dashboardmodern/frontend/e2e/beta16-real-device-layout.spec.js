@@ -141,7 +141,7 @@ async function openEditor(page, tab) {
   await expect(page.locator(`.ed-tab[data-tab="${tab}"]`)).toHaveClass(/active/);
 }
 
-test("beta16: Climate resolves canonical room labels and stays two cards per row on phone", async ({
+test("beta16: Climate resolves canonical room labels and lays the cards out per screen", async ({
   page,
 }, testInfo) => {
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
@@ -165,29 +165,30 @@ test("beta16: Climate resolves canonical room labels and stays two cards per row
     setClimaPageMode("freddo", true);
   });
 
-  await expect(page.locator("#page-clima .clima-section-title").first()).toContainText("Cameretta");
-  await expect(page.locator("#page-clima .clima-section-title").first()).not.toContainText(
-    "room_msqjk307",
-  );
-  await expect(page.locator("#page-clima .cp-card")).toHaveCount(2);
-  await expect(page.locator("#page-clima .cp-card .dm-beta16-climate-room").first()).toContainText(
+  // The climate redesign prints the room inside the card instead of a heading
+  // above it, and it must still be the name the user typed, never the raw id.
+  await expect(page.locator("#page-clima .dm-cl-card .dm-cl-meta").first()).toContainText(
     "Cameretta",
   );
+  await expect(page.locator("#page-clima .dm-cl-card .dm-cl-meta").first()).not.toContainText(
+    "room_msqjk307",
+  );
+  await expect(page.locator("#page-clima .dm-cl-card")).toHaveCount(2);
 
-  const layout = await page.evaluate(() => {
-    const grid = document.querySelector("#page-clima .clima-premium-grid");
+  const measure = () => {
+    const grid = document.querySelector("#page-clima .dm-cl-grid");
     const switchNode = document.querySelector(
       '#page-clima .clima-page-mode-switch[data-dm-beta12-climate="true"]',
     );
     const buttons = [...(switchNode?.querySelectorAll(".clima-page-mode-btn") || [])];
-    const cards = [...document.querySelectorAll("#page-clima .cp-card")].map((card) =>
+    const cards = [...document.querySelectorAll("#page-clima .dm-cl-card")].map((card) =>
       card.getBoundingClientRect(),
     );
     const gridBox = grid?.getBoundingClientRect();
     const columns = grid
       ? getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean)
       : [];
-    const headings = [...document.querySelectorAll("#page-clima .dm-beta16-climate-group-heading")];
+    const headings = [...document.querySelectorAll("#page-clima .dm-cl-floor")];
     return {
       columns: columns.length,
       switchHeight: switchNode?.getBoundingClientRect().height || 0,
@@ -197,19 +198,32 @@ test("beta16: Climate resolves canonical room labels and stays two cards per row
       cardWidth: cards[0]?.width || 0,
       gridWidth: gridBox?.width || 0,
       sameRow: cards.length >= 2 && Math.abs(cards[0].top - cards[1].top) <= 3,
-      hiddenHeadings:
-        headings.length > 0 &&
-        headings.every((heading) => getComputedStyle(heading).display === "none"),
+      headingCount: headings.length,
       overflow: grid ? grid.scrollWidth - grid.clientWidth : 999,
     };
-  });
-  expect(layout.columns).toBe(2);
+  };
+
+  // boot() puts every project on a phone-sized viewport, so this is the phone
+  // layout: the thermal card carries a rail, a legend and four controls, so it
+  // takes the full width instead of squeezing two per row.
+  const layout = await page.evaluate(measure);
+  expect(layout.columns).toBe(1);
   expect(layout.switchHeight).toBeLessThan(75);
   expect(layout.maxButtonHeight).toBeLessThanOrEqual(60);
-  expect(layout.cardWidth).toBeLessThan(layout.gridWidth * 0.55);
-  expect(layout.sameRow).toBe(true);
-  expect(layout.hiddenHeadings).toBe(true);
+  expect(layout.sameRow).toBe(false);
+  expect(layout.cardWidth).toBeGreaterThan(layout.gridWidth * 0.9);
+  // No floor is configured here, so the grid prints no group heading at all:
+  // the room belongs to the card, not to a band above it.
+  expect(layout.headingCount).toBe(0);
   expect(layout.overflow).toBeLessThanOrEqual(2);
+
+  // From the tablet up the same grid pairs the cards two per row.
+  await page.setViewportSize({ width: 1200, height: 915 });
+  const wide = await page.evaluate(measure);
+  expect(wide.columns).toBe(2);
+  expect(wide.sameRow).toBe(true);
+  expect(wide.cardWidth).toBeLessThan(wide.gridWidth * 0.55);
+  expect(wide.overflow).toBeLessThanOrEqual(2);
 });
 
 test("beta16: editor rows show saved Action, Climate and Temperature names", async ({

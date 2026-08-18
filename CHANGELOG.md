@@ -4,6 +4,100 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.30.7 — 2026-08-17
+
+### Aggiunto
+
+- Il selettore delle icone di un carico ha ora un catalogo suo, diviso in **Aree
+  della casa** e **Apparecchi e impianti**. Prima offriva quello delle azioni
+  rapide, che è costruito attorno a quello che un pulsante *fa* — una scena, uno
+  script, un avviso, l'antifurto, una telecamera — e che quindi si intitolava
+  "Scegli icona azione" e non conteneva nessuna stanza. Ora ci sono tutte le
+  aree della casa (cucina, salone, garage, bagno, cantina, giardino…) e una
+  quarantina di apparecchi che consumano davvero: forno, piano cottura, cappa,
+  frigorifero, congelatore, lavastoviglie, lavatrice, asciugatrice, boiler,
+  pompa di calore, condizionatore, stufa a pellet, auto elettrica e colonnina,
+  fotovoltaico, batteria, pompe, irrigazione, tapparelle, cancello, ascensore e
+  altro. Antifurto, telecamere, scene, script e avvisi non compaiono più: non
+  sono carichi. Nessuna icona è offerta due volte e la ricerca nasconde le
+  intestazioni dei gruppi rimasti vuoti.
+
+### Modificato
+
+- **Tapparelle** ha ora una testata con il riepilogo — quante sono aperte,
+  chiuse e in movimento in questo momento — e i comandi "Apri tutte / Chiudi
+  tutte" dentro la testata invece che come due bottoni nudi in cima alla
+  pagina. Le tapparelle sono raggruppate per piano e stanza, ogni gruppo ha il
+  suo titolo con il numero di tapparelle, e sotto il nome di ogni scheda si
+  legge la stanza a cui appartiene.
+- **Accanto a ogni finestra c'è il cursore della posizione.** Si trascina in
+  verticale come la tapparella vera: la parte grigia in alto è la tapparella,
+  quella azzurra sotto è il cielo, e la tapparella nella finestra segue il dito
+  mentre trascini. Al rilascio la tapparella va esattamente a quella posizione.
+  La posizione scelta resta ferma mentre il motore si muove, invece di tornare
+  indietro al primo aggiornamento. Le tapparelle che non accettano una
+  posizione mostrano lo stesso indicatore, in sola lettura.
+- Quando la tapparella è alzata, sotto la finestra si vede la luce che entra
+  nella stanza, tanta quanta ne lascia passare.
+- La freccia **← Home** è sempre in alto, come nelle altre sezioni, e ora è
+  allineata con la testata e con le schede invece di stare attaccata al bordo
+  sinistro dello schermo.
+- **Tapparelle** è stata ridisegnata. Ogni scheda non mostra più un rettangolo
+  azzurro con delle righe grigie: adesso c'è una finestra vera, con il telaio,
+  il montante centrale, le guide laterali, il cassonetto in alto e, dietro il
+  vetro, il cielo con il sole, le nuvole, il prato e le siepi. Di notte la
+  stessa finestra passa al cielo scuro con la luna e le stelle.
+- La tapparella è disegnata come una tapparella: stecche con la loro curvatura,
+  la stecca finale più scura con la maniglia e l'ombra che cade sul vetro
+  sotto. **Mentre sale o scende le stecche scorrono davvero**, nel verso
+  giusto, e la scheda in movimento si illumina di azzurro sul bordo.
+- Risolto un difetto della vecchia grafica: a tapparella completamente chiusa
+  la parte alta restava trasparente e si vedeva il cielo attraverso le fessure.
+  Ora la tapparella chiusa copre tutta la finestra.
+- Lo stato ("Aperta", "Chiusa", "In apertura", "In chiusura") è una pastiglia
+  con il pallino colorato che pulsa quando la tapparella si muove, la
+  percentuale è una pastiglia con l'icona della tapparella e i tre comandi
+  hanno colori diversi tra loro: salire, fermare e scendere non si confondono
+  più. La barra "Apri tutte / Chiudi tutte" è centrata e più alta da toccare, e
+  i titoli di piano e stanza hanno la loro riga con la linea che sfuma.
+- Tutta la pagina segue il tema chiaro e scuro, si adatta al telefono e chi ha
+  attivato "riduci animazioni" vede la scena ferma.
+- **La ricerca delle entità nella configurazione è diventata istantanea.** Il
+  selettore (la lente 🔍 accanto a ogni campo entità) rileggeva tutte le entità
+  della casa a ogni lettera digitata e ridisegnava trecento righe ogni volta: su
+  un impianto con qualche migliaio di entità la lista arrancava dietro alla
+  tastiera. Ora l'elenco viene preparato una volta sola, mentre la
+  configurazione è aperta, e ogni lettera successiva ricerca soltanto dentro i
+  risultati della lettera precedente. Si vede una pagina di risultati per volta,
+  che si allunga scorrendo, quindi la fluidità non dipende più da quante entità
+  ci sono.
+- **Il selettore ora propone da solo le entità giuste per il campo.** Ogni campo
+  dice già cosa gli serve — "Entità temperatura", `sensor.` nel segnaposto,
+  "(kWh)" nell'etichetta — e il selettore lo legge: aprendo la lente sul campo
+  della temperatura di una stanza, in cima ci sono i sensori di temperatura
+  della casa, contrassegnati con ✨, senza digitare nulla. Il filtro
+  **✨ Suggerite** mostra solo quelli, e le pastiglie accanto (`sensor`,
+  `light`, `switch`…) restringono per dominio.
+- La ricerca ignora accenti e maiuscole (cercando `citta` si trova "Città"),
+  richiede tutte le parole digitate in qualsiasi ordine, e mette in fondo le
+  entità che Home Assistant riporta come non disponibili. Ogni riga mostra ora
+  anche il valore attuale e la stanza dell'entità, e la lista si comanda da
+  tastiera con ↑ ↓ e Invio.
+
+### Corretto
+
+- In **Temperature** l'etichetta sopra il numero cambiava da sola: la stessa
+  scheda mostrava "TEMPERATURA" e un istante dopo il nome dato al sensore. Quel
+  testo aveva tre proprietari che non erano d'accordo — i renderer scrivevano la
+  parola generica alla creazione, la passata di rifinitura beta17 scriveva il
+  nome della stanza su **tutte** le schede di quella stanza (seconda sonda
+  compresa) a ogni frame, e il livello beta27 lo scriveva per associazione. Su un
+  impianto vero i sensori aggiornano di continuo, quindi l'etichetta ballava a
+  ogni ridisegno. Ora la regola sta in un punto solo: la prima associazione porta
+  il nome dato in configurazione, una sonda aggiuntiva porta il proprio, e senza
+  nome resta la parola "Temperatura". La passata beta17 continua a occuparsi
+  dell'editor e non tocca più le schede.
+
 ## 1.0.0-beta.30.6 — 2026-08-17
 
 ### Modificato

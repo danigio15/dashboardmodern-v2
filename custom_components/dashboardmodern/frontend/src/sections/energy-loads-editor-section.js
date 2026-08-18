@@ -104,7 +104,7 @@ function element(tag, className = "", text = "") {
 }
 
 function iconInto(target, icon) {
-  writeIconGlyph(target, icon, { size: 24 });
+  writeIconGlyph(target, icon, { size: 24, kind: "load" });
 }
 
 /* The bubble this card will draw. Same icon, name and colour as the stage, so
@@ -324,6 +324,7 @@ function loadCard(panel, load, index, total) {
   icon.className = "ed-input dm-loads-icon-input";
   icon.id = `dm-loads-${load.id}-icon`;
   icon.dataset.dmLoadIcon = "true";
+  icon.dataset.iconCategory = "load";
   icon.value = load.icon;
   icon.placeholder = "🍳 / mdi:stove";
   icon.addEventListener("input", () => iconInto(pick, clean(icon.value)));
@@ -345,7 +346,7 @@ function loadCard(panel, load, index, total) {
   iconInto(pick, load.icon);
   pick.addEventListener("click", (event) => {
     event.preventDefault();
-    openIconPicker(icon, "action");
+    openIconPicker(icon, "load");
   });
   iconRow.append(icon, pick);
   iconField.append(iconRow);
@@ -353,7 +354,10 @@ function loadCard(panel, load, index, total) {
     element(
       "span",
       "ed-hint",
-      t("Un'emoji o un'icona mdi:. Tocca 🎨 per sceglierla.", "An emoji or an mdi: icon. Tap 🎨 to pick one."),
+      t(
+        "Un'emoji o un'icona mdi:. Tocca il riquadro accanto per sceglierla dal catalogo dei carichi.",
+        "An emoji or an mdi: icon. Tap the box beside it to pick one from the load catalogue.",
+      ),
     ),
   );
 

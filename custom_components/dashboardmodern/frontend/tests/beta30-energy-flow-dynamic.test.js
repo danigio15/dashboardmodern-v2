@@ -330,7 +330,7 @@ test("an mdi icon is drawn through the icon engine, not as an empty ha-icon box"
     });
 
     const icon = bubbles(views.instant)[0].querySelector(".node-icon");
-    assert.deepEqual(asked[0], ["action", "mdi:car-electric", 28]);
+    assert.deepEqual(asked[0], ["load", "mdi:car-electric", 28]);
     assert.match(icon.innerHTML, /🚘/);
     assert.equal(icon.textContent, "", "the token is never printed as text");
   } finally {

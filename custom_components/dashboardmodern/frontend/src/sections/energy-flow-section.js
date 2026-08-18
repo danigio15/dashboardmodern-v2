@@ -237,7 +237,7 @@ function hideLegacyLoadTopology(stage) {
 function writeIcon(target, icon) {
   if (!target || target.dataset.dmFlowIcon === icon) return;
   target.dataset.dmFlowIcon = icon;
-  writeIconGlyph(target, icon, { size: 28 });
+  writeIconGlyph(target, icon, { size: 28, kind: "load" });
 }
 
 function bindNodeClick(element, node, period) {
