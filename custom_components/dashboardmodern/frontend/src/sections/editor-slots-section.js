@@ -196,13 +196,27 @@ function installStyles() {
   `);
 }
 
+/* The legacy entry points that print the editor. Wrapping is attempted as early
+ * as this module loads and again whenever the runtime announces itself, because
+ * `wrapFunction` is a no-op until the legacy global exists: whichever happens
+ * first, opening the editor or switching tab always schedules a pass.
+ *
+ * The wrap used to be attached only on `legacy-ready`/`runtime-ready`, so an
+ * editor opened before that event carried undecorated rows until the event
+ * finally landed — visible as raw entity fields for a beat, and long enough to
+ * be missed entirely under load. */
+function bindLegacyEntryPoints() {
+  wrapFunction("editorSwitch", "__dmEditorSlots_editorSwitch", schedule);
+  wrapFunction("apriConfigEntita", "__dmEditorSlots_apriConfigEntita", schedule);
+}
+
 export function installEditorSlotsSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
   for (const eventName of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"]) {
     root.addEventListener?.(eventName, () => {
-      wrapFunction("editorSwitch", "__dmEditorSlots_editorSwitch", schedule);
+      bindLegacyEntryPoints();
       schedule();
     });
   }
@@ -215,6 +229,7 @@ export function installEditorSlotsSection() {
     },
     true,
   );
+  bindLegacyEntryPoints();
   schedule();
 }
 

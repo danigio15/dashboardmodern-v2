@@ -61,3 +61,19 @@ test("the section owns presentation only", () => {
   assert.doesNotMatch(body, /setInterval\s*\(/);
   assert.doesNotMatch(body, /MutationObserver/);
 });
+
+test("opening the editor decorates it, whatever the order the runtime loads in", () => {
+  /* The wrap used to be attached only inside the `legacy-ready`/`runtime-ready`
+   * handlers, so an editor opened before that event kept raw entity fields
+   * until the event finally landed. `wrapFunction` is a no-op while the legacy
+   * global is still undefined, so binding early costs nothing and binding again
+   * on the events covers the other order. */
+  assert.match(source, /function bindLegacyEntryPoints\(\)/);
+  assert.match(source, /wrapFunction\("apriConfigEntita", "__dmEditorSlots_apriConfigEntita", schedule\)/);
+  assert.match(source, /wrapFunction\("editorSwitch", "__dmEditorSlots_editorSwitch", schedule\)/);
+
+  // Called from the ready handlers and once at install, not only from one.
+  const install = source.slice(source.indexOf("export function installEditorSlotsSection"));
+  assert.equal((install.match(/bindLegacyEntryPoints\(\)/g) || []).length, 2);
+});
+
