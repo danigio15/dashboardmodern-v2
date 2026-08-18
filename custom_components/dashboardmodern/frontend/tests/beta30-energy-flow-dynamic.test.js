@@ -339,6 +339,22 @@ test("an mdi icon is drawn through the icon engine, not as an empty ha-icon box"
   }
 });
 
+test("with reduced motion the active line stays readable instead of freezing dashed", () => {
+  configure({
+    loads: [load("auto", 0, { name: "Auto" })],
+    states: { "sensor.auto_power": { state: "3200" } },
+  });
+  const css = globalThis.document.head
+    .descendants()
+    .map((node) => node.textContent)
+    .join("\n");
+  const guard = css.slice(css.indexOf("@media(prefers-reduced-motion:reduce)"));
+  // The dash is the only signal that energy is moving: frozen, a dashed active
+  // line is indistinguishable from an idle one, so it is drawn solid instead.
+  assert.match(guard, /animation:none!important/);
+  assert.match(guard, /stroke-dasharray:none!important/);
+});
+
 test("an emoji icon still goes straight into the bubble", () => {
   configure({
     loads: [load("auto", 0, { name: "Auto", icon: "🚗" })],

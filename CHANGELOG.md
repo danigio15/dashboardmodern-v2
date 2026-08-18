@@ -86,6 +86,19 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- Sul desktop i flussi non si animavano: se nel sistema e' attivo **"riduci
+  movimento"** — impostazione comune su Windows e macOS e quasi mai su un
+  telefono, il che spiega perche' il moto si vedeva solo li' — ogni linea
+  restava ferma, comprese quelle principali di solare, rete e batteria. Il
+  motore dei flussi introdotto con la Beta 30 rispetta quella preferenza, ma la
+  rispettava azzerando l'animazione e lasciando il tratteggio: una linea
+  tratteggiata e immobile e' pero' indistinguibile da una spenta, e il moto era
+  l'unico segnale che l'energia stesse passando. Ora, con la preferenza attiva,
+  la linea di un flusso attivo viene disegnata **piena, colorata e a piena
+  intensita'**, mentre quella inattiva resta tratteggiata e sbiadita: lo stato
+  si legge lo stesso, senza movimento. Con la preferenza disattivata il
+  tratteggio scorre come prima.
+
 - In **Temperature** l'etichetta sopra il numero cambiava da sola: la stessa
   scheda mostrava "TEMPERATURA" e un istante dopo il nome dato al sensore. Quel
   testo aveva tre proprietari che non erano d'accordo — i renderer scrivevano la
