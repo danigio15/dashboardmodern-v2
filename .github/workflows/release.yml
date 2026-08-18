@@ -18,11 +18,25 @@ jobs:
   verify:
     name: Verify before releasing
     runs-on: ubuntu-latest
+    # Same image the Browser E2E workflow uses, which already carries the
+    # browsers the gate needs. Installing them here instead is what hung run
+    # #106 for hours on `playwright install --with-deps`, so the release never
+    # published; the previous release needed a second attempt at the same step.
+    container:
+      image: mcr.microsoft.com/playwright:v1.54.1-noble
+    # Without this a stuck step sits until GitHub's six-hour cap. The whole job
+    # takes about twenty minutes when it is healthy.
+    timeout-minutes: 45
     outputs:
       release_tag: ${{ steps.version.outputs.release_tag }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+      # The workspace belongs to another user inside the container, so git
+      # refuses to read it until it is marked safe. Both the build-info script
+      # and the tag check below shell out to git.
+      - name: Trust the workspace checkout
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -48,8 +62,6 @@ jobs:
           npm run check:inline-syntax
           npm run format:check
           npm run test:frontend
-      - name: Install Playwright browsers used by the suite
-        run: npx playwright install --with-deps chromium webkit
       - name: Browser E2E release gate
         run: npm run test:e2e
       - name: Resolve and verify release version
@@ -73,6 +85,7 @@ jobs:
     name: Publish release
     needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
