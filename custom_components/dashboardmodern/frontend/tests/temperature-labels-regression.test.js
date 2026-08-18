@@ -131,3 +131,50 @@ test("Temperature cards are theme-safe and cannot spill out of their own box", a
   assert.match(source, /\.cp-temp-current::after\{content:"°"!important/);
   assert.match(source, /data-comfort="non-disponibile"\]\) \.cp-temp-current::after/);
 });
+
+test("the reading is projected onto the card so the sheet can draw it", async () => {
+  const { applyTemperatureReading } = await import("../src/sections/shared.js");
+  const card = {
+    dataset: {},
+    style: {
+      values: {},
+      setProperty(name, value) {
+        this.values[name] = value;
+      },
+      removeProperty(name) {
+        delete this.values[name];
+      },
+    },
+  };
+
+  // The comfort scale spans 10-32 °C, so 21 °C sits halfway along it.
+  applyTemperatureReading(card, 21, 54);
+  assert.equal(card.style.values["--dm-temp-pos"], "50.0");
+  assert.equal(card.style.values["--dm-hum"], "54");
+  assert.equal(card.dataset.dmReading, "on");
+  assert.equal(card.dataset.dmHumidity, "on");
+
+  // Readings outside the scale pin to its ends instead of running off the card.
+  applyTemperatureReading(card, -4, 140);
+  assert.equal(card.style.values["--dm-temp-pos"], "0.0");
+  assert.equal(card.style.values["--dm-hum"], "100");
+  applyTemperatureReading(card, 48, 0);
+  assert.equal(card.style.values["--dm-temp-pos"], "100.0");
+
+  // Nothing to draw when the sensor has nothing to say.
+  applyTemperatureReading(card, null, null);
+  assert.equal(card.style.values["--dm-temp-pos"], undefined);
+  assert.equal(card.style.values["--dm-hum"], undefined);
+  assert.equal(card.dataset.dmReading, "off");
+  assert.equal(card.dataset.dmHumidity, "off");
+
+  // Every renderer hands its reading to the same function.
+  for (const name of [
+    "temperature-section.js",
+    "beta25-real-device-fixes-section.js",
+    "beta26-real-device-stability-section.js",
+  ]) {
+    const source = await readFile(new URL(`../src/sections/${name}`, import.meta.url), "utf8");
+    assert.match(source, /applyTemperatureReading\(card/, name);
+  }
+});

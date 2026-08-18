@@ -239,6 +239,29 @@ export function installStyle(id, css) {
   return true;
 }
 
+/* The reading, projected onto the card as numbers the stylesheet can draw with.
+ *
+ * Three renderers build these cards; putting the gauge in the markup would mean
+ * three copies of it. Instead each updater hands the card its reading here, and
+ * the sheet draws the comfort scale and the humidity bar from these variables.
+ * The scale spans 10-32 °C: below or above simply pins to the ends. */
+export function applyTemperatureReading(card, temperature, humidity) {
+  if (!card?.style) return false;
+  const hasReading = Number.isFinite(temperature);
+  if (hasReading) {
+    const position = Math.min(100, Math.max(0, ((temperature - 10) / 22) * 100));
+    card.style.setProperty("--dm-temp-pos", position.toFixed(1));
+  } else {
+    card.style.removeProperty("--dm-temp-pos");
+  }
+  if (Number.isFinite(humidity))
+    card.style.setProperty("--dm-hum", Math.min(100, Math.max(0, humidity)).toFixed(0));
+  else card.style.removeProperty("--dm-hum");
+  card.dataset.dmReading = hasReading ? "on" : "off";
+  card.dataset.dmHumidity = Number.isFinite(humidity) ? "on" : "off";
+  return true;
+}
+
 /* One rule for the small label above the reading, wherever a card is drawn.
  *
  * It used to have three writers: the renderers wrote the generic word at

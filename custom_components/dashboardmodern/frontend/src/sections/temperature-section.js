@@ -2,6 +2,7 @@
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
 import {
   allStates,
+  applyTemperatureReading,
   clean,
   comfortBadgeText,
   dashboardStore,
@@ -181,6 +182,7 @@ function updateCard(card, room) {
   if (value) value.textContent = temperature == null ? "—" : temperature.toFixed(1);
   if (humidityValue)
     humidityValue.textContent = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
+  applyTemperatureReading(card, temperature, humidity);
   if (comfort) {
     const label = comfortLabel(temperature);
     comfort.textContent = comfortBadgeText(label);
@@ -487,13 +489,18 @@ function installStyles() {
        inside Home Assistant, so every mix has to fall back to the dashboard own
        --card-bg, or the card paints white under light text in dark theme. */
     #page-temp #temp-grid,.temp-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(268px,332px))!important;justify-content:start!important;align-items:start!important;gap:16px!important;width:100%!important;margin:16px 0 0!important;padding:0 18px 28px!important}
-    #page-temp .temp-card,#temp-grid .temp-card{--dm-temp-surface:var(--ha-card-background,var(--card-bg,#fff));--dm-temp-accent:100,116,139;position:relative!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;box-sizing:border-box!important;aspect-ratio:auto!important;width:100%!important;max-width:332px!important;min-height:132px!important;margin:0!important;padding:15px 16px 15px 19px!important;border:1px solid color-mix(in srgb,rgb(var(--dm-temp-accent)) 17%,var(--card-border,var(--divider-color,#e2e8f0)))!important;border-radius:22px!important;gap:13px!important;overflow:hidden!important;background:radial-gradient(118% 82% at 100% 0%,color-mix(in srgb,rgb(var(--dm-temp-accent)) 9%,transparent) 0%,transparent 64%),linear-gradient(180deg,var(--dm-temp-surface) 0%,color-mix(in srgb,rgb(var(--dm-temp-accent)) 3.5%,var(--dm-temp-surface)) 100%)!important;box-shadow:0 14px 30px -18px color-mix(in srgb,rgb(var(--dm-temp-accent)) 34%,rgba(15,23,42,.3))!important;transition:transform .16s ease,box-shadow .16s ease!important}
+    #page-temp .temp-card,#temp-grid .temp-card{--dm-temp-surface:var(--ha-card-background,var(--card-bg,#fff));--dm-temp-accent:100,116,139;position:relative!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;box-sizing:border-box!important;aspect-ratio:auto!important;width:100%!important;max-width:332px!important;min-height:132px!important;margin:0!important;padding:15px 16px 18px 19px!important;border:1px solid color-mix(in srgb,rgb(var(--dm-temp-accent)) 17%,var(--card-border,var(--divider-color,#e2e8f0)))!important;border-radius:22px!important;gap:13px!important;overflow:hidden!important;background:radial-gradient(118% 82% at 100% 0%,color-mix(in srgb,rgb(var(--dm-temp-accent)) 9%,transparent) 0%,transparent 64%),linear-gradient(180deg,var(--dm-temp-surface) 0%,color-mix(in srgb,rgb(var(--dm-temp-accent)) 3.5%,var(--dm-temp-surface)) 100%)!important;box-shadow:0 14px 30px -18px color-mix(in srgb,rgb(var(--dm-temp-accent)) 34%,rgba(15,23,42,.3))!important;transition:transform .16s ease,box-shadow .16s ease!important}
     /* The comfort state colours the whole tile, so a room reads at a glance. */
     #temp-grid .temp-card:has(.temp-comfort-badge[data-comfort="freddo"]),#temp-grid .temp-card:has(.temp-comfort-badge[data-comfort="cold"]){--dm-temp-accent:14,165,233}
     #temp-grid .temp-card:has(.temp-comfort-badge[data-comfort="comfort"]){--dm-temp-accent:16,185,129}
     #temp-grid .temp-card:has(.temp-comfort-badge[data-comfort="caldo"]),#temp-grid .temp-card:has(.temp-comfort-badge[data-comfort="hot"]){--dm-temp-accent:239,68,68}
     @media(hover:hover) and (pointer:fine){#temp-grid .temp-card:hover{transform:translateY(-2px)!important;box-shadow:0 20px 38px -18px color-mix(in srgb,rgb(var(--dm-temp-accent)) 52%,rgba(15,23,42,.34))!important}}
     #page-temp .temp-card::before,#temp-grid .temp-card::before{content:""!important;position:absolute!important;inset:0 auto 0 0!important;width:4px!important;background:linear-gradient(180deg,rgb(var(--dm-temp-accent)),color-mix(in srgb,rgb(var(--dm-temp-accent)) 28%,transparent))!important;opacity:.92!important}
+    /* The comfort scale at the foot of the card: cold to hot from left to right,
+       with the reading punched out of it as a notch. It is drawn from the
+       --dm-temp-pos variable the updaters set, so no renderer grows markup. */
+    #temp-grid .temp-card::after{content:""!important;position:absolute!important;inset:auto 0 0 4px!important;height:5px!important;background-image:linear-gradient(90deg,transparent calc(var(--dm-temp-pos,50) * 1% - 1px),color-mix(in srgb,var(--text,#0f172a) 62%,transparent) calc(var(--dm-temp-pos,50) * 1% - 1px) calc(var(--dm-temp-pos,50) * 1% + 1px),transparent calc(var(--dm-temp-pos,50) * 1% + 1px)),linear-gradient(90deg,transparent calc(var(--dm-temp-pos,50) * 1% - 3.5px),var(--dm-temp-surface) calc(var(--dm-temp-pos,50) * 1% - 3.5px) calc(var(--dm-temp-pos,50) * 1% + 3.5px),transparent calc(var(--dm-temp-pos,50) * 1% + 3.5px)),linear-gradient(90deg,rgb(14,165,233) 0%,rgb(16,185,129) 40%,rgb(250,204,21) 62%,rgb(239,68,68) 100%)!important;opacity:.82!important}
+    #temp-grid .temp-card[data-dm-reading="off"]::after{background-image:linear-gradient(90deg,color-mix(in srgb,var(--text-dim,#64748b) 22%,transparent),transparent)!important;opacity:.5!important}
     #page-temp .temp-card-header,#temp-grid .temp-card-header{display:flex!important;min-width:0!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;min-height:40px!important;margin:0!important;padding:0!important}
     #page-temp .cp-title-wrap,#temp-grid .cp-title-wrap{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important;flex:1 1 0!important}
     #page-temp .cp-icon,#temp-grid .cp-icon{display:grid!important;place-items:center!important;flex:0 0 40px!important;width:40px!important;height:40px!important;margin:0!important;border:1px solid color-mix(in srgb,rgb(var(--dm-temp-accent)) 24%,transparent)!important;border-radius:14px!important;background:color-mix(in srgb,rgb(var(--dm-temp-accent)) 12%,var(--dm-temp-surface))!important;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 20%,transparent)!important;font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif!important}
@@ -511,7 +518,10 @@ function installStyles() {
        has to change, and it goes away on the card that has nothing to show. */
     #temp-grid .cp-temp-current::after{content:"°"!important;margin-left:2px!important;font-size:.46em!important;font-weight:800!important;letter-spacing:0!important;vertical-align:.52em!important;color:color-mix(in srgb,var(--text,#0f172a) 55%,transparent)!important}
     #temp-grid .temp-card:has(.temp-comfort-badge[data-comfort="non-disponibile"]) .cp-temp-current::after,#temp-grid .temp-card:has(.temp-comfort-badge[data-comfort="unavailable"]) .cp-temp-current::after{content:""!important}
-    #page-temp .cp-temp-target,#temp-grid .cp-temp-target{display:grid!important;align-content:end!important;gap:5px!important;min-width:0!important;margin:0!important;padding:5px 0 1px 13px!important;border-left:1px solid transparent!important;border-image:linear-gradient(180deg,transparent 4%,color-mix(in srgb,rgb(var(--dm-temp-accent)) 32%,var(--card-border,var(--divider-color,#dbe4ee))) 44%,transparent 100%) 1!important;text-align:left!important}
+    #page-temp .cp-temp-target,#temp-grid .cp-temp-target{position:relative!important;display:grid!important;align-content:end!important;gap:5px!important;min-width:0!important;margin:0!important;padding:5px 0 9px 13px!important;border-left:1px solid transparent!important;border-image:linear-gradient(180deg,transparent 4%,color-mix(in srgb,rgb(var(--dm-temp-accent)) 32%,var(--card-border,var(--divider-color,#dbe4ee))) 44%,transparent 100%) 1!important;text-align:left!important}
+    /* How full the air is, at a glance: the bar fills to the humidity reading. */
+    #temp-grid .cp-temp-target::after{content:""!important;position:absolute!important;left:13px!important;right:0!important;bottom:0!important;height:3px!important;border-radius:999px!important;background:linear-gradient(90deg,rgb(56,189,248) 0 calc(var(--dm-hum,0) * 1%),color-mix(in srgb,var(--text-dim,#64748b) 18%,transparent) 0)!important}
+    #temp-grid .temp-card[data-dm-humidity="off"] .cp-temp-target::after{background:color-mix(in srgb,var(--text-dim,#64748b) 14%,transparent)!important}
     #temp-grid .cp-temp-target .lbl{overflow:hidden!important;text-overflow:ellipsis!important;font-size:8px!important;font-weight:900!important;letter-spacing:.08em!important;text-transform:uppercase!important;white-space:nowrap!important;color:var(--text-dim,var(--secondary-text-color,#64748b))!important}
     #temp-grid .cp-temp-target .val{font-size:23px!important;font-weight:850!important;line-height:1!important;letter-spacing:-.4px!important;font-variant-numeric:tabular-nums!important;white-space:nowrap!important;color:var(--text-dim,var(--secondary-text-color,#64748b))!important}
     #temp-grid .dm-temperature-icon-fallback{display:block!important;font-size:24px!important;line-height:1!important}
@@ -522,7 +532,7 @@ function installStyles() {
     #editor-modal [data-temperature-form] #dm-temperature-icon,#editor-modal [data-temperature-form] [data-icon-field],#editor-modal [data-temperature-form] label.ed-slot:has(#dm-temperature-icon){display:none!important}
     #editor-modal [data-temperature-form] .dm-temperature-actions button{min-height:44px!important}
     #editor-modal [data-temperature-form] #dm-temperature-room[data-dm-temperature-room-editable="true"]{border-color:var(--primary-color,#0ea5e9)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,transparent)!important}
-    @media(max-width:680px){#page-temp #temp-grid,.temp-grid{grid-template-columns:minmax(0,360px)!important;justify-content:center!important;gap:13px!important;margin-top:12px!important;padding:0 14px 22px!important}#page-temp .temp-card,#temp-grid .temp-card{width:100%!important;max-width:360px!important;min-height:124px!important;padding:13px 14px 13px 17px!important;border-radius:20px!important;gap:11px!important}#page-temp .cp-temp-current,#temp-grid .cp-temp-current{font-size:36px!important}#temp-grid .cp-temp-target .val{font-size:22px!important}}
+    @media(max-width:680px){#page-temp #temp-grid,.temp-grid{grid-template-columns:minmax(0,360px)!important;justify-content:center!important;gap:13px!important;margin-top:12px!important;padding:0 14px 22px!important}#page-temp .temp-card,#temp-grid .temp-card{width:100%!important;max-width:360px!important;min-height:124px!important;padding:13px 14px 16px 17px!important;border-radius:20px!important;gap:11px!important}#page-temp .cp-temp-current,#temp-grid .cp-temp-current{font-size:36px!important}#temp-grid .cp-temp-target .val{font-size:22px!important}}
   `,
   );
 }

@@ -3,6 +3,7 @@ import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwor
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
 import {
   allStates,
+  applyTemperatureReading,
   clean,
   comfortBadgeText,
   dashboardStore,
@@ -220,6 +221,7 @@ function updateTemperatureCard(card, record) {
   const name = card.querySelector(".temp-room-name");
   if (value) value.textContent = temperature == null ? "—" : temperature.toFixed(1);
   if (hum) hum.textContent = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
+  applyTemperatureReading(card, temperature, humidity);
   if (comfort) {
     const label = comfortLabel(temperature);
     comfort.textContent = comfortBadgeText(label);

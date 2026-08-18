@@ -83,6 +83,12 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   entità che Home Assistant riporta come non disponibili. Ogni riga mostra ora
   anche il valore attuale e la stanza dell'entità, e la lista si comanda da
   tastiera con ↑ ↓ e Invio.
+- Ogni scheda di **Temperature** porta ora in fondo la scala del comfort, dal
+  freddo al caldo, con una tacca nel punto della lettura: si vede quanto una
+  stanza è fuori dal comfort, non solo se lo è. Sotto la percentuale di umidità
+  c'è una barra che si riempie fino al valore. Nessun renderer è cresciuto di
+  markup: gli aggiornatori passano la lettura a un'unica funzione che la scrive
+  sulla scheda, e il foglio di stile disegna scala e barra da lì.
 
 ### Corretto
 
