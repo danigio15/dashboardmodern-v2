@@ -14,29 +14,23 @@ on:
 permissions:
   contents: write
 
+# Two gates, each in the environment that suits it. They used to be one job on a
+# bare runner that installed browsers itself, which hung for hours on
+# `playwright install --with-deps` and never published. Putting that single job
+# in the Playwright image fixed the hang but broke the Python side: the image is
+# a browser image, so the C extensions in the test requirements (ciso8601,
+# lru-dict) have nothing to build against. Neither environment suits both, so
+# neither job does both.
 jobs:
   verify:
     name: Verify before releasing
     runs-on: ubuntu-latest
-    # Same image the Browser E2E workflow uses, which already carries the
-    # browsers the gate needs. Installing them here instead is what hung run
-    # #106 for hours on `playwright install --with-deps`, so the release never
-    # published; the previous release needed a second attempt at the same step.
-    container:
-      image: mcr.microsoft.com/playwright:v1.54.1-noble
-    # Without this a stuck step sits until GitHub's six-hour cap. The whole job
-    # takes about twenty minutes when it is healthy.
-    timeout-minutes: 45
+    timeout-minutes: 30
     outputs:
       release_tag: ${{ steps.version.outputs.release_tag }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
-      # The workspace belongs to another user inside the container, so git
-      # refuses to read it until it is marked safe. Both the build-info script
-      # and the tag check below shell out to git.
-      - name: Trust the workspace checkout
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -48,19 +42,13 @@ jobs:
           cache: npm
       - name: Install test dependencies
         run: |
-          # `python -m pip`, not `pip`: the container has no pip on PATH, only
-          # the module. On a bare runner setup-python leaves both, which is why
-          # this only broke once the job moved into the image.
           python -m pip install --upgrade pip
           python -m pip install -r requirements_test.txt ruff
           npm ci
       - name: Lint
         run: |
-          # Through the interpreter for the same reason as the install above:
-          # nothing in this job should depend on a console script being on the
-          # container's PATH.
-          python -m ruff check .
-          python -m ruff format --check .
+          ruff check .
+          ruff format --check .
       - name: Test
         run: |
           python scripts/generate_build_info.py --expected-commit "$GITHUB_SHA"
@@ -68,8 +56,6 @@ jobs:
           npm run check:inline-syntax
           npm run format:check
           npm run test:frontend
-      - name: Browser E2E release gate
-        run: npm run test:e2e
       - name: Resolve and verify release version
         id: version
         run: |
@@ -87,9 +73,55 @@ jobs:
           fi
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
 
+  # Same shape as the Browser E2E workflow, which is green on every commit that
+  # reaches main: the browsers come with the image, so there is nothing to
+  # install, and the three projects run in parallel instead of end to end.
+  gate:
+    name: Browser E2E release gate / ${{ matrix.project }}
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.54.1-noble
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        project:
+          - desktop
+          - mobile
+          - webkit-ipad
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: npm ci
+      - name: Generate build metadata
+        run: |
+          # The workspace belongs to another user inside the container, so git
+          # refuses to read it until it is marked safe.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          python scripts/generate_build_info.py --expected-commit "$GITHUB_SHA"
+      - name: Run ${{ matrix.project }} E2E
+        run: npx playwright test --project="${{ matrix.project }}"
+      - uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: release-gate-report-${{ matrix.project }}
+          path: |
+            playwright-report
+            test-results
+
   release:
     name: Publish release
-    needs: verify
+    needs: [verify, gate]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
