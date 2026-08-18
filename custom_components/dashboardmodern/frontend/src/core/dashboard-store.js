@@ -57,6 +57,29 @@ export function hasConfiguredData(section, value) {
   );
 }
 
+/* The legacy shape of the lights section: `{ "light.salone": "Salone" }`.
+ *
+ * Two things used to go wrong here. A section that is not an array — an older
+ * document, or a half-written one — threw on `.map`, and because this runs
+ * inside `persist()` the exception took the whole bootstrap with it: the
+ * dashboard came back blank. And a light with no entity produced the key
+ * `"undefined"`, which the runtime then showed as a nameless quick action that
+ * no editor could delete, because there was no entity behind it to delete.
+ *
+ * A light is a light when it has an entity. Anything else is dropped here
+ * rather than written back into the legacy document. */
+export function legacyLights(value) {
+  const entries = Array.isArray(value) ? value : Object.values(value || {});
+  const lights = {};
+  for (const item of entries) {
+    if (!item || typeof item !== "object") continue;
+    const entity = String(item.entity || item.entities?.[0] || "").trim();
+    if (!entity || !entity.includes(".")) continue;
+    lights[entity] = String(item.name || "").trim() || entity;
+  }
+  return lights;
+}
+
 export class DashboardStore {
   constructor({
     storage = globalThis.localStorage,
@@ -69,6 +92,18 @@ export class DashboardStore {
     this.listeners = new Set();
     this.persistedLegacyDigests = new Map();
     this.state = { schema_version: SCHEMA_VERSION, sections: {}, visibility: {} };
+  }
+  /* Forget the configuration held in memory.
+   *
+   * The reset clears storage, but this object keeps a complete copy of the
+   * plancia in `this.state`, and every legacy write that follows projects that
+   * copy straight back onto disk. That is how a reset used to come back with
+   * half a configuration — a quick action with nothing behind it, a light with
+   * no entity — in the seconds before the dashboard restarted. */
+  reset() {
+    this.state = { schema_version: SCHEMA_VERSION, sections: {}, visibility: {} };
+    this.persistedLegacyDigests.clear();
+    return this.state;
   }
   migrate() {
     const saved = this.storage.getItem("dm_dashboard_state");
@@ -154,8 +189,7 @@ export class DashboardStore {
       writeLegacy("cd_sections", this.state.visibility);
       for (const [section, key] of Object.entries(SECTION_KEYS)) {
         let value = this.state.sections[section] || [];
-        if (section === "lights")
-          value = Object.fromEntries(value.map((item) => [item.entities[0], item.name]));
+        if (section === "lights") value = legacyLights(value);
         writeLegacy(key, value);
       }
     } finally {

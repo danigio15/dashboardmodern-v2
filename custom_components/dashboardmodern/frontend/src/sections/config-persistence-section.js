@@ -1,10 +1,10 @@
 // DM-FIX-20260817A
 import { normalizeSection } from "../core/migrations.js";
-import { root } from "./shared.js";
+import { reloadDashboard, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CONFIG_PERSISTENCE__";
 const USER_DATA_VERSION = 1;
-const CONFIG_KEYS_REVISION = 2;
+export const CONFIG_KEYS_REVISION = 3;
 const PERSIST_META_KEY = "dm_persistence_meta";
 const REMOTE_REFRESH_MIN_MS = 1200;
 
@@ -69,6 +69,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_ev_car_active",
   "cd_ev_visual",
   "cd_ev_image",
+  "cd_ev_image_plugged",
   "cd_visual_prefer_image",
   "cd_tapparelle",
   "cd_piscina",
@@ -286,10 +287,13 @@ export function normalizeSharedSnapshot(snapshot) {
 }
 
 /**
- * Before revision 2 several real editor keys were not part of the modern cloud
- * snapshot. Absence in those payloads cannot mean "deleted". Fill only missing
- * old fields from the current device once; values actually present remotely
- * still win. Revision 2 is complete, so future absence means deletion again.
+ * A snapshot written before the current revision was written by a build that
+ * did not know about every key this one syncs, so absence in it cannot mean
+ * "deleted". Fill only the missing old fields from the current device once;
+ * values actually present remotely still win. At the current revision the
+ * payload is complete again, so absence means deletion.
+ *
+ * Revision 3 adds the second vehicle photo (`cd_ev_image_plugged`).
  */
 export function mergeLegacyMissingConfig(remote, local = {}) {
   if (!remote || Number(remote.keys_revision) >= CONFIG_KEYS_REVISION) return remote;
@@ -951,6 +955,14 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
     return false;
   }
 
+  // Storage is empty, memory is not: the canonical store still holds the whole
+  // plancia and projects it back onto the legacy keys on the next write, which
+  // is why a reset used to leave a stray light and an empty quick action
+  // behind. Empty it here, before anything can write again.
+  try {
+    root.DashboardModernModules?.store?.reset?.();
+  } catch (_error) {}
+
   const empty = snapshot();
   try {
     if (sharedStoreEnabled()) {
@@ -976,7 +988,7 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
   } catch (_error) {}
 
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:config-reset", { detail: empty }));
-  if (reload) root.setTimeout?.(() => root.location?.reload?.(), 40);
+  if (reload) root.setTimeout?.(() => reloadDashboard(), 40);
   else {
     state.resetting = false;
     delete root.__DASHBOARDMODERN_CONFIG_RESETTING__;

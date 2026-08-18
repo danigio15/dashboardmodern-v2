@@ -209,7 +209,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
           };
         }),
       )
-      .toEqual({ profile: "primary", keysRevision: 2, model: "B10" });
+      .toEqual({ profile: "primary", keysRevision: 3, model: "B10" });
 
     const persisted = await page.evaluate(() => {
       const remote = JSON.parse(localStorage.getItem("__beta2_remote_config__"));

@@ -4,6 +4,95 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.31 — 2026-08-18
+
+### Corretto
+
+- **La plancia era diventata lentissima.** Ogni renderer chiede alla dashboard
+  l'elenco delle entità, alcuni una volta per scheda e qualcuno una volta per
+  riga, due volte al secondo. Quella chiamata costruiva ogni volta una copia
+  nuova di tutto: prima le due mappe di Home Assistant, poi `_RAW_STATES` e poi
+  `STATES` — che è un Proxy del primo, quindi le stesse entità venivano copiate
+  una seconda volta passando per un intercettore che consulta la tabella degli
+  override chiave per chiave. Su una casa con qualche migliaio di entità una
+  sola chiamata costava più di un millisecondo. Ora, quando il runtime è l'unica
+  sorgente — cioè su ogni plancia ospitata — l'elenco viene restituito com'è:
+  nessuna copia, nessun intercettore e nessun dato vecchio di un ridisegno. Con
+  duemila entità la stessa sequenza è passata da 307 ms a 1 ms.
+- **Le telecamere erano tutte nere.** La parete delle telecamere viene
+  ricostruita quando si apre Sicurezza, e ricostruirla butta via ogni `<img>`
+  con dentro il fotogramma appena scaricato; nessun cambio di stato di una
+  telecamera segue per chiederne un altro, perché lo stato resta "idle" mentre
+  l'immagine cambia. Inoltre il timer che ricaricava i fotogrammi era stato
+  rimosso senza sostituirlo, quindi anche il primo fotogramma sopravvissuto
+  restava lì per sempre. Ora la parete chiede i fotogrammi appena si ricostruisce
+  e un timer li aggiorna ogni quattro secondi — solo mentre la pagina Sicurezza
+  è davvero sullo schermo e la scheda del browser non è nascosta.
+- **Il reset lasciava lo schermo bianco e mezza configurazione.** La plancia
+  ospitata vive dentro un documento `srcdoc`: il suo indirizzo è `about:srcdoc` e
+  ricaricarlo dall'interno, che è come finivano sia il reset sia
+  l'autorilevamento, nell'app di Home Assistant porta a una pagina vuota da cui
+  non si torna indietro. Ora la ricarica viene chiesta all'ospite, che ricostruisce
+  il documento esattamente come la prima volta; e se una ricarica sfugge lo stesso,
+  l'ospite se ne accorge e lo ricostruisce comunque. Il reset inoltre svuota anche
+  la configurazione tenuta in memoria: restava lì e veniva riscritta su disco al
+  primo salvataggio successivo, ed è così che tornava indietro un'azione rapida
+  "Luci" senza niente dentro. Quella voce vuota nasceva da una luce senza entità,
+  che veniva scritta come chiave `undefined`; una luce senza entità ora non viene
+  più scritta, e una sezione di forma inattesa non fa più fallire l'avvio con lo
+  schermo bianco.
+- **La tapparella non era allineata alla finestra.** Con la tapparella chiusa
+  restavano scoperti il cielo in alto e le colline negli angoli in basso: il
+  pannello era staccato di 9 px dai bordi. Quei 9 px venivano da una pelle della
+  Beta 7 che disegnava una finestra completamente diversa, alta 180 px, ed era
+  rimasta l'unico foglio a dichiarare `left`, `right` e `top` sul pannello —
+  quindi sopravviveva a ogni ridisegno successivo. La pagina Tapparelle ha ora un
+  solo proprietario e il pannello chiude esattamente sull'apertura.
+- **Nel Report Energia le icone non erano quelle degli elettrodomestici.** La
+  voce del Report partiva da un campo emoji che la scheda dell'elettrodomestico
+  non disegna mai: la scheda mostra il disegno scelto in Elettrodomestici, il
+  Report mostrava altro, e le due liste dicevano cose diverse dello stesso
+  apparecchio. Ora la voce segue lo stesso ordine della scheda, con davanti
+  l'icona eventualmente assegnata apposta al Report.
+- **Il menu in basso si comportava in modo diverso a seconda della sezione.** Le
+  pagine ridisegnate fermano la propagazione del tocco sulle proprie schede, e
+  il gestore che chiude la barra ascoltava in risalita: su Elettrodomestici o
+  Temperature il tocco fuori dalla barra non la chiudeva, su Home sì. Ora la
+  barra ha un solo comportamento, in fase di cattura e delegato — quindi vale
+  anche per una scheda riordinata dopo l'avvio — e ogni pagina lascia lo stesso
+  spazio sotto perché la barra non copra l'ultima riga. La modalità "barra
+  fissa" continua a vincere su tutto.
+- **La configurazione EV si apriva in due modi diversi.** Il pannello di marchio
+  e modello finiva in cima alla scheda o dentro la sezione dell'auto a seconda di
+  quanto velocemente l'editor disegnava. Ora viene costruito solo quando la sua
+  sezione esiste, e va lì.
+
+### Aggiunto
+
+- **Due foto dell'auto: cavo staccato e cavo attaccato.** Si caricano dalla
+  scheda EV della configurazione, una accanto all'altra e ciascuna con
+  l'anteprima di quello che punta. La plancia mostra quella con il cavo attaccato
+  mentre l'auto è in ricarica e l'altra nel resto del tempo, leggendo lo stato
+  dalla wallbox già mappata. La seconda è facoltativa: senza, resta la prima
+  come è sempre stato.
+
+### Modificato
+
+- **Il campo entità è la stessa riga leggibile in tutta la configurazione.** La
+  lente non è più un quadratino con dentro una lente di ingrandimento: è la riga,
+  e la riga dice quale entità è scelta, con il nome che le dà Home Assistant e
+  l'id sotto. Toccarla apre la ricerca entità, quella veloce con i suggerimenti
+  per il campo. L'id da scrivere a mano resta dietro la matita accanto. Prima
+  questo valeva solo per le sezioni della scheda Sezioni; ora vale per Luci,
+  Telecamere, Report, Temperature, Irrigazione e per ogni altro campo che accetta
+  un'entità.
+- **Nella configurazione Home spariscono due voci**: "Interruttore antifurto" e
+  "Script apertura cancello". Chiedevano una seconda volta cose che la plancia sa
+  già — la centrale allarme è la riga sopra, il cancello è un'azione rapida come
+  le altre — e due posti per la stessa mappatura vogliono dire due risposte
+  quando non vanno d'accordo. Quello che è già mappato continua a funzionare: le
+  voci escono dall'editor, non dalla configurazione.
+
 ## 1.0.0-beta.30.8 — 2026-08-18
 
 ### Aggiunto

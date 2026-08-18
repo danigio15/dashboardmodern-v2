@@ -10,7 +10,11 @@ test("EV appearance is strictly scoped to the EV editor and is not prepended glo
   const source = await read("src/sections/personalization-section.js");
   assert.match(source, /if \(activeTab !== "sez2"\)/);
   assert.match(source, /querySelectorAll\("\[data-ev-appearance\]"\).*remove/);
-  assert.match(source, /visibleEvBlock\.insertAdjacentElement\("afterend", panel\)/);
+  // One placement, so reopening the tab cannot give two different pages: the
+  // panel is built only once the vehicle accordion exists, and goes inside it.
+  assert.match(source, /evAccordionBody\(\)\.prepend\(panel\)/);
+  assert.doesNotMatch(source, /body\.prepend\(panel\)/);
+  assert.doesNotMatch(source, /visibleEvBlock/);
 });
 
 test("room and action icon previews are the picker buttons and palette buttons are hidden", async () => {

@@ -7,6 +7,7 @@
  */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { editEntityFieldByHand } from "./helpers/entity-field.js";
 
 const ROOMS = ["kitchen", "living", "bathroom", "garage", "garden"];
 
@@ -111,6 +112,9 @@ test.describe("entity picker search", () => {
         apriConfigEntita();
         editorSwitch("sez7");
       }, STATES);
+      // The entity field is a readable row; the id itself lives behind the
+      // pencil beside it, which is where this test types.
+      await editEntityFieldByHand(page, "#ed-pl-temp");
       await expect(page.locator("#ed-pl-temp")).toBeVisible();
 
       await openTemperaturePicker(page);

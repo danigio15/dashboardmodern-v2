@@ -36,14 +36,18 @@ test("brand contract is claimed before load failure and after every vehicle rend
   assert.match(source, /guardAll\(\);\n\s*return result;/);
 });
 
-test("beta7 final polish owns quick actions, climate and stable shutters", async () => {
+test("beta7 final polish owns quick actions and climate, and no longer skins the shutters", async () => {
   const source = await readFile(regressionsUrl, "utf8");
   assert.match(source, /polishQuickActionCards/);
   assert.match(source, /dm-beta7-existing-action-icon/);
   assert.match(source, /dm-beta7-action-form-row/);
   assert.match(source, /aspect-ratio:auto/);
-  assert.match(source, /dmBeta7ShutterRoll/);
+  // The shutter repaint guard stays; the Beta 7 window skin does not. It was
+  // the only sheet declaring left/right/top on .tapp-shutter, so it detached
+  // the closed panel from the opening the current skin draws.
   assert.match(source, /__dmBeta7StableShutters/);
+  assert.doesNotMatch(source, /#page-tapparelle[^\n]*\.tapp-(?:win|shutter|glass)/);
+  assert.doesNotMatch(source, /dmBeta7ShutterRoll/);
   assert.doesNotMatch(source, /MutationObserver|setInterval\s*\(/);
 });
 

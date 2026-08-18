@@ -6,6 +6,7 @@ globalThis.addEventListener = () => {};
 const {
   applyRestoredValues,
   CONFIG_KEYS,
+  CONFIG_KEYS_REVISION,
   integrationUserDataKey,
   mergeLegacyMissingConfig,
   migrateLegacyUserData,
@@ -117,10 +118,10 @@ test("old incomplete cloud snapshot keeps local fields that were never synchroni
   assert.equal(merged.values.cd_avvisi_custom, local.cd_avvisi_custom);
 });
 
-test("revision-2 cloud absence is authoritative and is not filled from stale local data", () => {
+test("current-revision cloud absence is authoritative and is not filled from stale local data", () => {
   const remote = normalizeRemoteSnapshot({
     version: 1,
-    keys_revision: 2,
+    keys_revision: CONFIG_KEYS_REVISION,
     updated_at: 5000,
     values: { cd_sections: '{"energy":false}' },
   });
@@ -128,6 +129,22 @@ test("revision-2 cloud absence is authoritative and is not filled from stale loc
     cd_devices: '[{"name":"Stale"}]',
   });
   assert.equal(Object.hasOwn(merged.values, "cd_devices"), false);
+});
+
+test("a snapshot from before the second vehicle photo keeps the one on this device", () => {
+  assert.ok(CONFIG_KEYS.includes("cd_ev_image_plugged"));
+  const remote = normalizeRemoteSnapshot({
+    version: 1,
+    keys_revision: 2,
+    updated_at: 5000,
+    values: { cd_ev_image: '"/local/auto.png"' },
+  });
+  const merged = mergeLegacyMissingConfig(remote, {
+    cd_ev_image: '"/local/vecchia.png"',
+    cd_ev_image_plugged: '"/local/auto-cavo.png"',
+  });
+  assert.equal(merged.values.cd_ev_image, '"/local/auto.png"');
+  assert.equal(merged.values.cd_ev_image_plugged, '"/local/auto-cavo.png"');
 });
 
 test("store preserves a fresh legacy visibility write instead of overwriting it", () => {

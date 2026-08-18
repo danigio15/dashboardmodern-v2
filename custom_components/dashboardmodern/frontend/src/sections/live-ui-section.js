@@ -13,6 +13,8 @@ const state = (root[KEY] ||= {
   frame: 0,
   previousCameraRefresh: null,
   cameraUrls: new Map(),
+  cameraTimer: 0,
+  building: false,
 });
 
 function unique(values) {
@@ -186,13 +188,61 @@ export async function refreshCameraThumbnails({ force = false } = {}) {
   if (!cameras.length) return false;
   const grid = doc.getElementById("cam-grid");
   if (grid && !grid.querySelector(".cam-card") && typeof root.buildCamCards === "function") {
-    root.buildCamCards();
+    // Reentrancy guard: the wall owner calls back here as soon as it has built
+    // its cards, and building them from inside that call would loop.
+    if (!state.building) {
+      state.building = true;
+      try {
+        root.buildCamCards();
+      } finally {
+        state.building = false;
+      }
+    }
   }
   await Promise.all(cameras.map(loadCameraImage));
+  // However the page was reached — a tab, a card, a restored session — asking
+  // for frames is also what arms the timer that keeps them coming.
+  syncCameraTimer();
   return true;
 }
 
+/* A camera frame is a still picture fetched over and over: nothing in Home
+ * Assistant pushes a new one, and the entity state stays "idle" while the view
+ * changes completely. Losing the legacy 4s timer therefore left the wall on
+ * whatever frame happened to load first — and on a wall rebuilt right after
+ * that first load, on no frame at all, which is a grid of black rectangles.
+ *
+ * The timer is back, but only while the Sicurezza page is actually on screen:
+ * off it, and on a hidden tab, nothing is fetched. */
+const CAMERA_REFRESH_MS = 4000;
+
+function stopCameraTimer() {
+  if (!state.cameraTimer) return;
+  root.clearInterval?.(state.cameraTimer);
+  state.cameraTimer = 0;
+}
+
+export function syncCameraTimer() {
+  const wanted = securityVisible() && doc?.visibilityState !== "hidden" && configuredCameras().length > 0;
+  if (!wanted) {
+    stopCameraTimer();
+    return false;
+  }
+  if (state.cameraTimer) return true;
+  state.cameraTimer =
+    root.setInterval?.(() => {
+      if (!securityVisible() || doc?.visibilityState === "hidden") {
+        stopCameraTimer();
+        return;
+      }
+      refreshCameraThumbnails();
+    }, CAMERA_REFRESH_MS) || 0;
+  return Boolean(state.cameraTimer);
+}
+
 function installCameraOwner() {
+  // The legacy timer refreshed every camera every 4s whatever page was open and
+  // whatever the tab was doing. Ours is armed by visibility instead.
   if (root.camInterval) {
     root.clearInterval?.(root.camInterval);
     root.camInterval = null;
@@ -214,6 +264,7 @@ function syncVisibleLiveUi() {
   state.frame = 0;
   syncLightsAlert();
   syncOpenLightsPopup();
+  syncCameraTimer();
   if (securityVisible()) refreshCameraThumbnails();
 }
 
@@ -246,14 +297,24 @@ export function installLiveUiSection() {
     if (targets.cameras && securityVisible()) refreshCameraThumbnails();
   });
 
+  doc.addEventListener("visibilitychange", () => {
+    syncCameraTimer();
+    if (doc.visibilityState === "visible" && securityVisible()) refreshCameraThumbnails();
+  });
+
   doc.addEventListener(
     "click",
     (event) => {
       if (event.target?.closest?.('[data-tab="security"]')) {
-        root.queueMicrotask?.(() => {
+        // The wall owner rebuilds its cards on the same click, and a frame
+        // written into an <img> that is about to be replaced is a frame lost —
+        // which is what left every camera black. The refresh is scheduled after
+        // that rebuild, and the wall asks for one itself whenever it rebuilds.
+        root.setTimeout?.(() => {
           installCameraOwner();
+          syncCameraTimer();
           refreshCameraThumbnails({ force: true });
-        });
+        }, 0);
       }
       if (event.target?.closest?.('[data-tab="home"]')) root.queueMicrotask?.(syncLightsAlert);
     },

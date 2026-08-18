@@ -1,6 +1,7 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootConsolidatedDashboard } from "./helpers/consolidated-runtime.js";
+import { editEntityFieldByHand } from "./helpers/entity-field.js";
 import { clickBottomTab } from "./helpers/navigation.js";
 
 async function openEditor(page, tab) {
@@ -80,6 +81,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         const group = node.closest("details");
         if (group) group.open = true;
       });
+      // The row is what is on screen; the id itself sits behind its pencil.
+      await expect(page.locator(`${selector} ~ .dm-entity-picker.dm-slot-chip`)).toBeVisible();
+      await editEntityFieldByHand(page, selector);
       await expect(field).toBeVisible();
       await expect(field).toHaveValue(value);
       const nativeTotalField = field.locator(

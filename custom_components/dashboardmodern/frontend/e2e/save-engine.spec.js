@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { showRawEntityFields } from "./helpers/entity-field.js";
 import { clickBottomTab } from "./helpers/navigation.js";
 
 const haStates = [
@@ -136,6 +137,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await boot(page, variant, testInfo);
     await openEditor(page, "appliances");
 
+    // The entity fields are readable rows now; the id itself is behind the
+    // pencil on each row, so the form is put into manual mode first.
+    await showRawEntityFields(page);
     await page.locator("#appl-name").fill("Lavatrice");
     await page.locator("#appl-room").selectOption("room-matrimoniale");
     for (const entity of ["switch.lavatrice", "sensor.lavatrice_power"]) {
@@ -197,6 +201,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await boot(page, variant, testInfo);
     await openEditor(page, "sez1");
 
+    await showRawEntityFields(page);
     const total = page.locator("#dm-energy-house-total_energy");
     await total.fill("sensor.solarman_total_load_consumption");
     await expect(page.locator("[data-energy-actions]")).toHaveAttribute("data-state", "dirty");

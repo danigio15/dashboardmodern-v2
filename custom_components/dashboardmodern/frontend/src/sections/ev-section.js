@@ -1,5 +1,5 @@
 import { carBrandVisual } from "../core/personalization-catalog.js";
-import { clean, doc, esc, installStyle, readJson, root, section, t } from "./shared.js";
+import { allStates, clean, doc, esc, installStyle, readJson, root, section, t } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EV_SECTION__";
@@ -51,17 +51,74 @@ export function resolveVehicleAsset(value, base = doc?.baseURI || root.location?
   try { return new URL(raw.replace(/^\.\//, ""), base).href; } catch (_error) { return ""; }
 }
 
-function configuredImage() {
-  const stored = root.localStorage?.getItem("cd_ev_image") || "";
+/* The two photos of the car.
+ *
+ * `cd_ev_image` has always been the car as it sits there, cable unplugged.
+ * `cd_ev_image_plugged` is the same car with the cable in — the picture worth
+ * looking at while it charges. Only the first is required: with no second photo
+ * configured the hero simply keeps showing the first one, which is exactly what
+ * every existing configuration does today. */
+export const EV_PHOTO_KEYS = Object.freeze({ idle: "cd_ev_image", plugged: "cd_ev_image_plugged" });
+
+function storedPhoto(key) {
+  const stored = root.localStorage?.getItem(key) || "";
   try { const parsed = JSON.parse(stored); return typeof parsed === "string" ? parsed : parsed?.url || parsed?.path || ""; }
   catch (_error) { return stored.replace(/^"|"$/g, ""); }
 }
 
+export function configuredPhotos() {
+  return { idle: storedPhoto(EV_PHOTO_KEYS.idle), plugged: storedPhoto(EV_PHOTO_KEYS.plugged) };
+}
+
+function liveState(reference) {
+  const id = clean(reference); if (!id) return null;
+  let resolved = id;
+  try { resolved = clean(root.resolveEntity?.(id)) || id; } catch (_error) {}
+  const states = allStates();
+  return states[resolved] || states[id] || null;
+}
+
+/* What a wallbox says when the cable is out. The negatives are read first and
+ * the two that contain a positive inside them — "disconnected" contains
+ * "connected", "scollegato" contains "collegato" — are what make the order
+ * matter. */
+const UNPLUGGED_WORDS = /(disconnect|scollegat|staccat|unplug|not[_ ]?connected|no[_ ]?vehicle)/i;
+const UNPLUGGED_STATES = /^(off|idle|unknown|unavailable|none|available|free|libero|nessuno|standby|ready)$/i;
+const PLUGGED_WORDS = /(charg|ricaric|in carica|connect|collegat|plug|attacc|occupied|preparing|suspended)/i;
+
+/** Is the cable in? Read from the wallbox the configuration already maps. */
+export function vehiclePlugged() {
+  const status = clean(liveState("dm.ev_stato_ricarica")?.state);
+  if (status) {
+    if (UNPLUGGED_STATES.test(status) || UNPLUGGED_WORDS.test(status)) return false;
+    if (PLUGGED_WORDS.test(status)) return true;
+  }
+  // No usable text: a wallbox drawing power has a cable in it.
+  for (const reference of ["dm.ev_potenza_wallbox", "dm.ev_charge_power"]) {
+    const power = Number(liveState(reference)?.state);
+    if (Number.isFinite(power) && power > 10) return true;
+  }
+  return false;
+}
+
+/** The photo the hero should be showing right now. */
+export function activeVehiclePhoto(photos = configuredPhotos(), plugged = vehiclePlugged()) {
+  const chosen = plugged ? photos.plugged || photos.idle : photos.idle || photos.plugged;
+  return clean(chosen);
+}
+
 export function applyVehicleAsset() {
   if (!doc) return false;
-  const original = configuredImage();
+  const photos = configuredPhotos();
+  const plugged = vehiclePlugged();
+  const original = activeVehiclePhoto(photos, plugged);
   const url = resolveVehicleAsset(original);
-  if (url && clean(original) !== url) root.localStorage?.setItem("cd_ev_image", JSON.stringify(url));
+  // Only the key the value came from is rewritten in its resolved form, so the
+  // other photo is never overwritten with this one.
+  if (url && clean(original) !== url) {
+    const key = clean(photos.plugged) === clean(original) && plugged ? EV_PHOTO_KEYS.plugged : EV_PHOTO_KEYS.idle;
+    root.localStorage?.setItem(key, JSON.stringify(url));
+  }
   state.lastUrl = url;
   let mounted = false;
   for (const id of ["ev-mod-car-img", "ev-new-car-img"]) {
@@ -71,10 +128,112 @@ export function applyVehicleAsset() {
     image.onload = () => { delete image.dataset.evImageError; delete image.dataset.evFailed; image.style.display = "block"; image.style.visibility = "visible"; image.style.opacity = "1"; };
     const resolved = new URL(url, doc.baseURI).href;
     if (image.src !== resolved || image.dataset.evFailed === "1") { delete image.dataset.evFailed; delete image.dataset.evImageError; image.src = url; }
+    image.dataset.evPhoto = plugged ? "plugged" : "idle";
     image.style.display = "block"; mounted = true;
   }
-  const hero = doc.getElementById("lm-hero-card"); if (hero) hero.dataset.evImage = url ? "configured" : "missing";
+  const hero = doc.getElementById("lm-hero-card");
+  if (hero) {
+    hero.dataset.evImage = url ? "configured" : "missing";
+    hero.dataset.evCable = plugged ? "plugged" : "unplugged";
+  }
   return mounted;
+}
+
+/* ── the two photos, in the configuration ──────────────────────────────── */
+
+/* The vendored EV form has one field for one photo. It stays in the document —
+ * it is what a very old build reads — but it is folded away and this panel
+ * takes over the row, because there are two photos now and they are easier to
+ * get right side by side, each with the picture it points at underneath. */
+function evEditorBody() {
+  const body = doc?.getElementById("ed-body");
+  if (!body) return null;
+  const active = clean(doc.querySelector(".ed-tab.active")?.dataset?.tab);
+  if (active !== "sez2") return null;
+  return [...body.querySelectorAll(".ed-acc-body")].find((node) =>
+    node.querySelector('.ed-slot-in[data-ref^="dm.ev_"]'),
+  ) || null;
+}
+
+function legacyPhotoRow(body) {
+  return [...body.querySelectorAll(".ed-slot")].find((slot) =>
+    /immagine auto|car image/i.test(clean(slot.querySelector(".ed-slot-lbl")?.textContent)),
+  ) || null;
+}
+
+function photoFieldMarkup(kind, label, hint, value) {
+  return `<label class="dm-ev-photo" data-ev-photo="${kind}">
+    <span class="dm-ev-photo-lbl">${esc(label)}</span>
+    <span class="dm-ev-photo-row"><input class="ed-input mono" data-ev-photo-input value="${esc(value)}" placeholder="/local/auto-${kind}.png" autocomplete="off" spellcheck="false"></span>
+    <small class="dm-ev-photo-hint">${esc(hint)}</small>
+    <span class="dm-ev-photo-preview" data-ev-photo-preview></span>
+  </label>`;
+}
+
+function paintPhotoPreview(field) {
+  const preview = field.querySelector("[data-ev-photo-preview]");
+  const value = clean(field.querySelector("[data-ev-photo-input]")?.value);
+  const url = resolveVehicleAsset(value);
+  if (!preview) return;
+  if (!url) { preview.replaceChildren(); field.dataset.evPhotoState = "empty"; return; }
+  let image = preview.querySelector("img");
+  if (!image) { image = doc.createElement("img"); image.alt = ""; image.decoding = "async"; preview.replaceChildren(image); }
+  image.onload = () => { field.dataset.evPhotoState = "ok"; };
+  image.onerror = () => { field.dataset.evPhotoState = "broken"; };
+  if (image.getAttribute("src") !== url) { field.dataset.evPhotoState = "loading"; image.src = url; }
+}
+
+function savePhotos(panelNode) {
+  for (const field of panelNode.querySelectorAll("[data-ev-photo]")) {
+    const kind = field.dataset.evPhoto === "plugged" ? "plugged" : "idle";
+    const value = clean(field.querySelector("[data-ev-photo-input]")?.value);
+    const stored = value ? resolveVehicleAsset(value) || value : "";
+    root.localStorage?.setItem(EV_PHOTO_KEYS[kind], JSON.stringify(stored));
+  }
+  root.cdMarkDirty?.();
+  root.cdSyncPush?.();
+  applyVehicleAsset();
+}
+
+export function ensureVehiclePhotoEditor() {
+  const body = evEditorBody();
+  if (!body) return false;
+  const legacyRow = legacyPhotoRow(body);
+  legacyRow?.setAttribute("hidden", "hidden");
+  let panelNode = body.querySelector(":scope > [data-ev-photos]");
+  const photos = configuredPhotos();
+  if (!panelNode) {
+    panelNode = doc.createElement("section");
+    panelNode.className = "ed-form dm-ev-photos";
+    panelNode.dataset.evPhotos = "true";
+    panelNode.innerHTML = `<div class="ed-sec-title">📸 ${t("Foto dell'auto", "Vehicle photos")}</div>
+      <div class="ed-intro">${t(
+        "Due scatti della stessa auto: la plancia mostra quello con il cavo attaccato mentre è in ricarica e l'altro nel resto del tempo. Basta la prima: senza la seconda resta sempre quella.",
+        "Two shots of the same car: the dashboard shows the plugged-in one while it charges and the other one the rest of the time. The first is enough — without the second it simply stays.",
+      )}</div>
+      <div class="dm-ev-photo-grid">
+        ${photoFieldMarkup("idle", t("Cavo staccato", "Cable unplugged"), t("Percorso sotto /local, es. /local/auto.png", "Path under /local, e.g. /local/car.png"), photos.idle)}
+        ${photoFieldMarkup("plugged", t("Cavo attaccato", "Cable plugged in"), t("Facoltativa: mostrata durante la ricarica", "Optional: shown while charging"), photos.plugged)}
+      </div>
+      <button type="button" class="ed-save-btn" data-ev-photos-save>💾 ${t("Salva foto", "Save photos")}</button>`;
+    (legacyRow || body.lastElementChild)?.insertAdjacentElement?.("beforebegin", panelNode) ||
+      body.append(panelNode);
+    panelNode.addEventListener("input", (event) => {
+      const field = event.target?.closest?.("[data-ev-photo]");
+      if (field) paintPhotoPreview(field);
+    });
+    panelNode.querySelector("[data-ev-photos-save]").addEventListener("click", () => {
+      savePhotos(panelNode);
+      panelNode.dataset.saved = "true";
+    });
+  } else {
+    for (const field of panelNode.querySelectorAll("[data-ev-photo]")) {
+      const input = field.querySelector("[data-ev-photo-input]");
+      if (input && input !== doc.activeElement) input.value = photos[field.dataset.evPhoto] || "";
+    }
+  }
+  for (const field of panelNode.querySelectorAll("[data-ev-photo]")) paintPhotoPreview(field);
+  return true;
 }
 
 function legacyProfiles() { const cars = readJson("cd_ev_cars", []); return Array.isArray(cars) ? cars : []; }
@@ -180,11 +339,25 @@ function installLegacyWrappers() {
 
 export function scheduleEvSync() {
   if (state.frame) return;
-  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();};
+  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();};
   state.frame=root.requestAnimationFrame?.(run)||root.setTimeout?.(run,0)||0;
 }
 
 function installStyles() {
+  installStyle("dm-ev-photos-style",`
+.dm-ev-photos .dm-ev-photo-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))!important;gap:12px!important}
+.dm-ev-photos .dm-ev-photo{display:grid!important;gap:6px!important;margin:0!important;padding:11px 12px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important}
+.dm-ev-photos .dm-ev-photo[data-ev-photo-state="ok"]{border-color:color-mix(in srgb,#16a34a 32%,var(--divider-color,#dbe4ee))!important}
+.dm-ev-photos .dm-ev-photo[data-ev-photo-state="broken"]{border-color:color-mix(in srgb,#dc2626 38%,var(--divider-color,#dbe4ee))!important}
+.dm-ev-photos .dm-ev-photo-lbl{font-size:13px!important;font-weight:800!important;color:var(--text,#0f172a)!important}
+.dm-ev-photos .dm-ev-photo-row{display:flex!important;gap:8px!important;min-width:0!important}
+.dm-ev-photos .dm-ev-photo-row>input{flex:1 1 auto!important;min-width:0!important}
+.dm-ev-photos .dm-ev-photo-hint{color:var(--secondary-text-color,#64748b)!important;font-size:11px!important;font-weight:650!important}
+.dm-ev-photos .dm-ev-photo-preview{display:block!important;min-height:0!important}
+.dm-ev-photos .dm-ev-photo-preview img{display:block!important;width:100%!important;max-height:112px!important;object-fit:contain!important;border-radius:11px!important;background:var(--secondary-background-color,#f6f8fb)!important}
+.dm-ev-photos .dm-ev-photo[data-ev-photo-state="broken"] .dm-ev-photo-preview img{display:none!important}
+.dm-ev-photos .dm-ev-photo[data-ev-photo-state="broken"] .dm-ev-photo-preview::after{content:"⚠️";display:block;text-align:center;font-size:20px}
+  `);
   installStyle("dm-ev-section-style",`
 #ev-mod-car-img[data-ev-image-error],#ev-new-car-img[data-ev-image-error],#ev-mod-car-img[data-ev-failed="1"],#ev-new-car-img[data-ev-failed="1"]{display:none!important}
 #ev-car-picker.dm-vehicle-profile-host{box-sizing:border-box!important;width:fit-content!important;max-width:calc(100% - 28px)!important;margin:12px auto 10px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}#ev-car-picker.dm-vehicle-profile-host>.dm-vehicle-native-select{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important;opacity:0!important;pointer-events:none!important}
@@ -200,7 +373,7 @@ export function installEvSection() {
   root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installLegacyWrappers(); scheduleEvSync();
   if (!state.installed) {
     state.installed=true;
-    doc.addEventListener("click",(event)=>{if(event.target?.closest?.('[data-tab="ev"],[data-page="ev"],.ed-tab[data-tab="sez2"]'))scheduleEvSync();},true);
+    doc.addEventListener("click",(event)=>{if(event.target?.closest?.('[data-tab="ev"],[data-page="ev"],.ed-tab[data-tab="sez2"],.ed-acc-head'))root.setTimeout?.(scheduleEvSync,0);},true);
     for (const eventName of ["dashboardmodern:legacy-ready","dashboardmodern:runtime-ready","pageshow"]) root.addEventListener?.(eventName,scheduleEvSync);
     root.addEventListener?.("dashboardmodern:state-changed",(event)=>{ if (stateChangeAffectsEv(event)) scheduleEvSync(); });
   }
