@@ -86,6 +86,22 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- Su PC, con tutte le sezioni accese, le ultime voci della barra in basso non
+  si potevano raggiungere. La barra è larga quanto il suo contenuto ed è fissa e
+  centrata sullo schermo: quando le tredici sezioni superano la larghezza della
+  finestra, le voci di testa e di coda finiscono oltre i bordi, e lo scorrimento
+  della pagina non le sposta perché la barra non scorre con essa. Ora le voci
+  stanno in una loro pista scorrevole, la barra non supera mai la larghezza
+  della finestra e la si scorre in quattro modi: la rotella verticale del mouse
+  sopra la barra, il trascinamento con il tasto sinistro, le due frecce tonde
+  che compaiono ai lati solo quando serve scorrere, e i tasti freccia
+  sinistra/destra. Le frecce si spengono quando da quel lato si è arrivati in
+  fondo, e la sezione aperta viene riportata sotto gli occhi quando la barra
+  ricompare. L'effetto dock — la voce puntata che si ingrandisce — resta
+  intatto, e quando le sezioni ci stanno tutte la barra è identica a prima:
+  niente frecce, larghezza sul contenuto. Su smartphone e tablet non cambia
+  nulla, la barra continua a scorrere da sé come ha sempre fatto.
+
 - Sul desktop i flussi non si animavano: se nel sistema e' attivo **"riduci
   movimento"** — impostazione comune su Windows e macOS e quasi mai su un
   telefono, il che spiega perche' il moto si vedeva solo li' — ogni linea
