@@ -212,8 +212,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // existing cards while the tick runs, and adds no polling and no observer.
   // The Luci editor keeps its own owner and now reads the same model, so the
   // capability badges in the tab and the controls in the popup cannot disagree.
+  // The Config auto-detection adds two more of the same shape: the pure matcher
+  // and the section that installs it over the vendored `edAutoRileva`, reusing
+  // that index instead of building a second one.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 100, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 102, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 

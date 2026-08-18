@@ -33,7 +33,7 @@ import {
   rankMatches,
   searchEntityIndex,
 } from "../core/entity-search-index.js";
-import { allStates, clean, doc, installStyle, root, t } from "./shared.js";
+import { allStates, clean, doc, installStyle, lexicalGlobal, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENTITY_SEARCH__";
 const PAGE = 60;
@@ -64,12 +64,18 @@ const entryId = (entry) => clean(entry?.id || entry?.entity_id);
 
 /* ── Entity sources ───────────────────────────────────────────────────────── */
 
-function areaOf(id) {
-  const wiz = root.WIZ;
-  const registry = wiz?.entReg?.[id];
-  if (!registry) return "";
-  const areaId = registry.a || (registry.d && wiz.devArea?.[registry.d]) || "";
-  return clean(areaId && wiz.areaNames?.[areaId]);
+/* Resolved once per index build, never per entity: reaching the runtime's
+ * script scope costs an `eval`, and paying that for every entity in the house
+ * is exactly the kind of per-item cost this index exists to remove. */
+function areaResolver() {
+  const wiz = lexicalGlobal("WIZ");
+  if (!wiz?.entReg) return () => "";
+  return (id) => {
+    const registry = wiz.entReg[id];
+    if (!registry) return "";
+    const areaId = registry.a || (registry.d && wiz.devArea?.[registry.d]) || "";
+    return clean(areaId && wiz.areaNames?.[areaId]);
+  };
 }
 
 /* The picker list and the live state map each know something the other does
@@ -105,6 +111,7 @@ function ensureIndex({ refresh = false } = {}) {
   const signature = `${entries.length}|${entryId(entries[0])}|${entryId(entries[entries.length - 1])}`;
   state.sourceRef = root._cdEpAll;
   if (state.index && state.signature === signature) return state.index;
+  const areaOf = areaResolver();
   const enrich = (id) => {
     const live = states[id];
     const area = areaOf(id);
@@ -434,9 +441,15 @@ function installFilter() {
   const legacy = root.cdEpFilter;
   if (typeof legacy === "function" && legacy.__dmFastEntitySearch) return false;
   const fast = function cdEpFilter(query) {
+    state.calls = (state.calls || 0) + 1;
     try {
       if (render(query)) return;
-    } catch (_error) {}
+      state.lastError = "empty-index";
+    } catch (error) {
+      /* Kept for support: a picker that quietly fell back to the vendored list
+       * should be able to say why it did. */
+      state.lastError = String(error?.message || error);
+    }
     /* Never leave the picker without a list: if anything above fails the
      * vendored filter still paints exactly what it always did. */
     try {
@@ -446,6 +459,15 @@ function installFilter() {
   fast.__dmFastEntitySearch = true;
   fast.__dmPrevious = legacy;
   root.cdEpFilter = fast;
+  /* On a slow first load the dialog can be open before this module is: the
+   * runtime painted its own list and will not call the filter again until the
+   * user types. Repainting the open picker here is what makes the fast list
+   * appear anyway, instead of waiting for it to be closed and reopened. */
+  const open = doc?.getElementById("cd-ep-list");
+  if (open && open.dataset.dmFastPicker !== "true") {
+    const search = doc.getElementById("cd-ep-search");
+    root.queueMicrotask?.(() => fast(search?.value || ""));
+  }
   return true;
 }
 

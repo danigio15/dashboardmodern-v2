@@ -188,6 +188,21 @@ export function section(name, fallback) {
   }
 }
 
+/* The vendored runtime declares its state with `const`, `let` and `var` at the
+ * top level of a classic script. Only `var` lands on `window`; the others are
+ * script-scope bindings that a module cannot see at all — reading `root.WIZ`
+ * quietly returns undefined instead of the wizard's data. Resolving the name in
+ * the runtime's own scope is the only way in, and it is the same door
+ * `allStates()` has always used for `_RAW_STATES`.
+ */
+export function lexicalGlobal(name) {
+  try {
+    const value = root.eval?.(`typeof ${name} !== "undefined" && ${name} ? ${name} : null`);
+    if (value) return value;
+  } catch (_error) {}
+  return root[name] ?? null;
+}
+
 export function allStates() {
   // Hosted Home Assistant surfaces do not all expose the live registry through
   // the same object at the same moment. Merge every supported source instead of
@@ -198,15 +213,8 @@ export function allStates() {
     ...(root.hass?.states || {}),
   };
   for (const name of ["_RAW_STATES", "STATES"]) {
-    let lexical = null;
-    try {
-      lexical = root.eval?.(`typeof ${name} !== "undefined" && ${name} ? ${name} : null`);
-    } catch (_error) {}
-    if (lexical && typeof lexical === "object") {
-      Object.assign(values, lexical);
-      continue;
-    }
-    if (root[name] && typeof root[name] === "object") Object.assign(values, root[name]);
+    const lexical = lexicalGlobal(name);
+    if (lexical && typeof lexical === "object") Object.assign(values, lexical);
   }
   return values;
 }

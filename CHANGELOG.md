@@ -112,6 +112,44 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   i titoli di piano e stanza hanno la loro riga con la linea che sfuma.
 - Tutta la pagina segue il tema chiaro e scuro, si adatta al telefono e chi ha
   attivato "riduci animazioni" vede la scena ferma.
+- **L'autorilevamento della Configurazione è stato rifatto.** Il pulsante 🪄
+  *Avvia autorilevamento* interrogava Home Assistant e poi controllava ogni
+  mezzo secondo se la risposta fosse arrivata, fino a venti secondi; poi
+  confrontava ogni entità della casa con ognuno dei 96 campi, riscrivendo ogni
+  volta le stesse parole, e nel frattempo la pagina restava bloccata. Ora
+  l'elenco viene letto una volta e ogni campo guarda solo le entità che hanno
+  una parola in comune con lui: su un impianto da 5000 entità il rilevamento
+  passa da circa 230 ms a 11 ms, e mentre lavora si vede a che punto è.
+- **Adesso prima ti fa vedere cosa ha trovato.** Al posto del salvataggio
+  immediato seguito dal ricaricamento, compare il riepilogo — quante luci,
+  stanze, unità clima, telecamere e collegamenti — con l'elenco dei campi
+  collegati e il pulsante per applicare. Finché non lo premi non viene scritto
+  niente. I campi in cui due entità sono altrettanto probabili non vengono più
+  riempiti a caso: te li dice, e li lasci come vuoi tu nelle altre schede.
+- **Le stanze arrivano dalle aree di Home Assistant**, come era previsto dalla
+  versione 0.9: il rilevamento chiedeva i registri di aree, dispositivi ed
+  entità, ma chiudeva la connessione appena arrivavano gli stati, cioè prima
+  che i registri rispondessero. Il risultato è che le aree non erano mai
+  disponibili e le stanze venivano indovinate dai nomi dei sensori. Ora i
+  registri vengono letti prima di decidere: una stanza per area, con il suo
+  sensore di temperatura e quello di umidità della stessa area, e i nomi delle
+  aree usati anche per luci, unità clima e telecamere.
+- **I collegamenti dell'Energia adesso restano.** Erano scritti tra gli
+  "override" delle entità, ma dalla versione 4 della configurazione la sezione
+  Energia è la proprietaria di quei campi e riscriveva sopra, cancellandoli: un
+  autorilevamento poteva quindi sembrare riuscito e lasciare l'Energia vuota.
+  Ora vengono scritti nel modello Energia, che è ciò che li tiene.
+- Le righe dei campi entità nell'editor venivano riscritte in forma leggibile
+  solo se la scheda era già stata disegnata prima che i moduli finissero di
+  caricare: `editorSwitch` veniva agganciato dentro un evento che, per i moduli
+  caricati su richiesta, era già passato. Ora l'aggancio avviene comunque, così
+  le righe si aggiornano a ogni cambio scheda.
+- Il rilevamento legge l'unità di misura scritta nell'etichetta del campo come
+  un vincolo e non come un suggerimento: un campo in kWh non prende più un
+  sensore in watt, un campo "oggi" non prende un contatore mensile, e un campo
+  che chiede uno `script` o un `select` guarda solo quel dominio. Quando due
+  campi si contendono la stessa entità, la prende quello che la descrive
+  meglio, non quello che compare prima nell'elenco.
 - **La ricerca delle entità nella configurazione è diventata istantanea.** Il
   selettore (la lente 🔍 accanto a ogni campo entità) rileggeva tutte le entità
   della casa a ogni lettera digitata e ridisegnava trecento righe ogni volta: su

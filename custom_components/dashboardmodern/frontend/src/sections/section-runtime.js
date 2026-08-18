@@ -32,6 +32,7 @@ import { installClimateThermalSection } from "./climate-thermal-section.js";
 import { installNavigationSection } from "./navigation-section.js";
 import { installUnifiedEditorsSection } from "./unified-editors-section.js";
 import { installEntitySearchSection } from "./entity-search-section.js";
+import { installEntityAutodetectSection } from "./entity-autodetect-section.js";
 import { installEditorCrudSection } from "./editor-crud-section.js";
 import { installEditorContractsSection } from "./editor-contracts-section.js";
 import { installReportEditorSection } from "./report-editor-section.js";
@@ -644,6 +645,7 @@ export function installSectionRuntime() {
     installNavigationSection();
     installUnifiedEditorsSection();
     installEntitySearchSection();
+    installEntityAutodetectSection();
     installEditorCrudSection();
     installEditorContractsSection();
     // Readable entity rows for every section tab of the editor.
@@ -690,6 +692,7 @@ export function installSectionRuntime() {
         "navigation",
         "unified-editors",
         "entity-search",
+        "entity-autodetect",
         "editor-crud",
         "editor-contracts",
         "editor-slots",
