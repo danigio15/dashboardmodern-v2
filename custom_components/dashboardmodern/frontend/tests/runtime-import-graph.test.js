@@ -249,8 +249,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // Beta17 contributes one page-scoped observer so delayed legacy writes on
   // #page-temp cannot resurrect the progress placeholder. Beta24 may add one
   // node-scoped SOC observer. Beta26 adds one #temp-grid-scoped observer. The
-  // loop below still rejects observers rooted at document/body/documentElement.
-  assert.ok(observers.length <= 5, `too many production observers: ${observers.length}`);
+  // configuration uniformity owns one more, scoped to the children of #ed-body,
+  // so the section switch and the save stay in place when a tab's own panels
+  // arrive late. The loop below still rejects observers rooted at
+  // document/body/documentElement.
+  assert.ok(observers.length <= 6, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,

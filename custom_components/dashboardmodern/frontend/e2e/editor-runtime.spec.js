@@ -434,6 +434,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await assertPickerInvariant();
     const lightAddEntity = page.locator("#ed-body [data-light-add-entity]");
     await expect(lightAddEntity).toHaveCount(1);
+    // The id itself sits behind the pencil here as it does on every other
+    // entity field: the row is what is on screen until the pencil is pressed.
+    await expect(lightAddEntity).toBeHidden();
+    await editEntityFieldByHand(page, "#ed-body [data-light-add-entity]");
     await expect(lightAddEntity).toBeVisible();
     await expect(lightAddEntity).toHaveAttribute("data-entity-input", "true");
     const lightAddEntityId = await lightAddEntity.getAttribute("id");

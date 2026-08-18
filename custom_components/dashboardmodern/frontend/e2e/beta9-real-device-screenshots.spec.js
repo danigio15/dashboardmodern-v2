@@ -181,12 +181,19 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await openEditor(page, "sez2");
     const appearance = page.locator("#ed-body [data-ev-appearance]");
     await expect(appearance).toBeVisible();
+    // First of the tab's own content. The one block above it is the section
+    // switch, which opens every tab of the configuration alike.
     const appearanceIsVisuallyFirst = await appearance.evaluate((node) => {
       const parent = node.parentElement;
       if (!parent) return false;
       const top = node.getBoundingClientRect().top;
       return [...parent.children]
-        .filter((sibling) => sibling !== node && sibling.getClientRects().length > 0)
+        .filter(
+          (sibling) =>
+            sibling !== node &&
+            sibling.getClientRects().length > 0 &&
+            !sibling.matches("[data-key][onclick*='edSecTog']"),
+        )
         .every((sibling) => sibling.getBoundingClientRect().top >= top - 1);
     });
     expect(appearanceIsVisuallyFirst).toBe(true);
@@ -257,22 +264,27 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       '#ed-body .dm-light-add-form[data-dm-light-add-layout="beta9-real"]',
     );
     await expect(lightForm).toBeVisible();
+    /* The entity field of this form is the readable row: the picker says what is
+     * chosen and takes the width, the pencil beside it is a square, and the raw
+     * id is behind that pencil. The row is measured, not the id field. */
     const lightGeometry = await lightForm.evaluate((form) => {
       const row = form.querySelector(".dm-light-add-entity-row");
       const entity = form.querySelector("#luce-add-ent");
-      const search = row?.querySelector(".dm-entity-picker");
+      const chip = row?.querySelector(".dm-entity-picker");
+      const manual = row?.querySelector(".dm-chip-manual");
       const name = form.querySelector("#luce-add-name");
       return {
         noOverflow: form.scrollWidth <= form.clientWidth + 1,
-        rowColumns: row ? getComputedStyle(row).gridTemplateColumns : "",
-        entityWidth: entity?.getBoundingClientRect().width || 0,
-        searchWidth: search?.getBoundingClientRect().width || 0,
+        rawHidden: entity ? getComputedStyle(entity).display === "none" : false,
+        chipWidth: chip?.getBoundingClientRect().width || 0,
+        manualWidth: manual?.getBoundingClientRect().width || 0,
         nameWidth: name?.getBoundingClientRect().width || 0,
       };
     });
     expect(lightGeometry.noOverflow).toBe(true);
-    expect(lightGeometry.entityWidth).toBeGreaterThan(180);
-    expect(lightGeometry.searchWidth).toBeGreaterThanOrEqual(54);
+    expect(lightGeometry.rawHidden).toBe(true);
+    expect(lightGeometry.chipWidth).toBeGreaterThan(180);
+    expect(lightGeometry.manualWidth).toBeGreaterThanOrEqual(36);
     expect(lightGeometry.nameWidth).toBeGreaterThan(240);
 
     await page.locator("#editor-modal .ed-head-close").last().click();

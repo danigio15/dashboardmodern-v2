@@ -401,6 +401,28 @@ function installStyles() {
 }
 [data-dm-entity-chip="true"]:not([data-dm-entity-raw="true"])>.dm-chip-raw{display:none!important}
 [data-dm-entity-chip="true"][data-dm-entity-raw="true"]>.dm-chip-raw{flex:1 1 100%!important;order:9!important;grid-column:1/-1!important}
+
+/* Some forms lay their entity row out themselves — the "Aggiungi luce" form
+ * pins its own two column grid and its own id'd field to display:block, which
+ * outweighs the rules above and left that one row showing the raw id next to a
+ * chip squeezed into a 58px column. The id is repeated so the row that carries
+ * a chip is laid out by the chip's own rules wherever it is, and the raw field
+ * stays behind the pencil on every tab. */
+#ed-body#ed-body [data-dm-entity-chip="true"]{
+  display:flex!important;align-items:center!important;gap:9px!important;flex-wrap:wrap!important;
+  grid-template-columns:none!important;min-width:0!important
+}
+#ed-body#ed-body [data-dm-entity-chip="true"]>.dm-entity-picker.dm-slot-chip{
+  flex:1 1 auto!important;width:auto!important;min-width:0!important;max-width:none!important;
+  height:auto!important;min-height:44px!important
+}
+#ed-body#ed-body [data-dm-entity-chip="true"] .dm-chip-manual{
+  flex:0 0 44px!important;width:44px!important;min-width:44px!important;max-width:44px!important;height:44px!important
+}
+#ed-body#ed-body [data-dm-entity-chip="true"]:not([data-dm-entity-raw="true"])>.dm-chip-raw{display:none!important}
+#ed-body#ed-body [data-dm-entity-chip="true"][data-dm-entity-raw="true"]>.dm-chip-raw{
+  display:block!important;flex:1 1 100%!important;order:9!important;width:100%!important;max-width:100%!important
+}
   `);
 }
 

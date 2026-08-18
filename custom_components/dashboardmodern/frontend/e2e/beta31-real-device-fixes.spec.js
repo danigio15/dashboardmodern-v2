@@ -127,6 +127,9 @@ test.describe("beta31", () => {
   });
 
   test("the bottom bar closes on a page that swallows the tap", async ({ page }, testInfo) => {
+    // The dock is the touch navigation: on a pointer viewport there is no bar
+    // to close, and the sidebar takes its place.
+    test.skip(!testInfo.project.use.hasTouch, "touch navigation only");
     await boot(page, testInfo);
     await openPage(page, "security");
     // The section modules install after the legacy runtime announces itself.
@@ -149,6 +152,7 @@ test.describe("beta31", () => {
   });
 
   test("the handle still opens the dock, and opens it once", async ({ page }, testInfo) => {
+    test.skip(!testInfo.project.use.hasTouch, "touch navigation only");
     await boot(page, testInfo);
     await page.waitForFunction(() => Boolean(window.__DASHBOARDMODERN_NAVIGATION_SECTION__));
     const handle = page.locator("#bottomNavHandle");
@@ -205,6 +209,47 @@ test.describe("beta31", () => {
     }
   });
 
+  /* Some forms pin their own layout for the very field the row replaces: the
+   * "Aggiungi luce" form fixes its entity input to display:block and gives the
+   * lens a 58px column, which used to leave that one row showing the raw id
+   * beside a chip squeezed into the column. */
+  test("the readable row survives the forms that lay themselves out", async ({
+    page,
+  }, testInfo) => {
+    await boot(page, testInfo);
+    for (const tab of ["luci", "irr"]) {
+      const rows = await page.evaluate(async (name) => {
+        if (!document.getElementById("editor-modal")?.classList.contains("show")) {
+          window.apriConfigEntita();
+        }
+        window.editorSwitch(name);
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        const body = document.getElementById("ed-body");
+        return [...body.querySelectorAll('[data-dm-entity-chip="true"]')]
+          .filter((host) => host.getClientRects().length > 0)
+          .map((host) => {
+            const raw = host.querySelector(".dm-chip-raw");
+            const chip = host.querySelector(".dm-entity-picker.dm-slot-chip");
+            const manual = host.querySelector(".dm-chip-manual");
+            return {
+              id: raw?.id || raw?.dataset.ref || "",
+              rawHidden: raw ? getComputedStyle(raw).display === "none" : null,
+              chipWidth: Math.round(chip?.getBoundingClientRect().width || 0),
+              manualWidth: Math.round(manual?.getBoundingClientRect().width || 0),
+            };
+          });
+      }, tab);
+      expect(rows.length, `${tab}: has rows to check`).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row.rawHidden, `${tab}/${row.id}: the id stays behind the pencil`).toBe(true);
+        expect(row.chipWidth, `${tab}/${row.id}: the chip is the row`).toBeGreaterThan(140);
+        expect(row.manualWidth, `${tab}/${row.id}: the pencil is a square`).toBeGreaterThanOrEqual(
+          36,
+        );
+      }
+    }
+  });
+
   test("the EV configuration takes two photos of the car", async ({ page }, testInfo) => {
     await boot(page, testInfo);
     await page.evaluate(() => {
@@ -219,6 +264,21 @@ test.describe("beta31", () => {
     await expect(photos).toHaveCount(1);
     await expect(photos.locator('[data-ev-photo="idle"] input')).toHaveCount(1);
     await expect(photos.locator('[data-ev-photo="plugged"] input')).toHaveCount(1);
+    // And the single field these two replace is gone from the tab, not merely
+    // marked hidden under an editor rule that keeps drawing it.
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            [...document.querySelectorAll("#ed-body .ed-slot")].filter(
+              (slot) =>
+                /immagine auto|car image/i.test(
+                  slot.querySelector(".ed-slot-lbl")?.textContent || "",
+                ) && slot.getClientRects().length > 0,
+            ).length,
+        ),
+      )
+      .toBe(0);
 
     await photos.locator('[data-ev-photo="idle"] input').fill("/local/auto.png");
     await photos.locator('[data-ev-photo="plugged"] input').fill("/local/auto-cavo.png");

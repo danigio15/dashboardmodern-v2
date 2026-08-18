@@ -1,5 +1,5 @@
 import { carBrandVisual } from "../core/personalization-catalog.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, section, t } from "./shared.js";
+import { allStates, clean, doc, esc, installStyle, readJson, root, section, t, wrapFunction } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EV_SECTION__";
@@ -337,6 +337,16 @@ function installLegacyWrappers() {
   return Boolean(root.cdEvCarsRefresh || root.cdEvApplyCar);
 }
 
+/* The EV tab of the configuration is printed over a few frames: the accordion
+ * that holds the vehicle's fields — and the single legacy photo row this panel
+ * replaces — arrives after the tab has switched. One pass at switch time would
+ * find no accordion, leave the panel out of the tab and the old row on screen,
+ * which is what a run that never clicked the tab by hand showed. */
+export function scheduleEvSyncSettled() {
+  scheduleEvSync();
+  for (const delay of [120, 420]) root.setTimeout?.(scheduleEvSync, delay);
+}
+
 export function scheduleEvSync() {
   if (state.frame) return;
   const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();};
@@ -357,6 +367,11 @@ function installStyles() {
 .dm-ev-photos .dm-ev-photo-preview img{display:block!important;width:100%!important;max-height:112px!important;object-fit:contain!important;border-radius:11px!important;background:var(--secondary-background-color,#f6f8fb)!important}
 .dm-ev-photos .dm-ev-photo[data-ev-photo-state="broken"] .dm-ev-photo-preview img{display:none!important}
 .dm-ev-photos .dm-ev-photo[data-ev-photo-state="broken"] .dm-ev-photo-preview::after{content:"⚠️";display:block;text-align:center;font-size:20px}
+/* The single legacy photo field this panel replaces is marked hidden when the
+ * panel goes in. The editor's own layout pins .ed-slot to display:grid, which
+ * outweighs the browser's meaning of the attribute and left the old field on
+ * screen under the two new ones. */
+#ed-body#ed-body .ed-slot[hidden]{display:none!important}
   `);
   installStyle("dm-ev-section-style",`
 #ev-mod-car-img[data-ev-image-error],#ev-new-car-img[data-ev-image-error],#ev-mod-car-img[data-ev-failed="1"],#ev-new-car-img[data-ev-failed="1"]{display:none!important}
@@ -368,13 +383,18 @@ function installStyles() {
   `);
 }
 
+function bindEditorEntryPoints() {
+  wrapFunction("editorSwitch", "__dmEvSection_editorSwitch", scheduleEvSyncSettled);
+  wrapFunction("apriConfigEntita", "__dmEvSection_apriConfigEntita", scheduleEvSyncSettled);
+}
+
 export function installEvSection() {
   if (!doc) return;
-  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installLegacyWrappers(); scheduleEvSync();
+  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installLegacyWrappers(); bindEditorEntryPoints(); scheduleEvSync();
   if (!state.installed) {
     state.installed=true;
     doc.addEventListener("click",(event)=>{if(event.target?.closest?.('[data-tab="ev"],[data-page="ev"],.ed-tab[data-tab="sez2"],.ed-acc-head'))root.setTimeout?.(scheduleEvSync,0);},true);
-    for (const eventName of ["dashboardmodern:legacy-ready","dashboardmodern:runtime-ready","pageshow"]) root.addEventListener?.(eventName,scheduleEvSync);
+    for (const eventName of ["dashboardmodern:legacy-ready","dashboardmodern:runtime-ready","pageshow"]) root.addEventListener?.(eventName,()=>{scheduleEvSyncSettled();bindEditorEntryPoints();});
     root.addEventListener?.("dashboardmodern:state-changed",(event)=>{ if (stateChangeAffectsEv(event)) scheduleEvSync(); });
   }
 }

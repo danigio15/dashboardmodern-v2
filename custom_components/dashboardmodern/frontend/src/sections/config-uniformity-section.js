@@ -28,7 +28,7 @@ import { clean, doc, installStyle, root, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CONFIG_UNIFORMITY__";
 const STYLE_ID = "dm-config-uniformity-style";
-const state = (root[KEY] ||= { installed: false, frame: 0 });
+const state = (root[KEY] ||= { installed: false, frame: 0, watched: null, observer: null });
 
 /* The tab of a dashboard section, and the visibility key that section has.
  *
@@ -120,7 +120,11 @@ export function ensureVisibilityBanner(body = editorBody(), tab = activeTab()) {
   const key = TAB_SECTION_KEYS[tab];
   const existing = [...body.querySelectorAll("[data-key][onclick*='edSecTog']")];
   if (!key) {
-    existing.forEach((node) => node.remove());
+    // Only ever a banner this module printed. The Visibilità tab is made of
+    // these very switches, one per section — taking them away there would empty
+    // the tab, and the runtime would print them again on the next pass, which is
+    // a fight with no end.
+    existing.filter((node) => node.dataset.dmSectionSwitch === "true").forEach((n) => n.remove());
     return false;
   }
   // More than one is the runtime's and ours together: keep the first.
@@ -133,6 +137,7 @@ export function ensureVisibilityBanner(body = editorBody(), tab = activeTab()) {
     holder.innerHTML = markup;
     banner = holder.firstElementChild;
     if (!banner) return false;
+    banner.dataset.dmSectionSwitch = "true";
     body.prepend(banner);
   } else if (!body.firstElementChild?.contains(banner)) {
     // Always in the block that opens the tab. Where the runtime already prints
@@ -224,12 +229,31 @@ export function uniformConfiguration(body = editorBody(), tab = activeTab()) {
  * Several panels of the configuration are printed by their own owner after the
  * tab has switched — the vehicle's brand and model, the server parameters, the
  * energy panels. A single pass would run before those exist and leave their
- * save buttons on screen next to the tab's own, which is the very thing this
- * module is here to prevent. The pass therefore runs again while the tab
- * settles, a fixed and small number of times. */
+ * save buttons on screen next to the tab's own, and a panel printed at the top
+ * would push the section switch out of the opening block. Waiting a fixed
+ * number of milliseconds only moves the race: on a loaded machine the owner
+ * still arrives late. What the pass answers to instead is the tab itself
+ * changing — every time the block list of the tab changes, whoever changed it,
+ * the pass runs again on the next frame. The two delays are kept for the panels
+ * that arrive without touching that list. */
 const SETTLE_DELAYS = Object.freeze([120, 420]);
 
+/* Scoped to `#ed-body` and to its own children: the switch and the save are
+ * placed among those blocks, so that list is the whole of what this needs to
+ * hear. Nothing deeper is observed, and the document never is. */
+function watchEditorBody() {
+  const body = editorBody();
+  if (!body || state.watched === body) return;
+  const Observer = root.MutationObserver;
+  if (!Observer) return;
+  state.observer?.disconnect?.();
+  state.observer = new Observer(() => schedule({ settle: false }));
+  state.observer.observe(body, { childList: true });
+  state.watched = body;
+}
+
 function schedule({ settle = true } = {}) {
+  watchEditorBody();
   if (settle) {
     for (const delay of SETTLE_DELAYS) {
       root.setTimeout?.(() => schedule({ settle: false }), delay);

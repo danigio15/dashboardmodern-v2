@@ -65,7 +65,27 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - **La configurazione EV si apriva in due modi diversi.** Il pannello di marchio
   e modello finiva in cima alla scheda o dentro la sezione dell'auto a seconda di
   quanto velocemente l'editor disegnava. Ora viene costruito solo quando la sua
-  sezione esiste, e va lì.
+  sezione esiste, e va lì. Per lo stesso motivo di tempo il pannello delle due
+  foto poteva non comparire affatto e il vecchio campo "URL immagine auto"
+  restare al suo posto: la scheda EV ora viene ripassata mentre finisce di
+  disegnarsi, e il campo singolo che le due foto sostituiscono sparisce davvero
+  invece di essere solo marcato come nascosto.
+- **La riga entità si rompeva nei moduli che si dispongono da soli.** Il modulo
+  "Aggiungi luce" fissa la propria griglia e il proprio campo, e vinceva sulle
+  regole della riga: lì restavano l'id grezzo in chiaro e il pulsante schiacciato
+  in una colonna da 58 px, mentre la matita andava a capo. Ora la riga vale in
+  ogni modulo della configurazione — l'id resta dietro la matita ovunque.
+- **Il pulsante "rinomina" spariva dalle righe di Visibilità.** Ogni riga della
+  scheda Visibilità ha una matita per rinominare la sezione. Il foglio che le dà
+  forma nascondeva ogni matita non ancora normalizzata, e la normalizzazione
+  passa una volta sola: una riga ridisegnata dopo quella passata restava senza
+  matita finché qualcosa non ne programmava un'altra. Ora la matita della cella
+  principale si vede subito, e la passata continua a togliere i doppioni.
+- **La Configurazione ora si riallinea quando la scheda cambia, non dopo un
+  tempo fisso.** I pannelli che una scheda disegna per conto suo arrivano dopo
+  lo scambio di scheda: se arrivavano tardi, l'interruttore della sezione
+  finiva sotto di loro. La passata segue le modifiche della scheda, quindi
+  l'interruttore resta in apertura e il salvataggio in fondo comunque.
 
 ### Modificato
 
