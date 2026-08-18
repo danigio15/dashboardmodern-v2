@@ -215,8 +215,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // The Config auto-detection adds two more of the same shape: the pure matcher
   // and the section that installs it over the vendored `edAutoRileva`, reusing
   // that index instead of building a second one.
+  // The MiniPC redesign adds exactly one owner: the skin for #page-server. It
+  // turns the three load bars into ring gauges that read those same bars, moves
+  // the value nodes into the rings instead of copying them, mirrors the status
+  // wording the legacy loop writes and follows #waw-net-badge for connectivity.
+  // It reads no Home Assistant state, adds no polling and no observer, and never
+  // forces a display the auto-hide writes inline on an unmapped card.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 102, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 103, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 

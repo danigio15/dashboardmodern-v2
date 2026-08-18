@@ -4,6 +4,28 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## Non rilasciato
+
+### Modificato
+
+- **La pagina MiniPC è stata ridisegnata.** Prima erano tre barrette piatte,
+  quattro riquadri con un'emoji e molto bianco in mezzo. Ora la testata è il
+  pannello della macchina — il mini PC disegnato in assonometria, con i LED e la
+  ventola che girano finché la macchina risponde in rete — e CPU, RAM e Disco
+  sono tre anelli che si riempiono con il carico e passano all'ambra e al rosso
+  alle stesse soglie di prima. Sotto la testata c'è la traccia dal vivo del
+  carico CPU: le letture che la pagina ha già mostrato nella sessione, con il
+  picco a destra. La temperatura della CPU ha la sua scala da 20° a 100° con la
+  tacca del limite a 75°, e lo stato ("Ottimale", "Nella norma", "Alta") diventa
+  una pastiglia con il pallino colorato. Telemetria e stato rete hanno icone
+  disegnate al posto delle emoji e tre titoletti dividono la pagina in Termica,
+  Telemetria e Rete e impianto. Quando la connettività cade, la testata, i LED e
+  la traccia diventano rossi.
+- La pagina segue il tema: chiara su tema chiaro, scura su tema scuro. Nessun
+  valore è ricalcolato — le barre, l'arco della temperatura, il testo di stato e
+  le pastiglie restano scritti dal runtime della dashboard — e le card che
+  l'auto-nascondi toglie dalla pagina si portano dietro il loro titoletto.
+
 ## 1.0.0-beta.30.8 — 2026-08-18
 
 ### Aggiunto
