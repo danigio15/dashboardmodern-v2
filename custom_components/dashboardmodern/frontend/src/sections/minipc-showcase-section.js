@@ -47,7 +47,14 @@ import { clean, doc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_MINIPC_SHOWCASE__";
 const STYLE_ID = "dm-minipc-showcase-style";
-const state = (root[KEY] ||= { installed: false, listeners: false, frame: 0, trace: [] });
+const state = (root[KEY] ||= {
+  installed: false,
+  listeners: false,
+  frame: 0,
+  trace: [],
+  watched: null,
+  observer: null,
+});
 if (!Array.isArray(state.trace)) state.trace = [];
 
 /* Same pair as the legacy setRing(): above 85% the prism is red, above 65%
@@ -521,6 +528,25 @@ export function renderMinipcShowcase() {
   return true;
 }
 
+/* The auto-hide is what empties a block, and all it does is write an inline
+ * `display` on the cards. It is called from inside the runtime, not through the
+ * global, so wrapping the name would never see it — and when it lands after the
+ * last pass, the title of an emptied column stays on the board on its own.
+ *
+ * So the page is watched instead, and only for that: the inline styles of the
+ * blocks under `#page-server`. Nothing else is observed, and the document never
+ * is. The pass writes an inline `display` on the headings, which wakes this
+ * once more and then finds nothing left to change. */
+function bindAutoHide() {
+  const page = doc?.getElementById?.("page-server");
+  if (!page || state.watched === page) return;
+  if (typeof root.MutationObserver !== "function") return;
+  state.observer?.disconnect?.();
+  state.observer = new root.MutationObserver(() => scheduleMinipcShowcase());
+  state.observer.observe(page, { attributes: true, attributeFilter: ["style"], subtree: true });
+  state.watched = page;
+}
+
 export function scheduleMinipcShowcase() {
   if (state.frame) return;
   const run = () => {
@@ -544,7 +570,10 @@ export function installMinipcShowcaseSection() {
       "dashboardmodern:runtime-ready",
       "pageshow",
     ]) {
-      root.addEventListener?.(eventName, scheduleMinipcShowcase);
+      root.addEventListener?.(eventName, () => {
+        bindAutoHide();
+        scheduleMinipcShowcase();
+      });
     }
     // The bars, the temperature arc and the badges repaint through the legacy
     // render loop, so the scene follows the same events instead of a timer.
@@ -565,6 +594,7 @@ export function installMinipcShowcaseSection() {
     );
   }
   state.installed = true;
+  bindAutoHide();
   sampleCpu();
   renderMinipcShowcase();
 }

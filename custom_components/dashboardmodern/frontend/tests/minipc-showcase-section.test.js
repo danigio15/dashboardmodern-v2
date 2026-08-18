@@ -36,7 +36,10 @@ test("each gauge reads the load from the bar the render loop writes", async () =
   assert.equal(metricLevel("srv-fill-ram", scope), 61);
   assert.equal(metricLevel("srv-fill-disk", scope), 0);
   // Out of range widths are clamped rather than drawn past the ring.
-  assert.equal(metricLevel("srv-fill-cpu", fakeDocument({ widths: { "srv-fill-cpu": "140%" } })), 100);
+  assert.equal(
+    metricLevel("srv-fill-cpu", fakeDocument({ widths: { "srv-fill-cpu": "140%" } })),
+    100,
+  );
   assert.equal(metricLevel("srv-fill-cpu", fakeDocument({ widths: { "srv-fill-cpu": "-4%" } })), 0);
   // Before the first render there is no width to read.
   assert.equal(metricLevel("srv-fill-cpu", fakeDocument()), null);
@@ -198,13 +201,25 @@ test("the section owns presentation only and never reads Home Assistant state", 
     "localStorage",
   ])
     assert.doesNotMatch(body, new RegExp(owned), owned);
-  // Event-driven only: no polling, no observer.
+  // No polling.
   assert.doesNotMatch(body, /setInterval\s*\(/);
-  assert.doesNotMatch(body, /MutationObserver/);
+  // One observer, and only for the one thing that announces itself no other
+  // way: cdAutoHide() empties a block by writing an inline style on its cards
+  // and is called from inside the runtime, so there is no name to wrap and no
+  // event to hear. It is scoped to the page and to that attribute — never to
+  // the document, and never to what the cards say.
+  assert.equal(body.match(/new (?:root\.)?MutationObserver\s*\(/g)?.length ?? 0, 1);
+  assert.match(
+    body,
+    /observe\(page, \{ attributes: true, attributeFilter: \["style"\], subtree: true \}\)/,
+  );
 });
 
 test("a prism is built once and copies no value node", () => {
-  const mount = source.slice(source.indexOf("function mountPrism"), source.indexOf("function mountScene"));
+  const mount = source.slice(
+    source.indexOf("function mountPrism"),
+    source.indexOf("function mountScene"),
+  );
   // Mounting twice must not stack a second prism on the same card.
   assert.match(mount, /if \(card\.dataset\.dmSrvxPrism\) return/);
   // The reading stays the node the render loop writes: nothing is cloned and no
@@ -218,7 +233,10 @@ test("a prism is built once and copies no value node", () => {
 test("the machine is a box of six faces, and the old glyph slot is emptied", () => {
   // One face list drives both the machine and the prisms.
   assert.match(source, /const BOX_FACES = \["front", "back", "left", "right", "top", "bottom"\]/);
-  const mount = source.slice(source.indexOf("function mountScene"), source.indexOf("function mountTrace"));
+  const mount = source.slice(
+    source.indexOf("function mountScene"),
+    source.indexOf("function mountTrace"),
+  );
   // The legacy icon slot keeps existing — the runtime owns that markup — it is
   // just emptied, never removed from the header.
   assert.match(mount, /slot\.textContent = ""/);
@@ -237,7 +255,10 @@ test("nothing forces a display the auto-hide writes inline on a card", () => {
   // A block emptied by the auto-hide drops its heading too, and the board is
   // told so telemetry can take the whole row instead of leaving a hole.
   assert.match(source, /cards\.every\(\(card\) => card\.style\.display === "none"\)/);
-  assert.match(styles, /\[data-dm-srvx-thermal="off"\][\s\S]*?\.srv-tel-grid\{grid-column:1 \/ -1\}/);
+  assert.match(
+    styles,
+    /\[data-dm-srvx-thermal="off"\][\s\S]*?\.srv-tel-grid\{grid-column:1 \/ -1\}/,
+  );
 });
 
 test("the page dresses both locales and both themes", () => {

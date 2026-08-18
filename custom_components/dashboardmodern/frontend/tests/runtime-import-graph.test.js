@@ -251,9 +251,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // node-scoped SOC observer. Beta26 adds one #temp-grid-scoped observer. The
   // configuration uniformity owns one more, scoped to the children of #ed-body,
   // so the section switch and the save stay in place when a tab's own panels
-  // arrive late. The loop below still rejects observers rooted at
-  // document/body/documentElement.
-  assert.ok(observers.length <= 6, `too many production observers: ${observers.length}`);
+  // arrive late. The MiniPC page owns one scoped to #page-server, so a heading
+  // follows the block the auto-hide empties — the auto-hide is called from
+  // inside the runtime, so there is no name to wrap. The loop below still
+  // rejects observers rooted at document/body/documentElement.
+  assert.ok(observers.length <= 7, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,

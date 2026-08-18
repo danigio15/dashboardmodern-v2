@@ -253,10 +253,9 @@ const SETTLE_DELAYS = Object.freeze([120, 420, 900, 1800]);
 function watchEditorBody() {
   const body = editorBody();
   if (!body || state.watched === body) return;
-  const Observer = root.MutationObserver;
-  if (!Observer) return;
+  if (typeof root.MutationObserver !== "function") return;
   state.observer?.disconnect?.();
-  state.observer = new Observer(() => schedule({ settle: false }));
+  state.observer = new root.MutationObserver(() => schedule({ settle: false }));
   state.observer.observe(body, {
     childList: true,
     attributes: true,

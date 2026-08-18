@@ -103,6 +103,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   da un solo punto, che rispetta l'ordine di costruzione e non accetta doppioni;
   vale anche per Aperture, Batterie, Clima e Riscaldamento quando le stesse
   entità arrivano sia dalla configurazione sia dal `config.js`.
+- **Nella pagina MiniPC restava il titolo di una colonna vuota.** Quando
+  l'auto-nascondi toglie la card della temperatura, il titoletto «Termica» deve
+  andarsene con lei. L'auto-nascondi però scrive solo uno `style` inline sulle
+  card e viene chiamato da dentro il runtime, quindi non c'è nessun nome da
+  intercettare e nessun evento da ascoltare: se arrivava dopo l'ultima passata,
+  il titolo restava da solo sulla plancia. Ora la pagina osserva quello `style`
+  — solo quello, e solo sotto `#page-server`.
 - **La Configurazione ora si riallinea quando la scheda cambia, non dopo un
   tempo fisso.** I pannelli che una scheda disegna per conto suo arrivano dopo
   lo scambio di scheda: se arrivavano tardi, l'interruttore della sezione
