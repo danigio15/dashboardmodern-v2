@@ -193,8 +193,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // renderer and one stylesheet. It is event-driven (state-changed + the legacy
   // render loop) and leaves every service call — setTemp, toggleClima and the
   // HVAC/fan popup — in the legacy runtime.
+  // The editor slot rows add exactly one owner: it decorates the rows the legacy
+  // editor prints, hides the raw entity field behind "Modifica manuale" and
+  // routes the tap to the legacy wzPickEntity(), which the fast search above
+  // owns. No polling, no observer.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 96, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 97, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 

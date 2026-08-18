@@ -38,6 +38,7 @@ import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
 import { installEvSection } from "./ev-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
+import { installEditorSlotsSection } from "./editor-slots-section.js";
 import { installSolarThermalDesignSection } from "./solar-thermal-design-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { allStates, clean, english, section, wrapFunction } from "./shared.js";
@@ -639,6 +640,8 @@ export function installSectionRuntime() {
     installEntitySearchSection();
     installEditorCrudSection();
     installEditorContractsSection();
+    // Readable entity rows for every section tab of the editor.
+    installEditorSlotsSection();
     installReportEditorSection();
     installShutterSection();
     installShutterSceneSection();
@@ -682,6 +685,7 @@ export function installSectionRuntime() {
         "entity-search",
         "editor-crud",
         "editor-contracts",
+        "editor-slots",
         "report-editor",
         "shutters",
         "pool-irrigation-scene",
