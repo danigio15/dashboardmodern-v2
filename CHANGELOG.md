@@ -92,6 +92,17 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   campo: il pannello si riallinea a quello che è salvato mentre la scheda si
   assesta. Un campo scritto a mano e non ancora salvato ora non viene più
   toccato.
+- **Le stesse luci comparivano due volte nel popup "Luci attive".** La lista
+  che alimenta quel popup e il contatore del Quadro Avvisi nasce da due sorgenti:
+  le luci della scheda Luci e il gruppo `cd_gruppi_extra`, dove finiscono anche
+  quelle rilevate da sole. Da quando la scheda Luci tiene allineato il secondo
+  gruppo, le due sorgenti nominano le stesse entità, e venivano concatenate senza
+  filtro: ogni luce compariva due volte nel popup e veniva contata due volte nel
+  riquadro "Luci accese", mentre in Configurazione restava una sola — perché lì
+  si legge una sorgente sola. Ora ogni aggiunta a un gruppo di monitoraggio passa
+  da un solo punto, che rispetta l'ordine di costruzione e non accetta doppioni;
+  vale anche per Aperture, Batterie, Clima e Riscaldamento quando le stesse
+  entità arrivano sia dalla configurazione sia dal `config.js`.
 - **La Configurazione ora si riallinea quando la scheda cambia, non dopo un
   tempo fisso.** I pannelli che una scheda disegna per conto suo arrivano dopo
   lo scambio di scheda: se arrivavano tardi, l'interruttore della sezione

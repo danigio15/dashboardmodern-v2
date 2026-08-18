@@ -7,6 +7,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
+import vm from "node:vm";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
@@ -268,4 +269,54 @@ test("every entity field in the editors is the same readable row", async () => {
   assert.doesNotMatch(source, /lens\.remove\(\)/);
   assert.match(source, /input\.classList\.add\("dm-chip-raw"\)/);
   assert.match(source, /\[data-dm-entity-chip="true"\]:not\(\[data-dm-entity-raw="true"\]\)>\.dm-chip-raw\{display:none!important\}/);
+});
+
+/* ── the same light was listed twice in LUCI ATTIVE ───────────────────────── */
+
+function legacyFunction(source, name) {
+  const start = source.indexOf(`function ${name}(`);
+  assert.notEqual(start, -1, `${name} missing`);
+  const end = source.indexOf("\n}\n", start);
+  assert.notEqual(end, -1, `unterminated ${name}`);
+  return source.slice(start, end + 2);
+}
+
+test("a light configured in the Lights tab enters the monitoring list once", async () => {
+  const source = await read("../legacy/dashboard-runtime-it.js");
+  const context = vm.createContext({
+    /* What the runtime builds at boot: the keys of cd_luci. */
+    GRUPPI_MONITORAGGIO: { luci: ["light.sala_radio", "light.banco_radio"], win: [] },
+  });
+  vm.runInContext(legacyFunction(source, "cdGruppoMerge"), context);
+  /* What cd_gruppi_extra holds: synchronizeLightAlerts copies every cd_luci
+   * entity into it, so the two sources overlap completely. */
+  vm.runInContext(
+    `cdGruppoMerge('luci', ['light.sala_radio', 'light.banco_radio', 'light.autorilevata']);
+     cdGruppoMerge('luci', ['light.sala_radio']);
+     cdGruppoMerge('sconosciuto', ['light.x']);
+     cdGruppoMerge('win', 'binary_sensor.porta');`,
+    context,
+  );
+  assert.deepEqual(context.GRUPPI_MONITORAGGIO.luci, [
+    "light.sala_radio",
+    "light.banco_radio",
+    "light.autorilevata",
+  ]);
+  assert.deepEqual(context.GRUPPI_MONITORAGGIO.win, []);
+  assert.equal(context.GRUPPI_MONITORAGGIO.sconosciuto, undefined);
+});
+
+test("both runtimes merge the alert groups through the guarded path", async () => {
+  for (const file of ["../legacy/dashboard-runtime-it.js", "../legacy/dashboard-runtime-en.js"]) {
+    const source = await read(file);
+    // cd_gruppi_extra and the avvisi of config.js: the two sources that used to
+    // be concatenated as they were.
+    assert.equal((source.match(/cdGruppoMerge\((?:k|grp), ids\);/g) || []).length, 2, file);
+    assert.doesNotMatch(source, /GRUPPI_MONITORAGGIO\[(?:k|grp)\]\.push\(\.\.\.ids\)/, file);
+  }
+});
+
+test("the lights tab keeps feeding cd_gruppi_extra, which is why the merge must dedupe", async () => {
+  const source = await read("../src/sections/lights-alerts-section.js");
+  assert.match(source, /const next = \[\.\.\.new Set\(\[\.\.\.\(extras\.luci \|\| \[\]\), \.\.\.lights\]\)\]/);
 });
