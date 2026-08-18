@@ -188,6 +188,21 @@ export function section(name, fallback) {
   }
 }
 
+/* The vendored runtime declares its state with `const`, `let` and `var` at the
+ * top level of a classic script. Only `var` lands on `window`; the others are
+ * script-scope bindings that a module cannot see at all — reading `root.WIZ`
+ * quietly returns undefined instead of the wizard's data. Resolving the name in
+ * the runtime's own scope is the only way in, and it is the same door
+ * `allStates()` has always used for `_RAW_STATES`.
+ */
+export function lexicalGlobal(name) {
+  try {
+    const value = root.eval?.(`typeof ${name} !== "undefined" && ${name} ? ${name} : null`);
+    if (value) return value;
+  } catch (_error) {}
+  return root[name] ?? null;
+}
+
 export function allStates() {
   // Hosted Home Assistant surfaces do not all expose the live registry through
   // the same object at the same moment. Merge every supported source instead of
@@ -198,15 +213,8 @@ export function allStates() {
     ...(root.hass?.states || {}),
   };
   for (const name of ["_RAW_STATES", "STATES"]) {
-    let lexical = null;
-    try {
-      lexical = root.eval?.(`typeof ${name} !== "undefined" && ${name} ? ${name} : null`);
-    } catch (_error) {}
-    if (lexical && typeof lexical === "object") {
-      Object.assign(values, lexical);
-      continue;
-    }
-    if (root[name] && typeof root[name] === "object") Object.assign(values, root[name]);
+    const lexical = lexicalGlobal(name);
+    if (lexical && typeof lexical === "object") Object.assign(values, lexical);
   }
   return values;
 }
@@ -236,6 +244,29 @@ export function installStyle(id, css) {
   style.id = id;
   style.textContent = css;
   doc.head.append(style);
+  return true;
+}
+
+/* The reading, projected onto the card as numbers the stylesheet can draw with.
+ *
+ * Three renderers build these cards; putting the gauge in the markup would mean
+ * three copies of it. Instead each updater hands the card its reading here, and
+ * the sheet draws the comfort scale and the humidity bar from these variables.
+ * The scale spans 10-32 °C: below or above simply pins to the ends. */
+export function applyTemperatureReading(card, temperature, humidity) {
+  if (!card?.style) return false;
+  const hasReading = Number.isFinite(temperature);
+  if (hasReading) {
+    const position = Math.min(100, Math.max(0, ((temperature - 10) / 22) * 100));
+    card.style.setProperty("--dm-temp-pos", position.toFixed(1));
+  } else {
+    card.style.removeProperty("--dm-temp-pos");
+  }
+  if (Number.isFinite(humidity))
+    card.style.setProperty("--dm-hum", Math.min(100, Math.max(0, humidity)).toFixed(0));
+  else card.style.removeProperty("--dm-hum");
+  card.dataset.dmReading = hasReading ? "on" : "off";
+  card.dataset.dmHumidity = Number.isFinite(humidity) ? "on" : "off";
   return true;
 }
 

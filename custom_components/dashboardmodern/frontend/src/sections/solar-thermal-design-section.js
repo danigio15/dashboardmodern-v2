@@ -1261,6 +1261,33 @@ function buildHeader() {
   );
 }
 
+/**
+ * The runtime hides any element whose onclick names only unmapped entities
+ * (`cdAutoHide`), and it does so symmetrically so cards return once mapped.
+ * The decorations added here have to follow: a collector that is hidden must
+ * take its readout and its ground shadow with it, and an empty probe rail must
+ * not keep its leader lines on screen. Everything below mirrors the runtime's
+ * own inline display, so mapping an entity brings the hardware straight back.
+ */
+function mirrorRuntimeVisibility() {
+  const hidden = (node) => node?.style.display === "none";
+
+  const collector = doc.querySelector("#page-boiler .dm-st-node-collector");
+  const panel = doc.querySelector("#page-boiler .syn-solar-panel");
+  if (collector && panel) collector.style.display = hidden(panel) ? "none" : "";
+
+  // A readout with a hidden value is a caption with nothing to caption.
+  const readout = doc.querySelector("#page-boiler .syn-solar-content");
+  const reading = doc.getElementById("syn-v-pannello");
+  if (readout && reading) readout.style.display = hidden(reading) ? "none" : "";
+
+  const probes = doc.querySelector("#page-boiler .tank-probes");
+  if (probes) {
+    const anyVisible = [...probes.querySelectorAll(".probe")].some((probe) => !hidden(probe));
+    probes.style.display = anyVisible ? "" : "none";
+  }
+}
+
 function decorate() {
   if (!doc?.getElementById("page-boiler")) return false;
   buildHeader();
@@ -1273,6 +1300,7 @@ function decorate() {
   routePipes(Boolean(state.query?.matches));
   highlightPipes();
   nameButtons();
+  mirrorRuntimeVisibility();
   return true;
 }
 

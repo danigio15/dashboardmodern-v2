@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 
+const { resolveVehicleAsset } = await import("../src/sections/ev-section.js");
+
 const source = await readFile(new URL("../src/sections/ev-showcase-section.js", import.meta.url), "utf8");
 
 async function loadSection() {
@@ -128,4 +130,26 @@ test("each mode button gets its own animation and reduced motion stops them all"
   for (const keyframe of ["dmEvvOffRing", "dmEvvSpin", "dmEvvCloud", "dmEvvZoom"])
     assert.match(source, new RegExp(`@keyframes ${keyframe}`), keyframe);
   assert.match(source, /prefers-reduced-motion:reduce[\s\S]*?animation:none!important/);
+});
+
+test("a www image saved without the /local prefix still resolves", () => {
+  const base = "https://home.test/api/dashboardmodern/abc/dashboard.html";
+  // What the EV editor had stored: the file lives in /config/www/ev/, which
+  // Home Assistant serves as /local/ev/. Without the prefix it 404s and the
+  // photo silently disappears.
+  assert.equal(resolveVehicleAsset("/ev/idle.png", base), "/local/ev/idle.png");
+  assert.equal(resolveVehicleAsset("/auto/b10.jpg", base), "/local/auto/b10.jpg");
+  // Paths Home Assistant already serves are left alone.
+  assert.equal(resolveVehicleAsset("/local/ev/idle.png", base), "/local/ev/idle.png");
+  assert.equal(resolveVehicleAsset("/api/image/serve/x/512x512", base), "/api/image/serve/x/512x512");
+  assert.equal(resolveVehicleAsset("/media/local/car.png", base), "/media/local/car.png");
+  assert.equal(resolveVehicleAsset("/hacsfiles/pack/car.png", base), "/hacsfiles/pack/car.png");
+});
+
+test("the frame falls back to the placeholder when the photo cannot load", () => {
+  // A configured but broken URL used to leave an empty slab: the skin marks the
+  // hero from the image itself instead of trusting the configured value.
+  assert.match(source, /dataset\.dmEvvPhoto/);
+  assert.match(source, /naturalWidth/);
+  assert.match(source, /data-dm-evv-photo="off"/);
 });

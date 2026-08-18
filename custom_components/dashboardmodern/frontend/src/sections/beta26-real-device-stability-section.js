@@ -9,6 +9,7 @@ import {
 } from "./beta25-real-device-fixes-section.js";
 import {
   allStates,
+  applyTemperatureReading,
   clean,
   comfortBadgeText,
   dashboardStore,
@@ -246,6 +247,7 @@ function updateStableTemperatureValues() {
       temperatureValue.textContent = value == null ? "—" : value.toFixed(1);
     if (humidityValue)
       humidityValue.textContent = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
+    applyTemperatureReading(card, value, humidity);
     if (comfort) {
       const label = comfortLabel(value);
       comfort.textContent = comfortBadgeText(label);

@@ -170,6 +170,25 @@ function mountModeButtons(page) {
   }
 }
 
+/**
+ * Mark the frame from the photo that actually loaded. `data-ev-image` only says
+ * whether a URL is configured, so a broken URL used to leave an empty slab.
+ */
+function syncPhoto(hero) {
+  const image = doc.getElementById("ev-mod-car-img");
+  if (!image) return;
+  if (!image.dataset.dmEvvWatched) {
+    image.dataset.dmEvvWatched = "true";
+    for (const eventName of ["load", "error"]) {
+      image.addEventListener(eventName, () => scheduleEvShowcase());
+    }
+  }
+  const broken = image.dataset.evFailed === "1" || Boolean(image.dataset.evImageError);
+  const loaded = Boolean(clean(image.getAttribute("src"))) && !broken && image.naturalWidth > 0;
+  const value = loaded ? "on" : "off";
+  if (hero.dataset.dmEvvPhoto !== value) hero.dataset.dmEvvPhoto = value;
+}
+
 /* ── render ───────────────────────────────────────────────────────────── */
 
 export function renderEvShowcase() {
@@ -184,6 +203,7 @@ export function renderEvShowcase() {
 
   const mode = evActiveMode(doc);
   if (page.dataset.dmEvMode !== mode) page.dataset.dmEvMode = mode;
+  syncPhoto(hero);
 
   const arc = power?.querySelector(".dm-evv-arc");
   if (arc) {
@@ -332,14 +352,14 @@ function evShowcaseCss() {
   font-size:11px!important;letter-spacing:.04em!important;backdrop-filter:blur(8px)!important;
   box-shadow:0 8px 20px rgba(6,14,22,.28)!important
 }
-/* no photo configured yet: a quiet placeholder instead of an empty slab */
-#page-ev.dm-evv .lm-hero[data-ev-image="missing"]{
+/* no photo on screen — missing or broken URL: a quiet placeholder, not a slab */
+#page-ev.dm-evv .lm-hero[data-dm-evv-photo="off"]{
   height:clamp(150px,30vw,196px)!important;
   background:
     radial-gradient(120% 90% at 50% 118%,rgba(var(--evv-green-rgb),.13) 0%,transparent 62%),
     linear-gradient(180deg,#fff,#eef4f9)!important
 }
-#page-ev.dm-evv .lm-hero[data-ev-image="missing"]::before{
+#page-ev.dm-evv .lm-hero[data-dm-evv-photo="off"]::before{
   content:"";position:absolute;inset:0;z-index:1;opacity:.16;
   background:no-repeat center/auto 42% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230c1420' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 13.4 4.9 8.5A3 3 0 0 1 7.7 6.6h8.6a3 3 0 0 1 2.8 1.9l1.9 4.9M3 13.4h18M3 13.4V17h3.2v-3.6M20.8 13.4V17h-3.2v-3.6'/%3E%3C/svg%3E")
 }

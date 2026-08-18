@@ -193,8 +193,30 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // renderer and one stylesheet. It is event-driven (state-changed + the legacy
   // render loop) and leaves every service call — setTemp, toggleClima and the
   // HVAC/fan popup — in the legacy runtime.
+  // The editor slot rows add exactly one owner: it decorates the rows the legacy
+  // editor prints, hides the raw entity field behind "Modifica manuale" and
+  // routes the tap to the legacy wzPickEntity(), which the fast search above
+  // owns. No polling, no observer.
+  // The Temperature trend panel adds exactly one owner: it draws the history
+  // chart under the cards from the same history/history_during_period the card
+  // popup already uses, follows the room tabs by reading the active tab, and
+  // watches #temp-grid so any renderer rebuild redraws it. No polling.
+  // The Luci redesign adds exactly two: the pure light model — capabilities,
+  // colour maths and the service call for one requested change — and the scene
+  // that owns the Gestione Luci popup and the control sheet of a single light.
+  // The scene decorates `apriGestioneLuci` rather than replacing it, because
+  // that function is the only writer of the runtime's lexical
+  // `currentPopupType` and no module can reach a lexical binding; it repaints
+  // the list in the same task, so the legacy markup is never shown. It renders
+  // per structural signature rather than per tick, writes values into the
+  // existing cards while the tick runs, and adds no polling and no observer.
+  // The Luci editor keeps its own owner and now reads the same model, so the
+  // capability badges in the tab and the controls in the popup cannot disagree.
+  // The Config auto-detection adds two more of the same shape: the pure matcher
+  // and the section that installs it over the vendored `edAutoRileva`, reusing
+  // that index instead of building a second one.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 96, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 102, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
   assert.doesNotMatch(combined, /setInterval\s*\(/);
 

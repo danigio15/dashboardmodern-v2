@@ -50,6 +50,9 @@ const seed = {
 };
 
 async function openTemperaturePicker(page) {
+  // The fast filter replaces the runtime's own; opening the dialog before the
+  // modules load legitimately paints the vendored list instead.
+  await page.waitForFunction(() => window.__DASHBOARDMODERN_ENTITY_SEARCH__?.installed === true);
   await page.locator('.dm-entity-picker[data-entity-target="ed-pl-temp"]').click();
   await expect(page.locator("#cd-entpick")).toBeVisible();
   await expect(page.locator("#cd-ep-list .dm-ep-row").first()).toBeVisible();

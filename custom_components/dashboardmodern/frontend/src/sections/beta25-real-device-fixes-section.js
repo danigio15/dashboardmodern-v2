@@ -3,6 +3,7 @@ import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwor
 import { directEmoji, roomGlyph } from "../core/personalization-catalog.js";
 import {
   allStates,
+  applyTemperatureReading,
   clean,
   comfortBadgeText,
   dashboardStore,
@@ -220,6 +221,7 @@ function updateTemperatureCard(card, record) {
   const name = card.querySelector(".temp-room-name");
   if (value) value.textContent = temperature == null ? "—" : temperature.toFixed(1);
   if (hum) hum.textContent = humidity == null ? "—%" : `${humidity.toFixed(0)}%`;
+  applyTemperatureReading(card, temperature, humidity);
   if (comfort) {
     const label = comfortLabel(temperature);
     comfort.textContent = comfortBadgeText(label);
@@ -249,7 +251,13 @@ export function renderBeta25TemperatureCards() {
     return card;
   });
   grid.replaceChildren(...cards);
-  grid.dataset.dmTemperatureRenderer = "beta25-multi";
+  /* Both markers in the same render turn, as the stable Beta 26 owner already
+   * does. Stamping only "beta25-multi" and leaving the rename to the
+   * compatibility pass opened a window in which the grid claimed a renderer
+   * nobody owns: the pass is wired to a different trigger, so whichever ran
+   * last won, and on a slow boot that was this render. */
+  grid.dataset.beta25TemperatureRenderer = "multi";
+  grid.dataset.dmTemperatureRenderer = "canonical";
   return true;
 }
 

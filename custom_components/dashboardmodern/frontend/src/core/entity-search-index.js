@@ -45,6 +45,22 @@ export function tokenize(folded) {
     .filter((token) => token.length > 0);
 }
 
+/* Every word of an entity, id first: callers that only need "does any token
+ * start with this" walk the three lists rather than a merged copy, so the index
+ * never allocates a fourth array per entity. */
+export function* entityTokens(record) {
+  yield* record.idTokens;
+  yield* record.nameTokens;
+  yield* record.areaTokens;
+}
+
+function anyToken(record, test) {
+  for (const token of record.idTokens) if (test(token)) return true;
+  for (const token of record.nameTokens) if (test(token)) return true;
+  for (const token of record.areaTokens) if (test(token)) return true;
+  return false;
+}
+
 function initialsOf(tokens) {
   let initials = "";
   for (const token of tokens) initials += token[0];
@@ -68,7 +84,15 @@ export function normalizeEntry(raw) {
   const nameFold = foldText(name);
   const areaFold = area ? foldText(area) : "";
   const hay = `${idFold} ${nameFold} ${areaFold}`;
-  const tokens = tokenize(hay);
+  /* Kept apart as well as together: the search only needs one haystack, but the
+   * auto-detector weighs a word found in the id above the same word found in
+   * the friendly name, and cannot tell them apart once they are merged. */
+  /* The domain is not a word of the entity: counting `sensor.` as one makes
+   * every sensor in the house match a slot whose label mentions a sensor, and
+   * the domain is already a constraint of its own. */
+  const idTokens = tokenize(foldText(object));
+  const nameTokens = tokenize(nameFold);
+  const areaTokens = areaFold ? tokenize(areaFold) : [];
   const state = String(raw.state ?? "");
   /* Both parts of the constant penalty are query-independent: an entity that is
    * currently unavailable is rarely the one being configured, and between two
@@ -91,8 +115,10 @@ export function normalizeEntry(raw) {
     areaFold,
     unitFold: foldText(raw.unit || attributes.unit_of_measurement || ""),
     hay,
-    tokens,
-    initials: initialsOf(tokenize(nameFold)),
+    idTokens,
+    nameTokens,
+    areaTokens,
+    initials: initialsOf(nameTokens),
   };
 }
 
@@ -251,10 +277,14 @@ const HINT_RULES = Object.freeze([
     domains: ["sensor"],
   },
   {
+    /* A light field accepts a relay too: a lamp behind a `switch.` is
+     * configured in the Luci tab exactly like a `light.`, so the picker has to
+     * propose both or the switch never gets suggested for the field that wants
+     * it. */
     words: ["luce", "luci", "light", "lampada", "lampadario", "faretti", "led"],
     dc: [],
     units: [],
-    domains: ["light"],
+    domains: ["light", "switch"],
   },
   {
     words: [
@@ -515,13 +545,15 @@ function hintDetail(record, hints) {
   let matched = 0;
   for (const keyword of hints.keywords) {
     if (matched >= 3) break;
-    for (const token of record.tokens) {
-      if (token === keyword || (keyword.length >= 4 && token.startsWith(keyword))) {
-        score += 28;
-        matched += 1;
-        strong = true;
-        break;
-      }
+    if (
+      anyToken(
+        record,
+        (token) => token === keyword || (keyword.length >= 4 && token.startsWith(keyword)),
+      )
+    ) {
+      score += 28;
+      matched += 1;
+      strong = true;
     }
   }
   /* A field that knows its domain cannot be satisfied by another one: a light
@@ -545,9 +577,7 @@ function termScore(record, term) {
   if (record.idFold.startsWith(term)) return 100;
   if (record.objectFold.startsWith(term)) return 92;
   if (record.nameFold.startsWith(term)) return 88;
-  for (const token of record.tokens) {
-    if (token.startsWith(term)) return 70;
-  }
+  if (anyToken(record, (token) => token.startsWith(term))) return 70;
   const inId = record.idFold.indexOf(term) >= 0;
   if (inId) return 40;
   if (record.nameFold.indexOf(term) >= 0) return 34;

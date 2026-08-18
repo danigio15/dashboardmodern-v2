@@ -13,6 +13,8 @@ const state = (root[KEY] ||= {
   selectorSignature: "",
 });
 const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
+/* Paths Home Assistant already serves; anything else absolute lives under /local. */
+const HA_ROOTS = ["/local/", "/api/", "/media/", "/hacsfiles/", "/static/", "/frontend_latest/", "/auth/"];
 
 function integrationAssetRoot(base) {
   try {
@@ -40,7 +42,12 @@ export function resolveVehicleAsset(value, base = doc?.baseURI || root.location?
     const assetRoot = integrationAssetRoot(base);
     return assetRoot ? new URL(raw.slice(prefix.length), assetRoot).href : "";
   }
-  if (raw.startsWith("/")) return raw.replace(/^\/local\/\/+/, "/local/");
+  if (raw.startsWith("/")) {
+    const absolute = raw.replace(/^\/local\/\/+/, "/local/");
+    // Home Assistant serves /config/www as /local. A bare absolute path like
+    // "/ev/idle.png" is a www file missing that prefix, and 404s without it.
+    return HA_ROOTS.some((prefix) => absolute.startsWith(prefix)) ? absolute : `/local${absolute}`;
+  }
   try { return new URL(raw.replace(/^\.\//, ""), base).href; } catch (_error) { return ""; }
 }
 

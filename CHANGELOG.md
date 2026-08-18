@@ -4,6 +4,56 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.30.8 — 2026-08-18
+
+### Aggiunto
+
+- **Le luci RGB si comandano dalla dashboard.** Il popup Gestione luci aveva un
+  solo gesto — tocca la scheda, la luce si accende o si spegne — e non importava
+  se dietro c'era una lampadina on/off, un dimmer o una striscia RGB. Ora ogni
+  luce riceve i comandi che l'entità dichiara di avere: il pulsante dei
+  controlli apre il pannello della singola luce con luminosità (e i valori
+  rapidi 1 / 25 / 50 / 75 / 100 %), colore con dodici colori pronti, i cursori
+  di tinta e saturazione e il selettore del colore esatto, bianco regolabile in
+  kelvin ed elenco degli effetti. Una luce che non ha una di queste cose non ne
+  vede il comando: non compare un cursore che Home Assistant rifiuterebbe.
+- **Le luci dimmerabili hanno il cursore sulla scheda.** "Un po' meno luce" è la
+  richiesta più frequente e ora non richiede di aprire nulla. Il valore appena
+  impostato resta sullo schermo finché Home Assistant continua a riportare il
+  precedente, quindi il cursore non torna indietro sotto il dito durante la
+  dissolvenza.
+- **Una luce può essere uno `switch.`**, non solo una `light.`. Una lampada
+  dietro un relè si aggiunge esattamente come una lampadina smart: viene
+  comandata con `switch.turn_on` / `switch.turn_off` e non riceve mai luminosità
+  o colore. L'editor accetta anche le entità `input_boolean.`, `fan.` e `group.`
+  che le versioni precedenti hanno sempre scritto in configurazione: prima la
+  finestra di modifica le rifiutava e una luce già configurata non si poteva più
+  modificare. Il selettore di entità propone ora anche gli `switch.` quando il
+  campo chiede una luce.
+- Nella scheda **Luci** dell'editor ogni luce dice cosa sa fare — RGB, bianco
+  regolabile, dimmer oppure solo acceso/spento — letto dall'entità stessa, e le
+  pastiglie si aggiornano mentre punti la luce su un'altra entità. Dalla stessa
+  finestra il pulsante **Prova i controlli** apre il pannello della luce.
+
+### Modificato
+
+- **Il popup Gestione luci è stato ridisegnato.** Ogni scheda si illumina del
+  colore che la lampada sta davvero emettendo — il bordo, il bagliore, il LED e
+  la sfera — invece dell'ambra fissa di prima; una luce in bianco regolabile
+  prende il colore della sua temperatura. Lo stato dice anche la percentuale
+  ("ACCESA · 45%") e le luci non disponibili restano visibili, in grigio, invece
+  di sparire dall'elenco come se fossero state cancellate.
+- Ogni stanza ha ora il proprio conteggio ("2/3") e il proprio comando accendi /
+  spegni, accanto a "Spegni tutte" che resta in cima. Il raggruppamento per
+  stanza e per piano è quello di prima.
+- Il popup si ridisegna solo quando cambia la sua forma — una luce nuova, un
+  nome, un cambio di stanza, una lampada che inizia a dichiarare il colore —
+  mentre acceso/spento, luminosità e colore vengono scritti nelle schede già
+  presenti. Il ciclo del runtime ridisegna ogni due secondi e prima quella
+  ricostruzione avrebbe strappato via il cursore sotto il dito.
+- Durante il trascinamento la lampada riceve un comando ogni 320 ms e il valore
+  esatto al rilascio, invece di una chiamata per pixel.
+
 ## 1.0.0-beta.30.7 — 2026-08-17
 
 ### Aggiunto
@@ -62,6 +112,44 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   i titoli di piano e stanza hanno la loro riga con la linea che sfuma.
 - Tutta la pagina segue il tema chiaro e scuro, si adatta al telefono e chi ha
   attivato "riduci animazioni" vede la scena ferma.
+- **L'autorilevamento della Configurazione è stato rifatto.** Il pulsante 🪄
+  *Avvia autorilevamento* interrogava Home Assistant e poi controllava ogni
+  mezzo secondo se la risposta fosse arrivata, fino a venti secondi; poi
+  confrontava ogni entità della casa con ognuno dei 96 campi, riscrivendo ogni
+  volta le stesse parole, e nel frattempo la pagina restava bloccata. Ora
+  l'elenco viene letto una volta e ogni campo guarda solo le entità che hanno
+  una parola in comune con lui: su un impianto da 5000 entità il rilevamento
+  passa da circa 230 ms a 11 ms, e mentre lavora si vede a che punto è.
+- **Adesso prima ti fa vedere cosa ha trovato.** Al posto del salvataggio
+  immediato seguito dal ricaricamento, compare il riepilogo — quante luci,
+  stanze, unità clima, telecamere e collegamenti — con l'elenco dei campi
+  collegati e il pulsante per applicare. Finché non lo premi non viene scritto
+  niente. I campi in cui due entità sono altrettanto probabili non vengono più
+  riempiti a caso: te li dice, e li lasci come vuoi tu nelle altre schede.
+- **Le stanze arrivano dalle aree di Home Assistant**, come era previsto dalla
+  versione 0.9: il rilevamento chiedeva i registri di aree, dispositivi ed
+  entità, ma chiudeva la connessione appena arrivavano gli stati, cioè prima
+  che i registri rispondessero. Il risultato è che le aree non erano mai
+  disponibili e le stanze venivano indovinate dai nomi dei sensori. Ora i
+  registri vengono letti prima di decidere: una stanza per area, con il suo
+  sensore di temperatura e quello di umidità della stessa area, e i nomi delle
+  aree usati anche per luci, unità clima e telecamere.
+- **I collegamenti dell'Energia adesso restano.** Erano scritti tra gli
+  "override" delle entità, ma dalla versione 4 della configurazione la sezione
+  Energia è la proprietaria di quei campi e riscriveva sopra, cancellandoli: un
+  autorilevamento poteva quindi sembrare riuscito e lasciare l'Energia vuota.
+  Ora vengono scritti nel modello Energia, che è ciò che li tiene.
+- Le righe dei campi entità nell'editor venivano riscritte in forma leggibile
+  solo se la scheda era già stata disegnata prima che i moduli finissero di
+  caricare: `editorSwitch` veniva agganciato dentro un evento che, per i moduli
+  caricati su richiesta, era già passato. Ora l'aggancio avviene comunque, così
+  le righe si aggiornano a ogni cambio scheda.
+- Il rilevamento legge l'unità di misura scritta nell'etichetta del campo come
+  un vincolo e non come un suggerimento: un campo in kWh non prende più un
+  sensore in watt, un campo "oggi" non prende un contatore mensile, e un campo
+  che chiede uno `script` o un `select` guarda solo quel dominio. Quando due
+  campi si contendono la stessa entità, la prende quello che la descrive
+  meglio, non quello che compare prima nell'elenco.
 - **La ricerca delle entità nella configurazione è diventata istantanea.** Il
   selettore (la lente 🔍 accanto a ogni campo entità) rileggeva tutte le entità
   della casa a ogni lettera digitata e ridisegnava trecento righe ogni volta: su
@@ -83,9 +171,50 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   entità che Home Assistant riporta come non disponibili. Ogni riga mostra ora
   anche il valore attuale e la stanza dell'entità, e la lista si comanda da
   tastiera con ↑ ↓ e Invio.
+- **Temperature** ha ora un pannello **Andamento** sotto le schede, che segue i
+  tab delle stanze: scelta una stanza disegna le sue sonde, su "Tutte" mette una
+  linea per stanza per confrontarle. Il grafico mostra la fascia comfort dove
+  rientra nell'inquadratura, le ore notturne in ombra, il valore corrente in
+  fondo a ogni linea e, sotto, una pastiglia per serie con valore attuale e
+  minimo/massimo del periodo; si passa fra 24 ore e 7 giorni. I dati sono lo
+  stesso storico che la plancia chiede già toccando una scheda, disegnato in SVG
+  senza librerie di grafici.
+- Ogni scheda di **Temperature** porta ora in fondo la scala del comfort, dal
+  freddo al caldo, con una tacca nel punto della lettura: si vede quanto una
+  stanza è fuori dal comfort, non solo se lo è. Sotto la percentuale di umidità
+  c'è una barra che si riempie fino al valore. Nessun renderer è cresciuto di
+  markup: gli aggiornatori passano la lettura a un'unica funzione che la scrive
+  sulla scheda, e il foglio di stile disegna scala e barra da lì.
 
 ### Corretto
 
+- Su PC, con tutte le sezioni accese, le ultime voci della barra in basso non
+  si potevano raggiungere. La barra è larga quanto il suo contenuto ed è fissa e
+  centrata sullo schermo: quando le tredici sezioni superano la larghezza della
+  finestra, le voci di testa e di coda finiscono oltre i bordi, e lo scorrimento
+  della pagina non le sposta perché la barra non scorre con essa. Ora le voci
+  stanno in una loro pista scorrevole, la barra non supera mai la larghezza
+  della finestra e la si scorre in quattro modi: la rotella verticale del mouse
+  sopra la barra, il trascinamento con il tasto sinistro, le due frecce tonde
+  che compaiono ai lati solo quando serve scorrere, e i tasti freccia
+  sinistra/destra. Le frecce si spengono quando da quel lato si è arrivati in
+  fondo, e la sezione aperta viene riportata sotto gli occhi quando la barra
+  ricompare. L'effetto dock — la voce puntata che si ingrandisce — resta
+  intatto, e quando le sezioni ci stanno tutte la barra è identica a prima:
+  niente frecce, larghezza sul contenuto. Su smartphone e tablet non cambia
+  nulla, la barra continua a scorrere da sé come ha sempre fatto.
+- **Sul desktop i flussi non si animavano.** Se nel sistema è attiva
+  l'impostazione **"riduci movimento"** — spesso attiva su un computer e quasi
+  mai su un telefono, il che spiega perché il moto si vedeva solo lì — ogni
+  linea restava ferma, comprese quelle principali di solare, rete e batteria.
+  Il motore dei flussi introdotto con la Beta 30 rispettava quella preferenza,
+  cosa che per un'animazione decorativa sarebbe giusta; qui però il tratteggio
+  che scorre non è una decorazione, è l'unico segnale che l'energia sta
+  passando, e la stessa plancia finiva per raccontare due cose diverse a
+  seconda dello schermo. Ora le linee dei flussi scorrono su ogni schermo,
+  indipendentemente da quell'impostazione: il desktop mostra esattamente quello
+  che mostra il telefono. Le altre sezioni continuano a rispettarla, perché lì
+  il movimento è effettivamente decorativo.
 - In **Temperature** l'etichetta sopra il numero cambiava da sola: la stessa
   scheda mostrava "TEMPERATURA" e un istante dopo il nome dato al sensore. Quel
   testo aveva tre proprietari che non erano d'accordo — i renderer scrivevano la

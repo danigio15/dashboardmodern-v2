@@ -180,9 +180,10 @@ function groupMarkup(view, count) {
 }
 
 /**
- * The track is always drawn, so a cover that cannot be sent to a position still
- * shows one and every card in a row keeps the same window width. Only a cover
- * that reports SET_POSITION gets the input that makes it draggable.
+ * The track sits under the window, across the whole card, so the window itself
+ * is never narrowed to make room for it. It is always drawn, so a cover that
+ * cannot be sent to a position still shows where it stands; only a cover that
+ * reports SET_POSITION gets the input that makes it draggable.
  */
 function trackMarkup(view) {
   if (!view.settable) return `<div class="dm-tapp-track" data-dm-static aria-hidden="true"></div>`;
@@ -208,10 +209,12 @@ function cardMarkup(view) {
         <div class="tapp-glass"></div>
         <div class="tapp-shutter" data-dm-panel>${slats}</div>
       </div>
-      ${trackMarkup(view)}
     </div>
     <div class="dm-tapp-spill" aria-hidden="true"></div>
-    <div class="tapp-pos" data-dm-readout></div>
+    <div class="dm-tapp-bar">
+      ${trackMarkup(view)}
+      <div class="tapp-pos" data-dm-readout></div>
+    </div>
     <div class="tapp-ctl">
       <button type="button" class="tapp-btn" data-svc="open_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Apri", "Open"))}">▲</button>
       <button type="button" class="tapp-btn" data-svc="stop_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Ferma", "Stop"))}">■</button>
@@ -426,29 +429,34 @@ function installStyles() {
       overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
       color:var(--tapp-dim)!important;font-size:10px!important;font-weight:900!important;letter-spacing:1px!important;text-transform:uppercase!important}
 
-    html body #page-tapparelle#page-tapparelle .dm-tapp-stage{display:flex!important;align-items:stretch!important;gap:10px!important;min-width:0!important}
-    html body #page-tapparelle#page-tapparelle .dm-tapp-stage .tapp-win{flex:1 1 auto!important;min-width:0!important}
+    /* Nothing shares the row with the window, so it runs the full width of the
+       card and the panel closes across the whole opening. */
+    html body #page-tapparelle#page-tapparelle .dm-tapp-stage{display:block!important;min-width:0!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-stage .tapp-win{width:100%!important;min-width:0!important}
 
-    /* The track is the window in miniature: the shut part of the gradient is the
-       panel, the open part is the sky, and the thumb rides the closing edge. */
+    /* The position lives under the window instead of beside it: one rail the
+       width of the card, filled from the left by however much light gets in,
+       with the readout at its end. */
+    html body #page-tapparelle#page-tapparelle .dm-tapp-bar{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-bar>.tapp-pos{flex:0 0 auto!important;align-self:center!important}
     html body #page-tapparelle#page-tapparelle .dm-tapp-track{
-      position:relative!important;flex:0 0 34px!important;box-sizing:border-box!important;height:132px!important;
+      position:relative!important;flex:1 1 auto!important;box-sizing:border-box!important;height:26px!important;min-width:0!important;
       border:1px solid var(--tapp-pill-line)!important;border-radius:13px!important;overflow:hidden!important;
-      background:linear-gradient(180deg,var(--tapp-slat-base) 0 calc((1 - var(--tapp-open,0)) * 100%),var(--tapp-track-sky) calc((1 - var(--tapp-open,0)) * 100%) 100%)!important;
+      background:linear-gradient(90deg,var(--tapp-track-sky) 0 calc(var(--tapp-open,0) * 100%),var(--tapp-slat-base) calc(var(--tapp-open,0) * 100%) 100%)!important;
       box-shadow:inset 0 1px 3px rgba(15,23,42,.28)!important;touch-action:none!important}
     html body #page-tapparelle#page-tapparelle .dm-tapp-track[data-dm-static]{opacity:.55!important}
     html body #page-tapparelle#page-tapparelle .dm-tapp-range{
-      position:absolute!important;left:50%!important;top:50%!important;box-sizing:border-box!important;
-      width:132px!important;height:34px!important;margin:0!important;padding:0!important;border:0!important;
-      transform:translate(-50%,-50%) rotate(-90deg)!important;appearance:none!important;-webkit-appearance:none!important;
-      background:transparent!important;cursor:ns-resize!important}
-    html body #page-tapparelle#page-tapparelle .dm-tapp-range::-webkit-slider-runnable-track{height:34px;background:transparent;border:0}
+      position:absolute!important;inset:0!important;box-sizing:border-box!important;
+      width:100%!important;height:100%!important;margin:0!important;padding:0!important;border:0!important;
+      appearance:none!important;-webkit-appearance:none!important;
+      background:transparent!important;cursor:ew-resize!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-range::-webkit-slider-runnable-track{height:100%;background:transparent;border:0}
     html body #page-tapparelle#page-tapparelle .dm-tapp-range::-webkit-slider-thumb{
-      -webkit-appearance:none;width:22px;height:14px;border-radius:5px;border:1px solid rgba(15,23,42,.35);
+      -webkit-appearance:none;width:14px;height:22px;border-radius:5px;border:1px solid rgba(15,23,42,.35);
       background:linear-gradient(180deg,#fdfeff,#c9d3e0);box-shadow:0 2px 5px rgba(15,23,42,.4)}
-    html body #page-tapparelle#page-tapparelle .dm-tapp-range::-moz-range-track{height:34px;background:transparent;border:0}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-range::-moz-range-track{height:100%;background:transparent;border:0}
     html body #page-tapparelle#page-tapparelle .dm-tapp-range::-moz-range-thumb{
-      width:22px;height:14px;border-radius:5px;border:1px solid rgba(15,23,42,.35);
+      width:14px;height:22px;border-radius:5px;border:1px solid rgba(15,23,42,.35);
       background:linear-gradient(180deg,#fdfeff,#c9d3e0);box-shadow:0 2px 5px rgba(15,23,42,.4)}
     html body #page-tapparelle#page-tapparelle .dm-tapp-range:focus-visible{outline:3px solid color-mix(in srgb,var(--tapp-accent) 55%,transparent)!important;outline-offset:2px!important}
 

@@ -298,6 +298,17 @@ function installStyles() {
          to shrink, otherwise one long entity id expands the whole mobile modal. */
       #editor-modal .ed-shell,#editor-modal .ed-body,#editor-modal .ed-form,#editor-modal .ed-list,#editor-modal .ed-row,#editor-modal .ed-form-row{box-sizing:border-box!important;min-width:0!important;max-width:100%!important;width:100%!important}
       #editor-modal .ed-body{overflow-x:clip!important;overflow-y:visible!important}
+      /* The body of every editor tab is a vertical stack of full-width controls.
+         The entity-picker guard used to hand .dm-entity-picker-row — flex, with
+         min-width:0 children — to the parent of any field it decorated, and on
+         Tapparelle, Telecamere and Irrigazione that parent is this element, so
+         the whole editor laid out as a row of narrow columns with words broken
+         mid-syllable. The guard no longer flexes a container, and this pins the
+         outcome: block with no columns is what the correct rendering already
+         computes, so it changes nothing where the editor is right and makes
+         that failure unreachable for any other owner. */
+      #editor-modal .ed-body{display:block!important;columns:auto!important;column-count:auto!important}
+      #editor-modal .ed-body>*{float:none!important}
       #editor-modal .ed-body>*,#editor-modal .ed-form>*,#editor-modal .ed-list>*,#editor-modal .ed-row>*,#editor-modal .ed-form-row>*,#editor-modal .ed-form [style*="display:flex"]>*{box-sizing:border-box!important;min-width:0!important;max-width:100%!important}
       #editor-modal .ed-form>[style*="display:flex"],#editor-modal .ed-form-row{box-sizing:border-box!important;min-width:0!important;max-width:100%!important;width:100%!important}
       #editor-modal .ed-form-row>.ed-input,#editor-modal .ed-form>[style*="display:flex"]>.ed-input{width:0!important;min-width:0!important;max-width:100%!important;flex:1 1 0!important}

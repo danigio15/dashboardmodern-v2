@@ -17,12 +17,14 @@ import { installEnergyAnalysisSection } from "./energy-analysis-section.js";
 import { installHistorySection } from "./history-section.js";
 import { installTemperatureSection } from "./temperature-section.js";
 import { installTemperatureLayoutSection } from "./temperature-layout-section.js";
+import { installTemperatureTrendSection } from "./temperature-trend-section.js";
 import { installAppliancesSection } from "./appliances-section.js";
 import { installApplianceLayoutSection } from "./appliance-layout-section.js";
 import { installBeta27ReleaseStability } from "./beta27-release-stability-section.js";
 import { installApplianceShowcaseSection } from "./appliance-showcase-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
+import { installLightsSceneSection } from "./lights-scene-section.js";
 import { installAlertsSection } from "./alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
@@ -30,6 +32,7 @@ import { installClimateThermalSection } from "./climate-thermal-section.js";
 import { installNavigationSection } from "./navigation-section.js";
 import { installUnifiedEditorsSection } from "./unified-editors-section.js";
 import { installEntitySearchSection } from "./entity-search-section.js";
+import { installEntityAutodetectSection } from "./entity-autodetect-section.js";
 import { installEditorCrudSection } from "./editor-crud-section.js";
 import { installEditorContractsSection } from "./editor-contracts-section.js";
 import { installReportEditorSection } from "./report-editor-section.js";
@@ -38,6 +41,7 @@ import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
 import { installEvSection } from "./ev-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
+import { installEditorSlotsSection } from "./editor-slots-section.js";
 import { installSolarThermalDesignSection } from "./solar-thermal-design-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { allStates, clean, english, section, wrapFunction } from "./shared.js";
@@ -616,6 +620,7 @@ export function installSectionRuntime() {
     installHistorySection();
     installTemperatureSection();
     installTemperatureLayoutSection();
+    installTemperatureTrendSection();
     installAppliancesSection();
     installApplianceLayoutSection();
     // The showcase renderer must install before the KPI popups wrap
@@ -627,6 +632,9 @@ export function installSectionRuntime() {
     installAppliancePickerLayer();
     installApplianceEditorSection();
     installLightsAlertsSection();
+    // The editor owns the light list and the rooms; the scene owns the popup
+    // that controls them, so it installs after the model it reads.
+    installLightsSceneSection();
     installAlertsSection();
     // The redesigned Security page must own #cam-grid before the live-ui camera
     // owner starts filling the thumbnails, so the first paint is already the new
@@ -637,8 +645,11 @@ export function installSectionRuntime() {
     installNavigationSection();
     installUnifiedEditorsSection();
     installEntitySearchSection();
+    installEntityAutodetectSection();
     installEditorCrudSection();
     installEditorContractsSection();
+    // Readable entity rows for every section tab of the editor.
+    installEditorSlotsSection();
     installReportEditorSection();
     installShutterSection();
     installShutterSceneSection();
@@ -673,6 +684,7 @@ export function installSectionRuntime() {
         "appliance-showcase",
         "appliance-editor",
         "lights",
+        "lights-scene",
         "alerts",
         "security-showcase",
         "climate-thermal",
@@ -680,8 +692,10 @@ export function installSectionRuntime() {
         "navigation",
         "unified-editors",
         "entity-search",
+        "entity-autodetect",
         "editor-crud",
         "editor-contracts",
+        "editor-slots",
         "report-editor",
         "shutters",
         "pool-irrigation-scene",
