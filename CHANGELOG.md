@@ -81,6 +81,17 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   passa una volta sola: una riga ridisegnata dopo quella passata restava senza
   matita finché qualcosa non ne programmava un'altra. Ora la matita della cella
   principale si vede subito, e la passata continua a togliere i doppioni.
+- **Su iPad la Configurazione restava com'era.** Il runtime sceglie la sezione
+  della scheda nascondendo le altre dodici con uno `style` inline, senza
+  toccare nessun blocco: su una macchina lenta questo arriva dopo, e la passata
+  che ascoltava solo i blocchi non ne sapeva niente — la scheda restava con
+  tredici sezioni, senza interruttore e senza il salvataggio in fondo. Ora la
+  passata sente anche quel `display`.
+- **Il percorso della prima foto dell'auto si cancellava.** Scrivere il
+  percorso in «Cavo staccato» e passare a «Cavo attaccato» svuotava il primo
+  campo: il pannello si riallinea a quello che è salvato mentre la scheda si
+  assesta. Un campo scritto a mano e non ancora salvato ora non viene più
+  toccato.
 - **La Configurazione ora si riallinea quando la scheda cambia, non dopo un
   tempo fisso.** I pannelli che una scheda disegna per conto suo arrivano dopo
   lo scambio di scheda: se arrivavano tardi, l'interruttore della sezione

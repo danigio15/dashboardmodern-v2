@@ -86,14 +86,27 @@ async function boot(page, testInfo) {
 }
 
 async function openTab(page, tab) {
-  await page.evaluate(async (name) => {
+  await page.evaluate((name) => {
     if (!document.getElementById("editor-modal")?.classList.contains("show")) {
       window.apriConfigEntita();
     }
     window.editorSwitch(name);
-    // The tab settles over a few frames: panels of their own arrive after it.
-    await new Promise((resolve) => setTimeout(resolve, 600));
   }, tab);
+  // The tab settles over several frames, and how many depends on the machine:
+  // panels of their own arrive after the switch, and the runtime narrows the
+  // tab to its own section later still. Waiting a fixed number of milliseconds
+  // passes on a fast runner and fails on a slow one, so each assertion below
+  // polls instead — a build that never settles still fails, at the timeout.
+  await page.waitForFunction(
+    (name) => document.getElementById("ed-body")?.dataset.dmConfigUniform === name,
+    tab,
+    { timeout: 10_000 },
+  );
+}
+
+/* The state of the tab, once it stops changing. */
+function settledTabState(page, pick, message) {
+  return expect.poll(async () => pick(await tabState(page)), { message, timeout: 10_000 });
 }
 
 function tabState(page) {
@@ -124,12 +137,18 @@ test.describe("the configuration behaves the same on every tab", () => {
     await boot(page, testInfo);
     for (const tab of [...SECTION_TABS, ...PLAIN_TABS]) {
       await openTab(page, tab);
-      const view = await tabState(page);
       // "＋ Salva attuale" saves the current EV mapping as a new profile: it is
       // an add, not a save of the section, and stays where it is.
-      const sectionSaves = view.saveLabels.filter((label) => !label.startsWith("＋"));
-      expect(sectionSaves, `${tab}: one way to save`).toEqual(["💾 Salva sezione"]);
-      expect(view.footerIsLast, `${tab}: the save is the last thing on the tab`).toBe(true);
+      await settledTabState(
+        page,
+        (view) => view.saveLabels.filter((label) => !label.startsWith("＋")),
+        `${tab}: one way to save`,
+      ).toEqual(["💾 Salva sezione"]);
+      await settledTabState(
+        page,
+        (view) => view.footerIsLast,
+        `${tab}: the save is the last thing on the tab`,
+      ).toBe(true);
     }
   });
 
@@ -137,8 +156,7 @@ test.describe("the configuration behaves the same on every tab", () => {
     await boot(page, testInfo);
     for (const tab of NO_SAVE_TABS) {
       await openTab(page, tab);
-      const view = await tabState(page);
-      expect(view.saveLabels, `${tab}`).toEqual([]);
+      await settledTabState(page, (view) => view.saveLabels, `${tab}`).toEqual([]);
     }
   });
 
@@ -146,15 +164,17 @@ test.describe("the configuration behaves the same on every tab", () => {
     await boot(page, testInfo);
     for (const tab of SECTION_TABS) {
       await openTab(page, tab);
-      const view = await tabState(page);
-      expect(view.banners, `${tab}: exactly one switch`).toBe(1);
-      expect(view.bannerIsFirst, `${tab}: the switch opens the tab`).toBe(true);
+      await settledTabState(page, (view) => view.banners, `${tab}: exactly one switch`).toBe(1);
+      await settledTabState(
+        page,
+        (view) => view.bannerIsFirst,
+        `${tab}: the switch opens the tab`,
+      ).toBe(true);
     }
     for (const tab of PLAIN_TABS) {
       await openTab(page, tab);
-      const view = await tabState(page);
       // These four are not sections of the dashboard, so they have no switch.
-      expect(view.banners, `${tab}: no switch`).toBe(0);
+      await settledTabState(page, (view) => view.banners, `${tab}: no switch`).toBe(0);
     }
   });
 
@@ -162,11 +182,18 @@ test.describe("the configuration behaves the same on every tab", () => {
     await boot(page, testInfo);
     for (const tab of ["sez0", "sez3", "sez9"]) {
       await openTab(page, tab);
-      const view = await tabState(page);
       // It used to be thirteen accordions and 104 entity fields on every one of
       // these tabs, twelve sections of it hidden.
-      expect(view.accordions, `${tab}: one section`).toBeLessThanOrEqual(2);
-      expect(view.entityFields, `${tab}: only its own fields`).toBeLessThan(40);
+      await settledTabState(
+        page,
+        (view) => view.accordions,
+        `${tab}: one section`,
+      ).toBeLessThanOrEqual(2);
+      await settledTabState(
+        page,
+        (view) => view.entityFields,
+        `${tab}: only its own fields`,
+      ).toBeLessThan(40);
     }
   });
 

@@ -189,6 +189,8 @@ function savePhotos(panelNode) {
     const value = clean(field.querySelector("[data-ev-photo-input]")?.value);
     const stored = value ? resolveVehicleAsset(value) || value : "";
     root.localStorage?.setItem(EV_PHOTO_KEYS[kind], JSON.stringify(stored));
+    // Written: what is on screen and what is stored say the same thing again.
+    delete field.dataset.evPhotoEdited;
   }
   root.cdMarkDirty?.();
   root.cdSyncPush?.();
@@ -220,7 +222,11 @@ export function ensureVehiclePhotoEditor() {
       body.append(panelNode);
     panelNode.addEventListener("input", (event) => {
       const field = event.target?.closest?.("[data-ev-photo]");
-      if (field) paintPhotoPreview(field);
+      if (!field) return;
+      // Typed and not saved yet: from here on this field belongs to the person
+      // at the keyboard, and no later pass writes over it.
+      field.dataset.evPhotoEdited = "true";
+      paintPhotoPreview(field);
     });
     panelNode.querySelector("[data-ev-photos-save]").addEventListener("click", () => {
       savePhotos(panelNode);
@@ -229,7 +235,12 @@ export function ensureVehiclePhotoEditor() {
   } else {
     for (const field of panelNode.querySelectorAll("[data-ev-photo]")) {
       const input = field.querySelector("[data-ev-photo-input]");
-      if (input && input !== doc.activeElement) input.value = photos[field.dataset.evPhoto] || "";
+      if (!input || input === doc.activeElement) continue;
+      // A path typed into the other field and not yet saved must survive this:
+      // moving from the first photo to the second used to blank the first,
+      // because the panel is refreshed while the tab settles.
+      if (field.dataset.evPhotoEdited === "true") continue;
+      input.value = photos[field.dataset.evPhoto] || "";
     }
   }
   for (const field of panelNode.querySelectorAll("[data-ev-photo]")) paintPhotoPreview(field);
@@ -344,7 +355,7 @@ function installLegacyWrappers() {
  * which is what a run that never clicked the tab by hand showed. */
 export function scheduleEvSyncSettled() {
   scheduleEvSync();
-  for (const delay of [120, 420]) root.setTimeout?.(scheduleEvSync, delay);
+  for (const delay of [120, 420, 900, 1800]) root.setTimeout?.(scheduleEvSync, delay);
 }
 
 export function scheduleEvSync() {

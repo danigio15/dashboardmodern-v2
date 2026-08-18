@@ -236,11 +236,20 @@ export function uniformConfiguration(body = editorBody(), tab = activeTab()) {
  * changing — every time the block list of the tab changes, whoever changed it,
  * the pass runs again on the next frame. The two delays are kept for the panels
  * that arrive without touching that list. */
-const SETTLE_DELAYS = Object.freeze([120, 420]);
+const SETTLE_DELAYS = Object.freeze([120, 420, 900, 1800]);
 
-/* Scoped to `#ed-body` and to its own children: the switch and the save are
- * placed among those blocks, so that list is the whole of what this needs to
- * hear. Nothing deeper is observed, and the document never is. */
+/* Scoped to `#ed-body`: the blocks of the tab, and the inline `display` the
+ * runtime writes on them.
+ *
+ * Both matter. The switch and the save are placed among the blocks, so the
+ * block list is one half; the other half is `edFilterSez`, which chooses the
+ * tab's section by hiding the other twelve with an inline style and changes no
+ * block at all. On a slow device that filtering lands after the tab has
+ * switched — on the WebKit runner it landed after every timer this module had
+ * — and a pass that only heard about blocks never learned the tab had been
+ * narrowed. Nothing deeper than the inline style is observed, and the document
+ * never is. This module writes no inline styles itself, so it cannot wake
+ * itself. */
 function watchEditorBody() {
   const body = editorBody();
   if (!body || state.watched === body) return;
@@ -248,7 +257,12 @@ function watchEditorBody() {
   if (!Observer) return;
   state.observer?.disconnect?.();
   state.observer = new Observer(() => schedule({ settle: false }));
-  state.observer.observe(body, { childList: true });
+  state.observer.observe(body, {
+    childList: true,
+    attributes: true,
+    attributeFilter: ["style"],
+    subtree: true,
+  });
   state.watched = body;
 }
 

@@ -282,6 +282,14 @@ test.describe("beta31", () => {
 
     await photos.locator('[data-ev-photo="idle"] input').fill("/local/auto.png");
     await photos.locator('[data-ev-photo="plugged"] input').fill("/local/auto-cavo.png");
+    // Both paths are still there after the tab has finished settling: the panel
+    // is refreshed while it does, and it used to blank the field the person had
+    // just left to type in the other one.
+    await page.waitForTimeout(2200);
+    await expect(photos.locator('[data-ev-photo="idle"] input')).toHaveValue("/local/auto.png");
+    await expect(photos.locator('[data-ev-photo="plugged"] input')).toHaveValue(
+      "/local/auto-cavo.png",
+    );
     // The panel save sits behind the tab's single save now.
     await page.locator("#ed-body [data-dm-save-all]").click();
     await expect

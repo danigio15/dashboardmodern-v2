@@ -116,10 +116,13 @@ test.describe("EV page redesign", () => {
     await expect(page.locator(".dm-evv-power")).toHaveCount(1);
     await expect(page.locator(".dm-evv-row")).toHaveCount(3);
     await expect(page.locator("#m-btn-pv .dm-evv-fx")).toHaveCount(1);
-    // The page must never scroll sideways on a phone.
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth + 1,
-    );
-    expect(overflow).toBe(true);
+    // The page must never scroll sideways on a phone. Measured once the page has
+    // stopped being rebuilt: a re-render in flight can be a few pixels wide for
+    // a frame, and what matters is where it comes to rest.
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
+      )
+      .toBe(true);
   });
 });
