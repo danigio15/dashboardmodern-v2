@@ -69,7 +69,7 @@ La UI è disponibile in **italiano e inglese**, supporta più istanze della plan
 | 🔌 **Wallbox** | potenza e dati di ricarica tramite le entità disponibili in Home Assistant |
 | 🌡️ **Temperatura** | temperatura e umidità associate alle stanze canoniche |
 | 🔥❄️ **Clima** | gestione separata delle unità **Caldo** e **Freddo** |
-| 💡 **Luci** | luci per stanza, stato e controllo |
+| 💡 **Luci** | luci per stanza, entità `light.*` o `switch.*`, dimmer, colore RGB, bianco regolabile ed effetti |
 | 🪟 **Tapparelle** | apertura, chiusura, stop e posizione quando supportata |
 | 🛡️ **Sicurezza** | allarme, sensori e telecamere configurate |
 | 🏊 **Piscina** | temperatura, stato e comandi configurabili |
@@ -279,10 +279,33 @@ Configura l'entità `climate.*` e la stanza corretta. Il runtime usa gli stati e
 
 Per ogni luce puoi configurare:
 
-- entità `light.*`;
+- entità `light.*` **oppure** `switch.*` — una lampada dietro un relè si aggiunge
+  esattamente come una lampadina smart; sono accettate anche le entità
+  `input_boolean.*`, `fan.*` e `group.*` scritte dalle versioni precedenti;
 - nome visualizzato;
 - stanza;
 - ordine.
+
+Nella scheda **Luci** dell'editor ogni luce mostra cosa sa fare — RGB, bianco
+regolabile, dimmer oppure solo acceso/spento — letto dall'entità stessa.
+
+Il popup **Gestione luci** presenta le luci raggruppate per stanza, con il
+conteggio e il comando accendi/spegni di ogni stanza. Ogni scheda si accende del
+colore che la lampada sta davvero emettendo e, se la luce è dimmerabile, porta
+il cursore della luminosità sulla scheda. Il pulsante dei controlli apre il
+pannello della singola luce, che offre soltanto quello che l'entità dichiara:
+
+- accensione e spegnimento;
+- luminosità, con i valori rapidi 1 / 25 / 50 / 75 / 100 %;
+- colore, con dodici colori pronti, i cursori di tinta e saturazione e il
+  selettore del colore esatto;
+- bianco regolabile in kelvin, entro i limiti dichiarati dalla lampada;
+- effetti, quando l'entità ne espone un elenco.
+
+Una luce collegata a uno switch mostra solo acceso/spento: la dashboard non le
+invia mai luminosità o colore. Il valore appena impostato resta sullo schermo
+finché Home Assistant continua a riportare il precedente, così il cursore non
+torna indietro sotto il dito.
 
 La dashboard mantiene il controllo tramite i servizi Home Assistant e presenta le luci organizzate secondo la configurazione della plancia.
 

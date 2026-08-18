@@ -24,6 +24,7 @@ import { installBeta27ReleaseStability } from "./beta27-release-stability-sectio
 import { installApplianceShowcaseSection } from "./appliance-showcase-section.js";
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
+import { installLightsSceneSection } from "./lights-scene-section.js";
 import { installAlertsSection } from "./alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
@@ -630,6 +631,9 @@ export function installSectionRuntime() {
     installAppliancePickerLayer();
     installApplianceEditorSection();
     installLightsAlertsSection();
+    // The editor owns the light list and the rooms; the scene owns the popup
+    // that controls them, so it installs after the model it reads.
+    installLightsSceneSection();
     installAlertsSection();
     // The redesigned Security page must own #cam-grid before the live-ui camera
     // owner starts filling the thumbnails, so the first paint is already the new
@@ -678,6 +682,7 @@ export function installSectionRuntime() {
         "appliance-showcase",
         "appliance-editor",
         "lights",
+        "lights-scene",
         "alerts",
         "security-showcase",
         "climate-thermal",

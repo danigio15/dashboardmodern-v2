@@ -251,10 +251,14 @@ const HINT_RULES = Object.freeze([
     domains: ["sensor"],
   },
   {
+    /* A light field accepts a relay too: a lamp behind a `switch.` is
+     * configured in the Luci tab exactly like a `light.`, so the picker has to
+     * propose both or the switch never gets suggested for the field that wants
+     * it. */
     words: ["luce", "luci", "light", "lampada", "lampadario", "faretti", "led"],
     dc: [],
     units: [],
-    domains: ["light"],
+    domains: ["light", "switch"],
   },
   {
     words: [

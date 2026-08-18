@@ -4,6 +4,56 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.30.8 — 2026-08-18
+
+### Aggiunto
+
+- **Le luci RGB si comandano dalla dashboard.** Il popup Gestione luci aveva un
+  solo gesto — tocca la scheda, la luce si accende o si spegne — e non importava
+  se dietro c'era una lampadina on/off, un dimmer o una striscia RGB. Ora ogni
+  luce riceve i comandi che l'entità dichiara di avere: il pulsante dei
+  controlli apre il pannello della singola luce con luminosità (e i valori
+  rapidi 1 / 25 / 50 / 75 / 100 %), colore con dodici colori pronti, i cursori
+  di tinta e saturazione e il selettore del colore esatto, bianco regolabile in
+  kelvin ed elenco degli effetti. Una luce che non ha una di queste cose non ne
+  vede il comando: non compare un cursore che Home Assistant rifiuterebbe.
+- **Le luci dimmerabili hanno il cursore sulla scheda.** "Un po' meno luce" è la
+  richiesta più frequente e ora non richiede di aprire nulla. Il valore appena
+  impostato resta sullo schermo finché Home Assistant continua a riportare il
+  precedente, quindi il cursore non torna indietro sotto il dito durante la
+  dissolvenza.
+- **Una luce può essere uno `switch.`**, non solo una `light.`. Una lampada
+  dietro un relè si aggiunge esattamente come una lampadina smart: viene
+  comandata con `switch.turn_on` / `switch.turn_off` e non riceve mai luminosità
+  o colore. L'editor accetta anche le entità `input_boolean.`, `fan.` e `group.`
+  che le versioni precedenti hanno sempre scritto in configurazione: prima la
+  finestra di modifica le rifiutava e una luce già configurata non si poteva più
+  modificare. Il selettore di entità propone ora anche gli `switch.` quando il
+  campo chiede una luce.
+- Nella scheda **Luci** dell'editor ogni luce dice cosa sa fare — RGB, bianco
+  regolabile, dimmer oppure solo acceso/spento — letto dall'entità stessa, e le
+  pastiglie si aggiornano mentre punti la luce su un'altra entità. Dalla stessa
+  finestra il pulsante **Prova i controlli** apre il pannello della luce.
+
+### Modificato
+
+- **Il popup Gestione luci è stato ridisegnato.** Ogni scheda si illumina del
+  colore che la lampada sta davvero emettendo — il bordo, il bagliore, il LED e
+  la sfera — invece dell'ambra fissa di prima; una luce in bianco regolabile
+  prende il colore della sua temperatura. Lo stato dice anche la percentuale
+  ("ACCESA · 45%") e le luci non disponibili restano visibili, in grigio, invece
+  di sparire dall'elenco come se fossero state cancellate.
+- Ogni stanza ha ora il proprio conteggio ("2/3") e il proprio comando accendi /
+  spegni, accanto a "Spegni tutte" che resta in cima. Il raggruppamento per
+  stanza e per piano è quello di prima.
+- Il popup si ridisegna solo quando cambia la sua forma — una luce nuova, un
+  nome, un cambio di stanza, una lampada che inizia a dichiarare il colore —
+  mentre acceso/spento, luminosità e colore vengono scritti nelle schede già
+  presenti. Il ciclo del runtime ridisegna ogni due secondi e prima quella
+  ricostruzione avrebbe strappato via il cursore sotto il dito.
+- Durante il trascinamento la lampada riceve un comando ogni 320 ms e il valore
+  esatto al rilascio, invece di una chiamata per pixel.
+
 ## 1.0.0-beta.30.7 — 2026-08-17
 
 ### Aggiunto
