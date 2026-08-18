@@ -196,15 +196,21 @@ function installStyles() {
   `);
 }
 
-/* The legacy entry points that print the editor. Wrapping is attempted as early
- * as this module loads and again whenever the runtime announces itself, because
- * `wrapFunction` is a no-op until the legacy global exists: whichever happens
- * first, opening the editor or switching tab always schedules a pass.
+/* The legacy entry points that print the editor.
  *
- * The wrap used to be attached only on `legacy-ready`/`runtime-ready`, so an
- * editor opened before that event carried undecorated rows until the event
- * finally landed — visible as raw entity fields for a beat, and long enough to
- * be missed entirely under load. */
+ * Attached when this module loads, and again on the ready events for the
+ * opposite order — `wrapFunction` is a no-op while the legacy global is still
+ * undefined, so trying twice costs nothing.
+ *
+ * Attaching only inside the ready handlers, as before, meant never attaching at
+ * all whenever the bundle finished loading after the runtime had already
+ * announced itself: the handler simply never ran. The editor then printed rows
+ * that nothing scheduled a pass for, and they stayed raw entity fields until
+ * the next click. `editorSwitch` carried the markers of a dozen other owners
+ * and none of this one, which is what gave it away.
+ *
+ * Opening the editor is wrapped too, not just the tab switch: it is the moment
+ * the rows appear, so it is the moment they need decorating. */
 function bindLegacyEntryPoints() {
   wrapFunction("editorSwitch", "__dmEditorSlots_editorSwitch", schedule);
   wrapFunction("apriConfigEntita", "__dmEditorSlots_apriConfigEntita", schedule);

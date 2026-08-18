@@ -72,8 +72,12 @@ test("opening the editor decorates it, whatever the order the runtime loads in",
   assert.match(source, /wrapFunction\("apriConfigEntita", "__dmEditorSlots_apriConfigEntita", schedule\)/);
   assert.match(source, /wrapFunction\("editorSwitch", "__dmEditorSlots_editorSwitch", schedule\)/);
 
-  // Called from the ready handlers and once at install, not only from one.
+  /* Attached when the module loads AND on the ready events. Attaching only in
+   * the ready handlers meant never attaching at all when the bundle finished
+   * loading after the runtime had already announced itself — the handler never
+   * ran, and the editor printed rows nothing decorated. */
   const install = source.slice(source.indexOf("export function installEditorSlotsSection"));
   assert.equal((install.match(/bindLegacyEntryPoints\(\)/g) || []).length, 2);
+  assert.match(install, /addEventListener\?\.\(eventName, \(\) => \{\s*bindLegacyEntryPoints\(\);/);
 });
 
