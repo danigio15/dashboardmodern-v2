@@ -42,6 +42,7 @@ import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-secti
 import { installEvSection } from "./ev-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
 import { installEditorSlotsSection } from "./editor-slots-section.js";
+import { installConfigUniformitySection } from "./config-uniformity-section.js";
 import { installSolarThermalDesignSection } from "./solar-thermal-design-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { allStates, clean, english, section, wrapFunction } from "./shared.js";
@@ -650,6 +651,9 @@ export function installSectionRuntime() {
     installEditorContractsSection();
     // Readable entity rows for every section tab of the editor.
     installEditorSlotsSection();
+    // One section per tab, one switch, one save — installed after the editors
+    // that print those parts, so it reconciles what they left behind.
+    installConfigUniformitySection();
     installReportEditorSection();
     installShutterSection();
     installShutterSceneSection();

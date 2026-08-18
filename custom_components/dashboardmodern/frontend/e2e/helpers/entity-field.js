@@ -43,3 +43,14 @@ export async function showRawEntityFields(page) {
     return opened;
   });
 }
+
+/**
+ * Save the open tab through the one control the Configuration now offers.
+ *
+ * The per-panel save buttons stay in the document but are hidden behind the
+ * single "Salva sezione" footer, which presses them for the panels on screen —
+ * so pressing the footer is what a person does, and what these tests do.
+ */
+export async function saveSection(page) {
+  await page.locator("#ed-body [data-dm-save-all]").click();
+}

@@ -215,10 +215,29 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // The Config auto-detection adds two more of the same shape: the pure matcher
   // and the section that installs it over the vendored `edAutoRileva`, reusing
   // that index instead of building a second one.
+  // Beta 31 adds exactly one owner: the Configuration answers the same three
+  // questions the same way on every tab — one section per tab, one visibility
+  // switch, one save at the end — by reconciling what the tab renderers leave
+  // behind. It renders no section content and saves nothing itself.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 102, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 103, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
-  assert.doesNotMatch(combined, /setInterval\s*\(/);
+
+  /* No polling, with one declared exception.
+   *
+   * A camera thumbnail is a still picture: nothing in Home Assistant pushes a
+   * new one and the entity state does not change when the view does, so the
+   * only way to keep the wall live is to ask again. That timer is armed by the
+   * Sicurezza page being on screen and disarmed the moment it is not — it is
+   * the one interval production is allowed, and it is named here so a second
+   * one cannot arrive unnoticed. */
+  const intervals = [...graph.entries()].filter(([, source]) =>
+    /setInterval\s*(?:\?\.)?\s*\(/.test(source),
+  );
+  assert.deepEqual(
+    intervals.map(([file]) => path.relative(frontendRoot, file).replaceAll("\\", "/")).sort(),
+    ["src/sections/live-ui-section.js"],
+  );
 
   const observers = [...graph.entries()].filter(([, source]) => /new\s+(?:root\.)?MutationObserver\s*\(/.test(source));
   // Beta17 contributes one page-scoped observer so delayed legacy writes on

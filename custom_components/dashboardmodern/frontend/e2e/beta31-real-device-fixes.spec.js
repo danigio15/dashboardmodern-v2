@@ -222,7 +222,8 @@ test.describe("beta31", () => {
 
     await photos.locator('[data-ev-photo="idle"] input').fill("/local/auto.png");
     await photos.locator('[data-ev-photo="plugged"] input').fill("/local/auto-cavo.png");
-    await photos.locator("[data-ev-photos-save]").click();
+    // The panel save sits behind the tab's single save now.
+    await page.locator("#ed-body [data-dm-save-all]").click();
     await expect
       .poll(() =>
         page.evaluate(() => ({

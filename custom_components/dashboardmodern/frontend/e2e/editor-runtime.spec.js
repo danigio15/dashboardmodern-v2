@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { clickStableButton } from "./helpers/navigation.js";
-import { editEntityFieldByHand, showRawEntityFields } from "./helpers/entity-field.js";
+import { editEntityFieldByHand, saveSection, showRawEntityFields } from "./helpers/entity-field.js";
 
 async function disableSriForMockedExternalScripts(page) {
   // These E2E routes replace the pinned CDN files with deterministic stubs.
@@ -303,7 +303,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await housePower.fill("sensor.house_power");
     await housePower.blur();
     await expect(page.locator("[data-energy-actions]")).toHaveAttribute("data-state", "dirty");
-    await page.locator("[data-energy-save]").click();
+    await saveSection(page);
     await expect(page.locator("[data-energy-actions]")).toHaveAttribute("data-state", "success");
     await expect(page.locator('#ed-body[data-renderer="energy"]')).toBeVisible();
     await expect(
@@ -335,7 +335,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     // Saving goes through the canonical section, and the appliance is stored
     // inside the load that owns it.
-    await clickStableButton(page, page.locator("[data-dm-loads-save]"), testInfo);
+    await saveSection(page);
     await expect
       .poll(() =>
         page.evaluate(() =>
@@ -376,7 +376,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     // The entity row shows what is chosen and keeps the id behind the pencil.
     await showRawEntityFields(page);
     await firstReport.locator("[data-entity-field] input").first().fill("sensor.canonical_month");
-    await page.locator("[data-report-save]").click();
+    await saveSection(page);
     await expect(page.locator("[data-report-actions]")).toHaveAttribute("data-state", "success");
     await expect(page.locator('[data-energy-panel="report"]')).toBeVisible();
     // The popup mirror is derived from the loads on save: the appliance sits

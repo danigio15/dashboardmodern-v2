@@ -67,6 +67,23 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   quanto velocemente l'editor disegnava. Ora viene costruito solo quando la sua
   sezione esiste, e va lì.
 
+### Modificato
+
+- **La Configurazione si comporta allo stesso modo in ogni scheda.** Un audit
+  scheda per scheda contava le differenze: cinque schede non avevano nessun
+  pulsante di salvataggio (Temperatura, Tapparelle, Stanze, Luci, Avvisi),
+  Sicurezza ed EV ne avevano due in posti diversi, e in totale c'erano otto
+  diciture diverse per lo stesso gesto ("Salva sezione", "Salva Energia",
+  "Salva server", "Salva piscina", "Salva impostazioni", "Salva costi"…). Ora
+  ogni scheda ha **un solo 💾 Salva sezione, sempre in fondo**: preme lui i
+  salvataggi dei pannelli aperti, che restano i veri esecutori, e risponde con
+  lo stesso avviso di sempre. Il banner verde **"sezione visibile in dashboard"
+  è su ogni sezione** — c'era su nove schede e mancava da Temperatura — sempre
+  in cima e sempre con lo stesso interruttore del runtime. E ogni scheda
+  `Sezioni` portava con sé l'intero modulo: tredici fisarmoniche e 104 campi
+  entità, dodici sezioni nascoste ma ancora nel documento, che ogni decoratore
+  ripercorreva a ogni passata — ora una scheda contiene solo la propria sezione.
+
 ### Aggiunto
 
 - **Due foto dell'auto: cavo staccato e cavo attaccato.** Si caricano dalla
