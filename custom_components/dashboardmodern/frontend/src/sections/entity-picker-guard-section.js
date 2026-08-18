@@ -76,6 +76,22 @@ function choose(input) {
   }
 }
 
+// .dm-entity-picker-row is display:flex with min-width:0 children, so it must
+// only ever land on the little wrapper that holds the field and its button.
+// The Tapparelle, Telecamere and Irrigazione forms put fields directly inside
+// #ed-body, and flexing that laid the whole editor out as a row: the intro,
+// every configured row, the inputs and the add button each collapsed into a
+// column a few pixels wide, with the words broken one letter per line.
+const NEVER_A_PICKER_ROW = "#ed-body,.ed-body,.ed-shell,#editor-modal,#setup-wizard,.ed-list,.dm-section-dialog,body";
+
+function markPickerRow(parent) {
+  if (!parent || !["LABEL", "SPAN", "DIV"].includes(parent.tagName)) return;
+  if (parent.matches?.(NEVER_A_PICKER_ROW)) return;
+  // A wrapper that holds more than the one field is a container, not a row.
+  if (parent.querySelectorAll("input,select,textarea").length > 1) return;
+  parent.classList.add("dm-entity-picker-row");
+}
+
 function mountOne(input) {
   cleanupFalsePicker(input);
   if (!isEntityInput(input)) return false;
@@ -106,8 +122,7 @@ function mountOne(input) {
   button.type = "button";
   button.dataset.entityTarget = id;
   button.setAttribute("aria-label", button.getAttribute("aria-label") || `Seleziona entità per ${input.getAttribute("aria-label") || input.name || id}`);
-  const parent = input.parentElement;
-  if (parent && ["LABEL", "SPAN", "DIV"].includes(parent.tagName)) parent.classList.add("dm-entity-picker-row");
+  markPickerRow(input.parentElement);
   return true;
 }
 
@@ -115,6 +130,10 @@ export function reconcileEntityPickers(scope = doc) {
   if (!scope?.querySelectorAll) return 0;
   // Let the canonical renderer mount first. The guard only fills genuine gaps.
   try { root.DashboardModernModules?.render?.mountEntityPickers?.(scope); } catch (_error) {}
+  // Take the flex row back off any container an earlier release flexed.
+  for (const node of [scope, ...scope.querySelectorAll(NEVER_A_PICKER_ROW)]) {
+    node?.classList?.remove?.("dm-entity-picker-row");
+  }
   let count = 0;
   scope.querySelectorAll("input").forEach((input) => { if (mountOne(input)) count += 1; });
   return count;
