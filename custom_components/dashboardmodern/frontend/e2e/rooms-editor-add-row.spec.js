@@ -140,18 +140,22 @@ for (const variant of PRIMARY) {
     await expect(row).toBeVisible();
 
     const boxes = await row.evaluate((node) => {
-      const width = (el) => Math.round(el.getBoundingClientRect().width);
+      const width = (el) =>
+        el && getComputedStyle(el).display !== "none"
+          ? Math.round(el.getBoundingClientRect().width)
+          : 0;
       return {
         row: width(node),
         trigger: width(node.querySelector(".dm-beta5-room-icon-trigger")),
+        // Su schermo stretto il campo dell'icona non c'e': si sceglie con il
+        // pulsante accanto, e la riga porta solo il nome.
         icon: width(node.querySelector("#ed-room-icon")),
         name: width(node.querySelector("#ed-room-name")),
       };
     });
 
-    // The icon field is the fixed middle column, the name takes what is left.
-    expect(boxes.icon).toBeGreaterThan(100);
-    expect(boxes.name).toBeGreaterThan(boxes.row / 2);
+    if (boxes.icon) expect(boxes.icon, "the icon field fills its column").toBeGreaterThan(100);
+    expect(boxes.name, "the name field takes what is left").toBeGreaterThan(boxes.row / 2);
     // Nothing of the row is left unclaimed.
     expect(boxes.trigger + boxes.icon + boxes.name).toBeGreaterThan(boxes.row - 40);
   });

@@ -86,14 +86,16 @@ test("two cars keep their own photos", async ({ page }, testInfo) => {
   expect(result.afterBlank).toEqual({ idle: "/local/a-idle.png", plugged: "/local/a-plug.png" });
 });
 
-/* La foto resta quella scritta.
+/* Una foto non passa da una casella all'altra.
  *
- * Il disegno risolveva il percorso della foto attiva e lo riscriveva nella
- * configurazione, scegliendo la chiave in base al cavo: con la sola foto "col
- * cavo" impostata e il cavo staccato la riscriveva in quella "senza cavo", e
- * da li' le due diventavano la stessa da sole.
+ * Il disegno risolve il percorso della foto attiva e riscrive la forma buona
+ * nella configurazione, cosi' un percorso storto si corregge una volta sola.
+ * La chiave in cui finiva pero' la sceglieva il cavo: con la sola foto "col
+ * cavo" impostata e il cavo staccato la correzione finiva in quella "senza
+ * cavo", e da li' le due diventavano la stessa da sole. La correzione deve
+ * restare nella casella da cui il valore proviene.
  */
-test("il disegno non riscrive le foto configurate", async ({ page }, testInfo) => {
+test("il disegno non sposta la foto nell'altra casella", async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
   await page.waitForFunction(() => Boolean(window.cdEvCaptureProfile?.__dmEvSection), null, {
@@ -127,8 +129,16 @@ test("il disegno non riscrive le foto configurate", async ({ page }, testInfo) =
     "la passata che disegna la foto e' girata",
   ).toBe(true);
   const after = await page.evaluate(() => ({
-    idle: localStorage.getItem("cd_ev_image"),
-    plugged: localStorage.getItem("cd_ev_image_plugged"),
+    idle: JSON.parse(localStorage.getItem("cd_ev_image") || '""'),
+    plugged: JSON.parse(localStorage.getItem("cd_ev_image_plugged") || '""'),
   }));
-  expect(after, "la configurazione e' quella che l'utente ha scritto").toEqual(before);
+  // La casella "senza cavo" era vuota e vuota resta: nessuno ci ha travasato
+  // la foto dell'altra.
+  expect(after.idle, "la foto senza cavo resta vuota").toBe("");
+  // Quella "col cavo" indica ancora la stessa immagine — al piu' scritta nella
+  // forma che il browser sa servire.
+  expect(after.plugged, "la foto col cavo indica ancora quell'immagine").toMatch(
+    /solo-col-cavo\.png$/,
+  );
+  expect(before.plugged, "la prova parte dalla foto scritta a mano").toContain("solo-col-cavo");
 });

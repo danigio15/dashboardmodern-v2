@@ -79,15 +79,6 @@ const PAGES = Object.freeze([
     fold: ".dm-appl-brand",
   },
   {
-    id: "page-server",
-    tint: ["6,182,212", "99,102,241"],
-    it: ["MiniPC Server", "Home Assistant · Sistema core · Risorse"],
-    en: ["MiniPC Server", "Home Assistant · Core system · Resources"],
-    // The hero keeps its live "online" pill and its metrics; only the name it
-    // used to print for itself is folded away.
-    fold: ".srv-hero-brand",
-  },
-  {
     id: "page-security",
     tint: ["190,18,60", "249,115,22"],
     it: ["Sistema di sicurezza", "Antifurto · Telecamere · Aperture"],
@@ -111,6 +102,11 @@ const PAGES = Object.freeze([
     tint: ["14,165,233", "99,102,241"],
     it: ["MiniPC Server", "Home Assistant · Sistema core"],
     en: ["MiniPC Server", "Home Assistant · Core system"],
+    // La fascia tiene la sua pastiglia "online" e le sue misure: si ripiega
+    // solo il nome che la pagina stampava per conto suo.
+    // Il MiniPC compariva due volte in questo elenco, con due tinte e due
+    // sottotitoli diversi: l'ultimo vinceva a ogni passata e il primo non si
+    // e' mai visto. Resta quello che si vedeva.
     fold: ".srv-hero-brand",
   },
 ]);
@@ -159,7 +155,29 @@ function mountFor(host) {
     tallest = height;
     best = wrapper;
   }
-  return best || host;
+  return best || soleContentWrapper(host) || host;
+}
+
+/* Quando il contenuto della pagina e' tutto in un blocco solo.
+ *
+ * Alcune pagine non marcano il contenitore in alcun modo riconoscibile: Clima
+ * tiene tutto dentro un unico riquadro che si stringe da se', e l'intestazione
+ * restava larga quanto la scheda mentre cio' che introduceva era piu' stretto
+ * di quasi duecento pixel. Se sotto l'intestazione c'e' un solo blocco che si
+ * vede, ed e' piu' stretto della pagina, quello e' il contenuto e l'apertura e'
+ * la sua. Se i blocchi sono piu' d'uno la pagina si impagina da sola e
+ * l'intestazione resta dov'e'. */
+function soleContentWrapper(host) {
+  let only = null;
+  for (const child of host.children) {
+    if (child.classList?.contains("dm-page-mast")) continue;
+    if (!child.getClientRects().length) continue;
+    if (only) return null;
+    only = child;
+  }
+  if (!only) return null;
+  const width = only.getBoundingClientRect().width;
+  return width > 0 && host.getBoundingClientRect().width - width > 3 ? only : null;
 }
 
 function foldForeignBackButtons(host) {

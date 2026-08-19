@@ -113,16 +113,26 @@ export function applyVehicleAsset() {
   const plugged = vehiclePlugged();
   const original = activeVehiclePhoto(photos, plugged);
   const url = resolveVehicleAsset(original);
-  /* Quello che l'utente ha scritto resta come l'ha scritto.
+  /* La correzione torna solo dov'era il valore corretto.
    *
-   * Qui la foto risolta veniva riscritta nella configurazione, e la chiave in
-   * cui finiva la sceglieva il cavo: con la sola foto "col cavo" impostata e il
-   * cavo staccato, la foto attiva veniva da quella chiave ma veniva riscritta
-   * in quella "senza cavo". Da li' le due foto diventavano la stessa, da sole,
-   * poco dopo averle inserite — e con due profili la stessa coppia finiva su
-   * entrambe le auto. Risolvere un percorso serve a disegnare l'immagine, non a
-   * cambiare la configurazione: la risoluzione resta qui e non torna nel
-   * deposito. */
+   * Un percorso scritto a mano puo' arrivare storto — "/loca/..." invece di
+   * "/local/...", o il percorso su disco invece di quello che il browser sa
+   * servire — e riscriverlo nella sua forma buona evita di ripetere la
+   * correzione a ogni disegno. La chiave in cui finiva pero' la sceglieva il
+   * cavo: con la sola foto "col cavo" impostata e il cavo staccato, la foto
+   * attiva veniva da quella chiave ma veniva riscritta in quella "senza cavo".
+   * Da li' le due foto diventavano la stessa, da sole, poco dopo averle
+   * inserite — e con due profili la stessa coppia finiva su entrambe le auto.
+   *
+   * La correzione va adesso nelle caselle che quel valore lo contengono
+   * davvero, e in nessun'altra: una foto non puo' piu' passare da una casella
+   * all'altra da sola. */
+  if (url && clean(original) && clean(original) !== url) {
+    for (const [name, key] of Object.entries(EV_PHOTO_KEYS)) {
+      if (clean(photos[name]) !== clean(original)) continue;
+      root.localStorage?.setItem(key, JSON.stringify(url));
+    }
+  }
   state.lastUrl = url;
   let mounted = false;
   for (const id of ["ev-mod-car-img", "ev-new-car-img"]) {
