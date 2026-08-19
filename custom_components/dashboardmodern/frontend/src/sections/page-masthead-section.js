@@ -20,7 +20,7 @@ import { clean, doc, english, esc, installStyle, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_PAGE_MASTHEAD__";
 const STYLE_ID = "dm-page-masthead-style";
-const state = (root[KEY] ||= { installed: false, frame: 0 });
+const state = (root[KEY] ||= { installed: false, frame: 0, seeded: false, mastheads: {} });
 
 /* The pages of the dashboard, what each one is, and the two colours its
  * heading is drawn in — the first tints the sun disc and starts the title
@@ -143,7 +143,9 @@ function ensureMasthead(page) {
   const host = doc?.getElementById?.(page.id);
   if (!host) return false;
   const labels = labelsFor(page);
-  let mast = host.querySelector(":scope > .dm-page-mast, :scope .dm-page-mast");
+  let mast = state.mastheads?.[page.id];
+  if (mast && (!mast.isConnected || mast.parentElement !== host)) mast = null;
+  if (!mast) mast = host.querySelector(":scope > .dm-page-mast");
   if (!mast) {
     mast = doc.createElement("header");
     mast.className = "dm-page-mast";
@@ -155,7 +157,9 @@ function ensureMasthead(page) {
       `<h2 class="dm-page-mast-title">${esc(labels.title)}</h2>` +
       `<div class="dm-page-mast-sub">${esc(labels.subtitle)}</div>`;
     host.insertBefore(mast, host.firstChild);
+    (state.mastheads ||= {})[page.id] = mast;
   } else {
+    (state.mastheads ||= {})[page.id] = mast;
     const title = mast.querySelector(".dm-page-mast-title");
     const subtitle = mast.querySelector(".dm-page-mast-sub");
     if (title && clean(title.textContent) !== labels.title) title.textContent = labels.title;
@@ -173,9 +177,24 @@ function ensureMasthead(page) {
   return true;
 }
 
+/* The page on screen, and nothing else.
+ *
+ * Every pass used to walk all nine pages, and each one cost three full
+ * subtree scans — the heading, the back buttons, the legacy title. The eight
+ * pages that are display:none gain nothing from being scanned: the pass that
+ * follows a tab change reaches the one that comes up. The first pass still
+ * builds them all, so a page opened without a click already has its heading. */
+function pagesToRender() {
+  if (!state.seeded) return PAGES;
+  const active = doc?.querySelector?.(".page.active");
+  const page = active?.id ? PAGES.find((candidate) => candidate.id === active.id) : null;
+  return page ? [page] : [];
+}
+
 export function renderPageMastheads() {
   if (!doc) return false;
-  for (const page of PAGES) ensureMasthead(page);
+  for (const page of pagesToRender()) ensureMasthead(page);
+  state.seeded = true;
   return true;
 }
 
