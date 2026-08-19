@@ -4,7 +4,7 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## Non rilasciato
+## 1.0.0-beta.31.1 — 2026-08-19
 
 ### Corretto
 
