@@ -26,7 +26,7 @@
  * an entity already in `_RAW_STATES`.
  */
 import { isRetiredEditorSlot } from "../core/editor-slots.js";
-import { clean, doc, root, installStyle, t, wrapFunction } from "./shared.js";
+import { clean, doc, esc, installStyle, root, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EDITOR_SLOTS__";
 const STYLE_ID = "dm-editor-slots-style";
@@ -219,19 +219,41 @@ const FIELD_CAPTIONS = Object.freeze({
  * la cima. Il riferimento resta quello che e', cambia solo cio' che si legge.
  */
 const SLOT_LABELS = Object.freeze({
-  "dm.boiler_sonda_temperatura_1": ["Sonda pannello solare (°C)", "Solar collector probe (°C)"],
-  "dm.boiler_sonda_temperatura_2": ["Sonda accumulo basso (°C)", "Tank bottom probe (°C)"],
-  "dm.boiler_sonda_temperatura_3": ["Sonda accumulo alto (°C)", "Tank top probe (°C)"],
+  "dm.boiler_sonda_temperatura_1": [
+    "Sonda pannello solare (°C)",
+    "Solar collector probe (°C)",
+    "Sonda temperatura 1 (°C)",
+  ],
+  "dm.boiler_sonda_temperatura_2": [
+    "Sonda accumulo basso (°C)",
+    "Tank bottom probe (°C)",
+    "Sonda temperatura 2 (°C)",
+  ],
+  "dm.boiler_sonda_temperatura_3": [
+    "Sonda accumulo alto (°C)",
+    "Tank top probe (°C)",
+    "Sonda temperatura 3 (°C)",
+  ],
 });
 
-/* L'etichetta di una riga che l'utente puo' rinominare resta sua: qui si
- * riscrive solo il testo che il runtime stampa da se'. */
+/* L'etichetta di una riga che l'utente ha rinominato resta sua.
+ *
+ * Queste righe si possono rinominare, quindi il nome sta in un campo e non in
+ * un testo: si riscrive solo finche' porta ancora il nome di fabbrica, quello
+ * che il runtime stampa da se'. Chi l'ha cambiato se lo tiene. */
 function relabelSlot(slot, input) {
   const known = SLOT_LABELS[clean(input?.dataset?.ref)];
   if (!known) return;
   const label = slot.querySelector(".ed-slot-lbl");
-  if (!label || label.querySelector("input,select,textarea")) return;
+  if (!label) return;
   const text = t(known[0], known[1]);
+  const field = label.querySelector("input,textarea");
+  if (field) {
+    if (clean(field.value) !== clean(known[2])) return;
+    if (field.value !== text) field.value = text;
+    return;
+  }
+  if (label.querySelector("select")) return;
   if (clean(label.textContent) !== text) label.textContent = text;
 }
 
@@ -334,11 +356,11 @@ const CHIP_LAYOUT = Object.freeze([
 ]);
 const MANUAL_LAYOUT = Object.freeze([
   ["order", "2"],
-  ["flex", "0 0 36px"],
+  ["flex", "0 0 auto"],
   ["grid-column", "auto"],
-  ["width", "36px"],
+  ["width", "auto"],
   ["min-width", "36px"],
-  ["max-width", "36px"],
+  ["max-width", "none"],
   ["height", "36px"],
 ]);
 const CAPTION_LAYOUT = Object.freeze([
@@ -384,6 +406,9 @@ function paintFieldChip(host) {
   // identical content would quietly cost the user the value being typed.
   const mapped = value ? "mapped" : "empty";
   if (host.dataset.dmSlot !== mapped) host.dataset.dmSlot = mapped;
+  // Non si toglie quello che non c'e'.
+  const clearButton = host.querySelector(":scope > .dm-chip-clear");
+  if (clearButton) clearButton.hidden = !value;
   const name = chip.querySelector("[data-chip-name]");
   const id = chip.querySelector("[data-chip-id]");
   if (!name || !id) return;
@@ -427,12 +452,32 @@ function decorateField(input) {
   lens.classList.add("dm-slot-chip");
   lens.innerHTML = chipMarkup();
 
+  /* La matita da sola non diceva a cosa serviva.
+   *
+   * Chi arrivava su un campo gia' compilato non aveva modo di sapere che quel
+   * pulsante apre l'id da scrivere a mano, ne' come si toglie un'entita'
+   * sbagliata. Adesso i due comandi sono scritti: si modifica a mano, oppure si
+   * svuota il campo. Il secondo compare solo quando c'e' qualcosa da togliere. */
   const manual = doc.createElement("button");
   manual.type = "button";
   manual.className = "dm-chip-manual";
-  manual.textContent = "✏️";
+  manual.innerHTML = `<span aria-hidden="true">✏️</span><span class="dm-chip-manual-tx">${esc(t("Modifica", "Edit"))}</span>`;
   manual.setAttribute("aria-label", t("Modifica manuale", "Edit by hand"));
   manual.setAttribute("aria-pressed", "false");
+
+  const clearField = doc.createElement("button");
+  clearField.type = "button";
+  clearField.className = "dm-chip-clear";
+  clearField.innerHTML = `<span aria-hidden="true">🗑</span><span class="dm-chip-manual-tx">${esc(t("Elimina", "Remove"))}</span>`;
+  clearField.setAttribute("aria-label", t("Togli l'entità da questo campo", "Remove the entity from this field"));
+  clearField.addEventListener("click", (event) => {
+    event.preventDefault();
+    if (!clean(input.value)) return;
+    input.value = "";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    paintFieldChip(host);
+  });
   manual.addEventListener("click", (event) => {
     event.preventDefault();
     const on = host.dataset.dmEntityRaw !== "true";
@@ -443,6 +488,7 @@ function decorateField(input) {
   // After the lens, never between the field and the lens: that pair is a
   // contract every other owner of these forms reconciles.
   lens.insertAdjacentElement("afterend", manual);
+  manual.insertAdjacentElement("afterend", clearField);
 
   // After the form's own change handlers, never during them.
   input.addEventListener("change", () => {
@@ -613,6 +659,30 @@ function installStyles() {
    in the dark editor, the same as the label itself. */
 #editor-modal[data-dm-editor-theme="dark"] .dm-chip-caption{
   color:var(--text-dim,#92a4c2)!important
+}
+/* I due comandi del campo, scritti. La matita da sola non diceva a cosa
+   serviva, e non c'era modo di capire come si toglie un'entita' sbagliata. */
+[data-dm-entity-chip="true"] .dm-chip-manual,
+[data-dm-entity-chip="true"] .dm-chip-clear{
+  display:inline-flex!important;align-items:center!important;gap:5px!important;
+  padding:0 10px!important;border-radius:999px!important;
+  font-size:11.5px!important;font-weight:800!important;line-height:1!important;
+  white-space:nowrap!important;cursor:pointer!important
+}
+[data-dm-entity-chip="true"] .dm-chip-clear{
+  order:2!important;flex:0 0 auto!important;height:36px!important;
+  border:1px solid var(--divider-color,#dbe4ee)!important;background:transparent!important;
+  color:var(--secondary-text-color,#64748b)!important
+}
+[data-dm-entity-chip="true"] .dm-chip-clear[hidden]{display:none!important}
+[data-dm-entity-chip="true"] .dm-chip-clear:hover{
+  border-color:var(--error-color,#dc2626)!important;color:var(--error-color,#dc2626)!important
+}
+/* Il testo resta anche stretto: e' sul telefono che la matita da sola non si
+   capiva, quindi nasconderlo li' sarebbe stato togliere proprio la risposta. */
+@media(max-width:520px){
+  [data-dm-entity-chip="true"] .dm-chip-manual,
+  [data-dm-entity-chip="true"] .dm-chip-clear{padding:0 8px!important;font-size:11px!important}
 }
 [data-dm-entity-chip="true"] .dm-chip-manual{
   order:2!important;flex:0 0 36px!important;width:36px!important;min-width:36px!important;
