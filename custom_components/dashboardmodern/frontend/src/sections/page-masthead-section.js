@@ -220,21 +220,11 @@ function installStyles() {
       border:1px solid var(--divider-color,rgba(15,23,42,.10))!important;
       background:
         radial-gradient(130% 190% at 88% -60%, rgba(var(--dm-mast-a,249,115,22),.20), transparent 58%),
-        radial-gradient(95% 150% at 2% 130%, rgba(var(--dm-mast-b,14,165,233),.15), transparent 60%),
         var(--ha-card-background,var(--card-bg,#fff))!important;
       box-shadow:0 18px 44px rgba(15,23,42,.08), 0 2px 6px rgba(15,23,42,.04)!important;
       overflow:hidden!important
     }
     html[data-theme="dark"] .dm-page-mast{box-shadow:0 18px 44px rgba(0,0,0,.42)!important}
-    /* Decorative disc; purely ornamental so it stays out of the a11y tree. */
-    .dm-page-mast::before{
-      content:""!important;position:absolute!important;top:-96px!important;right:-56px!important;
-      width:230px!important;height:230px!important;border-radius:50%!important;
-      background:radial-gradient(circle at 42% 58%,
-        rgba(var(--dm-mast-a,249,115,22),.34),
-        rgba(var(--dm-mast-a,249,115,22),.12) 54%, transparent 74%)!important;
-      pointer-events:none!important
-    }
     .dm-page-mast::after{
       content:""!important;position:absolute!important;inset:auto 0 0 0!important;height:2px!important;
       background:linear-gradient(90deg,
@@ -258,11 +248,7 @@ function installStyles() {
       font-family:'Oswald',system-ui,sans-serif!important;font-weight:700!important;
       font-size:clamp(21px,3.3vw,34px)!important;line-height:1.1!important;
       letter-spacing:2px!important;text-transform:uppercase!important;text-align:left!important;
-      background:linear-gradient(100deg,
-        rgb(var(--dm-mast-a,249,115,22)),
-        rgb(var(--dm-mast-b,14,165,233)) 105%)!important;
-      -webkit-background-clip:text!important;background-clip:text!important;
-      -webkit-text-fill-color:transparent!important;color:transparent!important
+      color:rgb(var(--dm-mast-a,249,115,22))!important
     }
     .dm-page-mast-sub{
       position:relative!important;margin-top:7px!important;font-size:11px!important;
