@@ -208,38 +208,48 @@ test("an alert animates the way its own alert behaves", async ({ page }, testInf
       }),
     );
   });
-  await page.waitForFunction(
-    () =>
-      [...document.querySelectorAll("#page-home .glance-card .g-icon-wrap")].some(
-        (w) => w.dataset.dmAlertMotion === "door",
-      ),
-    null,
-    { timeout: 8000 },
-  );
-  const cards = await page.evaluate(() =>
-    [...document.querySelectorAll("#page-home .glance-card")].map((card) => {
-      const wrap = card.querySelector(".g-icon-wrap");
-      const glyph = wrap?.querySelector(".dm-alert-glyph");
-      return {
-        name: card.querySelector(".g-name")?.textContent?.trim(),
-        motion: wrap?.dataset.dmAlertMotion || "",
-        animation: glyph ? getComputedStyle(glyph).animationName : "",
-        wrapAnimation: wrap ? getComputedStyle(wrap).animationName : "",
-      };
-    }),
-  );
-  const byName = (needle) => cards.find((card) => new RegExp(needle, "i").test(card.name || ""));
-  expect(byName("Porta ingresso")).toMatchObject({ motion: "door", animation: "dmAlertDoor" });
-  expect(byName("Batteria scarica")).toMatchObject({
-    motion: "battery",
-    animation: "dmAlertBattery",
-  });
-  expect(byName("Perdita acqua")).toMatchObject({ motion: "leak", animation: "dmAlertDrip" });
-  expect(byName("Movimento giardino")).toMatchObject({
-    motion: "motion",
-    animation: "dmAlertStep",
-  });
+  /* The alert panel redraws itself whenever its signature changes, and a redraw
+   * replaces the icon discs — so reading them once, however long the wait
+   * before it, can land between the redraw and the pass that animates them.
+   * The whole reading is polled instead: a redraw mid-flight is simply read
+   * again, and a build that never settles still fails, at the timeout. */
+  const readCards = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll("#page-home .glance-card")].map((card) => {
+        const wrap = card.querySelector(".g-icon-wrap");
+        const glyph = wrap?.querySelector(".dm-alert-glyph");
+        return {
+          name: card.querySelector(".g-name")?.textContent?.trim(),
+          motion: wrap?.dataset.dmAlertMotion || "",
+          animation: glyph ? getComputedStyle(glyph).animationName : "",
+          wrapAnimation: wrap ? getComputedStyle(wrap).animationName : "",
+        };
+      }),
+    );
+  const motions = async () => {
+    const cards = await readCards();
+    const byName = (needle) => cards.find((card) => new RegExp(needle, "i").test(card.name || ""));
+    const pick = (needle) => {
+      const card = byName(needle);
+      return card ? { motion: card.motion, animation: card.animation } : null;
+    };
+    return {
+      door: pick("Porta ingresso"),
+      battery: pick("Batteria scarica"),
+      leak: pick("Perdita acqua"),
+      motion: pick("Movimento giardino"),
+    };
+  };
+  await expect
+    .poll(motions, { message: "each alert moves the way its own alert behaves", timeout: 15_000 })
+    .toEqual({
+      door: { motion: "door", animation: "dmAlertDoor" },
+      battery: { motion: "battery", animation: "dmAlertBattery" },
+      leak: { motion: "leak", animation: "dmAlertDrip" },
+      motion: { motion: "motion", animation: "dmAlertStep" },
+    });
   // The disc itself never moves; only the glyph inside it does.
+  const cards = await readCards();
   for (const card of cards.filter((entry) => entry.motion)) {
     expect(card.wrapAnimation, `${card.name} disc stays still`).toBe("none");
   }

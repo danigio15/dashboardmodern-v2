@@ -230,14 +230,40 @@ function captionFor(input) {
   return "";
 }
 
+/* Whether a row prints its own name, said on the row itself.
+ *
+ * The rules that lay out a row without a name would otherwise have to ask
+ * `:has()`, and a `:has()` rule over the editor is re-evaluated on every change
+ * inside it — which, in the editor, is constantly. The row is already touched
+ * when it is built, so saying it there costs one attribute and nothing after. */
+function markCaption(host, has) {
+  const value = has ? "true" : "false";
+  if (host.dataset.dmChipCaption !== value) host.dataset.dmChipCaption = value;
+}
+
+/* Where the form prints the name itself, the form's label is the card. Marked
+ * on that element for the same reason. */
+function markCardOwner(host) {
+  const slot = host.closest(".ed-slot");
+  if (!slot || slot.hasAttribute("data-load-group") || slot.closest("[data-load-form]")) return;
+  if (!slot.querySelector(":scope > .ed-slot-lbl")) return;
+  const value = host.dataset.dmSlot === "mapped" ? "mapped" : "empty";
+  if (slot.dataset.dmEntityCard !== value) slot.dataset.dmEntityCard = value;
+}
+
 function ensureFieldCaption(host, input) {
   const existing = host.querySelector(":scope > .dm-chip-caption");
   if (fieldAlreadyLabelled(input)) {
     existing?.remove();
+    markCaption(host, false);
     return;
   }
   const text = captionFor(input);
-  if (!text) return;
+  if (!text) {
+    markCaption(host, Boolean(existing));
+    return;
+  }
+  markCaption(host, true);
   const caption = existing || doc.createElement("span");
   if (!existing) {
     caption.className = "dm-chip-caption";
@@ -340,6 +366,7 @@ function paintFieldChip(host) {
   const idText = value && label ? value : "";
   if (name.textContent !== nameText) name.textContent = nameText;
   if (id.textContent !== idText) id.textContent = idText;
+  markCardOwner(host);
   const fieldName =
     clean(
       input.closest(".ed-slot,[data-entity-field]")?.querySelector(".ed-slot-lbl")?.textContent,
@@ -579,8 +606,8 @@ function installStyles() {
 /* A field whose form already prints its own label has no caption of its own:
    there the pencil shares the line with the picker instead of heading a line
    nothing else is on. */
-[data-dm-entity-chip="true"]:not(:has(>.dm-chip-caption)) .dm-chip-manual{order:3!important}
-[data-dm-entity-chip="true"]:not(:has(>.dm-chip-caption))>.dm-entity-picker.dm-slot-chip{
+[data-dm-entity-chip="true"][data-dm-chip-caption="false"] .dm-chip-manual{order:3!important}
+[data-dm-entity-chip="true"][data-dm-chip-caption="false"]>.dm-entity-picker.dm-slot-chip{
   flex:1 1 auto!important
 }
 [data-dm-entity-chip="true"]:not([data-dm-entity-raw="true"])>.dm-chip-raw{display:none!important}
@@ -615,8 +642,8 @@ function installStyles() {
   order:2!important;flex:0 0 36px!important;width:36px!important;min-width:36px!important;
   max-width:36px!important;height:36px!important;border:0!important;background:transparent!important
 }
-#ed-body#ed-body [data-dm-entity-chip="true"]:not(:has(>.dm-chip-caption)) .dm-chip-manual{order:3!important}
-#ed-body#ed-body [data-dm-entity-chip="true"]:not(:has(>.dm-chip-caption))>.dm-entity-picker.dm-slot-chip{
+#ed-body#ed-body [data-dm-entity-chip="true"][data-dm-chip-caption="false"] .dm-chip-manual{order:3!important}
+#ed-body#ed-body [data-dm-entity-chip="true"][data-dm-chip-caption="false"]>.dm-entity-picker.dm-slot-chip{
   flex:1 1 auto!important;width:auto!important
 }
 #ed-body#ed-body [data-dm-entity-chip="true"]:not([data-dm-entity-raw="true"])>.dm-chip-raw{display:none!important}
@@ -629,31 +656,34 @@ function installStyles() {
  * the card and the row inside it stops drawing a second one, so a field named
  * by its form and a field named by this module end up the same object. The
  * loads editor is left out: it groups its slots into coloured panels of its
- * own, and a card inside each one would be a box in a box. */
-#ed-body#ed-body .ed-slot:not([data-load-group]):has(>[data-dm-entity-chip="true"]){
+ * own, and a card inside each one would be a box in a box.
+ *
+ * Which rows those are is written on them by markCardOwner, not asked for with
+ * a :has() rule — see the note above it. */
+#ed-body#ed-body .ed-slot[data-dm-entity-card]{
   display:grid!important;gap:6px!important;box-sizing:border-box!important;min-width:0!important;
   margin:0 0 8px!important;padding:11px 13px!important;
   border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;
   background:var(--card-background-color,#fff)!important
 }
-#ed-body#ed-body .ed-slot:not([data-load-group]):has(>[data-dm-entity-chip="true"][data-dm-slot="mapped"]){
+#ed-body#ed-body .ed-slot[data-dm-entity-card="mapped"]{
   border-color:color-mix(in srgb,#16a34a 30%,var(--divider-color,#dbe4ee))!important
 }
 /* The colour is deliberately absent: the label is the form's, and the dark
    editor gives it a dimmer ink than the body text. Only the shape is stated
    here. */
-#ed-body#ed-body .ed-slot:not([data-load-group]):has(>[data-dm-entity-chip="true"])>.ed-slot-lbl{
+#ed-body#ed-body .ed-slot[data-dm-entity-card]>.ed-slot-lbl{
   display:flex!important;align-items:center!important;gap:8px!important;margin:0!important;
   font-size:13px!important;font-weight:800!important;line-height:1.25!important
 }
-#ed-body#ed-body .ed-slot:not([data-load-group]):has(>[data-dm-entity-chip="true"])>.ed-slot-lbl::before{
+#ed-body#ed-body .ed-slot[data-dm-entity-card]>.ed-slot-lbl::before{
   content:"";width:7px;height:7px;border-radius:50%;flex:0 0 7px;
   background:var(--divider-color,#cbd5e1)
 }
-#ed-body#ed-body .ed-slot:not([data-load-group]):has(>[data-dm-entity-chip="true"][data-dm-slot="mapped"])>.ed-slot-lbl::before{
+#ed-body#ed-body .ed-slot[data-dm-entity-card="mapped"]>.ed-slot-lbl::before{
   background:#16a34a
 }
-#ed-body#ed-body .ed-slot:not([data-load-group])>[data-dm-entity-chip="true"]{
+#ed-body#ed-body .ed-slot[data-dm-entity-card]>[data-dm-entity-chip="true"]{
   margin:0!important;padding:0!important;border:0!important;background:transparent!important
 }
 
