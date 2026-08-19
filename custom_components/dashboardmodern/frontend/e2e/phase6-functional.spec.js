@@ -1,6 +1,7 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootConsolidatedDashboard } from "./helpers/consolidated-runtime.js";
+import { editEntityFieldByHand } from "./helpers/entity-field.js";
 
 for (const variant of ["dashboard.html", "dashboard-en.html"]) {
   test(`${variant}: Phase 6 Energy, appliances and mobile layout`, async ({ page }, testInfo) => {
@@ -76,6 +77,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.evaluate(() => window.editorSwitch("appliances"));
     await expect(page.locator("#appl-name")).toBeVisible();
     await expect(page.locator("#appl-room")).toBeVisible();
+    // The entity field is one readable row now; the pencil brings the id back.
+    await expect(page.locator("#appl-ent ~ .dm-entity-picker.dm-slot-chip")).toBeVisible();
+    await editEntityFieldByHand(page, "#appl-ent");
     await expect(page.locator("#appl-ent")).toBeVisible();
     if (testInfo.project.name === "mobile") {
       const applianceEditorGeometry = await page.evaluate(() => {

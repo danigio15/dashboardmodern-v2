@@ -10,6 +10,8 @@
 import { createBridgeSocket } from "./bridge-socket.js";
 
 export const HOST_KEY = "__DASHBOARDMODERN_HOST__";
+/* Marker on the one message the hosted document is allowed to send its host. */
+export const HOST_MESSAGE_SOURCE = "dashboardmodern-host";
 export const LEGACY_FRAME_PERMISSIONS =
   "autoplay; fullscreen; picture-in-picture; encrypted-media";
 export const LEGACY_VARIANTS = Object.freeze({ it: "dashboard.html", en: "dashboard-en.html" });
@@ -32,6 +34,13 @@ function injectHostedPrelude(html, { baseUrl, instanceId, primary, configProfile
     window.__DASHBOARDMODERN_PRIMARY__=${primary !== false};
     window.__DASHBOARDMODERN_HOSTED__=true;
     window.__DASHBOARDMODERN_BRIDGED__=typeof bridge==='function';
+    /* The document lives at about:srcdoc, where location.reload() lands on a
+       blank page in the Home Assistant WebView. Anything that needs a fresh
+       dashboard asks the host to build one instead. The message carries no
+       data: the host only accepts it from this frame. */
+    window.__DASHBOARDMODERN_RELOAD__=function(){
+      try{ if(!p||p===window) return false; p.postMessage({source:'dashboardmodern-host',action:'reload'},'*'); return true; }catch(_e){ return false; }
+    };
     try{delete window.__DASHBOARDMODERN_REAL_TOKEN__;delete window.DASHBOARDMODERN_AUTH_TOKEN;delete window.LONG_LIVED_TOKEN;delete window.HA_TOKEN;}catch(_e){}
     if(typeof bridge==='function'){
       window.__DASHBOARDMODERN_BRIDGE_WS__=bridge;
@@ -165,7 +174,6 @@ export function mountLegacyHost(
     if (typeof frame.clientHeight === "number" && frame.clientHeight <= 0) frame.style.height = "100dvh";
   };
 
-  frame.addEventListener?.("load", install);
   container.replaceChildren(frame);
   install();
   ensureHeight();
@@ -177,18 +185,82 @@ export function mountLegacyHost(
       : async () => ({ ok: true, status: 200, text: async () => "<!doctype html><html><head></head><body></body></html>" });
   if (typeof loader !== "function") throw new Error("A fetch implementation is required.");
 
-  const ready = loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, fetchRef: loader, hostWindow }).catch((error) => {
-    console.error("[DashboardModern] hosted document bootstrap failed", error);
-    frame.srcdoc = `<main role="alert" style="padding:24px;font:16px sans-serif">DashboardModern: ${escapeAttribute(error.message)}</main>`;
-    return false;
-  });
+  const boot = () =>
+    loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, fetchRef: loader, hostWindow }).catch((error) => {
+      console.error("[DashboardModern] hosted document bootstrap failed", error);
+      frame.srcdoc = `<main role="alert" style="padding:24px;font:16px sans-serif">DashboardModern: ${escapeAttribute(error.message)}</main>`;
+      return false;
+    });
+
+  /* Reloading the dashboard.
+   *
+   * The dashboard document is handed to the frame through `srcdoc`, so its URL
+   * is `about:srcdoc`. Reloading that from the inside — which is what "reset
+   * the configuration" and "apply the auto-detection" both end with — lands on
+   * an empty document in the Home Assistant WebView: the plancia goes white and
+   * never comes back. The child asks for the reload instead, and the document
+   * is built again from here, exactly the way it was built the first time.
+   *
+   * The same rebuild also runs whenever the frame reports a load that left no
+   * document behind, which covers the reloads this host never hears about. */
+  let rebooting = false;
+  let booted = false;
+  const reboot = () => {
+    if (rebooting) return false;
+    rebooting = true;
+    Promise.resolve(boot()).finally(() => {
+      rebooting = false;
+    });
+    return true;
+  };
+
+  const lostItsDocument = () => {
+    try {
+      const childDocument = frame.contentDocument;
+      if (!childDocument) return false;
+      // A dashboard document always has a body with content in it. An
+      // about:blank replacement has an empty body and no dashboard marker.
+      return Boolean(
+        childDocument.body &&
+          !childDocument.body.firstElementChild &&
+          !frame.contentWindow?.__DASHBOARDMODERN_STORAGE_NS__,
+      );
+    } catch (_error) {
+      return false;
+    }
+  };
+
+  const onFrameLoad = () => {
+    install();
+    if (rebooting) return;
+    // The frame's first load is the empty document it is created with, before
+    // this host has written anything into it: that one is not a loss.
+    if (!lostItsDocument()) {
+      booted = true;
+      return;
+    }
+    if (booted) reboot();
+  };
+  frame.addEventListener?.("load", onFrameLoad);
+
+  const onChildMessage = (event) => {
+    if (event.source !== frame.contentWindow) return;
+    const data = event.data;
+    if (data?.source !== HOST_MESSAGE_SOURCE || data?.action !== "reload") return;
+    reboot();
+  };
+  hostWindow.addEventListener?.("message", onChildMessage);
+
+  const ready = boot();
 
   return {
     frame,
     ready,
     install,
     ensureHeight,
+    reboot,
     destroy() {
+      hostWindow.removeEventListener?.("message", onChildMessage);
       frame.remove();
       delete hostWindow[HOST_KEY];
       delete hostWindow.__DASHBOARDMODERN_INSTANCE__;

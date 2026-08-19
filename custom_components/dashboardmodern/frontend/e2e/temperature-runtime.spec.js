@@ -2,6 +2,7 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { clickBottomTab } from "./helpers/navigation.js";
+import { editEntityFieldByHand, fillEntityFieldByHand } from "./helpers/entity-field.js";
 
 const states = [
   {
@@ -125,6 +126,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         }),
       ),
     ).toBe(true);
+    // The field itself lives behind the pencil now; the row that replaced the
+    // lens is what is on screen, and tapping the pencil brings the id back.
+    await expect(page.locator("#ed-pl-temp ~ .dm-entity-picker.dm-slot-chip")).toBeVisible();
+    await editEntityFieldByHand(page, "#ed-pl-temp");
     await expect(page.locator("#ed-pl-temp")).toBeVisible();
     for (let index = 0; index < 20; index++) await page.evaluate(() => editorSwitch("sez7"));
     expect(
@@ -162,7 +167,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       .locator("div[onclick]")
       .click();
     await page.locator("#dm-temperature-room").selectOption("room-kitchen");
-    await page.locator("#dm-humidity-new").fill("sensor.kitchen_humidity");
+    await fillEntityFieldByHand(page, "#dm-humidity-new", "sensor.kitchen_humidity");
     await page.locator("[data-temperature-submit]").click();
     await expect
       .poll(() =>

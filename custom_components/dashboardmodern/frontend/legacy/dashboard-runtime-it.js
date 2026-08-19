@@ -706,6 +706,19 @@ const GRUPPI_MONITORAGGIO = {
   'batt': [],
 };
 
+/* Beta 31: una lista di monitoraggio nasce da piu' sorgenti che possono nominare
+   la stessa entita' — le luci della scheda Luci finiscono anche in
+   cd_gruppi_extra.luci, che synchronizeLightAlerts tiene allineato — e
+   concatenarle senza filtro faceva comparire ogni luce due volte nel popup
+   LUCI ATTIVE e contarla due volte nel Quadro Avvisi, mentre in Configurazione
+   restava singola. Ogni aggiunta passa da qui: l'ordine resta quello di
+   costruzione, i doppioni non entrano. */
+function cdGruppoMerge(grp, ids) {
+  const target = GRUPPI_MONITORAGGIO[grp];
+  if (!Array.isArray(target) || !Array.isArray(ids)) return;
+  ids.forEach(id => { if (id && !target.includes(id)) target.push(id); });
+}
+
 /* ═══ v254: ESTENSIONI UTENTE (aggiunte da UI Configura Entità, solo admin) ═══
    - cd_subloads_extra: { "cucina": [{name, pwr, icon, bin?, pwrLive?}, ...], "lavanderia": [...] }
    - cd_gruppi_extra:   { "win": ["binary_sensor.x", ...], "batt": [...], "luci": [...] }
@@ -733,7 +746,7 @@ document.addEventListener('DOMContentLoaded', buildCustomLoadCards);
 try {
   const extGrp = cdCfg('cd_gruppi_extra');
   Object.entries(extGrp).forEach(([k, ids]) => {
-    if (GRUPPI_MONITORAGGIO[k] && Array.isArray(ids)) GRUPPI_MONITORAGGIO[k].push(...ids);
+    cdGruppoMerge(k, ids);
   });
 } catch(e) { console.warn('[Config Entità] gruppi_extra malformato:', e); }
 try {
@@ -746,7 +759,7 @@ try {
   const C = window.DASHBOARD_CONFIG || {};
   if (C.avvisi && typeof C.avvisi === 'object') {
     Object.entries(C.avvisi).forEach(([grp, ids]) => {
-      if (GRUPPI_MONITORAGGIO[grp] && Array.isArray(ids)) GRUPPI_MONITORAGGIO[grp].push(...ids);
+      cdGruppoMerge(grp, ids);
     });
   }
   if (C.avvisi_names && typeof C.avvisi_names === 'object') Object.assign(AVVISI_NAMES, C.avvisi_names);

@@ -215,17 +215,47 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // The Config auto-detection adds two more of the same shape: the pure matcher
   // and the section that installs it over the vendored `edAutoRileva`, reusing
   // that index instead of building a second one.
+  // The MiniPC redesign adds exactly one owner: the skin for #page-server. It
+  // turns the three load bars into ring gauges that read those same bars, moves
+  // the value nodes into the rings instead of copying them, mirrors the status
+  // wording the legacy loop writes and follows #waw-net-badge for connectivity.
+  // It reads no Home Assistant state, adds no polling and no observer, and never
+  // forces a display the auto-hide writes inline on an unmapped card.
+  // Beta 31 adds exactly one owner: the Configuration answers the same three
+  // questions the same way on every tab — one section per tab, one visibility
+  // switch, one save at the end — by reconciling what the tab renderers leave
+  // behind. It renders no section content and saves nothing itself.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 102, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 104, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
-  assert.doesNotMatch(combined, /setInterval\s*\(/);
+
+  /* No polling, with one declared exception.
+   *
+   * A camera thumbnail is a still picture: nothing in Home Assistant pushes a
+   * new one and the entity state does not change when the view does, so the
+   * only way to keep the wall live is to ask again. That timer is armed by the
+   * Sicurezza page being on screen and disarmed the moment it is not — it is
+   * the one interval production is allowed, and it is named here so a second
+   * one cannot arrive unnoticed. */
+  const intervals = [...graph.entries()].filter(([, source]) =>
+    /setInterval\s*(?:\?\.)?\s*\(/.test(source),
+  );
+  assert.deepEqual(
+    intervals.map(([file]) => path.relative(frontendRoot, file).replaceAll("\\", "/")).sort(),
+    ["src/sections/live-ui-section.js"],
+  );
 
   const observers = [...graph.entries()].filter(([, source]) => /new\s+(?:root\.)?MutationObserver\s*\(/.test(source));
   // Beta17 contributes one page-scoped observer so delayed legacy writes on
   // #page-temp cannot resurrect the progress placeholder. Beta24 may add one
   // node-scoped SOC observer. Beta26 adds one #temp-grid-scoped observer. The
-  // loop below still rejects observers rooted at document/body/documentElement.
-  assert.ok(observers.length <= 5, `too many production observers: ${observers.length}`);
+  // configuration uniformity owns one more, scoped to the children of #ed-body,
+  // so the section switch and the save stay in place when a tab's own panels
+  // arrive late. The MiniPC page owns one scoped to #page-server, so a heading
+  // follows the block the auto-hide empties — the auto-hide is called from
+  // inside the runtime, so there is no name to wrap. The loop below still
+  // rejects observers rooted at document/body/documentElement.
+  assert.ok(observers.length <= 7, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,

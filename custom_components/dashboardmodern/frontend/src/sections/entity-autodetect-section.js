@@ -37,7 +37,7 @@
 import { ENERGY_SLOT_MAP } from "../core/energy-projection.js";
 import { buildEntityIndex } from "../core/entity-search-index.js";
 import { buildPostings, detectCategories, detectSlots, parseSlotPlan } from "../core/entity-autodetect.js";
-import { allStates, clean, dashboardStore, doc, installStyle, lexicalGlobal, readJson, root, t } from "./shared.js";
+import { allStates, clean, dashboardStore, doc, installStyle, lexicalGlobal, readJson, reloadDashboard, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENTITY_AUTODETECT__";
 const HOSTED_ENOUGH = 200;
@@ -444,7 +444,7 @@ export async function applyProposal(proposal) {
     root.cdMarkDirty?.();
     root.cdSyncPush?.();
   } catch (_error) {}
-  const reload = () => root.setTimeout?.(() => root.location?.reload?.(), 400);
+  const reload = () => root.setTimeout?.(() => reloadDashboard(), 400);
   try {
     if (typeof root.cdRegEnrich === "function") root.cdRegEnrich(reload);
     else reload();

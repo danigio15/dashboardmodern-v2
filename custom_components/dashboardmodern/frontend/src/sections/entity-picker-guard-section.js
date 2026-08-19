@@ -1,3 +1,4 @@
+import { decorateEntityFields } from "./editor-slots-section.js";
 import { clean, doc, installStyle, root, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENTITY_PICKER_GUARD__";
@@ -136,6 +137,9 @@ export function reconcileEntityPickers(scope = doc) {
   }
   let count = 0;
   scope.querySelectorAll("input").forEach((input) => { if (mountOne(input)) count += 1; });
+  // The readable row is built around the lens, so it is built here, the moment
+  // the lens is known to exist — not on a frame that hopes it already does.
+  try { decorateEntityFields(scope); } catch (_error) {}
   return count;
 }
 

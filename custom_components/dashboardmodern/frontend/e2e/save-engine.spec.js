@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { saveSection, showRawEntityFields } from "./helpers/entity-field.js";
 import { clickBottomTab } from "./helpers/navigation.js";
 
 const haStates = [
@@ -136,6 +137,9 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await boot(page, variant, testInfo);
     await openEditor(page, "appliances");
 
+    // The entity fields are readable rows now; the id itself is behind the
+    // pencil on each row, so the form is put into manual mode first.
+    await showRawEntityFields(page);
     await page.locator("#appl-name").fill("Lavatrice");
     await page.locator("#appl-room").selectOption("room-matrimoniale");
     for (const entity of ["switch.lavatrice", "sensor.lavatrice_power"]) {
@@ -146,7 +150,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     // This is the exact real-device flow that was broken: the user filled the
     // pending appliance and pressed Save section instead of the separate Add
     // appliance button. The old implementation only displayed a success toast.
-    await page.locator("#ed-body .ed-btn-add", { hasText: /Salva sezione|Save section/i }).click();
+    // The per-panel button is behind the single section save now.
+    await saveSection(page);
 
     await expect
       .poll(() =>
@@ -197,11 +202,12 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await boot(page, variant, testInfo);
     await openEditor(page, "sez1");
 
+    await showRawEntityFields(page);
     const total = page.locator("#dm-energy-house-total_energy");
     await total.fill("sensor.solarman_total_load_consumption");
     await expect(page.locator("[data-energy-actions]")).toHaveAttribute("data-state", "dirty");
     await expect(page.locator("[data-energy-save]")).toBeEnabled();
-    await page.locator("[data-energy-save]").click();
+    await saveSection(page);
 
     await expect
       .poll(() =>

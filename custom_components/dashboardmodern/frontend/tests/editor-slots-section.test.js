@@ -43,9 +43,44 @@ test("the row keeps the contracts the editor saves through", () => {
   assert.match(source, /wzPickEntity\?\.\(input\)/);
   // Hidden, never removed: the picker guard reconciles the input/lens pair.
   assert.match(source, /\.dm-slots:not\(\.dm-slots-raw\) \.dm-slot>div:has\(>\.ed-slot-in\)\{display:none!important\}/);
-  assert.doesNotMatch(source, /\.remove\(\)/);
+  // The only thing this section removes is a whole row the configuration has
+  // retired. A decorated field is hidden behind "Modifica manuale" instead.
+  assert.doesNotMatch(source, /input\.remove\(\)/);
+  assert.match(source, /const row = input\.closest\("\.ed-slot"\);\n\s*if \(!row\) continue;\n\s*row\.remove\(\);/);
   // The chip is appended last so the lens stays the input's next sibling.
   assert.match(source, /slot\.append\(chip\)/);
+});
+
+test("the two retired Home rows never reach the form", async () => {
+  const { dropRetiredSlots } = await loadSection();
+  const { RETIRED_EDITOR_SLOTS, isRetiredEditorSlot } = await import(
+    "../src/core/editor-slots.js"
+  );
+  assert.deepEqual(RETIRED_EDITOR_SLOTS, [
+    "dm.home_interruttore_antifurto",
+    "dm.home_script_apertura_cancello",
+  ]);
+  assert.equal(isRetiredEditorSlot("dm.home_meteo"), false);
+  assert.equal(isRetiredEditorSlot(" dm.home_script_apertura_cancello "), true);
+
+  const rows = new Map();
+  const makeInput = (ref, hasRow = true) => {
+    const row = { remove: () => rows.set(ref, "removed") };
+    if (hasRow) rows.set(ref, "present");
+    return { dataset: { ref }, closest: (selector) => (hasRow && selector === ".ed-slot" ? row : null) };
+  };
+  const inputs = [
+    makeInput("dm.home_meteo"),
+    makeInput("dm.home_interruttore_antifurto"),
+    makeInput("dm.home_script_apertura_cancello"),
+    // A retired ref with no row of its own belongs to another form: left alone.
+    makeInput("dm.home_interruttore_antifurto", false),
+  ];
+  assert.equal(dropRetiredSlots({ querySelectorAll: () => inputs }), 2);
+  assert.equal(rows.get("dm.home_meteo"), "present");
+  assert.equal(rows.get("dm.home_interruttore_antifurto"), "removed");
+  assert.equal(rows.get("dm.home_script_apertura_cancello"), "removed");
+  assert.equal(dropRetiredSlots(null), 0);
 });
 
 test("the loads editor keeps its own layout", () => {
@@ -55,7 +90,7 @@ test("the loads editor keeps its own layout", () => {
 });
 
 test("the section owns presentation only", () => {
-  const body = source.slice(source.indexOf("\nimport {"));
+  const body = source.slice(source.lastIndexOf("\nimport {"));
   for (const owned of ["edSetSlot", "edSaveSezione", "localStorage", "ENTITY_OVERRIDES"])
     assert.doesNotMatch(body, new RegExp(owned), owned);
   assert.doesNotMatch(body, /setInterval\s*\(/);

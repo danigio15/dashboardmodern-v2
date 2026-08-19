@@ -42,7 +42,9 @@ import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-secti
 import { installEvSection } from "./ev-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
 import { installEditorSlotsSection } from "./editor-slots-section.js";
+import { installConfigUniformitySection } from "./config-uniformity-section.js";
 import { installSolarThermalDesignSection } from "./solar-thermal-design-section.js";
+import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
 import { allStates, clean, english, section, wrapFunction } from "./shared.js";
 
@@ -650,6 +652,9 @@ export function installSectionRuntime() {
     installEditorContractsSection();
     // Readable entity rows for every section tab of the editor.
     installEditorSlotsSection();
+    // One section per tab, one switch, one save — installed after the editors
+    // that print those parts, so it reconciles what they left behind.
+    installConfigUniformitySection();
     installReportEditorSection();
     installShutterSection();
     installShutterSceneSection();
@@ -659,6 +664,9 @@ export function installSectionRuntime() {
     // already mounted, and re-renders itself on the same runtime events.
     installEvShowcaseSection();
     installSolarThermalDesignSection();
+    // The MiniPC skin owns the presentation of #page-server: it reads the bars,
+    // the temperature arc and the status badges the legacy render loop writes.
+    installMinipcShowcaseSection();
     installBeta27ReleaseStability();
 
     root[RUNTIME_KEY] = Object.freeze({
@@ -702,6 +710,7 @@ export function installSectionRuntime() {
         "ev",
         "ev-showcase",
         "solar-thermal-design",
+        "minipc-showcase",
         "beta27-release-stability",
       ]),
       registry: root.__DASHBOARDMODERN_SECTIONS__,

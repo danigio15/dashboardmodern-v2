@@ -447,12 +447,29 @@ function ensureEvAppearanceEditor() {
     if (home) {
       if (existing.parentElement !== home) home.prepend(existing);
       state.evHomeAttempts = 0;
-    } else if ((state.evHomeAttempts || 0) < 5) {
+    } else if ((state.evHomeAttempts || 0) < 20) {
       state.evHomeAttempts = (state.evHomeAttempts || 0) + 1;
       root.setTimeout?.(schedule, 120);
     }
     return;
   }
+  /* One place, every time.
+   *
+   * Brand and model belong to the vehicle, so the panel belongs inside the
+   * vehicle accordion, above that car's entities. It used to fall back to the
+   * top of the tab whenever the accordion had not been printed yet — and since
+   * that depends on how fast the editor paints, reopening the EV tab gave two
+   * different pages: the same panel above the visibility banner one time and
+   * inside the accordion the next. The panel is now built only once its own
+   * section exists; until then this comes back for it. */
+  if (!evAccordionBody()) {
+    if ((state.evHomeAttempts || 0) < 20) {
+      state.evHomeAttempts = (state.evHomeAttempts || 0) + 1;
+      root.setTimeout?.(schedule, 120);
+    }
+    return;
+  }
+  state.evHomeAttempts = 0;
   const { current, fallback } = evVisual();
   const visual = current || fallback || {};
   const panel = doc.createElement("section");
@@ -461,23 +478,10 @@ function ensureEvAppearanceEditor() {
   const brand = effectiveBrand(visual) || clean(visual.brand) || "Leapmotor";
   const model = effectiveModel(visual);
   panel.innerHTML = `<div class="ed-sec-title">🚘 ${t("Brand e modello auto", "Vehicle brand and model")}</div><div class="ed-intro">${t("Il logo viene associato automaticamente al marchio. Il modello sostituisce la vecchia icona auto generica.", "The logo is automatically associated with the brand. The model replaces the old generic car icon.")}</div><div class="dm-ev-appearance-grid"><button type="button" class="dm-brand-preview dm-visual-trigger" data-brand-preview aria-label="${t("Scegli brand auto", "Choose car brand")}">${carBrandVisual(brand, 56)}<span class="dm-ev-brand-copy"><b>${esc(brand)}</b>${model ? `<small>${esc(model)}</small>` : ""}</span></button><label class="dm-ev-appearance-field"><span>${t("Marchio", "Brand")}</span><select class="ed-input" data-brand>${CAR_BRANDS.map((item) => `<option value="${esc(item.name)}" ${item.name === brand ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select></label><label class="dm-ev-appearance-field"><span>${t("Modello elettrico / ibrido", "Electric / hybrid model")}</span><select class="ed-input" data-model>${modelOptions(brand, model)}</select></label></div><button type="button" class="ed-save-btn" data-save>💾 ${t("Salva brand e modello", "Save brand and model")}</button>`;
-  // Brand and model belong to the vehicle, so they live inside the vehicle
-  // accordion, above the entities of the same car — not floating at the top of
-  // the tab. The accordion is found by its own EV slots rather than by its
-  // wording, so a renamed section still gets the panel.
-  const home = evAccordionBody();
-  if (home) home.prepend(panel);
-  else if (!body.querySelector(".ed-acc-body")) {
-    // The editor has not printed its accordions yet. Park the panel where it
-    // has always been and come back for it on the next pass, so it ends up in
-    // the vehicle section instead of staying at the top of the tab.
-    body.prepend(panel);
-    root.setTimeout?.(schedule, 0);
-  } else {
-    const visibleEvBlock = [...body.querySelectorAll("details,.ed-acc,.ed-form")].find((node) => node !== panel && /auto elettric|electric car|profilo auto|car profile|vettur|vehicle/i.test(clean(node.textContent)));
-    if (visibleEvBlock?.parentElement) visibleEvBlock.insertAdjacentElement("afterend", panel);
-    else body.prepend(panel);
-  }
+  // The accordion is found by its own EV slots rather than by its wording, so a
+  // renamed section still gets the panel. It exists: the guard above returned
+  // early otherwise, which is what keeps this placement the only one.
+  evAccordionBody().prepend(panel);
   const brandSelect = panel.querySelector("[data-brand]");
   const modelSelect = panel.querySelector("[data-model]");
   const refreshPreview = () => {

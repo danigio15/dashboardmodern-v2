@@ -4,6 +4,184 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.31 — 2026-08-18
+
+### Corretto
+
+- **La plancia era diventata lentissima.** Ogni renderer chiede alla dashboard
+  l'elenco delle entità, alcuni una volta per scheda e qualcuno una volta per
+  riga, due volte al secondo. Quella chiamata costruiva ogni volta una copia
+  nuova di tutto: prima le due mappe di Home Assistant, poi `_RAW_STATES` e poi
+  `STATES` — che è un Proxy del primo, quindi le stesse entità venivano copiate
+  una seconda volta passando per un intercettore che consulta la tabella degli
+  override chiave per chiave. Su una casa con qualche migliaio di entità una
+  sola chiamata costava più di un millisecondo. Ora, quando il runtime è l'unica
+  sorgente — cioè su ogni plancia ospitata — l'elenco viene restituito com'è:
+  nessuna copia, nessun intercettore e nessun dato vecchio di un ridisegno. Con
+  duemila entità la stessa sequenza è passata da 307 ms a 1 ms.
+- **Le telecamere erano tutte nere.** La parete delle telecamere viene
+  ricostruita quando si apre Sicurezza, e ricostruirla butta via ogni `<img>`
+  con dentro il fotogramma appena scaricato; nessun cambio di stato di una
+  telecamera segue per chiederne un altro, perché lo stato resta "idle" mentre
+  l'immagine cambia. Inoltre il timer che ricaricava i fotogrammi era stato
+  rimosso senza sostituirlo, quindi anche il primo fotogramma sopravvissuto
+  restava lì per sempre. Ora la parete chiede i fotogrammi appena si ricostruisce
+  e un timer li aggiorna ogni quattro secondi — solo mentre la pagina Sicurezza
+  è davvero sullo schermo e la scheda del browser non è nascosta.
+- **Il reset lasciava lo schermo bianco e mezza configurazione.** La plancia
+  ospitata vive dentro un documento `srcdoc`: il suo indirizzo è `about:srcdoc` e
+  ricaricarlo dall'interno, che è come finivano sia il reset sia
+  l'autorilevamento, nell'app di Home Assistant porta a una pagina vuota da cui
+  non si torna indietro. Ora la ricarica viene chiesta all'ospite, che ricostruisce
+  il documento esattamente come la prima volta; e se una ricarica sfugge lo stesso,
+  l'ospite se ne accorge e lo ricostruisce comunque. Il reset inoltre svuota anche
+  la configurazione tenuta in memoria: restava lì e veniva riscritta su disco al
+  primo salvataggio successivo, ed è così che tornava indietro un'azione rapida
+  "Luci" senza niente dentro. Quella voce vuota nasceva da una luce senza entità,
+  che veniva scritta come chiave `undefined`; una luce senza entità ora non viene
+  più scritta, e una sezione di forma inattesa non fa più fallire l'avvio con lo
+  schermo bianco.
+- **La tapparella non era allineata alla finestra.** Con la tapparella chiusa
+  restavano scoperti il cielo in alto e le colline negli angoli in basso: il
+  pannello era staccato di 9 px dai bordi. Quei 9 px venivano da una pelle della
+  Beta 7 che disegnava una finestra completamente diversa, alta 180 px, ed era
+  rimasta l'unico foglio a dichiarare `left`, `right` e `top` sul pannello —
+  quindi sopravviveva a ogni ridisegno successivo. La pagina Tapparelle ha ora un
+  solo proprietario e il pannello chiude esattamente sull'apertura.
+- **Nel Report Energia le icone non erano quelle degli elettrodomestici.** La
+  voce del Report partiva da un campo emoji che la scheda dell'elettrodomestico
+  non disegna mai: la scheda mostra il disegno scelto in Elettrodomestici, il
+  Report mostrava altro, e le due liste dicevano cose diverse dello stesso
+  apparecchio. Ora la voce segue lo stesso ordine della scheda, con davanti
+  l'icona eventualmente assegnata apposta al Report.
+- **Il menu in basso si comportava in modo diverso a seconda della sezione.** Le
+  pagine ridisegnate fermano la propagazione del tocco sulle proprie schede, e
+  il gestore che chiude la barra ascoltava in risalita: su Elettrodomestici o
+  Temperature il tocco fuori dalla barra non la chiudeva, su Home sì. Ora la
+  barra ha un solo comportamento, in fase di cattura e delegato — quindi vale
+  anche per una scheda riordinata dopo l'avvio — e ogni pagina lascia lo stesso
+  spazio sotto perché la barra non copra l'ultima riga. La modalità "barra
+  fissa" continua a vincere su tutto.
+- **La configurazione EV si apriva in due modi diversi.** Il pannello di marchio
+  e modello finiva in cima alla scheda o dentro la sezione dell'auto a seconda di
+  quanto velocemente l'editor disegnava. Ora viene costruito solo quando la sua
+  sezione esiste, e va lì. Per lo stesso motivo di tempo il pannello delle due
+  foto poteva non comparire affatto e il vecchio campo "URL immagine auto"
+  restare al suo posto: la scheda EV ora viene ripassata mentre finisce di
+  disegnarsi, e il campo singolo che le due foto sostituiscono sparisce davvero
+  invece di essere solo marcato come nascosto.
+- **La riga entità si rompeva nei moduli che si dispongono da soli.** Il modulo
+  "Aggiungi luce" fissa la propria griglia e il proprio campo, e vinceva sulle
+  regole della riga: lì restavano l'id grezzo in chiaro e il pulsante schiacciato
+  in una colonna da 58 px, mentre la matita andava a capo. Ora la riga vale in
+  ogni modulo della configurazione — l'id resta dietro la matita ovunque.
+- **Il pulsante "rinomina" spariva dalle righe di Visibilità.** Ogni riga della
+  scheda Visibilità ha una matita per rinominare la sezione. Il foglio che le dà
+  forma nascondeva ogni matita non ancora normalizzata, e la normalizzazione
+  passa una volta sola: una riga ridisegnata dopo quella passata restava senza
+  matita finché qualcosa non ne programmava un'altra. Ora la matita della cella
+  principale si vede subito, e la passata continua a togliere i doppioni.
+- **Su iPad la Configurazione restava com'era.** Il runtime sceglie la sezione
+  della scheda nascondendo le altre dodici con uno `style` inline, senza
+  toccare nessun blocco: su una macchina lenta questo arriva dopo, e la passata
+  che ascoltava solo i blocchi non ne sapeva niente — la scheda restava con
+  tredici sezioni, senza interruttore e senza il salvataggio in fondo. Ora la
+  passata sente anche quel `display`.
+- **Il percorso della prima foto dell'auto si cancellava.** Scrivere il
+  percorso in «Cavo staccato» e passare a «Cavo attaccato» svuotava il primo
+  campo: il pannello si riallinea a quello che è salvato mentre la scheda si
+  assesta. Un campo scritto a mano e non ancora salvato ora non viene più
+  toccato.
+- **Le stesse luci comparivano due volte nel popup "Luci attive".** La lista
+  che alimenta quel popup e il contatore del Quadro Avvisi nasce da due sorgenti:
+  le luci della scheda Luci e il gruppo `cd_gruppi_extra`, dove finiscono anche
+  quelle rilevate da sole. Da quando la scheda Luci tiene allineato il secondo
+  gruppo, le due sorgenti nominano le stesse entità, e venivano concatenate senza
+  filtro: ogni luce compariva due volte nel popup e veniva contata due volte nel
+  riquadro "Luci accese", mentre in Configurazione restava una sola — perché lì
+  si legge una sorgente sola. Ora ogni aggiunta a un gruppo di monitoraggio passa
+  da un solo punto, che rispetta l'ordine di costruzione e non accetta doppioni;
+  vale anche per Aperture, Batterie, Clima e Riscaldamento quando le stesse
+  entità arrivano sia dalla configurazione sia dal `config.js`.
+- **Nella pagina MiniPC restava il titolo di una colonna vuota.** Quando
+  l'auto-nascondi toglie la card della temperatura, il titoletto «Termica» deve
+  andarsene con lei. L'auto-nascondi però scrive solo uno `style` inline sulle
+  card e viene chiamato da dentro il runtime, quindi non c'è nessun nome da
+  intercettare e nessun evento da ascoltare: se arrivava dopo l'ultima passata,
+  il titolo restava da solo sulla plancia. Ora la pagina osserva quello `style`
+  — solo quello, e solo sotto `#page-server`.
+- **La Configurazione ora si riallinea quando la scheda cambia, non dopo un
+  tempo fisso.** I pannelli che una scheda disegna per conto suo arrivano dopo
+  lo scambio di scheda: se arrivavano tardi, l'interruttore della sezione
+  finiva sotto di loro. La passata segue le modifiche della scheda, quindi
+  l'interruttore resta in apertura e il salvataggio in fondo comunque.
+
+### Modificato
+
+- **La pagina MiniPC è stata ridisegnata come una scena 3D.** Prima erano tre
+  barrette piatte, quattro riquadri con un'emoji e molto bianco in mezzo. Ora la
+  testata è una scena in prospettiva: il mini PC è un volume vero — sei facce,
+  con la griglia di ventilazione e la ventola disegnate sul coperchio e i LED sul
+  frontale — e accanto stanno CPU, RAM e Disco come tre prismi che crescono con
+  il carico, ciascuno con la sua ombra sul pavimento. I prismi passano all'ambra
+  e al rosso alle stesse soglie di prima, con il valore sopra e l'etichetta sotto.
+  Sotto la scena scorre la curva dal vivo del carico CPU: le letture che la
+  pagina ha già mostrato nella sessione, con il picco a destra.
+- **La pagina non è più una pila di blocchi ma una board a due colonne**: la
+  scena in alto, Termica a sinistra, Telemetria a destra, Rete e impianto in
+  fondo. Se l'auto-nascondi toglie la card della temperatura, la telemetria si
+  allarga su tutta la riga invece di lasciare un buco.
+- La temperatura della CPU ha la sua scala da 20° a 100° con la tacca del limite
+  a 75°, e lo stato ("Ottimale", "Nella norma", "Alta") diventa una pastiglia con
+  il pallino colorato. Telemetria e stato rete hanno icone disegnate al posto
+  delle emoji, Download e Upload mostrano un flusso che scorre nel verso del
+  traffico. Quando la connettività cade, la scena, i LED e la curva diventano
+  rossi.
+- La pagina segue il tema: chiara su tema chiaro, scura su tema scuro. Nessun
+  valore è ricalcolato — le barre, l'arco della temperatura, il testo di stato e
+  le pastiglie restano scritti dal runtime della dashboard — e una card che
+  l'auto-nascondi toglie si porta via anche il suo prisma e il suo titoletto.
+- **La Configurazione si comporta allo stesso modo in ogni scheda.** Un audit
+  scheda per scheda contava le differenze: cinque schede non avevano nessun
+  pulsante di salvataggio (Temperatura, Tapparelle, Stanze, Luci, Avvisi),
+  Sicurezza ed EV ne avevano due in posti diversi, e in totale c'erano otto
+  diciture diverse per lo stesso gesto ("Salva sezione", "Salva Energia",
+  "Salva server", "Salva piscina", "Salva impostazioni", "Salva costi"…). Ora
+  ogni scheda ha **un solo 💾 Salva sezione, sempre in fondo**: preme lui i
+  salvataggi dei pannelli aperti, che restano i veri esecutori, e risponde con
+  lo stesso avviso di sempre. Il banner verde **"sezione visibile in dashboard"
+  è su ogni sezione** — c'era su nove schede e mancava da Temperatura — sempre
+  in cima e sempre con lo stesso interruttore del runtime. E ogni scheda
+  `Sezioni` portava con sé l'intero modulo: tredici fisarmoniche e 104 campi
+  entità, dodici sezioni nascoste ma ancora nel documento, che ogni decoratore
+  ripercorreva a ogni passata — ora una scheda contiene solo la propria sezione.
+
+### Aggiunto
+
+- **Due foto dell'auto: cavo staccato e cavo attaccato.** Si caricano dalla
+  scheda EV della configurazione, una accanto all'altra e ciascuna con
+  l'anteprima di quello che punta. La plancia mostra quella con il cavo attaccato
+  mentre l'auto è in ricarica e l'altra nel resto del tempo, leggendo lo stato
+  dalla wallbox già mappata. La seconda è facoltativa: senza, resta la prima
+  come è sempre stato.
+
+### Modificato
+
+- **Il campo entità è la stessa riga leggibile in tutta la configurazione.** La
+  lente non è più un quadratino con dentro una lente di ingrandimento: è la riga,
+  e la riga dice quale entità è scelta, con il nome che le dà Home Assistant e
+  l'id sotto. Toccarla apre la ricerca entità, quella veloce con i suggerimenti
+  per il campo. L'id da scrivere a mano resta dietro la matita accanto. Prima
+  questo valeva solo per le sezioni della scheda Sezioni; ora vale per Luci,
+  Telecamere, Report, Temperature, Irrigazione e per ogni altro campo che accetta
+  un'entità.
+- **Nella configurazione Home spariscono due voci**: "Interruttore antifurto" e
+  "Script apertura cancello". Chiedevano una seconda volta cose che la plancia sa
+  già — la centrale allarme è la riga sopra, il cancello è un'azione rapida come
+  le altre — e due posti per la stessa mappatura vogliono dire due risposte
+  quando non vanno d'accordo. Quello che è già mappato continua a funzionare: le
+  voci escono dall'editor, non dalla configurazione.
+
 ## 1.0.0-beta.30.8 — 2026-08-18
 
 ### Aggiunto

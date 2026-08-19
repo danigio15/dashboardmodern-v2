@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { clickStableButton } from "./helpers/navigation.js";
+import { editEntityFieldByHand, saveSection, showRawEntityFields } from "./helpers/entity-field.js";
 
 async function disableSriForMockedExternalScripts(page) {
   // These E2E routes replace the pinned CDN files with deterministic stubs.
@@ -245,22 +246,29 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await page.evaluate(() => window.editorSwitch("sez1"));
     await expect(page.locator('#ed-body[data-renderer="energy"]')).toBeVisible();
     await page.screenshot({ path: `test-results/${testInfo.project.name}-${variant}-energy.png` });
+    // One picker per entity field, and each picker pointing at a field that is
+    // really there. The field itself is behind the pencil now, so the row —
+    // the picker — is what has to be on screen, not the raw id box.
     const assertPickerInvariant = async () => {
-      const counts = await page.locator("#ed-body").evaluate((body) => ({
-        inputs: [...body.querySelectorAll("[data-entity-input]")].filter(
-          (input) => input.getClientRects().length > 0,
-        ).length,
-        pickers: [...body.querySelectorAll(".dm-entity-picker")].filter(
-          (button) => button.getClientRects().length > 0,
-        ).length,
-        uniqueTargets: new Set(
-          [...body.querySelectorAll(".dm-entity-picker")]
-            .filter((button) => button.getClientRects().length > 0)
-            .map((button) => button.dataset.entityTarget),
-        ).size,
-      }));
+      const counts = await page.locator("#ed-body").evaluate((body) => {
+        const onScreen = (node) => Boolean(node) && node.getClientRects().length > 0;
+        const pickers = [...body.querySelectorAll(".dm-entity-picker")].filter(onScreen);
+        const fields = [...body.querySelectorAll("[data-entity-input]")].filter(
+          (input) => onScreen(input) || onScreen(input.closest('[data-dm-entity-chip="true"]')),
+        );
+        return {
+          inputs: fields.length,
+          pickers: pickers.length,
+          uniqueTargets: new Set(pickers.map((button) => button.dataset.entityTarget)).size,
+          orphans: pickers.filter(
+            (button) =>
+              !body.querySelector(`[data-entity-input][id="${button.dataset.entityTarget}"]`),
+          ).length,
+        };
+      });
       expect(counts.pickers).toBe(counts.inputs);
       expect(counts.uniqueTargets).toBe(counts.inputs);
+      expect(counts.orphans).toBe(0);
     };
     await assertPickerInvariant();
     await clickStableButton(
@@ -291,10 +299,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     });
     await page.evaluate(() => window.editorSwitch("sez1"));
     const housePower = page.locator('[data-energy-panel="flows"] input').first();
+    await editEntityFieldByHand(page, "#dm-energy-house-power");
     await housePower.fill("sensor.house_power");
     await housePower.blur();
     await expect(page.locator("[data-energy-actions]")).toHaveAttribute("data-state", "dirty");
-    await page.locator("[data-energy-save]").click();
+    await saveSection(page);
     await expect(page.locator("[data-energy-actions]")).toHaveAttribute("data-state", "success");
     await expect(page.locator('#ed-body[data-renderer="energy"]')).toBeVisible();
     await expect(
@@ -326,7 +335,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     // Saving goes through the canonical section, and the appliance is stored
     // inside the load that owns it.
-    await clickStableButton(page, page.locator("[data-dm-loads-save]"), testInfo);
+    await saveSection(page);
     await expect
       .poll(() =>
         page.evaluate(() =>
@@ -345,6 +354,7 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(report).toMatch(/Salva Report|Save Report/);
     expect(report).not.toContain("dm-load-category");
     await clickStableButton(page, page.locator("[data-report-add]"), testInfo);
+    await showRawEntityFields(page);
     await page.locator("[data-manual-name]").fill("Manual water");
     await page.locator("#dm-manual-report-icon").fill("💧");
     await page.locator("#dm-manual-report-entity").fill("sensor.water_month");
@@ -363,8 +373,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const firstReport = page.locator(".dm-report-row").first();
     await firstReport.locator("[data-report-toggle]").check();
     await firstReport.locator("[data-report-label]").fill("Canonical label");
+    // The entity row shows what is chosen and keeps the id behind the pencil.
+    await showRawEntityFields(page);
     await firstReport.locator("[data-entity-field] input").first().fill("sensor.canonical_month");
-    await page.locator("[data-report-save]").click();
+    await saveSection(page);
     await expect(page.locator("[data-report-actions]")).toHaveAttribute("data-state", "success");
     await expect(page.locator('[data-energy-panel="report"]')).toBeVisible();
     // The popup mirror is derived from the loads on save: the appliance sits
@@ -422,6 +434,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await assertPickerInvariant();
     const lightAddEntity = page.locator("#ed-body [data-light-add-entity]");
     await expect(lightAddEntity).toHaveCount(1);
+    // The id itself sits behind the pencil here as it does on every other
+    // entity field: the row is what is on screen until the pencil is pressed.
+    await expect(lightAddEntity).toBeHidden();
+    await editEntityFieldByHand(page, "#ed-body [data-light-add-entity]");
     await expect(lightAddEntity).toBeVisible();
     await expect(lightAddEntity).toHaveAttribute("data-entity-input", "true");
     const lightAddEntityId = await lightAddEntity.getAttribute("id");

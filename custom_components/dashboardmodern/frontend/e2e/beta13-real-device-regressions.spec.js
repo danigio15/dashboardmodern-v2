@@ -212,12 +212,16 @@ test("beta13: Temperature has no orphan icon row and Irrigation keeps a usable m
   ).toEqual({ type: "hidden", hidden: true, label: false });
 
   await openEditor(page, "irr");
+  // The entity field is a readable row now, with the raw id behind its pencil.
+  // What has to be comfortably wide on a phone is therefore the row.
   const irrigation = await page.evaluate(() => {
     const body = document.getElementById("ed-body");
     const input = document.getElementById("ed-irr-ent");
     if (!body || !input) return null;
+    const row =
+      input.closest('[data-dm-entity-chip="true"]')?.querySelector(".dm-slot-chip") || input;
     const bodyBox = body.getBoundingClientRect();
-    const inputBox = input.getBoundingClientRect();
+    const inputBox = row.getBoundingClientRect();
     return {
       bodyWidth: bodyBox.width,
       inputWidth: inputBox.width,

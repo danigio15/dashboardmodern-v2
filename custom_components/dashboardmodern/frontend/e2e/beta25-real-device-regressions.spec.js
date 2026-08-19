@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { fillEntityFieldByHand } from "./helpers/entity-field.js";
 
 const seed = {
   schema_version: 4,
@@ -116,8 +117,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await expect(room.locator('option[value="room-cameretta"]')).toBeEnabled();
     await room.selectOption("room-cameretta");
     await page.locator("#dm-temperature-name").fill("Comodino");
-    await page.locator("#ed-pl-temp").fill("sensor.cameretta_temperature_2");
-    await page.locator("#dm-humidity-new").fill("sensor.cameretta_humidity_2");
+    await fillEntityFieldByHand(page, "#ed-pl-temp", "sensor.cameretta_temperature_2");
+    await fillEntityFieldByHand(page, "#dm-humidity-new", "sensor.cameretta_humidity_2");
     await page.locator("[data-beta25-temperature-submit]").click();
 
     await expect
