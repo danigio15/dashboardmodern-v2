@@ -94,6 +94,25 @@ const PAGES = Object.freeze([
     en: ["Security system", "Alarm · Cameras · Openings"],
     fold: ".sec-header, .dm-sec-mast-ic, .dm-sec-mast-copy",
   },
+  /* Solare termico e MiniPC avevano l'intestazione che hanno ispirato tutte le
+   * altre, e per questo erano rimaste fuori: ma "come le altre" vuol dire anche
+   * loro. Qui si ripiega solo il titolo, non la fascia che lo conteneva: quella
+   * porta la pastiglia di stato viva, che resta dov'e' e continua a dire cosa
+   * sta facendo l'impianto. */
+  {
+    id: "page-boiler",
+    tint: ["249,115,22", "14,165,233"],
+    it: ["Impianto solare termico", "Circuito primario · Boiler · Ricircolo sanitario"],
+    en: ["Solar thermal system", "Primary loop · Tank · DHW recirculation"],
+    fold: ".boiler-title, .dm-st-sub",
+  },
+  {
+    id: "page-server",
+    tint: ["14,165,233", "99,102,241"],
+    it: ["MiniPC Server", "Home Assistant · Sistema core"],
+    en: ["MiniPC Server", "Home Assistant · Core system"],
+    fold: ".srv-hero-brand",
+  },
 ]);
 
 function labelsFor(page) {
@@ -113,6 +132,34 @@ function backHomeMarkup() {
     onclick="document.querySelector('[data-tab=&quot;home&quot;]').click(); if(navigator.vibrate)navigator.vibrate(5);">
     <span class="bh-icon">←</span><span>${esc(label)}</span>
   </button>`;
+}
+
+/* Dove nasce l'intestazione.
+ *
+ * Alcune pagine tengono il proprio contenuto dentro un contenitore che ne fissa
+ * la larghezza, altre lo lasciano correre per tutta la scheda. L'intestazione
+ * nasceva sempre in cima alla pagina con una larghezza sua: sulle pagine larghe
+ * restava un rettangolo stretto e spostato, con il contenuto sotto molto piu'
+ * largo. Nasce invece dove nasce il contenuto, cosi' e' larga esattamente
+ * quanto lui, senza doverlo sapere. */
+function mountFor(host) {
+  let best = null;
+  let tallest = 0;
+  for (const wrapper of host.querySelectorAll(
+    ':scope > div[style*="max-width"], :scope > [class*="dashboard"]',
+  )) {
+    // Un contenitore che al momento non occupa spazio non e' il posto giusto:
+    // la pagina Energia ne tiene uno per vista e ne mostra una sola, e
+    // l'intestazione ci sarebbe finita dentro larga zero. Fra quelli che si
+    // vedono vince il piu' alto: e' il contenuto. La pagina Auto apre con una
+    // striscia della stessa larghezza che pero' contiene solo la tendina dei
+    // profili, e l'intestazione non va incassata li' dentro.
+    const height = wrapper.getBoundingClientRect().height;
+    if (!wrapper.getClientRects().length || height <= tallest) continue;
+    tallest = height;
+    best = wrapper;
+  }
+  return best || host;
 }
 
 function foldForeignBackButtons(host) {
@@ -144,7 +191,8 @@ function ensureMasthead(page) {
   if (!host) return false;
   const labels = labelsFor(page);
   let mast = state.mastheads?.[page.id];
-  if (mast && (!mast.isConnected || mast.parentElement !== host)) mast = null;
+  const mount = mountFor(host);
+  if (mast && (!mast.isConnected || mast.parentElement !== mount)) mast = null;
   if (!mast) mast = host.querySelector(":scope > .dm-page-mast");
   if (!mast) {
     mast = doc.createElement("header");
@@ -156,7 +204,7 @@ function ensureMasthead(page) {
       backHomeMarkup() +
       `<h2 class="dm-page-mast-title">${esc(labels.title)}</h2>` +
       `<div class="dm-page-mast-sub">${esc(labels.subtitle)}</div>`;
-    host.insertBefore(mast, host.firstChild);
+    mount.insertBefore(mast, mount.firstChild);
     (state.mastheads ||= {})[page.id] = mast;
   } else {
     (state.mastheads ||= {})[page.id] = mast;
@@ -169,8 +217,8 @@ function ensureMasthead(page) {
   }
   // A page redrawn by its own renderer can put its content above the heading:
   // the heading opens the page, always.
-  if (mast.parentElement !== host || host.firstElementChild !== mast) {
-    host.insertBefore(mast, host.firstChild);
+  if (mast.parentElement !== mount || mount.firstElementChild !== mast) {
+    mount.insertBefore(mast, mount.firstChild);
   }
   foldForeignBackButtons(host);
   foldLegacyHeading(host, page.fold);
@@ -234,7 +282,9 @@ function installStyles() {
     ${foldRules()}
     .dm-page-mast{
       position:relative!important;display:block!important;box-sizing:border-box!important;
-      width:100%!important;max-width:1120px!important;margin:0 auto 18px!important;
+      width:100%!important;max-width:none!important;margin:0 0 18px!important;
+      grid-column:1/-1!important;flex:1 1 100%!important;
+      align-self:stretch!important;justify-self:stretch!important;
       padding:26px 30px 24px!important;border-radius:28px!important;text-align:left!important;
       border:1px solid var(--divider-color,rgba(15,23,42,.10))!important;
       background:
@@ -283,6 +333,12 @@ function installStyles() {
       padding:0!important;margin:0 0 12px!important;border:0!important;
       background:none!important;box-shadow:none!important
     }
+    /* Le fasce che portavano il titolo di Solare termico e MiniPC ora portano
+       solo la pastiglia di stato: si stringono su quella invece di lasciare in
+       mezzo la banda vuota di quando c'era anche il titolo. */
+    #page-boiler .boiler-header{padding:12px 22px!important}
+    #page-server .srv-hero-top{padding-top:12px!important;padding-bottom:12px!important}
+
     /* The heading a page printed for itself: kept in the document for whoever
        writes into it, and no longer drawn twice. */
     [data-dm-mast-folded="true"]{display:none!important}

@@ -61,6 +61,7 @@ function decorate(slot) {
   if (!isSlotRow(slot)) return false;
   const input = slot.querySelector(".ed-slot-in[data-ref]");
   slot.classList.add("dm-slot");
+  relabelSlot(slot, input);
   let chip = slot.querySelector(":scope > .dm-slot-chip");
   if (!chip) {
     chip = doc.createElement("button");
@@ -209,6 +210,30 @@ const FIELD_CAPTIONS = Object.freeze({
   "ed-st-temp": ["Sensore temperatura", "Temperature sensor"],
   "ed-st-hum": ["Sensore umidità", "Humidity sensor"],
 });
+
+/* Nomi che dicono cosa misura la sonda, non in che ordine e' stata scritta.
+ *
+ * Il solare termico chiedeva "Sonda temperatura 1, 2, 3" e chi configura non ha
+ * modo di indovinare quale va dove. Dal disegno della pagina si sa: la prima
+ * alimenta la lettura del pannello, la seconda il fondo dell'accumulo, la terza
+ * la cima. Il riferimento resta quello che e', cambia solo cio' che si legge.
+ */
+const SLOT_LABELS = Object.freeze({
+  "dm.boiler_sonda_temperatura_1": ["Sonda pannello solare (°C)", "Solar collector probe (°C)"],
+  "dm.boiler_sonda_temperatura_2": ["Sonda accumulo basso (°C)", "Tank bottom probe (°C)"],
+  "dm.boiler_sonda_temperatura_3": ["Sonda accumulo alto (°C)", "Tank top probe (°C)"],
+});
+
+/* L'etichetta di una riga che l'utente puo' rinominare resta sua: qui si
+ * riscrive solo il testo che il runtime stampa da se'. */
+function relabelSlot(slot, input) {
+  const known = SLOT_LABELS[clean(input?.dataset?.ref)];
+  if (!known) return;
+  const label = slot.querySelector(".ed-slot-lbl");
+  if (!label || label.querySelector("input,select,textarea")) return;
+  const text = t(known[0], known[1]);
+  if (clean(label.textContent) !== text) label.textContent = text;
+}
 
 function fieldAlreadyLabelled(input) {
   if (!input) return true;
