@@ -336,7 +336,10 @@ function installStyles() {
       #editor-modal #ed-body:has(#ed-irr-ent) button{box-sizing:border-box!important;min-width:44px!important;min-height:44px!important;max-width:100%!important;white-space:normal!important}
       #editor-modal #ed-body:has(#ed-irr-ent) .ed-btn-add,#editor-modal #ed-body:has(#ed-irr-ent) .ed-save-btn{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;max-width:100%!important;min-height:48px!important;margin:10px 0 0!important;padding:10px 12px!important}
 
-      #editor-modal [data-energy-panel="report"] .dm-report-row{display:grid!important;grid-template-columns:minmax(120px,.8fr) minmax(150px,1.25fr) minmax(110px,.6fr) minmax(220px,1.8fr) auto!important;gap:10px!important;align-items:end!important;padding:14px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important}
+      /* La riga del Report la impagina report-editor-section, che e' quella che
+         le da' anche le aree: due griglie diverse sullo stesso elemento
+         lasciavano le colonne di una e le aree dell'altra, ed era quello che si
+         vedeva sballato. Qui resta solo cio' che non e' impaginazione. */
       #editor-modal [data-energy-panel="report"] .dm-report-row .dm-entity-field{min-width:0!important;margin:0!important}
       #editor-modal .dm-report-history-help{grid-column:1/-1;color:var(--secondary-text-color,#64748b);font-size:11px;line-height:1.4}
       #editor-modal .dm-report-row[data-history-valid="false"] .dm-report-history-help{color:var(--warning-color,#b45309);font-weight:800}

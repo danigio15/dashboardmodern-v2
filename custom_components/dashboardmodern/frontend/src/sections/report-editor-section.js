@@ -29,7 +29,12 @@ function rowFields(row) {
  * still empty until the user chooses an icon of their own. */
 function deviceForRow(row) {
   const id = clean(row.dataset.reportId);
-  const name = clean(row.querySelector("[data-report-name]")?.value);
+  // Lo stesso campo che rowFields legge: la ricerca per nome cercava un
+  // attributo che nessuno scrive, quindi non trovava mai niente e il quadratino
+  // dell'icona restava vuoto.
+  const name = clean(
+    (row.querySelector("[data-report-label]") || row.querySelector("[data-report-name]"))?.value,
+  );
   const devices = [...(section("appliances", []) || []), ...(section("loads", []) || [])];
   return (
     devices.find((item) => clean(item.id) && clean(item.id) === id) ||
@@ -183,6 +188,24 @@ function installStyles() {
       #editor-modal .dm-report-label{grid-area:label!important;width:100%!important;min-width:0!important}
       #editor-modal .dm-report-icon{grid-area:icon!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;min-width:0!important}
       #editor-modal .dm-report-icon input{display:none!important}.dm-report-icon button{width:44px!important;height:44px!important;margin:auto!important}
+      /* Il quadratino dell'icona restava vuoto: il pulsante di anteprima azzera
+         il corpo del testo per far posto a un'immagine, ma qui l'icona e' un
+         carattere, e a corpo zero non si vede. */
+      #editor-modal .dm-report-icon button{
+        display:grid!important;place-items:center!important;
+        font-size:22px!important;line-height:1!important;color:var(--text,#0f172a)!important}
+      /* La riga ha gia' la sua etichetta con la matita e, in fondo, il pulsante
+         che apre la voce per intero. La card dei campi entita' ci metteva una
+         cornice dentro la cornice e una seconda matita a capo, e la riga
+         cresceva al doppio dell'altezza che le serve. */
+      #editor-modal .dm-report-history [data-dm-entity-chip="true"]{
+        display:flex!important;flex-wrap:nowrap!important;align-items:center!important;gap:8px!important;
+        margin:0!important;padding:0!important;border:0!important;background:transparent!important}
+      #editor-modal .dm-report-history [data-dm-entity-chip="true"]>.dm-entity-picker.dm-slot-chip{
+        flex:1 1 auto!important;width:auto!important}
+      #editor-modal .dm-report-history .dm-chip-manual{
+        flex:0 0 34px!important;width:34px!important;height:34px!important;order:3!important}
+      #editor-modal [data-energy-panel="report"] .dm-report-row{align-items:center!important}
       #editor-modal .dm-report-history{grid-area:history!important;display:grid!important;gap:5px!important;min-width:0!important;max-width:100%!important;margin:0!important;overflow:hidden!important}
       #editor-modal .dm-report-history .ed-form-row,#editor-modal .dm-report-history .dm-entity-field{box-sizing:border-box!important;width:100%!important;max-width:100%!important;min-width:0!important}
       #editor-modal .dm-report-history .ed-slot-lbl{display:block!important;min-height:18px!important;font-size:11px!important;font-weight:850!important;color:var(--secondary-text-color,#64748b)!important}

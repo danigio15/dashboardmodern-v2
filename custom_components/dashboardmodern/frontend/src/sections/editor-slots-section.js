@@ -427,9 +427,17 @@ function decorateField(input) {
     }
     root.requestAnimationFrame(() => paintFieldChip(host));
   });
-  pin(host, CARD_LAYOUT);
-  pin(lens, CHIP_LAYOUT);
-  pin(manual, MANUAL_LAYOUT);
+  /* La riga del Report si impagina da sola: ha la sua etichetta con la matita,
+   * il quadratino dell'icona e, in fondo, il pulsante che apre la voce per
+   * intero. Farne una card qui significava una cornice dentro la cornice e una
+   * seconda matita a capo, e siccome questa impaginazione si scrive
+   * sull'elemento nessun foglio di stile poteva rimediare. La card serve dove
+   * il campo e' nudo, non dove la riga lo veste gia'. */
+  if (!input.closest(".dm-report-row")) {
+    pin(host, CARD_LAYOUT);
+    pin(lens, CHIP_LAYOUT);
+    pin(manual, MANUAL_LAYOUT);
+  }
   ensureFieldCaption(host, input);
   paintFieldChip(host);
   return true;
