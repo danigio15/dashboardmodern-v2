@@ -66,18 +66,37 @@ for (const variant of PRIMARY) {
     await expect.poll(() => rowNames(page)).toEqual(["Salone", "Cucina", "Bagno"]);
     const tab = await page.locator("#editor-modal .ed-tab.active").getAttribute("data-tab");
 
-    await page.locator("#ed-body .ed-row .ed-del").filter({ hasText: "🗑" }).first().click();
+    const trash = () => page.locator("#ed-body .ed-row .ed-del").filter({ hasText: "🗑" });
+    const stored = () =>
+      page.evaluate(() =>
+        (window.DashboardModernModules?.store?.getSection?.("climate") || []).map(
+          (unit) => unit.name,
+        ),
+      );
 
-    // The row is gone, the others keep their order, nothing is duplicated.
+    /* Il cestino, piu' volte, senza mai uscire dalla sezione.
+     *
+     * E' il giro che l'ha fatta vedere: l'elenco restava fermo mentre le unita'
+     * sparivano davvero, e sembrava pulito solo cambiando scheda e tornando. Chi
+     * continua a premere si ritrova a premere su righe che non esistono piu', e
+     * i numeri delle righe non corrispondono piu' a niente. */
+    await trash().first().click();
     await expect.poll(() => rowNames(page)).toEqual(["Cucina", "Bagno"]);
-    // And we are still on the tab we were on.
+    await expect.poll(stored).toEqual(["Cucina", "Bagno"]);
+    // E si e' ancora sulla scheda su cui si stava.
     await expect(page.locator("#editor-modal .ed-tab.active")).toHaveAttribute("data-tab", tab);
 
-    const stored = await page.evaluate(() =>
-      (window.DashboardModernModules?.store?.getSection?.("climate") || []).map(
-        (unit) => unit.name,
-      ),
-    );
-    expect(stored).toEqual(["Cucina", "Bagno"]);
+    await trash().first().click();
+    await expect.poll(() => rowNames(page)).toEqual(["Bagno"]);
+    await expect.poll(stored).toEqual(["Bagno"]);
+
+    await trash().first().click();
+    await expect.poll(() => rowNames(page)).toEqual([]);
+    await expect.poll(stored).toEqual([]);
+
+    // E restando fermi qui, la sezione e' vuota davvero: non lo si scopre
+    // uscendo e rientrando.
+    await expect(page.locator("#editor-modal .ed-tab.active")).toHaveAttribute("data-tab", tab);
+    await expect(trash()).toHaveCount(0);
   });
 }
