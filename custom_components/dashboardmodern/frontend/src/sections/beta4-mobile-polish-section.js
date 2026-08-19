@@ -545,6 +545,23 @@ function schedule() {
 
 function installStyles() {
   installStyle("dm-beta5-root-causes-style", `
+    /* Un telefono paga il vetro smerigliato anche quando non si vede.
+     *
+     * Sopra la Home stanno dodici finestre chiuse: meteo, clima, allarme,
+     * carichi, lavatrice, auto, dettagli, tastierino, storico, conferma e i due
+     * storici del server. Sono nascoste, ma restano larghe quanto lo schermo e
+     * ognuna chiede al browser di sfocare tutto quello che ha dietro. Su un
+     * computer non si nota; su un telefono sono dodici livelli a schermo intero
+     * che la GPU tiene in memoria e ricompone a ogni scorrimento, e la stessa
+     * cosa vale per la barra di navigazione mentre e' ritirata.
+     *
+     * Dentro due di quelle finestre girava anche una rotella di caricamento,
+     * per sempre, senza che nessuno la stesse guardando.
+     *
+     * Lo sfondo sfocato torna appena la finestra si apre, ed e' l'unico momento
+     * in cui qualcuno lo vede. */
+    .modal-wrapper:not(.show),.modal-wrapper:not(.show) *,.clima-popup-overlay:not(.show),.clima-popup-overlay:not(.show) *,.hist-overlay:not(.show),.hist-overlay:not(.show) *,#srv-hist-overlay:not(.show),#srv-hist-overlay:not(.show) *,nav.tabs.bottom-nav-bar:not(.visible){backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+    .modal-wrapper:not(.show) *,.clima-popup-overlay:not(.show) *,.hist-overlay:not(.show) *,#srv-hist-overlay:not(.show) *{animation-play-state:paused!important}
     .ed-tab[data-tab]>.dm-beta4-tab-icon{display:inline-grid!important;place-items:center!important;flex:0 0 auto!important;min-width:1.2em!important;margin-right:5px!important;visibility:visible!important;opacity:1!important}
     .ed-tab[data-tab]>.dm-beta4-tab-label{display:inline!important;white-space:nowrap!important}
 
