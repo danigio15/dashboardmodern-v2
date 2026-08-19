@@ -180,6 +180,66 @@ function lensOf(input) {
  * and that pair is what the picker guard and the editors' own mount step
  * reconcile; moving it makes them mount a second lens. So the row is built
  * around it: the host is the element that already holds the pair. */
+/* What this field is for.
+ *
+ * The row replaced a box whose placeholder was the only clue about the field —
+ * `switch.pompa_piscina` told you it was the pump. With the row over it that
+ * clue is gone, so the row says it itself. Where the form already prints a
+ * label the row stays quiet; where it does not, the field's own name comes
+ * first and the placeholder is the fallback, so nothing ever says less than it
+ * did before. */
+const FIELD_CAPTIONS = Object.freeze({
+  "ed-cam-ent": ["Entità telecamera", "Camera entity"],
+  "ed-cl-ent": ["Entità clima", "Climate entity"],
+  "ed-tp-ent": ["Entità tapparella", "Cover entity"],
+  "ed-pl-temp": ["Temperatura piscina", "Pool temperature"],
+  "ed-pl-ph": ["pH", "pH"],
+  "ed-pl-cl": ["Cloro", "Chlorine"],
+  "ed-pl-pump": ["Pompa filtrazione", "Filtration pump"],
+  "ed-pl-heat": ["Riscaldamento piscina", "Pool heating"],
+  "ed-pl-light": ["Luce piscina", "Pool light"],
+  "ed-irr-ent": ["Valvola della zona", "Zone valve"],
+  "ed-irr-rain": ["Sensore probabilità pioggia", "Rain probability sensor"],
+  "ed-irr-weather": ["Meteo", "Weather"],
+  "luce-add-ent": ["Entità luce", "Light entity"],
+  "ed-st-temp": ["Sensore temperatura", "Temperature sensor"],
+  "ed-st-hum": ["Sensore umidità", "Humidity sensor"],
+});
+
+function fieldAlreadyLabelled(input) {
+  if (!input) return true;
+  if (input.closest(".ed-slot,[data-entity-field]")?.querySelector(".ed-slot-lbl,.dm-entity-label")) {
+    return true;
+  }
+  if (input.id && doc?.querySelector?.(`label[for="${CSS.escape(input.id)}"]`)) return true;
+  const wrapper = input.closest("label");
+  return Boolean(wrapper && clean(wrapper.querySelector("span")?.textContent));
+}
+
+function captionFor(input) {
+  const known = FIELD_CAPTIONS[input.id];
+  if (known) return t(known[0], known[1]);
+  const placeholder = clean(input.getAttribute("placeholder"));
+  if (placeholder && !/^es\.\s/i.test(placeholder)) return placeholder;
+  return "";
+}
+
+function ensureFieldCaption(host, input) {
+  const existing = host.querySelector(":scope > .dm-chip-caption");
+  if (fieldAlreadyLabelled(input)) {
+    existing?.remove();
+    return;
+  }
+  const text = captionFor(input);
+  if (!text) return;
+  const caption = existing || doc.createElement("span");
+  if (!existing) {
+    caption.className = "dm-chip-caption";
+    host.prepend(caption);
+  }
+  if (caption.textContent !== text) caption.textContent = text;
+}
+
 function chipHost(input, lens) {
   const wrapper = input.parentElement;
   if (!wrapper || wrapper.matches(NEVER_A_HOST) || !wrapper.contains(lens)) return null;
@@ -229,6 +289,7 @@ function decorateField(input) {
   const host = chipHost(input, lens);
   if (!host) return false;
   if (host.dataset[CHIP_MARKER] === "true") {
+    ensureFieldCaption(host, input);
     paintFieldChip(host);
     return false;
   }
@@ -262,6 +323,7 @@ function decorateField(input) {
     }
     root.requestAnimationFrame(() => paintFieldChip(host));
   });
+  ensureFieldCaption(host, input);
   paintFieldChip(host);
   return true;
 }
@@ -408,6 +470,12 @@ function installStyles() {
  * chip squeezed into a 58px column. The id is repeated so the row that carries
  * a chip is laid out by the chip's own rules wherever it is, and the raw field
  * stays behind the pencil on every tab. */
+#ed-body#ed-body [data-dm-entity-chip="true"] > .dm-chip-caption{
+  display:block!important;flex:1 1 100%!important;order:-1!important;grid-column:1/-1!important;
+  width:100%!important;margin:0 0 4px!important;
+  font-size:12px!important;font-weight:800!important;line-height:1.25!important;
+  color:var(--secondary-text-color,#64748b)!important
+}
 #ed-body#ed-body [data-dm-entity-chip="true"]{
   display:flex!important;align-items:center!important;gap:9px!important;flex-wrap:wrap!important;
   grid-template-columns:none!important;min-width:0!important

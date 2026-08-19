@@ -157,16 +157,24 @@ function dropLegacyBackHome() {
     .forEach((button) => button.remove());
 }
 
+/**
+ * The page's summary and its two "all at once" commands, in the shape the
+ * Climate page uses: a reading on the left, then one segmented control holding
+ * both commands. Tapparelle used to say the same things through a title, a
+ * subtitle and two filled buttons, which made two pages doing the same job look
+ * unrelated. The page title is no longer printed here either — the section
+ * heading above the page owns it now.
+ */
 function heroMarkup() {
-  return `<section class="dm-tapp-hero" data-dm-tapp-hero role="group" aria-labelledby="dm-tapp-hero-title">
-    <div class="dm-tapp-hero-icon" aria-hidden="true">🪟</div>
-    <div class="dm-tapp-hero-text">
-      <div class="dm-tapp-hero-title" id="dm-tapp-hero-title" role="heading" aria-level="2">${esc(t("Tapparelle", "Shutters"))}</div>
-      <div class="dm-tapp-hero-sub" data-dm-tapp-summary></div>
+  return `<section class="dm-tapp-hero" data-dm-tapp-hero role="group" aria-label="${esc(t("Tapparelle", "Shutters"))}">
+    <div class="dm-tapp-kpi">
+      <span>${esc(t("Stato", "State"))}</span>
+      <b data-dm-tapp-summary>—</b>
     </div>
-    <div class="dm-tapp-hero-actions">
-      <button type="button" class="tapp-btn dm-tapp-all" data-all="1" data-svc="open_cover" onclick="cdTappCmd(this)">▲ ${esc(t("Apri tutte", "Open all"))}</button>
-      <button type="button" class="tapp-btn dm-tapp-all" data-all="1" data-svc="close_cover" onclick="cdTappCmd(this)">▼ ${esc(t("Chiudi tutte", "Close all"))}</button>
+    <div class="dm-tapp-bulk">
+      <button type="button" class="dm-tapp-all" data-all="1" data-svc="open_cover" onclick="cdTappCmd(this)">▲ ${esc(t("Apri tutte", "Open all"))}</button>
+      <span class="dm-tapp-bulk-div" aria-hidden="true"></span>
+      <button type="button" class="dm-tapp-all" data-all="1" data-svc="close_cover" onclick="cdTappCmd(this)">▼ ${esc(t("Chiudi tutte", "Close all"))}</button>
     </div>
   </section>`;
 }
@@ -398,20 +406,32 @@ function installStyles() {
     /* Structure only. Every legacy class this page reuses keeps its skin — and
        its first-paint geometry — in shutter-section.js. */
     html body #page-tapparelle#page-tapparelle .dm-tapp-hero{
-      grid-column:1/-1!important;display:flex!important;align-items:center!important;gap:14px!important;flex-wrap:wrap!important;
-      box-sizing:border-box!important;margin:0 0 4px!important;padding:16px 18px!important;
-      border:1px solid var(--tapp-border)!important;border-radius:22px!important;background:var(--tapp-surface)!important;
-      box-shadow:var(--tapp-shadow)!important}
-    html body #page-tapparelle#page-tapparelle .dm-tapp-hero-icon{
-      display:grid!important;place-items:center!important;flex:0 0 auto!important;width:48px!important;height:48px!important;
-      border-radius:16px!important;background:var(--tapp-run-bg)!important;border:1px solid var(--tapp-run-line)!important;font-size:24px!important}
-    html body #page-tapparelle#page-tapparelle .dm-tapp-hero-text{flex:1 1 190px!important;min-width:0!important}
-    html body #page-tapparelle#page-tapparelle .dm-tapp-hero-title{
-      margin:0!important;color:var(--tapp-text)!important;font-size:19px!important;font-weight:950!important;letter-spacing:.2px!important}
-    html body #page-tapparelle#page-tapparelle .dm-tapp-hero-sub{
-      margin:3px 0 0!important;color:var(--tapp-dim)!important;font-size:12px!important;font-weight:800!important;letter-spacing:.5px!important}
-    html body #page-tapparelle#page-tapparelle .dm-tapp-hero-actions{display:flex!important;gap:10px!important;flex:0 1 auto!important;flex-wrap:wrap!important}
-    html body #page-tapparelle#page-tapparelle .dm-tapp-hero-actions .tapp-btn{flex:0 1 auto!important}
+      grid-column:1/-1!important;display:flex!important;align-items:stretch!important;gap:10px!important;flex-wrap:wrap!important;
+      box-sizing:border-box!important;margin:0 0 4px!important;padding:0!important;
+      border:0!important;background:none!important;box-shadow:none!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-kpi{
+      display:flex!important;flex-direction:column!important;justify-content:center!important;gap:1px!important;
+      min-width:96px!important;padding:9px 15px!important;border:1px solid var(--tapp-border)!important;
+      border-radius:16px!important;background:var(--tapp-surface)!important;box-shadow:var(--tapp-shadow)!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-kpi span{
+      font-size:9px!important;font-weight:800!important;letter-spacing:1.2px!important;
+      text-transform:uppercase!important;color:var(--tapp-dim)!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-kpi b{
+      color:var(--tapp-text)!important;font-size:15px!important;font-weight:800!important;letter-spacing:-.2px!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-bulk{
+      display:flex!important;align-items:stretch!important;flex:1 1 240px!important;
+      border:1px solid var(--tapp-border)!important;border-radius:16px!important;
+      background:var(--tapp-surface)!important;box-shadow:var(--tapp-shadow)!important;overflow:hidden!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-bulk button{
+      flex:1 1 0!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;
+      gap:8px!important;padding:11px 16px!important;border:0!important;background:transparent!important;
+      box-shadow:none!important;cursor:pointer!important;font:inherit!important;font-size:12px!important;
+      font-weight:800!important;letter-spacing:.4px!important;color:var(--tapp-dim)!important;
+      transition:color .25s ease,background .25s ease!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-bulk button:hover{
+      color:var(--tapp-text)!important;background:var(--tapp-run-bg)!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-bulk-div{
+      width:1px!important;margin:8px 0!important;background:var(--tapp-border)!important}
 
     html body #page-tapparelle#page-tapparelle .dm-tapp-group{
       grid-column:1/-1!important;display:flex!important;align-items:center!important;gap:10px!important;
@@ -470,9 +490,8 @@ function installStyles() {
     html body #page-tapparelle#page-tapparelle .back-home-btn.dm-tapp-back{grid-column:1/-1!important;justify-self:start!important;margin:0 0 4px!important}
 
     @media(max-width:560px){
-      html body #page-tapparelle#page-tapparelle .dm-tapp-hero{padding:14px!important;gap:12px!important}
-      html body #page-tapparelle#page-tapparelle .dm-tapp-hero-actions{flex:1 1 100%!important}
-      html body #page-tapparelle#page-tapparelle .dm-tapp-hero-actions .tapp-btn{flex:1 1 0!important}
+      html body #page-tapparelle#page-tapparelle .dm-tapp-bulk{flex:1 1 100%!important}
+      html body #page-tapparelle#page-tapparelle .dm-tapp-bulk button{padding:11px 10px!important}
     }
   `);
 }

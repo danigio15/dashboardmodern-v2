@@ -61,9 +61,16 @@ test("shutters are compact and alert animations follow the alert kind", async ()
   assert.match(source, /height", "132px", "important"/);
   assert.match(source, /slat\.style\.setProperty\("animation", "none", "important"\)/);
   assert.match(source, /shutterMoving\(\) \? "shutter-moving" : "static"/);
-  assert.match(source, /dmAlertOpening/);
-  assert.match(source, /dmAlertBattery/);
-  assert.match(source, /dmAlertSecurity/);
+  // Every animation acts out its own alert, and it animates the glyph rather
+  // than the disc the glyph sits in.
+  assert.match(source, /\.dm-alert-door \.dm-alert-glyph/);
+  assert.match(source, /transform-origin:left center!important;animation:dmAlertDoor/);
+  assert.match(source, /@keyframes dmAlertDoor\{[\s\S]*rotateY\(-64deg\)/);
+  assert.match(source, /@keyframes dmAlertBattery\{[\s\S]*clip-path:inset\(56% 0 0 0\)/);
+  assert.doesNotMatch(source, /dmAlertOpening/);
+  for (const kind of ["window", "leak", "flame", "motion", "temperature", "power", "light", "security"]) {
+    assert.match(source, new RegExp(`\\.dm-alert-${kind} \\.dm-alert-glyph`));
+  }
 });
 
 test("add-light layout cannot collapse its entity field", async () => {

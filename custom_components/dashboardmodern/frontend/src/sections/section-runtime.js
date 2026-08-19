@@ -37,6 +37,7 @@ import { installEditorCrudSection } from "./editor-crud-section.js";
 import { installEditorContractsSection } from "./editor-contracts-section.js";
 import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
+import { installPageMastheadSection } from "./page-masthead-section.js";
 import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
 import { installEvSection } from "./ev-section.js";
@@ -658,6 +659,7 @@ export function installSectionRuntime() {
     installReportEditorSection();
     installShutterSection();
     installShutterSceneSection();
+    installPageMastheadSection();
     installPoolIrrigationSceneSection();
     installEvSection();
     // The skin installs after the EV owner so the vehicle picker it restyles is
