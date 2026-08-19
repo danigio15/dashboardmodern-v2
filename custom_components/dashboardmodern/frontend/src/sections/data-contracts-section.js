@@ -269,6 +269,7 @@ function normalizeLegacyLightRooms() {
   if (!rooms.length) return false;
   const lights = readJson("cd_luci", {});
   const assignments = readJson("cd_luci_rooms", {});
+  const adopted = new Map();
   let changed = false;
   for (const [entity, name] of Object.entries(lights)) {
     const raw = clean(assignments[entity]);
@@ -285,7 +286,30 @@ function normalizeLegacyLightRooms() {
     if (resolved && assignments[entity] !== resolved.id) {
       assignments[entity] = resolved.id;
       changed = true;
+      continue;
     }
+    /* Una stanza che c'e' solo sulle luci non e' una stanza fantasma: e' una
+     * stanza che manca all'elenco.
+     *
+     * L'importazione dalle aree di Home Assistant assegna a ogni luce il nome
+     * della sua area e, separatamente, aggiunge quelle aree all'elenco delle
+     * stanze. Le due scritture non hanno lo stesso proprietario: l'elenco viene
+     * riscritto dal deposito a ogni salvataggio, l'assegnazione delle luci no.
+     * Bastava un salvataggio perche' l'elenco perdesse le aree e le luci
+     * restassero a puntare a nomi che nella sezione Stanze non c'erano piu'.
+     * Il nome viene adottato: era una stanza vera, torna nell'elenco. */
+    if (!resolved && raw) adopted.set(raw, (adopted.get(raw) || []).concat(entity));
+  }
+  if (adopted.size) {
+    const next = rooms.slice();
+    for (const [name, entities] of adopted) {
+      const id = `room-${slug(name) || next.length + 1}`;
+      if (next.some((room) => clean(room.id) === id)) continue;
+      next.push({ id, name, icon: "🏠" });
+      for (const entity of entities) assignments[entity] = id;
+      changed = true;
+    }
+    if (changed) dashboardStore()?.replaceSection?.("rooms", next);
   }
   if (!changed) return false;
   writeJsonIfChanged("cd_luci_rooms", assignments, { sync: false });
