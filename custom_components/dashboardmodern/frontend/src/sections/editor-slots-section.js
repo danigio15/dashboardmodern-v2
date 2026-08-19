@@ -209,7 +209,84 @@ const FIELD_CAPTIONS = Object.freeze({
   "luce-add-ent": ["Entità luce", "Light entity"],
   "ed-st-temp": ["Sensore temperatura", "Temperature sensor"],
   "ed-st-hum": ["Sensore umidità", "Humidity sensor"],
+  "wz-qa-ent": ["Entità da comandare", "Entity to control"],
+  "ed-qa-ent": ["Entità da comandare", "Entity to control"],
+  "wz-dev-sw": ["Interruttore del dispositivo", "Device switch"],
+  "wz-dev-pw": ["Potenza istantanea (W)", "Instant power (W)"],
+  "wz-dev-sv": ["Stato o programma", "State or programme"],
+  "wz-rep-ent": ["Contatore energia (kWh)", "Energy meter (kWh)"],
+  "ed-rep2-ent": ["Contatore energia (kWh)", "Energy meter (kWh)"],
+  "ed-lu-ent": ["Entità luce", "Light entity"],
 });
+
+/* Un esempio deve insegnare qualcosa.
+ *
+ * I campi entita' suggerivano "dm.core_054 / dm.core_023 / scene.x". Quei
+ * codici sono i nomi interni degli slot di questa dashboard, non entita' che
+ * qualcuno abbia davvero in casa: chi configurava leggeva una sigla e non
+ * poteva sapere cosa scriverci, e nel campo delle Azioni la sigla finiva anche
+ * come didascalia della riga. Ogni campo dice adesso che cosa vuole, con un
+ * esempio scritto come Home Assistant scrive le sue entita'. */
+const PLACEHOLDERS = Object.freeze({
+  "wz-qa-ent": [
+    "Entità da comandare, es. switch.luce_salone",
+    "Entity to control, e.g. switch.luce_salone",
+  ],
+  "ed-qa-ent": [
+    "Interruttore, luce o scena da comandare — i popup non ne hanno bisogno",
+    "Switch, light or scene to control — popups do not need one",
+  ],
+  "wz-dev-sw": [
+    "Facoltativo: interruttore, es. switch.lavatrice",
+    "Optional: switch, e.g. switch.lavatrice",
+  ],
+  "wz-dev-pw": [
+    "Facoltativo: potenza in W, es. sensor.lavatrice_potenza",
+    "Optional: power in W, e.g. sensor.lavatrice_potenza",
+  ],
+  "wz-dev-sv": [
+    "Facoltativo: stato o programma, es. sensor.lavatrice_stato",
+    "Optional: state or programme, e.g. sensor.lavatrice_stato",
+  ],
+  "wz-rep-ent": [
+    "Contatore in kWh, es. sensor.lavatrice_energia",
+    "kWh meter, e.g. sensor.lavatrice_energia",
+  ],
+  "ed-rep2-ent": [
+    "Contatore in kWh, es. sensor.lavatrice_energia",
+    "kWh meter, e.g. sensor.lavatrice_energia",
+  ],
+  "ed-lu-ent": ["Entità luce, es. light.salone", "Light entity, e.g. light.salone"],
+});
+
+const GENERIC_PLACEHOLDER = Object.freeze([
+  "Scegli con 🔍, oppure scrivi l'entità: dominio.nome",
+  "Pick with 🔍, or type the entity: domain.name",
+]);
+
+const PLACEHOLDER_SELECTOR = [
+  'input[placeholder*="dm.core_"]',
+  ...Object.keys(PLACEHOLDERS).map((id) => `#${id}[placeholder]`),
+].join(",");
+
+function rewritePlaceholder(input) {
+  const known = PLACEHOLDERS[input.id];
+  const current = input.getAttribute("placeholder") || "";
+  if (!known && !current.includes("dm.core_")) return false;
+  const text = known ? t(known[0], known[1]) : t(GENERIC_PLACEHOLDER[0], GENERIC_PLACEHOLDER[1]);
+  if (current === text) return false;
+  input.setAttribute("placeholder", text);
+  return true;
+}
+
+export function clarifyEntityPlaceholders(scope = doc) {
+  if (!scope?.querySelectorAll) return 0;
+  let count = 0;
+  for (const input of scope.querySelectorAll(PLACEHOLDER_SELECTOR)) {
+    if (rewritePlaceholder(input)) count += 1;
+  }
+  return count;
+}
 
 /* Nomi che dicono cosa misura la sonda, non in che ordine e' stata scritta.
  *
@@ -537,6 +614,7 @@ export function decorateEntityFields(scope = doc?.getElementById("ed-body")) {
 
 export function decorateEditorSlots(scope = doc?.getElementById("ed-body")) {
   if (!scope) return 0;
+  clarifyEntityPlaceholders();
   dropRetiredSlots(scope);
   let count = 0;
   for (const body of scope.querySelectorAll(".ed-acc-body")) if (decorateBody(body)) count += 1;
