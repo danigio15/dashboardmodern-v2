@@ -123,10 +123,17 @@ function foldForeignBackButtons(host) {
   }
 }
 
+/* A heading a page prints for itself, and nothing else.
+ *
+ * Temperature's own title is an `h2`, and so is the name inside every room
+ * card it draws: folding every `h2` on the page took the cards' titles with it
+ * and collapsed a card to nothing. A heading is folded only where it opens the
+ * page — never inside a card, and never below the block that replaced it. */
 function foldLegacyHeading(host, selector) {
   if (!selector) return;
   for (const node of host.querySelectorAll(selector)) {
     if (node.closest(".dm-page-mast")) continue;
+    if (node.closest('[class*="card"],[class*="-cell"],[data-room-id]')) continue;
     if (node.dataset.dmMastFolded === "true") continue;
     node.dataset.dmMastFolded = "true";
   }

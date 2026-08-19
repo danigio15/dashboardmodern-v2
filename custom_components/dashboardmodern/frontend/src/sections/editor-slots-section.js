@@ -549,6 +549,13 @@ function installStyles() {
   background:var(--divider-color,#cbd5e1)
 }
 [data-dm-entity-chip="true"][data-dm-slot="mapped"]>.dm-chip-caption::before{background:#16a34a}
+/* The caption this module writes follows the label the forms write: dimmer ink
+   in the dark editor, same as `.ed -
+      slot -
+      lbl`. */
+#editor-modal[data-dm-editor-theme="dark"] .dm-chip-caption{
+  color:var(--text-dim,#92a4c2)!important
+}
 [data-dm-entity-chip="true"] .dm-chip-manual{
   order:2!important;flex:0 0 36px!important;width:36px!important;min-width:36px!important;
   height:36px!important;padding:0!important;border:0!important;border-radius:10px!important;
@@ -634,10 +641,12 @@ function installStyles() {
 #ed-body#ed-body .ed-slot:not([data-load-group]):has(>[data-dm-entity-chip="true"][data-dm-slot="mapped"]){
   border-color:color-mix(in srgb,#16a34a 30%,var(--divider-color,#dbe4ee))!important
 }
+/* The colour is deliberately absent: the label is the form's, and the dark
+   editor gives it a dimmer ink than the body text. Only the shape is stated
+   here. */
 #ed-body#ed-body .ed-slot:not([data-load-group]):has(>[data-dm-entity-chip="true"])>.ed-slot-lbl{
   display:flex!important;align-items:center!important;gap:8px!important;margin:0!important;
-  font-size:13px!important;font-weight:800!important;line-height:1.25!important;
-  color:var(--text,#0f172a)!important
+  font-size:13px!important;font-weight:800!important;line-height:1.25!important
 }
 #ed-body#ed-body .ed-slot:not([data-load-group]):has(>[data-dm-entity-chip="true"])>.ed-slot-lbl::before{
   content:"";width:7px;height:7px;border-radius:50%;flex:0 0 7px;
