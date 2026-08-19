@@ -52,6 +52,9 @@ export const CONFIG_KEYS = Object.freeze([
   "dm_schema_version",
   "cd_branding",
   "cd_sections",
+  // La scelta fatta a mano sulle sezioni viaggia con la configurazione: se
+  // resta su un solo dispositivo, gli altri se la riaccendono da soli.
+  "cd_sections_manual",
   "cd_section_names",
   "cd_stanze",
   "cd_floors",

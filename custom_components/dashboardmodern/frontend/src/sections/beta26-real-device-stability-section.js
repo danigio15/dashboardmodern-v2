@@ -431,6 +431,34 @@ function objectHasValues(key) {
   );
 }
 
+/* Nascosta a mano vuol dire nascosta.
+ *
+ * Nella mappa delle visibilita' un `false` puo' voler dire due cose opposte:
+ * "questa sezione non l'ho ancora configurata", che ci scrive la procedura
+ * iniziale, oppure "questa sezione non la voglio vedere", che ci scrive chi
+ * preme il pulsante. La passata che accende le sezioni configurate le
+ * trattava allo stesso modo e riscriveva tutti e due: chi nascondeva il MiniPC
+ * — o qualunque altra sezione con delle entita' mappate — se lo ritrovava
+ * acceso poco dopo, ogni volta, senza capire perche'.
+ *
+ * Qui si tiene da parte la sola cosa che distingue i due casi: su quali
+ * sezioni la persona si e' espressa di persona. Su quelle non si torna. */
+const MANUAL_VISIBILITY_KEY = "cd_sections_manual";
+
+export function manualVisibilityChoices() {
+  const value = readJson(MANUAL_VISIBILITY_KEY, {});
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+export function rememberManualVisibility(key) {
+  const name = clean(key);
+  if (!name) return false;
+  const current = manualVisibilityChoices();
+  if (current[name] === true) return false;
+  writeJsonIfChanged(MANUAL_VISIBILITY_KEY, { ...current, [name]: true });
+  return true;
+}
+
 export function legacyVisibilityTargets() {
   const targets = new Set();
   if (listConfigured("cd_stanze", (room) => Boolean(clean(room?.temp) || clean(room?.hum))))
@@ -484,7 +512,10 @@ export function ensureConfiguredSectionsVisible({ sync = true, render = true } =
   const next = visibility && typeof visibility === "object" && !Array.isArray(visibility)
     ? { ...visibility }
     : {};
+  const manual = manualVisibilityChoices();
   for (const key of legacyVisibilityTargets()) {
+    // Su una sezione decisa a mano non si torna, in nessun senso.
+    if (manual[key] === true) continue;
     if (next[key] === true) continue;
     next[key] = true;
     changed = true;
@@ -1206,6 +1237,8 @@ export function installBeta26RealDeviceStability() {
         const manualVisibility =
           button?.matches?.("[data-key]") ||
           /sezione visibile|sezione nascosta|section visible|section hidden/.test(text);
+        if (manualVisibility && clean(button?.getAttribute?.("data-key")))
+          rememberManualVisibility(button.getAttribute("data-key"));
         if (
           button &&
           !manualVisibility &&

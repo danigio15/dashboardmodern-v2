@@ -268,13 +268,33 @@ export class DashboardStore {
     if (!section) return Promise.resolve();
     return this.replaceSection(section, value);
   }
+  /* Le sezioni su cui la persona si e' espressa di persona.
+   *
+   * Nella mappa delle visibilita' un `false` puo' voler dire due cose opposte:
+   * "non l'ho ancora configurata", che ci scrive la procedura iniziale, oppure
+   * "non la voglio vedere", che ci scrive chi preme il pulsante. Questa e'
+   * l'unica cosa che le distingue, e senza di essa una sezione nascosta a mano
+   * tornava accesa alla prima entita' mappata. */
+  manualVisibility() {
+    try {
+      const raw = this.storage?.getItem?.("cd_sections_manual");
+      if (!raw) return {};
+      const value = JSON.parse(raw);
+      return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+    } catch (_error) {
+      return {};
+    }
+  }
   ensureSectionVisibleForData(section) {
+    const manual = this.manualVisibility();
+    const shouldShow = (key) =>
+      Boolean(key) && manual[key] !== true && this.state.visibility[key] !== true;
     if (section === "entityOverrides") {
       let changed = false;
       for (const [slot, entity] of Object.entries(this.state.sections.entityOverrides || {})) {
         if (!configured(entity)) continue;
         const mapped = sectionForEditorSlot(slot);
-        if (mapped && this.state.visibility[mapped] !== true) {
+        if (shouldShow(mapped)) {
           this.state.visibility[mapped] = true;
           changed = true;
         }
@@ -283,8 +303,7 @@ export class DashboardStore {
     }
     const key = VISIBILITY_SECTION[section] || section;
     const value = this.state.sections[section];
-    const hasData = hasConfiguredData(section, value);
-    if (hasData && this.state.visibility[key] !== true) {
+    if (hasConfiguredData(section, value) && shouldShow(key)) {
       this.state.visibility[key] = true;
       return true;
     }

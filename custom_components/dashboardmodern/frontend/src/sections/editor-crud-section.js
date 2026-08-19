@@ -95,13 +95,34 @@ function editButton(kind, index) {
   return button;
 }
 
+/* Tutte le righe dell'elenco, comprese quelle gia' sistemate.
+ *
+ * Qui si escludevano le righe che avevano gia' il pulsante di modifica. Il
+ * seguito pero' numera le righe contando da capo su cio' che riceve: se una
+ * passata ne trova alcune gia' sistemate e altre no — cosa che accade ogni
+ * volta che il runtime ridisegna una parte dell'elenco — le nuove ripartono da
+ * zero e finiscono con lo stesso numero di righe che stanno piu' in alto. Chi
+ * dipinge le righe legge quel numero per sapere quale unita' mostrare, e due
+ * righe con lo stesso numero mostrano la stessa unita'. */
 function rowsBeforeForm(container, selector) {
   const field = container?.querySelector(selector);
   if (!container || !field) return [];
   return [...container.querySelectorAll(".ed-row")].filter((row) => {
-    if (row.contains(field) || row.querySelector("[data-dm-edit-kind]")) return false;
+    if (row.contains(field)) return false;
     return Boolean(row.querySelector(".ed-del")) && Boolean(row.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING);
   });
+}
+
+/* Che fare di ogni riga, e con quale numero.
+ *
+ * Il numero di una riga e' la sua posizione nell'elenco, non il suo turno di
+ * arrivo: una riga gia' sistemata ma numerata male va corretta, non lasciata
+ * com'e'. Separato dal documento perche' e' l'unica parte che decide. */
+export function editButtonPlan(rows = []) {
+  return rows.map((row, index) => ({
+    index,
+    action: !row?.hasButton ? "create" : row.index === index ? "keep" : "renumber",
+  }));
 }
 
 function ensureEditButtons() {
@@ -115,9 +136,22 @@ function ensureEditButtons() {
   ];
   definitions.forEach(([kind, container, selector]) => {
     if (!container?.querySelector(selector)) return;
-    rowsBeforeForm(container, selector).forEach((row, index) => {
-      const remove = [...row.querySelectorAll(".ed-del")].at(-1);
-      remove?.before(editButton(kind, index));
+    const rows = rowsBeforeForm(container, selector);
+    const existing = rows.map((row) => row.querySelector(`[data-dm-edit-kind="${kind}"]`));
+    const plan = editButtonPlan(
+      existing.map((button) => ({
+        hasButton: Boolean(button),
+        index: button ? Number.parseInt(button.dataset.dmEditIndex ?? "-1", 10) : -1,
+      })),
+    );
+    plan.forEach((step, position) => {
+      const row = rows[position];
+      if (step.action === "create") {
+        const remove = [...row.querySelectorAll(".ed-del")].at(-1);
+        remove?.before(editButton(kind, step.index));
+        return;
+      }
+      if (step.action === "renumber") existing[position].dataset.dmEditIndex = String(step.index);
     });
   });
   return Boolean(body.querySelector("[data-dm-edit-kind]"));
