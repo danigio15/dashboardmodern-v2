@@ -42,8 +42,24 @@ pagine parlano finalmente la stessa lingua in ogni sezione.
   di livello, l'antifurto pulsa, la luce accesa alone, la tapparella in movimento
   scorre. Ogni avviso creabile ha il moto del proprio significato.
 
+### Aggiunto
+
+- **Clima mostra solo le famiglie che la casa ha davvero.** Una casa con soli
+  condizionatori aveva una scheda «Caldo» che si apriva sul vuoto, e una con
+  soli termosifoni apriva su «Freddo», vuoto, finché non si trovava l'altra
+  scheda. Una famiglia senza unità configurate perde la sua scheda; quando ne
+  resta una l'interruttore sparisce, perché non c'è niente fra cui scegliere; e
+  la pagina si apre su una famiglia che esiste.
+
 ### Corretto
 
+- **Due auto elettriche perdevano entrambe le foto** ([#162]). Il profilo di
+  un'auto porta la sua mappa entità e, dal runtime, una sola foto. La seconda —
+  la stessa auto col cavo attaccato — non era mai stata nel profilo, quindi le
+  due auto se la dividevano; e un profilo salvato prima di aver scelto la foto
+  ne porta una vuota, che scegliendo quell'auto veniva scritta sopra la foto
+  appena impostata sull'altra. Il profilo ora porta entrambe le foto, e
+  scegliere un'auto non cancella mai una foto che il profilo non ha.
 - **Le icone degli elettrodomestici nel Report.** Il quadratino restava bianco
   quando l'icona era un nome `mdi:`: stampato come testo non è un carattere. Ora
   lo disegna il motore icone, lo stesso della card. E il selettore che si apre
@@ -51,6 +67,22 @@ pagine parlano finalmente la stessa lingua in ogni sezione.
 
 ### Prestazioni
 
+- **Su Safari e iPad la pagina moriva.** Le animazioni degli avvisi non si
+  fermano mai, e la plancia è la pagina a schermo quasi sempre: quattro di esse
+  muovevano un `clip-path` o un `filter`, e ognuna obbliga il motore a
+  ridisegnare il glifo a ogni fotogramma, per sempre. Ora si muovono su
+  `transform` e `opacity`, le due che il compositore porta da solo — la batteria
+  cala schiacciandosi verso la base invece di essere ritagliata. Il cancello
+  WebKit passa da ventinove minuti con la pagina in crash a undici e mezzo,
+  verde.
+- L'intestazione di pagina guarda solo la pagina a schermo: prima ogni passata
+  percorreva tutte e nove le pagine, tre scansioni complete ciascuna, a ogni
+  cambio di stato.
+- La suite end-to-end non prova più due volte la stessa cosa. Ventisei spec su
+  quarantasette giravano su entrambe le build, italiana e inglese, che sono lo
+  stesso documento — 1365 tag, 453 id, identici. Restano su entrambe le cinque
+  che riguardano le parole; le altre provano il contratto una volta sola.
+  Trentanove esecuzioni in meno, nessuna verifica in meno.
 - Misurato a plancia ferma, dieci secondi: 34 chiamate a `getComputedStyle`
   (erano 1964), 2 cloni della configurazione (erano 334), 13 mutazioni del DOM
   (erano 4099), zero long task. I sedici timer che partono al boot costano in
@@ -1492,3 +1524,5 @@ pagine parlano finalmente la stessa lingua in ogni sezione.
 - Prima candidata pubblica come integrazione HACS con plance multiple,
   autorilevamento dai registri Home Assistant, editor visuale e storage isolato
   per istanza.
+
+[#162]: https://github.com/danigio15/dashboardmodern-v2/issues/162
