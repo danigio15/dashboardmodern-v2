@@ -568,6 +568,15 @@ function installStyles() {
 
     #ed-body[data-dm-beta5-rooms="true"] .dm-beta5-room-add-row{display:grid!important;grid-template-columns:58px 138px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;margin-bottom:10px!important}
     #ed-body[data-dm-beta5-rooms="true"] #ed-room-icon-preview{display:none!important}
+    /* I due campi devono riempire la loro colonna.
+     *
+     * La riga nasce dal runtime come una fila flex e i campi si allargavano con
+     * il loro flex. Qui sopra la riga diventa una griglia, e in una griglia quel
+     * flex non vale piu' niente: un campo di testo tiene la sua larghezza
+     * naturale, che senza testo dentro e' zero. Restavano due quadratini larghi
+     * quanto la loro cornice, con il resto della riga vuoto. La versione stretta
+     * lo aveva gia' risolto per il nome; ora vale anche a schermo largo. */
+    #ed-body[data-dm-beta5-rooms="true"] #ed-room-icon,#ed-body[data-dm-beta5-rooms="true"] #ed-room-name{box-sizing:border-box!important;width:100%!important;min-width:0!important;margin:0!important}
     #ed-body[data-dm-beta5-rooms="true"] .dm-beta5-room-icon-trigger{display:grid!important;place-items:center!important;width:58px!important;height:58px!important;min-width:58px!important;padding:0!important;border:1px solid color-mix(in srgb,var(--info-color,#0ea5e9) 24%,var(--divider-color,#dbe4ee))!important;border-radius:16px!important;background:color-mix(in srgb,var(--info-color,#0ea5e9) 8%,var(--card-background-color,#fff))!important;cursor:pointer!important;overflow:hidden!important}
 
     #ed-body[data-dm-beta5-alerts="true"]{display:grid!important;gap:14px!important}
