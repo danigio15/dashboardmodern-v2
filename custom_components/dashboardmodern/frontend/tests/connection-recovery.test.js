@@ -87,3 +87,23 @@ test("the runtime registry installs it", () => {
   assert.match(runtime, /connection-recovery-section\.js/);
   assert.match(runtime, /installConnectionRecoverySection\(\)/);
 });
+
+test("coming back to the app does not wait for the throttle", () => {
+  // La pausa fra due tentativi serve a non impilare prese mentre nessuno
+  // guarda. Al rientro qualcuno sta guardando adesso.
+  const justTried = { up: false, readyState: CLOSED, sinceLastTry: 10 };
+  assert.equal(reconnectDecision(justTried).retry, false);
+  assert.equal(reconnectDecision({ ...justTried, eager: true }).retry, true);
+
+  // Il freno che resta e' quello che conta: non una seconda presa sopra una
+  // che si sta ancora aprendo.
+  assert.equal(
+    reconnectDecision({ up: false, readyState: CONNECTING, sinceLastTry: 10, eager: true }).retry,
+    false,
+  );
+  // E da connessi non si tocca niente, per quanto si insista.
+  assert.equal(
+    reconnectDecision({ up: true, readyState: CLOSED, sinceLastTry: 10, eager: true }).retry,
+    false,
+  );
+});

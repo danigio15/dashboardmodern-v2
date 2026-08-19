@@ -37,6 +37,13 @@ for (const variant of PRIMARY) {
     await page.waitForFunction(() => Boolean(window.DashboardModernModules), null, {
       timeout: 20000,
     });
+    // Il modulo arriva qualche istante dopo il deposito: agire prima vorrebbe
+    // dire mettere alla prova qualcosa che non c'e' ancora.
+    await page.waitForFunction(
+      () => Boolean(window.__DASHBOARDMODERN_CONNECTION_RECOVERY__?.installed),
+      null,
+      { timeout: 20000 },
+    );
 
     // Il primo tentativo e' saltato e il runtime, da solo, non ne farebbe altri.
     await expect
@@ -60,31 +67,63 @@ for (const variant of PRIMARY) {
     await page.waitForFunction(() => Boolean(window.DashboardModernModules), null, {
       timeout: 20000,
     });
+    // Il modulo arriva qualche istante dopo il deposito: agire prima vorrebbe
+    // dire mettere alla prova qualcosa che non c'e' ancora.
+    await page.waitForFunction(
+      () => Boolean(window.__DASHBOARDMODERN_CONNECTION_RECOVERY__?.installed),
+      null,
+      { timeout: 20000 },
+    );
 
-    const before = await page.evaluate(() => {
-      window.__dmConnectCalls__ = 0;
+    /* Chi ha chiamato, non quando.
+     *
+     * Anche il runtime richiama connect() cinque secondi dopo ogni chiusura:
+     * misurare il tempo vorrebbe dire tirare a indovinare quale dei due ha
+     * parlato. La chiamata porta con se' la propria pila, e li' il nome della
+     * funzione dice da dove arriva. */
+    const wrapped = await page.evaluate(() => {
+      window.__dmConnectStacks__ = [];
       const previous = window.connect;
-      if (typeof previous !== "function") return null;
-      window.connect = function (...args) {
-        window.__dmConnectCalls__ += 1;
-        return previous.apply(this, args);
+      if (typeof previous !== "function") return false;
+      window.connect = function () {
+        window.__dmConnectStacks__.push(String(new Error().stack || ""));
       };
-      return window.__dmConnectCalls__;
+      return true;
     });
-    expect(before, "the runtime exposes the connection it opens").toBe(0);
+    expect(wrapped, "the runtime exposes the connection it opens").toBe(true);
+
+    // Lo stato in cui iOS lascia la pagina: la presa non c'e' piu'. Una presa
+    // che si sta ancora aprendo non va raddoppiata, ed e' giusto cosi': qui non
+    // ce n'e' nessuna da rispettare.
+    await page.evaluate(() => {
+      try {
+        window.eval("typeof ws !== 'undefined' && ws && ws.close && ws.close()");
+      } catch (error) {}
+    });
+    await expect
+      .poll(() =>
+        page.evaluate(() => window.eval("typeof ws !== 'undefined' && ws ? ws.readyState : null")),
+      )
+      .toBe(3);
 
     // Il rientro: la pagina torna visibile e il sistema la risveglia.
     await page.evaluate(() => {
+      window.__dmConnectStacks__.length = 0;
       window.dispatchEvent(new Event("pageshow"));
       document.dispatchEvent(new Event("visibilitychange"));
       window.dispatchEvent(new Event("focus"));
     });
 
-    // Subito, non fra cinque secondi: il runtime ha una sua riprova a tempo
-    // dopo ogni chiusura, e aspettarla vorrebbe dire non provare niente. Chi
-    // ha appena riaperto l'app sta guardando lo schermo adesso.
     await expect
-      .poll(() => page.evaluate(() => window.__dmConnectCalls__), { timeout: 3000 })
-      .toBeGreaterThan(0);
+      .poll(
+        () =>
+          page.evaluate(() =>
+            window.__dmConnectStacks__.some(
+              (stack) => stack.includes("attemptReconnect") && stack.includes("resume"),
+            ),
+          ),
+        { message: "il rientro richiede la connessione", timeout: 15000 },
+      )
+      .toBe(true);
   });
 }

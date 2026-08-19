@@ -56,12 +56,18 @@ export function socketReadyState() {
  *
  * Separata dal resto perche' e' l'unico punto dove si decide qualcosa: il
  * contorno legge il documento e guarda l'orologio, questa no. */
-export function reconnectDecision({ up, readyState, sinceLastTry, connecting = 0 }) {
+export function reconnectDecision({ up, readyState, sinceLastTry, connecting = 0, eager = false }) {
   if (up) return { retry: false, reason: "connessa" };
   if (readyState === connecting && sinceLastTry < STALE_CONNECTING_MS) {
     return { retry: false, reason: "sta gia' provando" };
   }
-  if (sinceLastTry < MIN_GAP_MS) return { retry: false, reason: "troppo presto" };
+  /* Chi ha appena riaperto l'app non aspetta il turno.
+   *
+   * La pausa fra due tentativi serve a non impilare prese mentre nessuno
+   * guarda. Al rientro qualcuno sta guardando lo schermo adesso: la prova si fa
+   * subito, e l'unico freno che resta e' quello che conta davvero — non
+   * aprirne una seconda sopra una che si sta ancora aprendo. */
+  if (!eager && sinceLastTry < MIN_GAP_MS) return { retry: false, reason: "troppo presto" };
   return { retry: true, reason: readyState == null ? "nessuna presa" : "presa ferma" };
 }
 
@@ -79,12 +85,13 @@ function announceRetry() {
   return true;
 }
 
-export function attemptReconnect({ force = false } = {}) {
+export function attemptReconnect({ force = false, eager = false } = {}) {
   const decision = reconnectDecision({
     up: connectionUp(),
     readyState: socketReadyState(),
     sinceLastTry: Date.now() - state.lastTry,
     connecting: root.WebSocket?.CONNECTING ?? 0,
+    eager,
   });
   if (!force && !decision.retry) return false;
   const connect = legacyConnect();
@@ -119,7 +126,7 @@ function watch(delay = FIRST_DELAY) {
 function resume() {
   if (connectionUp()) return false;
   state.attempts = 0;
-  attemptReconnect();
+  attemptReconnect({ eager: true });
   watch(FIRST_DELAY);
   return true;
 }
