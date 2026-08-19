@@ -1,4 +1,5 @@
 import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
+import { applianceHeroArtwork } from "../core/appliance-hero-artwork.js";
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
 import { installStateEventGate } from "../core/state-event-gate.js";
 import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
@@ -395,7 +396,16 @@ function applianceKpiArtwork(model) {
       model?.name,
   );
   const kind = canonicalArtworkType(fallback);
-  return (kind && applianceArtwork(kind, 72)) || '<span class="dm-appliance-kpi-fallback">⚡</span>';
+  /* Lo stesso disegno della scheda, non un secondo disegno.
+   *
+   * Il popup usava l'illustrazione piatta: una sagoma azzurra uguale per tutti
+   * gli elettrodomestici, e ferma anche mentre l'elettrodomestico lavorava.
+   * Adesso mostra il disegno della scheda, quello con le parti mobili, e la
+   * riga porta lo stato: se sta lavorando, il meccanismo gira anche qui. */
+  return (
+    (kind && (applianceHeroArtwork(kind, 56) || applianceArtwork(kind, 72))) ||
+    '<span class="dm-appliance-kpi-fallback">⚡</span>'
+  );
 }
 
 function ensureApplianceKpiPopup(kind) {
@@ -446,7 +456,7 @@ function applianceKpiRow(model, kind, totalWatts = 0) {
     ? `<strong>${measurable ? formatApplianceWatts(watts) : htmlEscape(model.label)}</strong><small>${htmlEscape(model.label)}</small>`
     : `<strong>${formatApplianceWatts(watts)}</strong><small>${totalWatts > 0 ? `${Math.round((Math.max(0, watts) / totalWatts) * 100)}%` : "0%"}</small>`;
   return `<div class="dm-appliance-kpi-row" data-appliance-id="${htmlEscape(model.id)}">
-    <span class="dm-appliance-kpi-visual">${applianceKpiArtwork(model)}</span>
+    <span class="dm-appliance-kpi-visual dm-ap-mech is-${htmlEscape(model?.mode === "running" ? "run" : model?.mode === "standby" ? "standby" : "off")}">${applianceKpiArtwork(model)}</span>
     <span class="dm-appliance-kpi-row-main"><strong>${htmlEscape(model.name)}</strong>${room ? `<small>🏠 ${htmlEscape(room)}</small>` : ""}</span>
     <span class="dm-appliance-kpi-row-value">${right}</span>
   </div>`;

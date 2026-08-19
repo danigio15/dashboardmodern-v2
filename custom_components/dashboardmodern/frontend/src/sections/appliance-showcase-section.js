@@ -354,7 +354,7 @@ export function buildCardMarkup(model, labels = copy()) {
           : `<button type="button" class="dm-ap-tool dm-ap-history" disabled aria-disabled="true" title="${esc(labels.history)}" aria-label="${esc(labels.history)}">${ICONS.chart}</button>`
       }
     </span>`;
-  return `<article class="appl-wide-card dm-ap-card is-${badgeClass} acc-${esc(model.accent)}${model.alarm ? " has-alarm" : ""}" data-appliance-id="${esc(model.id)}" data-idx="${model.index}" data-mode="${esc(model.mode)}" data-art="${esc(model.artworkType)}" role="button" tabindex="0" aria-label="${esc(model.name)} — ${esc(model.label)}">
+  return `<article class="appl-wide-card dm-ap-card dm-ap-mech is-${badgeClass} acc-${esc(model.accent)}${model.alarm ? " has-alarm" : ""}" data-appliance-id="${esc(model.id)}" data-idx="${model.index}" data-mode="${esc(model.mode)}" data-art="${esc(model.artworkType)}" role="button" tabindex="0" aria-label="${esc(model.name)} — ${esc(model.label)}">
     <div class="dm-ap-top">
       <span class="dm-ap-chip" aria-hidden="true">${applianceArtwork(model.artworkType, 30) || "🔌"}</span>
       <span class="dm-ap-headings"><span class="dm-ap-name appl-wide-name">${esc(model.name)}</span>${roomName ? `<span class="dm-ap-room">${esc(roomName)}</span>` : ""}</span>
@@ -1073,47 +1073,55 @@ function showcaseCss() {
 .dm-appl-shell .dm-ap-card.is-standby .dm-ap-hero.has-image{filter:none}
 .dm-appl-shell .dm-ap-card.is-unavailable .dm-ap-hero.has-image{filter:grayscale(.6) opacity(.7)}
 /* ── running animations (hero mechanisms) ───────────────────────────── */
-.dm-ap-card.is-run .dm-ap-hero{background:radial-gradient(120% 90% at 50% 8%,rgba(186,230,253,.85),rgba(224,242,254,.35) 62%,transparent)}
-.dm-ap-card.is-run.acc-heat .dm-ap-hero{background:radial-gradient(120% 90% at 50% 12%,rgba(254,215,170,.75),rgba(254,226,226,.35) 62%,transparent)}
+/* Le meccaniche si muovono ovunque compaia il disegno, non solo sulla scheda.
+ *
+ * Queste regole erano scritte su .dm-ap-card, e cosi' il disegno riportato
+ * altrove — nel popup "in funzione", che mostra gli stessi elettrodomestici —
+ * restava un'immagine ferma e per giunta diversa da quella della scheda. La
+ * classe .dm-ap-mech dice "qui dentro c'e' un disegno animabile": la porta la
+ * scheda, la porta la riga del popup, e lo stato .is-run/.is-standby decide se
+ * il meccanismo gira. */
+.dm-ap-mech.is-run .dm-ap-hero{background:radial-gradient(120% 90% at 50% 8%,rgba(186,230,253,.85),rgba(224,242,254,.35) 62%,transparent)}
+.dm-ap-mech.is-run.acc-heat .dm-ap-hero{background:radial-gradient(120% 90% at 50% 12%,rgba(254,215,170,.75),rgba(254,226,226,.35) 62%,transparent)}
 /* Idle mechanisms are hidden until the appliance actually runs. */
-.dm-ap-card:not(.is-run) .dmh-jets,.dm-ap-card:not(.is-run) .dmh-steam,.dm-ap-card:not(.is-run) [data-dm-hero="oven"] .dmh-ring{opacity:0}
-.dm-ap-card:not(.is-run) [data-dm-hero="oven"] .dmh-glow,.dm-ap-card:not(.is-run) [data-dm-hero="microwave"] .dmh-glow,.dm-ap-card:not(.is-run) [data-dm-hero="toaster"] .dmh-glow,.dm-ap-card:not(.is-run) .dmh-zone{opacity:.16;filter:saturate(.25)}
-.dm-ap-card.is-off .dmh-light,.dm-ap-card.is-unavailable .dmh-light{opacity:.35;filter:saturate(.4)}
-.dm-ap-card:not(.is-run) .dmh-led{opacity:.45}
-.dm-ap-card.is-standby .dmh-led{animation:dmDotBreathe 2.4s ease-in-out infinite}
+.dm-ap-mech:not(.is-run) .dmh-jets,.dm-ap-mech:not(.is-run) .dmh-steam,.dm-ap-mech:not(.is-run) [data-dm-hero="oven"] .dmh-ring{opacity:0}
+.dm-ap-mech:not(.is-run) [data-dm-hero="oven"] .dmh-glow,.dm-ap-mech:not(.is-run) [data-dm-hero="microwave"] .dmh-glow,.dm-ap-mech:not(.is-run) [data-dm-hero="toaster"] .dmh-glow,.dm-ap-mech:not(.is-run) .dmh-zone{opacity:.16;filter:saturate(.25)}
+.dm-ap-mech.is-off .dmh-light,.dm-ap-mech.is-unavailable .dmh-light{opacity:.35;filter:saturate(.4)}
+.dm-ap-mech:not(.is-run) .dmh-led{opacity:.45}
+.dm-ap-mech.is-standby .dmh-led{animation:dmDotBreathe 2.4s ease-in-out infinite}
 /* washer / dryer: drum + accent ring spin, gentle wobble */
-.dm-ap-card.is-run [data-dm-hero="washer"] .dmh-drum,.dm-ap-card.is-run [data-dm-hero="dryer"] .dmh-drum{transform-origin:120px 140px;animation:dmDrumSpin 1.6s linear infinite}
-.dm-ap-card.is-run [data-dm-hero="washer"] .dmh-ring,.dm-ap-card.is-run [data-dm-hero="dryer"] .dmh-ring{transform-origin:120px 140px;animation:dmDrumSpin 2.8s linear infinite}
-.dm-ap-card.is-run [data-dm-hero="washer"] svg,.dm-ap-card.is-run [data-dm-hero="dryer"] svg{animation:dmWobble .6s ease-in-out infinite}
+.dm-ap-mech.is-run [data-dm-hero="washer"] .dmh-drum,.dm-ap-mech.is-run [data-dm-hero="dryer"] .dmh-drum{transform-origin:120px 140px;animation:dmDrumSpin 1.6s linear infinite}
+.dm-ap-mech.is-run [data-dm-hero="washer"] .dmh-ring,.dm-ap-mech.is-run [data-dm-hero="dryer"] .dmh-ring{transform-origin:120px 140px;animation:dmDrumSpin 2.8s linear infinite}
+.dm-ap-mech.is-run [data-dm-hero="washer"] svg,.dm-ap-mech.is-run [data-dm-hero="dryer"] svg{animation:dmWobble .6s ease-in-out infinite}
 /* oven: convection fan + interior glow + external heat rings */
-.dm-ap-card.is-run [data-dm-hero="oven"] .dmh-fan{transform-origin:120px 132px;animation:dmDrumSpin 1.3s linear infinite}
-.dm-ap-card.is-run [data-dm-hero="oven"] .dmh-glow{animation:dmGlowPulse 2.2s ease-in-out infinite}
-.dm-ap-card.is-run [data-dm-hero="oven"] .dmh-ring{transform-origin:120px 128px;animation:dmHeatRings 2.4s ease-in-out infinite}
+.dm-ap-mech.is-run [data-dm-hero="oven"] .dmh-fan{transform-origin:120px 132px;animation:dmDrumSpin 1.3s linear infinite}
+.dm-ap-mech.is-run [data-dm-hero="oven"] .dmh-glow{animation:dmGlowPulse 2.2s ease-in-out infinite}
+.dm-ap-mech.is-run [data-dm-hero="oven"] .dmh-ring{transform-origin:120px 128px;animation:dmHeatRings 2.4s ease-in-out infinite}
 /* dishwasher: pumping jets */
-.dm-ap-card.is-run [data-dm-hero="dishwasher"] .dmh-jets{transform-origin:120px 178px;animation:dmJets 1.5s ease-in-out infinite}
+.dm-ap-mech.is-run [data-dm-hero="dishwasher"] .dmh-jets{transform-origin:120px 178px;animation:dmJets 1.5s ease-in-out infinite}
 /* microwave: glow + rotating plate hint */
-.dm-ap-card.is-run [data-dm-hero="microwave"] .dmh-glow{animation:dmGlowPulse 1.9s ease-in-out infinite}
-.dm-ap-card.is-run [data-dm-hero="microwave"] .dmh-plate{transform-origin:100px 146px;animation:dmPlate 2.6s ease-in-out infinite}
+.dm-ap-mech.is-run [data-dm-hero="microwave"] .dmh-glow{animation:dmGlowPulse 1.9s ease-in-out infinite}
+.dm-ap-mech.is-run [data-dm-hero="microwave"] .dmh-plate{transform-origin:100px 146px;animation:dmPlate 2.6s ease-in-out infinite}
 /* cold cabinets */
-.dm-ap-card.is-run .dmh-light{animation:dmGlowPulse 2.6s ease-in-out infinite}
-.dm-ap-card.is-run [data-dm-hero="freezer"] .dmh-frost,.dm-ap-card.is-standby [data-dm-hero="freezer"] .dmh-frost{animation:dmFrost 2.8s ease-in-out infinite}
+.dm-ap-mech.is-run .dmh-light{animation:dmGlowPulse 2.6s ease-in-out infinite}
+.dm-ap-mech.is-run [data-dm-hero="freezer"] .dmh-frost,.dm-ap-mech.is-standby [data-dm-hero="freezer"] .dmh-frost{animation:dmFrost 2.8s ease-in-out infinite}
 /* cooktop zones + toaster elements */
-.dm-ap-card.is-run .dmh-zone,.dm-ap-card.is-run [data-dm-hero="toaster"] .dmh-glow{animation:dmGlowPulse 1.8s ease-in-out infinite}
+.dm-ap-mech.is-run .dmh-zone,.dm-ap-mech.is-run [data-dm-hero="toaster"] .dmh-glow{animation:dmGlowPulse 1.8s ease-in-out infinite}
 /* steam / airflow wisps */
-.dm-ap-card.is-run .dmh-steam{animation:dmSteamRise 2.6s ease-in-out infinite}
+.dm-ap-mech.is-run .dmh-steam{animation:dmSteamRise 2.6s ease-in-out infinite}
 /* fan / robot / boiler / kettle / tv */
-.dm-ap-card.is-run [data-dm-hero="fan"] .dmh-fan{transform-origin:120px 102px;animation:dmDrumSpin 1s linear infinite}
-.dm-ap-card.is-run [data-dm-hero="robot-vacuum"] .dmh-ring{transform-origin:120px 126px;animation:dmDrumSpin 1.8s linear infinite}
-.dm-ap-card.is-run [data-dm-hero="robot-vacuum"] svg{animation:dmRover 2.4s ease-in-out infinite}
-.dm-ap-card.is-run [data-dm-hero="vacuum"] svg,.dm-ap-card.is-run [data-dm-hero="iron"] svg{animation:dmSway 1.9s ease-in-out infinite}
-.dm-ap-card.is-run .dmh-water{animation:dmWaterSway 2.2s ease-in-out infinite}
-.dm-ap-card.is-run [data-dm-hero="kettle"] .dmh-frost{animation:dmBubbleUp 1.7s ease-in infinite}
-.dm-ap-card.is-run [data-dm-hero="television"] .dmh-screen{animation:dmScreen 3.4s ease-in-out infinite}
-.dm-ap-card.is-run [data-dm-hero="coffee"] .dmh-jets{animation:dmJets 1.2s ease-in-out infinite}
-.dm-ap-card.is-run .dmh-led{animation:dmDotBreathe 1.4s ease-in-out infinite}
+.dm-ap-mech.is-run [data-dm-hero="fan"] .dmh-fan{transform-origin:120px 102px;animation:dmDrumSpin 1s linear infinite}
+.dm-ap-mech.is-run [data-dm-hero="robot-vacuum"] .dmh-ring{transform-origin:120px 126px;animation:dmDrumSpin 1.8s linear infinite}
+.dm-ap-mech.is-run [data-dm-hero="robot-vacuum"] svg{animation:dmRover 2.4s ease-in-out infinite}
+.dm-ap-mech.is-run [data-dm-hero="vacuum"] svg,.dm-ap-mech.is-run [data-dm-hero="iron"] svg{animation:dmSway 1.9s ease-in-out infinite}
+.dm-ap-mech.is-run .dmh-water{animation:dmWaterSway 2.2s ease-in-out infinite}
+.dm-ap-mech.is-run [data-dm-hero="kettle"] .dmh-frost{animation:dmBubbleUp 1.7s ease-in infinite}
+.dm-ap-mech.is-run [data-dm-hero="television"] .dmh-screen{animation:dmScreen 3.4s ease-in-out infinite}
+.dm-ap-mech.is-run [data-dm-hero="coffee"] .dmh-jets{animation:dmJets 1.2s ease-in-out infinite}
+.dm-ap-mech.is-run .dmh-led{animation:dmDotBreathe 1.4s ease-in-out infinite}
 /* custom photos: breathing + glow (mechanisms are inside the picture) */
-.dm-ap-card.is-run .dm-ap-hero>.dm-ap-img{animation:dmBreath 3.2s ease-in-out infinite}
-.dm-ap-card.is-run .dm-ap-hero.has-image .dm-ap-img{filter:drop-shadow(0 10px 22px rgba(14,165,233,.35))}
+.dm-ap-mech.is-run .dm-ap-hero>.dm-ap-img{animation:dmBreath 3.2s ease-in-out infinite}
+.dm-ap-mech.is-run .dm-ap-hero.has-image .dm-ap-img{filter:drop-shadow(0 10px 22px rgba(14,165,233,.35))}
 /* fx overlays */
 .dm-ap-fx{position:absolute;inset:0;pointer-events:none}
 .dm-ap-fx-heat{background:radial-gradient(65% 55% at 50% 62%,rgba(251,146,60,.42),rgba(239,68,68,.16) 55%,transparent 75%);animation:dmHeatPulse 2.2s ease-in-out infinite}
