@@ -70,7 +70,11 @@ test("shutters are compact and alert animations follow the alert kind", async ()
   // 3D rendering context on every alert icon, which WebKit did not survive.
   assert.match(source, /@keyframes dmAlertDoor\{[\s\S]*scaleX\(\.44\)/);
   assert.doesNotMatch(source, /@keyframes dmAlertDoor\{[\s\S]{0,200}perspective\(/);
-  assert.match(source, /@keyframes dmAlertBattery\{[\s\S]*clip-path:inset\(56% 0 0 0\)/);
+  // The level drops by squashing towards the base, not by being clipped: these
+  // animations never stop, and only transform and opacity spare the engine a
+  // repaint on every frame.
+  assert.match(source, /@keyframes dmAlertBattery\{[\s\S]*transform:scaleY\(\.44\)/);
+  assert.doesNotMatch(source, /@keyframes dmAlert[\s\S]*?\{[^}]*(clip-path|filter:(?!none))/);
   assert.doesNotMatch(source, /dmAlertOpening/);
   for (const kind of ["window", "leak", "flame", "motion", "temperature", "power", "light", "security"]) {
     assert.match(source, new RegExp(`\\.dm-alert-${kind} \\.dm-alert-glyph`));

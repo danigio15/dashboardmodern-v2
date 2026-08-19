@@ -675,7 +675,8 @@ function installStyles() {
     #page-home .g-icon-wrap.dm-alert-window .dm-alert-glyph{
       transform-origin:right center!important;animation:dmAlertWindow 3s ease-in-out infinite!important}
     /* A flat battery empties from the top down, then refills out of sight. */
-    #page-home .g-icon-wrap.dm-alert-battery .dm-alert-glyph{animation:dmAlertBattery 3.4s linear infinite!important}
+    #page-home .g-icon-wrap.dm-alert-battery .dm-alert-glyph{
+      transform-origin:center bottom!important;animation:dmAlertBattery 3.4s linear infinite!important}
     #page-home .g-icon-wrap.dm-alert-leak .dm-alert-glyph{animation:dmAlertDrip 1.7s ease-in infinite!important}
     #page-home .g-icon-wrap.dm-alert-flame .dm-alert-glyph{animation:dmAlertFlame 1.5s ease-in-out infinite!important}
     #page-home .g-icon-wrap.dm-alert-motion .dm-alert-glyph{animation:dmAlertStep 1.1s ease-in-out infinite!important}
@@ -697,21 +698,29 @@ function installStyles() {
       0%,12%{transform:scaleX(1)}
       46%,60%{transform:scaleX(.74)}
       92%,100%{transform:scaleX(1)}}
+    /* Every alert moves on transform and opacity alone.
+     *
+     * These animations never stop, and the plancia is the page that is on
+     * screen almost all the time. A clip-path or a filter in a keyframe makes
+     * the engine repaint the glyph on every frame, forever; transform and
+     * opacity are the two the compositor can carry on its own. The battery
+     * therefore drains by squashing towards its base instead of being clipped,
+     * which reads the same and costs nothing per frame. */
     @keyframes dmAlertBattery{
-      0%{clip-path:inset(0 0 0 0);opacity:1}
-      52%{clip-path:inset(56% 0 0 0);opacity:1}
-      68%{clip-path:inset(56% 0 0 0);opacity:.18}
-      84%{clip-path:inset(0 0 0 0);opacity:.18}
-      100%{clip-path:inset(0 0 0 0);opacity:1}}
+      0%{transform:scaleY(1);opacity:1}
+      52%{transform:scaleY(.44);opacity:1}
+      68%{transform:scaleY(.44);opacity:.18}
+      84%{transform:scaleY(1);opacity:.18}
+      100%{transform:scaleY(1);opacity:1}}
     @keyframes dmAlertDrip{
       0%{transform:translateY(-3px) scaleY(.92)}
       55%{transform:translateY(4px) scaleY(1.08)}
       75%{transform:translateY(4px) scaleY(.96)}
       100%{transform:translateY(-3px) scaleY(.92)}}
     @keyframes dmAlertFlame{
-      0%,100%{transform:translateY(0) scale(1);filter:none}
-      35%{transform:translateY(-2px) scale(1.07);filter:drop-shadow(0 0 6px rgba(249,115,22,.45))}
-      68%{transform:translateY(-1px) scale(.97);filter:none}}
+      0%,100%{transform:translateY(0) scale(1);opacity:1}
+      35%{transform:translateY(-2px) scale(1.07);opacity:.82}
+      68%{transform:translateY(-1px) scale(.97);opacity:1}}
     @keyframes dmAlertStep{
       0%,100%{transform:translate(-3px,0)}
       25%{transform:translate(-1px,-2px)}
@@ -719,13 +728,13 @@ function installStyles() {
       75%{transform:translate(1px,-2px)}}
     @keyframes dmAlertTemp{0%,100%{transform:translateY(2.5px)}50%{transform:translateY(-2.5px)}}
     @keyframes dmAlertSurge{
-      0%,100%{transform:scale(1);filter:none}
-      14%{transform:scale(1.12);filter:brightness(1.45) drop-shadow(0 0 6px rgba(245,158,11,.55))}
-      26%{transform:scale(1);filter:none}
-      52%{transform:scale(1.06);filter:brightness(1.25)}
-      66%{transform:scale(1);filter:none}}
+      0%,100%{transform:scale(1);opacity:1}
+      14%{transform:scale(1.12);opacity:.7}
+      26%{transform:scale(1);opacity:1}
+      52%{transform:scale(1.06);opacity:.85}
+      66%{transform:scale(1);opacity:1}}
     @keyframes dmAlertSecurity{0%,100%{transform:scale(1)}50%{transform:scale(1.075)}}
-    @keyframes dmAlertLight{0%,100%{filter:drop-shadow(0 0 0 transparent)}50%{filter:drop-shadow(0 0 7px rgba(245,158,11,.38))}}
+    @keyframes dmAlertLight{0%,100%{opacity:1}50%{opacity:.62}}
     @keyframes dmAlertShutterMove{0%,100%{transform:translateY(-2px)}50%{transform:translateY(2px)}}
 
     #ed-body .dm-light-add-form[data-dm-light-add-layout="beta9-real"]{
