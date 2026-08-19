@@ -359,7 +359,48 @@ function installStyles() {
   );
 }
 
+/* "sezioni" non e' piu' una scheda.
+ *
+ * L'editor aveva una sola scheda Sezioni; adesso ce n'e' una per sezione, da
+ * sez0 a sez9, e il nome "sezioni" non corrisponde piu' a niente: editorSwitch
+ * lo riconosce come nome vecchio e non ridisegna nulla, mentre la barra in alto
+ * perde anche la scheda evidenziata.
+ *
+ * Ventiquattro punti del runtime lo chiamano ancora dopo aver aggiunto o
+ * eliminato qualcosa. Premendo il cestino su un'unita' clima l'elenco restava
+ * quello di prima, e il ridisegno parziale che segue lo lasciava sfasato: la
+ * riga eliminata spariva, l'ultima compariva due volte, e il contatore in alto
+ * diceva un numero che non tornava con nulla.
+ *
+ * Il nome vecchio viene tradotto nella scheda davvero aperta, cosi' l'elenco si
+ * ridisegna dove si sta guardando. */
+function retiredTabTarget() {
+  const active = clean(doc?.querySelector("#editor-modal .ed-tab.active")?.dataset?.tab);
+  if (active && active !== "sezioni") return active;
+  const first = clean(
+    doc?.querySelector('#editor-modal .ed-tab[data-tab^="sez"]')?.dataset?.tab,
+  );
+  return first && first !== "sezioni" ? first : "";
+}
+
+function installRetiredTabRepair() {
+  const current = root.editorSwitch;
+  if (typeof current !== "function" || current.__dmRetiredTabRepair) return false;
+  function editorSwitchOwner(tab, ...rest) {
+    if (clean(tab) === "sezioni") {
+      const target = retiredTabTarget();
+      if (target) return current.call(this, target, ...rest);
+    }
+    return current.call(this, tab, ...rest);
+  }
+  editorSwitchOwner.__dmRetiredTabRepair = true;
+  editorSwitchOwner.__dmRetiredTabOriginal = current;
+  root.editorSwitch = editorSwitchOwner;
+  return true;
+}
+
 function installWrappers() {
+  installRetiredTabRepair();
   wrapFunction("editorSwitch", "__dmCrudEditorSection", runContracts);
 }
 
