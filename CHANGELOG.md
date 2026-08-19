@@ -4,6 +4,60 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-rc.1 — 2026-08-19
+
+Prima release candidate della 1.0.0: la configurazione e le intestazioni delle
+pagine parlano finalmente la stessa lingua in ogni sezione.
+
+### Aggiunto
+
+- **Ogni pagina si apre allo stesso modo.** L'intestazione del Solare termico —
+  nome della sezione in gradiente, la riga che dice di cosa si tratta, il disco
+  colorato in alto a destra — è ora l'intestazione di Temperature, Tapparelle,
+  Piscina, Irrigazione, Auto elettrica, Clima, Energia, Elettrodomestici e
+  Sicurezza, ognuna nei propri due colori. Dove una pagina stampava un titolo
+  suo, quel titolo viene ripiegato: il testo vive qui adesso. Solare termico
+  tiene la sua, perché è l'originale, e il MiniPC la sua, perché porta comandi
+  dal vivo.
+
+### Modificato
+
+- **Un'unica card per il campo entità, in tutte le maschere.** Home disegnava lo
+  slot come una card: pallino che diventa verde quando è mappato, nome del campo
+  in grassetto, matita nell'angolo per chi vuole scrivere l'id a mano, selettore
+  sotto. Ogni altra scheda disegnava le stesse tre cose come etichetta grigia,
+  chip e pulsantone matita di fianco. Ora è la stessa card ovunque, e dove è il
+  modulo stesso a stampare l'etichetta è l'etichetta a diventare la card.
+  L'impaginazione è scritta sull'elemento e non nel foglio di stile: sei moduli
+  vestono quelle stesse righe e alcuni lo fanno con selettori da quattro id — le
+  righe dell'irrigazione erano inchiodate a una griglia a due colonne che nessuna
+  regola poteva scavalcare.
+- **Ogni riga «Scegli entità» dice per quale campo serve.** Temperatura piscina,
+  pH, Cloro, Pompa filtrazione, Riscaldamento piscina, Luce piscina, Valvola
+  della zona, Sensore probabilità pioggia, Meteo, Entità tapparella, Entità
+  telecamera, Entità luce, Sensore temperatura, Sensore umidità: prima erano
+  quattordici caselle identiche.
+- **Le animazioni degli avvisi si comportano come l'avviso.** La porta non ruota
+  più su sé stessa: si apre e si richiude sul cardine. La batteria scarica cala
+  di livello, l'antifurto pulsa, la luce accesa alone, la tapparella in movimento
+  scorre. Ogni avviso creabile ha il moto del proprio significato.
+
+### Corretto
+
+- **Le icone degli elettrodomestici nel Report.** Il quadratino restava bianco
+  quando l'icona era un nome `mdi:`: stampato come testo non è un carattere. Ora
+  lo disegna il motore icone, lo stesso della card. E il selettore che si apre
+  toccandolo è quello dei carichi, non quello delle azioni rapide.
+
+### Prestazioni
+
+- Misurato a plancia ferma, dieci secondi: 34 chiamate a `getComputedStyle`
+  (erano 1964), 2 cloni della configurazione (erano 334), 13 mutazioni del DOM
+  (erano 4099), zero long task. I sedici timer che partono al boot costano in
+  tutto 13 ms ogni dodici secondi: restano dove sono, perché fermarli sarebbe
+  rischio senza guadagno — fra loro ci sono quelli che spengono la pompa della
+  piscina e chiudono l'irrigazione.
+
 ## 1.0.0-beta.31.1 — 2026-08-19
 
 ### Corretto
