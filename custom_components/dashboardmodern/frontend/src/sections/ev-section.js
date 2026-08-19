@@ -113,12 +113,16 @@ export function applyVehicleAsset() {
   const plugged = vehiclePlugged();
   const original = activeVehiclePhoto(photos, plugged);
   const url = resolveVehicleAsset(original);
-  // Only the key the value came from is rewritten in its resolved form, so the
-  // other photo is never overwritten with this one.
-  if (url && clean(original) !== url) {
-    const key = clean(photos.plugged) === clean(original) && plugged ? EV_PHOTO_KEYS.plugged : EV_PHOTO_KEYS.idle;
-    root.localStorage?.setItem(key, JSON.stringify(url));
-  }
+  /* Quello che l'utente ha scritto resta come l'ha scritto.
+   *
+   * Qui la foto risolta veniva riscritta nella configurazione, e la chiave in
+   * cui finiva la sceglieva il cavo: con la sola foto "col cavo" impostata e il
+   * cavo staccato, la foto attiva veniva da quella chiave ma veniva riscritta
+   * in quella "senza cavo". Da li' le due foto diventavano la stessa, da sole,
+   * poco dopo averle inserite — e con due profili la stessa coppia finiva su
+   * entrambe le auto. Risolvere un percorso serve a disegnare l'immagine, non a
+   * cambiare la configurazione: la risoluzione resta qui e non torna nel
+   * deposito. */
   state.lastUrl = url;
   let mounted = false;
   for (const id of ["ev-mod-car-img", "ev-new-car-img"]) {
