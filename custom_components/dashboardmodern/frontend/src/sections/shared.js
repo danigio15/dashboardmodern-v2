@@ -181,7 +181,10 @@ export function dashboardStore() {
 
 export function section(name, fallback) {
   try {
-    const value = dashboardStore()?.getSection?.(name) ?? fallback;
+    // A read-only view when the store offers one: the sections only read here,
+    // and a fresh deep copy per call was the busiest thing on an idle plancia.
+    const store = dashboardStore();
+    const value = (store?.peekSection ? store.peekSection(name) : store?.getSection?.(name)) ?? fallback;
     return name === "energy" ? sanitizeEnergyModel(value, allStates(), root.resolveEntity) : value;
   } catch (_error) {
     return fallback;

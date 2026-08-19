@@ -43,7 +43,7 @@
  * legacy `setRing()` already uses to colour these three gauges, and the 20-100
  * window plus the 75 °C notch the runtime itself draws the temperature arc in.
  */
-import { clean, doc, installStyle, root, t } from "./shared.js";
+import { clean, doc, installStyle, lexicalGlobal, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_MINIPC_SHOWCASE__";
 const STYLE_ID = "dm-minipc-showcase-style";
@@ -396,6 +396,33 @@ function syncHeadings(page) {
   }
 }
 
+/* The two cards of "Rete e impianto" read a mapped entity each, but their
+ * onclick opens a history popup and names no `dm.*` slot — so the auto-hide,
+ * which reads those names out of the onclick, never saw them. An impianto with
+ * no inverter mapped kept a card saying OFF-GRID · ALERT that nothing in the
+ * configuration could take away, because the slot lives in Energia and not in
+ * this page. They now follow the same rule as every other card: gone while
+ * their entity is unmapped, back the moment it is mapped. */
+const STATUS_CARD_SLOTS = Object.freeze([
+  { id: "waw-net-badge", slot: "dm.server_raggiungibilita_google" },
+  { id: "waw-inv-badge", slot: "dm.energy_stato_rete" },
+]);
+
+function slotIsMapped(slot) {
+  const overrides = lexicalGlobal("ENTITY_OVERRIDES");
+  if (!overrides || typeof overrides !== "object") return true;
+  return Boolean(clean(overrides[slot]));
+}
+
+function syncStatusCards(page) {
+  for (const { id, slot } of STATUS_CARD_SLOTS) {
+    const card = page.querySelector(`#${id}`)?.closest(".srv-status-card");
+    if (!card) continue;
+    const display = slotIsMapped(slot) ? "" : "none";
+    if (card.style.display !== display) card.style.display = display;
+  }
+}
+
 /** Thermal scale and mirrored status badge next to the temperature ring. */
 function mountThermal(page) {
   const card = page.querySelector(".srv-temp-card");
@@ -501,6 +528,7 @@ export function renderMinipcShowcase() {
   mountTelemetry(page);
   mountStatusIcons(page);
   mountHeadings(page);
+  syncStatusCards(page);
   syncHeadings(page);
   renderTrace(mountTrace(page));
   const thermal = mountThermal(page) || page.querySelector(".srv-temp-card");

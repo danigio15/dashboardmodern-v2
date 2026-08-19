@@ -120,52 +120,11 @@ if (typeof document !== "undefined") {
     `;
     document.head?.append(evBrandStyle);
 
-    // Personalization creates the EV appearance card only after the legacy EV
-    // editor has rendered. On WebKit that first render can land after beta9's
-    // own reconciliation frame, leaving Brand/Model below the long entity list
-    // or leaving the freshly-created selects before beta9's direct bindings.
-    // Reconcile position on the following frame and, when bindings are still
-    // absent, issue one ordinary scoped state tick so beta9 runs its existing
-    // bindEvAppearance owner. No observer or permanent polling is introduced.
-    const repairEvAppearanceTop = () => {
-      const body = document.getElementById("ed-body");
-      if (!body) return;
-      const activeTab = String(document.querySelector(".ed-tab.active")?.dataset?.tab || "");
-      if (activeTab !== "sez2") return;
-      const panel = body.querySelector("[data-ev-appearance]");
-      if (!panel) return;
-      if (body.firstElementChild !== panel) body.prepend(panel);
-      panel.dataset.dmEvTop = "true";
-
-      const brandSelect = panel.querySelector("select[data-brand]");
-      if (brandSelect && brandSelect.dataset.dmRealDeviceBound !== "true") {
-        globalThis.dispatchEvent?.(new CustomEvent("dashboardmodern:state-changed", {
-          detail: { entity_id: "sensor.dashboardmodern_ev_appearance_sync" },
-        }));
-      }
-    };
-    const scheduleEvAppearanceTopRepair = () => {
-      const secondFrame = () => {
-        if (typeof requestAnimationFrame === "function") requestAnimationFrame(repairEvAppearanceTop);
-        else setTimeout(repairEvAppearanceTop, 0);
-      };
-      if (typeof requestAnimationFrame === "function") requestAnimationFrame(secondFrame);
-      else setTimeout(secondFrame, 0);
-      setTimeout(repairEvAppearanceTop, 70);
-    };
-    const installEvAppearanceTopOwner = () => {
-      const current = globalThis.editorSwitch;
-      if (typeof current !== "function" || current.__dmBeta9EvTopRepair) return;
-      const wrapped = function (...args) {
-        const result = current.apply(this, args);
-        if (result && typeof result.finally === "function") result.finally(scheduleEvAppearanceTopRepair);
-        else scheduleEvAppearanceTopRepair();
-        return result;
-      };
-      wrapped.__dmBeta9EvTopRepair = true;
-      wrapped.__dmWrappedOriginal = current;
-      globalThis.editorSwitch = wrapped;
-    };
+    /* Brand e modello has one home: inside the vehicle accordion, where
+     * personalization builds it once that section exists. The repair that used
+     * to drag the panel to the top of the tab from here is gone — two owners
+     * with different ideas of where it goes made the tab flicker between two
+     * layouts on every pass, which is exactly what it was written to prevent. */
 
     // Quick Action icon rendering is owned synchronously by icon-engine-section.
     // No delayed public icon repaint is installed here.
@@ -275,7 +234,5 @@ if (typeof document !== "undefined") {
       reconcileOwnedIcons();
     }
 
-    installEvAppearanceTopOwner();
-    scheduleEvAppearanceTopRepair();
   }
 }

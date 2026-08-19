@@ -1,4 +1,5 @@
-import { clean, doc, esc, installStyle, root, t, wrapFunction } from "./shared.js";
+import { reportIconForDevice } from "../core/energy-projection.js";
+import { clean, doc, esc, installStyle, root, section, t, wrapFunction } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_REPORT_EDITOR_SECTION__";
@@ -16,6 +17,40 @@ function rowFields(row) {
     entity: row.querySelector("[data-entity-field] input,.dm-entity-field input"),
     actions: row.querySelector("span:has([data-report-up]),.dm-report-actions"),
   };
+}
+
+/* The little square next to a Report entry says which appliance it is about.
+ *
+ * It is painted from the entry's own icon, and an entry saved before that field
+ * existed has none: the square then stayed empty, which says nothing at all.
+ * The dashboard has an answer for exactly this — the icon the Report row draws,
+ * which follows the appliance card — so the editor shows the same one instead
+ * of a blank box. Nothing is written to the configuration: what is stored is
+ * still empty until the user chooses an icon of their own. */
+function deviceForRow(row) {
+  const id = clean(row.dataset.reportId);
+  const name = clean(row.querySelector("[data-report-name]")?.value);
+  const devices = [...(section("appliances", []) || []), ...(section("loads", []) || [])];
+  return (
+    devices.find((item) => clean(item.id) && clean(item.id) === id) ||
+    devices.find((item) => clean(item.name).toLowerCase() === name.toLowerCase()) ||
+    null
+  );
+}
+
+function paintEmptyReportIcon(row, fields) {
+  const button = fields.icon?.closest(".dm-icon-field,.ed-form-row")?.querySelector("button");
+  if (!button) return;
+  const drawn = clean(button.textContent) || button.querySelector("img,svg,ha-icon");
+  if (drawn) {
+    delete button.dataset.dmReportIconFallback;
+    return;
+  }
+  const device = deviceForRow(row);
+  const glyph = clean(fields.icon?.value) || (device ? reportIconForDevice(device) : "");
+  if (!glyph || glyph.startsWith("mdi:")) return;
+  button.textContent = glyph;
+  button.dataset.dmReportIconFallback = "true";
 }
 
 function cumulativeEntity(entity) {
@@ -94,6 +129,7 @@ export function normalizeReportEditorSection() {
     fields.enabled?.closest("label")?.classList.add("dm-report-enabled");
     fields.label?.classList.add("dm-report-label");
     fields.icon?.closest(".dm-icon-field,.ed-form-row")?.classList.add("dm-report-icon");
+    paintEmptyReportIcon(row, fields);
     fields.entity?.closest("[data-entity-field],.dm-entity-field")?.classList.add("dm-report-history");
     if (fields.actions) {
       fields.actions.classList.add("dm-report-actions");

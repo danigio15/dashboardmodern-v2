@@ -72,6 +72,12 @@ const SAVE_SELECTOR = [
   '[onclick*="edIrrSaveCfg"]',
 ].join(",");
 
+/* What counts as "the switch of this section": the runtime's own banner, and
+ * the one the Energia tab builds for itself with the same handler behind it.
+ * Counting only the first left Energia with two green banners, one under the
+ * other — its own and one of ours. */
+const SWITCH_SELECTOR = "[data-key][onclick*='edSecTog'],[data-dm-energy-visibility='true']";
+
 export function activeTab() {
   return clean(doc?.querySelector?.(".ed-tab.active")?.dataset?.tab);
 }
@@ -118,18 +124,25 @@ function bannerMarkup(key) {
 export function ensureVisibilityBanner(body = editorBody(), tab = activeTab()) {
   if (!body) return false;
   const key = TAB_SECTION_KEYS[tab];
-  const existing = [...body.querySelectorAll("[data-key][onclick*='edSecTog']")];
+  const existing = [...body.querySelectorAll(SWITCH_SELECTOR)];
+  const ours = (node) => node.dataset.dmSectionSwitch === "true";
   if (!key) {
     // Only ever a banner this module printed. The Visibilità tab is made of
     // these very switches, one per section — taking them away there would empty
     // the tab, and the runtime would print them again on the next pass, which is
     // a fight with no end.
-    existing.filter((node) => node.dataset.dmSectionSwitch === "true").forEach((n) => n.remove());
+    existing.filter(ours).forEach((node) => node.remove());
     return false;
   }
-  // More than one is the runtime's and ours together: keep the first.
-  existing.slice(1).forEach((node) => node.remove());
-  let banner = existing[0];
+  // The tab's own switch wins over ours: the Energia tab rebuilds its one on
+  // every pass, so removing it would only start a fight. Ours goes when the
+  // tab has brought its own.
+  let banner = existing.find((node) => !ours(node));
+  if (banner) existing.filter(ours).forEach((node) => node.remove());
+  else {
+    banner = existing[0];
+    existing.slice(1).forEach((node) => node.remove());
+  }
   if (!banner) {
     const markup = bannerMarkup(key);
     if (!markup) return false;
@@ -139,12 +152,15 @@ export function ensureVisibilityBanner(body = editorBody(), tab = activeTab()) {
     if (!banner) return false;
     banner.dataset.dmSectionSwitch = "true";
     body.prepend(banner);
-  } else if (!body.firstElementChild?.contains(banner)) {
-    // Always in the block that opens the tab. Where the runtime already prints
-    // it inside its own wrapper — the EV tab wraps the switch together with the
-    // vehicle profiles — it is left in that wrapper rather than torn out of it.
-    body.prepend(banner);
   }
+  // The switch is moved by its own block, never torn out of the wrapper the tab
+  // built around it — the EV tab wraps it together with the vehicle profiles,
+  // and Energia keeps its own inside a holder of its own.
+  let outermost = banner;
+  while (outermost.parentElement && outermost.parentElement !== body)
+    outermost = outermost.parentElement;
+  if (outermost.parentElement === body && body.firstElementChild !== outermost)
+    body.prepend(outermost);
   banner.classList.add("dm-section-switch");
   return true;
 }
@@ -220,6 +236,11 @@ export function uniformConfiguration(body = editorBody(), tab = activeTab()) {
   pruneHiddenSections(body, tab);
   ensureVisibilityBanner(body, tab);
   ensureSaveFooter(body, tab);
+  // Whatever the tab has just printed gets its entity rows too: this pass is
+  // the one thing that hears every change to the tab.
+  try {
+    root.__DASHBOARDMODERN_DECORATE_ENTITY_FIELDS__?.();
+  } catch (_error) {}
   body.dataset.dmConfigUniform = tab;
   return true;
 }

@@ -170,8 +170,10 @@ function bindEvAppearance() {
   const panel = body?.querySelector("[data-ev-appearance]");
   if (!body || !panel) return false;
 
-  if (body.firstElementChild !== panel) body.prepend(panel);
-  panel.dataset.dmEvTop = "true";
+  /* This used to drag the panel to the top of the tab on every pass. Brand and
+   * model belong to the vehicle, and personalization builds the panel inside
+   * the vehicle's own section: two owners pulling it in different directions
+   * made the tab flicker between two layouts. Here only the selects are bound. */
 
   const brandSelect = panel.querySelector("select[data-brand]");
   const modelSelect = panel.querySelector("select[data-model]");
@@ -434,6 +436,11 @@ function polishAlertAnimations() {
   doc?.querySelectorAll?.("#page-home .glance-card").forEach((card) => {
     const icon = card.querySelector(".g-icon-wrap");
     if (!icon) return;
+    const kind = classifyAlert(card);
+    // Nothing to do when the card is already animating the right way: this ran
+    // on every pass and rewrote eight classes per icon each time, which is a
+    // handful of mutations a second for an unchanged plancia.
+    if (icon.dataset.dmAlertMotion === kind && icon.classList.contains(`dm-alert-${kind}`)) return;
     icon.classList.remove(
       "anim-ping",
       "dm-alert-opening",
@@ -443,7 +450,6 @@ function polishAlertAnimations() {
       "dm-alert-shutter-moving",
       "dm-alert-static",
     );
-    const kind = classifyAlert(card);
     icon.classList.add(`dm-alert-${kind}`);
     icon.dataset.dmAlertMotion = kind;
   });
@@ -547,7 +553,6 @@ function installStyles() {
       font-size:38px!important;line-height:1!important
     }
 
-    #ed-body>[data-ev-appearance][data-dm-ev-top="true"]{order:-1000!important;margin-top:0!important}
     [data-ev-appearance] .dm-brand-preview,
     #dm-visual-picker[data-kind="car"] .dm-picker-visual{
       background:#fff!important;color:#111827!important

@@ -40,7 +40,9 @@ test("valued energy connectors are revived, animated and restore legacy visibili
   assert.match(source, /dmFlowWasHidden/);
   assert.match(source, /function restoreConnectorVisibility/);
   assert.match(source, /node\.hidden = node\.dataset\.dmFlowWasHidden === "true"/);
-  assert.match(source, /style\.setProperty\("display", "inline", "important"\)/);
+  // Same write, now through the helper that skips a property already holding
+  // that value — the stage rewrote a dozen of them per line on every pass.
+  assert.match(source, /setStyleProperty\(node, "display", "inline", "important"\)/);
   assert.match(source, /const active = displayedActive === null \? legacyActive : displayedActive/);
   assert.doesNotMatch(source, /active && nodeVisible\(line\)/);
   assert.doesNotMatch(source, /removeAttribute\?\.\("hidden"\)/);

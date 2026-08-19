@@ -185,8 +185,12 @@ test.describe("MiniPC page redesign", () => {
     await expect(page.locator(".dm-srvx-machine")).toBeVisible();
     // Telemetry takes the whole row instead of leaving the thermal column empty.
     await expect(page.locator("#page-server")).toHaveAttribute("data-dm-srvx-thermal", "off");
-    // The rows that open no entity stay, and so does their heading.
-    await expect(page.locator('.dm-srvx-head[data-dm-srvx-head=".srv-status-grid"]')).toBeVisible();
-    await expect(page.locator(".srv-status-card").first()).toBeVisible();
+    /* "Rete e impianto" goes with them. Its two cards do read an entity each —
+     * connectivity and the inverter — they just name it inside the runtime
+     * instead of in their onclick, which is why the auto-hide never saw them and
+     * an unconfigured inverter kept a card saying OFF-GRID · ALERT that nothing
+     * in the configuration could take away. */
+    await expect(page.locator(".srv-status-card").first()).toBeHidden();
+    await expect(page.locator('.dm-srvx-head[data-dm-srvx-head=".srv-status-grid"]')).toBeHidden();
   });
 });

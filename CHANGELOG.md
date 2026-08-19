@@ -4,6 +4,65 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-beta.31.1 — 2026-08-19
+
+### Corretto
+
+- **La configurazione EV tremava fra due impaginazioni.** Il pannello «Brand e
+  modello» aveva due proprietari: uno lo costruiva dentro la sezione dell'auto,
+  l'altro lo trascinava in cima alla scheda a ogni passata — e una regola CSS lo
+  teneva primo quando ci arrivava. Le due idee si alternavano a ogni ridisegno,
+  che è esattamente quello che quel codice doveva evitare. Ora il pannello ha un
+  solo posto: dentro la sezione dell'auto, sopra le sue entità.
+- **Il campo entità restava grezzo nei moduli disegnati in ritardo.** La scheda
+  Temperatura è disegnata da un proprio proprietario e su un telefono arriva
+  dopo la passata che trasforma i campi in righe leggibili: lì restavano la
+  casella con l'id e la lente, mentre tutto il resto della configurazione aveva
+  già le righe. Ora la passata che segue le modifiche della scheda chiede anche
+  le righe, quindi vale per qualunque modulo, per quanto tardi arrivi.
+- **Nel Report il quadratino dell'icona era vuoto.** Una voce salvata prima che
+  quel campo esistesse non ha un'icona propria e il quadratino restava bianco.
+  Ora mostra la stessa icona che il Report disegna in dashboard — quella
+  dell'elettrodomestico — senza scrivere niente nella configurazione: resta vuota
+  finché non ne scegli una tu.
+- **La scheda Energia mostrava due banner verdi.** Quella scheda costruisce il
+  proprio interruttore di visibilità e ne riceveva un secondo. Ora vale il suo,
+  e la passata si limita a metterlo in apertura come su ogni altra scheda.
+- **Nella pagina MiniPC restavano due card che la configurazione non poteva
+  togliere.** «Connettività» e «Inverter fotovoltaico» leggono un'entità ciascuna
+  ma aprono uno storico, e l'auto-nascondi riconosce le entità dall'`onclick`:
+  non vedendole, teneva in pagina un inverter OFF-GRID · ALERT che non era
+  configurato da nessuna parte. Ora seguono la regola di tutte le altre card:
+  spariscono finché la loro entità non è mappata (l'inverter è
+  `dm.energy_stato_rete`, nella scheda Energia).
+
+### Prestazioni
+
+- **La plancia ferma faceva molto più lavoro di quanto sembrasse.** Dieci
+  secondi di dashboard immobile misurati in un browser vero: **1964 letture di
+  stile calcolato → 60**, **334 copie profonde della configurazione → 23**,
+  **4099 modifiche al DOM → ~1500**. Tre cause, tutte della stessa famiglia —
+  lavoro rifatto identico a ogni passata:
+  - `getSection()` restituiva una copia profonda a ogni chiamata e le sezioni la
+    chiedono di continuo: ora esiste una vista di sola lettura, costruita una
+    volta per revisione e congelata, e chi deve modificare passa come prima dai
+    setter;
+  - lo stage dei flussi chiedeva «questo nodo è visibile?» per ogni valore e per
+    ogni `span` dentro di esso, decine di volte per passata: la risposta non può
+    cambiare dentro la stessa passata e ora viene chiesta una volta sola per
+    nodo;
+  - lo stesso stage riscriveva una dozzina di proprietà di stile per linea a ogni
+    passata, quasi sempre con il valore che avevano già — e una scrittura
+    identica sveglia comunque ogni osservatore della pagina. Ora si scrive solo
+    ciò che cambia, e lo stesso vale per le animazioni delle icone di avviso e
+    per la percentuale della batteria.
+
+### Documentazione
+
+- `brand/README.md`: perché HACS mostra «icon not available» e come pubblicare
+  l'icona nel catalogo `home-assistant/brands`. I loghi sono stati ridimensionati
+  ai limiti che quel catalogo verifica (512×173 e 1024×329).
+
 ## 1.0.0-beta.31 — 2026-08-18
 
 ### Corretto

@@ -181,22 +181,24 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await openEditor(page, "sez2");
     const appearance = page.locator("#ed-body [data-ev-appearance]");
     await expect(appearance).toBeVisible();
-    // First of the tab's own content. The one block above it is the section
-    // switch, which opens every tab of the configuration alike.
-    const appearanceIsVisuallyFirst = await appearance.evaluate((node) => {
-      const parent = node.parentElement;
-      if (!parent) return false;
-      const top = node.getBoundingClientRect().top;
-      return [...parent.children]
-        .filter(
-          (sibling) =>
-            sibling !== node &&
-            sibling.getClientRects().length > 0 &&
-            !sibling.matches("[data-key][onclick*='edSecTog']"),
-        )
-        .every((sibling) => sibling.getBoundingClientRect().top >= top - 1);
-    });
-    expect(appearanceIsVisuallyFirst).toBe(true);
+    /* Brand and model open the vehicle's own section, above that car's entities.
+     * The claim is where the panel *is* — one home, whatever else the tab draws
+     * around it — rather than which block happens to be topmost by a pixel: the
+     * editor prints intros and hints of its own, and on a slow browser they
+     * arrive in a different order every time. */
+    await expect
+      .poll(() =>
+        appearance.evaluate((node) => {
+          const home = node.closest(".ed-acc-body");
+          if (!home) return "no home";
+          const slot = home.querySelector(".ed-slot");
+          if (!slot) return "no slots";
+          return node.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING
+            ? "above its entities"
+            : "below its entities";
+        }),
+      )
+      .toBe("above its entities");
     const brand = appearance.locator("select[data-brand]");
     const model = appearance.locator("select[data-model]");
     await brand.selectOption("MINI");

@@ -385,7 +385,10 @@ export function syncEditorIconSurfaces() {
   });
   let rooms = [];
   try {
-    rooms = root.DashboardModernModules?.store?.getSection?.("rooms") || [];
+    // Read-only: the shared view, so opening the editor does not deep copy the
+    // rooms on every pass of the icon surfaces.
+    const iconStore = root.DashboardModernModules?.store;
+    rooms = (iconStore?.peekSection ? iconStore.peekSection("rooms") : iconStore?.getSection?.("rooms")) || [];
   } catch (_error) {}
   if (!Array.isArray(rooms) || !rooms.length) {
     try {
