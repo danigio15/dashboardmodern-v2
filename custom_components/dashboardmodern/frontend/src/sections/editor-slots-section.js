@@ -121,7 +121,10 @@ function decorateBody(body) {
   const counts = slotCounts(body);
   const badge = body.closest("details")?.querySelector(".ed-acc-n");
   if (badge && counts.total) {
-    const text = t(`${counts.mapped} su ${counts.total} mappate`, `${counts.mapped} of ${counts.total} mapped`);
+    const text = t(
+      `${counts.mapped} su ${counts.total} mappate`,
+      `${counts.mapped} of ${counts.total} mapped`,
+    );
     if (badge.textContent !== text) badge.textContent = text;
   }
   return true;
@@ -167,7 +170,8 @@ export function dropRetiredSlots(scope = doc?.getElementById("ed-body")) {
  */
 const CHIP_MARKER = "dmEntityChip";
 
-const NEVER_A_HOST = "#ed-body,.ed-body,.ed-list,.ed-form,.ed-shell,#editor-modal,#setup-wizard,.dm-section-dialog,form,body";
+const NEVER_A_HOST =
+  "#ed-body,.ed-body,.ed-list,.ed-form,.ed-shell,#editor-modal,#setup-wizard,.dm-section-dialog,form,body";
 
 /** The lens the editors put next to an entity field, if it is there. */
 function lensOf(input) {
@@ -208,7 +212,9 @@ const FIELD_CAPTIONS = Object.freeze({
 
 function fieldAlreadyLabelled(input) {
   if (!input) return true;
-  if (input.closest(".ed-slot,[data-entity-field]")?.querySelector(".ed-slot-lbl,.dm-entity-label")) {
+  if (
+    input.closest(".ed-slot,[data-entity-field]")?.querySelector(".ed-slot-lbl,.dm-entity-label")
+  ) {
     return true;
   }
   if (input.id && doc?.querySelector?.(`label[for="${CSS.escape(input.id)}"]`)) return true;
@@ -238,6 +244,75 @@ function ensureFieldCaption(host, input) {
     host.prepend(caption);
   }
   if (caption.textContent !== text) caption.textContent = text;
+  pin(caption, CAPTION_LAYOUT);
+}
+
+/* The card, written on the element itself.
+ *
+ * Six other modules style these same boxes, and several do it through
+ * selectors carrying four ids — `#editor-modal #ed-body:has(#ed-irr-ent)
+ * div:has(>#ed-irr-ent)` pins the irrigation rows to a two column grid, the
+ * section dialog pins its own, the light form pins a third. A stylesheet rule
+ * here loses to all of them however it is written, and the row came out as a
+ * chip squeezed into the old lens column with the pencil beside it.
+ *
+ * An important declaration on the element outranks every stylesheet, so the
+ * three boxes that make up the card state their own layout once, when the row
+ * is built. Everything that is not layout — colour, radius, type — stays in
+ * the stylesheet where it can be themed. */
+const CARD_LAYOUT = Object.freeze([
+  ["display", "flex"],
+  ["flex-wrap", "wrap"],
+  ["align-items", "center"],
+  ["gap", "6px 8px"],
+  ["grid-template-columns", "none"],
+  ["box-sizing", "border-box"],
+  ["width", "100%"],
+  ["max-width", "100%"],
+  ["min-width", "0"],
+]);
+const CHIP_LAYOUT = Object.freeze([
+  ["order", "3"],
+  ["flex", "1 1 100%"],
+  ["grid-column", "1/-1"],
+  ["width", "100%"],
+  ["max-width", "100%"],
+  ["min-width", "0"],
+  ["height", "auto"],
+  ["min-height", "44px"],
+]);
+const MANUAL_LAYOUT = Object.freeze([
+  ["order", "2"],
+  ["flex", "0 0 36px"],
+  ["grid-column", "auto"],
+  ["width", "36px"],
+  ["min-width", "36px"],
+  ["max-width", "36px"],
+  ["height", "36px"],
+]);
+const CAPTION_LAYOUT = Object.freeze([
+  ["order", "1"],
+  ["flex", "1 1 auto"],
+  ["grid-column", "auto"],
+  ["width", "auto"],
+  ["min-width", "0"],
+]);
+
+function pin(node, declarations) {
+  if (!node?.style) return;
+  for (const [name, value] of declarations) {
+    // The priority is part of what is being checked: another owner writes
+    // `display:flex` on this same row without it, and a comparison on the value
+    // alone reads that as already done — leaving the declaration beatable by
+    // the four-id rules this exists to outrank.
+    if (
+      node.style.getPropertyValue(name) === value &&
+      node.style.getPropertyPriority(name) === "important"
+    ) {
+      continue;
+    }
+    node.style.setProperty(name, value, "important");
+  }
 }
 
 function chipHost(input, lens) {
@@ -266,7 +341,9 @@ function paintFieldChip(host) {
   if (name.textContent !== nameText) name.textContent = nameText;
   if (id.textContent !== idText) id.textContent = idText;
   const fieldName =
-    clean(input.closest(".ed-slot,[data-entity-field]")?.querySelector(".ed-slot-lbl")?.textContent) ||
+    clean(
+      input.closest(".ed-slot,[data-entity-field]")?.querySelector(".ed-slot-lbl")?.textContent,
+    ) ||
     clean(input.getAttribute("aria-label")) ||
     t("Entità", "Entity");
   chip.setAttribute("aria-label", `${fieldName}: ${nameText}`);
@@ -301,7 +378,7 @@ function decorateField(input) {
   const manual = doc.createElement("button");
   manual.type = "button";
   manual.className = "dm-chip-manual";
-  manual.textContent = "✎";
+  manual.textContent = "✏️";
   manual.setAttribute("aria-label", t("Modifica manuale", "Edit by hand"));
   manual.setAttribute("aria-pressed", "false");
   manual.addEventListener("click", (event) => {
@@ -323,6 +400,9 @@ function decorateField(input) {
     }
     root.requestAnimationFrame(() => paintFieldChip(host));
   });
+  pin(host, CARD_LAYOUT);
+  pin(lens, CHIP_LAYOUT);
+  pin(manual, MANUAL_LAYOUT);
   ensureFieldCaption(host, input);
   paintFieldChip(host);
   return true;
@@ -387,7 +467,9 @@ function schedule() {
 }
 
 function installStyles() {
-  installStyle(STYLE_ID, `
+  installStyle(
+    STYLE_ID,
+    `
 .dm-slots{display:grid!important;gap:8px!important}
 .dm-slots-manual{
   justify-self:end!important;margin:0 0 2px!important;padding:6px 12px!important;border:1px solid var(--divider-color,#dbe4ee)!important;
@@ -438,31 +520,68 @@ function installStyles() {
 .dm-slot[data-dm-slot="empty"] .dm-slot-chip-copy b{color:var(--secondary-text-color,#64748b)!important;font-weight:650!important}
 .dm-slot-chip-go{flex:0 0 auto!important;font-size:18px!important;color:var(--secondary-text-color,#94a3b8)!important;line-height:1!important}
 
-/* the same row, on every other entity field in the configuration */
-[data-dm-entity-chip="true"]{min-width:0!important;flex-wrap:wrap!important}
+/* The same card the Sezioni tab gives a slot, on every other entity field.
+ *
+ * Home draws a slot as a card: a dot that is green once the slot is mapped, the
+ * name of the field in bold, a pencil in the corner for whoever wants to type
+ * an id, and the picker underneath. Every other tab drew the same three things
+ * as a grey caption over a chip with a boxed pencil beside it — the same
+ * information, in a different shape, so the configuration read as two products.
+ * These rules give the fields outside the accordions that card. */
+[data-dm-entity-chip="true"]{
+  display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+  gap:6px 8px!important;box-sizing:border-box!important;min-width:0!important;
+  margin:0 0 8px!important;padding:11px 13px!important;
+  border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;
+  background:var(--card-background-color,#fff)!important
+}
+[data-dm-entity-chip="true"][data-dm-slot="mapped"]{
+  border-color:color-mix(in srgb,#16a34a 30%,var(--divider-color,#dbe4ee))!important
+}
+[data-dm-entity-chip="true"]>.dm-chip-caption{
+  order:1!important;flex:1 1 auto!important;min-width:0!important;
+  display:flex!important;align-items:center!important;gap:8px!important;margin:0!important;
+  font-size:13px!important;font-weight:800!important;line-height:1.25!important;
+  color:var(--text,#0f172a)!important
+}
+[data-dm-entity-chip="true"]>.dm-chip-caption::before{
+  content:"";width:7px;height:7px;border-radius:50%;flex:0 0 7px;
+  background:var(--divider-color,#cbd5e1)
+}
+[data-dm-entity-chip="true"][data-dm-slot="mapped"]>.dm-chip-caption::before{background:#16a34a}
+[data-dm-entity-chip="true"] .dm-chip-manual{
+  order:2!important;flex:0 0 36px!important;width:36px!important;min-width:36px!important;
+  height:36px!important;padding:0!important;border:0!important;border-radius:10px!important;
+  background:transparent!important;color:var(--secondary-text-color,#64748b)!important;
+  font-size:15px!important;line-height:1!important;cursor:pointer!important
+}
+[data-dm-entity-chip="true"] .dm-chip-manual[aria-pressed="true"]{
+  color:var(--primary-color,#0ea5e9)!important;
+  background:color-mix(in srgb,var(--primary-color,#0ea5e9) 10%,transparent)!important
+}
 [data-dm-entity-chip="true"]>.dm-entity-picker.dm-slot-chip{
+  order:3!important;flex:1 1 100%!important;
   display:flex!important;align-items:center!important;gap:10px!important;
-  flex:1 1 auto!important;width:auto!important;min-width:0!important;
-  height:auto!important;min-height:44px!important;padding:9px 11px!important;
-  border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:12px!important;
-  background:var(--secondary-background-color,#f6f8fb)!important;color:var(--text,#0f172a)!important;
-  box-shadow:none!important;font:inherit!important;font-size:inherit!important;text-align:left!important
+  width:100%!important;min-width:0!important;height:auto!important;min-height:44px!important;
+  padding:9px 11px!important;border:1px solid var(--divider-color,#dbe4ee)!important;
+  border-radius:12px!important;background:var(--secondary-background-color,#f6f8fb)!important;
+  color:var(--text,#0f172a)!important;box-shadow:none!important;font:inherit!important;
+  font-size:inherit!important;text-align:left!important
 }
 [data-dm-entity-chip="true"]>.dm-entity-picker.dm-slot-chip:hover{
   transform:none!important;filter:none!important;border-color:var(--primary-color,#0ea5e9)!important
 }
-[data-dm-entity-chip="true"] .dm-chip-manual{
-  flex:0 0 44px!important;width:44px!important;min-width:44px!important;height:44px!important;padding:0!important;
-  border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:12px!important;
-  background:var(--secondary-background-color,#f6f8fb)!important;color:var(--secondary-text-color,#64748b)!important;
-  font-size:14px!important;line-height:1!important;cursor:pointer!important
-}
-[data-dm-entity-chip="true"] .dm-chip-manual[aria-pressed="true"]{
-  border-color:var(--primary-color,#0ea5e9)!important;color:var(--primary-color,#0ea5e9)!important;
-  background:color-mix(in srgb,var(--primary-color,#0ea5e9) 8%,transparent)!important
+/* A field whose form already prints its own label has no caption of its own:
+   there the pencil shares the line with the picker instead of heading a line
+   nothing else is on. */
+[data-dm-entity-chip="true"]:not(:has(>.dm-chip-caption)) .dm-chip-manual{order:3!important}
+[data-dm-entity-chip="true"]:not(:has(>.dm-chip-caption))>.dm-entity-picker.dm-slot-chip{
+  flex:1 1 auto!important
 }
 [data-dm-entity-chip="true"]:not([data-dm-entity-raw="true"])>.dm-chip-raw{display:none!important}
-[data-dm-entity-chip="true"][data-dm-entity-raw="true"]>.dm-chip-raw{flex:1 1 100%!important;order:9!important;grid-column:1/-1!important}
+[data-dm-entity-chip="true"][data-dm-entity-raw="true"]>.dm-chip-raw{
+  order:9!important;flex:1 1 100%!important;width:100%!important;grid-column:1/-1!important
+}
 
 /* Some forms lay their entity row out themselves — the "Aggiungi luce" form
  * pins its own two column grid and its own id'd field to display:block, which
@@ -470,28 +589,94 @@ function installStyles() {
  * chip squeezed into a 58px column. The id is repeated so the row that carries
  * a chip is laid out by the chip's own rules wherever it is, and the raw field
  * stays behind the pencil on every tab. */
-#ed-body#ed-body [data-dm-entity-chip="true"] > .dm-chip-caption{
-  display:block!important;flex:1 1 100%!important;order:-1!important;grid-column:1/-1!important;
-  width:100%!important;margin:0 0 4px!important;
-  font-size:12px!important;font-weight:800!important;line-height:1.25!important;
-  color:var(--secondary-text-color,#64748b)!important
-}
 #ed-body#ed-body [data-dm-entity-chip="true"]{
-  display:flex!important;align-items:center!important;gap:9px!important;flex-wrap:wrap!important;
-  grid-template-columns:none!important;min-width:0!important
+  display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+  gap:6px 8px!important;grid-template-columns:none!important;min-width:0!important;
+  margin:0 0 8px!important;padding:11px 13px!important;
+  border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;
+  background:var(--card-background-color,#fff)!important
+}
+#ed-body#ed-body [data-dm-entity-chip="true"] > .dm-chip-caption{
+  display:flex!important;order:1!important;flex:1 1 auto!important;grid-column:auto!important;
+  width:auto!important;margin:0!important;
+  font-size:13px!important;font-weight:800!important;line-height:1.25!important;
+  color:var(--text,#0f172a)!important
 }
 #ed-body#ed-body [data-dm-entity-chip="true"]>.dm-entity-picker.dm-slot-chip{
-  flex:1 1 auto!important;width:auto!important;min-width:0!important;max-width:none!important;
-  height:auto!important;min-height:44px!important
+  order:3!important;flex:1 1 100%!important;width:100%!important;min-width:0!important;
+  max-width:none!important;height:auto!important;min-height:44px!important
 }
 #ed-body#ed-body [data-dm-entity-chip="true"] .dm-chip-manual{
-  flex:0 0 44px!important;width:44px!important;min-width:44px!important;max-width:44px!important;height:44px!important
+  order:2!important;flex:0 0 36px!important;width:36px!important;min-width:36px!important;
+  max-width:36px!important;height:36px!important;border:0!important;background:transparent!important
+}
+#ed-body#ed-body [data-dm-entity-chip="true"]:not(:has(>.dm-chip-caption)) .dm-chip-manual{order:3!important}
+#ed-body#ed-body [data-dm-entity-chip="true"]:not(:has(>.dm-chip-caption))>.dm-entity-picker.dm-slot-chip{
+  flex:1 1 auto!important;width:auto!important
 }
 #ed-body#ed-body [data-dm-entity-chip="true"]:not([data-dm-entity-raw="true"])>.dm-chip-raw{display:none!important}
 #ed-body#ed-body [data-dm-entity-chip="true"][data-dm-entity-raw="true"]>.dm-chip-raw{
-  display:block!important;flex:1 1 100%!important;order:9!important;width:100%!important;max-width:100%!important
+  display:block!important;order:9!important;flex:1 1 100%!important;width:100%!important;max-width:100%!important
 }
-  `);
+
+/* A form that prints its own label already has the two halves of the card —
+ * the name above, the picker below — in two separate boxes. Here the label is
+ * the card and the row inside it stops drawing a second one, so a field named
+ * by its form and a field named by this module end up the same object. The
+ * loads editor is left out: it groups its slots into coloured panels of its
+ * own, and a card inside each one would be a box in a box. */
+#ed-body#ed-body .ed-slot:not([data-load-group]):has(>[data-dm-entity-chip="true"]){
+  display:grid!important;gap:6px!important;box-sizing:border-box!important;min-width:0!important;
+  margin:0 0 8px!important;padding:11px 13px!important;
+  border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;
+  background:var(--card-background-color,#fff)!important
+}
+#ed-body#ed-body .ed-slot:not([data-load-group]):has(>[data-dm-entity-chip="true"][data-dm-slot="mapped"]){
+  border-color:color-mix(in srgb,#16a34a 30%,var(--divider-color,#dbe4ee))!important
+}
+#ed-body#ed-body .ed-slot:not([data-load-group]):has(>[data-dm-entity-chip="true"])>.ed-slot-lbl{
+  display:flex!important;align-items:center!important;gap:8px!important;margin:0!important;
+  font-size:13px!important;font-weight:800!important;line-height:1.25!important;
+  color:var(--text,#0f172a)!important
+}
+#ed-body#ed-body .ed-slot:not([data-load-group]):has(>[data-dm-entity-chip="true"])>.ed-slot-lbl::before{
+  content:"";width:7px;height:7px;border-radius:50%;flex:0 0 7px;
+  background:var(--divider-color,#cbd5e1)
+}
+#ed-body#ed-body .ed-slot:not([data-load-group]):has(>[data-dm-entity-chip="true"][data-dm-slot="mapped"])>.ed-slot-lbl::before{
+  background:#16a34a
+}
+#ed-body#ed-body .ed-slot:not([data-load-group])>[data-dm-entity-chip="true"]{
+  margin:0!important;padding:0!important;border:0!important;background:transparent!important
+}
+
+/* The "Aggiungi luce" form pins its own children to display:block, centred and
+ * full width, which broke the chip open: the name took the whole line and the
+ * chevron dropped under it. The chip states its own inside layout wherever it
+ * is printed. */
+#ed-body#ed-body .dm-slot-chip{
+  display:flex!important;flex-wrap:nowrap!important;align-items:center!important;
+  gap:10px!important;text-align:left!important
+}
+#ed-body#ed-body .dm-slot-chip>.dm-slot-chip-copy{
+  display:grid!important;flex:1 1 auto!important;width:auto!important;min-width:0!important;
+  text-align:left!important
+}
+#ed-body#ed-body .dm-slot-chip>.dm-slot-chip-go{
+  display:inline-block!important;flex:0 0 auto!important;width:auto!important
+}
+/* An empty slot invites, a mapped one states: same greying as the accordions,
+   for the rows outside them. */
+[data-dm-entity-chip="true"][data-dm-slot="empty"] .dm-slot-chip-copy b,
+#ed-body#ed-body [data-dm-entity-chip="true"][data-dm-slot="empty"] .dm-slot-chip-copy b{
+  color:var(--secondary-text-color,#64748b)!important;font-weight:650!important
+}
+#ed-body#ed-body [data-dm-entity-chip="true"] .dm-slot-chip-copy b{
+  font-size:13px!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  white-space:nowrap!important
+}
+  `,
+  );
 }
 
 /* The legacy entry points that print the editor.
@@ -532,7 +717,9 @@ export function installEditorSlotsSection() {
   doc.addEventListener(
     "click",
     (event) => {
-      if (event.target?.closest?.(".ed-tab,[data-tab],.ed-acc-head,.ed-save-btn,.ed-btn-add,.ed-del")) {
+      if (
+        event.target?.closest?.(".ed-tab,[data-tab],.ed-acc-head,.ed-save-btn,.ed-btn-add,.ed-del")
+      ) {
         root.setTimeout?.(schedule, 0);
       }
     },
