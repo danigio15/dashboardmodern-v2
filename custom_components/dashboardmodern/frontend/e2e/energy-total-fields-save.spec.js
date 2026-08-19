@@ -116,51 +116,6 @@ async function openEnergy(page) {
 }
 
 for (const variant of PRIMARY) {
-  /* Il campo del prelievo rete lo stampa gia' il runtime.
-   *
-   * La rifinitura usciva subito quando lo trovava, e con l'uscita se ne
-   * andavano i due ascolti che stanno sotto: quello che accende il pulsante
-   * Salva e quello che scrive il valore appena si esce dal campo. Il campo
-   * restava scrivibile e non salvava niente da solo.
-   */
-  test(`${variant}: the grid import meter saves on its own`, async ({ page }, testInfo) => {
-    await boot(page, variant, testInfo);
-    await page.evaluate(() => {
-      const states =
-        window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null") ||
-        window._RAW_STATES;
-      states["sensor.rete_prelievo_totale"] = {
-        entity_id: "sensor.rete_prelievo_totale",
-        state: "120",
-        attributes: {
-          unit_of_measurement: "kWh",
-          device_class: "energy",
-          state_class: "total_increasing",
-        },
-      };
-    });
-    await openEnergy(page);
-
-    // Come lo lascia il selettore 🔍: il valore scritto e un solo annuncio.
-    await page.evaluate(() => {
-      const input = document.getElementById("dm-energy-grid-total_import_energy");
-      input.value = "sensor.rete_prelievo_totale";
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-
-    await expect
-      .poll(
-        () =>
-          page.evaluate(
-            () =>
-              window.DashboardModernModules?.store?.getSection?.("energy")?.grid
-                ?.total_import_energy || "",
-          ),
-        { message: "il prelievo rete si salva da solo", timeout: 8000 },
-      )
-      .toBe("sensor.rete_prelievo_totale");
-  });
-
   /* La maschera mostra cio' che c'e' scritto.
    *
    * Il modello che leggono le pagine esce filtrato: con un contatore totale i

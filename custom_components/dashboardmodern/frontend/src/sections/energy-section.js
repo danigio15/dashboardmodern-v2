@@ -964,30 +964,19 @@ function installEnergyEditorContracts() {
   installEnergyLoadsEditor(editor);
   TOTAL_FIELDS.forEach((definition) => {
     const [group, key, afterKey] = definition;
-    /* Il campo puo' esserci gia': lo stampa il runtime.
-     *
-     * Qui si usciva subito in quel caso, e con l'uscita se ne andavano anche i
-     * due ascolti che stanno sotto — quello che accende il pulsante Salva e
-     * quello che scrive il valore appena si esce dal campo. Il campo restava
-     * scrivibile e non salvava niente da solo. Adesso si salta la costruzione,
-     * non il collegamento, e il collegamento si fa una volta sola. */
-    let input = editor.querySelector(`#dm-energy-${group}-${key}`);
-    let body = input?.closest(".ed-acc-body");
-    if (!input) {
-      const anchor = editor.querySelector(`#dm-energy-${group}-${afterKey}`);
-      body = anchor?.closest(".ed-acc-body");
-      if (!body) return;
-      const field = createTotalField(definition, model[group]?.[key]);
-      input = field.input;
-      const anchorField = anchor.closest("label.ed-slot");
-      if (anchorField?.parentElement === body) anchorField.after(field.wrap);
-      else body.append(field.wrap);
-    }
-    if (!body || input.dataset.dmTotalBound === "true") {
-      updateConfiguredCount(body);
-      return;
-    }
-    input.dataset.dmTotalBound = "true";
+    /* Il campo puo' esserci gia': lo stampa il runtime, e in quel caso e' la
+     * maschera canonica a possederlo — raccoglie il valore nella sua bozza e lo
+     * scrive quando si preme Salva. Qui si costruisce solo cio' che manca:
+     * aggiungere un secondo salvataggio su un campo che ne ha gia' uno vuol
+     * dire due padroni sullo stesso dato, ed e' proprio cio' che rompe. */
+    if (editor.querySelector(`#dm-energy-${group}-${key}`)) return;
+    const anchor = editor.querySelector(`#dm-energy-${group}-${afterKey}`);
+    const body = anchor?.closest(".ed-acc-body");
+    if (!body) return;
+    const { wrap, input } = createTotalField(definition, model[group]?.[key]);
+    const anchorField = anchor.closest("label.ed-slot");
+    if (anchorField?.parentElement === body) anchorField.after(wrap);
+    else body.append(wrap);
     input.addEventListener("input", () => {
       const actions = editor.querySelector("[data-energy-actions]");
       const save = actions?.querySelector("[data-energy-save]");
