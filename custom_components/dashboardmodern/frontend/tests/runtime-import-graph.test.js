@@ -229,7 +229,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // Beta 31.1 adds one more owner: every section of the dashboard opens with
   // the same heading — icon, name, and the line that says what the page is for
   // — instead of six different ideas of a title. It renders no data.
-  assert.ok(relative.length <= 105, `production graph unexpectedly grew to ${relative.length} modules`);
+  // E uno ancora: il rientro nell'app. Il runtime apre la presa verso Home
+  // Assistant una volta sola e, se quel tentativo salta, non ne prova altri —
+  // su iPhone, dove il sistema butta via la pagina quando passi ad altra app,
+  // la plancia restava ferma a "CONNECTING…". Quel modulo non apre nessuna
+  // presa e non legge nessuno stato: richiama connect(), quello del runtime.
+  assert.ok(relative.length <= 106, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with one declared exception.

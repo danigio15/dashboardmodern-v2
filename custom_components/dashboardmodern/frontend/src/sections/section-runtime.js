@@ -28,6 +28,7 @@ import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installLightsSceneSection } from "./lights-scene-section.js";
 import { installAlertsSection } from "./alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
+import { installConnectionRecoverySection } from "./connection-recovery-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installClimateThermalSection } from "./climate-thermal-section.js";
 import { installNavigationSection } from "./navigation-section.js";
@@ -655,6 +656,7 @@ export function installSectionRuntime() {
     installSecurityShowcaseSection();
     installClimateThermalSection();
     installLiveUiSection();
+    installConnectionRecoverySection();
     installNavigationSection();
     installUnifiedEditorsSection();
     installEntitySearchSection();
