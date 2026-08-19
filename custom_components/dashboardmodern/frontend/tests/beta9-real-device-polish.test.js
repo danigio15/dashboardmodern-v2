@@ -65,7 +65,11 @@ test("shutters are compact and alert animations follow the alert kind", async ()
   // than the disc the glyph sits in.
   assert.match(source, /\.dm-alert-door \.dm-alert-glyph/);
   assert.match(source, /transform-origin:left center!important;animation:dmAlertDoor/);
-  assert.match(source, /@keyframes dmAlertDoor\{[\s\S]*rotateY\(-64deg\)/);
+  // The leaf narrows towards its hinge and comes back: a door swinging open,
+  // drawn in two dimensions. A perspective rotateY reads the same and opens a
+  // 3D rendering context on every alert icon, which WebKit did not survive.
+  assert.match(source, /@keyframes dmAlertDoor\{[\s\S]*scaleX\(\.44\)/);
+  assert.doesNotMatch(source, /@keyframes dmAlertDoor\{[\s\S]{0,200}perspective\(/);
   assert.match(source, /@keyframes dmAlertBattery\{[\s\S]*clip-path:inset\(56% 0 0 0\)/);
   assert.doesNotMatch(source, /dmAlertOpening/);
   for (const kind of ["window", "leak", "flame", "motion", "temperature", "power", "light", "security"]) {

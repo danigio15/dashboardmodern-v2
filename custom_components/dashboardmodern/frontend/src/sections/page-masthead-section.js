@@ -233,7 +233,7 @@ function installStyles() {
       background:radial-gradient(circle at 42% 58%,
         rgba(var(--dm-mast-a,249,115,22),.34),
         rgba(var(--dm-mast-a,249,115,22),.12) 54%, transparent 74%)!important;
-      filter:blur(3px)!important;pointer-events:none!important
+      pointer-events:none!important
     }
     .dm-page-mast::after{
       content:""!important;position:absolute!important;inset:auto 0 0 0!important;height:2px!important;

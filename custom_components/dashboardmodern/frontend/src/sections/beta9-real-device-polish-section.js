@@ -684,14 +684,19 @@ function installStyles() {
     #page-home .g-icon-wrap.dm-alert-light .dm-alert-glyph{animation:dmAlertLight 2.2s ease-in-out infinite!important}
     #page-home .g-icon-wrap.dm-alert-security .dm-alert-glyph{animation:dmAlertSecurity 1.6s ease-in-out infinite!important}
     #page-home .g-icon-wrap.dm-alert-shutter-moving .dm-alert-glyph{animation:dmAlertShutterMove 1.25s ease-in-out infinite!important}
+    /* The door and the window swing on their hinge with scaleX, not with a
+       perspective rotateY. On screen the two are the same movement — the leaf
+       narrows towards its hinge and comes back — but rotateY opens a 3D
+       rendering context on every alert icon, on the one page that is always on
+       screen, and WebKit was killing the page under it. */
     @keyframes dmAlertDoor{
-      0%,10%{transform:perspective(340px) rotateY(0deg)}
-      42%,58%{transform:perspective(340px) rotateY(-64deg)}
-      90%,100%{transform:perspective(340px) rotateY(0deg)}}
+      0%,10%{transform:scaleX(1)}
+      42%,58%{transform:scaleX(.44)}
+      90%,100%{transform:scaleX(1)}}
     @keyframes dmAlertWindow{
-      0%,12%{transform:perspective(300px) rotateY(0deg)}
-      46%,60%{transform:perspective(300px) rotateY(42deg)}
-      92%,100%{transform:perspective(300px) rotateY(0deg)}}
+      0%,12%{transform:scaleX(1)}
+      46%,60%{transform:scaleX(.74)}
+      92%,100%{transform:scaleX(1)}}
     @keyframes dmAlertBattery{
       0%{clip-path:inset(0 0 0 0);opacity:1}
       52%{clip-path:inset(56% 0 0 0);opacity:1}
