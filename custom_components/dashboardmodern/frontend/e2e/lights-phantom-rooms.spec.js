@@ -50,13 +50,16 @@ for (const variant of PRIMARY) {
         JSON.stringify({ "light.piantana": "Mansarda", "light.faretti": "Salone" }),
       );
     });
+    // La passata sui contratti gira quando il runtime la sveglia: qui la si
+    // sveglia dalla stessa porta, invece di aspettare che passi da sola. Senza
+    // questo la prova dipendeva da quale evento capitasse entro venti secondi,
+    // e su una macchina lenta non ne capitava nessuno.
     await expect
       .poll(
         () =>
           page.evaluate(() => {
-            const store = window.DashboardModernModules?.store;
-            store?.dataContracts?.();
-            const rooms = store?.getSection?.("rooms") || [];
+            window.dispatchEvent(new Event("pageshow"));
+            const rooms = window.DashboardModernModules?.store?.getSection?.("rooms") || [];
             return rooms.map((room) => room.name).sort();
           }),
         { message: "la stanza delle luci compare fra le stanze", timeout: 20_000 },
