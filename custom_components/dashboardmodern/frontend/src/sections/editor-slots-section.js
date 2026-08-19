@@ -550,9 +550,7 @@ function installStyles() {
 }
 [data-dm-entity-chip="true"][data-dm-slot="mapped"]>.dm-chip-caption::before{background:#16a34a}
 /* The caption this module writes follows the label the forms write: dimmer ink
-   in the dark editor, same as `.ed -
-      slot -
-      lbl`. */
+   in the dark editor, the same as the label itself. */
 #editor-modal[data-dm-editor-theme="dark"] .dm-chip-caption{
   color:var(--text-dim,#92a4c2)!important
 }
