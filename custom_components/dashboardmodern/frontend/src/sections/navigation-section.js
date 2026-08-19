@@ -161,6 +161,18 @@ function installScroller() {
     scroller.scrollBy({ left: direction * navPageStep(scroller.clientWidth), behavior });
   };
 
+  /* Chi ha scorso la barra con le frecce, la rotella, le freccette della
+   * tastiera o trascinandola l'ha portata dove voleva. Da quel momento il dock
+   * non si riporta piu' da solo sulla sezione aperta: prima bastava rientrare
+   * col puntatore sulla barra e questa scattava indietro sotto il dito, cosi'
+   * il click seguente cadeva sull'icona sbagliata. La barra torna a seguirla
+   * quando la sezione aperta cambia — allora e' il dock a sapere meglio. */
+  let steered = false;
+  let lastActive = null;
+  const steer = () => {
+    steered = true;
+  };
+
   /* Ogni volta che il dock ricompare la sezione aperta deve essere sotto gli
    * occhi, ma senza rimbalzare via da dove l'utente aveva scorso. */
   const revealActive = () => {
@@ -168,6 +180,12 @@ function installScroller() {
     if (!status.scrollable) return;
     const active = scroller.querySelector(".tab.active");
     if (!active) return;
+    if (active !== lastActive) {
+      lastActive = active;
+      steered = false;
+    } else if (steered) {
+      return;
+    }
     const port = scroller.getBoundingClientRect();
     const box = active.getBoundingClientRect();
     if (
@@ -193,8 +211,14 @@ function installScroller() {
     });
   };
 
-  previous.addEventListener("click", () => stepBy(-1));
-  next.addEventListener("click", () => stepBy(1));
+  previous.addEventListener("click", () => {
+    steer();
+    stepBy(-1);
+  });
+  next.addEventListener("click", () => {
+    steer();
+    stepBy(1);
+  });
   scroller.addEventListener("scroll", sync, { passive: true });
   /* Accendere o spegnere una sezione cambia la larghezza della barra: è il
    * segnale che dice quando le frecce servono, senza nessun giro a vuoto. */
@@ -207,6 +231,7 @@ function installScroller() {
   nav.addEventListener("keydown", (event) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     if (!navScrollState(scroller).scrollable) return;
+    steer();
     stepBy(event.key === "ArrowLeft" ? -1 : 1);
     event.preventDefault();
   });
@@ -222,6 +247,7 @@ function installScroller() {
       if (!delta) return;
       const target = Math.max(0, Math.min(scroller.scrollLeft + delta, status.max));
       if (target === scroller.scrollLeft) return;
+      steer();
       scroller.scrollLeft = target;
       event.preventDefault();
       sync();
@@ -251,6 +277,7 @@ function installScroller() {
     const { pointerId, moved } = drag;
     drag = null;
     swallowClick = moved;
+    if (moved) steer();
     nav.classList.remove(DRAGGING_CLASS);
     if (moved) scroller.releasePointerCapture?.(pointerId);
     root.removeEventListener?.("pointermove", dragMove);

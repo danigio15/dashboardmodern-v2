@@ -153,3 +153,44 @@ test("the touch bar keeps the scrolling it already had", async ({ page }, testIn
   });
   expect(navOverflow).toBeGreaterThan(0);
 });
+
+/* La barra resta dove l'utente l'ha portata.
+ *
+ * Il dock riporta la sezione aperta sotto gli occhi ogni volta che il puntatore
+ * rientra sulla barra. Chi aveva appena scorso con le frecce se la vedeva
+ * scattare indietro proprio mentre tornava a cliccare, e il click cadeva
+ * sull'icona sbagliata. Chi guida vince, finché non cambia sezione.
+ */
+test("the dock stays where it was steered", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "the arrows are the fine-pointer layout");
+  test.setTimeout(80_000);
+  await bootWithEverySectionVisible(page, testInfo, { width: 1180, height: 800 });
+  await pinDock(page);
+
+  expect((await portMetrics(page)).canScroll, "the bar overflows").toBe(true);
+
+  await page.locator(".dm-nav-arrow-next").click();
+  // Lo scorrimento e' animato: si legge quando si e' fermato, non appena parte.
+  const settledScroll = async () => {
+    let last = -1;
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const current = (await portMetrics(page)).scrollLeft;
+      if (current === last) return current;
+      last = current;
+      await page.waitForTimeout(120);
+    }
+    return last;
+  };
+  const steered = await settledScroll();
+  expect(steered, "the arrow scrolled the bar").toBeGreaterThan(0);
+
+  // Rientrare col puntatore non riavvolge quello che l'utente ha scorso.
+  await page.locator(".dm-nav-scroll").hover();
+  await page.waitForTimeout(700);
+  expect(await settledScroll(), "the pointer does not rewind it").toBe(steered);
+
+  // Che il cambio di sezione riporti la barra sulla sezione aperta e' scritto
+  // nel modulo e commentato li'; non e' asserito qui perche' in questa scheda
+  // la sezione aperta e' gia' sotto gli occhi, e una prova che non puo'
+  // fallire non protegge niente.
+});
