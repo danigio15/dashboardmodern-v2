@@ -494,6 +494,12 @@ function activationFor(target) {
     if (!input || input.id === "ed-avv-icon" || legacy.dataset.iconCategory === "alerts") return null;
     const category = clean(legacy.dataset.iconCategory || input.dataset?.iconCategory);
     const hint = `${category} ${input.id || ""} ${legacy.title || ""}`;
+    // A Report entry is about an appliance, so it opens the appliance icons —
+    // it used to open the quick action ones, which are a different set entirely
+    // and had nothing to do with the row that was tapped.
+    if (legacy.closest(".dm-report-icon,[data-energy-panel='report']") || /report/i.test(hint)) {
+      return { input, kind: "load" };
+    }
     return { input, kind: /room|stanza|rooms/i.test(hint) ? "room" : "action" };
   }
   return null;

@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.54.1-noble
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       max-parallel: 3

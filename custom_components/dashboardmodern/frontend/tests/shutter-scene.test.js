@@ -52,8 +52,12 @@ test("markup avoids the tags the legacy stylesheet claims globally", () => {
   assert.match(legacyCss, /^header \{/m);
   assert.match(legacyCss, /^h1, h2, h3 \{/m);
   assert.doesNotMatch(scene, /<(?:header|h1|h2|h3)[ >]/);
-  assert.match(scene, /role="heading" aria-level="2"/);
+  // The page title moved to the shared section heading; what is left here is
+  // the summary chip, the two "all at once" commands and the group headings.
+  assert.doesNotMatch(scene, /role="heading" aria-level="2"/);
   assert.match(scene, /role="heading" aria-level="3"/);
+  assert.match(scene, /class="dm-tapp-kpi"/);
+  assert.match(scene, /class="dm-tapp-bulk"/);
 });
 
 test("commands stay on the legacy handler and positions go through the service", () => {

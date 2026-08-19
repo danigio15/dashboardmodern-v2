@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { PRIMARY } from "./helpers/variants.js";
 
 async function bootDashboard(page, variant) {
   const pageErrors = [];
@@ -98,7 +99,7 @@ async function bootDashboard(page, variant) {
   expect(pageErrors).toEqual([]);
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: real Safari/HA regressions stay fixed`, async ({ page }, testInfo) => {
     await bootDashboard(page, variant);
 

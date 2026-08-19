@@ -1,6 +1,7 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const states = [
   {
@@ -86,7 +87,7 @@ async function boot(page, variant, testInfo) {
   );
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: Edit shares all 20 blue appliance icons and preserves links`, async ({
     page,
   }, testInfo) => {

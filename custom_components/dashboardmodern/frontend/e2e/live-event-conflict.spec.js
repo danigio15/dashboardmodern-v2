@@ -1,6 +1,7 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootConsolidatedDashboard } from "./helpers/consolidated-runtime.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 async function runtimeSnapshot(page) {
   return page.evaluate(async () => {
@@ -50,7 +51,7 @@ async function resetRuntimeMetrics(page) {
   });
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: unrelated Home Assistant state storms trigger no expensive section work`, async ({
     page,
   }, testInfo) => {

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { fillEntityFieldByHand } from "./helpers/entity-field.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const seed = {
   schema_version: 4,
@@ -101,7 +102,7 @@ async function boot(page, variant, testInfo) {
     .toBe(true);
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: beta25 allows a second temperature association for the same room`, async ({
     page,
   }, testInfo) => {

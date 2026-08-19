@@ -130,10 +130,15 @@ function repairClimateSwitch() {
   const cold = doc?.getElementById?.("clima-page-mode-freddo");
   const warm = doc?.getElementById?.("clima-page-mode-caldo");
   if (!sw || !cold || !warm) return false;
-  // Legacy intentionally hid the switch when one family was empty. The page is
-  // clearer when the two climate families remain explicit, exactly as the Home
-  // Assistant reference supplied for beta.12.
-  sw.style.setProperty("display", "grid", "important");
+  // Beta 12 pinned this switch open, on the reasoning that the two climate
+  // families should stay explicit. On a house that has only air conditioners,
+  // or only radiators, that left a tab which opens on nothing — so the switch
+  // is shown when there is something to switch between, and not otherwise.
+  // How many families are configured is the climate section's to know; this
+  // stays the one owner of the property, because it is the one that pins it.
+  const zones = page.querySelector(".dm-cl-shell")?.dataset.dmClZones;
+  const single = zones === "0" || zones === "1";
+  sw.style.setProperty("display", single ? "none" : "grid", "important");
   sw.dataset.dmBeta12Climate = "true";
   const coldActive = cold.classList.contains("active-freddo");
   const warmActive = warm.classList.contains("active-caldo");

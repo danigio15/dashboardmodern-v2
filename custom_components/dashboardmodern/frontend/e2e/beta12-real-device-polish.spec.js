@@ -1,6 +1,7 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const seed = {
   schema_version: 4,
@@ -145,7 +146,7 @@ async function expectQuickActionDisplayGlyph(locator, glyph) {
     .toContain(glyph);
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: beta12 paints quick actions colored in the same render turn`, async ({
     page,
   }, testInfo) => {

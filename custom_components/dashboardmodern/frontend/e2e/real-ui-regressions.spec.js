@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { fillEntityFieldByHand, showRawEntityFields } from "./helpers/entity-field.js";
 import { clickBottomTab, clickStableButton } from "./helpers/navigation.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const haStates = [
   { entity_id: "light.salone", state: "on", attributes: { friendly_name: "Luce salone" } },
@@ -147,7 +148,7 @@ async function chooseEntity(page, input, entity) {
   await page.locator("#cd-ep-list", { hasText: entity }).locator("div[onclick]").click();
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: real shutter editor drives the live warning popup`, async ({
     page,
   }, testInfo) => {

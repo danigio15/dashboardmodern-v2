@@ -422,14 +422,54 @@ function shutterMoving() {
   });
 }
 
+/* What each kind of alert looks like when it is happening, matched on the
+ * alert's own name and on the icon the user picked for it in the editor. A
+ * door alert draws a door swinging on its hinge, a flat battery drains, a leak
+ * drips: the motion says what the card says, which is the point of animating
+ * it at all. Order matters — the specific readings come before the generic
+ * "something is wrong" ones, and the first match wins. */
+const ALERT_KINDS = Object.freeze([
+  { kind: "door", words: /\bport[ae]\b|portone|ingresso|door|gate/, icons: /🚪|🔓|🔒/ },
+  { kind: "window", words: /finestr|window|velux|lucernar/, icons: /🪟/ },
+  { kind: "battery", words: /batter|low battery/, icons: /🔋/ },
+  { kind: "leak", words: /perdit|allagament|acqua|leak|flood|water|pioggia|rain/, icons: /💧|🌊|🚰|🚿|🛁|🌧️|💦/ },
+  { kind: "flame", words: /incendi|fumo|fiamm|gas|fire|smoke|calder|boiler/, icons: /🔥|🌫️|💨|🧯|♨️/ },
+  { kind: "motion", words: /moviment|presenz|motion|presence|persona/, icons: /🏃|🚶|👤|🐶|🐱/ },
+  { kind: "temperature", words: /temperatur|gelo|freddo|caldo|frost|heat|cold/, icons: /🌡️|❄️|🧊|☀️/ },
+  { kind: "power", words: /consum|corrente|potenz|energia|power|presa|plug|rete|wifi|segnale/, icons: /🔌|⚡|📈|📉|📶|📡/ },
+  { kind: "light", words: /luce|luci|light|lampad|illumin/, icons: /💡|🔆|🔦/ },
+  { kind: "security", words: /antifurto|allarme|alarm|security|sicurezza|telecamer|camera/, icons: /🛡️|🚨|⚠️|🔔|📹|🎥|⏰|❗|🔴/ },
+]);
+
 function classifyAlert(card) {
   const name = clean(card.querySelector(".g-name")?.textContent || card.textContent).toLowerCase();
-  if (/tapparell|shutter/.test(name)) return shutterMoving() ? "shutter-moving" : "static";
-  if (/apertur|porta|finestr|door|window/.test(name)) return "opening";
-  if (/batt|battery/.test(name)) return "battery";
-  if (/antifurto|allarme|alarm|security|sicurezza/.test(name)) return "security";
-  if (/luce|light/.test(name)) return "light";
+  if (/tapparell|shutter|tenda|cover/.test(name)) return shutterMoving() ? "shutter-moving" : "static";
+  for (const entry of ALERT_KINDS) {
+    if (entry.words.test(name)) return entry.kind;
+  }
+  const glyph = clean(card.querySelector(".g-icon-wrap")?.textContent);
+  if (glyph) {
+    for (const entry of ALERT_KINDS) {
+      if (entry.icons.test(glyph)) return entry.kind;
+    }
+  }
   return "static";
+}
+
+/* The motion belongs to the glyph, not to the disc it sits in: a door swinging
+ * inside a spinning circle reads as neither. The runtime prints the icon as a
+ * bare text node, so it is wrapped once — and wrapped again whenever the
+ * runtime rewrites the card, which it does whenever the alert count changes. */
+function glyphOf(icon) {
+  const existing = icon.querySelector(":scope > .dm-alert-glyph");
+  if (existing && icon.childNodes.length === 1) return existing;
+  const glyph = existing || doc.createElement("span");
+  if (!existing) glyph.className = "dm-alert-glyph";
+  const text = clean(icon.textContent);
+  if (clean(glyph.textContent) !== text) glyph.textContent = text;
+  icon.textContent = "";
+  icon.append(glyph);
+  return glyph;
 }
 
 function polishAlertAnimations() {
@@ -441,16 +481,11 @@ function polishAlertAnimations() {
     // on every pass and rewrote eight classes per icon each time, which is a
     // handful of mutations a second for an unchanged plancia.
     if (icon.dataset.dmAlertMotion === kind && icon.classList.contains(`dm-alert-${kind}`)) return;
-    icon.classList.remove(
-      "anim-ping",
-      "dm-alert-opening",
-      "dm-alert-battery",
-      "dm-alert-security",
-      "dm-alert-light",
-      "dm-alert-shutter-moving",
-      "dm-alert-static",
-    );
+    for (const name of [...icon.classList]) {
+      if (name === "anim-ping" || name.startsWith("dm-alert-")) icon.classList.remove(name);
+    }
     icon.classList.add(`dm-alert-${kind}`);
+    if (kind !== "static") glyphOf(icon);
     icon.dataset.dmAlertMotion = kind;
   });
   return true;
@@ -519,6 +554,10 @@ function installOwners() {
     "buildTempCards",
     "render",
     "cdFillRoomSelects",
+    // The alerts the user creates live in their own wrap, redrawn by the
+    // runtime whenever one of them starts or stops matching. Without this the
+    // motion only reached them on the next unrelated state change.
+    "cdRenderCustomAvvisi",
   ]) wrapFunction(name, "__dmBeta9RealDevicePolish", scheduleAfterLegacyWork);
 }
 
@@ -624,16 +663,78 @@ function installStyles() {
       animation:none!important;filter:none!important;transition:height .55s cubic-bezier(.2,.8,.2,1)!important
     }
 
-    #page-home .g-icon-wrap.dm-alert-static{animation:none!important;transform:none!important}
-    #page-home .g-icon-wrap.dm-alert-opening{animation:dmAlertOpening 1.8s ease-in-out infinite!important}
-    #page-home .g-icon-wrap.dm-alert-battery{animation:dmAlertBattery 2.4s ease-in-out infinite!important}
-    #page-home .g-icon-wrap.dm-alert-security{animation:dmAlertSecurity 1.6s ease-in-out infinite!important}
-    #page-home .g-icon-wrap.dm-alert-light{animation:dmAlertLight 2.2s ease-in-out infinite!important}
-    #page-home .g-icon-wrap.dm-alert-shutter-moving{animation:dmAlertShutterMove 1.25s ease-in-out infinite!important}
-    @keyframes dmAlertOpening{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
-    @keyframes dmAlertBattery{0%,100%{opacity:1}50%{opacity:.72}}
-    @keyframes dmAlertSecurity{0%,100%{transform:scale(1)}50%{transform:scale(1.055)}}
-    @keyframes dmAlertLight{0%,100%{filter:drop-shadow(0 0 0 transparent)}50%{filter:drop-shadow(0 0 7px rgba(245,158,11,.38))}}
+    /* Alert motion. The disc holds still; the glyph inside it acts out what the
+       alert is reporting. */
+    #page-home .g-icon-wrap[class*="dm-alert-"]{animation:none!important;transform:none!important}
+    #page-home .g-icon-wrap .dm-alert-glyph{display:inline-block!important;line-height:1!important}
+    #page-home .g-icon-wrap.dm-alert-static .dm-alert-glyph{animation:none!important;transform:none!important}
+    /* A door swings on its hinge: wide open, a pause, and shut again. */
+    #page-home .g-icon-wrap.dm-alert-door .dm-alert-glyph{
+      transform-origin:left center!important;animation:dmAlertDoor 3.2s ease-in-out infinite!important}
+    /* A window sash swings the other way, and less far. */
+    #page-home .g-icon-wrap.dm-alert-window .dm-alert-glyph{
+      transform-origin:right center!important;animation:dmAlertWindow 3s ease-in-out infinite!important}
+    /* A flat battery empties from the top down, then refills out of sight. */
+    #page-home .g-icon-wrap.dm-alert-battery .dm-alert-glyph{
+      transform-origin:center bottom!important;animation:dmAlertBattery 3.4s linear infinite!important}
+    #page-home .g-icon-wrap.dm-alert-leak .dm-alert-glyph{animation:dmAlertDrip 1.7s ease-in infinite!important}
+    #page-home .g-icon-wrap.dm-alert-flame .dm-alert-glyph{animation:dmAlertFlame 1.5s ease-in-out infinite!important}
+    #page-home .g-icon-wrap.dm-alert-motion .dm-alert-glyph{animation:dmAlertStep 1.1s ease-in-out infinite!important}
+    #page-home .g-icon-wrap.dm-alert-temperature .dm-alert-glyph{animation:dmAlertTemp 2.6s ease-in-out infinite!important}
+    #page-home .g-icon-wrap.dm-alert-power .dm-alert-glyph{animation:dmAlertSurge 2.1s ease-in-out infinite!important}
+    #page-home .g-icon-wrap.dm-alert-light .dm-alert-glyph{animation:dmAlertLight 2.2s ease-in-out infinite!important}
+    #page-home .g-icon-wrap.dm-alert-security .dm-alert-glyph{animation:dmAlertSecurity 1.6s ease-in-out infinite!important}
+    #page-home .g-icon-wrap.dm-alert-shutter-moving .dm-alert-glyph{animation:dmAlertShutterMove 1.25s ease-in-out infinite!important}
+    /* The door and the window swing on their hinge with scaleX, not with a
+       perspective rotateY. On screen the two are the same movement — the leaf
+       narrows towards its hinge and comes back — but rotateY opens a 3D
+       rendering context on every alert icon, on the one page that is always on
+       screen, and WebKit was killing the page under it. */
+    @keyframes dmAlertDoor{
+      0%,10%{transform:scaleX(1)}
+      42%,58%{transform:scaleX(.44)}
+      90%,100%{transform:scaleX(1)}}
+    @keyframes dmAlertWindow{
+      0%,12%{transform:scaleX(1)}
+      46%,60%{transform:scaleX(.74)}
+      92%,100%{transform:scaleX(1)}}
+    /* Every alert moves on transform and opacity alone.
+     *
+     * These animations never stop, and the plancia is the page that is on
+     * screen almost all the time. A clip-path or a filter in a keyframe makes
+     * the engine repaint the glyph on every frame, forever; transform and
+     * opacity are the two the compositor can carry on its own. The battery
+     * therefore drains by squashing towards its base instead of being clipped,
+     * which reads the same and costs nothing per frame. */
+    @keyframes dmAlertBattery{
+      0%{transform:scaleY(1);opacity:1}
+      52%{transform:scaleY(.44);opacity:1}
+      68%{transform:scaleY(.44);opacity:.18}
+      84%{transform:scaleY(1);opacity:.18}
+      100%{transform:scaleY(1);opacity:1}}
+    @keyframes dmAlertDrip{
+      0%{transform:translateY(-3px) scaleY(.92)}
+      55%{transform:translateY(4px) scaleY(1.08)}
+      75%{transform:translateY(4px) scaleY(.96)}
+      100%{transform:translateY(-3px) scaleY(.92)}}
+    @keyframes dmAlertFlame{
+      0%,100%{transform:translateY(0) scale(1);opacity:1}
+      35%{transform:translateY(-2px) scale(1.07);opacity:.82}
+      68%{transform:translateY(-1px) scale(.97);opacity:1}}
+    @keyframes dmAlertStep{
+      0%,100%{transform:translate(-3px,0)}
+      25%{transform:translate(-1px,-2px)}
+      50%{transform:translate(3px,0)}
+      75%{transform:translate(1px,-2px)}}
+    @keyframes dmAlertTemp{0%,100%{transform:translateY(2.5px)}50%{transform:translateY(-2.5px)}}
+    @keyframes dmAlertSurge{
+      0%,100%{transform:scale(1);opacity:1}
+      14%{transform:scale(1.12);opacity:.7}
+      26%{transform:scale(1);opacity:1}
+      52%{transform:scale(1.06);opacity:.85}
+      66%{transform:scale(1);opacity:1}}
+    @keyframes dmAlertSecurity{0%,100%{transform:scale(1)}50%{transform:scale(1.075)}}
+    @keyframes dmAlertLight{0%,100%{opacity:1}50%{opacity:.62}}
     @keyframes dmAlertShutterMove{0%,100%{transform:translateY(-2px)}50%{transform:translateY(2px)}}
 
     #ed-body .dm-light-add-form[data-dm-light-add-layout="beta9-real"]{
@@ -670,7 +771,8 @@ function installStyles() {
       }
     }
     @media(prefers-reduced-motion:reduce){
-      #page-home .g-icon-wrap[class*="dm-alert-"]{animation:none!important}
+      #page-home .g-icon-wrap[class*="dm-alert-"],
+      #page-home .g-icon-wrap .dm-alert-glyph{animation:none!important;transform:none!important}
     }
   `);
 }

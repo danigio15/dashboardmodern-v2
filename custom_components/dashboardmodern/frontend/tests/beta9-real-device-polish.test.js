@@ -61,9 +61,24 @@ test("shutters are compact and alert animations follow the alert kind", async ()
   assert.match(source, /height", "132px", "important"/);
   assert.match(source, /slat\.style\.setProperty\("animation", "none", "important"\)/);
   assert.match(source, /shutterMoving\(\) \? "shutter-moving" : "static"/);
-  assert.match(source, /dmAlertOpening/);
-  assert.match(source, /dmAlertBattery/);
-  assert.match(source, /dmAlertSecurity/);
+  // Every animation acts out its own alert, and it animates the glyph rather
+  // than the disc the glyph sits in.
+  assert.match(source, /\.dm-alert-door \.dm-alert-glyph/);
+  assert.match(source, /transform-origin:left center!important;animation:dmAlertDoor/);
+  // The leaf narrows towards its hinge and comes back: a door swinging open,
+  // drawn in two dimensions. A perspective rotateY reads the same and opens a
+  // 3D rendering context on every alert icon, which WebKit did not survive.
+  assert.match(source, /@keyframes dmAlertDoor\{[\s\S]*scaleX\(\.44\)/);
+  assert.doesNotMatch(source, /@keyframes dmAlertDoor\{[\s\S]{0,200}perspective\(/);
+  // The level drops by squashing towards the base, not by being clipped: these
+  // animations never stop, and only transform and opacity spare the engine a
+  // repaint on every frame.
+  assert.match(source, /@keyframes dmAlertBattery\{[\s\S]*transform:scaleY\(\.44\)/);
+  assert.doesNotMatch(source, /@keyframes dmAlert[\s\S]*?\{[^}]*(clip-path|filter:(?!none))/);
+  assert.doesNotMatch(source, /dmAlertOpening/);
+  for (const kind of ["window", "leak", "flame", "motion", "temperature", "power", "light", "security"]) {
+    assert.match(source, new RegExp(`\\.dm-alert-${kind} \\.dm-alert-glyph`));
+  }
 });
 
 test("add-light layout cannot collapse its entity field", async () => {

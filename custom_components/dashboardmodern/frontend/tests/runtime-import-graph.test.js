@@ -226,7 +226,10 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // switch, one save at the end — by reconciling what the tab renderers leave
   // behind. It renders no section content and saves nothing itself.
   // All facade/cycle/orphan/polling/global-observer checks stay active.
-  assert.ok(relative.length <= 104, `production graph unexpectedly grew to ${relative.length} modules`);
+  // Beta 31.1 adds one more owner: every section of the dashboard opens with
+  // the same heading — icon, name, and the line that says what the page is for
+  // — instead of six different ideas of a title. It renders no data.
+  assert.ok(relative.length <= 105, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with one declared exception.

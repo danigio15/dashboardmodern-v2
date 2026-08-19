@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { clickBottomTab } from "./helpers/navigation.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const seed = {
   schema_version: 4,
@@ -34,7 +35,7 @@ const states = [
 ];
 
 // prettier-ignore
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: configured Temperature keeps room name and custom entity names`, async ({
     page,
   }, testInfo) => {

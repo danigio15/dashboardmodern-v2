@@ -1,6 +1,7 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const states = [
   {
@@ -140,7 +141,7 @@ async function openEditor(page, tab) {
   await page.waitForTimeout(100);
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: beta9 matches the real-device screenshot contracts`, async ({
     page,
   }, testInfo) => {
@@ -202,6 +203,20 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     const brand = appearance.locator("select[data-brand]");
     const model = appearance.locator("select[data-model]");
     await brand.selectOption("MINI");
+    /* The choice is the select's; the logo beside it is repainted a frame later
+     * by whichever owner of the panel gets there first, and on a slow browser
+     * that frame is not the next one. Wait for the panel to say it has caught
+     * up before reading the mark itself. */
+    await expect(brand).toHaveValue("MINI");
+    await expect
+      .poll(
+        () =>
+          appearance.evaluate(
+            (node) => node.querySelector("[data-brand-preview]")?.dataset.dmBeta11Brand || "",
+          ),
+        { message: "the preview follows the chosen brand", timeout: 10_000 },
+      )
+      .toBe("mini");
     await expect(
       appearance.locator('[data-brand-preview] .dm-car-brand[data-brand="mini"]'),
     ).toHaveCount(1);

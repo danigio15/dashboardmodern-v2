@@ -41,16 +41,24 @@ function deviceForRow(row) {
 function paintEmptyReportIcon(row, fields) {
   const button = fields.icon?.closest(".dm-icon-field,.ed-form-row")?.querySelector("button");
   if (!button) return;
-  const drawn = clean(button.textContent) || button.querySelector("img,svg,ha-icon");
-  if (drawn) {
-    delete button.dataset.dmReportIconFallback;
+  // The stored value first — an entry can carry an mdi name, an emoji or an
+  // artwork key — and the icon the Report actually draws when it carries none.
+  const stored = clean(fields.icon?.value);
+  const device = deviceForRow(row);
+  const token = stored || (device ? reportIconForDevice(device) : "");
+  if (!token) return;
+  if (button.dataset.dmReportIconToken === token) return;
+  if (/^mdi:/i.test(token)) {
+    // An mdi name is not a character: printed as text it left the square blank.
+    // The icon engine draws it, the same one the appliance card uses.
+    if (root.DashboardModernIconEngine?.render?.(button, "load", token, { size: 26 })) {
+      button.dataset.dmReportIconToken = token;
+      return;
+    }
     return;
   }
-  const device = deviceForRow(row);
-  const glyph = clean(fields.icon?.value) || (device ? reportIconForDevice(device) : "");
-  if (!glyph || glyph.startsWith("mdi:")) return;
-  button.textContent = glyph;
-  button.dataset.dmReportIconFallback = "true";
+  if (button.textContent !== token) button.textContent = token;
+  button.dataset.dmReportIconToken = token;
 }
 
 function cumulativeEntity(entity) {

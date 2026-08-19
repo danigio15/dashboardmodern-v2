@@ -1,6 +1,7 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const states = [
   {
@@ -130,7 +131,7 @@ function contrastRatio(foreground, background) {
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: dark editor uses the canonical dashboard palette with readable contrast`, async ({
     page,
   }, testInfo) => {

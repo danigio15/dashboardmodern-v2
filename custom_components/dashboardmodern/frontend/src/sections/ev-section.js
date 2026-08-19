@@ -327,6 +327,32 @@ export function renderVehicleSelector() {
   return true;
 }
 
+/* Two cars, two pairs of photos.
+ *
+ * A car profile carries that car's entity map and one picture: the runtime
+ * captures `cd_ev_image` into `profile.img` and writes it back when the car is
+ * picked. The second photo — the same car with the cable in — is this module's
+ * and was never part of the profile, so both cars shared it. And a profile
+ * saved before its picture was chosen carries an empty `img`, which picking
+ * that car then wrote over the photo the other car had just set: with two cars
+ * configured both pictures disappeared from the dashboard, while the editor,
+ * reading the field and not the store, still previewed them.
+ *
+ * A profile now carries both photos, and picking a car never clears a photo the
+ * profile does not have — it keeps what was showing, which is what a single-car
+ * configuration has always done.
+ */
+function storePhoto(key, url) {
+  const next=clean(url);
+  if (clean(storedPhoto(key)) === next) return;
+  root.localStorage?.setItem(key, JSON.stringify(next));
+}
+
+function restoreProfilePhotos(car, before) {
+  storePhoto(EV_PHOTO_KEYS.idle, clean(car?.img) || before.idle);
+  storePhoto(EV_PHOTO_KEYS.plugged, clean(car?.imgPlugged) || before.plugged);
+}
+
 function legacyRefreshSignature() {
   const cars=legacyProfiles(); return `${activeIndex()}|${cars.map((car)=>`${clean(car.name)}:${clean(car.brand)}:${clean(car.icon)}`).join("|")}`;
 }
@@ -342,8 +368,27 @@ function installLegacyWrappers() {
   }
   if (typeof root.cdEvApplyCar === "function" && !root.cdEvApplyCar.__dmEvSection) {
     state.previousApply ||= root.cdEvApplyCar; const previous=root.cdEvApplyCar;
-    function applyProfile(...args) { const result=previous.apply(this,args); state.legacyRefreshSignature=""; root.queueMicrotask?.(scheduleEvSync); return result; }
+    function applyProfile(index, ...rest) {
+      const before=configuredPhotos();
+      const car=legacyProfiles()[Number(index)] || {};
+      const result=previous.call(this,index,...rest);
+      restoreProfilePhotos(car, before);
+      state.legacyRefreshSignature=""; root.queueMicrotask?.(scheduleEvSync); return result;
+    }
     applyProfile.__dmEvSection=true; applyProfile.__dmPrevious=previous; root.cdEvApplyCar=applyProfile;
+  }
+  if (typeof root.cdEvCaptureProfile === "function" && !root.cdEvCaptureProfile.__dmEvSection) {
+    const previous=root.cdEvCaptureProfile;
+    function captureProfile(...args) {
+      const profile=previous.apply(this,args) || {};
+      const photos=configuredPhotos();
+      // The runtime reads the first photo through its own config helper, which
+      // returns "" for a value this module wrote as JSON. Both are read here.
+      if (!clean(profile.img)) profile.img=photos.idle;
+      profile.imgPlugged=photos.plugged;
+      return profile;
+    }
+    captureProfile.__dmEvSection=true; captureProfile.__dmPrevious=previous; root.cdEvCaptureProfile=captureProfile;
   }
   return Boolean(root.cdEvCarsRefresh || root.cdEvApplyCar);
 }

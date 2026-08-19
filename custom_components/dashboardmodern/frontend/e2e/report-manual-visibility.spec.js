@@ -1,6 +1,7 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const seed = {
   schema_version: 4,
@@ -61,7 +62,7 @@ async function boot(page, variant, testInfo) {
   await page.locator(".ed-inner-tab", { hasText: /^REPORT$/i }).click();
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: manual Report entry stays collapsed until requested`, async ({
     page,
   }, testInfo) => {

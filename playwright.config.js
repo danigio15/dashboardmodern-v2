@@ -2,8 +2,12 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "custom_components/dashboardmodern/frontend/e2e",
+  // The list reporter is on in CI as well: the dot line the github reporter
+  // prints says how many tests failed and nothing about which, and the html
+  // report is an artifact you have to download to read. A job that goes red
+  // should say why in its own log.
   reporter: process.env.CI
-    ? [["github"], ["html", { open: "never" }]]
+    ? [["github"], ["list"], ["html", { open: "never" }]]
     : [["list"], ["html", { open: "never" }]],
   retries: process.env.CI ? 2 : 0,
   expect: {

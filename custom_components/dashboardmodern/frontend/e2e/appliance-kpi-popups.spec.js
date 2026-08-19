@@ -2,6 +2,7 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { clickBottomTab } from "./helpers/navigation.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const states = [
   {
@@ -144,7 +145,7 @@ async function expectCentered(page, popup) {
   expect(delta.y).toBeLessThan(40);
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: appliance KPI cards expose centered running/power popups and remove alerts`, async ({
     page,
   }, testInfo) => {
