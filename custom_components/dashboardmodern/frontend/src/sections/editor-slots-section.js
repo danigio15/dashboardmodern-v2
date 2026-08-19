@@ -450,6 +450,11 @@ export function installEditorSlotsSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
+  /* A panel printed after the last pass would keep the raw field and the lens:
+   * the Temperatura form is drawn by its own owner and lands late on a phone.
+   * Whoever notices the editor changing can ask for another pass through this,
+   * so the rows follow the tab however slowly it finishes drawing. */
+  root.__DASHBOARDMODERN_DECORATE_ENTITY_FIELDS__ = () => schedule();
   for (const eventName of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"]) {
     root.addEventListener?.(eventName, () => {
       bindLegacyEntryPoints();

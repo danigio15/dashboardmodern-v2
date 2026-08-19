@@ -181,19 +181,15 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     await openEditor(page, "sez2");
     const appearance = page.locator("#ed-body [data-ev-appearance]");
     await expect(appearance).toBeVisible();
-    // First of the tab's own content. The one block above it is the section
-    // switch, which opens every tab of the configuration alike.
+    // Brand and model open the vehicle's own section, above that car's
+    // entities: that is the one place the panel is built, so the tab looks the
+    // same however slowly it draws.
     const appearanceIsVisuallyFirst = await appearance.evaluate((node) => {
-      const parent = node.parentElement;
-      if (!parent) return false;
+      const home = node.closest(".ed-acc-body");
+      if (!home) return false;
       const top = node.getBoundingClientRect().top;
-      return [...parent.children]
-        .filter(
-          (sibling) =>
-            sibling !== node &&
-            sibling.getClientRects().length > 0 &&
-            !sibling.matches("[data-key][onclick*='edSecTog']"),
-        )
+      return [...home.children]
+        .filter((sibling) => sibling !== node && sibling.getClientRects().length > 0)
         .every((sibling) => sibling.getBoundingClientRect().top >= top - 1);
     });
     expect(appearanceIsVisuallyFirst).toBe(true);

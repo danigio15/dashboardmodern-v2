@@ -55,8 +55,10 @@ export function renderBatterySoc(targetDocument, energy = {}, states = {}) {
   );
   const value = stateNumber(states, entity);
   const text = entity && value !== null ? `${Math.round(value)}%` : "—";
-  node.textContent = text;
-  node.dataset.entity = entity;
+  // Only when it changes: this runs on every pass, and rewriting the same
+  // reading is a mutation for every observer and a repaint for nothing.
+  if (node.textContent !== text) node.textContent = text;
+  if (node.dataset.entity !== entity) node.dataset.entity = entity;
   return text;
 }
 
@@ -79,15 +81,44 @@ function numberFrom(node) {
   return Math.abs(parseNumber(node));
 }
 
+/* Writing a style property that already holds that value is not free: it is a
+ * mutation record for every observer on the page and a style invalidation for
+ * the engine. This stage rewrites a dozen properties per line on every pass,
+ * several passes a second, and almost all of them are unchanged. */
+function setStyleProperty(node, name, value, priority = "") {
+  if (!node?.style) return;
+  if (
+    node.style.getPropertyValue(name) === value &&
+    node.style.getPropertyPriority(name) === priority
+  )
+    return;
+  node.style.setProperty(name, value, priority);
+}
+
+/* Is this node on screen?
+ *
+ * The answer costs a style resolution, and the stage asks it for every value
+ * node and every span inside it, on every pass — around two hundred times a
+ * second on an idle dashboard, which is the single busiest thing the plancia
+ * does when nothing is happening. Within one pass the answer cannot change, so
+ * it is asked once per node and remembered until the next pass. */
+const visibility = { token: 0, cache: new WeakMap() };
+
+function beginVisibilityPass() {
+  visibility.token += 1;
+}
+
 function nodeVisible(node) {
   if (!node || node.hidden) return false;
+  const cached = visibility.cache.get(node);
+  if (cached && cached.token === visibility.token) return cached.value;
   const style = root.getComputedStyle?.(node);
-  if (
+  const value = !(
     style &&
     (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0)
-  )
-    return false;
-  return true;
+  );
+  visibility.cache.set(node, { token: visibility.token, value });
+  return value;
 }
 
 /* Saved per-slot flow-node customization (Beta 26/27). Only the values the user
@@ -171,9 +202,9 @@ function restoreConnectorVisibility(node) {
   const displayPriority = node.dataset.dmFlowDisplayPriority || "";
   const visibility = node.dataset.dmFlowVisibility || "";
   const visibilityPriority = node.dataset.dmFlowVisibilityPriority || "";
-  if (display) node.style.setProperty("display", display, displayPriority);
+  if (display) setStyleProperty(node, "display", display, displayPriority);
   else node.style.removeProperty("display");
-  if (visibility) node.style.setProperty("visibility", visibility, visibilityPriority);
+  if (visibility) setStyleProperty(node, "visibility", visibility, visibilityPriority);
   else node.style.removeProperty("visibility");
   for (const key of [
     "dmFlowVisibilityCaptured",
@@ -191,8 +222,8 @@ function exposeConnector(node, active) {
   if (active) {
     if (node.dataset.dmFlowForcedVisible !== "true") rememberConnectorVisibility(node);
     node.hidden = false;
-    node.style.setProperty("display", "inline", "important");
-    node.style.setProperty("visibility", "visible", "important");
+    setStyleProperty(node, "display", "inline", "important");
+    setStyleProperty(node, "visibility", "visible", "important");
     node.dataset.dmFlowForcedVisible = "true";
   } else if (node.dataset.dmFlowForcedVisible === "true") {
     restoreConnectorVisibility(node);
@@ -206,12 +237,19 @@ function colorNode(node, color, active) {
   node.classList.toggle("active", active);
   node.classList.toggle("dm-energy-flow-active", active);
   node.classList.toggle("dm-energy-flow-idle", !active);
-  node.style.setProperty("--dm-flow-color", color);
-  node.dataset.dmFlowAnimated = active ? "true" : "false";
+  setStyleProperty(node, "--dm-flow-color", color);
+  // Every write here is an attribute write, and an attribute written with the
+  // value it already holds still wakes every observer on the page. The stage
+  // does this for each connector a few times a second.
+  const animated = active ? "true" : "false";
+  if (node.dataset.dmFlowAnimated !== animated) node.dataset.dmFlowAnimated = animated;
   if (/^(path|line|polyline|circle)$/i.test(node.tagName)) {
-    node.style.stroke = active ? color : "var(--divider-color,#dbe4ee)";
-    if (node.getAttribute("fill") && node.getAttribute("fill") !== "none")
-      node.style.fill = active ? color : "var(--divider-color,#dbe4ee)";
+    const stroke = active ? color : "var(--divider-color,#dbe4ee)";
+    if (node.style.stroke !== stroke) node.style.stroke = stroke;
+    if (node.getAttribute("fill") && node.getAttribute("fill") !== "none") {
+      const fill = active ? color : "var(--divider-color,#dbe4ee)";
+      if (node.style.fill !== fill) node.style.fill = fill;
+    }
   }
 }
 
@@ -229,7 +267,7 @@ function hideLegacyLoadTopology(stage) {
   stage?.querySelectorAll?.(LEGACY_LOAD_SELECTOR).forEach((node) => {
     if (node.dataset.dmFlowNode || node.dataset.dmFlowArc) return;
     node.hidden = true;
-    node.style.setProperty("display", "none", "important");
+    setStyleProperty(node, "display", "none", "important");
     node.dataset.dmLegacyEnergyLoad = "replaced";
   });
 }
@@ -274,11 +312,11 @@ function ensureBubble(stage, node, period, scale) {
   }
   element.style.left = `${node.desktop.left}%`;
   element.style.top = `${node.desktop.top}%`;
-  element.style.setProperty("--n-color", node.color);
-  element.style.setProperty("--dm-flow-color", node.color);
-  element.style.setProperty("--dm-flow-scale", String(scale));
-  element.style.setProperty("--dm-flow-mobile-left", `${node.mobile.left}%`);
-  element.style.setProperty("--dm-flow-mobile-top", `${node.mobile.top}%`);
+  setStyleProperty(element, "--n-color", node.color);
+  setStyleProperty(element, "--dm-flow-color", node.color);
+  setStyleProperty(element, "--dm-flow-scale", String(scale));
+  setStyleProperty(element, "--dm-flow-mobile-left", `${node.mobile.left}%`);
+  setStyleProperty(element, "--dm-flow-mobile-top", `${node.mobile.top}%`);
   const label = element.querySelector(".node-label");
   if (label && label.textContent !== node.name) label.textContent = node.name;
   writeIcon(element.querySelector(".node-icon"), node.icon);
@@ -302,9 +340,9 @@ function ensureArc(svg, node, variant) {
   }
   const geometry = variant === "mobile" ? node.mobile : node.desktop;
   if (path.getAttribute("d") !== geometry.path) path.setAttribute("d", geometry.path);
-  path.style.setProperty("--line-color", node.color);
-  path.style.setProperty("--dm-flow-width", `${node.intensity.width}px`);
-  path.style.setProperty("--dm-flow-duration", `${node.intensity.duration}s`);
+  setStyleProperty(path, "--line-color", node.color);
+  setStyleProperty(path, "--dm-flow-width", `${node.intensity.width}px`);
+  setStyleProperty(path, "--dm-flow-duration", `${node.intensity.duration}s`);
   path.dataset.dmFlowValue = String(node.value ?? "");
   colorNode(path, node.color, node.active);
   return path;
@@ -448,6 +486,7 @@ function mirrorLegacyMainFlows(scope, period) {
 
 export function refreshEnergyFlows() {
   if (!doc) return false;
+  beginVisibilityPass();
   let touched = false;
   for (const view of FLOW_VIEWS) {
     const period = view.period === "instant" ? "" : view.period;

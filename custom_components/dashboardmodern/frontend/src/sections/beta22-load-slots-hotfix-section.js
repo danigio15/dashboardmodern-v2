@@ -34,7 +34,8 @@ function store() {
 
 function readSection(name, fallback) {
   try {
-    const value = store()?.getSection?.(name);
+    const holder = store();
+    const value = holder?.peekSection ? holder.peekSection(name) : holder?.getSection?.(name);
     if (value !== undefined && value !== null) return value;
   } catch (_error) {}
   try {

@@ -177,7 +177,8 @@ function decorateActionModal() {
 function temperatureRoomVisuals() {
   const store = root.DashboardModernModules?.store;
   if (!store) return;
-  const rooms = store.getSection?.("rooms") || [];
+  // Read-only: the shared view instead of a fresh deep copy on every pass.
+  const rooms = (store.peekSection ? store.peekSection("rooms") : store.getSection?.("rooms")) || [];
   doc?.querySelectorAll?.(".dm-temperature-card[data-room-id]").forEach((card) => {
     const room = rooms.find((item) => clean(item.id) === clean(card.dataset.roomId));
     const target = card.querySelector(".dm-temperature-card-icon");
@@ -362,7 +363,8 @@ function ensureSectionRenamer() {
 }
 
 function evVisual() {
-  const storeCars = root.DashboardModernModules?.store?.getSection?.("ev");
+  const evStore = root.DashboardModernModules?.store;
+  const storeCars = evStore?.peekSection ? evStore.peekSection("ev") : evStore?.getSection?.("ev");
   const legacyCars = readJson("cd_ev_cars", []);
   const cars = Array.isArray(storeCars) && storeCars.length
     ? storeCars

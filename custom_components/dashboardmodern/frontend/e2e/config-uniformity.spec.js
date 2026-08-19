@@ -116,7 +116,13 @@ function tabState(page) {
     const saves = [...body.querySelectorAll("button,.ed-btn-add,.ed-save-btn")].filter(
       (node) => /salva|save/i.test(node.textContent || "") && seen(node),
     );
-    const banners = [...body.querySelectorAll("[data-key][onclick*='edSecTog']")].filter(seen);
+    // The switch of a section: the runtime's own banner, or the one a tab builds
+    // for itself with the same handler behind it (Energia does).
+    const banners = [
+      ...body.querySelectorAll(
+        "[data-key][onclick*='edSecTog'],[data-dm-energy-visibility='true']",
+      ),
+    ].filter(seen);
     const footer = body.querySelector(":scope > [data-dm-save-footer]");
     return {
       saveLabels: saves.map((node) => node.textContent.replace(/\s+/g, " ").trim()),

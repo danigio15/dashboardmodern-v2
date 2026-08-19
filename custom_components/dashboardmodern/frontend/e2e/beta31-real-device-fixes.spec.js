@@ -250,6 +250,41 @@ test.describe("beta31", () => {
     }
   });
 
+  /* A form printed after the pass that decorates the tab — the Temperatura form
+   * is drawn by its own owner and lands late on a phone — used to keep the raw
+   * field and the magnifier while every other field on the tab had its row. */
+  test("a field printed after the tab still becomes a row", async ({ page }, testInfo) => {
+    await boot(page, testInfo);
+    await page.evaluate(async () => {
+      window.apriConfigEntita();
+      window.editorSwitch("tapp");
+      await new Promise((resolve) => setTimeout(resolve, 2200));
+    });
+    // Long after everything has settled, a late owner prints one more field.
+    await page.evaluate(() => {
+      const body = document.getElementById("ed-body");
+      const row = document.createElement("div");
+      row.className = "ed-form-row dm-entity-picker-row";
+      row.dataset.dmLateField = "true";
+      row.innerHTML =
+        '<input id="dm-late-entity" class="ed-input" data-entity-input="true" placeholder="sensor.entity">' +
+        '<button type="button" class="dm-entity-picker" data-entity-target="dm-late-entity">🔍</button>';
+      body.append(row);
+    });
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const row = document.querySelector("[data-dm-late-field]");
+          return {
+            chip: Boolean(row?.querySelector(".dm-entity-picker.dm-slot-chip")),
+            pencil: Boolean(row?.querySelector(".dm-chip-manual")),
+            rawHidden: getComputedStyle(row.querySelector("#dm-late-entity")).display === "none",
+          };
+        }),
+      )
+      .toEqual({ chip: true, pencil: true, rawHidden: true });
+  });
+
   test("the EV configuration takes two photos of the car", async ({ page }, testInfo) => {
     await boot(page, testInfo);
     await page.evaluate(() => {

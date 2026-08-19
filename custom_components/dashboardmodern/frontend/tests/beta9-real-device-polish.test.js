@@ -28,9 +28,12 @@ test("quick-action icons are delegated to the single-owner engine without beta9 
   assert.match(engine, /event\.stopImmediatePropagation\(\)/);
 });
 
-test("EV brand dropdown owns logo preview and model options and stays at the top", async () => {
+test("EV brand dropdown owns logo preview and model options, and not its place", async () => {
   const source = await readFile(polishUrl, "utf8");
-  assert.match(source, /body\.prepend\(panel\)/);
+  // Where the panel goes belongs to the module that builds it — inside the
+  // vehicle's own section. This one used to prepend it to the tab on every
+  // pass, and the tab flickered between the two placements.
+  assert.doesNotMatch(source, /body\.prepend\(panel\)/);
   assert.match(source, /brandSelect\.addEventListener\("input", syncBrand\)/);
   assert.match(source, /brandSelect\.addEventListener\("change", syncBrand\)/);
   assert.match(source, /modelSelect\.innerHTML = modelOptions\(brand, keep\)/);

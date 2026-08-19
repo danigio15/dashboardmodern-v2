@@ -1,5 +1,15 @@
 // DM-FIX-20260812B
 import { cloneValue, SCHEMA_VERSION, normalizeDevice } from "./device-model.js";
+
+/* Frozen so a shared read-only copy cannot be edited by mistake: a caller that
+ * changed one would otherwise change what every other reader sees, without
+ * changing anything in the store. */
+function deepFreeze(value) {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  Object.freeze(value);
+  for (const entry of Object.values(value)) deepFreeze(entry);
+  return value;
+}
 import { migrateState, normalizeSection, readLegacyState, SECTION_KEYS } from "./migrations.js";
 import { sectionForEditorSlot } from "./editor-slots.js";
 import { projectEnergySlots } from "./energy-projection.js";
@@ -92,6 +102,30 @@ export class DashboardStore {
     this.listeners = new Set();
     this.persistedLegacyDigests = new Map();
     this.state = { schema_version: SCHEMA_VERSION, sections: {}, visibility: {} };
+    this.revision = 0;
+    this.snapshots = new Map();
+  }
+
+  /* A read-only view of a section, built once per revision.
+   *
+   * `getSection` hands out a deep copy so nobody can reach into the store by
+   * accident, and the sections ask for one constantly — every renderer, several
+   * times per pass, a few passes a second. On an idle dashboard that was the
+   * single most repeated piece of work in the page, copying the same unchanged
+   * lists over and over. This copies once and freezes the result, so the copy
+   * can be shared: a caller that means to change something still goes through
+   * `getSection` and the setters. */
+  peekSection(name) {
+    const cached = this.snapshots.get(name);
+    if (cached && cached.revision === this.revision) return cached.value;
+    const value = deepFreeze(cloneValue(this.state.sections[name] ?? []));
+    this.snapshots.set(name, { revision: this.revision, value });
+    return value;
+  }
+
+  touch() {
+    this.revision += 1;
+    if (this.snapshots.size) this.snapshots.clear();
   }
   /* Forget the configuration held in memory.
    *
@@ -147,6 +181,7 @@ export class DashboardStore {
     return () => this.listeners.delete(listener);
   }
   persist() {
+    this.touch();
     const legacyKeys = ["cd_sections", ...Object.values(SECTION_KEYS)];
     for (const key of legacyKeys) {
       if (this.canonicalWriteKeys?.has(key)) continue;

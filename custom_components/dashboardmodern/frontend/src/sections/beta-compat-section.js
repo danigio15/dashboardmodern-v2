@@ -114,8 +114,11 @@ function install() {
     .dm-beta-room-grid button{min-height:62px;border:1px solid var(--divider-color,#dbe4ee);border-radius:15px;background:var(--card-background-color,#fff);font-size:28px;cursor:pointer}
     .dm-beta-room-grid button:hover{border-color:var(--primary-color,#0ea5e9);transform:translateY(-1px)}
     .dm-beta-room-grid button[hidden]{display:none!important}
-    #ed-body:has(>[data-ev-appearance]){display:flex!important;flex-direction:column!important}
-    #ed-body:has(>[data-ev-appearance])>[data-ev-appearance]{order:-10000!important}
+    /* Brand e modello used to be pinned to the top of the tab from here, for
+       the days when it could land anywhere. It now has one home — inside the
+       vehicle accordion — so a rule that yanked it to the top whenever it
+       happened to be a direct child only made the tab flicker between two
+       layouts. */
 
     /* Beta11 geometry contracts must outrank historical beta4/beta9 visual
        normalizers even if those modules repaint the mark/room row later. */
