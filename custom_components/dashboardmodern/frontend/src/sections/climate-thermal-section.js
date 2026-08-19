@@ -499,7 +499,15 @@ function paintSpark(card, unit, reading) {
 }
 
 function paintSummary(shell, units, states, labels) {
-  const zone = visibleZone();
+  const zone = zoneWithUnits(units, visibleZone());
+  // A page that opens on a zone nobody configured shows an empty grid: put it
+  // on the zone that has something, through the runtime's own switch so the
+  // two grids and the two buttons stay in step with it.
+  if (zone !== visibleZone()) {
+    try {
+      root.setClimaPageMode?.(zone, true);
+    } catch (_error) {}
+  }
   const inZone = units.filter((unit) => unit.zone === zone);
   const readings = inZone.map((unit) => climateReading(unit.entity, states));
   const running = readings.filter((reading) => reading.on).length;
@@ -526,7 +534,42 @@ function paintSummary(shell, units, states, labels) {
   for (const badge of shell.querySelectorAll("[data-dm-cl-count]")) {
     badge.textContent = String(units.filter((unit) => unit.zone === badge.dataset.dmClCount).length);
   }
+  paintZoneTabs(shell, units);
   shell.dataset.dmClZone = zone;
+}
+
+/* Only the zones that have something in them.
+ *
+ * The page always offered both Freddo and Caldo, so a house with only air
+ * conditioners had a Caldo tab that opened on nothing, and one with only
+ * radiators a Freddo tab that did the same. A zone with no unit configured
+ * takes its tab with it, and when a single zone is left the switch goes too:
+ * there is nothing to switch between. The buttons stay in the document, with
+ * their ids and their handler, because `setClimaPageMode()` writes to them. */
+function paintZoneTabs(shell, units) {
+  let configured = 0;
+  // Only the buttons: the two grids carry the same attribute, and counting them
+  // as well meant every house looked like it had both zones.
+  for (const tab of shell.querySelectorAll(".clima-page-mode-btn[data-dm-cl-zone]")) {
+    const zone = tab.dataset.dmClZone;
+    const has = units.some((unit) => unit.zone === zone);
+    if (has) configured += 1;
+    const value = has ? "false" : "true";
+    if (tab.dataset.dmClEmpty !== value) tab.dataset.dmClEmpty = value;
+  }
+  // Marked on the shell, which the render keeps, and not on the switch, which a
+  // rebuild replaces.
+  const zones = String(configured);
+  if (shell.dataset.dmClZones !== zones) shell.dataset.dmClZones = zones;
+}
+
+/* The zone on screen has to be one that exists: a house with radiators only
+ * opened on Freddo, which is empty, and the page looked broken until the user
+ * found the other tab. */
+function zoneWithUnits(units, current) {
+  if (units.some((unit) => unit.zone === current)) return current;
+  const other = current === "caldo" ? "freddo" : "caldo";
+  return units.some((unit) => unit.zone === other) ? other : current;
 }
 
 export function renderClimate({ rebuild = false } = {}) {
@@ -538,6 +581,9 @@ export function renderClimate({ rebuild = false } = {}) {
   if (!shell) return false;
 
   const units = climateUnits();
+  // Marked here, on the shell this pass owns: paintSummary can switch the page
+  // to the other zone, and the render that follows replaces the shell under it.
+  paintZoneTabs(shell, units);
   for (const zone of ["freddo", "caldo"]) {
     const grid = doc.getElementById(`clima-grid-${zone}`);
     if (!grid) continue;
@@ -739,6 +785,11 @@ function climateCss() {
 #page-clima .dm-cl-shell .clima-page-mode-switch.dm-cl-switch .clima-page-mode-btn .icon{
   display:inline-flex!important;align-items:center!important;font-size:0!important;line-height:0!important
 }
+/* A zone nobody configured has no tab, and a page with one zone has no switch:
+   the buttons stay in the document for setClimaPageMode(), out of sight. */
+#page-clima .dm-cl-shell .clima-page-mode-btn[data-dm-cl-empty="true"]{display:none!important}
+#page-clima .dm-cl-shell[data-dm-cl-zones="1"] .clima-page-mode-switch,
+#page-clima .dm-cl-shell[data-dm-cl-zones="0"] .clima-page-mode-switch{display:none!important}
 .dm-cl-tab-count{
   padding:2px 8px;border-radius:999px;background:var(--dm-cl-sunk);color:var(--dm-cl-dim);
   font-size:10px;font-weight:800;letter-spacing:.4px;font-variant-numeric:tabular-nums
