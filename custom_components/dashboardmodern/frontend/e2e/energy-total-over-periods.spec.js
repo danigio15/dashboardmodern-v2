@@ -101,7 +101,12 @@ for (const variant of PRIMARY) {
       .poll(() =>
         page.evaluate(() => {
           const house = DashboardModernModules.store.getSection("energy")?.house || {};
-          return [house.total_energy, house.daily_energy, house.monthly_energy, house.annual_energy];
+          return [
+            house.total_energy,
+            house.daily_energy,
+            house.monthly_energy,
+            house.annual_energy,
+          ];
         }),
       )
       .toEqual(["sensor.casa_totale", "", "", ""]);

@@ -58,7 +58,9 @@ for (const variant of PRIMARY) {
 
     await saveProfile("Zoe", "sensor.zoe_soc");
     await expect
-      .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").length))
+      .poll(() =>
+        page.evaluate(() => JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").length),
+      )
       .toBe(1);
 
     // The second save adds a profile; it does not overwrite the first.

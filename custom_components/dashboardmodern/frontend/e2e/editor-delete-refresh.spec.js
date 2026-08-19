@@ -74,7 +74,9 @@ for (const variant of PRIMARY) {
     await expect(page.locator("#editor-modal .ed-tab.active")).toHaveAttribute("data-tab", tab);
 
     const stored = await page.evaluate(() =>
-      (window.DashboardModernModules?.store?.getSection?.("climate") || []).map((unit) => unit.name),
+      (window.DashboardModernModules?.store?.getSection?.("climate") || []).map(
+        (unit) => unit.name,
+      ),
     );
     expect(stored).toEqual(["Cucina", "Bagno"]);
   });

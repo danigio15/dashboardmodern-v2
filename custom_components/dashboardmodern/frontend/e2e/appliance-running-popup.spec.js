@@ -102,7 +102,6 @@ async function boot(page, variant, testInfo) {
     .toBe(true);
 }
 
-
 /* Il popup "in funzione" mostrava un'altra icona, e ferma.
  *
  * La riga del popup disegnava l'illustrazione piatta: una sagoma azzurra quasi

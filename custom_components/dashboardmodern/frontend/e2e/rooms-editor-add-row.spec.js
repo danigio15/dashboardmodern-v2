@@ -120,8 +120,6 @@ async function boot(page, variant, testInfo) {
     .toBe(true);
 }
 
-
-
 /* I due campi della riga "aggiungi stanza" erano due quadratini.
  *
  * La riga nasce dal runtime come una fila flex; la rifinitura la trasforma in
