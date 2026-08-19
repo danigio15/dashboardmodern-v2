@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { saveSection, showRawEntityFields } from "./helpers/entity-field.js";
 import { clickBottomTab } from "./helpers/navigation.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const haStates = [
   {
@@ -129,7 +130,7 @@ async function openEditor(page, tab) {
   await page.locator(`.ed-tab[data-tab="${tab}"]`).click();
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: Save section commits a pending appliance, enables visibility and survives reload`, async ({
     page,
   }, testInfo) => {

@@ -3,6 +3,7 @@
  * has always written once the proposal is accepted. */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const STATES = [
   {
@@ -93,7 +94,7 @@ const ENTITIES = [
 
 const seed = { schema_version: 4, sections: { rooms: [] }, visibility: {} };
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: the Config auto-detection shows what it found before writing it`, async ({
     page,
   }, testInfo) => {

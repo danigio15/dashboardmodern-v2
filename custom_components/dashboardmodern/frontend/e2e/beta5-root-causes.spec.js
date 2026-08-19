@@ -1,6 +1,7 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const states = [
   ...[1, 2, 3, 4].map((index) => ({
@@ -154,7 +155,7 @@ async function openEditor(page, tab) {
   await page.waitForTimeout(40);
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: beta5 fixes the exact mobile editor regressions`, async ({
     page,
   }, testInfo) => {

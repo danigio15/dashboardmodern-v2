@@ -1,6 +1,7 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const seed = {
   schema_version: 4,
@@ -83,7 +84,7 @@ async function switchEditor(page, tab) {
   await page.evaluate((target) => editorSwitch(target), tab);
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: car appearance exists only in EV and brand/model controls are dedicated`, async ({
     page,
   }, testInfo) => {

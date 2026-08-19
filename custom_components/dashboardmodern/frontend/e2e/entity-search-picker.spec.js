@@ -8,6 +8,7 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { editEntityFieldByHand } from "./helpers/entity-field.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const ROOMS = ["kitchen", "living", "bathroom", "garage", "garden"];
 
@@ -96,7 +97,7 @@ test.describe("entity picker search", () => {
     }, STATES);
   });
 
-  for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+  for (const variant of PRIMARY) {
     test(`${variant}: one page of rows, field-aware ranking, chips and keyboard`, async ({
       page,
     }, testInfo) => {

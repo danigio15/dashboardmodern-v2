@@ -1,6 +1,7 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const states = [
   {
@@ -140,7 +141,7 @@ async function openEditor(page, tab) {
   await page.waitForTimeout(100);
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: beta9 matches the real-device screenshot contracts`, async ({
     page,
   }, testInfo) => {

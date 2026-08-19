@@ -2,6 +2,7 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { saveSection } from "./helpers/entity-field.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const seed = {
   schema_version: 4,
@@ -128,7 +129,7 @@ async function openEditor(page, tab) {
   await page.evaluate((target) => editorSwitch(target), tab);
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: beta2 saves EV brand/model and keeps legacy mappings`, async ({
     page,
   }, testInfo) => {

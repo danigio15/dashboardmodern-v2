@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const seed = {
   schema_version: 4,
@@ -119,7 +120,7 @@ async function boot(page, variant, testInfo) {
     .toBe(true);
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: beta26 keeps configured rooms reusable and aligns editor icons`, async ({
     page,
   }, testInfo) => {

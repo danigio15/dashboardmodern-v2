@@ -2,6 +2,7 @@
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { clickBottomTab } from "./helpers/navigation.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 const states = [
   {
@@ -147,7 +148,7 @@ async function boot(page, variant, testInfo) {
   await clickBottomTab(page, "appliances", testInfo);
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: daily appliance KPI opens dashboard-style breakdown with the configured appliance artwork`, async ({
     page,
   }, testInfo) => {

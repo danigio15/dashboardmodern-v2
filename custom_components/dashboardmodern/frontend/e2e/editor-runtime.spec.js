@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { clickStableButton } from "./helpers/navigation.js";
 import { editEntityFieldByHand, saveSection, showRawEntityFields } from "./helpers/entity-field.js";
+import { PRIMARY } from "./helpers/variants.js";
 
 async function disableSriForMockedExternalScripts(page) {
   // These E2E routes replace the pinned CDN files with deterministic stubs.
@@ -18,7 +19,7 @@ async function disableSriForMockedExternalScripts(page) {
   });
 }
 
-for (const variant of ["dashboard.html", "dashboard-en.html"]) {
+for (const variant of PRIMARY) {
   test(`${variant}: missing Chart.js still reaches legacy readiness`, async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(`${error.message}\n${error.stack || ""}`));
