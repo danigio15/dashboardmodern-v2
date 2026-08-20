@@ -299,21 +299,33 @@ test("il catalogo delle entita' si apre davanti, non dietro", async ({ page }, t
   const esito = await page.evaluate(async () => {
     const form = document.querySelector("#dm-shutter-editor-modal form");
     const riga = form.elements.contact.closest(".ed-form-row");
-    (riga.querySelector(".dm-entity-picker") || riga.querySelector("button"))?.click();
+    const lente = riga.querySelector(".dm-entity-picker") || riga.querySelector("button");
+    // Due aperture di fila: e' quello che succede quando due gestori partono
+    // sullo stesso tocco, ed e' cosi' che si vedevano due cataloghi uno sopra
+    // l'altro, con quello davanti vuoto.
+    lente?.click();
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    globalThis.wzPickEntity?.(form.elements.contact);
     await new Promise((resolve) => setTimeout(resolve, 500));
-    const catalogo = document.getElementById("cd-entpick");
-    if (!catalogo) return { aperto: false };
+    const cataloghi = [...document.querySelectorAll("#cd-entpick")];
+    if (!cataloghi.length) return { aperto: false };
     const centro = document.elementFromPoint(
       Math.round(innerWidth / 2),
       Math.round(innerHeight / 2),
     );
     return {
       aperto: true,
+      quanti: cataloghi.length,
+      // Quello che resta dev'essere pieno: un catalogo vuoto e' quello di
+      // troppo, perche' la ricerca riempie sempre la lista di sotto.
+      voci: cataloghi[0].querySelectorAll("#cd-ep-list > *").length,
       // Aperto non basta: dev'essere anche quello che si tocca.
       davanti: Boolean(centro?.closest("#cd-entpick")),
     };
   });
   expect(esito.aperto, "il catalogo si apre").toBe(true);
+  expect(esito.quanti, "e ce n'e' uno solo").toBe(1);
+  expect(esito.voci, "con le entita' dentro").toBeGreaterThan(0);
   expect(esito.davanti, "e sta davanti alla finestra di modifica").toBe(true);
 });
 

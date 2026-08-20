@@ -350,11 +350,23 @@ export function applianceAlarm(device = {}, states = {}, mode = "") {
 }
 
 export function applianceArtworkType(device = {}) {
-  return (
-    canonicalArtworkType(
-      clean(device.visual_key || device.device_type || device.type || device.icon || device.name),
-    ) || "generic"
-  );
+  // Si guardano tutti i campi, non solo il primo che ha qualcosa scritto
+  // dentro. Un'icona impostata a mano non dice niente al catalogo dei disegni,
+  // e prima bastava la sua presenza a far saltare il nome: Wallbox e Clima
+  // finivano tutt'e due sul disegno generico, e nel Report si vedevano due
+  // schede con la stessa icona.
+  for (const candidate of [
+    device.visual_key,
+    device.device_type,
+    device.type,
+    device.icon,
+    device.name,
+    device.report_label,
+  ]) {
+    const canonical = canonicalArtworkType(clean(candidate));
+    if (canonical) return canonical;
+  }
+  return "generic";
 }
 
 /* ── card model ──────────────────────────────────────────────────────── */

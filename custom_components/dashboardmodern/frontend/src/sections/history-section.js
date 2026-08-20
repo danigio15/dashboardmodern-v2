@@ -155,7 +155,12 @@ function clampWindow(min, max) {
 function paintZoomBadge() {
   const container = doc?.getElementById("hist-canvas-container");
   if (!container) return;
-  let badge = container.parentElement?.querySelector?.(".dm-hist-zoom");
+  // Cercata anche fuori: una pastiglia lasciata li' da una versione precedente
+  // va ritrovata e riusata, non moltiplicata a ogni ridisegno.
+  let badge =
+    container.querySelector?.(".dm-hist-zoom") ||
+    container.parentElement?.querySelector?.(".dm-hist-zoom") ||
+    null;
   const view = state.zoom;
   if (!view) {
     badge?.remove();
@@ -170,7 +175,12 @@ function paintZoomBadge() {
       event.stopPropagation();
       resetZoom();
     });
-    container.parentElement?.insertBefore(badge, container);
+    // Dentro al contenitore, non prima: appoggiata sopra il grafico non gli
+    // toglie altezza. Messa prima, spingeva il grafico giu' di una riga e gli
+    // orari sotto all'asse finivano fuori dal riquadro del popup — bastava
+    // pizzicare per non vedere piu' l'ora di cio' che si stava guardando.
+    container.style.position = container.style.position || "relative";
+    container.appendChild(badge);
   }
   const labels = state.chart?.data?.labels || [];
   const range = badge.querySelector("[data-dm-hist-range]");
@@ -323,9 +333,12 @@ function installZoomStyles() {
     "dm-history-zoom-style",
     `
     #hist-canvas{touch-action:none!important}
+    #hist-canvas-container{position:relative}
     .dm-hist-zoom{
+      position:absolute;top:6px;left:6px;right:6px;z-index:3;
       display:flex;align-items:center;justify-content:space-between;gap:10px;
-      margin:0 0 8px;padding:7px 10px 7px 13px;border-radius:999px;
+      margin:0;padding:6px 8px 6px 12px;border-radius:999px;
+      box-shadow:0 6px 16px rgba(15,23,42,.14);
       border:1px solid var(--divider-color,#dbe4ee);background:var(--card-bg,#fff);
       font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
       color:var(--text-dim,#64748b)

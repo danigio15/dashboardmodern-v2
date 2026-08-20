@@ -20,8 +20,13 @@ export function canonicalArtworkType(value) {
   // vacuum pattern, and never fall through to "generic".
   if (/robot|roomba/.test(token)) return "robot-vacuum";
   if (/aspirapolvere|vacuum/.test(token)) return "vacuum";
-  if (/condizionatore|air[_ -]?condition|split|climatizzatore/.test(token))
-    return "air-conditioner";
+  // La wallbox va riconosciuta prima di "presa": e' una presa anche lei, ma
+  // chi la guarda nel Report deve vederci una colonnina, non un frullatore.
+  if (/wallbox|colonnina|ricarica|charger|charging[_ -]?station|ev[_ -]?charg/.test(token))
+    return "wallbox";
+  // "clima" e' il nome che quasi tutti danno alla sezione e al carico: senza
+  // questo cadeva nel disegno generico, identico a quello della wallbox.
+  if (/condizionatore|air[_ -]?condition|\bsplit\b|clima/.test(token)) return "air-conditioner";
   if (/ventilatore|\bfan\b/.test(token)) return "fan";
   if (/caffe|caffè|coffee/.test(token)) return "coffee";
   if (/tostapane|toaster/.test(token)) return "toaster";
@@ -61,6 +66,7 @@ function artworkBody(type) {
     coffee: `${panel}<rect ${shell} x="18" y="11" width="50" height="65" rx="10"/><rect ${face} x="25" y="18" width="36" height="14" rx="5"/><circle ${accent} cx="33" cy="25" r="3"/><path ${line} d="M31 39h24v8H31zM43 47v8M56 59h11v16H34V59h11"/><path ${window} d="M39 65h22v6H39z"/>`,
     toaster: `${panel}<rect ${shell} x="16" y="31" width="64" height="43" rx="15"/><rect ${face} x="23" y="38" width="50" height="27" rx="9"/><path ${line} d="M28 31c0-13 7-20 17-20s17 7 17 20M31 24h28M73 43h9M80 43v17"/>`,
     kettle: `${panel}<path ${shell} d="M29 23h34l8 14v35a12 12 0 0 1-12 12H33a12 12 0 0 1-12-12V37z"/><path ${face} d="M31 31h26l6 10v26a8 8 0 0 1-8 8H37a8 8 0 0 1-8-8V41z"/><path ${window} d="M34 51h24v16H34z"/><path ${line} d="M63 32c17 2 19 26 4 32M36 16h20"/>`,
+    wallbox: `${panel}<rect ${shell} x="22" y="9" width="52" height="66" rx="12"/><rect ${face} x="29" y="16" width="38" height="26" rx="7"/><path ${accent} d="M52 20l-11 15h8l-3 11 12-16h-8z"/><circle ${window} cx="40" cy="55" r="5"/><circle ${window} cx="56" cy="55" r="5"/><path ${line} d="M30 66h36M74 40c9 3 13 10 13 20v12a7 7 0 0 1-14 0"/>`,
     generic: `${panel}<rect ${shell} x="19" y="17" width="58" height="62" rx="15"/><rect ${face} x="27" y="25" width="42" height="46" rx="10"/><path ${line} d="M39 36v13M57 36v13M38 50h20c0 9-4 14-10 14s-10-5-10-14z"/><circle ${accent} cx="65" cy="29" r="3"/>`,
   };
   return bodies[type] || "";

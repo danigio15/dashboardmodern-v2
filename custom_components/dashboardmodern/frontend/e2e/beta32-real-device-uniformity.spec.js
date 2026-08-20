@@ -417,6 +417,33 @@ test("the history popup pinches open on a shorter stretch of time", async ({ pag
   expect(zoomed.window.max - zoomed.window.min).toBeLessThan(119);
   expect(zoomed.badge).toMatch(/\d/);
 
+  /* La pastiglia dello zoom non spinge gli orari fuori dal riquadro.
+   *
+   * Il grafico sta dentro `.hist-body` e la riempie tutta. Messa come una riga
+   * in piu' sopra di lui, la pastiglia lo spingeva giu' di tutta la propria
+   * altezza: il fondo del grafico — dove stanno gli orari — usciva dal
+   * riquadro del popup, e bastava pizzicare per non vedere piu' l'ora di cio'
+   * che si stava guardando. Ora sta appoggiata sopra al grafico. */
+  const dentroAlRiquadro = await page.evaluate(() => {
+    const corpo = document.querySelector(".hist-body");
+    const grafico = document.getElementById("hist-canvas-container");
+    const pastiglia = document.querySelector(".dm-hist-zoom");
+    const c = corpo.getBoundingClientRect();
+    const g = grafico.getBoundingClientRect();
+    return {
+      sborda: Math.round(g.bottom - c.bottom),
+      scesoDaSopra: Math.round(g.top - c.top),
+      dentro: Boolean(pastiglia?.closest("#hist-canvas-container")),
+      posizione: pastiglia ? getComputedStyle(pastiglia).position : "",
+      quante: document.querySelectorAll(".dm-hist-zoom").length,
+    };
+  });
+  expect(dentroAlRiquadro.sborda, "il fondo del grafico resta nel riquadro").toBeLessThanOrEqual(1);
+  expect(dentroAlRiquadro.scesoDaSopra, "e il grafico non e' sceso").toBeLessThanOrEqual(1);
+  expect(dentroAlRiquadro.dentro, "la pastiglia sta sopra al grafico").toBe(true);
+  expect(dentroAlRiquadro.posizione).toBe("absolute");
+  expect(dentroAlRiquadro.quante, "e ce n'e' una sola").toBe(1);
+
   await gesture([
     ["pointerdown", 3, cx, cy],
     ["pointermove", 3, cx - 90, cy],
