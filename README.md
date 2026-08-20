@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/version-1.0.0-0ea5e9" alt="Versione 1.0.0">
   <a href="https://github.com/danigio15/dashboardmodern-v2/releases"><img src="https://img.shields.io/github/v/release/danigio15/dashboardmodern-v2?label=release&color=0ea5e9" alt="Release"></a>
   <a href="https://github.com/danigio15/dashboardmodern-v2/actions/workflows/tests.yml"><img src="https://github.com/danigio15/dashboardmodern-v2/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
-  <a href="https://github.com/danigio15/dashboardmodern-v2/releases"><img src="https://img.shields.io/github/downloads/danigio15/dashboardmodern-v2/total?label=download&color=8b5cf6" alt="Download totali"></a>
+  <a href="https://github.com/danigio15/dashboardmodern-v2/releases"><img src="https://img.shields.io/github/downloads/danigio15/dashboardmodern-v2/total?label=download%20dalla%201.0.0&color=8b5cf6&cacheSeconds=1800" alt="Download dalla 1.0.0"></a>
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-18BCF2" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
@@ -1101,10 +1101,10 @@ Ogni release pubblica un pacchetto `dashboardmodern.zip` ed è quello che HACS s
 
 <p align="center">
   <a href="https://github.com/danigio15/dashboardmodern-v2/releases">
-    <img src="https://img.shields.io/github/downloads/danigio15/dashboardmodern-v2/total?label=Download%20totali&color=8b5cf6&style=for-the-badge" alt="Download totali">
+    <img src="https://img.shields.io/github/downloads/danigio15/dashboardmodern-v2/total?label=Download%20dalla%201.0.0&color=8b5cf6&style=for-the-badge&cacheSeconds=1800" alt="Download dalla 1.0.0">
   </a>
   <a href="https://github.com/danigio15/dashboardmodern-v2/releases/latest">
-    <img src="https://img.shields.io/github/downloads/danigio15/dashboardmodern-v2/latest/total?label=Download%20ultima%20release&color=0ea5e9&style=for-the-badge" alt="Download dell'ultima release">
+    <img src="https://img.shields.io/github/downloads/danigio15/dashboardmodern-v2/latest/total?label=Download%20ultima%20versione&color=0ea5e9&style=for-the-badge&cacheSeconds=1800" alt="Download dell'ultima versione">
   </a>
 </p>
 
@@ -1118,13 +1118,15 @@ Ogni release pubblica un pacchetto `dashboardmodern.zip` ed è quello che HACS s
 | Dove guardare | Cosa dice |
 | --- | --- |
 | [Pagina Releases](https://github.com/danigio15/dashboardmodern-v2/releases) | il numero di download di `dashboardmodern.zip` è indicato sotto ogni release, versione per versione |
-| Badge **Download totali** | somma dei download di tutti i pacchetti presenti sulla pagina |
-| Badge **Download ultima release** | quante persone hanno già la versione più recente |
+| Badge **Download dalla 1.0.0** | somma dei download di tutti i pacchetti pubblicati dalla 1.0.0 in poi |
+| Badge **Download ultima versione** | quante installazioni hanno già la versione più recente |
 | [Insights → Traffic](https://github.com/danigio15/dashboardmodern-v2/graphs/traffic) | visite e cloni della repository (visibile al proprietario) |
 
 > I download della release contano il pacchetto scaricato da HACS o a mano. Non contano gli aggiornamenti già presenti nella cache di HACS né le installazioni copiate da un backup, quindi il numero reale di impianti è **almeno** quello mostrato.
 
 > **Il conteggio parte dalla 1.0.0.** GitHub tiene i download attaccati alla release che li ha serviti: ripulendo la pagina dalle versioni precedenti alla 1.0 sono spariti anche i loro contatori. Quello che si vede qui è quindi la diffusione della **1.0 in poi**, non la storia del progetto — che invece resta nei commit e in [`docs/CHANGELOG_PRE_1.0.md`](docs/CHANGELOG_PRE_1.0.md).
+
+> **Se il badge mostra un numero che non torna**, è la copia in cache: GitHub non carica le immagini del README direttamente da shields.io, le fa passare dal proprio proxy e le conserva. Il numero vero è quello scritto accanto a `dashboardmodern.zip` nella sezione **Assets** della [pagina della release](https://github.com/danigio15/dashboardmodern-v2/releases/latest), che non passa da nessuna cache.
 
 ---
 
