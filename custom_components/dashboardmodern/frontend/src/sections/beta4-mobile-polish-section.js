@@ -577,6 +577,14 @@ function installStyles() {
      * aggiungiamo, con gli stessi 0.4s della dissolvenza. */
     .modal-wrapper{transition:visibility 0s .4s,opacity .4s ease,backdrop-filter .4s ease,-webkit-backdrop-filter .4s ease!important}
     .modal-wrapper.show{transition:opacity .4s ease,backdrop-filter .4s ease,-webkit-backdrop-filter .4s ease!important}
+    /* E la stessa cosa vale per la barra in basso.
+     *
+     * Anche lei non tiene il vetro smerigliato mentre e' ritirata, e anche lei
+     * elenca a mano cosa sfumare — movimento, posizione, opacita', ombra — con
+     * la sfocatura fuori dall'elenco. Ricompare con un tocco, e in quel tocco la
+     * sfocatura si accendeva di colpo: il tremolio si vedeva sulla barra come si
+     * vedeva sulle finestre. Sale insieme alla dissolvenza, come la' . */
+    nav.tabs.bottom-nav-bar{transition:transform .4s cubic-bezier(0.175,0.885,0.32,1.275),bottom .4s cubic-bezier(0.175,0.885,0.32,1.275),opacity .3s ease,box-shadow .4s ease,backdrop-filter .3s ease,-webkit-backdrop-filter .3s ease!important}
     .ed-tab[data-tab]>.dm-beta4-tab-icon{display:inline-grid!important;place-items:center!important;flex:0 0 auto!important;min-width:1.2em!important;margin-right:5px!important;visibility:visible!important;opacity:1!important}
     .ed-tab[data-tab]>.dm-beta4-tab-label{display:inline!important;white-space:nowrap!important}
 

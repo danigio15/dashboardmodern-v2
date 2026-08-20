@@ -195,6 +195,7 @@ function mountFor(host) {
  * misura del contenuto e la porta con se'. Se il contenuto e' largo quanto la
  * pagina non c'e' niente da imporre e il limite si toglie. */
 function alignToContent(host, mast, mount) {
+  escapeMountPadding(mast, mount);
   const content = mount === host ? tallestWrapper(host) : null;
   // Si copia il limite che il contenuto si e' dato, non la sua larghezza di
   // adesso: la larghezza include gia' il margine interno della pagina e
@@ -213,6 +214,33 @@ function alignToContent(host, mast, mount) {
   }
   if (mast.style.getPropertyValue("--dm-mast-room")) {
     mast.style.removeProperty("--dm-mast-room");
+  }
+}
+
+/* Il margine interno della casa non e' dell'intestazione.
+ *
+ * Tapparelle tiene il proprio contenuto in un blocco con sedici pixel di
+ * margine per lato — l'unica pagina che lo fa — e l'intestazione, che nasce li'
+ * dentro, li prendeva con se': sul telefono restava una striscia bianca
+ * staccata dai bordi mentre su tutte le altre pagine tocca i lati. Il margine
+ * serve a distanziare le card dal bordo, non ad accorciare l'apertura della
+ * pagina, quindi l'intestazione ne esce e resta larga quanto la casa. */
+function escapeMountPadding(mast, mount) {
+  const style = mount === mast.parentElement ? root.getComputedStyle?.(mount) : null;
+  const left = Number.parseFloat(style?.paddingLeft || "0") || 0;
+  const right = Number.parseFloat(style?.paddingRight || "0") || 0;
+  const bleed = Math.min(left, right);
+  if (bleed > 0) {
+    const value = `${Math.round(bleed)}px`;
+    if (mast.style.getPropertyValue("--dm-mast-bleed") !== value) {
+      mast.style.setProperty("--dm-mast-bleed", value);
+      mast.style.setProperty("--dm-mast-side", `-${Math.round(bleed)}px`);
+    }
+    return;
+  }
+  if (mast.style.getPropertyValue("--dm-mast-bleed")) {
+    mast.style.removeProperty("--dm-mast-bleed");
+    mast.style.removeProperty("--dm-mast-side");
   }
 }
 
@@ -370,7 +398,9 @@ function installStyles() {
     ${foldRules()}
     .dm-page-mast{
       position:relative!important;display:block!important;box-sizing:border-box!important;
-      width:100%!important;max-width:var(--dm-mast-room,none)!important;margin:0 auto 18px!important;
+      width:calc(100% + 2 * var(--dm-mast-bleed,0px))!important;
+      max-width:var(--dm-mast-room,none)!important;
+      margin:0 0 18px!important;margin-inline:var(--dm-mast-side,auto)!important;
       grid-column:1/-1!important;flex:1 1 100%!important;
       align-self:stretch!important;justify-self:stretch!important;
       padding:26px 30px 24px!important;border-radius:28px!important;text-align:left!important;

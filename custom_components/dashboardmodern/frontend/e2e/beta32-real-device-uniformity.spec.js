@@ -302,15 +302,24 @@ test("every page opens with the same heading, once", async ({ page }, testInfo) 
           }
           return true;
         })(),
+        /* Larga quanto il blocco che apre, margine compreso.
+         *
+         * Si misurava contro il primo fratello, cioe' contro il contenuto
+         * dentro al margine: su Tapparelle, l'unica pagina il cui contenitore
+         * ha sedici pixel di margine per lato, quel confronto pretendeva che
+         * l'intestazione stesse dentro al margine — e sul telefono restava una
+         * striscia staccata dai bordi mentre su ogni altra pagina tocca i lati.
+         * Il margine distanzia le card dal bordo, non accorcia l'apertura della
+         * pagina. Quindi: mai piu' stretta di cio' che introduce, e mai piu'
+         * larga della casa che la contiene. */
         sameWidth: (() => {
           if (!mast) return false;
-          const sibling = [...mast.parentElement.children].find(
-            (node) => node !== mast && node.getClientRects().length,
-          );
-          if (!sibling) return true;
-          return (
-            Math.abs(mast.getBoundingClientRect().width - sibling.getBoundingClientRect().width) < 3
-          );
+          const mine = mast.getBoundingClientRect().width;
+          const casa = mast.parentElement.getBoundingClientRect().width;
+          const contenuto = [...mast.parentElement.children]
+            .filter((node) => node !== mast && node.getClientRects().length)
+            .reduce((top, node) => Math.max(top, node.getBoundingClientRect().width), 0);
+          return mine >= contenuto - 3 && mine <= casa + 3;
         })(),
         title: mast?.querySelector(".dm-page-mast-title")?.textContent?.trim() || "",
         subtitle: mast?.querySelector(".dm-page-mast-sub")?.textContent?.trim() || "",
@@ -498,4 +507,38 @@ test("un'intestazione annidata viene spostata, non duplicata", async ({ page }, 
     };
   });
   expect(dopo).toEqual({ intestazioni: 1, home: 1 });
+});
+
+/* Il margine interno della casa non stringe l'intestazione.
+ *
+ * Tapparelle tiene il proprio contenuto in un blocco con sedici pixel di
+ * margine per lato — l'unica pagina che lo fa — e l'intestazione, nascendo li'
+ * dentro, li prendeva con se': sul telefono restava una striscia bianca
+ * staccata dai bordi mentre su ogni altra pagina tocca i lati. Il margine
+ * distanzia le card dal bordo, non accorcia l'apertura della pagina.
+ */
+test("l'intestazione esce dal margine interno della sua casa", async ({ page }, testInfo) => {
+  await boot(page, testInfo);
+  const misura = await page.evaluate(async () => {
+    document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
+    const host = document.getElementById("page-tapparelle");
+    host.classList.add("active");
+    window.dispatchEvent(
+      new CustomEvent("dashboardmodern:state-changed", { detail: { entity_id: "cover.t1" } }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    const mast = host.querySelector(".dm-page-mast");
+    if (!mast) return null;
+    const casa = mast.parentElement;
+    const stile = getComputedStyle(casa);
+    return {
+      margine: Math.round(Number.parseFloat(stile.paddingLeft) || 0),
+      scarto: Math.round(casa.getBoundingClientRect().width - mast.getBoundingClientRect().width),
+    };
+  });
+  expect(misura).not.toBeNull();
+  // La prova ha senso solo se quel margine c'e' davvero.
+  expect(misura.margine).toBeGreaterThan(0);
+  // E l'intestazione e' larga quanto la casa, margine compreso.
+  expect(Math.abs(misura.scarto)).toBeLessThanOrEqual(3);
 });
