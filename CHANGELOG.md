@@ -4,6 +4,50 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-rc.3 — 2026-08-20
+
+Cinque cose viste sul telefono dopo la seconda release candidate.
+
+### Corretto
+
+- **L'intestazione apre la pagina, sempre.** Cerca il contenitore che fissa la
+  larghezza del contenuto, per nascere larga quanto quello che introduce; ma su
+  Energia la vista Report si chiama `energy-dashboard` e la riga di linguette
+  REPORT / ISTANTANEA / GIORNALIERA / MENSILE le sta davanti, e su Auto è la
+  striscia del profilo a precedere il contenuto. In tutti e due i casi
+  l'intestazione ci finiva dentro, cioè sotto: la pagina si apriva con i propri
+  comandi e il nome arrivava dopo. Adesso un contenitore vale come casa solo se
+  è la prima cosa che si vede; altrimenti l'intestazione nasce sulla pagina e la
+  larghezza se la porta dietro, copiando il limite che il contenuto si è dato.
+- **Aprire una finestra non salta più un fotogramma.** Le finestre chiuse non
+  tengono più lo sfondo sfocato — era quello a costare caro su un telefono — ma
+  il prezzo si era spostato all'apertura: il browser costruiva la sfocatura a
+  schermo intero tutta dentro lo stesso disegno. Ora sale insieme alla
+  dissolvenza, negli stessi 0.4s: su una macchina scarica il disegno più lungo
+  passa da 36 a 23 millesimi di secondo.
+- **Il cestino c'è su tutte le righe che chiedono un'entità.** Le righe delle
+  sezioni — Home, Energia, Solare termico, MiniPC, Azioni — avevano solo la
+  pastiglia per scegliere: un'entità sbagliata non si poteva togliere se non
+  riaprendo il campo a mano e cancellandolo a memoria. Adesso c'è anche lì, con
+  lo stesso aspetto e la stessa regola: compare solo quando c'è qualcosa da
+  togliere.
+- **Nel Report un disegno solo per tutte le voci.** Le voci riconosciute come
+  elettrodomestici del catalogo prendevano il disegno di Elettrodomestici, tutte
+  le altre restavano con la faccina: un carico chiamato «Wallbox», una voce
+  aggiunta a mano, un apparecchio con un nome che il catalogo non conosce. Il
+  tipo lo decide adesso la stessa funzione della scheda, che quando non
+  riconosce niente risponde «generico» invece di non rispondere.
+
+### Aggiunto
+
+- **Il cerchio della Wallbox apre l'auto.** Toccando la Wallbox nel flusso di
+  Energia si apriva lo storico di un sensore di potenza; ma il cavo è attaccato
+  a una macchina di cui la plancia sa già tutto, e quella è la risposta che uno
+  cerca. Una Wallbox si riconosce dal carico — se dichiara di esserlo, se è
+  quella che la configurazione conosce, se i suoi sensori sono quelli che la
+  sezione Auto sta già leggendo, e infine come si chiama — mai dalla posizione.
+  Senza un'auto configurata il cerchio resta com'era, con il suo storico.
+
 ## 1.0.0-rc.2 — 2026-08-20
 
 Tutto quello che si è visto sul dispositivo dopo la prima release candidate.
