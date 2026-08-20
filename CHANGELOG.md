@@ -4,6 +4,51 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-rc.4 — 2026-08-20
+
+L'ultima candidata prima della 1.0.
+
+### Aggiunto
+
+- **La tapparella ha la sua finestra, e la finestra si puo' aprire.** La card
+  mostrava un rettangolo con delle stecche che scendevano davanti a un cielo:
+  una tapparella senza infisso. Si guarda invece dalla stanza — che e' da dove
+  uno la guarda — e allora in primo piano c'e' sempre il telaio, con le sue due
+  ante e la maniglia, e la tapparella scende dietro perche' sta fuori. In Config
+  ogni tapparella prende un sensore di apertura, facoltativo: quando quel
+  contatto dice aperto le ante rientrano verso i loro cardini, si scopre il vano
+  e accanto allo stato compare «Finestra aperta». Senza sensore, o con un
+  sensore che non risponde, la card resta com'era: non si disegna un'apertura
+  che nessuno ha misurato.
+
+### Corretto
+
+- **Tapparelle tocca i bordi come tutte le altre pagine.** La casa del suo
+  contenuto ha sedici pixel di margine per lato — e' l'unica pagina che lo fa —
+  e l'intestazione, nascendo li' dentro, se li portava con se': restava una
+  striscia staccata dai bordi mentre ovunque altrove tocca i lati. Quel margine
+  distanzia le card dal bordo, non accorcia l'apertura della pagina.
+- **La barra in basso non si accende piu' di scatto.** Fa lo stesso mestiere
+  delle finestre — niente vetro smerigliato mentre e' ritirata — ed elencava a
+  mano cosa sfumare, con la sfocatura fuori dall'elenco: ricompariva accendendo
+  la sfocatura in un disegno solo, ed era il tremolio che si vedeva anche li'.
+- **L'intestazione che c'e' gia' si sposta invece di sdoppiarsi.** La casa puo'
+  cambiare mentre la pagina e' viva; cercarla solo fra i figli diretti
+  significava non trovarla e farne una seconda, lasciando la prima dov'era: due
+  nomi e due pulsanti Home sulla stessa pagina.
+- **Il contatto di una tapparella non sparisce piu' aprendo l'editor.** Il
+  modello canonico tiene solo i campi che conosce, e le tapparelle non avevano
+  un ramo proprio.
+
+### Resta aperto
+
+- **Fold8 aperto: lo scorrimento si ferma prima del fondo**, e riparte solo
+  ricaricando. Non e' stato riprodotto: con pagine lunghe e cinque misure tipo
+  Fold lo scorrimento arriva sempre in fondo, e nemmeno un ridisegno di stato,
+  uno di configurazione, un rientro nell'app o un cambio di misura lo rompono.
+  Le uniche regole che bloccherebbero l'altezza sono quelle del chiosco iOS, che
+  su Android non si attivano.
+
 ## 1.0.0-rc.3 — 2026-08-20
 
 Cinque cose viste sul telefono dopo la seconda release candidate.
