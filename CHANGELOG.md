@@ -27,10 +27,26 @@ Tre difetti visti sul telefono con la rc.5 installata.
   grafico e lo spingeva giu' di 45 pixel: il fondo — dove stanno gli orari —
   usciva dal popup. Adesso sta appoggiata sopra al grafico e non sposta niente.
 
-### Resta aperto
+### Aggiunto
 
-- **Fold8 aperto: lo scorrimento si ferma prima del fondo.** Invariato rispetto
-  alla rc.5: non riprodotto.
+- **Il cielo dietro la finestra segue l'ora del giorno.** La card della
+  tapparella si guarda da dentro casa, e in mezzo si vede il cielo: era uno
+  solo — azzurro di mezzogiorno col tema chiaro, notte con quello scuro — e alle
+  sette di sera stonava. Adesso ci sono cinque fasce, quelle che si nominano
+  parlando: alba (5-8), mattina (8-13), pomeriggio (13-18), tramonto (18-21),
+  sera (21-5), con il sole che si alza e si abbassa, le nuvole che si tingono,
+  le stelle e la luna la notte, e le colline che vanno in controluce al
+  tramonto. Non si ridisegna nessuna card: il cielo era gia' tutto in variabili,
+  e la fascia le sceglie.
+
+### Chiuso
+
+- **Fold8 aperto: lo scorrimento si ferma prima del fondo.** Non si e' piu'
+  ripresentato, e chi lo aveva visto lo ha confermato. Resta agli atti quello
+  che era stato escluso per misura: impaginazione a cinque viewport tipo Fold
+  con pagine lunghe, ridisegno di stato e di configurazione, rientro
+  nell'applicazione, apertura e chiusura del telefono, e sovrapposizioni che si
+  mangiassero il tocco.
 
 ## 1.0.0-rc.5 — 2026-08-20
 
