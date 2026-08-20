@@ -82,7 +82,7 @@ quella.** Le pubblicazioni precedenti — 46 release (`v0.15.25`, 43 beta, rc.2 
 | Le pagine `releases/tag/v0.15.x` e i loro pacchetti scaricabili | Il **codice**: ogni commit resta nella cronologia di `main` |
 | I link diretti a una vecchia release citati in una issue | Le **note**: archiviate in [`CHANGELOG_PRE_1.0.md`](CHANGELOG_PRE_1.0.md) e nel JSON che lo script salva prima di cancellare |
 | Il download di una versione precedente da HACS (*Redownload → versione specifica*) | Le **installazioni esistenti**: chi è già su una beta continua a funzionare e vede l'aggiornamento alla 1.0 |
-| I contatori di download delle vecchie release | Il contatore della 1.0 e quelli futuri |
+| I contatori di download delle vecchie release — il totale **riparte da zero** | Il contatore della 1.0 e quelli futuri |
 
 > Chi è fermo su una `v0.15.x` o su una beta **non viene toccato**: HACS legge le
 > release per proporre aggiornamenti, non per far funzionare quello che è già
