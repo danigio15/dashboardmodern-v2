@@ -1,4 +1,5 @@
 import { applianceArtwork } from "../core/appliance-artwork.js";
+import { applianceArtworkType } from "../core/appliance-card-view-model.js";
 import { clean, doc, formatNumber, installStyle, root, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ENERGY_REPORT_POLISH__";
@@ -11,7 +12,14 @@ function model() {
 function appliances() {
   try {
     const store = root.DashboardModernModules?.store;
-    return [...(store?.getSection?.("appliances") || []), ...(store?.getSection?.("loads") || [])];
+    // Le voci del Report arrivano da tre elenchi: gli elettrodomestici, i
+    // carichi secondari e le voci aggiunte a mano. Cercandole solo nei primi
+    // due, le ultime non venivano riconosciute e restavano con la faccina.
+    return [
+      ...(store?.getSection?.("appliances") || []),
+      ...(store?.getSection?.("loads") || []),
+      ...(store?.getSection?.("reportDevices") || []),
+    ];
   } catch (_error) { return []; }
 }
 
@@ -173,7 +181,16 @@ export function applyReportArtwork() {
   rows.forEach((row) => {
     const item = deviceForRow(row, devices);
     if (!item) return;
-    const artwork = applianceArtwork(item.type || item.category || item.appliance_type || item.name, 56);
+    /* Lo stesso disegno che si vede in Elettrodomestici, per tutti.
+     *
+     * Il tipo si leggeva da quattro campi a caso e, se nessuno di quelli diceva
+     * qualcosa di riconoscibile — un carico chiamato "Wallbox", una voce
+     * aggiunta a mano — il disegno non usciva e la riga restava con la faccina:
+     * nello stesso elenco convivevano due stili. Adesso il tipo lo decide la
+     * stessa funzione della scheda, che quando non riconosce niente risponde
+     * "generico" invece di non rispondere. Cosi' tutte le voci del catalogo
+     * sono disegnate allo stesso modo, e le altre pure. */
+    const artwork = applianceArtwork(applianceArtworkType(item), 56);
     const icon = row.querySelector(".ed-dev-icon");
     if (!artwork || !icon) return;
     if (icon.dataset.dmArtwork === clean(item.id || item.name)) return;
