@@ -4,6 +4,30 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-rc.7
+
+### Corretto
+
+- **Le due auto mostravano la stessa foto.** Le fotografie stavano in due
+  caselle della plancia, non nell'auto: il profilo la imparava solo se si
+  risalvava la scheda della macchina, cosa che nessuno fa dopo aver scritto un
+  percorso. Da li' in poi cambiare auto non cambiava niente, perche' il profilo
+  nuovo non aveva foto e teneva quella dell'altro. Adesso la foto e' dell'auto,
+  come il nome e le sue entita': si salva nel profilo scelto, e cambiando
+  macchina cambia la fotografia. Chi arriva dalle versioni precedenti se le
+  ritrova sull'auto che le stava mostrando — l'altra resta senza, ed e'
+  corretto: una foto sua non l'ha mai avuta. Con una macchina sola non cambia
+  niente.
+
+### Cambiato
+
+- **Chi non gestisce la ricarica con evcc non vede piu' la sua console.** Il
+  target di carica con la percentuale, l'autonomia calcolata su quel target e i
+  quattro tasti delle modalita' esistono solo se quelle entita' sono mappate:
+  senza, restavano un target fermo su "—" e quattro tasti che non fanno niente.
+  Ognuno dei tre sparisce insieme all'entita' che lo regge, sulla pagina e nel
+  popup, e torna appena la si configura.
+
 ## 1.0.0-rc.6 — 2026-08-20
 
 Tre difetti visti sul telefono con la rc.5 installata.

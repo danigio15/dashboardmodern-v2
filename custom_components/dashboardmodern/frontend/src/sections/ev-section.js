@@ -1,5 +1,6 @@
 import { carBrandVisual } from "../core/personalization-catalog.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, section, t, wrapFunction } from "./shared.js";
+import { adoptLoosePhotos, photosForProfile, withProfilePhotos } from "../core/vehicle-photos.js";
+import { allStates, clean, dashboardStore, doc, esc, installStyle, readJson, root, section, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EV_SECTION__";
@@ -197,14 +198,17 @@ function paintPhotoPreview(field) {
 }
 
 function savePhotos(panelNode) {
+  const salvate = { idle: "", plugged: "" };
   for (const field of panelNode.querySelectorAll("[data-ev-photo]")) {
     const kind = field.dataset.evPhoto === "plugged" ? "plugged" : "idle";
     const value = clean(field.querySelector("[data-ev-photo-input]")?.value);
     const stored = value ? resolveVehicleAsset(value) || value : "";
+    salvate[kind] = stored;
     root.localStorage?.setItem(EV_PHOTO_KEYS[kind], JSON.stringify(stored));
     // Written: what is on screen and what is stored say the same thing again.
     delete field.dataset.evPhotoEdited;
   }
+  saveProfilePhotos(salvate);
   root.cdMarkDirty?.();
   root.cdSyncPush?.();
   applyVehicleAsset();
@@ -427,9 +431,47 @@ function storePhoto(key, url) {
   root.localStorage?.setItem(key, JSON.stringify(next));
 }
 
-function restoreProfilePhotos(car, before) {
-  storePhoto(EV_PHOTO_KEYS.idle, clean(car?.img) || before.idle);
-  storePhoto(EV_PHOTO_KEYS.plugged, clean(car?.imgPlugged) || before.plugged);
+function restoreProfilePhotos(car, before, profileCount = profiles().length) {
+  const mostra = photosForProfile(car, before, profileCount);
+  storePhoto(EV_PHOTO_KEYS.idle, mostra.idle);
+  storePhoto(EV_PHOTO_KEYS.plugged, mostra.plugged);
+}
+
+/* Le foto appena salvate entrano nell'auto scelta.
+ *
+ * Le due caselle della plancia restano, perche' e' da li' che il disegno legge,
+ * ma non sono piu' il posto dove le foto abitano: quello e' il profilo. Prima
+ * ci finivano solo li', e il profilo imparava la sua foto unicamente se si
+ * risalvava la scheda dell'auto — cosa che nessuno fa dopo aver scritto un
+ * percorso. Da li' in poi cambiare auto non cambiava niente: il profilo nuovo
+ * non aveva foto, e teneva quella dell'altro. */
+function saveProfilePhotos(photos) {
+  const legacy = legacyProfiles();
+  const cars = legacy.length ? legacy : canonicalProfiles();
+  if (!cars.length) return false;
+  const posizione = Math.max(0, Math.min(cars.length - 1, activeIndex()));
+  const aggiornate = withProfilePhotos(cars, posizione, photos);
+  if (aggiornate === cars) return false;
+  if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);
+  try {
+    dashboardStore()?.replaceSection?.("ev", aggiornate)?.catch?.(() => {});
+  } catch (_error) {}
+  return true;
+}
+
+/* Una volta sola, all'avvio: chi arriva da una versione in cui le foto stavano
+ * nella plancia le ritrova sull'auto che le mostrava. */
+function adoptExistingPhotos() {
+  const legacy = legacyProfiles();
+  const cars = legacy.length ? legacy : canonicalProfiles();
+  if (cars.length < 2) return false;
+  const aggiornate = adoptLoosePhotos(cars, Math.max(0, activeIndex()), configuredPhotos());
+  if (aggiornate === cars) return false;
+  if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);
+  try {
+    dashboardStore()?.replaceSection?.("ev", aggiornate)?.catch?.(() => {});
+  } catch (_error) {}
+  return true;
 }
 
 function legacyRefreshSignature() {
@@ -484,7 +526,7 @@ export function scheduleEvSyncSettled() {
 
 export function scheduleEvSync() {
   if (state.frame) return;
-  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();};
+  const run=()=>{state.frame=0;installLegacyWrappers();adoptExistingPhotos();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();};
   state.frame=root.requestAnimationFrame?.(run)||root.setTimeout?.(run,0)||0;
 }
 
