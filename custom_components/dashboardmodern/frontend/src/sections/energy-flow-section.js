@@ -172,6 +172,49 @@ function configuredAppliances() {
   return Array.isArray(stored) ? stored : [];
 }
 
+/* L'entita' vera dietro un riferimento della configurazione. */
+function resolvedEntity(reference) {
+  const id = clean(reference);
+  if (!id) return "";
+  try {
+    return clean(root.resolveEntity?.(id)) || id;
+  } catch (_error) {
+    return id;
+  }
+}
+
+/* C'e' un'auto da aprire?
+ *
+ * Il cerchio della Wallbox porta al popup dell'auto solo se un'auto c'e'
+ * davvero: serve la batteria del veicolo mappata su un'entita' che Home
+ * Assistant conosce, e serve il popup nel documento. Senza queste due cose il
+ * cerchio resta com'era, con il suo storico — meglio un grafico che una
+ * finestra vuota.
+ *
+ * Le entita' che tornano indietro sono quelle che la sezione Auto legge dalla
+ * wallbox: un carico che punta a una di quelle e' la wallbox, comunque si
+ * chiami. */
+const WALLBOX_REFS = Object.freeze([
+  "dm.ev_potenza_wallbox",
+  "dm.ev_charge_power",
+  "dm.ev_energia_wallbox_oggi",
+  "dm.ev_energia_wallbox_mese",
+]);
+
+function vehiclePopupTarget() {
+  if (typeof root.apriPopup !== "function") return null;
+  if (!doc?.getElementById?.("ev-popup")) return null;
+  const states = allStates();
+  const battery = resolvedEntity("dm.ev_batteria_auto");
+  if (!battery || !states[battery]) return null;
+  const entities = [];
+  for (const reference of WALLBOX_REFS) {
+    const entity = resolvedEntity(reference);
+    if (entity && entity !== reference) entities.push(entity);
+  }
+  return { entities };
+}
+
 function stageModel(period) {
   const loads = configuredLoads();
   return flowStageModel({
@@ -182,6 +225,7 @@ function stageModel(period) {
     period,
     recorderValues: period === "instant" ? null : recorderValuesFor(loads, period),
     locale: doc?.documentElement?.lang === "en" ? "en-GB" : "it-IT",
+    wallbox: vehiclePopupTarget(),
   });
 }
 
@@ -280,13 +324,14 @@ function writeIcon(target, icon) {
 
 function bindNodeClick(element, node, period) {
   const click = node.click;
-  const signature = click ? `${click.kind}:${click.target || click.entity}` : "";
+  const signature = click ? `${click.kind}:${click.target || click.entity || ""}` : "";
   if (element.dataset.dmFlowClick === signature) return;
   element.dataset.dmFlowClick = signature;
   element.classList.toggle("hist-clickable", Boolean(click));
   element.onclick = click
     ? (event) => {
-        if (click.kind === "subloads") root.apriSubLoads?.(click.target);
+        if (click.kind === "ev") root.apriPopup?.();
+        else if (click.kind === "subloads") root.apriSubLoads?.(click.target);
         else root.apriStorico?.(event, click.entity, click.title);
       }
     : null;

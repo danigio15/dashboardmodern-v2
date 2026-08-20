@@ -10,6 +10,7 @@ import {
   flowRecorderEntity,
   flowStageLayout,
   flowStageLoads,
+  isWallboxLoad,
   flowStageModel,
   formatFlowValue,
 } from "../src/core/energy-flow-topology.js";
@@ -445,4 +446,58 @@ test("appliances and loads-editor children add up in the same circle, once each"
   });
   assert.equal(model.nodes[0].value, 1900);
   assert.equal(model.nodes[0].children, 2);
+});
+
+/* Il cerchio della Wallbox porta all'auto, non allo storico di un sensore. */
+test("la wallbox si riconosce dal carico, non dalla posizione", () => {
+  const wallboxEntities = ["sensor.wb_power"];
+  const cases = [
+    // Il carico dice di esserlo.
+    [{ id: "l1", name: "Garage", metadata: { flow_kind: "ev" } }, true],
+    // E' il carico Wallbox che la configurazione conosce.
+    [{ id: "load-wallbox", name: "Colonnina" }, true],
+    // I suoi sensori sono quelli che la sezione Auto sta gia' leggendo.
+    [{ id: "l2", name: "Garage", power_entity: "sensor.wb_power" }, true],
+    [{ id: "l3", name: "Garage", monthly_energy_entity: "sensor.wb_power" }, true],
+    // Chi crea un carico a mano lo chiama cosi'.
+    [{ id: "l4", name: "Wallbox garage" }, true],
+    [{ id: "l5", name: "Forno", power_entity: "sensor.forno" }, false],
+  ];
+  for (const [load, expected] of cases) {
+    assert.equal(isWallboxLoad(load, null, wallboxEntities), expected, load.name);
+  }
+  // Il nome scritto sul cerchio conta quanto quello del carico.
+  assert.equal(isWallboxLoad({ id: "l6", name: "Slot 2" }, { name: "Wallbox" }, []), true);
+});
+
+test("senza un'auto configurata il cerchio resta quello di prima", () => {
+  const loads = [{ id: "load-wallbox", name: "Wallbox", power_entity: "sensor.wb_power" }];
+  const states = { "sensor.wb_power": { state: "3200" } };
+
+  // La sezione non passa nulla quando non c'e' un veicolo da aprire: meglio un
+  // grafico che una finestra vuota.
+  const senzaAuto = flowStageModel({ loads, states });
+  assert.deepEqual(senzaAuto.nodes[0].click, {
+    kind: "history",
+    entity: "sensor.wb_power",
+    title: "Wallbox",
+  });
+
+  const conAuto = flowStageModel({ loads, states, wallbox: { entities: ["sensor.wb_power"] } });
+  assert.deepEqual(conAuto.nodes[0].click, { kind: "ev" });
+});
+
+test("gli altri cerchi non diventano l'auto per il fatto di essere secondi", () => {
+  // FLOW_SLOT_KEYS chiama "wb" il secondo cerchio per ragioni storiche: quel
+  // nome e' una posizione, non un elettrodomestico.
+  const model = flowStageModel({
+    loads: [
+      { id: "a", name: "Boiler", power_entity: "sensor.a", order: 0 },
+      { id: "b", name: "Lavanderia", power_entity: "sensor.b", order: 1 },
+    ],
+    states: { "sensor.a": { state: "100" }, "sensor.b": { state: "200" } },
+    wallbox: { entities: ["sensor.wb_power"] },
+  });
+  assert.equal(model.nodes[1].slotKey, "wb");
+  assert.equal(model.nodes[1].click.kind, "history");
 });
