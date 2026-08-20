@@ -1156,7 +1156,7 @@ Grazie a chi ha già sostenuto DashboardModern nelle scorse settimane: è **davv
 
 Grazie a chi sostiene il progetto: è ciò che tiene DashboardModern gratuito e in sviluppo. 💙
 
-> Lo stesso blocco compare in coda alle note di **ogni nuovo aggiornamento**: la sorgente è unica, [`.github/SUPPORT_BADGES.md`](.github/SUPPORT_BADGES.md), e il workflow `Release` la accoda alle note generate automaticamente. Per cambiare il testo o aggiungere un canale si modifica lì e in questa sezione.
+> Lo stesso blocco apre le note di **ogni nuovo aggiornamento**, sopra l'elenco di cosa è cambiato: la sorgente è unica, [`.github/SUPPORT_BADGES.md`](.github/SUPPORT_BADGES.md), e il workflow `Release` la unisce alle note generate automaticamente. Per cambiare il testo o aggiungere un canale si modifica lì e in questa sezione.
 
 ---
 
