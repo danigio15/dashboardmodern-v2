@@ -14,6 +14,7 @@
   <a href="https://github.com/danigio15/dashboardmodern-v2/releases"><img src="https://img.shields.io/github/v/release/danigio15/dashboardmodern-v2?label=release&color=0ea5e9" alt="Release"></a>
   <a href="https://github.com/danigio15/dashboardmodern-v2/actions/workflows/tests.yml"><img src="https://github.com/danigio15/dashboardmodern-v2/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
   <a href="https://github.com/danigio15/dashboardmodern-v2/releases"><img src="https://img.shields.io/github/downloads/danigio15/dashboardmodern-v2/total?label=download%20dalla%201.0.0&color=8b5cf6&cacheSeconds=1800" alt="Download dalla 1.0.0"></a>
+  <a href="https://www.paypal.com/paypalme/giovannidaniello15"><img src="https://img.shields.io/badge/PayPal-sostieni-003087?logo=paypal&logoColor=white" alt="Sostieni il progetto con PayPal"></a>
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-18BCF2" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
@@ -1076,7 +1077,6 @@ Quando apri una Issue indica: versione DashboardModern, versione Home Assistant,
 - [`docs/CHANGELOG_PRE_1.0.md`](docs/CHANGELOG_PRE_1.0.md) — archivio delle versioni precedenti
 - [`docs/RELEASE_1_0.md`](docs/RELEASE_1_0.md) — come si pubblica una release
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — architettura e responsabilità dei layer
-- [`ROADMAP.md`](ROADMAP.md) — fasi di sviluppo
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — come contribuire
 - [`DECISIONS.md`](DECISIONS.md) — decisioni architetturali
 - [`docs/ENERGY_RECORDER_PARITY.md`](docs/ENERGY_RECORDER_PARITY.md) — storico Energia e Recorder
@@ -1153,7 +1153,7 @@ Grazie a chi ha già sostenuto DashboardModern nelle scorse settimane: è **davv
 | ⏱️ **Tempo di assistenza** | risposte più rapide alle Issue e supporto diretto nella configurazione della plancia |
 | 🐛 **Correzioni** | bug risolti e pubblicati in una `1.0.x` senza aspettare il fine settimana successivo |
 | 📱 **Test su dispositivi reali** | iPhone, iPad, tablet Android e pannelli a muro: le prove che gli emulatori non sostituiscono |
-| ⚡ **Nuove sezioni e integrazioni** | il lavoro di sviluppo che porta avanti la [ROADMAP](ROADMAP.md) |
+| ⚡ **Nuove sezioni e integrazioni** | il tempo di sviluppo per quello che ancora manca |
 | 🔄 **Compatibilità** | adeguamento a ogni nuova versione di Home Assistant |
 
 **Anche senza donare puoi aiutare parecchio:** lascia una ⭐ alla repository, segnala i bug con una Issue ben descritta, prova le nuove versioni sul tuo impianto e racconta com'è andata, oppure proponi una traduzione o una correzione al README.

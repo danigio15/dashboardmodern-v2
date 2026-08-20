@@ -79,7 +79,7 @@ problem.
 The host is deliberately ignorant of the hosted dashboard's internals, so moving
 a section to a native module never touches `host.js`.
 
-Per roadmap phase: build the native module, add a navigation entry for it beside
+Per section: build the native module, add a navigation entry for it beside
 the hosted view, and let both exist. Users see the native section appear; the
 legacy one stays until the native one is at parity. When the last section lands,
 delete `frontend/legacy/`, `scripts/vendor_legacy.py`, and this document.
