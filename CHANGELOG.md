@@ -4,6 +4,30 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-rc.5 — 2026-08-20
+
+Due cose viste sul telefono con la rc.4 installata.
+
+### Corretto
+
+- **Il catalogo delle entita' si apre davanti alla finestra che lo chiama.** La
+  finestra di modifica sta a 100040, il catalogo si apriva a 100000: si apriva
+  davvero, ma dietro. Chi premeva «Scegli entita'» vedeva la stessa schermata di
+  prima e concludeva che il pulsante non funzionasse. Non era un difetto del
+  campo nuovo: valeva per ogni finestra di modifica — tapparella, clima, azioni,
+  stanze — ed era li' da prima.
+- **Con la tapparella giu' si capisce che la finestra e' aperta.** Le ante
+  rientravano su un fondo dello stesso colore: la card diceva «Finestra aperta»
+  e mostrava una tapparella chiusa qualunque. Adesso l'anta aperta prende corpo
+  e getta ombra su quello che ha dietro — che sia la tapparella chiara o il
+  cielo — e attorno si vede lo spessore del muro. Da chiusa l'anta resta
+  trasparente, se no si perderebbe il vetro.
+
+### Resta aperto
+
+- **Fold8 aperto: lo scorrimento si ferma prima del fondo.** Invariato rispetto
+  alla rc.4: non riprodotto, con l'elenco di cosa e' stato escluso.
+
 ## 1.0.0-rc.4 — 2026-08-20
 
 L'ultima candidata prima della 1.0.

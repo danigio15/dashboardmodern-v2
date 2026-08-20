@@ -542,3 +542,36 @@ test("l'intestazione esce dal margine interno della sua casa", async ({ page }, 
   // E l'intestazione e' larga quanto la casa, margine compreso.
   expect(Math.abs(misura.scarto)).toBeLessThanOrEqual(3);
 });
+
+/* Il nome della plancia deve leggersi anche di notte.
+ *
+ * Il titolo in alto a sinistra e' un testo riempito da un gradiente, e il
+ * gradiente partiva da un blu notte scritto a mano. In tema chiaro si legge
+ * benissimo; in tema scuro quella prima parola finisce su un fondo dello stesso
+ * colore e sparisce — restava leggibile solo "Home". Il resto
+ * dell'intestazione seguiva gia' il tema: era solo quel capo a non farlo.
+ */
+test("il titolo della plancia segue il tema", async ({ page }, testInfo) => {
+  await boot(page, testInfo);
+  const colori = await page.evaluate(async () => {
+    const titolo = document.querySelector(".brand-text h1");
+    const radice = document.documentElement;
+    const precedente = radice.getAttribute("data-theme");
+    const leggi = async (tema) => {
+      radice.setAttribute("data-theme", tema);
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      return getComputedStyle(titolo).backgroundImage;
+    };
+    const chiaro = await leggi("light");
+    const scuro = await leggi("dark");
+    if (precedente) radice.setAttribute("data-theme", precedente);
+    else radice.removeAttribute("data-theme");
+    return { chiaro, scuro };
+  });
+  // Il gradiente c'e' in tutti e due i temi...
+  expect(colori.chiaro).toMatch(/linear-gradient/);
+  expect(colori.scuro).toMatch(/linear-gradient/);
+  // ...ma non e' lo stesso: il capo scuro diventa chiaro quando il fondo si
+  // scurisce, altrimenti la prima parola sparisce.
+  expect(colori.scuro).not.toBe(colori.chiaro);
+});

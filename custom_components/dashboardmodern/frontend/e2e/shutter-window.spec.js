@@ -274,3 +274,136 @@ test("il contatto si modifica anche dalla matita", async ({ page }, testInfo) =>
     )
     .toBe("binary_sensor.finestra_nuova");
 });
+
+/* Il catalogo delle entita' deve stare davanti alla finestra che lo chiama.
+ *
+ * La finestra di modifica sta a 100040, il catalogo si apre a 100000 scritto a
+ * mano sull'elemento: si apriva davvero, ma dietro. Chi premeva "Scegli
+ * entita'" vedeva la stessa schermata di prima e concludeva che il pulsante non
+ * funzionasse — e valeva per tutte le finestre di modifica, non solo per il
+ * campo nuovo.
+ */
+test("il catalogo delle entita' si apre davanti, non dietro", async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
+  await apriTapparelle(page, testInfo);
+  await apriSchedaTapparelle(page);
+
+  await aspetta(page, () => Boolean(document.querySelector("#ed-body .ed-row .dm-edit-existing")));
+  await page.evaluate(() => {
+    document.querySelector("#ed-body .ed-row .dm-edit-existing")?.click();
+  });
+  await aspetta(page, () =>
+    Boolean(document.querySelector("#dm-shutter-editor-modal form")?.elements?.contact),
+  );
+
+  const esito = await page.evaluate(async () => {
+    const form = document.querySelector("#dm-shutter-editor-modal form");
+    const riga = form.elements.contact.closest(".ed-form-row");
+    (riga.querySelector(".dm-entity-picker") || riga.querySelector("button"))?.click();
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const catalogo = document.getElementById("cd-entpick");
+    if (!catalogo) return { aperto: false };
+    const centro = document.elementFromPoint(
+      Math.round(innerWidth / 2),
+      Math.round(innerHeight / 2),
+    );
+    return {
+      aperto: true,
+      // Aperto non basta: dev'essere anche quello che si tocca.
+      davanti: Boolean(centro?.closest("#cd-entpick")),
+    };
+  });
+  expect(esito.aperto, "il catalogo si apre").toBe(true);
+  expect(esito.davanti, "e sta davanti alla finestra di modifica").toBe(true);
+});
+
+/* Con la tapparella giu' la finestra aperta dev'essere comunque leggibile.
+ *
+ * Le ante rientravano su un fondo dello stesso colore: la card diceva "finestra
+ * aperta" e mostrava una tapparella chiusa qualunque. L'anta aperta deve
+ * prendere corpo e fare ombra, cosi' si stacca da cio' che ha dietro — che sia
+ * la tapparella chiara o il cielo.
+ */
+test("l'anta aperta si stacca da cio' che ha dietro", async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
+  await apriTapparelle(page, testInfo);
+
+  const misura = () =>
+    page.evaluate(() => {
+      const carta = document.querySelector('#page-tapparelle .tapp-card[data-tapp="cover.c1"]');
+      const vano = carta.querySelector(".tapp-win");
+      const anta = vano.querySelector(".dm-tw-anta-sx");
+      const spalla = vano.querySelector(".dm-tw-spalla");
+      const stile = getComputedStyle(anta);
+      return {
+        stato: vano.dataset.dmInfissoStato,
+        // Da aperta l'anta ha un corpo suo, da chiusa lascia vedere il vetro.
+        corpo: stile.backgroundImage !== "none",
+        ombra: stile.boxShadow.split(",").length >= 2,
+        spessore: Number(getComputedStyle(spalla).opacity),
+      };
+    });
+
+  const aperta = await misura();
+  expect(aperta.stato).toBe("aperto");
+  expect(aperta.corpo, "l'anta aperta prende corpo").toBe(true);
+  expect(aperta.ombra, "e fa ombra su cio' che ha dietro").toBe(true);
+  expect(aperta.spessore, "e si vede lo spessore del muro").toBeGreaterThan(0.9);
+
+  // Chiusa torna trasparente: se no si perderebbe il vetro.
+  await page.evaluate(() => {
+    const raw = eval("_RAW_STATES");
+    raw["binary_sensor.finestra_camera"] = {
+      ...raw["binary_sensor.finestra_camera"],
+      state: "off",
+    };
+    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+  });
+  await expect.poll(async () => (await misura()).stato, { timeout: 20_000 }).toBe("chiuso");
+  // Lo spessore si spegne sfumando: si aspetta che abbia finito, non che sia
+  // gia' finito.
+  await expect.poll(async () => (await misura()).spessore < 0.1, { timeout: 20_000 }).toBe(true);
+  const chiusa = await misura();
+  expect(chiusa.corpo, "l'anta chiusa lascia vedere il vetro").toBe(false);
+});
+
+/* Il nome della tapparella non cede il posto allo stato.
+ *
+ * Con due pastiglie accanto — "Aperta" e "Finestra aperta" — a cedere spazio
+ * era il nome, che finiva troncato: "Tapparella so…". Il nome e' il dato che
+ * identifica la scheda; lo stato e' un commento, e a andare a capo dev'essere
+ * lui.
+ */
+test("il nome resta intero anche con due pastiglie", async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
+  await apriTapparelle(page, testInfo);
+  const nomi = await page.evaluate(() =>
+    [...document.querySelectorAll("#page-tapparelle .tapp-card[data-tapp]")].map((carta) => {
+      const nome = carta.querySelector(".tapp-name");
+      const pastiglie = [...carta.querySelectorAll(".tapp-head .tapp-state")];
+      const suo = nome.getBoundingClientRect();
+      return {
+        tapp: carta.getAttribute("data-tapp"),
+        pastiglie: pastiglie.length,
+        // Troncato vuol dire che il testo e' piu' largo della sua casella.
+        troncato: nome.scrollWidth > nome.clientWidth + 1,
+        /* E soprattutto: con due pastiglie il nome tiene la sua riga. La
+         * troncatura si vede solo a certe larghezze, mentre questo e' il
+         * contratto — lo stato va a capo, il nome no — e vale sempre. */
+        soloSuaRiga: pastiglie.every(
+          (pastiglia) => pastiglia.getBoundingClientRect().top >= suo.bottom - 1,
+        ),
+      };
+    }),
+  );
+  const conDue = nomi.find((voce) => voce.tapp === "cover.c1");
+  expect(conDue.pastiglie, "la prima ha due pastiglie").toBe(2);
+  expect(conDue.soloSuaRiga, "e il nome tiene la sua riga").toBe(true);
+  for (const voce of nomi) {
+    expect(voce.troncato, `${voce.tapp} mostra il nome per intero`).toBe(false);
+  }
+  // Con una pastiglia sola non si cambia niente: resta sulla riga del nome.
+  const conUna = nomi.find((voce) => voce.tapp === "cover.c2");
+  expect(conUna.pastiglie).toBe(1);
+  expect(conUna.soloSuaRiga, "con una pastiglia la riga resta una").toBe(false);
+});

@@ -10,6 +10,19 @@ function installReleaseStyles() {
   installStyle(
     "dm-beta27-release-stability-style",
     `
+      /* Il nome della plancia deve leggersi anche di notte.
+       *
+       * Il titolo in alto a sinistra e' un testo riempito da un gradiente, e il
+       * gradiente partiva da un blu notte scritto a mano. In tema chiaro si
+       * legge benissimo; in tema scuro quella prima parola finisce su un fondo
+       * dello stesso colore e sparisce — restava leggibile solo "Home". Tutto
+       * il resto dell'intestazione, sottotitolo e pastiglia della connessione,
+       * seguiva gia' il tema: era solo quel capo del gradiente a non farlo. */
+      .brand-text h1{
+        background:linear-gradient(135deg,var(--text,#0f172a),var(--green,#16a34a))!important;
+        -webkit-background-clip:text!important;background-clip:text!important;
+        -webkit-text-fill-color:transparent!important}
+
       /* Keep the animated appliance design compact on desktop/tablet as well as
          phones. The main artwork remains the single large visual owner; the
          header copy is text-only so cards never grow into a second poster.
