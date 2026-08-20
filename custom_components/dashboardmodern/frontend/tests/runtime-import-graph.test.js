@@ -234,7 +234,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // su iPhone, dove il sistema butta via la pagina quando passi ad altra app,
   // la plancia restava ferma a "CONNECTING…". Quel modulo non apre nessuna
   // presa e non legge nessuno stato: richiama connect(), quello del runtime.
-  assert.ok(relative.length <= 106, `production graph unexpectedly grew to ${relative.length} modules`);
+  // E due, insieme: la finestra dietro la tapparella. La card mostrava una
+  // tapparella senza infisso; adesso in primo piano c'e' il telaio con le sue
+  // ante, e un contatto sull'anta dice se sono aperte. La lettura del contatto
+  // sta in un modulo puro perche' si possa provare senza browser, il disegno in
+  // un modulo di sezione che non scrive dati: la posizione della tapparella
+  // resta di chi la disegnava.
+  assert.ok(relative.length <= 108, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with one declared exception.
