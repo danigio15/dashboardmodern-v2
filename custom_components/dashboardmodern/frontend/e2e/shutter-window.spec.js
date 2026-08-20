@@ -186,3 +186,52 @@ test("il sensore si configura dove si configura la tapparella", async ({ page },
   // E quello che si e' scritto si ritrova dove il disegno lo va a leggere.
   expect(esito.contatto).toBe("binary_sensor.finestra_bagno");
 });
+
+/* La matita apre il suo editor, e il contatto dev'essere anche li'.
+ *
+ * Le matite delle righe sono intercettate in fase di cattura da un altro
+ * modulo, che apre la propria finestra di modifica: quella con nome, entita' e
+ * stanza. Il campo aggiunto al modulo di aggiunta non passa da li', quindi
+ * senza questo un contatto sbagliato non si poteva ne' correggere ne' togliere
+ * — si poteva solo cancellare la tapparella e rifarla.
+ */
+test("il contatto si modifica anche dalla matita", async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
+  await apriTapparelle(page, testInfo);
+  const esito = await page.evaluate(async () => {
+    globalThis.apriConfigEntita?.();
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    document.querySelector('#editor-modal .ed-tab[data-tab="tapp"]')?.click();
+    await new Promise((resolve) => setTimeout(resolve, 900));
+
+    // La matita della prima tapparella, quella che il contatto ce l'ha gia'.
+    const matita = document.querySelector("#ed-body .ed-row .dm-edit-existing");
+    matita?.click();
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    const form = document.querySelector("#dm-shutter-editor-modal form");
+    if (!form?.elements?.contact) return { campo: false };
+    const partenza = form.elements.contact.value;
+
+    form.elements.contact.value = "binary_sensor.finestra_nuova";
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    const leggi = () => {
+      const canoniche = globalThis.DashboardModernModules?.store?.getSection?.("covers") || [];
+      const chiave = Object.keys(localStorage).find((name) => name.endsWith("cd_tapparelle"));
+      let copia = [];
+      try {
+        copia = JSON.parse(localStorage.getItem(chiave || "cd_tapparelle") || "[]");
+      } catch (_error) {}
+      const trova = (elenco) => elenco.find((item) => item?.entity === "cover.c1");
+      return trova(canoniche)?.contact ?? trova(copia)?.contact ?? "";
+    };
+    return { campo: true, partenza, dopo: leggi() };
+  });
+
+  expect(esito.campo, "la finestra di modifica ha il campo del contatto").toBe(true);
+  // Ci arriva gia' compilato con quello che c'era.
+  expect(esito.partenza).toBe("binary_sensor.finestra_camera");
+  // E quello che si scrive si salva.
+  expect(esito.dopo).toBe("binary_sensor.finestra_nuova");
+});

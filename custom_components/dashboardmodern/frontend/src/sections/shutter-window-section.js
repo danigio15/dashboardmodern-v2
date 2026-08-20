@@ -208,6 +208,10 @@ export function installShutterWindowSection() {
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",
     "dashboardmodern:state-changed",
+    // Quando arriva una configurazione condivisa il modulo della scena rifa' la
+    // griglia da capo con innerHTML, e con lei sparisce ogni infisso: senza
+    // questo, le card restavano senza finestra fino al primo cambio di stato.
+    "dashboardmodern:persistence-restored",
     "pageshow",
   ]) {
     root.addEventListener?.(eventName, schedule);
