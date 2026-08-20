@@ -4,6 +4,34 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-rc.6 — 2026-08-20
+
+Tre difetti visti sul telefono con la rc.5 installata.
+
+### Corretto
+
+- **Wallbox e Clima hanno il disegno che gli spetta.** Nel Report si vedevano
+  due schede con la stessa identica icona. Due ragioni, tutt'e due sistemate:
+  nessuno dei due nomi era nel catalogo dei disegni, e chi lo interroga si
+  fermava al primo campo scritto — bastava un'icona impostata a mano perche' il
+  nome non venisse mai guardato. Adesso i campi si guardano tutti, la wallbox ha
+  la sua colonnina disegnata con la stessa cornice e la stessa griglia delle
+  altre, e «Clima» arriva al condizionatore.
+- **Un solo catalogo delle entita' per volta.** Nella modifica della tapparella
+  se ne aprivano tre uno sopra l'altro, e quello davanti era vuoto: ogni
+  apertura crea un riquadro con lo stesso nome, e la ricerca riempie sempre
+  quello di sotto. Adesso aprirne uno chiude quello di prima, chiunque lo
+  chieda.
+- **Pizzicare il grafico non manda gli orari fuori dal riquadro.** La pastiglia
+  con l'intervallo e il «↺ Tutto» si metteva come una riga in piu' sopra al
+  grafico e lo spingeva giu' di 45 pixel: il fondo — dove stanno gli orari —
+  usciva dal popup. Adesso sta appoggiata sopra al grafico e non sposta niente.
+
+### Resta aperto
+
+- **Fold8 aperto: lo scorrimento si ferma prima del fondo.** Invariato rispetto
+  alla rc.5: non riprodotto.
+
 ## 1.0.0-rc.5 — 2026-08-20
 
 Due cose viste sul telefono con la rc.4 installata.

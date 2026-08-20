@@ -64,12 +64,40 @@ function ensureId(input) {
   return input.id;
 }
 
+/* Un catalogo per volta.
+ *
+ * `wzPickEntity` crea ogni volta un overlay nuovo con lo stesso id
+ * `#cd-entpick`, e chi lo disegna cerca la lista per id: se due gestori di
+ * click partono per lo stesso campo — e nell'editor delle tapparelle
+ * partivano — il secondo catalogo si appoggia sopra il primo e resta vuoto,
+ * perche' la lista che viene riempita e' quella di sotto. Si vedevano due
+ * riquadri sovrapposti, quello davanti senza entita'.
+ *
+ * Qui non si contano i gestori: si toglie di mezzo il catalogo di prima
+ * appena se ne apre uno nuovo. Cosi' ne resta sempre e solo uno, ed e'
+ * quello che la ricerca sta riempiendo. */
+function closeOpenPickers() {
+  doc?.querySelectorAll?.("#cd-entpick").forEach((node) => node.remove());
+}
+
+function guardSingleDialog() {
+  const current = root.wzPickEntity;
+  if (typeof current !== "function" || current.__dmSingleDialog) return false;
+  function wrapped(...args) {
+    closeOpenPickers();
+    return current.apply(this, args);
+  }
+  Object.assign(wrapped, current);
+  wrapped.__dmSingleDialog = true;
+  wrapped.__dmPrevious = current;
+  root.wzPickEntity = wrapped;
+  return true;
+}
+
 function choose(input) {
   if (!input?.isConnected) return;
-  // Defensive cleanup only for stale overlays. There must never be two entity
-  // picker dialogs with the same legacy id, otherwise selectors and focus break.
-  const open = [...doc.querySelectorAll("#cd-entpick")];
-  if (open.length > 1) open.slice(1).forEach((node) => node.remove());
+  guardSingleDialog();
+  closeOpenPickers();
   try {
     root.wzPickEntity?.(input);
   } catch (_error) {
@@ -155,7 +183,10 @@ function schedule() {
     for (const scope of [doc.getElementById("ed-body"), doc.getElementById("editor-modal"), doc.getElementById("setup-wizard"), ...doc.querySelectorAll(".dm-section-modal")].filter(Boolean)) {
       reconcileEntityPickers(scope);
     }
+    guardSingleDialog();
     const duplicates = [...doc.querySelectorAll("#cd-entpick")];
+    // Se per qualsiasi ragione ne restano due, quello buono e' il primo: e' la
+    // sua lista che `cdEpFilter` riempie, cercandola per id.
     if (duplicates.length > 1) duplicates.slice(1).forEach((node) => node.remove());
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0);
@@ -185,13 +216,14 @@ export function installEntityPickerGuardSection() {
   state.installed = true;
   installStyles();
   root.addEventListener?.("dashboardmodern:legacy-ready", () => {
+    guardSingleDialog();
     for (const name of ["editorSwitch", "edFilterSez", "renderEditorTab", "renderEnergyEditorTab", "editorRenderLuci", "editorRenderStanze"]) {
       wrapFunction(name, `__dmPickerGuard_${name}`, schedule);
     }
     subscribeStore();
     schedule();
   });
-  root.addEventListener?.("dashboardmodern:runtime-ready", () => { subscribeStore(); schedule(); });
+  root.addEventListener?.("dashboardmodern:runtime-ready", () => { guardSingleDialog(); subscribeStore(); schedule(); });
   root.addEventListener?.("dashboardmodern:period-bundle", schedule);
   root.addEventListener?.("dashboardmodern:energy-bundle", schedule);
   doc.addEventListener("click", (event) => {
