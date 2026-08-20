@@ -4,6 +4,51 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.0.0-rc.2 — 2026-08-20
+
+Tutto quello che si è visto sul dispositivo dopo la prima release candidate.
+
+### Corretto
+
+- **Rientrare nell'app non lascia più la plancia a «CONNECTING…».** Su iPhone il
+  sistema butta via la pagina quando si passa ad altro, e al rientro il pannello
+  la ricostruisce da zero. Il runtime apre la presa verso Home Assistant una
+  volta sola e, se quel tentativo non va a buon fine, non ne prova altri:
+  restava la scritta del documento appena aperto, con i gradi a «--» e i
+  riquadri vuoti. Chiudere e riaprire l'app la sistemava, perché era un avvio
+  nuovo. Adesso la connessione viene richiesta di nuovo al rientro, al ritorno
+  della rete, e intanto a intervalli che si allargano; da connessi non resta
+  acceso nessun timer.
+- **Il cestino del Clima aggiorna l'elenco.** Cancellava davvero, ma la lista
+  restava ferma: la sezione appariva pulita solo uscendo e rientrando, e chi
+  continuava a premere si ritrovava a premere su righe che non esistevano più.
+  Il nome di scheda che il runtime usa dopo ogni eliminazione non corrisponde
+  più a niente da quando ce n'è una per sezione, e viene tradotto in quella
+  davvero aperta.
+- **Una sola entità non compare più su tutte le righe.** Il numero di una riga
+  dell'editor era il suo turno di arrivo invece della sua posizione: due righe
+  con lo stesso numero mostravano la stessa unità, sotto caldo e sotto freddo.
+- **Nascosta a mano vuol dire nascosta.** Nella mappa delle visibilità un
+  «no» poteva voler dire «non l'ho ancora configurata» oppure «non la voglio
+  vedere», e la passata che accende le sezioni configurate riscriveva tutte e
+  due: il MiniPC, che ha entità mappate, tornava su ogni volta. Ora la scelta
+  fatta di persona viene ricordata e viaggia con la configurazione.
+- **Il contatore totale dell'energia comanda sui campi di periodo.** Chi
+  riempiva il totale e anche giorno, mese e anno si ritrovava due verità che non
+  tornano. Ogni periodo si ricava dal totale con Recorder, e la maschera elenca
+  per nome le entità scavalcate offrendo di svuotarle.
+- **Le foto delle due auto non si scambiano più di casella.** La correzione di
+  un percorso storto finiva nella casella sbagliata, e da lì le due auto
+  mostravano la stessa immagine.
+- **Il telefono non paga più le finestre chiuse.** Dodici finestre nascoste
+  chiedevano ognuna di sfocare tutto quello che avevano dietro, a schermo
+  intero, e dentro due di esse girava una rotella di caricamento per sempre.
+- **Report leggibile**, intestazioni larghe quanto ciò che introducono, comandi
+  del campo entità scritti a parole, sonde del solare termico che dicono cosa
+  misurano, stanze delle luci adottate invece di restare nomi fantasma, riga
+  «aggiungi stanza» che non è più due quadratini, icone dei popup uguali a
+  quelle delle schede e in movimento quando l'elettrodomestico lavora.
+
 ## 1.0.0-rc.1 — 2026-08-19
 
 Prima release candidate della 1.0.0: la configurazione e le intestazioni delle
