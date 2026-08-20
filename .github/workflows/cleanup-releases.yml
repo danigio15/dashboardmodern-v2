@@ -1,0 +1,169 @@
+# Pulizia della pagina Releases, a comando.
+#
+# Esiste perché cancellare release e tag a mano significa decine di conferme
+# nell'interfaccia, con il rischio di togliere quello sbagliato. Qui si elenca
+# cosa conservare, si lancia prima in anteprima e solo dopo si esegue davvero.
+#
+# Si avvia da Actions → "Pulizia release" → Run workflow.
+#
+# Il file è volutamente autosufficiente: non dipende da nessuno script del
+# repository, così funziona anche prima che il resto sia stato unito a main.
+name: Pulizia release
+
+on:
+  workflow_dispatch:
+    inputs:
+      keep:
+        description: "Tag da conservare, separati da spazi"
+        required: true
+        default: "v0.15.25 v1.0.0-rc.1 v1.0.0-rc.2 v1.0.0-rc.3"
+      apply:
+        description: "Esegui davvero (senza spunta è solo un'anteprima)"
+        type: boolean
+        required: true
+        default: false
+      allow_no_stable:
+        description: "Procedi anche se non resterebbe nessuna release stabile"
+        type: boolean
+        required: true
+        default: false
+
+# Il token del workflow deve poter cancellare release e riferimenti git.
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    name: Pulizia
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Pulizia
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          KEEP_LIST: ${{ inputs.keep }}
+          APPLY: ${{ inputs.apply }}
+          ALLOW_NO_STABLE: ${{ inputs.allow_no_stable }}
+        run: |
+          set -euo pipefail
+
+          declare -A KEEP=()
+          for tag in $KEEP_LIST; do KEEP["$tag"]=1; done
+
+          # Tutto ciò che appartiene alla numerazione pre-1.0 e non è stato messo
+          # al riparo. La 1.0.0 e ogni versione successiva non corrispondono ai
+          # pattern, quindi non sono cancellabili nemmeno per errore di battitura.
+          is_purgeable() {
+            [ -n "${KEEP[$1]:-}" ] && return 1
+            case "$1" in
+              v0.*|0.*) return 0 ;;
+              v1.0.0-beta.*|1.0.0-beta.*) return 0 ;;
+              v1.0.0-rc.*|1.0.0-rc.*) return 0 ;;
+              *) return 1 ;;
+            esac
+          }
+
+          echo "Repository : $REPO"
+          echo "Conservo   : $KEEP_LIST"
+          if [ "$APPLY" = "true" ]; then
+            echo "Modalità   : ESECUZIONE (irreversibile)"
+          else
+            echo "Modalità   : anteprima (nessuna modifica)"
+          fi
+          echo
+
+          mapfile -t RELEASE_ROWS < <(gh release list --repo "$REPO" --limit 500 \
+            --json tagName,isPrerelease --jq '.[] | "\(.tagName)\t\(.isPrerelease)"')
+          mapfile -t TAGS < <(gh api --paginate "repos/$REPO/git/matching-refs/tags" \
+            --jq '.[].ref' | sed 's#^refs/tags/##' | sort -V)
+
+          targets_releases=()
+          survivors_stable=0
+          for row in "${RELEASE_ROWS[@]:-}"; do
+            [ -n "$row" ] || continue
+            tag="${row%%$'\t'*}"
+            pre="${row##*$'\t'}"
+            if is_purgeable "$tag"; then
+              targets_releases+=("$tag")
+            elif [ "$pre" = "false" ]; then
+              survivors_stable=$((survivors_stable + 1))
+            fi
+          done
+
+          targets_tags=()
+          for tag in "${TAGS[@]:-}"; do
+            if [ -n "$tag" ] && is_purgeable "$tag"; then targets_tags+=("$tag"); fi
+          done
+
+          echo "Release da eliminare: ${#targets_releases[@]}"
+          printf '  %s\n' "${targets_releases[@]:-(nessuna)}"
+          echo
+          echo "Tag da eliminare: ${#targets_tags[@]}"
+          printf '  %s\n' "${targets_tags[@]:-(nessuno)}"
+          echo
+          echo "Release che restano in piedi come stabili: $survivors_stable"
+          echo
+
+          # Una repository senza nessuna release stabile è una repository che HACS
+          # non sa proporre a chi non ha attivato "Show beta versions": le
+          # pre-release, da sole, non bastano.
+          if [ "$survivors_stable" -eq 0 ] && [ "$ALLOW_NO_STABLE" != "true" ]; then
+            echo "::error::Dopo questa pulizia non resterebbe nessuna release stabile. Pubblica prima la 1.0.0, oppure rilancia con 'allow_no_stable'."
+            exit 1
+          fi
+
+          {
+            echo "## Pulizia release"
+            echo
+            echo "- Conservati: \`$KEEP_LIST\`"
+            echo "- Release da eliminare: **${#targets_releases[@]}**"
+            echo "- Tag da eliminare: **${#targets_tags[@]}**"
+            echo "- Release stabili superstiti: **$survivors_stable**"
+            echo "- Modalità: **$([ "$APPLY" = "true" ] && echo ESECUZIONE || echo anteprima)**"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$APPLY" != "true" ]; then
+            echo "Anteprima terminata: non è stato modificato nulla."
+            exit 0
+          fi
+
+          # Le note delle release cancellate restano scaricabili dal run.
+          mkdir -p archive
+          {
+            echo "["
+            first=1
+            for tag in "${targets_releases[@]}"; do
+              if [ "$first" -eq 1 ]; then first=0; else echo ","; fi
+              gh release view "$tag" --repo "$REPO" \
+                --json tagName,name,publishedAt,isPrerelease,body
+            done
+            echo "]"
+          } > archive/releases-cancellate.json
+
+          for tag in "${targets_releases[@]}"; do
+            echo "· release $tag"
+            gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag \
+              || echo "  (già rimossa)"
+          done
+
+          # `--cleanup-tag` copre i tag che avevano una release; restano quelli
+          # spinti senza release, o le cui release erano già state cancellate.
+          for tag in "${targets_tags[@]}"; do
+            if gh api "repos/$REPO/git/ref/tags/$tag" >/dev/null 2>&1; then
+              echo "· tag $tag"
+              gh api -X DELETE "repos/$REPO/git/refs/tags/$tag" >/dev/null \
+                || echo "  (già rimosso)"
+            fi
+          done
+
+          echo
+          echo "Fatto."
+
+      - name: Archivio delle note cancellate
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pulizia-release
+          path: archive/releases-cancellate.json
+          if-no-files-found: ignore
