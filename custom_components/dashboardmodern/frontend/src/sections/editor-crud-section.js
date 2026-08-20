@@ -1,7 +1,9 @@
 // DM-FIX-20260812B
+import { contactEntity } from "../core/shutter-window.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import {
   clean,
+  dashboardStore,
   doc,
   english,
   installStyle,
@@ -214,6 +216,7 @@ function beginEdit(kind, index) {
     setField("ed-tp-name", item.name || "");
     setField("ed-tp-ent", item.entity || "");
     setField("ed-tp-room", item.room || item.room_id || "");
+    setField("ed-tp-contact", contactEntity(item));
   } else if (kind === "room") {
     setField("ed-room-name", item.name || "");
     setField("ed-room-icon", item.icon || "🏠");
@@ -232,11 +235,29 @@ function finishEdit(kind) {
 }
 
 function installAddWrappers() {
-  const wrap = (name, kind, saveEdit) => {
+  /* `suAggiunta` serve a posare accanto a una voce nuova i campi che il runtime
+   * non conosce.
+   *
+   * Si chiama PRIMA e restituisce cosa fare DOPO, perche' aggiungendo una voce
+   * il runtime ridisegna la scheda: un campo letto dopo e' un campo gia'
+   * svuotato. Sta dentro a questo involucro e non in un secondo perche'
+   * l'involucro e' uno solo — un secondo si impilerebbe a ogni apertura
+   * dell'editor, visto che la guardia riconosce solo il proprio. */
+  const wrap = (name, kind, saveEdit, suAggiunta) => {
     const current = root[name];
     if (typeof current !== "function" || current.__dmEditableSection) return;
     function editableOwner(...args) {
-      if (state.editing?.kind !== kind) return current.apply(this, args);
+      if (state.editing?.kind !== kind) {
+        let poi = null;
+        try {
+          poi = suAggiunta?.() || null;
+        } catch (_error) {}
+        const result = current.apply(this, args);
+        try {
+          poi?.();
+        } catch (_error) {}
+        return result;
+      }
       saveEdit(state.editing.index);
       finishEdit(kind);
     }
@@ -284,6 +305,21 @@ function installAddWrappers() {
     root.buildDeviceCards?.();
   });
 
+  /* La copia in localStorage e il modello canonico devono dire la stessa cosa.
+   *
+   * Il runtime scrive solo la copia; il modello la rilegge per conto suo, con i
+   * suoi tempi. Fra le due cose c'e' una finestra in cui il disegno legge il
+   * modello e trova una versione vecchia — e con il contatto dell'infisso quella
+   * finestra si vedeva: la tapparella appena aggiunta restava senza. Scrivendo
+   * in tutte e due nello stesso momento la finestra non c'e' piu'. */
+  const salvaTapparelle = (list) => {
+    writeJsonIfChanged("cd_tapparelle", list);
+    try {
+      dashboardStore()?.replaceSection?.("covers", list)?.catch?.(() => {});
+    } catch (_error) {}
+    root.renderTapparelle?.();
+  };
+
   wrap("edTappAdd", "shutter", (index) => {
     const list = listFor("shutter");
     list[index] = {
@@ -291,9 +327,29 @@ function installAddWrappers() {
       name: clean(doc.getElementById("ed-tp-name")?.value),
       entity: clean(doc.getElementById("ed-tp-ent")?.value),
       room: clean(doc.getElementById("ed-tp-room")?.value),
+      // Il contatto dell'infisso: la card lo legge per sapere se la finestra
+      // dietro la tapparella e' aperta.
+      contact: clean(doc.getElementById("ed-tp-contact")?.value),
     };
-    writeJsonIfChanged("cd_tapparelle", list);
-    root.renderTapparelle?.();
+    salvaTapparelle(list);
+  },
+  /* Il contatto sopravvive anche a una tapparella appena aggiunta: l'elenco lo
+   * scrive il runtime, che di questo campo non sa niente, e la voce nasce senza.
+   * Qui la si ritrova dalla sua entita' e le si posa accanto il contatto. */
+  () => {
+    const contact = clean(doc.getElementById("ed-tp-contact")?.value);
+    const entity = clean(doc.getElementById("ed-tp-ent")?.value);
+    if (!contact || !entity) return null;
+    return () => {
+      const list = listFor("shutter");
+      let index = -1;
+      list.forEach((item, position) => {
+        if (clean(item?.entity) === entity) index = position;
+      });
+      if (index < 0 || clean(list[index].contact) === contact) return;
+      list[index] = { ...list[index], contact };
+      salvaTapparelle(list);
+    };
   });
 
   wrap("edStanzaRoomAdd", "room", (index) => {

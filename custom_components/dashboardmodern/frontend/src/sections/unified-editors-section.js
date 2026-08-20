@@ -1,4 +1,5 @@
 // DM-FIX-20260813E
+import { contactEntity } from "../core/shutter-window.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import {
   clean,
@@ -262,10 +263,14 @@ function openShutterEditor(item, index) {
     t("Modifica tapparella", "Edit shutter"),
     `<label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(item.name)}" required></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}" required><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
-     <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>`,
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Sensore apertura infisso", "Window contact sensor")}</span><span class="ed-form-row"><input class="ed-input mono" name="contact" value="${esc(contactEntity(item))}" placeholder="binary_sensor.finestra_camera"><button type="button" class="dm-entity-picker" data-pick-contact>🔍</button></span><small>${t("Se lo compili, la card mostra la finestra aperta quando il contatto lo dice.", "Fill it in and the card shows the window open when the contact says so.")}</small></label>`,
     "🪟",
   );
   form.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
+  form
+    .querySelector("[data-pick-contact]")
+    ?.addEventListener("click", () => root.wzPickEntity?.(form.elements.contact));
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const list = listFor("shutter");
@@ -274,6 +279,9 @@ function openShutterEditor(item, index) {
       name: clean(form.elements.name.value),
       entity: clean(form.elements.entity.value),
       room: clean(form.elements.room.value),
+      // Svuotare il campo toglie il sensore: e' il modo per dire "questa
+      // tapparella non ha un infisso da guardare".
+      contact: clean(form.elements.contact?.value),
     };
     if (!list[index].name || !/^cover\./i.test(list[index].entity)) {
       form.querySelector("[data-error]").textContent = t("Inserisci un nome e un'entità cover.* valida.", "Enter a name and a valid cover.* entity.");

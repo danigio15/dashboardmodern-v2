@@ -28,6 +28,8 @@ export function canonicalClimateType(value) {
  * a device can never silently fall back to `generico` just because a second
  * editor happened to know fewer appliance types.
  */
+import { contactEntity } from "./shutter-window.js";
+
 export const APPLIANCE_CATALOG = Object.freeze([
   { key: "lavatrice", it: "Lavatrice", en: "Washing machine" },
   { key: "lavastoviglie", it: "Lavastoviglie", en: "Dishwasher" },
@@ -323,6 +325,17 @@ export function normalizeDevice(input = {}, section, context = {}) {
   }
   if (input.stream || input.stream_url || input.url)
     base.stream = String(input.stream || input.stream_url || input.url);
+  /* Il contatto dell'infisso di una tapparella.
+   *
+   * Il modello tiene solo i campi che conosce, ed e' giusto cosi': e' quello che
+   * impedisce a una configurazione scritta a mano di portarsi dietro spazzatura.
+   * Ma vuol dire anche che un campo nuovo, se non lo si dichiara qui, sparisce
+   * alla prima normalizzazione — e il contatto spariva appena si apriva
+   * l'editor, lasciando la finestra sempre chiusa. */
+  if (section === "covers") {
+    const contact = contactEntity(input);
+    if (contact) base.contact = contact;
+  }
   if (input.threshold_run != null) base.metadata.threshold_run = +input.threshold_run;
   if (input.threshold_standby != null) base.metadata.threshold_standby = +input.threshold_standby;
   if (section === "ev") {

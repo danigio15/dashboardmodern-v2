@@ -41,6 +41,7 @@ import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
 import { installPageMastheadSection } from "./page-masthead-section.js";
 import { installShutterSceneSection } from "./shutter-scene-section.js";
+import { installShutterWindowSection } from "./shutter-window-section.js";
 import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
 import { installEvSection } from "./ev-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
@@ -671,6 +672,7 @@ export function installSectionRuntime() {
     installReportEditorSection();
     installShutterSection();
     installShutterSceneSection();
+    installShutterWindowSection();
     installPageMastheadSection();
     installPoolIrrigationSceneSection();
     installEvSection();
