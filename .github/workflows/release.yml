@@ -130,9 +130,10 @@ jobs:
       - name: Generate build provenance from the selected HEAD
         run: python scripts/build_release.py --expected-commit "$GITHUB_SHA" --output dashboardmodern.zip
       # Le note automatiche di GitHub elencano cosa è cambiato; il blocco di
-      # sostegno viene accodato in fondo, così ogni nuovo aggiornamento lo mostra
+      # sostegno si unisce a quell'elenco, così ogni nuovo aggiornamento lo mostra
       # senza doverlo riscrivere a mano. La sorgente è una sola, condivisa con il
-      # README: .github/SUPPORT_BADGES.md.
+      # README: .github/SUPPORT_BADGES.md. `append_body` mette questo corpo prima
+      # delle note generate, quindi il blocco apre la release invece di chiuderla.
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:

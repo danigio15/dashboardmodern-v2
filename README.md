@@ -1118,11 +1118,13 @@ Ogni release pubblica un pacchetto `dashboardmodern.zip` ed è quello che HACS s
 | Dove guardare | Cosa dice |
 | --- | --- |
 | [Pagina Releases](https://github.com/danigio15/dashboardmodern-v2/releases) | il numero di download di `dashboardmodern.zip` è indicato sotto ogni release, versione per versione |
-| Badge **Download totali** | somma di tutti i download di tutti i pacchetti pubblicati |
+| Badge **Download totali** | somma dei download di tutti i pacchetti presenti sulla pagina |
 | Badge **Download ultima release** | quante persone hanno già la versione più recente |
 | [Insights → Traffic](https://github.com/danigio15/dashboardmodern-v2/graphs/traffic) | visite e cloni della repository (visibile al proprietario) |
 
 > I download della release contano il pacchetto scaricato da HACS o a mano. Non contano gli aggiornamenti già presenti nella cache di HACS né le installazioni copiate da un backup, quindi il numero reale di impianti è **almeno** quello mostrato.
+
+> **Il conteggio parte dalla 1.0.0.** GitHub tiene i download attaccati alla release che li ha serviti: ripulendo la pagina dalle versioni precedenti alla 1.0 sono spariti anche i loro contatori. Quello che si vede qui è quindi la diffusione della **1.0 in poi**, non la storia del progetto — che invece resta nei commit e in [`docs/CHANGELOG_PRE_1.0.md`](docs/CHANGELOG_PRE_1.0.md).
 
 ---
 
@@ -1156,7 +1158,7 @@ Grazie a chi ha già sostenuto DashboardModern nelle scorse settimane: è **davv
 
 Grazie a chi sostiene il progetto: è ciò che tiene DashboardModern gratuito e in sviluppo. 💙
 
-> Lo stesso blocco compare in coda alle note di **ogni nuovo aggiornamento**: la sorgente è unica, [`.github/SUPPORT_BADGES.md`](.github/SUPPORT_BADGES.md), e il workflow `Release` la accoda alle note generate automaticamente. Per cambiare il testo o aggiungere un canale si modifica lì e in questa sezione.
+> Lo stesso blocco apre le note di **ogni nuovo aggiornamento**, sopra l'elenco di cosa è cambiato: la sorgente è unica, [`.github/SUPPORT_BADGES.md`](.github/SUPPORT_BADGES.md), e il workflow `Release` la unisce alle note generate automaticamente. Per cambiare il testo o aggiungere un canale si modifica lì e in questa sezione.
 
 ---
 

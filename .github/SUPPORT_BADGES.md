@@ -1,5 +1,6 @@
-<!-- Blocco di sostegno riutilizzato in README.md e in coda alle note di ogni
-     release (vedi .github/workflows/release.yml → append_body).
+<!-- Blocco di sostegno riutilizzato in README.md e in testa alle note di ogni
+     release: `append_body` di action-gh-release mette questo corpo prima
+     dell'elenco generato, non dopo (vedi .github/workflows/release.yml).
      Sorgente unica: per cambiare il testo o il canale si modifica qui. -->
 
 ### Sostieni il progetto
