@@ -70,3 +70,26 @@ test("chi arriva dalle versioni precedenti ritrova la foto sull'auto che la most
   const unica = [{ name: "Unica" }];
   assert.equal(adoptLoosePhotos(unica, 0, inMostra), unica);
 });
+
+test("la foto col cavo non sparisce a chi arriva dalla plancia di prima", () => {
+  // La plancia di prima la foto senza cavo la scriveva gia' dentro al profilo;
+  // quella col cavo non e' mai esistita li'. Guardare "un profilo qualsiasi ha
+  // una foto" fermava l'adozione proprio in questo caso, e al primo cambio
+  // d'auto la foto col cavo veniva riscritta a vuoto e spariva.
+  const cars = [
+    { name: "Prima", img: "/local/prima.png" },
+    { name: "Seconda", img: "/local/seconda.png" },
+  ];
+  const dopo = adoptLoosePhotos(cars, 0, {
+    idle: "/local/prima.png",
+    plugged: "/local/prima-cavo.png",
+  });
+  assert.equal(dopo[0].imgPlugged, "/local/prima-cavo.png");
+  // La sua foto senza cavo resta quella che aveva.
+  assert.equal(dopo[0].img, "/local/prima.png");
+  // E l'altra auto non viene toccata.
+  assert.deepEqual(dopo[1], cars[1]);
+
+  // Se una foto col cavo un profilo ce l'ha gia', non si adotta piu' niente.
+  assert.equal(adoptLoosePhotos(dopo, 1, { idle: "", plugged: "/local/x.png" }), dopo);
+});

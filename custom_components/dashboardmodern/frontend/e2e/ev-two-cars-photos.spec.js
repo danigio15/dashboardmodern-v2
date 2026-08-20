@@ -6,6 +6,9 @@
  * carried an empty one, which picking that car wrote over the photo the other
  * car had just set. Configure two cars and both pictures left the dashboard,
  * while the editor — reading its own field — still previewed them.
+ *
+ * Da rc.7 la foto e' dell'auto: chi non ne ha una non mostra quella dell'altra,
+ * e le foto dell'altra restano dove sono, nel suo profilo.
  */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
@@ -60,7 +63,13 @@ test("two cars keep their own photos", async ({ page }, testInfo) => {
     const afterA = { idle: read("cd_ev_image"), plugged: read("cd_ev_image_plugged") };
     window.cdEvApplyCar(1);
     const afterB = { idle: read("cd_ev_image"), plugged: read("cd_ev_image_plugged") };
-    // A profile with no picture of its own must not blank what is showing.
+    /* Un'auto senza foto sue non mostra quelle dell'altra.
+     *
+     * Prima le teneva, e con due macchine configurate le due schede finivano
+     * per mostrare la stessa fotografia: e' il difetto che si vedeva sulla
+     * plancia vera. Quello che #162 doveva impedire resta impedito, ma detto
+     * per bene: passare all'auto senza foto non distrugge quelle dell'altra,
+     * che tornano tornando indietro. */
     localStorage.setItem(
       "cd_ev_cars",
       JSON.stringify([
@@ -71,7 +80,9 @@ test("two cars keep their own photos", async ({ page }, testInfo) => {
     window.cdEvApplyCar(0);
     window.cdEvApplyCar(1);
     const afterBlank = { idle: read("cd_ev_image"), plugged: read("cd_ev_image_plugged") };
-    return { captured: { a, b }, afterA, afterB, afterBlank };
+    window.cdEvApplyCar(0);
+    const backOnA = { idle: read("cd_ev_image"), plugged: read("cd_ev_image_plugged") };
+    return { captured: { a, b }, afterA, afterB, afterBlank, backOnA };
   });
   expect(result.captured.a).toMatchObject({
     img: "/local/a-idle.png",
@@ -83,7 +94,8 @@ test("two cars keep their own photos", async ({ page }, testInfo) => {
   });
   expect(result.afterA).toEqual({ idle: "/local/a-idle.png", plugged: "/local/a-plug.png" });
   expect(result.afterB).toEqual({ idle: "/local/b-idle.png", plugged: "/local/b-plug.png" });
-  expect(result.afterBlank).toEqual({ idle: "/local/a-idle.png", plugged: "/local/a-plug.png" });
+  expect(result.afterBlank).toEqual({ idle: "", plugged: "" });
+  expect(result.backOnA).toEqual({ idle: "/local/a-idle.png", plugged: "/local/a-plug.png" });
 });
 
 /* Una foto non passa da una casella all'altra.

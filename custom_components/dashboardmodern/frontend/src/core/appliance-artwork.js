@@ -22,7 +22,14 @@ export function canonicalArtworkType(value) {
   if (/aspirapolvere|vacuum/.test(token)) return "vacuum";
   // La wallbox va riconosciuta prima di "presa": e' una presa anche lei, ma
   // chi la guarda nel Report deve vederci una colonnina, non un frullatore.
-  if (/wallbox|colonnina|ricarica|charger|charging[_ -]?station|ev[_ -]?charg/.test(token))
+  /* "charger" da solo non basta: il caricabatterie del telefono e quello del
+   * portatile sono caricatori anche loro, e si vedevano assegnare la colonnina.
+   * Serve che si parli di wallbox, di stazione di ricarica o di un'auto. */
+  if (
+    /wallbox|colonnina|charging[_ -]?station|stazione[_ -]?di[_ -]?ricarica|ricarica[_ -]?(?:auto|vettura|ev)|(?:ev|car|auto|vettura)[_ -]?charg/.test(
+      token,
+    )
+  )
     return "wallbox";
   // "clima" e' il nome che quasi tutti danno alla sezione e al carico: senza
   // questo cadeva nel disegno generico, identico a quello della wallbox.

@@ -221,7 +221,7 @@ export function paintEvccConsole(scope = doc) {
   // L'autonomia al target e' il target detto in chilometri: senza target non e'
   // una riga vuota, e' una riga che non ha piu' senso.
   for (const value of scope.querySelectorAll(".v-auto-limite")) {
-    const riga = value.closest(".lm-stat-card,.dm-evv-row,.ev-popup-session-row");
+    const riga = value.closest(".lm-stat-card,.dm-evv-row,.ev-popup-session-row,.ev-popup-stat");
     if (!riga) continue;
     if (presente.target) riga.removeAttribute("hidden");
     else riga.setAttribute("hidden", "hidden");
@@ -487,7 +487,7 @@ function evShowcaseCss() {
 #page-ev.dm-evv .lm-target-card[hidden],#page-ev.dm-evv .lm-evcc-card[hidden],
 #page-ev.dm-evv .lm-stat-card[hidden],#page-ev.dm-evv .dm-evv-row[hidden],
 #ev-popup .ev-popup-target[hidden],#ev-popup .ev-popup-modes[hidden],
-#ev-popup .ev-popup-session-row[hidden]{display:none!important}
+#ev-popup .ev-popup-session-row[hidden],#ev-popup .ev-popup-stat[hidden]{display:none!important}
 
 /* ── target: takes the colour of the active mode ──────────────────────── */
 #page-ev.dm-evv .lm-target-card{

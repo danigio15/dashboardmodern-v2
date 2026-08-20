@@ -75,8 +75,21 @@ export function withProfilePhotos(cars, index, photos = {}) {
  * adottare. */
 export function adoptLoosePhotos(cars, index, current = { idle: "", plugged: "" }) {
   if (!Array.isArray(cars) || cars.length < 2) return cars;
-  if (cars.some((car) => profilePhotos(car).idle || profilePhotos(car).plugged)) return cars;
-  const foto = { idle: clean(current.idle), plugged: clean(current.plugged) };
+  const posizione = Number.isInteger(index) ? Math.max(0, Math.min(cars.length - 1, index)) : 0;
+  const attive = profilePhotos(cars[posizione]);
+  /* Una per volta, non tutte insieme.
+   *
+   * La plancia di prima la foto senza cavo la scriveva gia' nel profilo, quella
+   * col cavo no: quest'ultima non era mai esistita dentro l'auto. Guardare "un
+   * profilo qualsiasi ha una foto" fermava l'adozione proprio in quel caso, e
+   * al primo cambio d'auto la foto col cavo spariva. Ogni foto si adotta per
+   * conto suo. */
+  const orfana = (chiave) =>
+    cars.every((car) => !profilePhotos(car)[chiave]) ? clean(current[chiave]) : "";
+  const foto = {
+    idle: attive.idle || orfana("idle"),
+    plugged: attive.plugged || orfana("plugged"),
+  };
   if (!foto.idle && !foto.plugged) return cars;
-  return withProfilePhotos(cars, index, foto);
+  return withProfilePhotos(cars, posizione, foto);
 }
