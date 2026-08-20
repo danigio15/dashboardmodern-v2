@@ -3,6 +3,7 @@ import {
   flowRecorderEntity,
   flowStageModel,
 } from "../core/energy-flow-topology.js";
+import { vehicleBatteryEntity } from "./ev-section.js";
 import {
   allStates,
   clean,
@@ -205,7 +206,9 @@ function vehiclePopupTarget() {
   if (typeof root.apriPopup !== "function") return null;
   if (!doc?.getElementById?.("ev-popup")) return null;
   const states = allStates();
-  const battery = resolvedEntity("dm.ev_batteria_auto");
+  // La carica dell'auto sta scritta in cinque posti accettati, non in uno:
+  // chi decide quale vale e' la sezione Auto, e la risposta arriva da li'.
+  const battery = resolvedEntity(vehicleBatteryEntity());
   if (!battery || !states[battery]) return null;
   const entities = [];
   for (const reference of WALLBOX_REFS) {

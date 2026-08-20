@@ -268,8 +268,19 @@ function ensureMasthead(page) {
   const labels = labelsFor(page);
   let mast = state.mastheads?.[page.id];
   const mount = mountFor(host);
-  if (mast && (!mast.isConnected || mast.parentElement !== mount)) mast = null;
-  if (!mast) mast = host.querySelector(":scope > .dm-page-mast");
+  /* L'intestazione che c'e' gia' si sposta, non si rifa'.
+   *
+   * La casa puo' cambiare mentre la pagina e' viva: su Auto la striscia del
+   * profilo compare quando le auto diventano due, e da quel momento il
+   * contenitore del contenuto non e' piu' la prima cosa che si vede, quindi
+   * l'intestazione passa dal contenitore alla pagina. Trattare quel cambio come
+   * "l'intestazione non c'e'" ne faceva una seconda e lasciava la prima dov'era:
+   * due nomi e due pulsanti Home sulla stessa pagina, per chi ha due auto.
+   *
+   * Si cerca quindi in tutta la pagina, non solo fra i figli diretti, e a
+   * spostarla ci pensa l'inserimento in fondo a questa funzione. */
+  if (mast && !mast.isConnected) mast = null;
+  if (!mast) mast = host.querySelector(".dm-page-mast");
   if (!mast) {
     mast = doc.createElement("header");
     mast.className = "dm-page-mast";

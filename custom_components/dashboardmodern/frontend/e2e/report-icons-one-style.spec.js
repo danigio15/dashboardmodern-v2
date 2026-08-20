@@ -37,6 +37,14 @@ const SEED = {
   visibility: { home: true, energy: true },
 };
 
+/* Un elettrodomestico del catalogo, uno con un nome che il catalogo non
+ * conosce, e un carico secondario: prima solo il primo aveva il disegno. */
+const RIGHE = [
+  { nome: "Lavatrice", sensore: "sensor.e1" },
+  { nome: "Zangola", sensore: "sensor.e2" },
+  { nome: "Wallbox", sensore: "sensor.e3" },
+];
+
 const STATES = ["sensor.e1", "sensor.e2", "sensor.e3"].map((entity_id, index) => ({
   entity_id,
   state: String(10 + index),
@@ -63,38 +71,47 @@ test("ogni voce del Report e' disegnata allo stesso modo", async ({ page }, test
     for (const entry of states) raw[entry.entity_id] = entry;
   }, STATES);
 
-  const icons = await page.evaluate(async () => {
+  // Le righe le stampo io con lo stesso stampo del runtime, e con i nomi che
+  // stanno nella configurazione: quello che si prova qui e' che cosa ci disegna
+  // dentro il modulo, non che il runtime sappia comporle — per quello ci sono
+  // gia' le sue prove, e aspettare che si popoli da se' vuol dire aspettare a
+  // tempo, che e' come questa prova cadeva in CI e non qui.
+  await page.evaluate((righe) => {
     document.querySelector('[data-tab="energy"]')?.click();
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    eval("cdRebuildReportDevices")();
-    // La lista si scrive da sola quando il Report viene disegnato; qui basta
-    // che le righe esistano, quindi le stampo con lo stesso stampo del runtime.
     const list = document.getElementById("ed-device-list");
-    const devices = eval("ED_DEVICES") || [];
-    list.innerHTML = devices
+    list.innerHTML = righe
       .map(
-        (device) =>
-          `<div class="ed-device-row" onclick="apriStorico(event,'${device.sensor}','${device.name}')">` +
-          `<div class="ed-dev-icon" style="background:${device.bg};">${device.icon}</div>` +
-          `<div class="ed-dev-name">${device.name}</div></div>`,
+        (riga) =>
+          `<div class="ed-device-row" onclick="apriStorico(event,'${riga.sensore}','${riga.nome}')">` +
+          `<div class="ed-dev-icon" style="background:rgba(14,165,233,0.1);">⚡</div>` +
+          `<div class="ed-dev-name">${riga.nome}</div></div>`,
       )
       .join("");
-    // La passata parte da sola quando qualcosa cambia nel Report.
     window.dispatchEvent(new CustomEvent("dashboardmodern:energy-stable", { detail: {} }));
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    return [...list.querySelectorAll(".ed-device-row")].map((row) => {
-      const icon = row.querySelector(".ed-dev-icon");
-      return {
-        name: row.querySelector(".ed-dev-name")?.textContent?.trim(),
-        art: icon?.querySelector("svg[viewBox='0 0 96 96']") ? "disegno" : "altro",
-        kind: icon?.querySelector("[data-dm-art]")?.dataset?.dmArt || "",
-      };
-    });
-  });
+  }, RIGHE);
 
-  expect(icons.length).toBeGreaterThan(2);
+  const leggi = () =>
+    page.evaluate(() => {
+      window.dispatchEvent(new CustomEvent("dashboardmodern:energy-stable", { detail: {} }));
+      return [...document.querySelectorAll("#ed-device-list .ed-device-row")].map((row) => {
+        const icon = row.querySelector(".ed-dev-icon");
+        return {
+          nome: row.querySelector(".ed-dev-name")?.textContent?.trim(),
+          art: icon?.querySelector("svg[viewBox='0 0 96 96']") ? "disegno" : "altro",
+          kind: icon?.querySelector("[data-dm-art]")?.dataset?.dmArt || "",
+        };
+      });
+    });
+
   // Nessuna riga resta con la faccina: tutte portano lo stesso disegno.
-  expect(icons.filter((entry) => entry.art !== "disegno")).toEqual([]);
+  await expect
+    .poll(async () => (await leggi()).filter((entry) => entry.art !== "disegno"), {
+      timeout: 15_000,
+    })
+    .toEqual([]);
+
+  const icons = await leggi();
+  expect(icons.length).toBe(RIGHE.length);
   // E quella che il catalogo riconosce non diventa generica.
-  expect(icons.find((entry) => entry.name === "Lavatrice")?.kind).toBe("washer");
+  expect(icons.find((entry) => entry.nome === "Lavatrice")?.kind).toBe("washer");
 });

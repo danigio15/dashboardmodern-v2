@@ -453,3 +453,49 @@ test("Energia si apre col nome, non con le sue linguette", async ({ page }, test
   });
   expect(above).toEqual([]);
 });
+
+/* La casa dell'intestazione puo' cambiare mentre la pagina e' viva.
+ *
+ * Un contenitore vale come casa solo se e' la prima cosa che si vede, e questo
+ * puo' cambiare sotto: un blocco che prima era vuoto prende altezza, una
+ * striscia nascosta compare. Quando cambia, l'intestazione che c'e' gia' va
+ * spostata. Cercarla solo fra i figli diretti della pagina significa non
+ * trovarla quando sta dentro a un contenitore, e farne una seconda lasciando la
+ * prima dov'era: due nomi e due pulsanti Home sulla stessa pagina.
+ *
+ * Qui l'intestazione viene messa a mano dentro a un contenitore, che e' lo
+ * stato in cui la lascia una passata precedente, e si guarda cosa fa la
+ * passata dopo.
+ */
+test("un'intestazione annidata viene spostata, non duplicata", async ({ page }, testInfo) => {
+  await boot(page, testInfo);
+  const passata = async () => {
+    await page.evaluate(() => {
+      document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
+      document.getElementById("page-ev").classList.add("active");
+      window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+    });
+    await page.waitForTimeout(350);
+  };
+  await passata();
+
+  const dopo = await page.evaluate(async () => {
+    const host = document.getElementById("page-ev");
+    const mast = host.querySelector(".dm-page-mast");
+    // La metto dove la lascerebbe una passata in cui il contenuto apriva la
+    // pagina: dentro al contenitore, non fra i figli diretti.
+    const wrapper = [...host.children].find(
+      (node) => node !== mast && node.getClientRects().length,
+    );
+    wrapper.insertBefore(mast, wrapper.firstChild);
+    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    return {
+      intestazioni: host.querySelectorAll(".dm-page-mast").length,
+      home: [...host.querySelectorAll(".back-home-btn")].filter(
+        (node) => getComputedStyle(node).display !== "none",
+      ).length,
+    };
+  });
+  expect(dopo).toEqual({ intestazioni: 1, home: 1 });
+});

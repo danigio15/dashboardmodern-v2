@@ -279,6 +279,36 @@ export function stateChangeAffectsEv(event) {
 }
 
 function activeIndex() { const index = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "-1", 10); return Number.isFinite(index) ? index : -1; }
+
+/* Dove sta scritta la carica dell'auto.
+ *
+ * Non in un posto solo: la mappatura storica si chiama dm.ev_batteria_auto, le
+ * piu' recenti dm.ev_battery e dm.ev_soc, e un profilo puo' portarsela dentro
+ * come battery_entity o soc_entity. Sono tutte accettate, quindi chi vuole
+ * sapere se un'auto c'e' deve guardarle tutte: bastava fermarsi alla prima per
+ * non vedere un'auto configurata benissimo.
+ *
+ * L'ordine e' quello che usa gia' la tendina dei profili, e resta uno solo:
+ * altrove si importa questa. */
+const BATTERY_REFS = Object.freeze(["dm.ev_batteria_auto", "dm.ev_battery", "dm.ev_soc"]);
+
+export function vehicleBatteryEntity(car = profiles()[activeIndex()] || profiles()[0] || {}) {
+  const overrides = car.ov || car.overrides || {};
+  for (const reference of BATTERY_REFS) {
+    const own = clean(overrides[reference]);
+    if (own) return own;
+  }
+  const carOwn = clean(car.battery_entity || car.soc_entity);
+  if (carOwn) return carOwn;
+  // Nessun profilo la porta: resta la mappatura generale della plancia.
+  for (const reference of BATTERY_REFS) {
+    let resolved = "";
+    try { resolved = clean(root.resolveEntity?.(reference)); } catch (_error) {}
+    if (resolved && resolved !== reference) return resolved;
+  }
+  return "";
+}
+
 function profileMeta(car = {}) {
   const overrides = car.ov || car.overrides || {};
   const batteryEntity = overrides["dm.ev_batteria_auto"] || overrides["dm.ev_battery"] || overrides["dm.ev_soc"] || car.battery_entity || car.soc_entity || "";
