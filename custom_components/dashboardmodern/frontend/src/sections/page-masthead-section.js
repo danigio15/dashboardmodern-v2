@@ -138,7 +138,7 @@ function backHomeMarkup() {
  * restava un rettangolo stretto e spostato, con il contenuto sotto molto piu'
  * largo. Nasce invece dove nasce il contenuto, cosi' e' larga esattamente
  * quanto lui, senza doverlo sapere. */
-function mountFor(host) {
+function tallestWrapper(host) {
   let best = null;
   let tallest = 0;
   for (const wrapper of host.querySelectorAll(
@@ -155,7 +155,65 @@ function mountFor(host) {
     tallest = height;
     best = wrapper;
   }
+  return best;
+}
+
+/* La prima cosa che si vede sulla pagina, che non sia l'intestazione stessa. */
+function firstVisibleChild(host) {
+  for (const child of host.children) {
+    if (child.classList?.contains("dm-page-mast")) continue;
+    if (!child.getClientRects().length) continue;
+    return child;
+  }
+  return null;
+}
+
+function mountFor(host) {
+  const best = tallestWrapper(host);
+  /* L'intestazione apre la pagina: se il contenitore del contenuto non e' la
+   * prima cosa che si vede, incassarcela dentro la manda sotto quello che gli
+   * sta sopra.
+   *
+   * Su Energia il contenuto della vista Report si chiama energy-dashboard e la
+   * riga di linguette REPORT / ISTANTANEA / GIORNALIERA / MENSILE la precede:
+   * l'intestazione finiva sotto le linguette, cioe' la pagina si apriva con i
+   * suoi comandi e il nome veniva dopo. Su Auto e' la striscia del profilo a
+   * stare davanti al contenuto, e il nome della pagina compariva sotto la
+   * targhetta della marca.
+   *
+   * In quei casi l'intestazione nasce sulla pagina, prima di tutto, e la
+   * larghezza gliela da' `alignToContent` copiandola dal contenuto. */
+  if (best && best !== firstVisibleChild(host)) return host;
   return best || soleContentWrapper(host) || host;
+}
+
+/* Larga quanto il contenuto anche quando non ci sta dentro.
+ *
+ * Un'intestazione che nasce sulla pagina e' larga quanto la scheda, e sotto di
+ * lei il contenuto puo' essere incolonnato al centro molto piu' stretto: sul
+ * telefono non si vede, su uno schermo largo si vede benissimo. Qui prende la
+ * misura del contenuto e la porta con se'. Se il contenuto e' largo quanto la
+ * pagina non c'e' niente da imporre e il limite si toglie. */
+function alignToContent(host, mast, mount) {
+  const content = mount === host ? tallestWrapper(host) : null;
+  // Si copia il limite che il contenuto si e' dato, non la sua larghezza di
+  // adesso: la larghezza include gia' il margine interno della pagina e
+  // l'intestazione, che quel margine ce l'ha anche lei, verrebbe piu' stretta
+  // del contenuto di due margini. Se il contenuto non si e' dato un limite non
+  // c'e' niente da copiare.
+  const declared = content ? root.getComputedStyle?.(content)?.maxWidth : "";
+  const width = /^[\d.]+px$/.test(declared || "") ? Number.parseFloat(declared) : 0;
+  const room = host.getBoundingClientRect().width;
+  if (width > 0 && room - width > 3) {
+    const limit = `${Math.round(width)}px`;
+    if (mast.style.getPropertyValue("--dm-mast-room") !== limit) {
+      mast.style.setProperty("--dm-mast-room", limit);
+    }
+    return;
+  }
+  if (mast.style.getPropertyValue("--dm-mast-room")) {
+    mast.style.removeProperty("--dm-mast-room");
+  }
 }
 
 /* Quando il contenuto della pagina e' tutto in un blocco solo.
@@ -210,8 +268,19 @@ function ensureMasthead(page) {
   const labels = labelsFor(page);
   let mast = state.mastheads?.[page.id];
   const mount = mountFor(host);
-  if (mast && (!mast.isConnected || mast.parentElement !== mount)) mast = null;
-  if (!mast) mast = host.querySelector(":scope > .dm-page-mast");
+  /* L'intestazione che c'e' gia' si sposta, non si rifa'.
+   *
+   * La casa puo' cambiare mentre la pagina e' viva: su Auto la striscia del
+   * profilo compare quando le auto diventano due, e da quel momento il
+   * contenitore del contenuto non e' piu' la prima cosa che si vede, quindi
+   * l'intestazione passa dal contenitore alla pagina. Trattare quel cambio come
+   * "l'intestazione non c'e'" ne faceva una seconda e lasciava la prima dov'era:
+   * due nomi e due pulsanti Home sulla stessa pagina, per chi ha due auto.
+   *
+   * Si cerca quindi in tutta la pagina, non solo fra i figli diretti, e a
+   * spostarla ci pensa l'inserimento in fondo a questa funzione. */
+  if (mast && !mast.isConnected) mast = null;
+  if (!mast) mast = host.querySelector(".dm-page-mast");
   if (!mast) {
     mast = doc.createElement("header");
     mast.className = "dm-page-mast";
@@ -238,6 +307,7 @@ function ensureMasthead(page) {
   if (mast.parentElement !== mount || mount.firstElementChild !== mast) {
     mount.insertBefore(mast, mount.firstChild);
   }
+  alignToContent(host, mast, mount);
   foldForeignBackButtons(host);
   foldLegacyHeading(host, page.fold);
   return true;
@@ -300,7 +370,7 @@ function installStyles() {
     ${foldRules()}
     .dm-page-mast{
       position:relative!important;display:block!important;box-sizing:border-box!important;
-      width:100%!important;max-width:none!important;margin:0 0 18px!important;
+      width:100%!important;max-width:var(--dm-mast-room,none)!important;margin:0 auto 18px!important;
       grid-column:1/-1!important;flex:1 1 100%!important;
       align-self:stretch!important;justify-self:stretch!important;
       padding:26px 30px 24px!important;border-radius:28px!important;text-align:left!important;

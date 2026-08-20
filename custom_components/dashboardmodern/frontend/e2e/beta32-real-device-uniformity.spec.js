@@ -286,7 +286,22 @@ test("every page opens with the same heading, once", async ({ page }, testInfo) 
         // pagine sta dentro un contenitore che ne fissa la larghezza: l'apertura
         // e' quella del contenitore, non della scheda, altrimenti l'intestazione
         // sarebbe larga diversamente da cio' che introduce.
-        first: mast?.parentElement?.firstElementChild === mast,
+        //
+        // "Prima" pero' si misura sulla pagina, non dentro al contenitore: la
+        // pagina Auto teneva la striscia del profilo davanti al contenuto, e
+        // l'intestazione era prima del contenuto ma sotto la striscia — cioe'
+        // la pagina si apriva con la targhetta della marca e il nome veniva
+        // dopo. Niente di cio' che si vede sta sopra l'intestazione.
+        first: (() => {
+          if (!mast) return false;
+          const top = mast.getBoundingClientRect().top;
+          for (const node of host.querySelectorAll("*")) {
+            if (mast.contains(node) || node.contains(mast)) continue;
+            const box = node.getBoundingClientRect();
+            if (box.height > 4 && box.top < top - 2) return false;
+          }
+          return true;
+        })(),
         sameWidth: (() => {
           if (!mast) return false;
           const sibling = [...mast.parentElement.children].find(
@@ -404,4 +419,83 @@ test("the history popup pinches open on a shorter stretch of time", async ({ pag
 
   await page.locator(".dm-hist-zoom [data-dm-hist-reset]").click();
   expect(await page.evaluate(() => window.__DASHBOARDMODERN_HISTORY_SECTION__?.zoom)).toBeFalsy();
+});
+
+/* La vista Report di Energia si chiama energy-dashboard, e sopra di lei sta la
+ * riga di linguette REPORT / ISTANTANEA / GIORNALIERA / MENSILE. L'intestazione
+ * cercava il contenuto della pagina fra i contenitori che ne fissano la
+ * larghezza, trovava quella vista e ci finiva dentro: la pagina si apriva con
+ * le proprie linguette e il nome arrivava sotto. Qui la vista viene riempita
+ * perche' vinca davvero il confronto, come succede su un impianto vero. */
+test("Energia si apre col nome, non con le sue linguette", async ({ page }, testInfo) => {
+  await boot(page, testInfo);
+  const above = await page.evaluate(async () => {
+    document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
+    const host = document.getElementById("page-energy");
+    host.classList.add("active");
+    for (const view of host.querySelectorAll(".flow-view")) view.classList.remove("active");
+    const report = document.getElementById("view-panoramica");
+    report.classList.add("active");
+    report.style.minHeight = "900px";
+    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    const mast = host.querySelector(".dm-page-mast");
+    if (!mast) return ["NESSUNA-INTESTAZIONE"];
+    const top = mast.getBoundingClientRect().top;
+    const found = [];
+    for (const node of host.querySelectorAll("*")) {
+      if (mast.contains(node) || node.contains(mast)) continue;
+      const box = node.getBoundingClientRect();
+      if (box.height > 4 && box.top < top - 2)
+        found.push(node.className || node.id || node.tagName);
+    }
+    return found.slice(0, 4);
+  });
+  expect(above).toEqual([]);
+});
+
+/* La casa dell'intestazione puo' cambiare mentre la pagina e' viva.
+ *
+ * Un contenitore vale come casa solo se e' la prima cosa che si vede, e questo
+ * puo' cambiare sotto: un blocco che prima era vuoto prende altezza, una
+ * striscia nascosta compare. Quando cambia, l'intestazione che c'e' gia' va
+ * spostata. Cercarla solo fra i figli diretti della pagina significa non
+ * trovarla quando sta dentro a un contenitore, e farne una seconda lasciando la
+ * prima dov'era: due nomi e due pulsanti Home sulla stessa pagina.
+ *
+ * Qui l'intestazione viene messa a mano dentro a un contenitore, che e' lo
+ * stato in cui la lascia una passata precedente, e si guarda cosa fa la
+ * passata dopo.
+ */
+test("un'intestazione annidata viene spostata, non duplicata", async ({ page }, testInfo) => {
+  await boot(page, testInfo);
+  const passata = async () => {
+    await page.evaluate(() => {
+      document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
+      document.getElementById("page-ev").classList.add("active");
+      window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+    });
+    await page.waitForTimeout(350);
+  };
+  await passata();
+
+  const dopo = await page.evaluate(async () => {
+    const host = document.getElementById("page-ev");
+    const mast = host.querySelector(".dm-page-mast");
+    // La metto dove la lascerebbe una passata in cui il contenuto apriva la
+    // pagina: dentro al contenitore, non fra i figli diretti.
+    const wrapper = [...host.children].find(
+      (node) => node !== mast && node.getClientRects().length,
+    );
+    wrapper.insertBefore(mast, wrapper.firstChild);
+    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    return {
+      intestazioni: host.querySelectorAll(".dm-page-mast").length,
+      home: [...host.querySelectorAll(".back-home-btn")].filter(
+        (node) => getComputedStyle(node).display !== "none",
+      ).length,
+    };
+  });
+  expect(dopo).toEqual({ intestazioni: 1, home: 1 });
 });

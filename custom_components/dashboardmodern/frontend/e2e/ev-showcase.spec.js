@@ -99,7 +99,11 @@ test.describe("EV page redesign", () => {
     await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
     await openEvPage(page, { mode: "pv" });
 
-    const cards = page.locator(".dm-vehicle-profile-card");
+    // La tendina di cui parla questa prova e' quella in cima alla pagina Auto.
+    // Le stesse linguette si disegnano anche dentro al popup dell'auto — e'
+    // la stessa tendina in un secondo posto — quindi contarle su tutta la
+    // pagina ne trova il doppio e non dice piu' di quale si sta parlando.
+    const cards = page.locator("#ev-car-picker .dm-vehicle-profile-card");
     await expect(cards).toHaveCount(2);
     await expect(cards.first()).toHaveClass(/active/);
     await cards.nth(1).click();

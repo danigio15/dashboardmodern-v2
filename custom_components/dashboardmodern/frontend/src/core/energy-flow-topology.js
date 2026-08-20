@@ -271,10 +271,46 @@ function savedOverride(flowNodes, slotKey) {
   return saved && typeof saved === "object" ? saved : null;
 }
 
+/* Il cerchio della Wallbox e' l'auto.
+ *
+ * Toccando quel cerchio si apriva lo storico di un sensore di potenza: un
+ * grafico che dice quanti kW stanno passando nel cavo. Ma il cavo e' attaccato
+ * a una macchina di cui la plancia sa gia' tutto — carica, autonomia, stato
+ * della presa — e quella e' la risposta che uno cerca quando tocca la Wallbox.
+ *
+ * Una Wallbox si riconosce da tre cose, in quest'ordine: il carico dice di
+ * esserlo, oppure e' il carico Wallbox che la configurazione conosce, oppure i
+ * suoi sensori sono gli stessi che la sezione Auto sta gia' leggendo. Il nome
+ * conta per ultimo, e solo perche' chi crea un carico a mano lo chiama cosi'.
+ *
+ * Chi decide se l'auto c'e' non e' questo modulo: la sezione passa `wallbox`
+ * soltanto quando c'e' un veicolo configurato e un popup da aprire. Senza auto
+ * il cerchio resta quello di prima, con il suo storico. */
+const WALLBOX_NAME = /wallbox|colonnina|ev[ _-]?charger|car[ _-]?charger/i;
+
+export function isWallboxLoad(load = {}, override = null, entities = []) {
+  if (clean(load?.metadata?.flow_kind) === "ev") return true;
+  if (clean(load.id) === "load-wallbox") return true;
+  const known = new Set(entities.map(clean).filter(Boolean));
+  if (known.size) {
+    for (const value of [
+      load.power_entity,
+      load.daily_energy_entity,
+      load.monthly_energy_entity,
+      load.total_energy_entity,
+      load.history_entity,
+    ]) {
+      if (clean(value) && known.has(clean(value))) return true;
+    }
+  }
+  return WALLBOX_NAME.test(clean(override?.name) || clean(load.name));
+}
+
 /* A circle holding appliances opens the popup listing them; the group is the
  * circle itself, so there is nothing to bind by hand. Only a circle with none
  * falls back to the history of its own entity. */
-function clickTarget(load, override, period, name, children = 0) {
+function clickTarget(load, override, period, name, children = 0, wallbox = null) {
+  if (wallbox && isWallboxLoad(load, override, wallbox.entities)) return { kind: "ev" };
   const group = children
     ? clean(load?.metadata?.flow_group) || clean(load.id)
     : clean(override?.group ?? load?.group);
@@ -301,6 +337,7 @@ export function flowStageModel(options = {}) {
     period = "instant",
     recorderValues = null,
     locale = "it-IT",
+    wallbox = null,
   } = options;
 
   const eligible = flowStageLoads(loads);
@@ -343,7 +380,7 @@ export function flowStageModel(options = {}) {
       intensity: flowIntensity(active ? value : 0, peak),
       desktop: desktop[index],
       mobile: mobile[index],
-      click: clickTarget(load, override, period, name, children),
+      click: clickTarget(load, override, period, name, children, wallbox),
     };
   });
 

@@ -79,8 +79,41 @@ function decorate(slot) {
     });
     input.addEventListener("change", () => paint(slot));
   }
+  ensureSlotClear(slot, input);
   paint(slot);
   return true;
+}
+
+/* Il cestino sulla riga, anche qui.
+ *
+ * Le righe che chiedono un'entita' esistono in due forme: quelle in piedi da
+ * sole, che hanno la matita e il cestino scritti accanto alla scelta, e queste,
+ * le righe delle sezioni, che avevano solo la pastiglia per scegliere. Su
+ * Home, Energia, Solare, MiniPC e Azioni non c'era quindi alcun modo di togliere
+ * un'entita' sbagliata se non riaprire il campo a mano e cancellarlo: lo stesso
+ * comando c'era due passi piu' in la' e qui no.
+ *
+ * Svuotare il campo e battere `change` e' la scelta dell'entita' al contrario:
+ * il gestore che la riga ha gia' vede il campo vuoto, toglie l'associazione e
+ * salva — qui non si scrive niente da nessuna parte. Il cestino compare solo
+ * quando c'e' qualcosa da togliere. */
+function ensureSlotClear(slot, input) {
+  if (slot.querySelector(":scope > .dm-slot-clear")) return;
+  const clear = doc.createElement("button");
+  clear.type = "button";
+  clear.className = "dm-slot-clear";
+  clear.innerHTML = `<span aria-hidden="true">🗑</span><span class="dm-slot-clear-tx">${esc(t("Elimina", "Remove"))}</span>`;
+  clear.setAttribute("aria-label", t("Togli l'entità da questo campo", "Remove the entity from this field"));
+  clear.hidden = !clean(input.value);
+  clear.addEventListener("click", (event) => {
+    event.preventDefault();
+    if (!clean(input.value)) return;
+    input.value = "";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    paint(slot);
+  });
+  slot.append(clear);
 }
 
 function paint(slot) {
@@ -90,6 +123,9 @@ function paint(slot) {
   const value = clean(input.value);
   const label = entityLabel(value);
   slot.dataset.dmSlot = value ? "mapped" : "empty";
+  // Non si toglie quello che non c'e'.
+  const clear = slot.querySelector(":scope > .dm-slot-clear");
+  if (clear) clear.hidden = !value;
   const name = chip.querySelector("[data-chip-name]");
   const id = chip.querySelector("[data-chip-id]");
   const nameText = value ? label || value : t("Scegli entità", "Choose entity");
@@ -665,12 +701,29 @@ function installStyles() {
   background:color-mix(in srgb,var(--primary-color,#0ea5e9) 8%,transparent)!important
 }
 .dm-slots .dm-slot{
-  display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:6px!important;
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:6px!important;
   margin:0!important;padding:11px 13px!important;border:1px solid var(--divider-color,#dbe4ee)!important;
   border-radius:16px!important;background:var(--card-background-color,#fff)!important
 }
 .dm-slots .dm-slot[data-dm-slot="mapped"]{border-color:color-mix(in srgb,#16a34a 30%,var(--divider-color,#dbe4ee))!important}
+.dm-slots .dm-slot>*{grid-column:1/-1!important}
+.dm-slots .dm-slot>.dm-slot-chip{grid-column:1!important}
+.dm-slots .dm-slot>.dm-slot-clear{grid-column:2!important}
 .dm-slots .dm-slot>.ed-slot-lbl{margin:0!important;display:flex!important;align-items:center!important;gap:8px!important}
+/* Lo stesso comando della riga in piedi da sola, con lo stesso aspetto. */
+.dm-slots .dm-slot>.dm-slot-clear{
+  display:inline-flex!important;align-items:center!important;gap:5px!important;
+  align-self:stretch!important;padding:0 10px!important;
+  border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:999px!important;
+  background:transparent!important;color:var(--secondary-text-color,#64748b)!important;
+  font-size:11.5px!important;font-weight:800!important;line-height:1!important;
+  white-space:nowrap!important;cursor:pointer!important
+}
+.dm-slots .dm-slot>.dm-slot-clear[hidden]{display:none!important}
+.dm-slots .dm-slot>.dm-slot-clear:hover{
+  border-color:var(--error-color,#dc2626)!important;color:var(--error-color,#dc2626)!important
+}
+.dm-slots.dm-slots-raw .dm-slot>.dm-slot-clear{display:none!important}
 .dm-slots .dm-slot>.ed-slot-lbl::before{
   content:"";width:7px;height:7px;border-radius:50%;flex:0 0 7px;
   background:var(--divider-color,#cbd5e1)

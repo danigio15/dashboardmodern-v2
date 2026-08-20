@@ -562,6 +562,21 @@ function installStyles() {
      * in cui qualcuno lo vede. */
     .modal-wrapper:not(.show),.modal-wrapper:not(.show) *,.clima-popup-overlay:not(.show),.clima-popup-overlay:not(.show) *,.hist-overlay:not(.show),.hist-overlay:not(.show) *,#srv-hist-overlay:not(.show),#srv-hist-overlay:not(.show) *,nav.tabs.bottom-nav-bar:not(.visible){backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
     .modal-wrapper:not(.show) *,.clima-popup-overlay:not(.show) *,.hist-overlay:not(.show) *,#srv-hist-overlay:not(.show) *{animation-play-state:paused!important}
+    /* Lo sfondo sfocato deve crescere insieme alla dissolvenza, non comparire
+     * di colpo.
+     *
+     * Le finestre chiuse non tengono piu' il vetro smerigliato, e va bene:
+     * nessuno lo guarda. Ma quando la finestra si apre il browser deve
+     * costruire la sfocatura a schermo intero tutta nello stesso disegno, e su
+     * quel disegno il telefono perde un fotogramma: e' il tremolio che si vede
+     * all'apertura di ogni popup.
+     *
+     * Le altre finestre (clima, storico, storico del server) sfumano gia' ogni
+     * proprieta' insieme, quindi il problema non ce l'hanno. Solo .modal-wrapper
+     * elenca a mano cosa sfumare, e nell'elenco la sfocatura non c'era: qui la
+     * aggiungiamo, con gli stessi 0.4s della dissolvenza. */
+    .modal-wrapper{transition:visibility 0s .4s,opacity .4s ease,backdrop-filter .4s ease,-webkit-backdrop-filter .4s ease!important}
+    .modal-wrapper.show{transition:opacity .4s ease,backdrop-filter .4s ease,-webkit-backdrop-filter .4s ease!important}
     .ed-tab[data-tab]>.dm-beta4-tab-icon{display:inline-grid!important;place-items:center!important;flex:0 0 auto!important;min-width:1.2em!important;margin-right:5px!important;visibility:visible!important;opacity:1!important}
     .ed-tab[data-tab]>.dm-beta4-tab-label{display:inline!important;white-space:nowrap!important}
 

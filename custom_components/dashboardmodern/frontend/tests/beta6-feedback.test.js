@@ -66,7 +66,11 @@ test("feedback layer no longer repaints the whole dashboard or resizes Chart.js"
 test("EV selector updates existing cards instead of rebuilding them on every state event", async () => {
   const source = await read("src/sections/ev-section.js");
   assert.match(source, /selectorStructureSignature/);
-  assert.match(source, /state\.selectorSignature !== structure/);
+  // La firma sta sull'elemento, non nel modulo: la tendina si disegna in due
+  // posti — la pagina Auto e il popup dell'auto — e un valore solo avrebbe
+  // fatto ridisegnare l'una a ogni passata dell'altra, che e' esattamente il
+  // ricostruire-tutto che questa prova impedisce.
+  assert.match(source, /dataset\.dmEvSignature !== structure/);
   assert.match(source, /small\.textContent!==meta/);
   assert.match(source, /legacyRefreshSignature/);
   assert.match(source, /signature===state\.legacyRefreshSignature/);
