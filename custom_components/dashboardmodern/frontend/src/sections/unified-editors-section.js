@@ -332,7 +332,16 @@ function installStyles() {
   if (doc?.getElementById("dm-unified-editor-visual-style")) return;
   const style = doc.createElement("style");
   style.id = "dm-unified-editor-visual-style";
-  style.textContent = `.dm-unified-icon-row{display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;gap:12px!important;align-items:center!important}.dm-unified-icon-preview{display:grid!important;place-items:center!important;width:72px!important;height:72px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:18px!important;background:var(--secondary-background-color,#eef3f8)!important;font-size:34px!important;overflow:hidden!important}.dm-unified-icon-preview ha-icon{--mdc-icon-size:36px!important}.dm-canonical-icon input{opacity:.78!important}.dm-editor-header-icon ha-icon{--mdc-icon-size:28px!important}`;
+  style.textContent = `.dm-unified-icon-row{display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;gap:12px!important;align-items:center!important}.dm-unified-icon-preview{display:grid!important;place-items:center!important;width:72px!important;height:72px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:18px!important;background:var(--secondary-background-color,#eef3f8)!important;font-size:34px!important;overflow:hidden!important}.dm-unified-icon-preview ha-icon{--mdc-icon-size:36px!important}.dm-canonical-icon input{opacity:.78!important}.dm-editor-header-icon ha-icon{--mdc-icon-size:28px!important}
+/* Il catalogo delle entita' deve stare sopra la finestra che lo chiama.
+ *
+ * La finestra di modifica sta a 100040, il catalogo si apre a 100000 scritto a
+ * mano sull'elemento: si apriva davvero, ma dietro. Chi premeva "Scegli entita'"
+ * vedeva la stessa schermata di prima e concludeva che il pulsante non
+ * funzionasse — e valeva per tutte le finestre di modifica, non solo per una.
+ * La regola sta qui perche' e' qui che nasce la finestra: chi crea l'ostacolo
+ * si occupa di lasciare passare. */
+#cd-entpick{z-index:100060!important}`;
   doc.head.append(style);
 }
 

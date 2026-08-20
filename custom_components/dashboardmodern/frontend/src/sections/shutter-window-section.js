@@ -180,14 +180,33 @@ function installStyles() {
       content:""!important;position:absolute!important;left:-9px!important;top:7px!important;width:12px!important;height:5px!important;
       border-radius:3px!important;background:linear-gradient(180deg,#cbd5e1,#8fa0b3)!important}
 
-    /* Aperta: le ante rientrano verso il loro cardine e si vede il vano. */
+    /* Aperta: le ante rientrano verso il cardine e fanno ombra su cio' che
+       hanno dietro.
+     *
+     * Con la tapparella alzata bastava vedere il cielo scoperto. Con la
+     * tapparella giu' no: le ante rientravano su un fondo dello stesso colore e
+     * non si capiva piu' niente — la card diceva "finestra aperta" e mostrava
+     * una tapparella chiusa qualunque.
+     *
+     * Adesso l'anta aperta resta un'anta: prende corpo, si stacca dal fondo, e
+     * getta ombra su quello che ha dietro. E' l'ombra a dire che li' c'e' un
+     * buco, e funziona sia sulla tapparella chiara sia sul cielo — senza
+     * coprire ne' l'una ne' l'altro. Da chiusa l'anta resta trasparente, se no
+     * si perderebbe il vetro. */
     html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-infisso-stato="aperto"] .dm-tw-anta{
-      transform:scaleX(.34)!important;filter:brightness(.92)!important}
+      transform:scaleX(.28)!important;
+      background:linear-gradient(135deg,#f7fafc,#dbe3ec)!important;
+      box-shadow:inset 0 0 0 1px #b6c2d1,6px 0 14px -4px rgba(15,23,42,.55)!important}
+    html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-infisso-stato="aperto"] .dm-tw-anta-dx{
+      box-shadow:inset 0 0 0 1px #b6c2d1,-6px 0 14px -4px rgba(15,23,42,.55)!important}
+    /* Lo spessore del muro attorno al buco. */
     html body #page-tapparelle#page-tapparelle .dm-tw-spalla{
       position:absolute!important;top:8px!important;bottom:8px!important;left:8px!important;right:8px!important;
       border-radius:7px!important;z-index:6!important;opacity:0!important;transition:opacity .9s ease!important;
       pointer-events:none!important;
-      background:linear-gradient(90deg,rgba(15,23,42,.34),rgba(15,23,42,0) 24%,rgba(15,23,42,0) 76%,rgba(15,23,42,.34))!important}
+      background:linear-gradient(90deg,rgba(15,23,42,.62) 0,rgba(15,23,42,.22) 9%,rgba(15,23,42,0) 22%,
+                 rgba(15,23,42,0) 78%,rgba(15,23,42,.22) 91%,rgba(15,23,42,.62) 100%),
+                 linear-gradient(180deg,rgba(15,23,42,.30),rgba(15,23,42,0) 26%)!important}
     html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-infisso-stato="aperto"] .dm-tw-spalla{opacity:1!important}
 
     /* La pastiglia dell'infisso vive accanto a quella della tapparella, e la
