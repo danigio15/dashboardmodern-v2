@@ -210,21 +210,28 @@ export function paintEvccConsole(scope = doc) {
     if (typeof root.resolveEntity === "function") resolve = root.resolveEntity;
   } catch (_error) {}
   const presente = evccPresence(allStates(), resolve);
+  /* Si scrive solo quando cambia.
+   *
+   * Questa passata gira a ogni evento di stato, e riscrivere un attributo con
+   * il valore che ha gia' e' comunque una modifica al documento: chi guarda le
+   * modifiche per rifare il suo pezzo si rimette in coda per niente, a ogni
+   * giro. */
+  const segna = (node, visibile) => {
+    const nascosto = node.hasAttribute("hidden");
+    if (visibile && nascosto) node.removeAttribute("hidden");
+    else if (!visibile && !nascosto) node.setAttribute("hidden", "hidden");
+    const stato = visibile ? "configurato" : "assente";
+    if (node.dataset.dmEvcc !== stato) node.dataset.dmEvcc = stato;
+  };
   const mostra = (selector, visibile) => {
-    for (const node of scope.querySelectorAll(selector)) {
-      if (visibile) node.removeAttribute("hidden");
-      else node.setAttribute("hidden", "hidden");
-      node.dataset.dmEvcc = visibile ? "configurato" : "assente";
-    }
+    for (const node of scope.querySelectorAll(selector)) segna(node, visibile);
   };
   mostra(".lm-target-card,.ev-popup-target", presente.target);
   // L'autonomia al target e' il target detto in chilometri: senza target non e'
   // una riga vuota, e' una riga che non ha piu' senso.
   for (const value of scope.querySelectorAll(".v-auto-limite")) {
     const riga = value.closest(".lm-stat-card,.dm-evv-row,.ev-popup-session-row,.ev-popup-stat");
-    if (!riga) continue;
-    if (presente.target) riga.removeAttribute("hidden");
-    else riga.setAttribute("hidden", "hidden");
+    if (riga) segna(riga, presente.target);
   }
   mostra(".lm-evcc-card,.ev-popup-modes", presente.mode);
   return presente;
