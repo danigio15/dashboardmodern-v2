@@ -10,7 +10,6 @@ const state = (root[KEY] ||= {
   previousRefresh: null,
   previousApply: null,
   legacyRefreshSignature: "",
-  selectorSignature: "",
 });
 const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
 /* Paths Home Assistant already serves; anything else absolute lives under /local. */
@@ -348,19 +347,29 @@ function buildProfileButtons(nav, cars) {
   bindProfileNav(nav);
 }
 
-export function renderVehicleSelector() {
-  const host = nativeHost(), cars = profiles(); if (!host) return false;
-  host.classList.add("dm-vehicle-profile-host");
-  const select = nativeSelect(); if (select) { select.classList.add("dm-vehicle-native-select"); select.setAttribute("aria-hidden","true"); select.tabIndex=-1; }
+/* La stessa tendina, ovunque serva scegliere l'auto.
+ *
+ * Le linguette dei profili nascono in cima alla pagina Auto. Il popup dell'auto
+ * — quello che si apre dal cerchio della Wallbox e dalla pagina — mostrava
+ * sempre e solo l'auto attiva, senza modo di passare all'altra: chi ne ha due
+ * doveva chiudere, tornare in Auto, cambiare, e riaprire.
+ *
+ * Non e' una seconda tendina: e' questa, disegnata in un secondo posto. Stesso
+ * costruttore, stesso ascoltatore, stesso conteggio; scegliere da qui e'
+ * scegliere da li', e la foto la aggiorna `applyVehicleAsset` come ha sempre
+ * fatto — nel popup scrive gia'. La firma della struttura sta adesso
+ * sull'elemento invece che nel modulo, perche' i posti sono due e un valore
+ * solo avrebbe fatto ridisegnare uno a ogni passata dell'altro. */
+function paintSelector(host, cars) {
   let nav = host.querySelector(".dm-vehicle-profile-tabs");
   if (!nav) { nav=doc.createElement("nav"); nav.className="dm-vehicle-profile-tabs"; nav.setAttribute("aria-label",t("Seleziona auto","Select vehicle")); host.append(nav); bindProfileNav(nav); }
   if (!cars.length) {
     if (nav.childElementCount) nav.replaceChildren();
-    host.dataset.profileCount="0"; host.style.display="none"; state.selectorSignature=""; return false;
+    host.dataset.profileCount="0"; host.style.display="none"; host.dataset.dmEvSignature=""; return false;
   }
   host.style.display=""; host.dataset.profileCount=String(cars.length);
   const structure = selectorStructureSignature(cars);
-  if (state.selectorSignature !== structure || nav.children.length !== cars.length) { buildProfileButtons(nav,cars); state.selectorSignature=structure; }
+  if (host.dataset.dmEvSignature !== structure || nav.children.length !== cars.length) { buildProfileButtons(nav,cars); host.dataset.dmEvSignature=structure; }
   const selected = Math.max(0,Math.min(cars.length-1,activeIndex()));
   nav.querySelectorAll(".dm-vehicle-profile-card").forEach((button,index)=>{
     const active=index===selected; button.classList.toggle("active",active); button.setAttribute("aria-pressed",String(active));
@@ -369,6 +378,32 @@ export function renderVehicleSelector() {
     if (check) check.textContent=active?"✓":"";
   });
   return true;
+}
+
+/* Dove stanno le linguette dentro al popup: subito sotto l'intestazione, sopra
+ * la foto — cosi' si sceglie l'auto e si vede cambiare la sua fotografia. */
+function popupSelectorHost() {
+  const card = doc?.querySelector?.("#ev-popup .ev-popup-card");
+  if (!card) return null;
+  let host = card.querySelector(":scope > .dm-vehicle-profile-popup");
+  if (!host) {
+    host = doc.createElement("div");
+    host.className = "dm-vehicle-profile-host dm-vehicle-profile-popup";
+    const header = card.querySelector(".ev-waw-header");
+    if (header) header.insertAdjacentElement("afterend", host);
+    else card.prepend(host);
+  }
+  return host;
+}
+
+export function renderVehicleSelector() {
+  const cars = profiles();
+  const popup = popupSelectorHost();
+  if (popup) paintSelector(popup, cars);
+  const host = nativeHost(); if (!host) return false;
+  host.classList.add("dm-vehicle-profile-host");
+  const select = nativeSelect(); if (select) { select.classList.add("dm-vehicle-native-select"); select.setAttribute("aria-hidden","true"); select.tabIndex=-1; }
+  return paintSelector(host, cars);
 }
 
 /* Two cars, two pairs of photos.
@@ -476,6 +511,13 @@ function installStyles() {
   installStyle("dm-ev-section-style",`
 #ev-mod-car-img[data-ev-image-error],#ev-new-car-img[data-ev-image-error],#ev-mod-car-img[data-ev-failed="1"],#ev-new-car-img[data-ev-failed="1"]{display:none!important}
 #ev-car-picker.dm-vehicle-profile-host{box-sizing:border-box!important;width:fit-content!important;max-width:calc(100% - 28px)!important;margin:12px auto 10px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}#ev-car-picker.dm-vehicle-profile-host>.dm-vehicle-native-select{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important;opacity:0!important;pointer-events:none!important}
+#ev-popup .dm-vehicle-profile-popup{box-sizing:border-box!important;width:100%!important;max-width:100%!important;margin:0 0 12px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+/* La striscia si ferma dentro alla finestra. Sul telefono le linguette
+   scorrono di lato invece di andare a capo, e la misura che usa per farlo e'
+   quella dello schermo: dentro a una finestra, che e' piu' stretta, quella
+   misura la faceva sbordare oltre il bordo della card. */
+#ev-popup .dm-vehicle-profile-popup>.dm-vehicle-profile-tabs{max-width:100%!important;flex-wrap:wrap!important;justify-content:center!important;overflow-x:visible!important;padding:0!important}
+#ev-popup .dm-vehicle-profile-popup .dm-vehicle-profile-card{max-width:100%!important}
 .dm-vehicle-profile-tabs{display:flex!important;align-items:stretch!important;justify-content:center!important;flex-wrap:wrap!important;gap:8px!important;width:auto!important;max-width:100%!important}.dm-vehicle-profile-card{display:grid!important;grid-template-columns:58px minmax(0,max-content) 20px!important;align-items:start!important;gap:8px!important;box-sizing:border-box!important;width:max-content!important;max-width:min(100%,340px)!important;min-height:54px!important;margin:0!important;padding:8px 9px!important;border:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;border-radius:15px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--text,#0f172a)!important;box-shadow:0 6px 16px rgba(15,23,42,.07)!important;text-align:left!important;cursor:pointer!important;transition:border-color .12s ease,box-shadow .12s ease!important}.dm-vehicle-profile-card.active{border-color:var(--accent,#0ea5e9)!important;background:color-mix(in srgb,var(--accent,#0ea5e9) 10%,var(--ha-card-background,#fff))!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent,#0ea5e9) 18%,transparent),0 8px 20px rgba(14,165,233,.13)!important}
 .dm-vehicle-profile-icon{display:grid!important;place-items:start center!important;align-self:start!important;width:58px!important;height:34px!important;min-width:58px!important;overflow:hidden!important;border-radius:10px!important;background:color-mix(in srgb,var(--accent,#0ea5e9) 10%,transparent)!important}.dm-vehicle-profile-icon .dm-car-brand{display:grid!important;place-items:center!important;width:54px!important;max-width:54px!important;height:28px!important;margin:2px auto 0!important}.dm-vehicle-profile-icon .dm-car-brand img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important}.dm-vehicle-profile-icon ha-icon{margin:3px auto 0!important}.dm-vehicle-profile-copy{display:grid!important;gap:2px!important;min-width:0!important;padding-top:1px!important}.dm-vehicle-profile-copy strong,.dm-vehicle-profile-copy small{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.dm-vehicle-profile-copy strong{max-width:210px!important;font-size:13px!important;font-weight:900!important;line-height:1.1!important}.dm-vehicle-profile-copy small{font-size:9px!important;font-weight:750!important;line-height:1.1!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}.dm-vehicle-profile-check{display:grid!important;place-items:center!important;width:20px!important;height:20px!important;border-radius:50%!important;background:var(--accent,#0ea5e9)!important;color:#fff!important;font-size:11px!important;font-weight:900!important;opacity:0!important}.dm-vehicle-profile-card.active .dm-vehicle-profile-check{opacity:1!important}
 .dm-ev-brand-badge .dm-car-brand{display:grid!important;place-items:center!important;max-width:105px!important;height:34px!important}.dm-ev-brand-badge .dm-car-brand img{width:100%!important;height:100%!important;object-fit:contain!important}

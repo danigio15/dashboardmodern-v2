@@ -40,6 +40,12 @@ Cinque cose viste sul telefono dopo la seconda release candidate.
 
 ### Aggiunto
 
+- **Le linguette dei profili anche dentro al popup dell'auto.** La finestra
+  dell'auto mostrava sempre e solo la macchina attiva: chi ne ha due doveva
+  chiuderla, tornare in Auto, cambiare e riaprirla. Adesso porta le stesse
+  linguette che stanno in cima alla pagina Auto — non una seconda tendina, la
+  stessa disegnata in un secondo posto — e la fotografia resta quella
+  configurata nella sezione Auto, che cambia con la macchina scelta.
 - **Il cerchio della Wallbox apre l'auto.** Toccando la Wallbox nel flusso di
   Energia si apriva lo storico di un sensore di potenza; ma il cavo è attaccato
   a una macchina di cui la plancia sa già tutto, e quella è la risposta che uno
