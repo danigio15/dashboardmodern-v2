@@ -108,7 +108,7 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
    https://github.com/danigio15/dashboardmodern-v2
    ```
 
-4. Cerca **Dashboard Modern V2** e installa la versione più recente.
+4. Cerca **DashboardModern v2** e installa la versione più recente.
 5. **Riavvia Home Assistant.**
 6. **Impostazioni → Dispositivi e servizi → Aggiungi integrazione → Dashboard Modern V2**.
 7. Dai un nome alla plancia e conferma.
