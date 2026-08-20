@@ -211,6 +211,17 @@ for (const variant of PRIMARY) {
     expect(visualBox?.height ?? 0).toBeGreaterThanOrEqual(50);
     const image = visual.locator("img.dm-ap-img");
     await expect(image).toBeVisible();
+    /* Visibile non vuol dire disegnata.
+     *
+     * Un <img> ha il suo riquadro appena entra nella pagina, ma la fotografia
+     * arriva dopo: misurarla prima restituisce zero per zero, e su una macchina
+     * carica quel "dopo" arriva piu' tardi di quanto la prova aspettasse. */
+    await expect
+      .poll(() => image.evaluate((node) => node.complete && node.naturalWidth > 0), {
+        message: "la fotografia dell'elettrodomestico e' arrivata",
+        timeout: 15000,
+      })
+      .toBe(true);
     await expect(visual.locator(".dm-appliance-glyph")).toHaveCount(0);
     await expect(visual.locator(".dm-ap-hero-fallback")).toHaveCount(0);
     const imageMetrics = await image.evaluate((node) => {

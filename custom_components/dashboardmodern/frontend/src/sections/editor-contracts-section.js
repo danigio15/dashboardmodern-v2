@@ -278,7 +278,7 @@ function normalizeEnergyGuide() {
     intro.innerHTML = `<strong>⚡ ${t("Come leggere la configurazione Energia", "How to read the Energy configuration")}</strong>
       <div class="dm-energy-guide-steps">
         <span><b>1 · ${t("Storico e mesi precedenti", "History and previous months")}</b><small>${t("usa il contatore totale kWh tramite Recorder", "use the total kWh meter through Recorder")}</small></span>
-        <span><b>2 · ${t("Giorno / Mese / Anno", "Day / Month / Year")}</b><small>${t("sono override facoltativi del singolo periodo", "are optional overrides for that period")}</small></span>
+        <span><b>2 · ${t("Giorno / Mese / Anno", "Day / Month / Year")}</b><small>${t("servono solo se non c'è un contatore totale: quando c'è, comanda lui", "only used when there is no total meter: when there is one, it wins")}</small></span>
         <span><b>3 · ${t("Consumo Casa", "Home consumption")}</b><small>${t("usa il bilancio Home Assistant quando Fotovoltaico e Rete sono completi; Casa resta fallback", "uses the Home Assistant balance when Solar and Grid are complete; Home remains the fallback")}</small></span>
       </div>`;
   }

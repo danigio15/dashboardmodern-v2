@@ -26,7 +26,7 @@
  * an entity already in `_RAW_STATES`.
  */
 import { isRetiredEditorSlot } from "../core/editor-slots.js";
-import { clean, doc, root, installStyle, t, wrapFunction } from "./shared.js";
+import { clean, doc, esc, installStyle, root, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EDITOR_SLOTS__";
 const STYLE_ID = "dm-editor-slots-style";
@@ -61,6 +61,7 @@ function decorate(slot) {
   if (!isSlotRow(slot)) return false;
   const input = slot.querySelector(".ed-slot-in[data-ref]");
   slot.classList.add("dm-slot");
+  relabelSlot(slot, input);
   let chip = slot.querySelector(":scope > .dm-slot-chip");
   if (!chip) {
     chip = doc.createElement("button");
@@ -208,7 +209,130 @@ const FIELD_CAPTIONS = Object.freeze({
   "luce-add-ent": ["Entità luce", "Light entity"],
   "ed-st-temp": ["Sensore temperatura", "Temperature sensor"],
   "ed-st-hum": ["Sensore umidità", "Humidity sensor"],
+  "wz-qa-ent": ["Entità da comandare", "Entity to control"],
+  "ed-qa-ent": ["Entità da comandare", "Entity to control"],
+  "wz-dev-sw": ["Interruttore del dispositivo", "Device switch"],
+  "wz-dev-pw": ["Potenza istantanea (W)", "Instant power (W)"],
+  "wz-dev-sv": ["Stato o programma", "State or programme"],
+  "wz-rep-ent": ["Contatore energia (kWh)", "Energy meter (kWh)"],
+  "ed-rep2-ent": ["Contatore energia (kWh)", "Energy meter (kWh)"],
+  "ed-lu-ent": ["Entità luce", "Light entity"],
 });
+
+/* Un esempio deve insegnare qualcosa.
+ *
+ * I campi entita' suggerivano "dm.core_054 / dm.core_023 / scene.x". Quei
+ * codici sono i nomi interni degli slot di questa dashboard, non entita' che
+ * qualcuno abbia davvero in casa: chi configurava leggeva una sigla e non
+ * poteva sapere cosa scriverci, e nel campo delle Azioni la sigla finiva anche
+ * come didascalia della riga. Ogni campo dice adesso che cosa vuole, con un
+ * esempio scritto come Home Assistant scrive le sue entita'. */
+const PLACEHOLDERS = Object.freeze({
+  "wz-qa-ent": [
+    "Entità da comandare, es. switch.luce_salone",
+    "Entity to control, e.g. switch.luce_salone",
+  ],
+  "ed-qa-ent": [
+    "Interruttore, luce o scena da comandare — i popup non ne hanno bisogno",
+    "Switch, light or scene to control — popups do not need one",
+  ],
+  "wz-dev-sw": [
+    "Facoltativo: interruttore, es. switch.lavatrice",
+    "Optional: switch, e.g. switch.lavatrice",
+  ],
+  "wz-dev-pw": [
+    "Facoltativo: potenza in W, es. sensor.lavatrice_potenza",
+    "Optional: power in W, e.g. sensor.lavatrice_potenza",
+  ],
+  "wz-dev-sv": [
+    "Facoltativo: stato o programma, es. sensor.lavatrice_stato",
+    "Optional: state or programme, e.g. sensor.lavatrice_stato",
+  ],
+  "wz-rep-ent": [
+    "Contatore in kWh, es. sensor.lavatrice_energia",
+    "kWh meter, e.g. sensor.lavatrice_energia",
+  ],
+  "ed-rep2-ent": [
+    "Contatore in kWh, es. sensor.lavatrice_energia",
+    "kWh meter, e.g. sensor.lavatrice_energia",
+  ],
+  "ed-lu-ent": ["Entità luce, es. light.salone", "Light entity, e.g. light.salone"],
+});
+
+const GENERIC_PLACEHOLDER = Object.freeze([
+  "Scegli con 🔍, oppure scrivi l'entità: dominio.nome",
+  "Pick with 🔍, or type the entity: domain.name",
+]);
+
+const PLACEHOLDER_SELECTOR = [
+  'input[placeholder*="dm.core_"]',
+  ...Object.keys(PLACEHOLDERS).map((id) => `#${id}[placeholder]`),
+].join(",");
+
+function rewritePlaceholder(input) {
+  const known = PLACEHOLDERS[input.id];
+  const current = input.getAttribute("placeholder") || "";
+  if (!known && !current.includes("dm.core_")) return false;
+  const text = known ? t(known[0], known[1]) : t(GENERIC_PLACEHOLDER[0], GENERIC_PLACEHOLDER[1]);
+  if (current === text) return false;
+  input.setAttribute("placeholder", text);
+  return true;
+}
+
+export function clarifyEntityPlaceholders(scope = doc) {
+  if (!scope?.querySelectorAll) return 0;
+  let count = 0;
+  for (const input of scope.querySelectorAll(PLACEHOLDER_SELECTOR)) {
+    if (rewritePlaceholder(input)) count += 1;
+  }
+  return count;
+}
+
+/* Nomi che dicono cosa misura la sonda, non in che ordine e' stata scritta.
+ *
+ * Il solare termico chiedeva "Sonda temperatura 1, 2, 3" e chi configura non ha
+ * modo di indovinare quale va dove. Dal disegno della pagina si sa: la prima
+ * alimenta la lettura del pannello, la seconda il fondo dell'accumulo, la terza
+ * la cima. Il riferimento resta quello che e', cambia solo cio' che si legge.
+ */
+const SLOT_LABELS = Object.freeze({
+  "dm.boiler_sonda_temperatura_1": [
+    "Sonda pannello solare (°C)",
+    "Solar collector probe (°C)",
+    "Sonda temperatura 1 (°C)",
+  ],
+  "dm.boiler_sonda_temperatura_2": [
+    "Sonda accumulo basso (°C)",
+    "Tank bottom probe (°C)",
+    "Sonda temperatura 2 (°C)",
+  ],
+  "dm.boiler_sonda_temperatura_3": [
+    "Sonda accumulo alto (°C)",
+    "Tank top probe (°C)",
+    "Sonda temperatura 3 (°C)",
+  ],
+});
+
+/* L'etichetta di una riga che l'utente ha rinominato resta sua.
+ *
+ * Queste righe si possono rinominare, quindi il nome sta in un campo e non in
+ * un testo: si riscrive solo finche' porta ancora il nome di fabbrica, quello
+ * che il runtime stampa da se'. Chi l'ha cambiato se lo tiene. */
+function relabelSlot(slot, input) {
+  const known = SLOT_LABELS[clean(input?.dataset?.ref)];
+  if (!known) return;
+  const label = slot.querySelector(".ed-slot-lbl");
+  if (!label) return;
+  const text = t(known[0], known[1]);
+  const field = label.querySelector("input,textarea");
+  if (field) {
+    if (clean(field.value) !== clean(known[2])) return;
+    if (field.value !== text) field.value = text;
+    return;
+  }
+  if (label.querySelector("select")) return;
+  if (clean(label.textContent) !== text) label.textContent = text;
+}
 
 function fieldAlreadyLabelled(input) {
   if (!input) return true;
@@ -309,11 +433,11 @@ const CHIP_LAYOUT = Object.freeze([
 ]);
 const MANUAL_LAYOUT = Object.freeze([
   ["order", "2"],
-  ["flex", "0 0 36px"],
+  ["flex", "0 0 auto"],
   ["grid-column", "auto"],
-  ["width", "36px"],
+  ["width", "auto"],
   ["min-width", "36px"],
-  ["max-width", "36px"],
+  ["max-width", "none"],
   ["height", "36px"],
 ]);
 const CAPTION_LAYOUT = Object.freeze([
@@ -359,6 +483,9 @@ function paintFieldChip(host) {
   // identical content would quietly cost the user the value being typed.
   const mapped = value ? "mapped" : "empty";
   if (host.dataset.dmSlot !== mapped) host.dataset.dmSlot = mapped;
+  // Non si toglie quello che non c'e'.
+  const clearButton = host.querySelector(":scope > .dm-chip-clear");
+  if (clearButton) clearButton.hidden = !value;
   const name = chip.querySelector("[data-chip-name]");
   const id = chip.querySelector("[data-chip-id]");
   if (!name || !id) return;
@@ -402,12 +529,32 @@ function decorateField(input) {
   lens.classList.add("dm-slot-chip");
   lens.innerHTML = chipMarkup();
 
+  /* La matita da sola non diceva a cosa serviva.
+   *
+   * Chi arrivava su un campo gia' compilato non aveva modo di sapere che quel
+   * pulsante apre l'id da scrivere a mano, ne' come si toglie un'entita'
+   * sbagliata. Adesso i due comandi sono scritti: si modifica a mano, oppure si
+   * svuota il campo. Il secondo compare solo quando c'e' qualcosa da togliere. */
   const manual = doc.createElement("button");
   manual.type = "button";
   manual.className = "dm-chip-manual";
-  manual.textContent = "✏️";
+  manual.innerHTML = `<span aria-hidden="true">✏️</span><span class="dm-chip-manual-tx">${esc(t("Modifica", "Edit"))}</span>`;
   manual.setAttribute("aria-label", t("Modifica manuale", "Edit by hand"));
   manual.setAttribute("aria-pressed", "false");
+
+  const clearField = doc.createElement("button");
+  clearField.type = "button";
+  clearField.className = "dm-chip-clear";
+  clearField.innerHTML = `<span aria-hidden="true">🗑</span><span class="dm-chip-manual-tx">${esc(t("Elimina", "Remove"))}</span>`;
+  clearField.setAttribute("aria-label", t("Togli l'entità da questo campo", "Remove the entity from this field"));
+  clearField.addEventListener("click", (event) => {
+    event.preventDefault();
+    if (!clean(input.value)) return;
+    input.value = "";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    paintFieldChip(host);
+  });
   manual.addEventListener("click", (event) => {
     event.preventDefault();
     const on = host.dataset.dmEntityRaw !== "true";
@@ -418,6 +565,7 @@ function decorateField(input) {
   // After the lens, never between the field and the lens: that pair is a
   // contract every other owner of these forms reconciles.
   lens.insertAdjacentElement("afterend", manual);
+  manual.insertAdjacentElement("afterend", clearField);
 
   // After the form's own change handlers, never during them.
   input.addEventListener("change", () => {
@@ -427,9 +575,17 @@ function decorateField(input) {
     }
     root.requestAnimationFrame(() => paintFieldChip(host));
   });
-  pin(host, CARD_LAYOUT);
-  pin(lens, CHIP_LAYOUT);
-  pin(manual, MANUAL_LAYOUT);
+  /* La riga del Report si impagina da sola: ha la sua etichetta con la matita,
+   * il quadratino dell'icona e, in fondo, il pulsante che apre la voce per
+   * intero. Farne una card qui significava una cornice dentro la cornice e una
+   * seconda matita a capo, e siccome questa impaginazione si scrive
+   * sull'elemento nessun foglio di stile poteva rimediare. La card serve dove
+   * il campo e' nudo, non dove la riga lo veste gia'. */
+  if (!input.closest(".dm-report-row")) {
+    pin(host, CARD_LAYOUT);
+    pin(lens, CHIP_LAYOUT);
+    pin(manual, MANUAL_LAYOUT);
+  }
   ensureFieldCaption(host, input);
   paintFieldChip(host);
   return true;
@@ -458,6 +614,7 @@ export function decorateEntityFields(scope = doc?.getElementById("ed-body")) {
 
 export function decorateEditorSlots(scope = doc?.getElementById("ed-body")) {
   if (!scope) return 0;
+  clarifyEntityPlaceholders();
   dropRetiredSlots(scope);
   let count = 0;
   for (const body of scope.querySelectorAll(".ed-acc-body")) if (decorateBody(body)) count += 1;
@@ -580,6 +737,30 @@ function installStyles() {
    in the dark editor, the same as the label itself. */
 #editor-modal[data-dm-editor-theme="dark"] .dm-chip-caption{
   color:var(--text-dim,#92a4c2)!important
+}
+/* I due comandi del campo, scritti. La matita da sola non diceva a cosa
+   serviva, e non c'era modo di capire come si toglie un'entita' sbagliata. */
+[data-dm-entity-chip="true"] .dm-chip-manual,
+[data-dm-entity-chip="true"] .dm-chip-clear{
+  display:inline-flex!important;align-items:center!important;gap:5px!important;
+  padding:0 10px!important;border-radius:999px!important;
+  font-size:11.5px!important;font-weight:800!important;line-height:1!important;
+  white-space:nowrap!important;cursor:pointer!important
+}
+[data-dm-entity-chip="true"] .dm-chip-clear{
+  order:2!important;flex:0 0 auto!important;height:36px!important;
+  border:1px solid var(--divider-color,#dbe4ee)!important;background:transparent!important;
+  color:var(--secondary-text-color,#64748b)!important
+}
+[data-dm-entity-chip="true"] .dm-chip-clear[hidden]{display:none!important}
+[data-dm-entity-chip="true"] .dm-chip-clear:hover{
+  border-color:var(--error-color,#dc2626)!important;color:var(--error-color,#dc2626)!important
+}
+/* Il testo resta anche stretto: e' sul telefono che la matita da sola non si
+   capiva, quindi nasconderlo li' sarebbe stato togliere proprio la risposta. */
+@media(max-width:520px){
+  [data-dm-entity-chip="true"] .dm-chip-manual,
+  [data-dm-entity-chip="true"] .dm-chip-clear{padding:0 8px!important;font-size:11px!important}
 }
 [data-dm-entity-chip="true"] .dm-chip-manual{
   order:2!important;flex:0 0 36px!important;width:36px!important;min-width:36px!important;

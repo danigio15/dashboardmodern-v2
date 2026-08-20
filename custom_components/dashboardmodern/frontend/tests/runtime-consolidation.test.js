@@ -205,7 +205,8 @@ test("one hosted bootstrap delegates to the section runtime, which owns the guar
   assert.match(guidance, /consumo Casa usa lo stesso bilancio dei flussi di Home Assistant/);
   assert.match(guidance, /energyEditorActive/);
   assert.match(guidance, /removeEnergyGuidance/);
-  assert.match(guidance, /Recorder, storico e mesi precedenti/);
+  assert.match(guidance, /storico e mesi precedenti si ricavano da qui con Recorder/);
+  assert.match(guidance, /dm-energy-source-clash/);
   assert.match(report, /dm-report-row-editor/);
   assert.match(report, /grid-template-areas/);
   for (const kind of ["action", "climate", "shutter", "room"])

@@ -118,3 +118,35 @@ test("beta27 hierarchical loads preserve existing appliances and deduplicate pro
     [oven, fridge, custom],
   );
 });
+
+/* Nascosta a mano vuol dire nascosta.
+ *
+ * Nella mappa delle visibilita' un `false` puo' voler dire due cose opposte:
+ * "non l'ho ancora configurata", che ci scrive la procedura iniziale, oppure
+ * "non la voglio vedere", che ci scrive chi preme il pulsante. La passata che
+ * accende le sezioni configurate le trattava allo stesso modo.
+ */
+test("una sezione nascosta di persona non viene riaccesa", () => {
+  const previous = globalThis.localStorage;
+  globalThis.localStorage = memoryStorage({
+    cd_sections: JSON.stringify({ temp: false, security: false }),
+    cd_sections_manual: JSON.stringify({ temp: true }),
+    cd_stanze: JSON.stringify([
+      { id: "room-cameretta", name: "Cameretta", temp: "sensor.cameretta_temperature" },
+    ]),
+    cd_cameras: JSON.stringify([{ entity: "camera.ingresso" }]),
+  });
+
+  try {
+    ensureConfiguredSectionsVisible({ sync: false });
+    const visibility = JSON.parse(globalThis.localStorage.getItem("cd_sections"));
+    // Temperature: nascosta premendo il pulsante, resta nascosta.
+    assert.equal(visibility.temp, false);
+    // Sicurezza: quel false lo aveva scritto la procedura iniziale, e ora che
+    // c'e' una telecamera la cortesia vale ancora.
+    assert.equal(visibility.security, true);
+  } finally {
+    if (previous === undefined) delete globalThis.localStorage;
+    else globalThis.localStorage = previous;
+  }
+});

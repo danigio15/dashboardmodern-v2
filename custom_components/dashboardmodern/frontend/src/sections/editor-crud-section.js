@@ -95,13 +95,34 @@ function editButton(kind, index) {
   return button;
 }
 
+/* Tutte le righe dell'elenco, comprese quelle gia' sistemate.
+ *
+ * Qui si escludevano le righe che avevano gia' il pulsante di modifica. Il
+ * seguito pero' numera le righe contando da capo su cio' che riceve: se una
+ * passata ne trova alcune gia' sistemate e altre no — cosa che accade ogni
+ * volta che il runtime ridisegna una parte dell'elenco — le nuove ripartono da
+ * zero e finiscono con lo stesso numero di righe che stanno piu' in alto. Chi
+ * dipinge le righe legge quel numero per sapere quale unita' mostrare, e due
+ * righe con lo stesso numero mostrano la stessa unita'. */
 function rowsBeforeForm(container, selector) {
   const field = container?.querySelector(selector);
   if (!container || !field) return [];
   return [...container.querySelectorAll(".ed-row")].filter((row) => {
-    if (row.contains(field) || row.querySelector("[data-dm-edit-kind]")) return false;
+    if (row.contains(field)) return false;
     return Boolean(row.querySelector(".ed-del")) && Boolean(row.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING);
   });
+}
+
+/* Che fare di ogni riga, e con quale numero.
+ *
+ * Il numero di una riga e' la sua posizione nell'elenco, non il suo turno di
+ * arrivo: una riga gia' sistemata ma numerata male va corretta, non lasciata
+ * com'e'. Separato dal documento perche' e' l'unica parte che decide. */
+export function editButtonPlan(rows = []) {
+  return rows.map((row, index) => ({
+    index,
+    action: !row?.hasButton ? "create" : row.index === index ? "keep" : "renumber",
+  }));
 }
 
 function ensureEditButtons() {
@@ -115,9 +136,22 @@ function ensureEditButtons() {
   ];
   definitions.forEach(([kind, container, selector]) => {
     if (!container?.querySelector(selector)) return;
-    rowsBeforeForm(container, selector).forEach((row, index) => {
-      const remove = [...row.querySelectorAll(".ed-del")].at(-1);
-      remove?.before(editButton(kind, index));
+    const rows = rowsBeforeForm(container, selector);
+    const existing = rows.map((row) => row.querySelector(`[data-dm-edit-kind="${kind}"]`));
+    const plan = editButtonPlan(
+      existing.map((button) => ({
+        hasButton: Boolean(button),
+        index: button ? Number.parseInt(button.dataset.dmEditIndex ?? "-1", 10) : -1,
+      })),
+    );
+    plan.forEach((step, position) => {
+      const row = rows[position];
+      if (step.action === "create") {
+        const remove = [...row.querySelectorAll(".ed-del")].at(-1);
+        remove?.before(editButton(kind, step.index));
+        return;
+      }
+      if (step.action === "renumber") existing[position].dataset.dmEditIndex = String(step.index);
     });
   });
   return Boolean(body.querySelector("[data-dm-edit-kind]"));
@@ -336,7 +370,10 @@ function installStyles() {
       #editor-modal #ed-body:has(#ed-irr-ent) button{box-sizing:border-box!important;min-width:44px!important;min-height:44px!important;max-width:100%!important;white-space:normal!important}
       #editor-modal #ed-body:has(#ed-irr-ent) .ed-btn-add,#editor-modal #ed-body:has(#ed-irr-ent) .ed-save-btn{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;max-width:100%!important;min-height:48px!important;margin:10px 0 0!important;padding:10px 12px!important}
 
-      #editor-modal [data-energy-panel="report"] .dm-report-row{display:grid!important;grid-template-columns:minmax(120px,.8fr) minmax(150px,1.25fr) minmax(110px,.6fr) minmax(220px,1.8fr) auto!important;gap:10px!important;align-items:end!important;padding:14px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important}
+      /* La riga del Report la impagina report-editor-section, che e' quella che
+         le da' anche le aree: due griglie diverse sullo stesso elemento
+         lasciavano le colonne di una e le aree dell'altra, ed era quello che si
+         vedeva sballato. Qui resta solo cio' che non e' impaginazione. */
       #editor-modal [data-energy-panel="report"] .dm-report-row .dm-entity-field{min-width:0!important;margin:0!important}
       #editor-modal .dm-report-history-help{grid-column:1/-1;color:var(--secondary-text-color,#64748b);font-size:11px;line-height:1.4}
       #editor-modal .dm-report-row[data-history-valid="false"] .dm-report-history-help{color:var(--warning-color,#b45309);font-weight:800}
@@ -356,7 +393,48 @@ function installStyles() {
   );
 }
 
+/* "sezioni" non e' piu' una scheda.
+ *
+ * L'editor aveva una sola scheda Sezioni; adesso ce n'e' una per sezione, da
+ * sez0 a sez9, e il nome "sezioni" non corrisponde piu' a niente: editorSwitch
+ * lo riconosce come nome vecchio e non ridisegna nulla, mentre la barra in alto
+ * perde anche la scheda evidenziata.
+ *
+ * Ventiquattro punti del runtime lo chiamano ancora dopo aver aggiunto o
+ * eliminato qualcosa. Premendo il cestino su un'unita' clima l'elenco restava
+ * quello di prima, e il ridisegno parziale che segue lo lasciava sfasato: la
+ * riga eliminata spariva, l'ultima compariva due volte, e il contatore in alto
+ * diceva un numero che non tornava con nulla.
+ *
+ * Il nome vecchio viene tradotto nella scheda davvero aperta, cosi' l'elenco si
+ * ridisegna dove si sta guardando. */
+function retiredTabTarget() {
+  const active = clean(doc?.querySelector("#editor-modal .ed-tab.active")?.dataset?.tab);
+  if (active && active !== "sezioni") return active;
+  const first = clean(
+    doc?.querySelector('#editor-modal .ed-tab[data-tab^="sez"]')?.dataset?.tab,
+  );
+  return first && first !== "sezioni" ? first : "";
+}
+
+function installRetiredTabRepair() {
+  const current = root.editorSwitch;
+  if (typeof current !== "function" || current.__dmRetiredTabRepair) return false;
+  function editorSwitchOwner(tab, ...rest) {
+    if (clean(tab) === "sezioni") {
+      const target = retiredTabTarget();
+      if (target) return current.call(this, target, ...rest);
+    }
+    return current.call(this, tab, ...rest);
+  }
+  editorSwitchOwner.__dmRetiredTabRepair = true;
+  editorSwitchOwner.__dmRetiredTabOriginal = current;
+  root.editorSwitch = editorSwitchOwner;
+  return true;
+}
+
 function installWrappers() {
+  installRetiredTabRepair();
   wrapFunction("editorSwitch", "__dmCrudEditorSection", runContracts);
 }
 

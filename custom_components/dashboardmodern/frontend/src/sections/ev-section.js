@@ -113,11 +113,25 @@ export function applyVehicleAsset() {
   const plugged = vehiclePlugged();
   const original = activeVehiclePhoto(photos, plugged);
   const url = resolveVehicleAsset(original);
-  // Only the key the value came from is rewritten in its resolved form, so the
-  // other photo is never overwritten with this one.
-  if (url && clean(original) !== url) {
-    const key = clean(photos.plugged) === clean(original) && plugged ? EV_PHOTO_KEYS.plugged : EV_PHOTO_KEYS.idle;
-    root.localStorage?.setItem(key, JSON.stringify(url));
+  /* La correzione torna solo dov'era il valore corretto.
+   *
+   * Un percorso scritto a mano puo' arrivare storto — "/loca/..." invece di
+   * "/local/...", o il percorso su disco invece di quello che il browser sa
+   * servire — e riscriverlo nella sua forma buona evita di ripetere la
+   * correzione a ogni disegno. La chiave in cui finiva pero' la sceglieva il
+   * cavo: con la sola foto "col cavo" impostata e il cavo staccato, la foto
+   * attiva veniva da quella chiave ma veniva riscritta in quella "senza cavo".
+   * Da li' le due foto diventavano la stessa, da sole, poco dopo averle
+   * inserite — e con due profili la stessa coppia finiva su entrambe le auto.
+   *
+   * La correzione va adesso nelle caselle che quel valore lo contengono
+   * davvero, e in nessun'altra: una foto non puo' piu' passare da una casella
+   * all'altra da sola. */
+  if (url && clean(original) && clean(original) !== url) {
+    for (const [name, key] of Object.entries(EV_PHOTO_KEYS)) {
+      if (clean(photos[name]) !== clean(original)) continue;
+      root.localStorage?.setItem(key, JSON.stringify(url));
+    }
   }
   state.lastUrl = url;
   let mounted = false;

@@ -545,6 +545,23 @@ function schedule() {
 
 function installStyles() {
   installStyle("dm-beta5-root-causes-style", `
+    /* Un telefono paga il vetro smerigliato anche quando non si vede.
+     *
+     * Sopra la Home stanno dodici finestre chiuse: meteo, clima, allarme,
+     * carichi, lavatrice, auto, dettagli, tastierino, storico, conferma e i due
+     * storici del server. Sono nascoste, ma restano larghe quanto lo schermo e
+     * ognuna chiede al browser di sfocare tutto quello che ha dietro. Su un
+     * computer non si nota; su un telefono sono dodici livelli a schermo intero
+     * che la GPU tiene in memoria e ricompone a ogni scorrimento, e la stessa
+     * cosa vale per la barra di navigazione mentre e' ritirata.
+     *
+     * Dentro due di quelle finestre girava anche una rotella di caricamento,
+     * per sempre, senza che nessuno la stesse guardando.
+     *
+     * Lo sfondo sfocato torna appena la finestra si apre, ed e' l'unico momento
+     * in cui qualcuno lo vede. */
+    .modal-wrapper:not(.show),.modal-wrapper:not(.show) *,.clima-popup-overlay:not(.show),.clima-popup-overlay:not(.show) *,.hist-overlay:not(.show),.hist-overlay:not(.show) *,#srv-hist-overlay:not(.show),#srv-hist-overlay:not(.show) *,nav.tabs.bottom-nav-bar:not(.visible){backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+    .modal-wrapper:not(.show) *,.clima-popup-overlay:not(.show) *,.hist-overlay:not(.show) *,#srv-hist-overlay:not(.show) *{animation-play-state:paused!important}
     .ed-tab[data-tab]>.dm-beta4-tab-icon{display:inline-grid!important;place-items:center!important;flex:0 0 auto!important;min-width:1.2em!important;margin-right:5px!important;visibility:visible!important;opacity:1!important}
     .ed-tab[data-tab]>.dm-beta4-tab-label{display:inline!important;white-space:nowrap!important}
 
@@ -568,6 +585,15 @@ function installStyles() {
 
     #ed-body[data-dm-beta5-rooms="true"] .dm-beta5-room-add-row{display:grid!important;grid-template-columns:58px 138px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;margin-bottom:10px!important}
     #ed-body[data-dm-beta5-rooms="true"] #ed-room-icon-preview{display:none!important}
+    /* I due campi devono riempire la loro colonna.
+     *
+     * La riga nasce dal runtime come una fila flex e i campi si allargavano con
+     * il loro flex. Qui sopra la riga diventa una griglia, e in una griglia quel
+     * flex non vale piu' niente: un campo di testo tiene la sua larghezza
+     * naturale, che senza testo dentro e' zero. Restavano due quadratini larghi
+     * quanto la loro cornice, con il resto della riga vuoto. La versione stretta
+     * lo aveva gia' risolto per il nome; ora vale anche a schermo largo. */
+    #ed-body[data-dm-beta5-rooms="true"] #ed-room-icon,#ed-body[data-dm-beta5-rooms="true"] #ed-room-name{box-sizing:border-box!important;width:100%!important;min-width:0!important;margin:0!important}
     #ed-body[data-dm-beta5-rooms="true"] .dm-beta5-room-icon-trigger{display:grid!important;place-items:center!important;width:58px!important;height:58px!important;min-width:58px!important;padding:0!important;border:1px solid color-mix(in srgb,var(--info-color,#0ea5e9) 24%,var(--divider-color,#dbe4ee))!important;border-radius:16px!important;background:color-mix(in srgb,var(--info-color,#0ea5e9) 8%,var(--card-background-color,#fff))!important;cursor:pointer!important;overflow:hidden!important}
 
     #ed-body[data-dm-beta5-alerts="true"]{display:grid!important;gap:14px!important}

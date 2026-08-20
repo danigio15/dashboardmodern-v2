@@ -172,8 +172,9 @@ for (const variant of PRIMARY) {
     await expect(runningPopup.locator(".dm-appliance-kpi-row")).toHaveCount(1);
     await expect(runningPopup).toContainText("Microonde");
     await expect(runningPopup).not.toContainText("Frigorifero");
+    // The same drawing the card uses, with its mechanisms, not the flat one.
     await expect(
-      runningPopup.locator('[data-appliance-id="microwave"] [data-dm-art="microwave"]'),
+      runningPopup.locator('[data-appliance-id="microwave"] [data-dm-hero="microwave"]'),
     ).toBeVisible();
     await expectCentered(page, runningPopup);
     await runningPopup.locator("[data-dm-appliance-kpi-close]").click();
@@ -190,7 +191,7 @@ for (const variant of PRIMARY) {
     await expect(powerPopup).toContainText(/920 W/i);
     await expect(powerPopup).toContainText(/2 W/i);
     await expect(
-      powerPopup.locator('[data-appliance-id="fridge"] [data-dm-art="fridge"]'),
+      powerPopup.locator('[data-appliance-id="fridge"] [data-dm-hero="fridge"]'),
     ).toBeVisible();
     await expectCentered(page, powerPopup);
     await powerPopup.locator("[data-dm-appliance-kpi-close]").click();

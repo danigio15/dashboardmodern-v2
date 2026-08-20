@@ -158,6 +158,25 @@ export function sanitizeEnergyModel(value = {}, states = allStates(), resolver =
     }
   }
 
+  /* Il contatore totale comanda.
+   *
+   * Chi riempie il totale e anche giornaliera, mensile e annuale si ritrova due
+   * verita' che non tornano: il totale cresce e basta, i contatori di periodo si
+   * azzerano quando decide chi li ha creati, e il numero mostrato cambiava a
+   * seconda di quale dei due la pagina avesse letto per primo. Con il totale
+   * configurato ogni periodo si ricava da li' con il Recorder e i campi di
+   * periodo restano fuori dal modello: la maschera di configurazione lo dice a
+   * chiare lettere, invece di lasciare indovinare quale dei due sta vincendo. */
+  for (const source of ENERGY_RUNTIME_SOURCES) {
+    const group = result[source.group] || value[source.group] || {};
+    const total = clean(group[source.totalKey]);
+    if (!total || !entityExists(total, snapshot, resolver)) continue;
+    for (const key of source.periodKeys) {
+      if (!clean(group[key])) continue;
+      ensureGroup(source.group)[key] = "";
+    }
+  }
+
   for (const source of ENERGY_RUNTIME_SOURCES) {
     const group = result[source.group] || value[source.group] || {};
     const total = clean(group[source.totalKey]);
@@ -173,6 +192,42 @@ export function sanitizeEnergyModel(value = {}, states = allStates(), resolver =
   }
 
   return result;
+}
+
+/* Cosa e' stato scritto due volte.
+ *
+ * Il modello runtime esce gia' ripulito: i campi di periodo spariscono appena
+ * c'e' un contatore totale valido. Cosi' pero' nessuno saprebbe mai che quelle
+ * entita' sono state scritte e non vengono lette. Questa lettura resta sulla
+ * configurazione grezza e dice, gruppo per gruppo, quali campi di periodo il
+ * totale sta scavalcando, perche' la maschera di configurazione possa avvisare
+ * con nome e cognome invece di far sparire i valori in silenzio. */
+export function energyPeriodConflicts(
+  value = {},
+  states = allStates(),
+  resolver = root.resolveEntity,
+) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  const snapshot = states && typeof states === "object" ? states : {};
+  const conflicts = [];
+  for (const source of ENERGY_RUNTIME_SOURCES) {
+    const group = value[source.group] || {};
+    const total = clean(group[source.totalKey]);
+    if (!total || !entityExists(total, snapshot, resolver)) continue;
+    const resolvedTotal = resolveConfiguredEntity(total, resolver);
+    const ignored = source.periodKeys
+      .map((key) => ({ key, entity: clean(group[key]) }))
+      .filter(
+        ({ entity }) =>
+          entity &&
+          entity !== total &&
+          resolveConfiguredEntity(entity, resolver) !== resolvedTotal &&
+          entityExists(entity, snapshot, resolver),
+      );
+    if (ignored.length)
+      conflicts.push({ group: source.group, totalKey: source.totalKey, total, ignored });
+  }
+  return conflicts;
 }
 
 export function dashboardStore() {

@@ -282,7 +282,21 @@ test("every page opens with the same heading, once", async ({ page }, testInfo) 
       const visible = (node) => node && getComputedStyle(node).display !== "none";
       report.push({
         id,
-        first: host?.firstElementChild === mast,
+        // L'intestazione apre il contenuto della pagina, e il contenuto di certe
+        // pagine sta dentro un contenitore che ne fissa la larghezza: l'apertura
+        // e' quella del contenitore, non della scheda, altrimenti l'intestazione
+        // sarebbe larga diversamente da cio' che introduce.
+        first: mast?.parentElement?.firstElementChild === mast,
+        sameWidth: (() => {
+          if (!mast) return false;
+          const sibling = [...mast.parentElement.children].find(
+            (node) => node !== mast && node.getClientRects().length,
+          );
+          if (!sibling) return true;
+          return (
+            Math.abs(mast.getBoundingClientRect().width - sibling.getBoundingClientRect().width) < 3
+          );
+        })(),
         title: mast?.querySelector(".dm-page-mast-title")?.textContent?.trim() || "",
         subtitle: mast?.querySelector(".dm-page-mast-sub")?.textContent?.trim() || "",
         backs: [...(host?.querySelectorAll(".back-home-btn") || [])].filter(visible).length,
@@ -292,6 +306,7 @@ test("every page opens with the same heading, once", async ({ page }, testInfo) 
   });
   for (const entry of pages) {
     expect(entry.first, `${entry.id} opens with the heading`).toBe(true);
+    expect(entry.sameWidth, `${entry.id} heading is as wide as what it introduces`).toBe(true);
     expect(entry.title.length, `${entry.id} names itself`).toBeGreaterThan(2);
     expect(entry.subtitle.length, `${entry.id} says what it is`).toBeGreaterThan(4);
     expect(entry.backs, `${entry.id} shows one way back`).toBe(1);

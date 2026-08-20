@@ -116,3 +116,49 @@ test("opening the editor decorates it, whatever the order the runtime loads in",
   assert.match(install, /addEventListener\?\.\(eventName, \(\) => \{\s*bindLegacyEntryPoints\(\);/);
 });
 
+
+function fakeInput(id, placeholder) {
+  return {
+    id,
+    attributes: { placeholder },
+    getAttribute(name) {
+      return this.attributes[name] ?? null;
+    },
+    setAttribute(name, value) {
+      this.attributes[name] = value;
+    },
+  };
+}
+
+test("no field asks for a dm.core code any more", async () => {
+  const { clarifyEntityPlaceholders } = await loadSection();
+  const action = fakeInput("ed-qa-ent", "dm.core_054 / dm.core_023 / scene.x (non serve per i popup)");
+  const wizardAction = fakeInput("wz-qa-ent", "dm.core_054 — l'entità da comandare");
+  const slot = fakeInput("", "es. dm.core_039");
+  const meter = fakeInput("ed-rep2-ent", "dm.core_028");
+  const untouched = fakeInput("ed-other", "sensor.qualcosa");
+  const inputs = [action, wizardAction, slot, meter, untouched];
+  const scope = { querySelectorAll: () => inputs };
+
+  assert.equal(clarifyEntityPlaceholders(scope), 4);
+  for (const input of [action, wizardAction, slot, meter]) {
+    assert.doesNotMatch(input.attributes.placeholder, /dm\.core/, input.id || "slot");
+    assert.ok(input.attributes.placeholder.length > 0);
+  }
+  // A named field says what it wants, with an example someone can actually have.
+  assert.match(meter.attributes.placeholder, /kWh/);
+  assert.match(wizardAction.attributes.placeholder, /switch\./);
+  // An unnamed slot falls back to the shape of a Home Assistant id.
+  assert.match(slot.attributes.placeholder, /dominio\.nome|domain\.name/);
+  // Everything else is left alone, and a second pass changes nothing.
+  assert.equal(untouched.attributes.placeholder, "sensor.qualcosa");
+  assert.equal(clarifyEntityPlaceholders(scope), 0);
+  assert.equal(clarifyEntityPlaceholders(null), 0);
+});
+
+test("the placeholders are rewritten whenever the editor is decorated", () => {
+  assert.match(source, /clarifyEntityPlaceholders\(\);\n\s*dropRetiredSlots\(scope\)/);
+  // The row caption prefers the named caption over the placeholder text, so a
+  // field with a long example still prints a short name.
+  assert.match(source, /"ed-qa-ent": \["Entità da comandare"/);
+});

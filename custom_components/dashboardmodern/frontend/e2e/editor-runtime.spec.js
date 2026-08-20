@@ -250,8 +250,8 @@ for (const variant of PRIMARY) {
     // One picker per entity field, and each picker pointing at a field that is
     // really there. The field itself is behind the pencil now, so the row —
     // the picker — is what has to be on screen, not the raw id box.
-    const assertPickerInvariant = async () => {
-      const counts = await page.locator("#ed-body").evaluate((body) => {
+    const pickerCounts = () =>
+      page.locator("#ed-body").evaluate((body) => {
         const onScreen = (node) => Boolean(node) && node.getClientRects().length > 0;
         const pickers = [...body.querySelectorAll(".dm-entity-picker")].filter(onScreen);
         const fields = [...body.querySelectorAll("[data-entity-input]")].filter(
@@ -267,6 +267,23 @@ for (const variant of PRIMARY) {
           ).length,
         };
       });
+    /* La rifinitura arriva un attimo dopo il pannello.
+     *
+     * I selettori li costruisce una passata che segue il disegno del pannello:
+     * leggere il conteggio al primo colpo, su una macchina carica, coglie il
+     * pannello gia' scritto e la passata ancora a meta'. L'invariante e' che si
+     * assesti, non che sia vera al primo istante. */
+    const assertPickerInvariant = async () => {
+      await expect
+        .poll(
+          async () => {
+            const counts = await pickerCounts();
+            return counts.pickers === counts.inputs && counts.uniqueTargets === counts.inputs;
+          },
+          { message: "un selettore per campo, e ognuno punta a un campo che c'e'" },
+        )
+        .toBe(true);
+      const counts = await pickerCounts();
       expect(counts.pickers).toBe(counts.inputs);
       expect(counts.uniqueTargets).toBe(counts.inputs);
       expect(counts.orphans).toBe(0);

@@ -710,3 +710,23 @@ test("Temperature migration accepts descriptive legacy entity field names", () =
   assert.equal(room.temp, "sensor.office_temperature");
   assert.equal(room.hum, "sensor.office_humidity");
 });
+
+test("una sezione nascosta di persona non torna su alla prima entita' mappata", async () => {
+  // Il MiniPC nascosto col pulsante: mappare un'entita' qualsiasi lo
+  // riaccendeva, perche' nella mappa un false vale come "mai deciso".
+  const { store } = setup({
+    dm_dashboard_state: {
+      schema_version: 4,
+      sections: { entityOverrides: {} },
+      visibility: { server: false, boiler: false },
+    },
+    cd_sections_manual: { server: true },
+  });
+  await store.replaceSection("entityOverrides", {
+    "dm.server_cpu": "sensor.minipc_cpu",
+    "dm.boiler_temperatura": "sensor.solar_boiler",
+  });
+  assert.equal(store.getState().visibility.server, false);
+  // Il solare termico non l'ha nascosto nessuno a mano: la cortesia vale.
+  assert.equal(store.getState().visibility.boiler, true);
+});

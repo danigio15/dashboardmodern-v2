@@ -142,6 +142,20 @@ function energyModel() {
   return section("energy", {});
 }
 
+/* La configurazione com'e' stata scritta, per la maschera che la mostra.
+ *
+ * Il modello che leggono le pagine esce filtrato: con un contatore totale
+ * valido i campi di periodo ne restano fuori, perche' i periodi si ricavano dal
+ * totale. La maschera di configurazione pero' deve mostrare cio' che c'e'
+ * scritto: leggendo il modello filtrato mostrerebbe quei campi vuoti, e il
+ * primo salvataggio riscriverebbe quel vuoto sopra le entita' che la persona
+ * aveva messo — cancellandole per sempre. */
+function configuredEnergyModel() {
+  const store = dashboardStore();
+  const value = store?.getSection?.("energy");
+  return value && typeof value === "object" && !Array.isArray(value) ? value : energyModel();
+}
+
 function entityOverrides() {
   const current = section("entityOverrides", null);
   return current && typeof current === "object"
@@ -776,14 +790,25 @@ function createTotalField(definition, value) {
   return { wrap, input };
 }
 
+/* Un campo alla volta, in fila.
+ *
+ * Ogni scrittura legge il modello, ci mette dentro il suo campo e lo riscrive
+ * per intero. Due campi cambiati a poca distanza — cosa che succede appena si
+ * compila la maschera scendendo — leggevano tutti e due lo stesso modello di
+ * partenza, e l'ultimo a scrivere riportava indietro il campo dell'altro. In
+ * fila ognuno parte da cio' che ha lasciato quello prima. */
 async function persistEnergyField(group, key, value) {
-  const store = dashboardStore();
-  if (!store?.getSection || !store?.replaceSection) return;
-  const model = structuredClone(store.getSection("energy") || {});
-  model[group] ||= {};
-  model[group][key] = clean(value);
-  model.metadata = { ...(model.metadata || {}), semantics_version: 3 };
-  await store.replaceSection("energy", model);
+  const write = async () => {
+    const store = dashboardStore();
+    if (!store?.getSection || !store?.replaceSection) return;
+    const model = structuredClone(store.getSection("energy") || {});
+    model[group] ||= {};
+    model[group][key] = clean(value);
+    model.metadata = { ...(model.metadata || {}), semantics_version: 3 };
+    await store.replaceSection("energy", model);
+  };
+  state.fieldQueue = (state.fieldQueue || Promise.resolve()).then(write, write);
+  return state.fieldQueue;
 }
 
 function entityField(label, key, value, placeholder) {
@@ -934,11 +959,16 @@ function installEnergyEditorContracts() {
     flows.prepend(overview);
   }
 
-  const model = energyModel();
+  const model = configuredEnergyModel();
   installBatterySocField(editor, model);
   installEnergyLoadsEditor(editor);
   TOTAL_FIELDS.forEach((definition) => {
     const [group, key, afterKey] = definition;
+    /* Il campo puo' esserci gia': lo stampa il runtime, e in quel caso e' la
+     * maschera canonica a possederlo — raccoglie il valore nella sua bozza e lo
+     * scrive quando si preme Salva. Qui si costruisce solo cio' che manca:
+     * aggiungere un secondo salvataggio su un campo che ne ha gia' uno vuol
+     * dire due padroni sullo stesso dato, ed e' proprio cio' che rompe. */
     if (editor.querySelector(`#dm-energy-${group}-${key}`)) return;
     const anchor = editor.querySelector(`#dm-energy-${group}-${afterKey}`);
     const body = anchor?.closest(".ed-acc-body");

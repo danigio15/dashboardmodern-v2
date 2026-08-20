@@ -1,4 +1,16 @@
-import { clean, doc, english, installStyle, root, section, t, wrapFunction } from "./shared.js";
+import {
+  clean,
+  dashboardStore,
+  doc,
+  energyPeriodConflicts,
+  english,
+  esc,
+  installStyle,
+  root,
+  section,
+  t,
+  wrapFunction,
+} from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_ENERGY_GUIDANCE_SECTION__";
@@ -39,6 +51,97 @@ function contractCard(group, title, icon) {
   </article>`;
 }
 
+const CLASH_LABELS = Object.freeze({
+  "house:total_energy": ["Casa", "Home"],
+  "solar:total_energy": ["Fotovoltaico", "Solar"],
+  "grid:total_import_energy": ["Rete prelevata", "Grid import"],
+  "grid:total_export_energy": ["Rete immessa", "Grid export"],
+  "battery:total_charged_energy": ["Batteria caricata", "Battery charged"],
+  "battery:total_discharged_energy": ["Batteria scaricata", "Battery discharged"],
+});
+
+const PERIOD_ORDER = Object.freeze(["daily", "monthly", "annual"]);
+
+function periodLabel(key) {
+  if (key.startsWith("daily")) return t("Giornaliera", "Daily");
+  if (key.startsWith("monthly")) return t("Mensile", "Monthly");
+  return t("Annuale", "Annual");
+}
+
+/* La configurazione com'e' stata scritta, non come viene letta.
+ *
+ * section("energy") passa dal filtro che toglie i campi di periodo quando c'e'
+ * un totale: leggerla qui mostrerebbe una maschera gia' pulita e non ci sarebbe
+ * piu' niente da segnalare. L'avviso deve nascere dai valori grezzi. */
+function configuredEnergy() {
+  const store = dashboardStore();
+  try {
+    return store?.peekSection?.("energy") ?? store?.getSection?.("energy") ?? {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function energyClashes() {
+  try {
+    return energyPeriodConflicts(configuredEnergy());
+  } catch (_error) {
+    return [];
+  }
+}
+
+function clashNotice(clashes) {
+  if (!clashes.length) return "";
+  const rows = clashes
+    .map((clash) => {
+      const label = CLASH_LABELS[`${clash.group}:${clash.totalKey}`] || [clash.group, clash.group];
+      const ignored = clash.ignored
+        .slice()
+        .sort(
+          (left, right) =>
+            PERIOD_ORDER.findIndex((name) => left.key.startsWith(name)) -
+            PERIOD_ORDER.findIndex((name) => right.key.startsWith(name)),
+        )
+        .map((field) => `${esc(periodLabel(field.key))} <code>${esc(field.entity)}</code>`)
+        .join(", ");
+      return `<li><strong>${esc(t(label[0], label[1]))}</strong> — ${t("legge", "reads")} <code>${esc(
+        clash.total,
+      )}</code>; ${t("ignora", "ignores")} ${ignored}</li>`;
+    })
+    .join("");
+  return `<div class="dm-energy-source-clash" role="status">
+    <strong>${t(
+      "Il contatore totale comanda: questi campi non vengono letti",
+      "The total meter wins: these fields are not read",
+    )}</strong>
+    <span>${t(
+      "Con un contatore totale configurato la dashboard ricava giorno, mese e anno da quello con Recorder, cosi' i numeri restano coerenti tra loro. Le entita' scritte nei campi di periodo restano salvate ma non vengono usate: svuotale, oppure togli il contatore totale se preferisci leggere i periodi direttamente.",
+      "With a total meter configured the dashboard derives day, month and year from it through Recorder, so the numbers agree with each other. Entities written in the period fields stay saved but are not used: clear them, or remove the total meter if you would rather read the periods directly.",
+    )}</span>
+    <ul>${rows}</ul>
+    <button type="button" class="dm-energy-clash-clear">${t(
+      "Svuota i campi di periodo",
+      "Clear the period fields",
+    )}</button>
+  </div>`;
+}
+
+async function clearClashingPeriods() {
+  const store = dashboardStore();
+  if (!store?.getSection || !store?.replaceSection) return false;
+  const clashes = energyClashes();
+  if (!clashes.length) return false;
+  const model = structuredClone(store.getSection("energy") || {});
+  for (const clash of clashes) {
+    model[clash.group] ||= {};
+    for (const field of clash.ignored) model[clash.group][field.key] = "";
+  }
+  await store.replaceSection("energy", model);
+  root.toast?.(t("Campi di periodo svuotati", "Period fields cleared"));
+  normalizeEnergyGuidance();
+  return true;
+}
+
 function energyEditorActive() {
   const active = doc?.querySelector("#editor-modal .ed-tab.active");
   const tab = clean(active?.dataset?.tab).toLowerCase();
@@ -66,10 +169,10 @@ export function normalizeEnergyGuidance() {
   guide.innerHTML = `<div class="dm-energy-source-guide-intro">
     <strong>${t("Quale entità usa la dashboard", "Which entity the dashboard uses")}</strong>
     <span>${t(
-      "Quando Fotovoltaico e Rete sono configurati, il consumo Casa usa lo stesso bilancio dei flussi di Home Assistant. I contatori totali kWh servono anche per Recorder, storico e mesi precedenti; i campi giornaliero, mensile e annuale restano override facoltativi del singolo periodo.",
-      "When Solar and Grid are configured, Home consumption uses the same flow balance as Home Assistant. Total kWh meters also feed Recorder, history and previous months; daily, monthly and annual fields remain optional per-period overrides.",
+      "Quando Fotovoltaico e Rete sono configurati, il consumo Casa usa lo stesso bilancio dei flussi di Home Assistant. Il contatore totale kWh comanda: se c'è, giorno, mese e anno si ricavano da quello con Recorder e i campi di periodo non vengono letti. I campi giornaliero, mensile e annuale servono quando un contatore totale non esiste.",
+      "When Solar and Grid are configured, Home consumption uses the same flow balance as Home Assistant. The total kWh meter wins: when one is set, day, month and year are derived from it through Recorder and the period fields are not read. The daily, monthly and annual fields are for when no total meter exists.",
     )}</span>
-  </div><div class="dm-energy-source-guide-grid">
+  </div>${clashNotice(energyClashes())}<div class="dm-energy-source-guide-grid">
     ${contractCard("house", t("Casa (fallback)", "Home (fallback)"), "🏠")}
     ${contractCard("solar", t("Fotovoltaico", "Solar"), "☀️")}
     ${contractCard("grid", t("Rete prelevata", "Grid import"), "🔌")}
@@ -83,8 +186,8 @@ export function normalizeEnergyGuidance() {
       field.append(purpose);
     }
     purpose.textContent = t(
-      "Usata per Recorder, storico e mesi precedenti quando non esiste un sensore specifico del periodo.",
-      "Used for Recorder, history and previous months when no period-specific sensor exists.",
+      "Comanda su tutto: giorno, mese, anno, storico e mesi precedenti si ricavano da qui con Recorder. Con questo campo pieno i campi di periodo non vengono letti.",
+      "This one wins: day, month, year, history and previous months are all derived from here through Recorder. While it is set, the period fields are not read.",
     );
   });
   return true;
@@ -100,6 +203,14 @@ function installStyles() {
       #editor-modal .dm-energy-source-guide-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important}
       #editor-modal .dm-energy-source-contract{min-width:0!important;padding:12px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:14px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important}
       #editor-modal .dm-energy-source-contract header{display:flex!important;align-items:center!important;gap:8px!important;margin-bottom:8px!important}.dm-energy-source-contract dl{display:grid!important;gap:7px!important;margin:0!important}.dm-energy-source-contract dl>div{display:grid!important;gap:2px!important}.dm-energy-source-contract dt{font-size:10px!important;font-weight:900!important;letter-spacing:.08em!important;text-transform:uppercase!important;color:var(--secondary-text-color,#64748b)!important}.dm-energy-source-contract dd{min-width:0!important;margin:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:10px!important;color:var(--text,#0f172a)!important}
+      #editor-modal .dm-energy-source-clash{display:grid!important;gap:8px!important;padding:14px 16px!important;border:1px solid color-mix(in srgb,var(--warning-color,#f59e0b) 45%,var(--divider-color,#dbe4ee))!important;border-radius:16px!important;background:color-mix(in srgb,var(--warning-color,#f59e0b) 12%,var(--ha-card-background,#fff))!important;line-height:1.45!important}
+      #editor-modal .dm-energy-source-clash strong{font-size:14px!important;color:var(--text,#0f172a)!important}
+      #editor-modal .dm-energy-source-clash>span{color:var(--secondary-text-color,#64748b)!important;font-size:12px!important}
+      #editor-modal .dm-energy-source-clash ul{display:grid!important;gap:4px!important;margin:0!important;padding:0 0 0 18px!important;font-size:12px!important;color:var(--text,#0f172a)!important}
+      #editor-modal .dm-energy-source-clash code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:11px!important;word-break:break-all!important}
+      #editor-modal .dm-energy-clash-clear{justify-self:start!important;padding:8px 14px!important;border:0!important;border-radius:999px!important;background:var(--warning-color,#f59e0b)!important;color:#3b2600!important;font-weight:800!important;font-size:12px!important;cursor:pointer!important}
+      #editor-modal[data-dm-editor-theme="dark"] .dm-energy-source-clash{background:var(--dm-editor-panel,#1b2540)!important;border-color:color-mix(in srgb,var(--warning-color,#f59e0b) 55%,var(--dm-editor-border,#31405f))!important}
+      #editor-modal[data-dm-editor-theme="dark"] .dm-energy-source-clash strong,#editor-modal[data-dm-editor-theme="dark"] .dm-energy-source-clash ul{color:var(--dm-editor-text,#edf4ff)!important}
       #editor-modal .dm-energy-total-purpose{display:block!important;margin-top:7px!important;color:var(--info-color,#0369a1)!important;font-size:11px!important;line-height:1.35!important}
       #editor-modal[data-dm-editor-theme="dark"] .dm-energy-source-guide-intro,#editor-modal[data-dm-editor-theme="dark"] .dm-energy-source-contract{background:var(--dm-editor-panel,#1b2540)!important;border-color:var(--dm-editor-border,#31405f)!important}
       #editor-modal[data-dm-editor-theme="dark"] .dm-energy-source-contract dd{color:var(--dm-editor-text,#edf4ff)!important}
@@ -118,6 +229,11 @@ export function installEnergyGuidanceSection() {
     doc.addEventListener(
       "click",
       (event) => {
+        if (event.target?.closest?.("#editor-modal .dm-energy-clash-clear")) {
+          event.preventDefault();
+          clearClashingPeriods();
+          return;
+        }
         if (event.target?.closest?.("#editor-modal .ed-tab,#editor-modal [data-energy-tab],#editor-modal .sub-tab-btn"))
           root.queueMicrotask?.(normalizeEnergyGuidance);
       },
