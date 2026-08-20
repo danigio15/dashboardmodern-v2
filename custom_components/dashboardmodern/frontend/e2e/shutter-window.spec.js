@@ -65,7 +65,13 @@ async function apriTapparelle(page, testInfo) {
     globalThis.renderTapparelle?.();
     window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
   });
-  await page.waitForTimeout(600);
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll("#page-tapparelle .tapp-card[data-tapp] .dm-tw-infisso").length >=
+      2,
+    null,
+    { timeout: 20_000 },
+  );
 }
 
 function carte(page) {
@@ -138,53 +144,82 @@ test("il contatto apre la finestra, e solo quella che ce l'ha", async ({ page },
   expect(lista.find((carta) => carta.tapp === "cover.c1").pastiglia).toBe("");
 });
 
+/* Aspetta che una cosa ci sia, invece di sperare che sia arrivata.
+ *
+ * Le attese a tempo fisso reggono finche' il motore e' quello di casa: su
+ * WebKit, che ci mette il doppio, la stessa prova cadeva perche' guardava
+ * troppo presto. Non era un difetto della plancia, era una prova che misurava
+ * la velocita' della macchina. */
+function aspetta(page, condizione, argomento) {
+  return page.waitForFunction(condizione, argomento, { timeout: 20_000 });
+}
+
+async function apriSchedaTapparelle(page) {
+  await page.evaluate(() => globalThis.apriConfigEntita?.());
+  await aspetta(page, () =>
+    Boolean(document.querySelector("#editor-modal .ed-tab[data-tab='tapp']")),
+  );
+  await page.evaluate(() => {
+    document.querySelector('#editor-modal .ed-tab[data-tab="tapp"]')?.click();
+  });
+  // Prima il campo che stampa il runtime, poi quello aggiunto dal modulo: il
+  // secondo arriva su un disegno successivo.
+  await aspetta(page, () => Boolean(document.getElementById("ed-tp-ent")));
+  await aspetta(page, () => Boolean(document.getElementById("ed-tp-contact")));
+}
+
 test("il sensore si configura dove si configura la tapparella", async ({ page }, testInfo) => {
   test.setTimeout(180_000);
   await apriTapparelle(page, testInfo);
-  const esito = await page.evaluate(async () => {
-    globalThis.apriConfigEntita?.();
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    document.querySelector('#editor-modal .ed-tab[data-tab="tapp"]')?.click();
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    const campo = document.getElementById("ed-tp-contact");
-    if (!campo) return { campo: false };
+  await apriSchedaTapparelle(page);
 
-    // Si compila come si compila a mano, e si aggiunge la tapparella.
+  // Il campo riceve il trattamento di tutti gli altri campi entita': la
+  // pastiglia che apre il catalogo, la matita e il cestino. Non si controlla la
+  // lente com'e' nata, perche' proprio quella decorazione la trasforma; si
+  // controlla che sia arrivata.
+  await aspetta(page, () =>
+    Boolean(document.getElementById("ed-tp-contact")?.closest('[data-dm-entity-chip="true"]')),
+  );
+  const pastiglia = await page.evaluate(() =>
+    Boolean(
+      document
+        .getElementById("ed-tp-contact")
+        ?.closest(".ed-form-row")
+        ?.querySelector(".dm-slot-chip"),
+    ),
+  );
+  expect(pastiglia, "il campo ha la pastiglia che apre il catalogo").toBe(true);
+
+  // Si compila come si compila a mano, e si aggiunge la tapparella.
+  await page.evaluate(() => {
     document.getElementById("ed-tp-name").value = "Bagno";
     document.getElementById("ed-tp-ent").value = "cover.c3";
-    campo.value = "binary_sensor.finestra_bagno";
+    document.getElementById("ed-tp-contact").value = "binary_sensor.finestra_bagno";
     globalThis.edTappAdd?.();
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    /* Si guarda dove il disegno va a leggere: il modello canonico se c'e' gia',
-     * altrimenti la copia in localStorage. Il modello si allinea con i suoi
-     * tempi, e chiedere solo a lui vorrebbe dire misurare la sincronizzazione
-     * invece del salvataggio. */
-    const canoniche = globalThis.DashboardModernModules?.store?.getSection?.("covers") || [];
-    const chiave = Object.keys(localStorage).find((name) => name.endsWith("cd_tapparelle"));
-    let copia = [];
-    try {
-      copia = JSON.parse(localStorage.getItem(chiave || "cd_tapparelle") || "[]");
-    } catch (_error) {}
-    const trova = (elenco) => elenco.find((item) => item?.entity === "cover.c3");
-    const nuova = trova(canoniche) || trova(copia) || null;
-    return {
-      campo: true,
-      // Il campo riceve il trattamento di tutti gli altri campi entita':
-      // la pastiglia che apre il catalogo, la matita e il cestino. Non si
-      // controlla la lente com'e' nata, perche' proprio quella decorazione la
-      // trasforma; si controlla che sia arrivata.
-      vestito: Boolean(campo.closest('[data-dm-entity-chip="true"]')),
-      pastiglia: Boolean(campo.closest(".ed-form-row")?.querySelector(".dm-slot-chip")),
-      contatto: nuova?.contact || "",
-      nome: nuova?.name || "",
-    };
   });
-  expect(esito.campo, "il campo esiste nella scheda Tapparelle").toBe(true);
-  expect(esito.vestito, "il campo e' vestito come gli altri campi entita'").toBe(true);
-  expect(esito.pastiglia, "e ha la pastiglia che apre il catalogo").toBe(true);
-  expect(esito.nome).toBe("Bagno");
+
+  /* Si guarda dove il disegno va a leggere: il modello canonico se c'e' gia',
+   * altrimenti la copia in localStorage. Il modello si allinea con i suoi
+   * tempi, e chiedere solo a lui vorrebbe dire misurare la sincronizzazione
+   * invece del salvataggio. */
+  const nuova = () =>
+    page.evaluate(() => {
+      const canoniche = globalThis.DashboardModernModules?.store?.getSection?.("covers") || [];
+      const chiave = Object.keys(localStorage).find((name) => name.endsWith("cd_tapparelle"));
+      let copia = [];
+      try {
+        copia = JSON.parse(localStorage.getItem(chiave || "cd_tapparelle") || "[]");
+      } catch (_error) {}
+      const trova = (elenco) => elenco.find((item) => item?.entity === "cover.c3");
+      const voce = trova(canoniche) || trova(copia) || null;
+      return { nome: voce?.name || "", contatto: voce?.contact || "" };
+    });
+
+  await expect.poll(async () => (await nuova()).nome, { timeout: 20_000 }).toBe("Bagno");
   // E quello che si e' scritto si ritrova dove il disegno lo va a leggere.
-  expect(esito.contatto).toBe("binary_sensor.finestra_bagno");
+  await expect
+    .poll(async () => (await nuova()).contatto, { timeout: 20_000 })
+    .toBe("binary_sensor.finestra_bagno");
 });
 
 /* La matita apre il suo editor, e il contatto dev'essere anche li'.
@@ -198,40 +233,44 @@ test("il sensore si configura dove si configura la tapparella", async ({ page },
 test("il contatto si modifica anche dalla matita", async ({ page }, testInfo) => {
   test.setTimeout(180_000);
   await apriTapparelle(page, testInfo);
-  const esito = await page.evaluate(async () => {
-    globalThis.apriConfigEntita?.();
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    document.querySelector('#editor-modal .ed-tab[data-tab="tapp"]')?.click();
-    await new Promise((resolve) => setTimeout(resolve, 900));
+  await apriSchedaTapparelle(page);
 
-    // La matita della prima tapparella, quella che il contatto ce l'ha gia'.
-    const matita = document.querySelector("#ed-body .ed-row .dm-edit-existing");
-    matita?.click();
-    await new Promise((resolve) => setTimeout(resolve, 700));
+  // La matita della prima tapparella, quella che il contatto ce l'ha gia'.
+  await aspetta(page, () => Boolean(document.querySelector("#ed-body .ed-row .dm-edit-existing")));
+  await page.evaluate(() => {
+    document.querySelector("#ed-body .ed-row .dm-edit-existing")?.click();
+  });
+  await aspetta(page, () =>
+    Boolean(document.querySelector("#dm-shutter-editor-modal form")?.elements?.contact),
+  );
+
+  const partenza = await page.evaluate(
+    () => document.querySelector("#dm-shutter-editor-modal form").elements.contact.value,
+  );
+  // Ci arriva gia' compilato con quello che c'era.
+  expect(partenza).toBe("binary_sensor.finestra_camera");
+
+  await page.evaluate(() => {
     const form = document.querySelector("#dm-shutter-editor-modal form");
-    if (!form?.elements?.contact) return { campo: false };
-    const partenza = form.elements.contact.value;
-
     form.elements.contact.value = "binary_sensor.finestra_nuova";
     form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    await new Promise((resolve) => setTimeout(resolve, 700));
-
-    const leggi = () => {
-      const canoniche = globalThis.DashboardModernModules?.store?.getSection?.("covers") || [];
-      const chiave = Object.keys(localStorage).find((name) => name.endsWith("cd_tapparelle"));
-      let copia = [];
-      try {
-        copia = JSON.parse(localStorage.getItem(chiave || "cd_tapparelle") || "[]");
-      } catch (_error) {}
-      const trova = (elenco) => elenco.find((item) => item?.entity === "cover.c1");
-      return trova(canoniche)?.contact ?? trova(copia)?.contact ?? "";
-    };
-    return { campo: true, partenza, dopo: leggi() };
   });
 
-  expect(esito.campo, "la finestra di modifica ha il campo del contatto").toBe(true);
-  // Ci arriva gia' compilato con quello che c'era.
-  expect(esito.partenza).toBe("binary_sensor.finestra_camera");
   // E quello che si scrive si salva.
-  expect(esito.dopo).toBe("binary_sensor.finestra_nuova");
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => {
+          const canoniche = globalThis.DashboardModernModules?.store?.getSection?.("covers") || [];
+          const chiave = Object.keys(localStorage).find((name) => name.endsWith("cd_tapparelle"));
+          let copia = [];
+          try {
+            copia = JSON.parse(localStorage.getItem(chiave || "cd_tapparelle") || "[]");
+          } catch (_error) {}
+          const trova = (elenco) => elenco.find((item) => item?.entity === "cover.c1");
+          return trova(canoniche)?.contact ?? trova(copia)?.contact ?? "";
+        }),
+      { timeout: 20_000 },
+    )
+    .toBe("binary_sensor.finestra_nuova");
 });
