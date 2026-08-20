@@ -95,10 +95,20 @@ function ensurePill(card, aperto) {
   const head = card.querySelector(".tapp-head");
   if (!head) return;
   let pill = head.querySelector(".dm-tw-pill");
+  /* Due pastiglie sulla stessa riga mangiano il nome.
+   *
+   * Il nome e' il dato che identifica la scheda; lo stato e' un commento. Con
+   * due pastiglie accanto — "Aperta" e "Finestra aperta" — a cedere spazio era
+   * il nome, che finiva troncato: "Tapparella so…". A cedere deve essere lo
+   * stato, che va a capo sotto e resta leggibile per intero. Il segno sta qui
+   * perche' e' questo modulo ad aggiungere la seconda pastiglia: chi crea
+   * l'affollamento se ne occupa. */
   if (!aperto) {
     if (pill) pill.remove();
+    if (head.dataset.dmTwPills) delete head.dataset.dmTwPills;
     return;
   }
+  if (head.dataset.dmTwPills !== "due") head.dataset.dmTwPills = "due";
   if (!pill) {
     pill = doc.createElement("span");
     pill.className = "tapp-state dm-tw-pill";
@@ -208,6 +218,12 @@ function installStyles() {
                  rgba(15,23,42,0) 78%,rgba(15,23,42,.22) 91%,rgba(15,23,42,.62) 100%),
                  linear-gradient(180deg,rgba(15,23,42,.30),rgba(15,23,42,0) 26%)!important}
     html body #page-tapparelle#page-tapparelle .tapp-win[data-dm-infisso-stato="aperto"] .dm-tw-spalla{opacity:1!important}
+
+    /* Con due pastiglie il nome tiene la sua riga e lo stato va a capo. */
+    html body #page-tapparelle#page-tapparelle .tapp-head[data-dm-tw-pills="due"]{
+      flex-wrap:wrap!important;justify-content:flex-start!important;row-gap:8px!important}
+    html body #page-tapparelle#page-tapparelle .tapp-head[data-dm-tw-pills="due"]>.dm-tapp-title{
+      flex:1 1 100%!important;min-width:0!important}
 
     /* La pastiglia dell'infisso vive accanto a quella della tapparella, e la
        forma la da' gia' chi possiede .tapp-state: qui si cambia solo il colore. */

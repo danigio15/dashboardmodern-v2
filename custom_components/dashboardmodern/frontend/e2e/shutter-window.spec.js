@@ -366,3 +366,44 @@ test("l'anta aperta si stacca da cio' che ha dietro", async ({ page }, testInfo)
   const chiusa = await misura();
   expect(chiusa.corpo, "l'anta chiusa lascia vedere il vetro").toBe(false);
 });
+
+/* Il nome della tapparella non cede il posto allo stato.
+ *
+ * Con due pastiglie accanto — "Aperta" e "Finestra aperta" — a cedere spazio
+ * era il nome, che finiva troncato: "Tapparella so…". Il nome e' il dato che
+ * identifica la scheda; lo stato e' un commento, e a andare a capo dev'essere
+ * lui.
+ */
+test("il nome resta intero anche con due pastiglie", async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
+  await apriTapparelle(page, testInfo);
+  const nomi = await page.evaluate(() =>
+    [...document.querySelectorAll("#page-tapparelle .tapp-card[data-tapp]")].map((carta) => {
+      const nome = carta.querySelector(".tapp-name");
+      const pastiglie = [...carta.querySelectorAll(".tapp-head .tapp-state")];
+      const suo = nome.getBoundingClientRect();
+      return {
+        tapp: carta.getAttribute("data-tapp"),
+        pastiglie: pastiglie.length,
+        // Troncato vuol dire che il testo e' piu' largo della sua casella.
+        troncato: nome.scrollWidth > nome.clientWidth + 1,
+        /* E soprattutto: con due pastiglie il nome tiene la sua riga. La
+         * troncatura si vede solo a certe larghezze, mentre questo e' il
+         * contratto — lo stato va a capo, il nome no — e vale sempre. */
+        soloSuaRiga: pastiglie.every(
+          (pastiglia) => pastiglia.getBoundingClientRect().top >= suo.bottom - 1,
+        ),
+      };
+    }),
+  );
+  const conDue = nomi.find((voce) => voce.tapp === "cover.c1");
+  expect(conDue.pastiglie, "la prima ha due pastiglie").toBe(2);
+  expect(conDue.soloSuaRiga, "e il nome tiene la sua riga").toBe(true);
+  for (const voce of nomi) {
+    expect(voce.troncato, `${voce.tapp} mostra il nome per intero`).toBe(false);
+  }
+  // Con una pastiglia sola non si cambia niente: resta sulla riga del nome.
+  const conUna = nomi.find((voce) => voce.tapp === "cover.c2");
+  expect(conUna.pastiglie).toBe(1);
+  expect(conUna.soloSuaRiga, "con una pastiglia la riga resta una").toBe(false);
+});
