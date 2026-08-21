@@ -35,6 +35,7 @@
  * `edAutoRileva` runs instead.
  */
 import { ENERGY_SLOT_MAP } from "../core/energy-projection.js";
+import { keptSemanticsVersion } from "../core/energy-writer.js";
 import { buildEntityIndex } from "../core/entity-search-index.js";
 import { buildPostings, detectCategories, detectSlots, parseSlotPlan } from "../core/entity-autodetect.js";
 import { allStates, clean, dashboardStore, doc, installStyle, lexicalGlobal, readJson, reloadDashboard, root, t } from "./shared.js";
@@ -401,7 +402,7 @@ async function writeEnergyAssignments(assignments) {
     model[group] = { ...(model[group] || {}) };
     if (!clean(model[group][key])) model[group][key] = item.id;
   }
-  model.metadata = { ...(model.metadata || {}), semantics_version: 3 };
+  model.metadata = { ...(model.metadata || {}), semantics_version: keptSemanticsVersion(model.metadata) };
   if (store?.replaceSection) await store.replaceSection("energy", model);
   else writeJson("cd_energy_model", model);
   return rest;

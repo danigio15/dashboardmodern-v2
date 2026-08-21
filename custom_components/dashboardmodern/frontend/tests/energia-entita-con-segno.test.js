@@ -153,3 +153,47 @@ test("la sorgente unica si scrive e si toglie per intero", async () => {
   await persistSignedSource(store, "grid", { power: "", positive: "export" });
   assert.equal("signed" in store.leggi().grid, false);
 });
+
+/* Chi salva non riporta indietro la versione delle semantiche.
+ *
+ * La migrazione porta il modello Energia alla versione 4 e lo dichiara; chi
+ * salva un campo lo riscriveva alla 3, e al caricamento successivo la
+ * migrazione ripartiva — segnalata a ogni avvio nella console, con tutto il
+ * salvataggio che si porta dietro. Due padroni sullo stesso numero. */
+import { migrateState } from "../src/core/migrations.js";
+
+function migrazioneDi(energy) {
+  return migrateState({ schema_version: 4, sections: { energy }, visibility: {} }, {}).changes;
+}
+
+test("un modello gia' migrato non si rimigra a ogni avvio", () => {
+  const gia = {
+    house: {},
+    grid: {},
+    solar: {},
+    battery: {},
+    metadata: { semantics_version: 4, energy_loads_migrated: true },
+  };
+  assert.deepEqual(migrazioneDi(gia), []);
+});
+
+test("salvare un campo non riporta indietro la versione", async () => {
+  const store = storeFinto({
+    house: {},
+    grid: {},
+    solar: {},
+    battery: {},
+    metadata: { semantics_version: 4, energy_loads_migrated: true },
+  });
+  await persistEnergyField(store, "grid", "daily_import_energy", "sensor.prelievo");
+  assert.equal(store.leggi().metadata.semantics_version, 4);
+  assert.deepEqual(migrazioneDi(store.leggi()), []);
+});
+
+test("un modello senza versione la riceve, cosi' non gli si rifanno gli alias", async () => {
+  const store = storeFinto({ grid: {} });
+  await persistEnergyField(store, "grid", "daily_import_energy", "sensor.prelievo");
+  // Tre e' la soglia sotto la quale la migrazione ricrea i vecchi alias: un
+  // campo annuale svuotato apposta non deve tornare da solo.
+  assert.ok(store.leggi().metadata.semantics_version >= 3);
+});

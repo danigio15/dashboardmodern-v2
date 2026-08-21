@@ -19,6 +19,28 @@ let inFlight = 0;
 
 const clean = (value) => String(value ?? "").trim();
 
+/* La versione delle semantiche non si riporta indietro.
+ *
+ * La migrazione porta il modello Energia alla sua versione corrente e lo
+ * dichiara nel modello stesso; chi salvava un campo lo riscriveva alla 3, e al
+ * caricamento successivo la migrazione ripartiva — a ogni avvio, per sempre,
+ * con tutto il salvataggio che si porta dietro. Il numero ha un padrone solo,
+ * ed e' la migrazione: qui si tiene quello che c'e'.
+ *
+ * Il tre resta come pavimento perche' sotto quella soglia la migrazione ricrea
+ * i vecchi alias fra contatore totale e annuale: un modello appena scritto, che
+ * di suo non ha nessuna versione, si ritroverebbe i campi che l'utente aveva
+ * svuotato apposta. */
+export const ENERGY_SEMANTICS_FLOOR = 3;
+
+export const keptSemanticsVersion = (metadata) =>
+  Math.max(Number(metadata?.semantics_version) || 0, ENERGY_SEMANTICS_FLOOR);
+
+const withSemantics = (model) => ({
+  ...(model.metadata || {}),
+  semantics_version: keptSemanticsVersion(model.metadata),
+});
+
 /* Vero mentre la maschera sta scrivendo nel modello.
  *
  * Chi tiene allineato l'editor alle modifiche dello store lo ridisegna da capo
@@ -72,7 +94,7 @@ export function persistEnergyFields(store, updates = []) {
         model[group] = { ...(model[group] || {}) };
         model[group][key] = clean(value);
       }
-      model.metadata = { ...(model.metadata || {}), semantics_version: 3 };
+      model.metadata = withSemantics(model);
       await store.replaceSection("energy", model);
     }),
   );
@@ -104,7 +126,7 @@ export function persistSignedSource(store, group, signed) {
           ...Object.fromEntries(entities.map(([key, value]) => [key, clean(value)])),
           positive: clean(signed?.positive),
         };
-      model.metadata = { ...(model.metadata || {}), semantics_version: 3 };
+      model.metadata = withSemantics(model);
       await store.replaceSection("energy", model);
     }),
   );
