@@ -202,12 +202,13 @@ export function localeInfo(code) {
  * Invalid input collapses to an empty string so callers can fall through.
  */
 export function normalizeLocaleTag(tag) {
-  const raw = String(tag ?? "")
-    .trim()
-    .replace(/_/g, "-");
+  if (typeof tag !== "string") return "";
+  const raw = tag.trim().replace(/_/g, "-");
   if (!raw) return "";
   const parts = raw.split("-").filter(Boolean);
-  if (!parts.length) return "";
+  /* A language subtag is letters. Anything else — a number, a path, an empty
+   * attribute read back as "0" — is not a locale and must not become one. */
+  if (!parts.length || !/^[A-Za-z]{2,8}$/.test(parts[0])) return "";
   const out = [parts[0].toLowerCase()];
   for (const part of parts.slice(1)) {
     if (part.length === 4 && /^[A-Za-z]+$/.test(part))
@@ -251,6 +252,15 @@ export function isSupportedLocale(tag) {
   return (
     resolveLocale(normalized) !== DEFAULT_LOCALE || normalized.toLowerCase().split("-")[0] === "en"
   );
+}
+
+/**
+ * The related locale a code borrows from when it ships no catalog of its own.
+ * Traditional Chinese reading Simplified is a real fallback; English is not a
+ * bridge, it is the floor, so it is not reported here.
+ */
+export function localeBridge(code) {
+  return LOCALE_FALLBACKS[resolveLocale(code)] || null;
 }
 
 /** Ordered lookup chain for a locale, always ending in English. */
