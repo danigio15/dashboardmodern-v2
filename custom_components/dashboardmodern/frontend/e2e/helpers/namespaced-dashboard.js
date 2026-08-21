@@ -64,6 +64,33 @@ export async function bootNamespacedDashboard(page, variant, testInfo, seed) {
     .toMatchObject({ schema_version: 4 });
   if (testInfo.project.name === "webkit-ipad") {
     await expect(page.locator("html")).toHaveClass(/dm-touch-navigation/);
-    await expect(page.locator("#bottomNavHandle")).toBeVisible();
+    /* Quello che conta e' che alla barra ci si arrivi, non il modo.
+     *
+     * Qui si pretendeva la maniglia per tirare fuori il dock. Da quando la
+     * barra parte ferma quella maniglia e' nascosta apposta — non c'e' niente
+     * da tirare fuori — e questa riga faceva cadere all'avvio ogni prova del
+     * progetto, che e' l'unico ad averla: sessanta rosse per una barra che
+     * funzionava benissimo. */
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const dipinto = (nodo) => {
+            if (!nodo) return false;
+            const stile = getComputedStyle(nodo);
+            if (stile.display === "none" || stile.visibility === "hidden" || stile.opacity === "0")
+              return false;
+            const riquadro = nodo.getBoundingClientRect();
+            return riquadro.width > 0 && riquadro.height > 0;
+          };
+          if (dipinto(document.getElementById("bottomNavHandle"))) return "maniglia";
+          const barra = document.querySelector("nav.tabs.bottom-nav-bar");
+          if (!barra) return "niente";
+          const riquadro = barra.getBoundingClientRect();
+          const fuori =
+            riquadro.top < window.innerHeight - 1 && getComputedStyle(barra).opacity !== "0";
+          return fuori ? "barra ferma" : "niente";
+        }),
+      )
+      .not.toBe("niente");
   }
 }
