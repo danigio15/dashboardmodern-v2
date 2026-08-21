@@ -217,6 +217,25 @@ for (const variant of PRIMARY) {
         { message: "the preview follows the chosen brand", timeout: 10_000 },
       )
       .toBe("mini");
+    /* Il segno del marchio si guarda dopo che il pannello ha dipinto.
+     *
+     * Marchio e scritta li scrive la stessa riga, in un colpo solo: finche' la
+     * scritta non dice MINI, il pittore non e' ancora passato, e cercare il
+     * segno vuol dire misurare una corsa invece di un risultato. Su Safari
+     * quella corsa si perdeva circa una volta su due — con lo stesso commit
+     * della 1.0.0 gia' pubblicata, due esecuzioni in parallelo davano una verde
+     * e una rossa — ed e' questa attesa che mancava. */
+    await expect
+      .poll(
+        () =>
+          appearance.evaluate(
+            (nodo) =>
+              nodo.querySelector("[data-brand-preview] .dm-ev-brand-copy b")?.textContent?.trim() ||
+              "",
+          ),
+        { message: "il pannello ha ridisegnato l'anteprima col marchio scelto", timeout: 20_000 },
+      )
+      .toBe("MINI");
     await expect(
       appearance.locator('[data-brand-preview] .dm-car-brand[data-brand="mini"]'),
     ).toHaveCount(1);
