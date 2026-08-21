@@ -5,11 +5,16 @@
  *   tests/i18n-message-keys.js   the English keys every catalog must answer
  *   src/i18n/source-index.js     Italian source text -> English pivot key
  *
- * The corpus comes from two places, because the dashboard renders from two:
- * the `t(it, en)` call sites in `src/sections`, and the visible chrome of the
- * vendored Italian shell, whose English counterpart is paired by position.
- * The shell pairs that positional matching cannot resolve are listed in
- * `scripts/i18n-shell-vocabulary.json` and merged in here.
+ * The corpus is collected from every place that authors a bilingual pair:
+ *   - `t(it, en)` in `src/sections`, the section layer;
+ *   - `pick(it, en)` in `src/core` and `legacy/modules-entry.js`, the layers
+ *     that take the locale as an argument rather than reading it;
+ *   - the `COPY_SOURCE` table in `legacy/modules-entry.js`;
+ *   - `scripts/i18n-shell-vocabulary.json`, the visible chrome of the vendored
+ *     Italian shell paired with its English build by hand.
+ *
+ * Anything a catalog is expected to answer has to appear in one of those, which
+ * is what keeps the corpus a product of the code instead of a list beside it.
  *
  * Usage: node scripts/extract-i18n-keys.mjs [--check]
  */
@@ -21,29 +26,51 @@ import { dirname, join } from "node:path";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const FRONTEND = join(ROOT, "custom_components/dashboardmodern/frontend");
 const SECTIONS = join(FRONTEND, "src/sections");
+const CORE = join(FRONTEND, "src/core");
+const MODULES_ENTRY = join(FRONTEND, "legacy/modules-entry.js");
 const SHELL_VOCABULARY = join(ROOT, "scripts/i18n-shell-vocabulary.json");
 const KEYS_OUT = join(FRONTEND, "tests/i18n-message-keys.js");
 const INDEX_OUT = join(FRONTEND, "src/i18n/source-index.js");
 
-/* `t("…", "…")`, in any of the three quote styles, including multi-line
- * template literals. Escaped quotes inside an arm are respected. */
-const CALL_RE =
-  /(?<![\w.$])t\(\s*(["'`])((?:\\.|(?!\1)[\s\S])*?)\1\s*,\s*(["'`])((?:\\.|(?!\3)[\s\S])*?)\3\s*\)/g;
+/* `t("…", "…")` / `pick("…", "…")`, in any of the three quote styles and
+ * across lines. Escaped quotes inside an arm are respected, and a third
+ * argument (the explicit locale `pick` takes) is allowed after the pair. */
+function callRe(name) {
+  return new RegExp(
+    String.raw`(?<![\w.$])${name}\(\s*(["'\`])((?:\\.|(?!\1)[\s\S])*?)\1\s*,\s*(["'\`])((?:\\.|(?!\3)[\s\S])*?)\3\s*[,)]`,
+    "g",
+  );
+}
+
+/* `key: ["…", "…"],` — the shape of the `COPY_SOURCE` table. */
+const PAIR_TABLE_RE = /^\s*\w+: \["((?:\\.|[^"])*)", "((?:\\.|[^"])*)"\],$/gm;
 
 function unescape(value) {
   return value.replace(/\\(['"`\\])/g, "$1");
 }
 
-function sectionPairs() {
+function collectCalls(source, name, pairs) {
+  for (const match of source.matchAll(callRe(name))) {
+    const italian = unescape(match[2]);
+    const english = unescape(match[4]);
+    if (english && !pairs.has(english)) pairs.set(english, italian);
+  }
+}
+
+function codePairs() {
   const pairs = new Map();
   for (const name of readdirSync(SECTIONS).sort()) {
-    if (!name.endsWith(".js")) continue;
-    const source = readFileSync(join(SECTIONS, name), "utf8");
-    for (const match of source.matchAll(CALL_RE)) {
-      const italian = unescape(match[2]);
-      const english = unescape(match[4]);
-      if (!pairs.has(english)) pairs.set(english, italian);
-    }
+    if (name.endsWith(".js")) collectCalls(readFileSync(join(SECTIONS, name), "utf8"), "t", pairs);
+  }
+  for (const name of readdirSync(CORE).sort()) {
+    if (name.endsWith(".js")) collectCalls(readFileSync(join(CORE, name), "utf8"), "pick", pairs);
+  }
+  const modules = readFileSync(MODULES_ENTRY, "utf8");
+  collectCalls(modules, "pick", pairs);
+  for (const match of modules.matchAll(PAIR_TABLE_RE)) {
+    const italian = unescape(match[1]);
+    const english = unescape(match[2]);
+    if (english && !pairs.has(english)) pairs.set(english, italian);
   }
   return pairs;
 }
@@ -54,7 +81,7 @@ function shellPairs() {
 }
 
 function build() {
-  const pairs = sectionPairs();
+  const pairs = codePairs();
   for (const [english, italian] of shellPairs()) if (!pairs.has(english)) pairs.set(english, italian);
   const keys = [...pairs.keys()].sort((a, b) => a.localeCompare(b, "en"));
   const index = keys

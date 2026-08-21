@@ -21,15 +21,69 @@ import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/c
 import { createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
 import { SCHEMA_VERSION } from "../src/core/device-model.js";
 import { BUILD_INFO } from "./build-info.js";
+import { pick } from "../src/core/i18n.js";
 import { canonicalReportDevices, reportEntityForDevice, reportIconForDevice } from "../src/core/energy-projection.js";
 
 export const MODULES_VERSION = 14;
-const LOCALE = globalThis.document?.documentElement?.lang === "en" ? "en" : "it";
-const COPY = Object.freeze({
-  it: { optional: "Facoltativo", select: "Seleziona", saveReport: "Salva Report", saved: "Report salvato", energySaved: "Energia salvata", dirty: "Modifiche non salvate", saving: "Salvataggio…", addManual: "Aggiungi voce manuale", empty: "Nessun elemento configurato.", reportIntro: "Seleziona e ordina il Report senza modificare l'ordine della dashboard.", reportLabel: "Etichetta", reportEntity: "Entità Report", history: "Storico", name: "Nome", entity: "Entità", add: "Aggiungi", required: "Nome ed entità sono obbligatori", moveUp: "Sposta su", moveDown: "Sposta giù", remove: "Elimina", energyCost: "Costo energia", energyRates: "Tariffe usate dal Report Energia.", saveCosts: "Salva costi", loadsIntro: "Carichi e Report condividono il modello canonico senza duplicati.", appliances: "Elettrodomestici / dispositivi", secondaryLoads: "Carichi secondari", noLoads: "Nessun carico configurato", editLoad: "Modifica carico", newLoad: "Nuovo carico", visibleReport: "Visibile nel report", visibleDashboard: "Visibile nella dashboard", addLoad: "Aggiungi carico", saveChanges: "Salva modifiche", powerEntity: "Entità potenza", dailyEnergy: "Energia giornaliera", monthlyEnergy: "Energia mensile", totalEnergy: "Energia totale", state: "Stato", control: "Comando ON/OFF", diagnostics: "Diagnostica runtime", languageVariant: "Lingua / variante", activeRenderer: "Renderer attivo", loadNameRequired: "Inserisci il nome del carico", energySaveFailed: "Salvataggio Energia fallito" },
-  en: { optional: "Optional", select: "Select", saveReport: "Save Report", saved: "Report saved", energySaved: "Energy saved", dirty: "Unsaved changes", saving: "Saving…", addManual: "Add manual entry", empty: "No configured items.", reportIntro: "Select and order Report entries without changing dashboard order.", reportLabel: "Label", reportEntity: "Report entity", history: "History", name: "Name", entity: "Entity", add: "Add", required: "Name and entity are required", moveUp: "Move up", moveDown: "Move down", remove: "Delete", energyCost: "Energy cost", energyRates: "Rates used by the Energy Report.", saveCosts: "Save costs", loadsIntro: "Loads and Report share the canonical model without duplicates.", appliances: "Appliances / devices", secondaryLoads: "Secondary loads", noLoads: "No configured loads", editLoad: "Edit load", newLoad: "New load", visibleReport: "Visible in Report", visibleDashboard: "Visible on dashboard", addLoad: "Add load", saveChanges: "Save changes", powerEntity: "Power entity", dailyEnergy: "Daily energy", monthlyEnergy: "Monthly energy", totalEnergy: "Total energy", state: "State", control: "On/off control", diagnostics: "Runtime diagnostics", languageVariant: "Language / variant", activeRenderer: "Active renderer", loadNameRequired: "Enter a load name", energySaveFailed: "Energy save failed" },
+/*
+ * The copy this entry point owns, authored as [Italian, English] pairs.
+ *
+ * It used to be two parallel objects picked by a `lang === "en"` test, which
+ * meant a French user read Italian. The pairs feed `pick()` instead, so the
+ * English side is the catalog key and any locale with a catalog gets its own
+ * words. The shape is also what `scripts/extract-i18n-keys.mjs` reads, so
+ * these strings are part of the corpus the catalogs are held to.
+ */
+const COPY_SOURCE = Object.freeze({
+  optional: ["Facoltativo", "Optional"],
+  select: ["Seleziona", "Select"],
+  saveReport: ["Salva Report", "Save Report"],
+  saved: ["Report salvato", "Report saved"],
+  energySaved: ["Energia salvata", "Energy saved"],
+  dirty: ["Modifiche non salvate", "Unsaved changes"],
+  saving: ["Salvataggio…", "Saving…"],
+  addManual: ["Aggiungi voce manuale", "Add manual entry"],
+  empty: ["Nessun elemento configurato.", "No configured items."],
+  reportIntro: ["Seleziona e ordina il Report senza modificare l'ordine della dashboard.", "Select and order Report entries without changing dashboard order."],
+  reportLabel: ["Etichetta", "Label"],
+  reportEntity: ["Entità Report", "Report entity"],
+  history: ["Storico", "History"],
+  name: ["Nome", "Name"],
+  entity: ["Entità", "Entity"],
+  add: ["Aggiungi", "Add"],
+  required: ["Nome ed entità sono obbligatori", "Name and entity are required"],
+  moveUp: ["Sposta su", "Move up"],
+  moveDown: ["Sposta giù", "Move down"],
+  remove: ["Elimina", "Delete"],
+  energyCost: ["Costo energia", "Energy cost"],
+  energyRates: ["Tariffe usate dal Report Energia.", "Rates used by the Energy Report."],
+  saveCosts: ["Salva costi", "Save costs"],
+  loadsIntro: ["Carichi e Report condividono il modello canonico senza duplicati.", "Loads and Report share the canonical model without duplicates."],
+  appliances: ["Elettrodomestici / dispositivi", "Appliances / devices"],
+  secondaryLoads: ["Carichi secondari", "Secondary loads"],
+  noLoads: ["Nessun carico configurato", "No configured loads"],
+  editLoad: ["Modifica carico", "Edit load"],
+  newLoad: ["Nuovo carico", "New load"],
+  visibleReport: ["Visibile nel report", "Visible in Report"],
+  visibleDashboard: ["Visibile nella dashboard", "Visible on dashboard"],
+  addLoad: ["Aggiungi carico", "Add load"],
+  saveChanges: ["Salva modifiche", "Save changes"],
+  powerEntity: ["Entità potenza", "Power entity"],
+  dailyEnergy: ["Energia giornaliera", "Daily energy"],
+  monthlyEnergy: ["Energia mensile", "Monthly energy"],
+  totalEnergy: ["Energia totale", "Total energy"],
+  state: ["Stato", "State"],
+  control: ["Comando ON/OFF", "On/off control"],
+  diagnostics: ["Diagnostica runtime", "Runtime diagnostics"],
+  languageVariant: ["Lingua / variante", "Language / variant"],
+  activeRenderer: ["Renderer attivo", "Active renderer"],
+  loadNameRequired: ["Inserisci il nome del carico", "Enter a load name"],
+  energySaveFailed: ["Salvataggio Energia fallito", "Energy save failed"],
 });
-const t = (key) => COPY[LOCALE][key] || key;
+const t = (key) => {
+  const entry = COPY_SOURCE[key];
+  return entry ? pick(entry[0], entry[1]) : key;
+};
 
 const store = new DashboardStore({
   sync: async () => {
@@ -168,18 +222,18 @@ export function renderTemperatureEditor(target) {
   const allRooms = store.getSection("rooms");
   const configured = allRooms.filter((room) => room.temp || room.hum);
   const rows = configured.map((room) => {
-    const label = String(room.name || "").trim() || String(room.id || "").trim() || (LOCALE === "en" ? "Room" : "Stanza");
+    const label = String(room.name || "").trim() || String(room.id || "").trim() || (pick("Stanza", "Room"));
     return `<article class="ed-row dm-temperature-card" data-temperature-room data-room-id="${esc(room.id)}" data-room-name="${esc(label)}">
     <div class="dm-temperature-card-icon">${globalThis.cdIconMarkup?.(room.icon || "🌡️", 28) || esc(room.icon || "🌡️")}</div>
     <div class="ed-row-main"><div class="ed-row-new">${esc(label)}</div><div class="ed-row-old">${room.floor ? `🏢 ${esc(room.floor)} · ` : ""}<span class="mono">${esc(room.temp)}</span>${room.hum ? ` · <span class="mono">${esc(room.hum)}</span>` : ""}</div></div>
-    <button type="button" class="ed-del dm-temperature-edit" data-temperature-edit aria-label="${LOCALE === "en" ? "Edit" : "Modifica"}">✏️</button>
+    <button type="button" class="ed-del dm-temperature-edit" data-temperature-edit aria-label="${pick("Modifica", "Edit")}">✏️</button>
     <button type="button" class="ed-del" data-temperature-delete aria-label="${t("remove")}">🗑️</button>
   </article>`;
   }).join("");
-  const options = allRooms.map((room) => `<option value="${esc(room.id)}" ${(room.temp || room.hum) ? "disabled" : ""}>${esc(room.name)}${(room.temp || room.hum) ? (LOCALE === "en" ? " — configured" : " — configurata") : ""}</option>`).join("");
-  const empty = LOCALE === "en" ? "Configure at least one room first in the Rooms section." : "Configura prima almeno una stanza nella sezione Stanze.";
-  target.innerHTML = `<div class="ed-intro" data-temperature-editor>${LOCALE === "en" ? "Temperature uses canonical rooms: it adds sensors without creating duplicate rooms." : "Temperatura usa le stanze canoniche: aggiunge i sensori senza creare stanze duplicate."}</div><div class="ed-list" data-temperature-list>${rows || `<div class="ed-empty">${t("empty")}</div>`}</div>
-    ${allRooms.length ? `<form class="ed-form dm-temperature-form" data-temperature-form><div class="ed-sec-title" data-temperature-form-title>＋ ${LOCALE === "en" ? "Add temperature" : "Aggiungi temperatura"}</div><label class="ed-slot"><span class="ed-slot-lbl">${LOCALE === "en" ? "Room" : "Stanza"}</span><select id="dm-temperature-room" class="ed-input" required><option value="">— ${LOCALE === "en" ? "Select room" : "Seleziona stanza"} —</option>${options}</select></label><label class="ed-slot"><span class="ed-slot-lbl">${LOCALE === "en" ? "Icon" : "Simbolo"}</span>${createIconField("dm-temperature-icon", "mdi:home", "rooms")}</label><output class="ed-row-old dm-temperature-floor" data-temperature-floor></output>${createEntityField({ id: "ed-pl-temp", label: LOCALE === "en" ? "Temperature entity" : "Entità temperatura", optional: false })}${createEntityField({ id: "dm-humidity-new", label: LOCALE === "en" ? "Humidity entity" : "Entità umidità" })}<div class="dm-temperature-actions"><button type="submit" class="ed-btn-add" data-temperature-submit>${t("add")}</button><button type="button" class="ed-btn-secondary" data-temperature-cancel hidden>${LOCALE === "en" ? "Cancel" : "Annulla"}</button></div></form>` : `<div class="ed-empty dm-temperature-no-rooms">${empty}<button type="button" class="ed-btn-add" data-temperature-go-rooms>${LOCALE === "en" ? "Configure rooms" : "Configura stanze"}</button></div>`}`;
+  const options = allRooms.map((room) => `<option value="${esc(room.id)}" ${(room.temp || room.hum) ? "disabled" : ""}>${esc(room.name)}${(room.temp || room.hum) ? (pick(" — configurata", " — configured")) : ""}</option>`).join("");
+  const empty = pick("Configura prima almeno una stanza nella sezione Stanze.", "Configure at least one room first in the Rooms section.");
+  target.innerHTML = `<div class="ed-intro" data-temperature-editor>${pick("Temperatura usa le stanze canoniche: aggiunge i sensori senza creare stanze duplicate.", "Temperature uses canonical rooms: it adds sensors without creating duplicate rooms.")}</div><div class="ed-list" data-temperature-list>${rows || `<div class="ed-empty">${t("empty")}</div>`}</div>
+    ${allRooms.length ? `<form class="ed-form dm-temperature-form" data-temperature-form><div class="ed-sec-title" data-temperature-form-title>＋ ${pick("Aggiungi temperatura", "Add temperature")}</div><label class="ed-slot"><span class="ed-slot-lbl">${pick("Stanza", "Room")}</span><select id="dm-temperature-room" class="ed-input" required><option value="">— ${pick("Seleziona stanza", "Select room")} —</option>${options}</select></label><label class="ed-slot"><span class="ed-slot-lbl">${pick("Simbolo", "Icon")}</span>${createIconField("dm-temperature-icon", "mdi:home", "rooms")}</label><output class="ed-row-old dm-temperature-floor" data-temperature-floor></output>${createEntityField({ id: "ed-pl-temp", label: pick("Entità temperatura", "Temperature entity"), optional: false })}${createEntityField({ id: "dm-humidity-new", label: pick("Entità umidità", "Humidity entity") })}<div class="dm-temperature-actions"><button type="submit" class="ed-btn-add" data-temperature-submit>${t("add")}</button><button type="button" class="ed-btn-secondary" data-temperature-cancel hidden>${pick("Annulla", "Cancel")}</button></div></form>` : `<div class="ed-empty dm-temperature-no-rooms">${empty}<button type="button" class="ed-btn-add" data-temperature-go-rooms>${pick("Configura stanze", "Configure rooms")}</button></div>`}`;
 }
 
 export function mountTemperatureEditor(_section, target) {
@@ -210,7 +264,7 @@ export function mountTemperatureEditor(_section, target) {
     const iconInput = target.querySelector("#dm-temperature-icon");
     if (!iconInput.value || iconInput.value === "🌡️") iconInput.value = room?.icon || "🌡️";
     target.querySelector("[data-temperature-floor]").textContent = room?.floor ? `🏢 ${room.floor}` : "";
-    target.querySelector("[data-temperature-form-title]").textContent = `＋ ${LOCALE === "en" ? "Add temperature" : "Aggiungi temperatura"}`;
+    target.querySelector("[data-temperature-form-title]").textContent = `＋ ${pick("Aggiungi temperatura", "Add temperature")}`;
     target.querySelector("[data-temperature-submit]").textContent = t("add");
     target.querySelector("[data-temperature-cancel]").hidden = true;
   };
@@ -225,8 +279,8 @@ export function mountTemperatureEditor(_section, target) {
     target.querySelector("#ed-pl-temp").value = room?.temp || "";
     target.querySelector("#dm-humidity-new").value = room?.hum || "";
     target.querySelector("[data-temperature-floor]").textContent = room?.floor ? `🏢 ${room.floor}` : "";
-    target.querySelector("[data-temperature-form-title]").textContent = `${LOCALE === "en" ? "Edit" : "Modifica"} ${room.name}`;
-    target.querySelector("[data-temperature-submit]").textContent = LOCALE === "en" ? "Save changes" : "Salva modifiche";
+    target.querySelector("[data-temperature-form-title]").textContent = `${pick("Modifica", "Edit")} ${room.name}`;
+    target.querySelector("[data-temperature-submit]").textContent = pick("Salva modifiche", "Save changes");
     target.querySelector("[data-temperature-cancel]").hidden = false;
   };
   refreshOptions();
