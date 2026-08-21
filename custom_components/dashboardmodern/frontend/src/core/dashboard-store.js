@@ -13,6 +13,7 @@ function deepFreeze(value) {
 import { migrateState, normalizeSection, readLegacyState, SECTION_KEYS } from "./migrations.js";
 import { sectionForEditorSlot } from "./editor-slots.js";
 import { projectEnergySlots } from "./energy-projection.js";
+import { applySignedSources } from "./signed-energy.js";
 
 export const VISIBILITY_SECTION = Object.freeze({
   rooms: "temp",
@@ -207,8 +208,11 @@ export class DashboardStore {
           rooms: this.state.sections.rooms || [],
         });
     }
+    /* Le sorgenti uniche con segno si risolvono qui, prima della proiezione:
+     * da questo punto in giu' i due versi hanno un riferimento ciascuno come
+     * se l'utente avesse configurato due sensori separati. */
     this.state.sections.entityOverrides = projectEnergySlots(
-      this.state.sections.energy || {},
+      applySignedSources(this.state.sections.energy || {}),
       this.state.sections.entityOverrides || {},
     );
     this.projecting = true;

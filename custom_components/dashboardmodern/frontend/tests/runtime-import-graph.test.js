@@ -243,7 +243,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 110 con il cielo della sezione Tapparelle: la fascia del giorno sta in un
   // modulo puro — si prova senza browser — e chi la usa scrive solo un attributo
   // sulla pagina, perche' il disegno del cielo era gia' tutto in variabili.
-  assert.ok(relative.length <= 114, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 117, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with one declared exception.

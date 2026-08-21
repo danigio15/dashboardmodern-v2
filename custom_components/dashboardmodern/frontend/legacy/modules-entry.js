@@ -19,6 +19,7 @@ import {
 import { DashboardStore } from "../src/core/dashboard-store.js";
 import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/core/device-model.js";
 import { createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
+import { energyWriteInFlight, flushEnergyWrites, persistEnergyField, persistSignedSource } from "../src/core/energy-writer.js";
 import { SCHEMA_VERSION } from "../src/core/device-model.js";
 import { BUILD_INFO } from "./build-info.js";
 import { canonicalReportDevices, reportEntityForDevice, reportIconForDevice } from "../src/core/energy-projection.js";
@@ -84,7 +85,9 @@ createRenderCoordinator(store, {
       return;
     }
     if (tab === "sez1" && section === "energy") {
-      renderEditorTab("sez1", body);
+      // Il cambio che arriva dalla maschera stessa non la ridisegna: sarebbe
+      // cancellare il campo che si sta compilando mentre lo si compila.
+      if (!energyWriteInFlight()) renderEditorTab("sez1", body);
       return;
     }
     if (tab === "sez1" && section === "loads") {
@@ -119,7 +122,6 @@ createRenderCoordinator(store, {
 let activeEnergyPanel = "flows";
 function renderEnergyEditorTab(target) {
   const model = store.getSection("energy");
-  const draft = structuredClone(model);
   renderEnergyEditor(globalThis.document, target, model, store.getSection("appliances"), globalThis.STATES || {},
     globalThis.document?.documentElement?.lang === "en" ? "en" : "it", {
       onPick: (input) => globalThis.wzPickEntity?.(input),
@@ -132,16 +134,26 @@ function renderEnergyEditorTab(target) {
           <div class="ed-form-row"><input id="ed-costo-kwh" class="ed-input" type="number" step="0.001" min="0" placeholder="€/kWh prelevato" value="${globalThis.cdCfg?.("cd_costo_kwh") || ""}"><input id="ed-prezzo-imm" class="ed-input" type="number" step="0.001" min="0" placeholder="€/kWh immesso" value="${globalThis.cdCfg?.("cd_prezzo_immissione") || ""}"></div>
           <button class="ed-save-btn" onclick="edSaveCosti()">💾 ${t("saveCosts")}</button></div>`;
       },
-      onChange: (group, key, value) => {
-        draft[group] ||= {}; draft[group][key] = value;
+      /* Ogni campo scrive dove scrivono gli altri.
+       * La bozza presa all'apertura rimetteva a posto i valori che i campi
+       * aggiunti dopo (contatori totali, SOC) avevano gia' salvato, e le
+       * modifiche non ancora salvate sparivano cambiando sezione. */
+      onChange: (group, key, value) => persistEnergyField(store, group, key, value),
+      onSignedChange: (group, signed) => persistSignedSource(store, group, signed),
+      /* Dichiarare la sorgente unica spegne le caselle dei due versi: la
+       * maschera va ridisegnata dal modello appena salvato, non indovinata. */
+      onSignedRerender: async () => {
+        await flushEnergyWrites();
+        renderEnergyEditorTab(target);
+        mountCurrentEditor("energy", target);
+        globalThis.dispatchEvent?.(new CustomEvent("dashboardmodern:energy-editor-rendered"));
       },
       initialTab: activeEnergyPanel,
       onTabChange: (tab) => { activeEnergyPanel = tab; },
       onSave: async ({ actions, save, status }) => {
-        draft.metadata = { ...(draft.metadata || {}), semantics_version: 2 };
         actions.dataset.state = "loading"; save.disabled = true; status.textContent = t("saving");
         try {
-          await store.replaceSection("energy", draft);
+          await flushEnergyWrites();
           const current = target.querySelector("[data-energy-actions]");
           if (current) { current.dataset.state = "success"; current.querySelector("[data-energy-status]").textContent = t("energySaved"); }
         } catch (error) {

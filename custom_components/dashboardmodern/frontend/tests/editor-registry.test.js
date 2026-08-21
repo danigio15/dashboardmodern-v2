@@ -199,15 +199,31 @@ test("canonical module hydrates the public runtime once after legacy readiness",
   assert.match(hydrate, /globalThis\.render\?\.\(\)/);
 });
 
-test("Energy flow uses one draft transaction and exposes a save lifecycle", async () => {
+/* La bozza non c'e' piu'.
+ *
+ * La maschera Energia teneva una copia del modello presa all'apertura e la
+ * riscriveva per intero al Salva, mentre i campi aggiunti dopo (contatori
+ * totali, SOC della batteria) scrivevano subito nello store: compilare un
+ * totale e poi premere Salva rimetteva a posto il valore vecchio. Adesso ogni
+ * campo passa dalla stessa coda e il Salva non fa che aspettarla. */
+test("Energy flow writes every field through the single writer, with no draft to go stale", async () => {
   const source = await readFile(moduleUrl, "utf8");
   const energy = source.slice(
     source.indexOf("function renderEnergyEditorTab"),
     source.indexOf("const esc"),
   );
-  assert.match(energy, /structuredClone\(model\)/);
+  assert.doesNotMatch(energy, /structuredClone\(model\)/);
+  assert.doesNotMatch(energy, /store\.replaceSection\("energy"/);
+  assert.match(
+    energy,
+    /onChange: \(group, key, value\) => persistEnergyField\(store, group, key, value\)/,
+  );
+  assert.match(
+    energy,
+    /onSignedChange: \(group, signed\) => persistSignedSource\(store, group, signed\)/,
+  );
   assert.match(energy, /onSave: async/);
-  assert.equal((energy.match(/store\.replaceSection\("energy"/g) || []).length, 1);
+  assert.match(energy, /await flushEnergyWrites\(\)/);
   assert.match(energy, /activeEnergyPanel/);
 });
 
