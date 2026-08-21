@@ -465,6 +465,10 @@ export function mountCurrentEditor(section, target = globalThis.document?.getEle
   globalThis.cdFillRoomSelects?.();
   target.querySelectorAll?.("details.ed-acc").forEach((details) => details.dataset.editorMounted = "true");
   target.dataset.mountedSection = section || "";
+  /* La scheda e' stata ridisegnata. Chi ci aggiunge qualcosa di suo lo scopre
+   * da qui: prima poteva solo indovinare quando il corpo dell'editor era stato
+   * rifatto sotto di lui, e cio' che aveva aggiunto spariva. */
+  globalThis.dispatchEvent?.(new CustomEvent("dashboardmodern:editor-rendered", { detail: { section } }));
 }
 /* The Loads panel belongs to the rebuilt editor when that owner is installed.
    This flat A/B list described the same loads a second time, and because it
