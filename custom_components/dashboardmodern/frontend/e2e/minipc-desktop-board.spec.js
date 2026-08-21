@@ -75,12 +75,7 @@ test("la scena sta sopra la telemetria, non in fondo alla pagina", async ({ page
 
 test("le pastiglie di telemetria riempiono la riga invece di lasciarne una orfana", async ({
   page,
-  viewport,
 }, testInfo) => {
-  /* La pretesa e' della plancia larga. Sul telefono la sezione diventa una
-   * colonna sola e le pastiglie stanno una sotto l'altra, che e' giusto: li'
-   * "riempire la riga" vuol dire una per riga, e lo si verifica in fondo. */
-  const larga = (viewport?.width ?? 1440) > 900;
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
   await apriMiniPc(page);
@@ -97,6 +92,16 @@ test("le pastiglie di telemetria riempiono la riga invece di lasciarne una orfan
         .map((nodo) => Math.round(nodo.getBoundingClientRect().top)),
     );
   expect(righe.length).toBeGreaterThanOrEqual(3);
-  // Larga: tutte sulla stessa riga. Stretta: una per riga, nessuna appaiata.
-  expect(new Set(righe).size).toBe(larga ? 1 : righe.length);
+  /* Il difetto era una pastiglia sola su una riga mezza vuota, mentre le altre
+   * due stavano appaiate. Quante ne entrino per riga lo decide la larghezza —
+   * tre sulla plancia, tre anche sull'iPad in verticale, una per riga sul
+   * telefono — e non e' quello il punto: il punto e' che nessuna resti
+   * spaiata. Quindi le righe devono essere tutte piene allo stesso modo. */
+  const perRiga = new Map();
+  for (const riga of righe) perRiga.set(riga, (perRiga.get(riga) || 0) + 1);
+  const conteggi = [...perRiga.values()];
+  expect(
+    Math.max(...conteggi) - Math.min(...conteggi),
+    `pastiglie spaiate: ${conteggi.join(" + ")} per riga`,
+  ).toBeLessThanOrEqual(0);
 });

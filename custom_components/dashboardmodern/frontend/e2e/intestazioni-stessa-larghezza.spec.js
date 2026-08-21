@@ -56,10 +56,9 @@ const seed = {
 };
 
 test("ogni sezione apre alla stessa larghezza", async ({ page }, testInfo) => {
-  test.setTimeout(90_000);
+  test.setTimeout(180_000);
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
-  await page.setViewportSize({ width: 1440, height: 900 });
 
   const pagine = await page.evaluate(() =>
     [...document.querySelectorAll(".page")].map((nodo) => nodo.id).filter(Boolean),
@@ -80,19 +79,30 @@ test("ogni sezione apre alla stessa larghezza", async ({ page }, testInfo) => {
         const testa = document.getElementById(pid)?.querySelector(".dm-page-mast");
         return testa ? Math.round(testa.getBoundingClientRect().width) : -1;
       }, id);
-    let precedente = -2;
+    // Prima che compaia: su un browser lento l'intestazione puo' farsi
+    // attendere, e una sezione saltata falserebbe il conto.
     let larghezza = await larghezzaDi();
-    for (let attesa = 0; attesa < 25 && (larghezza < 0 || larghezza !== precedente); attesa += 1) {
+    for (let attesa = 0; attesa < 80 && larghezza < 0; attesa += 1) {
+      await page.waitForTimeout(150);
+      larghezza = await larghezzaDi();
+    }
+    // Poi che si assesti: la misura buona e' quella che smette di cambiare.
+    let precedente = -2;
+    for (let attesa = 0; attesa < 40 && larghezza !== precedente; attesa += 1) {
       precedente = larghezza;
-      await page.waitForTimeout(120);
+      await page.waitForTimeout(150);
       larghezza = await larghezzaDi();
     }
     if (larghezza > 0) misure.push({ id, larghezza });
   }
 
-  // Le sezioni con un'intestazione sono parecchie: se ne restassero due, questa
-  // prova non direbbe niente.
-  expect(misure.length).toBeGreaterThanOrEqual(8);
+  /* Le sezioni con un'intestazione sono parecchie: se ne restassero due, questa
+   * prova non direbbe niente. Il conto e' anche la spia di un'attesa troppo
+   * corta, quindi dice quali sezioni ha visto. */
+  expect(
+    misure.length,
+    `sezioni misurate: ${misure.map((m) => m.id).join(", ")}`,
+  ).toBeGreaterThanOrEqual(8);
   const larghezze = misure.map((m) => m.larghezza);
   const scarto = Math.max(...larghezze) - Math.min(...larghezze);
   expect(
