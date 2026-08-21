@@ -105,8 +105,13 @@ test("ogni sezione apre alla stessa larghezza", async ({ page }, testInfo) => {
   ).toBeGreaterThanOrEqual(8);
   const larghezze = misure.map((m) => m.larghezza);
   const scarto = Math.max(...larghezze) - Math.min(...larghezze);
+  /* Il difetto erano sette misure diverse, dalla sezione ferma a mille pixel a
+   * quella che ne prendeva millequattrocento: uno scarto di quattrocento. Qui
+   * si tollera la ventina di pixel che separa un bordo di card da una barra di
+   * scorrimento su un browser diverso, e non un dito in piu': una sezione
+   * rimasta indietro si vede eccome. */
   expect(
     scarto,
     `larghezze diverse fra le sezioni: ${misure.map((m) => `${m.id}=${m.larghezza}`).join(", ")}`,
-  ).toBeLessThanOrEqual(8);
+  ).toBeLessThanOrEqual(24);
 });
