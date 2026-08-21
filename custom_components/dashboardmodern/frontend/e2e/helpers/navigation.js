@@ -13,7 +13,23 @@ export async function waitForStableBox(locator) {
     .toBeTruthy();
 }
 
+/* La barra puo' essere gia' fuori: adesso e' cosi' che parte la plancia, e la
+ * maniglia per tirarla fuori in quel caso non c'e' — non c'e' niente da tirare.
+ * Il mestiere di questi aiutanti e' renderla raggiungibile, non farla uscire per
+ * forza. */
+async function barraGiaFuori(nav) {
+  return nav.evaluate((nodo) => {
+    if (document.body?.classList.contains("cd-nav-fixed")) return true;
+    const riquadro = nodo.getBoundingClientRect();
+    return riquadro.top < window.innerHeight - 1 && getComputedStyle(nodo).opacity !== "0";
+  });
+}
+
 async function revealTouchNavigation(page, nav, handle) {
+  if (await barraGiaFuori(nav)) {
+    await waitForStableBox(nav);
+    return;
+  }
   await expect(handle).toBeVisible();
   if (!(await nav.getAttribute("class"))?.includes("visible")) {
     await handle.evaluate((node) => node.click());
@@ -29,6 +45,10 @@ async function revealTouchNavigation(page, nav, handle) {
 export async function revealBottomNavigation(page) {
   const nav = page.locator("nav.bottom-nav-bar");
   const handle = page.locator("#bottomNavHandle");
+  if (await barraGiaFuori(nav)) {
+    await waitForStableBox(nav);
+    return "gia-fuori";
+  }
   if (await handle.isVisible()) {
     await revealTouchNavigation(page, nav, handle);
     return "handle";
