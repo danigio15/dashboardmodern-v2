@@ -75,6 +75,17 @@ test("the language variant follows the Home Assistant locale", () => {
   assert.equal(legacyVariantForLocale("it-IT"), "dashboard.html");
   assert.equal(legacyVariantForLocale("en-GB"), "dashboard-en.html");
   assert.equal(legacyVariantForLocale(undefined), "dashboard-en.html");
+  /* Segnalazione #178: un profilo in francese si ritrovava — a suo dire — la
+   * plancia in italiano. Le lingue che non parliamo prendono l'inglese: non lo
+   * capiscono piu' dell'italiano, ma e' quello che ci si aspetta quando la
+   * propria lingua non c'e'. */
+  for (const lingua of ["fr", "fr-FR", "de", "de-AT", "es", "es-419", "pt-BR", "nl", "sv"]) {
+    assert.equal(legacyVariantForLocale(lingua), "dashboard-en.html", lingua);
+  }
+  // E l'italiano resta italiano, senza farsi rubare il posto da una lingua che
+  // comincia per "it" senza esserlo.
+  assert.equal(legacyVariantForLocale("it-CH"), "dashboard.html");
+  assert.equal(legacyVariantForLocale("ita"), "dashboard-en.html");
 });
 
 test("no credential is published to the hosted page", () => {

@@ -1,5 +1,5 @@
 /* DashboardModern custom panel and companion Lovelace dashboard registration. */
-import { legacyVariantForLocale, mountLegacyHost } from "./src/legacy/host.js";
+import { LEGACY_VARIANTS, legacyVariantForLocale, mountLegacyHost } from "./src/legacy/host.js";
 
 const dashboardJobs = new Map();
 
@@ -7,7 +7,14 @@ export function resolveLegacyVariant(panel, hass) {
   const variants = panel?.config?.legacy_variants;
   if (!Array.isArray(variants) || variants.length === 0) return null;
   const preferred = legacyVariantForLocale(hass?.locale?.language);
-  return variants.includes(preferred) ? preferred : variants[0];
+  if (variants.includes(preferred)) return preferred;
+  /* Se la plancia giusta non e' stata spedita si ripiega sull'inglese, non
+   * sulla prima della lista. La lista arriva ordinata per nome, e finche' le
+   * plance sono due il caso non si vede; ma basterebbe aggiungerne una che
+   * viene prima in ordine alfabetico — una "dashboard-de.html" — perche' ogni
+   * lingua non supportata finisca in tedesco senza che nessuno l'abbia deciso. */
+  if (variants.includes(LEGACY_VARIANTS.en)) return LEGACY_VARIANTS.en;
+  return variants[0];
 }
 
 export function userCanAccess(config = {}, user = {}) {

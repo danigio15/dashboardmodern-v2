@@ -227,3 +227,54 @@ test("e su Android chi lo spegne resta spento", async ({ page }, testInfo) => {
   await expect(html).not.toHaveAttribute("data-dm-ios-kiosk", "true");
   expect((await hostGeometry(page)).position).not.toBe("fixed");
 });
+
+/* Il racconto di chi l'ha trovato, sulla segnalazione #177: "su app iOS,
+ * quando passo dalla DashboardModern alla mia plancia vedo tutto bianco... poi
+ * aggiorno e torna normale".
+ *
+ * Il bianco non era il tema — se lo fosse stato, ricaricare non l'avrebbe
+ * rimesso a posto. Era il velo del chiosco rimasto addosso al pannello di Home
+ * Assistant: fisso, a tutto schermo, chiarissimo. Home Assistant e' una pagina
+ * sola e cambiando plancia non si ricarica mai, quindi il velo restava steso
+ * sopra tutto finche' non si ricaricava a mano.
+ *
+ * Chi smonta la cornice deve farsi restituire quello che le aveva prestato. */
+test("smontando la plancia il velo del chiosco se ne va con lei", async ({ page }, testInfo) => {
+  test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
+  await bootHostedPlancia(page, { search: "?kiosk=1" });
+
+  const html = page.frameLocator("iframe").locator("html");
+  await expect(html).toHaveAttribute("data-dm-ios-kiosk", "true");
+  const conVelo = await hostGeometry(page);
+  expect(conVelo.position, "il velo dev'esserci, altrimenti la prova non prova niente").toBe(
+    "fixed",
+  );
+  expect(conVelo.paintedOnTop).toBe("panel");
+  expect(conVelo.documentOverflow).toBe("hidden");
+
+  /* Quello che fa Home Assistant quando si lascia la plancia per un'altra:
+   * toglie il pannello, e chi lo ospita chiede alla cornice di rimettere a
+   * posto prima di levarla. */
+  expect(
+    await page.evaluate(
+      () =>
+        typeof document.getElementById("panel").shadowRoot.querySelector("iframe").contentWindow
+          .dmReleaseOwnerDocument,
+    ),
+    "la maniglia che tira chi smonta la plancia non c'e'",
+  ).toBe("function");
+  await page.evaluate(() =>
+    document
+      .getElementById("panel")
+      .shadowRoot.querySelector("iframe")
+      .contentWindow.dmReleaseOwnerDocument(),
+  );
+
+  const dopo = await hostGeometry(page);
+  expect(dopo.position, "il velo e' rimasto addosso al pannello").not.toBe("fixed");
+  expect(dopo.documentOverflow, "lo scorrimento e' rimasto bloccato").not.toBe("hidden");
+  expect(dopo.top, "il pannello copre ancora la barra di Home Assistant").toBeGreaterThan(0);
+  expect(dopo.paintedOnTop, "in cima si vede ancora la plancia, non Home Assistant").toBe(
+    "ha-header",
+  );
+});
