@@ -25,6 +25,7 @@
  * classes in pure CSS, so no alarm logic is duplicated here.
  */
 import {
+  activeLocale,
   allStates,
   clean,
   doc,
@@ -148,7 +149,7 @@ function modeButton({ mode, service, icon, label, hint }) {
 }
 
 function skeletonMarkup(labels) {
-  return `<div class="dm-sec-shell" data-dm-lang="${english() ? "en" : "it"}">
+  return `<div class="dm-sec-shell" data-dm-lang="${activeLocale()}">
   <div class="dm-sec-mast">
     <span class="dm-sec-mast-ic" aria-hidden="true">${ICONS.shield}</span>
     <div class="dm-sec-mast-copy">

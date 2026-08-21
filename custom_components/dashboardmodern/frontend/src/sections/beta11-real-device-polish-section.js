@@ -1,4 +1,4 @@
-import { clean, dashboardStore, doc, installStyle, readJson, root, wrapFunction } from "./shared.js";
+import { clean, dashboardStore, doc, installStyle, readJson, root, t, wrapFunction } from "./shared.js";
 
 // Compatibility owner kept temporarily while EV and Alerts are absorbed by their
 // canonical sections. Room/Temperature icon DOM is single-owner: this module may
@@ -287,7 +287,7 @@ function decorateAlertIconField() {
     preview = doc.createElement("button");
     preview.type = "button";
     preview.className = "dm-beta11-alert-preview";
-    preview.setAttribute("aria-label", english() ? "Choose alert icon" : "Scegli icona avviso");
+    preview.setAttribute("aria-label", t("Scegli icona avviso", "Choose alert icon"));
     row.prepend(preview);
     preview.addEventListener("click", () => openAlertPicker(input));
   }

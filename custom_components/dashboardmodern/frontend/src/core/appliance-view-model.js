@@ -1,4 +1,5 @@
 // DM-FIX-20260812B
+import { pick } from "./i18n.js";
 import { getDeviceDisplayName, getDeviceVisual } from "./device-model.js";
 
 const clean = (value) => String(value || "").trim();
@@ -102,15 +103,12 @@ export function createApplianceViewModel(device = {}, states = {}, rooms = [], l
           : genericOn || (watts != null && watts >= standby)
             ? "standby"
             : "off";
-  const labels =
-    locale === "en"
-      ? { running: "RUNNING", standby: "STANDBY", off: "OFF", unavailable: "UNAVAILABLE" }
-      : {
-          running: "IN FUNZIONE",
-          standby: "STANDBY",
-          off: "SPENTO",
-          unavailable: "NON DISPONIBILE",
-        };
+  const labels = {
+    running: pick("IN FUNZIONE", "RUNNING", locale),
+    standby: pick("STANDBY", "STANDBY", locale),
+    off: pick("SPENTO", "OFF", locale),
+    unavailable: pick("NON DISPONIBILE", "UNAVAILABLE", locale),
+  };
   const canControl = Boolean(controlEntity);
   const controlOn = controlState === "on";
   return Object.freeze({
@@ -132,8 +130,7 @@ export function createApplianceViewModel(device = {}, states = {}, rooms = [], l
       entity: controlEntity,
       service: controlOn ? "turn_off" : "turn_on",
       pressed: controlOn,
-      label:
-        locale === "en" ? (controlOn ? "Turn off" : "Turn on") : controlOn ? "Spegni" : "Accendi",
+      label: controlOn ? pick("Spegni", "Turn off", locale) : pick("Accendi", "Turn on", locale),
     }),
     summary: Object.freeze({ mode, label: labels[mode], watts, historyEntity }),
   });

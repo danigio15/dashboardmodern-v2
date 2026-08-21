@@ -1,6 +1,6 @@
 // DM-FIX-20260817A
 import { normalizeSection } from "../core/migrations.js";
-import { reloadDashboard, root } from "./shared.js";
+import { reloadDashboard, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CONFIG_PERSISTENCE__";
 const USER_DATA_VERSION = 1;
@@ -931,9 +931,7 @@ function installStorageMutationBridge() {
 
 function resetConfirmation() {
   const english = root.document?.documentElement?.lang === "en";
-  return english
-    ? "Delete all DashboardModern configuration for this dashboard?"
-    : "Eliminare tutta la configurazione DashboardModern di questa plancia?";
+  return t("Eliminare tutta la configurazione DashboardModern di questa plancia?", "Delete all DashboardModern configuration for this dashboard?");
 }
 
 export async function resetAllConfig({ skipConfirm = false, reload = true } = {}) {

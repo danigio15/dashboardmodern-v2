@@ -28,6 +28,7 @@ export function canonicalClimateType(value) {
  * a device can never silently fall back to `generico` just because a second
  * editor happened to know fewer appliance types.
  */
+import { pick } from "./i18n.js";
 import { contactEntity } from "./shutter-window.js";
 
 export const APPLIANCE_CATALOG = Object.freeze([
@@ -197,7 +198,7 @@ export function canonicalApplianceVisualKey(value = "") {
 export function applianceCatalogLabel(value = "", locale = "it") {
   const key = canonicalApplianceVisualKey(value) || "generico";
   const item = APPLIANCE_CATALOG.find((entry) => entry.key === key);
-  return item?.[locale === "en" ? "en" : "it"] || item?.it || key;
+  return pick(item?.it, item?.en, locale) || item?.it || key;
 }
 
 function legacyVisualKey(input = {}, rawIcon = "", type = "") {
@@ -252,7 +253,7 @@ export function getDeviceDisplayName(device = {}, states = {}, locale = "it") {
     if (friendly) return friendly;
   }
   const derived = entityLabel(deviceEntities(device)[0]);
-  return derived || (locale === "it" ? "Dispositivo" : "Device");
+  return derived || pick("Dispositivo", "Device", locale);
 }
 
 export function getDeviceVisual(device = {}) {

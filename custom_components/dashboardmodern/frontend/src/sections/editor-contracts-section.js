@@ -67,9 +67,7 @@ function normalizeReportManualPanel() {
         const open = !form.hidden;
         button.setAttribute("aria-expanded", String(open));
         button.textContent = open
-          ? english()
-            ? "− Close manual entry"
-            : "− Chiudi voce manuale"
+          ? t("− Chiudi voce manuale", "− Close manual entry")
           : button.dataset.dmClosedLabel;
         if (open) panel.querySelector("[data-manual-name]")?.focus();
       },
@@ -84,9 +82,7 @@ function normalizeReportManualPanel() {
   const open = button.getAttribute("aria-expanded") === "true";
   form.hidden = !open;
   button.textContent = open
-    ? english()
-      ? "− Close manual entry"
-      : "− Chiudi voce manuale"
+    ? t("− Chiudi voce manuale", "− Close manual entry")
     : button.dataset.dmClosedLabel;
   return true;
 }
@@ -159,12 +155,8 @@ function normalizeTemperatureEditor() {
   if (submit) {
     submit.classList.add("dm-temperature-submit");
     submit.textContent = editing
-      ? english()
-        ? "SAVE CHANGES"
-        : "SALVA MODIFICHE"
-      : english()
-        ? "ASSOCIATE SENSORS"
-        : "ASSOCIA SENSORI";
+      ? t("SALVA MODIFICHE", "SAVE CHANGES")
+      : t("ASSOCIA SENSORI", "ASSOCIATE SENSORS");
   }
   const title = form.querySelector("[data-temperature-form-title]");
   if (title) title.dataset.dmTemperatureMode = editing ? "edit" : "add";

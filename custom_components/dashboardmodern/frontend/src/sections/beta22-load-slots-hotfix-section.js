@@ -10,6 +10,9 @@
  * Event driven only: no setInterval and no document-wide MutationObserver.
  */
 
+import { t } from "./shared.js";
+import { intlLocale } from "../core/i18n.js";
+
 const root = globalThis;
 const doc = root.document;
 const SLOT_KEYS = Object.freeze(["boiler", "wb", "clima", "lav", "cuc"]);
@@ -106,9 +109,9 @@ function stateNumber(entity) {
 
 function formatValue(value, period) {
   if (value === null || !Number.isFinite(Number(value))) return "—";
-  const locale = doc?.documentElement?.lang === "en" ? "en-GB" : "it-IT";
+  const tag = intlLocale();
   const digits = period === "instant" ? 0 : 1;
-  return `${new Intl.NumberFormat(locale, {
+  return `${new Intl.NumberFormat(tag, {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(Number(value))} ${period === "instant" ? "W" : "kWh"}`;
@@ -201,7 +204,7 @@ function setConnector(scope, slot, suffix, visible, loadId = "") {
 
 function writeLoadNode(node, load, period, value) {
   if (!node || !load) return;
-  const name = clean(load.name) || (doc?.documentElement?.lang === "en" ? "Load" : "Carico");
+  const name = clean(load.name) || (t("Carico", "Load"));
   const icon = clean(load.emoji_icon || load.icon || "🔌");
   const label = node.querySelector?.(".node-label,.n-label,[data-node-label]");
   const iconNode = node.querySelector?.(".node-icon,.n-icon,[data-node-icon]");
@@ -309,7 +312,7 @@ function canonicalRoomName(row) {
     clean(room?.name) ||
     clean(row?.dataset?.roomName) ||
     clean(row?.querySelector?.(".ed-row-new")?.textContent) ||
-    (doc?.documentElement?.lang === "en" ? "Room" : "Stanza")
+    (t("Stanza", "Room"))
   );
 }
 
@@ -364,13 +367,13 @@ function repairEnergyCostEditor() {
   const sell = configuredRate("cd_prezzo_immissione");
   card.dataset.dmCostOwner = "beta22-hotfix";
   card.innerHTML = `
-    <div class="ed-sec-title">💶 ${english ? "Energy cost" : "Costo energia"}</div>
-    <div class="ed-hint">${english ? "Rates used by the Energy Report." : "Tariffe usate dal Report Energia."}</div>
+    <div class="ed-sec-title">💶 ${t("Costo energia", "Energy cost")}</div>
+    <div class="ed-hint">${t("Tariffe usate dal Report Energia.", "Rates used by the Energy Report.")}</div>
     <div class="dm-energy-cost-grid">
-      <label class="dm-energy-cost-field"><span>${english ? "Purchased energy" : "Energia acquistata"} <small>€/kWh</small></span><input id="ed-costo-kwh" class="ed-input" type="number" inputmode="decimal" step="0.001" min="0" value="${escapeHtml(buy)}" placeholder="0,000"></label>
-      <label class="dm-energy-cost-field"><span>${english ? "Sold energy" : "Energia venduta"} <small>€/kWh</small></span><input id="ed-prezzo-imm" class="ed-input" type="number" inputmode="decimal" step="0.001" min="0" value="${escapeHtml(sell)}" placeholder="0,000"></label>
+      <label class="dm-energy-cost-field"><span>${t("Energia acquistata", "Purchased energy")} <small>€/kWh</small></span><input id="ed-costo-kwh" class="ed-input" type="number" inputmode="decimal" step="0.001" min="0" value="${escapeHtml(buy)}" placeholder="0,000"></label>
+      <label class="dm-energy-cost-field"><span>${t("Energia venduta", "Sold energy")} <small>€/kWh</small></span><input id="ed-prezzo-imm" class="ed-input" type="number" inputmode="decimal" step="0.001" min="0" value="${escapeHtml(sell)}" placeholder="0,000"></label>
     </div>
-    <button type="button" class="ed-save-btn" data-dm-save-energy-costs>💾 ${english ? "Save costs" : "Salva costi"}</button>`;
+    <button type="button" class="ed-save-btn" data-dm-save-energy-costs>💾 ${t("Salva costi", "Save costs")}</button>`;
   card.querySelector("[data-dm-save-energy-costs]")?.addEventListener("click", () => {
     if (typeof root.edSaveCosti === "function") {
       root.edSaveCosti();

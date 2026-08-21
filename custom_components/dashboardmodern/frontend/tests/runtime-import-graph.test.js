@@ -243,7 +243,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 110 con il cielo della sezione Tapparelle: la fascia del giorno sta in un
   // modulo puro — si prova senza browser — e chi la usa scrive solo un attributo
   // sulla pagina, perche' il disegno del cielo era gia' tutto in variabili.
-  assert.ok(relative.length <= 110, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 114 con la lingua. La plancia parlava due lingue perche' ne esistevano due
+  // copie: il ternario `t(it, en)` in ogni sezione e due build separate del
+  // runtime. I quattro moduli qui sono quello che rende la lingua un dato
+  // invece di una biforcazione: il motore che risolve locale e cataloghi, la
+  // passata che traduce il testo che il runtime vendorizzato stampa da solo,
+  // l'indice che porta quel testo italiano alla sua chiave inglese, e la
+  // sezione che accende il tutto prima che qualcuno disegni. I cataloghi delle
+  // singole lingue non sono qui: si caricano su richiesta, uno solo per utente.
+  assert.ok(relative.length <= 114, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with one declared exception.

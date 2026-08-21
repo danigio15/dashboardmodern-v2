@@ -8,6 +8,7 @@ import {
   installStyle,
   readJson,
   root,
+  t,
 } from "./shared.js";
 
 const capturedRooms = readJson("cd_stanze", []);
@@ -72,8 +73,8 @@ export function repairClimateLabels() {
   if (!select) return false;
   const cool = select.querySelector?.('option[value="clima"]');
   const heat = select.querySelector?.('option[value="termo"],option[value="termostato"]');
-  if (cool) cool.textContent = english() ? "❄️ Cool" : "❄️ Freddo";
-  if (heat) heat.textContent = english() ? "🔥 Heat" : "🔥 Caldo";
+  if (cool) cool.textContent = t("❄️ Freddo", "❄️ Cool");
+  if (heat) heat.textContent = t("🔥 Caldo", "🔥 Heat");
   return true;
 }
 

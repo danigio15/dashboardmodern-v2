@@ -11,6 +11,7 @@ import {
   installStyle,
   root,
   section,
+  t,
   wrapFunction,
 } from "./shared.js";
 
@@ -147,12 +148,8 @@ export function restoreTemperatureContracts() {
   if (submit) {
     submit.style.minHeight = "44px";
     submit.textContent = editing
-      ? english()
-        ? "SAVE CHANGES"
-        : "SALVA MODIFICHE"
-      : english()
-        ? "ASSOCIATE SENSORS"
-        : "ASSOCIA SENSORI";
+      ? t("SALVA MODIFICHE", "SAVE CHANGES")
+      : t("ASSOCIA SENSORI", "ASSOCIATE SENSORS");
   }
   if (cancel) cancel.style.minHeight = "44px";
   return true;
@@ -296,7 +293,7 @@ export function ensureLoadIconPicker() {
     button.className = "dm-icon-picker dm-beta26-load-icon-picker";
     button.dataset.iconTarget = "dm-load-icon";
     button.dataset.iconCategory = "action";
-    button.setAttribute("aria-label", english() ? "Choose load icon" : "Scegli icona carico");
+    button.setAttribute("aria-label", t("Scegli icona carico", "Choose load icon"));
     wrapper.append(button);
   }
 
@@ -368,7 +365,7 @@ export function syncApplianceEditorVisuals() {
 
   button.innerHTML = applianceEditorVisualMarkup(currentApplianceForForm(), 54);
   button.dataset.dmBeta26Artwork = "canonical";
-  button.title = english() ? "Choose appliance" : "Scegli elettrodomestico";
+  button.title = t("Scegli elettrodomestico", "Choose appliance");
   return true;
 }
 

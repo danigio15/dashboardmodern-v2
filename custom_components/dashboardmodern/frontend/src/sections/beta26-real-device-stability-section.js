@@ -20,6 +20,7 @@ import {
   readJson,
   root,
   section,
+  t,
   temperatureCardLabels,
   writeIconGlyph,
   writeJsonIfChanged,
@@ -119,9 +120,9 @@ function numericState(entity) {
 }
 
 function comfortLabel(value) {
-  if (value == null) return english() ? "Unavailable" : "Non disponibile";
-  if (value < 18) return english() ? "Cold" : "Freddo";
-  if (value > 26) return english() ? "Hot" : "Caldo";
+  if (value == null) return t("Non disponibile", "Unavailable");
+  if (value < 18) return t("Freddo", "Cold");
+  if (value > 26) return t("Caldo", "Hot");
   return "Comfort";
 }
 
@@ -160,13 +161,13 @@ export function temperatureRoomTabsModel(roomValues = rooms()) {
   return [
     {
       id: "all",
-      name: english() ? "All" : "Tutte",
+      name: t("Tutte", "All"),
       icon: "🏠",
       count: configured.reduce((total, room) => total + temperatureEntries(room).length, 0),
     },
     ...configured.map((room) => ({
       id: clean(room.id),
-      name: clean(room.name) || (english() ? "Room" : "Stanza"),
+      name: clean(room.name) || (t("Stanza", "Room")),
       icon: clean(room.icon) || "🏠",
       count: temperatureEntries(room).length,
     })),
@@ -323,7 +324,7 @@ function ensureTemperatureRoomTabs() {
     host = doc.createElement("nav");
     host.id = "dm-beta16-temperature-tabs";
     host.className = "dm-temperature-room-tabs dm-beta27-temperature-tabs";
-    host.setAttribute("aria-label", english() ? "Temperature rooms" : "Stanze temperatura");
+    host.setAttribute("aria-label", t("Stanze temperatura", "Temperature rooms"));
     grid.before(host);
   }
   const signature = tabs.map((tab) => `${tab.id}|${tab.name}|${tab.icon}|${tab.count}`).join(";");
@@ -723,7 +724,7 @@ function synchronizeLegacySubloadRuntime() {
 
 function groupOptions(selected = "") {
   return [
-    `<option value="">— ${english() ? "No group" : "Nessun gruppo"} —</option>`,
+    `<option value="">— ${t("Nessun gruppo", "No group")} —</option>`,
     ...loadGroupsModel().map(
       (group) =>
         `<option value="${esc(group.id)}"${clean(selected) === group.id ? " selected" : ""}>${esc(group.icon)} ${esc(group.name)}</option>`,
@@ -732,11 +733,11 @@ function groupOptions(selected = "") {
 }
 
 function entityEditorField(id, label, value = "", placeholder = "sensor.entity") {
-  return `<label class="ed-slot"><span class="ed-slot-lbl">${esc(label)}</span><span class="ed-form-row"><input id="${esc(id)}" class="ed-input ed-slot-in mono" value="${esc(value)}" placeholder="${esc(placeholder)}"><button type="button" class="dm-entity-picker" data-beta27-entity-target="${esc(id)}" aria-label="${english() ? "Select" : "Seleziona"} ${esc(label)}">🔍</button></span></label>`;
+  return `<label class="ed-slot"><span class="ed-slot-lbl">${esc(label)}</span><span class="ed-form-row"><input id="${esc(id)}" class="ed-input ed-slot-in mono" value="${esc(value)}" placeholder="${esc(placeholder)}"><button type="button" class="dm-entity-picker" data-beta27-entity-target="${esc(id)}" aria-label="${t("Seleziona", "Select")} ${esc(label)}">🔍</button></span></label>`;
 }
 
 function flowNodeMarkup(node) {
-  return `<details class="ed-acc dm-beta27-flow-node" data-beta27-flow-node="${esc(node.key)}" open><summary class="ed-acc-head"><span>${esc(node.icon)} ${esc(node.label)} · ${esc(node.name)}</span><small>${node.group ? `${english() ? "group" : "gruppo"}: ${esc(node.group)}` : clean(node.pwr) ? "sensore" : english() ? "automatic" : "automatico"}</small></summary><div class="ed-acc-body"><label class="dm-beta27-switch"><input type="checkbox" data-flow-enabled${node.enabled ? " checked" : ""}><span>${english() ? "Show node when configured" : "Mostra il cerchio quando configurato"}</span></label><div class="ed-form-row"><input class="ed-input" data-flow-name placeholder="${english() ? "Displayed name" : "Nome visualizzato"}" value="${esc(node.name)}"><input class="ed-input ed-icon-input" data-flow-icon placeholder="🍳 / mdi:power-plug" value="${esc(node.icon)}"><input class="dm-beta27-color" data-flow-color type="color" value="${esc(node.color)}" title="${english() ? "Color" : "Colore"}"></div><label class="ed-slot"><span class="ed-slot-lbl">${english() ? "Linked load group" : "Gruppo carichi collegato"}</span><select class="ed-input" data-flow-group>${groupOptions(node.group)}</select></label>${entityEditorField(`dm-beta27-flow-power-${node.key}`, english() ? "Direct power entity (optional)" : "Entità potenza diretta (facoltativa)", node.pwr, "sensor.cucina_power")}</div></details>`;
+  return `<details class="ed-acc dm-beta27-flow-node" data-beta27-flow-node="${esc(node.key)}" open><summary class="ed-acc-head"><span>${esc(node.icon)} ${esc(node.label)} · ${esc(node.name)}</span><small>${node.group ? `${t("gruppo", "group")}: ${esc(node.group)}` : clean(node.pwr) ? "sensore" : t("automatico", "automatic")}</small></summary><div class="ed-acc-body"><label class="dm-beta27-switch"><input type="checkbox" data-flow-enabled${node.enabled ? " checked" : ""}><span>${t("Mostra il cerchio quando configurato", "Show node when configured")}</span></label><div class="ed-form-row"><input class="ed-input" data-flow-name placeholder="${t("Nome visualizzato", "Displayed name")}" value="${esc(node.name)}"><input class="ed-input ed-icon-input" data-flow-icon placeholder="🍳 / mdi:power-plug" value="${esc(node.icon)}"><input class="dm-beta27-color" data-flow-color type="color" value="${esc(node.color)}" title="${t("Colore", "Color")}"></div><label class="ed-slot"><span class="ed-slot-lbl">${t("Gruppo carichi collegato", "Linked load group")}</span><select class="ed-input" data-flow-group>${groupOptions(node.group)}</select></label>${entityEditorField(`dm-beta27-flow-power-${node.key}`, t("Entità potenza diretta (facoltativa)", "Direct power entity (optional)"), node.pwr, "sensor.cucina_power")}</div></details>`;
 }
 
 function childSummary(child = {}) {
@@ -749,10 +750,10 @@ function groupMarkup(group) {
   const rows = children
     .map(
       (child, index) =>
-        `<article class="ed-row dm-beta27-child-row" data-beta27-child-group="${esc(group.id)}" data-beta27-child-id="${esc(childIdentity(group.id, child))}" data-beta27-child-index="${index}"><div class="ed-row-main"><div class="ed-row-new">${esc(child.icon || "🔌")} ${esc(child.name || (english() ? "Load" : "Carico"))}</div><div class="ed-row-old mono">${esc(childSummary(child))}</div></div><button type="button" class="ed-del" data-beta27-child-up title="${english() ? "Move up" : "Sposta su"}">▲</button><button type="button" class="ed-del" data-beta27-child-down title="${english() ? "Move down" : "Sposta giù"}">▼</button><button type="button" class="ed-del" data-beta27-child-edit title="${english() ? "Edit" : "Modifica"}">✏️</button><button type="button" class="ed-del" data-beta27-child-delete title="${english() ? "Delete" : "Elimina"}">🗑️</button></article>`,
+        `<article class="ed-row dm-beta27-child-row" data-beta27-child-group="${esc(group.id)}" data-beta27-child-id="${esc(childIdentity(group.id, child))}" data-beta27-child-index="${index}"><div class="ed-row-main"><div class="ed-row-new">${esc(child.icon || "🔌")} ${esc(child.name || (t("Carico", "Load")))}</div><div class="ed-row-old mono">${esc(childSummary(child))}</div></div><button type="button" class="ed-del" data-beta27-child-up title="${t("Sposta su", "Move up")}">▲</button><button type="button" class="ed-del" data-beta27-child-down title="${t("Sposta giù", "Move down")}">▼</button><button type="button" class="ed-del" data-beta27-child-edit title="${t("Modifica", "Edit")}">✏️</button><button type="button" class="ed-del" data-beta27-child-delete title="${t("Elimina", "Delete")}">🗑️</button></article>`,
     )
     .join("");
-  return `<details class="ed-acc dm-beta27-load-group" data-beta27-group="${esc(group.id)}" open><summary class="ed-acc-head"><span>${esc(group.icon || "🔌")} ${esc(group.name)}</span><small>${children.length} ${english() ? "loads" : "carichi"}</small></summary><div class="ed-acc-body"><div class="ed-form-row dm-beta27-group-meta"><input class="ed-input" data-group-name value="${esc(group.name)}" aria-label="${english() ? "Group name" : "Nome gruppo"}"><input class="ed-input ed-icon-input" data-group-icon value="${esc(group.icon || "🔌")}" aria-label="${english() ? "Group icon" : "Icona gruppo"}"><input class="dm-beta27-color" data-group-color type="color" value="${esc(group.color || "#64748b")}" title="${english() ? "Color" : "Colore"}"><button type="button" class="ed-btn-secondary" data-beta27-group-save>💾</button>${group.builtin ? "" : `<button type="button" class="ed-del" data-beta27-group-delete>🗑️</button>`}</div><div class="ed-list dm-beta27-child-list">${rows || `<div class="ed-empty">${english() ? "No loads in this group." : "Nessun carico in questo gruppo."}</div>`}</div><button type="button" class="ed-btn-add" data-beta27-child-add>＋ ${english() ? "Add load" : "Aggiungi carico"}</button></div></details>`;
+  return `<details class="ed-acc dm-beta27-load-group" data-beta27-group="${esc(group.id)}" open><summary class="ed-acc-head"><span>${esc(group.icon || "🔌")} ${esc(group.name)}</span><small>${children.length} ${t("carichi", "loads")}</small></summary><div class="ed-acc-body"><div class="ed-form-row dm-beta27-group-meta"><input class="ed-input" data-group-name value="${esc(group.name)}" aria-label="${t("Nome gruppo", "Group name")}"><input class="ed-input ed-icon-input" data-group-icon value="${esc(group.icon || "🔌")}" aria-label="${t("Icona gruppo", "Group icon")}"><input class="dm-beta27-color" data-group-color type="color" value="${esc(group.color || "#64748b")}" title="${t("Colore", "Color")}"><button type="button" class="ed-btn-secondary" data-beta27-group-save>💾</button>${group.builtin ? "" : `<button type="button" class="ed-del" data-beta27-group-delete>🗑️</button>`}</div><div class="ed-list dm-beta27-child-list">${rows || `<div class="ed-empty">${t("Nessun carico in questo gruppo.", "No loads in this group.")}</div>`}</div><button type="button" class="ed-btn-add" data-beta27-child-add>＋ ${t("Aggiungi carico", "Add load")}</button></div></details>`;
 }
 
 function childFormMarkup() {
@@ -762,17 +763,13 @@ function childFormMarkup() {
   const index = editing.id ? childIndexByIdentity(editing.groupId, editing.id, children) : -1;
   const child = index >= 0 ? children[index] || {} : {};
   const title = index >= 0
-    ? english()
-      ? "Edit load"
-      : "Modifica carico"
-    : english()
-      ? "New load"
-      : "Nuovo carico";
-  return `<div class="ed-form dm-beta27-child-form" data-beta27-child-form><div class="ed-sec-title">🔌 ${title}</div><label class="ed-slot"><span class="ed-slot-lbl">${english() ? "Group" : "Gruppo"}</span><select class="ed-input" data-child-group>${groupOptions(editing.groupId)}</select></label><div class="ed-form-row"><input class="ed-input" data-child-name placeholder="${english() ? "Name" : "Nome"}" value="${esc(child.name)}"><input class="ed-input ed-icon-input" data-child-icon placeholder="🔥 / mdi:stove" value="${esc(child.icon)}"></div>${entityEditorField("dm-beta27-child-power", english() ? "Instant power" : "Potenza istantanea", child.pwrLive || child.pwr, "sensor.forno_power")}${entityEditorField("dm-beta27-child-state", english() ? "State (optional)" : "Stato (facoltativo)", child.bin, "binary_sensor.forno")}${entityEditorField("dm-beta27-child-daily", english() ? "Daily energy" : "Energia giornaliera", child.daily, "sensor.forno_oggi")}${entityEditorField("dm-beta27-child-monthly", english() ? "Monthly energy" : "Energia mensile", child.monthly, "sensor.forno_mese")}${entityEditorField("dm-beta27-child-total", english() ? "Total energy" : "Energia totale", child.total, "sensor.forno_totale")}<div class="dm-beta27-form-actions"><button type="button" class="ed-btn-add" data-beta27-child-save>💾 ${english() ? "Save load" : "Salva carico"}</button><button type="button" class="ed-btn-secondary" data-beta27-child-cancel>${english() ? "Cancel" : "Annulla"}</button></div></div>`;
+    ? t("Modifica carico", "Edit load")
+    : t("Nuovo carico", "New load");
+  return `<div class="ed-form dm-beta27-child-form" data-beta27-child-form><div class="ed-sec-title">🔌 ${title}</div><label class="ed-slot"><span class="ed-slot-lbl">${t("Gruppo", "Group")}</span><select class="ed-input" data-child-group>${groupOptions(editing.groupId)}</select></label><div class="ed-form-row"><input class="ed-input" data-child-name placeholder="${t("Nome", "Name")}" value="${esc(child.name)}"><input class="ed-input ed-icon-input" data-child-icon placeholder="🔥 / mdi:stove" value="${esc(child.icon)}"></div>${entityEditorField("dm-beta27-child-power", t("Potenza istantanea", "Instant power"), child.pwrLive || child.pwr, "sensor.forno_power")}${entityEditorField("dm-beta27-child-state", t("Stato (facoltativo)", "State (optional)"), child.bin, "binary_sensor.forno")}${entityEditorField("dm-beta27-child-daily", t("Energia giornaliera", "Daily energy"), child.daily, "sensor.forno_oggi")}${entityEditorField("dm-beta27-child-monthly", t("Energia mensile", "Monthly energy"), child.monthly, "sensor.forno_mese")}${entityEditorField("dm-beta27-child-total", t("Energia totale", "Total energy"), child.total, "sensor.forno_totale")}<div class="dm-beta27-form-actions"><button type="button" class="ed-btn-add" data-beta27-child-save>💾 ${t("Salva carico", "Save load")}</button><button type="button" class="ed-btn-secondary" data-beta27-child-cancel>${t("Annulla", "Cancel")}</button></div></div>`;
 }
 
 function newGroupMarkup() {
-  return `<div class="ed-form dm-beta27-new-group"><div class="ed-sec-title">＋ ${english() ? "New group" : "Nuovo gruppo"}</div><div class="ed-form-row"><input id="dm-beta27-new-group-name" class="ed-input" placeholder="${english() ? "Name, e.g. Kitchen" : "Nome, es. Cucina"}"><input id="dm-beta27-new-group-icon" class="ed-input ed-icon-input" value="🔌" placeholder="🔌"><input id="dm-beta27-new-group-color" class="dm-beta27-color" type="color" value="#64748b"></div><button type="button" class="ed-btn-add" data-beta27-group-add>＋ ${english() ? "Create group" : "Crea gruppo"}</button></div>`;
+  return `<div class="ed-form dm-beta27-new-group"><div class="ed-sec-title">＋ ${t("Nuovo gruppo", "New group")}</div><div class="ed-form-row"><input id="dm-beta27-new-group-name" class="ed-input" placeholder="${t("Nome, es. Cucina", "Name, e.g. Kitchen")}"><input id="dm-beta27-new-group-icon" class="ed-input ed-icon-input" value="🔌" placeholder="🔌"><input id="dm-beta27-new-group-color" class="dm-beta27-color" type="color" value="#64748b"></div><button type="button" class="ed-btn-add" data-beta27-group-add>＋ ${t("Crea gruppo", "Create group")}</button></div>`;
 }
 
 /* The Loads panel now belongs to the single-list editor, which configures the
@@ -798,7 +795,7 @@ export function renderBeta27LoadsEditor(target) {
       host.dataset.beta27LoadHierarchy = "true";
       target.append(host);
     }
-    host.innerHTML = `<div class="dm-beta27-load-editor"><div class="ed-intro dm-beta27-load-intro"><b>${english() ? "Energy load flow" : "Flow carichi Energia"}</b><br>${english() ? "First configure the circles connected to Home. Each circle can use a direct power sensor or automatically sum every child of a load group. Then create the appliances inside each group. Empty or disabled nodes are not forced into the flow." : "Prima configura i cerchi collegati a Casa. Ogni cerchio può usare un sensore di potenza diretto oppure sommare automaticamente tutti i carichi del gruppo collegato. Poi inserisci forno, frigo, lavastoviglie e gli altri dispositivi dentro il gruppo. I nodi vuoti o disabilitati non vengono forzati nel flow."}</div><section class="dm-beta27-load-section"><div class="ed-sec-title">① ${english() ? "CIRCLES UNDER HOME" : "CERCHI SOTTO CASA"}</div><div class="ed-intro">${english() ? "Name, icon, color, visibility, group and direct power are independent for every flow node." : "Nome, icona, colore, visibilità, gruppo e potenza diretta sono indipendenti per ogni nodo del flow."}</div>${Object.values(nodes).map(flowNodeMarkup).join("")}<button type="button" class="ed-save-btn" data-beta27-flow-save>💾 ${english() ? "Save flow circles" : "Salva cerchi flow"}</button></section><section class="dm-beta27-load-section"><div class="ed-sec-title">② ${english() ? "GROUPS AND CHILD LOADS" : "GRUPPI E CARICHI INTERNI"}</div><div class="ed-intro">${english() ? "Groups are the popup opened from a flow circle. Their children are the cards shown inside, such as Oven, Fridge or Dishwasher." : "Il gruppo è il popup aperto dal cerchio del flow. I figli sono le card interne, per esempio Forno, Frigorifero o Lavastoviglie."}</div>${groups.map(groupMarkup).join("")}${newGroupMarkup()}${childFormMarkup()}</section></div>`;
+    host.innerHTML = `<div class="dm-beta27-load-editor"><div class="ed-intro dm-beta27-load-intro"><b>${t("Flow carichi Energia", "Energy load flow")}</b><br>${t("Prima configura i cerchi collegati a Casa. Ogni cerchio può usare un sensore di potenza diretto oppure sommare automaticamente tutti i carichi del gruppo collegato. Poi inserisci forno, frigo, lavastoviglie e gli altri dispositivi dentro il gruppo. I nodi vuoti o disabilitati non vengono forzati nel flow.", "First configure the circles connected to Home. Each circle can use a direct power sensor or automatically sum every child of a load group. Then create the appliances inside each group. Empty or disabled nodes are not forced into the flow.")}</div><section class="dm-beta27-load-section"><div class="ed-sec-title">① ${t("CERCHI SOTTO CASA", "CIRCLES UNDER HOME")}</div><div class="ed-intro">${t("Nome, icona, colore, visibilità, gruppo e potenza diretta sono indipendenti per ogni nodo del flow.", "Name, icon, color, visibility, group and direct power are independent for every flow node.")}</div>${Object.values(nodes).map(flowNodeMarkup).join("")}<button type="button" class="ed-save-btn" data-beta27-flow-save>💾 ${t("Salva cerchi flow", "Save flow circles")}</button></section><section class="dm-beta27-load-section"><div class="ed-sec-title">② ${t("GRUPPI E CARICHI INTERNI", "GROUPS AND CHILD LOADS")}</div><div class="ed-intro">${t("Il gruppo è il popup aperto dal cerchio del flow. I figli sono le card interne, per esempio Forno, Frigorifero o Lavastoviglie.", "Groups are the popup opened from a flow circle. Their children are the cards shown inside, such as Oven, Fridge or Dishwasher.")}</div>${groups.map(groupMarkup).join("")}${newGroupMarkup()}${childFormMarkup()}</section></div>`;
     mountBeta27LoadsEditor(host, target);
   } finally {
     state.loadsRendering = false;
@@ -954,10 +951,10 @@ function mountBeta27LoadsEditor(target, panel = target) {
   });
   target.querySelector("[data-beta27-group-add]")?.addEventListener("click", () => {
     const name = clean(target.querySelector("#dm-beta27-new-group-name")?.value);
-    if (!name) return root.alert?.(english() ? "Enter the group name." : "Inserisci il nome del gruppo.");
+    if (!name) return root.alert?.(t("Inserisci il nome del gruppo.", "Enter the group name."));
     const id = groupIdFromName(name);
     if (loadGroupsModel().some((group) => group.id === id))
-      return root.alert?.(english() ? "A group with this name already exists." : "Esiste già un gruppo con questo nome.");
+      return root.alert?.(t("Esiste già un gruppo con questo nome.", "A group with this name already exists."));
     persistGroup(id, {
       name,
       icon: clean(target.querySelector("#dm-beta27-new-group-icon")?.value) || "🔌",
@@ -1014,9 +1011,9 @@ function mountBeta27LoadsEditor(target, panel = target) {
     const name = clean(form?.querySelector("[data-child-name]")?.value);
     const power = clean(form?.querySelector("#dm-beta27-child-power")?.value);
     if (!groupId || !name)
-      return root.alert?.(english() ? "Choose a group and enter the load name." : "Scegli il gruppo e inserisci il nome del carico.");
+      return root.alert?.(t("Scegli il gruppo e inserisci il nome del carico.", "Choose a group and enter the load name."));
     if (!power.includes("."))
-      return root.alert?.(english() ? "Configure a valid instant power entity." : "Configura una entità valida per la potenza istantanea.");
+      return root.alert?.(t("Configura una entità valida per la potenza istantanea.", "Configure a valid instant power entity."));
     const editingId = clean(state.editingChild?.id);
     const child = {
       id: editingId,
@@ -1104,7 +1101,7 @@ function patchSubloadPopup(groupId = state.popupGroup) {
   const title = doc?.getElementById?.("subloads-title");
   const modal = doc?.getElementById?.("subloads-modal");
   if (!group || !title) return false;
-  title.innerHTML = `<span style="font-size:24px;">${esc(group.icon || "🔌")}</span> ${esc(group.name)} ${english() ? "INSTANT" : "ISTANTANEO"}`;
+  title.innerHTML = `<span style="font-size:24px;">${esc(group.icon || "🔌")}</span> ${esc(group.name)} ${t("ISTANTANEO", "INSTANT")}`;
   const color = group.color || "#0ea5e9";
   title.style.setProperty("--dm-beta27-group-color", color);
   modal?.style?.setProperty("--dm-beta27-group-color", color);

@@ -28,6 +28,7 @@ import {
   moveLoad,
 } from "../core/energy-loads-config.js";
 import {
+  activeLocale,
   clean,
   dashboardStore,
   doc,
@@ -36,6 +37,7 @@ import {
   readJson,
   root,
   section,
+  t,
   writeIconGlyph,
   writeJsonIfChanged,
 } from "./shared.js";
@@ -45,7 +47,6 @@ const KEY = "__DASHBOARDMODERN_ENERGY_LOADS_EDITOR__";
 const state = (root[KEY] ||= { installed: false, model: null, open: new Set(), dirty: false });
 
 const PANEL = '[data-energy-panel="loads"]';
-const t = (it, en) => (english() ? en : it);
 
 function configuredLoads() {
   const value = section("loads", null);
@@ -118,7 +119,7 @@ function preview(load, index) {
   const text = element("span", "dm-loads-preview-text");
   text.append(
     element("b", "", load.name),
-    element("small", "", loadConfigSummary(load, english() ? "en" : "it")),
+    element("small", "", loadConfigSummary(load, activeLocale())),
   );
   node.append(element("span", "dm-loads-preview-index", String(index + 1)), bubble, text);
   return node;
@@ -146,7 +147,7 @@ function entityField(id, label, value, hint, onChange) {
     id,
     value,
     label,
-    locale: english() ? "en" : "it",
+    locale: activeLocale(),
     placeholder: "sensor.entity",
     onPick: (input) => root.wzPickEntity?.(input),
     onChange,
@@ -156,7 +157,7 @@ function entityField(id, label, value, hint, onChange) {
 }
 
 function warnings(load) {
-  const messages = loadConfigWarnings(load, english() ? "en" : "it");
+  const messages = loadConfigWarnings(load, activeLocale());
   if (!messages.length) return null;
   const list = element("ul", "dm-loads-warnings");
   for (const message of messages) list.append(element("li", "", message));
@@ -491,7 +492,7 @@ function loadCard(panel, load, index, total) {
   addChild.dataset.dmSubloadAdd = "true";
   addChild.disabled = load.children.length >= MAX_SUBLOADS;
   addChild.addEventListener("click", () => {
-    const child = emptySubload(load, english() ? "en" : "it");
+    const child = emptySubload(load, activeLocale());
     load.children.push(child);
     state.editing = child.id;
     markDirty(panel);
@@ -554,7 +555,7 @@ export function renderEnergyLoadsEditor(panel = doc?.querySelector?.(PANEL)) {
     add.dataset.dmLoadAdd = "true";
     add.addEventListener("click", () => {
       if (model().length >= MAX_FLOW_LOADS) return;
-      const load = emptyLoad(model(), english() ? "en" : "it");
+      const load = emptyLoad(model(), activeLocale());
       state.model = [...model(), load];
       state.open.add(load.id);
       markDirty(panel);

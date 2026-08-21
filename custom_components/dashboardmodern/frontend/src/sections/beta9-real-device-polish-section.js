@@ -13,6 +13,7 @@ import {
   installStyle,
   readJson,
   root,
+  t,
   wrapFunction,
 } from "./shared.js";
 
@@ -133,7 +134,7 @@ function modelOptions(brand, selected = "") {
   const current = clean(selected);
   const values = [...(CAR_MODELS[clean(brand)] || [])];
   if (current && !values.includes(current)) values.unshift(current);
-  const placeholder = english() ? "— Choose model —" : "— Seleziona modello —";
+  const placeholder = t("— Seleziona modello —", "— Choose model —");
   return [
     `<option value="">${placeholder}</option>`,
     ...values.map((model) => `<option value="${esc(model)}" ${model === current ? "selected" : ""}>${esc(model)}</option>`),
@@ -317,7 +318,7 @@ function rebuildTemperatureRoomOptions(form, select) {
     const id = clean(room.id || room.name);
     const icon = clean(room.icon);
     const marker = (clean(room.temp) || clean(room.hum)) && id !== current
-      ? (english() ? " — configured" : " — configurata")
+      ? (t(" — configurata", " — configured"))
       : "";
     const labelIcon = icon && !icon.startsWith("mdi:") ? `${icon} ` : "";
     return `<option value="${esc(id)}" ${id === current ? "selected" : ""}>${labelIcon}${esc(room.name || id)}${marker}</option>`;

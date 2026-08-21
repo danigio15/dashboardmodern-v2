@@ -745,7 +745,7 @@ const TOTAL_FIELDS = Object.freeze([
 
 function createTotalField(definition, value) {
   const [group, key, _after, italian, englishLabel, example] = definition;
-  const label = english() ? englishLabel : italian;
+  const label = t(italian, englishLabel);
   const wrap = doc.createElement("label");
   wrap.className = "ed-slot dm-energy-total-field";
   wrap.dataset.dmInjectedEnergyTotal = "true";
