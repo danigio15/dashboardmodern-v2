@@ -134,13 +134,39 @@ jobs:
       # senza doverlo riscrivere a mano. La sorgente è una sola, condivisa con il
       # README: .github/SUPPORT_BADGES.md. `append_body` mette questo corpo prima
       # delle note generate, quindi il blocco apre la release invece di chiuderla.
+      # Le note automatiche di GitHub elencano i pull request, che dicono da dove
+      # arriva una modifica ma non cosa cambia per chi aggiorna. Quello sta nel
+      # CHANGELOG, scritto per essere letto: la sezione di questa versione entra
+      # nelle note, sopra l'elenco automatico.
+      - name: Prepare release notes
+        run: |
+          python - <<'PYEOF'
+          import os, re, pathlib
+
+          tag = os.environ["RELEASE_TAG"]
+          version = tag[1:] if tag.startswith("v") else tag
+          changelog = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8")
+          pattern = re.compile(
+              r"^## %s(?:\s+—[^\n]*)?\n(.*?)(?=^## |\Z)" % re.escape(version),
+              re.S | re.M,
+          )
+          found = pattern.search(changelog)
+          parts = [pathlib.Path(".github/SUPPORT_BADGES.md").read_text(encoding="utf-8")]
+          if found:
+              parts.append("## Novita' di questa versione\n\n" + found.group(1).strip() + "\n")
+          else:
+              print(f"::warning::nessuna sezione {version} nel CHANGELOG")
+          pathlib.Path("release-body.md").write_text("\n\n".join(parts), encoding="utf-8")
+          PYEOF
+        env:
+          RELEASE_TAG: ${{ needs.verify.outputs.release_tag }}
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.verify.outputs.release_tag }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
-          body_path: .github/SUPPORT_BADGES.md
+          body_path: release-body.md
           append_body: true
           prerelease: ${{ contains(needs.verify.outputs.release_tag, '-') }}
           files: dashboardmodern.zip

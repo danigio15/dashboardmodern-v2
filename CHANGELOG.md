@@ -19,6 +19,42 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   corretto: una foto sua non l'ha mai avuta. Con una macchina sola non cambia
   niente.
 
+- **Le animazioni degli elettrodomestici sembravano ferme.** La scheda si
+  ridisegna a ogni cambio di stato — e la potenza di un elettrodomestico acceso
+  cambia di continuo — e veniva rifatta da capo, disegno compreso: un'animazione
+  su un elemento appena nato riparte da zero. Misurato, il cronometro tornava a
+  mezzo secondo a ogni giro: il cestello non completava un giro, i getti non
+  finivano la passata. Adesso il disegno non viene mai staccato dalla pagina e
+  la sua animazione continua da dove era.
+
+- **Un avviso con un nome inatteso restava immobile.** Le animazioni degli
+  avvisi vanno a categorie — porta, finestra, batteria, perdita, fiamma,
+  movimento — e un avviso battezzato "Garage" o "Cantina" non rientrava in
+  nessuna, quindi restava fermo accanto a uno che si muoveva. Adesso prende un
+  battito discreto: non racconta cosa succede, ma dice che qualcosa succede.
+
+- **MiniPC: la scena finiva in fondo alla pagina.** Le righe della sezione erano
+  numerate a mano da quando la pagina cominciava con la sua scena; con
+  l'intestazione che si prende la prima riga, il pezzo piu' grosso veniva
+  sbattuto in coda, sotto la telemetria. E le tre pastiglie stavano su due
+  colonne, con la terza sola su una riga mezza vuota.
+
+- **Il caricabatterie del telefono si vedeva assegnata una colonnina di
+  ricarica.** Bastava la parola "charger" nel nome per farne una wallbox: adesso
+  serve che si parli di wallbox, di stazione di ricarica o di un'auto.
+
+- **Nel popup dell'auto la pastiglia "Aut. Prevista" restava a "—"** per chi non
+  ha evcc, mentre sulla pagina era gia' sparita.
+
+- **Il cielo dietro la tapparella mostrava le stelle di giorno**, con il tema
+  scuro: le fasce del mattino e del pomeriggio ridefinivano solo il cielo e il
+  sole, e stelle, nuvole e colline restavano quelle della notte.
+
+- **Ogni sezione si apriva a una larghezza diversa.** Sette misure sparse fra la
+  plancia, i moduli e il foglio di stile del runtime: Energia ed Elettrodomestici
+  prendevano tutto lo schermo, Auto e MiniPC si fermavano a mille pixel. Adesso
+  la misura sta in un posto solo e le sezioni aprono tutte allo stesso modo.
+
 ### Cambiato
 
 - **Chi non gestisce la ricarica con evcc non vede piu' la sua console.** Il
