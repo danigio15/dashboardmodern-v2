@@ -76,20 +76,26 @@ jobs:
   # Same shape as the Browser E2E workflow, which is green on every commit that
   # reaches main: the browsers come with the image, so there is nothing to
   # install, and the three projects run in parallel instead of end to end.
+  # Stessa divisione del giro normale: l'attesa e' quella del pezzo piu' lento,
+  # non la somma. WebKit da solo teneva fermo il rilascio dodici minuti.
   gate:
-    name: Browser E2E release gate / ${{ matrix.project }}
+    name: Browser E2E release gate / ${{ matrix.project }} ${{ matrix.shard }}/${{ matrix.shards }}
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.54.1-noble
     timeout-minutes: 25
     strategy:
       fail-fast: false
-      max-parallel: 3
+      max-parallel: 7
       matrix:
-        project:
-          - desktop
-          - mobile
-          - webkit-ipad
+        include:
+          - { project: desktop, shard: 1, shards: 2 }
+          - { project: desktop, shard: 2, shards: 2 }
+          - { project: mobile, shard: 1, shards: 2 }
+          - { project: mobile, shard: 2, shards: 2 }
+          - { project: webkit-ipad, shard: 1, shards: 3 }
+          - { project: webkit-ipad, shard: 2, shards: 3 }
+          - { project: webkit-ipad, shard: 3, shards: 3 }
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -109,12 +115,14 @@ jobs:
           # refuses to read it until it is marked safe.
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           python scripts/generate_build_info.py --expected-commit "$GITHUB_SHA"
-      - name: Run ${{ matrix.project }} E2E
-        run: npx playwright test --project="${{ matrix.project }}"
+      - name: Run ${{ matrix.project }} E2E (${{ matrix.shard }}/${{ matrix.shards }})
+        run: |
+          npx playwright test --project="${{ matrix.project }}" \
+            --shard="${{ matrix.shard }}/${{ matrix.shards }}"
       - uses: actions/upload-artifact@v6
         if: failure()
         with:
-          name: release-gate-report-${{ matrix.project }}
+          name: release-gate-report-${{ matrix.project }}-${{ matrix.shard }}
           path: |
             playwright-report
             test-results
