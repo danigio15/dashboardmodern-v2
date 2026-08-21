@@ -378,26 +378,25 @@ export function loadsConfigToSections(model = [], previous = []) {
 /* One line under each card in the editor, so a load's binding is readable
  * without opening it. */
 export function loadConfigSummary(load = {}, locale = "it") {
-  const say = (it, en) => pick(it, en, locale);
   const children = array(load.children).length;
   // A circle with appliances and no sensor of its own is their total; saying so
   // first is more useful than listing which fields happen to be filled in.
   if (!clean(load.power) && children)
     return children === 1
-      ? say(`somma di ${children} dispositivo`, `sum of ${children} appliance`)
-      : say(`somma di ${children} dispositivi`, `sum of ${children} appliances`);
+      ? pick(`somma di ${children} dispositivo`, `sum of ${children} appliance`, locale)
+      : pick(`somma di ${children} dispositivi`, `sum of ${children} appliances`, locale);
   const parts = [];
-  if (clean(load.power)) parts.push(say("potenza", "power"));
-  if (clean(load.total)) parts.push(say("contatore totale", "total meter"));
-  if (clean(load.daily)) parts.push(say("giorno", "day"));
-  if (clean(load.monthly)) parts.push(say("mese", "month"));
+  if (clean(load.power)) parts.push(pick("potenza", "power", locale));
+  if (clean(load.total)) parts.push(pick("contatore totale", "total meter", locale));
+  if (clean(load.daily)) parts.push(pick("giorno", "day", locale));
+  if (clean(load.monthly)) parts.push(pick("mese", "month", locale));
   if (children)
     parts.push(
       children === 1
-        ? say("1 dispositivo", "1 appliance")
-        : say(`${children} dispositivi`, `${children} appliances`),
+        ? pick("1 dispositivo", "1 appliance", locale)
+        : pick(`${children} dispositivi`, `${children} appliances`, locale),
     );
-  if (!parts.length) return say("nessuna entità", "no entity yet");
+  if (!parts.length) return pick("nessuna entità", "no entity yet", locale);
   return parts.join(" · ");
 }
 
@@ -405,7 +404,6 @@ export function loadConfigSummary(load = {}, locale = "it") {
  * users got wrong were reading a lifetime total as a period and expecting a
  * circle to appear with nothing bound to it. */
 export function loadConfigWarnings(load = {}, locale = "it") {
-  const say = (it, en) => pick(it, en, locale);
   const warnings = [];
   const children = array(load.children).length;
   const energy = clean(load.total) || clean(load.daily) || clean(load.monthly);
@@ -414,23 +412,26 @@ export function loadConfigWarnings(load = {}, locale = "it") {
   if (!clean(load.power) && !energy && children) return [];
   if (!clean(load.power) && !energy)
     return [
-      say(
+      pick(
         "Nessuna entità collegata: il cerchio resta vuoto in tutte le viste.",
         "No entity bound: the circle stays empty in every view.",
+        locale,
       ),
     ];
   if (!clean(load.power) && energy && !children)
     warnings.push(
-      say(
+      pick(
         "Manca la potenza: la vista Istantaneo non ha niente da mostrare per questo carico.",
         "No power entity: the Instant view has nothing to show for this load.",
+        locale,
       ),
     );
   if (!clean(load.total) && !clean(load.daily) && !clean(load.monthly) && !children)
     warnings.push(
-      say(
+      pick(
         "Nessun contatore energia: Giorno e Mese restano vuoti. Basta il contatore totale, il periodo viene calcolato da lì.",
         "No energy meter: Day and Month stay empty. A total meter is enough — the period is computed from it.",
+        locale,
       ),
     );
   return warnings;

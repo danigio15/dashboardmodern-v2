@@ -10,6 +10,9 @@
  *   - `pick(it, en)` in `src/core` and `legacy/modules-entry.js`, the layers
  *     that take the locale as an argument rather than reading it;
  *   - the `COPY_SOURCE` table in `legacy/modules-entry.js`;
+ *   - the `{ it, en }` rows of the room, action, load-icon and appliance
+ *     catalogs, which are data rather than call sites but reach the screen as
+ *     picker labels and card titles all the same;
  *   - `scripts/i18n-shell-vocabulary.json`, the visible chrome of the vendored
  *     Italian shell paired with its English build by hand.
  *
@@ -20,7 +23,7 @@
  */
 
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -75,13 +78,42 @@ function codePairs() {
   return pairs;
 }
 
+/*
+ * The bilingual data tables. They are imported rather than parsed: the rows are
+ * assembled at module load (LOAD_ICON_CATALOG is derived from ROOM_CATALOG),
+ * so only the evaluated module knows the real list.
+ */
+async function catalogPairs() {
+  const pairs = new Map();
+  const [personalization, deviceModel] = await Promise.all([
+    import(pathToFileURL(join(FRONTEND, "src/core/personalization-catalog.js")).href),
+    import(pathToFileURL(join(FRONTEND, "src/core/device-model.js")).href),
+  ]);
+  const tables = [
+    personalization.ROOM_CATALOG,
+    personalization.ACTION_ICON_CATALOG,
+    personalization.LOAD_ICON_CATALOG,
+    deviceModel.APPLIANCE_CATALOG,
+  ];
+  for (const table of tables) {
+    for (const row of table || []) {
+      if (typeof row?.it === "string" && typeof row?.en === "string" && row.en && !pairs.has(row.en)) {
+        pairs.set(row.en, row.it);
+      }
+    }
+  }
+  return pairs;
+}
+
 function shellPairs() {
   const raw = JSON.parse(readFileSync(SHELL_VOCABULARY, "utf8"));
   return new Map(Object.entries(raw));
 }
 
-function build() {
+async function build() {
   const pairs = codePairs();
+  for (const [english, italian] of await catalogPairs())
+    if (!pairs.has(english)) pairs.set(english, italian);
   for (const [english, italian] of shellPairs()) if (!pairs.has(english)) pairs.set(english, italian);
   const keys = [...pairs.keys()].sort((a, b) => a.localeCompare(b, "en"));
   const index = keys
@@ -142,7 +174,7 @@ export default SOURCE_INDEX;
 `;
 }
 
-const { keys, index } = build();
+const { keys, index } = await build();
 const keysSource = keysModule(keys);
 const indexSource = indexModule(index);
 
