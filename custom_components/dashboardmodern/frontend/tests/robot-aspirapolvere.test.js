@@ -145,3 +145,24 @@ test("il nome viene dalla configurazione, poi da Home Assistant, poi dall'entita
   assert.equal(robotView({ entity: "vacuum.a" }, states).name, "Robottino");
   assert.equal(robotView({ entity: "vacuum.a" }, {}).name, "vacuum.a");
 });
+
+/* Task #24: una sola larghezza per tutte le sezioni, in un posto solo.
+ * La pagina del robot era nata con 1040 scritto a mano — la vecchia misura
+ * della piscina — e si apriva quattrocento pixel piu' stretta delle altre. */
+test("la pagina del robot non si sceglie una larghezza sua", async () => {
+  const { readFileSync } = await import("node:fs");
+  const testo = readFileSync(
+    new URL("../src/sections/robot-section.js", import.meta.url),
+    "utf8",
+  );
+  const riga = testo
+    .split("\n")
+    .find((linea) => linea.includes("#page-robot .dm-robot-wrap{"));
+  assert.ok(riga, "la regola della cornice del robot non c'e' piu'");
+  assert.match(riga, /max-width:var\(--dm-page-room/);
+  // Il minimo delle colonne resta suo; il tetto della pagina no.
+  const larghezze = riga.match(/(?:^|[;{])(?:min-|max-)?width:[^;}]*/g) || [];
+  for (const dichiarazione of larghezze) {
+    assert.doesNotMatch(dichiarazione, /\d{3,4}px/, `larghezza scritta a mano: ${dichiarazione}`);
+  }
+});

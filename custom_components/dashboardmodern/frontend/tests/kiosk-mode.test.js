@@ -69,11 +69,34 @@ test("a hosted iPhone starts the plancia in kiosk without any query string", () 
   assert.equal(resolveKioskMode({ ios: true, standalone: true }), true);
 });
 
-test("kiosk never auto starts outside a narrow hosted iOS surface", () => {
+test("kiosk never auto starts outside a narrow hosted phone surface", () => {
   assert.equal(resolveKioskMode({}), false);
   assert.equal(resolveKioskMode({ ios: true, hosted: true, narrow: false }), false);
-  assert.equal(resolveKioskMode({ ios: false, hosted: true, narrow: true }), false);
   assert.equal(resolveKioskMode({ ios: true, hosted: false, narrow: true }), false);
+  // Una finestra stretta su un computer: la barra degli indirizzi ce l'ha, e il
+  // dito no. Non le si porta via lo schermo.
+  assert.equal(resolveKioskMode({ touch: false, hosted: true, narrow: true }), false);
+});
+
+/* Il chiosco era nato guardando l'iPhone. Dentro l'app di Home Assistant per
+ * Android il problema e' lo stesso — nessuna barra degli indirizzi dove
+ * scrivere ?kiosk=1 — ma non si accendeva mai da solo. */
+test("anche un telefono Android che ospita la plancia parte a tutto schermo", () => {
+  assert.equal(resolveKioskMode({ ios: false, touch: true, hosted: true, narrow: true }), true);
+});
+
+test("e su Android la scelta di spegnerlo resta quella di chi la fa", () => {
+  const android = { ios: false, touch: true, hosted: true, narrow: true };
+  assert.equal(resolveKioskMode({ ...android, stored: false }), false);
+  assert.equal(resolveKioskMode({ ...android, explicit: false }), false);
+  assert.equal(resolveKioskMode({ ...android, override: false, stored: true }), false);
+});
+
+test("una plancia installata come app a se' su Android parte a tutto schermo", () => {
+  assert.equal(resolveKioskMode({ ios: false, touch: true, standalone: true, narrow: true }), true);
+  // Ma un computer con la plancia installata no: li' lo schermo e' largo e il
+  // dito non c'e'.
+  assert.equal(resolveKioskMode({ ios: false, touch: false, standalone: true }), false);
 });
 
 test("an explicit request outranks the auto default and the stored preference", () => {

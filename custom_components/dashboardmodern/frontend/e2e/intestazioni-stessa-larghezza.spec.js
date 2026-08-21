@@ -60,9 +60,21 @@ test("ogni sezione apre alla stessa larghezza", async ({ page }, testInfo) => {
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
 
-  const pagine = await page.evaluate(() =>
-    [...document.querySelectorAll(".page")].map((nodo) => nodo.id).filter(Boolean),
-  );
+  const elencoPagine = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll(".page")].map((nodo) => nodo.id).filter(Boolean),
+    );
+  /* Non tutte le pagine ci sono gia'. Alcune sezioni si costruiscono la loro
+   * poco dopo l'avvio, e chiedendo l'elenco subito se ne perdeva qualcuna: la
+   * prova passava senza averla mai guardata, e una sezione rimasta indietro
+   * usciva verde. Si aspetta che il conto smetta di crescere. */
+  let pagine = await elencoPagine();
+  for (let fermo = 0; fermo < 3;) {
+    await page.waitForTimeout(300);
+    const adesso = await elencoPagine();
+    fermo = adesso.length === pagine.length ? fermo + 1 : 0;
+    pagine = adesso;
+  }
   const apri = async (id) => {
     await page.evaluate((pid) => {
       document.querySelectorAll(".page").forEach((nodo) => nodo.classList.remove("active"));

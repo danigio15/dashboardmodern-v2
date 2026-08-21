@@ -41,7 +41,10 @@ panel.frame.srcdoc = html.replace(/<head(?:\\s[^>]*)?>/i, (head) => head + '<bas
 window.__DM_HOST_READY__ = true;
 </script></body></html>`;
 
-async function bootHostedPlancia(page, { search = "" } = {}) {
+const ANDROID_UA =
+  "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36";
+
+async function bootHostedPlancia(page, { search = "", userAgent = IPHONE_UA } = {}) {
   await page.addInitScript((userAgent) => {
     Object.defineProperty(navigator, "userAgent", {
       configurable: true,
@@ -61,7 +64,7 @@ async function bootHostedPlancia(page, { search = "" } = {}) {
     try {
       localStorage.clear();
     } catch (_error) {}
-  }, IPHONE_UA);
+  }, userAgent);
   await page.route(`${HOST_URL}*`, (route) =>
     route.fulfill({ status: 200, contentType: "text/html", body: HOST_PAGE }),
   );
@@ -164,6 +167,45 @@ test("a long press on the plancia hamburger toggles the kiosk both ways", async 
   expect((await hostGeometry(page)).position).toBe("fixed");
 
   await longPress();
+  await expect(html).not.toHaveAttribute("data-dm-ios-kiosk", "true");
+  expect((await hostGeometry(page)).position).not.toBe("fixed");
+});
+
+/* Il chiosco era nato guardando l'iPhone e chiedeva iOS per accendersi da solo.
+ * Dentro l'app di Home Assistant per Android il problema e' lo stesso — nessuna
+ * barra degli indirizzi dove scrivere ?kiosk=1 — ma non partiva mai, e la
+ * plancia restava sotto la barra di Lovelace finche' non si scopriva il dito
+ * tenuto premuto sull'hamburger. */
+test("anche un telefono Android che ospita la plancia va a tutto schermo da solo", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
+  await bootHostedPlancia(page, { userAgent: ANDROID_UA });
+
+  const narrow = await page.evaluate(() => window.matchMedia("(max-width: 870px)").matches);
+  const html = page.frameLocator("iframe").locator("html");
+  if (!narrow) {
+    // Uno schermo largo tiene la sua barra: il chiosco e' un patto da telefono.
+    await expect(html).not.toHaveAttribute("data-dm-ios-kiosk", "true");
+    return;
+  }
+
+  // Se il dito non arrivasse fin qui la prova direbbe il falso, non il vero.
+  expect(await page.evaluate(() => Number(navigator.maxTouchPoints || 0))).toBeGreaterThan(0);
+  expect(await page.evaluate(() => /iPhone|iPad|iPod/i.test(navigator.userAgent))).toBe(false);
+
+  await expect(html).toHaveAttribute("data-dm-ios-kiosk", "true");
+  const geometry = await hostGeometry(page);
+  expect(geometry).toMatchObject({ top: 0, left: 0, position: "fixed" });
+  expect(geometry.height).toBe(geometry.innerHeight);
+  expect(geometry.paintedOnTop).toBe("panel");
+});
+
+test("e su Android chi lo spegne resta spento", async ({ page }, testInfo) => {
+  test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
+  await bootHostedPlancia(page, { search: "?kiosk=0", userAgent: ANDROID_UA });
+
+  const html = page.frameLocator("iframe").locator("html");
   await expect(html).not.toHaveAttribute("data-dm-ios-kiosk", "true");
   expect((await hostGeometry(page)).position).not.toBe("fixed");
 });
