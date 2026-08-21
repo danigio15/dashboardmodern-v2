@@ -70,3 +70,53 @@ test("si riconosce cosa e' nostro e cosa no", () => {
 test("senza memoria del browser non si finge di aver svuotato", () => {
   assert.equal(clearOwnStorage(null), false);
 });
+
+/* La memoria che vede davvero la plancia quando le plance sono piu' d'una:
+ * `storage-namespace.js` antepone `cd_<istanza>_` in scrittura e in lettura, ma
+ * il giro sulle chiavi restituisce il nome lungo, quello scritto davvero. */
+function memoriaConNome(istanza, valori) {
+  const vera = memoria(valori);
+  const prefisso = `cd_${istanza}_`;
+  const mappa = (key) => (/^(cd_|dm_)/.test(String(key)) ? prefisso + key : String(key));
+  return {
+    get length() {
+      return vera.length;
+    },
+    key: (index) => vera.key(index),
+    getItem: (key) => vera.getItem(mappa(key)),
+    setItem: (key, value) => vera.setItem(mappa(key), value),
+    removeItem: (key) => vera.removeItem(mappa(key)),
+    tutto: () => vera.tutto(),
+  };
+}
+
+test("con il prefisso di istanza si cancella davvero, non si gira a vuoto", () => {
+  globalThis.__DASHBOARDMODERN_STORAGE_NS__ = "e2e-desktop-abc";
+  try {
+    const storage = memoriaConNome("e2e-desktop-abc", {
+      "cd_e2e-desktop-abc_cd_stanze": "[]",
+      "cd_e2e-desktop-abc_cd_gruppi_extra": "{}",
+      "cd_e2e-desktop-abc_dm_dashboard_state": "{}",
+      dashboardmodern_persist_meta: "{}",
+      selectedTheme: '{"dark":true}',
+    });
+    assert.equal(clearOwnStorage(storage), true);
+    assert.deepEqual(storage.tutto(), { selectedTheme: '{"dark":true}' });
+  } finally {
+    delete globalThis.__DASHBOARDMODERN_STORAGE_NS__;
+  }
+});
+
+test("e la configurazione di un'altra plancia resta dov'e'", () => {
+  globalThis.__DASHBOARDMODERN_STORAGE_NS__ = "casa-mare";
+  try {
+    const storage = memoriaConNome("casa-mare", {
+      "cd_casa-mare_cd_stanze": "[]",
+      "cd_casa-monti_cd_stanze": "[{}]",
+    });
+    clearOwnStorage(storage);
+    assert.deepEqual(storage.tutto(), { "cd_casa-monti_cd_stanze": "[{}]" });
+  } finally {
+    delete globalThis.__DASHBOARDMODERN_STORAGE_NS__;
+  }
+});

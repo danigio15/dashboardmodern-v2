@@ -230,6 +230,10 @@ export function renderRobots() {
   const page = ensureRobotPage();
   const wrap = page?.querySelector("#robot-wrap");
   if (!wrap) return false;
+  /* Il giro di disegno passa di qui ogni tre secondi, perche' e' quello che
+   * tiene allineate le voci della barra. Rifare le schede di una pagina che
+   * nessuno sta guardando e' lavoro buttato — e su un telefono si sente. */
+  if (!page.classList.contains("active")) return true;
   const views = configuredRobots().map((robot) => robotView(robot, allStates()));
 
   if (!views.length) {

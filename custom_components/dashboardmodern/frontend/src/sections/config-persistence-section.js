@@ -1,4 +1,5 @@
 // DM-FIX-20260817A
+import { runSteps, stepReporter } from "../core/runtime-steps.js";
 import { normalizeSection } from "../core/migrations.js";
 import { reloadDashboard, root } from "./shared.js";
 
@@ -697,13 +698,22 @@ function refreshRuntimeAfterRestore(remote) {
   } catch (error) {
     console.warn("[DashboardModern] canonical state reload after persistence restore failed", error);
   }
-  root.cdEvCarsRefresh?.();
-  root.buildQuickActions?.();
-  root.cdApplyNavOrder?.();
-  root.cdApplyNavVis?.();
-  root.buildTempCards?.();
-  root.buildClimaCards?.();
-  root.render?.();
+  // La configurazione condivisa arriva quando arriva, e a volte porta con se'
+  // un'entita' che qui non c'e' piu'. Se il primo passo inciampa, gli altri
+  // devono partire lo stesso: erano proprio la visibilita' delle sezioni e il
+  // disegno a restare indietro, e le sezioni configurate sparivano.
+  runSteps(
+    [
+      ["cdEvCarsRefresh", () => root.cdEvCarsRefresh?.()],
+      ["buildQuickActions", () => root.buildQuickActions?.()],
+      ["cdApplyNavOrder", () => root.cdApplyNavOrder?.()],
+      ["cdApplyNavVis", () => root.cdApplyNavVis?.()],
+      ["buildTempCards", () => root.buildTempCards?.()],
+      ["buildClimaCards", () => root.buildClimaCards?.()],
+      ["render", () => root.render?.()],
+    ],
+    { onError: stepReporter(root.console, "configurazione ripristinata") },
+  );
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:persistence-restored", { detail: remote }));
 }
 
@@ -953,12 +963,38 @@ const OWN_STORAGE_PREFIXES = Object.freeze(["cd_", "dm_", "dashboardmodern"]);
 export const isOwnStorageKey = (key) =>
   OWN_STORAGE_PREFIXES.some((prefix) => String(key ?? "").startsWith(prefix));
 
+/* Elencare e togliere devono parlare la stessa lingua.
+ *
+ * Quando piu' plance vivono sulla stessa origine, `storage-namespace.js`
+ * antepone `cd_<istanza>_` a ogni chiave nostra: chi scrive `cd_stanze` la
+ * ritrova come `cd_e2e-1_cd_stanze`. Ma il giro sulle chiavi le mostra come
+ * sono scritte davvero, mentre `removeItem` vuole il nome corto e ci rimette
+ * lui il prefisso. Passargli il nome lungo significa cercare
+ * `cd_<istanza>_cd_<istanza>_cd_stanze`, che non esiste: non si cancellava
+ * nulla. Si toglie qui il prefisso prima di restituire la chiave, e le chiavi
+ * di un'altra plancia restano dove sono. */
+const storageNamespacePrefix = () => {
+  const istanza = root.__DASHBOARDMODERN_STORAGE_NS__;
+  return istanza ? `cd_${istanza}_` : "";
+};
+
 export function clearOwnStorage(storage = root.localStorage) {
   if (!storage) return false;
+  const prefisso = storageNamespacePrefix();
   const nostre = [];
   for (let index = 0; index < storage.length; index += 1) {
     const key = storage.key(index);
-    if (isOwnStorageKey(key)) nostre.push(key);
+    if (!isOwnStorageKey(key)) continue;
+    if (!prefisso) {
+      nostre.push(key);
+      continue;
+    }
+    // Il prefisso lo prendono solo le chiavi `cd_`/`dm_`: le altre nostre
+    // passano com'e'. Con il prefisso attivo sono nostre solo le chiavi della
+    // nostra istanza, quelle delle altre plance restano dove sono.
+    const nome = String(key);
+    if (nome.startsWith(prefisso)) nostre.push(nome.slice(prefisso.length));
+    else if (!/^(cd_|dm_)/.test(nome)) nostre.push(nome);
   }
   for (const key of nostre) storage.removeItem(key);
   return true;

@@ -16,6 +16,7 @@ import {
   saveCamera,
   stableRoomId,
 } from "../src/legacy/dashboard-data.js";
+import { runSteps, stepReporter } from "../src/core/runtime-steps.js";
 import { DashboardStore } from "../src/core/dashboard-store.js";
 import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/core/device-model.js";
 import { createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
@@ -543,14 +544,21 @@ export function hydrateCanonicalRuntime() {
     return false;
   }
   canonicalRuntimeHydrated = true;
-  applyRuntimeProjection();
-  globalThis.cdRebuildReportDevices?.();
-  globalThis.buildReportSelect?.();
-  globalThis.cdApplyNavVis?.();
-  globalThis.renderAppliances?.();
-  globalThis.renderApplianceSection?.(true);
-  globalThis.buildDeviceCards?.();
-  globalThis.render?.();
+  // Ogni passo per conto suo: se uno cade, la visibilita' delle sezioni e il
+  // disegno partono lo stesso, invece di restare indietro con lui.
+  runSteps(
+    [
+      ["applyRuntimeProjection", () => applyRuntimeProjection()],
+      ["cdRebuildReportDevices", () => globalThis.cdRebuildReportDevices?.()],
+      ["buildReportSelect", () => globalThis.buildReportSelect?.()],
+      ["cdApplyNavVis", () => globalThis.cdApplyNavVis?.()],
+      ["renderAppliances", () => globalThis.renderAppliances?.()],
+      ["renderApplianceSection", () => globalThis.renderApplianceSection?.(true)],
+      ["buildDeviceCards", () => globalThis.buildDeviceCards?.()],
+      ["render", () => globalThis.render?.()],
+    ],
+    { onError: stepReporter(globalThis.console, "avvio") },
+  );
   return true;
 }
 
