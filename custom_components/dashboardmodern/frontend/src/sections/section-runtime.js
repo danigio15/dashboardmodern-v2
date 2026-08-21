@@ -48,6 +48,8 @@ import { installShutterWindowSection } from "./shutter-window-section.js";
 import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
 import { installPoolExtraSection } from "./pool-extra-section.js";
 import { installPoolEditorSection } from "./pool-editor-section.js";
+import { installRobotSection } from "./robot-section.js";
+import { installRobotEditorSection } from "./robot-editor-section.js";
 import { installEvSection } from "./ev-section.js";
 import { installMediaPickerSection } from "./media-picker-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
@@ -688,6 +690,8 @@ export function installSectionRuntime() {
     installPoolIrrigationSceneSection();
     installPoolExtraSection();
     installPoolEditorSection();
+    installRobotSection();
+    installRobotEditorSection();
     installMediaPickerSection();
     installEvSection();
     // The skin installs after the EV owner so the vehicle picker it restyles is
@@ -740,6 +744,8 @@ export function installSectionRuntime() {
         "pool-irrigation-scene",
         "pool-extra",
         "pool-editor",
+        "robot",
+        "robot-editor",
         "media-picker",
         "ev",
         "ev-showcase",

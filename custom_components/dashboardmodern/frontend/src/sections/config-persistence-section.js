@@ -77,6 +77,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_tapparelle",
   "cd_piscina",
   "cd_irrigazione",
+  "cd_robot",
   "cd_energy_model",
   "cd_entity_overrides",
   "cd_quick_actions",

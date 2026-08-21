@@ -13,6 +13,7 @@ const LEGACY_CONFIG_KEYS = Object.freeze([
   "cd_ev_cars",
   "cd_tapparelle",
   "cd_piscina",
+  "cd_robot",
   "cd_irrigazione",
   "cd_energy_model",
   "cd_entity_overrides",

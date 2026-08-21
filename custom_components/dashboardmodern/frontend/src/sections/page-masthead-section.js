@@ -41,6 +41,12 @@ const PAGES = Object.freeze([
     en: ["Shutters and curtains", "Opening · Closing · Group scenes"],
   },
   {
+    id: "page-robot",
+    tint: ["100,116,139", "14,165,233"],
+    it: ["Robot aspirapolvere", "Stato · Batteria · Mappa della casa"],
+    en: ["Robot vacuum", "State · Battery · Home map"],
+  },
+  {
     id: "page-piscina",
     tint: ["14,165,233", "34,211,238"],
     it: ["Piscina", "Qualità dell'acqua · Filtrazione · Riscaldamento"],

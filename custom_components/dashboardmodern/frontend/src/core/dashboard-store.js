@@ -29,6 +29,7 @@ export const VISIBILITY_SECTION = Object.freeze({
   covers: "tapparelle",
   pool: "piscina",
   irrigation: "irrigazione",
+  robots: "robot",
 });
 
 const configured = (value) =>
