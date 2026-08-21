@@ -41,6 +41,7 @@ import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
 import { installPageMastheadSection } from "./page-masthead-section.js";
 import { installShutterSceneSection } from "./shutter-scene-section.js";
+import { installClimatePowerSection } from "./climate-power-section.js";
 import { installShutterSkySection } from "./shutter-sky-section.js";
 import { installShutterWindowSection } from "./shutter-window-section.js";
 import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
@@ -676,6 +677,7 @@ export function installSectionRuntime() {
     installShutterWindowSection();
     // Il cielo si installa dopo chi disegna la finestra: ridefinisce solo le
     // variabili del fondo, e le trova gia' al loro posto.
+    installClimatePowerSection();
     installShutterSkySection();
     installPageMastheadSection();
     installPoolIrrigationSceneSection();
