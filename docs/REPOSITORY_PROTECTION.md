@@ -54,7 +54,8 @@ Notes:
 Forking **cannot be disabled on a public repository**. The "Allow forking" setting
 exists only for private and internal repositories, and GitHub's Terms of Service
 give every user the technical ability to fork any public repository. What the
-project license can do — and, since version 1.0.0, does — is deny the *right* to
+project license can do — and, from the first release after 1.0.0, does — is deny
+the *right* to
 keep or publish that copy: [`LICENSE`](../LICENSE) allows a fork only as the
 technical step needed to open a pull request. A fork kept online as a standalone
 copy is a license violation and can be reported to GitHub, but it is not blocked

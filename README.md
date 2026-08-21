@@ -1184,7 +1184,8 @@ questo repository, e va eliminato quando la pull request è chiusa o unita.
 
 Le versioni fino alla **1.0.0 inclusa** sono state pubblicate con licenza MIT:
 quella concessione resta valida per quelle versioni e il testo è riportato in
-appendice al file `LICENSE`. Dalla 1.0.0 in poi vale la nuova licenza.
+appendice al file `LICENSE`. La nuova licenza vale dalla prima versione
+pubblicata dopo la 1.0.0.
 
 Per usi diversi da quelli sopra — redistribuzione, uso commerciale, derivati —
 serve un permesso scritto: aprine richiesta negli
