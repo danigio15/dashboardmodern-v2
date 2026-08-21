@@ -104,6 +104,27 @@ in `scripts/i18n-shell-vocabulary.json`. An indirection it cannot see through �
 a local `say()` wrapper, say — is an indirection that silently keeps strings out
 of every catalog.
 
+## The vendored English shell is half-translated
+
+`dashboard-en.html` was translated by hand from the Italian shell and the pass
+was never finished. An English user still reads "⚡ Energy Erogata (da HA)" and
+"Consumo Total". The file is regenerated from upstream, so it cannot be fixed in
+place — instead `scripts/i18n-shell-aliases.json` maps each broken string onto
+the key it should have had, and the DOM pass repairs it. English gets the same
+treatment as every other language, through the same mechanism.
+
+That file is also where an ambiguity is settled. The index is keyed by source
+text, so the same Italian word can only mean one thing: "Energia" is *Power* on
+a card and *Energy* in the navigation. The tie-break is what the **vendored
+build** means by it, because the index exists for the DOM pass and the DOM pass
+never sees a section's own wording — `t()` goes straight to the catalog. Sources
+are therefore merged weakest-first: call sites, then the data tables, then the
+shell vocabulary, then the aliases.
+
+A test walks both shells and fails on any visible string that is neither a key
+nor mapped to one, with the units, acronyms and product names that legitimately
+stay put listed explicitly.
+
 ## Copy belongs in the DOM
 
 Text written into a CSS `content:` declaration produces no text node, so neither

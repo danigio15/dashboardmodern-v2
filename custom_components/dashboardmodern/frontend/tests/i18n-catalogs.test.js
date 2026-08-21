@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readdir } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -272,6 +272,70 @@ test("the source index maps Italian onto English, not onto itself", () => {
   const identity = Object.entries(SOURCE_INDEX).filter(([italian, english]) => italian === english);
   assert.deepEqual(identity, [], "an identity mapping earns nothing and hides a missing pair");
 });
+
+test("the vendored shells paint nothing the index cannot place", async () => {
+  /*
+   * Both shells are vendored and re-generated from upstream, so neither can be
+   * fixed in place — the English one is still half-translated ("⚡ Energy
+   * Erogata (da HA)"). What can be fixed is the mapping: every visible string
+   * either is a key, or maps to one. Units, acronyms and product names are
+   * listed as the things that legitimately stay put.
+   */
+  const shells = ["dashboard.html", "dashboard-en.html"];
+  for (const shell of shells) {
+    const html = (await readFile(path.join(I18N_DIR, "../../legacy", shell), "utf8"))
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?<\/style>/gi, "");
+    const unreachable = new Set();
+    for (const match of html.matchAll(/>([^<>]+)</g)) {
+      const value = match[1].replace(/\s+/g, " ").trim();
+      if (!value || value.length > 80 || !/[A-Za-zÀ-ÿ]/.test(value)) continue;
+      if (KEYS.has(value) || SOURCE_INDEX[value] || UNTRANSLATED_SHELL_TEXT.has(value)) continue;
+      unreachable.add(value);
+    }
+    assert.deepEqual(
+      [...unreachable].sort(),
+      [],
+      `${shell} paints text nothing can translate: ${[...unreachable].slice(0, 8).join(" | ")}`,
+    );
+  }
+});
+
+/*
+ * Shell text that stays as it is in every language: units and symbols, hardware
+ * acronyms, product and protocol names, and the boot string the page shows
+ * before any script has run.
+ */
+const UNTRANSLATED_SHELL_TEXT = new Set([
+  "--°C",
+  "°C",
+  "CONNECTING...",
+  "CPU",
+  "DEL",
+  "Download",
+  "EV",
+  "EV Smart",
+  "Fast",
+  "Inverter AC",
+  "Inverter DC",
+  "Min+Sol",
+  "OK",
+  "ONLINE",
+  "Package ID 0 · N100 MiniPC",
+  "RAM",
+  "Smart Home",
+  "Smart Home Dashboard",
+  "Speedtest downlink",
+  "Speedtest uplink",
+  "Upload",
+  "W",
+  "Wallbox",
+  "kWh",
+  "— kWh",
+  "— kWh &nbsp;|&nbsp; — €",
+  "⚡ Wallbox",
+  "⚡ Wallbox &amp; Ricarica EV",
+]);
 
 test("a catalog is fetched on demand and answers through the engine", async () => {
   const code = await loadCatalog("es-MX");

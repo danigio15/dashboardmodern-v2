@@ -19,6 +19,11 @@
  *   - `scripts/i18n-shell-vocabulary.json`, the visible chrome of the vendored
  *     Italian shell paired with its English build by hand.
  *
+ * The source index gets one extra source: `scripts/i18n-shell-aliases.json`,
+ * the strings the vendored English shell gets wrong. They add no keys — each
+ * one points at a key the corpus already has — but they let the DOM pass repair
+ * the English build in English, and carry it into every other language.
+ *
  * Anything a catalog is expected to answer has to appear in one of those, which
  * is what keeps the corpus a product of the code instead of a list beside it.
  *
@@ -36,6 +41,7 @@ const CORE = join(FRONTEND, "src/core");
 const MODULES_ENTRY = join(FRONTEND, "legacy/modules-entry.js");
 const ALERT_ICONS = join(FRONTEND, "src/sections/beta11-real-device-polish-section.js");
 const SHELL_VOCABULARY = join(ROOT, "scripts/i18n-shell-vocabulary.json");
+const SHELL_ALIASES = join(ROOT, "scripts/i18n-shell-aliases.json");
 const KEYS_OUT = join(FRONTEND, "tests/i18n-message-keys.js");
 const INDEX_OUT = join(FRONTEND, "src/i18n/source-index.js");
 
@@ -122,17 +128,60 @@ function shellPairs() {
   return new Map(Object.entries(raw));
 }
 
+/* Broken source text -> the key it should have had. Comment fields are skipped. */
+function shellAliases() {
+  const raw = JSON.parse(readFileSync(SHELL_ALIASES, "utf8"));
+  return new Map(Object.entries(raw).filter(([key]) => !key.startsWith("_")));
+}
+
 async function build() {
-  const pairs = codePairs();
-  for (const [english, italian] of await catalogPairs())
-    if (!pairs.has(english)) pairs.set(english, italian);
-  for (const [english, italian] of shellPairs()) if (!pairs.has(english)) pairs.set(english, italian);
+  /*
+   * Two different collections, on purpose.
+   *
+   * `pairs` answers "what are the keys": one entry per English string, first
+   * author wins, because the key list only needs the string itself.
+   *
+   * `index` answers "what did the runtime just paint": many Italian strings can
+   * point at the same English key, and they must all be kept. The Italian shell
+   * says "Chiaro" where a section says "Luce"; both are the key "Light", and
+   * dropping either leaves that text untranslatable in every language.
+   */
+  const pairs = new Map();
+  const index = new Map();
+
+  /*
+   * Weakest first, and later wins.
+   *
+   * The same Italian word is not always the same English one: "Energia" is
+   * Power on a card and Energy in the navigation, "Auto" is a car and also
+   * automatic. The index has to pick one, and the right tie-break is what the
+   * *vendored build* means by it, because the index exists for the DOM pass and
+   * the DOM pass only ever sees text the vendored build painted. A section's
+   * own wording never reaches it: `t()` goes straight to the catalog.
+   *
+   * So the shell's hand-paired vocabulary outranks the call sites, and the
+   * alias file — where a human wrote the answer down — outranks everything.
+   */
+  const sources = [codePairs(), await catalogPairs(), shellPairs()];
+  for (const source of sources) {
+    for (const [english, italian] of source) {
+      if (!pairs.has(english)) pairs.set(english, italian);
+      if (!italian || italian === english) continue;
+      index.set(italian, english);
+    }
+  }
+
   const keys = [...pairs.keys()].sort((a, b) => a.localeCompare(b, "en"));
-  const index = keys
-    .filter((key) => pairs.get(key) && pairs.get(key) !== key)
-    .map((key) => [pairs.get(key), key])
-    .sort((a, b) => a[0].localeCompare(b[0], "it"));
-  return { keys, index };
+  const known = new Set(keys);
+  for (const [source, english] of shellAliases()) {
+    if (!known.has(english)) throw new Error(`alias points at a key outside the corpus: ${english}`);
+    if (source !== english) index.set(source, english);
+  }
+
+  return {
+    keys,
+    index: [...index].sort((a, b) => a[0].localeCompare(b[0], "it")),
+  };
 }
 
 function keysModule(keys) {
