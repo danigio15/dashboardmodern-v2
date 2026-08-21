@@ -7,6 +7,7 @@ import {
   kioskHostStyles,
   kioskValueFromLocation,
   readStoredKiosk,
+  isTouchDevice,
   resolveKioskMode,
   trapsFixedPosition,
   writeStoredKiosk,
@@ -157,4 +158,25 @@ test("iOS detection covers iPhone, iPad and desktop class iPadOS", () => {
   assert.equal(isIosDevice({ platform: "MacIntel", maxTouchPoints: 0, userAgent: "" }), false);
   assert.equal(isIosDevice({ userAgent: "Mozilla/5.0 (Linux; Android 14)" }), false);
   assert.equal(isIosDevice({}), false);
+});
+
+/* La plancia decide da dentro la sua cornice, e li' `maxTouchPoints` non e'
+ * sempre quello del dispositivo: dove tornava zero il chiosco non partiva su un
+ * telefono che il dito ce l'ha. Ne basta uno dei tre. */
+test("il dito si riconosce in tre modi, non solo contando i tocchi", () => {
+  const finestra = (coarse) => ({ matchMedia: () => ({ matches: coarse }) });
+  assert.equal(isTouchDevice({ maxTouchPoints: 5 }, finestra(false)), true);
+  assert.equal(isTouchDevice({ maxTouchPoints: 0 }, finestra(true)), true);
+  const conTocco = finestra(false);
+  conTocco.ontouchstart = null;
+  assert.equal(isTouchDevice({ maxTouchPoints: 0 }, conTocco), true);
+});
+
+test("e un mouse su uno schermo fine resta un mouse", () => {
+  assert.equal(
+    isTouchDevice({ maxTouchPoints: 0 }, { matchMedia: () => ({ matches: false }) }),
+    false,
+  );
+  // Un browser che non sa rispondere non diventa per questo un telefono.
+  assert.equal(isTouchDevice({}, {}), false);
 });

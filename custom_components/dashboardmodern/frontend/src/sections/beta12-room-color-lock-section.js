@@ -58,9 +58,23 @@ export function isIosDevice(nav = root.navigator) {
   return clean(nav?.platform) === "MacIntel" && Number(nav?.maxTouchPoints || 0) > 1;
 }
 
-/** Il dito: e' questo che separa un telefono da una finestra stretta col mouse. */
-export function isTouchDevice(nav = root.navigator) {
-  return Number(nav?.maxTouchPoints || 0) > 0;
+/* Il dito: e' questo che separa un telefono da una finestra stretta col mouse.
+ *
+ * Non basta chiedere `maxTouchPoints`. La plancia decide da dentro la sua
+ * cornice, e li' quel numero non e' sempre quello del dispositivo: dove tornava
+ * zero il chiosco non partiva su un telefono che il dito ce l'ha. Si chiede in
+ * tre modi, e ne basta uno; l'ultimo — "il puntatore e' grosso" — e' proprio la
+ * domanda che vogliamo fare: comanda un dito o comanda un mouse. */
+export function isTouchDevice(nav = root.navigator, view = root) {
+  if (Number(nav?.maxTouchPoints || 0) > 0) return true;
+  try {
+    if (view && "ontouchstart" in view) return true;
+  } catch (_error) {}
+  try {
+    return Boolean(view?.matchMedia?.("(pointer: coarse)")?.matches);
+  } catch (_error) {
+    return false;
+  }
 }
 
 function booleanFromValue(value) {
