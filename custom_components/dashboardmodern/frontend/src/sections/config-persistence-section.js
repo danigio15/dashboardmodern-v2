@@ -1,10 +1,11 @@
 // DM-FIX-20260817A
+import { runSteps, stepReporter } from "../core/runtime-steps.js";
 import { normalizeSection } from "../core/migrations.js";
 import { reloadDashboard, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CONFIG_PERSISTENCE__";
 const USER_DATA_VERSION = 1;
-export const CONFIG_KEYS_REVISION = 3;
+export const CONFIG_KEYS_REVISION = 4;
 const PERSIST_META_KEY = "dm_persistence_meta";
 const REMOTE_REFRESH_MIN_MS = 1200;
 
@@ -77,10 +78,15 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_tapparelle",
   "cd_piscina",
   "cd_irrigazione",
+  "cd_robot",
   "cd_energy_model",
   "cd_entity_overrides",
   "cd_quick_actions",
   "cd_navbar_order",
+  // La barra a scomparsa o ferma e' una scelta della plancia, non del
+  // dispositivo che l'ha fatta: chi la mette ferma sul telefono se la ritrova
+  // ferma anche sul computer.
+  "cd_navbar_mode",
   "cd_energy_views",
   "cd_slot_labels",
   "cd_flow_nodes",
@@ -696,13 +702,22 @@ function refreshRuntimeAfterRestore(remote) {
   } catch (error) {
     console.warn("[DashboardModern] canonical state reload after persistence restore failed", error);
   }
-  root.cdEvCarsRefresh?.();
-  root.buildQuickActions?.();
-  root.cdApplyNavOrder?.();
-  root.cdApplyNavVis?.();
-  root.buildTempCards?.();
-  root.buildClimaCards?.();
-  root.render?.();
+  // La configurazione condivisa arriva quando arriva, e a volte porta con se'
+  // un'entita' che qui non c'e' piu'. Se il primo passo inciampa, gli altri
+  // devono partire lo stesso: erano proprio la visibilita' delle sezioni e il
+  // disegno a restare indietro, e le sezioni configurate sparivano.
+  runSteps(
+    [
+      ["cdEvCarsRefresh", () => root.cdEvCarsRefresh?.()],
+      ["buildQuickActions", () => root.buildQuickActions?.()],
+      ["cdApplyNavOrder", () => root.cdApplyNavOrder?.()],
+      ["cdApplyNavVis", () => root.cdApplyNavVis?.()],
+      ["buildTempCards", () => root.buildTempCards?.()],
+      ["buildClimaCards", () => root.buildClimaCards?.()],
+      ["render", () => root.render?.()],
+    ],
+    { onError: stepReporter(root.console, "configurazione ripristinata") },
+  );
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:persistence-restored", { detail: remote }));
 }
 
@@ -936,6 +951,59 @@ function resetConfirmation() {
     : "Eliminare tutta la configurazione DashboardModern di questa plancia?";
 }
 
+/* Svuotare la propria configurazione, non quella di Home Assistant.
+ *
+ * La plancia ospitata vive in una cornice `srcdoc`, che eredita l'origine della
+ * pagina che la contiene: la sua memoria del browser e' la stessa di Home
+ * Assistant. Svuotarla tutta — che e' quello che faceva "Elimina tutta la
+ * configurazione" — cancellava anche cio' che Home Assistant ci tiene: il tema
+ * scelto, la barra laterale, le preferenze. Chi lo faceva si ritrovava tutte le
+ * altre plance sbiancate, col tema tornato a quello di partenza e nessuna
+ * traccia di dove fosse finita la sua scelta.
+ *
+ * Si tolgono le chiavi nostre, riconosciute dal prefisso, e nient'altro. */
+const OWN_STORAGE_PREFIXES = Object.freeze(["cd_", "dm_", "dashboardmodern"]);
+
+export const isOwnStorageKey = (key) =>
+  OWN_STORAGE_PREFIXES.some((prefix) => String(key ?? "").startsWith(prefix));
+
+/* Elencare e togliere devono parlare la stessa lingua.
+ *
+ * Quando piu' plance vivono sulla stessa origine, `storage-namespace.js`
+ * antepone `cd_<istanza>_` a ogni chiave nostra: chi scrive `cd_stanze` la
+ * ritrova come `cd_e2e-1_cd_stanze`. Ma il giro sulle chiavi le mostra come
+ * sono scritte davvero, mentre `removeItem` vuole il nome corto e ci rimette
+ * lui il prefisso. Passargli il nome lungo significa cercare
+ * `cd_<istanza>_cd_<istanza>_cd_stanze`, che non esiste: non si cancellava
+ * nulla. Si toglie qui il prefisso prima di restituire la chiave, e le chiavi
+ * di un'altra plancia restano dove sono. */
+const storageNamespacePrefix = () => {
+  const istanza = root.__DASHBOARDMODERN_STORAGE_NS__;
+  return istanza ? `cd_${istanza}_` : "";
+};
+
+export function clearOwnStorage(storage = root.localStorage) {
+  if (!storage) return false;
+  const prefisso = storageNamespacePrefix();
+  const nostre = [];
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+    if (!isOwnStorageKey(key)) continue;
+    if (!prefisso) {
+      nostre.push(key);
+      continue;
+    }
+    // Il prefisso lo prendono solo le chiavi `cd_`/`dm_`: le altre nostre
+    // passano com'e'. Con il prefisso attivo sono nostre solo le chiavi della
+    // nostra istanza, quelle delle altre plance restano dove sono.
+    const nome = String(key);
+    if (nome.startsWith(prefisso)) nostre.push(nome.slice(prefisso.length));
+    else if (!/^(cd_|dm_)/.test(nome)) nostre.push(nome);
+  }
+  for (const key of nostre) storage.removeItem(key);
+  return true;
+}
+
 export async function resetAllConfig({ skipConfirm = false, reload = true } = {}) {
   if (state.resetting) return false;
   if (!skipConfirm && root.confirm && !root.confirm(resetConfirmation())) return false;
@@ -950,7 +1018,7 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
   } catch (_error) {}
 
   try {
-    root.localStorage?.clear?.();
+    clearOwnStorage();
   } catch (error) {
     state.resetting = false;
     delete root.__DASHBOARDMODERN_CONFIG_RESETTING__;
@@ -987,7 +1055,7 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
   }
 
   try {
-    root.localStorage?.clear?.();
+    clearOwnStorage();
   } catch (_error) {}
 
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:config-reset", { detail: empty }));

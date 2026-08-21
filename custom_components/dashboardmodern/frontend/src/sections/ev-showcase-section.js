@@ -30,7 +30,8 @@
  * the colour of the active EVCC mode, mirrored onto `#page-ev` as
  * `data-dm-ev-mode` from whichever `.evcc-mode-btn` carries `.active`.
  */
-import { clean, doc, installStyle, root, t } from "./shared.js";
+import { evccPresence } from "../core/ev-console.js";
+import { allStates, clean, doc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EV_SHOWCASE__";
 const STYLE_ID = "dm-ev-showcase-style";
@@ -191,6 +192,51 @@ function syncPhoto(hero) {
 
 /* ── render ───────────────────────────────────────────────────────────── */
 
+/* Quello che regge la ricarica con evcc, quando evcc non c'e'.
+ *
+ * Il target di carica con la sua percentuale, l'autonomia calcolata su quel
+ * target e i quattro tasti delle modalita' esistono solo per chi la ricarica la
+ * governa da evcc. A chi la macchina la attacca e basta restavano davanti un
+ * target fermo su "—" e quattro tasti che non fanno niente: adesso ognuno dei
+ * tre sparisce insieme all'entita' che lo regge, sulla pagina e nel popup.
+ *
+ * L'attributo `hidden` e' quello che dice "questo non c'e'": lo capiscono anche
+ * chi legge lo schermo ad alta voce e la ricerca dentro la pagina, e chi lo ha
+ * nascosto resta uno solo. */
+export function paintEvccConsole(scope = doc) {
+  if (!scope?.querySelectorAll) return null;
+  let resolve = (value) => value;
+  try {
+    if (typeof root.resolveEntity === "function") resolve = root.resolveEntity;
+  } catch (_error) {}
+  const presente = evccPresence(allStates(), resolve);
+  /* Si scrive solo quando cambia.
+   *
+   * Questa passata gira a ogni evento di stato, e riscrivere un attributo con
+   * il valore che ha gia' e' comunque una modifica al documento: chi guarda le
+   * modifiche per rifare il suo pezzo si rimette in coda per niente, a ogni
+   * giro. */
+  const segna = (node, visibile) => {
+    const nascosto = node.hasAttribute("hidden");
+    if (visibile && nascosto) node.removeAttribute("hidden");
+    else if (!visibile && !nascosto) node.setAttribute("hidden", "hidden");
+    const stato = visibile ? "configurato" : "assente";
+    if (node.dataset.dmEvcc !== stato) node.dataset.dmEvcc = stato;
+  };
+  const mostra = (selector, visibile) => {
+    for (const node of scope.querySelectorAll(selector)) segna(node, visibile);
+  };
+  mostra(".lm-target-card,.ev-popup-target", presente.target);
+  // L'autonomia al target e' il target detto in chilometri: senza target non e'
+  // una riga vuota, e' una riga che non ha piu' senso.
+  for (const value of scope.querySelectorAll(".v-auto-limite")) {
+    const riga = value.closest(".lm-stat-card,.dm-evv-row,.ev-popup-session-row,.ev-popup-stat");
+    if (riga) segna(riga, presente.target);
+  }
+  mostra(".lm-evcc-card,.ev-popup-modes", presente.mode);
+  return presente;
+}
+
 export function renderEvShowcase() {
   const page = doc?.getElementById?.("page-ev");
   const hero = doc?.getElementById?.("lm-hero-card");
@@ -204,6 +250,7 @@ export function renderEvShowcase() {
   const mode = evActiveMode(doc);
   if (page.dataset.dmEvMode !== mode) page.dataset.dmEvMode = mode;
   syncPhoto(hero);
+  paintEvccConsole();
 
   const arc = power?.querySelector(".dm-evv-arc");
   if (arc) {
@@ -441,6 +488,13 @@ function evShowcaseCss() {
 }
 #page-ev.dm-evv .lm-stat-lbl{font-size:9.5px!important;letter-spacing:.05em!important}
 #page-ev.dm-evv .lm-stat-val{font-size:16px!important}
+
+/* Quello che non c'e' non occupa posto: le regole della pagina fissano il
+   riquadro a display:flex, che da solo batte il significato dell'attributo. */
+#page-ev.dm-evv .lm-target-card[hidden],#page-ev.dm-evv .lm-evcc-card[hidden],
+#page-ev.dm-evv .lm-stat-card[hidden],#page-ev.dm-evv .dm-evv-row[hidden],
+#ev-popup .ev-popup-target[hidden],#ev-popup .ev-popup-modes[hidden],
+#ev-popup .ev-popup-session-row[hidden],#ev-popup .ev-popup-stat[hidden]{display:none!important}
 
 /* ── target: takes the colour of the active mode ──────────────────────── */
 #page-ev.dm-evv .lm-target-card{

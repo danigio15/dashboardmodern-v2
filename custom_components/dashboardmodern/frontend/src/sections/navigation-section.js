@@ -31,6 +31,24 @@ function installStyles() {
       html[data-theme="dark"] .bottom-nav-bar .tab.active,html.dark .bottom-nav-bar .tab.active,body[data-theme="dark"] .bottom-nav-bar .tab.active,body.dark .bottom-nav-bar .tab.active,.dark .bottom-nav-bar .tab.active{background:#25324b!important;color:#fff!important;border-color:#52627f!important;box-shadow:0 8px 20px rgba(0,0,0,.28)!important}
       html[data-theme="dark"] .bottom-nav-bar .tab.active .text,html.dark .bottom-nav-bar .tab.active .text,body[data-theme="dark"] .bottom-nav-bar .tab.active .text,body.dark .bottom-nav-bar .tab.active .text,.dark .bottom-nav-bar .tab.active .text{color:#fff!important;opacity:1!important}
       @media(max-width:640px){.bottom-nav-bar .tab .text{font-weight:800!important}.bottom-nav-bar .tab{min-width:54px!important}}
+      /* La barra deve essere raggiungibile con il mouse.
+       *
+       * Sul computer la barra sta a riposo fuori dallo schermo — e' un dock:
+       * compare quando ci si avvicina col mouse. Misurata su una finestra alta
+       * 900, pero', la barra comincia a 908, e l'unica zona sensibile era la
+       * striscia di quattordici pixel che il suo bordo invisibile sporgeva in
+       * alto. Da un browser ci si arriva per un pelo; dall'app di Home
+       * Assistant sul Mac, dove il fondo della finestra e' occupato, non ci si
+       * arriva affatto: la barra non usciva in nessun modo, e chi entrava dal
+       * web la vedeva funzionare.
+       *
+       * La striscia adesso e' alta abbastanza da poterla prendere senza
+       * inseguirla: il dock si comporta come prima, ma si lascia trovare. */
+      @media(min-width:769px) and (hover:hover) and (pointer:fine){
+        html body nav.tabs.bottom-nav-bar::before{
+          top:-72px!important;left:-48px!important;right:-48px!important;bottom:-20px!important
+        }
+      }
 
       /* Il contenitore è trasparente al layout finché non serve scorrere: su
        * mobile la barra scorre già da sé e resta esattamente com'era. */
@@ -335,12 +353,69 @@ function installScroller() {
 const AUTO_HIDE_MS = 4000;
 const TAB_HIDE_MS = 800;
 
-function navFixed() {
+export const NAVBAR_MODE_KEY = "cd_navbar_mode";
+export const NAVBAR_MODES = Object.freeze(["auto", "fixed"]);
+export const NAVBAR_MODE_DEFAULT = "fixed";
+
+/* La barra parte fissa, e la scelta segue chi la fa.
+ *
+ * Prima partiva a scomparsa dappertutto e la scelta restava sul dispositivo che
+ * l'aveva fatta. Sul computer le due cose insieme chiudevano la porta a chiave:
+ * la barra a riposo sta fuori dallo schermo e si chiama avvicinando il mouse al
+ * fondo, ma il comando per tenerla ferma sta nella pagina Config, e a quella
+ * pagina ci si arriva dalla barra. Chi non riusciva a chiamarla non poteva
+ * nemmeno dirle di restare, e metterla fissa dal telefono non serviva a niente
+ * perche' quella preferenza non viaggiava.
+ *
+ * Adesso parte ferma, e chi preferisce il dock lo sceglie una volta sola. */
+export function navbarMode(storage = root.localStorage) {
   try {
-    return clean(root.localStorage?.getItem("cd_navbar_mode")) === "fixed";
+    const scritta = clean(storage?.getItem?.(NAVBAR_MODE_KEY));
+    return NAVBAR_MODES.includes(scritta) ? scritta : NAVBAR_MODE_DEFAULT;
+  } catch (_error) {
+    return NAVBAR_MODE_DEFAULT;
+  }
+}
+
+/* Il valore di partenza va scritto, non solo inteso: la pagina Config e il
+ * vecchio runtime lo rileggono per conto loro, in punti che non passano di qui,
+ * e una casella vuota la leggerebbero come "a scomparsa" — la barra ferma e il
+ * bottone che dice il contrario.
+ *
+ * Si scrive pero' senza far scattare la spinta della configurazione: e' un
+ * valore di partenza, non una scelta di nessuno, e se ne partisse una copia
+ * arriverebbe a sovrascrivere il "a scomparsa" scelto davvero su un altro
+ * dispositivo prima ancora di averlo ricevuto. */
+export function seedNavbarMode(storage = root.localStorage, view = root) {
+  try {
+    if (NAVBAR_MODES.includes(clean(storage?.getItem?.(NAVBAR_MODE_KEY)))) return false;
+    const prima = view?.__DASHBOARDMODERN_PERSIST_RESTORE__;
+    if (view) view.__DASHBOARDMODERN_PERSIST_RESTORE__ = true;
+    try {
+      storage?.setItem?.(NAVBAR_MODE_KEY, NAVBAR_MODE_DEFAULT);
+    } finally {
+      if (view) {
+        if (prima === undefined) delete view.__DASHBOARDMODERN_PERSIST_RESTORE__;
+        else view.__DASHBOARDMODERN_PERSIST_RESTORE__ = prima;
+      }
+    }
+    return true;
   } catch (_error) {
     return false;
   }
+}
+
+/** Scrive il valore di partenza se manca e lo fa applicare al documento. */
+export function applyNavbarMode() {
+  const scritto = seedNavbarMode();
+  try {
+    root.cdApplyNavFixedBody?.();
+  } catch (_error) {}
+  return scritto;
+}
+
+function navFixed() {
+  return navbarMode() === "fixed";
 }
 
 /* Touch layouts are the ones with a hideable dock. On a desktop the bar is
@@ -456,6 +531,11 @@ function installBarBehaviour() {
 export function installNavigationSection() {
   if (!doc || state.installed) return;
   state.installed = true;
+  applyNavbarMode();
+  /* La configurazione condivisa, arrivando, riscrive le chiavi: se quella
+   * dell'altro dispositivo non la porta, qui resterebbe vuota e la barra
+   * tornerebbe a scomparsa da sola. */
+  root.addEventListener?.("dashboardmodern:persistence-restored", () => applyNavbarMode());
   installStyles();
   installBarBehaviour();
   if (!installScroller()) {

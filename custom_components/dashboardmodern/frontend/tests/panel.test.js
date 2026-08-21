@@ -28,3 +28,20 @@ test("when the preferred variant is absent, the first available is used", () => 
   const panel = { config: { legacy_variants: ["dashboard-en.html"] } };
   assert.equal(resolveLegacyVariant(panel, { locale: { language: "it" } }), "dashboard-en.html");
 });
+
+/* Segnalazione #178: quando la plancia nella lingua giusta non e' stata
+ * spedita, si ripiega sull'inglese e non sulla prima della lista. Finche' le
+ * plance sono due la differenza non si vede, perche' "dashboard-en.html" viene
+ * prima in ordine alfabetico; ma il ripiego non deve dipendere da un ordine
+ * alfabetico che nessuno ha scelto. */
+test("il ripiego e' l'inglese, non la prima della lista", () => {
+  const panel = { config: { legacy_variants: ["dashboard-de.html", "dashboard-en.html"] } };
+  assert.equal(resolveLegacyVariant(panel, { locale: { language: "fr" } }), "dashboard-en.html");
+  // Anche a un profilo italiano, se l'italiano non c'e'.
+  assert.equal(resolveLegacyVariant(panel, { locale: { language: "it" } }), "dashboard-en.html");
+});
+
+test("e se non c'e' nemmeno l'inglese si prende quello che c'e'", () => {
+  const panel = { config: { legacy_variants: ["dashboard-de.html"] } };
+  assert.equal(resolveLegacyVariant(panel, { locale: { language: "fr" } }), "dashboard-de.html");
+});

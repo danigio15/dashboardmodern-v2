@@ -30,8 +30,11 @@ test("the 1.0 beta release metadata is consistently versioned", async () => {
   const buildInfo = await readFile(buildInfoUrl, "utf8");
   const releaseVersion = String(manifest.version || "").trim();
 
-  // The road to 1.0.0: betas, then release candidates, then the release itself.
-  assert.match(releaseVersion, /^1\.0\.0(?:-(?:beta|rc)\.\d+(?:\.\d+)?)?$/);
+  /* La strada per la 1.0.0 — beta, poi release candidate, poi la versione — e'
+   * finita il 20 agosto 2026. Da li' in avanti si contano le correzioni: 1.0.1,
+   * 1.0.2, e cosi' via. Il contratto resta, e resta stretto, perche' serve a
+   * impedire una versione scritta a mano storta, non a lasciar passare tutto. */
+  assert.match(releaseVersion, /^1\.\d+\.\d+(?:-(?:beta|rc)\.\d+(?:\.\d+)?)?$/);
   assert.match(readme, /badge\/version-\d+\.\d+\.\d+(?:--(?:beta|rc)\.\d+)?-/);
   assert.ok(buildInfo.includes(`"integrationVersion":"${releaseVersion}"`));
   assert.ok(buildInfo.includes(`"dashboardVersion":"${releaseVersion}"`));

@@ -2,13 +2,19 @@
 import { clean, doc, installStyle, root, t } from "./shared.js";
 
 // Beta18: all room/action icons are owned by icon-engine-section. This historical
-// module keeps only the iOS kiosk contract; it must never observe or repaint icon DOM.
+// module keeps only the kiosk contract; it must never observe or repaint icon DOM.
 //
 // Beta30.6: the kiosk used to require a hand written ?kiosk=1 on the URL. Nobody
 // can type a query string inside the Home Assistant companion app, so on a real
 // iPhone the plancia always rendered under the Lovelace toolbar. The contract is
 // now: an explicit request always wins, the last explicit choice is remembered,
-// and an iOS phone that hosts the plancia inside Home Assistant starts in kiosk.
+// and a phone that hosts the plancia inside Home Assistant starts in kiosk.
+//
+// Il chiosco era nato guardando l'iPhone e chiedeva iOS per accendersi da solo.
+// Su Android il problema e' lo stesso — dentro l'app di Home Assistant non c'e'
+// barra degli indirizzi dove scrivere ?kiosk=1 — ma non si accendeva mai, e
+// restava solo il dito tenuto premuto sull'hamburger, che bisognava scoprire.
+// Adesso conta il dito, non la marca.
 const KEY = "__DASHBOARDMODERN_BETA12_FINAL_LOCK__";
 const KIOSK_ATTR = "data-dm-ios-kiosk";
 const KIOSK_STORE_KEY = "dm_kiosk";
@@ -50,6 +56,25 @@ export function isIosDevice(nav = root.navigator) {
   const ua = clean(nav?.userAgent);
   if (/iPhone|iPad|iPod/i.test(ua)) return true;
   return clean(nav?.platform) === "MacIntel" && Number(nav?.maxTouchPoints || 0) > 1;
+}
+
+/* Il dito: e' questo che separa un telefono da una finestra stretta col mouse.
+ *
+ * Non basta chiedere `maxTouchPoints`. La plancia decide da dentro la sua
+ * cornice, e li' quel numero non e' sempre quello del dispositivo: dove tornava
+ * zero il chiosco non partiva su un telefono che il dito ce l'ha. Si chiede in
+ * tre modi, e ne basta uno; l'ultimo — "il puntatore e' grosso" — e' proprio la
+ * domanda che vogliamo fare: comanda un dito o comanda un mouse. */
+export function isTouchDevice(nav = root.navigator, view = root) {
+  if (Number(nav?.maxTouchPoints || 0) > 0) return true;
+  try {
+    if (view && "ontouchstart" in view) return true;
+  } catch (_error) {}
+  try {
+    return Boolean(view?.matchMedia?.("(pointer: coarse)")?.matches);
+  } catch (_error) {
+    return false;
+  }
 }
 
 function booleanFromValue(value) {
@@ -109,15 +134,27 @@ export function writeStoredKiosk(value, storage = root.localStorage) {
  *
  * `override` is the in-session choice (long press on the plancia hamburger) and
  * outranks everything, so the gesture keeps working on a URL that still carries
- * ?kiosk=1. Without any explicit choice an iOS phone hosting the plancia inside
- * Home Assistant starts full screen: that surface has no editable address bar,
- * and the plancia already carries its own header and its own hamburger.
+ * ?kiosk=1.
+ *
+ * Senza una scelta esplicita parte a tutto schermo uno schermo da telefono che
+ * tiene la plancia dentro Home Assistant. Il telefono, non l'iPhone: la ragione
+ * per cui era nato — dentro l'app di Home Assistant nessuno puo' scrivere
+ * ?kiosk=1 a mano, e la plancia si ritrovava sotto la barra di Lovelace — su
+ * Android e' identica, ma li' il chiosco non si accendeva mai da solo e
+ * bisognava scoprire il dito tenuto premuto sull'hamburger. Adesso conta il
+ * dito, non la marca: cosi' resta fuori la finestra stretta di un computer, che
+ * la barra degli indirizzi ce l'ha eccome.
+ *
+ * Una plancia installata come app a se' — "aggiungi alla schermata Home" su
+ * iOS, una PWA altrove — non ha barra degli indirizzi da nessuna parte, e parte
+ * a tutto schermo anche su uno schermo largo, che e' il caso dell'iPad.
  */
 export function resolveKioskMode({
   override = null,
   explicit = null,
   stored = null,
   ios = false,
+  touch = false,
   hosted = false,
   standalone = false,
   narrow = false,
@@ -125,7 +162,11 @@ export function resolveKioskMode({
   if (override !== null && override !== undefined) return Boolean(override);
   if (explicit !== null && explicit !== undefined) return Boolean(explicit);
   if (stored !== null && stored !== undefined) return Boolean(stored);
-  return Boolean(ios && (standalone || (hosted && narrow)));
+  // Un iPhone o un iPad hanno sempre il dito: la regola di prima resta dentro
+  // questa, senza eccezioni da ricordare.
+  const dito = Boolean(touch || ios);
+  if (dito && hosted && narrow) return true;
+  return Boolean(standalone && (ios || (dito && narrow)));
 }
 
 function parentWindow() {
@@ -183,6 +224,7 @@ function kioskEnabled() {
     explicit,
     stored: readStoredKiosk(),
     ios: isIosDevice(),
+    touch: isTouchDevice(),
     hosted: hostedContext(),
     standalone: standaloneDisplay(),
     narrow: narrowViewport(),
@@ -454,7 +496,7 @@ function deactivateIosKiosk() {
  * Everything this module writes outside its own document must survive the frame
  * going away: Home Assistant keeps the page when the plancia panel is replaced.
  */
-function releaseOwnerDocument() {
+export function releaseOwnerDocument() {
   unlockOwnerDocument();
   restoreAncestors();
   if (state.kioskHost) {
@@ -566,6 +608,18 @@ if (!state.listeners) {
   for (const eventName of ["pagehide", "unload"]) {
     root.addEventListener?.(eventName, releaseOwnerDocument);
   }
+  /* Ma su quei due eventi non ci si puo' appoggiare da soli.
+   *
+   * Home Assistant e' una pagina sola: quando si lascia la plancia per un'altra
+   * dashboard la pagina non si scarica mai, e la cornice tolta dal documento
+   * non e' detto che dica niente — `unload` i browser lo stanno togliendo di
+   * mezzo. Cosi' quello che avevamo scritto nel documento di Home Assistant
+   * restava li': lo scorrimento bloccato, e soprattutto il velo fisso a tutto
+   * schermo sopra il pannello, chiarissimo, che copriva le altre plance e
+   * faceva sembrare che il tema fosse cambiato da solo e non si potesse piu'
+   * toccare. Chi ospita la plancia, invece, sa sempre quando la toglie: gli si
+   * lascia questa maniglia e la tira lui, prima di levare la cornice. */
+  root.dmReleaseOwnerDocument = releaseOwnerDocument;
 }
 
 installStyle("dm-beta12-room-color-lock-style", `

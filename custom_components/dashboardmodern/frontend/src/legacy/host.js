@@ -16,9 +16,18 @@ export const LEGACY_FRAME_PERMISSIONS =
   "autoplay; fullscreen; picture-in-picture; encrypted-media";
 export const LEGACY_VARIANTS = Object.freeze({ it: "dashboard.html", en: "dashboard-en.html" });
 
+/* Quale delle due plance servire, a partire dalla lingua del profilo.
+ *
+ * Il patto e' questo, e vale anche per le lingue che non parliamo: `it` e
+ * `it-*` prendono l'italiano, tutto il resto prende l'inglese. Un profilo in
+ * francese, tedesco o spagnolo non capirebbe l'italiano piu' di quanto capisca
+ * l'inglese, e l'inglese almeno e' la lingua che tutti si aspettano quando la
+ * propria non c'e'. Chi un domani aggiungesse una terza plancia deve nominarla
+ * qui: il ripiego non si sceglie da solo. */
 export function legacyVariantForLocale(locale) {
   const normalized = typeof locale === "string" ? locale.toLowerCase() : "";
-  return normalized.startsWith("it") ? LEGACY_VARIANTS.it : LEGACY_VARIANTS.en;
+  if (normalized === "it" || normalized.startsWith("it-")) return LEGACY_VARIANTS.it;
+  return LEGACY_VARIANTS.en;
 }
 
 function escapeAttribute(value) {
@@ -261,6 +270,12 @@ export function mountLegacyHost(
     reboot,
     destroy() {
       hostWindow.removeEventListener?.("message", onChildMessage);
+      // La plancia scrive anche nel documento di Home Assistant — lo scorrimento
+      // bloccato, il velo a tutto schermo del modo chiosco. Se ne va prima che
+      // la cornice sparisca, altrimenti resta addosso alle altre plance.
+      try {
+        frame.contentWindow?.dmReleaseOwnerDocument?.();
+      } catch (_error) {}
       frame.remove();
       delete hostWindow[HOST_KEY];
       delete hostWindow.__DASHBOARDMODERN_INSTANCE__;

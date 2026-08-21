@@ -1,0 +1,34 @@
+{
+  "name": "branch-creation-policy",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [
+    {
+      "actor_id": 5,
+      "actor_type": "RepositoryRole",
+      "bypass_mode": "always"
+    }
+  ],
+  "conditions": {
+    "ref_name": {
+      "include": ["~ALL"],
+      "exclude": [
+        "refs/heads/feature/**",
+        "refs/heads/fix/**",
+        "refs/heads/docs/**",
+        "refs/heads/test/**",
+        "refs/heads/refactor/**",
+        "refs/heads/chore/**",
+        "refs/heads/claude/**"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "type": "creation"
+    },
+    {
+      "type": "deletion"
+    }
+  ]
+}

@@ -662,20 +662,38 @@ function minipcShowcaseCss() {
   display:grid;gap:14px 16px;align-content:start;
   grid-template-columns:minmax(0,1.02fr) minmax(0,1fr)
 }
+/* Le righe sono contate a mano, e vanno contate tutte.
+ *
+ * Questa numerazione e' stata scritta quando la pagina cominciava con la sua
+ * scena: intestazioni di sezione non ce n'erano. Adesso ogni sezione ne ha una,
+ * e quella si prende la prima riga — l'unica libera, visto che la seconda e la
+ * terza sono assegnate qui sotto. La scena finiva cosi' in coda alla pagina,
+ * sotto la telemetria: il pezzo piu' grosso della sezione, in fondo.
+ *
+ * Ora ogni pezzo ha la sua riga dichiarata, nell'ordine in cui si legge. */
+#page-server.dm-srvx .dm-page-mast{grid-column:1 / -1;grid-row:1}
 #page-server.dm-srvx .srv-hero,
 #page-server.dm-srvx .srv-status-grid,
 #page-server.dm-srvx .dm-srvx-head[data-dm-srvx-head=".srv-status-grid"]{grid-column:1 / -1}
+#page-server.dm-srvx .srv-hero{grid-row:2}
 #page-server.dm-srvx .dm-srvx-head[data-dm-srvx-head=".srv-temp-card"],
 #page-server.dm-srvx .srv-temp-card{grid-column:1}
 #page-server.dm-srvx .dm-srvx-head[data-dm-srvx-head=".srv-tel-grid"],
 #page-server.dm-srvx .srv-tel-grid{grid-column:2}
 #page-server.dm-srvx .dm-srvx-head[data-dm-srvx-head=".srv-temp-card"],
-#page-server.dm-srvx .dm-srvx-head[data-dm-srvx-head=".srv-tel-grid"]{grid-row:2}
+#page-server.dm-srvx .dm-srvx-head[data-dm-srvx-head=".srv-tel-grid"]{grid-row:3}
 #page-server.dm-srvx .srv-temp-card,
-#page-server.dm-srvx .srv-tel-grid{grid-row:3}
+#page-server.dm-srvx .srv-tel-grid{grid-row:4}
+#page-server.dm-srvx .dm-srvx-head[data-dm-srvx-head=".srv-status-grid"]{grid-row:5}
+#page-server.dm-srvx .srv-status-grid{grid-row:6}
 /* the thermal card hidden by the auto-hide: telemetry takes the whole row */
 #page-server.dm-srvx[data-dm-srvx-thermal="off"] .dm-srvx-head[data-dm-srvx-head=".srv-tel-grid"],
 #page-server.dm-srvx[data-dm-srvx-thermal="off"] .srv-tel-grid{grid-column:1 / -1}
+/* A tutta larghezza le pastiglie sono tre su due colonne, e la terza restava da
+ * sola su una riga sua, larga mezza pagina. Riempiono la riga, quante che
+ * siano. */
+#page-server.dm-srvx[data-dm-srvx-thermal="off"] .srv-tel-grid{
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr))!important}
 
 /* ── the panel that holds the scene ───────────────────────────────────── */
 #page-server.dm-srvx .srv-hero{

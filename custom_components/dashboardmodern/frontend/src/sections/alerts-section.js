@@ -14,14 +14,26 @@ import {
 const KEY = "__DASHBOARDMODERN_ALERTS_SECTION__";
 const state = (root[KEY] ||= { installed: false, listeners: false });
 
+/* I gruppi del Quadro Avvisi, chiamati come li chiama la plancia.
+ *
+ * Questa finestra offriva un elenco suo — Sicurezza, Elettrodomestici, Altro —
+ * che nel Quadro Avvisi non esiste: le liste sorvegliate sono Aperture,
+ * Batterie, Luci, Clima e Riscaldamento. Un avviso delle Aperture non trovava
+ * quindi il proprio gruppo nell'elenco, veniva salvato sotto "Altro" e al
+ * riavvio spariva, perche' al caricamento nessuno legge un gruppo che non
+ * esiste. Le chiavi qui sotto sono le stesse del runtime, e le etichette sono
+ * quelle stampate sulle intestazioni, cosi' una riga si riconosce da dove si
+ * trova. */
 const GROUPS = Object.freeze([
+  ["win", "🚪", "Aperture", "Openings"],
+  ["batt", "🔋", "Batterie", "Batteries"],
   ["luci", "💡", "Luci", "Lights"],
-  ["tapparelle", "🪟", "Tapparelle", "Shutters"],
-  ["sicurezza", "🛡️", "Sicurezza", "Security"],
   ["clima", "❄️", "Clima", "Climate"],
-  ["elettrodomestici", "🔌", "Elettrodomestici", "Appliances"],
-  ["altro", "🔔", "Altro", "Other"],
+  ["risc", "🔥", "Riscaldamento", "Heating"],
 ]);
+
+/** Le chiavi che il Quadro Avvisi sorveglia davvero. */
+const GROUP_KEYS = new Set(GROUPS.map(([key]) => key));
 
 function groupIcon(group) {
   return GROUPS.find(([key]) => key === clean(group))?.[1] || "🔔";
@@ -38,14 +50,29 @@ function configuredGroups() {
   return { extras, removed, names: readJson("cd_avvisi_names_extra", {}) };
 }
 
+/* Il gruppo di una riga si legge dall'intestazione sotto cui sta; se
+ * l'intestazione non dice niente, si guarda dove l'entita' e' gia' registrata.
+ * Un gruppo inventato per riempire il vuoto era il modo in cui l'avviso si
+ * perdeva, quindi quando non si sa si risponde "non si sa". */
 function groupFromRow(row) {
   const stored = clean(row.dataset.alertGroup);
-  if (stored) return stored;
+  if (GROUP_KEYS.has(stored)) return stored;
   const summary = clean(row.closest("details")?.querySelector("summary")?.textContent).toLowerCase();
   const found = GROUPS.find(([, , it, en]) =>
     [it, en].some((label) => summary.includes(label.toLowerCase())),
   );
-  return found?.[0] || "altro";
+  if (found) return found[0];
+  const entity = rowEntity(row);
+  return entity ? groupOfEntity(entity) : "";
+}
+
+/** Il gruppo in cui l'entita' e' gia' registrata, "" se non ce n'e' nessuno. */
+function groupOfEntity(entity) {
+  const extras = readJson("cd_gruppi_extra", {}) || {};
+  const found = GROUPS.map(([key]) => key).find((key) =>
+    (Array.isArray(extras[key]) ? extras[key] : []).includes(entity),
+  );
+  return found || "";
 }
 
 function extractEntityId(value) {
@@ -79,6 +106,10 @@ function groupOptions(selected) {
 
 function persistAlert({ oldEntity, oldGroup, entity, group, name }) {
   const { extras, removed, names } = configuredGroups();
+  /* Senza un gruppo valido non si sposta niente: prima si finiva in una lista
+   * che nessuno sorveglia, e l'avviso spariva al riavvio. */
+  if (!GROUP_KEYS.has(group)) group = GROUP_KEYS.has(oldGroup) ? oldGroup : "";
+  if (!group) return;
   for (const key of Object.keys(extras))
     extras[key] = (Array.isArray(extras[key]) ? extras[key] : []).filter(
       (item) => item !== oldEntity && item !== entity,
@@ -141,7 +172,7 @@ export function openAlertEditor(row) {
     event.preventDefault();
     const name = clean(form.elements.name.value);
     const entity = extractEntityId(form.elements.entity.value);
-    const group = clean(form.elements.group.value) || "altro";
+    const group = clean(form.elements.group.value) || oldGroup;
     const error = form.querySelector("[data-error]");
     if (!name || !/^[a-z_]+\.[a-z0-9_]+$/i.test(entity)) {
       error.textContent = t("Inserisci un nome e un'entità valida.", "Enter a name and a valid entity.");

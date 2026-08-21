@@ -1,3 +1,4 @@
+import { SIGNED_GROUPS, SIGNED_MEASURES, signedSource } from "./signed-energy.js";
 // DM-FIX-20260812B
 import { getDeviceDisplayName, getDeviceVisual } from "./device-model.js";
 import { runtimeMetrics } from "./runtime-metrics.js";
@@ -303,6 +304,188 @@ export function createEntityPickerField(
   return { field, input, picker };
 }
 
+/* La sorgente unica, dichiarata una volta sola.
+ *
+ * Rete e batteria si configurano in due pagine, una per verso. Chi ha un solo
+ * sensore che diventa negativo quando il verso si inverte non aveva modo di
+ * dirlo, e finiva per mettere la stessa entita' nelle due caselle: la mappa
+ * sommava il prelievo all'immissione. Qui l'entita' si dichiara una volta,
+ * insieme a cosa vogliono dire i valori positivi, e le caselle dei due versi
+ * si spengono perche' non c'e' piu' niente da riempire a mano. */
+const SIGNED_UI = Object.freeze({
+  it: {
+    grid: {
+      title: "🔀 Una sola entità con segno",
+      hint: "Se il tuo inverter pubblica un solo sensore che diventa negativo quando il verso si inverte, dichiaralo qui: prelievo e immissione vengono ricavati dal segno e le caselle dei due versi si spengono.",
+      toggle: "Ho una sola entità con segno per la rete",
+      positive: "I valori positivi sono",
+      directions: { import: "Prelievo dalla rete", export: "Immissione in rete" },
+      measures: {
+        power: ["Potenza rete con segno", "W", "sensor.rete_potenza"],
+        daily: ["Energia rete di oggi con segno", "kWh", "sensor.rete_oggi"],
+        monthly: ["Energia rete del mese con segno", "kWh", "sensor.rete_mese"],
+        annual: ["Energia rete dell'anno con segno", "kWh", "sensor.rete_anno"],
+      },
+      managed: "Ricavato dalla sorgente unica con segno.",
+    },
+    battery: {
+      title: "🔀 Una sola entità con segno",
+      hint: "Se la batteria pubblica un solo sensore che diventa negativo quando passa da carica a scarica, dichiaralo qui: carica e scarica vengono ricavate dal segno e le caselle dei due versi si spengono.",
+      toggle: "Ho una sola entità con segno per la batteria",
+      positive: "I valori positivi sono",
+      directions: { discharge: "Scarica (batteria → casa)", charge: "Carica (→ batteria)" },
+      measures: {
+        power: ["Potenza batteria con segno", "W", "sensor.batteria_potenza"],
+        daily: ["Energia batteria di oggi con segno", "kWh", "sensor.batteria_oggi"],
+        monthly: ["Energia batteria del mese con segno", "kWh", "sensor.batteria_mese"],
+        annual: ["Energia batteria dell'anno con segno", "kWh", "sensor.batteria_anno"],
+      },
+      managed: "Ricavato dalla sorgente unica con segno.",
+    },
+  },
+  en: {
+    grid: {
+      title: "🔀 A single signed entity",
+      hint: "If your inverter publishes one sensor that goes negative when the direction flips, declare it here: import and export are derived from the sign and the per-direction fields switch off.",
+      toggle: "I have a single signed entity for the grid",
+      positive: "Positive values mean",
+      directions: { import: "Import from grid", export: "Export to grid" },
+      measures: {
+        power: ["Signed grid power", "W", "sensor.grid_power"],
+        daily: ["Signed grid energy today", "kWh", "sensor.grid_today"],
+        monthly: ["Signed grid energy this month", "kWh", "sensor.grid_month"],
+        annual: ["Signed grid energy this year", "kWh", "sensor.grid_year"],
+      },
+      managed: "Derived from the single signed entity.",
+    },
+    battery: {
+      title: "🔀 A single signed entity",
+      hint: "If the battery publishes one sensor that goes negative when it switches between charge and discharge, declare it here: charge and discharge are derived from the sign and the per-direction fields switch off.",
+      toggle: "I have a single signed entity for the battery",
+      positive: "Positive values mean",
+      directions: { discharge: "Discharge (battery → home)", charge: "Charge (→ battery)" },
+      measures: {
+        power: ["Signed battery power", "W", "sensor.battery_power"],
+        daily: ["Signed battery energy today", "kWh", "sensor.battery_today"],
+        monthly: ["Signed battery energy this month", "kWh", "sensor.battery_month"],
+        annual: ["Signed battery energy this year", "kWh", "sensor.battery_year"],
+      },
+      managed: "Derived from the single signed entity.",
+    },
+  },
+});
+
+/** I campi del gruppo che la sorgente unica riempie da sola. */
+export function signedManagedFields(model = {}, group = "") {
+  const definition = SIGNED_GROUPS[group];
+  const source = signedSource(model, group);
+  if (!definition || !source) return new Set();
+  const fields = new Set();
+  if (source.entities.power) fields.add(definition.powerField);
+  for (const period of definition.periods) {
+    if (!source.entities[period.key]) continue;
+    fields.add(period.positive);
+    fields.add(period.negative);
+  }
+  return fields;
+}
+
+function createSignedCard(document, group, model, states, locale, handlers) {
+  const definition = SIGNED_GROUPS[group];
+  const copy = (SIGNED_UI[locale] || SIGNED_UI.it)[group];
+  const source = signedSource(model, group);
+  const declared = { ...(model?.[group]?.signed || {}) };
+  const positive = source?.positive || definition.positiveDefault;
+  const card = document.createElement("div");
+  card.className = "dm-energy-signed";
+  card.dataset.energySigned = group;
+  card.dataset.state = source ? "on" : "off";
+
+  const head = document.createElement("label");
+  head.className = "dm-energy-signed-head";
+  const toggle = document.createElement("input");
+  toggle.type = "checkbox";
+  toggle.checked = Boolean(source);
+  toggle.dataset.energySignedToggle = group;
+  const title = document.createElement("span");
+  title.innerHTML = `<strong>${copy.title}</strong><small>${copy.toggle}</small>`;
+  head.append(toggle, title);
+
+  const body = document.createElement("div");
+  body.className = "dm-energy-signed-body";
+  body.hidden = !source;
+  const hint = document.createElement("p");
+  hint.className = "ed-hint dm-energy-signed-hint";
+  hint.textContent = copy.hint;
+  body.append(hint);
+
+  const emit = () => handlers.onSignedChange?.(group, { ...declared, positive });
+  const readDeclared = () => ({ ...declared, positive });
+
+  const direction = document.createElement("div");
+  direction.className = "dm-energy-signed-direction";
+  direction.innerHTML = `<span class="ed-slot-lbl">${copy.positive}</span>`;
+  const name = `dm-energy-signed-${group}-positive`;
+  for (const value of definition.directions) {
+    const option = document.createElement("label");
+    option.className = "dm-energy-signed-option";
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = name;
+    radio.value = value;
+    radio.checked = positive === value;
+    radio.addEventListener("change", () => {
+      if (!radio.checked) return;
+      handlers.onSignedChange?.(group, { ...readDeclared(), positive: value });
+      handlers.onSignedRerender?.(group);
+    });
+    const text = document.createElement("span");
+    text.textContent = copy.directions[value];
+    option.append(radio, text);
+    direction.append(option);
+  }
+  body.append(direction);
+
+  for (const measure of SIGNED_MEASURES) {
+    const [label, unit, example] = copy.measures[measure];
+    const field = document.createElement("label");
+    field.className = "ed-slot dm-energy-signed-field";
+    field.dataset.energySignedMeasure = measure;
+    field.innerHTML = `<span class="ed-slot-lbl">${label} <span class="ed-acc-n">${unit}</span></span>`;
+    const value = String(declared[measure] || "").trim();
+    const { field: entity, input } = createEntityPickerField(document, {
+      id: `dm-energy-signed-${group}-${measure}`,
+      value,
+      placeholder: example,
+      label,
+      locale,
+      state: states?.[value]?.state,
+      unit,
+      onPick: handlers.onPick,
+      onChange: (next) => {
+        declared[measure] = String(next || "").trim();
+        emit();
+        handlers.onSignedRerender?.(group);
+      },
+    });
+    input.name = `${group}.signed.${measure}`;
+    field.append(entity);
+    body.append(field);
+  }
+
+  toggle.addEventListener("change", () => {
+    card.dataset.state = toggle.checked ? "on" : "off";
+    body.hidden = !toggle.checked;
+    if (toggle.checked) return;
+    for (const measure of SIGNED_MEASURES) delete declared[measure];
+    handlers.onSignedChange?.(group, { positive });
+    handlers.onSignedRerender?.(group);
+  });
+
+  card.append(head, body);
+  return card;
+}
+
 export function renderEnergyEditor(
   document,
   target,
@@ -373,6 +556,12 @@ export function renderEnergyEditor(
   reportButton.addEventListener("click", () => selectTab("report"));
   tabs.append(flowsButton, loadsButton, reportButton, settingsButton);
   root.append(tabs, flows, loads, report, settings);
+  /* La sorgente unica sta nella prima delle due pagine del gruppo: dichiararla
+   * due volte vorrebbe dire due padroni sullo stesso dato. */
+  const signedHome = new Map();
+  ENERGY_GROUPS.forEach(([group], groupIndex) => {
+    if (SIGNED_GROUPS[group] && !signedHome.has(group)) signedHome.set(group, groupIndex);
+  });
   ENERGY_GROUPS.forEach(([group, title, fields], groupIndex) => {
     const block = document.createElement("details");
     block.className = "ed-acc";
@@ -384,6 +573,9 @@ export function renderEnergyEditor(
     block.append(heading);
     const body = document.createElement("div");
     body.className = "ed-acc-body";
+    if (signedHome.get(group) === groupIndex)
+      body.append(createSignedCard(document, group, model, states, locale, handlers));
+    const managed = signedManagedFields(model, group);
     for (const [key, sourceLabel, unit, example] of fields) {
       const label = locale === "en" ? ENERGY_EN[sourceLabel] || sourceLabel : sourceLabel;
       const field = document.createElement("label");
@@ -407,6 +599,20 @@ export function renderEnergyEditor(
       });
       input.name = `${group}.${key}`;
       input.dataset.validation = !input.value || states[input.value] ? "valid" : "invalid";
+      if (managed.has(key)) {
+        /* Il campo resta visibile, spento, e dice chi lo riempie: sparire
+         * lascerebbe credere che quel verso non si possa configurare. */
+        field.dataset.energySignedManaged = "true";
+        input.disabled = true;
+        input.value = "";
+        input.placeholder = (SIGNED_UI[locale] || SIGNED_UI.it)[group].managed;
+        const note = document.createElement("small");
+        note.className = "dm-energy-signed-note";
+        note.textContent = (SIGNED_UI[locale] || SIGNED_UI.it)[group].managed;
+        field.append(entity, note);
+        body.append(field);
+        continue;
+      }
       field.append(entity);
       body.append(field);
     }

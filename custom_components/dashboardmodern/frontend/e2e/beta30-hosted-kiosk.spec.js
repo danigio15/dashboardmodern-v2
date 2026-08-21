@@ -41,7 +41,10 @@ panel.frame.srcdoc = html.replace(/<head(?:\\s[^>]*)?>/i, (head) => head + '<bas
 window.__DM_HOST_READY__ = true;
 </script></body></html>`;
 
-async function bootHostedPlancia(page, { search = "" } = {}) {
+const ANDROID_UA =
+  "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36";
+
+async function bootHostedPlancia(page, { search = "", userAgent = IPHONE_UA } = {}) {
   await page.addInitScript((userAgent) => {
     Object.defineProperty(navigator, "userAgent", {
       configurable: true,
@@ -61,7 +64,7 @@ async function bootHostedPlancia(page, { search = "" } = {}) {
     try {
       localStorage.clear();
     } catch (_error) {}
-  }, IPHONE_UA);
+  }, userAgent);
   await page.route(`${HOST_URL}*`, (route) =>
     route.fulfill({ status: 200, contentType: "text/html", body: HOST_PAGE }),
   );
@@ -166,4 +169,112 @@ test("a long press on the plancia hamburger toggles the kiosk both ways", async 
   await longPress();
   await expect(html).not.toHaveAttribute("data-dm-ios-kiosk", "true");
   expect((await hostGeometry(page)).position).not.toBe("fixed");
+});
+
+/* Il chiosco era nato guardando l'iPhone e chiedeva iOS per accendersi da solo.
+ * Dentro l'app di Home Assistant per Android il problema e' lo stesso — nessuna
+ * barra degli indirizzi dove scrivere ?kiosk=1 — ma non partiva mai, e la
+ * plancia restava sotto la barra di Lovelace finche' non si scopriva il dito
+ * tenuto premuto sull'hamburger. */
+test("anche un telefono Android che ospita la plancia va a tutto schermo da solo", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
+  await bootHostedPlancia(page, { userAgent: ANDROID_UA });
+
+  /* A decidere e' la plancia, da dentro la sua cornice: e' li' che vanno
+   * guardate le condizioni, non nella pagina che la ospita. Chiederle di fuori
+   * vuol dire misurare una finestra e fidarsi per un'altra. */
+  const dentro = await page
+    .frameLocator("iframe")
+    .locator("html")
+    .evaluate(() => ({
+      android: /Android/i.test(navigator.userAgent),
+      apple: /iPhone|iPad|iPod/i.test(navigator.userAgent),
+      dita: Number(navigator.maxTouchPoints || 0),
+      tocco: "ontouchstart" in window,
+      puntatoreGrosso: window.matchMedia("(pointer: coarse)").matches,
+    }));
+
+  const narrow = await page.evaluate(() => window.matchMedia("(max-width: 870px)").matches);
+  const html = page.frameLocator("iframe").locator("html");
+  if (!narrow) {
+    // Uno schermo largo tiene la sua barra: il chiosco e' un patto da telefono.
+    await expect(html).not.toHaveAttribute("data-dm-ios-kiosk", "true");
+    return;
+  }
+
+  // Se il travestimento o il dito non arrivassero fin dentro, questa prova
+  // direbbe il falso invece del vero: meglio che dica cosa ha visto.
+  expect(dentro, "quello che vede la plancia").toMatchObject({ android: true, apple: false });
+  expect(
+    dentro.dita > 0 || dentro.tocco || dentro.puntatoreGrosso,
+    `nella cornice il dito non si vede: ${JSON.stringify(dentro)}`,
+  ).toBe(true);
+
+  await expect(html).toHaveAttribute("data-dm-ios-kiosk", "true");
+  const geometry = await hostGeometry(page);
+  expect(geometry).toMatchObject({ top: 0, left: 0, position: "fixed" });
+  expect(geometry.height).toBe(geometry.innerHeight);
+  expect(geometry.paintedOnTop).toBe("panel");
+});
+
+test("e su Android chi lo spegne resta spento", async ({ page }, testInfo) => {
+  test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
+  await bootHostedPlancia(page, { search: "?kiosk=0", userAgent: ANDROID_UA });
+
+  const html = page.frameLocator("iframe").locator("html");
+  await expect(html).not.toHaveAttribute("data-dm-ios-kiosk", "true");
+  expect((await hostGeometry(page)).position).not.toBe("fixed");
+});
+
+/* Il racconto di chi l'ha trovato, sulla segnalazione #177: "su app iOS,
+ * quando passo dalla DashboardModern alla mia plancia vedo tutto bianco... poi
+ * aggiorno e torna normale".
+ *
+ * Il bianco non era il tema — se lo fosse stato, ricaricare non l'avrebbe
+ * rimesso a posto. Era il velo del chiosco rimasto addosso al pannello di Home
+ * Assistant: fisso, a tutto schermo, chiarissimo. Home Assistant e' una pagina
+ * sola e cambiando plancia non si ricarica mai, quindi il velo restava steso
+ * sopra tutto finche' non si ricaricava a mano.
+ *
+ * Chi smonta la cornice deve farsi restituire quello che le aveva prestato. */
+test("smontando la plancia il velo del chiosco se ne va con lei", async ({ page }, testInfo) => {
+  test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
+  await bootHostedPlancia(page, { search: "?kiosk=1" });
+
+  const html = page.frameLocator("iframe").locator("html");
+  await expect(html).toHaveAttribute("data-dm-ios-kiosk", "true");
+  const conVelo = await hostGeometry(page);
+  expect(conVelo.position, "il velo dev'esserci, altrimenti la prova non prova niente").toBe(
+    "fixed",
+  );
+  expect(conVelo.paintedOnTop).toBe("panel");
+  expect(conVelo.documentOverflow).toBe("hidden");
+
+  /* Quello che fa Home Assistant quando si lascia la plancia per un'altra:
+   * toglie il pannello, e chi lo ospita chiede alla cornice di rimettere a
+   * posto prima di levarla. */
+  expect(
+    await page.evaluate(
+      () =>
+        typeof document.getElementById("panel").shadowRoot.querySelector("iframe").contentWindow
+          .dmReleaseOwnerDocument,
+    ),
+    "la maniglia che tira chi smonta la plancia non c'e'",
+  ).toBe("function");
+  await page.evaluate(() =>
+    document
+      .getElementById("panel")
+      .shadowRoot.querySelector("iframe")
+      .contentWindow.dmReleaseOwnerDocument(),
+  );
+
+  const dopo = await hostGeometry(page);
+  expect(dopo.position, "il velo e' rimasto addosso al pannello").not.toBe("fixed");
+  expect(dopo.documentOverflow, "lo scorrimento e' rimasto bloccato").not.toBe("hidden");
+  expect(dopo.top, "il pannello copre ancora la barra di Home Assistant").toBeGreaterThan(0);
+  expect(dopo.paintedOnTop, "in cima si vede ancora la plancia, non Home Assistant").toBe(
+    "ha-header",
+  );
 });

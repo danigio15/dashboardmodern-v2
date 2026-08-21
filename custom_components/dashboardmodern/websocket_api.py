@@ -25,6 +25,7 @@ from .config_store import (
     async_get_config_store,
 )
 from .const import DOMAIN
+from .www_files import list_www_folder
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -34,6 +35,7 @@ DATA_WEBSOCKET_REGISTERED = "websocket_registered"
 TYPE_GET = f"{DOMAIN}/config/get"
 TYPE_SET = f"{DOMAIN}/config/set"
 TYPE_RESTORE = f"{DOMAIN}/config/restore"
+TYPE_WWW_LIST = f"{DOMAIN}/www/list"
 
 _PROFILE = vol.All(str, vol.Length(min=1, max=64))
 _ENTRY_ID = vol.All(str, vol.Length(min=1, max=64))
@@ -122,12 +124,41 @@ async def async_restore_config(
     connection.send_result(msg["id"], result)
 
 
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_WWW_LIST,
+        vol.Optional("path", default=""): vol.All(str, vol.Length(max=512)),
+    }
+)
+@websocket_api.async_response
+async def async_list_www(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Elenca una cartella di ``config/www`` per il selettore delle foto."""
+    result = await hass.async_add_executor_job(
+        list_www_folder, hass.config.path("www"), msg["path"]
+    )
+    if result is None:
+        connection.send_error(
+            msg["id"], "not_found", "La cartella non esiste dentro config/www"
+        )
+        return
+    connection.send_result(msg["id"], result)
+
+
 @callback
 def async_register_websocket_api(hass: HomeAssistant) -> None:
     """Register the shared configuration commands once per installation."""
     domain_data: dict[str, Any] = hass.data.setdefault(DOMAIN, {})
     if domain_data.get(DATA_WEBSOCKET_REGISTERED):
         return
-    for command in (async_get_config, async_set_config, async_restore_config):
+    for command in (
+        async_get_config,
+        async_set_config,
+        async_restore_config,
+        async_list_www,
+    ):
         websocket_api.async_register_command(hass, command)
     domain_data[DATA_WEBSOCKET_REGISTERED] = True

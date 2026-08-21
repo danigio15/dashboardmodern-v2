@@ -4,6 +4,135 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.1.0
+
+### Aggiunto
+
+- **Sezione nuova: robot aspirapolvere, con la mappa.** Pagina propria e voce
+  nella barra: stato, batteria, potenza di aspirazione e i comandi che il robot
+  dichiara di avere — avvio, pausa, stop, rientro alla base, «trovalo», pulizia
+  localizzata. La mappa arriva dalla telecamera o dall'immagine che il robot
+  pubblica, e se non riesce a caricarla ci riprova invece di restare vuota per
+  sempre. Si configura come le altre sezioni.
+
+- **Piu' di una piscina.** Prima ne stava una sola. Adesso se ne aggiungono
+  quante servono, ognuna con i suoi comandi e la sua filtrazione; la prima resta
+  dov'era, quindi chi ne ha una non deve rifare niente.
+
+- **Le tende, accanto alle tapparelle.** Riconosciute da come Home Assistant le
+  classifica: `shutter` resta tapparella, `blind`, `curtain` e `shade`
+  diventano tenda, `awning` tenda da sole. Ognuna si apre e si chiude col suo
+  disegno, che una tenda non scorre come una tapparella.
+
+- **La foto dell'auto si sfoglia, non si scrive.** Si aprono le cartelle di Home
+  Assistant, comprese quelle in `/config/www` (`/local`), e si sceglie il file;
+  oppure si carica una foto dal telefono. Il percorso a mano continua a
+  funzionare per chi lo preferisce.
+
+- **Energia: una sola entita' con segno.** Chi ha un sensore che passa da
+  positivo a negativo — prelievo e immissione in rete, carica e scarica della
+  batteria — lo dichiara una volta e la plancia ricava i due versi dal segno,
+  invece di chiedere due entita' separate. Chi le ha gia' divise coi template
+  continua come prima.
+
+- **Una porta sempre aperta per la configurazione.** Un ingranaggio fisso
+  nell'intestazione, sempre in vista. Prima, chiuso il banner iniziale, l'unica
+  via era la voce nella barra: chi non la trovava si ritrovava senza modo di
+  rientrare.
+
+### Corretto
+
+- **Le due auto mostravano la stessa foto.** Le fotografie stavano in due
+  caselle della plancia, non nell'auto: il profilo la imparava solo se si
+  risalvava la scheda della macchina, cosa che nessuno fa dopo aver scritto un
+  percorso. Da li' in poi cambiare auto non cambiava niente, perche' il profilo
+  nuovo non aveva foto e teneva quella dell'altro. Adesso la foto e' dell'auto,
+  come il nome e le sue entita': si salva nel profilo scelto, e cambiando
+  macchina cambia la fotografia. Chi arriva dalle versioni precedenti se le
+  ritrova sull'auto che le stava mostrando — l'altra resta senza, ed e'
+  corretto: una foto sua non l'ha mai avuta. Con una macchina sola non cambia
+  niente.
+
+- **Le animazioni degli elettrodomestici sembravano ferme.** La scheda si
+  ridisegna a ogni cambio di stato — e la potenza di un elettrodomestico acceso
+  cambia di continuo — e veniva rifatta da capo, disegno compreso: un'animazione
+  su un elemento appena nato riparte da zero. Misurato, il cronometro tornava a
+  mezzo secondo a ogni giro: il cestello non completava un giro, i getti non
+  finivano la passata. Adesso il disegno non viene mai staccato dalla pagina e
+  la sua animazione continua da dove era.
+
+- **Un avviso con un nome inatteso restava immobile.** Le animazioni degli
+  avvisi vanno a categorie — porta, finestra, batteria, perdita, fiamma,
+  movimento — e un avviso battezzato "Garage" o "Cantina" non rientrava in
+  nessuna, quindi restava fermo accanto a uno che si muoveva. Adesso prende un
+  battito discreto: non racconta cosa succede, ma dice che qualcosa succede.
+
+- **MiniPC: la scena finiva in fondo alla pagina.** Le righe della sezione erano
+  numerate a mano da quando la pagina cominciava con la sua scena; con
+  l'intestazione che si prende la prima riga, il pezzo piu' grosso veniva
+  sbattuto in coda, sotto la telemetria. E le tre pastiglie stavano su due
+  colonne, con la terza sola su una riga mezza vuota.
+
+- **Il caricabatterie del telefono si vedeva assegnata una colonnina di
+  ricarica.** Bastava la parola "charger" nel nome per farne una wallbox: adesso
+  serve che si parli di wallbox, di stazione di ricarica o di un'auto.
+
+- **Nel popup dell'auto la pastiglia "Aut. Prevista" restava a "—"** per chi non
+  ha evcc, mentre sulla pagina era gia' sparita.
+
+- **Il cielo dietro la tapparella mostrava le stelle di giorno**, con il tema
+  scuro: le fasce del mattino e del pomeriggio ridefinivano solo il cielo e il
+  sole, e stelle, nuvole e colline restavano quelle della notte.
+
+- **Ogni sezione si apriva a una larghezza diversa.** Sette misure sparse fra la
+  plancia, i moduli e il foglio di stile del runtime: Energia ed Elettrodomestici
+  prendevano tutto lo schermo, Auto e MiniPC si fermavano a mille pixel. Adesso
+  la misura sta in un posto solo e le sezioni aprono tutte allo stesso modo.
+
+### Cambiato
+
+- **La barra parte ferma, e la scelta vale su tutti i dispositivi.** Prima
+  partiva a scomparsa dappertutto e il modo scelto restava sul dispositivo che
+  l'aveva scelto. Sul computer le due cose insieme chiudevano la porta a chiave:
+  la barra a riposo sta fuori dallo schermo e si chiama avvicinando il mouse al
+  fondo, ma il comando per tenerla ferma sta nella pagina Config, e a quella
+  pagina ci si arriva dalla barra. Adesso c'e' senza doverla chiamare, e chi
+  preferisce il dock a scomparsa lo sceglie una volta sola: la scelta viaggia con
+  la configurazione e vale anche sugli altri dispositivi.
+
+- **Il chiosco si accende da solo anche su Android.** Era nato guardando
+  l'iPhone e chiedeva iOS: dentro l'app di Home Assistant per Android nessuno
+  puo' scrivere `?kiosk=1` a mano, e la plancia si apriva sotto la barra di
+  Lovelace. Adesso conta il dito, non la marca; la finestra stretta di un
+  computer, che la barra degli indirizzi ce l'ha, resta fuori.
+
+- **Le lingue che non parliamo prendono l'inglese.** `it` e `it-*` restano in
+  italiano, tutto il resto apre in inglese invece di ripiegare sull'italiano.
+
+- **Chi non gestisce la ricarica con evcc non vede piu' la sua console.** Il
+  target di carica con la percentuale, l'autonomia calcolata su quel target e i
+  quattro tasti delle modalita' esistono solo se quelle entita' sono mappate:
+  senza, restavano un target fermo su "—" e quattro tasti che non fanno niente.
+  Ognuno dei tre sparisce insieme all'entita' che lo regge, sulla pagina e nel
+  popup, e torna appena la si configura.
+
+### Licenza
+
+- **DashboardModern v2 non è più distribuito con licenza MIT.** Da questa
+  versione vale una licenza proprietaria a sorgente visibile: il codice resta
+  leggibile e installabile per uso personale e non commerciale, mentre
+  ridistribuzione, copie pubbliche, versioni derivate e usi commerciali non sono
+  più consentiti senza permesso scritto. Il fork su GitHub è ammesso solo come
+  passaggio tecnico per aprire una pull request.
+- Le versioni **fino alla 1.0.0 inclusa** restano coperte dalla licenza MIT con
+  cui sono state pubblicate: il testo è riportato in appendice a `LICENSE`.
+
+### Repository
+
+- Aggiunti in `.github/rulesets/` i ruleset che vincolano i nomi dei rami e
+  proteggono `main`, documentati in
+  [`docs/REPOSITORY_PROTECTION.md`](docs/REPOSITORY_PROTECTION.md).
+
 ## 1.0.0 — 2026-08-20
 
 La prima versione stabile di DashboardModern v2.

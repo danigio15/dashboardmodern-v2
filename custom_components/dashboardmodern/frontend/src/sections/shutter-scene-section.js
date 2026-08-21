@@ -1,3 +1,4 @@
+import { coverClosedPercent, coverIsSideways, coverKind } from "../core/cover-kind.js";
 import { allStates, clean, doc, esc, installStyle, root, t } from "./shared.js";
 
 // Single paint owner for the Tapparelle page.
@@ -65,6 +66,7 @@ function coverView(item = {}) {
   const room = clean(item.room);
   return {
     entity,
+    kind: coverKind(item, current),
     name: clean(item.name) || clean(current?.attributes?.friendly_name) || entity,
     room,
     floor: clean(root.cdRoomFloorOf?.(room)),
@@ -108,7 +110,7 @@ function groupLabel(view) {
  */
 function signature(views) {
   return views
-    .map((view) => [view.entity, view.name, view.floor, view.room, view.settable].join("~"))
+    .map((view) => [view.entity, view.name, view.floor, view.room, view.settable, view.kind].join("~"))
     .join("|");
 }
 
@@ -166,15 +168,15 @@ function dropLegacyBackHome() {
  * heading above the page owns it now.
  */
 function heroMarkup() {
-  return `<section class="dm-tapp-hero" data-dm-tapp-hero role="group" aria-label="${esc(t("Tapparelle", "Shutters"))}">
+  return `<section class="dm-tapp-hero" data-dm-tapp-hero role="group" aria-label="${esc(t("Tapparelle e tende", "Shutters and curtains"))}">
     <div class="dm-tapp-kpi">
       <span>${esc(t("Stato", "State"))}</span>
       <b data-dm-tapp-summary>—</b>
     </div>
     <div class="dm-tapp-bulk">
-      <button type="button" class="dm-tapp-all" data-all="1" data-svc="open_cover" onclick="cdTappCmd(this)">▲ ${esc(t("Apri tutte", "Open all"))}</button>
+      <button type="button" class="dm-tapp-all" data-all="1" data-svc="open_cover" onclick="cdTappCmd(this)">▲ ${esc(t("Apri tutto", "Open all"))}</button>
       <span class="dm-tapp-bulk-div" aria-hidden="true"></span>
-      <button type="button" class="dm-tapp-all" data-all="1" data-svc="close_cover" onclick="cdTappCmd(this)">▼ ${esc(t("Chiudi tutte", "Close all"))}</button>
+      <button type="button" class="dm-tapp-all" data-all="1" data-svc="close_cover" onclick="cdTappCmd(this)">▼ ${esc(t("Chiudi tutto", "Close all"))}</button>
     </div>
   </section>`;
 }
@@ -202,9 +204,21 @@ function trackMarkup(view) {
   </div>`;
 }
 
+/* Il telo, o i due teli.
+ *
+ * Una tapparella e' una fascia che scende dall'alto; una tenda sono due teli
+ * che si scostano dal centro. Il disegno e' lo stesso serramento — vetro,
+ * cornice, luce che entra — e cambia cosa lo copre. */
+function panelMarkup(view) {
+  if (!coverIsSideways(view.kind)) return `<div class="tapp-shutter" data-dm-panel>${`<i></i>`.repeat(SLAT_COUNT)}</div>`;
+  return `<div class="dm-tenda" data-dm-panel>
+    <span class="dm-tenda-telo dm-sinistra"></span>
+    <span class="dm-tenda-telo dm-destra"></span>
+  </div>`;
+}
+
 function cardMarkup(view) {
-  const slats = `<i></i>`.repeat(SLAT_COUNT);
-  return `<article class="tapp-card dm-tapp-card" data-tapp="${esc(view.entity)}" data-dm-shutter-card>
+  return `<article class="tapp-card dm-tapp-card" data-tapp="${esc(view.entity)}" data-dm-cover-kind="${esc(view.kind)}" data-dm-shutter-card>
     <div class="tapp-head dm-tapp-head">
       <span class="dm-tapp-title">
         <span class="tapp-name">${esc(view.name)}</span>
@@ -215,7 +229,7 @@ function cardMarkup(view) {
     <div class="dm-tapp-stage">
       <div class="tapp-win">
         <div class="tapp-glass"></div>
-        <div class="tapp-shutter" data-dm-panel>${slats}</div>
+        ${panelMarkup(view)}
       </div>
     </div>
     <div class="dm-tapp-spill" aria-hidden="true"></div>
@@ -258,8 +272,16 @@ function syncCard(card, view) {
 
   const panel = card.querySelector("[data-dm-panel]");
   if (panel) {
-    panel.className = `tapp-shutter${view.status === "opening" ? " opening" : ""}${view.status === "closing" ? " closing" : ""}`;
-    panel.style.height = `${100 - view.position}%`;
+    const moto = `${view.status === "opening" ? " opening" : ""}${view.status === "closing" ? " closing" : ""}`;
+    const chiuso = coverClosedPercent(view.position);
+    if (coverIsSideways(view.kind)) {
+      panel.className = `dm-tenda${moto}`;
+      // I due teli si dividono la parte coperta: meta' per uno, dal centro.
+      panel.style.setProperty("--tenda-chiusa", `${chiuso / 2}%`);
+    } else {
+      panel.className = `tapp-shutter${moto}`;
+      panel.style.height = `${chiuso}%`;
+    }
   }
 
   const readout = card.querySelector("[data-dm-readout]");
@@ -282,7 +304,7 @@ function renderShutters() {
 
   if (!views.length) {
     state.signature = "";
-    grid.innerHTML = `${backHomeMarkup()}<div class="ed-empty dm-tapp-empty">${esc(t("Nessuna tapparella configurata", "No shutter configured"))}</div>`;
+    grid.innerHTML = `${backHomeMarkup()}<div class="ed-empty dm-tapp-empty">${esc(t("Nessuna tapparella o tenda configurata", "No shutter or curtain configured"))}</div>`;
     return;
   }
 
