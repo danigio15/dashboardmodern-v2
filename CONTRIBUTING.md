@@ -73,6 +73,11 @@ fix/storage-migration-error
 test/config-flow-coverage
 ```
 
+These prefixes are enforced by the `branch-creation-policy` repository ruleset:
+pushing a branch with any other name is rejected. See
+[docs/REPOSITORY_PROTECTION.md](docs/REPOSITORY_PROTECTION.md) for the ruleset
+definitions and how they are applied.
+
 ## Commit Conventions
 
 Use concise, imperative commit messages.
