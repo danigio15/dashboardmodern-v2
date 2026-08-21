@@ -18,7 +18,7 @@
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-18BCF2" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-64748b" alt="MIT License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licenza-proprietaria-64748b" alt="Licenza proprietaria"></a>
 </p>
 
 <p align="center">
@@ -1166,7 +1166,29 @@ Grazie a chi sostiene il progetto: è ciò che tiene DashboardModern gratuito e 
 
 ## Licenza
 
-DashboardModern v2 è distribuito secondo i termini del file [`LICENSE`](LICENSE).
+DashboardModern v2 è **software proprietario a sorgente visibile**, distribuito
+secondo i termini del file [`LICENSE`](LICENSE). Non è software open source.
+
+Cosa puoi fare, senza chiedere nulla a nessuno:
+
+- leggere il codice;
+- installare l'integrazione e usarla sulle tue istanze di Home Assistant, per
+  uso personale e non commerciale;
+- modificare la tua copia installata, purché resti tua.
+
+Cosa non è consentito: ridistribuire il codice, pubblicarne copie o mirror,
+distribuire versioni modificate o derivate, rivenderlo o includerlo in prodotti,
+servizi ospitati o offerte commerciali di installazione e assistenza. Il fork su
+GitHub è ammesso solo come passaggio tecnico per proporre una pull request a
+questo repository, e va eliminato quando la pull request è chiusa o unita.
+
+Le versioni fino alla **1.0.0 inclusa** sono state pubblicate con licenza MIT:
+quella concessione resta valida per quelle versioni e il testo è riportato in
+appendice al file `LICENSE`. Dalla 1.0.0 in poi vale la nuova licenza.
+
+Per usi diversi da quelli sopra — redistribuzione, uso commerciale, derivati —
+serve un permesso scritto: aprine richiesta negli
+[issue](https://github.com/danigio15/dashboardmodern-v2/issues).
 
 ---
 

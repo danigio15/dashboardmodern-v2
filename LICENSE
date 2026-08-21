@@ -1,3 +1,132 @@
+DashboardModern v2 License
+Version 1.0 — effective 21 August 2026
+
+Copyright (c) 2026 danigio15. All rights reserved.
+
+This is a proprietary, source-available license. It is NOT an open source
+license and it is not approved by the Open Source Initiative. The source code
+of DashboardModern v2 is published so that anyone can read it, audit it and
+install it on their own Home Assistant instance. No right beyond that is
+granted.
+
+1. DEFINITIONS
+
+   "Software" means the contents of the repository
+   https://github.com/danigio15/dashboardmodern-v2 — source code, assets,
+   documentation and the release artifacts built from it — as published on or
+   after the effective date stated above.
+
+   "Owner" means danigio15, the copyright holder.
+
+   "Repository" means the repository named above, as operated by the Owner.
+
+   "You" means the individual or legal entity exercising the rights granted
+   by this license.
+
+2. GRANT OF USE
+
+   Subject to Your compliance with this license, the Owner grants You a
+   personal, non-exclusive, non-transferable, revocable and royalty-free
+   permission to:
+
+   (a) download and read the Software;
+
+   (b) install and run the Software on Home Assistant instances that You own
+       or administer, for personal, non-commercial purposes;
+
+   (c) modify Your own installed copy for Your own use, provided that the
+       modified copy is neither distributed nor made available to anyone else.
+
+3. RESTRICTIONS
+
+   Except as expressly permitted by Section 2, by Section 4, or by mandatory
+   applicable law, You may not:
+
+   (a) redistribute, publish, mirror, re-upload or otherwise make the
+       Software, or any part of it, available to third parties, whether in
+       source or in built form, and whether or not for a fee;
+
+   (b) fork, clone-and-republish or otherwise reproduce the Repository as a
+       separate public copy, except as allowed by Section 4;
+
+   (c) distribute derivative works, ports, translations or modified versions
+       of the Software;
+
+   (d) sublicense, sell, rent, lease, or include the Software in a paid
+       product, a hosted service, or a commercial installation or support
+       offering;
+
+   (e) remove or alter any copyright notice, license notice or attribution
+       contained in the Software;
+
+   (f) use the name "DashboardModern", the project logo, or a confusingly
+       similar name to identify a derivative or competing product.
+
+4. FORKS AND CONTRIBUTIONS
+
+   GitHub's Terms of Service give every user of github.com the technical
+   ability to view and fork any public repository hosted there. That
+   platform-level ability does not, by itself, grant any right to use, keep or
+   publish the copy so created. Accordingly, for as long as the Repository is
+   public on GitHub:
+
+   (a) a fork is permitted only as the technical means of preparing a
+       contribution to be submitted back to the Repository as a pull request;
+
+   (b) such a fork must not be modified beyond what the intended contribution
+       requires, must not be advertised, distributed or presented as an
+       independent project, and should be deleted once the pull request has
+       been merged or closed;
+
+   (c) any other use of a fork — including simply keeping it publicly
+       available as a standalone copy of the Software — constitutes a
+       distribution and is prohibited by Section 3.
+
+   By submitting a contribution to the Repository, You grant the Owner a
+   perpetual, worldwide, irrevocable, royalty-free and sublicensable license
+   to use, modify, publish and distribute that contribution as part of the
+   Software, under this license or any other license the Owner chooses, and
+   You confirm that You have the right to grant that permission.
+
+5. PRIOR RELEASES
+
+   Releases up to and including version 1.0.0 were published under the MIT
+   License, reproduced in the Appendix below. This license does not revoke
+   that grant: it continues to apply to those releases and to copies obtained
+   under it. This license governs the Software as published from the effective
+   date onward.
+
+6. TERMINATION
+
+   The permissions granted by Section 2 terminate automatically if You breach
+   any term of this license. Upon termination You must stop using the Software
+   and delete every copy in Your possession. The Owner may grant broader
+   permissions, including commercial or redistribution rights, only in
+   writing; requests may be sent through the Repository's issue tracker.
+
+7. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+8. LIMITATION OF LIABILITY
+
+   IN NO EVENT SHALL THE OWNER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+9. GOVERNING LAW
+
+   This license is governed by the laws of Italy, without regard to conflict
+   of law rules. If any provision is held unenforceable, the remaining
+   provisions remain in full force.
+
+--------------------------------------------------------------------------------
+APPENDIX — MIT License, applicable to releases up to and including 1.0.0
+--------------------------------------------------------------------------------
+
 MIT License
 
 Copyright (c) 2026 danigio15

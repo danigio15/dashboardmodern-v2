@@ -64,6 +64,23 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   Ognuno dei tre sparisce insieme all'entita' che lo regge, sulla pagina e nel
   popup, e torna appena la si configura.
 
+### Licenza
+
+- **DashboardModern v2 non è più distribuito con licenza MIT.** Da questa
+  versione vale una licenza proprietaria a sorgente visibile: il codice resta
+  leggibile e installabile per uso personale e non commerciale, mentre
+  ridistribuzione, copie pubbliche, versioni derivate e usi commerciali non sono
+  più consentiti senza permesso scritto. Il fork su GitHub è ammesso solo come
+  passaggio tecnico per aprire una pull request.
+- Le versioni **fino alla 1.0.0 inclusa** restano coperte dalla licenza MIT con
+  cui sono state pubblicate: il testo è riportato in appendice a `LICENSE`.
+
+### Repository
+
+- Aggiunti in `.github/rulesets/` i ruleset che vincolano i nomi dei rami e
+  proteggono `main`, documentati in
+  [`docs/REPOSITORY_PROTECTION.md`](docs/REPOSITORY_PROTECTION.md).
+
 ## 1.0.0 — 2026-08-20
 
 La prima versione stabile di DashboardModern v2.

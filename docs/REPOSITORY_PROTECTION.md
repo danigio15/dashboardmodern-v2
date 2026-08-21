@@ -52,13 +52,19 @@ Notes:
 ## 3. Forks
 
 Forking **cannot be disabled on a public repository**. The "Allow forking" setting
-exists only for private and internal repositories, and the MIT license under which
-this project is published explicitly permits redistribution. The available options
-are, in order of practicality:
+exists only for private and internal repositories, and GitHub's Terms of Service
+give every user the technical ability to fork any public repository. What the
+project license can do — and, since version 1.0.0, does — is deny the *right* to
+keep or publish that copy: [`LICENSE`](../LICENSE) allows a fork only as the
+technical step needed to open a pull request. A fork kept online as a standalone
+copy is a license violation and can be reported to GitHub, but it is not blocked
+by any repository setting. The available options are, in order of practicality:
 
-1. Accept forks and control what they can do (see below).
+1. Accept that forks are technically possible, control what they can do (see
+   below), and rely on the license terms against the ones that persist.
 2. Make the repository private, then disable forking in Settings → General.
-   This removes public visibility, stars, and HACS installability.
+   This removes public visibility, stars, and HACS installability. Existing
+   forks are not deleted: GitHub splits them into a separate network.
 3. Move the repository into an organization and set an organization-level fork
    policy, which again only binds private and internal repositories.
 
