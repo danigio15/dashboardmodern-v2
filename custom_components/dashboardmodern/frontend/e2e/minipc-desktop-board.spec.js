@@ -75,7 +75,12 @@ test("la scena sta sopra la telemetria, non in fondo alla pagina", async ({ page
 
 test("le pastiglie di telemetria riempiono la riga invece di lasciarne una orfana", async ({
   page,
+  viewport,
 }, testInfo) => {
+  /* La pretesa e' della plancia larga. Sul telefono la sezione diventa una
+   * colonna sola e le pastiglie stanno una sotto l'altra, che e' giusto: li'
+   * "riempire la riga" vuol dire una per riga, e lo si verifica in fondo. */
+  const larga = (viewport?.width ?? 1440) > 900;
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
   await apriMiniPc(page);
@@ -92,5 +97,6 @@ test("le pastiglie di telemetria riempiono la riga invece di lasciarne una orfan
         .map((nodo) => Math.round(nodo.getBoundingClientRect().top)),
     );
   expect(righe.length).toBeGreaterThanOrEqual(3);
-  expect(new Set(righe).size).toBe(1);
+  // Larga: tutte sulla stessa riga. Stretta: una per riga, nessuna appaiata.
+  expect(new Set(righe).size).toBe(larga ? 1 : righe.length);
 });
