@@ -7,6 +7,7 @@
   },
   "scripts": {
     "check:inline-syntax": "node custom_components/dashboardmodern/frontend/tests/inline-syntax.js custom_components/dashboardmodern/frontend/legacy/dashboard.html custom_components/dashboardmodern/frontend/legacy/dashboard-en.html",
+    "check:i18n": "node scripts/extract-i18n-keys.mjs --check",
     "test:frontend": "node --test custom_components/dashboardmodern/frontend/tests/*.test.js",
     "test:e2e": "playwright test",
     "format": "prettier --write \"custom_components/dashboardmodern/frontend/src/core/**/*.js\" \"custom_components/dashboardmodern/frontend/legacy/{modules-entry,build-info}.js\" \"custom_components/dashboardmodern/frontend/tests/{build-info,dashboard-store,editor-registry,modules-entry,release-artifact}.test.js\" \"custom_components/dashboardmodern/frontend/e2e/**/*.js\" playwright.config.js",
