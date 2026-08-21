@@ -6,6 +6,7 @@ import {
   getLocale,
   intlLocale,
   isRtl,
+  onLocaleChange,
   translate,
 } from "../core/i18n.js";
 
@@ -362,6 +363,24 @@ export function installStyle(id, css) {
   style.textContent = css;
   doc.head.append(style);
   return true;
+}
+
+/*
+ * Rewrite a stylesheet this section already installed.
+ *
+ * Copy belongs in the DOM, where the catalog and the translation pass can both
+ * reach it. The one exception is a label derived from a class the legacy
+ * runtime toggles: writing it in `content:` avoids duplicating that logic, at
+ * the price of producing no text node. Those stylesheets have to be rebuilt
+ * when the language changes, which is what this is for.
+ */
+export function restyleOnLocaleChange(id, build) {
+  return onLocaleChange(() => {
+    const style = doc?.getElementById(id);
+    if (!style) return;
+    const css = build();
+    if (style.textContent !== css) style.textContent = css;
+  });
 }
 
 /* The reading, projected onto the card as numbers the stylesheet can draw with.

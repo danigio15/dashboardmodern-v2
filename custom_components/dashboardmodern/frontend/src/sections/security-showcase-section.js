@@ -22,7 +22,11 @@
  *   exactly as before.
  *
  * "Protetto / Intrusione" is rendered from the legacy `.armed` / `.triggered`
- * classes in pure CSS, so no alarm logic is duplicated here.
+ * classes in pure CSS, so no alarm logic is duplicated here. The three words
+ * are the only copy this file keeps in a stylesheet, and they are written into
+ * it in the active language: text that lives in `content:` produces no text
+ * node, so neither the catalog nor the DOM pass can reach it afterwards. The
+ * stylesheet is therefore rebuilt when the language changes.
  */
 import {
   activeLocale,
@@ -33,6 +37,7 @@ import {
   esc,
   installStyle,
   readJson,
+  restyleOnLocaleChange,
   root,
   section,
   t,
@@ -381,6 +386,9 @@ export function installSecurityShowcaseSection() {
   installOverrides();
   if (!state.listeners) {
     state.listeners = true;
+    /* The chip words are baked into the stylesheet, so a language change has to
+     * rebuild it — nothing else can reach text inside `content:`. */
+    restyleOnLocaleChange(STYLE_ID, securityCss);
     doc.addEventListener("click", onShellClick);
     doc.addEventListener("keydown", onShellKeydown);
     for (const eventName of [
@@ -419,6 +427,12 @@ export function installSecurityShowcaseSection() {
 }
 
 /* ── styles ───────────────────────────────────────────────────────────── */
+
+/* A CSS string literal. The words come from the catalog, so a stray quote or
+ * backslash in some language must not be able to end the declaration early. */
+function cssString(value) {
+  return `"${String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
 
 function securityCss() {
   return `
@@ -541,12 +555,9 @@ function securityCss() {
   font-family:var(--dm-sec-mono);font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase
 }
 .dm-sec-chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:0 0 6px}
-.dm-sec-chip::after{content:"Non protetto"}
-.dm-sec-alarm.armed .dm-sec-chip::after{content:"Protetto"}
-.dm-sec-alarm.triggered .dm-sec-chip::after{content:"Intrusione"}
-[data-dm-lang="en"] .dm-sec-chip::after{content:"Unprotected"}
-[data-dm-lang="en"] .dm-sec-alarm.armed .dm-sec-chip::after{content:"Protected"}
-[data-dm-lang="en"] .dm-sec-alarm.triggered .dm-sec-chip::after{content:"Intrusion"}
+.dm-sec-chip::after{content:${cssString(t("Non protetto", "Unprotected"))}}
+.dm-sec-alarm.armed .dm-sec-chip::after{content:${cssString(t("Protetto", "Protected"))}}
+.dm-sec-alarm.triggered .dm-sec-chip::after{content:${cssString(t("Intrusione", "Intrusion"))}}
 .dm-sec-timer{
   display:none;align-items:center;font-family:var(--dm-sec-mono);font-size:11.5px;letter-spacing:.9px;
   color:var(--dm-sec-dim);text-transform:uppercase

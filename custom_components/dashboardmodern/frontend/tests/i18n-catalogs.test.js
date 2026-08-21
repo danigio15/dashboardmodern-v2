@@ -157,6 +157,7 @@ const LOCALE_IDENTITIES = {
     "CONFIGURATION",
     "Filtration",
     "Garage",
+    "Intrusion",
     "Mode",
     "PAUSE",
     "Production",
