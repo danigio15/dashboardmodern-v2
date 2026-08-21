@@ -37,8 +37,8 @@ const PAGES = Object.freeze([
   {
     id: "page-tapparelle",
     tint: ["99,102,241", "14,165,233"],
-    it: ["Tapparelle", "Apertura · Chiusura · Scenari di gruppo"],
-    en: ["Shutters", "Opening · Closing · Group scenes"],
+    it: ["Tapparelle e tende", "Apertura · Chiusura · Scenari di gruppo"],
+    en: ["Shutters and curtains", "Opening · Closing · Group scenes"],
   },
   {
     id: "page-piscina",

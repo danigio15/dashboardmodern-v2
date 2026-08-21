@@ -152,6 +152,7 @@ test.describe("piu' di una piscina", () => {
       window.editorSwitch("pool");
     });
 
+    await expect(page.locator("#ed-body")).toHaveCount(1);
     const pannello = page.locator("[data-dm-pool-editor]");
     await expect(pannello).toHaveCount(1);
     await expect(pannello.locator(".ed-empty")).toBeVisible();

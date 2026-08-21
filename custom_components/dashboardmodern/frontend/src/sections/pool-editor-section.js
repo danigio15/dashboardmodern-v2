@@ -152,11 +152,15 @@ export function ensurePoolEditor() {
   return true;
 }
 
-/* Il corpo della scheda puo' non esserci ancora quando la scheda viene aperta:
- * si riprova qualche istante, invece di lasciare il pannello fuori. */
+/* Il corpo della scheda puo' non esserci ancora quando la scheda viene aperta.
+ *
+ * Su un telefono appena acceso la configurazione ci mette il suo: la finestra
+ * si apre, la scheda si riempie qualche istante dopo, e chi ci ha provato una
+ * volta sola resta fuori. Si riprova con calma per qualche secondo, e poi si
+ * smette: se dopo quattro secondi la scheda non c'e', non e' un ritardo. */
 function schedulePoolEditor() {
   if (ensurePoolEditor()) return;
-  for (const delay of [60, 200, 600, 1200]) root.setTimeout?.(ensurePoolEditor, delay);
+  for (const delay of [60, 200, 600, 1200, 2400, 4000]) root.setTimeout?.(ensurePoolEditor, delay);
 }
 
 /** Ridisegna adesso: e' stato un gesto a cambiare le cose, non un giro a vuoto. */
@@ -250,4 +254,8 @@ export function installPoolEditorSection() {
     root.addEventListener?.(event, () => {
       root.queueMicrotask?.(schedulePoolEditor);
     });
+  /* La scheda puo' essere gia' aperta quando questo modulo si installa: su un
+   * telefono lento la configurazione arriva prima di lui, e chi aspetta solo
+   * il prossimo cambio di scheda resta fuori per sempre. */
+  schedulePoolEditor();
 }
