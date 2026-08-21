@@ -937,6 +937,33 @@ function resetConfirmation() {
     : "Eliminare tutta la configurazione DashboardModern di questa plancia?";
 }
 
+/* Svuotare la propria configurazione, non quella di Home Assistant.
+ *
+ * La plancia ospitata vive in una cornice `srcdoc`, che eredita l'origine della
+ * pagina che la contiene: la sua memoria del browser e' la stessa di Home
+ * Assistant. Svuotarla tutta — che e' quello che faceva "Elimina tutta la
+ * configurazione" — cancellava anche cio' che Home Assistant ci tiene: il tema
+ * scelto, la barra laterale, le preferenze. Chi lo faceva si ritrovava tutte le
+ * altre plance sbiancate, col tema tornato a quello di partenza e nessuna
+ * traccia di dove fosse finita la sua scelta.
+ *
+ * Si tolgono le chiavi nostre, riconosciute dal prefisso, e nient'altro. */
+const OWN_STORAGE_PREFIXES = Object.freeze(["cd_", "dm_", "dashboardmodern"]);
+
+export const isOwnStorageKey = (key) =>
+  OWN_STORAGE_PREFIXES.some((prefix) => String(key ?? "").startsWith(prefix));
+
+export function clearOwnStorage(storage = root.localStorage) {
+  if (!storage) return false;
+  const nostre = [];
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+    if (isOwnStorageKey(key)) nostre.push(key);
+  }
+  for (const key of nostre) storage.removeItem(key);
+  return true;
+}
+
 export async function resetAllConfig({ skipConfirm = false, reload = true } = {}) {
   if (state.resetting) return false;
   if (!skipConfirm && root.confirm && !root.confirm(resetConfirmation())) return false;
@@ -951,7 +978,7 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
   } catch (_error) {}
 
   try {
-    root.localStorage?.clear?.();
+    clearOwnStorage();
   } catch (error) {
     state.resetting = false;
     delete root.__DASHBOARDMODERN_CONFIG_RESETTING__;
@@ -988,7 +1015,7 @@ export async function resetAllConfig({ skipConfirm = false, reload = true } = {}
   }
 
   try {
-    root.localStorage?.clear?.();
+    clearOwnStorage();
   } catch (_error) {}
 
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:config-reset", { detail: empty }));

@@ -50,6 +50,7 @@ import { installPoolExtraSection } from "./pool-extra-section.js";
 import { installPoolEditorSection } from "./pool-editor-section.js";
 import { installRobotSection } from "./robot-section.js";
 import { installRobotEditorSection } from "./robot-editor-section.js";
+import { installEditorEntrySection } from "./editor-entry-section.js";
 import { installEvSection } from "./ev-section.js";
 import { installMediaPickerSection } from "./media-picker-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
@@ -692,6 +693,7 @@ export function installSectionRuntime() {
     installPoolEditorSection();
     installRobotSection();
     installRobotEditorSection();
+    installEditorEntrySection();
     installMediaPickerSection();
     installEvSection();
     // The skin installs after the EV owner so the vehicle picker it restyles is
@@ -746,6 +748,7 @@ export function installSectionRuntime() {
         "pool-editor",
         "robot",
         "robot-editor",
+        "editor-entry",
         "media-picker",
         "ev",
         "ev-showcase",
