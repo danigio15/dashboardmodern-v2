@@ -129,11 +129,18 @@ jobs:
         uses: actions/checkout@v6
       - name: Generate build provenance from the selected HEAD
         run: python scripts/build_release.py --expected-commit "$GITHUB_SHA" --output dashboardmodern.zip
+      # Le note automatiche di GitHub elencano cosa è cambiato; il blocco di
+      # sostegno si unisce a quell'elenco, così ogni nuovo aggiornamento lo mostra
+      # senza doverlo riscrivere a mano. La sorgente è una sola, condivisa con il
+      # README: .github/SUPPORT_BADGES.md. `append_body` mette questo corpo prima
+      # delle note generate, quindi il blocco apre la release invece di chiuderla.
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.verify.outputs.release_tag }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
+          body_path: .github/SUPPORT_BADGES.md
+          append_body: true
           prerelease: ${{ contains(needs.verify.outputs.release_tag, '-') }}
           files: dashboardmodern.zip

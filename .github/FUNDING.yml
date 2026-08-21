@@ -1,2 +1,4 @@
-github:
-  - danigio15
+# Il pulsante "Sponsor" in cima alla repository. Un solo canale, PayPal, lo
+# stesso del README e delle note di release.
+custom:
+  - https://www.paypal.com/paypalme/giovannidaniello15
