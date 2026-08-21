@@ -261,6 +261,12 @@ export function mountLegacyHost(
     reboot,
     destroy() {
       hostWindow.removeEventListener?.("message", onChildMessage);
+      // La plancia scrive anche nel documento di Home Assistant — lo scorrimento
+      // bloccato, il velo a tutto schermo del modo chiosco. Se ne va prima che
+      // la cornice sparisca, altrimenti resta addosso alle altre plance.
+      try {
+        frame.contentWindow?.dmReleaseOwnerDocument?.();
+      } catch (_error) {}
       frame.remove();
       delete hostWindow[HOST_KEY];
       delete hostWindow.__DASHBOARDMODERN_INSTANCE__;

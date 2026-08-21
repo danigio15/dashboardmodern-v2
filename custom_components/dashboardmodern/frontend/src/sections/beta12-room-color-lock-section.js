@@ -454,7 +454,7 @@ function deactivateIosKiosk() {
  * Everything this module writes outside its own document must survive the frame
  * going away: Home Assistant keeps the page when the plancia panel is replaced.
  */
-function releaseOwnerDocument() {
+export function releaseOwnerDocument() {
   unlockOwnerDocument();
   restoreAncestors();
   if (state.kioskHost) {
@@ -566,6 +566,18 @@ if (!state.listeners) {
   for (const eventName of ["pagehide", "unload"]) {
     root.addEventListener?.(eventName, releaseOwnerDocument);
   }
+  /* Ma su quei due eventi non ci si puo' appoggiare da soli.
+   *
+   * Home Assistant e' una pagina sola: quando si lascia la plancia per un'altra
+   * dashboard la pagina non si scarica mai, e la cornice tolta dal documento
+   * non e' detto che dica niente — `unload` i browser lo stanno togliendo di
+   * mezzo. Cosi' quello che avevamo scritto nel documento di Home Assistant
+   * restava li': lo scorrimento bloccato, e soprattutto il velo fisso a tutto
+   * schermo sopra il pannello, chiarissimo, che copriva le altre plance e
+   * faceva sembrare che il tema fosse cambiato da solo e non si potesse piu'
+   * toccare. Chi ospita la plancia, invece, sa sempre quando la toglie: gli si
+   * lascia questa maniglia e la tira lui, prima di levare la cornice. */
+  root.dmReleaseOwnerDocument = releaseOwnerDocument;
 }
 
 installStyle("dm-beta12-room-color-lock-style", `

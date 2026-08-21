@@ -147,6 +147,34 @@ test("destroying the host removes the frame and the marker", () => {
   assert.equal(HOST_KEY in hostWindow, false);
 });
 
+/* La plancia scrive anche nel documento di Home Assistant: lo scorrimento
+ * bloccato e, col modo chiosco, un velo fisso a tutto schermo sopra il
+ * pannello. Home Assistant e' una pagina sola e non si scarica mai quando si
+ * passa a un'altra plancia, quindi quel velo restava addosso alle altre
+ * dashboard e sembrava che il tema fosse sbiancato per sempre. Chi ospita la
+ * cornice sa sempre quando la toglie: deve chiedere di rimettere a posto
+ * prima. */
+test("chi smonta la plancia le fa rimettere a posto il documento di Home Assistant", () => {
+  const { host } = mount();
+  const chiamate = [];
+  host.frame.contentWindow.dmReleaseOwnerDocument = () => {
+    chiamate.push(host.frame.removed === true);
+  };
+  host.destroy();
+  assert.deepEqual(chiamate, [false], "va chiamata, e prima che la cornice sparisca");
+});
+
+test("e se la cornice non risponde piu', si smonta lo stesso", () => {
+  const { host } = mount();
+  Object.defineProperty(host.frame, "contentWindow", {
+    get() {
+      throw new Error("cross origin");
+    },
+  });
+  host.destroy();
+  assert.equal(host.frame.removed, true);
+});
+
 test("the shim completes the handshake without authenticating", async () => {
   const Socket = createBridgeSocket({ connection: connectionWith() });
   const socket = new Socket();
