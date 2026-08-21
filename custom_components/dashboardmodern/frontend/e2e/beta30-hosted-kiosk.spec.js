@@ -182,6 +182,14 @@ test("anche un telefono Android che ospita la plancia va a tutto schermo da solo
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await bootHostedPlancia(page, { userAgent: ANDROID_UA });
 
+  /* Non tutti i browser si lasciano spacciare per un altro: su WebKit
+   * `navigator.userAgent` non si riscrive, e il progetto che gira li' e' un
+   * iPad vero. Un Android dentro un iPad non e' uno scenario, e' un travestimento
+   * mal riuscito: se non attacca, questa prova non ha niente da dire. La fa il
+   * progetto mobile, dove il travestimento tiene. */
+  const androidDavvero = await page.evaluate(() => /Android/i.test(navigator.userAgent));
+  test.skip(!androidDavvero, "questo browser non si lascia spacciare per Android");
+
   const narrow = await page.evaluate(() => window.matchMedia("(max-width: 870px)").matches);
   const html = page.frameLocator("iframe").locator("html");
   if (!narrow) {
