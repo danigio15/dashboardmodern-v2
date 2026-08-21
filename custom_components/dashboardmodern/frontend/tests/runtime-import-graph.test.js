@@ -295,7 +295,25 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
     .filter((file) => !graph.has(path.normalize(file)))
     .map((file) => path.relative(frontendRoot, file).replaceAll("\\", "/"))
     .sort();
-  assert.deepEqual(srcOrphans, [], `orphan src modules:\n${srcOrphans.join("\n")}`);
+
+  /* The language catalogs are the one thing production reaches that a static
+   * walk cannot see: `loadCatalog` imports `../i18n/<locale>.js` by computed
+   * name, so exactly one of them is ever fetched and none of them appears as
+   * an edge. Exempting them is only honest if the loader really does read that
+   * directory, so that is asserted here rather than assumed — and the exemption
+   * is narrow: a catalog must be named after a locale the registry declares,
+   * which the i18n-catalogs contract checks in turn. */
+  const engine = await readFile(path.join(srcRoot, "core/i18n.js"), "utf8");
+  assert.match(
+    engine,
+    /import\(`\.\.\/i18n\/\$\{[^}]+\}\.js`\)/,
+    "src/core/i18n.js no longer loads catalogs from src/i18n; the exemption below is stale",
+  );
+  const catalogs = srcOrphans.filter((file) => /^src\/i18n\/[A-Za-z-]+\.js$/.test(file));
+  assert.ok(catalogs.length > 0, "no language catalogs found under src/i18n");
+
+  const unreachable = srcOrphans.filter((file) => !catalogs.includes(file));
+  assert.deepEqual(unreachable, [], `orphan src modules:\n${unreachable.join("\n")}`);
 });
 
 for (const relative of obsoleteFacades) {

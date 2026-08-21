@@ -210,6 +210,8 @@ const LOCALE_IDENTITIES = {
     "🛡️ ALARM",
   ]),
   pl: new Set(["${value} offline", "Alarm", "Program", "Start", "🛡️ ALARM"]),
+  tr: new Set(["Alarm", "Disk", "Fan", "Program", "ideal", "🛡️ ALARM"]),
+  /* ar, hi, ja, ko and zh-Hans share no word with English: nothing to declare. */
 };
 
 test("the source index points at keys the catalogs answer", () => {
