@@ -47,6 +47,7 @@ import { installShutterSkySection } from "./shutter-sky-section.js";
 import { installShutterWindowSection } from "./shutter-window-section.js";
 import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
 import { installEvSection } from "./ev-section.js";
+import { installMediaPickerSection } from "./media-picker-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
 import { installEditorSlotsSection } from "./editor-slots-section.js";
 import { installConfigUniformitySection } from "./config-uniformity-section.js";
@@ -683,6 +684,7 @@ export function installSectionRuntime() {
     installShutterSkySection();
     installPageMastheadSection();
     installPoolIrrigationSceneSection();
+    installMediaPickerSection();
     installEvSection();
     // The skin installs after the EV owner so the vehicle picker it restyles is
     // already mounted, and re-renders itself on the same runtime events.
@@ -732,6 +734,7 @@ export function installSectionRuntime() {
         "report-editor",
         "shutters",
         "pool-irrigation-scene",
+        "media-picker",
         "ev",
         "ev-showcase",
         "solar-thermal-design",
