@@ -367,6 +367,74 @@ export function buildCardMarkup(model, labels = copy()) {
   </article>`;
 }
 
+/* Il disegno che si muove deve restare lo stesso elemento.
+ *
+ * La scheda si ridisegna a ogni cambio di stato — e la potenza di un
+ * elettrodomestico acceso cambia di continuo — e finora la si buttava via
+ * intera per rifarla da capo. Il disegno dentro ne usciva ogni volta nuovo, e
+ * un'animazione su un elemento appena nato riparte da zero: il cestello non
+ * arrivava mai a fare un giro, i getti non finivano la loro passata. A occhio
+ * l'illustrazione sembrava semplicemente ferma, ed e' quello che si vedeva
+ * sulla plancia vera.
+ *
+ * Qui la scheda vecchia resta al suo posto e si prende i pezzi nuovi, tranne il
+ * disegno: quello non viene mai staccato dalla pagina, e la sua animazione
+ * continua da dove era. Se cambia il disegno — un altro tipo, un'altra foto —
+ * non c'e' niente da salvare e si rifa' la scheda intera, come prima. */
+function stessoDisegno(vecchio, nuovo) {
+  if (!vecchio || !nuovo) return false;
+  const vecchiaArte = vecchio.querySelector(":scope > .dm-hero-art");
+  const nuovaArte = nuovo.querySelector(":scope > .dm-hero-art");
+  if (vecchiaArte && nuovaArte) return vecchiaArte.dataset.dmHero === nuovaArte.dataset.dmHero;
+  const vecchiaFoto = vecchio.querySelector(":scope > img.dm-ap-img");
+  const nuovaFoto = nuovo.querySelector(":scope > img.dm-ap-img");
+  if (vecchiaFoto && nuovaFoto) {
+    return vecchiaFoto.getAttribute("src") === nuovaFoto.getAttribute("src");
+  }
+  return false;
+}
+
+function aggiornaTenendoIlDisegno(vecchia, nuova) {
+  const vecchioHero = vecchia.querySelector(":scope > .dm-ap-hero");
+  const nuovoHero = nuova.querySelector(":scope > .dm-ap-hero");
+  if (!stessoDisegno(vecchioHero, nuovoHero)) return false;
+
+  // Gli attributi della scheda dicono in che stato e': la classe .is-run e'
+  // quella che accende il movimento, e va aggiornata come tutto il resto.
+  for (const attributo of [...vecchia.attributes]) {
+    if (!nuova.hasAttribute(attributo.name)) vecchia.removeAttribute(attributo.name);
+  }
+  for (const attributo of [...nuova.attributes]) {
+    if (vecchia.getAttribute(attributo.name) !== attributo.value) {
+      vecchia.setAttribute(attributo.name, attributo.value);
+    }
+  }
+  // Il contorno del disegno puo' cambiare (la cornice della foto): quello si
+  // rifa', il disegno dentro no.
+  for (const attributo of [...nuovoHero.attributes]) {
+    if (vecchioHero.getAttribute(attributo.name) !== attributo.value) {
+      vecchioHero.setAttribute(attributo.name, attributo.value);
+    }
+  }
+
+  // Tutto il resto della scheda arriva nuovo, nell'ordine in cui e' scritto,
+  // e il disegno resta dov'e' senza essere mai staccato.
+  for (const figlio of [...vecchia.children]) {
+    if (figlio !== vecchioHero) figlio.remove();
+  }
+  let dopo = null;
+  for (const figlio of [...nuova.children]) {
+    if (figlio.classList.contains("dm-ap-hero")) {
+      dopo = vecchioHero;
+      continue;
+    }
+    if (dopo) dopo.after(figlio);
+    else vecchioHero.before(figlio);
+    dopo = figlio;
+  }
+  return true;
+}
+
 function cardSignature(model, view) {
   return [
     model.id,
@@ -638,8 +706,12 @@ function renderGrid(shell, visible, labels) {
       shellNode.innerHTML = buildCardMarkup(model, labels);
       const fresh = shellNode.firstElementChild;
       fresh.dataset.dmSig = signature;
-      node.replaceWith(fresh);
-      node = fresh;
+      if (aggiornaTenendoIlDisegno(node, fresh)) {
+        node.dataset.dmSig = signature;
+      } else {
+        node.replaceWith(fresh);
+        node = fresh;
+      }
     } else if (!node) {
       const shellNode = doc.createElement("div");
       shellNode.innerHTML = buildCardMarkup(model, labels);

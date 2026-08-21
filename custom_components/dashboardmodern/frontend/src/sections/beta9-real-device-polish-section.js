@@ -453,7 +453,18 @@ function classifyAlert(card) {
       if (entry.icons.test(glyph)) return entry.kind;
     }
   }
-  return "static";
+  /* Un avviso che non rientra nel vocabolario non resta fermo.
+   *
+   * Le categorie qui sopra coprono quello che si nomina di solito, ma un
+   * avviso lo battezza chi lo crea: "Garage", "Cantina", "Sensori" non
+   * assomigliano a niente di questo elenco e finivano immobili, mentre quello
+   * accanto si muoveva. Chi guarda non sa che esiste un vocabolario: vede due
+   * avvisi, uno vivo e uno spento, e pensa che le animazioni manchino.
+   *
+   * Da qui in avanti l'avviso che non si sa leggere prende un battito
+   * discreto — non racconta cosa sta succedendo, ma dice che qualcosa sta
+   * succedendo, che e' il minimo che un avviso acceso deve fare. */
+  return "generic";
 }
 
 /* The motion belongs to the glyph, not to the disc it sits in: a door swinging
@@ -684,6 +695,8 @@ function installStyles() {
     #page-home .g-icon-wrap.dm-alert-power .dm-alert-glyph{animation:dmAlertSurge 2.1s ease-in-out infinite!important}
     #page-home .g-icon-wrap.dm-alert-light .dm-alert-glyph{animation:dmAlertLight 2.2s ease-in-out infinite!important}
     #page-home .g-icon-wrap.dm-alert-security .dm-alert-glyph{animation:dmAlertSecurity 1.6s ease-in-out infinite!important}
+    /* L'avviso che non si sa leggere: un battito, niente di piu'. */
+    #page-home .g-icon-wrap.dm-alert-generic .dm-alert-glyph{animation:dmAlertGeneric 2.4s ease-in-out infinite!important}
     #page-home .g-icon-wrap.dm-alert-shutter-moving .dm-alert-glyph{animation:dmAlertShutterMove 1.25s ease-in-out infinite!important}
     /* The door and the window swing on their hinge with scaleX, not with a
        perspective rotateY. On screen the two are the same movement — the leaf
@@ -735,6 +748,7 @@ function installStyles() {
       66%{transform:scale(1);opacity:1}}
     @keyframes dmAlertSecurity{0%,100%{transform:scale(1)}50%{transform:scale(1.075)}}
     @keyframes dmAlertLight{0%,100%{opacity:1}50%{opacity:.62}}
+    @keyframes dmAlertGeneric{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.06);opacity:.78}}
     @keyframes dmAlertShutterMove{0%,100%{transform:translateY(-2px)}50%{transform:translateY(2px)}}
 
     #ed-body .dm-light-add-form[data-dm-light-add-layout="beta9-real"]{
