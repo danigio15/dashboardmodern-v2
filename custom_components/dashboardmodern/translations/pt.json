@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Novo painel DashboardModern",
+        "data": {
+          "name": "Nome do painel"
+        },
+        "data_description": {
+          "name": "Aparece na barra lateral. Podes adicionar vários painéis, cada um com a sua própria configuração."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Acesso e integração com os painéis",
+        "description": "Escolhe que utilizadores já autenticados devem ver este painel na interface do DashboardModern. É um filtro de visibilidade do frontend, não substitui as permissões do Home Assistant. O registo no Lovelace faz o DashboardModern aparecer em Definições → Painéis.",
+        "data": {
+          "allowed_users": "Utilizadores autorizados",
+          "register_lovelace_dashboard": "Registar também como painel do Home Assistant",
+          "admin_only": "Visível apenas para administradores"
+        },
+        "data_description": {
+          "allowed_users": "Apenas um filtro de visibilidade da interface. Os dados e os serviços continuam sujeitos às permissões do Home Assistant.",
+          "register_lovelace_dashboard": "O painel é criado da primeira vez que um administrador abre o DashboardModern.",
+          "admin_only": "Filtro nativo do Home Assistant; prevalece nas contas que não são de administrador."
+        }
+      }
+    }
+  }
+}

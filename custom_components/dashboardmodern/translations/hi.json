@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "नया DashboardModern पैनल",
+        "data": {
+          "name": "पैनल का नाम"
+        },
+        "data_description": {
+          "name": "साइडबार में दिखता है। आप कई पैनल जोड़ सकते हैं, हर एक की अपनी कॉन्फ़िगरेशन के साथ।"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "पहुँच और डैशबोर्ड के साथ जुड़ाव",
+        "description": "चुनें कि लॉग इन किए किन उपयोगकर्ताओं को DashboardModern के इंटरफ़ेस में यह पैनल दिखे। यह फ़्रंटएंड का दृश्यता फ़िल्टर है, Home Assistant की अनुमतियों की जगह नहीं लेता। Lovelace में पंजीकरण करने से DashboardModern सेटिंग्स → डैशबोर्ड में दिखने लगता है।",
+        "data": {
+          "allowed_users": "अनुमत उपयोगकर्ता",
+          "register_lovelace_dashboard": "Home Assistant डैशबोर्ड के रूप में भी पंजीकृत करें",
+          "admin_only": "केवल प्रशासकों को दिखे"
+        },
+        "data_description": {
+          "allowed_users": "केवल इंटरफ़ेस का दृश्यता फ़िल्टर। डेटा और सेवाएँ अब भी Home Assistant की अनुमतियों के अधीन हैं।",
+          "register_lovelace_dashboard": "पैनल तब बनता है जब कोई प्रशासक DashboardModern पहली बार खोलता है।",
+          "admin_only": "Home Assistant का अपना फ़िल्टर; गैर-प्रशासक खातों पर यही मान्य होता है।"
+        }
+      }
+    }
+  }
+}

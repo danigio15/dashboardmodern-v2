@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "新しい DashboardModern パネル",
+        "data": {
+          "name": "パネルの名前"
+        },
+        "data_description": {
+          "name": "サイドバーに表示されます。パネルは複数追加でき、それぞれ別の設定を持てます。"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "アクセスとダッシュボードとの連携",
+        "description": "DashboardModern の画面でこのパネルを見られるログイン済みユーザーを選びます。これはフロントエンド側の表示フィルターで、Home Assistant の権限に代わるものではありません。Lovelace に登録すると、DashboardModern が「設定 → ダッシュボード」に表示されます。",
+        "data": {
+          "allowed_users": "許可するユーザー",
+          "register_lovelace_dashboard": "Home Assistant のダッシュボードとしても登録する",
+          "admin_only": "管理者にだけ表示する"
+        },
+        "data_description": {
+          "allowed_users": "画面上の表示フィルターだけです。データとサービスへのアクセスは引き続き Home Assistant の権限に従います。",
+          "register_lovelace_dashboard": "ダッシュボードは、管理者が DashboardModern を初めて開いたときに作成されます。",
+          "admin_only": "Home Assistant 本来のフィルターです。管理者以外のアカウントではこちらが優先されます。"
+        }
+      }
+    }
+  }
+}
