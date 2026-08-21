@@ -93,10 +93,14 @@ test("ogni sezione apre alla stessa larghezza", async ({ page }, testInfo) => {
       await page.waitForTimeout(150);
       larghezza = await larghezzaDi(id);
     }
-    // La misura buona e' quella che si ripete: tre letture uguali di fila.
+    /* La misura buona e' quella che si ripete. Tre letture di fila a 150ms
+     * coprivano meno di mezzo secondo, e su Safari una sezione lenta ad
+     * assestarsi riusciva a starci dentro tutta: la misura era stabile e
+     * sbagliata. Quattro letture a 200ms sono ottocento millisecondi di
+     * immobilita', che nessun assestamento attraversa. */
     let uguali = 1;
-    for (let attesa = 0; attesa < 40 && uguali < 3; attesa += 1) {
-      await page.waitForTimeout(150);
+    for (let attesa = 0; attesa < 40 && uguali < 4; attesa += 1) {
+      await page.waitForTimeout(200);
       const adesso = await larghezzaDi(id);
       uguali = adesso === larghezza ? uguali + 1 : 1;
       larghezza = adesso;

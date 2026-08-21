@@ -81,6 +81,30 @@ async function fingiHomeAssistant(page) {
       send(payload) {
         const messaggio = JSON.parse(payload);
         if (messaggio.type === "auth") return this.manda({ type: "auth_ok", ha_version: "test" });
+        if (messaggio.type === "dashboardmodern/www/list") {
+          const cartelleWww = {
+            "": {
+              path: "",
+              folders: [{ name: "auto", path: "auto" }],
+              images: [{ name: "sfondo.jpg", path: "sfondo.jpg", url: "/local/sfondo.jpg" }],
+              available: true,
+              truncated: false,
+            },
+            auto: {
+              path: "auto",
+              folders: [],
+              images: [{ name: "mia.png", path: "auto/mia.png", url: "/local/auto/mia.png" }],
+              available: true,
+              truncated: false,
+            },
+          };
+          return this.manda({
+            id: messaggio.id,
+            type: "result",
+            success: true,
+            result: cartelleWww[messaggio.path || ""],
+          });
+        }
         if (messaggio.type === "media_source/browse_media")
           return this.manda({
             id: messaggio.id,
@@ -141,7 +165,11 @@ test.describe("foto dell'auto", () => {
 
     const finestra = page.locator("#dm-media-picker-modal");
     await expect(finestra).toBeVisible();
-    // La radice mostra la cartella; il file di testo non e' una foto e non si elenca.
+    // Si sceglie prima dove cercare: /local e le cartelle media.
+    await expect(finestra.locator('.dm-media-row[data-media-kind="source"]')).toHaveCount(2);
+    await finestra.locator('.dm-media-row[data-media-kind="source"]').nth(1).click();
+
+    // La radice media mostra la cartella; il file di testo non e' una foto.
     await expect(finestra.locator('.dm-media-row[data-media-kind="folder"]')).toHaveText(/Auto/);
     await expect(finestra.locator(".dm-media-row")).toHaveCount(1);
     await expect(finestra.locator(".dm-media-skipped")).toBeVisible();
@@ -169,6 +197,44 @@ test.describe("foto dell'auto", () => {
       .toBe("/api/image/serve/abc123/original");
   });
 
+  /* La cartella che Home Assistant non sa elencare.
+   *
+   * config/www e' servita come /local senza chiedere niente: una foto che sta
+   * li' ha gia' il suo indirizzo definitivo, e infatti non viene copiata da
+   * nessuna parte — il percorso salvato e' quello, tale e quale. */
+  test("le foto in /local si scelgono e restano il percorso che sono", async ({
+    page,
+  }, testInfo) => {
+    await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+    await fingiArchivioImmagini(page);
+    await fingiHomeAssistant(page);
+    await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
+    await page.evaluate(() => {
+      window.apriConfigEntita();
+      window.editorSwitch("sez2");
+    });
+
+    const sfoglia = page.locator('[data-ev-photo="idle"] [data-ev-photo-browse]');
+    await expect(sfoglia).toHaveCount(1);
+    await sfoglia.scrollIntoViewIfNeeded();
+    await sfoglia.click();
+
+    const finestra = page.locator("#dm-media-picker-modal");
+    await finestra.locator('.dm-media-row[data-media-kind="source"]').first().click();
+    await expect(finestra.locator('.dm-media-row[data-media-kind="folder"]')).toHaveText(/auto/);
+    await finestra.locator('.dm-media-row[data-media-kind="folder"]').click();
+    await finestra.locator('.dm-media-row[data-media-kind="image"]').click();
+
+    await expect(finestra).toHaveCount(0);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.querySelector('[data-ev-photo="idle"] [data-ev-photo-input]')?.value || "",
+        ),
+      )
+      .toBe("/local/auto/mia.png");
+  });
+
   /* Quando Home Assistant non risponde la finestra lo dice e si chiude senza
    * toccare niente: un percorso gia' scritto a mano non si perde per aver
    * provato a sfogliare. */
@@ -185,6 +251,9 @@ test.describe("foto dell'auto", () => {
 
     await page.locator('[data-ev-photo="idle"] [data-ev-photo-browse]').click();
     const finestra = page.locator("#dm-media-picker-modal");
+    // La scelta della sorgente c'e' comunque: e' entrandoci che si scopre che
+    // Home Assistant non risponde.
+    await finestra.locator('.dm-media-row[data-media-kind="source"]').first().click();
     await expect(finestra.locator('[data-status][data-kind="error"]')).not.toBeEmpty();
     await finestra.locator("[data-cancel]").click();
     await expect(finestra).toHaveCount(0);

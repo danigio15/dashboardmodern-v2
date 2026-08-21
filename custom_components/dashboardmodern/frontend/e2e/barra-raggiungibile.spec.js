@@ -37,6 +37,14 @@ test("il dock esce anche senza inseguire l'ultimo pixel", async ({ page, viewpor
     (viewport?.width ?? 1440) < 769,
     "il dock che si nasconde e' del computer: dove si tocca la barra resta in vista",
   );
+  /* Il dock e' fatto per il mouse: sia il nascondersi che l'uscire stanno
+   * dietro `(hover: hover) and (pointer: fine)`. Su un tablet emulato non c'e'
+   * mouse da avvicinare, e muovere il puntatore finto non produce nessun
+   * passaggio sopra: qui non c'e' niente da misurare, non un difetto. */
+  test.skip(
+    Boolean(testInfo.project.use?.hasTouch),
+    "dove si tocca non c'e' un mouse da avvicinare al fondo",
+  );
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
 

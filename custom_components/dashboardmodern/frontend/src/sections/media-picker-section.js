@@ -19,7 +19,9 @@ import {
   fileNameFor,
   imageServeUrl,
   normalizeBrowseResult,
+  normalizeWwwResult,
   resolveMessage,
+  wwwListMessage,
 } from "../core/media-picker.js";
 import { clean, doc, esc, installStyle, lexicalGlobal, readJson, root, t } from "./shared.js";
 
@@ -86,6 +88,8 @@ const browse = (mediaContentId) =>
 
 const resolve = (mediaContentId) => askHomeAssistant(resolveMessage(0, mediaContentId));
 
+const listWww = (path) => askHomeAssistant(wwwListMessage(0, path)).then(normalizeWwwResult);
+
 /**
  * Copia una foto nell'archivio immagini di Home Assistant e ne restituisce
  * l'indirizzo stabile. Restituisce "" quando l'archivio non risponde.
@@ -145,7 +149,15 @@ export function pickMediaImage() {
   const list = modal.querySelector("[data-list]");
   const trailNode = modal.querySelector("[data-trail]");
   const status = modal.querySelector("[data-status]");
-  const trail = [{ id: "", title: t("Cartelle di Home Assistant", "Home Assistant folders") }];
+  /* Due sorgenti, una accanto all'altra.
+   *
+   * "/local" e' la cartella config/www, quella che Home Assistant serve senza
+   * chiedere niente a nessuno: una foto che sta li' ha gia' il suo indirizzo
+   * definitivo e non c'e' niente da copiare. Le cartelle media sono quelle che
+   * Home Assistant elenca da se': di li' la foto va copiata, perche'
+   * l'indirizzo con cui si legge un file media e' firmato e scade. */
+  const RADICE = { fonte: "root", id: "", title: t("Scegli dove cercare", "Choose where to look") };
+  const trail = [RADICE];
 
   return new Promise((done) => {
     let settled = false;
@@ -170,13 +182,27 @@ export function pickMediaImage() {
         button.disabled = index === trail.length - 1;
         button.addEventListener("click", () => {
           trail.splice(index + 1);
-          open(step.id);
+          open(step);
         });
         trailNode.append(button);
       });
     };
 
-    const chooseImage = async (entry) => {
+    const riga = (kind, testo, apri) => {
+      const row = doc.createElement("button");
+      row.type = "button";
+      row.className = "dm-media-row";
+      row.dataset.mediaKind = kind;
+      const icona = kind === "image" ? "🖼️" : kind === "source" ? "🗂️" : "📁";
+      row.innerHTML = `<span class="dm-media-icon">${icona}</span><span class="dm-media-name">${esc(testo)}</span>${kind === "image" ? "" : '<span class="dm-media-go" aria-hidden="true">›</span>'}`;
+      row.addEventListener("click", apri);
+      list.append(row);
+      return row;
+    };
+
+    /* Una foto delle cartelle media va copiata: l'indirizzo con cui la si
+     * legge e' firmato e scade da solo dopo qualche ora. */
+    const copiaDaiMedia = async (entry) => {
       say(t("Copio la foto…", "Copying the photo…"));
       try {
         const resolved = await resolve(entry.id);
@@ -196,48 +222,91 @@ export function pickMediaImage() {
       }
     };
 
-    const open = async (mediaContentId) => {
-      say(t("Leggo…", "Reading…"));
+    const mostraRadice = () => {
       list.replaceChildren();
-      paintTrail();
-      let folder;
-      try {
-        folder = await browse(mediaContentId);
-      } catch (error) {
-        say(clean(error?.message) || t("Non riesco a leggere", "Cannot read"), "error");
-        return;
-      }
       say("");
-      const rows = [
-        ...folder.folders.map((entry) => ({ entry, folder: true })),
-        ...folder.images.map((entry) => ({ entry, folder: false })),
+      riga("source", t("File in /local (config/www)", "Files in /local (config/www)"), () => {
+        const passo = { fonte: "www", id: "", title: "/local" };
+        trail.push(passo);
+        open(passo);
+      });
+      riga("source", t("Cartelle media di Home Assistant", "Home Assistant media folders"), () => {
+        const passo = { fonte: "media", id: "", title: t("Media", "Media") };
+        trail.push(passo);
+        open(passo);
+      });
+    };
+
+    const mostraCartella = (folder, fonte) => {
+      list.replaceChildren();
+      const righe = [
+        ...folder.folders.map((entry) => ({ entry, cartella: true })),
+        ...folder.images.map((entry) => ({ entry, cartella: false })),
       ];
-      if (!rows.length) {
+      if (!righe.length) {
         list.innerHTML = `<div class="ed-empty">${t("Cartella vuota", "Empty folder")}</div>`;
         return;
       }
-      for (const { entry, folder: isFolder } of rows) {
-        const row = doc.createElement("button");
-        row.type = "button";
-        row.className = "dm-media-row";
-        row.dataset.mediaKind = isFolder ? "folder" : "image";
-        row.innerHTML = `<span class="dm-media-icon">${isFolder ? "📁" : "🖼️"}</span><span class="dm-media-name">${esc(entry.title)}</span>${isFolder ? '<span class="dm-media-go" aria-hidden="true">›</span>' : ""}`;
-        row.addEventListener("click", () => {
-          if (isFolder) {
-            trail.push({ id: entry.id, title: entry.title });
-            open(entry.id);
-          } else chooseImage(entry);
+      for (const { entry, cartella } of righe)
+        riga(cartella ? "folder" : "image", entry.title, () => {
+          if (cartella) {
+            const passo = { fonte, id: entry.id, title: entry.title };
+            trail.push(passo);
+            open(passo);
+            return;
+          }
+          /* Una foto di /local e' gia' al suo posto: si prende l'indirizzo e
+           * si chiude, senza copiare niente da nessuna parte. */
+          if (fonte === "www") finish(entry.url);
+          else copiaDaiMedia(entry);
         });
-        list.append(row);
-      }
-      if (folder.skipped > 0) {
+      const avanzi = folder.skipped > 0 || folder.truncated;
+      if (avanzi) {
         const note = doc.createElement("small");
         note.className = "dm-media-skipped";
-        note.textContent = t(
-          `${folder.skipped} elementi che non sono foto non sono elencati.`,
-          `${folder.skipped} entries that are not photos are not listed.`,
-        );
+        note.textContent = folder.truncated
+          ? t(
+              "La cartella ha troppi file: ne sono elencati solo i primi.",
+              "The folder has too many files: only the first ones are listed.",
+            )
+          : t(
+              `${folder.skipped} elementi che non sono foto non sono elencati.`,
+              `${folder.skipped} entries that are not photos are not listed.`,
+            );
         list.append(note);
+      }
+    };
+
+    const open = async (step) => {
+      paintTrail();
+      if (step.fonte === "root") {
+        mostraRadice();
+        return;
+      }
+      say(t("Leggo…", "Reading…"));
+      list.replaceChildren();
+      try {
+        if (step.fonte === "www") {
+          const folder = await listWww(step.id);
+          if (!folder.available) {
+            say(
+              t(
+                "La cartella config/www non esiste ancora: creala e mettici dentro le foto.",
+                "The config/www folder does not exist yet: create it and put the photos in there.",
+              ),
+              "error",
+            );
+            return;
+          }
+          say("");
+          mostraCartella(folder, "www");
+          return;
+        }
+        const folder = await browse(step.id);
+        say("");
+        mostraCartella(folder, "media");
+      } catch (error) {
+        say(clean(error?.message) || t("Non riesco a leggere", "Cannot read"), "error");
       }
     };
 
@@ -263,7 +332,7 @@ export function pickMediaImage() {
     modal.addEventListener("click", (event) => {
       if (event.target === modal) finish("");
     });
-    open("");
+    open(RADICE);
   });
 }
 

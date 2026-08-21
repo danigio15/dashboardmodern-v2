@@ -108,3 +108,40 @@ export function fileNameFor(reference, fallback = "foto.png") {
 export function unsignedPath(url) {
   return clean(url).split("?")[0];
 }
+
+/* ── Le cartelle di /config/www ─────────────────────────────────────────────
+ *
+ * Home Assistant non le sa elencare: non c'e' un'API per farlo. Questa
+ * integrazione pero' gira dentro Home Assistant e quella cartella la legge, e
+ * risponde a un comando suo. Una foto che sta li' e' gia' servita come
+ * "/local/...", quindi non c'e' niente da copiare da nessuna parte: il
+ * percorso che si sceglie e' gia' quello definitivo.
+ */
+
+/** Il messaggio che chiede il contenuto di una cartella sotto config/www. */
+export function wwwListMessage(id, path = "") {
+  return { id, type: "dashboardmodern/www/list", path: clean(path) };
+}
+
+/** Il contenuto di una cartella di www, nella stessa forma delle altre. */
+export function normalizeWwwResult(result = {}) {
+  const voci = (elenco) => (Array.isArray(elenco) ? elenco : []);
+  return {
+    id: clean(result.path),
+    title: clean(result.path).split("/").filter(Boolean).at(-1) || "/local",
+    folders: voci(result.folders).map((entry) => ({
+      id: clean(entry.path),
+      title: clean(entry.name) || clean(entry.path),
+      expandable: true,
+    })),
+    images: voci(result.images).map((entry) => ({
+      id: clean(entry.path),
+      title: clean(entry.name) || clean(entry.path),
+      url: clean(entry.url) || `/local/${clean(entry.path)}`,
+      expandable: false,
+    })),
+    available: result.available !== false,
+    truncated: result.truncated === true,
+    skipped: 0,
+  };
+}
