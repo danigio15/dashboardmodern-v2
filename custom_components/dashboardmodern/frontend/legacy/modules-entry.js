@@ -21,7 +21,7 @@ import { getDeviceDisplayName, getDeviceVisual, normalizeDevice } from "../src/c
 import { createEnergyReportRows, createRenderCoordinator, loadPopupMetrics, renderDeviceCard, renderEnergyEditor } from "../src/core/renderers.js";
 import { SCHEMA_VERSION } from "../src/core/device-model.js";
 import { BUILD_INFO } from "./build-info.js";
-import { pick } from "../src/core/i18n.js";
+import { getLocale, pick } from "../src/core/i18n.js";
 import { canonicalReportDevices, reportEntityForDevice, reportIconForDevice } from "../src/core/energy-projection.js";
 
 export const MODULES_VERSION = 14;
@@ -175,7 +175,8 @@ function renderEnergyEditorTab(target) {
   const model = store.getSection("energy");
   const draft = structuredClone(model);
   renderEnergyEditor(globalThis.document, target, model, store.getSection("appliances"), globalThis.STATES || {},
-    globalThis.document?.documentElement?.lang === "en" ? "en" : "it", {
+    getLocale(),
+    {
       onPick: (input) => globalThis.wzPickEntity?.(input),
       renderLoads: (loads) => { if (renderLoadsPanel(loads)) return; mountLoadsEditor(loads); mountCurrentEditor("loads", loads); },
       renderReport: (report) => { renderReportEditor(report); mountReportEditor("report", report); },

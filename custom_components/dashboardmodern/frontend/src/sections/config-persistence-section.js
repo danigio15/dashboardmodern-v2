@@ -930,7 +930,6 @@ function installStorageMutationBridge() {
 }
 
 function resetConfirmation() {
-  const english = root.document?.documentElement?.lang === "en";
   return t("Eliminare tutta la configurazione DashboardModern di questa plancia?", "Delete all DashboardModern configuration for this dashboard?");
 }
 

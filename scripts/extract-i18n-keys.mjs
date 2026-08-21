@@ -13,6 +13,9 @@
  *   - the `{ it, en }` rows of the room, action, load-icon and appliance
  *     catalogs, which are data rather than call sites but reach the screen as
  *     picker labels and card titles all the same;
+ *   - the `[glyph, it, en, keywords]` rows of the alert-icon table, read by
+ *     pattern rather than imported: it lives in a section module that installs
+ *     itself on import, and the corpus is not worth a side effect;
  *   - `scripts/i18n-shell-vocabulary.json`, the visible chrome of the vendored
  *     Italian shell paired with its English build by hand.
  *
@@ -31,6 +34,7 @@ const FRONTEND = join(ROOT, "custom_components/dashboardmodern/frontend");
 const SECTIONS = join(FRONTEND, "src/sections");
 const CORE = join(FRONTEND, "src/core");
 const MODULES_ENTRY = join(FRONTEND, "legacy/modules-entry.js");
+const ALERT_ICONS = join(FRONTEND, "src/sections/beta11-real-device-polish-section.js");
 const SHELL_VOCABULARY = join(ROOT, "scripts/i18n-shell-vocabulary.json");
 const KEYS_OUT = join(FRONTEND, "tests/i18n-message-keys.js");
 const INDEX_OUT = join(FRONTEND, "src/i18n/source-index.js");
@@ -44,6 +48,9 @@ function callRe(name) {
     "g",
   );
 }
+
+/* `["glyph", "…", "…", "keywords"],` — a row of the alert-icon table. */
+const TUPLE_TABLE_RE = /^\s*\["[^"]*", "((?:\\.|[^"])*)", "((?:\\.|[^"])*)", "[^"]*"\],$/gm;
 
 /* `key: ["…", "…"],` — the shape of the `COPY_SOURCE` table. */
 const PAIR_TABLE_RE = /^\s*\w+: \["((?:\\.|[^"])*)", "((?:\\.|[^"])*)"\],$/gm;
@@ -71,6 +78,11 @@ function codePairs() {
   const modules = readFileSync(MODULES_ENTRY, "utf8");
   collectCalls(modules, "pick", pairs);
   for (const match of modules.matchAll(PAIR_TABLE_RE)) {
+    const italian = unescape(match[1]);
+    const english = unescape(match[2]);
+    if (english && !pairs.has(english)) pairs.set(english, italian);
+  }
+  for (const match of readFileSync(ALERT_ICONS, "utf8").matchAll(TUPLE_TABLE_RE)) {
     const italian = unescape(match[1]);
     const english = unescape(match[2]);
     if (english && !pairs.has(english)) pairs.set(english, italian);

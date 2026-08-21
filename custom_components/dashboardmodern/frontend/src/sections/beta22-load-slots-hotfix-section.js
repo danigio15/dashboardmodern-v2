@@ -362,7 +362,6 @@ function repairEnergyCostEditor() {
     settings.append(card);
   }
   if (card.dataset.dmCostOwner === "beta22-hotfix") return true;
-  const english = doc.documentElement?.lang === "en";
   const buy = configuredRate("cd_costo_kwh");
   const sell = configuredRate("cd_prezzo_immissione");
   card.dataset.dmCostOwner = "beta22-hotfix";
