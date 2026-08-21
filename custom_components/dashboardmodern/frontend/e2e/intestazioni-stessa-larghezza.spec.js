@@ -63,35 +63,43 @@ test("ogni sezione apre alla stessa larghezza", async ({ page }, testInfo) => {
   const pagine = await page.evaluate(() =>
     [...document.querySelectorAll(".page")].map((nodo) => nodo.id).filter(Boolean),
   );
-  const misure = [];
-  for (const id of pagine) {
+  const apri = async (id) => {
     await page.evaluate((pid) => {
       document.querySelectorAll(".page").forEach((nodo) => nodo.classList.remove("active"));
       document.getElementById(pid)?.classList.add("active");
       window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
     }, id);
-    /* L'intestazione la monta il modulo un fotogramma dopo che la sezione si
-     * apre, e la sua larghezza si assesta quando il contenuto ha finito di
-     * disegnarsi: si aspetta che il numero smetta di cambiare, invece di
-     * sperare che un'attesa a caso sia lunga abbastanza. */
-    const larghezzaDi = () =>
-      page.evaluate((pid) => {
-        const testa = document.getElementById(pid)?.querySelector(".dm-page-mast");
-        return testa ? Math.round(testa.getBoundingClientRect().width) : -1;
-      }, id);
-    // Prima che compaia: su un browser lento l'intestazione puo' farsi
-    // attendere, e una sezione saltata falserebbe il conto.
-    let larghezza = await larghezzaDi();
-    for (let attesa = 0; attesa < 80 && larghezza < 0; attesa += 1) {
+  };
+  const larghezzaDi = (id) =>
+    page.evaluate((pid) => {
+      const testa = document.getElementById(pid)?.querySelector(".dm-page-mast");
+      return testa ? Math.round(testa.getBoundingClientRect().width) : -1;
+    }, id);
+
+  /* Prima si aprono tutte una volta: cosi' ogni sezione monta la sua
+   * intestazione e la pagina finisce di assestarsi. Misurare mentre le cose
+   * nascono vuol dire misurare il transitorio, ed e' quello che rendeva questa
+   * prova ballerina su Safari. */
+  for (const id of pagine) {
+    await apri(id);
+    await page.waitForTimeout(120);
+  }
+
+  const misure = [];
+  for (const id of pagine) {
+    await apri(id);
+    let larghezza = await larghezzaDi(id);
+    for (let attesa = 0; attesa < 60 && larghezza < 0; attesa += 1) {
       await page.waitForTimeout(150);
-      larghezza = await larghezzaDi();
+      larghezza = await larghezzaDi(id);
     }
-    // Poi che si assesti: la misura buona e' quella che smette di cambiare.
-    let precedente = -2;
-    for (let attesa = 0; attesa < 40 && larghezza !== precedente; attesa += 1) {
-      precedente = larghezza;
+    // La misura buona e' quella che si ripete: tre letture uguali di fila.
+    let uguali = 1;
+    for (let attesa = 0; attesa < 40 && uguali < 3; attesa += 1) {
       await page.waitForTimeout(150);
-      larghezza = await larghezzaDi();
+      const adesso = await larghezzaDi(id);
+      uguali = adesso === larghezza ? uguali + 1 : 1;
+      larghezza = adesso;
     }
     if (larghezza > 0) misure.push({ id, larghezza });
   }
