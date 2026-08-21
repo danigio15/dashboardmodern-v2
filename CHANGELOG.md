@@ -4,7 +4,41 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## 1.0.1
+## 1.1.0
+
+### Aggiunto
+
+- **Sezione nuova: robot aspirapolvere, con la mappa.** Pagina propria e voce
+  nella barra: stato, batteria, potenza di aspirazione e i comandi che il robot
+  dichiara di avere — avvio, pausa, stop, rientro alla base, «trovalo», pulizia
+  localizzata. La mappa arriva dalla telecamera o dall'immagine che il robot
+  pubblica, e se non riesce a caricarla ci riprova invece di restare vuota per
+  sempre. Si configura come le altre sezioni.
+
+- **Piu' di una piscina.** Prima ne stava una sola. Adesso se ne aggiungono
+  quante servono, ognuna con i suoi comandi e la sua filtrazione; la prima resta
+  dov'era, quindi chi ne ha una non deve rifare niente.
+
+- **Le tende, accanto alle tapparelle.** Riconosciute da come Home Assistant le
+  classifica: `shutter` resta tapparella, `blind`, `curtain` e `shade`
+  diventano tenda, `awning` tenda da sole. Ognuna si apre e si chiude col suo
+  disegno, che una tenda non scorre come una tapparella.
+
+- **La foto dell'auto si sfoglia, non si scrive.** Si aprono le cartelle di Home
+  Assistant, comprese quelle in `/config/www` (`/local`), e si sceglie il file;
+  oppure si carica una foto dal telefono. Il percorso a mano continua a
+  funzionare per chi lo preferisce.
+
+- **Energia: una sola entita' con segno.** Chi ha un sensore che passa da
+  positivo a negativo — prelievo e immissione in rete, carica e scarica della
+  batteria — lo dichiara una volta e la plancia ricava i due versi dal segno,
+  invece di chiedere due entita' separate. Chi le ha gia' divise coi template
+  continua come prima.
+
+- **Una porta sempre aperta per la configurazione.** Un ingranaggio fisso
+  nell'intestazione, sempre in vista. Prima, chiuso il banner iniziale, l'unica
+  via era la voce nella barra: chi non la trovava si ritrovava senza modo di
+  rientrare.
 
 ### Corretto
 
@@ -56,6 +90,24 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   la misura sta in un posto solo e le sezioni aprono tutte allo stesso modo.
 
 ### Cambiato
+
+- **La barra parte ferma, e la scelta vale su tutti i dispositivi.** Prima
+  partiva a scomparsa dappertutto e il modo scelto restava sul dispositivo che
+  l'aveva scelto. Sul computer le due cose insieme chiudevano la porta a chiave:
+  la barra a riposo sta fuori dallo schermo e si chiama avvicinando il mouse al
+  fondo, ma il comando per tenerla ferma sta nella pagina Config, e a quella
+  pagina ci si arriva dalla barra. Adesso c'e' senza doverla chiamare, e chi
+  preferisce il dock a scomparsa lo sceglie una volta sola: la scelta viaggia con
+  la configurazione e vale anche sugli altri dispositivi.
+
+- **Il chiosco si accende da solo anche su Android.** Era nato guardando
+  l'iPhone e chiedeva iOS: dentro l'app di Home Assistant per Android nessuno
+  puo' scrivere `?kiosk=1` a mano, e la plancia si apriva sotto la barra di
+  Lovelace. Adesso conta il dito, non la marca; la finestra stretta di un
+  computer, che la barra degli indirizzi ce l'ha, resta fuori.
+
+- **Le lingue che non parliamo prendono l'inglese.** `it` e `it-*` restano in
+  italiano, tutto il resto apre in inglese invece di ripiegare sull'italiano.
 
 - **Chi non gestisce la ricarica con evcc non vede piu' la sua console.** Il
   target di carica con la percentuale, l'autonomia calcolata su quel target e i
