@@ -31,6 +31,24 @@ function installStyles() {
       html[data-theme="dark"] .bottom-nav-bar .tab.active,html.dark .bottom-nav-bar .tab.active,body[data-theme="dark"] .bottom-nav-bar .tab.active,body.dark .bottom-nav-bar .tab.active,.dark .bottom-nav-bar .tab.active{background:#25324b!important;color:#fff!important;border-color:#52627f!important;box-shadow:0 8px 20px rgba(0,0,0,.28)!important}
       html[data-theme="dark"] .bottom-nav-bar .tab.active .text,html.dark .bottom-nav-bar .tab.active .text,body[data-theme="dark"] .bottom-nav-bar .tab.active .text,body.dark .bottom-nav-bar .tab.active .text,.dark .bottom-nav-bar .tab.active .text{color:#fff!important;opacity:1!important}
       @media(max-width:640px){.bottom-nav-bar .tab .text{font-weight:800!important}.bottom-nav-bar .tab{min-width:54px!important}}
+      /* La barra deve essere raggiungibile con il mouse.
+       *
+       * Sul computer la barra sta a riposo fuori dallo schermo — e' un dock:
+       * compare quando ci si avvicina col mouse. Misurata su una finestra alta
+       * 900, pero', la barra comincia a 908, e l'unica zona sensibile era la
+       * striscia di quattordici pixel che il suo bordo invisibile sporgeva in
+       * alto. Da un browser ci si arriva per un pelo; dall'app di Home
+       * Assistant sul Mac, dove il fondo della finestra e' occupato, non ci si
+       * arriva affatto: la barra non usciva in nessun modo, e chi entrava dal
+       * web la vedeva funzionare.
+       *
+       * La striscia adesso e' alta abbastanza da poterla prendere senza
+       * inseguirla: il dock si comporta come prima, ma si lascia trovare. */
+      @media(min-width:769px) and (hover:hover) and (pointer:fine){
+        html body nav.tabs.bottom-nav-bar::before{
+          top:-72px!important;left:-48px!important;right:-48px!important;bottom:-20px!important
+        }
+      }
 
       /* Il contenitore è trasparente al layout finché non serve scorrere: su
        * mobile la barra scorre già da sé e resta esattamente com'era. */
