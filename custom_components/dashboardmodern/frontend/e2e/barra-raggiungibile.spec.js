@@ -46,6 +46,13 @@ test("il dock esce anche senza inseguire l'ultimo pixel", async ({ page, viewpor
     "dove si tocca non c'e' un mouse da avvicinare al fondo",
   );
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  /* Il dock non e' piu' come parte la plancia: adesso la barra sta ferma, e a
+   * scomparsa ci va chi lo sceglie. Questa prova guarda proprio chi lo sceglie,
+   * quindi la scelta la fa lei prima di aprire. */
+  await page.addInitScript(() => {
+    const chiave = `cd_${new URLSearchParams(location.search).get("dmi")}_cd_navbar_mode`;
+    Storage.prototype.setItem.call(window.localStorage, chiave, "auto");
+  });
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
 
   const barra = page.locator("nav.tabs.bottom-nav-bar");

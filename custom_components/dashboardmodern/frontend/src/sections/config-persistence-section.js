@@ -5,7 +5,7 @@ import { reloadDashboard, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CONFIG_PERSISTENCE__";
 const USER_DATA_VERSION = 1;
-export const CONFIG_KEYS_REVISION = 3;
+export const CONFIG_KEYS_REVISION = 4;
 const PERSIST_META_KEY = "dm_persistence_meta";
 const REMOTE_REFRESH_MIN_MS = 1200;
 
@@ -83,6 +83,10 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_entity_overrides",
   "cd_quick_actions",
   "cd_navbar_order",
+  // La barra a scomparsa o ferma e' una scelta della plancia, non del
+  // dispositivo che l'ha fatta: chi la mette ferma sul telefono se la ritrova
+  // ferma anche sul computer.
+  "cd_navbar_mode",
   "cd_energy_views",
   "cd_slot_labels",
   "cd_flow_nodes",

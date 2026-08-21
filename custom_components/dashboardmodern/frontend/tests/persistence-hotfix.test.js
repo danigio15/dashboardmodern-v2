@@ -78,7 +78,12 @@ test("modern persistence covers every shared legacy editor key that used to stay
     "cd_hidden_elements",
   ])
     assert.ok(CONFIG_KEYS.includes(key), `${key} must be synchronized`);
-  for (const key of ["cd_connection", "cd_theme", "cd_navbar_mode", "cd_nav_mode"])
+  /* La barra a scomparsa o ferma era fra le preferenze del dispositivo. Non lo
+   * e' piu': chi la mette ferma sul telefono se la ritrova ferma anche sul
+   * computer, che e' come e' stato chiesto che si comporti. Il gettone e la
+   * connessione restano del dispositivo, quelli si. */
+  assert.ok(CONFIG_KEYS.includes("cd_navbar_mode"), "cd_navbar_mode must be synchronized");
+  for (const key of ["cd_connection", "cd_theme", "cd_nav_mode"])
     assert.equal(CONFIG_KEYS.includes(key), false, `${key} must remain device-local`);
 });
 
