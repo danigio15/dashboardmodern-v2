@@ -396,6 +396,32 @@ function installStyles() {
     STYLE_ID,
     `
     ${foldRules()}
+    /* Una sola larghezza per tutte le sezioni.
+     *
+     * Ogni sezione si era scelta la sua: Energia, Elettrodomestici e
+     * Temperature prendono tutto lo schermo, Clima e Sicurezza si fermano a
+     * 1250, Solare a 1120, Tapparelle a 1100, Piscina a 1040, e Auto,
+     * Irrigazione e MiniPC a 1000 — sette misure diverse, alcune scritte a mano
+     * dentro alla plancia e altre nei moduli. Passando da una sezione all'altra
+     * il contenuto si stringe e si allarga, e con lui l'intestazione, che e'
+     * larga quanto quello che annuncia.
+     *
+     * La misura sta adesso in un posto solo. Vale per il contenuto, e
+     * l'intestazione la eredita perche' continua a misurarsi su di lui: chi
+     * volesse rimettere un limite cambia --dm-page-room qui e le sezioni lo
+     * seguono tutte insieme. */
+    html body .page{--dm-page-room:none}
+    html body .page > div[style*="max-width"],
+    html body #page-tapparelle#page-tapparelle > div,
+    html body #page-clima .dm-cl-shell,
+    html body #page-security .dm-sec-shell,
+    html body #page-boiler .boiler-dashboard{
+      max-width:var(--dm-page-room)!important
+    }
+    /* La piscina la larghezza se la fissa, non si limita a metterle un tetto. */
+    html body #page-piscina #pool-wrap[data-dm-pool-scene]{
+      width:100%!important;max-width:var(--dm-page-room)!important
+    }
     .dm-page-mast{
       position:relative!important;display:block!important;box-sizing:border-box!important;
       width:calc(100% + 2 * var(--dm-mast-bleed,0px))!important;
