@@ -19,7 +19,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -49,39 +49,47 @@ test("l'ascolto si registra una volta sola per contrassegno", () => {
   assert.match(shared, /if \(!gia\.has\(marker\)\)/);
 });
 
-/* Nessuno resta indietro.
+/* Nessuno resta indietro, e non per un elenco scritto a mano.
  *
  * Un modulo che decora la scheda e si aggancia ancora al solo `editorSwitch` e'
- * un modulo la cui decorazione sparisce al primo salvataggio. La prova elenca i
- * moduli, cosi' che uno nuovo non possa nascere gia' sbagliato senza che
- * qualcuno se ne accorga. */
-const DECORANO = [
-  "sections/alerts-section.js",
-  "sections/beta6-feedback-section.js",
-  "sections/config-uniformity-section.js",
-  "sections/editor-contracts-section.js",
-  "sections/editor-crud-section.js",
-  "sections/editor-slots-section.js",
-  "sections/energy-guidance-section.js",
-  "sections/energy-section.js",
-  "sections/ev-section.js",
-  "sections/flood-alerts-section.js",
-  "sections/lights-alerts-section.js",
-  "sections/pool-editor-section.js",
-  "sections/report-editor-section.js",
-  "sections/robot-editor-section.js",
-];
+ * un modulo la cui decorazione sparisce al primo salvataggio. La prima versione
+ * di questa prova elencava i quattordici moduli di allora: un quindicesimo,
+ * aggiunto domani con l'aggancio sbagliato, sarebbe passato senza che nessuno
+ * se ne accorgesse — cioe' la prova prometteva una cosa che non poteva
+ * mantenere.
+ *
+ * Adesso guarda tutte le sezioni e non ne conosce nessuna: chi si aggancia al
+ * cambio di linguetta viene trovato, chiunque sia e da qualunque parte arrivi.
+ */
+function tutteLeSezioni() {
+  const cartella = join(SRC, "sections");
+  return readdirSync(cartella)
+    .filter((nome) => nome.endsWith(".js"))
+    .map((nome) => ({ nome, sorgente: readFileSync(join(cartella, nome), "utf8") }));
+}
 
-test("nessun modulo si aggancia ancora al solo cambio di linguetta", () => {
-  for (const modulo of DECORANO) {
-    const sorgente = leggi(modulo);
-    assert.doesNotMatch(
-      sorgente,
-      /wrapFunction\("editorSwitch"/,
-      `${modulo}: la sua decorazione sparisce al primo salvataggio`,
-    );
-    assert.match(sorgente, /onEditorRedraw\(/, `${modulo} non si accorge del ridisegno`);
-  }
+test("nessun modulo si aggancia al solo cambio di linguetta", () => {
+  /* `shared.js` e' l'unico che puo': e' dentro `onEditorRedraw`, cioe' proprio
+   * il giro che mette insieme le due cose. */
+  const colpevoli = tutteLeSezioni()
+    .filter(
+      ({ nome, sorgente }) =>
+        nome !== "shared.js" && /wrapFunction\(\s*"editorSwitch"/.test(sorgente),
+    )
+    .map(({ nome }) => nome);
+  assert.deepEqual(
+    colpevoli,
+    [],
+    `la decorazione di questi moduli sparisce al primo salvataggio: ${colpevoli.join(", ")}`,
+  );
+});
+
+test("e chi decora la scheda si accorge del ridisegno", () => {
+  /* `shared.js` e' dove `onEditorRedraw` abita, quindi non la usa. */
+  const decorano = tutteLeSezioni().filter(
+    ({ nome, sorgente }) => nome !== "shared.js" && /onEditorRedraw\(/.test(sorgente),
+  );
+  assert.ok(decorano.length >= 14, `troppo pochi: ${decorano.length}`);
 });
 
 test("le caselle in piu' di un infisso tornano dopo un salvataggio", () => {

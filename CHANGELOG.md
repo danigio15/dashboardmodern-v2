@@ -5,6 +5,8 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## Non rilasciato
+
 ## 1.1.4
 
 ### Corretto
@@ -54,8 +56,9 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   della configurazione si annunciava già, ma quasi nessuno ascoltava:
   `onEditorRedraw` mette insieme il cambio di linguetta e il ridisegno del
   modello, e i quattordici moduli che decorano la configurazione passano tutti
-  di lì. Una prova li elenca, così che uno nuovo non possa nascere già
-  sbagliato.
+  di lì. Una prova guarda tutte le sezioni senza conoscerne nessuna: chi si
+  aggancia ancora al solo cambio di linguetta viene trovato, anche se arriva
+  domani.
 
 - **Un'auto ha un'identità, non solo una posizione.** Un profilo si indicava con
   la sua riga nell'elenco, e una riga cambia significato appena si cancella o si
@@ -67,6 +70,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - Il travaso delle foto dalle vecchie caselle dentro al profilo è una migrazione
   e adesso se ne segna: potendo ripartire, annullava una cancellazione fatta su
   un altro dispositivo.
+
+### Sviluppo
+
+- **La costruzione delle informazioni di versione non partiva da un worktree.**
+  `generate_build_info.py` cercava il ramo solo nella cartella che ha davanti,
+  ma in un worktree i rami stanno nel deposito condiviso: si fermava su «unable
+  to resolve git ref» pur essendo su un ramo perfettamente valido. Adesso segue
+  `commondir`.
 
 ## 1.1.3
 
@@ -102,6 +113,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   dalla riga che stanno descrivendo: ci si ancorava alla stanza, che nel markup
   del runtime è un `select` nudo, e la ricerca del contenitore acchiappava il
   riquadro che avvolge tutto il pannello.
+
+- **Cambiando auto restava addosso la foto col cavo dell'altra vettura.** Gli
+  involucri che insegnano alla plancia la seconda foto non possono installarsi
+  finché il runtime non ha dichiarato le sue funzioni, e il tentativo successivo
+  arrivava col primo disegno: in quella finestra un profilo catturato nasceva
+  senza quella foto, e chi ci finiva dentro non la recuperava più da sé. Dura
+  poco e ci vuole sfortuna per infilarcisi, ma quello che si perdeva era perso.
 
 - **Il bianco su iOS non era finito con la 1.1.2.** Quello che il modo chiosco
   scrive nel documento di Home Assistant lo toglieva la plancia, chiamata
