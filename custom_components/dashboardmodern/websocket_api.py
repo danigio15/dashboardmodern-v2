@@ -6,9 +6,28 @@ Home Assistant user, which is exactly why a second user or a fresh device saw an
 unconfigured plancia; these commands read and write the single shared store, so
 every user and every device of one installation see the same configuration.
 
-They are available to any authenticated user on purpose. Restricting writes to
-admins would leave a non-admin plancia unable to save its own edits, and the
-panel already enforces who may open a plancia at all through its allow-list.
+Chi puo' chiamarli e' la stessa domanda di chi puo' aprire una plancia, e la
+risposta va data qui.
+
+Prima erano aperti a qualsiasi utente autenticato, e la motivazione scritta era
+che «il pannello decide gia' chi puo' aprire una plancia con la sua
+allow-list». Ma quella lista viaggia dentro la configurazione del pannello e la
+applica il browser: e' un controllo lato client, cioe' un controllo che chi
+vuole aggirarlo non incontra nemmeno. Un utente fuori dalla lista non vede la
+plancia nella barra laterale e non riesce ad aprirla, e intanto puo' chiamare
+questi comandi direttamente e riscrivere la configurazione di tutti — che e'
+una sola per l'installazione, non una per utente.
+
+In una casa con un solo utente non cambia niente. In una casa con piu' utenti —
+un figlio, un coinquilino, un ospite — e' la differenza fra una preferenza e un
+permesso.
+
+La regola adesso e' una sola, e sta dove conta: **chi chiama deve poter usare
+quella plancia**. Amministratore se la plancia e' riservata agli
+amministratori, dentro la lista se una lista c'e'. La lettura resta aperta a
+chi la plancia la puo' usare, perche' senza leggere non la si puo' nemmeno
+disegnare; scrittura, ripristino ed elenco dei file chiedono lo stesso
+permesso, non uno piu' debole.
 """
 
 from __future__ import annotations
@@ -19,6 +38,7 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import callback
 
+from .config_flow import OPTION_ADMIN_ONLY, OPTION_ALLOWED_USERS
 from .config_store import (
     PRIMARY_PROFILE,
     SnapshotTooLargeError,
@@ -41,6 +61,64 @@ _PROFILE = vol.All(str, vol.Length(min=1, max=64))
 _ENTRY_ID = vol.All(str, vol.Length(min=1, max=64))
 
 
+def _entries(hass: HomeAssistant) -> list[Any]:
+    """Le plance installate."""
+    return list(hass.config_entries.async_entries(DOMAIN))
+
+
+def _allowed_users(entry: Any) -> set[str]:
+    value = entry.options.get(OPTION_ALLOWED_USERS, [])
+    if not isinstance(value, list):
+        return set()
+    return {str(user_id) for user_id in value if user_id}
+
+
+def _may_use(entry: Any, user: Any) -> bool:
+    """Se questo utente puo' usare questa plancia.
+
+    E' la stessa domanda che il pannello si fa per mostrarla: amministratore se
+    la plancia e' riservata agli amministratori, dentro la lista se una lista
+    c'e'. Detta qui, pero', vale davvero.
+    """
+    if user is not None and getattr(user, "is_admin", False):
+        return True
+    if entry.options.get(OPTION_ADMIN_ONLY, False):
+        return False
+    consentiti = _allowed_users(entry)
+    if not consentiti:
+        return True
+    return str(getattr(user, "id", "")) in consentiti
+
+
+def _authorized(hass: HomeAssistant, connection: Any, entry_id: str | None) -> bool:
+    """Se chi chiama puo' usare la plancia a cui si riferisce.
+
+    Senza `entry_id` — e' il caso normale, la plancia principale — basta poterne
+    usare almeno una: chi non puo' usarne nessuna non ha niente da fare qui.
+    """
+    user = getattr(connection, "user", None)
+    if user is not None and getattr(user, "is_admin", False):
+        return True
+    entries = _entries(hass)
+    # Nessuna plancia installata, nessuna regola da applicare: qui non c'e'
+    # niente da proteggere, e rifiutare vorrebbe dire rompere il negozio
+    # condiviso per chi lo usa senza pannelli.
+    if not entries:
+        return True
+    if entry_id:
+        scelta = next((entry for entry in entries if entry.entry_id == entry_id), None)
+        return bool(scelta and _may_use(scelta, user))
+    return any(_may_use(entry, user) for entry in entries)
+
+
+def _deny(connection: Any, msg: dict[str, Any]) -> None:
+    connection.send_error(
+        msg["id"],
+        websocket_api.const.ERR_UNAUTHORIZED,
+        "Questa plancia non e' abilitata per il tuo utente.",
+    )
+
+
 @websocket_api.websocket_command(
     {
         vol.Required("type"): TYPE_GET,
@@ -55,6 +133,9 @@ async def async_get_config(
     msg: dict[str, Any],
 ) -> None:
     """Return the shared snapshot of one plancia."""
+    if not _authorized(hass, connection, msg.get("entry_id")):
+        _deny(connection, msg)
+        return
     store = await async_get_config_store(hass)
     result = await store.async_get(msg["profile"], entry_id=msg.get("entry_id"))
     connection.send_result(msg["id"], result)
@@ -84,6 +165,9 @@ async def async_set_config(
     msg: dict[str, Any],
 ) -> None:
     """Store a snapshot for one plancia."""
+    if not _authorized(hass, connection, msg.get("entry_id")):
+        _deny(connection, msg)
+        return
     store = await async_get_config_store(hass)
     snapshot = msg["snapshot"]
     try:
@@ -117,6 +201,9 @@ async def async_restore_config(
     msg: dict[str, Any],
 ) -> None:
     """Promote a kept revision of one plancia back to current."""
+    if not _authorized(hass, connection, msg.get("entry_id")):
+        _deny(connection, msg)
+        return
     store = await async_get_config_store(hass)
     result = await store.async_restore(
         msg["profile"], msg["revision"], entry_id=msg.get("entry_id")
@@ -137,6 +224,9 @@ async def async_list_www(
     msg: dict[str, Any],
 ) -> None:
     """Elenca una cartella di ``config/www`` per il selettore delle foto."""
+    if not _authorized(hass, connection, None):
+        _deny(connection, msg)
+        return
     result = await hass.async_add_executor_job(
         list_www_folder, hass.config.path("www"), msg["path"]
     )
