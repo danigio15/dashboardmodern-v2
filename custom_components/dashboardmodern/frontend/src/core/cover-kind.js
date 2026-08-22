@@ -77,6 +77,15 @@ export function coverKindLabel(kind, locale = getLocale()) {
  * disegno non deve piu' indovinarlo. */
 export const coverIsSideways = (kind) => kind === "tenda";
 
+/* Una tenda da sole non e' ne' l'una ne' l'altra.
+ *
+ * Scende dall'alto come una tapparella, e per questo veniva disegnata con le
+ * sue stesse stecche: in una card, accanto a una tapparella, era la stessa
+ * identica cosa. Ma non e' una lamiera che chiude un vetro — e' un telo teso
+ * che sporge sopra la finestra, a righe larghe e col bordo ondulato. Il verso
+ * lo condivide con la tapparella; il disegno no. */
+export const coverIsAwning = (kind) => kind === "tenda_sole";
+
 /** Quanto e' coperta la finestra, da 0 (tutta aperta) a 100. */
 export function coverClosedPercent(position) {
   const value = Number(position);

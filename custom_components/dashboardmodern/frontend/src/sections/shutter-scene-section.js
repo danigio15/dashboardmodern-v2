@@ -1,4 +1,9 @@
-import { coverClosedPercent, coverIsSideways, coverKind } from "../core/cover-kind.js";
+import {
+  coverClosedPercent,
+  coverIsAwning,
+  coverIsSideways,
+  coverKind,
+} from "../core/cover-kind.js";
 import { allStates, clean, doc, esc, installStyle, root, t } from "./shared.js";
 
 // Single paint owner for the Tapparelle page.
@@ -210,6 +215,14 @@ function trackMarkup(view) {
  * che si scostano dal centro. Il disegno e' lo stesso serramento — vetro,
  * cornice, luce che entra — e cambia cosa lo copre. */
 function panelMarkup(view) {
+  /* Il telo della tenda da sole e' uno solo, e il bordo ondulato e' un pezzo a
+   * parte: sta sotto il telo, non dentro, perche' deve poter sporgere. */
+  if (coverIsAwning(view.kind)) {
+    return `<div class="dm-tendasole" data-dm-panel>
+      <span class="dm-tendasole-telo"></span>
+      <span class="dm-tendasole-bordo"></span>
+    </div>`;
+  }
   if (!coverIsSideways(view.kind)) return `<div class="tapp-shutter" data-dm-panel>${`<i></i>`.repeat(SLAT_COUNT)}</div>`;
   return `<div class="dm-tenda" data-dm-panel>
     <span class="dm-tenda-telo dm-sinistra"></span>
@@ -274,7 +287,11 @@ function syncCard(card, view) {
   if (panel) {
     const moto = `${view.status === "opening" ? " opening" : ""}${view.status === "closing" ? " closing" : ""}`;
     const chiuso = coverClosedPercent(view.position);
-    if (coverIsSideways(view.kind)) {
+    if (coverIsAwning(view.kind)) {
+      // Scende dall'alto come la tapparella: cambia il telo, non il verso.
+      panel.className = `dm-tendasole${moto}`;
+      panel.style.height = `${chiuso}%`;
+    } else if (coverIsSideways(view.kind)) {
       panel.className = `dm-tenda${moto}`;
       // I due teli si dividono la parte coperta: meta' per uno, dal centro.
       panel.style.setProperty("--tenda-chiusa", `${chiuso / 2}%`);
