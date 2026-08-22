@@ -102,11 +102,23 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 
 1. Apri **HACS** in Home Assistant.
 2. Menu in alto a destra → **Archivi personalizzati** / *Custom repositories*.
-3. Inserisci l'URL del repository e scegli il tipo **Integrazione**:
+3. Compila i due campi **così**:
 
-   ```text
-   https://github.com/danigio15/dashboardmodern-v2
-   ```
+   | campo | valore |
+   | --------------------------- | ------------------------------------------------- |
+   | **Repository** | `https://github.com/danigio15/dashboardmodern-v2` |
+   | **Tipo** / *Type* | **Integrazione** — non «Lovelace», non «Tema» |
+
+   > ⚠️ **Il tipo conta più dell'URL.** Scegliendo «Lovelace» HACS **non dà
+   > errore**: trova il nostro `dashboardmodern.zip` fra gli allegati della
+   > release, lo scarica in `config/www/community/` e lo registra come risorsa
+   > Lovelace. Sembra andato tutto bene, ma l'integrazione non comparirà mai in
+   > *Dispositivi e servizi*, perché non è mai stata installata.
+   >
+   > **Se ti è già successo:** in HACS rimuovi il repository personalizzato,
+   > riaggiungilo scegliendo **Integrazione**, installa e riavvia. Se in
+   > `config/www/community/` è rimasta una cartella `dashboardmodern-v2`,
+   > puoi cancellarla: non serve a niente.
 
 4. Cerca **DashboardModern v2** e installa la versione più recente.
 5. **Riavvia Home Assistant.**

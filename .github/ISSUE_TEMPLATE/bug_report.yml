@@ -29,6 +29,27 @@ body:
         - Manuale
     validations:
       required: true
+  # Scegliendo «Lovelace» invece di «Integrazione», HACS non da' errore: trova
+  # dashboardmodern.zip fra gli allegati della release e lo tratta come una
+  # risorsa Lovelace. L'integrazione non viene mai installata, e la
+  # segnalazione che arriva e' sempre la stessa — «scaricata, riavviato, non
+  # compare». Chiederlo qui la risolve in un colpo invece che in tre scambi.
+  - type: dropdown
+    id: hacs-category
+    attributes:
+      label: Se hai usato HACS, quale tipo hai scelto aggiungendo il repository?
+      description: >-
+        Deve essere «Integrazione». Con «Lovelace» HACS accetta lo stesso il
+        repository, ma l'integrazione non viene installata e non comparira' mai
+        in Impostazioni → Dispositivi e servizi.
+      options:
+        - Integrazione
+        - Lovelace
+        - Tema
+        - Non ricordo
+        - Non ho usato HACS
+    validations:
+      required: true
   - type: textarea
     id: steps
     attributes:
