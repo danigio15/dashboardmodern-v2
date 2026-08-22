@@ -172,6 +172,7 @@ const LOCALE_IDENTITIES = {
     "Orange",
     "Pause",
     "PAUSE",
+    "Photo",
     "Production",
     "Recirculation",
     "Saturation",
