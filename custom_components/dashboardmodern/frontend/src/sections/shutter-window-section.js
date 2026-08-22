@@ -17,6 +17,7 @@
  * Niente qui scrive dati: la posizione della tapparella resta di chi la
  * disegnava, il contatto si legge e basta.
  */
+import { COVER_KINDS, coverKindLabel } from "../core/cover-kind.js";
 import { shutterWindowModel } from "../core/shutter-window.js";
 import { allStates, clean, dashboardStore, doc, installStyle, readJson, root, t } from "./shared.js";
 
@@ -154,12 +155,53 @@ export function ensureContactField(body = doc?.getElementById("ed-body")) {
   return true;
 }
 
+/* Il tipo si sceglie dove si sceglie la tapparella.
+ *
+ * La sezione sa disegnare anche le tende — si scostano di lato invece di
+ * scendere — e il tipo, quando Home Assistant non lo dice da se', si dichiara.
+ * Quella scelta pero' esisteva solo nella finestra della matita: chi apriva la
+ * scheda Tapparelle non aveva modo di dire che quella e' una tenda, e le tende
+ * dalla scheda che le riguarda non si vedevano. Stessa coppia di campi del
+ * resto del modulo, stesso posto dell'altra finestra: dopo l'entita'. */
+function kindOptionsMarkup(dichiarato = "") {
+  const inglese = doc?.documentElement?.lang === "en";
+  const voci = [
+    ["", t("Come dice Home Assistant", "As Home Assistant says")],
+    ...COVER_KINDS.map((kind) => [kind, coverKindLabel(kind, inglese)]),
+  ];
+  return voci
+    .map(
+      ([valore, etichetta]) =>
+        `<option value="${valore}"${valore === dichiarato ? " selected" : ""}>${etichetta}</option>`,
+    )
+    .join("");
+}
+
+export function ensureKindField(body = doc?.getElementById("ed-body")) {
+  const entity = body?.querySelector?.("#ed-tp-ent");
+  if (!entity) return false;
+  if (body.querySelector("#ed-tp-kind")) return false;
+  const holder = doc.createElement("label");
+  holder.className = "ed-slot dm-tw-kind-slot";
+  holder.innerHTML =
+    `<span class="ed-slot-lbl">${t("Tipo", "Type")}</span>` +
+    `<select id="ed-tp-kind" class="ed-input">${kindOptionsMarkup()}</select>` +
+    `<small>${t(
+      "Una tapparella scende dall'alto, una tenda si scosta di lato: la card disegna quella che hai. Se non scegli, vale quello che dice Home Assistant.",
+      "A roller shutter comes down, a curtain parts sideways: the card draws the one you have. Leave it be and Home Assistant decides.",
+    )}</small>`;
+  const riga = entity.closest("label, .ed-slot") || entity.parentElement;
+  riga?.after?.(holder);
+  return Boolean(holder.parentElement);
+}
+
 function schedule() {
   if (state.frame) return;
   const run = () => {
     state.frame = 0;
     paintShutterWindows();
     ensureContactField();
+    ensureKindField();
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
 }
