@@ -100,3 +100,38 @@ def test_le_due_copie_restano_uguali(nome: str) -> None:
     """La copia spedita nel pacchetto non deve divergere da quella canonica."""
     canonica, spedita = (cartella / nome for cartella in CARTELLE)
     assert canonica.read_bytes() == spedita.read_bytes(), f"{nome}: le due copie sono diverse"
+
+
+def test_il_nome_dell_integrazione_e_uno_solo() -> None:
+    """Il nome non c'entra con l'icona, ma due nomi diversi confondono.
+
+    L'icona la risolve il `domain`, mai il nome: `/api/brands/integration/
+    <dominio>/<file>` prende il dominio dall'URL e `has_branding` guarda la
+    cartella sul disco. Il nome pero' compariva in due forme — «Dashboard
+    Modern V2» nel manifest, «DashboardModern v2` in HACS e nel codice — e in
+    Home Assistant si leggeva un nome, in HACS un altro.
+    """
+    import json
+
+    manifest = json.loads((ROOT / "custom_components/dashboardmodern/manifest.json").read_text())
+    hacs = json.loads((ROOT / "hacs.json").read_text())
+    const = (ROOT / "custom_components/dashboardmodern/const.py").read_text()
+
+    atteso = "DashboardModern v2"
+    assert manifest["name"] == atteso
+    assert hacs["name"] == atteso
+    assert f'NAME = "{atteso}"' in const
+
+
+def test_la_cartella_brand_arriva_a_destinazione() -> None:
+    """Home Assistant legge le immagini dalla cartella installata.
+
+    Da HA 2026.3 `/api/brands/integration/<dominio>/<file>` serve queste
+    immagini prima di chiedere al catalogo, e la condizione e' soltanto che
+    esista `custom_components/<dominio>/brand/`. Se un giorno il pacchetto
+    smettesse di spedirla, l'integrazione installata resterebbe senza icona
+    senza che niente lo dica.
+    """
+    build = (ROOT / "scripts/build_release.py").read_text()
+    for nome in ATTESI:
+        assert f'"brand/{nome}"' in build, f"lo zip non pretende brand/{nome}"

@@ -110,7 +110,7 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 
 4. Cerca **DashboardModern v2** e installa la versione più recente.
 5. **Riavvia Home Assistant.**
-6. **Impostazioni → Dispositivi e servizi → Aggiungi integrazione → Dashboard Modern V2**.
+6. **Impostazioni → Dispositivi e servizi → Aggiungi integrazione → DashboardModern v2**.
 7. Dai un nome alla plancia e conferma.
 8. Apri **DashboardModern** dalla barra laterale.
 
@@ -136,7 +136,7 @@ Il config flow chiede una sola cosa: il **nome del pannello**, quello che compar
 
 ### Opzioni (Configura)
 
-**Impostazioni → Dispositivi e servizi → Dashboard Modern V2 → Configura**
+**Impostazioni → Dispositivi e servizi → DashboardModern v2 → Configura**
 
 | Opzione | Cosa fa | Default |
 | --- | --- | --- |

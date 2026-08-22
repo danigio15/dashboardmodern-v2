@@ -57,7 +57,17 @@ def main() -> None:
             required = {
                 "__init__.py",
                 "manifest.json",
+                # Da HA 2026.3 l'icona dell'integrazione la serve Home Assistant
+                # da qui: `/api/brands/integration/<dominio>/<file>` guarda dentro
+                # `custom_components/<dominio>/brand/` prima di chiedere al
+                # catalogo, e gli basta che la cartella esista. Se queste non
+                # partono, l'integrazione installata resta senza icona.
                 "brand/icon.png",
+                "brand/icon@2x.png",
+                "brand/logo.png",
+                "brand/logo@2x.png",
+                "brand/dark_icon.png",
+                "brand/dark_icon@2x.png",
                 "frontend/panel.js",
                 "frontend/dashboard-card.js",
                 "frontend/legacy/dashboard.html",
