@@ -336,6 +336,19 @@ function openShutterEditor(item, index) {
       );
       return;
     }
+    /* La stessa entita' in piu' caselle e' UNA copertura, non tre.
+     *
+     * La pagina accorpa apposta i duplicati — la stessa tapparella scritta
+     * tre volte non diventa tre cursori — ma il modale lasciava salvare in
+     * silenzio, e chi provava «i 3 cursori» con un'unica cover ripetuta si
+     * ritrovava una card sola senza che niente gli dicesse perche'. */
+    if (new Set(compilate).size !== compilate.length) {
+      errore.textContent = t(
+        "La stessa entità è scritta in più caselle: è una copertura sola. Per avere più cursori sulla stessa finestra servono entità cover diverse (tapparella, tenda, tenda da sole).",
+        "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).",
+      );
+      return;
+    }
     persist("shutter", list);
     close();
     root.editorSwitch?.(currentTab("shutter"));

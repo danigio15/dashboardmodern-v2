@@ -991,6 +991,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "The PIN will be requested to confirm the operation",
   "The preview uses the same card artwork for the selected appliance type.",
   "The preview uses the same room-icon renderer as the dashboard.",
+  "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).",
   "The same room can be selected multiple times. Each association can have its own name, temperature entity and humidity entity.",
   "The selected model does not belong to the chosen brand.",
   "The selected period does not contain data yet.",

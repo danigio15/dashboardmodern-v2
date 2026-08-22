@@ -406,6 +406,8 @@ export default Object.freeze({
   "Enter a load name": "부하 이름을 입력하세요",
   "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "이름과 셔터·커튼·차양 중 최소 한 개의 cover.* 엔터티를 입력하세요.",
   "Every filled box must be a cover.* entity.": "채운 각 칸은 cover.* 엔터티여야 합니다.",
+  "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
+    "같은 엔티티가 여러 칸에 적혀 있습니다. 그것은 하나의 커버입니다. 같은 창에 여러 슬라이더를 표시하려면 서로 다른 cover 엔티티(셔터, 커튼, 어닝)가 필요합니다.",
   "Enter a name and a valid entity.": "이름과 올바른 엔티티를 입력하세요.",
   "Enter a name.": "이름을 입력하세요.",
   "ENTER PIN": "PIN 입력",

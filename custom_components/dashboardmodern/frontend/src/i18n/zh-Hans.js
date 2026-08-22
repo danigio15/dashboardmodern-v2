@@ -406,6 +406,8 @@ export default Object.freeze({
   "Enter a load name": "请输入负载名称",
   "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "请输入名称，并至少填写卷帘、窗帘或遮阳篷中的一个 cover.* 实体。",
   "Every filled box must be a cover.* entity.": "每个已填写的输入框都必须是 cover.* 实体。",
+  "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
+    "同一个实体写在了多个栏里：那只是一个卷帘。要在同一扇窗上显示多个滑块，需要不同的 cover 实体（卷帘、窗帘、遮阳篷）。",
   "Enter a name and a valid entity.": "请输入名称和有效的实体。",
   "Enter a name.": "请输入名称。",
   "ENTER PIN": "输入 PIN 码",

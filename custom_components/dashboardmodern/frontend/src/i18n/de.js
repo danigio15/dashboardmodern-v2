@@ -406,6 +406,8 @@ export default Object.freeze({
   "Enter a load name": "Gib den Namen des Verbrauchers ein",
   "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "Gib einen Namen und mindestens eine cover.*-Entität an: Rollladen, Vorhang oder Markise.",
   "Every filled box must be a cover.* entity.": "Jedes ausgefüllte Feld muss eine cover.*-Entität sein.",
+  "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
+    "Dieselbe Entität steht in mehreren Feldern: das ist EINE Abdeckung. Für mehrere Schieberegler am selben Fenster braucht es verschiedene cover-Entitäten (Rollladen, Vorhang, Markise).",
   "Enter a name and a valid entity.": "Gib einen Namen und eine gültige Entität ein.",
   "Enter a name.": "Gib einen Namen ein.",
   "ENTER PIN": "PIN EINGEBEN",

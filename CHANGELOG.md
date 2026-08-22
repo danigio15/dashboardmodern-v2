@@ -40,6 +40,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   la Personalizzazione legge le auto nello stesso ordine di precedenza della
   sezione EV invece che al contrario.
 
+- **La stessa entità in tre caselle salvava in silenzio, e usciva un cursore
+  solo.** La pagina accorpa apposta i duplicati — la stessa tapparella scritta
+  tre volte è una copertura, non tre — ma il modale lasciava salvare senza dire
+  niente, e chi provava «i 3 cursori» ripetendo l'unica cover che ha si trovava
+  una card sola senza spiegazione. Adesso il salvataggio si ferma e lo dice:
+  per più cursori sulla stessa finestra servono entità cover diverse.
+
 - **Il tema scuro non aveva mai posseduto il fondo.** «Scuro» scuriva le card
   una per una, ma le variabili di base — il fondo della pagina, i testi, i
   bordi — non avevano una versione notturna: card scure su pagina bianca, come

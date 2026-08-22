@@ -581,6 +581,7 @@ export const SOURCE_INDEX = Object.freeze({
   "La maschera qui sopra configura la prima vasca. Se ne hai piu' di una, aggiungi qui le altre: ognuna ha i suoi sensori, i suoi comandi e la sua filtrazione.": "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.",
   "La mia auto": "My car",
   "La stanza selezionata ha già sensori temperatura configurati.": "The selected room already has temperature sensors configured.",
+  "La stessa entità è scritta in più caselle: è una copertura sola. Per avere più cursori sulla stessa finestra servono entità cover diverse (tapparella, tenda, tenda da sole).": "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).",
   "La stessa stanza può essere selezionata più volte. Ogni associazione può avere un nome e sensori temperatura/umidità propri.": "The same room can be selected multiple times. Each association can have its own name, temperature entity and humidity entity.",
   "Lascia vuoto e il cerchio vale la somma dei dispositivi qui sotto. Compilalo solo se hai una pinza amperometrica sull'intera linea.": "Leave it empty and the circle is the total of the appliances below. Fill it in only if a clamp meter covers the whole line.",
   "Lavanderia": "Laundry",

@@ -406,6 +406,8 @@ export default Object.freeze({
   "Enter a load name": "Введите название нагрузки",
   "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "Укажите название и хотя бы одну сущность cover.*: рольставни, штора или маркиза.",
   "Every filled box must be a cover.* entity.": "Каждое заполненное поле должно быть сущностью cover.*.",
+  "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
+    "Одна и та же сущность указана в нескольких полях: это одна штора. Чтобы получить несколько ползунков на одном окне, нужны разные сущности cover (рольставни, штора, маркиза).",
   "Enter a name and a valid entity.": "Введите имя и корректную сущность.",
   "Enter a name.": "Введите имя.",
   "ENTER PIN": "ВВЕДИТЕ PIN",
