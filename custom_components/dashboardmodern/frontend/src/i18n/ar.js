@@ -404,8 +404,10 @@ export default Object.freeze({
   "Energy today": "طاقة اليوم",
   "Enter a label.": "اكتب تسمية.",
   "Enter a load name": "اكتب اسم الحِمل",
-  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "أدخل اسمًا وكيان cover.* واحدًا على الأقل من بين الستارة المعدنية والستارة والمظلة.",
-  "Every filled box must be a cover.* entity.": "يجب أن يكون كل حقل معبأ كيان cover.*.",
+  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.":
+    "أدخل اسمًا وكيان cover.* أو switch.* واحدًا على الأقل من بين الستارة المعدنية والستارة والمظلة.",
+  "Every filled box must be a cover.* or switch.* entity.":
+    "يجب أن تكون كل خانة معبأة كيان cover.* أو switch.*.",
   "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
     "الكيان نفسه مكتوب في أكثر من خانة: هذا غطاء واحد. للحصول على عدة منزلقات على النافذة نفسها، تلزم كيانات cover مختلفة (ستارة معدنية، ستارة، مظلة).",
   "Enter a name and a valid entity.": "اكتب اسمًا وكيانًا صالحًا.",

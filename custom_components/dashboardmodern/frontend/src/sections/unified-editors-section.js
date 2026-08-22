@@ -324,15 +324,18 @@ function openShutterEditor(item, index) {
     const errore = form.querySelector("[data-error]");
     if (!list[index].name || !compilate.length) {
       errore.textContent = t(
-        "Inserisci un nome e almeno una entità cover.* fra tapparella, tenda e tenda da sole.",
-        "Enter a name and at least one cover.* entity among shutter, curtain and awning.",
+        "Inserisci un nome e almeno una entità cover.* o switch.* fra tapparella, tenda e tenda da sole.",
+        "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.",
       );
       return;
     }
-    if (!compilate.every((valore) => /^cover\./i.test(valore))) {
+    /* Anche uno switch e' una copertura legittima: molte tapparelle sono
+     * comandate da un rele' — l'entita' e' switch.*, on la apre, off la
+     * chiude. Il disegno la tratta come copertura senza posizione. */
+    if (!compilate.every((valore) => /^(cover|switch)\./i.test(valore))) {
       errore.textContent = t(
-        "Ogni casella compilata deve essere un'entità cover.*.",
-        "Every filled box must be a cover.* entity.",
+        "Ogni casella compilata deve essere un'entità cover.* o switch.*.",
+        "Every filled box must be a cover.* or switch.* entity.",
       );
       return;
     }

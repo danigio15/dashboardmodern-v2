@@ -404,8 +404,10 @@ export default Object.freeze({
   "Energy today": "Energie heute",
   "Enter a label.": "Gib eine Bezeichnung ein.",
   "Enter a load name": "Gib den Namen des Verbrauchers ein",
-  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "Gib einen Namen und mindestens eine cover.*-Entität an: Rollladen, Vorhang oder Markise.",
-  "Every filled box must be a cover.* entity.": "Jedes ausgefüllte Feld muss eine cover.*-Entität sein.",
+  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.":
+    "Gib einen Namen und mindestens eine cover.*- oder switch.*-Entität für Rollladen, Vorhang oder Markise an.",
+  "Every filled box must be a cover.* or switch.* entity.":
+    "Jedes ausgefüllte Feld muss eine cover.*- oder switch.*-Entität sein.",
   "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
     "Dieselbe Entität steht in mehreren Feldern: das ist EINE Abdeckung. Für mehrere Schieberegler am selben Fenster braucht es verschiedene cover-Entitäten (Rollladen, Vorhang, Markise).",
   "Enter a name and a valid entity.": "Gib einen Namen und eine gültige Entität ein.",

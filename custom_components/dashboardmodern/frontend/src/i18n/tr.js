@@ -404,8 +404,10 @@ export default Object.freeze({
   "Energy today": "Bugünkü enerji",
   "Enter a label.": "Bir etiket yaz.",
   "Enter a load name": "Yükün adını yaz",
-  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "Bir ad ve panjur, perde ya da tente arasından en az bir cover.* varlığı gir.",
-  "Every filled box must be a cover.* entity.": "Doldurulan her kutu bir cover.* varlığı olmalı.",
+  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.":
+    "Bir ad ve panjur, perde veya tente için en az bir cover.* veya switch.* varlığı girin.",
+  "Every filled box must be a cover.* or switch.* entity.":
+    "Doldurulan her kutu bir cover.* veya switch.* varlığı olmalıdır.",
   "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
     "Aynı varlık birden fazla kutuya yazılmış: bu tek bir örtüdür. Aynı pencerede birden fazla kaydırıcı için farklı cover varlıkları gerekir (panjur, perde, tente).",
   "Enter a name and a valid entity.": "Bir ad ve geçerli bir varlık yaz.",

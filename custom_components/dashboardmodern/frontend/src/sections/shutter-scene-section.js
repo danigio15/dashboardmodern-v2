@@ -59,12 +59,18 @@ function floorOrder() {
   return Array.isArray(names) ? names : [];
 }
 
+/* Un rele' che comanda la tapparella: on la apre, off la chiude. */
+const eUnoSwitch = (entity) => /^switch\./i.test(clean(entity));
+
 function coverView(item = {}, distingui = false) {
   const entity = clean(item.entity || item.entities?.[0]);
   if (!entity) return null;
   const current = allStates()[entity];
-  const status = clean(current?.state).toLowerCase() || "unknown";
-  const raw = current?.attributes?.current_position;
+  let status = clean(current?.state).toLowerCase() || "unknown";
+  /* Lo switch parla on/off: tradotto nella lingua delle coperture, cosi' la
+   * pastiglia, il conteggio e il disegno non devono saperne niente. */
+  if (eUnoSwitch(entity)) status = status === "on" ? "open" : status === "off" ? "closed" : status;
+  const raw = eUnoSwitch(entity) ? null : current?.attributes?.current_position;
   const reported = raw == null ? null : Math.max(0, Math.min(100, Number(raw)));
   const hasPosition = Number.isFinite(reported);
   const features = Number(current?.attributes?.supported_features) || 0;
@@ -430,7 +436,27 @@ function syncCover(card, cover) {
 function insegnaComandoDiGruppo() {
   const originale = root.cdTappCmd;
   if (typeof originale !== "function" || originale.__dmTutteLeCoperture) return false;
+  /* Il runtime manda servizi cover.*: a un rele' vanno tradotti. Apri e'
+   * turn_on, chiudi e' turn_off, e lo stop per uno switch non esiste. */
+  const comandaSwitch = (entity, servizio) => {
+    if (servizio === "stop_cover") return true; // niente da fermare
+    const service = servizio === "open_cover" ? "turn_on" : "turn_off";
+    try {
+      root
+        .dmCallHaService?.("switch", service, { entity_id: entity })
+        ?.catch?.(() => {});
+    } catch (_error) {}
+    return true;
+  };
+
   const avvolta = function cdTappCmd(button, ...resto) {
+    /* Un bottone la cui destinazione e' un rele' non passa dal runtime: i
+     * servizi cover su uno switch cadrebbero nel vuoto. */
+    const cartaSingola = button?.closest?.("[data-tapp]");
+    const entitaSingola = clean(cartaSingola?.getAttribute?.("data-tapp"));
+    if (!button?.getAttribute?.("data-all") && eUnoSwitch(entitaSingola) && !cartaSingola?.hasAttribute?.("data-dm-covers")) {
+      return comandaSwitch(entitaSingola, button.getAttribute("data-svc")) ? undefined : originale.call(this, button, ...resto);
+    }
     /* Sui bottoni di una card con piu' coperture, "apri" apre la finestra
      * intera: il comando parte una volta per copertura, con la stessa
      * chiamata di servizio del runtime. */
@@ -439,8 +465,13 @@ function insegnaComandoDiGruppo() {
       const servizio = button.getAttribute("data-svc");
       for (const barra of cardMulti.querySelectorAll("[data-dm-bar]")) {
         try {
+          const bersaglio = barra.getAttribute("data-dm-bar");
+          if (eUnoSwitch(bersaglio)) {
+            comandaSwitch(bersaglio, servizio);
+            continue;
+          }
           const carta = doc.createElement("div");
-          carta.setAttribute("data-tapp", barra.getAttribute("data-dm-bar"));
+          carta.setAttribute("data-tapp", bersaglio);
           const finto = doc.createElement("button");
           finto.setAttribute("data-svc", servizio);
           carta.append(finto);
@@ -453,6 +484,10 @@ function insegnaComandoDiGruppo() {
     const servizio = button.getAttribute("data-svc");
     for (const { entity } of configuredCovers().flatMap((item) => coverEntries(item))) {
       try {
+        if (eUnoSwitch(entity)) {
+          comandaSwitch(entity, servizio);
+          continue;
+        }
         const carta = doc.createElement("div");
         carta.setAttribute("data-tapp", entity);
         const finto = doc.createElement("button");

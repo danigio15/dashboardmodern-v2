@@ -404,8 +404,10 @@ export default Object.freeze({
   "Energy today": "Énergie aujourd'hui",
   "Enter a label.": "Saisis un libellé.",
   "Enter a load name": "Saisis le nom de la charge",
-  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "Saisis un nom et au moins une entité cover.* parmi volet, rideau et store.",
-  "Every filled box must be a cover.* entity.": "Chaque case remplie doit être une entité cover.*.",
+  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.":
+    "Saisis un nom et au moins une entité cover.* ou switch.* parmi volet, rideau et store.",
+  "Every filled box must be a cover.* or switch.* entity.":
+    "Chaque case remplie doit être une entité cover.* ou switch.*.",
   "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
     "La même entité est écrite dans plusieurs cases : c'est une seule ouverture. Pour avoir plusieurs curseurs sur la même fenêtre, il faut des entités cover différentes (volet, rideau, store).",
   "Enter a name and a valid entity.": "Saisis un nom et une entité valide.",

@@ -404,8 +404,10 @@ export default Object.freeze({
   "Energy today": "今日の電力量",
   "Enter a label.": "ラベルを入力してください。",
   "Enter a load name": "負荷の名前を入力してください",
-  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "名前と、シャッター・カーテン・オーニングのうち少なくとも 1 つの cover.* エンティティを入力してください。",
-  "Every filled box must be a cover.* entity.": "入力した各欄は cover.* エンティティである必要があります。",
+  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.":
+    "名前と、シャッター・カーテン・オーニングのいずれかに cover.* または switch.* エンティティを1つ以上入力してください。",
+  "Every filled box must be a cover.* or switch.* entity.":
+    "入力した欄はすべて cover.* または switch.* エンティティである必要があります。",
   "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
     "同じエンティティが複数の欄に書かれています。それは1つのカバーです。同じ窓に複数のスライダーを出すには、異なるcoverエンティティ（シャッター、カーテン、オーニング）が必要です。",
   "Enter a name and a valid entity.": "名前と有効なエンティティを入力してください。",

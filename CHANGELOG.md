@@ -40,6 +40,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   la Personalizzazione legge le auto nello stesso ordine di precedenza della
   sezione EV invece che al contrario.
 
+- **Le caselle della finestra accettano anche uno switch.** Molte tapparelle
+  vere sono comandate da un relè: l'entità è `switch.*`, on la apre, off la
+  chiude, e una posizione non esiste. La casella lo accetta, la card lo disegna
+  nella lingua delle coperture — aperta, chiusa — e i bottoni gli parlano nella
+  sua: apri è `turn_on`, chiudi è `turn_off`, e lo stop per un relè non parte
+  proprio. Il cursore di posizione non c'è, perché non c'è una posizione.
+
 - **La stessa entità in tre caselle salvava in silenzio, e usciva un cursore
   solo.** La pagina accorpa apposta i duplicati — la stessa tapparella scritta
   tre volte è una copertura, non tre — ma il modale lasciava salvare senza dire

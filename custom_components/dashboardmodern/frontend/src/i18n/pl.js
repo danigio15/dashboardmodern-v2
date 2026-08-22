@@ -404,8 +404,10 @@ export default Object.freeze({
   "Energy today": "Energia dzisiaj",
   "Enter a label.": "Wpisz etykietę.",
   "Enter a load name": "Wpisz nazwę odbiornika",
-  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "Podaj nazwę i co najmniej jedną encję cover.*: roleta, zasłona lub markiza.",
-  "Every filled box must be a cover.* entity.": "Każde wypełnione pole musi być encją cover.*.",
+  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.":
+    "Wpisz nazwę i co najmniej jedną encję cover.* lub switch.* dla rolety, zasłony lub markizy.",
+  "Every filled box must be a cover.* or switch.* entity.":
+    "Każde wypełnione pole musi być encją cover.* lub switch.*.",
   "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
     "Ta sama encja jest wpisana w kilku polach: to jedna osłona. Aby mieć kilka suwaków na tym samym oknie, potrzebne są różne encje cover (roleta, zasłona, markiza).",
   "Enter a name and a valid entity.": "Wpisz nazwę i poprawną encję.",
