@@ -68,6 +68,31 @@ export function restoreDeclarations(element, prima = []) {
   return true;
 }
 
+/* Cercare anche dentro le radici ombra.
+ *
+ * `querySelectorAll` si ferma al confine di una radice ombra, e Home Assistant
+ * e' fatto di quelle: il velo del chiosco, per non restare imprigionato, va a
+ * togliere `transform`, `filter` e compagnia proprio agli antenati che stanno
+ * la' dentro. Fermarsi al documento avrebbe voluto dire rimettere a posto solo
+ * `<html>` e `<body>` e lasciare modificato tutto il resto — cioe' fare meta'
+ * pulizia e crederla finita.
+ *
+ * Si scende una radice per volta, e si tiene il conto di dove si e' gia'
+ * passati: un pezzo di interfaccia puo' comparire da piu' parti, e senza il
+ * conto si girerebbe in tondo. */
+function raccogliMarcati(radice, viste, uscita, profondita = 0) {
+  if (!radice || profondita > 50 || viste.has(radice)) return uscita;
+  viste.add(radice);
+  const diretti = radice.querySelectorAll?.(`[${UNDO_ATTR}]`);
+  if (diretti?.length) uscita.push(...diretti);
+  const tutti = radice.querySelectorAll?.("*");
+  if (!tutti) return uscita;
+  for (const nodo of tutti) {
+    if (nodo.shadowRoot) raccogliMarcati(nodo.shadowRoot, viste, uscita, profondita + 1);
+  }
+  return uscita;
+}
+
 /**
  * Rimette a posto un documento leggendo solo lui.
  *
@@ -78,10 +103,10 @@ export function restoreDeclarations(element, prima = []) {
  * Restituisce quanti elementi ha rimesso a posto.
  */
 export function releaseMarkedElements(target, extraAttributes = []) {
-  const nodi = target?.querySelectorAll?.(`[${UNDO_ATTR}]`);
-  if (!nodi?.length) return 0;
+  const nodi = raccogliMarcati(target, new Set(), []);
+  if (!nodi.length) return 0;
   let rimessi = 0;
-  for (const nodo of [...nodi]) {
+  for (const nodo of nodi) {
     restoreDeclarations(nodo, leggiPromemoria(nodo));
     for (const attributo of extraAttributes) nodo.removeAttribute?.(attributo);
     rimessi += 1;

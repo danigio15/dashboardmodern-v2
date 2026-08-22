@@ -73,3 +73,26 @@ test("le caselle dei due versi restano due, e distinte", () => {
   assert.equal(caselle(root, "battery.daily_charged_energy").length, 1);
   assert.equal(caselle(root, "battery.daily_discharged_energy").length, 1);
 });
+
+/* E il rimando parla la lingua della plancia.
+ *
+ * Prima la frase si costruiva intera e poi si dava al traduttore, che nel
+ * vocabolario cercava una frase che nel vocabolario non c'e' — il nome del
+ * campo e quello del riquadro cambiano da riga a riga — e la restituiva tale e
+ * quale: in inglese si leggeva «Potenza: e' una sola, si imposta in «Rete ·
+ * prelievo».». Adesso si compone di pezzi gia' tradotti ciascuno per conto suo.
+ */
+test("in inglese il rimando e' in inglese", () => {
+  const { document, root } = creaDocumentoFinto();
+  renderEnergyEditor(document, root, {}, [], {}, "en", {});
+  const rimandi = root.queryAll((nodo) => Boolean(nodo.dataset?.energyElsewhere));
+  assert.ok(rimandi.length, "nessun rimando stampato");
+  for (const rimando of rimandi) {
+    assert.match(rimando.textContent, /there is only one, set it under/);
+    assert.doesNotMatch(rimando.textContent, /si imposta in/, "e' rimasto in italiano");
+    assert.doesNotMatch(rimando.textContent, /Potenza/, "l'etichetta non e' tradotta");
+  }
+  // Il riquadro citato si chiama col suo nome inglese, non con quello italiano.
+  const rete = rimandi.find((nodo) => nodo.dataset.energyElsewhere === "grid.power");
+  assert.match(rete.textContent, /Grid · import/);
+});

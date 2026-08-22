@@ -163,3 +163,52 @@ test("chi smonta la plancia non si appoggia soltanto al figlio", () => {
   assert.ok(pulizia > chiamata, "prima il figlio, poi quello che gli e' sfuggito");
   assert.ok(rimozione > pulizia, "e tutto prima che la cornice sparisca");
 });
+
+/* E dentro le radici ombra, che e' dove sta la roba che conta.
+ *
+ * `querySelectorAll` si ferma al confine di una radice ombra, e Home Assistant
+ * e' fatto di quelle: il velo del chiosco, per non restare imprigionato, toglie
+ * `transform` e compagnia proprio agli antenati che stanno la' dentro.
+ * Fermarsi al documento voleva dire rimettere a posto `<html>` e `<body>` e
+ * lasciare modificato tutto il resto — mezza pulizia creduta finita.
+ */
+function radiceFinta(elementi, figli = []) {
+  return {
+    querySelectorAll: (selettore) =>
+      selettore === `[${UNDO_ATTR}]`
+        ? elementi.filter((e) => e.attributi.has(UNDO_ATTR))
+        : figli,
+  };
+}
+
+test("si rimette a posto anche quello che sta dentro una radice ombra", () => {
+  const dentro = elementoFinto({ transform: "translateX(-100%)" });
+  markUndo(dentro, [{ nome: "transform", valore: "translateX(-100%)", priorita: "" }]);
+  dentro.style.setProperty("transform", "none", "important");
+
+  const ospite = { shadowRoot: radiceFinta([dentro], []) };
+  const html = elementoFinto({});
+  markUndo(html, [{ nome: "overflow", valore: "auto", priorita: "" }]);
+  html.style.setProperty("overflow", "hidden", "important");
+  const documento = radiceFinta([html], [ospite]);
+
+  assert.equal(releaseMarkedElements(documento), 2, "vanno rimessi tutti e due");
+  assert.equal(html.style.getPropertyValue("overflow"), "auto");
+  assert.equal(
+    dentro.style.getPropertyValue("transform"),
+    "translateX(-100%)",
+    "l'antenato dentro l'ombra e' rimasto modificato",
+  );
+});
+
+test("una radice che ricompare non manda in tondo", () => {
+  // Lo stesso pezzo di interfaccia puo' affacciarsi da piu' parti.
+  const dentro = elementoFinto({});
+  markUndo(dentro, [{ nome: "filter", valore: "", priorita: "" }]);
+  dentro.style.setProperty("filter", "none", "important");
+  const condivisa = radiceFinta([dentro], []);
+  const uno = { shadowRoot: condivisa };
+  const due = { shadowRoot: condivisa };
+  assert.equal(releaseMarkedElements(radiceFinta([], [uno, due])), 1, "una volta sola");
+  assert.equal(dentro.style.getPropertyValue("filter"), "");
+});

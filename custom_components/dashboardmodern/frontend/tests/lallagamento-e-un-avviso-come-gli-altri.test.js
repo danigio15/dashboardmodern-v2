@@ -113,3 +113,41 @@ test("la sezione e' installata insieme agli altri avvisi", () => {
     "va installata dopo l'editor degli avvisi",
   );
 });
+
+/* Una voce che entra deve poter uscire.
+ *
+ * L'elenco degli avvisi lo stampa il runtime da una mappa di gruppi scritta a
+ * mano che si ferma ai suoi cinque: un allagamento salvato contava nel quadro e
+ * si apriva nel popup, ma dalla configurazione spariva — non si poteva piu'
+ * rinominare, e soprattutto non si poteva piu' togliere.
+ */
+test("la configurazione stampa le righe degli allagamenti", () => {
+  const sezione = leggi("sections/flood-alerts-section.js");
+  assert.match(sezione, /ensureFloodEditorRows/, "le righe non vengono stampate");
+  assert.match(sezione, /data-dm-flood-del/, "manca il cestino");
+  // Il cestino e' quello del runtime: sa distinguere una voce aggiunta da una
+  // arrivata da sola, e riscriverlo a mano vorrebbe dire sbagliarlo.
+  assert.match(sezione, /edDelAvviso\?\.\(FLOOD_GROUP, id\)/, "il cestino non riusa quello vero");
+});
+
+/* Togliere l'ultimo non fa ripartire il rilevamento.
+ *
+ * «La lista non c'e' ancora» sembrava il modo naturale di dire «non ho ancora
+ * guardato», ma il runtime cancella la chiave quando resta vuota: al
+ * ricaricamento successivo il rilevamento sarebbe ripartito rimettendo dentro
+ * proprio quello che era stato tolto.
+ */
+test("tolto l'ultimo, non ne ricompaiono", () => {
+  const states = { "binary_sensor.perdita": bagnato };
+  // La chiave e' sparita col cestino, ma il primo giro e' gia' stato fatto.
+  const { entities, primoAvvio } = floodEntities({}, {}, states, true);
+  assert.deepEqual(entities, [], "il rilevamento e' ripartito da solo");
+  assert.equal(primoAvvio, false);
+});
+
+test("ma al primissimo avvio guarda ancora", () => {
+  const states = { "binary_sensor.perdita": bagnato };
+  const { entities, primoAvvio } = floodEntities({}, {}, states, false);
+  assert.deepEqual(entities, ["binary_sensor.perdita"]);
+  assert.equal(primoAvvio, true, "il primo giro va segnato");
+});

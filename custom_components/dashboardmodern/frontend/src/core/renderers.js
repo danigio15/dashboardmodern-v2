@@ -200,6 +200,9 @@ const ENERGY_GROUPS = [
 
 const ENERGY_ICONS = { house: "🏠", grid: "🔌", solar: "☀️", battery: "🔋" };
 const ENERGY_EN = Object.freeze({
+  // Il collante del rimando: il nome del campo e quello del riquadro arrivano
+  // gia' tradotti, questa e' l'unica parte che va detta anche in inglese.
+  "è una sola, si imposta in": "there is only one, set it under",
   Casa: "Home",
   Rete: "Grid",
   "Rete · prelievo": "Grid · import",
@@ -618,10 +621,19 @@ export function renderEnergyEditor(
         const rimando = document.createElement("p");
         rimando.className = "ed-hint dm-energy-elsewhere";
         rimando.dataset.energyElsewhere = chiave;
-        rimando.textContent = energyLabel(
-          `${sourceLabel}: e' una sola, si imposta in «${casaDelCampo.get(chiave)}».`,
+        /* La frase si compone di pezzi gia' tradotti, non si traduce intera.
+         *
+         * Costruirla e poi passarla al traduttore voleva dire cercare nel
+         * vocabolario una frase che nel vocabolario non c'e' — il nome del
+         * campo e quello del riquadro cambiano da riga a riga — e riceverla
+         * indietro tale e quale: in inglese, in tedesco e in tutte le altre si
+         * sarebbe letto «Potenza: e' una sola, si imposta in «Rete ·
+         * prelievo».». Il nome del campo e quello del riquadro sono gia'
+         * tradotti ciascuno per conto suo; qui si traduce solo il collante. */
+        rimando.textContent = `${energyLabel(sourceLabel, locale)}: ${energyLabel(
+          "è una sola, si imposta in",
           locale,
-        );
+        )} «${energyLabel(casaDelCampo.get(chiave), locale)}».`;
         body.append(rimando);
         continue;
       }
