@@ -17,7 +17,7 @@
  * Niente qui scrive dati: la posizione della tapparella resta di chi la
  * disegnava, il contatto si legge e basta.
  */
-import { COVER_KINDS, coverKindLabel } from "../core/cover-kind.js";
+import { coverEntries, coverKindLabel } from "../core/cover-kind.js";
 import { shutterWindowModel } from "../core/shutter-window.js";
 import { allStates, clean, dashboardStore, doc, installStyle, readJson, root, t } from "./shared.js";
 
@@ -37,10 +37,22 @@ function covers() {
   return Array.isArray(legacy) ? legacy : [];
 }
 
+/* La riga di configurazione a cui appartiene una card.
+ *
+ * Un infisso puo' produrre piu' di una card — tapparella, tenda, tenda da sole
+ * — e il contatto della finestra e' uno solo, scritto sulla riga. Cercando
+ * soltanto fra le tapparelle, le card in piu' non ritrovavano la loro riga:
+ * disegnavano la finestra sempre chiusa e restavano senza la pastiglia
+ * «finestra aperta», mentre la card principale dello stesso serramento la
+ * mostrava. */
 function coverForCard(card) {
   const entity = clean(card.getAttribute("data-tapp"));
   if (!entity) return null;
-  return covers().find((item) => clean(item?.entity) === entity) || null;
+  return (
+    covers().find((item) =>
+      coverEntries(item).some((entry) => clean(entry.entity) === entity),
+    ) || null
+  );
 }
 
 /* I pezzi che si aggiungono al vano, una volta sola.
@@ -131,67 +143,78 @@ export function paintShutterWindows(scope = doc?.getElementById("page-tapparelle
 
 /* ── il campo in Config ─────────────────────────────────────────────────── */
 
-/* Il contatto si configura dove si configura la tapparella.
+/* Un infisso, quattro caselle.
  *
- * Il modulo delle righe di sezione veste da solo i campi che chiedono
- * un'entita' — pastiglia, matita, cestino — e li riconosce dalla lente accanto
- * all'input. Qui basta quindi stampare la stessa coppia che stampa il runtime,
- * e il resto arriva. */
+ * La scheda chiedeva una entita' sola piu' un menu che diceva di che tipo
+ * fosse. Ma sulla stessa finestra ci stanno insieme la tapparella, la tenda e
+ * la tenda da sole, e chi le ha tutte non poteva dirlo: ne sceglieva una. Le
+ * caselle adesso sono una per funzione — e il menu del tipo non serve piu',
+ * perche' il tipo lo dice la casella in cui hai scritto.
+ *
+ * Il runtime stampa la prima casella e la stanza; queste si aggiungono dopo,
+ * con la stessa coppia campo + lente, e il resto — pastiglia, matita, cestino —
+ * arriva dal modulo delle righe come su ogni altra scheda. */
+/* Le etichette non sono parole nuove: sono quelle che il tipo di copertura ha
+ * gia' — «Tenda», «Tenda da sole» — piu' quella del contatto, che la finestra
+ * della matita stampa con le stesse parole. Un vocabolario che esiste gia' non
+ * si riscrive: si chiama. */
+function caselle() {
+  return [
+    ["ed-tp-tenda", coverKindLabel("tenda"), "cover.tenda_salotto"],
+    ["ed-tp-tendasole", coverKindLabel("tenda_sole"), "cover.tenda_da_sole"],
+    [
+      "ed-tp-contact",
+      t("Sensore apertura infisso", "Window contact sensor"),
+      "binary_sensor.finestra_camera",
+    ],
+  ];
+}
+
+function casella(id, etichetta, esempio) {
+  const holder = doc.createElement("label");
+  holder.className = "ed-slot dm-tw-slot";
+  holder.dataset.dmTwSlot = id;
+  holder.innerHTML =
+    `<span class="ed-slot-lbl">${etichetta}</span>` +
+    '<span class="ed-form-row">' +
+    `<input id="${id}" class="ed-input mono" autocomplete="off" data-entity-input="true"` +
+    ` placeholder="${esempio}">` +
+    `<button type="button" class="dm-entity-picker" data-entity-target="${id}"` +
+    ` aria-label="${t("Seleziona entità", "Choose entity")}">🔍</button>` +
+    "</span>";
+  return holder;
+}
+
 export function ensureContactField(body = doc?.getElementById("ed-body")) {
   const room = body?.querySelector?.("#ed-tp-room");
   if (!room) return false;
-  if (body.querySelector("#ed-tp-contact")) return false;
-  const holder = doc.createElement("label");
-  holder.className = "ed-slot dm-tw-contact-slot";
-  holder.innerHTML =
-    `<span class="ed-slot-lbl">${t("Sensore apertura infisso", "Window contact sensor")}</span>` +
-    '<span class="ed-form-row">' +
-    '<input id="ed-tp-contact" class="ed-input mono" autocomplete="off" data-entity-input="true"' +
-    ' placeholder="binary_sensor.finestra_camera">' +
-    `<button type="button" class="dm-entity-picker" data-entity-target="ed-tp-contact"` +
-    ` aria-label="${t("Seleziona entità", "Choose entity")}">🔍</button>` +
-    "</span>";
-  room.closest("label, .ed-slot, div")?.after?.(holder) || room.after(holder);
-  return true;
-}
-
-/* Il tipo si sceglie dove si sceglie la tapparella.
- *
- * La sezione sa disegnare anche le tende — si scostano di lato invece di
- * scendere — e il tipo, quando Home Assistant non lo dice da se', si dichiara.
- * Quella scelta pero' esisteva solo nella finestra della matita: chi apriva la
- * scheda Tapparelle non aveva modo di dire che quella e' una tenda, e le tende
- * dalla scheda che le riguarda non si vedevano. Stessa coppia di campi del
- * resto del modulo, stesso posto dell'altra finestra: dopo l'entita'. */
-function kindOptionsMarkup(dichiarato = "") {
-  const voci = [
-    ["", t("Come dice Home Assistant", "As Home Assistant says")],
-    ...COVER_KINDS.map((kind) => [kind, coverKindLabel(kind)]),
-  ];
-  return voci
-    .map(
-      ([valore, etichetta]) =>
-        `<option value="${valore}"${valore === dichiarato ? " selected" : ""}>${etichetta}</option>`,
-    )
-    .join("");
-}
-
-export function ensureKindField(body = doc?.getElementById("ed-body")) {
-  const entity = body?.querySelector?.("#ed-tp-ent");
-  if (!entity) return false;
-  if (body.querySelector("#ed-tp-kind")) return false;
-  const holder = doc.createElement("label");
-  holder.className = "ed-slot dm-tw-kind-slot";
-  holder.innerHTML =
-    `<span class="ed-slot-lbl">${t("Tipo", "Type")}</span>` +
-    `<select id="ed-tp-kind" class="ed-input">${kindOptionsMarkup()}</select>` +
-    `<small>${t(
-      "Una tapparella scende dall'alto, una tenda si scosta di lato: la card disegna quella che hai. Se non scegli, vale quello che dice Home Assistant.",
-      "A roller shutter comes down, a curtain parts sideways: the card draws the one you have. Leave it be and Home Assistant decides.",
-    )}</small>`;
-  const riga = entity.closest("label, .ed-slot") || entity.parentElement;
-  riga?.after?.(holder);
-  return Boolean(holder.parentElement);
+  const dopo = room.closest("label, .ed-slot, div") || room;
+  let ultimo = dopo;
+  let aggiunte = 0;
+  for (const [id, etichetta, esempio] of caselle()) {
+    let campo = body.querySelector(`#${id}`);
+    if (!campo) {
+      const holder = casella(id, etichetta, esempio);
+      ultimo.after?.(holder);
+      campo = holder;
+      aggiunte += 1;
+    } else {
+      campo = campo.closest("label, .ed-slot") || campo;
+    }
+    ultimo = campo;
+  }
+  /* La prima casella e' quella del runtime: le si da' il nome che adesso le
+   * spetta, perche' non e' piu' «l'entita'» ma quella della tapparella. */
+  const primaria = body.querySelector("#ed-tp-ent");
+  const etichetta = primaria?.closest(".ed-slot")?.querySelector(".ed-slot-lbl");
+  if (etichetta) {
+    const nome = t("Entità tapparella", "Cover entity");
+    if (clean(etichetta.textContent) !== nome) etichetta.textContent = nome;
+  }
+  /* Il menu del tipo non ha piu' ragione di esistere: se e' rimasto da una
+   * versione precedente se ne va, o direbbe una cosa che nessuno legge. */
+  body.querySelector("#ed-tp-kind")?.closest("label, .ed-slot")?.remove();
+  return aggiunte > 0;
 }
 
 function schedule() {
@@ -200,7 +223,6 @@ function schedule() {
     state.frame = 0;
     paintShutterWindows();
     ensureContactField();
-    ensureKindField();
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
 }

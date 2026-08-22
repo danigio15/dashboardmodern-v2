@@ -30,7 +30,7 @@ export function canonicalClimateType(value) {
  */
 import { pick } from "./i18n.js";
 import { contactEntity } from "./shutter-window.js";
-import { declaredCoverKind } from "./cover-kind.js";
+import { COVER_SLOTS, declaredCoverKind } from "./cover-kind.js";
 
 export const APPLIANCE_CATALOG = Object.freeze([
   { key: "lavatrice", it: "Lavatrice", en: "Washing machine" },
@@ -341,6 +341,16 @@ export function normalizeDevice(input = {}, section, context = {}) {
     // prima normalizzazione, come era gia' successo al contatto dell'infisso.
     const kind = declaredCoverKind(input);
     if (kind) base.kind = kind;
+    /* Le altre coperture dello stesso infisso. Vale la riga qui sopra: un
+     * campo non dichiarato qui sparisce alla prima normalizzazione, e sarebbe
+     * la terza volta — prima il contatto, poi il tipo, adesso queste. Si
+     * leggono da `COVER_SLOTS`, che e' l'unico posto dove sta scritto quali
+     * caselle esistono: se un giorno se ne aggiunge una, arriva anche qui. */
+    for (const { campo } of COVER_SLOTS) {
+      if (campo === "entity") continue;
+      const entity = String(input?.[campo] ?? "").trim();
+      if (entity) base[campo] = entity;
+    }
   }
   if (input.threshold_run != null) base.metadata.threshold_run = +input.threshold_run;
   if (input.threshold_standby != null) base.metadata.threshold_standby = +input.threshold_standby;

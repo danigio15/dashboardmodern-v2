@@ -1,8 +1,10 @@
 import {
   coverClosedPercent,
+  coverEntries,
   coverIsAwning,
   coverIsSideways,
   coverKind,
+  coverKindLabel,
 } from "../core/cover-kind.js";
 import { allStates, clean, doc, esc, installStyle, root, t } from "./shared.js";
 
@@ -57,7 +59,7 @@ function floorOrder() {
   return Array.isArray(names) ? names : [];
 }
 
-function coverView(item = {}) {
+function coverView(item = {}, distingui = false) {
   const entity = clean(item.entity || item.entities?.[0]);
   if (!entity) return null;
   const current = allStates()[entity];
@@ -72,7 +74,9 @@ function coverView(item = {}) {
   return {
     entity,
     kind: coverKind(item, current),
-    name: clean(item.name) || clean(current?.attributes?.friendly_name) || entity,
+    /* Con piu' di una copertura sullo stesso infisso il nome da solo non
+     * basta: tre card «Camera» non si distinguono. */
+    name: nomeCopertura(item, current, entity, distingui),
     room,
     floor: clean(root.cdRoomFloorOf?.(room)),
     status,
@@ -83,8 +87,23 @@ function coverView(item = {}) {
   };
 }
 
+function nomeCopertura(item, current, entity, distingui) {
+  const base = clean(item.name) || clean(current?.attributes?.friendly_name) || entity;
+  if (!distingui) return base;
+  return `${base} · ${coverKindLabel(coverKind(item, current))}`;
+}
+
+/* Le card di una riga di configurazione: una per casella compilata. */
+function viewsFor(item = {}) {
+  const entries = coverEntries(item);
+  if (!entries.length) return [coverView(item)].filter(Boolean);
+  return entries
+    .map(({ entity, kind }) => coverView({ ...item, entity, kind }, entries.length > 1))
+    .filter(Boolean);
+}
+
 function coverList() {
-  const views = configuredCovers().map(coverView).filter(Boolean);
+  const views = configuredCovers().flatMap(viewsFor).filter(Boolean);
   const floors = floorOrder();
   const rank = (floor) => {
     const index = floors.indexOf(floor);
@@ -313,6 +332,40 @@ function syncCard(card, view) {
   }
 }
 
+/* «Apri tutto» deve aprire davvero tutto.
+ *
+ * Il comando di gruppo lo esegue il runtime, che scorre le righe configurate e
+ * manda il servizio a `t.entity`: la sola tapparella. Da quando un infisso ne
+ * puo' portare tre, tende e tende da sole restavano ferme mentre le tapparelle
+ * si muovevano — e chi guarda vede meta' casa rispondere.
+ *
+ * Non si riscrive la chiamata al servizio: si riusa la sua, una volta per
+ * copertura, passandole un bottone come quello che si preme su una card. Cosi'
+ * il servizio, il dominio e la gestione degli errori restano i suoi. */
+function insegnaComandoDiGruppo() {
+  const originale = root.cdTappCmd;
+  if (typeof originale !== "function" || originale.__dmTutteLeCoperture) return false;
+  const avvolta = function cdTappCmd(button, ...resto) {
+    if (!button?.getAttribute?.("data-all")) return originale.call(this, button, ...resto);
+    const servizio = button.getAttribute("data-svc");
+    for (const { entity } of configuredCovers().flatMap((item) => coverEntries(item))) {
+      try {
+        const carta = doc.createElement("div");
+        carta.setAttribute("data-tapp", entity);
+        const finto = doc.createElement("button");
+        finto.setAttribute("data-svc", servizio);
+        carta.append(finto);
+        originale.call(this, finto);
+      } catch (_error) {}
+    }
+    return undefined;
+  };
+  avvolta.__dmTutteLeCoperture = true;
+  avvolta.__dmPrevious = originale;
+  root.cdTappCmd = avvolta;
+  return true;
+}
+
 function renderShutters() {
   const grid = doc?.getElementById("tapp-grid");
   if (!grid) return;
@@ -539,6 +592,7 @@ export function installShutterSceneSection() {
   if (!doc) return;
   installStyles();
   installRenderOwner();
+  insegnaComandoDiGruppo();
   if (!state.installed) {
     state.installed = true;
     installListeners();

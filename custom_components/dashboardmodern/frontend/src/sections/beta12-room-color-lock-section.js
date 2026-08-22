@@ -43,9 +43,9 @@ const state = (root[KEY] ||= {
 state.active ||= false;
 state.override ??= null;
 state.kioskHost ||= null;
-state.kioskHostCss ||= "";
+state.kioskHostCss ||= [];
 state.kioskFrame ||= null;
-state.kioskFrameCss ||= "";
+state.kioskFrameCss ||= [];
 state.ancestors ||= [];
 state.scrollLock ||= [];
 state.drawer ||= null;
@@ -264,6 +264,43 @@ function updateKioskViewport() {
   return { height, width };
 }
 
+/* Si rimette a posto quello che si e' toccato, non tutto il resto.
+ *
+ * Il velo del chiosco scriveva `overflow` sul documento di Home Assistant e
+ * poi, per togliersi, riassegnava `style.cssText` a com'era prima. Ma
+ * `cssText` non e' una proprieta': e' **tutte** le dichiarazioni in linea di
+ * quell'elemento. E Home Assistant il tema ce lo tiene esattamente li' —
+ * `applyThemesOnElement(document.documentElement, ...)` scrive ogni variabile
+ * del tema come stile in linea su `<html>` e si ricorda di averlo fatto in
+ * `element.__themes`. Riassegnare `cssText` gliele cancellava tutte insieme, e
+ * lui non poteva accorgersene: per lui il tema era ancora applicato, quindi
+ * non lo riscriveva. Home Assistant restava senza colori — bianco — finche'
+ * non si chiudeva e riapriva l'app.
+ *
+ * Da qui in avanti si segna proprieta' per proprieta' cosa c'era prima, e si
+ * rimette solo quella. Quello che scrive qualcun altro sullo stesso elemento
+ * non viene nemmeno sfiorato. */
+function ricordaEScrivi(element, dichiarazioni) {
+  const prima = [];
+  for (const [nome, valore, priorita] of dichiarazioni) {
+    prima.push({
+      nome,
+      valore: element.style.getPropertyValue(nome),
+      priorita: element.style.getPropertyPriority(nome),
+    });
+    element.style.setProperty(nome, valore, priorita || "");
+  }
+  return prima;
+}
+
+function rimetti(element, prima = []) {
+  if (!element?.style) return;
+  for (const { nome, valore, priorita } of prima) {
+    if (valore) element.style.setProperty(nome, valore, priorita || "");
+    else element.style.removeProperty(nome);
+  }
+}
+
 /** Whether a computed value turns an ancestor into a containing block. */
 export function trapsFixedPosition(property, value) {
   if (!TRAP_PROPERTIES.includes(property)) return false;
@@ -322,10 +359,17 @@ function releaseAncestors(host) {
         trapsFixedPosition(property, computed.getPropertyValue(property)),
       )
     ) {
-      touched.push({ element: node, css: node.style?.cssText || "" });
-      for (const property of TRAP_PROPERTIES) {
-        node.style?.setProperty?.(property, property === "will-change" ? "auto" : "none", "important");
-      }
+      touched.push({
+        element: node,
+        prima: ricordaEScrivi(
+          node,
+          TRAP_PROPERTIES.map((property) => [
+            property,
+            property === "will-change" ? "auto" : "none",
+            "important",
+          ]),
+        ),
+      });
     }
     node = node.parentNode;
   }
@@ -334,7 +378,7 @@ function releaseAncestors(host) {
 
 function restoreAncestors() {
   for (const entry of state.ancestors) {
-    if (entry?.element?.style) entry.element.style.cssText = entry.css;
+    rimetti(entry?.element, entry?.prima);
   }
   state.ancestors = [];
   state.ancestorHost = null;
@@ -348,8 +392,10 @@ function lockOwnerDocument() {
   if (!target) return;
   for (const element of [target.documentElement, target.body]) {
     if (!element?.style) continue;
-    state.scrollLock.push({ element, css: element.style.cssText || "" });
-    element.style.setProperty("overflow", "hidden", "important");
+    state.scrollLock.push({
+      element,
+      prima: ricordaEScrivi(element, [["overflow", "hidden", "important"]]),
+    });
     element.setAttribute?.(KIOSK_ATTR, "true");
   }
 }
@@ -357,7 +403,7 @@ function lockOwnerDocument() {
 function unlockOwnerDocument() {
   for (const entry of state.scrollLock) {
     if (!entry?.element?.style) continue;
-    entry.element.style.cssText = entry.css;
+    rimetti(entry.element, entry.prima);
     entry.element.removeAttribute?.(KIOSK_ATTR);
   }
   state.scrollLock = [];
@@ -438,14 +484,14 @@ function activateIosKiosk() {
   }
   const { frame, host } = hostForFrame();
   if (host && state.kioskHost !== host) {
-    if (state.kioskHost) state.kioskHost.style.cssText = state.kioskHostCss;
+    rimetti(state.kioskHost, state.kioskHostCss);
     state.kioskHost = host;
-    state.kioskHostCss = host.style.cssText || "";
+    state.kioskHostCss = [];
   }
   if (frame && state.kioskFrame !== frame) {
-    if (state.kioskFrame) state.kioskFrame.style.cssText = state.kioskFrameCss;
+    rimetti(state.kioskFrame, state.kioskFrameCss);
     state.kioskFrame = frame;
-    state.kioskFrameCss = frame.style.cssText || "";
+    state.kioskFrameCss = [];
   }
   if (host) {
     host.dataset.dmIosKiosk = "true";
@@ -453,9 +499,13 @@ function activateIosKiosk() {
       height,
       drawerOpen: Boolean(state.drawer?.hasAttribute?.("open")),
     });
-    for (const [property, value] of Object.entries(styles)) {
-      host.style.setProperty(property, value, "important");
-    }
+    const scritte = ricordaEScrivi(
+      host,
+      Object.entries(styles).map(([property, value]) => [property, value, "important"]),
+    );
+    // Solo il primo giro dice com'era prima: dal secondo in poi rileggerebbe
+    // quello che abbiamo scritto noi, e non si tornerebbe piu' indietro.
+    if (!state.kioskHostCss?.length) state.kioskHostCss = scritte;
     releaseAncestors(host);
     lockOwnerDocument();
     bindDrawerToggle();
@@ -463,9 +513,12 @@ function activateIosKiosk() {
   }
   if (frame) {
     frame.dataset.dmIosKiosk = "true";
-    frame.style.setProperty("width", "100%", "important");
-    frame.style.setProperty("height", "100%", "important");
-    frame.style.setProperty("min-height", "100%", "important");
+    const scritte = ricordaEScrivi(frame, [
+      ["width", "100%", "important"],
+      ["height", "100%", "important"],
+      ["min-height", "100%", "important"],
+    ]);
+    if (!state.kioskFrameCss?.length) state.kioskFrameCss = scritte;
   }
   state.active = true;
   return true;
@@ -478,16 +531,16 @@ function deactivateIosKiosk() {
   unlockOwnerDocument();
   restoreAncestors();
   if (state.kioskHost) {
-    state.kioskHost.style.cssText = state.kioskHostCss;
+    rimetti(state.kioskHost, state.kioskHostCss);
     delete state.kioskHost.dataset.dmIosKiosk;
     state.kioskHost = null;
-    state.kioskHostCss = "";
+    state.kioskHostCss = [];
   }
   if (state.kioskFrame) {
-    state.kioskFrame.style.cssText = state.kioskFrameCss;
+    rimetti(state.kioskFrame, state.kioskFrameCss);
     delete state.kioskFrame.dataset.dmIosKiosk;
     state.kioskFrame = null;
-    state.kioskFrameCss = "";
+    state.kioskFrameCss = [];
   }
   state.active = false;
 }
@@ -500,8 +553,10 @@ export function releaseOwnerDocument() {
   unlockOwnerDocument();
   restoreAncestors();
   if (state.kioskHost) {
-    state.kioskHost.style.cssText = state.kioskHostCss;
+    rimetti(state.kioskHost, state.kioskHostCss);
+    delete state.kioskHost.dataset?.dmIosKiosk;
     state.kioskHost = null;
+    state.kioskHostCss = [];
   }
 }
 

@@ -86,6 +86,38 @@ export const coverIsSideways = (kind) => kind === "tenda";
  * lo condivide con la tapparella; il disegno no. */
 export const coverIsAwning = (kind) => kind === "tenda_sole";
 
+/* Un infisso puo' avere tutte e tre le cose.
+ *
+ * La configurazione teneva una entita' sola per riga, piu' un menu che diceva
+ * di che tipo fosse. Ma su una stessa finestra ci stanno insieme la tapparella,
+ * la tenda e la tenda da sole — e chi le ha tutte non aveva modo di dirlo:
+ * poteva sceglierne una e basta. Le caselle adesso sono una per funzione, e il
+ * tipo non si dichiara piu': lo dice la casella in cui hai scritto.
+ *
+ * Il menu di prima resta letto per chi l'aveva compilato: una riga vecchia con
+ * `kind: "tenda"` continua a uscire come tenda.
+ */
+export const COVER_SLOTS = Object.freeze([
+  { campo: "entity", kind: "" },
+  { campo: "tenda", kind: "tenda" },
+  { campo: "tendaSole", kind: "tenda_sole" },
+]);
+
+/** Le coperture configurate su una riga, in ordine di casella. */
+export function coverEntries(item = {}) {
+  const uscite = [];
+  const viste = new Set();
+  for (const { campo, kind } of COVER_SLOTS) {
+    const entity = clean(item?.[campo]);
+    if (!entity || viste.has(entity)) continue;
+    viste.add(entity);
+    /* La prima casella non impone un tipo: se la riga vecchia ne dichiarava
+     * uno vale quello, altrimenti decide Home Assistant. */
+    uscite.push({ entity, kind: kind || declaredCoverKind(item) });
+  }
+  return uscite;
+}
+
 /** Quanto e' coperta la finestra, da 0 (tutta aperta) a 100. */
 export function coverClosedPercent(position) {
   const value = Number(position);

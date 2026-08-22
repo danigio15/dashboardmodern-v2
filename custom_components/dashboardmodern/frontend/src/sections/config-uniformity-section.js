@@ -167,7 +167,46 @@ export function ensureVisibilityBanner(body = editorBody(), tab = activeTab()) {
   if (outermost.parentElement === body && body.firstElementChild !== outermost)
     body.prepend(outermost);
   banner.classList.add("dm-section-switch");
+  rinfrescaBanner(banner, key);
   return true;
+}
+
+/* La fascia dice come sta la sezione adesso, non com'era quando e' nata.
+ *
+ * Una volta stampata, la fascia veniva ritrovata e lasciata com'era: il testo
+ * si scriveva solo nel ramo che la crea. Toccandola, la preferenza cambiava
+ * davvero ma la scritta restava quella di prima, e per vedere «nascosta»
+ * bisognava cambiare scheda — cioe' far ricostruire il corpo dell'editor,
+ * perche' solo allora la fascia rinasceva e leggeva il valore nuovo.
+ *
+ * Le fasce che si disegnano da sole a ogni passata — quella dell'Energia — non
+ * si toccano: le riscriverebbero comunque loro. */
+function rinfrescaBanner(banner, key) {
+  if (banner.dataset.dmSectionSwitch !== "true") return false;
+  const markup = bannerMarkup(key);
+  if (!markup) return false;
+  const holder = doc.createElement("div");
+  holder.innerHTML = markup;
+  const fresco = holder.firstElementChild;
+  if (!fresco) return false;
+  let cambiato = false;
+  if (clean(banner.textContent) !== clean(fresco.textContent)) {
+    banner.textContent = fresco.textContent;
+    cambiato = true;
+  }
+  /* Il colore e' la meta' del messaggio: verde acceso, grigio spento. Il
+   * runtime lo scrive in linea insieme al resto dello stile. */
+  const stile = fresco.getAttribute("style");
+  if (stile && banner.getAttribute("style") !== stile) {
+    banner.setAttribute("style", stile);
+    cambiato = true;
+  }
+  const chiave = fresco.getAttribute("data-key");
+  if (chiave && banner.getAttribute("data-key") !== chiave) {
+    banner.setAttribute("data-key", chiave);
+    cambiato = true;
+  }
+  return cambiato;
 }
 
 /* ── one save, in one place, on every tab ─────────────────────────────────── */
