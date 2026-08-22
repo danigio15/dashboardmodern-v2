@@ -1,25 +1,18 @@
-/* Ogni auto ha un nome suo, e da qui in avanti anche una chiave sua.
+/* Chi e' un'auto, e cosa le appartiene.
  *
- * Un profilo auto si e' sempre indicato con la sua posizione nell'elenco:
- * `cd_ev_car_active` e' il numero della riga. Finche' le auto sono una sola la
- * posizione e' un'identita' accettabile; da due in su non lo e' piu', perche'
- * cambia sotto i piedi. Si cancella la prima e la seconda diventa la prima:
- * chi si era segnato «la seconda» adesso indica un'altra vettura. Si riordina,
- * e succede lo stesso. E quella posizione viaggia nella configurazione
- * condivisa: il numero salvato da un dispositivo arriva su un altro e li'
- * indica quello che capita.
+ * Un profilo auto tiene il nome, la marca, il modello, le entita' mappate e le
+ * sue due foto. Il runtime pero' lo risalva sostituendolo per intero: quando si
+ * preme «Salva attuale» cerca un profilo con lo stesso nome e ci scrive sopra
+ * un oggetto nuovo di zecca, `{ name, ov, img }`. Tutto il resto se ne andava
+ * senza che nessuno l'avesse chiesto — la marca scelta nella Personalizzazione,
+ * il modello, la foto col cavo attaccato — e chi rimappava un'entita' si
+ * ritrovava l'auto senza logo e senza la seconda foto.
  *
- * Da qui si vedeva la cosa che e' stata segnalata: la plancia si apriva
- * sull'auto giusta — l'aveva scelta chi stava davanti — e poco dopo passava
- * all'altra, quando arrivava la configurazione condivisa con dentro un numero
- * scritto altrove.
- *
- * La chiave e' dell'auto: nasce dal nome e dalla marca, si scrive dentro al
- * profilo la prima volta che la si vede, e da li' non cambia piu' — nemmeno se
- * l'auto viene rinominata, perche' e' lei la stessa auto. Tutto quello che si
- * configura per una vettura — le entita' mappate, le due foto, la marca, il
- * modello — sta dentro quel profilo, e ci si arriva per chiave, mai per
- * posizione.
+ * Qui sta scritto cosa appartiene all'auto e come si riconosce una vettura da
+ * un'altra: una chiave che nasce dal nome e dalla marca, e che il profilo puo'
+ * portarsi scritta addosso per non cambiare piu' nemmeno se l'auto viene
+ * rinominata. Serve a ritrovare la stessa auto quando l'elenco viene riscritto
+ * — che e' esattamente il momento in cui le cose si perdono.
  *
  * Il modulo e' puro: niente DOM, niente localStorage. Chi legge e chi scrive
  * sta nella sezione.
@@ -29,9 +22,6 @@ const clean = (value) => String(value ?? "").trim();
 
 /** Il campo in cui l'auto tiene la sua chiave. */
 export const CAR_KEY_FIELD = "uid";
-
-/** La casella in cui la plancia si segna quale auto sta guardando. */
-export const ACTIVE_CAR_KEY = "cd_ev_car_key";
 
 /* Quello che si perde quando il runtime risalva un profilo.
  *
@@ -61,9 +51,23 @@ export function carSlug(car = {}) {
   return slug;
 }
 
-/** La chiave che questa auto si porta gia' dietro, se ce l'ha. */
+/**
+ * La chiave di un'auto.
+ *
+ * Se il profilo se la porta gia' scritta vale quella, e non cambia piu' nemmeno
+ * se l'auto viene rinominata. Se non ce l'ha si ricava da come si chiama, e non
+ * c'e' niente da scrivere da nessuna parte.
+ *
+ * Quel «niente da scrivere» e' il punto. Il primo giro assegnava le chiavi
+ * all'avvio e salvava l'elenco per renderle durevoli, e quel salvataggio
+ * partiva da una fotografia presa quando era stato chiamato: se nel frattempo
+ * qualcuno cambiava la marca di un'auto, il salvataggio atterrava dopo e la
+ * riportava indietro. Si sceglieva MINI e un istante dopo tornava Leapmotor.
+ * Una chiave che si ricava non ha bisogno di essere salvata, quindi non puo'
+ * riportare indietro niente.
+ */
 export function carKey(car = {}) {
-  return clean(car?.[CAR_KEY_FIELD]);
+  return clean(car?.[CAR_KEY_FIELD]) || carSlug(car);
 }
 
 /**
@@ -78,10 +82,13 @@ export function carKey(car = {}) {
  */
 export function assignCarKeys(cars) {
   if (!Array.isArray(cars) || !cars.length) return cars;
-  const prese = new Set(cars.map(carKey).filter(Boolean));
+  /* Si guarda solo la chiave *scritta*, non quella ricavata: ricavata ce l'hanno
+   * tutte, e prendendo quella non ci sarebbe mai niente da assegnare. */
+  const scritta = (car) => clean(car?.[CAR_KEY_FIELD]);
+  const prese = new Set(cars.map(scritta).filter(Boolean));
   let cambiato = false;
   const uscita = cars.map((car, posto) => {
-    if (carKey(car)) return car;
+    if (scritta(car)) return car;
     const base = carSlug(car) || `auto-${posto + 1}`;
     let chiave = base;
     // Due auto possono chiamarsi uguale: la seconda prende un numero, e da li'
@@ -99,24 +106,6 @@ export function carIndexByKey(cars, key) {
   const cercata = clean(key);
   if (!cercata || !Array.isArray(cars)) return -1;
   return cars.findIndex((car) => carKey(car) === cercata);
-}
-
-/**
- * Quale auto sta guardando la plancia.
- *
- * La chiave viene prima, perche' e' l'unica che indica una vettura e non una
- * riga. La posizione resta come ripiego per chi arriva da una configurazione
- * in cui le chiavi non c'erano ancora, e per il runtime che continua a
- * scriversi il numero. Se non regge ne' l'una ne' l'altra si torna alla prima:
- * una plancia senz'auto scelta ne mostra comunque una.
- */
-export function resolveActiveIndex(cars, key, fallbackIndex = -1) {
-  if (!Array.isArray(cars) || !cars.length) return -1;
-  const perChiave = carIndexByKey(cars, key);
-  if (perChiave >= 0) return perChiave;
-  const numero = Number(fallbackIndex);
-  if (Number.isInteger(numero) && numero >= 0 && numero < cars.length) return numero;
-  return 0;
 }
 
 /**

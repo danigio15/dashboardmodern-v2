@@ -1,4 +1,3 @@
-import { ACTIVE_CAR_KEY, carKey, resolveActiveIndex } from "../core/vehicle-identity.js";
 import { doc, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_BETA_COMPAT__";
@@ -50,13 +49,11 @@ function activeVehicleSignature() {
   }
   if (!cars.length) return "";
   const raw = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "0", 10);
-  const index = resolveActiveIndex(cars, root.localStorage?.getItem(ACTIVE_CAR_KEY) || "", raw);
+  const index = Math.max(0, Math.min(cars.length - 1, Number.isFinite(raw) ? raw : 0));
   const car = cars[index] || {};
   const brand = String(car.brand || "").trim();
   const model = String(car.model || car.vehicle_model || car.name || "").trim();
-  // La chiave dell'auto viene per prima: e' l'unica parte della firma che non
-  // cambia quando l'elenco si accorcia o si riordina.
-  const identity = String(carKey(car) || car.id || car.entity || car.name || index).trim();
+  const identity = String(car.id || car.entity || car.name || index).trim();
   return `${index}|${identity}|${brand}|${model}`;
 }
 

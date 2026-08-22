@@ -11,7 +11,7 @@ const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 
 // These are intentionally not shared dashboard configuration:
 // - connection can contain credentials/endpoint data;
 // - navbar mode/theme are per-device presentation preferences;
-// - sync bookkeeping, reset/fresh-start state and irrigation/pool run markers are runtime state;
+// - sync bookkeeping, reset/fresh-start state and irrigation/pool run markers are runtime state.
 // - le due caselle della foto dell'auto sono il disegno di adesso, non una
 //   configurazione: dicono quale foto mostrare per l'auto scelta su *questo*
 //   dispositivo, e si ricavano dal profilo. Le foto viaggiano dentro

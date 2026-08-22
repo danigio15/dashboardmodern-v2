@@ -70,17 +70,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_luci_room_order",
   "cd_clima_units",
   "cd_ev_cars",
-  /* Quale auto e' scelta si dice con la sua chiave.
-   *
-   * `cd_ev_car_active` e' un numero di riga, e continua a viaggiare perche' il
-   * runtime lo legge; ma una riga non e' una vettura. Cancellata la prima auto
-   * la seconda diventa la prima, e il numero salvato — qui o su un altro
-   * dispositivo — si ritrova a indicare un'altra macchina. `cd_ev_car_key`
-   * porta la chiave dell'auto, che non cambia mai: chi la riceve o ritrova
-   * quella vettura, o non ritrova niente e riparte da quella che sta
-   * mostrando. */
   "cd_ev_car_active",
-  "cd_ev_car_key",
   "cd_ev_visual",
   /* `cd_ev_image` e `cd_ev_image_plugged` non stanno piu' qui.
    *
@@ -327,7 +317,8 @@ export function normalizeSharedSnapshot(snapshot) {
  * payload is complete again, so absence means deletion.
  *
  * Revision 3 adds the second vehicle photo (`cd_ev_image_plugged`).
- * Revision 5 retires both vehicle photos and adds the active vehicle key.
+ * Revision 5 retires both vehicle photos: ogni auto si porta le sue dentro
+ * `cd_ev_cars`.
  *
  * Si riempie solo con chiavi che questa versione sincronizza davvero. Prima si
  * riversava dentro tutto quello che il dispositivo aveva sottomano, e una
