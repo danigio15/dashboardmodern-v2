@@ -1,14 +1,15 @@
 // DM-FIX-20260813E
 import {
   ACTION_ICON_CATALOG,
+  actionCatalogMatch,
   CAR_BRANDS,
+  carBrandVisual,
+  catalogLabel,
+  directEmoji,
   LOAD_ICON_CATALOG,
+  loadGlyph,
   ROOM_CATALOG,
   ROOM_GLYPHS,
-  actionCatalogMatch,
-  carBrandVisual,
-  directEmoji,
-  loadGlyph,
   roomGlyph,
 } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, root, t } from "./shared.js";
@@ -126,7 +127,6 @@ export function renderIconGlyph(target, kind, value, { size = 38 } = {}) {
 
 function rowsFor(kind) {
   const normalized = normalizeKind(kind);
-  const english = doc?.documentElement?.lang === "en";
   if (normalized === "car") {
     return CAR_BRANDS.map((item) => ({
       value: item.name,
@@ -138,7 +138,7 @@ function rowsFor(kind) {
   if (normalized === "room") {
     return ROOM_CATALOG.map((item) => ({
       value: item.mdi,
-      label: english ? item.en : item.it,
+      label: catalogLabel(item),
       search: `${item.it} ${item.en} ${item.keywords} ${item.mdi}`.toLowerCase(),
       glyph: ROOM_GLYPHS[item.id] || canonicalRoomGlyph(item.mdi),
       size: 31,
@@ -148,7 +148,7 @@ function rowsFor(kind) {
   if (normalized === "load") {
     return LOAD_ICON_CATALOG.map((item) => ({
       value: item.mdi,
-      label: english ? item.en : item.it,
+      label: catalogLabel(item),
       search: `${item.it} ${item.en} ${item.keywords} ${item.id} ${item.mdi}`.toLowerCase(),
       glyph: item.glyph,
       size: 36,
@@ -161,7 +161,7 @@ function rowsFor(kind) {
   }
   return ACTION_ICON_CATALOG.map((item) => ({
     value: item.mdi,
-    label: english ? item.en : item.it,
+    label: catalogLabel(item),
     search: `${item.it} ${item.en} ${item.id} ${item.mdi}`.toLowerCase(),
     glyph: item.glyph || actionGlyph(item.mdi),
     size: 36,

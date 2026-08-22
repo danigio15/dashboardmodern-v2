@@ -2,6 +2,7 @@
 /* DashboardModern personalization visuals. Room/action artwork is local; vehicle
    brand marks use pinned public SVG sources so the same canonical helper owns
    picker, editor, profile cards and EV header without post-render swapping. */
+import { getLocale, pick } from "./i18n.js";
 
 const clean = (value) => String(value ?? "").trim();
 const normalized = (value) =>
@@ -739,9 +740,15 @@ export function loadGlyph(value) {
   return loadCatalogMatch(token)?.glyph || actionCatalogMatch(token)?.glyph || "🔌";
 }
 
-export function roomOptionsMarkup({ selected = "", english = false } = {}) {
+export function roomOptionsMarkup({ selected = "", locale = getLocale() } = {}) {
   return ROOM_CATALOG.map(
     (item) =>
-      `<option value="${item.mdi}" ${clean(selected) === item.mdi ? "selected" : ""}>${english ? item.en : item.it}</option>`,
+      `<option value="${item.mdi}" ${clean(selected) === item.mdi ? "selected" : ""}>${catalogLabel(item, locale)}</option>`,
   ).join("");
+}
+
+/* Catalog entries carry an Italian and an English name; the English one is the
+ * pivot every other language is keyed by. */
+export function catalogLabel(item = {}, locale = getLocale()) {
+  return pick(item.it, item.en, locale) || item.it || item.en || "";
 }

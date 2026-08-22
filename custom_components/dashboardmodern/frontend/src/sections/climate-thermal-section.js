@@ -30,6 +30,7 @@
  */
 import { canonicalClimateType } from "../core/device-model.js";
 import {
+  activeLocale,
   allStates,
   clean,
   doc,
@@ -270,7 +271,7 @@ function zoneButton(zone, labels) {
 }
 
 function skeletonMarkup(labels) {
-  return `<div class="dm-cl-shell" data-dm-lang="${english() ? "en" : "it"}">
+  return `<div class="dm-cl-shell" data-dm-lang="${activeLocale()}">
   <div class="dm-cl-mast">
     <span class="dm-cl-mast-ic" aria-hidden="true">${ICONS.thermo}</span>
     <div class="dm-cl-mast-copy">

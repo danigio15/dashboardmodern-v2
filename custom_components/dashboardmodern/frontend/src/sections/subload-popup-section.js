@@ -19,9 +19,11 @@ import {
   doc,
   english,
   installStyle,
+  locale,
   readJson,
   root,
   section,
+  t,
   writeIconGlyph,
 } from "./shared.js";
 
@@ -29,7 +31,6 @@ const KEY = "__DASHBOARDMODERN_SUBLOAD_POPUP__";
 const state = (root[KEY] ||= { installed: false, group: "" });
 const LIST = "subloads-list";
 const TITLE = "subloads-title";
-const t = (it, en) => (english() ? en : it);
 
 function configuredLoads() {
   const value = section("loads", null);
@@ -200,7 +201,7 @@ export function renderSubloadPopup(groupId = state.group) {
     load: stageIdentity(load, loads, appliances),
     children: subloadsOf(load, loads, Array.isArray(appliances) ? appliances : []),
     states: allStates(),
-    locale: english() ? "en-GB" : "it-IT",
+    locale: locale(),
   });
 
   writeTitle(model, groupId);

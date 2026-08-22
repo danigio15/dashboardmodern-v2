@@ -264,10 +264,9 @@ function openClimateEditor(item, index) {
  * e per quasi tutti quella basta. La voce vuota e' quella condizione, detta. */
 function kindOptions(item) {
   const declared = declaredCoverKind(item);
-  const english = doc?.documentElement?.lang === "en";
   const voci = [
     ["", t("Come dice Home Assistant", "As Home Assistant says")],
-    ...COVER_KINDS.map((kind) => [kind, coverKindLabel(kind, english)]),
+    ...COVER_KINDS.map((kind) => [kind, coverKindLabel(kind)]),
   ];
   return voci
     .map(([value, label]) => `<option value="${esc(value)}"${value === declared ? " selected" : ""}>${esc(label)}</option>`)

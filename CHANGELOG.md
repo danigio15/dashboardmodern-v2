@@ -4,6 +4,53 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## Non rilasciato
+
+### Aggiunto
+
+- **La plancia parla quindici lingue.** Oltre a italiano e inglese sono
+  tradotte per intero spagnolo, francese, tedesco, portoghese, olandese,
+  polacco, russo, turco, arabo, hindi, giapponese, coreano e cinese
+  semplificato: 1102 stringhe per lingua, cioè tutto il vocabolario visibile
+  della plancia, editor e testi di aiuto compresi.
+- **Nessuna configurazione.** La lingua è quella del profilo Home Assistant di
+  chi apre la plancia, quindi due persone della stessa casa vedono ognuna la
+  propria. Le varianti regionali si risolvono da sole (`pt-BR` legge il
+  portoghese, `zh-TW` il cinese tradizionale), e `?lang=` forza una lingua su un
+  singolo dispositivo, come il tema.
+- **L'arabo è da destra a sinistra** dal primo disegno: direzione e lingua
+  vengono scritte sul documento prima che venga letto, non corrette dopo.
+- **Le lingue dell'integrazione**: anche le finestre di configurazione e opzioni
+  di Home Assistant sono tradotte, non solo la plancia.
+
+### Modificato
+
+- **La lingua non è più una biforcazione.** `t(it, en)` mantiene la stessa forma
+  a tutti i punti di chiamata, ma l'inglese è ora la chiave di ricerca nel
+  catalogo della lingua attiva. Una stringa senza traduzione ripiega
+  sull'inglese, mai sull'italiano: prima un utente francese leggeva italiano.
+- **Si scarica una lingua sola.** Il catalogo attivo viene richiesto a runtime,
+  quindi quindici lingue pesano quanto una.
+- Numeri e date seguono la lingua attiva invece di essere fissati a `it-IT` o
+  `en-GB`.
+
+### Corretto
+
+- **Il tipo di una copertura si leggeva in italiano in tutte le lingue.**
+  Tapparella, tenda e tenda da sole passavano da un «inglese si'/no»: chi non
+  era inglese leggeva l'italiano nel menu a tendina di quella scelta.
+- **Un'ottantina di stringhe non entravano in nessun catalogo.** Le didascalie
+  dei campi dell'editor, i nomi dei colori delle luci, i sottotitoli delle
+  pagine, le sonde della piscina e i totali dell'Energia vivono in tabelle
+  invece che ai punti di chiamata, e chi raccoglie il vocabolario dal sorgente
+  non le vedeva. Ora le legge, e una prova nuova impedisce che una tabella
+  aggiunta domani torni a sparire in silenzio.
+
+### Documentazione
+
+- [`docs/TRANSLATIONS.md`](docs/TRANSLATIONS.md): come funziona il sistema e
+  cosa serve per aggiungere una lingua.
+
 ## 1.1.1
 
 ### Corretto

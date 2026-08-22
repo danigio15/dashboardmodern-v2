@@ -9,8 +9,11 @@
  * scegliere niente: Home Assistant dice gia' che tipo di apertura e' — e'
  * `device_class` — e per quasi tutti quella basta.
  *
- * Il modulo e' puro: guarda un oggetto e uno stato, non legge nient'altro.
+ * Il modulo e' puro: guarda un oggetto e uno stato, non legge nient'altro —
+ * tranne la lingua attiva, per dire come si chiama quello che ha guardato.
  */
+
+import { SOURCE_LOCALE, getLocale, pick } from "./i18n.js";
 
 const clean = (value) =>
   String(value ?? "")
@@ -56,10 +59,15 @@ export function coverKind(item = {}, state = null) {
   return DA_DEVICE_CLASS[deviceClass] || "tapparella";
 }
 
-/** Come si chiama, nella lingua della plancia. */
-export function coverKindLabel(kind, english = false) {
+/* Come si chiama, nella lingua della plancia.
+ *
+ * Il secondo argomento era un booleano "inglese si'/no", e chi non era inglese
+ * leggeva italiano: una tenda si chiamava «Tenda» anche in tedesco. Ora e' la
+ * lingua; `true` continua a valere inglese, per chi chiamava com'era prima. */
+export function coverKindLabel(kind, locale = getLocale()) {
   const labels = COVER_KIND_LABELS[kind] || COVER_KIND_LABELS.tapparella;
-  return english ? labels[1] : labels[0];
+  const code = locale === true ? "en" : locale === false ? SOURCE_LOCALE : locale;
+  return pick(labels[0], labels[1], code);
 }
 
 /* Il verso in cui si muove.

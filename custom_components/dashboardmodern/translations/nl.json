@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nieuw DashboardModern-paneel",
+        "data": {
+          "name": "Naam van het paneel"
+        },
+        "data_description": {
+          "name": "Verschijnt in de zijbalk. Je kunt meerdere panelen toevoegen, elk met een eigen configuratie."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Toegang en koppeling met dashboards",
+        "description": "Kies welke aangemelde gebruikers dit paneel in de DashboardModern-interface te zien krijgen. Het is een zichtbaarheidsfilter in de frontend en vervangt de rechten van Home Assistant niet. Door het als Lovelace-dashboard te registreren verschijnt DashboardModern bij Instellingen → Dashboards.",
+        "data": {
+          "allowed_users": "Toegestane gebruikers",
+          "register_lovelace_dashboard": "Ook registreren als Home Assistant-dashboard",
+          "admin_only": "Alleen zichtbaar voor beheerders"
+        },
+        "data_description": {
+          "allowed_users": "Alleen een zichtbaarheidsfilter van de interface. Voor gegevens en services gelden nog steeds de rechten van Home Assistant.",
+          "register_lovelace_dashboard": "Het dashboard wordt aangemaakt zodra een beheerder DashboardModern voor het eerst opent.",
+          "admin_only": "Ingebouwd filter van Home Assistant; het wint voor accounts zonder beheerdersrechten."
+        }
+      }
+    }
+  }
+}

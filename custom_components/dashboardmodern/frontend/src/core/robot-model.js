@@ -11,6 +11,8 @@
  * il DOM, cosi' le regole si possono provare senza accendere niente.
  */
 
+import { SOURCE_LOCALE, getLocale, pick } from "./i18n.js";
+
 const clean = (value) => String(value ?? "").trim();
 
 const numero = (value) => {
@@ -48,10 +50,15 @@ export const ROBOT_STATES = Object.freeze({
   unknown: ["Sconosciuto", "Unknown"],
 });
 
-/** Come si chiama uno stato, nella lingua della plancia. */
-export function robotStateLabel(state, english = false) {
+/* Come si chiama uno stato, nella lingua della plancia.
+ *
+ * Il secondo argomento era un booleano "inglese si'/no", che dava italiano a
+ * chiunque non fosse inglese. Ora e' la lingua: `true` continua a valere
+ * inglese, perche' e' cosi' che lo chiamava chi c'era prima. */
+export function robotStateLabel(state, locale = getLocale()) {
   const labels = ROBOT_STATES[clean(state).toLowerCase()] || ROBOT_STATES.unknown;
-  return english ? labels[1] : labels[0];
+  const code = locale === true ? "en" : locale === false ? SOURCE_LOCALE : locale;
+  return pick(labels[0], labels[1], code);
 }
 
 /** Un robot, coi campi che la configurazione conosce. */

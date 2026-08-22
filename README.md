@@ -69,7 +69,7 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 - [Prima configurazione della plancia](#prima-configurazione-della-plancia)
 - [Dove viene salvata la configurazione](#dove-viene-salvata-la-configurazione)
 - [Anteprima sezione per sezione](#anteprima-sezione-per-sezione)
-  - [Home](#home) · [Navigazione](#navigazione) · [Tema](#tema-chiaro-e-scuro) · [Kiosk](#modalità-kiosk-su-iphone-e-ipad) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Tapparelle](#tapparelle) · [Sicurezza](#sicurezza-e-telecamere) · [Solare termico](#solare-termico) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [MiniPC](#minipc-e-rete)
+  - [Home](#home) · [Navigazione](#navigazione) · [Lingua](#lingua) · [Tema](#tema-chiaro-e-scuro) · [Kiosk](#modalità-kiosk-su-iphone-e-ipad) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Tapparelle](#tapparelle) · [Sicurezza](#sicurezza-e-telecamere) · [Solare termico](#solare-termico) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [MiniPC](#minipc-e-rete)
 - [Editor Dashboard: tutte le configurazioni](#editor-dashboard-tutte-le-configurazioni)
   - [Autorilevamento entità](#autorilevamento-entità)
 - [Catalogo completo degli slot entità](#catalogo-completo-degli-slot-entità)
@@ -229,6 +229,20 @@ La Home riunisce meteo, pillole di stato, **Quadro Avvisi** e **Azioni rapide**.
 La barra è **flottante e auto-nascosta**: su desktop riappare avvicinando il puntatore al bordo inferiore, su touch con la maniglia, e si comporta allo stesso modo in ogni sezione. Le sezioni non configurate non compaiono, l'**ordine è personalizzabile** (`Editor → Impostazioni → Ordine navbar`) e la sezione attiva è evidenziata.
 
 **Ogni pagina si apre allo stesso modo**: stessa intestazione con titolo e sottotitolo, stesso ritorno alla Home in alto a sinistra.
+
+## Lingua
+
+La plancia parla la lingua del **profilo Home Assistant di chi la apre**. Non c'è niente da configurare: se in *Profilo → Lingua* c'è il tedesco, la plancia è in tedesco — e chi apre la stessa plancia con un profilo in italiano continua a vederla in italiano.
+
+Oltre a italiano e inglese sono tradotte per intero **tredici lingue**: spagnolo, francese, tedesco, portoghese, olandese, polacco, russo, turco, arabo, hindi, giapponese, coreano e cinese semplificato.
+
+- **Le varianti regionali funzionano da sole.** `pt-BR` legge il portoghese, `es-MX` lo spagnolo, `de-AT` il tedesco. Il cinese si risolve per scrittura: `zh-TW` e `zh-HK` prendono il tradizionale, che per ora appoggia sul semplificato.
+- **L'arabo è da destra a sinistra.** La direzione viene scritta sulla pagina prima che venga letta, quindi la plancia nasce già ribaltata invece di raddrizzarsi dopo il primo disegno.
+- **Numeri e date seguono la lingua**: `1.234,5` in tedesco, `1,234.5` in inglese.
+- **Una lingua che non è tradotta ripiega sull'inglese**, mai sull'italiano: chi apre la plancia in svedese legge inglese, che è la cosa più vicina all'essere leggibile.
+- **Il download è di una lingua sola.** Il catalogo della lingua attiva viene richiesto al momento: quindici lingue costano quanto una.
+
+Per forzare una lingua diversa da quella del profilo — utile su un tablet condiviso — apri la plancia con `?lang=ja` (vale anche `?locale=`): la scelta viene ricordata su quel dispositivo, come il tema.
 
 ## Tema chiaro e scuro
 
@@ -917,7 +931,7 @@ Cosa puoi costruire con DashboardModern, oltre alla configurazione base.
 - **Azioni rapide** in Home: popup integrati, gruppi di luci, toggle, script e scene.
 - **Quadro Avvisi** che appare solo quando c'è qualcosa, più i tuoi **avvisi personalizzati**.
 - **Popup di dettaglio** con storico per singola entità.
-- **Tema chiaro e scuro**, **modalità kiosk** su iPhone e iPad, interfaccia in **italiano e inglese**.
+- **Tema chiaro e scuro**, **modalità kiosk** su iPhone e iPad, interfaccia in **quindici lingue** che segue il profilo Home Assistant.
 
 ### Robustezza
 
@@ -955,7 +969,8 @@ Principi del progetto:
 - aggiornamenti event-driven quando possibile;
 - un solo proprietario canonico per ogni renderer critico;
 - compatibilità con la configurazione persistente delle release precedenti;
-- test alle frontiere backend / frontend / browser.
+- test alle frontiere backend / frontend / browser;
+- una sola lingua sorgente, tradotta a runtime: nessuna build per lingua.
 
 Descrizione completa: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
@@ -975,6 +990,7 @@ dashboardmodern-v2/
 │       ├── dashboard-card.js         # card companion per Lovelace
 │       ├── legacy/                   # documenti plancia vendorizzati + bridge
 │       ├── src/core/                 # modelli, store, proiezioni, calcoli
+│       ├── src/i18n/                 # cataloghi di lingua, caricati a richiesta
 │       ├── src/sections/             # runtime delle sezioni UI
 │       ├── tests/                    # test frontend
 │       └── e2e/                      # test browser Playwright
@@ -1084,6 +1100,7 @@ Quando apri una Issue indica: versione DashboardModern, versione Home Assistant,
 - [`docs/PRODUCT_VISION.md`](docs/PRODUCT_VISION.md) — visione prodotto
 - [`docs/STRATEGY.md`](docs/STRATEGY.md) — strategia tecnica
 - [`docs/LEGACY_HOSTING.md`](docs/LEGACY_HOSTING.md) — hosting del frontend vendorizzato
+- [`docs/TRANSLATIONS.md`](docs/TRANSLATIONS.md) — come funzionano le lingue e come aggiungerne una
 
 ---
 

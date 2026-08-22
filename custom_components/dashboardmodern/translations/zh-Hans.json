@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "新建 DashboardModern 面板",
+        "data": {
+          "name": "面板名称"
+        },
+        "data_description": {
+          "name": "会出现在侧边栏。你可以添加多个面板，每个面板都有自己的配置。"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "访问权限与面板集成",
+        "description": "选择哪些已登录用户可以在 DashboardModern 界面中看到这个面板。这只是前端的显示过滤，并不替代 Home Assistant 的权限。注册为 Lovelace 面板后，DashboardModern 会出现在“设置 → 面板”中。",
+        "data": {
+          "allowed_users": "允许的用户",
+          "register_lovelace_dashboard": "同时注册为 Home Assistant 面板",
+          "admin_only": "仅管理员可见"
+        },
+        "data_description": {
+          "allowed_users": "仅为界面显示过滤。数据和服务的访问仍然由 Home Assistant 的权限决定。",
+          "register_lovelace_dashboard": "面板会在管理员首次打开 DashboardModern 时创建。",
+          "admin_only": "Home Assistant 自带的过滤；对非管理员账号以它为准。"
+        }
+      }
+    }
+  }
+}

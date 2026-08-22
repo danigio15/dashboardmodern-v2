@@ -45,10 +45,6 @@ const state = (root[KEY] ||= {
 export const ROBOT_PAGE_ID = "page-robot";
 export const ROBOT_TAB = "robot";
 
-function english() {
-  return doc?.documentElement?.lang === "en";
-}
-
 /** I robot configurati: dal modello canonico, o dalla chiave di sempre. */
 export function configuredRobots() {
   const canonical = section("robots", []);
@@ -164,8 +160,8 @@ function cardMarkup(view) {
   const actions = robotActions(view)
     .map(
       (action) =>
-        `<button type="button" class="dm-robot-btn" data-dm-robot-act="${esc(action.act)}" title="${esc(english() ? action.en : action.it)}">
-          <span aria-hidden="true">${action.glyph}</span><span class="dm-robot-btn-tx">${esc(english() ? action.en : action.it)}</span>
+        `<button type="button" class="dm-robot-btn" data-dm-robot-act="${esc(action.act)}" title="${esc(t(action.it, action.en))}">
+          <span aria-hidden="true">${action.glyph}</span><span class="dm-robot-btn-tx">${esc(t(action.it, action.en))}</span>
         </button>`,
     )
     .join("");
@@ -176,7 +172,7 @@ function cardMarkup(view) {
         <strong>${esc(view.name)}</strong>
         ${view.room ? `<small>${esc(view.room)}</small>` : ""}
       </span>
-      <span class="dm-robot-state" data-dm-robot-label>${esc(robotStateLabel(view.state, english()))}</span>
+      <span class="dm-robot-state" data-dm-robot-label>${esc(robotStateLabel(view.state))}</span>
     </div>
     ${mapMarkup(view)}
     <div class="dm-robot-meta">
@@ -201,7 +197,7 @@ function signatureOf(views) {
 function syncCard(card, view) {
   card.dataset.dmRobotState = view.state;
   const label = card.querySelector("[data-dm-robot-label]");
-  if (label) label.textContent = robotStateLabel(view.state, english());
+  if (label) label.textContent = robotStateLabel(view.state);
 
   const battery = card.querySelector("[data-dm-robot-battery]");
   if (battery && view.battery !== null) {

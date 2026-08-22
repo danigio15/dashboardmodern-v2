@@ -69,7 +69,7 @@ test("ogni sezione apre alla stessa larghezza", async ({ page }, testInfo) => {
    * prova passava senza averla mai guardata, e una sezione rimasta indietro
    * usciva verde. Si aspetta che il conto smetta di crescere. */
   let pagine = await elencoPagine();
-  for (let fermo = 0; fermo < 3;) {
+  for (let fermo = 0; fermo < 3; ) {
     await page.waitForTimeout(300);
     const adesso = await elencoPagine();
     fermo = adesso.length === pagine.length ? fermo + 1 : 0;

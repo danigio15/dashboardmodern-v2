@@ -3,6 +3,7 @@ import { applianceHeroArtwork } from "../core/appliance-hero-artwork.js";
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
 import { installStateEventGate } from "../core/state-event-gate.js";
 import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
+import { installI18nSection } from "./i18n-section.js";
 import { installDataContractsSection } from "./data-contracts-section.js";
 import { installEnergyCalculationsSection } from "./energy-calculations-section.js";
 import { installEnergyServicesSection } from "./energy-services-section.js";
@@ -59,7 +60,7 @@ import { installConfigUniformitySection } from "./config-uniformity-section.js";
 import { installSolarThermalDesignSection } from "./solar-thermal-design-section.js";
 import { installMinipcShowcaseSection } from "./minipc-showcase-section.js";
 import { installLegacySections, LEGACY_SECTION_KEYS } from "./legacy-sections-registry.js";
-import { allStates, clean, english, section, wrapFunction } from "./shared.js";
+import { activeLocale, allStates, clean, english, section, t, wrapFunction } from "./shared.js";
 
 const root = globalThis;
 const RUNTIME_KEY = "__DASHBOARDMODERN_SECTION_RUNTIME__";
@@ -344,7 +345,7 @@ function applianceKpiModels() {
   if (!Array.isArray(appliances)) return [];
   const rooms = section("rooms", []);
   const states = allStates();
-  const locale = english() ? "en" : "it";
+  const locale = activeLocale();
   return appliances.map((device) => createApplianceViewModel(device, states, rooms, locale));
 }
 
@@ -427,19 +428,19 @@ function ensureApplianceKpiPopup(kind) {
   if (popup) return popup;
   const isRunning = kind === "running";
   const title = isRunning
-    ? english() ? "Appliances running" : "Elettrodomestici in funzione"
-    : english() ? "Instant power" : "Consumo istantaneo";
+    ? t("Elettrodomestici in funzione", "Appliances running")
+    : t("Consumo istantaneo", "Instant power");
   const summaryLabel = isRunning
-    ? english() ? "Currently running" : "In funzione adesso"
-    : english() ? "Measured power" : "Potenza misurata";
+    ? t("In funzione adesso", "Currently running")
+    : t("Potenza misurata", "Measured power");
   popup = doc.createElement("div");
   popup.id = id;
   popup.className = `dm-appliance-kpi-overlay dm-appliance-kpi-${kind}`;
   popup.hidden = true;
   popup.innerHTML = `<div class="dm-appliance-kpi-dialog" role="dialog" aria-modal="true" aria-labelledby="${id}-title">
     <div class="dm-appliance-kpi-head">
-      <div><small>${english() ? "NOW" : "ADESSO"}</small><h3 id="${id}-title">${title}</h3></div>
-      <button type="button" data-dm-appliance-kpi-close aria-label="${english() ? "Close" : "Chiudi"}">✕</button>
+      <div><small>${t("ADESSO", "NOW")}</small><h3 id="${id}-title">${title}</h3></div>
+      <button type="button" data-dm-appliance-kpi-close aria-label="${t("Chiudi", "Close")}">✕</button>
     </div>
     <div class="dm-appliance-kpi-summary">
       <span class="dm-appliance-kpi-summary-icon">${isRunning ? "●" : "⚡"}</span>
@@ -485,7 +486,7 @@ function renderApplianceKpiPopup(kind) {
     summary.textContent = String(running.length);
     list.innerHTML = running.length
       ? running.map((model) => applianceKpiRow(model, kind)).join("")
-      : `<div class="dm-appliance-kpi-empty">${english() ? "No appliance is running right now." : "Nessun elettrodomestico è in funzione in questo momento."}</div>`;
+      : `<div class="dm-appliance-kpi-empty">${t("Nessun elettrodomestico è in funzione in questo momento.", "No appliance is running right now.")}</div>`;
     return;
   }
   const consuming = models
@@ -495,7 +496,7 @@ function renderApplianceKpiPopup(kind) {
   summary.textContent = formatApplianceWatts(totalWatts);
   list.innerHTML = consuming.length
     ? consuming.map((model) => applianceKpiRow(model, kind, totalWatts)).join("")
-    : `<div class="dm-appliance-kpi-empty">${english() ? "No measurable instant appliance consumption." : "Nessun consumo istantaneo misurabile dagli elettrodomestici."}</div>`;
+    : `<div class="dm-appliance-kpi-empty">${t("Nessun consumo istantaneo misurabile dagli elettrodomestici.", "No measurable instant appliance consumption.")}</div>`;
 }
 
 function syncApplianceKpis() {
@@ -514,9 +515,9 @@ function syncApplianceKpis() {
     runningCard.dataset.dmApplianceKpi = "running";
     runningCard.setAttribute("role", "button");
     runningCard.tabIndex = 0;
-    runningCard.setAttribute("aria-label", english() ? "Open appliances running" : "Apri elettrodomestici in funzione");
+    runningCard.setAttribute("aria-label", t("Apri elettrodomestici in funzione", "Open appliances running"));
     const label = applianceKpiLabelNode(runningCard, "running");
-    if (label) label.textContent = english() ? "RUNNING" : "IN FUNZIONE";
+    if (label) label.textContent = t("IN FUNZIONE", "RUNNING");
     const value = runningCard.querySelector(".g-val");
     if (value) value.textContent = String(running.length);
   }
@@ -526,7 +527,7 @@ function syncApplianceKpis() {
     powerCard.dataset.dmApplianceKpi = "power";
     powerCard.setAttribute("role", "button");
     powerCard.tabIndex = 0;
-    powerCard.setAttribute("aria-label", english() ? "Open instant appliance power" : "Apri consumo istantaneo elettrodomestici");
+    powerCard.setAttribute("aria-label", t("Apri consumo istantaneo elettrodomestici", "Open instant appliance power"));
     const value = powerCard.querySelector(".g-val");
     if (value) value.textContent = formatApplianceWatts(totalWatts);
   }
@@ -626,6 +627,9 @@ export function installSectionRuntime() {
 
   root[INSTALLING_KEY] = true;
   try {
+    // Language first: every section below reads its copy while it renders, so
+    // the locale has to be settled before the first of them runs.
+    installI18nSection();
     installHostedBridgeGuard();
     installLegacySections();
     installDataContractsSection();
@@ -708,6 +712,7 @@ export function installSectionRuntime() {
     root[RUNTIME_KEY] = Object.freeze({
       installed: true,
       sections: Object.freeze([
+        "i18n",
         "data-contracts",
         ...LEGACY_SECTION_KEYS,
         "energy-calculations",

@@ -1,4 +1,15 @@
-import { clean, doc, esc, installStyle, readJson, root, t, writeJsonIfChanged, wrapFunction } from "./shared.js";
+import {
+  clean,
+  doc,
+  esc,
+  installStyle,
+  readJson,
+  restyleOnLocaleChange,
+  root,
+  t,
+  writeJsonIfChanged,
+  wrapFunction,
+} from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EDITOR_POLISH__";
@@ -198,7 +209,14 @@ function subscribeStore() {
 }
 
 function installStyles() {
-  installStyle("dm-editor-polish-style", `
+  installStyle(POLISH_STYLE_ID, polishCss());
+  restyleOnLocaleChange(POLISH_STYLE_ID, polishCss);
+}
+
+const POLISH_STYLE_ID = "dm-editor-polish-style";
+
+function polishCss() {
+  return `
     #ed-body[data-dm-lights-editor="canonical-polished"]{display:grid!important;gap:16px!important}
     #ed-body[data-dm-lights-editor="canonical-polished"]>.ed-intro{margin:0!important;padding:14px 16px!important;border:1px solid color-mix(in srgb,var(--primary-color,#0ea5e9) 35%,var(--divider-color,#dbe4ee))!important;border-radius:16px!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 5%,var(--card-background-color,#fff))!important}
     .dm-light-group{border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:20px!important;background:var(--card-background-color,#fff)!important;padding:12px!important;overflow:hidden!important}
@@ -217,10 +235,10 @@ function installStyles() {
     [data-load-form][data-dm-load-form="clarified"]>[data-load-group="identity"]>*{min-width:0!important;flex:1 1 0!important}
     [data-load-form][data-dm-load-form="clarified"]>.ed-slot[data-load-group^="energy"]{position:relative!important;display:grid!important;gap:7px!important;min-width:0!important;margin:0!important;padding:14px!important;border:1px solid color-mix(in srgb,#0ea5e9 18%,var(--divider-color,#dbe4ee))!important;border-radius:16px!important;background:color-mix(in srgb,#0ea5e9 4%,var(--card-background-color,#fff))!important}
     [data-load-form][data-dm-load-form="clarified"]>.ed-slot[data-load-group="energy-primary"]{grid-column:1/-1!important;padding-top:42px!important}
-    [data-load-form][data-dm-load-form="clarified"]>.ed-slot[data-load-group="energy-primary"]::before{content:"⚡ MISURE ENERGETICHE";position:absolute;left:14px;top:12px;font-size:11px;font-weight:900;letter-spacing:.08em;color:#0284c7}
+    [data-load-form][data-dm-load-form="clarified"]>.ed-slot[data-load-group="energy-primary"]::before{content:"${t("⚡ MISURE ENERGETICHE", "⚡ ENERGY READINGS")}";position:absolute;left:14px;top:12px;font-size:11px;font-weight:900;letter-spacing:.08em;color:#0284c7}
     [data-load-form][data-dm-load-form="clarified"]>.ed-slot[data-load-group^="control"]{position:relative!important;display:grid!important;gap:7px!important;min-width:0!important;margin:0!important;padding:14px!important;border:1px solid color-mix(in srgb,#16a34a 18%,var(--divider-color,#dbe4ee))!important;border-radius:16px!important;background:color-mix(in srgb,#16a34a 4%,var(--card-background-color,#fff))!important}
     [data-load-form][data-dm-load-form="clarified"]>.ed-slot[data-load-group="control-primary"]{padding-top:42px!important}
-    [data-load-form][data-dm-load-form="clarified"]>.ed-slot[data-load-group="control-primary"]::before{content:"🎛️ STATO E CONTROLLO";position:absolute;left:14px;top:12px;font-size:11px;font-weight:900;letter-spacing:.08em;color:#15803d}
+    [data-load-form][data-dm-load-form="clarified"]>.ed-slot[data-load-group="control-primary"]::before{content:"${t("🎛️ STATO E CONTROLLO", "🎛️ STATE AND CONTROL")}";position:absolute;left:14px;top:12px;font-size:11px;font-weight:900;letter-spacing:.08em;color:#15803d}
     [data-load-form][data-dm-load-form="clarified"]>label[data-load-group="visibility"]{display:flex!important;align-items:center!important;gap:9px!important;margin:0!important;padding:12px 14px!important;border-radius:14px!important;background:var(--secondary-background-color,#f6f8fb)!important;border:1px solid var(--divider-color,#dbe4ee)!important;font-weight:750!important}
     [data-load-form][data-dm-load-form="clarified"]>[data-load-group="save"]{grid-column:1/-1!important;min-height:50px!important;margin-top:2px!important}
 
@@ -228,7 +246,7 @@ function installStyles() {
     .dm-actions-editor{display:grid!important;gap:16px!important}.dm-actions-editor .ed-acc,.dm-actions-editor>.ed-form,.dm-actions-editor>.ed-list{border-radius:20px!important}.dm-actions-editor .ed-row{border-radius:14px!important}
     @media(max-width:900px){.dm-light-row{grid-template-columns:58px minmax(0,1fr) 48px 48px!important;grid-template-areas:"order main edit delete" "room room room room"!important;gap:9px!important}.dm-light-row .dm-light-room{width:100%!important}}
     @media(max-width:720px){.dm-light-row{grid-template-columns:42px minmax(0,1fr) 44px 44px!important}.dm-light-row .dm-light-order{grid-template-columns:1fr!important}.dm-server-add{grid-template-columns:1fr!important}[data-load-form][data-dm-load-form="clarified"]{grid-template-columns:1fr!important;padding:14px!important}[data-load-form][data-dm-load-form="clarified"]>*{grid-column:1!important}[data-load-form][data-dm-load-form="clarified"]>[data-load-group="identity"]{display:grid!important;grid-template-columns:1fr!important}}
-  `);
+  `;
 }
 
 export function installEditorPolishSection() {

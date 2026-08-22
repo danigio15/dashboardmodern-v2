@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Yeni DashboardModern panosu",
+        "data": {
+          "name": "Pano adı"
+        },
+        "data_description": {
+          "name": "Kenar çubuğunda görünür. Her biri kendi yapılandırmasına sahip birden çok pano ekleyebilirsin."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Erişim ve panolarla tümleştirme",
+        "description": "Bu panoyu DashboardModern arayüzünde hangi oturum açmış kullanıcıların göreceğini seç. Bu, ön yüzde bir görünürlük süzgecidir; Home Assistant izinlerinin yerini almaz. Lovelace kaydı, DashboardModern'i Ayarlar → Panolar altında gösterir.",
+        "data": {
+          "allowed_users": "İzin verilen kullanıcılar",
+          "register_lovelace_dashboard": "Home Assistant panosu olarak da kaydet",
+          "admin_only": "Yalnızca yöneticilere görünür"
+        },
+        "data_description": {
+          "allowed_users": "Yalnızca arayüz görünürlüğü süzgeci. Veriler ve servisler Home Assistant izinlerine bağlı kalır.",
+          "register_lovelace_dashboard": "Pano, bir yönetici DashboardModern'i ilk kez açtığında oluşturulur.",
+          "admin_only": "Home Assistant'ın kendi süzgeci; yönetici olmayan hesaplarda o üstün gelir."
+        }
+      }
+    }
+  }
+}

@@ -11,6 +11,7 @@ import {
   installStyle,
   root,
   section,
+  t,
   temperatureCardLabels,
 } from "./shared.js";
 
@@ -70,9 +71,9 @@ function numericState(entity) {
 }
 
 function comfortLabel(temperature) {
-  if (temperature == null) return english() ? "Unavailable" : "Non disponibile";
-  if (temperature < 18) return english() ? "Cold" : "Freddo";
-  if (temperature > 26) return english() ? "Hot" : "Caldo";
+  if (temperature == null) return t("Non disponibile", "Unavailable");
+  if (temperature < 18) return t("Freddo", "Cold");
+  if (temperature > 26) return t("Caldo", "Hot");
   return "Comfort";
 }
 
@@ -135,7 +136,7 @@ function createTemperatureCard(room) {
   icon.append(makeText("dm-temperature-icon-fallback", glyph(room.icon)));
   const name = doc.createElement("div");
   name.className = "cp-name temp-room-name";
-  name.textContent = clean(room.name) || (english() ? "Room" : "Stanza");
+  name.textContent = clean(room.name) || (t("Stanza", "Room"));
   title.append(icon, name);
   const badge = doc.createElement("div");
   badge.className = "cp-badge temp-comfort-badge";
@@ -162,7 +163,7 @@ function createTemperatureCard(room) {
   humidityBox.lastElementChild.id = `hv_${hid}`;
   humidityBox.addEventListener("click", (event) => {
     event.stopPropagation();
-    openHistory(event, humidity, `${clean(room.name)} ${english() ? "Humidity" : "Umidità"}`);
+    openHistory(event, humidity, `${clean(room.name)} ${t("Umidità", "Humidity")}`);
   });
   body.append(current, humidityBox);
   card.append(header, body);
@@ -198,7 +199,7 @@ function updateCard(card, room) {
     fallback.textContent = glyph(room.icon);
     if (!fallback.parentElement) icon.replaceChildren(fallback);
   }
-  if (name) name.textContent = clean(room.name) || (english() ? "Room" : "Stanza");
+  if (name) name.textContent = clean(room.name) || (t("Stanza", "Room"));
 }
 
 export function normalizeTemperatureCards() {
@@ -232,9 +233,7 @@ export function renderTemperatureCards({ force = false } = {}) {
   if (!values.length) {
     const empty = doc.createElement("div");
     empty.className = "dm-temperature-empty";
-    empty.textContent = english()
-      ? "No room has a temperature sensor configured yet."
-      : "Nessuna stanza ha ancora un sensore temperatura configurato.";
+    empty.textContent = t("Nessuna stanza ha ancora un sensore temperatura configurato.", "No room has a temperature sensor configured yet.");
     grid.replaceChildren(empty);
     return false;
   }
@@ -311,9 +310,7 @@ function bindTemperatureRoomReassignment(form) {
         const hum = clean(form.querySelector("#dm-humidity-new")?.value);
         if (!targetId || !temp.includes(".")) {
           root.alert?.(
-            english()
-              ? "Select a room and a valid temperature entity."
-              : "Seleziona una stanza e un'entità temperatura valida.",
+            t("Seleziona una stanza e un'entità temperatura valida.", "Select a room and a valid temperature entity."),
           );
           return;
         }
@@ -325,9 +322,7 @@ function bindTemperatureRoomReassignment(form) {
         const conflict = targetId !== originalId && (clean(target.temp) || clean(target.hum));
         if (conflict) {
           root.alert?.(
-            english()
-              ? "The selected room already has temperature sensors configured."
-              : "La stanza selezionata ha già sensori temperatura configurati.",
+            t("La stanza selezionata ha già sensori temperatura configurati.", "The selected room already has temperature sensors configured."),
           );
           return;
         }
@@ -363,7 +358,7 @@ export function normalizeTemperatureConfiguredRows() {
       clean(room?.name) ||
       clean(row.dataset.roomName) ||
       clean(row.dataset.roomId) ||
-      (english() ? "Room" : "Stanza");
+      (t("Stanza", "Room"));
     let main = row.querySelector(".ed-row-main");
     if (!main) {
       main = doc.createElement("div");
@@ -404,9 +399,7 @@ function normalizeTemperatureEditor() {
   if (!form) return false;
   const intro = form.parentElement?.querySelector("[data-temperature-editor]");
   if (intro) {
-    intro.textContent = english()
-      ? "Select an existing room and associate its temperature and humidity sensors. You can also move the sensors to another room while editing. Edit room name and icon in Rooms."
-      : "Seleziona una stanza esistente e associa i sensori di temperatura e umidità. In modifica puoi anche spostare i sensori in un'altra stanza. Nome e icona si modificano in Stanze.";
+    intro.textContent = t("Seleziona una stanza esistente e associa i sensori di temperatura e umidità. In modifica puoi anche spostare i sensori in un'altra stanza. Nome e icona si modificano in Stanze.", "Select an existing room and associate its temperature and humidity sensors. You can also move the sensors to another room while editing. Edit room name and icon in Rooms.");
   }
   const iconInput = form.querySelector("#dm-temperature-icon");
   if (iconInput) {

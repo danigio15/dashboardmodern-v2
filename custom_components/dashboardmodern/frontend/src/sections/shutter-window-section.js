@@ -164,10 +164,9 @@ export function ensureContactField(body = doc?.getElementById("ed-body")) {
  * dalla scheda che le riguarda non si vedevano. Stessa coppia di campi del
  * resto del modulo, stesso posto dell'altra finestra: dopo l'entita'. */
 function kindOptionsMarkup(dichiarato = "") {
-  const inglese = doc?.documentElement?.lang === "en";
   const voci = [
     ["", t("Come dice Home Assistant", "As Home Assistant says")],
-    ...COVER_KINDS.map((kind) => [kind, coverKindLabel(kind, inglese)]),
+    ...COVER_KINDS.map((kind) => [kind, coverKindLabel(kind)]),
   ];
   return voci
     .map(

@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "새 DashboardModern 패널",
+        "data": {
+          "name": "패널 이름"
+        },
+        "data_description": {
+          "name": "사이드바에 나타납니다. 패널은 여러 개 추가할 수 있고, 각각 자체 설정을 가집니다."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "접근 권한과 대시보드 연동",
+        "description": "DashboardModern 화면에서 이 패널을 볼 로그인 사용자를 고르세요. 프런트엔드의 표시 필터이며 Home Assistant 권한을 대신하지 않습니다. Lovelace에 등록하면 DashboardModern이 설정 → 대시보드에 나타납니다.",
+        "data": {
+          "allowed_users": "허용할 사용자",
+          "register_lovelace_dashboard": "Home Assistant 대시보드로도 등록",
+          "admin_only": "관리자에게만 표시"
+        },
+        "data_description": {
+          "allowed_users": "화면 표시 필터일 뿐입니다. 데이터와 서비스 접근은 여전히 Home Assistant 권한을 따릅니다.",
+          "register_lovelace_dashboard": "대시보드는 관리자가 DashboardModern을 처음 열 때 만들어집니다.",
+          "admin_only": "Home Assistant 자체 필터입니다. 관리자가 아닌 계정에서는 이쪽이 우선합니다."
+        }
+      }
+    }
+  }
+}

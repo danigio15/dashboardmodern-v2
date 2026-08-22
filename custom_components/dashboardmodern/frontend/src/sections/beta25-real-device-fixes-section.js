@@ -12,6 +12,7 @@ import {
   esc,
   root,
   section,
+  t,
   temperatureCardLabels,
 } from "./shared.js";
 
@@ -139,14 +140,14 @@ function numericState(entity) {
 }
 
 function comfortLabel(value) {
-  if (value == null) return english() ? "Unavailable" : "Non disponibile";
-  if (value < 18) return english() ? "Cold" : "Freddo";
-  if (value > 26) return english() ? "Hot" : "Caldo";
+  if (value == null) return t("Non disponibile", "Unavailable");
+  if (value < 18) return t("Freddo", "Cold");
+  if (value > 26) return t("Caldo", "Hot");
   return "Comfort";
 }
 
 function cardName(room, entry) {
-  const roomName = clean(room?.name) || (english() ? "Room" : "Stanza");
+  const roomName = clean(room?.name) || (t("Stanza", "Room"));
   const label = clean(entry?.name);
   return label ? `${roomName} · ${label}` : roomName;
 }
@@ -204,7 +205,7 @@ function createTemperatureCard(record) {
   humidity.addEventListener("click", (event) => {
     event.stopPropagation();
     const entity = humidityEntity(entry);
-    if (entity) root.apriStorico?.(event, entity, `${cardName(room, entry)} · ${english() ? "Humidity" : "Umidità"}`);
+    if (entity) root.apriStorico?.(event, entity, `${cardName(room, entry)} · ${t("Umidità", "Humidity")}`);
   });
   body.append(current, humidity);
   card.append(header, body);
@@ -239,9 +240,7 @@ export function renderBeta25TemperatureCards() {
   if (!records.length) {
     const empty = doc.createElement("div");
     empty.className = "dm-temperature-empty";
-    empty.textContent = english()
-      ? "No temperature sensor configured yet."
-      : "Nessun sensore temperatura configurato.";
+    empty.textContent = t("Nessun sensore temperatura configurato.", "No temperature sensor configured yet.");
     grid.replaceChildren(empty);
     return false;
   }
@@ -262,7 +261,7 @@ export function renderBeta25TemperatureCards() {
 }
 
 function entityField(id, label, value = "", optional = true) {
-  return `<label class="ed-slot"><span class="ed-slot-lbl">${esc(label)}${optional ? ` <span class="ed-acc-n">${english() ? "Optional" : "Facoltativo"}</span>` : ""}</span><span class="ed-form-row"><input id="${id}" class="ed-input ed-slot-in mono" value="${esc(value)}" placeholder="sensor.entity"><button type="button" class="dm-entity-picker" data-beta25-pick="${id}" aria-label="${english() ? "Select entity" : "Seleziona entità"}">🔍</button></span></label>`;
+  return `<label class="ed-slot"><span class="ed-slot-lbl">${esc(label)}${optional ? ` <span class="ed-acc-n">${t("Facoltativo", "Optional")}</span>` : ""}</span><span class="ed-form-row"><input id="${id}" class="ed-input ed-slot-in mono" value="${esc(value)}" placeholder="sensor.entity"><button type="button" class="dm-entity-picker" data-beta25-pick="${id}" aria-label="${t("Seleziona entità", "Select entity")}">🔍</button></span></label>`;
 }
 
 function temperatureRowsMarkup() {
@@ -270,7 +269,7 @@ function temperatureRowsMarkup() {
     .map(({ room, entry }) => {
       const sensors = [clean(entry.temp), humidityEntity(entry)].filter(Boolean).join(" · ");
       const detail = [clean(entry.name), sensors].filter(Boolean).join(" · ");
-      return `<article class="ed-row dm-temperature-card" data-beta25-temperature-row data-room-id="${esc(room.id)}" data-temperature-id="${esc(entry.id)}"><div class="dm-temperature-card-icon">${root.cdIconMarkup?.(room.icon || "🌡️", 28) || esc(glyph(room.icon))}</div><div class="ed-row-main"><div class="ed-row-new">${esc(clean(room.name) || (english() ? "Room" : "Stanza"))}</div><div class="ed-row-old">${esc(detail)}</div></div><button type="button" class="ed-del" data-beta25-temperature-edit>✏️</button><button type="button" class="ed-del" data-beta25-temperature-delete>🗑️</button></article>`;
+      return `<article class="ed-row dm-temperature-card" data-beta25-temperature-row data-room-id="${esc(room.id)}" data-temperature-id="${esc(entry.id)}"><div class="dm-temperature-card-icon">${root.cdIconMarkup?.(room.icon || "🌡️", 28) || esc(glyph(room.icon))}</div><div class="ed-row-main"><div class="ed-row-new">${esc(clean(room.name) || (t("Stanza", "Room")))}</div><div class="ed-row-old">${esc(detail)}</div></div><button type="button" class="ed-del" data-beta25-temperature-edit>✏️</button><button type="button" class="ed-del" data-beta25-temperature-delete>🗑️</button></article>`;
     })
     .join("");
 }
@@ -287,7 +286,7 @@ function renderBeta25TemperatureEditor() {
   const target = doc?.getElementById?.("ed-body");
   if (!target || !roomList().length) return false;
   const rows = temperatureRowsMarkup();
-  target.innerHTML = `<div class="ed-intro" data-beta25-temperature-editor>${english() ? "The same room can be selected multiple times. Each association can have its own name, temperature entity and humidity entity." : "La stessa stanza può essere selezionata più volte. Ogni associazione può avere un nome e sensori temperatura/umidità propri."}</div><div class="ed-list" data-beta25-temperature-list>${rows || `<div class="ed-empty">${english() ? "No temperature configured." : "Nessuna temperatura configurata."}</div>`}</div><form class="ed-form dm-temperature-form" data-beta25-temperature-form><div class="ed-sec-title" data-beta25-temperature-title>＋ ${english() ? "Add temperature" : "Aggiungi temperatura"}</div><label class="ed-slot"><span class="ed-slot-lbl">${english() ? "Room" : "Stanza"}</span><select id="dm-temperature-room" class="ed-input" required><option value="">— ${english() ? "Select room" : "Seleziona stanza"} —</option>${roomOptions()}</select></label><label class="ed-slot"><span class="ed-slot-lbl">${english() ? "Temperature name" : "Nome temperatura"} <span class="ed-acc-n">${english() ? "Optional" : "Facoltativo"}</span></span><input id="dm-temperature-name" class="ed-input" placeholder="${english() ? "Optional display name" : "Nome visualizzato facoltativo"}"></label>${entityField("ed-pl-temp", english() ? "Temperature entity" : "Entità temperatura", "", false)}${entityField("dm-humidity-new", english() ? "Humidity entity" : "Entità umidità")}<div class="dm-temperature-actions"><button type="submit" class="ed-btn-add" data-beta25-temperature-submit>${english() ? "Add" : "Aggiungi"}</button><button type="button" class="ed-btn-secondary" data-beta25-temperature-cancel hidden>${english() ? "Cancel" : "Annulla"}</button></div></form>`;
+  target.innerHTML = `<div class="ed-intro" data-beta25-temperature-editor>${t("La stessa stanza può essere selezionata più volte. Ogni associazione può avere un nome e sensori temperatura/umidità propri.", "The same room can be selected multiple times. Each association can have its own name, temperature entity and humidity entity.")}</div><div class="ed-list" data-beta25-temperature-list>${rows || `<div class="ed-empty">${t("Nessuna temperatura configurata.", "No temperature configured.")}</div>`}</div><form class="ed-form dm-temperature-form" data-beta25-temperature-form><div class="ed-sec-title" data-beta25-temperature-title>＋ ${t("Aggiungi temperatura", "Add temperature")}</div><label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select id="dm-temperature-room" class="ed-input" required><option value="">— ${t("Seleziona stanza", "Select room")} —</option>${roomOptions()}</select></label><label class="ed-slot"><span class="ed-slot-lbl">${t("Nome temperatura", "Temperature name")} <span class="ed-acc-n">${t("Facoltativo", "Optional")}</span></span><input id="dm-temperature-name" class="ed-input" placeholder="${t("Nome visualizzato facoltativo", "Optional display name")}"></label>${entityField("ed-pl-temp", t("Entità temperatura", "Temperature entity"), "", false)}${entityField("dm-humidity-new", t("Entità umidità", "Humidity entity"))}<div class="dm-temperature-actions"><button type="submit" class="ed-btn-add" data-beta25-temperature-submit>${t("Aggiungi", "Add")}</button><button type="button" class="ed-btn-secondary" data-beta25-temperature-cancel hidden>${t("Annulla", "Cancel")}</button></div></form>`;
 
   const form = target.querySelector("[data-beta25-temperature-form]");
   const select = form.querySelector("#dm-temperature-room");
@@ -307,8 +306,8 @@ function renderBeta25TemperatureEditor() {
     delete form.dataset.beta25EditingId;
     form.reset();
     select.disabled = false;
-    target.querySelector("[data-beta25-temperature-title]").textContent = `＋ ${english() ? "Add temperature" : "Aggiungi temperatura"}`;
-    target.querySelector("[data-beta25-temperature-submit]").textContent = english() ? "Add" : "Aggiungi";
+    target.querySelector("[data-beta25-temperature-title]").textContent = `＋ ${t("Aggiungi temperatura", "Add temperature")}`;
+    target.querySelector("[data-beta25-temperature-submit]").textContent = t("Aggiungi", "Add");
     target.querySelector("[data-beta25-temperature-cancel]").hidden = true;
   };
 
@@ -331,8 +330,8 @@ function renderBeta25TemperatureEditor() {
       temperatureNameDraft = nameInput.value;
       form.querySelector("#ed-pl-temp").value = clean(entry.temp);
       form.querySelector("#dm-humidity-new").value = clean(entry.hum);
-      target.querySelector("[data-beta25-temperature-title]").textContent = `${english() ? "Edit" : "Modifica"} ${clean(room.name)}`;
-      target.querySelector("[data-beta25-temperature-submit]").textContent = english() ? "Save changes" : "Salva modifiche";
+      target.querySelector("[data-beta25-temperature-title]").textContent = `${t("Modifica", "Edit")} ${clean(room.name)}`;
+      target.querySelector("[data-beta25-temperature-submit]").textContent = t("Salva modifiche", "Save changes");
       target.querySelector("[data-beta25-temperature-cancel]").hidden = false;
     }),
   );
@@ -355,7 +354,7 @@ function renderBeta25TemperatureEditor() {
     const roomId = editingRoomId || clean(select.value);
     const temp = clean(form.querySelector("#ed-pl-temp")?.value);
     if (!roomId || !temp.includes(".")) {
-      root.alert?.(english() ? "Select a room and a valid temperature entity." : "Seleziona una stanza e un'entità temperatura valida.");
+      root.alert?.(t("Seleziona una stanza e un'entità temperatura valida.", "Select a room and a valid temperature entity."));
       return;
     }
     const store = dashboardStore();

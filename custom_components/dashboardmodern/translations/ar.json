@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "لوحة DashboardModern جديدة",
+        "data": {
+          "name": "اسم اللوحة"
+        },
+        "data_description": {
+          "name": "تظهر في الشريط الجانبي. ويمكنك إضافة عدة لوحات، لكلٍّ منها إعداداتها الخاصة."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "الوصول والتكامل مع اللوحات",
+        "description": "اختر أي المستخدمين المسجَّلين ينبغي أن يروا هذه اللوحة في واجهة DashboardModern. هذا مرشِّح ظهور في الواجهة الأمامية، ولا يحل محل صلاحيات Home Assistant. ويؤدي التسجيل في Lovelace إلى ظهور DashboardModern ضمن «الإعدادات ← اللوحات».",
+        "data": {
+          "allowed_users": "المستخدمون المسموح لهم",
+          "register_lovelace_dashboard": "سجّلها أيضًا كلوحة في Home Assistant",
+          "admin_only": "تظهر للمديرين فقط"
+        },
+        "data_description": {
+          "allowed_users": "مرشِّح ظهور في الواجهة فقط. أما البيانات والخدمات فتبقى خاضعة لصلاحيات Home Assistant.",
+          "register_lovelace_dashboard": "تُنشأ اللوحة عند أول فتح لـ DashboardModern من قِبل مدير.",
+          "admin_only": "مرشِّح Home Assistant الأصلي؛ وهو المقدَّم على الحسابات غير الإدارية."
+        }
+      }
+    }
+  }
+}
