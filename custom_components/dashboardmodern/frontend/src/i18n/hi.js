@@ -405,6 +405,7 @@ export default Object.freeze({
   "Enter a label.": "एक लेबल लिखें।",
   "Enter a load name": "लोड का नाम लिखें",
   "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "एक नाम और शटर, पर्दा या शामियाना में से कम से कम एक cover.* एंटिटी दर्ज करें।",
+  "Every filled box must be a cover.* entity.": "भरा हुआ हर बॉक्स एक cover.* एंटिटी होना चाहिए।",
   "Enter a name and a valid entity.": "नाम और एक वैध इकाई लिखें।",
   "Enter a name.": "नाम लिखें।",
   "ENTER PIN": "पिन दर्ज करें",

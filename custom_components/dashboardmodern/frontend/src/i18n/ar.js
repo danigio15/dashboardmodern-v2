@@ -405,6 +405,7 @@ export default Object.freeze({
   "Enter a label.": "اكتب تسمية.",
   "Enter a load name": "اكتب اسم الحِمل",
   "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "أدخل اسمًا وكيان cover.* واحدًا على الأقل من بين الستارة المعدنية والستارة والمظلة.",
+  "Every filled box must be a cover.* entity.": "يجب أن يكون كل حقل معبأ كيان cover.*.",
   "Enter a name and a valid entity.": "اكتب اسمًا وكيانًا صالحًا.",
   "Enter a name.": "اكتب اسمًا.",
   "ENTER PIN": "أدخل رمز PIN",

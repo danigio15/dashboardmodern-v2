@@ -147,12 +147,18 @@ function signature(views) {
  * finestra disegnata tutta coperta. Dove una posizione c'e', comanda lei: e'
  * quella che si sta guardando.
  */
+function statoVisibile(view) {
+  if (view.moving) return view.status;
+  if (view.hasPosition) return view.position > 0 ? "open" : "closed";
+  return view.status;
+}
+
 function statusLabel(view) {
-  if (view.status === "opening") return t("In apertura", "Opening");
-  if (view.status === "closing") return t("In chiusura", "Closing");
-  if (view.hasPosition) return view.position > 0 ? t("Aperta", "Open") : t("Chiusa", "Closed");
-  if (view.status === "open") return t("Aperta", "Open");
-  if (view.status === "closed") return t("Chiusa", "Closed");
+  const stato = statoVisibile(view);
+  if (stato === "opening") return t("In apertura", "Opening");
+  if (stato === "closing") return t("In chiusura", "Closing");
+  if (stato === "open") return t("Aperta", "Open");
+  if (stato === "closed") return t("Chiusa", "Closed");
   return t("Sconosciuta", "Unknown");
 }
 
@@ -308,7 +314,13 @@ function syncCard(card, view) {
 
   const badge = card.querySelector("[data-dm-state]");
   if (badge) {
-    badge.className = `tapp-state tapp-st-${view.status}`;
+    /* Il colore viene dalla stessa risposta della scritta.
+     *
+     * La classe la dava lo stato grezzo mentre la scritta veniva dalla
+     * posizione: la pastiglia restava verde da «aperta» con scritto «Chiusa».
+     * Meta' correzione e' peggio di nessuna, perche' la contraddizione resta e
+     * sembra risolta. */
+    badge.className = `tapp-state tapp-st-${statoVisibile(view)}`;
     badge.textContent = statusLabel(view);
   }
 

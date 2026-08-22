@@ -39,6 +39,18 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   ordine di caricamento diverso perché tornasse quello di serie del browser.
   Adesso il vestito è scritto dove il bottone è già descritto.
 
+- **Le icone del Report non erano dello stesso catalogo delle altre.** Accanto a
+  ogni voce c'era la faccina scritta nel campo, mentre le schede degli
+  elettrodomestici — e il Report stesso sulla plancia — usano da sempre i disegni
+  stilizzati del catalogo. Nella stessa schermata convivevano due stili. Adesso
+  il quadratino porta lo stesso disegno della scheda, deciso dalla stessa
+  funzione, che quando non riconosce l'apparecchio risponde «generico» invece di
+  non rispondere: così sono disegnate allo stesso modo anche le voci fuori
+  catalogo. Il disegno restava però solo un istante, perché il decoratore
+  generale dei selettori d'icona ripassava subito dopo e rimetteva la faccina:
+  due padroni sullo stesso pixel, e vinceva l'ultimo. Adesso una casella può
+  dichiarare di avere già un padrone, e il decoratore la lascia stare.
+
 ## 1.1.4
 
 ### Corretto

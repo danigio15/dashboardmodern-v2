@@ -405,6 +405,7 @@ export default Object.freeze({
   "Enter a label.": "ラベルを入力してください。",
   "Enter a load name": "負荷の名前を入力してください",
   "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "名前と、シャッター・カーテン・オーニングのうち少なくとも 1 つの cover.* エンティティを入力してください。",
+  "Every filled box must be a cover.* entity.": "入力した各欄は cover.* エンティティである必要があります。",
   "Enter a name and a valid entity.": "名前と有効なエンティティを入力してください。",
   "Enter a name.": "名前を入力してください。",
   "ENTER PIN": "暗証番号を入力",

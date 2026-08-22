@@ -357,7 +357,16 @@ function installAddWrappers() {
      * Il rifiuto si zittisce solo quando sappiamo di poterlo smentire, cioe'
      * quando un'altra casella e' compilata, e solo per la durata di quella
      * chiamata. */
-    const zittire = !entity;
+    /* E si zittisce solo davanti a una copertura vera.
+     *
+     * `qualcosa` e' vero anche con il solo sensore del contatto, o con una
+     * casella riempita con un'entita' che copertura non e': li' il rifiuto del
+     * runtime ha ragione, e toglierlo di mezzo vorrebbe dire scrivere una riga
+     * che non comanda niente — o peggio, che un domani manda `cover.open_cover`
+     * a un sensore. */
+    const eUnaCopertura = (valore) => /^cover\./i.test(clean(valore));
+    const alternativaValida = eUnaCopertura(extra.tenda) || eUnaCopertura(extra.tendaSole);
+    const zittire = !entity && alternativaValida;
     const avviso = zittire ? root.alert : null;
     if (zittire) {
       try {
@@ -377,7 +386,7 @@ function installAddWrappers() {
       });
       /* Senza tapparella il runtime la riga non la scrive: la scriviamo noi,
        * in coda, con il nome e la stanza che erano nel modulo. */
-      if (index < 0 && !entity) {
+      if (index < 0 && !entity && alternativaValida) {
         list.push({
           name: clean(doc.getElementById("ed-tp-name")?.value),
           entity: "",

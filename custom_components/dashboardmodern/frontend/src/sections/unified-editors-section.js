@@ -310,11 +310,29 @@ function openShutterEditor(item, index) {
      * la tenda — ed e' proprio quello che la scheda invita a fare due righe
      * sopra. Chi ha una tenda e basta si vedeva rifiutare il salvataggio senza
      * capire quale casella mancasse. */
-    const coperture = [list[index].entity, list[index].tenda, list[index].tendaSole];
-    if (!list[index].name || !coperture.some((valore) => /^cover\./i.test(clean(valore)))) {
-      form.querySelector("[data-error]").textContent = t(
+    /* Basta una delle tre, ma quelle compilate devono essere coperture.
+     *
+     * Si pretendeva la casella della tapparella, e un infisso puo' avere solo
+     * la tenda — e' proprio quello che la scheda invita a fare due righe sopra.
+     * Accettare pero' alla prima casella buona lasciava passare le altre: con
+     * la tenda giusta e la tenda da sole riempita con un sensore, la riga si
+     * salvava e da li' in poi quel sensore veniva trattato come una copertura,
+     * fino a mandargli un comando di apertura. */
+    const compilate = [list[index].entity, list[index].tenda, list[index].tendaSole]
+      .map((valore) => clean(valore))
+      .filter(Boolean);
+    const errore = form.querySelector("[data-error]");
+    if (!list[index].name || !compilate.length) {
+      errore.textContent = t(
         "Inserisci un nome e almeno una entità cover.* fra tapparella, tenda e tenda da sole.",
         "Enter a name and at least one cover.* entity among shutter, curtain and awning.",
+      );
+      return;
+    }
+    if (!compilate.every((valore) => /^cover\./i.test(valore))) {
+      errore.textContent = t(
+        "Ogni casella compilata deve essere un'entità cover.*.",
+        "Every filled box must be a cover.* entity.",
       );
       return;
     }

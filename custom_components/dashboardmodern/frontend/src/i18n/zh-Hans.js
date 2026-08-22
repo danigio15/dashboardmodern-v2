@@ -405,6 +405,7 @@ export default Object.freeze({
   "Enter a label.": "请输入标签。",
   "Enter a load name": "请输入负载名称",
   "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "请输入名称，并至少填写卷帘、窗帘或遮阳篷中的一个 cover.* 实体。",
+  "Every filled box must be a cover.* entity.": "每个已填写的输入框都必须是 cover.* 实体。",
   "Enter a name and a valid entity.": "请输入名称和有效的实体。",
   "Enter a name.": "请输入名称。",
   "ENTER PIN": "输入 PIN 码",

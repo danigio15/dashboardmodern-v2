@@ -426,6 +426,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "EVCC solar mix",
   "every day at",
   "Every field is optional: the card automatically shows what is available. Start, duration, energy and cost of the last cycle are computed automatically from power transitions unless you provide dedicated entities.",
+  "Every filled box must be a cover.* entity.",
   "Every load below is a circle of the Energy flow, under Home, in the order of this list. What you write here is what the flow shows, and the devices you file under it are the ones that appear when you tap the circle.",
   "Exact colour",
   "Expected range",

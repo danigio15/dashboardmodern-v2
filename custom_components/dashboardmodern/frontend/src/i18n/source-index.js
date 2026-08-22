@@ -728,6 +728,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Oggi": "Today",
   "OGGI": "TODAY",
   "Ogni carico qui sotto è un cerchio del flusso Energia, sotto Casa, nell'ordine di questa lista. Quello che scrivi qui è quello che vedi nel flusso, e i dispositivi che gli assegni sono quelli che compaiono toccando il cerchio.": "Every load below is a circle of the Energy flow, under Home, in the order of this list. What you write here is what the flow shows, and the devices you file under it are the ones that appear when you tap the circle.",
+  "Ogni casella compilata deve essere un'entità cover.*.": "Every filled box must be a cover.* entity.",
   "ogni giorno alle": "every day at",
   "OK / Risolto": "OK / Resolved",
   "Ore automatiche (temperatura / 2)": "Automatic hours (temperature / 2)",

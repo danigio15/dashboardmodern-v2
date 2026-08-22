@@ -405,6 +405,7 @@ export default Object.freeze({
   "Enter a label.": "Introduce una etiqueta.",
   "Enter a load name": "Introduce el nombre de la carga",
   "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "Introduce un nombre y al menos una entidad cover.* entre persiana, cortina y toldo.",
+  "Every filled box must be a cover.* entity.": "Cada casilla rellenada debe ser una entidad cover.*.",
   "Enter a name and a valid entity.": "Introduce un nombre y una entidad válida.",
   "Enter a name.": "Introduce un nombre.",
   "ENTER PIN": "INTRODUCE EL PIN",
