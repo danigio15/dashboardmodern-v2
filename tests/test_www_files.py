@@ -114,7 +114,7 @@ def test_una_cartella_enorme_si_ferma_e_lo_dice(tmp_path: Path) -> None:
 # ── Il caricamento ───────────────────────────────────────────────────────────
 
 
-def test_upload_scrive_e_da_il_percorso_local(tmp_path):
+def test_upload_scrive_e_da_il_percorso_local(tmp_path: Path) -> None:
     from custom_components.dashboardmodern.www_files import save_www_upload
 
     esito = save_www_upload(str(tmp_path), "Foto Auto.PNG", b"contenuto")
@@ -122,7 +122,7 @@ def test_upload_scrive_e_da_il_percorso_local(tmp_path):
     assert (tmp_path / "dashboardmodern" / "foto-auto.png").read_bytes() == b"contenuto"
 
 
-def test_upload_non_sovrascrive_un_nome_gia_preso(tmp_path):
+def test_upload_non_sovrascrive_un_nome_gia_preso(tmp_path: Path) -> None:
     from custom_components.dashboardmodern.www_files import save_www_upload
 
     save_www_upload(str(tmp_path), "auto.png", b"prima")
@@ -131,7 +131,7 @@ def test_upload_non_sovrascrive_un_nome_gia_preso(tmp_path):
     assert (tmp_path / "dashboardmodern" / "auto.png").read_bytes() == b"prima"
 
 
-def test_upload_rifiuta_cio_che_non_e_una_foto(tmp_path):
+def test_upload_rifiuta_cio_che_non_e_una_foto(tmp_path: Path) -> None:
     from custom_components.dashboardmodern.www_files import (
         MAX_UPLOAD_BYTES,
         save_www_upload,
@@ -139,10 +139,11 @@ def test_upload_rifiuta_cio_che_non_e_una_foto(tmp_path):
 
     assert save_www_upload(str(tmp_path), "script.sh", b"#!/bin/sh") is None
     assert save_www_upload(str(tmp_path), "vuota.png", b"") is None
-    assert save_www_upload(str(tmp_path), "enorme.png", b"x" * (MAX_UPLOAD_BYTES + 1)) is None
+    troppo = b"x" * (MAX_UPLOAD_BYTES + 1)
+    assert save_www_upload(str(tmp_path), "enorme.png", troppo) is None
 
 
-def test_upload_un_nome_ostile_resta_nella_cartella(tmp_path):
+def test_upload_un_nome_ostile_resta_nella_cartella(tmp_path: Path) -> None:
     from custom_components.dashboardmodern.www_files import save_www_upload
 
     esito = save_www_upload(str(tmp_path), "../../fuori.png", b"x")
