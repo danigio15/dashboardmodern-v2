@@ -51,6 +51,12 @@ MAX_KEYS = 256
 MAX_VALUE_BYTES = 2 * 1024 * 1024
 MAX_TOTAL_BYTES = 8 * 1024 * 1024
 
+#: Upper bound on how many distinct profiles the shared store may hold. One per
+#: installed plancia, plus a margin for the buckets a rename leaves behind. The
+#: profile is derived server-side, so this is a backstop against unbounded
+#: growth (repeated renames), not against an arbitrary caller inventing keys.
+MAX_PROFILES = 64
+
 #: Bookkeeping and presentation-only keys never count as configured content:
 #: a snapshot holding just these is an empty plancia.
 NON_CONTENT_KEYS = frozenset(
@@ -181,6 +187,10 @@ class SnapshotTooLargeError(ValueError):
     """Raised when a snapshot exceeds the accepted size limits."""
 
 
+class ProfileLimitError(ValueError):
+    """Raised when creating a new profile would exceed ``MAX_PROFILES``."""
+
+
 def validate_values(values: Mapping[str, Any]) -> dict[str, str]:
     """Return the accepted string values of an incoming snapshot."""
     if not isinstance(values, dict):
@@ -291,6 +301,12 @@ class DashboardConfigStore:
         profile, _renamed = self._resolve(profile, entry_id)
         profiles = self._profiles()
         current = profiles.get(profile)
+        # A write that would open a new bucket beyond the cap is refused before
+        # it can grow the shared file. Existing buckets stay writable.
+        if current is None and len(profiles) >= MAX_PROFILES:
+            raise ProfileLimitError(
+                f"too many profiles: {len(profiles)} >= {MAX_PROFILES}"
+            )
         accepted = validate_values(values)
 
         if expected_revision is not None and int(expected_revision) != int(

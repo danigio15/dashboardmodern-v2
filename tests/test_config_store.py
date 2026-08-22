@@ -15,12 +15,14 @@ from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.dashboardmodern.config_store import (
+    MAX_PROFILES,
     PRIMARY_PROFILE,
     STATUS_CONFLICT,
     STATUS_REFUSED_EMPTY,
     STATUS_SAVED,
     STATUS_UNCHANGED,
     DashboardConfigStore,
+    ProfileLimitError,
     SnapshotTooLargeError,
     async_get_config_store,
     content_key_count,
@@ -215,6 +217,25 @@ async def test_an_identical_write_does_not_create_a_revision(
 
     assert again["status"] == STATUS_UNCHANGED
     assert again["snapshot"]["revision"] == 1
+
+
+async def test_a_new_profile_beyond_the_cap_is_refused(hass: HomeAssistant) -> None:
+    """The shared file cannot grow without bound through fresh profiles.
+
+    Existing profiles stay writable; only opening a brand-new bucket past the
+    limit is refused, which is the backstop against unbounded growth (e.g. a
+    stream of renames each leaving a new bucket behind).
+    """
+    store = DashboardConfigStore(hass)
+    for index in range(MAX_PROFILES):
+        await store.async_set(f"plancia-{index}", _configured(), keys_revision=2)
+
+    with pytest.raises(ProfileLimitError):
+        await store.async_set("plancia-troppa", _configured(), keys_revision=2)
+
+    # An existing profile is still writable at the cap.
+    again = await store.async_set("plancia-0", _configured("Salotto"), keys_revision=2)
+    assert again["status"] == STATUS_SAVED
 
 
 async def test_the_store_is_shared_by_every_user_and_device(

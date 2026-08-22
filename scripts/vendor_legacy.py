@@ -40,6 +40,16 @@ PENDING_UPSTREAM_FIXES = (
     "alarm-entity",
     "pin-length",
     "pin-display",
+    "xss-esc-helper",
+    "xss-appl-editor-name",
+    "xss-entity-list",
+    "xss-row-name",
+    "xss-avviso-custom-row",
+    "xss-avviso-cond-value",
+    "xss-wizard-avviso-icon",
+    "xss-wizard-avviso-name",
+    "xss-esc-appliances",
+    "xss-esc-avvisi",
 )
 
 NS_TAG = '<script src="./storage-namespace.js"></script>'
@@ -162,7 +172,82 @@ def _hide_bake_download(source: str, name: str) -> str:
 # Vendoring from a clean upstream checkout must not silently reintroduce them,
 # which is what happens when fixes live only in a separate script someone has
 # to remember to run.
+# A single HTML escaper, injected before the first appliance helper so the
+# editor renderers can route user-supplied names, icons and values through it.
+# Upstream builds those rows with template strings assigned to innerHTML and
+# escapes only some attribute quotes, so a name like ``<img src=x onerror=...>``
+# would otherwise become persistent script in a shared installation. The dashboard
+# cards already strip ``<``; these fixes close the editor and wizard rows too.
+_XSS_ESCAPER = (
+    "function cdEscHtml(x){return String(x==null?'':x)"
+    ".replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')"
+    ".replace(/\"/g,'&quot;').replace(/'/g,'&#39;');}"
+)
+
 UPSTREAM_FIXES: tuple[tuple[str, str, str, int], ...] = (
+    (
+        "xss-esc-helper",
+        "function cdApplianceName(type){",
+        _XSS_ESCAPER + "\nfunction cdApplianceName(type){",
+        1,
+    ),
+    (
+        "xss-appl-editor-name",
+        "+(a&&a.name?a.name:cdApplianceName(a.icon))+' <span "
+        'style="color:var(--text-dim,#94a3b8);font-size:11px;font-weight:700;">',
+        "+cdEscHtml(a&&a.name?a.name:cdApplianceName(a.icon))+' <span "
+        'style="color:var(--text-dim,#94a3b8);font-size:11px;font-weight:700;">',
+        1,
+    ),
+    (
+        "xss-entity-list",
+        "ents.join(', ')",
+        "cdEscHtml(ents.join(', '))",
+        2,
+    ),
+    (
+        "xss-row-name",
+        '<div class="ed-row-new">${nm}</div>',
+        '<div class="ed-row-new">${cdEscHtml(nm)}</div>',
+        3,
+    ),
+    (
+        "xss-avviso-custom-row",
+        "<div class=\"ed-row-new\">${a.icon||'⚠️'} ${(a.name||ents[0]||'')} <span",
+        "<div class=\"ed-row-new\">${cdEscHtml(a.icon||'⚠️')} "
+        "${cdEscHtml(a.name||ents[0]||'')} <span",
+        1,
+    ),
+    (
+        "xss-avviso-cond-value",
+        "const v = (a && a.value != null) ? a.value : '';",
+        "const v = cdEscHtml((a && a.value != null) ? a.value : '');",
+        1,
+    ),
+    (
+        "xss-wizard-avviso-icon",
+        "<div style=\"font-size:15px;\">${a.icon||'⚠️'}</div>",
+        "<div style=\"font-size:15px;\">${cdEscHtml(a.icon||'⚠️')}</div>",
+        1,
+    ),
+    (
+        "xss-wizard-avviso-name",
+        '<div class="ed-row-new">${(a.name||a.entity)} <span',
+        '<div class="ed-row-new">${cdEscHtml(a.name||a.entity)} <span',
+        1,
+    ),
+    (
+        "xss-esc-appliances",
+        "const esc=x=>String(x==null?'':x).replace(/\"/g,'&quot;');",
+        "const esc=x=>cdEscHtml(x);",
+        1,
+    ),
+    (
+        "xss-esc-avvisi",
+        "const esc = (x) => String(x == null ? '' : x).replace(/\"/g, '&quot;');",
+        "const esc = (x) => cdEscHtml(x);",
+        1,
+    ),
     (
         "duplicate-climate-boiler",
         """            <div class="ed-slot" style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--card-border);">
