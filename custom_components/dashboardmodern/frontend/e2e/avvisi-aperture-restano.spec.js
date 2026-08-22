@@ -83,15 +83,34 @@ test.describe("avvisi delle Aperture", () => {
 
     // La matita su una riga delle Aperture: il gruppo giusto deve essere gia'
     // scelto, e i gruppi offerti sono quelli che il Quadro Avvisi sorveglia.
-    await page.evaluate(() => {
-      const riga = [...document.querySelectorAll("#ed-body .ed-row")].find((nodo) =>
-        /porta_ingresso/.test(nodo.textContent),
-      );
-      riga.querySelector("[data-dm-alert-edit]").click();
-    });
+    /* La matita si aspetta, non si presume.
+     *
+     * Le righe le stampa il runtime e la matita la aggiunge la plancia, su un
+     * disegno successivo: chiedere subito il pulsante e cliccarlo trovava
+     * `null` quando la macchina era lenta di un pelo. La prova cadeva li' e i
+     * tentativi automatici la rimettevano in piedi, cioe' nascondevano una
+     * fragilita' della prova facendola sembrare un difetto che va e viene. */
+    const matita = page
+      .locator("#ed-body .ed-row", { hasText: "porta_ingresso" })
+      .locator("[data-dm-alert-edit]")
+      .first();
+    await matita.waitFor({ state: "attached", timeout: 20_000 });
+    await matita.evaluate((nodo) => nodo.click());
     const gruppo = page.locator("#dm-alert-editor-modal select[name=group]");
     await expect(gruppo).toHaveValue("win");
-    await expect(gruppo.locator("option")).toHaveCount(5);
+    /* Quali, non quanti. Un numero secco raccontava «i gruppi sorvegliati sono
+     * cinque», che e' un dettaglio destinato a cambiare — ed e' cambiato,
+     * quando gli allagamenti sono diventati una lista come le altre. Il
+     * contratto vero e' che ci siano tutti quelli che il Quadro Avvisi
+     * sorveglia, e nient'altro. */
+    await expect(gruppo.locator("option")).toHaveText([
+      /Aperture|Openings/,
+      /Batterie|Batteries/,
+      /Luci|Lights/,
+      /Clima|Climate/,
+      /Riscaldamento|Heating/,
+      /Allagamenti|Floods/,
+    ]);
     await page.evaluate(() =>
       document.querySelector("#dm-alert-editor-modal form").requestSubmit(),
     );

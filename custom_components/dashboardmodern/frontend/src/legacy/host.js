@@ -9,6 +9,7 @@
 
 import { createBridgeSocket } from "./bridge-socket.js";
 import { legacyShellFor, resolveLocale, textDirection } from "../core/i18n.js";
+import { releaseMarkedElements } from "../core/kiosk-undo.js";
 
 export const HOST_KEY = "__DASHBOARDMODERN_HOST__";
 /* Marker on the one message the hosted document is allowed to send its host. */
@@ -303,12 +304,28 @@ export function mountLegacyHost(
     reboot,
     destroy() {
       hostWindow.removeEventListener?.("message", onChildMessage);
-      // La plancia scrive anche nel documento di Home Assistant — lo scorrimento
-      // bloccato, il velo a tutto schermo del modo chiosco. Se ne va prima che
-      // la cornice sparisca, altrimenti resta addosso alle altre plance.
+      /* La plancia scrive anche nel documento di Home Assistant — lo
+       * scorrimento bloccato, il velo a tutto schermo del modo chiosco. Se ne
+       * va prima che la cornice sparisca, altrimenti resta addosso alle altre
+       * plance.
+       *
+       * Si chiede al figlio, che e' la strada precisa: sa cosa ha scritto e
+       * dove. Ma non ci si appoggia soltanto a lui. Questo smontaggio parte da
+       * `disconnectedCallback`, cioe' *dopo* che il pannello e la cornice sono
+       * gia' stati staccati dal documento, e li' il contesto della cornice puo'
+       * essere gia' finito: Chrome rimanda quella distruzione a un giro
+       * successivo e la chiamata fa in tempo, WebKit la fa subito e la chiamata
+       * non arriva a nessuno. Su iPhone era proprio questo a lasciare le altre
+       * plance sbiancate finche' non si ricaricava la pagina.
+       *
+       * Quindi si ripassa comunque dal documento: ogni elemento toccato porta
+       * scritto addosso com'era prima, e da qui si legge e si rimette. Le due
+       * strade non si pestano i piedi — chi e' gia' stato rimesso a posto il
+       * promemoria non ce l'ha piu'. */
       try {
         frame.contentWindow?.dmReleaseOwnerDocument?.();
       } catch (_error) {}
+      releaseMarkedElements(documentRef, ["data-dm-ios-kiosk"]);
       frame.remove();
       delete hostWindow[HOST_KEY];
       delete hostWindow.__DASHBOARDMODERN_INSTANCE__;

@@ -12,6 +12,8 @@
 
 export default Object.freeze({
   " — configured": " — 已配置",
+  "FLOOD": "漏水",
+  "Floods": "漏水",
   "— Choose —": "— 选择 —",
   "— Choose model —": "— 选择车型 —",
   "— kWh from PV": "— 来自光伏的 kWh",

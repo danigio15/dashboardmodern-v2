@@ -27,15 +27,18 @@ pytest.importorskip(
 
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.dashboardmodern.config_store import (
     PRIMARY_PROFILE,
     async_get_config_store,
 )
+from custom_components.dashboardmodern.const import DOMAIN
 from custom_components.dashboardmodern.websocket_api import (
     TYPE_GET,
     TYPE_RESTORE,
     TYPE_SET,
+    TYPE_WWW_LIST,
     async_register_websocket_api,
 )
 
@@ -239,3 +242,131 @@ async def test_an_oversized_snapshot_is_reported_as_an_error(
 
     assert connection.results == {}
     assert connection.errors[1][0] == "snapshot_too_large"
+
+
+async def _errore(
+    hass: HomeAssistant,
+    connection: StubConnection,
+    payload: dict[str, Any],
+    message_id: int,
+) -> tuple[str, str]:
+    """Run one command expecting it to be refused."""
+    handler, schema = _registered(hass, payload["type"])
+    message = schema({"id": message_id, **payload})
+    await handler.__wrapped__(hass, connection, message)
+    assert message_id not in connection.results, connection.results[message_id]
+    return connection.errors[message_id]
+
+
+def _plancia(hass: HomeAssistant, **options: Any) -> MockConfigEntry:
+    """Una plancia installata, con le sue opzioni."""
+    entry = MockConfigEntry(
+        domain=DOMAIN, entry_id="entry-1", title="Casa", options=options
+    )
+    entry.add_to_hass(hass)
+    return entry
+
+
+async def test_la_plancia_riservata_agli_admin_lo_e_anche_qui(
+    hass: HomeAssistant,
+) -> None:
+    """Il permesso stava nel browser, e un browser non e' un permesso.
+
+    La lista di chi puo' aprire una plancia viaggiava dentro la configurazione
+    del pannello e la applicava il frontend: chi non era in lista non la vedeva
+    nella barra laterale e non riusciva ad aprirla, ma poteva chiamare questi
+    comandi lo stesso e riscrivere la configurazione — che e' una sola per tutta
+    l'installazione. Adesso la stessa regola vale anche qui.
+    """
+    _plancia(hass, admin_only=True)
+    store = await async_get_config_store(hass)
+    await store.async_set(PRIMARY_PROFILE, VALUES, keys_revision=2)
+
+    ospite = StubConnection(hass, is_admin=False)
+    codice, _ = await _errore(hass, ospite, {"type": TYPE_GET}, 1)
+    assert codice == websocket_api.const.ERR_UNAUTHORIZED
+
+    codice, _ = await _errore(
+        hass,
+        ospite,
+        {
+            "type": TYPE_SET,
+            "snapshot": {
+                "values": {**VALUES, "cd_costo_kwh": "9.99"},
+                "keys_revision": 2,
+            },
+        },
+        2,
+    )
+    assert codice == websocket_api.const.ERR_UNAUTHORIZED
+    # E la configurazione di tutti e' rimasta quella di prima.
+    stored = await store.async_get(PRIMARY_PROFILE)
+    assert "cd_costo_kwh" not in stored["snapshot"]["values"]
+
+    # L'amministratore invece passa, come e' sempre stato.
+    padrone = StubConnection(hass)
+    letto = await _command(hass, padrone, {"type": TYPE_GET}, 3)
+    assert letto["snapshot"]["values"] == VALUES
+
+
+async def test_chi_non_e_in_lista_non_scrive_per_gli_altri(
+    hass: HomeAssistant,
+) -> None:
+    """Con una lista di utenti abilitati, vale per chiunque non ci sia."""
+    _plancia(hass, allowed_users=["user-2"])
+    store = await async_get_config_store(hass)
+    await store.async_set(PRIMARY_PROFILE, VALUES, keys_revision=2)
+
+    # `SimpleUser` si chiama sempre "user-1": fuori dalla lista.
+    fuori = StubConnection(hass, is_admin=False)
+    codice, _ = await _errore(hass, fuori, {"type": TYPE_WWW_LIST, "path": ""}, 1)
+    assert codice == websocket_api.const.ERR_UNAUTHORIZED
+
+    codice, _ = await _errore(hass, fuori, {"type": TYPE_RESTORE, "revision": 1}, 2)
+    assert codice == websocket_api.const.ERR_UNAUTHORIZED
+
+
+async def test_chi_e_in_lista_continua_a_salvare(hass: HomeAssistant) -> None:
+    """Chi la plancia la puo' usare la puo' anche salvare.
+
+    E' il motivo per cui questi comandi non sono semplicemente riservati agli
+    amministratori: una plancia usata da un utente normale deve poter tenere le
+    proprie modifiche. Quello che cambia e' solo che adesso «puo' usarla» lo
+    decide il server.
+    """
+    _plancia(hass, allowed_users=["user-1"])
+    store = await async_get_config_store(hass)
+    await store.async_set(PRIMARY_PROFILE, VALUES, keys_revision=2)
+
+    dentro = StubConnection(hass, is_admin=False)
+    letto = await _command(hass, dentro, {"type": TYPE_GET}, 1)
+    salvato = await _command(
+        hass,
+        dentro,
+        {
+            "type": TYPE_SET,
+            "snapshot": {
+                "values": {**VALUES, "cd_costo_kwh": "0.31"},
+                "keys_revision": 2,
+            },
+            "expected_revision": letto["snapshot"]["revision"],
+        },
+        2,
+    )
+    assert salvato["status"] == "saved"
+
+
+async def test_una_plancia_aperta_resta_aperta(hass: HomeAssistant) -> None:
+    """Senza restrizioni scelte dal proprietario, non se ne inventano.
+
+    La regola applicata qui e' quella della plancia, non una piu' severa: chi
+    non ha ristretto niente continua a vedere la plancia funzionare per tutti in
+    casa, che e' la scelta che ha fatto.
+    """
+    _plancia(hass)
+    store = await async_get_config_store(hass)
+    await store.async_set(PRIMARY_PROFILE, VALUES, keys_revision=2)
+
+    chiunque = StubConnection(hass, is_admin=False)
+    letto = await _command(hass, chiunque, {"type": TYPE_GET}, 1)
+    assert letto["snapshot"]["values"] == VALUES

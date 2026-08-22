@@ -419,3 +419,61 @@ test("il nome resta intero anche con due pastiglie", async ({ page }, testInfo) 
   expect(conUna.pastiglie).toBe(1);
   expect(conUna.soloSuaRiga, "con una pastiglia la riga resta una").toBe(false);
 });
+
+/* Le quattro caselle stanno insieme, dentro il modulo.
+ *
+ * Ci si ancorava alla stanza, cercandone il contenitore con
+ * `closest("label, .ed-slot, div")`. Ma nel markup del runtime la stanza e' un
+ * `<select>` nudo — niente `label`, niente `.ed-slot` — e quel `div` finale
+ * acchiappava il riquadro che avvolge tutto il pannello: le tre caselle
+ * uscivano dopo «Aggiungi tapparella» e dopo «Salva sezione», staccate dalla
+ * riga che stanno descrivendo. Segnalato con lo schermo alla mano.
+ *
+ * La prova guarda l'ordine vero del documento, perche' e' li' che si vedeva. */
+test("le tre caselle stanno sotto la tapparella, non in fondo al pannello", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(180_000);
+  await apriTapparelle(page, testInfo);
+  await apriSchedaTapparelle(page);
+
+  const posti = await page.evaluate(() => {
+    const corpo = document.getElementById("ed-body");
+    const tutti = [...corpo.querySelectorAll("*")];
+    const posto = (id) => {
+      const nodo = document.getElementById(id);
+      return nodo ? tutti.indexOf(nodo) : -1;
+    };
+    const salva = tutti.findIndex((nodo) =>
+      /salva sezione/i.test(nodo.children.length ? "" : nodo.textContent || ""),
+    );
+    const aggiungi = tutti.findIndex((nodo) =>
+      /aggiungi tapparella/i.test(nodo.children.length ? "" : nodo.textContent || ""),
+    );
+    return {
+      ent: posto("ed-tp-ent"),
+      tenda: posto("ed-tp-tenda"),
+      tendasole: posto("ed-tp-tendasole"),
+      contact: posto("ed-tp-contact"),
+      room: posto("ed-tp-room"),
+      aggiungi,
+      salva,
+    };
+  });
+
+  for (const [nome, valore] of Object.entries(posti)) {
+    expect(valore, `${nome} non e' nel pannello`).toBeGreaterThan(-1);
+  }
+
+  // Prima la tapparella, poi le sue tre compagne, poi la stanza.
+  expect(posti.tenda, "tenda dopo la tapparella").toBeGreaterThan(posti.ent);
+  expect(posti.tendasole, "tenda da sole dopo la tenda").toBeGreaterThan(posti.tenda);
+  expect(posti.contact, "sensore dopo la tenda da sole").toBeGreaterThan(posti.tendasole);
+  expect(posti.room, "la stanza resta in coda alle caselle").toBeGreaterThan(posti.contact);
+
+  // E tutte e tre dentro il modulo: mai dopo i due pulsanti.
+  for (const chiave of ["tenda", "tendasole", "contact"]) {
+    expect(posti[chiave], `${chiave} prima di «Aggiungi tapparella»`).toBeLessThan(posti.aggiungi);
+    expect(posti[chiave], `${chiave} prima di «Salva sezione»`).toBeLessThan(posti.salva);
+  }
+});

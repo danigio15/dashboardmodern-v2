@@ -1,4 +1,5 @@
 // DM-FIX-20260817A
+import { markUndo, restoreDeclarations } from "../core/kiosk-undo.js";
 import { clean, doc, installStyle, root, t } from "./shared.js";
 
 // Beta18: all room/action icons are owned by icon-engine-section. This historical
@@ -280,6 +281,11 @@ function updateKioskViewport() {
  * Da qui in avanti si segna proprieta' per proprieta' cosa c'era prima, e si
  * rimette solo quella. Quello che scrive qualcun altro sullo stesso elemento
  * non viene nemmeno sfiorato. */
+/* E l'annullamento sta scritto sull'elemento, non solo nella nostra testa:
+ * chi smonta la plancia deve poterlo leggere dal documento che ha davanti,
+ * senza chiedere niente a una finestra che potrebbe non esserci piu'. Il come
+ * sta in `kiosk-undo.js`, che leggono in due — questa plancia e chi la ospita.
+ */
 function ricordaEScrivi(element, dichiarazioni) {
   const prima = [];
   for (const [nome, valore, priorita] of dichiarazioni) {
@@ -290,15 +296,12 @@ function ricordaEScrivi(element, dichiarazioni) {
     });
     element.style.setProperty(nome, valore, priorita || "");
   }
+  markUndo(element, prima);
   return prima;
 }
 
 function rimetti(element, prima = []) {
-  if (!element?.style) return;
-  for (const { nome, valore, priorita } of prima) {
-    if (valore) element.style.setProperty(nome, valore, priorita || "");
-    else element.style.removeProperty(nome);
-  }
+  restoreDeclarations(element, prima);
 }
 
 /** Whether a computed value turns an ancestor into a containing block. */

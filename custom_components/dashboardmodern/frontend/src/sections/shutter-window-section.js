@@ -185,22 +185,46 @@ function casella(id, etichetta, esempio) {
   return holder;
 }
 
-export function ensureContactField(body = doc?.getElementById("ed-body")) {
+/* Dove attaccarle: subito sotto la casella della tapparella.
+ *
+ * Prima ci si ancorava alla stanza, e si cercava il suo contenitore con
+ * `closest("label, .ed-slot, div")`. Ma nel markup del runtime la stanza e' un
+ * `<select>` nudo: niente `label`, niente `.ed-slot`, e allora quel `div`
+ * finale acchiappava il riquadro che avvolge tutto il pannello. Le tre caselle
+ * uscivano dopo «Aggiungi tapparella» e dopo «Salva sezione», staccate dalla
+ * riga che stanno descrivendo.
+ *
+ * Adesso si parte dalla casella principale e si sale finche' non si sta nello
+ * stesso contenitore della stanza: quello e' il fratello da cui ripartire,
+ * qualunque cosa gli abbia messo intorno chi impagina i campi. Non si esce mai
+ * dal modulo, perche' non si guarda piu' un elenco di tag ma una parentela. */
+function ancoraSottoLaPrincipale(body) {
+  const primaria = body?.querySelector?.("#ed-tp-ent");
   const room = body?.querySelector?.("#ed-tp-room");
-  if (!room) return false;
-  const dopo = room.closest("label, .ed-slot, div") || room;
-  let ultimo = dopo;
+  if (!primaria || !room) return null;
+  const contenitore = (room.closest("label, .ed-slot") || room).parentElement;
+  if (!contenitore) return null;
+  let nodo = primaria;
+  while (nodo && nodo.parentElement !== contenitore) nodo = nodo.parentElement;
+  return nodo || null;
+}
+
+export function ensureContactField(body = doc?.getElementById("ed-body")) {
+  const ancora = ancoraSottoLaPrincipale(body);
+  if (!ancora) return false;
+  let ultimo = ancora;
   let aggiunte = 0;
   for (const [id, etichetta, esempio] of caselle()) {
     let campo = body.querySelector(`#${id}`);
     if (!campo) {
-      const holder = casella(id, etichetta, esempio);
-      ultimo.after?.(holder);
-      campo = holder;
+      campo = casella(id, etichetta, esempio);
       aggiunte += 1;
     } else {
       campo = campo.closest("label, .ed-slot") || campo;
     }
+    /* Si rimette in fila a ogni giro: una casella stampata al posto sbagliato
+     * da una versione precedente torna dove deve stare senza doverla rifare. */
+    if (ultimo.nextElementSibling !== campo) ultimo.after?.(campo);
     ultimo = campo;
   }
   /* La prima casella e' quella del runtime: le si da' il nome che adesso le

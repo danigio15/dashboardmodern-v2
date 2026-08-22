@@ -12,6 +12,8 @@
 
 export default Object.freeze({
   " — configured": " — कॉन्फ़िगर किया गया",
+  "FLOOD": "पानी का रिसाव",
+  "Floods": "पानी का रिसाव",
   "— Choose —": "— चुनें —",
   "— Choose model —": "— मॉडल चुनें —",
   "— kWh from PV": "— सौर से kWh",

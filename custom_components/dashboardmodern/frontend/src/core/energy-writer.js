@@ -120,11 +120,19 @@ export function persistSignedSource(store, group, signed) {
       const entities = Object.entries(signed || {}).filter(
         ([key, value]) => key !== "positive" && clean(value),
       );
-      if (!entities.length) delete model[group].signed;
+      /* Il verso conta quanto un'entita'.
+       *
+       * Filtrando via `positive` e poi cancellando tutto quando non restava
+       * nessuna entita', la scelta del verso fatta prima di scrivere il
+       * sensore veniva buttata nel momento stesso in cui la si salvava. Chi
+       * ridisegnava subito dopo rileggeva un modello vuoto e richiudeva la
+       * scheda: si toccava il verso e la scheda si riazzerava, ogni volta. */
+      const verso = clean(signed?.positive);
+      if (!entities.length && !verso) delete model[group].signed;
       else
         model[group].signed = {
           ...Object.fromEntries(entities.map(([key, value]) => [key, clean(value)])),
-          positive: clean(signed?.positive),
+          positive: verso,
         };
       model.metadata = withSemantics(model);
       await store.replaceSection("energy", model);

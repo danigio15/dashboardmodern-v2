@@ -30,10 +30,23 @@ test("un gruppo senza dichiarazione resta com'e'", () => {
   assert.deepEqual(signedSourceEntities(energy), []);
 });
 
+/* Il verso da solo tiene aperta la scheda, ma non comanda niente.
+ *
+ * Prima questa prova pretendeva `null`, ed era il difetto messo per iscritto:
+ * la scheda mette il verso prima delle caselle, quindi lo si sceglie quando
+ * di entita' non ce n'e' ancora nessuna, e rispondere «non c'e' nessuna
+ * dichiarazione» faceva richiudere la scheda e perdere la scelta. Adesso la
+ * dichiarazione c'e' — e continua a non ricavare niente, che era ed e' la
+ * cosa importante. */
 test("una dichiarazione senza entita' non comanda niente", () => {
   const energy = { battery: { signed: { positive: "charge" } } };
-  assert.equal(signedSource(energy, "battery"), null);
-  assert.equal(applySignedSources(energy), energy);
+  const sorgente = signedSource(energy, "battery");
+  assert.ok(sorgente, "la scheda resta aperta su quello che si e' scelto");
+  assert.equal(sorgente.positive, "charge");
+  assert.deepEqual(sorgente.entities, {}, "nessuna casella compilata");
+  assert.equal(applySignedSources(energy), energy, "e il modello non si tocca");
+  assert.deepEqual(derivedEnergyStates(energy, {}), {});
+  assert.deepEqual(signedSourceEntities(energy), []);
 });
 
 test("la rete con i positivi in prelievo usa l'entita' cosi' com'e'", () => {
@@ -150,7 +163,12 @@ test("la sorgente unica si scrive e si toglie per intero", async () => {
   const store = storeFinto({ grid: {} });
   await persistSignedSource(store, "grid", { power: "sensor.rete_w", positive: "export" });
   assert.deepEqual(store.leggi().grid.signed, { power: "sensor.rete_w", positive: "export" });
+  /* Svuotare la casella del sensore non e' rinunciare alla sorgente unica: il
+   * verso scelto resta, altrimenti cancellando per riscrivere si perderebbe. */
   await persistSignedSource(store, "grid", { power: "", positive: "export" });
+  assert.deepEqual(store.leggi().grid.signed, { positive: "export" });
+  // A toglierla per intero e' la spunta, che manda il vuoto.
+  await persistSignedSource(store, "grid", {});
   assert.equal("signed" in store.leggi().grid, false);
 });
 
