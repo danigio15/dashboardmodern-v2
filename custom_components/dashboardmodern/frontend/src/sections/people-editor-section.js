@@ -307,6 +307,7 @@ function installStyles() {
       #ed-body .dm-people-list{display:grid;gap:8px;margin-bottom:10px}
       #ed-body .dm-people-row{display:block!important;padding:0!important;overflow:hidden}
       #ed-body .dm-people-row-head{display:flex;align-items:center;gap:10px;padding:10px 12px}
+      #ed-body .dm-people-row-head .ed-row-main{display:grid;gap:2px;min-width:0}
       #ed-body .dm-people-ed-portrait{position:relative;width:40px;height:40px;flex:0 0 auto}
       #ed-body .dm-people-ed-portrait img,#ed-body .dm-people-ed-avatar{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover}
       #ed-body .dm-people-ed-avatar{display:grid;place-items:center;font-size:20px;background:color-mix(in srgb,var(--dm-person-color,#0ea5e9) 18%,var(--card-bg,#fff));color:var(--dm-person-color,#0ea5e9)}
