@@ -58,52 +58,40 @@ stessa cosa che verifica la CI del catalogo. Non è pignoleria: `dark_icon@2x.pn
 è rimasto in repository per mesi con il flusso troncato, e dalla riga 409 in giù
 era spazzatura. I decodificatori indulgenti mostravano comunque qualcosa.
 
-## 2. Il catalogo dei marchi (HA < 2026.3, e la vetrina di HACS)
+## 2. Il catalogo dei marchi non accetta più nessuno
 
-Su un Home Assistant più vecchio del 2026.3 la strada 1 non esiste: lì l'icona
-la può servire solo `brands.home-assistant.io`, e finché il dominio non è nel
-catalogo si legge «icon not available».
+La strada del catalogo è **chiusa**. Il modello di pull request di
+[`home-assistant/brands`](https://github.com/home-assistant/brands) lo dice
+nella prima riga, prima ancora del titolo:
 
-**E la strada 1 non copre HACS, nemmeno sul 2026.8.** Il pannello di Home
-Assistant chiede le icone al proprio indirizzo locale — `brandsUrl()` in
-`src/util/brands-url.ts` costruisce `/api/brands/integration/<dominio>/icon.png`
-con un token — ma l'entità di aggiornamento che HACS crea si scrive l'indirizzo
-da sola, e va dritta alla CDN (`custom_components/hacs/update.py`):
+> Pull requests for adding new custom components will no longer be accepted.
+> Please refer to the Brands Proxy API announcement for more details.
+
+E le uniche voci fra cui scegliere in «Type of change» parlano tutte di
+integrazioni **core**: per una personalizzata non c'è nemmeno la casella da
+spuntare. La cartella `custom_integrations/` esiste ancora per chi c'era già,
+ed è marcata «legacy» nel loro README: l'hanno chiusa perché la strada 1 la
+sostituisce.
+
+Quindi: **non aprire una pull request là, verrebbe respinta.** Le sei immagini
+in questa cartella sono già il modo giusto e l'unico.
+
+## Quello che resta rotto, e non dipende da noi
+
+L'entità di aggiornamento che HACS crea si scrive l'indirizzo dell'icona da
+sola, e va dritta alla CDN invece di chiederla al pannello
+(`custom_components/hacs/update.py`):
 
 ```python
 return f"https://brands.home-assistant.io/_/{self.repository.data.domain}/icon.png"
 ```
 
-Per questo in **Impostazioni → Aggiornamenti** si legge «icon not available»
-anche quando la cartella `brand/` è installata e funziona: quella riga non passa
-dal pannello, e nessun file di questo repository la può cambiare. Vale anche per
-la scheda del repository dentro HACS prima di installarlo, dove l'integrazione
-sul disco non c'è ancora.
+Per un'integrazione personalizzata quell'indirizzo non risponde — e adesso non
+può più farlo, visto che il catalogo non accetta nuove iscrizioni. Per questo in
+**Impostazioni → Aggiornamenti** si legge «icon not available» anche con la
+cartella `brand/` installata e funzionante.
 
-Verificato il 22 agosto 2026 su [`home-assistant/brands`](https://github.com/home-assistant/brands):
-`custom_integrations/dashboardmodern` **non esiste** (404), mentre
-`custom_integrations/better_thermostat` c'è con le sue quattro immagini.
-
-Per iscrivercisi:
-
-1. Fai un fork di [`home-assistant/brands`](https://github.com/home-assistant/brands).
-2. Copia questi file in `custom_integrations/dashboardmodern/`:
-
-   ```bash
-   git clone https://github.com/<tuo-utente>/brands.git
-   cd brands
-   git checkout -b dashboardmodern
-   mkdir -p custom_integrations/dashboardmodern
-   cp /percorso/dashboardmodern-v2/brand/*.png custom_integrations/dashboardmodern/
-   git add custom_integrations/dashboardmodern
-   git commit -m "Add DashboardModern v2 custom integration brand"
-   git push -u origin dashboardmodern
-   ```
-
-3. Apri la pull request. La loro CI controlla nomi, formato e misure: sono
-   quelli della tabella qui sopra.
-4. Il catalogo vieta alle integrazioni personalizzate le immagini con il
-   marchio di Home Assistant, per non farle sembrare ufficiali. La nostra icona
-   è una casa stilizzata con un fulmine, disegno nostro.
-5. A pull request unita l'icona compare da sola: qui non c'è niente da toccare
-   e nessuna release da fare. La CDN può metterci qualche ora.
+Non c'è niente in questo repository che lo possa cambiare: la correzione sta in
+HACS, che dovrebbe chiedere `/api/brands/integration/<dominio>/icon.png` come fa
+il resto del pannello. Fino ad allora l'icona si vede nelle Integrazioni e non
+negli Aggiornamenti, ed è tutto quello che si può ottenere.
