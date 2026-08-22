@@ -276,7 +276,7 @@ export function derivedEnergyStates(energy = {}, states = {}) {
     /* Senza la casella principale il verso mancante vale zero: chi dichiara la
      * sola immissione ha un impianto che non preleva mai da quel sensore. */
     const mainReading = pair.main ? readingFrom(states, pair.main) : null;
-    const mainValue = pair.main ? mainReading?.value ?? null : 0;
+    const mainValue = pair.main ? (mainReading?.value ?? null) : 0;
     const oppositeValue = oppositeReading?.value ?? null;
     const id = derivedEntityId(group, SIGNED_GROUPS[group].powerField);
     const value =

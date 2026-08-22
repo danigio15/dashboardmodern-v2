@@ -101,10 +101,26 @@ test("dalla coppia esce un solo numero, col segno del verso", async ({ page }, t
 
   await page.evaluate(() => {
     const stati = {
-      "sensor.prelievo_w": { entity_id: "sensor.prelievo_w", state: "1200", attributes: { unit_of_measurement: "W" } },
-      "sensor.immissione_w": { entity_id: "sensor.immissione_w", state: "300", attributes: { unit_of_measurement: "W" } },
-      "sensor.carica_w": { entity_id: "sensor.carica_w", state: "500", attributes: { unit_of_measurement: "W" } },
-      "sensor.scarica_w": { entity_id: "sensor.scarica_w", state: "0", attributes: { unit_of_measurement: "W" } },
+      "sensor.prelievo_w": {
+        entity_id: "sensor.prelievo_w",
+        state: "1200",
+        attributes: { unit_of_measurement: "W" },
+      },
+      "sensor.immissione_w": {
+        entity_id: "sensor.immissione_w",
+        state: "300",
+        attributes: { unit_of_measurement: "W" },
+      },
+      "sensor.carica_w": {
+        entity_id: "sensor.carica_w",
+        state: "500",
+        attributes: { unit_of_measurement: "W" },
+      },
+      "sensor.scarica_w": {
+        entity_id: "sensor.scarica_w",
+        state: "0",
+        attributes: { unit_of_measurement: "W" },
+      },
     };
     window.__HASS__ = { states: { ...(window.__HASS__?.states || {}), ...stati } };
     const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");
