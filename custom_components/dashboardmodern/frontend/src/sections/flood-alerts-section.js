@@ -106,11 +106,18 @@ export function syncFloodGroup() {
   const extras = readJson("cd_gruppi_extra", {}) || {};
   const removed = readJson("cd_gruppi_removed", {}) || {};
   const gia = Boolean(readJson(FLOOD_SEEN_KEY, false));
-  const { entities, primoAvvio } = floodEntities(extras, removed, allStates(), gia);
+  const states = allStates();
+  const { entities, primoAvvio } = floodEntities(extras, removed, states, gia);
   /* Il primo avvio scrive quello che ha trovato e si segna di averlo fatto: da
    * li' in poi la lista e' dell'utente, e chi la svuota la ritrova vuota
-   * invece di vedersela ripopolare a ogni ricaricamento. */
-  if (primoAvvio) {
+   * invece di vedersela ripopolare a ogni ricaricamento.
+   *
+   * Ma «ho guardato» si puo' dire solo se c'era qualcosa da guardare. Questa
+   * passata gira anche prima che gli stati di Home Assistant siano arrivati, e
+   * li' l'elenco delle entita' e' vuoto per forza: segnarsi il giro in quel
+   * momento voleva dire non rilevare mai piu' niente, su nessuna casa. Finche'
+   * il registro e' vuoto non si e' guardato, si e' solo passati di qui. */
+  if (primoAvvio && Object.keys(states).length) {
     if (entities.length) {
       writeJsonIfChanged("cd_gruppi_extra", { ...extras, [FLOOD_GROUP]: entities }, { sync: false });
     }

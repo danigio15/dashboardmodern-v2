@@ -151,3 +151,26 @@ test("ma al primissimo avvio guarda ancora", () => {
   assert.deepEqual(entities, ["binary_sensor.perdita"]);
   assert.equal(primoAvvio, true, "il primo giro va segnato");
 });
+
+/* «Ho guardato» si puo' dire solo se c'era qualcosa da guardare.
+ *
+ * La passata gira anche prima che gli stati di Home Assistant siano arrivati, e
+ * li' l'elenco delle entita' e' vuoto per forza. Segnarsi il giro in quel
+ * momento voleva dire non rilevare mai piu' niente, su nessuna casa: il
+ * sensore di allagamento non sarebbe mai comparso da solo.
+ */
+test("col registro vuoto non si e' guardato, si e' solo passati di li'", () => {
+  const sezione = leggi("sections/flood-alerts-section.js");
+  assert.match(
+    sezione,
+    /primoAvvio && Object\.keys\(states\)\.length/,
+    "il segno si mette anche senza stati",
+  );
+});
+
+test("e gli stati arrivati dopo vengono comunque visti", () => {
+  // Con il segno non ancora messo, la passata successiva rileva.
+  const states = { "binary_sensor.perdita": bagnato };
+  assert.deepEqual(floodEntities({}, {}, {}, false).entities, [], "senza stati non trova niente");
+  assert.deepEqual(floodEntities({}, {}, states, false).entities, ["binary_sensor.perdita"]);
+});
