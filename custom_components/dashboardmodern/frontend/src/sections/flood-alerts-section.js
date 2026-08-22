@@ -99,8 +99,20 @@ function watchedGroups() {
   return groups && typeof groups === "object" ? groups : null;
 }
 
+/* Rilevare e leggere sono due mestieri diversi.
+ *
+ * Il rilevamento e' una cosa dell'avvio: si guarda una volta cosa c'e' in casa,
+ * lo si scrive, e da li' in poi la lista e' dell'utente. Leggerla, invece,
+ * capita di continuo — a ogni disegno del quadro e a ogni ridisegno del
+ * pannello di configurazione.
+ *
+ * Tenerli insieme voleva dire che una passata di lettura poteva mettersi a
+ * scrivere in localStorage nel mezzo di una navigazione dell'editor. Una volta
+ * sola, ma nel momento sbagliato: e chi stava misurando l'editor si trovava
+ * sotto i piedi un salvataggio che non aveva chiesto.
+ */
 /** Allinea la lista del runtime a quello che dice la configurazione. */
-export function syncFloodGroup() {
+export function syncFloodGroup({ rileva = false } = {}) {
   const groups = watchedGroups();
   if (!groups) return null;
   const extras = readJson("cd_gruppi_extra", {}) || {};
@@ -117,7 +129,7 @@ export function syncFloodGroup() {
    * li' l'elenco delle entita' e' vuoto per forza: segnarsi il giro in quel
    * momento voleva dire non rilevare mai piu' niente, su nessuna casa. Finche'
    * il registro e' vuoto non si e' guardato, si e' solo passati di qui. */
-  if (primoAvvio && Object.keys(states).length) {
+  if (rileva && primoAvvio && Object.keys(states).length) {
     if (entities.length) {
       writeJsonIfChanged("cd_gruppi_extra", { ...extras, [FLOOD_GROUP]: entities }, { sync: false });
     }
@@ -332,19 +344,24 @@ function installFloodDeleteHandler() {
   return true;
 }
 
-export function refreshFloodAlerts() {
+export function refreshFloodAlerts({ rileva = false } = {}) {
   installDetailsWrapper();
   installFloodDeleteHandler();
   ensureGroupOptions();
+  if (rileva) syncFloodGroup({ rileva: true });
   ensureFloodEditorRows();
   return paintFloodCard();
 }
+
+/* Il giro che guarda: l'avvio, e ogni volta che gli stati arrivano o
+ * ricompaiono. Non la navigazione dell'editor. */
+const rilevaEDisegna = () => refreshFloodAlerts({ rileva: true });
 
 function schedule() {
   if (state.frame) return;
   const run = () => {
     state.frame = 0;
-    refreshFloodAlerts();
+    rilevaEDisegna();
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
 }
@@ -370,7 +387,7 @@ export function installFloodAlertsSection() {
    * passi di li' per caso. E' la stessa maniglia a cui si tiene la sezione
    * degli avvisi, che ha lo stesso problema da prima di noi. */
   wrapFunction("editorSwitch", "__dmFloodAlerts", refreshFloodAlerts);
-  refreshFloodAlerts();
+  rilevaEDisegna();
   for (const eventName of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",
