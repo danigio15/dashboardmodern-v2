@@ -480,9 +480,16 @@ function createSignedCard(document, group, model, states, locale, handlers) {
   toggle.addEventListener("change", () => {
     card.dataset.state = toggle.checked ? "on" : "off";
     body.hidden = !toggle.checked;
-    if (toggle.checked) return;
+    if (toggle.checked) {
+      /* Accendere la spunta e' gia' una dichiarazione: si salva subito, cosi'
+       * il primo ridisegno che passa non trova il vuoto e non la rispegne.
+       * Non si ridisegna, pero': aprire il corpo non cambia nient'altro. */
+      handlers.onSignedChange?.(group, { ...declared, positive });
+      return;
+    }
     for (const measure of SIGNED_MEASURES) delete declared[measure];
-    handlers.onSignedChange?.(group, { positive });
+    // Spegnendola non resta niente, verso compreso: e' cosi' che si cancella.
+    handlers.onSignedChange?.(group, {});
     handlers.onSignedRerender?.(group);
   });
 

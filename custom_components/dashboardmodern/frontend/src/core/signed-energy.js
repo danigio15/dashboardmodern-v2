@@ -99,10 +99,20 @@ export function signedSource(energy = {}, group = "") {
     const entity = clean(declared[measure]);
     if (entity) entities[measure] = entity;
   }
-  if (!Object.keys(entities).length) return null;
-  const positive = definition.directions.includes(clean(declared.positive))
-    ? clean(declared.positive)
-    : definition.positiveDefault;
+  /* Il verso da solo basta a dire che la dichiarazione c'e'.
+   *
+   * Prima serviva almeno un'entita', e chi apriva la scheda e sceglieva il
+   * verso prima di scrivere il sensore — che e' l'ordine in cui la scheda
+   * stessa li mette — non aveva ancora dichiarato niente: la scheda si
+   * richiudeva e il verso tornava a quello di partenza. Con la batteria si
+   * vedeva, perche' «in carica» non e' il verso di partenza; con la rete e
+   * «prelievo» la scheda si richiudeva lo stesso, ma sembrava solo un
+   * lampeggio. Una sorgente senza entita' non ricava niente — tutti i giri qui
+   * sotto chiedono l'entita' prima di fare qualcosa — ma resta dichiarata, e
+   * la scheda resta aperta con dentro quello che hai scelto. */
+  const dichiarato = definition.directions.includes(clean(declared.positive));
+  if (!Object.keys(entities).length && !dichiarato) return null;
+  const positive = dichiarato ? clean(declared.positive) : definition.positiveDefault;
   return { group, entities, positive, inverted: positive !== definition.runtimePositive };
 }
 
