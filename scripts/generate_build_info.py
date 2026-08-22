@@ -31,17 +31,34 @@ def _git_dir() -> Path:
     return (ROOT / text.split(":", 1)[1].strip()).resolve()
 
 
+def _ref_dirs(git_dir: Path) -> list[Path]:
+    """Dove cercare un riferimento: qui, e nel deposito condiviso.
+
+    In un worktree ``HEAD`` sta nella cartella del worktree, ma i rami stanno
+    nel deposito principale, che ``commondir`` indica. Cercando solo qui, un
+    ramo esisteva senza che questo lo trovasse, e la costruzione si fermava su
+    «unable to resolve git ref» pur essendo su un ramo perfettamente valido.
+    """
+    dirs = [git_dir]
+    common = git_dir / "commondir"
+    if common.is_file():
+        dirs.append((git_dir / common.read_text().strip()).resolve())
+    return dirs
+
+
 def git_head() -> str:
     git_dir = _git_dir()
     head = (git_dir / "HEAD").read_text().strip()
     if not head.startswith("ref:"):
         return head
     ref = head.split(":", 1)[1].strip()
-    loose = git_dir / ref
-    if loose.is_file():
-        return loose.read_text().strip()
-    packed = git_dir / "packed-refs"
-    if packed.is_file():
+    for base in _ref_dirs(git_dir):
+        loose = base / ref
+        if loose.is_file():
+            return loose.read_text().strip()
+        packed = base / "packed-refs"
+        if not packed.is_file():
+            continue
         for line in packed.read_text().splitlines():
             if line and not line.startswith(("#", "^")):
                 sha, name = line.split(" ", 1)

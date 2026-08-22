@@ -104,7 +104,25 @@ export function ensureRobotEditor() {
   const body = doc?.getElementById("ed-body");
   if (!body || activeTab() !== ROBOT_EDITOR_TAB) return false;
   const robots = lista();
-  const firma = [state.aperto, ...robots.map((robot) => `${robot.id}~${robot.name}~${robot.entity}`)].join("|");
+  /* La fascia della visibilita' fa parte della scheda.
+   *
+   * La firma diceva solo quali robot ci sono: toccando «Sezione visibile in
+   * dashboard» la preferenza cambiava davvero, ma qui non era cambiato niente
+   * da ridisegnare e la fascia restava verde. Per vederla diventare grigia
+   * bisognava uscire dalla linguetta e rientrarci — cioe' proprio il «non si
+   * vede in tempo reale» che e' stato segnalato. */
+  const nascosta = (() => {
+    try {
+      return root.cdCfg?.("cd_sections")?.robot === false;
+    } catch (_error) {
+      return false;
+    }
+  })();
+  const firma = [
+    state.aperto,
+    nascosta,
+    ...robots.map((robot) => `${robot.id}~${robot.name}~${robot.entity}`),
+  ].join("|");
   if (body.dataset.dmRobotEditor === firma && body.querySelector(".dm-robot-list")) return true;
   body.dataset.dmRobotEditor = firma;
   body.innerHTML = bodyMarkup(robots);

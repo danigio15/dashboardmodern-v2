@@ -75,3 +75,71 @@ test("la riga appena salvata si puo' riaprire", async ({ page }, testInfo) => {
   // E quello che era stato scritto nelle caselle in piu' e' stato salvato.
   await expect(modale.locator("input[name=tenda]")).toHaveValue("cover.tenda_bagno");
 });
+
+/* «La tenda e' chiusa ma il render non la mostra proprio.»
+ *
+ * Stessa radice: la casella della tenda spariva col ridisegno prima ancora che
+ * si premesse «Aggiungi», quindi quell'entita' non veniva salvata e la sua card
+ * non poteva esistere. Restava la sola tapparella, e la tenda non si vedeva da
+ * nessuna parte — nemmeno chiusa.
+ */
+test("la tenda salvata esce sulla pagina, e chiusa si vede chiusa", async ({ page }, testInfo) => {
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, seme);
+
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("tapp");
+  });
+  await expect(page.locator("#ed-tp-tenda")).toHaveCount(1);
+  await page.evaluate(() => {
+    const scrivi = (id, valore) => {
+      const campo = document.getElementById(id);
+      campo.value = valore;
+      campo.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    scrivi("ed-tp-name", "Bagno");
+    scrivi("ed-tp-ent", "cover.tapparella_bagno");
+    scrivi("ed-tp-tenda", "cover.tenda_bagno");
+    window.edTappAdd();
+  });
+  await expect
+    .poll(() => page.evaluate(() => window.getTapparelle()[0]?.tenda))
+    .toBe("cover.tenda_bagno");
+
+  await page.evaluate(() => {
+    const valori = {
+      "cover.tapparella_bagno": {
+        entity_id: "cover.tapparella_bagno",
+        state: "open",
+        attributes: { device_class: "shutter", current_position: 100, supported_features: 15 },
+      },
+      "cover.tenda_bagno": {
+        entity_id: "cover.tenda_bagno",
+        state: "closed",
+        attributes: { device_class: "curtain", current_position: 0, supported_features: 15 },
+      },
+    };
+    window.__HASS__ = { states: { ...(window.__HASS__?.states || {}), ...valori } };
+    const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");
+    if (raw) Object.assign(raw, valori);
+    document.querySelectorAll(".page").forEach((nodo) => nodo.classList.remove("active"));
+    document.getElementById("page-tapparelle")?.classList.add("active");
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+  });
+
+  // Due caselle compilate, due card: l'infisso ha una tapparella e una tenda.
+  await expect(page.locator("[data-dm-shutter-card]")).toHaveCount(2);
+  const tenda = page.locator('[data-dm-shutter-card][data-tapp="cover.tenda_bagno"]');
+  await expect(tenda).toHaveAttribute("data-dm-cover-kind", "tenda");
+  // Una tenda si scosta di lato: due teli, non le stecche di una tapparella.
+  await expect(tenda.locator(".dm-tenda-telo")).toHaveCount(2);
+  // E chiusa si legge chiusa, non «sconosciuta».
+  await expect(tenda.locator(".tapp-state").first()).toHaveText(/chiusa/i);
+  await expect
+    .poll(() =>
+      tenda.locator(".dm-tenda").evaluate((nodo) => nodo.style.getPropertyValue("--tenda-chiusa")),
+    )
+    .toBe("50%");
+});
