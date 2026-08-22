@@ -1,4 +1,4 @@
-import { ROOM_CATALOG, roomVisual } from "../core/personalization-catalog.js";
+import { catalogLabel, ROOM_CATALOG, roomVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, formatNumber, installStyle, root, t, wrapFunction } from "./shared.js";
 
 // Kept in the beta4 entry filename for release compatibility, but this module is
@@ -170,8 +170,7 @@ function openRoomPicker(input) {
   const modal = doc.createElement("div");
   modal.id = "dm-beta5-room-picker";
   modal.className = "dm-section-modal dm-visual-picker";
-  const english = doc.documentElement.lang === "en";
-  modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>🏠 ${t("Scegli l'icona stanza", "Choose room icon")}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${t("Cerca…", "Search…")}" data-search></div><div class="dm-picker-grid">${ROOM_CATALOG.map((item, index) => `<button type="button" class="dm-picker-option" data-index="${index}" data-search-text="${esc(`${item.it} ${item.en} ${item.keywords || ""}`.toLowerCase())}"><span class="dm-picker-visual">${roomVisual(item.mdi, 46)}</span><b>${esc(english ? item.en : item.it)}</b></button>`).join("")}</div></section>`;
+  modal.innerHTML = `<section class="dm-section-dialog dm-picker-dialog" role="dialog" aria-modal="true"><header><strong>🏠 ${t("Scegli l'icona stanza", "Choose room icon")}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header><div class="dm-picker-search"><input class="ed-input" type="search" placeholder="🔎 ${t("Cerca…", "Search…")}" data-search></div><div class="dm-picker-grid">${ROOM_CATALOG.map((item, index) => `<button type="button" class="dm-picker-option" data-index="${index}" data-search-text="${esc(`${item.it} ${item.en} ${item.keywords || ""}`.toLowerCase())}"><span class="dm-picker-visual">${roomVisual(item.mdi, 46)}</span><b>${esc(catalogLabel(item))}</b></button>`).join("")}</div></section>`;
   doc.body.append(modal);
   modal.querySelector("[data-close]")?.addEventListener("click", closeRoomPicker);
   modal.addEventListener("click", (event) => { if (event.target === modal) closeRoomPicker(); });

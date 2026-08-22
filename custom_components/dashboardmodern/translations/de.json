@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Neues DashboardModern-Panel",
+        "data": {
+          "name": "Name des Panels"
+        },
+        "data_description": {
+          "name": "Erscheint in der Seitenleiste. Du kannst mehrere Panels anlegen, jedes mit eigener Konfiguration."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Zugriff und Dashboard-Einbindung",
+        "description": "Wähle, welche angemeldeten Benutzer dieses Panel in der DashboardModern-Oberfläche sehen sollen. Das ist ein Sichtbarkeitsfilter im Frontend und ersetzt die Home-Assistant-Berechtigungen nicht. Die Lovelace-Registrierung lässt DashboardModern unter Einstellungen → Dashboards erscheinen.",
+        "data": {
+          "allowed_users": "Zugelassene Benutzer",
+          "register_lovelace_dashboard": "Auch als Home-Assistant-Dashboard registrieren",
+          "admin_only": "Nur für Administratoren sichtbar"
+        },
+        "data_description": {
+          "allowed_users": "Nur ein Sichtbarkeitsfilter der Oberfläche. Für Daten und Dienste gelten weiterhin die Home-Assistant-Berechtigungen.",
+          "register_lovelace_dashboard": "Das Dashboard wird angelegt, sobald ein Administrator DashboardModern zum ersten Mal öffnet.",
+          "admin_only": "Nativer Home-Assistant-Filter; für Konten ohne Administratorrechte hat er Vorrang."
+        }
+      }
+    }
+  }
+}

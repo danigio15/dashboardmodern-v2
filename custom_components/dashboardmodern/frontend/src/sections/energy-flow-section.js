@@ -10,6 +10,7 @@ import {
   dashboardStore,
   doc,
   installStyle,
+  locale,
   readJson,
   root,
   section,
@@ -227,7 +228,7 @@ function stageModel(period) {
     states: allStates(),
     period,
     recorderValues: period === "instant" ? null : recorderValuesFor(loads, period),
-    locale: doc?.documentElement?.lang === "en" ? "en-GB" : "it-IT",
+    locale: locale(),
     wallbox: vehiclePopupTarget(),
   });
 }

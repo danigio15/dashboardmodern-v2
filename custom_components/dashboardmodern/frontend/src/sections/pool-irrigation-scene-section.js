@@ -37,6 +37,7 @@ const state = (root[KEY] ||= {
   frame: 0,
   poolSignature: "",
   irrigationSignature: "",
+  poolScelta: 0,
 });
 
 const POOL_MARKER = "__dmPoolSceneOwner";
@@ -381,16 +382,61 @@ function syncPoolValues(host, config, index) {
   }
 }
 
+function poolName(pool) {
+  return clean(pool.name) || `${t("Piscina", "Pool")} ${pool.index + 1}`;
+}
+
 function poolBlockMarkup(pool, mostrareIlNome) {
   /* Il nome compare solo quando ce n'e' piu' di una: su una vasca sola sarebbe
-   * un'intestazione che ripete il titolo della sezione. */
+   * un'intestazione che ripete il titolo della sezione. Con le schede in cima
+   * il nome lo dice gia' la scheda accesa, e ripeterlo sotto sarebbe due volte
+   * la stessa parola in mezzo centimetro. */
   const testa = mostrareIlNome
-    ? `<header class="dm-pool-name"><span class="dm-pool-name-icon" aria-hidden="true">🏊</span><strong>${esc(clean(pool.name) || `${t("Piscina", "Pool")} ${pool.index + 1}`)}</strong></header>`
+    ? `<header class="dm-pool-name"><span class="dm-pool-name-icon" aria-hidden="true">🏊</span><strong>${esc(poolName(pool))}</strong></header>`
     : "";
   return `<article class="dm-pool-block" data-dm-pool="${esc(pool.id)}" data-dm-pool-index="${pool.index}">
     ${testa}
     ${poolMarkup(pool)}
   </article>`;
+}
+
+/* Le vasche stanno una accanto all'altra, non una sotto l'altra.
+ *
+ * Con due piscine la pagina le impilava: per arrivare alla seconda si
+ * scorreva oltre tutta la prima — vasca, qualita' dell'acqua, filtrazione — e
+ * confrontarle voleva dire andare su e giu'. Le schede in cima sono le stesse
+ * che l'Energia usa per le sue viste, e si guarda una vasca per volta. */
+function poolTabsMarkup(pools, scelta) {
+  return `<nav class="sub-tabs-energy dm-pool-tabs" role="tablist" aria-label="${esc(t("Piscine", "Pools"))}">${pools
+    .map(
+      (pool) =>
+        `<button type="button" class="sub-tab-btn dm-pool-tab${pool.index === scelta ? " active" : ""}" role="tab" aria-selected="${pool.index === scelta}" data-dm-pool-tab="${pool.index}">🏊 ${esc(poolName(pool))}</button>`,
+    )
+    .join("")}</nav>`;
+}
+
+/** La vasca da mostrare: quella scelta se c'e' ancora, altrimenti la prima. */
+export function poolScelta(pools = [], scelta = 0) {
+  if (!pools.length) return 0;
+  return pools.some((pool) => pool.index === scelta) ? scelta : pools[0].index;
+}
+
+/** Accende la scheda scelta e mostra soltanto la sua vasca. */
+function showPool(wrap, scelta) {
+  for (const tab of wrap.querySelectorAll("[data-dm-pool-tab]")) {
+    const mia = Number(tab.dataset.dmPoolTab) === scelta;
+    tab.classList.toggle("active", mia);
+    tab.setAttribute("aria-selected", String(mia));
+  }
+  for (const block of wrap.querySelectorAll("[data-dm-pool-index]")) {
+    const mia = Number(block.dataset.dmPoolIndex) === scelta;
+    block.hidden = !mia;
+    /* L'attributo `hidden` da solo non basta: la scena scrive il display delle
+     * vasche da un selettore con due id, che batte qualunque regola scritta
+     * qui. Una dichiarazione sull'elemento non la batte nessuno. */
+    if (mia) block.style.removeProperty("display");
+    else block.style.setProperty("display", "none", "important");
+  }
 }
 
 function renderPool() {
@@ -410,13 +456,17 @@ function renderPool() {
   // Rebuilding only on a structural change is what keeps the water animating
   // between the legacy 2s repaints; the DOM probe covers the case where another
   // owner wiped the container while the signature was still current.
-  const mostrareIlNome = pools.length > 1;
+  const conSchede = pools.length > 1;
+  state.poolScelta = poolScelta(pools, state.poolScelta);
   const signature = pools.map((pool) => `${pool.id}~${poolSignature(pool)}`).join("//");
   if (state.poolSignature !== signature || !wrap.querySelector("[data-dm-pool-stage]")) {
     state.poolSignature = signature;
     wrap.dataset.dmPoolCount = String(pools.length);
-    wrap.innerHTML = pools.map((pool) => poolBlockMarkup(pool, mostrareIlNome)).join("");
+    wrap.innerHTML =
+      (conSchede ? poolTabsMarkup(pools, state.poolScelta) : "") +
+      pools.map((pool) => poolBlockMarkup(pool, false)).join("");
   }
+  if (conSchede) showPool(wrap, state.poolScelta);
   for (const pool of pools) {
     const block = wrap.querySelector(`[data-dm-pool-index="${pool.index}"]`);
     if (block) syncPoolValues(block, pool, pool.index);
@@ -694,6 +744,19 @@ function commandTarget(event) {
 function installListeners() {
   if (!doc) return;
   doc.addEventListener("click", (event) => {
+    /* Prima dei comandi: una scheda non porta `data-act`, e il filtro qui
+     * sotto scarta tutto quello che non ne ha. */
+    const scheda = event.target?.closest?.("[data-dm-pool-tab]");
+    if (scheda) {
+      event.preventDefault();
+      const wrap = scheda.closest("#pool-wrap");
+      state.poolScelta = Number(scheda.dataset.dmPoolTab) || 0;
+      /* Si accende la scheda e si scopre la sua vasca: non si ridisegna
+       * niente, o l'acqua ripartirebbe da ferma ogni volta che si passa da una
+       * piscina all'altra. */
+      if (wrap) showPool(wrap, state.poolScelta);
+      return;
+    }
     const button = commandTarget(event);
     if (!button) return;
     if (button.closest("#pool-wrap[data-dm-pool-scene]")) {
@@ -727,6 +790,13 @@ function installListeners() {
 
 function installStyles() {
   installStyle("dm-pool-irrigation-scene-style", `
+    /* Le schede delle piscine: le stesse dell'Energia, che stanno in cima alla
+       loro pagina e si scorrono di lato quando le vasche sono tante. */
+    .dm-pool-tabs{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 0 12px;padding:4px;scrollbar-width:none}
+    .dm-pool-tabs::-webkit-scrollbar{display:none}
+    .dm-pool-tabs .dm-pool-tab{flex:0 0 auto;white-space:nowrap}
+    #pool-wrap .dm-pool-block[hidden]{display:none!important}
+
     #page-piscina #pool-wrap[data-dm-pool-scene]{
       box-sizing:border-box!important;position:static!important;width:min(100%,1040px)!important;max-width:1040px!important;
       margin:0 auto!important;padding:0 4px 18px!important;display:grid!important;gap:14px!important

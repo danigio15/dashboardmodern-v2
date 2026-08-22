@@ -1,5 +1,14 @@
 // DM-FIX-20260812B
 import { canonicalClimateType } from "../core/device-model.js";
+import {
+  DEFAULT_LOCALE,
+  SOURCE_LOCALE,
+  getLocale,
+  intlLocale,
+  isRtl,
+  onLocaleChange,
+  translate,
+} from "../core/i18n.js";
 
 export const root = globalThis;
 export const doc = root.document;
@@ -13,13 +22,27 @@ export const finiteOrNull = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
-export const english = () => {
-  const lang = clean(doc?.documentElement?.lang).toLowerCase();
-  const path = clean(root.location?.pathname).toLowerCase();
-  return lang === "en" || lang.startsWith("en-") || /dashboard-en\.html$/.test(path);
+/*
+ * Language access for the section layer.
+ *
+ * `t(it, en)` keeps its two-argument shape at all ~620 call sites, but it is no
+ * longer a binary switch: English is the pivot key into the catalog of the
+ * active locale, so the same call renders Japanese or Arabic once that catalog
+ * is loaded, and degrades to English — never to Italian — when it is not.
+ */
+export const activeLocale = () => getLocale();
+/* Retained for call sites that branch on layout rather than on copy. */
+export const english = () => getLocale() === "en";
+export const locale = () => intlLocale();
+export const rtl = () => isRtl();
+export const t = (it, en) => {
+  const code = getLocale();
+  if (code === SOURCE_LOCALE) return it;
+  if (code === DEFAULT_LOCALE) return en;
+  return translate(en, code);
 };
-export const locale = () => (english() ? "en-US" : "it-IT");
-export const t = (it, en) => (english() ? en : it);
+/* Translate a string that only exists in English (no Italian counterpart). */
+export const tr = (en) => translate(en, getLocale());
 export const esc = (value) =>
   clean(value)
     .replaceAll("&", "&amp;")
@@ -342,6 +365,24 @@ export function installStyle(id, css) {
   return true;
 }
 
+/*
+ * Rewrite a stylesheet this section already installed.
+ *
+ * Copy belongs in the DOM, where the catalog and the translation pass can both
+ * reach it. The one exception is a label derived from a class the legacy
+ * runtime toggles: writing it in `content:` avoids duplicating that logic, at
+ * the price of producing no text node. Those stylesheets have to be rebuilt
+ * when the language changes, which is what this is for.
+ */
+export function restyleOnLocaleChange(id, build) {
+  return onLocaleChange(() => {
+    const style = doc?.getElementById(id);
+    if (!style) return;
+    const css = build();
+    if (style.textContent !== css) style.textContent = css;
+  });
+}
+
 /* The reading, projected onto the card as numbers the stylesheet can draw with.
  *
  * Three renderers build these cards; putting the gauge in the markup would mean
@@ -382,8 +423,8 @@ export function temperatureCardLabels(room = {}, entry = {}) {
     : clean(entry.name);
   const humidity = primary ? clean(room.hum_name || room.humidity_name) : "";
   return {
-    temperature: temperature || (english() ? "Temperature" : "Temperatura"),
-    humidity: humidity || (english() ? "Humidity" : "Umidità"),
+    temperature: temperature || t("Temperatura", "Temperature"),
+    humidity: humidity || t("Umidità", "Humidity"),
   };
 }
 
@@ -394,7 +435,7 @@ export function temperatureCardLabels(room = {}, entry = {}) {
  * the badge colours key off. */
 export function comfortBadgeText(label) {
   const value = clean(label);
-  if (/^(non disponibile|unavailable)$/i.test(value)) return english() ? "N/A" : "N/D";
+  if (/^(non disponibile|unavailable)$/i.test(value)) return t("N/D", "N/A");
   return value;
 }
 

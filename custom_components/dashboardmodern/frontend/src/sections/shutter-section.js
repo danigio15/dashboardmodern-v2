@@ -440,14 +440,23 @@ function installStyles() {
      * coperta perche' i teli sono due. I colori sono quelli della scena,
      * cosi' la tenda segue l'ora del giorno come tutto il resto. */
     html body #page-tapparelle#page-tapparelle .dm-tenda{position:absolute!important;inset:0!important;z-index:3!important;pointer-events:none!important}
+    /* Stoffa, non lamiera.
+     *
+     * Le pieghe erano righe nette da due pixel su un fondo grigio: da lontano
+     * una veneziana di metallo, che e' proprio la cosa da cui la tenda doveva
+     * distinguersi. Una piega di tessuto non ha un bordo — la luce ci scivola
+     * sopra — quindi i passaggi sono sfumati e larghi, e il fondo va sul caldo
+     * del lino invece che sul grigio del serramento. */
     html body #page-tapparelle#page-tapparelle .dm-tenda-telo{position:absolute!important;top:0!important;bottom:0!important;width:var(--tenda-chiusa,50%)!important;
       background:
         repeating-linear-gradient(90deg,
-          rgba(255,255,255,.55) 0 2px,
-          rgba(255,255,255,0) 2px 7px,
-          rgba(15,23,42,.10) 7px 9px,
-          rgba(255,255,255,0) 9px 14px)!important;
-      background-color:color-mix(in srgb,var(--tapp-slat-base,#e2e8f0) 62%,#fdf6ec)!important;
+          rgba(255,255,255,.62) 0,
+          rgba(255,255,255,.10) 7px,
+          rgba(120,86,58,.16) 13px,
+          rgba(15,23,42,.20) 17px,
+          rgba(255,255,255,.10) 22px,
+          rgba(255,255,255,.62) 28px)!important;
+      background-color:color-mix(in srgb,var(--tapp-slat-base,#e2e8f0) 26%,#f4e3cf)!important;
       box-shadow:inset 0 10px 16px -12px rgba(255,255,255,.8),0 8px 18px -12px rgba(15,23,42,.55)!important;
       transition:width .55s cubic-bezier(.2,.8,.2,1)!important}
     html body #page-tapparelle#page-tapparelle .dm-tenda-telo.dm-sinistra{left:0!important;border-radius:0 10px 10px 0!important}
@@ -458,16 +467,72 @@ function installStyles() {
       background:linear-gradient(90deg,rgba(15,23,42,0),rgba(15,23,42,.14) 55%,rgba(15,23,42,.26))!important;border-radius:inherit!important}
     html body #page-tapparelle#page-tapparelle .dm-tenda-telo.dm-sinistra::after{right:0!important}
     html body #page-tapparelle#page-tapparelle .dm-tenda-telo.dm-destra::after{left:0!important;transform:scaleX(-1)!important}
-    /* Il mantovana in cima: una fascia sola sopra i due teli, che li tiene. */
-    html body #page-tapparelle#page-tapparelle .dm-tenda::before{content:""!important;position:absolute!important;left:0!important;right:0!important;top:0!important;height:9px!important;z-index:5!important;
-      background:linear-gradient(180deg,color-mix(in srgb,var(--tapp-slat-base,#e2e8f0) 40%,#fdf6ec),color-mix(in srgb,var(--tapp-slat-base,#e2e8f0) 78%,#0f172a))!important;
-      box-shadow:0 2px 5px -2px rgba(15,23,42,.45)!important}
+    /* Il bastone in cima, con i suoi anelli. Una fascia piatta non diceva
+       niente; un bastone e gli anelli dicono «tenda» prima ancora del telo. */
+    html body #page-tapparelle#page-tapparelle .dm-tenda::before{content:""!important;position:absolute!important;left:-2px!important;right:-2px!important;top:1px!important;height:5px!important;z-index:6!important;
+      border-radius:3px!important;
+      background:linear-gradient(180deg,
+        color-mix(in srgb,var(--tapp-slat-base,#e2e8f0) 20%,#f7e9d6),
+        color-mix(in srgb,var(--tapp-slat-base,#e2e8f0) 55%,#6b4a2f))!important;
+      box-shadow:0 2px 5px -2px rgba(15,23,42,.5)!important}
+    html body #page-tapparelle#page-tapparelle .dm-tenda::after{content:""!important;position:absolute!important;left:0!important;right:0!important;top:0!important;height:9px!important;z-index:7!important;
+      pointer-events:none!important;
+      background:repeating-linear-gradient(90deg,
+        transparent 0 6px,
+        color-mix(in srgb,var(--tapp-slat-base,#e2e8f0) 45%,#5a3f28) 6px 8px,
+        transparent 8px 14px)!important}
     html body #page-tapparelle#page-tapparelle .dm-tenda.opening .dm-tenda-telo,
     html body #page-tapparelle#page-tapparelle .dm-tenda.closing .dm-tenda-telo{animation:dmTendaOnda 1.6s ease-in-out infinite!important}
     @keyframes dmTendaOnda{0%,100%{background-position-x:0}50%{background-position-x:5px}}
-    /* Una tenda da sole non copre un vetro: sporge sopra la finestra. Lo stesso
-       telo, appeso in alto e disteso in orizzontale. */
-    html body #page-tapparelle#page-tapparelle [data-dm-cover-kind="tenda_sole"] .tapp-shutter{background:repeating-linear-gradient(90deg,#f8fafc 0 14px,color-mix(in srgb,var(--tapp-slat-base,#e2e8f0) 60%,#fb7185) 14px 28px)!important;border-radius:0 0 14px 14px!important}
+    /* La tenda da sole.
+     *
+     * Prima era una tapparella con lo sfondo a righe. Non si vedeva: quello
+     * sfondo stava sotto le otto stecche piene, che sono elementi veri e lo
+     * coprivano per intero — accanto a una tapparella era il medesimo disegno.
+     * Adesso ha un telo suo, senza stecche, e le tre cose che fanno riconoscere
+     * una tenda da sole a colpo d'occhio: righe larghe e contrastate, il telo
+     * che sporge in avanti, e il bordo ondulato in fondo. */
+    html body #page-tapparelle#page-tapparelle .dm-tendasole{
+      position:absolute!important;left:-3px!important;right:-3px!important;top:0!important;
+      z-index:4!important;pointer-events:none!important;
+      transition:height .55s cubic-bezier(.2,.8,.2,1)!important;
+      --dm-awn-chiaro:#fdf7ee;
+      --dm-awn-scuro:color-mix(in srgb,#d9553c 88%,var(--tapp-slat-base,#e2e8f0))}
+    html body #page-tapparelle#page-tapparelle .dm-tendasole-telo{
+      position:absolute!important;inset:0!important;
+      background:repeating-linear-gradient(90deg,
+        var(--dm-awn-chiaro) 0 17px,
+        var(--dm-awn-scuro) 17px 34px)!important;
+      /* Il telo e' teso e sporge: piu' luce in cima, ombra dove si piega. */
+      box-shadow:inset 0 12px 14px -12px rgba(255,255,255,.85),
+        inset 0 -10px 14px -12px rgba(15,23,42,.5),
+        0 10px 16px -8px rgba(15,23,42,.5)!important;
+      border-radius:2px 2px 0 0!important}
+    /* Il bordo: mezzelune della stessa stoffa, appese sotto il telo. La fase
+       delle righe combacia perche' partono dallo stesso bordo sinistro. */
+    html body #page-tapparelle#page-tapparelle .dm-tendasole-bordo{
+      position:absolute!important;left:0!important;right:0!important;top:100%!important;
+      height:11px!important;
+      background:repeating-linear-gradient(90deg,
+        var(--dm-awn-chiaro) 0 17px,
+        var(--dm-awn-scuro) 17px 34px)!important;
+      filter:drop-shadow(0 3px 3px rgba(15,23,42,.35))!important;
+      -webkit-mask-image:radial-gradient(circle at 8.5px 0,#000 8px,transparent 8.5px)!important;
+      -webkit-mask-size:17px 100%!important;
+      -webkit-mask-repeat:repeat-x!important;
+      mask-image:radial-gradient(circle at 8.5px 0,#000 8px,transparent 8.5px)!important;
+      mask-size:17px 100%!important;
+      mask-repeat:repeat-x!important}
+    /* A telo tutto raccolto non deve restare appeso un festone nel vuoto. */
+    html body #page-tapparelle#page-tapparelle .dm-tendasole[style*="height: 0%"] .dm-tendasole-bordo,
+    html body #page-tapparelle#page-tapparelle .dm-tendasole[style*="height:0%"] .dm-tendasole-bordo{
+      display:none!important}
+    html body #page-tapparelle#page-tapparelle .dm-tendasole.opening .dm-tendasole-telo,
+    html body #page-tapparelle#page-tapparelle .dm-tendasole.closing .dm-tendasole-telo{
+      animation:dmTendaOnda 1.6s ease-in-out infinite!important}
+    @media(prefers-reduced-motion:reduce){
+      html body #page-tapparelle#page-tapparelle .dm-tendasole{transition:none!important}
+      html body #page-tapparelle#page-tapparelle .dm-tendasole-telo{animation:none!important}}
     @media(prefers-reduced-motion:reduce){html body #page-tapparelle#page-tapparelle .dm-tenda-telo{transition:none!important;animation:none!important}}
 
     html body #page-tapparelle#page-tapparelle .tapp-pos{min-height:0!important;padding:0!important;opacity:1!important;color:var(--tapp-dim)!important;font-size:11px!important}

@@ -116,21 +116,35 @@ async function fetchSigned(url) {
   return response.blob();
 }
 
+/* Una finestra di sezione ha due righe: la testata e il corpo.
+ *
+ * Il foglio di stile delle finestre dell'editor lo dice chiaro —
+ * `grid-template-rows:auto minmax(0,1fr)` su un riquadro alto quanto lo
+ * schermo. Questa ne aveva cinque di figli: la testata prendeva la prima riga,
+ * le briciole di pane si prendevano tutto il resto come seconda, ed elenco,
+ * messaggio e pulsanti finivano schiacciati in fondo con una voragine bianca
+ * in mezzo. Non era un problema di margini: era un figlio di troppo.
+ *
+ * Il corpo e' un `form` perche' e' quello che quel foglio di stile sa far
+ * scorrere, e il suo `footer` e' quello che sa tenere in basso. Non si invia
+ * niente: l'invio si annulla appena la finestra e' montata. */
 function dialogMarkup() {
   return `<section class="dm-section-dialog dm-media-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-media-title">
     <header>
       <strong id="dm-media-title">📁 ${t("Scegli la foto", "Choose the photo")}</strong>
       <button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button>
     </header>
-    <nav class="dm-media-trail" data-trail></nav>
-    <div class="dm-media-list" data-list></div>
-    <output class="dm-media-status" data-status></output>
-    <footer>
-      <label class="ed-btn-add dm-media-upload">⬆️ ${t("Dal dispositivo", "From this device")}
-        <input type="file" accept="image/*" data-upload hidden>
-      </label>
-      <button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button>
-    </footer>
+    <form class="dm-media-body" data-body novalidate>
+      <nav class="dm-media-trail" data-trail></nav>
+      <div class="dm-media-list" data-list></div>
+      <output class="dm-media-status" data-status></output>
+      <footer>
+        <label class="ed-btn-add dm-media-upload">⬆️ ${t("Dal dispositivo", "From this device")}
+          <input type="file" accept="image/*" data-upload hidden>
+        </label>
+        <button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button>
+      </footer>
+    </form>
   </section>`;
 }
 
@@ -144,6 +158,9 @@ export function pickMediaImage() {
   modal.id = "dm-media-picker-modal";
   modal.className = "dm-section-modal";
   modal.innerHTML = dialogMarkup();
+  modal
+    .querySelector("[data-body]")
+    ?.addEventListener("submit", (evento) => evento.preventDefault());
   doc.body.append(modal);
 
   const list = modal.querySelector("[data-list]");
@@ -347,7 +364,8 @@ export function installMediaPickerSection() {
       .dm-media-crumb{border:none;background:none;padding:2px 6px;border-radius:8px;font:inherit;font-size:12px;font-weight:800;color:var(--info-color,#0369a1);cursor:pointer}
       .dm-media-crumb:disabled{color:var(--secondary-text-color,#64748b);cursor:default}
       .dm-media-crumb+.dm-media-crumb::before{content:"›";margin-right:6px;color:var(--secondary-text-color,#94a3b8)}
-      .dm-media-list{display:grid;gap:6px;max-height:46vh;overflow-y:auto;padding:2px}
+      .dm-media-body{display:grid!important;align-content:start!important;gap:10px!important}
+      .dm-media-list{display:grid;gap:6px;min-height:0;padding:2px}
       .dm-media-row{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;padding:10px 12px;border:1px solid var(--divider-color,#dbe4ee);border-radius:14px;background:var(--card-background-color,#fff);font:inherit;text-align:left;cursor:pointer}
       .dm-media-row:hover{border-color:var(--info-color,#0ea5e9)}
       .dm-media-icon{font-size:18px}

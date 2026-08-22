@@ -16,7 +16,7 @@
  * Nothing else on the page is touched: this module renders no data and owns
  * no state.
  */
-import { clean, doc, english, esc, installStyle, root } from "./shared.js";
+import { clean, doc, english, esc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_PAGE_MASTHEAD__";
 const STYLE_ID = "dm-page-masthead-style";
@@ -118,8 +118,8 @@ const PAGES = Object.freeze([
 ]);
 
 function labelsFor(page) {
-  const [title, subtitle] = english() ? page.en : page.it;
-  return { title, subtitle };
+  /* The pair is authored it/en; `t` turns it into the active language. */
+  return { title: t(page.it[0], page.en[0]), subtitle: t(page.it[1], page.en[1]) };
 }
 
 /* The heading opens the page, and the way back opens the heading. Pages used to
@@ -129,7 +129,7 @@ function labelsFor(page) {
  * now, once, and whatever copy the page still builds for itself is folded away
  * on sight. */
 function backHomeMarkup() {
-  const label = english() ? "Home" : "Home";
+  const label = t("Home", "Home");
   return `<button type="button" class="back-home-btn dm-mast-back" data-dm-mast-back="true"
     onclick="document.querySelector('[data-tab=&quot;home&quot;]').click(); if(navigator.vibrate)navigator.vibrate(5);">
     <span class="bh-icon">←</span><span>${esc(label)}</span>

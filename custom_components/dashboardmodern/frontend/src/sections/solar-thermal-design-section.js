@@ -28,7 +28,14 @@
 // subtitle. It also lifts the collector readout out of the collector, so the
 // isometric transform skews the panel without skewing its digits. Every
 // insertion is idempotent and additive.
-import { doc, installStyle, root, t, wrapFunction } from "./shared.js";
+import {
+  doc,
+  installStyle,
+  restyleOnLocaleChange,
+  root,
+  t,
+  wrapFunction,
+} from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SOLAR_THERMAL_DESIGN__";
 const STYLE_ID = "dm-solar-thermal-design";
@@ -1315,6 +1322,9 @@ function schedule() {
 
 export function installSolarThermalDesignSection() {
   installStyle(STYLE_ID, stylesheet());
+  /* The live-state words sit in `content:`, where no text node exists for the
+   * translation pass to find; the sheet is rebuilt when the language changes. */
+  restyleOnLocaleChange(STYLE_ID, stylesheet);
   state.query ||= root.matchMedia?.(PORTRAIT_QUERY) || null;
   decorate();
   if (state.installed) return true;

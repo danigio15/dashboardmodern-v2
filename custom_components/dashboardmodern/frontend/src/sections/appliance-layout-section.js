@@ -1,5 +1,6 @@
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
 import {
+  activeLocale,
   allStates,
   clean,
   doc,
@@ -7,6 +8,7 @@ import {
   installStyle,
   root,
   section,
+  t,
   wrapFunction,
 } from "./shared.js";
 
@@ -161,10 +163,10 @@ function visualTypeFor(card) {
 }
 
 function roomText(room) {
-  if (!room) return english() ? "No room" : "Nessuna stanza";
+  if (!room) return t("Nessuna stanza", "No room");
   const icon = clean(room.icon);
   const glyph = icon && !icon.startsWith("mdi:") ? `${icon} ` : "";
-  return `${glyph}${clean(room.name) || (english() ? "Room" : "Stanza")}`;
+  return `${glyph}${clean(room.name) || (t("Stanza", "Room"))}`;
 }
 
 function syncHeaderArtwork(card, device) {
@@ -183,7 +185,7 @@ export function syncReferenceApplianceCards() {
   const rooms = section("rooms", []);
   const roomList = Array.isArray(rooms) ? rooms : [];
   const states = allStates();
-  const locale = english() ? "en" : "it";
+  const locale = activeLocale();
   const byId = new Map(appliances.map((device) => [clean(device.id), device]));
   const cards = [
     ...doc.querySelectorAll(

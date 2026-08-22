@@ -7,7 +7,7 @@
 // to any width the page happens to have.
 import { temperatureEntries } from "./beta25-real-device-fixes-section.js";
 import { normalizeHistoryRows } from "./history-section.js";
-import { clean, doc, english, installStyle, root, section } from "./shared.js";
+import { clean, doc, english, installStyle, locale, root, section, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_TEMPERATURE_TREND__";
 const state = (root[KEY] ||= {
@@ -66,7 +66,7 @@ export function trendSeriesModel(roomValues = rooms(), roomId = "all") {
     const room = configured.find((item) => clean(item.id) === roomId);
     if (!room) return { title: "", series: [] };
     return {
-      title: clean(room.name) || (english() ? "Room" : "Stanza"),
+      title: clean(room.name) || (t("Stanza", "Room")),
       series: temperatureEntries(room)
         .filter((entry) => clean(entry.temp))
         .map((entry, index) => ({
@@ -75,21 +75,21 @@ export function trendSeriesModel(roomValues = rooms(), roomId = "all") {
             clean(entry.name) ||
             clean(room.temp_name) ||
             clean(room.name) ||
-            (english() ? "Temperature" : "Temperatura"),
+            (t("Temperatura", "Temperature")),
           entity: clean(entry.temp),
           colour: SERIES_COLOURS[index % SERIES_COLOURS.length],
         })),
     };
   }
   return {
-    title: english() ? "All rooms" : "Tutte le stanze",
+    title: t("Tutte le stanze", "All rooms"),
     series: configured
       .map((room, index) => {
         const entry = temperatureEntries(room).find((item) => clean(item.temp));
         if (!entry) return null;
         return {
           id: clean(room.id),
-          name: clean(room.name) || (english() ? "Room" : "Stanza"),
+          name: clean(room.name) || (t("Stanza", "Room")),
           entity: clean(entry.temp),
           colour: SERIES_COLOURS[index % SERIES_COLOURS.length],
         };
@@ -160,7 +160,7 @@ export function trendGeometry(series, window, view = VIEW) {
 }
 
 function degrees(value) {
-  return `${value.toFixed(1).replace(".", english() ? "." : ",")}°`;
+  return `${value.toFixed(1).replace(".", t(",", "."))}°`;
 }
 
 async function fetchHistory(entity, hours) {
@@ -233,7 +233,7 @@ function hourLabels(window) {
       time,
       text:
         window.hours > 48
-          ? date.toLocaleDateString(english() ? "en-GB" : "it-IT", { weekday: "short" })
+          ? date.toLocaleDateString(locale(), { weekday: "short" })
           : `${String(date.getHours()).padStart(2, "0")}:00`,
     });
   }
@@ -255,7 +255,7 @@ function ensurePanel() {
   const head = element("header", "dm-trend-head");
   const titles = element("div", "dm-trend-titles");
   titles.append(
-    element("span", "dm-trend-kicker", english() ? "Trend" : "Andamento"),
+    element("span", "dm-trend-kicker", t("Andamento", "Trend")),
     element("h3", "dm-trend-title", ""),
   );
   const ranges = element("div", "dm-trend-ranges");
@@ -263,7 +263,7 @@ function ensurePanel() {
     const button = element(
       "button",
       "dm-trend-range",
-      hours === 24 ? (english() ? "24 h" : "24 h") : english() ? "7 days" : "7 giorni",
+      hours === 24 ? (t("24 h", "24 h")) : t("7 giorni", "7 days"),
     );
     button.type = "button";
     button.dataset.hours = String(hours);
@@ -288,9 +288,7 @@ function ensurePanel() {
   const empty = element(
     "p",
     "dm-trend-empty",
-    english()
-      ? "No history yet for this room."
-      : "Nessuno storico disponibile per questa stanza.",
+    t("Nessuno storico disponibile per questa stanza.", "No history yet for this room."),
   );
   panel.append(head, plot, legend, empty);
   grid.after(panel);

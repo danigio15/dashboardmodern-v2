@@ -88,24 +88,36 @@ test.describe("piu' di una piscina", () => {
 
     const blocchi = page.locator("#pool-wrap .dm-pool-block");
     await expect(blocchi).toHaveCount(2);
-    // Col nome davanti, perche' con due vasche "Piscina" non basta piu'.
-    await expect(blocchi.nth(0).locator(".dm-pool-name")).toHaveText(/Grande/);
-    await expect(blocchi.nth(1).locator(".dm-pool-name")).toHaveText(/Piccola/);
+
+    /* Il nome sta sulla scheda, non sopra la vasca: con le schede in cima
+     * ripeterlo sotto sarebbe due volte la stessa parola in mezzo centimetro. */
+    const schede = page.locator("#pool-wrap [data-dm-pool-tab]");
+    await expect(schede).toHaveCount(2);
+    await expect(schede.nth(0)).toHaveText(/Grande/);
+    await expect(schede.nth(1)).toHaveText(/Piccola/);
+
+    // Si guarda una vasca per volta: la prima e' quella che si apre.
+    await expect(blocchi.nth(0)).toBeVisible();
+    await expect(blocchi.nth(1)).toBeHidden();
 
     // Ogni vasca legge la sua temperatura, non quella dell'altra.
     await expect
       .poll(() => blocchi.nth(0).locator("[data-dm-pool-temp]").innerText())
       .toContain("26");
+    // La grande sta filtrando.
+    await expect.poll(() => blocchi.nth(0).getAttribute("data-dm-pool-filtering")).toBe("true");
+    // La luce e' solo della seconda vasca: la prima non ha quel comando.
+    await expect(blocchi.nth(0).locator('[data-dm-pool-tile="light"]')).toHaveCount(0);
+
+    await schede.nth(1).click();
+    await expect(blocchi.nth(1)).toBeVisible();
+    await expect(blocchi.nth(0)).toBeHidden();
+    await expect(schede.nth(1)).toHaveAttribute("aria-selected", "true");
+
     await expect
       .poll(() => blocchi.nth(1).locator("[data-dm-pool-temp]").innerText())
       .toContain("24");
-
-    // E il suo stato: la grande sta filtrando, la piccola no.
-    await expect.poll(() => blocchi.nth(0).getAttribute("data-dm-pool-filtering")).toBe("true");
     await expect.poll(() => blocchi.nth(1).getAttribute("data-dm-pool-filtering")).toBe("false");
-
-    // La luce e' solo della seconda vasca: la prima non ha quel comando.
-    await expect(blocchi.nth(0).locator('[data-dm-pool-tile="light"]')).toHaveCount(0);
     await expect(blocchi.nth(1).locator('[data-dm-pool-tile="light"]')).toHaveCount(1);
 
     // Il comando della seconda parla della sua entita', non di quella della prima.
@@ -133,8 +145,10 @@ test.describe("piu' di una piscina", () => {
 
     const blocchi = page.locator("#pool-wrap .dm-pool-block");
     await expect(blocchi).toHaveCount(1);
-    // Nessuna intestazione col nome: sarebbe un titolo che ripete la sezione.
+    // Nessuna intestazione col nome, e nessuna scheda: sarebbero un titolo e
+    // una scelta che ripetono la sezione.
     await expect(blocchi.locator(".dm-pool-name")).toHaveCount(0);
+    await expect(page.locator("#pool-wrap [data-dm-pool-tab]")).toHaveCount(0);
     await expect(page.locator("#pool-wrap [data-dm-pool-stage]")).toHaveCount(1);
   });
 

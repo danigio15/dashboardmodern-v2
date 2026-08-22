@@ -30,6 +30,7 @@ import { createCycleTracker } from "../core/appliance-cycle-tracker.js";
 import { scheduleApplianceNormalization } from "./appliances-section.js";
 import { iconGlyph } from "./icon-engine-section.js";
 import {
+  activeLocale,
   allStates,
   clean,
   doc,
@@ -741,7 +742,7 @@ export function renderShowcase(force) {
   const list = devices();
   const states = allStates();
   const rooms = roomList();
-  const locale = english() ? "en" : "it";
+  const locale = activeLocale();
   const now = Date.now();
   const price = globalPriceKwh();
   const cycles = tracker();

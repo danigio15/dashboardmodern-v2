@@ -1,4 +1,4 @@
-import { clean, doc, installStyle, root, section, t } from "./shared.js";
+import { clean, doc, installStyle, locale, root, section, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_HISTORY_SECTION__";
 const state = (root[KEY] ||= {
@@ -372,7 +372,7 @@ function renderChart(entity, name, rows) {
     if (!normalized) return;
     const date = new Date(row.time);
     labels.push(
-      date.toLocaleTimeString(document.documentElement?.lang?.startsWith("en") ? "en-US" : "it-IT", {
+      date.toLocaleTimeString(locale(), {
         hour: "2-digit",
         minute: "2-digit",
       }),

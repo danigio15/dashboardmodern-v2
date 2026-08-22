@@ -5,6 +5,7 @@ import { isCumulativeEnergyEntity, resolveEntity } from "../core/period-service.
 import { runtimeMetrics } from "../core/runtime-metrics.js";
 import { iconGlyph } from "./icon-engine-section.js";
 import {
+  activeLocale,
   allStates,
   clean,
   dashboardStore,
@@ -14,6 +15,7 @@ import {
   installStyle,
   root,
   section,
+  t,
   wrapFunction,
 } from "./shared.js";
 
@@ -127,7 +129,7 @@ export async function buildApplianceDailyBreakdown(
     if (!source) return;
     const row = {
       id: clean(device.id) || `appliance-${index}`,
-      name: clean(device.name) || (english() ? "Appliance" : "Elettrodomestico"),
+      name: clean(device.name) || (t("Elettrodomestico", "Appliance")),
       entity: source.entity,
       source: source.source,
       direct: source.direct,
@@ -413,23 +415,19 @@ function renderDailyPopup(breakdown = state.dailyBreakdown, { loading = false } 
   if (total) total.textContent = loading ? "…" : formatDaily(breakdown.total);
   if (!list) return;
   if (loading) {
-    list.innerHTML = `<div class="dm-appliance-daily-empty">${english() ? "Updating Recorder data…" : "Aggiornamento dati Recorder…"}</div>`;
+    list.innerHTML = `<div class="dm-appliance-daily-empty">${t("Aggiornamento dati Recorder…", "Updating Recorder data…")}</div>`;
     return;
   }
   if (!breakdown.rows.length) {
-    list.innerHTML = `<div class="dm-appliance-daily-empty">${english() ? "No appliance has measurable consumption today." : "Nessun elettrodomestico ha un consumo giornaliero misurabile."}</div>`;
+    list.innerHTML = `<div class="dm-appliance-daily-empty">${t("Nessun elettrodomestico ha un consumo giornaliero misurabile.", "No appliance has measurable consumption today.")}</div>`;
     return;
   }
   list.innerHTML = breakdown.rows
     .map((row) => {
       const pct = breakdown.total > 0 ? Math.round((row.value / breakdown.total) * 100) : 0;
       const source = row.direct
-        ? english()
-          ? "Daily sensor"
-          : "Sensore giornaliero"
-        : english()
-          ? "Total meter → Recorder"
-          : "Contatore totale → Recorder";
+        ? t("Sensore giornaliero", "Daily sensor")
+        : t("Contatore totale → Recorder", "Total meter → Recorder");
       return `<button type="button" class="dm-appliance-daily-row" data-dm-daily-entity="${esc(row.entity)}">
         <span class="dm-appliance-daily-row-main"><strong>${esc(row.name)}</strong><small>${esc(row.entity)}</small><small>${source}</small></span>
         <span class="dm-appliance-daily-row-value"><strong>${formatDaily(row.value)}</strong><small>${pct}%</small></span>
@@ -455,10 +453,10 @@ function ensureDailyPopup() {
   popup.className = "dm-appliance-daily-overlay";
   popup.hidden = true;
   popup.innerHTML = `<div class="dm-appliance-daily-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-appliance-daily-title">
-    <div class="dm-appliance-daily-head"><div><small>${english() ? "TODAY" : "OGGI"}</small><h3 id="dm-appliance-daily-title">${english() ? "Appliance energy" : "Energia elettrodomestici"}</h3></div><button type="button" data-dm-daily-close aria-label="${english() ? "Close" : "Chiudi"}">✕</button></div>
-    <div class="dm-appliance-daily-total"><span>${english() ? "Measured total" : "Totale misurato"}</span><strong data-dm-daily-popup-total>— kWh</strong></div>
+    <div class="dm-appliance-daily-head"><div><small>${t("OGGI", "TODAY")}</small><h3 id="dm-appliance-daily-title">${t("Energia elettrodomestici", "Appliance energy")}</h3></div><button type="button" data-dm-daily-close aria-label="${t("Chiudi", "Close")}">✕</button></div>
+    <div class="dm-appliance-daily-total"><span>${t("Totale misurato", "Measured total")}</span><strong data-dm-daily-popup-total>— kWh</strong></div>
     <div class="dm-appliance-daily-list" data-dm-daily-popup-list></div>
-    <div class="dm-appliance-daily-note">${english() ? "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly." : "Sono conteggiati solo sensori giornalieri o delta Recorder dei contatori cumulativi. I valori lifetime non vengono mai sommati direttamente."}</div>
+    <div class="dm-appliance-daily-note">${t("Sono conteggiati solo sensori giornalieri o delta Recorder dei contatori cumulativi. I valori lifetime non vengono mai sommati direttamente.", "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.")}</div>
   </div>`;
   const close = () => {
     popup.hidden = true;
@@ -517,13 +515,9 @@ function applyDailyKpi(breakdown = state.dailyBreakdown) {
   card.tabIndex = 0;
   card.setAttribute(
     "aria-label",
-    english()
-      ? "Open today's appliance energy breakdown"
-      : "Apri dettaglio energia elettrodomestici di oggi",
+    t("Apri dettaglio energia elettrodomestici di oggi", "Open today's appliance energy breakdown"),
   );
-  card.title = english()
-    ? "Show devices and energy sources"
-    : "Mostra dispositivi ed entità che hanno consumato";
+  card.title = t("Mostra dispositivi ed entità che hanno consumato", "Show devices and energy sources");
   const value = card.querySelector(".g-val");
   if (value) value.textContent = formatDaily(breakdown.total);
   if (!card.dataset.dmDailyMounted) {
@@ -562,7 +556,7 @@ export function normalizeApplianceCards() {
         device,
         states,
         section("rooms", []),
-        english() ? "en" : "it",
+        activeLocale(),
       );
       card.dataset.dmApplianceSection = "true";
       card.dataset.dmArtStyle = "panel";

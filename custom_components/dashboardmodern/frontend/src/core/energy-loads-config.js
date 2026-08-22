@@ -22,6 +22,8 @@
  * and rendering.
  */
 
+import { pick } from "./i18n.js";
+
 export const MAX_FLOW_LOADS = 8;
 export const MAX_SUBLOADS = 12;
 
@@ -221,7 +223,7 @@ export function emptyLoad(model = [], locale = "it") {
   return {
     id,
     order: index,
-    name: locale === "en" ? `Load ${index + 1}` : `Carico ${index + 1}`,
+    name: pick(`Carico ${index + 1}`, `Load ${index + 1}`, locale),
     icon: "🔌",
     color: PALETTE[index % PALETTE.length],
     visible: true,
@@ -239,7 +241,7 @@ export function emptySubload(load = {}, locale = "it") {
   const used = new Set(array(load.children).map((child) => clean(child.id)));
   return {
     id: uniqueId(`${clean(load.id) || "carico"}-sub-${index + 1}`, used),
-    name: locale === "en" ? `Load ${index + 1}` : `Carico ${index + 1}`,
+    name: pick(`Carico ${index + 1}`, `Load ${index + 1}`, locale),
     icon: "🔌",
     power: "",
     state: "",
@@ -376,28 +378,25 @@ export function loadsConfigToSections(model = [], previous = []) {
 /* One line under each card in the editor, so a load's binding is readable
  * without opening it. */
 export function loadConfigSummary(load = {}, locale = "it") {
-  const english = locale === "en";
   const children = array(load.children).length;
   // A circle with appliances and no sensor of its own is their total; saying so
   // first is more useful than listing which fields happen to be filled in.
   if (!clean(load.power) && children)
-    return english
-      ? `sum of ${children} ${children === 1 ? "appliance" : "appliances"}`
-      : `somma di ${children} ${children === 1 ? "dispositivo" : "dispositivi"}`;
+    return children === 1
+      ? pick(`somma di ${children} dispositivo`, `sum of ${children} appliance`, locale)
+      : pick(`somma di ${children} dispositivi`, `sum of ${children} appliances`, locale);
   const parts = [];
-  if (clean(load.power)) parts.push(english ? "power" : "potenza");
-  if (clean(load.total)) parts.push(english ? "total meter" : "contatore totale");
-  if (clean(load.daily)) parts.push(english ? "day" : "giorno");
-  if (clean(load.monthly)) parts.push(english ? "month" : "mese");
+  if (clean(load.power)) parts.push(pick("potenza", "power", locale));
+  if (clean(load.total)) parts.push(pick("contatore totale", "total meter", locale));
+  if (clean(load.daily)) parts.push(pick("giorno", "day", locale));
+  if (clean(load.monthly)) parts.push(pick("mese", "month", locale));
   if (children)
     parts.push(
       children === 1
-        ? english
-          ? "1 appliance"
-          : "1 dispositivo"
-        : `${children} ${english ? "appliances" : "dispositivi"}`,
+        ? pick("1 dispositivo", "1 appliance", locale)
+        : pick(`${children} dispositivi`, `${children} appliances`, locale),
     );
-  if (!parts.length) return english ? "no entity yet" : "nessuna entità";
+  if (!parts.length) return pick("nessuna entità", "no entity yet", locale);
   return parts.join(" · ");
 }
 
@@ -405,7 +404,6 @@ export function loadConfigSummary(load = {}, locale = "it") {
  * users got wrong were reading a lifetime total as a period and expecting a
  * circle to appear with nothing bound to it. */
 export function loadConfigWarnings(load = {}, locale = "it") {
-  const english = locale === "en";
   const warnings = [];
   const children = array(load.children).length;
   const energy = clean(load.total) || clean(load.daily) || clean(load.monthly);
@@ -414,21 +412,27 @@ export function loadConfigWarnings(load = {}, locale = "it") {
   if (!clean(load.power) && !energy && children) return [];
   if (!clean(load.power) && !energy)
     return [
-      english
-        ? "No entity bound: the circle stays empty in every view."
-        : "Nessuna entità collegata: il cerchio resta vuoto in tutte le viste.",
+      pick(
+        "Nessuna entità collegata: il cerchio resta vuoto in tutte le viste.",
+        "No entity bound: the circle stays empty in every view.",
+        locale,
+      ),
     ];
   if (!clean(load.power) && energy && !children)
     warnings.push(
-      english
-        ? "No power entity: the Instant view has nothing to show for this load."
-        : "Manca la potenza: la vista Istantaneo non ha niente da mostrare per questo carico.",
+      pick(
+        "Manca la potenza: la vista Istantaneo non ha niente da mostrare per questo carico.",
+        "No power entity: the Instant view has nothing to show for this load.",
+        locale,
+      ),
     );
   if (!clean(load.total) && !clean(load.daily) && !clean(load.monthly) && !children)
     warnings.push(
-      english
-        ? "No energy meter: Day and Month stay empty. A total meter is enough — the period is computed from it."
-        : "Nessun contatore energia: Giorno e Mese restano vuoti. Basta il contatore totale, il periodo viene calcolato da lì.",
+      pick(
+        "Nessun contatore energia: Giorno e Mese restano vuoti. Basta il contatore totale, il periodo viene calcolato da lì.",
+        "No energy meter: Day and Month stay empty. A total meter is enough — the period is computed from it.",
+        locale,
+      ),
     );
   return warnings;
 }

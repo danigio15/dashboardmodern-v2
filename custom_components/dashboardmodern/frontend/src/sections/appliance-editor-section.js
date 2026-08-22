@@ -6,6 +6,7 @@ import {
 } from "../core/device-model.js";
 import { iconGlyph } from "./icon-engine-section.js";
 import {
+  activeLocale,
   allStates,
   clean,
   dashboardStore,
@@ -17,13 +18,14 @@ import {
   t,
   writeJsonIfChanged,
 } from "./shared.js";
+import { catalogLabel } from "../core/personalization-catalog.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_APPLIANCE_EDITOR_SECTION__";
 const state = (root[KEY] ||= { installed: false, previousEdit: null, previousPicker: null });
 
 function locale() {
-  return doc?.documentElement?.lang === "en" ? "en" : "it";
+  return activeLocale();
 }
 
 function appliances() {
@@ -121,7 +123,7 @@ function openTypePicker({ selected = "generico", onSelect } = {}) {
     button.dataset.applianceType = item.key;
     button.setAttribute("role", "option");
     button.setAttribute("aria-selected", String(item.key === selectedKey));
-    button.innerHTML = `<span class="dm-appliance-type-option-icon">${typeIconMarkup(item.key, 30)}</span><span>${esc(item[locale()] || item.it)}</span>`;
+    button.innerHTML = `<span class="dm-appliance-type-option-icon">${typeIconMarkup(item.key, 30)}</span><span>${esc(catalogLabel(item))}</span>`;
     button.addEventListener("click", () => {
       overlay.remove();
       onSelect?.(item.key);

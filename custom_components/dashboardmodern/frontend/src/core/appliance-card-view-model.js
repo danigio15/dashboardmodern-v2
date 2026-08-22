@@ -7,6 +7,7 @@
  * optional tracked cycle record. No DOM access, so the whole contract is unit
  * testable and shared verbatim by the Italian and English dashboards.
  */
+import { pick } from "./i18n.js";
 import { canonicalArtworkType } from "./appliance-artwork.js";
 import { createApplianceViewModel } from "./appliance-view-model.js";
 
@@ -114,7 +115,7 @@ export function formatMinutesLabel(minutes, locale = "it") {
   if (rounded < 60) return `${rounded}min`;
   const hours = Math.floor(rounded / 60);
   const rest = rounded % 60;
-  if (!rest) return locale === "en" ? `${hours}h` : `${hours}h`;
+  if (!rest) return `${hours}h`;
   return `${hours}h ${rest}min`;
 }
 
@@ -153,9 +154,9 @@ export function formatStartLabel(startMs, now, locale = "it") {
   const clock = `${String(startDate.getHours()).padStart(2, "0")}:${String(
     startDate.getMinutes(),
   ).padStart(2, "0")}`;
-  if (start >= dayStart.getTime()) return `${locale === "en" ? "today" : "oggi"} ${clock}`;
+  if (start >= dayStart.getTime()) return `${pick("oggi", "today", locale)} ${clock}`;
   if (start >= dayStart.getTime() - 86400000)
-    return `${locale === "en" ? "yesterday" : "ieri"} ${clock}`;
+    return `${pick("ieri", "yesterday", locale)} ${clock}`;
   const day = String(startDate.getDate()).padStart(2, "0");
   const month = String(startDate.getMonth() + 1).padStart(2, "0");
   return `${day}/${month} ${clock}`;

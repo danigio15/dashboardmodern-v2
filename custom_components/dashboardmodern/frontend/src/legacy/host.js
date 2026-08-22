@@ -8,6 +8,7 @@
  */
 
 import { createBridgeSocket } from "./bridge-socket.js";
+import { legacyShellFor, resolveLocale, textDirection } from "../core/i18n.js";
 
 export const HOST_KEY = "__DASHBOARDMODERN_HOST__";
 /* Marker on the one message the hosted document is allowed to send its host. */
@@ -16,25 +17,30 @@ export const LEGACY_FRAME_PERMISSIONS =
   "autoplay; fullscreen; picture-in-picture; encrypted-media";
 export const LEGACY_VARIANTS = Object.freeze({ it: "dashboard.html", en: "dashboard-en.html" });
 
-/* Quale delle due plance servire, a partire dalla lingua del profilo.
+/*
+ * Which of the two vendored shells to serve, from the profile language.
  *
- * Il patto e' questo, e vale anche per le lingue che non parliamo: `it` e
- * `it-*` prendono l'italiano, tutto il resto prende l'inglese. Un profilo in
- * francese, tedesco o spagnolo non capirebbe l'italiano piu' di quanto capisca
- * l'inglese, e l'inglese almeno e' la lingua che tutti si aspettano quando la
- * propria non c'e'. Chi un domani aggiungesse una terza plancia deve nominarla
- * qui: il ripiego non si sceglie da solo. */
+ * Only two exist, Italian and English, and the rule holds for the languages
+ * they do not cover: `it` and `it-*` get the Italian one, everything else gets
+ * the English one. A French, German or Spanish profile would understand Italian
+ * no better than English, and English is at least the language people expect
+ * when their own is missing. Every locale in the registry names its own shell,
+ * so the fallback is written down rather than inferred.
+ *
+ * The shell is only a starting point: for any language but those two, the i18n
+ * DOM pass translates it from the inside.
+ */
 export function legacyVariantForLocale(locale) {
-  const normalized = typeof locale === "string" ? locale.toLowerCase() : "";
-  if (normalized === "it" || normalized.startsWith("it-")) return LEGACY_VARIANTS.it;
-  return LEGACY_VARIANTS.en;
+  /* Resolved explicitly: an absent locale means "no preference", which is the
+   * English shell, not whatever the host document happens to be showing. */
+  return legacyShellFor(resolveLocale(locale));
 }
 
 function escapeAttribute(value) {
   return String(value ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
-function injectHostedPrelude(html, { baseUrl, instanceId, primary, configProfile }) {
+function injectHostedPrelude(html, { baseUrl, instanceId, primary, configProfile, locale }) {
   const prelude = `<base href="${escapeAttribute(baseUrl)}"><script>(function(){
     const p=parent;
     const bridge=p&&p.__DASHBOARDMODERN_BRIDGE_WS__;
@@ -42,6 +48,10 @@ function injectHostedPrelude(html, { baseUrl, instanceId, primary, configProfile
     window.__DASHBOARDMODERN_PROFILE__=${JSON.stringify(configProfile || "")};
     window.__DASHBOARDMODERN_PRIMARY__=${primary !== false};
     window.__DASHBOARDMODERN_HOSTED__=true;
+    /* The Home Assistant profile language of the signed-in user. Set before the
+       first dashboard script runs so the i18n engine detects it on its first
+       read and nothing paints in the shell's own language first. */
+    window.__DASHBOARDMODERN_LOCALE__=${JSON.stringify(locale || "")};
     window.__DASHBOARDMODERN_BRIDGED__=typeof bridge==='function';
     /* The document lives at about:srcdoc, where location.reload() lands on a
        blank page in the Home Assistant WebView. Anything that needs a fresh
@@ -61,6 +71,23 @@ function injectHostedPrelude(html, { baseUrl, instanceId, primary, configProfile
   })();<\/script>`;
   if (/<head(?:\s[^>]*)?>/i.test(html)) return html.replace(/<head(?:\s[^>]*)?>/i, (head) => `${head}${prelude}`);
   return `<!doctype html><html><head>${prelude}</head><body>${html}</body></html>`;
+}
+
+/*
+ * Rewrite the shell's own `lang` (and add `dir`) before it is parsed.
+ *
+ * The vendored document hard-codes `lang="it"` or `lang="en"`. Leaving it there
+ * would make the first paint disagree with the user's language and, for Arabic,
+ * would lay the whole page out left-to-right until a script got around to
+ * fixing it.
+ */
+function applyShellLocale(html, locale) {
+  const code = resolveLocale(locale);
+  const dir = textDirection(code);
+  return html.replace(/<html\b[^>]*>/i, (tag) => {
+    const withoutLang = tag.replace(/\slang="[^"]*"/i, "").replace(/\sdir="[^"]*"/i, "");
+    return `${withoutLang.slice(0, -1)} lang="${code}" dir="${dir}">`;
+  });
 }
 
 function absoluteUrl(path, hostWindow) {
@@ -86,7 +113,7 @@ export function stableStaticBase(staticBase, hostWindow = globalThis.window) {
   }
 }
 
-async function loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, fetchRef, hostWindow }) {
+async function loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, locale, fetchRef, hostWindow }) {
   const requestedBase = String(staticBase).replace(/\/$/, "");
   const fallbackBase = stableStaticBase(requestedBase, hostWindow);
   const bases = [...new Set([requestedBase, fallbackBase].filter(Boolean))];
@@ -99,11 +126,12 @@ async function loadHostedDocument(frame, { staticBase, file, instanceId, primary
     lastResponse = response;
     if (response.ok) {
       const html = await response.text();
-      frame.srcdoc = injectHostedPrelude(html, {
+      frame.srcdoc = injectHostedPrelude(applyShellLocale(html, locale), {
         baseUrl: absoluteUrl(relativeBase, hostWindow),
         instanceId,
         primary,
         configProfile,
+        locale,
       });
       frame.dataset.runtimeBase = base;
       frame.dataset.usedStableFallback = String(base !== requestedBase);
@@ -144,7 +172,11 @@ export function mountLegacyHost(
   delete hostWindow.__DASHBOARDMODERN_REAL_TOKEN__;
   delete hostWindow.DASHBOARDMODERN_AUTH_TOKEN;
 
-  const file = variant || legacyVariantForLocale(hass?.locale?.language);
+  /* The signed-in user's Home Assistant profile language decides both which
+   * shell is fetched and which catalog the hosted runtime loads. */
+  const locale = resolveLocale(hass?.locale?.language);
+  const file = variant || legacyShellFor(locale);
+  hostWindow.__DASHBOARDMODERN_LOCALE__ = locale;
   const frame = documentRef.createElement("iframe");
   frame.className = "dashboardmodern-legacy-host";
   frame.setAttribute("title", "DashboardModern");
@@ -171,6 +203,7 @@ export function mountLegacyHost(
     child.__DASHBOARDMODERN_PROFILE__ = configProfile || "";
     child.__DASHBOARDMODERN_PRIMARY__ = primary !== false;
     child.__DASHBOARDMODERN_HOSTED__ = true;
+    child.__DASHBOARDMODERN_LOCALE__ = locale;
     child.__DASHBOARDMODERN_BRIDGED__ = true;
     child.__DASHBOARDMODERN_BRIDGE_WS__ = BridgeSocket;
     delete child.__DASHBOARDMODERN_REAL_TOKEN__;
@@ -195,7 +228,7 @@ export function mountLegacyHost(
   if (typeof loader !== "function") throw new Error("A fetch implementation is required.");
 
   const boot = () =>
-    loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, fetchRef: loader, hostWindow }).catch((error) => {
+    loadHostedDocument(frame, { staticBase, file, instanceId, primary, configProfile, locale, fetchRef: loader, hostWindow }).catch((error) => {
       console.error("[DashboardModern] hosted document bootstrap failed", error);
       frame.srcdoc = `<main role="alert" style="padding:24px;font:16px sans-serif">DashboardModern: ${escapeAttribute(error.message)}</main>`;
       return false;

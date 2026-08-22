@@ -86,6 +86,50 @@ test("the language variant follows the Home Assistant locale", () => {
   // comincia per "it" senza esserlo.
   assert.equal(legacyVariantForLocale("it-CH"), "dashboard.html");
   assert.equal(legacyVariantForLocale("ita"), "dashboard-en.html");
+  /* A language we now translate still starts from the English shell: it is a
+   * starting point, translated from the inside, not the language itself. */
+  assert.equal(legacyVariantForLocale("ja"), "dashboard-en.html");
+  assert.equal(legacyVariantForLocale("ar-EG"), "dashboard-en.html");
+  assert.equal(legacyVariantForLocale("zh-TW"), "dashboard-en.html");
+});
+
+async function hostedDocument(language) {
+  const { host } = mount({ hass: { locale: { language } } });
+  /* The document is fetched and rewritten asynchronously; the srcdoc lands on
+   * the frame once that settles. */
+  for (let attempt = 0; attempt < 10 && !host.frame.srcdoc; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  return host.frame.srcdoc || "";
+}
+
+test("the hosted shell is stamped with the user's language and direction", async () => {
+  /* The vendored file hard-codes lang="it" or lang="en". Left alone, the first
+   * paint would be in the wrong language — and for Arabic, laid out the wrong
+   * way round until a script got to it. */
+  const japanese = await hostedDocument("ja");
+  assert.match(japanese, /<html[^>]*lang="ja"/);
+  assert.match(japanese, /<html[^>]*dir="ltr"/);
+
+  const arabic = await hostedDocument("ar");
+  assert.match(arabic, /<html[^>]*lang="ar"/);
+  assert.match(arabic, /<html[^>]*dir="rtl"/);
+});
+
+test("the resolved locale reaches the hosted document before its first script", async () => {
+  const html = await hostedDocument("pt-BR");
+  /* Resolved, not passed through: pt-BR has no catalog of its own and must
+   * arrive as the pt the engine can actually load. */
+  assert.match(html, /window\.__DASHBOARDMODERN_LOCALE__="pt"/);
+  const preludeAt = html.indexOf("__DASHBOARDMODERN_LOCALE__");
+  const bodyAt = html.indexOf("<body");
+  assert.ok(preludeAt >= 0 && (bodyAt < 0 || preludeAt < bodyAt), "locale must be set in <head>");
+});
+
+test("an unknown Home Assistant language falls back to English, not to Italian", async () => {
+  const html = await hostedDocument("xx-YY");
+  assert.match(html, /<html[^>]*lang="en"/);
+  assert.match(html, /window\.__DASHBOARDMODERN_LOCALE__="en"/);
 });
 
 test("no credential is published to the hosted page", () => {

@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nowy panel DashboardModern",
+        "data": {
+          "name": "Nazwa panelu"
+        },
+        "data_description": {
+          "name": "Pojawia się na pasku bocznym. Możesz dodać kilka paneli, każdy z własną konfiguracją."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Dostęp i integracja z panelami",
+        "description": "Wybierz, którzy zalogowani użytkownicy mają widzieć ten panel w interfejsie DashboardModern. To filtr widoczności we frontendzie, nie zastępuje uprawnień Home Assistant. Rejestracja w Lovelace sprawia, że DashboardModern pojawia się w Ustawieniach → Panele.",
+        "data": {
+          "allowed_users": "Uprawnieni użytkownicy",
+          "register_lovelace_dashboard": "Zarejestruj także jako panel Home Assistant",
+          "admin_only": "Widoczny tylko dla administratorów"
+        },
+        "data_description": {
+          "allowed_users": "Tylko filtr widoczności interfejsu. Dane i usługi nadal podlegają uprawnieniom Home Assistant.",
+          "register_lovelace_dashboard": "Panel powstaje przy pierwszym otwarciu przez administratora.",
+          "admin_only": "Natywny filtr Home Assistant; dla kont bez uprawnień administratora ma pierwszeństwo."
+        }
+      }
+    }
+  }
+}

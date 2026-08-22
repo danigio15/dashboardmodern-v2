@@ -1,6 +1,7 @@
 import { SIGNED_GROUPS, SIGNED_MEASURES, signedSource } from "./signed-energy.js";
 // DM-FIX-20260812B
 import { getDeviceDisplayName, getDeviceVisual } from "./device-model.js";
+import { pick } from "./i18n.js";
 import { runtimeMetrics } from "./runtime-metrics.js";
 
 function metric(states, entity, expectedUnit) {
@@ -27,7 +28,7 @@ export function createEnergyReportRows(
       id: device.id,
       name: getDeviceDisplayName(device, states, locale),
       visual: getDeviceVisual(device),
-      category: device.device_type || (locale === "it" ? "Elettrodomestico" : "Appliance"),
+      category: device.device_type || pick("Elettrodomestico", "Appliance", locale),
       room: rooms.find((room) => room.id === device.room_id) || null,
       power: metric(states, device.power_entity, "W"),
       daily,
@@ -237,26 +238,29 @@ const ENERGY_EN = Object.freeze({
   "Energia scaricata": "Discharged energy",
 });
 
-const ENERGY_UI = Object.freeze({
-  it: {
-    select: "Seleziona",
-    optional: "Facoltativo",
-    entityHint: "Entità Home Assistant, es.",
-    configured: "configurati",
-    save: "💾 Salva Energia",
-    clean: "Nessuna modifica non salvata",
-    dirty: "Modifiche non salvate",
-  },
-  en: {
-    select: "Select",
-    optional: "Optional",
-    entityHint: "Home Assistant entity, e.g.",
-    configured: "configured",
-    save: "💾 Save Energy",
-    clean: "No unsaved changes",
-    dirty: "Unsaved changes",
-  },
+/* Authored as it/en pairs so any locale resolves through the shared catalog
+ * instead of picking one of two hard-coded columns. */
+const ENERGY_UI_SOURCE = Object.freeze({
+  select: ["Seleziona", "Select"],
+  optional: ["Facoltativo", "Optional"],
+  entityHint: ["Entità Home Assistant, es.", "Home Assistant entity, e.g."],
+  configured: ["configurati", "configured"],
+  save: ["💾 Salva Energia", "💾 Save Energy"],
+  clean: ["Nessuna modifica non salvata", "No unsaved changes"],
+  dirty: ["Modifiche non salvate", "Unsaved changes"],
 });
+
+function energyCopy(locale) {
+  const copy = {};
+  for (const [key, [it, en]] of Object.entries(ENERGY_UI_SOURCE)) copy[key] = pick(it, en, locale);
+  return copy;
+}
+
+/* An Energy source label is authored in Italian; `ENERGY_EN` is its English
+ * pivot, which is what the catalogs are keyed by. */
+function energyLabel(italian, locale) {
+  return pick(italian, ENERGY_EN[italian] || italian, locale);
+}
 
 export function createEntityPickerField(
   document,
@@ -272,7 +276,7 @@ export function createEntityPickerField(
     onChange,
   } = {},
 ) {
-  const copy = ENERGY_UI[locale] || ENERGY_UI.it;
+  const copy = energyCopy(locale);
   const field = document.createElement("span");
   field.className = "dm-entity-field";
   field.dataset.entityField = "";
@@ -495,7 +499,7 @@ export function renderEnergyEditor(
   locale = "it",
   handlers = {},
 ) {
-  const copy = ENERGY_UI[locale] || ENERGY_UI.it;
+  const copy = energyCopy(locale);
   const root = typeof target === "string" ? document.querySelector(target) : target;
   if (!root) return;
   root.replaceChildren();
@@ -506,17 +510,17 @@ export function renderEnergyEditor(
   const flowsButton = document.createElement("button");
   flowsButton.className = "ed-inner-tab active";
   flowsButton.type = "button";
-  flowsButton.textContent = locale === "it" ? "FLUSSI ED ENTITÀ" : "FLOWS & ENTITIES";
+  flowsButton.textContent = pick("FLUSSI ED ENTITÀ", "FLOWS & ENTITIES", locale);
   const settingsButton = document.createElement("button");
   settingsButton.className = "ed-inner-tab";
   settingsButton.type = "button";
-  settingsButton.textContent = locale === "it" ? "IMPOSTAZIONI" : "SETTINGS";
+  settingsButton.textContent = pick("IMPOSTAZIONI", "SETTINGS", locale);
   const loadsButton = document.createElement("button");
   loadsButton.className = "ed-inner-tab";
   loadsButton.type = "button";
   // The panel configures the circles under Home and the devices inside each
   // one, so it is named after both rather than after the internal word "loads".
-  loadsButton.textContent = locale === "it" ? "CARICHI E DISPOSITIVI" : "LOADS & DEVICES";
+  loadsButton.textContent = pick("CARICHI E DISPOSITIVI", "LOADS & DEVICES", locale);
   const reportButton = document.createElement("button");
   reportButton.className = "ed-inner-tab";
   reportButton.type = "button";
@@ -525,10 +529,11 @@ export function renderEnergyEditor(
   flows.dataset.energyPanel = "flows";
   const intro = document.createElement("p");
   intro.className = "ed-intro dm-energy-recorder-explanation";
-  intro.textContent =
-    locale === "en"
-      ? "For every source, Total energy meter is the cumulative Recorder source (normally state_class: total_increasing). It is not a period value: day, month and year are calculated as final Recorder sum minus initial Recorder sum, so meter resets are preserved. Period sensors are optional current-period overrides."
-      : "Per ogni sorgente, Contatore energia totale è il sensore cumulativo Recorder (normalmente state_class: total_increasing). Non è un valore di periodo: giorno, mese e anno sono calcolati come somma Recorder finale meno somma Recorder iniziale, preservando i reset. I sensori di periodo sono override facoltativi del periodo corrente.";
+  intro.textContent = pick(
+    "Per ogni sorgente, Contatore energia totale è il sensore cumulativo Recorder (normalmente state_class: total_increasing). Non è un valore di periodo: giorno, mese e anno sono calcolati come somma Recorder finale meno somma Recorder iniziale, preservando i reset. I sensori di periodo sono override facoltativi del periodo corrente.",
+    "For every source, Total energy meter is the cumulative Recorder source (normally state_class: total_increasing). It is not a period value: day, month and year are calculated as final Recorder sum minus initial Recorder sum, so meter resets are preserved. Period sensors are optional current-period overrides.",
+    locale,
+  );
   flows.append(intro);
   const settings = document.createElement("section");
   settings.dataset.energyPanel = "settings";
@@ -569,7 +574,7 @@ export function renderEnergyEditor(
     const heading = document.createElement("summary");
     heading.className = "ed-acc-head";
     const configured = fields.filter(([key]) => Boolean(model[group]?.[key])).length;
-    heading.innerHTML = `<span>${ENERGY_ICONS[group]} ${locale === "en" ? ENERGY_EN[title] || title : title}</span><small>${configured}/${fields.length} ${copy.configured}</small>`;
+    heading.innerHTML = `<span>${ENERGY_ICONS[group]} ${energyLabel(title, locale)}</span><small>${configured}/${fields.length} ${copy.configured}</small>`;
     block.append(heading);
     const body = document.createElement("div");
     body.className = "ed-acc-body";
@@ -577,7 +582,7 @@ export function renderEnergyEditor(
       body.append(createSignedCard(document, group, model, states, locale, handlers));
     const managed = signedManagedFields(model, group);
     for (const [key, sourceLabel, unit, example] of fields) {
-      const label = locale === "en" ? ENERGY_EN[sourceLabel] || sourceLabel : sourceLabel;
+      const label = energyLabel(sourceLabel, locale);
       const field = document.createElement("label");
       field.className = "ed-slot";
       field.innerHTML = `<span class="ed-slot-lbl">${label} <span class="ed-acc-n">${unit}</span> <span class="ed-acc-n">${copy.optional}</span></span><span class="ed-hint">${copy.entityHint} ${example}</span>`;

@@ -49,6 +49,11 @@ export const TAB_SECTION_KEYS = Object.freeze({
   pool: "piscina",
   irr: "irrigazione",
   appliances: "appliances",
+  /* L'Aspirapolvere e' arrivata dopo questa mappa, e senza la sua riga la
+   * fascia verde della sua scheda non era la sua: toccarla non nascondeva
+   * niente. La chiave e' la stessa che `cdNavVisMap` conosce per quella voce,
+   * altrimenti si scriverebbe una preferenza che nessuno legge. */
+  robot: "robot",
 });
 
 /* Tabs that hold no configuration to save: diagnostics is read-only, and the

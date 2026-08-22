@@ -9,6 +9,7 @@ import {
   readClimateUnits,
   readJson,
   root,
+  t,
   wrapFunction,
   writeJsonIfChanged,
 } from "./shared.js";
@@ -122,7 +123,7 @@ function repairQuickActionRows() {
     const anchor = row.querySelector(":scope > .dm-beta7-existing-action-icon,:scope > .dm-room-list-icon");
     const nodes = ensureRowMain(row, anchor);
     if (!nodes) return;
-    const name = clean(action.name) || (english() ? "Quick action" : "Azione rapida");
+    const name = clean(action.name) || (t("Azione rapida", "Quick action"));
     const type = clean(action.builtin || action.type).replace(/^builtin_/, "");
     nodes.primary.textContent = name;
     nodes.primary.title = name;
@@ -143,7 +144,7 @@ function repairClimateEditorRows() {
     const anchor = row.querySelector(":scope > .dm-room-list-icon,:scope > .dm-beta7-existing-action-icon");
     const nodes = ensureRowMain(row, anchor);
     if (!nodes) return;
-    const name = clean(unit.name) || clean(unit.entity) || (english() ? "Climate" : "Clima");
+    const name = clean(unit.name) || clean(unit.entity) || (t("Clima", "Climate"));
     const room = roomLabel(unit.room || unit.room_id, unit.name);
     nodes.primary.textContent = name;
     nodes.primary.title = name;
@@ -163,7 +164,7 @@ function repairTemperatureEditorRows() {
     const anchor = row.querySelector(":scope > .dm-temperature-card-icon");
     const nodes = ensureRowMain(row, anchor);
     if (!nodes) return;
-    const name = clean(room.name) || clean(room.id) || (english() ? "Room" : "Stanza");
+    const name = clean(room.name) || clean(room.id) || (t("Stanza", "Room"));
     const sensors = [clean(room.temp), clean(room.hum)].filter(Boolean).join(" · ");
     nodes.primary.textContent = name;
     nodes.primary.title = name;
@@ -183,7 +184,7 @@ function replaceRoomOptions(select, { temperature = false } = {}) {
   const editing = Boolean(form?.dataset?.dmOriginalRoom) || /^(modifica|edit)\b/i.test(clean(form?.querySelector?.("[data-temperature-form-title]")?.textContent));
   const placeholder = doc.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = `— ${english() ? "Select room" : "Seleziona stanza"} —`;
+  placeholder.textContent = `— ${t("Seleziona stanza", "Select room")} —`;
   const options = [placeholder];
   rooms.forEach((room) => {
     const option = doc.createElement("option");

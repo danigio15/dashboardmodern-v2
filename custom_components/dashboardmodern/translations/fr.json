@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nouveau tableau de bord DashboardModern",
+        "data": {
+          "name": "Nom du tableau de bord"
+        },
+        "data_description": {
+          "name": "Il apparaît dans la barre latérale. Tu peux ajouter plusieurs tableaux de bord, chacun avec sa propre configuration."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Accès et intégration aux tableaux de bord",
+        "description": "Choisis quels utilisateurs déjà connectés doivent voir ce tableau de bord dans l'interface DashboardModern. C'est un filtre d'affichage côté frontend, il ne remplace pas les permissions Home Assistant. L'enregistrement Lovelace fait apparaître DashboardModern dans Paramètres → Tableaux de bord.",
+        "data": {
+          "allowed_users": "Utilisateurs autorisés",
+          "register_lovelace_dashboard": "Enregistrer aussi comme tableau de bord Home Assistant",
+          "admin_only": "Visible uniquement par les administrateurs"
+        },
+        "data_description": {
+          "allowed_users": "Filtre d'affichage uniquement. Les données et les services restent soumis aux permissions Home Assistant.",
+          "register_lovelace_dashboard": "Le tableau de bord est créé à la première ouverture par un administrateur.",
+          "admin_only": "Filtre natif Home Assistant ; il l'emporte pour les comptes non administrateurs."
+        }
+      }
+    }
+  }
+}

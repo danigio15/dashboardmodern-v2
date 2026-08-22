@@ -243,7 +243,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 110 con il cielo della sezione Tapparelle: la fascia del giorno sta in un
   // modulo puro — si prova senza browser — e chi la usa scrive solo un attributo
   // sulla pagina, perche' il disegno del cielo era gia' tutto in variabili.
-  assert.ok(relative.length <= 128, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 128 con le sezioni della 1.1.0.
+  // 132 con la lingua. La plancia parlava due lingue perche' ne esistevano due
+  // copie: il ternario `t(it, en)` in ogni sezione e due build separate del
+  // runtime. I quattro moduli qui sono quello che rende la lingua un dato
+  // invece di una biforcazione: il motore che risolve locale e cataloghi, la
+  // passata che traduce il testo che il runtime vendorizzato stampa da solo,
+  // l'indice che porta quel testo italiano alla sua chiave inglese, e la
+  // sezione che accende il tutto prima che qualcuno disegni. I cataloghi delle
+  // singole lingue non sono qui: si caricano su richiesta, uno solo per utente.
+  assert.ok(relative.length <= 132, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
@@ -293,7 +302,25 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
     .filter((file) => !graph.has(path.normalize(file)))
     .map((file) => path.relative(frontendRoot, file).replaceAll("\\", "/"))
     .sort();
-  assert.deepEqual(srcOrphans, [], `orphan src modules:\n${srcOrphans.join("\n")}`);
+
+  /* The language catalogs are the one thing production reaches that a static
+   * walk cannot see: `loadCatalog` imports `../i18n/<locale>.js` by computed
+   * name, so exactly one of them is ever fetched and none of them appears as
+   * an edge. Exempting them is only honest if the loader really does read that
+   * directory, so that is asserted here rather than assumed — and the exemption
+   * is narrow: a catalog must be named after a locale the registry declares,
+   * which the i18n-catalogs contract checks in turn. */
+  const engine = await readFile(path.join(srcRoot, "core/i18n.js"), "utf8");
+  assert.match(
+    engine,
+    /import\(`\.\.\/i18n\/\$\{[^}]+\}\.js`\)/,
+    "src/core/i18n.js no longer loads catalogs from src/i18n; the exemption below is stale",
+  );
+  const catalogs = srcOrphans.filter((file) => /^src\/i18n\/[A-Za-z-]+\.js$/.test(file));
+  assert.ok(catalogs.length > 0, "no language catalogs found under src/i18n");
+
+  const unreachable = srcOrphans.filter((file) => !catalogs.includes(file));
+  assert.deepEqual(unreachable, [], `orphan src modules:\n${unreachable.join("\n")}`);
 });
 
 for (const relative of obsoleteFacades) {
