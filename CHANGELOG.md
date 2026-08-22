@@ -28,6 +28,17 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   una bozza scritta e non salvata si scarta quando l'auto di destinazione
   cambia.
 
+- **«Dal dispositivo» rispondeva Caricamento non riuscito (HTTP 401).** La
+  plancia servita dall'integrazione non possiede nessun token: il suo
+  WebSocket si autentica lato server, e la chiamata REST all'archivio immagini
+  di Home Assistant non poteva che essere rifiutata. La foto viaggia adesso
+  sullo stesso WebSocket dell'integrazione — l'unico canale davvero
+  autenticato — e il backend la scrive sotto `config/www/dashboardmodern`,
+  rispondendo con un `/local/...` come quelli scritti a mano. Nomi sanificati,
+  solo immagini, tetto a 10 MB, e un nome già preso si numera invece di
+  sovrascrivere. Il vecchio archivio REST resta come ripiego per chi un token
+  vero ce l'ha.
+
 - **Le tapparelle erano rimaste senza animazioni da desktop.** Stessa causa
   degli elettrodomestici: «riduci il movimento» del sistema operativo spegneva
   anche il telo che scende e il rullo che gira, che sono lo stato della
