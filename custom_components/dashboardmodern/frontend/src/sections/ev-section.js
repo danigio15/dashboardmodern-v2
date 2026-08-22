@@ -491,7 +491,21 @@ function restoreProfilePhotos(car, before, profileCount = profiles().length) {
 export function seedActiveProfilePhotos() {
   const elenco = profiles();
   if (elenco.length < 2) return false;
-  const indice = activeIndex();
+  /* Prima si adotta, poi si semina.
+   *
+   * Chi arriva dal formato vecchio puo' avere la foto col cavo solo nella
+   * casella sciolta, e nessun profilo che la porti: e' quello che
+   * `adoptExistingPhotos` esiste per travasare. Seminando per primi la regola
+   * multi-profilo svuoterebbe la casella — il profilo attivo quella foto non
+   * ce l'ha ancora — e l'adozione poi non troverebbe piu' niente da travasare.
+   * La foto dell'auto sparirebbe proprio all'avvio. */
+  adoptExistingPhotos();
+  /* Lo stesso indice che usano il selettore e l'adozione: con l'auto attiva
+   * cancellata, `cd_ev_car_active` resta fuori dall'elenco e senza questo la
+   * plancia evidenzierebbe la prima vettura continuando a mostrare la foto di
+   * quella che non c'e' piu'. */
+  const chiesto = activeIndex();
+  const indice = chiesto >= 0 && chiesto < elenco.length ? chiesto : 0;
   const car = elenco[indice];
   if (!car) return false;
   const before = configuredPhotos();

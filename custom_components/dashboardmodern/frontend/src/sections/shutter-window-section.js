@@ -17,7 +17,7 @@
  * Niente qui scrive dati: la posizione della tapparella resta di chi la
  * disegnava, il contatto si legge e basta.
  */
-import { coverKindLabel } from "../core/cover-kind.js";
+import { coverEntries, coverKindLabel } from "../core/cover-kind.js";
 import { shutterWindowModel } from "../core/shutter-window.js";
 import { allStates, clean, dashboardStore, doc, installStyle, readJson, root, t } from "./shared.js";
 
@@ -37,10 +37,22 @@ function covers() {
   return Array.isArray(legacy) ? legacy : [];
 }
 
+/* La riga di configurazione a cui appartiene una card.
+ *
+ * Un infisso puo' produrre piu' di una card — tapparella, tenda, tenda da sole
+ * — e il contatto della finestra e' uno solo, scritto sulla riga. Cercando
+ * soltanto fra le tapparelle, le card in piu' non ritrovavano la loro riga:
+ * disegnavano la finestra sempre chiusa e restavano senza la pastiglia
+ * «finestra aperta», mentre la card principale dello stesso serramento la
+ * mostrava. */
 function coverForCard(card) {
   const entity = clean(card.getAttribute("data-tapp"));
   if (!entity) return null;
-  return covers().find((item) => clean(item?.entity) === entity) || null;
+  return (
+    covers().find((item) =>
+      coverEntries(item).some((entry) => clean(entry.entity) === entity),
+    ) || null
+  );
 }
 
 /* I pezzi che si aggiungono al vano, una volta sola.

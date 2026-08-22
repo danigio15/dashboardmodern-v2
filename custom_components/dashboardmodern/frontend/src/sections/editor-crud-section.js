@@ -353,13 +353,26 @@ function installAddWrappers() {
       tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
     };
     const entity = clean(doc.getElementById("ed-tp-ent")?.value);
-    if (!entity || !Object.values(extra).some(Boolean)) return null;
+    /* Un infisso puo' avere la sola tenda: pretendere la tapparella qui
+     * significava non poterlo aggiungere affatto. */
+    const qualcosa = entity || Object.values(extra).some(Boolean);
+    if (!qualcosa) return null;
     return () => {
       const list = listFor("shutter");
       let index = -1;
       list.forEach((item, position) => {
-        if (clean(item?.entity) === entity) index = position;
+        if (entity && clean(item?.entity) === entity) index = position;
       });
+      /* Senza tapparella il runtime la riga non la scrive: la scriviamo noi,
+       * in coda, con il nome e la stanza che erano nel modulo. */
+      if (index < 0 && !entity) {
+        list.push({
+          name: clean(doc.getElementById("ed-tp-name")?.value),
+          entity: "",
+          room: clean(doc.getElementById("ed-tp-room")?.value),
+        });
+        index = list.length - 1;
+      }
       if (index < 0) return;
       const uguale = Object.entries(extra).every(
         ([campo, valore]) => clean(list[index][campo]) === valore,

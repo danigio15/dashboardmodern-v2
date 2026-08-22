@@ -1,5 +1,5 @@
 // DM-FIX-20260813E
-import { COVER_KINDS, coverKindLabel, declaredCoverKind } from "../core/cover-kind.js";
+import { coverKindLabel } from "../core/cover-kind.js";
 import { contactEntity } from "../core/shutter-window.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import {
@@ -262,32 +262,29 @@ function openClimateEditor(item, index) {
  *
  * Chi non sceglie non deve scegliere: Home Assistant dice gia' che apertura e',
  * e per quasi tutti quella basta. La voce vuota e' quella condizione, detta. */
-function kindOptions(item) {
-  const declared = declaredCoverKind(item);
-  const voci = [
-    ["", t("Come dice Home Assistant", "As Home Assistant says")],
-    ...COVER_KINDS.map((kind) => [kind, coverKindLabel(kind)]),
-  ];
-  return voci
-    .map(([value, label]) => `<option value="${esc(value)}"${value === declared ? " selected" : ""}>${esc(label)}</option>`)
-    .join("");
-}
 
 function openShutterEditor(item, index) {
   const { form, close } = modalShell(
     "shutter",
     t("Modifica tapparella o tenda", "Edit shutter or curtain"),
     `<label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(item.name)}" required></label>
-     <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}" required><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
-     <label class="ed-slot"><span class="ed-slot-lbl">${t("Tipo", "Type")}</span><select class="ed-input" name="kind">${kindOptions(item)}</select><small>${t("Una tapparella scende dall'alto, una tenda si scosta di lato: la card disegna quella che hai. Se non scegli, vale quello che dice Home Assistant.", "A roller shutter comes down, a curtain parts sideways: the card draws the one you have. Leave it be and Home Assistant decides.")}</small></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità tapparella", "Cover entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}"><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${coverKindLabel("tenda")}</span><span class="ed-form-row"><input class="ed-input mono" name="tenda" value="${esc(item.tenda)}" placeholder="cover.tenda_salotto"><button type="button" class="dm-entity-picker" data-pick-tenda>🔍</button></span></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${coverKindLabel("tenda_sole")}</span><span class="ed-form-row"><input class="ed-input mono" name="tendaSole" value="${esc(item.tendaSole)}" placeholder="cover.tenda_da_sole"><button type="button" class="dm-entity-picker" data-pick-tendasole>🔍</button></span><small>${t("Su una finestra ci stanno tutte e tre: compila le caselle che hai, il tipo lo dice la casella.", "One window can carry all three: fill in the boxes you have, the box tells the type.")}</small></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Sensore apertura infisso", "Window contact sensor")}</span><span class="ed-form-row"><input class="ed-input mono" name="contact" value="${esc(contactEntity(item))}" placeholder="binary_sensor.finestra_camera"><button type="button" class="dm-entity-picker" data-pick-contact>🔍</button></span><small>${t("Se lo compili, la card mostra la finestra aperta quando il contatto lo dice.", "Fill it in and the card shows the window open when the contact says so.")}</small></label>`,
     "🪟",
   );
   form.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
-  form
-    .querySelector("[data-pick-contact]")
-    ?.addEventListener("click", () => root.wzPickEntity?.(form.elements.contact));
+  for (const [selettore, campo] of [
+    ["[data-pick-contact]", "contact"],
+    ["[data-pick-tenda]", "tenda"],
+    ["[data-pick-tendasole]", "tendaSole"],
+  ]) {
+    form
+      .querySelector(selettore)
+      ?.addEventListener("click", () => root.wzPickEntity?.(form.elements[campo]));
+  }
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const list = listFor("shutter");
@@ -299,6 +296,9 @@ function openShutterEditor(item, index) {
       // Svuotare il campo toglie il sensore: e' il modo per dire "questa
       // tapparella non ha un infisso da guardare".
       contact: clean(form.elements.contact?.value),
+      // Le altre coperture dello stesso infisso: svuotare la casella la toglie.
+      tenda: clean(form.elements.tenda?.value),
+      tendaSole: clean(form.elements.tendaSole?.value),
       // "Come dice Home Assistant" e' il vuoto: si torna a lasciar decidere la
       // classe dell'entita', invece di restare fermi su una scelta di prima.
       kind: clean(form.elements.kind?.value),
