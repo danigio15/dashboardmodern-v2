@@ -404,8 +404,12 @@ export default Object.freeze({
   "Energy today": "Energia hoje",
   "Enter a label.": "Escreve uma etiqueta.",
   "Enter a load name": "Escreve o nome da carga",
-  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "Introduz um nome e pelo menos uma entidade cover.* entre estore, cortina e toldo.",
-  "Every filled box must be a cover.* entity.": "Cada caixa preenchida tem de ser uma entidade cover.*.",
+  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.":
+    "Introduz um nome e pelo menos uma entidade cover.* ou switch.* entre estore, cortina e toldo.",
+  "Every filled box must be a cover.* or switch.* entity.":
+    "Cada caixa preenchida deve ser uma entidade cover.* ou switch.*.",
+  "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
+    "A mesma entidade está escrita em várias caixas: é uma só cobertura. Para ter vários controlos na mesma janela são precisas entidades cover diferentes (estore, cortina, toldo).",
   "Enter a name and a valid entity.": "Escreve um nome e uma entidade válida.",
   "Enter a name.": "Escreve um nome.",
   "ENTER PIN": "INTRODUZ O PIN",
@@ -1060,6 +1064,7 @@ export default Object.freeze({
   "Updating Recorder data…": "A atualizar os dados do Recorder…",
   "Updating...": "A atualizar...",
   "Upload failed (${clean(error?.message)}).": "Falha ao enviar (${clean(error?.message)}).",
+  "the photo exceeds 10 MB": "a foto excede 10 MB",
   "Uploading the photo…": "A enviar a foto…",
   "Uptime": "Tempo ligado",
   "use the total kWh meter through Recorder": "usa o contador total de kWh através do Recorder",

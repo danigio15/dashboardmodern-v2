@@ -404,8 +404,12 @@ export default Object.freeze({
   "Energy today": "Energie vandaag",
   "Enter a label.": "Vul een label in.",
   "Enter a load name": "Vul de naam van de verbruiker in",
-  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "Vul een naam in en minstens één cover.*-entiteit: rolluik, gordijn of zonnescherm.",
-  "Every filled box must be a cover.* entity.": "Elk ingevuld vak moet een cover.*-entiteit zijn.",
+  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.":
+    "Vul een naam in en minstens één cover.*- of switch.*-entiteit voor rolluik, gordijn of zonnescherm.",
+  "Every filled box must be a cover.* or switch.* entity.":
+    "Elk ingevuld vak moet een cover.*- of switch.*-entiteit zijn.",
+  "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
+    "Dezelfde entiteit staat in meerdere vakken: dat is één scherm. Voor meerdere schuifregelaars op hetzelfde raam zijn verschillende cover-entiteiten nodig (rolluik, gordijn, zonnescherm).",
   "Enter a name and a valid entity.": "Vul een naam en een geldige entiteit in.",
   "Enter a name.": "Vul een naam in.",
   "ENTER PIN": "VOER DE PINCODE IN",
@@ -1060,6 +1064,7 @@ export default Object.freeze({
   "Updating Recorder data…": "Recorder-gegevens bijwerken…",
   "Updating...": "Bijwerken...",
   "Upload failed (${clean(error?.message)}).": "Uploaden mislukt (${clean(error?.message)}).",
+  "the photo exceeds 10 MB": "de foto is groter dan 10 MB",
   "Uploading the photo…": "Foto uploaden…",
   "Uptime": "Bedrijfstijd",
   "use the total kWh meter through Recorder": "gebruikt de kWh-totaalmeter via Recorder",

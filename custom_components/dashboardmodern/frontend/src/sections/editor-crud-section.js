@@ -364,7 +364,8 @@ function installAddWrappers() {
      * runtime ha ragione, e toglierlo di mezzo vorrebbe dire scrivere una riga
      * che non comanda niente — o peggio, che un domani manda `cover.open_cover`
      * a un sensore. */
-    const eUnaCopertura = (valore) => /^cover\./i.test(clean(valore));
+    // Anche un rele': switch.* comanda molte tapparelle vere.
+    const eUnaCopertura = (valore) => /^(cover|switch)\./i.test(clean(valore));
     const alternativaValida = eUnaCopertura(extra.tenda) || eUnaCopertura(extra.tendaSole);
     const zittire = !entity && alternativaValida;
     const avviso = zittire ? root.alert : null;

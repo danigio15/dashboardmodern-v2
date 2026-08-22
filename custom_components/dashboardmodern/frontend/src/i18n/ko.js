@@ -404,8 +404,12 @@ export default Object.freeze({
   "Energy today": "오늘 전력량",
   "Enter a label.": "라벨을 입력하세요.",
   "Enter a load name": "부하 이름을 입력하세요",
-  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "이름과 셔터·커튼·차양 중 최소 한 개의 cover.* 엔터티를 입력하세요.",
-  "Every filled box must be a cover.* entity.": "채운 각 칸은 cover.* 엔터티여야 합니다.",
+  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.":
+    "이름과 셔터·커튼·어닝 중 최소 하나의 cover.* 또는 switch.* 엔티티를 입력하세요.",
+  "Every filled box must be a cover.* or switch.* entity.":
+    "채워진 모든 칸은 cover.* 또는 switch.* 엔티티여야 합니다.",
+  "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
+    "같은 엔티티가 여러 칸에 적혀 있습니다. 그것은 하나의 커버입니다. 같은 창에 여러 슬라이더를 표시하려면 서로 다른 cover 엔티티(셔터, 커튼, 어닝)가 필요합니다.",
   "Enter a name and a valid entity.": "이름과 올바른 엔티티를 입력하세요.",
   "Enter a name.": "이름을 입력하세요.",
   "ENTER PIN": "PIN 입력",
@@ -1060,6 +1064,7 @@ export default Object.freeze({
   "Updating Recorder data…": "Recorder 데이터를 갱신하는 중…",
   "Updating...": "갱신하는 중...",
   "Upload failed (${clean(error?.message)}).": "업로드에 실패했습니다 (${clean(error?.message)}).",
+  "the photo exceeds 10 MB": "사진이 10 MB를 초과합니다",
   "Uploading the photo…": "사진 업로드 중…",
   "Uptime": "가동 시간",
   "use the total kWh meter through Recorder": "Recorder를 통해 누적 kWh 계량기를 씁니다",

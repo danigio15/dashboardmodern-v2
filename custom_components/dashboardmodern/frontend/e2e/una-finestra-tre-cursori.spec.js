@@ -149,3 +149,39 @@ test("il cursore della tenda comanda la tenda, non la tapparella", async ({ page
     "70%",
   );
 });
+
+test("la stessa entita' in tre caselle viene fermata, con la spiegazione", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(90_000);
+  /* Il test dell'utente, alla lettera: un'unica cover scritta in tutte e tre
+   * le caselle "per vedere i 3 cursori". La pagina accorpa i duplicati — una
+   * copertura sola — e prima il modale salvava in silenzio: card unica, un
+   * cursore, e nessuno che dicesse perche'. Adesso lo dice. */
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, {
+    ...seme,
+    sections: {
+      ...seme.sections,
+      covers: [{ id: "w1", name: "Bagno", entity: "cover.tapparella" }],
+    },
+  });
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("tapp");
+  });
+  await page.locator('[data-dm-edit-kind="shutter"][data-dm-edit-index="0"]').first().click();
+  const modale = page.locator("#dm-shutter-editor-modal");
+  await expect(modale).toBeVisible();
+  for (const campo of ["tenda", "tendaSole"]) {
+    await modale.locator(`input[name=${campo}]`).evaluate((input) => {
+      input.value = "cover.tapparella";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+  await modale.locator("form").evaluate((form) => form.requestSubmit());
+  await expect(modale.locator("[data-error]")).toHaveText(/stessa entità.*una copertura sola/i);
+  // E la riga NON e' stata salvata con i duplicati.
+  const riga = await page.evaluate(() => window.getTapparelle()[0]);
+  expect(riga.tenda || "").toBe("");
+});

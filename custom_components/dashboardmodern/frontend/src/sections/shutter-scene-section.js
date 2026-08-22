@@ -59,12 +59,18 @@ function floorOrder() {
   return Array.isArray(names) ? names : [];
 }
 
+/* Un rele' che comanda la tapparella: on la apre, off la chiude. */
+const eUnoSwitch = (entity) => /^switch\./i.test(clean(entity));
+
 function coverView(item = {}, distingui = false) {
   const entity = clean(item.entity || item.entities?.[0]);
   if (!entity) return null;
   const current = allStates()[entity];
-  const status = clean(current?.state).toLowerCase() || "unknown";
-  const raw = current?.attributes?.current_position;
+  let status = clean(current?.state).toLowerCase() || "unknown";
+  /* Lo switch parla on/off: tradotto nella lingua delle coperture, cosi' la
+   * pastiglia, il conteggio e il disegno non devono saperne niente. */
+  if (eUnoSwitch(entity)) status = status === "on" ? "open" : status === "off" ? "closed" : status;
+  const raw = eUnoSwitch(entity) ? null : current?.attributes?.current_position;
   const reported = raw == null ? null : Math.max(0, Math.min(100, Number(raw)));
   const hasPosition = Number.isFinite(reported);
   const features = Number(current?.attributes?.supported_features) || 0;
@@ -396,14 +402,23 @@ function dipingiPannello(panel, cover) {
  * percentuale: e' il selettore per entita' a tenerli separati. */
 function syncCover(card, cover) {
   const scope = `[data-dm-entity="${CSS.escape(cover.entity)}"]`;
+  /* Il ripiego senza selettore serve solo alla card a copertura singola, dove
+   * il markup non porta l'entita'. Su una card composita agganciarsi "al
+   * primo che c'e'" scriveva la posizione di una copertura ferma sul cursore
+   * di un'altra. */
+  const multipla = card.hasAttribute("data-dm-covers");
   const layer = card.querySelector(`[data-dm-cover="${CSS.escape(cover.entity)}"] [data-dm-panel]`);
-  const panel = layer || card.querySelector("[data-dm-panel]");
+  const panel = layer || (multipla ? null : card.querySelector("[data-dm-panel]"));
   if (panel) dipingiPannello(panel, cover);
 
-  const readout = card.querySelector(`[data-dm-readout]${scope}`) || card.querySelector("[data-dm-readout]");
+  const readout =
+    card.querySelector(`[data-dm-readout]${scope}`) ||
+    (multipla ? null : card.querySelector("[data-dm-readout]"));
   if (readout) readout.textContent = cover.hasPosition ? `${cover.position}%` : "";
 
-  const range = card.querySelector(`[data-dm-position]${scope}`) || card.querySelector("[data-dm-position]");
+  const range =
+    card.querySelector(`[data-dm-position]${scope}`) ||
+    (multipla ? null : card.querySelector("[data-dm-position]"));
   // Never write over a track the user is holding: doc.activeElement covers the
   // keyboard and the in-flight drag, the grab window covers the seconds the
   // motor needs before Home Assistant reports the position that was asked for.
@@ -430,7 +445,27 @@ function syncCover(card, cover) {
 function insegnaComandoDiGruppo() {
   const originale = root.cdTappCmd;
   if (typeof originale !== "function" || originale.__dmTutteLeCoperture) return false;
+  /* Il runtime manda servizi cover.*: a un rele' vanno tradotti. Apri e'
+   * turn_on, chiudi e' turn_off, e lo stop per uno switch non esiste. */
+  const comandaSwitch = (entity, servizio) => {
+    if (servizio === "stop_cover") return true; // niente da fermare
+    const service = servizio === "open_cover" ? "turn_on" : "turn_off";
+    try {
+      root
+        .dmCallHaService?.("switch", service, { entity_id: entity })
+        ?.catch?.(() => {});
+    } catch (_error) {}
+    return true;
+  };
+
   const avvolta = function cdTappCmd(button, ...resto) {
+    /* Un bottone la cui destinazione e' un rele' non passa dal runtime: i
+     * servizi cover su uno switch cadrebbero nel vuoto. */
+    const cartaSingola = button?.closest?.("[data-tapp]");
+    const entitaSingola = clean(cartaSingola?.getAttribute?.("data-tapp"));
+    if (!button?.getAttribute?.("data-all") && eUnoSwitch(entitaSingola) && !cartaSingola?.hasAttribute?.("data-dm-covers")) {
+      return comandaSwitch(entitaSingola, button.getAttribute("data-svc")) ? undefined : originale.call(this, button, ...resto);
+    }
     /* Sui bottoni di una card con piu' coperture, "apri" apre la finestra
      * intera: il comando parte una volta per copertura, con la stessa
      * chiamata di servizio del runtime. */
@@ -439,8 +474,13 @@ function insegnaComandoDiGruppo() {
       const servizio = button.getAttribute("data-svc");
       for (const barra of cardMulti.querySelectorAll("[data-dm-bar]")) {
         try {
+          const bersaglio = barra.getAttribute("data-dm-bar");
+          if (eUnoSwitch(bersaglio)) {
+            comandaSwitch(bersaglio, servizio);
+            continue;
+          }
           const carta = doc.createElement("div");
-          carta.setAttribute("data-tapp", barra.getAttribute("data-dm-bar"));
+          carta.setAttribute("data-tapp", bersaglio);
           const finto = doc.createElement("button");
           finto.setAttribute("data-svc", servizio);
           carta.append(finto);
@@ -453,6 +493,10 @@ function insegnaComandoDiGruppo() {
     const servizio = button.getAttribute("data-svc");
     for (const { entity } of configuredCovers().flatMap((item) => coverEntries(item))) {
       try {
+        if (eUnoSwitch(entity)) {
+          comandaSwitch(entity, servizio);
+          continue;
+        }
         const carta = doc.createElement("div");
         carta.setAttribute("data-tapp", entity);
         const finto = doc.createElement("button");
@@ -551,12 +595,15 @@ function previewPosition(range) {
   if (entity === clean(card.dataset.tapp)) card.style.setProperty("--tapp-open", String(position / 100));
   const barra = card.querySelector(`[data-dm-bar="${CSS.escape(entity)}"] .dm-tapp-track`);
   if (barra) barra.style.setProperty("--tapp-open", String(position / 100));
+  const multipla = card.hasAttribute("data-dm-covers");
   const panel =
     card.querySelector(`[data-dm-cover="${CSS.escape(entity)}"] [data-dm-panel]`) ||
-    card.querySelector("[data-dm-panel]");
+    (multipla ? null : card.querySelector("[data-dm-panel]"));
   if (panel && !panel.classList.contains("dm-tenda")) panel.style.height = `${100 - position}%`;
   else if (panel) panel.style.setProperty("--tenda-chiusa", `${(100 - position) / 2}%`);
-  const readout = card.querySelector(`[data-dm-readout]${scope}`) || card.querySelector("[data-dm-readout]");
+  const readout =
+    card.querySelector(`[data-dm-readout]${scope}`) ||
+    (multipla ? null : card.querySelector("[data-dm-readout]"));
   if (readout) readout.textContent = `${position}%`;
 }
 

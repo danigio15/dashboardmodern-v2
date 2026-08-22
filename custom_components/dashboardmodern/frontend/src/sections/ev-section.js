@@ -252,13 +252,28 @@ function savePhotos(panelNode) {
   scheduleEvSyncSettled();
 }
 
+function fotoDelProfiloAttivo() {
+  const elenco = profiles();
+  if (!elenco.length) return configuredPhotos();
+  const indice = Math.max(0, Math.min(elenco.length - 1, activeIndex()));
+  return photosForProfile(elenco[indice], configuredPhotos(), elenco.length);
+}
+
 export function ensureVehiclePhotoEditor() {
   const body = evEditorBody();
   if (!body) return false;
   const legacyRow = legacyPhotoRow(body);
   legacyRow?.setAttribute("hidden", "hidden");
   let panelNode = body.querySelector(":scope > [data-ev-photos]");
-  const photos = configuredPhotos();
+  /* Il pannello legge dal PROFILO, non dalle caselle piatte.
+   *
+   * Le caselle sono il disegno di adesso e seguono l'auto attiva con un giro
+   * di ritardo: subito dopo un salvataggio o una cancellazione portano ancora
+   * le foto della vettura di prima. Il pannello che le mostrava — e che le
+   * risalvava — e' il ponte con cui la foto di un'auto finiva sull'altra, col
+   * titolo giusto a fare da alibi. La fonte e' il profilo attivo; le caselle
+   * restano solo il ripiego di chi ha una vettura sola col formato vecchio. */
+  const photos = fotoDelProfiloAttivo();
   if (!panelNode) {
     panelNode = doc.createElement("section");
     panelNode.className = "ed-form dm-ev-photos";
@@ -354,7 +369,7 @@ export function ensureVehiclePhotoEditor() {
      * nuovo a fare da alibi. Al cambio si azzera il segno di modifica e i
      * campi si ricaricano dalle foto dell'auto appena scelta. */
     if (titolo.dataset.evPhotosFor !== undefined && titolo.dataset.evPhotosFor !== nome) {
-      const foto = configuredPhotos();
+      const foto = fotoDelProfiloAttivo();
       for (const field of panelNode.querySelectorAll("[data-ev-photo]")) {
         delete field.dataset.evPhotoEdited;
         const input = field.querySelector("[data-ev-photo-input]");
@@ -599,6 +614,10 @@ function saveProfilePhotos(photos) {
   const legacy = legacyProfiles();
   const cars = legacy.length ? legacy : canonicalProfiles();
   if (!cars.length) return false;
+  /* Con l'attiva appena cancellata l'indice vale -1: il vecchio clamp a zero
+   * scriveva le foto della vettura sparita sulla prima della lista. Nessuna
+   * auto attiva, nessun salvataggio. */
+  if (activeIndex() < 0) return false;
   const posizione = Math.max(0, Math.min(cars.length - 1, activeIndex()));
   /* Niente pulizie d'ufficio sugli altri profili.
    *
@@ -721,8 +740,37 @@ function installLegacyWrappers() {
       const indiceAttivoPrima=activeIndex();
       const result=previous.apply(this,args);
       const dopo=legacyProfiles();
-      const rimesse=restoreCarIdentities(dopo, prima, indiceAttivoPrima);
+      let rimesse=restoreCarIdentities(dopo, prima, indiceAttivoPrima);
+      /* Un'auto NUOVA nasce senza foto.
+       *
+       * Il runtime la battezza con le due caselle piatte — che sono le foto
+       * dell'auto ATTIVA in quel momento. Con una vettura gia' configurata,
+       * la seconda nasceva cosi' con la foto della prima addosso, e nessuna
+       * protezione poteva accorgersene: `restoreCarIdentities` restituisce
+       * intatta un'auto che prima non c'era. Le foto di un'auto nuova si
+       * scelgono dal pannello, non si ereditano. Il primissimo profilo resta
+       * fuori: li' il travaso dalle caselle e' l'adozione del formato
+       * vecchio, ed e' voluto. */
+      if (prima.length) {
+        /* Lo stesso confronto esatto del runtime e di restoreCarIdentities:
+         * "Tesla" e "tesla" sono due auto per il runtime, e devono esserlo
+         * anche qui — o la seconda si terrebbe le foto catturate. */
+        const conosciute = new Set(prima.map((car) => clean(car?.name)));
+        rimesse = rimesse.map((car) =>
+          conosciute.has(clean(car?.name))
+            ? car
+            : { ...car, img: "", imgPlugged: "", image: "", image_url: "" },
+        );
+      }
       if (rimesse !== dopo) writeJsonIfChanged("cd_ev_cars", rimesse);
+      /* Il runtime ha appena reso attiva l'auto salvata, ma le due caselle da
+       * cui il disegno legge portano ancora le foto di quella di prima: senza
+       * questa risemina l'eroe mostrava la vettura vecchia sotto la linguetta
+       * nuova, e un «Salva foto» in quel momento gliela scriveva addosso. */
+      const indiceDopo = activeIndex();
+      const attivaDopo = rimesse[indiceDopo];
+      if (attivaDopo && indiceDopo !== indiceAttivoPrima)
+        restoreProfilePhotos(attivaDopo, configuredPhotos(), rimesse.length);
       root.queueMicrotask?.(scheduleEvSyncSettled);
       return result;
     }
@@ -736,6 +784,18 @@ function installLegacyWrappers() {
     const previous=root.cdEvCarBtn;
     function carButton(...args) {
       const result=previous.apply(this,args);
+      /* Dopo una cancellazione le caselle piatte portano ancora le foto della
+       * vettura sparita: si riseminano da quella che la plancia mostra ora.
+       * E se a sparire era proprio l'attiva, l'indice resta -1 mentre tutto
+       * il resto mostra la prima della lista come scelta: la si rende attiva
+       * DAVVERO, cosi' pannello e salvataggi parlano della stessa auto. */
+      const elenco=legacyProfiles();
+      if (activeIndex() < 0 && elenco.length) {
+        try { root.localStorage?.setItem("cd_ev_car_active", "0"); } catch (_error) {}
+      }
+      const indice=Math.max(0, Math.min(elenco.length - 1, activeIndex()));
+      const attiva=elenco[indice];
+      if (attiva) restoreProfilePhotos(attiva, configuredPhotos(), elenco.length);
       root.queueMicrotask?.(scheduleEvSync);
       return result;
     }

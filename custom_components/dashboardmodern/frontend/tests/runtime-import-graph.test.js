@@ -267,7 +267,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // un'altra vettura. Il modulo dice chi e' un'auto, e lo dicono in quattro
   // posti diversi: la sezione Auto, la Personalizzazione, e le due passate che
   // riempiono la scheda. Una sola definizione, o tornano a divergere.
-  assert.ok(relative.length <= 135, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 136 con le fondamenta del tema scuro. «Scuro» scuriva le card una per una
+  // ma le variabili di base — il fondo della pagina, il colore del testo —
+  // non avevano mai avuto una versione notturna: card scure su pagina bianca.
+  // Le ridefinizioni stanno in un modulo loro perche' sono la base che ogni
+  // altra regola eredita, non il ritocco di una sezione.
+  assert.ok(relative.length <= 136, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

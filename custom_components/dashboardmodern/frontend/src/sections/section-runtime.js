@@ -4,6 +4,7 @@ import { createApplianceViewModel } from "../core/appliance-view-model.js";
 import { installStateEventGate } from "../core/state-event-gate.js";
 import { installHostedBridgeGuard } from "../transport/hosted-bridge-guard.js";
 import { installI18nSection } from "./i18n-section.js";
+import { installThemeFoundationSection } from "./theme-foundation-section.js";
 import { installDataContractsSection } from "./data-contracts-section.js";
 import { installEnergyCalculationsSection } from "./energy-calculations-section.js";
 import { installEnergyServicesSection } from "./energy-services-section.js";
@@ -631,6 +632,7 @@ export function installSectionRuntime() {
     // Language first: every section below reads its copy while it renders, so
     // the locale has to be settled before the first of them runs.
     installI18nSection();
+    installThemeFoundationSection();
     installHostedBridgeGuard();
     installLegacySections();
     installDataContractsSection();
@@ -741,6 +743,7 @@ export function installSectionRuntime() {
         "lights-scene",
         "alerts",
         "flood-alerts",
+        "theme-foundation",
         "security-showcase",
         "climate-thermal",
         "live-ui",

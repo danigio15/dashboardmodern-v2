@@ -404,8 +404,12 @@ export default Object.freeze({
   "Energy today": "आज की ऊर्जा",
   "Enter a label.": "एक लेबल लिखें।",
   "Enter a load name": "लोड का नाम लिखें",
-  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "एक नाम और शटर, पर्दा या शामियाना में से कम से कम एक cover.* एंटिटी दर्ज करें।",
-  "Every filled box must be a cover.* entity.": "भरा हुआ हर बॉक्स एक cover.* एंटिटी होना चाहिए।",
+  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.":
+    "एक नाम और शटर, पर्दा, शामियाना में से कम से कम एक cover.* या switch.* एंटिटी दर्ज करें.",
+  "Every filled box must be a cover.* or switch.* entity.":
+    "हर भरा हुआ खाना cover.* या switch.* एंटिटी होना चाहिए.",
+  "The same entity is written in more than one box: that is one cover. To get multiple sliders on one window, use different cover entities (shutter, curtain, awning).":
+    "एक ही एंटिटी कई खानों में लिखी है: वह एक ही कवर है. एक ही खिड़की पर कई स्लाइडर पाने के लिए अलग-अलग cover एंटिटी चाहिए (शटर, पर्दा, शामियाना).",
   "Enter a name and a valid entity.": "नाम और एक वैध इकाई लिखें।",
   "Enter a name.": "नाम लिखें।",
   "ENTER PIN": "पिन दर्ज करें",
@@ -1060,6 +1064,7 @@ export default Object.freeze({
   "Updating Recorder data…": "Recorder डेटा अपडेट हो रहा है…",
   "Updating...": "अपडेट हो रहा है...",
   "Upload failed (${clean(error?.message)}).": "अपलोड विफल (${clean(error?.message)})।",
+  "the photo exceeds 10 MB": "फ़ोटो 10 MB से बड़ी है",
   "Uploading the photo…": "तस्वीर अपलोड हो रही है…",
   "Uptime": "चालू रहने का समय",
   "use the total kWh meter through Recorder": "Recorder के ज़रिए कुल kWh मीटर उपयोग करता है",

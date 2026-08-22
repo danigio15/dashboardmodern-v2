@@ -684,7 +684,12 @@ installStyle("dm-beta12-room-color-lock-style", `
   html[data-dm-ios-kiosk="true"],html[data-dm-ios-kiosk="true"] body{
     width:100%!important;min-width:0!important;height:var(--dm-ios-kiosk-height,100dvh)!important;
     min-height:var(--dm-ios-kiosk-height,100dvh)!important;max-height:none!important;margin:0!important;
-    overflow-x:hidden!important;overscroll-behavior:none!important;background:var(--primary-background-color,#f8fafc)!important
+    overflow-x:hidden!important;overscroll-behavior:none!important;
+    /* Il fondo segue il tema della PLANCIA: --primary-background-color e' del
+     * tema di Home Assistant e dentro questo documento non esiste mai, quindi
+     * vinceva sempre il ripiego chiaro — anche col tema scuro attivo. E' il
+     * fondo bianco sotto le card scure degli screenshot. */
+    background:var(--bg-sculpted,var(--primary-background-color,#f8fafc))!important
   }
   html[data-dm-ios-kiosk="true"] body{
     box-sizing:border-box!important;padding-top:max(env(safe-area-inset-top),0px)!important;
