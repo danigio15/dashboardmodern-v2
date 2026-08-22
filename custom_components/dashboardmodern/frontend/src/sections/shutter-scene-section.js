@@ -138,9 +138,19 @@ function signature(views) {
     .join("|");
 }
 
+/* La pastiglia dice quello che si vede.
+ *
+ * Diceva lo stato che manda Home Assistant, mentre il disegno e il conteggio in
+ * cima partono dalla posizione. Le due cose non sempre coincidono: certe
+ * coperture restano su `open` anche a zero per cento, e allora il riquadro
+ * diceva «1 chiusa» e la card accanto «Aperta» sulla stessa tapparella, con la
+ * finestra disegnata tutta coperta. Dove una posizione c'e', comanda lei: e'
+ * quella che si sta guardando.
+ */
 function statusLabel(view) {
   if (view.status === "opening") return t("In apertura", "Opening");
   if (view.status === "closing") return t("In chiusura", "Closing");
+  if (view.hasPosition) return view.position > 0 ? t("Aperta", "Open") : t("Chiusa", "Closed");
   if (view.status === "open") return t("Aperta", "Open");
   if (view.status === "closed") return t("Chiusa", "Closed");
   return t("Sconosciuta", "Unknown");

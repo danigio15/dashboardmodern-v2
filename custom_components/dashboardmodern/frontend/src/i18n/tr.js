@@ -404,7 +404,7 @@ export default Object.freeze({
   "Energy today": "Bugünkü enerji",
   "Enter a label.": "Bir etiket yaz.",
   "Enter a load name": "Yükün adını yaz",
-  "Enter a name and a valid cover.* entity.": "Bir ad ve geçerli bir cover.* varlığı yaz.",
+  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "Bir ad ve panjur, perde ya da tente arasından en az bir cover.* varlığı gir.",
   "Enter a name and a valid entity.": "Bir ad ve geçerli bir varlık yaz.",
   "Enter a name.": "Bir ad yaz.",
   "ENTER PIN": "PIN GİR",

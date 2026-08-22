@@ -404,7 +404,7 @@ export default Object.freeze({
   "Energy today": "今日の電力量",
   "Enter a label.": "ラベルを入力してください。",
   "Enter a load name": "負荷の名前を入力してください",
-  "Enter a name and a valid cover.* entity.": "名前と有効な cover.* エンティティを入力してください。",
+  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "名前と、シャッター・カーテン・オーニングのうち少なくとも 1 つの cover.* エンティティを入力してください。",
   "Enter a name and a valid entity.": "名前と有効なエンティティを入力してください。",
   "Enter a name.": "名前を入力してください。",
   "ENTER PIN": "暗証番号を入力",

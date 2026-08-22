@@ -304,8 +304,18 @@ function openShutterEditor(item, index) {
       // qui vorrebbe dire cambiare il disegno a chi aveva gia' scelto, senza
       // che abbia toccato niente.
     };
-    if (!list[index].name || !/^cover\./i.test(list[index].entity)) {
-      form.querySelector("[data-error]").textContent = t("Inserisci un nome e un'entità cover.* valida.", "Enter a name and a valid cover.* entity.");
+    /* Basta una delle tre.
+     *
+     * Si pretendeva la casella della tapparella, ma un infisso puo' avere solo
+     * la tenda — ed e' proprio quello che la scheda invita a fare due righe
+     * sopra. Chi ha una tenda e basta si vedeva rifiutare il salvataggio senza
+     * capire quale casella mancasse. */
+    const coperture = [list[index].entity, list[index].tenda, list[index].tendaSole];
+    if (!list[index].name || !coperture.some((valore) => /^cover\./i.test(clean(valore)))) {
+      form.querySelector("[data-error]").textContent = t(
+        "Inserisci un nome e almeno una entità cover.* fra tapparella, tenda e tenda da sole.",
+        "Enter a name and at least one cover.* entity among shutter, curtain and awning.",
+      );
       return;
     }
     persist("shutter", list);

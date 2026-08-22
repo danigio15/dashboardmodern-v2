@@ -554,7 +554,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Inserisci il nome della stanza.": "Enter the room name.",
   "Inserisci il nome.": "Enter a name.",
   "INSERISCI PIN": "ENTER PIN",
-  "Inserisci un nome e un'entità cover.* valida.": "Enter a name and a valid cover.* entity.",
+  "Inserisci un nome e almeno una entità cover.* fra tapparella, tenda e tenda da sole.": "Enter a name and at least one cover.* entity among shutter, curtain and awning.",
   "Inserisci un nome e un'entità valida.": "Enter a name and a valid entity.",
   "Inserisci un'etichetta.": "Enter a label.",
   "Interruttore": "Toggle",

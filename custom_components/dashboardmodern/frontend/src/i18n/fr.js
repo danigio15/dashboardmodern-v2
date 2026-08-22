@@ -404,7 +404,7 @@ export default Object.freeze({
   "Energy today": "Énergie aujourd'hui",
   "Enter a label.": "Saisis un libellé.",
   "Enter a load name": "Saisis le nom de la charge",
-  "Enter a name and a valid cover.* entity.": "Saisis un nom et une entité cover.* valide.",
+  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "Saisis un nom et au moins une entité cover.* parmi volet, rideau et store.",
   "Enter a name and a valid entity.": "Saisis un nom et une entité valide.",
   "Enter a name.": "Saisis un nom.",
   "ENTER PIN": "SAISIS LE CODE PIN",

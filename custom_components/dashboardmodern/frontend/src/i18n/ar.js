@@ -404,7 +404,7 @@ export default Object.freeze({
   "Energy today": "طاقة اليوم",
   "Enter a label.": "اكتب تسمية.",
   "Enter a load name": "اكتب اسم الحِمل",
-  "Enter a name and a valid cover.* entity.": "اكتب اسمًا وكيان cover.* صالحًا.",
+  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "أدخل اسمًا وكيان cover.* واحدًا على الأقل من بين الستارة المعدنية والستارة والمظلة.",
   "Enter a name and a valid entity.": "اكتب اسمًا وكيانًا صالحًا.",
   "Enter a name.": "اكتب اسمًا.",
   "ENTER PIN": "أدخل رمز PIN",

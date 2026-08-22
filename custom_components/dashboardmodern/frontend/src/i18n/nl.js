@@ -404,7 +404,7 @@ export default Object.freeze({
   "Energy today": "Energie vandaag",
   "Enter a label.": "Vul een label in.",
   "Enter a load name": "Vul de naam van de verbruiker in",
-  "Enter a name and a valid cover.* entity.": "Vul een naam en een geldige cover.*-entiteit in.",
+  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "Vul een naam in en minstens één cover.*-entiteit: rolluik, gordijn of zonnescherm.",
   "Enter a name and a valid entity.": "Vul een naam en een geldige entiteit in.",
   "Enter a name.": "Vul een naam in.",
   "ENTER PIN": "VOER DE PINCODE IN",

@@ -191,9 +191,27 @@ function installStyles() {
       /* Il quadratino dell'icona restava vuoto: il pulsante di anteprima azzera
          il corpo del testo per far posto a un'immagine, ma qui l'icona e' un
          carattere, e a corpo zero non si vede. */
+      /* E il vestito sta qui, dove quel bottone e' gia' di casa.
+       *
+       * Il filo del tema glielo dava una regola generale su .dm-icon-picker,
+       * che vale (0,1,0); questa riga, che lo governa gia' per il resto, vale
+       * (1,1,1) perche' parte dall'identificativo dell'editor. Finche' il bordo lo diceva
+       * solo quella generale, bastava un'altra regola con un cancelletto davanti — o un
+       * ordine di caricamento diverso — perche' il quadratino tornasse a
+       * portare il bordo di serie del browser: due pixel in rilievo che non
+       * sono di nessun tema, accanto a pulsanti che il filo chiaro ce l'hanno.
+       * Detto dove il bottone e' gia' descritto, non c'e' piu' niente che possa
+       * arrivare prima. */
       #editor-modal .dm-report-icon button{
         display:grid!important;place-items:center!important;
+        border:1px solid var(--divider-color,#dbe4ee)!important;
+        border-radius:12px!important;
+        background:var(--secondary-background-color,#eef2f7)!important;
         font-size:22px!important;line-height:1!important;color:var(--text,#0f172a)!important}
+      #editor-modal[data-dm-editor-theme="dark"] .dm-report-icon button{
+        border-color:var(--dm-editor-border,#31405f)!important;
+        background:var(--dm-editor-shell,#161f36)!important;
+        color:var(--dm-editor-text,#edf4ff)!important}
       /* La riga ha gia' la sua etichetta con la matita e, in fondo, il pulsante
          che apre la voce per intero. La card dei campi entita' ci metteva una
          cornice dentro la cornice e una seconda matita a capo, e la riga

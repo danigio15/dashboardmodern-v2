@@ -404,7 +404,7 @@ export default Object.freeze({
   "Energy today": "आज की ऊर्जा",
   "Enter a label.": "एक लेबल लिखें।",
   "Enter a load name": "लोड का नाम लिखें",
-  "Enter a name and a valid cover.* entity.": "नाम और एक वैध cover.* इकाई लिखें।",
+  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "एक नाम और शटर, पर्दा या शामियाना में से कम से कम एक cover.* एंटिटी दर्ज करें।",
   "Enter a name and a valid entity.": "नाम और एक वैध इकाई लिखें।",
   "Enter a name.": "नाम लिखें।",
   "ENTER PIN": "पिन दर्ज करें",

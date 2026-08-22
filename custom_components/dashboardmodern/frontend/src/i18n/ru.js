@@ -404,7 +404,7 @@ export default Object.freeze({
   "Energy today": "Энергия за сегодня",
   "Enter a label.": "Введите подпись.",
   "Enter a load name": "Введите название нагрузки",
-  "Enter a name and a valid cover.* entity.": "Введите имя и корректную сущность cover.*.",
+  "Enter a name and at least one cover.* entity among shutter, curtain and awning.": "Укажите название и хотя бы одну сущность cover.*: рольставни, штора или маркиза.",
   "Enter a name and a valid entity.": "Введите имя и корректную сущность.",
   "Enter a name.": "Введите имя.",
   "ENTER PIN": "ВВЕДИТЕ PIN",

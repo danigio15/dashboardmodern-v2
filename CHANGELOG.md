@@ -7,6 +7,31 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
 
+## 1.1.5
+
+### Corretto
+
+- **Una finestra con la sola tenda non si poteva aggiungere.** La scheda dice
+  «su una finestra ci stanno tutte e tre: compila le caselle che hai», e poi
+  premendo «Aggiungi tapparella» usciva «Inserisci una entità cover valida»: il
+  runtime guarda la sua casella, quella della tapparella, e di tenda e tenda da
+  sole non sa niente. La riga la scriveva comunque il giro successivo, quindi si
+  finiva con un errore in faccia _e_ la riga creata lo stesso — il modo peggiore
+  di dire che ha funzionato. Lo stesso rifiuto arrivava dalla finestra della
+  matita, che pretendeva la casella della tapparella per salvare.
+
+- **Il riquadro diceva «1 chiusa» e la card accanto «Aperta».** Sulla stessa
+  tapparella, con la finestra disegnata tutta coperta. Il conteggio e il disegno
+  partono dalla posizione, la pastiglia diceva invece lo stato che manda Home
+  Assistant — e certe coperture restano su «aperta» anche a zero per cento.
+  Dove una posizione c'è, comanda lei: è quella che si sta guardando.
+
+- **Il quadratino dell'icona nel Report tornava a vestirsi da solo.** Il filo
+  chiaro del tema glielo dava una regola generale, mentre quel bottone è già
+  governato da una regola più forte che il bordo non lo nominava: bastava un
+  ordine di caricamento diverso perché tornasse quello di serie del browser.
+  Adesso il vestito è scritto dove il bottone è già descritto.
+
 ## 1.1.4
 
 ### Corretto

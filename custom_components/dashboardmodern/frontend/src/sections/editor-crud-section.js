@@ -345,7 +345,31 @@ function installAddWrappers() {
      * significava non poterlo aggiungere affatto. */
     const qualcosa = entity || Object.values(extra).some(Boolean);
     if (!qualcosa) return null;
+    /* Un infisso senza tapparella non e' un errore.
+     *
+     * La scheda dice «su una finestra ci stanno tutte e tre: compila le caselle
+     * che hai», e poi il runtime — che di quelle caselle non sa niente — si
+     * ferma su «Inserisci una entita' cover valida» perche' la sua e' vuota.
+     * La riga la scrivevamo comunque noi un istante dopo, quindi si finiva con
+     * un errore in faccia e la riga creata lo stesso: il modo peggiore di dire
+     * che ha funzionato.
+     *
+     * Il rifiuto si zittisce solo quando sappiamo di poterlo smentire, cioe'
+     * quando un'altra casella e' compilata, e solo per la durata di quella
+     * chiamata. */
+    const zittire = !entity;
+    const avviso = zittire ? root.alert : null;
+    if (zittire) {
+      try {
+        root.alert = () => {};
+      } catch (_error) {}
+    }
     return () => {
+      if (zittire) {
+        try {
+          root.alert = avviso;
+        } catch (_error) {}
+      }
       const list = listFor("shutter");
       let index = -1;
       list.forEach((item, position) => {
