@@ -640,7 +640,7 @@ function installStyles() {
     html body #page-tapparelle#page-tapparelle .dm-tapp-bar>.tapp-pos{flex:0 0 auto!important;align-self:center!important}
     /* Con piu' coperture ogni barra dice di chi e': l'etichetta prende una
      * colonna fissa cosi' i tre cursori restano incolonnati. */
-    html body #page-tapparelle#page-tapparelle .dm-tapp-bar-label{flex:0 0 92px!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:11px!important;font-weight:800!important;letter-spacing:.4px!important;text-transform:uppercase!important;color:var(--tapp-dim)!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-bar-label{flex:0 0 108px!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:10.5px!important;font-weight:800!important;letter-spacing:.3px!important;text-transform:uppercase!important;color:var(--tapp-dim)!important}
     html body #page-tapparelle#page-tapparelle [data-dm-covers] .dm-tapp-bar+.dm-tapp-bar{margin-top:6px!important}
     /* I teli convivono nella stessa finestra: lo strato e' trasparente al
      * layout, il CSS dei pannelli continua a vederli figli della finestra. */
