@@ -26,6 +26,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   Assistant — e certe coperture restano su «aperta» anche a zero per cento.
   Dove una posizione c'è, comanda lei: è quella che si sta guardando.
 
+- **Una marca fuori dal catalogo prendeva il marchio di un'altra casa.** Il
+  ripiego era Leapmotor: chi scriveva una marca che il catalogo non conosce si
+  ritrovava addosso quel logo, senza che niente glielo dicesse. Non è un
+  dettaglio estetico — è la plancia che afferma una cosa falsa sulla macchina di
+  qualcuno. Adesso, quando non sa, mostra le iniziali di quello che è stato
+  scritto.
+
 - **Il quadratino dell'icona nel Report tornava a vestirsi da solo.** Il filo
   chiaro del tema glielo dava una regola generale, mentre quel bottone è già
   governato da una regola più forte che il bordo non lo nominava: bastava un

@@ -16,6 +16,18 @@ test("vehicle brand selector offers a broad local catalog", () => {
   assert.equal(brandMatch("Leapmotor")?.name, "Leapmotor");
   assert.equal(brandMatch("Mercedes-Benz")?.name, "Mercedes-Benz");
   assert.match(carBrandVisual("BMW", 40), /dm-car-brand/);
+  /* Una marca che non conosciamo non e' una marca che conosciamo.
+   *
+   * Il ripiego era Leapmotor: chi scriveva una marca fuori dal catalogo si
+   * ritrovava addosso il marchio di un'altra casa, senza che niente glielo
+   * dicesse — la plancia affermava una cosa falsa sulla macchina di qualcuno.
+   * Adesso dice le iniziali di quello che e' stato scritto. */
+  const sconosciuta = carBrandVisual("Marca Inventata", 40);
+  assert.match(sconosciuta, /data-brand-source="unknown"/);
+  assert.doesNotMatch(sconosciuta, /leapmotor/i, "il marchio di un'altra casa");
+  assert.match(sconosciuta, />MA</, "le iniziali di quello che e' stato scritto");
+  // E una marca conosciuta resta la sua.
+  assert.match(carBrandVisual("Leapmotor", 40), /leapmotor/i);
 });
 
 test("every legacy appliance family has custom SVG artwork", () => {
