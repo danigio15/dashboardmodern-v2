@@ -29,6 +29,7 @@ import {
   readJson,
   root,
   t,
+  wrapFunction,
   writeJsonIfChanged,
 } from "./shared.js";
 
@@ -357,6 +358,11 @@ export function installFloodAlertsSection() {
   if (!doc || state.installed) return false;
   state.installed = true;
   installStyles();
+  /* Chi ridisegna il pannello e' `editorSwitch`, e ridisegnandolo si porta via
+   * la nostra fisarmonica: e' lui che va aspettato, non un evento qualsiasi che
+   * passi di li' per caso. E' la stessa maniglia a cui si tiene la sezione
+   * degli avvisi, che ha lo stesso problema da prima di noi. */
+  wrapFunction("editorSwitch", "__dmFloodAlerts", refreshFloodAlerts);
   refreshFloodAlerts();
   for (const eventName of [
     "dashboardmodern:legacy-ready",
