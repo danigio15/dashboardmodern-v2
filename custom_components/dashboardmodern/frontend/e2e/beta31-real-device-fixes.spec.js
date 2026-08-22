@@ -51,6 +51,16 @@ const seed = {
   visibility: { home: true, security: true, tapparelle: true, ev: true },
 };
 
+/* Il dock a scomparsa non e' piu' come parte la plancia: adesso la barra sta
+ * ferma, e a scomparsa ci va chi lo sceglie. Le due prove qui sotto guardano
+ * proprio il dock, quindi la scelta la fanno loro prima di aprire. */
+async function scegliIlDock(page) {
+  await page.addInitScript(() => {
+    const chiave = `cd_${new URLSearchParams(location.search).get("dmi")}_cd_navbar_mode`;
+    Storage.prototype.setItem.call(window.localStorage, chiave, "auto");
+  });
+}
+
 async function boot(page, testInfo) {
   await page.route("**/api/camera_proxy/**", (route) =>
     route.fulfill({
@@ -130,6 +140,7 @@ test.describe("beta31", () => {
     // The dock is the touch navigation: on a pointer viewport there is no bar
     // to close, and the sidebar takes its place.
     test.skip(!testInfo.project.use.hasTouch, "touch navigation only");
+    await scegliIlDock(page);
     await boot(page, testInfo);
     await openPage(page, "security");
     // The section modules install after the legacy runtime announces itself.
@@ -153,6 +164,7 @@ test.describe("beta31", () => {
 
   test("the handle still opens the dock, and opens it once", async ({ page }, testInfo) => {
     test.skip(!testInfo.project.use.hasTouch, "touch navigation only");
+    await scegliIlDock(page);
     await boot(page, testInfo);
     await page.waitForFunction(() => Boolean(window.__DASHBOARDMODERN_NAVIGATION_SECTION__));
     const handle = page.locator("#bottomNavHandle");

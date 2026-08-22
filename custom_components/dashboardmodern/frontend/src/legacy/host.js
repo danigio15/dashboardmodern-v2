@@ -18,9 +18,17 @@ export const LEGACY_FRAME_PERMISSIONS =
 export const LEGACY_VARIANTS = Object.freeze({ it: "dashboard.html", en: "dashboard-en.html" });
 
 /*
- * Only two shells are vendored, Italian and English. Every other language is
- * served the English one and translated inside it by the i18n DOM pass, so the
- * shell is a starting point rather than the language of the dashboard.
+ * Which of the two vendored shells to serve, from the profile language.
+ *
+ * Only two exist, Italian and English, and the rule holds for the languages
+ * they do not cover: `it` and `it-*` get the Italian one, everything else gets
+ * the English one. A French, German or Spanish profile would understand Italian
+ * no better than English, and English is at least the language people expect
+ * when their own is missing. Every locale in the registry names its own shell,
+ * so the fallback is written down rather than inferred.
+ *
+ * The shell is only a starting point: for any language but those two, the i18n
+ * DOM pass translates it from the inside.
  */
 export function legacyVariantForLocale(locale) {
   /* Resolved explicitly: an absent locale means "no preference", which is the
@@ -295,6 +303,12 @@ export function mountLegacyHost(
     reboot,
     destroy() {
       hostWindow.removeEventListener?.("message", onChildMessage);
+      // La plancia scrive anche nel documento di Home Assistant — lo scorrimento
+      // bloccato, il velo a tutto schermo del modo chiosco. Se ne va prima che
+      // la cornice sparisca, altrimenti resta addosso alle altre plance.
+      try {
+        frame.contentWindow?.dmReleaseOwnerDocument?.();
+      } catch (_error) {}
       frame.remove();
       delete hostWindow[HOST_KEY];
       delete hostWindow.__DASHBOARDMODERN_INSTANCE__;

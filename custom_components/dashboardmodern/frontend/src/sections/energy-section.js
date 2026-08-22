@@ -29,6 +29,7 @@ import {
   sanitizeHostedCredentials,
   waitForHostedBridge,
 } from "../transport/hosted-bridge-guard.js";
+import { persistEnergyField as writeEnergyField } from "../core/energy-writer.js";
 import { runtimeMetrics } from "../core/runtime-metrics.js";
 import { BUILD_INFO } from "../../legacy/build-info.js";
 
@@ -790,26 +791,16 @@ function createTotalField(definition, value) {
   return { wrap, input };
 }
 
-/* Un campo alla volta, in fila.
+/* Un campo alla volta, in fila, nella stessa coda di tutti gli altri.
  *
  * Ogni scrittura legge il modello, ci mette dentro il suo campo e lo riscrive
  * per intero. Due campi cambiati a poca distanza — cosa che succede appena si
  * compila la maschera scendendo — leggevano tutti e due lo stesso modello di
- * partenza, e l'ultimo a scrivere riportava indietro il campo dell'altro. In
- * fila ognuno parte da cio' che ha lasciato quello prima. */
-async function persistEnergyField(group, key, value) {
-  const write = async () => {
-    const store = dashboardStore();
-    if (!store?.getSection || !store?.replaceSection) return;
-    const model = structuredClone(store.getSection("energy") || {});
-    model[group] ||= {};
-    model[group][key] = clean(value);
-    model.metadata = { ...(model.metadata || {}), semantics_version: 3 };
-    await store.replaceSection("energy", model);
-  };
-  state.fieldQueue = (state.fieldQueue || Promise.resolve()).then(write, write);
-  return state.fieldQueue;
-}
+ * partenza, e l'ultimo a scrivere riportava indietro il campo dell'altro. La
+ * coda vive in `energy-writer.js` perche' anche la maschera stampata dal
+ * programma passa di li': due code separate sarebbero di nuovo due padroni. */
+const persistEnergyField = (group, key, value) =>
+  writeEnergyField(dashboardStore(), group, key, value);
 
 function entityField(label, key, value, placeholder) {
   const wrap = doc.createElement("label");
@@ -1023,6 +1014,25 @@ function installStyles() {
       .dm-energy-help-compact{display:grid;gap:4px;margin:0 0 14px;padding:12px 14px;border:1px solid var(--divider-color,rgba(15,23,42,.12));border-radius:14px;background:var(--secondary-background-color,rgba(14,165,233,.08));color:var(--text,#0f172a);font-size:13px;line-height:1.45}
       .dm-energy-help-compact strong{font-size:14px}
       .dm-energy-total-note{display:block;margin-top:6px;color:var(--secondary-text-color,#64748b);font-size:11px;line-height:1.35}
+      .dm-energy-signed{margin:0 0 14px;padding:12px 14px;border:1px solid var(--divider-color,rgba(15,23,42,.14));border-radius:14px;background:color-mix(in srgb,var(--secondary-background-color,#f1f5f9) 70%,transparent)}
+      .dm-energy-signed-head{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
+      .dm-energy-signed-head input{margin-top:3px;flex:0 0 auto;width:17px;height:17px}
+      .dm-energy-signed-head span{display:grid;gap:2px}
+      .dm-energy-signed-head strong{font-size:13.5px}
+      .dm-energy-signed-head small{color:var(--secondary-text-color,#64748b);font-size:11.5px;line-height:1.35}
+      .dm-energy-signed-body{display:grid;gap:10px;margin-top:12px}
+      .dm-energy-signed-body[hidden]{display:none!important}
+      .dm-energy-signed-hint{margin:0;font-size:11.5px;line-height:1.4}
+      .dm-energy-signed-direction{display:grid;gap:6px}
+      .dm-energy-signed-option{display:flex;align-items:center;gap:8px;font-size:12.5px}
+      .dm-energy-signed-option input{width:16px;height:16px}
+      .dm-energy-signed-note{display:block;margin-top:4px;color:var(--secondary-text-color,#64748b);font-size:11px;line-height:1.35}
+      .ed-slot[data-dm-energy-signed-managed],.ed-slot[data-energy-signed-managed]{opacity:.62}
+      .ed-slot[data-energy-signed-managed] input{pointer-events:none}
+      .ed-slot[data-energy-signed-managed] .dm-entity-picker{display:none!important}
+      #editor-modal[data-dm-editor-theme="dark"] .dm-energy-signed{background:var(--dm-editor-panel,#1b2540);border-color:var(--dm-editor-border,#263453);color:var(--dm-editor-text,#e6edf7)}
+      #editor-modal[data-dm-editor-theme="dark"] .dm-energy-signed-head small,
+      #editor-modal[data-dm-editor-theme="dark"] .dm-energy-signed-note{color:var(--dm-editor-muted,#92a4c2)}
       #editor-modal[data-dm-editor-theme="dark"] .dm-energy-help-compact{background:var(--dm-editor-panel,#1b2540);border-color:var(--dm-editor-border,#263453);color:var(--dm-editor-text,#e6edf7)}
       #editor-modal[data-dm-editor-theme="dark"] .dm-energy-total-note{color:var(--dm-editor-muted,#92a4c2)}
     `,
@@ -1067,6 +1077,12 @@ function bindEvents() {
     installObserver();
     installEnergyEditorContracts();
     scheduleEnergyRefresh(true);
+  });
+  /* La maschera Energia si ridisegna anche da sola — dichiarare una sorgente
+   * unica con segno spegne le caselle dei due versi — e i campi aggiunti qui
+   * vanno rimessi sul nuovo albero. */
+  root.addEventListener?.("dashboardmodern:energy-editor-rendered", () => {
+    installEnergyEditorContracts();
   });
   root.addEventListener?.("pageshow", () => {
     installWrappers();

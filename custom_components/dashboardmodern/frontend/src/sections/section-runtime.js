@@ -8,6 +8,7 @@ import { installDataContractsSection } from "./data-contracts-section.js";
 import { installEnergyCalculationsSection } from "./energy-calculations-section.js";
 import { installEnergyServicesSection } from "./energy-services-section.js";
 import { installEnergySection } from "./energy-section.js";
+import { installEnergySignedSection } from "./energy-signed-section.js";
 import { installEnergyRefreshSection } from "./energy-refresh-section.js";
 import { installEnergyLegacyGuardSection } from "./energy-legacy-guard-section.js";
 import { installEnergyStabilitySection } from "./energy-stability-section.js";
@@ -42,10 +43,17 @@ import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
 import { installPageMastheadSection } from "./page-masthead-section.js";
 import { installShutterSceneSection } from "./shutter-scene-section.js";
+import { installClimatePowerSection } from "./climate-power-section.js";
 import { installShutterSkySection } from "./shutter-sky-section.js";
 import { installShutterWindowSection } from "./shutter-window-section.js";
 import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-section.js";
+import { installPoolExtraSection } from "./pool-extra-section.js";
+import { installPoolEditorSection } from "./pool-editor-section.js";
+import { installRobotSection } from "./robot-section.js";
+import { installRobotEditorSection } from "./robot-editor-section.js";
+import { installEditorEntrySection } from "./editor-entry-section.js";
 import { installEvSection } from "./ev-section.js";
+import { installMediaPickerSection } from "./media-picker-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
 import { installEditorSlotsSection } from "./editor-slots-section.js";
 import { installConfigUniformitySection } from "./config-uniformity-section.js";
@@ -627,6 +635,7 @@ export function installSectionRuntime() {
     installDataContractsSection();
     installEnergyCalculationsSection();
     installEnergyServicesSection();
+    installEnergySignedSection();
     installEnergySection();
     installEnergyRefreshSection();
     installStateEventGate(root.DashboardModernEnergyService?.broker, root);
@@ -680,9 +689,16 @@ export function installSectionRuntime() {
     installShutterWindowSection();
     // Il cielo si installa dopo chi disegna la finestra: ridefinisce solo le
     // variabili del fondo, e le trova gia' al loro posto.
+    installClimatePowerSection();
     installShutterSkySection();
     installPageMastheadSection();
     installPoolIrrigationSceneSection();
+    installPoolExtraSection();
+    installPoolEditorSection();
+    installRobotSection();
+    installRobotEditorSection();
+    installEditorEntrySection();
+    installMediaPickerSection();
     installEvSection();
     // The skin installs after the EV owner so the vehicle picker it restyles is
     // already mounted, and re-renders itself on the same runtime events.
@@ -701,6 +717,7 @@ export function installSectionRuntime() {
         ...LEGACY_SECTION_KEYS,
         "energy-calculations",
         "energy-services",
+        "energy-signed",
         "energy",
         "energy-refresh",
         "state-event-gate",
@@ -732,6 +749,12 @@ export function installSectionRuntime() {
         "report-editor",
         "shutters",
         "pool-irrigation-scene",
+        "pool-extra",
+        "pool-editor",
+        "robot",
+        "robot-editor",
+        "editor-entry",
+        "media-picker",
         "ev",
         "ev-showcase",
         "solar-thermal-design",

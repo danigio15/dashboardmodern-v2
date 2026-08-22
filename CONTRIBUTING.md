@@ -73,6 +73,11 @@ fix/storage-migration-error
 test/config-flow-coverage
 ```
 
+These prefixes are enforced by the `branch-creation-policy` repository ruleset:
+pushing a branch with any other name is rejected. See
+[docs/REPOSITORY_PROTECTION.md](docs/REPOSITORY_PROTECTION.md) for the ruleset
+definitions and how they are applied.
+
 ## Commit Conventions
 
 Use concise, imperative commit messages.
@@ -109,6 +114,19 @@ Commit guidelines:
 - Avoid unrelated changes in the same commit.
 - Explain non-obvious design decisions in the commit body.
 - Do not commit generated artifacts unless they are required for distribution.
+
+## Licensing of Contributions
+
+This project is proprietary source-available software; see [`LICENSE`](LICENSE).
+Forking the repository is permitted only as the technical step needed to open a
+pull request, and the fork should be deleted once the pull request is merged or
+closed. Publishing a fork as an independent copy of the project is not allowed.
+
+By submitting a pull request you grant the owner a perpetual, worldwide,
+irrevocable, royalty-free and sublicensable license to use, modify, publish and
+distribute your contribution as part of the project, under the project license
+or any other license the owner chooses, and you confirm that you have the right
+to grant it.
 
 ## Pull Request Requirements
 

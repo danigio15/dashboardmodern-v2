@@ -30,6 +30,7 @@ export function canonicalClimateType(value) {
  */
 import { pick } from "./i18n.js";
 import { contactEntity } from "./shutter-window.js";
+import { declaredCoverKind } from "./cover-kind.js";
 
 export const APPLIANCE_CATALOG = Object.freeze([
   { key: "lavatrice", it: "Lavatrice", en: "Washing machine" },
@@ -336,6 +337,10 @@ export function normalizeDevice(input = {}, section, context = {}) {
   if (section === "covers") {
     const contact = contactEntity(input);
     if (contact) base.contact = contact;
+    // Tapparella o tenda: senza dichiararlo qui il tipo scelto sparirebbe alla
+    // prima normalizzazione, come era gia' successo al contatto dell'infisso.
+    const kind = declaredCoverKind(input);
+    if (kind) base.kind = kind;
   }
   if (input.threshold_run != null) base.metadata.threshold_run = +input.threshold_run;
   if (input.threshold_standby != null) base.metadata.threshold_standby = +input.threshold_standby;

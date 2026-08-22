@@ -75,8 +75,19 @@ test("the language variant follows the Home Assistant locale", () => {
   assert.equal(legacyVariantForLocale("it-IT"), "dashboard.html");
   assert.equal(legacyVariantForLocale("en-GB"), "dashboard-en.html");
   assert.equal(legacyVariantForLocale(undefined), "dashboard-en.html");
-  /* Only two shells are vendored. Everything else is served the English one and
-   * translated inside it, so the shell is a starting point, not the language. */
+  /* Segnalazione #178: un profilo in francese si ritrovava — a suo dire — la
+   * plancia in italiano. Le lingue che non parliamo prendono l'inglese: non lo
+   * capiscono piu' dell'italiano, ma e' quello che ci si aspetta quando la
+   * propria lingua non c'e'. */
+  for (const lingua of ["fr", "fr-FR", "de", "de-AT", "es", "es-419", "pt-BR", "nl", "sv"]) {
+    assert.equal(legacyVariantForLocale(lingua), "dashboard-en.html", lingua);
+  }
+  // E l'italiano resta italiano, senza farsi rubare il posto da una lingua che
+  // comincia per "it" senza esserlo.
+  assert.equal(legacyVariantForLocale("it-CH"), "dashboard.html");
+  assert.equal(legacyVariantForLocale("ita"), "dashboard-en.html");
+  /* A language we now translate still starts from the English shell: it is a
+   * starting point, translated from the inside, not the language itself. */
   assert.equal(legacyVariantForLocale("ja"), "dashboard-en.html");
   assert.equal(legacyVariantForLocale("ar-EG"), "dashboard-en.html");
   assert.equal(legacyVariantForLocale("zh-TW"), "dashboard-en.html");
@@ -189,6 +200,34 @@ test("destroying the host removes the frame and the marker", () => {
   host.destroy();
   assert.equal(host.frame.removed, true);
   assert.equal(HOST_KEY in hostWindow, false);
+});
+
+/* La plancia scrive anche nel documento di Home Assistant: lo scorrimento
+ * bloccato e, col modo chiosco, un velo fisso a tutto schermo sopra il
+ * pannello. Home Assistant e' una pagina sola e non si scarica mai quando si
+ * passa a un'altra plancia, quindi quel velo restava addosso alle altre
+ * dashboard e sembrava che il tema fosse sbiancato per sempre. Chi ospita la
+ * cornice sa sempre quando la toglie: deve chiedere di rimettere a posto
+ * prima. */
+test("chi smonta la plancia le fa rimettere a posto il documento di Home Assistant", () => {
+  const { host } = mount();
+  const chiamate = [];
+  host.frame.contentWindow.dmReleaseOwnerDocument = () => {
+    chiamate.push(host.frame.removed === true);
+  };
+  host.destroy();
+  assert.deepEqual(chiamate, [false], "va chiamata, e prima che la cornice sparisca");
+});
+
+test("e se la cornice non risponde piu', si smonta lo stesso", () => {
+  const { host } = mount();
+  Object.defineProperty(host.frame, "contentWindow", {
+    get() {
+      throw new Error("cross origin");
+    },
+  });
+  host.destroy();
+  assert.equal(host.frame.removed, true);
 });
 
 test("the shim completes the handshake without authenticating", async () => {

@@ -243,7 +243,8 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 110 con il cielo della sezione Tapparelle: la fascia del giorno sta in un
   // modulo puro — si prova senza browser — e chi la usa scrive solo un attributo
   // sulla pagina, perche' il disegno del cielo era gia' tutto in variabili.
-  // 114 con la lingua. La plancia parlava due lingue perche' ne esistevano due
+  // 128 con le sezioni della 1.1.0.
+  // 132 con la lingua. La plancia parlava due lingue perche' ne esistevano due
   // copie: il ternario `t(it, en)` in ogni sezione e due build separate del
   // runtime. I quattro moduli qui sono quello che rende la lingua un dato
   // invece di una biforcazione: il motore che risolve locale e cataloghi, la
@@ -251,23 +252,29 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // l'indice che porta quel testo italiano alla sua chiave inglese, e la
   // sezione che accende il tutto prima che qualcuno disegni. I cataloghi delle
   // singole lingue non sono qui: si caricano su richiesta, uno solo per utente.
-  assert.ok(relative.length <= 114, `production graph unexpectedly grew to ${relative.length} modules`);
+  assert.ok(relative.length <= 132, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
-  /* No polling, with one declared exception.
+  /* No polling, with two declared exceptions.
    *
    * A camera thumbnail is a still picture: nothing in Home Assistant pushes a
    * new one and the entity state does not change when the view does, so the
    * only way to keep the wall live is to ask again. That timer is armed by the
-   * Sicurezza page being on screen and disarmed the moment it is not — it is
-   * the one interval production is allowed, and it is named here so a second
-   * one cannot arrive unnoticed. */
+   * Sicurezza page being on screen and disarmed the moment it is not.
+   *
+   * The second counts the filtration seconds of the pools beyond the first —
+   * the ones the vendored runtime does not know exist, and whose pump would
+   * otherwise start and never stop. It follows the same discipline: armed when
+   * one of those pumps starts running, disarmed the moment none is.
+   *
+   * These are the intervals production is allowed, and they are named here so
+   * a third one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
     /setInterval\s*(?:\?\.)?\s*\(/.test(source),
   );
   assert.deepEqual(
     intervals.map(([file]) => path.relative(frontendRoot, file).replaceAll("\\", "/")).sort(),
-    ["src/sections/live-ui-section.js"],
+    ["src/sections/live-ui-section.js", "src/sections/pool-extra-section.js"],
   );
 
   const observers = [...graph.entries()].filter(([, source]) => /new\s+(?:root\.)?MutationObserver\s*\(/.test(source));

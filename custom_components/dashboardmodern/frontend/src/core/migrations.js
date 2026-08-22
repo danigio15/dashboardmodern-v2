@@ -1,5 +1,6 @@
 import { cloneValue, SCHEMA_VERSION, normalizeDevice } from "./device-model.js";
 import { ENERGY_SLOT_MAP } from "./energy-projection.js";
+import { normalizeRobots } from "./robot-model.js";
 
 export const SECTION_KEYS = Object.freeze({
   rooms: "cd_stanze",
@@ -12,6 +13,7 @@ export const SECTION_KEYS = Object.freeze({
   covers: "cd_tapparelle",
   pool: "cd_piscina",
   irrigation: "cd_irrigazione",
+  robots: "cd_robot",
   energy: "cd_energy_model",
   energyLoads: "cd_energy_loads",
   entityOverrides: "cd_entity_overrides",
@@ -80,6 +82,15 @@ export function migrateEv(input = [], rooms = []) {
   return migrateDevices("ev", Array.isArray(input) ? input : input ? [input] : [], rooms);
 }
 
+/* I robot aspirapolvere.
+ *
+ * Sono un elenco come le auto o le telecamere: un oggetto solo — che e' come
+ * nascono quasi tutte le sezioni — vale come elenco di uno, cosi' una
+ * configurazione scritta a mano non si perde. */
+export function migrateRobots(input = []) {
+  return normalizeRobots(input);
+}
+
 export function migratePool(input = {}) {
   return input && !Array.isArray(input) ? cloneValue(input) : {};
 }
@@ -139,6 +150,7 @@ export function normalizeSection(section, input, context = {}) {
     covers: migrateCovers,
     pool: migratePool,
     irrigation: migrateIrrigation,
+    robots: migrateRobots,
     energy: migrateEnergy,
     energyLoads: normalizeEnergyLoads,
     entityOverrides: migrateEntityOverrides,

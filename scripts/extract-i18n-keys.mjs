@@ -10,9 +10,9 @@
  *   - `pick(it, en)` in `src/core` and `legacy/modules-entry.js`, the layers
  *     that take the locale as an argument rather than reading it;
  *   - the `COPY_SOURCE` table in `legacy/modules-entry.js`;
- *   - the `{ it, en }` rows of the room, action, load-icon and appliance
- *     catalogs, which are data rather than call sites but reach the screen as
- *     picker labels and card titles all the same;
+ *   - the `{ it, en }` rows of every table the pure core modules export, which
+ *     are data rather than call sites but reach the screen as picker labels,
+ *     card titles and button captions all the same;
  *   - the `[glyph, it, en, keywords]` rows of the alert-icon table, read by
  *     pattern rather than imported: it lives in a section module that installs
  *     itself on import, and the corpus is not worth a side effect;
@@ -97,26 +97,46 @@ function codePairs() {
 }
 
 /*
- * The bilingual data tables. They are imported rather than parsed: the rows are
- * assembled at module load (LOAD_ICON_CATALOG is derived from ROOM_CATALOG),
- * so only the evaluated module knows the real list.
+ * Pure core modules that carry bilingual data tables. They are imported rather
+ * than parsed, because some tables are assembled at module load — LOAD_ICON_CATALOG
+ * is derived from ROOM_CATALOG — so only the evaluated module knows the real list.
+ * These three read no DOM and register nothing; a section module would install
+ * itself on import, which is why none is listed here.
+ */
+const CATALOG_MODULES = Object.freeze([
+  "src/core/personalization-catalog.js",
+  "src/core/device-model.js",
+  "src/core/robot-model.js",
+]);
+
+/*
+ * Every `{ it, en }` row of every array those modules export.
+ *
+ * Two shapes are recognised: a list of rows carrying `it` and `en`, and an
+ * object whose values are `[italian, english]` pairs. Deliberately not a list of
+ * table names: a release that adds a section usually adds a table with it, and a
+ * corpus that has to be told about each one is a corpus that quietly falls
+ * behind. Anything else is ignored — without both halves it is not a pair.
  */
 async function catalogPairs() {
   const pairs = new Map();
-  const [personalization, deviceModel] = await Promise.all([
-    import(pathToFileURL(join(FRONTEND, "src/core/personalization-catalog.js")).href),
-    import(pathToFileURL(join(FRONTEND, "src/core/device-model.js")).href),
-  ]);
-  const tables = [
-    personalization.ROOM_CATALOG,
-    personalization.ACTION_ICON_CATALOG,
-    personalization.LOAD_ICON_CATALOG,
-    deviceModel.APPLIANCE_CATALOG,
-  ];
-  for (const table of tables) {
-    for (const row of table || []) {
-      if (typeof row?.it === "string" && typeof row?.en === "string" && row.en && !pairs.has(row.en)) {
-        pairs.set(row.en, row.it);
+  const modules = await Promise.all(
+    CATALOG_MODULES.map((path) => import(pathToFileURL(join(FRONTEND, path)).href)),
+  );
+  const add = (italian, english) => {
+    if (typeof italian !== "string" || typeof english !== "string" || !english) return;
+    if (!pairs.has(english)) pairs.set(english, italian);
+  };
+  for (const module of modules) {
+    for (const exported of Object.values(module)) {
+      if (Array.isArray(exported)) {
+        /* A table of rows: `{ it, en, … }`. */
+        for (const row of exported) add(row?.it, row?.en);
+      } else if (exported && typeof exported === "object") {
+        /* A table keyed by state: `{ docked: ["Alla base", "Docked"] }`. */
+        for (const value of Object.values(exported)) {
+          if (Array.isArray(value) && value.length === 2) add(value[0], value[1]);
+        }
       }
     }
   }

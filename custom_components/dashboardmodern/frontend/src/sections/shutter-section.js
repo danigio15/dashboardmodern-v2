@@ -431,6 +431,45 @@ function installStyles() {
     @keyframes dmTappRoll{from{background-position-y:100%}to{background-position-y:calc(100% + 12px)}}
     html body #page-tapparelle#page-tapparelle .tapp-shutter i{animation:none!important;filter:none!important;transform:none!important;flex:0 0 12px!important;height:12px!important;background:none!important;border:0!important}
 
+    /* La tenda.
+     *
+     * Stesso serramento della tapparella — vetro, cornice, luce che entra — e
+     * al posto della fascia che scende due teli che si scostano dal centro.
+     * Quanto e' coperta la finestra e' la stessa cosa; a cambiare e' il verso,
+     * e sta tutto nella variabile --tenda-chiusa, che e' meta' della parte
+     * coperta perche' i teli sono due. I colori sono quelli della scena,
+     * cosi' la tenda segue l'ora del giorno come tutto il resto. */
+    html body #page-tapparelle#page-tapparelle .dm-tenda{position:absolute!important;inset:0!important;z-index:3!important;pointer-events:none!important}
+    html body #page-tapparelle#page-tapparelle .dm-tenda-telo{position:absolute!important;top:0!important;bottom:0!important;width:var(--tenda-chiusa,50%)!important;
+      background:
+        repeating-linear-gradient(90deg,
+          rgba(255,255,255,.55) 0 2px,
+          rgba(255,255,255,0) 2px 7px,
+          rgba(15,23,42,.10) 7px 9px,
+          rgba(255,255,255,0) 9px 14px)!important;
+      background-color:color-mix(in srgb,var(--tapp-slat-base,#e2e8f0) 62%,#fdf6ec)!important;
+      box-shadow:inset 0 10px 16px -12px rgba(255,255,255,.8),0 8px 18px -12px rgba(15,23,42,.55)!important;
+      transition:width .55s cubic-bezier(.2,.8,.2,1)!important}
+    html body #page-tapparelle#page-tapparelle .dm-tenda-telo.dm-sinistra{left:0!important;border-radius:0 10px 10px 0!important}
+    html body #page-tapparelle#page-tapparelle .dm-tenda-telo.dm-destra{right:0!important;border-radius:10px 0 0 10px!important}
+    /* Il bordo interno e' dove la stoffa si raccoglie: una piega piu' fitta, e
+       l'ombra che cade sul vetro accanto. */
+    html body #page-tapparelle#page-tapparelle .dm-tenda-telo::after{content:""!important;position:absolute!important;top:0!important;bottom:0!important;width:14px!important;
+      background:linear-gradient(90deg,rgba(15,23,42,0),rgba(15,23,42,.14) 55%,rgba(15,23,42,.26))!important;border-radius:inherit!important}
+    html body #page-tapparelle#page-tapparelle .dm-tenda-telo.dm-sinistra::after{right:0!important}
+    html body #page-tapparelle#page-tapparelle .dm-tenda-telo.dm-destra::after{left:0!important;transform:scaleX(-1)!important}
+    /* Il mantovana in cima: una fascia sola sopra i due teli, che li tiene. */
+    html body #page-tapparelle#page-tapparelle .dm-tenda::before{content:""!important;position:absolute!important;left:0!important;right:0!important;top:0!important;height:9px!important;z-index:5!important;
+      background:linear-gradient(180deg,color-mix(in srgb,var(--tapp-slat-base,#e2e8f0) 40%,#fdf6ec),color-mix(in srgb,var(--tapp-slat-base,#e2e8f0) 78%,#0f172a))!important;
+      box-shadow:0 2px 5px -2px rgba(15,23,42,.45)!important}
+    html body #page-tapparelle#page-tapparelle .dm-tenda.opening .dm-tenda-telo,
+    html body #page-tapparelle#page-tapparelle .dm-tenda.closing .dm-tenda-telo{animation:dmTendaOnda 1.6s ease-in-out infinite!important}
+    @keyframes dmTendaOnda{0%,100%{background-position-x:0}50%{background-position-x:5px}}
+    /* Una tenda da sole non copre un vetro: sporge sopra la finestra. Lo stesso
+       telo, appeso in alto e disteso in orizzontale. */
+    html body #page-tapparelle#page-tapparelle [data-dm-cover-kind="tenda_sole"] .tapp-shutter{background:repeating-linear-gradient(90deg,#f8fafc 0 14px,color-mix(in srgb,var(--tapp-slat-base,#e2e8f0) 60%,#fb7185) 14px 28px)!important;border-radius:0 0 14px 14px!important}
+    @media(prefers-reduced-motion:reduce){html body #page-tapparelle#page-tapparelle .dm-tenda-telo{transition:none!important;animation:none!important}}
+
     html body #page-tapparelle#page-tapparelle .tapp-pos{min-height:0!important;padding:0!important;opacity:1!important;color:var(--tapp-dim)!important;font-size:11px!important}
     html body #page-tapparelle#page-tapparelle .tapp-pos:not(:empty){display:inline-flex!important;align-self:center!important;align-items:center!important;gap:7px!important;padding:3px 12px!important;border:1px solid var(--tapp-pill-line)!important;border-radius:999px!important;background:var(--tapp-pill)!important;font-weight:900!important;letter-spacing:.9px!important;font-variant-numeric:tabular-nums!important}
     html body #page-tapparelle#page-tapparelle .tapp-pos:not(:empty)::before{content:""!important;flex:0 0 auto!important;width:9px!important;height:9px!important;border:1px solid var(--tapp-pill-line)!important;border-radius:2px!important;background:var(--tapp-slat)!important;background-size:100% 3px!important}

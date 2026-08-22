@@ -1,4 +1,21 @@
-import { allStates, clean, doc, esc, finiteOrNull, installStyle, root, t } from "./shared.js";
+import {
+  configuredPools,
+  poolRunKey,
+  poolRunToday,
+  poolTargetHours as modelTargetHours,
+} from "../core/pool-model.js";
+import { extraPoolCommand } from "./pool-extra-section.js";
+import {
+  allStates,
+  clean,
+  doc,
+  esc,
+  finiteOrNull,
+  installStyle,
+  readJson,
+  root,
+  t,
+} from "./shared.js";
 
 // Single visual owner for the Pool and Irrigation pages.
 //
@@ -57,6 +74,15 @@ function poolConfig() {
   }
 }
 
+/* Tutte le vasche configurate, la prima per prima.
+ *
+ * `getPool()` restituisce l'oggetto salvato per intero: la prima piscina sta
+ * in cima, dove il runtime la cerca da sempre, e le altre nell'elenco accanto.
+ * Da qui in giu' si ragiona per vasche, non per "la piscina". */
+function poolsToDraw() {
+  return configuredPools(poolConfig());
+}
+
 function irrigationConfig() {
   try {
     const value = root.getIrr?.() || {};
@@ -83,18 +109,35 @@ function repeat(count, markup) {
 
 /* ───────────────────────────────── pool ─────────────────────────────────── */
 
-function poolTargetHours() {
-  const value = num(root.cdPoolTargetHours?.());
-  return value && value > 0 ? value : 8;
+/* Le ore che una vasca deve fare oggi.
+ *
+ * La prima passa dal runtime, che quel conto lo fa da sempre e lo usa anche per
+ * fermare la pompa da solo; le altre lo fanno con la stessa regola, scritta una
+ * volta in `pool-model.js`. Ogni vasca ha un padrone e uno solo. */
+function poolTargetHours(pool, index) {
+  if (index === 0) {
+    const value = num(root.cdPoolTargetHours?.());
+    if (value && value > 0) return value;
+  }
+  return modelTargetHours(pool, entityNumber(pool?.tempEnt));
 }
 
-function poolRunSeconds() {
-  try {
-    const run = root.cdPoolRunToday?.();
-    return Math.max(0, num(run?.s) ?? 0);
-  } catch (_error) {
-    return 0;
+function poolRunSeconds(pool, index) {
+  if (index === 0) {
+    try {
+      const run = root.cdPoolRunToday?.();
+      return Math.max(0, num(run?.s) ?? 0);
+    } catch (_error) {
+      return 0;
+    }
   }
+  return Math.max(0, num(readRun(pool, index).s) ?? 0);
+}
+
+/** Il conteggio di oggi di una vasca in piu', dalla sua chiave. */
+function readRun(pool, index) {
+  const stored = readJson(poolRunKey(pool, index), {});
+  return poolRunToday(stored, new Date().toDateString());
 }
 
 /**
@@ -256,7 +299,7 @@ function poolSignature(config) {
   ].join("|");
 }
 
-function syncPoolValues(host, config) {
+function syncPoolValues(host, config, index) {
   const temperature = entityNumber(config.tempEnt);
   const pumping = entityActive(config.pumpEnt);
   const heating = entityActive(config.heatEnt);
@@ -312,8 +355,8 @@ function syncPoolValues(host, config) {
 
   const filtration = host.querySelector("[data-dm-pool-filtration]");
   if (filtration) {
-    const target = poolTargetHours();
-    const doneHours = Math.round((poolRunSeconds() / 3600) * 10) / 10;
+    const target = poolTargetHours(config, index);
+    const doneHours = Math.round((poolRunSeconds(config, index) / 3600) * 10) / 10;
     const percent = Math.max(0, Math.min(100, Math.round((doneHours / target) * 100)));
     const ring = filtration.querySelector("[data-dm-filter-ring]");
     if (ring) ring.style.setProperty("--pct", String(percent));
@@ -338,14 +381,25 @@ function syncPoolValues(host, config) {
   }
 }
 
+function poolBlockMarkup(pool, mostrareIlNome) {
+  /* Il nome compare solo quando ce n'e' piu' di una: su una vasca sola sarebbe
+   * un'intestazione che ripete il titolo della sezione. */
+  const testa = mostrareIlNome
+    ? `<header class="dm-pool-name"><span class="dm-pool-name-icon" aria-hidden="true">🏊</span><strong>${esc(clean(pool.name) || `${t("Piscina", "Pool")} ${pool.index + 1}`)}</strong></header>`
+    : "";
+  return `<article class="dm-pool-block" data-dm-pool="${esc(pool.id)}" data-dm-pool-index="${pool.index}">
+    ${testa}
+    ${poolMarkup(pool)}
+  </article>`;
+}
+
 function renderPool() {
   const wrap = doc?.getElementById("pool-wrap");
   if (!wrap) return;
-  const config = poolConfig();
-  const configured = Boolean(clean(config.tempEnt) || clean(config.pumpEnt) || clean(config.phEnt) || clean(config.clEnt) || clean(config.heatEnt) || clean(config.lightEnt));
+  const pools = poolsToDraw();
   wrap.dataset.dmPoolScene = "true";
 
-  if (!configured) {
+  if (!pools.length) {
     if (state.poolSignature !== "empty" || !wrap.querySelector(".dm-scene-empty")) {
       state.poolSignature = "empty";
       wrap.innerHTML = emptyState("🏊", t("Nessuna piscina configurata", "No pool configured"), t("Aggiungi le entità della piscina dall'editor per vedere la vasca.", "Add the pool entities from the editor to see the basin."));
@@ -356,12 +410,17 @@ function renderPool() {
   // Rebuilding only on a structural change is what keeps the water animating
   // between the legacy 2s repaints; the DOM probe covers the case where another
   // owner wiped the container while the signature was still current.
-  const signature = poolSignature(config);
+  const mostrareIlNome = pools.length > 1;
+  const signature = pools.map((pool) => `${pool.id}~${poolSignature(pool)}`).join("//");
   if (state.poolSignature !== signature || !wrap.querySelector("[data-dm-pool-stage]")) {
     state.poolSignature = signature;
-    wrap.innerHTML = poolMarkup(config);
+    wrap.dataset.dmPoolCount = String(pools.length);
+    wrap.innerHTML = pools.map((pool) => poolBlockMarkup(pool, mostrareIlNome)).join("");
   }
-  syncPoolValues(wrap, config);
+  for (const pool of pools) {
+    const block = wrap.querySelector(`[data-dm-pool-index="${pool.index}"]`);
+    if (block) syncPoolValues(block, pool, pool.index);
+  }
 }
 
 /* ────────────────────────────── irrigation ──────────────────────────────── */
@@ -612,6 +671,22 @@ function schedule() {
   state.frame = root.requestAnimationFrame?.(paint) || root.setTimeout?.(paint, 0) || 0;
 }
 
+/* I comandi di una vasca.
+ *
+ * La prima passa dal runtime: e' lui che tiene i suoi secondi di filtrazione e
+ * che ferma la pompa da solo quando ha finito, e togliergli il comando
+ * significherebbe avere due contabilita' sulla stessa vasca. Delle altre — che
+ * il runtime non sa nemmeno che esistano — si occupa `pool-extra-section.js`.
+ */
+function poolCommand(button) {
+  const index = Number(button.closest("[data-dm-pool-index]")?.dataset.dmPoolIndex);
+  if (!Number.isFinite(index) || index === 0) {
+    root.cdPoolBtn?.(button);
+    return;
+  }
+  extraPoolCommand(button, index);
+}
+
 function commandTarget(event) {
   return event.target?.closest?.("[data-act]");
 }
@@ -623,7 +698,7 @@ function installListeners() {
     if (!button) return;
     if (button.closest("#pool-wrap[data-dm-pool-scene]")) {
       event.preventDefault();
-      root.cdPoolBtn?.(button);
+      poolCommand(button);
       schedule();
       return;
     }
@@ -656,6 +731,14 @@ function installStyles() {
       box-sizing:border-box!important;position:static!important;width:min(100%,1040px)!important;max-width:1040px!important;
       margin:0 auto!important;padding:0 4px 18px!important;display:grid!important;gap:14px!important
     }
+    /* Ogni vasca e' un blocco per conto suo: con una sola non si vede nessuna
+     * differenza, con due la seconda comincia dove finisce la prima invece di
+     * incastrarsi fra le sue schede. */
+    #page-piscina #pool-wrap[data-dm-pool-scene] .dm-pool-block{display:grid!important;gap:14px!important;min-width:0!important}
+    #page-piscina #pool-wrap[data-dm-pool-scene][data-dm-pool-count="1"] .dm-pool-block{gap:inherit!important}
+    #page-piscina .dm-pool-name{display:flex!important;align-items:center!important;gap:9px!important;margin:2px 2px -2px!important}
+    #page-piscina .dm-pool-name strong{font-size:15px!important;font-weight:900!important;letter-spacing:.01em!important;color:var(--text,#0f172a)!important}
+    #page-piscina .dm-pool-name-icon{font-size:17px!important}
     #page-irrigazione .dm-irr{display:grid!important;gap:14px!important;width:100%!important;margin:0 0 14px!important}
     #page-irrigazione #irr-grid{grid-template-columns:repeat(auto-fill,minmax(232px,1fr))!important;gap:12px!important;padding:0 4px 18px!important}
 

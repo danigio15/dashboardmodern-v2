@@ -1,5 +1,6 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
+import { CONFIG_KEYS_REVISION } from "../src/sections/config-persistence-section.js";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { saveSection } from "./helpers/entity-field.js";
 import { PRIMARY } from "./helpers/variants.js";
@@ -211,7 +212,10 @@ for (const variant of PRIMARY) {
           };
         }),
       )
-      .toEqual({ profile: "primary", keysRevision: 3, model: "B10" });
+      /* Il numero non si scrive a mano: cresce ogni volta che una chiave nuova
+       * entra nella configurazione condivisa, e scritto qui alla lettera fa
+       * cadere questa prova per un motivo che non c'entra niente con lei. */
+      .toEqual({ profile: "primary", keysRevision: CONFIG_KEYS_REVISION, model: "B10" });
 
     const persisted = await page.evaluate(() => {
       const remote = JSON.parse(localStorage.getItem("__beta2_remote_config__"));
