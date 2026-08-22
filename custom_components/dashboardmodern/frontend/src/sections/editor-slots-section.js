@@ -230,8 +230,13 @@ function lensOf(input) {
  * first and the placeholder is the fallback, so nothing ever says less than it
  * did before. */
 const FIELD_CAPTIONS = Object.freeze({
+  "ed-avv-ent": ["Entità dell'avviso", "Alert entity"],
+  "wz-av-ent": ["Entità dell'avviso", "Alert entity"],
   "ed-cam-ent": ["Entità telecamera", "Camera entity"],
+  "wz-cam-ent": ["Entità telecamera", "Camera entity"],
   "ed-cl-ent": ["Entità clima", "Climate entity"],
+  "wz-cl-ent": ["Entità clima", "Climate entity"],
+  "ed-st2-temp": ["Sensore temperatura", "Temperature sensor"],
   "ed-tp-ent": ["Entità tapparella", "Cover entity"],
   "ed-pl-temp": ["Temperatura piscina", "Pool temperature"],
   "ed-pl-ph": ["pH", "pH"],
@@ -382,12 +387,23 @@ function fieldAlreadyLabelled(input) {
   return Boolean(wrapper && clean(wrapper.querySelector("span")?.textContent));
 }
 
+/* Un esempio non e' un nome.
+ *
+ * Il ripiego sul segnaposto vale finche' il segnaposto e' una frase. Dove
+ * invece era gia' l'entita' di esempio — `binary_sensor.finestra_x_contact`
+ * negli Avvisi — la riga si intitolava con quella, e chi configurava leggeva
+ * come nome del campo un'entita' che non ha. Un riferimento nudo
+ * `dominio.nome` non dice cosa vuole il campo: meglio nessuna didascalia. */
+const RIFERIMENTO_NUDO = /^[a-z][a-z0-9_]*\.[a-z0-9_]+$/i;
+
 function captionFor(input) {
   const known = FIELD_CAPTIONS[input.id];
   if (known) return t(known[0], known[1]);
   const placeholder = clean(input.getAttribute("placeholder"));
-  if (placeholder && !/^es\.\s/i.test(placeholder)) return placeholder;
-  return "";
+  if (!placeholder) return "";
+  if (/^es\.\s/i.test(placeholder)) return "";
+  if (RIFERIMENTO_NUDO.test(placeholder)) return "";
+  return placeholder;
 }
 
 /* Whether a row prints its own name, said on the row itself.
@@ -620,8 +636,17 @@ function decorateField(input) {
   if (!input.closest(".dm-report-row")) {
     pin(host, CARD_LAYOUT);
     pin(lens, CHIP_LAYOUT);
-    pin(manual, MANUAL_LAYOUT);
   }
+  /* I due comandi si misurano sul testo che portano, ovunque stiano.
+   *
+   * Il foglio di stile li tiene in un quadrato di 36px — era il bottone con la
+   * sola matita — e l'impaginazione qui sopra li rimetteva larghi quanto il
+   * loro contenuto. Nella riga del Report quell'impaginazione non si scriveva,
+   * e il quadrato vinceva: «✏️ Modifica» sbordava dalla riga e finiva tagliato
+   * a meta' sul bordo dello schermo. Che la riga sia una card o si impagini da
+   * sola non c'entra con quanto e' largo un pulsante. */
+  pin(manual, MANUAL_LAYOUT);
+  pin(clearField, MANUAL_LAYOUT);
   ensureFieldCaption(host, input);
   paintFieldChip(host);
   return true;

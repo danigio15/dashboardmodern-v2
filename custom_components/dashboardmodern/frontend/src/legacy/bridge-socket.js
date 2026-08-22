@@ -47,6 +47,13 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   "dashboardmodern/config/get",
   "dashboardmodern/config/set",
   "dashboardmodern/config/restore",
+  // Sfogliare le cartelle per la foto dell'auto. La finestra «Scegli la foto»
+  // chiede questi tre e basta: senza, nel pannello di Home Assistant rispondeva
+  // «Message type not permitted through the bridge» e non apriva niente,
+  // mentre sulla pagina legacy — che il ponte non ce l'ha — funzionava.
+  "media_source/browse_media",
+  "media_source/resolve_media",
+  "dashboardmodern/www/list",
   "auth/sign_path",
 ]);
 

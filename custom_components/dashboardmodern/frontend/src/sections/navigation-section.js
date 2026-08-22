@@ -528,14 +528,76 @@ function installBarBehaviour() {
   return true;
 }
 
+/* ── Config resta l'ultima ─────────────────────────────────────────────────
+ *
+ * L'ordine della barra si salva in `cd_navbar_order`, e chi lo applica mette
+ * in coda ogni scheda che quell'elenco non nomina. Una sezione nuova — il
+ * robot aspirapolvere — nell'elenco salvato mesi fa non c'e', e le sezioni
+ * che nascono a runtime la loro scheda se la attaccano in fondo: in tutti e
+ * due i casi finiscono dopo Config, che invece e' il posto dove si va quando
+ * si ha finito di guardare la casa e sta bene in fondo.
+ *
+ * Non si tocca l'ordine scelto: si sposta soltanto Config in coda.
+ */
+export const CONFIG_TAB = "config";
+
+/** L'elenco delle chiavi con Config in fondo, senza cambiare il resto. */
+export function ordineConConfigInFondo(chiavi = [], config = CONFIG_TAB) {
+  const elenco = [...chiavi];
+  const posto = elenco.indexOf(config);
+  if (posto < 0 || posto === elenco.length - 1) return elenco;
+  elenco.splice(posto, 1);
+  elenco.push(config);
+  return elenco;
+}
+
+/** Sposta la scheda Config in fondo alla barra, se non ci e' gia'. */
+export function configSempreUltima(scope = doc) {
+  const schede = scope?.querySelectorAll?.(".tab[data-tab]");
+  if (!schede?.length) return false;
+  const config = [...schede].find((scheda) => scheda.dataset.tab === CONFIG_TAB);
+  if (!config) return false;
+  const barra = config.parentElement;
+  if (!barra) return false;
+  const sorelle = [...barra.querySelectorAll(":scope > .tab[data-tab]")];
+  if (sorelle.at(-1) === config) return false;
+  barra.appendChild(config);
+  return true;
+}
+
+/* Chi rimette in ordine la barra lo fa piu' volte: all'avvio, quando arriva la
+ * configurazione condivisa, e a intervalli finche' la pagina vive. Invece di
+ * inseguirli si avvolgono le loro funzioni: cosi' Config torna in fondo subito
+ * dopo, qualunque sia stata la ragione del riordino. */
+function accodaDopo(nome) {
+  const originale = root[nome];
+  if (typeof originale !== "function" || originale.__dmConfigUltima) return false;
+  const avvolta = function (...argomenti) {
+    const esito = originale.apply(this, argomenti);
+    try {
+      configSempreUltima();
+    } catch (_error) {}
+    return esito;
+  };
+  avvolta.__dmConfigUltima = true;
+  root[nome] = avvolta;
+  return true;
+}
+
 export function installNavigationSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   applyNavbarMode();
+  configSempreUltima();
+  accodaDopo("cdApplyNavOrder");
+  accodaDopo("cdApplyNavVis");
   /* La configurazione condivisa, arrivando, riscrive le chiavi: se quella
    * dell'altro dispositivo non la porta, qui resterebbe vuota e la barra
    * tornerebbe a scomparsa da sola. */
-  root.addEventListener?.("dashboardmodern:persistence-restored", () => applyNavbarMode());
+  root.addEventListener?.("dashboardmodern:persistence-restored", () => {
+    applyNavbarMode();
+    configSempreUltima();
+  });
   installStyles();
   installBarBehaviour();
   if (!installScroller()) {
