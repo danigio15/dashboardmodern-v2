@@ -1064,6 +1064,7 @@ export default Object.freeze({
   "Updating Recorder data…": "جارٍ تحديث بيانات Recorder…",
   "Updating...": "جارٍ التحديث...",
   "Upload failed (${clean(error?.message)}).": "فشل الرفع (${clean(error?.message)}).",
+  "the photo exceeds 10 MB": "الصورة تتجاوز 10 ميغابايت",
   "Uploading the photo…": "جارٍ رفع الصورة…",
   "Uptime": "مدة التشغيل",
   "use the total kWh meter through Recorder": "يستخدم العدّاد الإجمالي بالكيلوواط·ساعة عبر Recorder",

@@ -402,14 +402,23 @@ function dipingiPannello(panel, cover) {
  * percentuale: e' il selettore per entita' a tenerli separati. */
 function syncCover(card, cover) {
   const scope = `[data-dm-entity="${CSS.escape(cover.entity)}"]`;
+  /* Il ripiego senza selettore serve solo alla card a copertura singola, dove
+   * il markup non porta l'entita'. Su una card composita agganciarsi "al
+   * primo che c'e'" scriveva la posizione di una copertura ferma sul cursore
+   * di un'altra. */
+  const multipla = card.hasAttribute("data-dm-covers");
   const layer = card.querySelector(`[data-dm-cover="${CSS.escape(cover.entity)}"] [data-dm-panel]`);
-  const panel = layer || card.querySelector("[data-dm-panel]");
+  const panel = layer || (multipla ? null : card.querySelector("[data-dm-panel]"));
   if (panel) dipingiPannello(panel, cover);
 
-  const readout = card.querySelector(`[data-dm-readout]${scope}`) || card.querySelector("[data-dm-readout]");
+  const readout =
+    card.querySelector(`[data-dm-readout]${scope}`) ||
+    (multipla ? null : card.querySelector("[data-dm-readout]"));
   if (readout) readout.textContent = cover.hasPosition ? `${cover.position}%` : "";
 
-  const range = card.querySelector(`[data-dm-position]${scope}`) || card.querySelector("[data-dm-position]");
+  const range =
+    card.querySelector(`[data-dm-position]${scope}`) ||
+    (multipla ? null : card.querySelector("[data-dm-position]"));
   // Never write over a track the user is holding: doc.activeElement covers the
   // keyboard and the in-flight drag, the grab window covers the seconds the
   // motor needs before Home Assistant reports the position that was asked for.
@@ -586,12 +595,15 @@ function previewPosition(range) {
   if (entity === clean(card.dataset.tapp)) card.style.setProperty("--tapp-open", String(position / 100));
   const barra = card.querySelector(`[data-dm-bar="${CSS.escape(entity)}"] .dm-tapp-track`);
   if (barra) barra.style.setProperty("--tapp-open", String(position / 100));
+  const multipla = card.hasAttribute("data-dm-covers");
   const panel =
     card.querySelector(`[data-dm-cover="${CSS.escape(entity)}"] [data-dm-panel]`) ||
-    card.querySelector("[data-dm-panel]");
+    (multipla ? null : card.querySelector("[data-dm-panel]"));
   if (panel && !panel.classList.contains("dm-tenda")) panel.style.height = `${100 - position}%`;
   else if (panel) panel.style.setProperty("--tenda-chiusa", `${(100 - position) / 2}%`);
-  const readout = card.querySelector(`[data-dm-readout]${scope}`) || card.querySelector("[data-dm-readout]");
+  const readout =
+    card.querySelector(`[data-dm-readout]${scope}`) ||
+    (multipla ? null : card.querySelector("[data-dm-readout]"));
   if (readout) readout.textContent = `${position}%`;
 }
 

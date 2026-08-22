@@ -988,6 +988,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "The lawn shows the first ${MAX_LAWN_ZONES} zones; all ${config.zones.length} are listed below.",
   "The logo is automatically associated with the brand. The model replaces the old generic car icon.",
   "The map comes from a camera or an image: camera.* or image.*. Leave it empty if your robot does not publish one.",
+  "the photo exceeds 10 MB",
   "The PIN will be requested to confirm the operation",
   "The preview uses the same card artwork for the selected appliance type.",
   "The preview uses the same room-icon renderer as the dashboard.",

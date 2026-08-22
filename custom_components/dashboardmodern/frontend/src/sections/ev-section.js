@@ -752,9 +752,12 @@ function installLegacyWrappers() {
        * fuori: li' il travaso dalle caselle e' l'adozione del formato
        * vecchio, ed e' voluto. */
       if (prima.length) {
-        const conosciute = new Set(prima.map((car) => clean(car?.name).toLowerCase()));
+        /* Lo stesso confronto esatto del runtime e di restoreCarIdentities:
+         * "Tesla" e "tesla" sono due auto per il runtime, e devono esserlo
+         * anche qui — o la seconda si terrebbe le foto catturate. */
+        const conosciute = new Set(prima.map((car) => clean(car?.name)));
         rimesse = rimesse.map((car) =>
-          conosciute.has(clean(car?.name).toLowerCase())
+          conosciute.has(clean(car?.name))
             ? car
             : { ...car, img: "", imgPlugged: "", image: "", image_url: "" },
         );
@@ -782,10 +785,16 @@ function installLegacyWrappers() {
     function carButton(...args) {
       const result=previous.apply(this,args);
       /* Dopo una cancellazione le caselle piatte portano ancora le foto della
-       * vettura sparita: si riseminano da quella che la plancia mostra ora. */
+       * vettura sparita: si riseminano da quella che la plancia mostra ora.
+       * E se a sparire era proprio l'attiva, l'indice resta -1 mentre tutto
+       * il resto mostra la prima della lista come scelta: la si rende attiva
+       * DAVVERO, cosi' pannello e salvataggi parlano della stessa auto. */
       const elenco=legacyProfiles();
-      const indice=activeIndex();
-      const attiva=elenco[indice >= 0 ? Math.min(indice, elenco.length - 1) : 0];
+      if (activeIndex() < 0 && elenco.length) {
+        try { root.localStorage?.setItem("cd_ev_car_active", "0"); } catch (_error) {}
+      }
+      const indice=Math.max(0, Math.min(elenco.length - 1, activeIndex()));
+      const attiva=elenco[indice];
       if (attiva) restoreProfilePhotos(attiva, configuredPhotos(), elenco.length);
       root.queueMicrotask?.(scheduleEvSync);
       return result;

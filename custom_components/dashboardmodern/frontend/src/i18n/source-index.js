@@ -577,6 +577,7 @@ export const SOURCE_INDEX = Object.freeze({
   "L’icona è personalizzabile anche per le azioni integrate e viene mostrata nella Home.": "The icon is customizable for built-in actions too and is shown on Home.",
   "La cartella config/www non esiste ancora: creala e mettici dentro le foto.": "The config/www folder does not exist yet: create it and put the photos in there.",
   "La cartella ha troppi file: ne sono elencati solo i primi.": "The folder has too many files: only the first ones are listed.",
+  "la foto supera i 10 MB": "the photo exceeds 10 MB",
   "La mappa arriva da una telecamera o da un'immagine: camera.* o image.*. Lasciala vuota se il tuo robot non ne pubblica una.": "The map comes from a camera or an image: camera.* or image.*. Leave it empty if your robot does not publish one.",
   "La maschera qui sopra configura la prima vasca. Se ne hai piu' di una, aggiungi qui le altre: ognuna ha i suoi sensori, i suoi comandi e la sua filtrazione.": "The form above configures the first basin. If you have more than one, add the others here: each one has its own sensors, controls and filtration.",
   "La mia auto": "My car",

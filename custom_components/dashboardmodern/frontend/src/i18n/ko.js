@@ -1064,6 +1064,7 @@ export default Object.freeze({
   "Updating Recorder data…": "Recorder 데이터를 갱신하는 중…",
   "Updating...": "갱신하는 중...",
   "Upload failed (${clean(error?.message)}).": "업로드에 실패했습니다 (${clean(error?.message)}).",
+  "the photo exceeds 10 MB": "사진이 10 MB를 초과합니다",
   "Uploading the photo…": "사진 업로드 중…",
   "Uptime": "가동 시간",
   "use the total kWh meter through Recorder": "Recorder를 통해 누적 kWh 계량기를 씁니다",

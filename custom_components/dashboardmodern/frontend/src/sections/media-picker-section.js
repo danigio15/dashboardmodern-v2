@@ -112,7 +112,14 @@ async function blobBase64(blob) {
  * scriverebbe a mano. L'archivio immagini REST resta come ripiego per chi un
  * token vero ce l'ha (installazioni standalone col long-lived token).
  */
+// Lo stesso tetto del backend: rifiutare qui evita di leggere e codificare
+// in memoria una foto che verrebbe comunque respinta — o che chiuderebbe il
+// WebSocket sforandone il limite di messaggio.
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
 export async function storeImage(blob, name) {
+  if (Number(blob?.size) > MAX_UPLOAD_BYTES)
+    throw new Error(t("la foto supera i 10 MB", "the photo exceeds 10 MB"));
   try {
     const result = await askHomeAssistant(
       {
