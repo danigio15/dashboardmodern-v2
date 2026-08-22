@@ -1,10 +1,181 @@
 <!-- DM-FIX-20260812B -->
+
 # Changelog
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
+
+## 1.1.4
+
+### Corretto
+
+- **Dopo aver salvato una sezione non compariva più «Modifica»**, e le tre
+  caselle in più di un infisso — tenda, tenda da sole, sensore dell'apertura —
+  sparivano insieme a lei. La matita e le caselle le aggiungiamo noi dopo che il
+  runtime ha stampato la scheda, e ci si agganciava al cambio di linguetta. Ma
+  il corpo della configurazione lo rifà anche il modello, a ogni salvataggio, e
+  quel giro non passa di lì: restava la riga col solo cestino, senza modo di
+  riaprirla, e per rivedere le caselle bisognava uscire dalla linguetta e
+  rientrarci.
+
+- **Una tenda salvata non compariva sulla pagina.** È la stessa cosa vista da
+  un'altra parte: la sua casella spariva _prima_ che si premesse «Aggiungi
+  tapparella», quindi quell'entità non veniva proprio salvata — e una card che
+  non esiste non si può disegnare, né aperta né chiusa.
+
+- **Con due auto configurate compariva la foto dell'altra vettura.** Le due
+  caselle da cui il disegno legge la foto viaggiavano nella configurazione
+  condivisa, ma non sono una configurazione: sono il disegno di adesso,
+  ricavato dall'auto scelta su _questo_ dispositivo. Si apriva la plancia,
+  compariva la foto giusta, e un istante dopo arrivava il salvataggio con dentro
+  la foto dell'auto attiva altrove. Adesso ogni auto si porta le sue dentro
+  `cd_ev_cars`, dove stanno già il nome e le entità.
+
+- **Risalvare un profilo auto lo svuotava.** «Salva attuale» cerca un profilo
+  con lo stesso nome e ci scrive sopra un oggetto nuovo: marca, modello e foto
+  col cavo attaccato se ne andavano senza che nessuno l'avesse chiesto, e chi
+  rimappava un'entità si ritrovava l'auto senza logo.
+
+- **Aspirapolvere: la fascia della visibilità non cambiava scritta.** Toccandola
+  la preferenza cambiava davvero — la voce spariva dalla barra — ma la fascia
+  restava verde: la scheda si ridisegna solo quando la sua firma è cambiata, e
+  la firma diceva soltanto quali robot fossero configurati.
+
+- **Le icone della configurazione avevano il bordo di serie del browser.** Al
+  quadratino dell'icona si diceva quanto grande e quanto arrotondato, mai di che
+  colore: restava `2px outset` nero su un grigio che non è di nessun tema,
+  mentre i pulsanti accanto — nella stessa riga del Report — hanno il filo
+  chiaro del tema. Adesso porta il vestito del riquadro grande che già esisteva,
+  in piccolo, e anche nella versione scura.
+
+### Modificato
+
+- **Un avviso solo per «la scheda è nuova, rimetti la tua roba».** Il ridisegno
+  della configurazione si annunciava già, ma quasi nessuno ascoltava:
+  `onEditorRedraw` mette insieme il cambio di linguetta e il ridisegno del
+  modello, e i quattordici moduli che decorano la configurazione passano tutti
+  di lì. Una prova guarda tutte le sezioni senza conoscerne nessuna: chi si
+  aggancia ancora al solo cambio di linguetta viene trovato, anche se arriva
+  domani.
+
+- **Un'auto ha un'identità, non solo una posizione.** Un profilo si indicava con
+  la sua riga nell'elenco, e una riga cambia significato appena si cancella o si
+  riordina una vettura. `src/core/vehicle-identity.js` dice cosa appartiene a
+  un'auto — marca, modello, icona, foto col cavo — e come si riconosce quando
+  l'elenco viene riscritto, che è il momento in cui le cose si perdono. Quale
+  auto è scelta continua a dirlo la riga, come ha sempre fatto.
+
+- Il travaso delle foto dalle vecchie caselle dentro al profilo è una migrazione
+  e adesso se ne segna: potendo ripartire, annullava una cancellazione fatta su
+  un altro dispositivo.
+
+### Sviluppo
+
+- **La costruzione delle informazioni di versione non partiva da un worktree.**
+  `generate_build_info.py` cercava il ramo solo nella cartella che ha davanti,
+  ma in un worktree i rami stanno nel deposito condiviso: si fermava su «unable
+  to resolve git ref» pur essendo su un ramo perfettamente valido. Adesso segue
+  `commondir`.
+
+## 1.1.3
+
+### Aggiunto
+
+- **Gli allagamenti, accanto agli altri avvisi.** Il Quadro Avvisi sorvegliava
+  cinque liste, e chi ha un sensore di allagamento sotto il lavello non aveva
+  dove metterlo: restava un avviso «personalizzato», con l'icona da scegliere a
+  mano e fuori dal conteggio. Adesso è una lista come le altre — la sua card col
+  contatore, il suo popup con l'elenco di cosa è bagnato, la sua voce in
+  configurazione. Il primo avvio si serve da solo dai `binary_sensor` che Home
+  Assistant dichiara `device_class: moisture`; chi non li vuole li toglie, e la
+  rimozione resta.
+
+### Corretto
+
+- **«Inserisco il prelievo dalla rete e mi modifica anche l'immissione».** Rete
+  e batteria si configurano in due riquadri, uno per verso, e la casella
+  «Potenza» compariva in tutti e due. Ma il modello ne ha una sola — la potenza
+  scambiata con la rete, col segno a dire da che parte va — quindi le due
+  caselle erano la stessa casella disegnata due volte. Adesso ogni campo del
+  modello ha una casella sola, e il secondo riquadro dice dov'è andata invece di
+  ripeterla.
+
+- **Scegliendo «i positivi sono la carica» la sezione si richiudeva all'infinito
+  e il verso tornava indietro.** La scheda mette il verso prima delle caselle
+  del sensore, quindi lo si sceglie quando di entità non ce n'è ancora nessuna;
+  il salvataggio filtrava via quella scelta, si ritrovava zero entità e
+  cancellava l'intera dichiarazione. Con «scarica» succedeva lo stesso senza
+  vedersi, perché si riazzerava su un valore identico a quello scelto.
+
+- **Le tre caselle di un infisso finivano sotto «Salva sezione»**, staccate
+  dalla riga che stanno descrivendo: ci si ancorava alla stanza, che nel markup
+  del runtime è un `select` nudo, e la ricerca del contenitore acchiappava il
+  riquadro che avvolge tutto il pannello.
+
+- **Cambiando auto restava addosso la foto col cavo dell'altra vettura.** Gli
+  involucri che insegnano alla plancia la seconda foto non possono installarsi
+  finché il runtime non ha dichiarato le sue funzioni, e il tentativo successivo
+  arrivava col primo disegno: in quella finestra un profilo catturato nasceva
+  senza quella foto, e chi ci finiva dentro non la recuperava più da sé. Dura
+  poco e ci vuole sfortuna per infilarcisi, ma quello che si perdeva era perso.
+
+- **Il bianco su iOS non era finito con la 1.1.2.** Quello che il modo chiosco
+  scrive nel documento di Home Assistant lo toglieva la plancia, chiamata
+  attraverso la sua cornice. Ma lo smontaggio parte _dopo_ che la cornice è già
+  stata staccata: Chrome rimanda quella distruzione e la chiamata fa in tempo,
+  WebKit la fa subito e la chiamata non arrivava a nessuno. Adesso ogni elemento
+  toccato porta scritto addosso com'era prima, e chi smonta rimette a posto
+  leggendo il documento che ha davanti.
+
+### Sicurezza
+
+- **Chi può usare una plancia lo decide il server, non il browser.** I comandi
+  che leggono e scrivono la configurazione condivisa erano aperti a qualsiasi
+  utente autenticato: la lista degli utenti abilitati viaggia dentro la
+  configurazione del pannello e la applica il browser, quindi un utente fuori
+  dalla lista non vedeva la plancia nella barra laterale ma poteva chiamare quei
+  comandi direttamente e riscrivere la configurazione di tutti — che è una sola
+  per l'installazione. In una casa con un utente solo non cambia niente; con più
+  utenti è la differenza fra una preferenza e un permesso. Una plancia che il
+  proprietario non ha ristretto resta aperta a tutta la casa, e un utente
+  abilitato non amministratore può ancora salvare.
+
+## 1.1.2
+
+### Corretto
+
+- **Cambiando la barra da fissa a scomparsa diventava tutto bianco**, plancia e
+  Home Assistant insieme, e per tornare a posto bisognava chiudere e riaprire
+  l'app. Il velo che manda la plancia a tutto schermo, per togliersi, rimetteva
+  gli stili in linea del documento «com'erano prima» — tutti insieme. Ma Home
+  Assistant il suo tema lo tiene esattamente li', come stili in linea, e se li
+  ritrovava cancellati senza potersene accorgere: per lui il tema era ancora
+  applicato, quindi non lo riscriveva. Adesso il velo rimette soltanto quello
+  che ha scritto lui, e il tema di chiunque altro non lo tocca.
+
+- **La fascia «sezione visibile / nascosta» non cambiava scritta.** La
+  preferenza cambiava davvero, ma per vederlo bisognava cambiare scheda: il
+  testo si scriveva una volta sola, quando la fascia nasceva.
+
+- **La foto dell'auto cambiava da sola aggiornando la pagina**, e usciva quella
+  dell'altra vettura o l'immagine generica. Le caselle da cui la plancia legge
+  la foto si riempivano soltanto quando si toccava un'auto; a un ricaricamento
+  nessuno la tocca, e restava dentro l'ultimo valore finitoci. Adesso all'avvio
+  seguono l'auto scelta. Con una macchina sola non cambia niente.
+
+### Cambiato
+
+- **Un infisso, quattro caselle.** Sulla stessa finestra ci stanno insieme la
+  tapparella, la tenda e la tenda da sole, e la configurazione ne chiedeva una
+  sola piu' un menu per dire di che tipo fosse: chi le aveva tutte non poteva
+  dirlo. Adesso c'e' una casella per funzione — tapparella, tenda, tenda da
+  sole, sensore apertura infisso — e il menu del tipo non serve piu', perche' il
+  tipo lo dice la casella in cui hai scritto. Quello che era gia' configurato
+  continua a funzionare com'era.
+
+## 1.1.1
 
 ### Aggiunto
 
@@ -45,48 +216,6 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   invece che ai punti di chiamata, e chi raccoglie il vocabolario dal sorgente
   non le vedeva. Ora le legge, e una prova nuova impedisce che una tabella
   aggiunta domani torni a sparire in silenzio.
-
-### Documentazione
-
-- [`docs/TRANSLATIONS.md`](docs/TRANSLATIONS.md): come funziona il sistema e
-  cosa serve per aggiungere una lingua.
-
-## 1.1.2
-
-### Corretto
-
-- **Cambiando la barra da fissa a scomparsa diventava tutto bianco**, plancia e
-  Home Assistant insieme, e per tornare a posto bisognava chiudere e riaprire
-  l'app. Il velo che manda la plancia a tutto schermo, per togliersi, rimetteva
-  gli stili in linea del documento «com'erano prima» — tutti insieme. Ma Home
-  Assistant il suo tema lo tiene esattamente li', come stili in linea, e se li
-  ritrovava cancellati senza potersene accorgere: per lui il tema era ancora
-  applicato, quindi non lo riscriveva. Adesso il velo rimette soltanto quello
-  che ha scritto lui, e il tema di chiunque altro non lo tocca.
-
-- **La fascia «sezione visibile / nascosta» non cambiava scritta.** La
-  preferenza cambiava davvero, ma per vederlo bisognava cambiare scheda: il
-  testo si scriveva una volta sola, quando la fascia nasceva.
-
-- **La foto dell'auto cambiava da sola aggiornando la pagina**, e usciva quella
-  dell'altra vettura o l'immagine generica. Le caselle da cui la plancia legge
-  la foto si riempivano soltanto quando si toccava un'auto; a un ricaricamento
-  nessuno la tocca, e restava dentro l'ultimo valore finitoci. Adesso all'avvio
-  seguono l'auto scelta. Con una macchina sola non cambia niente.
-
-### Cambiato
-
-- **Un infisso, quattro caselle.** Sulla stessa finestra ci stanno insieme la
-  tapparella, la tenda e la tenda da sole, e la configurazione ne chiedeva una
-  sola piu' un menu per dire di che tipo fosse: chi le aveva tutte non poteva
-  dirlo. Adesso c'e' una casella per funzione — tapparella, tenda, tenda da
-  sole, sensore apertura infisso — e il menu del tipo non serve piu', perche' il
-  tipo lo dice la casella in cui hai scritto. Quello che era gia' configurato
-  continua a funzionare com'era.
-
-## 1.1.1
-
-### Corretto
 
 - **Le cartelle non si aprivano piu', dentro Home Assistant.** La finestra
   «Scegli la foto» rispondeva «Message type not permitted through the bridge» e
@@ -137,6 +266,11 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   tenda o tenda da sole: prima quella scelta esisteva solo nella finestra della
   matita, e chi aggiungeva una tenda dalla scheda Tapparelle non aveva modo di
   dirlo.
+
+### Documentazione
+
+- [`docs/TRANSLATIONS.md`](docs/TRANSLATIONS.md): come funziona il sistema e
+  cosa serve per aggiungere una lingua.
 
 ## 1.1.0
 
