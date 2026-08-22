@@ -9,7 +9,7 @@
  * vivono in un elenco accanto alla prima e non le tolgono niente.
  */
 import { POOL_DEFAULTS, poolList, storedPools } from "../core/pool-model.js";
-import { clean, doc, esc, installStyle, root, t, wrapFunction } from "./shared.js";
+import { clean, doc, esc, installStyle, onEditorRedraw, root, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_POOL_EDITOR__";
 const state = (root[KEY] ||= { installed: false, aperta: -1 });
@@ -244,7 +244,7 @@ export function installPoolEditorSection() {
   if (state.installed || !doc) return;
   state.installed = true;
   installStyles();
-  wrapFunction("editorSwitch", "__dmPoolEditor", () => {
+  onEditorRedraw("__dmPoolEditor", () => {
     root.queueMicrotask?.(schedulePoolEditor);
   });
   /* La scheda si ridisegna anche da sola — salvare una vasca cambia la

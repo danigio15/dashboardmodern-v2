@@ -1,7 +1,15 @@
 import { carBrandVisual } from "../core/personalization-catalog.js";
+import {
+  ACTIVE_CAR_KEY,
+  assignCarKeys,
+  carIndexByKey,
+  carKey,
+  resolveActiveIndex,
+  restoreCarIdentities,
+} from "../core/vehicle-identity.js";
 import { adoptLoosePhotos, photosForProfile, withProfilePhotos } from "../core/vehicle-photos.js";
 import { pickMediaImage } from "./media-picker-section.js";
-import { allStates, clean, dashboardStore, doc, esc, installStyle, readJson, root, section, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
+import { allStates, clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, section, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EV_SECTION__";
@@ -319,7 +327,56 @@ export function stateChangeAffectsEv(event) {
   return [...changed].some((id) => configured.has(id));
 }
 
-function activeIndex() { const index = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "-1", 10); return Number.isFinite(index) ? index : -1; }
+/* Quale auto sta guardando la plancia.
+ *
+ * La domanda si faceva a `cd_ev_car_active`, che e' un numero di riga, e viene
+ * scritto dal runtime; la risposta pero' va data dalla chiave dell'auto, che e'
+ * l'unica cosa che indica una vettura invece di una posizione. Il numero resta
+ * come ripiego per chi arriva da prima delle chiavi, e per il giro del runtime
+ * che continua a scriverselo.
+ */
+function activeCarKey() { return clean(root.localStorage?.getItem(ACTIVE_CAR_KEY) || ""); }
+function legacyActiveIndex() { const index = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "-1", 10); return Number.isFinite(index) ? index : -1; }
+function activeIndex(cars = profiles()) { return resolveActiveIndex(cars, activeCarKey(), legacyActiveIndex()); }
+
+/* Segnarsi l'auto scelta con la sua chiave, e non solo con la sua riga.
+ *
+ * Le due caselle si scrivono insieme: il runtime legge ancora il numero, e
+ * lasciarglielo indietro vorrebbe dire vedergli riapplicare l'auto sbagliata al
+ * primo dei suoi giri. */
+function rememberActiveCar(cars, index) {
+  const car = Array.isArray(cars) ? cars[index] : null;
+  const chiave = carKey(car);
+  if (chiave && activeCarKey() !== chiave) root.localStorage?.setItem(ACTIVE_CAR_KEY, chiave);
+  if (Number.isInteger(index) && index >= 0 && String(legacyActiveIndex()) !== String(index))
+    root.localStorage?.setItem("cd_ev_car_active", String(index));
+  return chiave;
+}
+
+/* Le chiavi si assegnano una volta, e restano scritte dentro all'auto.
+ *
+ * Da qui in avanti tutto quello che si configura per una vettura la segue: le
+ * entita' mappate e le foto stanno gia' dentro al profilo, e il profilo si
+ * indica per chiave. Anche la scelta corrente si riallinea, altrimenti la prima
+ * apertura dopo l'aggiornamento resterebbe appesa al solo numero. */
+function ensureCarKeys() {
+  const legacy = legacyProfiles();
+  const cars = legacy.length ? legacy : canonicalProfiles();
+  if (!cars.length) return false;
+  const con = assignCarKeys(cars);
+  if (con !== cars) {
+    if (legacy.length) writeJsonIfChanged("cd_ev_cars", con);
+    try { dashboardStore()?.replaceSection?.("ev", con)?.catch?.(() => {}); } catch (_error) {}
+  }
+  /* Una chiave che non indica piu' nessuna auto — la vettura e' stata
+   * cancellata, o la configurazione condivisa ne racconta una che qui non c'e'
+   * — vale quanto nessuna chiave: si riparte da quella che la plancia sta
+   * mostrando davvero. */
+  const chiave = activeCarKey();
+  if (!chiave || carIndexByKey(con, chiave) < 0)
+    rememberActiveCar(con, resolveActiveIndex(con, "", legacyActiveIndex()));
+  return con !== cars;
+}
 
 /* Dove sta scritta la carica dell'auto.
  *
@@ -369,6 +426,7 @@ function chooseProfile(index) {
   if (typeof root.cdEvApplyCar === "function") root.cdEvApplyCar(index);
   else if (select) { select.dispatchEvent(new Event("input", { bubbles:true })); select.dispatchEvent(new Event("change", { bubbles:true })); }
   else root.localStorage?.setItem("cd_ev_car_active", String(index));
+  rememberActiveCar(profiles(), index);
   root.queueMicrotask?.(scheduleEvSync);
 }
 
@@ -412,7 +470,7 @@ function paintSelector(host, cars) {
   host.style.display=""; host.dataset.profileCount=String(cars.length);
   const structure = selectorStructureSignature(cars);
   if (host.dataset.dmEvSignature !== structure || nav.children.length !== cars.length) { buildProfileButtons(nav,cars); host.dataset.dmEvSignature=structure; }
-  const selected = Math.max(0,Math.min(cars.length-1,activeIndex()));
+  const selected = Math.max(0,Math.min(cars.length-1,activeIndex(cars)));
   nav.querySelectorAll(".dm-vehicle-profile-card").forEach((button,index)=>{
     const active=index===selected; button.classList.toggle("active",active); button.setAttribute("aria-pressed",String(active));
     const small=button.querySelector("small"), check=button.querySelector(".dm-vehicle-profile-check");
@@ -490,7 +548,11 @@ function restoreProfilePhotos(car, before, profileCount = profiles().length) {
  * `photosForProfile` lo sa gia'. */
 export function seedActiveProfilePhotos() {
   const elenco = profiles();
-  if (elenco.length < 2) return false;
+  /* Con una macchina sola non si toglie niente: `photosForProfile` lascia in
+   * piedi quello che c'e' gia' nelle caselle quando il profilo non porta foto
+   * proprie. Serve pero' passarci lo stesso, perche' e' il giro che porta la
+   * foto dentro al profilo. */
+  if (!elenco.length) return false;
   /* Prima si adotta, poi si semina.
    *
    * Chi arriva dal formato vecchio puo' avere la foto col cavo solo nella
@@ -504,7 +566,7 @@ export function seedActiveProfilePhotos() {
    * cancellata, `cd_ev_car_active` resta fuori dall'elenco e senza questo la
    * plancia evidenzierebbe la prima vettura continuando a mostrare la foto di
    * quella che non c'e' piu'. */
-  const chiesto = activeIndex();
+  const chiesto = activeIndex(elenco);
   const indice = chiesto >= 0 && chiesto < elenco.length ? chiesto : 0;
   const car = elenco[indice];
   if (!car) return false;
@@ -526,7 +588,7 @@ function saveProfilePhotos(photos) {
   const legacy = legacyProfiles();
   const cars = legacy.length ? legacy : canonicalProfiles();
   if (!cars.length) return false;
-  const posizione = Math.max(0, Math.min(cars.length - 1, activeIndex()));
+  const posizione = Math.max(0, Math.min(cars.length - 1, activeIndex(cars)));
   const aggiornate = withProfilePhotos(cars, posizione, photos);
   if (aggiornate === cars) return false;
   if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);
@@ -541,8 +603,10 @@ function saveProfilePhotos(photos) {
 function adoptExistingPhotos() {
   const legacy = legacyProfiles();
   const cars = legacy.length ? legacy : canonicalProfiles();
-  if (cars.length < 2) return false;
-  const aggiornate = adoptLoosePhotos(cars, Math.max(0, activeIndex()), configuredPhotos());
+  // Anche una macchina sola: e' cosi' che la sua foto smette di vivere solo
+  // nelle due caselle e comincia a viaggiare col profilo.
+  if (!cars.length) return false;
+  const aggiornate = adoptLoosePhotos(cars, Math.max(0, activeIndex(cars)), configuredPhotos());
   if (aggiornate === cars) return false;
   if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);
   try {
@@ -552,7 +616,7 @@ function adoptExistingPhotos() {
 }
 
 function legacyRefreshSignature() {
-  const cars=legacyProfiles(); return `${activeIndex()}|${cars.map((car)=>`${clean(car.name)}:${clean(car.brand)}:${clean(car.icon)}`).join("|")}`;
+  const cars=legacyProfiles(); return `${activeIndex(cars)}|${cars.map((car)=>`${clean(car.name)}:${clean(car.brand)}:${clean(car.icon)}`).join("|")}`;
 }
 function installLegacyWrappers() {
   if (typeof root.cdEvCarsRefresh === "function" && !root.cdEvCarsRefresh.__dmEvSection) {
@@ -568,8 +632,12 @@ function installLegacyWrappers() {
     state.previousApply ||= root.cdEvApplyCar; const previous=root.cdEvApplyCar;
     function applyProfile(index, ...rest) {
       const before=configuredPhotos();
-      const car=legacyProfiles()[Number(index)] || {};
+      const elenco=legacyProfiles();
+      const car=elenco[Number(index)] || {};
       const result=previous.call(this,index,...rest);
+      // Scelta fatta: da qui in poi l'auto si chiama con la sua chiave, e il
+      // numero di riga e' solo la copia che il runtime continua a leggere.
+      rememberActiveCar(elenco, Number(index));
       restoreProfilePhotos(car, before);
       state.legacyRefreshSignature=""; root.queueMicrotask?.(scheduleEvSync); return result;
     }
@@ -588,6 +656,45 @@ function installLegacyWrappers() {
     }
     captureProfile.__dmEvSection=true; captureProfile.__dmPrevious=previous; root.cdEvCaptureProfile=captureProfile;
   }
+  /* Risalvare un profilo non deve cancellare l'auto.
+   *
+   * `edEvCarAdd` cerca un profilo con lo stesso nome e, trovandolo, ci scrive
+   * sopra un oggetto nuovo: `{ name, ov, img }`. Tutto il resto se ne andava
+   * senza che nessuno l'avesse chiesto — la marca scelta nella
+   * Personalizzazione, il modello, la foto col cavo attaccato, e adesso la
+   * chiave. Chi rimappava un'entita' si ritrovava l'auto senza logo e senza la
+   * seconda foto, e con la chiave persa quell'auto tornava a essere una riga.
+   *
+   * Il giro del runtime resta quello che e': si guarda com'erano le auto prima,
+   * e dopo si rimette a ciascuna quello che le appartiene. */
+  if (typeof root.edEvCarAdd === "function" && !root.edEvCarAdd.__dmEvSection) {
+    const previous=root.edEvCarAdd;
+    function addProfile(...args) {
+      const prima=legacyProfiles();
+      const result=previous.apply(this,args);
+      const dopo=legacyProfiles();
+      const rimesse=restoreCarIdentities(dopo, prima);
+      if (rimesse !== dopo) writeJsonIfChanged("cd_ev_cars", rimesse);
+      rememberActiveCar(rimesse, legacyActiveIndex());
+      root.queueMicrotask?.(scheduleEvSyncSettled);
+      return result;
+    }
+    addProfile.__dmEvSection=true; addProfile.__dmPrevious=previous; root.edEvCarAdd=addProfile;
+  }
+  /* Cancellare un'auto sposta tutte quelle sotto di lei: e' esattamente il caso
+   * in cui una posizione salvata smette di indicare la vettura che indicava. La
+   * chiave regge da sola, e se era proprio l'auto attiva a sparire si riparte
+   * da quella che la plancia mostra adesso. */
+  if (typeof root.cdEvCarBtn === "function" && !root.cdEvCarBtn.__dmEvSection) {
+    const previous=root.cdEvCarBtn;
+    function carButton(...args) {
+      const result=previous.apply(this,args);
+      ensureCarKeys();
+      root.queueMicrotask?.(scheduleEvSync);
+      return result;
+    }
+    carButton.__dmEvSection=true; carButton.__dmPrevious=previous; root.cdEvCarBtn=carButton;
+  }
   return Boolean(root.cdEvCarsRefresh || root.cdEvApplyCar);
 }
 
@@ -603,7 +710,7 @@ export function scheduleEvSyncSettled() {
 
 export function scheduleEvSync() {
   if (state.frame) return;
-  const run=()=>{state.frame=0;installLegacyWrappers();adoptExistingPhotos();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();};
+  const run=()=>{state.frame=0;installLegacyWrappers();ensureCarKeys();adoptExistingPhotos();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();};
   state.frame=root.requestAnimationFrame?.(run)||root.setTimeout?.(run,0)||0;
 }
 
@@ -647,7 +754,7 @@ function installStyles() {
 }
 
 function bindEditorEntryPoints() {
-  wrapFunction("editorSwitch", "__dmEvSection_editorSwitch", scheduleEvSyncSettled);
+  onEditorRedraw("__dmEvSection_editorSwitch", scheduleEvSyncSettled);
   wrapFunction("apriConfigEntita", "__dmEvSection_apriConfigEntita", scheduleEvSyncSettled);
 }
 
@@ -666,15 +773,16 @@ export function installEvSection() {
    * Si riprova subito, e poi appena il runtime dice di esserci. */
   root.queueMicrotask?.(installLegacyWrappers);
   root.setTimeout?.(installLegacyWrappers, 0);
+  ensureCarKeys();
   seedActiveProfilePhotos();
   scheduleEvSync();
   if (!state.installed) {
     state.installed=true;
     doc.addEventListener("click",(event)=>{if(event.target?.closest?.('[data-tab="ev"],[data-page="ev"],.ed-tab[data-tab="sez2"],.ed-acc-head'))root.setTimeout?.(scheduleEvSync,0);},true);
-    for (const eventName of ["dashboardmodern:legacy-ready","dashboardmodern:runtime-ready","pageshow"]) root.addEventListener?.(eventName,()=>{installLegacyWrappers();seedActiveProfilePhotos();scheduleEvSyncSettled();bindEditorEntryPoints();});
+    for (const eventName of ["dashboardmodern:legacy-ready","dashboardmodern:runtime-ready","pageshow"]) root.addEventListener?.(eventName,()=>{installLegacyWrappers();ensureCarKeys();seedActiveProfilePhotos();scheduleEvSyncSettled();bindEditorEntryPoints();});
     /* La configurazione condivisa arriva dopo l'avvio e riscrive le caselle
      * con quello che aveva l'altro dispositivo: anche li' vale il profilo. */
-    root.addEventListener?.("dashboardmodern:persistence-restored",()=>{seedActiveProfilePhotos();scheduleEvSync();});
+    root.addEventListener?.("dashboardmodern:persistence-restored",()=>{ensureCarKeys();seedActiveProfilePhotos();scheduleEvSync();});
     root.addEventListener?.("dashboardmodern:state-changed",(event)=>{ if (stateChangeAffectsEv(event)) scheduleEvSync(); });
   }
 }

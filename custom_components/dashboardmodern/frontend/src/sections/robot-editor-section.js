@@ -10,18 +10,7 @@
  * due invece di pretenderne una.
  */
 import { normalizeRobots } from "../core/robot-model.js";
-import {
-  clean,
-  dashboardStore,
-  doc,
-  esc,
-  installStyle,
-  readJson,
-  root,
-  t,
-  wrapFunction,
-  writeJsonIfChanged,
-} from "./shared.js";
+import { clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ROBOT_EDITOR__";
 const state = (root[KEY] ||= { installed: false, aperto: -1 });
@@ -230,7 +219,7 @@ export function installRobotEditorSection() {
   installStyles();
   ensureRobotEditorTab();
   doc.addEventListener("click", onClick);
-  wrapFunction("editorSwitch", "__dmRobotEditor", () => {
+  onEditorRedraw("__dmRobotEditor", () => {
     root.queueMicrotask?.(() => {
       ensureRobotEditorTab();
       ensureRobotEditor();

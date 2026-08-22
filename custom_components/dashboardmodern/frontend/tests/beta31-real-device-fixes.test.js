@@ -219,9 +219,22 @@ test("the cable is read from the wallbox, and 'disconnected' is not 'connected'"
   }
 });
 
-test("the second photo is part of the shared configuration", async () => {
+/* La seconda foto e' parte della configurazione condivisa — ma dentro l'auto.
+ *
+ * Prima viaggiava come casella sciolta, e questa prova pretendeva di trovarla
+ * nell'elenco delle chiavi sincronizzate. Era il modo sbagliato: quelle due
+ * caselle sono il disegno di adesso, ricavato dall'auto scelta su *questo*
+ * dispositivo, e spedirle voleva dire portare in giro la foto dell'auto attiva
+ * altrove. Adesso ogni auto si porta le sue dentro `cd_ev_cars`, che di
+ * viaggiare non ha mai smesso. */
+test("the second photo travels with the car, not loose", async () => {
   const { CONFIG_KEYS } = await import("../src/sections/config-persistence-section.js");
-  assert.ok(CONFIG_KEYS.includes("cd_ev_image_plugged"));
+  assert.ok(CONFIG_KEYS.includes("cd_ev_cars"), "le auto devono viaggiare");
+  for (const key of ["cd_ev_image", "cd_ev_image_plugged"]) {
+    assert.equal(CONFIG_KEYS.includes(key), false, `${key} non deve viaggiare da sola`);
+  }
+  const { PROFILE_PHOTO_FIELDS } = await import("../src/core/vehicle-photos.js");
+  assert.deepEqual(PROFILE_PHOTO_FIELDS, { idle: "img", plugged: "imgPlugged" });
   const source = await read("../src/sections/ev-section.js");
   assert.match(source, /export const EV_PHOTO_KEYS/);
   assert.match(source, /export function ensureVehiclePhotoEditor\(\)/);

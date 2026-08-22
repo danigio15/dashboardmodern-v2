@@ -136,20 +136,31 @@ test("current-revision cloud absence is authoritative and is not filled from sta
   assert.equal(Object.hasOwn(merged.values, "cd_devices"), false);
 });
 
-test("a snapshot from before the second vehicle photo keeps the one on this device", () => {
-  assert.ok(CONFIG_KEYS.includes("cd_ev_image_plugged"));
+/* Le foto dell'auto non viaggiano piu' come caselle sciolte.
+ *
+ * Viaggiavano, e per questo un salvataggio piu' vecchio doveva lasciar stare
+ * quella che stava su questo dispositivo. Ma spedirle era il difetto: la
+ * configurazione condivisa si portava dietro la foto dell'auto attiva altrove e
+ * al ritorno la riscriveva qui. Adesso ogni auto si porta le sue dentro
+ * `cd_ev_cars`, e queste due chiavi restano di chi le guarda.
+ */
+test("le foto dell'auto non stanno piu' fra le chiavi condivise", () => {
+  for (const key of ["cd_ev_image", "cd_ev_image_plugged"]) {
+    assert.equal(CONFIG_KEYS.includes(key), false, `${key} non deve viaggiare da sola`);
+  }
+  /* Un salvataggio vecchio le contiene ancora: non devono tornare indietro solo
+   * perche' sono scritte li' dentro. */
   const remote = normalizeRemoteSnapshot({
     version: 1,
     keys_revision: 2,
     updated_at: 5000,
-    values: { cd_ev_image: '"/local/auto.png"' },
+    values: { cd_ev_image: '"/local/auto.png"', cd_ev_cars: "[]" },
   });
+  assert.equal("cd_ev_image" in remote.values, false, "e' rientrata dalla finestra");
   const merged = mergeLegacyMissingConfig(remote, {
     cd_ev_image: '"/local/vecchia.png"',
-    cd_ev_image_plugged: '"/local/auto-cavo.png"',
   });
-  assert.equal(merged.values.cd_ev_image, '"/local/auto.png"');
-  assert.equal(merged.values.cd_ev_image_plugged, '"/local/auto-cavo.png"');
+  assert.equal("cd_ev_image" in (merged.values || {}), false);
 });
 
 test("store preserves a fresh legacy visibility write instead of overwriting it", () => {

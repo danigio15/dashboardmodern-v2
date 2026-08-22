@@ -26,7 +26,7 @@
  * an entity already in `_RAW_STATES`.
  */
 import { isRetiredEditorSlot } from "../core/editor-slots.js";
-import { clean, doc, esc, installStyle, root, t, wrapFunction } from "./shared.js";
+import { clean, doc, esc, installStyle, onEditorRedraw, root, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EDITOR_SLOTS__";
 const STYLE_ID = "dm-editor-slots-style";
@@ -991,7 +991,7 @@ function installStyles() {
  * Opening the editor is wrapped too, not just the tab switch: it is the moment
  * the rows appear, so it is the moment they need decorating. */
 function bindLegacyEntryPoints() {
-  wrapFunction("editorSwitch", "__dmEditorSlots_editorSwitch", schedule);
+  onEditorRedraw("__dmEditorSlots_editorSwitch", schedule);
   wrapFunction("apriConfigEntita", "__dmEditorSlots_apriConfigEntita", schedule);
 }
 

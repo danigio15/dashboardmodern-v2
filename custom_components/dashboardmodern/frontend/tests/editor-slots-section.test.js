@@ -105,7 +105,10 @@ test("opening the editor decorates it, whatever the order the runtime loads in",
    * on the events covers the other order. */
   assert.match(source, /function bindLegacyEntryPoints\(\)/);
   assert.match(source, /wrapFunction\("apriConfigEntita", "__dmEditorSlots_apriConfigEntita", schedule\)/);
-  assert.match(source, /wrapFunction\("editorSwitch", "__dmEditorSlots_editorSwitch", schedule\)/);
+  /* Il cambio di linguetta non e' l'unico modo in cui la scheda viene rifatta:
+   * la ridisegna anche il modello, a ogni salvataggio, e li' la decorazione se
+   * ne andava. `onEditorRedraw` e' l'uno e l'altro insieme. */
+  assert.match(source, /onEditorRedraw\("__dmEditorSlots_editorSwitch", schedule\)/);
 
   /* Attached when the module loads AND on the ready events. Attaching only in
    * the ready handlers meant never attaching at all when the bundle finished

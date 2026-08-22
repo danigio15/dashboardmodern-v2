@@ -74,7 +74,17 @@ export function withProfilePhotos(cars, index, photos = {}) {
  * Succede una volta: appena un profilo ha una foto, non c'e' piu' niente da
  * adottare. */
 export function adoptLoosePhotos(cars, index, current = { idle: "", plugged: "" }) {
-  if (!Array.isArray(cars) || cars.length < 2) return cars;
+  /* Anche con una macchina sola.
+   *
+   * L'adozione serviva solo a chi ne aveva due, perche' era li' che le foto si
+   * mescolavano. Ma finche' con una sola la foto resta soltanto nelle due
+   * caselle della plancia, quelle caselle sono l'unico posto dove la foto vive
+   * — e per farla arrivare sugli altri dispositivi bisogna spedirle. Spedirle
+   * e' proprio quello che faceva comparire l'auto sbagliata: sono il disegno
+   * di adesso, non una configurazione. Portata dentro al profilo, la foto
+   * viaggia dove viaggiano le auto, e le caselle tornano a essere quello che
+   * sono: dove il disegno guarda. */
+  if (!Array.isArray(cars) || !cars.length) return cars;
   const posizione = Number.isInteger(index) ? Math.max(0, Math.min(cars.length - 1, index)) : 0;
   const attive = profilePhotos(cars[posizione]);
   /* Una per volta, non tutte insieme.

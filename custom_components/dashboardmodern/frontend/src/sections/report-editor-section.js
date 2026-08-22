@@ -1,5 +1,5 @@
 import { reportIconForDevice } from "../core/energy-projection.js";
-import { clean, doc, esc, installStyle, root, section, t, wrapFunction } from "./shared.js";
+import { clean, doc, esc, installStyle, onEditorRedraw, root, section, t, wrapFunction } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_REPORT_EDITOR_SECTION__";
@@ -226,7 +226,7 @@ function installStyles() {
 export function installReportEditorSection() {
   if (!doc) return;
   installStyles();
-  wrapFunction("editorSwitch", "__dmReportEditorSection", normalizeReportEditorSection);
+  onEditorRedraw("__dmReportEditorSection", normalizeReportEditorSection);
   normalizeReportEditorSection();
   if (!state.listeners) {
     state.listeners = true;

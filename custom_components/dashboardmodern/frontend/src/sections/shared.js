@@ -494,6 +494,39 @@ export function wrapFunction(name, marker, callback) {
   return true;
 }
 
+/* Ogni volta che la scheda viene rifatta, non solo quando si cambia linguetta.
+ *
+ * Chi aggiunge qualcosa alla configurazione — la matita sulle righe salvate, le
+ * caselle in piu' di un infisso, le righe degli allagamenti — si agganciava a
+ * `editorSwitch`, cioe' alla navigazione fra le linguette. Ma il corpo della
+ * scheda lo rifa' anche `renderCurrentEditor`, che gira a ogni cambio del
+ * modello e non passa di li': si salva una tapparella, il modello cambia, la
+ * scheda viene ridisegnata da capo e tutto quello che ci avevamo messo sopra
+ * sparisce. Restava la riga col solo cestino — niente matita per riaprirla — e
+ * le caselle della tenda e del contatto non c'erano piu'.
+ *
+ * Quel ridisegno lo annuncia gia': `dashboardmodern:editor-rendered`. Le due
+ * cose sono lo stesso avviso — «la scheda e' nuova, rimetti la tua roba» — e
+ * chiedere entrambe una per una era il modo di dimenticarne una.
+ *
+ * L'ascolto si registra una volta per contrassegno: `wrapFunction` si rifiuta
+ * di avvolgere due volte, ma questa funzione viene richiamata a ogni giro di
+ * installazione e senza il conto si impilerebbero gli ascoltatori.
+ */
+export function onEditorRedraw(marker, callback) {
+  const avvolto = wrapFunction("editorSwitch", marker, callback);
+  const gia = (root.__dmEditorRedrawMarkers ||= new Set());
+  if (!gia.has(marker)) {
+    gia.add(marker);
+    root.addEventListener?.("dashboardmodern:editor-rendered", () => {
+      try {
+        callback();
+      } catch (_error) {}
+    });
+  }
+  return avvolto;
+}
+
 export function selectedPeriod() {
   const now = new Date();
   const month = Number(doc?.getElementById("ed-sel-month")?.value);

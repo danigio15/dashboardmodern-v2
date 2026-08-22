@@ -19,19 +19,7 @@
  * a mano quando lo si sa gia' sarebbe solo lavoro in piu'. Chi non li vuole li
  * toglie, e la rimozione resta — e' la stessa regola delle altre liste.
  */
-import {
-  allStates,
-  clean,
-  doc,
-  esc,
-  installStyle,
-  lexicalGlobal,
-  readJson,
-  root,
-  t,
-  wrapFunction,
-  writeJsonIfChanged,
-} from "./shared.js";
+import { allStates, clean, doc, esc, installStyle, lexicalGlobal, onEditorRedraw, readJson, root, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_FLOOD_ALERTS__";
 const state = (root[KEY] ||= { installed: false, frame: 0, deleteBound: false });
@@ -386,7 +374,7 @@ export function installFloodAlertsSection() {
    * la nostra fisarmonica: e' lui che va aspettato, non un evento qualsiasi che
    * passi di li' per caso. E' la stessa maniglia a cui si tiene la sezione
    * degli avvisi, che ha lo stesso problema da prima di noi. */
-  wrapFunction("editorSwitch", "__dmFloodAlerts", refreshFloodAlerts);
+  onEditorRedraw("__dmFloodAlerts", refreshFloodAlerts);
   rilevaEDisegna();
   for (const eventName of [
     "dashboardmodern:legacy-ready",

@@ -24,7 +24,7 @@
  * visibility banner is the runtime's own `cdSecToggleHtml` markup with the
  * runtime's own `edSecTog` handler.
  */
-import { clean, doc, installStyle, root, t, wrapFunction } from "./shared.js";
+import { clean, doc, installStyle, onEditorRedraw, root, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CONFIG_UNIFORMITY__";
 const STYLE_ID = "dm-config-uniformity-style";
@@ -394,7 +394,7 @@ function installStyles() {
 }
 
 function bindLegacyEntryPoints() {
-  wrapFunction("editorSwitch", "__dmConfigUniform_editorSwitch", schedule);
+  onEditorRedraw("__dmConfigUniform_editorSwitch", schedule);
   wrapFunction("apriConfigEntita", "__dmConfigUniform_apriConfigEntita", schedule);
   wrapFunction("edFilterSez", "__dmConfigUniform_edFilterSez", schedule);
 }

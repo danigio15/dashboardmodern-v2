@@ -1,3 +1,4 @@
+import { ACTIVE_CAR_KEY, resolveActiveIndex } from "../core/vehicle-identity.js";
 import { ACTION_ICON_CATALOG, CAR_BRANDS, ROOM_CATALOG, actionVisual, carBrandVisual, roomVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, readJson, root, t, writeJsonIfChanged, wrapFunction } from "./shared.js";
 
@@ -371,9 +372,13 @@ function evVisual() {
     : Array.isArray(legacyCars)
       ? legacyCars
       : [];
+  /* Quale auto si sta personalizzando la dice la sua chiave, non la sua riga:
+   * la marca e il modello scelti qui finiscono dentro al profilo, e con una
+   * posizione salvata da un altro dispositivo — o rimasta indietro dopo una
+   * cancellazione — finivano sull'auto sbagliata. */
   const requested = Number(root.localStorage?.getItem("cd_ev_car_active") ?? -1);
   const active = cars.length
-    ? Math.max(0, Math.min(cars.length - 1, Number.isFinite(requested) ? requested : 0))
+    ? resolveActiveIndex(cars, root.localStorage?.getItem(ACTIVE_CAR_KEY) || "", requested)
     : -1;
   const current = active >= 0 ? cars[active] : null;
   return { cars, active, current, fallback: readJson("cd_ev_visual", {}) };

@@ -1,3 +1,4 @@
+import { ACTIVE_CAR_KEY, resolveActiveIndex } from "../core/vehicle-identity.js";
 import { clean, dashboardStore, doc, installStyle, readJson, root, t, wrapFunction } from "./shared.js";
 
 // Compatibility owner kept temporarily while EV and Alerts are absorbed by their
@@ -75,9 +76,10 @@ function vehicles() {
 
 function activeVehicleIndex(cars = vehicles()) {
   if (!cars.length) return -1;
+  // Per chiave, come ovunque: la riga cambia sotto i piedi appena si cancella
+  // o si riordina un'auto, e questo giro riempirebbe la scheda dell'altra.
   const raw = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "0", 10);
-  const index = Number.isFinite(raw) ? raw : 0;
-  return Math.max(0, Math.min(cars.length - 1, index));
+  return resolveActiveIndex(cars, root.localStorage?.getItem(ACTIVE_CAR_KEY) || "", raw);
 }
 
 function hasOption(select, value) {

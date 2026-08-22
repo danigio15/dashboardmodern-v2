@@ -260,7 +260,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // Assistant: lo leggono in due, la plancia dentro la cornice e chi la ospita,
   // e sono due programmi diversi — un posto solo dove sta scritto e' l'unico
   // modo perche' chi smonta possa pulire anche quando la cornice non c'e' piu'.
-  assert.ok(relative.length <= 134, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 135 con l'identita' delle auto. Un profilo si e' sempre indicato con la sua
+  // posizione nell'elenco, e una posizione cambia sotto i piedi: cancellata la
+  // prima auto la seconda diventa la prima, e il numero salvato — anche quello
+  // arrivato dalla configurazione condivisa di un altro dispositivo — indica
+  // un'altra vettura. Il modulo dice chi e' un'auto, e lo dicono in quattro
+  // posti diversi: la sezione Auto, la Personalizzazione, e le due passate che
+  // riempiono la scheda. Una sola definizione, o tornano a divergere.
+  assert.ok(relative.length <= 135, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

@@ -7,23 +7,7 @@ import {
   isCumulativeEnergyEntity,
 } from "../core/period-service.js";
 import { reconcileEnergyBundle } from "./energy-calculations-section.js";
-import {
-  allStates,
-  clean,
-  dashboardStore,
-  doc,
-  english,
-  esc,
-  finite,
-  formatNumber,
-  installStyle,
-  readJson,
-  root,
-  section,
-  selectedPeriod,
-  t,
-  wrapFunction,
-} from "./shared.js";
+import { allStates, clean, dashboardStore, doc, english, esc, finite, formatNumber, installStyle, onEditorRedraw, readJson, root, section, selectedPeriod, t, wrapFunction } from "./shared.js";
 import {
   isHostedDashboard,
   sanitizeHostedCredentials,
@@ -1044,7 +1028,7 @@ function installWrappers() {
     wrapFunction(name, "__dmEnergySection", scheduleProjection);
   }
   wrapFunction("edCaricaDettaglio", "__dmEnergyDetailSection", scheduleProjection);
-  wrapFunction("editorSwitch", "__dmEnergyEditorSection", installEnergyEditorContracts);
+  onEditorRedraw("__dmEnergyEditorSection", installEnergyEditorContracts);
 }
 
 function bindEvents() {
