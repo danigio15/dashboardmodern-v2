@@ -51,6 +51,39 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - [`docs/TRANSLATIONS.md`](docs/TRANSLATIONS.md): come funziona il sistema e
   cosa serve per aggiungere una lingua.
 
+## 1.1.2
+
+### Corretto
+
+- **Cambiando la barra da fissa a scomparsa diventava tutto bianco**, plancia e
+  Home Assistant insieme, e per tornare a posto bisognava chiudere e riaprire
+  l'app. Il velo che manda la plancia a tutto schermo, per togliersi, rimetteva
+  gli stili in linea del documento «com'erano prima» — tutti insieme. Ma Home
+  Assistant il suo tema lo tiene esattamente li', come stili in linea, e se li
+  ritrovava cancellati senza potersene accorgere: per lui il tema era ancora
+  applicato, quindi non lo riscriveva. Adesso il velo rimette soltanto quello
+  che ha scritto lui, e il tema di chiunque altro non lo tocca.
+
+- **La fascia «sezione visibile / nascosta» non cambiava scritta.** La
+  preferenza cambiava davvero, ma per vederlo bisognava cambiare scheda: il
+  testo si scriveva una volta sola, quando la fascia nasceva.
+
+- **La foto dell'auto cambiava da sola aggiornando la pagina**, e usciva quella
+  dell'altra vettura o l'immagine generica. Le caselle da cui la plancia legge
+  la foto si riempivano soltanto quando si toccava un'auto; a un ricaricamento
+  nessuno la tocca, e restava dentro l'ultimo valore finitoci. Adesso all'avvio
+  seguono l'auto scelta. Con una macchina sola non cambia niente.
+
+### Cambiato
+
+- **Un infisso, quattro caselle.** Sulla stessa finestra ci stanno insieme la
+  tapparella, la tenda e la tenda da sole, e la configurazione ne chiedeva una
+  sola piu' un menu per dire di che tipo fosse: chi le aveva tutte non poteva
+  dirlo. Adesso c'e' una casella per funzione — tapparella, tenda, tenda da
+  sole, sensore apertura infisso — e il menu del tipo non serve piu', perche' il
+  tipo lo dice la casella in cui hai scritto. Quello che era gia' configurato
+  continua a funzionare com'era.
+
 ## 1.1.1
 
 ### Corretto
