@@ -263,7 +263,7 @@ export function ensureVehiclePhotoEditor() {
     panelNode = doc.createElement("section");
     panelNode.className = "ed-form dm-ev-photos";
     panelNode.dataset.evPhotos = "true";
-    panelNode.innerHTML = `<div class="ed-sec-title">📸 ${t("Foto dell'auto", "Vehicle photos")}</div>
+    panelNode.innerHTML = `<div class="ed-sec-title" data-ev-photos-title>📸 ${t("Foto dell'auto", "Vehicle photos")}</div>
       <div class="ed-intro">${t(
         "Due scatti della stessa auto: la plancia mostra quello con il cavo attaccato mentre è in ricarica e l'altro nel resto del tempo. Basta la prima: senza la seconda resta sempre quella.",
         "Two shots of the same car: the dashboard shows the plugged-in one while it charges and the other one the rest of the time. The first is enough — without the second it simply stays.",
@@ -328,6 +328,25 @@ export function ensureVehiclePhotoEditor() {
     }
   }
   for (const field of panelNode.querySelectorAll("[data-ev-photo]")) paintPhotoPreview(field);
+  /* Il pannello scrive sull'auto attiva, e lo dice.
+   *
+   * Con due auto configurate le foto caricate qui finivano "da qualche parte":
+   * sul profilo attivo, che non e' per forza quello che si sta guardando
+   * nell'accordion. Chi apriva la configurazione con la B10 attiva e caricava
+   * le foto della T03 se le ritrovava sulla B10 — ed e' esattamente il "si
+   * mischiano le foto" segnalato per giorni. Il titolo adesso porta il nome
+   * dell'auto a cui le foto verranno salvate, aggiornato a ogni passata. */
+  const titolo = panelNode.querySelector("[data-ev-photos-title]");
+  if (titolo) {
+    const elenco = profiles();
+    const attiva = elenco[Math.max(0, Math.min(elenco.length - 1, activeIndex()))];
+    const nome = clean(attiva?.name);
+    const testo = nome && elenco.length > 1
+      ? `📸 ${t("Foto dell'auto", "Vehicle photos")} — ${nome}`
+      : `📸 ${t("Foto dell'auto", "Vehicle photos")}`;
+    if (titolo.textContent !== testo) titolo.textContent = testo;
+    titolo.dataset.evPhotosFor = nome;
+  }
   return true;
 }
 
@@ -560,7 +579,26 @@ function saveProfilePhotos(photos) {
   const cars = legacy.length ? legacy : canonicalProfiles();
   if (!cars.length) return false;
   const posizione = Math.max(0, Math.min(cars.length - 1, activeIndex()));
-  const aggiornate = withProfilePhotos(cars, posizione, photos);
+  let aggiornate = withProfilePhotos(cars, posizione, photos);
+  /* La stessa coppia di foto su due auto e' la firma del vecchio furto.
+   *
+   * Il difetto che copiava le foto dell'auto attiva sul profilo risalvato ha
+   * lasciato configurazioni in cui due vetture portano la coppia identica: le
+   * foto vere di una delle due sono perse, e nessuno puo' indovinarle. Ma nel
+   * momento in cui una coppia viene salvata QUI, di quella coppia si sa tutto:
+   * appartiene all'auto attiva, per dichiarazione. Un altro profilo che la
+   * porta identica e' una copia rubata, e si ripulisce — vuota dice la
+   * verita': quell'auto una foto sua non ce l'ha ancora. */
+  const nuova = { idle: clean(photos.idle), plugged: clean(photos.plugged) };
+  if (nuova.idle || nuova.plugged) {
+    aggiornate = aggiornate.map((car, posto) => {
+      if (posto === posizione) return car;
+      const sue = { idle: clean(car.img), plugged: clean(car.imgPlugged) };
+      if (sue.idle !== nuova.idle || sue.plugged !== nuova.plugged) return car;
+      // Anche gli alias, o la foto tolta risorge dalla memoria ombra.
+      return { ...car, img: "", imgPlugged: "", image: "", image_url: "" };
+    });
+  }
   if (aggiornate === cars) return false;
   if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);
   try {

@@ -530,10 +530,10 @@ function installStyles() {
     html body #page-tapparelle#page-tapparelle .dm-tendasole.opening .dm-tendasole-telo,
     html body #page-tapparelle#page-tapparelle .dm-tendasole.closing .dm-tendasole-telo{
       animation:dmTendaOnda 1.6s ease-in-out infinite!important}
-    @media(prefers-reduced-motion:reduce){
-      html body #page-tapparelle#page-tapparelle .dm-tendasole{transition:none!important}
-      html body #page-tapparelle#page-tapparelle .dm-tendasole-telo{animation:none!important}}
-    @media(prefers-reduced-motion:reduce){html body #page-tapparelle#page-tapparelle .dm-tenda-telo{transition:none!important;animation:none!important}}
+    /* Nessun ramo a movimento ridotto sui teli: una tenda che scende e' il
+     * disegno dello stato, non un ornamento — spegnerla lasciava le tapparelle
+     * "senza animazione" sui desktop dove quell'impostazione di sistema e'
+     * attiva a insaputa di chi guarda. Come per gli elettrodomestici. */
 
     html body #page-tapparelle#page-tapparelle .tapp-pos{min-height:0!important;padding:0!important;opacity:1!important;color:var(--tapp-dim)!important;font-size:11px!important}
     html body #page-tapparelle#page-tapparelle .tapp-pos:not(:empty){display:inline-flex!important;align-self:center!important;align-items:center!important;gap:7px!important;padding:3px 12px!important;border:1px solid var(--tapp-pill-line)!important;border-radius:999px!important;background:var(--tapp-pill)!important;font-weight:900!important;letter-spacing:.9px!important;font-variant-numeric:tabular-nums!important}
@@ -550,7 +550,10 @@ function installStyles() {
     html body #page-tapparelle#page-tapparelle .tapp-btn:focus-visible{outline:3px solid color-mix(in srgb,var(--tapp-accent) 55%,transparent)!important;outline-offset:2px!important}
 
     @media(max-width:560px){html body #page-tapparelle#page-tapparelle #tapp-grid{grid-template-columns:minmax(0,360px)!important;justify-content:center!important}html body #page-tapparelle#page-tapparelle .tapp-card{max-width:360px!important}html body #page-tapparelle#page-tapparelle .tapp-btn[data-all]{flex:1 1 46%!important;padding:0 10px!important;font-size:12px!important}}
-    @media(prefers-reduced-motion:reduce){html body #page-tapparelle#page-tapparelle .tapp-card,html body #page-tapparelle#page-tapparelle .tapp-card::before,html body #page-tapparelle#page-tapparelle .tapp-state::before,html body #page-tapparelle#page-tapparelle .tapp-shutter,html body #page-tapparelle#page-tapparelle .tapp-shutter::before,html body #page-tapparelle#page-tapparelle .tapp-btn{animation:none!important;transition:none!important}}
+    /* A movimento ridotto si ferma la decorazione (card e bottoni), mai il
+     * telo che scende o la pastiglia che dice "in movimento": quelli sono lo
+     * stato della finestra, disegnato. */
+    @media(prefers-reduced-motion:reduce){html body #page-tapparelle#page-tapparelle .tapp-card,html body #page-tapparelle#page-tapparelle .tapp-btn{transition:none!important}}
     @media(max-width:640px){.dm-shutter-popup{padding:14px 12px!important}.dm-shutter-popup-card{width:calc(100% - 4px)!important;max-width:560px!important;max-height:84dvh!important;border-radius:22px!important}.dm-shutter-popup-header{min-height:60px!important;padding:10px 13px!important}.dm-shutter-popup-list{max-height:65dvh!important;padding:10px!important}.dm-shutter-popup-row{grid-template-columns:42px minmax(0,1fr)!important;gap:9px!important;padding:10px!important;border-radius:14px!important}.dm-shutter-actions{grid-column:1/-1!important;gap:5px!important}}
   `);
 }

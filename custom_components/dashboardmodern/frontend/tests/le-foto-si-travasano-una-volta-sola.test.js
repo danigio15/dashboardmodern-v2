@@ -88,3 +88,26 @@ test("un salvataggio davvero piu' vecchio si riempie ancora, ma solo di chiavi v
     "una chiave ritirata non rientra dalla finestra",
   );
 });
+
+/* La memoria ombra non riporta in vita le foto tolte.
+ *
+ * Il profilo normalizzato porta anche `image` e `image_url`: componendo
+ * `img || image` una foto svuotata apposta risorgeva dall'alias rimasto pieno
+ * al giro prima, a ogni risalvataggio della sezione. */
+import { normalizeDevice } from "../src/core/device-model.js";
+
+test("la foto svuotata non risorge dagli alias", () => {
+  const auto = normalizeDevice(
+    { name: "T03", img: "", image: "/local/vecchia.png", image_url: "/local/vecchia.png" },
+    "ev",
+  );
+  assert.equal(auto.img, "", "la foto tolta e' risorta");
+  assert.equal(auto.image, "", "l'alias image la tiene in vita");
+  assert.equal(auto.image_url, "", "l'alias image_url la tiene in vita");
+});
+
+test("chi arriva dal formato vecchio con la sola image la conserva", () => {
+  const auto = normalizeDevice({ name: "B10", image: "/local/b10.png" }, "ev");
+  assert.equal(auto.img, "/local/b10.png");
+  assert.equal(auto.image, "/local/b10.png");
+});

@@ -768,6 +768,7 @@ export default Object.freeze({
   "Pool temperature": "泳池水温",
   "Pools": "泳池",
   "Position of ${view.name}": "${view.name} 的位置",
+  "Position of ${nome}": "${nome} 的位置",
   "power": "功率",
   "Power": "功率",
   "Power (high → low)": "功率（高 → 低）",

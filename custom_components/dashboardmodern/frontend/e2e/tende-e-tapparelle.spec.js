@@ -150,15 +150,16 @@ test.describe("tende e tapparelle", () => {
 
     await apri(page);
     await semina(page);
-    // La scelta di prima e' ancora li'...
-    await expect(carta(page, "cover.tapparella_camera")).toHaveAttribute(
-      "data-dm-cover-kind",
-      "tenda",
-    );
-    // ...e la casella nuova ha fatto uscire la sua copertura, col suo tipo.
-    await expect(carta(page, "cover.tenda_sole_camera")).toHaveAttribute(
-      "data-dm-cover-kind",
-      "tenda_sole",
-    );
+    /* La scelta di prima e' ancora li' — la card e' una sola (stesso infisso,
+     * due coperture) e la principale resta una tenda... */
+    const infisso = carta(page, "cover.tapparella_camera");
+    await expect(infisso).toHaveAttribute("data-dm-cover-kind", "tenda");
+    await expect(infisso).toHaveAttribute("data-dm-covers", "2");
+    /* ...e la casella nuova ha portato il suo telo e la sua barra, col suo
+     * tipo. Il cursore trascinabile arriva solo quando l'entita' dichiara
+     * SET_POSITION — questa non ha ancora uno stato, quindi la barra e'
+     * statica, ma e' comunque SUA. */
+    await expect(infisso.locator(".dm-tendasole")).toHaveCount(1);
+    await expect(infisso.locator('[data-dm-bar="cover.tenda_sole_camera"]')).toHaveCount(1);
   });
 });

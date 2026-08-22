@@ -44,3 +44,40 @@ test("con movimento ridotto gli elettrodomestici in funzione si muovono lo stess
     )
     .toEqual({ luce: "dmGlowPulse", led: "dmDotBreathe" });
 });
+
+test("anche la tapparella che si muove si muove, a movimento ridotto", async ({
+  page,
+}, testInfo) => {
+  await bootConsolidatedDashboard(page, "dashboard.html", testInfo);
+  await page.evaluate(() => {
+    const valori = {
+      "cover.camera": {
+        entity_id: "cover.camera",
+        state: "closing",
+        attributes: { device_class: "shutter", current_position: 40, supported_features: 15 },
+      },
+    };
+    localStorage.setItem(
+      "cd_tapparelle",
+      JSON.stringify([{ id: "t1", name: "Camera", entity: "cover.camera" }]),
+    );
+    window.__HASS__ = { states: { ...(window.__HASS__?.states || {}), ...valori } };
+    const raw = window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null");
+    if (raw) Object.assign(raw, valori);
+    document.querySelectorAll(".page").forEach((nodo) => nodo.classList.remove("active"));
+    document.getElementById("page-tapparelle")?.classList.add("active");
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+    window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
+  });
+  const card = page.locator('[data-dm-shutter-card][data-tapp="cover.camera"]');
+  await card.waitFor();
+  // Il rullo che gira mentre la tapparella scende: e' lo stato, non un fregio.
+  await expect
+    .poll(() =>
+      card.evaluate((nodo) => {
+        const telo = nodo.querySelector(".tapp-shutter");
+        return telo ? getComputedStyle(telo, "::before").animationName : "manca";
+      }),
+    )
+    .toBe("dmTappRoll");
+});

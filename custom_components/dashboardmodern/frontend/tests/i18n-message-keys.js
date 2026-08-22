@@ -771,6 +771,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Pool light",
   "Pool temperature",
   "Pools",
+  "Position of ${nome}",
   "Position of ${view.name}",
   "power",
   "Power",

@@ -71,7 +71,7 @@ test("commands stay on the legacy handler and positions go through the service",
 test("only a cover that reports SET_POSITION becomes draggable", () => {
   assert.match(scene, /const SUPPORT_SET_POSITION = 4/);
   assert.match(scene, /settable: Boolean\(features & SUPPORT_SET_POSITION\)/);
-  assert.match(scene, /if \(!view\.settable\) return `<div class="dm-tapp-track" data-dm-static/);
+  assert.match(scene, /if \(!view\.settable\)\n?\s*return `<div class="dm-tapp-track" data-dm-static/);
 });
 
 test("the page keeps the same way back home as every other section", () => {
@@ -98,7 +98,11 @@ test("nothing shares the row with the window", () => {
   assert.match(scene, /\.dm-tapp-stage \.tapp-win\{width:100%!important/);
   // The position is a full-width rail under the window with the readout at its
   // end, so it is one horizontal control instead of a vertical one at the side.
-  assert.match(scene, /<div class="dm-tapp-bar">\n\s+\$\{trackMarkup\(view\)\}\n\s+<div class="tapp-pos" data-dm-readout><\/div>\n\s+<\/div>/);
+  /* La barra e' una per copertura, ciascuna col suo cursore e la sua
+   * percentuale: e' cosi' che una finestra con tre entita' mostra tre
+   * cursori sotto lo stesso disegno. */
+  assert.match(scene, /class="dm-tapp-bar" data-dm-bar=/);
+  assert.match(scene, /tutte\.map\(\(cover\) => barMarkup\(cover, multiple\)\)/);
   assert.match(scene, /\.dm-tapp-track\{\n\s+position:relative!important;flex:1 1 auto!important/);
   assert.match(scene, /background:linear-gradient\(90deg,var\(--tapp-track-sky\) 0 calc\(var\(--tapp-open,0\) \* 100%\)/);
   assert.doesNotMatch(scene, /rotate\(-90deg\)/);
@@ -108,6 +112,6 @@ test("nothing shares the row with the window", () => {
 test("a position the user asked for survives the next legacy repaint", () => {
   // Home Assistant keeps reporting the old position until the motor arrives.
   assert.match(scene, /const GRAB_MS = \d+/);
-  assert.match(scene, /range !== doc\.activeElement && !state\.grabbed\.has\(view\.entity\)/);
+  assert.match(scene, /range !== doc\.activeElement && !state\.grabbed\.has\(cover\.entity\)/);
   assert.match(scene, /const grab = state\.grabbed\.get\(entity\)/);
 });

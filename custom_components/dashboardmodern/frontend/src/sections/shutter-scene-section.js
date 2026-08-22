@@ -93,13 +93,28 @@ function nomeCopertura(item, current, entity, distingui) {
   return `${base} · ${coverKindLabel(coverKind(item, current))}`;
 }
 
-/* Le card di una riga di configurazione: una per casella compilata. */
+/* Una riga di configurazione e' UNA finestra, anche con tre coperture.
+ *
+ * Le caselle in piu' — tenda, tenda da sole — uscivano come card separate: tre
+ * riquadri per lo stesso infisso, e sotto la foto della finestra il cursore
+ * era sempre uno solo. Chiesto piu' volte, con le stesse parole: «i 3 cursori,
+ * uno per ogni entita', sotto la foto della finestra». La card adesso e' una:
+ * la finestra disegna tutti i teli insieme, e sotto c'e' un cursore per
+ * copertura, ciascuno con la sua etichetta e la sua percentuale. */
 function viewsFor(item = {}) {
   const entries = coverEntries(item);
   if (!entries.length) return [coverView(item)].filter(Boolean);
-  return entries
-    .map(({ entity, kind }) => coverView({ ...item, entity, kind }, entries.length > 1))
+  const viste = entries
+    .map(({ entity, kind }) => coverView({ ...item, entity, kind }, false))
     .filter(Boolean);
+  if (viste.length <= 1) return viste;
+  const [principale, ...altre] = viste;
+  return [{ ...principale, extra: altre }];
+}
+
+/** Tutte le coperture di una view, la principale per prima. */
+function coperture(view) {
+  return [view, ...(view.extra || [])];
 }
 
 function coverList() {
@@ -134,7 +149,11 @@ function groupLabel(view) {
  */
 function signature(views) {
   return views
-    .map((view) => [view.entity, view.name, view.floor, view.room, view.settable, view.kind].join("~"))
+    .map((view) =>
+      coperture(view)
+        .map((c) => [c.entity, c.name, view.floor, view.room, c.settable, c.kind].join("~"))
+        .join("+"),
+    )
     .join("|");
 }
 
@@ -163,9 +182,10 @@ function statusLabel(view) {
 }
 
 function summaryText(views) {
-  const moving = views.filter((view) => view.moving).length;
-  const open = views.filter((view) => !view.moving && view.position > 0).length;
-  const closed = views.length - moving - open;
+  const tutte = views.flatMap(coperture);
+  const moving = tutte.filter((view) => view.moving).length;
+  const open = tutte.filter((view) => !view.moving && view.position > 0).length;
+  const closed = tutte.length - moving - open;
   const parts = [];
   if (open) parts.push(open === 1 ? t("1 aperta", "1 open") : t(`${open} aperte`, `${open} open`));
   if (closed) parts.push(closed === 1 ? t("1 chiusa", "1 closed") : t(`${closed} chiuse`, `${closed} closed`));
@@ -235,12 +255,25 @@ function groupMarkup(view, count) {
  * cannot be sent to a position still shows where it stands; only a cover that
  * reports SET_POSITION gets the input that makes it draggable.
  */
-function trackMarkup(view) {
-  if (!view.settable) return `<div class="dm-tapp-track" data-dm-static aria-hidden="true"></div>`;
+function trackMarkup(view, { entity = "", etichetta = "" } = {}) {
+  const attr = entity ? ` data-dm-entity="${esc(entity)}"` : "";
+  if (!view.settable)
+    return `<div class="dm-tapp-track" data-dm-static aria-hidden="true"${attr}></div>`;
   const label = t(`Posizione di ${view.name}`, `Position of ${view.name}`);
-  return `<div class="dm-tapp-track">
+  return `<div class="dm-tapp-track"${attr}>
     <input class="dm-tapp-range" type="range" min="0" max="100" step="1" value="${view.position}"
-      aria-label="${esc(label)}" data-dm-position>
+      aria-label="${esc(etichetta || label)}"${attr} data-dm-position>
+  </div>`;
+}
+
+/* La barra di una copertura: etichetta (solo quando ce n'e' piu' d'una),
+ * cursore e percentuale, ciascuno legato alla propria entita'. */
+function barMarkup(cover, conEtichetta) {
+  const nome = coverKindLabel(cover.kind || "tapparella");
+  return `<div class="dm-tapp-bar" data-dm-bar="${esc(cover.entity)}">
+    ${conEtichetta ? `<span class="dm-tapp-bar-label">${esc(nome)}</span>` : ""}
+    ${trackMarkup(cover, { entity: cover.entity, etichetta: t(`Posizione di ${nome}`, `Position of ${nome}`) })}
+    <div class="tapp-pos" data-dm-readout data-dm-entity="${esc(cover.entity)}"></div>
   </div>`;
 }
 
@@ -266,7 +299,9 @@ function panelMarkup(view) {
 }
 
 function cardMarkup(view) {
-  return `<article class="tapp-card dm-tapp-card" data-tapp="${esc(view.entity)}" data-dm-cover-kind="${esc(view.kind)}" data-dm-shutter-card>
+  const tutte = coperture(view);
+  const multiple = tutte.length > 1;
+  return `<article class="tapp-card dm-tapp-card" data-tapp="${esc(view.entity)}" data-dm-cover-kind="${esc(view.kind)}" data-dm-shutter-card${multiple ? ` data-dm-covers="${tutte.length}"` : ""}>
     <div class="tapp-head dm-tapp-head">
       <span class="dm-tapp-title">
         <span class="tapp-name">${esc(view.name)}</span>
@@ -277,14 +312,11 @@ function cardMarkup(view) {
     <div class="dm-tapp-stage">
       <div class="tapp-win">
         <div class="tapp-glass"></div>
-        ${panelMarkup(view)}
+        ${tutte.map((cover) => `<span data-dm-cover="${esc(cover.entity)}" class="dm-tapp-layer">${panelMarkup(cover)}</span>`).join("")}
       </div>
     </div>
     <div class="dm-tapp-spill" aria-hidden="true"></div>
-    <div class="dm-tapp-bar">
-      ${trackMarkup(view)}
-      <div class="tapp-pos" data-dm-readout></div>
-    </div>
+    ${tutte.map((cover) => barMarkup(cover, multiple)).join("")}
     <div class="tapp-ctl">
       <button type="button" class="tapp-btn" data-svc="open_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Apri", "Open"))}">▲</button>
       <button type="button" class="tapp-btn" data-svc="stop_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Ferma", "Stop"))}">■</button>
@@ -324,33 +356,43 @@ function syncCard(card, view) {
     badge.textContent = statusLabel(view);
   }
 
-  const panel = card.querySelector("[data-dm-panel]");
-  if (panel) {
-    const moto = `${view.status === "opening" ? " opening" : ""}${view.status === "closing" ? " closing" : ""}`;
-    const chiuso = coverClosedPercent(view.position);
-    if (coverIsAwning(view.kind)) {
-      // Scende dall'alto come la tapparella: cambia il telo, non il verso.
-      panel.className = `dm-tendasole${moto}`;
-      panel.style.height = `${chiuso}%`;
-    } else if (coverIsSideways(view.kind)) {
-      panel.className = `dm-tenda${moto}`;
-      // I due teli si dividono la parte coperta: meta' per uno, dal centro.
-      panel.style.setProperty("--tenda-chiusa", `${chiuso / 2}%`);
-    } else {
-      panel.className = `tapp-shutter${moto}`;
-      panel.style.height = `${chiuso}%`;
-    }
+  for (const cover of coperture(view)) syncCover(card, cover);
+}
+
+function dipingiPannello(panel, cover) {
+  const moto = `${cover.status === "opening" ? " opening" : ""}${cover.status === "closing" ? " closing" : ""}`;
+  const chiuso = coverClosedPercent(cover.position);
+  if (coverIsAwning(cover.kind)) {
+    // Scende dall'alto come la tapparella: cambia il telo, non il verso.
+    panel.className = `dm-tendasole${moto}`;
+    panel.style.height = `${chiuso}%`;
+  } else if (coverIsSideways(cover.kind)) {
+    panel.className = `dm-tenda${moto}`;
+    // I due teli si dividono la parte coperta: meta' per uno, dal centro.
+    panel.style.setProperty("--tenda-chiusa", `${chiuso / 2}%`);
+  } else {
+    panel.className = `tapp-shutter${moto}`;
+    panel.style.height = `${chiuso}%`;
   }
+}
 
-  const readout = card.querySelector("[data-dm-readout]");
-  if (readout) readout.textContent = view.hasPosition ? `${view.position}%` : "";
+/* Ogni copertura della card aggiorna il SUO telo, il SUO cursore e la SUA
+ * percentuale: e' il selettore per entita' a tenerli separati. */
+function syncCover(card, cover) {
+  const scope = `[data-dm-entity="${CSS.escape(cover.entity)}"]`;
+  const layer = card.querySelector(`[data-dm-cover="${CSS.escape(cover.entity)}"] [data-dm-panel]`);
+  const panel = layer || card.querySelector("[data-dm-panel]");
+  if (panel) dipingiPannello(panel, cover);
 
-  const range = card.querySelector("[data-dm-position]");
+  const readout = card.querySelector(`[data-dm-readout]${scope}`) || card.querySelector("[data-dm-readout]");
+  if (readout) readout.textContent = cover.hasPosition ? `${cover.position}%` : "";
+
+  const range = card.querySelector(`[data-dm-position]${scope}`) || card.querySelector("[data-dm-position]");
   // Never write over a track the user is holding: doc.activeElement covers the
   // keyboard and the in-flight drag, the grab window covers the seconds the
   // motor needs before Home Assistant reports the position that was asked for.
-  if (range && range !== doc.activeElement && !state.grabbed.has(view.entity)) {
-    range.value = String(view.position);
+  if (range && range !== doc.activeElement && !state.grabbed.has(cover.entity)) {
+    range.value = String(cover.position);
   }
 }
 
@@ -368,6 +410,24 @@ function insegnaComandoDiGruppo() {
   const originale = root.cdTappCmd;
   if (typeof originale !== "function" || originale.__dmTutteLeCoperture) return false;
   const avvolta = function cdTappCmd(button, ...resto) {
+    /* Sui bottoni di una card con piu' coperture, "apri" apre la finestra
+     * intera: il comando parte una volta per copertura, con la stessa
+     * chiamata di servizio del runtime. */
+    const cardMulti = button?.closest?.("[data-dm-shutter-card][data-dm-covers]");
+    if (cardMulti && !button?.getAttribute?.("data-all")) {
+      const servizio = button.getAttribute("data-svc");
+      for (const barra of cardMulti.querySelectorAll("[data-dm-bar]")) {
+        try {
+          const carta = doc.createElement("div");
+          carta.setAttribute("data-tapp", barra.getAttribute("data-dm-bar"));
+          const finto = doc.createElement("button");
+          finto.setAttribute("data-svc", servizio);
+          carta.append(finto);
+          originale.call(this, finto);
+        } catch (_error) {}
+      }
+      return undefined;
+    }
     if (!button?.getAttribute?.("data-all")) return originale.call(this, button, ...resto);
     const servizio = button.getAttribute("data-svc");
     for (const { entity } of configuredCovers().flatMap((item) => coverEntries(item))) {
@@ -463,18 +523,23 @@ function cardOf(node) {
 function previewPosition(range) {
   const card = cardOf(range);
   if (!card) return;
+  const entity = clean(range.dataset.dmEntity) || clean(card.dataset.tapp);
   const position = Math.max(0, Math.min(100, Math.round(Number(range.value) || 0)));
-  grab(clean(card.dataset.tapp), position);
-  card.style.setProperty("--tapp-open", String(position / 100));
-  const panel = card.querySelector("[data-dm-panel]");
-  if (panel) panel.style.height = `${100 - position}%`;
-  const readout = card.querySelector("[data-dm-readout]");
+  grab(entity, position);
+  const scope = `[data-dm-entity="${CSS.escape(entity)}"]`;
+  if (entity === clean(card.dataset.tapp)) card.style.setProperty("--tapp-open", String(position / 100));
+  const panel =
+    card.querySelector(`[data-dm-cover="${CSS.escape(entity)}"] [data-dm-panel]`) ||
+    card.querySelector("[data-dm-panel]");
+  if (panel && !panel.classList.contains("dm-tenda")) panel.style.height = `${100 - position}%`;
+  else if (panel) panel.style.setProperty("--tenda-chiusa", `${(100 - position) / 2}%`);
+  const readout = card.querySelector(`[data-dm-readout]${scope}`) || card.querySelector("[data-dm-readout]");
   if (readout) readout.textContent = `${position}%`;
 }
 
 async function commitPosition(range) {
   const card = cardOf(range);
-  const entity = clean(card?.dataset.tapp);
+  const entity = clean(range.dataset.dmEntity) || clean(card?.dataset.tapp);
   if (!entity) return;
   const position = Math.max(0, Math.min(100, Math.round(Number(range.value) || 0)));
   grab(entity, position);
@@ -573,6 +638,13 @@ function installStyles() {
        with the readout at its end. */
     html body #page-tapparelle#page-tapparelle .dm-tapp-bar{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important}
     html body #page-tapparelle#page-tapparelle .dm-tapp-bar>.tapp-pos{flex:0 0 auto!important;align-self:center!important}
+    /* Con piu' coperture ogni barra dice di chi e': l'etichetta prende una
+     * colonna fissa cosi' i tre cursori restano incolonnati. */
+    html body #page-tapparelle#page-tapparelle .dm-tapp-bar-label{flex:0 0 92px!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:11px!important;font-weight:800!important;letter-spacing:.4px!important;text-transform:uppercase!important;color:var(--tapp-dim)!important}
+    html body #page-tapparelle#page-tapparelle [data-dm-covers] .dm-tapp-bar+.dm-tapp-bar{margin-top:6px!important}
+    /* I teli convivono nella stessa finestra: lo strato e' trasparente al
+     * layout, il CSS dei pannelli continua a vederli figli della finestra. */
+    html body #page-tapparelle#page-tapparelle .dm-tapp-layer{display:contents!important}
     html body #page-tapparelle#page-tapparelle .dm-tapp-track{
       position:relative!important;flex:1 1 auto!important;box-sizing:border-box!important;height:26px!important;min-width:0!important;
       border:1px solid var(--tapp-pill-line)!important;border-radius:13px!important;overflow:hidden!important;

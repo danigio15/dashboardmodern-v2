@@ -7,6 +7,40 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
 
+## 1.1.6
+
+### Corretto
+
+- **La foto dell'auto risorgeva da sola, ancora.** Il profilo normalizzato nel
+  negozio canonico porta anche `image` e `image_url`, e componendo
+  `img || image` una foto svuotata apposta tornava in vita dall'alias rimasto
+  pieno al giro prima: a ogni risalvataggio della sezione la foto vecchia si
+  ripiazzava sull'auto sbagliata, qualunque cosa si facesse dal pannello. Era
+  «c'è qualche sezione che sovrascrive», alla lettera. Adesso `img` comanda,
+  anche vuota, e gli alias la seguono invece di farle da memoria ombra.
+
+- **Il pannello foto dice a quale auto sta scrivendo.** Le foto caricate in
+  configurazione finiscono sull'auto attiva, che non è per forza quella che si
+  sta guardando: chi apriva il pannello con l'altra vettura attiva se le
+  ritrovava sull'auto sbagliata, senza che niente lo dicesse. Il titolo ora
+  porta il nome dell'auto di destinazione e segue il cambio in tempo reale. E
+  una coppia di foto salvata su un'auto viene tolta a chi la portava identica:
+  è la firma del vecchio difetto che le mescolava, e la dichiarazione nuova
+  vince sulla copia.
+
+- **Le tapparelle erano rimaste senza animazioni da desktop.** Stessa causa
+  degli elettrodomestici: «riduci il movimento» del sistema operativo spegneva
+  anche il telo che scende e il rullo che gira, che sono lo stato della
+  finestra, non un ornamento. Restano fermi solo i fregi: il sollevamento della
+  card e le transizioni dei bottoni.
+
+- **Una finestra con tre coperture usciva come tre card.** E sotto la foto
+  della finestra il cursore era sempre uno. Adesso una riga di configurazione è
+  una card sola: la finestra disegna tutti i teli insieme — tapparella,
+  tenda, tenda da sole — e sotto ci sono i cursori, uno per copertura, ognuno
+  con la sua etichetta, la sua percentuale e il suo comando. I bottoni
+  apri/ferma/chiudi della card muovono l'infisso intero.
+
 ## 1.1.5
 
 ### Corretto
