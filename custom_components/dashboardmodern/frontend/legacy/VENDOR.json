@@ -15,6 +15,16 @@
     "cameras-wipe",
     "alarm-entity",
     "pin-length",
-    "pin-display"
+    "pin-display",
+    "xss-esc-helper",
+    "xss-appl-editor-name",
+    "xss-entity-list",
+    "xss-row-name",
+    "xss-avviso-custom-row",
+    "xss-avviso-cond-value",
+    "xss-wizard-avviso-icon",
+    "xss-wizard-avviso-name",
+    "xss-esc-appliances",
+    "xss-esc-avvisi"
   ]
 }

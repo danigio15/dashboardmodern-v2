@@ -356,6 +356,108 @@ async def test_chi_e_in_lista_continua_a_salvare(hass: HomeAssistant) -> None:
     assert salvato["status"] == "saved"
 
 
+async def test_il_profilo_lo_decide_il_server_non_il_client(
+    hass: HomeAssistant,
+) -> None:
+    """Passare l'entry_id proprio e il profilo altrui non apre l'altrui.
+
+    Due plance: la principale (aperta) e una seconda riservata agli
+    amministratori. Un utente normale e' autorizzato per la principale. Se
+    chiama con il proprio entry_id ma nomina il profilo della seconda plancia,
+    il server deriva comunque il profilo dalla principale: la configurazione
+    riservata non viene ne' letta ne' riscritta.
+    """
+    principale = MockConfigEntry(
+        domain=DOMAIN, entry_id="entry-1", title="Casa", options={}
+    )
+    principale.add_to_hass(hass)
+    riservata = MockConfigEntry(
+        domain=DOMAIN, entry_id="entry-2", title="Studio", options={"admin_only": True}
+    )
+    riservata.add_to_hass(hass)
+
+    store = await async_get_config_store(hass)
+    segreto = {**VALUES, "cd_costo_kwh": "SEGRETO"}
+    await store.async_set("plancia-studio", segreto, keys_revision=2)
+
+    utente = StubConnection(hass, is_admin=False)
+    # Legge nominando il profilo riservato ma con l'entry_id della principale.
+    letto = await _command(
+        hass,
+        utente,
+        {"type": TYPE_GET, "entry_id": "entry-1", "profile": "plancia-studio"},
+        1,
+    )
+    assert letto["profile"] == PRIMARY_PROFILE
+    assert letto["snapshot"] is None  # La principale e' vuota; lo studio non trapela.
+
+    # E scrivere con la stessa combinazione non tocca lo studio.
+    await _command(
+        hass,
+        utente,
+        {
+            "type": TYPE_SET,
+            "entry_id": "entry-1",
+            "profile": "plancia-studio",
+            "snapshot": {
+                "values": {**VALUES, "cd_costo_kwh": "MANOMESSO"},
+                "keys_revision": 2,
+            },
+        },
+        2,
+    )
+    studio = await store.async_get("plancia-studio")
+    assert studio["snapshot"]["values"]["cd_costo_kwh"] == "SEGRETO"
+
+    # Puntare direttamente alla plancia riservata resta negato.
+    codice, _ = await _errore(
+        hass, utente, {"type": TYPE_GET, "entry_id": "entry-2"}, 3
+    )
+    assert codice == websocket_api.const.ERR_UNAUTHORIZED
+
+
+async def test_un_utente_normale_non_inventa_profili(hass: HomeAssistant) -> None:
+    """Senza entry_id, un non-amministratore raggiunge solo la principale.
+
+    Un profilo arbitrario indicato dal client viene ignorato: la scrittura
+    finisce nella principale, e nessun profilo nuovo nasce dallo storage.
+    """
+    _plancia(hass)
+    store = await async_get_config_store(hass)
+
+    utente = StubConnection(hass, is_admin=False)
+    await _command(
+        hass,
+        utente,
+        {
+            "type": TYPE_SET,
+            "profile": "inventato",
+            "snapshot": {"values": VALUES, "keys_revision": 2},
+        },
+        1,
+    )
+
+    stored = await store.async_get(PRIMARY_PROFILE)
+    assert stored["snapshot"]["values"] == VALUES
+    assert "inventato" not in stored["profiles"]
+
+
+async def test_l_elenco_dei_profili_e_solo_per_gli_admin(hass: HomeAssistant) -> None:
+    """Un utente normale non scopre quali altre plance esistono."""
+    _plancia(hass)
+    store = await async_get_config_store(hass)
+    await store.async_set(PRIMARY_PROFILE, VALUES, keys_revision=2)
+    await store.async_set("plancia-studio", VALUES, keys_revision=2)
+
+    admin = StubConnection(hass)
+    visto = await _command(hass, admin, {"type": TYPE_GET}, 1)
+    assert "plancia-studio" in visto["profiles"]
+
+    utente = StubConnection(hass, is_admin=False)
+    visto = await _command(hass, utente, {"type": TYPE_GET}, 2)
+    assert visto["profiles"] == [PRIMARY_PROFILE]
+
+
 async def test_una_plancia_aperta_resta_aperta(hass: HomeAssistant) -> None:
     """Senza restrizioni scelte dal proprietario, non se ne inventano.
 

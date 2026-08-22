@@ -17,4 +17,4 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
       - name: Run hassfest
-        uses: home-assistant/actions/hassfest@master
+        uses: home-assistant/actions/hassfest@a7c616ce81ccda50150bf1595786c71b1883fabb # master @ 2026-08-03

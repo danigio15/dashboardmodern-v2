@@ -208,6 +208,7 @@ function cdApplianceIcon(type, size) {
   };
   return '<svg '+A+'>'+(I[type]||I.generico)+'</svg>';
 }
+function cdEscHtml(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function cdApplianceName(type){ const x=DM_APPLIANCES.find(a=>a.t===type); return x?x.n:'Appliance'; }
 function cdApplianceDisplayName(a){ const api=window.DashboardModernModules&&DashboardModernModules.data; return api&&api.applianceName?api.applianceName(a,STATES,'Appliance'):(String(a&&a.name||'').trim()||'Appliance'); }
 function cdIconMarkup(icon,size){ icon=String(icon||''); size=size||30; if(icon.indexOf('mdi:')===0) return '<ha-icon icon="'+icon.replace(/"/g,'&quot;')+'" style="--mdc-icon-size:'+size+'px;width:'+size+'px;height:'+size+'px"></ha-icon>'; return icon; }
@@ -383,11 +384,11 @@ function editorRenderAppliances(){
   const list=getAppliances();
   const rows=list.map((a,i)=>{
     const ents=(a.entities||[]).map(e=>typeof e==='string'?e:e.entity);
-    return '<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new"><span style="display:inline-flex;vertical-align:middle;color:#0ea5e9;">'+cdApplianceIcon(a.icon,18)+'</span> '+(a&&a.name?a.name:cdApplianceName(a.icon))+' <span style="color:var(--text-dim,#94a3b8);font-size:11px;font-weight:700;">· '+ents.length+' entities</span></div><div class="ed-row-old mono">'+ents.join(', ')+'</div></div><div class="ed-del" onclick="edApplEdit('+i+')" style="color:#0ea5e9;" title="Modifica">✏️</div><div class="ed-del" onclick="edApplDel('+i+')" title="Elimina">🗑️</div></div>';
+    return '<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new"><span style="display:inline-flex;vertical-align:middle;color:#0ea5e9;">'+cdApplianceIcon(a.icon,18)+'</span> '+cdEscHtml(a&&a.name?a.name:cdApplianceName(a.icon))+' <span style="color:var(--text-dim,#94a3b8);font-size:11px;font-weight:700;">· '+ents.length+' entities</span></div><div class="ed-row-old mono">'+cdEscHtml(ents.join(', '))+'</div></div><div class="ed-del" onclick="edApplEdit('+i+')" style="color:#0ea5e9;" title="Modifica">✏️</div><div class="ed-del" onclick="edApplDel('+i+')" title="Elimina">🗑️</div></div>';
   }).join('') || '<div class="ed-empty">No appliance configured</div>';
   const editing=(_applEditIdx!=null && list[_applEditIdx]);
   const ed=editing?list[_applEditIdx]:{};
-  const esc=x=>String(x==null?'':x).replace(/"/g,'&quot;');
+  const esc=x=>cdEscHtml(x);
   const curIcon=editing?(ed.icon||'generico'):'generico';
   return '<div class="ed-intro">Add your appliances (washing machine, dishwasher, oven, microwave…). You can link <b>one or more entities</b> to each; the status (Running / Standby / Off) is derived from <b>power draw in Watts</b>, so it works even with <b>non-wifi</b> appliances via a smart plug.</div>'
     +'<div class="ed-list">'+rows+'</div>'
@@ -480,7 +481,7 @@ function cdBrandLogo(size, withWordmark) {
 
 /* v0.9.7 (#4): custom alerts — condition label, evaluation, render in the Alerts Panel */
 function cdAvvisoCondLabel(a) {
-    const v = (a && a.value != null) ? a.value : '';
+    const v = cdEscHtml((a && a.value != null) ? a.value : '');
     switch (a && a.cond) {
         case 'off': return 'off';
         case 'eq':  return '= ' + v;
@@ -1679,7 +1680,7 @@ function editorRenderAvvisi() {
             const nm = extN[id] || AVVISI_NAMES[id] || (STATES[id]?.attributes?.friendly_name) || id;
             rows += `<div class="ed-row">
               <div class="ed-row-main">
-                <div class="ed-row-new">${nm}</div>
+                <div class="ed-row-new">${cdEscHtml(nm)}</div>
                 <div class="ed-row-old mono">${glbl} · ${id}</div>
               </div>
               <div class="ed-del" onclick="edDelAvviso('${grp}','${id}')">🗑️</div>
@@ -1691,14 +1692,14 @@ function editorRenderAvvisi() {
     if (customList.length) {
         const cinner = customList.map((a, i) => {
             const ents = a.entities || (a.entity ? [a.entity] : []);
-            return `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${a.icon||'⚠️'} ${(a.name||ents[0]||'')} <span style="color:var(--text-dim,#94a3b8); font-size:11px; font-weight:700;">· ${cdAvvisoCondLabel(a)}${ents.length>1?' · '+ents.length+' entities':''}</span></div><div class="ed-row-old mono">${ents.join(', ')}</div></div><div class="ed-del" onclick="edEditAvvisoCustom(${i})" style="color:#0ea5e9;" title="Edit">✏️</div><div class="ed-del" onclick="edDelAvvisoCustom(${i})" title="Delete">🗑️</div></div>`;
+            return `<div class="ed-row"><div class="ed-row-main"><div class="ed-row-new">${cdEscHtml(a.icon||'⚠️')} ${cdEscHtml(a.name||ents[0]||'')} <span style="color:var(--text-dim,#94a3b8); font-size:11px; font-weight:700;">· ${cdAvvisoCondLabel(a)}${ents.length>1?' · '+ents.length+' entities':''}</span></div><div class="ed-row-old mono">${cdEscHtml(ents.join(', '))}</div></div><div class="ed-del" onclick="edEditAvvisoCustom(${i})" style="color:#0ea5e9;" title="Edit">✏️</div><div class="ed-del" onclick="edDelAvvisoCustom(${i})" title="Delete">🗑️</div></div>`;
         }).join('');
         rows += `<details class="ed-acc" open><summary class="ed-acc-head">⭐ Custom <span class="ed-acc-n">${customList.length}</span></summary><div class="ed-acc-body"><div class="ed-list">${cinner}</div></div></details>`;
     }
     if (!rows) rows = '<div class="ed-empty">No alerts configured</div>';
     const editing = (_avvEditIdx !== null && customList[_avvEditIdx]);
     const ed = editing ? customList[_avvEditIdx] : {};
-    const esc = (x) => String(x == null ? '' : x).replace(/"/g, '&quot;');
+    const esc = (x) => cdEscHtml(x);
     const cOpt = (v, l) => `<option value="${v}"${(editing && ed.cond === v) ? ' selected' : ''}>${l}</option>`;
     const showVal = editing && ['eq','neq','gt','lt'].includes(ed.cond);
     return `
@@ -2170,9 +2171,9 @@ function wzRender() {
             <div class="ed-slot-lbl" style="margin-bottom:4px;">Openings (doors/windows) and batteries monitored on Home. With <b>⭐ Custom</b> you can create an alert on any entity, with your own name, condition and icon.</div>
             ${['win','batt'].map(grp => (GRUPPI_MONITORAGGIO[grp]||[]).map(id => {
                 const nm = cdCfg('cd_avvisi_names_extra')[id] || AVVISI_NAMES[id] || id;
-                return `<div class="ed-row"><div style="font-size:15px;">${grp==='win'?'🚪':'🔋'}</div><div class="ed-row-main"><div class="ed-row-new">${nm}</div><div class="ed-row-old mono">${id}</div></div><div class="ed-del" onclick="wzDelAvviso('${grp}','${id}')">🗑️</div></div>`;
+                return `<div class="ed-row"><div style="font-size:15px;">${grp==='win'?'🚪':'🔋'}</div><div class="ed-row-main"><div class="ed-row-new">${cdEscHtml(nm)}</div><div class="ed-row-old mono">${id}</div></div><div class="ed-del" onclick="wzDelAvviso('${grp}','${id}')">🗑️</div></div>`;
             }).join('')).join('')}
-            ${cdCfgList('cd_avvisi_custom').map((a, i) => `<div class="ed-row"><div style="font-size:15px;">${a.icon||'⚠️'}</div><div class="ed-row-main"><div class="ed-row-new">${(a.name||a.entity)} <span style="font-weight:700; color:var(--text-dim,#94a3b8); font-size:10.5px;">· ${cdAvvisoCondLabel(a)}</span></div><div class="ed-row-old mono">${a.entity}</div></div><div class="ed-del" onclick="wzDelAvvisoCustom(${i})">🗑️</div></div>`).join('')}
+            ${cdCfgList('cd_avvisi_custom').map((a, i) => `<div class="ed-row"><div style="font-size:15px;">${cdEscHtml(a.icon||'⚠️')}</div><div class="ed-row-main"><div class="ed-row-new">${cdEscHtml(a.name||a.entity)} <span style="font-weight:700; color:var(--text-dim,#94a3b8); font-size:10.5px;">· ${cdAvvisoCondLabel(a)}</span></div><div class="ed-row-old mono">${a.entity}</div></div><div class="ed-del" onclick="wzDelAvvisoCustom(${i})">🗑️</div></div>`).join('')}
             <div style="display:flex; gap:8px; margin-bottom:8px; margin-top:6px;">
               <select id="wz-av-grp" class="wz-input" style="margin-bottom:0; flex:0 0 46%;" onchange="var c=document.getElementById('wz-av-custom'); if(c) c.style.display = this.value==='custom' ? 'block' : 'none';"><option value="win">🚪 Opening</option><option value="batt">🔋 Battery</option><option value="tapp">🪟 Tapparelle (cover)</option><option value="custom">⭐ Custom</option></select>
               <input id="wz-av-name" class="wz-input" style="margin-bottom:0; flex:1;" placeholder="Name (e.g. Water leak)">
@@ -3588,7 +3589,7 @@ function editorRenderSezioni() {
       <details class="ed-acc"><summary class="ed-acc-head">💡 Luci <span class="ed-acc-n">${Object.keys((function(){ try { return JSON.parse(localStorage.getItem('cd_luci')) || {}; } catch(e) { return {}; } })()).length}</span></summary>
         <div class="ed-acc-body">
           <div class="ed-slot-lbl" style="margin-bottom:6px;">The lights managed by the dashboard. Name them "Room - Detail" for automatic grouping.</div>
-          ${(function(){ let L = {}; try { L = JSON.parse(localStorage.getItem('cd_luci')) || {}; } catch(e) {} return Object.entries(L).map(([id, nm]) => `<div class="ed-row"><div style="font-size:15px;">💡</div><div class="ed-row-main"><div class="ed-row-new">${nm}</div><div class="ed-row-old mono">${id}</div></div><div class="ed-del" onclick="edDelLuce('${id}')">🗑️</div></div>`).join('') || '<div class="ed-empty">No lights configured</div>'; })()}
+          ${(function(){ let L = {}; try { L = JSON.parse(localStorage.getItem('cd_luci')) || {}; } catch(e) {} return Object.entries(L).map(([id, nm]) => `<div class="ed-row"><div style="font-size:15px;">💡</div><div class="ed-row-main"><div class="ed-row-new">${cdEscHtml(nm)}</div><div class="ed-row-old mono">${id}</div></div><div class="ed-del" onclick="edDelLuce('${id}')">🗑️</div></div>`).join('') || '<div class="ed-empty">No lights configured</div>'; })()}
           <div style="display:flex; gap:8px; margin:10px 0 8px;">
             <input id="ed-lu-name" class="ed-input" style="flex:1;" placeholder="Name (e.g. Living Room - Floor lamp)">
           </div>

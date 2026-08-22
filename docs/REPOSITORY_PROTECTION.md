@@ -35,19 +35,31 @@ Notes:
 
 `.github/rulesets/main-protection.json` requires a pull request for every change to
 `main`, blocks force pushes and deletion, and requires the CI jobs `Ruff`,
-`Python tests`, `Frontend tests`, and `validate` (hassfest) to pass. Approvals are
-set to zero so a solo maintainer can still merge their own pull requests; raise
-`required_approving_review_count` when more maintainers join.
+`Python tests`, `Frontend tests`, `playwright` (Browser E2E), `validate` (hassfest),
+and `validate-hacs` (HACS validation) to pass. One approving review is required.
 
-Import it the same way as above.
+Import it the same way as above. The JSON here is the **desired** state, not the
+applied state: GitHub does not read it from the repository. Whenever this file
+changes — a new required check, a different approval count — the ruleset must be
+re-imported (or edited to match) in Settings → Rules → Rulesets, or the change has
+no effect on the branch. Confirm on the GitHub API that the branch is actually
+protected and lists these contexts:
+
+```bash
+gh api repos/danigio15/dashboardmodern-v2/rules/branches/main \
+  --jq '[.[] | select(.type=="required_status_checks")
+             | .parameters.required_status_checks[].context]'
+```
 
 Notes:
 
 - `regenerate-vendor-artifacts.yml` pushes directly to its `target_branch` input.
   If that workflow is ever run with `main` as the target, add the GitHub Actions
   app to `bypass_actors` first, otherwise the push is rejected.
-- Browser E2E jobs are matrix-generated (`playwright / <project>`), so their check
-  names change with the matrix and are not listed as required checks.
+- The Browser E2E test shards are matrix-generated (`playwright / <project> <n>/<m>`)
+  and their names change with the matrix, so they are not listed individually. The
+  aggregation job `playwright` (in `e2e.yml`) `needs` every shard and has a stable
+  name, so requiring it makes a red shard block the merge.
 
 ## 3. Forks
 
