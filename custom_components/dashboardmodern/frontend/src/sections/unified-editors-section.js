@@ -299,9 +299,10 @@ function openShutterEditor(item, index) {
       // Le altre coperture dello stesso infisso: svuotare la casella la toglie.
       tenda: clean(form.elements.tenda?.value),
       tendaSole: clean(form.elements.tendaSole?.value),
-      // "Come dice Home Assistant" e' il vuoto: si torna a lasciar decidere la
-      // classe dell'entita', invece di restare fermi su una scelta di prima.
-      kind: clean(form.elements.kind?.value),
+      // `kind` non si scrive piu': il tipo lo dice la casella. Quello di una
+      // riga vecchia resta dov'e' — passa da `...item` — perche' cancellarlo
+      // qui vorrebbe dire cambiare il disegno a chi aveva gia' scelto, senza
+      // che abbia toccato niente.
     };
     if (!list[index].name || !/^cover\./i.test(list[index].entity)) {
       form.querySelector("[data-error]").textContent = t("Inserisci un nome e un'entità cover.* valida.", "Enter a name and a valid cover.* entity.");

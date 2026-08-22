@@ -103,33 +103,62 @@ test.describe("tende e tapparelle", () => {
     );
   });
 
-  test("il tipo si sceglie, e la scelta vince su Home Assistant", async ({ page }, testInfo) => {
+  test("la matita apre le caselle, e la scelta vecchia non si perde", async ({
+    page,
+  }, testInfo) => {
     await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
-    await bootNamespacedDashboard(page, "dashboard.html", testInfo, seme);
+    /* Una riga vecchia: il tipo lo dichiarava il menu, che ora non c'e' piu'.
+     * Deve continuare a uscire come tenda, e deve restare una tenda anche dopo
+     * che la matita l'ha salvata. */
+    const semeVecchio = {
+      ...seme,
+      sections: {
+        ...seme.sections,
+        covers: [{ id: "c1", name: "Camera", entity: "cover.tapparella_camera", kind: "tenda" }],
+      },
+    };
+    await bootNamespacedDashboard(page, "dashboard.html", testInfo, semeVecchio);
     await semina(page);
     await apri(page);
     await expect(carta(page, "cover.tapparella_camera")).toHaveAttribute(
       "data-dm-cover-kind",
-      "tapparella",
+      "tenda",
     );
 
     await page.evaluate(() => {
       window.apriConfigEntita();
       window.editorSwitch("tapp");
     });
-    // La matita della prima riga apre la finestra di modifica.
     await page.locator('[data-dm-edit-kind="shutter"][data-dm-edit-index="0"]').first().click();
     const modale = page.locator("#dm-shutter-editor-modal");
     await expect(modale).toBeVisible();
-    await expect(modale.locator("select[name=kind]")).toHaveValue("");
-    await modale.locator("select[name=kind]").selectOption("tenda");
+
+    // Il menu del tipo non c'e' piu': al suo posto ci sono le caselle.
+    await expect(modale.locator("select[name=kind]")).toHaveCount(0);
+    await expect(modale.locator("input[name=entity]")).toHaveValue("cover.tapparella_camera");
+    await expect(modale.locator("input[name=tenda]")).toHaveCount(1);
+    await expect(modale.locator("input[name=tendaSole]")).toHaveCount(1);
+    await expect(modale.locator("input[name=contact]")).toHaveCount(1);
+
+    // Si aggiunge la tenda da sole dello stesso infisso e si salva. Le caselle
+    // entita' stanno dietro il chip, come tutte le altre: si scrive nel campo.
+    await modale.locator("input[name=tendaSole]").evaluate((campo) => {
+      campo.value = "cover.tenda_sole_camera";
+      campo.dispatchEvent(new Event("input", { bubbles: true }));
+    });
     await modale.locator("form").evaluate((form) => form.requestSubmit());
 
     await apri(page);
     await semina(page);
+    // La scelta di prima e' ancora li'...
     await expect(carta(page, "cover.tapparella_camera")).toHaveAttribute(
       "data-dm-cover-kind",
       "tenda",
+    );
+    // ...e la casella nuova ha fatto uscire la sua copertura, col suo tipo.
+    await expect(carta(page, "cover.tenda_sole_camera")).toHaveAttribute(
+      "data-dm-cover-kind",
+      "tenda_sole",
     );
   });
 });
