@@ -382,10 +382,15 @@ function evVisual() {
   const evStore = root.DashboardModernModules?.store;
   const storeCars = evStore?.peekSection ? evStore.peekSection("ev") : evStore?.getSection?.("ev");
   const legacyCars = readJson("cd_ev_cars", []);
-  const cars = Array.isArray(storeCars) && storeCars.length
-    ? storeCars
-    : Array.isArray(legacyCars)
-      ? legacyCars
+  /* La stessa precedenza della sezione EV: prima la lista legacy, poi il
+   * negozio. Qui era il contrario, e quando le due copie divergevano questa
+   * sezione salvava marca e modello sulla lista vecchia, risovrascrivendo
+   * quella appena aggiornata: due letture opposte sono un altro modo di avere
+   * due padroni. */
+  const cars = Array.isArray(legacyCars) && legacyCars.length
+    ? legacyCars
+    : Array.isArray(storeCars)
+      ? storeCars
       : [];
   const requested = Number(root.localStorage?.getItem("cd_ev_car_active") ?? -1);
   const active = cars.length

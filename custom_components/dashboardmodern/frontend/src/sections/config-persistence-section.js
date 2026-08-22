@@ -698,6 +698,22 @@ export function normalizeRestoredValues(values) {
         "rooms",
         restoredSnapshot.sections.rooms || [],
       );
+      /* Le auto viaggiano DUE volte — `cd_ev_cars` e questa copia dentro lo
+       * stato canonico — e dopo il ripristino il negozio ripersiste dalla
+       * copia canonica, sovrascrivendo la lista appena scritta due righe
+       * sopra. Quando le due copie divergevano, vinceva in silenzio quella
+       * canonica: e' il «c'e' qualche sezione che sovrascrive» segnalato per
+       * giorni, applicato alle foto delle auto. La lista legacy e' quella che
+       * ogni gesto scrive per prima, quindi e' lei la piu' fresca: la copia
+       * canonica le si allinea qui, prima che qualcuno la ripersista. */
+      if (typeof restored.cd_ev_cars === "string") {
+        try {
+          restoredSnapshot.sections.ev = normalizeSection(
+            "ev",
+            JSON.parse(restored.cd_ev_cars) || [],
+          );
+        } catch (_error) {}
+      }
       restored.dm_dashboard_state = JSON.stringify(restoredSnapshot);
     } catch (_error) {}
   }

@@ -7,6 +7,48 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
 
+## 1.1.7
+
+### Corretto
+
+- **Un'auto nuova nasceva con la foto di quella attiva.** Il runtime battezza
+  la scheda appena salvata con le due caselle da cui la plancia disegna — che
+  in quel momento portano le foto dell'auto *attiva* — e nessuna protezione
+  poteva accorgersene: un'auto che prima non c'era non ha un «prima» da
+  ripristinare. Con una vettura già configurata, la seconda nasceva con la
+  foto della prima addosso, ed è il seme da cui le foto «si mescolavano da
+  sole» a ogni giro successivo. Un'auto nuova adesso nasce senza foto: le sue
+  si scelgono dal pannello, che dichiara a chi sta scrivendo.
+
+- **Il pannello foto leggeva le caselle del disegno, non il profilo.** Le due
+  caselle piatte seguono l'auto attiva con un giro di ritardo: subito dopo un
+  salvataggio o una cancellazione portano ancora le foto della vettura di
+  prima, e il pannello che le mostrava — e le risalvava — era il ponte con cui
+  la foto di un'auto finiva sull'altra, col titolo giusto a fare da alibi. La
+  fonte ora è il profilo attivo; dopo «salva scheda» e dopo una cancellazione
+  le caselle si riseminano subito dalla vettura che la plancia mostra; e con
+  l'auto attiva appena cancellata non si salva più niente sulla prima della
+  lista.
+
+- **La lista delle auto viaggiava due volte, e la seconda copia vinceva in
+  silenzio.** `cd_ev_cars` e la copia dentro lo stato canonico arrivano
+  entrambe dalla configurazione condivisa, ma al ripristino venivano
+  riconciliate solo le stanze: due righe dopo aver scritto la lista, il
+  negozio la ripersisteva dalla copia canonica — che quando divergeva riportava
+  le foto vecchie. È «c'è qualche sezione che sovrascrive», alla lettera. La
+  copia canonica ora si allinea alla lista prima che chiunque la ripersista, e
+  la Personalizzazione legge le auto nello stesso ordine di precedenza della
+  sezione EV invece che al contrario.
+
+- **Il tema scuro non aveva mai posseduto il fondo.** «Scuro» scuriva le card
+  una per una, ma le variabili di base — il fondo della pagina, i testi, i
+  bordi — non avevano una versione notturna: card scure su pagina bianca, come
+  negli screenshot. E nella cornice dell'app il fondo leggeva una variabile del
+  tema di Home Assistant che dentro la plancia non esiste, quindi vinceva
+  sempre il ripiego chiaro. Le variabili hanno ora la loro versione scura — 
+  tutto ciò che già le legge si scurisce da solo — e il fondo della cornice
+  segue il tema della plancia. Il tema chiaro non cambia di una virgola.
+
 ## 1.1.6
 
 ### Corretto

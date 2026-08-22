@@ -194,3 +194,58 @@ test("salvare le foto di un'auto non tocca mai l'altra", async ({ page }, testIn
     "/local/ev/b10-idle.png",
   );
 });
+
+test("un'auto nuova non nasce con la foto di quella attiva", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* Il giro incriminato, col runtime vero: B10 attiva con le sue foto, e si
+   * crea la T03 dalla scheda. Il runtime battezzava la nuova con le due
+   * caselle piatte — le foto di B10 — e nessuna protezione se ne accorgeva:
+   * un'auto che prima non c'era non ha un "prima" da ripristinare. */
+  await avvia(page, testInfo, [DUE_AUTO[0]]);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  await page.waitForFunction(() => Boolean(document.getElementById("ed-evcar-name")), null, {
+    timeout: 15_000,
+  });
+
+  await page.evaluate(() => {
+    const campo = document.getElementById("ed-evcar-name");
+    campo.value = "T03";
+    campo.dispatchEvent(new Event("input", { bubbles: true }));
+    window.edEvCarAdd();
+  });
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const cars = JSON.parse(localStorage.getItem("cd_ev_cars") || "[]");
+        return cars.map((c) => ({
+          name: c.name,
+          img: c.img || "",
+          imgPlugged: c.imgPlugged || "",
+        }));
+      }),
+    )
+    .toEqual([
+      { name: "B10", img: "/local/ev/b10-idle.png", imgPlugged: "/local/ev/b10-cavo.png" },
+      // Nata adesso, senza foto: le sue si scelgono dal pannello.
+      { name: "T03", img: "", imgPlugged: "" },
+    ]);
+
+  /* E il runtime ha reso attiva la T03: le caselle da cui il disegno legge e
+   * il pannello foto raccontano LEI — vuota — non la B10 di prima. */
+  await expect
+    .poll(() =>
+      page.evaluate(() => ({
+        active: localStorage.getItem("cd_ev_car_active"),
+        idle: JSON.parse(localStorage.getItem("cd_ev_image") || '""'),
+      })),
+    )
+    .toEqual({ active: "1", idle: "" });
+  await expect(page.locator("[data-ev-photos-title]")).toHaveText(/T03/);
+  await expect(
+    page.locator('#ed-body [data-ev-photos] [data-ev-photo="idle"] [data-ev-photo-input]'),
+  ).toHaveValue("");
+});
