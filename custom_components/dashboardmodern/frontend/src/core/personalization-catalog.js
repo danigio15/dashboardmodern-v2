@@ -497,10 +497,24 @@ export function brandMatch(value) {
   );
 }
 
+/* Una marca che non conosciamo non e' una marca che conosciamo.
+ *
+ * Il ripiego era Leapmotor: chi scriveva una marca fuori dal catalogo si
+ * ritrovava addosso il marchio di un'altra casa, senza che niente glielo
+ * dicesse. Non e' un dettaglio estetico — e' la plancia che afferma una cosa
+ * falsa sulla macchina di qualcuno. Quando non si sa, si dicono le iniziali di
+ * quello che e' stato scritto: e' onesto, e si legge. */
+function brandFallback(value, safeSize) {
+  const nome = String(value ?? "").trim();
+  const initials = (nome.slice(0, 2) || "?").toUpperCase();
+  const fontSize = initials.length > 2 ? 10 : initials.length === 2 ? 13 : 16;
+  return `<span class="dm-car-brand" data-brand="" data-brand-source="unknown" title="${nome}" style="width:${safeSize}px;height:${safeSize}px"><span data-brand-logo=""><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="3" width="42" height="42" rx="14" fill="currentColor" opacity=".12"/><circle cx="24" cy="24" r="15.5" fill="none" stroke="currentColor" stroke-width="2.4" opacity=".9"/><text x="24" y="28.5" text-anchor="middle" font-size="${fontSize}" font-family="system-ui,sans-serif" font-weight="900" fill="currentColor">${initials}</text></svg></span></span>`;
+}
+
 export function carBrandVisual(value, size = 48) {
-  const item =
-    brandMatch(value) || CAR_BRANDS.find((brand) => brand.name === "Leapmotor") || CAR_BRANDS[0];
   const safeSize = Math.max(20, Math.min(160, Number(size) || 48));
+  const item = brandMatch(value);
+  if (!item) return brandFallback(value, safeSize);
   if (item.id === "leapmotor") return leapmotorVisual(safeSize);
   const source = carBrandImageSource(item.name);
   if (source) {

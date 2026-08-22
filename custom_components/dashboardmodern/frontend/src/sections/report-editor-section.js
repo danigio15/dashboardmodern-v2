@@ -1,3 +1,5 @@
+import { applianceArtwork } from "../core/appliance-artwork.js";
+import { applianceArtworkType } from "../core/appliance-card-view-model.js";
 import { reportIconForDevice } from "../core/energy-projection.js";
 import { clean, doc, esc, installStyle, onEditorRedraw, root, section, t, wrapFunction } from "./shared.js";
 
@@ -43,6 +45,34 @@ function deviceForRow(row) {
   );
 }
 
+/* Lo stesso disegno degli elettrodomestici, non una faccina.
+ *
+ * Il quadratino accanto a una voce del Report stampava il carattere che c'era
+ * scritto nel campo: un'emoji. Ma gli elettrodomestici hanno un catalogo di
+ * disegni stilizzati, e il Report *sulla plancia* quel catalogo lo usa gia' —
+ * era solo la riga qui in configurazione a restare indietro. Nella stessa
+ * schermata convivevano cosi' due stili: le schede col disegno, l'editor con
+ * le faccine.
+ *
+ * Il tipo lo decide la stessa funzione della scheda, che quando non riconosce
+ * niente risponde «generico» invece di non rispondere: cosi' tutte le voci del
+ * catalogo sono disegnate allo stesso modo, e le altre pure. */
+function paintCatalogArtwork(button, device) {
+  if (!device) return false;
+  let artwork = "";
+  try {
+    artwork = applianceArtwork(applianceArtworkType(device), 26) || "";
+  } catch (_error) {
+    return false;
+  }
+  if (!artwork) return false;
+  const firma = `art|${clean(device.id || device.name)}`;
+  if (button.dataset.dmReportIconToken === firma) return true;
+  button.innerHTML = artwork;
+  button.dataset.dmReportIconToken = firma;
+  return true;
+}
+
 function paintEmptyReportIcon(row, fields) {
   const button = fields.icon?.closest(".dm-icon-field,.ed-form-row")?.querySelector("button");
   if (!button) return;
@@ -50,6 +80,11 @@ function paintEmptyReportIcon(row, fields) {
   // artwork key — and the icon the Report actually draws when it carries none.
   const stored = clean(fields.icon?.value);
   const device = deviceForRow(row);
+  /* Il disegno del catalogo viene prima di tutto: e' quello che si vede sulla
+   * plancia accanto a questa voce, ed e' l'unico modo perche' le due schermate
+   * mostrino la stessa cosa. Un'icona scelta a mano resta scritta nel campo e
+   * torna appena il disegno non c'e'. */
+  if (paintCatalogArtwork(button, device)) return;
   const token = stored || (device ? reportIconForDevice(device) : "");
   if (!token) return;
   if (button.dataset.dmReportIconToken === token) return;
@@ -141,7 +176,19 @@ export function normalizeReportEditorSection() {
     row.dataset.historyValid = String(!fields.entity?.value || cumulativeEntity(fields.entity.value));
     fields.enabled?.closest("label")?.classList.add("dm-report-enabled");
     fields.label?.classList.add("dm-report-label");
-    fields.icon?.closest(".dm-icon-field,.ed-form-row")?.classList.add("dm-report-icon");
+    const casella = fields.icon?.closest(".dm-icon-field,.ed-form-row");
+    if (casella) {
+      casella.classList.add("dm-report-icon");
+      /* Il quadratino ha un padrone solo, e lo dice.
+       *
+       * Ogni bottone .dm-icon-picker della configurazione viene ridipinto da
+       * chi decora i selettori d'icona con il carattere scritto nel campo: su
+       * queste righe voleva dire riscrivere l'emoji sopra il disegno del
+       * catalogo, subito dopo che era stato messo. Due padroni sullo stesso
+       * pixel, e vinceva l'ultimo. Con questo segno il decoratore generale
+       * lascia stare la casella, e a disegnarla resta solo il Report. */
+      casella.dataset.dmIconOwner = "report";
+    }
     paintEmptyReportIcon(row, fields);
     fields.entity?.closest("[data-entity-field],.dm-entity-field")?.classList.add("dm-report-history");
     if (fields.actions) {
@@ -191,9 +238,27 @@ function installStyles() {
       /* Il quadratino dell'icona restava vuoto: il pulsante di anteprima azzera
          il corpo del testo per far posto a un'immagine, ma qui l'icona e' un
          carattere, e a corpo zero non si vede. */
+      /* E il vestito sta qui, dove quel bottone e' gia' di casa.
+       *
+       * Il filo del tema glielo dava una regola generale su .dm-icon-picker,
+       * che vale (0,1,0); questa riga, che lo governa gia' per il resto, vale
+       * (1,1,1) perche' parte dall'identificativo dell'editor. Finche' il bordo lo diceva
+       * solo quella generale, bastava un'altra regola con un cancelletto davanti — o un
+       * ordine di caricamento diverso — perche' il quadratino tornasse a
+       * portare il bordo di serie del browser: due pixel in rilievo che non
+       * sono di nessun tema, accanto a pulsanti che il filo chiaro ce l'hanno.
+       * Detto dove il bottone e' gia' descritto, non c'e' piu' niente che possa
+       * arrivare prima. */
       #editor-modal .dm-report-icon button{
         display:grid!important;place-items:center!important;
+        border:1px solid var(--divider-color,#dbe4ee)!important;
+        border-radius:12px!important;
+        background:var(--secondary-background-color,#eef2f7)!important;
         font-size:22px!important;line-height:1!important;color:var(--text,#0f172a)!important}
+      #editor-modal[data-dm-editor-theme="dark"] .dm-report-icon button{
+        border-color:var(--dm-editor-border,#31405f)!important;
+        background:var(--dm-editor-shell,#161f36)!important;
+        color:var(--dm-editor-text,#edf4ff)!important}
       /* La riga ha gia' la sua etichetta con la matita e, in fondo, il pulsante
          che apre la voce per intero. La card dei campi entita' ci metteva una
          cornice dentro la cornice e una seconda matita a capo, e la riga

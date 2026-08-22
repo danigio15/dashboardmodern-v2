@@ -13,6 +13,13 @@ const state = (root[KEY] ||= {
   previousRefresh: null,
   previousApply: null,
   legacyRefreshSignature: "",
+  // L'ultimo verdetto valido su "il cavo e' attaccato": un wallbox vero perde
+  // la connessione un istante e torna, e in quell'istante ne' il testo di
+  // stato ne' la potenza dicono niente di utilizzabile. Senza questo, ogni
+  // sparizione veniva letta come "cavo staccato" e la foto tornava a quella
+  // di riposo per poi ricambiare al giro successivo -- la stessa auto, ferma,
+  // con la fotografia che va avanti e indietro da sola.
+  lastPlugged: false,
 });
 const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
 /* Paths Home Assistant already serves; anything else absolute lives under /local. */
@@ -85,22 +92,43 @@ function liveState(reference) {
  * "connected", "scollegato" contains "collegato" — are what make the order
  * matter. */
 const UNPLUGGED_WORDS = /(disconnect|scollegat|staccat|unplug|not[_ ]?connected|no[_ ]?vehicle)/i;
-const UNPLUGGED_STATES = /^(off|idle|unknown|unavailable|none|available|free|libero|nessuno|standby|ready)$/i;
+const UNPLUGGED_STATES = /^(off|idle|none|available|free|libero|nessuno|standby|ready)$/i;
 const PLUGGED_WORDS = /(charg|ricaric|in carica|connect|collegat|plug|attacc|occupied|preparing|suspended)/i;
+/* "unknown"/"unavailable" sono il modo in cui Home Assistant dice "questa
+ * entita' in questo momento non risponde", non un modo in cui un wallbox
+ * dice "il cavo e' fuori": erano nella lista sopra insieme a "off" e
+ * "standby", e un sensore che sparisce un istante durante una riconnessione
+ * WiFi — capita spesso, e capita anche con l'auto attaccata e in carica —
+ * veniva letto come cavo staccato tanto quanto uno davvero spento. Qui non
+ * si decide niente: si passa oltre, alla potenza o a quello che si sapeva
+ * prima. */
+const HA_SILENT_STATES = /^(unknown|unavailable)$/i;
 
-/** Is the cable in? Read from the wallbox the configuration already maps. */
+/* Un verdetto, non tre.
+ *
+ * Sotto ci sono due fonti — il testo dello stato, la potenza letta dal
+ * wallbox — e quando nessuna delle due dice niente di utilizzabile in questo
+ * istante non vuol dire "cavo staccato": vuol dire che non si e' saputo
+ * chiedere. Un sensore vero riporta "unavailable" durante una riconnessione
+ * WiFi anche con l'auto attaccata e in carica, e quella finestra si ripete
+ * piu' volte al minuto su certi wallbox. Prendere quel silenzio come una
+ * risposta faceva tornare la foto a quella di riposo a ogni buco, e tornare
+ * indietro appena il sensore si faceva risentire: la stessa auto, ferma,
+ * con la fotografia che cambiava da sola senza che nessuno la toccasse.
+ *
+ * Quando ne' il testo ne' la potenza rispondono, resta il verdetto di prima. */
 export function vehiclePlugged() {
   const status = clean(liveState("dm.ev_stato_ricarica")?.state);
-  if (status) {
-    if (UNPLUGGED_STATES.test(status) || UNPLUGGED_WORDS.test(status)) return false;
-    if (PLUGGED_WORDS.test(status)) return true;
+  if (status && !HA_SILENT_STATES.test(status)) {
+    if (UNPLUGGED_STATES.test(status) || UNPLUGGED_WORDS.test(status)) return (state.lastPlugged = false);
+    if (PLUGGED_WORDS.test(status)) return (state.lastPlugged = true);
   }
-  // No usable text: a wallbox drawing power has a cable in it.
   for (const reference of ["dm.ev_potenza_wallbox", "dm.ev_charge_power"]) {
-    const power = Number(liveState(reference)?.state);
-    if (Number.isFinite(power) && power > 10) return true;
+    const raw = liveState(reference)?.state;
+    const power = Number(raw);
+    if (Number.isFinite(power)) return (state.lastPlugged = power > 10);
   }
-  return false;
+  return state.lastPlugged;
 }
 
 /** The photo the hero should be showing right now. */
@@ -605,13 +633,18 @@ function installLegacyWrappers() {
       const photos=configuredPhotos();
       // The runtime reads the first photo through its own config helper, which
       // returns "" for a value this module wrote as JSON. Both are read here.
+      // At this point the runtime has not attached a name yet -- it does not
+      // know which car this becomes, so there is nothing to match against.
+      // Whether these two flat-key photos actually belong to this car is
+      // decided afterwards, in `addProfile` below, once the name is known.
       if (!clean(profile.img)) profile.img=photos.idle;
       profile.imgPlugged=photos.plugged;
       return profile;
     }
     captureProfile.__dmEvSection=true; captureProfile.__dmPrevious=previous; root.cdEvCaptureProfile=captureProfile;
   }
-  /* Risalvare un profilo non deve cancellare l'auto.
+  /* Risalvare un profilo non deve cancellare l'auto, ne' rubarle la foto
+   * dell'altra.
    *
    * `edEvCarAdd` cerca un profilo con lo stesso nome e, trovandolo, ci scrive
    * sopra un oggetto nuovo: `{ name, ov, img }`. Tutto il resto se ne andava
@@ -621,14 +654,24 @@ function installLegacyWrappers() {
    * seconda foto, e con la chiave persa quell'auto tornava a essere una riga.
    *
    * Il giro del runtime resta quello che e': si guarda com'erano le auto prima,
-   * e dopo si rimette a ciascuna quello che le appartiene. */
+   * e dopo si rimette a ciascuna quello che le appartiene.
+   *
+   * Con due auto configurate c'e' pero' un'altra cosa da guardare: l'accordion
+   * lascia modificare la mappatura di un'auto senza prima averla resa attiva,
+   * e il profilo appena catturato porta le foto delle due caselle piatte —
+   * quelle dell'auto *attiva*, non necessariamente di questa. Rimappare
+   * un'entita' di T03 mentre B10 e' quella in mostra faceva finire la foto di
+   * B10 dentro a T03, e viceversa: si segna qui chi era attiva prima di
+   * chiamare il runtime, per poter dire dopo se le foto appena catturate
+   * erano davvero sue o solo di passaggio. */
   if (typeof root.edEvCarAdd === "function" && !root.edEvCarAdd.__dmEvSection) {
     const previous=root.edEvCarAdd;
     function addProfile(...args) {
       const prima=legacyProfiles();
+      const indiceAttivoPrima=activeIndex();
       const result=previous.apply(this,args);
       const dopo=legacyProfiles();
-      const rimesse=restoreCarIdentities(dopo, prima);
+      const rimesse=restoreCarIdentities(dopo, prima, indiceAttivoPrima);
       if (rimesse !== dopo) writeJsonIfChanged("cd_ev_cars", rimesse);
       root.queueMicrotask?.(scheduleEvSyncSettled);
       return result;

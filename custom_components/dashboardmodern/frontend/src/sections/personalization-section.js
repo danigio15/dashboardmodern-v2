@@ -219,8 +219,22 @@ function decorateRoomEditorRows() {
   return changed;
 }
 
+/* Una casella che ha gia' un padrone non ne prende un secondo.
+ *
+ * Questo decoratore ridipinge ogni selettore d'icona della configurazione con
+ * il carattere scritto nel campo accanto. Va bene quasi ovunque, ma alcune
+ * righe — quelle del Report — il loro quadratino se lo disegnano da sole con
+ * il disegno stilizzato del catalogo elettrodomestici, lo stesso che si vede
+ * sulla plancia. Ridipingerle qui voleva dire cancellare quel disegno un
+ * istante dopo averlo messo, e ritrovarsi l'emoji. Chi si dichiara padrone
+ * della propria casella la tiene. */
+function ownedElsewhere(button) {
+  return Boolean(button?.closest?.("[data-dm-icon-owner]"));
+}
+
 function decorateLegacyIconPickers() {
   doc?.querySelectorAll?.("button.dm-icon-picker").forEach((button) => {
+    if (ownedElsewhere(button)) return;
     const targetId = clean(button.dataset.iconTarget || button.dataset.entityTarget);
     const input = (targetId && doc.getElementById(targetId)) || button.closest(".dm-icon-field,.ed-form-row")?.querySelector("input.ed-icon-input,input");
     if (!input) return;
@@ -230,6 +244,8 @@ function decorateLegacyIconPickers() {
     button.classList.add("dm-icon-preview-button");
     button.setAttribute("aria-label", category === "rooms" ? t("Scegli icona stanza", "Choose room icon") : t("Scegli icona", "Choose icon"));
     const refresh = () => {
+      // Anche qui: il segno puo' arrivare dopo che l'ascolto e' stato legato.
+      if (ownedElsewhere(button)) return;
       const value = clean(input.value);
       button.innerHTML = category === "rooms" ? (roomVisual(value, 34) || iconMarkup(value || "mdi:home", 30)) : (actionVisual(value, 34) || iconMarkup(value || "mdi:star", 30));
     };

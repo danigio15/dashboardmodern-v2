@@ -138,11 +138,27 @@ function signature(views) {
     .join("|");
 }
 
+/* La pastiglia dice quello che si vede.
+ *
+ * Diceva lo stato che manda Home Assistant, mentre il disegno e il conteggio in
+ * cima partono dalla posizione. Le due cose non sempre coincidono: certe
+ * coperture restano su `open` anche a zero per cento, e allora il riquadro
+ * diceva «1 chiusa» e la card accanto «Aperta» sulla stessa tapparella, con la
+ * finestra disegnata tutta coperta. Dove una posizione c'e', comanda lei: e'
+ * quella che si sta guardando.
+ */
+function statoVisibile(view) {
+  if (view.moving) return view.status;
+  if (view.hasPosition) return view.position > 0 ? "open" : "closed";
+  return view.status;
+}
+
 function statusLabel(view) {
-  if (view.status === "opening") return t("In apertura", "Opening");
-  if (view.status === "closing") return t("In chiusura", "Closing");
-  if (view.status === "open") return t("Aperta", "Open");
-  if (view.status === "closed") return t("Chiusa", "Closed");
+  const stato = statoVisibile(view);
+  if (stato === "opening") return t("In apertura", "Opening");
+  if (stato === "closing") return t("In chiusura", "Closing");
+  if (stato === "open") return t("Aperta", "Open");
+  if (stato === "closed") return t("Chiusa", "Closed");
   return t("Sconosciuta", "Unknown");
 }
 
@@ -298,7 +314,13 @@ function syncCard(card, view) {
 
   const badge = card.querySelector("[data-dm-state]");
   if (badge) {
-    badge.className = `tapp-state tapp-st-${view.status}`;
+    /* Il colore viene dalla stessa risposta della scritta.
+     *
+     * La classe la dava lo stato grezzo mentre la scritta veniva dalla
+     * posizione: la pastiglia restava verde da «aperta» con scritto «Chiusa».
+     * Meta' correzione e' peggio di nessuna, perche' la contraddizione resta e
+     * sembra risolta. */
+    badge.className = `tapp-state tapp-st-${statoVisibile(view)}`;
     badge.textContent = statusLabel(view);
   }
 

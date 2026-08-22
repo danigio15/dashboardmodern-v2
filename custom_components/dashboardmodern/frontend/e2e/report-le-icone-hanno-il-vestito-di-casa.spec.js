@@ -90,6 +90,30 @@ test("il quadratino dell'icona e' vestito come i pulsanti che gli stanno accanto
     expect(icona.bg).not.toBe("rgb(239, 239, 239)");
   }
 
+  /* E il disegno e' quello del catalogo degli elettrodomestici, non un'emoji.
+   *
+   * Il Report sulla plancia il catalogo lo usa gia': era la riga qui in
+   * configurazione a restare indietro, e nella stessa schermata convivevano due
+   * stili — le schede col disegno stilizzato, l'editor con le faccine. */
+  for (let i = 0; i < 2; i += 1) {
+    await expect(quadratini.nth(i).locator(".dm-appliance-art")).toHaveCount(1);
+    await expect(quadratini.nth(i).locator("svg")).toHaveCount(1);
+  }
+
+  /* E il disegno resta li'.
+   *
+   * Il decoratore generale dei selettori d'icona ridipinge ogni quadratino con
+   * il carattere scritto nel campo accanto: passava subito dopo e rimetteva
+   * l'emoji sopra il disegno. Farlo ripassare a mano e' l'unico modo di
+   * provare che adesso la casella ha un padrone solo. */
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("dashboardmodern:editor-rendered"));
+    document
+      .querySelectorAll(".dm-report-icon input")
+      .forEach((input) => input.dispatchEvent(new Event("input", { bubbles: true })));
+  });
+  await expect(quadratini.first().locator(".dm-appliance-art")).toHaveCount(1);
+
   // Anche quello della voce aggiunta a mano, che e' lo stesso campo.
   await page.locator("[data-report-add]").click();
   const manuale = page.locator("[data-report-manual] .dm-icon-field button");

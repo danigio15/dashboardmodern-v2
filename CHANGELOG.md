@@ -7,6 +7,69 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
 
+## 1.1.5
+
+### Corretto
+
+- **Una finestra con la sola tenda non si poteva aggiungere.** La scheda dice
+  «su una finestra ci stanno tutte e tre: compila le caselle che hai», e poi
+  premendo «Aggiungi tapparella» usciva «Inserisci una entità cover valida»: il
+  runtime guarda la sua casella, quella della tapparella, e di tenda e tenda da
+  sole non sa niente. La riga la scriveva comunque il giro successivo, quindi si
+  finiva con un errore in faccia _e_ la riga creata lo stesso — il modo peggiore
+  di dire che ha funzionato. Lo stesso rifiuto arrivava dalla finestra della
+  matita, che pretendeva la casella della tapparella per salvare.
+
+- **Il riquadro diceva «1 chiusa» e la card accanto «Aperta».** Sulla stessa
+  tapparella, con la finestra disegnata tutta coperta. Il conteggio e il disegno
+  partono dalla posizione, la pastiglia diceva invece lo stato che manda Home
+  Assistant — e certe coperture restano su «aperta» anche a zero per cento.
+  Dove una posizione c'è, comanda lei: è quella che si sta guardando.
+
+- **Una marca fuori dal catalogo prendeva il marchio di un'altra casa.** Il
+  ripiego era Leapmotor: chi scriveva una marca che il catalogo non conosce si
+  ritrovava addosso quel logo, senza che niente glielo dicesse. Non è un
+  dettaglio estetico — è la plancia che afferma una cosa falsa sulla macchina di
+  qualcuno. Adesso, quando non sa, mostra le iniziali di quello che è stato
+  scritto.
+
+- **Il quadratino dell'icona nel Report tornava a vestirsi da solo.** Il filo
+  chiaro del tema glielo dava una regola generale, mentre quel bottone è già
+  governato da una regola più forte che il bordo non lo nominava: bastava un
+  ordine di caricamento diverso perché tornasse quello di serie del browser.
+  Adesso il vestito è scritto dove il bottone è già descritto.
+
+- **Le icone del Report non erano dello stesso catalogo delle altre.** Accanto a
+  ogni voce c'era la faccina scritta nel campo, mentre le schede degli
+  elettrodomestici — e il Report stesso sulla plancia — usano da sempre i disegni
+  stilizzati del catalogo. Nella stessa schermata convivevano due stili. Adesso
+  il quadratino porta lo stesso disegno della scheda, deciso dalla stessa
+  funzione, che quando non riconosce l'apparecchio risponde «generico» invece di
+  non rispondere: così sono disegnate allo stesso modo anche le voci fuori
+  catalogo. Il disegno restava però solo un istante, perché il decoratore
+  generale dei selettori d'icona ripassava subito dopo e rimetteva la faccina:
+  due padroni sullo stesso pixel, e vinceva l'ultimo. Adesso una casella può
+  dichiarare di avere già un padrone, e il decoratore la lascia stare.
+
+- **La foto dell'auto cambiava da sola, restando sulla stessa vettura.** Il
+  cavo è attaccato, l'auto è in ricarica, e la fotografia torna comunque a
+  quella di riposo per poi ricambiare un istante dopo — senza che nessuno
+  tocchi niente. Un wallbox vero perde la connessione un istante durante una
+  riconnessione WiFi, cosa che capita più volte al minuto, e in quella
+  finestra il sensore riporta "unavailable": veniva letto come "cavo
+  staccato" tanto quanto un wallbox davvero spento. Adesso quel silenzio non
+  decide niente, e resta il verdetto di prima.
+
+- **Con due auto configurate, la foto di una finiva sull'altra — e viceversa.**
+  Rimappare l'entità di un'auto ferma, mentre l'altra era quella in mostra
+  sulla plancia, faceva scivolare la foto dell'auto in mostra dentro al
+  profilo di quella che si stava modificando: il runtime cattura le due foto
+  dalle stesse due caselle che seguono l'auto attiva, e la configurazione
+  lascia modificare un'auto diversa senza prima averla resa attiva. Adesso si
+  tiene conto di chi era davvero attiva prima del salvataggio: un'auto
+  risalvata mentre non era lei in mostra tiene le sue foto, non quelle
+  dell'altra.
+
 ## 1.1.4
 
 ### Corretto

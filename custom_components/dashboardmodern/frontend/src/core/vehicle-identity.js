@@ -115,12 +115,35 @@ export function carIndexByKey(cars, key) {
  * l'auto e' la stessa — stesso nome, stessa riga — e tutto quello che non
  * riguarda la mappatura delle entita' deve ritrovarsi dov'era.
  */
-export function keepCarIdentity(nuova = {}, precedente = {}) {
+export function keepCarIdentity(nuova = {}, precedente = {}, eraAttiva = true) {
   const rimessi = {};
   for (const campo of CAR_IDENTITY_FIELDS) {
+    if (campo === "imgPlugged") continue; // le foto si decidono sotto, insieme a "img".
     if (clean(nuova?.[campo])) continue;
     const valore = precedente?.[campo];
     if (clean(valore)) rimessi[campo] = valore;
+  }
+  /* Le due foto sono un caso a parte da tutto il resto.
+   *
+   * Il runtime le cattura dalle due caselle piatte della plancia — quella
+   * senza cavo e quella con — che pero' mostrano l'auto *attiva*, non
+   * necessariamente quella che si sta risalvando: la configurazione lascia
+   * aprire l'accordion di un'auto e modificarne la mappatura delle entita'
+   * senza prima averla resa attiva. Se era davvero lei l'auto attiva, quello
+   * che le caselle mostravano era suo, ed e' giusto che vinca — e' il motivo
+   * per cui si stava risalvando. Se non lo era, quello che le caselle
+   * mostravano era dell'altra: non e' una scelta fatta su questa vettura, e'
+   * un caso, e non deve sostituire la foto che questa vettura aveva davvero
+   * — foto che vince anche quando e' vuota, perche' un caso non e' meglio di
+   * niente. */
+  for (const campo of ["img", "imgPlugged"]) {
+    if (eraAttiva) {
+      if (clean(nuova?.[campo])) continue;
+      const valore = precedente?.[campo];
+      if (clean(valore)) rimessi[campo] = valore;
+    } else {
+      rimessi[campo] = clean(precedente?.[campo]);
+    }
   }
   return Object.keys(rimessi).length ? { ...nuova, ...rimessi } : nuova;
 }
@@ -132,7 +155,7 @@ export function keepCarIdentity(nuova = {}, precedente = {}) {
  * ce l'hanno — si riconoscono per nome, che e' esattamente il modo in cui il
  * runtime ha deciso di sovrascriverle.
  */
-export function restoreCarIdentities(cars, precedenti) {
+export function restoreCarIdentities(cars, precedenti, indiceAttivoPrima = null) {
   if (!Array.isArray(cars) || !cars.length || !Array.isArray(precedenti) || !precedenti.length)
     return assignCarKeys(cars);
   /* Si riconosce per la chiave *scritta*, non per quella ricavata.
@@ -144,9 +167,9 @@ export function restoreCarIdentities(cars, precedenti) {
    * ricevuta: e' un'identita', non una somiglianza. */
   const perChiave = new Map();
   const perNome = new Map();
-  for (const car of precedenti) {
+  precedenti.forEach((car, indice) => {
     const chiave = clean(car?.[CAR_KEY_FIELD]);
-    if (chiave) perChiave.set(chiave, car);
+    if (chiave && !perChiave.has(chiave)) perChiave.set(chiave, { car, indice });
     /* Il nome si confronta esatto, com'e' scritto.
      *
      * Il runtime cerca il profilo da sostituire con `cars[ci].name === n`, cioe'
@@ -155,11 +178,17 @@ export function restoreCarIdentities(cars, precedenti) {
      * la prima si prendeva la chiave di quella — due profili con la stessa
      * chiave, e sceglierne uno apriva l'altro. */
     const nome = clean(car?.name);
-    if (nome && !perNome.has(nome)) perNome.set(nome, car);
-  }
+    if (nome && !perNome.has(nome)) perNome.set(nome, { car, indice });
+  });
   const uscita = cars.map((car) => {
-    const prima = perChiave.get(clean(car?.[CAR_KEY_FIELD])) || perNome.get(clean(car?.name));
-    return prima ? keepCarIdentity(car, prima) : car;
+    const trovato = perChiave.get(clean(car?.[CAR_KEY_FIELD])) || perNome.get(clean(car?.name));
+    if (!trovato) return car;
+    /* Chi non passa l'indice di prima (i chiamanti di sempre, e le prove di
+     * sempre) ottiene il comportamento di sempre: si assume che l'auto
+     * risalvata fosse quella attiva, perche' e' cosi' che ha sempre
+     * funzionato con un'auto sola. */
+    const eraAttiva = indiceAttivoPrima === null || trovato.indice === indiceAttivoPrima;
+    return keepCarIdentity(car, trovato.car, eraAttiva);
   });
   return assignCarKeys(uscita);
 }
