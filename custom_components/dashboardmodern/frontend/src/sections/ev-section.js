@@ -654,12 +654,24 @@ function bindEditorEntryPoints() {
 export function installEvSection() {
   if (!doc) return;
   root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installLegacyWrappers(); bindEditorEntryPoints();
+  /* Gli involucri si prendono appena i giri del runtime esistono.
+   *
+   * `installLegacyWrappers` non puo' fare niente se il runtime non ha ancora
+   * dichiarato le sue funzioni, e il tentativo successivo arrivava col primo
+   * disegno. In quella finestra `cdEvCaptureProfile` e `cdEvApplyCar` sono
+   * ancora quelli di prima, che della foto col cavo non sanno niente: un
+   * profilo catturato li' nasce senza, e un cambio d'auto lascia addosso la
+   * foto col cavo dell'altra vettura. Dura poco e ci vuole fortuna per
+   * infilarcisi, ma quello che ci si perde dentro non si recupera piu' da se'.
+   * Si riprova subito, e poi appena il runtime dice di esserci. */
+  root.queueMicrotask?.(installLegacyWrappers);
+  root.setTimeout?.(installLegacyWrappers, 0);
   seedActiveProfilePhotos();
   scheduleEvSync();
   if (!state.installed) {
     state.installed=true;
     doc.addEventListener("click",(event)=>{if(event.target?.closest?.('[data-tab="ev"],[data-page="ev"],.ed-tab[data-tab="sez2"],.ed-acc-head'))root.setTimeout?.(scheduleEvSync,0);},true);
-    for (const eventName of ["dashboardmodern:legacy-ready","dashboardmodern:runtime-ready","pageshow"]) root.addEventListener?.(eventName,()=>{seedActiveProfilePhotos();scheduleEvSyncSettled();bindEditorEntryPoints();});
+    for (const eventName of ["dashboardmodern:legacy-ready","dashboardmodern:runtime-ready","pageshow"]) root.addEventListener?.(eventName,()=>{installLegacyWrappers();seedActiveProfilePhotos();scheduleEvSyncSettled();bindEditorEntryPoints();});
     /* La configurazione condivisa arriva dopo l'avvio e riscrive le caselle
      * con quello che aveva l'altro dispositivo: anche li' vale il profilo. */
     root.addEventListener?.("dashboardmodern:persistence-restored",()=>{seedActiveProfilePhotos();scheduleEvSync();});
