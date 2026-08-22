@@ -7,6 +7,29 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
 
+### Aggiunto
+
+- **Le persone di casa, in cima alla Home.** Home Assistant sa già chi c'è e
+  chi no — `person.*` cambia zona, si porta dietro la foto del profilo e spesso
+  la batteria del telefono — ma la plancia non lo mostrava da nessuna parte.
+  Adesso ogni persona configurata ha la sua card sotto il meteo: il ritratto
+  con l'anello del colore di dove si trova, la zona (Casa, Fuori, o la zona col
+  suo nome), da quanto tempo, e la batteria del telefono nell'angolo. Le card
+  seguono lo stato vivo, e il «16 ore fa» invecchia da solo anche su una
+  plancia a muro che nessuno tocca.
+
+- **La scheda Persone in configurazione.** Si aggiunge una persona con la sua
+  entità (`person.*`, o `device_tracker.*` per chi traccia direttamente il
+  telefono) e si sceglie il ritratto in due modi: una foto vera — presa dalle
+  cartelle di Home Assistant o caricata dal telefono, con lo stesso selettore
+  della foto dell'auto — oppure un avatar fatto lì: un'emoji o le iniziali del
+  nome, su un colore a scelta. Quando la foto c'è vince lei; togliendola
+  ricompare l'avatar. Il pulsante «Importa da Home Assistant» evita di
+  scrivere a mano ciò che Home Assistant sa già: prende ogni `person.*` non
+  ancora in elenco, col suo nome e la sua foto del profilo. Le persone
+  viaggiano con la configurazione condivisa (`cd_people`, revisione 5), quindi
+  compaiono uguali su ogni dispositivo.
+
 ## 1.1.8
 
 ### Corretto

@@ -9,6 +9,7 @@ const LEGACY_CONFIG_KEYS = Object.freeze([
   "cd_appliances",
   "cd_loads",
   "cd_luci",
+  "cd_people",
   "cd_clima_units",
   "cd_ev_cars",
   "cd_tapparelle",

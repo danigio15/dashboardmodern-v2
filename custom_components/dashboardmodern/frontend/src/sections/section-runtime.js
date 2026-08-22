@@ -56,6 +56,8 @@ import { installRobotEditorSection } from "./robot-editor-section.js";
 import { installEditorEntrySection } from "./editor-entry-section.js";
 import { installEvSection } from "./ev-section.js";
 import { installMediaPickerSection } from "./media-picker-section.js";
+import { installPeopleSection } from "./people-section.js";
+import { installPeopleEditorSection } from "./people-editor-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
 import { installEditorSlotsSection } from "./editor-slots-section.js";
 import { installConfigUniformitySection } from "./config-uniformity-section.js";
@@ -705,6 +707,10 @@ export function installSectionRuntime() {
     installRobotEditorSection();
     installEditorEntrySection();
     installMediaPickerSection();
+    /* Le persone leggono `cd_people` e basta; il loro editor usa il selettore
+     * foto, quindi si installano dopo di lui. */
+    installPeopleSection();
+    installPeopleEditorSection();
     installEvSection();
     // The skin installs after the EV owner so the vehicle picker it restyles is
     // already mounted, and re-renders itself on the same runtime events.
@@ -763,6 +769,8 @@ export function installSectionRuntime() {
         "robot-editor",
         "editor-entry",
         "media-picker",
+        "people",
+        "people-editor",
         "ev",
         "ev-showcase",
         "solar-thermal-design",

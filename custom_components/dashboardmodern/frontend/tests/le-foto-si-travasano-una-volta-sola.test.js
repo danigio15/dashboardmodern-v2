@@ -62,13 +62,16 @@ test("togliere una chiave non alza la revisione", async () => {
   const { CONFIG_KEYS, CONFIG_KEYS_REVISION, mergeLegacyMissingConfig } = await import(
     "../src/sections/config-persistence-section.js"
   );
-  assert.equal(CONFIG_KEYS_REVISION, 4);
+  /* La 5 non smentisce questa prova: aggiunge una chiave (`cd_people`), e per
+   * una chiave aggiunta la revisione si alza apposta. Quelle tolte restano
+   * fuori dall'elenco, che e' quello che questa prova difende. */
+  assert.equal(CONFIG_KEYS_REVISION, 5);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 
   // Un salvataggio alla revisione corrente e' completo: quello che non c'e'
   // dentro e' stato cancellato, e non si rimette.
-  const remote = { keys_revision: 4, values: { cd_ev_cars: "[]" } };
+  const remote = { keys_revision: CONFIG_KEYS_REVISION, values: { cd_ev_cars: "[]" } };
   const merged = mergeLegacyMissingConfig(remote, { cd_robot: '[{"name":"Rosetta"}]' });
   assert.equal(merged, remote, "un salvataggio completo non si tocca");
 });
