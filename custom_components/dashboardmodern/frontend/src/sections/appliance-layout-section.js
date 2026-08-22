@@ -357,9 +357,11 @@ function installStyles() {
         #dm-appliance-daily-popup .dm-appliance-daily-visual svg,#dm-appliance-daily-popup .dm-appliance-daily-visual ha-icon{width:46px!important;height:46px!important;max-width:46px!important;max-height:46px!important;--mdc-icon-size:46px}
       }
 
-      /* prefers-reduced-motion:reduce non spegne piu' questi disegni: dicono
-       * che la macchina lavora adesso, e su molti desktop quell'impostazione
-       * di sistema e' attiva a insaputa di chi guarda la plancia. */
+      /* A movimento ridotto si spegne la decorazione (la transizione della
+       * card), non i disegni di stato: quelli dicono che la macchina lavora
+       * adesso, e su molti desktop quell'impostazione di sistema e' attiva a
+       * insaputa di chi guarda la plancia. */
+      @media(prefers-reduced-motion:reduce){#page-appliances-main .appl-wide-card:not(.dm-ap-card),#appl-grid-overview .appl-wide-card:not(.dm-ap-card){transition:none!important}}
     `,
   );
 }

@@ -46,8 +46,14 @@ export const POWER_PAIRS = Object.freeze({
 export function powerPairSource(energy = {}, group = "") {
   const pair = POWER_PAIRS[group];
   if (!pair) return null;
-  // La sorgente unica con segno vince: dichiara gia' tutti e due i versi.
-  if (signedSource(energy, group)) return null;
+  /* La sorgente unica con segno vince solo se la potenza ce l'ha davvero.
+   *
+   * Una dichiarazione puo' esistere col solo verso scelto, o con i soli campi
+   * dei periodi: in quei momenti la sorgente con segno non produce nessuna
+   * potenza, e spegnere la coppia avrebbe lasciato passare il sensore del
+   * prelievo cosi' com'era — 1200 W al posto di 900. La coppia si fa da parte
+   * quando l'entita' di potenza con segno e' scritta, non prima. */
+  if (signedSource(energy, group)?.entities?.power) return null;
   const opposite = clean(energy?.[group]?.[pair.opposite]);
   if (!opposite) return null;
   return {
@@ -219,6 +225,22 @@ function readingFrom(states, entity) {
   return { source, value: numeric(raw) };
 }
 
+/* Una lettura di potenza portata in watt.
+ *
+ * I due sensori di una coppia possono dichiarare unita' diverse — 1200 W di
+ * prelievo e 0.3 kW di immissione — e sottrarre i numeri grezzi avrebbe
+ * prodotto 1199.7 spacciati per kW. Un'unita' che non si riconosce non si
+ * indovina: la lettura diventa muta, non un numero sbagliato. */
+const POWER_UNIT_FACTORS = Object.freeze({ w: 1, kw: 1000, mw: 1000000 });
+
+function watts(reading) {
+  if (!reading || reading.value === null || reading.value === undefined) return null;
+  const unit = clean(reading.source?.attributes?.unit_of_measurement).toLowerCase();
+  if (!unit) return reading.value; // senza unita' si assume il watt, come fa il runtime
+  const factor = POWER_UNIT_FACTORS[unit];
+  return factor === undefined ? null : reading.value * factor;
+}
+
 function derivedState(id, source, value, unit) {
   return {
     entity_id: id,
@@ -276,8 +298,8 @@ export function derivedEnergyStates(energy = {}, states = {}) {
     /* Senza la casella principale il verso mancante vale zero: chi dichiara la
      * sola immissione ha un impianto che non preleva mai da quel sensore. */
     const mainReading = pair.main ? readingFrom(states, pair.main) : null;
-    const mainValue = pair.main ? (mainReading?.value ?? null) : 0;
-    const oppositeValue = oppositeReading?.value ?? null;
+    const mainValue = pair.main ? watts(mainReading) : 0;
+    const oppositeValue = watts(oppositeReading);
     const id = derivedEntityId(group, SIGNED_GROUPS[group].powerField);
     const value =
       mainValue === null || oppositeValue === null
@@ -285,7 +307,9 @@ export function derivedEnergyStates(energy = {}, states = {}) {
         : pair.oppositeIsRuntimePositive
           ? oppositeValue - mainValue
           : mainValue - oppositeValue;
-    result[id] = derivedState(id, oppositeReading?.source || mainReading?.source, value);
+    /* L'unita' si dichiara, non si eredita: i due sensori possono usarne due
+     * diverse, e il numero qui sopra e' gia' stato portato in watt. */
+    result[id] = derivedState(id, oppositeReading?.source || mainReading?.source, value, "W");
   }
   return result;
 }

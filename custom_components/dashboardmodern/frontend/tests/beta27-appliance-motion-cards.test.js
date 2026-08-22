@@ -19,11 +19,12 @@ test("beta27 appliance cards expose running and standby visual states", () => {
   assert.match(source, /data-appliance-state=\\?"standby\\?"/);
   assert.match(source, /data-appliance-state=\\?"running\\?"/);
   assert.match(source, /dm-appliance-standby-breathe/);
-  /* I disegni di stato non hanno piu' un ramo a movimento ridotto che li
-   * spegne: su molti desktop quell'impostazione e' attiva a insaputa di chi
-   * guarda, e "in funzione" senza movimento e' stato segnalato tre volte
-   * come animazioni assenti. */
-  assert.doesNotMatch(source, /prefers-reduced-motion:reduce\)\{#page-appliances-main \.appl-wide-card/);
+  /* Il ramo a movimento ridotto puo' spegnere la decorazione (transition),
+   * mai i disegni di stato: su molti desktop quell'impostazione e' attiva a
+   * insaputa di chi guarda, e "in funzione" senza movimento e' stato
+   * segnalato tre volte come animazioni assenti. */
+  const ridotti = source.match(/@media\(prefers-reduced-motion:reduce\)\{[^}]*\{[^}]*\}\}/g) || [];
+  for (const blocco of ridotti) assert.doesNotMatch(blocco, /animation/);
 });
 
 test("beta27 gives appliance families distinct physical animations", () => {

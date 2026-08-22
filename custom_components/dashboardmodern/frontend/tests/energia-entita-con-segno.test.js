@@ -240,6 +240,46 @@ test("un sensore muto rende muto il derivato, non uno zero inventato", () => {
   assert.equal(derived[derivedEntityId("grid", "power")].state, "unavailable");
 });
 
+test("i due sensori possono usare unita' diverse: si sottraggono watt, non numeri", () => {
+  const energy = { grid: { power: "sensor.prelievo_w", power_export: "sensor.immissione_kw" } };
+  const derived = derivedEnergyStates(energy, {
+    "sensor.prelievo_w": stato(1200, "W"),
+    "sensor.immissione_kw": stato(0.3, "kW"),
+  });
+  const lettura = derived[derivedEntityId("grid", "power")];
+  assert.equal(lettura.state, "900", "0.3 kW sono 300 W, non 0.3");
+  assert.equal(lettura.attributes.unit_of_measurement, "W", "l'unita' si dichiara, non si eredita");
+});
+
+test("un'unita' che non si riconosce rende muta la lettura, non un numero sbagliato", () => {
+  const energy = { grid: { power: "sensor.prelievo_w", power_export: "sensor.strano" } };
+  const derived = derivedEnergyStates(energy, {
+    "sensor.prelievo_w": stato(1200, "W"),
+    "sensor.strano": stato(3, "hp"),
+  });
+  assert.equal(derived[derivedEntityId("grid", "power")].state, "unavailable");
+});
+
+test("una dichiarazione col solo verso non spegne la coppia", () => {
+  /* La scheda della sorgente unica salva subito il verso, prima che il
+   * sensore sia scritto: in quel momento non produce nessuna potenza, e la
+   * coppia deve continuare a lavorare — 900 W, non i 1200 grezzi del
+   * prelievo. */
+  const energy = {
+    grid: {
+      power: "sensor.prelievo_w",
+      power_export: "sensor.immissione_w",
+      signed: { positive: "import" },
+    },
+  };
+  assert.ok(powerPairSource(energy, "grid"), "la coppia si e' spenta per una dichiarazione vuota");
+  const derived = derivedEnergyStates(energy, {
+    "sensor.prelievo_w": stato(1200, "W"),
+    "sensor.immissione_w": stato(300, "W"),
+  });
+  assert.equal(derived[derivedEntityId("grid", "power")].state, "900");
+});
+
 test("la sorgente unica con segno vince sulla coppia", () => {
   const energy = {
     grid: {
