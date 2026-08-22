@@ -51,6 +51,25 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   due padroni sullo stesso pixel, e vinceva l'ultimo. Adesso una casella può
   dichiarare di avere già un padrone, e il decoratore la lascia stare.
 
+- **La foto dell'auto cambiava da sola, restando sulla stessa vettura.** Il
+  cavo è attaccato, l'auto è in ricarica, e la fotografia torna comunque a
+  quella di riposo per poi ricambiare un istante dopo — senza che nessuno
+  tocchi niente. Un wallbox vero perde la connessione un istante durante una
+  riconnessione WiFi, cosa che capita più volte al minuto, e in quella
+  finestra il sensore riporta "unavailable": veniva letto come "cavo
+  staccato" tanto quanto un wallbox davvero spento. Adesso quel silenzio non
+  decide niente, e resta il verdetto di prima.
+
+- **Con due auto configurate, la foto di una finiva sull'altra — e viceversa.**
+  Rimappare l'entità di un'auto ferma, mentre l'altra era quella in mostra
+  sulla plancia, faceva scivolare la foto dell'auto in mostra dentro al
+  profilo di quella che si stava modificando: il runtime cattura le due foto
+  dalle stesse due caselle che seguono l'auto attiva, e la configurazione
+  lascia modificare un'auto diversa senza prima averla resa attiva. Adesso si
+  tiene conto di chi era davvero attiva prima del salvataggio: un'auto
+  risalvata mentre non era lei in mostra tiene le sue foto, non quelle
+  dell'altra.
+
 ## 1.1.4
 
 ### Corretto

@@ -219,6 +219,52 @@ test("the cable is read from the wallbox, and 'disconnected' is not 'connected'"
   }
 });
 
+/* Il sensore che sparisce un istante non e' il wallbox che dice "staccato".
+ *
+ * "unavailable"/"unknown" sono il modo in cui Home Assistant dice "questa
+ * entita' non risponde adesso", e una riconnessione WiFi ci passa spesso —
+ * anche con l'auto attaccata e in carica. Leggerlo come "cavo fuori" faceva
+ * tornare la foto a quella di riposo a ogni buco, per poi ricambiare al giro
+ * dopo: la stessa auto, ferma, con la fotografia che va avanti e indietro da
+ * sola. Il verdetto in quella finestra resta quello di prima, non "staccato". */
+test("un sensore muto non e' un cavo staccato: resta il verdetto di prima", async () => {
+  const { vehiclePlugged } = await import(`../src/sections/ev-section.js?fix=${Date.now()}`);
+  const previous = globalThis._RAW_STATES;
+  try {
+    const registry = {};
+    globalThis._RAW_STATES = registry;
+
+    registry["dm.ev_stato_ricarica"] = { state: "Charging" };
+    assert.equal(vehiclePlugged(), true, "in carica, per cominciare");
+
+    registry["dm.ev_stato_ricarica"] = { state: "unavailable" };
+    assert.equal(vehiclePlugged(), true, "il sensore tace, ma l'auto era attaccata");
+
+    registry["dm.ev_stato_ricarica"] = { state: "unknown" };
+    assert.equal(vehiclePlugged(), true, "muto una seconda volta, stesso verdetto");
+
+    // E quando il sensore torna a dire davvero "staccato", si crede a lui.
+    registry["dm.ev_stato_ricarica"] = { state: "Disconnected" };
+    assert.equal(vehiclePlugged(), false);
+
+    registry["dm.ev_stato_ricarica"] = { state: "unavailable" };
+    assert.equal(vehiclePlugged(), false, "muto dopo uno stacco vero: resta staccato");
+  } finally {
+    globalThis._RAW_STATES = previous;
+  }
+});
+
+test("senza nessun segnale mai avuto, il silenzio non inventa un'auto attaccata", async () => {
+  const { vehiclePlugged } = await import(`../src/sections/ev-section.js?fix=${Date.now()}`);
+  const previous = globalThis._RAW_STATES;
+  try {
+    globalThis._RAW_STATES = { "dm.ev_stato_ricarica": { state: "unavailable" } };
+    assert.equal(vehiclePlugged(), false, "nessun verdetto precedente: il riposo resta il predefinito");
+  } finally {
+    globalThis._RAW_STATES = previous;
+  }
+});
+
 /* La seconda foto e' parte della configurazione condivisa — ma dentro l'auto.
  *
  * Prima viaggiava come casella sciolta, e questa prova pretendeva di trovarla
