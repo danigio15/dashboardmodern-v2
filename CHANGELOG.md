@@ -70,6 +70,29 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   risalvata mentre non era lei in mostra tiene le sue foto, non quelle
   dell'altra.
 
+- **Da desktop le animazioni di elettrodomestici e avvisi non si vedevano.**
+  Tre rami CSS rispettavano «riduci il movimento» del sistema operativo
+  spegnendo tutto — il cestello che gira, il vapore, il led, la goccia
+  dell'allagamento. Su molti desktop Windows quell'impostazione è attiva senza
+  che nessuno l'abbia mai scelta, e Chrome la passa alle pagine: gli
+  elettrodomestici in funzione sembravano fermi, e gli avvisi pure. Ma questi
+  movimenti sono informazione, non decorazione — dicono che la macchina sta
+  lavorando adesso, che l'acqua sta gocciolando adesso — e adesso restano
+  accesi. Le transizioni puramente decorative continuano a rispettare
+  l'impostazione.
+
+- **Due sensori di potenza, uno per verso (#184).** Chi ha prelievo e
+  immissione — o carica e scarica — come due sensori separati, sempre
+  positivi, non aveva dove mettere il secondo: la casella della potenza è una,
+  e nel riquadro del verso opposto c'era soltanto il rimando «è una sola, si
+  imposta in…», che sembrava la spunta della sorgente unica ancora accesa. Il
+  secondo sensore adesso si dichiara lì — «Potenza immessa» per la rete,
+  «Potenza scaricata» per la batteria — e il numero col segno si ricava da
+  solo: prelievo meno immissione, scarica meno carica. Con la sorgente unica
+  con segno dichiarata le due caselle si spengono, perché sono due modi di
+  dire la stessa cosa. E togliere quella spunta riaccende le caselle dei due
+  versi, che era l'altra metà della segnalazione.
+
 ## 1.1.4
 
 ### Corretto

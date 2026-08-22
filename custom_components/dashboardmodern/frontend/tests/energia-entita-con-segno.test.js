@@ -6,6 +6,7 @@ import {
   derivedEntityId,
   derivedEnergyStates,
   isDerivedEntity,
+  powerPairSource,
   signedSource,
   signedSourceEntities,
   splitSignedReading,
@@ -183,6 +184,81 @@ import { migrateState } from "../src/core/migrations.js";
 function migrazioneDi(energy) {
   return migrateState({ schema_version: 4, sections: { energy }, visibility: {} }, {}).changes;
 }
+
+/* Due sensori di potenza, uno per verso — issue #184.
+ *
+ * Chi ha prelievo e immissione (o carica e scarica) come due sensori separati,
+ * sempre positivi, non aveva dove mettere il secondo: la casella della potenza
+ * e' una, e nel riquadro del verso opposto c'era soltanto il rimando. Il
+ * secondo sensore adesso si dichiara li', e il numero col segno si ricava. */
+test("il secondo sensore di potenza si dichiara, e il segno si ricava", () => {
+  const energy = { grid: { power: "sensor.prelievo_w", power_export: "sensor.immissione_w" } };
+  const pair = powerPairSource(energy, "grid");
+  assert.ok(pair, "la coppia non viene vista");
+  assert.equal(pair.main, "sensor.prelievo_w");
+  assert.equal(pair.opposite, "sensor.immissione_w");
+  const applied = applySignedSources(energy);
+  assert.equal(applied.grid.power, derivedEntityId("grid", "power"));
+  const states = {
+    "sensor.prelievo_w": stato(1200, "W"),
+    "sensor.immissione_w": stato(300, "W"),
+  };
+  const derived = derivedEnergyStates(energy, states);
+  assert.equal(derived[derivedEntityId("grid", "power")].state, "900");
+  assert.deepEqual(signedSourceEntities(energy).sort(), [
+    "sensor.immissione_w",
+    "sensor.prelievo_w",
+  ]);
+});
+
+test("per la batteria il runtime vuole positiva la scarica", () => {
+  const energy = { battery: { power: "sensor.carica_w", power_discharge: "sensor.scarica_w" } };
+  const derived = derivedEnergyStates(energy, {
+    "sensor.carica_w": stato(500, "W"),
+    "sensor.scarica_w": stato(0, "W"),
+  });
+  assert.equal(derived[derivedEntityId("battery", "power")].state, "-500", "in carica e' negativa");
+  const scarica = derivedEnergyStates(energy, {
+    "sensor.carica_w": stato(0, "W"),
+    "sensor.scarica_w": stato(800, "W"),
+  });
+  assert.equal(scarica[derivedEntityId("battery", "power")].state, "800");
+});
+
+test("senza la casella principale il verso mancante vale zero", () => {
+  const energy = { grid: { power_export: "sensor.immissione_w" } };
+  const derived = derivedEnergyStates(energy, { "sensor.immissione_w": stato(300, "W") });
+  assert.equal(derived[derivedEntityId("grid", "power")].state, "-300");
+});
+
+test("un sensore muto rende muto il derivato, non uno zero inventato", () => {
+  const energy = { grid: { power: "sensor.prelievo_w", power_export: "sensor.immissione_w" } };
+  const derived = derivedEnergyStates(energy, {
+    "sensor.prelievo_w": stato("unavailable", "W"),
+    "sensor.immissione_w": stato(300, "W"),
+  });
+  assert.equal(derived[derivedEntityId("grid", "power")].state, "unavailable");
+});
+
+test("la sorgente unica con segno vince sulla coppia", () => {
+  const energy = {
+    grid: {
+      power: "sensor.prelievo_w",
+      power_export: "sensor.immissione_w",
+      signed: { power: "sensor.rete_con_segno", positive: "import" },
+    },
+  };
+  assert.equal(powerPairSource(energy, "grid"), null, "due modi di dire la stessa cosa insieme");
+  const applied = applySignedSources(energy);
+  // Comanda la sorgente con segno: il derivato viene da lei.
+  assert.equal(applied.grid.power, "sensor.rete_con_segno");
+});
+
+test("senza il secondo sensore non cambia niente", () => {
+  const energy = { grid: { power: "sensor.rete_w" } };
+  assert.equal(powerPairSource(energy, "grid"), null);
+  assert.equal(applySignedSources(energy), energy);
+});
 
 test("un modello gia' migrato non si rimigra a ogni avvio", () => {
   const gia = {

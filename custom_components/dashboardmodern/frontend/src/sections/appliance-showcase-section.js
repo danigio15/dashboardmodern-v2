@@ -1268,10 +1268,15 @@ function showcaseCss() {
 [data-theme="dark"] .dm-ap-badge.off{background:rgba(148,163,184,.14);color:#94a3b8}
 [data-theme="dark"] .dm-ap-badge.unavailable{background:rgba(239,68,68,.16);color:#fca5a5}
 [data-theme="dark"] .dm-appl-chips button.active{box-shadow:0 8px 18px rgba(14,165,233,.20)}
-/* reduced motion */
-@media (prefers-reduced-motion:reduce){
-.dm-appl-shell *,.dm-appl-shell *::before,.dm-appl-shell *::after{animation:none!important;transition:none!important}
-}
+/* Niente ramo a movimento ridotto per i disegni di stato.
+ *
+ * «Ridotto» qui spegneva TUTTO — il cestello che gira, il vapore, il led — e
+ * su Windows quell'impostazione e' spesso attiva senza che nessuno l'abbia
+ * scelta per questa plancia: da desktop gli elettrodomestici in funzione
+ * sembravano fermi, ed e' stato segnalato tre volte come animazioni "assenti".
+ * Questi movimenti sono informazione, non decorazione: dicono che la macchina
+ * sta lavorando adesso. Le transizioni decorative (hover, ombre) restano
+ * governate dai loro rami. */
 @keyframes dmDotPulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.45)}70%{box-shadow:0 0 0 6px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
 @keyframes dmDotBreathe{0%,100%{opacity:1}50%{opacity:.35}}
 @keyframes dmBarSheen{0%{transform:translateX(-100%)}55%,100%{transform:translateX(100%)}}

@@ -18,6 +18,46 @@
 /** Dominio riservato alle letture ricavate: non esiste in Home Assistant. */
 export const DERIVED_DOMAIN = "dm_derived";
 
+/* Due sensori di potenza, uno per verso — issue #184.
+ *
+ * La casella della potenza e' una per gruppo, perche' il modello ne tiene un
+ * numero solo, col segno a dire il verso. Molti impianti pero' pubblicano due
+ * sensori separati, sempre positivi: prelievo e immissione, carica e scarica.
+ * Chi li aveva non sapeva dove mettere il secondo — nel riquadro del verso
+ * opposto c'era soltanto il rimando «e' una sola, si imposta in...», che
+ * sembrava la spunta della sorgente unica ancora accesa.
+ *
+ * Qui si dichiara il secondo sensore, e il numero col segno si ricava:
+ * prelievo meno immissione per la rete, scarica meno carica per la batteria —
+ * i versi che il runtime considera positivi. La casella di sempre prende il
+ * verso del riquadro in cui sta: prelievo per la rete, carica per la
+ * batteria. La sorgente unica con segno, quando e' dichiarata, vince: sono
+ * due modi di dire la stessa cosa, e non possono valere insieme. */
+export const POWER_PAIRS = Object.freeze({
+  // La casella di sempre e' il prelievo (il verso positivo del runtime):
+  // il derivato e' power - power_export.
+  grid: Object.freeze({ opposite: "power_export", oppositeIsRuntimePositive: false }),
+  // La casella di sempre sta nel riquadro «carica», il runtime vuole positiva
+  // la scarica: il derivato e' power_discharge - power.
+  battery: Object.freeze({ opposite: "power_discharge", oppositeIsRuntimePositive: true }),
+});
+
+/** La coppia di potenze di un gruppo, se il secondo sensore e' dichiarato. */
+export function powerPairSource(energy = {}, group = "") {
+  const pair = POWER_PAIRS[group];
+  if (!pair) return null;
+  // La sorgente unica con segno vince: dichiara gia' tutti e due i versi.
+  if (signedSource(energy, group)) return null;
+  const opposite = clean(energy?.[group]?.[pair.opposite]);
+  if (!opposite) return null;
+  return {
+    group,
+    main: clean(energy?.[group]?.power),
+    opposite,
+    oppositeIsRuntimePositive: pair.oppositeIsRuntimePositive,
+  };
+}
+
 const clean = (value) => String(value ?? "").trim();
 
 /* Il verso che il runtime considera positivo.
@@ -149,6 +189,13 @@ export function applySignedSources(energy = {}) {
       target[period.negative] = derivedEntityId(group, period.negative);
     }
   }
+  for (const group of Object.keys(POWER_PAIRS)) {
+    if (!powerPairSource(energy, group)) continue;
+    own(group)[SIGNED_GROUPS[group].powerField] = derivedEntityId(
+      group,
+      SIGNED_GROUPS[group].powerField,
+    );
+  }
   return result;
 }
 
@@ -222,6 +269,24 @@ export function derivedEnergyStates(energy = {}, states = {}) {
       result[negativeId] = derivedState(negativeId, reading?.source, forNegative);
     }
   }
+  for (const group of Object.keys(POWER_PAIRS)) {
+    const pair = powerPairSource(energy, group);
+    if (!pair) continue;
+    const oppositeReading = readingFrom(states, pair.opposite);
+    /* Senza la casella principale il verso mancante vale zero: chi dichiara la
+     * sola immissione ha un impianto che non preleva mai da quel sensore. */
+    const mainReading = pair.main ? readingFrom(states, pair.main) : null;
+    const mainValue = pair.main ? mainReading?.value ?? null : 0;
+    const oppositeValue = oppositeReading?.value ?? null;
+    const id = derivedEntityId(group, SIGNED_GROUPS[group].powerField);
+    const value =
+      mainValue === null || oppositeValue === null
+        ? null
+        : pair.oppositeIsRuntimePositive
+          ? oppositeValue - mainValue
+          : mainValue - oppositeValue;
+    result[id] = derivedState(id, oppositeReading?.source || mainReading?.source, value);
+  }
   return result;
 }
 
@@ -232,6 +297,12 @@ export function signedSourceEntities(energy = {}) {
     const source = signedSource(energy, group);
     if (!source) continue;
     for (const entity of Object.values(source.entities)) ids.add(entity);
+  }
+  for (const group of Object.keys(POWER_PAIRS)) {
+    const pair = powerPairSource(energy, group);
+    if (!pair) continue;
+    if (pair.main) ids.add(pair.main);
+    ids.add(pair.opposite);
   }
   return [...ids];
 }
