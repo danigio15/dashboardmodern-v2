@@ -21,4 +21,13 @@ jobs:
         with:
           category: integration
           # Topics are optional for installation as a custom HACS repository.
-          ignore: topics
+          #
+          # The licence check asks GitHub which licence this is, and GitHub only
+          # recognises the 47 open source licences in `licensee`'s corpus, at a
+          # 98% text match. Ours is a proprietary source-available licence, so
+          # GitHub answers `other` and the API reports SPDX `NOASSERTION`. The
+          # only way to make that check pass would be to adopt one of those 47
+          # licences — every one of which grants the right to fork and
+          # redistribute, which is exactly what this project withholds. The
+          # licence stays; the question stops being asked.
+          ignore: topics license
