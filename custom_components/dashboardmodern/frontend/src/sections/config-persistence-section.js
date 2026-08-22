@@ -72,8 +72,22 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_ev_cars",
   "cd_ev_car_active",
   "cd_ev_visual",
-  "cd_ev_image",
-  "cd_ev_image_plugged",
+  /* `cd_ev_image` e `cd_ev_image_plugged` non stanno piu' qui.
+   *
+   * Sono le due caselle da cui il disegno legge la foto dell'auto attiva: non
+   * una configurazione, ma il disegno di adesso, ricavato dal profilo scelto su
+   * *questo* dispositivo. Spedirle voleva dire che la configurazione condivisa
+   * si portava dietro la foto dell'auto che era attiva altrove, e al ritorno la
+   * riscriveva qui: si apriva la plancia, compariva la foto giusta — quella che
+   * la semina aveva appena messo — e un istante dopo arrivava il salvataggio e
+   * ci metteva l'altra vettura. Segnalato esattamente cosi', ed era esattamente
+   * questo.
+   *
+   * Le foto viaggiano dove devono, dentro `cd_ev_cars`: ogni auto si porta le
+   * sue, e ogni dispositivo disegna quella dell'auto che ha scelto lui. Chi
+   * legge queste due chiavi da un salvataggio vecchio non le trova piu' nella
+   * lista, quindi non vengono ne' lette ne' riscritte: restano dove sono senza
+   * dare fastidio a nessuno. */
   "cd_visual_prefer_image",
   "cd_tapparelle",
   "cd_piscina",
@@ -303,12 +317,26 @@ export function normalizeSharedSnapshot(snapshot) {
  * payload is complete again, so absence means deletion.
  *
  * Revision 3 adds the second vehicle photo (`cd_ev_image_plugged`).
+ * La revisione resta 4: la 5 non aggiunge nessuna chiave — le due foto
+ * dell'auto sono state *tolte*, e una chiave tolta non si puo' riempire da
+ * qui. Alzarla avrebbe voluto dire mandare ogni salvataggio di revisione 4
+ * dentro a questo travaso, cioe' rimettere dentro da questo dispositivo valori
+ * che qualcun altro aveva cancellato apposta.
+ *
+ * Si riempie solo con chiavi che questa versione sincronizza davvero. Prima si
+ * riversava dentro tutto quello che il dispositivo aveva sottomano, e una
+ * chiave ritirata — le due foto dell'auto — rientrava dalla finestra proprio
+ * mentre la si stava togliendo di mezzo: il salvataggio vecchio non ce l'aveva
+ * piu', ma il travaso gliela rimetteva. Ritirata vuol dire ritirata.
  */
 export function mergeLegacyMissingConfig(remote, local = {}) {
   if (!remote || Number(remote.keys_revision) >= CONFIG_KEYS_REVISION) return remote;
+  const mancanti = Object.fromEntries(
+    CONFIG_KEYS.flatMap((key) => (typeof local?.[key] === "string" ? [[key, local[key]]] : [])),
+  );
   return {
     ...remote,
-    values: { ...local, ...(remote.values || {}) },
+    values: { ...mancanti, ...(remote.values || {}) },
   };
 }
 

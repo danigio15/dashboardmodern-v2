@@ -1,18 +1,5 @@
 import { LIGHT_DOMAINS, isLightEntity, lightView } from "../core/light-model.js";
-import {
-  allStates,
-  clean,
-  doc,
-  english,
-  esc,
-  installStyle,
-  readJson,
-  root,
-  section,
-  t,
-  wrapFunction,
-  writeJsonIfChanged,
-} from "./shared.js";
+import { allStates, clean, doc, english, esc, installStyle, onEditorRedraw, readJson, root, section, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_LIGHTS_ALERTS_SECTION__";
 const state = (root[KEY] ||= {
@@ -493,7 +480,7 @@ function installOwners() {
     canonicalAlerts.__dmPrevious = alerts;
     root.editorRenderAvvisi = canonicalAlerts;
   }
-  wrapFunction("editorSwitch", "__dmLightsAlertsEditor", () => {
+  onEditorRedraw("__dmLightsAlertsEditor", () => {
     installOwners();
     normalizeAlertEditorDom();
   });

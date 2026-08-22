@@ -1,7 +1,8 @@
 import { carBrandVisual } from "../core/personalization-catalog.js";
+import { carKey, restoreCarIdentities } from "../core/vehicle-identity.js";
 import { adoptLoosePhotos, photosForProfile, withProfilePhotos } from "../core/vehicle-photos.js";
 import { pickMediaImage } from "./media-picker-section.js";
-import { allStates, clean, dashboardStore, doc, esc, installStyle, readJson, root, section, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
+import { allStates, clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, section, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EV_SECTION__";
@@ -490,7 +491,11 @@ function restoreProfilePhotos(car, before, profileCount = profiles().length) {
  * `photosForProfile` lo sa gia'. */
 export function seedActiveProfilePhotos() {
   const elenco = profiles();
-  if (elenco.length < 2) return false;
+  /* Con una macchina sola non si toglie niente: `photosForProfile` lascia in
+   * piedi quello che c'e' gia' nelle caselle quando il profilo non porta foto
+   * proprie. Serve pero' passarci lo stesso, perche' e' il giro che porta la
+   * foto dentro al profilo. */
+  if (!elenco.length) return false;
   /* Prima si adotta, poi si semina.
    *
    * Chi arriva dal formato vecchio puo' avere la foto col cavo solo nella
@@ -538,10 +543,28 @@ function saveProfilePhotos(photos) {
 
 /* Una volta sola, all'avvio: chi arriva da una versione in cui le foto stavano
  * nella plancia le ritrova sull'auto che le mostrava. */
+/* Il travaso si fa una volta sola, e ce ne si segna.
+ *
+ * Le due caselle sciolte restano — sono il disegno di adesso — ma non sono piu'
+ * il posto dove la foto abita. Finche' il travaso poteva ripartire, pero',
+ * cancellare una foto non bastava: la si toglieva dal profilo su un
+ * dispositivo, la configurazione condivisa arrivava qui, e il giro successivo
+ * ritrovava la vecchia casella ancora piena e la rimetteva dentro al profilo
+ * vuoto — cancellazione annullata, e magari rispedita agli altri.
+ *
+ * Il segno si mette solo quando c'era davvero qualcosa da guardare: metterlo
+ * prima che le auto siano arrivate vorrebbe dire non travasare mai piu'
+ * niente, su nessuna casa. */
+const PHOTO_MIGRATION_KEY = "cd_ev_photos_moved";
+
 function adoptExistingPhotos() {
   const legacy = legacyProfiles();
   const cars = legacy.length ? legacy : canonicalProfiles();
-  if (cars.length < 2) return false;
+  // Anche una macchina sola: e' cosi' che la sua foto smette di vivere solo
+  // nelle due caselle e comincia a viaggiare col profilo.
+  if (!cars.length) return false;
+  if (root.localStorage?.getItem(PHOTO_MIGRATION_KEY) === "1") return false;
+  root.localStorage?.setItem(PHOTO_MIGRATION_KEY, "1");
   const aggiornate = adoptLoosePhotos(cars, Math.max(0, activeIndex()), configuredPhotos());
   if (aggiornate === cars) return false;
   if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);
@@ -588,6 +611,43 @@ function installLegacyWrappers() {
     }
     captureProfile.__dmEvSection=true; captureProfile.__dmPrevious=previous; root.cdEvCaptureProfile=captureProfile;
   }
+  /* Risalvare un profilo non deve cancellare l'auto.
+   *
+   * `edEvCarAdd` cerca un profilo con lo stesso nome e, trovandolo, ci scrive
+   * sopra un oggetto nuovo: `{ name, ov, img }`. Tutto il resto se ne andava
+   * senza che nessuno l'avesse chiesto — la marca scelta nella
+   * Personalizzazione, il modello, la foto col cavo attaccato, e adesso la
+   * chiave. Chi rimappava un'entita' si ritrovava l'auto senza logo e senza la
+   * seconda foto, e con la chiave persa quell'auto tornava a essere una riga.
+   *
+   * Il giro del runtime resta quello che e': si guarda com'erano le auto prima,
+   * e dopo si rimette a ciascuna quello che le appartiene. */
+  if (typeof root.edEvCarAdd === "function" && !root.edEvCarAdd.__dmEvSection) {
+    const previous=root.edEvCarAdd;
+    function addProfile(...args) {
+      const prima=legacyProfiles();
+      const result=previous.apply(this,args);
+      const dopo=legacyProfiles();
+      const rimesse=restoreCarIdentities(dopo, prima);
+      if (rimesse !== dopo) writeJsonIfChanged("cd_ev_cars", rimesse);
+      root.queueMicrotask?.(scheduleEvSyncSettled);
+      return result;
+    }
+    addProfile.__dmEvSection=true; addProfile.__dmPrevious=previous; root.edEvCarAdd=addProfile;
+  }
+  /* Cancellare un'auto sposta tutte quelle sotto di lei: e' esattamente il caso
+   * in cui una posizione salvata smette di indicare la vettura che indicava. La
+   * chiave regge da sola, e se era proprio l'auto attiva a sparire si riparte
+   * da quella che la plancia mostra adesso. */
+  if (typeof root.cdEvCarBtn === "function" && !root.cdEvCarBtn.__dmEvSection) {
+    const previous=root.cdEvCarBtn;
+    function carButton(...args) {
+      const result=previous.apply(this,args);
+      root.queueMicrotask?.(scheduleEvSync);
+      return result;
+    }
+    carButton.__dmEvSection=true; carButton.__dmPrevious=previous; root.cdEvCarBtn=carButton;
+  }
   return Boolean(root.cdEvCarsRefresh || root.cdEvApplyCar);
 }
 
@@ -603,7 +663,16 @@ export function scheduleEvSyncSettled() {
 
 export function scheduleEvSync() {
   if (state.frame) return;
-  const run=()=>{state.frame=0;installLegacyWrappers();adoptExistingPhotos();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();};
+  /* Il giro per fotogramma disegna, non scrive.
+   *
+   * Ci passavano anche l'assegnazione delle chiavi e il travaso delle foto
+   * sciolte, che sono due migrazioni: succedono una volta e poi non c'e' piu'
+   * niente da fare. Ma questo giro adesso riparte a ogni ridisegno della
+   * scheda, e un ridisegno arriva a ogni cambio del modello: rimettevano mano
+   * all'elenco delle auto proprio mentre qualcun altro lo stava cambiando, e la
+   * marca appena scelta tornava indietro da sola. Le migrazioni stanno
+   * all'avvio, dove stanno le migrazioni. */
+  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();};
   state.frame=root.requestAnimationFrame?.(run)||root.setTimeout?.(run,0)||0;
 }
 
@@ -647,7 +716,7 @@ function installStyles() {
 }
 
 function bindEditorEntryPoints() {
-  wrapFunction("editorSwitch", "__dmEvSection_editorSwitch", scheduleEvSyncSettled);
+  onEditorRedraw("__dmEvSection_editorSwitch", scheduleEvSyncSettled);
   wrapFunction("apriConfigEntita", "__dmEvSection_apriConfigEntita", scheduleEvSyncSettled);
 }
 

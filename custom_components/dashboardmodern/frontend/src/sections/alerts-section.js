@@ -1,15 +1,4 @@
-import {
-  allStates,
-  clean,
-  doc,
-  esc,
-  installStyle,
-  readJson,
-  root,
-  t,
-  wrapFunction,
-  writeJsonIfChanged,
-} from "./shared.js";
+import { allStates, clean, doc, esc, installStyle, onEditorRedraw, readJson, root, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ALERTS_SECTION__";
 const state = (root[KEY] ||= { installed: false, listeners: false });
@@ -240,7 +229,7 @@ function installStyles() {
 export function installAlertsSection() {
   if (!doc) return;
   installStyles();
-  wrapFunction("editorSwitch", "__dmAlertsSection", normalizeAlertsEditor);
+  onEditorRedraw("__dmAlertsSection", normalizeAlertsEditor);
   normalizeAlertsEditor();
   if (!state.listeners) {
     state.listeners = true;

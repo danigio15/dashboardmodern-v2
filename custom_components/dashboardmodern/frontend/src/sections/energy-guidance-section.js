@@ -1,16 +1,4 @@
-import {
-  clean,
-  dashboardStore,
-  doc,
-  energyPeriodConflicts,
-  english,
-  esc,
-  installStyle,
-  root,
-  section,
-  t,
-  wrapFunction,
-} from "./shared.js";
+import { clean, dashboardStore, doc, energyPeriodConflicts, english, esc, installStyle, onEditorRedraw, root, section, t, wrapFunction } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_ENERGY_GUIDANCE_SECTION__";
@@ -222,7 +210,7 @@ function installStyles() {
 export function installEnergyGuidanceSection() {
   if (!doc) return;
   installStyles();
-  wrapFunction("editorSwitch", "__dmEnergyGuidanceSection", normalizeEnergyGuidance);
+  onEditorRedraw("__dmEnergyGuidanceSection", normalizeEnergyGuidance);
   normalizeEnergyGuidance();
   if (!state.listeners) {
     state.listeners = true;

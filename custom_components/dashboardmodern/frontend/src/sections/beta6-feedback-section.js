@@ -1,5 +1,5 @@
 import { ACTION_ICON_CATALOG, actionVisual } from "../core/personalization-catalog.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, t, wrapFunction } from "./shared.js";
+import { allStates, clean, doc, esc, installStyle, onEditorRedraw, readJson, root, t, wrapFunction } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_BETA6_FEEDBACK__";
 const state = (root[KEY] ||= { installed: false, frame: 0, lightSignature: "" });
@@ -97,7 +97,7 @@ function renderLightControls(){
 
 function run(){state.frame=0;installQaRenderer();polishQaEditor();polishQaCards();renderLightControls();}
 function schedule(){if(state.frame)return;state.frame=root.requestAnimationFrame?.(run)||root.setTimeout?.(run,0)||0;}
-function installOwners(){wrapFunction("wzOpenLightsPopup","__dmBeta7Lights",schedule);wrapFunction("editorSwitch","__dmBeta7QuickActions",schedule);wrapFunction("edQaTypeChanged","__dmBeta7QuickActions",schedule);wrapFunction("edAddQA","__dmBeta7QuickActions",schedule);installQaRenderer();}
+function installOwners(){wrapFunction("wzOpenLightsPopup","__dmBeta7Lights",schedule);onEditorRedraw("__dmBeta7QuickActions",schedule);wrapFunction("edQaTypeChanged","__dmBeta7QuickActions",schedule);wrapFunction("edAddQA","__dmBeta7QuickActions",schedule);installQaRenderer();}
 function installStyles(){installStyle("dm-beta6-feedback-style",`
 .ed-form-row[data-dm-beta6-quick-action="true"]{display:grid!important;grid-template-columns:minmax(150px,1.25fr) 58px minmax(130px,1fr)!important;gap:8px!important;width:100%!important}.ed-form-row[data-dm-beta6-quick-action="true"] #ed-qa-type,.ed-form-row[data-dm-beta6-quick-action="true"] #ed-qa-name{width:100%!important;min-width:0!important;margin:0!important}#ed-qa-icon.dm-beta6-qa-icon-value{display:none!important}.dm-beta6-qa-icon-trigger{display:grid!important;place-items:center!important;width:58px!important;min-width:58px!important;max-width:58px!important;min-height:52px!important;margin:0!important;padding:8px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:16px!important;background:var(--card-background-color,#fff)!important;color:var(--info-color,#0284c7)!important}.dm-beta6-qa-icon-trigger ha-icon,.dm-beta6-quick-icon-grid ha-icon,#qa-grid .qa-btn .icon ha-icon{display:inline-flex!important}.dm-beta6-qa-icon-trigger ha-icon{--mdc-icon-size:30px!important}.dm-beta6-quick-icon-grid .dm-picker-option{min-height:104px!important}.dm-beta6-quick-icon-grid ha-icon{--mdc-icon-size:38px!important}#qa-grid .qa-btn .icon ha-icon{--mdc-icon-size:30px!important}
 #ed-daily-chart{overflow:hidden!important}#ed-daily-chart .ed-chart-wrap{box-sizing:border-box!important;height:clamp(250px,52vw,320px)!important;max-height:320px!important;margin:8px 0 0!important;padding:0 8px 8px!important;overflow:hidden!important}#ed-daily-chart .ed-chart-wrap canvas{width:100%!important;height:100%!important;max-height:100%!important}

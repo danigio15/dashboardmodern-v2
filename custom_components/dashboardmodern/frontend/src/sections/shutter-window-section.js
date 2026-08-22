@@ -334,6 +334,14 @@ export function installShutterWindowSection() {
     // griglia da capo con innerHTML, e con lei sparisce ogni infisso: senza
     // questo, le card restavano senza finestra fino al primo cambio di stato.
     "dashboardmodern:persistence-restored",
+    /* E ogni volta che il corpo della configurazione viene rifatto.
+     *
+     * Le tre caselle in piu' — la tenda, la tenda da sole, il contatto — le
+     * rimetteva il giro appeso al cambio di linguetta. Ma la scheda la ridisegna
+     * anche il modello, a ogni salvataggio, e li' se ne andavano: si aggiungeva
+     * una tapparella e le caselle sparivano, come se non fossero mai esistite.
+     * Per rivederle bisognava uscire dalla linguetta e rientrarci. */
+    "dashboardmodern:editor-rendered",
     "pageshow",
   ]) {
     root.addEventListener?.(eventName, schedule);

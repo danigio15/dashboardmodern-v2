@@ -1,19 +1,7 @@
 // DM-FIX-20260812B
 import { contactEntity } from "../core/shutter-window.js";
 import { canonicalClimateType } from "../core/device-model.js";
-import {
-  clean,
-  dashboardStore,
-  doc,
-  english,
-  installStyle,
-  readJson,
-  readClimateUnits,
-  root,
-  t,
-  wrapFunction,
-  writeJsonIfChanged,
-} from "./shared.js";
+import { clean, dashboardStore, doc, english, installStyle, onEditorRedraw, readClimateUnits, readJson, root, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EDITOR_CRUD_SECTION__";
@@ -522,7 +510,7 @@ function installRetiredTabRepair() {
 
 function installWrappers() {
   installRetiredTabRepair();
-  wrapFunction("editorSwitch", "__dmCrudEditorSection", runContracts);
+  onEditorRedraw("__dmCrudEditorSection", runContracts);
 }
 
 export function installEditorCrudSection() {

@@ -12,7 +12,16 @@ const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 
 // - connection can contain credentials/endpoint data;
 // - navbar mode/theme are per-device presentation preferences;
 // - sync bookkeeping, reset/fresh-start state and irrigation/pool run markers are runtime state.
+// - le due caselle della foto dell'auto sono il disegno di adesso, non una
+//   configurazione: dicono quale foto mostrare per l'auto scelta su *questo*
+//   dispositivo, e si ricavano dal profilo. Le foto viaggiano dentro
+//   `cd_ev_cars`, dove ogni auto si porta le sue. Spedire anche le caselle
+//   voleva dire che la configurazione condivisa portava in giro la foto
+//   dell'auto attiva altrove e al ritorno la riscriveva qui: si apriva la
+//   plancia, compariva la foto giusta e un istante dopo l'altra vettura.
 const DEVICE_LOCAL_OR_RUNTIME = new Set([
+  "cd_ev_image",
+  "cd_ev_image_plugged",
   "cd_connection",
   "cd_theme",
   "cd_navbar_mode",

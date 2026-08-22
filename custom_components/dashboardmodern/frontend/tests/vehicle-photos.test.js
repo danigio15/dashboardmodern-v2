@@ -66,9 +66,19 @@ test("chi arriva dalle versioni precedenti ritrova la foto sull'auto che la most
   assert.equal(adoptLoosePhotos(dopo, 0, inMostra), dopo);
   // Niente da adottare, niente da fare.
   assert.equal(adoptLoosePhotos(cars, 0, { idle: "", plugged: "" }), cars);
-  // Con una macchina sola non c'e' niente da spartire.
+  /* Anche con una macchina sola.
+   *
+   * L'adozione sembrava servire solo a chi ne ha due, perche' era li' che le
+   * foto si mescolavano. Ma finche' con una sola la foto resta soltanto nelle
+   * due caselle della plancia, quelle caselle sono l'unico posto dove vive — e
+   * per farla arrivare sugli altri dispositivi bisognava spedirle. Spedirle era
+   * proprio quello che faceva comparire l'auto sbagliata. Portata dentro al
+   * profilo, la foto viaggia dove viaggiano le auto. */
   const unica = [{ name: "Unica" }];
-  assert.equal(adoptLoosePhotos(unica, 0, inMostra), unica);
+  const soltanto = adoptLoosePhotos(unica, 0, inMostra);
+  assert.notEqual(soltanto, unica, "anche l'unica auto si prende la sua foto");
+  assert.equal(soltanto[0].img, "/local/auto.png");
+  assert.equal(soltanto[0].imgPlugged, "/local/auto-cavo.png");
 });
 
 test("la foto col cavo non sparisce a chi arriva dalla plancia di prima", () => {

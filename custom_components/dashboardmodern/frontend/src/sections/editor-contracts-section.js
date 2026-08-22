@@ -1,5 +1,5 @@
 import { applianceArtwork } from "../core/appliance-artwork.js";
-import { clean, doc, english, installStyle, root, t, wrapFunction } from "./shared.js";
+import { clean, doc, english, installStyle, onEditorRedraw, root, t, wrapFunction } from "./shared.js";
 
 root.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EDITOR_CONTRACTS_SECTION__";
@@ -392,7 +392,7 @@ function schedule() {
 }
 
 function installWrappers() {
-  wrapFunction("editorSwitch", "__dmEditorContractsSection", schedule);
+  onEditorRedraw("__dmEditorContractsSection", schedule);
   wrapFunction("apriConfigEntita", "__dmEditorContractsOpen", schedule);
 }
 
