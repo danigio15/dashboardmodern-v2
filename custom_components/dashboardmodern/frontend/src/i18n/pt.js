@@ -12,6 +12,8 @@
 
 export default Object.freeze({
   " — configured": " — configurada",
+  "FLOOD": "INUNDAÇÃO",
+  "Floods": "Inundações",
   "— Choose —": "— Escolher —",
   "— Choose model —": "— Escolher modelo —",
   "— kWh from PV": "— kWh do FV",

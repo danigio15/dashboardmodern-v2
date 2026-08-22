@@ -12,6 +12,8 @@
 
 export default Object.freeze({
   " — configured": " — 설정됨",
+  "FLOOD": "누수",
+  "Floods": "누수",
   "— Choose —": "— 선택 —",
   "— Choose model —": "— 모델 선택 —",
   "— kWh from PV": "— 태양광에서 kWh",

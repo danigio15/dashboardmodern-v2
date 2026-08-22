@@ -12,6 +12,8 @@
 
 export default Object.freeze({
   " — configured": " — yapılandırıldı",
+  "FLOOD": "SU BASKINI",
+  "Floods": "Su baskını",
   "— Choose —": "— Seç —",
   "— Choose model —": "— Model seç —",
   "— kWh from PV": "— GES'ten kWh",

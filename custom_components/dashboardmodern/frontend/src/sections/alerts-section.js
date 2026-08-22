@@ -30,6 +30,11 @@ const GROUPS = Object.freeze([
   ["luci", "💡", "Luci", "Lights"],
   ["clima", "❄️", "Clima", "Climate"],
   ["risc", "🔥", "Riscaldamento", "Heating"],
+  /* Una perdita d'acqua non e' il caso particolare di qualcun altro: e' una
+   * delle cose per cui si guarda il Quadro Avvisi. La lista la tiene
+   * `flood-alerts-section.js`, che le da' la card e il popup; qui c'e' la voce
+   * che la fa scegliere quando si configura un avviso. */
+  ["allag", "💧", "Allagamenti", "Floods"],
 ]);
 
 /** Le chiavi che il Quadro Avvisi sorveglia davvero. */

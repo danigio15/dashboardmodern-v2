@@ -446,6 +446,8 @@ export const MESSAGE_KEYS = Object.freeze([
   "Fixed",
   "Fixed cycle duration (minutes)",
   "Flood",
+  "FLOOD",
+  "Floods",
   "Floor",
   "FLOWS & ENTITIES",
   "Flue extractor fan",

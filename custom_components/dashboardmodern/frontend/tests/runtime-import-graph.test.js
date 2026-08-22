@@ -252,7 +252,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // l'indice che porta quel testo italiano alla sua chiave inglese, e la
   // sezione che accende il tutto prima che qualcuno disegni. I cataloghi delle
   // singole lingue non sono qui: si caricano su richiesta, uno solo per utente.
-  assert.ok(relative.length <= 132, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 134 con l'allagamento e col promemoria del chiosco. Il primo e' una lista
+  // sorvegliata come le altre — la sua card nel Quadro Avvisi, il suo popup, la
+  // sua voce in configurazione — e sta in un modulo perche' non e' una variante
+  // di nessuna delle altre cinque. Il secondo e' il piccolo modulo puro che
+  // dice come si disfa quello che il chiosco scrive nel documento di Home
+  // Assistant: lo leggono in due, la plancia dentro la cornice e chi la ospita,
+  // e sono due programmi diversi — un posto solo dove sta scritto e' l'unico
+  // modo perche' chi smonta possa pulire anche quando la cornice non c'e' piu'.
+  assert.ok(relative.length <= 134, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

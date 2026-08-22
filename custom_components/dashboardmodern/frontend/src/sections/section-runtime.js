@@ -29,6 +29,7 @@ import { installApplianceEditorSection } from "./appliance-editor-section.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installLightsSceneSection } from "./lights-scene-section.js";
 import { installAlertsSection } from "./alerts-section.js";
+import { installFloodAlertsSection } from "./flood-alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
@@ -665,6 +666,9 @@ export function installSectionRuntime() {
     // that controls them, so it installs after the model it reads.
     installLightsSceneSection();
     installAlertsSection();
+    /* L'allagamento e' una lista sorvegliata come le altre: si installa dove si
+     * installano gli avvisi, subito dopo chi possiede il loro editor. */
+    installFloodAlertsSection();
     // The redesigned Security page must own #cam-grid before the live-ui camera
     // owner starts filling the thumbnails, so the first paint is already the new
     // wall instead of the legacy cards.
@@ -736,6 +740,7 @@ export function installSectionRuntime() {
         "lights",
         "lights-scene",
         "alerts",
+        "flood-alerts",
         "security-showcase",
         "climate-thermal",
         "live-ui",

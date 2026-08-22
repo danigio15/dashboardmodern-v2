@@ -12,6 +12,8 @@
 
 export default Object.freeze({
   " — configured": " — مُهيّأة",
+  "FLOOD": "تسريب مياه",
+  "Floods": "تسريبات المياه",
   "— Choose —": "— اختر —",
   "— Choose model —": "— اختر الطراز —",
   "— kWh from PV": "— كيلوواط·ساعة من الشمسية",

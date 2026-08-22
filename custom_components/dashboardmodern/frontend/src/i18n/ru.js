@@ -12,6 +12,8 @@
 
 export default Object.freeze({
   " — configured": " — настроена",
+  "FLOOD": "ПРОТЕЧКА",
+  "Floods": "Протечки",
   "— Choose —": "— Выбрать —",
   "— Choose model —": "— Выберите модель —",
   "— kWh from PV": "— кВт·ч от СЭС",

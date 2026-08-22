@@ -574,6 +574,28 @@ export function renderEnergyEditor(
   ENERGY_GROUPS.forEach(([group], groupIndex) => {
     if (SIGNED_GROUPS[group] && !signedHome.has(group)) signedHome.set(group, groupIndex);
   });
+  /* Una casella per campo, non una per riquadro.
+   *
+   * Rete e batteria si configurano in due riquadri, uno per verso, e la
+   * potenza compariva in tutti e due — ma il modello ne ha una sola:
+   * `grid.power` e' la potenza scambiata con la rete, col segno a dire da che
+   * parte va. Le due caselle erano quindi la stessa casella disegnata due
+   * volte: si scriveva il sensore sotto «Rete · prelievo» e lo si vedeva
+   * comparire sotto «Rete · immissione», e sembrava che l'uno scrivesse
+   * nell'altro. Segnalato proprio cosi', su rete e su batteria — e non si
+   * vedeva con la sorgente unica con segno, perche' li' quella casella e'
+   * spenta.
+   *
+   * Adesso si stampa dove compare la prima volta, e il secondo riquadro dice
+   * dov'e' andata invece di ripeterla. */
+  const gia = new Set();
+  const casaDelCampo = new Map();
+  ENERGY_GROUPS.forEach(([group, title, fields]) => {
+    for (const [key] of fields) {
+      const chiave = `${group}.${key}`;
+      if (!casaDelCampo.has(chiave)) casaDelCampo.set(chiave, title);
+    }
+  });
   ENERGY_GROUPS.forEach(([group, title, fields], groupIndex) => {
     const block = document.createElement("details");
     block.className = "ed-acc";
@@ -589,6 +611,21 @@ export function renderEnergyEditor(
       body.append(createSignedCard(document, group, model, states, locale, handlers));
     const managed = signedManagedFields(model, group);
     for (const [key, sourceLabel, unit, example] of fields) {
+      const chiave = `${group}.${key}`;
+      if (gia.has(chiave)) {
+        /* Gia' stampata altrove: qui si dice dov'e', perche' sparire e basta
+         * farebbe sembrare che quel campo non si possa configurare. */
+        const rimando = document.createElement("p");
+        rimando.className = "ed-hint dm-energy-elsewhere";
+        rimando.dataset.energyElsewhere = chiave;
+        rimando.textContent = energyLabel(
+          `${sourceLabel}: e' una sola, si imposta in «${casaDelCampo.get(chiave)}».`,
+          locale,
+        );
+        body.append(rimando);
+        continue;
+      }
+      gia.add(chiave);
       const label = energyLabel(sourceLabel, locale);
       const field = document.createElement("label");
       field.className = "ed-slot";
@@ -596,10 +633,10 @@ export function renderEnergyEditor(
       if (key.startsWith("total_") || key === "total_energy")
         field.dataset.energyTotalField = "true";
       const { field: entity, input } = createEntityPickerField(document, {
-        id:
-          key === "power" && (groupIndex === 2 || groupIndex === 5)
-            ? `dm-energy-${group}-${key}-${groupIndex}`
-            : `dm-energy-${group}-${key}`,
+        /* Un campo, una casella, un identificativo: la scappatoia che dava un
+         * suffisso alla potenza del secondo riquadro serviva solo finche' la
+         * stessa casella veniva disegnata due volte. */
+        id: `dm-energy-${group}-${key}`,
         value: model[group]?.[key] || "",
         placeholder: example,
         label,
