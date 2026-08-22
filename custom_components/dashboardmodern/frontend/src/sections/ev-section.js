@@ -543,12 +543,28 @@ function saveProfilePhotos(photos) {
 
 /* Una volta sola, all'avvio: chi arriva da una versione in cui le foto stavano
  * nella plancia le ritrova sull'auto che le mostrava. */
+/* Il travaso si fa una volta sola, e ce ne si segna.
+ *
+ * Le due caselle sciolte restano — sono il disegno di adesso — ma non sono piu'
+ * il posto dove la foto abita. Finche' il travaso poteva ripartire, pero',
+ * cancellare una foto non bastava: la si toglieva dal profilo su un
+ * dispositivo, la configurazione condivisa arrivava qui, e il giro successivo
+ * ritrovava la vecchia casella ancora piena e la rimetteva dentro al profilo
+ * vuoto — cancellazione annullata, e magari rispedita agli altri.
+ *
+ * Il segno si mette solo quando c'era davvero qualcosa da guardare: metterlo
+ * prima che le auto siano arrivate vorrebbe dire non travasare mai piu'
+ * niente, su nessuna casa. */
+const PHOTO_MIGRATION_KEY = "cd_ev_photos_moved";
+
 function adoptExistingPhotos() {
   const legacy = legacyProfiles();
   const cars = legacy.length ? legacy : canonicalProfiles();
   // Anche una macchina sola: e' cosi' che la sua foto smette di vivere solo
   // nelle due caselle e comincia a viaggiare col profilo.
   if (!cars.length) return false;
+  if (root.localStorage?.getItem(PHOTO_MIGRATION_KEY) === "1") return false;
+  root.localStorage?.setItem(PHOTO_MIGRATION_KEY, "1");
   const aggiornate = adoptLoosePhotos(cars, Math.max(0, activeIndex()), configuredPhotos());
   if (aggiornate === cars) return false;
   if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);

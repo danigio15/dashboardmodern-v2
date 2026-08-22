@@ -135,16 +135,30 @@ export function keepCarIdentity(nuova = {}, precedente = {}) {
 export function restoreCarIdentities(cars, precedenti) {
   if (!Array.isArray(cars) || !cars.length || !Array.isArray(precedenti) || !precedenti.length)
     return assignCarKeys(cars);
+  /* Si riconosce per la chiave *scritta*, non per quella ricavata.
+   *
+   * Una chiave ricavata ce l'hanno tutte, e nasce dal nome: un'auto nuova
+   * chiamata quasi come una vecchia ne ricava la stessa, e cosi' si sarebbe
+   * presa la sua identita' — due profili con la stessa chiave, e sceglierne
+   * uno apriva l'altro. Una chiave scritta invece l'ha solo chi l'ha gia'
+   * ricevuta: e' un'identita', non una somiglianza. */
   const perChiave = new Map();
   const perNome = new Map();
   for (const car of precedenti) {
-    const chiave = carKey(car);
+    const chiave = clean(car?.[CAR_KEY_FIELD]);
     if (chiave) perChiave.set(chiave, car);
-    const nome = clean(car?.name).toLowerCase();
+    /* Il nome si confronta esatto, com'e' scritto.
+     *
+     * Il runtime cerca il profilo da sostituire con `cars[ci].name === n`, cioe'
+     * distinguendo le maiuscole: «Tesla» e «tesla» per lui sono due auto. Qui si
+     * confrontava a maiuscole appiattite, e una seconda auto chiamata quasi come
+     * la prima si prendeva la chiave di quella — due profili con la stessa
+     * chiave, e sceglierne uno apriva l'altro. */
+    const nome = clean(car?.name);
     if (nome && !perNome.has(nome)) perNome.set(nome, car);
   }
   const uscita = cars.map((car) => {
-    const prima = perChiave.get(carKey(car)) || perNome.get(clean(car?.name).toLowerCase());
+    const prima = perChiave.get(clean(car?.[CAR_KEY_FIELD])) || perNome.get(clean(car?.name));
     return prima ? keepCarIdentity(car, prima) : car;
   });
   return assignCarKeys(uscita);

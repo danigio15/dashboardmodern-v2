@@ -1,0 +1,90 @@
+/* Il travaso delle foto sciolte si fa una volta, e poi mai piu'.
+ *
+ * Le due caselle `cd_ev_image` e `cd_ev_image_plugged` restano — sono il
+ * disegno di adesso — ma non sono piu' il posto dove la foto abita: quello e'
+ * il profilo dell'auto, che viaggia dentro `cd_ev_cars`. Il passaggio da un
+ * mondo all'altro e' un travaso, e un travaso e' una migrazione.
+ *
+ * Finche' poteva ripartire, pero', cancellare una foto non bastava: la si
+ * toglieva dal profilo su un dispositivo, la configurazione condivisa arrivava
+ * qui, e il giro successivo ritrovava la vecchia casella ancora piena e la
+ * rimetteva dentro al profilo vuoto. La cancellazione veniva annullata, e
+ * magari rispedita agli altri.
+ */
+
+import assert from "node:assert/strict";
+import test from "node:test";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
+const leggi = (relativo) => readFileSync(join(SRC, relativo), "utf8");
+
+test("il travaso si segna, e segnato non riparte", () => {
+  const sezione = leggi("sections/ev-section.js");
+  assert.match(sezione, /const PHOTO_MIGRATION_KEY = "cd_ev_photos_moved"/);
+  assert.match(
+    sezione,
+    /if \(root\.localStorage\?\.getItem\(PHOTO_MIGRATION_KEY\) === "1"\) return false;/,
+    "senza questo una foto cancellata altrove torna indietro",
+  );
+});
+
+test("«ho travasato» si puo' dire solo se c'era qualcosa da travasare", () => {
+  /* Lo stesso difetto degli allagamenti: il segno messo prima che le auto
+   * siano arrivate vuol dire non travasare mai piu' niente, su nessuna casa. */
+  const sezione = leggi("sections/ev-section.js");
+  const corpo = sezione.slice(sezione.indexOf("function adoptExistingPhotos()"));
+  const senzaAuto = corpo.indexOf("if (!cars.length) return false;");
+  const segno = corpo.indexOf('setItem(PHOTO_MIGRATION_KEY, "1")');
+  assert.ok(senzaAuto > -1 && segno > -1);
+  assert.ok(senzaAuto < segno, "il segno si mette anche senza auto");
+});
+
+test("la casella del travaso resta di questo dispositivo", async () => {
+  const { CONFIG_KEYS } = await import("../src/sections/config-persistence-section.js");
+  assert.equal(CONFIG_KEYS.includes("cd_ev_photos_moved"), false, "non e' configurazione");
+});
+
+/* La revisione delle chiavi non si alza per una chiave tolta.
+ *
+ * `mergeLegacyMissingConfig` riempie un salvataggio piu' vecchio della
+ * revisione corrente con quello che c'e' su questo dispositivo: serve perche'
+ * un salvataggio scritto prima che una chiave esistesse non puo' dire «questa
+ * e' stata cancellata». Ma alzare la revisione per delle chiavi *tolte* manda
+ * dentro a quel travaso ogni salvataggio della revisione precedente — e li'
+ * dentro torna su anche quello che qualcun altro aveva cancellato apposta.
+ * Una chiave tolta, per giunta, non si potrebbe riempire da qui: non e' piu'
+ * nell'elenco.
+ */
+test("togliere una chiave non alza la revisione", async () => {
+  const { CONFIG_KEYS, CONFIG_KEYS_REVISION, mergeLegacyMissingConfig } = await import(
+    "../src/sections/config-persistence-section.js"
+  );
+  assert.equal(CONFIG_KEYS_REVISION, 4);
+  for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
+    assert.equal(CONFIG_KEYS.includes(chiave), false);
+
+  // Un salvataggio alla revisione corrente e' completo: quello che non c'e'
+  // dentro e' stato cancellato, e non si rimette.
+  const remote = { keys_revision: 4, values: { cd_ev_cars: "[]" } };
+  const merged = mergeLegacyMissingConfig(remote, { cd_robot: '[{"name":"Rosetta"}]' });
+  assert.equal(merged, remote, "un salvataggio completo non si tocca");
+});
+
+test("un salvataggio davvero piu' vecchio si riempie ancora, ma solo di chiavi vive", async () => {
+  const { mergeLegacyMissingConfig } = await import(
+    "../src/sections/config-persistence-section.js"
+  );
+  const merged = mergeLegacyMissingConfig(
+    { keys_revision: 2, values: { cd_ev_cars: "[]" } },
+    { cd_robot: '[{"name":"Rosetta"}]', cd_ev_image: '"/local/vecchia.png"' },
+  );
+  assert.equal(merged.values.cd_robot, '[{"name":"Rosetta"}]');
+  assert.equal(
+    "cd_ev_image" in merged.values,
+    false,
+    "una chiave ritirata non rientra dalla finestra",
+  );
+});

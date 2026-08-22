@@ -142,6 +142,25 @@ test("l'elenco risalvato ritrova le identita' di quello di prima", () => {
   assert.equal(carKey(rimesse[1]), "seconda");
 });
 
+/* Due auto che si chiamano quasi uguale restano due auto.
+ *
+ * Il runtime cerca il profilo da sostituire con `cars[ci].name === n`, cioe'
+ * distinguendo le maiuscole: «Tesla» e «tesla» per lui sono due vetture
+ * diverse. Confrontando a maiuscole appiattite, la seconda si prendeva la
+ * chiave della prima — due profili con la stessa chiave, e sceglierne uno
+ * apriva l'altro.
+ */
+test("«Tesla» e «tesla» non sono la stessa auto", () => {
+  const prima = [{ name: "Tesla", [CAR_KEY_FIELD]: "tesla" }];
+  const rimesse = restoreCarIdentities([prima[0], { name: "tesla" }], prima);
+  assert.notEqual(
+    rimesse[1][CAR_KEY_FIELD],
+    "tesla",
+    "la seconda si e' presa la chiave della prima",
+  );
+  assert.equal(new Set(rimesse.map((car) => car[CAR_KEY_FIELD])).size, 2);
+});
+
 test("i campi che appartengono all'auto sono dichiarati in un posto solo", () => {
   assert.ok(CAR_IDENTITY_FIELDS.includes(CAR_KEY_FIELD));
   for (const campo of ["brand", "model", "icon", "imgPlugged"])

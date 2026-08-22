@@ -5,7 +5,7 @@ import { reloadDashboard, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CONFIG_PERSISTENCE__";
 const USER_DATA_VERSION = 1;
-export const CONFIG_KEYS_REVISION = 5;
+export const CONFIG_KEYS_REVISION = 4;
 const PERSIST_META_KEY = "dm_persistence_meta";
 const REMOTE_REFRESH_MIN_MS = 1200;
 
@@ -317,8 +317,11 @@ export function normalizeSharedSnapshot(snapshot) {
  * payload is complete again, so absence means deletion.
  *
  * Revision 3 adds the second vehicle photo (`cd_ev_image_plugged`).
- * Revision 5 retires both vehicle photos: ogni auto si porta le sue dentro
- * `cd_ev_cars`.
+ * La revisione resta 4: la 5 non aggiunge nessuna chiave — le due foto
+ * dell'auto sono state *tolte*, e una chiave tolta non si puo' riempire da
+ * qui. Alzarla avrebbe voluto dire mandare ogni salvataggio di revisione 4
+ * dentro a questo travaso, cioe' rimettere dentro da questo dispositivo valori
+ * che qualcun altro aveva cancellato apposta.
  *
  * Si riempie solo con chiavi che questa versione sincronizza davvero. Prima si
  * riversava dentro tutto quello che il dispositivo aveva sottomano, e una
