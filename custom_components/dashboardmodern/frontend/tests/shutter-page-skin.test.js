@@ -73,7 +73,14 @@ test("the skin themes itself instead of hard-coding one palette", () => {
   assert.match(css, /html\[data-theme="dark"\] body #page-tapparelle#page-tapparelle,html body\.dark-theme #page-tapparelle#page-tapparelle\{/);
   assert.match(css, /--tapp-stars:none/);
   assert.match(css, /--tapp-stars:radial-gradient/);
+  /* Il ramo a movimento ridotto esiste per la decorazione (card e bottoni),
+   * ma non deve mai fermare il telo: quello e' lo stato della finestra. */
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)/);
+  const ridotti = css.match(/@media\(prefers-reduced-motion:reduce\)\{[^@]*?\}\}/g) || [];
+  for (const blocco of ridotti) {
+    assert.doesNotMatch(blocco, /tapp-shutter|tenda-telo|tendasole|tapp-state/);
+    assert.doesNotMatch(blocco, /animation/);
+  }
 });
 
 test("card controls and the open/close-everything bar have one owner", () => {

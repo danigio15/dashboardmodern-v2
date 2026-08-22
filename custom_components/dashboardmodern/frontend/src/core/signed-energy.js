@@ -231,11 +231,21 @@ function readingFrom(states, entity) {
  * prelievo e 0.3 kW di immissione — e sottrarre i numeri grezzi avrebbe
  * prodotto 1199.7 spacciati per kW. Un'unita' che non si riconosce non si
  * indovina: la lettura diventa muta, non un numero sbagliato. */
-const POWER_UNIT_FACTORS = Object.freeze({ w: 1, kw: 1000, mw: 1000000 });
+/* Il prefisso SI distingue per maiuscola: mW e MW stanno a nove ordini di
+ * grandezza, e schiacciarli col lowercase li avrebbe confusi. */
+const POWER_UNIT_FACTORS = Object.freeze({
+  W: 1,
+  w: 1,
+  kW: 1000,
+  KW: 1000,
+  kw: 1000,
+  MW: 1000000,
+  mW: 0.001,
+});
 
 function watts(reading) {
   if (!reading || reading.value === null || reading.value === undefined) return null;
-  const unit = clean(reading.source?.attributes?.unit_of_measurement).toLowerCase();
+  const unit = clean(reading.source?.attributes?.unit_of_measurement);
   if (!unit) return reading.value; // senza unita' si assume il watt, come fa il runtime
   const factor = POWER_UNIT_FACTORS[unit];
   return factor === undefined ? null : reading.value * factor;

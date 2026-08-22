@@ -263,7 +263,7 @@ export function ensureVehiclePhotoEditor() {
     panelNode = doc.createElement("section");
     panelNode.className = "ed-form dm-ev-photos";
     panelNode.dataset.evPhotos = "true";
-    panelNode.innerHTML = `<div class="ed-sec-title">📸 ${t("Foto dell'auto", "Vehicle photos")}</div>
+    panelNode.innerHTML = `<div class="ed-sec-title" data-ev-photos-title>📸 ${t("Foto dell'auto", "Vehicle photos")}</div>
       <div class="ed-intro">${t(
         "Due scatti della stessa auto: la plancia mostra quello con il cavo attaccato mentre è in ricarica e l'altro nel resto del tempo. Basta la prima: senza la seconda resta sempre quella.",
         "Two shots of the same car: the dashboard shows the plugged-in one while it charges and the other one the rest of the time. The first is enough — without the second it simply stays.",
@@ -328,6 +328,46 @@ export function ensureVehiclePhotoEditor() {
     }
   }
   for (const field of panelNode.querySelectorAll("[data-ev-photo]")) paintPhotoPreview(field);
+  /* Il pannello scrive sull'auto attiva, e lo dice.
+   *
+   * Con due auto configurate le foto caricate qui finivano "da qualche parte":
+   * sul profilo attivo, che non e' per forza quello che si sta guardando
+   * nell'accordion. Chi apriva la configurazione con la B10 attiva e caricava
+   * le foto della T03 se le ritrovava sulla B10 — ed e' esattamente il "si
+   * mischiano le foto" segnalato per giorni. Il titolo adesso porta il nome
+   * dell'auto a cui le foto verranno salvate, aggiornato a ogni passata. */
+  const titolo = panelNode.querySelector("[data-ev-photos-title]");
+  if (titolo) {
+    const elenco = profiles();
+    const attiva = elenco[Math.max(0, Math.min(elenco.length - 1, activeIndex()))];
+    const nome = clean(attiva?.name);
+    const testo = nome && elenco.length > 1
+      ? `📸 ${t("Foto dell'auto", "Vehicle photos")} — ${nome}`
+      : `📸 ${t("Foto dell'auto", "Vehicle photos")}`;
+    if (titolo.textContent !== testo) titolo.textContent = testo;
+    /* La bozza non sopravvive al cambio d'auto.
+     *
+     * Un percorso scritto e non ancora salvato resta nel campo apposta — il
+     * pannello si ridisegna da solo mentre si scrive. Ma se nel frattempo
+     * cambia l'AUTO di destinazione, quella bozza apparteneva all'altra:
+     * salvarla adesso la scriverebbe sul profilo sbagliato, con il titolo
+     * nuovo a fare da alibi. Al cambio si azzera il segno di modifica e i
+     * campi si ricaricano dalle foto dell'auto appena scelta. */
+    if (titolo.dataset.evPhotosFor !== undefined && titolo.dataset.evPhotosFor !== nome) {
+      const foto = configuredPhotos();
+      for (const field of panelNode.querySelectorAll("[data-ev-photo]")) {
+        delete field.dataset.evPhotoEdited;
+        const input = field.querySelector("[data-ev-photo-input]");
+        /* Anche sul campo a fuoco: il cambio d'auto e' un gesto dell'utente,
+         * non un giro di fondo, e la bozza appartiene all'auto di prima. */
+        if (input) {
+          input.value = foto[field.dataset.evPhoto] || "";
+          paintPhotoPreview(field);
+        }
+      }
+    }
+    titolo.dataset.evPhotosFor = nome;
+  }
   return true;
 }
 
@@ -560,6 +600,16 @@ function saveProfilePhotos(photos) {
   const cars = legacy.length ? legacy : canonicalProfiles();
   if (!cars.length) return false;
   const posizione = Math.max(0, Math.min(cars.length - 1, activeIndex()));
+  /* Niente pulizie d'ufficio sugli altri profili.
+   *
+   * C'era la tentazione di togliere la coppia appena salvata a chi la portava
+   * identica — la firma del vecchio furto. Ma due auto possono portare la
+   * stessa foto per scelta legittima, e l'uguaglianza dei percorsi non prova
+   * niente: cancellare in silenzio una configurazione valida e' peggio del
+   * difetto che si voleva riparare. Chi ha i profili mescolati li risistema
+   * risalvando le foto giuste su ciascuna auto, col pannello che adesso
+   * dichiara a chi sta scrivendo — e la resurrezione dagli alias e' chiusa
+   * alla fonte. */
   const aggiornate = withProfilePhotos(cars, posizione, photos);
   if (aggiornate === cars) return false;
   if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);

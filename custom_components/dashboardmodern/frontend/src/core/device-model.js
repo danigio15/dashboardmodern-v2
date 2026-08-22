@@ -362,14 +362,30 @@ export function normalizeDevice(input = {}, section, context = {}) {
         : input.overrides && typeof input.overrides === "object" && !Array.isArray(input.overrides)
           ? input.overrides
           : {};
-    const evImage = String(input.img || input.image || input.image_url || "");
+    /* `img` e' la verita', e gli alias la seguono.
+     *
+     * Il profilo normalizzato porta anche `image` e `image_url`, e qui si
+     * componeva `img || image || image_url`: una foto SVUOTATA apposta — il
+     * campo c'e', vuoto — risorgeva dall'alias rimasto pieno al giro prima.
+     * Ogni risalvataggio della sezione riportava cosi' la foto vecchia
+     * sull'auto sbagliata, ed e' il "le foto si mescolano da sole" che e'
+     * stato segnalato per giorni. Se `img` esiste comanda lei, anche vuota;
+     * gli alias si riscrivono su di lei invece di farle da memoria ombra. */
+    /* `img` e' autoritativa solo se esiste: una riga legacy senza `img`, con
+     * `image` vuota e `image_url` piena, deve ancora pescare dall'alias — la
+     * catena ?? si sarebbe fermata sulla stringa vuota e avrebbe scartato
+     * l'unica foto rimasta. */
+    const evImage =
+      input.img !== undefined && input.img !== null
+        ? String(input.img)
+        : String(input.image || input.image_url || "");
     return {
       ...legacy,
       ...base,
       name: base.name || String(input.name || "").trim(),
       icon: base.icon || String(input.icon || ""),
-      image: base.image || evImage,
-      image_url: base.image_url || evImage,
+      image: evImage,
+      image_url: evImage,
       img: evImage,
       brand: String(input.brand || ""),
       ov: cloneValue(overrideSource),

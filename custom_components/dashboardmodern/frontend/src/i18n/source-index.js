@@ -768,6 +768,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Pompa Solare": "Solar Pump",
   "Pompa termocamino": "Fireplace pump",
   "Porta / Apertura": "Door / Opening",
+  "Posizione di ${nome}": "Position of ${nome}",
   "Posizione di ${view.name}": "Position of ${view.name}",
   "Posta": "Mail",
   "potenza": "power",

@@ -768,6 +768,7 @@ export default Object.freeze({
   "Pool temperature": "Pooltemperatur",
   "Pools": "Pools",
   "Position of ${view.name}": "Position von ${view.name}",
+  "Position of ${nome}": "Position von ${nome}",
   "power": "Leistung",
   "Power": "Leistung",
   "Power (high → low)": "Leistung (hoch → niedrig)",

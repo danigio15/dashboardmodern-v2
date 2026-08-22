@@ -109,3 +109,44 @@ def test_una_cartella_enorme_si_ferma_e_lo_dice(tmp_path: Path) -> None:
     assert radice is not None
     assert radice["truncated"] is True
     assert len(radice["images"]) == MAX_ENTRIES
+
+
+# ── Il caricamento ───────────────────────────────────────────────────────────
+
+
+def test_upload_scrive_e_da_il_percorso_local(tmp_path: Path) -> None:
+    from custom_components.dashboardmodern.www_files import save_www_upload
+
+    esito = save_www_upload(str(tmp_path), "Foto Auto.PNG", b"contenuto")
+    assert esito == {"path": "/local/dashboardmodern/foto-auto.png"}
+    assert (tmp_path / "dashboardmodern" / "foto-auto.png").read_bytes() == b"contenuto"
+
+
+def test_upload_non_sovrascrive_un_nome_gia_preso(tmp_path: Path) -> None:
+    from custom_components.dashboardmodern.www_files import save_www_upload
+
+    save_www_upload(str(tmp_path), "auto.png", b"prima")
+    esito = save_www_upload(str(tmp_path), "auto.png", b"seconda")
+    assert esito == {"path": "/local/dashboardmodern/auto-2.png"}
+    assert (tmp_path / "dashboardmodern" / "auto.png").read_bytes() == b"prima"
+
+
+def test_upload_rifiuta_cio_che_non_e_una_foto(tmp_path: Path) -> None:
+    from custom_components.dashboardmodern.www_files import (
+        MAX_UPLOAD_BYTES,
+        save_www_upload,
+    )
+
+    assert save_www_upload(str(tmp_path), "script.sh", b"#!/bin/sh") is None
+    assert save_www_upload(str(tmp_path), "vuota.png", b"") is None
+    troppo = b"x" * (MAX_UPLOAD_BYTES + 1)
+    assert save_www_upload(str(tmp_path), "enorme.png", troppo) is None
+
+
+def test_upload_un_nome_ostile_resta_nella_cartella(tmp_path: Path) -> None:
+    from custom_components.dashboardmodern.www_files import save_www_upload
+
+    esito = save_www_upload(str(tmp_path), "../../fuori.png", b"x")
+    assert esito == {"path": "/local/dashboardmodern/fuori.png"}
+    assert (tmp_path / "dashboardmodern" / "fuori.png").exists()
+    assert not (tmp_path.parent / "fuori.png").exists()

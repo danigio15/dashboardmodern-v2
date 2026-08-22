@@ -768,6 +768,7 @@ export default Object.freeze({
   "Pool temperature": "プールの水温",
   "Pools": "プール",
   "Position of ${view.name}": "${view.name} の位置",
+  "Position of ${nome}": "${nome} の位置",
   "power": "電力",
   "Power": "電力",
   "Power (high → low)": "電力（大 → 小）",

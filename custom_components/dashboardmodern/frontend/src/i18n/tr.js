@@ -768,6 +768,7 @@ export default Object.freeze({
   "Pool temperature": "Havuz sıcaklığı",
   "Pools": "Havuzlar",
   "Position of ${view.name}": "${view.name} konumu",
+  "Position of ${nome}": "${nome} konumu",
   "power": "güç",
   "Power": "Güç",
   "Power (high → low)": "Güç (yüksek → düşük)",
