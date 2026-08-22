@@ -62,9 +62,23 @@ era spazzatura. I decodificatori indulgenti mostravano comunque qualcosa.
 
 Su un Home Assistant più vecchio del 2026.3 la strada 1 non esiste: lì l'icona
 la può servire solo `brands.home-assistant.io`, e finché il dominio non è nel
-catalogo si legge «icon not available». Vale anche per chi guarda la scheda del
-repository in HACS prima di installarlo: lì l'integrazione sul disco non c'è
-ancora, quindi non c'è nessuna cartella `brand/` da leggere.
+catalogo si legge «icon not available».
+
+**E la strada 1 non copre HACS, nemmeno sul 2026.8.** Il pannello di Home
+Assistant chiede le icone al proprio indirizzo locale — `brandsUrl()` in
+`src/util/brands-url.ts` costruisce `/api/brands/integration/<dominio>/icon.png`
+con un token — ma l'entità di aggiornamento che HACS crea si scrive l'indirizzo
+da sola, e va dritta alla CDN (`custom_components/hacs/update.py`):
+
+```python
+return f"https://brands.home-assistant.io/_/{self.repository.data.domain}/icon.png"
+```
+
+Per questo in **Impostazioni → Aggiornamenti** si legge «icon not available»
+anche quando la cartella `brand/` è installata e funziona: quella riga non passa
+dal pannello, e nessun file di questo repository la può cambiare. Vale anche per
+la scheda del repository dentro HACS prima di installarlo, dove l'integrazione
+sul disco non c'è ancora.
 
 Verificato il 22 agosto 2026 su [`home-assistant/brands`](https://github.com/home-assistant/brands):
 `custom_integrations/dashboardmodern` **non esiste** (404), mentre
