@@ -785,10 +785,10 @@ function installStyles() {
         max-width:360px!important
       }
     }
-    @media(prefers-reduced-motion:reduce){
-      #page-home .g-icon-wrap[class*="dm-alert-"],
-      #page-home .g-icon-wrap .dm-alert-glyph{animation:none!important;transform:none!important}
-    }
+    /* Gli avvisi animati restano animati anche a movimento ridotto: il
+     * movimento e' il segnale — una perdita d'acqua che gocciola, una fiamma
+     * che trema — e su molti desktop quell'impostazione di sistema e' attiva
+     * senza che nessuno l'abbia scelta per questa plancia. */
   `);
 }
 

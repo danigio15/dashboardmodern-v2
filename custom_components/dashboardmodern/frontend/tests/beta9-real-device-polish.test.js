@@ -79,6 +79,10 @@ test("shutters are compact and alert animations follow the alert kind", async ()
   for (const kind of ["window", "leak", "flame", "motion", "temperature", "power", "light", "security"]) {
     assert.match(source, new RegExp(`\\.dm-alert-${kind} \\.dm-alert-glyph`));
   }
+  /* E nessun ramo a movimento ridotto le spegne: il movimento e' il segnale
+   * dell'avviso, e su molti desktop quell'impostazione di sistema e' attiva a
+   * insaputa di chi guarda la plancia. Da desktop gli avvisi parevano fermi. */
+  assert.doesNotMatch(source, /prefers-reduced-motion[\s\S]{0,200}dm-alert/);
 });
 
 test("add-light layout cannot collapse its entity field", async () => {
