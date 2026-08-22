@@ -1,5 +1,4 @@
 // DM-FIX-20260812B
-import { declaredCoverKind as coverKindValue } from "../core/cover-kind.js";
 import { contactEntity } from "../core/shutter-window.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import {
@@ -218,7 +217,8 @@ function beginEdit(kind, index) {
     setField("ed-tp-ent", item.entity || "");
     setField("ed-tp-room", item.room || item.room_id || "");
     setField("ed-tp-contact", contactEntity(item));
-    setField("ed-tp-kind", coverKindValue(item));
+    setField("ed-tp-tenda", item.tenda || "");
+    setField("ed-tp-tendasole", item.tendaSole || "");
   } else if (kind === "room") {
     setField("ed-room-name", item.name || "");
     setField("ed-room-icon", item.icon || "🏠");
@@ -332,19 +332,28 @@ function installAddWrappers() {
       // Il contatto dell'infisso: la card lo legge per sapere se la finestra
       // dietro la tapparella e' aperta.
       contact: clean(doc.getElementById("ed-tp-contact")?.value),
-      // Tapparella o tenda: vuoto vuol dire «come dice Home Assistant».
-      kind: clean(doc.getElementById("ed-tp-kind")?.value),
+      /* Un infisso puo' averle tutte: una casella per funzione, e il tipo non
+       * si dichiara piu' perche' lo dice la casella. */
+      tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
+      tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
     };
     salvaTapparelle(list);
   },
   /* Il contatto sopravvive anche a una tapparella appena aggiunta: l'elenco lo
    * scrive il runtime, che di questo campo non sa niente, e la voce nasce senza.
    * Qui la si ritrova dalla sua entita' e le si posa accanto il contatto. */
+  /* I campi in piu' sopravvivono anche a una tapparella appena aggiunta:
+   * l'elenco lo scrive il runtime, che di queste caselle non sa niente, e la
+   * voce nasce senza. Qui la si ritrova dalla sua entita' e glieli si posa
+   * accanto. */
   () => {
-    const contact = clean(doc.getElementById("ed-tp-contact")?.value);
-    const kind = clean(doc.getElementById("ed-tp-kind")?.value);
+    const extra = {
+      contact: clean(doc.getElementById("ed-tp-contact")?.value),
+      tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
+      tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
+    };
     const entity = clean(doc.getElementById("ed-tp-ent")?.value);
-    if ((!contact && !kind) || !entity) return null;
+    if (!entity || !Object.values(extra).some(Boolean)) return null;
     return () => {
       const list = listFor("shutter");
       let index = -1;
@@ -352,10 +361,11 @@ function installAddWrappers() {
         if (clean(item?.entity) === entity) index = position;
       });
       if (index < 0) return;
-      const uguale =
-        clean(list[index].contact) === contact && clean(list[index].kind) === kind;
+      const uguale = Object.entries(extra).every(
+        ([campo, valore]) => clean(list[index][campo]) === valore,
+      );
       if (uguale) return;
-      list[index] = { ...list[index], contact, kind };
+      list[index] = { ...list[index], ...extra };
       salvaTapparelle(list);
     };
   });

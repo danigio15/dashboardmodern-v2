@@ -475,6 +475,31 @@ function restoreProfilePhotos(car, before, profileCount = profiles().length) {
   storePhoto(EV_PHOTO_KEYS.plugged, mostra.plugged);
 }
 
+/* Le due caselle da cui la plancia legge la foto seguono l'auto scelta anche
+ * quando nessuno sceglie niente.
+ *
+ * `cd_ev_image` e `cd_ev_image_plugged` sono le caselle che il disegno legge, e
+ * si riempivano soltanto quando si toccava un'auto: le riscriveva il giro di
+ * `cdEvApplyCar`. A un ricaricamento della pagina pero' nessuno la tocca, e in
+ * quelle caselle resta l'ultimo valore che ci e' finito dentro — quello
+ * dell'altra auto, o niente. Da qui la foto che cambia da sola aggiornando, e
+ * l'immagine generica al posto della vettura.
+ *
+ * All'avvio le caselle si riportano su quello che dice il profilo attivo. Con
+ * una macchina sola non si tocca niente: li' la casella *e'* la fonte, e
+ * `photosForProfile` lo sa gia'. */
+export function seedActiveProfilePhotos() {
+  const elenco = profiles();
+  if (elenco.length < 2) return false;
+  const indice = activeIndex();
+  const car = elenco[indice];
+  if (!car) return false;
+  const before = configuredPhotos();
+  restoreProfilePhotos(car, before, elenco.length);
+  const dopo = configuredPhotos();
+  return dopo.idle !== before.idle || dopo.plugged !== before.plugged;
+}
+
 /* Le foto appena salvate entrano nell'auto scelta.
  *
  * Le due caselle della plancia restano, perche' e' da li' che il disegno legge,
@@ -614,11 +639,16 @@ function bindEditorEntryPoints() {
 
 export function installEvSection() {
   if (!doc) return;
-  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installLegacyWrappers(); bindEditorEntryPoints(); scheduleEvSync();
+  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installLegacyWrappers(); bindEditorEntryPoints();
+  seedActiveProfilePhotos();
+  scheduleEvSync();
   if (!state.installed) {
     state.installed=true;
     doc.addEventListener("click",(event)=>{if(event.target?.closest?.('[data-tab="ev"],[data-page="ev"],.ed-tab[data-tab="sez2"],.ed-acc-head'))root.setTimeout?.(scheduleEvSync,0);},true);
-    for (const eventName of ["dashboardmodern:legacy-ready","dashboardmodern:runtime-ready","pageshow"]) root.addEventListener?.(eventName,()=>{scheduleEvSyncSettled();bindEditorEntryPoints();});
+    for (const eventName of ["dashboardmodern:legacy-ready","dashboardmodern:runtime-ready","pageshow"]) root.addEventListener?.(eventName,()=>{seedActiveProfilePhotos();scheduleEvSyncSettled();bindEditorEntryPoints();});
+    /* La configurazione condivisa arriva dopo l'avvio e riscrive le caselle
+     * con quello che aveva l'altro dispositivo: anche li' vale il profilo. */
+    root.addEventListener?.("dashboardmodern:persistence-restored",()=>{seedActiveProfilePhotos();scheduleEvSync();});
     root.addEventListener?.("dashboardmodern:state-changed",(event)=>{ if (stateChangeAffectsEv(event)) scheduleEvSync(); });
   }
 }

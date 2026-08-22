@@ -1,8 +1,10 @@
 import {
   coverClosedPercent,
+  coverEntries,
   coverIsAwning,
   coverIsSideways,
   coverKind,
+  coverKindLabel,
 } from "../core/cover-kind.js";
 import { allStates, clean, doc, esc, installStyle, root, t } from "./shared.js";
 
@@ -57,7 +59,7 @@ function floorOrder() {
   return Array.isArray(names) ? names : [];
 }
 
-function coverView(item = {}) {
+function coverView(item = {}, distingui = false) {
   const entity = clean(item.entity || item.entities?.[0]);
   if (!entity) return null;
   const current = allStates()[entity];
@@ -72,7 +74,9 @@ function coverView(item = {}) {
   return {
     entity,
     kind: coverKind(item, current),
-    name: clean(item.name) || clean(current?.attributes?.friendly_name) || entity,
+    /* Con piu' di una copertura sullo stesso infisso il nome da solo non
+     * basta: tre card «Camera» non si distinguono. */
+    name: nomeCopertura(item, current, entity, distingui),
     room,
     floor: clean(root.cdRoomFloorOf?.(room)),
     status,
@@ -83,8 +87,23 @@ function coverView(item = {}) {
   };
 }
 
+function nomeCopertura(item, current, entity, distingui) {
+  const base = clean(item.name) || clean(current?.attributes?.friendly_name) || entity;
+  if (!distingui) return base;
+  return `${base} · ${coverKindLabel(coverKind(item, current))}`;
+}
+
+/* Le card di una riga di configurazione: una per casella compilata. */
+function viewsFor(item = {}) {
+  const entries = coverEntries(item);
+  if (!entries.length) return [coverView(item)].filter(Boolean);
+  return entries
+    .map(({ entity, kind }) => coverView({ ...item, entity, kind }, entries.length > 1))
+    .filter(Boolean);
+}
+
 function coverList() {
-  const views = configuredCovers().map(coverView).filter(Boolean);
+  const views = configuredCovers().flatMap(viewsFor).filter(Boolean);
   const floors = floorOrder();
   const rank = (floor) => {
     const index = floors.indexOf(floor);
