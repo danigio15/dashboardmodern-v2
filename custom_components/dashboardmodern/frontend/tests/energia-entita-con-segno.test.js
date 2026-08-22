@@ -251,6 +251,15 @@ test("i due sensori possono usare unita' diverse: si sottraggono watt, non numer
   assert.equal(lettura.attributes.unit_of_measurement, "W", "l'unita' si dichiara, non si eredita");
 });
 
+test("mW e MW non si confondono: il prefisso SI distingue per maiuscola", () => {
+  const energy = { grid: { power: "sensor.prelievo", power_export: "sensor.milli" } };
+  const derived = derivedEnergyStates(energy, {
+    "sensor.prelievo": stato(1000, "W"),
+    "sensor.milli": stato(500000, "mW"), // mezzo kilowatt, non mezzo gigawatt
+  });
+  assert.equal(derived[derivedEntityId("grid", "power")].state, "500");
+});
+
 test("un'unita' che non si riconosce rende muta la lettura, non un numero sbagliato", () => {
   const energy = { grid: { power: "sensor.prelievo_w", power_export: "sensor.strano" } };
   const derived = derivedEnergyStates(energy, {

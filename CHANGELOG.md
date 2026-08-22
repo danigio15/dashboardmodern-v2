@@ -23,10 +23,10 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   configurazione finiscono sull'auto attiva, che non è per forza quella che si
   sta guardando: chi apriva il pannello con l'altra vettura attiva se le
   ritrovava sull'auto sbagliata, senza che niente lo dicesse. Il titolo ora
-  porta il nome dell'auto di destinazione e segue il cambio in tempo reale. E
-  una coppia di foto salvata su un'auto viene tolta a chi la portava identica:
-  è la firma del vecchio difetto che le mescolava, e la dichiarazione nuova
-  vince sulla copia.
+  porta il nome dell'auto di destinazione e segue il cambio in tempo reale. Salvare
+  le foto di un'auto riguarda quell'auto e basta: l'altra non si tocca mai, e
+  una bozza scritta e non salvata si scarta quando l'auto di destinazione
+  cambia.
 
 - **Le tapparelle erano rimaste senza animazioni da desktop.** Stessa causa
   degli elettrodomestici: «riduci il movimento» del sistema operativo spegneva

@@ -345,6 +345,27 @@ export function ensureVehiclePhotoEditor() {
       ? `📸 ${t("Foto dell'auto", "Vehicle photos")} — ${nome}`
       : `📸 ${t("Foto dell'auto", "Vehicle photos")}`;
     if (titolo.textContent !== testo) titolo.textContent = testo;
+    /* La bozza non sopravvive al cambio d'auto.
+     *
+     * Un percorso scritto e non ancora salvato resta nel campo apposta — il
+     * pannello si ridisegna da solo mentre si scrive. Ma se nel frattempo
+     * cambia l'AUTO di destinazione, quella bozza apparteneva all'altra:
+     * salvarla adesso la scriverebbe sul profilo sbagliato, con il titolo
+     * nuovo a fare da alibi. Al cambio si azzera il segno di modifica e i
+     * campi si ricaricano dalle foto dell'auto appena scelta. */
+    if (titolo.dataset.evPhotosFor !== undefined && titolo.dataset.evPhotosFor !== nome) {
+      const foto = configuredPhotos();
+      for (const field of panelNode.querySelectorAll("[data-ev-photo]")) {
+        delete field.dataset.evPhotoEdited;
+        const input = field.querySelector("[data-ev-photo-input]");
+        /* Anche sul campo a fuoco: il cambio d'auto e' un gesto dell'utente,
+         * non un giro di fondo, e la bozza appartiene all'auto di prima. */
+        if (input) {
+          input.value = foto[field.dataset.evPhoto] || "";
+          paintPhotoPreview(field);
+        }
+      }
+    }
     titolo.dataset.evPhotosFor = nome;
   }
   return true;
@@ -579,26 +600,17 @@ function saveProfilePhotos(photos) {
   const cars = legacy.length ? legacy : canonicalProfiles();
   if (!cars.length) return false;
   const posizione = Math.max(0, Math.min(cars.length - 1, activeIndex()));
-  let aggiornate = withProfilePhotos(cars, posizione, photos);
-  /* La stessa coppia di foto su due auto e' la firma del vecchio furto.
+  /* Niente pulizie d'ufficio sugli altri profili.
    *
-   * Il difetto che copiava le foto dell'auto attiva sul profilo risalvato ha
-   * lasciato configurazioni in cui due vetture portano la coppia identica: le
-   * foto vere di una delle due sono perse, e nessuno puo' indovinarle. Ma nel
-   * momento in cui una coppia viene salvata QUI, di quella coppia si sa tutto:
-   * appartiene all'auto attiva, per dichiarazione. Un altro profilo che la
-   * porta identica e' una copia rubata, e si ripulisce — vuota dice la
-   * verita': quell'auto una foto sua non ce l'ha ancora. */
-  const nuova = { idle: clean(photos.idle), plugged: clean(photos.plugged) };
-  if (nuova.idle || nuova.plugged) {
-    aggiornate = aggiornate.map((car, posto) => {
-      if (posto === posizione) return car;
-      const sue = { idle: clean(car.img), plugged: clean(car.imgPlugged) };
-      if (sue.idle !== nuova.idle || sue.plugged !== nuova.plugged) return car;
-      // Anche gli alias, o la foto tolta risorge dalla memoria ombra.
-      return { ...car, img: "", imgPlugged: "", image: "", image_url: "" };
-    });
-  }
+   * C'era la tentazione di togliere la coppia appena salvata a chi la portava
+   * identica — la firma del vecchio furto. Ma due auto possono portare la
+   * stessa foto per scelta legittima, e l'uguaglianza dei percorsi non prova
+   * niente: cancellare in silenzio una configurazione valida e' peggio del
+   * difetto che si voleva riparare. Chi ha i profili mescolati li risistema
+   * risalvando le foto giuste su ciascuna auto, col pannello che adesso
+   * dichiara a chi sta scrivendo — e la resurrezione dagli alias e' chiusa
+   * alla fonte. */
+  const aggiornate = withProfilePhotos(cars, posizione, photos);
   if (aggiornate === cars) return false;
   if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);
   try {

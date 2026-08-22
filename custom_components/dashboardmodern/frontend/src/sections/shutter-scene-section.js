@@ -341,6 +341,21 @@ function gridMarkup(views) {
 
 /* ──────────────────────────────── paint ─────────────────────────────────── */
 
+/* Lo stato della card intera: la pastiglia parla per tutte le coperture.
+ *
+ * Con la tapparella chiusa e la tenda in apertura la pastiglia diceva
+ * «Chiusa», leggendo solo la principale. Il movimento vince su tutto — sta
+ * succedendo adesso — poi basta una copertura aperta perche' la finestra non
+ * sia «chiusa». */
+function statoCarta(view) {
+  const tutte = coperture(view);
+  const inMoto = tutte.find((cover) => cover.moving);
+  if (inMoto) return { stato: statoVisibile(inMoto), testo: statusLabel(inMoto) };
+  const aperta = tutte.find((cover) => statoVisibile(cover) === "open");
+  if (aperta) return { stato: "open", testo: statusLabel(aperta) };
+  return { stato: statoVisibile(view), testo: statusLabel(view) };
+}
+
 function syncCard(card, view) {
   card.style.setProperty("--tapp-open", String(view.position / 100));
 
@@ -352,8 +367,9 @@ function syncCard(card, view) {
      * posizione: la pastiglia restava verde da «aperta» con scritto «Chiusa».
      * Meta' correzione e' peggio di nessuna, perche' la contraddizione resta e
      * sembra risolta. */
-    badge.className = `tapp-state tapp-st-${statoVisibile(view)}`;
-    badge.textContent = statusLabel(view);
+    const { stato, testo } = statoCarta(view);
+    badge.className = `tapp-state tapp-st-${stato}`;
+    badge.textContent = testo;
   }
 
   for (const cover of coperture(view)) syncCover(card, cover);
@@ -394,6 +410,11 @@ function syncCover(card, cover) {
   if (range && range !== doc.activeElement && !state.grabbed.has(cover.entity)) {
     range.value = String(cover.position);
   }
+  /* Il riempimento colorato della barra legge --tapp-open: ereditata dalla
+   * card, tutte le barre coloravano la posizione della principale. Scritta
+   * sulla barra, ognuna colora la sua. */
+  const barra = card.querySelector(`[data-dm-bar="${CSS.escape(cover.entity)}"] .dm-tapp-track`);
+  if (barra) barra.style.setProperty("--tapp-open", String(cover.position / 100));
 }
 
 /* «Apri tutto» deve aprire davvero tutto.
@@ -528,6 +549,8 @@ function previewPosition(range) {
   grab(entity, position);
   const scope = `[data-dm-entity="${CSS.escape(entity)}"]`;
   if (entity === clean(card.dataset.tapp)) card.style.setProperty("--tapp-open", String(position / 100));
+  const barra = card.querySelector(`[data-dm-bar="${CSS.escape(entity)}"] .dm-tapp-track`);
+  if (barra) barra.style.setProperty("--tapp-open", String(position / 100));
   const panel =
     card.querySelector(`[data-dm-cover="${CSS.escape(entity)}"] [data-dm-panel]`) ||
     card.querySelector("[data-dm-panel]");

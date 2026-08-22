@@ -132,9 +132,7 @@ test("il pannello foto dice a quale auto sta scrivendo, e segue il cambio", asyn
   await expect(titolo).toHaveText(/T03/);
 });
 
-test("una coppia salvata su un'auto viene tolta a chi la portava identica", async ({
-  page,
-}, testInfo) => {
+test("salvare le foto di un'auto non tocca mai l'altra", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   /* La configurazione corrotta dal vecchio difetto: due auto, la stessa
    * identica coppia di foto — quelle della B10, copiate sulla T03. */
@@ -174,35 +172,25 @@ test("una coppia salvata su un'auto viene tolta a chi la portava identica", asyn
       }),
     )
     .toEqual([
-      // La B10 tiene le SUE foto: era lei la derubata, non la ladra.
+      /* La B10 tiene le SUE foto, identiche o no: salvare la T03 riguarda la
+       * T03 e basta. Chi ha i profili mescolati risistema ciascuna auto dal
+       * suo pannello — che ora dichiara a chi sta scrivendo — e la foto non
+       * risorge piu' dagli alias. */
       { name: "B10", img: "/local/ev/b10-idle.png", imgPlugged: "/local/ev/b10-cavo.png" },
       { name: "T03", img: "/local/ev/t03-idle.png", imgPlugged: "/local/ev/t03-cavo.png" },
     ]);
 
-  /* E la coppia ri-dichiarata passa di mano.
+  /* E una bozza scritta per un'auto non finisce sull'altra.
    *
-   * Se adesso si rende attiva la B10 e le si salvano ESATTAMENTE le foto che
-   * la T03 porta, la dichiarazione vince: la coppia e' della B10, e alla T03
-   * — che la portava identica — viene tolta. E' la rete per chi ripara una
-   * configurazione gia' mescolata dal vecchio difetto. */
-  await page.evaluate(() => window.cdEvApplyCar(0));
-  await expect(page.locator("[data-ev-photos-title]")).toHaveText(/B10/);
+   * Percorso digitato senza salvare, poi cambio d'auto: il pannello segue il
+   * cambio e la bozza dell'auto di prima si scarta — salvarla adesso la
+   * scriverebbe sul profilo sbagliato col titolo nuovo a fare da alibi. */
   await pannello
     .locator('[data-ev-photo="idle"] [data-ev-photo-input]')
-    .fill("/local/ev/t03-idle.png");
-  await pannello
-    .locator('[data-ev-photo="plugged"] [data-ev-photo-input]')
-    .fill("/local/ev/t03-cavo.png");
-  await pannello.locator("[data-ev-photos-save]").evaluate((bottone) => bottone.click());
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const cars = JSON.parse(localStorage.getItem("cd_ev_cars") || "[]");
-        return cars.map((c) => ({ name: c.name, img: c.img, imgPlugged: c.imgPlugged }));
-      }),
-    )
-    .toEqual([
-      { name: "B10", img: "/local/ev/t03-idle.png", imgPlugged: "/local/ev/t03-cavo.png" },
-      { name: "T03", img: "", imgPlugged: "" },
-    ]);
+    .fill("/local/ev/bozza-mai-salvata.png");
+  await page.evaluate(() => window.cdEvApplyCar(0));
+  await expect(page.locator("[data-ev-photos-title]")).toHaveText(/B10/);
+  await expect(pannello.locator('[data-ev-photo="idle"] [data-ev-photo-input]')).toHaveValue(
+    "/local/ev/b10-idle.png",
+  );
 });

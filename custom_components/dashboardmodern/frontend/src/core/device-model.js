@@ -371,7 +371,14 @@ export function normalizeDevice(input = {}, section, context = {}) {
      * sull'auto sbagliata, ed e' il "le foto si mescolano da sole" che e'
      * stato segnalato per giorni. Se `img` esiste comanda lei, anche vuota;
      * gli alias si riscrivono su di lei invece di farle da memoria ombra. */
-    const evImage = String((input.img ?? input.image ?? input.image_url ?? "") || "");
+    /* `img` e' autoritativa solo se esiste: una riga legacy senza `img`, con
+     * `image` vuota e `image_url` piena, deve ancora pescare dall'alias — la
+     * catena ?? si sarebbe fermata sulla stringa vuota e avrebbe scartato
+     * l'unica foto rimasta. */
+    const evImage =
+      input.img !== undefined && input.img !== null
+        ? String(input.img)
+        : String(input.image || input.image_url || "");
     return {
       ...legacy,
       ...base,

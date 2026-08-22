@@ -102,6 +102,16 @@ test("una card sola, tre cursori, e ognuno con la sua percentuale", async ({ pag
     );
   }
 
+  /* Ogni barra colora la SUA posizione: il riempimento non e' piu' quello
+   * della principale copiato tre volte. */
+  await expect
+    .poll(() =>
+      card
+        .locator('[data-dm-bar="cover.tenda"] .dm-tapp-track')
+        .evaluate((nodo) => nodo.style.getPropertyValue("--tapp-open")),
+    )
+    .toBe("0.35");
+
   // Il conteggio in cima conta le coperture, non le card.
   await expect.poll(() => page.locator("[data-dm-tapp-summary]").innerText()).toMatch(/2 aperte/);
 });

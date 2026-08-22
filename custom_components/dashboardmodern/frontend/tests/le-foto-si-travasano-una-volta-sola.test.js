@@ -111,3 +111,13 @@ test("chi arriva dal formato vecchio con la sola image la conserva", () => {
   assert.equal(auto.img, "/local/b10.png");
   assert.equal(auto.image, "/local/b10.png");
 });
+
+test("senza `img`, un'image vuota non spegne la image_url piena", () => {
+  /* La riga legacy: `img` mai esistita, `image` vuota, `image_url` piena.
+   * L'autorita' del campo vuoto vale solo per `img` presente davvero. */
+  const auto = normalizeDevice(
+    { name: "B10", image: "", image_url: "/local/b10.png" },
+    "ev",
+  );
+  assert.equal(auto.img, "/local/b10.png", "l'unica foto rimasta e' stata scartata");
+});
