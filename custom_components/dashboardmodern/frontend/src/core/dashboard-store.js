@@ -168,26 +168,37 @@ export class DashboardStore {
       washerImage: parse("cd_lavatrice_visual", ""),
     });
     this.state = result.state;
-    /* All'avvio la lista delle auto la detta `cd_ev_cars`, non la copia.
+    /* All'avvio le chiavi legacy dettano, la copia canonica segue.
      *
      * Il documento canonico e' una fotografia scritta dall'ultimo `persist`, e
-     * puo' restare indietro di un giro: chi salva le foto dell'auto e ricarica
-     * subito — il messaggio in plancia dice proprio "ricarica per applicare" —
-     * chiude la pagina fra la scrittura di `cd_ev_cars` e quella della copia.
-     * Alla riapertura questa riga ricostruiva lo stato DALLA COPIA e il
-     * `persist` qui sotto la riscriveva sopra `cd_ev_cars`: le foto appena
-     * scelte sparivano, e tornavano le vecchie. E' la stessa riconciliazione
-     * che il ripristino della configurazione condivisa gia' fa; qui vale per
-     * ogni avvio. Le auto cancellate restano cancellate per la stessa strada:
-     * una lista vuota ma presente e' una scelta, non un'assenza. */
-    try {
-      const raw = this.storage.getItem("cd_ev_cars");
-      if (raw !== null && raw !== undefined) {
-        const legacyCars = JSON.parse(raw);
-        if (Array.isArray(legacyCars)) this.state.sections.ev = normalizeSection("ev", legacyCars);
+     * puo' restare indietro di un giro: ogni gesto della plancia scrive PRIMA
+     * la sua chiave legacy — `cd_ev_cars`, `cd_energy_model`, le entita' — e
+     * solo un microtask dopo la copia. Chi salva e ricarica subito — il
+     * messaggio in plancia dice proprio "ricarica per applicare", e l'app del
+     * telefono si chiude quando vuole lei — riapre la pagina con la copia
+     * vecchia, e questa riga ricostruiva lo stato DA QUELLA: il `persist` qui
+     * sotto la riscriveva sopra le chiavi legacy, e l'ULTIMA modifica salvata
+     * spariva. «Questo campo proprio non me lo salva»: sempre l'ultimo, mai
+     * gli altri, perche' gli altri la copia li aveva gia' imparati. E' la
+     * stessa riconciliazione che il ripristino della configurazione condivisa
+     * gia' fa; qui vale per ogni avvio, e per ogni sezione. Una lista vuota ma
+     * presente e' una scelta, non un'assenza: le auto cancellate restano
+     * cancellate per la stessa strada.
+     *
+     * Le luci restano fuori: la loro forma legacy — `{entita': nome}` — perde
+     * per costruzione stanza e ordinamento, e ricostruirle da li' a ogni avvio
+     * butterebbe via quello che la copia custodisce apposta. */
+    for (const [section, key] of Object.entries(SECTION_KEYS)) {
+      if (section === "lights") continue;
+      try {
+        const raw = this.storage.getItem(key);
+        if (raw === null || raw === undefined) continue;
+        this.state.sections[section] = normalizeSection(section, JSON.parse(raw), {
+          rooms: this.state.sections.rooms || [],
+        });
+      } catch {
+        /* Una chiave illeggibile non insegna niente: resta la copia. */
       }
-    } catch {
-      /* Una lista illeggibile non insegna niente: resta la copia. */
     }
     if (result.changes.length) console.info("[DashboardStore] migration", result.changes);
     this.persist();

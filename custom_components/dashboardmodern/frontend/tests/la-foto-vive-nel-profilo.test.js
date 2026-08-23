@@ -131,3 +131,61 @@ test("il nome sulla scheda decide di chi sono i campi", () => {
   assert.match(sezione, /ensureVehiclePhotoEditor\(\);ensureCarNameGuard\(\);/,
     "il guardiano si aggancia nello stesso giro che tiene vivo il pannello");
 });
+
+test("l'ultima modifica salvata sopravvive alla riapertura, per ogni sezione", async () => {
+  /* La segnalazione sull'Energia: «se seleziono il sensore e faccio salva,
+   * non lo memorizza. Lo fa solo qui in rete prelievo» — cioe' sempre e solo
+   * l'ULTIMA modifica, perche' le precedenti la copia canonica le aveva gia'
+   * imparate. L'app del telefono si chiude fra la scrittura della chiave
+   * legacy e quella della copia: all'avvio la chiave detta, per ogni sezione
+   * fedele — non solo per le auto. */
+  const { DashboardStore } = await import("../src/core/dashboard-store.js");
+  const dati = new Map();
+  const storage = {
+    getItem: (chiave) => (dati.has(chiave) ? dati.get(chiave) : null),
+    setItem: (chiave, valore) => dati.set(chiave, String(valore)),
+    removeItem: (chiave) => dati.delete(chiave),
+  };
+  dati.set(
+    "dm_dashboard_state",
+    JSON.stringify({
+      schema_version: 99,
+      sections: { energy: { grid: {}, metadata: { semantics_version: 3 } } },
+      visibility: {},
+    }),
+  );
+  dati.set(
+    "cd_energy_model",
+    JSON.stringify({ grid: { power: "sensor.rete_power" }, metadata: { semantics_version: 3 } }),
+  );
+  const store = new DashboardStore({ storage });
+  store.migrate();
+  assert.equal(store.getSection("energy")?.grid?.power, "sensor.rete_power",
+    "il sensore appena scelto non deve sparire alla riapertura");
+  assert.equal(
+    JSON.parse(dati.get("cd_energy_model"))?.grid?.power,
+    "sensor.rete_power",
+    "e il persist dell'avvio non deve riscriverlo con la copia vecchia",
+  );
+});
+
+test("le luci restano fuori dall'allineamento d'avvio: la forma legacy le perde", async () => {
+  const { DashboardStore } = await import("../src/core/dashboard-store.js");
+  const dati = new Map();
+  const storage = {
+    getItem: (chiave) => (dati.has(chiave) ? dati.get(chiave) : null),
+    setItem: (chiave, valore) => dati.set(chiave, String(valore)),
+    removeItem: (chiave) => dati.delete(chiave),
+  };
+  const luci = [{ id: "light-1", name: "Salotto", entities: ["light.salotto"], room_id: "room-1" }];
+  dati.set(
+    "dm_dashboard_state",
+    JSON.stringify({ schema_version: 99, sections: { lights: luci }, visibility: {} }),
+  );
+  // La proiezione legacy: entita' → nome, senza stanza ne' ordine.
+  dati.set("cd_luci", JSON.stringify({ "light.salotto": "Salotto" }));
+  const store = new DashboardStore({ storage });
+  store.migrate();
+  assert.equal(store.getSection("lights")?.[0]?.room_id, "room-1",
+    "ricostruire le luci dalla forma legacy butterebbe via la stanza");
+});

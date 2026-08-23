@@ -28,16 +28,19 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   soltanto il tasto «Salva foto» del pannello. Un campo toccato adesso si
   salva anche dal bottone grande, che è quello che chiunque preme.
 
-- **All'avvio la copia canonica riscriveva la lista delle auto appena
-  salvata.** Il documento canonico è una fotografia scritta dall'ultimo
-  salvataggio del negozio e può restare indietro di un giro: chi salvava le
-  foto e ricaricava subito — il messaggio in plancia dice proprio «ricarica
-  per applicare» — riapriva la pagina con la copia vecchia, che veniva
-  ripersistita sopra `cd_ev_cars`: le foto nuove sparivano e tornavano le
-  vecchie. La 1.1.7 aveva chiuso questa strada al ripristino della
-  configurazione condivisa; adesso vale a ogni avvio, ed è anche il motivo per
-  cui un'auto cancellata poteva risorgere: una lista vuota ma presente è una
-  scelta, non un'assenza.
+- **All'avvio la copia canonica riscriveva l'ultima modifica salvata — in
+  ogni sezione.** Il documento canonico è una fotografia scritta dall'ultimo
+  salvataggio del negozio e può restare indietro di un giro: ogni gesto scrive
+  prima la sua chiave legacy e solo un istante dopo la copia, e chi ricaricava
+  subito — il messaggio dice proprio «ricarica per applicare», e l'app del
+  telefono si chiude quando vuole lei — riapriva con la copia vecchia, che
+  veniva ripersistita sopra le chiavi: spariva sempre e solo l'**ultima**
+  modifica, mai le precedenti. È il «Potenza rete non me lo salva, gli altri
+  sì» segnalato sull'Energia, ed è la strada da cui un'auto cancellata poteva
+  risorgere. La 1.1.7 aveva chiuso questa strada al ripristino della
+  configurazione condivisa; adesso a ogni avvio le chiavi legacy dettano e la
+  copia segue, per ogni sezione fedele (le luci restano fuori: la loro forma
+  legacy perde stanza e ordinamento per costruzione).
 
 - **Cancellata l'ultima auto, non se ne andava tutto.** Le caselle del disegno
   tenevano le sue foto e `cd_ev_car_active` il suo posto: la vettura spariva
