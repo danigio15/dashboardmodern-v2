@@ -419,9 +419,38 @@ export function ensureVehiclePhotoEditor() {
  * ricarica dai dati SUOI, cosi' risalvarla non le scrive addosso la mappatura
  * di quella attiva. Si toccano solo i campi a video: le mappature salvate non
  * cambiano finche' non si preme salva, ed e' `edSetSlot` — il giro di sempre —
- * a leggere i campi al salvataggio. */
+ * a leggere i campi al salvataggio.
+ *
+ * Un campo scritto A MANO in questa seduta pero' non si tocca: chi compila
+ * prima le entita' della vettura nuova e per ultimo il nome sta descrivendo
+ * proprio lei, e svuotarglielo sarebbe rubargli il lavoro dalle dita — la
+ * scheda poi nemmeno si salverebbe, perche' il runtime esige almeno una
+ * entita'. E' la stessa regola delle bozze del pannello foto. Il segno vive
+ * qui nel modulo, per riferimento: l'editor si ridisegna di continuo e un
+ * segno appoggiato sul nodo morirebbe col nodo — il valore no, perche' il
+ * cambio l'ha gia' scritto nelle mappature e il ridisegno lo ristampa. Si
+ * azzera quando la scheda si salva e quando si cambia auto: da li' i campi
+ * tornano a raccontare il modello. */
+const refToccati = () => (state.evTouchedRefs ||= new Set());
+
 function ensureCarNameGuard() {
-  const campo = doc?.getElementById("ed-evcar-name");
+  if (!doc) return false;
+  if (!state.evSlotTouchGuard) {
+    state.evSlotTouchGuard = true;
+    for (const eventName of ["input", "change"]) {
+      doc.addEventListener(
+        eventName,
+        (event) => {
+          const input = event.target;
+          if (!input?.matches?.('input.ed-slot-in[data-ref^="dm.ev_"]')) return;
+          const ref = clean(input.dataset?.ref);
+          if (ref) refToccati().add(ref);
+        },
+        true,
+      );
+    }
+  }
+  const campo = doc.getElementById("ed-evcar-name");
   if (!campo || campo.dataset.dmEvNameGuard === "true") return false;
   campo.dataset.dmEvNameGuard = "true";
   campo.addEventListener("input", () => {
@@ -429,7 +458,9 @@ function ensureCarNameGuard() {
     const trovata = profiles().find((car) => clean(car?.name) === nome) || null;
     const possedute = trovata ? trovata.ov || trovata.overrides || {} : {};
     for (const input of doc.querySelectorAll('#ed-body input.ed-slot-in[data-ref^="dm.ev_"]')) {
-      const valore = clean(possedute[input.dataset?.ref]);
+      const ref = clean(input.dataset?.ref);
+      if (refToccati().has(ref)) continue;
+      const valore = clean(possedute[ref]);
       if (input.value !== valore) input.value = valore;
     }
   });
@@ -739,6 +770,8 @@ function installLegacyWrappers() {
     function applyProfile(index, ...rest) {
       const before=configuredPhotos();
       const car=legacyProfiles()[Number(index)] || {};
+      // Cambiare auto chiude la seduta di scrittura: i campi raccontano lei.
+      refToccati().clear();
       const result=previous.call(this,index,...rest);
       restoreProfilePhotos(car, before);
       state.legacyRefreshSignature=""; root.queueMicrotask?.(scheduleEvSync); return result;
@@ -813,6 +846,8 @@ function installLegacyWrappers() {
         );
       }
       if (rimesse !== dopo) writeJsonIfChanged("cd_ev_cars", rimesse);
+      // Scheda salvata: la seduta di scrittura e' chiusa, i segni si azzerano.
+      refToccati().clear();
       /* Il runtime ha appena reso attiva l'auto salvata, ma le due caselle da
        * cui il disegno legge portano ancora le foto di quella di prima: senza
        * questa risemina l'eroe mostrava la vettura vecchia sotto la linguetta
