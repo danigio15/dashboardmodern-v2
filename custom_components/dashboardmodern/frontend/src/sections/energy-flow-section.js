@@ -444,24 +444,30 @@ export function renderDynamicFlowLoads(period, model = stageModel(period)) {
  * dire grandezza e verso senza mandare in confusione nessun lettore. */
 
 function potenzaViva(reference) {
+  // `null` — non zero — quando lo stato vivo non c'e': «spento» e «non
+  // configurato» sono due risposte diverse, e chi chiama deve poterle
+  // distinguere per cedere il passo alla lettura dei testi.
   const entity = resolvedEntity(reference);
   const states = allStates();
   const nodo = states[entity] || states[clean(reference)];
-  if (!nodo || nodo.state === undefined) return 0;
+  if (!nodo || nodo.state === undefined) return null;
   const raw = String(nodo.state);
-  if (raw === "unknown" || raw === "unavailable") return 0;
+  if (raw === "unknown" || raw === "unavailable") return null;
   const value = Number.parseFloat(raw.replace(",", "."));
-  if (!Number.isFinite(value)) return 0;
+  if (!Number.isFinite(value)) return null;
   const unit = String(nodo.attributes?.unit_of_measurement || "").toLowerCase();
   return unit === "kw" ? value * 1000 : value;
 }
 
 function instantSourceFlows() {
-  return allocateSourceFlows({
-    solar: potenzaViva("dm.energy_potenza_fotovoltaico"),
-    grid: potenzaViva("dm.energy_potenza_scambio_rete"),
-    battery: potenzaViva("dm.energy_potenza_batteria"),
-  });
+  const sole = potenzaViva("dm.energy_potenza_fotovoltaico");
+  const rete = potenzaViva("dm.energy_potenza_scambio_rete");
+  const batteria = potenzaViva("dm.energy_potenza_batteria");
+  /* Senza nemmeno una sorgente viva non c'e' niente da spartire: si cede il
+   * passo alla lettura dei testi, come prima. Una sorgente viva basta — le
+   * altre mancanti valgono zero, che per una casa senza batteria e' vero. */
+  if (sole === null && rete === null && batteria === null) return null;
+  return allocateSourceFlows({ solar: sole ?? 0, grid: rete ?? 0, battery: batteria ?? 0 });
 }
 
 function instantEdgeValue(node, flussi) {

@@ -143,11 +143,16 @@ test.describe("the configuration behaves the same on every tab", () => {
     await boot(page, testInfo);
     for (const tab of [...SECTION_TABS, ...PLAIN_TABS]) {
       await openTab(page, tab);
-      // "＋ Salva attuale" saves the current EV mapping as a new profile: it is
-      // an add, not a save of the section, and stays where it is.
+      // «💾 Salva auto» (nato «＋ Salva attuale») salva la scheda della
+      // vettura che si sta compilando, e «＋ Aggiungi auto» ne apre una
+      // nuova: sono gesti del profilo, non salvataggi della sezione, e
+      // stanno dove stanno.
       await settledTabState(
         page,
-        (view) => view.saveLabels.filter((label) => !label.startsWith("＋")),
+        (view) =>
+          view.saveLabels.filter(
+            (label) => !label.startsWith("＋") && !/salva auto|save car/i.test(label),
+          ),
         `${tab}: one way to save`,
       ).toEqual(["💾 Salva sezione"]);
       await settledTabState(
