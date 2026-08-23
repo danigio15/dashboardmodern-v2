@@ -272,7 +272,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // non avevano mai avuto una versione notturna: card scure su pagina bianca.
   // Le ridefinizioni stanno in un modulo loro perche' sono la base che ogni
   // altra regola eredita, non il ritocco di una sezione.
-  assert.ok(relative.length <= 136, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 139 con le persone. Il modello puro dice chi abita la casa e cosa se ne
+  // mostra — zona, batteria, ritratto — e lo leggono in due: la sezione che
+  // disegna le card in cima alla Home e l'editor che scrive `cd_people`. Sono
+  // due moduli perche' uno vive a ogni cambio di stato e l'altro solo dentro
+  // la scheda di configurazione, come per il robot.
+  assert.ok(relative.length <= 139, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
@@ -287,14 +292,24 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * otherwise start and never stop. It follows the same discipline: armed when
    * one of those pumps starts running, disarmed the moment none is.
    *
+   * The third ages the "16 h ago" of the person cards: nothing in Home
+   * Assistant pushes an event when time merely passes, and on a wall-mounted
+   * dashboard nobody touches the page. Same discipline again: armed only while
+   * the Home page is on a visible screen with people configured, disarmed the
+   * moment it is not.
+   *
    * These are the intervals production is allowed, and they are named here so
-   * a third one cannot arrive unnoticed. */
+   * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
     /setInterval\s*(?:\?\.)?\s*\(/.test(source),
   );
   assert.deepEqual(
     intervals.map(([file]) => path.relative(frontendRoot, file).replaceAll("\\", "/")).sort(),
-    ["src/sections/live-ui-section.js", "src/sections/pool-extra-section.js"],
+    [
+      "src/sections/live-ui-section.js",
+      "src/sections/people-section.js",
+      "src/sections/pool-extra-section.js",
+    ],
   );
 
   const observers = [...graph.entries()].filter(([, source]) => /new\s+(?:root\.)?MutationObserver\s*\(/.test(source));

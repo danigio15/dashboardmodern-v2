@@ -5,7 +5,10 @@ import { reloadDashboard, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CONFIG_PERSISTENCE__";
 const USER_DATA_VERSION = 1;
-export const CONFIG_KEYS_REVISION = 4;
+/* La revisione 5 aggiunge le persone (`cd_people`): un salvataggio scritto
+ * prima che la chiave esistesse non puo' dire «cancellata», e il travaso di
+ * `mergeLegacyMissingConfig` gliela riempie da questo dispositivo. */
+export const CONFIG_KEYS_REVISION = 5;
 const PERSIST_META_KEY = "dm_persistence_meta";
 const REMOTE_REFRESH_MIN_MS = 1200;
 
@@ -64,6 +67,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_appliances",
   "cd_loads",
   "cd_devices",
+  "cd_people",
   "cd_luci",
   "cd_luci_rooms",
   "cd_luci_order",

@@ -7,6 +7,108 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
 
+## 1.1.8
+
+### Aggiunto
+
+- **La card della persona racconta tutto quello che il telefono sa.** Oltre a
+  zona, batteria e «da quanto tempo»: il fulmine quando il telefono è in
+  carica, la batteria dell'orologio, la rete WiFi a cui è collegato. E di chi
+  è fuori, il viaggio: la distanza da casa con la freccia della direzione
+  (si avvicina, si allontana), il tempo di rientro da Waze o Google,
+  l'indirizzo per esteso, e l'attività — l'auto, la bici, i passi — nel
+  pallino di stato del ritratto, che quando la persona si muove smette di
+  essere un pallino e dice come si sta muovendo. Il viaggio e l'indirizzo
+  compaiono solo quando la persona è fuori: a casa sarebbero rumore.
+
+- **I sensori del telefono si trovano da soli.** Nella scheda Persone ogni
+  riga ha il gruppo «📡 Sensori del telefono» con otto caselle facoltative —
+  in carica, orologio, distanza, tempo di rientro, direzione, indirizzo,
+  attività, WiFi — e il pulsante «🪄 Rileva dal telefono», che le riempie
+  leggendo i sensori che la Companion App pubblica accanto al device_tracker
+  della persona (e riconoscendo per nome quelli di Waze e Proximity). Anche
+  «Importa da Home Assistant» fa lo stesso giro: ogni persona importata
+  arriva già coi sensori del suo telefono.
+
+- **Le persone di casa, in cima alla Home.** Home Assistant sa già chi c'è e
+  chi no — `person.*` cambia zona, si porta dietro la foto del profilo e spesso
+  la batteria del telefono — ma la plancia non lo mostrava da nessuna parte.
+  Adesso ogni persona configurata ha la sua card sotto il meteo: il ritratto
+  con l'anello del colore di dove si trova, la zona (Casa, Fuori, o la zona col
+  suo nome), da quanto tempo, e la batteria del telefono nell'angolo. Le card
+  seguono lo stato vivo, e il «16 ore fa» invecchia da solo anche su una
+  plancia a muro che nessuno tocca.
+
+- **La scheda Persone in configurazione.** Si aggiunge una persona con la sua
+  entità (`person.*`, o `device_tracker.*` per chi traccia direttamente il
+  telefono) e si sceglie il ritratto in due modi: una foto vera — presa dalle
+  cartelle di Home Assistant o caricata dal telefono, con lo stesso selettore
+  della foto dell'auto — oppure un avatar fatto lì: un'emoji o le iniziali del
+  nome, su un colore a scelta. Quando la foto c'è vince lei; togliendola
+  ricompare l'avatar. Il pulsante «Importa da Home Assistant» evita di
+  scrivere a mano ciò che Home Assistant sa già: prende ogni `person.*` non
+  ancora in elenco, col suo nome e la sua foto del profilo. Le persone
+  viaggiano con la configurazione condivisa (`cd_people`, revisione 5), quindi
+  compaiono uguali su ogni dispositivo.
+
+### Corretto
+
+- **La plancia disegnava la foto dalle caselle del dispositivo, non dal
+  profilo.** Il pannello di configurazione leggeva il profilo e mostrava le
+  foto giuste; il disegno dell'eroe leggeva le due caselle piatte — che sono
+  per-dispositivo e dalla 1.1.7 non viaggiano più con la configurazione — e su
+  un dispositivo che non aveva rifatto la scelta dell'auto restavano quelle di
+  mesi fa: «le foto le ho cambiate ma esce ancora quella vecchia», con il
+  pannello a dare ragione e la plancia a dare torto. La fonte del disegno è
+  adesso il profilo attivo, la stessa del pannello e del popup wallbox, e le
+  caselle si riseminano a ogni disegno: derivate, mai più fonte.
+
+- **«SALVA SEZIONE» non salvava le foto.** Il bottone verde in fondo alla
+  sezione Auto raccoglie i campi entità e nient'altro: un percorso scritto
+  nelle caselle delle foto restava a video con l'anteprima giusta sotto, e
+  spariva alla riapertura — salvato non era mai stato. Le foto le salvava
+  soltanto il tasto «Salva foto» del pannello. Un campo toccato adesso si
+  salva anche dal bottone grande, che è quello che chiunque preme.
+
+- **All'avvio la copia canonica riscriveva l'ultima modifica salvata — in
+  ogni sezione.** Il documento canonico è una fotografia scritta dall'ultimo
+  salvataggio del negozio e può restare indietro di un giro: ogni gesto scrive
+  prima la sua chiave legacy e solo un istante dopo la copia, e chi ricaricava
+  subito — il messaggio dice proprio «ricarica per applicare», e l'app del
+  telefono si chiude quando vuole lei — riapriva con la copia vecchia, che
+  veniva ripersistita sopra le chiavi: spariva sempre e solo l'**ultima**
+  modifica, mai le precedenti. È il «Potenza rete non me lo salva, gli altri
+  sì» segnalato sull'Energia, ed è la strada da cui un'auto cancellata poteva
+  risorgere. La 1.1.7 aveva chiuso questa strada al ripristino della
+  configurazione condivisa; adesso a ogni avvio le chiavi legacy dettano e la
+  copia segue, per ogni sezione fedele (le luci restano fuori: la loro forma
+  legacy perde stanza e ordinamento per costruzione).
+
+- **Cancellata l'ultima auto, non se ne andava tutto.** Le caselle del disegno
+  tenevano le sue foto e `cd_ev_car_active` il suo posto: la vettura spariva
+  dall'elenco ma la sua fotografia restava sull'eroe, per sempre. L'ultima
+  auto adesso porta via con sé caselle e indice; una configurazione a caselle
+  sole del formato vecchio — dove le caselle sono l'unica casa della foto —
+  non viene toccata.
+
+- **Il nome sulla scheda decide di chi sono i campi.** La scheda dell'auto
+  mostra le caselle `dm.ev_*` con la mappatura viva — quella dell'auto attiva
+  — e salvare una scheda col nome di un'auto nuova la catturava tale e quale:
+  la nuova nasceva con le entità dell'altra addosso. Scrivere un nome che non
+  è di nessuno adesso svuota le caselle — l'auto nuova parte da zero, e le sue
+  entità si mappano prima di salvarla — mentre il nome di un'auto esistente le
+  ricarica dai dati suoi, così risalvarla non le scrive addosso la mappatura
+  di quella attiva.
+
+- **L'avviso «Tapparella aperta» era l'unico fermo del quadro.** Le icone
+  degli avvisi animano per vocabolario — la porta oscilla, la batteria si
+  svuota — ma il ramo delle tapparelle si muoveva solo mentre una tapparella
+  era fisicamente in corsa: un avviso acceso restava immobile accanto agli
+  altri che si muovevano, e sembrava un'animazione dimenticata. Da fermo il
+  telo adesso si riavvolge piano verso il cassonetto, con la stessa regola in
+  due dimensioni di porta e finestra; quando una tapparella si muove davvero,
+  resta il movimento suo.
+
 ## 1.1.7
 
 ### Corretto

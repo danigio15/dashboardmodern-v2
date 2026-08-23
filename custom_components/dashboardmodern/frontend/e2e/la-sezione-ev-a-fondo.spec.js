@@ -214,6 +214,13 @@ test("un'auto nuova non nasce con la foto di quella attiva", async ({ page }, te
     const campo = document.getElementById("ed-evcar-name");
     campo.value = "T03";
     campo.dispatchEvent(new Event("input", { bubbles: true }));
+    /* Il nome nuovo ha appena svuotato le caselle dm.ev_* — e' il suo lavoro:
+     * l'auto nuova non eredita la mappatura dell'attiva. Il runtime pero'
+     * esige almeno un'entita' per creare la scheda, quindi si mappa la SUA. */
+    const batteria = document.querySelector(
+      '#ed-body input.ed-slot-in[data-ref="dm.ev_batteria_auto"]',
+    );
+    if (batteria) batteria.value = "sensor.t03_battery";
     window.edEvCarAdd();
   });
 
@@ -248,4 +255,106 @@ test("un'auto nuova non nasce con la foto di quella attiva", async ({ page }, te
   await expect(
     page.locator('#ed-body [data-ev-photos] [data-ev-photo="idle"] [data-ev-photo-input]'),
   ).toHaveValue("");
+});
+
+test("le caselle stantie di un altro giro non battono il profilo", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* Il segnalato, alla lettera: le foto nel profilo sono quelle nuove — il
+   * pannello le mostra — ma le due caselle piatte del dispositivo portano
+   * ancora la foto di mesi fa, e la plancia disegnava QUELLA. Le caselle sono
+   * per-dispositivo e non viaggiano con la configurazione: nessun salvataggio
+   * altrui puo' ripulirle, deve pensarci il disegno. */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    localStorage.setItem("cd_ev_image", JSON.stringify("/local/ev/scia-vecchia.png"));
+    localStorage.setItem("cd_ev_image_plugged", JSON.stringify("/local/ev/scia-vecchia.png"));
+    window.dispatchEvent(new Event("pageshow"));
+  });
+  await expect
+    .poll(() => caselle(page))
+    .toEqual({
+      active: "0",
+      idle: "/local/ev/b10-idle.png",
+      plugged: "/local/ev/b10-cavo.png",
+    });
+  await expect
+    .poll(() => page.evaluate(() => document.getElementById("ev-mod-car-img")?.getAttribute("src")))
+    .toContain("b10-idle.png");
+});
+
+test("cancellata l'ultima auto non resta niente di suo", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* «quando cancello non cancella tutto»: sparita l'ultima vettura, le
+   * caselle del disegno tenevano le sue foto e l'indice il suo posto — la
+   * fotografia del fantasma restava sull'eroe per sempre. */
+  await avvia(page, testInfo, [DUE_AUTO[0]]);
+  await expect.poll(() => caselle(page)).toMatchObject({ idle: "/local/ev/b10-idle.png" });
+  await page.evaluate(() => {
+    const btn = document.createElement("button");
+    btn.setAttribute("data-act", "del");
+    btn.setAttribute("data-idx", "0");
+    window.cdEvCarBtn(btn);
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() => ({
+        cars: JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").length,
+        active: localStorage.getItem("cd_ev_car_active"),
+        idle: JSON.parse(localStorage.getItem("cd_ev_image") || '""'),
+        plugged: JSON.parse(localStorage.getItem("cd_ev_image_plugged") || '""'),
+      })),
+    )
+    .toEqual({ cars: 0, active: null, idle: "", plugged: "" });
+});
+
+test("il bottone verde della sezione salva anche le foto scritte", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* Il percorso scritto nel campo, l'anteprima giusta sotto, e poi «SALVA
+   * SEZIONE» — il bottone in fondo, quello che chiunque preme. Salvava solo
+   * le entita': il percorso restava a video e spariva alla riapertura. */
+  await avvia(page, testInfo, [DUE_AUTO[0]]);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  const campo = page.locator(
+    '#ed-body [data-ev-photos] [data-ev-photo="idle"] [data-ev-photo-input]',
+  );
+  await campo.waitFor({ timeout: 15_000 });
+  await campo.fill("/local/ev/b10-nuova.png");
+  await campo.dispatchEvent("input");
+  await page.evaluate(() => {
+    const bottone = [...document.querySelectorAll("#ed-body .ed-acc-body .ed-save-btn")].find(
+      (nodo) => nodo.closest(".ed-acc-body")?.querySelector("[data-ev-photos]"),
+    );
+    window.edSaveSezione(bottone);
+  });
+  await expect
+    .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cd_ev_cars") || "[]")[0]?.img))
+    .toBe("/local/ev/b10-nuova.png");
+});
+
+test("il nome di un'auto nuova svuota i campi della scheda", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* «appena inserisco il nome di un'altra auto deve svuotare i dati»: la
+   * scheda mostrava la mappatura dell'auto attiva, e salvare un nome nuovo la
+   * catturava tale e quale. Ora un nome che non e' di nessuno azzera le
+   * caselle, e il nome di un'auto esistente le ricarica dai dati SUOI. */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  const nome = page.locator("#ed-evcar-name");
+  await nome.waitFor({ timeout: 15_000 });
+  const batteria = page.locator('#ed-body input.ed-slot-in[data-ref="dm.ev_batteria_auto"]');
+  await batteria.evaluate((input) => {
+    input.value = "sensor.b10_battery";
+  });
+  await nome.fill("Auto nuova di zecca");
+  await nome.dispatchEvent("input");
+  await expect(batteria).toHaveValue("");
+  await nome.fill("T03");
+  await nome.dispatchEvent("input");
+  await expect(batteria).toHaveValue("sensor.t03_battery");
 });

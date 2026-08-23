@@ -139,7 +139,19 @@ export function activeVehiclePhoto(photos = configuredPhotos(), plugged = vehicl
 
 export function applyVehicleAsset() {
   if (!doc) return false;
-  const photos = configuredPhotos();
+  /* Il disegno legge il PROFILO, non le caselle piatte.
+   *
+   * Le due caselle sono per-dispositivo e dalla 1.1.7 non viaggiano piu' con
+   * la configurazione: sul telefono che riceve la config restano quelle di
+   * mesi fa, e questo giro — che e' l'unico a mettere la foto sull'eroe — le
+   * disegnava cosi' com'erano. Il pannello leggeva il profilo e mostrava le
+   * foto giuste, la plancia mostrava quella vecchia: due fonti, due verita'.
+   * La fonte adesso e' una: il profilo attivo, lo stesso del pannello. Le
+   * caselle si riseminano qui a ogni disegno, cosi' chi ancora le legge — il
+   * runtime storico, la procedura iniziale — vede la stessa foto. */
+  const photos = fotoDelProfiloAttivo();
+  storePhoto(EV_PHOTO_KEYS.idle, photos.idle);
+  storePhoto(EV_PHOTO_KEYS.plugged, photos.plugged);
   const plugged = vehiclePlugged();
   const original = activeVehiclePhoto(photos, plugged);
   const url = resolveVehicleAsset(original);
@@ -162,6 +174,13 @@ export function applyVehicleAsset() {
       if (clean(photos[name]) !== clean(original)) continue;
       root.localStorage?.setItem(key, JSON.stringify(url));
     }
+    /* La foto adesso abita nel profilo, e la correzione deve arrivarci: se si
+     * fermasse alle caselle, la risemina del giro dopo le riporterebbe al
+     * valore storto e la correzione ripartirebbe a ogni disegno, per sempre. */
+    saveProfilePhotos({
+      idle: clean(photos.idle) === clean(original) ? url : photos.idle,
+      plugged: clean(photos.plugged) === clean(original) ? url : photos.plugged,
+    });
   }
   state.lastUrl = url;
   let mounted = false;
@@ -383,6 +402,68 @@ export function ensureVehiclePhotoEditor() {
     }
     titolo.dataset.evPhotosFor = nome;
   }
+  return true;
+}
+
+/* Il nome sulla scheda decide di chi sono i campi.
+ *
+ * La scheda dell'auto e' un campo nome sopra le caselle delle entita' dm.ev_*,
+ * che mostrano la mappatura VIVA — quella dell'auto attiva. Scrivere li' il
+ * nome di un'auto nuova e premere «salva scheda» catturava quei campi cosi'
+ * com'erano: la nuova nasceva con le entita' dell'altra addosso, e sembrava
+ * la stessa macchina con un altro nome. Segnalato alla lettera: «appena
+ * inserisco il nome di un'altra auto deve svuotare i dati».
+ *
+ * Il campo nome adesso governa le caselle: un nome che non e' di nessuno le
+ * svuota — l'auto nuova parte da zero — e il nome di un'auto esistente le
+ * ricarica dai dati SUOI, cosi' risalvarla non le scrive addosso la mappatura
+ * di quella attiva. Si toccano solo i campi a video: le mappature salvate non
+ * cambiano finche' non si preme salva, ed e' `edSetSlot` — il giro di sempre —
+ * a leggere i campi al salvataggio.
+ *
+ * Un campo scritto A MANO in questa seduta pero' non si tocca: chi compila
+ * prima le entita' della vettura nuova e per ultimo il nome sta descrivendo
+ * proprio lei, e svuotarglielo sarebbe rubargli il lavoro dalle dita — la
+ * scheda poi nemmeno si salverebbe, perche' il runtime esige almeno una
+ * entita'. E' la stessa regola delle bozze del pannello foto. Il segno vive
+ * qui nel modulo, per riferimento: l'editor si ridisegna di continuo e un
+ * segno appoggiato sul nodo morirebbe col nodo — il valore no, perche' il
+ * cambio l'ha gia' scritto nelle mappature e il ridisegno lo ristampa. Si
+ * azzera quando la scheda si salva e quando si cambia auto: da li' i campi
+ * tornano a raccontare il modello. */
+const refToccati = () => (state.evTouchedRefs ||= new Set());
+
+function ensureCarNameGuard() {
+  if (!doc) return false;
+  if (!state.evSlotTouchGuard) {
+    state.evSlotTouchGuard = true;
+    for (const eventName of ["input", "change"]) {
+      doc.addEventListener(
+        eventName,
+        (event) => {
+          const input = event.target;
+          if (!input?.matches?.('input.ed-slot-in[data-ref^="dm.ev_"]')) return;
+          const ref = clean(input.dataset?.ref);
+          if (ref) refToccati().add(ref);
+        },
+        true,
+      );
+    }
+  }
+  const campo = doc.getElementById("ed-evcar-name");
+  if (!campo || campo.dataset.dmEvNameGuard === "true") return false;
+  campo.dataset.dmEvNameGuard = "true";
+  campo.addEventListener("input", () => {
+    const nome = clean(campo.value);
+    const trovata = profiles().find((car) => clean(car?.name) === nome) || null;
+    const possedute = trovata ? trovata.ov || trovata.overrides || {} : {};
+    for (const input of doc.querySelectorAll('#ed-body input.ed-slot-in[data-ref^="dm.ev_"]')) {
+      const ref = clean(input.dataset?.ref);
+      if (refToccati().has(ref)) continue;
+      const valore = clean(possedute[ref]);
+      if (input.value !== valore) input.value = valore;
+    }
+  });
   return true;
 }
 
@@ -689,6 +770,8 @@ function installLegacyWrappers() {
     function applyProfile(index, ...rest) {
       const before=configuredPhotos();
       const car=legacyProfiles()[Number(index)] || {};
+      // Cambiare auto chiude la seduta di scrittura: i campi raccontano lei.
+      refToccati().clear();
       const result=previous.call(this,index,...rest);
       restoreProfilePhotos(car, before);
       state.legacyRefreshSignature=""; root.queueMicrotask?.(scheduleEvSync); return result;
@@ -763,6 +846,8 @@ function installLegacyWrappers() {
         );
       }
       if (rimesse !== dopo) writeJsonIfChanged("cd_ev_cars", rimesse);
+      // Scheda salvata: la seduta di scrittura e' chiusa, i segni si azzerano.
+      refToccati().clear();
       /* Il runtime ha appena reso attiva l'auto salvata, ma le due caselle da
        * cui il disegno legge portano ancora le foto di quella di prima: senza
        * questa risemina l'eroe mostrava la vettura vecchia sotto la linguetta
@@ -776,6 +861,31 @@ function installLegacyWrappers() {
     }
     addProfile.__dmEvSection=true; addProfile.__dmPrevious=previous; root.edEvCarAdd=addProfile;
   }
+  /* «SALVA SEZIONE» salva anche le foto.
+   *
+   * Il bottone verde in fondo alla sezione raccoglie i campi entita' e
+   * nient'altro: le due caselle delle foto le salvava soltanto il tasto
+   * «Salva foto» del pannello. Chi scriveva un percorso e premeva il bottone
+   * grande — che e' quello che chiunque preme, sta in fondo e dice "salva la
+   * sezione" — si vedeva il percorso nel campo, l'anteprima giusta sotto, e
+   * niente nel profilo: alla riapertura tornava la foto di prima. Un campo
+   * toccato e non ancora salvato adesso si salva anche da qui. */
+  if (typeof root.edSaveSezione === "function" && !root.edSaveSezione.__dmEvSection) {
+    const previous=root.edSaveSezione;
+    function saveSection(button, ...rest) {
+      const result=previous.call(this, button, ...rest);
+      try {
+        const body=button?.closest?.(".ed-acc-body");
+        const panel=body?.querySelector?.("[data-ev-photos]");
+        if (panel && panel.querySelector('[data-ev-photo][data-ev-photo-edited="true"]')) {
+          savePhotos(panel);
+          panel.dataset.saved="true";
+        }
+      } catch (_error) {}
+      return result;
+    }
+    saveSection.__dmEvSection=true; saveSection.__dmPrevious=previous; root.edSaveSezione=saveSection;
+  }
   /* Cancellare un'auto sposta tutte quelle sotto di lei: e' esattamente il caso
    * in cui una posizione salvata smette di indicare la vettura che indicava. La
    * chiave regge da sola, e se era proprio l'auto attiva a sparire si riparte
@@ -783,6 +893,7 @@ function installLegacyWrappers() {
   if (typeof root.cdEvCarBtn === "function" && !root.cdEvCarBtn.__dmEvSection) {
     const previous=root.cdEvCarBtn;
     function carButton(...args) {
+      const primaDelTasto=legacyProfiles();
       const result=previous.apply(this,args);
       /* Dopo una cancellazione le caselle piatte portano ancora le foto della
        * vettura sparita: si riseminano da quella che la plancia mostra ora.
@@ -792,6 +903,20 @@ function installLegacyWrappers() {
       const elenco=legacyProfiles();
       if (activeIndex() < 0 && elenco.length) {
         try { root.localStorage?.setItem("cd_ev_car_active", "0"); } catch (_error) {}
+      }
+      /* L'ultima auto se ne va con tutto quello che era suo.
+       *
+       * Cancellata l'ultima, le due caselle del disegno portavano ancora le
+       * sue foto e `cd_ev_car_active` il suo indice: la vettura spariva
+       * dall'elenco ma la sua fotografia restava sull'eroe, per sempre —
+       * "quando cancello non cancella tutto", alla lettera. Si pulisce solo
+       * quando la lista si e' svuotata ADESSO: una lista vuota da sempre e'
+       * una configurazione a caselle sole del formato vecchio, e li' le
+       * caselle sono l'unica casa della foto. */
+      if (primaDelTasto.length && !elenco.length) {
+        storePhoto(EV_PHOTO_KEYS.idle, "");
+        storePhoto(EV_PHOTO_KEYS.plugged, "");
+        try { root.localStorage?.removeItem("cd_ev_car_active"); } catch (_error) {}
       }
       const indice=Math.max(0, Math.min(elenco.length - 1, activeIndex()));
       const attiva=elenco[indice];
@@ -825,7 +950,7 @@ export function scheduleEvSync() {
    * all'elenco delle auto proprio mentre qualcun altro lo stava cambiando, e la
    * marca appena scelta tornava indietro da sola. Le migrazioni stanno
    * all'avvio, dove stanno le migrazioni. */
-  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();};
+  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();ensureCarNameGuard();};
   state.frame=root.requestAnimationFrame?.(run)||root.setTimeout?.(run,0)||0;
 }
 

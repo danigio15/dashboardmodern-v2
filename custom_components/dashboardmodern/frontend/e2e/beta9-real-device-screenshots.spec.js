@@ -351,7 +351,14 @@ for (const variant of PRIMARY) {
     });
     const shutterAlertIcon = page.locator("#page-home .dm-shutter-alert .g-icon-wrap");
     await expect(shutterAlertIcon).toBeVisible();
-    await expect(shutterAlertIcon).toHaveAttribute("data-dm-alert-motion", "static");
+    /* Da fermo il telo si riavvolge piano: "static" lo lasciava l'unico
+     * avviso immobile del quadro, e sembrava un'animazione dimenticata. */
+    await expect(shutterAlertIcon).toHaveAttribute("data-dm-alert-motion", "shutter");
     await expect(shutterAlertIcon).not.toHaveClass(/anim-ping/);
+    const shutterGlyphAnimation = await shutterAlertIcon.evaluate((icon) => {
+      const glyph = icon.querySelector(".dm-alert-glyph");
+      return glyph ? getComputedStyle(glyph).animationName : "";
+    });
+    expect(shutterGlyphAnimation).toBe("dmAlertShutter");
   });
 }

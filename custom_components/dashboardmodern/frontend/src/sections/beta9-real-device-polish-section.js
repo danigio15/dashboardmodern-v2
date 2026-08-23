@@ -444,7 +444,15 @@ const ALERT_KINDS = Object.freeze([
 
 function classifyAlert(card) {
   const name = clean(card.querySelector(".g-name")?.textContent || card.textContent).toLowerCase();
-  if (/tapparell|shutter|tenda|cover/.test(name)) return shutterMoving() ? "shutter-moving" : "static";
+  /* L'avviso tapparella si muove anche da fermo.
+   *
+   * Il ramo "static" era per quando NESSUNA tapparella e' in movimento, ma un
+   * avviso acceso — "Tapparella aperta · 1" — restava cosi' l'unico immobile
+   * del quadro, mentre porta e batteria accanto animavano: sembrava un
+   * dimenticato, ed e' stato segnalato come tale. Da ferma la tapparella
+   * scorre piano come un telo che si riavvolge; quando una si muove davvero,
+   * resta il movimento suo. */
+  if (/tapparell|shutter|tenda|cover/.test(name)) return shutterMoving() ? "shutter-moving" : "shutter";
   for (const entry of ALERT_KINDS) {
     if (entry.words.test(name)) return entry.kind;
   }
@@ -699,6 +707,10 @@ function installStyles() {
     /* L'avviso che non si sa leggere: un battito, niente di piu'. */
     #page-home .g-icon-wrap.dm-alert-generic .dm-alert-glyph{animation:dmAlertGeneric 2.4s ease-in-out infinite!important}
     #page-home .g-icon-wrap.dm-alert-shutter-moving .dm-alert-glyph{animation:dmAlertShutterMove 1.25s ease-in-out infinite!important}
+    /* Il telo si riavvolge verso il cassonetto: scaleY dall'alto, stessa
+       regola in due dimensioni di porta e finestra — niente 3D, niente clip. */
+    #page-home .g-icon-wrap.dm-alert-shutter .dm-alert-glyph{
+      transform-origin:center top!important;animation:dmAlertShutter 2.8s ease-in-out infinite!important}
     /* The door and the window swing on their hinge with scaleX, not with a
        perspective rotateY. On screen the two are the same movement — the leaf
        narrows towards its hinge and comes back — but rotateY opens a 3D
@@ -751,6 +763,10 @@ function installStyles() {
     @keyframes dmAlertLight{0%,100%{opacity:1}50%{opacity:.62}}
     @keyframes dmAlertGeneric{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.06);opacity:.78}}
     @keyframes dmAlertShutterMove{0%,100%{transform:translateY(-2px)}50%{transform:translateY(2px)}}
+    @keyframes dmAlertShutter{
+      0%,14%{transform:scaleY(1)}
+      44%,56%{transform:scaleY(.55)}
+      86%,100%{transform:scaleY(1)}}
 
     #ed-body .dm-light-add-form[data-dm-light-add-layout="beta9-real"]{
       display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important;
