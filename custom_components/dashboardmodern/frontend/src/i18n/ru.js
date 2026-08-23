@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Add car": "Добавить автомобиль",
+  "Save car": "Сохранить автомобиль",
+  "Edit this car": "Изменить этот автомобиль",
+  "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "У каждого автомобиля своя карточка: ＋ Добавить автомобиль создаёт новую — имя, марка, модель и все сущности ниже — карандаш редактирует её, USE показывает автомобиль на панели.",
   " — configured": " — настроена",
   "${nuove.length} people imported": "Импортировано людей: ${nuove.length}",
   "${riempiti} sensors detected": "Найдено датчиков: ${riempiti}",

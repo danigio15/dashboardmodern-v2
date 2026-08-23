@@ -467,6 +467,99 @@ function ensureCarNameGuard() {
   return true;
 }
 
+/* La lista delle auto parla la lingua delle altre sezioni.
+ *
+ * Il runtime la stampava col suo vocabolario: un distintivo «✓ attiva» (che
+ * non significa niente in configurazione: attive lo sono tutte, quale si
+ * MOSTRA lo decide la plancia), una tendina «scegli un profilo da modificare»
+ * che nessuno capiva, e un bottone «＋ Salva attuale» che fotografava la
+ * mappatura viva — il gesto da cui le auto si rubavano i dati a vicenda.
+ * Segnalato alla lettera: «che significa aggiungi attuale? per aggiungere
+ * un'auto devi mettere un + con un campo per il nome e sotto marca, modello
+ * e tutte le entità; per modificare deve esserci la matita come in tutte le
+ * sezioni».
+ *
+ * Ogni riga prende la matita — che apre QUELLA auto nella scheda sotto, nome
+ * compreso — il distintivo sparisce, la tendina pure, e i due bottoni dicono
+ * quello che fanno: «＋ Aggiungi auto» svuota la scheda per una vettura
+ * nuova, «💾 Salva auto» salva quella che si sta compilando. */
+function ensureCarListDecor() {
+  const campoNome = doc?.getElementById("ed-evcar-name");
+  if (!campoNome) return false;
+  const contenitore = doc.getElementById("ed-body");
+  if (!contenitore) return false;
+
+  for (const bottone of contenitore.querySelectorAll('[data-act="use"]')) {
+    const riga = bottone.closest(".ed-row");
+    if (!riga) continue;
+    for (const badge of riga.querySelectorAll(".pool-badge"))
+      if (/attiv/i.test(clean(badge.textContent))) badge.remove();
+    if (!riga.querySelector("[data-ev-edit]")) {
+      const matita = doc.createElement("button");
+      matita.type = "button";
+      matita.className = "ed-btn-add";
+      matita.dataset.evEdit = bottone.dataset.idx || "";
+      matita.style.cssText = "flex:0 0 auto;margin-right:6px;";
+      matita.textContent = "✏️";
+      matita.setAttribute("aria-label", t("Modifica questa auto", "Edit this car"));
+      matita.addEventListener("click", () => {
+        const indice = Number.parseInt(matita.dataset.evEdit, 10);
+        if (!Number.isFinite(indice)) return;
+        const nome = clean(profiles()[indice]?.name);
+        try { root.cdEvCarSelEd?.({ value: String(indice) }); } catch (_error) {}
+        /* Il ridisegno ricrea il campo del nome vuoto: lo si riempie con
+         * l'auto appena aperta, cosi' «Salva auto» salva proprio lei. */
+        const campo = doc.getElementById("ed-evcar-name");
+        if (campo && nome) {
+          campo.value = nome;
+          campo.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      });
+      bottone.insertAdjacentElement("beforebegin", matita);
+    }
+  }
+
+  const tendina = contenitore.querySelector('select[onchange*="cdEvCarSelEd"]');
+  if (tendina) tendina.style.setProperty("display", "none", "important");
+
+  const salva = contenitore.querySelector('button[onclick*="edEvCarAdd"]');
+  if (salva) {
+    const testoSalva = `💾 ${t("Salva auto", "Save car")}`;
+    if (salva.textContent !== testoSalva) salva.textContent = testoSalva;
+    const rigaNome = salva.parentElement;
+    if (rigaNome && !contenitore.querySelector("[data-ev-add-new]")) {
+      const aggiungi = doc.createElement("button");
+      aggiungi.type = "button";
+      aggiungi.className = "ed-btn-add";
+      aggiungi.dataset.evAddNew = "true";
+      aggiungi.style.cssText = "display:block;width:100%;margin:12px 0 8px;";
+      aggiungi.textContent = `＋ ${t("Aggiungi auto", "Add car")}`;
+      aggiungi.addEventListener("click", () => {
+        const campo = doc.getElementById("ed-evcar-name");
+        if (!campo) return;
+        campo.value = "";
+        // Il guardiano del nome svuota le caselle: la vettura nuova parte
+        // da zero, come chiesto.
+        campo.dispatchEvent(new Event("input", { bubbles: true }));
+        campo.focus();
+      });
+      rigaNome.insertAdjacentElement("beforebegin", aggiungi);
+    }
+  }
+
+  const intro = [...contenitore.querySelectorAll(".ed-intro")].find((nodo) =>
+    /salvale come profilo|save them as a profile|Aggiungi auto per crearne/i.test(clean(nodo.textContent)),
+  );
+  if (intro) {
+    const testo = `🚗 ${t(
+      "Ogni auto è una scheda: ＋ Aggiungi auto per crearne una nuova — nome, marca, modello e tutte le entità qui sotto — la matita per modificarla, USA per mostrarla in plancia.",
+      "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.",
+    )}`;
+    if (clean(intro.textContent) !== clean(testo)) intro.textContent = testo;
+  }
+  return true;
+}
+
 function legacyProfiles() { const cars = readJson("cd_ev_cars", []); return Array.isArray(cars) ? cars : []; }
 function canonicalProfiles() { const cars = section("ev", []); return Array.isArray(cars) ? cars : []; }
 function profiles() { const legacy = legacyProfiles(); return legacy.length ? legacy : canonicalProfiles(); }
@@ -950,7 +1043,7 @@ export function scheduleEvSync() {
    * all'elenco delle auto proprio mentre qualcun altro lo stava cambiando, e la
    * marca appena scelta tornava indietro da sola. Le migrazioni stanno
    * all'avvio, dove stanno le migrazioni. */
-  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();ensureCarNameGuard();};
+  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();ensureCarNameGuard();ensureCarListDecor();};
   state.frame=root.requestAnimationFrame?.(run)||root.setTimeout?.(run,0)||0;
 }
 

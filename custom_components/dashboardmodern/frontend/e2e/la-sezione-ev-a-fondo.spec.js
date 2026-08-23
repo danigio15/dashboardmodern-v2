@@ -358,3 +358,34 @@ test("il nome di un'auto nuova svuota i campi della scheda", async ({ page }, te
   await nome.dispatchEvent("input");
   await expect(batteria).toHaveValue("sensor.t03_battery");
 });
+
+test("la lista auto ha la matita, niente distintivo, e il + svuota la scheda", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* «per aggiungere un'auto devi mettere un + con un campo per il nome; per
+   * modificare deve esserci la matita come in tutte le sezioni; togli il
+   * distintivo attiva: attive lo sono tutte». */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  const matite = page.locator("#ed-body [data-ev-edit]");
+  await expect(matite).toHaveCount(2, { timeout: 15_000 });
+  await expect(page.locator("#ed-body .ed-row .pool-badge")).toHaveCount(0);
+  await expect(page.locator('#ed-body button[onclick*="edEvCarAdd"]')).toHaveText(/Salva auto/);
+
+  // La matita apre QUELLA auto nella scheda: nome compreso.
+  await matite.nth(1).click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("cd_ev_car_active"))).toBe("1");
+  await expect(page.locator("#ed-evcar-name")).toHaveValue("T03", { timeout: 15_000 });
+  await expect(
+    page.locator('#ed-body .ed-slot-in[data-ref="dm.ev_batteria_auto"]').first(),
+  ).toHaveValue("sensor.t03_battery");
+
+  // «＋ Aggiungi auto»: la scheda si svuota, la vettura nuova parte da zero.
+  await page.locator("#ed-body [data-ev-add-new]").click();
+  await expect(page.locator("#ed-evcar-name")).toHaveValue("");
+  await expect(
+    page.locator('#ed-body .ed-slot-in[data-ref="dm.ev_batteria_auto"]').first(),
+  ).toHaveValue("");
+});

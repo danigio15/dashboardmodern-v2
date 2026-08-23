@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Add car": "कार जोड़ें",
+  "Save car": "कार सहेजें",
+  "Edit this car": "इस कार को संपादित करें",
+  "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "हर कार का अपना कार्ड है: ＋ कार जोड़ें से नई बनाएं — नाम, ब्रांड, मॉडल और सभी एंटिटी नीचे — पेंसिल से संपादित करें, USE से डैशबोर्ड पर दिखाएं.",
   " — configured": " — कॉन्फ़िगर किया गया",
   "${nuove.length} people imported": "${nuove.length} लोग आयात किए गए",
   "${riempiti} sensors detected": "${riempiti} सेंसर मिले",

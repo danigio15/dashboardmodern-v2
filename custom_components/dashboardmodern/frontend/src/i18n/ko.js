@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Add car": "차량 추가",
+  "Save car": "차량 저장",
+  "Edit this car": "이 차량 편집",
+  "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "차량마다 전용 카드가 있습니다: ＋ 차량 추가로 새로 만들고 — 이름, 브랜드, 모델과 모든 엔터티는 아래에 — 연필로 편집하고 USE로 대시보드에 표시합니다.",
   " — configured": " — 설정됨",
   "${nuove.length} people imported": "${nuove.length}명을 가져왔습니다",
   "${riempiti} sensors detected": "센서 ${riempiti}개를 찾았습니다",

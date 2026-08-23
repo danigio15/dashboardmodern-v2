@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Add car": "添加车辆",
+  "Save car": "保存车辆",
+  "Edit this car": "编辑这辆车",
+  "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "每辆车都有自己的卡片：＋ 添加车辆可新建一辆——名称、品牌、型号和所有实体都在下方——铅笔用于编辑，USE 在仪表板上显示它。",
   " — configured": " — 已配置",
   "${nuove.length} people imported": "已导入 ${nuove.length} 位成员",
   "${riempiti} sensors detected": "已识别 ${riempiti} 个传感器",

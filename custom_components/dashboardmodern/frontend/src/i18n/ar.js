@@ -11,6 +11,10 @@
  */
 
 export default Object.freeze({
+  "Add car": "إضافة سيارة",
+  "Save car": "حفظ السيارة",
+  "Edit this car": "تعديل هذه السيارة",
+  "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "لكل سيارة بطاقتها الخاصة: ＋ إضافة سيارة لإنشاء واحدة جديدة — الاسم والعلامة والطراز وكل الكيانات أدناه — القلم للتعديل، USE لعرضها على اللوحة.",
   " — configured": " — مُهيّأة",
   "${nuove.length} people imported": "تم استيراد ${nuove.length} أشخاص",
   "${riempiti} sensors detected": "تم التعرف على ${riempiti} مستشعرات",
