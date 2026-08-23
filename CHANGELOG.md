@@ -9,6 +9,16 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## 1.1.9
 
+### Aggiunto
+
+- **L'avatar si costruisce come i Memoji.** La casella dell'emoji nella scheda
+  Persone non era «creare un avatar»: era scegliere da un elenco. Adesso c'è
+  il costruttore — carnagione, taglio e colore dei capelli, occhi, bocca,
+  barba, occhiali — con l'anteprima davanti e i campioncini disegnati sulla
+  propria faccia: un paio di occhiali si giudica addosso, non su quella di un
+  altro. La foto resta regina, l'emoji resta la via veloce, le iniziali
+  l'ultima parola.
+
 ### Corretto
 
 - **La configurazione non rimbalza più fra le plance — la foto dell'auto che
