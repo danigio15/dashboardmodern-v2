@@ -7,6 +7,59 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
 
+## 1.1.9
+
+### Corretto
+
+- **La configurazione non rimbalza più fra le plance — la foto dell'auto che
+  «oscilla da sola» è questo.** Ogni plancia accesa si faceva scrittore della
+  configurazione condivisa: il negozio riscrive le proprie chiavi anche senza
+  gesti — all'avvio, dopo un ripristino — e quelle riscritture venivano
+  scambiate per modifiche dell'utente. Una plancia rimasta aperta col runtime
+  vecchio rispingeva così per sempre i suoi dati stantii, il telefono
+  aggiornato li accettava e poi li ricopriva, avanti e indietro, una volta
+  ogni pochi secondi. Tre regole chiudono il rimbalzo: le scritture di
+  proiezione non sono gesti e non spingono niente; un salvataggio vero che
+  passa dal negozio si annuncia da sé; e il **recinto di generazione** — uno
+  scatto scritto da un runtime vecchio non vince più su un dispositivo
+  aggiornato e configurato, finché quella plancia non viene ricaricata.
+  **Dopo l'aggiornamento, ricarica (o chiudi) le altre plance aperte**: sono
+  loro a rispingere i dati vecchi.
+
+- **I flussi energetici dicono quello che succede.** Le linee dell'istantanea
+  si accendevano guardando un numero alla volta: qualunque produzione solare
+  accendeva «solare → casa» anche quando finiva tutta in batteria, la carica
+  era sempre attribuita al solare anche di notte, e l'arco «rete → batteria»
+  non esisteva proprio — di notte, con la rete che alimenta casa e ricarica
+  la batteria, il disegno mostrava la batteria che alimenta casa. I quattro
+  numeri ora si spartiscono insieme: il solare copre prima la carica, poi
+  l'immissione, e solo il resto va verso casa; la carica non coperta dal
+  solare arriva dalla rete sull'arco nuovo; la scarica va a casa. E la bolla
+  della batteria dice grandezza e verso (▼ in carica, ▲ in scarica) invece
+  del numero grezzo col segno.
+
+- **Il config delle auto parla chiaro.** «＋ Salva attuale» — il bottone che
+  fotografava la mappatura viva, il gesto da cui le auto si rubavano i dati a
+  vicenda — sparisce dietro un flusso leggibile: **＋ Aggiungi auto** svuota
+  la scheda per una vettura nuova (nome, marca, modello e tutte le entità qui
+  sotto), la **matita** sulla riga apre quella auto nella scheda col suo nome,
+  **💾 Salva auto** salva quella che si sta compilando. Il distintivo
+  «✓ attiva» se ne va: attive lo sono tutte, quale si mostra lo decide la
+  plancia. E la card «Brand e modello» smette di cambiare impaginazione da
+  sola: i suoi tre proprietari dicevano tre geometrie, ora ne dicono una.
+
+- **Tre cose che la scheda Persone sbagliava sul telefono vero.** Il campo
+  dell'entità persona restava una casella nuda finché era vuoto: i domini
+  `person.` e `device_tracker.` non erano nell'elenco che la guardia dei campi
+  riconosce — ora il campo vuoto ha la veste (e la ricerca) di tutti gli
+  altri. «🪄 Rileva dal telefono» diceva «nessun sensore riconosciuto» anche
+  quando mancava solo l'entità (ora lo dice) o quando il tracker somigliava
+  ai sensori senza esserne il prefisso esatto: il rilevamento prova il nome
+  esatto, poi la somiglianza, e il candidato unico solo in una casa con una
+  persona sola. E il picker dell'avatar apriva quello delle icone della
+  plancia — prese, lampadine, pentole: per una persona servono persone, e il
+  suo ha facce, gente di casa, mestieri e qualche animale.
+
 ## 1.1.8
 
 ### Aggiunto
