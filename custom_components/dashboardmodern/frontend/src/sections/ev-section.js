@@ -405,6 +405,37 @@ export function ensureVehiclePhotoEditor() {
   return true;
 }
 
+/* Il nome sulla scheda decide di chi sono i campi.
+ *
+ * La scheda dell'auto e' un campo nome sopra le caselle delle entita' dm.ev_*,
+ * che mostrano la mappatura VIVA — quella dell'auto attiva. Scrivere li' il
+ * nome di un'auto nuova e premere «salva scheda» catturava quei campi cosi'
+ * com'erano: la nuova nasceva con le entita' dell'altra addosso, e sembrava
+ * la stessa macchina con un altro nome. Segnalato alla lettera: «appena
+ * inserisco il nome di un'altra auto deve svuotare i dati».
+ *
+ * Il campo nome adesso governa le caselle: un nome che non e' di nessuno le
+ * svuota — l'auto nuova parte da zero — e il nome di un'auto esistente le
+ * ricarica dai dati SUOI, cosi' risalvarla non le scrive addosso la mappatura
+ * di quella attiva. Si toccano solo i campi a video: le mappature salvate non
+ * cambiano finche' non si preme salva, ed e' `edSetSlot` — il giro di sempre —
+ * a leggere i campi al salvataggio. */
+function ensureCarNameGuard() {
+  const campo = doc?.getElementById("ed-evcar-name");
+  if (!campo || campo.dataset.dmEvNameGuard === "true") return false;
+  campo.dataset.dmEvNameGuard = "true";
+  campo.addEventListener("input", () => {
+    const nome = clean(campo.value);
+    const trovata = profiles().find((car) => clean(car?.name) === nome) || null;
+    const possedute = trovata ? trovata.ov || trovata.overrides || {} : {};
+    for (const input of doc.querySelectorAll('#ed-body input.ed-slot-in[data-ref^="dm.ev_"]')) {
+      const valore = clean(possedute[input.dataset?.ref]);
+      if (input.value !== valore) input.value = valore;
+    }
+  });
+  return true;
+}
+
 function legacyProfiles() { const cars = readJson("cd_ev_cars", []); return Array.isArray(cars) ? cars : []; }
 function canonicalProfiles() { const cars = section("ev", []); return Array.isArray(cars) ? cars : []; }
 function profiles() { const legacy = legacyProfiles(); return legacy.length ? legacy : canonicalProfiles(); }
@@ -884,7 +915,7 @@ export function scheduleEvSync() {
    * all'elenco delle auto proprio mentre qualcun altro lo stava cambiando, e la
    * marca appena scelta tornava indietro da sola. Le migrazioni stanno
    * all'avvio, dove stanno le migrazioni. */
-  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();};
+  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();ensureCarNameGuard();};
   state.frame=root.requestAnimationFrame?.(run)||root.setTimeout?.(run,0)||0;
 }
 

@@ -119,3 +119,15 @@ test("cancellata l'ultima auto, se ne vanno caselle e indice", () => {
   assert.match(corpo, /storePhoto\(EV_PHOTO_KEYS\.plugged, ""\)/);
   assert.match(corpo, /removeItem\("cd_ev_car_active"\)/);
 });
+
+test("il nome sulla scheda decide di chi sono i campi", () => {
+  /* Scrivere il nome di un'auto nuova e salvare catturava la mappatura viva
+   * dell'auto attiva: la nuova nasceva con le entita' dell'altra addosso. */
+  const sezione = leggi("sections/ev-section.js");
+  const corpo = sezione.slice(sezione.indexOf("function ensureCarNameGuard()"));
+  assert.match(corpo, /getElementById\("ed-evcar-name"\)/);
+  assert.match(corpo, /data-ref\^="dm\.ev_"/,
+    "sono le caselle condivise dm.ev_* a portare i dati dell'altra auto");
+  assert.match(sezione, /ensureVehiclePhotoEditor\(\);ensureCarNameGuard\(\);/,
+    "il guardiano si aggancia nello stesso giro che tiene vivo il pannello");
+});

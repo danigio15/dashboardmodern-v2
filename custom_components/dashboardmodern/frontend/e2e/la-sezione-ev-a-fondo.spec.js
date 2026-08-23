@@ -214,6 +214,13 @@ test("un'auto nuova non nasce con la foto di quella attiva", async ({ page }, te
     const campo = document.getElementById("ed-evcar-name");
     campo.value = "T03";
     campo.dispatchEvent(new Event("input", { bubbles: true }));
+    /* Il nome nuovo ha appena svuotato le caselle dm.ev_* — e' il suo lavoro:
+     * l'auto nuova non eredita la mappatura dell'attiva. Il runtime pero'
+     * esige almeno un'entita' per creare la scheda, quindi si mappa la SUA. */
+    const batteria = document.querySelector(
+      '#ed-body input.ed-slot-in[data-ref="dm.ev_batteria_auto"]',
+    );
+    if (batteria) batteria.value = "sensor.t03_battery";
     window.edEvCarAdd();
   });
 
@@ -325,4 +332,29 @@ test("il bottone verde della sezione salva anche le foto scritte", async ({ page
   await expect
     .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cd_ev_cars") || "[]")[0]?.img))
     .toBe("/local/ev/b10-nuova.png");
+});
+
+test("il nome di un'auto nuova svuota i campi della scheda", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* «appena inserisco il nome di un'altra auto deve svuotare i dati»: la
+   * scheda mostrava la mappatura dell'auto attiva, e salvare un nome nuovo la
+   * catturava tale e quale. Ora un nome che non e' di nessuno azzera le
+   * caselle, e il nome di un'auto esistente le ricarica dai dati SUOI. */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  const nome = page.locator("#ed-evcar-name");
+  await nome.waitFor({ timeout: 15_000 });
+  const batteria = page.locator('#ed-body input.ed-slot-in[data-ref="dm.ev_batteria_auto"]');
+  await batteria.evaluate((input) => {
+    input.value = "sensor.b10_battery";
+  });
+  await nome.fill("Auto nuova di zecca");
+  await nome.dispatchEvent("input");
+  await expect(batteria).toHaveValue("");
+  await nome.fill("T03");
+  await nome.dispatchEvent("input");
+  await expect(batteria).toHaveValue("sensor.t03_battery");
 });
