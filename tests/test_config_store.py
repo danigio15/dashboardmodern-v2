@@ -300,3 +300,34 @@ def test_the_panel_publishes_the_profile(hass: HomeAssistant) -> None:
         hass, second, asset_version="v", static_url_path="/s"
     )
     assert other["config_profile"] == "plancia-mare"
+
+
+async def test_writer_generation_travels_with_the_snapshot(
+    hass: HomeAssistant,
+) -> None:
+    """La generazione dello scrittore si conserva e si rilegge tale e quale.
+
+    Il frontend nuovo la usa per riconoscere gli scatti spinti dai runtime
+    vecchi — quelli che marcavano «in sospeso» anche le riscritture di
+    macchina — e non farsi sovrascrivere da loro. Il negozio deve solo
+    custodirla: senza questo giro il campo spariva nella risposta e il
+    recinto non poteva mai chiudersi.
+    """
+    store = DashboardConfigStore(hass)
+    saved = await store.async_set(
+        PRIMARY_PROFILE, _configured(), keys_revision=5, writer_generation=1
+    )
+    assert saved["snapshot"]["writer_generation"] == 1
+
+    reread = await store.async_get(PRIMARY_PROFILE)
+    assert reread["snapshot"]["writer_generation"] == 1
+
+    # Uno scrittore vecchio non manda il campo: lo scatto lo dice, con lo zero.
+    old = await store.async_set(
+        PRIMARY_PROFILE, _configured("Salotto"), keys_revision=4
+    )
+    assert old["snapshot"]["writer_generation"] == 0
+
+    # E il ripristino di una revisione custodita riporta la sua generazione.
+    restored = await store.async_restore(PRIMARY_PROFILE, revision=1)
+    assert restored["snapshot"]["writer_generation"] == 1
