@@ -213,6 +213,41 @@ test("il rilevamento trova i sensori della Companion App dal tracker della perso
   assert.equal(found.direction, "sensor.home_iphone_di_anna_direction_of_travel");
 });
 
+test("il rilevamento riconosce anche il tracker che somiglia, non solo quello identico", () => {
+  /* Il tracker si chiama `giovanni_zfold8`, i sensori `zfold8_*`: nessuno dei
+   * due e' il prefisso esatto dell'altro, ma parlano dello stesso telefono. */
+  const states = {
+    "person.giovanni": {
+      state: "home",
+      attributes: { source: "device_tracker.giovanni_zfold8" },
+    },
+    "sensor.zfold8_battery_level": { state: "80" },
+    "sensor.zfold8_battery_state": { state: "charging" },
+  };
+  const found = detectCompanionSensors(states, "person.giovanni");
+  assert.equal(found.battery, "sensor.zfold8_battery_level");
+  assert.equal(found.batteryState, "sensor.zfold8_battery_state");
+});
+
+test("con una persona sola, l'unico sensore della casa e' il suo", () => {
+  const states = {
+    "person.giovanni": { state: "home", attributes: {} },
+    "sensor.telefono_misterioso_battery_level": { state: "80" },
+  };
+  const found = detectCompanionSensors(states, "person.giovanni");
+  assert.equal(found.battery, "sensor.telefono_misterioso_battery_level");
+});
+
+test("con due persone non si indovina: il candidato unico non basta", () => {
+  const states = {
+    "person.giovanni": { state: "home", attributes: {} },
+    "person.anna": { state: "home", attributes: {} },
+    "sensor.telefono_misterioso_battery_level": { state: "80" },
+  };
+  const found = detectCompanionSensors(states, "person.giovanni");
+  assert.equal(found.battery, undefined, "quel telefono potrebbe essere dell'altra");
+});
+
 test("il viaggio si racconta solo di chi e' fuori", () => {
   const base = {
     "person.g": {

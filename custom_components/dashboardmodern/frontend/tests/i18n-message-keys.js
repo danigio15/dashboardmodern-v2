@@ -276,6 +276,8 @@ export const MESSAGE_KEYS = Object.freeze([
   "Choose model",
   "Choose parameter",
   "Choose room icon",
+  "Choose the avatar",
+  "Choose the person entity first",
   "Choose the photo",
   "Choose where to look",
   "CIRCLES UNDER HOME",

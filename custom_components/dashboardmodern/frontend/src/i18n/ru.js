@@ -25,6 +25,8 @@ export default Object.freeze({
   "Battery (optional)": "Батарея (необязательно)",
   "Charging": "Заряжается",
   "Choose an emoji": "Выберите эмодзи",
+  "Choose the avatar": "Выберите аватар",
+  "Choose the person entity first": "Сначала выберите сущность человека",
   "Detect from the phone": "Найти с телефона",
   "Direction": "Направление",
   "Distance from home": "Расстояние до дома",

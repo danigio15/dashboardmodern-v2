@@ -25,6 +25,8 @@ export default Object.freeze({
   "Battery (optional)": "البطارية (اختياري)",
   "Charging": "قيد الشحن",
   "Choose an emoji": "اختر رمزًا تعبيريًا",
+  "Choose the avatar": "اختر الصورة الرمزية",
+  "Choose the person entity first": "اختر كيان الشخص أولاً",
   "Detect from the phone": "اكتشاف من الهاتف",
   "Direction": "الاتجاه",
   "Distance from home": "المسافة من المنزل",

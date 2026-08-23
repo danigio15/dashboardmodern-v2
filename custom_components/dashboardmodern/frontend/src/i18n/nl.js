@@ -25,6 +25,8 @@ export default Object.freeze({
   "Battery (optional)": "Batterij (optioneel)",
   "Charging": "Aan het opladen",
   "Choose an emoji": "Kies een emoji",
+  "Choose the avatar": "Kies de avatar",
+  "Choose the person entity first": "Kies eerst de entiteit van de persoon",
   "Detect from the phone": "Detecteren vanaf de telefoon",
   "Direction": "Richting",
   "Distance from home": "Afstand tot huis",

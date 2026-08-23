@@ -50,5 +50,13 @@ test("l'editor usa il selettore foto condiviso e valida l'entità", () => {
   const editor = leggi("sections/people-editor-section.js");
   assert.match(editor, /pickMediaImage/, "la foto passa dallo stesso selettore dell'auto");
   assert.match(editor, /person\|device_tracker/, "solo entità che sanno dove sta una persona");
-  assert.match(editor, /wzPickIcon/, "l'emoji dell'avatar si sceglie dal picker esistente");
+  assert.match(editor, /AVATAR_EMOJI/, "l'avatar si sceglie tra facce e persone, non tra prese");
+});
+
+test("il campo dell'entità persona è riconosciuto anche da vuoto", () => {
+  /* La guardia dei campi riconosce un'entita' dal placeholder: senza `person`
+   * e `device_tracker` nell'elenco, il campo vuoto restava una casella nuda e
+   * la ricerca non si apriva — il valore pieno lo salvava per caso. */
+  const guardia = leggi("sections/entity-picker-guard-section.js");
+  assert.match(guardia, /person\|device_tracker\|zone/, "i domini delle persone nel placeholder");
 });

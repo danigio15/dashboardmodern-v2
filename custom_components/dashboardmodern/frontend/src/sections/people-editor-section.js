@@ -28,6 +28,19 @@ import { allStates, clean, doc, esc, installStyle, onEditorRedraw, readJson, roo
 const KEY = "__DASHBOARDMODERN_PEOPLE_EDITOR__";
 const state = (root[KEY] ||= { installed: false, aperto: -1 });
 
+/* Le facce tra cui scegliere l'avatar. Il picker delle icone della plancia
+ * parla di prese e lampadine: per una persona servono persone. Curate a mano,
+ * per categorie: espressioni, gente di casa, mestieri, e qualche animale per
+ * chi non si prende sul serio. */
+export const AVATAR_EMOJI = Object.freeze([
+  "😀", "😊", "😎", "🥰", "😇", "🤓", "🥳", "😴", "🤠", "🥸", "🤗", "😜",
+  "👨", "👩", "🧑", "👦", "👧", "👶", "👴", "👵", "🧔", "👱‍♀️", "👱‍♂️", "🧑‍🦰",
+  "👨‍🦱", "👩‍🦱", "👨‍🦳", "👩‍🦳", "👨‍🦲", "🧑‍🦱", "👩‍🦰", "🧕", "👳‍♂️", "👲", "🧒", "🧓",
+  "👨‍💻", "👩‍💻", "👨‍🍳", "👩‍🍳", "👨‍⚕️", "👩‍⚕️", "👨‍🏫", "👩‍🏫", "👷‍♂️", "👷‍♀️", "👮‍♂️", "👮‍♀️",
+  "👨‍🔧", "👩‍🔧", "👨‍🚒", "👩‍🚒", "👨‍✈️", "👩‍✈️", "👨‍🎨", "👩‍🎨", "🧑‍🌾", "🧑‍🎓", "🦸‍♂️", "🦸‍♀️",
+  "🐱", "🐶", "🦊", "🐼", "🐨", "🦁", "🐯", "🐸", "🐧", "🦄", "🐢", "🦉",
+]);
+
 export const PEOPLE_EDITOR_TAB = "people";
 const ENTITY_RE = /^(person|device_tracker)\.[a-z0-9_]+$/i;
 
@@ -237,7 +250,7 @@ async function onClick(event) {
   const emojiPick = event.target.closest("[data-person-emoji]");
   if (emojiPick) {
     event.preventDefault();
-    root.wzPickIcon?.(`#${clean(emojiPick.dataset.personEmoji)}`);
+    apriAvatarPicker(clean(emojiPick.dataset.personEmoji));
     return;
   }
   const riga = event.target.closest("[data-person-index]");
@@ -251,6 +264,12 @@ async function onClick(event) {
      * chi ha appena scelto la persona vuole i sensori di quella. I campi gia'
      * compilati non si toccano — il pulsante riempie, non riscrive. */
     const entita = clean(riga.querySelector('[data-person-field="entity"]')?.value);
+    /* Senza l'entita' il rilevamento non sa di chi cercare i sensori: dirlo
+     * e' piu' utile di un «niente trovato» che suona come un guasto. */
+    if (!entita) {
+      root.edToast?.(t("Prima scegli l'entità della persona", "Choose the person entity first"));
+      return;
+    }
     const trovati = detectCompanionSensors(allStates(), entita);
     let riempiti = 0;
     for (const [field, sensore] of Object.entries(trovati)) {
@@ -346,6 +365,40 @@ function onChange(event) {
   if (riga && Number.isFinite(index) && people[index]) aggiornaAnteprima(riga, people, index);
 }
 
+/* Il picker dell'avatar: la stessa finestra del picker icone della plancia,
+ * ma con le facce. Quello di serie parla di prese e lampadine — per una
+ * persona servono persone. La scelta finisce nella casella e spara `change`,
+ * che e' l'evento da cui l'anteprima del ritratto si aggiorna. */
+function apriAvatarPicker(inputId) {
+  if (!doc) return;
+  doc.getElementById("dm-avatar-picker")?.remove();
+  const overlay = doc.createElement("div");
+  overlay.id = "dm-avatar-picker";
+  /* Non un <header>: quello di pagina ha uno stile suo — padding, colonna,
+   * ombra — e se lo porterebbe dentro alla finestra. */
+  overlay.innerHTML = `<div class="dm-avatar-sheet" role="dialog" aria-modal="true">
+    <div class="dm-avatar-head"><strong>😊 ${t("Scegli l'avatar", "Choose the avatar")}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></div>
+    <div class="dm-avatar-grid">${AVATAR_EMOJI.map(
+      (emoji) => `<button type="button" data-avatar-emoji="${esc(emoji)}">${esc(emoji)}</button>`,
+    ).join("")}</div>
+  </div>`;
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay || event.target.closest("[data-close]")) {
+      overlay.remove();
+      return;
+    }
+    const scelta = event.target.closest("[data-avatar-emoji]");
+    if (!scelta) return;
+    const input = doc.getElementById(inputId);
+    if (input) {
+      input.value = clean(scelta.dataset.avatarEmoji);
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    overlay.remove();
+  });
+  doc.body.append(overlay);
+}
+
 /* La voce nella barra della configurazione: le voci sono scritte nel documento
  * vendorizzato e questa non c'e', quindi si aggiunge accanto alle altre con lo
  * stesso gestore. */
@@ -387,6 +440,14 @@ function installStyles() {
       #ed-body .dm-people-colors{display:flex;flex-wrap:wrap;gap:6px;padding-top:2px}
       #ed-body .dm-people-color{width:26px;height:26px;border-radius:50%;border:2px solid transparent;background:var(--dm-person-color);cursor:pointer;padding:0}
       #ed-body .dm-people-color.on{border-color:var(--text,#0f172a);box-shadow:0 0 0 2px var(--card-bg,#fff) inset}
+      #dm-avatar-picker{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:20px}
+      #dm-avatar-picker .dm-avatar-sheet{background:var(--card-bg,#fff);border-radius:18px;max-width:440px;width:100%;max-height:70vh;overflow:auto;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+      #dm-avatar-picker .dm-avatar-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+      #dm-avatar-picker .dm-avatar-head strong{font-weight:900;font-size:15px;color:var(--text,#0f172a)}
+      #dm-avatar-picker [data-close]{border:none;background:rgba(148,163,184,.15);border-radius:50%;width:32px;height:32px;font-size:15px;cursor:pointer;color:var(--text,#0f172a)}
+      #dm-avatar-picker .dm-avatar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:4px}
+      #dm-avatar-picker [data-avatar-emoji]{font-size:23px;padding:8px 0;border:none;background:transparent;border-radius:10px;cursor:pointer}
+      #dm-avatar-picker [data-avatar-emoji]:hover{background:rgba(14,165,233,.12)}
       #ed-body .dm-people-sensors{margin:2px 0}
       #ed-body .dm-people-sensors .ed-acc-body{display:grid;gap:8px}
       #ed-body .dm-people-sensors-intro{color:var(--secondary-text-color,#64748b);font-size:12px;line-height:1.45}

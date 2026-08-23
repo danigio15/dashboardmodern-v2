@@ -25,6 +25,8 @@ export default Object.freeze({
   "Battery (optional)": "배터리(선택)",
   "Charging": "충전 중",
   "Choose an emoji": "이모지 선택",
+  "Choose the avatar": "아바타 선택",
+  "Choose the person entity first": "먼저 구성원 엔티티를 선택하세요",
   "Detect from the phone": "휴대폰에서 감지",
   "Direction": "방향",
   "Distance from home": "집까지의 거리",

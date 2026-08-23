@@ -25,6 +25,8 @@ export default Object.freeze({
   "Battery (optional)": "Pil (isteğe bağlı)",
   "Charging": "Şarj oluyor",
   "Choose an emoji": "Bir emoji seç",
+  "Choose the avatar": "Avatarı seç",
+  "Choose the person entity first": "Önce kişinin varlığını seç",
   "Detect from the phone": "Telefondan bul",
   "Direction": "Yön",
   "Distance from home": "Eve uzaklık",

@@ -25,6 +25,8 @@ export default Object.freeze({
   "Battery (optional)": "电池（可选）",
   "Charging": "充电中",
   "Choose an emoji": "选择一个表情符号",
+  "Choose the avatar": "选择头像",
+  "Choose the person entity first": "请先选择成员实体",
   "Detect from the phone": "从手机识别",
   "Direction": "方向",
   "Distance from home": "距家距离",

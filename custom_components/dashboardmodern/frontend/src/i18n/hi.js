@@ -25,6 +25,8 @@ export default Object.freeze({
   "Battery (optional)": "बैटरी (वैकल्पिक)",
   "Charging": "चार्ज हो रहा है",
   "Choose an emoji": "एक इमोजी चुनें",
+  "Choose the avatar": "अवतार चुनें",
+  "Choose the person entity first": "पहले व्यक्ति की इकाई चुनें",
   "Detect from the phone": "फ़ोन से पहचानें",
   "Direction": "दिशा",
   "Distance from home": "घर से दूरी",

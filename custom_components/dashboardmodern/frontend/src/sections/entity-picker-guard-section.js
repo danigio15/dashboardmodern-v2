@@ -37,7 +37,11 @@ function isEntityInput(input) {
   const reference = clean(input.dataset.ref);
   if (reference && /(?:entity|entita|sensore|sensor|switch|climate|light|cover|camera|power|energy|temp|humid|weather|rain|pump)/i.test(reference)) return true;
   const placeholder = clean(input.placeholder);
-  if (/^(sensor|binary_sensor|switch|light|cover|climate|camera|weather|automation|script|scene|select|number|input_[a-z_]+)\./i.test(placeholder)) return true;
+  /* `person` e `device_tracker` sono arrivati con la scheda Persone: senza di
+   * loro il campo dell'entita' della persona restava una casella nuda — il
+   * valore pieno lo salvava la riga qui sotto, ma un campo ancora vuoto non
+   * aveva niente che dicesse «sono un'entita'», e la ricerca non si apriva. */
+  if (/^(sensor|binary_sensor|switch|light|cover|climate|camera|weather|automation|script|scene|select|number|person|device_tracker|zone|input_[a-z_]+)\./i.test(placeholder)) return true;
   if (ENTITY_ID.test(clean(input.value)) && input.classList.contains("mono")) return true;
   return Boolean(input.nextElementSibling?.matches?.(".dm-entity-picker,button[onclick*='wzPickEntity']"));
 }
