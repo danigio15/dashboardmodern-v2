@@ -359,7 +359,9 @@ test("il nome di un'auto nuova svuota i campi della scheda", async ({ page }, te
   await expect(batteria).toHaveValue("sensor.t03_battery");
 });
 
-test("la lista auto ha la matita, niente distintivo, e il + svuota la scheda", async ({ page }, testInfo) => {
+test("la lista auto ha la matita, niente distintivo, e il + svuota la scheda", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(120_000);
   /* «per aggiungere un'auto devi mettere un + con un campo per il nome; per
    * modificare deve esserci la matita come in tutte le sezioni; togli il
@@ -389,5 +391,5 @@ test("la lista auto ha la matita, niente distintivo, e il + svuota la scheda", a
   await expect(
     page.locator('#ed-body .ed-slot-in[data-ref="dm.ev_batteria_auto"]').first(),
   ).toHaveValue("");
-  await expect(page.locator('#ed-body [data-ev-appearance] select[data-model]')).toHaveValue("");
+  await expect(page.locator("#ed-body [data-ev-appearance] select[data-model]")).toHaveValue("");
 });
