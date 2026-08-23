@@ -162,6 +162,7 @@ const LOCALE_IDENTITIES = {
     "Configuration",
     "CONFIGURATION",
     "Cyan",
+    "Direction",
     "Filtration",
     "Garage",
     "Indigo",

@@ -12,7 +12,7 @@
  * qui si legge quella chiave e la si disegna.
  */
 import { normalizePeople, personViewModel } from "../core/person-model.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, t } from "./shared.js";
+import { allStates, clean, doc, esc, formatNumber, installStyle, readJson, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_PEOPLE__";
 const state = (root[KEY] ||= { installed: false, listeners: false, frame: 0, clock: 0 });
@@ -50,6 +50,17 @@ function batteryIcon(battery) {
   return "🔋";
 }
 
+/* L'attivita' della Companion App, disegnata: sta nel pallino di stato del
+ * ritratto, che quando la persona si muove smette di essere un pallino e
+ * dice come si sta muovendo. */
+const ACTIVITY_EMOJI = Object.freeze({
+  automotive: "🚗",
+  cycling: "🚴",
+  running: "🏃",
+  walking: "🚶",
+  still: "🧍",
+});
+
 /* Il ritratto: la foto quando c'e', altrimenti l'avatar — l'emoji scelta, o le
  * iniziali sul colore scelto. La foto rotta ricade sull'avatar da sola, cosi'
  * un file rinominato in config/www non lascia un'icona spezzata. */
@@ -60,7 +71,41 @@ function portraitMarkup(view) {
   const photo = view.photo
     ? `<img class="dm-person-photo" src="${esc(view.photo)}" alt="" loading="lazy" data-person-img>`
     : "";
-  return `<span class="dm-person-portrait">${avatar}${photo}<i class="dm-person-dot" aria-hidden="true"></i></span>`;
+  const activity = ACTIVITY_EMOJI[view.activity] || "";
+  const dot = activity
+    ? `<i class="dm-person-dot" data-activity="true" aria-hidden="true">${activity}</i>`
+    : `<i class="dm-person-dot" aria-hidden="true"></i>`;
+  return `<span class="dm-person-portrait">${avatar}${photo}${dot}</span>`;
+}
+
+function distanceLabel(distance) {
+  return `${formatNumber(distance.value, distance.value % 1 ? 1 : 0)} ${distance.unit}`;
+}
+
+/* Il viaggio di chi e' fuori: la distanza — con la freccia quando si sa in
+ * che direzione va — e il tempo per tornare. Due pastiglie del colore di
+ * presenza, sotto la zona. */
+function tripMarkup(view) {
+  const parts = [];
+  if (view.distance) {
+    const arrow =
+      view.direction === "towards" ? " →🏠" : view.direction === "away" ? " ←🏠" : "";
+    const title =
+      view.direction === "towards"
+        ? t("Si sta avvicinando a casa", "Approaching home")
+        : view.direction === "away"
+          ? t("Si sta allontanando da casa", "Moving away from home")
+          : t("Distanza da casa", "Distance from home");
+    parts.push(
+      `<span title="${esc(title)}">🧭 ${esc(distanceLabel(view.distance))}${arrow}</span>`,
+    );
+  }
+  if (view.travel !== null)
+    parts.push(
+      `<span title="${t("Tempo di rientro", "Time to home")}">⏱ ${view.travel} min</span>`,
+    );
+  if (!parts.length) return "";
+  return `<div class="dm-person-trip">${parts.join("")}</div>`;
 }
 
 /* La fascia in fondo alla card: batteria e «da quanto», uno accanto
@@ -70,7 +115,15 @@ function footMarkup(view) {
   const parts = [];
   if (view.battery !== null)
     parts.push(
-      `<span class="dm-person-batt${view.batteryLow ? " low" : ""}">${batteryIcon(view.battery)} ${Math.round(view.battery)}%</span>`,
+      `<span class="dm-person-batt${view.batteryLow ? " low" : ""}" title="${view.charging ? t("In carica", "Charging") : ""}">${batteryIcon(view.battery)} ${Math.round(view.battery)}%${view.charging ? '<b class="dm-person-bolt">⚡</b>' : ""}</span>`,
+    );
+  if (view.watch !== null)
+    parts.push(
+      `<span class="dm-person-watch${view.watchLow ? " low" : ""}" title="${t("Batteria orologio", "Watch battery")}">⌚ ${Math.round(view.watch)}%</span>`,
+    );
+  if (view.wifi)
+    parts.push(
+      `<span class="dm-person-wifi" title="${t("Rete WiFi", "WiFi network")}: ${esc(view.wifi)}">📶 ${esc(view.wifi)}</span>`,
     );
   const ago = elapsedLabel(view.elapsed);
   if (ago) parts.push(`<span class="dm-person-ago">🕐 ${esc(ago)}</span>`);
@@ -83,6 +136,8 @@ function cardMarkup(view) {
     ${portraitMarkup(view)}
     <strong class="dm-person-name">${esc(view.name)}</strong>
     <span class="dm-person-zone">${presenceIcon(view)} ${esc(presenceLabel(view))}</span>
+    ${view.address ? `<small class="dm-person-address" title="${esc(view.address)}">${esc(view.address)}</small>` : ""}
+    ${tripMarkup(view)}
     ${footMarkup(view)}
   </article>`;
 }
@@ -196,17 +251,32 @@ function installStyles() {
     #dm-people .dm-person-avatar{display:grid;place-items:center;font-size:44px;background:radial-gradient(circle at 32% 26%,color-mix(in srgb,var(--dm-person-color,#0ea5e9) 10%,var(--card-bg,#fff)),color-mix(in srgb,var(--dm-person-color,#0ea5e9) 30%,var(--card-bg,#fff)));color:var(--dm-person-color,#0ea5e9)}
     #dm-people .dm-person-avatar b{font-size:31px;font-weight:900;letter-spacing:.5px;text-shadow:0 1px 0 color-mix(in srgb,#fff 55%,transparent)}
     #dm-people .dm-person-dot{position:absolute;right:2px;bottom:2px;width:18px;height:18px;border-radius:50%;background:rgb(var(--dm-presence));border:3px solid var(--card-bg,#fff);z-index:1;box-shadow:0 2px 6px rgba(var(--dm-presence),.5)}
+    /* Quando la persona si muove il pallino diventa il badge dell'attivita':
+     * l'auto, la bici, i passi. Fermo, torna un pallino. */
+    #dm-people .dm-person-dot[data-activity]{width:26px;height:26px;right:-3px;bottom:-1px;display:grid;place-items:center;font-size:13px;font-style:normal;background:var(--card-bg,#fff);border:2.5px solid rgb(var(--dm-presence))}
     #dm-people .dm-person-name{font-size:15.5px;font-weight:900;letter-spacing:-.3px;color:var(--text,#0f172a);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     /* La zona e' una pastiglia piena del colore di presenza: la cosa piu'
      * importante della card, vestita come tale. Di un ignoto non si colora
      * niente: la pastiglia resta un contorno tratteggiato. */
     #dm-people .dm-person-zone{margin-top:7px;font-size:11px;font-weight:900;letter-spacing:.3px;color:#fff;background:linear-gradient(135deg,rgb(var(--dm-presence)),color-mix(in srgb,rgb(var(--dm-presence)) 72%,#0f172a));border-radius:999px;padding:4px 13px;max-width:calc(100% - 8px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-shadow:0 5px 12px -5px rgba(var(--dm-presence),.7)}
     #dm-people .dm-person-card[data-unknown="true"] .dm-person-zone{background:transparent;color:var(--text-dim,#64748b);border:1px dashed rgba(148,163,184,.6);box-shadow:none}
-    #dm-people .dm-person-foot{width:100%;margin-top:16px;padding:9px 6px 10px;display:flex;justify-content:center;align-items:center;border-top:1px solid color-mix(in srgb,rgb(var(--dm-presence)) 14%,var(--card-border,#e8edf3));background:color-mix(in srgb,rgb(var(--dm-presence)) 4%,transparent)}
+    /* Dove si trova, scritto per esteso: la via sotto la zona, in piccolo. */
+    #dm-people .dm-person-address{margin-top:7px;font-size:10.5px;font-weight:750;color:var(--text-dim,#64748b);max-width:calc(100% - 10px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    /* Il viaggio: distanza (con la freccia della direzione) e tempo di
+     * rientro, come pastiglie leggere del colore di presenza. */
+    #dm-people .dm-person-trip{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:9px;max-width:100%}
+    #dm-people .dm-person-trip>span{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:900;font-variant-numeric:tabular-nums;padding:3px 10px;border-radius:999px;color:rgb(var(--dm-presence));background:rgba(var(--dm-presence),.1);border:1px solid rgba(var(--dm-presence),.25);white-space:nowrap}
+    /* La fascia sta in fondo qualunque altezza abbia la card: una fila di
+     * persone ha i piedi allineati anche quando una sola ha il viaggio. */
+    #dm-people .dm-person-foot{width:100%;margin-top:auto;padding:8px 8px 9px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:3px 13px;border-top:1px solid color-mix(in srgb,rgb(var(--dm-presence)) 14%,var(--card-border,#e8edf3));background:color-mix(in srgb,rgb(var(--dm-presence)) 4%,transparent)}
+    #dm-people .dm-person-card> :nth-last-child(2){margin-bottom:14px}
     #dm-people .dm-person-card:not(:has(.dm-person-foot)){padding-bottom:20px}
-    #dm-people .dm-person-foot>*{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:850;font-variant-numeric:tabular-nums;color:var(--text-dim,#64748b);white-space:nowrap}
-    #dm-people .dm-person-foot>*+*{margin-left:12px;padding-left:12px;border-left:1px solid color-mix(in srgb,var(--text-dim,#64748b) 25%,transparent)}
-    #dm-people .dm-person-batt.low{color:#dc2626}
+    #dm-people .dm-person-foot>*{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:850;font-variant-numeric:tabular-nums;color:var(--text-dim,#64748b);white-space:nowrap;max-width:100%}
+    #dm-people .dm-person-batt.low,#dm-people .dm-person-watch.low{color:#dc2626}
+    #dm-people .dm-person-bolt{font-size:10px;font-style:normal;color:#f59e0b;margin-left:1px;animation:dmPersonBolt 2.2s ease-in-out infinite}
+    @keyframes dmPersonBolt{0%,100%{opacity:1}50%{opacity:.35}}
+    #dm-people .dm-person-wifi{max-width:112px;overflow:hidden}
+    #dm-people .dm-person-wifi,#dm-people .dm-person-ago{text-overflow:ellipsis}
     @media(max-width:480px){#dm-people .dm-people-grid{grid-template-columns:repeat(2,1fr);gap:10px}#dm-people .dm-person-card{padding:20px 10px 0;border-radius:22px}#dm-people .dm-person-portrait{width:78px;height:78px;margin-bottom:10px}#dm-people .dm-person-avatar{font-size:36px}#dm-people .dm-person-avatar b{font-size:26px}#dm-people .dm-person-name{font-size:14px}#dm-people .dm-person-foot{margin-top:12px}}
     `,
   );

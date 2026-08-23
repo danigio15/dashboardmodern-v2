@@ -15,7 +15,13 @@
  * gia': prende ogni `person.*` non ancora in elenco, col suo nome e la sua
  * foto del profilo.
  */
-import { AVATAR_COLORS, normalizePeople, personInitials, suggestPeople } from "../core/person-model.js";
+import {
+  AVATAR_COLORS,
+  detectCompanionSensors,
+  normalizePeople,
+  personInitials,
+  suggestPeople,
+} from "../core/person-model.js";
 import { pickMediaImage } from "./media-picker-section.js";
 import { allStates, clean, doc, esc, installStyle, onEditorRedraw, readJson, root, t, writeJsonIfChanged } from "./shared.js";
 
@@ -57,6 +63,26 @@ function campoEntita(id, field, label, value, placeholder, hint) {
     ${hint ? `<small>${esc(hint)}</small>` : ""}</label>`;
 }
 
+/* I sensori facoltativi del telefono, con le parole dell'editor: etichetta e
+ * un esempio come segnaposto. L'ordine e' quello in cui compaiono. */
+function sensoriCampi(index, person) {
+  const campi = [
+    ["batteryState", t("In carica", "Charging"), "sensor.telefono_battery_state"],
+    ["watch", t("Batteria orologio", "Watch battery"), "sensor.watch_battery_level"],
+    ["distance", t("Distanza da casa", "Distance from home"), "sensor.telefono_distance"],
+    ["travel", t("Tempo di rientro", "Time to home"), "sensor.waze_casa"],
+    ["direction", t("Direzione", "Direction"), "sensor.home_direction_of_travel"],
+    ["address", t("Posizione (indirizzo)", "Location (address)"), "sensor.telefono_geocoded_location"],
+    ["activity", t("Attività", "Activity"), "sensor.telefono_activity"],
+    ["wifi", t("Rete WiFi", "WiFi network"), "sensor.telefono_wifi_connection"],
+  ];
+  return campi
+    .map(([field, label, placeholder]) =>
+      campoEntita(`dm-person-${index}-${field}`, field, label, person[field] || "", placeholder, ""),
+    )
+    .join("");
+}
+
 function rigaMarkup(person, index) {
   const aperto = state.aperto === index;
   const colori = AVATAR_COLORS.map(
@@ -74,6 +100,14 @@ function rigaMarkup(person, index) {
       <label class="ed-slot dm-people-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-person-${index}-name" class="ed-input" data-person-field="name" value="${esc(clean(person.name))}" placeholder="${t("Chi è, col suo nome di casa", "Who this is, by their home name")}"></span></label>
       ${campoEntita(`dm-person-${index}-entity`, "entity", t("Entità persona", "Person entity"), person.entity, "person.nome", t("È l'entità person.* di Home Assistant, oppure un device_tracker.*.", "The person.* entity from Home Assistant, or a device_tracker.*."))}
       ${campoEntita(`dm-person-${index}-battery`, "battery", t("Batteria (facoltativa)", "Battery (optional)"), person.battery, "sensor.telefono_battery_level", t("Il sensore di batteria del telefono. Senza, la card usa quella che l'entità conosce già.", "The phone battery sensor. Without it, the card uses what the entity already knows."))}
+      <details class="ed-acc dm-people-sensors"><summary class="ed-acc-head">📡 ${t("Sensori del telefono", "Phone sensors")}</summary><div class="ed-acc-body">
+        <small class="dm-people-sensors-intro">${t(
+          "I sensori della Companion App, di Waze o di Proximity: compila quelli che hai, oppure lasciali trovare al pulsante. Il viaggio e l'indirizzo compaiono sulla card solo quando la persona è fuori.",
+          "The Companion App, Waze or Proximity sensors: fill the ones you have, or let the button find them. The journey and the address only appear on the card when the person is away.",
+        )}</small>
+        <button type="button" class="ed-btn-add dm-people-detect" data-person-detect>🪄 ${t("Rileva dal telefono", "Detect from the phone")}</button>
+        ${sensoriCampi(index, person)}
+      </div></details>
       <div class="ed-slot dm-people-field"><span class="ed-slot-lbl">${t("Foto", "Photo")}</span>
         <input type="hidden" data-person-field="photo" value="${esc(person.photo)}">
         <span class="ed-form-row dm-people-photo-row">
@@ -127,7 +161,10 @@ export function ensurePeopleEditor() {
   const people = lista();
   const firma = [
     state.aperto,
-    ...people.map((person) => `${person.id}~${person.name}~${person.entity}~${person.photo}~${person.avatar.emoji}~${person.avatar.color}`),
+    ...people.map(
+      (person) =>
+        `${person.id}~${person.name}~${person.entity}~${person.photo}~${person.avatar.emoji}~${person.avatar.color}~${person.battery}~${person.batteryState}~${person.watch}~${person.distance}~${person.travel}~${person.address}~${person.activity}~${person.wifi}~${person.direction}`,
+    ),
   ].join("|");
   if (body.dataset.dmPeopleEditor === firma && body.querySelector(".dm-people-list")) return true;
   body.dataset.dmPeopleEditor = firma;
@@ -175,7 +212,14 @@ async function onClick(event) {
   }
   if (event.target.closest("[data-person-import]")) {
     event.preventDefault();
-    const nuove = suggestPeople(allStates(), people);
+    const states = allStates();
+    /* Ogni persona importata arriva gia' con i sensori del suo telefono:
+     * quello che il pulsante «rileva» fa su una riga, l'importazione lo fa
+     * per tutte. */
+    const nuove = suggestPeople(states, people).map((persona) => ({
+      ...persona,
+      ...detectCompanionSensors(states, persona.entity),
+    }));
     if (!nuove.length) {
       root.edToast?.(t("Nessuna nuova persona da importare", "No new people to import"));
       return;
@@ -204,6 +248,28 @@ async function onClick(event) {
   const index = Number(riga.dataset.personIndex);
   if (!Number.isFinite(index) || !people[index]) return;
 
+  if (event.target.closest("[data-person-detect]")) {
+    event.preventDefault();
+    /* Si parte dall'entita' scritta nella casella, non da quella salvata:
+     * chi ha appena scelto la persona vuole i sensori di quella. I campi gia'
+     * compilati non si toccano — il pulsante riempie, non riscrive. */
+    const entita = clean(riga.querySelector('[data-person-field="entity"]')?.value);
+    const trovati = detectCompanionSensors(allStates(), entita);
+    let riempiti = 0;
+    for (const [field, sensore] of Object.entries(trovati)) {
+      const campo = riga.querySelector(`[data-person-field="${field}"]`);
+      if (campo && !clean(campo.value)) {
+        campo.value = sensore;
+        riempiti += 1;
+      }
+    }
+    root.edToast?.(
+      riempiti
+        ? t(`${riempiti} sensori rilevati`, `${riempiti} sensors detected`)
+        : t("Nessun sensore riconosciuto", "No sensor recognized"),
+    );
+    return;
+  }
   if (event.target.closest("[data-person-photo-clear]")) {
     event.preventDefault();
     const campo = riga.querySelector('[data-person-field="photo"]');
@@ -324,6 +390,10 @@ function installStyles() {
       #ed-body .dm-people-colors{display:flex;flex-wrap:wrap;gap:6px;padding-top:2px}
       #ed-body .dm-people-color{width:26px;height:26px;border-radius:50%;border:2px solid transparent;background:var(--dm-person-color);cursor:pointer;padding:0}
       #ed-body .dm-people-color.on{border-color:var(--text,#0f172a);box-shadow:0 0 0 2px var(--card-bg,#fff) inset}
+      #ed-body .dm-people-sensors{margin:2px 0}
+      #ed-body .dm-people-sensors .ed-acc-body{display:grid;gap:8px}
+      #ed-body .dm-people-sensors-intro{color:var(--secondary-text-color,#64748b);font-size:12px;line-height:1.45}
+      #ed-body .dm-people-detect{margin:0}
       #ed-body .dm-people-actions{display:flex;gap:8px;flex-wrap:wrap}
       #ed-body .dm-people-actions .ed-btn-add{flex:1 1 auto;margin:0}
       #ed-body .dm-people-error:not(:empty){color:var(--error-color,#dc2626);font-size:12px;font-weight:800}

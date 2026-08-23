@@ -54,6 +54,22 @@ function normalizeAvatar(avatar = {}, index = 0) {
   };
 }
 
+/* I sensori facoltativi che una persona puo' portarsi dietro, oltre alla
+ * batteria: quelli della Companion App (in carica, indirizzo, attivita',
+ * WiFi), l'orologio, e quelli di Waze/Proximity (tempo di rientro, distanza,
+ * direzione). Elencati qui perche' la normalizzazione, l'editor e il
+ * rilevamento automatico parlino della stessa lista. */
+export const PERSON_SENSOR_FIELDS = Object.freeze([
+  "batteryState",
+  "watch",
+  "distance",
+  "travel",
+  "address",
+  "activity",
+  "wifi",
+  "direction",
+]);
+
 /**
  * L'elenco delle persone come lo si puo' usare: id stabili e unici, nomi
  * puliti, avatar sempre completo. Un elemento senza nome ne' entita' non e'
@@ -81,6 +97,7 @@ export function normalizePeople(input) {
       entity,
       photo: clean(person.photo),
       battery: clean(person.battery),
+      ...Object.fromEntries(PERSON_SENSOR_FIELDS.map((field) => [field, clean(person[field])])),
       avatar: normalizeAvatar(person.avatar, people.length),
     });
   });
@@ -138,6 +155,147 @@ function batteryFor(person, states) {
   return readNumber(states?.[source]?.attributes?.battery_level);
 }
 
+/* La Companion App scrive lo stato della batteria a parole, e le parole
+ * cambiano tra Android e iOS: qui c'e' l'elenco di quelle che vogliono dire
+ * «attaccato alla corrente». */
+const CHARGING_STATES = new Set(["charging", "full", "ac", "usb", "wireless", "dock"]);
+
+export function isCharging(state) {
+  return CHARGING_STATES.has(clean(state).toLowerCase().replace(/\s+/g, "_"));
+}
+
+const MISSING_STATES = new Set([
+  "",
+  "unknown",
+  "unavailable",
+  "none",
+  "not set",
+  "not_set",
+  "off",
+  "<not connected>",
+]);
+
+function readableState(entityState) {
+  const value = clean(entityState?.state);
+  return MISSING_STATES.has(value.toLowerCase()) ? "" : value;
+}
+
+/**
+ * La distanza come la si scrive su una card: numero corto e unita' del
+ * sensore. I metri della Companion App e di Proximity diventano chilometri
+ * appena smettono di essere leggibili come metri.
+ */
+export function distanceParts(entityState) {
+  const raw = readableState(entityState);
+  const value = Number.parseFloat(raw);
+  if (!raw || !Number.isFinite(value) || value < 0) return null;
+  const unit = clean(entityState?.attributes?.unit_of_measurement) || "km";
+  if (unit === "m" && value >= 1000) return { value: Math.round(value / 100) / 10, unit: "km" };
+  if (unit === "m") return { value: Math.round(value), unit: "m" };
+  return { value: Math.round(value * 10) / 10, unit };
+}
+
+/**
+ * Il tempo di rientro: Waze e Google lo danno in minuti, e in minuti resta.
+ */
+export function travelMinutes(entityState) {
+  const raw = readableState(entityState);
+  const value = Number.parseFloat(raw);
+  if (!raw || !Number.isFinite(value) || value < 0) return null;
+  return Math.round(value);
+}
+
+/* Da «in che direzione va» a un segno sulla card. Proximity dice
+ * towards/away_from/arrived/stationary; solo le prime due sono un movimento
+ * da raccontare. */
+export function directionKey(entityState) {
+  const value = clean(entityState?.state).toLowerCase();
+  if (value === "towards") return "towards";
+  if (value === "away_from") return "away";
+  return "";
+}
+
+/* L'attivita' della Companion App, ridotta alle cinque che si disegnano. */
+const ACTIVITY_KEYS = Object.freeze([
+  ["automotive", ["automotive", "in_vehicle", "driving"]],
+  ["cycling", ["cycling", "on_bicycle"]],
+  ["running", ["running"]],
+  ["walking", ["walking", "on_foot"]],
+  ["still", ["still", "stationary"]],
+]);
+
+export function activityKey(entityState) {
+  const value = clean(entityState?.state).toLowerCase().replace(/\s+/g, "_");
+  for (const [key, aliases] of ACTIVITY_KEYS) if (aliases.includes(value)) return key;
+  return "";
+}
+
+/* ── Rilevamento dei sensori dal telefono ──────────────────────────────────
+ *
+ * La Companion App chiama i suoi sensori col nome del dispositivo che traccia
+ * la persona: `device_tracker.iphone_di_anna` porta con se'
+ * `sensor.iphone_di_anna_battery_level` e fratelli. Waze e Proximity non
+ * seguono quella regola, ma nel nome portano comunque il pezzo giusto
+ * (travel_time, distance, direction_of_travel). Qui si cercano entrambe le
+ * famiglie, cosi' l'editor riempie le caselle invece di farle scrivere.
+ */
+const COMPANION_SUFFIXES = Object.freeze({
+  battery: ["battery_level", "battery"],
+  batteryState: ["battery_state"],
+  address: ["geocoded_location"],
+  activity: ["activity", "detected_activity"],
+  wifi: ["wifi_connection", "ssid"],
+});
+
+const FUZZY_PATTERNS = Object.freeze({
+  travel: /travel_time/,
+  distance: /(?:^|_)distance$/,
+  direction: /direction_of_travel/,
+  watch: /watch.*battery|battery.*watch/,
+});
+
+function trackerPrefixes(states, personEntity) {
+  const prefixes = new Set();
+  const person = states?.[personEntity];
+  const source = clean(person?.attributes?.source);
+  if (source.includes(".")) prefixes.add(source.split(".")[1]);
+  for (const id of Array.isArray(person?.attributes?.device_trackers)
+    ? person.attributes.device_trackers
+    : [])
+    if (clean(id).includes(".")) prefixes.add(clean(id).split(".")[1]);
+  const own = clean(personEntity).split(".")[1];
+  if (own) prefixes.add(own);
+  return [...prefixes].filter(Boolean);
+}
+
+export function detectCompanionSensors(states = {}, personEntity = "") {
+  const prefixes = trackerPrefixes(states, personEntity);
+  const sensors = Object.keys(states).filter((id) => id.startsWith("sensor."));
+  const found = {};
+
+  for (const [field, suffixes] of Object.entries(COMPANION_SUFFIXES)) {
+    for (const prefix of prefixes) {
+      const hit = suffixes
+        .map((suffix) => `sensor.${prefix}_${suffix}`)
+        .find((id) => sensors.includes(id));
+      if (hit) {
+        found[field] = hit;
+        break;
+      }
+    }
+  }
+
+  for (const [field, pattern] of Object.entries(FUZZY_PATTERNS)) {
+    const hit = sensors.find((id) => {
+      const objectId = id.slice("sensor.".length);
+      return pattern.test(objectId) && prefixes.some((prefix) => objectId.includes(prefix));
+    });
+    if (hit) found[field] = hit;
+  }
+
+  return found;
+}
+
 function lastChangedMs(entityState) {
   const raw = clean(entityState?.last_changed || entityState?.last_updated);
   if (!raw) return null;
@@ -180,6 +338,8 @@ export function personViewModel(person, states = {}, nowMs = null) {
     Boolean(entityState) && !["unknown", "unavailable", ""].includes(rawState.toLowerCase());
   const battery = batteryFor(person, states);
   const photo = person.photo || clean(entityState?.attributes?.entity_picture);
+  const away = known && presence !== "home";
+  const watch = readNumber(states?.[person.watch]?.state);
   return {
     id: person.id,
     name: person.name || clean(entityState?.attributes?.friendly_name) || person.entity,
@@ -191,6 +351,17 @@ export function personViewModel(person, states = {}, nowMs = null) {
     zone: presence === "zone" ? rawState : "",
     battery,
     batteryLow: battery !== null && battery <= 20,
+    charging: person.batteryState ? isCharging(states?.[person.batteryState]?.state) : false,
+    watch,
+    watchLow: watch !== null && watch <= 20,
+    /* Il viaggio si racconta solo di chi e' fuori: a casa distanza e tempo di
+     * rientro sono zero per definizione, e scriverli sarebbe rumore. */
+    distance: away ? distanceParts(states?.[person.distance]) : null,
+    travel: away ? travelMinutes(states?.[person.travel]) : null,
+    direction: away ? directionKey(states?.[person.direction]) : "",
+    address: away ? clean(readableState(states?.[person.address])) : "",
+    activity: away ? activityKey(states?.[person.activity]) : "",
+    wifi: clean(readableState(states?.[person.wifi])),
     elapsed: known ? elapsedParts(lastChangedMs(entityState), nowMs ?? Date.now()) : null,
   };
 }

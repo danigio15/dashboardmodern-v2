@@ -9,6 +9,25 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **La card della persona racconta tutto quello che il telefono sa.** Oltre a
+  zona, batteria e «da quanto tempo»: il fulmine quando il telefono è in
+  carica, la batteria dell'orologio, la rete WiFi a cui è collegato. E di chi
+  è fuori, il viaggio: la distanza da casa con la freccia della direzione
+  (si avvicina, si allontana), il tempo di rientro da Waze o Google,
+  l'indirizzo per esteso, e l'attività — l'auto, la bici, i passi — nel
+  pallino di stato del ritratto, che quando la persona si muove smette di
+  essere un pallino e dice come si sta muovendo. Il viaggio e l'indirizzo
+  compaiono solo quando la persona è fuori: a casa sarebbero rumore.
+
+- **I sensori del telefono si trovano da soli.** Nella scheda Persone ogni
+  riga ha il gruppo «📡 Sensori del telefono» con otto caselle facoltative —
+  in carica, orologio, distanza, tempo di rientro, direzione, indirizzo,
+  attività, WiFi — e il pulsante «🪄 Rileva dal telefono», che le riempie
+  leggendo i sensori che la Companion App pubblica accanto al device_tracker
+  della persona (e riconoscendo per nome quelli di Waze e Proximity). Anche
+  «Importa da Home Assistant» fa lo stesso giro: ogni persona importata
+  arriva già coi sensori del suo telefono.
+
 - **Le persone di casa, in cima alla Home.** Home Assistant sa già chi c'è e
   chi no — `person.*` cambia zona, si porta dietro la foto del profilo e spesso
   la batteria del telefono — ma la plancia non lo mostrava da nessuna parte.
