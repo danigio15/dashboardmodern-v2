@@ -57,9 +57,13 @@ function ritratto(person) {
   return `<span class="dm-people-ed-portrait" data-person-portrait>${avatar}${photo}</span>`;
 }
 
+/* Il campo di un'entita' e' una casella e basta: la veste — la pastiglia
+ * «Scegli entità», la matita — gliela mette la passata che uniforma tutti i
+ * campi dell'editor. Un pulsante nostro accanto sarebbe un secondo modo di
+ * fare la stessa cosa, vestito diverso. */
 function campoEntita(id, field, label, value, placeholder, hint) {
   return `<label class="ed-slot dm-people-field"><span class="ed-slot-lbl">${esc(label)}</span>
-    <span class="ed-form-row"><input id="${esc(id)}" class="ed-input mono" data-person-field="${esc(field)}" value="${esc(value)}" placeholder="${esc(placeholder)}" autocomplete="off" spellcheck="false"><button type="button" class="dm-people-pick" data-person-pick="${esc(id)}" aria-label="${t("Scegli entità", "Choose entity")}">🔍</button></span>
+    <span class="ed-form-row"><input id="${esc(id)}" class="ed-input mono" data-person-field="${esc(field)}" value="${esc(value)}" placeholder="${esc(placeholder)}" autocomplete="off" spellcheck="false"></span>
     ${hint ? `<small>${esc(hint)}</small>` : ""}</label>`;
 }
 
@@ -228,13 +232,6 @@ async function onClick(event) {
     state.aperto = -1;
     ridisegna();
     root.edToast?.(t(`${nuove.length} persone importate`, `${nuove.length} people imported`));
-    return;
-  }
-  const pick = event.target.closest("[data-person-pick]");
-  if (pick) {
-    event.preventDefault();
-    const input = body.querySelector(`#${CSS.escape(clean(pick.dataset.personPick))}`);
-    if (input) root.wzPickEntity?.(input);
     return;
   }
   const emojiPick = event.target.closest("[data-person-emoji]");
