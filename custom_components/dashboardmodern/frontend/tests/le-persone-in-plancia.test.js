@@ -51,6 +51,17 @@ test("l'editor usa il selettore foto condiviso e valida l'entità", () => {
   assert.match(editor, /pickMediaImage/, "la foto passa dallo stesso selettore dell'auto");
   assert.match(editor, /person\|device_tracker/, "solo entità che sanno dove sta una persona");
   assert.match(editor, /AVATAR_EMOJI/, "l'avatar si sceglie tra facce e persone, non tra prese");
+  assert.match(editor, /builderMarkup/, "il costruttore della faccia sta nell'editor");
+});
+
+test("la faccia costruita vive sulla card e respira dal foglio di stile", () => {
+  const sezione = leggi("sections/people-section.js");
+  assert.match(sezione, /avatarSvg/, "la card disegna la faccia col motore puro");
+  assert.match(sezione, /dmFaceBlink/, "il battito di palpebre");
+  assert.match(sezione, /dmFaceBreathe/, "il respiro");
+  assert.match(sezione, /data-presence="away"\] \.f-eyes/, "chi è fuori guarda in giro");
+  const motore = leggi("core/person-avatar.js");
+  assert.doesNotMatch(motore, /@keyframes/, "il modulo puro non anima: disegna");
 });
 
 test("il campo dell'entità persona è riconosciuto anche da vuoto", () => {

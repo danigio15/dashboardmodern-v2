@@ -282,7 +282,10 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // tutto in batteria, e «rete → batteria» non esisteva. L'aritmetica della
   // spartizione sta in un modulo puro, provabile a tavolino; la legge la
   // sezione dei flussi che gia' possiede la scena.
-  assert.ok(relative.length <= 140, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 141 con la faccia costruita. Il disegno dell'avatar — cataloghi chiusi e
+  // SVG deterministico — sta in un modulo puro perche' lo leggono in due, la
+  // card e il costruttore dell'editor, e devono disegnare la stessa persona.
+  assert.ok(relative.length <= 141, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

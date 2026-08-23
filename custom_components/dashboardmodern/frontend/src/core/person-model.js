@@ -11,6 +11,8 @@
  * sezione legge e scrive, questo modulo mette solo in ordine.
  */
 
+import { normalizeFace } from "./person-avatar.js";
+
 const clean = (value) => String(value ?? "").trim();
 
 /* I colori tra cui si sceglie l'avatar. Sono coppie sfondo/inchiostro gia'
@@ -51,6 +53,9 @@ function normalizeAvatar(avatar = {}, index = 0) {
   return {
     emoji: clean(avatar?.emoji),
     color: AVATAR_COLORS.includes(color) ? color : AVATAR_COLORS[index % AVATAR_COLORS.length],
+    /* La faccia costruita nell'editor, o `null` per chi non ne ha una: allora
+     * valgono l'emoji e, per ultime, le iniziali. */
+    face: normalizeFace(avatar?.face),
   };
 }
 

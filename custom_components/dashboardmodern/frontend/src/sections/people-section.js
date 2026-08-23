@@ -11,6 +11,7 @@
  * configura passa dall'editor (people-editor-section), che scrive `cd_people`;
  * qui si legge quella chiave e la si disegna.
  */
+import { avatarSvg } from "../core/person-avatar.js";
 import { normalizePeople, personViewModel } from "../core/person-model.js";
 import { allStates, clean, doc, esc, formatNumber, installStyle, readJson, root, t } from "./shared.js";
 
@@ -65,8 +66,15 @@ const ACTIVITY_EMOJI = Object.freeze({
  * iniziali sul colore scelto. La foto rotta ricade sull'avatar da sola, cosi'
  * un file rinominato in config/www non lascia un'icona spezzata. */
 function portraitMarkup(view) {
+  /* Il ritratto sceglie in ordine: la faccia costruita, l'emoji, le iniziali.
+   * L'SVG della faccia esce dal catalogo chiuso del modulo puro, quindi entra
+   * senza escape: dentro non c'e' mai testo dell'utente. */
   const avatar = `<span class="dm-person-avatar" style="--dm-person-color:${esc(view.avatar.color)}">${
-    view.avatar.emoji ? esc(view.avatar.emoji) : `<b>${esc(view.initials)}</b>`
+    view.avatar.face
+      ? avatarSvg(view.avatar.face)
+      : view.avatar.emoji
+        ? esc(view.avatar.emoji)
+        : `<b>${esc(view.initials)}</b>`
   }</span>`;
   const photo = view.photo
     ? `<img class="dm-person-photo" src="${esc(view.photo)}" alt="" loading="lazy" data-person-img>`
@@ -230,6 +238,28 @@ export function syncPeopleClock() {
 }
 
 function installStyles() {
+  /* La faccia respira. Le animazioni stanno qui e non nel modulo che disegna,
+   * cosi' l'SVG resta puro; e stanno in un foglio non ancorato a #dm-people,
+   * cosi' l'anteprima dell'editor respira con le stesse regole. Il battito di
+   * palpebre e' un attimo ogni pochi secondi; chi e' fuori guarda in giro; di
+   * chi non si sa niente, la faccia dorme. `dm-face-still` spegne tutto: e'
+   * la classe dei campioncini dell'editor, che sono decine. */
+  installStyle(
+    "dm-person-face-style",
+    `
+    .dm-person-avatar .dm-face-svg,.dm-face-thumb .dm-face-svg,.dm-face-preview .dm-face-svg{width:100%;height:100%;display:block}
+    .dm-face-svg .f-all{transform-origin:60px 64px;animation:dmFaceBreathe 5.4s ease-in-out infinite}
+    .dm-face-svg .f-head{transform-origin:60px 62px;animation:dmFaceTilt 7.6s ease-in-out infinite}
+    .dm-face-svg .f-eyes{transform-box:fill-box;transform-origin:center;animation:dmFaceBlink 4.6s linear infinite}
+    @keyframes dmFaceBreathe{0%,100%{transform:translateY(0)}50%{transform:translateY(1.5px)}}
+    @keyframes dmFaceTilt{0%,100%{transform:rotate(0deg)}32%{transform:rotate(-2.2deg)}68%{transform:rotate(1.8deg)}}
+    @keyframes dmFaceBlink{0%,90.5%,100%{transform:scaleY(1)}93%,95%{transform:scaleY(.08)}}
+    #dm-people .dm-person-card[data-presence="away"] .f-eyes{animation:dmFaceLook 7.5s ease-in-out infinite}
+    @keyframes dmFaceLook{0%,50%,100%{transform:translateX(0) scaleY(1)}10%,26%{transform:translateX(2.6px)}32%,34%{transform:translateX(2.6px) scaleY(.08)}62%,84%{transform:translateX(-2.4px)}}
+    #dm-people .dm-person-card[data-unknown="true"] .f-eyes{animation:none;transform:scaleY(.1)}
+    .dm-face-still .f-all,.dm-face-still .f-head,.dm-face-still .f-eyes{animation:none!important}
+    `,
+  );
   installStyle(
     "dm-people-style",
     `
