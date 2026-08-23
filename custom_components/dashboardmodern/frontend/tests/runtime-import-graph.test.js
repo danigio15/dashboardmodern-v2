@@ -277,7 +277,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // disegna le card in cima alla Home e l'editor che scrive `cd_people`. Sono
   // due moduli perche' uno vive a ogni cambio di stato e l'altro solo dentro
   // la scheda di configurazione, come per il robot.
-  assert.ok(relative.length <= 139, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 140 con la verita' dei flussi. La mappa accendeva le linee un numero alla
+  // volta — qualunque solare accendeva «solare → casa» anche quando finiva
+  // tutto in batteria, e «rete → batteria» non esisteva. L'aritmetica della
+  // spartizione sta in un modulo puro, provabile a tavolino; la legge la
+  // sezione dei flussi che gia' possiede la scena.
+  assert.ok(relative.length <= 140, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

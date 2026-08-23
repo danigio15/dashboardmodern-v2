@@ -3,6 +3,7 @@ import {
   flowRecorderEntity,
   flowStageModel,
 } from "../core/energy-flow-topology.js";
+import { allocateSourceFlows, batteryReadout } from "../core/energy-flow-truth.js";
 import { vehicleBatteryEntity } from "./ev-section.js";
 import {
   allStates,
@@ -431,6 +432,70 @@ export function renderDynamicFlowLoads(period, model = stageModel(period)) {
   return model.count;
 }
 
+/* ── L'istantanea dice dove va davvero l'energia ─────────────────────────
+ *
+ * Le linee dell'istantanea si accendevano guardando un numero alla volta:
+ * qualunque solare accendeva «solare → casa» anche quando finiva tutto in
+ * batteria, la carica era sempre del solare anche di notte, e l'arco
+ * «rete → batteria» non esisteva. Segnalato coi video: «il disegno mi indica
+ * che rete e batteria stanno alimentando casa; in realta' rete alimenta casa
+ * e ricarica batteria». I tre numeri si spartiscono con `allocateSourceFlows`
+ * — letti dagli STATI, non dai testi delle bolle, che da qui in poi possono
+ * dire grandezza e verso senza mandare in confusione nessun lettore. */
+
+function potenzaViva(reference) {
+  const entity = resolvedEntity(reference);
+  const states = allStates();
+  const nodo = states[entity] || states[clean(reference)];
+  if (!nodo || nodo.state === undefined) return 0;
+  const raw = String(nodo.state);
+  if (raw === "unknown" || raw === "unavailable") return 0;
+  const value = Number.parseFloat(raw.replace(",", "."));
+  if (!Number.isFinite(value)) return 0;
+  const unit = String(nodo.attributes?.unit_of_measurement || "").toLowerCase();
+  return unit === "kw" ? value * 1000 : value;
+}
+
+function instantSourceFlows() {
+  return allocateSourceFlows({
+    solar: potenzaViva("dm.energy_potenza_fotovoltaico"),
+    grid: potenzaViva("dm.energy_potenza_scambio_rete"),
+    battery: potenzaViva("dm.energy_potenza_batteria"),
+  });
+}
+
+function instantEdgeValue(node, flussi) {
+  const id = String(node?.id || "").toLowerCase();
+  if (id.includes("grid-battery")) return flussi.gridToBattery;
+  if (id.includes("solar-grid")) return flussi.solarToGrid + flussi.batteryToGrid;
+  if (id.includes("solar-battery")) return flussi.solarToBattery;
+  if (id.includes("grid-home")) return flussi.gridToHome;
+  if (id.includes("battery-home")) return flussi.batteryToHome;
+  if (id.includes("solar-home")) return flussi.solarToHome;
+  return null;
+}
+
+/* L'arco che mancava: dalla bolla della rete a quella della batteria, sotto
+ * il sole. Le ancore sono i percorsi disegnati a mano che gli stanno accanto;
+ * la scena mobile ha il suo gemello col prefisso della sua. */
+const ARCHI_RETE_BATTERIA = Object.freeze([
+  { anchor: "line-grid-home", id: "line-grid-battery", d: "M 307 185 Q 500 132 693 185" },
+  { anchor: "m-line-grid-home", id: "m-line-grid-battery", d: "M 200 280 Q 500 180 800 280" },
+]);
+
+function ensureGridBatteryPaths() {
+  for (const arco of ARCHI_RETE_BATTERIA) {
+    if (doc.getElementById(arco.id)) continue;
+    const vicino = doc.getElementById(arco.anchor);
+    if (!vicino?.parentNode) continue;
+    const path = doc.createElementNS(SVG_NS, "path");
+    path.id = arco.id;
+    path.setAttribute("class", "flow-line");
+    path.setAttribute("d", arco.d);
+    vicino.parentNode.insertBefore(path, vicino);
+  }
+}
+
 function mainLineColor(node) {
   const id = String(node?.id || "").toLowerCase();
   if (id.includes("solar")) return COLORS.solar;
@@ -515,18 +580,22 @@ function displayedMainFlow(node, period) {
 function mirrorLegacyMainFlows(scope, period) {
   if (!scope) return false;
   let touched = false;
+  /* L'istantanea si spartisce una volta per passata: gli archi veri valgono
+   * per tutte le linee della scena, e si calcolano dagli stati. */
+  const flussi = period ? null : instantSourceFlows();
   scope
     .querySelectorAll(".flow-line,path[id*='line-' i],line[id*='line-' i],polyline[id*='line-' i]")
     .forEach((node) => {
       if (!/^(path|line|polyline)$/i.test(node.tagName) || isLoadLine(node)) return;
       const legacyActive = node.classList.contains("active");
-      const displayedActive = displayedMainFlow(node, period);
+      const edge = flussi ? instantEdgeValue(node, flussi) : null;
+      const displayedActive = edge === null ? displayedMainFlow(node, period) : edge > 0.5;
       const active = displayedActive === null ? legacyActive : displayedActive;
       colorNode(node, mainLineColor(node), active);
       const kinds = mainKinds(node);
       node.dataset.dmMainFlow = kinds.join("-");
       node.dataset.dmFlowPeriod = period || "instant";
-      const value = directionalMainFlowValue(node, period);
+      const value = edge === null ? directionalMainFlowValue(node, period) : edge;
       if (value !== null) node.dataset.dmFlowValue = String(value);
       touched = true;
     });
@@ -536,6 +605,7 @@ function mirrorLegacyMainFlows(scope, period) {
 export function refreshEnergyFlows() {
   if (!doc) return false;
   beginVisibilityPass();
+  ensureGridBatteryPaths();
   let touched = false;
   for (const view of FLOW_VIEWS) {
     const period = view.period === "instant" ? "" : view.period;
@@ -544,6 +614,18 @@ export function refreshEnergyFlows() {
     touched = mirrorLegacyMainFlows(scope, period) || touched;
     touched = renderDynamicFlowLoads(view.period) > 0 || touched;
     scope.dataset.dmEnergyFlows = "directional-value-bound";
+  }
+  /* La bolla della batteria diceva il numero grezzo col segno («-201 W»
+   * mentre carica): il segno e' una convenzione del modello, non una lettura.
+   * Grandezza e verso, con la freccia — e le decisioni sulle linee, qui
+   * sopra, ormai leggono gli stati e non questo testo. */
+  const batteria = potenzaViva("dm.energy_potenza_batteria");
+  const testo = batteryReadout(batteria);
+  if (testo) {
+    for (const id of ["v-battery", "m-v-battery"]) {
+      const nodo = doc.getElementById(id);
+      if (nodo && nodo.textContent !== testo) nodo.textContent = testo;
+    }
   }
   renderBatterySoc(doc, section("energy", {}), allStates());
   return touched;
