@@ -312,3 +312,29 @@ test("l'importazione propone solo le person.* non ancora in elenco", () => {
     { entity: "person.anna", name: "Anna", photo: "/api/image/serve/anna/512x512" },
   ]);
 });
+
+test("in una casa di soli tracker il candidato unico non diventa di tutti", async () => {
+  const { detectCompanionSensors } = await import("../src/core/person-model.js");
+  /* Due persone tracciate col device_tracker diretto: nessuno stato
+   * `person.*`, ma la casa ha comunque due telefoni. L'unico sensore di
+   * batteria non somigliante non si regala a nessuno dei due. */
+  const states = {
+    "device_tracker.telefono_a": { entity_id: "device_tracker.telefono_a", state: "home" },
+    "device_tracker.telefono_b": { entity_id: "device_tracker.telefono_b", state: "home" },
+    "sensor.misterioso_battery_level": {
+      entity_id: "sensor.misterioso_battery_level",
+      state: "50",
+    },
+  };
+  const anagrafe = [
+    { entity: "device_tracker.telefono_a" },
+    { entity: "device_tracker.telefono_b" },
+  ];
+  const trovati = detectCompanionSensors(states, "device_tracker.telefono_a", anagrafe);
+  assert.equal(trovati.battery, undefined);
+  /* Con una persona sola in anagrafe il candidato unico resta suo. */
+  const sola = detectCompanionSensors(states, "device_tracker.telefono_a", [
+    { entity: "device_tracker.telefono_a" },
+  ]);
+  assert.equal(sola.battery, "sensor.misterioso_battery_level");
+});

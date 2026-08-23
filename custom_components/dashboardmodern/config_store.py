@@ -323,6 +323,22 @@ class DashboardConfigStore:
         if current and dict(current.get("values") or {}) == accepted:
             if entry_id:
                 self._entry_profiles()[entry_id] = profile
+            # Un salto di generazione (o di revisione delle chiavi) su valori
+            # identici e' un aggiornamento di metadati, non una scrittura: si
+            # timbra la busta com'e', senza coniare una revisione nuova.
+            # Senza questo timbro l'aggiornamento in-sync del frontend girava
+            # a vuoto e la busta restava della generazione vecchia — e un
+            # altro dispositivo aggiornato con dati stantii poteva ancora
+            # scavalcarla come «scatto di un runtime vecchio».
+            stamped = False
+            if int(writer_generation or 0) > int(current.get("writer_generation") or 0):
+                current["writer_generation"] = int(writer_generation or 0)
+                stamped = True
+            if int(keys_revision or 0) > int(current.get("keys_revision") or 0):
+                current["keys_revision"] = int(keys_revision or 0)
+                stamped = True
+            if stamped:
+                await self._async_save()
             return {
                 "status": STATUS_UNCHANGED,
                 "profile": profile,

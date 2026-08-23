@@ -65,6 +65,7 @@ const linee = (page) =>
         "line-grid-battery",
         "line-battery-home",
         "line-solar-grid",
+        "line-battery-grid",
       ].map((id) => [id, Boolean(document.getElementById(id)?.classList.contains("active"))]),
     ),
   );
@@ -120,5 +121,19 @@ test("rete → casa e rete → batteria, non «batteria che alimenta casa»", as
       "line-battery-home": true,
       "line-grid-battery": false,
       "line-grid-home": true,
+    });
+
+  /* L'immissione della batteria esce dal SUO arco: con 100 W di solare e
+   * 400 W immessi, 100 escono dal pannello e 300 dalla batteria — non
+   * un'esportazione tutta disegnata da un solare che ne produce un quarto. */
+  await conNumeri(page, { solare: 100, rete: -400, batteria: 500 });
+  await expect
+    .poll(() => linee(page))
+    .toMatchObject({
+      "line-solar-grid": true,
+      "line-battery-grid": true,
+      "line-battery-home": true,
+      "line-grid-home": false,
+      "line-grid-battery": false,
     });
 });

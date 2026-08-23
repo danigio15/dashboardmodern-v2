@@ -60,3 +60,18 @@ test("la scena dei flussi legge gli archi veri e possiede l'arco che mancava", (
   assert.match(sezione, /m-line-grid-battery/, "anche la scena mobile ha il suo arco");
   assert.match(sezione, /batteryReadout/, "la bolla della batteria dice grandezza e verso");
 });
+
+test("una sorgente configurata ma muta non vale zero, e l'immissione della batteria ha il suo arco", () => {
+  const sezione = readFileSync(join(SRC, "sections/energy-flow-section.js"), "utf8");
+  /* Un sensore in `unavailable` per un attimo non e' «zero»: spartire gli
+   * altri due inventerebbe percorsi falsi. L'istantanea si fa da parte. */
+  assert.match(sezione, /fonte\.configurata && fonte\.valore === null/,
+    "configurata ma muta: si cede il passo alla lettura dei testi");
+  assert.match(sezione, /return null;\n  const raw|if \(!nodo \|\| nodo\.state === undefined\) return null;/,
+    "potenzaViva distingue «spento» da «non configurato»");
+  /* E la batteria che immette in rete non si traveste da solare. */
+  assert.match(sezione, /line-battery-grid/, "l'arco batteria → rete esiste");
+  assert.match(sezione, /m-line-battery-grid/, "anche nella scena mobile");
+  assert.match(sezione, /id\.includes\("battery-grid"\)\) return flussi\.batteryToGrid/,
+    "l'arco legge il suo flusso, non la somma sul solare");
+});

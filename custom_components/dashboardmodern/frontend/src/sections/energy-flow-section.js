@@ -460,20 +460,36 @@ function potenzaViva(reference) {
 }
 
 function instantSourceFlows() {
-  const sole = potenzaViva("dm.energy_potenza_fotovoltaico");
-  const rete = potenzaViva("dm.energy_potenza_scambio_rete");
-  const batteria = potenzaViva("dm.energy_potenza_batteria");
+  const fonti = [
+    "dm.energy_potenza_fotovoltaico",
+    "dm.energy_potenza_scambio_rete",
+    "dm.energy_potenza_batteria",
+  ].map((ref) => ({
+    configurata: resolvedEntity(ref) !== clean(ref),
+    valore: potenzaViva(ref),
+  }));
+  const [sole, rete, batteria] = fonti;
   /* Senza nemmeno una sorgente viva non c'e' niente da spartire: si cede il
-   * passo alla lettura dei testi, come prima. Una sorgente viva basta — le
-   * altre mancanti valgono zero, che per una casa senza batteria e' vero. */
-  if (sole === null && rete === null && batteria === null) return null;
-  return allocateSourceFlows({ solar: sole ?? 0, grid: rete ?? 0, battery: batteria ?? 0 });
+   * passo alla lettura dei testi, come prima. E una sorgente CONFIGURATA ma
+   * muta — il sensore in `unavailable` per un attimo — non vale zero:
+   * spartire le altre due inventerebbe percorsi falsi (la carica sparirebbe
+   * e tutto il prelievo finirebbe «verso casa»); anche li' parla il testo.
+   * Solo una sorgente davvero non configurata vale zero, che per una casa
+   * senza batteria e' la verita'. */
+  if (fonti.every((fonte) => fonte.valore === null)) return null;
+  if (fonti.some((fonte) => fonte.configurata && fonte.valore === null)) return null;
+  return allocateSourceFlows({
+    solar: sole.valore ?? 0,
+    grid: rete.valore ?? 0,
+    battery: batteria.valore ?? 0,
+  });
 }
 
 function instantEdgeValue(node, flussi) {
   const id = String(node?.id || "").toLowerCase();
   if (id.includes("grid-battery")) return flussi.gridToBattery;
-  if (id.includes("solar-grid")) return flussi.solarToGrid + flussi.batteryToGrid;
+  if (id.includes("battery-grid")) return flussi.batteryToGrid;
+  if (id.includes("solar-grid")) return flussi.solarToGrid;
   if (id.includes("solar-battery")) return flussi.solarToBattery;
   if (id.includes("grid-home")) return flussi.gridToHome;
   if (id.includes("battery-home")) return flussi.batteryToHome;
@@ -487,6 +503,14 @@ function instantEdgeValue(node, flussi) {
 const ARCHI_RETE_BATTERIA = Object.freeze([
   { anchor: "line-grid-home", id: "line-grid-battery", d: "M 307 185 Q 500 132 693 185" },
   { anchor: "m-line-grid-home", id: "m-line-grid-battery", d: "M 200 280 Q 500 180 800 280" },
+  /* Lo stesso corridoio, percorso al contrario: la batteria che immette in
+   * rete. Non si accendono mai insieme — prelievo e immissione sono i due
+   * segni dello stesso numero — quindi condividere l'arco non sovrappone
+   * niente. Senza questo, l'immissione della batteria si appoggiava alla
+   * linea del solare: un'esportazione disegnata da un pannello che non sta
+   * producendo. */
+  { anchor: "line-grid-home", id: "line-battery-grid", d: "M 693 185 Q 500 132 307 185" },
+  { anchor: "m-line-grid-home", id: "m-line-battery-grid", d: "M 800 280 Q 500 180 200 280" },
 ]);
 
 function ensureGridBatteryPaths() {

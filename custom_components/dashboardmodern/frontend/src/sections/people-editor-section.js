@@ -350,9 +350,12 @@ async function onClick(event) {
     /* Ogni persona importata arriva gia' con i sensori del suo telefono:
      * quello che il pulsante «rileva» fa su una riga, l'importazione lo fa
      * per tutte. */
-    const nuove = suggestPeople(states, people).map((persona) => ({
+    const proposte = suggestPeople(states, people);
+    const nuove = proposte.map((persona) => ({
       ...persona,
-      ...detectCompanionSensors(states, persona.entity),
+      /* L'anagrafe conta persone gia' salvate E persone in arrivo: il
+       * «candidato unico» non deve regalare lo stesso telefono a due. */
+      ...detectCompanionSensors(states, persona.entity, [...people, ...proposte]),
     }));
     if (!nuove.length) {
       root.edToast?.(t("Nessuna nuova persona da importare", "No new people to import"));
@@ -387,7 +390,7 @@ async function onClick(event) {
       root.edToast?.(t("Prima scegli l'entità della persona", "Choose the person entity first"));
       return;
     }
-    const trovati = detectCompanionSensors(allStates(), entita);
+    const trovati = detectCompanionSensors(allStates(), entita, people);
     let riempiti = 0;
     for (const [field, sensore] of Object.entries(trovati)) {
       const campo = riga.querySelector(`[data-person-field="${field}"]`);

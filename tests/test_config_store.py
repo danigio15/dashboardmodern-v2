@@ -331,3 +331,35 @@ async def test_writer_generation_travels_with_the_snapshot(
     # E il ripristino di una revisione custodita riporta la sua generazione.
     restored = await store.async_restore(PRIMARY_PROFILE, revision=1)
     assert restored["snapshot"]["writer_generation"] == 1
+
+
+async def test_a_generation_upgrade_stamps_the_unchanged_envelope(
+    hass: HomeAssistant,
+) -> None:
+    """Valori identici, generazione piu' alta: la busta si timbra lo stesso.
+
+    L'aggiornamento in-sync del frontend rispinge lo stesso contenuto solo
+    per alzare la generazione di una busta scritta da un runtime vecchio.
+    Il ramo «unchanged» usciva prima del timbro: la busta restava della
+    generazione 0 e un altro dispositivo aggiornato con dati stantii poteva
+    ancora scavalcarla come «scatto di un runtime vecchio». Il timbro e' un
+    aggiornamento di metadati: niente revisione nuova, niente storia.
+    """
+    store = DashboardConfigStore(hass)
+    first = await store.async_set(PRIMARY_PROFILE, _configured(), keys_revision=4)
+    assert first["snapshot"]["writer_generation"] == 0
+    revision = first["snapshot"]["revision"]
+
+    stamped = await store.async_set(
+        PRIMARY_PROFILE, _configured(), keys_revision=5, writer_generation=1
+    )
+    assert stamped["status"] == "unchanged"
+    assert stamped["snapshot"]["writer_generation"] == 1
+    assert stamped["snapshot"]["keys_revision"] == 5
+    assert stamped["snapshot"]["revision"] == revision
+
+    # Il timbro non torna indietro: uno scrittore vecchio non lo abbassa.
+    kept = await store.async_set(PRIMARY_PROFILE, _configured(), keys_revision=4)
+    assert kept["status"] == "unchanged"
+    assert kept["snapshot"]["writer_generation"] == 1
+    assert kept["snapshot"]["keys_revision"] == 5

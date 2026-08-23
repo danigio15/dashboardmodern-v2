@@ -282,13 +282,19 @@ function affine(prefix, objectId) {
   return objectId.includes(prefix) || prefix.includes(objectId);
 }
 
-export function detectCompanionSensors(states = {}, personEntity = "") {
+export function detectCompanionSensors(states = {}, personEntity = "", householdPeople = null) {
   const prefixes = trackerPrefixes(states, personEntity);
   const sensors = Object.keys(states).filter((id) => id.startsWith("sensor."));
   /* Il candidato unico vale solo in una casa con una persona sola: con due,
    * «l'unico sensore di batteria» sarebbe lo stesso per entrambe, e uno dei
-   * due telefoni diventerebbe di tutti. */
-  const unica = Object.keys(states).filter((id) => id.startsWith("person.")).length <= 1;
+   * due telefoni diventerebbe di tutti. Le persone della casa non sono solo
+   * gli stati `person.*`: chi traccia col `device_tracker.` diretto non ne
+   * ha uno, e una casa con due tracker e zero `person.*` sarebbe sembrata
+   * «una persona sola» — chi chiama passa la propria anagrafe e conta anche
+   * quella. */
+  const anagrafe = Array.isArray(householdPeople) ? householdPeople.length : 0;
+  const unica =
+    Math.max(Object.keys(states).filter((id) => id.startsWith("person.")).length, anagrafe) <= 1;
   const found = {};
 
   for (const [field, suffixes] of Object.entries(COMPANION_SUFFIXES)) {

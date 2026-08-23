@@ -553,6 +553,10 @@ function sharedSet(value, { expectedRevision = null, reset = false } = {}) {
       snapshot: {
         values: value.values,
         keys_revision: value.keys_revision,
+        /* Senza questo campo il backend timbra 0 e il recinto scatta CONTRO
+         * ogni scatto remoto: due dispositivi aggiornati si rispingerebbero
+         * a vicenda — proprio l'oscillazione che il recinto deve fermare. */
+        writer_generation: Number(value.writer_generation) || WRITER_GENERATION,
         updated_at: value.updated_at,
       },
       ...(expectedRevision === null ? {} : { expected_revision: Number(expectedRevision) }),

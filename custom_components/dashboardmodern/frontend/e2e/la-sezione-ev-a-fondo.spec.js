@@ -393,3 +393,72 @@ test("la lista auto ha la matita, niente distintivo, e il + svuota la scheda", a
   ).toHaveValue("");
   await expect(page.locator("#ed-body [data-ev-appearance] select[data-model]")).toHaveValue("");
 });
+
+test("la bozza non veste l'auto attiva, e la vettura nuova nasce col suo brand", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  /* Il difetto: dopo «＋ Aggiungi auto» l'attiva restava attiva, e «Salva
+   * brand e modello» scriveva marca e modello della vettura NUOVA addosso a
+   * quella VECCHIA. In bozza quel bottone non tocca nessuno; e' «Salva
+   * auto» a portare la scelta viva dentro il profilo appena nato. */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  await page.locator("#ed-body [data-ev-add-new]").click();
+  await page.locator("#ed-evcar-name").fill("Kia nuova");
+  await page.locator("#ed-evcar-name").dispatchEvent("input");
+
+  // La card Brand vive dentro l'accordion: lo si apre come farebbe un dito.
+  await page.evaluate(() => {
+    document
+      .querySelector("#ed-body [data-ev-appearance]")
+      ?.closest("details")
+      ?.setAttribute("open", "");
+  });
+  const marca = page.locator("#ed-body [data-ev-appearance] select[data-brand]");
+  await marca.selectOption("Kia");
+  await page
+    .locator("#ed-body [data-ev-appearance] select[data-model]")
+    .locator("option")
+    .nth(1)
+    .evaluate((option) => {
+      option.closest("select").value = option.value;
+      option.closest("select").dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  // Qualche rifinitura di stile lo tiene fuori vista nel collaudo: qui si
+  // prova il gestore, non l'affordance.
+  await page.locator("#ed-body [data-ev-appearance] button[data-save]").dispatchEvent("click");
+  // La vecchia guardia: B10 e T03 restano dei loro marchi.
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((car) => [car.name, car.brand]),
+      ),
+    )
+    .toEqual([
+      ["B10", "Leapmotor"],
+      ["T03", "Leapmotor"],
+    ]);
+
+  // «Salva auto»: la nuova nasce col brand scelto in bozza.
+  await page.evaluate(() => {
+    const input = document.querySelector('#ed-body .ed-slot-in[data-ref="dm.ev_batteria_auto"]');
+    input.value = "sensor.kia_soc";
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await page.locator('#ed-body button[onclick*="edEvCarAdd"]').first().click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((car) => [car.name, car.brand]),
+      ),
+    )
+    .toEqual([
+      ["B10", "Leapmotor"],
+      ["T03", "Leapmotor"],
+      ["Kia nuova", "Kia"],
+    ]);
+});

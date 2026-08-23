@@ -402,6 +402,20 @@ function evVisual() {
 
 async function saveEvAppearance(brand, model) {
   const { cars, active, current } = evVisual();
+  /* La scheda in bozza: nel campo nome c'e' un nome che non e' di nessuna
+   * auto salvata — la vettura sta nascendo. Il brand scelto e' suo, non
+   * dell'auto ancora attiva: scriverlo su cars[active] vestiva la vecchia
+   * coi panni della nuova. Qui non si scrive su nessuno; sara' «Salva auto»
+   * a portare marca e modello dentro il profilo appena nato. */
+  const nomeInScheda = clean(doc?.getElementById("ed-evcar-name")?.value);
+  const inBozza =
+    Boolean(nomeInScheda) &&
+    Array.isArray(cars) &&
+    !cars.some((car) => clean(car?.name) === nomeInScheda);
+  if (inBozza) {
+    schedule();
+    return;
+  }
   const store = root.DashboardModernModules?.store;
   if (current?.id && typeof store?.updateItem === "function") {
     await store.updateItem("ev", current.id, { brand, model });

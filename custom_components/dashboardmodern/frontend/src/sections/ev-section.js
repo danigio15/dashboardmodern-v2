@@ -954,6 +954,12 @@ function installLegacyWrappers() {
     function addProfile(...args) {
       const prima=legacyProfiles();
       const indiceAttivoPrima=activeIndex();
+      /* La scelta viva di marca e modello si legge ORA: il ridisegno che il
+       * runtime fa salvando smonta la card Brand, e a cose fatte le tendine
+       * non ci sono piu'. */
+      const pannelloPrima = doc?.querySelector?.("#ed-body [data-ev-appearance]");
+      const marcaViva = clean(pannelloPrima?.querySelector?.("select[data-brand]")?.value);
+      const modelloVivo = clean(pannelloPrima?.querySelector?.("select[data-model]")?.value);
       const result=previous.apply(this,args);
       const dopo=legacyProfiles();
       let rimesse=restoreCarIdentities(dopo, prima, indiceAttivoPrima);
@@ -976,6 +982,19 @@ function installLegacyWrappers() {
           conosciute.has(clean(car?.name))
             ? car
             : { ...car, img: "", imgPlugged: "", image: "", image_url: "" },
+        );
+      }
+      /* Marca e modello della vettura nuova stanno nelle tendine della card
+       * Brand: durante la bozza «Salva brand e modello» non scrive su
+       * nessuno (avrebbe vestito l'auto ancora attiva coi panni della
+       * nuova), quindi e' QUI, alla nascita del profilo, che la scelta
+       * viva sale a bordo. */
+      if (marcaViva) {
+        const nate = new Set(prima.map((car) => clean(car?.name)));
+        rimesse = rimesse.map((car) =>
+          nate.has(clean(car?.name)) || clean(car?.brand)
+            ? car
+            : { ...car, brand: marcaViva, ...(modelloVivo ? { model: modelloVivo } : {}) },
         );
       }
       if (rimesse !== dopo) writeJsonIfChanged("cd_ev_cars", rimesse);

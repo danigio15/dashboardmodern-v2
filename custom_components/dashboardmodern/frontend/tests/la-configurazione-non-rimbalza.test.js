@@ -147,3 +147,18 @@ test("il conflitto esaurito non adotta lo scatto di un runtime vecchio", () => {
   assert.match(corpo, /rimasto\.writer_generation < WRITER_GENERATION && configured/,
     "cedere il duello proprio a chi il recinto ferma rimetterebbe la foto vecchia");
 });
+
+test("lo scatto spinto porta la generazione fino al backend", () => {
+  /* Il recinto vive del campo scritto: `snapshot()` lo dichiara, ma la busta
+   * del websocket veniva ricostruita a mano con tre campi soltanto — il
+   * backend timbrava 0 su ogni scrittura e il recinto scattava CONTRO ogni
+   * scatto remoto: due dispositivi aggiornati si sarebbero rispinti a
+   * vicenda per sempre. */
+  const sezione = leggi("sections/config-persistence-section.js");
+  const corpo = sezione.slice(sezione.indexOf("function sharedSet"));
+  assert.match(
+    corpo.slice(0, 900),
+    /writer_generation: Number\(value\.writer_generation\) \|\| WRITER_GENERATION/,
+    "sharedSet deve inoltrare la generazione, o il backend timbra 0",
+  );
+});
