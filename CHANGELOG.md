@@ -46,6 +46,15 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   sole del formato vecchio — dove le caselle sono l'unica casa della foto —
   non viene toccata.
 
+- **Il nome sulla scheda decide di chi sono i campi.** La scheda dell'auto
+  mostra le caselle `dm.ev_*` con la mappatura viva — quella dell'auto attiva
+  — e salvare una scheda col nome di un'auto nuova la catturava tale e quale:
+  la nuova nasceva con le entità dell'altra addosso. Scrivere un nome che non
+  è di nessuno adesso svuota le caselle — l'auto nuova parte da zero, e le sue
+  entità si mappano prima di salvarla — mentre il nome di un'auto esistente le
+  ricarica dai dati suoi, così risalvarla non le scrive addosso la mappatura
+  di quella attiva.
+
 - **L'avviso «Tapparella aperta» era l'unico fermo del quadro.** Le icone
   degli avvisi animano per vocabolario — la porta oscilla, la batteria si
   svuota — ma il ramo delle tapparelle si muoveva solo mentre una tapparella
