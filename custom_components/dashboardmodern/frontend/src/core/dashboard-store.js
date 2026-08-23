@@ -168,6 +168,27 @@ export class DashboardStore {
       washerImage: parse("cd_lavatrice_visual", ""),
     });
     this.state = result.state;
+    /* All'avvio la lista delle auto la detta `cd_ev_cars`, non la copia.
+     *
+     * Il documento canonico e' una fotografia scritta dall'ultimo `persist`, e
+     * puo' restare indietro di un giro: chi salva le foto dell'auto e ricarica
+     * subito — il messaggio in plancia dice proprio "ricarica per applicare" —
+     * chiude la pagina fra la scrittura di `cd_ev_cars` e quella della copia.
+     * Alla riapertura questa riga ricostruiva lo stato DALLA COPIA e il
+     * `persist` qui sotto la riscriveva sopra `cd_ev_cars`: le foto appena
+     * scelte sparivano, e tornavano le vecchie. E' la stessa riconciliazione
+     * che il ripristino della configurazione condivisa gia' fa; qui vale per
+     * ogni avvio. Le auto cancellate restano cancellate per la stessa strada:
+     * una lista vuota ma presente e' una scelta, non un'assenza. */
+    try {
+      const raw = this.storage.getItem("cd_ev_cars");
+      if (raw !== null && raw !== undefined) {
+        const legacyCars = JSON.parse(raw);
+        if (Array.isArray(legacyCars)) this.state.sections.ev = normalizeSection("ev", legacyCars);
+      }
+    } catch {
+      /* Una lista illeggibile non insegna niente: resta la copia. */
+    }
     if (result.changes.length) console.info("[DashboardStore] migration", result.changes);
     this.persist();
     return result;

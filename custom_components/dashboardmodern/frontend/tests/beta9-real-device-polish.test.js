@@ -60,7 +60,11 @@ test("shutters are compact and alert animations follow the alert kind", async ()
   assert.match(source, /max-width", "360px", "important"/);
   assert.match(source, /height", "132px", "important"/);
   assert.match(source, /slat\.style\.setProperty\("animation", "none", "important"\)/);
-  assert.match(source, /shutterMoving\(\) \? "shutter-moving" : "static"/);
+  // Anche l'avviso tapparella fermo si muove: "static" lo lasciava l'unico
+  // immobile del quadro, e da fuori sembrava un'animazione dimenticata.
+  assert.match(source, /shutterMoving\(\) \? "shutter-moving" : "shutter"/);
+  assert.match(source, /\.dm-alert-shutter \.dm-alert-glyph/);
+  assert.match(source, /@keyframes dmAlertShutter\{[\s\S]*scaleY\(\.55\)/);
   // Every animation acts out its own alert, and it animates the glyph rather
   // than the disc the glyph sits in.
   assert.match(source, /\.dm-alert-door \.dm-alert-glyph/);

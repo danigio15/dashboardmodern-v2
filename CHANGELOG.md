@@ -7,6 +7,54 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
 
+## 1.1.8
+
+### Corretto
+
+- **La plancia disegnava la foto dalle caselle del dispositivo, non dal
+  profilo.** Il pannello di configurazione leggeva il profilo e mostrava le
+  foto giuste; il disegno dell'eroe leggeva le due caselle piatte — che sono
+  per-dispositivo e dalla 1.1.7 non viaggiano più con la configurazione — e su
+  un dispositivo che non aveva rifatto la scelta dell'auto restavano quelle di
+  mesi fa: «le foto le ho cambiate ma esce ancora quella vecchia», con il
+  pannello a dare ragione e la plancia a dare torto. La fonte del disegno è
+  adesso il profilo attivo, la stessa del pannello e del popup wallbox, e le
+  caselle si riseminano a ogni disegno: derivate, mai più fonte.
+
+- **«SALVA SEZIONE» non salvava le foto.** Il bottone verde in fondo alla
+  sezione Auto raccoglie i campi entità e nient'altro: un percorso scritto
+  nelle caselle delle foto restava a video con l'anteprima giusta sotto, e
+  spariva alla riapertura — salvato non era mai stato. Le foto le salvava
+  soltanto il tasto «Salva foto» del pannello. Un campo toccato adesso si
+  salva anche dal bottone grande, che è quello che chiunque preme.
+
+- **All'avvio la copia canonica riscriveva la lista delle auto appena
+  salvata.** Il documento canonico è una fotografia scritta dall'ultimo
+  salvataggio del negozio e può restare indietro di un giro: chi salvava le
+  foto e ricaricava subito — il messaggio in plancia dice proprio «ricarica
+  per applicare» — riapriva la pagina con la copia vecchia, che veniva
+  ripersistita sopra `cd_ev_cars`: le foto nuove sparivano e tornavano le
+  vecchie. La 1.1.7 aveva chiuso questa strada al ripristino della
+  configurazione condivisa; adesso vale a ogni avvio, ed è anche il motivo per
+  cui un'auto cancellata poteva risorgere: una lista vuota ma presente è una
+  scelta, non un'assenza.
+
+- **Cancellata l'ultima auto, non se ne andava tutto.** Le caselle del disegno
+  tenevano le sue foto e `cd_ev_car_active` il suo posto: la vettura spariva
+  dall'elenco ma la sua fotografia restava sull'eroe, per sempre. L'ultima
+  auto adesso porta via con sé caselle e indice; una configurazione a caselle
+  sole del formato vecchio — dove le caselle sono l'unica casa della foto —
+  non viene toccata.
+
+- **L'avviso «Tapparella aperta» era l'unico fermo del quadro.** Le icone
+  degli avvisi animano per vocabolario — la porta oscilla, la batteria si
+  svuota — ma il ramo delle tapparelle si muoveva solo mentre una tapparella
+  era fisicamente in corsa: un avviso acceso restava immobile accanto agli
+  altri che si muovevano, e sembrava un'animazione dimenticata. Da fermo il
+  telo adesso si riavvolge piano verso il cassonetto, con la stessa regola in
+  due dimensioni di porta e finestra; quando una tapparella si muove davvero,
+  resta il movimento suo.
+
 ## 1.1.7
 
 ### Corretto
