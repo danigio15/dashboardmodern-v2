@@ -46,7 +46,19 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   **💾 Salva auto** salva quella che si sta compilando. Il distintivo
   «✓ attiva» se ne va: attive lo sono tutte, quale si mostra lo decide la
   plancia. E la card «Brand e modello» smette di cambiare impaginazione da
-  sola: i suoi tre proprietari dicevano tre geometrie, ora ne dicono una.
+  sola: i suoi tre proprietari dicevano tre geometrie, ora ne dicono una —
+  anche appena ridisegnata, prima che l'ultima passata di stile la raggiunga.
+
+- **«Nessuna entità EV mappata da salvare» a chi l'aveva appena mappata.** Su
+  un dispositivo lento l'editor è toccabile prima che i moduli della plancia
+  finiscano di caricare: un'entità digitata in quella finestra non veniva
+  segnata come «scritta a mano», e al primo nome dato all'auto la protezione
+  contro i dati ereditati la scambiava per un residuo e la svuotava — il
+  salvataggio rispondeva che non c'era niente da salvare. Ora la protezione
+  svuota solo la dote dell'auto applicata (i valori messi lì da un profilo):
+  ciò che è diverso è stato scritto a mano e si tiene, comunque sia arrivato.
+  Il ＋ Aggiungi auto invece svuota tutto per scelta, com'è giusto per una
+  vettura che riparte da zero.
 
 - **Tre cose che la scheda Persone sbagliava sul telefono vero.** Il campo
   dell'entità persona restava una casella nuda finché era vuoto: i domini

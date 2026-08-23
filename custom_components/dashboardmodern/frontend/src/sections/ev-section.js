@@ -433,33 +433,56 @@ export function ensureVehiclePhotoEditor() {
  * tornano a raccontare il modello. */
 const refToccati = () => (state.evTouchedRefs ||= new Set());
 
+/* Il segnalibro dei campi toccati deve esserci PRIMA che qualcuno tocchi.
+ *
+ * Stava dentro ensureCarNameGuard, che parte col primo giro differito della
+ * sezione: su un dispositivo lento c'e' una finestra in cui l'editor e' gia'
+ * visibile ma il giro non e' ancora passato. Un'entita' digitata li' dentro
+ * non veniva marcata; al primo nome scritto il guardiano la prendeva per un
+ * residuo dell'auto precedente e la svuotava — e il salvataggio rispondeva
+ * «nessuna entita' mappata». Si installa al montaggio della sezione. */
+function installSlotTouchTracker() {
+  if (!doc || state.evSlotTouchGuard) return;
+  state.evSlotTouchGuard = true;
+  for (const eventName of ["input", "change"]) {
+    doc.addEventListener(
+      eventName,
+      (event) => {
+        const input = event.target;
+        if (!input?.matches?.('input.ed-slot-in[data-ref^="dm.ev_"]')) return;
+        const ref = clean(input.dataset?.ref);
+        if (ref) refToccati().add(ref);
+      },
+      true,
+    );
+  }
+}
+
 function ensureCarNameGuard() {
   if (!doc) return false;
-  if (!state.evSlotTouchGuard) {
-    state.evSlotTouchGuard = true;
-    for (const eventName of ["input", "change"]) {
-      doc.addEventListener(
-        eventName,
-        (event) => {
-          const input = event.target;
-          if (!input?.matches?.('input.ed-slot-in[data-ref^="dm.ev_"]')) return;
-          const ref = clean(input.dataset?.ref);
-          if (ref) refToccati().add(ref);
-        },
-        true,
-      );
-    }
-  }
+  installSlotTouchTracker();
   const campo = doc.getElementById("ed-evcar-name");
   if (!campo || campo.dataset.dmEvNameGuard === "true") return false;
   campo.dataset.dmEvNameGuard = "true";
   campo.addEventListener("input", () => {
     const nome = clean(campo.value);
-    const trovata = profiles().find((car) => clean(car?.name) === nome) || null;
+    const tutte = profiles();
+    const trovata = tutte.find((car) => clean(car?.name) === nome) || null;
     const possedute = trovata ? trovata.ov || trovata.overrides || {} : {};
+    /* La dote dell'auto applicata: i valori che le caselle portano perche'
+     * un profilo li ha messi li', non perche' qualcuno li ha scritti ora. */
+    const attiva = tutte[activeIndex()] || null;
+    const dote = attiva ? attiva.ov || attiva.overrides || {} : {};
     for (const input of doc.querySelectorAll('#ed-body input.ed-slot-in[data-ref^="dm.ev_"]')) {
       const ref = clean(input.dataset?.ref);
       if (refToccati().has(ref)) continue;
+      /* Un valore che NON e' la dote e' stato scritto a mano — e si tiene
+       * anche quando il segnalibro non l'ha visto: su un dispositivo lento
+       * il modulo si installa dopo che l'editor e' gia' toccabile, e il
+       * primo tocco arriva prima del segnalibro. Svuotare quello e' come
+       * rispondere «nessuna entita' mappata» a chi l'ha appena mappata. */
+      const corrente = clean(input.value);
+      if (corrente && corrente !== clean(dote[ref])) continue;
       const valore = clean(possedute[ref]);
       if (input.value !== valore) input.value = valore;
     }
@@ -538,9 +561,26 @@ function ensureCarListDecor() {
         const campo = doc.getElementById("ed-evcar-name");
         if (!campo) return;
         campo.value = "";
-        // Il guardiano del nome svuota le caselle: la vettura nuova parte
-        // da zero, come chiesto.
+        // Il ＋ e' il gesto «riparto da zero»: si svuota tutto qui, in modo
+        // esplicito — il guardiano del nome protegge i valori scritti a
+        // mano, e qui invece anche quelli devono andarsene.
+        refToccati().clear();
+        for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]'))
+          slot.value = "";
         campo.dispatchEvent(new Event("input", { bubbles: true }));
+        // Anche marca e modello: la card Brand non deve mostrare la vettura
+        // precedente sulla scheda di una nuova.
+        const pannello = doc.querySelector("#ed-body [data-ev-appearance]");
+        const marca = pannello?.querySelector?.("select[data-brand]");
+        const modello = pannello?.querySelector?.("select[data-model]");
+        if (marca && marca.options.length) {
+          marca.selectedIndex = 0;
+          marca.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        if (modello) {
+          modello.value = "";
+          modello.dispatchEvent(new Event("change", { bubbles: true }));
+        }
         campo.focus();
       });
       rigaNome.insertAdjacentElement("beforebegin", aggiungi);
@@ -1093,7 +1133,7 @@ function bindEditorEntryPoints() {
 
 export function installEvSection() {
   if (!doc) return;
-  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installLegacyWrappers(); bindEditorEntryPoints();
+  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installSlotTouchTracker(); installLegacyWrappers(); bindEditorEntryPoints();
   /* Gli involucri si prendono appena i giri del runtime esistono.
    *
    * `installLegacyWrappers` non puo' fare niente se il runtime non ha ancora

@@ -77,12 +77,15 @@ test("EV selector updates existing cards instead of rebuilding them on every sta
   assert.doesNotMatch(source, /nav\.replaceChildren\(\.\.\.buttons\)/);
 });
 
-test("EV configuration puts the manufacturer logo above the label", async () => {
+test("EV brand card keeps one geometry before and after the beta11 marker", async () => {
+  // The freshly re-rendered card must not wear a different layout than the
+  // one beta11 applies a moment later: that mismatch was the visible "flip".
   const entry = await read("src/sections/beta-entry-section.js");
   assert.match(entry, /dm-beta7-ev-brand-layout/);
-  assert.match(entry, /flex-direction:column!important/);
+  assert.match(entry, /grid-template-columns:112px minmax\(0,1fr\)!important/);
   assert.match(entry, /\.dm-brand-preview \.dm-car-brand/);
-  assert.match(entry, /object-position:left center!important/);
+  const base = await read("src/sections/personalization-section.js");
+  assert.match(base, /\.dm-brand-preview\{[^}]*grid-template-columns:112px minmax\(0,1fr\)/);
 });
 
 test("Lights popup keeps dimmer and RGB controls based on HA capabilities", async () => {

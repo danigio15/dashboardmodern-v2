@@ -382,10 +382,12 @@ test("la lista auto ha la matita, niente distintivo, e il + svuota la scheda", a
     page.locator('#ed-body .ed-slot-in[data-ref="dm.ev_batteria_auto"]').first(),
   ).toHaveValue("sensor.t03_battery");
 
-  // «＋ Aggiungi auto»: la scheda si svuota, la vettura nuova parte da zero.
+  // «＋ Aggiungi auto»: la scheda si svuota, la vettura nuova parte da zero —
+  // marca e modello compresi, non quelli della vettura precedente.
   await page.locator("#ed-body [data-ev-add-new]").click();
   await expect(page.locator("#ed-evcar-name")).toHaveValue("");
   await expect(
     page.locator('#ed-body .ed-slot-in[data-ref="dm.ev_batteria_auto"]').first(),
   ).toHaveValue("");
+  await expect(page.locator('#ed-body [data-ev-appearance] select[data-model]')).toHaveValue("");
 });
