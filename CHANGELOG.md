@@ -7,6 +7,8 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
 
+## 1.1.8
+
 ### Aggiunto
 
 - **La card della persona racconta tutto quello che il telefono sa.** Oltre a
@@ -48,8 +50,6 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   ancora in elenco, col suo nome e la sua foto del profilo. Le persone
   viaggiano con la configurazione condivisa (`cd_people`, revisione 5), quindi
   compaiono uguali su ogni dispositivo.
-
-## 1.1.8
 
 ### Corretto
 
