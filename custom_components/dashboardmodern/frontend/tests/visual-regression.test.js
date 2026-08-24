@@ -22,8 +22,8 @@ const expectedTabs = [
   "config",
 ];
 const vendoredCssSnapshots = {
-  "dashboard-runtime-it.css": "85d4e9b275cfb6441ee1175a6f973f12af5b8e23c754007c4ec309e8a314bee7",
-  "dashboard-runtime-en.css": "47e0dfc6dc3957aef896c51e549bd11cece07bb91ca432f6733b92913ab953b7",
+  "dashboard-runtime-it.css": "f345785031adcbc4eaf7c8715256c0020fe27d448d8046c7be4cb663853eb617",
+  "dashboard-runtime-en.css": "1bbb6d8b88533029ada2a7a03f76977ae1a159346ce3193598576f333c8b3f8e",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {

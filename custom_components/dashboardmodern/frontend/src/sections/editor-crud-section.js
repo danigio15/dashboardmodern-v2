@@ -5,7 +5,7 @@ import { clean, dashboardStore, doc, english, installStyle, onEditorRedraw, read
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EDITOR_CRUD_SECTION__";
-const state = (root[KEY] ||= { installed: false, listeners: false, editing: null });
+const state = (root[KEY] ||= { installed: false, listeners: false, editing: null, debounceFrame: 0 });
 
 function syncEditorTheme() {
   const modal = doc?.getElementById("editor-modal");
@@ -420,10 +420,20 @@ function installAddWrappers() {
 }
 
 function runContracts() {
-  syncEditorTheme();
-  normalizeReportEditor();
-  ensureEditButtons();
-  installAddWrappers();
+  if (state.debounceFrame) return;
+  state.debounceFrame = root.requestAnimationFrame?.(() => {
+    state.debounceFrame = 0;
+    syncEditorTheme();
+    normalizeReportEditor();
+    ensureEditButtons();
+    installAddWrappers();
+  }) || root.setTimeout?.(() => {
+    state.debounceFrame = 0;
+    syncEditorTheme();
+    normalizeReportEditor();
+    ensureEditButtons();
+    installAddWrappers();
+  }, 0) || 0;
 }
 
 function installStyles() {
