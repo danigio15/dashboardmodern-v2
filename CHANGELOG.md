@@ -21,6 +21,25 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   fare lo decide l'entità, mai il dominio: una lampada dietro un relè accende
   e spegne soltanto, e la card non le offre cursori che rifiuterebbe.
 
+- **La scheda Luci del Config ha la fascia visibile/nascondi.** Lo stesso
+  interruttore verde delle altre sezioni, con la stessa logica sotto: tocca e
+  la voce Luci sparisce dalla barra, tocca di nuovo e torna — la preferenza
+  viaggia in `cd_sections` come per tutte le altre.
+
+- **Aggiungere una luce chiede subito la stanza.** Il form di inserimento ha
+  la tendina delle stanze accanto a entità e nome: la luce nasce già al suo
+  posto, senza doverla riassegnare dopo. E l'errore di un'entità sbagliata si
+  scrive nel form, non in un `alert()` che l'app di Home Assistant blocca.
+
+### Corretto
+
+- **Il cestino delle luci cancella davvero.** Chiedeva conferma con il
+  `confirm()` del browser, che dentro l'app di Home Assistant non si apre e
+  risponde sempre no: si premeva e la riga restava lì. La domanda ora è un
+  dialogo nella pagina, e cancellare toglie la luce da ogni mappa —
+  configurazione, stanza, ordinamento e gruppo avvisi — non solo dalle prime
+  due.
+
 ## 1.1.8
 
 ### Aggiunto

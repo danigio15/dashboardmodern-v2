@@ -1163,4 +1163,7 @@ export default Object.freeze({
   "Zone": "क्षेत्र",
   "Zone valve": "ज़ोन का वाल्व",
   "Zones · Schedule · Forecast rain": "ज़ोन · कार्यक्रम · अनुमानित वर्षा",
+  "Enter a valid entity (${domini}).": "एक मान्य इकाई दर्ज करें (${domini})।",
+  "Light added": "लाइट जोड़ी गई",
+  "Remove \"${nome}\" from the dashboard?": "\"${nome}\" को डैशबोर्ड से हटाएँ?",
 });

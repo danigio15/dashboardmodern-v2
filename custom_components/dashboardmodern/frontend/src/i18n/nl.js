@@ -1163,4 +1163,7 @@ export default Object.freeze({
   "Zone": "Zone",
   "Zone valve": "Klep van de zone",
   "Zones · Schedule · Forecast rain": "Zones · Programma · Verwachte regen",
+  "Enter a valid entity (${domini}).": "Voer een geldige entiteit in (${domini}).",
+  "Light added": "Lamp toegevoegd",
+  "Remove \"${nome}\" from the dashboard?": "\"${nome}\" van het dashboard verwijderen?",
 });

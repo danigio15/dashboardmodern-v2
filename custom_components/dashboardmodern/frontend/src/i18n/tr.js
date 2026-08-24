@@ -1163,4 +1163,7 @@ export default Object.freeze({
   "Zone": "Bölge",
   "Zone valve": "Bölge vanası",
   "Zones · Schedule · Forecast rain": "Bölgeler · Program · Beklenen yağmur",
+  "Enter a valid entity (${domini}).": "Geçerli bir varlık girin (${domini}).",
+  "Light added": "Işık eklendi",
+  "Remove \"${nome}\" from the dashboard?": "\"${nome}\" panodan kaldırılsın mı?",
 });

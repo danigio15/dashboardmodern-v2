@@ -1163,4 +1163,7 @@ export default Object.freeze({
   "Zone": "구역",
   "Zone valve": "구역 밸브",
   "Zones · Schedule · Forecast rain": "구역 · 일정 · 예상 강우",
+  "Enter a valid entity (${domini}).": "유효한 엔티티를 입력하세요 (${domini}).",
+  "Light added": "조명이 추가되었습니다",
+  "Remove \"${nome}\" from the dashboard?": "\"${nome}\"을(를) 대시보드에서 제거할까요?",
 });

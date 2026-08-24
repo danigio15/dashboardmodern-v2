@@ -1163,4 +1163,7 @@ export default Object.freeze({
   "Zone": "ゾーン",
   "Zone valve": "ゾーンのバルブ",
   "Zones · Schedule · Forecast rain": "ゾーン · スケジュール · 降雨予報",
+  "Enter a valid entity (${domini}).": "有効なエンティティを入力してください（${domini}）。",
+  "Light added": "照明を追加しました",
+  "Remove \"${nome}\" from the dashboard?": "「${nome}」をダッシュボードから削除しますか？",
 });

@@ -1163,4 +1163,7 @@ export default Object.freeze({
   "Zone": "分区",
   "Zone valve": "分区阀门",
   "Zones · Schedule · Forecast rain": "分区 · 计划 · 预报降雨",
+  "Enter a valid entity (${domini}).": "请输入有效的实体（${domini}）。",
+  "Light added": "已添加灯",
+  "Remove \"${nome}\" from the dashboard?": "要从仪表盘移除\"${nome}\"吗？",
 });

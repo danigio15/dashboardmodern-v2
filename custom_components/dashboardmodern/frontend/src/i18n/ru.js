@@ -1163,4 +1163,7 @@ export default Object.freeze({
   "Zone": "Зона",
   "Zone valve": "Клапан зоны",
   "Zones · Schedule · Forecast rain": "Зоны · Программа · Прогноз дождя",
+  "Enter a valid entity (${domini}).": "Введите корректную сущность (${domini}).",
+  "Light added": "Светильник добавлен",
+  "Remove \"${nome}\" from the dashboard?": "Убрать \"${nome}\" с панели?",
 });
