@@ -23,7 +23,7 @@ const expectedTabs = [
 ];
 const vendoredCssSnapshots = {
   "dashboard-runtime-it.css": "85d4e9b275cfb6441ee1175a6f973f12af5b8e23c754007c4ec309e8a314bee7",
-  "dashboard-runtime-en.css": "e3b1e4c3f7f0e0d4d9c7b3e0c7f0e1c3d4e0f1c7d9b3e0c1f7e0d4c9b3f1e0",
+  "dashboard-runtime-en.css": "47e0dfc6dc3957aef896c51e549bd11cece07bb91ca432f6733b92913ab953b7",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {
