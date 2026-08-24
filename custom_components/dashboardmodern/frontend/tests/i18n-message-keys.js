@@ -735,6 +735,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "on",
   "ON",
   "ON/OFF",
+  "On/off · Brightness · Colour",
   "On/off control",
   "One window can carry all three: fill in the boxes you have, the box tells the type.",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.",

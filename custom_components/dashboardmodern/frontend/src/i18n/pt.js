@@ -752,6 +752,7 @@ export default Object.freeze({
   "ON": "LIGADO",
   "ON/OFF": "LIGAR/DESLIGAR",
   "On/off control": "Comando de ligar/desligar",
+  "On/off · Brightness · Colour": "Ligar/desligar · Brilho · Cor",
   "One window can carry all three: fill in the boxes you have, the box tells the type.": "Numa janela podem estar as três: preenche as caixas que tens, a caixa diz o tipo.",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.": "Só são contados os sensores diários ou as diferenças do Recorder dos contadores totais acumulados. Os valores acumulados nunca são somados diretamente.",
   "Only if you already have a helper measuring the period. Without one, the period comes from the total meter.": "Só se já tiveres um helper a medir o período. Sem ele, o período vem do contador total.",

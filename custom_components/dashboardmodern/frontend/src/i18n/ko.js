@@ -752,6 +752,7 @@ export default Object.freeze({
   "ON": "켜짐",
   "ON/OFF": "켜기/끄기",
   "On/off control": "켜기·끄기 제어",
+  "On/off · Brightness · Colour": "켜기/끄기 · 밝기 · 색",
   "One window can carry all three: fill in the boxes you have, the box tells the type.": "창 하나에 세 가지가 모두 있을 수 있습니다. 가지고 있는 칸만 채우세요. 종류는 칸이 알려 줍니다.",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.": "일간 센서나 누적 계량기의 Recorder 차이만 집계합니다. 누적값을 그대로 더하는 일은 없습니다.",
   "Only if you already have a helper measuring the period. Without one, the period comes from the total meter.": "기간을 재는 헬퍼가 이미 있을 때만 씁니다. 없으면 기간은 누적 계량기에서 구합니다.",

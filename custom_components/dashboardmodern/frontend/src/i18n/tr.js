@@ -752,6 +752,7 @@ export default Object.freeze({
   "ON": "AÇIK",
   "ON/OFF": "AÇ/KAPAT",
   "On/off control": "Aç/kapat kumandası",
+  "On/off · Brightness · Colour": "Aç/kapat · Parlaklık · Renk",
   "One window can carry all three: fill in the boxes you have, the box tells the type.": "Tek bir pencerede üçü birden olabilir: elindeki kutuları doldur, türü kutunun kendisi söyler.",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.": "Yalnızca günlük sensörler ya da birikimli toplam sayaçların Recorder farkları sayılır. Toplam sayaç değerleri asla doğrudan toplanmaz.",
   "Only if you already have a helper measuring the period. Without one, the period comes from the total meter.": "Yalnızca dönemi ölçen bir helper'ın zaten varsa. Yoksa dönem, toplam sayaçtan gelir.",

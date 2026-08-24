@@ -752,6 +752,7 @@ export default Object.freeze({
   "ON": "ВКЛЮЧЕНО",
   "ON/OFF": "ВКЛ./ВЫКЛ.",
   "On/off control": "Управление вкл./выкл.",
+  "On/off · Brightness · Colour": "Вкл./выкл. · Яркость · Цвет",
   "One window can carry all three: fill in the boxes you have, the box tells the type.": "На одном окне могут быть все три: заполните те поля, что у вас есть, — поле само задаёт тип.",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.": "Учитываются только суточные датчики или разности Recorder по накопительным счётчикам. Накопленные значения никогда не складываются напрямую.",
   "Only if you already have a helper measuring the period. Without one, the period comes from the total meter.": "Только если у вас уже есть helper, измеряющий период. Без него период берётся из суммарного счётчика.",

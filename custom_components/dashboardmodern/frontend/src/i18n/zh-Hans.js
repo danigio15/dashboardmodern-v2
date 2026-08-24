@@ -752,6 +752,7 @@ export default Object.freeze({
   "ON": "开",
   "ON/OFF": "开/关",
   "On/off control": "开关控制",
+  "On/off · Brightness · Colour": "开关 · 亮度 · 颜色",
   "One window can carry all three: fill in the boxes you have, the box tells the type.": "同一扇窗可以三样都有：把你有的那几栏填上，类型由栏位本身决定。",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.": "只统计日传感器，或累计总表在 Recorder 中的差值。累计值不会被直接相加。",
   "Only if you already have a helper measuring the period. Without one, the period comes from the total meter.": "仅当你已经有一个测量该周期的 helper 时才填。没有的话，周期由总表算出。",

@@ -7,6 +7,20 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
 
+### Aggiunto
+
+- **Le luci hanno la loro sezione nella barra.** Finora si comandavano solo
+  dal popup sopra la Home; adesso c'è la pagina intera, come Clima e
+  Tapparelle: in alto il conto di quante sono accese e i due pulsanti
+  «Accendi tutte» e «Spegni tutte», sotto le stanze nell'ordine scelto nella
+  scheda Luci dell'editor, ognuna con il suo conto e il suo comando di
+  gruppo. Ogni luce ha una card con il colore che sta davvero emettendo — il
+  bagliore, il bordo e il LED sono i suoi, mai un ambra fisso — il dimmer
+  direttamente sulla card per chi ce l'ha, e il pulsante dei controlli che
+  apre la stessa scheda del popup: colore, bianco, effetti. Cosa una luce sa
+  fare lo decide l'entità, mai il dominio: una lampada dietro un relè accende
+  e spegne soltanto, e la card non le offre cursori che rifiuterebbe.
+
 ## 1.1.8
 
 ### Aggiunto

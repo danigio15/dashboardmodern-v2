@@ -752,6 +752,7 @@ export default Object.freeze({
   "ON": "ALLUMÉ",
   "ON/OFF": "MARCHE/ARRÊT",
   "On/off control": "Commande marche/arrêt",
+  "On/off · Brightness · Colour": "Marche/arrêt · Luminosité · Couleur",
   "One window can carry all three: fill in the boxes you have, the box tells the type.": "Une même fenêtre peut avoir les trois : remplis les cases que tu as, la case indique le type.",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.": "Seuls les capteurs journaliers ou les écarts Recorder des compteurs totaux cumulés sont comptés. Les valeurs cumulées ne sont jamais additionnées directement.",
   "Only if you already have a helper measuring the period. Without one, the period comes from the total meter.": "Seulement si tu as déjà un helper qui mesure la période. Sinon, la période vient du compteur total.",
