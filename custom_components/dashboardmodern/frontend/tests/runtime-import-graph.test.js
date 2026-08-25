@@ -293,7 +293,10 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 148 con le aperture della Sicurezza (#195) e le liste ToDo della Home
   // (#201): ognuna segue lo schema delle persone — un modello puro che si
   // prova da solo, la sezione che disegna, l'editor che scrive la sua chiave.
-  assert.ok(relative.length <= 148, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 149 col backup della configurazione: la scheda che raccoglie le chiavi
+  // condivise in un file e le rimette al loro posto — funzioni pure per il
+  // giro dei dati, provate a tavolino, e nessuna chiave sua.
+  assert.ok(relative.length <= 149, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

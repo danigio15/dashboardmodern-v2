@@ -61,6 +61,7 @@ import { installEvSection } from "./ev-section.js";
 import { installMediaPickerSection } from "./media-picker-section.js";
 import { installPeopleSection } from "./people-section.js";
 import { installPeopleEditorSection } from "./people-editor-section.js";
+import { installBackupEditorSection } from "./backup-editor-section.js";
 import { installHomeWidgetsSection } from "./home-widgets-section.js";
 import { installTodoEditorSection } from "./todo-editor-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
@@ -727,6 +728,9 @@ export function installSectionRuntime() {
      * cosi' trova gia' il suo ancoraggio. */
     installHomeWidgetsSection();
     installTodoEditorSection();
+    /* Il backup arriva per ultimo fra le schede: raccoglie le chiavi che gli
+     * altri editor scrivono, non ne possiede nessuna. */
+    installBackupEditorSection();
     installEvSection();
     // The skin installs after the EV owner so the vehicle picker it restyles is
     // already mounted, and re-renders itself on the same runtime events.
@@ -792,6 +796,7 @@ export function installSectionRuntime() {
         "people-editor",
         "home-widgets",
         "todo-editor",
+        "backup-editor",
         "ev",
         "ev-showcase",
         "solar-thermal-design",
