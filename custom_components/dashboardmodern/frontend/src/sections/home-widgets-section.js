@@ -26,6 +26,7 @@ import {
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
 import { normalizeSecurityDoors } from "../core/security-door-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
+import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
 import {
   allStates,
   clean,
@@ -44,8 +45,10 @@ import {
 const KEY = "__DASHBOARDMODERN_HOME_WIDGETS__";
 const STYLE_ID = "dm-widgets-style";
 export const TODO_CONFIG_KEY = "cd_todo";
+export const WIDGETS_CONFIG_KEY = "cd_widgets";
 const STALE_MS = 30000;
 const MAX_VISIBLE_ITEMS = 8;
+const MAX_DETAIL_ROWS = 14;
 
 const state = (root[KEY] ||= {
   installed: false,
@@ -392,17 +395,176 @@ function temperatureModel(states) {
     ring: null, rows };
 }
 
+/* ── i widget del Quadro Avvisi ───────────────────────────────────────── */
+
+/* Il ponte assorbe il Quadro Avvisi: le sue liste sorvegliate — aperture,
+ * batterie, allagamenti, avvisi personalizzati — diventano tessere che, come
+ * le card di prima, compaiono solo quando hanno qualcosa da dire. Le liste e
+ * le regole di conteggio sono LE STESSE del runtime (`GRUPPI_MONITORAGGIO`,
+ * il matcher degli avvisi custom), cosi' numero e voci combaciano sempre. */
+
+function gruppoEntita(chiave) {
+  try {
+    const gruppi = lexicalGlobal("GRUPPI_MONITORAGGIO");
+    const lista = gruppi?.[chiave];
+    return Array.isArray(lista) ? lista.map(clean).filter(Boolean) : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function friendlyName(states, entity) {
+  return (
+    clean(stateOf(states, entity)?.attributes?.friendly_name) ||
+    entity.split(".")[1]?.replaceAll("_", " ") ||
+    entity
+  );
+}
+
+function openingsModel(states) {
+  const entities = gruppoEntita("win");
+  if (!entities.length) return null;
+  const rows = entities.map((entity) => ({
+    entity,
+    name: friendlyName(states, entity),
+    on: clean(stateOf(states, entity)?.state).toLowerCase() === "on",
+  }));
+  const open = rows.filter((row) => row.on);
+  if (!open.length) return null;
+  return { key: "aperture", accent: "#dc2626", icon: "🚪", label: t("Aperture", "Openings"),
+    value: String(open.length), caption: open[0] ? open[0].name : "",
+    ring: Math.round((open.length / rows.length) * 100), rows, open };
+}
+
+function batteriesModel(states) {
+  const entities = gruppoEntita("batt");
+  if (!entities.length) return null;
+  const rows = entities
+    .map((entity) => {
+      const level = Number(stateOf(states, entity)?.state);
+      return { entity, name: friendlyName(states, entity), level: Number.isFinite(level) ? level : null };
+    })
+    .filter((row) => row.level != null)
+    .sort((a, b) => a.level - b.level);
+  const low = rows.filter((row) => row.level <= 20);
+  if (!low.length) return null;
+  return { key: "batterie", accent: "#eab308", icon: "🔋", label: t("Batterie", "Batteries"),
+    value: String(low.length), caption: low[0] ? `${low[0].name} ${Math.round(low[0].level)}%` : "",
+    ring: Math.round((low.length / rows.length) * 100), rows, low };
+}
+
+function floodModel(states) {
+  let entities = [];
+  try {
+    entities = floodEntities(readJson("cd_gruppi_extra", {}), readJson("cd_gruppi_removed", {}), states, true);
+  } catch (_error) {
+    return null;
+  }
+  if (!Array.isArray(entities) || !entities.length) return null;
+  const rows = entities.map((entity) => ({
+    entity,
+    name: friendlyName(states, entity),
+    on: Boolean(floodIsWet(stateOf(states, entity))),
+  }));
+  const wet = rows.filter((row) => row.on);
+  if (!wet.length) return null;
+  return { key: "allagamenti", accent: "#38bdf8", icon: "💧", label: t("Allagamenti", "Floods"),
+    value: String(wet.length), caption: wet[0] ? wet[0].name : "",
+    ring: 100, rows: wet };
+}
+
+/* Le stesse condizioni del runtime, riga per riga: un avviso personalizzato
+ * deve contare qui quello che il suo popup elenca la'. */
+function avvisoAttivo(avviso, current) {
+  const raw = String(current?.state ?? "");
+  const stato = raw.toLowerCase();
+  const numero = Number.parseFloat(raw);
+  const soglia = Number.parseFloat(avviso?.value);
+  switch (clean(avviso?.cond)) {
+    case "off":
+      return ["off", "closed", "false", "no", "0", "unavailable", "unknown", "idle", "standby"].includes(stato);
+    case "eq":
+      return stato === String(avviso?.value ?? "").toLowerCase();
+    case "neq":
+      return stato !== String(avviso?.value ?? "").toLowerCase();
+    case "gt":
+      return !Number.isNaN(numero) && !Number.isNaN(soglia) && numero > soglia;
+    case "lt":
+      return !Number.isNaN(numero) && !Number.isNaN(soglia) && numero < soglia;
+    default:
+      return ["on", "open", "opened", "true", "yes", "home", "detected", "heat", "heating", "cool",
+        "cooling", "playing", "active", "armed", "wet", "motion", "occupied", "running"].includes(stato);
+  }
+}
+
+function customAlertModels(states) {
+  const avvisi = readJson("cd_avvisi_custom", []);
+  if (!Array.isArray(avvisi)) return [];
+  return avvisi
+    .map((avviso, index) => {
+      const entities = Array.isArray(avviso?.entities)
+        ? avviso.entities
+        : avviso?.entity
+          ? [avviso.entity]
+          : [];
+      const rows = entities
+        .map(clean)
+        .filter(Boolean)
+        .filter((entity) => {
+          const current = stateOf(states, entity);
+          return current && avvisoAttivo(avviso, current);
+        })
+        .map((entity) => ({
+          entity,
+          name: friendlyName(states, entity),
+          state: clean(stateOf(states, entity)?.state),
+        }));
+      if (!rows.length) return null;
+      return { key: `custom-${index}`, accent: "#f59e0b", icon: clean(avviso?.icon) || "⚠️",
+        label: clean(avviso?.name) || t("Avviso", "Alert"), value: String(rows.length),
+        caption: rows[0]?.name || "", ring: null, rows };
+    })
+    .filter(Boolean);
+}
+
+/* ── la personalizzazione (cd_widgets) ────────────────────────────────── */
+
+export function widgetPreferences() {
+  const stored = readJson(WIDGETS_CONFIG_KEY, {});
+  const hidden = Array.isArray(stored?.hidden) ? stored.hidden.map(clean).filter(Boolean) : [];
+  const order = Array.isArray(stored?.order) ? stored.order.map(clean).filter(Boolean) : [];
+  return { hidden, order };
+}
+
+/** L'ordine scelto prima, poi quello naturale; le tessere nascoste non escono.
+ * Gli avvisi personalizzati si governano insieme, sotto la chiave `custom`. */
+export function applyWidgetPreferences(models, preferences = widgetPreferences()) {
+  const hidden = new Set(preferences.hidden);
+  const chiave = (widget) => (widget.key.startsWith("custom-") ? "custom" : widget.key);
+  const rank = (widget) => {
+    const index = preferences.order.indexOf(chiave(widget));
+    return index < 0 ? preferences.order.length + models.indexOf(widget) : index;
+  };
+  return models.filter((widget) => !hidden.has(chiave(widget))).sort((a, b) => rank(a) - rank(b));
+}
+
 function widgetModels(states) {
-  return [
-    todoModel(states),
-    lightsModel(states),
-    climateModel(states),
-    coversModel(states),
-    securityModel(states),
-    energyModel(states),
-    appliancesModel(states),
-    temperatureModel(states),
-  ].filter(Boolean);
+  return applyWidgetPreferences(
+    [
+      todoModel(states),
+      lightsModel(states),
+      climateModel(states),
+      coversModel(states),
+      securityModel(states),
+      energyModel(states),
+      appliancesModel(states),
+      temperatureModel(states),
+      openingsModel(states),
+      batteriesModel(states),
+      floodModel(states),
+      ...customAlertModels(states),
+    ].filter(Boolean),
+  );
 }
 
 /* ── markup: le tessere ───────────────────────────────────────────────── */
@@ -599,6 +761,56 @@ function temperatureDetail(widget) {
     .join("");
 }
 
+function openingsDetail(widget) {
+  const rows = [...widget.rows].sort((a, b) => Number(b.on) - Number(a.on)).slice(0, MAX_DETAIL_ROWS);
+  return rows
+    .map((row) =>
+      rowShell(
+        `<span class="dm-w-dot" data-on="${row.on}" aria-hidden="true"></span>
+         <span class="dm-w-name">${esc(row.name)}</span>
+         <b class="dm-w-val">${esc(row.on ? t("Aperta", "Open") : t("Chiusa", "Closed"))}</b>`,
+      ),
+    )
+    .join("");
+}
+
+function batteriesDetail(widget) {
+  return widget.rows
+    .slice(0, MAX_DETAIL_ROWS)
+    .map((row) =>
+      rowShell(
+        `<span class="dm-w-dot" data-on="${row.level <= 20}" aria-hidden="true"></span>
+         <span class="dm-w-name">${esc(row.name)}</span>
+         <b class="dm-w-val">${Math.round(row.level)}%</b>`,
+      ),
+    )
+    .join("");
+}
+
+function floodDetail(widget) {
+  return widget.rows
+    .map((row) =>
+      rowShell(
+        `<span class="dm-w-dot" data-on="true" aria-hidden="true"></span>
+         <span class="dm-w-name">${esc(row.name)}</span>`,
+      ),
+    )
+    .join("");
+}
+
+function customDetail(widget) {
+  return widget.rows
+    .slice(0, MAX_DETAIL_ROWS)
+    .map((row) =>
+      rowShell(
+        `<span class="dm-w-dot" data-on="true" aria-hidden="true"></span>
+         <span class="dm-w-name">${esc(row.name)}</span>
+         <b class="dm-w-val">${esc(row.state)}</b>`,
+      ),
+    )
+    .join("");
+}
+
 function detailBody(widget, states) {
   if (widget.key === "todo") return todoDetail(widget);
   if (widget.key === "luci") return lightsDetail(widget);
@@ -608,6 +820,10 @@ function detailBody(widget, states) {
   if (widget.key === "energia") return energyDetail(widget);
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
+  if (widget.key === "aperture") return openingsDetail(widget);
+  if (widget.key === "batterie") return batteriesDetail(widget);
+  if (widget.key === "allagamenti") return floodDetail(widget);
+  if (widget.key.startsWith("custom-")) return customDetail(widget);
   return "";
 }
 
@@ -663,10 +879,27 @@ function structureSignature(models) {
   ].join("§");
 }
 
+/* Il vecchio Quadro Avvisi si fa da parte quando il ponte e' in scena: le sue
+ * card sono diventate tessere, e due copie della stessa notizia sono rumore.
+ * Sparisce solo finche' il ponte ha qualcosa da mostrare — senza widget, la
+ * Home resta esattamente quella di prima. */
+function assorbiQuadroAvvisi(attivo) {
+  const grid = doc?.getElementById?.("glance-grid");
+  if (!grid) return;
+  if (attivo) grid.dataset.dmAssorbito = "true";
+  else delete grid.dataset.dmAssorbito;
+  const title = grid.previousElementSibling;
+  if (title?.matches?.("h3.section-title")) {
+    if (attivo) title.dataset.dmAssorbito = "true";
+    else delete title.dataset.dmAssorbito;
+  }
+}
+
 export function renderHomeWidgets() {
   const states = allStates();
   const models = widgetModels(states);
   const host = doc?.getElementById?.("dm-widgets");
+  assorbiQuadroAvvisi(models.length > 0);
   if (!models.length) {
     host?.remove();
     state.signature = "";
@@ -796,6 +1029,9 @@ function installStyles() {
   installStyle(STYLE_ID, `
 /* ── «In primo piano»: il ponte dei widget della Home ─────────────────── */
 #dm-widgets{display:block;margin:16px 0 6px}
+/* Il Quadro Avvisi assorbito dal ponte: la riga sta in JS, che sa quando il
+   ponte e' in scena; qui c'e' solo il come. */
+#page-home [data-dm-assorbito="true"]{display:none!important}
 #dm-widgets .dm-widgets-head{display:flex;align-items:center;gap:12px;padding:0 4px 12px}
 #dm-widgets .dm-widgets-ic{
   width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;font-size:21px;

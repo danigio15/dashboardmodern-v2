@@ -136,3 +136,37 @@ test("una tessera per sezione, e ognuna legge la configurazione che c'e' gia'", 
   assert.match(sezione, /function structureSignature/);
   assert.match(sezione, /state\.signature !== signature/);
 });
+
+test("il ponte assorbe il Quadro Avvisi, con le sue stesse liste e regole", async () => {
+  const sezione = leggi("sections/home-widgets-section.js");
+  // Le liste sorvegliate sono quelle del runtime, non una copia.
+  assert.match(sezione, /GRUPPI_MONITORAGGIO/);
+  for (const modello of ["openingsModel", "batteriesModel", "floodModel", "customAlertModels"])
+    assert.match(sezione, new RegExp(`function ${modello}`), modello);
+  // Il vecchio Quadro si fa da parte solo quando il ponte e' in scena.
+  assert.match(sezione, /function assorbiQuadroAvvisi/);
+  assert.match(sezione, /assorbiQuadroAvvisi\(models\.length > 0\)/);
+  // Le batterie contano come il runtime: scarica vuol dire ≤ 20.
+  assert.match(sezione, /level <= 20/);
+
+  // Le preferenze: nascoste fuori, ordine scelto prima, custom insieme.
+  const { applyWidgetPreferences } = await import("../src/sections/home-widgets-section.js");
+  const models = [
+    { key: "todo" },
+    { key: "luci" },
+    { key: "custom-0" },
+    { key: "custom-1" },
+  ];
+  const sistemati = applyWidgetPreferences(models, { hidden: ["luci", "custom"], order: ["todo"] });
+  assert.deepEqual(sistemati.map((widget) => widget.key), ["todo"]);
+  const ordinati = applyWidgetPreferences(models, { hidden: [], order: ["custom", "todo"] });
+  assert.deepEqual(ordinati.map((widget) => widget.key), ["custom-0", "custom-1", "todo", "luci"]);
+});
+
+test("cd_widgets viaggia nella configurazione condivisa, alla revisione 7", async () => {
+  const { CONFIG_KEYS, CONFIG_KEYS_REVISION } = await import(
+    "../src/sections/config-persistence-section.js"
+  );
+  assert.ok(CONFIG_KEYS.includes("cd_widgets"));
+  assert.ok(CONFIG_KEYS_REVISION >= 7);
+});

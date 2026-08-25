@@ -1,13 +1,18 @@
-/* La configurazione delle liste ToDo (#201).
+/* La configurazione del ponte dei widget (#201).
  *
- * La scheda non esiste nel documento vendorizzato: si aggiunge accanto alle
- * altre, come quella delle persone. Ogni riga e' una lista `todo.*` col nome
- * con cui mostrarla in Home; «Rileva da Home Assistant» riempie l'elenco con
- * le liste che esistono gia', perche' cio' che Home Assistant sa non si
- * riscrive a mano.
+ * La scheda «🧩 Widget» non esiste nel documento vendorizzato: si aggiunge
+ * accanto alle altre, come quella delle persone. Sopra ci sono le tessere del
+ * ponte — quali vedere in Home e in che ordine, scritte in `cd_widgets` — e
+ * sotto le liste ToDo: ogni riga e' una lista `todo.*` col nome con cui
+ * mostrarla, e «Rileva da Home Assistant» riempie l'elenco con le liste che
+ * esistono gia', perche' cio' che Home Assistant sa non si riscrive a mano.
  */
 import { isTodoEntity, suggestTodoLists } from "../core/todo-model.js";
-import { renderHomeWidgets } from "./home-widgets-section.js";
+import {
+  WIDGETS_CONFIG_KEY,
+  renderHomeWidgets,
+  widgetPreferences,
+} from "./home-widgets-section.js";
 import {
   allStates,
   clean,
@@ -49,6 +54,70 @@ function nomeDi(list, index) {
   return clean(list?.name) || clean(list?.entity) || `${t("Lista", "List")} ${index + 1}`;
 }
 
+/* ── le tessere del ponte ─────────────────────────────────────────────── */
+
+/* Il catalogo delle tessere, con le stesse parole delle tessere stesse. Gli
+ * avvisi personalizzati sono una voce sola: si governano insieme. */
+function catalogoTessere() {
+  return [
+    ["todo", "✅", t("Da fare", "To-do")],
+    ["luci", "💡", t("Luci", "Lights")],
+    ["clima", "❄️", t("Clima", "Climate")],
+    ["tapparelle", "🪟", t("Tapparelle", "Shutters")],
+    ["sicurezza", "🛡️", t("Sicurezza", "Security")],
+    ["energia", "⚡", t("Energia", "Energy")],
+    ["elettrodomestici", "🫧", t("Elettrodomestici", "Appliances")],
+    ["temperatura", "🌡️", t("Temperatura", "Temperature")],
+    ["aperture", "🚪", t("Aperture", "Openings")],
+    ["batterie", "🔋", t("Batterie", "Batteries")],
+    ["allagamenti", "💧", t("Allagamenti", "Floods")],
+    ["custom", "⚠️", t("Avvisi personalizzati", "Custom alerts")],
+  ];
+}
+
+/** Il catalogo nell'ordine salvato: e' la lista che le frecce riordinano. */
+function tessereOrdinate() {
+  const preferences = widgetPreferences();
+  const catalogo = catalogoTessere();
+  const rank = (key) => {
+    const index = preferences.order.indexOf(key);
+    return index < 0 ? preferences.order.length + catalogo.findIndex(([k]) => k === key) : index;
+  };
+  return {
+    hidden: new Set(preferences.hidden),
+    rows: [...catalogo].sort((a, b) => rank(a[0]) - rank(b[0])),
+  };
+}
+
+function salvaTessere(rows, hidden) {
+  writeJsonIfChanged(WIDGETS_CONFIG_KEY, {
+    order: rows.map(([key]) => key),
+    hidden: [...hidden],
+  });
+  try {
+    renderHomeWidgets();
+  } catch (_error) {}
+}
+
+function tessereMarkup() {
+  const { hidden, rows } = tessereOrdinate();
+  return `<div class="ed-intro">${t(
+    "Scegli quali tessere vedere in Home e in che ordine. Le tessere degli avvisi — aperture, batterie, allagamenti e avvisi personalizzati — compaiono da sole solo quando hanno qualcosa da dire.",
+    "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.",
+  )}</div>
+  <div class="ed-list dm-widget-pref-list">${rows
+    .map(
+      ([key, icon, label], index) => `<div class="ed-row dm-widget-pref" data-widget-key="${esc(key)}">
+        <span class="dm-widget-pref-icon" aria-hidden="true">${icon}</span>
+        <span class="ed-row-main"><strong class="ed-row-new">${esc(label)}</strong></span>
+        <button type="button" class="ed-del dm-widget-move" data-widget-up aria-label="${t("Più in alto", "Move up")}"${index === 0 ? " disabled" : ""}>▲</button>
+        <button type="button" class="ed-del dm-widget-move" data-widget-down aria-label="${t("Più in basso", "Move down")}"${index === rows.length - 1 ? " disabled" : ""}>▼</button>
+        <button type="button" class="dm-widget-shown" data-widget-shown data-on="${!hidden.has(key)}" aria-label="${t("Visibile in Home", "Shown on Home")}"><i></i></button>
+      </div>`,
+    )
+    .join("")}</div>`;
+}
+
 function rigaMarkup(list, index) {
   const aperto = state.aperto === index;
   return `<article class="ed-row dm-todo-ed-row" data-todo-index="${index}" data-open="${aperto}">
@@ -70,7 +139,8 @@ function rigaMarkup(list, index) {
 }
 
 function bodyMarkup(lists) {
-  return `<div class="ed-intro">${t(
+  return `${tessereMarkup()}
+  <div class="ed-intro dm-todo-ed-intro">${t(
     "Le liste ToDo di Home Assistant, in Home: le attività giornaliere sempre in primo piano, da spuntare direttamente dalla card.",
     "Home Assistant to-do lists, on the Home page: daily tasks always in sight, ticked off straight from the card.",
   )}</div>
@@ -94,8 +164,11 @@ export function ensureTodoEditor() {
   const body = doc?.getElementById("ed-body");
   if (!body || activeTab() !== TODO_EDITOR_TAB) return false;
   const lists = grezze();
+  const preferences = widgetPreferences();
   const firma = [
     state.aperto,
+    preferences.order.join(","),
+    preferences.hidden.join(","),
     ...lists.map((list) => `${list?.id}~${list?.name}~${list?.entity}`),
   ].join("|");
   if (body.dataset.dmTodoEditor === firma && body.querySelector(".dm-todo-ed-list")) return true;
@@ -114,6 +187,29 @@ function ridisegna() {
 function onClick(event) {
   const body = doc?.getElementById("ed-body");
   if (!body || activeTab() !== TODO_EDITOR_TAB || !body.contains(event.target)) return;
+
+  const rigaTessera = event.target.closest("[data-widget-key]");
+  if (rigaTessera) {
+    event.preventDefault();
+    const key = clean(rigaTessera.dataset.widgetKey);
+    const { hidden, rows } = tessereOrdinate();
+    const index = rows.findIndex(([k]) => k === key);
+    if (index < 0) return;
+    if (event.target.closest("[data-widget-shown]")) {
+      if (hidden.has(key)) hidden.delete(key);
+      else hidden.add(key);
+    } else if (event.target.closest("[data-widget-up]") && index > 0) {
+      [rows[index - 1], rows[index]] = [rows[index], rows[index - 1]];
+    } else if (event.target.closest("[data-widget-down]") && index < rows.length - 1) {
+      [rows[index], rows[index + 1]] = [rows[index + 1], rows[index]];
+    } else {
+      return;
+    }
+    salvaTessere(rows, hidden);
+    ridisegna();
+    return;
+  }
+
   const lists = grezze();
 
   if (event.target.closest("[data-todo-add]")) {
@@ -196,7 +292,7 @@ export function ensureTodoEditorTab() {
   const tab = doc.createElement("button");
   tab.className = "ed-tab";
   tab.dataset.tab = TODO_EDITOR_TAB;
-  tab.textContent = `✅ ${t("ToDo", "To-do")}`;
+  tab.textContent = `🧩 ${t("Widget", "Widgets")}`;
   tab.addEventListener("click", () => root.editorSwitch?.(TODO_EDITOR_TAB));
   const prima = tabs.querySelector('.ed-tab[data-tab="runtime"]');
   if (prima) prima.before(tab);
@@ -218,6 +314,19 @@ function installStyles() {
       #ed-body .dm-todo-ed-field .ed-form-row{display:flex;gap:8px;min-width:0}
       #ed-body .dm-todo-ed-field .ed-form-row>input{flex:1 1 auto;min-width:0}
       #ed-body .dm-todo-ed-error:not(:empty){color:var(--error-color,#dc2626);font-size:12px;font-weight:800}
+      #ed-body .dm-todo-ed-intro{margin-top:14px}
+      #ed-body .dm-widget-pref-list{display:grid;gap:6px;margin-bottom:10px}
+      #ed-body .dm-widget-pref{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important}
+      #ed-body .dm-widget-pref-icon{font-size:17px}
+      #ed-body .dm-widget-move[disabled]{opacity:.3;pointer-events:none}
+      #ed-body .dm-widget-shown{
+        flex:0 0 40px;width:40px;height:23px;position:relative;border:0;border-radius:999px;cursor:pointer;
+        background:color-mix(in srgb,var(--text-dim,#94a3b8) 32%,transparent);transition:background .25s ease}
+      #ed-body .dm-widget-shown i{
+        position:absolute;top:2.5px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;
+        box-shadow:0 2px 6px rgba(15,23,42,.25);transition:transform .25s cubic-bezier(.16,1,.3,1)}
+      #ed-body .dm-widget-shown[data-on="true"]{background:#059669}
+      #ed-body .dm-widget-shown[data-on="true"] i{transform:translateX(16px)}
     `,
   );
 }

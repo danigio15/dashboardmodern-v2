@@ -25,9 +25,20 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   niente polling, e il markup si rifà solo quando cambia la struttura, così
   l'apertura non riparte mai da sola. Le liste ToDo arrivano da
   `todo.get_items` sulla presa WebSocket della plancia, spuntarle chiama
-  `todo.update_item`, e la scheda «✅ ToDo» in configurazione — con «🪄
-  Rileva da Home Assistant» — scrive `cd_todo`, nella configurazione
-  condivisa (revisione 6).
+  `todo.update_item`, e la scheda «🧩 Widget» in configurazione governa
+  tutto: le liste ToDo — con «🪄 Rileva da Home Assistant», in `cd_todo` — e
+  le tessere stesse, quali vederne e in che ordine (`cd_widgets`, revisione 7
+  della configurazione condivisa).
+
+- **Il ponte assorbe il Quadro Avvisi.** Le card del Quadro — aperture,
+  batterie scariche, allagamenti, avvisi personalizzati — diventano tessere
+  del ponte, con le STESSE liste sorvegliate e le stesse regole di conteggio
+  del runtime, così numero e voci combaciano sempre; come le card di prima,
+  compaiono da sole solo quando hanno qualcosa da dire, e al tocco elencano
+  chi è aperto, chi è scarico (in ordine di carica), chi è bagnato. Quando il
+  ponte è in scena il vecchio Quadro Avvisi si fa da parte — due copie della
+  stessa notizia sono rumore — e senza widget la Home resta esattamente
+  quella di prima.
 
 - **La posizione preferita della tapparella.** (#200) «Non voglio la chiusura
   completa ma tipo al 95%, per lasciar passare un po' d'aria»: ogni riga di

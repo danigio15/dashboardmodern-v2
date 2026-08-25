@@ -9,8 +9,10 @@ const USER_DATA_VERSION = 1;
  * prima che la chiave esistesse non puo' dire «cancellata», e il travaso di
  * `mergeLegacyMissingConfig` gliela riempie da questo dispositivo.
  * La revisione 6 aggiunge le aperture della Sicurezza (`cd_security_doors`,
- * #195) e le liste ToDo della Home (`cd_todo`, #201), con la stessa regola. */
-export const CONFIG_KEYS_REVISION = 6;
+ * #195) e le liste ToDo della Home (`cd_todo`, #201), con la stessa regola.
+ * La revisione 7 aggiunge le preferenze del ponte dei widget (`cd_widgets`):
+ * quali tessere si vedono in Home e in che ordine. */
+export const CONFIG_KEYS_REVISION = 7;
 const PERSIST_META_KEY = "dm_persistence_meta";
 const REMOTE_REFRESH_MIN_MS = 1200;
 
@@ -72,6 +74,7 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_people",
   "cd_security_doors",
   "cd_todo",
+  "cd_widgets",
   "cd_luci",
   "cd_luci_rooms",
   "cd_luci_order",
