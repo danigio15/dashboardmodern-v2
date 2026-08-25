@@ -451,7 +451,16 @@ function applyEvAppearance() {
     const icon = card.querySelector(".dm-vehicle-profile-icon");
     const name = card.querySelector(".dm-vehicle-profile-copy strong");
     if (inferredBrand && icon) icon.innerHTML = carBrandVisual(inferredBrand, 28);
-    if (inferredModel && name) name.textContent = inferredModel;
+    /* Il tab dice il NOME che l'utente ha dato all'auto — lo stesso della
+     * lista in configurazione. Prima ci finiva il modello, e chi aveva
+     * chiamato l'auto «Y03» si ritrovava un tab «T03»: due nomi per la
+     * stessa vettura, e l'impressione che i dati fossero di un'altra. */
+    const nomeProprio = clean(vehicle.name);
+    if (name) {
+      const etichetta = nomeProprio || inferredModel;
+      if (etichetta && name.textContent !== etichetta) name.textContent = etichetta;
+    }
+    if (inferredModel) card.title = [inferredBrand, inferredModel].filter(Boolean).join(" ");
     card.dataset.dmVehicleBrand = inferredBrand;
     card.dataset.dmVehicleModel = inferredModel;
   });
