@@ -396,6 +396,12 @@ async function onClick(event) {
       const campo = riga.querySelector(`[data-person-field="${field}"]`);
       if (campo && !clean(campo.value)) {
         campo.value = sensore;
+        /* Il campo decorato e' nascosto dietro la pastiglia, e la pastiglia
+         * si ridipinge solo sugli eventi del campo: un .value assegnato in
+         * silenzio riempiva l'input invisibile e lasciava a video «Scegli
+         * entità» — sei sensori trovati e nessuno da vedere. */
+        campo.dispatchEvent(new Event("input", { bubbles: true }));
+        campo.dispatchEvent(new Event("change", { bubbles: true }));
         riempiti += 1;
       }
     }
