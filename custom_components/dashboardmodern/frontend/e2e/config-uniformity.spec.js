@@ -72,8 +72,11 @@ const SECTION_TABS = [
   "pool",
   "irr",
   "appliances",
+  // Da quando la sezione Luci sta nella barra, la sua scheda ha la fascia
+  // visibile/nascondi come tutte le altre.
+  "luci",
 ];
-const PLAIN_TABS = ["sez8", "stanze", "luci", "avvisi"];
+const PLAIN_TABS = ["sez8", "stanze", "avvisi"];
 const NO_SAVE_TABS = ["runtime"];
 
 async function boot(page, testInfo) {
@@ -184,7 +187,7 @@ test.describe("the configuration behaves the same on every tab", () => {
     }
     for (const tab of PLAIN_TABS) {
       await openTab(page, tab);
-      // These four are not sections of the dashboard, so they have no switch.
+      // These three are not sections of the dashboard, so they have no switch.
       await settledTabState(page, (view) => view.banners, `${tab}: no switch`).toBe(0);
     }
   });
