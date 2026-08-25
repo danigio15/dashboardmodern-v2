@@ -253,13 +253,6 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   collegamento giù la richiesta falliva, il fallimento faceva ridisegnare e il
   disegno richiedeva di nuovo. Dopo un errore adesso si aspetta.
 
-- **Aggiornare la configurazione non resuscita quello che avevi cancellato.**
-  Alzare la revisione delle chiavi condivise per una chiave nuova riempiva
-  dalla copia locale *ogni* chiave mancante: una plancia rimasta indietro si
-  riprendeva le tapparelle o le persone cancellate da un altro dispositivo, e
-  alla prima modifica se le riportava dietro anche nel salvataggio condiviso.
-  Ora si travasa solo ciò che è nato dopo quel salvataggio.
-
 - **Il tasto di accensione del clima non chiamava niente.** «Impostando
   correttamente le entità non si accendono», segnalato da un utente: la
   sezione provava tre strade per parlare a Home Assistant — `cdCallServiceJson`,
