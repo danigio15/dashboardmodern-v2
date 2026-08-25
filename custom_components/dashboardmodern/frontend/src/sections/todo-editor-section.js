@@ -200,7 +200,41 @@ export function ensureTodoEditor() {
   try {
     root.edAvvRenderEnts?.();
   } catch (_error) {}
+  potaGruppiOrfani(body);
   return true;
+}
+
+/* I gruppi sorvegliati che non alimentano piu' niente.
+ *
+ * Il Quadro Avvisi aveva una card per le luci accese, una per il clima, una
+ * per il riscaldamento: erano conteggi di entita' elencate qui a mano. Quelle
+ * card non ci sono piu' e le tessere che le hanno sostituite leggono la
+ * sezione vera — le luci sono quelle della scheda Luci, il clima quelle della
+ * scheda Clima — percio' elencarle di nuovo qui non serviva a nessuno: era
+ * una lista che si poteva riempire senza che cambiasse niente da nessuna
+ * parte. Restano i gruppi che una tessera ce l'hanno ancora: aperture,
+ * batterie e gli avvisi personalizzati.
+ *
+ * Il gruppo di un accordion si legge dal suo stesso cestino — `edDelAvviso`
+ * porta la chiave come primo argomento — cosi' non serve indovinarlo dal
+ * titolo, che cambia con la lingua. */
+const GRUPPI_ORFANI = Object.freeze(["luci", "clima", "risc", "tapp"]);
+
+function potaGruppiOrfani(body) {
+  for (const gruppo of GRUPPI_ORFANI) {
+    for (const accordion of body.querySelectorAll(".ed-acc")) {
+      if (accordion.innerHTML.includes(`edDelAvviso('${gruppo}'`)) accordion.remove();
+    }
+    body.querySelector(`#ed-avv-grp option[value="${gruppo}"]`)?.remove();
+  }
+  // La spiegazione parlava del Quadro Avvisi, che non c'e' piu': dice dove
+  // vanno a finire davvero questi sensori.
+  const intro = body.querySelector(".dm-widget-ed-sep ~ .ed-intro");
+  if (intro)
+    intro.textContent = t(
+      "Le tessere d'avviso della Home — aperture, batterie, allagamenti — si accendono da sole solo quando hanno qualcosa da dire. Qui scegli quali sensori sorvegliano, con un nome pulito, oppure crei un avviso personalizzato su una o più entità, con condizione, stato a mano e icona a scelta.",
+      "The Home alert tiles — openings, batteries, floods — light up on their own only when they have something to say. Here you choose which sensors they watch, with a clean name, or you create a custom alert on one or more entities, with a condition, a hand-written state and an icon of your choice.",
+    );
 }
 
 function ridisegna() {

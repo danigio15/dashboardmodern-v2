@@ -180,7 +180,10 @@ export function openAlertEditor(row) {
 }
 
 export function normalizeAlertsEditor() {
-  if (doc?.querySelector(".ed-tab.active")?.dataset?.tab !== "avvisi") return false;
+  // La scheda degli avvisi non ha piu' una linguetta sua: vive in fondo a
+  // quella dei widget. Chiedere «quale linguetta e' attiva» non dice piu'
+  // niente; chiedere se la scheda e' in scena, si'.
+  if (!doc?.getElementById("ed-avv-grp")) return false;
   const body = doc.getElementById("ed-body");
   if (!body) return false;
   body.querySelectorAll(".ed-row").forEach((row) => {
@@ -207,8 +210,7 @@ export function normalizeAlertsEditor() {
 
 function clearAlertsAfterReset() {
   doc?.getElementById("dm-alert-editor-modal")?.remove();
-  doc?.getElementById("glance-custom-wrap")?.replaceChildren();
-  if (doc?.querySelector(".ed-tab.active")?.dataset?.tab === "avvisi") {
+  if (doc?.getElementById("ed-avv-grp")) {
     const body = doc.getElementById("ed-body");
     if (body) body.replaceChildren();
   }
@@ -219,7 +221,7 @@ function installStyles() {
     "dm-alerts-section-style",
     `
       #editor-modal .dm-alert-edit{background:color-mix(in srgb,var(--info-color,#0ea5e9) 14%,transparent)!important;color:var(--info-color,#0369a1)!important}
-      #editor-modal .dm-alert-row,#editor-modal .ed-tab[data-tab="avvisi"]~#ed-body .ed-row{min-width:0!important}
+      #editor-modal .dm-alert-row,#editor-modal .ed-tab[data-tab="todo"]~#ed-body .ed-row{min-width:0!important}
       .dm-alert-group-row{display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;gap:12px!important;align-items:center!important}
       .dm-alert-group-preview{display:grid!important;place-items:center!important;width:72px!important;height:72px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:18px!important;background:var(--secondary-background-color,#eef3f8)!important;font-size:34px!important}
     `,
@@ -243,7 +245,7 @@ export function installAlertsSection() {
           openAlertEditor(edit.closest(".ed-row"));
           return;
         }
-        if (event.target?.closest?.(".ed-tab[data-tab='avvisi']"))
+        if (event.target?.closest?.(".ed-tab[data-tab='todo']"))
           root.queueMicrotask?.(normalizeAlertsEditor);
       },
       true,

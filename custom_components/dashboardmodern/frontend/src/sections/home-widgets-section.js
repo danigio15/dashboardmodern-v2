@@ -315,14 +315,9 @@ function securityModel(states) {
   const doors = normalizeSecurityDoors(readJson("cd_security_doors", [])).filter((door) =>
     widgetIncludes(door.entity, fuori),
   );
-  let cameras = [];
-  try {
-    cameras = root.getCameras?.() || [];
-  } catch (_error) {}
-  cameras = (Array.isArray(cameras) ? cameras : []).filter((camera) =>
-    widgetIncludes(clean(camera?.entity), fuori),
-  );
-  if (!alarm && !doors.length && !cameras.length) return null;
+  // Senza antifurto e senza aperture non c'e' una sicurezza da raccontare: le
+  // telecamere, da sole, sono gia' la loro tessera.
+  if (!alarm && !doors.length) return null;
   const raw = clean(alarm?.state).toLowerCase();
   const triggered = raw === "triggered" || raw === "pending";
   const armed = raw.startsWith("armed");
@@ -333,10 +328,13 @@ function securityModel(states) {
       : armed
         ? t("Inserito", "Armed")
         : t("Disinserito", "Disarmed");
+  // La didascalia parla di quello che questa tessera comanda — l'antifurto e
+  // le aperture — non delle telecamere: quelle hanno la loro tessera, con le
+  // miniature, e dirle due volte era dire due volte la stessa cosa.
   return { key: "sicurezza", accent: triggered ? "#e11d48" : "#10b981", icon: "🛡️", alert: triggered,
     label: t("Sicurezza", "Security"), value,
-    caption: cameras.length ? t(`${cameras.length} telecamere`, `${cameras.length} cameras`) : "",
-    ring: armed || triggered ? 100 : 0, doors, cameras: cameras.length,
+    caption: doors.length ? clean(doors[0].name) || clean(doors[0].entity) : "",
+    ring: armed || triggered ? 100 : 0, doors,
     alarm: Boolean(alarm), armed, triggered, mode: raw };
 }
 

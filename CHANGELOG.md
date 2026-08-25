@@ -108,6 +108,24 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   insieme all'ordine delle tessere: chi non è nell'elenco è dentro, così chi
   non tocca niente vede quello che vedeva.
 
+- **Niente detto due volte: la Sicurezza non conta più le telecamere.** La
+  didascalia della tessera «Sicurezza» diceva «2 telecamere» mentre accanto
+  c'era la tessera «Telecamere» con le miniature: due tessere per la stessa
+  cosa. Adesso la Sicurezza parla di quello che comanda — l'antifurto e le
+  aperture — e senza antifurto né aperture non compare affatto, perché le
+  telecamere da sole sono già la loro tessera.
+
+- **I gruppi sorvegliati che non alimentavano più niente sono spariti.** Il
+  Quadro Avvisi aveva una card per le luci accese, una per il clima, una per
+  il riscaldamento, alimentate da elenchi di entità scritti a mano nella
+  scheda degli avvisi. Quelle card non ci sono più e le tessere che le hanno
+  sostituite leggono la sezione vera — le luci sono quelle della scheda Luci,
+  il clima quelle della scheda Clima — quindi quegli elenchi si potevano
+  riempire senza che cambiasse niente da nessuna parte. Restano i gruppi che
+  una tessera ce l'hanno ancora: aperture, batterie, allagamenti e gli avvisi
+  personalizzati. Con loro se n'è andata anche la card «Allagamenti» che
+  cercava ancora il Quadro per posarsi, e il suo popup.
+
 - **La configurazione degli avvisi si trasferisce nella scheda Widget.** La
   linguetta «🔔 Avvisi» non aveva più una sezione dietro: quegli avvisi sono
   diventati tessere. Quello che c'era da configurare — quali sensori

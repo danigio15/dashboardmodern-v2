@@ -543,7 +543,9 @@ export function synchronizeLightAlerts() {
 
 function normalizeAlertEditorDom() {
   const body = doc?.getElementById("ed-body");
-  if (!body || doc.querySelector(".ed-tab.active")?.dataset?.tab !== "avvisi") return false;
+  // La scheda degli avvisi sta in fondo a quella dei widget: la si riconosce
+  // dai suoi campi, non dalla linguetta.
+  if (!body || !body.querySelector("#ed-avv-grp")) return false;
   body.querySelectorAll(".ed-row").forEach((row) => {
     const label = clean(row.querySelector(".ed-row-new")?.textContent);
     const entity = clean(row.querySelector(".ed-row-old")?.textContent);

@@ -132,7 +132,7 @@ function normalizeLightsEditor() {
 }
 
 function normalizeAlertsEditor() {
-  if (doc?.querySelector(".ed-tab.active")?.dataset?.tab !== "avvisi") return false;
+  if (!doc?.getElementById("ed-avv-grp")) return false;
   root.__DASHBOARDMODERN_ALERTS_RUNTIME__?.apply?.();
   return true;
 }
