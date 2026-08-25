@@ -1068,15 +1068,40 @@ function setEVMode(mode) {
   const btnPopup = document.getElementById('p-btn-' + mode);
   if(btnMod) btnMod.classList.add('active');
   if(btnPopup) btnPopup.classList.add('active');
-  ws.send(JSON.stringify({ id: msgId++, type: 'call_service', domain: 'select', service: 'select_option', service_data: { entity_id: 'dm.ev_modalita_ricarica_evcc', option: mode } }));
+  // La chiamata viaggia sull'entita' mappata, non sul riferimento dm.*:
+  // senza risolverlo Home Assistant rifiutava sempre e i pulsanti sembravano
+  // morti (l'active ottimista veniva rispento dal render successivo).
+  const modeEid = resolveEntity('dm.ev_modalita_ricarica_evcc');
+  if (!modeEid || modeEid.indexOf('dm.') === 0) return;
+  ws.send(JSON.stringify({ id: msgId++, type: 'call_service', domain: modeEid.split('.')[0], service: 'select_option', service_data: { entity_id: modeEid, option: mode } }));
 }
 
 window.changeSelect = function(entityId, value) {
   if(!ws) return;
   if(navigator.vibrate) navigator.vibrate(10);
-  const domain = entityId.split('.')[0]; 
-  ws.send(JSON.stringify({ id: msgId++, type: 'call_service', domain: domain, service: 'select_option', service_data: { entity_id: entityId, option: value } }));
+  // Il riferimento dm.* si traduce nell'entita' mappata e il dominio si legge
+  // da quella: prima partiva una chiamata su un dominio inesistente e il
+  // target non cambiava mai. Un'entita' number si comanda con set_value.
+  const eid = resolveEntity(entityId);
+  if (!eid || eid.indexOf('dm.') === 0 || eid.indexOf('input_dm.') === 0) return;
+  const domain = eid.split('.')[0];
+  const call = (domain === 'number' || domain === 'input_number')
+    ? { domain: domain, service: 'set_value', service_data: { entity_id: eid, value: parseFloat(value) } }
+    : { domain: domain, service: 'select_option', service_data: { entity_id: eid, option: value } };
+  ws.send(JSON.stringify(Object.assign({ id: msgId++, type: 'call_service' }, call)));
 };
+
+// I km al limite di carica: il sensore dedicato se c'e', altrimenti il conto
+// autonomia attuale / batteria attuale x target — cosi' cambiando il target
+// il numero si muove anche senza un sensore template scritto a mano.
+function dmEvKmAlTarget() {
+  const lim = parseFloat(getRawState('dm.ev_target_soc'));
+  const range = parseFloat(getRawState('dm.ev_autonomia'));
+  const soc = parseFloat(getRawState('dm.ev_batteria_auto'));
+  if (isFinite(range) && isFinite(soc) && soc > 0 && isFinite(lim)) return Math.round((range / soc) * lim);
+  const dedicato = parseFloat(getRawState('dm.ev_autonomia_al_limite_di_carica'));
+  return isFinite(dedicato) ? Math.round(dedicato) : null;
+}
 
 function apriPopup() {
     document.getElementById('ev-popup').classList.add('show');
@@ -5879,8 +5904,8 @@ function render() {
       document.querySelectorAll('.v-ev-odo').forEach(el => el.textContent = odoRaw !== '—' ? parseFloat(odoRaw).toFixed(0)+' km' : '—');
       document.querySelectorAll('.v-ev-ac-tot').forEach(el => el.textContent = acTotRaw !== '—' ? parseFloat(acTotRaw).toFixed(2)+' kWh' : '—');
       document.querySelectorAll('.v-ev-temp-wb').forEach(el => el.textContent = tempWbRaw !== '—' ? parseFloat(tempWbRaw).toFixed(1)+' °C' : '—');
-      const autoLimRaw = getRawState('dm.ev_autonomia_al_limite_di_carica');
-      document.querySelectorAll('.v-auto-limite').forEach(el => el.textContent = autoLimRaw !== '—' ? parseFloat(autoLimRaw).toFixed(0)+' km' : '—');
+      const autoLimKm = dmEvKmAlTarget();
+      document.querySelectorAll('.v-auto-limite').forEach(el => el.textContent = autoLimKm != null ? autoLimKm+' km' : '—');
       // Modo EVCC
       const evccModeRaw = getRawState('dm.ev_modalita_ricarica_evcc');
       document.querySelectorAll('.lm-evcc-btn').forEach(b => b.classList.remove('active'));
@@ -5889,9 +5914,9 @@ function render() {
       if (activeM) { const el = document.getElementById(activeM); if(el) el.classList.add('active'); }
       // Target SoC select
       const tSocSel = document.getElementById('sel-target-soc');
-      const tSocVal = getRawState('input_dm.ev_target_soc');
+      const tSocVal = getRawState('dm.ev_target_soc');
       if (tSocSel && tSocSel.options.length === 0) {
-          const opts = STATES['input_dm.ev_target_soc']?.attributes?.options || ['60','70','80','90','100'];
+          const opts = STATES['dm.ev_target_soc']?.attributes?.options || ['60','70','80','90','100'];
           opts.forEach(o => { const opt = document.createElement('option'); opt.value=o; opt.textContent=o+'%'; tSocSel.appendChild(opt); });
       }
       if (tSocSel && tSocVal !== '—') tSocSel.value = tSocVal; 
@@ -5983,7 +6008,7 @@ function render() {
           }
       }
       
-      let targetSocStr = getRawState('input_dm.ev_target_soc');
+      let targetSocStr = getRawState('dm.ev_target_soc');
       let targetSoc = parseInt(targetSocStr);
       if (isNaN(targetSoc)) targetSoc = 100;
       
@@ -6106,7 +6131,7 @@ function render() {
       }
 
       document.querySelectorAll('.v-ev-pow').forEach(el => el.textContent = getDisplay('dm.ev_potenza_wallbox')); document.querySelectorAll('.v-ev-volt').forEach(el => el.textContent = getDisplay('dm.ev_tensione_wallbox')); document.querySelectorAll('.v-ev-range').forEach(el => el.textContent = getDisplay('dm.ev_autonomia')); document.querySelectorAll('.v-ev-km-ric').forEach(el => el.textContent = getDisplay('dm.ev_km_dall_ultima_ricarica')); document.querySelectorAll('.v-ev-odo').forEach(el => el.textContent = getDisplay('dm.ev_odometro')); document.querySelectorAll('.v-ev-ac-tot').forEach(el => el.textContent = getDisplay('dm.ev_prelievo_ac_totale_auto')); document.querySelectorAll('.v-ev-temp-wb').forEach(el => el.textContent = getDisplay('dm.ev_temperatura_wallbox'));
-      updateSelectOptions('input_dm.ev_target_soc', 'sel-target-soc'); updateSelectOptions('input_dm.ev_target_soc', 'sel-target-soc-popup'); document.querySelectorAll('.v-auto-limite').forEach(el => el.textContent = getDisplay('dm.ev_autonomia_al_limite_di_carica'));
+      updateSelectOptions('dm.ev_target_soc', 'sel-target-soc'); updateSelectOptions('dm.ev_target_soc', 'sel-target-soc-popup'); (function(){ const km = dmEvKmAlTarget(); document.querySelectorAll('.v-auto-limite').forEach(el => el.textContent = km != null ? km+' km' : '—'); })();
       const evccMode = getRawState('dm.ev_modalita_ricarica_evcc'); document.querySelectorAll('.evcc-mode-btn').forEach(btn => btn.classList.remove('active')); if(evccMode && evccMode !== '—') { const md = evccMode.toLowerCase(); const b1 = document.getElementById('m-btn-' + md); if(b1) b1.classList.add('active'); const b2 = document.getElementById('p-btn-' + md); if(b2) b2.classList.add('active'); }
 
       if(currentPopupType && currentPopupType.startsWith('subloads_')) { renderSubLoads(currentPopupType.replace('subloads_', '')); }

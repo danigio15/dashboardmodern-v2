@@ -400,9 +400,9 @@ function dipingiPannello(panel, cover) {
   const moto = `${cover.status === "opening" ? " opening" : ""}${cover.status === "closing" ? " closing" : ""}`;
   const chiuso = coverClosedPercent(cover.position);
   if (coverIsAwning(cover.kind)) {
-    // Scende dall'alto come la tapparella: cambia il telo, non il verso.
+    // Un'estensione: posizione 0 ritratta (non visibile), 100 estesa (visibile).
     panel.className = `dm-tendasole${moto}`;
-    panel.style.height = `${chiuso}%`;
+    panel.style.height = `${cover.position}%`;
   } else if (coverIsSideways(cover.kind)) {
     panel.className = `dm-tenda${moto}`;
     // I due teli si dividono la parte coperta: meta' per uno, dal centro.

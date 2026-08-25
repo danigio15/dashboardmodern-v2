@@ -48,31 +48,50 @@ if (typeof document !== "undefined") {
     const evBrandStyle = document.createElement("style");
     evBrandStyle.id = "dm-beta7-ev-brand-layout";
     evBrandStyle.textContent = `
+      /* La stessa geometria che beta11 applica dopo la marcatura: la card
+       * appena ridisegnata non deve avere un'impaginazione diversa da quella
+       * che avra' un attimo dopo. */
       .dm-ev-appearance-grid .dm-brand-preview{
-        display:flex!important;
-        flex-direction:column!important;
-        align-items:flex-start!important;
-        justify-content:flex-start!important;
-        gap:5px!important;
-        min-height:82px!important;
-        padding:10px 12px!important;
+        box-sizing:border-box!important;
+        display:grid!important;
+        grid-template-columns:112px minmax(0,1fr)!important;
+        align-items:center!important;
+        gap:12px!important;
+        width:100%!important;
+        min-height:88px!important;
+        padding:12px!important;
         overflow:hidden!important;
+        text-align:left!important;
       }
       .dm-ev-appearance-grid .dm-brand-preview .dm-car-brand{
-        order:-1!important;
         display:grid!important;
-        place-items:center start!important;
-        width:min(132px,100%)!important;
-        max-width:132px!important;
-        height:34px!important;
+        place-items:center!important;
+        width:108px!important;
+        max-width:108px!important;
+        height:48px!important;
+        max-height:48px!important;
         margin:0!important;
+        overflow:hidden!important;
       }
       .dm-ev-appearance-grid .dm-brand-preview .dm-car-brand img{
         display:block!important;
         width:100%!important;
         height:100%!important;
         object-fit:contain!important;
-        object-position:left center!important;
+        object-position:center!important;
+      }
+      @media(max-width:560px){
+        .dm-ev-appearance-grid .dm-brand-preview{
+          grid-template-columns:92px minmax(0,1fr)!important;
+          gap:9px!important;
+          padding:10px!important;
+        }
+        .dm-ev-appearance-grid .dm-brand-preview .dm-car-brand{
+          width:88px!important;
+          max-width:88px!important;
+          height:44px!important;
+          max-height:44px!important;
+        }
       }
       .dm-ev-appearance-grid .dm-brand-preview b{display:block!important;line-height:1.1!important}
       html body #page-tapparelle#page-tapparelle.page{

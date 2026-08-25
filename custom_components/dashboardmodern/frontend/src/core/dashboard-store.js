@@ -364,6 +364,30 @@ export class DashboardStore {
       } finally {
         this.canonicalWriteKeys = null;
       }
+      /* Un transact e' un gesto, e lo dice lui.
+       *
+       * La sincronizzazione fra dispositivi non puo' piu' dedurre i gesti
+       * dalle scritture su disco: il `persist` riscrive le chiavi anche
+       * quando nessuno ha toccato niente — all'avvio, dopo un ripristino —
+       * e prendere quelle riscritture per modifiche dell'utente trasformava
+       * ogni plancia accesa in uno scrittore che rispingeva i propri dati
+       * per sempre. Le scritture di proiezione adesso tacciono, e chi passa
+       * dal negozio con un'intenzione — un editor che salva — lo annuncia
+       * qui, solo quando il contenuto e' cambiato davvero. */
+      const cambiato =
+        visibilityChanged ||
+        (section === "visibility"
+          ? !sameValue(before.visibility, this.state.visibility)
+          : !sameValue(before.sections?.[section], this.state.sections?.[section]));
+      if (cambiato) {
+        try {
+          globalThis.dispatchEvent?.(
+            new CustomEvent("dashboardmodern:store-user-write", {
+              detail: { section, operation },
+            }),
+          );
+        } catch (_error) {}
+      }
       const change = {
         section,
         operation,

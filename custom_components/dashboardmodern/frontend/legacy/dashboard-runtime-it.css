@@ -284,7 +284,7 @@ header { display: flex; align-items: center; justify-content: space-between; mar
 .flow-view.active { display: block; animation: fadeInPage 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
 .flow-stage { position: relative; width: 100%; height: 550px; background: var(--card-bg); border-radius: 36px; border: 1px solid var(--card-border); overflow: hidden; box-shadow: var(--shadow-sculpted); margin-bottom: 30px; }
-.flow-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.flow-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; overflow: hidden; }
 .flow-line { fill: none; stroke-width: 4; opacity: 0.3; stroke-dasharray: 10 10; stroke-linecap: round; stroke: #cbd5e1; transition: all 0.5s ease; }
 .flow-line.active { opacity: 1; stroke-width: 6; stroke: var(--line-color); animation: flowAnimAction 1s linear infinite; filter: drop-shadow(0 0 10px var(--line-color)); }
 @keyframes flowAnimAction { to { stroke-dashoffset: -40; } }
@@ -318,7 +318,7 @@ header { display: flex; align-items: center; justify-content: space-between; mar
 .ev-mod-right { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 0;}
 
 .ev-mod-car-card { background: var(--card-bg); border-radius: 32px; border: 1px solid var(--card-border); box-shadow: var(--shadow-glass); overflow: hidden; display: flex; flex-direction: column; width: 100%; }
-.ev-mod-img-wrapper { width: 100%; position: relative; background: radial-gradient(circle at center, #ffffff 0%, #e0f2fe 100%); overflow: hidden; padding: 50px 0; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: center; align-items: center; }
+.ev-mod-img-wrapper { width: 100%; position: relative; background: radial-gradient(circle at center, #ffffff 0%, #e0f2fe 100%); overflow: hidden; padding: 60px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: center; align-items: center; min-height: 300px; }
 .energy-halo-main { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotateX(60deg); width: 80%; height: 80%; border-radius: 50%; border: 6px dashed rgba(var(--accent-rgb), 0.2); animation: haloSpin 20s linear infinite; z-index: 1; pointer-events: none;}
 .is-charging .energy-halo-main { border-color: rgba(var(--accent-rgb), 0.7); box-shadow: 0 0 50px rgba(var(--accent-rgb), 0.6); animation: haloSpin 4s linear infinite;}
 @keyframes haloSpin { 100% { transform: translate(-50%, -50%) rotateX(60deg) rotate(360deg); } }

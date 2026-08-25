@@ -314,14 +314,16 @@ function schedule() {
     applyReportArtwork();
     installDailyChartOverride();
     installCostSettingsOwner();
-    applyFinancialOverview(root.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle);
+    const bundle = root.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle;
+    if (bundle?.month) applyFinancialOverview(bundle);
   }) || root.setTimeout?.(() => {
     state.frame = 0;
     removeWeeklyDash();
     applyReportArtwork();
     installDailyChartOverride();
     installCostSettingsOwner();
-    applyFinancialOverview(root.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle);
+    const bundle = root.__DASHBOARDMODERN_RUNTIME_ROOT__?.bundle;
+    if (bundle?.month) applyFinancialOverview(bundle);
   }, 0);
 }
 
