@@ -97,6 +97,10 @@ export function ensureEntityChoices() {
   const fuori = escluse();
   let messi = 0;
   for (const row of body.querySelectorAll(".ed-row")) {
+    // Una persona in Home ha la sua card, non una tessera del ponte: un
+    // interruttore che promette di toglierla dai widget prometterebbe una cosa
+    // che non esiste.
+    if (row.matches(".dm-people-row")) continue;
     const entities = entitiesOfRow(row);
     if (!entities.length) continue;
     const dentro = entities.some((entity) => !fuori.has(entity));
@@ -153,6 +157,7 @@ function installStyles() {
     `
       #ed-body .dm-widget-entity{
         display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;float:right;
+        align-self:flex-start;justify-self:start;width:auto;
         margin:0 0 2px 8px;padding:4px 8px;vertical-align:middle;border:1px solid var(--card-border,#e2e8f0);
         border-radius:999px;background:var(--surface-2,#f8fafc);
         font-size:12px;line-height:1;cursor:pointer;
