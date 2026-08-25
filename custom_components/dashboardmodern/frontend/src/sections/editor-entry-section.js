@@ -67,6 +67,11 @@ function installStyles() {
   installStyle(
     "dm-editor-entry-style",
     `
+      /* L'intestazione distribuisce i suoi figli agli estremi: con
+         l'ingranaggio in fondo, lo stato della connessione restava sospeso in
+         mezzo al vuoto. Lo spazio libero va tutto alla sua sinistra, cosi'
+         pillola e ingranaggio stanno insieme, dalla parte della rotella. */
+      html body header .status-pill{margin-left:auto!important}
       html body header .dm-editor-entry{
         display:inline-flex!important;align-items:center!important;justify-content:center!important;
         flex:0 0 auto!important;width:40px!important;height:40px!important;margin-left:10px!important;

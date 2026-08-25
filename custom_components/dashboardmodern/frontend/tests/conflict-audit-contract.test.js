@@ -22,7 +22,9 @@ test("live state changes cannot restart migration or retry loops", () => {
 test("each expensive live section filters the changed entity first", () => {
   assert.match(energy, /stateChangeAffectsEnergy\(event\)/);
   assert.match(appliances, /stateChangeAffectsAppliances\(event\)/);
-  assert.match(shutters, /stateChangeAffectsShutters\(event\)/);
+  // Le tapparelle in Home le disegna il ponte dei widget, non piu questo
+  // modulo: qui non c'e' piu' un ascolto da filtrare.
+  assert.doesNotMatch(shutters, /dashboardmodern:state-changed/);
   assert.match(ev, /stateChangeAffectsEv\(event\)/);
 });
 

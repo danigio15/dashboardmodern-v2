@@ -137,15 +137,20 @@ test("una tessera per sezione, e ognuna legge la configurazione che c'e' gia'", 
   assert.match(sezione, /state\.signature !== signature/);
 });
 
-test("il ponte assorbe il Quadro Avvisi, con le sue stesse liste e regole", async () => {
+test("il ponte ha preso il posto del Quadro Avvisi, con le sue stesse liste e regole", async () => {
   const sezione = leggi("sections/home-widgets-section.js");
   // Le liste sorvegliate sono quelle del runtime, non una copia.
   assert.match(sezione, /GRUPPI_MONITORAGGIO/);
   for (const modello of ["openingsModel", "batteriesModel", "floodModel", "customAlertModels"])
     assert.match(sezione, new RegExp(`function ${modello}`), modello);
-  // Il vecchio Quadro si fa da parte solo quando il ponte e' in scena.
-  assert.match(sezione, /function assorbiQuadroAvvisi/);
-  assert.match(sezione, /assorbiQuadroAvvisi\(models\.length > 0\)/);
+  // Il Quadro non si nasconde piu' a disegno fatto: dal documento e' uscito,
+  // percio' qui non c'e' piu' niente da assorbire.
+  assert.doesNotMatch(sezione, /assorbiQuadroAvvisi|dm-assorbito/);
+  for (const variante of ["dashboard.html", "dashboard-en.html"]) {
+    const pagina = readFileSync(join(SRC, "..", "legacy", variante), "utf8");
+    assert.doesNotMatch(pagina, /Quadro Avvisi/, variante);
+    assert.doesNotMatch(pagina, /id="glance-grid"/, variante);
+  }
   // Le batterie contano come il runtime: scarica vuol dire ≤ 20.
   assert.match(sezione, /level <= 20/);
 

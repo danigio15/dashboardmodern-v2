@@ -86,16 +86,20 @@ test("la card offre la tendina a chi accetta una posizione, non un tasto fisso",
   assert.match(scena, /c\.settable, c\.kind, c\.preset/);
 });
 
-test("il popup della Home offre la stessa tendina, solo a chi puo' usarla", () => {
-  const popup = leggi("sections/shutter-section.js");
-  assert.match(popup, /coverPresetPosition\(cover\)/);
-  assert.match(popup, /function presetOptionsMarkup/);
-  assert.match(popup, /createElement\("select"\)/);
-  assert.match(popup, /comando\.hidden = !item\.settable/);
-  assert.match(popup, /set_cover_position/);
-  // Le voci si riscrivono solo quando cambia la preferita: altrimenti la
-  // tendina si richiuderebbe sotto il dito a ogni aggiornamento.
-  assert.match(popup, /dataset\.shutterOptions !== firma/);
+test("in Home la tendina sta nella tessera del ponte, solo per chi puo' usarla", () => {
+  // La card «Tapparelle aperte» e' uscita dalla Home col Quadro Avvisi che la
+  // ospitava: quello che offriva — fermare una tapparella a una percentuale
+  // scelta — vive nella tessera «Tapparelle», dove ora si guardano.
+  const ponte = leggi("sections/home-widgets-section.js");
+  assert.match(ponte, /function positionSelectMarkup/);
+  assert.match(ponte, /if \(!row\.settable\) return ""/);
+  assert.match(ponte, /coverPositionChoices\(row\.preset\)/);
+  assert.match(ponte, /value === row\.preset \? "⭐ "/);
+  assert.match(ponte, /"set_cover_position"/);
+  // La tendina si apre da sola: il click non deve richiudere la tessera.
+  assert.match(ponte, /closest\?\.\("\[data-dm-w-position\]"\)\) return/);
+  const pelle = leggi("sections/shutter-section.js");
+  assert.doesNotMatch(pelle, /dm-shutter-popup|dm-shutter-alert/);
 });
 
 test("tutti e tre gli editor conoscono la casella del preset", () => {

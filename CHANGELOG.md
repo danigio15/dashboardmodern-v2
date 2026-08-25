@@ -80,15 +80,25 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   da cambiare, porte e cancelli 🚪, gli avvisi personalizzati la loro icona
   scelta.
 
-- **Il ponte assorbe il Quadro Avvisi.** Le card del Quadro — aperture,
-  batterie scariche, allagamenti, avvisi personalizzati — diventano tessere
-  del ponte, con le STESSE liste sorvegliate e le stesse regole di conteggio
-  del runtime, così numero e voci combaciano sempre; come le card di prima,
-  compaiono da sole solo quando hanno qualcosa da dire, e al tocco elencano
-  chi è aperto, chi è scarico (in ordine di carica), chi è bagnato. Quando il
-  ponte è in scena il vecchio Quadro Avvisi si fa da parte — due copie della
-  stessa notizia sono rumore — e senza widget la Home resta esattamente
-  quella di prima.
+- **Il Quadro Avvisi esce dalla Home, e il ponte prende il suo posto.** Le
+  card del Quadro — aperture, batterie scariche, allagamenti, avvisi
+  personalizzati — sono diventate tessere del ponte, con le STESSE liste
+  sorvegliate e le stesse regole di conteggio del runtime, così numero e voci
+  combaciano sempre; come le card di prima compaiono da sole solo quando
+  hanno qualcosa da dire, e al tocco elencano chi è aperto, chi è scarico (in
+  ordine di carica), chi è bagnato. Il vecchio riquadro non viene più
+  nascosto a disegno fatto — si vedeva comparire e sparire sotto gli occhi:
+  è uscito dal documento, così non c'è più niente da nascondere. Con lui se
+  n'è andata la card «Tapparelle aperte» che ci abitava dentro, e il suo
+  popup: la tessera «Tapparelle» dice le stesse cose e porta gli stessi
+  comandi, tendina della posizione compresa. Due strade per la stessa stanza
+  erano una di troppo.
+
+- **Lo stato della connessione torna accanto alla rotella.** L'intestazione
+  distribuisce i suoi figli agli estremi: da quando c'è l'ingranaggio in
+  fondo, la pillola «Connesso» restava sospesa in mezzo al vuoto. Adesso lo
+  spazio libero va tutto alla sua sinistra e le due cose stanno insieme,
+  dalla parte in cui si va a cercarle.
 
 - **La percentuale della tapparella si sceglie, non è più fissa.** (#200)
   «Non voglio la chiusura completa ma tipo al 95%, per lasciar passare un po'

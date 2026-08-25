@@ -102,33 +102,6 @@
       </div>
     </div>
 
-    <h3 class="section-title">Quadro Avvisi</h3>
-    <div class="glance-grid" id="glance-grid">
-      <div class="glance-card" id="glance-luci" style="--g-rgb: 245,158,11; display: none;" onclick="apriDettagli(event, 'luci')">
-        <div class="g-info"><span class="g-name">Luci Accese</span><span class="g-val" id="g-val-luci">0</span></div>
-        <div class="g-icon-wrap anim-ping" style="color: var(--solar);">💡</div>
-      </div>
-      <div class="glance-card" id="glance-clima" style="--g-rgb: 6,182,212; display: none;" onclick="apriDettagli(event, 'clima')">
-        <div class="g-info"><span class="g-name">Clima Attivi</span><span class="g-val" id="g-val-clima">0</span></div>
-        <div class="g-icon-wrap anim-scan" style="color: var(--ev);">❄️</div>
-      </div>
-      <div class="glance-card" id="glance-risc" style="--g-rgb: 225,29,72; display: none;" onclick="apriDettagli(event, 'risc')">
-        <div class="g-info"><span class="g-name">Riscaldamento</span><span class="g-val" id="g-val-risc">0</span></div>
-        <div class="g-icon-wrap anim-ping" style="color: var(--load);">🔥</div>
-      </div>
-      <div class="glance-card" id="glance-win" style="--g-rgb: 225,29,72; display: none;" onclick="apriDettagli(event, 'win')">
-        <div class="g-info"><span class="g-name">Aperture</span><span class="g-val" id="g-val-win">0</span></div>
-        <div class="g-icon-wrap anim-ping" style="color: var(--load);">🚪</div>
-      </div>
-      <div class="glance-card" id="glance-batt" style="--g-rgb: 225,29,72; display: none;" onclick="apriDettagli(event, 'batt')">
-        <div class="g-info"><span class="g-name">Batt. Scariche</span><span class="g-val" id="g-val-batt">0</span></div>
-        <div class="g-icon-wrap anim-ping" style="color: var(--load);">🔋</div>
-      </div>
-      <!-- v245: la card antifurto è stata rimossa dal Quadro Avvisi.
-           Lo stato dell'antifurto adesso vive nella pillola sopra (allarme-banner) -->
-      <!-- v0.9.7 (#4): custom alerts injected here -->
-      <div id="glance-custom-wrap" style="display:contents;"></div>
-    </div>
 
     <h3 class="section-title">Quick Actions</h3>
     <div class="quick-actions" id="qa-grid"><!-- v261: actions generate da getQuickActions() --></div>

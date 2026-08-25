@@ -24,6 +24,7 @@ import {
   pendingTodoItems,
 } from "../core/todo-model.js";
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
+import { coverPositionChoices, coverPresetPosition } from "../core/cover-kind.js";
 import { normalizeSecurityDoors } from "../core/security-door-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
@@ -292,6 +293,9 @@ function coversModel(states) {
         open,
         position: Number.isFinite(position) ? Math.round(position) : null,
         isCover: /^cover\./i.test(entity),
+        // Chi accetta `set_cover_position` (bit 4) si ferma dove gli si dice.
+        settable: Boolean(Number(current?.attributes?.supported_features) & 4),
+        preset: coverPresetPosition(item),
       };
     })
     .filter(Boolean);
@@ -423,11 +427,12 @@ function temperatureModel(states) {
 
 /* ── i widget del Quadro Avvisi ───────────────────────────────────────── */
 
-/* Il ponte assorbe il Quadro Avvisi: le sue liste sorvegliate — aperture,
- * batterie, allagamenti, avvisi personalizzati — diventano tessere che, come
- * le card di prima, compaiono solo quando hanno qualcosa da dire. Le liste e
- * le regole di conteggio sono LE STESSE del runtime (`GRUPPI_MONITORAGGIO`,
- * il matcher degli avvisi custom), cosi' numero e voci combaciano sempre. */
+/* Il ponte ha preso il posto del Quadro Avvisi, che dalla Home e' uscito del
+ * tutto: le sue liste sorvegliate — aperture, batterie, allagamenti, avvisi
+ * personalizzati — sono queste tessere, che come le card di prima compaiono
+ * solo quando hanno qualcosa da dire. Le liste e le regole di conteggio sono
+ * LE STESSE del runtime (`GRUPPI_MONITORAGGIO`, il matcher degli avvisi
+ * custom), cosi' numero e voci combaciano sempre. */
 
 function gruppoEntita(chiave) {
   try {
@@ -700,6 +705,23 @@ function climateDetail(widget) {
     .join("");
 }
 
+/* La tendina della posizione, la stessa della pagina Tapparelle (#200): la
+ * card «Tapparelle aperte» della Home non c'e' piu', e quello che offriva —
+ * fermare la tapparella a una percentuale scelta — vive qui, dove ora si
+ * guardano le tapparelle dalla Home. Solo per chi accetta una posizione. */
+function positionSelectMarkup(row) {
+  if (!row.settable) return "";
+  const invito = t("Scegli la posizione", "Choose the position");
+  const voci = coverPositionChoices(row.preset)
+    .map((value) => {
+      const coda = value === 100 ? t("Aperta", "Open") : value === 0 ? t("Chiusa", "Closed") : "";
+      return `<option value="${value}">${value === row.preset ? "⭐ " : ""}${value}%${coda ? ` · ${esc(coda)}` : ""}</option>`;
+    })
+    .join("");
+  return `<select class="dm-w-position" data-dm-w-position="${esc(row.entity)}"
+      aria-label="${esc(invito)}" title="${esc(invito)}"><option value="">↕</option>${voci}</select>`;
+}
+
 function coversDetail(widget) {
   return widget.rows
     .map((row) =>
@@ -714,7 +736,7 @@ function coversDetail(widget) {
                  <button type="button" data-dm-w-cover="${esc(row.entity)}" data-svc="open_cover" aria-label="▲">▲</button>
                  <button type="button" data-dm-w-cover="${esc(row.entity)}" data-svc="stop_cover" aria-label="■">■</button>
                  <button type="button" data-dm-w-cover="${esc(row.entity)}" data-svc="close_cover" aria-label="▼">▼</button>
-               </span>`
+               </span>${positionSelectMarkup(row)}`
              : ""
          }`,
       ),
@@ -951,27 +973,10 @@ function structureSignature(models) {
   ].join("§");
 }
 
-/* Il vecchio Quadro Avvisi si fa da parte quando il ponte e' in scena: le sue
- * card sono diventate tessere, e due copie della stessa notizia sono rumore.
- * Sparisce solo finche' il ponte ha qualcosa da mostrare — senza widget, la
- * Home resta esattamente quella di prima. */
-function assorbiQuadroAvvisi(attivo) {
-  const grid = doc?.getElementById?.("glance-grid");
-  if (!grid) return;
-  if (attivo) grid.dataset.dmAssorbito = "true";
-  else delete grid.dataset.dmAssorbito;
-  const title = grid.previousElementSibling;
-  if (title?.matches?.("h3.section-title")) {
-    if (attivo) title.dataset.dmAssorbito = "true";
-    else delete title.dataset.dmAssorbito;
-  }
-}
-
 export function renderHomeWidgets() {
   const states = allStates();
   const models = widgetModels(states);
   const host = doc?.getElementById?.("dm-widgets");
-  assorbiQuadroAvvisi(models.length > 0);
   if (!models.length) {
     host?.remove();
     state.signature = "";
@@ -1119,6 +1124,20 @@ function toggleExpand(key) {
   schedule();
 }
 
+/* La posizione scelta parte subito, e la tendina torna alla sua freccia: e'
+ * un comando, non lo specchio di dov'e' la tapparella. */
+function onChange(event) {
+  const position = event.target?.closest?.("[data-dm-w-position]");
+  if (!position) return;
+  const scelta = clean(position.value);
+  position.value = "";
+  if (scelta === "") return;
+  callHa("cover", "set_cover_position", {
+    entity_id: clean(position.dataset.dmWPosition),
+    position: Math.max(0, Math.min(100, Math.round(Number(scelta) || 0))),
+  });
+}
+
 function onClick(event) {
   const check = event.target?.closest?.("[data-dm-todo-check]");
   if (check && !check.disabled) {
@@ -1150,6 +1169,9 @@ function onClick(event) {
     callHa("cover", clean(cover.dataset.svc), { entity_id: clean(cover.dataset.dmWCover) });
     return;
   }
+  // La tendina della posizione si apre da sola: un click sulla tessera che la
+  // ospita la richiuderebbe prima di poterci scegliere qualcosa.
+  if (event.target?.closest?.("[data-dm-w-position]")) return;
   const alarm = event.target?.closest?.("[data-dm-w-alarm]");
   if (alarm) {
     event.preventDefault();
@@ -1183,9 +1205,6 @@ function installStyles() {
   installStyle(STYLE_ID, `
 /* ── «In primo piano»: il ponte dei widget della Home ─────────────────── */
 #dm-widgets{display:block;margin:16px 0 6px}
-/* Il Quadro Avvisi assorbito dal ponte: la riga sta in JS, che sa quando il
-   ponte e' in scena; qui c'e' solo il come. */
-#page-home [data-dm-assorbito="true"]{display:none!important}
 #dm-widgets .dm-widgets-head{display:flex;align-items:center;gap:12px;padding:0 4px 12px}
 #dm-widgets .dm-widgets-ic{
   width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;font-size:21px;
@@ -1345,6 +1364,14 @@ function installStyles() {
 #dm-widgets .dm-w-power[data-on="true"]{
   border-color:transparent;background:var(--dm-widget-accent,#0ea5e9);color:#fff;
   box-shadow:0 4px 12px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent)}
+#dm-widgets .dm-w-position{
+  appearance:none;-webkit-appearance:none;flex:0 0 auto;margin-left:5px;height:26px;
+  width:34px;text-align:center;text-align-last:center;
+  padding:0;border:1px solid var(--card-border,#e2e8f0);border-radius:9px;
+  background:var(--surface-2,#f8fafc);color:var(--text,#0f172a);
+  font:inherit;font-size:12px;font-weight:800;line-height:1;cursor:pointer;
+  transition:border-color .2s ease,background .2s ease}
+#dm-widgets .dm-w-position:hover{border-color:var(--dm-widget-accent,#8b5cf6)}
 #dm-widgets .dm-w-arrows{display:inline-flex;gap:5px}
 #dm-widgets .dm-w-arrows button{
   width:29px;height:29px;display:grid;place-items:center;border-radius:9px;cursor:pointer;
@@ -1414,6 +1441,7 @@ export function installHomeWidgetsSection() {
   state.installed = true;
   installStyles();
   doc.addEventListener("click", onClick);
+  doc.addEventListener("change", onChange);
   for (const eventName of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",
