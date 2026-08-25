@@ -18,6 +18,7 @@
 import {
   avatarSvg,
   FACE_BEARDS,
+  FACE_BUILDS,
   FACE_EYES,
   FACE_GLASSES,
   FACE_HAIR_COLORS,
@@ -112,6 +113,7 @@ const FACE_THUMB_BASE = Object.freeze({
   mouth: "sorriso",
   beard: "nessuna",
   glasses: "nessuno",
+  build: "normale",
 });
 
 function faceRows() {
@@ -122,6 +124,7 @@ function faceRows() {
     { k: "eyes", label: t("Occhi", "Eyes"), keys: [...FACE_EYES] },
     { k: "mouth", label: t("Bocca", "Mouth"), keys: [...FACE_MOUTHS] },
     { k: "beard", label: t("Barba", "Beard"), keys: [...FACE_BEARDS] },
+    { k: "build", label: t("Corporatura", "Build"), keys: [...FACE_BUILDS] },
     { k: "glasses", label: t("Occhiali", "Glasses"), keys: [...FACE_GLASSES] },
   ];
 }

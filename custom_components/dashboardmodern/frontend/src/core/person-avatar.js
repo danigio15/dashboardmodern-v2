@@ -50,6 +50,9 @@ export const FACE_HAIRS = Object.freeze([
 ]);
 
 export const FACE_EYES = Object.freeze(["normali", "sorridenti", "grandi"]);
+/* La corporatura: cambia la larghezza del viso e delle spalle. La prima e' il
+ * default, cosi' le facce gia' costruite restano identiche a com'erano. */
+export const FACE_BUILDS = Object.freeze(["normale", "magra", "robusta"]);
 export const FACE_MOUTHS = Object.freeze(["sorriso", "risata", "neutra", "sorrisetto"]);
 export const FACE_BEARDS = Object.freeze(["nessuna", "baffi", "pizzetto", "piena"]);
 export const FACE_GLASSES = Object.freeze(["nessuno", "tondi", "sole"]);
@@ -75,11 +78,24 @@ export function normalizeFace(input) {
     mouth: pickKey(input.mouth, FACE_MOUTHS),
     beard: pickKey(input.beard, FACE_BEARDS),
     glasses: pickKey(input.glasses, FACE_GLASSES),
+    build: pickKey(input.build, FACE_BUILDS),
   };
 }
 
 /* Un colore un po' piu' scuro, per sopracciglia e ombre: si calcola dal
  * colore scelto invece di tenere un secondo catalogo da dimenticare. */
+export function lighten(hex, amount = 0.16) {
+  const raw = clean(hex).replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(raw)) return hex;
+  const channel = (at) => {
+    const value = Number.parseInt(raw.slice(at, at + 2), 16);
+    return Math.min(255, Math.round(value + (255 - value) * amount))
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${channel(0)}${channel(2)}${channel(4)}`;
+}
+
 export function darken(hex, factor = 0.72) {
   const raw = clean(hex).replace("#", "");
   if (!/^[0-9a-f]{6}$/i.test(raw)) return hex;
@@ -161,6 +177,17 @@ function hairPaths(style, color) {
   }
 }
 
+/* Due ciocche appena piu' chiare sopra il taglio: bastano a far leggere i
+ * capelli come capelli e non come vernice. Il rasato non ne ha. */
+function hairStrands(style, color) {
+  if (style === "rasato") return "";
+  const luce = lighten(color, 0.22);
+  return (
+    `<path d="M44 26 C50 21 58 20 64 21" stroke="${luce}" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".5"/>` +
+    `<path d="M52 22 C58 19 66 19 72 22" stroke="${luce}" stroke-width="1.3" stroke-linecap="round" fill="none" opacity=".35"/>`
+  );
+}
+
 function eyesMarkup(style) {
   const ink = "#241a12";
   if (style === "sorridenti")
@@ -193,15 +220,38 @@ function mouthMarkup(style) {
   return `<path d="M50 67 C55 74 65 74 70 67" stroke="${lip}" stroke-width="3.2" stroke-linecap="round" fill="none"/>`;
 }
 
+/* La barba non e' una toppa piatta: ha lo strato pieno, un velo piu' chiaro
+ * che le da' volume, e qualche pelo disegnato — e' la texture a farla vera. */
 function beardMarkup(style, color) {
+  const chiaro = lighten(color, 0.14);
+  const scuro = darken(color, 0.78);
+  const pelo = (d) =>
+    `<path d="${d}" stroke="${scuro}" stroke-width="1.1" stroke-linecap="round" fill="none" opacity=".55"/>`;
   if (style === "baffi")
-    return `<path d="M47 64 C52 58 68 58 73 64 C67 61 53 61 47 64 Z" fill="${color}"/>`;
+    return (
+      `<path d="M45 63 C49 56.5 57 57.5 60 61 C63 57.5 71 56.5 75 63 C71 66.5 63.5 65.5 60 62.5 C56.5 65.5 49 66.5 45 63 Z" fill="${color}"/>` +
+      `<path d="M48 61.5 C52 58.5 57 59 60 61.5 C63 59 68 58.5 72 61.5 C68 60 63 60 60 62 C57 60 52 60 48 61.5 Z" fill="${chiaro}" opacity=".5"/>` +
+      pelo("M50 60.5 C52 59.6 54 59.5 56 60") +
+      pelo("M64 60 C66 59.5 68 59.6 70 60.5")
+    );
   if (style === "pizzetto")
-    return `<path d="M51 78 C53 86 67 86 69 78 C64 82 56 82 51 78 Z" fill="${color}"/>`;
+    return (
+      `<path d="M50 76 C50 87 70 87 70 76 C68 82 52 82 50 76 Z" fill="${color}"/>` +
+      `<path d="M56.5 71 C57.5 74 62.5 74 63.5 71 C62 72.4 58 72.4 56.5 71 Z" fill="${color}"/>` +
+      `<path d="M53 78 C55 82 65 82 67 78 C64 80 56 80 53 78 Z" fill="${chiaro}" opacity=".45"/>` +
+      pelo("M56 79 L56.6 82") +
+      pelo("M60 80 L60 83.2") +
+      pelo("M64 79 L63.4 82")
+    );
   if (style === "piena")
     return (
-      `<path d="M32 52 C33 82 47 92 60 92 C73 92 87 82 88 52 C86 76 74 84 60 84 C46 84 34 76 32 52 Z" fill="${color}"/>` +
-      `<path d="M47 64 C52 58 68 58 73 64 C67 61 53 61 47 64 Z" fill="${color}"/>`
+      `<path d="M32 52 C33 82 47 93 60 93 C73 93 87 82 88 52 C86 76 74 84 60 84 C46 84 34 76 32 52 Z" fill="${color}"/>` +
+      `<path d="M36 60 C39 78 48 87 60 88 C72 87 81 78 84 60 C82 76 72 82 60 82 C48 82 38 76 36 60 Z" fill="${chiaro}" opacity=".35"/>` +
+      `<path d="M45 63 C49 56.5 57 57.5 60 61 C63 57.5 71 56.5 75 63 C71 66.5 63.5 65.5 60 62.5 C56.5 65.5 49 66.5 45 63 Z" fill="${color}"/>` +
+      pelo("M42 70 C43 74 45 77 48 80") +
+      pelo("M78 70 C77 74 75 77 72 80") +
+      pelo("M55 84 L55.5 88") +
+      pelo("M65 84 L64.5 88")
     );
   return "";
 }
@@ -229,6 +279,14 @@ function glassesMarkup(style) {
  * porta la classe che spegne le animazioni: e' come si disegnano i campioncini
  * dell'editor, che sono decine e non devono respirare tutti insieme.
  */
+/* La corporatura: il viso si stringe o si allarga attorno al suo centro, le
+ * spalle seguono, e la figura robusta prende un accenno di mento pieno. */
+const FACE_BUILD_SHAPES = Object.freeze({
+  normale: { sx: 1, sy: 1, bust: "M16 124 C22 96 40 87 60 87 C80 87 98 96 104 124 Z" },
+  magra: { sx: 0.9, sy: 1.04, bust: "M22 124 C27 98 43 89 60 89 C77 89 93 98 98 124 Z" },
+  robusta: { sx: 1.13, sy: 0.98, bust: "M10 124 C17 94 38 85 60 85 C82 85 103 94 110 124 Z" },
+});
+
 export function avatarSvg(input, { animated = true, shirt = "" } = {}) {
   const face = normalizeFace(input);
   if (!face) return "";
@@ -237,15 +295,35 @@ export function avatarSvg(input, { animated = true, shirt = "" } = {}) {
   const brow = darken(hairColor, 0.7);
   const hair = hairPaths(face.hair, hairColor);
   const shirtFill = clean(shirt) || "var(--dm-person-color,#0ea5e9)";
+  const shape = FACE_BUILD_SHAPES[face.build] || FACE_BUILD_SHAPES.normale;
+  /* I gradienti stanno nei defs con un id che dipende dalla scelta: due
+   * facce con la stessa carnagione condividono la stessa definizione, due
+   * carnagioni diverse non si rubano il colore. */
+  const skinGradId = `dmFaceSkin-${face.skin}`;
+  const testa = shape.sx === 1 && shape.sy === 1
+    ? ""
+    : ` transform="translate(60 56) scale(${shape.sx} ${shape.sy}) translate(-60 -56)"`;
   return (
     `<svg class="dm-face-svg${animated ? "" : " dm-face-still"}" viewBox="0 0 120 120" aria-hidden="true">` +
+    `<defs><radialGradient id="${skinGradId}" cx="46%" cy="38%" r="72%">` +
+    `<stop offset="0%" stop-color="${lighten(skin.base, 0.12)}"/>` +
+    `<stop offset="62%" stop-color="${skin.base}"/>` +
+    `<stop offset="100%" stop-color="${skin.shade}"/>` +
+    `</radialGradient></defs>` +
     `<g class="f-all">` +
     hair.back +
-    `<path d="M16 124 C22 96 40 87 60 87 C80 87 98 96 104 124 Z" fill="${shirtFill}"/>` +
+    `<path d="${shape.bust}" fill="${shirtFill}"/>` +
     `<path d="M52 72 h16 v12 a8 8 0 0 1 -16 0 Z" fill="${skin.shade}"/>` +
-    `<g class="f-head">` +
+    `<g class="f-head"${testa}>` +
     `<circle cx="33" cy="56" r="6" fill="${skin.base}"/><circle cx="87" cy="56" r="6" fill="${skin.base}"/>` +
-    `<path d="M60 20 C79 20 88 35 88 54 C88 74 76 86 60 86 C44 86 32 74 32 54 C32 35 41 20 60 20 Z" fill="${skin.base}"/>` +
+    `<path d="M60 20 C79 20 88 35 88 54 C88 74 76 86 60 86 C44 86 32 74 32 54 C32 35 41 20 60 20 Z" fill="url(#${skinGradId})"/>` +
+    // La luce sulla fronte e l'ombra lungo la mascella: appena accennate,
+    // sono quelle a staccare il viso dal disegno piatto.
+    `<ellipse cx="54" cy="34" rx="14" ry="7" fill="#ffffff" opacity=".10"/>` +
+    `<path d="M40 70 C46 80 74 80 80 70 C74 84 46 84 40 70 Z" fill="${skin.shade}" opacity=".22"/>` +
+    (face.build === "robusta"
+      ? `<path d="M47 82 C53 87 67 87 73 82" stroke="${skin.shade}" stroke-width="2" stroke-linecap="round" fill="none" opacity=".5"/>`
+      : "") +
     `<path d="M41 42 C45 39 51 39 54 42" stroke="${brow}" stroke-width="2.6" stroke-linecap="round" fill="none"/>` +
     `<path d="M66 42 C69 39 75 39 79 42" stroke="${brow}" stroke-width="2.6" stroke-linecap="round" fill="none"/>` +
     `<g class="f-eyes">${eyesMarkup(face.eyes)}</g>` +
@@ -254,6 +332,7 @@ export function avatarSvg(input, { animated = true, shirt = "" } = {}) {
     `<g class="f-mouth">${mouthMarkup(face.mouth)}</g>` +
     beardMarkup(face.beard, hairColor) +
     hair.front +
+    hairStrands(face.hair, hairColor) +
     glassesMarkup(face.glasses) +
     `</g></g></svg>`
   );

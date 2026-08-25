@@ -14,6 +14,9 @@ export default Object.freeze({
   "Add car": "Añadir coche",
   "Save car": "Guardar coche",
   "Edit this car": "Editar este coche",
+  "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
+    "Ya existe un coche llamado \"${nomeScritto}\": usa el lápiz para editarlo o elige otro nombre",
+  "Build": "Complexión",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "Cada coche tiene su propia ficha: ＋ Añadir coche crea uno nuevo — nombre, marca, modelo y todas las entidades abajo — el lápiz lo edita, USE lo muestra en el panel.",
   " — configured": " — configurada",
   "${nuove.length} people imported": "${nuove.length} personas importadas",

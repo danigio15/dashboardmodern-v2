@@ -14,6 +14,9 @@ export default Object.freeze({
   "Add car": "Araç ekle",
   "Save car": "Aracı kaydet",
   "Edit this car": "Bu aracı düzenle",
+  "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
+    "\"${nomeScritto}\" adında bir araç zaten var: düzenlemek için kalemi kullanın veya başka bir ad seçin",
+  "Build": "Vücut yapısı",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "Her aracın kendi kartı var: ＋ Araç ekle yenisini oluşturur — ad, marka, model ve tüm varlıklar aşağıda — kalem düzenler, USE panoda gösterir.",
   " — configured": " — yapılandırıldı",
   "${nuove.length} people imported": "${nuove.length} kişi içe aktarıldı",

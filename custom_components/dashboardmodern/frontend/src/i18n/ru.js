@@ -14,6 +14,9 @@ export default Object.freeze({
   "Add car": "Добавить автомобиль",
   "Save car": "Сохранить автомобиль",
   "Edit this car": "Изменить этот автомобиль",
+  "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
+    "Машина с именем \"${nomeScritto}\" уже существует: отредактируйте её карандашом или выберите другое имя",
+  "Build": "Телосложение",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "У каждого автомобиля своя карточка: ＋ Добавить автомобиль создаёт новую — имя, марка, модель и все сущности ниже — карандаш редактирует её, USE показывает автомобиль на панели.",
   " — configured": " — настроена",
   "${nuove.length} people imported": "Импортировано людей: ${nuove.length}",

@@ -7,6 +7,7 @@ import {
   avatarSvg,
   darken,
   FACE_BEARDS,
+  FACE_BUILDS,
   FACE_EYES,
   FACE_GLASSES,
   FACE_HAIR_COLORS,
@@ -39,6 +40,7 @@ test("stesse scelte, stesso disegno — e ogni variante disegna qualcosa di suo"
     ["eyes", FACE_EYES],
     ["mouth", FACE_MOUTHS],
     ["beard", FACE_BEARDS],
+    ["build", FACE_BUILDS],
     ["glasses", FACE_GLASSES],
   ]) {
     const disegni = new Set(keys.map((key) => avatarSvg({ ...base, [campo]: key })));

@@ -14,6 +14,9 @@ export default Object.freeze({
   "Add car": "Auto toevoegen",
   "Save car": "Auto opslaan",
   "Edit this car": "Deze auto bewerken",
+  "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
+    "Er bestaat al een auto met de naam \"${nomeScritto}\": bewerk die met het potlood, of kies een andere naam",
+  "Build": "Postuur",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "Elke auto heeft een eigen kaart: ＋ Auto toevoegen maakt een nieuwe — naam, merk, model en alle entiteiten hieronder — het potlood bewerkt hem, USE toont hem op het dashboard.",
   " — configured": " — geconfigureerd",
   "${nuove.length} people imported": "${nuove.length} personen geïmporteerd",
