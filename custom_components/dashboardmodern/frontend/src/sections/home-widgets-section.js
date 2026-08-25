@@ -198,7 +198,7 @@ function localToday() {
 }
 
 function todoModel() {
-  const lists = configuredTodoLists();
+  const lists = configuredTodoLists().filter((list) => widgetIncludes(list.entity));
   if (!lists.length) return null;
   let pending = 0;
   let total = 0;
@@ -222,8 +222,9 @@ function lightsModel(states) {
   } catch (_error) {
     return null;
   }
+  const fuori = widgetExcludedEntities();
   const rows = groups.flatMap((group) =>
-    group.entities.map((entity) => ({
+    group.entities.filter((entity) => widgetIncludes(entity, fuori)).map((entity) => ({
       entity,
       room: group.room,
       name: clean(group.lights?.[entity]) || entity.split(".")[1]?.replaceAll("_", " ") || entity,
@@ -244,10 +245,11 @@ function climateModel(states) {
   } catch (_error) {
     return null;
   }
+  const fuori = widgetExcludedEntities();
   const rows = units
     .map((unit) => {
       const entity = clean(unit?.entity || unit?.entity_id || unit?.entities?.[0]);
-      if (!entity) return null;
+      if (!entity || !widgetIncludes(entity, fuori)) return null;
       const current = stateOf(states, entity);
       const raw = clean(current?.state).toLowerCase();
       return {
@@ -279,10 +281,11 @@ function climateModel(states) {
 function coversModel(states) {
   const values = root.getTapparelle?.() || readJson("cd_tapparelle", []);
   if (!Array.isArray(values) || !values.length) return null;
+  const fuori = widgetExcludedEntities();
   const rows = values
     .map((item) => {
       const entity = clean(item?.entity || item?.entities?.[0]);
-      if (!entity) return null;
+      if (!entity || !widgetIncludes(entity, fuori)) return null;
       const current = stateOf(states, entity);
       const raw = clean(current?.state).toLowerCase();
       const position = Number(current?.attributes?.current_position);
@@ -307,12 +310,18 @@ function coversModel(states) {
 }
 
 function securityModel(states) {
+  const fuori = widgetExcludedEntities();
   const alarm = stateOf(states, "dm.security_centrale_allarme");
-  const doors = normalizeSecurityDoors(readJson("cd_security_doors", []));
+  const doors = normalizeSecurityDoors(readJson("cd_security_doors", [])).filter((door) =>
+    widgetIncludes(door.entity, fuori),
+  );
   let cameras = [];
   try {
     cameras = root.getCameras?.() || [];
   } catch (_error) {}
+  cameras = (Array.isArray(cameras) ? cameras : []).filter((camera) =>
+    widgetIncludes(clean(camera?.entity), fuori),
+  );
   if (!alarm && !doors.length && !cameras.length) return null;
   const raw = clean(alarm?.state).toLowerCase();
   const triggered = raw === "triggered" || raw === "pending";
@@ -350,7 +359,7 @@ function camerasModel() {
       entity: clean(camera?.entity),
       name: clean(camera?.name) || clean(camera?.entity),
     }))
-    .filter((row) => row.entity);
+    .filter((row) => row.entity && widgetIncludes(row.entity));
   if (!rows.length) return null;
   return { key: "telecamere", accent: "#0284c7", icon: "📹", label: t("Telecamere", "Cameras"),
     value: String(rows.length), caption: rows[0].name, ring: null, rows };
@@ -382,8 +391,12 @@ function energyModel(states) {
 function appliancesModel(states) {
   const devices = section("appliances", readJson("cd_appliances", []));
   if (!Array.isArray(devices) || !devices.length) return null;
+  const fuori = widgetExcludedEntities();
   const rows = devices
     .filter((device) => device?.enabled !== false)
+    .filter((device) =>
+      widgetIncludes(clean(device?.power_entity || device?.entity || device?.entities?.[0]), fuori),
+    )
     .map((device) => {
       const model = createApplianceViewModel(device, states, [], "it");
       return {
@@ -405,8 +418,9 @@ function appliancesModel(states) {
 function temperatureModel(states) {
   const rooms = root.getStanze?.() || readJson("cd_stanze", []);
   if (!Array.isArray(rooms)) return null;
+  const fuori = widgetExcludedEntities();
   const rows = rooms
-    .filter((room) => clean(room?.temp))
+    .filter((room) => clean(room?.temp) && widgetIncludes(room.temp, fuori))
     .map((room) => {
       const temperature = numOf(states, room.temp);
       const humidity = numOf(states, clean(room.hum) || clean(room.temp).replace("_temperature", "_humidity"));
@@ -438,7 +452,9 @@ function gruppoEntita(chiave) {
   try {
     const gruppi = lexicalGlobal("GRUPPI_MONITORAGGIO");
     const lista = gruppi?.[chiave];
-    return Array.isArray(lista) ? lista.map(clean).filter(Boolean) : [];
+    if (!Array.isArray(lista)) return [];
+    const fuori = widgetExcludedEntities();
+    return lista.map(clean).filter((entity) => entity && widgetIncludes(entity, fuori));
   } catch (_error) {
     return [];
   }
@@ -492,11 +508,14 @@ function floodModel(states) {
     return null;
   }
   if (!Array.isArray(entities) || !entities.length) return null;
-  const rows = entities.map((entity) => ({
-    entity,
-    name: friendlyName(states, entity),
-    on: Boolean(floodIsWet(stateOf(states, entity))),
-  }));
+  const fuori = widgetExcludedEntities();
+  const rows = entities
+    .filter((entity) => widgetIncludes(entity, fuori))
+    .map((entity) => ({
+      entity,
+      name: friendlyName(states, entity),
+      on: Boolean(floodIsWet(stateOf(states, entity))),
+    }));
   const wet = rows.filter((row) => row.on);
   if (!wet.length) return null;
   return { key: "allagamenti", accent: "#38bdf8", icon: "💧", alert: true, label: t("Allagamenti", "Floods"),
@@ -538,9 +557,10 @@ function customAlertModels(states) {
         : avviso?.entity
           ? [avviso.entity]
           : [];
+      const fuori = widgetExcludedEntities();
       const rows = entities
         .map(clean)
-        .filter(Boolean)
+        .filter((entity) => entity && widgetIncludes(entity, fuori))
         .filter((entity) => {
           const current = stateOf(states, entity);
           return current && avvisoAttivo(avviso, current);
@@ -564,7 +584,27 @@ export function widgetPreferences() {
   const stored = readJson(WIDGETS_CONFIG_KEY, {});
   const hidden = Array.isArray(stored?.hidden) ? stored.hidden.map(clean).filter(Boolean) : [];
   const order = Array.isArray(stored?.order) ? stored.order.map(clean).filter(Boolean) : [];
-  return { hidden, order };
+  const excluded = Array.isArray(stored?.excluded)
+    ? stored.excluded.map(clean).filter(Boolean)
+    : [];
+  return { hidden, order, excluded };
+}
+
+/* Le entita' che restano fuori dai widget.
+ *
+ * Ogni tessera legge la configurazione della sua sezione, tutta: senza una
+ * parola in contrario, quello che c'e' nella sezione finisce nel widget. La
+ * parola in contrario e' questa — l'interruttore accanto a ogni entita' negli
+ * editor — e si tiene in `cd_widgets`, insieme all'ordine e alle tessere
+ * nascoste. Chi non e' nell'elenco e' dentro: cosi' chi non tocca niente
+ * vede quello che vedeva prima. */
+export function widgetExcludedEntities() {
+  return new Set(widgetPreferences().excluded);
+}
+
+export function widgetIncludes(entity, excluded = widgetExcludedEntities()) {
+  const id = clean(entity);
+  return !id || !excluded.has(id);
 }
 
 /** L'ordine scelto prima, poi quello naturale; le tessere nascoste non escono.

@@ -11,8 +11,14 @@
  */
 
 export default Object.freeze({
+  "🧩 In the widgets": "🧩 ウィジェットに表示",
+  "🧩 Out of the widgets": "🧩 ウィジェットから除外",
   "Add car": "車を追加",
+  "Alerts at a glance": "ひと目でわかる通知",
   "Choose the position": "位置を選ぶ",
+  "On Home": "ホームに表示",
+  "On Home: no": "ホームに表示: しない",
+  "On Home: yes": "ホームに表示: する",
   "Save car": "車を保存",
   "Edit this car": "この車を編集",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -34,6 +40,7 @@ export default Object.freeze({
   "Program skipped": "プログラムをスキップしました",
   "Restore and reload": "復元して再読み込み",
   "Restore from a backup": "バックアップから復元",
+  "Show this entity in the Home widgets": "このエンティティをホームのウィジェットに表示する",
   "Skip the program if ≥ (%)": "≥ (%) ならプログラムをスキップ",
   "Soil at": "土壌",
   "Start on its own if < (%)": "< (%) なら自動で開始",

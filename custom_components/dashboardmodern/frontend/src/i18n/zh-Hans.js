@@ -11,8 +11,14 @@
  */
 
 export default Object.freeze({
+  "🧩 In the widgets": "🧩 已加入小组件",
+  "🧩 Out of the widgets": "🧩 已移出小组件",
   "Add car": "添加车辆",
+  "Alerts at a glance": "一览提醒",
   "Choose the position": "选择位置",
+  "On Home": "在首页",
+  "On Home: no": "在首页：否",
+  "On Home: yes": "在首页：是",
   "Save car": "保存车辆",
   "Edit this car": "编辑这辆车",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -34,6 +40,7 @@ export default Object.freeze({
   "Program skipped": "已跳过灌溉计划",
   "Restore and reload": "恢复并重新加载",
   "Restore from a backup": "从备份恢复",
+  "Show this entity in the Home widgets": "在首页小组件中显示该实体",
   "Skip the program if ≥ (%)": "≥ (%) 时跳过灌溉计划",
   "Soil at": "土壤湿度",
   "Start on its own if < (%)": "< (%) 时自动启动",

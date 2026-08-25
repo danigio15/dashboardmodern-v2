@@ -11,8 +11,14 @@
  */
 
 export default Object.freeze({
+  "🧩 In the widgets": "🧩 W widżetach",
+  "🧩 Out of the widgets": "🧩 Poza widżetami",
   "Add car": "Dodaj samochód",
+  "Alerts at a glance": "Powiadomienia na skróty",
   "Choose the position": "Wybierz pozycję",
+  "On Home": "Na stronie głównej",
+  "On Home: no": "Na stronie głównej: nie",
+  "On Home: yes": "Na stronie głównej: tak",
   "Save car": "Zapisz samochód",
   "Edit this car": "Edytuj ten samochód",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -34,6 +40,7 @@ export default Object.freeze({
   "Program skipped": "Program pominięty",
   "Restore and reload": "Przywróć i przeładuj",
   "Restore from a backup": "Przywróć z kopii",
+  "Show this entity in the Home widgets": "Pokaż tę encję w widżetach strony głównej",
   "Skip the program if ≥ (%)": "Pomiń program, gdy ≥ (%)",
   "Soil at": "Gleba na",
   "Start on its own if < (%)": "Uruchom samoczynnie, gdy < (%)",

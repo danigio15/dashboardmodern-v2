@@ -11,8 +11,14 @@
  */
 
 export default Object.freeze({
+  "🧩 In the widgets": "🧩 Widget'larda",
+  "🧩 Out of the widgets": "🧩 Widget'ların dışında",
   "Add car": "Araç ekle",
+  "Alerts at a glance": "Bir bakışta uyarılar",
   "Choose the position": "Konumu seçin",
+  "On Home": "Ana sayfada",
+  "On Home: no": "Ana sayfada: hayır",
+  "On Home: yes": "Ana sayfada: evet",
   "Save car": "Aracı kaydet",
   "Edit this car": "Bu aracı düzenle",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -34,6 +40,7 @@ export default Object.freeze({
   "Program skipped": "Program atlandı",
   "Restore and reload": "Geri yükle ve yenile",
   "Restore from a backup": "Yedekten geri yükle",
+  "Show this entity in the Home widgets": "Bu varlığı ana sayfa widget'larında göster",
   "Skip the program if ≥ (%)": "≥ (%) ise programı atla",
   "Soil at": "Toprak",
   "Start on its own if < (%)": "< (%) ise kendiliğinden başlat",

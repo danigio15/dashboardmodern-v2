@@ -94,6 +94,28 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   comandi, tendina della posizione compresa. Due strade per la stessa stanza
   erano una di troppo.
 
+- **Quali entità vanno nei widget, entità per entità.** Le tessere leggono
+  la configurazione della sezione che raccontano, tutta: va bene finché uno
+  le vuole tutte, ma in Home si guarda di sfuggita e non c'era modo di dire
+  «questa no». Adesso la parola in contrario sta accanto all'entità stessa,
+  in ogni scheda della configurazione, sulla riga in cui quell'entità è già
+  scritta — un interruttore 🧩 che dice se va in Home. Le righe le disegna il
+  runtime, ognuna a modo suo, ma tutte scrivono l'entity_id in chiaro: è
+  quello il gancio, così l'interruttore compare in Luci, Clima, Tapparelle,
+  Telecamere, Stanze, Elettrodomestici, Aperture, negli avvisi e ovunque
+  un'entità sia nominata. Chi non mostra un entity_id non riceve niente,
+  perché non c'è niente da escludere. La scelta viaggia in `cd_widgets`
+  insieme all'ordine delle tessere: chi non è nell'elenco è dentro, così chi
+  non tocca niente vede quello che vedeva.
+
+- **La configurazione degli avvisi si trasferisce nella scheda Widget.** La
+  linguetta «🔔 Avvisi» non aveva più una sezione dietro: quegli avvisi sono
+  diventati tessere. Quello che c'era da configurare — quali sensori
+  sorvegliare, gli avvisi personalizzati con condizione e icona — sta sotto
+  le tessere che governa, nella scheda «🧩 Widget», ed è la stessa scheda di
+  prima con i suoi accordion e i suoi pulsanti: cambia la stanza, non i
+  mobili. Chi la chiamava per nome ci arriva lo stesso.
+
 - **Lo stato della connessione torna accanto alla rotella.** L'intestazione
   distribuisce i suoi figli agli estremi: da quando c'è l'ingranaggio in
   fondo, la pillola «Connesso» restava sospesa in mezzo al vuoto. Adesso lo

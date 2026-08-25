@@ -11,8 +11,14 @@
  */
 
 export default Object.freeze({
+  "🧩 In the widgets": "🧩 В виджетах",
+  "🧩 Out of the widgets": "🧩 Вне виджетов",
   "Add car": "Добавить автомобиль",
+  "Alerts at a glance": "Оповещения с одного взгляда",
   "Choose the position": "Выберите положение",
+  "On Home": "На главной",
+  "On Home: no": "На главной: нет",
+  "On Home: yes": "На главной: да",
   "Save car": "Сохранить автомобиль",
   "Edit this car": "Изменить этот автомобиль",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -34,6 +40,7 @@ export default Object.freeze({
   "Program skipped": "Программа пропущена",
   "Restore and reload": "Восстановить и перезагрузить",
   "Restore from a backup": "Восстановить из резервной копии",
+  "Show this entity in the Home widgets": "Показывать эту сущность в виджетах главной",
   "Skip the program if ≥ (%)": "Пропустить программу при ≥ (%)",
   "Soil at": "Почва на",
   "Start on its own if < (%)": "Запускаться самому при < (%)",

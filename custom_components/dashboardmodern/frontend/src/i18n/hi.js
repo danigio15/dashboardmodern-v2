@@ -11,8 +11,14 @@
  */
 
 export default Object.freeze({
+  "🧩 In the widgets": "🧩 विजेट में शामिल",
+  "🧩 Out of the widgets": "🧩 विजेट से बाहर",
   "Add car": "कार जोड़ें",
+  "Alerts at a glance": "एक नज़र में अलर्ट",
   "Choose the position": "स्थिति चुनें",
+  "On Home": "होम पर",
+  "On Home: no": "होम पर: नहीं",
+  "On Home: yes": "होम पर: हाँ",
   "Save car": "कार सहेजें",
   "Edit this car": "इस कार को संपादित करें",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -34,6 +40,7 @@ export default Object.freeze({
   "Program skipped": "कार्यक्रम छोड़ा गया",
   "Restore and reload": "बहाल करें और फिर लोड करें",
   "Restore from a backup": "बैकअप से बहाल करें",
+  "Show this entity in the Home widgets": "इस एंटिटी को होम विजेट में दिखाएँ",
   "Skip the program if ≥ (%)": "यदि ≥ (%) तो कार्यक्रम छोड़ें",
   "Soil at": "मिट्टी",
   "Start on its own if < (%)": "यदि < (%) तो अपने आप शुरू करें",

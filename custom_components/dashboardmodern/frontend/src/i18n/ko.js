@@ -11,8 +11,14 @@
  */
 
 export default Object.freeze({
+  "🧩 In the widgets": "🧩 위젯에 표시",
+  "🧩 Out of the widgets": "🧩 위젯에서 제외",
   "Add car": "차량 추가",
+  "Alerts at a glance": "한눈에 보는 알림",
   "Choose the position": "위치 선택",
+  "On Home": "홈에 표시",
+  "On Home: no": "홈에 표시: 아니요",
+  "On Home: yes": "홈에 표시: 예",
   "Save car": "차량 저장",
   "Edit this car": "이 차량 편집",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -34,6 +40,7 @@ export default Object.freeze({
   "Program skipped": "프로그램 건너뜀",
   "Restore and reload": "복원하고 새로 고침",
   "Restore from a backup": "백업에서 복원",
+  "Show this entity in the Home widgets": "이 엔터티를 홈 위젯에 표시",
   "Skip the program if ≥ (%)": "≥ (%)이면 프로그램 건너뛰기",
   "Soil at": "토양",
   "Start on its own if < (%)": "< (%)이면 자동 시작",

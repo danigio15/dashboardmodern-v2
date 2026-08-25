@@ -296,7 +296,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 149 col backup della configurazione: la scheda che raccoglie le chiavi
   // condivise in un file e le rimette al loro posto — funzioni pure per il
   // giro dei dati, provate a tavolino, e nessuna chiave sua.
-  assert.ok(relative.length <= 149, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 150 con la scelta delle entità nei widget: le tessere leggono la
+  // configurazione della sezione che raccontano, tutta, e questo modulo mette
+  // accanto a ogni entità già scritta negli editor l'interruttore che dice se
+  // va in Home. Non disegna una scheda sua — decora quelle che ci sono — e la
+  // scelta la scrive dove abitano già le preferenze del ponte.
+  assert.ok(relative.length <= 150, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

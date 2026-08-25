@@ -11,8 +11,14 @@
  */
 
 export default Object.freeze({
+  "🧩 In the widgets": "🧩 ضمن العناصر",
+  "🧩 Out of the widgets": "🧩 خارج العناصر",
   "Add car": "إضافة سيارة",
+  "Alerts at a glance": "التنبيهات في لمحة",
   "Choose the position": "اختر الوضعية",
+  "On Home": "في الرئيسية",
+  "On Home: no": "في الرئيسية: لا",
+  "On Home: yes": "في الرئيسية: نعم",
   "Save car": "حفظ السيارة",
   "Edit this car": "تعديل هذه السيارة",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -34,6 +40,7 @@ export default Object.freeze({
   "Program skipped": "تم تخطي البرنامج",
   "Restore and reload": "استعد وأعد التحميل",
   "Restore from a backup": "الاستعادة من نسخة احتياطية",
+  "Show this entity in the Home widgets": "إظهار هذا الكيان في عناصر الرئيسية",
   "Skip the program if ≥ (%)": "تخطَّ البرنامج إذا كان ≥ (%)",
   "Soil at": "التربة عند",
   "Start on its own if < (%)": "ابدأ تلقائيًا إذا كان < (%)",

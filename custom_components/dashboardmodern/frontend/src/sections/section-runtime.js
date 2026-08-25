@@ -64,6 +64,7 @@ import { installPeopleEditorSection } from "./people-editor-section.js";
 import { installBackupEditorSection } from "./backup-editor-section.js";
 import { installHomeWidgetsSection } from "./home-widgets-section.js";
 import { installTodoEditorSection } from "./todo-editor-section.js";
+import { installWidgetEntityChoiceSection } from "./widget-entity-choice-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
 import { installEditorSlotsSection } from "./editor-slots-section.js";
 import { installConfigUniformitySection } from "./config-uniformity-section.js";
@@ -728,6 +729,7 @@ export function installSectionRuntime() {
      * cosi' trova gia' il suo ancoraggio. */
     installHomeWidgetsSection();
     installTodoEditorSection();
+    installWidgetEntityChoiceSection();
     /* Il backup arriva per ultimo fra le schede: raccoglie le chiavi che gli
      * altri editor scrivono, non ne possiede nessuna. */
     installBackupEditorSection();
@@ -796,6 +798,7 @@ export function installSectionRuntime() {
         "people-editor",
         "home-widgets",
         "todo-editor",
+        "widget-entity-choice",
         "backup-editor",
         "ev",
         "ev-showcase",

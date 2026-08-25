@@ -11,8 +11,14 @@
  */
 
 export default Object.freeze({
+  "🧩 In the widgets": "🧩 In de widgets",
+  "🧩 Out of the widgets": "🧩 Niet in de widgets",
   "Add car": "Auto toevoegen",
+  "Alerts at a glance": "Meldingen in één oogopslag",
   "Choose the position": "Kies de stand",
+  "On Home": "Op Home",
+  "On Home: no": "Op Home: nee",
+  "On Home: yes": "Op Home: ja",
   "Save car": "Auto opslaan",
   "Edit this car": "Deze auto bewerken",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -34,6 +40,7 @@ export default Object.freeze({
   "Program skipped": "Programma overgeslagen",
   "Restore and reload": "Herstellen en herladen",
   "Restore from a backup": "Herstellen vanuit een back-up",
+  "Show this entity in the Home widgets": "Deze entiteit tonen in de Home-widgets",
   "Skip the program if ≥ (%)": "Programma overslaan bij ≥ (%)",
   "Soil at": "Bodem op",
   "Start on its own if < (%)": "Vanzelf starten bij < (%)",

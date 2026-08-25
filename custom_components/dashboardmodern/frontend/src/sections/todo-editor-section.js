@@ -30,6 +30,7 @@ const KEY = "__DASHBOARDMODERN_TODO_EDITOR__";
 const state = (root[KEY] ||= { installed: false, aperto: -1 });
 
 export const TODO_EDITOR_TAB = "todo";
+const LEGACY_ALERTS_TAB = "avvisi";
 const CONFIG_KEY = "cd_todo";
 
 /* L'editor lavora sulle righe grezze: una lista appena aggiunta e' vuota, e la
@@ -151,7 +152,25 @@ function bodyMarkup(lists) {
       : `<div class="ed-empty">${t("Nessuna lista configurata", "No list configured")}</div>`
   }</div>
   <button type="button" class="ed-btn-add" data-todo-add>＋ ${t("Aggiungi lista", "Add list")}</button>
-  <button type="button" class="ed-btn-add" data-todo-detect>🪄 ${t("Rileva da Home Assistant", "Detect from Home Assistant")}</button>`;
+  <button type="button" class="ed-btn-add" data-todo-detect>🪄 ${t("Rileva da Home Assistant", "Detect from Home Assistant")}</button>
+  ${avvisiMarkup()}`;
+}
+
+/* Gli avvisi, dove sono finiti quelli del Quadro. La scheda la disegna il
+ * runtime: e' la stessa di prima, con i suoi accordion e i suoi pulsanti —
+ * qui cambia solo la stanza in cui vive. */
+function avvisiMarkup() {
+  let markup = "";
+  try {
+    const disegnata = root.editorRenderAvvisi?.();
+    markup = typeof disegnata === "string" ? disegnata : "";
+  } catch (_error) {
+    return "";
+  }
+  if (!markup) return "";
+  return `<div class="ed-sec-title dm-widget-ed-sep">🔔 ${esc(
+    t("Avvisi in primo piano", "Alerts at a glance"),
+  )}</div>${markup}`;
 }
 
 function leggiRiga(riga, list) {
@@ -176,6 +195,11 @@ export function ensureTodoEditor() {
   body.dataset.dmTodoEditor = firma;
   body.innerHTML = bodyMarkup(lists);
   body.dataset.renderer = "todo";
+  // L'elenco entita' degli avvisi lo riempie il runtime a markup posato, come
+  // faceva quando la scheda era sua.
+  try {
+    root.edAvvRenderEnts?.();
+  } catch (_error) {}
   return true;
 }
 
@@ -287,9 +311,40 @@ function onClick(event) {
   }
 }
 
+/* La linguetta «🔔 Avvisi» non ha piu' una sezione dietro: il Quadro Avvisi
+ * dalla Home e' uscito, e quegli avvisi adesso sono tessere del ponte. Quello
+ * che c'era da configurare — quali sensori sorvegliare e gli avvisi
+ * personalizzati — sta qui, sotto le tessere che governa. */
+function togliLinguettaAvvisi(tabs) {
+  const avvisi = tabs?.querySelector?.(`.ed-tab[data-tab="${LEGACY_ALERTS_TAB}"]`);
+  if (avvisi) avvisi.remove();
+}
+
+/* Chi chiedeva la scheda degli avvisi arriva qui: i pulsanti del runtime
+ * (aggiungi, elimina, modifica) si richiamano da soli con
+ * `editorSwitch('avvisi')` a lavoro fatto, e devono ritrovare la loro roba. */
+function dirottaSchedaAvvisi() {
+  const current = root.editorSwitch;
+  if (typeof current !== "function" || current.__dmAvvisiNelWidget) return false;
+  function wrapped(tab, ...rest) {
+    const scelta = clean(tab) === LEGACY_ALERTS_TAB ? TODO_EDITOR_TAB : tab;
+    const esito = current.call(this, scelta, ...rest);
+    if (scelta === TODO_EDITOR_TAB) root.queueMicrotask?.(ridisegna);
+    return esito;
+  }
+  Object.assign(wrapped, current);
+  wrapped.__dmAvvisiNelWidget = true;
+  wrapped.__dmPrevious = current;
+  root.editorSwitch = wrapped;
+  return true;
+}
+
 export function ensureTodoEditorTab() {
   const tabs = doc?.querySelector(".ed-tab")?.parentElement;
-  if (!tabs || tabs.querySelector(`.ed-tab[data-tab="${TODO_EDITOR_TAB}"]`)) return false;
+  if (!tabs) return false;
+  togliLinguettaAvvisi(tabs);
+  dirottaSchedaAvvisi();
+  if (tabs.querySelector(`.ed-tab[data-tab="${TODO_EDITOR_TAB}"]`)) return false;
   const tab = doc.createElement("button");
   tab.className = "ed-tab";
   tab.dataset.tab = TODO_EDITOR_TAB;
@@ -316,6 +371,7 @@ function installStyles() {
       #ed-body .dm-todo-ed-field .ed-form-row>input{flex:1 1 auto;min-width:0}
       #ed-body .dm-todo-ed-error:not(:empty){color:var(--error-color,#dc2626);font-size:12px;font-weight:800}
       #ed-body .dm-todo-ed-intro{margin-top:14px}
+      #ed-body .dm-widget-ed-sep{margin-top:22px;padding-top:16px;border-top:1px solid var(--card-border,#e2e8f0)}
       #ed-body .dm-widget-pref-list{display:grid;gap:6px;margin-bottom:10px}
       #ed-body .dm-widget-pref{display:flex!important;align-items:center;gap:10px;padding:8px 12px!important}
       #ed-body .dm-widget-pref-icon{font-size:17px}
