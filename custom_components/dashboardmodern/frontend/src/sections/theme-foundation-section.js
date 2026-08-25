@@ -40,6 +40,23 @@ export function installThemeFoundationSection() {
       --shadow-glass:0 8px 30px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.06);
       color-scheme:dark;
     }
+    /* #206: le variabili col NOME di Home Assistant, risolte sui token nostri.
+     *
+     * Decine di regole delle sezioni scrivono background:var(--card-background-color,#fff)
+     * o var(--secondary-background-color,#f6f8fb): nomi del tema di HA che in
+     * questo documento non esistono, quindi vinceva sempre il ripiego chiaro —
+     * e col tema scuro il testo (che invece legge --text, tematizzato) finiva
+     * chiaro su bianco: illeggibile. L'alias sta qui, nella fondazione: ogni
+     * regola che usa il nome di HA riceve il token di DashboardModern, chiaro
+     * col chiaro e scuro con lo scuro, senza toccare le regole una per una. */
+    html{
+      --card-background-color:var(--card-bg);
+      --ha-card-background:var(--card-bg);
+      --secondary-background-color:var(--surface-2);
+      --divider-color:var(--card-border);
+      --secondary-text-color:var(--text-dim);
+      --primary-text-color:var(--text);
+    }
   `);
   return true;
 }

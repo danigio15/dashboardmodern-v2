@@ -53,6 +53,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "❄️ Air conditioners",
   "❄️ CLIMATE · COOLING",
   "❄️ Cool",
+  "🌡️ Feels like",
   "🌡️ Temperatures",
   "🌤️ 7-DAY FORECAST",
   "🌳 CO₂ avoided",

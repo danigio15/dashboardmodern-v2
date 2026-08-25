@@ -200,6 +200,7 @@ export default Object.freeze({
   "🏠 Home": "🏠 المنزل",
   "🏠 Overview": "🏠 نظرة عامة",
   "💧 Humidity": "💧 الرطوبة",
+  "🌡️ Feels like": "🌡️ الإحساس الحراري",
   "💨 Tumble dryer": "💨 مجفف الملابس",
   "💨 Wind": "💨 الرياح",
   "💰 Saved": "💰 الموفَّر",

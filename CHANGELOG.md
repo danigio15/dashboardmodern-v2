@@ -9,6 +9,16 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Il meteo in Home legge la stazione personale.** (#205) Chi ha una stazione
+  meteo (Ecowitt e simili) mappa i suoi sensori nella scheda Home della
+  configurazione — temperatura esterna, umidità, temperatura percepita,
+  velocità e direzione del vento — e il widget mostra quei numeri, con
+  l'unità del sensore: l'entità weather resta per lo stato e l'icona, e per
+  ogni dato non mappato. La percepita compare come riga sua solo quando c'è,
+  e la direzione in gradi diventa la rosa dei venti (N, NNE, …); un sensore
+  testuale si mostra com'è. La stazione da sola basta a far vivere il widget,
+  anche senza un'entità weather.
+
 - **«In primo piano»: il ponte dei widget della Home.** (#201) Una parte
   della Home dedicata ai widget: tessere piccole ed eleganti — un numero,
   un anello, una parola — una per sezione della plancia, e al tocco la
@@ -116,6 +126,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   cravatta che prende il colore della persona.
 
 ### Corretto
+
+- **Col tema scuro il testo dell'editor era illeggibile.** (#206) Decine di
+  regole delle sezioni leggevano le variabili del tema di Home Assistant
+  (`--card-background-color`, `--secondary-background-color`, …) che dentro
+  la plancia non esistono: vinceva sempre il ripiego chiaro, e col tema scuro
+  il testo — che invece segue il tema — finiva chiaro su bianco. La
+  fondazione del tema ora dichiara quei nomi come alias dei token della
+  plancia: chiaro col chiaro, scuro con lo scuro, ovunque.
 
 - **Il config delle auto ha una sessione, e ogni auto la sua chiave.** La
   matita apre QUELLA auto (e da lì salvare con un nome nuovo la rinomina:

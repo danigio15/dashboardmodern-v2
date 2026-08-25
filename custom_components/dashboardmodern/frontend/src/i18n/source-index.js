@@ -48,6 +48,7 @@ export const SOURCE_INDEX = Object.freeze({
   "❄️ Condizionatore": "❄️ Air conditioner",
   "❄️ Condizionatori": "❄️ Air conditioners",
   "❄️ Freddo": "❄️ Cool",
+  "🌡️ Percepita": "🌡️ Feels like",
   "🌡️ Temperature": "🌡️ Temperatures",
   "🌤️ PREVISIONI 7 GIORNI": "🌤️ 7-DAY FORECAST",
   "🌳 CO₂ Evitata": "🌳 CO₂ avoided",

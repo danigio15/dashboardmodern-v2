@@ -3346,6 +3346,11 @@ function wzFinish() {
 const CD_SLOTS = {
     home: { label: '🏠 Home', slots: [
         { ref: 'dm.home_meteo',                 lbl: 'Meteo (entità weather)' },
+        { ref: 'dm.home_meteo_temperatura', lbl: 'Weather station: outdoor temperature (sensor)' },
+        { ref: 'dm.home_meteo_umidita', lbl: 'Weather station: humidity (sensor)' },
+        { ref: 'dm.home_meteo_percepita', lbl: 'Weather station: feels-like temperature (sensor)' },
+        { ref: 'dm.home_meteo_vento', lbl: 'Weather station: wind speed (sensor)' },
+        { ref: 'dm.home_meteo_vento_direzione', lbl: 'Weather station: wind direction (sensor)' },
         { ref: 'dm.security_centrale_allarme', lbl: 'Allarme (alarm_control_panel)' },
         { ref: 'dm.home_interruttore_antifurto',     lbl: 'Interruttore antifurto (switch)' },
         { ref: 'dm.home_script_apertura_cancello',         lbl: 'Script apertura cancello' },
@@ -5712,18 +5717,54 @@ function render() {
           edUpdateKpiOnly();
       }
       const weatherEnt = cdFirstMapped('dm.core_055', 'weather.home', 'dm.home_meteo');
-      /* v273: meteo non configurato → widget nascosto del tutto (nessun return: siamo dentro render) */
+      /* #205: la stazione meteo personale. Ogni sensore mappato (Ecowitt e
+         simili) vince sull'attributo dell'entità weather; la direzione del
+         vento in gradi diventa una rosa a 16 punte, un testo resta testo. */
+      const cdMeteoStazione = (ref) => {
+          const st = STATES[ref];
+          if (!st || st.entity_id === 'dm.unmapped') return null;
+          const v = parseFloat(st.state);
+          if (!isFinite(v)) return null;
+          return { v: Math.round(v * 10) / 10, unit: (st.attributes && st.attributes.unit_of_measurement) || '' };
+      };
+      const wsTemp = cdMeteoStazione('dm.home_meteo_temperatura');
+      const wsHum = cdMeteoStazione('dm.home_meteo_umidita');
+      const wsFeel = cdMeteoStazione('dm.home_meteo_percepita');
+      const wsWind = cdMeteoStazione('dm.home_meteo_vento');
+      let wsDir = '';
+      (function(){
+          const st = STATES['dm.home_meteo_vento_direzione'];
+          if (!st || st.entity_id === 'dm.unmapped') return;
+          const raw = String(st.state || '');
+          if (!raw || raw === 'unknown' || raw === 'unavailable') return;
+          const deg = parseFloat(raw);
+          if (isFinite(deg)) {
+              const rosa = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+              wsDir = rosa[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16];
+          } else { wsDir = raw; }
+      })();
+      const wStation = !!(wsTemp || wsHum || wsFeel || wsWind || wsDir);
+      /* v273: meteo non configurato → widget nascosto del tutto (nessun return: siamo dentro render)
+         — ma la stazione personale basta da sola a farlo vivere (#205). */
       let wUnmapped = false;
       if (typeof CD_REQUIRE_MAPPING !== 'undefined' && CD_REQUIRE_MAPPING) {
-          wUnmapped = !weatherEnt || weatherEnt.entity_id === 'dm.unmapped';
+          wUnmapped = (!weatherEnt || weatherEnt.entity_id === 'dm.unmapped') && !wStation;
           const wWidget = document.querySelector('.weather-widget');
           if (wWidget) wWidget.style.display = wUnmapped ? 'none' : '';
       }
+      const wFeelRow = document.getElementById('w-feel-row');
+      if (wFeelRow) wFeelRow.style.display = wsFeel && !wUnmapped ? '' : 'none';
+      if ((weatherEnt || wStation) && !wUnmapped) {
+        const wAttr = (weatherEnt && weatherEnt.attributes) || {};
+        setTxt('w-temp', wsTemp ? wsTemp.v + (wsTemp.unit || '°C') : (wAttr.temperature !== undefined ? wAttr.temperature : '--') + '°C');
+        setTxt('w-hum', wsHum ? wsHum.v + (wsHum.unit || '%') : (wAttr.humidity !== undefined ? wAttr.humidity : '--') + '%');
+        const windTxt = wsWind ? wsWind.v + ' ' + (wsWind.unit || 'km/h') : (wAttr.wind_speed !== undefined ? wAttr.wind_speed : '--') + ' km/h';
+        setTxt('w-wind', wsDir ? windTxt + ' · ' + wsDir : windTxt);
+        if (wsFeel) setTxt('w-feel', wsFeel.v + (wsFeel.unit || '°C'));
+        if (!weatherEnt || weatherEnt.entity_id === 'dm.unmapped') setTxt('w-state', '');
+      }
       if(weatherEnt && !wUnmapped) {
         const wLangMap = { 'clear-night': 'Sereno (Notte)', 'cloudy': 'Nuvoloso', 'fog': 'Nebbia', 'hail': 'Grandine', 'lightning': 'Fulmini', 'lightning-rainy': 'Temporale', 'partlycloudy': 'Poco Nuvoloso', 'pouring': 'Acquazzone', 'rainy': 'Pioggia', 'snowy': 'Neve', 'snowy-rainy': 'Nevischio', 'sunny': 'Soleggiato', 'windy': 'Ventoso', 'windy-variant': 'Vento Forte' };
-        setTxt('w-temp', (weatherEnt.attributes?.temperature !== undefined ? weatherEnt.attributes.temperature : '--') + '°C');
-        setTxt('w-hum', (weatherEnt.attributes?.humidity !== undefined ? weatherEnt.attributes.humidity : '--') + '%');
-        setTxt('w-wind', (weatherEnt.attributes?.wind_speed !== undefined ? weatherEnt.attributes.wind_speed : '--') + ' km/h');
         setTxt('w-state', wLangMap[weatherEnt.state] || weatherEnt.state.replace('-', ' '));
         const wMap = { 'clear-night': '🌙', 'cloudy': '☁️', 'fog': '<div class=\"w-fog-anim\"><div class=\"fog-line\"></div><div class=\"fog-line\"></div><div class=\"fog-line\"></div><div class=\"fog-line\"></div><div class=\"fog-line\"></div></div>', 'hail': '<div class=\"w-fog-anim\"><div class=\"fog-line\"></div><div class=\"fog-line\"></div><div class=\"fog-line\"></div><div class=\"fog-line\"></div><div class=\"fog-line\"></div></div>', 'lightning': '⛈️', 'lightning-rainy': '⛈️', 'partlycloudy': '⛅', 'pouring': '🌧️', 'rainy': '🌧️', 'snowy': '❄️', 'snowy-rainy': '🌨️', 'sunny': '☀️', 'windy': '💨', 'windy-variant': '💨' };
         setHtml('w-icon', wMap[weatherEnt.state] || '☀️');
