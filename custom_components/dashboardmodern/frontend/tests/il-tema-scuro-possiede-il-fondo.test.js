@@ -23,6 +23,26 @@ test("le variabili del tema hanno una versione notturna", () => {
   assert.match(tema, /color-scheme:dark/);
 });
 
+test("i nomi del tema di Home Assistant risolvono sui token della plancia (#206)", () => {
+  /* Decine di regole scrivono var(--card-background-color,#fff): dentro la
+   * plancia quel nome non esiste e vinceva il ripiego chiaro anche col tema
+   * scuro — testo chiaro su bianco, illeggibile. La fondazione ora dichiara
+   * l'alias, una volta per tutti. */
+  const tema = leggi("sections/theme-foundation-section.js");
+  for (const [nomeHa, token] of [
+    ["--card-background-color", "--card-bg"],
+    ["--ha-card-background", "--card-bg"],
+    ["--secondary-background-color", "--surface-2"],
+    ["--divider-color", "--card-border"],
+    ["--secondary-text-color", "--text-dim"],
+    ["--primary-text-color", "--text"],
+  ])
+    assert.ok(
+      tema.includes(`${nomeHa}:var(${token})`),
+      `${nomeHa} deve risolvere su ${token}`,
+    );
+});
+
 test("la sezione e' installata col runtime", () => {
   const runtime = leggi("sections/section-runtime.js");
   assert.match(runtime, /installThemeFoundationSection\(\)/);

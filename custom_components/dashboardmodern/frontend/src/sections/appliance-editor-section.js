@@ -222,6 +222,7 @@ const CARD_FIELD_KEYS = [
   "remaining_entity",
   "cycle_duration_entity",
   "cycle_minutes",
+  "off_delay_minutes",
   "temperature_entity",
   "temp_min",
   "temp_max",
@@ -257,6 +258,7 @@ function cardFieldsMarkup(device = {}) {
       ${numberField("max_power", t("Potenza massima (W)", "Maximum power (W)"), value("max_power"), t("Scala della barra Potenza attuale. Vuoto = valore tipico per il tipo.", "Scale of the current power bar. Empty = typical value for the type."), { step: "50", placeholder: "es. 2200" })}
       ${numberField("price_kwh", t("Costo energia (€/kWh)", "Energy cost (€/kWh)"), value("price_kwh"), t("Vuoto = tariffa della sezione Energia.", "Empty = tariff from the Energy section."), { step: "0.001", placeholder: "es. 0.25" })}
       ${numberField("threshold_standby", t("Soglia standby (W)", "Standby threshold (W)"), value("threshold_standby") === "" ? (device.metadata?.threshold_standby ?? "") : value("threshold_standby"), t("Sotto la soglia In funzione e sopra questa = Standby.", "Below the running threshold and above this = Standby."), { step: "0.1", placeholder: "1" })}
+      ${numberField("off_delay_minutes", t("Ritardo fine ciclo (minuti)", "End-of-cycle delay (minutes)"), value("off_delay_minutes"), t("La card resta In funzione per questi minuti dopo l'ultima potenza sopra soglia: copre l'asciugatura a 0 W della lavastoviglie e le pause del ciclo.", "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses."), { step: "1", placeholder: "es. 30" })}
       ${entityField("alert_entity", t("Entità allarme/anomalia", "Alarm/problem entity"), device.alert_entity, t("binary_sensor di problema: accende il contatore Allarme.", "Problem binary_sensor: feeds the Alarm counter."))}
       ${entityField("last_start_entity", t("Ultimo ciclo · avvio", "Last cycle · start"), device.last_start_entity, t("Timestamp di avvio fornito dall'integrazione (es. Home Connect).", "Start timestamp provided by the integration (e.g. Home Connect)."))}
       ${entityField("last_duration_entity", t("Ultimo ciclo · durata", "Last cycle · duration"), device.last_duration_entity)}
@@ -404,6 +406,7 @@ export function openApplianceEditor(index) {
       remaining_entity: clean(values.remaining_entity),
       cycle_duration_entity: clean(values.cycle_duration_entity),
       cycle_minutes: clean(values.cycle_minutes),
+      off_delay_minutes: clean(values.off_delay_minutes),
       temperature_entity: clean(values.temperature_entity),
       temp_min: clean(values.temp_min),
       temp_max: clean(values.temp_max),
@@ -417,7 +420,7 @@ export function openApplianceEditor(index) {
       last_cost_entity: clean(values.last_cost_entity),
     };
     if (next.threshold_standby === "") delete next.threshold_standby;
-    for (const key of ["cycle_minutes", "temp_min", "temp_max", "max_power", "price_kwh"]) {
+    for (const key of ["cycle_minutes", "off_delay_minutes", "temp_min", "temp_max", "max_power", "price_kwh"]) {
       if (next[key] === "") delete next[key];
     }
     next.energy_entity = clean(device.energy_entity) || next.total_energy_entity || next.monthly_energy_entity || next.daily_energy_entity;

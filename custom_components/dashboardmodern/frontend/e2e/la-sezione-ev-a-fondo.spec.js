@@ -334,12 +334,14 @@ test("il bottone verde della sezione salva anche le foto scritte", async ({ page
     .toBe("/local/ev/b10-nuova.png");
 });
 
-test("il nome di un'auto nuova svuota i campi della scheda", async ({ page }, testInfo) => {
+test("il nome e' un dato: digitarlo non tocca i campi, e la rinomina conserva l'auto", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(120_000);
-  /* «appena inserisco il nome di un'altra auto deve svuotare i dati»: la
-   * scheda mostrava la mappatura dell'auto attiva, e salvare un nome nuovo la
-   * catturava tale e quale. Ora un nome che non e' di nessuno azzera le
-   * caselle, e il nome di un'auto esistente le ricarica dai dati SUOI. */
+  /* Di chi sono i campi lo decide la SESSIONE — la matita apre un'auto, ＋
+   * apre la bozza — e il nome scritto e' solo il nome. Prima digitare qui
+   * ricaricava o svuotava le caselle a seconda che il nome fosse di
+   * qualcuno: rinominare era impossibile e i dati cambiavano padrone. */
   await avvia(page, testInfo);
   await page.evaluate(() => {
     window.apriConfigEntita();
@@ -351,12 +353,49 @@ test("il nome di un'auto nuova svuota i campi della scheda", async ({ page }, te
   await batteria.evaluate((input) => {
     input.value = "sensor.b10_battery";
   });
+  // Digitare qualunque nome — nuovo o di un'altra auto — non tocca i campi.
   await nome.fill("Auto nuova di zecca");
   await nome.dispatchEvent("input");
-  await expect(batteria).toHaveValue("");
+  await expect(batteria).toHaveValue("sensor.b10_battery");
   await nome.fill("T03");
   await nome.dispatchEvent("input");
-  await expect(batteria).toHaveValue("sensor.t03_battery");
+  await expect(batteria).toHaveValue("sensor.b10_battery");
+
+  // La matita apre la T03: sessione, nome e campi diventano i suoi.
+  await page.locator("#ed-body [data-ev-edit]").nth(1).click();
+  await expect(nome).toHaveValue("T03", { timeout: 15_000 });
+  await expect(batteria.first()).toHaveValue("sensor.t03_battery");
+
+  // Rinominare e salvare NON crea una riga nuova: e' sempre lei, stessa
+  // chiave, stesse entita', stesso posto in lista.
+  const chiavePrima = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("cd_ev_cars") || "[]")[1]?.uid,
+  );
+  await nome.fill("T03 Berlina");
+  await nome.dispatchEvent("input");
+  await page.locator('#ed-body button[onclick*="edEvCarAdd"]').first().click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((car) => car.name),
+      ),
+    )
+    .toEqual(["B10", "T03 Berlina"]);
+  const dopo = await page.evaluate(() => JSON.parse(localStorage.getItem("cd_ev_cars") || "[]")[1]);
+  expect(dopo.uid).toBe(chiavePrima);
+  expect(dopo.ov["dm.ev_batteria_auto"]).toBe("sensor.t03_battery");
+
+  // Il nome di UN'ALTRA auto non si salva: era il gesto del furto di dati.
+  await nome.fill("B10");
+  await nome.dispatchEvent("input");
+  await page.locator('#ed-body button[onclick*="edEvCarAdd"]').first().click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((car) => car.name),
+      ),
+    )
+    .toEqual(["B10", "T03 Berlina"]);
 });
 
 test("la lista auto ha la matita, niente distintivo, e il + svuota la scheda", async ({

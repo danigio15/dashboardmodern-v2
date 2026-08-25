@@ -1,5 +1,5 @@
 import { carBrandVisual } from "../core/personalization-catalog.js";
-import { carKey, restoreCarIdentities } from "../core/vehicle-identity.js";
+import { assignCarKeys, carIndexByKey, carKey, restoreCarIdentities } from "../core/vehicle-identity.js";
 import { adoptLoosePhotos, photosForProfile, withProfilePhotos } from "../core/vehicle-photos.js";
 import { pickMediaImage } from "./media-picker-section.js";
 import { allStates, clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, section, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
@@ -464,29 +464,14 @@ function ensureCarNameGuard() {
   const campo = doc.getElementById("ed-evcar-name");
   if (!campo || campo.dataset.dmEvNameGuard === "true") return false;
   campo.dataset.dmEvNameGuard = "true";
-  campo.addEventListener("input", () => {
-    const nome = clean(campo.value);
-    const tutte = profiles();
-    const trovata = tutte.find((car) => clean(car?.name) === nome) || null;
-    const possedute = trovata ? trovata.ov || trovata.overrides || {} : {};
-    /* La dote dell'auto applicata: i valori che le caselle portano perche'
-     * un profilo li ha messi li', non perche' qualcuno li ha scritti ora. */
-    const attiva = tutte[activeIndex()] || null;
-    const dote = attiva ? attiva.ov || attiva.overrides || {} : {};
-    for (const input of doc.querySelectorAll('#ed-body input.ed-slot-in[data-ref^="dm.ev_"]')) {
-      const ref = clean(input.dataset?.ref);
-      if (refToccati().has(ref)) continue;
-      /* Un valore che NON e' la dote e' stato scritto a mano — e si tiene
-       * anche quando il segnalibro non l'ha visto: su un dispositivo lento
-       * il modulo si installa dopo che l'editor e' gia' toccabile, e il
-       * primo tocco arriva prima del segnalibro. Svuotare quello e' come
-       * rispondere «nessuna entita' mappata» a chi l'ha appena mappata. */
-      const corrente = clean(input.value);
-      if (corrente && corrente !== clean(dote[ref])) continue;
-      const valore = clean(possedute[ref]);
-      if (input.value !== valore) input.value = valore;
-    }
-  });
+  /* Il nome e' un dato della scheda, non un timone.
+   *
+   * Prima scrivere qui dentro RICARICAVA o SVUOTAVA le caselle delle entita'
+   * a seconda che il nome fosse di qualcuno o di nessuno: rinominare un'auto
+   * era impossibile (a meta' digitazione i campi cambiavano padrone) e un
+   * prefisso uguale a un'altra auto ne caricava la mappatura. Di chi sono i
+   * campi lo decide la SESSIONE — la matita apre un'auto, ＋ apre la bozza —
+   * e il nome scritto qui e' semplicemente il nome che quell'auto avra'. */
   return true;
 }
 
@@ -509,6 +494,8 @@ function ensureCarNameGuard() {
 function ensureCarListDecor() {
   const campoNome = doc?.getElementById("ed-evcar-name");
   if (!campoNome) return false;
+  // La scheda e' aperta: da qui in poi ogni auto deve avere la sua chiave.
+  ensureCarKeys();
   const contenitore = doc.getElementById("ed-body");
   if (!contenitore) return false;
 
@@ -528,8 +515,13 @@ function ensureCarListDecor() {
       matita.addEventListener("click", () => {
         const indice = Number.parseInt(matita.dataset.evEdit, 10);
         if (!Number.isFinite(indice)) return;
-        const nome = clean(profiles()[indice]?.name);
+        const auto = ensureCarKeys()[indice] || profiles()[indice];
+        const nome = clean(auto?.name);
         try { root.cdEvCarSelEd?.({ value: String(indice) }); } catch (_error) {}
+        setEditingKey(carKey(auto || {}));
+        /* La matita e' l'unico gesto che dice «sto modificando LEI»: da qui
+         * salvare con un nome diverso rinomina, invece di creare una riga. */
+        state.evRenameArmed = true;
         /* Il ridisegno ricrea il campo del nome vuoto: lo si riempie con
          * l'auto appena aperta, cosi' «Salva auto» salva proprio lei. */
         const campo = doc.getElementById("ed-evcar-name");
@@ -560,6 +552,8 @@ function ensureCarListDecor() {
       aggiungi.addEventListener("click", () => {
         const campo = doc.getElementById("ed-evcar-name");
         if (!campo) return;
+        setEditingKey("");
+        state.evRenameArmed = false;
         campo.value = "";
         // Il ＋ e' il gesto «riparto da zero»: si svuota tutto qui, in modo
         // esplicito — il guardiano del nome protegge i valori scritti a
@@ -619,6 +613,34 @@ export function stateChangeAffectsEv(event) {
 
 function activeIndex() { const index = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "-1", 10); return Number.isFinite(index) ? index : -1; }
 
+/* Ogni auto porta la sua chiave, sempre.
+ *
+ * La chiave nasceva solo premendo «Salva auto» con altre auto in lista: una
+ * configurazione mai risalvata non ne aveva nessuna, e tutto il riconoscimento
+ * ricadeva sul nome — che e' esattamente il modo in cui le auto si mescolavano.
+ * Qui la chiave si assegna appena l'elenco passa di mano, e da li' non cambia
+ * piu': rinominare un'auto non la fa diventare un'altra. */
+function ensureCarKeys() {
+  const legacy = legacyProfiles();
+  if (!legacy.length) return legacy;
+  const conChiavi = assignCarKeys(legacy);
+  if (conChiavi !== legacy) {
+    writeJsonIfChanged("cd_ev_cars", conChiavi);
+    try { dashboardStore()?.replaceSection?.("ev", conChiavi)?.catch?.(() => {}); } catch (_error) {}
+  }
+  return conChiavi;
+}
+
+/* Di chi sono i campi della scheda, adesso.
+ *
+ * null  = nessun gesto esplicito: la scheda racconta l'auto attiva.
+ * ""    = bozza («＋ Aggiungi auto»): la scheda e' di una vettura che non
+ *         esiste ancora.
+ * uid   = la matita ha aperto QUELLA auto, e il nome scritto nel campo e' il
+ *         suo nome — anche cambiato: rinominare non apre un'altra scheda. */
+function editingKey() { return state.evEditingUid ?? null; }
+function setEditingKey(value) { state.evEditingUid = value; }
+
 /* Dove sta scritta la carica dell'auto.
  *
  * Non in un posto solo: la mappatura storica si chiama dm.ev_batteria_auto, le
@@ -671,7 +693,7 @@ function chooseProfile(index) {
 }
 
 function selectorStructureSignature(cars) {
-  return cars.map((car,index)=>[index,clean(car.name),clean(car.brand),clean(car.icon)].join("~")).join("|");
+  return cars.map((car,index)=>[index,carKey(car),clean(car.name),clean(car.brand),clean(car.icon)].join("~")).join("|");
 }
 function bindProfileNav(nav) {
   if (nav.dataset.dmEvBound === "true") return;
@@ -679,11 +701,18 @@ function bindProfileNav(nav) {
   nav.addEventListener("click", (event) => {
     const button = event.target?.closest?.(".dm-vehicle-profile-card[data-vehicle-index]");
     if (!button || !nav.contains(button)) return;
-    const index = Number.parseInt(button.dataset.vehicleIndex, 10); if (Number.isFinite(index)) chooseProfile(index);
+    /* Il tab porta la CHIAVE dell'auto e l'indice si risolve adesso,
+     * sull'elenco di adesso: fra il disegno e il tocco la lista puo' essere
+     * cambiata (una cancellazione, un riordino) e un indice fotografato
+     * avrebbe aperto la vettura sbagliata. */
+    const key = clean(button.dataset.vehicleKey);
+    const risolto = key ? carIndexByKey(profiles(), key) : -1;
+    const index = risolto >= 0 ? risolto : Number.parseInt(button.dataset.vehicleIndex, 10);
+    if (Number.isFinite(index) && index >= 0) chooseProfile(index);
   });
 }
 function buildProfileButtons(nav, cars) {
-  nav.innerHTML = cars.map((car,index)=>`<button type="button" class="dm-vehicle-profile-card" data-vehicle-index="${index}"><span class="dm-vehicle-profile-icon">${vehicleProfileVisual(car)}</span><span class="dm-vehicle-profile-copy"><strong>${esc(car.name || `${t("Auto","Vehicle")} ${index+1}`)}</strong><small></small></span><span class="dm-vehicle-profile-check" aria-hidden="true"></span></button>`).join("");
+  nav.innerHTML = cars.map((car,index)=>`<button type="button" class="dm-vehicle-profile-card" data-vehicle-index="${index}" data-vehicle-key="${esc(carKey(car))}"><span class="dm-vehicle-profile-icon">${vehicleProfileVisual(car)}</span><span class="dm-vehicle-profile-copy"><strong>${esc(car.name || `${t("Auto","Vehicle")} ${index+1}`)}</strong><small></small></span><span class="dm-vehicle-profile-check" aria-hidden="true"></span></button>`).join("");
   bindProfileNav(nav);
 }
 
@@ -905,6 +934,9 @@ function installLegacyWrappers() {
       const car=legacyProfiles()[Number(index)] || {};
       // Cambiare auto chiude la seduta di scrittura: i campi raccontano lei.
       refToccati().clear();
+      setEditingKey(carKey(car));
+      // Applicare non e' un mandato di rinomina: quello lo da' solo la matita.
+      state.evRenameArmed = false;
       const result=previous.call(this,index,...rest);
       restoreProfilePhotos(car, before);
       state.legacyRefreshSignature=""; root.queueMicrotask?.(scheduleEvSync); return result;
@@ -952,8 +984,48 @@ function installLegacyWrappers() {
   if (typeof root.edEvCarAdd === "function" && !root.edEvCarAdd.__dmEvSection) {
     const previous=root.edEvCarAdd;
     function addProfile(...args) {
-      const prima=legacyProfiles();
+      ensureCarKeys();
+      const primaOriginale=legacyProfiles();
       const indiceAttivoPrima=activeIndex();
+      /* La sessione dice CHI si sta salvando; il runtime invece riconosce per
+       * nome. I due mondi si allineano prima di chiamarlo:
+       * - salvare la sessione col nome cambiato RINOMINA quell'auto (la
+       *   chiave resta: e' sempre lei), cosi' il runtime la ritrova per nome
+       *   e ci scrive sopra invece di partorire una riga doppia;
+       * - un nome che appartiene a UN'ALTRA auto non si salva: era il gesto
+       *   da cui una vettura si prendeva i dati dell'altra. */
+      const nomeScritto = clean(doc?.getElementById("ed-evcar-name")?.value);
+      const chiaveSessione = editingKey();
+      /* La sessione ESPLICITA (matita, applica) autorizza la rinomina; senza
+       * un gesto la scheda si comporta come sempre: un nome nuovo crea una
+       * vettura nuova, il nome dell'attiva la risalva. Il fallback all'attiva
+       * serve solo a distinguere «il suo stesso nome» da «il nome di
+       * un'altra» — mai a rinominarla di nascosto. */
+      const sessioneEsplicita = chiaveSessione
+        ? primaOriginale.find((car) => carKey(car) === chiaveSessione) || null
+        : null;
+      const sessione = sessioneEsplicita
+        || (chiaveSessione === "" ? null : primaOriginale[indiceAttivoPrima] || null);
+      const omonima = nomeScritto
+        ? primaOriginale.find(
+            (car) => clean(car?.name) === nomeScritto && (!sessione || carKey(car) !== carKey(sessione)),
+          )
+        : null;
+      if (omonima) {
+        const avviso = t(
+          `Esiste già un'auto "${nomeScritto}": usa la matita per modificarla, o scegli un altro nome`,
+          `A car named "${nomeScritto}" already exists: use the pencil to edit it, or pick another name`,
+        );
+        try { root.edToast?.(avviso); } catch (_error) {}
+        return undefined;
+      }
+      let prima = primaOriginale;
+      if (sessioneEsplicita && state.evRenameArmed && nomeScritto && clean(sessioneEsplicita.name) !== nomeScritto) {
+        prima = primaOriginale.map((car) =>
+          carKey(car) === carKey(sessioneEsplicita) ? { ...car, name: nomeScritto } : car,
+        );
+        writeJsonIfChanged("cd_ev_cars", prima);
+      }
       /* La scelta viva di marca e modello si legge ORA: il ridisegno che il
        * runtime fa salvando smonta la card Brand, e a cose fatte le tendine
        * non ci sono piu'. */
@@ -974,12 +1046,12 @@ function installLegacyWrappers() {
        * fuori: li' il travaso dalle caselle e' l'adozione del formato
        * vecchio, ed e' voluto. */
       if (prima.length) {
-        /* Lo stesso confronto esatto del runtime e di restoreCarIdentities:
-         * "Tesla" e "tesla" sono due auto per il runtime, e devono esserlo
-         * anche qui — o la seconda si terrebbe le foto catturate. */
-        const conosciute = new Set(prima.map((car) => clean(car?.name)));
+        /* Un'auto e' "gia' conosciuta" se porta una chiave che era in lista:
+         * il nome non basta piu' (rinominare non e' nascere). Le nuove nate
+         * escono da assignCarKeys con una chiave fresca, mai vista. */
+        const conosciute = new Set(prima.map((car) => clean(car?.uid)).filter(Boolean));
         rimesse = rimesse.map((car) =>
-          conosciute.has(clean(car?.name))
+          conosciute.has(clean(car?.uid))
             ? car
             : { ...car, img: "", imgPlugged: "", image: "", image_url: "" },
         );
@@ -990,16 +1062,19 @@ function installLegacyWrappers() {
        * nuova), quindi e' QUI, alla nascita del profilo, che la scelta
        * viva sale a bordo. */
       if (marcaViva) {
-        const nate = new Set(prima.map((car) => clean(car?.name)));
+        const nate = new Set(prima.map((car) => clean(car?.uid)).filter(Boolean));
         rimesse = rimesse.map((car) =>
-          nate.has(clean(car?.name)) || clean(car?.brand)
+          nate.has(clean(car?.uid)) || clean(car?.brand)
             ? car
             : { ...car, brand: marcaViva, ...(modelloVivo ? { model: modelloVivo } : {}) },
         );
       }
       if (rimesse !== dopo) writeJsonIfChanged("cd_ev_cars", rimesse);
-      // Scheda salvata: la seduta di scrittura e' chiusa, i segni si azzerano.
+      // Scheda salvata: la seduta di scrittura e' chiusa, i segni si azzerano,
+      // e la sessione diventa l'auto appena salvata (il runtime l'ha attivata).
       refToccati().clear();
+      setEditingKey(carKey(rimesse[activeIndex()] || {}));
+      state.evRenameArmed = false;
       /* Il runtime ha appena reso attiva l'auto salvata, ma le due caselle da
        * cui il disegno legge portano ancora le foto di quella di prima: senza
        * questa risemina l'eroe mostrava la vettura vecchia sotto la linguetta

@@ -92,6 +92,65 @@ test("legacy status_entity remains supported after migration", () => {
   assert.equal(model.label, "OFF");
 });
 
+test("off_delay_minutes keeps the card running through the 0 W drying phase", () => {
+  const holds = new Map();
+  const delayed = { ...device, off_delay_minutes: 30 };
+  const at = (power, control, now) =>
+    createApplianceViewModel(delayed, states(power, control), [], "it", { now, holds });
+  const t0 = Date.parse("2026-08-16T10:00:00");
+  assert.equal(at(1800, "on", t0).mode, "running");
+  // Drying: 0 W with the plug still on, inside the configured window.
+  assert.equal(at(0, "on", t0 + 10 * 60000).mode, "running");
+  assert.equal(at(0, "on", t0 + 29 * 60000).mode, "running");
+  // Window expired: the cycle is over and the hold is forgotten.
+  assert.equal(at(0, "on", t0 + 31 * 60000).mode, "standby");
+  assert.equal(at(0, "on", t0 + 32 * 60000).mode, "standby");
+});
+
+test("a new power reading above threshold restarts the end-of-cycle window", () => {
+  const holds = new Map();
+  const delayed = { ...device, off_delay_minutes: 10 };
+  const at = (power, now) =>
+    createApplianceViewModel(delayed, states(power, "on"), [], "it", { now, holds });
+  const t0 = Date.parse("2026-08-16T10:00:00");
+  assert.equal(at(900, t0).mode, "running");
+  assert.equal(at(0, t0 + 8 * 60000).mode, "running");
+  // The rinse pump spikes again: the window restarts from here.
+  assert.equal(at(700, t0 + 9 * 60000).mode, "running");
+  assert.equal(at(0, t0 + 17 * 60000).mode, "running");
+  assert.equal(at(0, t0 + 20 * 60000).mode, "standby");
+});
+
+test("an explicit off wins immediately over the end-of-cycle delay", () => {
+  const holds = new Map();
+  const delayed = { ...device, off_delay_minutes: 30 };
+  const t0 = Date.parse("2026-08-16T10:00:00");
+  assert.equal(
+    createApplianceViewModel(delayed, states(1800, "on"), [], "it", { now: t0, holds }).mode,
+    "running",
+  );
+  // The user switches the smart plug off: no guessing, the card goes off now.
+  assert.equal(
+    createApplianceViewModel(delayed, states(0, "off"), [], "it", { now: t0 + 60000, holds }).mode,
+    "off",
+  );
+  // And the hold is gone: turning the plug back on does not resurrect the cycle.
+  assert.equal(
+    createApplianceViewModel(delayed, states(0, "on"), [], "it", { now: t0 + 120000, holds }).mode,
+    "standby",
+  );
+});
+
+test("without off_delay_minutes the ladder is untouched by the hold", () => {
+  const holds = new Map();
+  const t0 = Date.parse("2026-08-16T10:00:00");
+  assert.equal(createApplianceViewModel(device, states(1800), [], "it", { now: t0, holds }).mode, "running");
+  assert.equal(
+    createApplianceViewModel(device, states(0, "on"), [], "it", { now: t0 + 1000, holds }).mode,
+    "standby",
+  );
+});
+
 test("unknown and unavailable configured states are not presented as OFF", () => {
   for (const value of ["unknown", "unavailable"]) {
     const model = createApplianceViewModel(
@@ -102,5 +161,49 @@ test("unknown and unavailable configured states are not presented as OFF", () =>
     );
     assert.equal(model.mode, "unavailable");
     assert.equal(model.label, "UNAVAILABLE");
+  }
+});
+
+
+/* La scadenza del ritardo bussa da sola.
+ *
+ * Un elettrodomestico che ha smesso di consumare non manda piu' nessun cambio
+ * di stato — e' per questo che il ritardo esiste — quindi il ritardo scadeva
+ * solo alla prossima chiamata del modello, che poteva non arrivare per ore: la
+ * lavastoviglie restava IN FUNZIONE a ciclo finito. Adesso il modello mette
+ * una sveglia sulla scadenza e chi disegna la sente.
+ */
+test("il ritardo di fine ciclo avvisa chi disegna quando scade", async () => {
+  const { createApplianceViewModel, onRunHoldExpiry, resetRunHolds } = await import(
+    "../src/core/appliance-view-model.js"
+  );
+  resetRunHolds();
+  const sveglie = [];
+  const stacca = onRunHoldExpiry(() => sveglie.push(Date.now()));
+  const originale = globalThis.setTimeout;
+  const pianificate = [];
+  globalThis.setTimeout = (callback, delay) => {
+    pianificate.push({ callback, delay });
+    return pianificate.length;
+  };
+  try {
+    const holds = new Map();
+    const ritardata = { ...device, off_delay_minutes: 30 };
+    const t0 = Date.parse("2026-08-16T10:00:00");
+    const al = (power, now) =>
+      createApplianceViewModel(ritardata, states(power, "on"), [], "it", { now, holds });
+    assert.equal(al(1800, t0).mode, "running");
+    // Niente sveglia finche' consuma: la scadenza non e' ancora cominciata.
+    assert.equal(pianificate.length, 0);
+    assert.equal(al(0, t0 + 60000).mode, "running");
+    assert.equal(pianificate.length, 1, "il ritardo in corso mette la sua sveglia");
+    // Suona dopo i trenta minuti dall'ultimo consumo, con un pelo di margine.
+    assert.equal(pianificate[0].delay, 29 * 60000 + 250);
+    pianificate[0].callback();
+    assert.equal(sveglie.length, 1, "chi disegna viene avvisato");
+  } finally {
+    globalThis.setTimeout = originale;
+    stacca();
+    resetRunHolds();
   }
 });

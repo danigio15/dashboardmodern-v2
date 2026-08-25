@@ -124,6 +124,8 @@ const SHARED_ACROSS_LANGUAGES = new Set([
   "N/A",
   "Radiators",
   "Turbo",
+  /* Il nome della scheda del ponte: mezza Europa lo chiama cosi'. */
+  "Widgets",
   "kWh/day",
   "☀️ Solar",
   "📊 Report",

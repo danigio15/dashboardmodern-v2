@@ -43,9 +43,14 @@ async function avvia(page, testInfo) {
       state: "heat",
       attributes: { hvac_modes: ["off", "heat"], friendly_name: "Ufficio" },
     };
+    /* La presa vera della plancia e' `dmCallHaService`: e' quella che il
+     * runtime definisce e che manda il servizio sul WebSocket. Qui si
+     * ascoltava `cdCallServiceJson`, che non esiste da nessuna parte — e
+     * infatti il tasto del clima non chiamava niente sulla plancia vera. */
     window.__chiamate = [];
-    window.cdCallServiceJson = (dominio, servizio, dati) => {
-      window.__chiamate.push({ dominio, servizio, dati: JSON.parse(dati) });
+    window.dmCallHaService = (dominio, servizio, dati) => {
+      window.__chiamate.push({ dominio, servizio, dati });
+      return Promise.resolve();
     };
   });
 }

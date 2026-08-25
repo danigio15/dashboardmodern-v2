@@ -18,11 +18,14 @@
 import {
   avatarSvg,
   FACE_BEARDS,
+  FACE_BUILDS,
+  FACE_EYE_COLORS,
   FACE_EYES,
   FACE_GLASSES,
   FACE_HAIR_COLORS,
   FACE_HAIRS,
   FACE_MOUTHS,
+  FACE_OUTFITS,
   FACE_SKINS,
   normalizeFace,
 } from "../core/person-avatar.js";
@@ -109,9 +112,12 @@ const FACE_THUMB_BASE = Object.freeze({
   hair: "corto",
   hairColor: "castano",
   eyes: "normali",
+  eyeColor: "marrone",
   mouth: "sorriso",
   beard: "nessuna",
   glasses: "nessuno",
+  outfit: "maglietta",
+  build: "normale",
 });
 
 function faceRows() {
@@ -120,9 +126,12 @@ function faceRows() {
     { k: "hair", label: t("Capelli", "Hair"), keys: [...FACE_HAIRS] },
     { k: "hairColor", label: t("Colore capelli", "Hair color"), keys: Object.keys(FACE_HAIR_COLORS), swatch: (key) => FACE_HAIR_COLORS[key] },
     { k: "eyes", label: t("Occhi", "Eyes"), keys: [...FACE_EYES] },
+    { k: "eyeColor", label: t("Colore occhi", "Eye color"), keys: Object.keys(FACE_EYE_COLORS), swatch: (key) => FACE_EYE_COLORS[key] },
     { k: "mouth", label: t("Bocca", "Mouth"), keys: [...FACE_MOUTHS] },
     { k: "beard", label: t("Barba", "Beard"), keys: [...FACE_BEARDS] },
+    { k: "build", label: t("Corporatura", "Build"), keys: [...FACE_BUILDS] },
     { k: "glasses", label: t("Occhiali", "Glasses"), keys: [...FACE_GLASSES] },
+    { k: "outfit", label: t("Abbigliamento", "Clothing"), keys: [...FACE_OUTFITS] },
   ];
 }
 
@@ -130,7 +139,7 @@ function faceThumb(face, k, key) {
   /* Il campioncino mostra la variante sul modello neutro, ma tiene la
    * carnagione e i capelli gia' scelti: un paio di occhiali si giudica sulla
    * propria faccia, non su quella di un altro. */
-  const base = { ...FACE_THUMB_BASE, skin: face.skin, hairColor: face.hairColor };
+  const base = { ...FACE_THUMB_BASE, skin: face.skin, hairColor: face.hairColor, eyeColor: face.eyeColor };
   if (k === "hair") base.hairColor = face.hairColor;
   return avatarSvg({ ...base, [k]: key }, { animated: false, shirt: "#9aa8b8" });
 }
@@ -396,6 +405,12 @@ async function onClick(event) {
       const campo = riga.querySelector(`[data-person-field="${field}"]`);
       if (campo && !clean(campo.value)) {
         campo.value = sensore;
+        /* Il campo decorato e' nascosto dietro la pastiglia, e la pastiglia
+         * si ridipinge solo sugli eventi del campo: un .value assegnato in
+         * silenzio riempiva l'input invisibile e lasciava a video «Scegli
+         * entità» — sei sensori trovati e nessuno da vedere. */
+        campo.dispatchEvent(new Event("input", { bubbles: true }));
+        campo.dispatchEvent(new Event("change", { bubbles: true }));
         riempiti += 1;
       }
     }

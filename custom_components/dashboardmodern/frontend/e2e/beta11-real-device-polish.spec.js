@@ -202,7 +202,9 @@ for (const variant of PRIMARY) {
     expect(roomGeometry.separated).toBe(true);
     expect(roomGeometry.color).not.toBe("rgba(0, 0, 0, 0)");
 
-    await openEditor(page, "avvisi");
+    // Gli avvisi non hanno più una linguetta loro: vivono in fondo alla
+    // scheda dei widget, con gli stessi campi.
+    await openEditor(page, "todo");
     const group = page.locator("#ed-avv-grp");
     await group.selectOption("custom");
     await expect(page.locator("#ed-avv-custom")).toBeVisible();

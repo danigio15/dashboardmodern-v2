@@ -118,9 +118,99 @@ export function coverEntries(item = {}) {
   return uscite;
 }
 
+/* La tapparella comandata da due rele' (#194).
+ *
+ * Uno Shelly 2PM lasciato in modalita' interruttore non espone una copertura:
+ * espone due prese, una che manda su e una che manda giu'. La casella della
+ * tapparella accetta gia' un `switch.` singolo — un rele' che tiene la
+ * tapparella su quando e' acceso — ma un motore a due fili non funziona
+ * cosi': chiudere non e' spegnere la salita, e' accendere la discesa.
+ *
+ * Il secondo rele' e' un campo della riga come gli altri. Vale solo dove ha
+ * senso, cioe' quando il primo comando e' anch'esso un rele': su una
+ * `cover.` vera i due tasti li ha gia' Home Assistant, e un rele' in piu'
+ * sarebbe solo un modo per farsi male. */
+const SWITCH_RE = /^switch\.[a-z0-9_]+$/i;
+
+export const isRelayEntity = (entity) => SWITCH_RE.test(clean(entity));
+
+export function coverDownRelay(item = {}) {
+  const primo = clean(item?.entity || item?.entities?.[0]);
+  if (!isRelayEntity(primo)) return "";
+  const giu = clean(item?.down ?? item?.down_entity ?? item?.rele_giu);
+  return isRelayEntity(giu) && giu !== primo ? giu : "";
+}
+
 /** Quanto e' coperta la finestra, da 0 (tutta aperta) a 100. */
 export function coverClosedPercent(position) {
   const value = Number(position);
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, 100 - value));
+}
+
+/* La posizione preferita di una riga (#200).
+ *
+ * «Non voglio la chiusura completa ma il 95%, per lasciar passare un po'
+ * d'aria»: e' un numero che appartiene alla configurazione della tapparella,
+ * nella stessa scala del cursore e della percentuale accanto — 0 chiusa, 100
+ * aperta. Vuoto vuol dire nessun preset: la card mostra il tasto solo a chi
+ * l'ha chiesto. */
+export function coverPresetPosition(item = {}) {
+  const raw = item?.preset ?? item?.preset_position;
+  if (raw === null || raw === undefined || String(raw).trim() === "") return null;
+  const value = Number(raw);
+  if (!Number.isFinite(value)) return null;
+  return Math.round(Math.max(0, Math.min(100, value)));
+}
+
+/* Le posizioni che la tendina offre (#200).
+ *
+ * Dal 100% aperta allo 0% chiusa, di cinque in cinque: abbastanza fitte da
+ * trovarci il 95% dell'esempio, abbastanza rade da scorrerle. La posizione
+ * preferita della configurazione entra nell'elenco al suo posto in scala
+ * anche quando non cade su un passo — e' una scorciatoia, non un vincolo. */
+export const COVER_POSITION_STEP = 5;
+
+export function coverPositionChoices(preferred = null) {
+  const values = [];
+  for (let value = 100; value >= 0; value -= COVER_POSITION_STEP) values.push(value);
+  if (preferred == null || values.includes(preferred)) return values;
+  values.push(preferred);
+  return values.sort((a, b) => b - a);
+}
+
+/* I comandi che un rele' capisce.
+ *
+ * Un servizio `cover.*` su uno switch cade nel vuoto: va tradotto. Con un
+ * rele' solo apre l'accensione e chiude lo spegnimento, e non c'e' niente da
+ * fermare. Con due — quello che manda su e quello che manda giu' (#194) —
+ * chiudere e' accendere la discesa, e fermare e' spegnerle entrambe.
+ *
+ * Il verso opposto si spegne SEMPRE per primo: due contatti chiusi insieme su
+ * un motore a due fili non devono succedere mai, e non ci si affida al fatto
+ * che di solito sia il dispositivo a impedirlo. L'ordine dell'elenco e'
+ * l'ordine in cui vanno chiamati.
+ *
+ * Sta qui, e non in chi disegna, perche' i comandi partono da due posti — la
+ * pagina Tapparelle e la tessera in Home — e una regola di sicurezza scritta
+ * due volte e' una regola che prima o poi vale in un posto solo.
+ */
+export function relayCoverCommands(service, up, down = "") {
+  const salita = clean(up);
+  if (!isRelayEntity(salita)) return [];
+  const discesa = isRelayEntity(down) && clean(down) !== salita ? clean(down) : "";
+  if (!discesa) {
+    if (service === "stop_cover") return [];
+    return [{ entity: salita, service: service === "open_cover" ? "turn_on" : "turn_off" }];
+  }
+  if (service === "stop_cover")
+    return [
+      { entity: salita, service: "turn_off" },
+      { entity: discesa, service: "turn_off" },
+    ];
+  const sale = service === "open_cover";
+  return [
+    { entity: sale ? discesa : salita, service: "turn_off" },
+    { entity: sale ? salita : discesa, service: "turn_on" },
+  ];
 }

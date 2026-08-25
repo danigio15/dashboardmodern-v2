@@ -264,6 +264,7 @@ test("normalizeDevice persists every showcase config field", async () => {
       last_cost_entity: "sensor.cost",
       threshold_run: "6",
       threshold_standby: "0.5",
+      off_delay_minutes: "30",
     },
     "appliances",
     { rooms: [] },
@@ -284,13 +285,15 @@ test("normalizeDevice persists every showcase config field", async () => {
   assert.equal(normalized.last_cost_entity, "sensor.cost");
   assert.equal(normalized.threshold_run, 6);
   assert.equal(normalized.threshold_standby, 0.5);
+  assert.equal(normalized.off_delay_minutes, 30);
   // Empty numeric strings must be dropped, never stored as 0.
   const emptied = normalizeDevice(
-    { id: "appl-2", name: "Forno", cycle_minutes: "", max_power: "", threshold_run: "" },
+    { id: "appl-2", name: "Forno", cycle_minutes: "", max_power: "", threshold_run: "", off_delay_minutes: "" },
     "appliances",
     { rooms: [] },
   );
   assert.equal("cycle_minutes" in emptied, false);
+  assert.equal("off_delay_minutes" in emptied, false);
   assert.equal("max_power" in emptied, false);
   assert.equal("threshold_run" in emptied, false);
 });

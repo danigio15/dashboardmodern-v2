@@ -215,11 +215,14 @@ test("an alert animates the way its own alert behaves", async ({ page }, testInf
    * again, and a build that never settles still fails, at the timeout. */
   const readCards = () =>
     page.evaluate(() =>
-      [...document.querySelectorAll("#page-home .glance-card")].map((card) => {
-        const wrap = card.querySelector(".g-icon-wrap");
+      /* Gli avvisi non sono più card del Quadro — che dalla Home è uscito —
+         ma tessere del ponte: il vocabolario dei movimenti si è trasferito
+         con loro, e si legge dove adesso vivono. */
+      [...document.querySelectorAll('#dm-widgets .dm-tile[data-alert="true"]')].map((card) => {
+        const wrap = card.querySelector(".dm-tile-ic,.dm-tile-ring i");
         const glyph = wrap?.querySelector(".dm-alert-glyph");
         return {
-          name: card.querySelector(".g-name")?.textContent?.trim(),
+          name: card.querySelector(".dm-tile-label")?.textContent?.trim(),
           motion: wrap?.dataset.dmAlertMotion || "",
           animation: glyph ? getComputedStyle(glyph).animationName : "",
           wrapAnimation: wrap ? getComputedStyle(wrap).animationName : "",

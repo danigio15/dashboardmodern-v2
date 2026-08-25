@@ -4,7 +4,11 @@ import {
   coverIsAwning,
   coverIsSideways,
   coverKind,
+  coverDownRelay,
   coverKindLabel,
+  coverPositionChoices,
+  coverPresetPosition,
+  relayCoverCommands,
 } from "../core/cover-kind.js";
 import { allStates, clean, doc, esc, installStyle, root, t } from "./shared.js";
 
@@ -66,10 +70,22 @@ function coverView(item = {}, distingui = false) {
   const entity = clean(item.entity || item.entities?.[0]);
   if (!entity) return null;
   const current = allStates()[entity];
+  const giu = coverDownRelay(item);
   let status = clean(current?.state).toLowerCase() || "unknown";
   /* Lo switch parla on/off: tradotto nella lingua delle coperture, cosi' la
-   * pastiglia, il conteggio e il disegno non devono saperne niente. */
-  if (eUnoSwitch(entity)) status = status === "on" ? "open" : status === "off" ? "closed" : status;
+   * pastiglia, il conteggio e il disegno non devono saperne niente.
+   *
+   * Con due rele' (#194) il discorso cambia: acceso non vuol dire «aperta»
+   * ma «sta salendo», e l'altro rele' acceso vuol dire «sta scendendo». A
+   * rele' spenti dove sia arrivata non lo sa nessuno — un motore a due fili
+   * non lo racconta — e dirlo per finta sarebbe peggio che tacere. */
+  if (eUnoSwitch(entity) && giu) {
+    const su = status === "on";
+    const scende = clean(allStates()[giu]?.state).toLowerCase() === "on";
+    status = su ? "opening" : scende ? "closing" : "unknown";
+  } else if (eUnoSwitch(entity)) {
+    status = status === "on" ? "open" : status === "off" ? "closed" : status;
+  }
   const raw = eUnoSwitch(entity) ? null : current?.attributes?.current_position;
   const reported = raw == null ? null : Math.max(0, Math.min(100, Number(raw)));
   const hasPosition = Number.isFinite(reported);
@@ -90,6 +106,8 @@ function coverView(item = {}, distingui = false) {
     hasPosition: hasPosition || Boolean(grab),
     settable: Boolean(features & SUPPORT_SET_POSITION),
     moving: status === "opening" || status === "closing",
+    preset: coverPresetPosition(item),
+    down: giu,
   };
 }
 
@@ -157,7 +175,9 @@ function signature(views) {
   return views
     .map((view) =>
       coperture(view)
-        .map((c) => [c.entity, c.name, view.floor, view.room, c.settable, c.kind].join("~"))
+        .map((c) =>
+          [c.entity, c.name, view.floor, view.room, c.settable, c.kind, c.preset, c.down].join("~"),
+        )
         .join("+"),
     )
     .join("|");
@@ -184,6 +204,11 @@ function statusLabel(view) {
   if (stato === "closing") return t("In chiusura", "Closing");
   if (stato === "open") return t("Aperta", "Open");
   if (stato === "closed") return t("Chiusa", "Closed");
+  /* Due rele' fermi non vogliono dire «non lo so»: vogliono dire che il
+   * motore non sta girando. Dove sia arrivata non lo racconta nessuno — il
+   * disegno la mette a meta', che e' il modo di non inventarlo — ma dire
+   * «Sconosciuta» su una tapparella che sta benissimo sembra un guasto. */
+  if (view.down) return t("Ferma", "Stopped");
   return t("Sconosciuta", "Unknown");
 }
 
@@ -304,6 +329,38 @@ function panelMarkup(view) {
   </div>`;
 }
 
+/* Il menu della posizione (#200).
+ *
+ * «Non voglio la chiusura completa ma tipo al 95%, per lasciar passare un po'
+ * d'aria»: sotto Apri/Ferma/Chiudi c'e' una tendina che le percentuali le fa
+ * scegliere li' per li', dal 100% aperta allo 0% chiusa di cinque in cinque —
+ * non una sola percentuale fissa decisa in configurazione. La posizione
+ * preferita, se c'e', resta nell'elenco segnata con la stella: e' la
+ * scorciatoia di casa, non piu' l'unica scelta, e sta nel suo posto in scala
+ * anche quando non cade sui passi da cinque. La tendina compare quando almeno
+ * una copertura della card accetta `set_cover_position`. */
+function presetOptions(preferita) {
+  return coverPositionChoices(preferita)
+    .map((value) => {
+      // La coda passa fuori da esc(): clean() mangerebbe lo spazio davanti.
+      const coda = value === 100 ? t("Aperta", "Open") : value === 0 ? t("Chiusa", "Closed") : "";
+      const stella = value === preferita ? "⭐ " : "";
+      return `<option value="${value}">${stella}${value}%${coda ? ` · ${esc(coda)}` : ""}</option>`;
+    })
+    .join("");
+}
+
+function presetSelectMarkup(view, tutte) {
+  if (!tutte.some((cover) => cover.settable)) return "";
+  const label = t("Scegli la posizione", "Choose the position");
+  return `<span class="tapp-btn dm-tapp-preset">
+      <select data-dm-preset aria-label="${esc(label)}" title="${esc(label)}">
+        <option value="">↕ ${esc(label)}</option>
+        ${presetOptions(view.preset)}
+      </select>
+    </span>`;
+}
+
 function cardMarkup(view) {
   const tutte = coperture(view);
   const multiple = tutte.length > 1;
@@ -327,6 +384,7 @@ function cardMarkup(view) {
       <button type="button" class="tapp-btn" data-svc="open_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Apri", "Open"))}">▲</button>
       <button type="button" class="tapp-btn" data-svc="stop_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Ferma", "Stop"))}">■</button>
       <button type="button" class="tapp-btn" data-svc="close_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Chiudi", "Close"))}">▼</button>
+      ${presetSelectMarkup(view, tutte)}
     </div>
   </article>`;
 }
@@ -447,14 +505,28 @@ function insegnaComandoDiGruppo() {
   if (typeof originale !== "function" || originale.__dmTutteLeCoperture) return false;
   /* Il runtime manda servizi cover.*: a un rele' vanno tradotti. Apri e'
    * turn_on, chiudi e' turn_off, e lo stop per uno switch non esiste. */
-  const comandaSwitch = (entity, servizio) => {
-    if (servizio === "stop_cover") return true; // niente da fermare
-    const service = servizio === "open_cover" ? "turn_on" : "turn_off";
+  const releSwitch = (entity, service) => {
     try {
-      root
-        .dmCallHaService?.("switch", service, { entity_id: entity })
-        ?.catch?.(() => {});
+      root.dmCallHaService?.("switch", service, { entity_id: entity })?.catch?.(() => {});
     } catch (_error) {}
+  };
+
+  /* Il rele' di discesa di una copertura, se la sua riga ne dichiara uno. */
+  const releGiuDi = (entity) => {
+    const id = clean(entity);
+    if (!id) return "";
+    for (const item of configuredCovers()) {
+      if (clean(item?.entity || item?.entities?.[0]) !== id) continue;
+      return coverDownRelay(item);
+    }
+    return "";
+  };
+
+  const comandaSwitch = (entity, servizio) => {
+    const comandi = relayCoverCommands(servizio, entity, releGiuDi(entity));
+    /* Con un rele' solo, fermare non ha un comando: l'elenco esce vuoto ed e'
+     * giusto che il tasto non faccia niente. */
+    for (const { entity: bersaglio, service } of comandi) releSwitch(bersaglio, service);
     return true;
   };
 
@@ -624,6 +696,24 @@ async function commitPosition(range) {
   schedule();
 }
 
+/* La posizione scelta nella tendina passa dagli stessi cursori del
+ * trascinamento: stesso grab, stessa anteprima, stessa chiamata. Su una card
+ * composita muove ogni copertura che ha un cursore — cioe' ogni copertura che
+ * accetta una posizione. Poi la tendina torna alla sua voce d'invito: e' un
+ * comando, non lo specchio di dove sta la tapparella. */
+function applyPreset(select) {
+  const card = cardOf(select);
+  const scelta = clean(select.value);
+  if (!card || scelta === "") return;
+  const position = Math.max(0, Math.min(100, Math.round(Number(scelta) || 0)));
+  for (const range of card.querySelectorAll("[data-dm-position][data-dm-entity]")) {
+    range.value = String(position);
+    previewPosition(range);
+    commitPosition(range);
+  }
+  select.value = "";
+}
+
 function installListeners() {
   if (!doc) return;
   doc.addEventListener("input", (event) => {
@@ -633,8 +723,11 @@ function installListeners() {
   doc.addEventListener("change", (event) => {
     const range = event.target?.closest?.("[data-dm-position]");
     if (range) commitPosition(range);
+    const preset = event.target?.closest?.("[data-dm-preset]");
+    if (preset) applyPreset(preset);
   });
   doc.addEventListener("click", (event) => {
+    if (event.target?.closest?.("[data-dm-preset]")) return;
     if (event.target?.closest?.("#page-tapparelle .tapp-btn")) root.queueMicrotask?.(schedule);
   });
   for (const eventName of [
@@ -737,6 +830,29 @@ function installStyles() {
     html body #page-tapparelle#page-tapparelle .dm-tapp-range:focus-visible{outline:3px solid color-mix(in srgb,var(--tapp-accent) 55%,transparent)!important;outline-offset:2px!important}
 
     /* Daylight reaching the room, as much of it as the shutter lets through. */
+    /* La tendina della posizione prende tutta la riga sotto i tre tasti: e'
+       una scelta, non un tasto in piu' che avanza. */
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset{
+      grid-column:1/-1!important;position:relative!important;padding:0!important;
+      border-color:var(--tapp-border)!important;background:var(--tapp-surface)!important;
+      color:var(--tapp-text)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.6)!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset::after{
+      content:""!important;position:absolute!important;right:14px!important;top:50%!important;
+      width:11px!important;height:7px!important;margin-top:-3px!important;pointer-events:none!important;
+      background:currentColor!important;opacity:.55!important;
+      clip-path:polygon(0 0,50% 100%,100% 0,86% 0,50% 72%,14% 0)!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset select{
+      appearance:none!important;-webkit-appearance:none!important;
+      width:100%!important;height:100%!important;box-sizing:border-box!important;
+      padding:0 30px 0 14px!important;border:0!important;border-radius:13px!important;
+      background:none!important;color:inherit!important;font:inherit!important;
+      font-size:13px!important;font-weight:800!important;letter-spacing:.2px!important;
+      text-align:left!important;cursor:pointer!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset select:focus-visible{
+      outline:3px solid color-mix(in srgb,var(--tapp-accent) 55%,transparent)!important;outline-offset:2px!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset option{
+      color:#0f172a!important;font-size:13px!important;font-weight:700!important}
+
     html body #page-tapparelle#page-tapparelle .dm-tapp-spill{
       height:12px!important;margin:-6px 10px -4px!important;border-radius:0 0 16px 16px!important;
       background:radial-gradient(62% 100% at 50% 0,var(--tapp-spill),transparent 72%)!important;

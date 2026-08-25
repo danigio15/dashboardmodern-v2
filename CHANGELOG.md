@@ -5,7 +5,319 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## Non rilasciato
+## 1.2.0
+
+### Aggiunto
+
+- **Backup e ripristino della configurazione.** La scheda «💾 Backup» in
+  configurazione raccoglie tutta la configurazione condivisa — sezioni,
+  stanze, entità, persone, auto, tutto — in un file JSON da scaricare, o da
+  copiare negli appunti dove i download non passano. Il ripristino accetta il
+  file o il testo incollato, dice quante voci porta e chiede conferma inline
+  prima di scrivere; le chiavi che il backup non porta restano come sono, e
+  un file manomesso non può scrivere chiavi fuori dal perimetro condiviso.
+
+- **L'irrigazione guarda il terreno.** Accanto al sensore di umidità ci sono
+  due soglie nuove: col terreno già bagnato (≥ soglia alta) il programma
+  delle ore fisse salta, con l'avviso in card come per la pioggia — e il
+  tasto «forza» passa comunque; sotto la soglia bassa (es. 5%) il programma
+  parte da solo al primo cambio di stato, una volta al giorno, con l'avviso.
+  Lo skip non brucia il giorno dell'avvio automatico: contano solo le
+  partenze vere.
+
+- **Il meteo in Home legge la stazione personale.** (#205) Chi ha una stazione
+  meteo (Ecowitt e simili) mappa i suoi sensori nella scheda Home della
+  configurazione — temperatura esterna, umidità, temperatura percepita,
+  velocità e direzione del vento — e il widget mostra quei numeri, con
+  l'unità del sensore: l'entità weather resta per lo stato e l'icona, e per
+  ogni dato non mappato. La percepita compare come riga sua solo quando c'è,
+  e la direzione in gradi diventa la rosa dei venti (N, NNE, …); un sensore
+  testuale si mostra com'è. La stazione da sola basta a far vivere il widget,
+  anche senza un'entità weather.
+
+- **«In primo piano»: il ponte dei widget della Home.** (#201) Una parte
+  della Home dedicata ai widget: tessere piccole ed eleganti — un numero,
+  un anello, una parola — una per sezione della plancia, e al tocco la
+  tessera si espande in una card larga col dettaglio vivo di quella sezione.
+  Otto widget, ognuno con il suo colore: le **cose da fare** con le voci
+  spuntabili e la scadenza rossa con ⚠️ quando è passata; le **luci** accese
+  con l'interruttore a pillola per spegnerle da lì; il **clima** con la media
+  ambiente e il tasto di accensione per zona; le **tapparelle** aperte con le
+  frecce ▲■▼; la **sicurezza** con lo stato dell'antifurto e le aperture;
+  l'**energia** con la potenza di casa (in kW sopra il migliaio) e i kWh di
+  oggi; gli **elettrodomestici** in funzione coi loro watt; la
+  **temperatura** media con l'umidità. Ogni widget legge la configurazione
+  che la sua sezione ha già e compare solo se c'è qualcosa da mostrare;
+  niente polling, e il markup si rifà solo quando cambia la struttura, così
+  l'apertura non riparte mai da sola. Le liste ToDo arrivano da
+  `todo.get_items` sulla presa WebSocket della plancia, spuntarle chiama
+  `todo.update_item`, e la scheda «🧩 Widget» in configurazione governa
+  tutto: le liste ToDo — con «🪄 Rileva da Home Assistant», in `cd_todo` — e
+  le tessere stesse, quali vederne e in che ordine (`cd_widgets`, revisione 7
+  della configurazione condivisa).
+
+- **Le telecamere, in miniatura sul ponte.** La tessera «📹 Telecamere» dice
+  quante sono e, aperta, mostra le miniature di tutte — lo stesso letterbox
+  scuro del muro della Sicurezza, col pallino live — aggiornate ogni dieci
+  secondi finché la tessera è aperta su uno schermo visibile: chiusa, il
+  timer muore e la memoria viene restituita. I fotogrammi passano dalla
+  stessa strada autenticata del muro, con un registro degli object URL
+  separato perché nessuno revochi i blob dell'altro.
+
+- **Il ponte è vivo.** Le tessere entrano in cascata, il riflesso attraversa
+  la tessera al passaggio, l'icona si anima, le tessere-avviso respirano con
+  l'onda del loro accento, le righe del dettaglio entrano in sequenza e le
+  miniature zoomano al tocco — tutto spento da `prefers-reduced-motion` per
+  chi il movimento non lo vuole.
+
+- **I dettagli comandano, e ogni riga ha la sua icona.** L'antifurto si
+  governa dalla tessera Sicurezza: Fuori 🏠, Notte 🌙 e Sblocca 🔓 passano
+  dallo stesso tastierino PIN della pagina Sicurezza, con la modalità attiva
+  evidenziata. E le righe dei dettagli parlano per immagini: la lavatrice ha
+  il suo disegno vero (lo stesso tratto SVG della sua pagina), la luce la
+  lampadina che si spegne in grigio, il clima fiamma o fiocco secondo quel
+  che sta facendo, le tapparelle la finestra, le batterie 🔋 o 🪫 quando sono
+  da cambiare, porte e cancelli 🚪, gli avvisi personalizzati la loro icona
+  scelta.
+
+- **Il Quadro Avvisi esce dalla Home, e il ponte prende il suo posto.** Le
+  card del Quadro — aperture, batterie scariche, allagamenti, avvisi
+  personalizzati — sono diventate tessere del ponte, con le STESSE liste
+  sorvegliate e le stesse regole di conteggio del runtime, così numero e voci
+  combaciano sempre; come le card di prima compaiono da sole solo quando
+  hanno qualcosa da dire, e al tocco elencano chi è aperto, chi è scarico (in
+  ordine di carica), chi è bagnato. Il vecchio riquadro non viene più
+  nascosto a disegno fatto — si vedeva comparire e sparire sotto gli occhi:
+  è uscito dal documento, così non c'è più niente da nascondere. Con lui se
+  n'è andata la card «Tapparelle aperte» che ci abitava dentro, e il suo
+  popup: la tessera «Tapparelle» dice le stesse cose e porta gli stessi
+  comandi, tendina della posizione compresa. Due strade per la stessa stanza
+  erano una di troppo.
+
+- **Quali entità vanno nei widget, entità per entità.** Le tessere leggono
+  la configurazione della sezione che raccontano, tutta: va bene finché uno
+  le vuole tutte, ma in Home si guarda di sfuggita e non c'era modo di dire
+  «questa no». Adesso la parola in contrario sta accanto all'entità stessa,
+  in ogni scheda della configurazione, sulla riga in cui quell'entità è già
+  scritta — un interruttore 🧩 che dice se va in Home. Le righe le disegna il
+  runtime, ognuna a modo suo, ma tutte scrivono l'entity_id in chiaro: è
+  quello il gancio, così l'interruttore compare in Luci, Clima, Tapparelle,
+  Telecamere, Stanze, Elettrodomestici, Aperture, negli avvisi e ovunque
+  un'entità sia nominata. Chi non mostra un entity_id non riceve niente,
+  perché non c'è niente da escludere. La scelta viaggia in `cd_widgets`
+  insieme all'ordine delle tessere: chi non è nell'elenco è dentro, così chi
+  non tocca niente vede quello che vedeva.
+
+- **Niente detto due volte: la Sicurezza non conta più le telecamere.** La
+  didascalia della tessera «Sicurezza» diceva «2 telecamere» mentre accanto
+  c'era la tessera «Telecamere» con le miniature: due tessere per la stessa
+  cosa. Adesso la Sicurezza parla di quello che comanda — l'antifurto e le
+  aperture — e senza antifurto né aperture non compare affatto, perché le
+  telecamere da sole sono già la loro tessera.
+
+- **I gruppi sorvegliati che non alimentavano più niente sono spariti.** Il
+  Quadro Avvisi aveva una card per le luci accese, una per il clima, una per
+  il riscaldamento, alimentate da elenchi di entità scritti a mano nella
+  scheda degli avvisi. Quelle card non ci sono più e le tessere che le hanno
+  sostituite leggono la sezione vera — le luci sono quelle della scheda Luci,
+  il clima quelle della scheda Clima — quindi quegli elenchi si potevano
+  riempire senza che cambiasse niente da nessuna parte. Restano i gruppi che
+  una tessera ce l'hanno ancora: aperture, batterie, allagamenti e gli avvisi
+  personalizzati. Con loro se n'è andata anche la card «Allagamenti» che
+  cercava ancora il Quadro per posarsi, e il suo popup.
+
+- **La configurazione degli avvisi si trasferisce nella scheda Widget.** La
+  linguetta «🔔 Avvisi» non aveva più una sezione dietro: quegli avvisi sono
+  diventati tessere. Quello che c'era da configurare — quali sensori
+  sorvegliare, gli avvisi personalizzati con condizione e icona — sta sotto
+  le tessere che governa, nella scheda «🧩 Widget», ed è la stessa scheda di
+  prima con i suoi accordion e i suoi pulsanti: cambia la stanza, non i
+  mobili. Chi la chiamava per nome ci arriva lo stesso.
+
+- **Lo stato della connessione torna accanto alla rotella.** L'intestazione
+  distribuisce i suoi figli agli estremi: da quando c'è l'ingranaggio in
+  fondo, la pillola «Connesso» restava sospesa in mezzo al vuoto. Adesso lo
+  spazio libero va tutto alla sua sinistra e le due cose stanno insieme,
+  dalla parte in cui si va a cercarle.
+
+- **La tapparella comandata da due relè.** (#194) «Ho due tende su due Shelly
+  2PM e non riesco a inserire l'entità corretta: l'entità cover che chiede la
+  sezione non la trovo.» Uno Shelly lasciato in modalità interruttore non
+  espone una copertura — espone due prese, una che manda su e una che manda
+  giù — e la casella accettava sì un relè singolo, ma un motore a due fili non
+  funziona così: chiudere non è spegnere la salita, è accendere la discesa.
+  Ogni riga porta adesso la casella **«Relè di discesa»**, e con lei Apri
+  accende la salita, Chiudi accende la discesa e Ferma le spegne entrambe —
+  il verso opposto si spegne sempre per primo, perché due contatti chiusi
+  insieme su un motore a due fili non devono succedere mai. La pastiglia dice
+  «In apertura» e «In chiusura» leggendo i relè, e a relè fermi dice «Ferma»
+  senza inventare a che punto sia arrivata: un motore a due fili non lo
+  racconta, e il disegno la mette a metà. La casella vale solo dove ha senso,
+  cioè quando anche il primo comando è un relè: accanto a una `cover.*` vera
+  non si salva, e la scheda lo dice invece di perderla in silenzio. E il
+  vicolo cieco della segnalazione si chiude alla radice: la riga in cima alla
+  scheda diceva «tapparelle (entità cover)» e il segnaposto solo
+  `cover.tapparella_x`, così chi ha la tapparella dietro un relè cercava una
+  copertura che il suo impianto non espone. Adesso dicono tutte e tre le
+  strade: una `cover.*`, un relè, o due. E la tessera «Tapparelle» in Home
+  comanda anche queste: le frecce sono le stesse, cambia solo la lingua in cui
+  parlano — la traduzione sta scritta una volta sola, in un posto solo, perché
+  una regola di sicurezza scritta due volte prima o poi vale a metà.
+
+- **La percentuale della tapparella si sceglie, non è più fissa.** (#200)
+  «Non voglio la chiusura completa ma tipo al 95%, per lasciar passare un po'
+  d'aria»: sotto Apri/Ferma/Chiudi la card ha una tendina con tutte le
+  percentuali, dal 100% aperta allo 0% chiusa di cinque in cinque, e quella
+  scelta parte subito verso ogni copertura della card che accetta una
+  posizione — stesso `set_cover_position`, stessa presa ottimistica del
+  cursore. Poi la tendina torna alla sua voce d'invito: è un comando, non lo
+  specchio di dov'è la tapparella. La stessa tendina è nelle righe del popup
+  «Tapparelle aperte» in Home. La posizione preferita della configurazione non
+  è più l'unica scelta possibile: resta come scorciatoia di casa, segnata con
+  la stella al suo posto in scala anche quando non cade sui passi da cinque.
+  La casella sta in tutti e tre gli editor: il modulo legacy, la matita sulle
+  righe salvate e il modale moderno.
+
+- **Le aperture, nella sezione Sicurezza.** (#195) Il portone del condominio e
+  la porta di casa stanno fra la centrale d'allarme e le telecamere: una card
+  per porta — serratura, pulsante del citofono, relè, cancello o script — il
+  tocco chiede conferma e, con un PIN configurato (4-8 cifre), il codice, con
+  lo stesso tastierino della centrale. È un cancello locale contro le aperture
+  accidentali: la serratura che dichiara di sapersi aprire riceve `lock.open`,
+  le altre `lock.unlock`, e ogni dominio apre col suo servizio. La scheda
+  «🚪 Aperture» in configurazione scrive `cd_security_doors`, che viaggia con
+  la configurazione condivisa.
+
+- **La pompa di calore raffresca e riscalda.** (#195) Il tipo dell'unità clima
+  ha una terza voce — «♨️ Pompa di calore» — per i condizionatori che fanno
+  anche il caldo: l'unità compare in tutti e due gli elenchi, Freddo e Caldo,
+  e il tasto di accensione del tab Caldo la mette in `heat` mentre quello del
+  tab Freddo la mette in `cool`, invece di riaccenderla com'era. La voce sta
+  nel modale moderno, nell'editor legacy e nel wizard; le card gemelle non
+  duplicano l'id storico `card-<entità>` che il runtime cerca per nome.
+
+- **La % di umidità del terreno, nell'Irrigazione.** Il sensore di umidità del
+  terreno si configura nella scheda Irrigazione — con le soglie facoltative
+  della banda ideale — e la card del programma mostra il misuratore, lo stesso
+  disegno di pH e cloro della piscina: valore, spillo sulla scala e verdetto
+  («nella norma», «troppo basso», «troppo alto»). La lettura si aggiorna a ogni
+  giro senza ridisegnare il prato, e un sensore muto è «nessuna lettura», mai
+  0%.
+
+- **Il ritardo di fine ciclo degli elettrodomestici.** (#195) La lavastoviglie
+  che asciuga consuma 0 W ma il ciclo non è finito: la card diceva «spenta» a
+  metà lavoro. Il campo «Ritardo fine ciclo (minuti)» nella card avanzata
+  tiene l'elettrodomestico IN FUNZIONE per quei minuti dopo l'ultima potenza
+  sopra soglia — una lettura di nuovo sopra soglia riparte da capo, e lo
+  spegnimento esplicito (lo stato dice off, o l'interruttore viene spento)
+  vince subito. Il ciclo registrato include così anche l'asciugatura.
+- **La card della persona si apre.** Toccare la persona in Home apre la sua
+  scheda intera: il ritratto grande con l'anello del colore di presenza, la
+  zona, l'indirizzo con «Apri in mappa», e ogni dato del telefono come
+  mattonella — batteria e carica, orologio, WiFi, attività, distanza con la
+  direzione, tempo di rientro, ultimo aggiornamento. Finché è aperta si
+  aggiorna da sola, e con più persone le frecce passano dall'una all'altra.
+
+- **L'avatar è un personaggio in stile 3D, con corporatura, colore degli
+  occhi e vestiti.** Il motore disegna come i personaggi da cartone
+  renderizzati: occhi grandi con l'iride sfumata del suo colore (nuova fila
+  «Colore occhi»), l'ombra della palpebra dentro il bianco, sopracciglia
+  piene, il naso con la sua luce, la pelle modellata dalla luce radiale, i
+  capelli con gradiente e ciocche — e il sorriso coi denti. La fila
+  Corporatura (magra, normale, robusta) stringe o allarga viso e spalle. E
+  con la fila «Abbigliamento» si sceglie il vestito: maglietta, camicia coi
+  bottoni, felpa col cappuccio, o giacca col completo — camicia bianca e
+  cravatta che prende il colore della persona.
+
+### Corretto
+
+- **Le soglie del terreno sparivano appena salvate.** Il salvataggio
+  dell'Irrigazione finisce ridisegnando la scheda: i campi dell'umidità del
+  terreno venivano riletti *dopo* quel ridisegno, quindi dalle caselle appena
+  ristampate col valore vecchio. Si scriveva la soglia, si premeva Salva, e la
+  soglia tornava com'era senza dire niente. Adesso si leggono prima.
+
+- **Il ritardo di fine ciclo scadeva in silenzio.** Un elettrodomestico che ha
+  smesso di consumare non manda più nessun cambio di stato — è per questo che
+  il ritardo esiste — e la scadenza si accorgeva di sé stessa solo al primo
+  ridisegno capitato per altri motivi: la card poteva restare IN FUNZIONE per
+  ore a ciclo finito. Ora la scadenza suona da sola, per la card e per la
+  tessera in Home.
+
+- **La prima configurazione non conosceva la pompa di calore.** Il tipo
+  «♨️ Pompa di calore» compariva nei due editor ma non nel wizard, il cui
+  elenco nasce quando il wizard si apre: chi configurava la casa la prima
+  volta poteva scegliere solo condizionatore o termosifone.
+
+- **Una lista ToDo irraggiungibile chiedeva le voci a ogni fotogramma.** Col
+  collegamento giù la richiesta falliva, il fallimento faceva ridisegnare e il
+  disegno richiedeva di nuovo. Dopo un errore adesso si aspetta.
+
+- **Il tasto di accensione del clima non chiamava niente.** «Impostando
+  correttamente le entità non si accendono», segnalato da un utente: la
+  sezione provava tre strade per parlare a Home Assistant — `cdCallServiceJson`,
+  `callService`, `hass` — e nessuna delle tre esiste nella plancia. La prima
+  non è definita da nessuna parte, la seconda nemmeno, e `hass` c'è solo
+  dentro il pannello: il comando cadeva nel vuoto, in silenzio, e la zona
+  restava com'era. Adesso passa da `dmCallHaService`, la stessa presa delle
+  luci, delle tapparelle e del robot — e chi non trova nessuno lo dice, così
+  la strada di riserva parte davvero invece di credersi riuscita.
+
+- **Un condizionatore acceso dal tab Freddo partiva a scaldare.** Senza una
+  modalità da ricordare si scendeva in una scala generale che mette «heat»
+  prima di «cool». L'elenco da cui si preme il tasto dice già cosa ci si
+  aspetta — Freddo raffresca, Caldo scalda — e adesso vale più di una
+  graduatoria scritta a tavolino. Non batte però la modalità di ieri: chi
+  lasciava il condizionatore in deumidificazione lo ritrova così.
+
+
+- **Col tema scuro il testo dell'editor era illeggibile.** (#206) Decine di
+  regole delle sezioni leggevano le variabili del tema di Home Assistant
+  (`--card-background-color`, `--secondary-background-color`, …) che dentro
+  la plancia non esistono: vinceva sempre il ripiego chiaro, e col tema scuro
+  il testo — che invece segue il tema — finiva chiaro su bianco. La
+  fondazione del tema ora dichiara quei nomi come alias dei token della
+  plancia: chiaro col chiaro, scuro con lo scuro, ovunque.
+
+- **Il config delle auto ha una sessione, e ogni auto la sua chiave.** La
+  matita apre QUELLA auto (e da lì salvare con un nome nuovo la rinomina:
+  stessa chiave, stesse entità, stesso posto), «＋ Aggiungi auto» apre la
+  bozza, e digitare il nome non tocca più le caselle delle entità. Il nome di
+  un'altra auto non si salva — un avviso spiega di usare la matita: era il
+  gesto da cui una vettura si prendeva i dati dell'altra. I tab della plancia
+  mostrano il nome dato all'auto (il modello sta nel tooltip) e restano
+  agganciati alla vettura anche se la lista cambia.
+
+- **La console EVCC comanda davvero.** I pulsanti modalità e la tendina del
+  target parlavano coi riferimenti interni invece che con le entità mappate:
+  Home Assistant rifiutava ogni chiamata. Ora risolvono il riferimento e
+  derivano il dominio dall'entità vera (un number si comanda con set_value).
+  E i km al limite di carica, senza il sensore dedicato, si calcolano da
+  autonomia attuale / batteria attuale × target: cambiando il target il
+  numero si muove subito.
+
+- **Il valore del mese non balla più.** In Energia · Mensile il totale Casa
+  usciva prima da un ripiego (348,7) e un attimo dopo dal sensore vero
+  (443,0). Nel periodo corrente l'entità di periodo configurata è l'unica
+  autorità: il ripiego dal contatore totale resta per i mesi passati, e uno
+  stato non ancora arrivato non dipinge un numero sporco.
+
+- **«Rileva dal telefono» si vede.** I sensori trovati finivano nel campo
+  nascosto dietro la pastiglia, che continuava a dire «Scegli entità»: ora il
+  campo avvisa la pastiglia e i sei sensori compaiono davvero.
+
+- **I tab stanza delle Temperature vestono come il resto.** La stessa pillola
+  maiuscola e spaziata delle altre sezioni, non un font proprio.
+
+- **Le card delle luci vestono meglio anche da spente.** Gradiente, angolo
+  tinto, binario d'accento, la mattonella dell'icona che da accesa torna
+  tonda e luminosa del colore vero, e l'interruttore a pillola al posto del
+  puntino grigio.
+
+- **Il badge version del README legge il manifest.** Era un numero scritto a
+  mano fermo alla 1.0.1: ora non può più restare indietro. (La «v1.1.8» che
+  HACS mostrava accanto alla release 1.1.9 era la sua cache: si aggiorna da
+  sola o con «Aggiorna informazioni» sulla scheda del repository.)
 
 ## 1.1.9
 

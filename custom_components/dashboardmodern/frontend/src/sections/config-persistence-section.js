@@ -7,8 +7,12 @@ const KEY = "__DASHBOARDMODERN_CONFIG_PERSISTENCE__";
 const USER_DATA_VERSION = 1;
 /* La revisione 5 aggiunge le persone (`cd_people`): un salvataggio scritto
  * prima che la chiave esistesse non puo' dire «cancellata», e il travaso di
- * `mergeLegacyMissingConfig` gliela riempie da questo dispositivo. */
-export const CONFIG_KEYS_REVISION = 5;
+ * `mergeLegacyMissingConfig` gliela riempie da questo dispositivo.
+ * La revisione 6 aggiunge le aperture della Sicurezza (`cd_security_doors`,
+ * #195) e le liste ToDo della Home (`cd_todo`, #201), con la stessa regola.
+ * La revisione 7 aggiunge le preferenze del ponte dei widget (`cd_widgets`):
+ * quali tessere si vedono in Home e in che ordine. */
+export const CONFIG_KEYS_REVISION = 7;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -81,6 +85,9 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_loads",
   "cd_devices",
   "cd_people",
+  "cd_security_doors",
+  "cd_todo",
+  "cd_widgets",
   "cd_luci",
   "cd_luci_rooms",
   "cd_luci_order",
@@ -347,6 +354,22 @@ export function normalizeSharedSnapshot(snapshot) {
  * mentre la si stava togliendo di mezzo: il salvataggio vecchio non ce l'aveva
  * piu', ma il travaso gliela rimetteva. Ritirata vuol dire ritirata.
  */
+/* Il travaso pieno e' voluto, e non si stringe senza toccare il ripristino.
+ *
+ * La revisione dice fin dove lo scatto conosce l'elenco delle chiavi, e per le
+ * chiavi che gia' conosceva l'assenza vorrebbe dire «cancellata»: travasarle
+ * tutte, in effetti, puo' riportare in vita quello che qualcun altro aveva
+ * tolto. Ma `applyRestoredValues` CANCELLA dal dispositivo ogni chiave che il
+ * salvataggio non porta: smettere di travasarle, senza cambiare anche quello,
+ * non fa tornare indietro dei dati — li butta via. Provato: con il travaso
+ * ristretto, un dispositivo che idrata uno scatto piu' vecchio si vedeva
+ * sparire le auto che aveva in casa.
+ *
+ * Fra i due mali, quello che si puo' disfare a mano (una voce ricomparsa) e
+ * quello che non si puo' (una configurazione persa), qui si tiene il primo.
+ * Stringere il travaso e' un lavoro suo: il ripristino deve prima saper
+ * distinguere «non c'e' perche' cancellata» da «non c'e' perche' allora non
+ * esisteva», e quella distinzione oggi non ce l'ha. */
 export function mergeLegacyMissingConfig(remote, local = {}) {
   if (!remote || Number(remote.keys_revision) >= CONFIG_KEYS_REVISION) return remote;
   const mancanti = Object.fromEntries(

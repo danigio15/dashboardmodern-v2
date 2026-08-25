@@ -130,6 +130,7 @@ const SECTION_TABLES = Object.freeze([
   { file: "energy-guidance-section.js", name: "CLASH_LABELS", rows: "values", at: [0, 1] },
   { file: "energy-section.js", name: "TOTAL_FIELDS", rows: "items", at: [3, 4] },
   { file: "lights-scene-section.js", name: "SWATCHES", rows: "items", at: ["it", "en"] },
+  { file: "people-section.js", name: "ACTIVITY_LABELS", rows: "values", at: [0, 1] },
   { file: "lights-scene-section.js", name: "KELVIN_PRESETS", rows: "items", at: ["it", "en"] },
   { file: "minipc-showcase-section.js", name: "GROUPS", rows: "items", at: ["it", "en"] },
   { file: "page-masthead-section.js", name: "PAGES", rows: "items", at: ["it", "en"] },

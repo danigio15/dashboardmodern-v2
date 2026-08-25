@@ -290,7 +290,18 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // gruppi per stanza — e' un modulo suo perche' possiede un'altra superficie
   // dello stesso modello: le capacita' stanno in core/light-model.js e la
   // scheda controlli resta quella del popup, qui non si duplica niente.
-  assert.ok(relative.length <= 142, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 148 con le aperture della Sicurezza (#195) e le liste ToDo della Home
+  // (#201): ognuna segue lo schema delle persone — un modello puro che si
+  // prova da solo, la sezione che disegna, l'editor che scrive la sua chiave.
+  // 149 col backup della configurazione: la scheda che raccoglie le chiavi
+  // condivise in un file e le rimette al loro posto — funzioni pure per il
+  // giro dei dati, provate a tavolino, e nessuna chiave sua.
+  // 150 con la scelta delle entità nei widget: le tessere leggono la
+  // configurazione della sezione che raccontano, tutta, e questo modulo mette
+  // accanto a ogni entità già scritta negli editor l'interruttore che dice se
+  // va in Home. Non disegna una scheda sua — decora quelle che ci sono — e la
+  // scelta la scrive dove abitano già le preferenze del ponte.
+  assert.ok(relative.length <= 150, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
@@ -311,6 +322,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * the Home page is on a visible screen with people configured, disarmed the
    * moment it is not.
    *
+   * The fourth refreshes the camera thumbnails of the Home widget deck, for
+   * the same reason as the Sicurezza wall: a camera frame is a still picture
+   * nothing pushes. Ten seconds, and only while the camera tile is expanded
+   * on a visible Home; collapsed, the timer dies and the object URLs are
+   * returned.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -319,6 +336,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   assert.deepEqual(
     intervals.map(([file]) => path.relative(frontendRoot, file).replaceAll("\\", "/")).sort(),
     [
+      "src/sections/home-widgets-section.js",
       "src/sections/live-ui-section.js",
       "src/sections/people-section.js",
       "src/sections/pool-extra-section.js",

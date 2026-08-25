@@ -63,9 +63,11 @@ test("togliere una chiave non alza la revisione", async () => {
     "../src/sections/config-persistence-section.js"
   );
   /* La 5 non smentisce questa prova: aggiunge una chiave (`cd_people`), e per
-   * una chiave aggiunta la revisione si alza apposta. Quelle tolte restano
+   * una chiave aggiunta la revisione si alza apposta. La 6 fa lo stesso con
+   * le aperture (`cd_security_doors`) e le liste ToDo (`cd_todo`), la 7 con
+   * le preferenze del ponte dei widget (`cd_widgets`). Quelle tolte restano
    * fuori dall'elenco, che e' quello che questa prova difende. */
-  assert.equal(CONFIG_KEYS_REVISION, 5);
+  assert.equal(CONFIG_KEYS_REVISION, 7);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 
@@ -123,4 +125,31 @@ test("senza `img`, un'image vuota non spegne la image_url piena", () => {
     "ev",
   );
   assert.equal(auto.img, "/local/b10.png", "l'unica foto rimasta e' stata scartata");
+});
+
+/* Il travaso pieno resta pieno, e la ragione e' il ripristino.
+ *
+ * Travasare ogni chiave mancante puo' riportare in vita quello che qualcun
+ * altro aveva cancellato: e' un difetto vero, segnalato in revisione. Ma
+ * `applyRestoredValues` cancella dal dispositivo ogni chiave che il
+ * salvataggio non porta, quindi smettere di travasarle non fa tornare
+ * indietro dei dati: li butta via. Finche' il ripristino non sa distinguere
+ * «non c'e' perche' cancellata» da «non c'e' perche' allora non esisteva»,
+ * qui si tiene il male che si puo' disfare a mano.
+ */
+test("uno scatto piu' vecchio riceve tutto quello che questo dispositivo ha", async () => {
+  const { mergeLegacyMissingConfig } = await import(
+    "../src/sections/config-persistence-section.js"
+  );
+  const locale = {
+    cd_widgets: '{"hidden":["luci"]}',
+    cd_tapparelle: '[{"entity":"cover.salone"}]',
+    cd_ev_cars: '[{"name":"B10"}]',
+  };
+  const merged = mergeLegacyMissingConfig({ keys_revision: 5, values: {} }, locale);
+  // La chiave nuova, che lo scatto non poteva conoscere.
+  assert.equal(merged.values.cd_widgets, locale.cd_widgets);
+  // E anche quelle vecchie: senza, il ripristino le cancellerebbe da qui.
+  assert.equal(merged.values.cd_tapparelle, locale.cd_tapparelle);
+  assert.equal(merged.values.cd_ev_cars, locale.cd_ev_cars);
 });

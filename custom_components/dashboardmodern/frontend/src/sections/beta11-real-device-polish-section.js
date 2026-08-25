@@ -272,7 +272,8 @@ function openAlertPicker(input) {
 }
 
 function decorateAlertIconField() {
-  if (activeTab() !== "avvisi") return false;
+  // Gli avvisi vivono in fondo alla scheda dei widget: quello che conta e'
+  // che la loro casella sia in scena, non da che linguetta ci si arriva.
   const input = doc?.getElementById("ed-avv-icon");
   const row = input?.parentElement;
   if (!input || !row) return false;

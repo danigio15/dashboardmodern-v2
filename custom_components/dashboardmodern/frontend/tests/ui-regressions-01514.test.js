@@ -40,11 +40,13 @@ test("EV selector remains content-sized", async () => {
   assert.doesNotMatch(source, /flex:0 0 min\(82vw,300px\)/);
 });
 
-test("shutter alert remains a centered modal on mobile", async () => {
+test("della card «Tapparelle aperte» non e' rimasto nemmeno il vestito", async () => {
+  // Il popup era un modale centrato anche sul telefono. Adesso la card che lo
+  // apriva non c'e' piu' — il Quadro Avvisi che la ospitava e' uscito dalla
+  // Home — e con lei se n'e' andato tutto il suo foglio di stile.
   const source = await read("src/sections/shutter-section.js");
-  assert.match(source, /\.dm-shutter-popup\{display:flex!important;align-items:center!important;justify-content:center/);
-  assert.match(source, /@media\(max-width:640px\)/);
-  assert.doesNotMatch(source, /align-items:end!important/);
+  assert.doesNotMatch(source, /dm-shutter-popup/);
+  assert.doesNotMatch(source, /dm-shutter-alert/);
 });
 
 test("navigation has one canonical owner with dark-mode contrast", async () => {

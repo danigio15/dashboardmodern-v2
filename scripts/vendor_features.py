@@ -1122,8 +1122,77 @@ R37_EN_A = '<input id="appl-ent" class="ed-input mono" style="flex:1;" autocompl
 R37_IT_R = '<input id="appl-ent" class="ed-input mono" data-entity-input autocomplete="off" style="flex:1;" placeholder="sensor.forno_potenza (W) o switch.forno"><button type="button" class="dm-entity-picker" data-entity-target="appl-ent" aria-label="Seleziona entity_id">🔍</button>'
 R37_EN_R = '<input id="appl-ent" class="ed-input mono" data-entity-input autocomplete="off" style="flex:1;" placeholder="sensor.oven_power (W) or switch.oven"><button type="button" class="dm-entity-picker" data-entity-target="appl-ent" aria-label="Select entity_id">🔍</button>'
 
+# Il Quadro Avvisi lascia la Home (#201).
+#
+# Le sue card — luci, clima, riscaldamento, aperture, batterie e gli avvisi
+# personalizzati — sono diventate tessere del ponte «In primo piano», che le
+# mostra da sole solo quando hanno qualcosa da dire. Tenerne due copie voleva
+# dire vederlo comparire al primo disegno e sparire subito dopo, sotto gli
+# occhi di chi guarda: il blocco esce dal documento, cosi' non c'e' piu'
+# niente da nascondere.  Il runtime che riempiva quelle card cerca i suoi id
+# con getElementById e si ferma se non li trova: resta al suo posto, senza
+# lavoro da fare.
+AVVISI_BOARD_IT_A = """    <h3 class="section-title">Quadro Avvisi</h3>
+    <div class="glance-grid" id="glance-grid">
+      <div class="glance-card" id="glance-luci" style="--g-rgb: 245,158,11; display: none;" onclick="apriDettagli(event, 'luci')">
+        <div class="g-info"><span class="g-name">Luci Accese</span><span class="g-val" id="g-val-luci">0</span></div>
+        <div class="g-icon-wrap anim-ping" style="color: var(--solar);">💡</div>
+      </div>
+      <div class="glance-card" id="glance-clima" style="--g-rgb: 6,182,212; display: none;" onclick="apriDettagli(event, 'clima')">
+        <div class="g-info"><span class="g-name">Clima Attivi</span><span class="g-val" id="g-val-clima">0</span></div>
+        <div class="g-icon-wrap anim-scan" style="color: var(--ev);">❄️</div>
+      </div>
+      <div class="glance-card" id="glance-risc" style="--g-rgb: 225,29,72; display: none;" onclick="apriDettagli(event, 'risc')">
+        <div class="g-info"><span class="g-name">Riscaldamento</span><span class="g-val" id="g-val-risc">0</span></div>
+        <div class="g-icon-wrap anim-ping" style="color: var(--load);">🔥</div>
+      </div>
+      <div class="glance-card" id="glance-win" style="--g-rgb: 225,29,72; display: none;" onclick="apriDettagli(event, 'win')">
+        <div class="g-info"><span class="g-name">Aperture</span><span class="g-val" id="g-val-win">0</span></div>
+        <div class="g-icon-wrap anim-ping" style="color: var(--load);">🚪</div>
+      </div>
+      <div class="glance-card" id="glance-batt" style="--g-rgb: 225,29,72; display: none;" onclick="apriDettagli(event, 'batt')">
+        <div class="g-info"><span class="g-name">Batt. Scariche</span><span class="g-val" id="g-val-batt">0</span></div>
+        <div class="g-icon-wrap anim-ping" style="color: var(--load);">🔋</div>
+      </div>
+      <!-- v245: la card antifurto è stata rimossa dal Quadro Avvisi.
+           Lo stato dell'antifurto adesso vive nella pillola sopra (allarme-banner) -->
+      <!-- v0.9.7 (#4): avvisi personalizzati iniettati qui -->
+      <div id="glance-custom-wrap" style="display:contents;"></div>
+    </div>
+"""
+AVVISI_BOARD_EN_A = """    <h3 class="section-title">Quadro Avvisi</h3>
+    <div class="glance-grid" id="glance-grid">
+      <div class="glance-card" id="glance-luci" style="--g-rgb: 245,158,11; display: none;" onclick="apriDettagli(event, 'luci')">
+        <div class="g-info"><span class="g-name">Luci Accese</span><span class="g-val" id="g-val-luci">0</span></div>
+        <div class="g-icon-wrap anim-ping" style="color: var(--solar);">💡</div>
+      </div>
+      <div class="glance-card" id="glance-clima" style="--g-rgb: 6,182,212; display: none;" onclick="apriDettagli(event, 'clima')">
+        <div class="g-info"><span class="g-name">Clima Attivi</span><span class="g-val" id="g-val-clima">0</span></div>
+        <div class="g-icon-wrap anim-scan" style="color: var(--ev);">❄️</div>
+      </div>
+      <div class="glance-card" id="glance-risc" style="--g-rgb: 225,29,72; display: none;" onclick="apriDettagli(event, 'risc')">
+        <div class="g-info"><span class="g-name">Riscaldamento</span><span class="g-val" id="g-val-risc">0</span></div>
+        <div class="g-icon-wrap anim-ping" style="color: var(--load);">🔥</div>
+      </div>
+      <div class="glance-card" id="glance-win" style="--g-rgb: 225,29,72; display: none;" onclick="apriDettagli(event, 'win')">
+        <div class="g-info"><span class="g-name">Aperture</span><span class="g-val" id="g-val-win">0</span></div>
+        <div class="g-icon-wrap anim-ping" style="color: var(--load);">🚪</div>
+      </div>
+      <div class="glance-card" id="glance-batt" style="--g-rgb: 225,29,72; display: none;" onclick="apriDettagli(event, 'batt')">
+        <div class="g-info"><span class="g-name">Batt. Scariche</span><span class="g-val" id="g-val-batt">0</span></div>
+        <div class="g-icon-wrap anim-ping" style="color: var(--load);">🔋</div>
+      </div>
+      <!-- v245: la card antifurto è stata rimossa dal Quadro Avvisi.
+           Lo stato dell'antifurto adesso vive nella pillola sopra (allarme-banner) -->
+      <!-- v0.9.7 (#4): custom alerts injected here -->
+      <div id="glance-custom-wrap" style="display:contents;"></div>
+    </div>
+"""
+
 # Ordered list of (label, anchor, replacement) applied by vendor_legacy.py.
 FEATURE_PATCHES: tuple[tuple[str, str, str], ...] = (
+    ("home-avvisi-board-it?", AVVISI_BOARD_IT_A, ""),
+    ("home-avvisi-board-en?", AVVISI_BOARD_EN_A, ""),
     ("report-appl-helper", REP_HELPER_ANCHOR, REP_HELPER_REPLACEMENT),
     ("report-appl-concat", REP_CONCAT_ANCHOR, REP_CONCAT_REPLACEMENT),
     ("report-appl-rerun", REP_RERUN_ANCHOR, REP_RERUN_REPLACEMENT),

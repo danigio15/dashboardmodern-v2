@@ -70,7 +70,13 @@ test("il segnalibro dei campi toccati si installa al montaggio, non al primo gir
   assert.match(montaggio.slice(0, 400), /installSlotTouchTracker\(\)/);
   const guardia = sorgente.slice(sorgente.indexOf("function ensureCarNameGuard"));
   assert.match(guardia.slice(0, 120), /installSlotTouchTracker\(\)/);
-  /* E anche col segnalibro in ritardo, il guardiano svuota solo la dote
-   * dell'auto applicata: un valore diverso e' stato scritto a mano. */
-  assert.match(guardia, /corrente !== clean\(dote\[ref\]\)/);
+  /* Il nome e' un dato, non un timone: digitare nel campo del nome non deve
+   * piu' ricaricare ne' svuotare le caselle delle entita'. Di chi sono i
+   * campi lo decide la sessione (matita, ＋, applica). */
+  const corpoGuardia = guardia.slice(0, guardia.indexOf("\n}") + 2);
+  assert.doesNotMatch(corpoGuardia, /addEventListener\("input"/);
+  assert.doesNotMatch(corpoGuardia, /input\.value = valore/);
+  /* E la sessione esiste davvero, con i tre stati raccontati. */
+  assert.match(sorgente, /function editingKey\(\)/);
+  assert.match(sorgente, /setEditingKey\(carKey\(/);
 });

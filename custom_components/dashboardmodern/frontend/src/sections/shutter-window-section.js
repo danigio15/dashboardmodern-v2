@@ -160,6 +160,16 @@ export function paintShutterWindows(scope = doc?.getElementById("page-tapparelle
  * si riscrive: si chiama. */
 function caselle() {
   return [
+    /* Il rele' che manda giu' (#194): uno Shelly lasciato in modalita'
+     * interruttore espone due prese, una che alza e una che abbassa, e senza
+     * la seconda «Chiudi» non chiude niente. Vale solo quando la casella
+     * principale porta anch'essa un rele': su una copertura vera i due versi
+     * li ha gia' Home Assistant. */
+    [
+      "ed-tp-down",
+      t("Relè di discesa", "Down relay"),
+      "switch.tapparella_giu",
+    ],
     ["ed-tp-tenda", coverKindLabel("tenda"), "cover.tenda_salotto"],
     ["ed-tp-tendasole", coverKindLabel("tenda_sole"), "cover.tenda_da_sole"],
     [
@@ -168,6 +178,20 @@ function caselle() {
       "binary_sensor.finestra_camera",
     ],
   ];
+}
+
+/* La casella della posizione preferita (#200): un numero, non un'entita' —
+ * niente lente. 0 = chiusa, 100 = aperta; e' la voce con la stella nella
+ * tendina della card, non l'unica percentuale che si puo' scegliere. */
+function casellaPreset() {
+  const holder = doc.createElement("label");
+  holder.className = "ed-slot dm-tw-slot";
+  holder.dataset.dmTwSlot = "ed-tp-preset";
+  holder.innerHTML =
+    `<span class="ed-slot-lbl">${t("Posizione preferita (%)", "Favorite position (%)")}</span>` +
+    '<input id="ed-tp-preset" class="ed-input" type="number" min="0" max="100" step="1"' +
+    ' placeholder="es. 5" autocomplete="off">';
+  return holder;
 }
 
 function casella(id, etichetta, esempio) {
@@ -227,6 +251,16 @@ export function ensureContactField(body = doc?.getElementById("ed-body")) {
     if (ultimo.nextElementSibling !== campo) ultimo.after?.(campo);
     ultimo = campo;
   }
+  {
+    let campo = body.querySelector("#ed-tp-preset");
+    if (!campo) {
+      campo = casellaPreset();
+      aggiunte += 1;
+    } else {
+      campo = campo.closest("label, .ed-slot") || campo;
+    }
+    if (ultimo.nextElementSibling !== campo) ultimo.after?.(campo);
+  }
   /* La prima casella e' quella del runtime: le si da' il nome che adesso le
    * spetta, perche' non e' piu' «l'entita'» ma quella della tapparella. */
   const primaria = body.querySelector("#ed-tp-ent");
@@ -234,6 +268,30 @@ export function ensureContactField(body = doc?.getElementById("ed-body")) {
   if (etichetta) {
     const nome = t("Entità tapparella", "Cover entity");
     if (clean(etichetta.textContent) !== nome) etichetta.textContent = nome;
+  }
+  /* Il segnaposto diceva soltanto `cover.`, e chi ha una tapparella dietro un
+   * rele' cercava una copertura che non esiste — e' esattamente il vicolo
+   * cieco della segnalazione #194. La casella un rele' lo accetta da sempre:
+   * adesso lo dice. Fuori dal ramo dell'etichetta, perche' la casella del
+   * runtime non ha una `.ed-slot-lbl` e li' dentro non ci si arriva mai. */
+  if (primaria) {
+    const esempio = t(
+      "cover.tapparella_x — oppure switch.tapparella_su",
+      "cover.shutter_x — or switch.shutter_up",
+    );
+    if (primaria.placeholder !== esempio) primaria.placeholder = esempio;
+  }
+  /* E la riga in cima, che diceva «tapparelle (entità cover)»: e' la frase da
+   * cui parte il vicolo cieco della #194 — chi ha la tapparella dietro uno
+   * Shelly cerca una copertura che il suo impianto non espone, e si ferma li'.
+   * La scheda dice invece tutte e tre le strade che conosce. */
+  const intro = body.querySelector(".ed-intro");
+  if (intro && !intro.dataset.dmTwIntro) {
+    intro.dataset.dmTwIntro = "true";
+    intro.textContent = t(
+      "Le tapparelle e le tende compaiono nella pagina 🪟 Tapparelle, raggruppate per piano e stanza. Ogni riga accetta un'entità cover.* — con posizione e percentuali — oppure un relè switch.*: uno solo se accendendolo la tapparella sta su, due se ce n'è uno per la salita e uno per la discesa, come uno Shelly in modalità interruttore.",
+      "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode.",
+    );
   }
   /* Il menu del tipo non ha piu' ragione di esistere: se e' rimasto da una
    * versione precedente se ne va, o direbbe una cosa che nessuno legge. */

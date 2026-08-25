@@ -89,3 +89,72 @@ test("a valid explicit monthly helper is preserved and remains authoritative", (
   assert.equal(plans[0].direct, true);
   assert.equal(plans[0].entity, "sensor.casa_mese");
 });
+
+test("nel mese corrente il ripiego dal totale non sostituisce l'entita' mensile assente", async () => {
+  // L'entita' mensile e' configurata ma il suo stato non e' ancora arrivato:
+  // il ripiego Recorder dal contatore totale NON deve riempire la chiave con
+  // un numero diverso (il 348 che poi diventava 443) — la chiave resta vuota,
+  // il bundle risulta incompleto e si riprova quando lo stato c'e'.
+  const configured = {
+    house: {
+      monthly_energy: "sensor.casa_mese",
+      total_energy: "sensor.casa_totale",
+    },
+  };
+  const states = {
+    "sensor.casa_totale": energyState("1200"),
+  };
+
+  const plans = sourcePlans(configured, "month", states).filter((plan) => plan.key === "house");
+  assert.equal(plans.length, 2);
+  assert.equal(plans[0].direct, true);
+  assert.equal(plans[1].fallback, true);
+
+  const now = new Date();
+  const broker = new HomeAssistantBroker();
+  let recorderInterrogato = false;
+  broker.statistics = async () => {
+    recorderInterrogato = true;
+    return {
+      "sensor.casa_totale": [
+        { start: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(), sum: 100 },
+        { start: now.toISOString(), sum: 448.7 },
+      ],
+    };
+  };
+
+  const values = await broker.valuesForPlans(plans, now, states);
+  assert.equal(values.has("house"), false);
+  assert.equal(recorderInterrogato, false);
+
+  // Con lo stato arrivato vince la lettura diretta, mai il ripiego.
+  const pronto = await broker.valuesForPlans(plans, now, {
+    ...states,
+    "sensor.casa_mese": energyState("443"),
+  });
+  assert.equal(pronto.get("house"), 443);
+});
+
+test("in un mese passato il ripiego dal totale continua a lavorare", async () => {
+  const configured = {
+    house: {
+      monthly_energy: "sensor.casa_mese",
+      total_energy: "sensor.casa_totale",
+    },
+  };
+  const states = { "sensor.casa_totale": energyState("1200") };
+  const plans = sourcePlans(configured, "month", states).filter((plan) => plan.key === "house");
+
+  const selected = new Date(2025, 5, 1);
+  const broker = new HomeAssistantBroker();
+  broker.statistics = async () => ({
+    "sensor.casa_totale": [
+      { start: new Date(2025, 4, 31, 23).toISOString(), sum: 100 },
+      { start: new Date(2025, 5, 15).toISOString(), sum: 180 },
+      { start: new Date(2025, 5, 29).toISOString(), sum: 240 },
+    ],
+  });
+
+  const values = await broker.valuesForPlans(plans, selected, states);
+  assert.equal(values.get("house"), 140);
+});

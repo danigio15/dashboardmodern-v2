@@ -7,11 +7,14 @@ import {
   avatarSvg,
   darken,
   FACE_BEARDS,
+  FACE_BUILDS,
+  FACE_EYE_COLORS,
   FACE_EYES,
   FACE_GLASSES,
   FACE_HAIR_COLORS,
   FACE_HAIRS,
   FACE_MOUTHS,
+  FACE_OUTFITS,
   FACE_SKINS,
   normalizeFace,
 } from "../src/core/person-avatar.js";
@@ -39,7 +42,9 @@ test("stesse scelte, stesso disegno — e ogni variante disegna qualcosa di suo"
     ["eyes", FACE_EYES],
     ["mouth", FACE_MOUTHS],
     ["beard", FACE_BEARDS],
+    ["build", FACE_BUILDS],
     ["glasses", FACE_GLASSES],
+    ["outfit", FACE_OUTFITS],
   ]) {
     const disegni = new Set(keys.map((key) => avatarSvg({ ...base, [campo]: key })));
     assert.equal(disegni.size, keys.length, `${campo}: due scelte disegnano la stessa cosa`);
@@ -48,6 +53,10 @@ test("stesse scelte, stesso disegno — e ogni variante disegna qualcosa di suo"
     assert.ok(avatarSvg({ ...base, skin }).includes(FACE_SKINS[skin].base));
   for (const hairColor of Object.keys(FACE_HAIR_COLORS))
     assert.ok(avatarSvg({ ...base, hairColor }).includes(FACE_HAIR_COLORS[hairColor]));
+  for (const eyeColor of Object.keys(FACE_EYE_COLORS))
+    assert.ok(avatarSvg({ ...base, eyeColor }).includes(FACE_EYE_COLORS[eyeColor]));
+  const iridi = new Set(Object.keys(FACE_EYE_COLORS).map((eyeColor) => avatarSvg({ ...base, eyeColor })));
+  assert.equal(iridi.size, Object.keys(FACE_EYE_COLORS).length, "eyeColor: due scelte disegnano la stessa cosa");
 });
 
 test("l'SVG porta le classi per le animazioni, e la variante ferma le spegne", () => {

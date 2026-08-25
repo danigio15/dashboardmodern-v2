@@ -27,6 +27,84 @@ const isCumulativeEnergy = (states, entity) => {
   return /(?:^|[._-])(total|totale|lifetime|meter|contatore)(?:[._-]|$)/i.test(id);
 };
 
+/* Il ritardo di fine ciclo (#195).
+ *
+ * La lavastoviglie che asciuga consuma 0 W ma il ciclo non e' finito: la sola
+ * potenza direbbe «spenta» a meta' lavoro. Con `off_delay_minutes` configurato
+ * la card resta IN FUNZIONE per quei minuti dopo l'ultimo campione sopra
+ * soglia; una lettura di nuovo sopra soglia riparte da capo, e lo spegnimento
+ * esplicito — lo stato dice off, o l'interruttore viene spento — vince subito,
+ * perche' li' non c'e' niente da indovinare. La memoria vive qui e non nello
+ * stato di Home Assistant: e' l'unico posto che tutti e sei i consumatori del
+ * modello attraversano, quindi badge, card, KPI e tracker raccontano lo stesso
+ * ciclo. */
+const runHolds = new Map();
+
+/* La scadenza del ritardo va annunciata, non aspettata.
+ *
+ * Il ritardo finisce da se' solo alla prossima chiamata del modello, e un
+ * elettrodomestico che ha smesso di consumare non manda piu' nessun cambio di
+ * stato: senza qualcuno che lo dica, la card resta IN FUNZIONE fino al primo
+ * ridisegno che capita per altri motivi — che puo' non arrivare per ore. Qui
+ * si tiene una sola sveglia, sulla scadenza piu' vicina, e chi disegna si
+ * iscrive per rileggere il modello quando suona. */
+const scadenzaAscoltatori = new Set();
+let scadenzaTimer = 0;
+let scadenzaAt = 0;
+
+export function onRunHoldExpiry(callback) {
+  if (typeof callback !== "function") return () => {};
+  scadenzaAscoltatori.add(callback);
+  return () => scadenzaAscoltatori.delete(callback);
+}
+
+/** Solo per le prove: dimentica sveglia e ritardi in corso. */
+export function resetRunHolds() {
+  runHolds.clear();
+  if (scadenzaTimer) globalThis.clearTimeout?.(scadenzaTimer);
+  scadenzaTimer = 0;
+  scadenzaAt = 0;
+}
+
+function pianificaScadenza(quando, now) {
+  if (typeof globalThis.setTimeout !== "function") return;
+  // Una sveglia sola: se ce n'e' gia' una che suona prima, basta quella.
+  if (scadenzaTimer && scadenzaAt <= quando) return;
+  if (scadenzaTimer) globalThis.clearTimeout?.(scadenzaTimer);
+  scadenzaAt = quando;
+  scadenzaTimer = globalThis.setTimeout(
+    () => {
+      scadenzaTimer = 0;
+      scadenzaAt = 0;
+      for (const ascoltatore of scadenzaAscoltatori) {
+        try {
+          ascoltatore();
+        } catch (_error) {}
+      }
+    },
+    // Un pelo dopo la scadenza: al risveglio il confronto dev'essere gia'
+    // passato, altrimenti si ripianifica per lo stesso istante all'infinito.
+    Math.max(0, quando - now) + 250,
+  );
+}
+
+function applyRunHold({ key, mode, delayMinutes, explicitOff, now, holds }) {
+  if (!key) return mode;
+  if (mode === "running") {
+    holds.set(key, now);
+    return mode;
+  }
+  if (mode === "unavailable") return mode;
+  const lastRun = holds.get(key);
+  if (lastRun == null) return mode;
+  if (explicitOff || !(delayMinutes > 0) || now - lastRun > delayMinutes * 60000) {
+    holds.delete(key);
+    return mode;
+  }
+  pianificaScadenza(lastRun + delayMinutes * 60000, now);
+  return "running";
+}
+
 const semanticStateValues = new Set([
   "playing",
   "heat",
@@ -71,7 +149,13 @@ function inferSemanticStateEntity(device = {}, states = {}) {
   );
 }
 
-export function createApplianceViewModel(device = {}, states = {}, rooms = [], locale = "it") {
+export function createApplianceViewModel(
+  device = {},
+  states = {},
+  rooms = [],
+  locale = "it",
+  options = {},
+) {
   const powerEntity =
     candidates(device, ["power_entity", "power", "power_sensor"]).find((id) =>
       /^(w|kw|mw|watt|watts)$/.test(unit(states, id).replaceAll(" ", "")),
@@ -140,7 +224,7 @@ export function createApplianceViewModel(device = {}, states = {}, rooms = [], l
     (["off", "closed", "stopped", "idle"].includes(configuredState) ||
       (activityBinary && configuredState === "off"));
   const genericOn = configuredState === "on" || controlState === "on";
-  const mode =
+  const sampledMode =
     unavailable && watts == null
       ? "unavailable"
       : explicitlyOff && !(watts != null && watts >= run)
@@ -150,6 +234,14 @@ export function createApplianceViewModel(device = {}, states = {}, rooms = [], l
           : genericOn || (watts != null && watts >= standby)
             ? "standby"
             : "off";
+  const mode = applyRunHold({
+    key: clean(device.id) || powerEntity || controlEntity || stateEntity,
+    mode: sampledMode,
+    delayMinutes: Number(device.off_delay_minutes),
+    explicitOff: explicitlyOff || (Boolean(controlEntity) && controlState === "off"),
+    now: Number.isFinite(options.now) ? options.now : Date.now(),
+    holds: options.holds instanceof Map ? options.holds : runHolds,
+  });
   const labels = {
     running: pick("IN FUNZIONE", "RUNNING", locale),
     standby: pick("STANDBY", "STANDBY", locale),

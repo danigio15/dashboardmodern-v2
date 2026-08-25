@@ -21,6 +21,35 @@ test("a unit lands in the heating zone only when its type says so", async () => 
   assert.equal(climateZone({}), "freddo");
 });
 
+test("a heat pump lives in both zones, everything else in exactly one", async () => {
+  const { climateZones } = await loadSection();
+  assert.deepEqual(climateZones({ type: "clima" }), ["freddo"]);
+  assert.deepEqual(climateZones({ type: "termo" }), ["caldo"]);
+  assert.deepEqual(climateZones({ type: "pompa" }), ["freddo", "caldo"]);
+  assert.deepEqual(climateZones({ type: "heat_pump" }), ["freddo", "caldo"]);
+});
+
+test("a heat pump gets one card per zone without duplicating the legacy id", async () => {
+  const { climateUnits } = await loadSection();
+  const previous = globalThis.getClimaUnits;
+  try {
+    globalThis.getClimaUnits = () => [
+      { entity: "climate.studio", name: "Studio", type: "pompa" },
+    ];
+    const units = climateUnits();
+    assert.equal(units.length, 2);
+    // The legacy id stays on the first card: cdAutoHide() looks it up by name.
+    assert.equal(units[0].cardId, "card-climate-studio");
+    assert.equal(units[0].zone, "freddo");
+    assert.equal(units[1].cardId, "card-climate-studio--caldo");
+    assert.equal(units[1].zone, "caldo");
+    assert.equal(units[0].entity, units[1].entity);
+  } finally {
+    if (previous === undefined) delete globalThis.getClimaUnits;
+    else globalThis.getClimaUnits = previous;
+  }
+});
+
 test("configured units are read through the legacy list and keep the legacy card ids", async () => {
   const { climateUnits } = await loadSection();
   const previous = globalThis.getClimaUnits;
@@ -99,7 +128,9 @@ test("the page keeps every hook the legacy climate runtime writes into", () => {
   assert.match(source, /setClimaPageMode\('\$\{zone\}'\)/);
   assert.match(source, /setTemp\('\$\{entity\}', 'down'\)/);
   assert.match(source, /setTemp\('\$\{entity\}', 'up'\)/);
-  assert.match(source, /toggleClima\('\$\{entity\}'\)/);
+  // The card also says which tab it lives in, so a heat pump switched on from
+  // the Caldo tab starts heating instead of resuming its last mode.
+  assert.match(source, /toggleClima\('\$\{entity\}', '\$\{unit\.zone\}'\)/);
   // The card itself keeps an onclick carrying the entity, which is what
   // cdAutoHide() reads to hide units the user never mapped.
   assert.match(source, /onclick="apriClimaPopup\('\$\{entity\}', event\)"/);
@@ -157,5 +188,5 @@ test("bulk power acts on the visible zone only and skips units already in that s
   assert.match(source, /function bulkSwitch/);
   assert.match(source, /if \(unit\.zone !== zone\) continue;/);
   assert.match(source, /if \(!reading\.known \|\| reading\.on === wantsOn\) continue;/);
-  assert.match(source, /root\.toggleClima\(unit\.entity\)/);
+  assert.match(source, /root\.toggleClima\(unit\.entity, zone\)/);
 });
