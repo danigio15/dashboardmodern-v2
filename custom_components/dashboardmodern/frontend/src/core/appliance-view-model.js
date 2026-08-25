@@ -27,7 +27,42 @@ const isCumulativeEnergy = (states, entity) => {
   return /(?:^|[._-])(total|totale|lifetime|meter|contatore)(?:[._-]|$)/i.test(id);
 };
 
-export function createApplianceViewModel(device = {}, states = {}, rooms = [], locale = "it") {
+/* Il ritardo di fine ciclo (#195).
+ *
+ * La lavastoviglie che asciuga consuma 0 W ma il ciclo non e' finito: la sola
+ * potenza direbbe «spenta» a meta' lavoro. Con `off_delay_minutes` configurato
+ * la card resta IN FUNZIONE per quei minuti dopo l'ultimo campione sopra
+ * soglia; una lettura di nuovo sopra soglia riparte da capo, e lo spegnimento
+ * esplicito — lo stato dice off, o l'interruttore viene spento — vince subito,
+ * perche' li' non c'e' niente da indovinare. La memoria vive qui e non nello
+ * stato di Home Assistant: e' l'unico posto che tutti e sei i consumatori del
+ * modello attraversano, quindi badge, card, KPI e tracker raccontano lo stesso
+ * ciclo. */
+const runHolds = new Map();
+
+function applyRunHold({ key, mode, delayMinutes, explicitOff, now, holds }) {
+  if (!key) return mode;
+  if (mode === "running") {
+    holds.set(key, now);
+    return mode;
+  }
+  if (mode === "unavailable") return mode;
+  const lastRun = holds.get(key);
+  if (lastRun == null) return mode;
+  if (explicitOff || !(delayMinutes > 0) || now - lastRun > delayMinutes * 60000) {
+    holds.delete(key);
+    return mode;
+  }
+  return "running";
+}
+
+export function createApplianceViewModel(
+  device = {},
+  states = {},
+  rooms = [],
+  locale = "it",
+  options = {},
+) {
   const powerEntity =
     candidates(device, ["power_entity", "power", "power_sensor"]).find((id) =>
       /^(w|kw|mw|watt|watts)$/.test(unit(states, id).replaceAll(" ", "")),
@@ -93,7 +128,7 @@ export function createApplianceViewModel(device = {}, states = {}, rooms = [], l
   const explicitlyOff =
     Boolean(stateEntity) && ["off", "closed", "stopped", "idle"].includes(configuredState);
   const genericOn = configuredState === "on" || controlState === "on";
-  const mode =
+  const sampledMode =
     unavailable && watts == null
       ? "unavailable"
       : explicitlyOff && !(watts != null && watts >= run)
@@ -103,6 +138,14 @@ export function createApplianceViewModel(device = {}, states = {}, rooms = [], l
           : genericOn || (watts != null && watts >= standby)
             ? "standby"
             : "off";
+  const mode = applyRunHold({
+    key: clean(device.id) || powerEntity || controlEntity || stateEntity,
+    mode: sampledMode,
+    delayMinutes: Number(device.off_delay_minutes),
+    explicitOff: explicitlyOff || (Boolean(controlEntity) && controlState === "off"),
+    now: Number.isFinite(options.now) ? options.now : Date.now(),
+    holds: options.holds instanceof Map ? options.holds : runHolds,
+  });
   const labels = {
     running: pick("IN FUNZIONE", "RUNNING", locale),
     standby: pick("STANDBY", "STANDBY", locale),

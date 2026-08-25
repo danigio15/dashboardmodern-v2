@@ -122,7 +122,18 @@ const copy = () => ({
 /* ── model ────────────────────────────────────────────────────────────── */
 
 export function climateZone(unit) {
-  return canonicalClimateType(unit?.type) === "termo" ? "caldo" : "freddo";
+  return climateZones(unit)[0];
+}
+
+/* Le zone in cui l'unita' vive. Un condizionatore sta in Freddo, un
+ * termosifone in Caldo; la pompa di calore (#195) raffresca e riscalda, quindi
+ * compare in tutte e due — stessa entita', due card, e il tab Caldo la accende
+ * per scaldare. */
+export function climateZones(unit) {
+  const type = canonicalClimateType(unit?.type);
+  if (type === "termo") return ["caldo"];
+  if (type === "pompa") return ["freddo", "caldo"];
+  return ["freddo"];
 }
 
 export function climateUnits() {
@@ -140,17 +151,20 @@ export function climateUnits() {
     rooms = root.cdRoomList?.() || [];
   } catch (_error) {}
   return values
-    .map((unit, index) => {
+    .flatMap((unit, index) => {
       const entity = clean(unit?.entity || unit?.entity_id || unit?.entities?.[0]);
-      if (!entity) return null;
-      return {
+      if (!entity) return [];
+      // La prima zona tiene l'id storico `card-<entity>`: il runtime legacy
+      // (`cdAutoHide`) lo cerca per nome. La card gemella della pompa di
+      // calore, nell'altra zona, prende un suffisso per non duplicare l'id.
+      return climateZones(unit).map((zone, extra) => ({
         entity,
         name: clean(unit?.name) || entity,
         room: unitRoom(unit, rooms),
-        zone: climateZone(unit),
-        cardId: `card-${entity.replaceAll(".", "-")}`,
+        zone,
+        cardId: `card-${entity.replaceAll(".", "-")}${extra ? `--${zone}` : ""}`,
         index,
-      };
+      }));
     })
     .filter(Boolean);
 }
@@ -207,6 +221,9 @@ function stateLabel(reading, zone, labels) {
   if (reading.mode === "fan_only") return t("Ventilazione", "Fan only");
   if (reading.mode === "dry") return t("Deumidifica", "Drying");
   if (reading.action === "idle") return t("In pausa", "Idle");
+  // La modalita' viva comanda: la card gemella della pompa di calore nel tab
+  // Caldo non deve dire «Riscalda» mentre l'unita' sta raffrescando.
+  if (reading.mode === "cool") return t("Raffresca", "Cooling");
   if (reading.mode === "heat" || zone === "caldo") return t("Riscalda", "Heating");
   return t("Raffresca", "Cooling");
 }
@@ -366,7 +383,7 @@ function cardMarkup(unit, labels) {
           <button type="button" class="dm-cl-step" aria-label="${esc(labels.warmer)}"
             onclick="event.stopPropagation(); setTemp('${entity}', 'up')">${ICONS.plus}</button>
           <button type="button" class="dm-cl-pwr" data-dm-cl-pwr aria-label="${esc(labels.power)}"
-            onclick="event.stopPropagation(); toggleClima('${entity}')">${ICONS.power}</button>
+            onclick="event.stopPropagation(); toggleClima('${entity}', '${unit.zone}')">${ICONS.power}</button>
         </div>
       </div>
     </article>`;
@@ -616,7 +633,7 @@ function bulkSwitch(wantsOn) {
     if (unit.zone !== zone) continue;
     const reading = climateReading(unit.entity, states);
     if (!reading.known || reading.on === wantsOn) continue;
-    root.toggleClima(unit.entity);
+    root.toggleClima(unit.entity, zone);
   }
   root.queueMicrotask?.(() => renderClimate());
 }

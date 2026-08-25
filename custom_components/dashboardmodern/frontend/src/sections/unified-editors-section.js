@@ -1,5 +1,5 @@
 // DM-FIX-20260813E
-import { coverKindLabel } from "../core/cover-kind.js";
+import { coverKindLabel, coverPresetPosition } from "../core/cover-kind.js";
 import { contactEntity } from "../core/shutter-window.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import {
@@ -231,11 +231,11 @@ function openClimateEditor(item, index) {
   const { form, close } = modalShell(
     "climate",
     t("Modifica Freddo / Caldo", "Edit Cool / Heat"),
-    `<label class="ed-slot"><span class="ed-slot-lbl">${t("Tipo", "Type")}</span><select class="ed-input" name="type"><option value="clima" ${selectedType === "clima" ? "selected" : ""}>❄️ ${t("Freddo", "Cool")}</option><option value="termo" ${selectedType === "termo" ? "selected" : ""}>🔥 ${t("Caldo", "Heat")}</option></select></label>
+    `<label class="ed-slot"><span class="ed-slot-lbl">${t("Tipo", "Type")}</span><select class="ed-input" name="type"><option value="clima" ${selectedType === "clima" ? "selected" : ""}>❄️ ${t("Freddo", "Cool")}</option><option value="termo" ${selectedType === "termo" ? "selected" : ""}>🔥 ${t("Caldo", "Heat")}</option><option value="pompa" ${selectedType === "pompa" ? "selected" : ""}>♨️ ${t("Pompa di calore (freddo + caldo)", "Heat pump (cool + heat)")}</option></select></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(item.name)}" required></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità Home Assistant", "Home Assistant entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}" required><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>`,
-    selectedType === "termo" ? "🔥" : "❄️",
+    selectedType === "termo" ? "🔥" : selectedType === "pompa" ? "♨️" : "❄️",
   );
   form.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
   form.addEventListener("submit", (event) => {
@@ -272,7 +272,8 @@ function openShutterEditor(item, index) {
      <label class="ed-slot"><span class="ed-slot-lbl">${coverKindLabel("tenda")}</span><span class="ed-form-row"><input class="ed-input mono" name="tenda" value="${esc(item.tenda)}" placeholder="cover.tenda_salotto"><button type="button" class="dm-entity-picker" data-pick-tenda>🔍</button></span></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${coverKindLabel("tenda_sole")}</span><span class="ed-form-row"><input class="ed-input mono" name="tendaSole" value="${esc(item.tendaSole)}" placeholder="cover.tenda_da_sole"><button type="button" class="dm-entity-picker" data-pick-tendasole>🔍</button></span><small>${t("Su una finestra ci stanno tutte e tre: compila le caselle che hai, il tipo lo dice la casella.", "One window can carry all three: fill in the boxes you have, the box tells the type.")}</small></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>
-     <label class="ed-slot"><span class="ed-slot-lbl">${t("Sensore apertura infisso", "Window contact sensor")}</span><span class="ed-form-row"><input class="ed-input mono" name="contact" value="${esc(contactEntity(item))}" placeholder="binary_sensor.finestra_camera"><button type="button" class="dm-entity-picker" data-pick-contact>🔍</button></span><small>${t("Se lo compili, la card mostra la finestra aperta quando il contatto lo dice.", "Fill it in and the card shows the window open when the contact says so.")}</small></label>`,
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Sensore apertura infisso", "Window contact sensor")}</span><span class="ed-form-row"><input class="ed-input mono" name="contact" value="${esc(contactEntity(item))}" placeholder="binary_sensor.finestra_camera"><button type="button" class="dm-entity-picker" data-pick-contact>🔍</button></span><small>${t("Se lo compili, la card mostra la finestra aperta quando il contatto lo dice.", "Fill it in and the card shows the window open when the contact says so.")}</small></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Posizione preferita (%)", "Favorite position (%)")}</span><input class="ed-input" type="number" min="0" max="100" step="1" name="preset" value="${esc(coverPresetPosition(item) ?? "")}" placeholder="es. 5"><small>${t("Aggiunge il tasto «Set %» alla card: 0 = chiusa, 100 = aperta. Ad esempio 5 chiude quasi tutto lasciando passare un po' d'aria. Vuoto = niente tasto.", "Adds the “Set %” button to the card: 0 = closed, 100 = open. For instance 5 closes almost fully while letting some air through. Empty = no button.")}</small></label>`,
     "🪟",
   );
   form.querySelector("[data-pick]").addEventListener("click", () => root.wzPickEntity?.(form.elements.entity));
@@ -304,6 +305,10 @@ function openShutterEditor(item, index) {
       // qui vorrebbe dire cambiare il disegno a chi aveva gia' scelto, senza
       // che abbia toccato niente.
     };
+    // La posizione preferita (#200): un numero 0-100, vuoto = niente tasto.
+    const preset = coverPresetPosition({ preset: form.elements.preset?.value });
+    if (preset == null) delete list[index].preset;
+    else list[index].preset = preset;
     /* Basta una delle tre.
      *
      * Si pretendeva la casella della tapparella, ma un infisso puo' avere solo

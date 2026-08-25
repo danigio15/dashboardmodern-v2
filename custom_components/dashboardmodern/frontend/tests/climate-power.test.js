@@ -58,6 +58,29 @@ test("senza ricordi si sceglie la modalita' piu' prudente", () => {
   assert.equal(modalitaDiAccensione({}), "");
 });
 
+test("la modalita' richiesta dal tab vince su ricordo e preferenze", () => {
+  const pompa = { state: "off", attributes: { hvac_modes: ["off", "auto", "heat", "cool"] } };
+  // Dal tab Caldo la pompa di calore scalda, anche se prima raffrescava.
+  assert.equal(modalitaDiAccensione(pompa, "cool", "heat"), "heat");
+  assert.deepEqual(climatePowerCall(pompa, true, "cool", "heat"), {
+    service: "set_hvac_mode",
+    data: { hvac_mode: "heat" },
+  });
+  // Una richiesta che l'entita' non offre non si inventa: si torna al ricordo.
+  const soloFreddo = { state: "off", attributes: { hvac_modes: ["off", "cool"] } };
+  assert.equal(modalitaDiAccensione(soloFreddo, "cool", "heat"), "cool");
+  // E chi sa fare turn_on viene comunque messo nella modalita' chiesta:
+  // turn_on riaccenderebbe com'era.
+  const moderno = {
+    state: "off",
+    attributes: { hvac_modes: ["off", "heat", "cool"], supported_features: CLIMATE_TURN_ON },
+  };
+  assert.deepEqual(climatePowerCall(moderno, true, "", "heat"), {
+    service: "set_hvac_mode",
+    data: { hvac_mode: "heat" },
+  });
+});
+
 test("chi dichiara di saper accendere da solo viene lasciato fare", () => {
   const moderno = {
     state: "off",

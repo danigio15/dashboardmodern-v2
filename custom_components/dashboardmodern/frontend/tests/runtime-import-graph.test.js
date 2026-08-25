@@ -277,7 +277,10 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // disegna le card in cima alla Home e l'editor che scrive `cd_people`. Sono
   // due moduli perche' uno vive a ogni cambio di stato e l'altro solo dentro
   // la scheda di configurazione, come per il robot.
-  assert.ok(relative.length <= 139, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 145 con le aperture della Sicurezza (#195) e le liste ToDo della Home
+  // (#201): ognuna segue lo schema delle persone — un modello puro che si
+  // prova da solo, la sezione che disegna, l'editor che scrive la sua chiave.
+  assert.ok(relative.length <= 145, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

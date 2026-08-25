@@ -10,14 +10,27 @@ export const CLIMATE_HEAT_TOKENS = Object.freeze([
   "caldo",
 ]);
 
+/* La pompa di calore raffresca e riscalda (#195): e' un terzo tipo canonico,
+ * non un condizionatore con un'opzione, perche' i due elenchi — Freddo e Caldo
+ * — si dividono le unita' proprio in base a questo valore. */
+export const CLIMATE_PUMP_TOKENS = Object.freeze([
+  "pompa",
+  "pompa_di_calore",
+  "heat_pump",
+  "heatpump",
+  "heat_cool",
+  "both",
+  "entrambi",
+  "dual",
+]);
+
 export function canonicalClimateType(value) {
-  return CLIMATE_HEAT_TOKENS.includes(
-    String(value ?? "")
-      .trim()
-      .toLowerCase(),
-  )
-    ? "termo"
-    : "clima";
+  const token = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  if (CLIMATE_HEAT_TOKENS.includes(token)) return "termo";
+  if (CLIMATE_PUMP_TOKENS.includes(token)) return "pompa";
+  return "clima";
 }
 
 /**
@@ -30,7 +43,7 @@ export function canonicalClimateType(value) {
  */
 import { pick } from "./i18n.js";
 import { contactEntity } from "./shutter-window.js";
-import { COVER_SLOTS, declaredCoverKind } from "./cover-kind.js";
+import { COVER_SLOTS, coverPresetPosition, declaredCoverKind } from "./cover-kind.js";
 
 export const APPLIANCE_CATALOG = Object.freeze([
   { key: "lavatrice", it: "Lavatrice", en: "Washing machine" },
@@ -351,6 +364,9 @@ export function normalizeDevice(input = {}, section, context = {}) {
       const entity = String(input?.[campo] ?? "").trim();
       if (entity) base[campo] = entity;
     }
+    // La posizione preferita (#200): stessa regola dei campi qui sopra.
+    const preset = coverPresetPosition(input);
+    if (preset != null) base.preset = preset;
   }
   if (input.threshold_run != null) base.metadata.threshold_run = +input.threshold_run;
   if (input.threshold_standby != null) base.metadata.threshold_standby = +input.threshold_standby;
@@ -435,6 +451,7 @@ export function normalizeDevice(input = {}, section, context = {}) {
       input.metadata?.threshold_standby,
     );
     assignFiniteNumber(base, "cycle_minutes", input.cycle_minutes);
+    assignFiniteNumber(base, "off_delay_minutes", input.off_delay_minutes);
     assignFiniteNumber(base, "temp_min", input.temp_min);
     assignFiniteNumber(base, "temp_max", input.temp_max);
     assignFiniteNumber(base, "max_power", input.max_power);

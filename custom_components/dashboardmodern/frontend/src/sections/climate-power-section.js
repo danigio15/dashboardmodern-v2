@@ -12,8 +12,9 @@
  * termostato sa fare; altrimenti si torna a chiedere `turn_off`. E riaccendere
  * rimette la modalita' che c'era prima, invece di sceglierne una a caso.
  */
+import { canonicalClimateType } from "../core/device-model.js";
 import { climateIsOff, climatePowerCall } from "../core/climate-power.js";
-import { allStates, clean, root } from "./shared.js";
+import { allStates, clean, readClimateUnits, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CLIMATE_POWER__";
 const state = (root[KEY] ||= { installed: false, ultime: new Map() });
@@ -56,14 +57,37 @@ function chiama(entity, service, data) {
   }
 }
 
+/* La modalita' che il tab chiede, ma solo per chi vive in tutti e due.
+ *
+ * La pompa di calore (#195) ha una card in Freddo e una in Caldo: il tasto del
+ * tab Caldo deve scaldare, quello del tab Freddo raffrescare. Per gli altri
+ * tipi il tab non aggiunge informazione — un condizionatore sta solo in
+ * Freddo — e la scelta resta quella ricordata. */
+export function modalitaRichiesta(entity, zona) {
+  const id = clean(entity);
+  const dove = clean(zona).toLowerCase();
+  if (!id || (dove !== "caldo" && dove !== "freddo")) return "";
+  let unita = [];
+  try {
+    unita = readClimateUnits();
+  } catch (_error) {
+    return "";
+  }
+  const trovata = unita.find(
+    (voce) => clean(voce?.entity || voce?.entity_id || voce?.entities?.[0]) === id,
+  );
+  if (!trovata || canonicalClimateType(trovata.type) !== "pompa") return "";
+  return dove === "caldo" ? "heat" : "cool";
+}
+
 /** Accende o spegne una zona, con il servizio che quel termostato accetta. */
-export function commutaClima(entity, acceso) {
+export function commutaClima(entity, acceso, zona = "") {
   const id = clean(entity);
   if (!id) return null;
   const stato = statoDi(id);
   const precedente = ricordaModalita(id);
   const voluto = typeof acceso === "boolean" ? acceso : climateIsOff(stato);
-  const chiamata = climatePowerCall(stato, voluto, precedente);
+  const chiamata = climatePowerCall(stato, voluto, precedente, modalitaRichiesta(id, zona));
   chiama(id, chiamata.service, chiamata.data);
   return chiamata;
 }
@@ -73,8 +97,8 @@ export function commutaClima(entity, acceso) {
 function installaComandi() {
   if (typeof root.toggleClima === "function" && !root.toggleClima.__dmClimaPower) {
     const precedente = root.toggleClima;
-    function commuta(entity) {
-      const esito = commutaClima(entity);
+    function commuta(entity, zona) {
+      const esito = commutaClima(entity, undefined, zona);
       return esito || precedente.call(this, entity);
     }
     commuta.__dmClimaPower = true;

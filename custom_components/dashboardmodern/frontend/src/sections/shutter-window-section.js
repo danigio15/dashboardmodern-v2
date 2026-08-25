@@ -170,6 +170,19 @@ function caselle() {
   ];
 }
 
+/* La casella della posizione preferita (#200): un numero, non un'entita' —
+ * niente lente. 0 = chiusa, 100 = aperta; vuota, la card non mostra il tasto. */
+function casellaPreset() {
+  const holder = doc.createElement("label");
+  holder.className = "ed-slot dm-tw-slot";
+  holder.dataset.dmTwSlot = "ed-tp-preset";
+  holder.innerHTML =
+    `<span class="ed-slot-lbl">${t("Posizione preferita (%)", "Favorite position (%)")}</span>` +
+    '<input id="ed-tp-preset" class="ed-input" type="number" min="0" max="100" step="1"' +
+    ' placeholder="es. 5" autocomplete="off">';
+  return holder;
+}
+
 function casella(id, etichetta, esempio) {
   const holder = doc.createElement("label");
   holder.className = "ed-slot dm-tw-slot";
@@ -226,6 +239,16 @@ export function ensureContactField(body = doc?.getElementById("ed-body")) {
      * da una versione precedente torna dove deve stare senza doverla rifare. */
     if (ultimo.nextElementSibling !== campo) ultimo.after?.(campo);
     ultimo = campo;
+  }
+  {
+    let campo = body.querySelector("#ed-tp-preset");
+    if (!campo) {
+      campo = casellaPreset();
+      aggiunte += 1;
+    } else {
+      campo = campo.closest("label, .ed-slot") || campo;
+    }
+    if (ultimo.nextElementSibling !== campo) ultimo.after?.(campo);
   }
   /* La prima casella e' quella del runtime: le si da' il nome che adesso le
    * spetta, perche' non e' piu' «l'entita'» ma quella della tapparella. */

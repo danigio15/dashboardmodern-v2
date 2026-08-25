@@ -1,5 +1,6 @@
 // DM-FIX-20260812B
 import { contactEntity } from "../core/shutter-window.js";
+import { coverPresetPosition } from "../core/cover-kind.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import { clean, dashboardStore, doc, english, installStyle, onEditorRedraw, readClimateUnits, readJson, root, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
@@ -207,6 +208,7 @@ function beginEdit(kind, index) {
     setField("ed-tp-contact", contactEntity(item));
     setField("ed-tp-tenda", item.tenda || "");
     setField("ed-tp-tendasole", item.tendaSole || "");
+    setField("ed-tp-preset", coverPresetPosition(item) ?? "");
   } else if (kind === "room") {
     setField("ed-room-name", item.name || "");
     setField("ed-room-icon", item.icon || "🏠");
@@ -325,6 +327,10 @@ function installAddWrappers() {
       tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
       tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
     };
+    // La posizione preferita (#200): numero 0-100, vuota = niente tasto.
+    const preset = coverPresetPosition({ preset: doc.getElementById("ed-tp-preset")?.value });
+    if (preset == null) delete list[index].preset;
+    else list[index].preset = preset;
     salvaTapparelle(list);
   },
   /* Il contatto sopravvive anche a una tapparella appena aggiunta: l'elenco lo
@@ -339,6 +345,7 @@ function installAddWrappers() {
       contact: clean(doc.getElementById("ed-tp-contact")?.value),
       tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
       tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
+      preset: clean(doc.getElementById("ed-tp-preset")?.value),
     };
     const entity = clean(doc.getElementById("ed-tp-ent")?.value);
     /* Un infisso puo' avere la sola tenda: pretendere la tapparella qui

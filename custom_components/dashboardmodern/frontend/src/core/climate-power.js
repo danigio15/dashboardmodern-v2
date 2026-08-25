@@ -35,9 +35,17 @@ function supporta(state, bit) {
   return Number.isFinite(dichiarate) ? (dichiarate & bit) === bit : false;
 }
 
-/** La modalita' con cui riaccendere questa entita'. */
-export function modalitaDiAccensione(state, precedente = "") {
+/** La modalita' con cui riaccendere questa entita'.
+ *
+ * `richiesta` e' la modalita' che il contesto chiede adesso — la pompa di
+ * calore accesa dal tab Caldo vuole "heat", dal tab Freddo "cool" (#195) — e
+ * vince anche sulla modalita' ricordata: chi tocca il tasto in quel tab sta
+ * dicendo cosa vuole ora, non com'era ieri. Se il termostato non la offre, si
+ * torna alla scala di sempre. */
+export function modalitaDiAccensione(state, precedente = "", richiesta = "") {
   const disponibili = modalita(state);
+  const voluta = clean(richiesta);
+  if (voluta && voluta !== "off" && disponibili.includes(voluta)) return voluta;
   const ricordata = clean(precedente);
   if (ricordata && ricordata !== "off" && disponibili.includes(ricordata)) return ricordata;
   for (const preferita of PREFERITE) {
@@ -50,15 +58,18 @@ export function modalitaDiAccensione(state, precedente = "") {
  *
  * Torna il nome del servizio e i dati, senza il bersaglio: quello lo mette chi
  * chiama, che sa a quale entita' sta parlando. */
-export function climatePowerCall(state, acceso, precedente = "") {
+export function climatePowerCall(state, acceso, precedente = "", richiesta = "") {
   if (!acceso) {
     if (modalita(state).includes("off")) {
       return { service: "set_hvac_mode", data: { hvac_mode: "off" } };
     }
     return { service: "turn_off", data: {} };
   }
-  const scelta = modalitaDiAccensione(state, precedente);
-  if (scelta && !supporta(state, CLIMATE_TURN_ON)) {
+  const scelta = modalitaDiAccensione(state, precedente, richiesta);
+  // Una modalita' chiesta esplicitamente dal contesto va impostata anche quando
+  // l'entita' saprebbe fare `turn_on`: quel servizio riaccende com'era, e la
+  // pompa di calore accesa dal tab Caldo tornerebbe a raffrescare.
+  if (scelta && (clean(richiesta) === scelta || !supporta(state, CLIMATE_TURN_ON))) {
     return { service: "set_hvac_mode", data: { hvac_mode: scelta } };
   }
   if (supporta(state, CLIMATE_TURN_ON)) return { service: "turn_on", data: {} };

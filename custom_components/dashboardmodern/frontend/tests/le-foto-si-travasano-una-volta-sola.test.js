@@ -63,9 +63,10 @@ test("togliere una chiave non alza la revisione", async () => {
     "../src/sections/config-persistence-section.js"
   );
   /* La 5 non smentisce questa prova: aggiunge una chiave (`cd_people`), e per
-   * una chiave aggiunta la revisione si alza apposta. Quelle tolte restano
-   * fuori dall'elenco, che e' quello che questa prova difende. */
-  assert.equal(CONFIG_KEYS_REVISION, 5);
+   * una chiave aggiunta la revisione si alza apposta. La 6 fa lo stesso con
+   * le aperture (`cd_security_doors`) e le liste ToDo (`cd_todo`). Quelle
+   * tolte restano fuori dall'elenco, che e' quello che questa prova difende. */
+  assert.equal(CONFIG_KEYS_REVISION, 6);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 

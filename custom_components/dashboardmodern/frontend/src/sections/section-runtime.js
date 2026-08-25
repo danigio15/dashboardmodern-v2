@@ -34,6 +34,8 @@ import { installFloodAlertsSection } from "./flood-alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
+import { installSecurityDoorsSection } from "./security-doors-section.js";
+import { installSecurityDoorsEditorSection } from "./security-doors-editor-section.js";
 import { installClimateThermalSection } from "./climate-thermal-section.js";
 import { installNavigationSection } from "./navigation-section.js";
 import { installUnifiedEditorsSection } from "./unified-editors-section.js";
@@ -58,6 +60,8 @@ import { installEvSection } from "./ev-section.js";
 import { installMediaPickerSection } from "./media-picker-section.js";
 import { installPeopleSection } from "./people-section.js";
 import { installPeopleEditorSection } from "./people-editor-section.js";
+import { installTodoSection } from "./todo-section.js";
+import { installTodoEditorSection } from "./todo-editor-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
 import { installEditorSlotsSection } from "./editor-slots-section.js";
 import { installConfigUniformitySection } from "./config-uniformity-section.js";
@@ -677,6 +681,10 @@ export function installSectionRuntime() {
     // owner starts filling the thumbnails, so the first paint is already the new
     // wall instead of the legacy cards.
     installSecurityShowcaseSection();
+    /* Le aperture stanno fra la centrale e le telecamere: si installano dopo
+     * la vetrina che costruisce lo scheletro in cui si inseriscono. */
+    installSecurityDoorsSection();
+    installSecurityDoorsEditorSection();
     installClimateThermalSection();
     installLiveUiSection();
     installConnectionRecoverySection();
@@ -711,6 +719,10 @@ export function installSectionRuntime() {
      * foto, quindi si installano dopo di lui. */
     installPeopleSection();
     installPeopleEditorSection();
+    /* Le liste ToDo stanno sotto le persone in Home: si installano dopo, cosi'
+     * trovano gia' il loro ancoraggio. */
+    installTodoSection();
+    installTodoEditorSection();
     installEvSection();
     // The skin installs after the EV owner so the vehicle picker it restyles is
     // already mounted, and re-renders itself on the same runtime events.
@@ -751,6 +763,8 @@ export function installSectionRuntime() {
         "flood-alerts",
         "theme-foundation",
         "security-showcase",
+        "security-doors",
+        "security-doors-editor",
         "climate-thermal",
         "live-ui",
         "navigation",
@@ -771,6 +785,8 @@ export function installSectionRuntime() {
         "media-picker",
         "people",
         "people-editor",
+        "todo",
+        "todo-editor",
         "ev",
         "ev-showcase",
         "solar-thermal-design",

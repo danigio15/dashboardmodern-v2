@@ -124,3 +124,18 @@ export function coverClosedPercent(position) {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, 100 - value));
 }
+
+/* La posizione preferita di una riga (#200).
+ *
+ * «Non voglio la chiusura completa ma il 95%, per lasciar passare un po'
+ * d'aria»: e' un numero che appartiene alla configurazione della tapparella,
+ * nella stessa scala del cursore e della percentuale accanto — 0 chiusa, 100
+ * aperta. Vuoto vuol dire nessun preset: la card mostra il tasto solo a chi
+ * l'ha chiesto. */
+export function coverPresetPosition(item = {}) {
+  const raw = item?.preset ?? item?.preset_position;
+  if (raw === null || raw === undefined || String(raw).trim() === "") return null;
+  const value = Number(raw);
+  if (!Number.isFinite(value)) return null;
+  return Math.round(Math.max(0, Math.min(100, value)));
+}

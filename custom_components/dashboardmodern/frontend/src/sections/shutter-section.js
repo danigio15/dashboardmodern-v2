@@ -1,3 +1,4 @@
+import { coverPresetPosition } from "../core/cover-kind.js";
 import { allStates, clean, dashboardStore, doc, installStyle, root, t } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
@@ -62,6 +63,10 @@ function openCovers() {
       room,
       name: clean(cover.name) || clean(current.attributes?.friendly_name) || entity,
       icon: clean(cover.icon || current.attributes?.icon),
+      // La posizione preferita (#200): il popup offre lo stesso tasto della
+      // card, solo a chi accetta `set_cover_position` (bit 4 delle feature).
+      preset: coverPresetPosition(cover),
+      settable: Boolean(Number(current.attributes?.supported_features) & 4),
     }];
   });
 }
@@ -116,13 +121,13 @@ function clearBusy(entity) {
   return true;
 }
 
-async function callCoverService(entity, service) {
+async function callCoverService(entity, service, data = {}) {
   if (!entity || state.busy.has(entity)) return;
   const pending = { service, timeout: 0 };
   state.busy.set(entity, pending);
   scheduleShutterSync();
   try {
-    await root.dmCallHaService?.("cover", service, { entity_id: entity });
+    await root.dmCallHaService?.("cover", service, { entity_id: entity, ...data });
     pending.timeout = root.setTimeout?.(() => {
       if (state.busy.get(entity) !== pending) return;
       state.busy.delete(entity);
@@ -149,6 +154,19 @@ function createPopupRow(item) {
     button.addEventListener("click", () => callCoverService(item.entity, service));
     actions.append(button);
   }
+  // Il tasto della posizione preferita (#200): nasce sempre, si mostra solo
+  // quando la riga ha un preset e la copertura accetta una posizione.
+  const preset = doc.createElement("button");
+  preset.type = "button";
+  preset.className = "dm-shutter-action dm-shutter-preset";
+  preset.dataset.shutterService = "set_cover_position";
+  preset.hidden = true;
+  preset.addEventListener("click", () => {
+    const value = Number(row.dataset.shutterPreset);
+    if (Number.isFinite(value))
+      callCoverService(item.entity, "set_cover_position", { position: value });
+  });
+  actions.append(preset);
   return row;
 }
 
@@ -166,10 +184,16 @@ function updatePopupRow(row, item) {
   if (status) status.textContent = detail.filter(Boolean).join(" · ");
 
   const pending = state.busy.get(item.entity);
+  row.dataset.shutterPreset = item.preset == null ? "" : String(item.preset);
   row.querySelectorAll("[data-shutter-service]").forEach((button) => {
     const service = button.dataset.shutterService;
     const busy = pending?.service === service;
     button.disabled = Boolean(pending);
+    if (service === "set_cover_position") {
+      button.hidden = item.preset == null || !item.settable;
+      button.textContent = busy ? t("Invio…", "Sending…") : `${item.preset ?? ""}%`;
+      return;
+    }
     button.textContent = actionLabel(service, busy);
   });
 }

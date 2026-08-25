@@ -5,6 +5,7 @@ import {
   coverIsSideways,
   coverKind,
   coverKindLabel,
+  coverPresetPosition,
 } from "../core/cover-kind.js";
 import { allStates, clean, doc, esc, installStyle, root, t } from "./shared.js";
 
@@ -90,6 +91,7 @@ function coverView(item = {}, distingui = false) {
     hasPosition: hasPosition || Boolean(grab),
     settable: Boolean(features & SUPPORT_SET_POSITION),
     moving: status === "opening" || status === "closing",
+    preset: coverPresetPosition(item),
   };
 }
 
@@ -157,7 +159,7 @@ function signature(views) {
   return views
     .map((view) =>
       coperture(view)
-        .map((c) => [c.entity, c.name, view.floor, view.room, c.settable, c.kind].join("~"))
+        .map((c) => [c.entity, c.name, view.floor, view.room, c.settable, c.kind, c.preset].join("~"))
         .join("+"),
     )
     .join("|");
@@ -304,6 +306,18 @@ function panelMarkup(view) {
   </div>`;
 }
 
+/* Il tasto della posizione preferita (#200).
+ *
+ * «Apri / Ferma / Chiudi / Set 5%»: il quarto tasto porta la tapparella alla
+ * posizione scelta in configurazione — quasi chiusa per lasciar passare un po'
+ * d'aria, o dove si vuole. Compare solo se il preset e' configurato e almeno
+ * una copertura della card accetta `set_cover_position`. */
+function presetButtonMarkup(view, tutte) {
+  if (view.preset == null || !tutte.some((cover) => cover.settable)) return "";
+  const label = t(`Porta al ${view.preset}%`, `Set to ${view.preset}%`);
+  return `<button type="button" class="tapp-btn dm-tapp-preset" data-dm-preset="${view.preset}" aria-label="${esc(label)}" title="${esc(label)}">${view.preset}%</button>`;
+}
+
 function cardMarkup(view) {
   const tutte = coperture(view);
   const multiple = tutte.length > 1;
@@ -327,6 +341,7 @@ function cardMarkup(view) {
       <button type="button" class="tapp-btn" data-svc="open_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Apri", "Open"))}">▲</button>
       <button type="button" class="tapp-btn" data-svc="stop_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Ferma", "Stop"))}">■</button>
       <button type="button" class="tapp-btn" data-svc="close_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Chiudi", "Close"))}">▼</button>
+      ${presetButtonMarkup(view, tutte)}
     </div>
   </article>`;
 }
@@ -624,6 +639,20 @@ async function commitPosition(range) {
   schedule();
 }
 
+/* Il preset passa dagli stessi cursori del trascinamento: stesso grab, stessa
+ * anteprima, stessa chiamata. Su una card composita muove ogni copertura che
+ * ha un cursore — cioe' ogni copertura che accetta una posizione. */
+function applyPreset(button) {
+  const card = cardOf(button);
+  if (!card) return;
+  const position = Math.max(0, Math.min(100, Math.round(Number(button.dataset.dmPreset) || 0)));
+  for (const range of card.querySelectorAll("[data-dm-position][data-dm-entity]")) {
+    range.value = String(position);
+    previewPosition(range);
+    commitPosition(range);
+  }
+}
+
 function installListeners() {
   if (!doc) return;
   doc.addEventListener("input", (event) => {
@@ -635,6 +664,8 @@ function installListeners() {
     if (range) commitPosition(range);
   });
   doc.addEventListener("click", (event) => {
+    const preset = event.target?.closest?.("[data-dm-preset]");
+    if (preset) applyPreset(preset);
     if (event.target?.closest?.("#page-tapparelle .tapp-btn")) root.queueMicrotask?.(schedule);
   });
   for (const eventName of [

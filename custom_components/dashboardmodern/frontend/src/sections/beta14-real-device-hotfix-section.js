@@ -69,13 +69,27 @@ export function reconcileRooms() {
 }
 
 export function repairClimateLabels() {
-  const select = doc?.getElementById?.("ed-cl-type");
-  if (!select) return false;
-  const cool = select.querySelector?.('option[value="clima"]');
-  const heat = select.querySelector?.('option[value="termo"],option[value="termostato"]');
-  if (cool) cool.textContent = t("❄️ Freddo", "❄️ Cool");
-  if (heat) heat.textContent = t("🔥 Caldo", "🔥 Heat");
-  return true;
+  let repaired = false;
+  // Anche il select del wizard: il tipo e' lo stesso, le voci pure.
+  for (const id of ["ed-cl-type", "wz-cl-type"]) {
+    const select = doc?.getElementById?.(id);
+    if (!select) continue;
+    const cool = select.querySelector?.('option[value="clima"]');
+    const heat = select.querySelector?.('option[value="termo"],option[value="termostato"]');
+    if (cool) cool.textContent = t("❄️ Freddo", "❄️ Cool");
+    if (heat) heat.textContent = t("🔥 Caldo", "🔥 Heat");
+    // La pompa di calore (#195) e' un tipo che il markup vendored non conosce:
+    // la voce si aggiunge qui, cosi' tutti e tre gli editor offrono le stesse.
+    let pump = select.querySelector?.('option[value="pompa"]');
+    if (!pump && doc?.createElement) {
+      pump = doc.createElement("option");
+      pump.value = "pompa";
+      select.append?.(pump);
+    }
+    if (pump) pump.textContent = t("♨️ Pompa di calore", "♨️ Heat pump");
+    repaired = true;
+  }
+  return repaired;
 }
 
 function installTemperatureCompatibleIconEngine() {

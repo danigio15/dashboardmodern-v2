@@ -7,6 +7,55 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
 
+### Aggiunto
+
+- **Le cose da fare, in Home.** (#201) Ogni lista `todo.*` di Home Assistant
+  configurata ha la sua card sotto le persone di casa: le voci ancora da fare,
+  ognuna col suo cerchietto, e spuntarla chiama `todo.update_item` — la lista
+  resta di Home Assistant, la card è il posto dove la si vede senza andarla a
+  cercare. Le voci arrivano da `todo.get_items` sulla stessa presa WebSocket
+  della plancia, si rileggono quando lo stato dell'entità cambia (anche una
+  spunta fatta da un altro dispositivo), e la scheda «✅ ToDo» in
+  configurazione ha il pulsante «🪄 Rileva da Home Assistant» che riempie
+  l'elenco con le liste che esistono già. La configurazione viaggia in
+  `cd_todo`, con la configurazione condivisa (revisione 6).
+
+- **La posizione preferita della tapparella.** (#200) «Non voglio la chiusura
+  completa ma tipo al 95%, per lasciar passare un po' d'aria»: ogni riga di
+  configurazione può portare una posizione 0-100 nella stessa scala del
+  cursore, e la card mostra il quarto tasto accanto ad Apri/Ferma/Chiudi — «Set
+  5%» — che manda `set_cover_position` a ogni copertura della card che accetta
+  una posizione, con la stessa presa ottimistica del cursore. Lo stesso tasto
+  compare nelle righe del popup «Tapparelle aperte» in Home. La casella sta in
+  tutti e tre gli editor: il modulo legacy, la matita sulle righe salvate e il
+  modale moderno.
+
+- **Le aperture, nella sezione Sicurezza.** (#195) Il portone del condominio e
+  la porta di casa stanno fra la centrale d'allarme e le telecamere: una card
+  per porta — serratura, pulsante del citofono, relè, cancello o script — il
+  tocco chiede conferma e, con un PIN configurato (4-8 cifre), il codice, con
+  lo stesso tastierino della centrale. È un cancello locale contro le aperture
+  accidentali: la serratura che dichiara di sapersi aprire riceve `lock.open`,
+  le altre `lock.unlock`, e ogni dominio apre col suo servizio. La scheda
+  «🚪 Aperture» in configurazione scrive `cd_security_doors`, che viaggia con
+  la configurazione condivisa.
+
+- **La pompa di calore raffresca e riscalda.** (#195) Il tipo dell'unità clima
+  ha una terza voce — «♨️ Pompa di calore» — per i condizionatori che fanno
+  anche il caldo: l'unità compare in tutti e due gli elenchi, Freddo e Caldo,
+  e il tasto di accensione del tab Caldo la mette in `heat` mentre quello del
+  tab Freddo la mette in `cool`, invece di riaccenderla com'era. La voce sta
+  nel modale moderno, nell'editor legacy e nel wizard; le card gemelle non
+  duplicano l'id storico `card-<entità>` che il runtime cerca per nome.
+
+- **Il ritardo di fine ciclo degli elettrodomestici.** (#195) La lavastoviglie
+  che asciuga consuma 0 W ma il ciclo non è finito: la card diceva «spenta» a
+  metà lavoro. Il campo «Ritardo fine ciclo (minuti)» nella card avanzata
+  tiene l'elettrodomestico IN FUNZIONE per quei minuti dopo l'ultima potenza
+  sopra soglia — una lettura di nuovo sopra soglia riparte da capo, e lo
+  spegnimento esplicito (lo stato dice off, o l'interruttore viene spento)
+  vince subito. Il ciclo registrato include così anche l'asciugatura.
+
 ## 1.1.8
 
 ### Aggiunto
