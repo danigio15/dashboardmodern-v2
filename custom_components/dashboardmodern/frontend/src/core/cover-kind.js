@@ -178,3 +178,39 @@ export function coverPositionChoices(preferred = null) {
   values.push(preferred);
   return values.sort((a, b) => b - a);
 }
+
+/* I comandi che un rele' capisce.
+ *
+ * Un servizio `cover.*` su uno switch cade nel vuoto: va tradotto. Con un
+ * rele' solo apre l'accensione e chiude lo spegnimento, e non c'e' niente da
+ * fermare. Con due — quello che manda su e quello che manda giu' (#194) —
+ * chiudere e' accendere la discesa, e fermare e' spegnerle entrambe.
+ *
+ * Il verso opposto si spegne SEMPRE per primo: due contatti chiusi insieme su
+ * un motore a due fili non devono succedere mai, e non ci si affida al fatto
+ * che di solito sia il dispositivo a impedirlo. L'ordine dell'elenco e'
+ * l'ordine in cui vanno chiamati.
+ *
+ * Sta qui, e non in chi disegna, perche' i comandi partono da due posti — la
+ * pagina Tapparelle e la tessera in Home — e una regola di sicurezza scritta
+ * due volte e' una regola che prima o poi vale in un posto solo.
+ */
+export function relayCoverCommands(service, up, down = "") {
+  const salita = clean(up);
+  if (!isRelayEntity(salita)) return [];
+  const discesa = isRelayEntity(down) && clean(down) !== salita ? clean(down) : "";
+  if (!discesa) {
+    if (service === "stop_cover") return [];
+    return [{ entity: salita, service: service === "open_cover" ? "turn_on" : "turn_off" }];
+  }
+  if (service === "stop_cover")
+    return [
+      { entity: salita, service: "turn_off" },
+      { entity: discesa, service: "turn_off" },
+    ];
+  const sale = service === "open_cover";
+  return [
+    { entity: sale ? discesa : salita, service: "turn_off" },
+    { entity: sale ? salita : discesa, service: "turn_on" },
+  ];
+}

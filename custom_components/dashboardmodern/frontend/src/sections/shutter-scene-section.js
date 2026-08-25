@@ -8,6 +8,7 @@ import {
   coverKindLabel,
   coverPositionChoices,
   coverPresetPosition,
+  relayCoverCommands,
 } from "../core/cover-kind.js";
 import { allStates, clean, doc, esc, installStyle, root, t } from "./shared.js";
 
@@ -522,24 +523,10 @@ function insegnaComandoDiGruppo() {
   };
 
   const comandaSwitch = (entity, servizio) => {
-    const giu = releGiuDi(entity);
-    /* Due rele' (#194): chiudere non e' spegnere la salita, e' accendere la
-     * discesa. Il rele' opposto si spegne per primo — due contatti chiusi
-     * insieme su un motore a due fili non devono succedere mai, e non ci si
-     * affida al fatto che di solito sia il dispositivo a impedirlo. */
-    if (giu) {
-      if (servizio === "stop_cover") {
-        releSwitch(entity, "turn_off");
-        releSwitch(giu, "turn_off");
-        return true;
-      }
-      const sale = servizio === "open_cover";
-      releSwitch(sale ? giu : entity, "turn_off");
-      releSwitch(sale ? entity : giu, "turn_on");
-      return true;
-    }
-    if (servizio === "stop_cover") return true; // niente da fermare
-    releSwitch(entity, servizio === "open_cover" ? "turn_on" : "turn_off");
+    const comandi = relayCoverCommands(servizio, entity, releGiuDi(entity));
+    /* Con un rele' solo, fermare non ha un comando: l'elenco esce vuoto ed e'
+     * giusto che il tasto non faccia niente. */
+    for (const { entity: bersaglio, service } of comandi) releSwitch(bersaglio, service);
     return true;
   };
 

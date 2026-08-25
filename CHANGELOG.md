@@ -159,7 +159,10 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   scheda diceva «tapparelle (entità cover)» e il segnaposto solo
   `cover.tapparella_x`, così chi ha la tapparella dietro un relè cercava una
   copertura che il suo impianto non espone. Adesso dicono tutte e tre le
-  strade: una `cover.*`, un relè, o due.
+  strade: una `cover.*`, un relè, o due. E la tessera «Tapparelle» in Home
+  comanda anche queste: le frecce sono le stesse, cambia solo la lingua in cui
+  parlano — la traduzione sta scritta una volta sola, in un posto solo, perché
+  una regola di sicurezza scritta due volte prima o poi vale a metà.
 
 - **La percentuale della tapparella si sceglie, non è più fissa.** (#200)
   «Non voglio la chiusura completa ma tipo al 95%, per lasciar passare un po'

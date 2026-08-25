@@ -58,18 +58,17 @@ test("il relè di discesa sopravvive alla normalizzazione, come il preset prima 
   assert.equal("down" in senza, false);
 });
 
-test("apri accende la salita, chiudi la discesa, ferma le spegne entrambe", () => {
+test("la pagina traduce i servizi cover in comandi che un relè capisce", () => {
   const scena = leggi("sections/shutter-scene-section.js");
-  assert.match(scena, /function releGiuDi|const releGiuDi/);
+  // Il relè di discesa lo trova dalla riga di configurazione dell'entità.
+  assert.match(scena, /const releGiuDi = \(entity\)/);
   assert.match(scena, /coverDownRelay\(item\)/);
-  // Il verso opposto si spegne per primo: due contatti chiusi insieme su un
-  // motore a due fili non devono succedere mai.
-  assert.match(scena, /releSwitch\(sale \? giu : entity, "turn_off"\)/);
-  assert.match(scena, /releSwitch\(sale \? entity : giu, "turn_on"\)/);
-  assert.match(scena, /if \(servizio === "stop_cover"\) \{\s*\n\s*releSwitch\(entity, "turn_off"\);\s*\n\s*releSwitch\(giu, "turn_off"\);/);
-  // Con un relè solo resta il comportamento di prima: acceso apre, spento
-  // chiude, e non c'è niente da fermare.
-  assert.match(scena, /if \(servizio === "stop_cover"\) return true; \/\/ niente da fermare/);
+  // La traduzione non è scritta qui: è una regola sola, in core, perché la
+  // usa anche la tessera in Home. Qui si chiama e si eseguono i comandi
+  // nell'ordine in cui escono — che è l'ordine che tiene i due contatti
+  // lontani l'uno dall'altro.
+  assert.match(scena, /relayCoverCommands\(servizio, entity, releGiuDi\(entity\)\)/);
+  assert.match(scena, /for \(const \{ entity: bersaglio, service \} of comandi\) releSwitch/);
 });
 
 test("con due relè la card dice se sale o se scende, e non inventa dove sia", () => {
@@ -94,4 +93,39 @@ test("la casella c'è in tutti e tre gli editor, e la principale dice che accett
   assert.match(modale, /data-pick-down/);
   // Un relè scritto dove non serve non si perde in silenzio: lo dice.
   assert.match(modale, /Il relè di discesa dev'essere un'entità switch\./);
+});
+
+test("i comandi del relè stanno scritti una volta sola, e li usano tutti e due", async () => {
+  const { relayCoverCommands } = await import("../src/core/cover-kind.js");
+  // Un relè solo: acceso apre, spento chiude, e non c'è niente da fermare.
+  assert.deepEqual(relayCoverCommands("open_cover", "switch.su"), [
+    { entity: "switch.su", service: "turn_on" },
+  ]);
+  assert.deepEqual(relayCoverCommands("close_cover", "switch.su"), [
+    { entity: "switch.su", service: "turn_off" },
+  ]);
+  assert.deepEqual(relayCoverCommands("stop_cover", "switch.su"), []);
+  // Due relè: il verso opposto si spegne per primo, sempre.
+  assert.deepEqual(relayCoverCommands("open_cover", "switch.su", "switch.giu"), [
+    { entity: "switch.giu", service: "turn_off" },
+    { entity: "switch.su", service: "turn_on" },
+  ]);
+  assert.deepEqual(relayCoverCommands("close_cover", "switch.su", "switch.giu"), [
+    { entity: "switch.su", service: "turn_off" },
+    { entity: "switch.giu", service: "turn_on" },
+  ]);
+  assert.deepEqual(relayCoverCommands("stop_cover", "switch.su", "switch.giu"), [
+    { entity: "switch.su", service: "turn_off" },
+    { entity: "switch.giu", service: "turn_off" },
+  ]);
+  // Una copertura vera non passa di qui.
+  assert.deepEqual(relayCoverCommands("open_cover", "cover.tapparella"), []);
+
+  // E la regola non è scritta due volte: la usano la pagina e la tessera.
+  assert.match(leggi("sections/shutter-scene-section.js"), /relayCoverCommands\(servizio, entity, releGiuDi\(entity\)\)/);
+  const ponte = leggi("sections/home-widgets-section.js");
+  assert.match(ponte, /relayCoverCommands\(servizio, entity, clean\(cover\.dataset\.dmWDown\)\)/);
+  // La tessera mostra le frecce anche a un relè, che prima restava a guardare.
+  assert.match(ponte, /row\.isCover \|\| row\.relay/);
+  assert.match(ponte, /data-dm-w-down=/);
 });

@@ -24,7 +24,13 @@ import {
   pendingTodoItems,
 } from "../core/todo-model.js";
 import { createApplianceViewModel } from "../core/appliance-view-model.js";
-import { coverPositionChoices, coverPresetPosition } from "../core/cover-kind.js";
+import {
+  coverDownRelay,
+  coverPositionChoices,
+  coverPresetPosition,
+  isRelayEntity,
+  relayCoverCommands,
+} from "../core/cover-kind.js";
 import { normalizeSecurityDoors } from "../core/security-door-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
@@ -299,6 +305,11 @@ function coversModel(states) {
         // Chi accetta `set_cover_position` (bit 4) si ferma dove gli si dice.
         settable: Boolean(Number(current?.attributes?.supported_features) & 4),
         preset: coverPresetPosition(item),
+        /* Una tapparella dietro uno o due rele' (#194): la pagina la comanda
+         * gia', e da qui doveva restare a guardare. Le frecce sono le stesse,
+         * cambia solo la lingua in cui parlano. */
+        relay: isRelayEntity(entity),
+        down: coverDownRelay(item),
       };
     })
     .filter(Boolean);
@@ -769,11 +780,11 @@ function coversDetail(widget) {
            row.position == null ? "" : `${row.position}%`
          }</small></span>
          ${
-           row.isCover
+           row.isCover || row.relay
              ? `<span class="dm-w-arrows">
-                 <button type="button" data-dm-w-cover="${esc(row.entity)}" data-svc="open_cover" aria-label="▲">▲</button>
-                 <button type="button" data-dm-w-cover="${esc(row.entity)}" data-svc="stop_cover" aria-label="■">■</button>
-                 <button type="button" data-dm-w-cover="${esc(row.entity)}" data-svc="close_cover" aria-label="▼">▼</button>
+                 <button type="button" data-dm-w-cover="${esc(row.entity)}" data-dm-w-down="${esc(row.down)}" data-svc="open_cover" aria-label="▲">▲</button>
+                 <button type="button" data-dm-w-cover="${esc(row.entity)}" data-dm-w-down="${esc(row.down)}" data-svc="stop_cover" aria-label="■">■</button>
+                 <button type="button" data-dm-w-cover="${esc(row.entity)}" data-dm-w-down="${esc(row.down)}" data-svc="close_cover" aria-label="▼">▼</button>
                </span>${positionSelectMarkup(row)}`
              : ""
          }`,
@@ -1204,7 +1215,18 @@ function onClick(event) {
   const cover = event.target?.closest?.("[data-dm-w-cover]");
   if (cover) {
     event.preventDefault();
-    callHa("cover", clean(cover.dataset.svc), { entity_id: clean(cover.dataset.dmWCover) });
+    const entity = clean(cover.dataset.dmWCover);
+    const servizio = clean(cover.dataset.svc);
+    /* Un servizio cover.* su un rele' cadrebbe nel vuoto: si traduce, con la
+     * stessa regola della pagina Tapparelle — discesa prima, salita poi. */
+    const comandi = relayCoverCommands(servizio, entity, clean(cover.dataset.dmWDown));
+    if (comandi.length) {
+      for (const { entity: bersaglio, service } of comandi)
+        callHa("switch", service, { entity_id: bersaglio });
+      return;
+    }
+    if (isRelayEntity(entity)) return; // fermare un rele' solo non vuol dire niente
+    callHa("cover", servizio, { entity_id: entity });
     return;
   }
   // La tendina della posizione si apre da sola: un click sulla tessera che la
