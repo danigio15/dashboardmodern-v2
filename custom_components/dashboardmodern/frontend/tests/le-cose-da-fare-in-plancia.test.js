@@ -163,6 +163,24 @@ test("il ponte assorbe il Quadro Avvisi, con le sue stesse liste e regole", asyn
   assert.deepEqual(ordinati.map((widget) => widget.key), ["custom-0", "custom-1", "todo", "luci"]);
 });
 
+test("i dettagli comandano davvero, con le icone di cio' che raccontano", () => {
+  const sezione = leggi("sections/home-widgets-section.js");
+  // L'antifurto si arma e si disarma dalla tessera, passando dallo stesso
+  // tastierino PIN della pagina Sicurezza.
+  assert.match(sezione, /data-dm-w-alarm/);
+  assert.match(sezione, /promptPinAndSet/);
+  assert.match(sezione, /"alarm_arm_away"/);
+  assert.match(sezione, /"alarm_arm_night"/);
+  assert.match(sezione, /"alarm_disarm"/);
+  // Ogni riga porta l'icona di cio' che descrive: la lavatrice ha il suo
+  // disegno vero, la luce la lampadina, il clima fiamma o fiocco.
+  assert.match(sezione, /cdApplianceIcon/);
+  assert.match(sezione, /function climateGlyph/);
+  assert.match(sezione, /🪫/);
+  // Niente piu' pallini anonimi nelle righe dei dettagli.
+  assert.doesNotMatch(sezione, /dm-w-dot/);
+});
+
 test("le miniature delle telecamere hanno il loro timer, con la disciplina del muro", () => {
   const sezione = leggi("sections/home-widgets-section.js");
   assert.match(sezione, /function camerasModel/);
