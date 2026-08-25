@@ -300,9 +300,10 @@ export function avatarSvg(input, { animated = true, shirt = "" } = {}) {
    * facce con la stessa carnagione condividono la stessa definizione, due
    * carnagioni diverse non si rubano il colore. */
   const skinGradId = `dmFaceSkin-${face.skin}`;
-  const testa = shape.sx === 1 && shape.sy === 1
-    ? ""
-    : ` transform="translate(60 56) scale(${shape.sx} ${shape.sy}) translate(-60 -56)"`;
+  const testa =
+    shape.sx === 1 && shape.sy === 1
+      ? ""
+      : ` transform="translate(60 56) scale(${shape.sx} ${shape.sy}) translate(-60 -56)"`;
   return (
     `<svg class="dm-face-svg${animated ? "" : " dm-face-still"}" viewBox="0 0 120 120" aria-hidden="true">` +
     `<defs><radialGradient id="${skinGradId}" cx="46%" cy="38%" r="72%">` +
