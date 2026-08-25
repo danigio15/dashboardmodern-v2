@@ -132,9 +132,7 @@ export function createApplianceViewModel(device = {}, states = {}, rooms = [], l
     /(?:^|[._-])(running|active|activity|operating|working)(?:[._-]|$)/i.test(stateEntity);
 
   const explicitRunning =
-    ["playing", "heat", "cool", "open", "opening", "running", "active"].includes(
-      configuredState,
-    ) ||
+    ["playing", "heat", "cool", "open", "opening", "running", "active"].includes(configuredState) ||
     (activityBinary && configuredState === "on");
 
   const explicitlyOff =
