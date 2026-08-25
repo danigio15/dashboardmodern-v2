@@ -231,6 +231,35 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Le soglie del terreno sparivano appena salvate.** Il salvataggio
+  dell'Irrigazione finisce ridisegnando la scheda: i campi dell'umidità del
+  terreno venivano riletti *dopo* quel ridisegno, quindi dalle caselle appena
+  ristampate col valore vecchio. Si scriveva la soglia, si premeva Salva, e la
+  soglia tornava com'era senza dire niente. Adesso si leggono prima.
+
+- **Il ritardo di fine ciclo scadeva in silenzio.** Un elettrodomestico che ha
+  smesso di consumare non manda più nessun cambio di stato — è per questo che
+  il ritardo esiste — e la scadenza si accorgeva di sé stessa solo al primo
+  ridisegno capitato per altri motivi: la card poteva restare IN FUNZIONE per
+  ore a ciclo finito. Ora la scadenza suona da sola, per la card e per la
+  tessera in Home.
+
+- **La prima configurazione non conosceva la pompa di calore.** Il tipo
+  «♨️ Pompa di calore» compariva nei due editor ma non nel wizard, il cui
+  elenco nasce quando il wizard si apre: chi configurava la casa la prima
+  volta poteva scegliere solo condizionatore o termosifone.
+
+- **Una lista ToDo irraggiungibile chiedeva le voci a ogni fotogramma.** Col
+  collegamento giù la richiesta falliva, il fallimento faceva ridisegnare e il
+  disegno richiedeva di nuovo. Dopo un errore adesso si aspetta.
+
+- **Aggiornare la configurazione non resuscita quello che avevi cancellato.**
+  Alzare la revisione delle chiavi condivise per una chiave nuova riempiva
+  dalla copia locale *ogni* chiave mancante: una plancia rimasta indietro si
+  riprendeva le tapparelle o le persone cancellate da un altro dispositivo, e
+  alla prima modifica se le riportava dietro anche nel salvataggio condiviso.
+  Ora si travasa solo ciò che è nato dopo quel salvataggio.
+
 - **Il tasto di accensione del clima non chiamava niente.** «Impostando
   correttamente le entità non si accendono», segnalato da un utente: la
   sezione provava tre strade per parlare a Home Assistant — `cdCallServiceJson`,
