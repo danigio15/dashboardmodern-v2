@@ -43,7 +43,12 @@ export function canonicalClimateType(value) {
  */
 import { pick } from "./i18n.js";
 import { contactEntity } from "./shutter-window.js";
-import { COVER_SLOTS, coverPresetPosition, declaredCoverKind } from "./cover-kind.js";
+import {
+  COVER_SLOTS,
+  coverDownRelay,
+  coverPresetPosition,
+  declaredCoverKind,
+} from "./cover-kind.js";
 
 export const APPLIANCE_CATALOG = Object.freeze([
   { key: "lavatrice", it: "Lavatrice", en: "Washing machine" },
@@ -367,6 +372,10 @@ export function normalizeDevice(input = {}, section, context = {}) {
     // La posizione preferita (#200): stessa regola dei campi qui sopra.
     const preset = coverPresetPosition(input);
     if (preset != null) base.preset = preset;
+    // Il rele' di discesa (#194): idem, e vale solo se il primo comando e'
+    // anche lui un rele' — su una copertura vera non avrebbe senso.
+    const down = coverDownRelay(input);
+    if (down) base.down = down;
   }
   if (input.threshold_run != null) base.metadata.threshold_run = +input.threshold_run;
   if (input.threshold_standby != null) base.metadata.threshold_standby = +input.threshold_standby;

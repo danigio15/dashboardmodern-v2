@@ -4,6 +4,7 @@ import {
   coverIsAwning,
   coverIsSideways,
   coverKind,
+  coverDownRelay,
   coverKindLabel,
   coverPositionChoices,
   coverPresetPosition,
@@ -68,10 +69,22 @@ function coverView(item = {}, distingui = false) {
   const entity = clean(item.entity || item.entities?.[0]);
   if (!entity) return null;
   const current = allStates()[entity];
+  const giu = coverDownRelay(item);
   let status = clean(current?.state).toLowerCase() || "unknown";
   /* Lo switch parla on/off: tradotto nella lingua delle coperture, cosi' la
-   * pastiglia, il conteggio e il disegno non devono saperne niente. */
-  if (eUnoSwitch(entity)) status = status === "on" ? "open" : status === "off" ? "closed" : status;
+   * pastiglia, il conteggio e il disegno non devono saperne niente.
+   *
+   * Con due rele' (#194) il discorso cambia: acceso non vuol dire «aperta»
+   * ma «sta salendo», e l'altro rele' acceso vuol dire «sta scendendo». A
+   * rele' spenti dove sia arrivata non lo sa nessuno — un motore a due fili
+   * non lo racconta — e dirlo per finta sarebbe peggio che tacere. */
+  if (eUnoSwitch(entity) && giu) {
+    const su = status === "on";
+    const scende = clean(allStates()[giu]?.state).toLowerCase() === "on";
+    status = su ? "opening" : scende ? "closing" : "unknown";
+  } else if (eUnoSwitch(entity)) {
+    status = status === "on" ? "open" : status === "off" ? "closed" : status;
+  }
   const raw = eUnoSwitch(entity) ? null : current?.attributes?.current_position;
   const reported = raw == null ? null : Math.max(0, Math.min(100, Number(raw)));
   const hasPosition = Number.isFinite(reported);
@@ -93,6 +106,7 @@ function coverView(item = {}, distingui = false) {
     settable: Boolean(features & SUPPORT_SET_POSITION),
     moving: status === "opening" || status === "closing",
     preset: coverPresetPosition(item),
+    down: giu,
   };
 }
 
@@ -160,7 +174,9 @@ function signature(views) {
   return views
     .map((view) =>
       coperture(view)
-        .map((c) => [c.entity, c.name, view.floor, view.room, c.settable, c.kind, c.preset].join("~"))
+        .map((c) =>
+          [c.entity, c.name, view.floor, view.room, c.settable, c.kind, c.preset, c.down].join("~"),
+        )
         .join("+"),
     )
     .join("|");
@@ -187,6 +203,11 @@ function statusLabel(view) {
   if (stato === "closing") return t("In chiusura", "Closing");
   if (stato === "open") return t("Aperta", "Open");
   if (stato === "closed") return t("Chiusa", "Closed");
+  /* Due rele' fermi non vogliono dire «non lo so»: vogliono dire che il
+   * motore non sta girando. Dove sia arrivata non lo racconta nessuno — il
+   * disegno la mette a meta', che e' il modo di non inventarlo — ma dire
+   * «Sconosciuta» su una tapparella che sta benissimo sembra un guasto. */
+  if (view.down) return t("Ferma", "Stopped");
   return t("Sconosciuta", "Unknown");
 }
 
@@ -483,14 +504,42 @@ function insegnaComandoDiGruppo() {
   if (typeof originale !== "function" || originale.__dmTutteLeCoperture) return false;
   /* Il runtime manda servizi cover.*: a un rele' vanno tradotti. Apri e'
    * turn_on, chiudi e' turn_off, e lo stop per uno switch non esiste. */
-  const comandaSwitch = (entity, servizio) => {
-    if (servizio === "stop_cover") return true; // niente da fermare
-    const service = servizio === "open_cover" ? "turn_on" : "turn_off";
+  const releSwitch = (entity, service) => {
     try {
-      root
-        .dmCallHaService?.("switch", service, { entity_id: entity })
-        ?.catch?.(() => {});
+      root.dmCallHaService?.("switch", service, { entity_id: entity })?.catch?.(() => {});
     } catch (_error) {}
+  };
+
+  /* Il rele' di discesa di una copertura, se la sua riga ne dichiara uno. */
+  const releGiuDi = (entity) => {
+    const id = clean(entity);
+    if (!id) return "";
+    for (const item of configuredCovers()) {
+      if (clean(item?.entity || item?.entities?.[0]) !== id) continue;
+      return coverDownRelay(item);
+    }
+    return "";
+  };
+
+  const comandaSwitch = (entity, servizio) => {
+    const giu = releGiuDi(entity);
+    /* Due rele' (#194): chiudere non e' spegnere la salita, e' accendere la
+     * discesa. Il rele' opposto si spegne per primo — due contatti chiusi
+     * insieme su un motore a due fili non devono succedere mai, e non ci si
+     * affida al fatto che di solito sia il dispositivo a impedirlo. */
+    if (giu) {
+      if (servizio === "stop_cover") {
+        releSwitch(entity, "turn_off");
+        releSwitch(giu, "turn_off");
+        return true;
+      }
+      const sale = servizio === "open_cover";
+      releSwitch(sale ? giu : entity, "turn_off");
+      releSwitch(sale ? entity : giu, "turn_on");
+      return true;
+    }
+    if (servizio === "stop_cover") return true; // niente da fermare
+    releSwitch(entity, servizio === "open_cover" ? "turn_on" : "turn_off");
     return true;
   };
 

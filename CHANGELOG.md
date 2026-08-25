@@ -140,6 +140,27 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   spazio libero va tutto alla sua sinistra e le due cose stanno insieme,
   dalla parte in cui si va a cercarle.
 
+- **La tapparella comandata da due relè.** (#194) «Ho due tende su due Shelly
+  2PM e non riesco a inserire l'entità corretta: l'entità cover che chiede la
+  sezione non la trovo.» Uno Shelly lasciato in modalità interruttore non
+  espone una copertura — espone due prese, una che manda su e una che manda
+  giù — e la casella accettava sì un relè singolo, ma un motore a due fili non
+  funziona così: chiudere non è spegnere la salita, è accendere la discesa.
+  Ogni riga porta adesso la casella **«Relè di discesa»**, e con lei Apri
+  accende la salita, Chiudi accende la discesa e Ferma le spegne entrambe —
+  il verso opposto si spegne sempre per primo, perché due contatti chiusi
+  insieme su un motore a due fili non devono succedere mai. La pastiglia dice
+  «In apertura» e «In chiusura» leggendo i relè, e a relè fermi dice «Ferma»
+  senza inventare a che punto sia arrivata: un motore a due fili non lo
+  racconta, e il disegno la mette a metà. La casella vale solo dove ha senso,
+  cioè quando anche il primo comando è un relè: accanto a una `cover.*` vera
+  non si salva, e la scheda lo dice invece di perderla in silenzio. E il
+  vicolo cieco della segnalazione si chiude alla radice: la riga in cima alla
+  scheda diceva «tapparelle (entità cover)» e il segnaposto solo
+  `cover.tapparella_x`, così chi ha la tapparella dietro un relè cercava una
+  copertura che il suo impianto non espone. Adesso dicono tutte e tre le
+  strade: una `cover.*`, un relè, o due.
+
 - **La percentuale della tapparella si sceglie, non è più fissa.** (#200)
   «Non voglio la chiusura completa ma tipo al 95%, per lasciar passare un po'
   d'aria»: sotto Apri/Ferma/Chiudi la card ha una tendina con tutte le

@@ -1,6 +1,6 @@
 // DM-FIX-20260812B
 import { contactEntity } from "../core/shutter-window.js";
-import { coverPresetPosition } from "../core/cover-kind.js";
+import { coverDownRelay, coverPresetPosition } from "../core/cover-kind.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import { clean, dashboardStore, doc, english, installStyle, onEditorRedraw, readClimateUnits, readJson, root, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
@@ -215,6 +215,9 @@ function beginEdit(kind, index) {
     setField("ed-tp-tenda", item.tenda || "");
     setField("ed-tp-tendasole", item.tendaSole || "");
     setField("ed-tp-preset", coverPresetPosition(item) ?? "");
+    // Il rele' di discesa (#194): si mostra grezzo, cosi' una riga scritta a
+    // mano non lo perde mentre la si riapre.
+    setField("ed-tp-down", clean(item?.down) || "");
   } else if (kind === "room") {
     setField("ed-room-name", item.name || "");
     setField("ed-room-icon", item.icon || "🏠");
@@ -338,6 +341,14 @@ function installAddWrappers() {
     const preset = coverPresetPosition({ preset: doc.getElementById("ed-tp-preset")?.value });
     if (preset == null) delete list[index].preset;
     else list[index].preset = preset;
+    // Il rele' di discesa (#194): tenuto solo se la riga ha senso, cioe' se
+    // anche il primo comando e' un rele'.
+    const down = coverDownRelay({
+      entity: list[index].entity,
+      down: doc.getElementById("ed-tp-down")?.value,
+    });
+    if (down) list[index].down = down;
+    else delete list[index].down;
     salvaTapparelle(list);
   },
   /* Il contatto sopravvive anche a una tapparella appena aggiunta: l'elenco lo
@@ -353,6 +364,7 @@ function installAddWrappers() {
       tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
       tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
       preset: clean(doc.getElementById("ed-tp-preset")?.value),
+      down: clean(doc.getElementById("ed-tp-down")?.value),
     };
     const entity = clean(doc.getElementById("ed-tp-ent")?.value);
     /* Un infisso puo' avere la sola tenda: pretendere la tapparella qui

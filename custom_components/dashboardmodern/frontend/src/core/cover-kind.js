@@ -118,6 +118,29 @@ export function coverEntries(item = {}) {
   return uscite;
 }
 
+/* La tapparella comandata da due rele' (#194).
+ *
+ * Uno Shelly 2PM lasciato in modalita' interruttore non espone una copertura:
+ * espone due prese, una che manda su e una che manda giu'. La casella della
+ * tapparella accetta gia' un `switch.` singolo — un rele' che tiene la
+ * tapparella su quando e' acceso — ma un motore a due fili non funziona
+ * cosi': chiudere non e' spegnere la salita, e' accendere la discesa.
+ *
+ * Il secondo rele' e' un campo della riga come gli altri. Vale solo dove ha
+ * senso, cioe' quando il primo comando e' anch'esso un rele': su una
+ * `cover.` vera i due tasti li ha gia' Home Assistant, e un rele' in piu'
+ * sarebbe solo un modo per farsi male. */
+const SWITCH_RE = /^switch\.[a-z0-9_]+$/i;
+
+export const isRelayEntity = (entity) => SWITCH_RE.test(clean(entity));
+
+export function coverDownRelay(item = {}) {
+  const primo = clean(item?.entity || item?.entities?.[0]);
+  if (!isRelayEntity(primo)) return "";
+  const giu = clean(item?.down ?? item?.down_entity ?? item?.rele_giu);
+  return isRelayEntity(giu) && giu !== primo ? giu : "";
+}
+
 /** Quanto e' coperta la finestra, da 0 (tutta aperta) a 100. */
 export function coverClosedPercent(position) {
   const value = Number(position);

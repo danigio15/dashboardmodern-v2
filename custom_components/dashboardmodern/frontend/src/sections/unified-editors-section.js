@@ -1,5 +1,5 @@
 // DM-FIX-20260813E
-import { coverKindLabel, coverPresetPosition } from "../core/cover-kind.js";
+import { coverDownRelay, coverKindLabel, coverPresetPosition } from "../core/cover-kind.js";
 import { contactEntity } from "../core/shutter-window.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import {
@@ -269,6 +269,7 @@ function openShutterEditor(item, index) {
     t("Modifica tapparella o tenda", "Edit shutter or curtain"),
     `<label class="ed-slot"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><input class="ed-input" name="name" value="${esc(item.name)}" required></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Entità tapparella", "Cover entity")}</span><span class="ed-form-row"><input class="ed-input mono" name="entity" value="${esc(item.entity)}"><button type="button" class="dm-entity-picker" data-pick>🔍</button></span></label>
+     <label class="ed-slot"><span class="ed-slot-lbl">${t("Relè di discesa", "Down relay")}</span><span class="ed-form-row"><input class="ed-input mono" name="down" value="${esc(coverDownRelay(item))}" placeholder="switch.tapparella_giu"><button type="button" class="dm-entity-picker" data-pick-down>🔍</button></span><small>${t("Serve solo se la tapparella è comandata da due relè — uno che manda su, uno che manda giù — come uno Shelly lasciato in modalità interruttore: allora «Chiudi» accende questo, e «Ferma» li spegne entrambi. Con una cover.* vera lascia vuoto.", "Only needed when the shutter is driven by two relays — one that sends it up, one that sends it down — like a Shelly left in switch mode: then “Close” switches this one on, and “Stop” switches both off. With a real cover.* leave it empty.")}</small></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${coverKindLabel("tenda")}</span><span class="ed-form-row"><input class="ed-input mono" name="tenda" value="${esc(item.tenda)}" placeholder="cover.tenda_salotto"><button type="button" class="dm-entity-picker" data-pick-tenda>🔍</button></span></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${coverKindLabel("tenda_sole")}</span><span class="ed-form-row"><input class="ed-input mono" name="tendaSole" value="${esc(item.tendaSole)}" placeholder="cover.tenda_da_sole"><button type="button" class="dm-entity-picker" data-pick-tendasole>🔍</button></span><small>${t("Su una finestra ci stanno tutte e tre: compila le caselle che hai, il tipo lo dice la casella.", "One window can carry all three: fill in the boxes you have, the box tells the type.")}</small></label>
      <label class="ed-slot"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><select class="ed-input" name="room">${roomsOptions(item.room || item.room_id)}</select></label>
@@ -281,6 +282,7 @@ function openShutterEditor(item, index) {
     ["[data-pick-contact]", "contact"],
     ["[data-pick-tenda]", "tenda"],
     ["[data-pick-tendasole]", "tendaSole"],
+    ["[data-pick-down]", "down"],
   ]) {
     form
       .querySelector(selettore)
@@ -309,6 +311,15 @@ function openShutterEditor(item, index) {
     const preset = coverPresetPosition({ preset: form.elements.preset?.value });
     if (preset == null) delete list[index].preset;
     else list[index].preset = preset;
+    /* Il rele' di discesa (#194): vale solo dove il primo comando e' anche
+     * lui un rele'. Scritto accanto a una cover.* vera si perde per strada,
+     * ed e' giusto: quella i due versi li ha gia'. */
+    const down = coverDownRelay({
+      entity: list[index].entity,
+      down: form.elements.down?.value,
+    });
+    if (down) list[index].down = down;
+    else delete list[index].down;
     /* Basta una delle tre.
      *
      * Si pretendeva la casella della tapparella, ma un infisso puo' avere solo
@@ -341,6 +352,16 @@ function openShutterEditor(item, index) {
       errore.textContent = t(
         "Ogni casella compilata deve essere un'entità cover.* o switch.*.",
         "Every filled box must be a cover.* or switch.* entity.",
+      );
+      return;
+    }
+    /* Un rele' di discesa scritto accanto a una copertura vera, o che non e'
+     * un rele', si perderebbe in silenzio: meglio dirlo. */
+    const giuScritto = clean(form.elements.down?.value);
+    if (giuScritto && !list[index].down) {
+      errore.textContent = t(
+        "Il relè di discesa dev'essere un'entità switch.*, e serve solo quando anche la casella della tapparella è un relè switch.*.",
+        "The down relay must be a switch.* entity, and it only applies when the shutter box is a switch.* relay too.",
       );
       return;
     }
