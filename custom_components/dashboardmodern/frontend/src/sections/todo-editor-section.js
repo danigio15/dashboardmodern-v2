@@ -7,7 +7,7 @@
  * riscrive a mano.
  */
 import { isTodoEntity, suggestTodoLists } from "../core/todo-model.js";
-import { renderTodoSection } from "./todo-section.js";
+import { renderHomeWidgets } from "./home-widgets-section.js";
 import {
   allStates,
   clean,
@@ -37,7 +37,7 @@ function grezze() {
 function salva(lists) {
   writeJsonIfChanged(CONFIG_KEY, lists);
   try {
-    renderTodoSection();
+    renderHomeWidgets();
   } catch (_error) {}
 }
 

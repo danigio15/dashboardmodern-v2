@@ -90,28 +90,49 @@ test("il cancello degli eventi conosce cd_todo", () => {
   assert.match(leggi("core/state-event-gate.js"), /"cd_todo"/);
 });
 
-test("il runtime installa la card e l'editor delle liste", () => {
+test("il runtime installa il ponte dei widget e l'editor delle liste", () => {
   const runtime = leggi("sections/section-runtime.js");
-  assert.match(runtime, /installTodoSection\(\)/);
+  assert.match(runtime, /installHomeWidgetsSection\(\)/);
   assert.match(runtime, /installTodoEditorSection\(\)/);
-  assert.match(runtime, /"todo"/);
+  assert.match(runtime, /"home-widgets"/);
+  assert.match(runtime, /"todo-editor"/);
 });
 
 test("le voci arrivano col return_response e si spuntano con update_item", () => {
-  const sezione = leggi("sections/todo-section.js");
+  const sezione = leggi("sections/home-widgets-section.js");
   assert.match(sezione, /return_response: true/);
   assert.match(sezione, /"get_items"/);
   assert.match(sezione, /"update_item"/);
-  // Le liste abitano la zona dei widget «In primo piano», sotto le persone
-  // quando ci sono: una parte della Home fatta per ospitare anche i widget
-  // futuri, con la testata e la pastiglia del totale.
+  // Le liste abitano il ponte dei widget «In primo piano», sotto le persone
+  // quando ci sono: una parte della Home con una tessera per sezione, che al
+  // tocco si espande nel dettaglio vivo.
   assert.match(sezione, /id = "dm-widgets"/);
   assert.match(sezione, /dm-widgets-head/);
-  assert.match(sezione, /data-dm-widgets-count/);
+  assert.match(sezione, /data-dm-widget=/);
+  assert.match(sezione, /data-dm-widget-detail=/);
   assert.match(sezione, /getElementById\("dm-people"\)/);
   assert.match(sezione, /dashboard-pills-row/);
   // Si rilegge quando lo stato dell'entita' cambia: niente polling.
   assert.match(sezione, /dashboardmodern:state-changed/);
   assert.doesNotMatch(sezione, /setInterval\s*\(/);
   assert.doesNotMatch(sezione, /MutationObserver/);
+});
+
+test("una tessera per sezione, e ognuna legge la configurazione che c'e' gia'", () => {
+  const sezione = leggi("sections/home-widgets-section.js");
+  for (const modello of [
+    "todoModel",
+    "lightsModel",
+    "climateModel",
+    "coversModel",
+    "securityModel",
+    "energyModel",
+    "appliancesModel",
+    "temperatureModel",
+  ])
+    assert.match(sezione, new RegExp(`function ${modello}`), modello);
+  // Il markup si rifa' solo quando cambia la struttura: i valori si scrivono
+  // al loro posto, cosi' l'apertura di una tessera non riparte da sola.
+  assert.match(sezione, /function structureSignature/);
+  assert.match(sezione, /state\.signature !== signature/);
 });

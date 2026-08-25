@@ -9,20 +9,25 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
-- **«In primo piano»: la zona dei widget della Home.** (#201) Non una card
-  sciolta ma una parte della Home dedicata ai widget, con la sua testata — il
-  riquadro col gradiente, il titolo, la pastiglia col totale delle cose da
-  fare — e una griglia disegnata per ospitarne anche di futuri. Oggi la
-  abitano le liste `todo.*` di Home Assistant: ogni lista è una card col
-  nastro d'accento colorato, l'anello di avanzamento (fatte su totale), le
-  voci da spuntare con la spunta animata, la scadenza — rossa con ⚠️ quando è
-  passata — e «✨ Tutto fatto» quando non resta niente. Spuntare una voce
-  chiama `todo.update_item`; le voci arrivano da `todo.get_items` sulla
-  stessa presa WebSocket della plancia e si rileggono quando lo stato
-  dell'entità cambia, anche per una spunta fatta da un altro dispositivo. La
-  scheda «✅ ToDo» in configurazione ha «🪄 Rileva da Home Assistant» che
-  riempie l'elenco con le liste che esistono già; la configurazione viaggia
-  in `cd_todo`, con la configurazione condivisa (revisione 6).
+- **«In primo piano»: il ponte dei widget della Home.** (#201) Una parte
+  della Home dedicata ai widget: tessere piccole ed eleganti — un numero,
+  un anello, una parola — una per sezione della plancia, e al tocco la
+  tessera si espande in una card larga col dettaglio vivo di quella sezione.
+  Otto widget, ognuno con il suo colore: le **cose da fare** con le voci
+  spuntabili e la scadenza rossa con ⚠️ quando è passata; le **luci** accese
+  con l'interruttore a pillola per spegnerle da lì; il **clima** con la media
+  ambiente e il tasto di accensione per zona; le **tapparelle** aperte con le
+  frecce ▲■▼; la **sicurezza** con lo stato dell'antifurto e le aperture;
+  l'**energia** con la potenza di casa (in kW sopra il migliaio) e i kWh di
+  oggi; gli **elettrodomestici** in funzione coi loro watt; la
+  **temperatura** media con l'umidità. Ogni widget legge la configurazione
+  che la sua sezione ha già e compare solo se c'è qualcosa da mostrare;
+  niente polling, e il markup si rifà solo quando cambia la struttura, così
+  l'apertura non riparte mai da sola. Le liste ToDo arrivano da
+  `todo.get_items` sulla presa WebSocket della plancia, spuntarle chiama
+  `todo.update_item`, e la scheda «✅ ToDo» in configurazione — con «🪄
+  Rileva da Home Assistant» — scrive `cd_todo`, nella configurazione
+  condivisa (revisione 6).
 
 - **La posizione preferita della tapparella.** (#200) «Non voglio la chiusura
   completa ma tipo al 95%, per lasciar passare un po' d'aria»: ogni riga di

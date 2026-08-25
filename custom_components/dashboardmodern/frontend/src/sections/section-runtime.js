@@ -60,7 +60,7 @@ import { installEvSection } from "./ev-section.js";
 import { installMediaPickerSection } from "./media-picker-section.js";
 import { installPeopleSection } from "./people-section.js";
 import { installPeopleEditorSection } from "./people-editor-section.js";
-import { installTodoSection } from "./todo-section.js";
+import { installHomeWidgetsSection } from "./home-widgets-section.js";
 import { installTodoEditorSection } from "./todo-editor-section.js";
 import { installEvShowcaseSection } from "./ev-showcase-section.js";
 import { installEditorSlotsSection } from "./editor-slots-section.js";
@@ -719,9 +719,9 @@ export function installSectionRuntime() {
      * foto, quindi si installano dopo di lui. */
     installPeopleSection();
     installPeopleEditorSection();
-    /* Le liste ToDo stanno sotto le persone in Home: si installano dopo, cosi'
-     * trovano gia' il loro ancoraggio. */
-    installTodoSection();
+    /* Il ponte dei widget sta sotto le persone in Home: si installa dopo,
+     * cosi' trova gia' il suo ancoraggio. */
+    installHomeWidgetsSection();
     installTodoEditorSection();
     installEvSection();
     // The skin installs after the EV owner so the vehicle picker it restyles is
@@ -785,7 +785,7 @@ export function installSectionRuntime() {
         "media-picker",
         "people",
         "people-editor",
-        "todo",
+        "home-widgets",
         "todo-editor",
         "ev",
         "ev-showcase",
