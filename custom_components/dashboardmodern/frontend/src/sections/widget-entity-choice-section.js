@@ -107,7 +107,11 @@ export function ensureEntityChoices() {
       // righe sono griglie con le loro colonne, e un figlio in piu' le
       // manderebbe a capo. Cosi' l'interruttore scorre col testo che governa.
       const testo = row.querySelector(".ed-row-main");
-      if (testo) testo.append(button);
+      // In testa, non in coda: l'interruttore galleggia a destra e il nome gli
+      // scorre accanto. Un elemento che galleggia dopo il testo scenderebbe
+      // sotto, e ogni riga dell'editor crescerebbe di una riga intera — su un
+      // telefono e' la differenza fra un elenco e una torre.
+      if (testo) testo.prepend(button);
       else row.append(button);
       messi += 1;
       continue;
@@ -148,8 +152,8 @@ function installStyles() {
     "dm-widget-entity-choice-style",
     `
       #ed-body .dm-widget-entity{
-        display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
-        margin:4px 0 0;padding:4px 8px;vertical-align:middle;border:1px solid var(--card-border,#e2e8f0);
+        display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;float:right;
+        margin:0 0 2px 8px;padding:4px 8px;vertical-align:middle;border:1px solid var(--card-border,#e2e8f0);
         border-radius:999px;background:var(--surface-2,#f8fafc);
         font-size:12px;line-height:1;cursor:pointer;
         transition:border-color .18s ease,background .18s ease,opacity .18s ease}
@@ -164,6 +168,16 @@ function installStyles() {
       #ed-body .dm-widget-entity[data-on="true"] i::after{transform:translateX(11px)}
       #ed-body .dm-widget-entity[data-on="false"] span{opacity:.45;filter:grayscale(1)}
       #ed-body .dm-widget-entity:hover{border-color:#0ea5e9}
+      /* Su un telefono la colonna del nome e' larga un dito: l'interruttore
+       * resta, il tassello no — il nome vale piu' del suo disegno, e cosa fa
+       * la levetta lo dicono il titolo e l'etichetta per chi legge a voce. */
+      @media(max-width:640px){
+        #ed-body .dm-widget-entity{padding:3px 6px;gap:0}
+        #ed-body .dm-widget-entity>span{display:none}
+        #ed-body .dm-widget-entity i{width:24px;height:14px}
+        #ed-body .dm-widget-entity i::after{width:10px;height:10px}
+        #ed-body .dm-widget-entity[data-on="true"] i::after{transform:translateX(10px)}
+      }
       @media(prefers-reduced-motion:reduce){
         #ed-body .dm-widget-entity,#ed-body .dm-widget-entity i,
         #ed-body .dm-widget-entity i::after{transition:none}

@@ -22,8 +22,13 @@ test("l'interruttore nasce sulla riga dove l'entita' e' gia' scritta", () => {
   assert.match(scelta, /\.ed-row-old/);
   assert.match(scelta, /querySelectorAll\("\.ed-row"\)/);
   // Dentro il blocco del nome, non accanto: le righe sono griglie con le loro
-  // colonne, e un figlio in piu' le manderebbe a capo.
-  assert.match(scelta, /testo\.append\(button\)/);
+  // colonne, e un figlio in piu' le manderebbe a capo. E in testa, non in
+  // coda: l'interruttore galleggia a destra e il nome gli scorre accanto —
+  // messo dopo il testo scenderebbe sotto, e ogni riga dell'editor crescerebbe
+  // di una riga intera, che su un telefono e' la differenza fra un elenco e
+  // una torre.
+  assert.match(scelta, /testo\.prepend\(button\)/);
+  assert.match(scelta, /float:right/);
   assert.match(scelta, /querySelector\("\.ed-row-main"\)/);
   // Chi non mostra un entity_id non riceve niente: non c'e' niente da
   // escludere.

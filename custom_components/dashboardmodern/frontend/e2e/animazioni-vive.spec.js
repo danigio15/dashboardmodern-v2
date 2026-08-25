@@ -123,7 +123,8 @@ test("un avviso che non si sa leggere si muove lo stesso", async ({ page }, test
         },
       ]),
     );
-    const states = window.eval("typeof STATES !== 'undefined' ? STATES : null") || {};
+    const states =
+      window.eval("typeof _RAW_STATES !== 'undefined' ? _RAW_STATES : null") || window._RAW_STATES;
     states["binary_sensor.garage"] = {
       entity_id: "binary_sensor.garage",
       state: "on",
@@ -131,7 +132,7 @@ test("un avviso che non si sa leggere si muove lo stesso", async ({ page }, test
     };
     document.querySelectorAll(".page").forEach((node) => node.classList.remove("active"));
     document.getElementById("page-home")?.classList.add("active");
-    window.cdRenderCustomAvvisi?.();
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready"));
   });
 
   /* L'avviso personalizzato vive nella tessera del ponte dei widget: entra

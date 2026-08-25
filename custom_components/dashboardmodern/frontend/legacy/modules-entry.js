@@ -208,12 +208,20 @@ function renderEnergyEditorTab(target) {
       onTabChange: (tab) => { activeEnergyPanel = tab; },
       onSave: async ({ actions, save, status }) => {
         actions.dataset.state = "loading"; save.disabled = true; status.textContent = t("saving");
+        /* La barra viva, non quella di prima: aspettare la scrittura vuol dire
+         * lasciare il tempo al pannello di rifarsi dal modello appena salvato,
+         * e la barra che aveva ricevuto il clic a quel punto e' gia' staccata
+         * dalla pagina. Scriverci sopra "Salvato" non lo direbbe a nessuno. */
+        const barraViva = () =>
+          document.querySelector('[data-editor="energy"] [data-energy-actions]') ||
+          target.querySelector("[data-energy-actions]") ||
+          actions;
         try {
           await flushEnergyWrites();
-          const current = target.querySelector("[data-energy-actions]");
+          const current = barraViva();
           if (current) { current.dataset.state = "success"; current.querySelector("[data-energy-status]").textContent = t("energySaved"); }
         } catch (error) {
-          const current = target.querySelector("[data-energy-actions]");
+          const current = barraViva();
           if (current) { current.dataset.state = "error"; current.querySelector("[data-energy-status]").textContent = `${t("energySaveFailed")}: ${error.message}`; }
         }
       },

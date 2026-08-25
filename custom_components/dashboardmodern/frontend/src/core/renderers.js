@@ -526,6 +526,16 @@ export function renderEnergyEditor(
   const copy = energyCopy(locale);
   const root = typeof target === "string" ? document.querySelector(target) : target;
   if (!root) return;
+  /* Un ridisegno non e' un cambio di stato. Il pannello si rifa' da solo dopo
+   * un salvataggio — il modello appena scritto va riletto — e la barra delle
+   * azioni rinasceva "pulita", cancellando il "Salvato" un istante dopo averlo
+   * detto. Cosi' l'unica traccia del salvataggio spariva prima che qualcuno la
+   * leggesse: la ricordiamo attraverso il ridisegno. */
+  const precedente = root.querySelector?.("[data-energy-actions]");
+  const ricordo =
+    precedente?.dataset?.state === "success"
+      ? String(precedente.querySelector?.("[data-energy-status]")?.textContent ?? "").trim() || null
+      : null;
   root.replaceChildren();
   root.classList.add("ed-list");
   root.dataset.editor = "energy";
@@ -697,7 +707,7 @@ export function renderEnergyEditor(
   const actions = document.createElement("div");
   actions.className = "ed-action-bar";
   actions.dataset.energyActions = "";
-  actions.dataset.state = "clean";
+  actions.dataset.state = ricordo ? "success" : "clean";
   const save = document.createElement("button");
   save.type = "button";
   save.className = "ed-save-btn";
@@ -706,7 +716,7 @@ export function renderEnergyEditor(
   save.textContent = copy.save;
   const status = document.createElement("output");
   status.dataset.energyStatus = "";
-  status.textContent = copy.clean;
+  status.textContent = ricordo || copy.clean;
   actions.append(save, status);
   flows.append(actions);
   const dirty = () => {
