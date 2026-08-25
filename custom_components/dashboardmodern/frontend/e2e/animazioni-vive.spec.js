@@ -134,17 +134,19 @@ test("un avviso che non si sa leggere si muove lo stesso", async ({ page }, test
     window.cdRenderCustomAvvisi?.();
   });
 
-  const icona = page
-    .locator("#page-home .glance-card")
-    .filter({ hasText: "Garage" })
-    .locator(".g-icon-wrap");
-  await expect(icona).toHaveClass(/dm-alert-generic/);
+  /* L'avviso personalizzato vive nella tessera del ponte dei widget: entra
+   * con la sua animazione e, da avviso, respira col ping dell'accento. */
+  const tessera = page.locator('#dm-widgets [data-dm-widget="custom-0"]');
+  await expect(tessera).toBeVisible();
+  await expect(tessera).toHaveAttribute("data-alert", "true");
+  await expect(tessera).toContainText("Garage");
   await expect
     .poll(() =>
-      icona.evaluate((nodo) => {
-        const glifo = nodo.querySelector(".dm-alert-glyph");
-        return glifo?.getAnimations?.()[0]?.animationName || "niente";
-      }),
+      tessera.evaluate((nodo) =>
+        nodo
+          .getAnimations({ subtree: true })
+          .some((animazione) => animazione.animationName === "dmWidgetPing"),
+      ),
     )
-    .toBe("dmAlertGeneric");
+    .toBe(true);
 });

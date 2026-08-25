@@ -30,6 +30,20 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   le tessere stesse, quali vederne e in che ordine (`cd_widgets`, revisione 7
   della configurazione condivisa).
 
+- **Le telecamere, in miniatura sul ponte.** La tessera «📹 Telecamere» dice
+  quante sono e, aperta, mostra le miniature di tutte — lo stesso letterbox
+  scuro del muro della Sicurezza, col pallino live — aggiornate ogni dieci
+  secondi finché la tessera è aperta su uno schermo visibile: chiusa, il
+  timer muore e la memoria viene restituita. I fotogrammi passano dalla
+  stessa strada autenticata del muro, con un registro degli object URL
+  separato perché nessuno revochi i blob dell'altro.
+
+- **Il ponte è vivo.** Le tessere entrano in cascata, il riflesso attraversa
+  la tessera al passaggio, l'icona si anima, le tessere-avviso respirano con
+  l'onda del loro accento, le righe del dettaglio entrano in sequenza e le
+  miniature zoomano al tocco — tutto spento da `prefers-reduced-motion` per
+  chi il movimento non lo vuole.
+
 - **Il ponte assorbe il Quadro Avvisi.** Le card del Quadro — aperture,
   batterie scariche, allagamenti, avvisi personalizzati — diventano tessere
   del ponte, con le STESSE liste sorvegliate e le stesse regole di conteggio

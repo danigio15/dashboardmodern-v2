@@ -27,6 +27,7 @@ import { createApplianceViewModel } from "../core/appliance-view-model.js";
 import { normalizeSecurityDoors } from "../core/security-door-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
+import { loadCameraFrame } from "./live-ui-section.js";
 import {
   allStates,
   clean,
@@ -56,6 +57,8 @@ const state = (root[KEY] ||= {
   expanded: "",
   signature: "",
   lists: new Map(), // entity -> { items, fetchedAt, inflight }
+  cameraTimer: 0,
+  cameraUrls: new Map(), // entity -> object URL della tessera, MAI quelli del muro
 });
 
 export function configuredTodoLists() {
@@ -317,7 +320,7 @@ function securityModel(states) {
       : armed
         ? t("Inserito", "Armed")
         : t("Disinserito", "Disarmed");
-  return { key: "sicurezza", accent: triggered ? "#e11d48" : "#10b981", icon: "🛡️",
+  return { key: "sicurezza", accent: triggered ? "#e11d48" : "#10b981", icon: "🛡️", alert: triggered,
     label: t("Sicurezza", "Security"), value,
     caption: cameras.length ? t(`${cameras.length} telecamere`, `${cameras.length} cameras`) : "",
     ring: armed || triggered ? 100 : 0, doors, cameras: cameras.length, alarm: Boolean(alarm), armed, triggered };
@@ -330,6 +333,22 @@ function formatWatts(value) {
   const absolute = Math.abs(value);
   if (absolute >= 1000) return `${formatNumber(value / 1000, 2)} kW`;
   return `${formatNumber(value, 0)} W`;
+}
+
+function camerasModel() {
+  let cameras = [];
+  try {
+    cameras = root.getCameras?.() || [];
+  } catch (_error) {}
+  const rows = (Array.isArray(cameras) ? cameras : [])
+    .map((camera) => ({
+      entity: clean(camera?.entity),
+      name: clean(camera?.name) || clean(camera?.entity),
+    }))
+    .filter((row) => row.entity);
+  if (!rows.length) return null;
+  return { key: "telecamere", accent: "#0284c7", icon: "📹", label: t("Telecamere", "Cameras"),
+    value: String(rows.length), caption: rows[0].name, ring: null, rows };
 }
 
 const ENERGY_SLOTS = Object.freeze([
@@ -431,7 +450,7 @@ function openingsModel(states) {
   }));
   const open = rows.filter((row) => row.on);
   if (!open.length) return null;
-  return { key: "aperture", accent: "#dc2626", icon: "🚪", label: t("Aperture", "Openings"),
+  return { key: "aperture", accent: "#dc2626", icon: "🚪", alert: true, label: t("Aperture", "Openings"),
     value: String(open.length), caption: open[0] ? open[0].name : "",
     ring: Math.round((open.length / rows.length) * 100), rows, open };
 }
@@ -448,7 +467,7 @@ function batteriesModel(states) {
     .sort((a, b) => a.level - b.level);
   const low = rows.filter((row) => row.level <= 20);
   if (!low.length) return null;
-  return { key: "batterie", accent: "#eab308", icon: "🔋", label: t("Batterie", "Batteries"),
+  return { key: "batterie", accent: "#eab308", icon: "🔋", alert: true, label: t("Batterie", "Batteries"),
     value: String(low.length), caption: low[0] ? `${low[0].name} ${Math.round(low[0].level)}%` : "",
     ring: Math.round((low.length / rows.length) * 100), rows, low };
 }
@@ -468,7 +487,7 @@ function floodModel(states) {
   }));
   const wet = rows.filter((row) => row.on);
   if (!wet.length) return null;
-  return { key: "allagamenti", accent: "#38bdf8", icon: "💧", label: t("Allagamenti", "Floods"),
+  return { key: "allagamenti", accent: "#38bdf8", icon: "💧", alert: true, label: t("Allagamenti", "Floods"),
     value: String(wet.length), caption: wet[0] ? wet[0].name : "",
     ring: 100, rows: wet };
 }
@@ -520,7 +539,7 @@ function customAlertModels(states) {
           state: clean(stateOf(states, entity)?.state),
         }));
       if (!rows.length) return null;
-      return { key: `custom-${index}`, accent: "#f59e0b", icon: clean(avviso?.icon) || "⚠️",
+      return { key: `custom-${index}`, accent: "#f59e0b", icon: clean(avviso?.icon) || "⚠️", alert: true,
         label: clean(avviso?.name) || t("Avviso", "Alert"), value: String(rows.length),
         caption: rows[0]?.name || "", ring: null, rows };
     })
@@ -556,6 +575,7 @@ function widgetModels(states) {
       climateModel(states),
       coversModel(states),
       securityModel(states),
+      camerasModel(states),
       energyModel(states),
       appliancesModel(states),
       temperatureModel(states),
@@ -575,10 +595,11 @@ function ringMarkup(widget) {
   return `<span class="dm-tile-ring" style="--dm-ring-pct:${widget.ring}" aria-hidden="true"><i>${widget.icon}</i></span>`;
 }
 
-function tileMarkup(widget) {
+function tileMarkup(widget, index = 0) {
   const open = state.expanded === widget.key;
   return `<button type="button" class="dm-tile" data-dm-widget="${widget.key}" data-open="${open}"
-      style="--dm-widget-accent:${widget.accent}" aria-expanded="${open}" aria-label="${esc(widget.label)}">
+      data-alert="${Boolean(widget.alert)}"
+      style="--dm-widget-accent:${widget.accent};--dm-tile-i:${index}" aria-expanded="${open}" aria-label="${esc(widget.label)}">
       ${ringMarkup(widget)}
       <span class="dm-tile-copy">
         <b class="dm-tile-value" data-dm-tile-value>${esc(widget.value)}</b>
@@ -586,6 +607,7 @@ function tileMarkup(widget) {
         <small class="dm-tile-caption" data-dm-tile-caption>${esc(widget.caption)}</small>
       </span>
       <span class="dm-tile-chevron" aria-hidden="true">⌄</span>
+      <span class="dm-tile-shine" aria-hidden="true"></span>
     </button>`;
 }
 
@@ -811,12 +833,27 @@ function customDetail(widget) {
     .join("");
 }
 
+/* Le miniature: i fotogrammi non stanno nel markup — li posa
+ * `aggiornaTelecamere()` sulla stessa strada del muro della Sicurezza, cosi'
+ * il diff del corpo non li tocca e il riquadro non lampeggia mai. */
+function camerasDetail(widget) {
+  return `<div class="dm-w-cams">${widget.rows
+    .map(
+      (row) => `<figure class="dm-w-cam" data-dm-w-cam="${esc(row.entity)}">
+        <img alt="" decoding="async" data-dm-camera-state="loading">
+        <figcaption><i class="dm-w-cam-live" aria-hidden="true"></i>${esc(row.name)}</figcaption>
+      </figure>`,
+    )
+    .join("")}</div>`;
+}
+
 function detailBody(widget, states) {
   if (widget.key === "todo") return todoDetail(widget);
   if (widget.key === "luci") return lightsDetail(widget);
   if (widget.key === "clima") return climateDetail(widget);
   if (widget.key === "tapparelle") return coversDetail(widget);
   if (widget.key === "sicurezza") return securityDetail(widget, states);
+  if (widget.key === "telecamere") return camerasDetail(widget);
   if (widget.key === "energia") return energyDetail(widget);
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
@@ -903,6 +940,7 @@ export function renderHomeWidgets() {
   if (!models.length) {
     host?.remove();
     state.signature = "";
+    fermaTimerTelecamere();
     return false;
   }
   const mounted = host || ensureHost();
@@ -920,8 +958,8 @@ export function renderHomeWidgets() {
   if (state.signature !== signature || !grid.firstElementChild) {
     state.signature = signature;
     grid.innerHTML = models
-      .map((widget) => {
-        const tile = tileMarkup(widget);
+      .map((widget, index) => {
+        const tile = tileMarkup(widget, index);
         return state.expanded === widget.key ? tile + detailMarkup(widget, states) : tile;
       })
       .join("");
@@ -949,6 +987,10 @@ export function renderHomeWidgets() {
   }
 
   for (const list of configuredTodoLists()) fetchItems(list.entity);
+  // La tessera delle telecamere appena disegnata (o ridisegnata) chiede i suoi
+  // fotogrammi; chiusa, restituisce timer e object URL.
+  if (state.expanded === "telecamere") aggiornaTelecamere();
+  else fermaTimerTelecamere();
   return true;
 }
 
@@ -963,6 +1005,75 @@ function schedule() {
     }
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
+}
+
+/* ── le miniature delle telecamere ────────────────────────────────────── */
+
+/* Un fotogramma e' un'immagine ferma chiesta di nuovo: niente in Home
+ * Assistant la spinge. Dieci secondi, e SOLO mentre la tessera e' aperta
+ * sulla Home di uno schermo visibile: chiusa la tessera, il timer muore e gli
+ * object URL vengono restituiti. La stessa disciplina del muro della
+ * Sicurezza, che di secondi ne usa quattro perche' li' le telecamere sono la
+ * pagina intera. */
+const CAMERA_WIDGET_REFRESH_MS = 10000;
+
+function homeVisible() {
+  return Boolean(doc?.getElementById?.("page-home")?.classList?.contains("active"));
+}
+
+function cameraWidgetOnScreen() {
+  return state.expanded === "telecamere" && homeVisible() && doc?.visibilityState !== "hidden";
+}
+
+function fermaTimerTelecamere() {
+  if (state.cameraTimer) {
+    root.clearInterval?.(state.cameraTimer);
+    state.cameraTimer = 0;
+  }
+  for (const url of state.cameraUrls.values()) {
+    if (typeof url === "string" && url.startsWith("blob:")) {
+      try {
+        root.URL?.revokeObjectURL?.(url);
+      } catch (_error) {}
+    }
+  }
+  state.cameraUrls.clear();
+}
+
+async function aggiornaTelecamere() {
+  if (!cameraWidgetOnScreen()) {
+    fermaTimerTelecamere();
+    return false;
+  }
+  const figures = doc?.querySelectorAll?.("#dm-widgets [data-dm-w-cam]") || [];
+  await Promise.all(
+    [...figures].map((figure) =>
+      loadCameraFrame(
+        { entity: clean(figure.dataset.dmWCam) },
+        figure.querySelector("img"),
+        state.cameraUrls,
+      ),
+    ),
+  );
+  sincronizzaTimerTelecamere();
+  return true;
+}
+
+function sincronizzaTimerTelecamere() {
+  if (!cameraWidgetOnScreen()) {
+    fermaTimerTelecamere();
+    return false;
+  }
+  if (state.cameraTimer) return true;
+  state.cameraTimer =
+    root.setInterval?.(() => {
+      if (!cameraWidgetOnScreen()) {
+        fermaTimerTelecamere();
+        return;
+      }
+      aggiornaTelecamere();
+    }, CAMERA_WIDGET_REFRESH_MS) || 0;
+  return Boolean(state.cameraTimer);
 }
 
 /* ── interazione ──────────────────────────────────────────────────────── */
@@ -1049,11 +1160,20 @@ function installStyles() {
    all'apertura — mai su tutta la tessera. */
 #dm-widgets .dm-widgets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:10px}
 #dm-widgets .dm-tile{
-  position:relative;display:flex;align-items:center;gap:11px;min-height:74px;
+  position:relative;overflow:hidden;display:flex;align-items:center;gap:11px;min-height:74px;
   padding:12px 13px;border:1px solid var(--card-border,#e8edf3);border-radius:18px;
   background:var(--card-bg,#fff);color:var(--text,#0f172a);font:inherit;text-align:left;cursor:pointer;
   box-shadow:0 6px 18px rgba(15,23,42,.05);
+  animation:dmTileIn .45s cubic-bezier(.16,1,.3,1) both;
+  animation-delay:calc(var(--dm-tile-i,0) * 45ms);
   transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s ease,border-color .3s ease}
+@keyframes dmTileIn{from{opacity:0;transform:translateY(9px) scale(.97)}to{opacity:1;transform:none}}
+/* Il riflesso che attraversa la tessera al passaggio: luce, non colore. */
+#dm-widgets .dm-tile .dm-tile-shine{
+  position:absolute;top:-20%;bottom:-20%;width:36%;left:-60%;pointer-events:none;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.4),transparent);
+  transform:skewX(-18deg);transition:left .55s ease}
+#dm-widgets .dm-tile:hover .dm-tile-shine{left:125%}
 #dm-widgets .dm-tile::before{
   content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;
   background:var(--dm-widget-accent,#0ea5e9);opacity:.55;transition:opacity .3s ease}
@@ -1064,18 +1184,32 @@ function installStyles() {
   box-shadow:0 12px 30px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 22%,rgba(15,23,42,.08))}
 #dm-widgets .dm-tile-ic{
   width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;font-size:19px;border-radius:50%;
-  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 13%,var(--surface-3,#f1f5f9))}
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 13%,var(--surface-3,#f1f5f9));
+  transition:transform .35s cubic-bezier(.16,1,.3,1)}
+#dm-widgets .dm-tile:hover .dm-tile-ic{transform:scale(1.1) rotate(-6deg)}
 #dm-widgets .dm-tile-ring{
-  width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border-radius:50%;
+  position:relative;width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border-radius:50%;
   background:conic-gradient(from -90deg,var(--dm-widget-accent,#0ea5e9) 0 calc(var(--dm-ring-pct,0) * 1%),var(--surface-3,#e2e8f0) 0);
-  transition:background .6s linear}
+  transition:background .6s linear,transform .35s cubic-bezier(.16,1,.3,1)}
+#dm-widgets .dm-tile:hover .dm-tile-ring{transform:scale(1.08)}
+/* Le tessere-avviso respirano: l'onda dell'accento che si allarga e svanisce,
+   la stessa grammatica del ping del Quadro di prima. */
+#dm-widgets .dm-tile[data-alert="true"] .dm-tile-ring::after,
+#dm-widgets .dm-tile[data-alert="true"] .dm-tile-ic::after{
+  content:"";position:absolute;inset:-3px;border-radius:50%;
+  border:2px solid var(--dm-widget-accent,#dc2626);
+  animation:dmWidgetPing 2.2s ease-out infinite;pointer-events:none}
+#dm-widgets .dm-tile[data-alert="true"] .dm-tile-ic{position:relative}
+@keyframes dmWidgetPing{0%{opacity:.75;transform:scale(.9)}70%{opacity:0;transform:scale(1.45)}100%{opacity:0;transform:scale(1.45)}}
 #dm-widgets .dm-tile-ring i{
   display:grid;place-items:center;width:31px;height:31px;border-radius:50%;font-style:normal;font-size:14px;
   background:var(--card-bg,#fff);box-shadow:inset 0 0 0 1px var(--card-border,#e8edf3)}
 #dm-widgets .dm-tile-copy{min-width:0;flex:1;display:grid;gap:0}
 #dm-widgets .dm-tile-value{
   font-family:'Oswald',sans-serif;font-size:19px;font-weight:700;line-height:1.1;letter-spacing:.2px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .3s ease}
+#dm-widgets .dm-tile:hover .dm-tile-value,#dm-widgets .dm-tile[data-open="true"] .dm-tile-value{
+  color:var(--dm-widget-accent,#0ea5e9)}
 #dm-widgets .dm-tile-label{
   font-size:9.5px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--text-dim,#64748b);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1111,7 +1245,16 @@ function installStyles() {
 #dm-widgets .dm-w-body{display:grid;gap:2px;padding:0 10px 12px}
 #dm-widgets .dm-w-row{
   display:flex;align-items:center;gap:11px;min-height:42px;padding:5px 8px;border-radius:12px;
+  animation:dmRowIn .32s cubic-bezier(.16,1,.3,1) both;
   transition:background .2s ease}
+@keyframes dmRowIn{from{opacity:0;transform:translateX(-7px)}to{opacity:1;transform:none}}
+#dm-widgets .dm-w-row:nth-child(1){animation-delay:30ms}
+#dm-widgets .dm-w-row:nth-child(2){animation-delay:60ms}
+#dm-widgets .dm-w-row:nth-child(3){animation-delay:90ms}
+#dm-widgets .dm-w-row:nth-child(4){animation-delay:120ms}
+#dm-widgets .dm-w-row:nth-child(5){animation-delay:150ms}
+#dm-widgets .dm-w-row:nth-child(6){animation-delay:180ms}
+#dm-widgets .dm-w-row:nth-child(n+7){animation-delay:210ms}
 #dm-widgets .dm-w-row:hover{background:var(--surface-3,#f1f5f9)}
 #dm-widgets .dm-w-dot{
   flex:0 0 8px;width:8px;height:8px;border-radius:50%;
@@ -1154,6 +1297,22 @@ function installStyles() {
 #dm-widgets .dm-w-arrows button:hover{
   background:var(--dm-widget-accent,#8b5cf6);border-color:transparent;color:#fff}
 
+/* Le miniature delle telecamere: il letterbox scuro del muro, in piccolo. */
+#dm-widgets .dm-w-cams{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:2px 6px 4px}
+#dm-widgets .dm-w-cam{position:relative;margin:0;border-radius:14px;overflow:hidden;background:#0b1220;aspect-ratio:16/9}
+#dm-widgets .dm-w-cam img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;
+  transition:opacity .4s ease,transform .6s cubic-bezier(.16,1,.3,1)}
+#dm-widgets .dm-w-cam:hover img{transform:scale(1.06)}
+#dm-widgets .dm-w-cam-live{
+  display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;
+  background:#f87171;vertical-align:1px;animation:dmWidgetLive 1.6s steps(1) infinite}
+@keyframes dmWidgetLive{0%,100%{opacity:1}50%{opacity:.25}}
+#dm-widgets .dm-w-cam img[data-dm-camera-state="ready"]{opacity:1}
+#dm-widgets .dm-w-cam figcaption{
+  position:absolute;left:0;right:0;bottom:0;padding:5px 9px;
+  font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#e2eefb;
+  background:linear-gradient(0deg,rgba(2,6,15,.72),transparent)}
+
 /* Le voci ToDo dentro il dettaglio. */
 #dm-widgets .dm-todo-items{list-style:none;margin:0;padding:0 2px;display:grid;gap:8px}
 #dm-widgets .dm-todo-item{display:flex;align-items:flex-start;gap:10px;min-width:0}
@@ -1180,8 +1339,13 @@ function installStyles() {
 
 @media (prefers-reduced-motion:reduce){
   #dm-widgets .dm-tile,#dm-widgets .dm-tile-chevron,#dm-widgets .dm-todo-check,
-  #dm-widgets .dm-todo-check::after,#dm-widgets .dm-w-switch,#dm-widgets .dm-w-switch i{transition:none}
-  #dm-widgets .dm-widget-detail{animation:none}
+  #dm-widgets .dm-todo-check::after,#dm-widgets .dm-w-switch,#dm-widgets .dm-w-switch i,
+  #dm-widgets .dm-tile-ic,#dm-widgets .dm-tile-ring,#dm-widgets .dm-w-cam img,
+  #dm-widgets .dm-tile .dm-tile-shine{transition:none}
+  #dm-widgets .dm-widget-detail,#dm-widgets .dm-tile,#dm-widgets .dm-w-row,
+  #dm-widgets .dm-tile[data-alert="true"] .dm-tile-ring::after,
+  #dm-widgets .dm-tile[data-alert="true"] .dm-tile-ic::after,
+  #dm-widgets .dm-w-cam-live{animation:none}
 }
 @media (max-width:520px){
   #dm-widgets .dm-widgets-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
@@ -1201,6 +1365,9 @@ export function installHomeWidgetsSection() {
     "dashboardmodern:persistence-restored",
     "dashboardmodern:config-reset",
     "dashboardmodern:state-changed",
+    // Una tapparella appena aggiunta in configurazione deve avere la sua
+    // tessera subito, non al prossimo evento di stato.
+    "dashboardmodern:editor-rendered",
   ])
     root.addEventListener?.(eventName, schedule);
   // Il numero delle voci aperte E' lo stato dell'entita': quando cambia, le

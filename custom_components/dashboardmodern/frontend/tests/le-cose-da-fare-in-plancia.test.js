@@ -163,6 +163,21 @@ test("il ponte assorbe il Quadro Avvisi, con le sue stesse liste e regole", asyn
   assert.deepEqual(ordinati.map((widget) => widget.key), ["custom-0", "custom-1", "todo", "luci"]);
 });
 
+test("le miniature delle telecamere hanno il loro timer, con la disciplina del muro", () => {
+  const sezione = leggi("sections/home-widgets-section.js");
+  assert.match(sezione, /function camerasModel/);
+  // La stessa strada del muro della Sicurezza, ma con un registro degli
+  // object URL tutto suo: revocare i blob dell'altro e' un rettangolo grigio.
+  assert.match(sezione, /loadCameraFrame\(/);
+  assert.match(sezione, /state\.cameraUrls/);
+  // Dieci secondi, e solo con la tessera aperta su una Home visibile.
+  assert.match(sezione, /CAMERA_WIDGET_REFRESH_MS = 10000/);
+  assert.match(sezione, /function cameraWidgetOnScreen/);
+  assert.match(sezione, /state\.expanded === "telecamere" && homeVisible\(\)/);
+  // Chiusa la tessera: timer fermo e object URL restituiti.
+  assert.match(sezione, /revokeObjectURL/);
+});
+
 test("cd_widgets viaggia nella configurazione condivisa, alla revisione 7", async () => {
   const { CONFIG_KEYS, CONFIG_KEYS_REVISION } = await import(
     "../src/sections/config-persistence-section.js"

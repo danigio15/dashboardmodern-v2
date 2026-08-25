@@ -301,6 +301,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * the Home page is on a visible screen with people configured, disarmed the
    * moment it is not.
    *
+   * The fourth refreshes the camera thumbnails of the Home widget deck, for
+   * the same reason as the Sicurezza wall: a camera frame is a still picture
+   * nothing pushes. Ten seconds, and only while the camera tile is expanded
+   * on a visible Home; collapsed, the timer dies and the object URLs are
+   * returned.
+   *
    * These are the intervals production is allowed, and they are named here so
    * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
@@ -309,6 +315,7 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   assert.deepEqual(
     intervals.map(([file]) => path.relative(frontendRoot, file).replaceAll("\\", "/")).sort(),
     [
+      "src/sections/home-widgets-section.js",
       "src/sections/live-ui-section.js",
       "src/sections/people-section.js",
       "src/sections/pool-extra-section.js",
