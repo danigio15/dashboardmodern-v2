@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Add car": "Añadir coche",
+  "Choose the position": "Elige la posición",
   "Save car": "Guardar coche",
   "Edit this car": "Editar este coche",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -27,6 +28,7 @@ export default Object.freeze({
   "Driving": "En coche",
   "Cycling": "En bici",
   "Running": "Corriendo",
+  "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "La tarjeta y la ventana emergente ofrecen siempre el desplegable con todos los porcentajes: 0 = cerrada, 100 = abierta. Aquí eliges el habitual — 5 cierra casi del todo dejando pasar algo de aire — y aparece con una estrella en el desplegable. Vacío = sin favorito.",
   "Walking": "A pie",
   "Still": "Quieto",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "Cada coche tiene su propia ficha: ＋ Añadir coche crea uno nuevo — nombre, marca, modelo y todas las entidades abajo — el lápiz lo edita, USE lo muestra en el panel.",
@@ -53,7 +55,6 @@ export default Object.freeze({
   "Add opening": "Añadir apertura",
   "Add person": "Añadir persona",
   "Added ${found.length} lists": "${found.length} listas añadidas",
-  "Adds the “Set %” button to the card: 0 = closed, 100 = open. For instance 5 closes almost fully while letting some air through. Empty = no button.": "Añade el botón «Set %» a la tarjeta: 0 = cerrada, 100 = abierta. Por ejemplo, 5 cierra casi del todo dejando pasar algo de aire. Vacío = sin botón.",
   "Alarm!": "¡Alarma!",
   "All done": "Todo hecho",
   "An entity that can open is required: ${domini}.": "Se necesita una entidad que sepa abrir: ${domini}.",
@@ -131,8 +132,6 @@ export default Object.freeze({
   "Save door": "Guardar puerta",
   "Save list": "Guardar lista",
   "Save person": "Guardar persona",
-  "Sending…": "Enviando…",
-  "Set to ${view.preset}%": "Poner al ${view.preset}%",
   "Shown on Home": "Visible en Home",
   "Soil moisture": "Humedad del suelo",
   "Soil moisture sensor": "Sensor de humedad del suelo",

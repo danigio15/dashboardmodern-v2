@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Add car": "차량 추가",
+  "Choose the position": "위치 선택",
   "Save car": "차량 저장",
   "Edit this car": "이 차량 편집",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -27,6 +28,7 @@ export default Object.freeze({
   "Driving": "운전 중",
   "Cycling": "자전거",
   "Running": "달리는 중",
+  "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "카드와 팝업에는 언제나 모든 퍼센트가 담긴 드롭다운이 있습니다(0 = 닫힘, 100 = 열림). 여기서 평소에 쓰는 값을 고르세요. 5는 바람만 조금 통하게 거의 다 닫습니다. 고른 값은 드롭다운에 별표로 표시됩니다. 비워 두면 즐겨 쓰는 값이 없습니다.",
   "Walking": "도보",
   "Still": "정지",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "차량마다 전용 카드가 있습니다: ＋ 차량 추가로 새로 만들고 — 이름, 브랜드, 모델과 모든 엔터티는 아래에 — 연필로 편집하고 USE로 대시보드에 표시합니다.",
@@ -53,7 +55,6 @@ export default Object.freeze({
   "Add opening": "출입문 추가",
   "Add person": "구성원 추가",
   "Added ${found.length} lists": "목록 ${found.length}개 추가됨",
-  "Adds the “Set %” button to the card: 0 = closed, 100 = open. For instance 5 closes almost fully while letting some air through. Empty = no button.": "카드에 “Set %” 버튼을 추가합니다: 0 = 닫힘, 100 = 열림. 예를 들어 5는 공기가 조금 통하도록 거의 다 닫습니다. 비워두면 버튼 없음.",
   "Alarm!": "경보!",
   "All done": "모두 완료",
   "An entity that can open is required: ${domini}.": "열 수 있는 엔티티가 필요합니다: ${domini}.",
@@ -131,8 +132,6 @@ export default Object.freeze({
   "Save door": "문 저장",
   "Save list": "목록 저장",
   "Save person": "구성원 저장",
-  "Sending…": "전송 중…",
-  "Set to ${view.preset}%": "${view.preset}%로 설정",
   "Shown on Home": "홈에 표시",
   "Soil moisture": "토양 수분",
   "Soil moisture sensor": "토양 수분 센서",

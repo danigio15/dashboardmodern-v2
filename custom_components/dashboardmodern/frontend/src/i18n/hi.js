@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Add car": "कार जोड़ें",
+  "Choose the position": "स्थिति चुनें",
   "Save car": "कार सहेजें",
   "Edit this car": "इस कार को संपादित करें",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -27,6 +28,7 @@ export default Object.freeze({
   "Driving": "गाड़ी में",
   "Cycling": "साइकिल पर",
   "Running": "दौड़ रहे हैं",
+  "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "कार्ड और पॉपअप हमेशा हर प्रतिशत वाली ड्रॉपडाउन सूची दिखाते हैं: 0 = बंद, 100 = खुला। यहाँ अपना सामान्य मान चुनें — 5 लगभग पूरा बंद करता है और थोड़ी हवा आने देता है — और वह सूची में तारे के साथ दिखता है। खाली = कोई पसंदीदा नहीं।",
   "Walking": "पैदल",
   "Still": "स्थिर",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "हर कार का अपना कार्ड है: ＋ कार जोड़ें से नई बनाएं — नाम, ब्रांड, मॉडल और सभी एंटिटी नीचे — पेंसिल से संपादित करें, USE से डैशबोर्ड पर दिखाएं.",
@@ -53,7 +55,6 @@ export default Object.freeze({
   "Add opening": "द्वार जोड़ें",
   "Add person": "व्यक्ति जोड़ें",
   "Added ${found.length} lists": "${found.length} सूचियाँ जोड़ी गईं",
-  "Adds the “Set %” button to the card: 0 = closed, 100 = open. For instance 5 closes almost fully while letting some air through. Empty = no button.": "कार्ड में «Set %» बटन जोड़ता है: 0 = बंद, 100 = खुला। जैसे 5 लगभग पूरा बंद कर थोड़ी हवा आने देता है। खाली = कोई बटन नहीं।",
   "Alarm!": "अलार्म!",
   "All done": "सब हो गया",
   "An entity that can open is required: ${domini}.": "खोल सकने वाली इकाई आवश्यक है: ${domini}।",
@@ -131,8 +132,6 @@ export default Object.freeze({
   "Save door": "दरवाज़ा सहेजें",
   "Save list": "सूची सहेजें",
   "Save person": "व्यक्ति सहेजें",
-  "Sending…": "भेजा जा रहा है…",
-  "Set to ${view.preset}%": "${view.preset}% पर सेट करें",
   "Shown on Home": "होम पर दिखे",
   "Soil moisture": "मिट्टी की नमी",
   "Soil moisture sensor": "मिट्टी की नमी का सेंसर",

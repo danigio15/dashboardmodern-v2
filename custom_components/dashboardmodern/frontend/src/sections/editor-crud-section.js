@@ -333,7 +333,8 @@ function installAddWrappers() {
       tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
       tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
     };
-    // La posizione preferita (#200): numero 0-100, vuota = niente tasto.
+    // La posizione preferita (#200): numero 0-100, vuota = nessuna stella
+    // nella tendina della card.
     const preset = coverPresetPosition({ preset: doc.getElementById("ed-tp-preset")?.value });
     if (preset == null) delete list[index].preset;
     else list[index].preset = preset;

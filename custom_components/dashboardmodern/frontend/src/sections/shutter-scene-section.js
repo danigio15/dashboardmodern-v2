@@ -5,6 +5,7 @@ import {
   coverIsSideways,
   coverKind,
   coverKindLabel,
+  coverPositionChoices,
   coverPresetPosition,
 } from "../core/cover-kind.js";
 import { allStates, clean, doc, esc, installStyle, root, t } from "./shared.js";
@@ -306,16 +307,36 @@ function panelMarkup(view) {
   </div>`;
 }
 
-/* Il tasto della posizione preferita (#200).
+/* Il menu della posizione (#200).
  *
- * «Apri / Ferma / Chiudi / Set 5%»: il quarto tasto porta la tapparella alla
- * posizione scelta in configurazione — quasi chiusa per lasciar passare un po'
- * d'aria, o dove si vuole. Compare solo se il preset e' configurato e almeno
+ * «Non voglio la chiusura completa ma tipo al 95%, per lasciar passare un po'
+ * d'aria»: sotto Apri/Ferma/Chiudi c'e' una tendina che le percentuali le fa
+ * scegliere li' per li', dal 100% aperta allo 0% chiusa di cinque in cinque —
+ * non una sola percentuale fissa decisa in configurazione. La posizione
+ * preferita, se c'e', resta nell'elenco segnata con la stella: e' la
+ * scorciatoia di casa, non piu' l'unica scelta, e sta nel suo posto in scala
+ * anche quando non cade sui passi da cinque. La tendina compare quando almeno
  * una copertura della card accetta `set_cover_position`. */
-function presetButtonMarkup(view, tutte) {
-  if (view.preset == null || !tutte.some((cover) => cover.settable)) return "";
-  const label = t(`Porta al ${view.preset}%`, `Set to ${view.preset}%`);
-  return `<button type="button" class="tapp-btn dm-tapp-preset" data-dm-preset="${view.preset}" aria-label="${esc(label)}" title="${esc(label)}">${view.preset}%</button>`;
+function presetOptions(preferita) {
+  return coverPositionChoices(preferita)
+    .map((value) => {
+      // La coda passa fuori da esc(): clean() mangerebbe lo spazio davanti.
+      const coda = value === 100 ? t("Aperta", "Open") : value === 0 ? t("Chiusa", "Closed") : "";
+      const stella = value === preferita ? "⭐ " : "";
+      return `<option value="${value}">${stella}${value}%${coda ? ` · ${esc(coda)}` : ""}</option>`;
+    })
+    .join("");
+}
+
+function presetSelectMarkup(view, tutte) {
+  if (!tutte.some((cover) => cover.settable)) return "";
+  const label = t("Scegli la posizione", "Choose the position");
+  return `<span class="tapp-btn dm-tapp-preset">
+      <select data-dm-preset aria-label="${esc(label)}" title="${esc(label)}">
+        <option value="">↕ ${esc(label)}</option>
+        ${presetOptions(view.preset)}
+      </select>
+    </span>`;
 }
 
 function cardMarkup(view) {
@@ -341,7 +362,7 @@ function cardMarkup(view) {
       <button type="button" class="tapp-btn" data-svc="open_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Apri", "Open"))}">▲</button>
       <button type="button" class="tapp-btn" data-svc="stop_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Ferma", "Stop"))}">■</button>
       <button type="button" class="tapp-btn" data-svc="close_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Chiudi", "Close"))}">▼</button>
-      ${presetButtonMarkup(view, tutte)}
+      ${presetSelectMarkup(view, tutte)}
     </div>
   </article>`;
 }
@@ -639,18 +660,22 @@ async function commitPosition(range) {
   schedule();
 }
 
-/* Il preset passa dagli stessi cursori del trascinamento: stesso grab, stessa
- * anteprima, stessa chiamata. Su una card composita muove ogni copertura che
- * ha un cursore — cioe' ogni copertura che accetta una posizione. */
-function applyPreset(button) {
-  const card = cardOf(button);
-  if (!card) return;
-  const position = Math.max(0, Math.min(100, Math.round(Number(button.dataset.dmPreset) || 0)));
+/* La posizione scelta nella tendina passa dagli stessi cursori del
+ * trascinamento: stesso grab, stessa anteprima, stessa chiamata. Su una card
+ * composita muove ogni copertura che ha un cursore — cioe' ogni copertura che
+ * accetta una posizione. Poi la tendina torna alla sua voce d'invito: e' un
+ * comando, non lo specchio di dove sta la tapparella. */
+function applyPreset(select) {
+  const card = cardOf(select);
+  const scelta = clean(select.value);
+  if (!card || scelta === "") return;
+  const position = Math.max(0, Math.min(100, Math.round(Number(scelta) || 0)));
   for (const range of card.querySelectorAll("[data-dm-position][data-dm-entity]")) {
     range.value = String(position);
     previewPosition(range);
     commitPosition(range);
   }
+  select.value = "";
 }
 
 function installListeners() {
@@ -662,10 +687,11 @@ function installListeners() {
   doc.addEventListener("change", (event) => {
     const range = event.target?.closest?.("[data-dm-position]");
     if (range) commitPosition(range);
-  });
-  doc.addEventListener("click", (event) => {
     const preset = event.target?.closest?.("[data-dm-preset]");
     if (preset) applyPreset(preset);
+  });
+  doc.addEventListener("click", (event) => {
+    if (event.target?.closest?.("[data-dm-preset]")) return;
     if (event.target?.closest?.("#page-tapparelle .tapp-btn")) root.queueMicrotask?.(schedule);
   });
   for (const eventName of [
@@ -768,6 +794,29 @@ function installStyles() {
     html body #page-tapparelle#page-tapparelle .dm-tapp-range:focus-visible{outline:3px solid color-mix(in srgb,var(--tapp-accent) 55%,transparent)!important;outline-offset:2px!important}
 
     /* Daylight reaching the room, as much of it as the shutter lets through. */
+    /* La tendina della posizione prende tutta la riga sotto i tre tasti: e'
+       una scelta, non un tasto in piu' che avanza. */
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset{
+      grid-column:1/-1!important;position:relative!important;padding:0!important;
+      border-color:var(--tapp-border)!important;background:var(--tapp-surface)!important;
+      color:var(--tapp-text)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.6)!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset::after{
+      content:""!important;position:absolute!important;right:14px!important;top:50%!important;
+      width:11px!important;height:7px!important;margin-top:-3px!important;pointer-events:none!important;
+      background:currentColor!important;opacity:.55!important;
+      clip-path:polygon(0 0,50% 100%,100% 0,86% 0,50% 72%,14% 0)!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset select{
+      appearance:none!important;-webkit-appearance:none!important;
+      width:100%!important;height:100%!important;box-sizing:border-box!important;
+      padding:0 30px 0 14px!important;border:0!important;border-radius:13px!important;
+      background:none!important;color:inherit!important;font:inherit!important;
+      font-size:13px!important;font-weight:800!important;letter-spacing:.2px!important;
+      text-align:left!important;cursor:pointer!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset select:focus-visible{
+      outline:3px solid color-mix(in srgb,var(--tapp-accent) 55%,transparent)!important;outline-offset:2px!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset option{
+      color:#0f172a!important;font-size:13px!important;font-weight:700!important}
+
     html body #page-tapparelle#page-tapparelle .dm-tapp-spill{
       height:12px!important;margin:-6px 10px -4px!important;border-radius:0 0 16px 16px!important;
       background:radial-gradient(62% 100% at 50% 0,var(--tapp-spill),transparent 72%)!important;

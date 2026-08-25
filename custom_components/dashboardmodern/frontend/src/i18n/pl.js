@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Add car": "Dodaj samochód",
+  "Choose the position": "Wybierz pozycję",
   "Save car": "Zapisz samochód",
   "Edit this car": "Edytuj ten samochód",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -27,6 +28,7 @@ export default Object.freeze({
   "Driving": "W aucie",
   "Cycling": "Na rowerze",
   "Running": "W biegu",
+  "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "Karta i okienko zawsze pokazują listę ze wszystkimi procentami: 0 = zamknięta, 100 = otwarta. Tutaj wybierasz swoją zwykłą wartość — 5 zamyka prawie do końca, przepuszczając trochę powietrza — i pojawia się ona na liście z gwiazdką. Puste = brak ulubionej.",
   "Walking": "Pieszo",
   "Still": "W bezruchu",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "Każdy samochód ma własną kartę: ＋ Dodaj samochód tworzy nowy — nazwa, marka, model i wszystkie encje poniżej — ołówek edytuje, USE pokazuje go na pulpicie.",
@@ -53,7 +55,6 @@ export default Object.freeze({
   "Add opening": "Dodaj wejście",
   "Add person": "Dodaj osobę",
   "Added ${found.length} lists": "Dodano ${found.length} list",
-  "Adds the “Set %” button to the card: 0 = closed, 100 = open. For instance 5 closes almost fully while letting some air through. Empty = no button.": "Dodaje do karty przycisk „Set %”: 0 = zamknięta, 100 = otwarta. Na przykład 5 zamyka niemal całkowicie, przepuszczając trochę powietrza. Puste = brak przycisku.",
   "Alarm!": "Alarm włączony!",
   "All done": "Wszystko zrobione",
   "An entity that can open is required: ${domini}.": "Wymagana jest encja, która potrafi otwierać: ${domini}.",
@@ -131,8 +132,6 @@ export default Object.freeze({
   "Save door": "Zapisz drzwi",
   "Save list": "Zapisz listę",
   "Save person": "Zapisz osobę",
-  "Sending…": "Wysyłanie…",
-  "Set to ${view.preset}%": "Ustaw na ${view.preset}%",
   "Shown on Home": "Widoczny na Home",
   "Soil moisture": "Wilgotność gleby",
   "Soil moisture sensor": "Czujnik wilgotności gleby",

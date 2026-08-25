@@ -1,5 +1,5 @@
-import { coverPresetPosition } from "../core/cover-kind.js";
-import { allStates, clean, dashboardStore, doc, installStyle, root, t } from "./shared.js";
+import { coverPositionChoices, coverPresetPosition } from "../core/cover-kind.js";
+import { allStates, clean, dashboardStore, doc, esc, installStyle, root, t } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_SHUTTER_SECTION__";
@@ -140,6 +140,21 @@ async function callCoverService(entity, service, data = {}) {
   }
 }
 
+/* Le voci della tendina, le stesse della pagina Tapparelle: la percentuale si
+ * sceglie qui, e la preferita — se in configurazione ce n'e' una — porta la
+ * stella al suo posto in scala. */
+function presetOptionsMarkup(preferita) {
+  const invito = t("Scegli la posizione", "Choose the position");
+  const voci = coverPositionChoices(preferita)
+    .map((value) => {
+      // La coda passa fuori da esc(): clean() mangerebbe lo spazio davanti.
+      const coda = value === 100 ? t("Aperta", "Open") : value === 0 ? t("Chiusa", "Closed") : "";
+      return `<option value="${value}">${value === preferita ? "⭐ " : ""}${value}%${coda ? ` · ${esc(coda)}` : ""}</option>`;
+    })
+    .join("");
+  return `<option value="">↕ ${esc(invito)}</option>${voci}`;
+}
+
 function createPopupRow(item) {
   const row = doc.createElement("article");
   row.className = "detail-row dm-shutter-popup-row";
@@ -154,17 +169,19 @@ function createPopupRow(item) {
     button.addEventListener("click", () => callCoverService(item.entity, service));
     actions.append(button);
   }
-  // Il tasto della posizione preferita (#200): nasce sempre, si mostra solo
-  // quando la riga ha un preset e la copertura accetta una posizione.
-  const preset = doc.createElement("button");
-  preset.type = "button";
+  // La tendina della posizione (#200): nasce sempre, si mostra solo a chi
+  // accetta una posizione. Le percentuali si scelgono qui, non sono una sola
+  // decisa in configurazione; la preferita, se c'e', porta la stella.
+  const preset = doc.createElement("select");
   preset.className = "dm-shutter-action dm-shutter-preset";
   preset.dataset.shutterService = "set_cover_position";
   preset.hidden = true;
-  preset.addEventListener("click", () => {
-    const value = Number(row.dataset.shutterPreset);
-    if (Number.isFinite(value))
-      callCoverService(item.entity, "set_cover_position", { position: value });
+  preset.addEventListener("change", () => {
+    const scelta = clean(preset.value);
+    preset.value = "";
+    if (scelta === "") return;
+    const position = Math.max(0, Math.min(100, Math.round(Number(scelta) || 0)));
+    callCoverService(item.entity, "set_cover_position", { position });
   });
   actions.append(preset);
   return row;
@@ -184,17 +201,23 @@ function updatePopupRow(row, item) {
   if (status) status.textContent = detail.filter(Boolean).join(" · ");
 
   const pending = state.busy.get(item.entity);
-  row.dataset.shutterPreset = item.preset == null ? "" : String(item.preset);
-  row.querySelectorAll("[data-shutter-service]").forEach((button) => {
-    const service = button.dataset.shutterService;
+  row.querySelectorAll("[data-shutter-service]").forEach((comando) => {
+    const service = comando.dataset.shutterService;
     const busy = pending?.service === service;
-    button.disabled = Boolean(pending);
+    comando.disabled = Boolean(pending);
     if (service === "set_cover_position") {
-      button.hidden = item.preset == null || !item.settable;
-      button.textContent = busy ? t("Invio…", "Sending…") : `${item.preset ?? ""}%`;
+      // Le voci si riscrivono solo se cambia la preferita: rifarle sotto il
+      // dito richiuderebbe la tendina mentre la si sta guardando.
+      comando.hidden = !item.settable;
+      const firma = `${item.preset ?? ""}`;
+      if (!comando.hidden && comando.dataset.shutterOptions !== firma) {
+        comando.dataset.shutterOptions = firma;
+        comando.innerHTML = presetOptionsMarkup(item.preset);
+        comando.value = "";
+      }
       return;
     }
-    button.textContent = actionLabel(service, busy);
+    comando.textContent = actionLabel(service, busy);
   });
 }
 
@@ -319,13 +342,16 @@ function installStyles() {
     .dm-shutter-row-icon{display:grid!important;place-items:center!important;width:44px!important;height:44px!important;border-radius:13px!important;background:color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 13%,transparent)!important;font-size:22px!important}
     .dm-shutter-details{min-width:0!important}.dm-shutter-details .d-name,.dm-shutter-details .d-state{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.dm-shutter-details .d-name{font-weight:900!important}.dm-shutter-details .d-state{margin-top:3px!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important;font-size:12px!important}
     .dm-shutter-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
-    .dm-shutter-actions button{box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:38px!important;margin:0!important;padding:7px 9px!important;border:1px solid color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 28%,var(--divider-color,#dbe4ee))!important;border-radius:10px!important;background:color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 10%,var(--ha-card-background,#fff))!important;color:var(--text,#0f172a)!important;font-size:12px!important;font-weight:850!important;box-shadow:none!important;cursor:pointer!important}
-    .dm-shutter-actions button[data-shutter-service="stop_cover"]{background:var(--ha-card-background,var(--card-bg,#fff))!important}
-    .dm-shutter-actions button[data-shutter-service="close_cover"]{background:var(--accent-color,var(--accent,#0ea5e9))!important;color:#fff!important}
-    .dm-shutter-actions button:disabled{cursor:wait!important;opacity:.65!important}
-    .dm-shutter-actions button:not(:disabled):hover{filter:brightness(1.05)!important}
-    .dm-shutter-actions button:not(:disabled):active{transform:translateY(1px)!important}
-    .dm-shutter-actions button:focus-visible{outline:3px solid color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 55%,transparent)!important;outline-offset:2px!important}
+    .dm-shutter-actions button,.dm-shutter-actions select{box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:38px!important;margin:0!important;padding:7px 9px!important;border:1px solid color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 28%,var(--divider-color,#dbe4ee))!important;border-radius:10px!important;background:color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 10%,var(--ha-card-background,#fff))!important;color:var(--text,#0f172a)!important;font-size:12px!important;font-weight:850!important;box-shadow:none!important;cursor:pointer!important}
+    .dm-shutter-actions button[data-shutter-service="stop_cover"],.dm-shutter-actions select[data-shutter-service="stop_cover"]{background:var(--ha-card-background,var(--card-bg,#fff))!important}
+    .dm-shutter-actions button[data-shutter-service="close_cover"],.dm-shutter-actions select[data-shutter-service="close_cover"]{background:var(--accent-color,var(--accent,#0ea5e9))!important;color:#fff!important}
+    .dm-shutter-actions button:disabled,.dm-shutter-actions select:disabled{cursor:wait!important;opacity:.65!important}
+    .dm-shutter-actions button:not(:disabled):hover,.dm-shutter-actions select:not(:disabled):hover{filter:brightness(1.05)!important}
+    .dm-shutter-actions button:not(:disabled):active,.dm-shutter-actions select:not(:disabled):active{transform:translateY(1px)!important}
+    .dm-shutter-actions button:focus-visible,.dm-shutter-actions select:focus-visible{outline:3px solid color-mix(in srgb,var(--accent-color,var(--accent,#0ea5e9)) 55%,transparent)!important;outline-offset:2px!important}
+    /* La tendina della posizione prende la riga intera sotto i tre tasti. */
+    .dm-shutter-actions .dm-shutter-preset{grid-column:1/-1!important;appearance:none!important;-webkit-appearance:none!important;padding:7px 26px 7px 11px!important;background:var(--ha-card-background,var(--card-bg,#fff)) url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' d='m1.5 1.8 4.5 4.4 4.5-4.4'/%3E%3C/svg%3E") no-repeat right 10px center!important}
+    .dm-shutter-actions .dm-shutter-preset[hidden]{display:none!important}
 
     /* ── Tapparelle page ─────────────────────────────────────────────────
        First paint is already the final Beta9 geometry. This section no longer

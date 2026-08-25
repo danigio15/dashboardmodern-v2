@@ -171,7 +171,8 @@ function caselle() {
 }
 
 /* La casella della posizione preferita (#200): un numero, non un'entita' —
- * niente lente. 0 = chiusa, 100 = aperta; vuota, la card non mostra il tasto. */
+ * niente lente. 0 = chiusa, 100 = aperta; e' la voce con la stella nella
+ * tendina della card, non l'unica percentuale che si puo' scegliere. */
 function casellaPreset() {
   const holder = doc.createElement("label");
   holder.className = "ed-slot dm-tw-slot";

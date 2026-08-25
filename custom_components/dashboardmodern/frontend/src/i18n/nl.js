@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Add car": "Auto toevoegen",
+  "Choose the position": "Kies de stand",
   "Save car": "Auto opslaan",
   "Edit this car": "Deze auto bewerken",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -27,6 +28,7 @@ export default Object.freeze({
   "Driving": "In de auto",
   "Cycling": "Op de fiets",
   "Running": "Aan het rennen",
+  "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "De kaart en de pop-up tonen altijd de keuzelijst met alle percentages: 0 = dicht, 100 = open. Kies hier je gebruikelijke stand — 5 sluit bijna helemaal en laat wat lucht door — en die krijgt een ster in de lijst. Leeg = geen voorkeur.",
   "Walking": "Te voet",
   "Still": "Stil",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "Elke auto heeft een eigen kaart: ＋ Auto toevoegen maakt een nieuwe — naam, merk, model en alle entiteiten hieronder — het potlood bewerkt hem, USE toont hem op het dashboard.",
@@ -53,7 +55,6 @@ export default Object.freeze({
   "Add opening": "Opening toevoegen",
   "Add person": "Persoon toevoegen",
   "Added ${found.length} lists": "${found.length} lijsten toegevoegd",
-  "Adds the “Set %” button to the card: 0 = closed, 100 = open. For instance 5 closes almost fully while letting some air through. Empty = no button.": "Voegt de knop “Set %” aan de kaart toe: 0 = dicht, 100 = open. Bijvoorbeeld 5 sluit bijna helemaal maar laat wat lucht door. Leeg = geen knop.",
   "Alarm!": "Alarm geactiveerd!",
   "All done": "Alles gedaan",
   "An entity that can open is required: ${domini}.": "Er is een entiteit nodig die kan openen: ${domini}.",
@@ -131,8 +132,6 @@ export default Object.freeze({
   "Save door": "Deur opslaan",
   "Save list": "Lijst opslaan",
   "Save person": "Persoon opslaan",
-  "Sending…": "Versturen…",
-  "Set to ${view.preset}%": "Zet op ${view.preset}%",
   "Shown on Home": "Zichtbaar op Home",
   "Soil moisture": "Bodemvocht",
   "Soil moisture sensor": "Bodemvochtsensor",

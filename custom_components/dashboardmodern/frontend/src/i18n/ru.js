@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Add car": "Добавить автомобиль",
+  "Choose the position": "Выберите положение",
   "Save car": "Сохранить автомобиль",
   "Edit this car": "Изменить этот автомобиль",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -27,6 +28,7 @@ export default Object.freeze({
   "Driving": "За рулём",
   "Cycling": "На велосипеде",
   "Running": "Бежит",
+  "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "Карточка и всплывающее окно всегда показывают список со всеми процентами: 0 — закрыто, 100 — открыто. Здесь выбирается привычное значение: 5 закрывает почти полностью, оставляя щель для воздуха, — и в списке оно отмечено звёздочкой. Пусто — избранного нет.",
   "Walking": "Пешком",
   "Still": "Неподвижен",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "У каждого автомобиля своя карточка: ＋ Добавить автомобиль создаёт новую — имя, марка, модель и все сущности ниже — карандаш редактирует её, USE показывает автомобиль на панели.",
@@ -53,7 +55,6 @@ export default Object.freeze({
   "Add opening": "Добавить дверь",
   "Add person": "Добавить человека",
   "Added ${found.length} lists": "Добавлено списков: ${found.length}",
-  "Adds the “Set %” button to the card: 0 = closed, 100 = open. For instance 5 closes almost fully while letting some air through. Empty = no button.": "Добавляет на карточку кнопку «Set %»: 0 = закрыто, 100 = открыто. Например, 5 закрывает почти полностью, оставляя щель для воздуха. Пусто = без кнопки.",
   "Alarm!": "Тревога!",
   "All done": "Всё сделано",
   "An entity that can open is required: ${domini}.": "Нужна сущность, умеющая открывать: ${domini}.",
@@ -131,8 +132,6 @@ export default Object.freeze({
   "Save door": "Сохранить дверь",
   "Save list": "Сохранить список",
   "Save person": "Сохранить человека",
-  "Sending…": "Отправка…",
-  "Set to ${view.preset}%": "Установить ${view.preset}%",
   "Shown on Home": "Показывать на главной",
   "Soil moisture": "Влажность почвы",
   "Soil moisture sensor": "Датчик влажности почвы",

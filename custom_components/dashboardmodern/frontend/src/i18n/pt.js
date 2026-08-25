@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Add car": "Adicionar carro",
+  "Choose the position": "Escolha a posição",
   "Save car": "Guardar carro",
   "Edit this car": "Editar este carro",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -27,6 +28,7 @@ export default Object.freeze({
   "Driving": "De carro",
   "Cycling": "De bicicleta",
   "Running": "Correndo",
+  "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "O cartão e o pop-up mostram sempre a lista com todas as percentagens: 0 = fechada, 100 = aberta. Aqui escolhes a do costume — 5 fecha quase tudo deixando passar um pouco de ar — e aparece com uma estrela na lista. Vazio = sem favorita.",
   "Walking": "A pé",
   "Still": "Parado",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "Cada carro tem a sua própria ficha: ＋ Adicionar carro cria um novo — nome, marca, modelo e todas as entidades abaixo — o lápis edita-o, USE mostra-o no painel.",
@@ -53,7 +55,6 @@ export default Object.freeze({
   "Add opening": "Adicionar abertura",
   "Add person": "Adicionar pessoa",
   "Added ${found.length} lists": "${found.length} listas adicionadas",
-  "Adds the “Set %” button to the card: 0 = closed, 100 = open. For instance 5 closes almost fully while letting some air through. Empty = no button.": "Adiciona o botão «Set %» ao cartão: 0 = fechada, 100 = aberta. Por exemplo, 5 fecha quase tudo deixando passar algum ar. Vazio = sem botão.",
   "Alarm!": "Alarme!",
   "All done": "Tudo feito",
   "An entity that can open is required: ${domini}.": "É necessária uma entidade que saiba abrir: ${domini}.",
@@ -131,8 +132,6 @@ export default Object.freeze({
   "Save door": "Guardar porta",
   "Save list": "Guardar lista",
   "Save person": "Guardar pessoa",
-  "Sending…": "A enviar…",
-  "Set to ${view.preset}%": "Pôr a ${view.preset}%",
   "Shown on Home": "Visível na Home",
   "Soil moisture": "Humidade do solo",
   "Soil moisture sensor": "Sensor de humidade do solo",

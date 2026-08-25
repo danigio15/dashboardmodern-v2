@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Add car": "添加车辆",
+  "Choose the position": "选择位置",
   "Save car": "保存车辆",
   "Edit this car": "编辑这辆车",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -27,6 +28,7 @@ export default Object.freeze({
   "Driving": "开车中",
   "Cycling": "骑行中",
   "Running": "跑步中",
+  "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "卡片和弹窗始终提供包含所有百分比的下拉菜单：0 = 关闭，100 = 打开。在这里选择你常用的那一档——5 几乎完全关闭，只留一点通风——它会在下拉菜单中带星号显示。留空则没有常用档位。",
   "Walking": "步行中",
   "Still": "静止",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "每辆车都有自己的卡片：＋ 添加车辆可新建一辆——名称、品牌、型号和所有实体都在下方——铅笔用于编辑，USE 在仪表板上显示它。",
@@ -53,7 +55,6 @@ export default Object.freeze({
   "Add opening": "添加门",
   "Add person": "添加成员",
   "Added ${found.length} lists": "已添加${found.length}个列表",
-  "Adds the “Set %” button to the card: 0 = closed, 100 = open. For instance 5 closes almost fully while letting some air through. Empty = no button.": "为卡片添加“Set %”按钮：0 = 关闭，100 = 打开。例如 5 表示几乎全关、留一点透气。留空 = 不显示按钮。",
   "Alarm!": "警报！",
   "All done": "全部完成",
   "An entity that can open is required: ${domini}.": "需要能执行开启的实体：${domini}。",
@@ -131,8 +132,6 @@ export default Object.freeze({
   "Save door": "保存门",
   "Save list": "保存列表",
   "Save person": "保存成员",
-  "Sending…": "发送中…",
-  "Set to ${view.preset}%": "设为${view.preset}%",
   "Shown on Home": "在主页显示",
   "Soil moisture": "土壤湿度",
   "Soil moisture sensor": "土壤湿度传感器",

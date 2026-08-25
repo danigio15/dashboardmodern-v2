@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Add car": "إضافة سيارة",
+  "Choose the position": "اختر الوضعية",
   "Save car": "حفظ السيارة",
   "Edit this car": "تعديل هذه السيارة",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -27,6 +28,7 @@ export default Object.freeze({
   "Driving": "بالسيارة",
   "Cycling": "بالدراجة",
   "Running": "يركض",
+  "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "تعرض البطاقة والنافذة المنبثقة دائمًا القائمة المنسدلة بكل النسب: 0 = مغلقة، 100 = مفتوحة. اختر هنا النسبة المعتادة لديك — 5 تغلق تقريبًا بالكامل مع ترك مجال لمرور بعض الهواء — وتظهر في القائمة وعليها نجمة. فارغ = لا توجد نسبة مفضلة.",
   "Walking": "يمشي",
   "Still": "ثابت",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "لكل سيارة بطاقتها الخاصة: ＋ إضافة سيارة لإنشاء واحدة جديدة — الاسم والعلامة والطراز وكل الكيانات أدناه — القلم للتعديل، USE لعرضها على اللوحة.",
@@ -53,7 +55,6 @@ export default Object.freeze({
   "Add opening": "إضافة باب",
   "Add person": "إضافة شخص",
   "Added ${found.length} lists": "تمت إضافة ${found.length} قوائم",
-  "Adds the “Set %” button to the card: 0 = closed, 100 = open. For instance 5 closes almost fully while letting some air through. Empty = no button.": "يضيف زر «Set %» إلى البطاقة: 0 = مغلقة، 100 = مفتوحة. مثلاً 5 تغلق كليًا تقريبًا مع ترك بعض الهواء. فارغ = بلا زر.",
   "Alarm!": "إنذار!",
   "All done": "كل شيء منجز",
   "An entity that can open is required: ${domini}.": "مطلوب كيان قادر على الفتح: ${domini}.",
@@ -131,8 +132,6 @@ export default Object.freeze({
   "Save door": "حفظ الباب",
   "Save list": "حفظ القائمة",
   "Save person": "حفظ الشخص",
-  "Sending…": "جارٍ الإرسال…",
-  "Set to ${view.preset}%": "الضبط على ${view.preset}%",
   "Shown on Home": "معروض في الصفحة الرئيسية",
   "Soil moisture": "رطوبة التربة",
   "Soil moisture sensor": "مستشعر رطوبة التربة",

@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Add car": "Ajouter une voiture",
+  "Choose the position": "Choisir la position",
   "Save car": "Enregistrer la voiture",
   "Edit this car": "Modifier cette voiture",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -27,6 +28,7 @@ export default Object.freeze({
   "Driving": "En voiture",
   "Cycling": "À vélo",
   "Running": "En course",
+  "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "La carte et la fenêtre proposent toujours la liste déroulante avec tous les pourcentages : 0 = fermé, 100 = ouvert. Choisis ici celui que tu utilises d’habitude — 5 ferme presque tout en laissant passer un peu d’air — et il apparaît avec une étoile dans la liste. Vide = aucun favori.",
   "Walking": "À pied",
   "Still": "Immobile",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "Chaque voiture a sa propre fiche : ＋ Ajouter une voiture en crée une nouvelle — nom, marque, modèle et toutes les entités ci-dessous — le crayon la modifie, USE l'affiche sur le tableau de bord.",
@@ -53,7 +55,6 @@ export default Object.freeze({
   "Add opening": "Ajouter une ouverture",
   "Add person": "Ajouter une personne",
   "Added ${found.length} lists": "${found.length} listes ajoutées",
-  "Adds the “Set %” button to the card: 0 = closed, 100 = open. For instance 5 closes almost fully while letting some air through. Empty = no button.": "Ajoute le bouton « Set % » à la carte : 0 = fermé, 100 = ouvert. Par exemple 5 ferme presque tout en laissant passer un peu d'air. Vide = pas de bouton.",
   "Alarm!": "Alarme !",
   "All done": "Tout est fait",
   "An entity that can open is required: ${domini}.": "Il faut une entité capable d'ouvrir : ${domini}.",
@@ -131,8 +132,6 @@ export default Object.freeze({
   "Save door": "Enregistrer la porte",
   "Save list": "Enregistrer la liste",
   "Save person": "Enregistrer la personne",
-  "Sending…": "Envoi…",
-  "Set to ${view.preset}%": "Régler à ${view.preset} %",
   "Shown on Home": "Visible sur Home",
   "Soil moisture": "Humidité du sol",
   "Soil moisture sensor": "Capteur d'humidité du sol",

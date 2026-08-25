@@ -139,3 +139,19 @@ export function coverPresetPosition(item = {}) {
   if (!Number.isFinite(value)) return null;
   return Math.round(Math.max(0, Math.min(100, value)));
 }
+
+/* Le posizioni che la tendina offre (#200).
+ *
+ * Dal 100% aperta allo 0% chiusa, di cinque in cinque: abbastanza fitte da
+ * trovarci il 95% dell'esempio, abbastanza rade da scorrerle. La posizione
+ * preferita della configurazione entra nell'elenco al suo posto in scala
+ * anche quando non cade su un passo — e' una scorciatoia, non un vincolo. */
+export const COVER_POSITION_STEP = 5;
+
+export function coverPositionChoices(preferred = null) {
+  const values = [];
+  for (let value = 100; value >= 0; value -= COVER_POSITION_STEP) values.push(value);
+  if (preferred == null || values.includes(preferred)) return values;
+  values.push(preferred);
+  return values.sort((a, b) => b - a);
+}

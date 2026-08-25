@@ -74,15 +74,19 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   stessa notizia sono rumore — e senza widget la Home resta esattamente
   quella di prima.
 
-- **La posizione preferita della tapparella.** (#200) «Non voglio la chiusura
-  completa ma tipo al 95%, per lasciar passare un po' d'aria»: ogni riga di
-  configurazione può portare una posizione 0-100 nella stessa scala del
-  cursore, e la card mostra il quarto tasto accanto ad Apri/Ferma/Chiudi — «Set
-  5%» — che manda `set_cover_position` a ogni copertura della card che accetta
-  una posizione, con la stessa presa ottimistica del cursore. Lo stesso tasto
-  compare nelle righe del popup «Tapparelle aperte» in Home. La casella sta in
-  tutti e tre gli editor: il modulo legacy, la matita sulle righe salvate e il
-  modale moderno.
+- **La percentuale della tapparella si sceglie, non è più fissa.** (#200)
+  «Non voglio la chiusura completa ma tipo al 95%, per lasciar passare un po'
+  d'aria»: sotto Apri/Ferma/Chiudi la card ha una tendina con tutte le
+  percentuali, dal 100% aperta allo 0% chiusa di cinque in cinque, e quella
+  scelta parte subito verso ogni copertura della card che accetta una
+  posizione — stesso `set_cover_position`, stessa presa ottimistica del
+  cursore. Poi la tendina torna alla sua voce d'invito: è un comando, non lo
+  specchio di dov'è la tapparella. La stessa tendina è nelle righe del popup
+  «Tapparelle aperte» in Home. La posizione preferita della configurazione non
+  è più l'unica scelta possibile: resta come scorciatoia di casa, segnata con
+  la stella al suo posto in scala anche quando non cade sui passi da cinque.
+  La casella sta in tutti e tre gli editor: il modulo legacy, la matita sulle
+  righe salvate e il modale moderno.
 
 - **Le aperture, nella sezione Sicurezza.** (#195) Il portone del condominio e
   la porta di casa stanno fra la centrale d'allarme e le telecamere: una card

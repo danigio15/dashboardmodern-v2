@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Add car": "車を追加",
+  "Choose the position": "位置を選ぶ",
   "Save car": "車を保存",
   "Edit this car": "この車を編集",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -27,6 +28,7 @@ export default Object.freeze({
   "Driving": "運転中",
   "Cycling": "自転車",
   "Running": "ランニング中",
+  "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "カードとポップアップには常にすべてのパーセントを並べたドロップダウンがあります（0 = 閉、100 = 開）。ここではいつも使う値を選びます。5 ならほぼ閉じたまま少しだけ風を通せます。選んだ値はドロップダウンに星付きで表示されます。空欄ならお気に入りなし。",
   "Walking": "徒歩",
   "Still": "静止中",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "車ごとに専用カードがあります: ＋ 車を追加で新しく作成 — 名前・ブランド・モデルとすべてのエンティティは下に — 鉛筆で編集、USE でダッシュボードに表示します。",
@@ -53,7 +55,6 @@ export default Object.freeze({
   "Add opening": "ドアを追加",
   "Add person": "メンバーを追加",
   "Added ${found.length} lists": "${found.length}件のリストを追加しました",
-  "Adds the “Set %” button to the card: 0 = closed, 100 = open. For instance 5 closes almost fully while letting some air through. Empty = no button.": "カードに「Set %」ボタンを追加します。0=閉、100=開。例えば5なら少し空気を通してほぼ全閉にします。空欄=ボタンなし。",
   "Alarm!": "警報！",
   "All done": "すべて完了",
   "An entity that can open is required: ${domini}.": "開けられるエンティティが必要です：${domini}。",
@@ -131,8 +132,6 @@ export default Object.freeze({
   "Save door": "ドアを保存",
   "Save list": "リストを保存",
   "Save person": "メンバーを保存",
-  "Sending…": "送信中…",
-  "Set to ${view.preset}%": "${view.preset}%にする",
   "Shown on Home": "ホームに表示",
   "Soil moisture": "土壌水分",
   "Soil moisture sensor": "土壌水分センサー",

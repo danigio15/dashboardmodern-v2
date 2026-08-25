@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Add car": "Araç ekle",
+  "Choose the position": "Konumu seçin",
   "Save car": "Aracı kaydet",
   "Edit this car": "Bu aracı düzenle",
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
@@ -27,6 +28,7 @@ export default Object.freeze({
   "Driving": "Arabada",
   "Cycling": "Bisiklette",
   "Running": "Koşuyor",
+  "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "Kart ve açılır pencere her zaman tüm yüzdeleri içeren listeyi sunar: 0 = kapalı, 100 = açık. Burada her zamanki değerini seçersin — 5 biraz hava geçirecek kadar bırakıp neredeyse tamamen kapatır — ve listede yıldızlı görünür. Boş = favori yok.",
   "Walking": "Yürüyor",
   "Still": "Hareketsiz",
   "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.": "Her aracın kendi kartı var: ＋ Araç ekle yenisini oluşturur — ad, marka, model ve tüm varlıklar aşağıda — kalem düzenler, USE panoda gösterir.",
@@ -53,7 +55,6 @@ export default Object.freeze({
   "Add opening": "Kapı ekle",
   "Add person": "Kişi ekle",
   "Added ${found.length} lists": "${found.length} liste eklendi",
-  "Adds the “Set %” button to the card: 0 = closed, 100 = open. For instance 5 closes almost fully while letting some air through. Empty = no button.": "Karta “Set %” düğmesini ekler: 0 = kapalı, 100 = açık. Örneğin 5, biraz hava geçecek şekilde neredeyse tamamen kapatır. Boş = düğme yok.",
   "Alarm!": "Alarm çaldı!",
   "All done": "Hepsi tamam",
   "An entity that can open is required: ${domini}.": "Açabilen bir varlık gerekli: ${domini}.",
@@ -131,8 +132,6 @@ export default Object.freeze({
   "Save door": "Kapıyı kaydet",
   "Save list": "Listeyi kaydet",
   "Save person": "Kişiyi kaydet",
-  "Sending…": "Gönderiliyor…",
-  "Set to ${view.preset}%": "${view.preset}% konumuna getir",
   "Shown on Home": "Home'da görünür",
   "Soil moisture": "Toprak nemi",
   "Soil moisture sensor": "Toprak nemi sensörü",
