@@ -33,6 +33,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Cancellare una riga non richiude più il gruppo aperto.** In ogni scheda
+  del Config, ogni gesto — eliminare un sensore, aggiungere un'entità,
+  toccare la fascia di visibilità — ridisegna la scheda intera, e ogni
+  fisarmonica rinasceva chiusa: dentro Avvisi si apriva Aperture, si
+  cancellava una riga e Aperture si richiudeva sopra la mano. Lo stato
+  aperto/chiuso ora è dell'utente: viene ricordato scheda per scheda e
+  riapplicato dopo ogni ridisegno, in tutte le sezioni del Config.
+
 - **Il cestino delle luci cancella davvero.** Chiedeva conferma con il
   `confirm()` del browser, che dentro l'app di Home Assistant non si apre e
   risponde sempre no: si premeva e la riga restava lì. La domanda ora è un
