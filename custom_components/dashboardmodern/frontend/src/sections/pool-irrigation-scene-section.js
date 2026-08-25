@@ -12,9 +12,12 @@ import {
   esc,
   finiteOrNull,
   installStyle,
+  onEditorRedraw,
   readJson,
   root,
   t,
+  wrapFunction,
+  writeJsonIfChanged,
 } from "./shared.js";
 
 // Single visual owner for the Pool and Irrigation pages.
@@ -95,6 +98,20 @@ function irrigationConfig() {
 
 function hasPage(pageId) {
   return Boolean(doc?.getElementById(pageId));
+}
+
+/* L'umidita' del terreno, dal sensore configurato.
+ *
+ * «Nella sezione irrigazione potresti mettere la possibilita' di vedere la %
+ * di umidita' del terreno mediante l'opportuna entita'»: il sensore sta nella
+ * configurazione dell'irrigazione (`soilEnt`), la lettura e' una percentuale
+ * 0-100, e le soglie facoltative (`soilMin`/`soilMax`) disegnano la banda
+ * ideale sulla stessa scala usata da pH e cloro della piscina. */
+export function soilMoisture(config = {}) {
+  const entity = clean(config.soilEnt || config.soil_entity);
+  if (!entity) return { entity: "", reading: null };
+  const raw = entityNumber(entity);
+  return { entity, reading: raw == null ? null : Math.max(0, Math.min(100, raw)) };
 }
 
 /* ─────────────────────────── shared markup bits ─────────────────────────── */
@@ -200,6 +217,26 @@ function qualityGauge(kind, label, unit, value, min, max) {
       <span class="dm-gauge-range">${esc(t("ideale", "ideal"))} ${esc(range)}</span>
     </div>
   </div>`;
+}
+
+/* Aggiorna un misuratore gia' disegnato: valore, spillo e verdetto. Serve a
+ * pH e cloro della piscina e all'umidita' del terreno dell'irrigazione, che
+ * condividono lo stesso disegno. `unit` accompagna il valore quando il
+ * misuratore lo mostra con l'unita' (la percentuale del terreno). */
+function syncGauge(gauge, reading, min, max, unit = "") {
+  if (!gauge || reading == null) return;
+  const verdict = gaugeVerdict(reading, min, max);
+  gauge.dataset.verdict = verdict;
+  const value = gauge.querySelector("[data-dm-gauge-value]");
+  if (value) value.textContent = `${reading}${unit}`;
+  const pin = gauge.querySelector("[data-dm-gauge-pin]");
+  if (pin) pin.style.left = `${(gaugePosition(reading, min, max) ?? 50).toFixed(1)}%`;
+  const note = gauge.querySelector("[data-dm-gauge-verdict]");
+  if (note) {
+    note.textContent = verdict === "ok"
+      ? t("nella norma", "in range")
+      : verdict === "low" ? t("troppo basso", "too low") : t("troppo alto", "too high");
+  }
 }
 
 function poolTile(act, glyph, label) {
@@ -337,21 +374,7 @@ function syncPoolValues(host, config, index) {
     ["ph", config.phEnt, config.phMin, config.phMax],
     ["cl", config.clEnt, config.clMin, config.clMax],
   ]) {
-    const gauge = host.querySelector(`[data-dm-gauge="${kind}"]`);
-    const reading = entityNumber(entity);
-    if (!gauge || reading == null) continue;
-    const verdict = gaugeVerdict(reading, min, max);
-    gauge.dataset.verdict = verdict;
-    const value = gauge.querySelector("[data-dm-gauge-value]");
-    if (value) value.textContent = String(reading);
-    const pin = gauge.querySelector("[data-dm-gauge-pin]");
-    if (pin) pin.style.left = `${(gaugePosition(reading, min, max) ?? 50).toFixed(1)}%`;
-    const note = gauge.querySelector("[data-dm-gauge-verdict]");
-    if (note) {
-      note.textContent = verdict === "ok"
-        ? t("nella norma", "in range")
-        : verdict === "low" ? t("troppo basso", "too low") : t("troppo alto", "too high");
-    }
+    syncGauge(host.querySelector(`[data-dm-gauge="${kind}"]`), entityNumber(entity), min, max);
   }
 
   const filtration = host.querySelector("[data-dm-pool-filtration]");
@@ -535,6 +558,23 @@ function lawnMarkup(zones) {
   </section>`;
 }
 
+/* Il misuratore dell'umidita' del terreno: lo stesso disegno di pH e cloro
+ * della piscina, con la banda ideale se le soglie sono configurate. Compare
+ * solo quando il sensore ha una lettura; la firma della pagina sa quando la
+ * lettura arriva, cosi' il misuratore non resta fuori per sempre. */
+function soilGaugeMarkup(config) {
+  const soil = soilMoisture(config);
+  if (soil.reading == null) return "";
+  return `<div class="dm-irr-soil" data-dm-irr-soil>${qualityGauge(
+    "soil",
+    `🌱 ${t("Umidità terreno", "Soil moisture")}`,
+    "%",
+    soil.reading,
+    num(config.soilMin),
+    num(config.soilMax),
+  )}</div>`;
+}
+
 function programMarkup(config) {
   return `<article class="dm-irr-program" data-dm-irr-program>
     <div class="dm-irr-program-head">
@@ -542,6 +582,7 @@ function programMarkup(config) {
       <span class="dm-irr-chip" data-dm-irr-schedule>—</span>
     </div>
     <div class="dm-irr-meta" data-dm-irr-meta></div>
+    ${soilGaugeMarkup(config)}
     <div class="dm-irr-skip" data-dm-irr-skip hidden></div>
     <div class="dm-irr-actions">
       <button type="button" class="dm-btn dm-primary" data-act="pstart">▶ ${esc(t("Avvia programma", "Start schedule"))}</button>
@@ -567,9 +608,13 @@ function zoneCardMarkup(zone, index) {
 }
 
 function irrigationSignature(config) {
+  const soil = soilMoisture(config);
   return config.zones
     .map((zone, index) => `${index}:${zoneName(zone)}:${clean(zone.entity)}:${zoneMinutes(zone)}:${clean(zone.room)}`)
-    .join("|");
+    .join("|")
+    // Il misuratore del terreno entra nel disegno quando il sensore comincia a
+    // rispondere: la firma deve accorgersene, o resterebbe fuori per sempre.
+    .concat(`|soil:${soil.entity}:${soil.reading != null}`);
 }
 
 function runningZoneIndex() {
@@ -623,6 +668,15 @@ function syncIrrigationValues(host, grid, config) {
     if (meta.innerHTML !== markup) meta.innerHTML = markup;
     meta.hidden = !markup;
   }
+
+  const soil = soilMoisture(config);
+  syncGauge(
+    host.querySelector('[data-dm-gauge="soil"]'),
+    soil.reading,
+    num(config.soilMin),
+    num(config.soilMax),
+    "%",
+  );
 
   const skip = host.querySelector("[data-dm-irr-skip]");
   if (skip) {
@@ -1117,6 +1171,15 @@ function installStyles() {
     .dm-irr-chip{padding:4px 11px;border-radius:999px;background:var(--surface-2,#f1f5f9);color:var(--text-dim,#64748b);font-size:11.5px;font-weight:850}
     .dm-irr-chip[data-on="true"]{background:rgba(22,163,74,.15);color:#15803d}
     .dm-irr-meta{display:flex;flex-wrap:wrap;gap:7px}
+    /* Il misuratore del terreno: stesso disegno di pH e cloro, un filo d'aria
+       sopra per staccarlo dalle spille del meteo. */
+    .dm-irr-soil{padding:2px 2px 0}
+    /* Le caselle del sensore nella scheda di configurazione. */
+    #ed-body [data-dm-irr-soil-fields]{display:grid;gap:8px;margin:8px 0}
+    #ed-body [data-dm-irr-soil-fields] .ed-slot{display:grid;gap:4px;margin:0}
+    #ed-body [data-dm-irr-soil-fields] .ed-form-row{display:flex;gap:8px;min-width:0}
+    #ed-body [data-dm-irr-soil-fields] .ed-form-row>input{flex:1 1 auto;min-width:0}
+    #ed-body .dm-irr-soil-band{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .dm-irr-meta-chip{padding:5px 11px;border-radius:12px;background:var(--surface-2,#f1f5f9);color:var(--text,#0f172a);font-size:12px;font-weight:750}
     .dm-irr-meta-chip[data-alert="true"]{background:rgba(245,158,11,.16);color:#b45309}
     .dm-irr-skip{padding:9px 12px;border-radius:12px;background:rgba(245,158,11,.14);color:#b45309;font-size:12.5px;font-weight:800}
@@ -1213,6 +1276,87 @@ function installStyles() {
   `);
 }
 
+/* ── il sensore del terreno nel pannello di configurazione ───────────────── */
+
+/* La scheda Irrigazione e' ancora tutta del runtime: le caselle del sensore si
+ * aggiungono sotto quella della pioggia — lo stesso giro del contatto
+ * dell'infisso — e il salvataggio si aggancia a `edIrrSaveCfg`, che riscrive
+ * la configurazione senza sapere di questi campi. */
+function activeEditorTab() {
+  return clean(doc?.querySelector?.(".ed-tab.active")?.dataset?.tab);
+}
+
+function casellaSoil() {
+  const holder = doc.createElement("div");
+  holder.dataset.dmIrrSoilFields = "true";
+  holder.innerHTML = `<label class="ed-slot dm-irr-soil-slot"><span class="ed-slot-lbl">${t("Sensore umidità terreno", "Soil moisture sensor")}</span>
+      <span class="ed-form-row"><input id="ed-irr-soil" class="ed-input mono" autocomplete="off" data-entity-input="true" placeholder="sensor.umidita_terreno"><button type="button" class="dm-entity-picker" data-entity-target="ed-irr-soil" aria-label="${t("Seleziona entità", "Select entity")}">🔍</button></span>
+      <small>${t("La % di umidità del terreno compare nella card del programma.", "The soil moisture % appears on the schedule card.")}</small></label>
+    <div class="dm-irr-soil-band">
+      <label class="ed-slot"><span class="ed-slot-lbl">${t("Umidità ideale min (%)", "Ideal moisture min (%)")}</span><input id="ed-irr-soil-min" class="ed-input" type="number" min="0" max="100" step="1" placeholder="30"></label>
+      <label class="ed-slot"><span class="ed-slot-lbl">${t("Umidità ideale max (%)", "Ideal moisture max (%)")}</span><input id="ed-irr-soil-max" class="ed-input" type="number" min="0" max="100" step="1" placeholder="60"></label>
+    </div>`;
+  return holder;
+}
+
+function ensureSoilFields() {
+  if (activeEditorTab() !== "irr") return false;
+  const body = doc?.getElementById("ed-body");
+  const rain = body?.querySelector?.("#ed-irr-rain");
+  if (!body || !rain) return false;
+  const ancora = rain.closest("label, .ed-slot") || rain;
+  let holder = body.querySelector("[data-dm-irr-soil-fields]");
+  if (!holder) {
+    holder = casellaSoil();
+    ancora.after(holder);
+  } else if (ancora.nextElementSibling !== holder) {
+    // Si rimette in fila a ogni giro, come le caselle dell'infisso.
+    ancora.after(holder);
+  }
+  const config = irrigationConfig();
+  for (const [id, value] of [
+    ["ed-irr-soil", clean(config.soilEnt || config.soil_entity)],
+    ["ed-irr-soil-min", num(config.soilMin) ?? ""],
+    ["ed-irr-soil-max", num(config.soilMax) ?? ""],
+  ]) {
+    const input = doc.getElementById(id);
+    // Mai sotto le dita: il ridisegno non riscrive il campo che si sta usando.
+    if (input && doc.activeElement !== input && clean(input.value) !== String(value))
+      input.value = String(value);
+  }
+  return true;
+}
+
+/* Dopo che il runtime ha riscritto `cd_irrigazione` coi suoi campi, i nostri
+ * tornano al loro posto: vuoto vuol dire «niente sensore», mai zero. */
+function salvaSoil() {
+  const campo = doc?.getElementById("ed-irr-soil");
+  if (!campo) return;
+  const stored = readJson("cd_irrigazione", {});
+  const next = stored && typeof stored === "object" && !Array.isArray(stored) ? { ...stored } : {};
+  const soilEnt = clean(campo.value);
+  if (soilEnt) next.soilEnt = soilEnt;
+  else {
+    delete next.soilEnt;
+    delete next.soil_entity;
+  }
+  for (const [id, field] of [
+    ["ed-irr-soil-min", "soilMin"],
+    ["ed-irr-soil-max", "soilMax"],
+  ]) {
+    const value = num(doc?.getElementById(id)?.value);
+    if (value == null) delete next[field];
+    else next[field] = Math.max(0, Math.min(100, value));
+  }
+  writeJsonIfChanged("cd_irrigazione", next);
+  schedule();
+}
+
+function armaSoilEditor() {
+  wrapFunction("edIrrSaveCfg", "__dmIrrSoilSave", salvaSoil);
+  ensureSoilFields();
+}
+
 export function installPoolIrrigationSceneSection() {
   if (!doc) return;
   installStyles();
@@ -1220,6 +1364,14 @@ export function installPoolIrrigationSceneSection() {
   if (!state.installed) {
     state.installed = true;
     installListeners();
+    onEditorRedraw("__dmIrrSoil", () => {
+      root.queueMicrotask?.(armaSoilEditor);
+    });
+    for (const eventName of ["dashboardmodern:legacy-ready", "dashboardmodern:editor-rendered"])
+      root.addEventListener?.(eventName, () => {
+        root.queueMicrotask?.(armaSoilEditor);
+      });
+    armaSoilEditor();
   }
   schedule();
 }

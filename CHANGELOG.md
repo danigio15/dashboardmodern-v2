@@ -48,6 +48,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   nel modale moderno, nell'editor legacy e nel wizard; le card gemelle non
   duplicano l'id storico `card-<entità>` che il runtime cerca per nome.
 
+- **La % di umidità del terreno, nell'Irrigazione.** Il sensore di umidità del
+  terreno si configura nella scheda Irrigazione — con le soglie facoltative
+  della banda ideale — e la card del programma mostra il misuratore, lo stesso
+  disegno di pH e cloro della piscina: valore, spillo sulla scala e verdetto
+  («nella norma», «troppo basso», «troppo alto»). La lettura si aggiorna a ogni
+  giro senza ridisegnare il prato, e un sensore muto è «nessuna lettura», mai
+  0%.
+
 - **Il ritardo di fine ciclo degli elettrodomestici.** (#195) La lavastoviglie
   che asciuga consuma 0 W ma il ciclo non è finito: la card diceva «spenta» a
   metà lavoro. Il campo «Ritardo fine ciclo (minuti)» nella card avanzata
