@@ -285,7 +285,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 141 con la faccia costruita. Il disegno dell'avatar — cataloghi chiusi e
   // SVG deterministico — sta in un modulo puro perche' lo leggono in due, la
   // card e il costruttore dell'editor, e devono disegnare la stessa persona.
-  assert.ok(relative.length <= 141, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 142 con la pagina Luci. Il popup sopra la Home resta com'e'; la pagina
+  // intera nella barra — conto delle accese, comandi per tutta la casa,
+  // gruppi per stanza — e' un modulo suo perche' possiede un'altra superficie
+  // dello stesso modello: le capacita' stanno in core/light-model.js e la
+  // scheda controlli resta quella del popup, qui non si duplica niente.
+  assert.ok(relative.length <= 142, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

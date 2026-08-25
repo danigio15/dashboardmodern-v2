@@ -769,6 +769,7 @@ export default Object.freeze({
   "ON": "مُشغَّل",
   "ON/OFF": "تشغيل/إطفاء",
   "On/off control": "مفتاح التشغيل/الإطفاء",
+  "On/off · Brightness · Colour": "التشغيل/الإطفاء · السطوع · اللون",
   "One window can carry all three: fill in the boxes you have, the box tells the type.": "النافذة الواحدة قد تجمع الثلاثة معًا: املأ الخانات المتوفّرة لديك، والخانة نفسها تحدّد النوع.",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.": "تُحتسب فقط الحساسات اليومية أو فروق Recorder من العدّادات التراكمية. ولا تُجمع القيم التراكمية مباشرة أبدًا.",
   "Only if you already have a helper measuring the period. Without one, the period comes from the total meter.": "فقط إن كان لديك helper يقيس الفترة. وبدونه تأتي الفترة من العدّاد الإجمالي.",
@@ -1179,4 +1180,7 @@ export default Object.freeze({
   "Zone": "المنطقة",
   "Zone valve": "صمام المنطقة",
   "Zones · Schedule · Forecast rain": "المناطق · البرنامج · المطر المتوقع",
+  "Enter a valid entity (${domini}).": "أدخل كيانًا صالحًا (${domini}).",
+  "Light added": "تمت إضافة الضوء",
+  "Remove \"${nome}\" from the dashboard?": "إزالة \"${nome}\" من لوحة التحكم؟",
 });

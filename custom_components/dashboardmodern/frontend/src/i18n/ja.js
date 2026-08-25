@@ -769,6 +769,7 @@ export default Object.freeze({
   "ON": "オン",
   "ON/OFF": "オン/オフ",
   "On/off control": "オン/オフ操作",
+  "On/off · Brightness · Colour": "オン/オフ · 明るさ · 色",
   "One window can carry all three: fill in the boxes you have, the box tells the type.": "1 つの窓に 3 種類すべてが付くこともあります。手元にある欄だけ入力してください。種類は欄が示します。",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.": "集計に使うのは日次センサー、または積算メーターの Recorder 差分だけです。積算値をそのまま足し合わせることはありません。",
   "Only if you already have a helper measuring the period. Without one, the period comes from the total meter.": "期間を計測するヘルパーがすでにある場合だけです。なければ期間は積算メーターから求めます。",
@@ -1179,4 +1180,7 @@ export default Object.freeze({
   "Zone": "ゾーン",
   "Zone valve": "ゾーンのバルブ",
   "Zones · Schedule · Forecast rain": "ゾーン · スケジュール · 降雨予報",
+  "Enter a valid entity (${domini}).": "有効なエンティティを入力してください（${domini}）。",
+  "Light added": "照明を追加しました",
+  "Remove \"${nome}\" from the dashboard?": "「${nome}」をダッシュボードから削除しますか？",
 });

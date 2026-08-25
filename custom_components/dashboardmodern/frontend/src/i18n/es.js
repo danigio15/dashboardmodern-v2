@@ -769,6 +769,7 @@ export default Object.freeze({
   "ON": "ENCENDIDO",
   "ON/OFF": "ENCENDIDO/APAGADO",
   "On/off control": "Mando de encendido/apagado",
+  "On/off · Brightness · Colour": "Encendido/apagado · Brillo · Color",
   "One window can carry all three: fill in the boxes you have, the box tells the type.": "En una ventana pueden estar las tres: rellena las casillas que tengas, la casilla ya dice el tipo.",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.": "Solo se cuentan los sensores diarios o los incrementos de Recorder de los contadores totales acumulados. Los valores acumulados nunca se suman directamente.",
   "Only if you already have a helper measuring the period. Without one, the period comes from the total meter.": "Solo si ya tienes un helper que mida el periodo. Sin él, el periodo sale del contador total.",
@@ -1179,4 +1180,7 @@ export default Object.freeze({
   "Zone": "Zona",
   "Zone valve": "Válvula de la zona",
   "Zones · Schedule · Forecast rain": "Zonas · Programa · Lluvia prevista",
+  "Enter a valid entity (${domini}).": "Introduce una entidad válida (${domini}).",
+  "Light added": "Luz añadida",
+  "Remove \"${nome}\" from the dashboard?": "¿Quitar \"${nome}\" del panel?",
 });

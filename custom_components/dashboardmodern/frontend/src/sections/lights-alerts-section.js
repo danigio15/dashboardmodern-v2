@@ -122,11 +122,17 @@ function lightMeta(id) {
 export function renderCanonicalLightsEditor() {
   const groups = configuredLightGroups();
   const assignments = readJson("cd_luci_rooms", {});
-  const add = `<form class="ed-form dm-light-add-form" data-light-add-form onsubmit="event.preventDefault();cdLuceAdd()">
+  /* L'inserimento passa da `dmLuceAdd`, non dal legacy `cdLuceAdd`: quello
+   * valida con `alert()` — che l'app di Home Assistant blocca — e non sa
+   * niente di stanze, cosi' ogni luce nuova nasceva in «Altre zone» e andava
+   * riassegnata in un secondo passaggio. */
+  const add = `<form class="ed-form dm-light-add-form" data-light-add-form onsubmit="event.preventDefault();dmLuceAdd()">
     <div class="ed-sec-title">＋ ${t("AGGIUNGI LUCE", "ADD LIGHT")}</div>
     <div class="ed-form-row"><input id="luce-add-ent" class="ed-input mono" data-entity-input data-light-add-entity data-domain="${LIGHT_DOMAINS.join(" ")}" placeholder="light.salone · switch.lampada"><button type="button" class="dm-entity-picker" data-entity-target="luce-add-ent" onclick="wzPickEntity(document.getElementById('luce-add-ent'))" aria-label="${t("Seleziona entità luce", "Select light entity")}">🔍</button></div>
     <input id="luce-add-name" class="ed-input" placeholder="${t("Nome luce", "Light name")}">
+    <label class="dm-light-add-room-slot"><span>${t("Stanza", "Room")}</span><select id="luce-add-room" class="ed-input" aria-label="${t("Stanza", "Room")}">${roomOptions("")}</select></label>
     <div class="dm-light-add-hint">${t("Una luce può essere un'entità light.* oppure uno switch.*: una lampada dietro un relè si aggiunge esattamente allo stesso modo.", "A light can be a light.* entity or a switch.*: a lamp behind a relay is added in exactly the same way.")}</div>
+    <output data-light-add-error></output>
     <button type="submit" class="ed-btn-add">＋ ${t("Aggiungi luce", "Add light")}</button>
   </form>`;
   if (!groups.length)
@@ -142,7 +148,7 @@ export function renderCanonicalLightsEditor() {
             <div class="ed-row-main"><div class="ed-row-new">${meta.glyph} ${esc(name)}</div><div class="ed-row-old mono">${esc(id)}</div><div class="dm-light-badges">${meta.badges}</div></div>
             <select class="ed-input dm-light-room" data-light-entity="${esc(id)}" onchange="dmLightSetRoom('${esc(id)}',this.value)">${roomOptions(assignments[id])}</select>
             <button type="button" class="ed-del dm-light-edit" onclick="dmOpenLightEditor('${esc(id)}')" aria-label="${t("Modifica luce", "Edit light")}">✏️</button>
-            <button type="button" class="ed-del" onclick="cdLuceDel('${esc(id)}')" aria-label="${t("Elimina luce", "Delete light")}">🗑️</button>
+            <button type="button" class="ed-del" onclick="dmLuceDel('${esc(id)}')" aria-label="${t("Elimina luce", "Delete light")}">🗑️</button>
           </article>`;
         })
         .join("");
@@ -296,6 +302,124 @@ export function openLightEditor(entityId) {
   });
 }
 
+/**
+ * Una luce nuova, con la sua stanza, in un gesto solo.
+ *
+ * Il percorso legacy validava con `alert()` — che l'app di Home Assistant
+ * blocca, quindi il modulo si fermava in silenzio — e ignorava la stanza.
+ * L'errore adesso si scrive nel form, e la stanza scelta viene salvata con
+ * la luce: `saveAllLightMaps` con `oldId === entity` e' esattamente un
+ * inserimento, e porta con se' la sincronizzazione degli avvisi.
+ */
+export function addLightFromForm() {
+  const entity = clean(doc?.getElementById("luce-add-ent")?.value);
+  const name = clean(doc?.getElementById("luce-add-name")?.value) || entity.split(".")[1] || entity;
+  const roomId = clean(doc?.getElementById("luce-add-room")?.value);
+  const error = doc?.querySelector("[data-light-add-error]");
+  const domini = LIGHT_DOMAINS.map((domain) => `${domain}.*`).join(", ");
+  if (!isLightEntity(entity)) {
+    if (error) error.textContent = t(`Inserisci un'entità valida (${domini}).`, `Enter a valid entity (${domini}).`);
+    return false;
+  }
+  if (readJson("cd_luci", {})[entity]) {
+    if (error) error.textContent = t("Questa entità è già configurata.", "This entity is already configured.");
+    return false;
+  }
+  if (error) error.textContent = "";
+  saveAllLightMaps({ oldId: entity, entity, name, roomId });
+  // Le luci vivono anche sulla Home: e' quello che faceva il percorso legacy.
+  try {
+    root.cdSecShow?.("home");
+  } catch (_error) {}
+  root.edToast?.(t("Luce aggiunta", "Light added"));
+  rerenderLights();
+  return true;
+}
+
+/**
+ * Le mappe della configurazione senza una luce, e niente altro di cambiato.
+ * Pura ed esportata: e' la meta' verificabile dell'eliminazione.
+ */
+export function mapsWithoutLight(values, id) {
+  const entity = clean(id);
+  const lights = { ...(values.cd_luci || {}) };
+  const assignments = { ...(values.cd_luci_rooms || {}) };
+  delete lights[entity];
+  delete assignments[entity];
+  const order = Object.fromEntries(
+    Object.entries(values.cd_luci_order || {}).map(([room, ids]) => [
+      room,
+      (Array.isArray(ids) ? ids : []).filter((item) => item !== entity),
+    ]),
+  );
+  /* La lista degli avvisi la riempie `synchronizeLightAlerts` leggendo le luci
+   * configurate: se l'entita' resta qui dentro, la luce cancellata continua a
+   * comparire fra gli avvisi come se niente fosse. */
+  const extras = { ...(values.cd_gruppi_extra || {}) };
+  if (Array.isArray(extras.luci)) extras.luci = extras.luci.filter((item) => item !== entity);
+  return { cd_luci: lights, cd_luci_rooms: assignments, cd_luci_order: order, cd_gruppi_extra: extras };
+}
+
+function deleteLight(id) {
+  const values = Object.fromEntries(
+    ["cd_luci", "cd_luci_rooms", "cd_luci_order", "cd_gruppi_extra"].map((key) => [key, readJson(key, {})]),
+  );
+  const next = mapsWithoutLight(values, id);
+  let changed = false;
+  for (const [key, value] of Object.entries(next)) {
+    changed = writeJsonIfChanged(key, value, { sync: false }) || changed;
+  }
+  if (changed) {
+    root.cdMarkDirty?.();
+    root.cdSyncPush?.();
+  }
+  synchronizeLightAlerts();
+  try {
+    root.updateGestioneLuci?.();
+  } catch (_error) {}
+  rerenderLights();
+}
+
+/**
+ * Il cestino chiede conferma nella pagina, non al browser.
+ *
+ * Il legacy `cdLuceDel` passava da `confirm()`: dentro l'app di Home
+ * Assistant quella finestra non si apre e risponde sempre no, quindi il
+ * cestino sembrava rotto — si premeva e la riga restava li'. La domanda ora
+ * e' un dialogo canonico, e la risposta arriva davvero.
+ */
+export function openLightDeleteConfirm(entityId) {
+  const entity = clean(entityId);
+  const names = readJson("cd_luci", {});
+  if (!entity || names[entity] === undefined) return false;
+  doc?.getElementById("dm-light-delete-modal")?.remove();
+  const nome = esc(clean(names[entity]) || entity);
+  const modal = doc.createElement("div");
+  modal.id = "dm-light-delete-modal";
+  modal.className = "dm-section-modal";
+  modal.innerHTML = `<section class="dm-section-dialog dm-light-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="dm-light-delete-title">
+    <header><strong id="dm-light-delete-title">🗑️ ${t("Elimina luce", "Delete light")}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></header>
+    <form data-form>
+      <p class="dm-light-delete-question">${t(`Rimuovere "${nome}" dalla dashboard?`, `Remove "${nome}" from the dashboard?`)}</p>
+      <p class="dm-light-delete-entity mono">${esc(entity)}</p>
+      <footer><button type="button" class="ed-btn-add" data-cancel>${t("Annulla", "Cancel")}</button><button type="submit" class="ed-save-btn dm-light-delete-confirm">🗑️ ${t("Elimina luce", "Delete light")}</button></footer>
+    </form>
+  </section>`;
+  doc.body.append(modal);
+  const close = () => modal.remove();
+  modal.querySelectorAll("[data-close],[data-cancel]").forEach((button) => button.addEventListener("click", close));
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) close();
+  });
+  modal.querySelector("[data-form]").addEventListener("submit", (event) => {
+    event.preventDefault();
+    close();
+    deleteLight(entity);
+  });
+  modal.querySelector("[data-cancel]")?.focus?.();
+  return true;
+}
+
 root.dmLightMove = (id, direction) => {
   const groups = configuredLightGroups();
   const group = groups.find((item) => item.entities.includes(id));
@@ -332,6 +456,8 @@ root.dmLightSetRoom = (id, roomId) => {
   rerenderLights();
 };
 root.dmOpenLightEditor = openLightEditor;
+root.dmLuceAdd = addLightFromForm;
+root.dmLuceDel = openLightDeleteConfirm;
 
 function orderedLightIds() {
   return configuredLightGroups().flatMap((group) => group.entities);
@@ -456,6 +582,13 @@ function installStyles() {
       .dm-light-caps .dm-light-badges{margin-top:0!important}
       .dm-light-caps-try{margin-left:auto!important;min-height:36px!important;padding:8px 14px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:12px!important;background:var(--secondary-background-color,#f8fafc)!important;color:inherit!important;font-size:11.5px!important;font-weight:900!important;cursor:pointer!important}
       .dm-light-add-hint,.dm-light-caps-note{display:block!important;color:var(--secondary-text-color,#64748b)!important;font-size:11px!important;font-weight:600!important;line-height:1.45!important}
+      .dm-light-add-room-slot{display:grid!important;gap:4px!important}
+      .dm-light-add-room-slot>span{font-size:11px!important;font-weight:800!important;letter-spacing:.5px!important;text-transform:uppercase!important;color:var(--secondary-text-color,#64748b)!important}
+      [data-light-add-error]{display:block!important;min-height:16px!important;color:var(--error-color,#dc2626)!important;font-size:12px!important;font-weight:800!important}
+      .dm-light-delete-dialog{max-width:420px!important}
+      .dm-light-delete-question{margin:0!important;font-size:14px!important;font-weight:700!important;line-height:1.5!important}
+      .dm-light-delete-entity{margin:2px 0 0!important;color:var(--secondary-text-color,#64748b)!important;font-size:12px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+      .dm-light-delete-confirm{background:linear-gradient(135deg,#ef4444,#b91c1c)!important;color:#fff!important}
       @media(max-width:720px){
         .dm-light-row{grid-template-columns:auto minmax(0,1fr) 42px 42px!important}.dm-light-row .dm-light-room{grid-column:1/-1!important;grid-row:2!important}
         .dm-light-picker-row{grid-template-columns:auto minmax(0,1fr) 36px 36px!important;padding:10px!important}
@@ -468,6 +601,11 @@ function installOwners() {
   if (typeof root.editorRenderLuci === "function") root.editorRenderLuci = renderCanonicalLightsEditor;
   root.cdPickLights = openOrderedLightPicker;
   root.cdLuceRen = openLightEditor;
+  /* Anche i nomi legacy puntano alle versioni che funzionano dentro l'app:
+   * qualunque markup ancora in giro chiami cdLuceAdd o cdLuceDel, aggiunge
+   * con la stanza e cancella con la conferma in pagina. */
+  root.cdLuceAdd = addLightFromForm;
+  root.cdLuceDel = openLightDeleteConfirm;
   const alerts = root.editorRenderAvvisi;
   if (typeof alerts === "function" && !alerts.__dmLightsAlertsSection) {
     function canonicalAlerts(...args) {

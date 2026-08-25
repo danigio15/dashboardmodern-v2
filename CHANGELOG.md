@@ -11,6 +11,28 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Le luci hanno la loro sezione nella barra.** Finora si comandavano solo
+  dal popup sopra la Home; adesso c'è la pagina intera, come Clima e
+  Tapparelle: in alto il conto di quante sono accese e i due pulsanti
+  «Accendi tutte» e «Spegni tutte», sotto le stanze nell'ordine scelto nella
+  scheda Luci dell'editor, ognuna con il suo conto e il suo comando di
+  gruppo. Ogni luce ha una card con il colore che sta davvero emettendo — il
+  bagliore, il bordo e il LED sono i suoi, mai un ambra fisso — il dimmer
+  direttamente sulla card per chi ce l'ha, e il pulsante dei controlli che
+  apre la stessa scheda del popup: colore, bianco, effetti. Cosa una luce sa
+  fare lo decide l'entità, mai il dominio: una lampada dietro un relè accende
+  e spegne soltanto, e la card non le offre cursori che rifiuterebbe.
+
+- **La scheda Luci del Config ha la fascia visibile/nascondi.** Lo stesso
+  interruttore verde delle altre sezioni, con la stessa logica sotto: tocca e
+  la voce Luci sparisce dalla barra, tocca di nuovo e torna — la preferenza
+  viaggia in `cd_sections` come per tutte le altre.
+
+- **Aggiungere una luce chiede subito la stanza.** Il form di inserimento ha
+  la tendina delle stanze accanto a entità e nome: la luce nasce già al suo
+  posto, senza doverla riassegnare dopo. E l'errore di un'entità sbagliata si
+  scrive nel form, non in un `alert()` che l'app di Home Assistant blocca.
+
 - **L'avatar si costruisce come i Memoji.** La casella dell'emoji nella scheda
   Persone non era «creare un avatar»: era scegliere da un elenco. Adesso c'è
   il costruttore — carnagione, taglio e colore dei capelli, occhi, bocca,
@@ -81,6 +103,21 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   persona sola. E il picker dell'avatar apriva quello delle icone della
   plancia — prese, lampadine, pentole: per una persona servono persone, e il
   suo ha facce, gente di casa, mestieri e qualche animale.
+
+- **Cancellare una riga non richiude più il gruppo aperto.** In ogni scheda
+  del Config, ogni gesto — eliminare un sensore, aggiungere un'entità,
+  toccare la fascia di visibilità — ridisegna la scheda intera, e ogni
+  fisarmonica rinasceva chiusa: dentro Avvisi si apriva Aperture, si
+  cancellava una riga e Aperture si richiudeva sopra la mano. Lo stato
+  aperto/chiuso ora è dell'utente: viene ricordato scheda per scheda e
+  riapplicato dopo ogni ridisegno, in tutte le sezioni del Config.
+
+- **Il cestino delle luci cancella davvero.** Chiedeva conferma con il
+  `confirm()` del browser, che dentro l'app di Home Assistant non si apre e
+  risponde sempre no: si premeva e la riga restava lì. La domanda ora è un
+  dialogo nella pagina, e cancellare toglie la luce da ogni mappa —
+  configurazione, stanza, ordinamento e gruppo avvisi — non solo dalle prime
+  due.
 
 ## 1.1.8
 

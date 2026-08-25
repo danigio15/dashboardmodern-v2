@@ -769,6 +769,7 @@ export default Object.freeze({
   "ON": "AAN",
   "ON/OFF": "AAN/UIT",
   "On/off control": "Aan/uit-bediening",
+  "On/off · Brightness · Colour": "Aan/uit · Helderheid · Kleur",
   "One window can carry all three: fill in the boxes you have, the box tells the type.": "Aan één raam kunnen alle drie zitten: vul de vakjes in die je hebt, het vakje zegt het type.",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.": "Alleen dagsensoren of Recorder-verschillen van cumulatieve totaalmeters worden geteld. Totaalstanden worden nooit rechtstreeks opgeteld.",
   "Only if you already have a helper measuring the period. Without one, the period comes from the total meter.": "Alleen als je al een helper hebt die de periode meet. Zonder helper komt de periode uit de totaalmeter.",
@@ -1179,4 +1180,7 @@ export default Object.freeze({
   "Zone": "Zone",
   "Zone valve": "Klep van de zone",
   "Zones · Schedule · Forecast rain": "Zones · Programma · Verwachte regen",
+  "Enter a valid entity (${domini}).": "Voer een geldige entiteit in (${domini}).",
+  "Light added": "Lamp toegevoegd",
+  "Remove \"${nome}\" from the dashboard?": "\"${nome}\" van het dashboard verwijderen?",
 });

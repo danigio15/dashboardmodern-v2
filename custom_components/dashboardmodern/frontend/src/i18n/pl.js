@@ -769,6 +769,7 @@ export default Object.freeze({
   "ON": "WŁĄCZONE",
   "ON/OFF": "WŁ./WYŁ.",
   "On/off control": "Sterowanie wł./wył.",
+  "On/off · Brightness · Colour": "Wł./wył. · Jasność · Kolor",
   "One window can carry all three: fill in the boxes you have, the box tells the type.": "Na jednym oknie mogą być wszystkie trzy: wypełnij pola, które masz — pole samo mówi, jaki to typ.",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.": "Liczone są tylko czujniki dzienne albo różnice Recordera z sumarycznych liczników całkowitych. Wartości całkowite nigdy nie są dodawane wprost.",
   "Only if you already have a helper measuring the period. Without one, the period comes from the total meter.": "Tylko jeśli masz już helper mierzący okres. Bez niego okres pochodzi z licznika sumarycznego.",
@@ -1179,4 +1180,7 @@ export default Object.freeze({
   "Zone": "Strefa",
   "Zone valve": "Zawór strefy",
   "Zones · Schedule · Forecast rain": "Strefy · Program · Prognozowany deszcz",
+  "Enter a valid entity (${domini}).": "Wpisz prawidłową encję (${domini}).",
+  "Light added": "Dodano światło",
+  "Remove \"${nome}\" from the dashboard?": "Usunąć \"${nome}\" z panelu?",
 });

@@ -769,6 +769,7 @@ export default Object.freeze({
   "ON": "चालू",
   "ON/OFF": "चालू/बंद",
   "On/off control": "चालू/बंद नियंत्रण",
+  "On/off · Brightness · Colour": "चालू/बंद · चमक · रंग",
   "One window can carry all three: fill in the boxes you have, the box tells the type.": "एक ही खिड़की पर तीनों हो सकते हैं: जो खाने आपके पास हैं वे भरें, खाना ही प्रकार बता देता है।",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.": "केवल दैनिक सेंसर या संचयी कुल मीटरों के Recorder अंतर गिने जाते हैं। संचयी मान कभी सीधे नहीं जोड़े जाते।",
   "Only if you already have a helper measuring the period. Without one, the period comes from the total meter.": "केवल तभी जब आपके पास अवधि नापने वाला helper पहले से हो। उसके बिना अवधि कुल मीटर से आती है।",
@@ -1179,4 +1180,7 @@ export default Object.freeze({
   "Zone": "क्षेत्र",
   "Zone valve": "ज़ोन का वाल्व",
   "Zones · Schedule · Forecast rain": "ज़ोन · कार्यक्रम · अनुमानित वर्षा",
+  "Enter a valid entity (${domini}).": "एक मान्य इकाई दर्ज करें (${domini})।",
+  "Light added": "लाइट जोड़ी गई",
+  "Remove \"${nome}\" from the dashboard?": "\"${nome}\" को डैशबोर्ड से हटाएँ?",
 });
