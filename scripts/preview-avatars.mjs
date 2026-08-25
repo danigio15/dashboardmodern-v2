@@ -17,6 +17,7 @@ const faces = [
     beard: "nessuna",
     glasses: "nessuno",
     build: "normale",
+    outfit: "maglietta",
   },
   {
     label: "bimba",
@@ -29,6 +30,7 @@ const faces = [
     beard: "nessuna",
     glasses: "nessuno",
     build: "magra",
+    outfit: "felpa",
   },
   {
     label: "biondo",
@@ -41,6 +43,7 @@ const faces = [
     beard: "nessuna",
     glasses: "nessuno",
     build: "normale",
+    outfit: "camicia",
   },
   {
     label: "barba piena",
@@ -53,6 +56,7 @@ const faces = [
     beard: "piena",
     glasses: "nessuno",
     build: "robusta",
+    outfit: "giacca",
   },
   {
     label: "lunghi",
@@ -65,6 +69,7 @@ const faces = [
     beard: "nessuna",
     glasses: "nessuno",
     build: "magra",
+    outfit: "maglietta",
   },
   {
     label: "chignon occhiali",
@@ -77,6 +82,7 @@ const faces = [
     beard: "nessuna",
     glasses: "tondi",
     build: "normale",
+    outfit: "camicia",
   },
   {
     label: "spettinato",
@@ -89,6 +95,7 @@ const faces = [
     beard: "pizzetto",
     glasses: "nessuno",
     build: "normale",
+    outfit: "felpa",
   },
   {
     label: "rasato sole",
@@ -101,6 +108,7 @@ const faces = [
     beard: "baffi",
     glasses: "sole",
     build: "robusta",
+    outfit: "giacca",
   },
 ];
 const shirts = [

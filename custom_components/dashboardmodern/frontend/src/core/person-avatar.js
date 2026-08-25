@@ -67,6 +67,10 @@ export const FACE_GLASSES = Object.freeze(["nessuno", "tondi", "sole"]);
 /* La corporatura: cambia la larghezza del viso e delle spalle. La prima e' il
  * default, cosi' le facce gia' costruite restano identiche a com'erano. */
 export const FACE_BUILDS = Object.freeze(["normale", "magra", "robusta"]);
+/* I vestiti del busto: la maglietta col colore della persona, la camicia col
+ * colletto e i bottoni, la felpa col cappuccio, la giacca col completo — la
+ * camicia bianca e la cravatta che prende il colore della persona. */
+export const FACE_OUTFITS = Object.freeze(["maglietta", "camicia", "felpa", "giacca"]);
 
 const pickKey = (value, catalog) => {
   const keys = Array.isArray(catalog) ? catalog : Object.keys(catalog);
@@ -91,6 +95,7 @@ export function normalizeFace(input) {
     beard: pickKey(input.beard, FACE_BEARDS),
     glasses: pickKey(input.glasses, FACE_GLASSES),
     build: pickKey(input.build, FACE_BUILDS),
+    outfit: pickKey(input.outfit, FACE_OUTFITS),
   };
 }
 
@@ -343,6 +348,59 @@ function glassesMarkup(style) {
   return "";
 }
 
+/* Il vestito, in due strati: `base` e' il busto dipinto prima del collo,
+ * `front` e' cio' che sta sopra il collo — il colletto, la cravatta, il bordo
+ * del cappuccio. La giacca e' il completo del riferimento: giacca scura coi
+ * revers, la camicia bianca a V e la cravatta che prende il colore della
+ * persona. */
+function outfitMarkup(style, fill, shape) {
+  const busto = `<path d="${shape.bust}" fill="${fill}"/><path d="${shape.bust}" fill="url(#dmFaceBust)"/>`;
+  switch (style) {
+    case "camicia":
+      return {
+        base:
+          busto +
+          `<path d="M60 100 L60 124" stroke="#000" stroke-width="1.6" opacity=".22"/>` +
+          `<circle cx="60" cy="106" r="1.2" fill="#fff" opacity=".8"/><circle cx="60" cy="113" r="1.2" fill="#fff" opacity=".8"/><circle cx="60" cy="120" r="1.2" fill="#fff" opacity=".8"/>`,
+        front:
+          `<path d="M47 89 L60 97 L54.5 102 L44.5 94 Z" fill="${fill}"/><path d="M47 89 L60 97 L54.5 102 L44.5 94 Z" fill="#fff" opacity=".28"/>` +
+          `<path d="M73 89 L60 97 L65.5 102 L75.5 94 Z" fill="${fill}"/><path d="M73 89 L60 97 L65.5 102 L75.5 94 Z" fill="#fff" opacity=".28"/>` +
+          `<path d="M47 89 L60 97 L54.5 102 M73 89 L60 97 L65.5 102" stroke="#000" stroke-width="1" fill="none" opacity=".18"/>`,
+      };
+    case "felpa":
+      return {
+        base:
+          busto +
+          `<path d="M46 118 C50 113 70 113 74 118 L74 124 L46 124 Z" fill="#000" opacity=".1"/>`,
+        front:
+          `<path d="M42 101 C44 88 76 88 78 101 C71 93 49 93 42 101 Z" fill="#000" opacity=".3"/>` +
+          `<path d="M42 101 C44 88 76 88 78 101 C71 93 49 93 42 101 Z" fill="${fill}" opacity=".55"/>` +
+          `<path d="M54.5 99 L53.5 111 M65.5 99 L66.5 111" stroke="#fff" stroke-width="1.7" stroke-linecap="round" opacity=".7"/>` +
+          `<circle cx="53.5" cy="112.4" r="1.1" fill="#fff" opacity=".7"/><circle cx="66.5" cy="112.4" r="1.1" fill="#fff" opacity=".7"/>`,
+      };
+    case "giacca":
+      return {
+        base:
+          `<path d="${shape.bust}" fill="#2f3a48"/><path d="${shape.bust}" fill="url(#dmFaceBust)"/>` +
+          `<path d="M50 92 L60 113 L70 92 L70 124 L50 124 Z" fill="#f4f6f9"/>`,
+        front:
+          `<path d="M51 90 L60 112 L69 90 L69.5 93 L60 115 L50.5 93 Z" fill="#dfe4ec"/>` +
+          `<path d="M56.6 92.5 L63.4 92.5 L60 98 Z" fill="${fill}"/>` +
+          `<path d="M57.6 97.5 L62.4 97.5 L64.6 114 L60 120 L55.4 114 Z" fill="${fill}"/>` +
+          `<path d="M58.8 99 L59.6 112" stroke="#fff" stroke-width="1.1" stroke-linecap="round" opacity=".3"/>` +
+          `<path d="M46 89 C50 100 55 107 59.4 111 L51.6 91.5 Z" fill="#3b4756"/>` +
+          `<path d="M74 89 C70 100 65 107 60.6 111 L68.4 91.5 Z" fill="#3b4756"/>` +
+          `<path d="M46 89 C50 100 55 107 59.4 111 M74 89 C70 100 65 107 60.6 111" stroke="#232d39" stroke-width="1" fill="none" opacity=".6"/>`,
+      };
+    case "maglietta":
+    default:
+      return {
+        base: busto,
+        front: `<path d="M42 96 C48 90 72 90 78 96 C72 93 48 93 42 96 Z" fill="#fff" opacity=".18"/>`,
+      };
+  }
+}
+
 /* La corporatura: il viso si stringe o si allarga attorno al suo centro, le
  * spalle seguono, e la figura robusta prende un accenno di mento pieno. */
 const FACE_BUILD_SHAPES = Object.freeze({
@@ -373,6 +431,7 @@ export function avatarSvg(input, { animated = true, shirt = "" } = {}) {
   const hairGradId = `dmFaceHair-${face.hairColor}`;
   const eyeGradId = `dmFaceEye-${face.eyeColor}`;
   const hair = hairPaths(face.hair, hairColor, hairGradId);
+  const outfit = outfitMarkup(face.outfit, shirtFill, shape);
   const testa =
     shape.sx === 1 && shape.sy === 1
       ? ""
@@ -404,10 +463,9 @@ export function avatarSvg(input, { animated = true, shirt = "" } = {}) {
     `</defs>` +
     `<g class="f-all">` +
     hair.back +
-    `<path d="${shape.bust}" fill="${shirtFill}"/>` +
-    `<path d="${shape.bust}" fill="url(#dmFaceBust)"/>` +
-    `<path d="M42 96 C48 90 72 90 78 96 C72 93 48 93 42 96 Z" fill="#fff" opacity=".18"/>` +
+    outfit.base +
     `<path d="M52 74 h16 v12 a8 8 0 0 1 -16 0 Z" fill="${skin.shade}"/>` +
+    outfit.front +
     `<ellipse cx="60" cy="90" rx="14" ry="4.6" fill="#000" opacity=".14"/>` +
     `<g class="f-head"${testa}>` +
     `<circle cx="31" cy="56" r="6.5" fill="${skin.base}"/><circle cx="89" cy="56" r="6.5" fill="${skin.base}"/>` +

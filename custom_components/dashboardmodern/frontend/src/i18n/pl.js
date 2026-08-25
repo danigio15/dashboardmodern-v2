@@ -17,6 +17,7 @@ export default Object.freeze({
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
     "Samochód o nazwie \"${nomeScritto}\" już istnieje: użyj ołówka, aby go edytować, lub wybierz inną nazwę",
   "Build": "Budowa ciała",
+  "Clothing": "Ubranie",
   "Eye color": "Kolor oczu",
   "Last update": "Ostatnia aktualizacja",
   "Next person": "Następna osoba",

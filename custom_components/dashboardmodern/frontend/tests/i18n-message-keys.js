@@ -320,6 +320,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "CLOSED",
   "Closing",
   "Closing…",
+  "Clothing",
   "Coffee machine",
   "Coffee maker",
   "Cold",

@@ -25,6 +25,7 @@ import {
   FACE_HAIR_COLORS,
   FACE_HAIRS,
   FACE_MOUTHS,
+  FACE_OUTFITS,
   FACE_SKINS,
   normalizeFace,
 } from "../core/person-avatar.js";
@@ -115,6 +116,7 @@ const FACE_THUMB_BASE = Object.freeze({
   mouth: "sorriso",
   beard: "nessuna",
   glasses: "nessuno",
+  outfit: "maglietta",
   build: "normale",
 });
 
@@ -129,6 +131,7 @@ function faceRows() {
     { k: "beard", label: t("Barba", "Beard"), keys: [...FACE_BEARDS] },
     { k: "build", label: t("Corporatura", "Build"), keys: [...FACE_BUILDS] },
     { k: "glasses", label: t("Occhiali", "Glasses"), keys: [...FACE_GLASSES] },
+    { k: "outfit", label: t("Abbigliamento", "Clothing"), keys: [...FACE_OUTFITS] },
   ];
 }
 

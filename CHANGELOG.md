@@ -5,7 +5,7 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## Non rilasciato
+## 1.2.0
 
 ### Aggiunto
 
@@ -79,11 +79,16 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   direzione, tempo di rientro, ultimo aggiornamento. Finché è aperta si
   aggiorna da sola, e con più persone le frecce passano dall'una all'altra.
 
-- **L'avatar ha la corporatura, e più sostanza.** Nel costruttore c'è la fila
-  Corporatura (magra, normale, robusta): il viso si stringe o si allarga, le
-  spalle seguono. La carnagione è una sfumatura vera con la luce sulla fronte
-  e l'ombra sulla mascella, i capelli hanno le ciocche, e la barba tre strati
-  — pieno, velo chiaro, peli disegnati — invece di una toppa piatta.
+- **L'avatar è un personaggio in stile 3D, con corporatura, colore degli
+  occhi e vestiti.** Il motore disegna come i personaggi da cartone
+  renderizzati: occhi grandi con l'iride sfumata del suo colore (nuova fila
+  «Colore occhi»), l'ombra della palpebra dentro il bianco, sopracciglia
+  piene, il naso con la sua luce, la pelle modellata dalla luce radiale, i
+  capelli con gradiente e ciocche — e il sorriso coi denti. La fila
+  Corporatura (magra, normale, robusta) stringe o allarga viso e spalle. E
+  con la fila «Abbigliamento» si sceglie il vestito: maglietta, camicia coi
+  bottoni, felpa col cappuccio, o giacca col completo — camicia bianca e
+  cravatta che prende il colore della persona.
 
 ### Corretto
 

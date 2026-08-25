@@ -139,6 +139,7 @@ export const SOURCE_INDEX = Object.freeze({
   "A piedi": "Walking",
   "A scomparsa": "Auto-hide",
   "Abbassa il target": "Lower the target",
+  "Abbigliamento": "Clothing",
   "Accendi": "Turn on",
   "Accendi o spegni": "Turn on or off",
   "Accendi tutto": "Turn all on",

@@ -101,7 +101,12 @@ test("real HA: shutter popup uses the compact shared modal contract", async ({
   await expect(titleIcon).toBeVisible();
   await expect(rowIcon).toBeVisible();
   await expect(close).toBeVisible();
-  await expect(actions).toHaveCount(3);
+  /* Quattro tasti nel DOM: Apri, Ferma, Chiudi e il preset della posizione
+   * preferita (#200), che senza una posizione configurata resta nascosto —
+   * la riga visibile deve dire tre comandi, non quattro. */
+  await expect(actions).toHaveCount(4);
+  await expect(popup.locator(".dm-shutter-actions .dm-shutter-preset").first()).toBeHidden();
+  await expect(actions.locator("visible=true")).toHaveCount(3);
 
   const [titleBox, closeBox, cardBox] = await Promise.all([
     title.boundingBox(),
@@ -118,10 +123,12 @@ test("real HA: shutter popup uses the compact shared modal contract", async ({
   );
 
   const boxes = await actions.evaluateAll((buttons) =>
-    buttons.map((button) => {
-      const rect = button.getBoundingClientRect();
-      return { width: rect.width, height: rect.height };
-    }),
+    buttons
+      .filter((button) => !button.hidden)
+      .map((button) => {
+        const rect = button.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      }),
   );
   expect(
     Math.max(...boxes.map((box) => box.width)) - Math.min(...boxes.map((box) => box.width)),

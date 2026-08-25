@@ -14,6 +14,7 @@ import {
   FACE_HAIR_COLORS,
   FACE_HAIRS,
   FACE_MOUTHS,
+  FACE_OUTFITS,
   FACE_SKINS,
   normalizeFace,
 } from "../src/core/person-avatar.js";
@@ -43,6 +44,7 @@ test("stesse scelte, stesso disegno — e ogni variante disegna qualcosa di suo"
     ["beard", FACE_BEARDS],
     ["build", FACE_BUILDS],
     ["glasses", FACE_GLASSES],
+    ["outfit", FACE_OUTFITS],
   ]) {
     const disegni = new Set(keys.map((key) => avatarSvg({ ...base, [campo]: key })));
     assert.equal(disegni.size, keys.length, `${campo}: due scelte disegnano la stessa cosa`);
