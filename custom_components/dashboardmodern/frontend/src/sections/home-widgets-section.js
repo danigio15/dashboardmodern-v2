@@ -323,7 +323,8 @@ function securityModel(states) {
   return { key: "sicurezza", accent: triggered ? "#e11d48" : "#10b981", icon: "🛡️", alert: triggered,
     label: t("Sicurezza", "Security"), value,
     caption: cameras.length ? t(`${cameras.length} telecamere`, `${cameras.length} cameras`) : "",
-    ring: armed || triggered ? 100 : 0, doors, cameras: cameras.length, alarm: Boolean(alarm), armed, triggered };
+    ring: armed || triggered ? 100 : 0, doors, cameras: cameras.length,
+    alarm: Boolean(alarm), armed, triggered, mode: raw };
 }
 
 /* Watt leggibili: sotto il migliaio il numero intero, sopra i kW con due
@@ -381,7 +382,13 @@ function appliancesModel(states) {
     .filter((device) => device?.enabled !== false)
     .map((device) => {
       const model = createApplianceViewModel(device, states, [], "it");
-      return { id: model.id || clean(device.id), name: model.name, mode: model.mode, watts: model.watts };
+      return {
+        id: model.id || clean(device.id),
+        name: model.name,
+        mode: model.mode,
+        watts: model.watts,
+        type: clean(root.cdApplianceType?.(device)) || "generico",
+      };
     });
   if (!rows.length) return null;
   const running = rows.filter((row) => row.mode === "running");
@@ -659,7 +666,7 @@ function lightsDetail(widget) {
   return rows
     .map((row) =>
       rowShell(
-        `<span class="dm-w-dot" data-on="${row.on}" aria-hidden="true"></span>
+        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">💡</span>
          <span class="dm-w-name">${esc(row.name)}<small>${esc(row.room)}</small></span>
          <button type="button" class="dm-w-switch" data-dm-w-light="${esc(row.entity)}" data-on="${row.on}"
            aria-label="${esc(row.name)}"><i></i></button>`,
@@ -668,11 +675,21 @@ function lightsDetail(widget) {
     .join("");
 }
 
+/* L'icona racconta cosa sta facendo l'unita': fiamma quando scalda, fiocco
+ * quando raffresca — la stessa lingua della pagina Clima. */
+function climateGlyph(mode) {
+  if (mode.includes("heat")) return "🔥";
+  if (mode.includes("cool")) return "❄️";
+  if (mode.includes("dry")) return "💧";
+  if (mode.includes("fan")) return "🌀";
+  return "❄️";
+}
+
 function climateDetail(widget) {
   return widget.rows
     .map((row) =>
       rowShell(
-        `<span class="dm-w-dot" data-on="${row.on}" aria-hidden="true"></span>
+        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${climateGlyph(row.mode || "")}</span>
          <span class="dm-w-name">${esc(row.name)}<small>${
            row.ambient == null ? "" : `${formatNumber(row.ambient, 1)}°`
          }${row.on && row.target != null ? ` → ${formatNumber(row.target, 1)}°` : ""}</small></span>
@@ -687,7 +704,7 @@ function coversDetail(widget) {
   return widget.rows
     .map((row) =>
       rowShell(
-        `<span class="dm-w-dot" data-on="${row.open}" aria-hidden="true"></span>
+        `<span class="dm-w-glyph" data-on="${row.open}" aria-hidden="true">🪟</span>
          <span class="dm-w-name">${esc(row.name)}<small>${
            row.position == null ? "" : `${row.position}%`
          }</small></span>
@@ -708,10 +725,20 @@ function coversDetail(widget) {
 function securityDetail(widget, states) {
   const parts = [];
   if (widget.alarm) {
+    // L'antifurto si comanda da qui: gli stessi servizi e lo stesso tastierino
+    // PIN della pagina Sicurezza (`promptPinAndSet`), solo in formato tessera.
+    const comando = (service, on, icon, label) =>
+      `<button type="button" data-dm-w-alarm="${service}" data-on="${on}"
+         title="${esc(label)}" aria-label="${esc(label)}">${icon}</button>`;
     parts.push(
       rowShell(
-        `<span class="dm-w-dot" data-on="${widget.armed || widget.triggered}" aria-hidden="true"></span>
-         <span class="dm-w-name">${esc(t("Antifurto", "Alarm"))}<small>${esc(widget.value)}</small></span>`,
+        `<span class="dm-w-glyph" data-on="${widget.armed || widget.triggered}" aria-hidden="true">🛡️</span>
+         <span class="dm-w-name">${esc(t("Antifurto", "Alarm"))}<small>${esc(widget.value)}</small></span>
+         <span class="dm-w-alarm">
+           ${comando("alarm_arm_away", widget.mode === "armed_away", "🏠", t("Fuori", "Away"))}
+           ${comando("alarm_arm_night", widget.mode === "armed_night", "🌙", t("Notte", "Night"))}
+           ${comando("alarm_disarm", !widget.armed && !widget.triggered, "🔓", t("Sblocca", "Disarm"))}
+         </span>`,
       ),
     );
   }
@@ -759,13 +786,19 @@ function appliancesDetail(widget) {
   if (!widget.running.length)
     return `<p class="dm-w-empty">✨ ${esc(t("Tutto spento", "Everything off"))}</p>`;
   return widget.running
-    .map((row) =>
-      rowShell(
-        `<span class="dm-w-dot" data-on="true" aria-hidden="true"></span>
+    .map((row) => {
+      // L'icona e' quella vera dell'elettrodomestico — la lavatrice ha
+      // l'oblo', il forno lo sportello: lo stesso tratto della sua pagina.
+      const disegno = root.cdApplianceIcon?.(row.type, 20);
+      const icona = disegno
+        ? `<span class="dm-w-appl-ic" aria-hidden="true">${disegno}</span>`
+        : `<span class="dm-w-glyph" data-on="true" aria-hidden="true">🫧</span>`;
+      return rowShell(
+        `${icona}
          <span class="dm-w-name">${esc(row.name)}</span>
          <b class="dm-w-val">${row.watts == null ? "" : formatWatts(row.watts)}</b>`,
-      ),
-    )
+      );
+    })
     .join("");
 }
 
@@ -788,7 +821,9 @@ function openingsDetail(widget) {
   return rows
     .map((row) =>
       rowShell(
-        `<span class="dm-w-dot" data-on="${row.on}" aria-hidden="true"></span>
+        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${
+          /porta|cancell|door|gate/i.test(row.name) ? "🚪" : "🪟"
+        }</span>
          <span class="dm-w-name">${esc(row.name)}</span>
          <b class="dm-w-val">${esc(row.on ? t("Aperta", "Open") : t("Chiusa", "Closed"))}</b>`,
       ),
@@ -801,7 +836,7 @@ function batteriesDetail(widget) {
     .slice(0, MAX_DETAIL_ROWS)
     .map((row) =>
       rowShell(
-        `<span class="dm-w-dot" data-on="${row.level <= 20}" aria-hidden="true"></span>
+        `<span class="dm-w-glyph" data-on="true" aria-hidden="true">${row.level <= 20 ? "🪫" : "🔋"}</span>
          <span class="dm-w-name">${esc(row.name)}</span>
          <b class="dm-w-val">${Math.round(row.level)}%</b>`,
       ),
@@ -813,7 +848,7 @@ function floodDetail(widget) {
   return widget.rows
     .map((row) =>
       rowShell(
-        `<span class="dm-w-dot" data-on="true" aria-hidden="true"></span>
+        `<span class="dm-w-glyph" data-on="true" aria-hidden="true">💧</span>
          <span class="dm-w-name">${esc(row.name)}</span>`,
       ),
     )
@@ -825,7 +860,7 @@ function customDetail(widget) {
     .slice(0, MAX_DETAIL_ROWS)
     .map((row) =>
       rowShell(
-        `<span class="dm-w-dot" data-on="true" aria-hidden="true"></span>
+        `<span class="dm-w-glyph" data-on="true" aria-hidden="true">${esc(widget.icon)}</span>
          <span class="dm-w-name">${esc(row.name)}</span>
          <b class="dm-w-val">${esc(row.state)}</b>`,
       ),
@@ -1115,6 +1150,14 @@ function onClick(event) {
     callHa("cover", clean(cover.dataset.svc), { entity_id: clean(cover.dataset.dmWCover) });
     return;
   }
+  const alarm = event.target?.closest?.("[data-dm-w-alarm]");
+  if (alarm) {
+    event.preventDefault();
+    // Stessa strada della pagina Sicurezza: il tastierino PIN dell'antifurto
+    // chiede il codice e poi chiama lui il servizio scelto.
+    root.promptPinAndSet?.(clean(alarm.dataset.dmWAlarm));
+    return;
+  }
   if (event.target?.closest?.("[data-dm-widget-close]")) {
     event.preventDefault();
     toggleExpand(state.expanded);
@@ -1256,13 +1299,26 @@ function installStyles() {
 #dm-widgets .dm-w-row:nth-child(6){animation-delay:180ms}
 #dm-widgets .dm-w-row:nth-child(n+7){animation-delay:210ms}
 #dm-widgets .dm-w-row:hover{background:var(--surface-3,#f1f5f9)}
-#dm-widgets .dm-w-dot{
-  flex:0 0 8px;width:8px;height:8px;border-radius:50%;
-  background:color-mix(in srgb,var(--text-dim,#94a3b8) 45%,transparent)}
-#dm-widgets .dm-w-dot[data-on="true"]{
-  background:var(--dm-widget-accent,#0ea5e9);
-  box-shadow:0 0 0 3px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 20%,transparent)}
-#dm-widgets .dm-w-glyph{flex:0 0 auto;font-size:15px}
+#dm-widgets .dm-w-glyph{flex:0 0 auto;font-size:15px;transition:filter .25s ease,opacity .25s ease}
+#dm-widgets .dm-w-glyph[data-on="false"]{filter:grayscale(1);opacity:.4}
+#dm-widgets .dm-w-appl-ic{
+  flex:0 0 auto;display:grid;place-items:center;width:24px;height:24px;
+  color:var(--dm-widget-accent,#06b6d4)}
+#dm-widgets .dm-w-appl-ic svg{width:20px;height:20px;display:block;stroke:currentColor;fill:none}
+#dm-widgets .dm-w-appl-ic svg [stroke],#dm-widgets .dm-w-appl-ic svg path,
+#dm-widgets .dm-w-appl-ic svg rect,#dm-widgets .dm-w-appl-ic svg circle,
+#dm-widgets .dm-w-appl-ic svg line{stroke:currentColor}
+#dm-widgets .dm-w-appl-ic svg [fill="currentColor"]{fill:currentColor}
+#dm-widgets .dm-w-alarm{display:inline-flex;gap:6px;margin-left:auto}
+#dm-widgets .dm-w-alarm button{
+  width:32px;height:28px;border-radius:9px;border:1px solid var(--card-border,#e2e8f0);
+  background:var(--surface-2,#f8fafc);font-size:13px;line-height:1;cursor:pointer;
+  transition:transform .15s ease,background .2s ease,border-color .2s ease,box-shadow .2s ease}
+#dm-widgets .dm-w-alarm button:hover{transform:translateY(-1px)}
+#dm-widgets .dm-w-alarm button[data-on="true"]{
+  background:color-mix(in srgb,var(--dm-widget-accent,#10b981) 16%,transparent);
+  border-color:var(--dm-widget-accent,#10b981);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--dm-widget-accent,#10b981) 14%,transparent)}
 #dm-widgets .dm-w-name{min-width:0;flex:1;display:grid;gap:0;font-size:13px;font-weight:700;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #dm-widgets .dm-w-name small{font-size:10.5px;font-weight:700;color:var(--text-dim,#94a3b8)}

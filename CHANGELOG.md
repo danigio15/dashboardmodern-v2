@@ -70,6 +70,16 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   miniature zoomano al tocco — tutto spento da `prefers-reduced-motion` per
   chi il movimento non lo vuole.
 
+- **I dettagli comandano, e ogni riga ha la sua icona.** L'antifurto si
+  governa dalla tessera Sicurezza: Fuori 🏠, Notte 🌙 e Sblocca 🔓 passano
+  dallo stesso tastierino PIN della pagina Sicurezza, con la modalità attiva
+  evidenziata. E le righe dei dettagli parlano per immagini: la lavatrice ha
+  il suo disegno vero (lo stesso tratto SVG della sua pagina), la luce la
+  lampadina che si spegne in grigio, il clima fiamma o fiocco secondo quel
+  che sta facendo, le tapparelle la finestra, le batterie 🔋 o 🪫 quando sono
+  da cambiare, porte e cancelli 🚪, gli avvisi personalizzati la loro icona
+  scelta.
+
 - **Il ponte assorbe il Quadro Avvisi.** Le card del Quadro — aperture,
   batterie scariche, allagamenti, avvisi personalizzati — diventano tessere
   del ponte, con le STESSE liste sorvegliate e le stesse regole di conteggio
