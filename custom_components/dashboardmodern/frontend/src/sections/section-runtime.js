@@ -29,6 +29,7 @@ import { installApplianceShowcaseSection } from "./appliance-showcase-section.js
 import { installApplianceEditorSection } from "./appliance-editor-section.js";
 import { installLightsAlertsSection } from "./lights-alerts-section.js";
 import { installLightsSceneSection } from "./lights-scene-section.js";
+import { installLightsPageSection } from "./lights-page-section.js";
 import { installAlertsSection } from "./alerts-section.js";
 import { installFloodAlertsSection } from "./flood-alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
@@ -673,6 +674,9 @@ export function installSectionRuntime() {
     // The editor owns the light list and the rooms; the scene owns the popup
     // that controls them, so it installs after the model it reads.
     installLightsSceneSection();
+    // La pagina Luci legge lo stesso modello e apre la stessa scheda controlli
+    // del popup: si installa dopo chi la possiede.
+    installLightsPageSection();
     installAlertsSection();
     /* L'allagamento e' una lista sorvegliata come le altre: si installa dove si
      * installano gli avvisi, subito dopo chi possiede il loro editor. */
@@ -759,6 +763,7 @@ export function installSectionRuntime() {
         "appliance-editor",
         "lights",
         "lights-scene",
+        "lights-page",
         "alerts",
         "flood-alerts",
         "theme-foundation",

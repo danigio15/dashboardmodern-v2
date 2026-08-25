@@ -151,6 +151,10 @@ async def async_get_config(
             {
                 vol.Required("values"): {str: str},
                 vol.Optional("keys_revision", default=0): vol.Coerce(int),
+                # La generazione dello scrittore: i runtime vecchi non la
+                # mandano, e il frontend nuovo usa l'assenza per riconoscere
+                # i loro scatti. Il negozio la conserva e basta.
+                vol.Optional("writer_generation", default=0): vol.Coerce(int),
                 vol.Optional("updated_at", default=0): vol.Coerce(int),
             },
             extra=vol.REMOVE_EXTRA,
@@ -177,6 +181,7 @@ async def async_set_config(
             snapshot["values"],
             entry_id=msg.get("entry_id"),
             keys_revision=snapshot["keys_revision"],
+            writer_generation=snapshot["writer_generation"],
             updated_at=snapshot["updated_at"],
             expected_revision=msg.get("expected_revision"),
             reset=msg["reset"],

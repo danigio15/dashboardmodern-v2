@@ -4,6 +4,7 @@ import {
   poolRunToday,
   poolTargetHours as modelTargetHours,
 } from "../core/pool-model.js";
+import { decorateEntityFields } from "./editor-slots-section.js";
 import { extraPoolCommand } from "./pool-extra-section.js";
 import {
   allStates,
@@ -1304,11 +1305,21 @@ function ensureSoilFields() {
   const body = doc?.getElementById("ed-body");
   const rain = body?.querySelector?.("#ed-irr-rain");
   if (!body || !rain) return false;
-  const ancora = rain.closest("label, .ed-slot") || rain;
+  /* MAI subito dopo l'input nudo: la lente della pioggia vive da fratello
+   * successivo del suo campo, e un holder infilato in mezzo la separa per
+   * sempre dalla riga (la veste uniforme cerca la lente proprio li'). Se il
+   * campo non ha una riga sua, ci si mette dopo la lente. */
+  const lente = rain.nextElementSibling?.matches?.(".dm-entity-picker") ? rain.nextElementSibling : null;
+  const ancora = rain.closest("label, .ed-slot, .dm-entity-picker-row") || lente || rain;
   let holder = body.querySelector("[data-dm-irr-soil-fields]");
   if (!holder) {
     holder = casellaSoil();
     ancora.after(holder);
+    /* La veste della riga entita' si mette qui, nello stesso giro che monta il
+     * campo: la passata generale corre per conto suo, e un campo nato dopo di
+     * lei resterebbe una casella nuda per qualche frame — l'uniformita' degli
+     * editor e' un contratto, non una media. */
+    decorateEntityFields(holder);
   } else if (ancora.nextElementSibling !== holder) {
     // Si rimette in fila a ogni giro, come le caselle dell'infisso.
     ancora.after(holder);

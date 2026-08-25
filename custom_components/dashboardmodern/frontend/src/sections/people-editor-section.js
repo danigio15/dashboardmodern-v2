@@ -16,6 +16,20 @@
  * foto del profilo.
  */
 import {
+  avatarSvg,
+  FACE_BEARDS,
+  FACE_BUILDS,
+  FACE_EYE_COLORS,
+  FACE_EYES,
+  FACE_GLASSES,
+  FACE_HAIR_COLORS,
+  FACE_HAIRS,
+  FACE_MOUTHS,
+  FACE_OUTFITS,
+  FACE_SKINS,
+  normalizeFace,
+} from "../core/person-avatar.js";
+import {
   AVATAR_COLORS,
   detectCompanionSensors,
   normalizePeople,
@@ -27,6 +41,19 @@ import { allStates, clean, doc, esc, installStyle, onEditorRedraw, readJson, roo
 
 const KEY = "__DASHBOARDMODERN_PEOPLE_EDITOR__";
 const state = (root[KEY] ||= { installed: false, aperto: -1 });
+
+/* Le facce tra cui scegliere l'avatar. Il picker delle icone della plancia
+ * parla di prese e lampadine: per una persona servono persone. Curate a mano,
+ * per categorie: espressioni, gente di casa, mestieri, e qualche animale per
+ * chi non si prende sul serio. */
+export const AVATAR_EMOJI = Object.freeze([
+  "😀", "😊", "😎", "🥰", "😇", "🤓", "🥳", "😴", "🤠", "🥸", "🤗", "😜",
+  "👨", "👩", "🧑", "👦", "👧", "👶", "👴", "👵", "🧔", "👱‍♀️", "👱‍♂️", "🧑‍🦰",
+  "👨‍🦱", "👩‍🦱", "👨‍🦳", "👩‍🦳", "👨‍🦲", "🧑‍🦱", "👩‍🦰", "🧕", "👳‍♂️", "👲", "🧒", "🧓",
+  "👨‍💻", "👩‍💻", "👨‍🍳", "👩‍🍳", "👨‍⚕️", "👩‍⚕️", "👨‍🏫", "👩‍🏫", "👷‍♂️", "👷‍♀️", "👮‍♂️", "👮‍♀️",
+  "👨‍🔧", "👩‍🔧", "👨‍🚒", "👩‍🚒", "👨‍✈️", "👩‍✈️", "👨‍🎨", "👩‍🎨", "🧑‍🌾", "🧑‍🎓", "🦸‍♂️", "🦸‍♀️",
+  "🐱", "🐶", "🦊", "🐼", "🐨", "🦁", "🐯", "🐸", "🐧", "🦄", "🐢", "🦉",
+]);
 
 export const PEOPLE_EDITOR_TAB = "people";
 const ENTITY_RE = /^(person|device_tracker)\.[a-z0-9_]+$/i;
@@ -51,7 +78,11 @@ function nomeDi(person, index) {
  * vede qui, non dopo aver chiuso l'editor. */
 function ritratto(person) {
   const avatar = `<span class="dm-people-ed-avatar" style="--dm-person-color:${esc(person.avatar.color)}">${
-    person.avatar.emoji ? esc(person.avatar.emoji) : `<b>${esc(personInitials(person.name))}</b>`
+    person.avatar.face
+      ? avatarSvg(person.avatar.face, { animated: false })
+      : person.avatar.emoji
+        ? esc(person.avatar.emoji)
+        : `<b>${esc(personInitials(person.name))}</b>`
   }</span>`;
   const photo = person.photo ? `<img src="${esc(person.photo)}" alt="">` : "";
   return `<span class="dm-people-ed-portrait" data-person-portrait>${avatar}${photo}</span>`;
@@ -65,6 +96,77 @@ function campoEntita(id, field, label, value, placeholder, hint) {
   return `<label class="ed-slot dm-people-field"><span class="ed-slot-lbl">${esc(label)}</span>
     <span class="ed-form-row"><input id="${esc(id)}" class="ed-input mono" data-person-field="${esc(field)}" value="${esc(value)}" placeholder="${esc(placeholder)}" autocomplete="off" spellcheck="false"></span>
     ${hint ? `<small>${esc(hint)}</small>` : ""}</label>`;
+}
+
+/* ── Il costruttore della faccia ──────────────────────────────────────────
+ *
+ * Come i Memoji: si parte da una faccia di default e si cambia un pezzo alla
+ * volta — carnagione, taglio e colore dei capelli, occhi, bocca, barba,
+ * occhiali — con l'anteprima che respira davanti. Ogni pezzo e' una fila di
+ * campioncini: i colori come pastiglie, i tagli e i lineamenti come mini
+ * facce, disegnate dallo stesso motore della card cosi' quello che si sceglie
+ * e' esattamente quello che si vedra'. */
+
+const FACE_THUMB_BASE = Object.freeze({
+  skin: "f2",
+  hair: "corto",
+  hairColor: "castano",
+  eyes: "normali",
+  eyeColor: "marrone",
+  mouth: "sorriso",
+  beard: "nessuna",
+  glasses: "nessuno",
+  outfit: "maglietta",
+  build: "normale",
+});
+
+function faceRows() {
+  return [
+    { k: "skin", label: t("Carnagione", "Skin tone"), keys: Object.keys(FACE_SKINS), swatch: (key) => FACE_SKINS[key].base },
+    { k: "hair", label: t("Capelli", "Hair"), keys: [...FACE_HAIRS] },
+    { k: "hairColor", label: t("Colore capelli", "Hair color"), keys: Object.keys(FACE_HAIR_COLORS), swatch: (key) => FACE_HAIR_COLORS[key] },
+    { k: "eyes", label: t("Occhi", "Eyes"), keys: [...FACE_EYES] },
+    { k: "eyeColor", label: t("Colore occhi", "Eye color"), keys: Object.keys(FACE_EYE_COLORS), swatch: (key) => FACE_EYE_COLORS[key] },
+    { k: "mouth", label: t("Bocca", "Mouth"), keys: [...FACE_MOUTHS] },
+    { k: "beard", label: t("Barba", "Beard"), keys: [...FACE_BEARDS] },
+    { k: "build", label: t("Corporatura", "Build"), keys: [...FACE_BUILDS] },
+    { k: "glasses", label: t("Occhiali", "Glasses"), keys: [...FACE_GLASSES] },
+    { k: "outfit", label: t("Abbigliamento", "Clothing"), keys: [...FACE_OUTFITS] },
+  ];
+}
+
+function faceThumb(face, k, key) {
+  /* Il campioncino mostra la variante sul modello neutro, ma tiene la
+   * carnagione e i capelli gia' scelti: un paio di occhiali si giudica sulla
+   * propria faccia, non su quella di un altro. */
+  const base = { ...FACE_THUMB_BASE, skin: face.skin, hairColor: face.hairColor, eyeColor: face.eyeColor };
+  if (k === "hair") base.hairColor = face.hairColor;
+  return avatarSvg({ ...base, [k]: key }, { animated: false, shirt: "#9aa8b8" });
+}
+
+function builderMarkup(person) {
+  const face = person.avatar.face;
+  if (!face)
+    return `<button type="button" class="ed-btn-add dm-face-create" data-face-create>🧑‍🎨 ${t("Crea l'avatar", "Create the avatar")}</button>
+      <small>${t("Oppure scrivi un'emoji qui sotto — o lascia vuoto per le iniziali del nome.", "Or type an emoji below — or leave it empty for the initials of the name.")}</small>`;
+  const rows = faceRows()
+    .map(({ k, label, keys, swatch }) => {
+      const options = keys
+        .map((key) => {
+          const selected = face[k] === key ? " on" : "";
+          if (swatch)
+            return `<button type="button" class="dm-face-opt dm-face-swatch${selected}" data-face-k="${k}" data-face-v="${esc(key)}" style="--dm-face-swatch:${swatch(key)}" aria-label="${esc(label)}"></button>`;
+          return `<button type="button" class="dm-face-opt dm-face-thumb${selected}" data-face-k="${k}" data-face-v="${esc(key)}" aria-label="${esc(label)}">${faceThumb(face, k, key)}</button>`;
+        })
+        .join("");
+      return `<div class="dm-face-row"><span class="dm-face-row-lbl">${esc(label)}</span><span class="dm-face-row-opts">${options}</span></div>`;
+    })
+    .join("");
+  return `<div class="dm-face-workbench">
+      <span class="dm-face-preview" style="--dm-person-color:${esc(person.avatar.color)}">${avatarSvg(face)}</span>
+      <div class="dm-face-rows">${rows}</div>
+    </div>
+    <button type="button" class="dm-face-remove" data-face-clear>✕ ${t("Togli la faccia (torna a emoji o iniziali)", "Remove the face (back to emoji or initials)")}</button>`;
 }
 
 /* I sensori facoltativi del telefono, con le parole dell'editor: etichetta e
@@ -122,7 +224,10 @@ function rigaMarkup(person, index) {
       </div>
       <div class="ed-slot dm-people-field"><span class="ed-slot-lbl">${t("Avatar (senza foto)", "Avatar (without a photo)")}</span>
         <input type="hidden" data-person-field="color" value="${esc(person.avatar.color)}">
+        <input type="hidden" data-person-field="face" value="${esc(person.avatar.face ? JSON.stringify(person.avatar.face) : "")}">
+        <div class="dm-face-builder" data-face-builder>${builderMarkup(person)}</div>
         <span class="ed-form-row"><input id="dm-person-${index}-emoji" class="ed-input dm-people-emoji" data-person-field="emoji" value="${esc(person.avatar.emoji)}" placeholder="${t("Vuoto: le iniziali del nome", "Empty: the initials of the name")}" autocomplete="off" spellcheck="false"><button type="button" class="dm-people-pick" data-person-emoji="dm-person-${index}-emoji" aria-label="${t("Scegli un'emoji", "Choose an emoji")}">😀</button></span>
+        <span class="dm-face-row-lbl">${t("Sfondo", "Background")}</span>
         <span class="dm-people-colors">${colori}</span>
       </div>
       <output class="dm-people-error" data-person-error></output>
@@ -154,7 +259,13 @@ function leggiRiga(riga, person) {
     const value = clean(input.value);
     if (field === "emoji") next.avatar.emoji = value;
     else if (field === "color") next.avatar.color = value;
-    else next[field] = value;
+    else if (field === "face") {
+      try {
+        next.avatar.face = value ? normalizeFace(JSON.parse(value)) : null;
+      } catch (_error) {
+        next.avatar.face = null;
+      }
+    } else next[field] = value;
   }
   return next;
 }
@@ -167,7 +278,7 @@ export function ensurePeopleEditor() {
     state.aperto,
     ...people.map(
       (person) =>
-        `${person.id}~${person.name}~${person.entity}~${person.photo}~${person.avatar.emoji}~${person.avatar.color}~${person.battery}~${person.batteryState}~${person.watch}~${person.distance}~${person.travel}~${person.address}~${person.activity}~${person.wifi}~${person.direction}`,
+        `${person.id}~${person.name}~${person.entity}~${person.photo}~${person.avatar.emoji}~${person.avatar.color}~${JSON.stringify(person.avatar.face)}~${person.battery}~${person.batteryState}~${person.watch}~${person.distance}~${person.travel}~${person.address}~${person.activity}~${person.wifi}~${person.direction}`,
     ),
   ].join("|");
   if (body.dataset.dmPeopleEditor === firma && body.querySelector(".dm-people-list")) return true;
@@ -181,6 +292,34 @@ function ridisegna() {
   const body = doc?.getElementById("ed-body");
   if (body) delete body.dataset.dmPeopleEditor;
   ensurePeopleEditor();
+}
+
+/* La faccia scritta nella casella nascosta della riga, gia' normalizzata. */
+function rigaFace(riga) {
+  const campo = riga.querySelector('[data-person-field="face"]');
+  try {
+    return campo?.value ? normalizeFace(JSON.parse(campo.value)) : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+/* Scrive la faccia nella riga e ridisegna solo il costruttore e il ritratto:
+ * il resto della riga — nome, entita', sensori scritti a meta' — non si
+ * tocca, che e' il motivo per cui non si passa dal ridisegno intero. */
+function scriviFace(riga, people, index, face) {
+  const campo = riga.querySelector('[data-person-field="face"]');
+  if (campo) campo.value = face ? JSON.stringify(face) : "";
+  const builder = riga.querySelector("[data-face-builder]");
+  if (builder && people[index]) {
+    const colore =
+      clean(riga.querySelector('[data-person-field="color"]')?.value) || people[index].avatar.color;
+    builder.innerHTML = builderMarkup({
+      ...people[index],
+      avatar: { ...people[index].avatar, face, color: colore },
+    });
+  }
+  aggiornaAnteprima(riga, people, index);
 }
 
 /* L'anteprima del ritratto segue le mani: si cambia emoji o colore e lo si
@@ -220,9 +359,12 @@ async function onClick(event) {
     /* Ogni persona importata arriva gia' con i sensori del suo telefono:
      * quello che il pulsante «rileva» fa su una riga, l'importazione lo fa
      * per tutte. */
-    const nuove = suggestPeople(states, people).map((persona) => ({
+    const proposte = suggestPeople(states, people);
+    const nuove = proposte.map((persona) => ({
       ...persona,
-      ...detectCompanionSensors(states, persona.entity),
+      /* L'anagrafe conta persone gia' salvate E persone in arrivo: il
+       * «candidato unico» non deve regalare lo stesso telefono a due. */
+      ...detectCompanionSensors(states, persona.entity, [...people, ...proposte]),
     }));
     if (!nuove.length) {
       root.edToast?.(t("Nessuna nuova persona da importare", "No new people to import"));
@@ -237,7 +379,7 @@ async function onClick(event) {
   const emojiPick = event.target.closest("[data-person-emoji]");
   if (emojiPick) {
     event.preventDefault();
-    root.wzPickIcon?.(`#${clean(emojiPick.dataset.personEmoji)}`);
+    apriAvatarPicker(clean(emojiPick.dataset.personEmoji));
     return;
   }
   const riga = event.target.closest("[data-person-index]");
@@ -251,12 +393,24 @@ async function onClick(event) {
      * chi ha appena scelto la persona vuole i sensori di quella. I campi gia'
      * compilati non si toccano — il pulsante riempie, non riscrive. */
     const entita = clean(riga.querySelector('[data-person-field="entity"]')?.value);
-    const trovati = detectCompanionSensors(allStates(), entita);
+    /* Senza l'entita' il rilevamento non sa di chi cercare i sensori: dirlo
+     * e' piu' utile di un «niente trovato» che suona come un guasto. */
+    if (!entita) {
+      root.edToast?.(t("Prima scegli l'entità della persona", "Choose the person entity first"));
+      return;
+    }
+    const trovati = detectCompanionSensors(allStates(), entita, people);
     let riempiti = 0;
     for (const [field, sensore] of Object.entries(trovati)) {
       const campo = riga.querySelector(`[data-person-field="${field}"]`);
       if (campo && !clean(campo.value)) {
         campo.value = sensore;
+        /* Il campo decorato e' nascosto dietro la pastiglia, e la pastiglia
+         * si ridipinge solo sugli eventi del campo: un .value assegnato in
+         * silenzio riempiva l'input invisibile e lasciava a video «Scegli
+         * entità» — sei sensori trovati e nessuno da vedere. */
+        campo.dispatchEvent(new Event("input", { bubbles: true }));
+        campo.dispatchEvent(new Event("change", { bubbles: true }));
         riempiti += 1;
       }
     }
@@ -294,7 +448,28 @@ async function onClick(event) {
     riga.querySelectorAll("[data-person-color]").forEach((button) =>
       button.classList.toggle("on", button === colore),
     );
+    riga
+      .querySelector(".dm-face-preview")
+      ?.style?.setProperty("--dm-person-color", clean(colore.dataset.personColor));
     aggiornaAnteprima(riga, people, index);
+    return;
+  }
+  if (event.target.closest("[data-face-create]")) {
+    event.preventDefault();
+    scriviFace(riga, people, index, normalizeFace({}));
+    return;
+  }
+  if (event.target.closest("[data-face-clear]")) {
+    event.preventDefault();
+    scriviFace(riga, people, index, null);
+    return;
+  }
+  const pezzo = event.target.closest("[data-face-k]");
+  if (pezzo) {
+    event.preventDefault();
+    const face = rigaFace(riga) || normalizeFace({});
+    face[clean(pezzo.dataset.faceK)] = clean(pezzo.dataset.faceV);
+    scriviFace(riga, people, index, normalizeFace(face));
     return;
   }
   if (event.target.closest("[data-person-edit]")) {
@@ -346,6 +521,40 @@ function onChange(event) {
   if (riga && Number.isFinite(index) && people[index]) aggiornaAnteprima(riga, people, index);
 }
 
+/* Il picker dell'avatar: la stessa finestra del picker icone della plancia,
+ * ma con le facce. Quello di serie parla di prese e lampadine — per una
+ * persona servono persone. La scelta finisce nella casella e spara `change`,
+ * che e' l'evento da cui l'anteprima del ritratto si aggiorna. */
+function apriAvatarPicker(inputId) {
+  if (!doc) return;
+  doc.getElementById("dm-avatar-picker")?.remove();
+  const overlay = doc.createElement("div");
+  overlay.id = "dm-avatar-picker";
+  /* Non un <header>: quello di pagina ha uno stile suo — padding, colonna,
+   * ombra — e se lo porterebbe dentro alla finestra. */
+  overlay.innerHTML = `<div class="dm-avatar-sheet" role="dialog" aria-modal="true">
+    <div class="dm-avatar-head"><strong>😊 ${t("Scegli l'avatar", "Choose the avatar")}</strong><button type="button" data-close aria-label="${t("Chiudi", "Close")}">✕</button></div>
+    <div class="dm-avatar-grid">${AVATAR_EMOJI.map(
+      (emoji) => `<button type="button" data-avatar-emoji="${esc(emoji)}">${esc(emoji)}</button>`,
+    ).join("")}</div>
+  </div>`;
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay || event.target.closest("[data-close]")) {
+      overlay.remove();
+      return;
+    }
+    const scelta = event.target.closest("[data-avatar-emoji]");
+    if (!scelta) return;
+    const input = doc.getElementById(inputId);
+    if (input) {
+      input.value = clean(scelta.dataset.avatarEmoji);
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    overlay.remove();
+  });
+  doc.body.append(overlay);
+}
+
 /* La voce nella barra della configurazione: le voci sono scritte nel documento
  * vendorizzato e questa non c'e', quindi si aggiunge accanto alle altre con lo
  * stesso gestore. */
@@ -387,6 +596,30 @@ function installStyles() {
       #ed-body .dm-people-colors{display:flex;flex-wrap:wrap;gap:6px;padding-top:2px}
       #ed-body .dm-people-color{width:26px;height:26px;border-radius:50%;border:2px solid transparent;background:var(--dm-person-color);cursor:pointer;padding:0}
       #ed-body .dm-people-color.on{border-color:var(--text,#0f172a);box-shadow:0 0 0 2px var(--card-bg,#fff) inset}
+      #dm-avatar-picker{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:20px}
+      #dm-avatar-picker .dm-avatar-sheet{background:var(--card-bg,#fff);border-radius:18px;max-width:440px;width:100%;max-height:70vh;overflow:auto;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+      #dm-avatar-picker .dm-avatar-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+      #dm-avatar-picker .dm-avatar-head strong{font-weight:900;font-size:15px;color:var(--text,#0f172a)}
+      #dm-avatar-picker [data-close]{border:none;background:rgba(148,163,184,.15);border-radius:50%;width:32px;height:32px;font-size:15px;cursor:pointer;color:var(--text,#0f172a)}
+      #dm-avatar-picker .dm-avatar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:4px}
+      #dm-avatar-picker [data-avatar-emoji]{font-size:23px;padding:8px 0;border:none;background:transparent;border-radius:10px;cursor:pointer}
+      #dm-avatar-picker [data-avatar-emoji]:hover{background:rgba(14,165,233,.12)}
+      #ed-body .dm-face-builder{display:grid;gap:8px;margin:2px 0 6px}
+      #ed-body .dm-face-create{margin:0}
+      #ed-body .dm-face-builder>small{color:var(--secondary-text-color,#64748b);font-size:12px}
+      #ed-body .dm-face-workbench{display:flex;gap:14px;align-items:flex-start}
+      #ed-body .dm-face-preview{flex:0 0 108px;width:108px;height:108px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 32% 26%,color-mix(in srgb,var(--dm-person-color,#0ea5e9) 10%,var(--card-bg,#fff)),color-mix(in srgb,var(--dm-person-color,#0ea5e9) 30%,var(--card-bg,#fff)));box-shadow:0 10px 22px -10px rgba(15,23,42,.45)}
+      #ed-body .dm-face-rows{flex:1 1 auto;min-width:0;display:grid;gap:7px}
+      #ed-body .dm-face-row{display:grid;gap:3px}
+      #ed-body .dm-face-row-lbl{font-size:10.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
+      #ed-body .dm-face-row-opts{display:flex;flex-wrap:wrap;gap:5px}
+      #ed-body .dm-face-opt{border:2px solid transparent;background:transparent;padding:0;cursor:pointer;border-radius:50%}
+      #ed-body .dm-face-opt.on{border-color:var(--info-color,#0ea5e9);box-shadow:0 0 0 2px color-mix(in srgb,var(--info-color,#0ea5e9) 30%,transparent)}
+      #ed-body .dm-face-swatch{width:26px;height:26px;background:var(--dm-face-swatch)}
+      #ed-body .dm-face-thumb{width:42px;height:42px;overflow:hidden;background:#e8edf4}
+      #ed-body .dm-face-remove{border:none;background:transparent;color:var(--secondary-text-color,#64748b);font:inherit;font-size:12px;font-weight:750;cursor:pointer;justify-self:start;padding:2px 0}
+      #ed-body .dm-face-remove:hover{color:var(--error-color,#dc2626)}
+      @media(max-width:560px){#ed-body .dm-face-workbench{flex-direction:column;align-items:center}#ed-body .dm-face-rows{width:100%}}
       #ed-body .dm-people-sensors{margin:2px 0}
       #ed-body .dm-people-sensors .ed-acc-body{display:grid;gap:8px}
       #ed-body .dm-people-sensors-intro{color:var(--secondary-text-color,#64748b);font-size:12px;line-height:1.45}

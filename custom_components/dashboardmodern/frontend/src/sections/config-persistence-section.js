@@ -13,6 +13,19 @@ const USER_DATA_VERSION = 1;
  * La revisione 7 aggiunge le preferenze del ponte dei widget (`cd_widgets`):
  * quali tessere si vedono in Home e in che ordine. */
 export const CONFIG_KEYS_REVISION = 7;
+/* La generazione dello scrittore, nel salvataggio stesso.
+ *
+ * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
+ * riscritture di macchina — il persist d'avvio, i vecchi difetti che
+ * riscrivevano `cd_ev_cars` da soli — e una plancia rimasta aperta col
+ * runtime vecchio rispinge per sempre i suoi dati stantii, foto comprese.
+ * Non possiamo aggiornare il codice che gira di la'; possiamo pero' non
+ * credergli: uno scatto senza questa generazione (o con una piu' vecchia)
+ * viene da uno di quei runtime, e su un dispositivo gia' configurato non
+ * vince — si rispinge la copia propria finche' quella plancia non viene
+ * ricaricata con la versione nuova. Fra dispositivi della stessa
+ * generazione non cambia niente. */
+export const WRITER_GENERATION = 1;
 const PERSIST_META_KEY = "dm_persistence_meta";
 const REMOTE_REFRESH_MIN_MS = 1200;
 
@@ -313,6 +326,7 @@ export function normalizeSharedSnapshot(snapshot) {
     revision: Number(snapshot.revision) || 0,
     updated_at: Number(snapshot.updated_at) || 0,
     keys_revision: Number(snapshot.keys_revision) || 0,
+    writer_generation: Number(snapshot.writer_generation) || 0,
     reset: snapshot.reset === true,
     values: Object.fromEntries(
       CONFIG_KEYS.flatMap((key) => (typeof values[key] === "string" ? [[key, values[key]]] : [])),
@@ -400,6 +414,14 @@ export function sharedReconcileAction({
     return "none";
   }
   if (sameConfigValues(local, normalized.values)) return "in-sync";
+  /* Il recinto di generazione. Uno scatto senza la generazione corrente viene
+   * da un runtime vecchio — uno di quelli che marcavano «in sospeso» anche le
+   * riscritture di macchina e rispingevano dati stantii per sempre. Su un
+   * dispositivo gia' configurato quello scatto non vince: si rispinge la
+   * copia propria, finche' la plancia vecchia non viene ricaricata. Fra
+   * dispositivi della stessa generazione questa riga non decide mai. */
+  if (localConfigured && Number(normalized.writer_generation) < WRITER_GENERATION)
+    return "push-local";
   if (
     Number(pendingAt) > 0 &&
     localConfigured &&
@@ -441,6 +463,7 @@ function snapshot() {
   return {
     version: USER_DATA_VERSION,
     keys_revision: CONFIG_KEYS_REVISION,
+    writer_generation: WRITER_GENERATION,
     updated_at: Date.now(),
     values: localValues(),
   };
@@ -537,6 +560,10 @@ function sharedSet(value, { expectedRevision = null, reset = false } = {}) {
       snapshot: {
         values: value.values,
         keys_revision: value.keys_revision,
+        /* Senza questo campo il backend timbra 0 e il recinto scatta CONTRO
+         * ogni scatto remoto: due dispositivi aggiornati si rispingerebbero
+         * a vicenda — proprio l'oscillazione che il recinto deve fermare. */
+        writer_generation: Number(value.writer_generation) || WRITER_GENERATION,
         updated_at: value.updated_at,
       },
       ...(expectedRevision === null ? {} : { expected_revision: Number(expectedRevision) }),
@@ -636,6 +663,17 @@ async function pushShared(attempt = 0) {
     state.remoteRevision = Number(result?.snapshot?.revision) || 0;
     state.remoteConfigured = meaningfulConfigValues(result?.snapshot?.values || {});
     if (attempt >= PUSH_CONFLICT_RETRIES) {
+      /* Cedere si', ma non a un runtime vecchio: adottare qui lo scatto di
+       * una plancia della generazione prima vorrebbe dire perdere il duello
+       * proprio con chi il recinto esiste per fermare. Si tiene la copia
+       * propria e si riprova al giro dopo, quando quella plancia avra'
+       * smesso di scrivere o sara' stata ricaricata. */
+      const rimasto = normalizeSharedSnapshot(result?.snapshot);
+      if (rimasto && rimasto.writer_generation < WRITER_GENERATION && configured) {
+        console.warn("[DashboardModern] conflict against an older writer; keeping local copy");
+        scheduleHydrateRetry(0);
+        return false;
+      }
       console.warn("[DashboardModern] shared config conflict persisted; keeping the stored copy");
       return applySharedSnapshot(result.snapshot);
     }
@@ -752,10 +790,18 @@ function restoreValues(values) {
 }
 
 function refreshRuntimeAfterRestore(remote) {
+  /* Tutto il giro di rilettura e' ripristino, non gesto: la rimigrazione del
+   * negozio riscrive le chiavi appena arrivate nella propria serializzazione,
+   * e fuori dalla finestra di idratazione — i rami di conflitto del push
+   * passano da qui — quelle riscritture finivano marcate «in sospeso». */
+  const eraRipristino = root.__DASHBOARDMODERN_PERSIST_RESTORE__;
+  root.__DASHBOARDMODERN_PERSIST_RESTORE__ = true;
   try {
     root.DashboardModernModules?.store?.migrate?.();
   } catch (error) {
     console.warn("[DashboardModern] canonical state reload after persistence restore failed", error);
+  } finally {
+    if (!eraRipristino) delete root.__DASHBOARDMODERN_PERSIST_RESTORE__;
   }
   // La configurazione condivisa arriva quando arriva, e a volte porta con se'
   // un'entita' che qui non c'e' piu'. Se il primo passo inciampa, gli altri
@@ -853,7 +899,13 @@ async function hydrateShared() {
   if (action === "in-sync") {
     state.localWasConfigured = localConfigured;
     rememberSynced(stored.revision, stored.updated_at);
-    if (Number(stored.keys_revision) < CONFIG_KEYS_REVISION) await pushShared();
+    /* Stessi valori ma busta vecchia: si ristampa, cosi' lo scatto porta la
+     * revisione delle chiavi e la generazione correnti. */
+    if (
+      Number(stored.keys_revision) < CONFIG_KEYS_REVISION ||
+      Number(stored.writer_generation) < WRITER_GENERATION
+    )
+      await pushShared();
     return false;
   }
   return false;
@@ -964,6 +1016,17 @@ function installStorageMutationBridge() {
   const originalRemoveItem = storage.removeItem?.bind(storage);
   if (!originalSetItem || !originalRemoveItem) return false;
 
+  /* Le scritture di proiezione del negozio non sono gesti.
+   *
+   * `persist` riscrive TUTTE le chiavi legacy dalla propria serializzazione —
+   * all'avvio, dopo un ripristino, a ogni transact — anche quando nessuno ha
+   * toccato niente: solo la forma del testo cambia. Prendere quelle
+   * riscritture per modifiche dell'utente rendeva scrittore ogni dispositivo
+   * acceso: la plancia vecchia rispingeva i suoi dati, quella nuova i propri,
+   * e la configurazione — le foto dell'auto per prime — oscillava da sola,
+   * un rimbalzo ogni giro di aggiornamento. Un gesto vero o scrive la chiave
+   * direttamente (gli editor storici), o passa dal negozio con un transact —
+   * che adesso lo annuncia da se'. */
   storage.setItem = function dashboardModernPersistentSetItem(key, value) {
     const managed = CONFIG_KEYS.includes(String(key));
     const before = managed ? storage.getItem(key) : null;
@@ -971,6 +1034,7 @@ function installStorageMutationBridge() {
     if (
       managed &&
       before !== String(value) &&
+      !storage.__dashboardStoreProjecting &&
       !state.hydrating &&
       !state.resetting &&
       !root.__DASHBOARDMODERN_PERSIST_RESTORE__ &&
@@ -986,6 +1050,7 @@ function installStorageMutationBridge() {
     if (
       managed &&
       before !== null &&
+      !storage.__dashboardStoreProjecting &&
       !state.hydrating &&
       !state.resetting &&
       !root.__DASHBOARDMODERN_PERSIST_RESTORE__ &&
@@ -1192,6 +1257,12 @@ export function installConfigPersistenceSection() {
     installStorageMutationBridge();
     root.setTimeout?.(() => hydrateRemote(), 0);
   });
+
+  /* Il gesto annunciato dal negozio: un transact che ha cambiato davvero il
+   * contenuto. E' il canale con cui gli editor che passano dal negozio —
+   * l'Energia, le Persone — continuano a sincronizzare, ora che le scritture
+   * di proiezione tacciono. */
+  root.addEventListener?.("dashboardmodern:store-user-write", () => markPending());
 
   root.addEventListener?.("focus", () => scheduleRemoteRefresh(40));
   root.addEventListener?.("pageshow", () => scheduleRemoteRefresh(40));

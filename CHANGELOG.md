@@ -5,9 +5,19 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## Non rilasciato
+## 1.2.0
 
 ### Aggiunto
+
+- **Il meteo in Home legge la stazione personale.** (#205) Chi ha una stazione
+  meteo (Ecowitt e simili) mappa i suoi sensori nella scheda Home della
+  configurazione — temperatura esterna, umidità, temperatura percepita,
+  velocità e direzione del vento — e il widget mostra quei numeri, con
+  l'unità del sensore: l'entità weather resta per lo stato e l'icona, e per
+  ogni dato non mappato. La percepita compare come riga sua solo quando c'è,
+  e la direzione in gradi diventa la rosa dei venti (N, NNE, …); un sensore
+  testuale si mostra com'è. La stazione da sola basta a far vivere il widget,
+  anche senza un'entità weather.
 
 - **«In primo piano»: il ponte dei widget della Home.** (#201) Una parte
   della Home dedicata ai widget: tessere piccole ed eleganti — un numero,
@@ -107,6 +117,185 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   sopra soglia — una lettura di nuovo sopra soglia riparte da capo, e lo
   spegnimento esplicito (lo stato dice off, o l'interruttore viene spento)
   vince subito. Il ciclo registrato include così anche l'asciugatura.
+- **La card della persona si apre.** Toccare la persona in Home apre la sua
+  scheda intera: il ritratto grande con l'anello del colore di presenza, la
+  zona, l'indirizzo con «Apri in mappa», e ogni dato del telefono come
+  mattonella — batteria e carica, orologio, WiFi, attività, distanza con la
+  direzione, tempo di rientro, ultimo aggiornamento. Finché è aperta si
+  aggiorna da sola, e con più persone le frecce passano dall'una all'altra.
+
+- **L'avatar è un personaggio in stile 3D, con corporatura, colore degli
+  occhi e vestiti.** Il motore disegna come i personaggi da cartone
+  renderizzati: occhi grandi con l'iride sfumata del suo colore (nuova fila
+  «Colore occhi»), l'ombra della palpebra dentro il bianco, sopracciglia
+  piene, il naso con la sua luce, la pelle modellata dalla luce radiale, i
+  capelli con gradiente e ciocche — e il sorriso coi denti. La fila
+  Corporatura (magra, normale, robusta) stringe o allarga viso e spalle. E
+  con la fila «Abbigliamento» si sceglie il vestito: maglietta, camicia coi
+  bottoni, felpa col cappuccio, o giacca col completo — camicia bianca e
+  cravatta che prende il colore della persona.
+
+### Corretto
+
+- **Col tema scuro il testo dell'editor era illeggibile.** (#206) Decine di
+  regole delle sezioni leggevano le variabili del tema di Home Assistant
+  (`--card-background-color`, `--secondary-background-color`, …) che dentro
+  la plancia non esistono: vinceva sempre il ripiego chiaro, e col tema scuro
+  il testo — che invece segue il tema — finiva chiaro su bianco. La
+  fondazione del tema ora dichiara quei nomi come alias dei token della
+  plancia: chiaro col chiaro, scuro con lo scuro, ovunque.
+
+- **Il config delle auto ha una sessione, e ogni auto la sua chiave.** La
+  matita apre QUELLA auto (e da lì salvare con un nome nuovo la rinomina:
+  stessa chiave, stesse entità, stesso posto), «＋ Aggiungi auto» apre la
+  bozza, e digitare il nome non tocca più le caselle delle entità. Il nome di
+  un'altra auto non si salva — un avviso spiega di usare la matita: era il
+  gesto da cui una vettura si prendeva i dati dell'altra. I tab della plancia
+  mostrano il nome dato all'auto (il modello sta nel tooltip) e restano
+  agganciati alla vettura anche se la lista cambia.
+
+- **La console EVCC comanda davvero.** I pulsanti modalità e la tendina del
+  target parlavano coi riferimenti interni invece che con le entità mappate:
+  Home Assistant rifiutava ogni chiamata. Ora risolvono il riferimento e
+  derivano il dominio dall'entità vera (un number si comanda con set_value).
+  E i km al limite di carica, senza il sensore dedicato, si calcolano da
+  autonomia attuale / batteria attuale × target: cambiando il target il
+  numero si muove subito.
+
+- **Il valore del mese non balla più.** In Energia · Mensile il totale Casa
+  usciva prima da un ripiego (348,7) e un attimo dopo dal sensore vero
+  (443,0). Nel periodo corrente l'entità di periodo configurata è l'unica
+  autorità: il ripiego dal contatore totale resta per i mesi passati, e uno
+  stato non ancora arrivato non dipinge un numero sporco.
+
+- **«Rileva dal telefono» si vede.** I sensori trovati finivano nel campo
+  nascosto dietro la pastiglia, che continuava a dire «Scegli entità»: ora il
+  campo avvisa la pastiglia e i sei sensori compaiono davvero.
+
+- **I tab stanza delle Temperature vestono come il resto.** La stessa pillola
+  maiuscola e spaziata delle altre sezioni, non un font proprio.
+
+- **Le card delle luci vestono meglio anche da spente.** Gradiente, angolo
+  tinto, binario d'accento, la mattonella dell'icona che da accesa torna
+  tonda e luminosa del colore vero, e l'interruttore a pillola al posto del
+  puntino grigio.
+
+- **Il badge version del README legge il manifest.** Era un numero scritto a
+  mano fermo alla 1.0.1: ora non può più restare indietro. (La «v1.1.8» che
+  HACS mostrava accanto alla release 1.1.9 era la sua cache: si aggiorna da
+  sola o con «Aggiorna informazioni» sulla scheda del repository.)
+
+## 1.1.9
+
+### Aggiunto
+
+- **Le luci hanno la loro sezione nella barra.** Finora si comandavano solo
+  dal popup sopra la Home; adesso c'è la pagina intera, come Clima e
+  Tapparelle: in alto il conto di quante sono accese e i due pulsanti
+  «Accendi tutte» e «Spegni tutte», sotto le stanze nell'ordine scelto nella
+  scheda Luci dell'editor, ognuna con il suo conto e il suo comando di
+  gruppo. Ogni luce ha una card con il colore che sta davvero emettendo — il
+  bagliore, il bordo e il LED sono i suoi, mai un ambra fisso — il dimmer
+  direttamente sulla card per chi ce l'ha, e il pulsante dei controlli che
+  apre la stessa scheda del popup: colore, bianco, effetti. Cosa una luce sa
+  fare lo decide l'entità, mai il dominio: una lampada dietro un relè accende
+  e spegne soltanto, e la card non le offre cursori che rifiuterebbe.
+
+- **La scheda Luci del Config ha la fascia visibile/nascondi.** Lo stesso
+  interruttore verde delle altre sezioni, con la stessa logica sotto: tocca e
+  la voce Luci sparisce dalla barra, tocca di nuovo e torna — la preferenza
+  viaggia in `cd_sections` come per tutte le altre.
+
+- **Aggiungere una luce chiede subito la stanza.** Il form di inserimento ha
+  la tendina delle stanze accanto a entità e nome: la luce nasce già al suo
+  posto, senza doverla riassegnare dopo. E l'errore di un'entità sbagliata si
+  scrive nel form, non in un `alert()` che l'app di Home Assistant blocca.
+
+- **L'avatar si costruisce come i Memoji.** La casella dell'emoji nella scheda
+  Persone non era «creare un avatar»: era scegliere da un elenco. Adesso c'è
+  il costruttore — carnagione, taglio e colore dei capelli, occhi, bocca,
+  barba, occhiali — con l'anteprima davanti e i campioncini disegnati sulla
+  propria faccia: un paio di occhiali si giudica addosso, non su quella di un
+  altro. La foto resta regina, l'emoji resta la via veloce, le iniziali
+  l'ultima parola.
+
+### Corretto
+
+- **La configurazione non rimbalza più fra le plance — la foto dell'auto che
+  «oscilla da sola» è questo.** Ogni plancia accesa si faceva scrittore della
+  configurazione condivisa: il negozio riscrive le proprie chiavi anche senza
+  gesti — all'avvio, dopo un ripristino — e quelle riscritture venivano
+  scambiate per modifiche dell'utente. Una plancia rimasta aperta col runtime
+  vecchio rispingeva così per sempre i suoi dati stantii, il telefono
+  aggiornato li accettava e poi li ricopriva, avanti e indietro, una volta
+  ogni pochi secondi. Tre regole chiudono il rimbalzo: le scritture di
+  proiezione non sono gesti e non spingono niente; un salvataggio vero che
+  passa dal negozio si annuncia da sé; e il **recinto di generazione** — uno
+  scatto scritto da un runtime vecchio non vince più su un dispositivo
+  aggiornato e configurato, finché quella plancia non viene ricaricata.
+  **Dopo l'aggiornamento, ricarica (o chiudi) le altre plance aperte**: sono
+  loro a rispingere i dati vecchi.
+
+- **I flussi energetici dicono quello che succede.** Le linee dell'istantanea
+  si accendevano guardando un numero alla volta: qualunque produzione solare
+  accendeva «solare → casa» anche quando finiva tutta in batteria, la carica
+  era sempre attribuita al solare anche di notte, e l'arco «rete → batteria»
+  non esisteva proprio — di notte, con la rete che alimenta casa e ricarica
+  la batteria, il disegno mostrava la batteria che alimenta casa. I quattro
+  numeri ora si spartiscono insieme: il solare copre prima la carica, poi
+  l'immissione, e solo il resto va verso casa; la carica non coperta dal
+  solare arriva dalla rete sull'arco nuovo; la scarica va a casa. E la bolla
+  della batteria dice grandezza e verso (▼ in carica, ▲ in scarica) invece
+  del numero grezzo col segno.
+
+- **Il config delle auto parla chiaro.** «＋ Salva attuale» — il bottone che
+  fotografava la mappatura viva, il gesto da cui le auto si rubavano i dati a
+  vicenda — sparisce dietro un flusso leggibile: **＋ Aggiungi auto** svuota
+  la scheda per una vettura nuova (nome, marca, modello e tutte le entità qui
+  sotto), la **matita** sulla riga apre quella auto nella scheda col suo nome,
+  **💾 Salva auto** salva quella che si sta compilando. Il distintivo
+  «✓ attiva» se ne va: attive lo sono tutte, quale si mostra lo decide la
+  plancia. E la card «Brand e modello» smette di cambiare impaginazione da
+  sola: i suoi tre proprietari dicevano tre geometrie, ora ne dicono una —
+  anche appena ridisegnata, prima che l'ultima passata di stile la raggiunga.
+
+- **«Nessuna entità EV mappata da salvare» a chi l'aveva appena mappata.** Su
+  un dispositivo lento l'editor è toccabile prima che i moduli della plancia
+  finiscano di caricare: un'entità digitata in quella finestra non veniva
+  segnata come «scritta a mano», e al primo nome dato all'auto la protezione
+  contro i dati ereditati la scambiava per un residuo e la svuotava — il
+  salvataggio rispondeva che non c'era niente da salvare. Ora la protezione
+  svuota solo la dote dell'auto applicata (i valori messi lì da un profilo):
+  ciò che è diverso è stato scritto a mano e si tiene, comunque sia arrivato.
+  Il ＋ Aggiungi auto invece svuota tutto per scelta, com'è giusto per una
+  vettura che riparte da zero.
+
+- **Tre cose che la scheda Persone sbagliava sul telefono vero.** Il campo
+  dell'entità persona restava una casella nuda finché era vuoto: i domini
+  `person.` e `device_tracker.` non erano nell'elenco che la guardia dei campi
+  riconosce — ora il campo vuoto ha la veste (e la ricerca) di tutti gli
+  altri. «🪄 Rileva dal telefono» diceva «nessun sensore riconosciuto» anche
+  quando mancava solo l'entità (ora lo dice) o quando il tracker somigliava
+  ai sensori senza esserne il prefisso esatto: il rilevamento prova il nome
+  esatto, poi la somiglianza, e il candidato unico solo in una casa con una
+  persona sola. E il picker dell'avatar apriva quello delle icone della
+  plancia — prese, lampadine, pentole: per una persona servono persone, e il
+  suo ha facce, gente di casa, mestieri e qualche animale.
+
+- **Cancellare una riga non richiude più il gruppo aperto.** In ogni scheda
+  del Config, ogni gesto — eliminare un sensore, aggiungere un'entità,
+  toccare la fascia di visibilità — ridisegna la scheda intera, e ogni
+  fisarmonica rinasceva chiusa: dentro Avvisi si apriva Aperture, si
+  cancellava una riga e Aperture si richiudeva sopra la mano. Lo stato
+  aperto/chiuso ora è dell'utente: viene ricordato scheda per scheda e
+  riapplicato dopo ogni ridisegno, in tutte le sezioni del Config.
+
+- **Il cestino delle luci cancella davvero.** Chiedeva conferma con il
+  `confirm()` del browser, che dentro l'app di Home Assistant non si apre e
+  risponde sempre no: si premeva e la riga restava lì. La domanda ora è un
+  dialogo nella pagina, e cancellare toglie la luce da ogni mappa —
+  configurazione, stanza, ordinamento e gruppo avvisi — non solo dalle prime
+  due.
 
 ## 1.1.8
 

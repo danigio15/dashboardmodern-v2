@@ -306,6 +306,12 @@ export function installBeta7RegressionSection() {
   root.addEventListener?.("dashboardmodern:legacy-ready", () => { installOwners(); schedule(); });
   root.addEventListener?.("dashboardmodern:runtime-ready", () => { installOwners(); schedule(); });
   root.addEventListener?.("dashboardmodern:states-ready", schedule);
+  /* Il corpo della scheda rinasce anche fuori da `editorSwitch`, e i pulsanti
+   * matita possono arrivare nella coda della passata dei contratti, quando il
+   * rAF di questo modulo e' gia' passato a vuoto: senza questi due ascolti la
+   * decorazione delle righe azione restava persa fino al gesto successivo. */
+  root.addEventListener?.("dashboardmodern:editor-rendered", schedule);
+  root.addEventListener?.("dashboardmodern:editor-contracts", schedule);
   schedule();
 }
 

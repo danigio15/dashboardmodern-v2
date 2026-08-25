@@ -3,6 +3,7 @@ import {
   flowRecorderEntity,
   flowStageModel,
 } from "../core/energy-flow-topology.js";
+import { allocateSourceFlows, batteryReadout } from "../core/energy-flow-truth.js";
 import { vehicleBatteryEntity } from "./ev-section.js";
 import {
   allStates,
@@ -431,6 +432,100 @@ export function renderDynamicFlowLoads(period, model = stageModel(period)) {
   return model.count;
 }
 
+/* ── L'istantanea dice dove va davvero l'energia ─────────────────────────
+ *
+ * Le linee dell'istantanea si accendevano guardando un numero alla volta:
+ * qualunque solare accendeva «solare → casa» anche quando finiva tutto in
+ * batteria, la carica era sempre del solare anche di notte, e l'arco
+ * «rete → batteria» non esisteva. Segnalato coi video: «il disegno mi indica
+ * che rete e batteria stanno alimentando casa; in realta' rete alimenta casa
+ * e ricarica batteria». I tre numeri si spartiscono con `allocateSourceFlows`
+ * — letti dagli STATI, non dai testi delle bolle, che da qui in poi possono
+ * dire grandezza e verso senza mandare in confusione nessun lettore. */
+
+function potenzaViva(reference) {
+  // `null` — non zero — quando lo stato vivo non c'e': «spento» e «non
+  // configurato» sono due risposte diverse, e chi chiama deve poterle
+  // distinguere per cedere il passo alla lettura dei testi.
+  const entity = resolvedEntity(reference);
+  const states = allStates();
+  const nodo = states[entity] || states[clean(reference)];
+  if (!nodo || nodo.state === undefined) return null;
+  const raw = String(nodo.state);
+  if (raw === "unknown" || raw === "unavailable") return null;
+  const value = Number.parseFloat(raw.replace(",", "."));
+  if (!Number.isFinite(value)) return null;
+  const unit = String(nodo.attributes?.unit_of_measurement || "").toLowerCase();
+  return unit === "kw" ? value * 1000 : value;
+}
+
+function instantSourceFlows() {
+  const fonti = [
+    "dm.energy_potenza_fotovoltaico",
+    "dm.energy_potenza_scambio_rete",
+    "dm.energy_potenza_batteria",
+  ].map((ref) => ({
+    configurata: resolvedEntity(ref) !== clean(ref),
+    valore: potenzaViva(ref),
+  }));
+  const [sole, rete, batteria] = fonti;
+  /* Senza nemmeno una sorgente viva non c'e' niente da spartire: si cede il
+   * passo alla lettura dei testi, come prima. E una sorgente CONFIGURATA ma
+   * muta — il sensore in `unavailable` per un attimo — non vale zero:
+   * spartire le altre due inventerebbe percorsi falsi (la carica sparirebbe
+   * e tutto il prelievo finirebbe «verso casa»); anche li' parla il testo.
+   * Solo una sorgente davvero non configurata vale zero, che per una casa
+   * senza batteria e' la verita'. */
+  if (fonti.every((fonte) => fonte.valore === null)) return null;
+  if (fonti.some((fonte) => fonte.configurata && fonte.valore === null)) return null;
+  return allocateSourceFlows({
+    solar: sole.valore ?? 0,
+    grid: rete.valore ?? 0,
+    battery: batteria.valore ?? 0,
+  });
+}
+
+function instantEdgeValue(node, flussi) {
+  const id = String(node?.id || "").toLowerCase();
+  if (id.includes("grid-battery")) return flussi.gridToBattery;
+  if (id.includes("battery-grid")) return flussi.batteryToGrid;
+  if (id.includes("solar-grid")) return flussi.solarToGrid;
+  if (id.includes("solar-battery")) return flussi.solarToBattery;
+  if (id.includes("grid-home")) return flussi.gridToHome;
+  if (id.includes("battery-home")) return flussi.batteryToHome;
+  if (id.includes("solar-home")) return flussi.solarToHome;
+  return null;
+}
+
+/* L'arco che mancava: dalla bolla della rete a quella della batteria, sotto
+ * il sole. Le ancore sono i percorsi disegnati a mano che gli stanno accanto;
+ * la scena mobile ha il suo gemello col prefisso della sua. */
+const ARCHI_RETE_BATTERIA = Object.freeze([
+  { anchor: "line-grid-home", id: "line-grid-battery", d: "M 307 185 Q 500 132 693 185" },
+  { anchor: "m-line-grid-home", id: "m-line-grid-battery", d: "M 200 280 Q 500 180 800 280" },
+  /* Lo stesso corridoio, percorso al contrario: la batteria che immette in
+   * rete. Non si accendono mai insieme — prelievo e immissione sono i due
+   * segni dello stesso numero — quindi condividere l'arco non sovrappone
+   * niente. Senza questo, l'immissione della batteria si appoggiava alla
+   * linea del solare: un'esportazione disegnata da un pannello che non sta
+   * producendo. */
+  { anchor: "line-grid-home", id: "line-battery-grid", d: "M 693 185 Q 500 132 307 185" },
+  { anchor: "m-line-grid-home", id: "m-line-battery-grid", d: "M 800 280 Q 500 180 200 280" },
+]);
+
+function ensureGridBatteryPaths() {
+  for (const arco of ARCHI_RETE_BATTERIA) {
+    if (doc.getElementById(arco.id)) continue;
+    const vicino = doc.getElementById(arco.anchor);
+    if (!vicino?.parentNode) continue;
+    const path = doc.createElementNS(SVG_NS, "path");
+    path.id = arco.id;
+    path.setAttribute("class", "flow-line");
+    path.setAttribute("d", arco.d);
+    vicino.parentNode.insertBefore(path, vicino);
+  }
+}
+
 function mainLineColor(node) {
   const id = String(node?.id || "").toLowerCase();
   if (id.includes("solar")) return COLORS.solar;
@@ -515,18 +610,22 @@ function displayedMainFlow(node, period) {
 function mirrorLegacyMainFlows(scope, period) {
   if (!scope) return false;
   let touched = false;
+  /* L'istantanea si spartisce una volta per passata: gli archi veri valgono
+   * per tutte le linee della scena, e si calcolano dagli stati. */
+  const flussi = period ? null : instantSourceFlows();
   scope
     .querySelectorAll(".flow-line,path[id*='line-' i],line[id*='line-' i],polyline[id*='line-' i]")
     .forEach((node) => {
       if (!/^(path|line|polyline)$/i.test(node.tagName) || isLoadLine(node)) return;
       const legacyActive = node.classList.contains("active");
-      const displayedActive = displayedMainFlow(node, period);
+      const edge = flussi ? instantEdgeValue(node, flussi) : null;
+      const displayedActive = edge === null ? displayedMainFlow(node, period) : edge > 0.5;
       const active = displayedActive === null ? legacyActive : displayedActive;
       colorNode(node, mainLineColor(node), active);
       const kinds = mainKinds(node);
       node.dataset.dmMainFlow = kinds.join("-");
       node.dataset.dmFlowPeriod = period || "instant";
-      const value = directionalMainFlowValue(node, period);
+      const value = edge === null ? directionalMainFlowValue(node, period) : edge;
       if (value !== null) node.dataset.dmFlowValue = String(value);
       touched = true;
     });
@@ -536,6 +635,7 @@ function mirrorLegacyMainFlows(scope, period) {
 export function refreshEnergyFlows() {
   if (!doc) return false;
   beginVisibilityPass();
+  ensureGridBatteryPaths();
   let touched = false;
   for (const view of FLOW_VIEWS) {
     const period = view.period === "instant" ? "" : view.period;
@@ -544,6 +644,18 @@ export function refreshEnergyFlows() {
     touched = mirrorLegacyMainFlows(scope, period) || touched;
     touched = renderDynamicFlowLoads(view.period) > 0 || touched;
     scope.dataset.dmEnergyFlows = "directional-value-bound";
+  }
+  /* La bolla della batteria diceva il numero grezzo col segno («-201 W»
+   * mentre carica): il segno e' una convenzione del modello, non una lettura.
+   * Grandezza e verso, con la freccia — e le decisioni sulle linee, qui
+   * sopra, ormai leggono gli stati e non questo testo. */
+  const batteria = potenzaViva("dm.energy_potenza_batteria");
+  const testo = batteryReadout(batteria);
+  if (testo) {
+    for (const id of ["v-battery", "m-v-battery"]) {
+      const nodo = doc.getElementById(id);
+      if (nodo && nodo.textContent !== testo) nodo.textContent = testo;
+    }
   }
   renderBatterySoc(doc, section("energy", {}), allStates());
   return touched;
