@@ -433,37 +433,170 @@ export function ensureVehiclePhotoEditor() {
  * tornano a raccontare il modello. */
 const refToccati = () => (state.evTouchedRefs ||= new Set());
 
+/* Il segnalibro dei campi toccati deve esserci PRIMA che qualcuno tocchi.
+ *
+ * Stava dentro ensureCarNameGuard, che parte col primo giro differito della
+ * sezione: su un dispositivo lento c'e' una finestra in cui l'editor e' gia'
+ * visibile ma il giro non e' ancora passato. Un'entita' digitata li' dentro
+ * non veniva marcata; al primo nome scritto il guardiano la prendeva per un
+ * residuo dell'auto precedente e la svuotava — e il salvataggio rispondeva
+ * «nessuna entita' mappata». Si installa al montaggio della sezione. */
+function installSlotTouchTracker() {
+  if (!doc || state.evSlotTouchGuard) return;
+  state.evSlotTouchGuard = true;
+  for (const eventName of ["input", "change"]) {
+    doc.addEventListener(
+      eventName,
+      (event) => {
+        const input = event.target;
+        if (!input?.matches?.('input.ed-slot-in[data-ref^="dm.ev_"]')) return;
+        const ref = clean(input.dataset?.ref);
+        if (ref) refToccati().add(ref);
+      },
+      true,
+    );
+  }
+}
+
 function ensureCarNameGuard() {
   if (!doc) return false;
-  if (!state.evSlotTouchGuard) {
-    state.evSlotTouchGuard = true;
-    for (const eventName of ["input", "change"]) {
-      doc.addEventListener(
-        eventName,
-        (event) => {
-          const input = event.target;
-          if (!input?.matches?.('input.ed-slot-in[data-ref^="dm.ev_"]')) return;
-          const ref = clean(input.dataset?.ref);
-          if (ref) refToccati().add(ref);
-        },
-        true,
-      );
-    }
-  }
+  installSlotTouchTracker();
   const campo = doc.getElementById("ed-evcar-name");
   if (!campo || campo.dataset.dmEvNameGuard === "true") return false;
   campo.dataset.dmEvNameGuard = "true";
   campo.addEventListener("input", () => {
     const nome = clean(campo.value);
-    const trovata = profiles().find((car) => clean(car?.name) === nome) || null;
+    const tutte = profiles();
+    const trovata = tutte.find((car) => clean(car?.name) === nome) || null;
     const possedute = trovata ? trovata.ov || trovata.overrides || {} : {};
+    /* La dote dell'auto applicata: i valori che le caselle portano perche'
+     * un profilo li ha messi li', non perche' qualcuno li ha scritti ora. */
+    const attiva = tutte[activeIndex()] || null;
+    const dote = attiva ? attiva.ov || attiva.overrides || {} : {};
     for (const input of doc.querySelectorAll('#ed-body input.ed-slot-in[data-ref^="dm.ev_"]')) {
       const ref = clean(input.dataset?.ref);
       if (refToccati().has(ref)) continue;
+      /* Un valore che NON e' la dote e' stato scritto a mano — e si tiene
+       * anche quando il segnalibro non l'ha visto: su un dispositivo lento
+       * il modulo si installa dopo che l'editor e' gia' toccabile, e il
+       * primo tocco arriva prima del segnalibro. Svuotare quello e' come
+       * rispondere «nessuna entita' mappata» a chi l'ha appena mappata. */
+      const corrente = clean(input.value);
+      if (corrente && corrente !== clean(dote[ref])) continue;
       const valore = clean(possedute[ref]);
       if (input.value !== valore) input.value = valore;
     }
   });
+  return true;
+}
+
+/* La lista delle auto parla la lingua delle altre sezioni.
+ *
+ * Il runtime la stampava col suo vocabolario: un distintivo «✓ attiva» (che
+ * non significa niente in configurazione: attive lo sono tutte, quale si
+ * MOSTRA lo decide la plancia), una tendina «scegli un profilo da modificare»
+ * che nessuno capiva, e un bottone «＋ Salva attuale» che fotografava la
+ * mappatura viva — il gesto da cui le auto si rubavano i dati a vicenda.
+ * Segnalato alla lettera: «che significa aggiungi attuale? per aggiungere
+ * un'auto devi mettere un + con un campo per il nome e sotto marca, modello
+ * e tutte le entità; per modificare deve esserci la matita come in tutte le
+ * sezioni».
+ *
+ * Ogni riga prende la matita — che apre QUELLA auto nella scheda sotto, nome
+ * compreso — il distintivo sparisce, la tendina pure, e i due bottoni dicono
+ * quello che fanno: «＋ Aggiungi auto» svuota la scheda per una vettura
+ * nuova, «💾 Salva auto» salva quella che si sta compilando. */
+function ensureCarListDecor() {
+  const campoNome = doc?.getElementById("ed-evcar-name");
+  if (!campoNome) return false;
+  const contenitore = doc.getElementById("ed-body");
+  if (!contenitore) return false;
+
+  for (const bottone of contenitore.querySelectorAll('[data-act="use"]')) {
+    const riga = bottone.closest(".ed-row");
+    if (!riga) continue;
+    for (const badge of riga.querySelectorAll(".pool-badge"))
+      if (/attiv/i.test(clean(badge.textContent))) badge.remove();
+    if (!riga.querySelector("[data-ev-edit]")) {
+      const matita = doc.createElement("button");
+      matita.type = "button";
+      matita.className = "ed-btn-add";
+      matita.dataset.evEdit = bottone.dataset.idx || "";
+      matita.style.cssText = "flex:0 0 auto;margin-right:6px;";
+      matita.textContent = "✏️";
+      matita.setAttribute("aria-label", t("Modifica questa auto", "Edit this car"));
+      matita.addEventListener("click", () => {
+        const indice = Number.parseInt(matita.dataset.evEdit, 10);
+        if (!Number.isFinite(indice)) return;
+        const nome = clean(profiles()[indice]?.name);
+        try { root.cdEvCarSelEd?.({ value: String(indice) }); } catch (_error) {}
+        /* Il ridisegno ricrea il campo del nome vuoto: lo si riempie con
+         * l'auto appena aperta, cosi' «Salva auto» salva proprio lei. */
+        const campo = doc.getElementById("ed-evcar-name");
+        if (campo && nome) {
+          campo.value = nome;
+          campo.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      });
+      bottone.insertAdjacentElement("beforebegin", matita);
+    }
+  }
+
+  const tendina = contenitore.querySelector('select[onchange*="cdEvCarSelEd"]');
+  if (tendina) tendina.style.setProperty("display", "none", "important");
+
+  const salva = contenitore.querySelector('button[onclick*="edEvCarAdd"]');
+  if (salva) {
+    const testoSalva = `💾 ${t("Salva auto", "Save car")}`;
+    if (salva.textContent !== testoSalva) salva.textContent = testoSalva;
+    const rigaNome = salva.parentElement;
+    if (rigaNome && !contenitore.querySelector("[data-ev-add-new]")) {
+      const aggiungi = doc.createElement("button");
+      aggiungi.type = "button";
+      aggiungi.className = "ed-btn-add";
+      aggiungi.dataset.evAddNew = "true";
+      aggiungi.style.cssText = "display:block;width:100%;margin:12px 0 8px;";
+      aggiungi.textContent = `＋ ${t("Aggiungi auto", "Add car")}`;
+      aggiungi.addEventListener("click", () => {
+        const campo = doc.getElementById("ed-evcar-name");
+        if (!campo) return;
+        campo.value = "";
+        // Il ＋ e' il gesto «riparto da zero»: si svuota tutto qui, in modo
+        // esplicito — il guardiano del nome protegge i valori scritti a
+        // mano, e qui invece anche quelli devono andarsene.
+        refToccati().clear();
+        for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]'))
+          slot.value = "";
+        campo.dispatchEvent(new Event("input", { bubbles: true }));
+        // Anche marca e modello: la card Brand non deve mostrare la vettura
+        // precedente sulla scheda di una nuova.
+        const pannello = doc.querySelector("#ed-body [data-ev-appearance]");
+        const marca = pannello?.querySelector?.("select[data-brand]");
+        const modello = pannello?.querySelector?.("select[data-model]");
+        if (marca && marca.options.length) {
+          marca.selectedIndex = 0;
+          marca.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        if (modello) {
+          modello.value = "";
+          modello.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        campo.focus();
+      });
+      rigaNome.insertAdjacentElement("beforebegin", aggiungi);
+    }
+  }
+
+  const intro = [...contenitore.querySelectorAll(".ed-intro")].find((nodo) =>
+    /salvale come profilo|save them as a profile|Aggiungi auto per crearne/i.test(clean(nodo.textContent)),
+  );
+  if (intro) {
+    const testo = `🚗 ${t(
+      "Ogni auto è una scheda: ＋ Aggiungi auto per crearne una nuova — nome, marca, modello e tutte le entità qui sotto — la matita per modificarla, USA per mostrarla in plancia.",
+      "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.",
+    )}`;
+    if (clean(intro.textContent) !== clean(testo)) intro.textContent = testo;
+  }
   return true;
 }
 
@@ -821,6 +954,12 @@ function installLegacyWrappers() {
     function addProfile(...args) {
       const prima=legacyProfiles();
       const indiceAttivoPrima=activeIndex();
+      /* La scelta viva di marca e modello si legge ORA: il ridisegno che il
+       * runtime fa salvando smonta la card Brand, e a cose fatte le tendine
+       * non ci sono piu'. */
+      const pannelloPrima = doc?.querySelector?.("#ed-body [data-ev-appearance]");
+      const marcaViva = clean(pannelloPrima?.querySelector?.("select[data-brand]")?.value);
+      const modelloVivo = clean(pannelloPrima?.querySelector?.("select[data-model]")?.value);
       const result=previous.apply(this,args);
       const dopo=legacyProfiles();
       let rimesse=restoreCarIdentities(dopo, prima, indiceAttivoPrima);
@@ -843,6 +982,19 @@ function installLegacyWrappers() {
           conosciute.has(clean(car?.name))
             ? car
             : { ...car, img: "", imgPlugged: "", image: "", image_url: "" },
+        );
+      }
+      /* Marca e modello della vettura nuova stanno nelle tendine della card
+       * Brand: durante la bozza «Salva brand e modello» non scrive su
+       * nessuno (avrebbe vestito l'auto ancora attiva coi panni della
+       * nuova), quindi e' QUI, alla nascita del profilo, che la scelta
+       * viva sale a bordo. */
+      if (marcaViva) {
+        const nate = new Set(prima.map((car) => clean(car?.name)));
+        rimesse = rimesse.map((car) =>
+          nate.has(clean(car?.name)) || clean(car?.brand)
+            ? car
+            : { ...car, brand: marcaViva, ...(modelloVivo ? { model: modelloVivo } : {}) },
         );
       }
       if (rimesse !== dopo) writeJsonIfChanged("cd_ev_cars", rimesse);
@@ -950,7 +1102,7 @@ export function scheduleEvSync() {
    * all'elenco delle auto proprio mentre qualcun altro lo stava cambiando, e la
    * marca appena scelta tornava indietro da sola. Le migrazioni stanno
    * all'avvio, dove stanno le migrazioni. */
-  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();ensureCarNameGuard();};
+  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();ensureCarNameGuard();ensureCarListDecor();};
   state.frame=root.requestAnimationFrame?.(run)||root.setTimeout?.(run,0)||0;
 }
 
@@ -1000,7 +1152,7 @@ function bindEditorEntryPoints() {
 
 export function installEvSection() {
   if (!doc) return;
-  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installLegacyWrappers(); bindEditorEntryPoints();
+  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installSlotTouchTracker(); installLegacyWrappers(); bindEditorEntryPoints();
   /* Gli involucri si prendono appena i giri del runtime esistono.
    *
    * `installLegacyWrappers` non puo' fare niente se il runtime non ha ancora

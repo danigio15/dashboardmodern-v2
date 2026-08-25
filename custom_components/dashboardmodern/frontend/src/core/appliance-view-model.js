@@ -1,4 +1,4 @@
-// DM-FIX-20260812B
+// DM-FIX-20260824A
 import { pick } from "./i18n.js";
 import { getDeviceDisplayName, getDeviceVisual } from "./device-model.js";
 
@@ -27,6 +27,50 @@ const isCumulativeEnergy = (states, entity) => {
   return /(?:^|[._-])(total|totale|lifetime|meter|contatore)(?:[._-]|$)/i.test(id);
 };
 
+const semanticStateValues = new Set([
+  "playing",
+  "heat",
+  "cool",
+  "open",
+  "opening",
+  "running",
+  "active",
+  "off",
+  "closed",
+  "stopped",
+  "idle",
+  "standby",
+  "ready",
+  "pronta",
+  "pronto",
+]);
+
+function inferSemanticStateEntity(device = {}, states = {}) {
+  const entries = (device?.entities || []).map(entityId).filter(Boolean);
+
+  // Prefer explicit state/status-like sensors whose current value already has
+  // a clear semantic meaning (e.g. sensor.lavasciuga_state = "running").
+  const semanticSensor = entries.find((id) => {
+    if (!/^(sensor|binary_sensor)\./.test(id)) return false;
+    if (!/(?:^|[._-])(state|status|phase|fase)(?:[._-]|$)/i.test(id)) return false;
+    const value = clean(states?.[id]?.state).toLowerCase();
+    return semanticStateValues.has(value);
+  });
+  if (semanticSensor) return semanticSensor;
+
+  // Smart appliances often expose a dedicated binary activity sensor such as
+  // binary_sensor.<device>_running. This is safe to infer because the entity
+  // name itself describes activity, unlike a generic control switch.
+  return (
+    entries.find(
+      (id) =>
+        /^binary_sensor\./.test(id) &&
+        /(?:^|[._-])(running|active|activity|operating|working)(?:[._-]|$)/i.test(id) &&
+        ["on", "off"].includes(clean(states?.[id]?.state).toLowerCase()),
+    ) || ""
+  );
+}
+
 export function createApplianceViewModel(device = {}, states = {}, rooms = [], locale = "it") {
   const powerEntity =
     candidates(device, ["power_entity", "power", "power_sensor"]).find((id) =>
@@ -36,13 +80,14 @@ export function createApplianceViewModel(device = {}, states = {}, rooms = [], l
     candidates(device, ["control_entity", "switch_entity", "switch", "light", "fan"]).find((id) =>
       /^(switch|light|input_boolean|fan)\./.test(id),
     ) || "";
-  // A generic entry in device.entities must never silently become the semantic
-  // state/status entity. In particular a control switch left ON at 0 W was
-  // previously interpreted as an explicit running state.
+
+  // Explicit configuration always wins. If none is configured, infer only
+  // narrowly named semantic state/activity sensors. Generic switches remain
+  // excluded so a control switch left ON at 0 W cannot masquerade as running.
   const stateEntity =
     explicitCandidates(device, ["state_entity", "status_entity"]).find((id) =>
       Boolean(states?.[id]),
-    ) || "";
+    ) || inferSemanticStateEntity(device, states);
   const inferredEnergy =
     candidates(device, [
       "total_energy_entity",
@@ -81,17 +126,19 @@ export function createApplianceViewModel(device = {}, states = {}, rooms = [], l
   const standby = Number.isFinite(Number(device.threshold_standby))
     ? Number(device.threshold_standby)
     : 1;
-  const explicitRunning = [
-    "playing",
-    "heat",
-    "cool",
-    "open",
-    "opening",
-    "running",
-    "active",
-  ].includes(configuredState);
+
+  const activityBinary =
+    /^binary_sensor\./.test(stateEntity) &&
+    /(?:^|[._-])(running|active|activity|operating|working)(?:[._-]|$)/i.test(stateEntity);
+
+  const explicitRunning =
+    ["playing", "heat", "cool", "open", "opening", "running", "active"].includes(configuredState) ||
+    (activityBinary && configuredState === "on");
+
   const explicitlyOff =
-    Boolean(stateEntity) && ["off", "closed", "stopped", "idle"].includes(configuredState);
+    Boolean(stateEntity) &&
+    (["off", "closed", "stopped", "idle"].includes(configuredState) ||
+      (activityBinary && configuredState === "off"));
   const genericOn = configuredState === "on" || controlState === "on";
   const mode =
     unavailable && watts == null

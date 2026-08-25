@@ -213,6 +213,41 @@ test("il rilevamento trova i sensori della Companion App dal tracker della perso
   assert.equal(found.direction, "sensor.home_iphone_di_anna_direction_of_travel");
 });
 
+test("il rilevamento riconosce anche il tracker che somiglia, non solo quello identico", () => {
+  /* Il tracker si chiama `giovanni_zfold8`, i sensori `zfold8_*`: nessuno dei
+   * due e' il prefisso esatto dell'altro, ma parlano dello stesso telefono. */
+  const states = {
+    "person.giovanni": {
+      state: "home",
+      attributes: { source: "device_tracker.giovanni_zfold8" },
+    },
+    "sensor.zfold8_battery_level": { state: "80" },
+    "sensor.zfold8_battery_state": { state: "charging" },
+  };
+  const found = detectCompanionSensors(states, "person.giovanni");
+  assert.equal(found.battery, "sensor.zfold8_battery_level");
+  assert.equal(found.batteryState, "sensor.zfold8_battery_state");
+});
+
+test("con una persona sola, l'unico sensore della casa e' il suo", () => {
+  const states = {
+    "person.giovanni": { state: "home", attributes: {} },
+    "sensor.telefono_misterioso_battery_level": { state: "80" },
+  };
+  const found = detectCompanionSensors(states, "person.giovanni");
+  assert.equal(found.battery, "sensor.telefono_misterioso_battery_level");
+});
+
+test("con due persone non si indovina: il candidato unico non basta", () => {
+  const states = {
+    "person.giovanni": { state: "home", attributes: {} },
+    "person.anna": { state: "home", attributes: {} },
+    "sensor.telefono_misterioso_battery_level": { state: "80" },
+  };
+  const found = detectCompanionSensors(states, "person.giovanni");
+  assert.equal(found.battery, undefined, "quel telefono potrebbe essere dell'altra");
+});
+
 test("il viaggio si racconta solo di chi e' fuori", () => {
   const base = {
     "person.g": {
@@ -276,4 +311,30 @@ test("l'importazione propone solo le person.* non ancora in elenco", () => {
   assert.deepEqual(nuove, [
     { entity: "person.anna", name: "Anna", photo: "/api/image/serve/anna/512x512" },
   ]);
+});
+
+test("in una casa di soli tracker il candidato unico non diventa di tutti", async () => {
+  const { detectCompanionSensors } = await import("../src/core/person-model.js");
+  /* Due persone tracciate col device_tracker diretto: nessuno stato
+   * `person.*`, ma la casa ha comunque due telefoni. L'unico sensore di
+   * batteria non somigliante non si regala a nessuno dei due. */
+  const states = {
+    "device_tracker.telefono_a": { entity_id: "device_tracker.telefono_a", state: "home" },
+    "device_tracker.telefono_b": { entity_id: "device_tracker.telefono_b", state: "home" },
+    "sensor.misterioso_battery_level": {
+      entity_id: "sensor.misterioso_battery_level",
+      state: "50",
+    },
+  };
+  const anagrafe = [
+    { entity: "device_tracker.telefono_a" },
+    { entity: "device_tracker.telefono_b" },
+  ];
+  const trovati = detectCompanionSensors(states, "device_tracker.telefono_a", anagrafe);
+  assert.equal(trovati.battery, undefined);
+  /* Con una persona sola in anagrafe il candidato unico resta suo. */
+  const sola = detectCompanionSensors(states, "device_tracker.telefono_a", [
+    { entity: "device_tracker.telefono_a" },
+  ]);
+  assert.equal(sola.battery, "sensor.misterioso_battery_level");
 });

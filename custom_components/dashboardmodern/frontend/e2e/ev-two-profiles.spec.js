@@ -53,7 +53,9 @@ for (const variant of PRIMARY) {
         input.dispatchEvent(new Event("change", { bubbles: true }));
       }, battery);
       await page.locator('#ed-body input[placeholder*="Nome auto"]').fill(name);
-      await page.locator("#ed-body button", { hasText: "SALVA ATTUALE" }).first().click();
+      // Il redesign lo chiama «💾 Salva auto»; l'aggancio e' il gestore, non
+      // il testo, cosi' la prova regge anche alle lingue.
+      await page.locator('#ed-body button[onclick*="edEvCarAdd"]').first().click();
     };
 
     await saveProfile("Zoe", "sensor.zoe_soc");

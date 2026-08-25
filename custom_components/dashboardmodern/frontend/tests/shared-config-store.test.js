@@ -11,6 +11,7 @@ const {
   normalizeSharedSnapshot,
   sanitizeProfile,
   sharedReconcileAction,
+  WRITER_GENERATION,
 } = await import("../src/sections/config-persistence-section.js");
 
 const configured = (name = "Cucina") => ({
@@ -35,6 +36,9 @@ const snapshotOf = (values, extra = {}) => ({
   revision: 3,
   updated_at: 5000,
   keys_revision: 2,
+  // La generazione corrente: questi test esercitano le regole fra pari.
+  // Il recinto contro i runtime vecchi ha i suoi test dedicati.
+  writer_generation: WRITER_GENERATION,
   values,
   ...extra,
 });
@@ -76,6 +80,7 @@ test("a shared snapshot keeps only known string configuration keys", () => {
     revision: 7,
     updated_at: 1000,
     keys_revision: 2,
+    writer_generation: 0,
     reset: true,
     values: { cd_stanze: "[]" },
   });

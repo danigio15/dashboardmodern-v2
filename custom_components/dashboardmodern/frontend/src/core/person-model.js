@@ -11,6 +11,8 @@
  * sezione legge e scrive, questo modulo mette solo in ordine.
  */
 
+import { normalizeFace } from "./person-avatar.js";
+
 const clean = (value) => String(value ?? "").trim();
 
 /* I colori tra cui si sceglie l'avatar. Sono coppie sfondo/inchiostro gia'
@@ -51,6 +53,9 @@ function normalizeAvatar(avatar = {}, index = 0) {
   return {
     emoji: clean(avatar?.emoji),
     color: AVATAR_COLORS.includes(color) ? color : AVATAR_COLORS[index % AVATAR_COLORS.length],
+    /* La faccia costruita nell'editor, o `null` per chi non ne ha una: allora
+     * valgono l'emoji e, per ultime, le iniziali. */
+    face: normalizeFace(avatar?.face),
   };
 }
 
@@ -268,9 +273,28 @@ function trackerPrefixes(states, personEntity) {
   return [...prefixes].filter(Boolean);
 }
 
-export function detectCompanionSensors(states = {}, personEntity = "") {
+/* Due nomi si somigliano quando uno sta dentro l'altro: il tracker
+ * `giovanni_zfold8` e il sensore `zfold8_battery_level` parlano dello stesso
+ * telefono anche se nessuno dei due e' il prefisso esatto dell'altro. Sotto i
+ * quattro caratteri non si somiglia niente: `s10` sta dentro troppe parole. */
+function affine(prefix, objectId) {
+  if (prefix.length < 4) return objectId.startsWith(`${prefix}_`) || objectId === prefix;
+  return objectId.includes(prefix) || prefix.includes(objectId);
+}
+
+export function detectCompanionSensors(states = {}, personEntity = "", householdPeople = null) {
   const prefixes = trackerPrefixes(states, personEntity);
   const sensors = Object.keys(states).filter((id) => id.startsWith("sensor."));
+  /* Il candidato unico vale solo in una casa con una persona sola: con due,
+   * «l'unico sensore di batteria» sarebbe lo stesso per entrambe, e uno dei
+   * due telefoni diventerebbe di tutti. Le persone della casa non sono solo
+   * gli stati `person.*`: chi traccia col `device_tracker.` diretto non ne
+   * ha uno, e una casa con due tracker e zero `person.*` sarebbe sembrata
+   * «una persona sola» — chi chiama passa la propria anagrafe e conta anche
+   * quella. */
+  const anagrafe = Array.isArray(householdPeople) ? householdPeople.length : 0;
+  const unica =
+    Math.max(Object.keys(states).filter((id) => id.startsWith("person.")).length, anagrafe) <= 1;
   const found = {};
 
   for (const [field, suffixes] of Object.entries(COMPANION_SUFFIXES)) {
@@ -283,13 +307,35 @@ export function detectCompanionSensors(states = {}, personEntity = "") {
         break;
       }
     }
+    if (found[field]) continue;
+    /* Il nome esatto non c'era: si prova la somiglianza, e per ultimo il
+     * candidato unico — in una casa con un telefono solo, l'unico
+     * `*_battery_state` e' il suo anche se il tracker si chiama diversamente.
+     * Con due telefoni i candidati sono due e non si indovina. */
+    for (const suffix of suffixes) {
+      const candidates = sensors.filter((id) => {
+        const objectId = id.slice("sensor.".length);
+        return objectId.endsWith(`_${suffix}`) || objectId === suffix;
+      });
+      const somigliante = candidates.find((id) => {
+        const base = id.slice("sensor.".length).slice(0, -(suffix.length + 1));
+        return prefixes.some((prefix) => affine(prefix, base));
+      });
+      const hit = somigliante || (unica && candidates.length === 1 ? candidates[0] : "");
+      if (hit) {
+        found[field] = hit;
+        break;
+      }
+    }
   }
 
   for (const [field, pattern] of Object.entries(FUZZY_PATTERNS)) {
-    const hit = sensors.find((id) => {
-      const objectId = id.slice("sensor.".length);
-      return pattern.test(objectId) && prefixes.some((prefix) => objectId.includes(prefix));
-    });
+    const candidates = sensors.filter((id) => pattern.test(id.slice("sensor.".length)));
+    const hit =
+      candidates.find((id) => {
+        const objectId = id.slice("sensor.".length);
+        return prefixes.some((prefix) => affine(prefix, objectId));
+      }) || (unica && candidates.length === 1 ? candidates[0] : "");
     if (hit) found[field] = hit;
   }
 
