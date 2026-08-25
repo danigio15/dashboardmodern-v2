@@ -76,7 +76,9 @@ const SECTION_TABS = [
   // visibile/nascondi come tutte le altre.
   "luci",
 ];
-const PLAIN_TABS = ["sez8", "stanze", "avvisi"];
+// «avvisi» non è più una linguetta: gli avvisi stanno in fondo alla scheda
+// «🧩 Widget», che è anche lei una scheda senza sezione da accendere.
+const PLAIN_TABS = ["sez8", "stanze", "todo"];
 const NO_SAVE_TABS = ["runtime"];
 
 async function boot(page, testInfo) {

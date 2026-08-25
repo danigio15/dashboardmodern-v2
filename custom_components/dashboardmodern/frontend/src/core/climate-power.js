@@ -42,12 +42,22 @@ function supporta(state, bit) {
  * vince anche sulla modalita' ricordata: chi tocca il tasto in quel tab sta
  * dicendo cosa vuole ora, non com'era ieri. Se il termostato non la offre, si
  * torna alla scala di sempre. */
-export function modalitaDiAccensione(state, precedente = "", richiesta = "") {
+export function modalitaDiAccensione(state, precedente = "", richiesta = "", suggerita = "") {
   const disponibili = modalita(state);
   const voluta = clean(richiesta);
   if (voluta && voluta !== "off" && disponibili.includes(voluta)) return voluta;
   const ricordata = clean(precedente);
   if (ricordata && ricordata !== "off" && disponibili.includes(ricordata)) return ricordata;
+  /* Il verso dell'elenco da cui si preme.
+   *
+   * Senza una modalita' ricordata si scendeva nella scala generale, che mette
+   * "heat" prima di "cool": un condizionatore acceso dal tab Freddo partiva a
+   * scaldare. L'elenco in cui la zona vive dice gia' cosa ci si aspetta —
+   * Freddo vuol dire raffrescare, Caldo scaldare — e vale piu' di una
+   * graduatoria scritta a tavolino. Non batte pero' la modalita' di ieri: chi
+   * lasciava il condizionatore in deumidificazione lo ritrova cosi'. */
+  const dallaZona = clean(suggerita);
+  if (dallaZona && dallaZona !== "off" && disponibili.includes(dallaZona)) return dallaZona;
   for (const preferita of PREFERITE) {
     if (disponibili.includes(preferita)) return preferita;
   }
@@ -58,14 +68,14 @@ export function modalitaDiAccensione(state, precedente = "", richiesta = "") {
  *
  * Torna il nome del servizio e i dati, senza il bersaglio: quello lo mette chi
  * chiama, che sa a quale entita' sta parlando. */
-export function climatePowerCall(state, acceso, precedente = "", richiesta = "") {
+export function climatePowerCall(state, acceso, precedente = "", richiesta = "", suggerita = "") {
   if (!acceso) {
     if (modalita(state).includes("off")) {
       return { service: "set_hvac_mode", data: { hvac_mode: "off" } };
     }
     return { service: "turn_off", data: {} };
   }
-  const scelta = modalitaDiAccensione(state, precedente, richiesta);
+  const scelta = modalitaDiAccensione(state, precedente, richiesta, suggerita);
   // Una modalita' chiesta esplicitamente dal contesto va impostata anche quando
   // l'entita' saprebbe fare `turn_on`: quel servizio riaccende com'era, e la
   // pompa di calore accesa dal tab Caldo tornerebbe a raffrescare.

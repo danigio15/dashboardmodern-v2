@@ -231,6 +231,24 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Il tasto di accensione del clima non chiamava niente.** «Impostando
+  correttamente le entità non si accendono», segnalato da un utente: la
+  sezione provava tre strade per parlare a Home Assistant — `cdCallServiceJson`,
+  `callService`, `hass` — e nessuna delle tre esiste nella plancia. La prima
+  non è definita da nessuna parte, la seconda nemmeno, e `hass` c'è solo
+  dentro il pannello: il comando cadeva nel vuoto, in silenzio, e la zona
+  restava com'era. Adesso passa da `dmCallHaService`, la stessa presa delle
+  luci, delle tapparelle e del robot — e chi non trova nessuno lo dice, così
+  la strada di riserva parte davvero invece di credersi riuscita.
+
+- **Un condizionatore acceso dal tab Freddo partiva a scaldare.** Senza una
+  modalità da ricordare si scendeva in una scala generale che mette «heat»
+  prima di «cool». L'elenco da cui si preme il tasto dice già cosa ci si
+  aspetta — Freddo raffresca, Caldo scalda — e adesso vale più di una
+  graduatoria scritta a tavolino. Non batte però la modalità di ieri: chi
+  lasciava il condizionatore in deumidificazione lo ritrova così.
+
+
 - **Col tema scuro il testo dell'editor era illeggibile.** (#206) Decine di
   regole delle sezioni leggevano le variabili del tema di Home Assistant
   (`--card-background-color`, `--secondary-background-color`, …) che dentro

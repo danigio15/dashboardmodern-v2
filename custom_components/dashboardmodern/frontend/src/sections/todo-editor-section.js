@@ -8,6 +8,8 @@
  * esistono gia', perche' cio' che Home Assistant sa non si riscrive a mano.
  */
 import { isTodoEntity, suggestTodoLists } from "../core/todo-model.js";
+import { normalizeAlertsEditor } from "./alerts-section.js";
+import { refreshFloodAlerts } from "./flood-alerts-section.js";
 import {
   WIDGETS_CONFIG_KEY,
   renderHomeWidgets,
@@ -23,6 +25,7 @@ import {
   readJson,
   root,
   t,
+  wrapFunction,
   writeJsonIfChanged,
 } from "./shared.js";
 
@@ -191,17 +194,41 @@ export function ensureTodoEditor() {
     preferences.hidden.join(","),
     ...lists.map((list) => `${list?.id}~${list?.name}~${list?.entity}`),
   ].join("|");
-  if (body.dataset.dmTodoEditor === firma && body.querySelector(".dm-todo-ed-list")) return true;
+  if (body.dataset.dmTodoEditor === firma && body.querySelector(".dm-todo-ed-list")) {
+    /* Il corpo e' gia' quello giusto e non si rifa': le rifiniture degli
+     * avvisi vanno rimesse lo stesso, perche' chi le posa non passa piu' dal
+     * cambio di linguetta e questa e' l'unica occasione che ha. */
+    rifinisciAvvisi(body);
+    return true;
+  }
   body.dataset.dmTodoEditor = firma;
   body.innerHTML = bodyMarkup(lists);
   body.dataset.renderer = "todo";
-  // L'elenco entita' degli avvisi lo riempie il runtime a markup posato, come
-  // faceva quando la scheda era sua.
+  // L'elenco entita' degli avvisi lo riempie il runtime a markup appena
+  // posato, come faceva quando la scheda era sua. Solo qui: rifarlo a ogni
+  // giro cancellerebbe le entita' che si stanno aggiungendo a mano.
   try {
     root.edAvvRenderEnts?.();
   } catch (_error) {}
-  potaGruppiOrfani(body);
+  rifinisciAvvisi(body);
   return true;
+}
+
+/* Le rifiniture della scheda avvisi, che adesso e' ospite di questa.
+ *
+ * La matita sulle righe la mette chi degli avvisi si occupa, le righe degli
+ * allagamenti chi degli allagamenti si occupa, e i gruppi orfani se ne vanno:
+ * tutte cose che prima chiedeva il cambio di linguetta, che qui non passa
+ * piu'. Sono tutte idempotenti — riconoscono il proprio lavoro — percio' si
+ * possono rimettere a ogni passata senza che nessuno se ne accorga. */
+function rifinisciAvvisi(body) {
+  potaGruppiOrfani(body);
+  try {
+    normalizeAlertsEditor();
+  } catch (_error) {}
+  try {
+    refreshFloodAlerts();
+  } catch (_error) {}
 }
 
 /* I gruppi sorvegliati che non alimentano piu' niente.
@@ -362,6 +389,11 @@ function dirottaSchedaAvvisi() {
   if (typeof current !== "function" || current.__dmAvvisiNelWidget) return false;
   function wrapped(tab, ...rest) {
     const scelta = clean(tab) === LEGACY_ALERTS_TAB ? TODO_EDITOR_TAB : tab;
+    /* La linguetta dei widget non e' nel documento: la aggiungiamo noi a
+     * pannello disegnato. Chi arriva qui subito dopo `apriConfigEntita()` —
+     * il runtime, o una prova — la troverebbe ancora assente, e il pannello
+     * resterebbe su nessuna scheda. Prima si mette, poi ci si va. */
+    if (scelta === TODO_EDITOR_TAB) ensureTodoEditorTab();
     const esito = current.call(this, scelta, ...rest);
     if (scelta === TODO_EDITOR_TAB) root.queueMicrotask?.(ridisegna);
     return esito;
@@ -426,6 +458,25 @@ export function installTodoEditorSection() {
   if (!doc || state.installed) return;
   state.installed = true;
   installStyles();
+  /* Il dirottamento della scheda avvisi si mette subito, non quando il
+   * pannello esiste: chi apre la configurazione e chiede «avvisi» nello
+   * stesso respiro — il runtime, o una prova — non deve trovarlo a meta'.
+   * Se il runtime non c'e' ancora, ci si riprova quando arriva. */
+  dirottaSchedaAvvisi();
+  for (const evento of ["dashboardmodern:legacy-ready", "dashboardmodern:runtime-ready"])
+    root.addEventListener?.(evento, dirottaSchedaAvvisi);
+  /* La linguetta si mette appena il pannello nasce.
+   *
+   * Prima la mettevamo al primo ridisegno, che arriva un giro dopo: chi apriva
+   * la configurazione e chiedeva subito una scheda — il runtime dopo un
+   * salvataggio, o una prova — trovava un pannello senza la nostra linguetta,
+   * e restava su nessuna scheda. `apriConfigEntita` e' il momento esatto in
+   * cui il pannello esiste, e wrapFunction non perde per strada i segni di
+   * chi ha gia' avvolto qualcosa. */
+  wrapFunction("apriConfigEntita", "__dmTodoEditorTab", () => {
+    ensureTodoEditorTab();
+    ensureTodoEditor();
+  });
   ensureTodoEditorTab();
   doc.addEventListener("click", onClick);
   onEditorRedraw("__dmTodoEditor", () => {
