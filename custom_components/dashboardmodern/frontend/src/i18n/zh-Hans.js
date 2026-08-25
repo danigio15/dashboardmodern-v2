@@ -17,6 +17,7 @@ export default Object.freeze({
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
     "已存在名为\"${nomeScritto}\"的车辆：请用铅笔编辑它，或换一个名称",
   "Build": "体型",
+  "Eye color": "眼睛颜色",
   "Last update": "最后更新",
   "Next person": "下一位",
   "Open in map": "在地图中打开",

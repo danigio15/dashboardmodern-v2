@@ -338,6 +338,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Colore": "Colour",
   "Colore capelli": "Hair color",
   "Colore esatto": "Exact colour",
+  "Colore occhi": "Eye color",
   "Comanda su tutto: giorno, mese, anno, storico e mesi precedenti si ricavano da qui con Recorder. Con questo campo pieno i campi di periodo non vengono letti.": "This one wins: day, month, year, history and previous months are all derived from here through Recorder. While it is set, the period fields are not read.",
   "Comando ON/OFF": "On/off control",
   "Come leggere la configurazione Energia": "How to read the Energy configuration",

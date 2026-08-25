@@ -461,6 +461,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Every load below is a circle of the Energy flow, under Home, in the order of this list. What you write here is what the flow shows, and the devices you file under it are the ones that appear when you tap the circle.",
   "Exact colour",
   "Expected range",
+  "Eye color",
   "Eyes",
   "Fallback",
   "Fan",

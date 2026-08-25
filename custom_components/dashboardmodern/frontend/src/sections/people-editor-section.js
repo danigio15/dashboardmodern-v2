@@ -19,6 +19,7 @@ import {
   avatarSvg,
   FACE_BEARDS,
   FACE_BUILDS,
+  FACE_EYE_COLORS,
   FACE_EYES,
   FACE_GLASSES,
   FACE_HAIR_COLORS,
@@ -110,6 +111,7 @@ const FACE_THUMB_BASE = Object.freeze({
   hair: "corto",
   hairColor: "castano",
   eyes: "normali",
+  eyeColor: "marrone",
   mouth: "sorriso",
   beard: "nessuna",
   glasses: "nessuno",
@@ -122,6 +124,7 @@ function faceRows() {
     { k: "hair", label: t("Capelli", "Hair"), keys: [...FACE_HAIRS] },
     { k: "hairColor", label: t("Colore capelli", "Hair color"), keys: Object.keys(FACE_HAIR_COLORS), swatch: (key) => FACE_HAIR_COLORS[key] },
     { k: "eyes", label: t("Occhi", "Eyes"), keys: [...FACE_EYES] },
+    { k: "eyeColor", label: t("Colore occhi", "Eye color"), keys: Object.keys(FACE_EYE_COLORS), swatch: (key) => FACE_EYE_COLORS[key] },
     { k: "mouth", label: t("Bocca", "Mouth"), keys: [...FACE_MOUTHS] },
     { k: "beard", label: t("Barba", "Beard"), keys: [...FACE_BEARDS] },
     { k: "build", label: t("Corporatura", "Build"), keys: [...FACE_BUILDS] },
@@ -133,7 +136,7 @@ function faceThumb(face, k, key) {
   /* Il campioncino mostra la variante sul modello neutro, ma tiene la
    * carnagione e i capelli gia' scelti: un paio di occhiali si giudica sulla
    * propria faccia, non su quella di un altro. */
-  const base = { ...FACE_THUMB_BASE, skin: face.skin, hairColor: face.hairColor };
+  const base = { ...FACE_THUMB_BASE, skin: face.skin, hairColor: face.hairColor, eyeColor: face.eyeColor };
   if (k === "hair") base.hairColor = face.hairColor;
   return avatarSvg({ ...base, [k]: key }, { animated: false, shirt: "#9aa8b8" });
 }
