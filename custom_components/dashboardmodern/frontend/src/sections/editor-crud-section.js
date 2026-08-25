@@ -5,7 +5,13 @@ import { clean, dashboardStore, doc, english, installStyle, onEditorRedraw, read
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EDITOR_CRUD_SECTION__";
-const state = (root[KEY] ||= { installed: false, listeners: false, editing: null, debounceFrame: 0 });
+const state = (root[KEY] ||= {
+  installed: false,
+  listeners: false,
+  editing: null,
+  debounceFrame: 0,
+  debounceQueued: false,
+});
 
 function syncEditorTheme() {
   const modal = doc?.getElementById("editor-modal");
@@ -419,21 +425,41 @@ function installAddWrappers() {
   });
 }
 
+/* La prima chiamata del frame lavora SUBITO: i moduli che decorano le righe
+ * (beta7 sulle azioni rapide, fra gli altri) girano nel loro rAF e contano di
+ * trovare i pulsanti matita gia' stampati — rimandare anche la prima passata
+ * li faceva arrivare prima dei pulsanti, e la decorazione saltava. La raffica
+ * successiva nello stesso frame si compatta, e se qualcuno ha bussato durante
+ * il frame una passata di coda raccoglie lo stato finale. */
 function runContracts() {
-  if (state.debounceFrame) return;
-  state.debounceFrame = root.requestAnimationFrame?.(() => {
+  if (state.debounceFrame) {
+    state.debounceQueued = true;
+    return;
+  }
+  const prima = doc?.querySelectorAll?.("#ed-body [data-dm-edit-kind]").length ?? 0;
+  syncEditorTheme();
+  normalizeReportEditor();
+  ensureEditButtons();
+  installAddWrappers();
+  /* Chi decora le righe (beta7 sulle azioni rapide) gira nel proprio rAF e
+   * puo' essere gia' passato quando la coda di questa passata ricrea i
+   * pulsanti su un corpo ridisegnato: senza un annuncio la decorazione
+   * resterebbe persa fino al prossimo gesto. L'evento parte solo quando dei
+   * pulsanti sono nati davvero, cosi' non puo' fare da volano a se stesso. */
+  const dopo = doc?.querySelectorAll?.("#ed-body [data-dm-edit-kind]").length ?? 0;
+  if (dopo > prima) {
+    try {
+      root.dispatchEvent?.(new Event("dashboardmodern:editor-contracts"));
+    } catch (_error) {}
+  }
+  const release = () => {
     state.debounceFrame = 0;
-    syncEditorTheme();
-    normalizeReportEditor();
-    ensureEditButtons();
-    installAddWrappers();
-  }) || root.setTimeout?.(() => {
-    state.debounceFrame = 0;
-    syncEditorTheme();
-    normalizeReportEditor();
-    ensureEditButtons();
-    installAddWrappers();
-  }, 0) || 0;
+    if (state.debounceQueued) {
+      state.debounceQueued = false;
+      runContracts();
+    }
+  };
+  state.debounceFrame = root.requestAnimationFrame?.(release) || root.setTimeout?.(release, 0) || 0;
 }
 
 function installStyles() {
