@@ -102,7 +102,12 @@ test("le voci arrivano col return_response e si spuntano con update_item", () =>
   assert.match(sezione, /return_response: true/);
   assert.match(sezione, /"get_items"/);
   assert.match(sezione, /"update_item"/);
-  // La card sta in Home, sotto le persone quando ci sono.
+  // Le liste abitano la zona dei widget «In primo piano», sotto le persone
+  // quando ci sono: una parte della Home fatta per ospitare anche i widget
+  // futuri, con la testata e la pastiglia del totale.
+  assert.match(sezione, /id = "dm-widgets"/);
+  assert.match(sezione, /dm-widgets-head/);
+  assert.match(sezione, /data-dm-widgets-count/);
   assert.match(sezione, /getElementById\("dm-people"\)/);
   assert.match(sezione, /dashboard-pills-row/);
   // Si rilegge quando lo stato dell'entita' cambia: niente polling.

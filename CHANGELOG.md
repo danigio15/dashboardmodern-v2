@@ -9,16 +9,20 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
-- **Le cose da fare, in Home.** (#201) Ogni lista `todo.*` di Home Assistant
-  configurata ha la sua card sotto le persone di casa: le voci ancora da fare,
-  ognuna col suo cerchietto, e spuntarla chiama `todo.update_item` — la lista
-  resta di Home Assistant, la card è il posto dove la si vede senza andarla a
-  cercare. Le voci arrivano da `todo.get_items` sulla stessa presa WebSocket
-  della plancia, si rileggono quando lo stato dell'entità cambia (anche una
-  spunta fatta da un altro dispositivo), e la scheda «✅ ToDo» in
-  configurazione ha il pulsante «🪄 Rileva da Home Assistant» che riempie
-  l'elenco con le liste che esistono già. La configurazione viaggia in
-  `cd_todo`, con la configurazione condivisa (revisione 6).
+- **«In primo piano»: la zona dei widget della Home.** (#201) Non una card
+  sciolta ma una parte della Home dedicata ai widget, con la sua testata — il
+  riquadro col gradiente, il titolo, la pastiglia col totale delle cose da
+  fare — e una griglia disegnata per ospitarne anche di futuri. Oggi la
+  abitano le liste `todo.*` di Home Assistant: ogni lista è una card col
+  nastro d'accento colorato, l'anello di avanzamento (fatte su totale), le
+  voci da spuntare con la spunta animata, la scadenza — rossa con ⚠️ quando è
+  passata — e «✨ Tutto fatto» quando non resta niente. Spuntare una voce
+  chiama `todo.update_item`; le voci arrivano da `todo.get_items` sulla
+  stessa presa WebSocket della plancia e si rileggono quando lo stato
+  dell'entità cambia, anche per una spunta fatta da un altro dispositivo. La
+  scheda «✅ ToDo» in configurazione ha «🪄 Rileva da Home Assistant» che
+  riempie l'elenco con le liste che esistono già; la configurazione viaggia
+  in `cd_todo`, con la configurazione condivisa (revisione 6).
 
 - **La posizione preferita della tapparella.** (#200) «Non voglio la chiusura
   completa ma tipo al 95%, per lasciar passare un po' d'aria»: ogni riga di
