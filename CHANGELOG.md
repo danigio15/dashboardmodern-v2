@@ -7,6 +7,63 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ## Non rilasciato
 
+### Aggiunto
+
+- **La card della persona si apre.** Toccare la persona in Home apre la sua
+  scheda intera: il ritratto grande con l'anello del colore di presenza, la
+  zona, l'indirizzo con «Apri in mappa», e ogni dato del telefono come
+  mattonella — batteria e carica, orologio, WiFi, attività, distanza con la
+  direzione, tempo di rientro, ultimo aggiornamento. Finché è aperta si
+  aggiorna da sola, e con più persone le frecce passano dall'una all'altra.
+
+- **L'avatar ha la corporatura, e più sostanza.** Nel costruttore c'è la fila
+  Corporatura (magra, normale, robusta): il viso si stringe o si allarga, le
+  spalle seguono. La carnagione è una sfumatura vera con la luce sulla fronte
+  e l'ombra sulla mascella, i capelli hanno le ciocche, e la barba tre strati
+  — pieno, velo chiaro, peli disegnati — invece di una toppa piatta.
+
+### Corretto
+
+- **Il config delle auto ha una sessione, e ogni auto la sua chiave.** La
+  matita apre QUELLA auto (e da lì salvare con un nome nuovo la rinomina:
+  stessa chiave, stesse entità, stesso posto), «＋ Aggiungi auto» apre la
+  bozza, e digitare il nome non tocca più le caselle delle entità. Il nome di
+  un'altra auto non si salva — un avviso spiega di usare la matita: era il
+  gesto da cui una vettura si prendeva i dati dell'altra. I tab della plancia
+  mostrano il nome dato all'auto (il modello sta nel tooltip) e restano
+  agganciati alla vettura anche se la lista cambia.
+
+- **La console EVCC comanda davvero.** I pulsanti modalità e la tendina del
+  target parlavano coi riferimenti interni invece che con le entità mappate:
+  Home Assistant rifiutava ogni chiamata. Ora risolvono il riferimento e
+  derivano il dominio dall'entità vera (un number si comanda con set_value).
+  E i km al limite di carica, senza il sensore dedicato, si calcolano da
+  autonomia attuale / batteria attuale × target: cambiando il target il
+  numero si muove subito.
+
+- **Il valore del mese non balla più.** In Energia · Mensile il totale Casa
+  usciva prima da un ripiego (348,7) e un attimo dopo dal sensore vero
+  (443,0). Nel periodo corrente l'entità di periodo configurata è l'unica
+  autorità: il ripiego dal contatore totale resta per i mesi passati, e uno
+  stato non ancora arrivato non dipinge un numero sporco.
+
+- **«Rileva dal telefono» si vede.** I sensori trovati finivano nel campo
+  nascosto dietro la pastiglia, che continuava a dire «Scegli entità»: ora il
+  campo avvisa la pastiglia e i sei sensori compaiono davvero.
+
+- **I tab stanza delle Temperature vestono come il resto.** La stessa pillola
+  maiuscola e spaziata delle altre sezioni, non un font proprio.
+
+- **Le card delle luci vestono meglio anche da spente.** Gradiente, angolo
+  tinto, binario d'accento, la mattonella dell'icona che da accesa torna
+  tonda e luminosa del colore vero, e l'interruttore a pillola al posto del
+  puntino grigio.
+
+- **Il badge version del README legge il manifest.** Era un numero scritto a
+  mano fermo alla 1.0.1: ora non può più restare indietro. (La «v1.1.8» che
+  HACS mostrava accanto alla release 1.1.9 era la sua cache: si aggiorna da
+  sola o con «Aggiorna informazioni» sulla scheda del repository.)
+
 ## 1.1.9
 
 ### Aggiunto
