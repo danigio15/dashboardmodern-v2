@@ -23,7 +23,7 @@ import {
   parseTodoItemsResponse,
   pendingTodoItems,
 } from "../core/todo-model.js";
-import { createApplianceViewModel } from "../core/appliance-view-model.js";
+import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-view-model.js";
 import {
   coverDownRelay,
   coverPositionChoices,
@@ -55,6 +55,9 @@ const STYLE_ID = "dm-widgets-style";
 export const TODO_CONFIG_KEY = "cd_todo";
 export const WIDGETS_CONFIG_KEY = "cd_widgets";
 const STALE_MS = 30000;
+/* Quanto si aspetta prima di richiedere le voci a una lista che ha appena
+ * risposto con un errore — o non ha risposto affatto. */
+const RETRY_MS = 20000;
 const MAX_VISIBLE_ITEMS = 8;
 const MAX_DETAIL_ROWS = 14;
 
@@ -128,7 +131,7 @@ function askHomeAssistant(payload, timeout = 8000) {
 function record(entity) {
   let value = state.lists.get(entity);
   if (!value) {
-    value = { items: null, fetchedAt: 0, inflight: false };
+    value = { items: null, fetchedAt: 0, inflight: false, failedAt: 0 };
     state.lists.set(entity, value);
   }
   return value;
@@ -139,7 +142,13 @@ async function fetchItems(entity, { force = false } = {}) {
   const now = Date.now();
   if (cache.inflight) return;
   if (!force && cache.items && now - cache.fetchedAt < STALE_MS) return;
+  /* Una richiesta fallita non ha lasciato voci, e senza voci la guardia dello
+   * scaduto non ferma nessuno: col socket giu' il disegno richiedeva, la
+   * richiesta falliva, il fallimento faceva ridisegnare, e il giro ripartiva
+   * a ogni fotogramma. Dopo un errore si aspetta prima di riprovare. */
+  if (!force && !cache.items && now - cache.failedAt < RETRY_MS) return;
   cache.inflight = true;
+  let riuscita = false;
   try {
     const result = await askHomeAssistant({
       type: "call_service",
@@ -150,11 +159,16 @@ async function fetchItems(entity, { force = false } = {}) {
     });
     cache.items = parseTodoItemsResponse(result, entity);
     cache.fetchedAt = Date.now();
+    cache.failedAt = 0;
+    riuscita = true;
   } catch (error) {
+    cache.failedAt = Date.now();
     root.console?.warn?.("[DashboardModern] todo items", error);
   }
   cache.inflight = false;
-  schedule();
+  // Un fallimento non ha cambiato niente da disegnare: ridisegnare lo stesso
+  // vorrebbe dire richiedere di nuovo, subito.
+  if (riuscita) schedule();
 }
 
 async function callHa(domain, servizio, payload) {
@@ -1528,6 +1542,9 @@ export function installHomeWidgetsSection() {
     true,
   );
   doc.addEventListener("visibilitychange", () => schedule());
+  /* Il ritardo di fine ciclo scade in silenzio: l'elettrodomestico ha smesso
+   * di consumare, e nessun cambio di stato arriva ad avvisare la tessera. */
+  onRunHoldExpiry(() => schedule());
   schedule();
 }
 

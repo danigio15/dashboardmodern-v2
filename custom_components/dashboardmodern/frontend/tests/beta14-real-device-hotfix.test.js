@@ -76,3 +76,19 @@ test("beta14 hotfix loads after the beta12 glyph owner in both sentinels", async
     assert.ok(beta14 > beta12, "beta14 hotfix loads after beta12 owner");
   }
 });
+
+
+/* La pompa di calore c'e' anche alla prima configurazione.
+ *
+ * `#wz-cl-type` nasce quando il wizard si apre — dopo la riparazione d'avvio e
+ * fuori dai giri dell'editor — quindi la voce «Pompa di calore» non gli
+ * arrivava mai: chi configurava la casa la prima volta poteva scegliere solo
+ * Freddo e Caldo, e la pompa andava aggiunta dopo, dalla configurazione. */
+test("la riparazione dei tipi clima gira anche quando si apre il wizard", async () => {
+  const source = await readFile(
+    new URL("../src/sections/beta14-real-device-hotfix-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /"wz-cl-type"/);
+  assert.match(source, /"apriSetupWizard",\s*"wzRender"/);
+});

@@ -126,3 +126,39 @@ test("senza `img`, un'image vuota non spegne la image_url piena", () => {
   );
   assert.equal(auto.img, "/local/b10.png", "l'unica foto rimasta e' stata scartata");
 });
+
+/* Il travaso riempie solo quello che lo scatto non poteva conoscere.
+ *
+ * Alzare la revisione per una chiave nuova trascinava dentro al travaso ogni
+ * chiave mancante: uno scatto alla 5 si riprendeva le tapparelle o le auto
+ * che qualcun altro aveva cancellato apposta, e alla prima modifica quel
+ * ritorno finiva anche nel salvataggio condiviso. Di una chiave nata dopo lo
+ * scatto, invece, l'assenza non dice niente: quella e' l'unica da riempire.
+ */
+test("uno scatto recente si riempie solo delle chiavi nate dopo di lui", async () => {
+  const { mergeLegacyMissingConfig } = await import(
+    "../src/sections/config-persistence-section.js"
+  );
+  const locale = {
+    cd_people: '[{"name":"Anna"}]',
+    cd_todo: '[{"entity":"todo.spesa"}]',
+    cd_widgets: '{"hidden":["luci"]}',
+    cd_tapparelle: '[{"entity":"cover.salone"}]',
+  };
+  const dallaCinque = mergeLegacyMissingConfig({ keys_revision: 5, values: {} }, locale);
+  assert.equal(dallaCinque.values.cd_todo, locale.cd_todo, "la 6 l'ha portata: si riempie");
+  assert.equal(dallaCinque.values.cd_widgets, locale.cd_widgets, "la 7 pure");
+  assert.equal(
+    "cd_tapparelle" in dallaCinque.values,
+    false,
+    "una tapparella cancellata resta cancellata",
+  );
+  assert.equal(
+    "cd_people" in dallaCinque.values,
+    false,
+    "alla 5 le persone c'erano gia': la loro assenza e' una cancellazione",
+  );
+
+  const dallaSei = mergeLegacyMissingConfig({ keys_revision: 6, values: {} }, locale);
+  assert.deepEqual(Object.keys(dallaSei.values), ["cd_widgets"]);
+});

@@ -228,7 +228,15 @@ function wrapOwner(name) {
   }
   Object.assign(wrapped, current); wrapped.__dmBeta14Owner = true; wrapped.__dmPrevious = current; root[name] = wrapped;
 }
-function installOwners() { ["editorSwitch", "buildQuickActions", "buildTempCards"].forEach(wrapOwner); }
+/* Anche il wizard: `#wz-cl-type` nasce quando il wizard si apre, cioe' molto
+ * dopo la riparazione d'avvio e fuori dai giri dell'editor. Senza questi due
+ * la prima configurazione offriva solo Freddo e Caldo, e la pompa di calore
+ * si poteva scegliere soltanto tornandoci dalla configurazione. */
+function installOwners() {
+  ["editorSwitch", "buildQuickActions", "buildTempCards", "apriSetupWizard", "wzRender"].forEach(
+    wrapOwner,
+  );
+}
 export function installBeta14RealDeviceHotfix() {
   installTemperatureCompatibleIconEngine();
   installOwners();

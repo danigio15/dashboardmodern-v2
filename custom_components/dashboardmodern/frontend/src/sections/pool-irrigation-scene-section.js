@@ -17,7 +17,6 @@ import {
   readJson,
   root,
   t,
-  wrapFunction,
   writeJsonIfChanged,
 } from "./shared.js";
 
@@ -1348,26 +1347,41 @@ function ensureSoilFields() {
   return true;
 }
 
+const CAMPI_SOIL = Object.freeze([
+  ["ed-irr-soil-min", "soilMin"],
+  ["ed-irr-soil-max", "soilMax"],
+  ["ed-irr-soil-skip", "soilSkipAbove"],
+  ["ed-irr-soil-start", "soilStartBelow"],
+]);
+
+/* Quello che c'e' scritto nelle nostre caselle, adesso.
+ *
+ * Si legge PRIMA di lasciar salvare il runtime: `edIrrSaveCfg` finisce con
+ * `editorSwitch('irr')`, che rifa' `#ed-body` da capo. Leggendo dopo si
+ * leggono caselle nuove di zecca, riempite da `ensureSoilFields` col valore
+ * salvato — cioe' quello vecchio — e la modifica appena scritta a mano
+ * sparirebbe senza dire niente. */
+function leggiSoil() {
+  const campo = doc?.getElementById("ed-irr-soil");
+  if (!campo) return null;
+  const raccolto = { soilEnt: clean(campo.value) };
+  for (const [id, field] of CAMPI_SOIL) raccolto[field] = num(doc?.getElementById(id)?.value);
+  return raccolto;
+}
+
 /* Dopo che il runtime ha riscritto `cd_irrigazione` coi suoi campi, i nostri
  * tornano al loro posto: vuoto vuol dire «niente sensore», mai zero. */
-function salvaSoil() {
-  const campo = doc?.getElementById("ed-irr-soil");
-  if (!campo) return;
+function salvaSoil(raccolto) {
+  if (!raccolto) return;
   const stored = readJson("cd_irrigazione", {});
   const next = stored && typeof stored === "object" && !Array.isArray(stored) ? { ...stored } : {};
-  const soilEnt = clean(campo.value);
-  if (soilEnt) next.soilEnt = soilEnt;
+  if (raccolto.soilEnt) next.soilEnt = raccolto.soilEnt;
   else {
     delete next.soilEnt;
     delete next.soil_entity;
   }
-  for (const [id, field] of [
-    ["ed-irr-soil-min", "soilMin"],
-    ["ed-irr-soil-max", "soilMax"],
-    ["ed-irr-soil-skip", "soilSkipAbove"],
-    ["ed-irr-soil-start", "soilStartBelow"],
-  ]) {
-    const value = num(doc?.getElementById(id)?.value);
+  for (const [, field] of CAMPI_SOIL) {
+    const value = raccolto[field];
     if (value == null) delete next[field];
     else next[field] = Math.max(0, Math.min(100, value));
   }
@@ -1375,8 +1389,21 @@ function salvaSoil() {
   schedule();
 }
 
+/* Non `wrapFunction`: quello corre solo dopo, e dopo le caselle non ci sono
+ * piu'. Qui si legge prima, si lascia salvare il runtime, e si riscrive. */
 function armaSoilEditor() {
-  wrapFunction("edIrrSaveCfg", "__dmIrrSoilSave", salvaSoil);
+  const originale = root.edIrrSaveCfg;
+  if (typeof originale === "function" && !originale.__dmIrrSoilSave) {
+    const salvataggio = function (...args) {
+      const raccolto = leggiSoil();
+      const esito = originale.apply(this, args);
+      salvaSoil(raccolto);
+      return esito;
+    };
+    Object.assign(salvataggio, originale);
+    salvataggio.__dmIrrSoilSave = true;
+    root.edIrrSaveCfg = salvataggio;
+  }
   ensureSoilFields();
 }
 

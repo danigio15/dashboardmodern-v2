@@ -5,6 +5,7 @@
  * programma parte da solo al primo cambio di stato, una volta al giorno. */
 import { expect, test } from "@playwright/test";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
+import { showRawEntityFields } from "./helpers/entity-field.js";
 
 const seed = {
   schema_version: 4,
@@ -126,4 +127,43 @@ test("terreno sotto la soglia bassa: parte da solo al cambio di stato, una volta
   });
   await page.waitForTimeout(150);
   expect(await page.evaluate(() => window.CD_IRR.cur)).toBeLessThan(0);
+});
+
+/* Le caselle del terreno sopravvivono al salvataggio.
+ *
+ * Il salvataggio del runtime riscrive `cd_irrigazione` coi soli campi che
+ * conosce e finisce con `editorSwitch('irr')`, che rifa' la scheda da capo.
+ * Chi rimetteva i nostri campi DOPO leggeva caselle appena disegnate col
+ * valore vecchio: si scriveva la soglia, si premeva Salva, e la soglia
+ * tornava com'era senza dire niente. */
+test("la soglia del terreno scritta a mano resta scritta dopo il salvataggio", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(90_000);
+  await boot(page, testInfo);
+  await page.evaluate(() => apriConfigEntita());
+  await expect(page.locator("#editor-modal")).toBeVisible();
+  await page.locator('.ed-tab[data-tab="irr"]').click();
+  await expect(page.locator("#ed-irr-soil")).toBeAttached();
+  // La casella dell'entita' vive dietro la matita, come tutte le altre.
+  await showRawEntityFields(page);
+  await expect(page.locator("#ed-irr-soil")).toBeVisible();
+
+  await page.locator("#ed-irr-soil").fill("sensor.terra_nuova");
+  await page.locator("#ed-irr-soil-skip").fill("72");
+  await page.locator("#ed-irr-soil-start").fill("8");
+  await page.evaluate(() => edIrrSaveCfg());
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const stored = JSON.parse(window.localStorage.getItem("cd_irrigazione") || "{}");
+        return [stored.soilEnt, stored.soilSkipAbove, stored.soilStartBelow].join("|");
+      }),
+    )
+    .toBe("sensor.terra_nuova|72|8");
+
+  // E la scheda ridisegnata mostra quello che e' stato salvato, non l'opposto.
+  await expect(page.locator("#ed-irr-soil")).toHaveValue("sensor.terra_nuova");
+  await expect(page.locator("#ed-irr-soil-skip")).toHaveValue("72");
 });

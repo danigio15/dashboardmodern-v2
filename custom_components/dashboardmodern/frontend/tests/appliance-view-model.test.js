@@ -163,3 +163,47 @@ test("unknown and unavailable configured states are not presented as OFF", () =>
     assert.equal(model.label, "UNAVAILABLE");
   }
 });
+
+
+/* La scadenza del ritardo bussa da sola.
+ *
+ * Un elettrodomestico che ha smesso di consumare non manda piu' nessun cambio
+ * di stato — e' per questo che il ritardo esiste — quindi il ritardo scadeva
+ * solo alla prossima chiamata del modello, che poteva non arrivare per ore: la
+ * lavastoviglie restava IN FUNZIONE a ciclo finito. Adesso il modello mette
+ * una sveglia sulla scadenza e chi disegna la sente.
+ */
+test("il ritardo di fine ciclo avvisa chi disegna quando scade", async () => {
+  const { createApplianceViewModel, onRunHoldExpiry, resetRunHolds } = await import(
+    "../src/core/appliance-view-model.js"
+  );
+  resetRunHolds();
+  const sveglie = [];
+  const stacca = onRunHoldExpiry(() => sveglie.push(Date.now()));
+  const originale = globalThis.setTimeout;
+  const pianificate = [];
+  globalThis.setTimeout = (callback, delay) => {
+    pianificate.push({ callback, delay });
+    return pianificate.length;
+  };
+  try {
+    const holds = new Map();
+    const ritardata = { ...device, off_delay_minutes: 30 };
+    const t0 = Date.parse("2026-08-16T10:00:00");
+    const al = (power, now) =>
+      createApplianceViewModel(ritardata, states(power, "on"), [], "it", { now, holds });
+    assert.equal(al(1800, t0).mode, "running");
+    // Niente sveglia finche' consuma: la scadenza non e' ancora cominciata.
+    assert.equal(pianificate.length, 0);
+    assert.equal(al(0, t0 + 60000).mode, "running");
+    assert.equal(pianificate.length, 1, "il ritardo in corso mette la sua sveglia");
+    // Suona dopo i trenta minuti dall'ultimo consumo, con un pelo di margine.
+    assert.equal(pianificate[0].delay, 29 * 60000 + 250);
+    pianificate[0].callback();
+    assert.equal(sveglie.length, 1, "chi disegna viene avvisato");
+  } finally {
+    globalThis.setTimeout = originale;
+    stacca();
+    resetRunHolds();
+  }
+});

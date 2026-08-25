@@ -40,6 +40,54 @@ const isCumulativeEnergy = (states, entity) => {
  * ciclo. */
 const runHolds = new Map();
 
+/* La scadenza del ritardo va annunciata, non aspettata.
+ *
+ * Il ritardo finisce da se' solo alla prossima chiamata del modello, e un
+ * elettrodomestico che ha smesso di consumare non manda piu' nessun cambio di
+ * stato: senza qualcuno che lo dica, la card resta IN FUNZIONE fino al primo
+ * ridisegno che capita per altri motivi — che puo' non arrivare per ore. Qui
+ * si tiene una sola sveglia, sulla scadenza piu' vicina, e chi disegna si
+ * iscrive per rileggere il modello quando suona. */
+const scadenzaAscoltatori = new Set();
+let scadenzaTimer = 0;
+let scadenzaAt = 0;
+
+export function onRunHoldExpiry(callback) {
+  if (typeof callback !== "function") return () => {};
+  scadenzaAscoltatori.add(callback);
+  return () => scadenzaAscoltatori.delete(callback);
+}
+
+/** Solo per le prove: dimentica sveglia e ritardi in corso. */
+export function resetRunHolds() {
+  runHolds.clear();
+  if (scadenzaTimer) globalThis.clearTimeout?.(scadenzaTimer);
+  scadenzaTimer = 0;
+  scadenzaAt = 0;
+}
+
+function pianificaScadenza(quando, now) {
+  if (typeof globalThis.setTimeout !== "function") return;
+  // Una sveglia sola: se ce n'e' gia' una che suona prima, basta quella.
+  if (scadenzaTimer && scadenzaAt <= quando) return;
+  if (scadenzaTimer) globalThis.clearTimeout?.(scadenzaTimer);
+  scadenzaAt = quando;
+  scadenzaTimer = globalThis.setTimeout(
+    () => {
+      scadenzaTimer = 0;
+      scadenzaAt = 0;
+      for (const ascoltatore of scadenzaAscoltatori) {
+        try {
+          ascoltatore();
+        } catch (_error) {}
+      }
+    },
+    // Un pelo dopo la scadenza: al risveglio il confronto dev'essere gia'
+    // passato, altrimenti si ripianifica per lo stesso istante all'infinito.
+    Math.max(0, quando - now) + 250,
+  );
+}
+
 function applyRunHold({ key, mode, delayMinutes, explicitOff, now, holds }) {
   if (!key) return mode;
   if (mode === "running") {
@@ -53,6 +101,7 @@ function applyRunHold({ key, mode, delayMinutes, explicitOff, now, holds }) {
     holds.delete(key);
     return mode;
   }
+  pianificaScadenza(lastRun + delayMinutes * 60000, now);
   return "running";
 }
 

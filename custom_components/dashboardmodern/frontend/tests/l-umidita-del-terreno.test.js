@@ -55,9 +55,16 @@ test("le caselle stanno nella scheda Irrigazione e il salvataggio le conserva", 
   assert.match(source, /id="ed-irr-soil"/);
   assert.match(source, /id="ed-irr-soil-min"/);
   assert.match(source, /id="ed-irr-soil-max"/);
-  // Il salvataggio del runtime riscrive cd_irrigazione senza sapere di questi
-  // campi: l'aggancio a edIrrSaveCfg li rimette al loro posto subito dopo.
-  assert.match(source, /wrapFunction\("edIrrSaveCfg", "__dmIrrSoilSave", salvaSoil\)/);
+  /* Il salvataggio del runtime riscrive cd_irrigazione senza sapere di questi
+   * campi: l'aggancio a edIrrSaveCfg li rimette al loro posto, leggendoli
+   * PRIMA: il salvataggio del runtime finisce con
+   * `editorSwitch('irr')`, che rifa' la scheda da capo. Un aggancio che corre
+   * solo dopo leggerebbe caselle appena disegnate col valore vecchio, e la
+   * modifica scritta a mano sparirebbe in silenzio. */
+  assert.match(source, /const raccolto = leggiSoil\(\);\s*\n\s*const esito = originale\.apply/);
+  assert.match(source, /salvaSoil\(raccolto\);/);
+  assert.match(source, /salvataggio\.__dmIrrSoilSave = true;/);
+  assert.doesNotMatch(source, /wrapFunction\("edIrrSaveCfg"/);
   // Vuoto vuol dire «niente sensore», mai zero.
   assert.match(source, /delete next\.soilEnt/);
 });
