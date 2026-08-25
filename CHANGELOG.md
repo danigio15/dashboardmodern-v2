@@ -9,6 +9,22 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Backup e ripristino della configurazione.** La scheda «💾 Backup» in
+  configurazione raccoglie tutta la configurazione condivisa — sezioni,
+  stanze, entità, persone, auto, tutto — in un file JSON da scaricare, o da
+  copiare negli appunti dove i download non passano. Il ripristino accetta il
+  file o il testo incollato, dice quante voci porta e chiede conferma inline
+  prima di scrivere; le chiavi che il backup non porta restano come sono, e
+  un file manomesso non può scrivere chiavi fuori dal perimetro condiviso.
+
+- **L'irrigazione guarda il terreno.** Accanto al sensore di umidità ci sono
+  due soglie nuove: col terreno già bagnato (≥ soglia alta) il programma
+  delle ore fisse salta, con l'avviso in card come per la pioggia — e il
+  tasto «forza» passa comunque; sotto la soglia bassa (es. 5%) il programma
+  parte da solo al primo cambio di stato, una volta al giorno, con l'avviso.
+  Lo skip non brucia il giorno dell'avvio automatico: contano solo le
+  partenze vere.
+
 - **Il meteo in Home legge la stazione personale.** (#205) Chi ha una stazione
   meteo (Ecowitt e simili) mappa i suoi sensori nella scheda Home della
   configurazione — temperatura esterna, umidità, temperatura percepita,

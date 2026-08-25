@@ -1296,7 +1296,15 @@ function casellaSoil() {
     <div class="dm-irr-soil-band">
       <label class="ed-slot"><span class="ed-slot-lbl">${t("Umidità ideale min (%)", "Ideal moisture min (%)")}</span><input id="ed-irr-soil-min" class="ed-input" type="number" min="0" max="100" step="1" placeholder="30"></label>
       <label class="ed-slot"><span class="ed-slot-lbl">${t("Umidità ideale max (%)", "Ideal moisture max (%)")}</span><input id="ed-irr-soil-max" class="ed-input" type="number" min="0" max="100" step="1" placeholder="60"></label>
-    </div>`;
+    </div>
+    <div class="dm-irr-soil-band">
+      <label class="ed-slot"><span class="ed-slot-lbl">${t("Salta il programma se ≥ (%)", "Skip the program if ≥ (%)")}</span><input id="ed-irr-soil-skip" class="ed-input" type="number" min="0" max="100" step="1" placeholder="60"></label>
+      <label class="ed-slot"><span class="ed-slot-lbl">${t("Avvia da solo se < (%)", "Start on its own if < (%)")}</span><input id="ed-irr-soil-start" class="ed-input" type="number" min="0" max="100" step="1" placeholder="5"></label>
+    </div>
+    <small>${t(
+      "Col terreno già bagnato il programma delle ore fisse salta (con l'avviso in card); sotto la soglia bassa parte da solo, una volta al giorno.",
+      "With the ground already wet the scheduled program skips (with the notice on the card); below the low threshold it starts on its own, once a day.",
+    )}</small>`;
   return holder;
 }
 
@@ -1329,6 +1337,8 @@ function ensureSoilFields() {
     ["ed-irr-soil", clean(config.soilEnt || config.soil_entity)],
     ["ed-irr-soil-min", num(config.soilMin) ?? ""],
     ["ed-irr-soil-max", num(config.soilMax) ?? ""],
+    ["ed-irr-soil-skip", num(config.soilSkipAbove) ?? ""],
+    ["ed-irr-soil-start", num(config.soilStartBelow) ?? ""],
   ]) {
     const input = doc.getElementById(id);
     // Mai sotto le dita: il ridisegno non riscrive il campo che si sta usando.
@@ -1354,6 +1364,8 @@ function salvaSoil() {
   for (const [id, field] of [
     ["ed-irr-soil-min", "soilMin"],
     ["ed-irr-soil-max", "soilMax"],
+    ["ed-irr-soil-skip", "soilSkipAbove"],
+    ["ed-irr-soil-start", "soilStartBelow"],
   ]) {
     const value = num(doc?.getElementById(id)?.value);
     if (value == null) delete next[field];
@@ -1366,6 +1378,69 @@ function salvaSoil() {
 function armaSoilEditor() {
   wrapFunction("edIrrSaveCfg", "__dmIrrSoilSave", salvaSoil);
   ensureSoilFields();
+}
+
+/* ── L'irrigazione guarda il terreno ─────────────────────────────────────
+ *
+ * «Se il terreno è uguale o sopra una % salta l'irrigazione, se è al di
+ * sotto del 5% parte, con degli avvisi.» Il cancello sta sopra
+ * `cdIrrProgram`: e' li' che gia' vive lo skip per pioggia, con lo stesso
+ * avviso in card (`CD_IRR.skip`). L'override — non `wrapFunction`, che corre
+ * DOPO l'originale e non puo' fermarlo — lascia passare il tasto «forza». */
+function installProgramGate() {
+  const current = root.cdIrrProgram;
+  if (typeof current !== "function" || current.__dmIrrSoilGate) return false;
+  function gated(force) {
+    try {
+      if (!force) {
+        const config = irrigationConfig();
+        const soglia = num(config.soilSkipAbove);
+        const soil = soilMoisture(config);
+        if (soglia != null && soil.reading != null && soil.reading >= soglia) {
+          if (root.CD_IRR)
+            root.CD_IRR.skip = `🌱 ${t("Terreno al", "Soil at")} ${Math.round(soil.reading)}% — ${t("programma saltato", "program skipped")}`;
+          try {
+            root.renderIrrigazione?.();
+          } catch (_error) {}
+          root.edToast?.(clean(root.CD_IRR?.skip) || t("Programma saltato", "Program skipped"));
+          return undefined;
+        }
+      }
+    } catch (_error) {}
+    return current.apply(this, arguments);
+  }
+  gated.__dmIrrSoilGate = true;
+  gated.__dmPrevious = current;
+  root.cdIrrProgram = gated;
+  return true;
+}
+
+/* Sotto la soglia bassa il programma parte da solo, una volta al giorno: la
+ * chiave e' NOSTRA (`cd_irr_soil_lastrun`), separata da quella delle ore
+ * fisse, e si scrive solo quando la sequenza e' partita davvero — cosi' uno
+ * skip per pioggia non brucia il giorno. Si valuta a ogni cambio di stato:
+ * niente orologi nostri, il sensore detta il passo. */
+const SOIL_RUN_KEY = "cd_irr_soil_lastrun";
+
+function valutaTerreno() {
+  try {
+    const config = irrigationConfig();
+    if (!config.enabled || !config.zones.length) return;
+    const soglia = num(config.soilStartBelow);
+    if (soglia == null) return;
+    const soil = soilMoisture(config);
+    if (soil.reading == null || soil.reading >= soglia) return;
+    if ((root.CD_IRR?.cur ?? -1) >= 0) return;
+    const oggi = new Date().toDateString();
+    if (root.localStorage?.getItem?.(SOIL_RUN_KEY) === oggi) return;
+    root.cdIrrProgram?.(false);
+    if ((root.CD_IRR?.cur ?? -1) >= 0) {
+      root.localStorage?.setItem?.(SOIL_RUN_KEY, oggi);
+      root.edToast?.(
+        `🌱 ${t("Terreno al", "Soil at")} ${Math.round(soil.reading)}% — ${t("irrigazione avviata", "watering started")}`,
+      );
+    }
+  } catch (_error) {}
 }
 
 export function installPoolIrrigationSceneSection() {
@@ -1383,6 +1458,16 @@ export function installPoolIrrigationSceneSection() {
         root.queueMicrotask?.(armaSoilEditor);
       });
     armaSoilEditor();
+    for (const eventName of [
+      "dashboardmodern:legacy-ready",
+      "dashboardmodern:states-ready",
+      "dashboardmodern:state-changed",
+    ])
+      root.addEventListener?.(eventName, () => {
+        installProgramGate();
+        valutaTerreno();
+      });
+    installProgramGate();
   }
   schedule();
 }

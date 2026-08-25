@@ -60,9 +60,11 @@ export const TAB_SECTION_KEYS = Object.freeze({
   luci: "luci",
 });
 
-/* Tabs that hold no configuration to save: diagnostics is read-only, and the
- * visibility tab has its own single control. */
-const NO_SAVE_TABS = new Set(["runtime", "visib", "export", "rileva"]);
+/* Tabs that hold no configuration to save: diagnostics is read-only, the
+ * visibility tab has its own single control, and Backup acts with its own
+ * buttons — «Scarica», «Ripristina e ricarica» — so a "Save section" under it
+ * would be a button that saves nothing. */
+const NO_SAVE_TABS = new Set(["runtime", "visib", "export", "rileva", "backup"]);
 
 /* What counts as "save this section". Add buttons, profile buttons and the
  * visibility banner are not saves, however much their label looks like one:

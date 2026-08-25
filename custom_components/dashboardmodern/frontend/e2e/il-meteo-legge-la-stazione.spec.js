@@ -47,7 +47,9 @@ async function boot(page, testInfo) {
     window.WebSocket = MockSocket;
   });
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true);
 }
 
@@ -89,9 +91,7 @@ test("i sensori della stazione vincono sull'entita' weather, direzione compresa"
   await expect(page.locator("#w-state")).toHaveText(/Soleggiato/i);
 });
 
-test("senza stazione il widget resta quello dell'entita' weather", async ({
-  page,
-}, testInfo) => {
+test("senza stazione il widget resta quello dell'entita' weather", async ({ page }, testInfo) => {
   await boot(page, testInfo);
   await page.evaluate(() => {
     _RAW_STATES["weather.casa"] = {
