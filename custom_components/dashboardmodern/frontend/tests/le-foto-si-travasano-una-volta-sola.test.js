@@ -64,9 +64,10 @@ test("togliere una chiave non alza la revisione", async () => {
   );
   /* La 5 non smentisce questa prova: aggiunge una chiave (`cd_people`), e per
    * una chiave aggiunta la revisione si alza apposta. La 6 fa lo stesso con
-   * le aperture (`cd_security_doors`) e le liste ToDo (`cd_todo`). Quelle
-   * tolte restano fuori dall'elenco, che e' quello che questa prova difende. */
-  assert.equal(CONFIG_KEYS_REVISION, 6);
+   * le aperture (`cd_security_doors`) e le liste ToDo (`cd_todo`), la 7 con
+   * le preferenze del ponte dei widget (`cd_widgets`). Quelle tolte restano
+   * fuori dall'elenco, che e' quello che questa prova difende. */
+  assert.equal(CONFIG_KEYS_REVISION, 7);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 
