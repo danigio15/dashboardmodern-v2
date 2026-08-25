@@ -354,38 +354,26 @@ export function normalizeSharedSnapshot(snapshot) {
  * mentre la si stava togliendo di mezzo: il salvataggio vecchio non ce l'aveva
  * piu', ma il travaso gliela rimetteva. Ritirata vuol dire ritirata.
  */
-/* Quale revisione ha portato quale chiave.
+/* Il travaso pieno e' voluto, e non si stringe senza toccare il ripristino.
  *
- * Serve a travasare *solo* quello che lo scatto non poteva conoscere. Alzare
- * la revisione riempiva ogni chiave mancante da questo dispositivo: uno
- * scatto alla 5 — che di chiavi ne conosceva gia' tante — si vedeva tornare
- * indietro le tapparelle, le persone o le auto che qualcun altro aveva
- * cancellato apposta, e alla prima modifica quel ritorno se lo riprendeva
- * anche il salvataggio condiviso. Una chiave nata dopo lo scatto e' l'unica
- * di cui l'assenza non significa niente. */
-const KEYS_BY_REVISION = Object.freeze({
-  5: Object.freeze(["cd_people"]),
-  6: Object.freeze(["cd_security_doors", "cd_todo"]),
-  7: Object.freeze(["cd_widgets"]),
-});
-/* Sotto la 5 l'elenco delle chiavi di allora non lo sappiamo ricostruire, e
- * il travaso pieno e' quello con cui quei salvataggi sono nati: li' resta. */
-const FIRST_SCOPED_REVISION = 5;
-
-export function chiaviDaTravasare(revisione) {
-  if (!(Number(revisione) >= FIRST_SCOPED_REVISION)) return CONFIG_KEYS;
-  return Object.entries(KEYS_BY_REVISION)
-    .filter(([nata]) => Number(nata) > Number(revisione))
-    .flatMap(([, chiavi]) => chiavi)
-    .filter((key) => CONFIG_KEYS.includes(key));
-}
-
+ * La revisione dice fin dove lo scatto conosce l'elenco delle chiavi, e per le
+ * chiavi che gia' conosceva l'assenza vorrebbe dire «cancellata»: travasarle
+ * tutte, in effetti, puo' riportare in vita quello che qualcun altro aveva
+ * tolto. Ma `applyRestoredValues` CANCELLA dal dispositivo ogni chiave che il
+ * salvataggio non porta: smettere di travasarle, senza cambiare anche quello,
+ * non fa tornare indietro dei dati — li butta via. Provato: con il travaso
+ * ristretto, un dispositivo che idrata uno scatto piu' vecchio si vedeva
+ * sparire le auto che aveva in casa.
+ *
+ * Fra i due mali, quello che si puo' disfare a mano (una voce ricomparsa) e
+ * quello che non si puo' (una configurazione persa), qui si tiene il primo.
+ * Stringere il travaso e' un lavoro suo: il ripristino deve prima saper
+ * distinguere «non c'e' perche' cancellata» da «non c'e' perche' allora non
+ * esisteva», e quella distinzione oggi non ce l'ha. */
 export function mergeLegacyMissingConfig(remote, local = {}) {
   if (!remote || Number(remote.keys_revision) >= CONFIG_KEYS_REVISION) return remote;
   const mancanti = Object.fromEntries(
-    chiaviDaTravasare(remote.keys_revision).flatMap((key) =>
-      typeof local?.[key] === "string" ? [[key, local[key]]] : [],
-    ),
+    CONFIG_KEYS.flatMap((key) => (typeof local?.[key] === "string" ? [[key, local[key]]] : [])),
   );
   return {
     ...remote,

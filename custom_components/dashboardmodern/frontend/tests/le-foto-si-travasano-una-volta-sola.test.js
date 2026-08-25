@@ -127,38 +127,29 @@ test("senza `img`, un'image vuota non spegne la image_url piena", () => {
   assert.equal(auto.img, "/local/b10.png", "l'unica foto rimasta e' stata scartata");
 });
 
-/* Il travaso riempie solo quello che lo scatto non poteva conoscere.
+/* Il travaso pieno resta pieno, e la ragione e' il ripristino.
  *
- * Alzare la revisione per una chiave nuova trascinava dentro al travaso ogni
- * chiave mancante: uno scatto alla 5 si riprendeva le tapparelle o le auto
- * che qualcun altro aveva cancellato apposta, e alla prima modifica quel
- * ritorno finiva anche nel salvataggio condiviso. Di una chiave nata dopo lo
- * scatto, invece, l'assenza non dice niente: quella e' l'unica da riempire.
+ * Travasare ogni chiave mancante puo' riportare in vita quello che qualcun
+ * altro aveva cancellato: e' un difetto vero, segnalato in revisione. Ma
+ * `applyRestoredValues` cancella dal dispositivo ogni chiave che il
+ * salvataggio non porta, quindi smettere di travasarle non fa tornare
+ * indietro dei dati: li butta via. Finche' il ripristino non sa distinguere
+ * «non c'e' perche' cancellata» da «non c'e' perche' allora non esisteva»,
+ * qui si tiene il male che si puo' disfare a mano.
  */
-test("uno scatto recente si riempie solo delle chiavi nate dopo di lui", async () => {
+test("uno scatto piu' vecchio riceve tutto quello che questo dispositivo ha", async () => {
   const { mergeLegacyMissingConfig } = await import(
     "../src/sections/config-persistence-section.js"
   );
   const locale = {
-    cd_people: '[{"name":"Anna"}]',
-    cd_todo: '[{"entity":"todo.spesa"}]',
     cd_widgets: '{"hidden":["luci"]}',
     cd_tapparelle: '[{"entity":"cover.salone"}]',
+    cd_ev_cars: '[{"name":"B10"}]',
   };
-  const dallaCinque = mergeLegacyMissingConfig({ keys_revision: 5, values: {} }, locale);
-  assert.equal(dallaCinque.values.cd_todo, locale.cd_todo, "la 6 l'ha portata: si riempie");
-  assert.equal(dallaCinque.values.cd_widgets, locale.cd_widgets, "la 7 pure");
-  assert.equal(
-    "cd_tapparelle" in dallaCinque.values,
-    false,
-    "una tapparella cancellata resta cancellata",
-  );
-  assert.equal(
-    "cd_people" in dallaCinque.values,
-    false,
-    "alla 5 le persone c'erano gia': la loro assenza e' una cancellazione",
-  );
-
-  const dallaSei = mergeLegacyMissingConfig({ keys_revision: 6, values: {} }, locale);
-  assert.deepEqual(Object.keys(dallaSei.values), ["cd_widgets"]);
+  const merged = mergeLegacyMissingConfig({ keys_revision: 5, values: {} }, locale);
+  // La chiave nuova, che lo scatto non poteva conoscere.
+  assert.equal(merged.values.cd_widgets, locale.cd_widgets);
+  // E anche quelle vecchie: senza, il ripristino le cancellerebbe da qui.
+  assert.equal(merged.values.cd_tapparelle, locale.cd_tapparelle);
+  assert.equal(merged.values.cd_ev_cars, locale.cd_ev_cars);
 });
