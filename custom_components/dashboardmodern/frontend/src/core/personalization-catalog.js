@@ -516,13 +516,22 @@ export function carBrandVisual(value, size = 48) {
   const item = brandMatch(value);
   if (!item) return brandFallback(value, safeSize);
   if (item.id === "leapmotor") return leapmotorVisual(safeSize);
+  const initials = item.initials || item.name.slice(0, 2).toUpperCase();
+  const fontSize = initials.length > 2 ? 10 : initials.length === 2 ? 13 : 16;
   const source = carBrandImageSource(item.name);
   if (source) {
     const width = Math.max(safeSize, Math.round(safeSize * 1.75));
-    return `<span class="dm-car-brand" data-brand="${item.id}" data-brand-source="canonical" data-dm-beta5-brand="${item.name}" title="${item.name}" style="width:${width}px;height:${safeSize}px"><span data-brand-logo="${item.id}" style="display:grid;place-items:center;width:100%;height:100%"><img data-dm-brand-image="${item.id}" src="${source}" alt="${item.name}" decoding="async" loading="eager" referrerpolicy="no-referrer" style="display:block;width:100%;height:100%;object-fit:contain;object-position:center"></span></span>`;
+    /* Dietro il logo ci sono le iniziali.
+     *
+     * Il testo alternativo dell'immagine e' il NOME del marchio, e quando il
+     * logo non arriva — una plancia senza rete, un dominio bloccato — quel nome
+     * finiva dentro un riquadro alto quanto un'icona e ci andava a capo:
+     * «MINI» diventava «MI / NI». Le iniziali stanno sotto, disegnate, e
+     * l'immagine ci si posa sopra quando c'e': se non arriva resta un tondo
+     * leggibile invece di due sillabe spezzate. Nessuno script — un logo che
+     * non carica non e' un buon momento per scoprire una regola di sicurezza. */
+    return `<span class="dm-car-brand" data-brand="${item.id}" data-brand-source="canonical" data-dm-beta5-brand="${item.name}" title="${item.name}" style="position:relative;width:${width}px;height:${safeSize}px"><span aria-hidden="true" style="position:absolute;inset:0;display:grid;place-items:center"><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="14" fill="currentColor" opacity=".12"/><circle cx="24" cy="24" r="15.5" fill="none" stroke="currentColor" stroke-width="2.4" opacity=".9"/><text x="24" y="28.5" text-anchor="middle" font-size="${fontSize}" font-family="system-ui,sans-serif" font-weight="900" fill="currentColor">${initials}</text></svg></span><span data-brand-logo="${item.id}" style="position:relative;display:grid;place-items:center;width:100%;height:100%"><img data-dm-brand-image="${item.id}" src="${source}" alt="" decoding="async" loading="eager" referrerpolicy="no-referrer" style="display:block;width:100%;height:100%;object-fit:contain;object-position:center"></span></span>`;
   }
-  const initials = item.initials || item.name.slice(0, 2).toUpperCase();
-  const fontSize = initials.length > 2 ? 10 : initials.length === 2 ? 13 : 16;
   return `<span class="dm-car-brand" data-brand="${item.id}" data-brand-source="fallback" data-dm-beta5-brand="${item.name}" title="${item.name}" style="width:${safeSize}px;height:${safeSize}px"><span data-brand-logo="${item.id}"><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="3" width="42" height="42" rx="14" fill="currentColor" opacity=".12"/><circle cx="24" cy="24" r="15.5" fill="none" stroke="currentColor" stroke-width="2.4" opacity=".9"/><text x="24" y="28.5" text-anchor="middle" font-size="${fontSize}" font-family="system-ui,sans-serif" font-weight="900" fill="currentColor">${initials}</text></svg></span></span>`;
 }
 

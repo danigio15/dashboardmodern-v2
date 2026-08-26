@@ -113,7 +113,18 @@ function normalizeEvPreview(panel) {
   return true;
 }
 
-function syncEvPanelToActiveVehicle() {
+/* Le tendine seguono l'auto DI CUI PARLA IL PANNELLO, non quella in uso.
+ *
+ * Questa funzione riallineava marca e modello alla vettura attiva, sempre.
+ * Finche' la card «Brand e modello» parlava anche lei dell'attiva era coerente;
+ * da quando segue l'auto aperta con la matita non lo era piu': si apriva la
+ * Leapmotor, la card nasceva giusta, e un istante dopo questa la riportava a
+ * MINI. Due opinioni su quale auto si stia configurando, e vinceva quella
+ * sbagliata.
+ *
+ * Il pannello dichiara di chi parla — `data-dm-vehicle-uid` — e quella e'
+ * l'unica risposta. Qui non si decide piu' niente: si tiene il passo. */
+function syncEvPanelToItsVehicle() {
   if (activeTab() !== "sez2") return false;
   const panel = doc?.querySelector?.("#ed-body [data-ev-appearance]");
   const brandSelect = panel?.querySelector?.("select[data-brand]");
@@ -121,13 +132,14 @@ function syncEvPanelToActiveVehicle() {
   if (!panel || !brandSelect || !modelSelect) return false;
 
   const cars = vehicles();
-  const index = activeVehicleIndex(cars);
+  const dichiarato = clean(panel.dataset.dmVehicleUid);
+  const posto = dichiarato ? vehicleIndex(cars, dichiarato) : -1;
+  const index = posto >= 0 ? posto : activeVehicleIndex(cars);
   const car = index >= 0 ? cars[index] : null;
   if (!car) return false;
   const brand = clean(car.brand);
   const model = clean(car.model || car.vehicle_model || car.name);
-  const identity = clean(car.id || car.entity || car.name || index);
-  const signature = `${index}|${identity}|${brand}|${model}`;
+  const signature = `${index}|${clean(car.uid) || index}|${brand}|${model}`;
   const sameVehicle = panel.dataset.dmBeta11VehicleIndex === String(index);
 
   // A manual brand/model choice belongs to the editor draft. Do not let the
@@ -302,7 +314,7 @@ function decorateAlertIconField() {
 function run() {
   state.frame = 0;
   ensureOwners();
-  syncEvPanelToActiveVehicle();
+  syncEvPanelToItsVehicle();
   decorateRoomRows();
   decorateAlertIconField();
 }

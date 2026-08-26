@@ -1,6 +1,6 @@
 import { ACTION_ICON_CATALOG, CAR_BRANDS, ROOM_CATALOG, actionVisual, carBrandVisual, roomVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, readJson, root, t, writeJsonIfChanged, wrapFunction } from "./shared.js";
-import { salvaAuto } from "./ev-section.js";
+import { editedVehicle, profiles, salvaAuto } from "./ev-section.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_PERSONALIZATION_SECTION__";
@@ -379,25 +379,27 @@ function ensureSectionRenamer() {
   }
 }
 
+/* Di quale auto parla la card «Brand e modello».
+ *
+ * Erano due sbagli in uno. Il primo: questa sezione si rileggeva `cd_ev_cars`
+ * grezza e `cd_ev_car_active` come POSIZIONE — la quarta copia della stessa
+ * conoscenza, con la sua idea di quale auto fosse quella giusta.
+ *
+ * Il secondo si vedeva a occhio nella scheda: la card parlava dell'auto ATTIVA
+ * mentre sopra, con la matita, se ne stava modificando un'altra. Due contesti
+ * nella stessa schermata, e da li' nascevano gli scambi — si sceglieva la marca
+ * credendo di vestire la vettura aperta e si vestiva quella in mostra.
+ *
+ * Adesso l'auto la da' la sezione EV, che le possiede, e il bersaglio e' lo
+ * stesso del pannello foto: quella aperta con la matita, e solo senza una
+ * sessione aperta quella in uso. Un gesto, un'auto. */
 function evVisual() {
-  const evStore = root.DashboardModernModules?.store;
-  const storeCars = evStore?.peekSection ? evStore.peekSection("ev") : evStore?.getSection?.("ev");
-  const legacyCars = readJson("cd_ev_cars", []);
-  /* La stessa precedenza della sezione EV: prima la lista legacy, poi il
-   * negozio. Qui era il contrario, e quando le due copie divergevano questa
-   * sezione salvava marca e modello sulla lista vecchia, risovrascrivendo
-   * quella appena aggiornata: due letture opposte sono un altro modo di avere
-   * due padroni. */
-  const cars = Array.isArray(legacyCars) && legacyCars.length
-    ? legacyCars
-    : Array.isArray(storeCars)
-      ? storeCars
-      : [];
-  const requested = Number(root.localStorage?.getItem("cd_ev_car_active") ?? -1);
-  const active = cars.length
-    ? Math.max(0, Math.min(cars.length - 1, Number.isFinite(requested) ? requested : 0))
-    : -1;
-  const current = active >= 0 ? cars[active] : null;
+  const cars = profiles();
+  /* `editedVehicle` distingue i tre casi della sessione, bozza compresa: con
+   * ＋ Nuova auto non c'e' nessuna vettura, e la card deve nascere vuota invece
+   * di vestirsi coi panni di quella in uso. */
+  const current = cars.length ? editedVehicle(cars) : null;
+  const active = current ? cars.indexOf(current) : -1;
   return { cars, active, current, fallback: readJson("cd_ev_visual", {}) };
 }
 
@@ -440,12 +442,17 @@ function applyEvAppearance() {
   const visual = current || fallback || {};
   const brand = effectiveBrand(visual) || "Leapmotor";
   const model = effectiveModel(visual);
+  /* Il badge della marca non c'e' piu'.
+   *
+   * Stava dentro `#ev-car-picker`, la riga delle linguette, e mostrava marca e
+   * modello dell'auto ATTIVA: un riquadro in piu' accanto alle linguette di
+   * tutte le auto, disegnato quasi uguale ma con dentro un'altra cosa. Con due
+   * vetture configurate si vedevano tre riquadri per due auto, e il primo
+   * parlava di una sola. Adesso il modello sta nella linguetta della sua auto,
+   * accanto al nome a cui appartiene, e la marca e' il logo che la linguetta
+   * gia' porta. */
   const picker = doc?.getElementById("ev-car-picker");
-  if (picker && brand) {
-    let badge = picker.querySelector(".dm-ev-brand-badge");
-    if (!badge) { badge = doc.createElement("span"); badge.className = "dm-ev-brand-badge"; picker.prepend(badge); }
-    badge.innerHTML = `${carBrandVisual(brand, 38)}<span class="dm-ev-brand-copy"><b>${esc(brand)}</b>${model ? `<small>${esc(model)}</small>` : ""}</span>`;
-  }
+  picker?.querySelector?.(".dm-ev-brand-badge")?.remove?.();
   doc?.querySelectorAll?.(".dm-vehicle-profile-card[data-vehicle-index]").forEach((card) => {
     const index = Number(card.dataset.vehicleIndex);
     const vehicle = cars[index];
@@ -488,7 +495,17 @@ function ensureEvAppearanceEditor() {
       node.querySelector('.ed-slot-in[data-ref^="dm.ev_"]'),
     );
   const existing = body.querySelector("[data-ev-appearance]");
-  if (existing) {
+  /* La card segue l'auto aperta, e per farlo deve rinascere.
+   *
+   * Si costruiva una volta sola: aprendo la seconda vettura con la matita, il
+   * nome e le entita' sopra cambiavano e qui restava la marca della prima. Chi
+   * guardava vedeva la Leapmotor con scritto MINI — e sceglieva la marca
+   * credendo di vestire quella aperta. La card porta scritto di chi parla, e
+   * quando il gesto passa a un'altra auto se ne va e si rifa'. */
+  const bersaglio = evVisual().current;
+  const uidBersaglio = clean(bersaglio?.uid);
+  if (existing && clean(existing.dataset.dmVehicleUid) !== uidBersaglio) existing.remove();
+  else if (existing) {
     // The editor repaints #ed-body while the tab settles, so the vehicle
     // accordion can appear after the panel was built. Bring the panel home as
     // soon as its own section exists, retrying a bounded number of times rather
@@ -525,6 +542,7 @@ function ensureEvAppearanceEditor() {
   const panel = doc.createElement("section");
   panel.className = "ed-form dm-ev-appearance";
   panel.dataset.evAppearance = "true";
+  panel.dataset.dmVehicleUid = clean(current?.uid);
   const brand = effectiveBrand(visual) || clean(visual.brand) || "Leapmotor";
   const model = effectiveModel(visual);
   panel.innerHTML = `<div class="ed-sec-title">🚘 ${t("Brand e modello auto", "Vehicle brand and model")}</div><div class="ed-intro">${t("Il logo viene associato automaticamente al marchio. Il modello sostituisce la vecchia icona auto generica.", "The logo is automatically associated with the brand. The model replaces the old generic car icon.")}</div><div class="dm-ev-appearance-grid"><button type="button" class="dm-brand-preview dm-visual-trigger" data-brand-preview aria-label="${t("Scegli brand auto", "Choose car brand")}">${carBrandVisual(brand, 56)}<span class="dm-ev-brand-copy"><b>${esc(brand)}</b>${model ? `<small>${esc(model)}</small>` : ""}</span></button><label class="dm-ev-appearance-field"><span>${t("Marchio", "Brand")}</span><select class="ed-input" data-brand>${CAR_BRANDS.map((item) => `<option value="${esc(item.name)}" ${item.name === brand ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select></label><label class="dm-ev-appearance-field"><span>${t("Modello elettrico / ibrido", "Electric / hybrid model")}</span><select class="ed-input" data-model>${modelOptions(brand, model)}</select></label></div><button type="button" class="ed-save-btn" data-save>💾 ${t("Salva brand e modello", "Save brand and model")}</button>`;
@@ -669,7 +687,16 @@ export function installPersonalizationSection() {
         openVisualPicker(input, "room");
       }
     }
-    if (event.target?.closest?.(".ed-tab,[data-tab],[data-dm-edit-kind],.ed-btn-add,.ed-save-btn,.ed-del")) root.setTimeout?.(schedule, 0);
+    /* La matita e il ＋ della lista auto cambiano di quale vettura parla la
+     * scheda, e con lei la card «Brand e modello»: senza questi due la card
+     * restava sull'auto di prima mentre tutto il resto era gia' passato
+     * all'altra. */
+    if (
+      event.target?.closest?.(
+        ".ed-tab,[data-tab],[data-dm-edit-kind],.ed-btn-add,.ed-save-btn,.ed-del,[data-ev-edit],[data-ev-add-new]",
+      )
+    )
+      root.setTimeout?.(schedule, 0);
   }, true);
   root.addEventListener?.("dashboardmodern:legacy-ready", () => {
     for (const name of ["editorSwitch", "buildTempCards", "buildClimaCards", "cdApplyNavOrder", "cdApplyNavVis", "cdEvCarsRefresh", "editorRenderStanze"]) wrapFunction(name, `__dmPersonal_${name}`, schedule);

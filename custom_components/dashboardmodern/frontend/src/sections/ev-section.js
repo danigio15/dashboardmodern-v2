@@ -344,6 +344,24 @@ function savePhotos(panelNode) {
  * di sempre («ho aperto la Zoe, la foto e' finita sulla Tesla»). Senza
  * sessione aperta si scrive sull'auto in uso, che e' quella che la plancia
  * sta mostrando. Il -1 resta -1: nessuna auto, nessun salvataggio. */
+/* L'auto di cui parla la scheda adesso.
+ *
+ * I tre casi che la sessione distingue, e che chiunque chieda «di chi stiamo
+ * parlando» deve distinguere allo stesso modo:
+ *   null  — nessun gesto: si racconta l'auto in uso;
+ *   ""    — bozza (＋ Nuova auto): NESSUNA auto, la vettura non esiste ancora;
+ *   uid   — la matita ha aperto QUELLA.
+ *
+ * Il caso di mezzo e' quello che si dimentica, ed e' quello che conta: una
+ * bozza che ricade sull'auto in uso le mette addosso i panni della vettura che
+ * sta nascendo. */
+export function editedVehicle(list = profiles()) {
+  const chiave = editingKey();
+  if (chiave === "") return null;
+  if (chiave) return list.find((car) => uidDi(car) === chiave) || null;
+  return activeVehicle(list);
+}
+
 export function vehiclePhotoTargetIndex(cars = profiles()) {
   if (!Array.isArray(cars) || !cars.length) return -1;
   const chiave = editingKey();
@@ -928,12 +946,25 @@ export function vehicleBatteryEntity(car = profiles()[activeIndex()] || profiles
   return "";
 }
 
+/* La riga sotto il nome, dentro la linguetta.
+ *
+ * Diceva solo la percentuale di batteria, e il modello dell'auto stava in un
+ * badge a parte — un quarto riquadro nella stessa riga, che parlava sempre e
+ * solo della vettura in uso mentre accanto c'erano le linguette di tutte. Due
+ * disegni per la stessa cosa, e chi guardava vedeva tre riquadri per due auto.
+ *
+ * Il modello sta qui, dove sta il nome a cui appartiene: «Cooper SE · 72%». Se
+ * la batteria non risponde resta il modello; se non c'e' nemmeno quello, la
+ * riga dice cos'e' la linguetta. */
 function profileMeta(car = {}) {
   const overrides = car.ov || car.overrides || {};
   const batteryEntity = overrides["dm.ev_batteria_auto"] || overrides["dm.ev_battery"] || overrides["dm.ev_soc"] || car.battery_entity || car.soc_entity || "";
   const current = batteryEntity && (root.STATES?.[batteryEntity] || root._RAW_STATES?.[batteryEntity]);
   const value = Number(current?.state);
-  return Number.isFinite(value) ? `${Math.round(value)}%` : t("Profilo EV", "EV profile");
+  const carica = Number.isFinite(value) ? `${Math.round(value)}%` : "";
+  const modello = clean(car.model || car.vehicle_model);
+  const pezzi = [modello, carica].filter(Boolean);
+  return pezzi.length ? pezzi.join(" · ") : t("Profilo EV", "EV profile");
 }
 function vehicleProfileVisual(car = {}) {
   const brand = clean(car.brand); if (brand) return carBrandVisual(brand, 28);
@@ -1516,7 +1547,7 @@ function installStyles() {
 #ev-popup .dm-vehicle-profile-popup .dm-vehicle-profile-card{max-width:100%!important}
 .dm-vehicle-profile-tabs{display:flex!important;align-items:stretch!important;justify-content:center!important;flex-wrap:wrap!important;gap:8px!important;width:auto!important;max-width:100%!important}.dm-vehicle-profile-card{display:grid!important;grid-template-columns:58px minmax(0,max-content) 20px!important;align-items:start!important;gap:8px!important;box-sizing:border-box!important;width:max-content!important;max-width:min(100%,340px)!important;min-height:54px!important;margin:0!important;padding:8px 9px!important;border:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;border-radius:15px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--text,#0f172a)!important;box-shadow:0 6px 16px rgba(15,23,42,.07)!important;text-align:left!important;cursor:pointer!important;transition:border-color .12s ease,box-shadow .12s ease!important}.dm-vehicle-profile-card.active{border-color:var(--accent,#0ea5e9)!important;background:color-mix(in srgb,var(--accent,#0ea5e9) 10%,var(--ha-card-background,#fff))!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent,#0ea5e9) 18%,transparent),0 8px 20px rgba(14,165,233,.13)!important}
 .dm-vehicle-profile-icon{display:grid!important;place-items:start center!important;align-self:start!important;width:58px!important;height:34px!important;min-width:58px!important;overflow:hidden!important;border-radius:10px!important;background:color-mix(in srgb,var(--accent,#0ea5e9) 10%,transparent)!important}.dm-vehicle-profile-icon .dm-car-brand{display:grid!important;place-items:center!important;width:54px!important;max-width:54px!important;height:28px!important;margin:2px auto 0!important}.dm-vehicle-profile-icon .dm-car-brand img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important}.dm-vehicle-profile-icon ha-icon{margin:3px auto 0!important}.dm-vehicle-profile-copy{display:grid!important;gap:2px!important;min-width:0!important;padding-top:1px!important}.dm-vehicle-profile-copy strong,.dm-vehicle-profile-copy small{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.dm-vehicle-profile-copy strong{max-width:210px!important;font-size:13px!important;font-weight:900!important;line-height:1.1!important}.dm-vehicle-profile-copy small{font-size:9px!important;font-weight:750!important;line-height:1.1!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}.dm-vehicle-profile-check{display:grid!important;place-items:center!important;width:20px!important;height:20px!important;border-radius:50%!important;background:var(--accent,#0ea5e9)!important;color:#fff!important;font-size:11px!important;font-weight:900!important;opacity:0!important}.dm-vehicle-profile-card.active .dm-vehicle-profile-check{opacity:1!important}
-.dm-ev-brand-badge .dm-car-brand{display:grid!important;place-items:center!important;max-width:105px!important;height:34px!important}.dm-ev-brand-badge .dm-car-brand img{width:100%!important;height:100%!important;object-fit:contain!important}
+
 @media(max-width:620px){#ev-car-picker.dm-vehicle-profile-host{width:auto!important;max-width:calc(100% - 20px)!important;margin:8px auto!important}.dm-vehicle-profile-tabs{justify-content:flex-start!important;flex-wrap:nowrap!important;gap:7px!important;max-width:calc(100vw - 20px)!important;overflow-x:auto!important;padding:2px 2px 5px!important;scrollbar-width:none!important}.dm-vehicle-profile-tabs::-webkit-scrollbar{display:none!important}.dm-vehicle-profile-card{flex:0 0 auto!important;max-width:76vw!important;min-height:50px!important;padding:7px 8px!important;grid-template-columns:52px minmax(0,max-content) 18px!important;gap:7px!important}.dm-vehicle-profile-icon{width:52px!important;min-width:52px!important;height:32px!important}.dm-vehicle-profile-icon .dm-car-brand{width:48px!important;max-width:48px!important;height:25px!important}.dm-vehicle-profile-copy strong{max-width:44vw!important;font-size:12px!important}.dm-vehicle-profile-copy small{font-size:8.5px!important}.dm-vehicle-profile-check{width:18px!important;height:18px!important;font-size:10px!important}}
   `);
 }

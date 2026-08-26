@@ -174,3 +174,54 @@ test("nessun altro modulo si tiene la sua idea di quale auto sia attiva", async 
     assert.match(sorgente, /from "\.\/ev-section\.js"/, nome);
   }
 });
+
+test("la scheda dice di quale auto parla, e la bozza non e' di nessuna", async () => {
+  /* Tre casi, e quello di mezzo e' quello che si dimentica. Una bozza che
+   * ricade sull'auto in uso le mette addosso i panni della vettura che sta
+   * nascendo — ed e' il gesto da cui una si prendeva i dati dell'altra. */
+  const sezione = await readFile(new URL("../src/sections/ev-section.js", import.meta.url), "utf8");
+  assert.match(sezione, /export function editedVehicle/);
+  const corpo = sezione.match(/export function editedVehicle[\s\S]*?\n\}/)[0];
+  assert.match(corpo, /if \(chiave === ""\) return null;/);
+
+  const marca = await readFile(
+    new URL("../src/sections/personalization-section.js", import.meta.url),
+    "utf8",
+  );
+  /* La card «Brand e modello» segue l'auto aperta con la matita, non quella in
+   * uso: erano due contesti nella stessa schermata, e si sceglieva la marca
+   * credendo di vestire l'una mentre si vestiva l'altra. */
+  assert.match(marca, /editedVehicle\(cars\)/);
+  assert.match(marca, /panel\.dataset\.dmVehicleUid/);
+  // E il badge doppione nella riga delle linguette non si disegna piu'.
+  assert.doesNotMatch(marca, /createElement\("span"\);\s*badge\.className/);
+});
+
+test("nessuno riporta le tendine su un'auto diversa da quella del pannello", async () => {
+  /* `syncEvPanelToActiveVehicle` riallineava marca e modello alla vettura
+   * ATTIVA, sempre: si apriva la seconda auto, la card nasceva giusta, e un
+   * istante dopo tornava alla prima. Il pannello dichiara di chi parla, e
+   * quella e' l'unica risposta. */
+  const beta11 = await readFile(
+    new URL("../src/sections/beta11-real-device-polish-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(beta11, /syncEvPanelToActiveVehicle/);
+  assert.match(beta11, /function syncEvPanelToItsVehicle/);
+  assert.match(beta11, /panel\.dataset\.dmVehicleUid/);
+});
+
+test("il logo che non arriva lascia le iniziali, non il nome spezzato", async () => {
+  /* Il testo alternativo dell'immagine e' il NOME del marchio: in un riquadro
+   * alto quanto un'icona ci andava a capo, e «MINI» diventava «MI / NI». */
+  const catalogo = await readFile(
+    new URL("../src/core/personalization-catalog.js", import.meta.url),
+    "utf8",
+  );
+  const canonico = catalogo.match(/data-brand-source="canonical"[\s\S]{0,1400}?\n  \}/)[0];
+  assert.match(canonico, /alt=""/);
+  assert.match(canonico, /<text x="24"/);
+  // Nessuno script: un logo che non carica non e' il momento di scoprire una
+  // regola di sicurezza.
+  assert.doesNotMatch(canonico, /onerror/);
+});
