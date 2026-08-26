@@ -1,5 +1,6 @@
 import { ACTION_ICON_CATALOG, CAR_BRANDS, ROOM_CATALOG, actionVisual, carBrandVisual, roomVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, readJson, root, t, writeJsonIfChanged, wrapFunction } from "./shared.js";
+import { VEHICLE_KEY_FIELD } from "../core/vehicle-model.js";
 import { editedVehicle, profiles, salvaAuto } from "./ev-section.js";
 
 globalThis.__DM_20260815C__ = true;
@@ -453,9 +454,18 @@ function applyEvAppearance() {
    * gia' porta. */
   const picker = doc?.getElementById("ev-car-picker");
   picker?.querySelector?.(".dm-ev-brand-badge")?.remove?.();
-  doc?.querySelectorAll?.(".dm-vehicle-profile-card[data-vehicle-index]").forEach((card) => {
-    const index = Number(card.dataset.vehicleIndex);
-    const vehicle = cars[index];
+  /* La linguetta si riconosce dalla CHIAVE dell'auto, non dal suo posto.
+   *
+   * Il numero scritto sulla linguetta e' il posto dentro le auto MOSTRATE —
+   * solo quelle accese — e qui si cercava con quel numero dentro l'elenco
+   * INTERO. Con una vettura spenta davanti, la linguetta prendeva marca, logo
+   * e nome di un'altra: e' di nuovo «i dati sembrano di un'altra auto»,
+   * entrato dalla porta di servizio. */
+  doc?.querySelectorAll?.(".dm-vehicle-profile-card[data-vehicle-key]").forEach((card) => {
+    const chiave = clean(card.dataset.vehicleKey);
+    const vehicle = chiave
+      ? cars.find((car) => clean(car?.[VEHICLE_KEY_FIELD]) === chiave)
+      : null;
     if (!vehicle) return;
     const inferredBrand = effectiveBrand(vehicle);
     const inferredModel = effectiveModel(vehicle);

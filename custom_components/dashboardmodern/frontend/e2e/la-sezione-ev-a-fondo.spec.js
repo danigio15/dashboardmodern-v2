@@ -540,7 +540,8 @@ test("in bozza il pannello foto non scrive su nessuno", async ({ page }, testInf
   /* Si scrive il percorso della vettura nuova e si salva. */
   await campoFoto.fill("/local/ev/kia-idle.png");
   await campoFoto.dispatchEvent("input");
-  await page.locator("#ed-body [data-ev-photos-save]").click();
+  // Il click diretto: il modale della configurazione tiene strati sopra.
+  await page.locator("#ed-body [data-ev-photos-save]").evaluate((bottone) => bottone.click());
 
   /* Nessuna delle due auto configurate ha preso quella foto. */
   await expect
@@ -562,4 +563,75 @@ test("in bozza il pannello foto non scrive su nessuno", async ({ page }, testInf
     idle: "/local/ev/b10-idle.png",
     plugged: "/local/ev/b10-cavo.png",
   });
+});
+
+test("spegnere l'auto in mostra passa la sezione a quella accesa", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* L'interruttore dice se una vettura compare nella sezione. Spegnendo
+   * proprio quella in mostra, pero', restava lei l'auto in uso: la plancia
+   * continuava a disegnare la sua foto mentre le linguette non la portavano
+   * piu'. E la linguetta accesa era quella sbagliata, perche' il numero
+   * dell'auto in uso si contava sull'elenco INTERO e le linguette sono solo
+   * le accese: due conteggi diversi, letti come se fossero lo stesso. */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  await page.waitForFunction(() => Boolean(document.querySelector("#ed-body [data-ev-enabled]")), null, {
+    timeout: 15_000,
+  });
+
+  // Si spegne la B10, che e' quella che la sezione sta mostrando.
+  await page.locator('#ed-body [data-ev-enabled="0"]').click();
+
+  /* Nella sezione resta una linguetta sola, ed e' la T03: e' lei che la
+   * sezione mostra adesso, foto compresa. */
+  const linguette = page.locator("#ev-car-picker .dm-vehicle-profile-card");
+  await expect(linguette).toHaveCount(1);
+  await expect(linguette.first()).toHaveText(/T03/);
+  await expect(linguette.first()).toHaveClass(/active/);
+  await expect.poll(() => caselle(page)).toEqual({
+    active: "1",
+    idle: "/local/ev/t03-idle.png",
+    plugged: "/local/ev/t03-cavo.png",
+  });
+
+  /* La B10 non e' sparita: e' spenta, e in configurazione c'e' ancora tutta. */
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((c) => ({
+          name: c.name,
+          enabled: c.enabled !== false,
+          img: c.img || "",
+        })),
+      ),
+    )
+    .toEqual([
+      { name: "B10", enabled: false, img: "/local/ev/b10-idle.png" },
+      { name: "T03", enabled: true, img: "/local/ev/t03-idle.png" },
+    ]);
+});
+
+test("con un'auto spenta davanti, la linguetta resta di chi e'", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* Le linguette sono solo le auto ACCESE, ma chi le vestiva le cercava per
+   * numero dentro l'elenco INTERO. Con la prima vettura spenta, l'unica
+   * linguetta rimasta prendeva nome, logo e modello di quella spenta: la
+   * T03 in mostra diceva «B10». */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  await page.waitForFunction(() => Boolean(document.querySelector("#ed-body [data-ev-enabled]")), null, {
+    timeout: 15_000,
+  });
+  await page.locator('#ed-body [data-ev-enabled="0"]').click();
+
+  const linguetta = page.locator("#ev-car-picker .dm-vehicle-profile-card").first();
+  await expect(linguetta).toHaveText(/T03/);
+  await expect(linguetta).not.toHaveText(/B10/);
+  await expect(linguetta).toHaveAttribute("data-dm-vehicle-model", "T03");
 });

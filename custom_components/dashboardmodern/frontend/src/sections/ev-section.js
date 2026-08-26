@@ -617,6 +617,20 @@ function ensureCarListDecor() {
           posto === indice ? { ...car, enabled: !accesa } : car,
         );
         salvaAuto(rimesse);
+        /* Spegnendo proprio l'auto in mostra, la sezione passa a una accesa.
+         *
+         * L'interruttore dice se una vettura compare nella sezione, e questa
+         * appena spenta non ci compare piu': restando lei quella in uso, la
+         * plancia continuava a disegnare la sua foto sotto le linguette che
+         * non la portavano piu'. Si sposta su chi c'e' ancora — se non c'e'
+         * piu' nessuno acceso non si tocca niente, perche' `carsShownInSection`
+         * in quel caso le rimette tutte. */
+        if (accesa && uidDi(auto) === uidDi(activeVehicle(rimesse))) {
+          const prossima = rimesse.findIndex(
+            (car, posto) => posto !== indice && car?.enabled !== false,
+          );
+          if (prossima >= 0) chooseProfile(prossima);
+        }
         scheduleEvSync();
         ensureCarListDecor();
       });
@@ -938,20 +952,24 @@ function bindProfileNav(nav) {
   if (nav.dataset.dmEvBound === "true") return;
   nav.dataset.dmEvBound = "true";
   nav.addEventListener("click", (event) => {
-    const button = event.target?.closest?.(".dm-vehicle-profile-card[data-vehicle-index]");
+    const button = event.target?.closest?.(".dm-vehicle-profile-card[data-vehicle-key]");
     if (!button || !nav.contains(button)) return;
-    /* Il tab porta la CHIAVE dell'auto e l'indice si risolve adesso,
+    /* Il tab porta la CHIAVE dell'auto e il posto si risolve adesso,
      * sull'elenco di adesso: fra il disegno e il tocco la lista puo' essere
-     * cambiata (una cancellazione, un riordino) e un indice fotografato
-     * avrebbe aperto la vettura sbagliata. */
-    const key = clean(button.dataset.vehicleKey);
-    const risolto = key ? vehicleIndex(profiles(), key) : -1;
-    const index = risolto >= 0 ? risolto : Number.parseInt(button.dataset.vehicleIndex, 10);
-    if (Number.isFinite(index) && index >= 0) chooseProfile(index);
+     * cambiata (una cancellazione, un riordino) e un numero fotografato
+     * avrebbe aperto la vettura sbagliata.
+     *
+     * Un numero ce l'aveva scritto accanto, come ripiego — ma era il posto
+     * dentro le auto MOSTRATE, e chi lo leggeva lo cercava nell'elenco
+     * intero: due conteggi diversi che si somigliano. Se la chiave non
+     * risolve non si sceglie niente: meglio una linguetta che non risponde di
+     * una che apre l'auto sbagliata. */
+    const index = vehicleIndex(profiles(), clean(button.dataset.vehicleKey));
+    if (index >= 0) chooseProfile(index);
   });
 }
 function buildProfileButtons(nav, cars) {
-  nav.innerHTML = cars.map((car,index)=>`<button type="button" class="dm-vehicle-profile-card" data-vehicle-index="${index}" data-vehicle-key="${esc(uidDi(car))}"><span class="dm-vehicle-profile-icon">${vehicleProfileVisual(car)}</span><span class="dm-vehicle-profile-copy"><strong>${esc(car.name || `${t("Auto","Vehicle")} ${index+1}`)}</strong><small></small></span><span class="dm-vehicle-profile-check" aria-hidden="true"></span></button>`).join("");
+  nav.innerHTML = cars.map((car,index)=>`<button type="button" class="dm-vehicle-profile-card" data-vehicle-key="${esc(uidDi(car))}"><span class="dm-vehicle-profile-icon">${vehicleProfileVisual(car)}</span><span class="dm-vehicle-profile-copy"><strong>${esc(car.name || `${t("Auto","Vehicle")} ${index+1}`)}</strong><small></small></span><span class="dm-vehicle-profile-check" aria-hidden="true"></span></button>`).join("");
   bindProfileNav(nav);
 }
 
@@ -988,9 +1006,16 @@ function paintSelector(host, cars) {
   host.style.display=""; host.dataset.profileCount=String(cars.length);
   const structure = selectorStructureSignature(cars);
   if (host.dataset.dmEvSignature !== structure || nav.children.length !== cars.length) { buildProfileButtons(nav,cars); host.dataset.dmEvSignature=structure; }
-  const selected = Math.max(0,Math.min(cars.length-1,activeIndex()));
+  /* La linguetta accesa si riconosce dalla CHIAVE, non dal numero.
+   *
+   * Il numero dell'auto in uso si conta sull'elenco intero; le linguette sono
+   * solo quelle accese. Sono due conteggi diversi, e confrontarli come se
+   * fossero lo stesso accendeva la linguetta sbagliata appena una vettura
+   * spenta stava prima di quella in mostra. */
+  const inUso = uidDi(activeVehicle(profiles()));
   nav.querySelectorAll(".dm-vehicle-profile-card").forEach((button,index)=>{
-    const active=index===selected; button.classList.toggle("active",active); button.setAttribute("aria-pressed",String(active));
+    const chiave = clean(button.dataset.vehicleKey) || uidDi(cars[index]);
+    const active = Boolean(inUso) && chiave === inUso; button.classList.toggle("active",active); button.setAttribute("aria-pressed",String(active));
     const small=button.querySelector("small"), check=button.querySelector(".dm-vehicle-profile-check");
     const meta=profileMeta(cars[index]); if (small && small.textContent!==meta) small.textContent=meta;
     if (check) check.textContent=active?"✓":"";
