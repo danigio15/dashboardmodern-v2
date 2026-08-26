@@ -19,10 +19,7 @@ globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EV_SECTION__";
 const state = (root[KEY] ||= {
   installed: false,
-  lastUrl: "",
   frame: 0,
-  previousRefresh: null,
-  previousApply: null,
   legacyRefreshSignature: "",
   // L'ultimo verdetto valido su "il cavo e' attaccato": un wallbox vero perde
   // la connessione un istante e torna, e in quell'istante ne' il testo di
@@ -188,7 +185,6 @@ export function applyVehicleAsset() {
    * si sistema per il disegno, ogni volta, e non risale mai alla fonte:
    * scollegato e collegato di ogni vettura restano quelli che sono stati
    * scelti, e nessun giro di disegno li tocca. */
-  state.lastUrl = url;
   /* Il runtime storico tiene la sua copia della foto in una variabile presa
    * all'avvio e la rimette sull'eroe a ogni giro: con due auto, o col cavo
    * che cambia, quella copia e' vecchia e le due scritture si alternavano —
@@ -361,16 +357,23 @@ export function editedVehicle(list = profiles()) {
   return activeVehicle(list);
 }
 
+/* Dove sta, nell'elenco, l'auto di cui parla la scheda.
+ *
+ * La domanda e' la stessa di `editedVehicle`, e la risposta deve essere la
+ * stessa: qui si traduce soltanto in una posizione, per i giri che ancora
+ * ragionano a numeri.
+ *
+ * Questa funzione se la rispondeva da sola, e nella BOZZA sbagliava: `""` non
+ * e' un uid, quindi cadeva sull'auto in uso — il pannello delle foto mostrava
+ * la vettura vecchia su una scheda vuota, e «Salva foto» le riscriveva
+ * addosso il percorso appena battuto per quella nuova. E' il difetto del
+ * brand, sull'altro pannello: la bozza vestita coi panni dell'attiva.
+ *
+ * Una domanda, un posto solo che risponde. */
 export function vehiclePhotoTargetIndex(cars = profiles()) {
   if (!Array.isArray(cars) || !cars.length) return -1;
-  const chiave = editingKey();
-  if (chiave) {
-    const risolto = vehicleIndex(cars, chiave);
-    if (risolto >= 0) return risolto;
-  }
-  const attiva = activeIndex();
-  if (attiva < 0) return -1;
-  return Math.max(0, Math.min(cars.length - 1, attiva));
+  const auto = editedVehicle(cars);
+  return auto ? vehicleIndex(cars, uidDi(auto)) : -1;
 }
 
 /* Le foto che la PLANCIA disegna: sempre quelle dell'auto in uso. La matita
@@ -1049,7 +1052,7 @@ function storePhoto(key, url) {
  * perche' il runtime vendorizzato e il selettore nativo le leggono ancora in
  * qualche giro: sono una copia, e una copia non e' piu' l'unica verita'. Il
  * giorno che nessuno le legge piu', questa funzione se ne va da sola. */
-function restoreProfilePhotos(car, before, profileCount = profiles().length) {
+function restoreProfilePhotos(car, profileCount = profiles().length) {
   const mostra = fotoDi(car, profileCount);
   storePhoto(EV_PHOTO_KEYS.idle, mostra.idle);
   storePhoto(EV_PHOTO_KEYS.plugged, mostra.plugged);
@@ -1093,7 +1096,7 @@ export function seedActiveProfilePhotos() {
   const car = elenco[indice];
   if (!car) return false;
   const before = configuredPhotos();
-  restoreProfilePhotos(car, before, elenco.length);
+  restoreProfilePhotos(car, elenco.length);
   const dopo = configuredPhotos();
   return dopo.idle !== before.idle || dopo.plugged !== before.plugged;
 }
@@ -1185,7 +1188,7 @@ function legacyRefreshSignature() {
 }
 function installLegacyWrappers() {
   if (typeof root.cdEvCarsRefresh === "function" && !root.cdEvCarsRefresh.__dmEvSection) {
-    state.previousRefresh ||= root.cdEvCarsRefresh; const previous=root.cdEvCarsRefresh;
+    const previous=root.cdEvCarsRefresh;
     function refreshProfiles(...args) {
       const signature=legacyRefreshSignature();
       if (signature===state.legacyRefreshSignature) return undefined;
@@ -1194,16 +1197,15 @@ function installLegacyWrappers() {
     refreshProfiles.__dmEvSection=true; refreshProfiles.__dmPrevious=previous; root.cdEvCarsRefresh=refreshProfiles;
   }
   if (typeof root.cdEvApplyCar === "function" && !root.cdEvApplyCar.__dmEvSection) {
-    state.previousApply ||= root.cdEvApplyCar; const previous=root.cdEvApplyCar;
+    const previous=root.cdEvApplyCar;
     function applyProfile(index, ...rest) {
-      const before=configuredPhotos();
       const car=legacyProfiles()[Number(index)] || {};
       // Cambiare auto chiude la seduta di scrittura: i campi raccontano lei.
       setEditingKey(uidDi(car));
       // Applicare non e' un mandato di rinomina: quello lo da' solo la matita.
       state.evRenameArmed = false;
       const result=previous.call(this,index,...rest);
-      restoreProfilePhotos(car, before);
+      restoreProfilePhotos(car);
       state.legacyRefreshSignature=""; root.queueMicrotask?.(scheduleEvSync); return result;
     }
     applyProfile.__dmEvSection=true; applyProfile.__dmPrevious=previous; root.cdEvApplyCar=applyProfile;
@@ -1415,7 +1417,7 @@ function installLegacyWrappers() {
       }
       const indice=Math.max(0, Math.min(elenco.length - 1, activeIndex()));
       const attiva=elenco[indice];
-      if (attiva) restoreProfilePhotos(attiva, configuredPhotos(), elenco.length);
+      if (attiva) restoreProfilePhotos(attiva, elenco.length);
       root.queueMicrotask?.(scheduleEvSync);
       return result;
     }

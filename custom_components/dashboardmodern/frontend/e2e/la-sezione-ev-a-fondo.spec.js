@@ -510,3 +510,56 @@ test("la bozza non veste l'auto attiva, e la vettura nuova nasce col suo brand",
       ["Kia nuova", "Kia"],
     ]);
 });
+
+test("in bozza il pannello foto non scrive su nessuno", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* Lo stesso difetto del brand, sull'altro pannello. «＋ Nuova auto» apre
+   * una scheda che non appartiene ancora a nessuna vettura: la domanda «di
+   * chi sono queste foto» ha una risposta sola — di nessuno, non ancora.
+   *
+   * Il pannello pero' la chiedeva a un suo conto, e nella bozza ricadeva
+   * sull'auto in uso: mostrava le foto della B10 su una scheda vuota, e
+   * «Salva foto» gliele riscriveva addosso. Un percorso scritto per la
+   * vettura che sta nascendo finiva su quella vecchia. */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  await page.waitForFunction(() => Boolean(document.getElementById("ed-evcar-name")), null, {
+    timeout: 15_000,
+  });
+  await page.locator("#ed-body [data-ev-add-new]").click();
+
+  /* La scheda e' vuota, e il pannello con lei: nessuna foto ereditata. */
+  const campoFoto = page.locator(
+    '#ed-body [data-ev-photos] [data-ev-photo="idle"] [data-ev-photo-input]',
+  );
+  await expect(campoFoto).toHaveValue("");
+
+  /* Si scrive il percorso della vettura nuova e si salva. */
+  await campoFoto.fill("/local/ev/kia-idle.png");
+  await campoFoto.dispatchEvent("input");
+  await page.locator("#ed-body [data-ev-photos-save]").click();
+
+  /* Nessuna delle due auto configurate ha preso quella foto. */
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((c) => ({
+          name: c.name,
+          img: c.img || "",
+        })),
+      ),
+    )
+    .toEqual([
+      { name: "B10", img: "/local/ev/b10-idle.png" },
+      { name: "T03", img: "/local/ev/t03-idle.png" },
+    ]);
+  /* E nemmeno il disegno: in plancia resta la B10, che e' quella in uso. */
+  await expect.poll(() => caselle(page)).toEqual({
+    active: "0",
+    idle: "/local/ev/b10-idle.png",
+    plugged: "/local/ev/b10-cavo.png",
+  });
+});
