@@ -21,6 +21,8 @@ PANEL_COMPONENT_NAME = "dashboardmodern-panel"
 STATIC_URL_PATH = "/dashboardmodern_static"
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 LEGACY_DIR = FRONTEND_DIR / "legacy"
+AVATAR_DIR = FRONTEND_DIR / "avatars"
+AVATAR_URL_PATH = f"{STATIC_URL_PATH}/avatars"
 
 ASSET_SUFFIXES = frozenset(
     {
@@ -251,6 +253,19 @@ async def _ensure_static_registered(
     paths = configs(static_url_path, True)
     if not domain_data.get(DATA_STATIC_BASE_REGISTERED):
         paths = configs(STATIC_URL_PATH, False) + paths
+        # I ritratti delle persone sono duecentocinquanta immagini che non
+        # cambiano da un rilascio all'altro: si montano come cartella, una
+        # volta, fuori dalla versione. Metterle nel percorso versionato
+        # vorrebbe dire riscaricarle a ogni aggiornamento, e leggerne ogni
+        # byte a ogni avvio solo per calcolare la firma degli asset.
+        if AVATAR_DIR.is_dir():
+            paths.append(
+                StaticPathConfig(
+                    url_path=AVATAR_URL_PATH,
+                    path=str(AVATAR_DIR),
+                    cache_headers=True,
+                )
+            )
 
     await hass.http.async_register_static_paths(paths)
     domain_data[DATA_STATIC_BASE_REGISTERED] = True

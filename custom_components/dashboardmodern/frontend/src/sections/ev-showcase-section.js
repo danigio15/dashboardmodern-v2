@@ -175,9 +175,31 @@ function mountModeButtons(page) {
  * Mark the frame from the photo that actually loaded. `data-ev-image` only says
  * whether a URL is configured, so a broken URL used to leave an empty slab.
  */
+/* La foto dell'auto sta in una cornice larga e bassa, e una foto d'auto non ha
+ * quelle proporzioni: ritagliandola per riempire — che e' quello che faceva —
+ * su uno schermo largo si perdevano il tetto e le ruote, e restava una fascia
+ * di fiancata. Adesso la foto ci sta dentro TUTTA, e il vuoto ai lati lo
+ * riempie una copia sfocata di se stessa: e' il modo in cui lo fanno i player
+ * video, e funziona con qualunque proporzione senza dover sapere quale sia.
+ */
+function sfondoSfocato(hero, image) {
+  let copia = hero.querySelector(":scope > .dm-evv-hero-blur");
+  const src = clean(image.getAttribute("src"));
+  if (!src) { copia?.remove(); return; }
+  if (!copia) {
+    copia = doc.createElement("img");
+    copia.className = "dm-evv-hero-blur";
+    copia.alt = "";
+    copia.setAttribute("aria-hidden", "true");
+    hero.prepend(copia);
+  }
+  if (copia.getAttribute("src") !== src) copia.setAttribute("src", src);
+}
+
 function syncPhoto(hero) {
   const image = doc.getElementById("ev-mod-car-img");
   if (!image) return;
+  sfondoSfocato(hero, image);
   if (!image.dataset.dmEvvWatched) {
     image.dataset.dmEvvWatched = "true";
     for (const eventName of ["load", "error"]) {
@@ -377,6 +399,38 @@ function evShowcaseCss() {
 #page-ev.dm-evv .dm-vehicle-profile-card.active .dm-vehicle-profile-icon{background:rgba(var(--evv-green-rgb),.12)!important}
 #page-ev.dm-evv .dm-vehicle-profile-check{width:18px!important;height:18px!important;background:var(--evv-green)!important;font-size:10px!important}
 
+/* ── da schermo largo ─────────────────────────────────────────────────────
+ *
+ * Due cose cambiano quando c'e' spazio, e sono le due che il piccolo non ha:
+ *
+ *  - la cornice della foto si alza. Su un telefono e' larga quanto lo schermo
+ *    e bassa, e va bene; su un monitor resta larga uguale ma la stessa altezza
+ *    la rende una feritoia, e l'auto dentro diventa un francobollo;
+ *  - le linguette delle auto si stringono. Sono nate per il pollice — icona
+ *    grande, due righe di testo, tanta aria — e in cima a una pagina larga
+ *    diventano una fascia che spinge tutto il resto sotto la piega. Col mouse
+ *    bastano molto piu' piccole, e in fila con la marca invece che sopra.
+ */
+@media(min-width:900px){
+  #page-ev.dm-evv .lm-hero{height:clamp(300px,26vw,420px)!important}
+  #page-ev.dm-evv #ev-car-picker.dm-vehicle-profile-host{
+    display:flex!important;flex-direction:row!important;align-items:center!important;
+    justify-content:center!important;gap:12px!important;
+    width:100%!important;max-width:100%!important;margin:2px auto 8px!important
+  }
+  #page-ev.dm-evv .dm-ev-brand-badge{margin-right:0!important;flex:0 0 auto!important}
+  #page-ev.dm-evv .dm-vehicle-profile-tabs{flex-wrap:nowrap!important;gap:7px!important}
+  #page-ev.dm-evv .dm-vehicle-profile-card{
+    min-height:0!important;padding:5px 10px 5px 6px!important;border-radius:12px!important;
+    grid-template-columns:40px minmax(0,max-content) 16px!important;gap:7px!important;align-items:center!important
+  }
+  #page-ev.dm-evv .dm-vehicle-profile-icon{width:40px!important;min-width:40px!important;height:24px!important}
+  #page-ev.dm-evv .dm-vehicle-profile-icon .dm-car-brand{width:36px!important;max-width:36px!important;height:20px!important}
+  #page-ev.dm-evv .dm-vehicle-profile-copy strong{font-size:12px!important;line-height:1.15!important}
+  #page-ev.dm-evv .dm-vehicle-profile-copy small{font-size:9px!important;line-height:1.1!important}
+  #page-ev.dm-evv .dm-vehicle-profile-check{width:15px!important;height:15px!important;font-size:9px!important}
+}
+
 /* ── hero: the photo in its frame ─────────────────────────────────────── */
 #page-ev.dm-evv .lm-hero{
   min-height:0!important;height:clamp(212px,44vw,290px)!important;
@@ -392,7 +446,16 @@ function evShowcaseCss() {
    caption goes: the photo already sits under the brand badge of the picker. */
 #page-ev.dm-evv .lm-hero-top{padding:13px 13px 0!important}
 #page-ev.dm-evv .lm-brand{display:none!important}
-#page-ev.dm-evv .lm-hero-bg{object-position:center center!important}
+#page-ev.dm-evv .lm-hero-bg{
+  object-fit:contain!important;object-position:center center!important;
+  z-index:1!important;filter:drop-shadow(0 18px 28px rgba(6,14,22,.35))!important
+}
+/* La copia sfocata: sta sotto, riempie la cornice e non si guarda. */
+#page-ev.dm-evv .dm-evv-hero-blur{
+  position:absolute!important;inset:-8%!important;width:116%!important;height:116%!important;
+  object-fit:cover!important;z-index:0!important;
+  filter:blur(26px) saturate(1.25) brightness(.86)!important;pointer-events:none!important
+}
 /* the badge keeps the inline colours the render loop writes per EVSE state */
 #page-ev.dm-evv .lm-charge-badge{
   opacity:1!important;transform:none!important;padding:7px 13px!important;border-radius:999px!important;

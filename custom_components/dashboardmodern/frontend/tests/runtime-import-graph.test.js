@@ -301,14 +301,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // accanto a ogni entità già scritta negli editor l'interruttore che dice se
   // va in Home. Non disegna una scheda sua — decora quelle che ci sono — e la
   // scelta la scrive dove abitano già le preferenze del ponte.
-  // 154 col ritratto in tre dimensioni: la testa e' geometria vera, e la
-  // geometria si divide come si divide sempre in questo progetto — la
-  // scultura (core/face-mesh), il rasterizzatore che non sa cos'e' una
-  // faccia (core/face-raster), il traduttore dai venti tratti alla
-  // scultura (core/person-avatar-3d), e la sezione che appende i pixel al
-  // documento e li tiene in memoria. I primi tre non toccano il documento:
-  // si provano senza un browser, ed e' il motivo per cui sono tre e non uno.
-  assert.ok(relative.length <= 154, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 152 col ritratto delle persone rifatto: i render 3D di Fluent Emoji al
+  // posto del disegno a mano. Il catalogo generato dallo script di build
+  // (core/avatar-catalog.js) porta i nomi dei file e le misure prese una
+  // volta sola; il modello (core/avatar-3d.js) dice quali due immagini
+  // servono e come incastrarle, e non sa cos'e' una pagina; la sezione
+  // (sections/person-avatar-section.js) le incastra su una tela e ci disegna
+  // sopra le palpebre. Il motore che disegnava le facce a mano se n'e'
+  // andato con tutti i suoi pezzi.
+  assert.ok(relative.length <= 152, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

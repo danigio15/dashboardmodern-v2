@@ -16,29 +16,14 @@
  * foto del profilo.
  */
 import {
-  avatarSvg,
-  FACE_AGES,
-  FACE_BEARD_COLORS,
-  FACE_BEARDS,
-  FACE_BROWS,
-  FACE_BUILDS,
-  FACE_EARS,
-  FACE_EYE_COLORS,
-  FACE_EYES,
-  FACE_GLASSES,
-  FACE_HAIR_COLORS,
-  FACE_HAIRS,
-  FACE_HATS,
-  FACE_LIP_COLORS,
-  FACE_MARKS,
-  FACE_MOUTHS,
-  FACE_NOSES,
-  FACE_OUTFIT_COLORS,
-  FACE_OUTFITS,
-  FACE_SHAPES,
-  FACE_SKINS,
-  normalizeFace,
-} from "../core/person-avatar.js";
+  CAPELLI,
+  CARNAGIONI,
+  PERSONE,
+  VESTITI,
+  avatar3dACaso,
+  normalizeAvatar3d,
+  personaHaCapelli,
+} from "../core/avatar-3d.js";
 import {
   AVATAR_COLORS,
   detectCompanionSensors,
@@ -47,7 +32,7 @@ import {
   suggestPeople,
 } from "../core/person-model.js";
 import { pickMediaImage } from "./media-picker-section.js";
-import { dipingi3D, installFace3dStyle } from "./person-avatar-3d-section.js";
+import { installAvatar3dStyle, ritrattoFermo, ritrattoVivo } from "./person-avatar-section.js";
 import { allStates, clean, doc, esc, installStyle, onEditorRedraw, readJson, root, t, writeJsonIfChanged } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_PEOPLE_EDITOR__";
@@ -88,9 +73,9 @@ function nomeDi(person, index) {
 /* Lo stesso ritratto della card, in piccolo: quello che si sta scegliendo si
  * vede qui, non dopo aver chiuso l'editor. */
 function ritratto(person) {
-  const avatar = `<span class="dm-people-ed-avatar" style="--dm-person-color:${esc(person.avatar.color)}">${
+  const avatar = `<span class="dm-people-ed-avatar"${person.avatar.face ? ' data-ritratto="true"' : ""} style="--dm-person-color:${esc(person.avatar.color)}">${
     person.avatar.face
-      ? avatarSvg(person.avatar.face, { animated: false })
+      ? ""
       : person.avatar.emoji
         ? esc(person.avatar.emoji)
         : `<b>${esc(personInitials(person.name))}</b>`
@@ -118,125 +103,80 @@ function campoEntita(id, field, label, value, placeholder, hint) {
  * facce, disegnate dallo stesso motore della card cosi' quello che si sceglie
  * e' esattamente quello che si vedra'. */
 
-/* I tratti, raccolti per gruppi: un pannello con venti file aperte tutte
- * insieme non si legge, e chi cerca gli occhiali non deve scorrere la barba.
- * Il primo gruppo e' aperto, gli altri si aprono quando servono. */
-function faceGroups(face, colore) {
+/* ── Il costruttore del ritratto ──────────────────────────────────────────
+ *
+ * Quattro file: chi sei, che capelli hai, che carnagione, com'e' vestito.
+ * Ogni pastiglia non e' un'icona: e' il TUO ritratto con quel pezzo addosso,
+ * composto dallo stesso motore che disegna la card. Quello che scegli e'
+ * esattamente quello che vedrai.
+ *
+ * Le pastiglie si riempiono dopo, quando le immagini sono arrivate: comporre
+ * quaranta ritratti mentre la scheda sta comparendo vorrebbe dire una scheda
+ * che si apre in ritardo, e non vale.
+ */
+function fileRitratto(face) {
   return [
-    {
-      titolo: t("Viso", "Face"),
-      rows: [
-        { k: "shape", label: t("Forma del viso", "Face shape"), keys: Object.keys(FACE_SHAPES) },
-        { k: "skin", label: t("Carnagione", "Skin tone"), keys: Object.keys(FACE_SKINS), swatch: (key) => FACE_SKINS[key].base },
-        { k: "age", label: t("Età", "Age"), keys: [...FACE_AGES] },
-        { k: "ears", label: t("Orecchie", "Ears"), keys: [...FACE_EARS] },
-        { k: "marks", label: t("Segni particolari", "Distinctive marks"), keys: [...FACE_MARKS] },
-      ],
-    },
-    {
-      titolo: t("Occhi", "Eyes"),
-      rows: [
-        { k: "eyes", label: t("Occhi", "Eyes"), keys: [...FACE_EYES] },
-        { k: "eyeColor", label: t("Colore occhi", "Eye color"), keys: Object.keys(FACE_EYE_COLORS), swatch: (key) => FACE_EYE_COLORS[key] },
-        { k: "brows", label: t("Sopracciglia", "Eyebrows"), keys: [...FACE_BROWS] },
-      ],
-    },
-    {
-      titolo: t("Capelli e barba", "Hair and beard"),
-      rows: [
-        { k: "hair", label: t("Capelli", "Hair"), keys: [...FACE_HAIRS] },
-        { k: "hairColor", label: t("Colore capelli", "Hair color"), keys: Object.keys(FACE_HAIR_COLORS), swatch: (key) => FACE_HAIR_COLORS[key] },
-        { k: "beard", label: t("Barba", "Beard"), keys: [...FACE_BEARDS] },
-        /* «Come i capelli» non ha un colore suo: il campioncino mostra quello
-         * che erediterebbe, cosi' la fila non parte con una pastiglia vuota. */
-        { k: "beardColor", label: t("Colore barba", "Beard color"), keys: Object.keys(FACE_BEARD_COLORS), swatch: (key) => FACE_BEARD_COLORS[key] || FACE_HAIR_COLORS[face.hairColor] },
-      ],
-    },
-    {
-      titolo: t("Naso e bocca", "Nose and mouth"),
-      rows: [
-        { k: "nose", label: t("Naso", "Nose"), keys: [...FACE_NOSES] },
-        { k: "mouth", label: t("Bocca", "Mouth"), keys: [...FACE_MOUTHS] },
-        { k: "lips", label: t("Labbra", "Lips"), keys: Object.keys(FACE_LIP_COLORS), swatch: (key) => FACE_LIP_COLORS[key] },
-      ],
-    },
-    {
-      titolo: t("Corpo e vestiti", "Body and clothes"),
-      rows: [
-        { k: "build", label: t("Corporatura", "Build"), keys: [...FACE_BUILDS] },
-        { k: "outfit", label: t("Abbigliamento", "Clothing"), keys: [...FACE_OUTFITS] },
-        { k: "outfitColor", label: t("Colore vestito", "Clothing color"), keys: Object.keys(FACE_OUTFIT_COLORS), swatch: (key) => FACE_OUTFIT_COLORS[key] || colore },
-        { k: "glasses", label: t("Occhiali", "Glasses"), keys: [...FACE_GLASSES] },
-        { k: "hat", label: t("Copricapo", "Headwear"), keys: [...FACE_HATS] },
-      ],
-    },
+    { k: "persona", label: t("Persona", "Person"), valori: [...PERSONE], nomi: NOMI_PERSONE },
+    ...(personaHaCapelli(face.persona)
+      ? [{ k: "capelli", label: t("Capelli", "Hair"), valori: [...CAPELLI], nomi: NOMI_CAPELLI }]
+      : []),
+    { k: "carnagione", label: t("Carnagione", "Skin tone"), valori: [...CARNAGIONI], nomi: NOMI_CARNAGIONI },
+    { k: "vestito", label: t("Vestito", "Outfit"), valori: [...VESTITI], nomi: NOMI_VESTITI },
   ];
 }
 
-/* Quello che copre il tratto che si sta scegliendo, nel campioncino si toglie:
- * la barba sopra la bocca, gli occhiali sopra gli occhi, il cappello sopra i
- * capelli. Il resto della faccia resta la propria — un paio di occhiali si
- * giudica sulla propria faccia, non su quella di un altro. */
-const COPERTURE = Object.freeze({
-  mouth: { beard: "nessuna" },
-  lips: { beard: "nessuna" },
-  nose: { beard: "nessuna", glasses: "nessuno" },
-  eyes: { glasses: "nessuno" },
-  eyeColor: { glasses: "nessuno" },
-  brows: { glasses: "nessuno", hat: "nessuno" },
-  hair: { hat: "nessuno" },
-  hairColor: { hat: "nessuno" },
-  shape: { hat: "nessuno" },
-  ears: { hat: "nessuno" },
-  age: { beard: "nessuna", glasses: "nessuno" },
+const NOMI_PERSONE = () => ({
+  uomo: t("Uomo", "Man"), donna: t("Donna", "Woman"), neutro: t("Neutro", "Neutral"),
+  ragazzo: t("Ragazzo", "Boy"), ragazza: t("Ragazza", "Girl"),
+  anziano: t("Anziano", "Older person"),
 });
-
-function faceThumb(face, k, key, colore) {
-  return avatarSvg(
-    { ...face, ...(COPERTURE[k] || {}), [k]: key },
-    { animated: false, shirt: colore },
-  );
-}
+const NOMI_CAPELLI = () => ({
+  lisci: t("Lisci", "Straight"), barba: t("Barba", "Beard"), ricci: t("Ricci", "Curly"),
+  rossi: t("Rossi", "Red"), bianchi: t("Bianchi", "White"), calvo: t("Calvo", "Bald"),
+});
+const NOMI_CARNAGIONI = () => ({
+  chiara: t("Chiara", "Light"), chiara2: t("Chiara+", "Light+"), media: t("Media", "Medium"),
+  ambrata: t("Ambrata", "Tan"), scura: t("Scura", "Dark"),
+});
+const NOMI_VESTITI = () => ({
+  nessuno: t("Nessuno", "None"), ufficio: t("Ufficio", "Office"), medico: t("Medico", "Doctor"),
+  cuoco: t("Cuoco", "Chef"), smoking: t("Smoking", "Tuxedo"), velo: t("Velo", "Veil"),
+  pompiere: t("Pompiere", "Firefighter"), poliziotto: t("Poliziotto", "Police"),
+  muratore: t("Muratore", "Builder"), operaio: t("Operaio", "Worker"),
+  meccanico: t("Meccanico", "Mechanic"), contadino: t("Contadino", "Farmer"),
+  pilota: t("Pilota", "Pilot"), astronauta: t("Astronauta", "Astronaut"),
+  giudice: t("Giudice", "Judge"), supereroe: t("Supereroe", "Superhero"),
+});
 
 function builderMarkup(person) {
   const face = person.avatar.face;
   if (!face)
-    return `<button type="button" class="ed-btn-add dm-face-create" data-face-create>🧑‍🎨 ${t("Crea l'avatar", "Create the avatar")}</button>
+    return `<button type="button" class="ed-btn-add dm-face-create" data-face-create>🧑‍🎨 ${t("Crea il ritratto", "Create the portrait")}</button>
       <small>${t("Oppure scrivi un'emoji qui sotto — o lascia vuoto per le iniziali del nome.", "Or type an emoji below — or leave it empty for the initials of the name.")}</small>`;
-  const colore = clean(person.avatar.color) || "#0ea5e9";
-  const gruppi = faceGroups(face, colore)
-    .map(({ titolo, rows }, indice) => {
-      const righe = rows
-        .map(({ k, label, keys, swatch }) => {
-          const options = keys
-            .map((key) => {
-              const selected = face[k] === key ? " on" : "";
-              const nome = `${label}: ${key}`;
-              if (swatch)
-                return `<button type="button" class="dm-face-opt dm-face-swatch${selected}" data-face-k="${k}" data-face-v="${esc(key)}" style="--dm-face-swatch:${swatch(key)}" aria-label="${esc(nome)}"></button>`;
-              return `<button type="button" class="dm-face-opt dm-face-thumb${selected}" data-face-k="${k}" data-face-v="${esc(key)}" aria-label="${esc(nome)}">${faceThumb(face, k, key, colore)}</button>`;
-            })
-            .join("");
-          return `<div class="dm-face-row"><span class="dm-face-row-lbl">${esc(label)}</span><span class="dm-face-row-opts">${options}</span></div>`;
+  const righe = fileRitratto(face)
+    .map(({ k, label, valori, nomi }) => {
+      const etichette = nomi();
+      const opzioni = valori
+        .map((valore) => {
+          const scelta = { ...face, [k]: valore };
+          return `<button type="button" class="dm-face-opt${face[k] === valore ? " on" : ""}" data-face-k="${k}" data-face-v="${esc(valore)}" data-face-anteprima="${esc(JSON.stringify(scelta))}" aria-label="${esc(`${label}: ${etichette[valore] || valore}`)}"><span class="dm-face-opt-img"></span><i>${esc(etichette[valore] || valore)}</i></button>`;
         })
         .join("");
-      return `<details class="dm-face-group"${indice ? "" : " open"}><summary class="dm-face-group-head">${esc(titolo)}</summary><div class="dm-face-rows">${righe}</div></details>`;
+      return `<div class="dm-face-row"><span class="dm-face-row-lbl">${esc(label)}<b>${valori.length}</b></span><span class="dm-face-row-opts">${opzioni}</span></div>`;
     })
     .join("");
-  /* Come si vuole il ritratto: disegnato — leggero, quello di sempre — o
-   * costruito in tre dimensioni. Il secondo e' la stessa faccia: gli stessi
-   * venti tratti, letti come geometria invece che come tratti di penna. */
-  const modo = (chiave, icona, testo) =>
-    `<button type="button" class="dm-face-mode${face.render === chiave ? " on" : ""}" data-face-k="render" data-face-v="${chiave}"><span aria-hidden="true">${icona}</span>${esc(testo)}</button>`;
-  return `<div class="dm-face-modes">${modo("disegno", "✏️", t("Disegno", "Drawing"))}${modo("3d", "🧊", "3D")}</div>
-    <div class="dm-face-workbench">
-      <span class="dm-face-preview" style="--dm-person-color:${esc(colore)}">${avatarSvg(face)}</span>
-      <div class="dm-face-groups">${gruppi}</div>
+  return `<div class="dm-face-workbench">
+      <span class="dm-face-preview" data-face-anteprima-viva style="--dm-person-color:${esc(clean(person.avatar.color) || "#0ea5e9")}"></span>
+      <div class="dm-face-side">
+        <button type="button" class="ed-btn-add dm-face-dice" data-face-random>🎲 ${t("Sorteggia", "Shuffle")}</button>
+        <small>${t(
+          "Qualunque testa su qualunque vestito: i pezzi si combinano liberamente.",
+          "Any head on any outfit: the pieces combine freely.",
+        )}</small>
+      </div>
     </div>
-    <div class="dm-face-tools">
-      <button type="button" class="ed-btn-add dm-face-dice" data-face-random>🎲 ${t("Sorteggia una faccia", "Shuffle a face")}</button>
-      <button type="button" class="dm-face-remove" data-face-clear>✕ ${t("Togli la faccia (torna a emoji o iniziali)", "Remove the face (back to emoji or initials)")}</button>
-    </div>`;
+    <div class="dm-face-rows">${righe}</div>
+    <button type="button" class="dm-face-remove" data-face-clear>✕ ${t("Togli il ritratto (torna a emoji o iniziali)", "Remove the portrait (back to emoji or initials)")}</button>`;
 }
 
 /* I sensori facoltativi del telefono, con le parole dell'editor: etichetta e
@@ -331,7 +271,7 @@ function leggiRiga(riga, person) {
     else if (field === "color") next.avatar.color = value;
     else if (field === "face") {
       try {
-        next.avatar.face = value ? normalizeFace(JSON.parse(value)) : null;
+        next.avatar.face = value ? normalizeAvatar3d(JSON.parse(value)) : null;
       } catch (_error) {
         next.avatar.face = null;
       }
@@ -355,7 +295,7 @@ export function ensurePeopleEditor() {
   body.dataset.dmPeopleEditor = firma;
   body.innerHTML = bodyMarkup(people);
   body.dataset.renderer = PEOPLE_EDITOR_TAB;
-  dipingiAnteprime3D();
+  dipingiAnteprime();
   return true;
 }
 
@@ -365,50 +305,32 @@ function ridisegna() {
   ensurePeopleEditor();
 }
 
-/* Una faccia sorteggiata: venti tratti da scegliere sono tanti, e partire da
- * qualcuno che non sia sempre lo stesso e' il modo piu' veloce di capire cosa
- * c'e' dentro. I copricapi restano fuori dal sorteggio: un cappello a caso
- * copre il taglio appena estratto. */
-function facciaACaso() {
-  const uno = (catalogo) => {
-    const keys = Array.isArray(catalogo) ? catalogo : Object.keys(catalogo);
-    return keys[Math.floor(Math.random() * keys.length)];
-  };
-  return normalizeFace({
-    shape: uno(FACE_SHAPES),
-    skin: uno(FACE_SKINS),
-    age: uno(FACE_AGES),
-    ears: uno(FACE_EARS),
-    marks: uno(FACE_MARKS),
-    eyes: uno(FACE_EYES),
-    eyeColor: uno(FACE_EYE_COLORS),
-    brows: uno(FACE_BROWS),
-    hair: uno(FACE_HAIRS),
-    hairColor: uno(FACE_HAIR_COLORS),
-    beard: uno(FACE_BEARDS),
-    beardColor: uno(FACE_BEARD_COLORS),
-    nose: uno(FACE_NOSES),
-    mouth: uno(FACE_MOUTHS),
-    lips: uno(FACE_LIP_COLORS),
-    build: uno(FACE_BUILDS),
-    outfit: uno(FACE_OUTFITS),
-    outfitColor: uno(FACE_OUTFIT_COLORS),
-    glasses: uno(FACE_GLASSES),
-  });
-}
-
-/* Le anteprime in tre dimensioni: si dipingono dopo, quando il costruttore e'
- * gia' a schermo. Chi ha scelto il disegno non paga niente. */
-function dipingiAnteprime3D() {
+/* Le anteprime si riempiono dopo: comporre quaranta ritratti mentre la
+ * scheda sta comparendo vorrebbe dire una scheda che si apre in ritardo. */
+async function dipingiAnteprime() {
   const body = doc?.getElementById?.("ed-body");
   if (!body) return;
+  for (const host of body.querySelectorAll("[data-ritratto]")) {
+    const riga = host.closest(".dm-people-row");
+    const face = riga && rigaFace(riga);
+    if (face) ritrattoVivo(host, face, "sveglio");
+  }
   for (const riga of body.querySelectorAll(".dm-people-row")) {
-    const host = riga.querySelector(".dm-face-preview");
-    if (!host) continue;
     const face = rigaFace(riga);
-    if (face?.render !== "3d") continue;
-    const colore = clean(riga.querySelector('[data-person-field="color"]')?.value) || "#0ea5e9";
-    dipingi3D(host, face, { size: 216, shirt: colore });
+    const grande = riga.querySelector("[data-face-anteprima-viva]");
+    if (face && grande) ritrattoVivo(grande, face, "sveglio");
+    for (const bottone of riga.querySelectorAll("[data-face-anteprima]")) {
+      const posto = bottone.querySelector(".dm-face-opt-img");
+      if (!posto || posto.firstElementChild) continue;
+      let scelta = null;
+      try { scelta = JSON.parse(bottone.dataset.faceAnteprima); } catch (_errore) { continue; }
+      const url = await ritrattoFermo(scelta);
+      if (!url || !posto.isConnected) continue;
+      const img = doc.createElement("img");
+      img.src = url;
+      img.alt = "";
+      posto.replaceChildren(img);
+    }
   }
 }
 
@@ -416,7 +338,7 @@ function dipingiAnteprime3D() {
 function rigaFace(riga) {
   const campo = riga.querySelector('[data-person-field="face"]');
   try {
-    return campo?.value ? normalizeFace(JSON.parse(campo.value)) : null;
+    return campo?.value ? normalizeAvatar3d(JSON.parse(campo.value)) : null;
   } catch (_error) {
     return null;
   }
@@ -432,20 +354,13 @@ function scriviFace(riga, people, index, face) {
   if (builder && people[index]) {
     const colore =
       clean(riga.querySelector('[data-person-field="color"]')?.value) || people[index].avatar.color;
-    /* Quali gruppi erano aperti: si sceglie un tratto e il pannello si
-     * ridisegna — se i gruppi tornassero chiusi, ogni scelta riporterebbe le
-     * mani in cima all'elenco. */
-    const aperti = [...builder.querySelectorAll("details.dm-face-group")].map((g) => g.open);
     builder.innerHTML = builderMarkup({
       ...people[index],
       avatar: { ...people[index].avatar, face, color: colore },
     });
-    builder.querySelectorAll("details.dm-face-group").forEach((gruppo, i) => {
-      if (aperti.length > i) gruppo.open = aperti[i];
-    });
   }
   aggiornaAnteprima(riga, people, index);
-  dipingiAnteprime3D();
+  dipingiAnteprime();
 }
 
 /* L'anteprima del ritratto segue le mani: si cambia emoji o colore e lo si
@@ -582,12 +497,12 @@ async function onClick(event) {
   }
   if (event.target.closest("[data-face-create]")) {
     event.preventDefault();
-    scriviFace(riga, people, index, normalizeFace({}));
+    scriviFace(riga, people, index, normalizeAvatar3d({}));
     return;
   }
   if (event.target.closest("[data-face-random]")) {
     event.preventDefault();
-    scriviFace(riga, people, index, facciaACaso());
+    scriviFace(riga, people, index, avatar3dACaso());
     return;
   }
   if (event.target.closest("[data-face-clear]")) {
@@ -598,9 +513,9 @@ async function onClick(event) {
   const pezzo = event.target.closest("[data-face-k]");
   if (pezzo) {
     event.preventDefault();
-    const face = rigaFace(riga) || normalizeFace({});
+    const face = rigaFace(riga) || normalizeAvatar3d({});
     face[clean(pezzo.dataset.faceK)] = clean(pezzo.dataset.faceV);
-    scriviFace(riga, people, index, normalizeFace(face));
+    scriviFace(riga, people, index, normalizeAvatar3d(face));
     return;
   }
   if (event.target.closest("[data-person-edit]")) {
@@ -704,7 +619,7 @@ export function ensurePeopleEditorTab() {
 }
 
 function installStyles() {
-  installFace3dStyle();
+  installAvatar3dStyle();
   installStyle(
     "dm-people-editor-style",
     `
@@ -745,29 +660,22 @@ function installStyles() {
       #ed-body .dm-face-mode{display:inline-flex;align-items:center;gap:6px;border:none;background:transparent;border-radius:999px;padding:5px 13px;font:inherit;font-size:12px;font-weight:800;color:var(--secondary-text-color,#64748b);cursor:pointer;transition:background .18s ease,color .18s ease}
       #ed-body .dm-face-mode.on{background:var(--card-bg,#fff);color:var(--primary-text-color,#0f172a);box-shadow:0 2px 6px -2px rgba(15,23,42,.3)}
       #ed-body .dm-face-preview img{width:100%;height:100%;display:block;object-fit:cover}
-      #ed-body .dm-face-groups{flex:1 1 auto;min-width:0;display:grid;gap:5px}
-      #ed-body .dm-face-group{border:1px solid var(--card-border,#e2e8f0);border-radius:14px;background:var(--surface-2,#f8fafc);overflow:hidden}
-      #ed-body .dm-face-group-head{list-style:none;cursor:pointer;padding:7px 11px;font-size:11px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:var(--secondary-text-color,#64748b);display:flex;align-items:center;gap:7px}
-      #ed-body .dm-face-group-head::-webkit-details-marker{display:none}
-      #ed-body .dm-face-group-head::before{content:"▸";font-size:11px;transition:transform .18s ease;color:var(--info-color,#0ea5e9)}
-      #ed-body .dm-face-group[open]>.dm-face-group-head::before{transform:rotate(90deg)}
-      #ed-body .dm-face-group[open]>.dm-face-group-head{color:var(--primary-text-color,#0f172a);border-bottom:1px solid var(--card-border,#e2e8f0)}
-      #ed-body .dm-face-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+      #ed-body .dm-face-side{flex:1 1 auto;min-width:0}
+      #ed-body .dm-face-side small{display:block;color:var(--secondary-text-color,#64748b);font-size:11px;margin-top:7px;line-height:1.45}
       #ed-body .dm-face-dice{margin:0}
-      #ed-body .dm-face-rows{flex:1 1 auto;min-width:0;display:grid;gap:7px;padding:8px 10px 10px}
-      #ed-body .dm-face-row{display:grid;gap:3px}
-      #ed-body .dm-face-row-lbl{font-size:10.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
-      #ed-body .dm-face-row-opts{display:flex;flex-wrap:wrap;gap:5px}
-      #ed-body .dm-face-opt{border:2px solid transparent;background:transparent;padding:0;cursor:pointer;border-radius:50%}
-      #ed-body .dm-face-opt.on{border-color:var(--info-color,#0ea5e9);box-shadow:0 0 0 2px color-mix(in srgb,var(--info-color,#0ea5e9) 30%,transparent)}
-      /* Il filo scuro attorno: un bianco o un ghiaccio su fondo chiaro,
-       * senza, non si vede che c'e' una pastiglia. */
-      #ed-body .dm-face-swatch{width:26px;height:26px;background:var(--dm-face-swatch);box-shadow:inset 0 0 0 1px rgba(15,23,42,.18)}
-      #ed-body .dm-face-thumb{width:42px;height:42px;overflow:hidden;background:#e8edf4}
+      #ed-body .dm-face-rows{display:grid;gap:11px;margin:4px 0 8px}
+      #ed-body .dm-face-row{display:grid;gap:5px}
+      #ed-body .dm-face-row-lbl{display:flex;justify-content:space-between;font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
+      #ed-body .dm-face-row-lbl b{color:var(--info-color,#0ea5e9)}
+      #ed-body .dm-face-row-opts{display:flex;flex-wrap:wrap;gap:6px}
+      #ed-body .dm-face-opt{width:58px;border:2px solid transparent;background:var(--surface-2,#f1f5f9);border-radius:14px;padding:2px 2px 4px;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;font:inherit;transition:border-color .18s ease,background .18s ease}
+      #ed-body .dm-face-opt.on{border-color:var(--info-color,#0ea5e9);background:color-mix(in srgb,var(--info-color,#0ea5e9) 12%,transparent)}
+      #ed-body .dm-face-opt-img{width:46px;height:46px;display:block}
+      #ed-body .dm-face-opt-img img{width:100%;height:100%;display:block;object-fit:contain}
+      #ed-body .dm-face-opt i{font-style:normal;font-size:8.5px;font-weight:700;color:var(--secondary-text-color,#64748b);line-height:1.15;text-align:center}
       #ed-body .dm-face-remove{border:none;background:transparent;color:var(--secondary-text-color,#64748b);font:inherit;font-size:12px;font-weight:750;cursor:pointer;justify-self:start;padding:2px 0}
       #ed-body .dm-face-remove:hover{color:var(--error-color,#dc2626)}
-      @media(max-width:560px){#ed-body .dm-face-workbench{flex-direction:column;align-items:center}#ed-body .dm-face-groups{width:100%}}
-      @media(prefers-reduced-motion:reduce){#ed-body .dm-face-group-head::before{transition:none}}
+      @media(max-width:560px){#ed-body .dm-face-workbench{flex-direction:column;align-items:center;text-align:center}#ed-body .dm-face-side{width:100%}}
       #ed-body .dm-people-sensors{margin:2px 0}
       #ed-body .dm-people-sensors .ed-acc-body{display:grid;gap:8px}
       #ed-body .dm-people-sensors-intro{color:var(--secondary-text-color,#64748b);font-size:12px;line-height:1.45}

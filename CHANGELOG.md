@@ -9,6 +9,36 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Il ritratto delle persone e' un personaggio 3D, e i pezzi si combinano
+  liberamente.** Il disegno costruito a mano se n'e' andato: al suo posto ci
+  sono i render 3D di Fluent Emoji (Microsoft, licenza MIT), vendorizzati
+  nell'integrazione — 255 immagini, 2,1 MB, nessuna rete a runtime. Si
+  scelgono quattro cose: **persona** (uomo, donna, neutro, ragazzo, ragazza,
+  anziano), **capelli** (lisci, barba, ricci, rossi, bianchi, calvo),
+  **carnagione** (cinque, nessun giallo) e **vestito** (ufficio, medico,
+  cuoco, smoking, velo, pompiere, poliziotto, muratore, operaio, meccanico,
+  contadino, pilota, astronauta, giudice, supereroe). Sono **1.600
+  combinazioni**, e sono libere davvero: «ricci» e «cuoco» insieme si possono,
+  perche' la testa scelta viene riscalata e incollata sul busto scelto. Le
+  misure che servono a incastrarle — dove sta la testa in ogni immagine — le
+  prende lo script di build una volta sola. Nel costruttore ogni pastiglia e'
+  il TUO ritratto con quel pezzo addosso, non un'icona; e c'e' il 🎲.
+
+- **I ritratti respirano e sbattono le ciglia.** Il respiro e' CSS, quindi
+  gratis. Il battito no: gli occhi in un render non stanno su un livello a
+  parte, quindi lo script di build li **trova** — sono le due macchie chiare e
+  desaturate nella meta' alta della testa — e la plancia ci disegna sopra la
+  palpebra, prendendo il colore dalla guancia della persona stessa cosi' che
+  combaci con qualunque carnagione. Il battito dura trecento millisecondi e
+  poi la tela torna a dormire: ferma, una plancia con quattro persone non
+  disegna niente. L'espressione la decide quello che la plancia sa gia': chi
+  e' a casa ha gli occhi che ridono, chi ha la batteria agli sgoccioli o il
+  telefono fermo da ore ha le palpebre pesanti.
+
+  Le facce disegnate con la versione precedente non si perdono: carnagione,
+  capelli, barba e vestito vengono tradotti nei tratti nuovi.
+
+
 - **Backup e ripristino della configurazione.** La scheda «💾 Backup» in
   configurazione raccoglie tutta la configurazione condivisa — sezioni,
   stanze, entità, persone, auto, tutto — in un file JSON da scaricare, o da
@@ -253,6 +283,17 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   scelta che riproduce il disegno di prima.
 
 ### Corretto
+
+- **Auto da desktop: la foto tagliata e i tag che spingevano tutto in fondo.**
+  La cornice della foto e' larga quanto lo schermo e bassa come su un
+  telefono: ritagliando la foto per riempirla, di un'auto si perdevano il
+  tetto e le ruote e restava una fascia di fiancata. Adesso la foto ci sta
+  dentro tutta e il vuoto ai lati lo riempie una copia sfocata di se stessa —
+  funziona con qualunque proporzione senza doverla sapere. E le linguette dei
+  modelli, che sono nate come bersagli per il pollice, su schermo largo si
+  stringono su una riga sola accanto alla marca, invece di essere una fascia
+  alta che spinge il resto sotto la piega.
+
 
 - **Le soglie del terreno sparivano appena salvate.** Il salvataggio
   dell'Irrigazione finisce ridisegnando la scheda: i campi dell'umidità del

@@ -54,14 +54,27 @@ test("l'editor usa il selettore foto condiviso e valida l'entità", () => {
   assert.match(editor, /builderMarkup/, "il costruttore della faccia sta nell'editor");
 });
 
-test("la faccia costruita vive sulla card e respira dal foglio di stile", () => {
+test("il ritratto vive sulla card: si compone, respira e sbatte le ciglia", () => {
   const sezione = leggi("sections/people-section.js");
-  assert.match(sezione, /avatarSvg/, "la card disegna la faccia col motore puro");
-  assert.match(sezione, /dmFaceBlink/, "il battito di palpebre");
-  assert.match(sezione, /dmFaceBreathe/, "il respiro");
-  assert.match(sezione, /data-presence="away"\] \.f-eyes/, "chi è fuori guarda in giro");
-  const motore = leggi("core/person-avatar.js");
-  assert.doesNotMatch(motore, /@keyframes/, "il modulo puro non anima: disegna");
+  assert.match(sezione, /ritrattoVivo/, "la card monta il ritratto vivo, non un'immagine ferma");
+  assert.match(sezione, /fermaRitrattiPersi/, "chi non e' piu' a schermo smette di battere le ciglia");
+  /* L'espressione la decide quello che la plancia sa gia' della persona: chi
+   * e' a casa e' contento, chi ha la batteria agli sgoccioli o il telefono
+   * fermo da ore ha le palpebre pesanti. */
+  assert.match(sezione, /assonnato/);
+  assert.match(sezione, /contento/);
+
+  const disegno = leggi("sections/person-avatar-section.js");
+  assert.match(disegno, /dmAvatarRespiro/, "il respiro e' CSS: lo fa il compositore");
+  assert.match(disegno, /requestAnimationFrame/, "il battito e' a fotogrammi, ma solo mentre dura");
+  assert.match(disegno, /setTimeout/, "e fuori dal battito si dorme");
+  assert.doesNotMatch(disegno, /setInterval/, "un ciclo che non si ferma mai su una plancia non ci sta");
+
+  /* Il modello dice quali due immagini servono e come incastrarle, e basta:
+   * si prova senza un browser, ed e' il motivo per cui e' un modulo suo. */
+  const modello = leggi("core/avatar-3d.js");
+  assert.doesNotMatch(modello, /\bdocument\.|getContext|createElement|@keyframes/,
+    "il modello non tocca il documento: dice solo quali pezzi");
 });
 
 test("il campo dell'entità persona è riconosciuto anche da vuoto", () => {

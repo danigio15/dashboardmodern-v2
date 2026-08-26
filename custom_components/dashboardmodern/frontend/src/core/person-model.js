@@ -11,7 +11,7 @@
  * sezione legge e scrive, questo modulo mette solo in ordine.
  */
 
-import { normalizeFace } from "./person-avatar.js";
+import { normalizeAvatar3d } from "./avatar-3d.js";
 
 const clean = (value) => String(value ?? "").trim();
 
@@ -48,14 +48,77 @@ export function personInitials(name = "") {
   return letters.join("");
 }
 
+/* ── Le facce disegnate a mano, tradotte ────────────────────────────────
+ *
+ * Fino alla 1.2 il ritratto era un disegno costruito tratto per tratto —
+ * carnagione, taglio, barba, vestito — e c'e' chi la sua faccia se l'era
+ * fatta. Adesso i ritratti sono render 3D, e i tratti non sono piu' gli
+ * stessi: quelli che hanno un corrispondente si portano dietro, gli altri
+ * cadono. Nessuno riapre la plancia e trova una persona senza faccia.
+ */
+const PELLE_VECCHIA = {
+  f1: "chiara",
+  f2: "chiara2",
+  f3: "media",
+  f4: "ambrata",
+  f5: "scura",
+  f6: "scura",
+};
+const CAPELLI_VECCHI = {
+  rasato: "lisci",
+  corto: "lisci",
+  ciuffo: "lisci",
+  spettinato: "lisci",
+  riccio: "ricci",
+  lungo: "lisci",
+  caschetto: "lisci",
+  chignon: "lisci",
+  coda: "lisci",
+  afro: "ricci",
+  pettinato: "lisci",
+  calvo: "calvo",
+};
+const VESTITI_VECCHI = {
+  maglietta: "nessuno",
+  polo: "nessuno",
+  camicia: "ufficio",
+  maglione: "nessuno",
+  felpa: "nessuno",
+  giacca: "smoking",
+  gilet: "ufficio",
+  canotta: "nessuno",
+  tuta: "nessuno",
+  abito: "velo",
+  cardigan: "ufficio",
+};
+
+function migraFaccia(face) {
+  if (!face || typeof face !== "object" || Array.isArray(face)) return face;
+  if (!("skin" in face) && !("hair" in face)) return face;
+  const barba = face.beard && face.beard !== "nessuna";
+  const capelliBianchi = face.hairColor === "bianco" || face.hairColor === "grigio";
+  return {
+    persona: face.build === "magra" ? "donna" : "uomo",
+    capelli: barba
+      ? "barba"
+      : capelliBianchi
+        ? "bianchi"
+        : face.hairColor === "rame"
+          ? "rossi"
+          : CAPELLI_VECCHI[face.hair] || "lisci",
+    carnagione: PELLE_VECCHIA[face.skin] || "media",
+    vestito: VESTITI_VECCHI[face.outfit] || "nessuno",
+  };
+}
+
 function normalizeAvatar(avatar = {}, index = 0) {
   const color = clean(avatar?.color);
   return {
     emoji: clean(avatar?.emoji),
     color: AVATAR_COLORS.includes(color) ? color : AVATAR_COLORS[index % AVATAR_COLORS.length],
-    /* La faccia costruita nell'editor, o `null` per chi non ne ha una: allora
-     * valgono l'emoji e, per ultime, le iniziali. */
-    face: normalizeFace(avatar?.face),
+    /* Il ritratto costruito nell'editor, o `null` per chi non ne ha uno:
+     * allora valgono l'emoji e, per ultime, le iniziali. */
+    face: normalizeAvatar3d(migraFaccia(avatar?.face)),
   };
 }
 
