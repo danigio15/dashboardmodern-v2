@@ -935,15 +935,68 @@ const FACE_BUILD_SHAPES = Object.freeze({
 /* I tagli che lasciano la fronte scoperta non proiettano nessuna ombra. */
 const SENZA_OMBRA = new Set(["rasato", "calvo"]);
 
+/* ── La luce ──────────────────────────────────────────────────────────────
+ *
+ * Un personaggio renderizzato non e' fatto di contorni: e' fatto di luce che
+ * cade da una parte sola, di ombra che si accumula dove la forma rientra —
+ * le orbite, i lati del naso, sotto la mascella — e di un filo di luce
+ * fredda sul bordo opposto, che stacca la testa dal fondo. Sono queste tre
+ * cose, e non il numero dei dettagli, a fare la differenza fra un disegno e
+ * un render.
+ *
+ * Qui ci sono per davvero, e sono sfocate: la luce non ha spigoli. Le
+ * sfocature costano, pero', e l'editor ne disegna novanta in una schermata:
+ * chi chiede il disegno fermo (i campioncini, il ritratto piccolo della
+ * riga) riceve le stesse forme senza gli strati di luce.
+ */
+const LUCE_DEFS =
+  `<filter id="dmFaceSoft" x="-45%" y="-45%" width="190%" height="190%"><feGaussianBlur stdDeviation="2.6"/></filter>` +
+  `<filter id="dmFaceGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="5.5"/></filter>` +
+  `<filter id="dmFaceTiny" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation=".85"/></filter>` +
+  /* L'occlusione ambientale: il bordo della testa si spegne come su una
+   * sfera vera, invece di finire di netto contro il fondo. */
+  `<radialGradient id="dmFaceAO" cx="45%" cy="38%" r="62%">` +
+  `<stop offset="52%" stop-color="#2b1a0f" stop-opacity="0"/>` +
+  `<stop offset="84%" stop-color="#2b1a0f" stop-opacity=".15"/>` +
+  `<stop offset="100%" stop-color="#2b1a0f" stop-opacity=".44"/></radialGradient>` +
+  /* La luce di contorno: fredda, e solo sul lato lontano dalla chiave. */
+  `<linearGradient id="dmFaceRim" x1="0" y1="1" x2="1" y2="0">` +
+  `<stop offset="50%" stop-color="#dcefff" stop-opacity="0"/>` +
+  `<stop offset="100%" stop-color="#f2faff" stop-opacity=".95"/></linearGradient>` +
+  `<linearGradient id="dmFaceSheen" x1="0" y1="0" x2="0" y2="1">` +
+  `<stop offset="0%" stop-color="#fff" stop-opacity=".6"/>` +
+  `<stop offset="100%" stop-color="#fff" stop-opacity="0"/></linearGradient>`;
+
+/* Il riflesso sui capelli: la banda di luce che gira attorno alla calotta, e
+ * tre ciocche accese sopra le altre. Senza, i capelli sono una massa piatta
+ * col gradiente addosso. */
+function hairLightMarkup(style, color) {
+  if (SENZA_OMBRA.has(style)) return "";
+  const luce = lighten(color, 0.52);
+  const ciocca = (d, width, opacity) =>
+    `<path d="${d}" stroke="${luce}" stroke-width="${width}" stroke-linecap="round" fill="none" opacity="${opacity}"/>`;
+  return (
+    `<path d="M37 27 C47 15 73 15 83 27 C72 20 48 20 37 27 Z" fill="url(#dmFaceSheen)" opacity=".55" filter="url(#dmFaceSoft)"/>` +
+    `<g filter="url(#dmFaceTiny)">` +
+    ciocca("M45 30 C51 22 62 19 71 21", 1.7, 0.5) +
+    ciocca("M49 24 C56 19 65 18 72 20", 1.1, 0.35) +
+    ciocca("M40 36 C44 29 50 25 57 23", 1.2, 0.3) +
+    `</g>`
+  );
+}
+
 /**
  * La faccia disegnata. Il fondo lo mette chi la ospita (la card ha gia' il suo
  * cerchio col colore scelto); qui c'e' il busto. Con `animated: false` l'SVG
  * porta la classe che spegne le animazioni: e' come si disegnano i campioncini
- * dell'editor, che sono decine e non devono respirare tutti insieme.
+ * dell'editor, che sono decine e non devono respirare tutti insieme — e con
+ * loro si spengono anche gli strati di luce sfocati, che a quaranta pixel non
+ * si vedono e a novanta campioncini si sentono.
  */
-export function avatarSvg(input, { animated = true, shirt = "" } = {}) {
+export function avatarSvg(input, { animated = true, shirt = "", soft } = {}) {
   const face = normalizeFace(input);
   if (!face) return "";
+  const luce = soft === undefined ? animated : Boolean(soft);
   const skin = FACE_SKINS[face.skin];
   const hairColor = FACE_HAIR_COLORS[face.hairColor];
   const eyeColor = FACE_EYE_COLORS[face.eyeColor];
@@ -955,6 +1008,7 @@ export function avatarSvg(input, { animated = true, shirt = "" } = {}) {
   const vestito = FACE_OUTFIT_COLORS[face.outfitColor] || personale;
   const shape = FACE_BUILD_SHAPES[face.build] || FACE_BUILD_SHAPES.normale;
   const cranio = FACE_SHAPES[face.shape] || FACE_SHAPES.ovale;
+  const ombra = darken(skin.shade, 0.82);
   /* I gradienti stanno nei defs con un id che dipende dalla scelta: due
    * facce con la stessa carnagione condividono la stessa definizione, due
    * carnagioni diverse non si rubano il colore. */
@@ -967,19 +1021,55 @@ export function avatarSvg(input, { animated = true, shirt = "" } = {}) {
     shape.sx === 1 && shape.sy === 1
       ? ""
       : ` transform="translate(60 56) scale(${shape.sx} ${shape.sy}) translate(-60 -56)"`;
+  /* Gli strati di luce, quelli che si accendono solo sul disegno vivo. */
+  const occlusione = luce
+    ? `<g filter="url(#dmFaceSoft)">` +
+      `<ellipse cx="46.5" cy="47.4" rx="10.4" ry="5.4" fill="${ombra}" opacity=".34"/>` +
+      `<ellipse cx="73.5" cy="47.4" rx="10.4" ry="5.4" fill="${ombra}" opacity=".34"/>` +
+      `<path d="M40 70 C46 82 74 82 80 70 C74 89 46 89 40 70 Z" fill="${ombra}" opacity=".3"/>` +
+      `<path d="M33 42 C35 55 37 64 41 71 C34 64 31 54 32 42 Z" fill="${ombra}" opacity=".34"/>` +
+      `<path d="M87 42 C85 55 83 64 79 71 C86 64 89 54 88 42 Z" fill="${ombra}" opacity=".34"/>` +
+      `</g>`
+    : `<path d="M33 44 C35 56 37 64 41 70 C35 64 32 55 33 44 Z" fill="${skin.shade}" opacity=".28"/>` +
+      `<path d="M87 44 C85 56 83 64 79 70 C85 64 88 55 87 44 Z" fill="${skin.shade}" opacity=".28"/>` +
+      `<path d="M39 72 C45 83 75 83 81 72 C75 87 45 87 39 72 Z" fill="${skin.shade}" opacity=".22"/>`;
+  const speculare = luce
+    ? `<g filter="url(#dmFaceSoft)">` +
+      `<ellipse cx="51" cy="29" rx="15.5" ry="8.4" fill="#fff" opacity=".36"/>` +
+      `<ellipse cx="43.5" cy="57" rx="7.4" ry="5.2" fill="#fff" opacity=".2"/>` +
+      `<ellipse cx="76" cy="57" rx="5.6" ry="4.2" fill="#fff" opacity=".13"/>` +
+      `<ellipse cx="60" cy="82" rx="6.4" ry="3.4" fill="#fff" opacity=".17"/>` +
+      `</g>`
+    : `<ellipse cx="53" cy="30" rx="16" ry="8.5" fill="#fff" opacity=".14"/>` +
+      `<ellipse cx="41" cy="60" rx="6" ry="4" fill="#fff" opacity=".08"/>` +
+      `<ellipse cx="79" cy="60" rx="6" ry="4" fill="#fff" opacity=".08"/>`;
+  /* Il filo di luce sul bordo, e l'ombra che il naso getta sulla guancia:
+   * sono i due segni che dicono «questa faccia sta in una stanza». */
+  const contorno = luce
+    ? `<path d="${cranio.head}" fill="none" stroke="url(#dmFaceRim)" stroke-width="3.4" filter="url(#dmFaceSoft)"/>` +
+      `<path d="${cranio.head}" fill="none" stroke="${skin.shade}" stroke-width="1.8" opacity=".26"/>`
+    : `<path d="${cranio.head}" fill="none" stroke="${skin.shade}" stroke-width="2.6" opacity=".4"/>`;
+  const ombraNaso = luce
+    ? `<path d="M56.4 49 C53.4 57 52.4 63.4 54.6 68.4 C50.6 64 51 55.6 53.4 48.4 Z" fill="${ombra}" opacity=".26" filter="url(#dmFaceSoft)"/>`
+    : "";
   return (
     `<svg class="dm-face-svg${animated ? "" : " dm-face-still"}" viewBox="0 0 120 120" aria-hidden="true">` +
     `<defs>` +
-    `<radialGradient id="${skinGradId}" cx="43%" cy="32%" r="76%">` +
-    `<stop offset="0%" stop-color="${lighten(skin.base, 0.22)}"/>` +
-    `<stop offset="45%" stop-color="${lighten(skin.base, 0.06)}"/>` +
-    `<stop offset="78%" stop-color="${skin.base}"/>` +
-    `<stop offset="100%" stop-color="${skin.shade}"/>` +
+    /* La pelle: cinque fermate invece di quattro, e l'ultima piu' scura del
+     * bordo — e' quella a dare lo spessore, come la pelle vera che verso il
+     * bordo si allontana dalla luce. */
+    `<radialGradient id="${skinGradId}" cx="40%" cy="27%" r="80%">` +
+    `<stop offset="0%" stop-color="${lighten(skin.base, 0.3)}"/>` +
+    `<stop offset="30%" stop-color="${lighten(skin.base, 0.13)}"/>` +
+    `<stop offset="62%" stop-color="${skin.base}"/>` +
+    `<stop offset="87%" stop-color="${skin.shade}"/>` +
+    `<stop offset="100%" stop-color="${darken(skin.shade, 0.88)}"/>` +
     `</radialGradient>` +
-    `<linearGradient id="${hairGradId}" x1="0" y1="0" x2="0" y2="1">` +
-    `<stop offset="0%" stop-color="${lighten(hairColor, 0.3)}"/>` +
-    `<stop offset="45%" stop-color="${hairColor}"/>` +
-    `<stop offset="100%" stop-color="${darken(hairColor, 0.78)}"/>` +
+    `<linearGradient id="${hairGradId}" x1=".2" y1="0" x2=".8" y2="1">` +
+    `<stop offset="0%" stop-color="${lighten(hairColor, 0.42)}"/>` +
+    `<stop offset="30%" stop-color="${lighten(hairColor, 0.16)}"/>` +
+    `<stop offset="62%" stop-color="${hairColor}"/>` +
+    `<stop offset="100%" stop-color="${darken(hairColor, 0.66)}"/>` +
     `</linearGradient>` +
     `<linearGradient id="dmFaceBust" x1="0" y1="0" x2="0" y2="1">` +
     `<stop offset="0%" stop-color="#fff" stop-opacity=".22"/>` +
@@ -991,6 +1081,7 @@ export function avatarSvg(input, { animated = true, shirt = "" } = {}) {
     `<stop offset="60%" stop-color="${eyeColor}"/>` +
     `<stop offset="100%" stop-color="${darken(eyeColor, 0.6)}"/>` +
     `</radialGradient>` +
+    LUCE_DEFS +
     `</defs>` +
     `<g class="f-all">` +
     hair.back +
@@ -1001,39 +1092,46 @@ export function avatarSvg(input, { animated = true, shirt = "" } = {}) {
     `<path d="M55 76 h10 v10 a5 5 0 0 1 -10 0 Z" fill="${skin.base}" opacity=".55"/>` +
     `<path d="M46 84 C52 90 68 90 74 84 C68 88 52 88 46 84 Z" fill="#000" opacity=".13"/>` +
     outfit.front +
-    `<ellipse cx="60" cy="90" rx="14" ry="4.6" fill="#000" opacity=".14"/>` +
+    /* L'ombra della testa sul petto, e il filo di luce sulla spalla: il busto
+     * smette di essere un adesivo dietro il mento. */
+    (luce
+      ? `<ellipse cx="60" cy="91" rx="17" ry="6" fill="#000" opacity=".22" filter="url(#dmFaceSoft)"/>` +
+        `<path d="${shape.bust}" fill="none" stroke="url(#dmFaceRim)" stroke-width="3" opacity=".55" filter="url(#dmFaceSoft)"/>`
+      : `<ellipse cx="60" cy="90" rx="14" ry="4.6" fill="#000" opacity=".14"/>`) +
     `<g class="f-head"${testa}>` +
     earsMarkup(face.ears, skin, cranio) +
     `<path d="${cranio.head}" fill="url(#${skinGradId})"/>` +
-    /* La luce e l'ombra che modellano il viso come un render: il bordo in
-     * penombra tutt'attorno, la luce sulla fronte e sugli zigomi, l'ombra
-     * lungo la mascella e alle tempie. */
-    `<path d="${cranio.head}" fill="none" stroke="${skin.shade}" stroke-width="2.6" opacity=".4"/>` +
-    `<ellipse cx="53" cy="30" rx="16" ry="8.5" fill="#ffffff" opacity=".14"/>` +
-    `<ellipse cx="41" cy="60" rx="6" ry="4" fill="#ffffff" opacity=".08"/>` +
-    `<ellipse cx="79" cy="60" rx="6" ry="4" fill="#ffffff" opacity=".08"/>` +
-    `<path d="M33 44 C35 56 37 64 41 70 C35 64 32 55 33 44 Z" fill="${skin.shade}" opacity=".28"/>` +
-    `<path d="M87 44 C85 56 83 64 79 70 C85 64 88 55 87 44 Z" fill="${skin.shade}" opacity=".28"/>` +
-    `<path d="M39 72 C45 83 75 83 81 72 C75 87 45 87 39 72 Z" fill="${skin.shade}" opacity=".22"/>` +
+    `<path d="${cranio.head}" fill="url(#dmFaceAO)"/>` +
+    occlusione +
+    speculare +
+    contorno +
     (face.build === "robusta"
       ? `<path d="M46 84 C52 89 68 89 74 84" stroke="${skin.shade}" stroke-width="2" stroke-linecap="round" fill="none" opacity=".5"/>`
       : "") +
     browsMarkup(face.brows, brow) +
     `<g class="f-eyes">${eyesMarkup(face.eyes, eyeGradId, skin, eyeColor)}</g>` +
+    ombraNaso +
     noseMarkup(face.nose, skin) +
     `<ellipse cx="40" cy="64" rx="4.4" ry="3" fill="#e58a74" opacity=".3"/><ellipse cx="80" cy="64" rx="4.4" ry="3" fill="#e58a74" opacity=".3"/>` +
     marksMarkup(face.marks, skin) +
     /* La barba prima della bocca: coi baffi disegnati sopra, le labbra
      * sparivano sotto la peluria e la faccia restava senza espressione. */
     beardMarkup(face.beard, beardColor) +
-    `<g class="f-mouth">${mouthMarkup(face.mouth, lip)}</g>` +
+    `<g class="f-mouth">${mouthMarkup(face.mouth, lip)}${
+      luce
+        ? `<ellipse cx="62" cy="76.4" rx="5" ry="1.5" fill="#fff" opacity=".3" filter="url(#dmFaceTiny)"/>`
+        : ""
+    }</g>` +
     ageMarkup(face.age, skin) +
     /* L'ombra che i capelli lasciano sulla fronte: e' quella a staccare la
      * capigliatura dalla pelle invece di incollarcela sopra. */
     (SENZA_OMBRA.has(face.hair)
       ? ""
-      : `<path d="M33 38 C44 46 76 46 87 38 C82 50 38 50 33 38 Z" fill="#000" opacity=".08"/>`) +
+      : luce
+        ? `<path d="M32 36 C44 47 76 47 88 36 C82 52 38 52 32 36 Z" fill="${ombra}" opacity=".26" filter="url(#dmFaceSoft)"/>`
+        : `<path d="M33 38 C44 46 76 46 87 38 C82 50 38 50 33 38 Z" fill="#000" opacity=".08"/>`) +
     hair.front +
+    (luce ? hairLightMarkup(face.hair, hairColor) : "") +
     glassesMarkup(face.glasses) +
     hatMarkup(face.hat, vestito) +
     `</g></g></svg>`
