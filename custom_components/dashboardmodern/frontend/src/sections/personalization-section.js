@@ -212,8 +212,22 @@ function decorateRoomEditorRows() {
       row.prepend(visual);
       changed = true;
     }
-    const markup = roomVisual(room.icon || room.name, 34) || iconMarkup(room.icon || "mdi:home", 30);
-    if (visual.innerHTML !== markup) visual.innerHTML = markup;
+    /* Il quadratino della stanza ha un padrone, ed e' il motore delle icone.
+     *
+     * Qui si ridipingeva comunque, un istante dopo di lui: il glifo che il
+     * motore aveva appena scritto veniva sostituito da un disegno con un altro
+     * nome, e chi cerca il primo non trova piu' niente. E' la stessa regola
+     * gia' scritta qui sotto per le righe del Report — chi si dichiara padrone
+     * della propria casella la tiene — solo che a queste non si applicava.
+     *
+     * Quando il motore c'e' si chiede a lui: e' lui che sa cosa disegnare, e
+     * disegnandolo una volta sola non c'e' piu' niente da contendersi. */
+    const motore = root.DashboardModernIconEngine;
+    if (motore?.render) motore.render(visual, "room", room.icon || room.name || "mdi:home", { size: 34 });
+    else {
+      const markup = roomVisual(room.icon || room.name, 34) || iconMarkup(room.icon || "mdi:home", 30);
+      if (visual.innerHTML !== markup) visual.innerHTML = markup;
+    }
     const label = main.querySelector(".ed-row-new");
     if (label) label.textContent = clean(room.name) || t("Stanza", "Room");
     main.dataset.dmRoomIconVisible = "true";
