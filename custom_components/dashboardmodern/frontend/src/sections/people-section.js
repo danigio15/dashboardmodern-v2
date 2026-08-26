@@ -12,6 +12,7 @@
  * qui si legge quella chiave e la si disegna.
  */
 import { avatarSvg } from "../core/person-avatar.js";
+import { dipingi3D, installFace3dStyle } from "./person-avatar-3d-section.js";
 import { normalizePeople, personViewModel } from "../core/person-model.js";
 import { allStates, clean, doc, esc, formatNumber, installStyle, readJson, root, t } from "./shared.js";
 
@@ -69,7 +70,12 @@ function portraitMarkup(view) {
   /* Il ritratto sceglie in ordine: la faccia costruita, l'emoji, le iniziali.
    * L'SVG della faccia esce dal catalogo chiuso del modulo puro, quindi entra
    * senza escape: dentro non c'e' mai testo dell'utente. */
-  const avatar = `<span class="dm-person-avatar" style="--dm-person-color:${esc(view.avatar.color)}">${
+  /* Chi ha scelto il ritratto in tre dimensioni riceve comunque il disegno,
+   * prima: e' quello che si vede finche' il 3D non e' pronto, e su una card
+   * che compare vale piu' un ritratto subito che quello giusto fra un
+   * decimo di secondo. Lo scambio lo fa `dipingi3D` appena c'e' tempo. */
+  const tre = view.avatar.face?.render === "3d";
+  const avatar = `<span class="dm-person-avatar"${tre ? " data-face3d=\"true\"" : ""} style="--dm-person-color:${esc(view.avatar.color)}">${
     view.avatar.face
       ? avatarSvg(view.avatar.face)
       : view.avatar.emoji
@@ -317,6 +323,13 @@ export function renderPeopleSection() {
   grid.querySelectorAll("[data-person-img]").forEach((img) =>
     img.addEventListener("error", () => img.remove(), { once: true }),
   );
+  /* I ritratti in tre dimensioni prendono il posto del disegno appena c'e'
+   * un momento libero: la card e' gia' comparsa e nessuno ha aspettato. */
+  const conFaccia = new Map(people.map((persona) => [persona.id, persona]));
+  for (const host of grid.querySelectorAll(".dm-person-avatar[data-face3d]")) {
+    const persona = conFaccia.get(host.closest("[data-person-id]")?.dataset?.personId);
+    if (persona?.avatar?.face) dipingi3D(host, persona.avatar.face, { shirt: persona.avatar.color });
+  }
   if (state.popupId) paintPersonPopup();
   return true;
 }
@@ -377,6 +390,7 @@ function installStyles() {
    * palpebre e' un attimo ogni pochi secondi; chi e' fuori guarda in giro; di
    * chi non si sa niente, la faccia dorme. `dm-face-still` spegne tutto: e'
    * la classe dei campioncini dell'editor, che sono decine. */
+  installFace3dStyle();
   installStyle(
     "dm-person-face-style",
     `

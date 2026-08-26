@@ -196,6 +196,13 @@ export const FACE_OUTFIT_COLORS = Object.freeze({
   sabbia: "#c9ab86",
 });
 
+/* Come si disegna il ritratto: a mano, in SVG — leggero, immediato, lo
+ * stesso da sempre — oppure in tre dimensioni vere, con la testa costruita
+ * in geometria e illuminata da tre luci. Il 3D costa un decimo di secondo la
+ * prima volta e poi resta in memoria; il disegno non costa niente. La scelta
+ * e' della persona, e la prima voce e' quella di sempre. */
+export const FACE_RENDERS = Object.freeze(["disegno", "3d"]);
+
 const pickKey = (value, catalog) => {
   const keys = Array.isArray(catalog) ? catalog : Object.keys(catalog);
   const wanted = clean(value);
@@ -230,6 +237,7 @@ export function normalizeFace(input) {
     build: pickKey(input.build, FACE_BUILDS),
     outfit: pickKey(input.outfit, FACE_OUTFITS),
     outfitColor: pickKey(input.outfitColor, FACE_OUTFIT_COLORS),
+    render: pickKey(input.render, FACE_RENDERS),
   };
 }
 

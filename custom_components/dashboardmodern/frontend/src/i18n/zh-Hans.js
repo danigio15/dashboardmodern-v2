@@ -26,6 +26,7 @@ export default Object.freeze({
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
     "已存在名为\"${nomeScritto}\"的车辆：请用铅笔编辑它，或换一个名称",
   "Build": "体型",
+  "Drawing": "手绘",
   "Age": "年龄",
   "Beard color": "胡须颜色",
   "Body and clothes": "身形与衣着",

@@ -26,6 +26,7 @@ export default Object.freeze({
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
     "\"${nomeScritto}\" adında bir araç zaten var: düzenlemek için kalemi kullanın veya başka bir ad seçin",
   "Build": "Vücut yapısı",
+  "Drawing": "Çizim",
   "Age": "Yaş",
   "Beard color": "Sakal rengi",
   "Body and clothes": "Vücut ve kıyafet",

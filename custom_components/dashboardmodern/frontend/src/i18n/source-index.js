@@ -443,6 +443,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Dimmer e colori": "Dimmer & colors",
   "Direzione": "Direction",
   "Disco": "Disk",
+  "Disegno": "Drawing",
   "Disinserisci": "Disarm",
   "Disinserito": "Disarmed",
   "Dispensa": "Pantry",

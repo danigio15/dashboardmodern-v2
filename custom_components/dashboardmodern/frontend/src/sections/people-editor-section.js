@@ -47,6 +47,7 @@ import {
   suggestPeople,
 } from "../core/person-model.js";
 import { pickMediaImage } from "./media-picker-section.js";
+import { dipingi3D, installFace3dStyle } from "./person-avatar-3d-section.js";
 import { allStates, clean, doc, esc, installStyle, onEditorRedraw, readJson, root, t, writeJsonIfChanged } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_PEOPLE_EDITOR__";
@@ -222,7 +223,13 @@ function builderMarkup(person) {
       return `<details class="dm-face-group"${indice ? "" : " open"}><summary class="dm-face-group-head">${esc(titolo)}</summary><div class="dm-face-rows">${righe}</div></details>`;
     })
     .join("");
-  return `<div class="dm-face-workbench">
+  /* Come si vuole il ritratto: disegnato — leggero, quello di sempre — o
+   * costruito in tre dimensioni. Il secondo e' la stessa faccia: gli stessi
+   * venti tratti, letti come geometria invece che come tratti di penna. */
+  const modo = (chiave, icona, testo) =>
+    `<button type="button" class="dm-face-mode${face.render === chiave ? " on" : ""}" data-face-k="render" data-face-v="${chiave}"><span aria-hidden="true">${icona}</span>${esc(testo)}</button>`;
+  return `<div class="dm-face-modes">${modo("disegno", "✏️", t("Disegno", "Drawing"))}${modo("3d", "🧊", "3D")}</div>
+    <div class="dm-face-workbench">
       <span class="dm-face-preview" style="--dm-person-color:${esc(colore)}">${avatarSvg(face)}</span>
       <div class="dm-face-groups">${gruppi}</div>
     </div>
@@ -348,6 +355,7 @@ export function ensurePeopleEditor() {
   body.dataset.dmPeopleEditor = firma;
   body.innerHTML = bodyMarkup(people);
   body.dataset.renderer = PEOPLE_EDITOR_TAB;
+  dipingiAnteprime3D();
   return true;
 }
 
@@ -389,6 +397,21 @@ function facciaACaso() {
   });
 }
 
+/* Le anteprime in tre dimensioni: si dipingono dopo, quando il costruttore e'
+ * gia' a schermo. Chi ha scelto il disegno non paga niente. */
+function dipingiAnteprime3D() {
+  const body = doc?.getElementById?.("ed-body");
+  if (!body) return;
+  for (const riga of body.querySelectorAll(".dm-people-row")) {
+    const host = riga.querySelector(".dm-face-preview");
+    if (!host) continue;
+    const face = rigaFace(riga);
+    if (face?.render !== "3d") continue;
+    const colore = clean(riga.querySelector('[data-person-field="color"]')?.value) || "#0ea5e9";
+    dipingi3D(host, face, { size: 216, shirt: colore });
+  }
+}
+
 /* La faccia scritta nella casella nascosta della riga, gia' normalizzata. */
 function rigaFace(riga) {
   const campo = riga.querySelector('[data-person-field="face"]');
@@ -422,6 +445,7 @@ function scriviFace(riga, people, index, face) {
     });
   }
   aggiornaAnteprima(riga, people, index);
+  dipingiAnteprime3D();
 }
 
 /* L'anteprima del ritratto segue le mani: si cambia emoji o colore e lo si
@@ -680,6 +704,7 @@ export function ensurePeopleEditorTab() {
 }
 
 function installStyles() {
+  installFace3dStyle();
   installStyle(
     "dm-people-editor-style",
     `
@@ -716,6 +741,10 @@ function installStyles() {
       #ed-body .dm-face-builder>small{color:var(--secondary-text-color,#64748b);font-size:12px}
       #ed-body .dm-face-workbench{display:flex;gap:14px;align-items:flex-start}
       #ed-body .dm-face-preview{flex:0 0 108px;width:108px;height:108px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 32% 26%,color-mix(in srgb,var(--dm-person-color,#0ea5e9) 10%,var(--card-bg,#fff)),color-mix(in srgb,var(--dm-person-color,#0ea5e9) 30%,var(--card-bg,#fff)));box-shadow:0 10px 22px -10px rgba(15,23,42,.45)}
+      #ed-body .dm-face-modes{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2,#f1f5f9);border:1px solid var(--card-border,#e2e8f0);justify-self:start}
+      #ed-body .dm-face-mode{display:inline-flex;align-items:center;gap:6px;border:none;background:transparent;border-radius:999px;padding:5px 13px;font:inherit;font-size:12px;font-weight:800;color:var(--secondary-text-color,#64748b);cursor:pointer;transition:background .18s ease,color .18s ease}
+      #ed-body .dm-face-mode.on{background:var(--card-bg,#fff);color:var(--primary-text-color,#0f172a);box-shadow:0 2px 6px -2px rgba(15,23,42,.3)}
+      #ed-body .dm-face-preview img{width:100%;height:100%;display:block;object-fit:cover}
       #ed-body .dm-face-groups{flex:1 1 auto;min-width:0;display:grid;gap:5px}
       #ed-body .dm-face-group{border:1px solid var(--card-border,#e2e8f0);border-radius:14px;background:var(--surface-2,#f8fafc);overflow:hidden}
       #ed-body .dm-face-group-head{list-style:none;cursor:pointer;padding:7px 11px;font-size:11px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:var(--secondary-text-color,#64748b);display:flex;align-items:center;gap:7px}

@@ -26,6 +26,7 @@ export default Object.freeze({
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
     "\"${nomeScritto}\" 이름의 차가 이미 있습니다: 연필로 수정하거나 다른 이름을 선택하세요",
   "Build": "체형",
+  "Drawing": "그림",
   "Age": "나이",
   "Beard color": "수염 색",
   "Body and clothes": "몸과 옷",

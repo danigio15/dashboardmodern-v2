@@ -443,6 +443,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Download the backup",
   "Download the file",
   "DRAW",
+  "Drawing",
   "Driving",
   "Dry",
   "Dryer",
