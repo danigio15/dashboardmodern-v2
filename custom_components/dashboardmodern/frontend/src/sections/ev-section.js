@@ -1,6 +1,12 @@
 import { carBrandVisual } from "../core/personalization-catalog.js";
 import { assignCarKeys, carIndexByKey, carKey, restoreCarIdentities } from "../core/vehicle-identity.js";
 import { adoptLoosePhotos, photosForProfile, withProfilePhotos } from "../core/vehicle-photos.js";
+import {
+  VEHICLE_KEY_FIELD,
+  pickVehicle,
+  vehicleIndex,
+  vehicleList,
+} from "../core/vehicle-model.js";
 import { pickMediaImage } from "./media-picker-section.js";
 import { allStates, clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, section, setLexicalGlobal, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
@@ -748,7 +754,16 @@ function ensureCarListDecor() {
 
 function legacyProfiles() { const cars = readJson("cd_ev_cars", []); return Array.isArray(cars) ? cars : []; }
 function canonicalProfiles() { const cars = section("ev", []); return Array.isArray(cars) ? cars : []; }
-function profiles() { const legacy = legacyProfiles(); return legacy.length ? legacy : canonicalProfiles(); }
+/* L'elenco delle auto, in una forma sola.
+ *
+ * Passa da `vehicleList`: e' li' che un profilo diventa un'auto — con il suo
+ * uid, la sua mappatura ripulita e le sue foto dentro invece che sparse. Sei
+ * moduli leggevano `cd_ev_cars` grezza, ognuno con la sua idea di cosa ci fosse
+ * scritto; da qui in poi la forma la decide un posto solo. */
+function profiles() {
+  const legacy = legacyProfiles();
+  return vehicleList(legacy.length ? legacy : canonicalProfiles());
+}
 function collectEntityIds(value, output, depth = 0) {
   if (depth > 10 || value == null) return;
   if (typeof value === "string") { const id = clean(value); if (ENTITY_ID.test(id)) output.add(id); return; }
@@ -763,7 +778,23 @@ export function stateChangeAffectsEv(event) {
   return [...changed].some((id) => configured.has(id));
 }
 
-function activeIndex() { const index = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "-1", 10); return Number.isFinite(index) ? index : -1; }
+/* Quale auto si sta guardando.
+ *
+ * La casella ha tenuto per anni una POSIZIONE, e ogni riordino dell'elenco
+ * spostava l'auto in uso sotto i piedi di chi la stava guardando. Adesso il
+ * riferimento e' l'uid; un numero si accetta ancora, perche' chi arriva da
+ * prima non deve perdere l'auto che aveva scelto. */
+export const VEHICLE_ACTIVE_KEY = "cd_ev_car_active";
+
+function activeVehicle(list = profiles()) {
+  return pickVehicle(list, root.localStorage?.getItem(VEHICLE_ACTIVE_KEY) || "");
+}
+
+function activeIndex() {
+  const list = profiles();
+  const scelta = activeVehicle(list);
+  return scelta ? vehicleIndex(list, scelta[VEHICLE_KEY_FIELD]) : -1;
+}
 
 /* Ogni auto porta la sua chiave, sempre.
  *

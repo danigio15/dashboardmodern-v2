@@ -324,7 +324,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 156 con le linguette degli impianti: la pagina Energia non cambia di una
   // virgola, si aggiunge una riga sopra per scegliere quale casa si sta
   // guardando — e con una casa sola quella riga non compare affatto.
-  assert.ok(relative.length <= 156, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 157 mentre la sezione EV viene rifatta: core/vehicle-model.js e' il
+  // padrone unico che sostituira' vehicle-identity, vehicle-photos ed
+  // ev-console — tre moduli nati come argini contro il risalvataggio del
+  // runtime vendorizzato. Il conto torna a scendere quando quelli se ne
+  // vanno: e' un numero di passaggio, non un numero raggiunto.
+  assert.ok(relative.length <= 157, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
