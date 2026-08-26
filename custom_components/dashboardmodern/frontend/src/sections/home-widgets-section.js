@@ -1253,8 +1253,18 @@ export function renderHomeWidgets() {
   const signature = structureSignature(models);
   if (state.signature !== signature || !grid.firstElementChild) {
     state.signature = signature;
-    for (const widget of models) viste().add(widget.key);
+    /* Prima si disegna, poi si segna.
+     *
+     * Il segno «gia' vista» serve a non far rientrare in scena una tessera che
+     * c'era gia'. Ma si metteva PRIMA di stampare il markup, e `tileMarkup` lo
+     * legge: ogni tessera nasceva marcata, compresa quella appena arrivata.
+     * L'ingresso non partiva mai per nessuno — l'animazione c'era, scritta e
+     * mantenuta, e non si e' mai vista.
+     *
+     * L'ordine giusto e' quello del racconto: si stampa leggendo chi c'era
+     * prima, e solo dopo si prende nota di chi c'e' adesso. */
     grid.innerHTML = models.map((widget, index) => tileMarkup(widget, index)).join("");
+    for (const widget of models) viste().add(widget.key);
   } else {
     // Solo i valori: la tessera resta dov'e', l'apertura non riparte.
     for (const widget of models) {
