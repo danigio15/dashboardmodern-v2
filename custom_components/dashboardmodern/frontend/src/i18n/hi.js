@@ -1493,4 +1493,5 @@ export default Object.freeze({
   "Loads of": "लोड",
   "the other plants have their own, and this save does not touch them":
     "अन्य संयंत्रों के अपने लोड हैं, और यह सहेजना उन्हें नहीं छूता",
+  "Choose brand": "ब्रांड चुनें",
 });

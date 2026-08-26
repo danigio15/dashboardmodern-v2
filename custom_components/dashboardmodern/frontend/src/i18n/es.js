@@ -1511,4 +1511,5 @@ export default Object.freeze({
   "Loads of": "Cargas de",
   "the other plants have their own, and this save does not touch them":
     "Las demás instalaciones tienen las suyas, y este guardado no las toca",
+  "Choose brand": "Elige la marca",
 });

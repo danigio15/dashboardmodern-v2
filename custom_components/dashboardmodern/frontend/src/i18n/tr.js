@@ -1496,4 +1496,5 @@ export default Object.freeze({
   "Loads of": "Yükler:",
   "the other plants have their own, and this save does not touch them":
     "Diğer tesislerin kendi yükleri var ve bu kayıt onlara dokunmuyor",
+  "Choose brand": "Marka seçin",
 });

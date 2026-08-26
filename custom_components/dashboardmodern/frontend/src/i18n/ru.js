@@ -1501,4 +1501,5 @@ export default Object.freeze({
   "Loads of": "Нагрузки",
   "the other plants have their own, and this save does not touch them":
     "У других установок свои нагрузки, и это сохранение их не затрагивает",
+  "Choose brand": "Выберите марку",
 });

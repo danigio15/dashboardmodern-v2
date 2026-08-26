@@ -1499,4 +1499,5 @@ export default Object.freeze({
   "Loads of": "負荷:",
   "the other plants have their own, and this save does not touch them":
     "他の設備にはそれぞれの負荷があり、この保存では変更されません",
+  "Choose brand": "メーカーを選択",
 });

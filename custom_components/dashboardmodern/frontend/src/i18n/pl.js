@@ -1501,4 +1501,5 @@ export default Object.freeze({
   "Loads of": "Odbiorniki instalacji",
   "the other plants have their own, and this save does not touch them":
     "Pozostałe instalacje mają własne, a ten zapis ich nie narusza",
+  "Choose brand": "Wybierz markę",
 });

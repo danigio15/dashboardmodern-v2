@@ -311,6 +311,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Choose an electric or hybrid model.",
   "Choose an emoji",
   "Choose appliance",
+  "Choose brand",
   "Choose car brand",
   "Choose entity",
   "Choose icon",

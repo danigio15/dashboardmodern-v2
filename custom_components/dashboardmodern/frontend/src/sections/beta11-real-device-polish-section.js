@@ -131,6 +131,14 @@ function syncEvPanelToItsVehicle() {
   const modelSelect = panel?.querySelector?.("select[data-model]");
   if (!panel || !brandSelect || !modelSelect) return false;
 
+  /* La scheda in bozza non ha un'auto da inseguire.
+   *
+   * Il pannello dichiara di chi parla. Quando dice «di nessuno» — ＋ Nuova
+   * auto aperto — qui si ricadeva sull'auto in mostra e le si rimettevano
+   * marca e modello dentro la scheda della vettura che stava nascendo: chi
+   * apriva la scheda per una Tesla se la ritrovava Leapmotor. Vuoto vuol dire
+   * nessuno, e a nessuno non si sincronizza niente. */
+  if (panel.dataset.dmVehicleDraft === "true") return false;
   const cars = vehicles();
   const dichiarato = clean(panel.dataset.dmVehicleUid);
   const posto = dichiarato ? vehicleIndex(cars, dichiarato) : -1;

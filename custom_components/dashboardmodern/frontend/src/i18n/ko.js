@@ -1492,4 +1492,5 @@ export default Object.freeze({
   "Loads of": "부하:",
   "the other plants have their own, and this save does not touch them":
     "다른 설비에는 각자의 부하가 있으며, 이 저장은 그것들을 건드리지 않습니다",
+  "Choose brand": "브랜드 선택",
 });

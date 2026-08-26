@@ -1,7 +1,7 @@
 import { ACTION_ICON_CATALOG, CAR_BRANDS, ROOM_CATALOG, actionVisual, carBrandVisual, roomVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, readJson, root, t, writeJsonIfChanged, wrapFunction } from "./shared.js";
 import { VEHICLE_KEY_FIELD } from "../core/vehicle-model.js";
-import { editedVehicle, profiles, salvaAuto } from "./ev-section.js";
+import { bozzaAperta, editedVehicle, profiles, salvaAuto } from "./ev-section.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_PERSONALIZATION_SECTION__";
@@ -415,7 +415,10 @@ function evVisual() {
    * di vestirsi coi panni di quella in uso. */
   const current = cars.length ? editedVehicle(cars) : null;
   const active = current ? cars.indexOf(current) : -1;
-  return { cars, active, current, fallback: readJson("cd_ev_visual", {}) };
+  /* La bozza non e' «non so di chi parliamo»: e' «di nessuno, non ancora».
+   * Chi confonde i due casi veste la vettura che nasce coi panni di quella in
+   * mostra — ed e' il terzo posto in cui e' successo. */
+  return { cars, active, current, bozza: bozzaAperta(), fallback: readJson("cd_ev_visual", {}) };
 }
 
 async function saveEvAppearance(brand, model) {
@@ -453,9 +456,11 @@ async function saveEvAppearance(brand, model) {
 }
 
 function applyEvAppearance() {
-  const { cars, current, fallback } = evVisual();
-  const visual = current || fallback || {};
-  const brand = effectiveBrand(visual) || "Leapmotor";
+  const { cars, current, fallback, bozza } = evVisual();
+  /* In bozza non c'e' niente da mostrare: la vettura non esiste ancora, e
+   * quello che c'era nelle caselle apparteneva a un'altra. */
+  const visual = bozza ? {} : current || fallback || {};
+  const brand = effectiveBrand(visual);
   const model = effectiveModel(visual);
   /* Il badge della marca non c'e' piu'.
    *
@@ -561,21 +566,43 @@ function ensureEvAppearanceEditor() {
     return;
   }
   state.evHomeAttempts = 0;
-  const { current, fallback } = evVisual();
-  const visual = current || fallback || {};
+  const { current, fallback, bozza } = evVisual();
+  const visual = bozza ? {} : current || fallback || {};
   const panel = doc.createElement("section");
   panel.className = "ed-form dm-ev-appearance";
   panel.dataset.evAppearance = "true";
   panel.dataset.dmVehicleUid = clean(current?.uid);
-  const brand = effectiveBrand(visual) || clean(visual.brand) || "Leapmotor";
+  /* La bozza lo dichiara. Senza, chi legge solo l'uid vede una stringa vuota e
+   * la scambia per «non lo so»: da li' ricade sull'auto in mostra e rimette
+   * marca e modello di quella dentro la scheda della vettura che sta
+   * nascendo. */
+  if (bozza) panel.dataset.dmVehicleDraft = "true";
+  /* Niente marca per forza.
+   *
+   * Qui c'era «Leapmotor» come ripiego: una scheda vuota nasceva Leapmotor, e
+   * il modello lo sceglieva il browser prendendo il primo della lista. Chi
+   * apriva ＋ Nuova auto per una Tesla si trovava una Leapmotor B10 gia'
+   * scritta, e se non la cambiava se la salvava. Vuoto vuol dire vuoto: la
+   * tendina si apre sulla riga che chiede di scegliere. */
+  const brand = effectiveBrand(visual) || clean(visual.brand);
   const model = effectiveModel(visual);
-  panel.innerHTML = `<div class="ed-sec-title">🚘 ${t("Brand e modello auto", "Vehicle brand and model")}</div><div class="ed-intro">${t("Il logo viene associato automaticamente al marchio. Il modello sostituisce la vecchia icona auto generica.", "The logo is automatically associated with the brand. The model replaces the old generic car icon.")}</div><div class="dm-ev-appearance-grid"><button type="button" class="dm-brand-preview dm-visual-trigger" data-brand-preview aria-label="${t("Scegli brand auto", "Choose car brand")}">${carBrandVisual(brand, 56)}<span class="dm-ev-brand-copy"><b>${esc(brand)}</b>${model ? `<small>${esc(model)}</small>` : ""}</span></button><label class="dm-ev-appearance-field"><span>${t("Marchio", "Brand")}</span><select class="ed-input" data-brand>${CAR_BRANDS.map((item) => `<option value="${esc(item.name)}" ${item.name === brand ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select></label><label class="dm-ev-appearance-field"><span>${t("Modello elettrico / ibrido", "Electric / hybrid model")}</span><select class="ed-input" data-model>${modelOptions(brand, model)}</select></label></div><button type="button" class="ed-save-btn" data-save>💾 ${t("Salva brand e modello", "Save brand and model")}</button>`;
+  panel.innerHTML = `<div class="ed-sec-title">🚘 ${t("Brand e modello auto", "Vehicle brand and model")}</div><div class="ed-intro">${t("Il logo viene associato automaticamente al marchio. Il modello sostituisce la vecchia icona auto generica.", "The logo is automatically associated with the brand. The model replaces the old generic car icon.")}</div><div class="dm-ev-appearance-grid"><button type="button" class="dm-brand-preview dm-visual-trigger" data-brand-preview aria-label="${t("Scegli brand auto", "Choose car brand")}">${carBrandVisual(brand, 56)}<span class="dm-ev-brand-copy"><b>${esc(brand)}</b>${model ? `<small>${esc(model)}</small>` : ""}</span></button><label class="dm-ev-appearance-field"><span>${t("Marchio", "Brand")}</span><select class="ed-input" data-brand><option value="">— ${t("Seleziona marchio", "Choose brand")} —</option>${CAR_BRANDS.map((item) => `<option value="${esc(item.name)}" ${item.name === brand ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select></label><label class="dm-ev-appearance-field"><span>${t("Modello elettrico / ibrido", "Electric / hybrid model")}</span><select class="ed-input" data-model>${modelOptions(brand, model)}</select></label></div><button type="button" class="ed-save-btn" data-save>💾 ${t("Salva brand e modello", "Save brand and model")}</button>`;
   // The accordion is found by its own EV slots rather than by its wording, so a
   // renamed section still gets the panel. It exists: the guard above returned
   // early otherwise, which is what keeps this placement the only one.
   evAccordionBody().prepend(panel);
-  const brandSelect = panel.querySelector("[data-brand]");
-  const modelSelect = panel.querySelector("[data-model]");
+  /* Le tendine si cercano come tendine.
+   *
+   * `[data-brand]` non e' solo la tendina: e' anche l'attributo che il marchio
+   * disegnato porta addosso, e il marchio nel modello del pannello viene
+   * PRIMA. Cosi' qui finiva quello, e l'ascoltatore del cambio marca stava
+   * appeso a un pezzo di disegno che un evento «change» non lo emette mai:
+   * scegliere una marca non riempiva l'elenco dei modelli, e l'anteprima
+   * restava indietro. Sembrava che funzionasse perche' un altro modulo, per
+   * conto suo, riallineava le tendine all'auto in uso — e quando quello si e'
+   * fatto da parte sulla bozza, il buco e' venuto a galla. */
+  const brandSelect = panel.querySelector("select[data-brand]");
+  const modelSelect = panel.querySelector("select[data-model]");
   const refreshPreview = () => {
     const selectedBrand = clean(brandSelect.value);
     const selectedModel = clean(modelSelect.value);
@@ -587,6 +614,13 @@ function ensureEvAppearanceEditor() {
     refreshPreview();
   });
   modelSelect.addEventListener("change", refreshPreview);
+  /* L'anteprima si disegna adesso, dalle tendine.
+   *
+   * Era stampata nel modello del pannello e poi non piu' toccata finche'
+   * qualcuno non cambiava una tendina: bastava che qualcun altro spostasse la
+   * scelta — il ＋, o il giro di compatibilita' — e il riquadro raccontava una
+   * macchina e le tendine un'altra, nella stessa card. */
+  refreshPreview();
   panel.querySelector("[data-brand-preview]").addEventListener("click", () => openVisualPicker(brandSelect, "car"));
   panel.querySelector("[data-save]").addEventListener("click", async (event) => {
     const button = event.currentTarget;

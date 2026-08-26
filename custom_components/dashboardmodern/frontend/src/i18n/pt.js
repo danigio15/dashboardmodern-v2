@@ -1507,4 +1507,5 @@ export default Object.freeze({
   "Loads of": "Cargas de",
   "the other plants have their own, and this save does not touch them":
     "As outras instalações têm as suas, e esta gravação não lhes toca",
+  "Choose brand": "Escolhe a marca",
 });

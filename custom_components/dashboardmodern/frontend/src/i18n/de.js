@@ -1509,4 +1509,5 @@ export default Object.freeze({
   "Loads of": "Verbraucher von",
   "the other plants have their own, and this save does not touch them":
     "Die anderen Anlagen haben ihre eigenen, und dieses Speichern rührt sie nicht an",
+  "Choose brand": "Marke wählen",
 });

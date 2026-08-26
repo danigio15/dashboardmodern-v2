@@ -350,6 +350,11 @@ function savePhotos(panelNode) {
  * Il caso di mezzo e' quello che si dimentica, ed e' quello che conta: una
  * bozza che ricade sull'auto in uso le mette addosso i panni della vettura che
  * sta nascendo. */
+/** Se la scheda e' una BOZZA: ＋ Nuova auto aperto, nessuna vettura dietro. */
+export function bozzaAperta() {
+  return editingKey() === "";
+}
+
 export function editedVehicle(list = profiles()) {
   const chiave = editingKey();
   if (chiave === "") return null;

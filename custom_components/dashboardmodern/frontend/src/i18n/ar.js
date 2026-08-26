@@ -1489,4 +1489,5 @@ export default Object.freeze({
   "Loads of": "أحمال",
   "the other plants have their own, and this save does not touch them":
     "المنشآت الأخرى لها أحمالها، وهذا الحفظ لا يمسّها",
+  "Choose brand": "اختر العلامة",
 });

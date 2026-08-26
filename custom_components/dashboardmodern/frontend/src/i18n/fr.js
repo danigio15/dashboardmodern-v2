@@ -1513,4 +1513,5 @@ export default Object.freeze({
   "Loads of": "Charges de",
   "the other plants have their own, and this save does not touch them":
     "Les autres installations ont les leurs, et cet enregistrement n'y touche pas",
+  "Choose brand": "Choisir la marque",
 });

@@ -1085,6 +1085,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Seleziona e ordina il Report senza modificare l'ordine della dashboard.": "Select and order Report entries without changing dashboard order.",
   "Seleziona entità": "Choose entity",
   "Seleziona entità luce": "Select light entity",
+  "Seleziona marchio": "Choose brand",
   "Seleziona modello": "Choose model",
   "Seleziona stanza": "Select room",
   "Seleziona un brand auto.": "Choose a car brand.",

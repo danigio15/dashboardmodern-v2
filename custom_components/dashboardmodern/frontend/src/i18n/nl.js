@@ -1507,4 +1507,5 @@ export default Object.freeze({
   "Loads of": "Verbruikers van",
   "the other plants have their own, and this save does not touch them":
     "De andere installaties hebben hun eigen verbruikers, en dit opslaan raakt ze niet aan",
+  "Choose brand": "Kies het merk",
 });

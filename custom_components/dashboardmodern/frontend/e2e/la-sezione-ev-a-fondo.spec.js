@@ -647,3 +647,91 @@ test("con un'auto spenta davanti, la linguetta resta di chi e'", async ({ page }
   await expect(linguetta).not.toHaveText(/B10/);
   await expect(linguetta).toHaveAttribute("data-dm-vehicle-model", "T03");
 });
+
+test("la bozza nasce senza marca e senza modello, e resta cosi'", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* «＋ Nuova auto» apre una scheda che non appartiene ancora a nessuno. La
+   * card del brand pero' nasceva vestita: un ripiego scritto nel codice la
+   * faceva Leapmotor, e il modello lo sceglieva il browser prendendo il primo
+   * della lista. Chi apriva la scheda per una Tesla si trovava una Leapmotor
+   * B10 gia' compilata — e se non la cambiava, se la salvava.
+   *
+   * Un istante dopo arrivava il colpo di grazia: il giro di compatibilita'
+   * legge dal pannello di quale auto parla, trovava «di nessuno» e lo
+   * scambiava per «non lo so», ricadendo sull'auto in mostra e rimettendole
+   * addosso marca e modello. E' la terza volta che la stringa vuota viene
+   * letta come «non so» invece che come «nessuno». */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#ed-body [data-ev-appearance]")),
+    null,
+    { timeout: 15_000 },
+  );
+  const marca = page.locator("#ed-body [data-ev-appearance] select[data-brand]");
+  const modello = page.locator("#ed-body [data-ev-appearance] select[data-model]");
+  // Aperta sull'auto in uso, la card e' vestita: e' giusto cosi'.
+  await expect(marca).toHaveValue("Leapmotor");
+
+  await page.locator("#ed-body [data-ev-add-new]").click();
+  await expect(page.locator("#ed-body [data-ev-appearance]")).toHaveAttribute(
+    "data-dm-vehicle-draft",
+    "true",
+  );
+  await expect(marca).toHaveValue("");
+  await expect(modello).toHaveValue("");
+
+  /* E ci resta: il giro di compatibilita' passa piu' volte, e a nessuna deve
+   * venire in mente di vestirla. */
+  await page.waitForTimeout(2500);
+  await expect(marca).toHaveValue("");
+  await expect(modello).toHaveValue("");
+
+  /* Le due auto configurate non hanno cambiato vestito. */
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((c) => `${c.name}:${c.brand}`),
+      ),
+    )
+    .toEqual(["B10:Leapmotor", "T03:Leapmotor"]);
+});
+
+test("scegliere la marca riempie i modelli, e l'anteprima la segue", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* La tendina dei modelli si riempiva solo per grazia di un altro modulo.
+   *
+   * `[data-brand]` non e' soltanto la tendina: e' anche l'attributo che il
+   * marchio disegnato porta addosso, e nel modello del pannello il marchio
+   * viene prima. L'ascoltatore del cambio marca finiva appeso a quel pezzo di
+   * disegno, che un evento «change» non lo emette mai: scegliere una marca
+   * non riempiva l'elenco dei modelli e l'anteprima restava indietro.
+   *
+   * Sembrava funzionare perche' il giro di compatibilita', per conto suo,
+   * riallineava le tendine all'auto in uso. Appena quello si e' fatto da parte
+   * sulla bozza, il buco e' venuto a galla. */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#ed-body [data-ev-appearance]")),
+    null,
+    { timeout: 15_000 },
+  );
+  await page.locator("#ed-body [data-ev-add-new]").click();
+  await page.locator("#ed-body [data-ev-appearance] select[data-brand]").selectOption("Kia");
+
+  const modelli = page.locator("#ed-body [data-ev-appearance] select[data-model] option");
+  await expect.poll(() => modelli.count()).toBeGreaterThan(3);
+  await expect(page.locator("#ed-body [data-ev-appearance] select[data-brand]")).toHaveValue("Kia");
+
+  /* Il riquadro dell'anteprima non e' pinzato qui apposta: quel quadratino ha
+   * ancora piu' di un padrone — tre moduli lo ridipingono, ognuno con la sua
+   * idea di quale auto sia — e non e' ancora vero che segua sempre le tendine.
+   * Pinzarlo vorrebbe dire dichiarare risolto qualcosa che non lo e'. */
+});
