@@ -210,6 +210,29 @@ function syncPhoto(hero) {
   const loaded = Boolean(clean(image.getAttribute("src"))) && !broken && image.naturalWidth > 0;
   const value = loaded ? "on" : "off";
   if (hero.dataset.dmEvvPhoto !== value) hero.dataset.dmEvvPhoto = value;
+  /* La cornice prende la forma della foto.
+   *
+   * Era alta un numero fisso e larga quanto lo schermo: da telefono combaciava
+   * quasi, da desktop diventava un nastro di millequattrocento per
+   * duecentonovanta, e dentro una foto sedici a nove ci sta alta al massimo
+   * duecentonovanta — cioe' cinquecento pixel di macchina in mezzo a un mare
+   * sfocato. Intera, ma minuscola.
+   *
+   * La proporzione la sa solo la foto, e si sa solo dopo averla caricata:
+   * quindi si scrive qui, dove la si e' appena guardata. La cornice ci si
+   * adatta e la foto la riempie tutta, senza tagliarne niente.
+   *
+   * Fra 1,15 e 2,4: una panoramica non deve schiacciare la cornice in una
+   * fessura, e un ritratto non deve farne una torre. Fuori da quei due
+   * estremi si accetta un po' di margine ai lati — che e' sempre meglio di
+   * una pagina sfondata. */
+  if (loaded) {
+    const forma = image.naturalWidth / image.naturalHeight;
+    const dentro = Math.max(1.15, Math.min(2.4, forma));
+    const scritta = dentro.toFixed(3);
+    if (hero.style.getPropertyValue("--dm-evv-hero-ratio") !== scritta)
+      hero.style.setProperty("--dm-evv-hero-ratio", scritta);
+  } else hero.style.removeProperty("--dm-evv-hero-ratio");
 }
 
 /* ── render ───────────────────────────────────────────────────────────── */
@@ -437,6 +460,37 @@ function evShowcaseCss() {
   border-radius:var(--evv-r)!important;margin-bottom:0!important;
   background:linear-gradient(180deg,#fff,#eaf1f8)!important;
   box-shadow:0 26px 44px -28px rgba(10,26,44,.6),0 2px 6px -3px rgba(10,26,44,.14)!important
+}
+/* Da schermo largo la cornice della foto e' una card come le altre.
+ *
+ * Andava da bordo a bordo mentre tutto il resto della pagina sta dentro un
+ * margine, e restava alta duecentonovanta: una foto sedici a nove ci entrava
+ * larga cinquecento pixel, in mezzo a novecento di sfocato. Adesso prende la
+ * larghezza delle altre card e la FORMA della foto — che il giro di disegno
+ * scrive dopo averla caricata — cosi' la riempie tutta, intera. */
+@media(min-width:900px){
+  #page-ev.dm-evv .lm-hero{
+    box-sizing:border-box!important;
+    /* La larghezza si dice cosi', e non con la misura della pagina: quella
+       variabile non e' definita ovunque, e dove manca il minimo fra le due
+       non calcola niente — la cornice diventava un francobollo da ottanta
+       pixel. */
+    width:100%!important;
+    /* Non piu' larga di una card, e non piu' alta di mezzo schermo: il tetto
+       si mette sulla larghezza, moltiplicando l'altezza massima per la forma
+       della foto. Se lo si mettesse sull'altezza, la cornice resterebbe larga
+       860 e alta 440 quando la foto ne vuole 484 — cioe' di nuovo due bande
+       ai lati. Cosi' invece la cornice E' la foto. */
+    max-width:min(860px,calc(min(52vh,440px) * var(--dm-evv-hero-ratio,1.778)))!important;
+    margin-inline:auto!important;
+    height:auto!important;
+    aspect-ratio:var(--dm-evv-hero-ratio,1.778)!important
+  }
+  /* Senza foto non c'e' una forma da seguire: resta la fascia bassa e quieta
+     del segnaposto, che non deve diventare un quadrato vuoto grande cosi'. */
+  #page-ev.dm-evv .lm-hero[data-dm-evv-photo="off"]{
+    aspect-ratio:auto!important;height:clamp(150px,18vw,196px)!important
+  }
 }
 #page-ev.dm-evv .lm-hero::after,#page-ev.dm-evv .lm-hero.lm-charging::after{
   background:linear-gradient(to bottom,rgba(6,14,22,.16) 0%,rgba(6,14,22,0) 34%,rgba(6,14,22,.12) 100%)!important;
