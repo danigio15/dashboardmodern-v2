@@ -4,6 +4,7 @@ import { adoptLoosePhotos, photosForProfile, withProfilePhotos } from "../core/v
 import {
   VEHICLE_KEY_FIELD,
   pickVehicle,
+  storedVehicles,
   vehicleIndex,
   vehicleList,
 } from "../core/vehicle-model.js";
@@ -616,9 +617,7 @@ function ensureCarListDecor() {
         const rimesse = elenco.map((car, posto) =>
           posto === indice ? { ...car, enabled: !accesa } : car,
         );
-        writeJsonIfChanged("cd_ev_cars", rimesse);
-        root.cdMarkDirty?.();
-        root.cdSyncPush?.();
+        salvaAuto(rimesse);
         scheduleEvSync();
         ensureCarListDecor();
       });
@@ -803,15 +802,53 @@ function activeIndex() {
  * ricadeva sul nome — che e' esattamente il modo in cui le auto si mescolavano.
  * Qui la chiave si assegna appena l'elenco passa di mano, e da li' non cambia
  * piu': rinominare un'auto non la fa diventare un'altra. */
+/* Dove sta il segno che dice a che numero di uid siamo arrivati.
+ *
+ * `cd_ev_cars` e' un elenco e un posto per questo non ce l'ha. Serve perche' un
+ * uid non deve tornare buono una seconda volta: chi cancella l'ultima auto e ne
+ * aggiunge un'altra si ritroverebbe le foto e la mappatura di quella
+ * cancellata. */
+const EV_META_KEY = "cd_ev_meta";
+
+const letturaMetadata = () => {
+  const salvato = readJson(EV_META_KEY, {});
+  return salvato && typeof salvato === "object" && !Array.isArray(salvato) ? salvato : {};
+};
+
+/**
+ * L'unico modo di scrivere l'elenco delle auto.
+ *
+ * Erano sette punti di scrittura in questa sezione piu' uno nella
+ * Personalizzazione, ognuno con la sua idea di cosa andasse normalizzato e cosa
+ * no: e' il motivo per cui un profilo perdeva pezzi a seconda di chi l'aveva
+ * toccato per ultimo. Adesso ogni scrittura passa da qui, e da qui passa dal
+ * modello — che e' il solo a sapere cos'e' un'auto.
+ */
+export function salvaAuto(list) {
+  const { cars, metadata } = storedVehicles(list, letturaMetadata());
+  writeJsonIfChanged("cd_ev_cars", cars);
+  writeJsonIfChanged(EV_META_KEY, metadata, { sync: false });
+  try { dashboardStore()?.replaceSection?.("ev", cars)?.catch?.(() => {}); } catch (_error) {}
+  root.cdMarkDirty?.();
+  root.cdSyncPush?.();
+  return cars;
+}
+
+/* Ogni auto porta il suo uid, scritto.
+ *
+ * `vehicleList` lo assegna leggendo, ma un uid che vive solo in memoria non e'
+ * un'identita': al giro dopo lo riassegna, e se nel frattempo l'elenco e'
+ * cambiato di posto non e' piu' lo stesso. Qui si scrive la prima volta che
+ * l'elenco passa di mano, e da li' non cambia piu'. */
 function ensureCarKeys() {
   const legacy = legacyProfiles();
   if (!legacy.length) return legacy;
-  const conChiavi = assignCarKeys(legacy);
-  if (conChiavi !== legacy) {
-    writeJsonIfChanged("cd_ev_cars", conChiavi);
-    try { dashboardStore()?.replaceSection?.("ev", conChiavi)?.catch?.(() => {}); } catch (_error) {}
-  }
-  return conChiavi;
+  const normalizzate = vehicleList(legacy);
+  const uguali =
+    normalizzate.length === legacy.length &&
+    normalizzate.every((car, posto) => clean(legacy[posto]?.[VEHICLE_KEY_FIELD]) === car[VEHICLE_KEY_FIELD]);
+  if (uguali) return normalizzate;
+  return salvaAuto(normalizzate);
 }
 
 /* Di chi sono i campi della scheda, adesso.
@@ -1070,10 +1107,7 @@ function saveProfilePhotos(photos) {
    * alla fonte. */
   const aggiornate = withProfilePhotos(cars, posizione, photos);
   if (aggiornate === cars) return false;
-  if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);
-  try {
-    dashboardStore()?.replaceSection?.("ev", aggiornate)?.catch?.(() => {});
-  } catch (_error) {}
+  salvaAuto(aggiornate);
   return true;
 }
 
@@ -1103,10 +1137,7 @@ function adoptExistingPhotos() {
   root.localStorage?.setItem(PHOTO_MIGRATION_KEY, "1");
   const aggiornate = adoptLoosePhotos(cars, Math.max(0, activeIndex()), configuredPhotos());
   if (aggiornate === cars) return false;
-  if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);
-  try {
-    dashboardStore()?.replaceSection?.("ev", aggiornate)?.catch?.(() => {});
-  } catch (_error) {}
+  salvaAuto(aggiornate);
   return true;
 }
 
@@ -1220,7 +1251,7 @@ function installLegacyWrappers() {
         prima = primaOriginale.map((car) =>
           carKey(car) === carKey(sessioneEsplicita) ? { ...car, name: nomeScritto } : car,
         );
-        writeJsonIfChanged("cd_ev_cars", prima);
+        salvaAuto(prima);
       }
       /* La scelta viva di marca e modello si legge ORA: il ridisegno che il
        * runtime fa salvando smonta la card Brand, e a cose fatte le tendine
@@ -1265,7 +1296,7 @@ function installLegacyWrappers() {
             : { ...car, brand: marcaViva, ...(modelloVivo ? { model: modelloVivo } : {}) },
         );
       }
-      if (rimesse !== dopo) writeJsonIfChanged("cd_ev_cars", rimesse);
+      if (rimesse !== dopo) salvaAuto(rimesse);
       // Scheda salvata: la seduta di scrittura e' chiusa, i segni si azzerano,
       // e la sessione diventa l'auto appena salvata (il runtime l'ha attivata).
       refToccati().clear();

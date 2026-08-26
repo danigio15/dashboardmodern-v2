@@ -1,5 +1,6 @@
 import { ACTION_ICON_CATALOG, CAR_BRANDS, ROOM_CATALOG, actionVisual, carBrandVisual, roomVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, readJson, root, t, writeJsonIfChanged, wrapFunction } from "./shared.js";
+import { salvaAuto } from "./ev-section.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_PERSONALIZATION_SECTION__";
@@ -420,8 +421,11 @@ async function saveEvAppearance(brand, model) {
   if (current?.id && typeof store?.updateItem === "function") {
     await store.updateItem("ev", current.id, { brand, model });
   } else if (Array.isArray(cars) && active >= 0 && cars[active]) {
-    cars[active] = { ...cars[active], brand, model };
-    writeJsonIfChanged("cd_ev_cars", cars);
+    /* La marca e il modello appartengono all'auto, e si scrivono dove si
+     * scrive un'auto: da `salvaAuto`, che e' il solo padrone dell'elenco. Qui
+     * si passava dritti su localStorage, ed era uno degli otto punti di
+     * scrittura che si contraddicevano a vicenda. */
+    salvaAuto(cars.map((car, posto) => (posto === active ? { ...car, brand, model } : car)));
   } else {
     writeJsonIfChanged("cd_ev_visual", { brand, model });
   }

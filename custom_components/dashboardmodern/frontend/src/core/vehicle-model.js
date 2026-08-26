@@ -103,6 +103,15 @@ export function normalizeVehicle(input = {}, index = 0) {
     ? source[VEHICLE_OVERRIDES_FIELD]
     : {};
   const car = {
+    /* Quello che non conosciamo resta.
+     *
+     * Un profilo porta anche campi che non appartengono a questo modello: l'id
+     * canonico con cui lo store lo indicizza, l'interruttore che dice se e'
+     * attiva, e domani chissa'. Riscrivendo l'oggetto da zero sparivano — e lo
+     * store, non trovando piu' l'id, gliene assegnava uno nuovo: la stessa auto
+     * diventava un'altra a ogni salvataggio. Un padrone che scarta cio' che non
+     * capisce non e' meglio dei sei che c'erano prima. */
+    ...source,
     /* Un profilo scritto prima che gli uid esistessero ne riceve uno qui, dalla
      * sua posizione — e da quel momento se lo tiene, perche' viene scritto. */
     [VEHICLE_KEY_FIELD]: clean(source[VEHICLE_KEY_FIELD]) || `${VEHICLE_ID_PREFIX}-${index + 1}`,

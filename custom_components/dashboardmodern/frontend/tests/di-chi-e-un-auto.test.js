@@ -110,6 +110,21 @@ test("attiva e' un'auto, non una posizione", () => {
   assert.equal(pickVehicle([], "auto-1"), null);
 });
 
+test("quello che il modello non conosce non lo butta via", () => {
+  /* Un profilo porta anche campi che non appartengono a questo modello: l'id
+   * canonico con cui lo store lo indicizza, l'interruttore che dice se e'
+   * attiva, e domani chissa'. Riscrivendo l'oggetto da zero sparivano — e lo
+   * store, non trovando piu' l'id, gliene assegnava uno nuovo: la stessa auto
+   * diventava un'altra a ogni salvataggio. */
+  const car = normalizeVehicle({ id: "ev-pluto", name: "Pluto", enabled: false, domani: "x" });
+  assert.equal(car.id, "ev-pluto");
+  assert.equal(car.enabled, false);
+  assert.equal(car.domani, "x");
+  // E sopravvive anche al giro completo di scrittura e rilettura.
+  const salvato = storedVehicles([car], {});
+  assert.equal(vehicleList(salvato.cars)[0].id, "ev-pluto");
+});
+
 test("la mappatura tiene solo i riferimenti dm.ev_ che hanno un valore", () => {
   const car = normalizeVehicle({
     ov: { "dm.ev_batteria_auto": "sensor.x", "dm.ev_odometro": "", "dm.core_qualcosa": "sensor.y" },
