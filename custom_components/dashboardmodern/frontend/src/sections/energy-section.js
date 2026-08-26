@@ -13,6 +13,7 @@ import {
   sanitizeHostedCredentials,
   waitForHostedBridge,
 } from "../transport/hosted-bridge-guard.js";
+import { PLANT_GROUPS, pickPlant, plantList } from "../core/energy-plants.js";
 import { persistEnergyField as writeEnergyField } from "../core/energy-writer.js";
 import { runtimeMetrics } from "../core/runtime-metrics.js";
 import { BUILD_INFO } from "../../legacy/build-info.js";
@@ -123,8 +124,32 @@ const FLOW_IDS = Object.freeze([
 ]);
 const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
 
+/* Dove si tiene l'impianto che si sta guardando.
+ *
+ * Non e' configurazione: e' l'ultima linguetta toccata, come il periodo scelto
+ * o la stanza aperta. Sta fuori dal modello apposta — cambiarla non deve
+ * sporcare quello che si salva. */
+export const IMPIANTO_SCELTO_KEY = "cd_energy_plant";
+
+/* La casa che si sta guardando.
+ *
+ * «Io ho una casa che e' l'unione di due appartamenti, quindi ho 2 misuratori
+ * di consumo»: da qui in giu' tutta la sezione legge i quattro gruppi di UN
+ * impianto, non del documento intero. Con un impianto solo — che e' il caso di
+ * chiunque non abbia chiesto il contrario — l'impianto e' il primo, i suoi
+ * gruppi sono quelli scritti al primo livello, e da qui esce esattamente
+ * l'oggetto che usciva prima. */
 function energyModel() {
-  return section("energy", {});
+  const salvato = section("energy", {});
+  const impianto = pickPlant(plantList(salvato), root.localStorage?.getItem(IMPIANTO_SCELTO_KEY));
+  if (!impianto) return salvato;
+  /* Quello che non appartiene ai gruppi — i metadati, una chiave scritta da
+   * una versione futura — resta dov'e': si sostituiscono i quattro gruppi e
+   * nient'altro. */
+  return {
+    ...salvato,
+    ...Object.fromEntries(PLANT_GROUPS.map((gruppo) => [gruppo, impianto[gruppo]])),
+  };
 }
 
 /* La configurazione com'e' stata scritta, per la maschera che la mostra.
