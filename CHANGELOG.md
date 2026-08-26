@@ -284,6 +284,23 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Le pillole delle stanze parlavano un font che sulla plancia non esiste.**
+  Un `<button>` non eredita il font del documento: nessuno gliel'aveva mai
+  detto, e le pillole delle stanze in Temperature cadevano sul font di
+  sistema — diverso su ogni telefono, e su nessuno uguale al resto della
+  plancia. Adesso lo ereditano, come tutte le altre pillole della casa. E da
+  schermo largo un nome lungo ha lo spazio per starci, invece di diventare
+  «Camera mat…».
+
+- **Le card delle Luci da desktop: nomi troncati e mezzo schermo di bianco.**
+  «Lampadario C…», «Salone - Farett…»: la tessera era larga 258px fissi e il
+  titolo stava su una riga sola, quindi il nome moriva prima di dire quale
+  lampadario fosse. Adesso il titolo ha due righe e le tessere, da schermo
+  largo, crescono fino a riempire la riga — con un tetto, perche' una stanza
+  con una luce sola non diventi un cartellone. Il comando della stanza, che
+  finiva all'altro capo dello schermo a un metro dal conteggio che lo
+  riguarda, gli e' tornato accanto.
+
 - **Auto da desktop: la foto tagliata e i tag che spingevano tutto in fondo.**
   La cornice della foto e' larga quanto lo schermo e bassa come su un
   telefono: ritagliando la foto per riempirla, di un'auto si perdevano il

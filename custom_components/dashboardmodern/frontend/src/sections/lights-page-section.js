@@ -562,7 +562,12 @@ function installStyles() {
       #page-luci .dm-lucip-room-btn:hover{color:var(--text,#0f172a);border-color:color-mix(in srgb,#f59e0b 45%,var(--divider-color,#dbe4ee))}
       #page-luci .dm-lucip-room-btn:active{transform:scale(.96)}
 
-      #page-luci .dm-lucip-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(258px,1fr))}
+      /* auto-fill lasciava le colonne vuote in piedi: quattro luci su uno
+       * schermo largo restavano quattro tessere strette a sinistra e mezzo
+       * metro di bianco a destra. Con auto-fit le colonne vuote spariscono e
+       * le card si allargano fino al tetto — oltre il quale una luce sola non
+       * diventa un cartellone. */
+      #page-luci .dm-lucip-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(258px,1fr))}
 
       /* La card: la superficie, il bagliore, il bordo e il LED leggono il
        * colore della lampada stessa, mai un ambra fisso. */
@@ -583,7 +588,10 @@ function installStyles() {
       #page-luci .dm-lucip-orb svg{width:26px;height:26px}
       #page-luci .dm-lucip-card.is-on .dm-lucip-orb{border-radius:50%;background:radial-gradient(circle at 38% 32%,color-mix(in srgb,var(--dm-light-color,#f59e0b) 25%,#fff),var(--dm-light-color,#f59e0b));color:var(--dm-light-ink,#0f172a);box-shadow:0 3px 16px color-mix(in srgb,var(--dm-light-color,#f59e0b) 50%,transparent),inset 0 1px 0 rgba(255,255,255,.55)}
       #page-luci .dm-lucip-title{display:grid;gap:2px;min-width:0;flex:1 1 auto}
-      #page-luci .dm-lucip-title strong{font-size:15px;font-weight:900;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      /* «Lampadario C…» non dice quale lampadario e': il nome ha due righe
+       * prima di arrendersi, e i trattini di «Salone - Faretti» sono un punto
+       * dove andare a capo, non dove tagliare. */
+      #page-luci .dm-lucip-title strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:15px;font-weight:900;line-height:1.22;letter-spacing:-.2px;overflow-wrap:anywhere}
       #page-luci .dm-lucip-state{font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;color:var(--secondary-text-color,#94a3b8)}
       #page-luci .dm-lucip-card.is-on .dm-lucip-state{color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 60%,var(--text,#0f172a))}
       #page-luci .dm-lucip-badge{flex:0 0 auto;padding:2px 7px;border-radius:999px;font-size:8.5px;font-weight:900;letter-spacing:.6px;background:color-mix(in srgb,var(--dm-light-color,#f59e0b) 16%,transparent);color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 55%,var(--text,#0f172a));border:1px solid color-mix(in srgb,var(--dm-light-color,#f59e0b) 26%,transparent)}
@@ -616,6 +624,31 @@ function installStyles() {
 
       #page-luci .dm-lucip-empty{color:var(--secondary-text-color,#94a3b8);font-size:12.5px;font-weight:600;line-height:1.5;padding:18px 4px}
 
+      /* Da schermo largo la pagina cambia respiro, non impianto: la fascia in
+       * alto smette di essere due bottoni lunghi mezzo metro, il comando della
+       * stanza torna accanto al suo conteggio invece di finire all'altro capo
+       * dello schermo, e la card si allarga quanto basta perche' il nome ci
+       * stia davvero. */
+      @media(min-width:900px){
+        /* Da qui in su le tessere non stanno piu' su colonne fisse: crescono
+         * fino a riempire la riga e si fermano a 384px, cosi' quattro luci
+         * occupano la larghezza intera invece di lasciare mezzo metro di
+         * bianco a destra, e una luce sola non diventa un cartellone. */
+        #page-luci .dm-lucip-grid{display:flex;flex-wrap:wrap}
+        #page-luci .dm-lucip-card{flex:1 1 272px;max-width:384px}
+        #page-luci .dm-lucip-bulk{flex:0 1 560px}
+        #page-luci .dm-lucip-kpi{min-width:132px}
+        #page-luci .dm-lucip-room{margin-top:14px}
+        #page-luci .dm-lucip-room-btn{order:0}
+        #page-luci .dm-lucip-room::after{order:1}
+        #page-luci .dm-lucip-main{gap:14px;padding:16px}
+        #page-luci .dm-lucip-orb{width:54px;height:54px;border-radius:18px}
+        #page-luci .dm-lucip-orb svg{width:28px;height:28px}
+        #page-luci .dm-lucip-title strong{font-size:15.5px}
+        #page-luci .dm-lucip-tools{padding:0 16px 15px}
+        #page-luci .dm-lucip-card:hover{transform:translateY(-2px);box-shadow:0 22px 40px -26px rgba(15,23,42,.55)}
+        #page-luci .dm-lucip-card.is-on:hover{box-shadow:0 14px 34px color-mix(in srgb,var(--dm-light-color,#f59e0b) 30%,transparent)}
+      }
       @media(max-width:560px){
         #page-luci .dm-lucip-grid{grid-template-columns:1fr}
         #page-luci .dm-lucip-bulk button{padding:11px 10px}

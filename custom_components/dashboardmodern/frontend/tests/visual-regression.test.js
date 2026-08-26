@@ -21,9 +21,12 @@ const expectedTabs = [
   "server",
   "config",
 ];
+/* Le impronte cambiano solo con una modifica voluta al foglio vendorizzato.
+ * Questo giro: .sub-tab-btn eredita il font del documento, perche' un <button>
+ * non lo fa da solo e le pillole delle stanze uscivano nel font di sistema. */
 const vendoredCssSnapshots = {
-  "dashboard-runtime-it.css": "9c146bddbfed0a758a0caea5203b23e29b30c9d0908993a00473f03e313ba3aa",
-  "dashboard-runtime-en.css": "35d13c66388378fdce1b26b76b1d2b5dae015c5528cfebafd38a0315d3f00878",
+  "dashboard-runtime-it.css": "d344fab1b44b791ccede567172784c5badc96d4e5489ad0c96275cf941491caa",
+  "dashboard-runtime-en.css": "2dfe8778726520c4626ceb09a1a390ced68f8187492a8c628afe993607c07439",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {
