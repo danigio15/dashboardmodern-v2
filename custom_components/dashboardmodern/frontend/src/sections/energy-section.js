@@ -13,7 +13,7 @@ import {
   sanitizeHostedCredentials,
   waitForHostedBridge,
 } from "../transport/hosted-bridge-guard.js";
-import { IMPIANTO_SCELTO_KEY, PLANT_GROUPS, pickPlant, plantList } from "../core/energy-plants.js";
+import { IMPIANTO_SCELTO_KEY, PLANT_GROUPS, pickPlant, plantList, plantModel } from "../core/energy-plants.js";
 import { persistEnergyField as writeEnergyField } from "../core/energy-writer.js";
 import { runtimeMetrics } from "../core/runtime-metrics.js";
 import { BUILD_INFO } from "../../legacy/build-info.js";
@@ -140,16 +140,7 @@ export { IMPIANTO_SCELTO_KEY };
 export const impiantoScelto = () => clean(root.localStorage?.getItem(IMPIANTO_SCELTO_KEY));
 
 function energyModel() {
-  const salvato = section("energy", {});
-  const impianto = pickPlant(plantList(salvato), impiantoScelto());
-  if (!impianto) return salvato;
-  /* Quello che non appartiene ai gruppi — i metadati, una chiave scritta da
-   * una versione futura — resta dov'e': si sostituiscono i quattro gruppi e
-   * nient'altro. */
-  return {
-    ...salvato,
-    ...Object.fromEntries(PLANT_GROUPS.map((gruppo) => [gruppo, impianto[gruppo]])),
-  };
+  return plantModel(section("energy", {}), impiantoScelto());
 }
 
 /* La configurazione com'e' stata scritta, per la maschera che la mostra.

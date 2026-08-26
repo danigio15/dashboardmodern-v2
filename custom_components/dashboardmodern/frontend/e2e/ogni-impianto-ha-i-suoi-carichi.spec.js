@@ -34,14 +34,17 @@ const SEME = {
     pool: {},
     irrigation: { zones: [] },
     energy: {
+      name: "Casa Giovanni",
       grid: { power: "sensor.rete_w" },
       solar: { power: "sensor.fv_w" },
+      house: { power: "sensor.casa_w" },
       plants: [
         {
           id: "impianto-2",
           name: "Casa Donato",
           grid: { power: "sensor.rete2_w" },
           solar: { power: "sensor.fv2_w" },
+          house: { power: "sensor.casa2_w" },
         },
       ],
       metadata: { plant_seq: 2 },
@@ -73,15 +76,26 @@ test("ogni impianto ha i suoi cerchi, e cambiare linguetta li cambia", async ({
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
   await page.evaluate(() => {
-    window.__HASS__ = {
-      states: {
-        "sensor.forno_w": { entity_id: "sensor.forno_w", state: "800" },
-        "sensor.lavatrice_w": { entity_id: "sensor.lavatrice_w", state: "1200" },
-      },
+    const letture = {
+      "sensor.forno_w": "800",
+      "sensor.lavatrice_w": "1200",
+      "sensor.rete_w": "2100",
+      "sensor.fv_w": "3400",
+      "sensor.casa_w": "2470",
+      "sensor.rete2_w": "780",
+      "sensor.fv2_w": "1520",
+      "sensor.casa2_w": "2300",
     };
+    const raw = eval("_RAW_STATES");
+    for (const [id, valore] of Object.entries(letture))
+      raw[id] = { entity_id: id, state: valore, attributes: { unit_of_measurement: "W" } };
     window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
-    window.showPage?.("energy");
   });
+  await page
+    .locator('.tab[data-tab="energy"]')
+    .first()
+    .evaluate((b) => b.click());
+  await page.waitForTimeout(1500);
 
   /* Casa Giovanni e' il primo impianto: il forno e' suo, e la lavatrice —
    * scritta sull'altra casa — non la vede. */
@@ -100,4 +114,57 @@ test("ogni impianto ha i suoi cerchi, e cambiare linguetta li cambia", async ({
     .locator('#page-energy [data-dm-impianto="impianto"]')
     .evaluate((pillola) => pillola.click());
   await expect.poll(() => cerchi(page)).toEqual(["Forno"]);
+});
+
+/* La lettura dei tre cerchi grandi, quelli che il runtime storico disegna
+   leggendo le caselle proiettate. */
+const misuratori = (page) =>
+  page.evaluate(() => {
+    const numero = (id) => {
+      const nodo = document.getElementById(id);
+      return nodo ? (nodo.textContent || "").replace(/[^0-9]/g, "") : "";
+    };
+    return { rete: numero("v-grid"), solare: numero("v-solar"), casa: numero("v-home") };
+  });
+
+test("anche i misuratori seguono l'impianto, non solo i carichi", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* Il difetto visto a schermo: le linguette cambiavano i cerchi dei carichi
+   * sotto Casa e lasciavano Rete, Solare e Casa sui contatori della prima
+   * abitazione. Sono due conti diversi — i carichi li filtra la sezione, i
+   * misuratori li proietta il magazzino nelle caselle storiche — e solo uno
+   * dei due sapeva degli impianti. */
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
+  await page.evaluate(() => {
+    const letture = {
+      "sensor.rete_w": "2100",
+      "sensor.fv_w": "3400",
+      "sensor.casa_w": "2470",
+      "sensor.rete2_w": "780",
+      "sensor.fv2_w": "1520",
+      "sensor.casa2_w": "2300",
+    };
+    const raw = eval("_RAW_STATES");
+    for (const [id, valore] of Object.entries(letture))
+      raw[id] = { entity_id: id, state: valore, attributes: { unit_of_measurement: "W" } };
+    window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
+  });
+  await page.waitForTimeout(1500);
+  await page
+    .locator('.tab[data-tab="energy"]')
+    .first()
+    .evaluate((b) => b.click());
+  await page.evaluate(() => window.render?.());
+  await expect
+    .poll(() => misuratori(page), { timeout: 20_000 })
+    .toEqual({ rete: "2100", solare: "3400", casa: "2470" });
+
+  await page
+    .locator('#page-energy [data-dm-impianto="impianto-2"]')
+    .evaluate((pillola) => pillola.click());
+  await page.evaluate(() => window.render?.());
+  await expect
+    .poll(() => misuratori(page), { timeout: 20_000 })
+    .toEqual({ rete: "780", solare: "1520", casa: "2300" });
 });

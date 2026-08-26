@@ -13,6 +13,7 @@ function deepFreeze(value) {
 import { migrateState, normalizeSection, readLegacyState, SECTION_KEYS } from "./migrations.js";
 import { sectionForEditorSlot } from "./editor-slots.js";
 import { projectEnergySlots } from "./energy-projection.js";
+import { IMPIANTO_SCELTO_KEY, plantModel } from "./energy-plants.js";
 import { applySignedSources } from "./signed-energy.js";
 
 export const VISIBILITY_SECTION = Object.freeze({
@@ -244,8 +245,25 @@ export class DashboardStore {
     /* Le sorgenti uniche con segno si risolvono qui, prima della proiezione:
      * da questo punto in giu' i due versi hanno un riferimento ciascuno come
      * se l'utente avesse configurato due sensori separati. */
+    /* E la proiezione guarda l'impianto che si sta guardando.
+     *
+     * Queste caselle sono la risposta a «quale sensore leggo adesso», non a
+     * «cosa ho configurato»: si ricalcolano a ogni salvataggio e nessuno le
+     * scrive a mano. Con due contatori la risposta dipende da quale casa e'
+     * aperta — e finche' non lo sapevano, le linguette cambiavano i carichi
+     * sotto Casa e lasciavano rete, solare e batteria su quelli della prima.
+     *
+     * L'impianto aperto sta nella stessa memoria da cui esce tutto il resto:
+     * si legge di li', e con un impianto solo — chi non ne ha mai chiesto un
+     * secondo — esce esattamente la proiezione di prima. */
+    let impiantoScelto = "";
+    try {
+      impiantoScelto = String(this.storage.getItem(IMPIANTO_SCELTO_KEY) ?? "").trim();
+    } catch (_error) {
+      impiantoScelto = "";
+    }
     this.state.sections.entityOverrides = projectEnergySlots(
-      applySignedSources(this.state.sections.energy || {}),
+      applySignedSources(plantModel(this.state.sections.energy || {}, impiantoScelto)),
       this.state.sections.entityOverrides || {},
     );
     this.projecting = true;

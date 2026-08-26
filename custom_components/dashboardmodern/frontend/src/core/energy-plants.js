@@ -227,6 +227,26 @@ export function plantAt(stored = {}, scelto = "") {
   return { list: lista, plant: impianto, index: posto < 0 ? 0 : posto };
 }
 
+/* La configurazione vista dall'impianto scelto.
+ *
+ * Si sostituiscono i quattro gruppi — casa, rete, solare, batteria — e
+ * nient'altro: i metadati, e una chiave scritta da una versione futura,
+ * restano dove sono. Senza impianto scelto, o con uno solo, esce esattamente
+ * l'oggetto che c'era.
+ *
+ * Questa e' la forma che leggono tutti: la sezione per i suoi numeri, e la
+ * proiezione che dice alle caselle storiche quale sensore guardare. Erano due
+ * conti separati, e uno dei due non sapeva degli impianti: le linguette
+ * cambiavano i carichi e lasciavano i misuratori su quelli della prima casa. */
+export function plantModel(stored = {}, scelto = "") {
+  const impianto = pickPlant(plantList(stored), scelto);
+  if (!impianto) return stored;
+  return {
+    ...stored,
+    ...Object.fromEntries(PLANT_GROUPS.map((gruppo) => [gruppo, impianto[gruppo]])),
+  };
+}
+
 export const LOAD_PLANT_FIELD = "plant";
 
 /** Se questo carico appartiene a questo impianto. */

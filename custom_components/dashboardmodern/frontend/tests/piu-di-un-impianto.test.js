@@ -192,12 +192,21 @@ test("la sezione legge l'impianto scelto, e con una casa sola non cambia niente"
   );
   /* `energyModel()` e' il collo di bottiglia da cui tutta la sezione legge la
    * configurazione: e' li' che l'impianto si sceglie, una volta sola, invece
-   * che in ognuno dei posti che leggono. */
+   * che in ognuno dei posti che leggono. La regola pero' non e' piu' scritta
+   * qui: sta nel core, perche' la usa anche la proiezione che dice alle
+   * caselle storiche quale sensore guardare — ed erano due conti separati,
+   * con uno dei due che degli impianti non sapeva niente. */
   const helper = sezione.match(/function energyModel\(\)[\s\S]*?\n\}/)[0];
-  assert.match(helper, /pickPlant\(plantList\(salvato\)/);
+  assert.match(helper, /plantModel\(section\("energy", \{\}\), impiantoScelto\(\)\)/);
+  const nucleo0 = await readFile(
+    new URL("../src/core/energy-plants.js", import.meta.url),
+    "utf8",
+  );
+  const regola = nucleo0.match(/export function plantModel[\s\S]*?\n\}/)[0];
+  assert.match(regola, /pickPlant\(plantList\(stored\)/);
   // Si sostituiscono i quattro gruppi e nient'altro: i metadati restano.
-  assert.match(helper, /\.\.\.salvato,/);
-  assert.match(helper, /PLANT_GROUPS\.map\(/);
+  assert.match(regola, /\.\.\.stored,/);
+  assert.match(regola, /PLANT_GROUPS\.map\(/);
   /* La linguetta aperta non e' configurazione: sta fuori dal modello, come il
    * periodo scelto. Tenerla dentro vorrebbe dire sporcare un salvataggio ogni
    * volta che si guarda l'altro impianto. */
@@ -356,4 +365,48 @@ test("il flusso disegna i cerchi dell'impianto scelto", async () => {
     "utf8",
   );
   assert.match(ripiego, /configuredFlowLoads\(carichiDellImpianto\(/);
+});
+
+test("le caselle del disegno guardano i sensori dell'impianto aperto", async () => {
+  /* Il difetto visto a schermo: cambiando linguetta i cerchi dei carichi
+   * seguivano la casa, e Rete, Solare e Casa restavano sui sensori della
+   * prima. Sono due conti diversi — i carichi li filtra la sezione, i
+   * misuratori li proietta il magazzino nelle caselle storiche — e solo uno
+   * dei due sapeva degli impianti. */
+  const { plantModel } = await import("../src/core/energy-plants.js");
+  const { projectEnergySlots } = await import("../src/core/energy-projection.js");
+  const salvato = {
+    grid: { power: "sensor.rete1" },
+    solar: { power: "sensor.fv1" },
+    plants: [
+      { id: "impianto-2", name: "Casa Donato", grid: { power: "sensor.rete2" }, solar: { power: "sensor.fv2" } },
+    ],
+  };
+  const prima = projectEnergySlots(plantModel(salvato, ""), {});
+  const seconda = projectEnergySlots(plantModel(salvato, "impianto-2"), {});
+  const rete = Object.keys(prima).find((slot) => prima[slot] === "sensor.rete1");
+  assert.ok(rete, "la casella della rete esiste");
+  assert.equal(seconda[rete], "sensor.rete2",
+    "aperta l'altra casa, la casella della rete guarda il SUO contatore");
+
+  /* Il magazzino la legge dalla memoria che ha gia' in mano, e con un impianto
+   * solo non cambia niente di niente. */
+  const magazzino = await readFile(
+    new URL("../src/core/dashboard-store.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(magazzino, /plantModel\(this\.state\.sections\.energy \|\| \{\}, impiantoScelto\)/);
+  assert.match(magazzino, /getItem\(IMPIANTO_SCELTO_KEY\)/);
+
+  /* E cambiare linguetta rifa' la proiezione: non e' un salvataggio, quindi
+   * va chiesto. */
+  const pillole = await readFile(
+    new URL("../src/sections/energy-plants-section.js", import.meta.url),
+    "utf8",
+  );
+  const corpo = pillole.slice(pillole.indexOf("function scegli("));
+  assert.match(corpo.slice(0, 1400), /magazzino\?\.persist\?\.\(\)/);
+  /* E la si consegna a chi disegna: il runtime storico tiene la mappa in una
+   * variabile presa all'avvio, e ricalcolarla senza passargliela non serve. */
+  assert.match(corpo.slice(0, 1400), /cdApplyCanonicalOverrides\?\.\(/);
 });

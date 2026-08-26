@@ -54,6 +54,24 @@ function scegli(id) {
     root.localStorage?.setItem(IMPIANTO_SCELTO_KEY, clean(id));
   } catch (_error) {}
   root.navigator?.vibrate?.(8);
+  /* Le caselle da cui il disegno legge i misuratori si rifanno adesso.
+   *
+   * Sono una proiezione: rispondono a «quale sensore leggo», e la risposta e'
+   * appena cambiata. Si ricalcolano al salvataggio, e questo non e' un
+   * salvataggio — quindi lo si chiede: senza, le linguette cambiavano i
+   * carichi sotto Casa e lasciavano rete, solare e batteria sui sensori
+   * dell'altra casa. */
+  try {
+    const magazzino = dashboardStore();
+    magazzino?.persist?.();
+    /* E la si consegna a chi disegna.
+     *
+     * Il runtime storico tiene la mappa delle caselle in una variabile presa
+     * all'avvio: ricalcolarla e scriverla non basta, va passata. Senza questa
+     * riga la proiezione nuova restava su disco e i cerchi continuavano a
+     * leggere i contatori della casa di prima. */
+    root.cdApplyCanonicalOverrides?.(magazzino?.getSection?.("entityOverrides") || {});
+  } catch (_error) {}
   /* Cambiare impianto cambia cosa leggono tutti: il modo piu' onesto di dirlo
    * a diciassette moduli e' l'evento che gia' ascoltano quando la
    * configurazione cambia. */
