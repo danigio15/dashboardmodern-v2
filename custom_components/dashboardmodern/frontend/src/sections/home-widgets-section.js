@@ -66,6 +66,7 @@ const state = (root[KEY] ||= {
   frame: 0,
   expanded: "",
   signature: "",
+  escape: false,
   lists: new Map(), // entity -> { items, fetchedAt, inflight }
   cameraTimer: 0,
   cameraUrls: new Map(), // entity -> object URL della tessera, MAI quelli del muro
@@ -462,6 +463,138 @@ function temperatureModel(states) {
     ring: null, rows };
 }
 
+/* ── le sezioni che mancavano al ponte ────────────────────────────────── */
+
+/* «Lo switch per widget non e' presente in tutte le sezioni: EV, solare
+ * termico, eccetera.» L'interruttore accanto a un'entita' dice se quel dato
+ * va in Home, e non aveva senso dove una tessera non esisteva. Quindi
+ * esistono: l'auto, il solare termico, la piscina e l'irrigazione hanno la
+ * loro, con lo stesso mestiere delle altre — un numero, un anello, una
+ * parola — e al tocco il dettaglio. */
+
+/* Il riferimento di una entita' mappata, se la scelta la lascia passare. */
+function refValue(states, ref, fuori) {
+  const risolto = clean(root.resolveEntity?.(ref) || ref);
+  if (!risolto || risolto === ref) return null;
+  if (!widgetIncludes(risolto, fuori)) return null;
+  return { entity: risolto, value: numOf(states, risolto), state: clean(states?.[risolto]?.state) };
+}
+
+function evModel(states) {
+  const fuori = widgetExcludedEntities();
+  const carica = refValue(states, "dm.ev_batteria_auto", fuori);
+  const autonomia = refValue(states, "dm.ev_autonomia", fuori);
+  const stato = refValue(states, "dm.ev_stato_ricarica", fuori);
+  if (!carica && !autonomia) return null;
+  const percentuale = carica?.value == null ? null : Math.max(0, Math.min(100, carica.value));
+  const rows = [];
+  if (percentuale != null)
+    rows.push({ glyph: "🔋", name: t("Carica", "Charge"), value: `${Math.round(percentuale)}%` });
+  if (autonomia?.value != null)
+    rows.push({ glyph: "🛣️", name: t("Autonomia", "Range"), value: `${formatNumber(autonomia.value, 0)} km` });
+  if (stato?.state) rows.push({ glyph: "🔌", name: t("Ricarica", "Charging"), value: stato.state });
+  if (!rows.length) return null;
+  return {
+    key: "ev", accent: "#06b6d4", icon: "🚗", label: t("Auto", "Car"),
+    value: percentuale == null ? `${formatNumber(autonomia?.value, 0)} km` : `${Math.round(percentuale)}%`,
+    caption: percentuale != null && autonomia?.value != null ? `${formatNumber(autonomia.value, 0)} km` : "",
+    ring: percentuale, rows,
+  };
+}
+
+function solarThermalModel(states) {
+  const fuori = widgetExcludedEntities();
+  const sonde = ["dm.boiler_sonda_temperatura_1", "dm.boiler_sonda_temperatura_2", "dm.boiler_sonda_temperatura_3"]
+    .map((ref, indice) => ({ indice, dato: refValue(states, ref, fuori) }))
+    .filter((riga) => riga.dato?.value != null);
+  const pompa = refValue(states, "dm.boiler_stato_pompa_solare", fuori);
+  if (!sonde.length) return null;
+  const acqua = sonde[0].dato.value;
+  const attiva = pompa ? ["on", "true", "running", "attiva"].includes(pompa.state.toLowerCase()) : false;
+  return {
+    key: "solare", accent: "#f59e0b", icon: "🌞", label: t("Solare termico", "Solar thermal"),
+    value: `${formatNumber(acqua, 1)}°`,
+    caption: pompa ? (attiva ? t("Pompa in funzione", "Pump running") : t("Pompa ferma", "Pump idle")) : "",
+    ring: null,
+    rows: sonde.map((riga) => ({
+      glyph: "🌡️",
+      name: `${t("Sonda", "Probe")} ${riga.indice + 1}`,
+      value: `${formatNumber(riga.dato.value, 1)}°`,
+    })),
+  };
+}
+
+function poolModel(states) {
+  const config = root.getPool?.() || readJson("cd_piscina", {});
+  if (!config || typeof config !== "object") return null;
+  const fuori = widgetExcludedEntities();
+  const leggi = (chiave, etichetta, glyph, unita = "") => {
+    const entity = clean(config[chiave]);
+    if (!entity || !widgetIncludes(entity, fuori)) return null;
+    const valore = numOf(states, entity);
+    if (valore == null) return null;
+    return { glyph, name: etichetta, value: `${formatNumber(valore, 1)}${unita}`, raw: valore };
+  };
+  const rows = [
+    leggi("tempEnt", t("Acqua", "Water"), "🌡️", "°"),
+    leggi("phEnt", "pH", "🧪"),
+    leggi("clEnt", t("Cloro", "Chlorine"), "💧"),
+  ].filter(Boolean);
+  if (!rows.length) return null;
+  const acqua = rows.find((riga) => riga.name === t("Acqua", "Water"));
+  return {
+    key: "piscina", accent: "#0ea5e9", icon: "🏊", label: t("Piscina", "Pool"),
+    value: acqua ? acqua.value : rows[0].value,
+    caption: acqua && rows.length > 1 ? `pH ${rows.find((r) => r.name === "pH")?.value || "—"}` : "",
+    ring: null, rows,
+  };
+}
+
+function irrigationModel(states) {
+  const config = root.getIrr?.() || readJson("cd_irrigazione", {});
+  const zones = Array.isArray(config?.zones) ? config.zones : [];
+  const fuori = widgetExcludedEntities();
+  const attive = zones.filter((zona) => {
+    const entity = clean(zona?.entity);
+    return entity && widgetIncludes(entity, fuori);
+  });
+  if (!attive.length) return null;
+  const inFunzione = attive.filter((zona) => clean(states?.[clean(zona.entity)]?.state).toLowerCase() === "on");
+  const terreno = clean(config.soilEnt || config.soil_entity);
+  const umidita = terreno && widgetIncludes(terreno, fuori) ? numOf(states, terreno) : null;
+  return {
+    key: "irrigazione", accent: "#10b981", icon: "💧", label: t("Irrigazione", "Irrigation"),
+    value: inFunzione.length ? `${inFunzione.length}` : umidita == null ? `${attive.length}` : `${Math.round(umidita)}%`,
+    caption: inFunzione.length
+      ? t("zone in funzione", "zones running")
+      : umidita == null
+        ? t("zone configurate", "zones configured")
+        : t("umidità terreno", "soil moisture"),
+    ring: inFunzione.length ? null : umidita,
+    rows: attive.map((zona) => ({
+      glyph: "🌱",
+      name: clean(zona.name) || clean(zona.entity),
+      value: clean(states?.[clean(zona.entity)]?.state).toLowerCase() === "on"
+        ? t("in funzione", "running")
+        : t("ferma", "idle"),
+    })),
+  };
+}
+
+/* Le quattro tessere nuove condividono lo stesso dettaglio: righe con
+ * un'icona, un nome e un valore. */
+function rowsDetail(widget) {
+  return (widget.rows || [])
+    .map((row) =>
+      rowShell(
+        `<span class="dm-w-glyph" aria-hidden="true">${row.glyph || "•"}</span>
+         <span class="dm-w-name">${esc(row.name)}</span>
+         <b class="dm-w-val">${esc(row.value)}</b>`,
+      ),
+    )
+    .join("");
+}
+
 /* ── i widget del Quadro Avvisi ───────────────────────────────────────── */
 
 /* Il ponte ha preso il posto del Quadro Avvisi, che dalla Home e' uscito del
@@ -654,6 +787,10 @@ function widgetModels(states) {
       energyModel(states),
       appliancesModel(states),
       temperatureModel(states),
+      evModel(states),
+      solarThermalModel(states),
+      poolModel(states),
+      irrigationModel(states),
       openingsModel(states),
       batteriesModel(states),
       floodModel(states),
@@ -691,7 +828,7 @@ function tileMarkup(widget, index = 0) {
         <span class="dm-tile-label">${esc(widget.label)}</span>
         <small class="dm-tile-caption" data-dm-tile-caption>${esc(widget.caption)}</small>
       </span>
-      <span class="dm-tile-chevron" aria-hidden="true">⌄</span>
+      <span class="dm-tile-chevron" aria-hidden="true">›</span>
       <span class="dm-tile-shine" aria-hidden="true"></span>
     </button>`;
 }
@@ -987,6 +1124,7 @@ function detailBody(widget, states) {
   if (widget.key === "energia") return energyDetail(widget);
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
+  if (["ev", "solare", "piscina", "irrigazione"].includes(widget.key)) return rowsDetail(widget);
   if (widget.key === "aperture") return openingsDetail(widget);
   if (widget.key === "batterie") return batteriesDetail(widget);
   if (widget.key === "allagamenti") return floodDetail(widget);
@@ -1059,9 +1197,9 @@ export function renderHomeWidgets() {
   const mounted = host || ensureHost();
   if (!mounted) return false;
   const title = mounted.querySelector(".dm-widgets-title");
-  if (title) title.textContent = t("In primo piano", "At a glance");
+  if (title) title.textContent = t("La casa adesso", "Your home now");
   const sub = mounted.querySelector(".dm-widgets-sub");
-  if (sub) sub.textContent = t("I widget della tua giornata", "Your day's widgets");
+  if (sub) sub.textContent = t("Tocca una tessera per aprirla", "Tap a tile to open it");
 
   if (state.expanded && !models.some((widget) => widget.key === state.expanded)) state.expanded = "";
   const grid = mounted.querySelector(".dm-widgets-grid");
@@ -1071,12 +1209,7 @@ export function renderHomeWidgets() {
   if (state.signature !== signature || !grid.firstElementChild) {
     state.signature = signature;
     for (const widget of models) viste().add(widget.key);
-    grid.innerHTML = models
-      .map((widget, index) => {
-        const tile = tileMarkup(widget, index);
-        return state.expanded === widget.key ? tile + detailMarkup(widget, states) : tile;
-      })
-      .join("");
+    grid.innerHTML = models.map((widget, index) => tileMarkup(widget, index)).join("");
   } else {
     // Solo i valori: la tessera resta dov'e', l'apertura non riparte.
     for (const widget of models) {
@@ -1090,10 +1223,10 @@ export function renderHomeWidgets() {
       const ring = tile.querySelector(".dm-tile-ring");
       if (ring && widget.ring != null) ring.style.setProperty("--dm-ring-pct", String(widget.ring));
       if (state.expanded === widget.key) {
-        const captionDetail = grid.querySelector("[data-dm-detail-caption]");
+        const captionDetail = doc.querySelector("#dm-widget-popup [data-dm-detail-caption]");
         if (captionDetail && captionDetail.textContent !== widget.caption)
           captionDetail.textContent = widget.caption;
-        const body = grid.querySelector(".dm-w-body");
+        const body = doc.querySelector("#dm-widget-popup .dm-w-body");
         const markup = detailBody(widget, states);
         if (body && body.innerHTML !== markup) {
           /* Il corpo si riscrive a ogni valore che cambia: se le righe
@@ -1109,11 +1242,72 @@ export function renderHomeWidgets() {
     }
   }
 
+  sincronizzaPopup(models, states);
+
   for (const list of configuredTodoLists()) fetchItems(list.entity);
   // La tessera delle telecamere appena disegnata (o ridisegnata) chiede i suoi
   // fotogrammi; chiusa, restituisce timer e object URL.
   if (state.expanded === "telecamere") aggiornaTelecamere();
   else fermaTimerTelecamere();
+  return true;
+}
+
+/* Il dettaglio e' un popup, non una tendina.
+ *
+ * «Anziche' aprire tendina sui widget non e' piu' bello un popup stilizzato
+ * fatto bene»: la tendina spingeva giu' mezza Home a ogni tocco e la tessera
+ * aperta finiva sotto il pollice. Adesso la tessera resta al suo posto e il
+ * dettaglio sale al centro, con lo sfondo sfocato — la stessa lingua degli
+ * altri popup della plancia. Si chiude col tasto, toccando fuori, o con Esc. */
+function popupHost() {
+  let host = doc?.getElementById?.("dm-widget-popup");
+  if (host) return host;
+  if (!doc?.body) return null;
+  host = doc.createElement("div");
+  host.id = "dm-widget-popup";
+  host.hidden = true;
+  host.addEventListener("click", (event) => {
+    if (event.target === host || event.target?.closest?.("[data-dm-widget-close]")) chiudiPopup();
+  });
+  doc.body.append(host);
+  return host;
+}
+
+function chiudiPopup() {
+  state.expanded = "";
+  const host = doc?.getElementById?.("dm-widget-popup");
+  if (host) {
+    host.hidden = true;
+    host.replaceChildren();
+  }
+  doc?.documentElement?.classList?.remove("dm-widget-popup-open");
+  fermaTimerTelecamere();
+  schedule();
+}
+
+function sincronizzaPopup(models, states) {
+  const aperto = models.find((widget) => widget.key === state.expanded);
+  const host = popupHost();
+  if (!host) return false;
+  if (!aperto) {
+    if (!host.hidden) {
+      host.hidden = true;
+      host.replaceChildren();
+      doc?.documentElement?.classList?.remove("dm-widget-popup-open");
+    }
+    return false;
+  }
+  if (host.dataset.dmWidget !== aperto.key || host.hidden) {
+    host.dataset.dmWidget = aperto.key;
+    host.hidden = false;
+    host.innerHTML = detailMarkup(aperto, states);
+    doc?.documentElement?.classList?.add("dm-widget-popup-open");
+    const body = host.querySelector(".dm-w-body");
+    if (body) {
+      body.dataset.dmPainted = "true";
+      body.dataset.dmFresh = "true";
+    }
+  }
   return true;
 }
 
@@ -1202,9 +1396,20 @@ function sincronizzaTimerTelecamere() {
 /* ── interazione ──────────────────────────────────────────────────────── */
 
 function toggleExpand(key) {
-  state.expanded = state.expanded === key ? "" : clean(key);
-  state.signature = "";
+  const prossimo = state.expanded === key ? "" : clean(key);
+  state.expanded = prossimo;
+  /* La griglia non cambia: il dettaglio vive nel popup. Azzerare la firma
+   * rifarebbe tutte le tessere — e sarebbe il tremolio di prima. */
   schedule();
+}
+
+/* Esc chiude, come ogni altro popup della plancia. */
+function bindEscape() {
+  if (state.escape) return;
+  state.escape = true;
+  doc?.addEventListener?.("keydown", (event) => {
+    if (event.key === "Escape" && state.expanded) chiudiPopup();
+  });
 }
 
 /* La posizione scelta parte subito, e la tendina torna alla sua freccia: e'
@@ -1297,240 +1502,287 @@ function stateChangeTouchesTodo(event) {
 
 function installStyles() {
   installStyle(STYLE_ID, `
+/* ── il popup del dettaglio ───────────────────────────────────────────────
+ *
+ * Le stesse forme dei popup che la plancia ha gia': il velo chiaro sfocato
+ * del modal-wrapper, la card con l'angolo largo e l'ombra profonda del
+ * modal-card. Sempre al centro — anche sul telefono: un foglio che sale dal
+ * fondo e' un'altra lingua, e qui si parla quella di casa. */
+#dm-widget-popup{
+  position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:rgba(230,235,241,.85);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  animation:dmWidgetPopupIn .2s ease-out}
+:root:is([data-theme="dark"]) #dm-widget-popup,
+html[data-theme="dark"] #dm-widget-popup{background:rgba(9,14,26,.82)}
+#dm-widget-popup[hidden]{display:none}
+@keyframes dmWidgetPopupIn{from{opacity:0}to{opacity:1}}
+html.dm-widget-popup-open{overflow:hidden}
+#dm-widget-popup .dm-widget-detail{
+  width:min(560px,100%);max-height:min(80dvh,760px);overflow:auto;margin:0;
+  border:1px solid var(--card-border,#e8edf3);border-radius:36px;
+  background:var(--card-bg,#fff);
+  box-shadow:0 40px 80px rgba(0,0,0,.15),inset 0 0 0 1px color-mix(in srgb,#fff 60%,transparent);
+  animation:dmWidgetPopupCard .28s cubic-bezier(.16,1,.3,1)}
+@keyframes dmWidgetPopupCard{from{opacity:0;transform:scale(.92) translateY(24px)}to{opacity:1;transform:none}}
+/* L'intestazione parla come le altre della plancia: maiuscoletto spaziato,
+ * riga di separazione, il tondo per chiudere. */
+#dm-widget-popup .dm-w-head{
+  position:sticky;top:0;z-index:1;gap:11px;padding:22px 24px 15px;
+  background:var(--card-bg,#fff);
+  border-bottom:2px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 20%,transparent)}
+#dm-widget-popup .dm-w-head-ic{font-size:22px}
+#dm-widget-popup .dm-w-head strong{font-size:15px;letter-spacing:1.4px}
+#dm-widget-popup .dm-w-close{
+  flex:0 0 34px;width:34px;height:34px;border-radius:50%;
+  background:var(--surface-3,#f1f5f9);border:1px solid var(--card-border,#e2e8f0);
+  box-shadow:0 6px 15px rgba(0,0,0,.05)}
+#dm-widget-popup .dm-w-body{padding:16px 20px 22px}
+@media(max-width:600px){
+  #dm-widget-popup{padding:16px}
+  #dm-widget-popup .dm-widget-detail{border-radius:30px;max-height:82dvh}
+  #dm-widget-popup .dm-w-head{padding:18px 18px 13px}
+  #dm-widget-popup .dm-w-body{padding:13px 15px 18px}
+}
 /* ── «In primo piano»: il ponte dei widget della Home ─────────────────── */
 #dm-widgets{display:block;margin:16px 0 6px}
-#dm-widgets .dm-widgets-head{display:flex;align-items:center;gap:12px;padding:0 4px 12px}
-#dm-widgets .dm-widgets-ic{
+:is(#dm-widgets,#dm-widget-popup) .dm-widgets-head{display:flex;align-items:center;gap:12px;padding:0 4px 12px}
+:is(#dm-widgets,#dm-widget-popup) .dm-widgets-ic{
   width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;font-size:21px;
   border-radius:14px;background:linear-gradient(140deg,#dbeafe,#ede9fe 55%,#dcfce7);
   box-shadow:inset 0 0 0 1px rgba(59,130,246,.14)}
-#dm-widgets .dm-widgets-copy{min-width:0;flex:1}
-#dm-widgets .dm-widgets-title{
+:is(#dm-widgets,#dm-widget-popup) .dm-widgets-copy{min-width:0;flex:1}
+:is(#dm-widgets,#dm-widget-popup) .dm-widgets-title{
   margin:0;font-family:'Oswald',sans-serif;font-weight:700;
   font-size:clamp(17px,2.2vw,22px);line-height:1.05;letter-spacing:1.8px;
   text-transform:uppercase;color:var(--text,#0f172a)}
-#dm-widgets .dm-widgets-sub{margin:2px 0 0;font-size:12px;font-weight:600;color:var(--text-dim,#64748b)}
+:is(#dm-widgets,#dm-widget-popup) .dm-widgets-sub{margin:2px 0 0;font-size:12px;font-weight:600;color:var(--text-dim,#64748b)}
 
 /* Le tessere: piccole, quiete, con l'anello che racconta e la freccia che
    promette. L'accento vive nei dettagli — l'anello, il fianco, il bagliore
    all'apertura — mai su tutta la tessera. */
-#dm-widgets .dm-widgets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:10px}
-#dm-widgets .dm-tile{
-  position:relative;overflow:hidden;display:flex;align-items:center;gap:11px;min-height:74px;
-  padding:12px 13px;border:1px solid var(--card-border,#e8edf3);border-radius:18px;
-  background:var(--card-bg,#fff);color:var(--text,#0f172a);font:inherit;text-align:left;cursor:pointer;
-  box-shadow:0 6px 18px rgba(15,23,42,.05);
+:is(#dm-widgets,#dm-widget-popup) .dm-widgets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:10px}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile{
+  position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;min-height:78px;
+  padding:13px 14px;border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 16%,var(--card-border,#e8edf3));
+  border-radius:20px;color:var(--text,#0f172a);font:inherit;text-align:left;cursor:pointer;
+  background:
+    radial-gradient(120% 140% at 100% 0%,color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 11%,transparent),transparent 62%),
+    var(--card-bg,#fff);
+  box-shadow:0 8px 22px rgba(15,23,42,.07);
   transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s ease,border-color .3s ease}
 /* L'ingresso e' per chi entra adesso: una tessera gia' vista non rianima. */
-#dm-widgets .dm-tile:not([data-dm-seen]){
+:is(#dm-widgets,#dm-widget-popup) .dm-tile:not([data-dm-seen]){
   animation:dmTileIn .45s cubic-bezier(.16,1,.3,1) both;
   animation-delay:calc(var(--dm-tile-i,0) * 45ms)}
 @keyframes dmTileIn{from{opacity:0;transform:translateY(9px) scale(.97)}to{opacity:1;transform:none}}
 /* Il riflesso che attraversa la tessera al passaggio: luce, non colore. */
-#dm-widgets .dm-tile .dm-tile-shine{
+:is(#dm-widgets,#dm-widget-popup) .dm-tile .dm-tile-shine{
   position:absolute;top:-20%;bottom:-20%;width:36%;left:-60%;pointer-events:none;
   background:linear-gradient(105deg,transparent,rgba(255,255,255,.4),transparent);
   transform:skewX(-18deg);transition:left .55s ease}
-#dm-widgets .dm-tile:hover .dm-tile-shine{left:125%}
-#dm-widgets .dm-tile::before{
+:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover .dm-tile-shine{left:125%}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile::before{
   content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;
   background:var(--dm-widget-accent,#0ea5e9);opacity:.55;transition:opacity .3s ease}
-#dm-widgets .dm-tile:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(15,23,42,.10)}
-#dm-widgets .dm-tile:hover::before{opacity:1}
-#dm-widgets .dm-tile[data-open="true"]{
+:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(15,23,42,.10)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover::before{opacity:1}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-open="true"]{
   border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 45%,transparent);
   box-shadow:0 12px 30px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 22%,rgba(15,23,42,.08))}
-#dm-widgets .dm-tile-ic{
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-ic{
   width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;font-size:19px;border-radius:50%;
   background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 13%,var(--surface-3,#f1f5f9));
   transition:transform .35s cubic-bezier(.16,1,.3,1)}
-#dm-widgets .dm-tile:hover .dm-tile-ic{transform:scale(1.1) rotate(-6deg)}
-#dm-widgets .dm-tile-ring{
+:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover .dm-tile-ic{transform:scale(1.1) rotate(-6deg)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-ring{
   position:relative;width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border-radius:50%;
   background:conic-gradient(from -90deg,var(--dm-widget-accent,#0ea5e9) 0 calc(var(--dm-ring-pct,0) * 1%),var(--surface-3,#e2e8f0) 0);
   transition:background .6s linear,transform .35s cubic-bezier(.16,1,.3,1)}
-#dm-widgets .dm-tile:hover .dm-tile-ring{transform:scale(1.08)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover .dm-tile-ring{transform:scale(1.08)}
 /* Le tessere-avviso respirano: l'onda dell'accento che si allarga e svanisce,
    la stessa grammatica del ping del Quadro di prima. */
-#dm-widgets .dm-tile[data-alert="true"] .dm-tile-ring::after,
-#dm-widgets .dm-tile[data-alert="true"] .dm-tile-ic::after{
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-ring::after,
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-ic::after{
   content:"";position:absolute;inset:-3px;border-radius:50%;
   border:2px solid var(--dm-widget-accent,#dc2626);
   animation:dmWidgetPing 2.2s ease-out infinite;pointer-events:none}
-#dm-widgets .dm-tile[data-alert="true"] .dm-tile-ic{position:relative}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-ic{position:relative}
 @keyframes dmWidgetPing{0%{opacity:.75;transform:scale(.9)}70%{opacity:0;transform:scale(1.45)}100%{opacity:0;transform:scale(1.45)}}
-#dm-widgets .dm-tile-ring i{
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-ring i{
   display:grid;place-items:center;width:31px;height:31px;border-radius:50%;font-style:normal;font-size:14px;
   background:var(--card-bg,#fff);box-shadow:inset 0 0 0 1px var(--card-border,#e8edf3)}
-#dm-widgets .dm-tile-copy{min-width:0;flex:1;display:grid;gap:0}
-#dm-widgets .dm-tile-value{
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-copy{min-width:0;flex:1;display:grid;gap:0}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-value{
   font-family:'Oswald',sans-serif;font-size:19px;font-weight:700;line-height:1.1;letter-spacing:.2px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .3s ease}
-#dm-widgets .dm-tile:hover .dm-tile-value,#dm-widgets .dm-tile[data-open="true"] .dm-tile-value{
+:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover .dm-tile-value,:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-open="true"] .dm-tile-value{
   color:var(--dm-widget-accent,#0ea5e9)}
-#dm-widgets .dm-tile-label{
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-label{
   font-size:9.5px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--text-dim,#64748b);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#dm-widgets .dm-tile-caption{
+  /* «Solare term…» non e' un'etichetta: se non ci sta su una riga va a capo,
+   * che una tessera puo' permetterselo. */
+  white-space:normal;overflow-wrap:anywhere;line-height:1.15}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-caption{
   font-size:10.5px;font-weight:700;color:var(--text-dim,#94a3b8);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#dm-widgets .dm-tile-chevron{
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-chevron{
   flex:0 0 auto;font-size:13px;color:var(--text-dim,#94a3b8);
   transition:transform .3s cubic-bezier(.16,1,.3,1)}
-#dm-widgets .dm-tile[data-open="true"] .dm-tile-chevron{transform:rotate(180deg);color:var(--dm-widget-accent,#0ea5e9)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-open="true"] .dm-tile-chevron{transform:rotate(180deg);color:var(--dm-widget-accent,#0ea5e9)}
 
 /* Il dettaglio: si apre sotto la tessera, largo quanto il ponte, col nastro
    d'accento e l'ingresso morbido. */
-#dm-widgets .dm-widget-detail{
+:is(#dm-widgets,#dm-widget-popup) .dm-widget-detail{
   grid-column:1/-1;position:relative;overflow:hidden;
   border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 26%,var(--card-border,#e8edf3));
   border-radius:20px;background:var(--card-bg,#fff);
   box-shadow:0 16px 36px rgba(15,23,42,.10);
   animation:dmWidgetIn .32s cubic-bezier(.16,1,.3,1)}
-#dm-widgets .dm-widget-detail::before{
+:is(#dm-widgets,#dm-widget-popup) .dm-widget-detail::before{
   content:"";position:absolute;top:0;left:0;right:0;height:3px;
   background:linear-gradient(90deg,transparent,var(--dm-widget-accent,#0ea5e9) 30%,var(--dm-widget-accent,#0ea5e9) 70%,transparent)}
 @keyframes dmWidgetIn{from{opacity:0;transform:translateY(-7px) scale(.985)}to{opacity:1;transform:none}}
-#dm-widgets .dm-w-head{display:flex;align-items:center;gap:9px;padding:13px 16px 10px}
-#dm-widgets .dm-w-head-ic{font-size:16px}
-#dm-widgets .dm-w-head strong{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-head{display:flex;align-items:center;gap:9px;padding:13px 16px 10px}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-head-ic{font-size:16px}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-head strong{
   font-size:12.5px;font-weight:900;letter-spacing:1px;text-transform:uppercase}
-#dm-widgets .dm-w-head small{flex:1;min-width:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);
+:is(#dm-widgets,#dm-widget-popup) .dm-w-head small{flex:1;min-width:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#dm-widgets .dm-w-close{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-close{
   flex:0 0 28px;width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:9px;
   background:var(--surface-3,#f1f5f9);color:var(--text-dim,#64748b);font-size:12px;cursor:pointer}
-#dm-widgets .dm-w-body{display:grid;gap:2px;padding:0 10px 12px}
-#dm-widgets .dm-w-row{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-body{display:grid;gap:2px;padding:0 10px 12px}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-row{
   display:flex;align-items:center;gap:11px;min-height:42px;padding:5px 8px;border-radius:12px;
   animation:none;
   transition:background .2s ease}
 /* Le righe entrano una volta sola: al primo disegno dopo l'apertura. */
-#dm-widgets .dm-w-body[data-dm-fresh="true"] .dm-row{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-body[data-dm-fresh="true"] .dm-row{
   animation:dmRowIn .32s cubic-bezier(.16,1,.3,1) both}
 @keyframes dmRowIn{from{opacity:0;transform:translateX(-7px)}to{opacity:1;transform:none}}
-#dm-widgets .dm-w-row:nth-child(1){animation-delay:30ms}
-#dm-widgets .dm-w-row:nth-child(2){animation-delay:60ms}
-#dm-widgets .dm-w-row:nth-child(3){animation-delay:90ms}
-#dm-widgets .dm-w-row:nth-child(4){animation-delay:120ms}
-#dm-widgets .dm-w-row:nth-child(5){animation-delay:150ms}
-#dm-widgets .dm-w-row:nth-child(6){animation-delay:180ms}
-#dm-widgets .dm-w-row:nth-child(n+7){animation-delay:210ms}
-#dm-widgets .dm-w-row:hover{background:var(--surface-3,#f1f5f9)}
-#dm-widgets .dm-w-glyph{flex:0 0 auto;font-size:15px;transition:filter .25s ease,opacity .25s ease}
-#dm-widgets .dm-w-glyph[data-on="false"]{filter:grayscale(1);opacity:.4}
-#dm-widgets .dm-w-appl-ic{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(1){animation-delay:30ms}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(2){animation-delay:60ms}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(3){animation-delay:90ms}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(4){animation-delay:120ms}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(5){animation-delay:150ms}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(6){animation-delay:180ms}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-row:nth-child(n+7){animation-delay:210ms}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-row:hover{background:var(--surface-3,#f1f5f9)}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-glyph{flex:0 0 auto;font-size:15px;transition:filter .25s ease,opacity .25s ease}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-glyph[data-on="false"]{filter:grayscale(1);opacity:.4}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic{
   flex:0 0 auto;display:grid;place-items:center;width:24px;height:24px;
   color:var(--dm-widget-accent,#06b6d4)}
-#dm-widgets .dm-w-appl-ic svg{width:20px;height:20px;display:block;stroke:currentColor;fill:none}
-#dm-widgets .dm-w-appl-ic svg [stroke],#dm-widgets .dm-w-appl-ic svg path,
-#dm-widgets .dm-w-appl-ic svg rect,#dm-widgets .dm-w-appl-ic svg circle,
-#dm-widgets .dm-w-appl-ic svg line{stroke:currentColor}
-#dm-widgets .dm-w-appl-ic svg [fill="currentColor"]{fill:currentColor}
-#dm-widgets .dm-w-alarm{display:inline-flex;gap:6px;margin-left:auto}
-#dm-widgets .dm-w-alarm button{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg{width:20px;height:20px;display:block;stroke:currentColor;fill:none}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg [stroke],:is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg path,
+:is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg rect,:is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg circle,
+:is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg line{stroke:currentColor}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-appl-ic svg [fill="currentColor"]{fill:currentColor}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-alarm{display:inline-flex;gap:6px;margin-left:auto}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-alarm button{
   width:32px;height:28px;border-radius:9px;border:1px solid var(--card-border,#e2e8f0);
   background:var(--surface-2,#f8fafc);font-size:13px;line-height:1;cursor:pointer;
   transition:transform .15s ease,background .2s ease,border-color .2s ease,box-shadow .2s ease}
-#dm-widgets .dm-w-alarm button:hover{transform:translateY(-1px)}
-#dm-widgets .dm-w-alarm button[data-on="true"]{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-alarm button:hover{transform:translateY(-1px)}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-alarm button[data-on="true"]{
   background:color-mix(in srgb,var(--dm-widget-accent,#10b981) 16%,transparent);
   border-color:var(--dm-widget-accent,#10b981);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--dm-widget-accent,#10b981) 14%,transparent)}
-#dm-widgets .dm-w-name{min-width:0;flex:1;display:grid;gap:0;font-size:13px;font-weight:700;
+:is(#dm-widgets,#dm-widget-popup) .dm-w-name{min-width:0;flex:1;display:grid;gap:0;font-size:13px;font-weight:700;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#dm-widgets .dm-w-name small{font-size:10.5px;font-weight:700;color:var(--text-dim,#94a3b8)}
-#dm-widgets .dm-w-val{flex:0 0 auto;font-family:'Oswald',sans-serif;font-size:14px;font-weight:600}
-#dm-widgets .dm-w-empty{margin:4px 8px;font-size:12.5px;font-weight:700;color:var(--text-dim,#64748b)}
-#dm-widgets .dm-w-block{padding:4px 6px 6px}
-#dm-widgets .dm-w-block-title{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-name small{font-size:10.5px;font-weight:700;color:var(--text-dim,#94a3b8)}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-val{flex:0 0 auto;font-family:'Oswald',sans-serif;font-size:14px;font-weight:600}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-empty{margin:4px 8px;font-size:12.5px;font-weight:700;color:var(--text-dim,#64748b)}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-block{padding:4px 6px 6px}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-block-title{
   display:block;padding:4px 2px 7px;font-size:10.5px;font-weight:900;letter-spacing:1px;
   text-transform:uppercase;color:var(--text-dim,#64748b)}
 
 /* L'interruttore delle luci: una pillola che scatta. */
-#dm-widgets .dm-w-switch{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-switch{
   flex:0 0 40px;width:40px;height:23px;position:relative;border:0;border-radius:999px;cursor:pointer;
   background:color-mix(in srgb,var(--text-dim,#94a3b8) 32%,transparent);transition:background .25s ease}
-#dm-widgets .dm-w-switch i{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-switch i{
   position:absolute;top:2.5px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;
   box-shadow:0 2px 6px rgba(15,23,42,.25);transition:transform .25s cubic-bezier(.16,1,.3,1)}
-#dm-widgets .dm-w-switch[data-on="true"]{background:var(--dm-widget-accent,#f59e0b)}
-#dm-widgets .dm-w-switch[data-on="true"] i{transform:translateX(16px)}
-#dm-widgets .dm-w-power{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-switch[data-on="true"]{background:var(--dm-widget-accent,#f59e0b)}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-switch[data-on="true"] i{transform:translateX(16px)}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-power{
   flex:0 0 32px;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;cursor:pointer;
   border:1.5px solid var(--card-border,#e8edf3);background:transparent;color:var(--text-dim,#94a3b8);
   font-size:14px;transition:all .25s ease}
-#dm-widgets .dm-w-power[data-on="true"]{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-power[data-on="true"]{
   border-color:transparent;background:var(--dm-widget-accent,#0ea5e9);color:#fff;
   box-shadow:0 4px 12px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent)}
-#dm-widgets .dm-w-position{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-position{
   appearance:none;-webkit-appearance:none;flex:0 0 auto;margin-left:5px;height:26px;
   width:34px;text-align:center;text-align-last:center;
   padding:0;border:1px solid var(--card-border,#e2e8f0);border-radius:9px;
   background:var(--surface-2,#f8fafc);color:var(--text,#0f172a);
   font:inherit;font-size:12px;font-weight:800;line-height:1;cursor:pointer;
   transition:border-color .2s ease,background .2s ease}
-#dm-widgets .dm-w-position:hover{border-color:var(--dm-widget-accent,#8b5cf6)}
-#dm-widgets .dm-w-arrows{display:inline-flex;gap:5px}
-#dm-widgets .dm-w-arrows button{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-position:hover{border-color:var(--dm-widget-accent,#8b5cf6)}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-arrows{display:inline-flex;gap:5px}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-arrows button{
   width:29px;height:29px;display:grid;place-items:center;border-radius:9px;cursor:pointer;
   border:1px solid var(--card-border,#e8edf3);background:var(--surface-3,#f1f5f9);
   color:var(--text,#0f172a);font-size:11px;transition:all .2s ease}
-#dm-widgets .dm-w-arrows button:hover{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-arrows button:hover{
   background:var(--dm-widget-accent,#8b5cf6);border-color:transparent;color:#fff}
 
 /* Le miniature delle telecamere: il letterbox scuro del muro, in piccolo. */
-#dm-widgets .dm-w-cams{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:2px 6px 4px}
-#dm-widgets .dm-w-cam{position:relative;margin:0;border-radius:14px;overflow:hidden;background:#0b1220;aspect-ratio:16/9}
-#dm-widgets .dm-w-cam img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;
+:is(#dm-widgets,#dm-widget-popup) .dm-w-cams{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:2px 6px 4px}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-cam{position:relative;margin:0;border-radius:14px;overflow:hidden;background:#0b1220;aspect-ratio:16/9}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-cam img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;
   transition:opacity .4s ease,transform .6s cubic-bezier(.16,1,.3,1)}
-#dm-widgets .dm-w-cam:hover img{transform:scale(1.06)}
-#dm-widgets .dm-w-cam-live{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-cam:hover img{transform:scale(1.06)}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-cam-live{
   display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;
   background:#f87171;vertical-align:1px;animation:dmWidgetLive 1.6s steps(1) infinite}
 @keyframes dmWidgetLive{0%,100%{opacity:1}50%{opacity:.25}}
-#dm-widgets .dm-w-cam img[data-dm-camera-state="ready"]{opacity:1}
-#dm-widgets .dm-w-cam figcaption{
+:is(#dm-widgets,#dm-widget-popup) .dm-w-cam img[data-dm-camera-state="ready"]{opacity:1}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-cam figcaption{
   position:absolute;left:0;right:0;bottom:0;padding:5px 9px;
   font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#e2eefb;
   background:linear-gradient(0deg,rgba(2,6,15,.72),transparent)}
 
 /* Le voci ToDo dentro il dettaglio. */
-#dm-widgets .dm-todo-items{list-style:none;margin:0;padding:0 2px;display:grid;gap:8px}
-#dm-widgets .dm-todo-item{display:flex;align-items:flex-start;gap:10px;min-width:0}
-#dm-widgets .dm-todo-check{
+:is(#dm-widgets,#dm-widget-popup) .dm-todo-items{list-style:none;margin:0;padding:0 2px;display:grid;gap:8px}
+:is(#dm-widgets,#dm-widget-popup) .dm-todo-item{display:flex;align-items:flex-start;gap:10px;min-width:0}
+:is(#dm-widgets,#dm-widget-popup) .dm-todo-check{
   position:relative;flex:0 0 21px;width:21px;height:21px;margin-top:1px;border-radius:50%;cursor:pointer;
   border:2px solid color-mix(in srgb,var(--text-dim,#94a3b8) 55%,transparent);background:transparent;padding:0;
   transition:border-color .2s ease,background .25s ease,transform .15s ease}
-#dm-widgets .dm-todo-check:hover{border-color:var(--dm-widget-accent,#059669);transform:scale(1.08)}
-#dm-widgets .dm-todo-check::after{
+:is(#dm-widgets,#dm-widget-popup) .dm-todo-check:hover{border-color:var(--dm-widget-accent,#059669);transform:scale(1.08)}
+:is(#dm-widgets,#dm-widget-popup) .dm-todo-check::after{
   content:"✓";position:absolute;inset:0;display:grid;place-items:center;
   color:#fff;font-size:12px;font-weight:900;opacity:0;transform:scale(.4);
   transition:opacity .2s ease,transform .25s cubic-bezier(.16,1,.3,1)}
-#dm-widgets .dm-todo-item.is-done .dm-todo-check{
+:is(#dm-widgets,#dm-widget-popup) .dm-todo-item.is-done .dm-todo-check{
   border-color:var(--dm-widget-accent,#059669);background:var(--dm-widget-accent,#059669)}
-#dm-widgets .dm-todo-item.is-done .dm-todo-check::after{opacity:1;transform:scale(1)}
-#dm-widgets .dm-todo-text{min-width:0;font-size:13.5px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
-#dm-widgets .dm-todo-item.is-done .dm-todo-text{color:var(--text-dim,#94a3b8);text-decoration:line-through}
-#dm-widgets .dm-todo-due{
+:is(#dm-widgets,#dm-widget-popup) .dm-todo-item.is-done .dm-todo-check::after{opacity:1;transform:scale(1)}
+:is(#dm-widgets,#dm-widget-popup) .dm-todo-text{min-width:0;font-size:13.5px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+:is(#dm-widgets,#dm-widget-popup) .dm-todo-item.is-done .dm-todo-text{color:var(--text-dim,#94a3b8);text-decoration:line-through}
+:is(#dm-widgets,#dm-widget-popup) .dm-todo-due{
   display:inline-flex;align-items:center;gap:3px;margin-left:7px;padding:1px 7px;border-radius:999px;
   background:var(--surface-3,#f1f5f9);border:1px solid var(--card-border,#e8edf3);
   font-size:10.5px;font-weight:800;color:var(--text-dim,#64748b);white-space:nowrap;vertical-align:1px}
-#dm-widgets .dm-todo-due[data-overdue="true"]{
+:is(#dm-widgets,#dm-widget-popup) .dm-todo-due[data-overdue="true"]{
   background:rgba(244,63,94,.10);border-color:rgba(244,63,94,.30);color:#be123c}
 
 @media (prefers-reduced-motion:reduce){
-  #dm-widgets .dm-tile,#dm-widgets .dm-tile-chevron,#dm-widgets .dm-todo-check,
-  #dm-widgets .dm-todo-check::after,#dm-widgets .dm-w-switch,#dm-widgets .dm-w-switch i,
-  #dm-widgets .dm-tile-ic,#dm-widgets .dm-tile-ring,#dm-widgets .dm-w-cam img,
-  #dm-widgets .dm-tile .dm-tile-shine{transition:none}
-  #dm-widgets .dm-widget-detail,#dm-widgets .dm-tile,#dm-widgets .dm-w-row,
-  #dm-widgets .dm-tile[data-alert="true"] .dm-tile-ring::after,
-  #dm-widgets .dm-tile[data-alert="true"] .dm-tile-ic::after,
-  #dm-widgets .dm-w-cam-live{animation:none}
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile,:is(#dm-widgets,#dm-widget-popup) .dm-tile-chevron,:is(#dm-widgets,#dm-widget-popup) .dm-todo-check,
+  :is(#dm-widgets,#dm-widget-popup) .dm-todo-check::after,:is(#dm-widgets,#dm-widget-popup) .dm-w-switch,:is(#dm-widgets,#dm-widget-popup) .dm-w-switch i,
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-ic,:is(#dm-widgets,#dm-widget-popup) .dm-tile-ring,:is(#dm-widgets,#dm-widget-popup) .dm-w-cam img,
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile .dm-tile-shine{transition:none}
+  :is(#dm-widgets,#dm-widget-popup) .dm-widget-detail,:is(#dm-widgets,#dm-widget-popup) .dm-tile,:is(#dm-widgets,#dm-widget-popup) .dm-w-row,
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-ring::after,
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-ic::after,
+  :is(#dm-widgets,#dm-widget-popup) .dm-w-cam-live{animation:none}
 }
 @media (max-width:520px){
-  #dm-widgets .dm-widgets-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  :is(#dm-widgets,#dm-widget-popup) .dm-widgets-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 }
 `);
 }
@@ -1540,6 +1792,7 @@ export function installHomeWidgetsSection() {
   state.installed = true;
   installStyles();
   doc.addEventListener("click", onClick);
+  bindEscape();
   doc.addEventListener("change", onChange);
   for (const eventName of [
     "dashboardmodern:legacy-ready",

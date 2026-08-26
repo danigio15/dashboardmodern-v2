@@ -16,10 +16,15 @@ const seed = {
 async function boot(page, testInfo) {
   await page.route("https://**", (r) => r.fulfill({ status: 200, body: "" }));
   await page.route("**/local/**", (r) =>
-    r.fulfill({ contentType: "image/svg+xml", body: "<svg xmlns='http://www.w3.org/2000/svg' width='8' height='4'/>" }),
+    r.fulfill({
+      contentType: "image/svg+xml",
+      body: "<svg xmlns='http://www.w3.org/2000/svg' width='8' height='4'/>",
+    }),
   );
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, seed);
-  await page.locator("#setup-wizard").evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
+  await page
+    .locator("#setup-wizard")
+    .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true);
   await page.evaluate(() => {
     localStorage.setItem(
@@ -44,7 +49,9 @@ test("la matita apre un'auto: la sua foto e' sua, e il disegno resta dell'auto i
 
   // La matita sulla seconda auto — quella che NON e' in uso.
   await page.evaluate(() => {
-    const riga = [...document.querySelectorAll("#ed-body .ed-row")].find((r) => /Zoe/.test(r.textContent || ""));
+    const riga = [...document.querySelectorAll("#ed-body .ed-row")].find((r) =>
+      /Zoe/.test(r.textContent || ""),
+    );
     [...riga.querySelectorAll("button")].find((b) => /✏️/.test(b.textContent || ""))?.click();
   });
   await page.waitForTimeout(500);
@@ -62,7 +69,10 @@ test("la matita apre un'auto: la sua foto e' sua, e il disegno resta dell'auto i
   await page.waitForTimeout(400);
 
   const esito = await page.evaluate(() => ({
-    auto: JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((c) => ({ n: c.name, img: c.img })),
+    auto: JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((c) => ({
+      n: c.name,
+      img: c.img,
+    })),
     disegno: JSON.parse(localStorage.getItem("cd_ev_image") || '""'),
     attiva: localStorage.getItem("cd_ev_car_active"),
   }));
@@ -85,7 +95,14 @@ test("la foto non tremola: il disegno la rimette identica a ogni giro", async ({
     localStorage.setItem(
       "cd_ev_cars",
       JSON.stringify([
-        { name: "Tesla", uid: "car-a", img: "/local/tesla.png", imgPlugged: "/local/tesla-p.png", ov: {}, entities: {} },
+        {
+          name: "Tesla",
+          uid: "car-a",
+          img: "/local/tesla.png",
+          imgPlugged: "/local/tesla-p.png",
+          ov: {},
+          entities: {},
+        },
         { name: "Zoe", uid: "car-b", img: "/local/zoe.png", ov: {}, entities: {} },
       ]),
     );
@@ -105,7 +122,10 @@ test("la foto non tremola: il disegno la rimette identica a ogni giro", async ({
     }
     return {
       viste: [...viste],
-      auto: JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((c) => ({ i: c.img, p: c.imgPlugged })),
+      auto: JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((c) => ({
+        i: c.img,
+        p: c.imgPlugged,
+      })),
     };
   });
   // Una sola foto su sei giri: nessuna alternanza.

@@ -86,7 +86,10 @@ function interruttore(entities, dentro) {
     "Mostra questa entità nei widget della Home",
     "Show this entity in the Home widgets",
   );
-  button.innerHTML = `<span aria-hidden="true">🧩</span><i></i>`;
+  /* L'interruttore era muto: un'icona e basta, e nessuno capiva a cosa
+   * servisse. Adesso lo dice — «In Home» — e lo stato si legge dal colore
+   * come in ogni altro interruttore della configurazione. */
+  button.innerHTML = `<span aria-hidden="true">🧩</span><b>${esc(t("In Home", "On Home"))}</b><i></i>`;
   return button;
 }
 
@@ -162,6 +165,10 @@ function installStyles() {
         border-radius:999px;background:var(--surface-2,#f8fafc);
         font-size:12px;line-height:1;cursor:pointer;
         transition:border-color .18s ease,background .18s ease,opacity .18s ease}
+      #ed-body .dm-widget-entity b{
+        font-size:10px;font-weight:900;letter-spacing:.4px;text-transform:uppercase;
+        color:var(--text-dim,#64748b)}
+      #ed-body .dm-widget-entity[data-on="true"] b{color:#059669}
       #ed-body .dm-widget-entity i{
         width:26px;height:15px;border-radius:999px;position:relative;
         background:var(--text-dim,#94a3b8);transition:background .2s ease}
@@ -177,8 +184,9 @@ function installStyles() {
        * resta, il tassello no — il nome vale piu' del suo disegno, e cosa fa
        * la levetta lo dicono il titolo e l'etichetta per chi legge a voce. */
       @media(max-width:640px){
-        #ed-body .dm-widget-entity{padding:3px 6px;gap:0}
+        #ed-body .dm-widget-entity{padding:3px 6px;gap:4px}
         #ed-body .dm-widget-entity>span{display:none}
+        #ed-body .dm-widget-entity b{font-size:9px;letter-spacing:.2px}
         #ed-body .dm-widget-entity i{width:24px;height:14px}
         #ed-body .dm-widget-entity i::after{width:10px;height:10px}
         #ed-body .dm-widget-entity[data-on="true"] i::after{transform:translateX(10px)}

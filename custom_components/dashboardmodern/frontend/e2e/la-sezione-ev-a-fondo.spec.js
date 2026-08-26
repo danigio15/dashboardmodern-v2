@@ -416,7 +416,9 @@ test("la lista auto ha la matita, niente distintivo, e il + svuota la scheda", a
   const matite = page.locator("#ed-body [data-ev-edit]");
   await expect(matite).toHaveCount(2, { timeout: 15_000 });
   await expect(page.locator("#ed-body .ed-row .pool-badge")).toHaveCount(0);
-  await expect(page.locator('#ed-body button[onclick*="edEvCarAdd"]')).toHaveText(/Salva (auto|le modifiche a|la nuova auto)/);
+  await expect(page.locator('#ed-body button[onclick*="edEvCarAdd"]')).toHaveText(
+    /Salva (auto|le modifiche a|la nuova auto)/,
+  );
 
   /* La matita APRE quell'auto nella scheda — nome compreso — e non tocca
    * nient'altro: quale vettura la sezione stia mostrando non e' affare della
