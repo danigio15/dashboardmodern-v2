@@ -18,7 +18,7 @@
  * disegnava, il contatto si legge e basta.
  */
 import { coverEntries, coverKindLabel } from "../core/cover-kind.js";
-import { shutterWindowModel } from "../core/shutter-window.js";
+import { contactEntity, shutterWindowModel } from "../core/shutter-window.js";
 import { allStates, clean, dashboardStore, doc, installStyle, readJson, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_SHUTTER_WINDOW__";
@@ -49,8 +49,12 @@ function coverForCard(card) {
   const entity = clean(card.getAttribute("data-tapp"));
   if (!entity) return null;
   return (
-    covers().find((item) =>
-      coverEntries(item).some((entry) => clean(entry.entity) === entity),
+    covers().find(
+      (item) =>
+        coverEntries(item).some((entry) => clean(entry.entity) === entity) ||
+        /* Una finestra senza motori si identifica col suo contatto: e' l'unica
+         * entita' che ha, e quindi e' quella scritta sulla card. */
+        clean(contactEntity(item)) === entity,
     ) || null
   );
 }
@@ -107,6 +111,11 @@ export function paintCard(card, states = allStates()) {
 function ensurePill(card, aperto) {
   const head = card.querySelector(".tapp-head");
   if (!head) return;
+  /* Su una finestra che si apre a mano la pastiglia della card gia' dice
+   * «Aperta», e quella e' proprio la finestra: non c'e' una tapparella accanto
+   * da distinguere. Aggiungerne una seconda con «Finestra aperta» sarebbe
+   * ripetere la stessa cosa due volte sulla stessa riga. */
+  if (card.dataset.dmSoloInfisso === "true") return;
   let pill = head.querySelector(".dm-tw-pill");
   /* Due pastiglie sulla stessa riga mangiano il nome.
    *
@@ -303,8 +312,8 @@ export function ensureContactField(body = doc?.getElementById("ed-body")) {
   if (intro && !intro.dataset.dmTwIntro) {
     intro.dataset.dmTwIntro = "true";
     intro.textContent = t(
-      "Le tapparelle e le tende compaiono nella pagina 🪟 Tapparelle, raggruppate per piano e stanza. Ogni riga accetta un'entità cover.* — con posizione e percentuali — oppure un relè switch.*: uno solo se accendendolo la tapparella sta su, due se ce n'è uno per la salita e uno per la discesa, come uno Shelly in modalità interruttore.",
-      "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode.",
+      "Le tapparelle e le tende compaiono nella pagina 🪟 Tapparelle, raggruppate per piano e stanza. Ogni riga accetta un'entità cover.* — con posizione e percentuali — oppure un relè switch.*: uno solo se accendendolo la tapparella sta su, due se ce n'è uno per la salita e uno per la discesa, come uno Shelly in modalità interruttore. Se la finestra si apre a mano — persiane, scuri, una maniglia — lascia vuote le caselle dei comandi e compila solo il sensore di apertura: la card la disegna lo stesso e dice se è aperta.",
+      "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode. When the window opens by hand — shutters, blinds, a handle — leave the command boxes empty and fill in the contact sensor alone: the card still draws it and says whether it is open.",
     );
   }
   /* Il menu del tipo non ha piu' ragione di esistere: se e' rimasto da una

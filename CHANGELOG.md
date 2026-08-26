@@ -284,6 +284,18 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **La finestra che si apre a mano non si poteva inserire.** «Io non ho le
+  tapparelle, ho le persiane e sono manuali, però ho sensori di apertura,
+  volevo inserirli ma chiede obbligatoriamente l'entità tapparella.» Aveva
+  ragione: la scheda offriva la casella del sensore e poi rifiutava di salvare
+  la riga che conteneva solo quello — una promessa e un dietrofront. Adesso il
+  sensore da solo basta: ne esce una card che disegna lo stesso serramento
+  degli altri, con le ante che si scostano quando il contatto dice che è
+  aperta, e sotto niente da toccare — perché su una persiana manuale
+  Apri/Ferma/Chiudi sarebbe un comando che non arriva da nessuna parte. Nel
+  conteggio in cima quelle finestre hanno una voce loro: contarle fra le
+  «aperte» avrebbe detto che c'è una tapparella su, e non c'è.
+
 - **Le pillole delle stanze parlavano un font che sulla plancia non esiste.**
   Un `<button>` non eredita il font del documento: nessuno gliel'aveva mai
   detto, e le pillole delle stanze in Temperature cadevano sul font di

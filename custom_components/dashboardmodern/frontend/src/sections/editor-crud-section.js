@@ -402,7 +402,17 @@ function installAddWrappers() {
      * a un sensore. */
     // Anche un rele': switch.* comanda molte tapparelle vere.
     const eUnaCopertura = (valore) => /^(cover|switch)\./i.test(clean(valore));
-    const alternativaValida = eUnaCopertura(extra.tenda) || eUnaCopertura(extra.tendaSole);
+    /* E una finestra puo' non avere motori affatto.
+     *
+     * «Io non ho le tapparelle, ho le persiane e sono manuali, pero' ho sensori
+     * di apertura, volevo inserirli ma chiede obbligatoriamente l'entita'
+     * tapparella». Il modulo offriva la casella del contatto e poi rifiutava la
+     * riga che conteneva solo quello: una promessa e un dietrofront. Il contatto
+     * da solo non comanda niente, ma dice se la finestra e' aperta, ed e'
+     * esattamente cio' che la card sa disegnare. */
+    const eUnContatto = (valore) => /^(binary_sensor|sensor|input_boolean)\./i.test(clean(valore));
+    const alternativaValida =
+      eUnaCopertura(extra.tenda) || eUnaCopertura(extra.tendaSole) || eUnContatto(extra.contact);
     const zittire = !entity && alternativaValida;
     const avviso = zittire ? root.alert : null;
     if (zittire) {

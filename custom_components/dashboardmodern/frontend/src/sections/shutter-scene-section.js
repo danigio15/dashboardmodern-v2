@@ -10,6 +10,7 @@ import {
   coverPresetPosition,
   relayCoverCommands,
 } from "../core/cover-kind.js";
+import { contactEntity, isWindowOnly, windowOpenFromState } from "../core/shutter-window.js";
 import { allStates, clean, doc, esc, installStyle, root, t } from "./shared.js";
 
 // Single paint owner for the Tapparelle page.
@@ -125,8 +126,41 @@ function nomeCopertura(item, current, entity, distingui) {
  * uno per ogni entita', sotto la foto della finestra». La card adesso e' una:
  * la finestra disegna tutti i teli insieme, e sotto c'e' un cursore per
  * copertura, ciascuno con la sua etichetta e la sua percentuale. */
+/* Una finestra senza motori.
+ *
+ * Persiane manuali, un contatto sull'anta e nient'altro: la riga non comanda
+ * niente, ma sa dire se la finestra e' aperta. La vista che ne esce e' una
+ * copertura per modo di dire — `soloInfisso` la tiene fuori dal conteggio in
+ * cima e le toglie i comandi — e il disegno resta quello di sempre: l'infisso
+ * visto dalla stanza, con le ante che si scostano quando il contatto lo dice.
+ */
+function windowOnlyView(item = {}) {
+  const contatto = clean(contactEntity(item));
+  if (!contatto) return null;
+  const aperta = windowOpenFromState(allStates()[contatto]?.state);
+  const room = clean(item.room);
+  return {
+    entity: contatto,
+    soloInfisso: true,
+    kind: "",
+    name: clean(item.name) || clean(allStates()[contatto]?.attributes?.friendly_name) || contatto,
+    room,
+    floor: clean(root.cdRoomFloorOf?.(room)),
+    status: aperta === true ? "open" : aperta === false ? "closed" : "unknown",
+    /* Il vano si vede solo quando la finestra e' aperta: senza tapparella
+     * davanti la posizione non esiste, e il disegno non deve fingerla. */
+    position: 100,
+    hasPosition: false,
+    settable: false,
+    moving: false,
+    preset: null,
+    down: "",
+  };
+}
+
 function viewsFor(item = {}) {
   const entries = coverEntries(item);
+  if (isWindowOnly(item)) return [windowOnlyView(item)].filter(Boolean);
   if (!entries.length) return [coverView(item)].filter(Boolean);
   const viste = entries
     .map(({ entity, kind, down }) => coverView({ ...item, entity, kind, down }, false))
@@ -213,7 +247,10 @@ function statusLabel(view) {
 }
 
 function summaryText(views) {
-  const tutte = views.flatMap(coperture);
+  /* Una finestra senza motori non e' una copertura: contarla fra le aperte
+   * direbbe che c'e' una tapparella su, e non c'e'. Ha un conto suo, in coda,
+   * e solo quando qualcuna e' davvero aperta. */
+  const tutte = views.flatMap(coperture).filter((view) => !view.soloInfisso);
   const moving = tutte.filter((view) => view.moving).length;
   const open = tutte.filter((view) => !view.moving && view.position > 0).length;
   const closed = tutte.length - moving - open;
@@ -221,6 +258,13 @@ function summaryText(views) {
   if (open) parts.push(open === 1 ? t("1 aperta", "1 open") : t(`${open} aperte`, `${open} open`));
   if (closed) parts.push(closed === 1 ? t("1 chiusa", "1 closed") : t(`${closed} chiuse`, `${closed} closed`));
   if (moving) parts.push(moving === 1 ? t("1 in movimento", "1 moving") : t(`${moving} in movimento`, `${moving} moving`));
+  const infissi = views.filter((view) => view.soloInfisso && view.status === "open").length;
+  if (infissi)
+    parts.push(
+      infissi === 1
+        ? t("1 finestra aperta", "1 window open")
+        : t(`${infissi} finestre aperte`, `${infissi} windows open`),
+    );
   return parts.join(" · ");
 }
 
@@ -361,7 +405,35 @@ function presetSelectMarkup(view, tutte) {
     </span>`;
 }
 
+/* La card di una finestra che non si comanda.
+ *
+ * Stesso serramento, stessa intestazione, stessa pastiglia: cambia che sotto
+ * non c'e' niente da toccare. Mettere Apri/Ferma/Chiudi su una persiana
+ * manuale sarebbe promettere un comando che non arriva da nessuna parte, e
+ * lasciare il cursore della posizione sarebbe peggio: direbbe una posizione
+ * che nessuno misura.
+ */
+function windowOnlyCardMarkup(view) {
+  return `<article class="tapp-card dm-tapp-card dm-tapp-solo" data-tapp="${esc(view.entity)}" data-dm-shutter-card data-dm-solo-infisso="true">
+    <div class="tapp-head dm-tapp-head">
+      <span class="dm-tapp-title">
+        <span class="tapp-name">${esc(view.name)}</span>
+        ${view.room ? `<span class="dm-tapp-room">${esc(view.room)}</span>` : ""}
+      </span>
+      <span class="tapp-state" data-dm-state></span>
+    </div>
+    <div class="dm-tapp-stage">
+      <div class="tapp-win">
+        <div class="tapp-glass"></div>
+      </div>
+    </div>
+    <div class="dm-tapp-spill" aria-hidden="true"></div>
+    <p class="dm-tapp-solo-nota">${esc(t("Solo sensore di apertura: nessun comando.", "Opening sensor only: nothing to command."))}</p>
+  </article>`;
+}
+
 function cardMarkup(view) {
+  if (view.soloInfisso) return windowOnlyCardMarkup(view);
   const tutte = coperture(view);
   const multiple = tutte.length > 1;
   return `<article class="tapp-card dm-tapp-card" data-tapp="${esc(view.entity)}" data-dm-cover-kind="${esc(view.kind)}" data-dm-shutter-card${multiple ? ` data-dm-covers="${tutte.length}"` : ""}>
@@ -436,6 +508,9 @@ function syncCard(card, view) {
     badge.textContent = testo;
   }
 
+  /* Una finestra senza motori non ha teli, ne' cursori, ne' percentuali: qui
+   * non c'e' niente da aggiornare oltre alla pastiglia. */
+  if (view.soloInfisso) return;
   for (const cover of coperture(view)) syncCover(card, cover);
 }
 
@@ -865,6 +940,16 @@ function installStyles() {
       height:12px!important;margin:-6px 10px -4px!important;border-radius:0 0 16px 16px!important;
       background:radial-gradient(62% 100% at 50% 0,var(--tapp-spill),transparent 72%)!important;
       opacity:var(--tapp-open,0)!important;pointer-events:none!important}
+
+    /* La finestra senza motori: nessun cursore, nessun tasto, e al loro posto
+     * una riga che dice perche' non c'e' niente da toccare. Il vetro resta
+     * scoperto — davanti non c'e' nessun telo — e la luce del fuori si vede
+     * tutta, come e' giusto per una persiana lasciata aperta a mano. */
+    html body #page-tapparelle#page-tapparelle .dm-tapp-solo{--tapp-open:1!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-solo-nota{
+      margin:6px 12px 12px!important;color:var(--secondary-text-color,#94a3b8)!important;
+      font-size:10.5px!important;font-weight:700!important;letter-spacing:.4px!important;
+      text-align:center!important;line-height:1.35!important}
 
     html body #page-tapparelle#page-tapparelle .dm-tapp-empty{grid-column:1/-1!important}
     html body #page-tapparelle#page-tapparelle .back-home-btn.dm-tapp-back{grid-column:1/-1!important;justify-self:start!important;margin:0 0 4px!important}
