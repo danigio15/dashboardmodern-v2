@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.1-0ea5e9" alt="Versione 1.0.1">
+  <img src="https://img.shields.io/github/manifest-json/v/danigio15/dashboardmodern-v2?filename=custom_components%2Fdashboardmodern%2Fmanifest.json&label=version&color=0ea5e9" alt="Versione">
   <a href="https://github.com/danigio15/dashboardmodern-v2/releases"><img src="https://img.shields.io/github/v/release/danigio15/dashboardmodern-v2?label=release&color=0ea5e9" alt="Release"></a>
   <a href="https://github.com/danigio15/dashboardmodern-v2/actions/workflows/tests.yml"><img src="https://github.com/danigio15/dashboardmodern-v2/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
   <a href="https://github.com/danigio15/dashboardmodern-v2/releases"><img src="https://img.shields.io/github/downloads/danigio15/dashboardmodern-v2/total?label=download%20dalla%201.0.0&color=8b5cf6&cacheSeconds=1800" alt="Download dalla 1.0.0"></a>
@@ -226,10 +226,11 @@ La Home riunisce meteo, pillole di stato, **Quadro Avvisi** e **Azioni rapide**.
 
 - **Meteo**: temperatura, condizione, umidità e vento dall'entità `weather.*`; tocca per aprire il dettaglio con le previsioni.
 - **Pillole di stato**: caldaia accesa e stato antifurto, visibili solo quando servono.
+- **Persone**: una card per ogni persona configurata — il ritratto (foto vera o avatar con emoji/iniziali su colore a scelta) con l'anello del colore di dove si trova, la zona (Casa, Fuori, o la zona col suo nome), da quanto tempo, la batteria del telefono (col fulmine quando è in carica), la batteria dell'orologio e la rete WiFi. Di chi è fuori la card racconta anche il viaggio: distanza da casa con la direzione, tempo di rientro (Waze/Google), indirizzo, e l'attività — auto, bici, passi — nel pallino di stato del ritratto. Compare solo se hai configurato almeno una persona.
 - **Quadro Avvisi**: card che appaiono solo se c'è qualcosa da dire — luci accese, clima attivi, riscaldamento, aperture, tapparelle aperte — più gli **avvisi personalizzati** che aggiungi tu. Ogni card apre il popup con le entità coinvolte, e l'animazione dell'icona segue il senso dell'avviso.
 - **Azioni rapide**: griglia di comandi preferiti (popup integrati, gruppi di luci, toggle, script, scene).
 
-**Configurazione**: `Editor → Home` (meteo, allarme, antifurto, script cancello), `Editor → Avvisi`, `Editor → Azioni`.
+**Configurazione**: `Editor → Home` (meteo, allarme, antifurto, script cancello), `Editor → 👥 Persone` (entità `person.*` o `device_tracker.*`, foto dalle cartelle di Home Assistant o dal dispositivo, avatar, sensore batteria, più il gruppo **📡 Sensori del telefono** — in carica, orologio, distanza, tempo di rientro, direzione, indirizzo, attività, WiFi — col pulsante **🪄 Rileva dal telefono** che li trova da solo; **Importa da Home Assistant** aggiunge in un tocco ogni `person.*` col suo nome, la sua foto del profilo e i suoi sensori), `Editor → Avvisi`, `Editor → Azioni`.
 
 ## Navigazione
 

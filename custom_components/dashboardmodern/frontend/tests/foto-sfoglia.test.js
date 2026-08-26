@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
+const leggi = (relativo) => readFileSync(join(SRC, relativo), "utf8");
+
 import {
   breadcrumbFrom,
   browseMessage,
@@ -92,4 +99,35 @@ test("la firma non entra in configurazione", () => {
   assert.equal(unsignedPath("/media/local/auto.png?authSig=xyz"), "/media/local/auto.png");
   assert.equal(isMediaSourceId("media-source://media_source/local"), true);
   assert.equal(isMediaSourceId("/local/auto.png"), false);
+});
+
+/* «Dal dispositivo» passa dal canale che e' davvero autenticato.
+ *
+ * La plancia servita dall'integrazione non possiede nessun token: il suo
+ * WebSocket si autentica lato server, e la chiamata REST all'archivio
+ * immagini rispondeva 401 — l'errore uscito premendo il bottone. La foto
+ * viaggia adesso sul WebSocket dell'integrazione, che la scrive in
+ * config/www e risponde con un /local. Il REST resta come ripiego per chi
+ * un token vero ce l'ha. */
+test("il caricamento passa dal WebSocket dell'integrazione, col REST di riserva", () => {
+  const sorgente = leggi("sections/media-picker-section.js");
+  assert.match(sorgente, /dashboardmodern\/www\/upload/, "il comando del backend non e' usato");
+  assert.match(sorgente, /blobBase64/, "la foto non viene codificata per il socket");
+  // La strada vecchia resta come ripiego, dopo il tentativo sul socket.
+  assert.ok(
+    sorgente.indexOf("dashboardmodern/www/upload") < sorgente.indexOf('"/api/image/upload"'),
+    "il REST va tentato solo dopo il socket",
+  );
+  // Un rifiuto parlante del backend non va mascherato dal ripiego.
+  assert.match(sorgente, /invalid_upload|invalid_data/);
+});
+
+test("il backend registra il comando di caricamento accanto all'elenco", () => {
+  const backend = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "..", "..", "websocket_api.py"),
+    "utf8",
+  );
+  assert.match(backend, /www\/upload/);
+  assert.match(backend, /async_upload_www/);
+  assert.match(backend, /save_www_upload/);
 });

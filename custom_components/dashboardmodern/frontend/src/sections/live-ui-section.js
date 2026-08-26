@@ -120,18 +120,24 @@ function authToken() {
   return values.map(clean).find((value) => value && value !== "__dashboardmodern_hosted__") || "";
 }
 
-function replaceCameraObjectUrl(entity, nextUrl) {
-  const previous = state.cameraUrls.get(entity);
+function replaceCameraObjectUrl(entity, nextUrl, registry = state.cameraUrls) {
+  const previous = registry.get(entity);
   if (previous && previous !== nextUrl && previous.startsWith("blob:")) {
     try {
       root.URL?.revokeObjectURL?.(previous);
     } catch (_error) {}
   }
-  state.cameraUrls.set(entity, nextUrl);
+  registry.set(entity, nextUrl);
 }
 
-async function loadCameraImage(camera) {
-  const image = doc?.getElementById(cameraSlug(camera));
+/* Un fotogramma su UNA immagine, di chiunque sia l'immagine.
+ *
+ * Il muro della Sicurezza e la tessera delle telecamere in Home mostrano le
+ * stesse inquadrature: l'autenticazione, il cache-busting e la contabilita'
+ * degli object URL stanno qui una volta sola. Ogni chiamante porta il SUO
+ * registro degli URL: revocare il blob dell'altro mentre e' ancora sullo
+ * schermo lo farebbe diventare un rettangolo grigio. */
+export async function loadCameraFrame(camera, image, registry = state.cameraUrls) {
   if (!image) return false;
   const current = allStates()?.[camera.entity];
   const picture = clean(current?.attributes?.entity_picture);
@@ -158,7 +164,7 @@ async function loadCameraImage(camera) {
         const blob = await response.blob();
         const objectUrl = root.URL?.createObjectURL?.(blob);
         if (objectUrl) {
-          replaceCameraObjectUrl(camera.entity, objectUrl);
+          replaceCameraObjectUrl(camera.entity, objectUrl, registry);
           image.src = objectUrl;
           image.dataset.dmCameraState = "ready";
           return true;
@@ -173,9 +179,13 @@ async function loadCameraImage(camera) {
   image.onerror = () => {
     image.dataset.dmCameraState = "unavailable";
   };
-  replaceCameraObjectUrl(camera.entity, url);
+  replaceCameraObjectUrl(camera.entity, url, registry);
   image.src = url;
   return true;
+}
+
+function loadCameraImage(camera) {
+  return loadCameraFrame(camera, doc?.getElementById(cameraSlug(camera)));
 }
 
 function securityVisible() {

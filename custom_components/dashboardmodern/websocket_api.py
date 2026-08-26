@@ -64,7 +64,7 @@ from .config_store import (
     profile_for_entry,
 )
 from .const import DOMAIN
-from .www_files import list_www_folder
+from .www_files import MAX_UPLOAD_BYTES, list_www_folder, save_www_upload
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -75,6 +75,7 @@ TYPE_GET = f"{DOMAIN}/config/get"
 TYPE_SET = f"{DOMAIN}/config/set"
 TYPE_RESTORE = f"{DOMAIN}/config/restore"
 TYPE_WWW_LIST = f"{DOMAIN}/www/list"
+TYPE_WWW_UPLOAD = f"{DOMAIN}/www/upload"
 
 _PROFILE = vol.All(str, vol.Length(min=1, max=64))
 _ENTRY_ID = vol.All(str, vol.Length(min=1, max=64))
@@ -222,6 +223,10 @@ async def async_get_config(
             {
                 vol.Required("values"): {str: str},
                 vol.Optional("keys_revision", default=0): vol.Coerce(int),
+                # La generazione dello scrittore: i runtime vecchi non la
+                # mandano, e il frontend nuovo usa l'assenza per riconoscere
+                # i loro scatti. Il negozio la conserva e basta.
+                vol.Optional("writer_generation", default=0): vol.Coerce(int),
                 vol.Optional("updated_at", default=0): vol.Coerce(int),
             },
             extra=vol.REMOVE_EXTRA,
@@ -249,6 +254,7 @@ async def async_set_config(
             snapshot["values"],
             entry_id=msg.get("entry_id"),
             keys_revision=snapshot["keys_revision"],
+            writer_generation=snapshot["writer_generation"],
             updated_at=snapshot["updated_at"],
             expected_revision=msg.get("expected_revision"),
             reset=msg["reset"],
@@ -315,6 +321,50 @@ async def async_list_www(
     connection.send_result(msg["id"], result)
 
 
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): TYPE_WWW_UPLOAD,
+        vol.Required("filename"): vol.All(str, vol.Length(min=1, max=255)),
+        # Base64 della foto: il tetto tiene conto del +33% della codifica.
+        vol.Required("data"): vol.All(str, vol.Length(min=1, max=MAX_UPLOAD_BYTES * 2)),
+    }
+)
+@websocket_api.async_response
+async def async_upload_www(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Salva una foto in ``config/www`` per il selettore.
+
+    La plancia servita dall'integrazione non possiede nessun token — il suo
+    WebSocket si autentica qui, lato server — e ogni chiamata REST del browser
+    rispondeva 401. La foto viaggia percio' su questo stesso canale, e chi puo'
+    scrivere e' chi puo' gia' scrivere la configurazione.
+    """
+    if _resolve_profile(hass, connection, None, PRIMARY_PROFILE) is None:
+        _deny(connection, msg)
+        return
+    import base64
+
+    try:
+        payload = base64.b64decode(msg["data"], validate=True)
+    except (ValueError, TypeError):
+        connection.send_error(msg["id"], "invalid_data", "La foto non e' leggibile.")
+        return
+    result = await hass.async_add_executor_job(
+        save_www_upload, hass.config.path("www"), msg["filename"], payload
+    )
+    if result is None:
+        connection.send_error(
+            msg["id"],
+            "invalid_upload",
+            "Il file non e' un'immagine, o e' piu' grande di 10 MB.",
+        )
+        return
+    connection.send_result(msg["id"], result)
+
+
 @callback
 def async_register_websocket_api(hass: HomeAssistant) -> None:
     """Register the shared configuration commands once per installation."""
@@ -326,6 +376,7 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
         async_set_config,
         async_restore_config,
         async_list_www,
+        async_upload_www,
     ):
         websocket_api.async_register_command(hass, command)
     domain_data[DATA_WEBSOCKET_REGISTERED] = True

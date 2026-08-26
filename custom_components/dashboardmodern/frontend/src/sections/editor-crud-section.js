@@ -1,11 +1,18 @@
 // DM-FIX-20260812B
 import { contactEntity } from "../core/shutter-window.js";
+import { coverDownRelay, coverPresetPosition } from "../core/cover-kind.js";
 import { canonicalClimateType } from "../core/device-model.js";
 import { clean, dashboardStore, doc, english, installStyle, onEditorRedraw, readClimateUnits, readJson, root, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EDITOR_CRUD_SECTION__";
-const state = (root[KEY] ||= { installed: false, listeners: false, editing: null });
+const state = (root[KEY] ||= {
+  installed: false,
+  listeners: false,
+  editing: null,
+  debounceFrame: 0,
+  debounceQueued: false,
+});
 
 function syncEditorTheme() {
   const modal = doc?.getElementById("editor-modal");
@@ -207,6 +214,10 @@ function beginEdit(kind, index) {
     setField("ed-tp-contact", contactEntity(item));
     setField("ed-tp-tenda", item.tenda || "");
     setField("ed-tp-tendasole", item.tendaSole || "");
+    setField("ed-tp-preset", coverPresetPosition(item) ?? "");
+    // Il rele' di discesa (#194): si mostra grezzo, cosi' una riga scritta a
+    // mano non lo perde mentre la si riapre.
+    setField("ed-tp-down", clean(item?.down) || "");
   } else if (kind === "room") {
     setField("ed-room-name", item.name || "");
     setField("ed-room-icon", item.icon || "🏠");
@@ -325,6 +336,19 @@ function installAddWrappers() {
       tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
       tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
     };
+    // La posizione preferita (#200): numero 0-100, vuota = nessuna stella
+    // nella tendina della card.
+    const preset = coverPresetPosition({ preset: doc.getElementById("ed-tp-preset")?.value });
+    if (preset == null) delete list[index].preset;
+    else list[index].preset = preset;
+    // Il rele' di discesa (#194): tenuto solo se la riga ha senso, cioe' se
+    // anche il primo comando e' un rele'.
+    const down = coverDownRelay({
+      entity: list[index].entity,
+      down: doc.getElementById("ed-tp-down")?.value,
+    });
+    if (down) list[index].down = down;
+    else delete list[index].down;
     salvaTapparelle(list);
   },
   /* Il contatto sopravvive anche a una tapparella appena aggiunta: l'elenco lo
@@ -339,6 +363,8 @@ function installAddWrappers() {
       contact: clean(doc.getElementById("ed-tp-contact")?.value),
       tenda: clean(doc.getElementById("ed-tp-tenda")?.value),
       tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
+      preset: clean(doc.getElementById("ed-tp-preset")?.value),
+      down: clean(doc.getElementById("ed-tp-down")?.value),
     };
     const entity = clean(doc.getElementById("ed-tp-ent")?.value);
     /* Un infisso puo' avere la sola tenda: pretendere la tapparella qui
@@ -364,7 +390,8 @@ function installAddWrappers() {
      * runtime ha ragione, e toglierlo di mezzo vorrebbe dire scrivere una riga
      * che non comanda niente — o peggio, che un domani manda `cover.open_cover`
      * a un sensore. */
-    const eUnaCopertura = (valore) => /^cover\./i.test(clean(valore));
+    // Anche un rele': switch.* comanda molte tapparelle vere.
+    const eUnaCopertura = (valore) => /^(cover|switch)\./i.test(clean(valore));
     const alternativaValida = eUnaCopertura(extra.tenda) || eUnaCopertura(extra.tendaSole);
     const zittire = !entity && alternativaValida;
     const avviso = zittire ? root.alert : null;
@@ -418,11 +445,41 @@ function installAddWrappers() {
   });
 }
 
+/* La prima chiamata del frame lavora SUBITO: i moduli che decorano le righe
+ * (beta7 sulle azioni rapide, fra gli altri) girano nel loro rAF e contano di
+ * trovare i pulsanti matita gia' stampati — rimandare anche la prima passata
+ * li faceva arrivare prima dei pulsanti, e la decorazione saltava. La raffica
+ * successiva nello stesso frame si compatta, e se qualcuno ha bussato durante
+ * il frame una passata di coda raccoglie lo stato finale. */
 function runContracts() {
+  if (state.debounceFrame) {
+    state.debounceQueued = true;
+    return;
+  }
+  const prima = doc?.querySelectorAll?.("#ed-body [data-dm-edit-kind]").length ?? 0;
   syncEditorTheme();
   normalizeReportEditor();
   ensureEditButtons();
   installAddWrappers();
+  /* Chi decora le righe (beta7 sulle azioni rapide) gira nel proprio rAF e
+   * puo' essere gia' passato quando la coda di questa passata ricrea i
+   * pulsanti su un corpo ridisegnato: senza un annuncio la decorazione
+   * resterebbe persa fino al prossimo gesto. L'evento parte solo quando dei
+   * pulsanti sono nati davvero, cosi' non puo' fare da volano a se stesso. */
+  const dopo = doc?.querySelectorAll?.("#ed-body [data-dm-edit-kind]").length ?? 0;
+  if (dopo > prima) {
+    try {
+      root.dispatchEvent?.(new Event("dashboardmodern:editor-contracts"));
+    } catch (_error) {}
+  }
+  const release = () => {
+    state.debounceFrame = 0;
+    if (state.debounceQueued) {
+      state.debounceQueued = false;
+      runContracts();
+    }
+  };
+  state.debounceFrame = root.requestAnimationFrame?.(release) || root.setTimeout?.(release, 0) || 0;
 }
 
 function installStyles() {

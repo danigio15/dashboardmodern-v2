@@ -1,5 +1,5 @@
 import { carBrandVisual } from "../core/personalization-catalog.js";
-import { carKey, restoreCarIdentities } from "../core/vehicle-identity.js";
+import { assignCarKeys, carIndexByKey, carKey, restoreCarIdentities } from "../core/vehicle-identity.js";
 import { adoptLoosePhotos, photosForProfile, withProfilePhotos } from "../core/vehicle-photos.js";
 import { pickMediaImage } from "./media-picker-section.js";
 import { allStates, clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, section, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
@@ -139,7 +139,19 @@ export function activeVehiclePhoto(photos = configuredPhotos(), plugged = vehicl
 
 export function applyVehicleAsset() {
   if (!doc) return false;
-  const photos = configuredPhotos();
+  /* Il disegno legge il PROFILO, non le caselle piatte.
+   *
+   * Le due caselle sono per-dispositivo e dalla 1.1.7 non viaggiano piu' con
+   * la configurazione: sul telefono che riceve la config restano quelle di
+   * mesi fa, e questo giro — che e' l'unico a mettere la foto sull'eroe — le
+   * disegnava cosi' com'erano. Il pannello leggeva il profilo e mostrava le
+   * foto giuste, la plancia mostrava quella vecchia: due fonti, due verita'.
+   * La fonte adesso e' una: il profilo attivo, lo stesso del pannello. Le
+   * caselle si riseminano qui a ogni disegno, cosi' chi ancora le legge — il
+   * runtime storico, la procedura iniziale — vede la stessa foto. */
+  const photos = fotoDelProfiloAttivo();
+  storePhoto(EV_PHOTO_KEYS.idle, photos.idle);
+  storePhoto(EV_PHOTO_KEYS.plugged, photos.plugged);
   const plugged = vehiclePlugged();
   const original = activeVehiclePhoto(photos, plugged);
   const url = resolveVehicleAsset(original);
@@ -162,6 +174,13 @@ export function applyVehicleAsset() {
       if (clean(photos[name]) !== clean(original)) continue;
       root.localStorage?.setItem(key, JSON.stringify(url));
     }
+    /* La foto adesso abita nel profilo, e la correzione deve arrivarci: se si
+     * fermasse alle caselle, la risemina del giro dopo le riporterebbe al
+     * valore storto e la correzione ripartirebbe a ogni disegno, per sempre. */
+    saveProfilePhotos({
+      idle: clean(photos.idle) === clean(original) ? url : photos.idle,
+      plugged: clean(photos.plugged) === clean(original) ? url : photos.plugged,
+    });
   }
   state.lastUrl = url;
   let mounted = false;
@@ -252,18 +271,33 @@ function savePhotos(panelNode) {
   scheduleEvSyncSettled();
 }
 
+function fotoDelProfiloAttivo() {
+  const elenco = profiles();
+  if (!elenco.length) return configuredPhotos();
+  const indice = Math.max(0, Math.min(elenco.length - 1, activeIndex()));
+  return photosForProfile(elenco[indice], configuredPhotos(), elenco.length);
+}
+
 export function ensureVehiclePhotoEditor() {
   const body = evEditorBody();
   if (!body) return false;
   const legacyRow = legacyPhotoRow(body);
   legacyRow?.setAttribute("hidden", "hidden");
   let panelNode = body.querySelector(":scope > [data-ev-photos]");
-  const photos = configuredPhotos();
+  /* Il pannello legge dal PROFILO, non dalle caselle piatte.
+   *
+   * Le caselle sono il disegno di adesso e seguono l'auto attiva con un giro
+   * di ritardo: subito dopo un salvataggio o una cancellazione portano ancora
+   * le foto della vettura di prima. Il pannello che le mostrava — e che le
+   * risalvava — e' il ponte con cui la foto di un'auto finiva sull'altra, col
+   * titolo giusto a fare da alibi. La fonte e' il profilo attivo; le caselle
+   * restano solo il ripiego di chi ha una vettura sola col formato vecchio. */
+  const photos = fotoDelProfiloAttivo();
   if (!panelNode) {
     panelNode = doc.createElement("section");
     panelNode.className = "ed-form dm-ev-photos";
     panelNode.dataset.evPhotos = "true";
-    panelNode.innerHTML = `<div class="ed-sec-title">📸 ${t("Foto dell'auto", "Vehicle photos")}</div>
+    panelNode.innerHTML = `<div class="ed-sec-title" data-ev-photos-title>📸 ${t("Foto dell'auto", "Vehicle photos")}</div>
       <div class="ed-intro">${t(
         "Due scatti della stessa auto: la plancia mostra quello con il cavo attaccato mentre è in ricarica e l'altro nel resto del tempo. Basta la prima: senza la seconda resta sempre quella.",
         "Two shots of the same car: the dashboard shows the plugged-in one while it charges and the other one the rest of the time. The first is enough — without the second it simply stays.",
@@ -328,6 +362,235 @@ export function ensureVehiclePhotoEditor() {
     }
   }
   for (const field of panelNode.querySelectorAll("[data-ev-photo]")) paintPhotoPreview(field);
+  /* Il pannello scrive sull'auto attiva, e lo dice.
+   *
+   * Con due auto configurate le foto caricate qui finivano "da qualche parte":
+   * sul profilo attivo, che non e' per forza quello che si sta guardando
+   * nell'accordion. Chi apriva la configurazione con la B10 attiva e caricava
+   * le foto della T03 se le ritrovava sulla B10 — ed e' esattamente il "si
+   * mischiano le foto" segnalato per giorni. Il titolo adesso porta il nome
+   * dell'auto a cui le foto verranno salvate, aggiornato a ogni passata. */
+  const titolo = panelNode.querySelector("[data-ev-photos-title]");
+  if (titolo) {
+    const elenco = profiles();
+    const attiva = elenco[Math.max(0, Math.min(elenco.length - 1, activeIndex()))];
+    const nome = clean(attiva?.name);
+    const testo = nome && elenco.length > 1
+      ? `📸 ${t("Foto dell'auto", "Vehicle photos")} — ${nome}`
+      : `📸 ${t("Foto dell'auto", "Vehicle photos")}`;
+    if (titolo.textContent !== testo) titolo.textContent = testo;
+    /* La bozza non sopravvive al cambio d'auto.
+     *
+     * Un percorso scritto e non ancora salvato resta nel campo apposta — il
+     * pannello si ridisegna da solo mentre si scrive. Ma se nel frattempo
+     * cambia l'AUTO di destinazione, quella bozza apparteneva all'altra:
+     * salvarla adesso la scriverebbe sul profilo sbagliato, con il titolo
+     * nuovo a fare da alibi. Al cambio si azzera il segno di modifica e i
+     * campi si ricaricano dalle foto dell'auto appena scelta. */
+    if (titolo.dataset.evPhotosFor !== undefined && titolo.dataset.evPhotosFor !== nome) {
+      const foto = fotoDelProfiloAttivo();
+      for (const field of panelNode.querySelectorAll("[data-ev-photo]")) {
+        delete field.dataset.evPhotoEdited;
+        const input = field.querySelector("[data-ev-photo-input]");
+        /* Anche sul campo a fuoco: il cambio d'auto e' un gesto dell'utente,
+         * non un giro di fondo, e la bozza appartiene all'auto di prima. */
+        if (input) {
+          input.value = foto[field.dataset.evPhoto] || "";
+          paintPhotoPreview(field);
+        }
+      }
+    }
+    titolo.dataset.evPhotosFor = nome;
+  }
+  return true;
+}
+
+/* Il nome sulla scheda decide di chi sono i campi.
+ *
+ * La scheda dell'auto e' un campo nome sopra le caselle delle entita' dm.ev_*,
+ * che mostrano la mappatura VIVA — quella dell'auto attiva. Scrivere li' il
+ * nome di un'auto nuova e premere «salva scheda» catturava quei campi cosi'
+ * com'erano: la nuova nasceva con le entita' dell'altra addosso, e sembrava
+ * la stessa macchina con un altro nome. Segnalato alla lettera: «appena
+ * inserisco il nome di un'altra auto deve svuotare i dati».
+ *
+ * Il campo nome adesso governa le caselle: un nome che non e' di nessuno le
+ * svuota — l'auto nuova parte da zero — e il nome di un'auto esistente le
+ * ricarica dai dati SUOI, cosi' risalvarla non le scrive addosso la mappatura
+ * di quella attiva. Si toccano solo i campi a video: le mappature salvate non
+ * cambiano finche' non si preme salva, ed e' `edSetSlot` — il giro di sempre —
+ * a leggere i campi al salvataggio.
+ *
+ * Un campo scritto A MANO in questa seduta pero' non si tocca: chi compila
+ * prima le entita' della vettura nuova e per ultimo il nome sta descrivendo
+ * proprio lei, e svuotarglielo sarebbe rubargli il lavoro dalle dita — la
+ * scheda poi nemmeno si salverebbe, perche' il runtime esige almeno una
+ * entita'. E' la stessa regola delle bozze del pannello foto. Il segno vive
+ * qui nel modulo, per riferimento: l'editor si ridisegna di continuo e un
+ * segno appoggiato sul nodo morirebbe col nodo — il valore no, perche' il
+ * cambio l'ha gia' scritto nelle mappature e il ridisegno lo ristampa. Si
+ * azzera quando la scheda si salva e quando si cambia auto: da li' i campi
+ * tornano a raccontare il modello. */
+const refToccati = () => (state.evTouchedRefs ||= new Set());
+
+/* Il segnalibro dei campi toccati deve esserci PRIMA che qualcuno tocchi.
+ *
+ * Stava dentro ensureCarNameGuard, che parte col primo giro differito della
+ * sezione: su un dispositivo lento c'e' una finestra in cui l'editor e' gia'
+ * visibile ma il giro non e' ancora passato. Un'entita' digitata li' dentro
+ * non veniva marcata; al primo nome scritto il guardiano la prendeva per un
+ * residuo dell'auto precedente e la svuotava — e il salvataggio rispondeva
+ * «nessuna entita' mappata». Si installa al montaggio della sezione. */
+function installSlotTouchTracker() {
+  if (!doc || state.evSlotTouchGuard) return;
+  state.evSlotTouchGuard = true;
+  for (const eventName of ["input", "change"]) {
+    doc.addEventListener(
+      eventName,
+      (event) => {
+        const input = event.target;
+        if (!input?.matches?.('input.ed-slot-in[data-ref^="dm.ev_"]')) return;
+        const ref = clean(input.dataset?.ref);
+        if (ref) refToccati().add(ref);
+      },
+      true,
+    );
+  }
+}
+
+function ensureCarNameGuard() {
+  if (!doc) return false;
+  installSlotTouchTracker();
+  const campo = doc.getElementById("ed-evcar-name");
+  if (!campo || campo.dataset.dmEvNameGuard === "true") return false;
+  campo.dataset.dmEvNameGuard = "true";
+  /* Il nome e' un dato della scheda, non un timone.
+   *
+   * Prima scrivere qui dentro RICARICAVA o SVUOTAVA le caselle delle entita'
+   * a seconda che il nome fosse di qualcuno o di nessuno: rinominare un'auto
+   * era impossibile (a meta' digitazione i campi cambiavano padrone) e un
+   * prefisso uguale a un'altra auto ne caricava la mappatura. Di chi sono i
+   * campi lo decide la SESSIONE — la matita apre un'auto, ＋ apre la bozza —
+   * e il nome scritto qui e' semplicemente il nome che quell'auto avra'. */
+  return true;
+}
+
+/* La lista delle auto parla la lingua delle altre sezioni.
+ *
+ * Il runtime la stampava col suo vocabolario: un distintivo «✓ attiva» (che
+ * non significa niente in configurazione: attive lo sono tutte, quale si
+ * MOSTRA lo decide la plancia), una tendina «scegli un profilo da modificare»
+ * che nessuno capiva, e un bottone «＋ Salva attuale» che fotografava la
+ * mappatura viva — il gesto da cui le auto si rubavano i dati a vicenda.
+ * Segnalato alla lettera: «che significa aggiungi attuale? per aggiungere
+ * un'auto devi mettere un + con un campo per il nome e sotto marca, modello
+ * e tutte le entità; per modificare deve esserci la matita come in tutte le
+ * sezioni».
+ *
+ * Ogni riga prende la matita — che apre QUELLA auto nella scheda sotto, nome
+ * compreso — il distintivo sparisce, la tendina pure, e i due bottoni dicono
+ * quello che fanno: «＋ Aggiungi auto» svuota la scheda per una vettura
+ * nuova, «💾 Salva auto» salva quella che si sta compilando. */
+function ensureCarListDecor() {
+  const campoNome = doc?.getElementById("ed-evcar-name");
+  if (!campoNome) return false;
+  // La scheda e' aperta: da qui in poi ogni auto deve avere la sua chiave.
+  ensureCarKeys();
+  const contenitore = doc.getElementById("ed-body");
+  if (!contenitore) return false;
+
+  for (const bottone of contenitore.querySelectorAll('[data-act="use"]')) {
+    const riga = bottone.closest(".ed-row");
+    if (!riga) continue;
+    for (const badge of riga.querySelectorAll(".pool-badge"))
+      if (/attiv/i.test(clean(badge.textContent))) badge.remove();
+    if (!riga.querySelector("[data-ev-edit]")) {
+      const matita = doc.createElement("button");
+      matita.type = "button";
+      matita.className = "ed-btn-add";
+      matita.dataset.evEdit = bottone.dataset.idx || "";
+      matita.style.cssText = "flex:0 0 auto;margin-right:6px;";
+      matita.textContent = "✏️";
+      matita.setAttribute("aria-label", t("Modifica questa auto", "Edit this car"));
+      matita.addEventListener("click", () => {
+        const indice = Number.parseInt(matita.dataset.evEdit, 10);
+        if (!Number.isFinite(indice)) return;
+        const auto = ensureCarKeys()[indice] || profiles()[indice];
+        const nome = clean(auto?.name);
+        try { root.cdEvCarSelEd?.({ value: String(indice) }); } catch (_error) {}
+        setEditingKey(carKey(auto || {}));
+        /* La matita e' l'unico gesto che dice «sto modificando LEI»: da qui
+         * salvare con un nome diverso rinomina, invece di creare una riga. */
+        state.evRenameArmed = true;
+        /* Il ridisegno ricrea il campo del nome vuoto: lo si riempie con
+         * l'auto appena aperta, cosi' «Salva auto» salva proprio lei. */
+        const campo = doc.getElementById("ed-evcar-name");
+        if (campo && nome) {
+          campo.value = nome;
+          campo.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      });
+      bottone.insertAdjacentElement("beforebegin", matita);
+    }
+  }
+
+  const tendina = contenitore.querySelector('select[onchange*="cdEvCarSelEd"]');
+  if (tendina) tendina.style.setProperty("display", "none", "important");
+
+  const salva = contenitore.querySelector('button[onclick*="edEvCarAdd"]');
+  if (salva) {
+    const testoSalva = `💾 ${t("Salva auto", "Save car")}`;
+    if (salva.textContent !== testoSalva) salva.textContent = testoSalva;
+    const rigaNome = salva.parentElement;
+    if (rigaNome && !contenitore.querySelector("[data-ev-add-new]")) {
+      const aggiungi = doc.createElement("button");
+      aggiungi.type = "button";
+      aggiungi.className = "ed-btn-add";
+      aggiungi.dataset.evAddNew = "true";
+      aggiungi.style.cssText = "display:block;width:100%;margin:12px 0 8px;";
+      aggiungi.textContent = `＋ ${t("Aggiungi auto", "Add car")}`;
+      aggiungi.addEventListener("click", () => {
+        const campo = doc.getElementById("ed-evcar-name");
+        if (!campo) return;
+        setEditingKey("");
+        state.evRenameArmed = false;
+        campo.value = "";
+        // Il ＋ e' il gesto «riparto da zero»: si svuota tutto qui, in modo
+        // esplicito — il guardiano del nome protegge i valori scritti a
+        // mano, e qui invece anche quelli devono andarsene.
+        refToccati().clear();
+        for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]'))
+          slot.value = "";
+        campo.dispatchEvent(new Event("input", { bubbles: true }));
+        // Anche marca e modello: la card Brand non deve mostrare la vettura
+        // precedente sulla scheda di una nuova.
+        const pannello = doc.querySelector("#ed-body [data-ev-appearance]");
+        const marca = pannello?.querySelector?.("select[data-brand]");
+        const modello = pannello?.querySelector?.("select[data-model]");
+        if (marca && marca.options.length) {
+          marca.selectedIndex = 0;
+          marca.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        if (modello) {
+          modello.value = "";
+          modello.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        campo.focus();
+      });
+      rigaNome.insertAdjacentElement("beforebegin", aggiungi);
+    }
+  }
+
+  const intro = [...contenitore.querySelectorAll(".ed-intro")].find((nodo) =>
+    /salvale come profilo|save them as a profile|Aggiungi auto per crearne/i.test(clean(nodo.textContent)),
+  );
+  if (intro) {
+    const testo = `🚗 ${t(
+      "Ogni auto è una scheda: ＋ Aggiungi auto per crearne una nuova — nome, marca, modello e tutte le entità qui sotto — la matita per modificarla, USA per mostrarla in plancia.",
+      "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.",
+    )}`;
+    if (clean(intro.textContent) !== clean(testo)) intro.textContent = testo;
+  }
   return true;
 }
 
@@ -349,6 +612,34 @@ export function stateChangeAffectsEv(event) {
 }
 
 function activeIndex() { const index = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "-1", 10); return Number.isFinite(index) ? index : -1; }
+
+/* Ogni auto porta la sua chiave, sempre.
+ *
+ * La chiave nasceva solo premendo «Salva auto» con altre auto in lista: una
+ * configurazione mai risalvata non ne aveva nessuna, e tutto il riconoscimento
+ * ricadeva sul nome — che e' esattamente il modo in cui le auto si mescolavano.
+ * Qui la chiave si assegna appena l'elenco passa di mano, e da li' non cambia
+ * piu': rinominare un'auto non la fa diventare un'altra. */
+function ensureCarKeys() {
+  const legacy = legacyProfiles();
+  if (!legacy.length) return legacy;
+  const conChiavi = assignCarKeys(legacy);
+  if (conChiavi !== legacy) {
+    writeJsonIfChanged("cd_ev_cars", conChiavi);
+    try { dashboardStore()?.replaceSection?.("ev", conChiavi)?.catch?.(() => {}); } catch (_error) {}
+  }
+  return conChiavi;
+}
+
+/* Di chi sono i campi della scheda, adesso.
+ *
+ * null  = nessun gesto esplicito: la scheda racconta l'auto attiva.
+ * ""    = bozza («＋ Aggiungi auto»): la scheda e' di una vettura che non
+ *         esiste ancora.
+ * uid   = la matita ha aperto QUELLA auto, e il nome scritto nel campo e' il
+ *         suo nome — anche cambiato: rinominare non apre un'altra scheda. */
+function editingKey() { return state.evEditingUid ?? null; }
+function setEditingKey(value) { state.evEditingUid = value; }
 
 /* Dove sta scritta la carica dell'auto.
  *
@@ -402,7 +693,7 @@ function chooseProfile(index) {
 }
 
 function selectorStructureSignature(cars) {
-  return cars.map((car,index)=>[index,clean(car.name),clean(car.brand),clean(car.icon)].join("~")).join("|");
+  return cars.map((car,index)=>[index,carKey(car),clean(car.name),clean(car.brand),clean(car.icon)].join("~")).join("|");
 }
 function bindProfileNav(nav) {
   if (nav.dataset.dmEvBound === "true") return;
@@ -410,11 +701,18 @@ function bindProfileNav(nav) {
   nav.addEventListener("click", (event) => {
     const button = event.target?.closest?.(".dm-vehicle-profile-card[data-vehicle-index]");
     if (!button || !nav.contains(button)) return;
-    const index = Number.parseInt(button.dataset.vehicleIndex, 10); if (Number.isFinite(index)) chooseProfile(index);
+    /* Il tab porta la CHIAVE dell'auto e l'indice si risolve adesso,
+     * sull'elenco di adesso: fra il disegno e il tocco la lista puo' essere
+     * cambiata (una cancellazione, un riordino) e un indice fotografato
+     * avrebbe aperto la vettura sbagliata. */
+    const key = clean(button.dataset.vehicleKey);
+    const risolto = key ? carIndexByKey(profiles(), key) : -1;
+    const index = risolto >= 0 ? risolto : Number.parseInt(button.dataset.vehicleIndex, 10);
+    if (Number.isFinite(index) && index >= 0) chooseProfile(index);
   });
 }
 function buildProfileButtons(nav, cars) {
-  nav.innerHTML = cars.map((car,index)=>`<button type="button" class="dm-vehicle-profile-card" data-vehicle-index="${index}"><span class="dm-vehicle-profile-icon">${vehicleProfileVisual(car)}</span><span class="dm-vehicle-profile-copy"><strong>${esc(car.name || `${t("Auto","Vehicle")} ${index+1}`)}</strong><small></small></span><span class="dm-vehicle-profile-check" aria-hidden="true"></span></button>`).join("");
+  nav.innerHTML = cars.map((car,index)=>`<button type="button" class="dm-vehicle-profile-card" data-vehicle-index="${index}" data-vehicle-key="${esc(carKey(car))}"><span class="dm-vehicle-profile-icon">${vehicleProfileVisual(car)}</span><span class="dm-vehicle-profile-copy"><strong>${esc(car.name || `${t("Auto","Vehicle")} ${index+1}`)}</strong><small></small></span><span class="dm-vehicle-profile-check" aria-hidden="true"></span></button>`).join("");
   bindProfileNav(nav);
 }
 
@@ -559,7 +857,21 @@ function saveProfilePhotos(photos) {
   const legacy = legacyProfiles();
   const cars = legacy.length ? legacy : canonicalProfiles();
   if (!cars.length) return false;
+  /* Con l'attiva appena cancellata l'indice vale -1: il vecchio clamp a zero
+   * scriveva le foto della vettura sparita sulla prima della lista. Nessuna
+   * auto attiva, nessun salvataggio. */
+  if (activeIndex() < 0) return false;
   const posizione = Math.max(0, Math.min(cars.length - 1, activeIndex()));
+  /* Niente pulizie d'ufficio sugli altri profili.
+   *
+   * C'era la tentazione di togliere la coppia appena salvata a chi la portava
+   * identica — la firma del vecchio furto. Ma due auto possono portare la
+   * stessa foto per scelta legittima, e l'uguaglianza dei percorsi non prova
+   * niente: cancellare in silenzio una configurazione valida e' peggio del
+   * difetto che si voleva riparare. Chi ha i profili mescolati li risistema
+   * risalvando le foto giuste su ciascuna auto, col pannello che adesso
+   * dichiara a chi sta scrivendo — e la resurrezione dagli alias e' chiusa
+   * alla fonte. */
   const aggiornate = withProfilePhotos(cars, posizione, photos);
   if (aggiornate === cars) return false;
   if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);
@@ -620,6 +932,11 @@ function installLegacyWrappers() {
     function applyProfile(index, ...rest) {
       const before=configuredPhotos();
       const car=legacyProfiles()[Number(index)] || {};
+      // Cambiare auto chiude la seduta di scrittura: i campi raccontano lei.
+      refToccati().clear();
+      setEditingKey(carKey(car));
+      // Applicare non e' un mandato di rinomina: quello lo da' solo la matita.
+      state.evRenameArmed = false;
       const result=previous.call(this,index,...rest);
       restoreProfilePhotos(car, before);
       state.legacyRefreshSignature=""; root.queueMicrotask?.(scheduleEvSync); return result;
@@ -667,16 +984,134 @@ function installLegacyWrappers() {
   if (typeof root.edEvCarAdd === "function" && !root.edEvCarAdd.__dmEvSection) {
     const previous=root.edEvCarAdd;
     function addProfile(...args) {
-      const prima=legacyProfiles();
+      ensureCarKeys();
+      const primaOriginale=legacyProfiles();
       const indiceAttivoPrima=activeIndex();
+      /* La sessione dice CHI si sta salvando; il runtime invece riconosce per
+       * nome. I due mondi si allineano prima di chiamarlo:
+       * - salvare la sessione col nome cambiato RINOMINA quell'auto (la
+       *   chiave resta: e' sempre lei), cosi' il runtime la ritrova per nome
+       *   e ci scrive sopra invece di partorire una riga doppia;
+       * - un nome che appartiene a UN'ALTRA auto non si salva: era il gesto
+       *   da cui una vettura si prendeva i dati dell'altra. */
+      const nomeScritto = clean(doc?.getElementById("ed-evcar-name")?.value);
+      const chiaveSessione = editingKey();
+      /* La sessione ESPLICITA (matita, applica) autorizza la rinomina; senza
+       * un gesto la scheda si comporta come sempre: un nome nuovo crea una
+       * vettura nuova, il nome dell'attiva la risalva. Il fallback all'attiva
+       * serve solo a distinguere «il suo stesso nome» da «il nome di
+       * un'altra» — mai a rinominarla di nascosto. */
+      const sessioneEsplicita = chiaveSessione
+        ? primaOriginale.find((car) => carKey(car) === chiaveSessione) || null
+        : null;
+      const sessione = sessioneEsplicita
+        || (chiaveSessione === "" ? null : primaOriginale[indiceAttivoPrima] || null);
+      const omonima = nomeScritto
+        ? primaOriginale.find(
+            (car) => clean(car?.name) === nomeScritto && (!sessione || carKey(car) !== carKey(sessione)),
+          )
+        : null;
+      if (omonima) {
+        const avviso = t(
+          `Esiste già un'auto "${nomeScritto}": usa la matita per modificarla, o scegli un altro nome`,
+          `A car named "${nomeScritto}" already exists: use the pencil to edit it, or pick another name`,
+        );
+        try { root.edToast?.(avviso); } catch (_error) {}
+        return undefined;
+      }
+      let prima = primaOriginale;
+      if (sessioneEsplicita && state.evRenameArmed && nomeScritto && clean(sessioneEsplicita.name) !== nomeScritto) {
+        prima = primaOriginale.map((car) =>
+          carKey(car) === carKey(sessioneEsplicita) ? { ...car, name: nomeScritto } : car,
+        );
+        writeJsonIfChanged("cd_ev_cars", prima);
+      }
+      /* La scelta viva di marca e modello si legge ORA: il ridisegno che il
+       * runtime fa salvando smonta la card Brand, e a cose fatte le tendine
+       * non ci sono piu'. */
+      const pannelloPrima = doc?.querySelector?.("#ed-body [data-ev-appearance]");
+      const marcaViva = clean(pannelloPrima?.querySelector?.("select[data-brand]")?.value);
+      const modelloVivo = clean(pannelloPrima?.querySelector?.("select[data-model]")?.value);
       const result=previous.apply(this,args);
       const dopo=legacyProfiles();
-      const rimesse=restoreCarIdentities(dopo, prima, indiceAttivoPrima);
+      let rimesse=restoreCarIdentities(dopo, prima, indiceAttivoPrima);
+      /* Un'auto NUOVA nasce senza foto.
+       *
+       * Il runtime la battezza con le due caselle piatte — che sono le foto
+       * dell'auto ATTIVA in quel momento. Con una vettura gia' configurata,
+       * la seconda nasceva cosi' con la foto della prima addosso, e nessuna
+       * protezione poteva accorgersene: `restoreCarIdentities` restituisce
+       * intatta un'auto che prima non c'era. Le foto di un'auto nuova si
+       * scelgono dal pannello, non si ereditano. Il primissimo profilo resta
+       * fuori: li' il travaso dalle caselle e' l'adozione del formato
+       * vecchio, ed e' voluto. */
+      if (prima.length) {
+        /* Un'auto e' "gia' conosciuta" se porta una chiave che era in lista:
+         * il nome non basta piu' (rinominare non e' nascere). Le nuove nate
+         * escono da assignCarKeys con una chiave fresca, mai vista. */
+        const conosciute = new Set(prima.map((car) => clean(car?.uid)).filter(Boolean));
+        rimesse = rimesse.map((car) =>
+          conosciute.has(clean(car?.uid))
+            ? car
+            : { ...car, img: "", imgPlugged: "", image: "", image_url: "" },
+        );
+      }
+      /* Marca e modello della vettura nuova stanno nelle tendine della card
+       * Brand: durante la bozza «Salva brand e modello» non scrive su
+       * nessuno (avrebbe vestito l'auto ancora attiva coi panni della
+       * nuova), quindi e' QUI, alla nascita del profilo, che la scelta
+       * viva sale a bordo. */
+      if (marcaViva) {
+        const nate = new Set(prima.map((car) => clean(car?.uid)).filter(Boolean));
+        rimesse = rimesse.map((car) =>
+          nate.has(clean(car?.uid)) || clean(car?.brand)
+            ? car
+            : { ...car, brand: marcaViva, ...(modelloVivo ? { model: modelloVivo } : {}) },
+        );
+      }
       if (rimesse !== dopo) writeJsonIfChanged("cd_ev_cars", rimesse);
+      // Scheda salvata: la seduta di scrittura e' chiusa, i segni si azzerano,
+      // e la sessione diventa l'auto appena salvata (il runtime l'ha attivata).
+      refToccati().clear();
+      setEditingKey(carKey(rimesse[activeIndex()] || {}));
+      state.evRenameArmed = false;
+      /* Il runtime ha appena reso attiva l'auto salvata, ma le due caselle da
+       * cui il disegno legge portano ancora le foto di quella di prima: senza
+       * questa risemina l'eroe mostrava la vettura vecchia sotto la linguetta
+       * nuova, e un «Salva foto» in quel momento gliela scriveva addosso. */
+      const indiceDopo = activeIndex();
+      const attivaDopo = rimesse[indiceDopo];
+      if (attivaDopo && indiceDopo !== indiceAttivoPrima)
+        restoreProfilePhotos(attivaDopo, configuredPhotos(), rimesse.length);
       root.queueMicrotask?.(scheduleEvSyncSettled);
       return result;
     }
     addProfile.__dmEvSection=true; addProfile.__dmPrevious=previous; root.edEvCarAdd=addProfile;
+  }
+  /* «SALVA SEZIONE» salva anche le foto.
+   *
+   * Il bottone verde in fondo alla sezione raccoglie i campi entita' e
+   * nient'altro: le due caselle delle foto le salvava soltanto il tasto
+   * «Salva foto» del pannello. Chi scriveva un percorso e premeva il bottone
+   * grande — che e' quello che chiunque preme, sta in fondo e dice "salva la
+   * sezione" — si vedeva il percorso nel campo, l'anteprima giusta sotto, e
+   * niente nel profilo: alla riapertura tornava la foto di prima. Un campo
+   * toccato e non ancora salvato adesso si salva anche da qui. */
+  if (typeof root.edSaveSezione === "function" && !root.edSaveSezione.__dmEvSection) {
+    const previous=root.edSaveSezione;
+    function saveSection(button, ...rest) {
+      const result=previous.call(this, button, ...rest);
+      try {
+        const body=button?.closest?.(".ed-acc-body");
+        const panel=body?.querySelector?.("[data-ev-photos]");
+        if (panel && panel.querySelector('[data-ev-photo][data-ev-photo-edited="true"]')) {
+          savePhotos(panel);
+          panel.dataset.saved="true";
+        }
+      } catch (_error) {}
+      return result;
+    }
+    saveSection.__dmEvSection=true; saveSection.__dmPrevious=previous; root.edSaveSezione=saveSection;
   }
   /* Cancellare un'auto sposta tutte quelle sotto di lei: e' esattamente il caso
    * in cui una posizione salvata smette di indicare la vettura che indicava. La
@@ -685,7 +1120,34 @@ function installLegacyWrappers() {
   if (typeof root.cdEvCarBtn === "function" && !root.cdEvCarBtn.__dmEvSection) {
     const previous=root.cdEvCarBtn;
     function carButton(...args) {
+      const primaDelTasto=legacyProfiles();
       const result=previous.apply(this,args);
+      /* Dopo una cancellazione le caselle piatte portano ancora le foto della
+       * vettura sparita: si riseminano da quella che la plancia mostra ora.
+       * E se a sparire era proprio l'attiva, l'indice resta -1 mentre tutto
+       * il resto mostra la prima della lista come scelta: la si rende attiva
+       * DAVVERO, cosi' pannello e salvataggi parlano della stessa auto. */
+      const elenco=legacyProfiles();
+      if (activeIndex() < 0 && elenco.length) {
+        try { root.localStorage?.setItem("cd_ev_car_active", "0"); } catch (_error) {}
+      }
+      /* L'ultima auto se ne va con tutto quello che era suo.
+       *
+       * Cancellata l'ultima, le due caselle del disegno portavano ancora le
+       * sue foto e `cd_ev_car_active` il suo indice: la vettura spariva
+       * dall'elenco ma la sua fotografia restava sull'eroe, per sempre —
+       * "quando cancello non cancella tutto", alla lettera. Si pulisce solo
+       * quando la lista si e' svuotata ADESSO: una lista vuota da sempre e'
+       * una configurazione a caselle sole del formato vecchio, e li' le
+       * caselle sono l'unica casa della foto. */
+      if (primaDelTasto.length && !elenco.length) {
+        storePhoto(EV_PHOTO_KEYS.idle, "");
+        storePhoto(EV_PHOTO_KEYS.plugged, "");
+        try { root.localStorage?.removeItem("cd_ev_car_active"); } catch (_error) {}
+      }
+      const indice=Math.max(0, Math.min(elenco.length - 1, activeIndex()));
+      const attiva=elenco[indice];
+      if (attiva) restoreProfilePhotos(attiva, configuredPhotos(), elenco.length);
       root.queueMicrotask?.(scheduleEvSync);
       return result;
     }
@@ -715,7 +1177,7 @@ export function scheduleEvSync() {
    * all'elenco delle auto proprio mentre qualcun altro lo stava cambiando, e la
    * marca appena scelta tornava indietro da sola. Le migrazioni stanno
    * all'avvio, dove stanno le migrazioni. */
-  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();};
+  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();ensureCarNameGuard();ensureCarListDecor();};
   state.frame=root.requestAnimationFrame?.(run)||root.setTimeout?.(run,0)||0;
 }
 
@@ -765,7 +1227,7 @@ function bindEditorEntryPoints() {
 
 export function installEvSection() {
   if (!doc) return;
-  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installLegacyWrappers(); bindEditorEntryPoints();
+  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installSlotTouchTracker(); installLegacyWrappers(); bindEditorEntryPoints();
   /* Gli involucri si prendono appena i giri del runtime esistono.
    *
    * `installLegacyWrappers` non puo' fare niente se il runtime non ha ancora

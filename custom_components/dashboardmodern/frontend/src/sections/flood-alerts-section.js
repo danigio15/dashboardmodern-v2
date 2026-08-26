@@ -19,7 +19,7 @@
  * a mano quando lo si sa gia' sarebbe solo lavoro in piu'. Chi non li vuole li
  * toglie, e la rimozione resta — e' la stessa regola delle altre liste.
  */
-import { allStates, clean, doc, esc, installStyle, lexicalGlobal, onEditorRedraw, readJson, root, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
+import { allStates, clean, doc, esc, lexicalGlobal, onEditorRedraw, readJson, root, t, writeJsonIfChanged } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_FLOOD_ALERTS__";
 const state = (root[KEY] ||= { installed: false, frame: 0, deleteBound: false });
@@ -127,102 +127,15 @@ export function syncFloodGroup({ rileva = false } = {}) {
   return entities;
 }
 
-/* La card nel quadro, uguale alle altre.
- *
- * Non si copia il foglio di stile: si copia la struttura, e le classi che il
- * quadro ha gia' fanno il resto — cosi' se un giorno cambia l'aspetto delle
- * card cambia anche questa, senza che nessuno se ne debba ricordare. */
-function ensureFloodCard() {
-  const grid = doc?.getElementById("glance-grid");
-  if (!grid) return null;
-  let card = doc.getElementById("glance-" + FLOOD_GROUP);
-  if (!card) {
-    card = doc.createElement("div");
-    card.className = "glance-card";
-    card.id = "glance-" + FLOOD_GROUP;
-    card.style.setProperty("--g-rgb", FLOOD_RGB);
-    card.style.display = "none";
-    card.dataset.dmFloodCard = "true";
-    card.addEventListener("click", (event) => {
-      root.apriDettagli?.(event, FLOOD_GROUP);
-    });
-    grid.append(card);
-  }
-  const nome = floodName();
-  if (clean(card.dataset.dmFloodLabel) !== nome) {
-    card.dataset.dmFloodLabel = nome;
-    card.innerHTML =
-      `<div class="g-info"><span class="g-name">${esc(nome)}</span>` +
-      `<span class="g-val" id="g-val-${FLOOD_GROUP}">0</span></div>` +
-      `<div class="g-icon-wrap anim-ping" style="color: var(--load);">${FLOOD_ICON}</div>`;
-  }
-  return card;
-}
+/* La card del Quadro Avvisi che questa sezione aggiungeva — «Allagamenti»,
+ * accanto alle altre cinque — non c'e' piu': il Quadro e' uscito dalla Home e
+ * i sensori bagnati sono una tessera del ponte, che li legge da questo stesso
+ * gruppo. Qui resta il lavoro che serve ancora: riconoscere i sensori,
+ * tenere il gruppo aggiornato e dare all'editor le sue righe. */
 
 /** Quante ne sono bagnate adesso. */
 export function countWet(entities = [], states = {}) {
   return entities.reduce((numero, id) => numero + (floodIsWet(states[id]) ? 1 : 0), 0);
-}
-
-/* Il quadro mostra una card solo quando ha qualcosa da dire: zero allagamenti
- * e' una buona notizia, non una riga da leggere. E' la regola delle altre
- * cinque, e vale anche per questa. */
-function paintFloodCard() {
-  const entities = syncFloodGroup();
-  if (entities === null) return false;
-  const card = ensureFloodCard();
-  if (!card) return false;
-  const quante = countWet(entities, allStates());
-  const valore = doc.getElementById("g-val-" + FLOOD_GROUP);
-  if (valore) valore.textContent = String(quante);
-  card.style.display = quante > 0 ? "flex" : "none";
-  return true;
-}
-
-/* Il popup del quadro conosce cinque tipi e per il sesto uscirebbe vuoto.
- * Gli si lascia fare il suo giro — apre la finestra, ci mette dentro il suo
- * «Nessun elemento attivo» — e poi si scrive il titolo e l'elenco che gli
- * mancano, con le stesse classi delle altre righe. */
-function floodDetailsMarkup(entities, states) {
-  const bagnate = entities.filter((id) => floodIsWet(states[id]));
-  if (!bagnate.length) return "";
-  return bagnate
-    .map((id) => {
-      const stato = states[id];
-      const nome =
-        clean(readJson("cd_avvisi_names_extra", {})?.[id]) ||
-        clean(stato?.attributes?.friendly_name) ||
-        id;
-      return (
-        '<div class="detail-row"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;overflow:hidden;">' +
-        `<div class="d-icon" style="flex-shrink:0;background:#e0f2fe;">${FLOOD_ICON}</div>` +
-        '<div class="d-info" style="min-width:0;flex:1;overflow:hidden;">' +
-        `<div class="d-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;">${esc(nome)}</div>` +
-        `<div class="d-state"><span style="color:#dc2626; font-weight:900;">${esc(t("ALLAGAMENTO", "FLOOD"))}</span></div>` +
-        "</div></div></div>"
-      );
-    })
-    .join("");
-}
-
-function installDetailsWrapper() {
-  const previous = root.apriDettagli;
-  if (typeof previous !== "function" || previous.__dmFloodAlerts) return false;
-  function apriDettagli(event, tipo, ...rest) {
-    const risultato = previous.call(this, event, tipo, ...rest);
-    if (clean(tipo) !== FLOOD_GROUP) return risultato;
-    const titolo = doc?.getElementById("details-title");
-    if (titolo) titolo.innerHTML = `${FLOOD_ICON} ${esc(floodName().toUpperCase())}`;
-    const lista = doc?.getElementById("details-list");
-    const righe = floodDetailsMarkup(syncFloodGroup() || [], allStates());
-    if (lista && righe) lista.innerHTML = righe;
-    return risultato;
-  }
-  Object.assign(apriDettagli, previous);
-  apriDettagli.__dmFloodAlerts = true;
-  apriDettagli.__dmPrevious = previous;
-  root.apriDettagli = apriDettagli;
-  return true;
 }
 
 /* La voce nella configurazione.
@@ -324,21 +237,16 @@ function installFloodDeleteHandler() {
     root.edDelAvviso?.(FLOOD_GROUP, id);
     syncFloodGroup();
     root.editorSwitch?.("avvisi");
-    root.setTimeout?.(() => {
-      ensureFloodEditorRows();
-      paintFloodCard();
-    }, 0);
+    root.setTimeout?.(ensureFloodEditorRows, 0);
   });
   return true;
 }
 
 export function refreshFloodAlerts({ rileva = false } = {}) {
-  installDetailsWrapper();
   installFloodDeleteHandler();
   ensureGroupOptions();
   if (rileva) syncFloodGroup({ rileva: true });
-  ensureFloodEditorRows();
-  return paintFloodCard();
+  return ensureFloodEditorRows();
 }
 
 /* Il giro che guarda: l'avvio, e ogni volta che gli stati arrivano o
@@ -354,22 +262,9 @@ function schedule() {
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0) || 0;
 }
 
-function installStyles() {
-  installStyle(
-    "dm-flood-alerts-style",
-    `
-    /* La card nasce dopo le altre e il quadro la impagina come le sue: qui si
-       dice solo come si dispone quando c'e', perche' l'attributo di stile in
-       linea che la nasconde lo scrive il conteggio, non il foglio. */
-    #glance-grid #glance-${FLOOD_GROUP}[style*="flex"]{display:flex!important}
-  `,
-  );
-}
-
 export function installFloodAlertsSection() {
   if (!doc || state.installed) return false;
   state.installed = true;
-  installStyles();
   /* Chi ridisegna il pannello e' `editorSwitch`, e ridisegnandolo si porta via
    * la nostra fisarmonica: e' lui che va aspettato, non un evento qualsiasi che
    * passi di li' per caso. E' la stessa maniglia a cui si tiene la sezione

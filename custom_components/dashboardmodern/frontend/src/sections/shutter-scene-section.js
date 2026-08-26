@@ -4,7 +4,11 @@ import {
   coverIsAwning,
   coverIsSideways,
   coverKind,
+  coverDownRelay,
   coverKindLabel,
+  coverPositionChoices,
+  coverPresetPosition,
+  relayCoverCommands,
 } from "../core/cover-kind.js";
 import { allStates, clean, doc, esc, installStyle, root, t } from "./shared.js";
 
@@ -59,12 +63,30 @@ function floorOrder() {
   return Array.isArray(names) ? names : [];
 }
 
+/* Un rele' che comanda la tapparella: on la apre, off la chiude. */
+const eUnoSwitch = (entity) => /^switch\./i.test(clean(entity));
+
 function coverView(item = {}, distingui = false) {
   const entity = clean(item.entity || item.entities?.[0]);
   if (!entity) return null;
   const current = allStates()[entity];
-  const status = clean(current?.state).toLowerCase() || "unknown";
-  const raw = current?.attributes?.current_position;
+  const giu = coverDownRelay(item);
+  let status = clean(current?.state).toLowerCase() || "unknown";
+  /* Lo switch parla on/off: tradotto nella lingua delle coperture, cosi' la
+   * pastiglia, il conteggio e il disegno non devono saperne niente.
+   *
+   * Con due rele' (#194) il discorso cambia: acceso non vuol dire «aperta»
+   * ma «sta salendo», e l'altro rele' acceso vuol dire «sta scendendo». A
+   * rele' spenti dove sia arrivata non lo sa nessuno — un motore a due fili
+   * non lo racconta — e dirlo per finta sarebbe peggio che tacere. */
+  if (eUnoSwitch(entity) && giu) {
+    const su = status === "on";
+    const scende = clean(allStates()[giu]?.state).toLowerCase() === "on";
+    status = su ? "opening" : scende ? "closing" : "unknown";
+  } else if (eUnoSwitch(entity)) {
+    status = status === "on" ? "open" : status === "off" ? "closed" : status;
+  }
+  const raw = eUnoSwitch(entity) ? null : current?.attributes?.current_position;
   const reported = raw == null ? null : Math.max(0, Math.min(100, Number(raw)));
   const hasPosition = Number.isFinite(reported);
   const features = Number(current?.attributes?.supported_features) || 0;
@@ -84,6 +106,8 @@ function coverView(item = {}, distingui = false) {
     hasPosition: hasPosition || Boolean(grab),
     settable: Boolean(features & SUPPORT_SET_POSITION),
     moving: status === "opening" || status === "closing",
+    preset: coverPresetPosition(item),
+    down: giu,
   };
 }
 
@@ -93,13 +117,28 @@ function nomeCopertura(item, current, entity, distingui) {
   return `${base} · ${coverKindLabel(coverKind(item, current))}`;
 }
 
-/* Le card di una riga di configurazione: una per casella compilata. */
+/* Una riga di configurazione e' UNA finestra, anche con tre coperture.
+ *
+ * Le caselle in piu' — tenda, tenda da sole — uscivano come card separate: tre
+ * riquadri per lo stesso infisso, e sotto la foto della finestra il cursore
+ * era sempre uno solo. Chiesto piu' volte, con le stesse parole: «i 3 cursori,
+ * uno per ogni entita', sotto la foto della finestra». La card adesso e' una:
+ * la finestra disegna tutti i teli insieme, e sotto c'e' un cursore per
+ * copertura, ciascuno con la sua etichetta e la sua percentuale. */
 function viewsFor(item = {}) {
   const entries = coverEntries(item);
   if (!entries.length) return [coverView(item)].filter(Boolean);
-  return entries
-    .map(({ entity, kind }) => coverView({ ...item, entity, kind }, entries.length > 1))
+  const viste = entries
+    .map(({ entity, kind }) => coverView({ ...item, entity, kind }, false))
     .filter(Boolean);
+  if (viste.length <= 1) return viste;
+  const [principale, ...altre] = viste;
+  return [{ ...principale, extra: altre }];
+}
+
+/** Tutte le coperture di una view, la principale per prima. */
+function coperture(view) {
+  return [view, ...(view.extra || [])];
 }
 
 function coverList() {
@@ -134,7 +173,13 @@ function groupLabel(view) {
  */
 function signature(views) {
   return views
-    .map((view) => [view.entity, view.name, view.floor, view.room, view.settable, view.kind].join("~"))
+    .map((view) =>
+      coperture(view)
+        .map((c) =>
+          [c.entity, c.name, view.floor, view.room, c.settable, c.kind, c.preset, c.down].join("~"),
+        )
+        .join("+"),
+    )
     .join("|");
 }
 
@@ -159,13 +204,19 @@ function statusLabel(view) {
   if (stato === "closing") return t("In chiusura", "Closing");
   if (stato === "open") return t("Aperta", "Open");
   if (stato === "closed") return t("Chiusa", "Closed");
+  /* Due rele' fermi non vogliono dire «non lo so»: vogliono dire che il
+   * motore non sta girando. Dove sia arrivata non lo racconta nessuno — il
+   * disegno la mette a meta', che e' il modo di non inventarlo — ma dire
+   * «Sconosciuta» su una tapparella che sta benissimo sembra un guasto. */
+  if (view.down) return t("Ferma", "Stopped");
   return t("Sconosciuta", "Unknown");
 }
 
 function summaryText(views) {
-  const moving = views.filter((view) => view.moving).length;
-  const open = views.filter((view) => !view.moving && view.position > 0).length;
-  const closed = views.length - moving - open;
+  const tutte = views.flatMap(coperture);
+  const moving = tutte.filter((view) => view.moving).length;
+  const open = tutte.filter((view) => !view.moving && view.position > 0).length;
+  const closed = tutte.length - moving - open;
   const parts = [];
   if (open) parts.push(open === 1 ? t("1 aperta", "1 open") : t(`${open} aperte`, `${open} open`));
   if (closed) parts.push(closed === 1 ? t("1 chiusa", "1 closed") : t(`${closed} chiuse`, `${closed} closed`));
@@ -235,12 +286,25 @@ function groupMarkup(view, count) {
  * cannot be sent to a position still shows where it stands; only a cover that
  * reports SET_POSITION gets the input that makes it draggable.
  */
-function trackMarkup(view) {
-  if (!view.settable) return `<div class="dm-tapp-track" data-dm-static aria-hidden="true"></div>`;
+function trackMarkup(view, { entity = "", etichetta = "" } = {}) {
+  const attr = entity ? ` data-dm-entity="${esc(entity)}"` : "";
+  if (!view.settable)
+    return `<div class="dm-tapp-track" data-dm-static aria-hidden="true"${attr}></div>`;
   const label = t(`Posizione di ${view.name}`, `Position of ${view.name}`);
-  return `<div class="dm-tapp-track">
+  return `<div class="dm-tapp-track"${attr}>
     <input class="dm-tapp-range" type="range" min="0" max="100" step="1" value="${view.position}"
-      aria-label="${esc(label)}" data-dm-position>
+      aria-label="${esc(etichetta || label)}"${attr} data-dm-position>
+  </div>`;
+}
+
+/* La barra di una copertura: etichetta (solo quando ce n'e' piu' d'una),
+ * cursore e percentuale, ciascuno legato alla propria entita'. */
+function barMarkup(cover, conEtichetta) {
+  const nome = coverKindLabel(cover.kind || "tapparella");
+  return `<div class="dm-tapp-bar" data-dm-bar="${esc(cover.entity)}">
+    ${conEtichetta ? `<span class="dm-tapp-bar-label">${esc(nome)}</span>` : ""}
+    ${trackMarkup(cover, { entity: cover.entity, etichetta: t(`Posizione di ${nome}`, `Position of ${nome}`) })}
+    <div class="tapp-pos" data-dm-readout data-dm-entity="${esc(cover.entity)}"></div>
   </div>`;
 }
 
@@ -265,8 +329,42 @@ function panelMarkup(view) {
   </div>`;
 }
 
+/* Il menu della posizione (#200).
+ *
+ * «Non voglio la chiusura completa ma tipo al 95%, per lasciar passare un po'
+ * d'aria»: sotto Apri/Ferma/Chiudi c'e' una tendina che le percentuali le fa
+ * scegliere li' per li', dal 100% aperta allo 0% chiusa di cinque in cinque —
+ * non una sola percentuale fissa decisa in configurazione. La posizione
+ * preferita, se c'e', resta nell'elenco segnata con la stella: e' la
+ * scorciatoia di casa, non piu' l'unica scelta, e sta nel suo posto in scala
+ * anche quando non cade sui passi da cinque. La tendina compare quando almeno
+ * una copertura della card accetta `set_cover_position`. */
+function presetOptions(preferita) {
+  return coverPositionChoices(preferita)
+    .map((value) => {
+      // La coda passa fuori da esc(): clean() mangerebbe lo spazio davanti.
+      const coda = value === 100 ? t("Aperta", "Open") : value === 0 ? t("Chiusa", "Closed") : "";
+      const stella = value === preferita ? "⭐ " : "";
+      return `<option value="${value}">${stella}${value}%${coda ? ` · ${esc(coda)}` : ""}</option>`;
+    })
+    .join("");
+}
+
+function presetSelectMarkup(view, tutte) {
+  if (!tutte.some((cover) => cover.settable)) return "";
+  const label = t("Scegli la posizione", "Choose the position");
+  return `<span class="tapp-btn dm-tapp-preset">
+      <select data-dm-preset aria-label="${esc(label)}" title="${esc(label)}">
+        <option value="">↕ ${esc(label)}</option>
+        ${presetOptions(view.preset)}
+      </select>
+    </span>`;
+}
+
 function cardMarkup(view) {
-  return `<article class="tapp-card dm-tapp-card" data-tapp="${esc(view.entity)}" data-dm-cover-kind="${esc(view.kind)}" data-dm-shutter-card>
+  const tutte = coperture(view);
+  const multiple = tutte.length > 1;
+  return `<article class="tapp-card dm-tapp-card" data-tapp="${esc(view.entity)}" data-dm-cover-kind="${esc(view.kind)}" data-dm-shutter-card${multiple ? ` data-dm-covers="${tutte.length}"` : ""}>
     <div class="tapp-head dm-tapp-head">
       <span class="dm-tapp-title">
         <span class="tapp-name">${esc(view.name)}</span>
@@ -277,18 +375,16 @@ function cardMarkup(view) {
     <div class="dm-tapp-stage">
       <div class="tapp-win">
         <div class="tapp-glass"></div>
-        ${panelMarkup(view)}
+        ${tutte.map((cover) => `<span data-dm-cover="${esc(cover.entity)}" class="dm-tapp-layer">${panelMarkup(cover)}</span>`).join("")}
       </div>
     </div>
     <div class="dm-tapp-spill" aria-hidden="true"></div>
-    <div class="dm-tapp-bar">
-      ${trackMarkup(view)}
-      <div class="tapp-pos" data-dm-readout></div>
-    </div>
+    ${tutte.map((cover) => barMarkup(cover, multiple)).join("")}
     <div class="tapp-ctl">
       <button type="button" class="tapp-btn" data-svc="open_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Apri", "Open"))}">▲</button>
       <button type="button" class="tapp-btn" data-svc="stop_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Ferma", "Stop"))}">■</button>
       <button type="button" class="tapp-btn" data-svc="close_cover" onclick="cdTappCmd(this)" aria-label="${esc(t("Chiudi", "Close"))}">▼</button>
+      ${presetSelectMarkup(view, tutte)}
     </div>
   </article>`;
 }
@@ -309,6 +405,21 @@ function gridMarkup(views) {
 
 /* ──────────────────────────────── paint ─────────────────────────────────── */
 
+/* Lo stato della card intera: la pastiglia parla per tutte le coperture.
+ *
+ * Con la tapparella chiusa e la tenda in apertura la pastiglia diceva
+ * «Chiusa», leggendo solo la principale. Il movimento vince su tutto — sta
+ * succedendo adesso — poi basta una copertura aperta perche' la finestra non
+ * sia «chiusa». */
+function statoCarta(view) {
+  const tutte = coperture(view);
+  const inMoto = tutte.find((cover) => cover.moving);
+  if (inMoto) return { stato: statoVisibile(inMoto), testo: statusLabel(inMoto) };
+  const aperta = tutte.find((cover) => statoVisibile(cover) === "open");
+  if (aperta) return { stato: "open", testo: statusLabel(aperta) };
+  return { stato: statoVisibile(view), testo: statusLabel(view) };
+}
+
 function syncCard(card, view) {
   card.style.setProperty("--tapp-open", String(view.position / 100));
 
@@ -320,38 +431,63 @@ function syncCard(card, view) {
      * posizione: la pastiglia restava verde da «aperta» con scritto «Chiusa».
      * Meta' correzione e' peggio di nessuna, perche' la contraddizione resta e
      * sembra risolta. */
-    badge.className = `tapp-state tapp-st-${statoVisibile(view)}`;
-    badge.textContent = statusLabel(view);
+    const { stato, testo } = statoCarta(view);
+    badge.className = `tapp-state tapp-st-${stato}`;
+    badge.textContent = testo;
   }
 
-  const panel = card.querySelector("[data-dm-panel]");
-  if (panel) {
-    const moto = `${view.status === "opening" ? " opening" : ""}${view.status === "closing" ? " closing" : ""}`;
-    const chiuso = coverClosedPercent(view.position);
-    if (coverIsAwning(view.kind)) {
-      // Scende dall'alto come la tapparella: cambia il telo, non il verso.
-      panel.className = `dm-tendasole${moto}`;
-      panel.style.height = `${chiuso}%`;
-    } else if (coverIsSideways(view.kind)) {
-      panel.className = `dm-tenda${moto}`;
-      // I due teli si dividono la parte coperta: meta' per uno, dal centro.
-      panel.style.setProperty("--tenda-chiusa", `${chiuso / 2}%`);
-    } else {
-      panel.className = `tapp-shutter${moto}`;
-      panel.style.height = `${chiuso}%`;
-    }
+  for (const cover of coperture(view)) syncCover(card, cover);
+}
+
+function dipingiPannello(panel, cover) {
+  const moto = `${cover.status === "opening" ? " opening" : ""}${cover.status === "closing" ? " closing" : ""}`;
+  const chiuso = coverClosedPercent(cover.position);
+  if (coverIsAwning(cover.kind)) {
+    // Un'estensione: posizione 0 ritratta (non visibile), 100 estesa (visibile).
+    panel.className = `dm-tendasole${moto}`;
+    panel.style.height = `${cover.position}%`;
+  } else if (coverIsSideways(cover.kind)) {
+    panel.className = `dm-tenda${moto}`;
+    // I due teli si dividono la parte coperta: meta' per uno, dal centro.
+    panel.style.setProperty("--tenda-chiusa", `${chiuso / 2}%`);
+  } else {
+    panel.className = `tapp-shutter${moto}`;
+    panel.style.height = `${chiuso}%`;
   }
+}
 
-  const readout = card.querySelector("[data-dm-readout]");
-  if (readout) readout.textContent = view.hasPosition ? `${view.position}%` : "";
+/* Ogni copertura della card aggiorna il SUO telo, il SUO cursore e la SUA
+ * percentuale: e' il selettore per entita' a tenerli separati. */
+function syncCover(card, cover) {
+  const scope = `[data-dm-entity="${CSS.escape(cover.entity)}"]`;
+  /* Il ripiego senza selettore serve solo alla card a copertura singola, dove
+   * il markup non porta l'entita'. Su una card composita agganciarsi "al
+   * primo che c'e'" scriveva la posizione di una copertura ferma sul cursore
+   * di un'altra. */
+  const multipla = card.hasAttribute("data-dm-covers");
+  const layer = card.querySelector(`[data-dm-cover="${CSS.escape(cover.entity)}"] [data-dm-panel]`);
+  const panel = layer || (multipla ? null : card.querySelector("[data-dm-panel]"));
+  if (panel) dipingiPannello(panel, cover);
 
-  const range = card.querySelector("[data-dm-position]");
+  const readout =
+    card.querySelector(`[data-dm-readout]${scope}`) ||
+    (multipla ? null : card.querySelector("[data-dm-readout]"));
+  if (readout) readout.textContent = cover.hasPosition ? `${cover.position}%` : "";
+
+  const range =
+    card.querySelector(`[data-dm-position]${scope}`) ||
+    (multipla ? null : card.querySelector("[data-dm-position]"));
   // Never write over a track the user is holding: doc.activeElement covers the
   // keyboard and the in-flight drag, the grab window covers the seconds the
   // motor needs before Home Assistant reports the position that was asked for.
-  if (range && range !== doc.activeElement && !state.grabbed.has(view.entity)) {
-    range.value = String(view.position);
+  if (range && range !== doc.activeElement && !state.grabbed.has(cover.entity)) {
+    range.value = String(cover.position);
   }
+  /* Il riempimento colorato della barra legge --tapp-open: ereditata dalla
+   * card, tutte le barre coloravano la posizione della principale. Scritta
+   * sulla barra, ognuna colora la sua. */
+  const barra = card.querySelector(`[data-dm-bar="${CSS.escape(cover.entity)}"] .dm-tapp-track`);
+  if (barra) barra.style.setProperty("--tapp-open", String(cover.position / 100));
 }
 
 /* «Apri tutto» deve aprire davvero tutto.
@@ -367,11 +503,72 @@ function syncCard(card, view) {
 function insegnaComandoDiGruppo() {
   const originale = root.cdTappCmd;
   if (typeof originale !== "function" || originale.__dmTutteLeCoperture) return false;
+  /* Il runtime manda servizi cover.*: a un rele' vanno tradotti. Apri e'
+   * turn_on, chiudi e' turn_off, e lo stop per uno switch non esiste. */
+  const releSwitch = (entity, service) => {
+    try {
+      root.dmCallHaService?.("switch", service, { entity_id: entity })?.catch?.(() => {});
+    } catch (_error) {}
+  };
+
+  /* Il rele' di discesa di una copertura, se la sua riga ne dichiara uno. */
+  const releGiuDi = (entity) => {
+    const id = clean(entity);
+    if (!id) return "";
+    for (const item of configuredCovers()) {
+      if (clean(item?.entity || item?.entities?.[0]) !== id) continue;
+      return coverDownRelay(item);
+    }
+    return "";
+  };
+
+  const comandaSwitch = (entity, servizio) => {
+    const comandi = relayCoverCommands(servizio, entity, releGiuDi(entity));
+    /* Con un rele' solo, fermare non ha un comando: l'elenco esce vuoto ed e'
+     * giusto che il tasto non faccia niente. */
+    for (const { entity: bersaglio, service } of comandi) releSwitch(bersaglio, service);
+    return true;
+  };
+
   const avvolta = function cdTappCmd(button, ...resto) {
+    /* Un bottone la cui destinazione e' un rele' non passa dal runtime: i
+     * servizi cover su uno switch cadrebbero nel vuoto. */
+    const cartaSingola = button?.closest?.("[data-tapp]");
+    const entitaSingola = clean(cartaSingola?.getAttribute?.("data-tapp"));
+    if (!button?.getAttribute?.("data-all") && eUnoSwitch(entitaSingola) && !cartaSingola?.hasAttribute?.("data-dm-covers")) {
+      return comandaSwitch(entitaSingola, button.getAttribute("data-svc")) ? undefined : originale.call(this, button, ...resto);
+    }
+    /* Sui bottoni di una card con piu' coperture, "apri" apre la finestra
+     * intera: il comando parte una volta per copertura, con la stessa
+     * chiamata di servizio del runtime. */
+    const cardMulti = button?.closest?.("[data-dm-shutter-card][data-dm-covers]");
+    if (cardMulti && !button?.getAttribute?.("data-all")) {
+      const servizio = button.getAttribute("data-svc");
+      for (const barra of cardMulti.querySelectorAll("[data-dm-bar]")) {
+        try {
+          const bersaglio = barra.getAttribute("data-dm-bar");
+          if (eUnoSwitch(bersaglio)) {
+            comandaSwitch(bersaglio, servizio);
+            continue;
+          }
+          const carta = doc.createElement("div");
+          carta.setAttribute("data-tapp", bersaglio);
+          const finto = doc.createElement("button");
+          finto.setAttribute("data-svc", servizio);
+          carta.append(finto);
+          originale.call(this, finto);
+        } catch (_error) {}
+      }
+      return undefined;
+    }
     if (!button?.getAttribute?.("data-all")) return originale.call(this, button, ...resto);
     const servizio = button.getAttribute("data-svc");
     for (const { entity } of configuredCovers().flatMap((item) => coverEntries(item))) {
       try {
+        if (eUnoSwitch(entity)) {
+          comandaSwitch(entity, servizio);
+          continue;
+        }
         const carta = doc.createElement("div");
         carta.setAttribute("data-tapp", entity);
         const finto = doc.createElement("button");
@@ -463,18 +660,28 @@ function cardOf(node) {
 function previewPosition(range) {
   const card = cardOf(range);
   if (!card) return;
+  const entity = clean(range.dataset.dmEntity) || clean(card.dataset.tapp);
   const position = Math.max(0, Math.min(100, Math.round(Number(range.value) || 0)));
-  grab(clean(card.dataset.tapp), position);
-  card.style.setProperty("--tapp-open", String(position / 100));
-  const panel = card.querySelector("[data-dm-panel]");
-  if (panel) panel.style.height = `${100 - position}%`;
-  const readout = card.querySelector("[data-dm-readout]");
+  grab(entity, position);
+  const scope = `[data-dm-entity="${CSS.escape(entity)}"]`;
+  if (entity === clean(card.dataset.tapp)) card.style.setProperty("--tapp-open", String(position / 100));
+  const barra = card.querySelector(`[data-dm-bar="${CSS.escape(entity)}"] .dm-tapp-track`);
+  if (barra) barra.style.setProperty("--tapp-open", String(position / 100));
+  const multipla = card.hasAttribute("data-dm-covers");
+  const panel =
+    card.querySelector(`[data-dm-cover="${CSS.escape(entity)}"] [data-dm-panel]`) ||
+    (multipla ? null : card.querySelector("[data-dm-panel]"));
+  if (panel && !panel.classList.contains("dm-tenda")) panel.style.height = `${100 - position}%`;
+  else if (panel) panel.style.setProperty("--tenda-chiusa", `${(100 - position) / 2}%`);
+  const readout =
+    card.querySelector(`[data-dm-readout]${scope}`) ||
+    (multipla ? null : card.querySelector("[data-dm-readout]"));
   if (readout) readout.textContent = `${position}%`;
 }
 
 async function commitPosition(range) {
   const card = cardOf(range);
-  const entity = clean(card?.dataset.tapp);
+  const entity = clean(range.dataset.dmEntity) || clean(card?.dataset.tapp);
   if (!entity) return;
   const position = Math.max(0, Math.min(100, Math.round(Number(range.value) || 0)));
   grab(entity, position);
@@ -489,6 +696,24 @@ async function commitPosition(range) {
   schedule();
 }
 
+/* La posizione scelta nella tendina passa dagli stessi cursori del
+ * trascinamento: stesso grab, stessa anteprima, stessa chiamata. Su una card
+ * composita muove ogni copertura che ha un cursore — cioe' ogni copertura che
+ * accetta una posizione. Poi la tendina torna alla sua voce d'invito: e' un
+ * comando, non lo specchio di dove sta la tapparella. */
+function applyPreset(select) {
+  const card = cardOf(select);
+  const scelta = clean(select.value);
+  if (!card || scelta === "") return;
+  const position = Math.max(0, Math.min(100, Math.round(Number(scelta) || 0)));
+  for (const range of card.querySelectorAll("[data-dm-position][data-dm-entity]")) {
+    range.value = String(position);
+    previewPosition(range);
+    commitPosition(range);
+  }
+  select.value = "";
+}
+
 function installListeners() {
   if (!doc) return;
   doc.addEventListener("input", (event) => {
@@ -498,8 +723,11 @@ function installListeners() {
   doc.addEventListener("change", (event) => {
     const range = event.target?.closest?.("[data-dm-position]");
     if (range) commitPosition(range);
+    const preset = event.target?.closest?.("[data-dm-preset]");
+    if (preset) applyPreset(preset);
   });
   doc.addEventListener("click", (event) => {
+    if (event.target?.closest?.("[data-dm-preset]")) return;
     if (event.target?.closest?.("#page-tapparelle .tapp-btn")) root.queueMicrotask?.(schedule);
   });
   for (const eventName of [
@@ -573,6 +801,13 @@ function installStyles() {
        with the readout at its end. */
     html body #page-tapparelle#page-tapparelle .dm-tapp-bar{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important}
     html body #page-tapparelle#page-tapparelle .dm-tapp-bar>.tapp-pos{flex:0 0 auto!important;align-self:center!important}
+    /* Con piu' coperture ogni barra dice di chi e': l'etichetta prende una
+     * colonna fissa cosi' i tre cursori restano incolonnati. */
+    html body #page-tapparelle#page-tapparelle .dm-tapp-bar-label{flex:0 0 108px!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:10.5px!important;font-weight:800!important;letter-spacing:.3px!important;text-transform:uppercase!important;color:var(--tapp-dim)!important}
+    html body #page-tapparelle#page-tapparelle [data-dm-covers] .dm-tapp-bar+.dm-tapp-bar{margin-top:6px!important}
+    /* I teli convivono nella stessa finestra: lo strato e' trasparente al
+     * layout, il CSS dei pannelli continua a vederli figli della finestra. */
+    html body #page-tapparelle#page-tapparelle .dm-tapp-layer{display:contents!important}
     html body #page-tapparelle#page-tapparelle .dm-tapp-track{
       position:relative!important;flex:1 1 auto!important;box-sizing:border-box!important;height:26px!important;min-width:0!important;
       border:1px solid var(--tapp-pill-line)!important;border-radius:13px!important;overflow:hidden!important;
@@ -595,6 +830,29 @@ function installStyles() {
     html body #page-tapparelle#page-tapparelle .dm-tapp-range:focus-visible{outline:3px solid color-mix(in srgb,var(--tapp-accent) 55%,transparent)!important;outline-offset:2px!important}
 
     /* Daylight reaching the room, as much of it as the shutter lets through. */
+    /* La tendina della posizione prende tutta la riga sotto i tre tasti: e'
+       una scelta, non un tasto in piu' che avanza. */
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset{
+      grid-column:1/-1!important;position:relative!important;padding:0!important;
+      border-color:var(--tapp-border)!important;background:var(--tapp-surface)!important;
+      color:var(--tapp-text)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.6)!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset::after{
+      content:""!important;position:absolute!important;right:14px!important;top:50%!important;
+      width:11px!important;height:7px!important;margin-top:-3px!important;pointer-events:none!important;
+      background:currentColor!important;opacity:.55!important;
+      clip-path:polygon(0 0,50% 100%,100% 0,86% 0,50% 72%,14% 0)!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset select{
+      appearance:none!important;-webkit-appearance:none!important;
+      width:100%!important;height:100%!important;box-sizing:border-box!important;
+      padding:0 30px 0 14px!important;border:0!important;border-radius:13px!important;
+      background:none!important;color:inherit!important;font:inherit!important;
+      font-size:13px!important;font-weight:800!important;letter-spacing:.2px!important;
+      text-align:left!important;cursor:pointer!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset select:focus-visible{
+      outline:3px solid color-mix(in srgb,var(--tapp-accent) 55%,transparent)!important;outline-offset:2px!important}
+    html body #page-tapparelle#page-tapparelle .dm-tapp-preset option{
+      color:#0f172a!important;font-size:13px!important;font-weight:700!important}
+
     html body #page-tapparelle#page-tapparelle .dm-tapp-spill{
       height:12px!important;margin:-6px 10px -4px!important;border-radius:0 0 16px 16px!important;
       background:radial-gradient(62% 100% at 50% 0,var(--tapp-spill),transparent 72%)!important;

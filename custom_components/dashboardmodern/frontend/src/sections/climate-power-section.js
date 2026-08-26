@@ -12,8 +12,9 @@
  * termostato sa fare; altrimenti si torna a chiedere `turn_off`. E riaccendere
  * rimette la modalita' che c'era prima, invece di sceglierne una a caso.
  */
+import { canonicalClimateType } from "../core/device-model.js";
 import { climateIsOff, climatePowerCall } from "../core/climate-power.js";
-import { allStates, clean, root } from "./shared.js";
+import { allStates, clean, readClimateUnits, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CLIMATE_POWER__";
 const state = (root[KEY] ||= { installed: false, ultime: new Map() });
@@ -39,32 +40,102 @@ export function ricordaModalita(entity) {
   return state.ultime.get(id) || "";
 }
 
+/* La presa con cui la plancia parla a Home Assistant.
+ *
+ * Qui si provavano tre strade — `cdCallServiceJson`, `callService`, `hass` —
+ * e nessuna delle tre esiste nella plancia: la prima non e' definita da
+ * nessuna parte, la seconda nemmeno, e `hass` c'e' solo dentro il pannello di
+ * Home Assistant. Quella vera e' `dmCallHaService`, che il runtime definisce
+ * e che manda il servizio sul WebSocket: e' la stessa che usano le luci, le
+ * tapparelle e il robot. Mancando lei, il tasto di accensione del clima non
+ * chiamava niente — «impostando correttamente le entita' non si accendono» —
+ * e nessuno se ne accorgeva, perche' fallire in silenzio era il suo modo di
+ * fallire.
+ *
+ * Torna true solo se qualcuno ha davvero preso la chiamata: chi la usa deve
+ * poter distinguere «fatto» da «non c'era nessuno», altrimenti la strada di
+ * riserva non parte mai. */
 function chiama(entity, service, data) {
   const payload = { entity_id: entity, ...data };
   try {
+    if (typeof root.dmCallHaService === "function") {
+      root.dmCallHaService("climate", service, payload)?.catch?.((error) => {
+        root.console?.warn?.("[DashboardModern] climate power", error);
+      });
+      return true;
+    }
     if (typeof root.cdCallServiceJson === "function") {
-      return root.cdCallServiceJson("climate", service, JSON.stringify(payload));
+      root.cdCallServiceJson("climate", service, JSON.stringify(payload));
+      return true;
     }
     if (typeof root.callService === "function") {
-      return root.callService("climate", service, payload);
+      root.callService("climate", service, payload);
+      return true;
     }
     const hass = root.hass || root._hass;
-    return hass?.callService?.("climate", service, payload);
+    if (typeof hass?.callService === "function") {
+      hass.callService("climate", service, payload);
+      return true;
+    }
   } catch (error) {
     root.console?.warn?.("[DashboardModern] climate power", error);
-    return undefined;
   }
+  return false;
+}
+
+/* La modalita' che il tab chiede, ma solo per chi vive in tutti e due.
+ *
+ * La pompa di calore (#195) ha una card in Freddo e una in Caldo: il tasto del
+ * tab Caldo deve scaldare, quello del tab Freddo raffrescare. Per gli altri
+ * tipi il tab non aggiunge informazione — un condizionatore sta solo in
+ * Freddo — e la scelta resta quella ricordata. */
+export function modalitaRichiesta(entity, zona) {
+  const id = clean(entity);
+  const dove = clean(zona).toLowerCase();
+  if (!id || (dove !== "caldo" && dove !== "freddo")) return "";
+  let unita = [];
+  try {
+    unita = readClimateUnits();
+  } catch (_error) {
+    return "";
+  }
+  const trovata = unita.find(
+    (voce) => clean(voce?.entity || voce?.entity_id || voce?.entities?.[0]) === id,
+  );
+  if (!trovata || canonicalClimateType(trovata.type) !== "pompa") return "";
+  return dove === "caldo" ? "heat" : "cool";
+}
+
+/* Il verso dell'elenco da cui si preme, per tutti — non solo per la pompa.
+ *
+ * `modalitaRichiesta` e' l'ordine perentorio della pompa di calore, che vive
+ * in tutti e due gli elenchi e deve obbedire al tab. Questo invece e' solo un
+ * suggerimento: vale quando non c'e' una modalita' da ricordare, e serve a non
+ * accendere in "heat" un condizionatore premuto dal tab Freddo. */
+function modalitaDiZona(zona) {
+  const dove = clean(zona).toLowerCase();
+  if (dove === "caldo") return "heat";
+  if (dove === "freddo") return "cool";
+  return "";
 }
 
 /** Accende o spegne una zona, con il servizio che quel termostato accetta. */
-export function commutaClima(entity, acceso) {
+export function commutaClima(entity, acceso, zona = "") {
   const id = clean(entity);
   if (!id) return null;
   const stato = statoDi(id);
   const precedente = ricordaModalita(id);
   const voluto = typeof acceso === "boolean" ? acceso : climateIsOff(stato);
-  const chiamata = climatePowerCall(stato, voluto, precedente);
-  chiama(id, chiamata.service, chiamata.data);
+  const chiamata = climatePowerCall(
+    stato,
+    voluto,
+    precedente,
+    modalitaRichiesta(id, zona),
+    modalitaDiZona(zona),
+  );
+  /* Se non c'era nessuno ad ascoltare, questa non e' una commutazione
+   * riuscita: dirlo lascia partire la strada di riserva di chi ci chiama. */
+  if (!chiama(id, chiamata.service, chiamata.data)) return null;
   return chiamata;
 }
 
@@ -73,8 +144,8 @@ export function commutaClima(entity, acceso) {
 function installaComandi() {
   if (typeof root.toggleClima === "function" && !root.toggleClima.__dmClimaPower) {
     const precedente = root.toggleClima;
-    function commuta(entity) {
-      const esito = commutaClima(entity);
+    function commuta(entity, zona) {
+      const esito = commutaClima(entity, undefined, zona);
       return esito || precedente.call(this, entity);
     }
     commuta.__dmClimaPower = true;

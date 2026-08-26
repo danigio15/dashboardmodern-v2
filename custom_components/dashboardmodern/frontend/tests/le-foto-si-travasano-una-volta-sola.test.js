@@ -62,13 +62,18 @@ test("togliere una chiave non alza la revisione", async () => {
   const { CONFIG_KEYS, CONFIG_KEYS_REVISION, mergeLegacyMissingConfig } = await import(
     "../src/sections/config-persistence-section.js"
   );
-  assert.equal(CONFIG_KEYS_REVISION, 4);
+  /* La 5 non smentisce questa prova: aggiunge una chiave (`cd_people`), e per
+   * una chiave aggiunta la revisione si alza apposta. La 6 fa lo stesso con
+   * le aperture (`cd_security_doors`) e le liste ToDo (`cd_todo`), la 7 con
+   * le preferenze del ponte dei widget (`cd_widgets`). Quelle tolte restano
+   * fuori dall'elenco, che e' quello che questa prova difende. */
+  assert.equal(CONFIG_KEYS_REVISION, 7);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 
   // Un salvataggio alla revisione corrente e' completo: quello che non c'e'
   // dentro e' stato cancellato, e non si rimette.
-  const remote = { keys_revision: 4, values: { cd_ev_cars: "[]" } };
+  const remote = { keys_revision: CONFIG_KEYS_REVISION, values: { cd_ev_cars: "[]" } };
   const merged = mergeLegacyMissingConfig(remote, { cd_robot: '[{"name":"Rosetta"}]' });
   assert.equal(merged, remote, "un salvataggio completo non si tocca");
 });
@@ -87,4 +92,64 @@ test("un salvataggio davvero piu' vecchio si riempie ancora, ma solo di chiavi v
     false,
     "una chiave ritirata non rientra dalla finestra",
   );
+});
+
+/* La memoria ombra non riporta in vita le foto tolte.
+ *
+ * Il profilo normalizzato porta anche `image` e `image_url`: componendo
+ * `img || image` una foto svuotata apposta risorgeva dall'alias rimasto pieno
+ * al giro prima, a ogni risalvataggio della sezione. */
+import { normalizeDevice } from "../src/core/device-model.js";
+
+test("la foto svuotata non risorge dagli alias", () => {
+  const auto = normalizeDevice(
+    { name: "T03", img: "", image: "/local/vecchia.png", image_url: "/local/vecchia.png" },
+    "ev",
+  );
+  assert.equal(auto.img, "", "la foto tolta e' risorta");
+  assert.equal(auto.image, "", "l'alias image la tiene in vita");
+  assert.equal(auto.image_url, "", "l'alias image_url la tiene in vita");
+});
+
+test("chi arriva dal formato vecchio con la sola image la conserva", () => {
+  const auto = normalizeDevice({ name: "B10", image: "/local/b10.png" }, "ev");
+  assert.equal(auto.img, "/local/b10.png");
+  assert.equal(auto.image, "/local/b10.png");
+});
+
+test("senza `img`, un'image vuota non spegne la image_url piena", () => {
+  /* La riga legacy: `img` mai esistita, `image` vuota, `image_url` piena.
+   * L'autorita' del campo vuoto vale solo per `img` presente davvero. */
+  const auto = normalizeDevice(
+    { name: "B10", image: "", image_url: "/local/b10.png" },
+    "ev",
+  );
+  assert.equal(auto.img, "/local/b10.png", "l'unica foto rimasta e' stata scartata");
+});
+
+/* Il travaso pieno resta pieno, e la ragione e' il ripristino.
+ *
+ * Travasare ogni chiave mancante puo' riportare in vita quello che qualcun
+ * altro aveva cancellato: e' un difetto vero, segnalato in revisione. Ma
+ * `applyRestoredValues` cancella dal dispositivo ogni chiave che il
+ * salvataggio non porta, quindi smettere di travasarle non fa tornare
+ * indietro dei dati: li butta via. Finche' il ripristino non sa distinguere
+ * «non c'e' perche' cancellata» da «non c'e' perche' allora non esisteva»,
+ * qui si tiene il male che si puo' disfare a mano.
+ */
+test("uno scatto piu' vecchio riceve tutto quello che questo dispositivo ha", async () => {
+  const { mergeLegacyMissingConfig } = await import(
+    "../src/sections/config-persistence-section.js"
+  );
+  const locale = {
+    cd_widgets: '{"hidden":["luci"]}',
+    cd_tapparelle: '[{"entity":"cover.salone"}]',
+    cd_ev_cars: '[{"name":"B10"}]',
+  };
+  const merged = mergeLegacyMissingConfig({ keys_revision: 5, values: {} }, locale);
+  // La chiave nuova, che lo scatto non poteva conoscere.
+  assert.equal(merged.values.cd_widgets, locale.cd_widgets);
+  // E anche quelle vecchie: senza, il ripristino le cancellerebbe da qui.
+  assert.equal(merged.values.cd_tapparelle, locale.cd_tapparelle);
+  assert.equal(merged.values.cd_ev_cars, locale.cd_ev_cars);
 });

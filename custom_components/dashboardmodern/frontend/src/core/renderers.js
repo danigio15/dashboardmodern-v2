@@ -1,4 +1,4 @@
-import { SIGNED_GROUPS, SIGNED_MEASURES, signedSource } from "./signed-energy.js";
+import { POWER_PAIRS, SIGNED_GROUPS, SIGNED_MEASURES, signedSource } from "./signed-energy.js";
 // DM-FIX-20260812B
 import { getDeviceDisplayName, getDeviceVisual } from "./device-model.js";
 import { pick } from "./i18n.js";
@@ -136,6 +136,10 @@ const ENERGY_GROUPS = [
     "Rete · immissione",
     [
       ["power", "Potenza", "W", "sensor.rete_power"],
+      /* Chi ha due sensori di potenza separati — prelievo e immissione, sempre
+       * positivi — dichiara qui il secondo: il numero col segno si ricava da
+       * solo. Con la sorgente unica con segno questa casella si spegne. */
+      ["power_export", "Potenza immessa", "W", "sensor.rete_immissione_w"],
       ["daily_export_energy", "Energia immessa giornaliera", "kWh", "sensor.rete_immissione_oggi"],
       ["monthly_export_energy", "Energia immessa mensile", "kWh", "sensor.rete_immissione_mese"],
       ["annual_export_energy", "Energia immessa annuale", "kWh", "sensor.rete_immissione_anno"],
@@ -175,6 +179,8 @@ const ENERGY_GROUPS = [
     "Batteria · scarica",
     [
       ["power", "Potenza", "W", "sensor.batteria_power"],
+      // Il secondo sensore di chi ha carica e scarica separate, sempre positive.
+      ["power_discharge", "Potenza scaricata", "W", "sensor.batteria_scarica_w"],
       ["daily_discharged_energy", "Scaricata oggi", "kWh", "sensor.batteria_scaricata_oggi"],
       [
         "monthly_discharged_energy",
@@ -228,6 +234,7 @@ const ENERGY_EN = Object.freeze({
   "Potenza rete": "Grid power",
   "Potenza prelevata": "Import power",
   "Potenza immessa": "Export power",
+  "Potenza scaricata": "Discharge power",
   "Energia prelevata giornaliera": "Daily imported energy",
   "Energia immessa giornaliera": "Daily exported energy",
   "Energia prelevata mensile": "Monthly imported energy",
@@ -388,7 +395,14 @@ export function signedManagedFields(model = {}, group = "") {
   const source = signedSource(model, group);
   if (!definition || !source) return new Set();
   const fields = new Set();
-  if (source.entities.power) fields.add(definition.powerField);
+  if (source.entities.power) {
+    fields.add(definition.powerField);
+    /* Anche la casella del secondo sensore di potenza: la sorgente unica
+     * dichiara gia' tutti e due i versi, e lasciarla accesa vorrebbe dire due
+     * padroni sullo stesso numero. */
+    const pair = POWER_PAIRS[group];
+    if (pair) fields.add(pair.opposite);
+  }
   for (const period of definition.periods) {
     if (!source.entities[period.key]) continue;
     fields.add(period.positive);
@@ -512,6 +526,16 @@ export function renderEnergyEditor(
   const copy = energyCopy(locale);
   const root = typeof target === "string" ? document.querySelector(target) : target;
   if (!root) return;
+  /* Un ridisegno non e' un cambio di stato. Il pannello si rifa' da solo dopo
+   * un salvataggio — il modello appena scritto va riletto — e la barra delle
+   * azioni rinasceva "pulita", cancellando il "Salvato" un istante dopo averlo
+   * detto. Cosi' l'unica traccia del salvataggio spariva prima che qualcuno la
+   * leggesse: la ricordiamo attraverso il ridisegno. */
+  const precedente = root.querySelector?.("[data-energy-actions]");
+  const ricordo =
+    precedente?.dataset?.state === "success"
+      ? String(precedente.querySelector?.("[data-energy-status]")?.textContent ?? "").trim() || null
+      : null;
   root.replaceChildren();
   root.classList.add("ed-list");
   root.dataset.editor = "energy";
@@ -683,7 +707,7 @@ export function renderEnergyEditor(
   const actions = document.createElement("div");
   actions.className = "ed-action-bar";
   actions.dataset.energyActions = "";
-  actions.dataset.state = "clean";
+  actions.dataset.state = ricordo ? "success" : "clean";
   const save = document.createElement("button");
   save.type = "button";
   save.className = "ed-save-btn";
@@ -692,7 +716,7 @@ export function renderEnergyEditor(
   save.textContent = copy.save;
   const status = document.createElement("output");
   status.dataset.energyStatus = "";
-  status.textContent = copy.clean;
+  status.textContent = ricordo || copy.clean;
   actions.append(save, status);
   flows.append(actions);
   const dirty = () => {

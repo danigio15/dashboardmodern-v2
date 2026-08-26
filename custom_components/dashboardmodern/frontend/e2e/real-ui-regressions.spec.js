@@ -174,50 +174,21 @@ for (const variant of PRIMARY) {
       )
       .toBe("open");
     await page.locator("#editor-modal .ed-head-close").last().click();
-    const shutter = page.locator("#tapp-avvisi .dm-shutter-alert");
-    await expect(shutter.locator(".g-name")).toContainText(/TAPPARELLA APERTA|SHUTTER OPEN/);
-    await expect(shutter.locator(".g-val")).toHaveText("1");
-    const lightCard = page.locator("#glance-luci.glance-card");
-    const shutterCard = page.locator("#tapp-avvisi .dm-shutter-alert");
-    await expect(lightCard).toBeVisible();
-    await expect(shutterCard).toBeVisible();
-    const [lightBox, shutterBox] = await Promise.all([
-      lightCard.boundingBox(),
-      shutterCard.boundingBox(),
-    ]);
-    if (!lightBox || !shutterBox) throw new Error("Alert cards have no bounding box");
-    expect(Math.abs(lightBox.height - shutterBox.height)).toBeLessThanOrEqual(2);
-    const styles = await Promise.all(
-      [lightCard, shutterCard].map((card) =>
-        card.evaluate((node) => {
-          const style = getComputedStyle(node);
-          return {
-            borderRadius: style.borderRadius,
-            padding: style.padding,
-            boxShadow: style.boxShadow,
-            display: style.display,
-            alignItems: style.alignItems,
-          };
-        }),
-      ),
-    );
-    await expect(lightCard).toHaveClass(/glance-card/);
-    await expect(shutterCard).toHaveClass(/glance-card/);
-    expect(styles[1].borderRadius).toBe(styles[0].borderRadius);
-    expect(styles[1].padding).toBe(styles[0].padding);
-    expect(styles[1].display).toBe(styles[0].display);
-    expect(styles[1].alignItems).toBe(styles[0].alignItems);
-    expect(styles[0].boxShadow).not.toBe("none");
-    expect(styles[1].boxShadow).not.toBe("none");
-    await shutter.click();
-    await expect(page.locator("#dm-shutter-popup")).toBeVisible();
-    await page.waitForTimeout(2600);
-    await expect(page.locator("#tapp-avvisi .dm-shutter-alert")).toHaveCount(1);
-    await expect(page.locator("#dm-shutter-popup")).toBeVisible();
-    await expect(page.locator("#dm-shutter-popup")).toContainText("Tapparella salone");
-    await expect(page.locator("#dm-shutter-popup")).toContainText("Salone");
-    await expect(page.locator("#dm-shutter-popup")).toContainText("65%");
-    const close = page.locator('[data-shutter-service="close_cover"]').first();
+    /* Il Quadro Avvisi e' stato assorbito dal ponte dei widget: l'avviso
+     * della tapparella aperta vive nella tessera Tapparelle, il vecchio
+     * quadro si fa da parte, e il dettaglio della tessera elenca e comanda
+     * quello che prima elencava il popup dell'avviso. */
+    await expect(page.locator("#glance-grid")).toBeHidden();
+    const tile = page.locator('#dm-widgets [data-dm-widget="tapparelle"]');
+    await expect(tile).toBeVisible();
+    await expect(tile.locator(".dm-tile-value")).toHaveText("1");
+    await tile.click();
+    const detail = page.locator('[data-dm-widget-detail="tapparelle"]');
+    await expect(detail).toBeVisible();
+    await expect(detail).toContainText("Tapparella salone");
+    await expect(detail).toContainText("Tapparella cucina");
+    await expect(detail).toContainText("65%");
+    const close = detail.locator('[data-dm-w-cover="cover.salone"][data-svc="close_cover"]');
     await clickStableButton(page, close, testInfo);
     await expect
       .poll(() => page.evaluate(() => window.__haCalls.at(-1)))
@@ -227,14 +198,8 @@ for (const variant of PRIMARY) {
         service: "close_cover",
         service_data: { entity_id: "cover.salone" },
       });
-    await expect(close).toBeDisabled();
-    await expect(close).toHaveText(/Chiusura…|Closing…/);
-    await page.waitForTimeout(2600);
-    await expect(close).toBeDisabled();
-    await expect(close).toHaveText(/Chiusura…|Closing…/);
-    await expect(page.locator("#dm-shutter-popup")).toBeVisible();
     await page.screenshot({
-      path: `test-results/${testInfo.project.name}-${variant}-shutter-popup.png`,
+      path: `test-results/${testInfo.project.name}-${variant}-shutter-widget.png`,
     });
     await page.evaluate(() => {
       STATES["cover.salone"].state = "opening";
@@ -249,7 +214,7 @@ for (const variant of PRIMARY) {
         }),
       );
     });
-    await expect(page.locator("#dm-shutter-popup")).toContainText("25%");
+    await expect(detail).toContainText("25%");
     await page.evaluate(() => {
       for (const id of ["cover.salone", "cover.cucina"]) {
         STATES[id].state = "closed";
@@ -265,8 +230,7 @@ for (const variant of PRIMARY) {
         }),
       );
     });
-    await expect(shutter).toHaveCount(0);
-    await expect(page.locator("#dm-shutter-popup")).toHaveCount(0);
+    await expect(tile.locator(".dm-tile-value")).toHaveText("0");
   });
 
   test(`${variant}: appliance Editor persists Forno through Energy Report and reload`, async ({

@@ -129,17 +129,24 @@ test("la tenda salvata esce sulla pagina, e chiusa si vede chiusa", async ({ pag
     window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
   });
 
-  // Due caselle compilate, due card: l'infisso ha una tapparella e una tenda.
-  await expect(page.locator("[data-dm-shutter-card]")).toHaveCount(2);
-  const tenda = page.locator('[data-dm-shutter-card][data-tapp="cover.tenda_bagno"]');
-  await expect(tenda).toHaveAttribute("data-dm-cover-kind", "tenda");
-  // Una tenda si scosta di lato: due teli, non le stecche di una tapparella.
-  await expect(tenda.locator(".dm-tenda-telo")).toHaveCount(2);
-  // E chiusa si legge chiusa, non «sconosciuta».
-  await expect(tenda.locator(".tapp-state").first()).toHaveText(/chiusa/i);
+  /* Due caselle compilate, UNA card: l'infisso e' uno solo, e sotto la
+   * finestra ci sono due cursori — uno per copertura. */
+  const card = page.locator("[data-dm-shutter-card]");
+  await expect(card).toHaveCount(1);
+  await expect(card).toHaveAttribute("data-dm-covers", "2");
+  await expect(card.locator("[data-dm-position]")).toHaveCount(2);
+  // Una tenda si scosta di lato: due teli, dentro la stessa finestra.
+  await expect(card.locator(".dm-tenda-telo")).toHaveCount(2);
+  await expect(card.locator('[data-dm-position][data-dm-entity="cover.tenda_bagno"]')).toHaveCount(
+    1,
+  );
+  // E chiusa si vede chiusa: i due teli coprono meta' finestra per uno.
   await expect
     .poll(() =>
-      tenda.locator(".dm-tenda").evaluate((nodo) => nodo.style.getPropertyValue("--tenda-chiusa")),
+      card.locator(".dm-tenda").evaluate((nodo) => nodo.style.getPropertyValue("--tenda-chiusa")),
     )
     .toBe("50%");
+  await expect(card.locator('[data-dm-readout][data-dm-entity="cover.tenda_bagno"]')).toHaveText(
+    "0%",
+  );
 });

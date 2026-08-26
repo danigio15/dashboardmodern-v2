@@ -63,11 +63,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
 
     // Energy-specific guidance must not leak into Alerts or any other top-level
     // editor section, which was visible in the real 0.15.10 screenshot.
+    // Gli avvisi non hanno più una linguetta loro: chi la chiede per nome
+    // finisce nella scheda dei widget, che è dove sono andati ad abitare.
     await page.evaluate(() => window.editorSwitch("avvisi"));
-    await expect(page.locator("#editor-modal .ed-tab.active")).toHaveAttribute(
-      "data-tab",
-      "avvisi",
-    );
+    await expect(page.locator("#editor-modal .ed-tab.active")).toHaveAttribute("data-tab", "todo");
     await expect(page.locator("#editor-modal .dm-energy-source-guide")).toHaveCount(0);
     await expect(page.locator("#editor-modal .dm-energy-help-compact:visible")).toHaveCount(0);
 

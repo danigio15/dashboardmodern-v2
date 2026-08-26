@@ -267,7 +267,41 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // un'altra vettura. Il modulo dice chi e' un'auto, e lo dicono in quattro
   // posti diversi: la sezione Auto, la Personalizzazione, e le due passate che
   // riempiono la scheda. Una sola definizione, o tornano a divergere.
-  assert.ok(relative.length <= 135, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 136 con le fondamenta del tema scuro. «Scuro» scuriva le card una per una
+  // ma le variabili di base — il fondo della pagina, il colore del testo —
+  // non avevano mai avuto una versione notturna: card scure su pagina bianca.
+  // Le ridefinizioni stanno in un modulo loro perche' sono la base che ogni
+  // altra regola eredita, non il ritocco di una sezione.
+  // 139 con le persone. Il modello puro dice chi abita la casa e cosa se ne
+  // mostra — zona, batteria, ritratto — e lo leggono in due: la sezione che
+  // disegna le card in cima alla Home e l'editor che scrive `cd_people`. Sono
+  // due moduli perche' uno vive a ogni cambio di stato e l'altro solo dentro
+  // la scheda di configurazione, come per il robot.
+  // 140 con la verita' dei flussi. La mappa accendeva le linee un numero alla
+  // volta — qualunque solare accendeva «solare → casa» anche quando finiva
+  // tutto in batteria, e «rete → batteria» non esisteva. L'aritmetica della
+  // spartizione sta in un modulo puro, provabile a tavolino; la legge la
+  // sezione dei flussi che gia' possiede la scena.
+  // 141 con la faccia costruita. Il disegno dell'avatar — cataloghi chiusi e
+  // SVG deterministico — sta in un modulo puro perche' lo leggono in due, la
+  // card e il costruttore dell'editor, e devono disegnare la stessa persona.
+  // 142 con la pagina Luci. Il popup sopra la Home resta com'e'; la pagina
+  // intera nella barra — conto delle accese, comandi per tutta la casa,
+  // gruppi per stanza — e' un modulo suo perche' possiede un'altra superficie
+  // dello stesso modello: le capacita' stanno in core/light-model.js e la
+  // scheda controlli resta quella del popup, qui non si duplica niente.
+  // 148 con le aperture della Sicurezza (#195) e le liste ToDo della Home
+  // (#201): ognuna segue lo schema delle persone — un modello puro che si
+  // prova da solo, la sezione che disegna, l'editor che scrive la sua chiave.
+  // 149 col backup della configurazione: la scheda che raccoglie le chiavi
+  // condivise in un file e le rimette al loro posto — funzioni pure per il
+  // giro dei dati, provate a tavolino, e nessuna chiave sua.
+  // 150 con la scelta delle entità nei widget: le tessere leggono la
+  // configurazione della sezione che raccontano, tutta, e questo modulo mette
+  // accanto a ogni entità già scritta negli editor l'interruttore che dice se
+  // va in Home. Non disegna una scheda sua — decora quelle che ci sono — e la
+  // scelta la scrive dove abitano già le preferenze del ponte.
+  assert.ok(relative.length <= 150, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
@@ -282,14 +316,31 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
    * otherwise start and never stop. It follows the same discipline: armed when
    * one of those pumps starts running, disarmed the moment none is.
    *
+   * The third ages the "16 h ago" of the person cards: nothing in Home
+   * Assistant pushes an event when time merely passes, and on a wall-mounted
+   * dashboard nobody touches the page. Same discipline again: armed only while
+   * the Home page is on a visible screen with people configured, disarmed the
+   * moment it is not.
+   *
+   * The fourth refreshes the camera thumbnails of the Home widget deck, for
+   * the same reason as the Sicurezza wall: a camera frame is a still picture
+   * nothing pushes. Ten seconds, and only while the camera tile is expanded
+   * on a visible Home; collapsed, the timer dies and the object URLs are
+   * returned.
+   *
    * These are the intervals production is allowed, and they are named here so
-   * a third one cannot arrive unnoticed. */
+   * another one cannot arrive unnoticed. */
   const intervals = [...graph.entries()].filter(([, source]) =>
     /setInterval\s*(?:\?\.)?\s*\(/.test(source),
   );
   assert.deepEqual(
     intervals.map(([file]) => path.relative(frontendRoot, file).replaceAll("\\", "/")).sort(),
-    ["src/sections/live-ui-section.js", "src/sections/pool-extra-section.js"],
+    [
+      "src/sections/home-widgets-section.js",
+      "src/sections/live-ui-section.js",
+      "src/sections/people-section.js",
+      "src/sections/pool-extra-section.js",
+    ],
   );
 
   const observers = [...graph.entries()].filter(([, source]) => /new\s+(?:root\.)?MutationObserver\s*\(/.test(source));

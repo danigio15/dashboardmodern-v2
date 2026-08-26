@@ -106,10 +106,16 @@ async function boot(page, variant, testInfo) {
 
   await bootNamespacedDashboard(page, variant, testInfo, seed);
   await page.evaluate(() => {
-    localStorage.setItem("cd_gruppi_extra", JSON.stringify({ luci: ["light.salone"] }));
+    /* L'avviso di prova sta fra le Aperture: il gruppo «luci» del vecchio
+       Quadro non alimenta piu' niente — le luci le racconta la tessera che
+       legge la scheda Luci — e dalla scheda degli avvisi e' uscito. */
+    localStorage.setItem(
+      "cd_gruppi_extra",
+      JSON.stringify({ win: ["binary_sensor.finestra_salone"] }),
+    );
     localStorage.setItem(
       "cd_avvisi_names_extra",
-      JSON.stringify({ "light.salone": "Luce salone" }),
+      JSON.stringify({ "binary_sensor.finestra_salone": "Finestra salone" }),
     );
     localStorage.setItem("cd_luci", JSON.stringify({ "light.salone": "Luce salone" }));
     localStorage.setItem("cd_luci_rooms", JSON.stringify({ "light.salone": "Salone" }));
@@ -238,7 +244,8 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       page.locator('#ed-dev-selector option[value="sensor.forno_energy"]'),
     ).toContainText("Forno");
 
-    await openEditor(page, "avvisi");
+    // La scheda degli avvisi vive in fondo a quella dei widget.
+    await openEditor(page, "todo");
     const alertEdit = page.locator("[data-dm-alert-edit]").first();
     await expect(alertEdit).toHaveCount(1);
     await alertEdit.evaluate((button) => {
@@ -258,9 +265,11 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
     expect(alertContract.closeRadius).toBe(applianceContract.closeRadius);
     expect(alertContract.footerPosition).toBe(applianceContract.footerPosition);
     expect(Math.abs(alertContract.width - applianceContract.width)).toBeLessThanOrEqual(2);
-    await expect(alertEditor.locator('input[name="entity"]')).toHaveValue("light.salone");
-    await alertEditor.locator('input[name="name"]').fill("Luce principale");
-    await alertEditor.locator('select[name="group"]').selectOption("luci");
+    await expect(alertEditor.locator('input[name="entity"]')).toHaveValue(
+      "binary_sensor.finestra_salone",
+    );
+    await alertEditor.locator('input[name="name"]').fill("Finestra del salone");
+    await alertEditor.locator('select[name="group"]').selectOption("win");
     await alertEditor.locator('button[type="submit"]').click();
     await expect(alertEditor).toHaveCount(0);
     await expect
@@ -271,8 +280,10 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
         })),
       )
       .toEqual({
-        groups: { luci: ["light.salone"] },
-        names: { "light.salone": "Luce principale" },
+        // La luce configurata nella scheda Luci si registra da sé fra i
+        // gruppi sorvegliati: è il runtime che ce la mette, e resta lì.
+        groups: { luci: ["light.salone"], win: ["binary_sensor.finestra_salone"] },
+        names: { "binary_sensor.finestra_salone": "Finestra del salone" },
       });
 
     await openEditor(page, "luci");

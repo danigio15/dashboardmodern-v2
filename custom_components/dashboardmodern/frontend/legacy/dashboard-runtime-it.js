@@ -1071,15 +1071,40 @@ function setEVMode(mode) {
   const btnPopup = document.getElementById('p-btn-' + mode);
   if(btnMod) btnMod.classList.add('active');
   if(btnPopup) btnPopup.classList.add('active');
-  ws.send(JSON.stringify({ id: msgId++, type: 'call_service', domain: 'select', service: 'select_option', service_data: { entity_id: 'dm.ev_modalita_ricarica_evcc', option: mode } }));
+  // La chiamata viaggia sull'entita' mappata, non sul riferimento dm.*:
+  // senza risolverlo Home Assistant rifiutava sempre e i pulsanti sembravano
+  // morti (l'active ottimista veniva rispento dal render successivo).
+  const modeEid = resolveEntity('dm.ev_modalita_ricarica_evcc');
+  if (!modeEid || modeEid.indexOf('dm.') === 0) return;
+  ws.send(JSON.stringify({ id: msgId++, type: 'call_service', domain: modeEid.split('.')[0], service: 'select_option', service_data: { entity_id: modeEid, option: mode } }));
 }
 
 window.changeSelect = function(entityId, value) {
   if(!ws) return;
   if(navigator.vibrate) navigator.vibrate(10);
-  const domain = entityId.split('.')[0]; 
-  ws.send(JSON.stringify({ id: msgId++, type: 'call_service', domain: domain, service: 'select_option', service_data: { entity_id: entityId, option: value } }));
+  // Il riferimento dm.* si traduce nell'entita' mappata e il dominio si legge
+  // da quella: prima partiva una chiamata su un dominio inesistente e il
+  // target non cambiava mai. Un'entita' number si comanda con set_value.
+  const eid = resolveEntity(entityId);
+  if (!eid || eid.indexOf('dm.') === 0 || eid.indexOf('input_dm.') === 0) return;
+  const domain = eid.split('.')[0];
+  const call = (domain === 'number' || domain === 'input_number')
+    ? { domain: domain, service: 'set_value', service_data: { entity_id: eid, value: parseFloat(value) } }
+    : { domain: domain, service: 'select_option', service_data: { entity_id: eid, option: value } };
+  ws.send(JSON.stringify(Object.assign({ id: msgId++, type: 'call_service' }, call)));
 };
+
+// I km al limite di carica: il sensore dedicato se c'e', altrimenti il conto
+// autonomia attuale / batteria attuale x target — cosi' cambiando il target
+// il numero si muove anche senza un sensore template scritto a mano.
+function dmEvKmAlTarget() {
+  const lim = parseFloat(getRawState('dm.ev_target_soc'));
+  const range = parseFloat(getRawState('dm.ev_autonomia'));
+  const soc = parseFloat(getRawState('dm.ev_batteria_auto'));
+  if (isFinite(range) && isFinite(soc) && soc > 0 && isFinite(lim)) return Math.round((range / soc) * lim);
+  const dedicato = parseFloat(getRawState('dm.ev_autonomia_al_limite_di_carica'));
+  return isFinite(dedicato) ? Math.round(dedicato) : null;
+}
 
 function apriPopup() {
     document.getElementById('ev-popup').classList.add('show');
@@ -3347,6 +3372,11 @@ function wzFinish() {
 const CD_SLOTS = {
     home: { label: '🏠 Home', slots: [
         { ref: 'dm.home_meteo',                 lbl: 'Meteo (entità weather)' },
+        { ref: 'dm.home_meteo_temperatura', lbl: 'Stazione meteo: temperatura esterna (sensore)' },
+        { ref: 'dm.home_meteo_umidita', lbl: 'Stazione meteo: umidità (sensore)' },
+        { ref: 'dm.home_meteo_percepita', lbl: 'Stazione meteo: temperatura percepita (sensore)' },
+        { ref: 'dm.home_meteo_vento', lbl: 'Stazione meteo: velocità vento (sensore)' },
+        { ref: 'dm.home_meteo_vento_direzione', lbl: 'Stazione meteo: direzione vento (sensore)' },
         { ref: 'dm.security_centrale_allarme', lbl: 'Allarme (alarm_control_panel)' },
         { ref: 'dm.home_interruttore_antifurto',     lbl: 'Interruttore antifurto (switch)' },
         { ref: 'dm.home_script_apertura_cancello',         lbl: 'Script apertura cancello' },
@@ -5731,18 +5761,54 @@ function render() {
           edUpdateKpiOnly();
       }
       const weatherEnt = cdFirstMapped('dm.core_055', 'weather.home', 'dm.home_meteo');
-      /* v273: meteo non configurato → widget nascosto del tutto (nessun return: siamo dentro render) */
+      /* #205: la stazione meteo personale. Ogni sensore mappato (Ecowitt e
+         simili) vince sull'attributo dell'entità weather; la direzione del
+         vento in gradi diventa una rosa a 16 punte, un testo resta testo. */
+      const cdMeteoStazione = (ref) => {
+          const st = STATES[ref];
+          if (!st || st.entity_id === 'dm.unmapped') return null;
+          const v = parseFloat(st.state);
+          if (!isFinite(v)) return null;
+          return { v: Math.round(v * 10) / 10, unit: (st.attributes && st.attributes.unit_of_measurement) || '' };
+      };
+      const wsTemp = cdMeteoStazione('dm.home_meteo_temperatura');
+      const wsHum = cdMeteoStazione('dm.home_meteo_umidita');
+      const wsFeel = cdMeteoStazione('dm.home_meteo_percepita');
+      const wsWind = cdMeteoStazione('dm.home_meteo_vento');
+      let wsDir = '';
+      (function(){
+          const st = STATES['dm.home_meteo_vento_direzione'];
+          if (!st || st.entity_id === 'dm.unmapped') return;
+          const raw = String(st.state || '');
+          if (!raw || raw === 'unknown' || raw === 'unavailable') return;
+          const deg = parseFloat(raw);
+          if (isFinite(deg)) {
+              const rosa = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'];
+              wsDir = rosa[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16];
+          } else { wsDir = raw; }
+      })();
+      const wStation = !!(wsTemp || wsHum || wsFeel || wsWind || wsDir);
+      /* v273: meteo non configurato → widget nascosto del tutto (nessun return: siamo dentro render)
+         — ma la stazione personale basta da sola a farlo vivere (#205). */
       let wUnmapped = false;
       if (typeof CD_REQUIRE_MAPPING !== 'undefined' && CD_REQUIRE_MAPPING) {
-          wUnmapped = !weatherEnt || weatherEnt.entity_id === 'dm.unmapped';
+          wUnmapped = (!weatherEnt || weatherEnt.entity_id === 'dm.unmapped') && !wStation;
           const wWidget = document.querySelector('.weather-widget');
           if (wWidget) wWidget.style.display = wUnmapped ? 'none' : '';
       }
+      const wFeelRow = document.getElementById('w-feel-row');
+      if (wFeelRow) wFeelRow.style.display = wsFeel && !wUnmapped ? '' : 'none';
+      if ((weatherEnt || wStation) && !wUnmapped) {
+        const wAttr = (weatherEnt && weatherEnt.attributes) || {};
+        setTxt('w-temp', wsTemp ? wsTemp.v + (wsTemp.unit || '°C') : (wAttr.temperature !== undefined ? wAttr.temperature : '--') + '°C');
+        setTxt('w-hum', wsHum ? wsHum.v + (wsHum.unit || '%') : (wAttr.humidity !== undefined ? wAttr.humidity : '--') + '%');
+        const windTxt = wsWind ? wsWind.v + ' ' + (wsWind.unit || 'km/h') : (wAttr.wind_speed !== undefined ? wAttr.wind_speed : '--') + ' km/h';
+        setTxt('w-wind', wsDir ? windTxt + ' · ' + wsDir : windTxt);
+        if (wsFeel) setTxt('w-feel', wsFeel.v + (wsFeel.unit || '°C'));
+        if (!weatherEnt || weatherEnt.entity_id === 'dm.unmapped') setTxt('w-state', '');
+      }
       if(weatherEnt && !wUnmapped) {
         const wLangMap = { 'clear-night': 'Sereno (Notte)', 'cloudy': 'Nuvoloso', 'fog': 'Nebbia', 'hail': 'Grandine', 'lightning': 'Fulmini', 'lightning-rainy': 'Temporale', 'partlycloudy': 'Poco Nuvoloso', 'pouring': 'Acquazzone', 'rainy': 'Pioggia', 'snowy': 'Neve', 'snowy-rainy': 'Nevischio', 'sunny': 'Soleggiato', 'windy': 'Ventoso', 'windy-variant': 'Vento Forte' };
-        setTxt('w-temp', (weatherEnt.attributes?.temperature !== undefined ? weatherEnt.attributes.temperature : '--') + '°C');
-        setTxt('w-hum', (weatherEnt.attributes?.humidity !== undefined ? weatherEnt.attributes.humidity : '--') + '%');
-        setTxt('w-wind', (weatherEnt.attributes?.wind_speed !== undefined ? weatherEnt.attributes.wind_speed : '--') + ' km/h');
         setTxt('w-state', wLangMap[weatherEnt.state] || weatherEnt.state.replace('-', ' '));
         const wMap = { 'clear-night': '🌙', 'cloudy': '☁️', 'fog': '<div class=\"w-fog-anim\"><div class=\"fog-line\"></div><div class=\"fog-line\"></div><div class=\"fog-line\"></div><div class=\"fog-line\"></div><div class=\"fog-line\"></div></div>', 'hail': '<div class=\"w-fog-anim\"><div class=\"fog-line\"></div><div class=\"fog-line\"></div><div class=\"fog-line\"></div><div class=\"fog-line\"></div><div class=\"fog-line\"></div></div>', 'lightning': '⛈️', 'lightning-rainy': '⛈️', 'partlycloudy': '⛅', 'pouring': '🌧️', 'rainy': '🌧️', 'snowy': '❄️', 'snowy-rainy': '🌨️', 'sunny': '☀️', 'windy': '💨', 'windy-variant': '💨' };
         setHtml('w-icon', wMap[weatherEnt.state] || '☀️');
@@ -5926,8 +5992,8 @@ function render() {
       document.querySelectorAll('.v-ev-odo').forEach(el => el.textContent = odoRaw !== '—' ? parseFloat(odoRaw).toFixed(0)+' km' : '—');
       document.querySelectorAll('.v-ev-ac-tot').forEach(el => el.textContent = acTotRaw !== '—' ? parseFloat(acTotRaw).toFixed(2)+' kWh' : '—');
       document.querySelectorAll('.v-ev-temp-wb').forEach(el => el.textContent = tempWbRaw !== '—' ? parseFloat(tempWbRaw).toFixed(1)+' °C' : '—');
-      const autoLimRaw = getRawState('dm.ev_autonomia_al_limite_di_carica');
-      document.querySelectorAll('.v-auto-limite').forEach(el => el.textContent = autoLimRaw !== '—' ? parseFloat(autoLimRaw).toFixed(0)+' km' : '—');
+      const autoLimKm = dmEvKmAlTarget();
+      document.querySelectorAll('.v-auto-limite').forEach(el => el.textContent = autoLimKm != null ? autoLimKm+' km' : '—');
       // Modo EVCC
       const evccModeRaw = getRawState('dm.ev_modalita_ricarica_evcc');
       document.querySelectorAll('.lm-evcc-btn').forEach(b => b.classList.remove('active'));
@@ -5936,9 +6002,9 @@ function render() {
       if (activeM) { const el = document.getElementById(activeM); if(el) el.classList.add('active'); }
       // Target SoC select
       const tSocSel = document.getElementById('sel-target-soc');
-      const tSocVal = getRawState('input_dm.ev_target_soc');
+      const tSocVal = getRawState('dm.ev_target_soc');
       if (tSocSel && tSocSel.options.length === 0) {
-          const opts = STATES['input_dm.ev_target_soc']?.attributes?.options || ['60','70','80','90','100'];
+          const opts = STATES['dm.ev_target_soc']?.attributes?.options || ['60','70','80','90','100'];
           opts.forEach(o => { const opt = document.createElement('option'); opt.value=o; opt.textContent=o+'%'; tSocSel.appendChild(opt); });
       }
       if (tSocSel && tSocVal !== '—') tSocSel.value = tSocVal; 
@@ -6030,7 +6096,7 @@ function render() {
           }
       }
       
-      let targetSocStr = getRawState('input_dm.ev_target_soc');
+      let targetSocStr = getRawState('dm.ev_target_soc');
       let targetSoc = parseInt(targetSocStr);
       if (isNaN(targetSoc)) targetSoc = 100;
       
@@ -6153,7 +6219,7 @@ function render() {
       }
 
       document.querySelectorAll('.v-ev-pow').forEach(el => el.textContent = getDisplay('dm.ev_potenza_wallbox')); document.querySelectorAll('.v-ev-volt').forEach(el => el.textContent = getDisplay('dm.ev_tensione_wallbox')); document.querySelectorAll('.v-ev-range').forEach(el => el.textContent = getDisplay('dm.ev_autonomia')); document.querySelectorAll('.v-ev-km-ric').forEach(el => el.textContent = getDisplay('dm.ev_km_dall_ultima_ricarica')); document.querySelectorAll('.v-ev-odo').forEach(el => el.textContent = getDisplay('dm.ev_odometro')); document.querySelectorAll('.v-ev-ac-tot').forEach(el => el.textContent = getDisplay('dm.ev_prelievo_ac_totale_auto')); document.querySelectorAll('.v-ev-temp-wb').forEach(el => el.textContent = getDisplay('dm.ev_temperatura_wallbox'));
-      updateSelectOptions('input_dm.ev_target_soc', 'sel-target-soc'); updateSelectOptions('input_dm.ev_target_soc', 'sel-target-soc-popup'); document.querySelectorAll('.v-auto-limite').forEach(el => el.textContent = getDisplay('dm.ev_autonomia_al_limite_di_carica'));
+      updateSelectOptions('dm.ev_target_soc', 'sel-target-soc'); updateSelectOptions('dm.ev_target_soc', 'sel-target-soc-popup'); (function(){ const km = dmEvKmAlTarget(); document.querySelectorAll('.v-auto-limite').forEach(el => el.textContent = km != null ? km+' km' : '—'); })();
       const evccMode = getRawState('dm.ev_modalita_ricarica_evcc'); document.querySelectorAll('.evcc-mode-btn').forEach(btn => btn.classList.remove('active')); if(evccMode && evccMode !== '—') { const md = evccMode.toLowerCase(); const b1 = document.getElementById('m-btn-' + md); if(b1) b1.classList.add('active'); const b2 = document.getElementById('p-btn-' + md); if(b2) b2.classList.add('active'); }
 
       if(currentPopupType && currentPopupType.startsWith('subloads_')) { renderSubLoads(currentPopupType.replace('subloads_', '')); }

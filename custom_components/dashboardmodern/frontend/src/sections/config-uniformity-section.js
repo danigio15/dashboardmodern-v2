@@ -54,11 +54,17 @@ export const TAB_SECTION_KEYS = Object.freeze({
    * niente. La chiave e' la stessa che `cdNavVisMap` conosce per quella voce,
    * altrimenti si scriverebbe una preferenza che nessuno legge. */
   robot: "robot",
+  /* La sezione Luci nasce a runtime come il robot, e come lui insegna la sua
+   * chiave a `cdNavVisMap`: questa riga fa comparire la fascia sulla scheda
+   * Luci dell'editor, e toccarla nasconde davvero la voce nella barra. */
+  luci: "luci",
 });
 
-/* Tabs that hold no configuration to save: diagnostics is read-only, and the
- * visibility tab has its own single control. */
-const NO_SAVE_TABS = new Set(["runtime", "visib", "export", "rileva"]);
+/* Tabs that hold no configuration to save: diagnostics is read-only, the
+ * visibility tab has its own single control, and Backup acts with its own
+ * buttons — «Scarica», «Ripristina e ricarica» — so a "Save section" under it
+ * would be a button that saves nothing. */
+const NO_SAVE_TABS = new Set(["runtime", "visib", "export", "rileva", "backup"]);
 
 /* What counts as "save this section". Add buttons, profile buttons and the
  * visibility banner are not saves, however much their label looks like one:
@@ -209,6 +215,66 @@ function rinfrescaBanner(banner, key) {
   return cambiato;
 }
 
+/* ── l'accordion resta come l'utente l'ha lasciato ────────────────────────
+ *
+ * Ogni gesto che tocca la configurazione — cancellare una riga, aggiungere
+ * un'entita', toccare la fascia di visibilita' — ridisegna la scheda intera
+ * con `innerHTML`, e ogni <details> rinasce nello stato in cui il markup lo
+ * scrive: chiuso, quasi sempre. Dentro Avvisi si apriva Aperture, si
+ * cancellava un sensore, e Aperture si richiudeva sopra la mano.
+ *
+ * Lo stato aperto/chiuso e' dell'utente, non del markup: si ascolta ogni
+ * toggle e lo si riapplica dopo ogni ridisegno, scheda per scheda. La chiave
+ * e' l'intestazione dell'accordion senza i contatori — «🚪 Aperture 5»
+ * diventa «🚪 Aperture 4» proprio cancellando, e un conteggio nella chiave
+ * sarebbe una memoria che dimentica al primo uso. */
+
+export function accordionKey(details) {
+  const summary = details.querySelector?.(":scope > summary");
+  if (!summary) return "";
+  const clone = summary.cloneNode(true);
+  clone.querySelectorAll(".ed-acc-n,small").forEach((node) => node.remove());
+  return clean(clone.textContent).replace(/\s+/g, " ");
+}
+
+function accordionMemory(tab) {
+  const all = (state.accordions ||= {});
+  return (all[tab] ||= {});
+}
+
+function rememberAccordion(event) {
+  if (state.restoring) return;
+  const details = event.target;
+  if (!details?.classList?.contains?.("ed-acc") || !details.closest?.("#ed-body")) return;
+  const key = accordionKey(details);
+  const tab = activeTab();
+  if (!key || !tab) return;
+  accordionMemory(tab)[key] = Boolean(details.open);
+}
+
+export function restoreAccordions(body = editorBody(), tab = activeTab()) {
+  if (!body || !tab) return 0;
+  const memory = (state.accordions || {})[tab];
+  if (!memory) return 0;
+  let restored = 0;
+  /* Riaprire fa scattare un altro toggle: senza il segnaposto la memoria si
+   * riscriverebbe da sola mentre viene applicata. */
+  state.restoring = true;
+  try {
+    for (const details of body.querySelectorAll("details.ed-acc")) {
+      const key = accordionKey(details);
+      if (!key || !(key in memory)) continue;
+      if (Boolean(details.open) !== memory[key]) {
+        details.open = memory[key];
+        restored += 1;
+      }
+    }
+  } finally {
+    state.restoring = false;
+  }
+  return restored;
+}
+
 /* ── one save, in one place, on every tab ─────────────────────────────────── */
 
 function sectionSaves(body) {
@@ -280,6 +346,7 @@ export function uniformConfiguration(body = editorBody(), tab = activeTab()) {
   pruneHiddenSections(body, tab);
   ensureVisibilityBanner(body, tab);
   ensureSaveFooter(body, tab);
+  restoreAccordions(body, tab);
   // Whatever the tab has just printed gets its entity rows too: this pass is
   // the one thing that hears every change to the tab.
   try {
@@ -418,6 +485,8 @@ export function installConfigUniformitySection() {
     },
     true,
   );
+  /* `toggle` non risale, ma la fase di cattura passa comunque da qui. */
+  doc.addEventListener("toggle", rememberAccordion, true);
   bindLegacyEntryPoints();
   schedule();
 }

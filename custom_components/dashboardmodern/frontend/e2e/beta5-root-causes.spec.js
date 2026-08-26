@@ -196,7 +196,9 @@ for (const variant of PRIMARY) {
       expect(height).toBeLessThan(150);
     }
 
-    await openEditor(page, "avvisi");
+    // Gli avvisi non hanno più una linguetta loro: vivono in fondo alla
+    // scheda dei widget, con gli stessi campi.
+    await openEditor(page, "todo");
     await expect(page.locator("#ed-avv-custom")).toBeHidden();
     await expect(page.locator("#ed-body button", { hasText: /^⚡$/ })).toHaveCount(0);
     await page.locator("#ed-avv-grp").selectOption("custom");

@@ -1,6 +1,6 @@
 // DM-FIX-20260815A
 import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
-import { createApplianceViewModel } from "../core/appliance-view-model.js";
+import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-view-model.js";
 import { isCumulativeEnergyEntity, resolveEntity } from "../core/period-service.js";
 import { runtimeMetrics } from "../core/runtime-metrics.js";
 import { iconGlyph } from "./icon-engine-section.js";
@@ -662,6 +662,13 @@ export function installAppliancesSection() {
   ensureDailyPopup();
   if (!state.listeners) {
     state.listeners = true;
+    /* Quando il ritardo di fine ciclo scade, l'elettrodomestico non manda
+     * nessun cambio di stato — ha smesso di consumare, e' per questo che il
+     * ritardo esisteva. Senza questa sveglia la card resterebbe IN FUNZIONE
+     * fino al primo ridisegno che capita per altri motivi. */
+    onRunHoldExpiry(() => {
+      if (appliancesVisible()) scheduleApplianceNormalization();
+    });
     root.addEventListener?.("dashboardmodern:state-changed", (event) => {
       if (appliancesVisible() && stateChangeAffectsAppliances(event)) {
         state.dailyUpdatedAt = 0;

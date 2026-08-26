@@ -168,6 +168,38 @@ export class DashboardStore {
       washerImage: parse("cd_lavatrice_visual", ""),
     });
     this.state = result.state;
+    /* All'avvio le chiavi legacy dettano, la copia canonica segue.
+     *
+     * Il documento canonico e' una fotografia scritta dall'ultimo `persist`, e
+     * puo' restare indietro di un giro: ogni gesto della plancia scrive PRIMA
+     * la sua chiave legacy — `cd_ev_cars`, `cd_energy_model`, le entita' — e
+     * solo un microtask dopo la copia. Chi salva e ricarica subito — il
+     * messaggio in plancia dice proprio "ricarica per applicare", e l'app del
+     * telefono si chiude quando vuole lei — riapre la pagina con la copia
+     * vecchia, e questa riga ricostruiva lo stato DA QUELLA: il `persist` qui
+     * sotto la riscriveva sopra le chiavi legacy, e l'ULTIMA modifica salvata
+     * spariva. «Questo campo proprio non me lo salva»: sempre l'ultimo, mai
+     * gli altri, perche' gli altri la copia li aveva gia' imparati. E' la
+     * stessa riconciliazione che il ripristino della configurazione condivisa
+     * gia' fa; qui vale per ogni avvio, e per ogni sezione. Una lista vuota ma
+     * presente e' una scelta, non un'assenza: le auto cancellate restano
+     * cancellate per la stessa strada.
+     *
+     * Le luci restano fuori: la loro forma legacy — `{entita': nome}` — perde
+     * per costruzione stanza e ordinamento, e ricostruirle da li' a ogni avvio
+     * butterebbe via quello che la copia custodisce apposta. */
+    for (const [section, key] of Object.entries(SECTION_KEYS)) {
+      if (section === "lights") continue;
+      try {
+        const raw = this.storage.getItem(key);
+        if (raw === null || raw === undefined) continue;
+        this.state.sections[section] = normalizeSection(section, JSON.parse(raw), {
+          rooms: this.state.sections.rooms || [],
+        });
+      } catch {
+        /* Una chiave illeggibile non insegna niente: resta la copia. */
+      }
+    }
     if (result.changes.length) console.info("[DashboardStore] migration", result.changes);
     this.persist();
     return result;
@@ -331,6 +363,30 @@ export class DashboardStore {
         this.persist();
       } finally {
         this.canonicalWriteKeys = null;
+      }
+      /* Un transact e' un gesto, e lo dice lui.
+       *
+       * La sincronizzazione fra dispositivi non puo' piu' dedurre i gesti
+       * dalle scritture su disco: il `persist` riscrive le chiavi anche
+       * quando nessuno ha toccato niente — all'avvio, dopo un ripristino —
+       * e prendere quelle riscritture per modifiche dell'utente trasformava
+       * ogni plancia accesa in uno scrittore che rispingeva i propri dati
+       * per sempre. Le scritture di proiezione adesso tacciono, e chi passa
+       * dal negozio con un'intenzione — un editor che salva — lo annuncia
+       * qui, solo quando il contenuto e' cambiato davvero. */
+      const cambiato =
+        visibilityChanged ||
+        (section === "visibility"
+          ? !sameValue(before.visibility, this.state.visibility)
+          : !sameValue(before.sections?.[section], this.state.sections?.[section]));
+      if (cambiato) {
+        try {
+          globalThis.dispatchEvent?.(
+            new CustomEvent("dashboardmodern:store-user-write", {
+              detail: { section, operation },
+            }),
+          );
+        } catch (_error) {}
       }
       const change = {
         section,

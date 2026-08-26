@@ -54,9 +54,11 @@ test("appliance cards only react to their configured entities", () => {
 });
 
 test("shutter runtime is event-driven and has no permanent polling loop", () => {
-  assert.match(shutterSection, /stateChangeAffectsShutters/);
-  assert.match(shutterSection, /configuredCoverEntityIds/);
-  assert.match(shutterSection, /scheduleShutterSync/);
+  // La sezione ha smesso di essere viva: la card «Tapparelle aperte» e il suo
+  // popup sono usciti dalla Home con il Quadro Avvisi, e quello che resta e'
+  // la pelle della pagina Tapparelle — nessun ascolto, quindi niente da
+  // filtrare. Chi disegna quelle tapparelle adesso e' il ponte dei widget.
+  assert.doesNotMatch(shutterSection, /dashboardmodern:state-changed/);
   assert.doesNotMatch(shutterSection, /120\s*:\s*350/);
   assert.doesNotMatch(shutterSection, /schedule\(active/);
   assert.doesNotMatch(shutterSection, /setInterval\s*\(/);

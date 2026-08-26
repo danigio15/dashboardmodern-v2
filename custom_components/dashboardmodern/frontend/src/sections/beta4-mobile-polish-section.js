@@ -254,7 +254,9 @@ function polishAlertIconField(custom) {
 
 function polishAlertsFirstInsert() {
   const body = doc?.getElementById("ed-body");
-  if (!body || activeTab() !== "avvisi") return false;
+  // La scheda degli avvisi sta in fondo a quella dei widget: la si riconosce
+  // dai suoi campi, non dalla linguetta.
+  if (!body || !body.querySelector("#ed-avv-grp")) return false;
   body.dataset.dmBeta5Alerts = "true";
   const group = body.querySelector("#ed-avv-grp");
   const entity = body.querySelector("#ed-avv-ent");

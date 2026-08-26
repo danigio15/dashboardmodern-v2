@@ -552,8 +552,18 @@ export class HomeAssistantBroker {
         if (value != null) output.set(plan.key, value);
       });
 
+    /* Nel periodo corrente l'entita' di periodo configurata e' l'unica
+     * autorita': il ripiego dal contatore totale serve ai mesi passati, non a
+     * sostituirla quando il suo stato non e' ancora arrivato. Lasciarlo
+     * subentrare dipingeva un numero diverso (e sbagliato) per un giro, poi il
+     * giro dopo arrivava quello vero — il valore che balla. Meglio nessun
+     * valore per un attimo (il bundle risulta incompleto e si riprova) che un
+     * valore sporco. */
+    const currentDirectKeys = new Set(
+      direct.filter((plan) => directIsCurrent(plan.kind)).map((plan) => plan.key),
+    );
     const derived = plans.filter(
-      (plan) => !plan.direct && !(plan.fallback && output.has(plan.key)),
+      (plan) => !plan.direct && !(plan.fallback && currentDirectKeys.has(plan.key)),
     );
     if (!derived.length) return output;
     const kind = derived[0].kind;

@@ -35,7 +35,16 @@ test("the 1.0 beta release metadata is consistently versioned", async () => {
    * 1.0.2, e cosi' via. Il contratto resta, e resta stretto, perche' serve a
    * impedire una versione scritta a mano storta, non a lasciar passare tutto. */
   assert.match(releaseVersion, /^1\.\d+\.\d+(?:-(?:beta|rc)\.\d+(?:\.\d+)?)?$/);
-  assert.match(readme, /badge\/version-\d+\.\d+\.\d+(?:--(?:beta|rc)\.\d+)?-/);
+  /* Il badge version del README era un numero scritto a mano, e infatti e'
+   * rimasto indietro (1.0.1 col manifest a 1.1.9, HACS a raccontare un'altra
+   * storia ancora). Il contratto adesso pretende il badge che legge il
+   * manifest da solo: la versione scritta a mano storta non puo' piu'
+   * esistere perche' non ce n'e' piu' una scritta a mano. */
+  assert.match(
+    readme,
+    /img\.shields\.io\/github\/manifest-json\/v\/danigio15\/dashboardmodern-v2\?filename=custom_components%2Fdashboardmodern%2Fmanifest\.json/,
+  );
+  assert.doesNotMatch(readme, /badge\/version-\d/);
   assert.ok(buildInfo.includes(`"integrationVersion":"${releaseVersion}"`));
   assert.ok(buildInfo.includes(`"dashboardVersion":"${releaseVersion}"`));
 

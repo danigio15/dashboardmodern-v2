@@ -73,11 +73,16 @@ test("il popup dell'auto porta le linguette dei profili", async ({ page }, testI
   await page.evaluate((states) => {
     const raw = eval("_RAW_STATES");
     for (const entry of states) raw[entry.entity_id] = entry;
-    // La foto configurata nella sezione Auto: il popup deve mostrare quella.
-    localStorage.setItem(
-      "cd_ev_image",
-      JSON.stringify(new URL("/legacy/logo.png", location.href).href),
-    );
+    /* La foto abita nel PROFILO dell'auto, e il popup mostra quella dell'auto
+     * scelta. Le due caselle piatte sono solo il disegno di adesso: con due
+     * profili una casella scritta a mano non vale piu' niente — mostrarla
+     * vorrebbe dire dare a un'auto la foto di chissa' chi. */
+    const url = new URL("/legacy/logo.png", location.href).href;
+    const cars = JSON.parse(localStorage.getItem("cd_ev_cars") || "[]");
+    if (cars.length) {
+      cars[0].img = url;
+      localStorage.setItem("cd_ev_cars", JSON.stringify(cars));
+    }
     window.dispatchEvent(new CustomEvent("dashboardmodern:state-changed", { detail: {} }));
   }, STATES);
 

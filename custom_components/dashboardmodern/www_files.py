@@ -105,3 +105,101 @@ def list_www_folder(root: str, relative: str = "") -> dict[str, Any] | None:
         "available": True,
         "truncated": truncated,
     }
+
+
+# ── Il caricamento di una foto in ``config/www`` ─────────────────────────────
+#
+# La plancia servita dall'integrazione non possiede nessun token: il suo
+# WebSocket si autentica lato server. Qualsiasi chiamata REST del browser —
+# tipo l'archivio immagini di Home Assistant — risponde percio' 401, ed e'
+# l'errore che usciva premendo «Dal dispositivo» nel selettore delle foto.
+# L'unico canale autenticato che il frontend ha e' il WebSocket di questa
+# integrazione: la foto arriva da li', in base64, e viene scritta nella stessa
+# cartella da cui il selettore gia' legge — ``config/www`` — cosi' l'indirizzo
+# che ne esce e' un ``/local/`` come quelli scritti a mano.
+
+# Una foto da plancia: 10 MB di file (≈13.4 MB in base64) bastano e avanzano.
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
+# La sottocartella dove finiscono i caricamenti, per non sparpagliare.
+UPLOAD_FOLDER = "dashboardmodern"
+
+_NOME_BUONO = frozenset("abcdefghijklmnopqrstuvwxyz0123456789._-")
+
+
+def _sanitize_name(filename: str) -> str:
+    """Un nome di file che non puo' uscire dalla cartella ne' sorprendere.
+
+    Lo stem si sanifica da solo e l'estensione si conserva: un nome tutto
+    fuori alfabeto — «照片.jpg» — perdeva lo stem e con lui il punto, e il
+    controllo sull'estensione rifiutava una foto perfettamente valida.
+    """
+    base = os.path.basename(str(filename or "")).strip().lower().replace(" ", "-")
+    percorso = Path(base)
+    suffisso = "".join(ch for ch in percorso.suffix if ch in _NOME_BUONO)
+    stem = "".join(ch for ch in percorso.stem if ch in _NOME_BUONO).strip(".")
+    return f"{stem or 'foto'}{suffisso or '.png'}"
+
+
+# La firma nei primi byte, non il nome: un file rinominato .png resta quello
+# che e'. L'SVG e' testo e si riconosce dal prologo.
+_FIRME_IMMAGINE = (
+    b"\x89PNG\r\n\x1a\n",
+    b"\xff\xd8\xff",  # JPEG
+    b"GIF87a",
+    b"GIF89a",
+    b"RIFF",  # WEBP (RIFF....WEBP)
+    b"BM",  # BMP
+)
+
+
+def _sembra_immagine(payload: bytes) -> bool:
+    if any(payload.startswith(firma) for firma in _FIRME_IMMAGINE):
+        return payload[8:12] == b"WEBP" if payload.startswith(b"RIFF") else True
+    if payload[4:12] in (b"ftypavif", b"ftypavis"):  # AVIF
+        return True
+    testa = payload[:256].lstrip()
+    return testa.startswith((b"<?xml", b"<svg"))  # SVG
+
+
+def save_www_upload(root: str, filename: str, payload: bytes) -> dict[str, Any] | None:
+    """Scrive una foto sotto ``config/www/dashboardmodern`` e ne da' il /local.
+
+    Restituisce ``None`` per un file che non e' un'immagine o e' troppo
+    grande: il chiamante lo traduce in un errore parlante. Un nome gia' preso
+    non si sovrascrive — si numera, perche' una foto caricata ieri non deve
+    sparire sotto quella di oggi.
+    """
+    nome = _sanitize_name(filename)
+    if Path(nome).suffix not in IMAGE_SUFFIXES:
+        return None
+    if not payload or len(payload) > MAX_UPLOAD_BYTES:
+        return None
+    # Il contenuto deve essere un'immagine davvero: un file qualsiasi
+    # rinominato .png verrebbe salvato, dichiarato riuscito, e poi il browser
+    # non saprebbe disegnarlo.
+    if not _sembra_immagine(payload):
+        return None
+    base = Path(root)
+    cartella = base / UPLOAD_FOLDER
+    cartella.mkdir(parents=True, exist_ok=True)
+    contatore = 2
+    destinazione = cartella / nome
+    while True:
+        # La cartella e' composta da pezzi sanificati, ma il confronto sui
+        # percorsi risolti resta: e' la stessa regola della lettura.
+        risolta = destinazione.resolve()
+        if not str(risolta).startswith(str(base.resolve()) + os.sep):
+            return None
+        try:
+            # Apertura esclusiva: due caricamenti concorrenti con lo stesso
+            # nome non possono piu' scriversi addosso — il secondo trova il
+            # file gia' nato e passa al numero dopo.
+            with risolta.open("xb") as file:
+                file.write(payload)
+            break
+        except FileExistsError:
+            pezzi = Path(nome)
+            destinazione = cartella / f"{pezzi.stem}-{contatore}{pezzi.suffix}"
+            contatore += 1
+    return {"path": f"/local/{UPLOAD_FOLDER}/{destinazione.name}"}

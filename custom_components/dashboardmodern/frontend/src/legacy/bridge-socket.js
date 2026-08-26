@@ -54,6 +54,10 @@ export const ALLOWED_MESSAGE_TYPES = Object.freeze([
   "media_source/browse_media",
   "media_source/resolve_media",
   "dashboardmodern/www/list",
+  // Il caricamento «Dal dispositivo»: la foto viaggia sul socket perche' la
+  // plancia servita dall'integrazione non possiede nessun token e ogni
+  // chiamata REST del browser risponde 401.
+  "dashboardmodern/www/upload",
   "auth/sign_path",
 ]);
 

@@ -109,3 +109,67 @@ def test_una_cartella_enorme_si_ferma_e_lo_dice(tmp_path: Path) -> None:
     assert radice is not None
     assert radice["truncated"] is True
     assert len(radice["images"]) == MAX_ENTRIES
+
+
+# ── Il caricamento ───────────────────────────────────────────────────────────
+
+
+# Un PNG minuscolo ma vero: la firma nei primi byte e' quella che conta.
+PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
+
+
+def test_upload_scrive_e_da_il_percorso_local(tmp_path: Path) -> None:
+    from custom_components.dashboardmodern.www_files import save_www_upload
+
+    esito = save_www_upload(str(tmp_path), "Foto Auto.PNG", PNG)
+    assert esito == {"path": "/local/dashboardmodern/foto-auto.png"}
+    assert (tmp_path / "dashboardmodern" / "foto-auto.png").read_bytes() == PNG
+
+
+def test_upload_non_sovrascrive_un_nome_gia_preso(tmp_path: Path) -> None:
+    from custom_components.dashboardmodern.www_files import save_www_upload
+
+    save_www_upload(str(tmp_path), "auto.png", PNG)
+    esito = save_www_upload(str(tmp_path), "auto.png", PNG + b"x")
+    assert esito == {"path": "/local/dashboardmodern/auto-2.png"}
+    assert (tmp_path / "dashboardmodern" / "auto.png").read_bytes() == PNG
+
+
+def test_upload_rifiuta_cio_che_non_e_una_foto(tmp_path: Path) -> None:
+    from custom_components.dashboardmodern.www_files import (
+        MAX_UPLOAD_BYTES,
+        save_www_upload,
+    )
+
+    assert save_www_upload(str(tmp_path), "script.sh", PNG) is None
+    assert save_www_upload(str(tmp_path), "vuota.png", b"") is None
+    troppo = PNG + b"x" * MAX_UPLOAD_BYTES
+    assert save_www_upload(str(tmp_path), "enorme.png", troppo) is None
+    # Il nome dice .png ma il contenuto no: rifiutato, non "riuscito e rotto".
+    assert save_www_upload(str(tmp_path), "finta.png", b"non sono un png") is None
+
+
+def test_upload_un_nome_ostile_resta_nella_cartella(tmp_path: Path) -> None:
+    from custom_components.dashboardmodern.www_files import save_www_upload
+
+    esito = save_www_upload(str(tmp_path), "../../fuori.png", PNG)
+    assert esito == {"path": "/local/dashboardmodern/fuori.png"}
+    assert (tmp_path / "dashboardmodern" / "fuori.png").exists()
+    assert not (tmp_path.parent / "fuori.png").exists()
+
+
+def test_upload_un_nome_fuori_alfabeto_tiene_la_sua_estensione(tmp_path: Path) -> None:
+    from custom_components.dashboardmodern.www_files import save_www_upload
+
+    jpeg = b"\xff\xd8\xff" + b"\x00" * 16
+    esito = save_www_upload(str(tmp_path), "照片.jpg", jpeg)
+    assert esito == {"path": "/local/dashboardmodern/foto.jpg"}
+
+
+def test_upload_riconosce_svg_e_webp(tmp_path: Path) -> None:
+    from custom_components.dashboardmodern.www_files import save_www_upload
+
+    svg = b'<svg xmlns="http://www.w3.org/2000/svg"></svg>'
+    assert save_www_upload(str(tmp_path), "auto.svg", svg) is not None
+    webp = b"RIFF" + b"\x00\x00\x00\x00" + b"WEBP" + b"\x00" * 8
+    assert save_www_upload(str(tmp_path), "auto.webp", webp) is not None

@@ -349,9 +349,15 @@ for (const variant of PRIMARY) {
         }),
       );
     });
-    const shutterAlertIcon = page.locator("#page-home .dm-shutter-alert .g-icon-wrap");
-    await expect(shutterAlertIcon).toBeVisible();
-    await expect(shutterAlertIcon).toHaveAttribute("data-dm-alert-motion", "static");
-    await expect(shutterAlertIcon).not.toHaveClass(/anim-ping/);
+    /* Il Quadro Avvisi e' stato assorbito dal ponte dei widget: la tapparella
+     * aperta vive nella tessera Tapparelle, che entra con la sua animazione, e
+     * il vecchio quadro si fa da parte — una notizia, una copia sola. */
+    const shutterTile = page.locator('#dm-widgets [data-dm-widget="tapparelle"]');
+    await expect(shutterTile).toBeVisible();
+    await expect(page.locator("#glance-grid")).toBeHidden();
+    const tileAnimation = await shutterTile.evaluate(
+      (tile) => getComputedStyle(tile).animationName,
+    );
+    expect(tileAnimation).toBe("dmTileIn");
   });
 }

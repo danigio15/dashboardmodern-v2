@@ -12,6 +12,17 @@ test("canonicalClimateType maps only heat aliases to termo", () => {
     assert.equal(canonicalClimateType(value), "clima");
 });
 
+test("heat pump aliases become the third canonical type, pompa", () => {
+  for (const value of ["pompa", "pompa_di_calore", "heat_pump", "heatpump", "both", "POMPA"])
+    assert.equal(canonicalClimateType(value), "pompa");
+  // And it survives the round trips that used to flatten everything to clima.
+  assert.equal(normalizeDevice({ type: "heat_pump" }, "climate").type, "pompa");
+  const previous = root.localStorage;
+  root.localStorage = { getItem: () => JSON.stringify([{ id: "one", type: "pompa" }]) };
+  assert.deepEqual(readClimateUnits(), [{ id: "one", type: "pompa" }]);
+  root.localStorage = previous;
+});
+
 test("normalizeDevice always emits a canonical climate type", () => {
   assert.equal(normalizeDevice({ type: "thermostat" }, "climate").type, "termo");
   assert.equal(normalizeDevice({ type: "other" }, "climate").type, "clima");

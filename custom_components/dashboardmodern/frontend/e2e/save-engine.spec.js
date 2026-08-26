@@ -220,7 +220,13 @@ for (const variant of PRIMARY) {
     await expect
       .poll(() => page.evaluate(() => DashboardModernModules.store.getState().visibility.energy))
       .toBe(true);
-    await expect(page.locator("[data-energy-actions]")).toHaveAttribute("data-state", "success");
+    /* L'accettazione arriva quando la coda delle scritture e' vuota, e il
+     * gesto di salvataggio ne accoda una per ogni campo della maschera: su una
+     * macchina lenta la fila e' lunga piu' dei cinque secondi di cortesia. Si
+     * aspetta la fine della coda, non un tempo tondo. */
+    await expect(page.locator("[data-energy-actions]")).toHaveAttribute("data-state", "success", {
+      timeout: 30_000,
+    });
 
     await page.reload();
     await page.waitForFunction(

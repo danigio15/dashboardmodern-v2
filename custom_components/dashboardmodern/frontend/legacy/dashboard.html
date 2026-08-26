@@ -82,6 +82,7 @@
       <div class="w-right">
         <div class="w-detail">💧 Umidità <span id="w-hum">--</span></div>
         <div class="w-detail">💨 Vento <span id="w-wind">--</span></div>
+        <div class="w-detail" id="w-feel-row" style="display:none">🌡️ Percepita <span id="w-feel">--</span></div>
       </div>
     </div>
 
@@ -101,33 +102,6 @@
       </div>
     </div>
 
-    <h3 class="section-title">Quadro Avvisi</h3>
-    <div class="glance-grid" id="glance-grid">
-      <div class="glance-card" id="glance-luci" style="--g-rgb: 245,158,11; display: none;" onclick="apriDettagli(event, 'luci')">
-        <div class="g-info"><span class="g-name">Luci Accese</span><span class="g-val" id="g-val-luci">0</span></div>
-        <div class="g-icon-wrap anim-ping" style="color: var(--solar);">💡</div>
-      </div>
-      <div class="glance-card" id="glance-clima" style="--g-rgb: 6,182,212; display: none;" onclick="apriDettagli(event, 'clima')">
-        <div class="g-info"><span class="g-name">Clima Attivi</span><span class="g-val" id="g-val-clima">0</span></div>
-        <div class="g-icon-wrap anim-scan" style="color: var(--ev);">❄️</div>
-      </div>
-      <div class="glance-card" id="glance-risc" style="--g-rgb: 225,29,72; display: none;" onclick="apriDettagli(event, 'risc')">
-        <div class="g-info"><span class="g-name">Riscaldamento</span><span class="g-val" id="g-val-risc">0</span></div>
-        <div class="g-icon-wrap anim-ping" style="color: var(--load);">🔥</div>
-      </div>
-      <div class="glance-card" id="glance-win" style="--g-rgb: 225,29,72; display: none;" onclick="apriDettagli(event, 'win')">
-        <div class="g-info"><span class="g-name">Aperture</span><span class="g-val" id="g-val-win">0</span></div>
-        <div class="g-icon-wrap anim-ping" style="color: var(--load);">🚪</div>
-      </div>
-      <div class="glance-card" id="glance-batt" style="--g-rgb: 225,29,72; display: none;" onclick="apriDettagli(event, 'batt')">
-        <div class="g-info"><span class="g-name">Batt. Scariche</span><span class="g-val" id="g-val-batt">0</span></div>
-        <div class="g-icon-wrap anim-ping" style="color: var(--load);">🔋</div>
-      </div>
-      <!-- v245: la card antifurto è stata rimossa dal Quadro Avvisi.
-           Lo stato dell'antifurto adesso vive nella pillola sopra (allarme-banner) -->
-      <!-- v0.9.7 (#4): avvisi personalizzati iniettati qui -->
-      <div id="glance-custom-wrap" style="display:contents;"></div>
-    </div>
 
     <h3 class="section-title">Azioni Rapide Premium</h3>
     <div class="quick-actions" id="qa-grid"><!-- v261: azioni generate da getQuickActions() --></div>
@@ -834,7 +808,7 @@
         <div class="lm-target-lbl">Target Ricarica (SoC)</div>
         <div class="lm-target-val v-auto-limite">—</div>
       </div>
-      <select id="sel-target-soc" class="lm-target-select" onchange="changeSelect('input_dm.ev_target_soc', this.value)"></select>
+      <select id="sel-target-soc" class="lm-target-select" onchange="changeSelect('dm.ev_target_soc', this.value)"></select>
     </div>
 
     <!-- ── Modalità EVCC ── -->
@@ -1474,7 +1448,7 @@
     <!-- Target SoC -->
     <div class="ev-popup-target">
       <span class="ev-popup-target-lbl"><span class="lbl-icon">🎯</span> Target SoC</span>
-      <select id="sel-target-soc-popup" class="ha-select target-select" onchange="changeSelect('input_dm.ev_target_soc', this.value)"></select>
+      <select id="sel-target-soc-popup" class="ha-select target-select" onchange="changeSelect('dm.ev_target_soc', this.value)"></select>
     </div>
 
     <!-- Mode buttons EVCC -->

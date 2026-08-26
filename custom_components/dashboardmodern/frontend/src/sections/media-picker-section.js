@@ -90,11 +90,52 @@ const resolve = (mediaContentId) => askHomeAssistant(resolveMessage(0, mediaCont
 
 const listWww = (path) => askHomeAssistant(wwwListMessage(0, path)).then(normalizeWwwResult);
 
+/** Il contenuto del file, come stringa base64 senza intestazione. */
+async function blobBase64(blob) {
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binario = "";
+  const passo = 0x8000;
+  for (let i = 0; i < bytes.length; i += passo)
+    binario += String.fromCharCode.apply(null, bytes.subarray(i, i + passo));
+  return btoa(binario);
+}
+
 /**
- * Copia una foto nell'archivio immagini di Home Assistant e ne restituisce
- * l'indirizzo stabile. Restituisce "" quando l'archivio non risponde.
+ * Salva la foto e ne restituisce l'indirizzo stabile.
+ *
+ * La strada maestra e' il WebSocket dell'integrazione: la plancia servita da
+ * Home Assistant non possiede nessun token — il suo socket si autentica lato
+ * server — e qualsiasi chiamata REST del browser risponde 401. Era l'errore
+ * che usciva premendo «Dal dispositivo». Il backend scrive la foto sotto
+ * config/www e risponde con un /local, lo stesso tipo di percorso che si
+ * scriverebbe a mano. L'archivio immagini REST resta come ripiego per chi un
+ * token vero ce l'ha (installazioni standalone col long-lived token).
  */
+// Lo stesso tetto del backend: rifiutare qui evita di leggere e codificare
+// in memoria una foto che verrebbe comunque respinta — o che chiuderebbe il
+// WebSocket sforandone il limite di messaggio.
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
 export async function storeImage(blob, name) {
+  if (Number(blob?.size) > MAX_UPLOAD_BYTES)
+    throw new Error(t("la foto supera i 10 MB", "the photo exceeds 10 MB"));
+  try {
+    const result = await askHomeAssistant(
+      {
+        type: "dashboardmodern/www/upload",
+        filename: clean(name) || "foto.png",
+        data: await blobBase64(blob),
+      },
+      30000,
+    );
+    const path = clean(result?.path);
+    if (path) return path;
+  } catch (errore) {
+    /* Un backend vecchio non conosce il comando: si tenta la strada REST.
+     * Un rifiuto parlante del backend (file non valido) invece si riporta. */
+    if (/invalid_upload|invalid_data/.test(clean(errore?.message))) throw errore;
+  }
   const body = new FormData();
   body.append("file", blob, name);
   const token = authToken();

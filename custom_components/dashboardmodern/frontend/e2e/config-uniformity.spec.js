@@ -72,8 +72,13 @@ const SECTION_TABS = [
   "pool",
   "irr",
   "appliances",
+  // Da quando la sezione Luci sta nella barra, la sua scheda ha la fascia
+  // visibile/nascondi come tutte le altre.
+  "luci",
 ];
-const PLAIN_TABS = ["sez8", "stanze", "luci", "avvisi"];
+// «avvisi» non è più una linguetta: gli avvisi stanno in fondo alla scheda
+// «🧩 Widget», che è anche lei una scheda senza sezione da accendere.
+const PLAIN_TABS = ["sez8", "stanze", "todo"];
 const NO_SAVE_TABS = ["runtime"];
 
 async function boot(page, testInfo) {
@@ -143,11 +148,16 @@ test.describe("the configuration behaves the same on every tab", () => {
     await boot(page, testInfo);
     for (const tab of [...SECTION_TABS, ...PLAIN_TABS]) {
       await openTab(page, tab);
-      // "＋ Salva attuale" saves the current EV mapping as a new profile: it is
-      // an add, not a save of the section, and stays where it is.
+      // «💾 Salva auto» (nato «＋ Salva attuale») salva la scheda della
+      // vettura che si sta compilando, e «＋ Aggiungi auto» ne apre una
+      // nuova: sono gesti del profilo, non salvataggi della sezione, e
+      // stanno dove stanno.
       await settledTabState(
         page,
-        (view) => view.saveLabels.filter((label) => !label.startsWith("＋")),
+        (view) =>
+          view.saveLabels.filter(
+            (label) => !label.startsWith("＋") && !/salva auto|save car/i.test(label),
+          ),
         `${tab}: one way to save`,
       ).toEqual(["💾 Salva sezione"]);
       await settledTabState(
@@ -179,7 +189,7 @@ test.describe("the configuration behaves the same on every tab", () => {
     }
     for (const tab of PLAIN_TABS) {
       await openTab(page, tab);
-      // These four are not sections of the dashboard, so they have no switch.
+      // These three are not sections of the dashboard, so they have no switch.
       await settledTabState(page, (view) => view.banners, `${tab}: no switch`).toBe(0);
     }
   });
