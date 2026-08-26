@@ -17,15 +17,25 @@
  */
 import {
   avatarSvg,
+  FACE_AGES,
+  FACE_BEARD_COLORS,
   FACE_BEARDS,
+  FACE_BROWS,
   FACE_BUILDS,
+  FACE_EARS,
   FACE_EYE_COLORS,
   FACE_EYES,
   FACE_GLASSES,
   FACE_HAIR_COLORS,
   FACE_HAIRS,
+  FACE_HATS,
+  FACE_LIP_COLORS,
+  FACE_MARKS,
   FACE_MOUTHS,
+  FACE_NOSES,
+  FACE_OUTFIT_COLORS,
   FACE_OUTFITS,
+  FACE_SHAPES,
   FACE_SKINS,
   normalizeFace,
 } from "../core/person-avatar.js";
@@ -107,41 +117,84 @@ function campoEntita(id, field, label, value, placeholder, hint) {
  * facce, disegnate dallo stesso motore della card cosi' quello che si sceglie
  * e' esattamente quello che si vedra'. */
 
-const FACE_THUMB_BASE = Object.freeze({
-  skin: "f2",
-  hair: "corto",
-  hairColor: "castano",
-  eyes: "normali",
-  eyeColor: "marrone",
-  mouth: "sorriso",
-  beard: "nessuna",
-  glasses: "nessuno",
-  outfit: "maglietta",
-  build: "normale",
-});
-
-function faceRows() {
+/* I tratti, raccolti per gruppi: un pannello con venti file aperte tutte
+ * insieme non si legge, e chi cerca gli occhiali non deve scorrere la barba.
+ * Il primo gruppo e' aperto, gli altri si aprono quando servono. */
+function faceGroups(face, colore) {
   return [
-    { k: "skin", label: t("Carnagione", "Skin tone"), keys: Object.keys(FACE_SKINS), swatch: (key) => FACE_SKINS[key].base },
-    { k: "hair", label: t("Capelli", "Hair"), keys: [...FACE_HAIRS] },
-    { k: "hairColor", label: t("Colore capelli", "Hair color"), keys: Object.keys(FACE_HAIR_COLORS), swatch: (key) => FACE_HAIR_COLORS[key] },
-    { k: "eyes", label: t("Occhi", "Eyes"), keys: [...FACE_EYES] },
-    { k: "eyeColor", label: t("Colore occhi", "Eye color"), keys: Object.keys(FACE_EYE_COLORS), swatch: (key) => FACE_EYE_COLORS[key] },
-    { k: "mouth", label: t("Bocca", "Mouth"), keys: [...FACE_MOUTHS] },
-    { k: "beard", label: t("Barba", "Beard"), keys: [...FACE_BEARDS] },
-    { k: "build", label: t("Corporatura", "Build"), keys: [...FACE_BUILDS] },
-    { k: "glasses", label: t("Occhiali", "Glasses"), keys: [...FACE_GLASSES] },
-    { k: "outfit", label: t("Abbigliamento", "Clothing"), keys: [...FACE_OUTFITS] },
+    {
+      titolo: t("Viso", "Face"),
+      rows: [
+        { k: "shape", label: t("Forma del viso", "Face shape"), keys: Object.keys(FACE_SHAPES) },
+        { k: "skin", label: t("Carnagione", "Skin tone"), keys: Object.keys(FACE_SKINS), swatch: (key) => FACE_SKINS[key].base },
+        { k: "age", label: t("Età", "Age"), keys: [...FACE_AGES] },
+        { k: "ears", label: t("Orecchie", "Ears"), keys: [...FACE_EARS] },
+        { k: "marks", label: t("Segni particolari", "Distinctive marks"), keys: [...FACE_MARKS] },
+      ],
+    },
+    {
+      titolo: t("Occhi", "Eyes"),
+      rows: [
+        { k: "eyes", label: t("Occhi", "Eyes"), keys: [...FACE_EYES] },
+        { k: "eyeColor", label: t("Colore occhi", "Eye color"), keys: Object.keys(FACE_EYE_COLORS), swatch: (key) => FACE_EYE_COLORS[key] },
+        { k: "brows", label: t("Sopracciglia", "Eyebrows"), keys: [...FACE_BROWS] },
+      ],
+    },
+    {
+      titolo: t("Capelli e barba", "Hair and beard"),
+      rows: [
+        { k: "hair", label: t("Capelli", "Hair"), keys: [...FACE_HAIRS] },
+        { k: "hairColor", label: t("Colore capelli", "Hair color"), keys: Object.keys(FACE_HAIR_COLORS), swatch: (key) => FACE_HAIR_COLORS[key] },
+        { k: "beard", label: t("Barba", "Beard"), keys: [...FACE_BEARDS] },
+        /* «Come i capelli» non ha un colore suo: il campioncino mostra quello
+         * che erediterebbe, cosi' la fila non parte con una pastiglia vuota. */
+        { k: "beardColor", label: t("Colore barba", "Beard color"), keys: Object.keys(FACE_BEARD_COLORS), swatch: (key) => FACE_BEARD_COLORS[key] || FACE_HAIR_COLORS[face.hairColor] },
+      ],
+    },
+    {
+      titolo: t("Naso e bocca", "Nose and mouth"),
+      rows: [
+        { k: "nose", label: t("Naso", "Nose"), keys: [...FACE_NOSES] },
+        { k: "mouth", label: t("Bocca", "Mouth"), keys: [...FACE_MOUTHS] },
+        { k: "lips", label: t("Labbra", "Lips"), keys: Object.keys(FACE_LIP_COLORS), swatch: (key) => FACE_LIP_COLORS[key] },
+      ],
+    },
+    {
+      titolo: t("Corpo e vestiti", "Body and clothes"),
+      rows: [
+        { k: "build", label: t("Corporatura", "Build"), keys: [...FACE_BUILDS] },
+        { k: "outfit", label: t("Abbigliamento", "Clothing"), keys: [...FACE_OUTFITS] },
+        { k: "outfitColor", label: t("Colore vestito", "Clothing color"), keys: Object.keys(FACE_OUTFIT_COLORS), swatch: (key) => FACE_OUTFIT_COLORS[key] || colore },
+        { k: "glasses", label: t("Occhiali", "Glasses"), keys: [...FACE_GLASSES] },
+        { k: "hat", label: t("Copricapo", "Headwear"), keys: [...FACE_HATS] },
+      ],
+    },
   ];
 }
 
-function faceThumb(face, k, key) {
-  /* Il campioncino mostra la variante sul modello neutro, ma tiene la
-   * carnagione e i capelli gia' scelti: un paio di occhiali si giudica sulla
-   * propria faccia, non su quella di un altro. */
-  const base = { ...FACE_THUMB_BASE, skin: face.skin, hairColor: face.hairColor, eyeColor: face.eyeColor };
-  if (k === "hair") base.hairColor = face.hairColor;
-  return avatarSvg({ ...base, [k]: key }, { animated: false, shirt: "#9aa8b8" });
+/* Quello che copre il tratto che si sta scegliendo, nel campioncino si toglie:
+ * la barba sopra la bocca, gli occhiali sopra gli occhi, il cappello sopra i
+ * capelli. Il resto della faccia resta la propria — un paio di occhiali si
+ * giudica sulla propria faccia, non su quella di un altro. */
+const COPERTURE = Object.freeze({
+  mouth: { beard: "nessuna" },
+  lips: { beard: "nessuna" },
+  nose: { beard: "nessuna", glasses: "nessuno" },
+  eyes: { glasses: "nessuno" },
+  eyeColor: { glasses: "nessuno" },
+  brows: { glasses: "nessuno", hat: "nessuno" },
+  hair: { hat: "nessuno" },
+  hairColor: { hat: "nessuno" },
+  shape: { hat: "nessuno" },
+  ears: { hat: "nessuno" },
+  age: { beard: "nessuna", glasses: "nessuno" },
+});
+
+function faceThumb(face, k, key, colore) {
+  return avatarSvg(
+    { ...face, ...(COPERTURE[k] || {}), [k]: key },
+    { animated: false, shirt: colore },
+  );
 }
 
 function builderMarkup(person) {
@@ -149,24 +202,34 @@ function builderMarkup(person) {
   if (!face)
     return `<button type="button" class="ed-btn-add dm-face-create" data-face-create>🧑‍🎨 ${t("Crea l'avatar", "Create the avatar")}</button>
       <small>${t("Oppure scrivi un'emoji qui sotto — o lascia vuoto per le iniziali del nome.", "Or type an emoji below — or leave it empty for the initials of the name.")}</small>`;
-  const rows = faceRows()
-    .map(({ k, label, keys, swatch }) => {
-      const options = keys
-        .map((key) => {
-          const selected = face[k] === key ? " on" : "";
-          if (swatch)
-            return `<button type="button" class="dm-face-opt dm-face-swatch${selected}" data-face-k="${k}" data-face-v="${esc(key)}" style="--dm-face-swatch:${swatch(key)}" aria-label="${esc(label)}"></button>`;
-          return `<button type="button" class="dm-face-opt dm-face-thumb${selected}" data-face-k="${k}" data-face-v="${esc(key)}" aria-label="${esc(label)}">${faceThumb(face, k, key)}</button>`;
+  const colore = clean(person.avatar.color) || "#0ea5e9";
+  const gruppi = faceGroups(face, colore)
+    .map(({ titolo, rows }, indice) => {
+      const righe = rows
+        .map(({ k, label, keys, swatch }) => {
+          const options = keys
+            .map((key) => {
+              const selected = face[k] === key ? " on" : "";
+              const nome = `${label}: ${key}`;
+              if (swatch)
+                return `<button type="button" class="dm-face-opt dm-face-swatch${selected}" data-face-k="${k}" data-face-v="${esc(key)}" style="--dm-face-swatch:${swatch(key)}" aria-label="${esc(nome)}"></button>`;
+              return `<button type="button" class="dm-face-opt dm-face-thumb${selected}" data-face-k="${k}" data-face-v="${esc(key)}" aria-label="${esc(nome)}">${faceThumb(face, k, key, colore)}</button>`;
+            })
+            .join("");
+          return `<div class="dm-face-row"><span class="dm-face-row-lbl">${esc(label)}</span><span class="dm-face-row-opts">${options}</span></div>`;
         })
         .join("");
-      return `<div class="dm-face-row"><span class="dm-face-row-lbl">${esc(label)}</span><span class="dm-face-row-opts">${options}</span></div>`;
+      return `<details class="dm-face-group"${indice ? "" : " open"}><summary class="dm-face-group-head">${esc(titolo)}</summary><div class="dm-face-rows">${righe}</div></details>`;
     })
     .join("");
   return `<div class="dm-face-workbench">
-      <span class="dm-face-preview" style="--dm-person-color:${esc(person.avatar.color)}">${avatarSvg(face)}</span>
-      <div class="dm-face-rows">${rows}</div>
+      <span class="dm-face-preview" style="--dm-person-color:${esc(colore)}">${avatarSvg(face)}</span>
+      <div class="dm-face-groups">${gruppi}</div>
     </div>
-    <button type="button" class="dm-face-remove" data-face-clear>✕ ${t("Togli la faccia (torna a emoji o iniziali)", "Remove the face (back to emoji or initials)")}</button>`;
+    <div class="dm-face-tools">
+      <button type="button" class="ed-btn-add dm-face-dice" data-face-random>🎲 ${t("Sorteggia una faccia", "Shuffle a face")}</button>
+      <button type="button" class="dm-face-remove" data-face-clear>✕ ${t("Togli la faccia (torna a emoji o iniziali)", "Remove the face (back to emoji or initials)")}</button>
+    </div>`;
 }
 
 /* I sensori facoltativi del telefono, con le parole dell'editor: etichetta e
@@ -294,6 +357,38 @@ function ridisegna() {
   ensurePeopleEditor();
 }
 
+/* Una faccia sorteggiata: venti tratti da scegliere sono tanti, e partire da
+ * qualcuno che non sia sempre lo stesso e' il modo piu' veloce di capire cosa
+ * c'e' dentro. I copricapi restano fuori dal sorteggio: un cappello a caso
+ * copre il taglio appena estratto. */
+function facciaACaso() {
+  const uno = (catalogo) => {
+    const keys = Array.isArray(catalogo) ? catalogo : Object.keys(catalogo);
+    return keys[Math.floor(Math.random() * keys.length)];
+  };
+  return normalizeFace({
+    shape: uno(FACE_SHAPES),
+    skin: uno(FACE_SKINS),
+    age: uno(FACE_AGES),
+    ears: uno(FACE_EARS),
+    marks: uno(FACE_MARKS),
+    eyes: uno(FACE_EYES),
+    eyeColor: uno(FACE_EYE_COLORS),
+    brows: uno(FACE_BROWS),
+    hair: uno(FACE_HAIRS),
+    hairColor: uno(FACE_HAIR_COLORS),
+    beard: uno(FACE_BEARDS),
+    beardColor: uno(FACE_BEARD_COLORS),
+    nose: uno(FACE_NOSES),
+    mouth: uno(FACE_MOUTHS),
+    lips: uno(FACE_LIP_COLORS),
+    build: uno(FACE_BUILDS),
+    outfit: uno(FACE_OUTFITS),
+    outfitColor: uno(FACE_OUTFIT_COLORS),
+    glasses: uno(FACE_GLASSES),
+  });
+}
+
 /* La faccia scritta nella casella nascosta della riga, gia' normalizzata. */
 function rigaFace(riga) {
   const campo = riga.querySelector('[data-person-field="face"]');
@@ -314,9 +409,16 @@ function scriviFace(riga, people, index, face) {
   if (builder && people[index]) {
     const colore =
       clean(riga.querySelector('[data-person-field="color"]')?.value) || people[index].avatar.color;
+    /* Quali gruppi erano aperti: si sceglie un tratto e il pannello si
+     * ridisegna — se i gruppi tornassero chiusi, ogni scelta riporterebbe le
+     * mani in cima all'elenco. */
+    const aperti = [...builder.querySelectorAll("details.dm-face-group")].map((g) => g.open);
     builder.innerHTML = builderMarkup({
       ...people[index],
       avatar: { ...people[index].avatar, face, color: colore },
+    });
+    builder.querySelectorAll("details.dm-face-group").forEach((gruppo, i) => {
+      if (aperti.length > i) gruppo.open = aperti[i];
     });
   }
   aggiornaAnteprima(riga, people, index);
@@ -457,6 +559,11 @@ async function onClick(event) {
   if (event.target.closest("[data-face-create]")) {
     event.preventDefault();
     scriviFace(riga, people, index, normalizeFace({}));
+    return;
+  }
+  if (event.target.closest("[data-face-random]")) {
+    event.preventDefault();
+    scriviFace(riga, people, index, facciaACaso());
     return;
   }
   if (event.target.closest("[data-face-clear]")) {
@@ -609,17 +716,29 @@ function installStyles() {
       #ed-body .dm-face-builder>small{color:var(--secondary-text-color,#64748b);font-size:12px}
       #ed-body .dm-face-workbench{display:flex;gap:14px;align-items:flex-start}
       #ed-body .dm-face-preview{flex:0 0 108px;width:108px;height:108px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 32% 26%,color-mix(in srgb,var(--dm-person-color,#0ea5e9) 10%,var(--card-bg,#fff)),color-mix(in srgb,var(--dm-person-color,#0ea5e9) 30%,var(--card-bg,#fff)));box-shadow:0 10px 22px -10px rgba(15,23,42,.45)}
-      #ed-body .dm-face-rows{flex:1 1 auto;min-width:0;display:grid;gap:7px}
+      #ed-body .dm-face-groups{flex:1 1 auto;min-width:0;display:grid;gap:5px}
+      #ed-body .dm-face-group{border:1px solid var(--card-border,#e2e8f0);border-radius:14px;background:var(--surface-2,#f8fafc);overflow:hidden}
+      #ed-body .dm-face-group-head{list-style:none;cursor:pointer;padding:7px 11px;font-size:11px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:var(--secondary-text-color,#64748b);display:flex;align-items:center;gap:7px}
+      #ed-body .dm-face-group-head::-webkit-details-marker{display:none}
+      #ed-body .dm-face-group-head::before{content:"▸";font-size:11px;transition:transform .18s ease;color:var(--info-color,#0ea5e9)}
+      #ed-body .dm-face-group[open]>.dm-face-group-head::before{transform:rotate(90deg)}
+      #ed-body .dm-face-group[open]>.dm-face-group-head{color:var(--primary-text-color,#0f172a);border-bottom:1px solid var(--card-border,#e2e8f0)}
+      #ed-body .dm-face-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+      #ed-body .dm-face-dice{margin:0}
+      #ed-body .dm-face-rows{flex:1 1 auto;min-width:0;display:grid;gap:7px;padding:8px 10px 10px}
       #ed-body .dm-face-row{display:grid;gap:3px}
       #ed-body .dm-face-row-lbl{font-size:10.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
       #ed-body .dm-face-row-opts{display:flex;flex-wrap:wrap;gap:5px}
       #ed-body .dm-face-opt{border:2px solid transparent;background:transparent;padding:0;cursor:pointer;border-radius:50%}
       #ed-body .dm-face-opt.on{border-color:var(--info-color,#0ea5e9);box-shadow:0 0 0 2px color-mix(in srgb,var(--info-color,#0ea5e9) 30%,transparent)}
-      #ed-body .dm-face-swatch{width:26px;height:26px;background:var(--dm-face-swatch)}
+      /* Il filo scuro attorno: un bianco o un ghiaccio su fondo chiaro,
+       * senza, non si vede che c'e' una pastiglia. */
+      #ed-body .dm-face-swatch{width:26px;height:26px;background:var(--dm-face-swatch);box-shadow:inset 0 0 0 1px rgba(15,23,42,.18)}
       #ed-body .dm-face-thumb{width:42px;height:42px;overflow:hidden;background:#e8edf4}
       #ed-body .dm-face-remove{border:none;background:transparent;color:var(--secondary-text-color,#64748b);font:inherit;font-size:12px;font-weight:750;cursor:pointer;justify-self:start;padding:2px 0}
       #ed-body .dm-face-remove:hover{color:var(--error-color,#dc2626)}
-      @media(max-width:560px){#ed-body .dm-face-workbench{flex-direction:column;align-items:center}#ed-body .dm-face-rows{width:100%}}
+      @media(max-width:560px){#ed-body .dm-face-workbench{flex-direction:column;align-items:center}#ed-body .dm-face-groups{width:100%}}
+      @media(prefers-reduced-motion:reduce){#ed-body .dm-face-group-head::before{transition:none}}
       #ed-body .dm-people-sensors{margin:2px 0}
       #ed-body .dm-people-sensors .ed-acc-body{display:grid;gap:8px}
       #ed-body .dm-people-sensors-intro{color:var(--secondary-text-color,#64748b);font-size:12px;line-height:1.45}

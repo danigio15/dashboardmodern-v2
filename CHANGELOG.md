@@ -229,6 +229,29 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   bottoni, felpa col cappuccio, o giacca col completo — camicia bianca e
   cravatta che prende il colore della persona.
 
+- **L'avatar si modifica al massimo: venti tratti, e una faccia che si
+  riconosce.** «Il personaggio lo vedo sempre uguale»: i tratti erano dieci e
+  cambiavano poco. Adesso sono venti, raccolti in cinque gruppi che si aprono
+  uno alla volta — Viso, Occhi, Capelli e barba, Naso e bocca, Corpo e
+  vestiti. Le scelte nuove: **forma del viso** (ovale, tondo, squadrato, a
+  cuore, affilato, lungo — è la mascella a cambiare, non solo il cranio che i
+  capelli coprono), **età** (giovane, adulto, maturo: la piega naso-bocca, le
+  righe sulla fronte, le zampe di gallina), **orecchie** (normali, sporgenti,
+  piccole), **segni particolari** (lentiggini, neo, fossette),
+  **sopracciglia** (sei forme, dall'arcuata alla corrucciata), **naso**
+  (dritto, piccolo, pronunciato, largo, all'insù), **colore delle labbra**,
+  **colore della barba** — che può ingrigire senza i capelli —, **copricapo**
+  (berretto, cappello, bandana, fascia) e **colore del vestito**, che può
+  smettere di seguire il colore della card. Occhi e bocca hanno due varianti
+  in più a testa (assonnati e stretti; imbronciata e aperta) e gli occhiali
+  due montature nuove (lettura e aviatore). Il disegno è più vero: l'iride ha
+  il cerchio limbare e le fibre, la palpebra ha la sua piega, il naso ha
+  dorso e narici, le orecchie la conca, le labbra il volume, e le due metà
+  del viso sono la stessa ribaltata invece di due disegni a mano. Il tasto
+  **🎲 Sorteggia una faccia** ne compone una a caso da cui partire. Le facce
+  già costruite restano identiche a com'erano: ogni tratto nuovo parte dalla
+  scelta che riproduce il disegno di prima.
+
 ### Corretto
 
 - **Le soglie del terreno sparivano appena salvate.** Il salvataggio
