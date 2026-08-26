@@ -26,6 +26,7 @@ export default Object.freeze({
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
     "توجد سيارة باسم \"${nomeScritto}\" بالفعل: استخدم القلم لتعديلها أو اختر اسمًا آخر",
   "Build": "بنية الجسم",
+  "down relay": "مرحّل النزول",
   "Three gestures, no more: ＋ New car opens an empty card, the ✏️ opens a car you already saved, the switch turns it on or off in the EV section. Below you fill in name, brand, model, entities and both photos — and there is a single save: it says whether it is creating or editing, and the one at the bottom of the section carries the same words. Which car you look at is picked from the section's own tabs, not from here.": "ثلاث حركات فقط: ＋ سيارة جديدة يفتح بطاقة فارغة، و✏️ يفتح سيارة محفوظة، والمفتاح يشغّلها أو يطفئها في قسم السيارة. بالأسفل تكتب الاسم والماركة والموديل والكيانات والصورتين — والحفظ واحد فقط: يقول إن كان ينشئ أو يعدّل، والزر في أسفل القسم يحمل الكلمات نفسها. أي سيارة تشاهد تختارها من تبويبات القسم، لا من هنا.",
   "Active in the EV section — tap to remove it": "مفعّلة في قسم السيارة — اضغط لإزالتها",
   "Charge": "الشحن",

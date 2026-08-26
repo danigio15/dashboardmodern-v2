@@ -98,22 +98,30 @@ export const coverIsAwning = (kind) => kind === "tenda_sole";
  * `kind: "tenda"` continua a uscire come tenda.
  */
 export const COVER_SLOTS = Object.freeze([
-  { campo: "entity", kind: "" },
-  { campo: "tenda", kind: "tenda" },
-  { campo: "tendaSole", kind: "tenda_sole" },
+  { campo: "entity", kind: "", giu: "down" },
+  { campo: "tenda", kind: "tenda", giu: "tendaDown" },
+  { campo: "tendaSole", kind: "tenda_sole", giu: "tendaSoleDown" },
 ]);
 
 /** Le coperture configurate su una riga, in ordine di casella. */
 export function coverEntries(item = {}) {
   const uscite = [];
   const viste = new Set();
-  for (const { campo, kind } of COVER_SLOTS) {
+  for (const { campo, kind, giu } of COVER_SLOTS) {
     const entity = clean(item?.[campo]);
     if (!entity || viste.has(entity)) continue;
     viste.add(entity);
     /* La prima casella non impone un tipo: se la riga vecchia ne dichiarava
      * uno vale quello, altrimenti decide Home Assistant. */
-    uscite.push({ entity, kind: kind || declaredCoverKind(item) });
+    /* Ogni copertura si porta il suo secondo rele' (#194): due tende su due
+     * Shelly 2PM sono due motori a due fili, e chiudere non e' spegnere la
+     * salita — e' accendere la discesa. Valeva solo per la tapparella; adesso
+     * vale per ognuna delle tre caselle, ciascuna con la sua. */
+    uscite.push({
+      entity,
+      kind: kind || declaredCoverKind(item),
+      down: coverDownRelay({ entity, down: item?.[giu] }),
+    });
   }
   return uscite;
 }
@@ -139,6 +147,13 @@ export function coverDownRelay(item = {}) {
   if (!isRelayEntity(primo)) return "";
   const giu = clean(item?.down ?? item?.down_entity ?? item?.rele_giu);
   return isRelayEntity(giu) && giu !== primo ? giu : "";
+}
+
+/* Il rele' di discesa di UNA copertura della riga: la tapparella ha il suo,
+ * la tenda il suo, la tenda da sole il suo. */
+export function coverSlotDownRelay(item = {}, campo = "entity") {
+  const slot = COVER_SLOTS.find((voce) => voce.campo === campo) || COVER_SLOTS[0];
+  return coverDownRelay({ entity: item?.[slot.campo], down: item?.[slot.giu] });
 }
 
 /** Quanto e' coperta la finestra, da 0 (tutta aperta) a 100. */

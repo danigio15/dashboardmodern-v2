@@ -25,7 +25,8 @@ import {
 } from "../core/todo-model.js";
 import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-view-model.js";
 import {
-  coverDownRelay,
+  coverEntries,
+  coverKindLabel,
   coverPositionChoices,
   coverPresetPosition,
   isRelayEntity,
@@ -255,7 +256,8 @@ function lightsModel(states) {
   if (!rows.length) return null;
   const on = rows.filter((row) => row.on);
   return { key: "luci", accent: "#f59e0b", icon: "💡", label: t("Luci", "Lights"),
-    value: String(on.length), caption: t(`${on.length} accese`, `${on.length} on`),
+    value: String(on.length),
+    caption: nomiAccesi(on, () => true, t(`${on.length} accese`, `${on.length} on`)),
     ring: Math.round((on.length / rows.length) * 100), rows, on };
 }
 
@@ -295,7 +297,7 @@ function climateModel(states) {
     : null;
   return { key: "clima", accent: "#0ea5e9", icon: "❄️", label: t("Clima", "Climate"),
     value: average == null ? String(on.length) : `${formatNumber(average, 1)}°`,
-    caption: t(`${on.length} accese`, `${on.length} on`),
+    caption: nomiAccesi(on, () => true, t(`${on.length} accese`, `${on.length} on`)),
     ring: Math.round((on.length / rows.length) * 100), rows };
 }
 
@@ -303,9 +305,23 @@ function coversModel(states) {
   const values = root.getTapparelle?.() || readJson("cd_tapparelle", []);
   if (!Array.isArray(values) || !values.length) return null;
   const fuori = widgetExcludedEntities();
+  /* Una riga puo' portare tapparella, tenda e tenda da sole insieme: la
+   * tessera ne mostrava solo la prima, e chi ha le tende in Home non le
+   * vedeva. Adesso ogni copertura della riga e' una voce, col suo nome e col
+   * suo rele' di discesa. */
   const rows = values
-    .map((item) => {
-      const entity = clean(item?.entity || item?.entities?.[0]);
+    .flatMap((item) =>
+      coverEntries(item).map((voce) => ({
+        item,
+        voce,
+        etichetta:
+          coverEntries(item).length > 1 && voce.kind
+            ? `${clean(item?.name) || voce.entity} · ${coverKindLabel(voce.kind)}`
+            : clean(item?.name) || voce.entity,
+      })),
+    )
+    .map(({ item, voce, etichetta }) => {
+      const entity = clean(voce.entity);
       if (!entity || !widgetIncludes(entity, fuori)) return null;
       const current = stateOf(states, entity);
       const raw = clean(current?.state).toLowerCase();
@@ -313,7 +329,7 @@ function coversModel(states) {
       const open = raw === "open" || raw === "opening" || (Number.isFinite(position) && position > 0);
       return {
         entity,
-        name: clean(item?.name) || entity,
+        name: etichetta,
         open,
         position: Number.isFinite(position) ? Math.round(position) : null,
         isCover: /^cover\./i.test(entity),
@@ -324,14 +340,15 @@ function coversModel(states) {
          * gia', e da qui doveva restare a guardare. Le frecce sono le stesse,
          * cambia solo la lingua in cui parlano. */
         relay: isRelayEntity(entity),
-        down: coverDownRelay(item),
+        down: clean(voce.down),
       };
     })
     .filter(Boolean);
   if (!rows.length) return null;
   const open = rows.filter((row) => row.open);
   return { key: "tapparelle", accent: "#8b5cf6", icon: "🪟", label: t("Tapparelle", "Shutters"),
-    value: String(open.length), caption: t(`${open.length} aperte`, `${open.length} open`),
+    value: String(open.length),
+    caption: nomiAccesi(open, () => true, t(`${open.length} aperte`, `${open.length} open`)),
     ring: Math.round((open.length / rows.length) * 100), rows };
 }
 
@@ -435,7 +452,7 @@ function appliancesModel(states) {
   const running = rows.filter((row) => row.mode === "running");
   return { key: "elettrodomestici", accent: "#06b6d4", icon: "🫧",
     label: t("Elettrodomestici", "Appliances"), value: String(running.length),
-    caption: t("in funzione", "running"),
+    caption: nomiAccesi(running, () => true, t("in funzione", "running")),
     ring: Math.round((running.length / rows.length) * 100), rows, running };
 }
 
@@ -799,6 +816,26 @@ function widgetModels(states) {
   );
 }
 
+/* Cosa e' acceso, per nome.
+ *
+ * «Metti il testo che scorre dentro la card, cosi' anche da fuori mostra cosa
+ * e' acceso»: la didascalia diceva «3 accese», che e' un numero, non una
+ * risposta. Adesso porta i nomi — e se non ci stanno scorrono, invece di
+ * finire in tre puntini. */
+function nomiAccesi(rows, quali = (row) => row.on, fallback = "") {
+  const nomi = (rows || [])
+    .filter((row) => {
+      try {
+        return quali(row);
+      } catch (_error) {
+        return false;
+      }
+    })
+    .map((row) => clean(row?.name))
+    .filter(Boolean);
+  return nomi.length ? nomi.join(" · ") : fallback;
+}
+
 /* ── markup: le tessere ───────────────────────────────────────────────── */
 
 function ringMarkup(widget) {
@@ -819,16 +856,24 @@ const viste = () => (state.viste ||= new Set());
 function tileMarkup(widget, index = 0) {
   const open = state.expanded === widget.key;
   const giaVista = viste().has(widget.key) ? ' data-dm-seen="true"' : "";
+  const quota = widget.ring == null ? null : Math.max(0, Math.min(100, widget.ring));
   return `<button type="button" class="dm-tile" data-dm-widget="${widget.key}" data-open="${open}"${giaVista}
       data-alert="${Boolean(widget.alert)}"
       style="--dm-widget-accent:${widget.accent};--dm-tile-i:${index}" aria-expanded="${open}" aria-label="${esc(widget.label)}">
-      ${ringMarkup(widget)}
+      <span class="dm-tile-chip" aria-hidden="true">${widget.icon}</span>
       <span class="dm-tile-copy">
         <b class="dm-tile-value" data-dm-tile-value>${esc(widget.value)}</b>
-        <span class="dm-tile-label">${esc(widget.label)}</span>
-        <small class="dm-tile-caption" data-dm-tile-caption>${esc(widget.caption)}</small>
+        <span class="dm-tile-under">
+          <span class="dm-tile-label">${esc(widget.label)}</span>
+          <small class="dm-tile-caption"><span class="dm-tile-scroll" data-dm-tile-caption>${esc(widget.caption)}</span></small>
+        </span>
       </span>
-      <span class="dm-tile-chevron" aria-hidden="true">›</span>
+      <span class="dm-tile-go" aria-hidden="true">›</span>
+      ${
+        quota == null
+          ? ""
+          : `<span class="dm-tile-bar" aria-hidden="true"><i style="--dm-quota:${quota}%"></i></span>`
+      }
       <span class="dm-tile-shine" aria-hidden="true"></span>
     </button>`;
 }
@@ -1220,8 +1265,9 @@ export function renderHomeWidgets() {
       if (value && value.textContent !== widget.value) value.textContent = widget.value;
       const caption = tile.querySelector("[data-dm-tile-caption]");
       if (caption && caption.textContent !== widget.caption) caption.textContent = widget.caption;
-      const ring = tile.querySelector(".dm-tile-ring");
-      if (ring && widget.ring != null) ring.style.setProperty("--dm-ring-pct", String(widget.ring));
+      const barra = tile.querySelector(".dm-tile-bar i");
+      if (barra && widget.ring != null)
+        barra.style.setProperty("--dm-quota", `${Math.max(0, Math.min(100, widget.ring))}%`);
       if (state.expanded === widget.key) {
         const captionDetail = doc.querySelector("#dm-widget-popup [data-dm-detail-caption]");
         if (captionDetail && captionDetail.textContent !== widget.caption)
@@ -1242,6 +1288,7 @@ export function renderHomeWidgets() {
     }
   }
 
+  scorriDidascalie(grid);
   sincronizzaPopup(models, states);
 
   for (const list of configuredTodoLists()) fetchItems(list.entity);
@@ -1309,6 +1356,34 @@ function sincronizzaPopup(models, states) {
     }
   }
   return true;
+}
+
+/* Il testo che non ci sta scorre, invece di finire in tre puntini.
+ *
+ * Si misura dopo il disegno: se il nastro e' piu' largo della finestra, va
+ * avanti e indietro piano — la distanza da percorrere e la durata sono quelle
+ * del testo, cosi' due parole scorrono in fretta e una fila di nomi con
+ * calma. Chi ci sta resta fermo: niente da leggere in movimento senza
+ * motivo. */
+function scorriDidascalie(grid) {
+  if (!grid?.querySelectorAll) return 0;
+  let mossi = 0;
+  for (const nastro of grid.querySelectorAll("[data-dm-tile-caption]")) {
+    const finestra = nastro.parentElement;
+    if (!finestra) continue;
+    const eccesso = nastro.scrollWidth - finestra.clientWidth;
+    if (eccesso > 4) {
+      nastro.dataset.dmScroll = "true";
+      nastro.style.setProperty("--dm-scroll-x", `${-eccesso - 2}px`);
+      nastro.style.setProperty("--dm-scroll-dur", `${Math.min(18, Math.max(6, eccesso / 12))}s`);
+      mossi += 1;
+    } else if (nastro.dataset.dmScroll) {
+      delete nastro.dataset.dmScroll;
+      nastro.style.removeProperty("--dm-scroll-x");
+      nastro.style.removeProperty("--dm-scroll-dur");
+    }
+  }
+  return mossi;
 }
 
 function schedule() {
@@ -1528,16 +1603,36 @@ html.dm-widget-popup-open{overflow:hidden}
 /* L'intestazione parla come le altre della plancia: maiuscoletto spaziato,
  * riga di separazione, il tondo per chiudere. */
 #dm-widget-popup .dm-w-head{
-  position:sticky;top:0;z-index:1;gap:11px;padding:22px 24px 15px;
-  background:var(--card-bg,#fff);
-  border-bottom:2px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 20%,transparent)}
-#dm-widget-popup .dm-w-head-ic{font-size:22px}
-#dm-widget-popup .dm-w-head strong{font-size:15px;letter-spacing:1.4px}
+  position:sticky;top:0;z-index:1;gap:13px;padding:22px 24px 18px;
+  background:
+    linear-gradient(135deg,color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 16%,transparent),transparent 70%),
+    var(--card-bg,#fff);
+  border-bottom:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 22%,var(--card-border,#e8edf3))}
+/* La stessa pastiglia della tessera da cui si e' arrivati: il popup e' la
+ * tessera che si apre, non un'altra cosa. */
+#dm-widget-popup .dm-w-head-ic{
+  flex:0 0 44px;width:44px;height:44px;display:grid;place-items:center;border-radius:15px;font-size:22px;
+  background:linear-gradient(145deg,
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 92%,#fff),
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 62%,#000 8%));
+  box-shadow:0 10px 22px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 34%,transparent),
+    inset 0 1px 0 rgba(255,255,255,.45)}
+#dm-widget-popup .dm-w-head strong{font-size:16px;letter-spacing:1.4px}
+#dm-widget-popup .dm-w-head small{font-size:12px}
 #dm-widget-popup .dm-w-close{
   flex:0 0 34px;width:34px;height:34px;border-radius:50%;
   background:var(--surface-3,#f1f5f9);border:1px solid var(--card-border,#e2e8f0);
   box-shadow:0 6px 15px rgba(0,0,0,.05)}
-#dm-widget-popup .dm-w-body{padding:16px 20px 22px}
+#dm-widget-popup .dm-w-body{padding:16px 18px 20px;display:grid;gap:9px}
+#dm-widget-popup .dm-w-row{
+  padding:13px 15px;border-radius:17px;border:1px solid var(--card-border,#eef2f7);
+  background:var(--surface-2,#f8fafc);margin:0}
+#dm-widget-popup .dm-w-row:hover{
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 34%,transparent);
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 6%,var(--surface-2,#f8fafc))}
+#dm-widget-popup .dm-w-name{font-size:13.5px;font-weight:800}
+#dm-widget-popup .dm-w-val{font-size:14.5px;font-weight:900}
+#dm-widget-popup .dm-w-glyph{font-size:17px}
 @media(max-width:600px){
   #dm-widget-popup{padding:16px}
   #dm-widget-popup .dm-widget-detail{border-radius:30px;max-height:82dvh}
@@ -1563,76 +1658,94 @@ html.dm-widget-popup-open{overflow:hidden}
    all'apertura — mai su tutta la tessera. */
 :is(#dm-widgets,#dm-widget-popup) .dm-widgets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:10px}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile{
-  position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;min-height:78px;
-  padding:13px 14px;border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 16%,var(--card-border,#e8edf3));
-  border-radius:20px;color:var(--text,#0f172a);font:inherit;text-align:left;cursor:pointer;
-  background:
-    radial-gradient(120% 140% at 100% 0%,color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 11%,transparent),transparent 62%),
-    var(--card-bg,#fff);
-  box-shadow:0 8px 22px rgba(15,23,42,.07);
-  transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s ease,border-color .3s ease}
+  position:relative;overflow:hidden;display:flex;align-items:center;gap:11px;
+  min-height:78px;padding:12px 13px 16px;
+  border:1px solid var(--card-border,#e8edf3);border-radius:19px;
+  background:var(--card-bg,#fff);color:var(--text,#0f172a);font:inherit;text-align:left;cursor:pointer;
+  box-shadow:0 4px 14px rgba(15,23,42,.06);
+  transition:transform .26s cubic-bezier(.16,1,.3,1),box-shadow .26s ease,border-color .26s ease}
 /* L'ingresso e' per chi entra adesso: una tessera gia' vista non rianima. */
 :is(#dm-widgets,#dm-widget-popup) .dm-tile:not([data-dm-seen]){
-  animation:dmTileIn .45s cubic-bezier(.16,1,.3,1) both;
-  animation-delay:calc(var(--dm-tile-i,0) * 45ms)}
-@keyframes dmTileIn{from{opacity:0;transform:translateY(9px) scale(.97)}to{opacity:1;transform:none}}
-/* Il riflesso che attraversa la tessera al passaggio: luce, non colore. */
-:is(#dm-widgets,#dm-widget-popup) .dm-tile .dm-tile-shine{
-  position:absolute;top:-20%;bottom:-20%;width:36%;left:-60%;pointer-events:none;
-  background:linear-gradient(105deg,transparent,rgba(255,255,255,.4),transparent);
-  transform:skewX(-18deg);transition:left .55s ease}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover .dm-tile-shine{left:125%}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile::before{
-  content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;
-  background:var(--dm-widget-accent,#0ea5e9);opacity:.55;transition:opacity .3s ease}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(15,23,42,.10)}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover::before{opacity:1}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-open="true"]{
-  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 45%,transparent);
-  box-shadow:0 12px 30px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 22%,rgba(15,23,42,.08))}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-ic{
-  width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;font-size:19px;border-radius:50%;
-  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 13%,var(--surface-3,#f1f5f9));
-  transition:transform .35s cubic-bezier(.16,1,.3,1)}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover .dm-tile-ic{transform:scale(1.1) rotate(-6deg)}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-ring{
-  position:relative;width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border-radius:50%;
-  background:conic-gradient(from -90deg,var(--dm-widget-accent,#0ea5e9) 0 calc(var(--dm-ring-pct,0) * 1%),var(--surface-3,#e2e8f0) 0);
-  transition:background .6s linear,transform .35s cubic-bezier(.16,1,.3,1)}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover .dm-tile-ring{transform:scale(1.08)}
-/* Le tessere-avviso respirano: l'onda dell'accento che si allarga e svanisce,
-   la stessa grammatica del ping del Quadro di prima. */
-:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-ring::after,
-:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-ic::after{
-  content:"";position:absolute;inset:-3px;border-radius:50%;
-  border:2px solid var(--dm-widget-accent,#dc2626);
-  animation:dmWidgetPing 2.2s ease-out infinite;pointer-events:none}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-ic{position:relative}
-@keyframes dmWidgetPing{0%{opacity:.75;transform:scale(.9)}70%{opacity:0;transform:scale(1.45)}100%{opacity:0;transform:scale(1.45)}}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-ring i{
-  display:grid;place-items:center;width:31px;height:31px;border-radius:50%;font-style:normal;font-size:14px;
-  background:var(--card-bg,#fff);box-shadow:inset 0 0 0 1px var(--card-border,#e8edf3)}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-copy{min-width:0;flex:1;display:grid;gap:0}
+  animation:dmTileIn .4s cubic-bezier(.16,1,.3,1) both;
+  animation-delay:calc(var(--dm-tile-i,0) * 40ms)}
+@keyframes dmTileIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover{
+  transform:translateY(-2px);box-shadow:0 12px 26px rgba(15,23,42,.11);
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 34%,transparent)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile:active{transform:none}
+/* La pastiglia del simbolo: e' l'unico punto di colore pieno. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-chip{
+  flex:0 0 36px;width:36px;height:36px;display:grid;place-items:center;border-radius:12px;font-size:17px;
+  background:linear-gradient(150deg,
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 20%,#fff),
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 11%,#fff));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 24%,transparent)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-copy{
+  flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-value{
-  font-family:'Oswald',sans-serif;font-size:19px;font-weight:700;line-height:1.1;letter-spacing:.2px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .3s ease}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover .dm-tile-value,:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-open="true"] .dm-tile-value{
-  color:var(--dm-widget-accent,#0ea5e9)}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-label{
-  font-size:9.5px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--text-dim,#64748b);
-  /* «Solare term…» non e' un'etichetta: se non ci sta su una riga va a capo,
-   * che una tessera puo' permetterselo. */
-  white-space:normal;overflow-wrap:anywhere;line-height:1.15}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-caption{
-  font-size:10.5px;font-weight:700;color:var(--text-dim,#94a3b8);
+  font-size:22px;font-weight:900;line-height:1.05;letter-spacing:-.4px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-chevron{
-  flex:0 0 auto;font-size:13px;color:var(--text-dim,#94a3b8);
-  transition:transform .3s cubic-bezier(.16,1,.3,1)}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-open="true"] .dm-tile-chevron{transform:rotate(180deg);color:var(--dm-widget-accent,#0ea5e9)}
-
-/* Il dettaglio: si apre sotto la tessera, largo quanto il ponte, col nastro
-   d'accento e l'ingresso morbido. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-under{
+  display:flex;align-items:baseline;gap:6px;min-width:0}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-label{
+  /* Il nome della sezione non si abbrevia: e' l'unica parola che dice di che
+   * cosa si sta parlando. A stringersi e' semmai la didascalia accanto. */
+  flex:0 0 auto;font-size:10px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--text-dim,#64748b);white-space:nowrap}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-caption{
+  flex:1 1 auto;min-width:0;font-size:10.5px;font-weight:700;color:var(--text-dim,#94a3b8);
+  white-space:nowrap;overflow:hidden;
+  /* Sfuma sul bordo invece di tagliare: si capisce che il testo continua. */
+  mask-image:linear-gradient(90deg,#000 84%,transparent);
+  -webkit-mask-image:linear-gradient(90deg,#000 84%,transparent)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-scroll{display:inline-block;white-space:nowrap}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-scroll[data-dm-scroll="true"]{
+  animation:dmTileScroll var(--dm-scroll-dur,10s) ease-in-out infinite alternate;
+  animation-delay:1.2s}
+@keyframes dmTileScroll{
+  0%,12%{transform:translateX(0)}
+  88%,100%{transform:translateX(var(--dm-scroll-x,0))}}
+@media(prefers-reduced-motion:reduce){
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-scroll[data-dm-scroll="true"]{animation:none}
+}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-caption:not(:empty)::before{content:"· "}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-go{
+  flex:0 0 auto;color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 65%,var(--text-dim,#94a3b8));
+  font-size:17px;font-weight:900;line-height:1;opacity:.75;
+  transition:transform .26s cubic-bezier(.16,1,.3,1),opacity .26s ease}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover .dm-tile-go{transform:translateX(2px);opacity:1}
+/* La quota: un filo sul bordo basso, largo quanto la tessera. */
+/* La quota: un filo dentro la tessera, con gli angoli tondi come lei — non
+ * una riga che sborda dal bordo. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-bar{
+  position:absolute;left:13px;right:13px;bottom:7px;height:3px;border-radius:99px;overflow:hidden;
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-bar i{
+  display:block;height:100%;width:var(--dm-quota,0%);border-radius:99px;
+  background:var(--dm-widget-accent,#0ea5e9);
+  transition:width .5s cubic-bezier(.16,1,.3,1)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile .dm-tile-shine{
+  position:absolute;top:-20%;bottom:-20%;width:34%;left:-60%;pointer-events:none;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);
+  transform:skewX(-14deg);transition:left .55s cubic-bezier(.16,1,.3,1)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover .dm-tile-shine{left:120%}
+/* Un avviso non sta fermo: la pastiglia pulsa, come faceva l'anello prima. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-chip{
+  position:relative;
+  background:linear-gradient(150deg,
+    color-mix(in srgb,var(--dm-widget-accent,#ef4444) 34%,#fff),
+    color-mix(in srgb,var(--dm-widget-accent,#ef4444) 18%,#fff))}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-chip::after{
+  content:"";position:absolute;inset:-3px;border-radius:15px;pointer-events:none;
+  border:2px solid color-mix(in srgb,var(--dm-widget-accent,#ef4444) 55%,transparent);
+  animation:dmWidgetPing 2.2s ease-out infinite}
+@keyframes dmWidgetPing{
+  0%{opacity:.75;transform:scale(.92)}
+  70%{opacity:0;transform:scale(1.35)}
+  100%{opacity:0;transform:scale(1.35)}}
+@media(prefers-reduced-motion:reduce){
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-chip::after{animation:none}
+}
 :is(#dm-widgets,#dm-widget-popup) .dm-widget-detail{
   grid-column:1/-1;position:relative;overflow:hidden;
   border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 26%,var(--card-border,#e8edf3));

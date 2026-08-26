@@ -171,7 +171,21 @@ function caselle() {
       "switch.tapparella_giu",
     ],
     ["ed-tp-tenda", coverKindLabel("tenda"), "cover.tenda_salotto"],
+    /* Anche la tenda puo' stare su due rele' — «ho due tende su due Shelly
+     * 2PM» e' la segnalazione da cui e' nato tutto: ognuna delle tre
+     * coperture della riga ha il suo verso di discesa, non solo la
+     * tapparella. */
+    [
+      "ed-tp-down-tenda",
+      `${coverKindLabel("tenda")} · ${t("relè di discesa", "down relay")}`,
+      "switch.tenda_giu",
+    ],
     ["ed-tp-tendasole", coverKindLabel("tenda_sole"), "cover.tenda_da_sole"],
+    [
+      "ed-tp-down-tendasole",
+      `${coverKindLabel("tenda_sole")} · ${t("relè di discesa", "down relay")}`,
+      "switch.tenda_sole_giu",
+    ],
     [
       "ed-tp-contact",
       t("Sensore apertura infisso", "Window contact sensor"),

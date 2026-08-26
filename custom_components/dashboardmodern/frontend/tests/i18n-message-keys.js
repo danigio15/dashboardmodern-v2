@@ -432,6 +432,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Done",
   "Door",
   "Door / Opening",
+  "down relay",
   "Down relay",
   "Download blocked here: use “Copy”",
   "Download the backup",

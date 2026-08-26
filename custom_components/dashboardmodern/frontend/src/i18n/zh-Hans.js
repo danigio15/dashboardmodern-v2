@@ -26,6 +26,7 @@ export default Object.freeze({
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
     "已存在名为\"${nomeScritto}\"的车辆：请用铅笔编辑它，或换一个名称",
   "Build": "体型",
+  "down relay": "下降继电器",
   "Three gestures, no more: ＋ New car opens an empty card, the ✏️ opens a car you already saved, the switch turns it on or off in the EV section. Below you fill in name, brand, model, entities and both photos — and there is a single save: it says whether it is creating or editing, and the one at the bottom of the section carries the same words. Which car you look at is picked from the section's own tabs, not from here.": "只有三个动作：＋ 新增车辆打开一张空卡片，✏️ 打开已保存的车辆，开关决定它在电动车分区里出现与否。下面填写名称、品牌、型号、实体和两张照片——保存只有一个：它会说明是在新建还是在修改，分区底部那个也用同样的措辞。要看哪辆车，从分区自己的标签里选，不在这里。",
   "Active in the EV section — tap to remove it": "已在电动车分区显示 — 点按可移除",
   "Charge": "电量",

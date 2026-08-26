@@ -26,6 +26,7 @@ export default Object.freeze({
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
     "\"${nomeScritto}\" adında bir araç zaten var: düzenlemek için kalemi kullanın veya başka bir ad seçin",
   "Build": "Vücut yapısı",
+  "down relay": "iniş rölesi",
   "Three gestures, no more: ＋ New car opens an empty card, the ✏️ opens a car you already saved, the switch turns it on or off in the EV section. Below you fill in name, brand, model, entities and both photos — and there is a single save: it says whether it is creating or editing, and the one at the bottom of the section carries the same words. Which car you look at is picked from the section's own tabs, not from here.": "Üç hareket, o kadar: ＋ Yeni araba boş bir kart açar, ✏️ kayıtlı bir arabayı açar, anahtar onu EV bölümünde açar veya kapatır. Altta ad, marka, model, varlıklar ve iki fotoğraf doldurulur — ve tek bir kaydetme vardır: oluşturduğunu mu değiştirdiğini mi söyler, bölümün altındaki de aynı sözleri taşır. Hangi arabaya bakacağın bölümün sekmelerinden seçilir, buradan değil.",
   "Active in the EV section — tap to remove it": "EV bölümünde etkin — kaldırmak için dokunun",
   "Charge": "Şarj",

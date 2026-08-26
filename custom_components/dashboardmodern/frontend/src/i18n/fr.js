@@ -26,6 +26,7 @@ export default Object.freeze({
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
     "Une voiture nommée \"${nomeScritto}\" existe déjà : utilisez le crayon pour la modifier, ou choisissez un autre nom",
   "Build": "Corpulence",
+  "down relay": "relais de descente",
   "Three gestures, no more: ＋ New car opens an empty card, the ✏️ opens a car you already saved, the switch turns it on or off in the EV section. Below you fill in name, brand, model, entities and both photos — and there is a single save: it says whether it is creating or editing, and the one at the bottom of the section carries the same words. Which car you look at is picked from the section's own tabs, not from here.": "Trois gestes, pas plus : ＋ Nouvelle voiture ouvre une fiche vide, le ✏️ ouvre une voiture déjà enregistrée, l'interrupteur l'affiche ou la retire de la section VE. En dessous on remplit nom, marque, modèle, entités et les deux photos — et il n'y a qu'un enregistrement : il dit s'il crée ou s'il modifie, et celui du bas de la section porte les mêmes mots. La voiture que vous regardez se choisit dans les onglets de la section, pas ici.",
   "Active in the EV section — tap to remove it": "Active dans la section VE — touchez pour la retirer",
   "Charge": "Niveau de charge",

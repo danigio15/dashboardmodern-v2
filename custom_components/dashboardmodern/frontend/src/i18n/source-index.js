@@ -947,6 +947,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Rapido 14'": "Quick 14'",
   "Rapido 30'": "Quick 30'",
   "Rapido 59'": "Quick 59'",
+  "relè di discesa": "down relay",
   "Relè di discesa": "Down relay",
   "Renderer attivo": "Active renderer",
   "Report e mesi precedenti": "Report and previous months",

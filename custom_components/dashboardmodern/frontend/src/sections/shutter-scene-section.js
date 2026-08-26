@@ -129,7 +129,7 @@ function viewsFor(item = {}) {
   const entries = coverEntries(item);
   if (!entries.length) return [coverView(item)].filter(Boolean);
   const viste = entries
-    .map(({ entity, kind }) => coverView({ ...item, entity, kind }, false))
+    .map(({ entity, kind, down }) => coverView({ ...item, entity, kind, down }, false))
     .filter(Boolean);
   if (viste.length <= 1) return viste;
   const [principale, ...altre] = viste;
@@ -512,12 +512,20 @@ function insegnaComandoDiGruppo() {
   };
 
   /* Il rele' di discesa di una copertura, se la sua riga ne dichiara uno. */
+  /* Il rele' di discesa di QUESTA copertura.
+   *
+   * Una riga puo' averne tre — tapparella, tenda, tenda da sole — e ognuna
+   * col suo verso di discesa: cercare solo nella prima casella lasciava le
+   * tende a meta' comando, che e' la segnalazione «ho due tende su due Shelly
+   * 2PM». */
   const releGiuDi = (entity) => {
     const id = clean(entity);
     if (!id) return "";
     for (const item of configuredCovers()) {
-      if (clean(item?.entity || item?.entities?.[0]) !== id) continue;
-      return coverDownRelay(item);
+      for (const voce of coverEntries(item)) {
+        if (clean(voce.entity) !== id) continue;
+        return clean(voce.down);
+      }
     }
     return "";
   };

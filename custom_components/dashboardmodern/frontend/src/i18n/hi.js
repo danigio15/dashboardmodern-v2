@@ -26,6 +26,7 @@ export default Object.freeze({
   "A car named \"${nomeScritto}\" already exists: use the pencil to edit it, or pick another name":
     "\"${nomeScritto}\" नाम की कार पहले से मौजूद है: उसे संपादित करने के लिए पेंसिल का उपयोग करें, या कोई दूसरा नाम चुनें",
   "Build": "शारीरिक बनावट",
+  "down relay": "नीचे वाला रिले",
   "Three gestures, no more: ＋ New car opens an empty card, the ✏️ opens a car you already saved, the switch turns it on or off in the EV section. Below you fill in name, brand, model, entities and both photos — and there is a single save: it says whether it is creating or editing, and the one at the bottom of the section carries the same words. Which car you look at is picked from the section's own tabs, not from here.": "बस तीन क्रियाएँ: ＋ नई कार एक खाली कार्ड खोलती है, ✏️ पहले से सहेजी कार खोलती है, और स्विच उसे EV अनुभाग में चालू या बंद करता है। नीचे नाम, ब्रांड, मॉडल, इकाइयाँ और दोनों तस्वीरें भरी जाती हैं — और सहेजना एक ही है: वह बताता है कि बना रहा है या बदल रहा है, और अनुभाग के नीचे वाला वही शब्द रखता है। कौन-सी कार देखनी है यह अनुभाग की टैब से चुना जाता है, यहाँ से नहीं।",
   "Active in the EV section — tap to remove it": "EV अनुभाग में सक्रिय — हटाने के लिए टैप करें",
   "Charge": "चार्ज",

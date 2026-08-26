@@ -218,6 +218,8 @@ function beginEdit(kind, index) {
     // Il rele' di discesa (#194): si mostra grezzo, cosi' una riga scritta a
     // mano non lo perde mentre la si riapre.
     setField("ed-tp-down", clean(item?.down) || "");
+    setField("ed-tp-down-tenda", clean(item?.tendaDown) || "");
+    setField("ed-tp-down-tendasole", clean(item?.tendaSoleDown) || "");
   } else if (kind === "room") {
     setField("ed-room-name", item.name || "");
     setField("ed-room-icon", item.icon || "🏠");
@@ -343,12 +345,18 @@ function installAddWrappers() {
     else list[index].preset = preset;
     // Il rele' di discesa (#194): tenuto solo se la riga ha senso, cioe' se
     // anche il primo comando e' un rele'.
-    const down = coverDownRelay({
-      entity: list[index].entity,
-      down: doc.getElementById("ed-tp-down")?.value,
-    });
-    if (down) list[index].down = down;
-    else delete list[index].down;
+    for (const [campo, chiave, casella] of [
+      ["entity", "down", "ed-tp-down"],
+      ["tenda", "tendaDown", "ed-tp-down-tenda"],
+      ["tendaSole", "tendaSoleDown", "ed-tp-down-tendasole"],
+    ]) {
+      const giu = coverDownRelay({
+        entity: list[index][campo],
+        down: doc.getElementById(casella)?.value,
+      });
+      if (giu) list[index][chiave] = giu;
+      else delete list[index][chiave];
+    }
     salvaTapparelle(list);
   },
   /* Il contatto sopravvive anche a una tapparella appena aggiunta: l'elenco lo
@@ -365,6 +373,8 @@ function installAddWrappers() {
       tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
       preset: clean(doc.getElementById("ed-tp-preset")?.value),
       down: clean(doc.getElementById("ed-tp-down")?.value),
+      tendaDown: clean(doc.getElementById("ed-tp-down-tenda")?.value),
+      tendaSoleDown: clean(doc.getElementById("ed-tp-down-tendasole")?.value),
     };
     const entity = clean(doc.getElementById("ed-tp-ent")?.value);
     /* Un infisso puo' avere la sola tenda: pretendere la tapparella qui
