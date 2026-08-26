@@ -1496,4 +1496,13 @@ export default Object.freeze({
   "Turn everything off": "Alles uitzetten",
   "Turn everything on": "Alles aanzetten",
   Vacuums: "Stofzuigers",
+  "Add plant": "Installatie toevoegen",
+  "Delete this plant": "Deze installatie verwijderen",
+  "Every plant has its own meter, its own solar, its own battery and its own loads. The fields below belong to the selected plant: adding one starts from scratch and leaves what you already configured alone.":
+    "Elke installatie heeft een eigen meter, eigen zonnepanelen, een eigen accu en eigen verbruikers. De velden hieronder horen bij de gekozen installatie: er een toevoegen begint bij nul en laat wat je al hebt ingesteld met rust.",
+  Plant: "Installatie",
+  "Plant name": "Naam installatie",
+  Plants: "Installaties",
+  "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
+    "Dit is de hoofdinstallatie en kan niet worden verwijderd: het is degene die het dashboard altijd al leest.",
 });

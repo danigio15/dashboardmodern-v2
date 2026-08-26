@@ -204,3 +204,64 @@ test("la sezione legge l'impianto scelto, e con una casa sola non cambia niente"
   assert.match(sezione, /IMPIANTO_SCELTO_KEY = "cd_energy_plant"/);
   assert.doesNotMatch(helper, /writeEnergyField|persistEnergy/);
 });
+
+test("le linguette compaiono solo quando c'e' davvero una scelta", async () => {
+  const sezione = await readFile(
+    new URL("../src/sections/energy-plants-section.js", import.meta.url),
+    "utf8",
+  );
+  /* Con una casa sola una linguetta non offre nessuna scelta: e' un ingombro,
+   * e chi non ha chiesto due misuratori non deve vederla. */
+  assert.match(sezione, /if \(lista\.length < 2\) \{\s*riga\?\.remove\(\);/);
+  // La riga si posa SOPRA la barra che c'e' gia': la pagina non cambia.
+  assert.match(sezione, /barra\.before\(riga\)/);
+  assert.match(sezione, /\.sub-tabs-container/);
+  /* La scheda si ridisegna da capo a ogni giro e portava via la riga con se':
+   * chi la ridisegna lo dice, e ci si aggancia li'. */
+  assert.match(sezione, /onEditorRedraw\("__dmEnergyPlantsSection", schedule\)/);
+});
+
+test("rinominare un impianto non ne cambia l'identita'", async () => {
+  const sezione = await readFile(
+    new URL("../src/sections/energy-plants-section.js", import.meta.url),
+    "utf8",
+  );
+  const rinomina = sezione.match(/async function rinomina[\s\S]*?\n\}/)[0];
+  /* Si tocca il nome e nient'altro: la voce si copia per intero e le si
+   * riscrive una chiave sola. Un `id:` fra le chiavi scritte vorrebbe dire
+   * ricalcolare l'identita' rinominando — che e' esattamente cio' che alle auto
+   * ha fatto perdere le foto. */
+  assert.match(rinomina, /\{ \.\.\.voce, name: clean\(nome\) \}/);
+  const scritte = rinomina.replace(/\/\*[\s\S]*?\*\//g, "");
+  assert.doesNotMatch(scritte, /\bid:/);
+});
+
+test("il primo impianto non si elimina, e il salvataggio va su quello aperto", async () => {
+  const sezione = await readFile(
+    new URL("../src/sections/energy-plants-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(sezione, /if \(clean\(id\) === PRIMO_IMPIANTO\) return;/);
+  const energia = await readFile(
+    new URL("../src/sections/energy-section.js", import.meta.url),
+    "utf8",
+  );
+  /* Il gemello della lettura: la maschera mostra i campi dell'impianto scelto,
+   * e senza questo il salvataggio li poserebbe sul primo — cancellando le
+   * entita' di una casa con quelle di un'altra. */
+  assert.match(energia, /writeEnergyField\(dashboardStore\(\), group, key, value, impiantoScelto\(\)\)/);
+  assert.match(energia, /const impianto = pickPlant\(plantList\(grezzo\), impiantoScelto\(\)\)/);
+});
+
+test("una scrittura sul primo impianto resta esattamente dov'era", async () => {
+  /* E' la garanzia di retrocompatibilita' scritta come test: con il primo
+   * impianto — cioe' per chiunque non abbia chiesto due misuratori — la
+   * scrittura tocca il primo livello e non crea nessun elenco. */
+  const writer = await readFile(
+    new URL("../src/core/energy-writer.js", import.meta.url),
+    "utf8",
+  );
+  const dove = writer.match(/function scriviNellImpianto[\s\S]*?\n\}/)[0];
+  assert.match(dove, /if \(!impianto \|\| impianto\.id === PRIMO_IMPIANTO\) \{\s*muta\(model\);/);
+  assert.match(dove, /storedPlants\(/);
+});

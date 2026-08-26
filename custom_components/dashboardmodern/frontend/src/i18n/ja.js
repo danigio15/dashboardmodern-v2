@@ -1488,4 +1488,13 @@ export default Object.freeze({
   "Turn everything off": "すべて消す",
   "Turn everything on": "すべて点ける",
   Vacuums: "掃除機",
+  "Add plant": "設備を追加",
+  "Delete this plant": "この設備を削除",
+  "Every plant has its own meter, its own solar, its own battery and its own loads. The fields below belong to the selected plant: adding one starts from scratch and leaves what you already configured alone.":
+    "設備ごとにメーター、太陽光、蓄電池、負荷があります。下の欄は選択中の設備のものです。追加するとゼロから始まり、すでに設定したものには触れません。",
+  Plant: "設備",
+  "Plant name": "設備の名前",
+  Plants: "設備",
+  "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
+    "これは主設備で削除できません。ダッシュボードがずっと読んできたのはこれです。",
 });

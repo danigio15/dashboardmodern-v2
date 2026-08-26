@@ -1478,4 +1478,13 @@ export default Object.freeze({
   "Turn everything off": "أطفئ كل شيء",
   "Turn everything on": "أضئ كل شيء",
   Vacuums: "المكانس",
+  "Add plant": "إضافة منشأة",
+  "Delete this plant": "حذف هذه المنشأة",
+  "Every plant has its own meter, its own solar, its own battery and its own loads. The fields below belong to the selected plant: adding one starts from scratch and leaves what you already configured alone.":
+    "لكل منشأة عدّادها وألواحها الشمسية وبطاريتها وأحمالها. الحقول أدناه تخصّ المنشأة المختارة: إضافة واحدة تبدأ من الصفر ولا تمسّ ما أعددته سابقًا.",
+  Plant: "منشأة",
+  "Plant name": "اسم المنشأة",
+  Plants: "المنشآت",
+  "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
+    "هذه هي المنشأة الرئيسية ولا يمكن حذفها: إنها التي تقرأها اللوحة منذ البداية.",
 });

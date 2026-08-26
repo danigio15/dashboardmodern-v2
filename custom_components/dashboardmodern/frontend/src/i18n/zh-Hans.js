@@ -1461,4 +1461,13 @@ export default Object.freeze({
   "Turn everything off": "全部关闭",
   "Turn everything on": "全部打开",
   Vacuums: "吸尘器",
+  "Add plant": "添加系统",
+  "Delete this plant": "删除该系统",
+  "Every plant has its own meter, its own solar, its own battery and its own loads. The fields below belong to the selected plant: adding one starts from scratch and leaves what you already configured alone.":
+    "每个系统都有自己的电表、自己的光伏、自己的电池和自己的负载。下面的字段属于所选系统：新增一个从零开始，不会动你已经配置好的内容。",
+  Plant: "系统",
+  "Plant name": "系统名称",
+  Plants: "系统",
+  "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
+    "这是主系统，不能删除：它就是面板一直在读取的那一个。",
 });

@@ -1485,4 +1485,13 @@ export default Object.freeze({
   "Turn everything off": "Her şeyi kapat",
   "Turn everything on": "Her şeyi aç",
   Vacuums: "Süpürgeler",
+  "Add plant": "Tesis ekle",
+  "Delete this plant": "Bu tesisi sil",
+  "Every plant has its own meter, its own solar, its own battery and its own loads. The fields below belong to the selected plant: adding one starts from scratch and leaves what you already configured alone.":
+    "Her tesisin kendi sayacı, kendi güneş panelleri, kendi bataryası ve kendi yükleri vardır. Aşağıdaki alanlar seçili tesise aittir: yeni bir tane eklemek sıfırdan başlar ve daha önce ayarladıklarına dokunmaz.",
+  Plant: "Tesis",
+  "Plant name": "Tesis adı",
+  Plants: "Tesisler",
+  "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
+    "Bu ana tesistir ve silinemez: panonun en başından beri okuduğu tesis odur.",
 });

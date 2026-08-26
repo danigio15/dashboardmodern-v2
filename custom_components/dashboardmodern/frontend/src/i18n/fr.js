@@ -1502,4 +1502,13 @@ export default Object.freeze({
   "Turn everything off": "Tout éteindre",
   "Turn everything on": "Tout allumer",
   Vacuums: "Aspirateurs",
+  "Add plant": "Ajouter une installation",
+  "Delete this plant": "Supprimer cette installation",
+  "Every plant has its own meter, its own solar, its own battery and its own loads. The fields below belong to the selected plant: adding one starts from scratch and leaves what you already configured alone.":
+    "Chaque installation a son compteur, son solaire, sa batterie et ses charges. Les champs ci-dessous sont ceux de l'installation sélectionnée : en ajouter une repart de zéro et ne touche pas à ce que tu as déjà configuré.",
+  Plant: "Installation",
+  "Plant name": "Nom de l'installation",
+  Plants: "Installations",
+  "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
+    "C'est l'installation principale et elle ne peut pas être supprimée : c'est celle que le tableau de bord a toujours lue.",
 });

@@ -1481,4 +1481,13 @@ export default Object.freeze({
   "Turn everything off": "모두 끄기",
   "Turn everything on": "모두 켜기",
   Vacuums: "청소기",
+  "Add plant": "설비 추가",
+  "Delete this plant": "이 설비 삭제",
+  "Every plant has its own meter, its own solar, its own battery and its own loads. The fields below belong to the selected plant: adding one starts from scratch and leaves what you already configured alone.":
+    "설비마다 자체 계량기, 태양광, 배터리, 부하가 있습니다. 아래 항목은 선택한 설비의 것입니다. 새로 추가하면 처음부터 시작하며 이미 설정한 것은 건드리지 않습니다.",
+  Plant: "설비",
+  "Plant name": "설비 이름",
+  Plants: "설비",
+  "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
+    "기본 설비라 삭제할 수 없습니다. 대시보드가 줄곧 읽어온 설비입니다.",
 });

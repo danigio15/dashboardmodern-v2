@@ -139,9 +139,12 @@ export const IMPIANTO_SCELTO_KEY = "cd_energy_plant";
  * chiunque non abbia chiesto il contrario — l'impianto e' il primo, i suoi
  * gruppi sono quelli scritti al primo livello, e da qui esce esattamente
  * l'oggetto che usciva prima. */
+/** L'impianto aperto adesso, se ce n'e' piu' d'uno. */
+export const impiantoScelto = () => clean(root.localStorage?.getItem(IMPIANTO_SCELTO_KEY));
+
 function energyModel() {
   const salvato = section("energy", {});
-  const impianto = pickPlant(plantList(salvato), root.localStorage?.getItem(IMPIANTO_SCELTO_KEY));
+  const impianto = pickPlant(plantList(salvato), impiantoScelto());
   if (!impianto) return salvato;
   /* Quello che non appartiene ai gruppi — i metadati, una chiave scritta da
    * una versione futura — resta dov'e': si sostituiscono i quattro gruppi e
@@ -163,7 +166,18 @@ function energyModel() {
 function configuredEnergyModel() {
   const store = dashboardStore();
   const value = store?.getSection?.("energy");
-  return value && typeof value === "object" && !Array.isArray(value) ? value : energyModel();
+  const grezzo = value && typeof value === "object" && !Array.isArray(value) ? value : null;
+  if (!grezzo) return energyModel();
+  /* E la maschera mostra l'impianto che si sta configurando, non sempre il
+   * primo: con due misuratori sotto lo stesso tetto, aprire la scheda del
+   * secondo e vedere le entita' del primo vorrebbe dire riscriverle addosso al
+   * primo salvataggio. */
+  const impianto = pickPlant(plantList(grezzo), impiantoScelto());
+  if (!impianto) return grezzo;
+  return {
+    ...grezzo,
+    ...Object.fromEntries(PLANT_GROUPS.map((gruppo) => [gruppo, impianto[gruppo]])),
+  };
 }
 
 function entityOverrides() {
@@ -808,8 +822,13 @@ function createTotalField(definition, value) {
  * partenza, e l'ultimo a scrivere riportava indietro il campo dell'altro. La
  * coda vive in `energy-writer.js` perche' anche la maschera stampata dal
  * programma passa di li': due code separate sarebbero di nuovo due padroni. */
+/* Si scrive nell'impianto aperto, non sempre nel primo.
+ *
+ * E' il gemello della lettura: la maschera mostra i campi dell'impianto scelto,
+ * e senza questo il salvataggio li poserebbe sul primo — cancellando le entita'
+ * di una casa con quelle di un'altra. */
 const persistEnergyField = (group, key, value) =>
-  writeEnergyField(dashboardStore(), group, key, value);
+  writeEnergyField(dashboardStore(), group, key, value, impiantoScelto());
 
 function entityField(label, key, value, placeholder) {
   const wrap = doc.createElement("label");

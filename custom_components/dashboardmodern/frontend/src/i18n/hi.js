@@ -1482,4 +1482,13 @@ export default Object.freeze({
   "Turn everything off": "सब बंद करें",
   "Turn everything on": "सब चालू करें",
   Vacuums: "वैक्यूम",
+  "Add plant": "संयंत्र जोड़ें",
+  "Delete this plant": "यह संयंत्र हटाएँ",
+  "Every plant has its own meter, its own solar, its own battery and its own loads. The fields below belong to the selected plant: adding one starts from scratch and leaves what you already configured alone.":
+    "हर संयंत्र का अपना मीटर, अपना सौर, अपनी बैटरी और अपने भार होते हैं। नीचे के खाने चुने हुए संयंत्र के हैं: नया जोड़ना शून्य से शुरू होता है और जो पहले से सेट है उसे नहीं छूता।",
+  Plant: "संयंत्र",
+  "Plant name": "संयंत्र का नाम",
+  Plants: "संयंत्र",
+  "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
+    "यह मुख्य संयंत्र है और हटाया नहीं जा सकता: यही वह है जिसे डैशबोर्ड हमेशा से पढ़ता आया है।",
 });

@@ -321,7 +321,10 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // dell'oggetto salvato, gli altri in un elenco accanto — e le regole
   // dell'id, che nasce una volta, non si ricava dal nome e non torna buono
   // una seconda volta. Non sa cos'e' una pagina.
-  assert.ok(relative.length <= 155, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 156 con le linguette degli impianti: la pagina Energia non cambia di una
+  // virgola, si aggiunge una riga sopra per scegliere quale casa si sta
+  // guardando — e con una casa sola quella riga non compare affatto.
+  assert.ok(relative.length <= 156, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

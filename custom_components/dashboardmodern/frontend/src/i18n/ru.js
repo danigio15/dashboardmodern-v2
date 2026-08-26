@@ -1490,4 +1490,13 @@ export default Object.freeze({
   "Turn everything off": "Выключить всё",
   "Turn everything on": "Включить всё",
   Vacuums: "Пылесосы",
+  "Add plant": "Добавить объект",
+  "Delete this plant": "Удалить этот объект",
+  "Every plant has its own meter, its own solar, its own battery and its own loads. The fields below belong to the selected plant: adding one starts from scratch and leaves what you already configured alone.":
+    "У каждого объекта свой счётчик, своя солнечная станция, свой накопитель и свои нагрузки. Поля ниже относятся к выбранному объекту: добавление нового начинается с нуля и не трогает уже настроенное.",
+  Plant: "Объект",
+  "Plant name": "Название объекта",
+  Plants: "Объекты",
+  "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
+    "Это основной объект, и его нельзя удалить: именно его панель читала всегда.",
 });
