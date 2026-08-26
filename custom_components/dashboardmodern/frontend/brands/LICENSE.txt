@@ -1,0 +1,10 @@
+I loghi in questa cartella vengono da Simple Icons (https://simple-icons.org),
+versione 16.27.1, distribuiti sotto CC0 1.0 Universal: pubblico dominio.
+
+Sono stati ritoccati in un punto solo: l'attributo `fill` e' `currentColor`,
+cosi' il logo prende il colore del tema invece di restare nero su fondo scuro.
+
+I marchi raffigurati appartengono ai rispettivi titolari. Compaiono qui per
+identificare l'auto che l'utente ha configurato, non per suggerire un legame.
+
+CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/

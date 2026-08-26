@@ -211,17 +211,19 @@ test("nessuno riporta le tendine su un'auto diversa da quella del pannello", asy
   assert.match(beta11, /panel\.dataset\.dmVehicleUid/);
 });
 
-test("il logo che non arriva lascia le iniziali, non il nome spezzato", async () => {
-  /* Il testo alternativo dell'immagine e' il NOME del marchio: in un riquadro
-   * alto quanto un'icona ci andava a capo, e «MINI» diventava «MI / NI». */
+test("il nome del marchio non finisce dentro l'icona", async () => {
+  /* Era il testo alternativo di un `<img>`: in un riquadro alto quanto
+   * un'icona ci andava a capo, e «MINI» diventava «MI / NI». Adesso il segno
+   * non e' piu' un'immagine ma una maschera — la forma dal file, il colore
+   * dalla plancia — e il nome lo portano `title` e `aria-label`, che si
+   * leggono e non si disegnano. */
   const catalogo = await readFile(
     new URL("../src/core/personalization-catalog.js", import.meta.url),
     "utf8",
   );
   const canonico = catalogo.match(/data-brand-source="canonical"[\s\S]{0,1400}?\n  \}/)[0];
-  assert.match(canonico, /alt=""/);
-  assert.match(canonico, /<text x="24"/);
-  // Nessuno script: un logo che non carica non e' il momento di scoprire una
-  // regola di sicurezza.
+  assert.doesNotMatch(canonico, /<img/);
+  assert.match(canonico, /title="\$\{item\.name\}"/);
+  assert.match(canonico, /aria-label="\$\{item\.name\}"/);
   assert.doesNotMatch(canonico, /onerror/);
 });

@@ -600,7 +600,16 @@ function installStyles() {
      * it. */
     #ed-body .ed-row[data-section-key] :not(.ed-row-main)>.dm-inline-rename[data-rename]:not([data-dm-beta5-primary="true"]){display:none!important}
 
-    .dm-car-brand{display:grid!important;place-items:center!important;color:var(--info-color,#0284c7)!important;background:transparent!important}
+    /* Il colore del marchio non lo decide questa riga.
+     *
+     * C'era un color:var(--info-color) con !important, e dipingeva OGNI logo
+     * dello stesso azzurro: nato quando i marchi erano sagome monocrome da
+     * rendere visibili, e diventato il motivo per cui la tinta d'istituto non
+     * arrivava mai a schermo: un !important batte anche lo stile scritto
+     * sull'elemento. Adesso il colore lo porta il marchio (Tesla rosso, BMW
+     * blu, Renault giallo) e per le case il cui marchio e' nero decide il tema.
+     * Qui restano la forma e il fondo, che erano l'altra meta' del lavoro. */
+    .dm-car-brand{display:grid!important;place-items:center!important;background:transparent!important}
     .dm-beta5-brand-logo{display:grid!important;place-items:center!important;width:82px!important;height:54px!important;color:currentColor!important}
     .dm-beta5-brand-logo svg{display:block!important;width:78px!important;height:50px!important;max-width:100%!important;overflow:visible!important}
     #dm-visual-picker[data-kind="car"] .dm-picker-option{min-height:126px!important;padding:12px 8px!important}

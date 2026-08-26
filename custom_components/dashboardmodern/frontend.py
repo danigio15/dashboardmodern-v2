@@ -23,6 +23,8 @@ FRONTEND_DIR = Path(__file__).parent / "frontend"
 LEGACY_DIR = FRONTEND_DIR / "legacy"
 AVATAR_DIR = FRONTEND_DIR / "avatars"
 AVATAR_URL_PATH = f"{STATIC_URL_PATH}/avatars"
+BRAND_DIR = FRONTEND_DIR / "brands"
+BRAND_URL_PATH = f"{STATIC_URL_PATH}/brands"
 
 ASSET_SUFFIXES = frozenset(
     {
@@ -263,6 +265,18 @@ async def _ensure_static_registered(
                 StaticPathConfig(
                     url_path=AVATAR_URL_PATH,
                     path=str(AVATAR_DIR),
+                    cache_headers=True,
+                )
+            )
+        # I loghi dei marchi auto, per la stessa ragione. Prima venivano da un
+        # CDN: su una plancia che sta su una rete di casa e non esce su
+        # internet non arrivavano mai, e nessuno se ne accorgeva perche'
+        # un'immagine che non arriva non fa rumore.
+        if BRAND_DIR.is_dir():
+            paths.append(
+                StaticPathConfig(
+                    url_path=BRAND_URL_PATH,
+                    path=str(BRAND_DIR),
                     cache_headers=True,
                 )
             )
