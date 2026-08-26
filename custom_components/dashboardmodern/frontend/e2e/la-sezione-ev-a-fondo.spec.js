@@ -241,8 +241,9 @@ test("un'auto nuova non nasce con la foto di quella attiva", async ({ page }, te
       { name: "T03", img: "", imgPlugged: "" },
     ]);
 
-  /* E il runtime ha reso attiva la T03: le caselle da cui il disegno legge e
-   * il pannello foto raccontano LEI — vuota — non la B10 di prima. */
+  /* Salvare non cambia l'auto che la sezione sta mostrando: resta la B10, con
+   * la sua foto. La T03 e' nata senza — le sue si scelgono dal pannello, che
+   * intanto dichiara di parlare con lei. */
   await expect
     .poll(() =>
       page.evaluate(() => ({
@@ -250,7 +251,9 @@ test("un'auto nuova non nasce con la foto di quella attiva", async ({ page }, te
         idle: JSON.parse(localStorage.getItem("cd_ev_image") || '""'),
       })),
     )
-    .toEqual({ active: "1", idle: "" });
+    .toEqual({ active: "0", idle: "/local/ev/b10-idle.png" });
+  /* E la scheda resta aperta sull'auto appena salvata: e' lei che il pannello
+   * dichiara, ed e' su di lei che «Salva foto» scrivera'. */
   await expect(page.locator("[data-ev-photos-title]")).toHaveText(/T03/);
   await expect(
     page.locator('#ed-body [data-ev-photos] [data-ev-photo="idle"] [data-ev-photo-input]'),
@@ -413,11 +416,15 @@ test("la lista auto ha la matita, niente distintivo, e il + svuota la scheda", a
   const matite = page.locator("#ed-body [data-ev-edit]");
   await expect(matite).toHaveCount(2, { timeout: 15_000 });
   await expect(page.locator("#ed-body .ed-row .pool-badge")).toHaveCount(0);
-  await expect(page.locator('#ed-body button[onclick*="edEvCarAdd"]')).toHaveText(/Salva auto/);
+  await expect(page.locator('#ed-body button[onclick*="edEvCarAdd"]')).toHaveText(/Salva (auto|le modifiche a|la nuova auto)/);
 
-  // La matita apre QUELLA auto nella scheda: nome compreso.
+  /* La matita APRE quell'auto nella scheda — nome compreso — e non tocca
+   * nient'altro: quale vettura la sezione stia mostrando non e' affare della
+   * configurazione, e aprirne una per modificarla non deve cambiarla. */
+  const inUsoPrima = await page.evaluate(() => localStorage.getItem("cd_ev_car_active"));
   await matite.nth(1).click();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("cd_ev_car_active"))).toBe("1");
+  await expect(page.locator("#ed-evcar-name")).toHaveValue("T03", { timeout: 15_000 });
+  expect(await page.evaluate(() => localStorage.getItem("cd_ev_car_active"))).toBe(inUsoPrima);
   await expect(page.locator("#ed-evcar-name")).toHaveValue("T03", { timeout: 15_000 });
   await expect(
     page.locator('#ed-body .ed-slot-in[data-ref="dm.ev_batteria_auto"]').first(),

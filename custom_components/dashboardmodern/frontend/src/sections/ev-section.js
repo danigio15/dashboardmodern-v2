@@ -572,11 +572,63 @@ function ensureCarListDecor() {
   const contenitore = doc.getElementById("ed-body");
   if (!contenitore) return false;
 
+  /* «Usa» non diceva niente.
+   *
+   * «Continuo a vedere nel config il tasto usa, a che serve»: e' il tasto che
+   * sceglie QUALE auto la plancia mostra — una sola alla volta. Adesso lo
+   * dice: quella mostrata porta il distintivo pieno e non e' piu' un bottone,
+   * le altre invitano a mostrarle. */
+  /* Niente da scegliere: c'e' un interruttore, e basta.
+   *
+   * «Che significa in plancia? A che serve quel tasto? Va abolito: al massimo
+   * uno switch se attivarla o meno nella sezione.» Il tasto «Usa» decideva
+   * quale auto fosse "quella attiva", ed e' il concetto da cui le foto si
+   * spostavano da sola a sola. Sparisce: ogni auto ha il suo interruttore —
+   * accesa, compare tra le linguette della sezione EV; spenta, non c'e'. Qual
+   * e' quella aperta la sceglie chi guarda, toccando la linguetta. */
   for (const bottone of contenitore.querySelectorAll('[data-act="use"]')) {
     const riga = bottone.closest(".ed-row");
     if (!riga) continue;
     for (const badge of riga.querySelectorAll(".pool-badge"))
       if (/attiv/i.test(clean(badge.textContent))) badge.remove();
+    bottone.style.setProperty("display", "none", "important");
+    const indiceRiga = Number.parseInt(bottone.dataset.idx || "-1", 10);
+    const principale = riga.querySelector(".ed-row-main");
+    if (principale) principale.style.cssText = "flex:1 1 auto;min-width:0;";
+    if (Number.isFinite(indiceRiga) && !riga.querySelector("[data-ev-enabled]")) {
+      const interruttore = doc.createElement("button");
+      interruttore.type = "button";
+      interruttore.className = "dm-ev-enabled";
+      interruttore.dataset.evEnabled = String(indiceRiga);
+      interruttore.innerHTML = "<i></i>";
+      interruttore.addEventListener("click", () => {
+        const indice = Number.parseInt(interruttore.dataset.evEnabled, 10);
+        const elenco = ensureCarKeys();
+        const auto = elenco[indice];
+        if (!auto) return;
+        const accesa = auto.enabled !== false;
+        const rimesse = elenco.map((car, posto) =>
+          posto === indice ? { ...car, enabled: !accesa } : car,
+        );
+        writeJsonIfChanged("cd_ev_cars", rimesse);
+        root.cdMarkDirty?.();
+        root.cdSyncPush?.();
+        scheduleEvSync();
+        ensureCarListDecor();
+      });
+      bottone.insertAdjacentElement("beforebegin", interruttore);
+    }
+    const interruttore = riga.querySelector("[data-ev-enabled]");
+    if (interruttore) {
+      const auto = profiles()[indiceRiga];
+      const accesa = auto ? auto.enabled !== false : true;
+      interruttore.dataset.on = String(accesa);
+      interruttore.setAttribute("aria-pressed", String(accesa));
+      interruttore.title = accesa
+        ? t("Attiva nella sezione EV — tocca per toglierla", "Active in the EV section — tap to remove it")
+        : t("Non compare nella sezione EV — tocca per attivarla", "Not in the EV section — tap to add it");
+      interruttore.setAttribute("aria-label", interruttore.title);
+    }
     if (!riga.querySelector("[data-ev-edit]")) {
       const matita = doc.createElement("button");
       matita.type = "button";
@@ -621,8 +673,26 @@ function ensureCarListDecor() {
 
   const salva = contenitore.querySelector('button[onclick*="edEvCarAdd"]');
   if (salva) {
-    const testoSalva = `💾 ${t("Salva auto", "Save car")}`;
+    /* Un salvataggio solo, e dice cosa salva.
+     *
+     * «Tasto ＋, tasto salva auto e giu' salva sezione: non si capisce quale
+     * aggiunge davvero un'auto». Sono tre bottoni per due gesti. Adesso:
+     * ＋ apre una scheda vuota e il salvataggio diventa «Salva la nuova
+     * auto»; con un'auto aperta dalla matita diventa «Salva le modifiche a
+     * NOME». Il bottone verde in fondo alla sezione fa esattamente questo, e
+     * lo dice con le stesse parole — non e' un terzo gesto. */
+    const chiaveAperta = editingKey();
+    const elencoAuto = profiles();
+    const apertaIndice = chiaveAperta ? carIndexByKey(elencoAuto, chiaveAperta) : -1;
+    const nomeAperta = clean(elencoAuto[apertaIndice]?.name);
+    const nuova = chiaveAperta === "" || (!nomeAperta && apertaIndice < 0);
+    const testoSalva = nuova
+      ? `💾 ${t("Salva la nuova auto", "Save the new car")}`
+      : nomeAperta
+        ? `💾 ${t("Salva le modifiche a", "Save changes to")} ${nomeAperta}`
+        : `💾 ${t("Salva auto", "Save car")}`;
     if (salva.textContent !== testoSalva) salva.textContent = testoSalva;
+    salva.dataset.evSaveCar = "true";
     const rigaNome = salva.parentElement;
     if (rigaNome && !contenitore.querySelector("[data-ev-add-new]")) {
       const aggiungi = doc.createElement("button");
@@ -630,7 +700,7 @@ function ensureCarListDecor() {
       aggiungi.className = "ed-btn-add";
       aggiungi.dataset.evAddNew = "true";
       aggiungi.style.cssText = "display:block;width:100%;margin:12px 0 8px;";
-      aggiungi.textContent = `＋ ${t("Aggiungi auto", "Add car")}`;
+      aggiungi.textContent = `＋ ${t("Nuova auto", "New car")}`;
       aggiungi.addEventListener("click", () => {
         const campo = doc.getElementById("ed-evcar-name");
         if (!campo) return;
@@ -668,8 +738,8 @@ function ensureCarListDecor() {
   );
   if (intro) {
     const testo = `🚗 ${t(
-      "Ogni auto è una scheda: ＋ Aggiungi auto per crearne una nuova — nome, marca, modello e tutte le entità qui sotto — la matita per modificarla, USA per mostrarla in plancia.",
-      "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.",
+      "Tre gesti, e basta: ＋ Nuova auto apre una scheda vuota, la ✏️ apre un'auto già salvata, l'interruttore la accende o la spegne nella sezione EV. Sotto si compila nome, marca, modello, entità e le due foto — e il salvataggio è uno solo: dice se sta creando o modificando, e in fondo alla sezione porta le stesse parole. Quale auto guardare si sceglie dalle linguette della sezione, non da qui.",
+      "Three gestures, no more: ＋ New car opens an empty card, the ✏️ opens a car you already saved, the switch turns it on or off in the EV section. Below you fill in name, brand, model, entities and both photos — and there is a single save: it says whether it is creating or editing, and the one at the bottom of the section carries the same words. Which car you look at is picked from the section's own tabs, not from here.",
     )}`;
     if (clean(intro.textContent) !== clean(testo)) intro.textContent = testo;
   }
@@ -811,6 +881,16 @@ function buildProfileButtons(nav, cars) {
  * fatto — nel popup scrive gia'. La firma della struttura sta adesso
  * sull'elemento invece che nel modulo, perche' i posti sono due e un valore
  * solo avrebbe fatto ridisegnare uno a ogni passata dell'altro. */
+/* Le auto che la sezione mostra: quelle accese. Spenta e' spenta — resta in
+ * configurazione, con tutto quello che ha, ma fuori dalle linguette. */
+export function carsShownInSection(cars = profiles()) {
+  const elenco = Array.isArray(cars) ? cars : [];
+  const accese = elenco.filter((car) => car?.enabled !== false);
+  /* Tutte spente e' quasi sempre una distrazione: meglio mostrarle tutte che
+   * lasciare la sezione muta senza spiegare perche'. */
+  return accese.length ? accese : elenco;
+}
+
 function paintSelector(host, cars) {
   let nav = host.querySelector(".dm-vehicle-profile-tabs");
   if (!nav) { nav=doc.createElement("nav"); nav.className="dm-vehicle-profile-tabs"; nav.setAttribute("aria-label",t("Seleziona auto","Select vehicle")); host.append(nav); bindProfileNav(nav); }
@@ -849,12 +929,13 @@ function popupSelectorHost() {
 
 export function renderVehicleSelector() {
   const cars = profiles();
+  const visibili = carsShownInSection(cars);
   const popup = popupSelectorHost();
-  if (popup) paintSelector(popup, cars);
+  if (popup) paintSelector(popup, visibili);
   const host = nativeHost(); if (!host) return false;
   host.classList.add("dm-vehicle-profile-host");
   const select = nativeSelect(); if (select) { select.classList.add("dm-vehicle-native-select"); select.setAttribute("aria-hidden","true"); select.tabIndex=-1; }
-  return paintSelector(host, cars);
+  return paintSelector(host, visibili);
 }
 
 /* Two cars, two pairs of photos.
@@ -1157,7 +1238,25 @@ function installLegacyWrappers() {
       // Scheda salvata: la seduta di scrittura e' chiusa, i segni si azzerano,
       // e la sessione diventa l'auto appena salvata (il runtime l'ha attivata).
       refToccati().clear();
-      setEditingKey(carKey(rimesse[activeIndex()] || {}));
+      /* Dopo il salvataggio la scheda resta aperta su QUELLA auto: quella
+       * appena salvata se e' nata adesso, quella che si stava modificando
+       * altrimenti. Prima seguiva l'auto in uso, che con la matita non e' la
+       * stessa cosa — e il pannello delle foto finiva a parlare di un'altra
+       * vettura appena premuto «Salva». */
+      /* Chi e' stata salvata la dice il nome nel campo: e' l'unico dato che
+       * vale sia per una vettura appena nata sia per una risalvata. La chiave
+       * della sessione regge se quell'auto c'e' ancora (una rinomina non la
+       * cambia); altrimenti si riparte dal nome. */
+      const perNome = nomeScritto
+        ? rimesse.findIndex((car) => clean(car?.name).toLowerCase() === nomeScritto.toLowerCase())
+        : -1;
+      const sessioneDopo =
+        perNome >= 0
+          ? carKey(rimesse[perNome] || {})
+          : chiaveSessione && carIndexByKey(rimesse, chiaveSessione) >= 0
+            ? chiaveSessione
+            : carKey(rimesse[activeIndex()] || {});
+      setEditingKey(sessioneDopo);
       state.evRenameArmed = false;
       /* Il runtime ha appena reso attiva l'auto salvata, ma le due caselle da
        * cui il disegno legge portano ancora le foto di quella di prima: senza
@@ -1175,7 +1274,6 @@ function installLegacyWrappers() {
       if (tornaIndice >= 0 && tornaIndice !== activeIndex()) {
         rimettiInUso(rimesse[tornaIndice], tornaIndice);
         restoreProfilePhotos(rimesse[tornaIndice], configuredPhotos(), rimesse.length);
-        setEditingKey(carKey(rimesse[tornaIndice] || {}));
       }
       const indiceDopo = activeIndex();
       const attivaDopo = rimesse[indiceDopo];
@@ -1302,6 +1400,15 @@ function installStyles() {
 #ed-body#ed-body .ed-slot[hidden]{display:none!important}
   `);
   installStyle("dm-ev-section-style",`
+#ed-body .dm-ev-enabled{
+  flex:0 0 42px;width:42px;height:24px;position:relative;margin-right:8px;border:0;border-radius:999px;
+  cursor:pointer;background:color-mix(in srgb,var(--text-dim,#94a3b8) 32%,transparent);
+  transition:background .25s ease}
+#ed-body .dm-ev-enabled i{
+  position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;
+  box-shadow:0 2px 6px rgba(15,23,42,.25);transition:transform .25s cubic-bezier(.16,1,.3,1)}
+#ed-body .dm-ev-enabled[data-on="true"]{background:#059669}
+#ed-body .dm-ev-enabled[data-on="true"] i{transform:translateX(18px)}
 #ev-mod-car-img[data-ev-image-error],#ev-new-car-img[data-ev-image-error],#ev-mod-car-img[data-ev-failed="1"],#ev-new-car-img[data-ev-failed="1"]{display:none!important}
 #ev-car-picker.dm-vehicle-profile-host{box-sizing:border-box!important;width:fit-content!important;max-width:calc(100% - 28px)!important;margin:12px auto 10px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}#ev-car-picker.dm-vehicle-profile-host>.dm-vehicle-native-select{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important;opacity:0!important;pointer-events:none!important}
 #ev-popup .dm-vehicle-profile-popup{box-sizing:border-box!important;width:100%!important;max-width:100%!important;margin:0 0 12px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}

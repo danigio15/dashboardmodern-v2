@@ -670,9 +670,19 @@ function ringMarkup(widget) {
   return `<span class="dm-tile-ring" style="--dm-ring-pct:${widget.ring}" aria-hidden="true"><i>${widget.icon}</i></span>`;
 }
 
+/* Le tessere gia' viste non rientrano in scena.
+ *
+ * L'ingresso e' un'animazione con lo sfalsamento: bella la prima volta, un
+ * tremolio se si ripete. E si ripeteva a ogni rifacimento del markup — che
+ * capita da solo, perche' le tessere degli avvisi compaiono e spariscono con
+ * i valori. Chi c'era gia' nasce «vista» e sta ferma; anima solo chi arriva
+ * adesso. */
+const viste = () => (state.viste ||= new Set());
+
 function tileMarkup(widget, index = 0) {
   const open = state.expanded === widget.key;
-  return `<button type="button" class="dm-tile" data-dm-widget="${widget.key}" data-open="${open}"
+  const giaVista = viste().has(widget.key) ? ' data-dm-seen="true"' : "";
+  return `<button type="button" class="dm-tile" data-dm-widget="${widget.key}" data-open="${open}"${giaVista}
       data-alert="${Boolean(widget.alert)}"
       style="--dm-widget-accent:${widget.accent};--dm-tile-i:${index}" aria-expanded="${open}" aria-label="${esc(widget.label)}">
       ${ringMarkup(widget)}
@@ -1060,6 +1070,7 @@ export function renderHomeWidgets() {
   const signature = structureSignature(models);
   if (state.signature !== signature || !grid.firstElementChild) {
     state.signature = signature;
+    for (const widget of models) viste().add(widget.key);
     grid.innerHTML = models
       .map((widget, index) => {
         const tile = tileMarkup(widget, index);
@@ -1084,7 +1095,16 @@ export function renderHomeWidgets() {
           captionDetail.textContent = widget.caption;
         const body = grid.querySelector(".dm-w-body");
         const markup = detailBody(widget, states);
-        if (body && body.innerHTML !== markup) body.innerHTML = markup;
+        if (body && body.innerHTML !== markup) {
+          /* Il corpo si riscrive a ogni valore che cambia: se le righe
+           * rientrassero in scena ogni volta, la card aperta tremerebbe da
+           * sola. L'ingresso e' solo del primo disegno — quello che segue
+           * l'apertura. */
+          const primoDisegno = body.dataset.dmPainted !== "true";
+          body.innerHTML = markup;
+          body.dataset.dmPainted = "true";
+          body.dataset.dmFresh = primoDisegno ? "true" : "false";
+        }
       }
     }
   }
@@ -1300,9 +1320,11 @@ function installStyles() {
   padding:12px 13px;border:1px solid var(--card-border,#e8edf3);border-radius:18px;
   background:var(--card-bg,#fff);color:var(--text,#0f172a);font:inherit;text-align:left;cursor:pointer;
   box-shadow:0 6px 18px rgba(15,23,42,.05);
-  animation:dmTileIn .45s cubic-bezier(.16,1,.3,1) both;
-  animation-delay:calc(var(--dm-tile-i,0) * 45ms);
   transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s ease,border-color .3s ease}
+/* L'ingresso e' per chi entra adesso: una tessera gia' vista non rianima. */
+#dm-widgets .dm-tile:not([data-dm-seen]){
+  animation:dmTileIn .45s cubic-bezier(.16,1,.3,1) both;
+  animation-delay:calc(var(--dm-tile-i,0) * 45ms)}
 @keyframes dmTileIn{from{opacity:0;transform:translateY(9px) scale(.97)}to{opacity:1;transform:none}}
 /* Il riflesso che attraversa la tessera al passaggio: luce, non colore. */
 #dm-widgets .dm-tile .dm-tile-shine{
@@ -1381,8 +1403,11 @@ function installStyles() {
 #dm-widgets .dm-w-body{display:grid;gap:2px;padding:0 10px 12px}
 #dm-widgets .dm-w-row{
   display:flex;align-items:center;gap:11px;min-height:42px;padding:5px 8px;border-radius:12px;
-  animation:dmRowIn .32s cubic-bezier(.16,1,.3,1) both;
+  animation:none;
   transition:background .2s ease}
+/* Le righe entrano una volta sola: al primo disegno dopo l'apertura. */
+#dm-widgets .dm-w-body[data-dm-fresh="true"] .dm-row{
+  animation:dmRowIn .32s cubic-bezier(.16,1,.3,1) both}
 @keyframes dmRowIn{from{opacity:0;transform:translateX(-7px)}to{opacity:1;transform:none}}
 #dm-widgets .dm-w-row:nth-child(1){animation-delay:30ms}
 #dm-widgets .dm-w-row:nth-child(2){animation-delay:60ms}
