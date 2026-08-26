@@ -749,7 +749,6 @@ export default Object.freeze({
   "Grid import": "Importação da rede",
   "Grid view": "Vista em grelha",
   Grill: "Grelhador",
-  "Ground floor": "Rés do chão",
   "Ground floor vacuum": "Aspirador do rés do chão",
   group: "grupo",
   Group: "Grupo",

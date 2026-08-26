@@ -735,7 +735,6 @@ export default Object.freeze({
   "Grid import": "电网购电",
   "Grid view": "网格视图",
   Grill: "烤架",
-  "Ground floor": "一楼",
   "Ground floor vacuum": "一楼的扫地机器人",
   group: "分组",
   Group: "分组",

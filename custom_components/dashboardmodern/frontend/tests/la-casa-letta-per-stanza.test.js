@@ -157,3 +157,26 @@ test("la sezione e' installata dal runtime e ha la sua voce nella barra", async 
   // La voce si nasconde come tutte: la mappa di cdApplyNavVis la deve sapere.
   assert.match(sezione, /cdNavVisMap/);
 });
+
+test("dove si dichiara una stanza, si sceglie: non si scrive", async () => {
+  /* La stanza scritta a mano e' il modo piu' semplice di perdere una cosa:
+   * «salone» dove la stanza si chiama «Salone» risolve per fortuna, ma
+   * «Saloon» no — e l'oggetto sparisce dalla sezione Stanze senza che nessuno
+   * dica perche'. Il robot era l'ultima scheda con la casella libera. */
+  const { readFile } = await import("node:fs/promises");
+  const editor = await readFile(
+    new URL("../src/sections/robot-editor-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(editor, /<select id="dm-robot-\$\{index\}-room"/,
+    "la stanza del robot si sceglie da una tendina");
+  assert.match(editor, /roomOptionsMarkup\(clean\(robot\.room\)/);
+  assert.doesNotMatch(editor, /<input id="dm-robot-\$\{index\}-room"/);
+
+  /* E la tendina la costruisce un posto solo, con la stessa regola per tutti:
+   * il valore e' l'id quando c'e' e il nome quando l'id non c'e', cosi' una
+   * configurazione scritta a mano non perde la scelta che aveva gia'. */
+  const comune = await readFile(new URL("../src/sections/shared.js", import.meta.url), "utf8");
+  const corpo = comune.slice(comune.indexOf("export function roomOptionsMarkup"));
+  assert.match(corpo.slice(0, 900), /room\?\.id \|\| room\?\.name/);
+});

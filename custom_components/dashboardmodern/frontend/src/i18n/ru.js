@@ -746,7 +746,6 @@ export default Object.freeze({
   "Grid import": "Импорт из сети",
   "Grid view": "Вид сеткой",
   Grill: "Гриль",
-  "Ground floor": "Первый этаж",
   "Ground floor vacuum": "Пылесос первого этажа",
   group: "группа",
   Group: "Группа",

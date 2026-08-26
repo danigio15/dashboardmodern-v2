@@ -744,7 +744,6 @@ export default Object.freeze({
   "Grid import": "계통 수전",
   "Grid view": "격자 보기",
   Grill: "그릴",
-  "Ground floor": "1층",
   "Ground floor vacuum": "1층 로봇청소기",
   group: "그룹",
   Group: "그룹",

@@ -747,7 +747,6 @@ export default Object.freeze({
   "Grid import": "系統からの買電",
   "Grid view": "グリッド表示",
   Grill: "グリル",
-  "Ground floor": "1 階",
   "Ground floor vacuum": "1 階のロボット掃除機",
   group: "グループ",
   Group: "グループ",

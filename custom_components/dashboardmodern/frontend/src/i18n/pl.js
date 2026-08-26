@@ -746,7 +746,6 @@ export default Object.freeze({
   "Grid import": "Pobór z sieci",
   "Grid view": "Widok siatki",
   Grill: "Grill",
-  "Ground floor": "Parter",
   "Ground floor vacuum": "Odkurzacz na parterze",
   group: "grupa",
   Group: "Grupa",

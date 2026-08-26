@@ -753,7 +753,6 @@ export default Object.freeze({
   "Grid import": "Import réseau",
   "Grid view": "Vue en grille",
   Grill: "Gril",
-  "Ground floor": "Rez-de-chaussée",
   "Ground floor vacuum": "Aspirateur du rez-de-chaussée",
   group: "groupe",
   Group: "Groupe",

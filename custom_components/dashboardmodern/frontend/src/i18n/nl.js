@@ -751,7 +751,6 @@ export default Object.freeze({
   "Grid import": "Netafname",
   "Grid view": "Rasterweergave",
   Grill: "Grill",
-  "Ground floor": "Begane grond",
   "Ground floor vacuum": "Stofzuiger begane grond",
   group: "groep",
   Group: "Groep",

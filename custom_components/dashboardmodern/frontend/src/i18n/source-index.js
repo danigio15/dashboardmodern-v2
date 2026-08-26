@@ -890,7 +890,6 @@ export const SOURCE_INDEX = Object.freeze({
   "pH minimo": "Minimum pH",
   "Piano": "Floor",
   "Piano cottura": "Cooktop",
-  "Piano terra": "Ground floor",
   "picco": "peak",
   "Picco": "Peak",
   "Pilota": "Pilot",

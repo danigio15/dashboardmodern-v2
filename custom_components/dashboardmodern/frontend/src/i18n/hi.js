@@ -743,7 +743,6 @@ export default Object.freeze({
   "Grid import": "ग्रिड से लिया गया",
   "Grid view": "ग्रिड दृश्य",
   Grill: "ग्रिल",
-  "Ground floor": "भूतल",
   "Ground floor vacuum": "भूतल का वैक्यूम",
   group: "समूह",
   Group: "समूह",

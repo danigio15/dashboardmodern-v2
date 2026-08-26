@@ -571,7 +571,6 @@ export const MESSAGE_KEYS = Object.freeze([
   "Grid view",
   "Grill",
   "Groceries",
-  "Ground floor",
   "Ground floor vacuum",
   "group",
   "Group",

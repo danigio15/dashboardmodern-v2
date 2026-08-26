@@ -269,6 +269,34 @@ export function section(name, fallback) {
   }
 }
 
+/* Le stanze configurate, per una tendina che le offra.
+ *
+ * Ogni scheda che chiede «in che stanza sta questa cosa» ha bisogno della
+ * stessa lista, scritta allo stesso modo. Dove non c'era, il campo era una
+ * casella di testo: si poteva scrivere «Salone», «salone » o «Saloon», e la
+ * sezione Stanze non lo trovava — l'oggetto spariva da li' senza che nessuno
+ * dicesse perche'.
+ *
+ * Il valore e' l'id quando c'e', il nome quando l'id non c'e': una
+ * configurazione scritta a mano puo' non avere id, e togliere la scelta a chi
+ * ce l'ha gia' sarebbe peggio del problema. La riga scelta si riconosce
+ * dall'uno o dall'altro, per lo stesso motivo. */
+export function roomOptionsMarkup(selected = "", vuoto = "") {
+  const stanze = section("rooms", readJson("cd_stanze", [])) || [];
+  const scelto = String(selected ?? "").trim();
+  const righe = (Array.isArray(stanze) ? stanze : []).map((room) => {
+    const valore = String(room?.id || room?.name || "").trim();
+    if (!valore) return "";
+    const attiva = [room?.id, room?.name]
+      .map((voce) => String(voce ?? "").trim())
+      .includes(scelto);
+    const simbolo = String(room?.icon || "").trim();
+    const glifo = simbolo && !simbolo.startsWith("mdi:") ? `${esc(simbolo)} ` : "";
+    return `<option value="${esc(valore)}"${attiva ? " selected" : ""}>${glifo}${esc(room?.name || valore)}</option>`;
+  });
+  return [`<option value="">— ${esc(vuoto)} —</option>`, ...righe.filter(Boolean)].join("");
+}
+
 /* The vendored runtime declares its state with `const`, `let` and `var` at the
  * top level of a classic script. Only `var` lands on `window`; the others are
  * script-scope bindings that a module cannot see at all — reading `root.WIZ`

@@ -752,7 +752,6 @@ export default Object.freeze({
   "Grid import": "Netzbezug",
   "Grid view": "Rasteransicht",
   Grill: "Grill",
-  "Ground floor": "Erdgeschoss",
   "Ground floor vacuum": "Saugroboter im Erdgeschoss",
   group: "Gruppe",
   Group: "Gruppe",

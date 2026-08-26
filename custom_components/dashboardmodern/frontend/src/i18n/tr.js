@@ -746,7 +746,6 @@ export default Object.freeze({
   "Grid import": "Şebekeden çekiş",
   "Grid view": "Izgara görünümü",
   Grill: "Izgara",
-  "Ground floor": "Zemin kat",
   "Ground floor vacuum": "Zemin kat süpürgesi",
   group: "grup",
   Group: "Grup",

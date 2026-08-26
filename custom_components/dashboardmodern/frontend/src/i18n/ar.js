@@ -741,7 +741,6 @@ export default Object.freeze({
   "Grid import": "السحب من الشبكة",
   "Grid view": "عرض شبكي",
   Grill: "شوّاية",
-  "Ground floor": "الطابق الأرضي",
   "Ground floor vacuum": "مكنسة الطابق الأرضي",
   group: "مجموعة",
   Group: "المجموعة",

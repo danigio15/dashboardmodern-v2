@@ -4,13 +4,17 @@
  * alle altre, e si comporta come le altre — l'interruttore verde della
  * sezione in cima, l'elenco di cio' che c'e', un unico salvataggio in fondo.
  *
+ * La stanza si sceglie da una tendina, non si scrive: era una casella di
+ * testo, e chi scriveva «salone» dove la stanza si chiama «Salone» vedeva il
+ * robot sparire dalla sezione Stanze senza che nessuno dicesse perche'.
+ *
  * Un robot chiede due entita': quella del robot, che e' un `vacuum`, e quella
  * della mappa, che invece non ha un tipo suo — chi ce l'ha la pubblica come
  * telecamera o come immagine, ed e' per questo che il campo accetta tutte e
  * due invece di pretenderne una.
  */
 import { normalizeRobots } from "../core/robot-model.js";
-import { clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
+import { clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, roomOptionsMarkup, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_ROBOT_EDITOR__";
 const state = (root[KEY] ||= { installed: false, aperto: -1 });
@@ -65,7 +69,7 @@ function rigaMarkup(robot, index) {
       <label class="ed-slot dm-robot-field"><span class="ed-slot-lbl">${t("Nome", "Name")}</span><span class="ed-form-row"><input id="dm-robot-${index}-name" class="ed-input" data-robot-field="name" value="${esc(clean(robot.name))}" placeholder="${t("Robot del piano terra", "Ground floor vacuum")}"></span></label>
       ${campo(`dm-robot-${index}-entity`, t("Entità del robot", "Vacuum entity"), robot.entity, "vacuum.robot", t("È l'entità vacuum.* che Home Assistant espone per il robot.", "The vacuum.* entity Home Assistant exposes for the robot."))}
       ${campo(`dm-robot-${index}-mapEntity`, t("Entità della mappa", "Map entity"), robot.mapEntity, "camera.robot_map", t("La mappa arriva da una telecamera o da un'immagine: camera.* o image.*. Lasciala vuota se il tuo robot non ne pubblica una.", "The map comes from a camera or an image: camera.* or image.*. Leave it empty if your robot does not publish one."))}
-      <label class="ed-slot dm-robot-field"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><span class="ed-form-row"><input id="dm-robot-${index}-room" class="ed-input" data-robot-field="room" value="${esc(clean(robot.room))}" placeholder="${t("Piano terra", "Ground floor")}"></span></label>
+      <label class="ed-slot dm-robot-field"><span class="ed-slot-lbl">${t("Stanza", "Room")}</span><span class="ed-form-row"><select id="dm-robot-${index}-room" class="ed-input" data-robot-field="room">${roomOptionsMarkup(clean(robot.room), t("Nessuna stanza", "No room"))}</select></span></label>
       <output class="dm-robot-error" data-robot-error></output>
       <button type="button" class="ed-save-btn" data-robot-save>💾 ${t("Salva robot", "Save vacuum")}</button>
     </div>
