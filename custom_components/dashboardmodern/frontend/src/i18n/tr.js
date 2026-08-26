@@ -1471,4 +1471,18 @@ export default Object.freeze({
     "Yalnızca açılma sensörü: komut verilecek bir şey yok.",
   "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode. When the window opens by hand — shutters, blinds, a handle — leave the command boxes empty and fill in the contact sensor alone: the card still draws it and says whether it is open.":
     "Panjurlar ve perdeler 🪟 Panjurlar sayfasında, kat ve odaya göre gruplanmış olarak görünür. Her satır bir cover.* varlığı — konum ve yüzdelerle — ya da bir switch.* rölesi kabul eder: açıldığında panjur yukarıda kalıyorsa bir tane, biri yukarı diğeri aşağı gönderiyorsa iki tane — anahtar modundaki bir Shelly gibi. Pencere elle açılıyorsa — kepenk, panjur, bir kol — komut kutularını boş bırak ve yalnızca açılma sensörünü doldur: kart yine çizilir ve açık olup olmadığını söyler.",
+  "${totale} lights": "${totale} lamba",
+  "1 light": "1 lamba",
+  "No rooms configured yet. Add them from the editor's Rooms tab: every section can then assign its entities to one.":
+    "Henüz oda yok. Bunları düzenleyicinin Odalar sekmesinden ekle: sonra her bölüm kendi varlıklarını bir odaya atayabilir.",
+  "Nothing here yet. Entities are assigned from each section's own tab.":
+    "Burada henüz bir şey yok. Varlıklar her bölümün kendi sekmesinden atanır.",
+  On: "Açık",
+  "Room scenes": "Oda sahneleri",
+  "Room sensors": "Oda sensörleri",
+  Scenes: "Sahneler",
+  "Shutters and windows": "Panjurlar ve pencereler",
+  "Turn everything off": "Her şeyi kapat",
+  "Turn everything on": "Her şeyi aç",
+  Vacuums: "Süpürgeler",
 });

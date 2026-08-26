@@ -55,6 +55,7 @@ import { installPoolIrrigationSceneSection } from "./pool-irrigation-scene-secti
 import { installPoolExtraSection } from "./pool-extra-section.js";
 import { installPoolEditorSection } from "./pool-editor-section.js";
 import { installRobotSection } from "./robot-section.js";
+import { installRoomsPageSection } from "./rooms-page-section.js";
 import { installRobotEditorSection } from "./robot-editor-section.js";
 import { installEditorEntrySection } from "./editor-entry-section.js";
 import { installEvSection } from "./ev-section.js";
@@ -719,6 +720,9 @@ export function installSectionRuntime() {
     installPoolEditorSection();
     installRobotSection();
     installRobotEditorSection();
+    /* Le Stanze leggono le assegnazioni di tutte le altre sezioni e
+     * riusano la card della pagina Luci: si installano dopo di lei. */
+    installRoomsPageSection();
     installEditorEntrySection();
     installMediaPickerSection();
     /* Le persone leggono `cd_people` e basta; il loro editor usa il selettore

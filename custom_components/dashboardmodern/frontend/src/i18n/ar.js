@@ -1464,4 +1464,18 @@ export default Object.freeze({
   "Opening sensor only: nothing to command.": "مستشعر فتح فقط: لا يوجد ما يُتحكَّم به.",
   "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode. When the window opens by hand — shutters, blinds, a handle — leave the command boxes empty and fill in the contact sensor alone: the card still draws it and says whether it is open.":
     "تظهر الستائر والمصاريع في صفحة 🪟 المصاريع، مجمَّعة حسب الطابق والغرفة. يقبل كل صف كيان cover.* — بالموضع والنِّسب — أو مُرحِّل switch.*: واحد إذا كان تشغيله يُبقي المصراع مرفوعًا، واثنان إذا كان أحدهما يرفع والآخر يخفض، مثل جهاز Shelly في وضع المفتاح. وإذا كانت النافذة تُفتح باليد — مصاريع أو شيش أو مقبض — فاترك خانات الأوامر فارغة واملأ مستشعر الفتح وحده: تُرسَم البطاقة كالمعتاد وتقول ما إذا كانت مفتوحة.",
+  "${totale} lights": "${totale} أضواء",
+  "1 light": "ضوء واحد",
+  "No rooms configured yet. Add them from the editor's Rooms tab: every section can then assign its entities to one.":
+    "لا توجد غرف بعد. أضِفها من تبويب الغرف في المحرِّر: عندئذٍ يمكن لكل قسم إسناد كياناته إلى واحدة منها.",
+  "Nothing here yet. Entities are assigned from each section's own tab.":
+    "لا شيء هنا بعد. تُسنَد الكيانات من تبويب كل قسم.",
+  On: "مضاء",
+  "Room scenes": "مشاهد الغرفة",
+  "Room sensors": "مستشعرات الغرفة",
+  Scenes: "المشاهد",
+  "Shutters and windows": "المصاريع والنوافذ",
+  "Turn everything off": "أطفئ كل شيء",
+  "Turn everything on": "أضئ كل شيء",
+  Vacuums: "المكانس",
 });

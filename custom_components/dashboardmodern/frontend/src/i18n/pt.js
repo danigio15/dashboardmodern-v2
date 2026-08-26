@@ -1482,4 +1482,18 @@ export default Object.freeze({
   "Opening sensor only: nothing to command.": "Apenas sensor de abertura: nada para comandar.",
   "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode. When the window opens by hand — shutters, blinds, a handle — leave the command boxes empty and fill in the contact sensor alone: the card still draws it and says whether it is open.":
     "As persianas e os cortinados aparecem na página 🪟 Persianas, agrupados por piso e divisão. Cada linha aceita uma entidade cover.* — com posição e percentagens — ou um relé switch.*: um só se ao ligá-lo a persiana fica em cima, dois se um sobe e outro desce, como um Shelly em modo interruptor. Se a janela abre à mão — portadas, postigos, um puxador — deixa as caixas de comando vazias e preenche apenas o sensor de abertura: o cartão é desenhado na mesma e diz se está aberta.",
+  "${totale} lights": "${totale} luzes",
+  "1 light": "1 luz",
+  "No rooms configured yet. Add them from the editor's Rooms tab: every section can then assign its entities to one.":
+    "Ainda não há divisões. Adiciona-as no separador Divisões do editor: depois cada secção pode atribuir-lhes as suas entidades.",
+  "Nothing here yet. Entities are assigned from each section's own tab.":
+    "Aqui ainda não há nada. As entidades atribuem-se no separador de cada secção.",
+  On: "Ligado",
+  "Room scenes": "Cenas da divisão",
+  "Room sensors": "Sensores da divisão",
+  Scenes: "Cenas",
+  "Shutters and windows": "Persianas e janelas",
+  "Turn everything off": "Desligar tudo",
+  "Turn everything on": "Ligar tudo",
+  Vacuums: "Aspiradores",
 });

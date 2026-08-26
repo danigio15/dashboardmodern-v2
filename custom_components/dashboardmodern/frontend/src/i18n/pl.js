@@ -1476,4 +1476,18 @@ export default Object.freeze({
   "Opening sensor only: nothing to command.": "Tylko czujnik otwarcia: nie ma czym sterować.",
   "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode. When the window opens by hand — shutters, blinds, a handle — leave the command boxes empty and fill in the contact sensor alone: the card still draws it and says whether it is open.":
     "Rolety i zasłony pojawiają się na stronie 🪟 Rolety, pogrupowane według piętra i pokoju. Każdy wiersz przyjmuje encję cover.* — z pozycją i procentami — albo przekaźnik switch.*: jeden, gdy po włączeniu roleta zostaje w górze, dwa, gdy jeden podnosi, a drugi opuszcza, jak Shelly w trybie przełącznika. Jeśli okno otwiera się ręcznie — okiennice, żaluzje, klamka — zostaw pola sterowania puste i wypełnij tylko czujnik otwarcia: karta i tak zostanie narysowana i powie, czy jest otwarte.",
+  "${totale} lights": "lampy: ${totale}",
+  "1 light": "1 lampa",
+  "No rooms configured yet. Add them from the editor's Rooms tab: every section can then assign its entities to one.":
+    "Nie ma jeszcze pokoi. Dodaj je w zakładce Pokoje w edytorze: potem każda sekcja będzie mogła przypisać do nich swoje encje.",
+  "Nothing here yet. Entities are assigned from each section's own tab.":
+    "Tu jeszcze nic nie ma. Encje przypisuje się w zakładce każdej sekcji.",
+  On: "Włączone",
+  "Room scenes": "Sceny pokoju",
+  "Room sensors": "Czujniki pokoju",
+  Scenes: "Sceny",
+  "Shutters and windows": "Rolety i okna",
+  "Turn everything off": "Wyłącz wszystko",
+  "Turn everything on": "Włącz wszystko",
+  Vacuums: "Odkurzacze",
 });

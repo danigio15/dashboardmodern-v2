@@ -1484,4 +1484,18 @@ export default Object.freeze({
   "Opening sensor only: nothing to command.": "Nur Öffnungssensor: nichts zu steuern.",
   "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode. When the window opens by hand — shutters, blinds, a handle — leave the command boxes empty and fill in the contact sensor alone: the card still draws it and says whether it is open.":
     "Rollläden und Vorhänge erscheinen auf der Seite 🪟 Rollläden, nach Etage und Raum gruppiert. Jede Zeile akzeptiert eine cover.*-Entität — mit Position und Prozentwerten — oder ein switch.*-Relais: eines, wenn der Rollladen beim Einschalten oben bleibt, zwei, wenn eines hoch- und eines herunterfährt, wie ein Shelly im Schaltermodus. Wenn das Fenster von Hand geöffnet wird — Läden, Fensterläden, ein Griff —, lass die Befehlsfelder leer und trage nur den Öffnungssensor ein: Die Karte wird trotzdem gezeichnet und sagt, ob offen ist.",
+  "${totale} lights": "${totale} Lampen",
+  "1 light": "1 Lampe",
+  "No rooms configured yet. Add them from the editor's Rooms tab: every section can then assign its entities to one.":
+    "Noch keine Räume. Lege sie im Reiter Räume des Editors an: Danach kann jeder Bereich seine Entitäten einem Raum zuordnen.",
+  "Nothing here yet. Entities are assigned from each section's own tab.":
+    "Hier ist noch nichts. Entitäten werden im Reiter des jeweiligen Bereichs zugeordnet.",
+  On: "An",
+  "Room scenes": "Raumszenen",
+  "Room sensors": "Raumsensoren",
+  Scenes: "Szenen",
+  "Shutters and windows": "Rollläden und Fenster",
+  "Turn everything off": "Alles ausschalten",
+  "Turn everything on": "Alles einschalten",
+  Vacuums: "Sauger",
 });

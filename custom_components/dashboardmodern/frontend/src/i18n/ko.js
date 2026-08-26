@@ -1467,4 +1467,18 @@ export default Object.freeze({
   "Opening sensor only: nothing to command.": "열림 센서만 있음: 제어할 것이 없습니다.",
   "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode. When the window opens by hand — shutters, blinds, a handle — leave the command boxes empty and fill in the contact sensor alone: the card still draws it and says whether it is open.":
     "셔터와 커튼은 🪟 셔터 페이지에 층과 방별로 묶여 나타납니다. 각 행은 cover.* 엔티티(위치와 백분율 포함) 또는 switch.* 릴레이를 받습니다. 켰을 때 셔터가 올라간 채로 있으면 하나, 하나는 올리고 하나는 내리면 둘 — 스위치 모드의 Shelly처럼. 창문을 손으로 여는 경우 — 덧문, 여닫이, 손잡이 — 명령 칸은 비워 두고 열림 센서만 채우세요. 카드는 그대로 그려지고 열려 있는지 알려 줍니다.",
+  "${totale} lights": "조명 ${totale}개",
+  "1 light": "조명 1개",
+  "No rooms configured yet. Add them from the editor's Rooms tab: every section can then assign its entities to one.":
+    "아직 방이 없습니다. 편집기의 방 탭에서 추가하세요. 그러면 각 섹션에서 엔티티를 방에 배정할 수 있습니다.",
+  "Nothing here yet. Entities are assigned from each section's own tab.":
+    "아직 아무것도 없습니다. 엔티티는 각 섹션의 탭에서 배정합니다.",
+  On: "켜짐",
+  "Room scenes": "방 씬",
+  "Room sensors": "방 센서",
+  Scenes: "씬",
+  "Shutters and windows": "셔터와 창문",
+  "Turn everything off": "모두 끄기",
+  "Turn everything on": "모두 켜기",
+  Vacuums: "청소기",
 });

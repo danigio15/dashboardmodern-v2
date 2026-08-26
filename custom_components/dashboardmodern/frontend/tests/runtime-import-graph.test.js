@@ -309,7 +309,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // (sections/person-avatar-section.js) le incastra su una tela e ci disegna
   // sopra le palpebre. Il motore che disegnava le facce a mano se n'e'
   // andato con tutti i suoi pezzi.
-  assert.ok(relative.length <= 152, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 154 con le Stanze: la casa letta per stanza invece che per tipo. Il
+  // modello (core/room-overview.js) raccoglie le assegnazioni che le
+  // sezioni gia' scrivono e le gira dall'altro lato — senza spostare
+  // niente e senza sapere cos'e' una pagina; la sezione
+  // (sections/rooms-page-section.js) le disegna, e per le luci non fa una
+  // card sua: usa quella della pagina Luci, che e' esportata apposta.
+  assert.ok(relative.length <= 154, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

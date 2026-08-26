@@ -1447,4 +1447,18 @@ export default Object.freeze({
   "Opening sensor only: nothing to command.": "只有开合传感器：没有可控制的对象。",
   "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode. When the window opens by hand — shutters, blinds, a handle — leave the command boxes empty and fill in the contact sensor alone: the card still draws it and says whether it is open.":
     "卷帘和窗帘出现在 🪟 卷帘页面上，按楼层和房间分组。每一行接受一个 cover.* 实体（带位置和百分比），或一个 switch.* 继电器：打开后卷帘保持升起的用一个，一个负责升、一个负责降的用两个，就像开关模式下的 Shelly。如果窗户是手动开的——百叶、木窗、一个把手——请把命令栏留空，只填开合传感器：卡片照样绘制，并告诉你它是否打开。",
+  "${totale} lights": "${totale} 盏灯",
+  "1 light": "1 盏灯",
+  "No rooms configured yet. Add them from the editor's Rooms tab: every section can then assign its entities to one.":
+    "还没有房间。请在编辑器的「房间」选项卡中添加：添加后，每个板块都可以把自己的实体归到某个房间。",
+  "Nothing here yet. Entities are assigned from each section's own tab.":
+    "这里还什么都没有。实体在各个板块自己的选项卡中归属。",
+  On: "开启",
+  "Room scenes": "房间场景",
+  "Room sensors": "房间传感器",
+  Scenes: "场景",
+  "Shutters and windows": "卷帘和窗户",
+  "Turn everything off": "全部关闭",
+  "Turn everything on": "全部打开",
+  Vacuums: "吸尘器",
 });

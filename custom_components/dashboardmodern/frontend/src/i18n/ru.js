@@ -1476,4 +1476,18 @@ export default Object.freeze({
   "Opening sensor only: nothing to command.": "Только датчик открытия: управлять нечем.",
   "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode. When the window opens by hand — shutters, blinds, a handle — leave the command boxes empty and fill in the contact sensor alone: the card still draws it and says whether it is open.":
     "Рольставни и шторы появляются на странице 🪟 Рольставни, сгруппированные по этажу и комнате. Каждая строка принимает сущность cover.* — с положением и процентами — или реле switch.*: одно, если при включении рольставня остаётся поднятой, и два, если одно поднимает, а другое опускает, как Shelly в режиме выключателя. Если окно открывается вручную — ставни, жалюзи, ручка — оставь поля команд пустыми и заполни только датчик открытия: карточка всё равно нарисуется и скажет, открыто ли оно.",
+  "${totale} lights": "ламп: ${totale}",
+  "1 light": "1 лампа",
+  "No rooms configured yet. Add them from the editor's Rooms tab: every section can then assign its entities to one.":
+    "Комнат пока нет. Добавь их на вкладке «Комнаты» в редакторе: после этого каждый раздел сможет назначить им свои сущности.",
+  "Nothing here yet. Entities are assigned from each section's own tab.":
+    "Здесь пока пусто. Сущности назначаются на вкладке каждого раздела.",
+  On: "Включено",
+  "Room scenes": "Сцены комнаты",
+  "Room sensors": "Датчики комнаты",
+  Scenes: "Сцены",
+  "Shutters and windows": "Рольставни и окна",
+  "Turn everything off": "Выключить всё",
+  "Turn everything on": "Включить всё",
+  Vacuums: "Пылесосы",
 });

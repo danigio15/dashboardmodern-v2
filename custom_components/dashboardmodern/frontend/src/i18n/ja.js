@@ -1474,4 +1474,18 @@ export default Object.freeze({
   "Opening sensor only: nothing to command.": "開閉センサーのみ：操作するものはありません。",
   "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode. When the window opens by hand — shutters, blinds, a handle — leave the command boxes empty and fill in the contact sensor alone: the card still draws it and says whether it is open.":
     "シャッターとカーテンは 🪟 シャッターのページに、階と部屋ごとにまとめて表示されます。各行は cover.* エンティティ（位置とパーセント付き）か switch.* リレーを受け付けます。オンにするとシャッターが上がったままになるなら 1 つ、上げ用と下げ用が別々なら 2 つ — スイッチモードの Shelly のように。窓を手で開ける場合 — 鎧戸、雨戸、ハンドル — は操作欄を空のままにして開閉センサーだけを入れてください。カードはそのまま描かれ、開いているかどうかを伝えます。",
+  "${totale} lights": "ライト ${totale}",
+  "1 light": "ライト 1",
+  "No rooms configured yet. Add them from the editor's Rooms tab: every section can then assign its entities to one.":
+    "部屋がまだありません。エディターの「部屋」タブで追加してください。追加すると、各セクションからエンティティを割り当てられます。",
+  "Nothing here yet. Entities are assigned from each section's own tab.":
+    "ここにはまだ何もありません。エンティティは各セクションのタブから割り当てます。",
+  On: "オン",
+  "Room scenes": "部屋のシーン",
+  "Room sensors": "部屋のセンサー",
+  Scenes: "シーン",
+  "Shutters and windows": "シャッターと窓",
+  "Turn everything off": "すべて消す",
+  "Turn everything on": "すべて点ける",
+  Vacuums: "掃除機",
 });

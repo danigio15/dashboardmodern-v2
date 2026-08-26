@@ -334,6 +334,18 @@ export function normalizeDevice(input = {}, section, context = {}) {
     visual_key: String(visualKey || input.visual_key || ""),
     emoji_icon: emoji,
     room_id: String(roomId),
+    /* Quello che l'utente ha scritto, non quello a cui siamo riusciti a
+     * risolverlo.
+     *
+     * `room_id` viene dall'id della stanza trovata, e una stanza senza id — una
+     * configurazione scritta a mano, o un salvataggio piu' vecchio dell'id —
+     * lasciava `room_id` vuoto: l'assegnazione spariva senza che nessuno lo
+     * dicesse, e il dispositivo finiva senza stanza pur avendone una scritta
+     * accanto. Mezza dozzina di sezioni infatti leggono gia' `item.room ||
+     * item.room_id`, aspettandosi che il riferimento originale ci sia ancora.
+     * Adesso c'e'. Non sostituisce l'id: gli sta accanto, e serve solo a chi
+     * l'id non lo trova. */
+    room: String(legacyRoomRef || ""),
     entities,
     enabled: input.enabled !== false,
     order: Number.isFinite(+input.order) ? +input.order : context.index || 0,

@@ -1482,4 +1482,18 @@ export default Object.freeze({
   "Opening sensor only: nothing to command.": "Alleen openingssensor: niets te bedienen.",
   "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode. When the window opens by hand — shutters, blinds, a handle — leave the command boxes empty and fill in the contact sensor alone: the card still draws it and says whether it is open.":
     "Rolluiken en gordijnen verschijnen op de pagina 🪟 Rolluiken, gegroepeerd per verdieping en kamer. Elke rij accepteert een cover.*-entiteit — met positie en percentages — of een switch.*-relais: één als het rolluik bij inschakelen omhoog blijft, twee als het ene omhoog en het andere omlaag stuurt, zoals een Shelly in schakelaarstand. Gaat het raam met de hand open — luiken, blinden, een kruk — laat de bedieningsvakken dan leeg en vul alleen de openingssensor in: de kaart wordt gewoon getekend en zegt of het open staat.",
+  "${totale} lights": "${totale} lampen",
+  "1 light": "1 lamp",
+  "No rooms configured yet. Add them from the editor's Rooms tab: every section can then assign its entities to one.":
+    "Nog geen kamers. Voeg ze toe op het tabblad Kamers in de editor: daarna kan elke sectie er entiteiten aan toewijzen.",
+  "Nothing here yet. Entities are assigned from each section's own tab.":
+    "Hier is nog niets. Entiteiten wijs je toe op het tabblad van elke sectie.",
+  On: "Aan",
+  "Room scenes": "Kamerscènes",
+  "Room sensors": "Kamersensoren",
+  Scenes: "Scènes",
+  "Shutters and windows": "Rolluiken en ramen",
+  "Turn everything off": "Alles uitzetten",
+  "Turn everything on": "Alles aanzetten",
+  Vacuums: "Stofzuigers",
 });

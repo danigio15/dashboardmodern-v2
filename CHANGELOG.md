@@ -9,6 +9,23 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Sezione nuova: Stanze, con una pillola per stanza e le sue scene.** «Sarebbe
+  carino avere una sezione dove vedere le entità raggruppate per stanze, tipo
+  una sezione divisa a pagine dove ogni pagina è una stanza con tutte le entità
+  della stessa.» Ogni sezione della plancia legge la casa per tipo — tutte le
+  luci, tutte le tapparelle — ed è il verso giusto quando si cerca una cosa e
+  quello sbagliato quando si sta in una stanza. La pagina gira il verso: le
+  pillole delle stanze in alto, e sotto tutto quello che quella stanza possiede,
+  diviso per tipo. Non sposta e non riscrive niente — le assegnazioni esistono
+  già, si leggono soltanto dall'altro lato — e le card non sono nuove dove non
+  serve che lo siano: la luce è la card della pagina Luci, la stessa, col suo
+  cursore che funziona. In cima a ogni stanza ci sono **Accendi tutto** e
+  **Spegni tutto**, con scritto quante luci toccheranno: «tutto» qui vuol dire
+  la luce, perché un condizionatore e una tapparella hanno un verso loro e
+  decidere al posto di chi guarda quale sia «acceso» sarebbe inventare. Chi non
+  ha stanza finisce sotto una pillola sua: non è un errore da nascondere, è la
+  sola occasione di accorgersene.
+
 - **Il ritratto delle persone e' un personaggio 3D, e i pezzi si combinano
   liberamente.** Il disegno costruito a mano se n'e' andato: al suo posto ci
   sono i render 3D di Fluent Emoji (Microsoft, licenza MIT), vendorizzati
@@ -283,6 +300,14 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   scelta che riproduce il disegno di prima.
 
 ### Corretto
+
+- **Una stanza scritta ma non risolta veniva buttata via.** Il modello canonico
+  ricava `room_id` dall'*id* della stanza trovata: se quella stanza un id non ce
+  l'ha — una configurazione scritta a mano, o un salvataggio più vecchio degli
+  id — il campo restava vuoto e l'assegnazione spariva in silenzio, lasciando il
+  dispositivo senza stanza pur avendone una scritta accanto. Adesso il
+  riferimento originale resta, accanto all'id: mezza dozzina di sezioni lo
+  leggevano già così (`item.room || item.room_id`), aspettandosi che ci fosse.
 
 - **La finestra che si apre a mano non si poteva inserire.** «Io non ho le
   tapparelle, ho le persiane e sono manuali, però ho sensori di apertura,

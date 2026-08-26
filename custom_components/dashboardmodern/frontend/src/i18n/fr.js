@@ -1488,4 +1488,18 @@ export default Object.freeze({
   "Opening sensor only: nothing to command.": "Capteur d'ouverture seul : rien à commander.",
   "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode. When the window opens by hand — shutters, blinds, a handle — leave the command boxes empty and fill in the contact sensor alone: the card still draws it and says whether it is open.":
     "Les volets et les rideaux apparaissent sur la page 🪟 Volets, regroupés par étage et par pièce. Chaque ligne accepte une entité cover.* — avec position et pourcentages — ou un relais switch.* : un seul si l'allumer maintient le volet en haut, deux si l'un monte et l'autre descend, comme un Shelly en mode interrupteur. Si la fenêtre s'ouvre à la main — persiennes, volets, une poignée —, laisse les cases de commande vides et remplis seulement le capteur d'ouverture : la carte se dessine quand même et dit si elle est ouverte.",
+  "${totale} lights": "${totale} lampes",
+  "1 light": "1 lampe",
+  "No rooms configured yet. Add them from the editor's Rooms tab: every section can then assign its entities to one.":
+    "Aucune pièce pour l'instant. Ajoute-les dans l'onglet Pièces de l'éditeur : chaque section pourra ensuite y affecter ses entités.",
+  "Nothing here yet. Entities are assigned from each section's own tab.":
+    "Rien ici pour l'instant. Les entités s'affectent depuis l'onglet de chaque section.",
+  On: "Allumé",
+  "Room scenes": "Scènes de la pièce",
+  "Room sensors": "Capteurs de la pièce",
+  Scenes: "Scènes",
+  "Shutters and windows": "Volets et fenêtres",
+  "Turn everything off": "Tout éteindre",
+  "Turn everything on": "Tout allumer",
+  Vacuums: "Aspirateurs",
 });

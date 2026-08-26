@@ -1468,4 +1468,18 @@ export default Object.freeze({
   "Opening sensor only: nothing to command.": "केवल खुलने का सेंसर: नियंत्रित करने को कुछ नहीं।",
   "Shutters and curtains show up on the 🪟 Shutters page, grouped by floor and room. Every row accepts a cover.* entity — with position and percentages — or a switch.* relay: one when switching it on keeps the shutter up, two when one relay sends it up and another sends it down, like a Shelly in switch mode. When the window opens by hand — shutters, blinds, a handle — leave the command boxes empty and fill in the contact sensor alone: the card still draws it and says whether it is open.":
     "शटर और परदे 🪟 शटर पृष्ठ पर दिखते हैं, मंज़िल और कमरे के अनुसार समूहित। हर पंक्ति एक cover.* इकाई स्वीकार करती है — स्थिति और प्रतिशत के साथ — या एक switch.* रिले: एक, जब उसे चालू करने पर शटर ऊपर रहता है; दो, जब एक ऊपर भेजता है और दूसरा नीचे, जैसे स्विच मोड में Shelly। अगर खिड़की हाथ से खुलती है — पल्ले, झिलमिली, एक हैंडल — तो कमांड के खाने खाली छोड़ दें और सिर्फ़ खुलने का सेंसर भरें: कार्ड फिर भी बनता है और बताता है कि वह खुली है या नहीं।",
+  "${totale} lights": "${totale} बत्तियाँ",
+  "1 light": "1 बत्ती",
+  "No rooms configured yet. Add them from the editor's Rooms tab: every section can then assign its entities to one.":
+    "अभी कोई कमरा नहीं है। उन्हें संपादक के कमरे टैब से जोड़ें: फिर हर अनुभाग अपनी इकाइयाँ किसी कमरे को सौंप सकता है।",
+  "Nothing here yet. Entities are assigned from each section's own tab.":
+    "यहाँ अभी कुछ नहीं है। इकाइयाँ हर अनुभाग के अपने टैब से सौंपी जाती हैं।",
+  On: "चालू",
+  "Room scenes": "कमरे के दृश्य",
+  "Room sensors": "कमरे के सेंसर",
+  Scenes: "दृश्य",
+  "Shutters and windows": "शटर और खिड़कियाँ",
+  "Turn everything off": "सब बंद करें",
+  "Turn everything on": "सब चालू करें",
+  Vacuums: "वैक्यूम",
 });
