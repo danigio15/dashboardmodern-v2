@@ -2,7 +2,7 @@ import { carBrandVisual } from "../core/personalization-catalog.js";
 import { assignCarKeys, carIndexByKey, carKey, restoreCarIdentities } from "../core/vehicle-identity.js";
 import { adoptLoosePhotos, photosForProfile, withProfilePhotos } from "../core/vehicle-photos.js";
 import { pickMediaImage } from "./media-picker-section.js";
-import { allStates, clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, section, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
+import { allStates, clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, section, setLexicalGlobal, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EV_SECTION__";
@@ -155,34 +155,23 @@ export function applyVehicleAsset() {
   const plugged = vehiclePlugged();
   const original = activeVehiclePhoto(photos, plugged);
   const url = resolveVehicleAsset(original);
-  /* La correzione torna solo dov'era il valore corretto.
+  /* Le due foto sono DATI dell'auto: il disegno le legge e basta.
    *
-   * Un percorso scritto a mano puo' arrivare storto — "/loca/..." invece di
-   * "/local/...", o il percorso su disco invece di quello che il browser sa
-   * servire — e riscriverlo nella sua forma buona evita di ripetere la
-   * correzione a ogni disegno. La chiave in cui finiva pero' la sceglieva il
-   * cavo: con la sola foto "col cavo" impostata e il cavo staccato, la foto
-   * attiva veniva da quella chiave ma veniva riscritta in quella "senza cavo".
-   * Da li' le due foto diventavano la stessa, da sole, poco dopo averle
-   * inserite — e con due profili la stessa coppia finiva su entrambe le auto.
-   *
-   * La correzione va adesso nelle caselle che quel valore lo contengono
-   * davvero, e in nessun'altra: una foto non puo' piu' passare da una casella
-   * all'altra da sola. */
-  if (url && clean(original) && clean(original) !== url) {
-    for (const [name, key] of Object.entries(EV_PHOTO_KEYS)) {
-      if (clean(photos[name]) !== clean(original)) continue;
-      root.localStorage?.setItem(key, JSON.stringify(url));
-    }
-    /* La foto adesso abita nel profilo, e la correzione deve arrivarci: se si
-     * fermasse alle caselle, la risemina del giro dopo le riporterebbe al
-     * valore storto e la correzione ripartirebbe a ogni disegno, per sempre. */
-    saveProfilePhotos({
-      idle: clean(photos.idle) === clean(original) ? url : photos.idle,
-      plugged: clean(photos.plugged) === clean(original) ? url : photos.plugged,
-    });
-  }
+   * Qui viveva una riscrittura «correttiva» che rimetteva nella
+   * configurazione il percorso sistemato. Correggeva una volta e sbagliava
+   * per sempre: la casella in cui finiva la sceglieva il cavo, quindi la foto
+   * col cavo attaccato poteva finire in quella senza — e da li' le due
+   * diventavano la stessa da sole, su tutte e due le auto. Il percorso storto
+   * si sistema per il disegno, ogni volta, e non risale mai alla fonte:
+   * scollegato e collegato di ogni vettura restano quelli che sono stati
+   * scelti, e nessun giro di disegno li tocca. */
   state.lastUrl = url;
+  /* Il runtime storico tiene la sua copia della foto in una variabile presa
+   * all'avvio e la rimette sull'eroe a ogni giro: con due auto, o col cavo
+   * che cambia, quella copia e' vecchia e le due scritture si alternavano —
+   * la foto tremolava e mostrava l'altra macchina. La copia si allinea a
+   * quello che disegniamo, e la guerra finisce. */
+  if (url) setLexicalGlobal("CD_EV_IMAGE", url);
   let mounted = false;
   for (const id of ["ev-mod-car-img", "ev-new-car-img"]) {
     const image = doc.getElementById(id); if (!image) continue;
@@ -200,6 +189,53 @@ export function applyVehicleAsset() {
     hero.dataset.evCable = plugged ? "plugged" : "unplugged";
   }
   return mounted;
+}
+
+/* Rimette in uso l'auto che era in uso, entita' comprese.
+ *
+ * Il runtime storico, quando salva un profilo, lo rende anche attivo: chi
+ * apriva la seconda vettura con la matita e premeva «Salva auto» si ritrovava
+ * la plancia cambiata sotto le mani. Salvare e' un gesto della
+ * configurazione; scegliere quale auto si vede e' «Usa». Qui si rimette a
+ * posto quello che il salvataggio ha spostato: l'indice attivo e la mappa
+ * delle entita' globali, che il giro di cattura riempie con quelle della
+ * vettura appena salvata. */
+function rimettiInUso(auto, indice) {
+  if (!auto || !Number.isInteger(indice) || indice < 0) return false;
+  const mappa = (auto.ov || auto.overrides || {});
+  try {
+    const salvate = readJson("cd_entity_overrides", {}) || {};
+    const prossime = {};
+    for (const [chiave, valore] of Object.entries(salvate))
+      if (!String(chiave).startsWith("dm.ev_")) prossime[chiave] = valore;
+    for (const [chiave, valore] of Object.entries(mappa)) prossime[chiave] = valore;
+    writeJsonIfChanged("cd_entity_overrides", prossime);
+    root.cdApplyCanonicalOverrides?.(prossime);
+  } catch (_error) {}
+  root.localStorage?.setItem("cd_ev_car_active", String(indice));
+  return true;
+}
+
+/* I campi entita' della scheda, riempiti con quelli dell'auto aperta.
+ *
+ * E' quello che faceva `cdEvApplyCar` come effetto secondario del mettere in
+ * uso; qui si fa solo la parte che riguarda il modulo di configurazione, e
+ * nessuna chiave globale viene toccata. Un campo lasciato vuoto dall'auto
+ * torna vuoto: e' cosi' che si vede che quella vettura quella entita' non ce
+ * l'ha. */
+function caricaCampiDaProfilo(auto) {
+  const contenitore = doc?.getElementById("ed-body");
+  if (!contenitore) return false;
+  const mappa = (auto && typeof auto === "object" && (auto.ov || auto.overrides)) || {};
+  refToccati().clear();
+  for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]')) {
+    const valore = clean(mappa[clean(slot.dataset.ref)]);
+    if (slot.value === valore) continue;
+    slot.value = valore;
+    slot.dispatchEvent(new Event("input", { bubbles: true }));
+    slot.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  return true;
 }
 
 /* ── the two photos, in the configuration ──────────────────────────────── */
@@ -251,12 +287,18 @@ function paintPhotoPreview(field) {
 
 function savePhotos(panelNode) {
   const salvate = { idle: "", plugged: "" };
+  /* Le due caselle sciolte sono il DISEGNO di adesso, cioe' l'auto in uso.
+   * Configurando un'altra vettura con la matita non si tocca il disegno:
+   * scriverci dentro faceva comparire in plancia la foto di un'auto che
+   * nessuno aveva scelto — l'altra meta' del «le foto si mischiano». */
+  const elenco = profiles();
+  const scriveIlDisegno = vehiclePhotoTargetIndex(elenco) === activeIndex();
   for (const field of panelNode.querySelectorAll("[data-ev-photo]")) {
     const kind = field.dataset.evPhoto === "plugged" ? "plugged" : "idle";
     const value = clean(field.querySelector("[data-ev-photo-input]")?.value);
     const stored = value ? resolveVehicleAsset(value) || value : "";
     salvate[kind] = stored;
-    root.localStorage?.setItem(EV_PHOTO_KEYS[kind], JSON.stringify(stored));
+    if (scriveIlDisegno) root.localStorage?.setItem(EV_PHOTO_KEYS[kind], JSON.stringify(stored));
     // Written: what is on screen and what is stored say the same thing again.
     delete field.dataset.evPhotoEdited;
   }
@@ -271,10 +313,41 @@ function savePhotos(panelNode) {
   scheduleEvSyncSettled();
 }
 
+/* L'auto a cui il pannello delle foto sta parlando.
+ *
+ * NON e' per forza quella in uso. La matita apre una sessione su QUELLA auto,
+ * e finche' e' aperta tutto quello che si configura — nome, marca, entita' —
+ * appartiene a lei: le foto non possono fare eccezione, o si torna al difetto
+ * di sempre («ho aperto la Zoe, la foto e' finita sulla Tesla»). Senza
+ * sessione aperta si scrive sull'auto in uso, che e' quella che la plancia
+ * sta mostrando. Il -1 resta -1: nessuna auto, nessun salvataggio. */
+export function vehiclePhotoTargetIndex(cars = profiles()) {
+  if (!Array.isArray(cars) || !cars.length) return -1;
+  const chiave = editingKey();
+  if (chiave) {
+    const risolto = carIndexByKey(cars, chiave);
+    if (risolto >= 0) return risolto;
+  }
+  const attiva = activeIndex();
+  if (attiva < 0) return -1;
+  return Math.max(0, Math.min(cars.length - 1, attiva));
+}
+
+/* Le foto che la PLANCIA disegna: sempre quelle dell'auto in uso. La matita
+ * configura, non cambia cio' che si vede — sono due gesti diversi. */
 function fotoDelProfiloAttivo() {
   const elenco = profiles();
   if (!elenco.length) return configuredPhotos();
   const indice = Math.max(0, Math.min(elenco.length - 1, activeIndex()));
+  return photosForProfile(elenco[indice], configuredPhotos(), elenco.length);
+}
+
+/* Le foto che il PANNELLO mostra e salva: quelle dell'auto aperta. */
+function fotoDelProfiloInModifica() {
+  const elenco = profiles();
+  if (!elenco.length) return configuredPhotos();
+  const indice = vehiclePhotoTargetIndex(elenco);
+  if (indice < 0) return { idle: "", plugged: "" };
   return photosForProfile(elenco[indice], configuredPhotos(), elenco.length);
 }
 
@@ -292,7 +365,7 @@ export function ensureVehiclePhotoEditor() {
    * risalvava — e' il ponte con cui la foto di un'auto finiva sull'altra, col
    * titolo giusto a fare da alibi. La fonte e' il profilo attivo; le caselle
    * restano solo il ripiego di chi ha una vettura sola col formato vecchio. */
-  const photos = fotoDelProfiloAttivo();
+  const photos = fotoDelProfiloInModifica();
   if (!panelNode) {
     panelNode = doc.createElement("section");
     panelNode.className = "ed-form dm-ev-photos";
@@ -373,8 +446,8 @@ export function ensureVehiclePhotoEditor() {
   const titolo = panelNode.querySelector("[data-ev-photos-title]");
   if (titolo) {
     const elenco = profiles();
-    const attiva = elenco[Math.max(0, Math.min(elenco.length - 1, activeIndex()))];
-    const nome = clean(attiva?.name);
+    const bersaglio = elenco[vehiclePhotoTargetIndex(elenco)];
+    const nome = clean(bersaglio?.name);
     const testo = nome && elenco.length > 1
       ? `📸 ${t("Foto dell'auto", "Vehicle photos")} — ${nome}`
       : `📸 ${t("Foto dell'auto", "Vehicle photos")}`;
@@ -388,7 +461,7 @@ export function ensureVehiclePhotoEditor() {
      * nuovo a fare da alibi. Al cambio si azzera il segno di modifica e i
      * campi si ricaricano dalle foto dell'auto appena scelta. */
     if (titolo.dataset.evPhotosFor !== undefined && titolo.dataset.evPhotosFor !== nome) {
-      const foto = fotoDelProfiloAttivo();
+      const foto = fotoDelProfiloInModifica();
       for (const field of panelNode.querySelectorAll("[data-ev-photo]")) {
         delete field.dataset.evPhotoEdited;
         const input = field.querySelector("[data-ev-photo-input]");
@@ -517,7 +590,16 @@ function ensureCarListDecor() {
         if (!Number.isFinite(indice)) return;
         const auto = ensureCarKeys()[indice] || profiles()[indice];
         const nome = clean(auto?.name);
-        try { root.cdEvCarSelEd?.({ value: String(indice) }); } catch (_error) {}
+        /* La matita APRE, non mette in uso.
+         *
+         * Passava per `cdEvCarSelEd`, che chiama `cdEvApplyCar`: aprire
+         * un'auto per configurarla la faceva diventare quella della plancia —
+         * foto compresa. Chi apriva la seconda vettura vedeva cambiare la
+         * macchina in Home senza aver toccato «Usa», ed e' meta' del «le foto
+         * si mischiano». Aprire e usare sono due gesti, e la riga ha due
+         * bottoni: qui si riempiono solo i campi con le entita' di QUELLA
+         * auto, e niente esce da questa scheda. */
+        caricaCampiDaProfilo(auto);
         setEditingKey(carKey(auto || {}));
         /* La matita e' l'unico gesto che dice «sto modificando LEI»: da qui
          * salvare con un nome diverso rinomina, invece di creare una riga. */
@@ -859,9 +941,11 @@ function saveProfilePhotos(photos) {
   if (!cars.length) return false;
   /* Con l'attiva appena cancellata l'indice vale -1: il vecchio clamp a zero
    * scriveva le foto della vettura sparita sulla prima della lista. Nessuna
-   * auto attiva, nessun salvataggio. */
-  if (activeIndex() < 0) return false;
-  const posizione = Math.max(0, Math.min(cars.length - 1, activeIndex()));
+   * auto attiva, nessun salvataggio. E con la matita aperta si scrive su
+   * QUELLA auto, non su quella in uso: e' la stessa che il pannello legge e
+   * che il titolo dichiara. */
+  const posizione = vehiclePhotoTargetIndex(cars);
+  if (posizione < 0) return false;
   /* Niente pulizie d'ufficio sugli altri profili.
    *
    * C'era la tentazione di togliere la coppia appena salvata a chi la portava
@@ -1079,6 +1163,20 @@ function installLegacyWrappers() {
        * cui il disegno legge portano ancora le foto di quella di prima: senza
        * questa risemina l'eroe mostrava la vettura vecchia sotto la linguetta
        * nuova, e un «Salva foto» in quel momento gliela scriveva addosso. */
+      /* Salvare non cambia l'auto che si vede.
+       *
+       * Il runtime rende attiva quella appena salvata; se prima ce n'era
+       * un'altra, torna lei — con le sue entita' e le sue foto. La prima auto
+       * di una configurazione vuota fa eccezione: li' non c'era niente da
+       * rimettere, e diventa lei quella in uso. */
+      const eraAttiva = indiceAttivoPrima >= 0 ? primaOriginale[indiceAttivoPrima] : null;
+      const chiaveEraAttiva = eraAttiva ? carKey(eraAttiva) : "";
+      const tornaIndice = chiaveEraAttiva ? carIndexByKey(rimesse, chiaveEraAttiva) : -1;
+      if (tornaIndice >= 0 && tornaIndice !== activeIndex()) {
+        rimettiInUso(rimesse[tornaIndice], tornaIndice);
+        restoreProfilePhotos(rimesse[tornaIndice], configuredPhotos(), rimesse.length);
+        setEditingKey(carKey(rimesse[tornaIndice] || {}));
+      }
       const indiceDopo = activeIndex();
       const attivaDopo = rimesse[indiceDopo];
       if (attivaDopo && indiceDopo !== indiceAttivoPrima)

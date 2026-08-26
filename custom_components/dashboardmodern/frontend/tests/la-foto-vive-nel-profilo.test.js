@@ -40,15 +40,25 @@ test("il disegno legge il profilo attivo e risemina le caselle", () => {
   assert.match(corpo, /storePhoto\(EV_PHOTO_KEYS\.plugged, photos\.plugged\);/);
 });
 
-test("la correzione del percorso storto arriva fino al profilo", () => {
-  /* Se si fermasse alle caselle, la risemina del giro dopo la annullerebbe e
-   * la correzione ripartirebbe a ogni disegno, per sempre. */
+test("le due foto sono blindate: il disegno non le riscrive mai", () => {
+  /* Qui viveva una riscrittura «correttiva»: il percorso sistemato tornava
+   * nella configurazione, e la casella in cui finiva la sceglieva il cavo —
+   * cosi' la foto col cavo attaccato finiva in quella senza, le due
+   * diventavano la stessa da sole e con due profili la coppia si copiava
+   * sull'altra auto. Scollegato e collegato di ogni vettura restano quelli
+   * che sono stati scelti: il disegno legge, e non scrive. */
   const sezione = leggi("sections/ev-section.js");
   const corpo = sezione.slice(
     sezione.indexOf("export function applyVehicleAsset()"),
-    sezione.indexOf("/* ── the two photos, in the configuration"),
+    sezione.indexOf("/* I campi entita' della scheda"),
   );
-  assert.match(corpo, /saveProfilePhotos\(\{/);
+  assert.doesNotMatch(corpo, /saveProfilePhotos\(/,
+    "il disegno non puo' salvare foto: e' il gesto che le mescolava");
+  assert.doesNotMatch(corpo, /localStorage\?\.setItem\(key/,
+    "nessuna foto puo' passare da una casella all'altra da sola");
+  /* E la copia che il runtime storico tiene dell'immagine si allinea a quella
+   * disegnata: altrimenti la rimette lei a ogni giro e la foto tremola. */
+  assert.match(corpo, /setLexicalGlobal\("CD_EV_IMAGE", url\)/);
 });
 
 test("«SALVA SEZIONE» salva anche le foto toccate", () => {

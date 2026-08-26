@@ -284,6 +284,23 @@ export function lexicalGlobal(name) {
   return root[name] ?? null;
 }
 
+/* Una variabile del runtime vendorizzato, riscritta.
+ *
+ * Il documento storico dichiara le sue variabili con `let` in cima allo
+ * script: vivono nell'ambiente lessicale globale, non su `window`, quindi da
+ * un modulo non si raggiungono con `root.NOME = ...`. L'eval indiretto sta
+ * proprio in quell'ambiente ed e' l'unico modo di tenerle allineate a quello
+ * che i moduli disegnano — senza toccare il file vendorizzato. */
+export function setLexicalGlobal(name, value) {
+  if (!/^[A-Za-z_$][\w$]*$/.test(String(name || ""))) return false;
+  try {
+    root.eval?.(`typeof ${name} !== "undefined" && (${name} = ${JSON.stringify(value)})`);
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
 /* The live registry, without a copy of it.
  *
  * This used to build a fresh merged object on every call: spread the two hosted
