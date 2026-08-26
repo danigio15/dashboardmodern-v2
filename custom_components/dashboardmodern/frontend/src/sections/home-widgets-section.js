@@ -838,12 +838,6 @@ function nomiAccesi(rows, quali = (row) => row.on, fallback = "") {
 
 /* ── markup: le tessere ───────────────────────────────────────────────── */
 
-function ringMarkup(widget) {
-  if (widget.ring == null)
-    return `<span class="dm-tile-ic" aria-hidden="true">${widget.icon}</span>`;
-  return `<span class="dm-tile-ring" style="--dm-ring-pct:${widget.ring}" aria-hidden="true"><i>${widget.icon}</i></span>`;
-}
-
 /* Le tessere gia' viste non rientrano in scena.
  *
  * L'ingresso e' un'animazione con lo sfalsamento: bella la prima volta, un
@@ -1897,11 +1891,10 @@ html.dm-widget-popup-open{overflow:hidden}
 @media (prefers-reduced-motion:reduce){
   :is(#dm-widgets,#dm-widget-popup) .dm-tile,:is(#dm-widgets,#dm-widget-popup) .dm-tile-chevron,:is(#dm-widgets,#dm-widget-popup) .dm-todo-check,
   :is(#dm-widgets,#dm-widget-popup) .dm-todo-check::after,:is(#dm-widgets,#dm-widget-popup) .dm-w-switch,:is(#dm-widgets,#dm-widget-popup) .dm-w-switch i,
-  :is(#dm-widgets,#dm-widget-popup) .dm-tile-ic,:is(#dm-widgets,#dm-widget-popup) .dm-tile-ring,:is(#dm-widgets,#dm-widget-popup) .dm-w-cam img,
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-chip,:is(#dm-widgets,#dm-widget-popup) .dm-w-cam img,
   :is(#dm-widgets,#dm-widget-popup) .dm-tile .dm-tile-shine{transition:none}
   :is(#dm-widgets,#dm-widget-popup) .dm-widget-detail,:is(#dm-widgets,#dm-widget-popup) .dm-tile,:is(#dm-widgets,#dm-widget-popup) .dm-w-row,
-  :is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-ring::after,
-  :is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-ic::after,
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-chip::after,
   :is(#dm-widgets,#dm-widget-popup) .dm-w-cam-live{animation:none}
 }
 @media (max-width:520px){
