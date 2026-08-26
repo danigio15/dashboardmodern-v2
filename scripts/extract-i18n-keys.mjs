@@ -18,6 +18,12 @@
  *     itself on import, and the corpus is not worth a side effect;
  *   - the bilingual data tables of the section layer, listed in
  *     `SECTION_TABLES` and read the same way and for the same reason;
+ *   - `scripts/i18n-runtime-vocabulary.json`, the vocabulary of the vendored
+ *     runtime, mined from its Italian and English forks — the wizard, the
+ *     editors and their toasts, which no call site in this repository authors,
+ *     with `scripts/i18n-runtime-repairs.json` saying what its unfinished
+ *     English should have read and `scripts/i18n-runtime-extras.json` carrying
+ *     the few lines the two forks agree on, which no mining can pair;
  *   - `scripts/i18n-shell-vocabulary.json`, the visible chrome of the vendored
  *     Italian shell paired with its English build by hand.
  *
@@ -42,6 +48,9 @@ const SECTIONS = join(FRONTEND, "src/sections");
 const CORE = join(FRONTEND, "src/core");
 const MODULES_ENTRY = join(FRONTEND, "legacy/modules-entry.js");
 const ALERT_ICONS = join(FRONTEND, "src/sections/beta11-real-device-polish-section.js");
+const RUNTIME_VOCABULARY = join(ROOT, "scripts/i18n-runtime-vocabulary.json");
+const RUNTIME_REPAIRS = join(ROOT, "scripts/i18n-runtime-repairs.json");
+const RUNTIME_EXTRAS = join(ROOT, "scripts/i18n-runtime-extras.json");
 const SHELL_VOCABULARY = join(ROOT, "scripts/i18n-shell-vocabulary.json");
 const SHELL_ALIASES = join(ROOT, "scripts/i18n-shell-aliases.json");
 const KEYS_OUT = join(FRONTEND, "tests/i18n-message-keys.js");
@@ -246,6 +255,58 @@ async function catalogPairs() {
   return pairs;
 }
 
+/*
+ * The vocabulary of the vendored runtime, mined from its own two forks by
+ * `scripts/mine-runtime-vocabulary.mjs`.
+ *
+ * This is the layer that painted the whole setup wizard, the appliance, alert
+ * and light editors and every toast they raise — four hundred strings that were
+ * outside the corpus while the suite was green, because nothing read a 600 kB
+ * vendored build. A user with a complete catalog still met the first-run flow
+ * in English.
+ *
+ * Its English half is also unfinished. The build was translated by
+ * find-and-replace — "Potenza batteria (W)" came out "Power batteria (W)" — so
+ * `i18n-runtime-repairs.json` says what each of those should have read. The
+ * repaired English is the key, and both spellings reach it: the Italian one
+ * because it is the pair's own source, the broken English one because it is
+ * what the English build actually paints. English is repaired here by the same
+ * lookup that serves Japanese, rather than by a patch to a vendored file that
+ * comes back on the next sync.
+ */
+function runtimePairs() {
+  const raw = JSON.parse(readFileSync(RUNTIME_VOCABULARY, "utf8"));
+  const repairs = runtimeRepairs();
+  const pairs = new Map();
+  for (const [english, italian] of Object.entries(raw)) {
+    const key = repairs.get(english) ?? english;
+    if (!pairs.has(key)) pairs.set(key, italian);
+  }
+  return pairs;
+}
+
+/*
+ * What the mining cannot reach.
+ *
+ * Two forks of one file are a pair table only where they disagree. Where the
+ * English build simply kept the Italian — `Riconnessione...` — or where both
+ * print the same word — `Standby` — the lines are identical and there is
+ * nothing to read off. Those are written by hand here, and so is the rare line
+ * the aligner has to skip because the two forks differ around it by more lines
+ * than they share.
+ */
+function runtimeExtras() {
+  const raw = JSON.parse(readFileSync(RUNTIME_EXTRAS, "utf8"));
+  return new Map(Object.entries(raw).filter(([key]) => !key.startsWith("_")));
+}
+
+/* Broken English painted by the vendored runtime -> the English it should be.
+ * Comment fields are skipped, as in the shell aliases. */
+function runtimeRepairs() {
+  const raw = JSON.parse(readFileSync(RUNTIME_REPAIRS, "utf8"));
+  return new Map(Object.entries(raw).filter(([key]) => !key.startsWith("_")));
+}
+
 function shellPairs() {
   const raw = JSON.parse(readFileSync(SHELL_VOCABULARY, "utf8"));
   return new Map(Object.entries(raw));
@@ -282,16 +343,25 @@ async function build() {
    * the DOM pass only ever sees text the vendored build painted. A section's
    * own wording never reaches it: `t()` goes straight to the catalog.
    *
-   * So the shell's hand-paired vocabulary outranks the call sites, and the
-   * alias file — where a human wrote the answer down — outranks everything.
+   * So the vendored builds outrank the call sites — the runtime first, then the
+   * shell, whose pairs a person wrote by hand against a build they read — and
+   * the alias file, where a human wrote the answer down, outranks everything.
    */
-  const sources = [codePairs(), await catalogPairs(), shellPairs()];
+  const sources = [codePairs(), await catalogPairs(), runtimePairs(), runtimeExtras(), shellPairs()];
   for (const source of sources) {
     for (const [english, italian] of source) {
       if (!pairs.has(english)) pairs.set(english, italian);
       if (!italian || italian === english) continue;
       index.set(italian, english);
     }
+  }
+
+  /* The broken spellings are sources for the index, never keys: a catalog asked
+   * to answer "Power batteria (W)" would be asked to keep the mistake. */
+  for (const [broken, english] of runtimeRepairs()) {
+    if (!pairs.has(english)) throw new Error(`a repair points at a key nothing authors: ${english}`);
+    pairs.delete(broken);
+    index.set(broken, english);
   }
 
   const keys = [...pairs.keys()].sort((a, b) => a.localeCompare(b, "en"));

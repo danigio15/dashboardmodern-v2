@@ -5,6 +5,34 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## Non rilasciato
+
+### Corretto
+
+- **La procedura di primo avvio, gli editor e i loro messaggi erano in inglese
+  in tutte le lingue.** Quattrocento stringhe visibili — la connessione a Home
+  Assistant, la scelta delle luci, gli editor di elettrodomestici, avvisi e
+  telecamere, ogni messaggio che sollevano — vivono nel runtime vendorizzato, e
+  il vocabolario della plancia non l'aveva mai letto. Adesso lo legge: sono
+  tradotte in tutte e tredici le lingue.
+
+- **Anche chi sceglieva inglese leggeva italiano.** La build inglese del runtime
+  e' stata tradotta a forza di sostituzioni e la passata non e' mai finita:
+  «Potenza batteria (W)» ne era uscita «Power batteria (W)», e restavano
+  «Riconnessione...», «Nome stanza (es. Salone)», «Crea token» scritto
+  «Createte token». Trentasei stringhe rimesse a posto, senza toccare un file
+  vendorizzato che tornerebbe alla prossima sincronizzazione.
+
+- **Il cartello di benvenuto e la procedura guidata restavano in inglese anche
+  quando la traduzione c'era.** Vengono disegnati all'avvio, prima che arrivi
+  qualsiasi stato da Home Assistant: la passata di traduzione non aveva motivo
+  di guardarli. Ora guarda anche all'avvio e mentre la pagina si assesta.
+
+- **Il testo con una decorazione davanti non si traduceva.** «🧺 Nessun
+  elettrodomestico configurato» e «· Potenza istantanea» sono la stessa frase
+  del catalogo con un'icona o un punto davanti: adesso la decorazione si toglie,
+  si cerca la frase e si rimette dov'era.
+
 ## 1.2.0
 
 ### Aggiunto
