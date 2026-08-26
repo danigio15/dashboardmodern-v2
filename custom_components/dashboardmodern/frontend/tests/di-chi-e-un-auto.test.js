@@ -171,8 +171,16 @@ test("nessun altro modulo si tiene la sua idea di quale auto sia attiva", async 
     // giusto che restino scritte.
     assert.doesNotMatch(sorgente, /["']cd_ev_cars["']/, nome);
     assert.doesNotMatch(sorgente, /["']cd_ev_car_active["']/, nome);
-    assert.match(sorgente, /from "\.\/ev-section\.js"/, nome);
   }
+  /* Chi ancora chiede «quale auto» lo chiede a chi le auto le possiede. E chi
+   * non ha piu' niente da chiedere — beta11, da quando la card del brand ha
+   * un padrone solo — non lo chiede affatto: e' il modo migliore di non avere
+   * un'idea propria. */
+  const compat = await readFile(
+    new URL("../src/sections/beta-compat-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(compat, /from "\.\/ev-section\.js"/);
 });
 
 test("la scheda dice di quale auto parla, e la bozza non e' di nessuna", async () => {
@@ -197,18 +205,36 @@ test("la scheda dice di quale auto parla, e la bozza non e' di nessuna", async (
   assert.doesNotMatch(marca, /createElement\("span"\);\s*badge\.className/);
 });
 
-test("nessuno riporta le tendine su un'auto diversa da quella del pannello", async () => {
-  /* `syncEvPanelToActiveVehicle` riallineava marca e modello alla vettura
-   * ATTIVA, sempre: si apriva la seconda auto, la card nasceva giusta, e un
-   * istante dopo tornava alla prima. Il pannello dichiara di chi parla, e
-   * quella e' l'unica risposta. */
-  const beta11 = await readFile(
-    new URL("../src/sections/beta11-real-device-polish-section.js", import.meta.url),
+test("la card del marchio ha un padrone solo", async () => {
+  /* Ne aveva tre. Uno la costruiva; un secondo ci appendeva i propri
+   * ascoltatori e riempiva l'elenco dei modelli per conto suo; un terzo
+   * riallineava le tendine all'auto che credeva giusta. Tre opinioni sullo
+   * stesso quadratino, e vinceva l'ultima che passava — da li' la bozza
+   * vestita da Leapmotor, i modelli che non si riempivano, e il riquadro che
+   * raccontava una macchina mentre le tendine ne dicevano un'altra.
+   *
+   * Adesso la costruisce e la comanda un modulo solo. Gli altri due non la
+   * toccano piu': niente ascoltatori appesi, niente valori rimessi a forza. */
+  const nomi = [
+    "beta11-real-device-polish-section.js",
+    "beta9-real-device-polish-section.js",
+  ];
+  for (const nome of nomi) {
+    const sorgente = await readFile(new URL(`../src/sections/${nome}`, import.meta.url), "utf8");
+    assert.doesNotMatch(sorgente, /select\[data-brand\]/, nome);
+    assert.doesNotMatch(sorgente, /select\[data-model\]/, nome);
+    assert.doesNotMatch(sorgente, /\[data-brand-preview\]/, nome);
+  }
+  /* Il padrone c'e', e disegna il riquadro dalle sue tendine — non da quello
+   * che immagina, e non una volta sola: a ogni cambio. */
+  const marca = await readFile(
+    new URL("../src/sections/personalization-section.js", import.meta.url),
     "utf8",
   );
-  assert.doesNotMatch(beta11, /syncEvPanelToActiveVehicle/);
-  assert.match(beta11, /function syncEvPanelToItsVehicle/);
-  assert.match(beta11, /panel\.dataset\.dmVehicleUid/);
+  assert.match(marca, /const brandSelect = panel\.querySelector\("select\[data-brand\]"\)/);
+  assert.match(marca, /const modelSelect = panel\.querySelector\("select\[data-model\]"\)/);
+  const disegno = marca.match(/const refreshPreview = \(\) => \{[\s\S]*?\n  \};/)[0];
+  assert.match(disegno, /carBrandVisual\(selectedBrand/);
 });
 
 test("il nome del marchio non finisce dentro l'icona", async () => {

@@ -467,6 +467,12 @@ test("la bozza non veste l'auto attiva, e la vettura nuova nasce col suo brand",
       ?.setAttribute("open", "");
   });
   const marca = page.locator("#ed-body [data-ev-appearance] select[data-brand]");
+  /* Il ＋ fa rinascere la card: si sceglie quando la scheda dichiara di essere
+     la bozza, o si sceglie sul pannello di prima. */
+  await expect(page.locator("#ed-body [data-ev-appearance]")).toHaveAttribute(
+    "data-dm-vehicle-draft",
+    "true",
+  );
   await marca.selectOption("Kia");
   await page
     .locator("#ed-body [data-ev-appearance] select[data-model]")
@@ -724,6 +730,13 @@ test("scegliere la marca riempie i modelli, e l'anteprima la segue", async ({ pa
     { timeout: 15_000 },
   );
   await page.locator("#ed-body [data-ev-add-new]").click();
+  /* Si sceglie quando la scheda e' davvero la bozza: il ＋ la fa rinascere, e
+     scegliere mentre sta rinascendo vuol dire scegliere sul pannello di
+     prima. */
+  await expect(page.locator("#ed-body [data-ev-appearance]")).toHaveAttribute(
+    "data-dm-vehicle-draft",
+    "true",
+  );
   await page.locator("#ed-body [data-ev-appearance] select[data-brand]").selectOption("Kia");
 
   const modelli = page.locator("#ed-body [data-ev-appearance] select[data-model] option");

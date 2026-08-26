@@ -1,6 +1,4 @@
 import { clean, dashboardStore, doc, installStyle, readJson, root, t, wrapFunction } from "./shared.js";
-import { activeVehicle, profiles } from "./ev-section.js";
-import { vehicleIndex } from "../core/vehicle-model.js";
 
 // Compatibility owner kept temporarily while EV and Alerts are absorbed by their
 // canonical sections. Room/Temperature icon DOM is single-owner: this module may
@@ -64,132 +62,15 @@ function queueMicrotaskSafe(callback) {
   else Promise.resolve().then(callback);
 }
 
-/* L'elenco delle auto e quale sia quella in uso non si rileggono qui.
+/* Delle auto qui non si sa piu' niente, ed e' la fine giusta della storia.
  *
- * Questo modulo ne teneva una copia sua: leggeva `cd_ev_cars` grezza e
- * `cd_ev_car_active` come POSIZIONE. Erano tre moduli con tre idee della stessa
- * cosa, e bastava che l'elenco cambiasse ordine perche' due di loro parlassero
- * di vetture diverse. Adesso lo chiede a chi le auto le possiede. */
-const vehicles = () => profiles();
-
-function activeVehicleIndex(cars = vehicles()) {
-  if (!cars.length) return -1;
-  const scelta = activeVehicle(cars);
-  return scelta ? Math.max(0, vehicleIndex(cars, scelta.uid)) : -1;
-}
-
-function hasOption(select, value) {
-  const wanted = clean(value);
-  return Boolean(wanted) && [...(select?.options || [])].some((option) => clean(option.value) === wanted);
-}
-
-function dispatchValue(input, value, { force = false } = {}) {
-  if (!input) return false;
-  const changed = clean(input.value) !== clean(value);
-  if (changed) input.value = value;
-  if (changed || force) {
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-  }
-  return changed || force;
-}
-
-function normalizeEvPreview(panel) {
-  const preview = panel?.querySelector?.("[data-brand-preview]");
-  const brandSelect = panel?.querySelector?.("select[data-brand]");
-  const modelSelect = panel?.querySelector?.("select[data-model]");
-  if (!preview || !brandSelect || !modelSelect) return false;
-  preview.dataset.dmBeta11EvPreview = "true";
-  preview.dataset.dmBeta11Brand = clean(brandSelect.value).toLowerCase();
-  preview
-    .querySelector(".dm-car-brand,.dm-leapmotor-mark")
-    ?.setAttribute?.("data-dm-beta11-logo", "true");
-  const copy = preview.querySelector(".dm-ev-brand-copy");
-  if (copy) {
-    copy.dataset.dmBeta11Copy = "true";
-    copy.querySelector("b")?.setAttribute("title", clean(brandSelect.value));
-    copy.querySelector("small")?.setAttribute("title", clean(modelSelect.value));
-  }
-  return true;
-}
-
-/* Le tendine seguono l'auto DI CUI PARLA IL PANNELLO, non quella in uso.
- *
- * Questa funzione riallineava marca e modello alla vettura attiva, sempre.
- * Finche' la card «Brand e modello» parlava anche lei dell'attiva era coerente;
- * da quando segue l'auto aperta con la matita non lo era piu': si apriva la
- * Leapmotor, la card nasceva giusta, e un istante dopo questa la riportava a
- * MINI. Due opinioni su quale auto si stia configurando, e vinceva quella
- * sbagliata.
- *
- * Il pannello dichiara di chi parla — `data-dm-vehicle-uid` — e quella e'
- * l'unica risposta. Qui non si decide piu' niente: si tiene il passo. */
-function syncEvPanelToItsVehicle() {
-  if (activeTab() !== "sez2") return false;
-  const panel = doc?.querySelector?.("#ed-body [data-ev-appearance]");
-  const brandSelect = panel?.querySelector?.("select[data-brand]");
-  const modelSelect = panel?.querySelector?.("select[data-model]");
-  if (!panel || !brandSelect || !modelSelect) return false;
-
-  /* La scheda in bozza non ha un'auto da inseguire.
-   *
-   * Il pannello dichiara di chi parla. Quando dice «di nessuno» — ＋ Nuova
-   * auto aperto — qui si ricadeva sull'auto in mostra e le si rimettevano
-   * marca e modello dentro la scheda della vettura che stava nascendo: chi
-   * apriva la scheda per una Tesla se la ritrovava Leapmotor. Vuoto vuol dire
-   * nessuno, e a nessuno non si sincronizza niente. */
-  if (panel.dataset.dmVehicleDraft === "true") return false;
-  const cars = vehicles();
-  const dichiarato = clean(panel.dataset.dmVehicleUid);
-  const posto = dichiarato ? vehicleIndex(cars, dichiarato) : -1;
-  const index = posto >= 0 ? posto : activeVehicleIndex(cars);
-  const car = index >= 0 ? cars[index] : null;
-  if (!car) return false;
-  const brand = clean(car.brand);
-  const model = clean(car.model || car.vehicle_model || car.name);
-  const signature = `${index}|${clean(car.uid) || index}|${brand}|${model}`;
-  const sameVehicle = panel.dataset.dmBeta11VehicleIndex === String(index);
-
-  // A manual brand/model choice belongs to the editor draft. Do not let the
-  // compatibility synchronizer overwrite it until the active vehicle changes.
-  if (panel.dataset.dmBeta11ManualEdit === "true" && sameVehicle) {
-    normalizeEvPreview(panel);
-    return true;
-  }
-  if (panel.dataset.dmBeta11ManualEdit === "true" && !sameVehicle) {
-    delete panel.dataset.dmBeta11ManualEdit;
-  }
-  if (panel.dataset.dmBeta11VehicleSignature === signature) {
-    normalizeEvPreview(panel);
-    return true;
-  }
-
-  panel.dataset.dmBeta11Syncing = "true";
-  if (brand && hasOption(brandSelect, brand)) {
-    dispatchValue(brandSelect, brand, { force: true });
-  }
-  queueMicrotaskSafe(() => {
-    if (model && hasOption(modelSelect, model)) dispatchValue(modelSelect, model);
-    panel.dataset.dmBeta11VehicleSignature = signature;
-    panel.dataset.dmBeta11VehicleIndex = String(index);
-    delete panel.dataset.dmBeta11ManualEdit;
-    delete panel.dataset.dmBeta11Syncing;
-    normalizeEvPreview(panel);
-  });
-  return true;
-}
-
-function markManualEvEdit(event) {
-  const input = event.target;
-  if (!input?.matches?.("[data-ev-appearance] select[data-brand],[data-ev-appearance] select[data-model]")) {
-    return false;
-  }
-  const panel = input.closest("[data-ev-appearance]");
-  if (!panel || panel.dataset.dmBeta11Syncing === "true") return false;
-  panel.dataset.dmBeta11ManualEdit = "true";
-  normalizeEvPreview(panel);
-  return true;
-}
+ * Questo modulo ne teneva una copia sua — l'elenco letto grezzo, l'auto in uso
+ * intesa come posizione — e con quella riallineava le tendine della card del
+ * marchio. Erano tre moduli con tre idee della stessa cosa, e bastava che
+ * l'elenco cambiasse ordine perche' due di loro parlassero di vetture diverse.
+ * Poi ha smesso di tenere la copia e si e' messo a chiederlo a chi le auto le
+ * possiede. Adesso non chiede piu' nemmeno quello: la card ha un padrone solo,
+ * e non e' questo. Qui resta il CSS che misura il logo, e basta. */
 
 function mergedRooms() {
   let canonical = [];
@@ -322,7 +203,6 @@ function decorateAlertIconField() {
 function run() {
   state.frame = 0;
   ensureOwners();
-  syncEvPanelToItsVehicle();
   decorateRoomRows();
   decorateAlertIconField();
 }
@@ -403,7 +283,6 @@ function install() {
     doc.addEventListener(
       "change",
       (event) => {
-        markManualEvEdit(event);
         if (event.target?.closest?.("#editor-modal,#ed-body")) schedule();
       },
       true,

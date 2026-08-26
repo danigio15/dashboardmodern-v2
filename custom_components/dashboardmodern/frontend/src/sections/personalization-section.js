@@ -603,10 +603,34 @@ function ensureEvAppearanceEditor() {
    * fatto da parte sulla bozza, il buco e' venuto a galla. */
   const brandSelect = panel.querySelector("select[data-brand]");
   const modelSelect = panel.querySelector("select[data-model]");
+  /* Il riquadro del marchio ha UN padrone, ed e' questo.
+   *
+   * Ne aveva tre. Questo lo costruiva; un secondo modulo ci appendeva i propri
+   * ascoltatori e riempiva l'elenco dei modelli per conto suo; un terzo
+   * riallineava le tendine all'auto che credeva giusta. Tre opinioni sullo
+   * stesso quadratino, e vinceva l'ultima che passava: il riquadro raccontava
+   * una macchina e le tendine un'altra, nella stessa card. Il difetto della
+   * bozza vestita da Leapmotor e quello dei modelli che non si riempivano
+   * erano due facce di questo.
+   *
+   * Adesso si disegna da qui e basta, sempre dalle tendine. I contrassegni che
+   * la vecchia guardia lasciava sul nodo restano — c'e' del CSS che li cerca
+   * per misurare il logo — ma li scrive chi disegna, non chi passava. */
   const refreshPreview = () => {
     const selectedBrand = clean(brandSelect.value);
     const selectedModel = clean(modelSelect.value);
-    panel.querySelector("[data-brand-preview]").innerHTML = `${carBrandVisual(selectedBrand, 56)}<span class="dm-ev-brand-copy"><b>${esc(selectedBrand)}</b>${selectedModel ? `<small>${esc(selectedModel)}</small>` : ""}</span>`;
+    const preview = panel.querySelector("[data-brand-preview]");
+    preview.innerHTML = `${carBrandVisual(selectedBrand, 56)}<span class="dm-ev-brand-copy"><b>${esc(selectedBrand)}</b>${selectedModel ? `<small>${esc(selectedModel)}</small>` : ""}</span>`;
+    preview.dataset.dmBeta11EvPreview = "true";
+    preview.dataset.dmBeta11Brand = selectedBrand.toLowerCase();
+    preview.dataset.dmCurrentBrand = selectedBrand;
+    preview.querySelector(".dm-car-brand,.dm-leapmotor-mark")?.setAttribute("data-dm-beta11-logo", "true");
+    const copy = preview.querySelector(".dm-ev-brand-copy");
+    if (copy) {
+      copy.dataset.dmBeta11Copy = "true";
+      copy.querySelector("b")?.setAttribute("title", selectedBrand);
+      copy.querySelector("small")?.setAttribute("title", selectedModel);
+    }
   };
   brandSelect.addEventListener("change", () => {
     const previous = clean(modelSelect.value);
