@@ -324,12 +324,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 156 con le linguette degli impianti: la pagina Energia non cambia di una
   // virgola, si aggiunge una riga sopra per scegliere quale casa si sta
   // guardando — e con una casa sola quella riga non compare affatto.
-  // 157 mentre la sezione EV viene rifatta: core/vehicle-model.js e' il
-  // padrone unico che sostituira' vehicle-identity, vehicle-photos ed
-  // ev-console — tre moduli nati come argini contro il risalvataggio del
-  // runtime vendorizzato. Il conto torna a scendere quando quelli se ne
-  // vanno: e' un numero di passaggio, non un numero raggiunto.
-  assert.ok(relative.length <= 157, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 156: `core/vehicle-identity.js` se n'e' andato. Era l'argine contro
+  // `edEvCarAdd` del runtime vendorizzato — centonovantaquattro righe per
+  // rimettere a un'auto quello che quella chiamata le toglieva. Adesso il
+  // salvataggio e' nostro e non toglie niente, quindi non c'e' niente da
+  // rimettere. Restano `vehicle-photos` (le foto si scelgono ancora dal
+  // pannello vecchio) ed `ev-console`, che argine non e' mai stato: dice se
+  // la console di ricarica evcc e' configurata, ed e' roba sua.
+  assert.ok(relative.length <= 156, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

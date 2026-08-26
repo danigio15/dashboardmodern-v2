@@ -78,5 +78,8 @@ test("il segnalibro dei campi toccati si installa al montaggio, non al primo gir
   assert.doesNotMatch(corpoGuardia, /input\.value = valore/);
   /* E la sessione esiste davvero, con i tre stati raccontati. */
   assert.match(sorgente, /function editingKey\(\)/);
-  assert.match(sorgente, /setEditingKey\(carKey\(/);
+  /* `carKey` ricavava la chiave dal nome quando non la trovava scritta: due
+   * auto chiamate quasi uguale ne ricavavano una sola. Adesso l'uid si legge
+   * dove sta scritto, e basta. */
+  assert.match(sorgente, /setEditingKey\(uidDi\(/);
 });
