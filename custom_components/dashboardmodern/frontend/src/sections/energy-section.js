@@ -13,7 +13,7 @@ import {
   sanitizeHostedCredentials,
   waitForHostedBridge,
 } from "../transport/hosted-bridge-guard.js";
-import { PLANT_GROUPS, pickPlant, plantList } from "../core/energy-plants.js";
+import { IMPIANTO_SCELTO_KEY, PLANT_GROUPS, pickPlant, plantList } from "../core/energy-plants.js";
 import { persistEnergyField as writeEnergyField } from "../core/energy-writer.js";
 import { runtimeMetrics } from "../core/runtime-metrics.js";
 import { BUILD_INFO } from "../../legacy/build-info.js";
@@ -124,12 +124,9 @@ const FLOW_IDS = Object.freeze([
 ]);
 const ENTITY_ID = /^[a-z_][a-z0-9_]*\.[a-z0-9_]+$/i;
 
-/* Dove si tiene l'impianto che si sta guardando.
- *
- * Non e' configurazione: e' l'ultima linguetta toccata, come il periodo scelto
- * o la stanza aperta. Sta fuori dal modello apposta — cambiarla non deve
- * sporcare quello che si salva. */
-export const IMPIANTO_SCELTO_KEY = "cd_energy_plant";
+/* Dove si tiene l'impianto che si sta guardando: la casella la nomina il core,
+ * qui si ri-espone per chi la conosceva da questo indirizzo. */
+export { IMPIANTO_SCELTO_KEY };
 
 /* La casa che si sta guardando.
  *

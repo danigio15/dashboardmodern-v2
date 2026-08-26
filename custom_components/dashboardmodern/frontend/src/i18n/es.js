@@ -1509,4 +1509,7 @@ export default Object.freeze({
   Plants: "Instalaciones",
   "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
     "Esta es la instalación principal y no se puede eliminar: es la que el panel ha leído desde siempre.",
+  "Loads of": "Cargas de",
+  "the other plants have their own, and this save does not touch them":
+    "Las demás instalaciones tienen las suyas, y este guardado no las toca",
 });

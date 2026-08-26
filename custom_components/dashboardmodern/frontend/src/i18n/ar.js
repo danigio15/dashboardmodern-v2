@@ -1487,4 +1487,7 @@ export default Object.freeze({
   Plants: "المنشآت",
   "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
     "هذه هي المنشأة الرئيسية ولا يمكن حذفها: إنها التي تقرأها اللوحة منذ البداية.",
+  "Loads of": "أحمال",
+  "the other plants have their own, and this save does not touch them":
+    "المنشآت الأخرى لها أحمالها، وهذا الحفظ لا يمسّها",
 });

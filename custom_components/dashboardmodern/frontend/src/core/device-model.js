@@ -42,6 +42,7 @@ export function canonicalClimateType(value) {
  * editor happened to know fewer appliance types.
  */
 import { pick } from "./i18n.js";
+import { LOAD_PLANT_FIELD } from "./energy-plants.js";
 import { contactEntity } from "./shutter-window.js";
 import {
   COVER_SLOTS,
@@ -461,6 +462,19 @@ export function normalizeDevice(input = {}, section, context = {}) {
       last_energy_entity: input.last_energy_entity || "",
       last_cost_entity: input.last_cost_entity || "",
     });
+    /* Di quale impianto e' questo carico.
+     *
+     * Il modello tiene solo i campi che conosce — e' quello che impedisce a una
+     * configurazione scritta a mano di portarsi dietro spazzatura — quindi un
+     * campo nuovo che non passa di qui sparisce alla prima normalizzazione. E'
+     * gia' successo tre volte alle tapparelle; qui sarebbe successo ai carichi
+     * della seconda casa, che sarebbero tornati tutti nella prima.
+     *
+     * Vuoto vuol dire il primo impianto, ed e' apposta: e' cosi' che otto
+     * carichi gia' configurati restano dove sono, il giorno in cui questo campo
+     * compare. */
+    const impianto = String(input[LOAD_PLANT_FIELD] ?? "").trim();
+    if (impianto) base[LOAD_PLANT_FIELD] = impianto;
     // Optional numbers are stored only when finite: an empty string must never
     // reach Number() consumers as 0 (a 0 W running threshold would mark every
     // plugged appliance as running).

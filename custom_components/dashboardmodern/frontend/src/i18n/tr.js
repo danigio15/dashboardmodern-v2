@@ -1494,4 +1494,7 @@ export default Object.freeze({
   Plants: "Tesisler",
   "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
     "Bu ana tesistir ve silinemez: panonun en başından beri okuduğu tesis odur.",
+  "Loads of": "Yükler:",
+  "the other plants have their own, and this save does not touch them":
+    "Diğer tesislerin kendi yükleri var ve bu kayıt onlara dokunmuyor",
 });

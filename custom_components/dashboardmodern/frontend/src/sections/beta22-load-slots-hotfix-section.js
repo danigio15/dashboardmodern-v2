@@ -12,6 +12,7 @@
 
 import { t } from "./shared.js";
 import { intlLocale } from "../core/i18n.js";
+import { IMPIANTO_SCELTO_KEY, plantAt, plantLoads } from "../core/energy-plants.js";
 
 const root = globalThis;
 const doc = root.document;
@@ -65,6 +66,19 @@ function states() {
     if (root[name] && typeof root[name] === "object") Object.assign(values, root[name]);
   }
   return values;
+}
+
+/* I carichi dell'impianto scelto. Con un impianto solo — chi non ne ha mai
+ * chiesto un secondo — passa tutto, esattamente come prima. */
+function carichiDellImpianto(loads = []) {
+  let scelto = "";
+  try {
+    scelto = clean(root.localStorage?.getItem(IMPIANTO_SCELTO_KEY));
+  } catch (_error) {
+    scelto = "";
+  }
+  const { plant, index } = plantAt(readSection("energy", {}) || {}, scelto);
+  return plant ? plantLoads(loads, plant, index) : loads;
 }
 
 export function configuredFlowLoads(loads = []) {
@@ -239,7 +253,13 @@ function dynamicFlowOwnerInstalled() {
 function syncCanonicalLoadBubbles() {
   if (!doc || dynamicFlowOwnerInstalled()) return false;
   removeTemporaryEnergyLoads();
-  const loads = configuredFlowLoads(readSection("loads", []));
+  /* Anche il giro storico mostra un impianto per volta.
+   *
+   * Questo e' il disegno di ripiego — quello vero lo fa `energy-flow-section`,
+   * e quando c'e' lui qui non si entra nemmeno. Ma dove non c'e' (una
+   * plancia che non ha ancora ricaricato i moduli) i cerchi li fa questo, e
+   * senza il filtro mostrerebbe i carichi di tutte e due le case insieme. */
+  const loads = configuredFlowLoads(carichiDellImpianto(readSection("loads", [])));
   for (const period of ["instant", "day", "month"]) {
     const { id, suffix } = viewConfig(period);
     const scope = doc.getElementById(id);

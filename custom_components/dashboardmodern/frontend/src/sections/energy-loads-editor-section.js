@@ -15,6 +15,7 @@
  * are re-derived from it on save. Event driven: no polling, no observer.
  */
 import { openIconPicker } from "./icon-engine-section.js";
+import { IMPIANTO_SCELTO_KEY, PRIMO_IMPIANTO, plantAt, plantLabel } from "../core/energy-plants.js";
 import { createEntityPickerField } from "../core/renderers.js";
 import {
   MAX_FLOW_LOADS,
@@ -55,10 +56,24 @@ function configuredLoads() {
   return Array.isArray(stored) ? stored : [];
 }
 
+/* Quale impianto sta configurando questa maschera.
+ *
+ * La stessa linguetta che sceglie il misuratore in cima alla sezione sceglie
+ * anche i cerchi: si configura un impianto per volta, com'e' per il resto
+ * dell'Energia. Con un impianto solo — chiunque non abbia chiesto il secondo —
+ * qui esce il primo, e non cambia niente di niente. */
+function impiantoAperto() {
+  const scelto = clean(root.localStorage?.getItem(IMPIANTO_SCELTO_KEY));
+  return plantAt(section("energy", {}) || {}, scelto);
+}
+
 /* Read once, from wherever the configuration currently lives, and keep editing
  * that model until it is saved. */
 function readModel() {
+  const { plant, index } = impiantoAperto();
   return loadsConfigModel({
+    plant,
+    plantIndex: index,
     loads: configuredLoads(),
     appliances: Array.isArray(section("appliances", null))
       ? section("appliances", [])
@@ -81,13 +96,38 @@ function markDirty(panel) {
 
 async function persist(panel) {
   const previous = configuredLoads();
-  const { loads, groups, subloads, flowNodes } = loadsConfigToSections(model(), previous);
+  const { plant, list } = impiantoAperto();
+  const { loads, groups, subloads, flowNodes } = loadsConfigToSections(
+    model(),
+    previous,
+    plant ? (clean(plant.id) === PRIMO_IMPIANTO ? "" : clean(plant.id)) : null,
+  );
   const store = dashboardStore();
   if (store?.replaceSection) await store.replaceSection("loads", loads);
   else writeJsonIfChanged("cd_loads", loads, { sync: false });
-  // Derived mirrors: the hosted subload popup reads these directly.
-  writeJsonIfChanged("cd_subload_groups", groups, { sync: false });
-  writeJsonIfChanged("cd_subloads_extra", subloads, { sync: false });
+  /* Gli specchi legacy — il popup degli elettrodomestici li legge diretti —
+   * si riscrivono interi con un impianto solo, com'e' sempre stato. Con piu'
+   * di un impianto no: questa maschera ne ha mostrato uno, e riscriverli
+   * interi cancellerebbe i gruppi dell'altro. Quelli che questo giro non ha
+   * toccato restano dove sono. */
+  const piuCase = list.length > 1;
+  const gruppiPrima = piuCase ? readJson("cd_subload_groups", []) : [];
+  const nomiNuovi = new Set(groups.map((voce) => clean(voce?.id)));
+  const gruppiFinali = piuCase
+    ? [
+        ...(Array.isArray(gruppiPrima) ? gruppiPrima : []).filter(
+          (voce) => !nomiNuovi.has(clean(voce?.id)),
+        ),
+        ...groups,
+      ]
+    : groups;
+  const sottoPrima = piuCase ? readJson("cd_subloads_extra", null) : null;
+  const sottoFinali =
+    piuCase && sottoPrima && typeof sottoPrima === "object" && !Array.isArray(sottoPrima)
+      ? { ...sottoPrima, ...subloads }
+      : subloads;
+  writeJsonIfChanged("cd_subload_groups", gruppiFinali, { sync: false });
+  writeJsonIfChanged("cd_subloads_extra", sottoFinali, { sync: false });
   writeJsonIfChanged("cd_flow_nodes", flowNodes);
   state.dirty = false;
   state.model = null;
@@ -533,6 +573,23 @@ export function renderEnergyLoadsEditor(panel = doc?.querySelector?.(PANEL)) {
       ),
     );
 
+    /* Con due impianti la maschera ne mostra uno: lo dice, o un cerchio
+     * aggiunto qui sembrerebbe sparito quando si torna sull'altra casa. */
+    const { plant, list: impianti } = impiantoAperto();
+    if (impianti.length > 1 && plant) {
+      const quale = plantLabel(plant, impianti.indexOf(plant), t("Impianto", "Plant"));
+      host.append(
+        element(
+          "div",
+          "ed-hint dm-loads-plant",
+          `${t("Carichi di", "Loads of")} ${quale} — ${t(
+            "gli altri impianti hanno i loro, e questo salvataggio non li tocca",
+            "the other plants have their own, and this save does not touch them",
+          )}`,
+        ),
+      );
+    }
+
     if (!values.length)
       host.append(
         element(
@@ -555,7 +612,9 @@ export function renderEnergyLoadsEditor(panel = doc?.querySelector?.(PANEL)) {
     add.dataset.dmLoadAdd = "true";
     add.addEventListener("click", () => {
       if (model().length >= MAX_FLOW_LOADS) return;
-      const load = emptyLoad(model(), activeLocale());
+      const { plant } = impiantoAperto();
+      const suo = plant && clean(plant.id) !== PRIMO_IMPIANTO ? clean(plant.id) : "";
+      const load = emptyLoad(model(), activeLocale(), suo);
       state.model = [...model(), load];
       state.open.add(load.id);
       markDirty(panel);

@@ -1491,4 +1491,7 @@ export default Object.freeze({
   Plants: "संयंत्र",
   "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
     "यह मुख्य संयंत्र है और हटाया नहीं जा सकता: यही वह है जिसे डैशबोर्ड हमेशा से पढ़ता आया है।",
+  "Loads of": "लोड",
+  "the other plants have their own, and this save does not touch them":
+    "अन्य संयंत्रों के अपने लोड हैं, और यह सहेजना उन्हें नहीं छूता",
 });

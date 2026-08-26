@@ -1499,4 +1499,7 @@ export default Object.freeze({
   Plants: "Объекты",
   "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
     "Это основной объект, и его нельзя удалить: именно его панель читала всегда.",
+  "Loads of": "Нагрузки",
+  "the other plants have their own, and this save does not touch them":
+    "У других установок свои нагрузки, и это сохранение их не затрагивает",
 });

@@ -1490,4 +1490,7 @@ export default Object.freeze({
   Plants: "설비",
   "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
     "기본 설비라 삭제할 수 없습니다. 대시보드가 줄곧 읽어온 설비입니다.",
+  "Loads of": "부하:",
+  "the other plants have their own, and this save does not touch them":
+    "다른 설비에는 각자의 부하가 있으며, 이 저장은 그것들을 건드리지 않습니다",
 });

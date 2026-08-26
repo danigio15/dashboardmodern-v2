@@ -1497,4 +1497,7 @@ export default Object.freeze({
   Plants: "設備",
   "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
     "これは主設備で削除できません。ダッシュボードがずっと読んできたのはこれです。",
+  "Loads of": "負荷:",
+  "the other plants have their own, and this save does not touch them":
+    "他の設備にはそれぞれの負荷があり、この保存では変更されません",
 });

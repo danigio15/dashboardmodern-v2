@@ -1505,4 +1505,7 @@ export default Object.freeze({
   Plants: "Installaties",
   "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
     "Dit is de hoofdinstallatie en kan niet worden verwijderd: het is degene die het dashboard altijd al leest.",
+  "Loads of": "Verbruikers van",
+  "the other plants have their own, and this save does not touch them":
+    "De andere installaties hebben hun eigen verbruikers, en dit opslaan raakt ze niet aan",
 });

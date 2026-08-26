@@ -19,6 +19,7 @@
 import {
   PRIMO_IMPIANTO,
   configuredPlants,
+  dropPlantLoads,
   nuovoImpianto,
   pickPlant,
   plantLabel,
@@ -178,6 +179,20 @@ async function elimina(id) {
   const lista = impianti();
   if (clean(id) === PRIMO_IMPIANTO) return;
   await salvaLista(lista.filter((voce) => voce.id !== clean(id)));
+  /* Un impianto se ne va con tutto quello che era suo.
+   *
+   * I carichi non stanno dentro all'impianto — stanno nella sezione `loads`,
+   * col nome dell'impianto scritto sopra — e cancellando la casa restavano
+   * li': orfani, invisibili in ogni flusso perche' il loro impianto non
+   * esisteva piu', e pronti a riapparire tutti insieme il giorno in cui un
+   * impianto nuovo avesse ripreso quell'id. Per questo gli id non si
+   * riutilizzano, e per questo qui si cancella davvero. */
+  const store = dashboardStore();
+  const carichi = section("loads", []);
+  if (Array.isArray(carichi) && store?.replaceSection) {
+    const restano = dropPlantLoads(carichi, id);
+    if (restano.length !== carichi.length) await store.replaceSection("loads", restano);
+  }
   scegli(PRIMO_IMPIANTO);
 }
 

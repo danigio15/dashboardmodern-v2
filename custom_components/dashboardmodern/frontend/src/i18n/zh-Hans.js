@@ -1470,4 +1470,7 @@ export default Object.freeze({
   Plants: "系统",
   "This is the main plant and cannot be removed: it is the one the dashboard has always read.":
     "这是主系统，不能删除：它就是面板一直在读取的那一个。",
+  "Loads of": "负载：",
+  "the other plants have their own, and this save does not touch them":
+    "其他设备各有自己的负载，此次保存不会改动它们",
 });

@@ -201,7 +201,15 @@ test("la sezione legge l'impianto scelto, e con una casa sola non cambia niente"
   /* La linguetta aperta non e' configurazione: sta fuori dal modello, come il
    * periodo scelto. Tenerla dentro vorrebbe dire sporcare un salvataggio ogni
    * volta che si guarda l'altro impianto. */
-  assert.match(sezione, /IMPIANTO_SCELTO_KEY = "cd_energy_plant"/);
+  /* La casella la nomina il core, dove sta il resto di quello che si sa sugli
+   * impianti: chi deve solo sapere quale e' aperto — il flusso, per esempio —
+   * non si tira dietro l'intera sezione Energia per scoprirlo. */
+  const nucleo = await readFile(
+    new URL("../src/core/energy-plants.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(nucleo, /IMPIANTO_SCELTO_KEY = "cd_energy_plant"/);
+  assert.match(sezione, /export \{ IMPIANTO_SCELTO_KEY \}/);
   assert.doesNotMatch(helper, /writeEnergyField|persistEnergy/);
 });
 
@@ -264,4 +272,88 @@ test("una scrittura sul primo impianto resta esattamente dov'era", async () => {
   const dove = writer.match(/function scriviNellImpianto[\s\S]*?\n\}/)[0];
   assert.match(dove, /if \(!impianto \|\| impianto\.id === PRIMO_IMPIANTO\) \{\s*muta\(model\);/);
   assert.match(dove, /storedPlants\(/);
+});
+
+test("i carichi sono di un impianto solo: il tetto vale li' dentro", async () => {
+  const { loadsConfigModel, loadsConfigToSections } = await import(
+    "../src/core/energy-loads-config.js"
+  );
+  const case_ = [
+    { id: "impianto", name: "Casa Giovanni" },
+    { id: "impianto-2", name: "Casa Donato" },
+  ];
+  const carichi = [
+    { id: "forno", name: "Forno", power_entity: "sensor.forno", order: 0 },
+    { id: "lavatrice", name: "Lavatrice", power_entity: "sensor.lava", order: 1, plant: "impianto-2" },
+  ];
+
+  /* Ogni casa vede i suoi, e nessuno vede quelli dell'altra. */
+  const primo = loadsConfigModel({ loads: carichi, plant: case_[0], plantIndex: 0 });
+  const secondo = loadsConfigModel({ loads: carichi, plant: case_[1], plantIndex: 1 });
+  assert.deepEqual(primo.map((load) => load.id), ["forno"]);
+  assert.deepEqual(secondo.map((load) => load.id), ["lavatrice"]);
+
+  /* Il carico senza impianto scritto e' del PRIMO: e' la regola che lascia
+   * dov'e' una configurazione a una casa sola, il giorno che il campo compare. */
+  assert.equal(primo[0].plant, "");
+  assert.equal(secondo[0].plant, "impianto-2");
+});
+
+test("salvare una casa non cancella i carichi dell'altra", async () => {
+  const { loadsConfigModel, loadsConfigToSections } = await import(
+    "../src/core/energy-loads-config.js"
+  );
+  const prima = [
+    { id: "forno", name: "Forno", power_entity: "sensor.forno", order: 0 },
+    { id: "lavatrice", name: "Lavatrice", power_entity: "sensor.lava", order: 1, plant: "impianto-2" },
+  ];
+  /* La maschera mostra «casa Donato» e le si cambia il nome al carico. Sullo
+   * schermo il forno non c'era: se il salvataggio riscrivesse solo cio' che
+   * ha visto, il forno sparirebbe dalla configurazione dell'altra casa. */
+  const modello = loadsConfigModel({
+    loads: prima,
+    plant: { id: "impianto-2" },
+    plantIndex: 1,
+  });
+  modello[0].name = "Lavatrice nuova";
+  const { loads } = loadsConfigToSections(modello, prima, "impianto-2");
+  const perNome = new Map(loads.map((load) => [load.id, load]));
+  assert.equal(perNome.get("lavatrice").name, "Lavatrice nuova");
+  assert.equal(perNome.get("lavatrice").plant, "impianto-2");
+  assert.ok(perNome.has("forno"), "il carico dell'altra casa e' ancora li'");
+  assert.equal(perNome.get("forno").name, "Forno");
+});
+
+test("un carico nuovo nasce nella casa che si sta guardando", async () => {
+  const { emptyLoad } = await import("../src/core/energy-loads-config.js");
+  assert.equal(emptyLoad([], "it", "impianto-2").plant, "impianto-2");
+  // Senza impianto passato: il primo, che e' il caso di chi ne ha uno solo.
+  assert.equal(emptyLoad([], "it").plant, "");
+});
+
+test("cancellare un impianto porta via i suoi carichi", async () => {
+  const sezione = await readFile(
+    new URL("../src/sections/energy-plants-section.js", import.meta.url),
+    "utf8",
+  );
+  const corpo = sezione.slice(sezione.indexOf("async function elimina("));
+  assert.match(corpo, /dropPlantLoads\(carichi, id\)/,
+    "i carichi orfani riapparirebbero il giorno che un id tornasse buono");
+  assert.match(corpo, /replaceSection\("loads", restano\)/);
+});
+
+test("il flusso disegna i cerchi dell'impianto scelto", async () => {
+  const flusso = await readFile(
+    new URL("../src/sections/energy-flow-section.js", import.meta.url),
+    "utf8",
+  );
+  const corpo = flusso.slice(flusso.indexOf("function configuredLoads()"));
+  assert.match(corpo, /plantLoads\(carichi, plant, index\)/);
+  /* Anche il disegno di ripiego, dove i moduli nuovi non sono ancora
+   * arrivati: senza filtro mostrerebbe le due case insieme. */
+  const ripiego = await readFile(
+    new URL("../src/sections/beta22-load-slots-hotfix-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(ripiego, /configuredFlowLoads\(carichiDellImpianto\(/);
 });

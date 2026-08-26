@@ -205,6 +205,28 @@ export function pickPlant(list = [], scelto = "") {
  * Vuoto vuol dire il primo, sempre. Non e' una svista: e' cio' che permette a
  * otto carichi gia' configurati di restare dove sono senza che nessuno li
  * tocchi, il giorno in cui questo campo compare. */
+/* Dove si tiene l'impianto che si sta guardando.
+ *
+ * Non e' configurazione: e' l'ultima linguetta toccata, come il periodo scelto
+ * o la stanza aperta. Sta fuori dal modello apposta — cambiarla non deve
+ * sporcare quello che si salva. Il nome della casella vive qui, col resto di
+ * quello che si sa sugli impianti: chi ha bisogno di sapere quale impianto e'
+ * aperto non deve tirarsi dietro l'intera sezione Energia per scoprirlo. */
+export const IMPIANTO_SCELTO_KEY = "cd_energy_plant";
+
+/* L'impianto scelto e il suo posto nell'elenco, in una domanda sola.
+ *
+ * Il posto serve quanto l'identita': un carico senza campo impianto appartiene
+ * al PRIMO, e per saperlo bisogna sapere se quello scelto e' il primo. Chi
+ * chiedeva le due cose separatamente le teneva allineate a mano. */
+export function plantAt(stored = {}, scelto = "") {
+  const lista = plantList(stored);
+  const impianto = pickPlant(lista, scelto);
+  if (!impianto) return { list: lista, plant: null, index: 0 };
+  const posto = lista.findIndex((voce) => clean(voce?.id) === clean(impianto.id));
+  return { list: lista, plant: impianto, index: posto < 0 ? 0 : posto };
+}
+
 export const LOAD_PLANT_FIELD = "plant";
 
 /** Se questo carico appartiene a questo impianto. */

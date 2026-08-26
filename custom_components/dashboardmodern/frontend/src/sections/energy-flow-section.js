@@ -5,6 +5,7 @@ import {
 } from "../core/energy-flow-topology.js";
 import { allocateSourceFlows, batteryReadout } from "../core/energy-flow-truth.js";
 import { vehicleBatteryEntity } from "./ev-section.js";
+import { IMPIANTO_SCELTO_KEY, plantAt, plantLoads } from "../core/energy-plants.js";
 import {
   allStates,
   clean,
@@ -134,11 +135,29 @@ function flowNodeOverrides() {
 
 /* The hosted dashboard can render before the store exists; the legacy mirror in
  * localStorage is the same document. */
-function configuredLoads() {
+function tuttiICarichi() {
   const value = section("loads", null);
   if (Array.isArray(value)) return value;
   const stored = readJson("cd_loads", []);
   return Array.isArray(stored) ? stored : [];
+}
+
+/* I cerchi sotto Casa sono quelli dell'impianto scelto.
+ *
+ * Chi ha due contatori — «casa Giovanni» e «casa Donato» — sceglie l'impianto
+ * dalle linguette in cima alla sezione, e da li' in giu' tutto parla di
+ * quello: il misuratore, il fotovoltaico, la batteria. I carichi restavano
+ * fuori dal patto, ed erano gli unici a comparire in tutti e due i flussi —
+ * la lavatrice dell'altra casa in mezzo alla propria.
+ *
+ * Con un impianto solo non cambia niente: un carico senza impianto scritto
+ * appartiene al primo, che e' il caso di chiunque non abbia mai chiesto il
+ * secondo. */
+function configuredLoads() {
+  const carichi = tuttiICarichi();
+  const scelto = clean(root.localStorage?.getItem(IMPIANTO_SCELTO_KEY));
+  const { plant, index } = plantAt(section("energy", {}) || {}, scelto);
+  return plant ? plantLoads(carichi, plant, index) : carichi;
 }
 
 /* The Recorder bundle is keyed by the meter entity, not by load id. Resolve it

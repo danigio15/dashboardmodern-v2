@@ -558,11 +558,13 @@ test("in bozza il pannello foto non scrive su nessuno", async ({ page }, testInf
       { name: "T03", img: "/local/ev/t03-idle.png" },
     ]);
   /* E nemmeno il disegno: in plancia resta la B10, che e' quella in uso. */
-  await expect.poll(() => caselle(page)).toEqual({
-    active: "0",
-    idle: "/local/ev/b10-idle.png",
-    plugged: "/local/ev/b10-cavo.png",
-  });
+  await expect
+    .poll(() => caselle(page))
+    .toEqual({
+      active: "0",
+      idle: "/local/ev/b10-idle.png",
+      plugged: "/local/ev/b10-cavo.png",
+    });
 });
 
 test("spegnere l'auto in mostra passa la sezione a quella accesa", async ({ page }, testInfo) => {
@@ -578,9 +580,13 @@ test("spegnere l'auto in mostra passa la sezione a quella accesa", async ({ page
     window.apriConfigEntita();
     window.editorSwitch("sez2");
   });
-  await page.waitForFunction(() => Boolean(document.querySelector("#ed-body [data-ev-enabled]")), null, {
-    timeout: 15_000,
-  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#ed-body [data-ev-enabled]")),
+    null,
+    {
+      timeout: 15_000,
+    },
+  );
 
   // Si spegne la B10, che e' quella che la sezione sta mostrando.
   await page.locator('#ed-body [data-ev-enabled="0"]').click();
@@ -591,11 +597,13 @@ test("spegnere l'auto in mostra passa la sezione a quella accesa", async ({ page
   await expect(linguette).toHaveCount(1);
   await expect(linguette.first()).toHaveText(/T03/);
   await expect(linguette.first()).toHaveClass(/active/);
-  await expect.poll(() => caselle(page)).toEqual({
-    active: "1",
-    idle: "/local/ev/t03-idle.png",
-    plugged: "/local/ev/t03-cavo.png",
-  });
+  await expect
+    .poll(() => caselle(page))
+    .toEqual({
+      active: "1",
+      idle: "/local/ev/t03-idle.png",
+      plugged: "/local/ev/t03-cavo.png",
+    });
 
   /* La B10 non e' sparita: e' spenta, e in configurazione c'e' ancora tutta. */
   await expect
@@ -625,9 +633,13 @@ test("con un'auto spenta davanti, la linguetta resta di chi e'", async ({ page }
     window.apriConfigEntita();
     window.editorSwitch("sez2");
   });
-  await page.waitForFunction(() => Boolean(document.querySelector("#ed-body [data-ev-enabled]")), null, {
-    timeout: 15_000,
-  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#ed-body [data-ev-enabled]")),
+    null,
+    {
+      timeout: 15_000,
+    },
+  );
   await page.locator('#ed-body [data-ev-enabled="0"]').click();
 
   const linguetta = page.locator("#ev-car-picker .dm-vehicle-profile-card").first();
