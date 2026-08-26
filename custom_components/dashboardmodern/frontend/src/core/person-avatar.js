@@ -32,6 +32,8 @@ export const FACE_SKINS = Object.freeze({
 
 export const FACE_HAIR_COLORS = Object.freeze({
   nero: "#2a221e",
+  blu: "#2f4f7a",
+  rosa: "#c96a8f",
   moro: "#463024",
   castano: "#6b4a2f",
   cioccolato: "#8b5e3c",
@@ -50,6 +52,10 @@ export const FACE_HAIRS = Object.freeze([
   "lungo",
   "caschetto",
   "chignon",
+  "coda",
+  "afro",
+  "pettinato",
+  "calvo",
 ]);
 
 export const FACE_EYES = Object.freeze(["normali", "sorridenti", "grandi"]);
@@ -60,17 +66,27 @@ export const FACE_EYE_COLORS = Object.freeze({
   nocciola: "#a3762e",
   marrone: "#6f4522",
   grigio: "#7d8a99",
+  ambra: "#c9852b",
+  ghiaccio: "#8fbcd6",
 });
 export const FACE_MOUTHS = Object.freeze(["sorriso", "risata", "neutra", "sorrisetto"]);
-export const FACE_BEARDS = Object.freeze(["nessuna", "baffi", "pizzetto", "piena"]);
-export const FACE_GLASSES = Object.freeze(["nessuno", "tondi", "sole"]);
+export const FACE_BEARDS = Object.freeze(["nessuna", "incolta", "baffi", "pizzetto", "piena"]);
+export const FACE_GLASSES = Object.freeze(["nessuno", "tondi", "squadrati", "sole"]);
 /* La corporatura: cambia la larghezza del viso e delle spalle. La prima e' il
  * default, cosi' le facce gia' costruite restano identiche a com'erano. */
 export const FACE_BUILDS = Object.freeze(["normale", "magra", "robusta"]);
 /* I vestiti del busto: la maglietta col colore della persona, la camicia col
  * colletto e i bottoni, la felpa col cappuccio, la giacca col completo — la
  * camicia bianca e la cravatta che prende il colore della persona. */
-export const FACE_OUTFITS = Object.freeze(["maglietta", "camicia", "felpa", "giacca"]);
+export const FACE_OUTFITS = Object.freeze([
+  "maglietta",
+  "polo",
+  "camicia",
+  "maglione",
+  "felpa",
+  "giacca",
+  "gilet",
+]);
 
 const pickKey = (value, catalog) => {
   const keys = Array.isArray(catalog) ? catalog : Object.keys(catalog);
@@ -188,7 +204,8 @@ function hairPaths(style, color, gradId) {
       return {
         back:
           `<path d="M27 92 C23 54 30 18 60 17 C90 18 97 54 93 92 C90 97 86 96 84 92 C82 96 78 96 76 92 C74 96 70 96 68 92 C66 96 54 96 52 92 C50 96 46 96 44 92 C42 96 38 96 36 92 C34 96 30 97 27 92 Z" fill="${paint}"/>` +
-          `<path d="M33 48 C33 68 34 80 36 90 M87 48 C87 68 86 80 84 90" stroke="${scuro}" stroke-width="2" stroke-linecap="round" fill="none" opacity=".45"/>` +
+          `<path d="M31 52 C29 70 31 84 35 93 M89 52 C91 70 89 84 85 93" stroke="${scuro}" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".4"/>` +
+          `<path d="M36 58 C34 74 36 86 39 93" stroke="${luce}" stroke-width="1.8" stroke-linecap="round" fill="none" opacity=".35"/>` +
           ciocca("M31 60 C31 72 32 82 34 89", 0.35) +
           ciocca("M89 60 C89 72 88 82 86 89", 0.35),
         front:
@@ -216,6 +233,51 @@ function hairPaths(style, color, gradId) {
           ciocca("M46 21 C52 16 63 15 71 19") +
           ciocca("M36 40 C38 32 43 26 49 23", 0.4) +
           ciocca("M84 44 C83 36 79 29 73 24", 0.4),
+      };
+    case "coda":
+      /* La coda: la massa raccolta all'indietro e il codino che scende dietro
+       * la spalla, con l'elastico che si vede. */
+      return {
+        back:
+          `<path d="M74 32 C88 34 95 48 93 66 C92 78 88 88 84 94 C86 82 86 68 82 58 C78 48 74 40 74 32 Z" fill="${paint}"/>` +
+          `<ellipse cx="79" cy="38" rx="4.6" ry="3.2" fill="${scuro}"/>`,
+        front:
+          front(
+            "M31 46 C29 23 45 12 60 12 C77 12 90 22 89 44 C86 33 80 26 69 25 C56 23 44 27 39 34 C35 39 32 42 31 46 Z",
+          ) +
+          ciocca("M40 27 C48 19 60 16 70 19") +
+          ciocca("M36 35 C42 28 50 24 58 23", 0.4),
+      };
+    case "afro":
+      /* La corona piena: cerchi grandi che si toccano, con la luce sopra. */
+      return {
+        back: `<circle cx="60" cy="30" r="31" fill="${scuro}"/>`,
+        front:
+          `<circle cx="38" cy="30" r="15" fill="${paint}"/><circle cx="60" cy="20" r="17" fill="${paint}"/>` +
+          `<circle cx="82" cy="30" r="15" fill="${paint}"/><circle cx="30" cy="45" r="11" fill="${paint}"/>` +
+          `<circle cx="90" cy="45" r="11" fill="${paint}"/>` +
+          `<path d="M31 47 C34 36 45 30 60 30 C75 30 86 36 89 47 C84 39 74 35 60 35 C46 35 36 39 31 47 Z" fill="${paint}"/>` +
+          `<circle cx="48" cy="20" r="2.6" fill="${luce}" opacity=".5"/><circle cx="66" cy="15" r="3" fill="${luce}" opacity=".5"/>`,
+      };
+    case "pettinato":
+      /* La riga di lato, tirata all'indietro: una calotta piena che copre la
+       * fronte fino alle tempie, con la scriminatura a sinistra e la luce che
+       * corre sull'onda. E' il taglio del personaggio in giacca. */
+      return {
+        back: `<path d="M30 44 C30 20 44 11 60 11 C77 11 90 20 90 44 C90 34 84 26 74 22 C64 18 46 20 38 28 C33 33 30 38 30 44 Z" fill="${scuro}"/>`,
+        front:
+          front(
+            "M29 47 C28 21 44 10 61 10 C79 10 91 21 91 46 C88 36 84 29 77 25 C70 21 61 20 54 23 C61 27 64 32 63 38 C57 30 48 28 41 32 C35 35 31 41 29 47 Z",
+          ) +
+          ciocca("M44 22 C53 16 66 15 76 20") +
+          ciocca("M40 30 C49 23 62 21 73 25", 0.45) +
+          ciocca("M36 38 C43 32 52 29 60 30", 0.3),
+      };
+    case "calvo":
+      /* Niente capelli: solo la luce sulla testa, che senza di loro si vede. */
+      return {
+        back: "",
+        front: `<ellipse cx="52" cy="26" rx="13" ry="6" fill="#fff" opacity=".16"/>`,
       };
     case "chignon":
       return {
@@ -302,6 +364,18 @@ function beardMarkup(style, color) {
   const scuro = darken(color, 0.78);
   const pelo = (d) =>
     `<path d="${d}" stroke="${scuro}" stroke-width="1.1" stroke-linecap="round" fill="none" opacity=".55"/>`;
+  if (style === "incolta")
+    /* L'ombra di barba: non un blocco pieno, una velatura fitta di puntini
+     * sul mento e sulle guance — quella di chi non si e' rasato da due
+     * giorni. */
+    return (
+      `<path d="M33 54 C34 82 46 92 60 92 C74 92 86 82 87 54 C85 76 73 84 60 84 C47 84 35 76 33 54 Z" fill="${color}" opacity=".34"/>` +
+      `<path d="M45 66 C49 60 57 61 60 64 C63 61 71 60 75 66 C71 69 63.5 68 60 65.5 C56.5 68 49 69 45 66 Z" fill="${color}" opacity=".5"/>` +
+      pelo("M44 70 C45 74 47 78 50 81") +
+      pelo("M76 70 C75 74 73 78 70 81") +
+      pelo("M56 84 L56.4 88") +
+      pelo("M64 84 L63.6 88")
+    );
   if (style === "baffi")
     return (
       `<path d="M45 66 C49 59.5 57 60.5 60 64 C63 60.5 71 59.5 75 66 C71 69.5 63.5 68.5 60 65.5 C56.5 68.5 49 69.5 45 66 Z" fill="${color}"/>` +
@@ -337,6 +411,13 @@ function glassesMarkup(style) {
       `<g stroke="#243244" stroke-width="2.6" fill="none">` +
       `<circle cx="46.5" cy="54" r="10.5"/><circle cx="73.5" cy="54" r="10.5"/>` +
       `<path d="M56.5 53 C58.2 51 61.8 51 63.5 53"/><path d="M36.5 52.5 L30.5 49.5"/><path d="M83.5 52.5 L89.5 49.5"/></g>`
+    );
+  if (style === "squadrati")
+    return (
+      `<g stroke="#243244" stroke-width="2.6" fill="none">` +
+      `<rect x="35.5" y="45.5" width="22" height="17" rx="4.5"/><rect x="62.5" y="45.5" width="22" height="17" rx="4.5"/>` +
+      `<path d="M57.5 53 C58.6 51.4 61.4 51.4 62.5 53"/><path d="M35.5 51 L30 48.5"/><path d="M84.5 51 L90 48.5"/></g>` +
+      `<path d="M38 48 L44 46" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".55"/>`
     );
   if (style === "sole")
     return (
@@ -379,18 +460,56 @@ function outfitMarkup(style, fill, shape) {
           `<circle cx="53.5" cy="112.4" r="1.1" fill="#fff" opacity=".7"/><circle cx="66.5" cy="112.4" r="1.1" fill="#fff" opacity=".7"/>`,
       };
     case "giacca":
+      /* Il completo: giacca scura, camicia bianca aperta a V, cravatta piena
+       * col nodo — la stessa che porta il personaggio del riferimento. */
       return {
         base:
           `<path d="${shape.bust}" fill="#2f3a48"/><path d="${shape.bust}" fill="url(#dmFaceBust)"/>` +
-          `<path d="M50 92 L60 113 L70 92 L70 124 L50 124 Z" fill="#f4f6f9"/>`,
+          `<path d="M47 90 L60 110 L73 90 L73 124 L47 124 Z" fill="#f6f8fb"/>`,
         front:
-          `<path d="M51 90 L60 112 L69 90 L69.5 93 L60 115 L50.5 93 Z" fill="#dfe4ec"/>` +
-          `<path d="M56.6 92.5 L63.4 92.5 L60 98 Z" fill="${fill}"/>` +
-          `<path d="M57.6 97.5 L62.4 97.5 L64.6 114 L60 120 L55.4 114 Z" fill="${fill}"/>` +
-          `<path d="M58.8 99 L59.6 112" stroke="#fff" stroke-width="1.1" stroke-linecap="round" opacity=".3"/>` +
-          `<path d="M46 89 C50 100 55 107 59.4 111 L51.6 91.5 Z" fill="#3b4756"/>` +
-          `<path d="M74 89 C70 100 65 107 60.6 111 L68.4 91.5 Z" fill="#3b4756"/>` +
-          `<path d="M46 89 C50 100 55 107 59.4 111 M74 89 C70 100 65 107 60.6 111" stroke="#232d39" stroke-width="1" fill="none" opacity=".6"/>`,
+          // il colletto della camicia
+          `<path d="M48 88 L60 106 L72 88 L74.5 91 L60 111 L45.5 91 Z" fill="#e6eaf1"/>` +
+          // i revers della giacca, larghi
+          `<path d="M43 87 C42 100 45 113 48 124 L36 124 C33 108 34 95 38 86 Z" fill="#3b4756"/>` +
+          `<path d="M77 87 C78 100 75 113 72 124 L84 124 C87 108 86 95 82 86 Z" fill="#3b4756"/>` +
+          `<path d="M44 88 C48 98 54 106 59 111 L52 90 Z" fill="#26303c"/>` +
+          `<path d="M76 88 C72 98 66 106 61 111 L68 90 Z" fill="#26303c"/>` +
+          // la cravatta: nodo e lama
+          `<path d="M55.6 92 L64.4 92 L62.6 99 L57.4 99 Z" fill="${fill}"/>` +
+          `<path d="M57.4 99 L62.6 99 L65 116 L60 123 L55 116 Z" fill="${fill}"/>` +
+          `<path d="M55.6 92 L64.4 92 L62.6 99 L57.4 99 Z" fill="#000" opacity=".12"/>` +
+          `<path d="M59 101 L59.6 115" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity=".28"/>`,
+      };
+    case "polo":
+      /* La polo: il colletto morbido e i due bottoni aperti. */
+      return {
+        base: busto,
+        front:
+          `<path d="M50 90 L60 99 L70 90 L67.5 88 L60 95 L52.5 88 Z" fill="#fff" opacity=".55"/>` +
+          `<path d="M52 88 L60 96 L54.5 100 L47 92 Z" fill="#000" opacity=".12"/>` +
+          `<path d="M68 88 L60 96 L65.5 100 L73 92 Z" fill="#000" opacity=".12"/>` +
+          `<circle cx="60" cy="103" r="1.3" fill="#fff" opacity=".75"/><circle cx="60" cy="109" r="1.3" fill="#fff" opacity=".75"/>`,
+      };
+    case "maglione":
+      /* Il maglione: il collo alto a coste e la trama in rilievo. */
+      return {
+        base: busto + `<path d="M30 112 L90 112" stroke="#000" stroke-width="1" opacity=".08"/>`,
+        front:
+          `<path d="M46 90 C50 84 70 84 74 90 C74 96 70 99 60 99 C50 99 46 96 46 90 Z" fill="#000" opacity=".16"/>` +
+          `<path d="M47 92 C51 87 69 87 73 92" stroke="#fff" stroke-width="1.4" fill="none" opacity=".35"/>` +
+          `<path d="M40 104 L44 118 M52 104 L54 118 M68 104 L66 118 M80 104 L76 118"
+             stroke="#000" stroke-width="1.2" opacity=".08"/>`,
+      };
+    case "gilet":
+      /* Il gilet sopra la camicia: due lembi scuri e il colletto chiaro. */
+      return {
+        base: busto + `<path d="M48 92 L60 104 L72 92 L72 124 L48 124 Z" fill="#f4f6f9"/>`,
+        front:
+          `<path d="M46 89 C40 96 38 110 39 124 L52 124 L58 100 Z" fill="#000" opacity=".26"/>` +
+          `<path d="M74 89 C80 96 82 110 81 124 L68 124 L62 100 Z" fill="#000" opacity=".26"/>` +
+          `<path d="M49 90 L60 102 L71 90 L69 88 L60 98 L51 88 Z" fill="#fff" opacity=".7"/>` +
+          `<circle cx="60" cy="110" r="1.4" fill="#334155" opacity=".55"/>` +
+          `<circle cx="60" cy="118" r="1.4" fill="#334155" opacity=".55"/>`,
       };
     case "maglietta":
     default:
