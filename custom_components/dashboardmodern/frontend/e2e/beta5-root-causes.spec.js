@@ -213,9 +213,20 @@ for (const variant of PRIMARY) {
     await brandPreview.click();
     const picker = page.locator('#dm-visual-picker[data-kind="car"]');
     await expect(picker).toBeVisible();
-    const realBrandImages = picker.locator(".dm-car-brand img[data-dm-brand-image]");
-    await expect(realBrandImages.first()).toHaveAttribute("src", /simple-icons@16\.27\.1/);
+    /* Il marchio non e' piu' un `<img>` che punta a un CDN.
+     *
+     * Le figure stanno nel repository, servite da Home Assistant, e si
+     * disegnano come maschera: un SVG dentro un `<img>` e' un documento a
+     * parte e non vede il colore di chi lo ospita, quindi resterebbe nero.
+     * Su una rete di casa senza uscita verso internet, poi, un logo preso da
+     * un CDN non arriva — e un'immagine che non arriva non fa rumore. */
+    const realBrandImages = picker.locator(".dm-car-brand [data-dm-brand-image]");
     expect(await realBrandImages.count()).toBeGreaterThan(20);
+    await expect(realBrandImages.first()).toHaveAttribute("style", /brands\/[a-z0-9-]+\.svg/);
+    for (const stile of await realBrandImages.evaluateAll((nodi) =>
+      nodi.map((nodo) => nodo.getAttribute("style") || ""),
+    ))
+      expect(stile, "nessun marchio arriva dalla rete").not.toMatch(/https?:/);
     const leap = picker.locator(".dm-picker-option", { hasText: "Leapmotor" });
     const leapMark = leap.locator(
       '.dm-leapmotor-mark[data-brand="leapmotor"][data-brand-source="inline"]',
