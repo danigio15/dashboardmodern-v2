@@ -83,3 +83,69 @@ test("con la rete staccata i loghi dei marchi si vedono lo stesso", async ({ pag
    * non arriva — ed e' esattamente com'era. */
   expect(esito.colorati).toBeGreaterThan(5);
 });
+
+test("nel catalogo ogni marchio porta il SUO colore, non un inchiostro solo", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  /* «perche' leapmotor e' blu, devono essere tutti dello stesso colore — e se
+   * riesci a metterci il loro colore vero, meglio». Il colore vero c'era, nel
+   * disegno: ma una regola marcata importante — dell'epoca in cui i loghi
+   * arrivavano da un CDN come immagini da normalizzare — li ridipingeva tutti
+   * dello stesso grigio prima che si vedessero. Il colore giusto scritto e
+   * mai mostrato e' come non averlo. */
+  await page.route("https://**", (route) => route.abort());
+  await bootNamespacedDashboard(page, "dashboard.html", testInfo, {
+    ...seme,
+    sections: {
+      ...seme.sections,
+      ev: [
+        {
+          name: "B10",
+          uid: "b10",
+          brand: "Leapmotor",
+          model: "B10",
+          ov: { "dm.ev_batteria_auto": "sensor.b" },
+        },
+      ],
+    },
+  });
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  await page.waitForTimeout(2500);
+  await page.evaluate(() => {
+    document
+      .querySelector("#ed-body [data-ev-appearance]")
+      ?.closest("details")
+      ?.setAttribute("open", "");
+  });
+  await page
+    .locator("#ed-body [data-brand-preview]")
+    .first()
+    .evaluate((n) => n.click());
+  await expect(page.locator('#dm-visual-picker[data-kind="car"]')).toBeVisible();
+
+  const colori = await page.evaluate(() =>
+    [...document.querySelectorAll("#dm-visual-picker .dm-picker-option")]
+      .map((opzione) => {
+        const marchio = opzione.querySelector(".dm-car-brand");
+        if (!marchio) return null;
+        const scritto = (marchio.getAttribute("style") || "").match(/color:\s*(#[0-9a-f]{3,8})/i);
+        return scritto
+          ? {
+              nome: opzione.querySelector("b")?.textContent,
+              calcolato: getComputedStyle(marchio).color,
+            }
+          : null;
+      })
+      .filter(Boolean),
+  );
+  expect(colori.length, "ci sono marchi con un colore dichiarato").toBeGreaterThan(10);
+  /* Nessuno di quelli che un colore ce l'ha finisce dell'inchiostro unico. */
+  const spenti = colori.filter((voce) => voce.calcolato === "rgb(17, 24, 39)");
+  expect(spenti, "nessun marchio viene ridipinto dell'inchiostro unico").toEqual([]);
+  /* E non sono tutti uguali fra loro: e' il punto. */
+  expect(new Set(colori.map((voce) => voce.calcolato)).size).toBeGreaterThan(5);
+});

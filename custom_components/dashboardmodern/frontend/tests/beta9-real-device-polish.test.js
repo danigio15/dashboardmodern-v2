@@ -39,7 +39,19 @@ test("EV brand dropdown owns logo preview and model options, and not its place",
   assert.match(source, /modelSelect\.innerHTML = modelOptions\(brand, keep\)/);
   assert.match(source, /"Leapmotor": \["T03", "B10", "C10", "C10 REEV"\]/);
   assert.match(source, /"MINI": \["Cooper Electric", "Aceman", "Countryman Electric"\]/);
-  assert.match(source, /filter:grayscale\(1\) brightness\(0\)!important/);
+  /* Lo sbiancamento non c'e' piu', ed e' voluto.
+   *
+   * Serviva quando i loghi arrivavano da un CDN come immagini di provenienza
+   * incerta: si normalizzavano a un inchiostro solo. Adesso le figure stanno
+   * in casa e si disegnano come maschera, ognuna col colore vero del suo
+   * marchio — e ridipingerle tutte uguali era esattamente cio' che era stato
+   * chiesto di non fare. */
+  assert.doesNotMatch(source, /filter:grayscale\(1\) brightness\(0\)/);
+  assert.doesNotMatch(
+    source,
+    /#dm-visual-picker\[data-kind="car"\] \.dm-car-brand\{\s*color:/,
+    "il marchio nel catalogo tiene il colore che si e' dato",
+  );
   assert.match(source, /dm-v10-brand-wordmark/);
 });
 

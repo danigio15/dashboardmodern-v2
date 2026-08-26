@@ -261,10 +261,19 @@ for (const variant of PRIMARY) {
         }),
       ),
     ).toBe(true);
+    /* Un colore per marchio, non un inchiostro per tutti.
+     *
+     * Questo contratto chiedeva esattamente il contrario — un solo colore su
+     * tutta la griglia — e aveva senso quando i loghi arrivavano da un CDN
+     * come immagini di provenienza incerta, da normalizzare. Adesso le figure
+     * stanno nel repository e ognuna porta il colore vero della sua casa:
+     * «se riesci a metterci il loro colore reale, meglio». Quelli che un
+     * colore leggibile non ce l'hanno — i marchi sostanzialmente neri —
+     * restano senza apposta, e seguono l'inchiostro di dove stanno. */
     const brandColors = await brandPicker
       .locator(".dm-car-brand")
       .evaluateAll((nodes) => [...new Set(nodes.map((node) => getComputedStyle(node).color))]);
-    expect(brandColors).toHaveLength(1);
+    expect(brandColors.length).toBeGreaterThan(5);
     await brandPicker.locator("[data-close]").click();
 
     await openEditor(page, "stanze");

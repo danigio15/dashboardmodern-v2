@@ -636,20 +636,19 @@ function installStyles() {
       font-size:38px!important;line-height:1!important
     }
 
+    /* Il marchio porta il suo colore, e qui non glielo si toglie piu'.
+     *
+     * Queste righe sono di quando i loghi arrivavano da un CDN come immagini:
+     * si normalizzava tutto a un inchiostro solo, e le figure si scolorivano a
+     * forza. Da quando le figure stanno in casa e si disegnano come maschera,
+     * ognuna sa gia' di che colore e' — quello vero del marchio — e chi non ne
+     * ha uno leggibile su fondo scuro apposta non lo dichiara, cosi' segue il
+     * tema. Una regola di colore marcata importante, qui sopra, li rimetteva
+     * tutti e trentotto dello stesso grigio: esattamente cio' che era stato
+     * chiesto di non fare. Della pastiglia si tiene solo il fondo bianco. */
     [data-ev-appearance] .dm-brand-preview,
     #dm-visual-picker[data-kind="car"] .dm-picker-visual{
-      background:#fff!important;color:#111827!important
-    }
-    [data-ev-appearance] .dm-car-brand,
-    #dm-visual-picker[data-kind="car"] .dm-car-brand,
-    #ev-car-picker .dm-car-brand{
-      color:#111827!important
-    }
-    [data-ev-appearance] img[data-dm-brand-image],
-    #dm-visual-picker[data-kind="car"] img[data-dm-brand-image],
-    #ev-car-picker img[data-dm-brand-image]{
-      display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;
-      object-fit:contain!important;object-position:center!important;filter:grayscale(1) brightness(0)!important;opacity:1!important
+      background:#fff!important
     }
     #dm-visual-picker[data-kind="car"] .dm-picker-option{
       min-height:116px!important;padding:12px 9px!important;overflow:hidden!important
