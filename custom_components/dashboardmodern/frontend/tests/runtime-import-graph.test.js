@@ -324,14 +324,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // 156 con le linguette degli impianti: la pagina Energia non cambia di una
   // virgola, si aggiunge una riga sopra per scegliere quale casa si sta
   // guardando — e con una casa sola quella riga non compare affatto.
-  // 156: `core/vehicle-identity.js` se n'e' andato. Era l'argine contro
-  // `edEvCarAdd` del runtime vendorizzato — centonovantaquattro righe per
-  // rimettere a un'auto quello che quella chiamata le toglieva. Adesso il
-  // salvataggio e' nostro e non toglie niente, quindi non c'e' niente da
-  // rimettere. Restano `vehicle-photos` (le foto si scelgono ancora dal
-  // pannello vecchio) ed `ev-console`, che argine non e' mai stato: dice se
-  // la console di ricarica evcc e' configurata, ed e' roba sua.
-  assert.ok(relative.length <= 156, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 155: se ne sono andati tutti e due gli argini della EV.
+  // `vehicle-identity.js` rimetteva a un'auto quello che `edEvCarAdd` del
+  // runtime le toglieva; `vehicle-photos.js` decideva di chi fosse una foto
+  // quando la stessa foto viveva in due posti. Adesso il salvataggio e' nostro
+  // e non toglie niente, e la foto sta nel profilo: non c'e' piu' niente da
+  // rimettere ne' da contendersi. `ev-console.js` resta perche' argine non e'
+  // mai stato: dice se la console di ricarica evcc e' configurata.
+  assert.ok(relative.length <= 155, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

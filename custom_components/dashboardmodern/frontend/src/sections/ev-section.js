@@ -1,14 +1,16 @@
 import { carBrandVisual } from "../core/personalization-catalog.js";
-import { adoptLoosePhotos, photosForProfile, withProfilePhotos } from "../core/vehicle-photos.js";
 import {
   VEHICLE_KEY_FIELD,
   VEHICLE_OVERRIDES_FIELD,
+  VEHICLE_PHOTO_FIELDS,
   nuovoVeicolo,
   pickVehicle,
   storedVehicles,
   updateVehicle,
   vehicleIndex,
   vehicleList,
+  vehiclePhoto,
+  vehiclePhotos,
 } from "../core/vehicle-model.js";
 import { pickMediaImage } from "./media-picker-section.js";
 import { allStates, clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, section, setLexicalGlobal, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
@@ -140,8 +142,20 @@ export function vehiclePlugged() {
   return state.lastPlugged;
 }
 
-/** The photo the hero should be showing right now. */
+/* La foto che l'eroe deve mostrare adesso.
+ *
+ * La leggeva dalle due caselle sciolte, che sono una COPIA: qualcuno doveva
+ * tenerle allineate all'auto in uso, e per farlo c'erano una risemina all'avvio
+ * e una riscrittura a ogni cambio d'auto. Bastava che una delle due non
+ * scattasse — un ricaricamento della pagina, per dirne una — e nelle caselle
+ * restava la foto dell'altra vettura. Da qui la foto che cambiava da sola.
+ *
+ * Adesso si legge il profilo, che e' la fonte. Le caselle restano il ripiego di
+ * una configurazione a una macchina sola che non ha mai portato la sua foto
+ * dentro al profilo: li' sono ancora casa sua. */
 export function activeVehiclePhoto(photos = configuredPhotos(), plugged = vehiclePlugged()) {
+  const sua = vehiclePhoto(activeVehicle(), plugged);
+  if (sua) return sua;
   const chosen = plugged ? photos.plugged || photos.idle : photos.idle || photos.plugged;
   return clean(chosen);
 }
@@ -347,8 +361,7 @@ export function vehiclePhotoTargetIndex(cars = profiles()) {
 function fotoDelProfiloAttivo() {
   const elenco = profiles();
   if (!elenco.length) return configuredPhotos();
-  const indice = Math.max(0, Math.min(elenco.length - 1, activeIndex()));
-  return photosForProfile(elenco[indice], configuredPhotos(), elenco.length);
+  return fotoDi(elenco[Math.max(0, Math.min(elenco.length - 1, activeIndex()))], elenco.length);
 }
 
 /* Le foto che il PANNELLO mostra e salva: quelle dell'auto aperta. */
@@ -357,7 +370,21 @@ function fotoDelProfiloInModifica() {
   if (!elenco.length) return configuredPhotos();
   const indice = vehiclePhotoTargetIndex(elenco);
   if (indice < 0) return { idle: "", plugged: "" };
-  return photosForProfile(elenco[indice], configuredPhotos(), elenco.length);
+  return fotoDi(elenco[indice], elenco.length);
+}
+
+/* Le foto di UN profilo.
+ *
+ * Con una macchina sola le due caselle sono ancora casa sua: un profilo senza
+ * foto tiene quella che c'era, ed e' quello che ogni configurazione a una
+ * vettura ha sempre fatto. Da due in su no — se il profilo non ha una foto,
+ * quell'auto non ha una foto, e mostrarle quella dell'altra e' come scriverle
+ * il nome dell'altra. Era questo a far sembrare le due auto la stessa. */
+function fotoDi(car, quante = profiles().length) {
+  const proprie = vehiclePhotos(car);
+  if (quante > 1) return proprie;
+  const caselle = configuredPhotos();
+  return { idle: proprie.idle || caselle.idle, plugged: proprie.plugged || caselle.plugged };
 }
 
 export function ensureVehiclePhotoEditor() {
@@ -1038,8 +1065,14 @@ function storePhoto(key, url) {
   root.localStorage?.setItem(key, JSON.stringify(next));
 }
 
+/* Le due caselle sciolte restano scritte, ma non comandano piu' niente.
+ *
+ * Il disegno adesso legge il profilo. Queste si continuano ad allineare solo
+ * perche' il runtime vendorizzato e il selettore nativo le leggono ancora in
+ * qualche giro: sono una copia, e una copia non e' piu' l'unica verita'. Il
+ * giorno che nessuno le legge piu', questa funzione se ne va da sola. */
 function restoreProfilePhotos(car, before, profileCount = profiles().length) {
-  const mostra = photosForProfile(car, before, profileCount);
+  const mostra = fotoDi(car, profileCount);
   storePhoto(EV_PHOTO_KEYS.idle, mostra.idle);
   storePhoto(EV_PHOTO_KEYS.plugged, mostra.plugged);
 }
@@ -1116,7 +1149,12 @@ function saveProfilePhotos(photos) {
    * risalvando le foto giuste su ciascuna auto, col pannello che adesso
    * dichiara a chi sta scrivendo — e la resurrezione dagli alias e' chiusa
    * alla fonte. */
-  const aggiornate = withProfilePhotos(cars, posizione, photos);
+  const bersaglio = cars[posizione];
+  if (!bersaglio) return false;
+  const aggiornate = updateVehicle(cars, uidDi(bersaglio), {
+    [VEHICLE_PHOTO_FIELDS.idle]: clean(photos.idle),
+    [VEHICLE_PHOTO_FIELDS.plugged]: clean(photos.plugged),
+  });
   if (aggiornate === cars) return false;
   salvaAuto(aggiornate);
   return true;
@@ -1146,7 +1184,19 @@ function adoptExistingPhotos() {
   if (!cars.length) return false;
   if (root.localStorage?.getItem(PHOTO_MIGRATION_KEY) === "1") return false;
   root.localStorage?.setItem(PHOTO_MIGRATION_KEY, "1");
-  const aggiornate = adoptLoosePhotos(cars, Math.max(0, activeIndex()), configuredPhotos());
+  /* Il travaso una-tantum: una configurazione a una macchina sola tiene la
+   * foto solo nelle caselle, e da li' deve salire dentro al profilo — che da
+   * adesso e' la fonte. Si scrive solo dove il profilo non ha gia' la sua. */
+  const caselle = configuredPhotos();
+  const posto = Math.max(0, activeIndex());
+  const attiva = cars[posto];
+  const aggiornate =
+    attiva && (!vehiclePhotos(attiva).idle || !vehiclePhotos(attiva).plugged)
+      ? updateVehicle(cars, uidDi(attiva), {
+          [VEHICLE_PHOTO_FIELDS.idle]: vehiclePhotos(attiva).idle || caselle.idle,
+          [VEHICLE_PHOTO_FIELDS.plugged]: vehiclePhotos(attiva).plugged || caselle.plugged,
+        })
+      : cars;
   if (aggiornate === cars) return false;
   salvaAuto(aggiornate);
   return true;
