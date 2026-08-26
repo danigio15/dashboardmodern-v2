@@ -3425,6 +3425,7 @@ const CD_SLOTS = {
         { ref: 'dm.ev_autonomia_al_limite_di_carica',  lbl: 'Autonomia al limite di carica (km)' },
         { ref: 'dm.ev_km_dall_ultima_ricarica', lbl: 'Km dall\'ultima ricarica' },
         { ref: 'dm.ev_stato_ricarica',   lbl: 'Stato ricarica (testo)' },
+        { ref: 'dm.ev_cavo_collegato',   lbl: 'Cavo collegato (binary_sensor)' },
         { ref: 'dm.ev_modalita_ricarica_evcc',        lbl: 'Modalità ricarica EVCC (select)' },
         { ref: 'dm.ev_target_soc',           lbl: 'Target SOC (select)' },
         { ref: 'dm.ev_energia_sessione',           lbl: 'Energia sessione (kWh)' },

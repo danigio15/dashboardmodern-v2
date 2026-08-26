@@ -252,7 +252,6 @@ export default Object.freeze({
     "사진이 있으면 아바타는 표시되지 않습니다. 사진이 우선입니다.",
   "just now": "방금",
   "— Choose —": "— 선택 —",
-  "— Choose model —": "— 모델 선택 —",
   "— kWh from PV": "— 태양광에서 kWh",
   "— kWh from the grid": "— 계통에서 kWh",
   ".": ".",
@@ -1493,4 +1492,6 @@ export default Object.freeze({
   "the other plants have their own, and this save does not touch them":
     "다른 설비에는 각자의 부하가 있으며, 이 저장은 그것들을 건드리지 않습니다",
   "Choose brand": "브랜드 선택",
+  cleaning: "청소 중",
+  "lowest charge": "가장 낮은 충전량",
 });

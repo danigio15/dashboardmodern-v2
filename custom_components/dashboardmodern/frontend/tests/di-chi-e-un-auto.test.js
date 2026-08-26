@@ -253,3 +253,26 @@ test("il nome del marchio non finisce dentro l'icona", async () => {
   assert.match(canonico, /aria-label="\$\{item\.name\}"/);
   assert.doesNotMatch(canonico, /onerror/);
 });
+
+test("se il cavo lo dice un sensore, non si indovina piu'", async () => {
+  /* La plancia deduceva il cavo attaccato dal testo dello stato di ricarica e,
+   * in mancanza, dalla potenza del wallbox. Sono indizi: un wallbox fermo a
+   * zero watt col cavo dentro e l'auto piena veniva letto come cavo staccato,
+   * e la foto dell'auto tornava a quella di riposo da sola.
+   *
+   * Quasi tutte le wallbox pubblicano un sensore che lo dice davvero. Adesso
+   * si puo' dichiarare, e allora si crede a lui. */
+  const sezione = await readFile(new URL("../src/sections/ev-section.js", import.meta.url), "utf8");
+  const corpo = sezione.match(/export function vehiclePlugged\(\)[\s\S]*?\n\}/)[0];
+  const primaRiga = corpo.indexOf("dm.ev_cavo_collegato");
+  const indizio = corpo.indexOf("dm.ev_stato_ricarica");
+  assert.ok(primaRiga > 0, "il sensore del cavo si legge");
+  assert.ok(primaRiga < indizio, "e si legge PRIMA degli indizi, o non servirebbe a niente");
+
+  /* E la casella c'e' davvero nel modulo: un riferimento che nessuno puo'
+   * mappare e' un riferimento che nessuno usera' mai. */
+  for (const runtime of ["dashboard-runtime-it.js", "dashboard-runtime-en.js"]) {
+    const sorgente = await readFile(new URL(`../legacy/${runtime}`, import.meta.url), "utf8");
+    assert.match(sorgente, /ref: 'dm\.ev_cavo_collegato'/, runtime);
+  }
+});

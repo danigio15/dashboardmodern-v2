@@ -248,7 +248,6 @@ export default Object.freeze({
   "With a photo the avatar is not shown: the photo wins.": "有照片时不显示头像：照片优先。",
   "just now": "刚刚",
   "— Choose —": "— 选择 —",
-  "— Choose model —": "— 选择车型 —",
   "— kWh from PV": "— 来自光伏的 kWh",
   "— kWh from the grid": "— 来自电网的 kWh",
   ".": "。",
@@ -1473,4 +1472,6 @@ export default Object.freeze({
   "the other plants have their own, and this save does not touch them":
     "其他设备各有自己的负载，此次保存不会改动它们",
   "Choose brand": "选择品牌",
+  cleaning: "清扫中",
+  "lowest charge": "最低电量",
 });

@@ -254,7 +254,6 @@ export default Object.freeze({
     "Com uma foto o avatar não aparece: a foto ganha.",
   "just now": "agora mesmo",
   "— Choose —": "— Escolher —",
-  "— Choose model —": "— Escolher modelo —",
   "— kWh from PV": "— kWh do FV",
   "— kWh from the grid": "— kWh da rede",
   ".": ".",
@@ -1508,4 +1507,6 @@ export default Object.freeze({
   "the other plants have their own, and this save does not touch them":
     "As outras instalações têm as suas, e esta gravação não lhes toca",
   "Choose brand": "Escolhe a marca",
+  cleaning: "a limpar",
+  "lowest charge": "carga mais baixa",
 });

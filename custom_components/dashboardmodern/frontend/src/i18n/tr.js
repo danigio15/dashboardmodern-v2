@@ -253,7 +253,6 @@ export default Object.freeze({
     "Fotoğraf varken avatar görünmez: fotoğraf kazanır.",
   "just now": "az önce",
   "— Choose —": "— Seç —",
-  "— Choose model —": "— Model seç —",
   "— kWh from PV": "— GES'ten kWh",
   "— kWh from the grid": "— şebekeden kWh",
   ".": ".",
@@ -1497,4 +1496,6 @@ export default Object.freeze({
   "the other plants have their own, and this save does not touch them":
     "Diğer tesislerin kendi yükleri var ve bu kayıt onlara dokunmuyor",
   "Choose brand": "Marka seçin",
+  cleaning: "temizliyor",
+  "lowest charge": "en düşük şarj",
 });

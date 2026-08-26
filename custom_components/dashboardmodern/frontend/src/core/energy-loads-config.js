@@ -104,6 +104,12 @@ function normalizeChild(child = {}, index = 0, source = "load") {
     daily: clean(child.daily ?? child.daily_energy_entity),
     monthly: clean(child.monthly ?? child.monthly_energy_entity),
     total: clean(child.total ?? child.total_energy_entity),
+    /* Che elettrodomestico e'.
+     *
+     * Serve a disegnarlo come lo disegna la sua sezione: la lavatrice ha un
+     * suo ritratto nel catalogo, e qui usciva un'emoji. Due sezioni che
+     * parlano della stessa lavatrice devono mostrare la stessa lavatrice. */
+    visual: clean(child.visual_key || child.visual || child.device_type || child.type),
   };
 }
 

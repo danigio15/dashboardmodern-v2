@@ -254,7 +254,6 @@ export default Object.freeze({
     "Ze zdjęciem awatar się nie pokazuje: zdjęcie wygrywa.",
   "just now": "przed chwilą",
   "— Choose —": "— Wybierz —",
-  "— Choose model —": "— Wybierz model —",
   "— kWh from PV": "— kWh z PV",
   "— kWh from the grid": "— kWh z sieci",
   ".": ".",
@@ -1502,4 +1501,6 @@ export default Object.freeze({
   "the other plants have their own, and this save does not touch them":
     "Pozostałe instalacje mają własne, a ten zapis ich nie narusza",
   "Choose brand": "Wybierz markę",
+  cleaning: "sprzątają",
+  "lowest charge": "najniższy poziom",
 });

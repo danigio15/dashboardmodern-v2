@@ -249,7 +249,6 @@ export default Object.freeze({
     "مع وجود صورة لا تظهر الصورة الرمزية: الصورة تفوز.",
   "just now": "الآن",
   "— Choose —": "— اختر —",
-  "— Choose model —": "— اختر الطراز —",
   "— kWh from PV": "— كيلوواط·ساعة من الشمسية",
   "— kWh from the grid": "— كيلوواط·ساعة من الشبكة",
   ".": ".",
@@ -1490,4 +1489,6 @@ export default Object.freeze({
   "the other plants have their own, and this save does not touch them":
     "المنشآت الأخرى لها أحمالها، وهذا الحفظ لا يمسّها",
   "Choose brand": "اختر العلامة",
+  cleaning: "قيد التنظيف",
+  "lowest charge": "أقل شحن",
 });

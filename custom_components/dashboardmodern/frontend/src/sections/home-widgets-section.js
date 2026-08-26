@@ -33,6 +33,7 @@ import {
   relayCoverCommands,
 } from "../core/cover-kind.js";
 import { normalizeSecurityDoors } from "../core/security-door-model.js";
+import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
 import { loadCameraFrame } from "./live-ui-section.js";
@@ -519,6 +520,57 @@ function evModel(states) {
   };
 }
 
+/* La tessera degli aspirapolvere.
+ *
+ * Il ponte ha una tessera per ogni sezione — luci, clima, tapparelle,
+ * telecamere, energia, piscina, irrigazione — e per gli aspirapolvere no: la
+ * sezione e' arrivata dopo, e nessuno gliel'ha data. Chi ha un robot lo vedeva
+ * in Home solo scendendo fino alla sua pagina.
+ *
+ * Cosa dice: quanti stanno pulendo, o la carica del piu' scarico quando sono
+ * tutti fermi — che e' la domanda che si fa guardando la Home di sfuggita. */
+function robotsModel(states) {
+  const salvati = section("robots", null);
+  const robots = normalizeRobots(
+    Array.isArray(salvati) && salvati.length ? salvati : readJson("cd_robot", []),
+  );
+  const fuori = widgetExcludedEntities();
+  const viste = robots
+    .filter((robot) => clean(robot.entity) && widgetIncludes(clean(robot.entity), fuori))
+    .map((robot) => robotView(robot, states));
+  if (!viste.length) return null;
+
+  const attivi = viste.filter((vista) => vista.cleaning);
+  const cariche = viste.map((vista) => vista.battery).filter((carica) => carica != null);
+  const piuScarico = cariche.length ? Math.min(...cariche) : null;
+  return {
+    key: "robot",
+    accent: "#7c3aed",
+    icon: "🤖",
+    label: t("Aspirapolvere", "Vacuums"),
+    value: attivi.length
+      ? `${attivi.length}`
+      : piuScarico == null
+        ? `${viste.length}`
+        : `${Math.round(piuScarico)}%`,
+    caption: attivi.length
+      ? t("in pulizia", "cleaning")
+      : piuScarico == null
+        ? t("configurati", "configured")
+        : t("carica più bassa", "lowest charge"),
+    /* L'anello racconta la carica solo quando nessuno sta lavorando: mentre
+     * puliscono la notizia e' che stanno pulendo. */
+    ring: attivi.length ? null : piuScarico,
+    rows: viste.map((vista) => ({
+      glyph: vista.cleaning ? "🧹" : vista.charging ? "🔌" : "🤖",
+      name: vista.name,
+      value: vista.battery == null
+        ? robotStateLabel(vista.state)
+        : `${robotStateLabel(vista.state)} · ${Math.round(vista.battery)}%`,
+    })),
+  };
+}
+
 function solarThermalModel(states) {
   const fuori = widgetExcludedEntities();
   const sonde = ["dm.boiler_sonda_temperatura_1", "dm.boiler_sonda_temperatura_2", "dm.boiler_sonda_temperatura_3"]
@@ -805,6 +857,7 @@ function widgetModels(states) {
       appliancesModel(states),
       temperatureModel(states),
       evModel(states),
+      robotsModel(states),
       solarThermalModel(states),
       poolModel(states),
       irrigationModel(states),
@@ -1163,7 +1216,8 @@ function detailBody(widget, states) {
   if (widget.key === "energia") return energyDetail(widget);
   if (widget.key === "elettrodomestici") return appliancesDetail(widget);
   if (widget.key === "temperatura") return temperatureDetail(widget);
-  if (["ev", "solare", "piscina", "irrigazione"].includes(widget.key)) return rowsDetail(widget);
+  if (["ev", "solare", "piscina", "irrigazione", "robot"].includes(widget.key))
+    return rowsDetail(widget);
   if (widget.key === "aperture") return openingsDetail(widget);
   if (widget.key === "batterie") return batteriesDetail(widget);
   if (widget.key === "allagamenti") return floodDetail(widget);

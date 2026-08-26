@@ -17,7 +17,6 @@
 export const MESSAGE_KEYS = Object.freeze([
   " — configured",
   "— Choose —",
-  "— Choose model —",
   "— kWh from PV",
   "— kWh from the grid",
   ".",
@@ -328,6 +327,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Choose where to look",
   "Choose which tiles show on Home and in what order. The alert tiles — openings, batteries, floods and custom alerts — only appear on their own when they have something to say.",
   "CIRCLES UNDER HOME",
+  "cleaning",
   "Cleaning",
   "Clear the period fields",
   "Climate",
@@ -715,6 +715,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Low",
   "Low batteries",
   "Lower the target",
+  "lowest charge",
   "Magenta",
   "Mail",
   "Man",

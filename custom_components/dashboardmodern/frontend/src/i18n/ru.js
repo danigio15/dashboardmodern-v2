@@ -254,7 +254,6 @@ export default Object.freeze({
     "С фото аватар не показывается: фото побеждает.",
   "just now": "только что",
   "— Choose —": "— Выбрать —",
-  "— Choose model —": "— Выберите модель —",
   "— kWh from PV": "— кВт·ч от СЭС",
   "— kWh from the grid": "— кВт·ч из сети",
   ".": ".",
@@ -1502,4 +1501,6 @@ export default Object.freeze({
   "the other plants have their own, and this save does not touch them":
     "У других установок свои нагрузки, и это сохранение их не затрагивает",
   "Choose brand": "Выберите марку",
+  cleaning: "убирают",
+  "lowest charge": "самый низкий заряд",
 });

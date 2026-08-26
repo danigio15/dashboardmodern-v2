@@ -126,6 +126,24 @@ const HA_SILENT_STATES = /^(unknown|unavailable)$/i;
  *
  * Quando ne' il testo ne' la potenza rispondono, resta il verdetto di prima. */
 export function vehiclePlugged() {
+  /* Se il cavo e' attaccato, ADESSO si puo' chiedere.
+   *
+   * Qui sotto si indovina: si legge il testo dello stato di ricarica e, se non
+   * dice niente di utilizzabile, la potenza del wallbox. Sono indizi, e come
+   * tutti gli indizi ogni tanto sbagliano — un wallbox che resta a zero watt
+   * col cavo dentro e l'auto piena viene letto come cavo staccato.
+   *
+   * Chi ha un sensore che lo dice davvero — quasi tutte le wallbox ne
+   * pubblicano uno — adesso puo' dichiararlo, e allora si crede a lui e basta.
+   * Chi non ce l'ha continua come prima: la casella vuota non cambia niente. */
+  const cavo = liveState("dm.ev_cavo_collegato");
+  const dichiarato = clean(cavo?.state).toLowerCase();
+  if (dichiarato && !HA_SILENT_STATES.test(dichiarato)) {
+    if (/^(on|true|1|home|connected|plugged|collegato|attaccato)$/.test(dichiarato))
+      return (state.lastPlugged = true);
+    if (/^(off|false|0|not_home|disconnected|unplugged|scollegato|staccato)$/.test(dichiarato))
+      return (state.lastPlugged = false);
+  }
   const status = clean(liveState("dm.ev_stato_ricarica")?.state);
   if (status && !HA_SILENT_STATES.test(status)) {
     if (UNPLUGGED_STATES.test(status) || UNPLUGGED_WORDS.test(status)) return (state.lastPlugged = false);

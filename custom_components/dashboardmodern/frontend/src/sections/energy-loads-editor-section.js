@@ -15,6 +15,7 @@
  * are re-derived from it on save. Event driven: no polling, no observer.
  */
 import { openIconPicker } from "./icon-engine-section.js";
+import { applianceArtwork } from "../core/appliance-artwork.js";
 import { IMPIANTO_SCELTO_KEY, PRIMO_IMPIANTO, plantAt, plantLabel } from "../core/energy-plants.js";
 import { createEntityPickerField } from "../core/renderers.js";
 import {
@@ -208,9 +209,23 @@ function subloadRow(panel, load, child, index) {
   const row = element("article", "ed-row dm-loads-subload");
   row.dataset.dmSubload = child.id;
   row.dataset.dmSubloadSource = child.source || "load";
+  /* Lo stesso elettrodomestico, disegnato allo stesso modo.
+   *
+   * Qui usciva il carattere scritto nel campo — un'emoji — mentre la sezione
+   * Elettrodomestici disegna il ritratto del catalogo. La stessa lavatrice
+   * aveva due facce a seconda di dove la si guardava, e chi configura non ha
+   * modo di sapere che sono la stessa. Quando il tipo si conosce si chiede il
+   * ritratto a chi lo possiede; per tutto il resto resta il carattere. */
   const main = element("div", "ed-row-main");
   const title = element("div", "ed-row-new");
-  title.textContent = `${child.icon || "🔌"} ${child.name}`;
+  const ritratto = child.visual ? applianceArtwork(child.visual, 26) : "";
+  if (ritratto) {
+    const segno = element("span", "dm-loads-subload-art");
+    segno.innerHTML = ritratto;
+    title.append(segno, doc.createTextNode(` ${child.name}`));
+  } else {
+    title.textContent = `${child.icon || "🔌"} ${child.name}`;
+  }
   const detail = element("div", "ed-row-old mono");
   detail.textContent =
     [child.power, child.daily, child.monthly, child.total].filter(Boolean).join(" · ") ||
@@ -696,6 +711,10 @@ function installStyles() {
     .dm-loads-warnings{margin:10px 0 0;padding-left:18px;color:var(--muted,#64748b);font-size:13px;line-height:1.45}
     .dm-loads-children{margin-top:14px}
     .dm-loads-subload[data-dm-subload-source="appliance"]{opacity:.9}
+    /* Il ritratto dell'elettrodomestico sta sulla riga come ci stava l'emoji:
+       alto quanto il testo, allineato con lui. */
+    .dm-loads-subload-art{display:inline-grid;place-items:center;width:26px;height:26px;vertical-align:-6px}
+    .dm-loads-subload-art svg{display:block;width:100%;height:100%}
     .dm-loads-source-tag{flex:none;padding:4px 10px;border-radius:999px;background:var(--divider-color,#e2e8f0);color:var(--muted,#64748b);font-size:11px;font-weight:800;letter-spacing:.3px}
     .dm-loads-subload-form{margin:0 0 10px;padding:12px;border-radius:14px;background:color-mix(in srgb,var(--card-bg,#fff) 92%,var(--divider-color,#e2e8f0))}
     /* The phone is exactly where the three squeezed fields were unreadable, so

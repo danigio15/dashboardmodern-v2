@@ -252,7 +252,6 @@ export default Object.freeze({
     "फ़ोटो होने पर अवतार नहीं दिखता: फ़ोटो जीतती है।",
   "just now": "अभी",
   "— Choose —": "— चुनें —",
-  "— Choose model —": "— मॉडल चुनें —",
   "— kWh from PV": "— सौर से kWh",
   "— kWh from the grid": "— ग्रिड से kWh",
   ".": ".",
@@ -1494,4 +1493,6 @@ export default Object.freeze({
   "the other plants have their own, and this save does not touch them":
     "अन्य संयंत्रों के अपने लोड हैं, और यह सहेजना उन्हें नहीं छूता",
   "Choose brand": "ब्रांड चुनें",
+  cleaning: "सफ़ाई कर रहे हैं",
+  "lowest charge": "सबसे कम चार्ज",
 });
