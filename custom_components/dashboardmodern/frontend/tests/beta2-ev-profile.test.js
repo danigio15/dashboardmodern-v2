@@ -55,10 +55,14 @@ test("EV normalization also accepts the newer overrides field", () => {
   assert.equal(profile.brand, "Leapmotor");
 });
 
-test("il segnalibro dei campi toccati si installa al montaggio, non al primo giro", async () => {
-  /* Su un dispositivo lento l'editor e' visibile prima del primo giro
-   * differito: un'entita' digitata in quella finestra non veniva marcata, e
-   * il guardiano del nome la svuotava come residuo dell'auto precedente. */
+test("il campo del nome non ricarica ne' svuota le caselle delle entita'", async () => {
+  /* C'era un guardiano sul campo del nome che, a ogni tasto, ricaricava o
+   * svuotava le caselle dm.ev_*: rinominare un'auto era impossibile perche' a
+   * meta' digitazione i campi cambiavano padrone. Per non calpestare chi
+   * scriveva a mano gli era stato affiancato un segnalibro dei campi toccati
+   * — e quando il guardiano e' stato tolto, quel segnalibro ha continuato a
+   * riempirsi e a svuotarsi senza che nessuno lo leggesse mai. Sono andati
+   * via insieme. */
   const { readFileSync } = await import("node:fs");
   const { fileURLToPath } = await import("node:url");
   const { dirname, join } = await import("node:path");
@@ -66,17 +70,12 @@ test("il segnalibro dei campi toccati si installa al montaggio, non al primo gir
     join(dirname(fileURLToPath(import.meta.url)), "..", "src", "sections", "ev-section.js"),
     "utf8",
   );
-  const montaggio = sorgente.slice(sorgente.indexOf("export function installEvSection"));
-  assert.match(montaggio.slice(0, 400), /installSlotTouchTracker\(\)/);
-  const guardia = sorgente.slice(sorgente.indexOf("function ensureCarNameGuard"));
-  assert.match(guardia.slice(0, 120), /installSlotTouchTracker\(\)/);
-  /* Il nome e' un dato, non un timone: digitare nel campo del nome non deve
-   * piu' ricaricare ne' svuotare le caselle delle entita'. Di chi sono i
-   * campi lo decide la sessione (matita, ＋, applica). */
-  const corpoGuardia = guardia.slice(0, guardia.indexOf("\n}") + 2);
-  assert.doesNotMatch(corpoGuardia, /addEventListener\("input"/);
-  assert.doesNotMatch(corpoGuardia, /input\.value = valore/);
-  /* E la sessione esiste davvero, con i tre stati raccontati. */
+  assert.doesNotMatch(
+    sorgente,
+    /ensureCarNameGuard|installSlotTouchTracker|refToccati|evTouchedRefs/,
+    "guardiano e segnalibro non esistono piu'",
+  );
+  /* Di chi sono i campi lo decide la sessione, con i suoi tre stati. */
   assert.match(sorgente, /function editingKey\(\)/);
   /* `carKey` ricavava la chiave dal nome quando non la trovava scritta: due
    * auto chiamate quasi uguale ne ricavavano una sola. Adesso l'uid si legge

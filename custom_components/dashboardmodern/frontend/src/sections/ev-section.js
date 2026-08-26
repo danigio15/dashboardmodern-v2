@@ -250,7 +250,6 @@ function caricaCampiDaProfilo(auto) {
   const contenitore = doc?.getElementById("ed-body");
   if (!contenitore) return false;
   const mappa = (auto && typeof auto === "object" && (auto.ov || auto.overrides)) || {};
-  refToccati().clear();
   for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]')) {
     const valore = clean(mappa[clean(slot.dataset.ref)]);
     if (slot.value === valore) continue;
@@ -532,75 +531,25 @@ export function ensureVehiclePhotoEditor() {
   return true;
 }
 
-/* Il nome sulla scheda decide di chi sono i campi.
+/* Il nome sulla scheda e' un dato, non un timone.
  *
- * La scheda dell'auto e' un campo nome sopra le caselle delle entita' dm.ev_*,
- * che mostrano la mappatura VIVA — quella dell'auto attiva. Scrivere li' il
- * nome di un'auto nuova e premere «salva scheda» catturava quei campi cosi'
- * com'erano: la nuova nasceva con le entita' dell'altra addosso, e sembrava
- * la stessa macchina con un altro nome. Segnalato alla lettera: «appena
- * inserisco il nome di un'altra auto deve svuotare i dati».
+ * La scheda dell'auto e' un campo nome sopra le caselle delle entita'
+ * dm.ev_*. Scriverci dentro un tempo RICARICAVA o SVUOTAVA quelle caselle a
+ * seconda che il nome fosse di qualcuno o di nessuno: rinominare un'auto era
+ * impossibile — a meta' digitazione i campi cambiavano padrone — e un
+ * prefisso uguale a un'altra auto ne caricava la mappatura addosso.
  *
- * Il campo nome adesso governa le caselle: un nome che non e' di nessuno le
- * svuota — l'auto nuova parte da zero — e il nome di un'auto esistente le
- * ricarica dai dati SUOI, cosi' risalvarla non le scrive addosso la mappatura
- * di quella attiva. Si toccano solo i campi a video: le mappature salvate non
- * cambiano finche' non si preme salva, ed e' `edSetSlot` — il giro di sempre —
- * a leggere i campi al salvataggio.
+ * Contro quel guaio si era messo un segnalibro dei campi toccati a mano, per
+ * non svuotare quello che l'utente stava scrivendo. Poi il timone e' stato
+ * tolto: di chi sono i campi lo decide la SESSIONE — la matita apre un'auto,
+ * ＋ apre una bozza — e il nome e' semplicemente il nome che quell'auto
+ * avra'. Senza piu' nessuno che svuoti, non restava niente da proteggere: il
+ * segnalibro si riempiva e si azzerava senza che nessuno lo leggesse mai. Se
+ * n'e' andato con la guardia che lo teneva.
  *
- * Un campo scritto A MANO in questa seduta pero' non si tocca: chi compila
- * prima le entita' della vettura nuova e per ultimo il nome sta descrivendo
- * proprio lei, e svuotarglielo sarebbe rubargli il lavoro dalle dita — la
- * scheda poi nemmeno si salverebbe, perche' il runtime esige almeno una
- * entita'. E' la stessa regola delle bozze del pannello foto. Il segno vive
- * qui nel modulo, per riferimento: l'editor si ridisegna di continuo e un
- * segno appoggiato sul nodo morirebbe col nodo — il valore no, perche' il
- * cambio l'ha gia' scritto nelle mappature e il ridisegno lo ristampa. Si
- * azzera quando la scheda si salva e quando si cambia auto: da li' i campi
- * tornano a raccontare il modello. */
-const refToccati = () => (state.evTouchedRefs ||= new Set());
-
-/* Il segnalibro dei campi toccati deve esserci PRIMA che qualcuno tocchi.
- *
- * Stava dentro ensureCarNameGuard, che parte col primo giro differito della
- * sezione: su un dispositivo lento c'e' una finestra in cui l'editor e' gia'
- * visibile ma il giro non e' ancora passato. Un'entita' digitata li' dentro
- * non veniva marcata; al primo nome scritto il guardiano la prendeva per un
- * residuo dell'auto precedente e la svuotava — e il salvataggio rispondeva
- * «nessuna entita' mappata». Si installa al montaggio della sezione. */
-function installSlotTouchTracker() {
-  if (!doc || state.evSlotTouchGuard) return;
-  state.evSlotTouchGuard = true;
-  for (const eventName of ["input", "change"]) {
-    doc.addEventListener(
-      eventName,
-      (event) => {
-        const input = event.target;
-        if (!input?.matches?.('input.ed-slot-in[data-ref^="dm.ev_"]')) return;
-        const ref = clean(input.dataset?.ref);
-        if (ref) refToccati().add(ref);
-      },
-      true,
-    );
-  }
-}
-
-function ensureCarNameGuard() {
-  if (!doc) return false;
-  installSlotTouchTracker();
-  const campo = doc.getElementById("ed-evcar-name");
-  if (!campo || campo.dataset.dmEvNameGuard === "true") return false;
-  campo.dataset.dmEvNameGuard = "true";
-  /* Il nome e' un dato della scheda, non un timone.
-   *
-   * Prima scrivere qui dentro RICARICAVA o SVUOTAVA le caselle delle entita'
-   * a seconda che il nome fosse di qualcuno o di nessuno: rinominare un'auto
-   * era impossibile (a meta' digitazione i campi cambiavano padrone) e un
-   * prefisso uguale a un'altra auto ne caricava la mappatura. Di chi sono i
-   * campi lo decide la SESSIONE — la matita apre un'auto, ＋ apre la bozza —
-   * e il nome scritto qui e' semplicemente il nome che quell'auto avra'. */
-  return true;
-}
+ * Qui adesso non c'e' niente, ed e' esattamente il punto: nessun ascoltatore
+ * sul campo del nome, e nessuna scrittura nelle caselle a partire da quello
+ * che ci si digita dentro. */
 
 /* La lista delle auto parla la lingua delle altre sezioni.
  *
@@ -760,9 +709,7 @@ function ensureCarListDecor() {
         state.evRenameArmed = false;
         campo.value = "";
         // Il ＋ e' il gesto «riparto da zero»: si svuota tutto qui, in modo
-        // esplicito — il guardiano del nome protegge i valori scritti a
-        // mano, e qui invece anche quelli devono andarsene.
-        refToccati().clear();
+        // esplicito.
         for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]'))
           slot.value = "";
         campo.dispatchEvent(new Event("input", { bubbles: true }));
@@ -1252,7 +1199,6 @@ function installLegacyWrappers() {
       const before=configuredPhotos();
       const car=legacyProfiles()[Number(index)] || {};
       // Cambiare auto chiude la seduta di scrittura: i campi raccontano lei.
-      refToccati().clear();
       setEditingKey(uidDi(car));
       // Applicare non e' un mandato di rinomina: quello lo da' solo la matita.
       state.evRenameArmed = false;
@@ -1389,8 +1335,7 @@ function installLegacyWrappers() {
         salvata = rimesse.find((car) => uidDi(car) === nata[VEHICLE_KEY_FIELD]) || null;
       }
 
-      // Scheda salvata: la seduta di scrittura e' chiusa e i segni si azzerano.
-      refToccati().clear();
+      // Scheda salvata: la seduta di scrittura e' chiusa.
       state.evRenameArmed = false;
       /* La scheda resta aperta su QUELLA auto: quella appena salvata se e' nata
        * adesso, quella che si stava modificando altrimenti. */
@@ -1500,7 +1445,7 @@ export function scheduleEvSync() {
    * all'elenco delle auto proprio mentre qualcun altro lo stava cambiando, e la
    * marca appena scelta tornava indietro da sola. Le migrazioni stanno
    * all'avvio, dove stanno le migrazioni. */
-  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();ensureCarNameGuard();ensureCarListDecor();};
+  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();ensureCarListDecor();};
   state.frame=root.requestAnimationFrame?.(run)||root.setTimeout?.(run,0)||0;
 }
 
@@ -1559,7 +1504,7 @@ function bindEditorEntryPoints() {
 
 export function installEvSection() {
   if (!doc) return;
-  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installSlotTouchTracker(); installLegacyWrappers(); bindEditorEntryPoints();
+  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installLegacyWrappers(); bindEditorEntryPoints();
   /* Gli involucri si prendono appena i giri del runtime esistono.
    *
    * `installLegacyWrappers` non puo' fare niente se il runtime non ha ancora
