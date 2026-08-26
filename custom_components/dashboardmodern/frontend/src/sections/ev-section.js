@@ -788,7 +788,7 @@ function canonicalProfiles() { const cars = section("ev", []); return Array.isAr
  * uid, la sua mappatura ripulita e le sue foto dentro invece che sparse. Sei
  * moduli leggevano `cd_ev_cars` grezza, ognuno con la sua idea di cosa ci fosse
  * scritto; da qui in poi la forma la decide un posto solo. */
-function profiles() {
+export function profiles() {
   const legacy = legacyProfiles();
   return vehicleList(legacy.length ? legacy : canonicalProfiles());
 }
@@ -823,7 +823,7 @@ const uidDi = (car) => clean(car?.[VEHICLE_KEY_FIELD]);
  * prima non deve perdere l'auto che aveva scelto. */
 export const VEHICLE_ACTIVE_KEY = "cd_ev_car_active";
 
-function activeVehicle(list = profiles()) {
+export function activeVehicle(list = profiles()) {
   return pickVehicle(list, root.localStorage?.getItem(VEHICLE_ACTIVE_KEY) || "");
 }
 

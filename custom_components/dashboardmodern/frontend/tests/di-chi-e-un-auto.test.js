@@ -158,3 +158,19 @@ test("il modulo e' puro, e la sezione legge da li'", async () => {
   assert.match(sezione, /return vehicleList\(legacy\.length \? legacy : canonicalProfiles\(\)\)/);
   assert.match(sezione, /pickVehicle\(list, root\.localStorage\?\.getItem\(VEHICLE_ACTIVE_KEY\)/);
 });
+
+test("nessun altro modulo si tiene la sua idea di quale auto sia attiva", async () => {
+  /* `beta-compat` e `beta11` leggevano `cd_ev_cars` grezza e `cd_ev_car_active`
+   * come POSIZIONE, ognuno con la sua idea di cosa fosse l'identita' di una
+   * vettura. Erano tre moduli con tre idee della stessa cosa, e bastava che
+   * l'elenco cambiasse ordine perche' due di loro parlassero di auto diverse.
+   * Adesso lo chiedono a chi le auto le possiede. */
+  for (const nome of ["beta-compat-section.js", "beta11-real-device-polish-section.js"]) {
+    const sorgente = await readFile(new URL(`../src/sections/${nome}`, import.meta.url), "utf8");
+    // Le chiavi grezze, non le parole: nei commenti si racconta com'era, ed e'
+    // giusto che restino scritte.
+    assert.doesNotMatch(sorgente, /["']cd_ev_cars["']/, nome);
+    assert.doesNotMatch(sorgente, /["']cd_ev_car_active["']/, nome);
+    assert.match(sorgente, /from "\.\/ev-section\.js"/, nome);
+  }
+});

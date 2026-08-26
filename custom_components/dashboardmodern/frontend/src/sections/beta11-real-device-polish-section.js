@@ -1,4 +1,6 @@
 import { clean, dashboardStore, doc, installStyle, readJson, root, t, wrapFunction } from "./shared.js";
+import { activeVehicle, profiles } from "./ev-section.js";
+import { vehicleIndex } from "../core/vehicle-model.js";
 
 // Compatibility owner kept temporarily while EV and Alerts are absorbed by their
 // canonical sections. Room/Temperature icon DOM is single-owner: this module may
@@ -62,22 +64,18 @@ function queueMicrotaskSafe(callback) {
   else Promise.resolve().then(callback);
 }
 
-function vehicles() {
-  const legacy = readJson("cd_ev_cars", []);
-  if (Array.isArray(legacy) && legacy.length) return legacy;
-  try {
-    const canonical = dashboardStore()?.getSection?.("ev");
-    return Array.isArray(canonical) ? canonical : [];
-  } catch (_error) {
-    return [];
-  }
-}
+/* L'elenco delle auto e quale sia quella in uso non si rileggono qui.
+ *
+ * Questo modulo ne teneva una copia sua: leggeva `cd_ev_cars` grezza e
+ * `cd_ev_car_active` come POSIZIONE. Erano tre moduli con tre idee della stessa
+ * cosa, e bastava che l'elenco cambiasse ordine perche' due di loro parlassero
+ * di vetture diverse. Adesso lo chiede a chi le auto le possiede. */
+const vehicles = () => profiles();
 
 function activeVehicleIndex(cars = vehicles()) {
   if (!cars.length) return -1;
-  const raw = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "0", 10);
-  const index = Number.isFinite(raw) ? raw : 0;
-  return Math.max(0, Math.min(cars.length - 1, index));
+  const scelta = activeVehicle(cars);
+  return scelta ? Math.max(0, vehicleIndex(cars, scelta.uid)) : -1;
 }
 
 function hasOption(select, value) {
