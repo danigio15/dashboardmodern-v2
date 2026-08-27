@@ -55,6 +55,12 @@ async function avvia(page, testInfo) {
     } catch (_errore) {}
   });
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
+  /* Si aspetta che la plancia abbia finito di partire prima di scriverle
+   * dentro gli stati: il ponte risponde a `get_states` quando gli pare, e su
+   * una macchina lenta quella risposta arrivava dopo — riscrivendo le letture
+   * appena messe. Un'attesa a tempo non basta, questa e' la bandiera che la
+   * plancia alza quando ha davvero finito. */
+  await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true);
   await page.evaluate((climi) => {
     const grezzi = eval("_RAW_STATES");
     climi.forEach((unita, indice) => {
@@ -83,9 +89,14 @@ async function avvia(page, testInfo) {
       state: "partlycloudy",
       attributes: { friendly_name: "Meteo", temperature: 35.8, humidity: 38, wind_speed: 15.1 },
     };
+    /* La mappatura si dice alla plancia, non solo al seme: e' lei che decide
+     * se il meteo ha un'entita' da leggere. */
+    window.cdApplyCanonicalOverrides?.({ "dm.home_meteo": "weather.casa" });
+    window.render?.();
     window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
   }, CLIMI);
-  await page.waitForTimeout(2000);
+  await expect(page.locator("#w-temp")).toHaveText("35.8°C");
+  await page.waitForTimeout(1200);
   await page.locator("#setup-wizard").evaluateAll((nodi) => nodi.forEach((n) => n.remove()));
 }
 
@@ -95,7 +106,6 @@ test("il meteo sta nell'intestazione, accanto al nome della casa", async ({ page
   const meteo = page.locator("header:not(.dm-page-mast) .weather-widget");
   await expect(meteo).toBeVisible();
   // E dice ancora tutto quello che diceva: e' lo stesso blocco, spostato.
-  await expect(page.locator("#w-temp")).toHaveText("35.8°C");
   await expect(page.locator("#w-hum")).toHaveText("38%");
   // Umidita' e vento vicini: prima erano incolonnati all'estremita' opposta.
   const distanza = await page.evaluate(() => {

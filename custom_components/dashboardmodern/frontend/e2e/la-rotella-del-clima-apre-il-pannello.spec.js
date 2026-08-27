@@ -35,6 +35,10 @@ const SEME = {
 async function avvia(page, testInfo) {
   await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await bootNamespacedDashboard(page, "dashboard.html", testInfo, SEME);
+  /* Prima di scrivere gli stati si aspetta che la plancia sia partita: la
+   * risposta del ponte a `get_states` arriva quando gli pare, e su una
+   * macchina lenta riscriveva le letture appena messe. */
+  await page.waitForFunction(() => window.__DASHBOARDMODERN_RUNTIME_ROOT__?.ready === true);
   await page.evaluate((climi) => {
     const grezzi = eval("_RAW_STATES");
     climi.forEach((unita, indice) => {

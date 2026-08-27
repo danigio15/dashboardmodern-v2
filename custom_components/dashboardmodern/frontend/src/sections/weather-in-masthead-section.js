@@ -57,12 +57,15 @@ header.dm-testata-col-meteo .w-right{
 header.dm-testata-col-meteo .w-detail{
   padding:5px 10px;font-size:11px;gap:5px;box-shadow:none;
   background:var(--card-bg,#fff);border-color:var(--card-border,#e8edf3)}
-/* Stretto: il cielo a parole e la percepita sono le prime a cedere il posto,
-   i numeri restano. */
-@media(max-width:1100px){
-  header.dm-testata-col-meteo .w-state{display:none}
-  header.dm-testata-col-meteo #w-feel-row{display:none!important}
-}
+/* La percepita non si nasconde mai.
+ *
+ * Qui c'era una regola che la toglieva di mezzo sotto i millecento pixel,
+ * insieme al cielo a parole, per far stare tutto in larghezza. Il cielo a
+ * parole lo dice gia' l'icona; la percepita no: compare soltanto se qualcuno
+ * e' andato in configurazione a mappare quel sensore, e nascondere una cosa
+ * che e' stata chiesta apposta non e' fare spazio, e' perdere il dato.
+ * Se non ci sta in riga, va a capo — e' per questo che la fila dei numeri
+ * sa andare a capo. */
 /* Il telefono, tenuto in piedi: una riga sola, e ci sta tutto.
  *
  * Ci sta perche' ogni pezzo dice la stessa cosa con meno: il sottotitolo
@@ -95,8 +98,11 @@ header.dm-testata-col-meteo .w-detail{
   header.dm-testata-col-meteo .w-icon{font-size:18px}
   header.dm-testata-col-meteo .w-temp{font-size:15px}
   header.dm-testata-col-meteo .w-state{display:none}
+  /* I numeri vanno a capo: due ci stanno in riga, e chi ha mappato anche la
+     percepita se la ritrova sotto invece di non trovarla piu'. */
   header.dm-testata-col-meteo .w-right{
-    flex:1 0 100%;flex-direction:row;align-items:center;gap:8px;flex-wrap:nowrap}
+    flex:1 0 100%;flex-direction:row;align-items:center;
+    column-gap:8px;row-gap:0;flex-wrap:wrap}
   header.dm-testata-col-meteo .w-detail{
     padding:0;font-size:10px;gap:3px;background:none;border:0;line-height:1.3;
     white-space:nowrap}
