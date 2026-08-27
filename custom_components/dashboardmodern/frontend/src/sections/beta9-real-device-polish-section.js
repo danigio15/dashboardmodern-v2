@@ -728,6 +728,11 @@ export function installBeta9RealDevicePolishSection() {
     if (/^(cover|binary_sensor|sensor|light)\./.test(id)) schedule();
   });
 
+  /* Le tessere del ponte si sono appena rifatte: i nodi sono nuovi e non
+   * portano niente addosso. Aspettare il prossimo evento di stato vorrebbe
+   * dire un avviso appena scattato che resta immobile chissa' per quanto. */
+  root.addEventListener?.("dashboardmodern:widgets-painted", () => schedule());
+
   /* La card del marchio non e' piu' affar nostro: la costruisce e la comanda
    * la Personalizzazione, da sola. Restava un ascolto sul suo riquadro, e uno
    * sull'errore di caricamento di un'immagine di marchio — immagini che non

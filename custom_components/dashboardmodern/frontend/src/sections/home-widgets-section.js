@@ -1374,6 +1374,16 @@ export function renderHomeWidgets() {
     grid.innerHTML = models.map((widget, index) => tileMarkup(widget, index)).join("");
     for (const widget of models) viste().add(widget.key);
     cambiato = true;
+    /* Le tessere sono nuove: chi le decora deve saperlo.
+     *
+     * Il movimento dell'avviso — la porta che si apre, la goccia che cade —
+     * lo disegna un altro modulo, che si sveglia sugli eventi di stato. Se le
+     * tessere nascono DOPO l'ultima passata di quel modulo, restano ferme
+     * finche' non capita un altro evento: per un avviso appena scattato puo'
+     * volerci parecchio. Cosi' invece si annuncia, e chi ascolta ripassa. */
+    try {
+      root.dispatchEvent?.(new CustomEvent("dashboardmodern:widgets-painted"));
+    } catch (_errore) {}
   } else {
     // Solo i valori: la tessera resta dov'e', l'apertura non riparte.
     for (const widget of models) {
