@@ -36,10 +36,16 @@ const expectedTabs = [
  *  - tutte le finestre della plancia hanno una veste sola: erano nate una alla
  *    volta e si vedeva — un anello bianco cucito nel bordo che sul tema scuro
  *    faceva da taglio, un'entrata lunga mezzo secondo, e un tasto di chiusura
- *    che pesava piu' del titolo. */
+ *    che pesava piu' del titolo;
+ *  - a barra ferma sparisce il sensore che la chiama. Da desktop la barra sta
+ *    nascosta e si affaccia quando il puntatore le arriva vicino: a chiamarla
+ *    e' un rettangolo invisibile che le sborda intorno, e che sta dentro di
+ *    lei — quindi sopra la pagina. Con la barra gia' ferma e alzata quella
+ *    fascia cadeva sulla seconda fila delle tessere della Home, e quelle
+ *    tessere non si riuscivano a premere. Sotto, un po' di respiro in piu'. */
 const vendoredCssSnapshots = {
-  "dashboard-runtime-it.css": "c25204270dc6ad0f5de7bf783a009cc67ff66d676a36846406225dc126edb827",
-  "dashboard-runtime-en.css": "eb079101f3733ee3e7e96b098eb6447bd31fdc8f39e91db13dc194021fff567b",
+  "dashboard-runtime-it.css": "956831d7cc251e4a0ad7217c1b495e155fae118689445ae582b80b0fbde259b0",
+  "dashboard-runtime-en.css": "af6f2c8fca7af683765751c530acbd59e91ca47fb8e1d291f0460de7295c02f2",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {

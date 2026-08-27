@@ -49,6 +49,7 @@ import { installEditorContractsSection } from "./editor-contracts-section.js";
 import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
 import { installPageMastheadSection } from "./page-masthead-section.js";
+import { installWeatherInMasthead } from "./weather-in-masthead-section.js";
 import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installClimatePowerSection } from "./climate-power-section.js";
 import { installShutterSkySection } from "./shutter-sky-section.js";
@@ -725,6 +726,10 @@ export function installSectionRuntime() {
     installClimatePowerSection();
     installShutterSkySection();
     installPageMastheadSection();
+    /* Il meteo si accoda al nome della casa nell'intestazione: si installa
+     * dopo le intestazioni di pagina, che dell'intestazione della plancia non
+     * si occupano, ma e' li' che si va a cercarle. */
+    installWeatherInMasthead();
     installPoolIrrigationSceneSection();
     installPoolExtraSection();
     installPoolEditorSection();

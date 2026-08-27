@@ -1422,7 +1422,7 @@ export function renderHomeWidgets() {
   const mounted = host || ensureHost();
   if (!mounted) return false;
   const title = mounted.querySelector(".dm-widgets-title");
-  if (title) title.textContent = t("Colpo d'occhio", "At a glance");
+  if (title) title.textContent = t("Widget", "Widgets");
   /* La riga sotto il titolo diceva come si usa una tessera. Lo si capisce da
    * solo la prima volta, e da li' in poi e' una riga sprecata in cima alla
    * Home: adesso dice quante sezioni ci sono e quante chiedono attenzione,
@@ -1863,7 +1863,17 @@ html.dm-widget-popup-open{overflow:hidden}
  * Via anche l'anello bianco cucito dentro il bordo: valeva solo sul tema
  * chiaro, e sullo scuro era una riga luminosa in mezzo al buio. */
 #dm-widget-popup .dm-widget-detail{
-  width:min(560px,100%);max-height:min(80dvh,760px);overflow:auto;margin:0;
+  /* Chi scorre e' il corpo, non la finestra.
+   *
+   * La finestra deve restare a contenuto tagliato — glielo chiede la regola che
+   * condivide con la tessera aperta in griglia, che sta piu' in basso in questo
+   * foglio e quindi vince a parita' di peso: dirle qui di farsi scorrere non
+   * ha mai avuto effetto, e la Clima con dodici termostati finiva tagliata a
+   * meta' senza modo di arrivare in fondo. Cosi' invece la card e' una colonna
+   * alta al massimo quanto lo schermo, l'intestazione sta ferma in cima e la
+   * lista sotto scorre da sola. */
+  display:flex;flex-direction:column;
+  width:min(560px,100%);max-height:min(80dvh,760px);margin:0;
   border:1px solid var(--card-border,#e8edf3);border-radius:28px;
   background:var(--card-bg,#fff);
   box-shadow:0 32px 64px -28px rgba(2,6,23,.45),0 6px 18px -12px rgba(2,6,23,.25);
@@ -1878,10 +1888,10 @@ html.dm-widget-popup-open{overflow:hidden}
  * gradiente che partiva dall'angolo e sbiadiva a meta': adesso e' un fondo
  * appena tinto, che non contende la scena al titolo. */
 #dm-widget-popup .dm-w-head{
-  position:sticky;top:0;z-index:1;gap:13px;padding:18px 22px 14px;
-  /* Il filo di colore sta qui e non sulla finestra: l'intestazione e' incollata
-     in alto e coprirebbe qualunque cosa ci sia sotto di lei. Cosi' resta a
-     vista anche mentre il contenuto scorre. */
+  flex:0 0 auto;position:relative;z-index:1;gap:13px;padding:18px 22px 14px;
+  /* Il filo di colore sta qui e non sulla finestra: l'intestazione copre il
+     bordo alto della card, e quello che ci si dipinta sopra non si vedrebbe.
+     Qui invece resta a vista mentre la lista sotto scorre. */
   background:
     linear-gradient(90deg,
       var(--dm-widget-accent,#0ea5e9),
@@ -1909,7 +1919,23 @@ html.dm-widget-popup-open{overflow:hidden}
   background:#fee2e2;border-color:#fecaca;color:#dc2626}
 html[data-theme="dark"] #dm-widget-popup .dm-w-close:hover{
   background:rgba(220,38,38,.22);border-color:rgba(248,113,113,.45);color:#fca5a5}
-#dm-widget-popup .dm-w-body{padding:16px 18px 20px;display:grid;gap:9px}
+#dm-widget-popup .dm-w-body{
+  padding:16px 18px 20px;display:grid;gap:9px;
+  /* L'altezza minima azzerata perche' un figlio di colonna flex, per difetto,
+     non scende sotto il proprio contenuto: senza, la lista non si accorcia mai
+     e non c'e' niente da scorrere. */
+  flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  /* Una barra sottile del colore della tessera: senza, su un portatile che
+     nasconde le barre finche' non si scorre, una lista lunga sembrava finire
+     dove finisce la finestra. */
+  scrollbar-width:thin;
+  scrollbar-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 42%,transparent) transparent}
+#dm-widget-popup .dm-w-body::-webkit-scrollbar{width:9px}
+#dm-widget-popup .dm-w-body::-webkit-scrollbar-track{background:transparent}
+#dm-widget-popup .dm-w-body::-webkit-scrollbar-thumb{
+  border-radius:100px;border:2px solid transparent;background-clip:padding-box;
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 38%,transparent)}
 #dm-widget-popup .dm-w-row{
   padding:13px 15px;border-radius:17px;border:1px solid var(--card-border,#eef2f7);
   background:var(--surface-2,#f8fafc);margin:0}

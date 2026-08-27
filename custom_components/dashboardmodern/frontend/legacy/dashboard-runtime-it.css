@@ -4602,7 +4602,17 @@ body.cd-nav-fixed nav.tabs.bottom-nav-bar {
     transform: translateX(-50%) scale(1) !important;
 }
 body.cd-nav-fixed .bottom-nav-handle { display: none !important; }
-body.cd-nav-fixed { padding-bottom: 96px !important; }
+body.cd-nav-fixed { padding-bottom: 112px !important; }
+/* La barra ferma non ha bisogno del sensore che la chiama.
+ *
+ * Da desktop la barra sta nascosta e si affaccia quando il puntatore le arriva
+ * vicino: a chiamarla e' un rettangolo invisibile che le sta intorno e sborda
+ * di 22px verso l'alto. Quel rettangolo e' dentro la barra, e la barra sta a
+ * z-index 9900: sborda sopra la pagina e si prende i clic che passano di li'.
+ * Con la barra ferma e alzata quella fascia cade proprio sulla seconda fila
+ * delle tessere della Home, e le ultime righe non si riuscivano a premere.
+ * A barra ferma il sensore non serve — la barra e' gia' li'. */
+body.cd-nav-fixed nav.tabs.bottom-nav-bar::before { display: none !important; }
 
 /* v0.8.2: STANZE — icona grande in badge colorato (in coda per vincere sulle regole base) */
 .temp-room-icon { font-size: 30px !important; width: 54px !important; height: 54px !important; display: flex !important; align-items: center !important; justify-content: center !important; border-radius: 16px !important; background: linear-gradient(135deg, rgba(var(--tc-rgb),0.22), rgba(var(--tc-rgb),0.07)) !important; box-shadow: inset 0 0 0 1.5px rgba(var(--tc-rgb),0.30) !important; flex-shrink: 0 !important; line-height: 1 !important; }

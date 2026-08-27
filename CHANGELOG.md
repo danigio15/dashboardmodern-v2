@@ -74,6 +74,20 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   sempre tutti — portava l'unica espressione che non batteva le ciglia. Adesso
   il riquadro sta fermo e le ciglia battono in ogni espressione.
 
+- **La finestra di una tessera lunga tagliava la lista.** Il Clima di una casa
+  con le valvole ha quindici o venti righe: la finestra si fermava all'altezza
+  dello schermo e le ultime restavano fuori, senza modo di arrivarci. A
+  scorrere adesso è la lista, con l'intestazione ferma in cima; la barretta di
+  scorrimento porta il colore della tessera, così una lista lunga si vede che è
+  lunga.
+
+- **A barra ferma la seconda fila di tessere non si riusciva a premere.** Da
+  computer la barra sta nascosta e si affaccia quando il puntatore le arriva
+  vicino: a chiamarla è un rettangolo invisibile che le sborda intorno, e che
+  sta sopra la pagina. Con la barra già ferma e alzata quella fascia cadeva
+  proprio sulla seconda fila delle tessere della Home. A barra ferma il
+  rettangolo non serve — la barra è già lì — e adesso non c'è.
+
 ### Aggiunto
 
 - **Il tasto Clima rapido si configura.** Toccando una stanza nel popup Clima
@@ -95,6 +109,17 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   Antifurto, la fila si spunta: ci sono solo le modalità che la centrale accetta
   davvero, toglierne una la nasconde e non cambia niente di quello che la
   centrale sa fare, e lo sblocco resta sempre.
+
+- **Il meteo è passato nell'intestazione.** Era una card alta quanto un terzo
+  di uno schermo di telefono, e diceva quattro numeri. Adesso sta accanto al
+  nome della casa, nella fascia in alto: stessa temperatura, stesso cielo,
+  stessa icona, e umidità e vento uno accanto all'altro invece che incolonnati
+  all'estremità opposta. Si apre come prima. Quello che si guadagna è la prima
+  fila di tessere, che adesso si vede senza scorrere.
+
+- **«Colpo d'occhio» adesso si chiama «Widget».** È il nome con cui la sezione
+  viene chiamata da chi la usa e da chi la configura: due nomi per la stessa
+  cosa erano uno di troppo.
 
 - **Le linguette della configurazione stanno in colonna.** Erano diciassette
   voci in una fila che scorreva in orizzontale, tre visibili per volta: per

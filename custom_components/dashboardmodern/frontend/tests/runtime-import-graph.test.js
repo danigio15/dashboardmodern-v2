@@ -357,7 +357,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // dove dirlo. Il modello e' puro perche' la traduzione in tre chiamate si
   // prova a tavolino — e' l'unico modo di essere sicuri che il tasto faccia
   // quello che la scheda dice.
-  assert.ok(relative.length <= 160, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 161 con il meteo nell'intestazione: `weather-in-masthead-section.js`
+  // sposta la striscia del meteo accanto al nome della casa e le da' la
+  // taglia di una fascia invece che di una card. Non e' un modulo di dati —
+  // non legge nessuno stato e non disegna niente: prende il blocco che c'e'
+  // gia', lo mette da un'altra parte e lo rimpicciolisce. Sta da solo perche'
+  // il posto e la taglia sono una scelta che si cambia in un punto, e perche'
+  // chi disegna le tessere della Home non deve sapere dove sta il meteo.
+  assert.ok(relative.length <= 161, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
@@ -418,7 +425,11 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // Clima tab is drawn, and the card itself is the only honest signal that it
   // has been redrawn.
   // The loop below still rejects observers rooted at document/body/documentElement.
-  assert.ok(observers.length <= 9, `too many production observers: ${observers.length}`);
+  // Il decimo e' del meteo nell'intestazione, e guarda solo i figli di
+  // #page-home: la striscia si sposta una volta sola, ma se qualcuno la
+  // rimette dentro la pagina — un ridisegno che riscrive #page-home per
+  // intero — va ripresa, e non c'e' nessun nome da avvolgere per saperlo.
+  assert.ok(observers.length <= 10, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,
