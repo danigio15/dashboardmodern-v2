@@ -274,6 +274,34 @@ const TARGETS = [
     },
   },
   {
+    /* La sezione Stanze (1.3): le pillole in alto, e sotto tutto quello che
+       quella stanza possiede, diviso per tipo. */
+    id: "rooms",
+    title: "Stanze",
+    both: true,
+    setup: () => {
+      window.__dmPreview.tab("stanze");
+    },
+  },
+  {
+    /* Le Luci hanno una pagina propria dalla 1.1.9: prima erano solo un popup
+       della Home. */
+    id: "lights",
+    title: "Luci",
+    both: true,
+    setup: () => {
+      window.__dmPreview.tab("luci");
+    },
+  },
+  {
+    id: "robot",
+    title: "Aspirapolvere",
+    both: true,
+    setup: () => {
+      window.__dmPreview.tab("robot");
+    },
+  },
+  {
     id: "lights-popup",
     title: "Gestione luci",
     modal: true,
@@ -450,6 +478,42 @@ const TARGETS = [
     title: "Editor · auto elettrica",
     setup: () => {
       window.__dmPreview.editor("sez2");
+    },
+  },
+  {
+    id: "editor-people",
+    title: "Editor · persone",
+    setup: () => {
+      window.__dmPreview.editor("people");
+    },
+    settle: 2200,
+  },
+  {
+    id: "editor-robot",
+    title: "Editor · aspirapolvere",
+    setup: () => {
+      window.__dmPreview.editor("robot");
+    },
+  },
+  {
+    id: "editor-todo",
+    title: "Editor · cose da fare",
+    setup: () => {
+      window.__dmPreview.editor("todo");
+    },
+  },
+  {
+    id: "editor-doors",
+    title: "Editor · aperture",
+    setup: () => {
+      window.__dmPreview.editor("doors");
+    },
+  },
+  {
+    id: "editor-backup",
+    title: "Editor · backup e ripristino",
+    setup: () => {
+      window.__dmPreview.editor("backup");
     },
   },
   {
@@ -1055,7 +1119,27 @@ async function bootPage(context, cameraStill, vehicleStill) {
       editor(tab, innerTab) {
         closeOverlays();
         window.apriConfigEntita?.();
-        window.editorSwitch?.(tab);
+        /* Le schede aggiunte dai moduli — Persone, Aspirapolvere, Aperture,
+         * Backup — si registrano dopo l'apertura dell'editor: chiamare
+         * `editorSwitch` subito le trovava assenti e lasciava il corpo vuoto.
+         * Premere la linguetta e' quello che farebbe una persona, e funziona
+         * per tutte allo stesso modo. */
+        const linguetta = document.querySelector(`.ed-tab[data-tab="${tab}"]`);
+        if (linguetta) linguetta.click();
+        else window.editorSwitch?.(tab);
+        /* Le schede dei moduli si disegnano quando si riconoscono attive, e chi
+         * decide chi e' attiva e' la classe sulla linguetta. Il runtime la
+         * sposta solo per le schede che conosce, e per le altre svuota il corpo
+         * subito dopo il click: bisogna quindi rimetterla quando lui ha finito,
+         * non nello stesso giro. */
+        setTimeout(() => {
+          for (const nodo of document.querySelectorAll(".ed-tab")) {
+            nodo.classList.toggle("active", nodo.dataset.tab === tab);
+          }
+          /* L'evento con cui l'editor annuncia di essersi ridisegnato: i moduli
+           * lo aspettano per riempire il corpo della propria scheda. */
+          window.dispatchEvent(new Event("dashboardmodern:editor-rendered"));
+        }, 400);
         if (innerTab != null)
           document.querySelectorAll("#ed-body .ed-inner-tabs .ed-inner-tab")[innerTab]?.click();
       },
@@ -1118,11 +1202,9 @@ const MEASURE = () => {
     "header, .page.active, .modal-wrapper.show, #editor-modal, #dm-light-control-modal",
   ))
     walk(node, 3);
-  /* La larghezza serve quanto l'altezza. Se il documento e' piu' largo della
-   * finestra, il browser fotografa la finestra e quello che sborda resta fuori:
-   * si vedeva come un taglio netto sul bordo sinistro di ogni pagina — titolo
-   * «SMART HOME» monco, «QUADRO AVVISI» senza la Q, la prima card di ogni riga
-   * tranciata. */
+  /* La larghezza serve quanto l'altezza. Se il contenuto e' piu' largo della
+   * finestra, il browser fotografa la finestra e il resto resta fuori: si
+   * vedeva come un taglio netto sul bordo di ogni pagina. */
   return {
     bottom: Math.ceil(bottom),
     width: Math.ceil(
@@ -1155,9 +1237,9 @@ async function shoot(page, target, file, viewport, encode) {
   const first = await paint(viewport.height, settle);
   /* Una sola volta, prima della passata che conta: la larghezza cresce fino a
    * contenere quello che sborda, mai oltre un limite ragionevole. */
-  if (first.width > width && first.width - width <= 240) width = first.width;
+  if (first.width > width && first.width - width <= 400) width = first.width;
   const second = await paint(fit(first.bottom), settle);
-  if (second.width > width && second.width - width <= 240) width = second.width;
+  if (second.width > width && second.width - width <= 400) width = second.width;
   if (Math.abs(fit(second.bottom) - fit(first.bottom)) > 32 || second.width > viewport.width) {
     await paint(fit(second.bottom), Math.round(settle / 2));
   }
