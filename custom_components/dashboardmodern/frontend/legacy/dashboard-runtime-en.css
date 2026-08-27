@@ -4669,10 +4669,29 @@ body.cd-nav-fixed { padding-bottom: 96px !important; }
 }
 #editor-modal.modal-wrapper .ed-tab {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   text-align: left;
   white-space: normal;
   line-height: 1.28;
   padding: 10px 11px;
+}
+/* Telefono tenuto in piedi: la colonna si stringe al simbolo.
+ *
+ * Qui c'e' solo la geometria della colonna, che e' quello che questo foglio
+ * possiede. Il nome dentro la linguetta lo nasconde chi quel pezzo lo crea —
+ * il modulo delle rifiniture da telefono — perche' e' li' che gli si impone di
+ * vedersi, e due fogli che decidono la stessa cosa sarebbero due padroni. */
+@media (orientation: portrait) and (max-width: 640px) {
+  #editor-modal.modal-wrapper .ed-tabs {
+    width: 58px;
+    padding: 10px 5px;
+  }
+  #editor-modal.modal-wrapper .ed-tab {
+    justify-content: center;
+    padding: 11px 4px;
+  }
 }
 #editor-modal.modal-wrapper .ed-body {
   grid-area: 2 / 2 / 3 / 3;

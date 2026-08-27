@@ -196,3 +196,55 @@ test("si sceglie quali modalità dell'antifurto vedere, e la sezione ubbidisce",
     .poll(() => tasti.evaluateAll((voci) => voci.map((b) => b.dataset.mode)))
     .toEqual(["home", "away", "night", "custom", "disarm"]);
 });
+
+test("da telefono in piedi la colonna mostra solo i simboli, girato torna il nome", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "e' una regola del telefono");
+  await boot(page, testInfo);
+  await page.evaluate(() => window.apriConfigEntita());
+  const home = page.locator('#editor-modal .ed-tab[data-tab="sez0"]');
+  await expect(home).toBeVisible();
+
+  /* Il simbolo e il nome sono due pezzi separati — li divide il modulo delle
+     rifiniture da telefono, che di quella linguetta e' il padrone — perche' un
+     pezzo di testo solo non si potrebbe dimezzare con un foglio di stile. */
+  await expect(home.locator(".dm-beta4-tab-icon")).toHaveCount(1);
+  /* Il nome c'e' anche quando non si vede: si legge il testo del nodo, non
+     quello dipinto — in verticale quel pezzo e' nascosto apposta. */
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          document
+            .querySelector('#editor-modal .ed-tab[data-tab="sez0"] .dm-beta4-tab-label')
+            ?.textContent?.trim() || "",
+      ),
+    )
+    .toBe("Home");
+  // E il nome resta leggibile anche quando non si vede.
+  await expect(home).toHaveAttribute("title", "Home");
+
+  const nomeVisibile = () =>
+    page.evaluate(() =>
+      Boolean(
+        document
+          .querySelector('#editor-modal .ed-tab[data-tab="sez0"] .dm-beta4-tab-label')
+          ?.getBoundingClientRect().width,
+      ),
+    );
+  const larghezzaColonna = () =>
+    page.evaluate(() =>
+      Math.round(document.querySelector("#editor-modal .ed-tabs").getBoundingClientRect().width),
+    );
+
+  // In piedi: solo i simboli, e la colonna si stringe.
+  expect(await nomeVisibile()).toBe(false);
+  expect(await larghezzaColonna()).toBeLessThan(70);
+
+  // Girato: lo schermo e' largo, il nome torna.
+  const schermo = page.viewportSize();
+  await page.setViewportSize({ width: schermo.height, height: schermo.width });
+  expect(await nomeVisibile()).toBe(true);
+  expect(await larghezzaColonna()).toBeGreaterThan(90);
+});

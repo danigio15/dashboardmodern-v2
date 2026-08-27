@@ -109,3 +109,29 @@ test("nella casella affollata il nome tiene una riga tutta sua", () => {
   assert.doesNotMatch(widget, /\.dm-slot-lbl-affollata\{/,
     "due fogli che impaginano la stessa riga sono due padroni della stessa cosa");
 });
+
+test("da telefono in piedi della linguetta resta il simbolo", () => {
+  /* Il nome dentro la linguetta lo nasconde chi quel pezzo lo crea: e' lui a
+   * imporgli di vedersi, e nasconderlo da un altro foglio sarebbero due
+   * padroni sulla stessa decisione. Qui c'e' solo la geometria della colonna. */
+  const padrone = leggi("src/sections/beta4-mobile-polish-section.js");
+  assert.match(
+    padrone,
+    /@media \(orientation:portrait\) and \(max-width:640px\)\{[\s\S]*?dm-beta4-tab-label\{display:none!important\}/,
+    "in verticale il nome sparisce, e lo decide chi lo scrive",
+  );
+  /* E sparendo lascia comunque un modo di sapere chi e': il titolo del tasto. */
+  assert.match(padrone, /button\.title = nome/);
+  assert.match(padrone, /setAttribute\("aria-label", nome\)/);
+  /* La casa nella barra e la casa in configurazione erano la stessa: da
+   * telefono, col solo simbolo, sarebbero due voci indistinguibili. */
+  assert.match(padrone, /stanze: "🚪"/);
+
+  for (const file of ["dashboard-runtime-it.css", "dashboard-runtime-en.css"]) {
+    const foglio = leggi(`legacy/${file}`);
+    const coda = foglio.slice(foglio.indexOf("Le linguette dell'editor, in colonna"));
+    assert.match(coda, /@media \(orientation: portrait\) and \(max-width: 640px\)/, file);
+    assert.match(coda, /\.ed-tabs \{\s*width: 58px;/, file);
+    assert.doesNotMatch(coda, /tab-label/, `${file}: la visibilita' del nome non e' di questo foglio`);
+  }
+});

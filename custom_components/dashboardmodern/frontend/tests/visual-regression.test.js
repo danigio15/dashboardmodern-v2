@@ -30,10 +30,12 @@ const expectedTabs = [
  *    tornava «sballato» ogni volta che lo si rimpiccioliva in CSS;
  *  - le linguette dell'editor stanno in colonna. Erano diciassette voci in una
  *    fila che scorreva, tre visibili per volta: adesso si vedono tutte e il
- *    corpo della scheda si apre accanto invece che sotto. */
+ *    corpo della scheda si apre accanto invece che sotto. Da telefono tenuto in
+ *    piedi la colonna si stringe al simbolo — il nome lo nasconde chi quel
+ *    pezzo lo crea — e si riallarga appena il telefono si gira. */
 const vendoredCssSnapshots = {
-  "dashboard-runtime-it.css": "183b5c0ba833075333ccc65fb6c8cd902dd2a3e0f6417e228fa11fc91b26f4ae",
-  "dashboard-runtime-en.css": "8524fd313c369a4c41db1af77884172828f0653aabf65a257ccc4a025cd3115d",
+  "dashboard-runtime-it.css": "376764c49898df3d3c0e62642936cdcdc1fe96efecbe9bd9ee828a2b9ac551cc",
+  "dashboard-runtime-en.css": "2f3c647a390364d51fefbf2f83b32e094f70f001adf18726d60220d6c2892ffb",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {

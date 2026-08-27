@@ -64,7 +64,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 - **Le linguette della configurazione stanno in colonna.** Erano diciassette
   voci in una fila che scorreva in orizzontale, tre visibili per volta: per
   arrivare a Stanze si trascinava al buio. Adesso si vedono tutte una sotto
-  l'altra e il corpo della scheda si apre accanto invece che sotto.
+  l'altra e il corpo della scheda si apre accanto invece che sotto. Da telefono
+  tenuto in piedi la colonna si stringe al solo simbolo — su trecentonovanta
+  pixel una colonna che scrive anche i nomi si porta via un terzo dello schermo
+  per dire quello che il simbolo dice già — e il nome ricompare da solo appena
+  il telefono si gira. Chi un simbolo non lo riconosce lo legge tenendo premuto:
+  il nome resta nel titolo del tasto, e quindi anche per chi si fa leggere la
+  pagina a voce. Anche qui la casa era doppia: Stanze prende la porta.
 
 ## 1.3.0
 
