@@ -6,11 +6,11 @@
 
 <p align="center">
   <strong>La dashboard completa per Home Assistant: si configura a video, funziona su telefono, tablet e desktop.</strong><br>
-  Energia · Fotovoltaico · Batteria · Elettrodomestici · Auto elettrica · Clima · Temperatura · Luci · Tapparelle · Sicurezza · Solare termico · Piscina · Irrigazione · Server
+  Persone · Stanze · Energia · Fotovoltaico · Batteria · Elettrodomestici · Auto elettrica · Luci · Clima · Temperatura · Tapparelle · Sicurezza · Solare termico · Piscina · Irrigazione · Aspirapolvere · Server
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/manifest-json/v/danigio15/dashboardmodern-v2?filename=custom_components%2Fdashboardmodern%2Fmanifest.json&label=version&color=0ea5e9" alt="Versione">
+  <img src="https://img.shields.io/github/manifest-json/v/danigio15/dashboardmodern-v2?filename=custom_components%2Fdashboardmodern%2Fmanifest.json&label=version&color=0ea5e9" alt="Versione dell'integrazione">
   <a href="https://github.com/danigio15/dashboardmodern-v2/releases"><img src="https://img.shields.io/github/v/release/danigio15/dashboardmodern-v2?label=release&color=0ea5e9" alt="Release"></a>
   <a href="https://github.com/danigio15/dashboardmodern-v2/actions/workflows/tests.yml"><img src="https://github.com/danigio15/dashboardmodern-v2/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
   <a href="https://github.com/danigio15/dashboardmodern-v2/releases"><img src="https://img.shields.io/github/downloads/danigio15/dashboardmodern-v2/total?label=download%20dalla%201.0.0&color=8b5cf6&cacheSeconds=1800" alt="Download dalla 1.0.0"></a>
@@ -18,7 +18,7 @@
   <img src="https://img.shields.io/badge/HACS-custom-41BDF5" alt="HACS custom integration">
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-18BCF2" alt="Home Assistant 2025.1+">
   <img src="https://img.shields.io/badge/UI-Italiano%20%7C%20English-16a34a" alt="Italiano e inglese">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licenza-proprietaria-64748b" alt="Licenza proprietaria"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-64748b" alt="MIT License"></a>
 </p>
 
 <p align="center">
@@ -39,7 +39,7 @@
 <table>
 <tr>
 <td width="30%"><img src="docs/preview/home-mobile-light.webp" alt="Home su telefono, tema chiaro"></td>
-<td width="70%"><img src="docs/preview/energy-flow-light.webp" alt="Flusso energetico live, tema chiaro"></td>
+<td width="70%"><img src="docs/preview/rooms-light.webp" alt="Sezione Stanze, tema chiaro"></td>
 </tr>
 </table>
 
@@ -52,12 +52,11 @@
 Le entità restano entità Home Assistant: DashboardModern si occupa di presentazione, aggregazioni, storico e comandi. Non serve costruire decine di card Lovelace, non serve scrivere YAML.
 
 - **Nessun token da incollare, nessun file da scaricare, nessun `configuration.yaml` da modificare.** Il pannello passa alla plancia la sessione già autenticata di Home Assistant.
-- **Tutto si configura dall'editor visuale**, dentro la plancia stessa: diciotto tab, un pulsante di salvataggio per pannello.
-- **La configurazione vive dentro Home Assistant**, in un archivio condiviso dell'integrazione: la stessa per tutti gli utenti e per tutti i dispositivi.
+- **Tutto si configura dall'editor visuale**, dentro la plancia stessa: ventidue schede, un pulsante di salvataggio per pannello.
+- **La configurazione vive dentro Home Assistant**, in un archivio condiviso dell'integrazione: la stessa per tutti gli utenti e per tutti i dispositivi, con backup e ripristino da file.
+- **Due modi di guardare la casa**: per tipo — tutte le luci, tutte le tapparelle — oppure **per stanza**, con una pagina per ogni ambiente.
 - **Italiano e inglese**, scelti dalla lingua del profilo Home Assistant.
-- **Più plance indipendenti**, una config entry ciascuna, con filtro utenti.
-
-> **1.0 stabile.** La serie beta è chiusa: la pagina delle release parte da **`v1.0.0`** — beta, rc e `v0.x` non ci sono più — e le correzioni arriveranno come `1.0.x`. Chi arriva da una versione precedente aggiorna da HACS, riavvia Home Assistant e ritrova la propria configurazione. La cronologia completa resta in [`docs/CHANGELOG_PRE_1.0.md`](docs/CHANGELOG_PRE_1.0.md).
+- **Nessuna dipendenza da internet**: marchi delle auto, ritratti delle persone e icone stanno dentro l'integrazione.
 
 ---
 
@@ -67,12 +66,11 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 - [Installazione](#installazione)
 - [Configurazione dell'integrazione](#configurazione-dellintegrazione)
 - [Prima configurazione della plancia](#prima-configurazione-della-plancia)
-- [Dove viene salvata la configurazione](#dove-viene-salvata-la-configurazione)
+- [Dove vive la configurazione](#dove-vive-la-configurazione)
 - [Anteprima sezione per sezione](#anteprima-sezione-per-sezione)
-  - [Home](#home) · [Navigazione](#navigazione) · [Lingua](#lingua) · [Tema](#tema-chiaro-e-scuro) · [Kiosk](#modalità-kiosk-su-iphone-e-ipad) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Tapparelle](#tapparelle) · [Sicurezza](#sicurezza-e-telecamere) · [Solare termico](#solare-termico) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [MiniPC](#minipc-e-rete)
+  - [Home](#home) · [Stanze](#stanze) · [Navigazione](#navigazione) · [Energia](#energia) · [Elettrodomestici](#elettrodomestici) · [Auto elettrica](#auto-elettrica-e-wallbox) · [Luci](#luci) · [Clima](#clima) · [Temperatura](#temperatura-e-umidità) · [Tapparelle](#tapparelle-tende-e-finestre) · [Sicurezza](#sicurezza-telecamere-e-aperture) · [Solare termico](#solare-termico) · [Piscina](#piscina) · [Irrigazione](#irrigazione) · [Aspirapolvere](#aspirapolvere) · [MiniPC](#minipc-e-rete)
 - [Editor Dashboard: tutte le configurazioni](#editor-dashboard-tutte-le-configurazioni)
   - [Autorilevamento entità](#autorilevamento-entità)
-- [Catalogo completo degli slot entità](#catalogo-completo-degli-slot-entità)
 - [Come vengono calcolati i numeri](#come-vengono-calcolati-i-numeri)
 - [Potenzialità](#potenzialità)
 - [Architettura in breve](#architettura-in-breve)
@@ -93,6 +91,7 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 | Consigliato | `recorder` attivo: serve per storico, report e analisi Energia |
 | Browser | qualsiasi browser moderno; app Companion iOS e Android supportate |
 | Entità | le tue: DashboardModern **non crea** entità, usa quelle già presenti in Home Assistant |
+| Rete | nessuna connessione a internet richiesta a runtime |
 
 ---
 
@@ -102,27 +101,15 @@ Le entità restano entità Home Assistant: DashboardModern si occupa di presenta
 
 1. Apri **HACS** in Home Assistant.
 2. Menu in alto a destra → **Archivi personalizzati** / *Custom repositories*.
-3. Compila i due campi **così**:
+3. Inserisci l'URL del repository e scegli il tipo **Integrazione**:
 
-   | campo | valore |
-   | --------------------------- | ------------------------------------------------- |
-   | **Repository** | `https://github.com/danigio15/dashboardmodern-v2` |
-   | **Tipo** / *Type* | **Integrazione** — non «Lovelace», non «Tema» |
-
-   > ⚠️ **Il tipo conta più dell'URL.** Scegliendo «Lovelace» HACS **non dà
-   > errore**: trova il nostro `dashboardmodern.zip` fra gli allegati della
-   > release, lo scarica in `config/www/community/` e lo registra come risorsa
-   > Lovelace. Sembra andato tutto bene, ma l'integrazione non comparirà mai in
-   > *Dispositivi e servizi*, perché non è mai stata installata.
-   >
-   > **Se ti è già successo:** in HACS rimuovi il repository personalizzato,
-   > riaggiungilo scegliendo **Integrazione**, installa e riavvia. Se in
-   > `config/www/community/` è rimasta una cartella `dashboardmodern-v2`,
-   > puoi cancellarla: non serve a niente.
+   ```text
+   https://github.com/danigio15/dashboardmodern-v2
+   ```
 
 4. Cerca **DashboardModern v2** e installa la versione più recente.
 5. **Riavvia Home Assistant.**
-6. **Impostazioni → Dispositivi e servizi → Aggiungi integrazione → DashboardModern v2**.
+6. **Impostazioni → Dispositivi e servizi → Aggiungi integrazione → Dashboard Modern V2**.
 7. Dai un nome alla plancia e conferma.
 8. Apri **DashboardModern** dalla barra laterale.
 
@@ -144,30 +131,27 @@ Gli asset del frontend sono pubblicati su un URL versionato con il **digest del 
 
 ### Creazione della plancia
 
-Il config flow chiede una sola cosa: il **nome del pannello**, quello che compare nella barra laterale. La prima plancia è la **principale** e mantiene il percorso `/dashboardmodern`; le successive prendono un percorso derivato dal nome (`/dashboardmodern-<nome>`), così puoi averne più di una senza collisioni.
+Ogni plancia è una **config entry**: puoi averne più di una, con configurazioni indipendenti. Alla creazione scegli il nome, che diventa il titolo nella barra laterale.
 
 ### Opzioni (Configura)
 
-**Impostazioni → Dispositivi e servizi → DashboardModern v2 → Configura**
+**Impostazioni → Dispositivi e servizi → `Dashboard Modern V2` → Configura**
 
-| Opzione | Cosa fa | Default |
-| --- | --- | --- |
-| **Utenti consentiti** | filtro di visibilità della plancia: lista vuota = la vedono tutti, altrimenti solo gli utenti scelti | vuoto |
-| **Registra come dashboard Home Assistant** | crea la dashboard companion (visibile in *Impostazioni → Dashboard*), costruita con la card `dashboardmodern-card` | attivo |
-| **Visibile solo agli amministratori** | usa il filtro nativo `require_admin` del pannello Home Assistant | disattivo |
-
-> Il filtro **Utenti consentiti** è una visibilità di interfaccia: non sostituisce permessi e autorizzazioni di Home Assistant, che continuano a governare l'accesso a dati e servizi.
+| Opzione | Cosa fa |
+| --- | --- |
+| **Nome** | titolo del pannello nella barra laterale |
+| **Icona** | icona del pannello |
+| **Utenti abilitati** | limita la visibilità della plancia ad alcuni account Home Assistant |
+| **Posizione nella barra** | ordine rispetto alle altre voci |
 
 ### Cosa registra l'integrazione
 
-| Elemento | Dettaglio |
-| --- | --- |
-| Pannello laterale | `custom` panel, icona `mdi:view-dashboard-edit`, uno per config entry |
-| Asset statici | `/dashboardmodern_static/<digest>/…`, versionati sul contenuto |
-| Comandi WebSocket | `dashboardmodern/config/get`, `/set`, `/restore` per l'archivio condiviso |
-| Card companion | `dashboardmodern-card` (richiede `entry_id`), caricata come extra module del frontend |
-| Dashboard companion | `dashboardmodern-<primi 8 caratteri dell'entry id>` quando l'opzione è attiva |
-| Documenti UI | `dashboard.html` (IT) e `dashboard-en.html` (EN), scelti dalla lingua del profilo |
+- un **pannello** nella barra laterale che serve la plancia;
+- un percorso statico versionato per gli asset del frontend;
+- i **comandi WebSocket** dell'archivio condiviso (`dashboardmodern/config/get`, `set`, `restore`);
+- i **ritratti** e i **marchi delle auto**, serviti localmente.
+
+Non crea entità, non scrive su `configuration.yaml`, non contatta nessun servizio esterno.
 
 ---
 
@@ -175,28 +159,29 @@ Il config flow chiede una sola cosa: il **nome del pannello**, quello che compar
 
 Apri **DashboardModern** dalla barra laterale, poi **Editor Dashboard**.
 
-> **Scorciatoia consigliata.** In **⚙️ Impostazioni** c'è il pulsante **🪄 Avvia autorilevamento**: analizza tutte le entità di Home Assistant, propone luci, stanze, unità clima, telecamere e collegamenti, e ti mostra cosa ha trovato **prima** di scrivere qualsiasi cosa. È il modo più veloce per partire; poi si rifinisce a mano tab per tab. → [Autorilevamento entità](#autorilevamento-entità)
+> **Scorciatoia consigliata.** In **⚙️ Impostazioni** c'è il pulsante **🪄 Avvia autorilevamento**: analizza tutte le entità di Home Assistant, propone luci, stanze, unità clima, telecamere e collegamenti, e ti mostra cosa ha trovato **prima** di scrivere qualsiasi cosa. È il modo più veloce per partire; poi si rifinisce a mano scheda per scheda. → [Autorilevamento entità](#autorilevamento-entità)
 
 Ordine consigliato (o revisione dopo l'autorilevamento):
 
 1. **Stanze** — creale per prime: sono il riferimento canonico di tutte le altre sezioni.
-2. **Energia** — collega fotovoltaico, rete, batteria e consumo casa.
+2. **Energia** — collega fotovoltaico, rete, batteria e consumo casa. Se hai più impianti, creali qui.
 3. **Carichi** — definisci i cerchi sotto Casa nel flusso (wallbox, clima, cucina…).
 4. **Elettrodomestici** — aggiungi gli apparecchi e i loro sensori.
 5. **Temperatura** — associa temperatura e umidità alle stanze già create.
 6. **Luci, Clima, Tapparelle** — assegna ogni entità alla stanza corretta.
-7. **Auto/Wallbox, Sicurezza, Piscina, Irrigazione, MiniPC** — abilita solo ciò che usi.
-8. **Azioni rapide, Avvisi, personalizzazione** — icone, ordine navbar, comandi preferiti.
+7. **Persone** — chi abita la casa, con il ritratto e i sensori del telefono.
+8. **Auto, Sicurezza, Piscina, Irrigazione, Aspirapolvere, MiniPC** — abilita solo ciò che usi.
+9. **Widget, Azioni rapide, personalizzazione** — cosa compare in Home, icone, ordine della barra.
 
-Ogni pannello dell'editor ha il proprio pulsante di salvataggio — **SALVA MODIFICHE**, **Salva sezione**, **Salva energia**, **Salva carichi** — e va premuto prima di cambiare tab o chiudere l'editor.
+Ogni pannello dell'editor ha il proprio pulsante di salvataggio — **SALVA MODIFICHE**, **Salva sezione**, **Salva energia**, **Salva carichi** — e va premuto prima di cambiare scheda o chiudere l'editor.
 
-> **Ogni campo entità è una riga uguale in tutte le maschere**: mostra il nome che Home Assistant dà all'entità con l'id sotto, e si tocca per aprire la ricerca. La ricerca propone per prime le entità adatte a quel campo (contrassegnate con ✨), ignora accenti e maiuscole, resta immediata anche con migliaia di entità e si comanda da tastiera. L'id da scrivere a mano resta dietro la matita accanto alla riga, e il **cestino svuota la riga**: c'è su tutte le righe che chiedono un'entità — Home, Energia, Solare termico, MiniPC, Azioni comprese — e compare solo quando c'è davvero qualcosa da togliere. Il catalogo si apre **davanti** alla maschera che lo ha chiamato, e **uno solo per volta**: aprirne un altro chiude il precedente.
+> **Ogni campo entità è una riga uguale in tutte le maschere**: mostra il nome che Home Assistant dà all'entità con l'id sotto, e si tocca per aprire la ricerca. La ricerca propone per prime le entità adatte a quel campo (contrassegnate con ✨), ignora accenti e maiuscole, resta immediata anche con migliaia di entità e si comanda da tastiera. L'id da scrivere a mano resta dietro la matita accanto alla riga, e il **cestino** svuota la riga. Accanto a ogni entità c'è anche la **tendina della stanza** e l'**interruttore dei widget**, che dice se quell'entità compare in Home.
 
 ---
 
-## Dove viene salvata la configurazione
+## Dove vive la configurazione
 
-La configurazione della plancia sta **dentro Home Assistant**, in un archivio dell'integrazione (`.storage/dashboardmodern.config`), non nel browser. Non c'è nulla da esportare o importare: salvataggio e ripristino sono automatici.
+La configurazione della plancia sta **dentro Home Assistant**, in un archivio dell'integrazione (`.storage/dashboardmodern.config`), non nel browser.
 
 Di conseguenza:
 
@@ -204,7 +189,9 @@ Di conseguenza:
 - **sopravvive** agli aggiornamenti, al riavvio di Home Assistant, alla pulizia della cache del browser e anche alla rimozione e riaggiunta dell'integrazione, perché la chiave dell'archivio non contiene l'`entry_id`;
 - **non può essere svuotata per sbaglio da un dispositivo**: chi non riesce a leggere la configurazione non ne scrive una vuota al suo posto, e l'archivio rifiuta un salvataggio che sostituirebbe una plancia configurata con una vuota;
 - **i conflitti si risolvono sulla revisione dell'archivio**, non sull'orologio del dispositivo: un telefono con l'ora avanti non sovrascrive modifiche più recenti fatte altrove;
-- **conserva le ultime cinque revisioni configurate**, quindi una plancia svuotata da una versione precedente viene ripristinata da sola. L'unico svuotamento definitivo è il reset chiesto esplicitamente.
+- **conserva le ultime cinque revisioni configurate**, quindi una plancia svuotata da una versione precedente viene ripristinata da sola.
+
+**Backup e ripristino su file.** La scheda **💾 Backup** dell'editor scarica l'intera configurazione come file e la rimette da un file: serve per spostare una plancia su un'altra installazione, per tenersi una copia prima di una modifica grossa, o per tornare indietro dopo un ripensamento.
 
 Restano legate al singolo dispositivo solo le preferenze che hanno senso solo lì: **tema**, **modalità della barra di navigazione**, stato del **kiosk** e dati di connessione.
 
@@ -215,22 +202,66 @@ Restano legate al singolo dispositivo solo le preferenze che hanno senso solo l�
 
 ## Home
 
-La Home riunisce meteo, pillole di stato, **Quadro Avvisi** e **Azioni rapide**.
-
 | Tema chiaro | Tema scuro |
 | --- | --- |
 | <img src="docs/preview/home-light.webp" alt="Home in tema chiaro"> | <img src="docs/preview/home.webp" alt="Home in tema scuro"> |
 | <img src="docs/preview/home-mobile-light.webp" alt="Home su telefono, tema chiaro" width="230"> | <img src="docs/preview/home-mobile.webp" alt="Home su telefono, tema scuro" width="230"> |
 
-**Cosa mostra**
+La Home è la pagina di apertura, ed è fatta di tre fasce sotto un'intestazione che dice già molto.
 
-- **Meteo**: temperatura, condizione, umidità e vento dall'entità `weather.*`; tocca per aprire il dettaglio con le previsioni.
-- **Pillole di stato**: caldaia accesa e stato antifurto, visibili solo quando servono.
-- **Persone**: una card per ogni persona configurata — il ritratto (foto vera o avatar con emoji/iniziali su colore a scelta) con l'anello del colore di dove si trova, la zona (Casa, Fuori, o la zona col suo nome), da quanto tempo, la batteria del telefono (col fulmine quando è in carica), la batteria dell'orologio e la rete WiFi. Di chi è fuori la card racconta anche il viaggio: distanza da casa con la direzione, tempo di rientro (Waze/Google), indirizzo, e l'attività — auto, bici, passi — nel pallino di stato del ritratto. Compare solo se hai configurato almeno una persona.
-- **Quadro Avvisi**: card che appaiono solo se c'è qualcosa da dire — luci accese, clima attivi, riscaldamento, aperture, tapparelle aperte — più gli **avvisi personalizzati** che aggiungi tu. Ogni card apre il popup con le entità coinvolte, e l'animazione dell'icona segue il senso dell'avviso.
-- **Azioni rapide**: griglia di comandi preferiti (popup integrati, gruppi di luci, toggle, script, scene).
+**L'intestazione.** Su una riga sola: nome della casa, **meteo** — temperatura esterna, condizione, umidità e vento — stato della connessione e configurazione. Il meteo legge il servizio di Home Assistant, oppure la **tua stazione personale** se gliela colleghi: in quel caso i valori sono i tuoi sensori, non una previsione. Lo stato della connessione è **un puntino**, non una frase: la parola resta scritta per chi la pagina se la fa leggere a voce.
 
-**Configurazione**: `Editor → Home` (meteo, allarme, antifurto, script cancello), `Editor → 👥 Persone` (entità `person.*` o `device_tracker.*`, foto dalle cartelle di Home Assistant o dal dispositivo, avatar, sensore batteria, più il gruppo **📡 Sensori del telefono** — in carica, orologio, distanza, tempo di rientro, direzione, indirizzo, attività, WiFi — col pulsante **🪄 Rileva dal telefono** che li trova da solo; **Importa da Home Assistant** aggiunge in un tocco ogni `person.*` col suo nome, la sua foto del profilo e i suoi sensori), `Editor → Avvisi`, `Editor → Azioni`.
+**Le persone.** Chi abita la casa, con il ritratto, la zona in cui si trova — Casa, Fuori, o il nome della zona — la batteria del telefono e da quanto tempo è lì. Chi sta rientrando mostra **distanza e minuti che mancano**; chi ha la batteria agli sgoccioli la mostra in rosso. La card si apre e racconta tutto quello che il telefono sa: indirizzo, attività, WiFi, direzione, orologio.
+
+**Widget.** Una tessera per ogni sezione della plancia, con il numero che conta per quella sezione e, **su una riga tutta sua**, la didascalia che dice cosa sta succedendo: «Faretti soggiorno · Strip TV», «Oggi 13,1 kWh», «Pompa in funzione». L'intestazione riassume **quante sezioni ci sono e quante chiedono attenzione**, e si scalda quando ce n'è almeno una. Le telecamere compaiono in miniatura, dal vivo, e il fotogramma di prima resta a schermo finché non arriva quello nuovo. Toccando una tessera si apre la sua finestra.
+
+**Azioni rapide**, i comandi che usi ogni giorno: luci, clima, antifurto, uno script, un interruttore. Si scelgono e si riordinano dall'editor.
+
+Quali entità finiscono nei widget lo decidi entità per entità, con l'interruttore accanto a ogni campo dell'editor, che dice se quell'entità è dentro la tessera o ne sta fuori.
+
+### La finestra di una tessera
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="docs/preview/widget-popup-light.webp" alt="La finestra di una tessera, tema chiaro"> | <img src="docs/preview/widget-popup.webp" alt="La finestra di una tessera, tema scuro"> |
+| <img src="docs/preview/widget-popup-mobile-light.webp" alt="La finestra di una tessera su telefono, tema chiaro" width="230"> | <img src="docs/preview/widget-popup-mobile.webp" alt="La finestra di una tessera su telefono, tema scuro" width="230"> |
+
+**Le finestre aprono come aprono le pagine**: la testata è la stessa fascia con cui si apre ogni pagina della plancia — l'alone di colore dall'angolo, il titolo in maiuscolo nel colore della sezione, il sottotitolo in maiuscoletto, la riga che sfuma in fondo.
+
+**In cima, i numeri che riassumono**: quanti in funzione, la media in casa e l'obiettivo per il Clima; accese e spente per le Luci; aperte e apertura media per le Tapparelle; la più fredda, la media e la più calda per le Temperature. Sono ricavati dalle righe: non c'è niente di nuovo da tenere aggiornato.
+
+Dentro, **ogni riga è la tessera della Home messa in orizzontale**: pastiglia dell'icona tinta quando è acceso, neutra quando è spento, e la riga intera velata appena del colore. Da un metro di distanza si contano gli accesi senza leggere niente. Una lista lunga **scorre**, con l'intestazione ferma in cima.
+
+### La rotella del Clima
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="docs/preview/widget-popup-climate-dial-light.webp" alt="La rotella del Clima, tema chiaro"> | <img src="docs/preview/widget-popup-climate-dial.webp" alt="La rotella del Clima, tema scuro"> |
+| <img src="docs/preview/widget-popup-climate-dial-mobile-light.webp" alt="La rotella del Clima su telefono, tema chiaro" width="230"> | <img src="docs/preview/widget-popup-climate-dial-mobile.webp" alt="La rotella del Clima su telefono, tema scuro" width="230"> |
+
+Sulla riga del Clima c'è una rotella: si apre e porta **modalità, temperatura e ventola** lì, senza andare nella pagina Clima. Ci sono soltanto le modalità e le velocità che **quell'unità dichiara di accettare** — un tasto che l'unità non sa eseguire è peggio di un tasto che non c'è — e sotto, cosa sta facendo davvero e l'umidità della stanza.
+
+---
+
+## Stanze
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="docs/preview/rooms-light.webp" alt="Sezione Stanze in tema chiaro"> | <img src="docs/preview/rooms.webp" alt="Sezione Stanze in tema scuro"> |
+| <img src="docs/preview/rooms-mobile-light.webp" alt="Sezione Stanze su telefono, tema chiaro" width="230"> | <img src="docs/preview/rooms-mobile.webp" alt="Sezione Stanze su telefono, tema scuro" width="230"> |
+
+Ogni altra sezione legge la casa **per tipo**: tutte le luci insieme, tutte le tapparelle insieme. È il verso giusto quando cerchi una cosa, ed è quello sbagliato quando sei in una stanza. Questa pagina gira il verso.
+
+- Le **pillole delle stanze** in alto, con quante entità ha ciascuna; sotto, tutto quello che quella stanza possiede, **diviso per tipo**: sensori, clima, luci, tapparelle e finestre, elettrodomestici, aspirapolvere, telecamere.
+- **Accendi tutto** e **Spegni tutto** in cima, con scritto quante luci toccheranno. «Tutto» qui vuol dire *la luce*: un condizionatore e una tapparella hanno un verso loro, e decidere al posto tuo quale sia «acceso» sarebbe inventare.
+- **Le card non sono nuove dove non serve che lo siano**: la luce è la stessa card della pagina Luci, con il suo cursore che funziona.
+- Chi non ha una stanza finisce sotto la pillola **Senza stanza**. Non è un errore da nascondere: è la sola occasione di accorgersene.
+
+Non sposta e non riscrive niente: le assegnazioni esistono già, questa pagina le legge dall'altro lato.
+
+> **La stanza si può dire su qualunque entità.** Luci, clima, tapparelle, elettrodomestici, telecamere, carichi, robot e zone d'irrigazione la stanza ce l'hanno perché la loro scheda la chiede. Tutto il resto — una sonda, un sensore di allagamento, la pompa della piscina — la riceve da una **tendina accanto alla riga in cui l'entità è già scritta**, in qualunque scheda si trovi. Dentro ci va l'**id** della stanza e non il suo nome, quindi rinominarla non rompe niente.
+
+---
 
 ## Navigazione
 
@@ -239,41 +270,15 @@ La Home riunisce meteo, pillole di stato, **Quadro Avvisi** e **Azioni rapide**.
 | <img src="docs/preview/navigation-light.webp" alt="Barra di navigazione in tema chiaro"> | <img src="docs/preview/navigation.webp" alt="Barra di navigazione in tema scuro"> |
 | <img src="docs/preview/navigation-mobile-light.webp" alt="Barra di navigazione su telefono, tema chiaro" width="230"> | <img src="docs/preview/navigation-mobile.webp" alt="Barra di navigazione su telefono, tema scuro" width="230"> |
 
-La barra è **flottante e auto-nascosta**: su desktop riappare avvicinando il puntatore al bordo inferiore, su touch con la maniglia, e si comporta allo stesso modo in ogni sezione. Le sezioni non configurate non compaiono, l'**ordine è personalizzabile** (`Editor → Impostazioni → Ordine navbar`) e la sezione attiva è evidenziata.
+Ogni sezione ha la sua icona — Home la casa, Stanze la porta, come in configurazione. La barra elenca **solo le sezioni che hai configurato**: una sezione senza dati non compare, e si accende da sola appena riceve la prima entità. L'ordine si dispone dall'editor, desktop e mobile possono differire, e ogni sezione si può nascondere a mano — una scelta fatta di persona viene ricordata e non viene più riaccesa dall'automatismo.
 
-**Ogni pagina si apre allo stesso modo**: stessa intestazione con titolo e sottotitolo, stesso ritorno alla Home in alto a sinistra.
-
-## Lingua
-
-La plancia parla la lingua del **profilo Home Assistant di chi la apre**. Non c'è niente da configurare: se in *Profilo → Lingua* c'è il tedesco, la plancia è in tedesco — e chi apre la stessa plancia con un profilo in italiano continua a vederla in italiano.
-
-Oltre a italiano e inglese sono tradotte per intero **tredici lingue**: spagnolo, francese, tedesco, portoghese, olandese, polacco, russo, turco, arabo, hindi, giapponese, coreano e cinese semplificato.
-
-- **Le varianti regionali funzionano da sole.** `pt-BR` legge il portoghese, `es-MX` lo spagnolo, `de-AT` il tedesco. Il cinese si risolve per scrittura: `zh-TW` e `zh-HK` prendono il tradizionale, che per ora appoggia sul semplificato.
-- **L'arabo è da destra a sinistra.** La direzione viene scritta sulla pagina prima che venga letta, quindi la plancia nasce già ribaltata invece di raddrizzarsi dopo il primo disegno.
-- **Numeri e date seguono la lingua**: `1.234,5` in tedesco, `1,234.5` in inglese.
-- **Una lingua che non è tradotta ripiega sull'inglese**, mai sull'italiano: chi apre la plancia in svedese legge inglese, che è la cosa più vicina all'essere leggibile.
-- **Il download è di una lingua sola.** Il catalogo della lingua attiva viene richiesto al momento: quindici lingue costano quanto una.
-
-Per forzare una lingua diversa da quella del profilo — utile su un tablet condiviso — apri la plancia con `?lang=ja` (vale anche `?locale=`): la scelta viene ricordata su quel dispositivo, come il tema.
-
-## Tema chiaro e scuro
-
-Il tema si imposta su **chiaro**, **scuro** o **auto** — e *auto*, il default, segue la preferenza del dispositivo. È una preferenza locale: non viene sincronizzata sugli altri dispositivi, così il tablet in cucina può restare chiaro e il telefono scuro di notte.
-
-## Modalità kiosk su iPhone e iPad
-
-Su un dispositivo iOS che apre la plancia dentro Home Assistant — pannello nella barra laterale, dashboard companion o app Companion — la plancia parte **a schermo intero**: copre la barra di Home Assistant e usa tutta l'altezza dello schermo, aree sicure intorno alla tacca comprese.
-
-- **L'hamburger della plancia apre la barra laterale di Home Assistant**: mentre è aperta, la plancia si abbassa per lasciarla vedere.
-- **Tieni premuto l'hamburger** per mezzo secondo per accendere o spegnere il kiosk, con conferma a schermo.
-- In alternativa apri la plancia con `?kiosk=1` o `?kiosk=0` (vale anche `dm_kiosk`, in query o nell'hash): **la scelta viene ricordata su quel dispositivo**.
-
-Fuori da quel caso il kiosk resta a richiesta: su desktop, su tablet in orizzontale e sulla plancia aperta da sola serve `?kiosk=1` esplicito.
+---
 
 ## Energia
 
-Cinque viste: **Istantanea**, **Giornaliera**, **Mensile**, **Report** e **Temperature**.
+Sei viste, scelte dalle linguette in cima: **Istantanea**, **Giornaliera**, **Mensile**, **Report**, **Analisi**, **Temperature**.
+
+> **Più impianti sotto lo stesso tetto.** Se la casa è l'unione di due appartamenti — due misuratori, due gruppi di carichi — le linguette in cima all'Energia scelgono di quale casa si parla. Ogni impianto ha il suo nome, i suoi misuratori e i suoi carichi, **fino a otto per impianto**, non otto in tutto. Con un impianto solo le linguette non compaiono affatto, e chi ha una casa sola non deve migrare niente.
 
 ### Flusso live (Istantanea)
 
@@ -282,77 +287,71 @@ Cinque viste: **Istantanea**, **Giornaliera**, **Mensile**, **Report** e **Tempe
 | <img src="docs/preview/energy-flow-light.webp" alt="Flusso energetico live in tema chiaro"> | <img src="docs/preview/energy-flow.webp" alt="Flusso energetico live in tema scuro"> |
 | <img src="docs/preview/energy-flow-mobile-light.webp" alt="Flusso energetico live su telefono, tema chiaro" width="230"> | <img src="docs/preview/energy-flow-mobile.webp" alt="Flusso energetico live su telefono, tema scuro" width="230"> |
 
-Diagramma dinamico dei flussi: **Solare, Rete, Batteria e Casa** più **un cerchio per ogni carico configurato** (fino a otto). Spessore e velocità di ogni connettore seguono la lettura reale del carico: un wallbox a 4 kW disegna una linea più marcata e veloce di un frigo da 80 W. Un carico sotto soglia resta visibile ma spento, uno senza entità mostra `—` invece di uno zero inventato. Toccando un cerchio si apre il popup con i dispositivi che lo compongono — con un'eccezione: il **cerchio della Wallbox apre direttamente l'auto**, con stato di carica, autonomia e sessione di ricarica, perché il cavo è attaccato a una macchina di cui la plancia sa già tutto. La wallbox viene riconosciuta dal carico (dal tipo dichiarato, dalla configurazione, dai sensori che la sezione Auto sta già leggendo e infine dal nome), mai dalla sua posizione nel disegno; senza un'auto configurata il cerchio resta com'era, con il suo storico.
+Diagramma dinamico dei flussi: **Solare, Rete, Batteria e Casa**, più **un cerchio per ogni carico configurato**. Spessore e velocità di ogni connettore seguono la lettura reale del carico: un wallbox a 4 kW disegna una linea più marcata e veloce di un frigo da 80 W. Un carico sotto soglia resta visibile ma spento, uno senza entità mostra `—` invece di uno zero inventato.
 
-### Giornaliera
+Toccando un cerchio si apre il popup con i dispositivi che lo compongono — con un'eccezione: il **cerchio della Wallbox apre direttamente l'auto**, con stato di carica, autonomia e sessione di ricarica, perché il cavo è attaccato a una macchina di cui la plancia sa già tutto.
 
-| Tema chiaro | Tema scuro |
+### Giornaliera e mensile
+
+| Giornaliera | Mensile |
 | --- | --- |
-| <img src="docs/preview/energy-day-light.webp" alt="Energia giornaliera in tema chiaro"> | <img src="docs/preview/energy-day.webp" alt="Energia giornaliera in tema scuro"> |
-| <img src="docs/preview/energy-day-mobile-light.webp" alt="Energia giornaliera su telefono, tema chiaro" width="230"> | <img src="docs/preview/energy-day-mobile.webp" alt="Energia giornaliera su telefono, tema scuro" width="230"> |
+| <img src="docs/preview/energy-day-light.webp" alt="Energia giornaliera in tema chiaro"> | <img src="docs/preview/energy-month-light.webp" alt="Energia mensile in tema chiaro"> |
+| <img src="docs/preview/energy-day.webp" alt="Energia giornaliera in tema scuro"> | <img src="docs/preview/energy-month.webp" alt="Energia mensile in tema scuro"> |
+| <img src="docs/preview/energy-day-mobile-light.webp" alt="Energia giornaliera su telefono, tema chiaro" width="230"> <img src="docs/preview/energy-day-mobile.webp" alt="Energia giornaliera su telefono, tema scuro" width="230"> | <img src="docs/preview/energy-month-mobile-light.webp" alt="Energia mensile su telefono, tema chiaro" width="230"> <img src="docs/preview/energy-month-mobile.webp" alt="Energia mensile su telefono, tema scuro" width="230"> |
 
-### Mensile
+Produzione, consumo, prelievo e immissione del giorno e del mese, con costi e risparmio calcolati sulle tariffe che hai impostato, e il confronto con i periodi precedenti.
 
-| Tema chiaro | Tema scuro |
+### Report e analisi
+
+| Report | Analisi |
 | --- | --- |
-| <img src="docs/preview/energy-month-light.webp" alt="Energia mensile in tema chiaro"> | <img src="docs/preview/energy-month.webp" alt="Energia mensile in tema scuro"> |
-| <img src="docs/preview/energy-month-mobile-light.webp" alt="Energia mensile su telefono, tema chiaro" width="230"> | <img src="docs/preview/energy-month-mobile.webp" alt="Energia mensile su telefono, tema scuro" width="230"> |
+| <img src="docs/preview/energy-report-light.webp" alt="Report energia in tema chiaro"> | <img src="docs/preview/energy-analysis-light.webp" alt="Analisi energia in tema chiaro"> |
+| <img src="docs/preview/energy-report.webp" alt="Report energia in tema scuro"> | <img src="docs/preview/energy-analysis.webp" alt="Analisi energia in tema scuro"> |
+| <img src="docs/preview/energy-report-mobile-light.webp" alt="Report energia su telefono, tema chiaro" width="230"> <img src="docs/preview/energy-report-mobile.webp" alt="Report energia su telefono, tema scuro" width="230"> | |
 
-Le stesse bolle del flusso, con i **totali di periodo** ricostruiti dalle statistiche Recorder: produzione, consumo, prelievo, immissione, carica e scarica della batteria, e il contributo di ciascun carico.
+Il **Report** mette in fila le voci che hai scelto — apparecchi, carichi, sorgenti — con il consumo del periodo, il costo e la quota sul totale.
 
-### Report
+L'**Analisi** mostra dove è andata l'energia:
 
-| Tema chiaro | Tema scuro |
-| --- | --- |
-| <img src="docs/preview/energy-report-light.webp" alt="Report energia in tema chiaro"> | <img src="docs/preview/energy-report.webp" alt="Report energia in tema scuro"> |
-| <img src="docs/preview/energy-report-mobile-light.webp" alt="Report energia su telefono, tema chiaro" width="230"> | <img src="docs/preview/energy-report-mobile.webp" alt="Report energia su telefono, tema scuro" width="230"> |
+- **Confronto settimanale dei consumi Casa**: settimana corrente contro precedente, sulle statistiche Recorder autenticate e sul bilancio canonico della Casa. I valori dipendono dai tuoi sensori: un riepilogo può riportare **165,1 kWh** senza che quel numero diventi una costante della plancia.
+- **Attività dispositivi** del periodo: classifica di elettrodomestici e carichi con quota fotovoltaico e quota rete di ciascuno, più il totale monitorato.
+- **Dettaglio dispositivo**: kWh del mese, media giornaliera, picco, risparmio e spesa in euro, totale dell'anno e istogramma giornaliero.
 
-Selettore **mese/anno** e, per il periodo scelto: produzione FV, consumo totale, autosufficienza, **quanto hai pagato**, **quanto hai risparmiato grazie al fotovoltaico**, costo reale, energia venduta, **CO₂ evitata**, badge di sintesi, anello di autosufficienza e andamento giornaliero produzione/consumo.
+Le icone del Report seguono lo stesso catalogo delle schede: una lavatrice ha lo stesso disegno in Elettrodomestici, in Energia e nei Carichi.
 
-### Analisi
-
-| Tema chiaro | Tema scuro |
-| --- | --- |
-| <img src="docs/preview/energy-analysis-light.webp" alt="Analisi energia in tema chiaro"> | <img src="docs/preview/energy-analysis.webp" alt="Analisi energia in tema scuro"> |
-
-- **Confronto settimanale dei consumi Casa**: settimana corrente contro precedente, sulle statistiche Recorder autenticate e sul bilancio canonico della Casa. I valori dipendono dai tuoi sensori: un riepilogo può riportare **165,1 kWh** senza che quel numero diventi una costante della dashboard.
-- **Attività dispositivi** del periodo: classifica di elettrodomestici e carichi con quota FV e quota rete di ciascuno, più il totale monitorato.
-- **Dettaglio dispositivo**: kWh del mese, media giornaliera, picco, risparmio e spesa in euro, totale anno e istogramma giornaliero.
-
-### Temperature impianto
+### Temperature d'impianto
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
 | <img src="docs/preview/energy-temperatures-light.webp" alt="Temperature impianto in tema chiaro"> | <img src="docs/preview/energy-temperatures.webp" alt="Temperature impianto in tema scuro"> |
 | <img src="docs/preview/energy-temperatures-mobile-light.webp" alt="Temperature impianto su telefono, tema chiaro" width="230"> | <img src="docs/preview/energy-temperatures-mobile.webp" alt="Temperature impianto su telefono, tema scuro" width="230"> |
 
-Temperature di inverter (DC/AC) e batteria, più la ventola di raffreddamento quando è configurata.
+Le sonde dell'impianto — inverter, batteria, quadro — con il loro andamento.
+
+---
 
 ## Elettrodomestici
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/appliances-light.webp" alt="Sezione elettrodomestici in tema chiaro"> | <img src="docs/preview/appliances.webp" alt="Sezione elettrodomestici in tema scuro"> |
-| <img src="docs/preview/appliances-mobile-light.webp" alt="Sezione elettrodomestici su telefono, tema chiaro" width="230"> | <img src="docs/preview/appliances-mobile.webp" alt="Sezione elettrodomestici su telefono, tema scuro" width="230"> |
+| <img src="docs/preview/appliances-light.webp" alt="Elettrodomestici in tema chiaro"> | <img src="docs/preview/appliances.webp" alt="Elettrodomestici in tema scuro"> |
+| <img src="docs/preview/appliances-mobile-light.webp" alt="Elettrodomestici su telefono, tema chiaro" width="230"> | <img src="docs/preview/appliances-mobile.webp" alt="Elettrodomestici su telefono, tema scuro" width="230"> |
 
-Una card per apparecchio con **illustrazione dedicata** (o la tua foto), stato reale (**In funzione / Standby / Spento / Allarme**), anello del **tempo rimanente**, barra di **potenza attuale**, barra **temperatura** per frigo, congelatore e forno, e riepilogo dell'**ultimo ciclo** (avvio, durata, consumo, costo). La colonna di sinistra filtra per **stanza** e per **stato** e somma il consumo istantaneo e giornaliero.
+Ogni apparecchio ha il suo **ritratto disegnato** — lavatrice, lavastoviglie, forno, asciugatrice, frigo e altri venti tipi — che **si anima quando l'apparecchio lavora**. La card dice se è **in funzione**, a che punto è il programma, quanto manca, e quanto è costato l'ultimo ciclo.
 
-### Vista consumi
+Un apparecchio è «in funzione» quando supera la sua **soglia di potenza**, e resta tale per il **ritardo di fine ciclo** che gli hai dato: serve a non far sparire la lavatrice durante una pausa del programma.
 
-| Tema chiaro | Tema scuro |
+### Vista consumi e dettaglio
+
+| Consumi | Dettaglio di un apparecchio |
 | --- | --- |
-| <img src="docs/preview/appliances-consumption-light.webp" alt="Consumi elettrodomestici in tema chiaro"> | <img src="docs/preview/appliances-consumption.webp" alt="Consumi elettrodomestici in tema scuro"> |
+| <img src="docs/preview/appliances-consumption-light.webp" alt="Vista consumi in tema chiaro"> | <img src="docs/preview/appliance-detail-light.webp" alt="Dettaglio elettrodomestico in tema chiaro"> |
+| <img src="docs/preview/appliances-consumption.webp" alt="Vista consumi in tema scuro"> | <img src="docs/preview/appliance-detail.webp" alt="Dettaglio elettrodomestico in tema scuro"> |
+| | <img src="docs/preview/appliance-detail-mobile-light.webp" alt="Dettaglio elettrodomestico su telefono, tema chiaro" width="230"> <img src="docs/preview/appliance-detail-mobile.webp" alt="Dettaglio elettrodomestico su telefono, tema scuro" width="230"> |
 
-### Dettaglio di un apparecchio
+Il dettaglio elenca **tutte le entità mappate** su quell'apparecchio con il loro valore: è anche il modo più rapido per capire se un sensore manca o punta al posto sbagliato.
 
-| Tema chiaro | Tema scuro |
-| --- | --- |
-| <img src="docs/preview/appliance-detail-light.webp" alt="Dettaglio elettrodomestico in tema chiaro"> | <img src="docs/preview/appliance-detail.webp" alt="Dettaglio elettrodomestico in tema scuro"> |
-| <img src="docs/preview/appliance-detail-mobile-light.webp" alt="Dettaglio elettrodomestico su telefono, tema chiaro" width="210"> | <img src="docs/preview/appliance-detail-mobile.webp" alt="Dettaglio elettrodomestico su telefono, tema scuro" width="210"> |
-
-Il dettaglio mostra potenza, contributo percentuale al consumo istantaneo, entità collegate e accesso allo storico.
-
-**Configurazione**: `Editor → Elettrodom.` — catalogo di **20 tipi**, entità di comando/stato/potenza/energia, soglie, immagine e campi dell'ultimo ciclo.
+---
 
 ## Auto elettrica e wallbox
 
@@ -361,37 +360,43 @@ Il dettaglio mostra potenza, contributo percentuale al consumo istantaneo, entit
 | <img src="docs/preview/ev-light.webp" alt="Sezione auto elettrica in tema chiaro"> | <img src="docs/preview/ev.webp" alt="Sezione auto elettrica in tema scuro"> |
 | <img src="docs/preview/ev-mobile-light.webp" alt="Sezione auto elettrica su telefono, tema chiaro" width="230"> | <img src="docs/preview/ev-mobile.webp" alt="Sezione auto elettrica su telefono, tema scuro" width="230"> |
 
-Profilo veicolo con **marchio e modello** dal catalogo (38 marchi) o la tua foto, SOC, autonomia, odometro, km dall'ultima ricarica, **sessione di ricarica** con quota solare, tensione e temperatura wallbox, target SOC e **console modalità di ricarica** (Spento / Solar / Min+Sol / Fast) quando l'integrazione le espone. Più veicoli convivono, ognuno con il suo profilo, e **le linguette per passare da un'auto all'altra ci sono anche dentro il popup**: non serve chiudere, tornare in Auto e cambiare veicolo. Sono le stesse linguette che stanno in cima alla pagina, disegnate in un secondo posto, e la fotografia segue la macchina scelta.
+Profilo veicolo con **marchio e modello** dal catalogo di **38 marche** — servite dall'integrazione, con i loro colori ufficiali, senza chiamare nessun CDN — oppure la tua foto. Stato di carica, autonomia, odometro, km dall'ultima ricarica, **sessione di ricarica** con quota solare, tensione e temperatura della wallbox, target di carica e **console modalità** (Spento / Solar / Min+Sol / Fast) quando l'integrazione le espone.
+
+Più veicoli convivono, ognuno con il suo profilo e la sua identità: rinominare un'auto non le fa perdere la foto. Con due vetture configurate la tessera della Home le racconta **entrambe**, e porta in evidenza la carica più bassa. Le linguette per passare da un'auto all'altra ci sono anche **dentro il popup**. Il **cavo collegato** si può dichiarare con una casella, invece di lasciarlo dedurre dal testo dello stato.
 
 DashboardModern non sostituisce l'integrazione del veicolo o della wallbox: ne presenta le entità.
 
-## Luci
+---
 
-Le luci si gestiscono dal popup **Gestione luci**, raggiungibile dalla Home e dalle Azioni rapide: raggruppate per stanza, con accensione singola e di gruppo, e il cursore della luminosità direttamente sulla scheda di chi è dimmerabile.
+## Luci
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/lights-popup-light.webp" alt="Popup gestione luci in tema chiaro"> | <img src="docs/preview/lights-popup.webp" alt="Popup gestione luci in tema scuro"> |
-| <img src="docs/preview/lights-popup-mobile-light.webp" alt="Popup gestione luci su telefono, tema chiaro" width="210"> | <img src="docs/preview/lights-popup-mobile.webp" alt="Popup gestione luci su telefono, tema scuro" width="210"> |
+| <img src="docs/preview/lights-light.webp" alt="Sezione luci in tema chiaro"> | <img src="docs/preview/lights.webp" alt="Sezione luci in tema scuro"> |
+| <img src="docs/preview/lights-mobile-light.webp" alt="Sezione luci su telefono, tema chiaro" width="230"> | <img src="docs/preview/lights-mobile.webp" alt="Sezione luci su telefono, tema scuro" width="230"> |
+
+Le luci hanno una **sezione propria nella barra**: prima erano solo un popup della Home, che resta comunque raggiungibile dalle azioni rapide.
+
+Ogni luce è una tessera con nome su due righe, stato, e il **cursore della luminosità** direttamente sulla card. Le tessere sono raggruppate per stanza, con il comando di stanza accanto al conteggio che lo riguarda, e da schermo largo crescono fino a riempire la riga — con un tetto, perché una stanza con una luce sola non diventi un cartellone.
 
 ### I controlli di una luce
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
 | <img src="docs/preview/light-control-popup-light.webp" alt="Controlli di una luce in tema chiaro"> | <img src="docs/preview/light-control-popup.webp" alt="Controlli di una luce in tema scuro"> |
-| <img src="docs/preview/light-control-popup-mobile-light.webp" alt="Controlli di una luce su telefono, tema chiaro" width="210"> | <img src="docs/preview/light-control-popup-mobile.webp" alt="Controlli di una luce su telefono, tema scuro" width="210"> |
+| <img src="docs/preview/light-control-popup-mobile-light.webp" alt="Controlli di una luce su telefono, tema chiaro" width="230"> | <img src="docs/preview/light-control-popup-mobile.webp" alt="Controlli di una luce su telefono, tema scuro" width="230"> |
 
-Il pannello della singola luce offre **solo i comandi che l'entità dichiara di avere**: luminosità con i valori rapidi 1 / 25 / 50 / 75 / 100 %, colore con dodici colori pronti, cursori di tinta e saturazione, selettore del colore esatto, bianco regolabile in kelvin ed elenco degli effetti. Una luce che non ha una di queste cose non ne vede il comando: non compare un cursore che Home Assistant rifiuterebbe.
+Luminosità, dodici colori pronti, tinta e saturazione, temperatura di colore. **La plancia offre solo i comandi che l'entità dichiara di accettare**: una luce che non ha il colore non mostra la ruota, una che è di fatto un interruttore mostra solo acceso e spento.
 
-Una luce può essere anche uno `switch.`, un `input_boolean.`, un `fan.` o un `group.`: viene comandata con il servizio giusto e non riceve mai luminosità o colore.
+Restano raggiungibili dalle azioni rapide anche i due popup della Home: **gestione luci** e **controllo rapido del clima**.
 
-Il popup **Avvisi** elenca invece le luci attualmente accese:
-
-| Tema chiaro | Tema scuro |
+| Gestione luci | Controllo rapido clima |
 | --- | --- |
-| <img src="docs/preview/alerts-popup-light.webp" alt="Popup dettaglio avvisi in tema chiaro"> | <img src="docs/preview/alerts-popup.webp" alt="Popup dettaglio avvisi in tema scuro"> |
+| <img src="docs/preview/lights-popup-light.webp" alt="Popup gestione luci in tema chiaro"> | <img src="docs/preview/climate-popup-light.webp" alt="Controllo rapido clima in tema chiaro"> |
+| <img src="docs/preview/lights-popup.webp" alt="Popup gestione luci in tema scuro"> | <img src="docs/preview/climate-popup.webp" alt="Controllo rapido clima in tema scuro"> |
+| <img src="docs/preview/lights-popup-mobile-light.webp" alt="Gestione luci su telefono, tema chiaro" width="230"> <img src="docs/preview/lights-popup-mobile.webp" alt="Gestione luci su telefono, tema scuro" width="230"> | <img src="docs/preview/climate-popup-mobile-light.webp" alt="Controllo clima su telefono, tema chiaro" width="230"> <img src="docs/preview/climate-popup-mobile.webp" alt="Controllo clima su telefono, tema scuro" width="230"> |
 
-**Configurazione**: `Editor → Luci` — entità, nome, stanza, ordine e organizzazione per stanza.
+---
 
 ## Clima
 
@@ -400,59 +405,62 @@ Il popup **Avvisi** elenca invece le luci attualmente accese:
 | <img src="docs/preview/climate-light.webp" alt="Sezione clima in tema chiaro"> | <img src="docs/preview/climate.webp" alt="Sezione clima in tema scuro"> |
 | <img src="docs/preview/climate-mobile-light.webp" alt="Sezione clima su telefono, tema chiaro" width="230"> | <img src="docs/preview/climate-mobile.webp" alt="Sezione clima su telefono, tema scuro" width="230"> |
 
-In testa il riepilogo — **quante unità sono accese**, la **temperatura ambiente media**, e *Accendi tutto / Spegni tutto*. Sotto, le due famiglie **Freddo** e **Caldo** con il loro conteggio: la pagina mostra **solo le famiglie che la casa ha davvero**, quindi con soli condizionatori non compare una sezione Caldo vuota.
+Le unità si dividono in **Freddo** e **Caldo**, e la pagina mostra **solo le famiglie che la casa ha davvero**: con soli condizionatori la scheda «Caldo» non compare, e quando ne resta una l'interruttore sparisce perché non c'è niente fra cui scegliere.
 
-Le unità sono raggruppate per piano e ognuna ha il **cursore del target** con la temperatura ambiente segnata sulla scala, lo stato (*Raffresca*, *Spento*…), la modalità e i comandi +/− e accensione.
+Una **pompa di calore** che fa entrambe le cose si dichiara come tale e compare in tutte e due. Il tasto di accensione accende davvero, e un condizionatore acceso dalla scheda Freddo parte a raffrescare, non a scaldare.
 
-### Controllo rapido dalla Home
-
-| Tema chiaro | Tema scuro |
-| --- | --- |
-| <img src="docs/preview/climate-popup-light.webp" alt="Popup controllo rapido clima in tema chiaro"> | <img src="docs/preview/climate-popup.webp" alt="Popup controllo rapido clima in tema scuro"> |
-| <img src="docs/preview/climate-popup-mobile-light.webp" alt="Popup controllo rapido clima su telefono, tema chiaro" width="210"> | <img src="docs/preview/climate-popup-mobile.webp" alt="Popup controllo rapido clima su telefono, tema scuro" width="210"> |
-
-**Configurazione**: `Editor → Clima` — entità `climate.*`, stanza, tipo (Freddo/Caldo).
+---
 
 ## Temperatura e umidità
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/temperature-light.webp" alt="Sezione temperatura in tema chiaro"> | <img src="docs/preview/temperature.webp" alt="Sezione temperatura in tema scuro"> |
-| <img src="docs/preview/temperature-mobile-light.webp" alt="Sezione temperatura su telefono, tema chiaro" width="230"> | <img src="docs/preview/temperature-mobile.webp" alt="Sezione temperatura su telefono, tema scuro" width="230"> |
+| <img src="docs/preview/temperature-light.webp" alt="Sezione temperature in tema chiaro"> | <img src="docs/preview/temperature.webp" alt="Sezione temperature in tema scuro"> |
+| <img src="docs/preview/temperature-mobile-light.webp" alt="Sezione temperature su telefono, tema chiaro" width="230"> | <img src="docs/preview/temperature-mobile.webp" alt="Sezione temperature su telefono, tema scuro" width="230"> |
 
-Una card per stanza con nome e icona **ereditati dalle Stanze**, temperatura, umidità e giudizio di comfort. Il comfort **colora tutta la card** (freddo, comfort, caldo), i chip in alto filtrano per **stanza** e per **piano**, e sotto le card l'**andamento** mette a confronto tutte le stanze su **24 ore o 7 giorni**, con la fascia di comfort evidenziata e minimo/massimo di ciascuna.
+Una card per stanza con temperatura, umidità e un **giudizio di comfort** — freddo, comfort, caldo — con la barra colorata che dice dove sta il valore. Le pillole in alto filtrano per stanza, e il grafico in fondo confronta **tutte le stanze** sulle 24 ore o sui 7 giorni, con la fascia di comfort disegnata dietro.
 
-**Configurazione**: `Editor → Temperatura` — scegli la stanza e associa entità temperatura e umidità.
+---
 
-## Tapparelle
+## Tapparelle, tende e finestre
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
 | <img src="docs/preview/shutters-light.webp" alt="Sezione tapparelle in tema chiaro"> | <img src="docs/preview/shutters.webp" alt="Sezione tapparelle in tema scuro"> |
 | <img src="docs/preview/shutters-mobile-light.webp" alt="Sezione tapparelle su telefono, tema chiaro" width="230"> | <img src="docs/preview/shutters-mobile.webp" alt="Sezione tapparelle su telefono, tema scuro" width="230"> |
 
-Ogni scheda è una **finestra guardata dalla stanza**, che è da dove si guarda una tapparella davvero. In primo piano c'è l'**infisso**: il telaio, le due ante con il vetro e la maniglia. Dietro il vetro **scende la tapparella**, disegnata a stecche, perché la tapparella sta fuori. Dietro ancora c'è il fuori: il cielo con sole e nuvole di giorno, luna e stelle di notte, il cassonetto e le guide.
+Ogni scheda è una **finestra guardata dalla stanza**, che è da dove si guarda una tapparella davvero. In primo piano l'**infisso**: telaio, due ante con il vetro, maniglia. Dietro il vetro **scende la tapparella**, disegnata a stecche. Dietro ancora c'è il fuori: cielo con sole e nuvole di giorno, luna e stelle di notte, che **segue l'ora reale**.
 
-- **Il cursore accanto alla finestra si trascina in verticale** come la tapparella vera, e al rilascio la porta esattamente a quella posizione. Chi non accetta una posizione mostra lo stesso indicatore in sola lettura.
-- **La finestra si può aprire.** Se assegni alla tapparella un **sensore di apertura dell'infisso** — un contatto sull'anta — quando quel contatto dice aperto **le ante rientrano verso i loro cardini**, si scopre il vano e accanto allo stato compare **«Finestra aperta»**. L'anta aperta prende corpo e **getta ombra** su quello che ha dietro, che sia la tapparella o il cielo, e attorno si vede lo spessore del muro; da chiusa resta trasparente, altrimenti si perderebbe il vetro. Senza sensore, o con un sensore che non risponde, la scheda resta com'era: non viene disegnata un'apertura che nessuno ha misurato.
-- **Il cielo segue l'ora del giorno.** Dietro il vetro non c'è un cielo solo: ce ne sono cinque, quelli che si nominano parlando — **alba** (5-8), **mattina** (8-13), **pomeriggio** (13-18), **tramonto** (18-21), **sera** (21-5). Il sole si alza e si abbassa, le nuvole si tingono, di notte arrivano luna e stelle, e al tramonto le colline vanno in controluce. Le immagini qui sopra sono state scattate al **tramonto** — lo script fissa il fuso su `Europe/Rome`, quindi la galleria mostra sempre la fascia dell'ora in cui viene rigenerata.
-- La testata riassume quante sono **aperte e chiuse** in questo momento e contiene **Apri tutte / Chiudi tutte**.
-- Quando le stanze sono su più piani le tapparelle si raggruppano per piano e stanza, con il titolo del gruppo.
+- **Il cursore si trascina in verticale** come la tapparella vera, e al rilascio la porta a quella posizione. La percentuale dei preset si sceglie, non è più fissa.
+- **La finestra si apre.** Con un **sensore di apertura dell'infisso** collegato, quando il contatto dice aperto le ante rientrano verso i cardini e accanto allo stato compare **«Finestra aperta»**. Senza sensore la scheda resta com'era: non viene disegnata un'apertura che nessuno ha misurato.
+- **Anche solo il sensore basta.** Chi ha persiane manuali e nessun motore può inserire il solo contatto: ne esce una card che disegna lo stesso serramento, con le ante che si scostano, e sotto nessun comando — perché su una persiana manuale Apri/Ferma/Chiudi non arriverebbe da nessuna parte. Nel conteggio in cima quelle finestre hanno una voce loro.
+- **Tende e tapparelle su due relè** sono supportate: una copertura comandata da due interruttori separati, e le tende da sole con il loro verso.
+- Una finestra con più coperture resta **una sola card**, non tre.
 
-**Configurazione**: `Editor → Tapparelle` — entità `cover.*`, nome, stanza, ordine e **Sensore apertura infisso** (facoltativo).
+---
 
-## Sicurezza e telecamere
+## Sicurezza, telecamere e aperture
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
 | <img src="docs/preview/security-light.webp" alt="Sezione sicurezza in tema chiaro"> | <img src="docs/preview/security.webp" alt="Sezione sicurezza in tema scuro"> |
 | <img src="docs/preview/security-mobile-light.webp" alt="Sezione sicurezza su telefono, tema chiaro" width="230"> | <img src="docs/preview/security-mobile.webp" alt="Sezione sicurezza su telefono, tema scuro" width="230"> |
 
-Lo **stato dell'antifurto** in grande, con l'anello che ne segue il colore, e le **modalità disponibili** — Fuori, Notte, Sblocca — ognuna con la sua descrizione. Le modalità offerte sono quelle che la centrale dichiara in `supported_features`. Sotto, la **videosorveglianza**: un riquadro per canale, con badge LIVE e orologio.
+**L'antifurto mostra i tasti che la tua centrale ha davvero.** Non tre tasti fissi uguali per tutti: i comandi si costruiscono da quello che l'entità dichiara di supportare, e ogni stato accende il suo. Il **tastierino compare solo se un codice esiste**, e serve anche per inserire quando la centrale lo richiede — dove non serve, non si preme OK a vuoto.
 
-> Nelle anteprime i riquadri telecamera mostrano un fermo immagine segnaposto: non esiste alcuno stream reale in questo README.
->
-> DashboardModern **non memorizza il codice dell'allarme**: il codice digitato viene passato al servizio Home Assistant, che decide.
+E **si sceglie quali modalità vedere**: la centrale dice cosa accetta, quello che serve davvero lo dice chi la usa. Toglierne una la nasconde e non cambia niente di quello che la centrale sa fare; lo sblocco resta sempre.
+
+**Le telecamere** si vedono dal vivo, con lo scatto aggiornato e l'apertura a pieno schermo. Compaiono anche in miniatura fra i Widget della Home.
+
+**Le aperture**: portoni, serrature e cancelli, con il comando di apertura e — dove serve — il **PIN** prima di aprire.
+
+| Dettaglio avvisi |
+| --- |
+| <img src="docs/preview/alerts-popup-light.webp" alt="Dettaglio avvisi in tema chiaro" width="49%"> <img src="docs/preview/alerts-popup.webp" alt="Dettaglio avvisi in tema scuro" width="49%"> |
+
+Porte, finestre, allagamenti, fumo e batterie scariche vivono nei **gruppi di avvisi**, che compaiono come tessere in Home. Ogni avviso si muove come quello che significa: la porta si apre sul cardine, la batteria cala di livello, l'antifurto pulsa.
+
+---
 
 ## Solare termico
 
@@ -461,7 +469,9 @@ Lo **stato dell'antifurto** in grande, con l'anello che ne segue il colore, e le
 | <img src="docs/preview/solar-thermal-light.webp" alt="Sezione solare termico in tema chiaro"> | <img src="docs/preview/solar-thermal.webp" alt="Sezione solare termico in tema scuro"> |
 | <img src="docs/preview/solar-thermal-mobile-light.webp" alt="Sezione solare termico su telefono, tema chiaro" width="230"> | <img src="docs/preview/solar-thermal-mobile.webp" alt="Sezione solare termico su telefono, tema scuro" width="230"> |
 
-L'impianto in vista isometrica: collettore, boiler con le sue sonde, delta di temperatura, pompa solare, centralina, pressione dell'impianto, valvola di sicurezza e resistenza elettrica con il suo consumo.
+L'impianto disegnato in vista isometrica: pannelli, circuito, accumulo e valvole. Ogni sonda dice **cosa misura**, e la pompa si anima quando circola davvero.
+
+---
 
 ## Piscina
 
@@ -470,13 +480,9 @@ L'impianto in vista isometrica: collettore, boiler con le sue sonde, delta di te
 | <img src="docs/preview/pool-light.webp" alt="Sezione piscina in tema chiaro"> | <img src="docs/preview/pool.webp" alt="Sezione piscina in tema scuro"> |
 | <img src="docs/preview/pool-mobile-light.webp" alt="Sezione piscina su telefono, tema chiaro" width="230"> | <img src="docs/preview/pool-mobile.webp" alt="Sezione piscina su telefono, tema scuro" width="230"> |
 
-Una **scena** al posto di un pannello piatto: giardino, bordo in pietra, vasca in prospettiva con l'acqua che scorre, scaletta, gradini e salvagente. La temperatura dell'acqua è un quadrante di vetro sopra la scena; **pompa, riscaldamento e luce** sono tre riquadri della stessa misura sotto la vasca.
+La vasca disegnata con l'acqua che si muove, temperatura, **pH e cloro** con le loro soglie, filtrazione, riscaldamento e luce. Fuori soglia il valore si colora, invece di restare un numero come gli altri.
 
-- Con la **pompa** in funzione si vedono le bolle nell'acqua.
-- Con il **riscaldamento** acceso sale il vapore.
-- Con la **luce** accesa la vasca si illumina da sotto.
-- **pH e cloro** hanno ognuno la sua barra con la fascia ideale evidenziata e l'indicatore sulla lettura.
-- La **filtrazione** mostra in un anello le ore fatte oggi su quelle previste; in modalità automatica le ore sono `temperatura / 2` (minimo 2, massimo 12).
+---
 
 ## Irrigazione
 
@@ -485,12 +491,22 @@ Una **scena** al posto di un pannello piatto: giardino, bordo in pietra, vasca i
 | <img src="docs/preview/irrigation-light.webp" alt="Sezione irrigazione in tema chiaro"> | <img src="docs/preview/irrigation.webp" alt="Sezione irrigazione in tema scuro"> |
 | <img src="docs/preview/irrigation-mobile-light.webp" alt="Sezione irrigazione su telefono, tema chiaro" width="230"> | <img src="docs/preview/irrigation-mobile.webp" alt="Sezione irrigazione su telefono, tema scuro" width="230"> |
 
-Anche qui una scena: prato rasato a strisce, siepe, alberi, fiori e fili d'erba sul bordo, con **un irrigatore per ogni zona configurata** (le prime otto sul prato, tutte nelle schede sotto).
+Le zone con la loro valvola, i minuti di ciascuna, l'orario di partenza e il **blocco pioggia**: sopra la probabilità che hai impostato, il ciclo non parte.
 
-- Quando una zona parte **l'irrigatore spruzza davvero**: il ventaglio d'acqua oscilla, le gocce ricadono sull'erba aprendo il loro schizzo e il prato sotto si bagna e si scurisce.
-- Il **conto alla rovescia** della zona resta sull'etichetta e sulla sua scheda.
-- Il **programma** avvia le zone in sequenza, ognuna per la sua durata, e salta quando la probabilità di pioggia supera la soglia; **Forza** ignora la pioggia.
-- Se hai attivato *riduci animazioni* nel sistema, la scena resta ferma.
+**L'irrigazione guarda il terreno.** Con un sensore di **umidità del suolo** collegato, la zona mostra quanto è bagnata e le sue soglie: si evita di innaffiare un terreno già umido.
+
+---
+
+## Aspirapolvere
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="docs/preview/robot-light.webp" alt="Sezione aspirapolvere in tema chiaro"> | <img src="docs/preview/robot.webp" alt="Sezione aspirapolvere in tema scuro"> |
+| <img src="docs/preview/robot-mobile-light.webp" alt="Sezione aspirapolvere su telefono, tema chiaro" width="230"> | <img src="docs/preview/robot-mobile.webp" alt="Sezione aspirapolvere su telefono, tema scuro" width="230"> |
+
+I robot di casa con stato, batteria, potenza di aspirazione e i comandi — avvio, pausa, rientro alla base. Ogni robot ha la sua stanza, scelta da una tendina, e la mappa quando l'integrazione la espone.
+
+---
 
 ## MiniPC e rete
 
@@ -504,9 +520,13 @@ La macchina disegnata in 3D con **CPU, RAM e disco** come barre che crescono, il
 ---
 # Editor Dashboard: tutte le configurazioni
 
-L'editor è un'unica finestra con una tab per area. Tutte le configurazioni descritte qui sono **visuali**: nessun YAML.
+L'editor è un'unica finestra con **ventidue schede**, una per area, elencate in **colonna** sulla sinistra: si vedono tutte insieme, senza scorrere una fila. Da telefono tenuto in piedi la colonna si stringe al solo simbolo e il nome ricompare appena giri lo schermo; chi un simbolo non lo riconosce lo legge tenendo premuto.
 
-> Le schermate qui sotto sono in **tema chiaro**; l'editor segue il tema della plancia, quindi in tema scuro le stesse tab appaiono scure — c'è una galleria in fondo al capitolo.
+Tutte le configurazioni descritte qui sono **visuali**: nessun YAML.
+
+`Impostazioni` · `Home` · `Energia` · `EV` · `Solare` · `Sicurezza` · `MiniPC` · `Temperatura` · `Azioni` · `Clima` · `Piscina` · `Irrigazione` · `Tapparelle` · `Stanze` · `Luci` · `Elettrodom.` · `Aperture` · `Backup` · `Widget` · `Aspirapolvere` · `Persone` · `Runtime`
+
+> Le schermate qui sotto sono in **tema chiaro**; l'editor segue il tema della plancia, quindi in tema scuro le stesse schede appaiono scure — c'è una galleria in fondo al capitolo.
 
 <img src="docs/preview/editor-settings-light.webp" alt="Editor - impostazioni generali" width="100%">
 
@@ -518,62 +538,64 @@ L'editor è un'unica finestra con una tab per area. Tutte le configurazioni desc
 | **Auto elettriche** | profili veicolo salvati, con marchio, modello e foto |
 | **Ordine navbar** | disponi le sezioni della barra come preferisci |
 | **Autorilevamento** | proposta automatica delle entità da collegare → [capitolo dedicato](#autorilevamento-entità) |
-| **Diagnosi navbar** | stato di visibilità di ogni sezione, utile per capire perché una tab non appare |
+| **Diagnosi navbar** | stato di visibilità di ogni sezione, utile per capire perché una scheda non appare |
 | **Reset totale** | azzera la configurazione della plancia |
 
-La visibilità di ogni sezione si accende e si spegne dal pulsante verde in testa alla tab corrispondente (**Sezione visibile in dashboard — tocca per nascondere**), e una sezione si accende da sola appena riceve dati configurati.
+La visibilità di ogni sezione si accende e si spegne dal pulsante verde in testa alla scheda corrispondente, e una sezione si accende da sola appena riceve dati configurati.
 
 <a id="autorilevamento-entità"></a>
 
 ### 🪄 Autorilevamento entità
 
-Dentro **⚙️ Impostazioni** c'è il blocco **Autorilevamento**: un pulsante che legge tutte le entità di Home Assistant e **propone** da solo i collegamenti, le luci, le stanze, le unità clima, le telecamere e i gruppi degli avvisi. È il modo più rapido per passare da una plancia vuota a una plancia già popolata, senza aprire una tab alla volta.
-
 | Tema chiaro | Tema scuro |
 | --- | --- |
 | <img src="docs/preview/editor-autodetect-light.webp" alt="Autorilevamento entità, tema chiaro"> | <img src="docs/preview/editor-autodetect.webp" alt="Autorilevamento entità, tema scuro"> |
 
-**Come funziona**
+Un pulsante legge tutte le entità di Home Assistant e **propone** collegamenti, luci, stanze, unità clima, telecamere e gruppi di avvisi.
 
-1. Premi **🪄 AVVIA AUTORILEVAMENTO**. Una barra di avanzamento mostra le fasi: lettura delle entità, lettura dei registri (piani, aree, dispositivi), analisi.
-2. Le entità vengono indicizzate **una volta sola** e messe in liste di ricerca per parola: ogni slot guarda solo le entità che condividono un termine con lui, quindi l'analisi finisce in millisecondi anche con qualche migliaio di entità e **la pagina non si blocca**.
-3. Ogni etichetta di slot viene letta come una richiesta precisa: l'**unità di misura** fra parentesi (`kWh`, `W`, `%`, `°C`, `bar`, `Mbit/s`…), la **device class** che quell'unità implica, il **dominio** suggerito da una parola iniziale (`Script…`, `Interruttore…`, `Valvola…`, `Meteo…`) e il **periodo** a cui appartiene (`oggi`, `mese`, `anno`).
+1. Premi **🪄 Avvia autorilevamento**. Una barra mostra le fasi: lettura delle entità, lettura dei registri (piani, aree, dispositivi), analisi.
+2. Le entità vengono indicizzate **una volta sola** e messe in liste di ricerca per parola: ogni slot guarda solo le entità che condividono un termine con lui, quindi l'analisi finisce in millisecondi anche con migliaia di entità e **la pagina non si blocca**.
+3. Ogni etichetta viene letta come una richiesta precisa: l'**unità di misura** fra parentesi (`kWh`, `W`, `%`, `°C`, `bar`, `Mbit/s`…), la **device class** che quell'unità implica, il **dominio** suggerito da una parola iniziale (`Script…`, `Interruttore…`, `Valvola…`, `Meteo…`) e il **periodo** (`oggi`, `mese`, `anno`).
 4. Tutte le coppie *(slot, entità)* vengono valutate insieme e assegnate **in ordine di confidenza**: vince la corrispondenza più forte, non quella che capita prima nell'elenco.
 
-**Cosa vedi prima di salvare**
+Al termine compare il riepilogo **🪄 Ecco cosa ho trovato**, con quante entità sono state analizzate e in quanti millisecondi, e le righe: 🔗 collegamenti, 💡 luci, 🌡️ stanze, ❄️ unità clima, 📹 telecamere, 🔔 entità nei gruppi avvisi. Le categorie **già configurate** non vengono toccate, e i campi con due candidati ugualmente plausibili **non vengono indovinati**.
 
-Al termine compare il riepilogo **🪄 Ecco cosa ho trovato**, con quante entità sono state analizzate e in quanti millisecondi, seguito da:
-
-| Riga | Significato |
-| --- | --- |
-| 🔗 **Collegamenti alle entità** | quanti slot verrebbero compilati (i primi 12 sono elencati per esteso, slot ed `entity_id`) |
-| 💡 **Luci** | luci individuate e raggruppate per stanza |
-| 🌡️ **Stanze** | stanze proposte, una per area di Home Assistant quando i registri sono disponibili |
-| ❄️ **Unità clima** | termostati e climatizzatori |
-| 📹 **Telecamere** | entità `camera` da mostrare in Sicurezza |
-| 🔔 **Entità nei gruppi avvisi** | porte, finestre, allagamenti, fumo e simili, inseriti nei gruppi della Home |
-
-Le categorie **già configurate** non vengono toccate: al posto del numero compare *già configurato*. E se due candidati sono ugualmente plausibili per lo stesso campo, quel campo **non viene indovinato**: il riepilogo dice quanti campi restano da compilare a mano, nelle rispettive tab.
-
-> **Niente è stato ancora salvato.** Il riepilogo è una proposta: la configurazione cambia solo quando premi **✅ APPLICA E RICARICA**. Con **ANNULLA** il riepilogo sparisce e nulla viene scritto.
-
-**Cosa succede all'applicazione**
-
-- I valori vengono scritti **senza mai sovrascrivere** quello che hai già impostato: l'autorilevamento riempie i vuoti, non rimpiazza le tue scelte.
-- Gli slot di **Energia** non passano dagli override generici ma finiscono nel modello Energia canonico (schema 4), che è ciò che li rende persistenti fra un salvataggio e l'altro.
-- Subito dopo la scrittura, i registri di Home Assistant vengono riapplicati (aree, piani, dispositivi) e la plancia si ricarica con la nuova configurazione.
-
-**Dopo l'autorilevamento** conviene comunque fare un giro nelle tab: l'autorilevamento porta la plancia al 70–90 % in pochi secondi, ma i **contatori totali di Energia**, le **soglie** degli elettrodomestici e le **tariffe** restano scelte tue.
+> **Niente è stato ancora salvato.** La configurazione cambia solo quando premi **✅ APPLICA E RICARICA**. I valori vengono scritti **senza mai sovrascrivere** quello che hai già impostato, e gli slot di **Energia** passano dal modello canonico, che è ciò che li rende persistenti.
 
 ### 🚪 Stanze
 
 <img src="docs/preview/editor-rooms-light.webp" alt="Editor - stanze" width="100%">
 
-Le stanze sono il **registro condiviso**: nome, **icona dal catalogo visuale**, piano e ordine. Rinominare una stanza o spostarla di piano aggiorna insieme Temperatura, Clima, Luci, Tapparelle ed Elettrodomestici, perché tutte le sezioni referenziano l'`id` della stanza, non il suo nome.
+Le stanze sono il **registro condiviso**: nome, **icona dal catalogo visuale**, piano e ordine. Rinominare una stanza o spostarla di piano aggiorna insieme Temperatura, Clima, Luci, Tapparelle, Elettrodomestici e la pagina Stanze, perché tutte le sezioni referenziano l'`id` della stanza, non il suo nome.
+
+### 👥 Persone
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="docs/preview/editor-people-light.webp" alt="Editor - persone, tema chiaro"> | <img src="docs/preview/editor-people.webp" alt="Editor - persone, tema scuro"> |
+
+Ogni persona ha un'entità (`person.*`, o `device_tracker.*` per chi non ha creato le persone in Home Assistant), un nome e un ritratto. Il pulsante **importa** propone ogni `person.*` che la plancia non conosce ancora, col suo nome e la sua foto.
+
+**Il ritratto è un personaggio 3D**, e i pezzi si combinano liberamente:
+
+| Scelta | Opzioni |
+| --- | --- |
+| **Persona** | uomo, donna, neutro, ragazzo, ragazza, anziano |
+| **Capelli** | lisci, barba, ricci, rossi, bianchi, calvo |
+| **Carnagione** | cinque tonalità |
+| **Vestito** | ventinove: ufficio, medico, cuoco, smoking, velo, pompiere, poliziotto, muratore, operaio, meccanico, contadino, pilota, astronauta, giudice, supereroe, scienziato, insegnante, studente, informatico, artista, cantante, guardia, detective, turbante, supercattivo, mago, fata, vampiro, elfo |
+
+Sono **oltre tremila combinazioni**, e sono libere davvero: «ricci» e «cuoco» insieme si possono, perché la testa scelta viene riscalata e incollata sul busto scelto. Nel costruttore ogni pastiglia è **il tuo ritratto con quel pezzo addosso**, non un'icona generica; e c'è il 🎲 per il caso.
+
+I ritratti sono i render 3D di **Fluent Emoji** (Microsoft, licenza MIT), **vendorizzati nell'integrazione**: 396 immagini, 3,2 MB, nessuna rete a runtime. Chi preferisce può mettere una **foto vera**, che vince sul ritratto.
+
+> **Respirano e sbattono le ciglia.** Il respiro è CSS. Il battito lo disegna la plancia sopra gli occhi trovati in fase di build, prendendo il colore dalla guancia della persona stessa così che combaci con qualunque carnagione: dura trecento millisecondi, poi la tela torna ferma — una plancia con quattro persone non disegna niente. L'espressione la decide quello che la plancia già sa: chi è a casa ha gli occhi che ridono, chi ha la batteria agli sgoccioli ha le palpebre pesanti.
+
+**I sensori del telefono si trovano da soli**: batteria, stato di carica, indirizzo, attività, WiFi, orologio, distanza, tempo di rientro e direzione.
 
 ### ⚡ Energia
 
-Quattro pannelli interni: **Flussi ed entità**, **Carichi**, **Report**, **Impostazioni**. Ogni pannello vive solo sotto la sua scheda.
+Quattro pannelli interni: **Flussi ed entità**, **Carichi**, **Report**, **Impostazioni**. In cima, le linguette degli **impianti**.
 
 <img src="docs/preview/editor-energy-light.webp" alt="Editor - energia, flussi ed entità" width="100%">
 
@@ -582,13 +604,9 @@ Quattro pannelli interni: **Flussi ed entità**, **Carichi**, **Report**, **Impo
 | Campo | Ruolo |
 | --- | --- |
 | **Potenza istantanea** (W) | valore live per il flusso |
-| **Energia giornaliera** (kWh) | override facoltativo del giorno corrente |
-| **Energia mensile** (kWh) | override facoltativo del mese corrente |
-| **Energia annuale** (kWh) | override facoltativo dell'anno corrente |
+| **Energia giornaliera / mensile / annuale** (kWh) | override facoltativi |
 | **Contatore energia totale** (kWh) | il sensore **cumulativo** (`state_class: total` o `total_increasing`): è la sorgente di report, mesi precedenti e grafici |
 | **Stato di carica** (%) | solo batteria |
-
-Ogni gruppo mostra un contatore `x/y configurati` e la sua intestazione dice se ha *Storico + periodo* o solo *Fallback*.
 
 <table>
 <tr>
@@ -598,43 +616,25 @@ Ogni gruppo mostra un contatore `x/y configurati` e la sua intestazione dice se 
 </tr>
 </table>
 
-**Carichi** — una card per ogni cerchio sotto Casa, nell'ordine in cui viene disegnato: nome, **icona** (dal catalogo di aree della casa e apparecchi), **colore**, potenza istantanea, contatore energia totale, sensori di periodo facoltativi, riordino, eliminazione e i **dispositivi contenuti**, che finiscono nel popup del cerchio. Un carico con dispositivi assegnati vale la **somma** dei suoi dispositivi; un carico con un sensore proprio — per esempio una pinza amperometrica sull'intera linea — usa quello, che è più preciso. Ogni card dice cosa manca: nessuna entità, potenza assente, nessun contatore energia.
+**Carichi** — una card per ogni cerchio sotto Casa: nome, **icona**, **colore**, potenza istantanea, contatore totale, sensori di periodo, riordino, eliminazione e i **dispositivi contenuti**, che finiscono nel popup del cerchio. Un carico con dispositivi assegnati vale la **somma** dei suoi dispositivi; un carico con un sensore proprio usa quello, che è più preciso. **Fino a otto carichi per impianto.**
 
-**Report** — quali voci compaiono nel Report e nell'Analisi: etichetta, icona, **entità totale per lo storico** e visibilità. Le icone seguono **un disegno solo** per tutte le voci: il tipo lo decide la stessa funzione che lo decide sulle schede, guardando tutti i campi della voce e non solo il primo, e quando non riconosce niente risponde «generico» invece di lasciare la faccina. La **wallbox** ha la sua colonnina disegnata, con la stessa cornice e la stessa griglia degli altri apparecchi.
+**Report** — quali voci compaiono nel Report e nell'Analisi: etichetta, icona, **entità totale per lo storico** e visibilità.
 
-**Impostazioni** — **costo €/kWh** e **prezzo di immissione**, usati per pagato/risparmiato/venduto, più le viste Energia da mostrare.
+**Impostazioni** — **costo €/kWh** e **prezzo di immissione**, più le viste Energia da mostrare.
+
+> **Più impianti.** Ogni impianto ha nome, misuratori e carichi propri. L'**id** nasce una volta e non si ricava mai dal nome: rinominare «Casa Giovanni» non sposta niente. Cancellarne uno porta via i suoi carichi, che altrimenti resterebbero orfani e invisibili.
 
 ### 🌡️ Temperatura
 
 <img src="docs/preview/editor-temperature-light.webp" alt="Editor - temperatura" width="100%">
 
-Per ogni riga: **stanza** (obbligatoria, scelta fra quelle esistenti), **entità temperatura** e **entità umidità** (facoltativa). Nome e icona arrivano dalle Stanze. Puoi spostare i sensori da una stanza all'altra, purché la destinazione non abbia già un'associazione.
+Temperatura e umidità per stanza, con le soglie di comfort.
 
 ### 🧺 Elettrodomestici
 
 <img src="docs/preview/editor-appliances-light.webp" alt="Editor - elettrodomestici" width="100%">
 
-Catalogo con **20 tipi** (lavatrice, lavastoviglie, asciugatrice, forno, microonde, frigorifero, congelatore, piano cottura, cappa, ferro da stiro, aspirapolvere, robot, condizionatore, ventilatore, scaldabagno, TV, caffettiera, tostapane, bollitore, altro) e, per ogni apparecchio:
-
-| Campo | Ruolo |
-| --- | --- |
-| **Nome**, **Tipo / immagine**, **Stanza** | identità e collocazione |
-| **Entità comando** | `switch`, `light`, `fan` o `input_boolean` usato dal pulsante Accendi/Spegni |
-| **Potenza istantanea** | sensore W o kW mostrato nella card |
-| **Soglia in funzione** (W) | potenza oltre la quale la card risulta accesa |
-| **Soglia standby** (W) | sotto la soglia *In funzione* e sopra questa = Standby |
-| **Entità stato programma** | sensore con lo stato (`running`, `idle`…): ha **priorità** sulle soglie in watt |
-| **Tempo rimanente** | minuti, `hh:mm` o timestamp di fine: alimenta l'anello del conto alla rovescia |
-| **Durata programma** / **Durata ciclo fissa** | percentuale dell'anello, da entità o da minuti fissi |
-| **Entità temperatura** + **min/max barra** | per frigo, congelatore e forno mostra la barra temperatura al posto della potenza |
-| **Entità allarme/anomalia** | `binary_sensor` di problema: accende il contatore Allarme |
-| **Energia giornaliera / mensile** | override facoltativi del periodo corrente |
-| **Energia totale per storico e Report** | contatore cumulativo kWh: **è questo** che ricostruisce anche i mesi precedenti |
-| **Ultimo ciclo**: avvio, durata, consumo, costo | riepilogo in fondo alla card |
-| **Carico energia** | il cerchio del flusso in cui rientra; il popup del cerchio lo elenca da solo |
-| **Potenza massima** (W) | scala della barra Potenza attuale |
-| **Costo energia (€/kWh)** | vuoto = tariffa della sezione Energia |
-| **Immagine personalizzata (URL)** | la foto reale al posto dell'illustrazione |
+Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto animato), stanza, entità di controllo, potenza, energia giornaliera e totale, stato del programma, tempo rimanente, temperatura, ultimo ciclo (durata, energia, costo), **soglie di standby e funzionamento** e **ritardo di fine ciclo**.
 
 ### 💡 Luci · ❄️ Clima · 🪟 Tapparelle
 
@@ -646,45 +646,61 @@ Catalogo con **20 tipi** (lavatrice, lavastoviglie, asciugatrice, forno, microon
 </tr>
 </table>
 
-- **Luci**: entità (`light.`, `switch.`, `input_boolean.`, `fan.`, `group.`), nome visualizzato, stanza, ordine e organizzazione per stanza.
-- **Clima**: entità `climate.*`, stanza e assegnazione a **Freddo** o **Caldo**.
-- **Tapparelle**: entità `cover.*`, nome, stanza e **Sensore apertura infisso** (facoltativo: il contatto sull'anta che fa aprire le ante nella scheda); apertura, chiusura, stop e posizione seguono ciò che l'entità dichiara di supportare.
+- **Luci**: entità (`light.`, `switch.`, `input_boolean.`, `fan.`, `group.`), nome, stanza — chiesta subito quando aggiungi una luce — e ordine.
+- **Clima**: entità `climate.*`, stanza e assegnazione a **Freddo**, **Caldo** o entrambi per una pompa di calore. Qui si configura anche il **tasto Clima rapido** della Home — modalità, temperatura e ventola — con le sole modalità che le unità configurate accettano davvero; un campo lasciato vuoto vuol dire «non toccare».
+- **Tapparelle**: entità `cover.*` (anche **due relè separati**), nome, stanza, **sensore apertura infisso** e percentuali dei preset. Il solo sensore basta per una persiana manuale.
 
-### ⚡ Azioni rapide · 🔔 Avvisi
+### 🤖 Aspirapolvere · ✅ Cose da fare · 🚪 Aperture
 
 <table>
 <tr>
-<td width="50%"><img src="docs/preview/editor-quick-actions-light.webp" alt="Editor - azioni rapide"></td>
-<td width="50%"><img src="docs/preview/editor-alerts-light.webp" alt="Editor - avvisi"></td>
+<td width="33%"><img src="docs/preview/editor-robot-light.webp" alt="Editor - aspirapolvere"></td>
+<td width="33%"><img src="docs/preview/editor-todo-light.webp" alt="Editor - cose da fare"></td>
+<td width="33%"><img src="docs/preview/editor-doors-light.webp" alt="Editor - aperture"></td>
 </tr>
 </table>
 
-- **Azioni rapide**: nome, **icona dal catalogo** e, come azione, un popup integrato (luci, clima, antifurto, lavatrice…), un gruppo di luci scelto da te, un toggle su entità, uno script o una scena, con messaggio di conferma facoltativo.
-- **Avvisi**: avvisi personalizzati del Quadro Avvisi, con nome, icona ed entità da sorvegliare, oltre ai gruppi di monitoraggio integrati.
+- **Aspirapolvere**: entità `vacuum.*`, nome, stanza dalla tendina, entità mappa.
+- **Cose da fare**: le liste `todo.*` di Home Assistant che vuoi vedere in Home, con il conteggio di cosa resta da spuntare.
+- **Aperture**: portoni, serrature e cancelli con nome, icona e **PIN** facoltativo prima di aprire.
 
-### 🚗 EV · 🏊 Piscina · 💧 Irrigazione
+### 🧩 Widget · ⚡ Azioni rapide
 
 <table>
 <tr>
-<td width="33%"><img src="docs/preview/editor-ev-light.webp" alt="Editor - auto elettrica"></td>
+<td width="50%"><img src="docs/preview/editor-alerts-light.webp" alt="Editor - widget e avvisi"></td>
+<td width="50%"><img src="docs/preview/editor-quick-actions-light.webp" alt="Editor - azioni rapide"></td>
+</tr>
+</table>
+
+- **Widget** decide cosa compare nella fascia Widget della Home: quali tessere, in che ordine, e i **gruppi di avvisi** con la loro icona e animazione. La scelta si fa anche entità per entità, con l'interruttore accanto a ogni campo, che dice se quell'entità è dentro la tessera o ne sta fuori.
+- **Azioni rapide**: i comandi della Home — sezioni predefinite, script, interruttori — con nome e icona.
+
+### 🏊 Piscina · 💧 Irrigazione · 🚗 EV
+
+<table>
+<tr>
 <td width="33%"><img src="docs/preview/editor-pool-light.webp" alt="Editor - piscina"></td>
 <td width="33%"><img src="docs/preview/editor-irrigation-light.webp" alt="Editor - irrigazione"></td>
+<td width="33%"><img src="docs/preview/editor-ev-light.webp" alt="Editor - auto elettrica"></td>
 </tr>
 </table>
 
-- **EV**: **aspetto** (marchio e modello dal catalogo, con anteprima del logo, o la foto della tua auto) e i 16 slot di veicolo e wallbox.
-- **Piscina**: temperatura, pH, cloro, pompa, riscaldamento e luce, più le soglie di qualità e la filtrazione automatica.
-- **Irrigazione**: zone (nome, entità, minuti, stanza), sensore pioggia, entità meteo, soglia di pioggia e orario del programma.
+- **Piscina**: temperatura, pH, cloro con le soglie, pompa, riscaldamento, luce.
+- **Irrigazione**: zone con valvola, minuti, stanza, orario, **umidità del terreno** con le sue soglie, blocco pioggia e meteo.
+- **EV**: profili veicolo con marca e modello dal catalogo, foto normale e col cavo, entità della vettura e della wallbox, **cavo collegato**, target di carica e console modalità.
+
+### 💾 Backup e ripristino
+
+| Tema chiaro | Tema scuro |
+| --- | --- |
+| <img src="docs/preview/editor-backup-light.webp" alt="Editor - backup, tema chiaro"> | <img src="docs/preview/editor-backup.webp" alt="Editor - backup, tema scuro"> |
+
+Scarica l'intera configurazione come file e la rimette da un file. Serve per spostare una plancia su un'altra installazione, per tenersi una copia prima di una modifica grossa, o per tornare indietro dopo un ripensamento.
 
 ### 🩺 Runtime
 
-L'ultima tab è di diagnostica: versione della plancia, stato del bridge di autenticazione, ultimo salvataggio sincronizzato, istanza (utile con più plance) e stato di visibilità delle sezioni. È la prima cosa da guardare quando qualcosa non compare.
-
-### Le 18 tab dell'editor
-
-`Impostazioni` · `Home` · `Energia` · `EV` · `Solare` · `Sicurezza` · `MiniPC` · `Temperatura` · `Azioni` · `Clima` · `Piscina` · `Irrigazione` · `Tapparelle` · `Stanze` · `Luci` · `Elettrodom.` · `Avvisi` · `Runtime`
-
-Ogni etichetta di slot è **rinominabile** (basta scriverci sopra), così la plancia parla la lingua del tuo impianto.
+L'ultima scheda è di diagnostica: versione della plancia, stato del bridge di autenticazione, ultimo salvataggio sincronizzato, istanza (utile con più plance) e stato di visibilità delle sezioni. È la prima cosa da guardare quando qualcosa non compare.
 
 ### L'editor in tema scuro
 
@@ -692,165 +708,16 @@ Ogni etichetta di slot è **rinominabile** (basta scriverci sopra), così la pla
 <summary><strong>Apri la galleria dell'editor in tema scuro</strong></summary>
 
 <table>
-<tr><td width="33%"><img src="docs/preview/editor-settings.webp" alt="Editor Impostazioni in tema scuro"><br><sub>Impostazioni</sub></td><td width="33%"><img src="docs/preview/editor-rooms.webp" alt="Editor Stanze in tema scuro"><br><sub>Stanze</sub></td><td width="33%"><img src="docs/preview/editor-energy.webp" alt="Editor Energia · flussi in tema scuro"><br><sub>Energia · flussi</sub></td></tr>
-<tr><td width="33%"><img src="docs/preview/editor-energy-loads.webp" alt="Editor Energia · carichi in tema scuro"><br><sub>Energia · carichi</sub></td><td width="33%"><img src="docs/preview/editor-energy-report.webp" alt="Editor Energia · report in tema scuro"><br><sub>Energia · report</sub></td><td width="33%"><img src="docs/preview/editor-energy-settings.webp" alt="Editor Energia · tariffe in tema scuro"><br><sub>Energia · tariffe</sub></td></tr>
-<tr><td width="33%"><img src="docs/preview/editor-appliances.webp" alt="Editor Elettrodomestici in tema scuro"><br><sub>Elettrodomestici</sub></td><td width="33%"><img src="docs/preview/editor-temperature.webp" alt="Editor Temperatura in tema scuro"><br><sub>Temperatura</sub></td><td width="33%"><img src="docs/preview/editor-lights.webp" alt="Editor Luci in tema scuro"><br><sub>Luci</sub></td></tr>
-<tr><td width="33%"><img src="docs/preview/editor-climate.webp" alt="Editor Clima in tema scuro"><br><sub>Clima</sub></td><td width="33%"><img src="docs/preview/editor-shutters.webp" alt="Editor Tapparelle in tema scuro"><br><sub>Tapparelle</sub></td><td width="33%"><img src="docs/preview/editor-ev.webp" alt="Editor Auto elettrica in tema scuro"><br><sub>Auto elettrica</sub></td></tr>
-<tr><td width="33%"><img src="docs/preview/editor-pool.webp" alt="Editor Piscina in tema scuro"><br><sub>Piscina</sub></td><td width="33%"><img src="docs/preview/editor-irrigation.webp" alt="Editor Irrigazione in tema scuro"><br><sub>Irrigazione</sub></td><td width="33%"><img src="docs/preview/editor-quick-actions.webp" alt="Editor Azioni rapide in tema scuro"><br><sub>Azioni rapide</sub></td></tr>
-<tr><td width="33%"><img src="docs/preview/editor-alerts.webp" alt="Editor Avvisi in tema scuro"><br><sub>Avvisi</sub></td></tr>
+<tr><td width="33%"><img src="docs/preview/editor-settings.webp" alt="Editor Impostazioni in tema scuro"><br><sub>Impostazioni</sub></td><td width="33%"><img src="docs/preview/editor-rooms.webp" alt="Editor Stanze in tema scuro"><br><sub>Stanze</sub></td><td width="33%"><img src="docs/preview/editor-people.webp" alt="Editor Persone in tema scuro"><br><sub>Persone</sub></td></tr>
+<tr><td width="33%"><img src="docs/preview/editor-energy.webp" alt="Editor Energia in tema scuro"><br><sub>Energia · flussi</sub></td><td width="33%"><img src="docs/preview/editor-energy-loads.webp" alt="Editor Carichi in tema scuro"><br><sub>Energia · carichi</sub></td><td width="33%"><img src="docs/preview/editor-energy-report.webp" alt="Editor Report in tema scuro"><br><sub>Energia · report</sub></td></tr>
+<tr><td width="33%"><img src="docs/preview/editor-energy-settings.webp" alt="Editor tariffe in tema scuro"><br><sub>Energia · tariffe</sub></td><td width="33%"><img src="docs/preview/editor-appliances.webp" alt="Editor Elettrodomestici in tema scuro"><br><sub>Elettrodomestici</sub></td><td width="33%"><img src="docs/preview/editor-temperature.webp" alt="Editor Temperatura in tema scuro"><br><sub>Temperatura</sub></td></tr>
+<tr><td width="33%"><img src="docs/preview/editor-lights.webp" alt="Editor Luci in tema scuro"><br><sub>Luci</sub></td><td width="33%"><img src="docs/preview/editor-climate.webp" alt="Editor Clima in tema scuro"><br><sub>Clima</sub></td><td width="33%"><img src="docs/preview/editor-shutters.webp" alt="Editor Tapparelle in tema scuro"><br><sub>Tapparelle</sub></td></tr>
+<tr><td width="33%"><img src="docs/preview/editor-robot.webp" alt="Editor Aspirapolvere in tema scuro"><br><sub>Aspirapolvere</sub></td><td width="33%"><img src="docs/preview/editor-todo.webp" alt="Editor Cose da fare in tema scuro"><br><sub>Cose da fare</sub></td><td width="33%"><img src="docs/preview/editor-doors.webp" alt="Editor Aperture in tema scuro"><br><sub>Aperture</sub></td></tr>
+<tr><td width="33%"><img src="docs/preview/editor-pool.webp" alt="Editor Piscina in tema scuro"><br><sub>Piscina</sub></td><td width="33%"><img src="docs/preview/editor-irrigation.webp" alt="Editor Irrigazione in tema scuro"><br><sub>Irrigazione</sub></td><td width="33%"><img src="docs/preview/editor-ev.webp" alt="Editor Auto elettrica in tema scuro"><br><sub>Auto elettrica</sub></td></tr>
+<tr><td width="33%"><img src="docs/preview/editor-alerts.webp" alt="Editor Widget in tema scuro"><br><sub>Widget e avvisi</sub></td><td width="33%"><img src="docs/preview/editor-quick-actions.webp" alt="Editor Azioni rapide in tema scuro"><br><sub>Azioni rapide</sub></td><td width="33%"><img src="docs/preview/editor-backup.webp" alt="Editor Backup in tema scuro"><br><sub>Backup</sub></td></tr>
 </table>
 
 </details>
-
----
-
-# Catalogo completo degli slot entità
-
-Oltre alle sezioni con editor dedicato, la plancia espone **slot nominali** che puoi mappare su qualunque entità Home Assistant, con etichetta rinominabile. Sono le voci delle tab **Home, Energia, EV, Solare, Sicurezza, MiniPC** dell'editor.
-
-<details>
-<summary><strong>Apri il catalogo completo degli slot</strong></summary>
-
-#### 🏠 Home (`home`)
-
-| Slot | Etichetta |
-| --- | --- |
-| `dm.home_meteo` | Meteo (entità weather) |
-| `dm.security_centrale_allarme` | Allarme (alarm_control_panel) |
-| `dm.home_interruttore_antifurto` | Interruttore antifurto (switch) |
-| `dm.home_script_apertura_cancello` | Script apertura cancello |
-
-
-#### ⚡ Energia (`energy`)
-
-| Slot | Etichetta |
-| --- | --- |
-| `dm.energy_produzione_solare_oggi` | Produzione solare oggi (kWh) |
-| `dm.energy_consumo_casa_oggi` | Consumo casa oggi (kWh) |
-| `dm.energy_energia_prelevata_oggi` | Energia prelevata oggi (kWh) |
-| `dm.energy_energia_immessa_oggi` | Energia immessa oggi (kWh) |
-| `dm.energy_batteria_caricata_oggi` | Batteria caricata oggi (kWh) |
-| `dm.energy_batteria_scaricata_oggi` | Batteria scaricata oggi (kWh) |
-| `dm.energy_stato_carica_batteria` | Stato carica batteria (%) |
-| `dm.energy_potenza_batteria` | Potenza batteria (W) |
-| `dm.energy_potenza_consumo_casa` | Potenza consumo casa (W) |
-| `dm.energy_potenza_scambio_rete` | Potenza scambio rete (W) |
-| `dm.energy_potenza_fotovoltaico` | Potenza fotovoltaico (W) |
-| `dm.energy_stato_rete` | Stato rete (on/off-grid) |
-| `dm.energy_temperatura_dc_inverter` | Temperatura DC inverter (°C) |
-| `dm.energy_temperatura_ac_inverter` | Temperatura AC inverter (°C) |
-| `dm.energy_temperatura_batteria` | Temperatura batteria (°C) |
-| `dm.energy_produzione_solare_anno` | Produzione solare anno (kWh) |
-| `dm.energy_consumo_casa_anno` | Consumo casa anno (kWh) |
-| `dm.energy_produzione_solare_mese` | Produzione solare mese (kWh) |
-| `dm.energy_consumo_casa_mese` | Consumo casa mese (kWh) |
-| `dm.energy_rete_acquistata_mese` | Rete acquistata mese (kWh) |
-| `dm.energy_rete_venduta_mese` | Rete venduta mese (kWh) |
-| `dm.energy_batteria_caricata_mese` | Batteria caricata mese (kWh) |
-| `dm.energy_batteria_usata_mese` | Batteria usata mese (kWh) |
-| `dm.energy_potenza_carichi_nodo_2_cucina` | Potenza carichi — nodo 2/Cucina (W) |
-| `dm.energy_somma_cucina_oggi` | Somma cucina oggi (kWh) |
-| `dm.energy_somma_cucina_mese` | Somma cucina mese (kWh) |
-| `dm.energy_potenza_carichi_nodo_1_lavanderia` | Potenza carichi — nodo 1/Lavanderia (W) |
-| `dm.energy_somma_lavanderia_oggi` | Somma lavanderia oggi (kWh) |
-| `dm.energy_somma_lavanderia_mese` | Somma lavanderia mese (kWh) |
-| `dm.energy_condizionatori_oggi` | Condizionatori oggi (kWh) |
-| `dm.energy_condizionatori_mese` | Condizionatori mese (kWh) |
-| `dm.energy_potenza_condizionatori` | Potenza condizionatori (W) |
-| `dm.energy_boiler_oggi` | Boiler oggi (kWh) |
-| `dm.energy_boiler_mese` | Boiler mese (kWh) |
-| `dm.energy_potenza_ventola_inverter` | Potenza ventola inverter (W) |
-| `dm.energy_interruttore_ventola_inverter` | Interruttore ventola inverter |
-
-
-#### 🚗 Auto elettrica (`ev`)
-
-| Slot | Etichetta |
-| --- | --- |
-| `dm.ev_batteria_auto` | Batteria auto (%) |
-| `dm.ev_autonomia` | Autonomia (km) |
-| `dm.ev_odometro` | Odometro (km) |
-| `dm.ev_autonomia_al_limite_di_carica` | Autonomia al limite di carica (km) |
-| `dm.ev_km_dall_ultima_ricarica` | Km dall'ultima ricarica |
-| `dm.ev_stato_ricarica` | Stato ricarica (testo) |
-| `dm.ev_modalita_ricarica_evcc` | Modalità ricarica EVCC (select) |
-| `dm.ev_target_soc` | Target SOC (select) |
-| `dm.ev_energia_sessione` | Energia sessione (kWh) |
-| `dm.ev_percentuale_solare_sessione` | Percentuale solare sessione (%) |
-| `dm.ev_potenza_wallbox` | Potenza wallbox (W) |
-| `dm.ev_temperatura_wallbox` | Temperatura wallbox (°C) |
-| `dm.ev_tensione_wallbox` | Tensione wallbox (V) |
-| `dm.ev_prelievo_ac_totale_auto` | Prelievo AC totale auto (kWh) |
-| `dm.ev_energia_wallbox_oggi` | Energia wallbox oggi (kWh) |
-| `dm.ev_energia_wallbox_mese` | Energia wallbox mese (kWh) |
-
-
-#### 🌞 Solare termico (`boiler`)
-
-| Slot | Etichetta |
-| --- | --- |
-| `dm.boiler_potenza_resistenza_boiler` | Potenza resistenza boiler (W) |
-| `dm.boiler_interruttore_boiler` | Interruttore boiler |
-| `dm.boiler_interruttore_solare_termico` | Interruttore solare termico |
-| `dm.boiler_centralina_solare_termico` | Centralina solare termico |
-| `dm.boiler_pompa_solare` | Pompa solare (manuale) |
-| `dm.boiler_stato_pompa_solare` | Stato pompa solare |
-| `dm.boiler_sensore_pompa_solare` | Sensore pompa solare |
-| `dm.boiler_delta_temperatura` | Delta temperatura (°C) |
-| `dm.boiler_pressione_acqua` | Pressione acqua (bar) |
-| `dm.boiler_valvola_di_sicurezza` | Valvola di sicurezza (cover) |
-| `dm.boiler_sonda_temperatura_1` | Sonda temperatura 1 (°C) |
-| `dm.boiler_sonda_temperatura_2` | Sonda temperatura 2 (°C) |
-| `dm.boiler_sonda_temperatura_3` | Sonda temperatura 3 (°C) |
-
-
-#### 🛡️ Sicurezza (`security`)
-
-| Slot | Etichetta |
-| --- | --- |
-| `dm.security_centrale_allarme` | Centrale allarme |
-
-
-#### 🧺 Lavatrice (slot storici) (`lavatrice`)
-
-| Slot | Etichetta |
-| --- | --- |
-| `dm.lavatrice_presa_avvio_lavatrice` | Presa/avvio lavatrice (switch) |
-| `dm.lavatrice_potenza_presa_lavatrice_per_lavatrici_no` | Potenza presa lavatrice (W) — per lavatrici non smart: >5W = in funzione |
-| `dm.lavatrice_avvio_ciclo` | Avvio ciclo (switch dispositivo) |
-| `dm.lavatrice_fase_corrente` | Fase corrente (testo) |
-| `dm.lavatrice_tempo_rimanente` | Tempo rimanente |
-| `dm.lavatrice_programma` | Programma (select) |
-| `dm.lavatrice_temperatura` | Temperatura (select) |
-| `dm.lavatrice_centrifuga` | Centrifuga (select) |
-| `dm.lavatrice_script_programma_rapido_14` | Script programma rapido 14' |
-| `dm.lavatrice_script_programma_30` | Script programma 30' |
-| `dm.lavatrice_script_programma_59` | Script programma 59' |
-| `dm.lavatrice_script_programma_misto_colorati` | Script programma misto/colorati |
-
-
-#### 🖥️ MiniPC (`server`)
-
-| Slot | Etichetta |
-| --- | --- |
-| `dm.server_cpu` | CPU (%) |
-| `dm.server_ram` | RAM (%) |
-| `dm.server_disco` | Disco (%) |
-| `dm.server_uptime_minipc` | Uptime MiniPC |
-| `dm.server_temperatura_cpu` | Temperatura CPU (°C) |
-| `dm.server_uptime_home_assistant` | Uptime Home Assistant |
-| `dm.server_potenza_raspberry_server` | Potenza Raspberry/server (W) |
-| `dm.server_stato_internet` | Stato Internet (binary) |
-| `dm.server_ping_internet` | Ping Internet (binary) |
-| `dm.server_raggiungibilita_google` | Raggiungibilità Google (binary) |
-| `dm.server_internet_lavanderia` | Internet lavanderia (binary) |
-| `dm.server_speedtest_download` | Speedtest Download (Mbit/s) |
-| `dm.server_speedtest_upload` | Speedtest Upload (Mbit/s) |
-| `dm.server_speedtest_ping` | Speedtest Ping (ms) |
-
-</details>
-
-Uno slot non mappato mostra `—`: la plancia non indovina un'entità dal nome, così un valore non può essere inventato.
 
 ---
 # Come vengono calcolati i numeri
@@ -881,6 +748,10 @@ La formula è `sum(fine periodo) − sum(inizio periodo)` su `recorder/statistic
 
 Dettagli e test di parità: [`docs/ENERGY_RECORDER_PARITY.md`](docs/ENERGY_RECORDER_PARITY.md).
 
+### Più impianti
+
+Ogni impianto fa il proprio bilancio con i propri misuratori: le linguette in cima all'Energia non filtrano una vista, cambiano la casa di cui si parla. Rete, Solare e Casa seguono l'impianto scelto, e i carichi sono i suoi.
+
 ### Somma di un carico
 
 Un carico del flusso vale la **somma dei dispositivi assegnati**, con gli stessi delta Recorder usati altrove: aggiungere un elettrodomestico a un carico fa crescere il cerchio senza altro da configurare. Se il carico ha un sensore proprio, quello vince, perché misura anche ciò che nessuna presa vede.
@@ -898,119 +769,70 @@ Un apparecchio è in funzione quando l'**entità di stato programma** lo dice; i
 Un'entità mancante, `unavailable`, `unknown` o non mappata non diventa zero: mostra `—`. È una scelta di progetto, così un grafico non racconta un consumo che non c'è.
 
 ---
-
 # Potenzialità
 
-Cosa puoi costruire con DashboardModern, oltre alla configurazione base.
+### Due modi di guardare la stessa casa
+
+Per tipo — tutte le luci, tutte le tapparelle — quando cerchi una cosa. **Per stanza** quando sei in una stanza. Le assegnazioni sono le stesse, lette dai due lati: non c'è niente da configurare due volte.
 
 ### Una plancia che si adatta alla casa, non il contrario
 
-- **13 sezioni** nella barra di navigazione più i popup (luci, avvisi, clima rapido, dettagli): ognuna si attiva singolarmente, quindi mostri solo quello che hai.
-- **Ordine della navbar personalizzabile** e sezioni nascondibili: chi ha la piscina la mette per prima, chi non ha l'auto elettrica non la vede mai.
-- **Stanze come registro unico**: le crei una volta e tutte le sezioni le riusano.
-- **Etichette degli slot rinominabili** e **catalogo icone visuale** per stanze, azioni e carichi.
-- Cambi una presa smart? Rimappi lo slot o l'entità della sezione e la plancia si aggiorna in un punto solo.
+Nessuna sezione è obbligatoria e nessuna va nascosta a mano: una sezione appare quando riceve dati e sparisce quando non ne ha. Chi non ha la piscina non vede la piscina. E la plancia mostra **solo i comandi che l'entità dichiara di accettare**: i tasti dell'antifurto sono quelli della tua centrale, i comandi di una luce sono quelli che quella luce ha davvero.
 
 ### Una configurazione, tutta la casa
 
-- **Archivio condiviso dell'integrazione**: configuri da un dispositivo e la ritrovi identica su tutti gli altri e per tutti gli utenti Home Assistant.
-- **Protetta dagli svuotamenti accidentali**, con le ultime cinque revisioni conservate e ripristino automatico.
-- **Più plance indipendenti**: puoi tenere una plancia "famiglia" e una "tecnica" con configurazioni separate, ognuna con il suo filtro utenti.
-- **Dashboard companion Lovelace** opzionale, e la card `dashboardmodern-card` per usare la plancia dentro Lovelace.
+Vive dentro Home Assistant, uguale su ogni dispositivo e per ogni utente, con storia delle revisioni, difesa contro gli svuotamenti accidentali e **backup su file**. Le preferenze che hanno senso solo su un dispositivo — tema, barra, kiosk — restano lì.
 
 ### Energia come strumento di analisi
 
-- Flusso live **dinamico**, costruito sui tuoi carichi: fino a **8 cerchi** con nome, icona, colore ed entità, con spessore e velocità proporzionali alla lettura.
-- Un carico può essere una **somma di dispositivi**: assegni gli elettrodomestici e il cerchio cresce da solo.
-- **Report mensile e annuale** con costi, risparmio, energia venduta e CO₂ evitata.
-- **Confronto settimanale** e **classifica dei dispositivi** con quota fotovoltaico e quota rete.
-- **Storico reale** dai contatori cumulativi, con la stessa formula della sezione Energia di Home Assistant.
+Non solo un numero grande: bilancio con la stessa aritmetica di Home Assistant, storico dalle statistiche Recorder, **confronto settimanale** e **classifica dei dispositivi** con quota fotovoltaico e quota rete, costi e risparmio reali, carichi che si sommano da soli. E **più impianti**, per chi ha più di un contatore sotto lo stesso tetto.
 
 ### Dispositivi trattati per quello che sono
 
-- Elettrodomestici come apparecchi e non come prese: **20 tipi**, ciclo in corso, ultimo ciclo, riconoscimento In funzione / Standby / Spento.
-- Luci comandate per **capacità dichiarate**: dimmer, RGB, bianco in kelvin, effetti — e niente cursori che Home Assistant rifiuterebbe.
-- Tapparelle con **posizione trascinabile** e stato che non torna indietro mentre il motore si muove.
-- Clima diviso in Freddo e Caldo, mostrato **solo per le famiglie presenti**.
+Un elettrodomestico ha un ciclo, non uno stato acceso/spento: soglie, ritardo di fine ciclo, ultimo consumo, costo. Un'auto ha un'identità che sopravvive al rinominarla. Una tapparella sta fuori e la finestra sta dentro. Un robot ha una stanza.
 
 ### Scene, non pannelli
 
-- **Piscina** e **Irrigazione** sono scene disegnate che reagiscono allo stato reale: bolle quando filtra, vapore quando scalda, luce da sotto la vasca, irrigatori che spruzzano con il conto alla rovescia della zona.
-- **Tapparelle** come finestre vere, **flusso energetico** animato sui watt veri, **temperature** con la card colorata dal comfort e l'andamento di tutte le stanze.
-- Tutto rispetta *riduci animazioni* del sistema.
+Piscina, solare termico, MiniPC, tapparelle e flusso energia sono **disegni che si muovono con i dati**: la pompa gira quando circola, la tapparella scorre alla sua posizione, il cielo dietro la finestra segue l'ora, l'acqua della vasca ondeggia. Le persone respirano e sbattono le ciglia.
 
 ### Comodità quotidiane
 
-- **Azioni rapide** in Home: popup integrati, gruppi di luci, toggle, script e scene.
-- **Quadro Avvisi** che appare solo quando c'è qualcosa, più i tuoi **avvisi personalizzati**.
-- **Popup di dettaglio** con storico per singola entità.
-- **Tema chiaro e scuro**, **modalità kiosk** su iPhone e iPad, interfaccia in **quindici lingue** che segue il profilo Home Assistant.
+Una tessera per ogni sezione con la sua finestra, telecamere in miniatura dal vivo, azioni rapide, liste delle cose da fare, avvisi che si muovono come quello che significano, kiosk su iPhone e iPad, tema chiaro e scuro.
 
 ### Robustezza
 
-- Aggiornamenti HACS con **cache versionata sul contenuto**: nessun hard refresh.
-- **Rientro nell'app**: la connessione viene ripresa al ritorno dal background e al ritorno della rete.
-- **Nessun token a lunga scadenza** e **nessun codice allarme memorizzato**.
-- Test automatici su Python, frontend e **Playwright** su desktop, mobile e iPad/WebKit.
+Nessuna dipendenza da internet a runtime: marchi delle auto, ritratti e icone sono dentro l'integrazione. Le animazioni si muovono su `transform` e `opacity`, quelle che il compositore porta da solo. Rientrare nell'app non lascia la plancia a metà. Una lettura assente resta `—` e non diventa zero.
 
 ---
 
 ## Architettura in breve
 
-```text
-Home Assistant
-   │
-   ├─ Config entry lifecycle (una per plancia)
-   ├─ Archivio condiviso .storage/dashboardmodern.config
-   ├─ Comandi WebSocket dashboardmodern/config/{get,set,restore}
-   ├─ API / WebSocket / servizi nativi
-   └─ Registrazione pannello + asset versionati sul contenuto
-            │
-            ▼
-     Dashboard Frontend
-            │
-            ├─ store e modelli canonici (schema versionato + migrazioni)
-            ├─ renderer delle sezioni
-            ├─ editor visuale
-            └─ comandi tramite API/servizi Home Assistant
-```
+| Strato | Ruolo |
+| --- | --- |
+| **Integrazione Python** | config entry, pannello, percorso statico versionato, archivio condiviso, comandi WebSocket |
+| **Archivio condiviso** | `.storage/dashboardmodern.config` con revisioni, difese e migrazioni di schema |
+| **Frontend vendorizzato** | il documento della plancia servito da Home Assistant |
+| **Moduli `src/core`** | logica pura e testabile: modelli, calcoli energia, catalogo icone, ritratti, autorilevamento |
+| **Moduli `src/sections`** | ogni sezione della plancia e ogni scheda dell'editor, con un proprietario solo per pixel |
 
-Principi del progetto:
-
-- lo stato Home Assistant è la sorgente dei dati live;
-- la configurazione della plancia è separata dagli stati delle entità;
-- aggiornamenti event-driven quando possibile;
-- un solo proprietario canonico per ogni renderer critico;
-- compatibilità con la configurazione persistente delle release precedenti;
-- test alle frontiere backend / frontend / browser;
-- una sola lingua sorgente, tradotta a runtime: nessuna build per lingua.
-
-Descrizione completa: [`ARCHITECTURE.md`](ARCHITECTURE.md).
+Il principio che tiene insieme il codice è **un proprietario per cosa disegnata**: due moduli che scrivono lo stesso pixel sono la causa più frequente di sfarfallii e valori che tornano indietro, e nel progetto sono trattati come difetti.
 
 ### Struttura della repository
 
 ```text
-dashboardmodern-v2/
-├── .github/                          # workflow CI, validazioni e release
-├── brand/                            # logo e icone del progetto
-├── custom_components/dashboardmodern/
-│   ├── config_flow.py                # configurazione e opzioni Home Assistant
-│   ├── config_store.py               # archivio condiviso della configurazione
-│   ├── websocket_api.py              # comandi WebSocket get/set/restore
-│   ├── frontend.py                   # pannello, asset versionati, card companion
-│   └── frontend/
-│       ├── panel.js                  # pannello Home Assistant
-│       ├── dashboard-card.js         # card companion per Lovelace
-│       ├── legacy/                   # documenti plancia vendorizzati + bridge
-│       ├── src/core/                 # modelli, store, proiezioni, calcoli
-│       ├── src/i18n/                 # cataloghi di lingua, caricati a richiesta
-│       ├── src/sections/             # runtime delle sezioni UI
-│       ├── tests/                    # test frontend
-│       └── e2e/                      # test browser Playwright
-├── docs/                             # documentazione tecnica
-│   └── preview/                      # anteprime usate da questo README
-├── scripts/                          # release, build-info, vendoring, anteprime
-└── tests/                            # test Python dell'integrazione
+custom_components/dashboardmodern/
+├── __init__.py, config_flow.py, frontend.py, websocket_api.py, config_store.py
+├── manifest.json
+└── frontend/
+    ├── legacy/          il documento della plancia (IT ed EN)
+    ├── src/core/        logica pura, testabile senza browser
+    ├── src/sections/    sezioni della plancia e schede dell'editor
+    ├── avatars/         i ritratti 3D (Fluent Emoji, MIT)
+    ├── brands/          i 38 marchi delle auto
+    ├── tests/           test unitari Node
+    └── e2e/             test Playwright (desktop, mobile, webkit-iPad)
+docs/preview/            le immagini di questo README
+scripts/                 build, vendoring, generazione anteprime
 ```
 
 ---
@@ -1021,23 +843,27 @@ dashboardmodern-v2/
 
 ```bash
 npm ci
-npm run check:inline-syntax
-npm run test:frontend
-npm run format:check
+npm run test:frontend        # test unitari
+npm run check:inline-syntax  # gli script inline del documento compilano
+npm run format:check         # Prettier
 ```
 
 ### Test browser
 
 ```bash
-npx playwright install --with-deps
-npm run test:e2e
+npx playwright test                      # tutti i progetti
+npx playwright test --project=desktop    # solo desktop
+npx playwright test --project=mobile
+npx playwright test --project=webkit-ipad
 ```
-
-I progetti Playwright coprono **desktop 1440×900**, **mobile 390×844** e **iPad Pro 11 (WebKit)**.
 
 ### Test Python
 
-La CI esegue la suite Python con Ruff, insieme a **hassfest** e alla **validazione HACS**, e verifica l'integrità del pacchetto di release generando `dashboardmodern.zip` dal commit pubblicato.
+```bash
+python -m pip install -r requirements_test.txt
+python -m pytest -q
+ruff check . && ruff format --check .
+```
 
 ### Rigenerare le anteprime del README
 
@@ -1054,7 +880,7 @@ node scripts/capture-previews.mjs
 node scripts/capture-previews.mjs --theme light --keep
 
 # solo alcune sezioni, o la versione inglese
-node scripts/capture-previews.mjs --only home,energy-flow
+node scripts/capture-previews.mjs --only home,rooms,lights
 node scripts/capture-previews.mjs --variant dashboard-en.html --out docs/preview-en
 ```
 
@@ -1062,11 +888,11 @@ Opzioni utili: `--format png`, `--quality 0.95`, `--all-mobile`, `--debug`, `--h
 
 > La passata completa senza `--theme` svuota `docs/preview/` prima di ricominciare; una passata parziale (`--theme`, `--only`) non lo fa mai, per non portarsi via la galleria dell'altro tema. Per svuotare davvero anche in quel caso serve `--fresh`.
 
-Lo script avvia un server statico sulla cartella `frontend`, apre il documento della plancia in Chromium contro il finto Home Assistant, attraversa ogni sezione, adatta il viewport al contenuto e salva l'immagine. Le sezioni la cui resa dipende dal movimento — flusso energia, piscina, irrigazione — vengono catturate con le animazioni attive; tutte le altre a scena ferma. Chart.js e i loghi dei marchi auto arrivano dalle copie locali quando presenti, così la generazione funziona anche senza rete.
+Lo script avvia un server statico sulla cartella `frontend`, apre il documento della plancia in Chromium contro il finto Home Assistant, attraversa ogni sezione e ogni scheda dell'editor, adatta il viewport al contenuto e salva l'immagine. Le sezioni la cui resa dipende dal movimento vengono catturate con le animazioni attive; le altre a scena ferma.
 
 ### Pubblicare una nuova versione
 
-Il workflow `Release` pubblica da solo quando `main` riceve una modifica a `manifest.json` o un tag `v*`, e marca come pre-release solo i tag che contengono un trattino. I passi completi sono in [`docs/RELEASE_1_0.md`](docs/RELEASE_1_0.md).
+Il workflow `Release` pubblica da solo quando `main` riceve una modifica a `manifest.json` o un tag `v*`, e marca come pre-release solo i tag che contengono un trattino.
 
 ---
 
@@ -1081,18 +907,21 @@ Prima di aprire una Issue verifica:
 5. che le entità configurate esistano ancora, e che gli slot puntino ai nuovi `entity_id` se li hai rinominati;
 6. per Energia, che i sensori abbiano **statistiche Recorder** utilizzabili;
 7. il **Registro** di Home Assistant;
-8. la tab **Runtime** dell'editor, che riassume versione, bridge, sincronizzazione e stato delle sezioni.
+8. la scheda **Runtime** dell'editor, che riassume versione, bridge, sincronizzazione e stato delle sezioni.
 
 | Sintomo | Prima cosa da guardare |
 | --- | --- |
-| Una sezione non compare nella navbar | la sezione è visibile? (`Editor → Impostazioni → Diagnosi navbar`) |
+| Una sezione non compare nella barra | la sezione è visibile? (`Editor → Impostazioni → Diagnosi navbar`) |
 | Una card mostra `—` | lo slot corrispondente non è mappato, oppure l'entità è `unavailable`/`unknown` |
 | Report e mesi precedenti vuoti | manca il **contatore energia totale** cumulativo, o Recorder non ha statistiche per quel sensore |
 | Consumo Casa incoerente | il confine dei flussi non è completo: manca uno fra fotovoltaico, rete prelevata/immessa, batteria carica/scarica |
+| I numeri dell'Energia sono di un'altra casa | è selezionato un altro **impianto**: guarda le linguette in cima |
 | Un apparecchio risulta sempre acceso | soglia **In funzione** troppo bassa, oppure manca l'entità di stato programma |
-| La plancia sembra vuota su un dispositivo | la configurazione è nell'archivio condiviso: ricarica la pagina e controlla la tab **Runtime** |
+| Un'entità non compare nella pagina Stanze | non ha una stanza: assegnala dalla tendina accanto alla riga, in qualunque scheda si trovi |
+| Una persona non mostra la batteria | il sensore del telefono non è collegato: `Editor → Persone`, oppure premi **rileva dal telefono** |
+| Un tasto dell'antifurto manca | la tua centrale non dichiara quella modalità: la plancia mostra solo quelle supportate |
+| La plancia sembra vuota su un dispositivo | la configurazione è nell'archivio condiviso: ricarica la pagina e controlla la scheda **Runtime** |
 | Su iPhone la plancia copre Home Assistant | è la modalità kiosk: tieni premuto l'hamburger per spegnerla, o apri con `?kiosk=0` |
-| Una luce non mostra colore o luminosità | l'entità non li dichiara: la plancia offre solo i comandi che Home Assistant accetta |
 
 Quando apri una Issue indica: versione DashboardModern, versione Home Assistant, dispositivo e browser/app, lingua della plancia, se il problema è su mobile/tablet/desktop, i passaggi per riprodurlo e uno screenshot se utile.
 
@@ -1102,8 +931,8 @@ Quando apri una Issue indica: versione DashboardModern, versione Home Assistant,
 
 ## Documentazione del progetto
 
-- [`CHANGELOG.md`](CHANGELOG.md) — cosa c'è nella 1.0
-- [`docs/CHANGELOG_PRE_1.0.md`](docs/CHANGELOG_PRE_1.0.md) — archivio delle versioni precedenti
+- [`CHANGELOG.md`](CHANGELOG.md) — cosa cambia a ogni versione
+- [`docs/CHANGELOG_PRE_1.0.md`](docs/CHANGELOG_PRE_1.0.md) — archivio delle versioni precedenti alla 1.0
 - [`docs/RELEASE_1_0.md`](docs/RELEASE_1_0.md) — come si pubblica una release
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — architettura e responsabilità dei layer
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — come contribuire
@@ -1113,7 +942,6 @@ Quando apri una Issue indica: versione DashboardModern, versione Home Assistant,
 - [`docs/PRODUCT_VISION.md`](docs/PRODUCT_VISION.md) — visione prodotto
 - [`docs/STRATEGY.md`](docs/STRATEGY.md) — strategia tecnica
 - [`docs/LEGACY_HOSTING.md`](docs/LEGACY_HOSTING.md) — hosting del frontend vendorizzato
-- [`docs/TRANSLATIONS.md`](docs/TRANSLATIONS.md) — come funzionano le lingue e come aggiungerne una
 
 ---
 
@@ -1154,7 +982,7 @@ Ogni release pubblica un pacchetto `dashboardmodern.zip` ed è quello che HACS s
 
 > I download della release contano il pacchetto scaricato da HACS o a mano. Non contano gli aggiornamenti già presenti nella cache di HACS né le installazioni copiate da un backup, quindi il numero reale di impianti è **almeno** quello mostrato.
 
-> **Il conteggio parte dalla 1.0.0.** GitHub tiene i download attaccati alla release che li ha serviti: ripulendo la pagina dalle versioni precedenti alla 1.0 sono spariti anche i loro contatori. Quello che si vede qui è quindi la diffusione della **1.0 in poi**, non la storia del progetto — che invece resta nei commit e in [`docs/CHANGELOG_PRE_1.0.md`](docs/CHANGELOG_PRE_1.0.md).
+> **Il conteggio parte dalla 1.0.0.** GitHub tiene i download attaccati alla release che li ha serviti: ripulendo la pagina dalle versioni precedenti alla 1.0 sono spariti anche i loro contatori.
 
 > **Se il badge mostra un numero che non torna**, è la copia in cache: GitHub non carica le immagini del README direttamente da shields.io, le fa passare dal proprio proxy e le conserva. Il numero vero è quello scritto accanto a `dashboardmodern.zip` nella sezione **Assets** della [pagina della release](https://github.com/danigio15/dashboardmodern-v2/releases/latest), che non passa da nessuna cache.
 
@@ -1166,7 +994,7 @@ DashboardModern è un progetto **indipendente e open source**, sviluppato e mant
 
 **Una donazione è gradita e fa la differenza concreta**: più il progetto è sostenuto, più tempo posso dedicare a rispondere alle Issue, ad assistere chi ha problemi di configurazione, a testare su dispositivi reali e a pubblicare correzioni in fretta.
 
-Grazie a chi ha già sostenuto DashboardModern nelle scorse settimane: è **davvero apprezzato**! A chi usa questa integrazione: ci metto parecchia energia e parecchia passione. Se puoi permettertelo, dai anche tu una piccola spinta e diventa sostenitore.
+Grazie a chi ha già sostenuto DashboardModern: è **davvero apprezzato**! A chi usa questa integrazione: ci metto parecchia energia e parecchia passione. Se puoi permettertelo, dai anche tu una piccola spinta e diventa sostenitore.
 
 <p align="center">
   <a href="https://www.paypal.com/paypalme/giovannidaniello15"><img src="https://img.shields.io/badge/PAYPAL-ME-1f8fdd?style=for-the-badge&logo=paypal&logoColor=white&labelColor=555555" alt="Sostieni il progetto con PayPal"></a>
@@ -1181,7 +1009,7 @@ Grazie a chi ha già sostenuto DashboardModern nelle scorse settimane: è **davv
 | Voce | Effetto |
 | --- | --- |
 | ⏱️ **Tempo di assistenza** | risposte più rapide alle Issue e supporto diretto nella configurazione della plancia |
-| 🐛 **Correzioni** | bug risolti e pubblicati in una `1.0.x` senza aspettare il fine settimana successivo |
+| 🐛 **Correzioni** | bug risolti e pubblicati senza aspettare il fine settimana successivo |
 | 📱 **Test su dispositivi reali** | iPhone, iPad, tablet Android e pannelli a muro: le prove che gli emulatori non sostituiscono |
 | ⚡ **Nuove sezioni e integrazioni** | il tempo di sviluppo per quello che ancora manca |
 | 🔄 **Compatibilità** | adeguamento a ogni nuova versione di Home Assistant |
@@ -1190,36 +1018,15 @@ Grazie a chi ha già sostenuto DashboardModern nelle scorse settimane: è **davv
 
 Grazie a chi sostiene il progetto: è ciò che tiene DashboardModern gratuito e in sviluppo. 💙
 
-> Lo stesso blocco apre le note di **ogni nuovo aggiornamento**, sopra l'elenco di cosa è cambiato: la sorgente è unica, [`.github/SUPPORT_BADGES.md`](.github/SUPPORT_BADGES.md), e il workflow `Release` la unisce alle note generate automaticamente. Per cambiare il testo o aggiungere un canale si modifica lì e in questa sezione.
+> Lo stesso blocco apre le note di **ogni nuovo aggiornamento**, sopra l'elenco di cosa è cambiato: la sorgente è unica, [`.github/SUPPORT_BADGES.md`](.github/SUPPORT_BADGES.md), e il workflow `Release` la unisce alle note generate automaticamente.
 
 ---
 
 ## Licenza
 
-DashboardModern v2 è **software proprietario a sorgente visibile**, distribuito
-secondo i termini del file [`LICENSE`](LICENSE). Non è software open source.
+DashboardModern v2 è distribuito secondo i termini del file [`LICENSE`](LICENSE).
 
-Cosa puoi fare, senza chiedere nulla a nessuno:
-
-- leggere il codice;
-- installare l'integrazione e usarla sulle tue istanze di Home Assistant, per
-  uso personale e non commerciale;
-- modificare la tua copia installata, purché resti tua.
-
-Cosa non è consentito: ridistribuire il codice, pubblicarne copie o mirror,
-distribuire versioni modificate o derivate, rivenderlo o includerlo in prodotti,
-servizi ospitati o offerte commerciali di installazione e assistenza. Il fork su
-GitHub è ammesso solo come passaggio tecnico per proporre una pull request a
-questo repository, e va eliminato quando la pull request è chiusa o unita.
-
-Le versioni fino alla **1.0.0 inclusa** sono state pubblicate con licenza MIT:
-quella concessione resta valida per quelle versioni e il testo è riportato in
-appendice al file `LICENSE`. La nuova licenza vale dalla prima versione
-pubblicata dopo la 1.0.0.
-
-Per usi diversi da quelli sopra — redistribuzione, uso commerciale, derivati —
-serve un permesso scritto: aprine richiesta negli
-[issue](https://github.com/danigio15/dashboardmodern-v2/issues).
+I ritratti delle persone sono i render 3D di [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) (Microsoft, licenza MIT). I marchi delle auto derivano da [simple-icons](https://github.com/simple-icons/simple-icons) (CC0), e appartengono ai rispettivi proprietari.
 
 ---
 
