@@ -1843,29 +1843,52 @@ function installStyles() {
  * fondo e' un'altra lingua, e qui si parla quella di casa. */
 #dm-widget-popup{
   position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
-  padding:20px;background:rgba(230,235,241,.85);
+  padding:20px;
+  background:color-mix(in srgb,var(--bg-sculpted,#e6ebf1) 62%,rgba(15,23,42,.34));
   backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   animation:dmWidgetPopupIn .2s ease-out}
 :root:is([data-theme="dark"]) #dm-widget-popup,
-html[data-theme="dark"] #dm-widget-popup{background:rgba(9,14,26,.82)}
+html[data-theme="dark"] #dm-widget-popup{background:color-mix(in srgb,#060a14 74%,rgba(2,6,15,.9))}
 #dm-widget-popup[hidden]{display:none}
 @keyframes dmWidgetPopupIn{from{opacity:0}to{opacity:1}}
 html.dm-widget-popup-open{overflow:hidden}
+/* La stessa veste delle altre finestre della plancia.
+ *
+ * Non passa dal foglio dei popup — questa finestra e' roba di questo modulo, e
+ * la disegna lui — quindi la veste va ripetuta qui: angolo piu' misurato,
+ * un'ombra che scende invece dell'alone, e il filo di colore sul bordo alto,
+ * dipinto nello sfondo perche' la finestra e' lei stessa il contenitore che
+ * scorre e un elemento appoggiato scorrerebbe via col contenuto.
+ *
+ * Via anche l'anello bianco cucito dentro il bordo: valeva solo sul tema
+ * chiaro, e sullo scuro era una riga luminosa in mezzo al buio. */
 #dm-widget-popup .dm-widget-detail{
   width:min(560px,100%);max-height:min(80dvh,760px);overflow:auto;margin:0;
-  border:1px solid var(--card-border,#e8edf3);border-radius:36px;
+  border:1px solid var(--card-border,#e8edf3);border-radius:28px;
   background:var(--card-bg,#fff);
-  box-shadow:0 40px 80px rgba(0,0,0,.15),inset 0 0 0 1px color-mix(in srgb,#fff 60%,transparent);
+  box-shadow:0 32px 64px -28px rgba(2,6,23,.45),0 6px 18px -12px rgba(2,6,23,.25);
   animation:dmWidgetPopupCard .28s cubic-bezier(.16,1,.3,1)}
-@keyframes dmWidgetPopupCard{from{opacity:0;transform:scale(.92) translateY(24px)}to{opacity:1;transform:none}}
+@keyframes dmWidgetPopupCard{from{opacity:0;transform:scale(.96) translateY(12px)}to{opacity:1;transform:none}}
+/* Chi ha chiesto meno movimento non lo riceve: la finestra c'e' o non c'e'. */
+@media(prefers-reduced-motion:reduce){
+  #dm-widget-popup,#dm-widget-popup .dm-widget-detail{animation:none}
+}
 /* L'intestazione parla come le altre della plancia: maiuscoletto spaziato,
- * riga di separazione, il tondo per chiudere. */
+ * riga di separazione, il tondo per chiudere. Il velo colorato era un
+ * gradiente che partiva dall'angolo e sbiadiva a meta': adesso e' un fondo
+ * appena tinto, che non contende la scena al titolo. */
 #dm-widget-popup .dm-w-head{
-  position:sticky;top:0;z-index:1;gap:13px;padding:22px 24px 18px;
+  position:sticky;top:0;z-index:1;gap:13px;padding:18px 22px 14px;
+  /* Il filo di colore sta qui e non sulla finestra: l'intestazione e' incollata
+     in alto e coprirebbe qualunque cosa ci sia sotto di lei. Cosi' resta a
+     vista anche mentre il contenuto scorre. */
   background:
-    linear-gradient(135deg,color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 16%,transparent),transparent 70%),
+    linear-gradient(90deg,
+      var(--dm-widget-accent,#0ea5e9),
+      color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 18%,transparent)) no-repeat 0 0/100% 3px,
+    linear-gradient(180deg,color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 9%,transparent),transparent),
     var(--card-bg,#fff);
-  border-bottom:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 22%,var(--card-border,#e8edf3))}
+  border-bottom:1px solid var(--card-border,#e8edf3)}
 /* La stessa pastiglia della tessera da cui si e' arrivati: il popup e' la
  * tessera che si apre, non un'altra cosa. */
 #dm-widget-popup .dm-w-head-ic{
@@ -1878,9 +1901,14 @@ html.dm-widget-popup-open{overflow:hidden}
 #dm-widget-popup .dm-w-head strong{font-size:16px;letter-spacing:1.4px}
 #dm-widget-popup .dm-w-head small{font-size:12px}
 #dm-widget-popup .dm-w-close{
-  flex:0 0 34px;width:34px;height:34px;border-radius:50%;
+  flex:0 0 38px;width:38px;height:38px;border-radius:50%;
+  display:grid;place-items:center;font-size:15px;font-weight:800;
   background:var(--surface-3,#f1f5f9);border:1px solid var(--card-border,#e2e8f0);
-  box-shadow:0 6px 15px rgba(0,0,0,.05)}
+  box-shadow:none;transition:background .18s ease,border-color .18s ease,color .18s ease}
+#dm-widget-popup .dm-w-close:hover{
+  background:#fee2e2;border-color:#fecaca;color:#dc2626}
+html[data-theme="dark"] #dm-widget-popup .dm-w-close:hover{
+  background:rgba(220,38,38,.22);border-color:rgba(248,113,113,.45);color:#fca5a5}
 #dm-widget-popup .dm-w-body{padding:16px 18px 20px;display:grid;gap:9px}
 #dm-widget-popup .dm-w-row{
   padding:13px 15px;border-radius:17px;border:1px solid var(--card-border,#eef2f7);
@@ -1893,8 +1921,8 @@ html.dm-widget-popup-open{overflow:hidden}
 #dm-widget-popup .dm-w-glyph{font-size:17px}
 @media(max-width:600px){
   #dm-widget-popup{padding:16px}
-  #dm-widget-popup .dm-widget-detail{border-radius:30px;max-height:82dvh}
-  #dm-widget-popup .dm-w-head{padding:18px 18px 13px}
+  #dm-widget-popup .dm-widget-detail{border-radius:22px;max-height:82dvh}
+  #dm-widget-popup .dm-w-head{padding:15px 16px 12px}
   #dm-widget-popup .dm-w-body{padding:13px 15px 18px}
 }
 /* ── «In primo piano»: il ponte dei widget della Home ─────────────────── */

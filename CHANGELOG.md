@@ -64,7 +64,10 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   che scende, un filo di colore sul bordo alto, l'intestazione ordinata e la
   chiusura tornata un tondino — e chi ha chiesto meno movimento non lo riceve.
   Non cambia cosa fa nessuna finestra: cambia come si presentano, e cambia per
-  tutte insieme.
+  tutte insieme. La stessa veste ce l'hanno anche le finestre delle tessere del
+  Colpo d'occhio, che non passano da quel foglio — le disegna il modulo dei
+  widget — e lì il filo di colore prende il colore della tessera da cui si è
+  arrivati: il popup è la tessera che si apre, non un'altra cosa.
 
 - **Il ritratto delle persone ballava, e la faccia stava ferma.** Un respiro in
   CSS alzava e abbassava tutta la tela, mentre chi è in casa — cioè quasi
