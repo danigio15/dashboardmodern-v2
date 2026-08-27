@@ -6570,9 +6570,15 @@ function setQuickClimaMode(mode) {
     const titleEl = document.getElementById('quick-clima-title');
     const hintEl  = document.getElementById('quick-clima-hint');
     if (titleEl) titleEl.textContent = mode === 'freddo' ? '❄️ CLIMA · FREDDO' : '🔥 CLIMA · CALDO';
-    if (hintEl)  hintEl.textContent  = mode === 'freddo'
-        ? 'Tocca per accendere · raffrescamento 26°C · ventola auto'
-        : 'Tocca una stanza per accendere il termosifone';
+    if (hintEl) {
+        // Quello che il tasto fara' davvero, non un esempio: i tre passi li
+        // sceglie la configurazione, e la scritta li legge dalla stessa fonte.
+        var detto = null;
+        try { detto = window.dmQuickClimateHint && window.dmQuickClimateHint(null); } catch (e) { detto = null; }
+        hintEl.textContent = mode === 'freddo'
+            ? (detto || 'Tocca per accendere · raffrescamento 26°C · ventola auto')
+            : 'Tocca una stanza per accendere il termosifone';
+    }
 
     // v244: mostra/nasconde pannello termico (caldaia, termocamino, aspiratore)
     const thermalPanel = document.getElementById('ns-thermal-panel');
@@ -6712,6 +6718,16 @@ function renderAllarmeBanner() {
 }
 
 function renderQuickClima() {
+    // La scritta sotto al titolo dice cosa fara' il tasto, e la scelta puo'
+    // essere cambiata mentre il popup e' chiuso: si rilegge a ogni disegno,
+    // non solo quando si passa da freddo a caldo.
+    try {
+        const hint = document.getElementById('quick-clima-hint');
+        if (hint && currentClimaMode === 'freddo' && window.dmQuickClimateHint) {
+            const detto = window.dmQuickClimateHint(null);
+            if (detto) hint.textContent = detto;
+        }
+    } catch (e) {}
     const grid = document.getElementById('quick-clima-grid');
     if (!grid) return;
     grid.innerHTML = '';
@@ -6760,25 +6776,28 @@ function nsToggleClima(entityId) {
     const cur = STATES[entityId]?.state;
 
     if (cur === 'off' || !cur || cur === 'unavailable' || cur === 'unknown') {
-      // Step 1: accendi in modalità raffreddamento
-      ws.send(JSON.stringify({
-        id: msgId++, type: 'call_service', domain: 'climate', service: 'set_hvac_mode',
-        service_data: { hvac_mode: 'cool' }, target: { entity_id: entityId }
-      }));
-      // Step 2 (700ms): temperatura 26°C
-      setTimeout(() => {
-        ws.send(JSON.stringify({
-          id: msgId++, type: 'call_service', domain: 'climate', service: 'set_temperature',
-          service_data: { temperature: 26 }, target: { entity_id: entityId }
-        }));
-      }, 700);
-      // Step 3 (1400ms): ventola auto
-      setTimeout(() => {
-        ws.send(JSON.stringify({
-          id: msgId++, type: 'call_service', domain: 'climate', service: 'set_fan_mode',
-          service_data: { fan_mode: 'auto' }, target: { entity_id: entityId }
-        }));
-      }, 1400);
+      // I passi li decide la configurazione, non questa riga: modalita',
+      // temperatura e ventola si scelgono nella scheda Clima, e una casella
+      // lasciata vuota vuol dire «non toccare». Se il modulo che li traduce non
+      // c'e', si accende come si e' sempre acceso.
+      var passi;
+      try { passi = window.dmQuickClimateSteps && window.dmQuickClimateSteps(); } catch (e) { passi = null; }
+      if (!passi || !passi.length) passi = [
+        { service: 'set_hvac_mode', data: { hvac_mode: 'cool' } },
+        { service: 'set_temperature', data: { temperature: 26 } },
+        { service: 'set_fan_mode', data: { fan_mode: 'auto' } }
+      ];
+      // Distanziati nel tempo come prima: mandare la temperatura a un
+      // condizionatore ancora spento la fa cadere nel vuoto.
+      passi.forEach(function (passo, indice) {
+        var manda = function () {
+          ws.send(JSON.stringify({
+            id: msgId++, type: 'call_service', domain: 'climate', service: passo.service,
+            service_data: passo.data, target: { entity_id: entityId }
+          }));
+        };
+        if (indice === 0) manda(); else setTimeout(manda, indice * 700);
+      });
     } else {
       // Spegnimento
       ws.send(JSON.stringify({

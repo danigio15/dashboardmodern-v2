@@ -1533,4 +1533,18 @@ export default Object.freeze({
     "🛡️ 모드를 숨겼습니다",
   "🛡️ Mode shown":
     "🛡️ 모드를 표시했습니다",
+  "Quick climate button":
+    "빠른 냉난방 버튼",
+  "This is what happens when you tap a room in the Home climate popup. Only the modes your configured units actually accept are listed; temperature and fan can be left empty, and empty means the button leaves them alone.":
+    "홈의 냉난방 창에서 방을 누를 때 일어나는 일입니다. 기기가 실제로 받아들이는 모드만 나오며, 온도와 바람 세기는 비워 둘 수 있습니다. 비어 있으면 버튼이 건드리지 않습니다.",
+  "Leave alone":
+    "그대로 두기",
+  "Tapping a room":
+    "방을 누르면",
+  "fan":
+    "바람",
+  "Heat/cool":
+    "냉난방 자동",
+  "❄️ Quick climate updated":
+    "❄️ 냉난방 버튼을 바꿨습니다",
 });

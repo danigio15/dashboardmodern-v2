@@ -349,7 +349,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // chi in vacanza non ci va mai si ritrovava due tasti che non premera' mai
   // davanti a quello che usa ogni sera. La regola di cosa si vede resta nel
   // modello puro; qui c'e' solo il modo di dirla.
-  assert.ok(relative.length <= 158, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 160 con i parametri del tasto Clima rapido: `core/quick-climate.js` dice
+  // cosa vuol dire un'impostazione e in quali chiamate si traduce, e
+  // `quick-climate-editor-section.js` la fa scegliere. Il popup della Home
+  // accendeva sempre in raffrescamento a ventisei gradi con la ventola
+  // automatica, scritti nel codice: chi voleva altro non aveva nessun posto
+  // dove dirlo. Il modello e' puro perche' la traduzione in tre chiamate si
+  // prova a tavolino — e' l'unico modo di essere sicuri che il tasto faccia
+  // quello che la scheda dice.
+  assert.ok(relative.length <= 160, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
@@ -405,8 +413,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // that the card has been redrawn is the card itself — the tab class is set
   // before the body is mounted, and the legacy `editorSwitch` may not exist yet
   // when modules install, so wrapping it is a hook that can silently fail.
+  // The quick-climate settings own the ninth, for the same reason and scoped the
+  // same way: the block has to appear under the climate units the moment the
+  // Clima tab is drawn, and the card itself is the only honest signal that it
+  // has been redrawn.
   // The loop below still rejects observers rooted at document/body/documentElement.
-  assert.ok(observers.length <= 8, `too many production observers: ${observers.length}`);
+  assert.ok(observers.length <= 9, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,

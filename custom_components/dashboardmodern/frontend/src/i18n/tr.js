@@ -1537,4 +1537,18 @@ export default Object.freeze({
     "🛡️ Kip gizlendi",
   "🛡️ Mode shown":
     "🛡️ Kip gösterildi",
+  "Quick climate button":
+    "Hızlı iklim düğmesi",
+  "This is what happens when you tap a room in the Home climate popup. Only the modes your configured units actually accept are listed; temperature and fan can be left empty, and empty means the button leaves them alone.":
+    "Ana sayfadaki İklim penceresinde bir odaya dokununca olan budur. Burada yalnızca ünitelerinizin gerçekten kabul ettiği kipler var; sıcaklık ve üfleme boş bırakılabilir, boş olması düğmenin onlara dokunmadığı anlamına gelir.",
+  "Leave alone":
+    "Dokunma",
+  "Tapping a room":
+    "Bir odaya dokununca",
+  "fan":
+    "üfleme",
+  "Heat/cool":
+    "Isıtma/soğutma",
+  "❄️ Quick climate updated":
+    "❄️ İklim düğmesi güncellendi",
 });

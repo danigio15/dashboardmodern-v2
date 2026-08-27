@@ -1550,4 +1550,18 @@ export default Object.freeze({
     "🛡️ Modus ausgeblendet",
   "🛡️ Mode shown":
     "🛡️ Modus eingeblendet",
+  "Quick climate button":
+    "Schnelltaste Klima",
+  "This is what happens when you tap a room in the Home climate popup. Only the modes your configured units actually accept are listed; temperature and fan can be left empty, and empty means the button leaves them alone.":
+    "Das passiert, wenn du im Klima-Fenster der Startseite einen Raum antippst. Aufgeführt sind nur die Modi, die deine Geräte tatsächlich annehmen; Temperatur und Lüfter dürfen leer bleiben, und leer heißt, die Taste rührt sie nicht an.",
+  "Leave alone":
+    "Unverändert lassen",
+  "Tapping a room":
+    "Beim Antippen eines Raums",
+  "fan":
+    "Lüfter",
+  "Heat/cool":
+    "Heizen/Kühlen",
+  "❄️ Quick climate updated":
+    "❄️ Klimataste aktualisiert",
 });

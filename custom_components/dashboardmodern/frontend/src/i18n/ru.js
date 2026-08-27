@@ -1542,4 +1542,18 @@ export default Object.freeze({
     "🛡️ Режим скрыт",
   "🛡️ Mode shown":
     "🛡️ Режим показан",
+  "Quick climate button":
+    "Быстрая кнопка климата",
+  "This is what happens when you tap a room in the Home climate popup. Only the modes your configured units actually accept are listed; temperature and fan can be left empty, and empty means the button leaves them alone.":
+    "Вот что произойдёт, если коснуться комнаты в окне «Климат» на главной. Здесь только те режимы, которые ваши блоки действительно принимают; температуру и вентилятор можно оставить пустыми, и пусто значит, что кнопка их не трогает.",
+  "Leave alone":
+    "Не трогать",
+  "Tapping a room":
+    "При касании комнаты",
+  "fan":
+    "вентилятор",
+  "Heat/cool":
+    "Тепло/холод",
+  "❄️ Quick climate updated":
+    "❄️ Кнопка климата обновлена",
 });

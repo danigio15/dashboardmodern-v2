@@ -1513,4 +1513,18 @@ export default Object.freeze({
     "🛡️ 已隐藏该模式",
   "🛡️ Mode shown":
     "🛡️ 已显示该模式",
+  "Quick climate button":
+    "空调快捷按钮",
+  "This is what happens when you tap a room in the Home climate popup. Only the modes your configured units actually accept are listed; temperature and fan can be left empty, and empty means the button leaves them alone.":
+    "这是在首页空调窗口里点一个房间时会发生的事。这里只列出你的设备真正接受的模式；温度和风速可以留空，留空表示按钮不去动它们。",
+  "Leave alone":
+    "不要改动",
+  "Tapping a room":
+    "点一个房间时",
+  "fan":
+    "风速",
+  "Heat/cool":
+    "制热/制冷",
+  "❄️ Quick climate updated":
+    "❄️ 空调按钮已更新",
 });

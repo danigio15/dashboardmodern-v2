@@ -1548,4 +1548,18 @@ export default Object.freeze({
     "🛡️ Modo escondido",
   "🛡️ Mode shown":
     "🛡️ Modo mostrado",
+  "Quick climate button":
+    "Botão Clima rápido",
+  "This is what happens when you tap a room in the Home climate popup. Only the modes your configured units actually accept are listed; temperature and fan can be left empty, and empty means the button leaves them alone.":
+    "É o que acontece ao tocar num compartimento na janela Clima da página inicial. Só aparecem os modos que as tuas unidades aceitam mesmo; temperatura e ventoinha podem ficar vazias, e vazio quer dizer que o botão não lhes toca.",
+  "Leave alone":
+    "Não mexer",
+  "Tapping a room":
+    "Ao tocar num compartimento",
+  "fan":
+    "ventoinha",
+  "Heat/cool":
+    "Aquecer/arrefecer",
+  "❄️ Quick climate updated":
+    "❄️ Botão Clima atualizado",
 });

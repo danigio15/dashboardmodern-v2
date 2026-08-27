@@ -1542,4 +1542,18 @@ export default Object.freeze({
     "🛡️ Tryb ukryty",
   "🛡️ Mode shown":
     "🛡️ Tryb pokazany",
+  "Quick climate button":
+    "Szybki przycisk klimatu",
+  "This is what happens when you tap a room in the Home climate popup. Only the modes your configured units actually accept are listed; temperature and fan can be left empty, and empty means the button leaves them alone.":
+    "To dzieje się po dotknięciu pokoju w oknie Klimat na stronie głównej. Są tu tylko tryby, które twoje jednostki naprawdę przyjmują; temperaturę i wentylator można zostawić puste, a puste znaczy, że przycisk ich nie rusza.",
+  "Leave alone":
+    "Zostaw bez zmian",
+  "Tapping a room":
+    "Po dotknięciu pokoju",
+  "fan":
+    "wentylator",
+  "Heat/cool":
+    "Grzanie/chłodzenie",
+  "❄️ Quick climate updated":
+    "❄️ Przycisk klimatu zaktualizowany",
 });

@@ -1534,4 +1534,18 @@ export default Object.freeze({
     "🛡️ मोड छिपाया गया",
   "🛡️ Mode shown":
     "🛡️ मोड दिखाया गया",
+  "Quick climate button":
+    "त्वरित जलवायु बटन",
+  "This is what happens when you tap a room in the Home climate popup. Only the modes your configured units actually accept are listed; temperature and fan can be left empty, and empty means the button leaves them alone.":
+    "होम की जलवायु विंडो में किसी कमरे को छूने पर यही होता है। यहाँ केवल वही मोड हैं जिन्हें आपकी इकाइयाँ सचमुच स्वीकार करती हैं; तापमान और पंखा खाली छोड़े जा सकते हैं, और खाली का मतलब है कि बटन उन्हें नहीं छूता।",
+  "Leave alone":
+    "न बदलें",
+  "Tapping a room":
+    "कमरा छूने पर",
+  "fan":
+    "पंखा",
+  "Heat/cool":
+    "गर्म/ठंडा",
+  "❄️ Quick climate updated":
+    "❄️ जलवायु बटन अपडेट हुआ",
 });

@@ -35,6 +35,7 @@ import { installFloodAlertsSection } from "./flood-alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
 import { installAlarmModesEditorSection } from "./alarm-modes-editor-section.js";
+import { installQuickClimateEditorSection } from "./quick-climate-editor-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installSecurityDoorsSection } from "./security-doors-section.js";
 import { installSecurityDoorsEditorSection } from "./security-doors-editor-section.js";
@@ -699,6 +700,9 @@ export function installSectionRuntime() {
      * accetta: si installa dopo di lei, che quella risposta la pubblica. */
     installAlarmModesEditorSection();
     installClimateThermalSection();
+    /* I parametri del tasto Clima rapido chiedono alle unita' cosa accettano:
+     * si installano dopo chi quelle unita' le tiene. */
+    installQuickClimateEditorSection();
     installLiveUiSection();
     installConnectionRecoverySection();
     installNavigationSection();

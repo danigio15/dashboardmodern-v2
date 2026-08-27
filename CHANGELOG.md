@@ -73,6 +73,18 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Aggiunto
 
+- **Il tasto Clima rapido si configura.** Toccando una stanza nel popup Clima
+  della Home la plancia accendeva sempre in raffrescamento a 26°C con la
+  ventola automatica: tre numeri scritti nel codice. Va benissimo per chi quei
+  numeri li voleva; per tutti gli altri era un tasto che faceva una cosa che
+  non gli avevano chiesto, e l'unico modo di cambiarla era non usarlo. Adesso
+  modalità, temperatura e ventola si scelgono nella scheda Clima. Ci sono solo
+  le modalità che le unità configurate accettano davvero — una che il
+  condizionatore non ha è un tasto che non fa niente — e temperatura e ventola
+  si possono lasciare vuote: vuoto vuol dire che il tasto non le tocca, per chi
+  la temperatura la governa dal termostato. La scritta sotto al titolo del
+  popup dice quello che il tasto farà davvero, non un esempio.
+
 - **Si sceglie quali modalità dell'antifurto vedere.** La centrale dice cosa
   accetta; quello che serve davvero lo dice chi la usa. Una Ring accetta cinque
   inserimenti, e chi in vacanza non ci va mai si ritrovava due tasti che non

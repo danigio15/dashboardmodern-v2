@@ -1540,4 +1540,18 @@ export default Object.freeze({
     "🛡️ モードを隠しました",
   "🛡️ Mode shown":
     "🛡️ モードを表示しました",
+  "Quick climate button":
+    "エアコンのワンタッチ設定",
+  "This is what happens when you tap a room in the Home climate popup. Only the modes your configured units actually accept are listed; temperature and fan can be left empty, and empty means the button leaves them alone.":
+    "ホームのエアコン画面で部屋に触れたときに起きることです。並ぶのは機器が実際に受け付けるモードだけで、温度と風量は空のままにできます。空は「触らない」という意味です。",
+  "Leave alone":
+    "そのままにする",
+  "Tapping a room":
+    "部屋に触れると",
+  "fan":
+    "風量",
+  "Heat/cool":
+    "自動（暖房/冷房）",
+  "❄️ Quick climate updated":
+    "❄️ エアコンのボタンを更新しました",
 });

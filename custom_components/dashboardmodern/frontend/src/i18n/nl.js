@@ -1548,4 +1548,18 @@ export default Object.freeze({
     "🛡️ Stand verborgen",
   "🛡️ Mode shown":
     "🛡️ Stand getoond",
+  "Quick climate button":
+    "Snelknop klimaat",
+  "This is what happens when you tap a room in the Home climate popup. Only the modes your configured units actually accept are listed; temperature and fan can be left empty, and empty means the button leaves them alone.":
+    "Dit gebeurt als je in het klimaatvenster op de startpagina een kamer aantikt. Alleen de standen die je units echt aannemen staan hier; temperatuur en ventilator mogen leeg blijven, en leeg betekent dat de knop ze met rust laat.",
+  "Leave alone":
+    "Met rust laten",
+  "Tapping a room":
+    "Bij het aantikken van een kamer",
+  "fan":
+    "ventilator",
+  "Heat/cool":
+    "Verwarmen/koelen",
+  "❄️ Quick climate updated":
+    "❄️ Klimaatknop bijgewerkt",
 });

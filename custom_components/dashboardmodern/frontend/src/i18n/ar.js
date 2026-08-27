@@ -1530,4 +1530,18 @@ export default Object.freeze({
     "🛡️ تم إخفاء الوضع",
   "🛡️ Mode shown":
     "🛡️ تم إظهار الوضع",
+  "Quick climate button":
+    "زر المناخ السريع",
+  "This is what happens when you tap a room in the Home climate popup. Only the modes your configured units actually accept are listed; temperature and fan can be left empty, and empty means the button leaves them alone.":
+    "هذا ما يحدث عند لمس غرفة في نافذة المناخ بالصفحة الرئيسية. تظهر فقط الأوضاع التي تقبلها وحداتك فعلياً؛ ويمكن ترك الحرارة والمروحة فارغتين، والفراغ يعني أن الزر لا يمسّهما.",
+  "Leave alone":
+    "لا تغيّره",
+  "Tapping a room":
+    "عند لمس غرفة",
+  "fan":
+    "مروحة",
+  "Heat/cool":
+    "تدفئة/تبريد",
+  "❄️ Quick climate updated":
+    "❄️ تم تحديث زر المناخ",
 });
