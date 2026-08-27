@@ -33,6 +33,7 @@ rest follows from:
 | `src/sections/i18n-section.js` | Settles the locale before anything renders, keeps the DOM pass fed |
 | `tests/i18n-message-keys.js` | The keys every catalog must answer (generated) |
 | `scripts/extract-i18n-keys.mjs` | Regenerates both generated files from the source |
+| `scripts/mine-runtime-vocabulary.mjs` | Mines the vendored runtime's vocabulary from its two forks |
 | `custom_components/dashboardmodern/translations/` | Home Assistant's own config and options dialogs |
 
 ## Which language a user gets
@@ -124,6 +125,53 @@ That test exists because the omission is invisible without it: eighty-odd
 strings — the editor's field captions, the light colour names, the page
 subtitles — sat outside every catalog and rendered in English, which is also
 what a correct missing entry does.
+
+## The third layer: the vendored runtime
+
+The visible dashboard is painted by three layers, and for a long time the corpus
+read two of them: this codebase's own call sites, and the two vendored HTML
+shells. The third — `legacy/dashboard-runtime-{it,en}.js`, 600 kB of vendored
+build — paints the entire setup wizard, the appliance, alert and light editors,
+and every toast they raise. Nothing read it. A French user with a complete
+French catalog still ran the whole first-run flow in English, and the suite
+stayed green: a string nobody collects is a string no test can miss.
+
+There is no `t()` to read there, because the runtime ships as two forks, one per
+language. But two forks of the same file *are* the pair table. They are the same
+code — 8794 lines against 8848 — so `scripts/mine-runtime-vocabulary.mjs` lines
+them up on the lines that can only mean one thing, reads off what differs, and
+writes `scripts/i18n-runtime-vocabulary.json`. That file is generated;
+`npm run check:i18n` fails when the vendored runtime moves and it was not
+re-mined.
+
+Two hand-written files sit beside it:
+
+- `scripts/i18n-runtime-repairs.json` — the English half of that build is
+  unfinished too. It was translated by find-and-replace, so "Potenza batteria
+  (W)" came out "Power batteria (W)". Each broken string maps onto the English
+  it should have had; that repaired English becomes the key, and both the
+  Italian and the broken English reach it.
+- `scripts/i18n-runtime-extras.json` — where the two forks agree there is
+  nothing to mine. Either the English build kept the Italian (`Riconnessione...`)
+  or both print the same word (`Standby`). Those are paired by hand.
+
+## Decorated text, and when the pass runs
+
+Two things kept translated strings from reaching the screen, and both are worth
+knowing about before adding a key that looks missing.
+
+**Decoration.** The runtime prints its copy and then dresses it: `🧺 No appliance
+configured…`, `· Instant power`, `1. Open HA…`. The catalog is keyed on the
+sentence, so the whole node matched nothing. The DOM pass now peels a leading
+run of non-word characters, looks the rest up, and puts the decoration back —
+front first, then the tail, because a sentence owns its full stop.
+
+**Timing.** The pass is driven by the renders the runtime announces, never by a
+document-wide observer. Boot paints things nothing announces — the empty-state
+banner, the wizard — so the pass also runs on `dashboardmodern:legacy-ready`,
+`states-ready` and `pageshow`, and three more times as the page settles. The
+banner's keys were in every catalog and it still read English; all that was
+missing was a reason to look again.
 
 ## The vendored English shell is half-translated
 

@@ -1,0 +1,10 @@
+{
+  "_comment": "Strings the vendored runtime paints that its two forks agree on, so mining them finds no pair: either the English build never translated the Italian (`Riconnessione...`), or both builds print the same word (`Standby`). Written by hand, English key first, then the text actually painted. Also the odd line the aligner has to skip, where the two forks differ by more lines than they share.",
+
+  "Reconnecting…": "Riconnessione...",
+  "Standby": "Standby",
+  "Show menu": "Mostra menu",
+  "1. Open HA → click your": "1. Apri HA → click sul tuo",
+  "Download": "Download",
+  "Upload": "Upload"
+}
