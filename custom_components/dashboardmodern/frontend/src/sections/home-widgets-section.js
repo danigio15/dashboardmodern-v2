@@ -77,6 +77,11 @@ const state = (root[KEY] ||= {
    * stati: se lo stato dell'apertura stesse solo nel documento, il pannello si
    * richiuderebbe da solo appena un termostato manda un grado nuovo. */
   aperti: new Set(),
+  /* Quello che si sta scrivendo nella riga «aggiungi», per lista. Il corpo
+   * della finestra si riscrive a ogni valore che cambia — e con dieci liste
+   * aperte cambia spesso: se la parola a meta' stesse solo nel documento,
+   * sparirebbe sotto le dita. */
+  bozze: new Map(),
 });
 
 export function configuredTodoLists() {
@@ -212,6 +217,53 @@ async function completeItem(list, uid, summary) {
     return;
   }
   root.setTimeout?.(() => fetchItems(list.entity, { force: true }), 4000);
+}
+
+/* Una voce nuova.
+ *
+ * Ottimista come la spunta: compare subito in fondo alla lista, e la
+ * rilettura da Home Assistant qualche istante dopo la conferma — o la toglie,
+ * se la chiamata non e' andata. Senza, fra il dito e la comparsa passavano i
+ * secondi della rilettura, e sembrava che il tasto non avesse fatto niente. */
+async function addItem(list, summary) {
+  const testo = clean(summary);
+  if (!testo) return;
+  const cache = record(list.entity);
+  cache.items = [
+    ...(cache.items || []),
+    { uid: "", summary: testo, status: "needs_action", due: "", localNew: true },
+  ];
+  state.bozze.delete(list.id);
+  schedule();
+  const esito = await callHa("todo", "add_item", { entity_id: list.entity, item: testo });
+  if (esito === undefined) {
+    cache.items = (cache.items || []).filter((voce) => !voce.localNew || voce.summary !== testo);
+    schedule();
+    return;
+  }
+  root.setTimeout?.(() => fetchItems(list.entity, { force: true }), 1200);
+}
+
+/* Togliere una voce e basta: non e' «fatta», e' «non c'entrava». */
+async function removeItem(list, uid, summary) {
+  const cache = record(list.entity);
+  const voce = (cache.items || []).find(
+    (value) => (uid && value.uid === uid) || (!uid && value.summary === summary),
+  );
+  if (!voce) return;
+  const prima = cache.items;
+  cache.items = (cache.items || []).filter((value) => value !== voce);
+  schedule();
+  const esito = await callHa("todo", "remove_item", {
+    entity_id: list.entity,
+    item: voce.uid || voce.summary,
+  });
+  if (esito === undefined) {
+    cache.items = prima;
+    schedule();
+    return;
+  }
+  root.setTimeout?.(() => fetchItems(list.entity, { force: true }), 1200);
 }
 
 /* ── i modelli dei widget ─────────────────────────────────────────────── */
@@ -1090,6 +1142,10 @@ function todoItemMarkup(list, item, today) {
         data-dm-todo-uid="${esc(item.uid)}" data-dm-todo-summary="${esc(item.summary)}"
         aria-label="${esc(t(`Segna fatta: ${item.summary}`, `Mark done: ${item.summary}`))}"${done ? " disabled" : ""}></button>
       <span class="dm-todo-text">${esc(item.summary)}${due}</span>
+      <button type="button" class="dm-todo-del" data-dm-todo-del data-dm-todo-list="${esc(list.id)}"
+        data-dm-todo-uid="${esc(item.uid)}" data-dm-todo-summary="${esc(item.summary)}"
+        title="${esc(t("Togli dalla lista", "Remove from the list"))}"
+        aria-label="${esc(t(`Togli dalla lista: ${item.summary}`, `Remove from the list: ${item.summary}`))}">🗑️</button>
     </li>`;
 }
 
@@ -1109,7 +1165,18 @@ function todoDetail(widget) {
         body = `<ul class="dm-todo-items">${shown.map((item) => todoItemMarkup(list, item, today)).join("")}</ul>${
           extra > 0 ? `<p class="dm-w-empty">${esc(t(`+${extra} altre voci`, `+${extra} more items`))}</p>` : ""
         }`;
-      return `<div class="dm-w-block"><span class="dm-w-block-title">${esc(clean(list.name) || list.entity)}</span>${body}</div>`;
+      /* La riga per scrivere sta in fondo alla lista a cui appartiene: con
+       * piu' liste aperte, una casella sola in cima non direbbe in quale
+       * finisce quello che si scrive. */
+      const scrivi = `<div class="dm-todo-add">
+        <input type="text" class="dm-todo-new" data-dm-todo-new="${esc(list.id)}"
+          value="${esc(state.bozze.get(list.id) || "")}" maxlength="200"
+          placeholder="${esc(t("Aggiungi una cosa da fare…", "Add something to do…"))}"
+          aria-label="${esc(t(`Aggiungi a ${clean(list.name) || list.entity}`, `Add to ${clean(list.name) || list.entity}`))}">
+        <button type="button" class="dm-todo-plus" data-dm-todo-add="${esc(list.id)}"
+          title="${esc(t("Aggiungi", "Add"))}" aria-label="${esc(t("Aggiungi", "Add"))}">＋</button>
+      </div>`;
+      return `<div class="dm-w-block"><span class="dm-w-block-title">${esc(clean(list.name) || list.entity)}</span>${body}${scrivi}</div>`;
     })
     .join("");
 }
@@ -1980,7 +2047,48 @@ function onChange(event) {
   });
 }
 
+/* La lista di quel riferimento, presa dalla configurazione. */
+function listaTodo(id) {
+  return configuredTodoLists().find((value) => value.id === clean(id)) || null;
+}
+
+/* Quello che si sta scrivendo si ricorda qui, non nel documento: il corpo
+ * della finestra si riscrive da solo a ogni valore che cambia. */
+function onInput(event) {
+  const casella = event.target?.closest?.("[data-dm-todo-new]");
+  if (!casella) return;
+  const id = clean(casella.dataset.dmTodoNew);
+  if (casella.value) state.bozze.set(id, casella.value);
+  else state.bozze.delete(id);
+}
+
+/* Invio aggiunge, come in ogni casella in cui si scrive una riga. */
+function onKeydown(event) {
+  if (event.key !== "Enter") return;
+  const casella = event.target?.closest?.("[data-dm-todo-new]");
+  if (!casella) return;
+  event.preventDefault();
+  const lista = listaTodo(casella.dataset.dmTodoNew);
+  if (lista) addItem(lista, casella.value);
+}
+
 function onClick(event) {
+  const aggiungi = event.target?.closest?.("[data-dm-todo-add]");
+  if (aggiungi) {
+    event.preventDefault();
+    const id = clean(aggiungi.dataset.dmTodoAdd);
+    const lista = listaTodo(id);
+    const casella = aggiungi.parentElement?.querySelector?.("[data-dm-todo-new]");
+    if (lista) addItem(lista, casella?.value || state.bozze.get(id) || "");
+    return;
+  }
+  const cestino = event.target?.closest?.("[data-dm-todo-del]");
+  if (cestino) {
+    event.preventDefault();
+    const lista = listaTodo(cestino.dataset.dmTodoList);
+    if (lista) removeItem(lista, clean(cestino.dataset.dmTodoUid), clean(cestino.dataset.dmTodoSummary));
+    return;
+  }
   const check = event.target?.closest?.("[data-dm-todo-check]");
   if (check && !check.disabled) {
     event.preventDefault();
@@ -2431,6 +2539,40 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 #dm-widget-popup .dm-w-row .dm-w-arrows button{width:32px;height:32px}
 /* Il titolo di un gruppo dentro la lista: maiuscoletto spaziato con la sua
    riga sottile, come le altre separazioni della plancia. */
+/* La riga per scrivere: una casella e un piu', larghi quanto la lista. */
+#dm-widget-popup .dm-todo-add{
+  display:flex;gap:8px;margin:9px 0 2px}
+#dm-widget-popup .dm-todo-new{
+  flex:1 1 auto;min-width:0;height:38px;padding:0 13px;border-radius:13px;
+  border:1px solid var(--card-border,#e8edf3);background:var(--card-bg,#fff);
+  font:inherit;font-size:13px;font-weight:700;color:var(--text,#0f172a);
+  transition:border-color .18s ease,box-shadow .18s ease}
+#dm-widget-popup .dm-todo-new::placeholder{color:var(--text-dim,#94a3b8);font-weight:600}
+#dm-widget-popup .dm-todo-new:focus{
+  outline:none;border-color:var(--dm-widget-accent,#0ea5e9);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 18%,transparent)}
+#dm-widget-popup .dm-todo-plus{
+  flex:0 0 38px;width:38px;height:38px;display:grid;place-items:center;
+  border:0;border-radius:13px;cursor:pointer;
+  background:var(--dm-widget-accent,#0ea5e9);color:#fff;
+  font:inherit;font-size:19px;font-weight:800;line-height:1;
+  box-shadow:0 8px 18px -10px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent);
+  transition:transform .15s ease,filter .18s ease}
+#dm-widget-popup .dm-todo-plus:hover{filter:brightness(1.06)}
+#dm-widget-popup .dm-todo-plus:active{transform:scale(.94)}
+/* Il cestino sta in fondo alla riga e si fa vedere quando serve: sempre sul
+   telefono, dove non c'e' un puntatore da avvicinare. */
+#dm-widget-popup .dm-todo-del{
+  flex:0 0 30px;width:30px;height:30px;display:grid;place-items:center;
+  margin-left:auto;border:0;border-radius:10px;cursor:pointer;
+  background:transparent;font-size:14px;line-height:1;opacity:.35;
+  transition:opacity .18s ease,background .18s ease}
+#dm-widget-popup .dm-todo-item:hover .dm-todo-del{opacity:1}
+#dm-widget-popup .dm-todo-del:hover{background:#fee2e2;opacity:1}
+@media(hover:none){#dm-widget-popup .dm-todo-del{opacity:.7}}
+@media(prefers-reduced-motion:reduce){
+  #dm-widget-popup .dm-todo-plus:active{transform:none}
+}
 #dm-widget-popup .dm-w-block-title{
   padding:10px 4px 8px;font-size:10.5px;letter-spacing:1.2px;
   border-bottom:1px solid var(--card-border,#eef2f7);margin-bottom:2px}
@@ -2757,6 +2899,8 @@ export function installHomeWidgetsSection() {
   doc.addEventListener("click", onClick);
   bindEscape();
   doc.addEventListener("change", onChange);
+  doc.addEventListener("input", onInput);
+  doc.addEventListener("keydown", onKeydown);
   for (const eventName of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",

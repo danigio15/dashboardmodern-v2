@@ -1581,4 +1581,8 @@ export default Object.freeze({
   "Raise": "Subir",
   "target": "objetivo",
   "warmest": "la más cálida",
+  "Add something to do…": "Añade algo por hacer…",
+  "Add to ${clean(list.name) || list.entity}": "Añadir a ${clean(list.name) || list.entity}",
+  "Remove from the list": "Quitar de la lista",
+  "Remove from the list: ${item.summary}": "Quitar de la lista: ${item.summary}",
 });

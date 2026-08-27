@@ -81,6 +81,16 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   scorrimento porta il colore della tessera, così una lista lunga si vede che è
   lunga.
 
+- **Auto: col cavo attaccato la foto non cambiava.** Le due foto — l'auto ferma
+  e l'auto in carica — c'erano e si potevano scegliere, ma la seconda arrivava
+  solo riaprendo la pagina. La sezione Auto si ridisegna quando cambia
+  un'entità che le interessa, e quali le interessino se lo chiedeva guardando
+  dentro i profili delle vetture; le caselle da cui si capisce se il cavo è
+  attaccato — stato di ricarica, sensore del cavo, potenza del wallbox — sono
+  invece canoniche, e chi ha una macchina sola le riempie nella mappatura
+  generale della plancia, non nella scheda dell'auto. Il wallbox che passava a
+  «in carica» non risvegliava nessuno. Adesso sì.
+
 - **A barra ferma la seconda fila di tessere non si riusciva a premere.** Da
   computer la barra sta nascosta e si affaccia quando il puntatore le arriva
   vicino: a chiamarla è un rettangolo invisibile che le sborda intorno, e che
@@ -137,6 +147,13 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   dell'icona, che è quella della tessera da cui si è arrivati. Titolo e
   sottotitolo adesso sono incolonnati: affiancati, il sottotitolo di una
   sezione con sei voci finiva sempre coi puntini.
+
+- **Nel widget «Da fare» si aggiunge e si toglie.** La lista si poteva solo
+  spuntare: per segnare la spesa dimenticata, o per togliere una riga finita lì
+  per sbaglio, bisognava uscire dalla plancia e aprire Home Assistant. Adesso
+  in fondo a ogni lista c'è la riga per scrivere — invio o il tasto ＋, e la
+  voce compare subito senza aspettare la rilettura — e ogni voce porta il suo
+  cestino, che non è «fatta»: è «non c'entrava».
 
 - **Il Clima ha la rotella: modalità, temperatura e ventola sulla riga.** Sulla
   riga ci stavano il nome, la temperatura e l'acceso/spento; tutto il resto —

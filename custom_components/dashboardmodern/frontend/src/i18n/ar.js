@@ -1559,4 +1559,8 @@ export default Object.freeze({
   "Raise": "رفع",
   "target": "الهدف",
   "warmest": "الأدفأ",
+  "Add something to do…": "أضف مهمة…",
+  "Add to ${clean(list.name) || list.entity}": "أضف إلى ${clean(list.name) || list.entity}",
+  "Remove from the list": "إزالة من القائمة",
+  "Remove from the list: ${item.summary}": "إزالة من القائمة: ${item.summary}",
 });

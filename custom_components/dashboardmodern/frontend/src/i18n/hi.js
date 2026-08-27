@@ -1563,4 +1563,8 @@ export default Object.freeze({
   "Raise": "बढ़ाएँ",
   "target": "लक्ष्य",
   "warmest": "सबसे गर्म",
+  "Add something to do…": "करने के लिए कुछ जोड़ें…",
+  "Add to ${clean(list.name) || list.entity}": "${clean(list.name) || list.entity} में जोड़ें",
+  "Remove from the list": "सूची से हटाएँ",
+  "Remove from the list: ${item.summary}": "सूची से हटाएँ: ${item.summary}",
 });

@@ -1569,4 +1569,8 @@ export default Object.freeze({
   "Raise": "上げる",
   "target": "目標",
   "warmest": "最高",
+  "Add something to do…": "やることを追加…",
+  "Add to ${clean(list.name) || list.entity}": "${clean(list.name) || list.entity} に追加",
+  "Remove from the list": "リストから削除",
+  "Remove from the list: ${item.summary}": "リストから削除：${item.summary}",
 });

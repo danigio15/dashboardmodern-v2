@@ -1571,4 +1571,8 @@ export default Object.freeze({
   "Raise": "Повысить",
   "target": "цель",
   "warmest": "самая высокая",
+  "Add something to do…": "Добавить дело…",
+  "Add to ${clean(list.name) || list.entity}": "Добавить в ${clean(list.name) || list.entity}",
+  "Remove from the list": "Убрать из списка",
+  "Remove from the list: ${item.summary}": "Убрать из списка: ${item.summary}",
 });

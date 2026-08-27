@@ -112,6 +112,16 @@ const PLUGGED_WORDS = /(charg|ricaric|in carica|connect|collegat|plug|attacc|occ
  * prima. */
 const HA_SILENT_STATES = /^(unknown|unavailable)$/i;
 
+/* Le caselle da cui si capisce se il cavo e' attaccato: sono le stesse che
+ * legge `vehiclePlugged()`, ed e' per questo che stanno scritte una volta
+ * sola. */
+const PLUG_REFS = Object.freeze([
+  "dm.ev_cavo_collegato",
+  "dm.ev_stato_ricarica",
+  "dm.ev_potenza_wallbox",
+  "dm.ev_charge_power",
+]);
+
 /* Un verdetto, non tre.
  *
  * Sotto ci sono due fonti — il testo dello stato, la potenza letta dal
@@ -149,7 +159,7 @@ export function vehiclePlugged() {
     if (UNPLUGGED_STATES.test(status) || UNPLUGGED_WORDS.test(status)) return (state.lastPlugged = false);
     if (PLUGGED_WORDS.test(status)) return (state.lastPlugged = true);
   }
-  for (const reference of ["dm.ev_potenza_wallbox", "dm.ev_charge_power"]) {
+  for (const reference of PLUG_REFS.slice(2)) {
     const raw = liveState(reference)?.state;
     const power = Number(raw);
     if (Number.isFinite(power)) return (state.lastPlugged = power > 10);
@@ -810,7 +820,25 @@ function collectEntityIds(value, output, depth = 0) {
   if (typeof value === "object") Object.values(value).forEach((entry) => collectEntityIds(entry, output, depth + 1));
 }
 function eventEntityIds(event) { const values = event?.detail?.entity_ids || [event?.detail?.entity_id]; return new Set((Array.isArray(values) ? values : [values]).map(clean).filter(Boolean)); }
-function configuredEvEntityIds() { const ids = new Set(); collectEntityIds(legacyProfiles(), ids); collectEntityIds(canonicalProfiles(), ids); return ids; }
+/* Le entita' vere dietro quelle caselle.
+ *
+ * Non stanno per forza dentro il profilo di un'auto: sono caselle canoniche, e
+ * chi ha una macchina sola le riempie nella mappatura generale della plancia,
+ * non nella scheda della vettura. Cercando i cambi di stato solo dentro i
+ * profili, il wallbox che passava a «in carica» non risvegliava questa
+ * sezione: la foto col cavo attaccato non arrivava mai, e si vedeva soltanto
+ * riaprendo la pagina — che e' esattamente il momento in cui il disegno
+ * riparte da capo per conto suo. */
+function plugEntityIds(output) {
+  for (const reference of PLUG_REFS) {
+    let resolved = "";
+    try { resolved = clean(root.resolveEntity?.(reference)); } catch (_error) {}
+    if (resolved && resolved !== reference) output.add(resolved);
+  }
+  return output;
+}
+
+function configuredEvEntityIds() { const ids = new Set(); collectEntityIds(legacyProfiles(), ids); collectEntityIds(canonicalProfiles(), ids); plugEntityIds(ids); return ids; }
 export function stateChangeAffectsEv(event) {
   const changed = eventEntityIds(event); if (!changed.size) return false;
   const configured = configuredEvEntityIds(); if (!configured.size) return false;

@@ -1562,4 +1562,8 @@ export default Object.freeze({
   "Raise": "올리기",
   "target": "목표",
   "warmest": "최고",
+  "Add something to do…": "할 일 추가…",
+  "Add to ${clean(list.name) || list.entity}": "${clean(list.name) || list.entity}에 추가",
+  "Remove from the list": "목록에서 제거",
+  "Remove from the list: ${item.summary}": "목록에서 제거: ${item.summary}",
 });

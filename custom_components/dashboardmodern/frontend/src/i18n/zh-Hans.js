@@ -1542,4 +1542,8 @@ export default Object.freeze({
   "Raise": "调高",
   "target": "目标",
   "warmest": "最热",
+  "Add something to do…": "添加一件待办…",
+  "Add to ${clean(list.name) || list.entity}": "添加到 ${clean(list.name) || list.entity}",
+  "Remove from the list": "从列表中移除",
+  "Remove from the list: ${item.summary}": "从列表中移除：${item.summary}",
 });
