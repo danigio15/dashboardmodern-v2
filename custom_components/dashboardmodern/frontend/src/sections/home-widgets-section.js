@@ -1313,7 +1313,14 @@ export function renderHomeWidgets() {
   if (!models.length) {
     host?.remove();
     state.signature = "";
-    fermaTimerTelecamere();
+    /* Il popup del dettaglio sta attaccato al corpo della pagina, non alle
+     * tessere: togliendo le tessere — l'ultima telecamera cancellata, una
+     * configurazione azzerata — restava li' aperto sopra una Home vuota, coi
+     * comandi di una cosa che non esiste piu', e lo scorrimento della pagina
+     * bloccato da lui. Se ne va con quello che raccontava. */
+    if (state.expanded || doc?.documentElement?.classList?.contains("dm-widget-popup-open"))
+      chiudiPopup();
+    else fermaTimerTelecamere();
     return false;
   }
   const mounted = host || ensureHost();
