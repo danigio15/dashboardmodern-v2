@@ -136,8 +136,18 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   maiuscoletto, la riga che sfuma in fondo — con in più la pastiglia
   dell'icona, che è quella della tessera da cui si è arrivati. Titolo e
   sottotitolo adesso sono incolonnati: affiancati, il sottotitolo di una
-  sezione con sei voci finiva sempre coi puntini. E ogni riga della lista
-  porta il colore della sezione su un binario a sinistra.
+  sezione con sei voci finiva sempre coi puntini.
+
+- **E dentro, ogni riga è la tessera della Home messa in orizzontale.** La
+  lista era una fila di pastiglie tutte uguali: un'emoji da quindici pixel, un
+  nome, e a destra il comando — chi era acceso e chi era spento lo diceva
+  soltanto il comando, in fondo alla riga, e per sapere quante luci erano
+  accese bisognava leggere gli interruttori uno per uno. Adesso l'icona sta
+  nella stessa pastiglia della tessera da cui si è arrivati, tinta del colore
+  della sezione quando la cosa è accesa e neutra quando è spenta, il nome pesa
+  più di quello che ha sotto, i numeri sono in Oswald come tutti i numeri
+  della plancia, e la riga intera si vela appena del colore quando è accesa:
+  da un metro di distanza si contano gli accesi senza leggere niente.
 
 - **«Colpo d'occhio» adesso si chiama «Widget».** È il nome con cui la sezione
   viene chiamata da chi la usa e da chi la configura: due nomi per la stessa

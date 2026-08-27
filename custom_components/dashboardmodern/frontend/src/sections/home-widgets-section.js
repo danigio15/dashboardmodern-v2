@@ -1980,25 +1980,100 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 #dm-widget-popup .dm-w-body::-webkit-scrollbar-thumb{
   border-radius:100px;border:2px solid transparent;background-clip:padding-box;
   background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 38%,transparent)}
-/* Ogni riga porta un binario del colore della sezione sul fianco sinistro:
- * lega la riga alla fascia in cima, e da' alla lista un verso da leggere. */
+/* Ogni riga e' una tessera coricata.
+ *
+ * La lista era una fila di pastiglie tutte uguali: un'emoji da quindici pixel,
+ * un nome, e a destra il comando. Chi era acceso e chi era spento lo diceva
+ * soltanto il comando, in fondo alla riga — per sapere quante luci erano
+ * accese bisognava leggere gli interruttori uno per uno. E la tessera da cui
+ * si arrivava, in Home, era fatta in tutt'altro modo: pastiglia dell'icona
+ * tinta, valore grande, nome sotto.
+ *
+ * Adesso la riga e' quella tessera messa in orizzontale. L'icona sta nella
+ * stessa pastiglia — tinta del colore della sezione quando la cosa e' accesa,
+ * neutra quando e' spenta — il nome e' piu' grosso di quello che ha sotto, il
+ * valore e' in Oswald come tutti i numeri della plancia, e la riga intera si
+ * vela appena del colore quando e' accesa: da un metro di distanza si contano
+ * gli accesi senza leggere niente. */
 #dm-widget-popup .dm-w-row{
-  position:relative;padding:13px 15px 13px 19px;border-radius:16px;
+  position:relative;display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:18px;
   border:1px solid var(--card-border,#eef2f7);
-  background:var(--surface-2,#f8fafc);margin:0;overflow:hidden;
-  transition:border-color .18s ease,background .18s ease,transform .18s ease}
-#dm-widget-popup .dm-w-row::before{
-  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
-  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 34%,transparent);
-  transition:background .18s ease}
+  background:var(--card-bg,#fff);margin:0;
+  box-shadow:0 1px 2px rgba(15,23,42,.03);
+  transition:border-color .18s ease,background .18s ease,box-shadow .18s ease}
+/* Il binario di colore sul fianco non serve piu': il colore ce l'ha la
+   pastiglia, e due cose colorate sulla stessa riga erano una di troppo. */
+#dm-widget-popup .dm-w-row::before{display:none}
 #dm-widget-popup .dm-w-row:hover{
-  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 34%,transparent);
-  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 6%,var(--surface-2,#f8fafc));
-  transform:translateX(2px)}
-#dm-widget-popup .dm-w-row:hover::before{background:var(--dm-widget-accent,#0ea5e9)}
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 32%,transparent);
+  box-shadow:0 6px 16px -10px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 60%,transparent)}
+/* Accesa: la velatura sulla riga. Lo stato lo dice il comando o l'icona, a
+   seconda di cosa quella sezione mette in riga — si guardano tutti e tre. */
+#dm-widget-popup .dm-w-row:is(
+  :has(.dm-w-glyph[data-on="true"]),
+  :has(.dm-w-switch[data-on="true"]),
+  :has(.dm-w-power[data-on="true"])){
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 5%,var(--card-bg,#fff));
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 22%,var(--card-border,#eef2f7))}
+/* La pastiglia dell'icona: la stessa della tessera in Home. */
+#dm-widget-popup .dm-w-row .dm-w-glyph{
+  flex:0 0 38px;width:38px;height:38px;display:grid;place-items:center;
+  border-radius:13px;font-size:18px;filter:none;opacity:1;
+  background:var(--surface-2,#f8fafc);
+  box-shadow:inset 0 0 0 1px var(--card-border,#e8edf3);
+  transition:background .2s ease,box-shadow .2s ease,filter .2s ease}
+#dm-widget-popup .dm-w-row .dm-w-glyph[data-on="true"]{
+  background:linear-gradient(150deg,
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 20%,#fff),
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 11%,#fff));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 26%,transparent)}
+/* Spenta: il grigio sta sulla pastiglia intera, ma il fondo e' gia' quasi
+   grigio — a cambiare e' solo l'emoji, che e' quello che si vuole. */
+#dm-widget-popup .dm-w-row .dm-w-glyph[data-on="false"]{filter:grayscale(1);opacity:.5}
+/* Il nome pesa piu' di quello che ha sotto: prima erano quasi uguali e la riga
+   si leggeva tutta insieme, senza un ordine. */
+#dm-widget-popup .dm-w-row .dm-w-name{
+  gap:2px;font-size:14px;font-weight:800;letter-spacing:.1px}
+#dm-widget-popup .dm-w-row .dm-w-name small{
+  font-size:11px;font-weight:700;letter-spacing:.2px;color:var(--text-dim,#94a3b8)}
+/* I numeri in Oswald, come tutti i numeri della plancia, e incolonnabili. */
+#dm-widget-popup .dm-w-row .dm-w-val{
+  font-family:'Oswald',system-ui,sans-serif;font-size:18px;font-weight:600;
+  font-variant-numeric:tabular-nums;color:var(--text,#0f172a)}
+/* Il tasto di accensione: pastiglia quadrata come le altre, non un cerchio
+   con l'alone — l'alone era l'unica cosa che si vedeva della riga. */
+#dm-widget-popup .dm-w-row .dm-w-power{
+  flex:0 0 36px;width:36px;height:36px;border-radius:12px;font-size:15px;
+  border:1px solid var(--card-border,#e8edf3);background:var(--surface-2,#f8fafc);
+  color:var(--text-dim,#94a3b8);box-shadow:none}
+#dm-widget-popup .dm-w-row .dm-w-power[data-on="true"]{
+  border-color:transparent;background:var(--dm-widget-accent,#0ea5e9);color:#fff;
+  box-shadow:0 6px 14px -8px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 85%,transparent)}
+/* L'interruttore: un filo piu' largo, e da spento un grigio che si vede senza
+   gridare. */
+#dm-widget-popup .dm-w-row .dm-w-switch{
+  flex:0 0 44px;width:44px;height:26px;
+  background:color-mix(in srgb,var(--text-dim,#94a3b8) 26%,transparent)}
+#dm-widget-popup .dm-w-row .dm-w-switch i{top:3px;left:3px;width:20px;height:20px}
+#dm-widget-popup .dm-w-row .dm-w-switch[data-on="true"] i{transform:translateX(18px)}
+/* I comandi minori — la tendina della posizione, le frecce — prendono la
+   stessa forma della pastiglia, cosi' la riga ha un solo raggio. */
+#dm-widget-popup .dm-w-row :is(.dm-w-position,.dm-w-arrows button,.dm-w-alarm button){
+  border-radius:11px;background:var(--surface-2,#f8fafc);
+  border:1px solid var(--card-border,#e8edf3)}
+#dm-widget-popup .dm-w-row .dm-w-position{height:30px;width:38px}
+#dm-widget-popup .dm-w-row .dm-w-arrows button{width:32px;height:32px}
+/* Il titolo di un gruppo dentro la lista: maiuscoletto spaziato con la sua
+   riga sottile, come le altre separazioni della plancia. */
+#dm-widget-popup .dm-w-block-title{
+  padding:10px 4px 8px;font-size:10.5px;letter-spacing:1.2px;
+  border-bottom:1px solid var(--card-border,#eef2f7);margin-bottom:2px}
+#dm-widget-popup .dm-w-empty{margin:6px 4px;font-size:13px}
+/* Le miniature delle telecamere: lo stesso angolo delle righe. */
+#dm-widget-popup .dm-w-cam{border-radius:16px}
 @media(prefers-reduced-motion:reduce){
   #dm-widget-popup .dm-w-row,#dm-widget-popup .dm-w-close{transition:none}
-  #dm-widget-popup .dm-w-row:hover{transform:none}
   #dm-widget-popup .dm-w-close:hover{transform:none}
 }
 #dm-widget-popup .dm-w-name{font-size:13.5px;font-weight:800}
