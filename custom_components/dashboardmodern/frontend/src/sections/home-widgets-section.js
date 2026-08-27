@@ -498,9 +498,21 @@ function refValue(states, ref, fuori) {
   return { entity: risolto, value: numOf(states, risolto), state: clean(states?.[risolto]?.state) };
 }
 
+/* La carica dell'auto sa rispondere a tre nomi.
+ *
+ * La sezione EV li accetta tutti e tre — quello storico in italiano e i due
+ * piu' recenti — e la tessera guardava solo il primo: con una mappatura
+ * moderna e senza autonomia configurata, la tessera dell'auto spariva del
+ * tutto. Chi legge la stessa cosa deve conoscere gli stessi nomi. */
+const RIF_BATTERIA_EV = Object.freeze(["dm.ev_batteria_auto", "dm.ev_battery", "dm.ev_soc"]);
+
 function evModel(states) {
   const fuori = widgetExcludedEntities();
-  const carica = refValue(states, "dm.ev_batteria_auto", fuori);
+  let carica = null;
+  for (const riferimento of RIF_BATTERIA_EV) {
+    carica = refValue(states, riferimento, fuori);
+    if (carica) break;
+  }
   const autonomia = refValue(states, "dm.ev_autonomia", fuori);
   const stato = refValue(states, "dm.ev_stato_ricarica", fuori);
   if (!carica && !autonomia) return null;
@@ -619,6 +631,14 @@ function poolModel(states) {
   };
 }
 
+const IRRIGAZIONE_ATTIVA = /^(on|true|open|opening|running|attiva)$/;
+
+/** Se questa zona sta bagnando, comunque la sua entita' lo dica. */
+function zonaInFunzione(states, zona) {
+  const stato = clean(states?.[clean(zona?.entity)]?.state).toLowerCase();
+  return IRRIGAZIONE_ATTIVA.test(stato);
+}
+
 function irrigationModel(states) {
   const config = root.getIrr?.() || readJson("cd_irrigazione", {});
   const zones = Array.isArray(config?.zones) ? config.zones : [];
@@ -628,7 +648,13 @@ function irrigationModel(states) {
     return entity && widgetIncludes(entity, fuori);
   });
   if (!attive.length) return null;
-  const inFunzione = attive.filter((zona) => clean(states?.[clean(zona.entity)]?.state).toLowerCase() === "on");
+  /* Una zona che irriga non dice sempre «on».
+   *
+   * Le zone su una valvola — `valve.*`, che la plancia accetta — dicono «open»
+   * mentre stanno bagnando, e «opening» mentre si aprono. Guardando solo «on»
+   * la tessera diceva che non stava irrigando niente proprio mentre l'acqua
+   * usciva. */
+  const inFunzione = attive.filter((zona) => zonaInFunzione(states, zona));
   const terreno = clean(config.soilEnt || config.soil_entity);
   const umidita = terreno && widgetIncludes(terreno, fuori) ? numOf(states, terreno) : null;
   return {
@@ -643,7 +669,7 @@ function irrigationModel(states) {
     rows: attive.map((zona) => ({
       glyph: "🌱",
       name: clean(zona.name) || clean(zona.entity),
-      value: clean(states?.[clean(zona.entity)]?.state).toLowerCase() === "on"
+      value: zonaInFunzione(states, zona)
         ? t("in funzione", "running")
         : t("ferma", "idle"),
     })),
@@ -1549,7 +1575,14 @@ async function aggiornaTelecamere() {
     fermaTimerTelecamere();
     return false;
   }
-  const figures = doc?.querySelectorAll?.("#dm-widgets [data-dm-w-cam]") || [];
+  /* Le miniature vivono dove vive il dettaglio, e il dettaglio si e' spostato
+   * nel popup: cercarle solo sotto le tessere voleva dire non trovarne
+   * nessuna, e un timer che si sveglia ogni tanto per non fare niente mentre
+   * le telecamere restano nere. Si guarda in tutti e due i posti. */
+  const figures =
+    doc?.querySelectorAll?.(
+      "#dm-widgets [data-dm-w-cam],#dm-widget-popup [data-dm-w-cam]",
+    ) || [];
   await Promise.all(
     [...figures].map((figure) =>
       loadCameraFrame(

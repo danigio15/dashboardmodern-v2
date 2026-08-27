@@ -97,15 +97,33 @@ export function migratePool(input = {}) {
 export function migrateIrrigation(input = {}) {
   return input && !Array.isArray(input) ? cloneValue(input) : {};
 }
+/* Un impianto in piu' non si perde per strada.
+ *
+ * Questa passata rimetteva in piedi l'oggetto dell'energia da zero, tenendo
+ * solo i quattro gruppi di sensori e i metadati: `plants`, `id` e `name` — che
+ * sono gli impianti oltre al primo e il nome di quello che si sta guardando —
+ * finivano nel cestino a ogni salvataggio. «Aggiungi impianto» scriveva e la
+ * riga dopo non c'era piu' niente. Chi normalizza deve conoscere tutto quello
+ * che la sezione sa portarsi dietro, altrimenti normalizzare vuol dire
+ * dimenticare. */
 export function migrateEnergy(input = {}) {
   const value = input && !Array.isArray(input) ? input : {};
-  return {
+  const uscita = {
     house: { ...(value.house || {}) },
     grid: { ...(value.grid || {}) },
     solar: { ...(value.solar || {}) },
     battery: { ...(value.battery || {}) },
     metadata: { ...(value.metadata || {}) },
   };
+  const id = String(value.id ?? "").trim();
+  if (id) uscita.id = id;
+  const name = String(value.name ?? "").trim();
+  if (name) uscita.name = name;
+  if (Array.isArray(value.plants) && value.plants.length)
+    uscita.plants = value.plants.map((impianto) =>
+      impianto && typeof impianto === "object" && !Array.isArray(impianto) ? { ...impianto } : {},
+    );
+  return uscita;
 }
 
 export function normalizeEnergyLoads(input = []) {

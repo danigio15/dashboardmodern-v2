@@ -341,7 +341,9 @@ const TAB_DI = Object.freeze({
   luci: "luci",
   coperture: "tapparelle",
   elettrodomestici: "appliances-main",
-  telecamere: "home",
+  /* Le telecamere stanno nella pagina Sicurezza, non in Home: toccarne una
+   * qui riportava alla Home, cioe' in nessun posto utile. */
+  telecamere: "security",
   carichi: "energy",
   robot: "robot",
   irrigazione: "irrigazione",
@@ -400,7 +402,21 @@ function signature(pagine, scelta, states) {
           pagina.id,
           pagina.name,
           pagina.count,
-          pagina.blocchi.map((blocco) => `${blocco.key}:${blocco.voci.length}`).join(","),
+          /* Non solo quante cose ci sono: anche QUALI.
+           *
+           * Contando soltanto si perdevano i cambi che non cambiano il
+           * numero — una tapparella rinominata, un'entita' sostituita, una
+           * cosa spostata in un'altra stanza mentre un'altra ne prende il
+           * posto: la pagina restava con il nome vecchio, e toccandolo si
+           * andava sull'entita' vecchia, fino a un ricaricamento. */
+          pagina.blocchi
+            .map(
+              (blocco) =>
+                `${blocco.key}:${blocco.voci
+                  .map((voce) => `${clean(voce?.id || voce?.entity || voce?.name)}`)
+                  .join("+")}`,
+            )
+            .join(","),
         ].join("~"),
       )
       .join("|"),

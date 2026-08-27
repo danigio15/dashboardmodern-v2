@@ -57,8 +57,11 @@ test("le due foto sono blindate: il disegno non le riscrive mai", () => {
   assert.doesNotMatch(corpo, /localStorage\?\.setItem\(key/,
     "nessuna foto puo' passare da una casella all'altra da sola");
   /* E la copia che il runtime storico tiene dell'immagine si allinea a quella
-   * disegnata: altrimenti la rimette lei a ogni giro e la foto tremola. */
-  assert.match(corpo, /setLexicalGlobal\("CD_EV_IMAGE", url\)/);
+   * disegnata: altrimenti la rimette lei a ogni giro e la foto tremola. E si
+   * allinea ANCHE quando la foto non c'e': scrivendola solo quando c'era,
+   * passando a un'auto senza foto restava dentro l'indirizzo della prima e
+   * il runtime storico lo rimetteva sull'eroe. */
+  assert.match(corpo, /setLexicalGlobal\("CD_EV_IMAGE", url \|\| ""\)/);
 });
 
 test("«SALVA SEZIONE» salva anche le foto toccate", () => {

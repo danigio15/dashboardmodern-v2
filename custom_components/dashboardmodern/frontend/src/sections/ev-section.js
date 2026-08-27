@@ -208,7 +208,13 @@ export function applyVehicleAsset() {
    * che cambia, quella copia e' vecchia e le due scritture si alternavano —
    * la foto tremolava e mostrava l'altra macchina. La copia si allinea a
    * quello che disegniamo, e la guerra finisce. */
-  if (url) setLexicalGlobal("CD_EV_IMAGE", url);
+  /* E si allinea anche quando la foto non c'e'.
+   *
+   * Scrivendola solo quando c'e', passando da un'auto con foto a una senza
+   * restava dentro l'indirizzo della prima: questo giro toglieva la sorgente
+   * dall'immagine, e quello storico gliela rimetteva un istante dopo — sotto
+   * la seconda macchina compariva la foto della prima. */
+  setLexicalGlobal("CD_EV_IMAGE", url || "");
   let mounted = false;
   for (const id of ["ev-mod-car-img", "ev-new-car-img"]) {
     const image = doc.getElementById(id); if (!image) continue;
@@ -1361,15 +1367,26 @@ function installLegacyWrappers() {
         sessioneEsplicita && state.evRenameArmed && nomeScritto ? { name: nomeScritto } : {};
       const vestito = marcaViva ? { brand: marcaViva, ...(modelloVivo ? { model: modelloVivo } : {}) } : {};
 
+      const bersaglioEsplicito = Boolean(
+        bersaglio && sessioneEsplicita && uidDi(bersaglio) === uidDi(sessioneEsplicita),
+      );
+
       let rimesse;
       let salvata;
       if (bersaglio) {
         const patch = {
           [VEHICLE_OVERRIDES_FIELD]: mappatura,
           ...rinomina,
-          /* Marca e modello si scrivono solo se l'auto non ne ha gia': la
-           * tendina mostra quella in mostra, e non deve vestirne un'altra. */
-          ...(clean(bersaglio.brand) ? {} : vestito),
+          /* Marca e modello: sull'auto che si sta modificando si scrivono
+           * sempre, sulle altre solo se sono nude.
+           *
+           * Il freno serviva a non vestire un'auto diversa da quella che la
+           * tendina mostra. Ma sull'auto aperta apposta — quella del tasto
+           * «Salva le modifiche a …» — significava che cambiare marca e
+           * premere Salva non cambiava niente, e bisognava scoprire il
+           * secondo tasto dell'aspetto. Chi ha aperto quella scheda ha detto
+           * di quale auto sta parlando. */
+          ...(bersaglioEsplicito || !clean(bersaglio.brand) ? vestito : {}),
         };
         rimesse = salvaAuto(updateVehicle(elenco, uidDi(bersaglio), patch));
         salvata = rimesse.find((car) => uidDi(car) === uidDi(bersaglio)) || null;
