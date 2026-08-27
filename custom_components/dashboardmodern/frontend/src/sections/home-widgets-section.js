@@ -1358,9 +1358,20 @@ export function renderHomeWidgets() {
         cambiato = true;
       }
       /* L'avviso non fa piu' parte della struttura: si accende qui, come tutto
-       * il resto che cambia da un momento all'altro. */
+       * il resto che cambia da un momento all'altro.
+       *
+       * E chi decora la pastiglia col movimento dell'avviso — la porta che si
+       * apre, la goccia che cade — va avvisato che deve riguardare: si tiene
+       * un segno di cosa ha gia' disegnato, e finche' quel segno resta crede
+       * che non ci sia niente da rifare. Prima la tessera veniva riscritta da
+       * capo a ogni avviso che si accendeva, e il segno spariva col nodo
+       * vecchio; adesso il nodo resta, quindi il segno lo si toglie qui. */
       const avviso = String(Boolean(widget.alert));
-      if (tile.dataset.alert !== avviso) tile.dataset.alert = avviso;
+      if (tile.dataset.alert !== avviso) {
+        tile.dataset.alert = avviso;
+        const pastiglia = tile.querySelector(".dm-tile-chip");
+        if (pastiglia) delete pastiglia.dataset.dmAlertMotion;
+      }
       const cornice = tile.querySelector(".dm-tile-bar");
       const barra = cornice?.querySelector("i");
       if (cornice) {
