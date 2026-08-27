@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Voer een naam in en minstens één entiteit: een cover.* of switch.* bij rolluik, gordijn of zonwering, of alleen de openingssensor.",
   "One room at a time · Scenes · Sensors": "Eén kamer tegelijk · Scènes · Sensoren",
   " — configured": " — geconfigureerd",
   "— Choose —": "— Kiezen —",
@@ -717,7 +718,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "Vul een naam en een geldige entiteit in",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "Vul een naam en een geldige entiteit in (bijv. light.woonkamer of switch.keuken)",
   "Enter a name and a valid entity.": "Vul een naam en een geldige entiteit in.",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "Vul een naam in en minstens één cover.*- of switch.*-entiteit voor rolluik, gordijn of zonnescherm.",
   "Enter a name and at least one entity": "Vul een naam en minstens één entiteit in",
   "Enter a name and camera entity": "Vul een naam en de camera-entiteit in",
   "Enter a name and entity": "Vul een naam en een entiteit in",

@@ -22,6 +22,7 @@
  * una seconda card per la stessa luce vorrebbe dire mantenerne due.
  */
 import { lightCommand, lightView, lightsSignature } from "../core/light-model.js";
+import { canonicalClimateType } from "../core/device-model.js";
 import { roomGlyph } from "../core/personalization-catalog.js";
 import {
   ROOM_ASSIGN_KEY,
@@ -125,6 +126,22 @@ const nomeBlocco = (blocco) => {
 };
 
 const iconaBlocco = (blocco) => BLOCK_LABELS[blocco.key]?.[2] || "•";
+
+/* Il fiocco di neve non va bene per tutto quello che si chiama «clima».
+ *
+ * Sotto quella voce ci stanno il condizionatore, il termosifone e la pompa di
+ * calore: nel riepilogo della stanza portavano tutti la stessa icona, e due
+ * righe affiancate — «Soggiorno» e «Clima Soggiorno» — diventavano due fiocchi
+ * di neve identici sopra due cose che non fanno la stessa cosa. Il tipo la
+ * configurazione lo sa gia': lo dice la casella. */
+const ICONE_CLIMA = Object.freeze({ termo: "🔥", pompa: "♨️", clima: "❄️" });
+
+function iconaVoce(item, blocco) {
+  const propria = clean(item?.emoji_icon);
+  if (propria) return propria;
+  if (blocco.key === "clima") return ICONE_CLIMA[canonicalClimateType(item?.type)] || "❄️";
+  return iconaBlocco(blocco);
+}
 
 /* Il nome di una voce, comunque sia stata configurata: quello scelto, quello
  * che dice Home Assistant, e in ultima istanza l'entita' stessa — che e' brutta
@@ -358,7 +375,7 @@ function rowMarkup(item, blocco, states) {
   const entity = entitaVoce(item);
   return `<article class="dm-stanze-card dm-stanze-voce" data-dm-stanza-vai="${esc(blocco.tab)}" data-dm-stanza-entita="${esc(entity)}" role="button" tabindex="0">
     <div class="dm-stanze-card-row">
-      <span class="dm-stanze-orb">${esc(item?.emoji_icon || iconaBlocco(blocco))}</span>
+      <span class="dm-stanze-orb">${esc(iconaVoce(item, blocco))}</span>
       <span class="dm-stanze-title"><b>${esc(nomeVoce(item, states))}</b><s data-dm-stanza-stato="${esc(entity)}" data-dm-stanza-blocco="${esc(blocco.key)}">${esc(statoVoce(item, states, blocco.key))}</s></span>
       <span class="dm-stanze-vai" aria-hidden="true">›</span>
     </div>

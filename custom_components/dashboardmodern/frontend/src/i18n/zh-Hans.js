@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "请填写名称，并至少填写一个实体：卷帘、窗帘或遮阳篷中的 cover.* 或 switch.*，或者仅填开合传感器。",
   "One room at a time · Scenes · Sensors": "一次一个房间 · 场景 · 传感器",
   " — configured": " — 已配置",
   "— Choose —": "— 选择 —",
@@ -717,7 +718,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "请填写名称和一个有效的实体",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "请填写名称和一个有效的实体（例如 light.living 或 switch.kitchen）",
   "Enter a name and a valid entity.": "请输入名称和有效的实体。",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "请输入名称，并在卷帘、窗帘、遮阳篷中至少填写一个 cover.* 或 switch.* 实体。",
   "Enter a name and at least one entity": "请填写名称和至少一个实体",
   "Enter a name and camera entity": "请填写名称和摄像头实体",
   "Enter a name and entity": "请填写名称和实体",

@@ -337,11 +337,22 @@ function openShutterEditor(item, index) {
     const compilate = [list[index].entity, list[index].tenda, list[index].tendaSole]
       .map((valore) => clean(valore))
       .filter(Boolean);
+    /* E una finestra puo' non avere motori affatto.
+     *
+     * «Le tapparelle ora posso inserire anche solo il sensore finestra, ma poi
+     * se voglio modificarlo non me lo salva perche' vuole l'entita' della
+     * tapparella.» Aveva ragione, ed e' la stessa regola scritta in due posti
+     * che dicevano due cose: chi INSERISCE la riga il contatto da solo lo
+     * accetta gia' — persiane, scuri, una maniglia — e chi la RIAPRE per
+     * modificarla contava solo le tre coperture, quindi rifiutava la riga che
+     * l'altro aveva appena creato. Il contatto non comanda niente, ma dice se
+     * la finestra e' aperta, ed e' esattamente cio' che la card disegna. */
+    const contatto = clean(list[index].contact);
     const errore = form.querySelector("[data-error]");
-    if (!list[index].name || !compilate.length) {
+    if (!list[index].name || (!compilate.length && !contatto)) {
       errore.textContent = t(
-        "Inserisci un nome e almeno una entità cover.* o switch.* fra tapparella, tenda e tenda da sole.",
-        "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.",
+        "Inserisci un nome e almeno una entità: una copertura cover.* o switch.* fra tapparella, tenda e tenda da sole, oppure il solo sensore di apertura.",
+        "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.",
       );
       return;
     }

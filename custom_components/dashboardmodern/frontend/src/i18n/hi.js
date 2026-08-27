@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "एक नाम और कम से कम एक इकाई दर्ज करें: शटर, पर्दे या शामियाने में से कोई cover.* या switch.*, या केवल खुलने का सेंसर।",
   "One room at a time · Scenes · Sensors": "एक बार में एक कमरा · दृश्य · सेंसर",
   " — configured": " — कॉन्फ़िगर किया गया",
   "— Choose —": "— चुनें —",
@@ -717,7 +718,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "नाम और एक सही इकाई लिखें",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "नाम और एक सही इकाई लिखें (जैसे light.living या switch.kitchen)",
   "Enter a name and a valid entity.": "नाम और एक वैध इकाई लिखें।",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "एक नाम और शटर, पर्दा, शामियाना में से कम से कम एक cover.* या switch.* एंटिटी दर्ज करें.",
   "Enter a name and at least one entity": "नाम और कम से कम एक इकाई लिखें",
   "Enter a name and camera entity": "नाम और कैमरे की इकाई लिखें",
   "Enter a name and entity": "नाम और इकाई लिखें",

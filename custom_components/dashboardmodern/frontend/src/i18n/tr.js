@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Bir ad ve en az bir varlık girin: panjur, perde ve tenteden bir cover.* ya da switch.*, veya yalnızca açılma sensörü.",
   "One room at a time · Scenes · Sensors": "Tek seferde bir oda · Sahneler · Sensörler",
   " — configured": " — yapılandırıldı",
   "— Choose —": "— Seç —",
@@ -717,7 +718,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "Bir ad ve geçerli bir varlık girin",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "Bir ad ve geçerli bir varlık girin (örn. light.salon ya da switch.mutfak)",
   "Enter a name and a valid entity.": "Bir ad ve geçerli bir varlık yaz.",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "Bir ad ve panjur, perde veya tente için en az bir cover.* veya switch.* varlığı girin.",
   "Enter a name and at least one entity": "Bir ad ve en az bir varlık girin",
   "Enter a name and camera entity": "Bir ad ve kamera varlığını girin",
   "Enter a name and entity": "Bir ad ve varlık girin",

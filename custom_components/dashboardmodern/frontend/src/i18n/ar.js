@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "أدخل اسمًا وكيانًا واحدًا على الأقل: غطاء cover.* أو switch.* من الستارة أو الستارة الخارجية، أو مستشعر الفتح وحده.",
   "One room at a time · Scenes · Sensors": "غرفة واحدة في كل مرة · مشاهد · مستشعرات",
   " — configured": " — مُهيّأة",
   "— Choose —": "— اختر —",
@@ -717,7 +718,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "اكتب اسمًا وكيانًا صالحًا",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "اكتب اسمًا وكيانًا صالحًا (مثل light.living أو switch.kitchen)",
   "Enter a name and a valid entity.": "اكتب اسمًا وكيانًا صالحًا.",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "أدخل اسمًا وكيان cover.* أو switch.* واحدًا على الأقل من بين الستارة المعدنية والستارة والمظلة.",
   "Enter a name and at least one entity": "اكتب اسمًا وكيانًا واحدًا على الأقل",
   "Enter a name and camera entity": "اكتب اسمًا وكيان الكاميرا",
   "Enter a name and entity": "اكتب اسمًا وكيانًا",

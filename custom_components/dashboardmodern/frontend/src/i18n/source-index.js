@@ -934,7 +934,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Inserisci nome ed entità valida (es. light.salotto o switch.cucina)": "Enter a name and a valid entity (e.g. light.living or switch.kitchen)",
   "INSERISCI PIN": "ENTER PIN",
   "Inserisci un nome e almeno una entità": "Enter a name and at least one entity",
-  "Inserisci un nome e almeno una entità cover.* o switch.* fra tapparella, tenda e tenda da sole.": "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.",
+  "Inserisci un nome e almeno una entità: una copertura cover.* o switch.* fra tapparella, tenda e tenda da sole, oppure il solo sensore di apertura.": "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.",
   "Inserisci un nome e un'entità valida.": "Enter a name and a valid entity.",
   "Inserisci un'entità valida (${domini}).": "Enter a valid entity (${domini}).",
   "Inserisci un'etichetta.": "Enter a label.",

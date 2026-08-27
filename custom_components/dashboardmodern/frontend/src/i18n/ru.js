@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Укажите название и хотя бы одну сущность: cover.* или switch.* среди ставней, штор и маркизы — либо только датчик открытия.",
   "One room at a time · Scenes · Sensors": "По одной комнате · Сцены · Датчики",
   " — configured": " — настроена",
   "— Choose —": "— Выбрать —",
@@ -717,7 +718,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "Впишите название и правильную сущность",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "Впишите название и правильную сущность (например, light.living или switch.kitchen)",
   "Enter a name and a valid entity.": "Введите имя и корректную сущность.",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "Укажите имя и хотя бы одну сущность cover.* или switch.* для рольставней, шторы или маркизы.",
   "Enter a name and at least one entity": "Впишите название и хотя бы одну сущность",
   "Enter a name and camera entity": "Впишите название и сущность камеры",
   "Enter a name and entity": "Впишите название и сущность",

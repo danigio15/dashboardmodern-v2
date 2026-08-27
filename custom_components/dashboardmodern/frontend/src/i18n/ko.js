@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "이름과 최소 한 개의 엔터티를 입력하세요: 셔터·커튼·차양 중 cover.* 또는 switch.*, 아니면 열림 센서만으로도 됩니다.",
   "One room at a time · Scenes · Sensors": "한 번에 한 방씩 · 장면 · 센서",
   " — configured": " — 설정됨",
   "— Choose —": "— 선택 —",
@@ -717,7 +718,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "이름과 올바른 엔티티를 입력하세요",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "이름과 올바른 엔티티를 입력하세요(예: light.living 또는 switch.kitchen)",
   "Enter a name and a valid entity.": "이름과 올바른 엔티티를 입력하세요.",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "이름과 셔터·커튼·어닝 중 최소 하나의 cover.* 또는 switch.* 엔티티를 입력하세요.",
   "Enter a name and at least one entity": "이름과 엔티티를 하나 이상 입력하세요",
   "Enter a name and camera entity": "이름과 카메라 엔티티를 입력하세요",
   "Enter a name and entity": "이름과 엔티티를 입력하세요",

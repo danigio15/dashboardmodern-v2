@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Saisis un nom et au moins une entité : une couverture cover.* ou switch.* parmi volet, rideau et store, ou le seul capteur d'ouverture.",
   "One room at a time · Scenes · Sensors": "Une pièce à la fois · Scènes · Capteurs",
   " — configured": " — configurée",
   "— Choose —": "— Choisir —",
@@ -717,7 +718,6 @@ export default Object.freeze({
   "Enter a name and a valid entity": "Saisissez un nom et une entité valide",
   "Enter a name and a valid entity (e.g. light.living or switch.kitchen)": "Saisissez un nom et une entité valide (p. ex. light.salon ou switch.cuisine)",
   "Enter a name and a valid entity.": "Saisis un nom et une entité valide.",
-  "Enter a name and at least one cover.* or switch.* entity among shutter, curtain and awning.": "Saisis un nom et au moins une entité cover.* ou switch.* parmi volet, rideau et store.",
   "Enter a name and at least one entity": "Saisissez un nom et au moins une entité",
   "Enter a name and camera entity": "Saisissez un nom et l'entité de la caméra",
   "Enter a name and entity": "Saisissez un nom et une entité",
