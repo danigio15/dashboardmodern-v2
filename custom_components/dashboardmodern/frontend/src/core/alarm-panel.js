@@ -158,3 +158,50 @@ export function alarmCodeNeeded(stateObj, service) {
   if (String(service ?? "") === ALARM_DISARM.service) return true;
   return attributi.code_arm_required !== false;
 }
+
+/* ── quali dei tasti accettati si vogliono davvero vedere ───────────────────
+ *
+ * La centrale dice cosa ACCETTA; chi la usa decide cosa gli serve. Una Ring
+ * accetta Casa, Fuori, Notte, Vacanza e Parziale: chi in vacanza non ci va mai
+ * si ritrova due tasti che non premera' mai, e in fondo alla fila il tasto che
+ * usa ogni sera. La scelta si tiene qui, in una casella sola, e vale solo per
+ * quello che si vede: un tasto tolto non cambia niente di cosa la centrale sa
+ * fare, e lo sblocco non si toglie mai — e' l'unico che deve esserci sempre.
+ *
+ * La casella tiene solo le modalita' TOLTE: cosi' una centrale che domani
+ * dichiara un inserimento in piu' lo mostra da sola, senza che nessuno debba
+ * aggiornare un elenco. */
+export const ALARM_MODE_CHOICE_KEY = "cd_antifurto_modi";
+
+/** L'elenco pulito delle modalita' tolte, da qualunque cosa ci sia in memoria. */
+export function alarmHiddenModes(stored) {
+  const validi = new Set(ALARM_MODES.map((voce) => voce.mode));
+  const grezzo = Array.isArray(stored)
+    ? stored
+    : stored && typeof stored === "object"
+      ? Object.entries(stored)
+          .filter(([, valore]) => valore === false)
+          .map(([chiave]) => chiave)
+      : [];
+  return grezzo
+    .map((voce) =>
+      String(voce ?? "")
+        .trim()
+        .toLowerCase(),
+    )
+    .filter((voce) => validi.has(voce));
+}
+
+/**
+ * I tasti da disegnare davvero: quelli che la centrale accetta, meno quelli
+ * che si e' scelto di non vedere.
+ */
+export function alarmVisibleModes(stateObj, stored) {
+  const tolte = new Set(alarmHiddenModes(stored));
+  const tutte = alarmModes(stateObj);
+  const restano = tutte.filter((voce) => voce.mode === ALARM_DISARM.mode || !tolte.has(voce.mode));
+  /* Toglierli tutti lascerebbe la fila con il solo sblocco, e una centrale che
+   * si puo' solo spegnere non e' quello che uno voleva chiedere: se la scelta
+   * cancella ogni inserimento la si ignora. */
+  return restano.length > 1 ? restano : tutte;
+}

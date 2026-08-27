@@ -1876,14 +1876,20 @@ html.dm-widget-popup-open{overflow:hidden}
   font-size:23px;font-weight:900;line-height:1.05;letter-spacing:-.4px;font-variant-numeric:tabular-nums;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-under{
-  display:flex;align-items:baseline;gap:6px;min-width:0}
+  /* Una riga per uno.
+   *
+   * Nome e didascalia stavano affiancati, e su un telefono il nome si prende
+   * quasi tutta la tessera: della didascalia restava una coda tagliata a
+   * meta' — «idita' 61%», «tra Bagno Pic» — che scorreva senza mai leggersi.
+   * In colonna la didascalia ha la larghezza intera della tessera. */
+  display:grid;gap:1px;min-width:0}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-label{
   /* Il nome della sezione non si abbrevia: e' l'unica parola che dice di che
    * cosa si sta parlando. A stringersi e' semmai la didascalia accanto. */
   flex:0 0 auto;font-size:10px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;
   color:var(--text-dim,#64748b);white-space:nowrap}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-caption{
-  flex:1 1 auto;min-width:0;font-size:10.5px;font-weight:700;color:var(--text-dim,#94a3b8);
+  min-width:0;font-size:10.5px;font-weight:700;color:var(--text-dim,#94a3b8);
   white-space:nowrap;overflow:hidden;
   /* Sfuma sul bordo invece di tagliare: si capisce che il testo continua. */
   mask-image:linear-gradient(90deg,#000 84%,transparent);
@@ -1898,7 +1904,6 @@ html.dm-widget-popup-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){
   :is(#dm-widgets,#dm-widget-popup) .dm-tile-scroll[data-dm-scroll="true"]{animation:none}
 }
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-caption:not(:empty)::before{content:"· "}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-go{
   flex:0 0 auto;color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 65%,var(--text-dim,#94a3b8));
   font-size:17px;font-weight:900;line-height:1;opacity:.75;

@@ -157,8 +157,10 @@ export function ensureRoomChoices() {
       attacca(slot, entity, mappa, (select) => {
         select.classList.add("dm-room-entity-slot");
         const etichetta = slot.querySelector(".ed-slot-lbl");
-        if (etichetta) etichetta.append(select);
-        else slot.append(select);
+        if (etichetta) {
+          etichetta.classList.add("dm-slot-lbl-affollata");
+          etichetta.append(select);
+        } else slot.append(select);
       })
     )
       messi += 1;
@@ -199,8 +201,15 @@ function onChange(event) {
 
 function css() {
   return `
+      /* Una tendina non si dichiara mai «flex».
+       *
+       * Dichiarata inline-flex, il WebView di Android disegna le OPZIONI
+       * come testo in fila: nel MiniPC la riga diventava
+       * «— Nessuna stanza —SaloneCucinaCameretta...» appiccicato al nome, e
+       * dell'entita' non si leggeva piu' niente. Da inline-block il telefono
+       * disegna la tendina che e'. */
       #ed-body .dm-room-entity{
-        display:inline-flex;width:auto;max-width:190px;margin:5px 0 0;padding:4px 26px 4px 9px;
+        display:inline-block;width:auto;max-width:190px;margin:5px 0 0;padding:4px 26px 4px 9px;
         font-size:11px;font-weight:700;border-radius:999px;
         background:var(--surface-2,#f8fafc);border:1px solid var(--card-border,#e2e8f0);
         color:var(--text-dim,#64748b)}
@@ -208,6 +217,13 @@ function css() {
       /* Assegnata: si vede da lontano quali righe una stanza ce l'hanno. */
       #ed-body .dm-room-entity:not([data-dm-vuota="true"]){color:var(--text,#0f172a)}
       #ed-body .ed-slot .dm-room-entity-slot{margin:5px 0 0;align-self:flex-start}
+      /* L'etichetta della casella tiene il nome, la tendina della stanza e
+       * l'interruttore dei widget: in una riga sola, su un telefono, il nome
+       * si strizzava fino a «Meteo (e». Il nome si prende una riga sua e i due
+       * comandi vanno sotto, in fila. */
+      #ed-body .ed-slot-lbl.dm-slot-lbl-affollata{
+        display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+      #ed-body .ed-slot-lbl.dm-slot-lbl-affollata>input{flex:1 1 100%;min-width:0;max-width:100%}
       @media(max-width:520px){
         #ed-body .dm-room-entity{max-width:150px;font-size:10.5px}
       }`;

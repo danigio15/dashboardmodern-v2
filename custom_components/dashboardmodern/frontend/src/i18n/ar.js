@@ -1520,4 +1520,14 @@ export default Object.freeze({
   "Choose brand": "اختر العلامة",
   cleaning: "قيد التنظيف",
   "lowest charge": "أقل شحن",
+  "Modes to show":
+    "الأوضاع المعروضة",
+  "Only the modes the panel actually accepts are listed. Removing one hides it from the section and changes nothing about what the panel can do; disarm always stays.":
+    "تظهر هنا الأوضاع التي تقبلها لوحة الإنذار فعلياً فقط. إزالة أحدها يخفيه من القسم ولا يغيّر شيئاً مما تستطيع اللوحة فعله؛ ويبقى إلغاء التفعيل دائماً.",
+  "At least one mode has to stay":
+    "يجب أن يبقى وضع واحد على الأقل",
+  "🛡️ Mode hidden":
+    "🛡️ تم إخفاء الوضع",
+  "🛡️ Mode shown":
+    "🛡️ تم إظهار الوضع",
 });

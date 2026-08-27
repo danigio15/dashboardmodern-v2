@@ -152,8 +152,13 @@ export function ensureEntityChoices() {
       attacca(slot, entities, fuori, (button) => {
         button.classList.add("dm-widget-entity-slot");
         const etichetta = slot.querySelector(".ed-slot-lbl");
-        if (etichetta) etichetta.append(button);
-        else slot.append(button);
+        if (etichetta) {
+          /* La stessa riga la divide con la tendina della stanza: chi la
+           * impagina e' uno solo — il modulo delle stanze — e qui ci si limita
+           * a dichiarare che la riga e' affollata. */
+          etichetta.classList.add("dm-slot-lbl-affollata");
+          etichetta.append(button);
+        } else slot.append(button);
       })
     )
       messi += 1;

@@ -790,7 +790,12 @@ try {
 
 function switchEnergyView(view) {
   if(navigator.vibrate) navigator.vibrate(5);
-  document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
+  // Solo le linguette delle viste, non tutte quelle della plancia.
+  // Spegnendole tutte si spegneva anche l'impianto scelto qui sopra --
+  // e le stanze degli elettrodomestici -- che con la vista non c'entrano:
+  // scegliere Giornaliera lasciava la riga degli impianti senza nessuno acceso.
+  document.querySelectorAll('#page-energy .sub-tabs-container .sub-tab-btn')
+    .forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.flow-view').forEach(v => v.classList.remove('active'));
   event.currentTarget.classList.add('active');
   document.getElementById('view-' + view).classList.add('active');

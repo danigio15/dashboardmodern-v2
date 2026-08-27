@@ -1530,4 +1530,14 @@ export default Object.freeze({
   "Choose brand": "メーカーを選択",
   cleaning: "清掃中",
   "lowest charge": "最も低い充電",
+  "Modes to show":
+    "表示するモード",
+  "Only the modes the panel actually accepts are listed. Removing one hides it from the section and changes nothing about what the panel can do; disarm always stays.":
+    "パネルが実際に受け付けるモードだけが並びます。外すとセクションから消えるだけで、パネルにできることは何も変わりません。解除は常に残ります。",
+  "At least one mode has to stay":
+    "モードは最低ひとつ残してください",
+  "🛡️ Mode hidden":
+    "🛡️ モードを隠しました",
+  "🛡️ Mode shown":
+    "🛡️ モードを表示しました",
 });

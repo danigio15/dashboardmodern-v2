@@ -342,7 +342,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // scheda, e su quelle che una stanza ce l'hanno gia' per mestiere non mette
   // niente. Aggiungere il campo a dieci editor voleva dire dieci punti in cui
   // scriverlo e dieci modi di sbagliarlo.
-  assert.ok(relative.length <= 157, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 158 con la scelta di quali tasti dell'antifurto vedere:
+  // `alarm-modes-editor-section.js` spunta la fila in configurazione. La
+  // centrale dice cosa ACCETTA — ed e' gia' la 156 a dirlo — ma quello che uno
+  // vuole vedere e' un'altra domanda: una Ring accetta cinque inserimenti, e
+  // chi in vacanza non ci va mai si ritrovava due tasti che non premera' mai
+  // davanti a quello che usa ogni sera. La regola di cosa si vede resta nel
+  // modello puro; qui c'e' solo il modo di dirla.
+  assert.ok(relative.length <= 158, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
@@ -392,9 +399,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // so the section switch and the save stay in place when a tab's own panels
   // arrive late. The MiniPC page owns one scoped to #page-server, so a heading
   // follows the block the auto-hide empties — the auto-hide is called from
-  // inside the runtime, so there is no name to wrap. The loop below still
-  // rejects observers rooted at document/body/documentElement.
-  assert.ok(observers.length <= 7, `too many production observers: ${observers.length}`);
+  // inside the runtime, so there is no name to wrap. The alarm-mode chooser owns
+  // one more, scoped to the children of #ed-body: it has to appear under the
+  // panel field the moment the Security tab is drawn, and the only honest signal
+  // that the card has been redrawn is the card itself — the tab class is set
+  // before the body is mounted, and the legacy `editorSwitch` may not exist yet
+  // when modules install, so wrapping it is a hook that can silently fail.
+  // The loop below still rejects observers rooted at document/body/documentElement.
+  assert.ok(observers.length <= 8, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,

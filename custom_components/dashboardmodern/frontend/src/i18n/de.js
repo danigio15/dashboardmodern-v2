@@ -1540,4 +1540,14 @@ export default Object.freeze({
   "Choose brand": "Marke wählen",
   cleaning: "beim Saugen",
   "lowest charge": "niedrigste Ladung",
+  "Modes to show":
+    "Anzuzeigende Modi",
+  "Only the modes the panel actually accepts are listed. Removing one hides it from the section and changes nothing about what the panel can do; disarm always stays.":
+    "Aufgeführt sind nur die Modi, die die Zentrale tatsächlich annimmt. Einen zu entfernen blendet ihn im Bereich aus und ändert nichts daran, was die Zentrale kann; Entschärfen bleibt immer.",
+  "At least one mode has to stay":
+    "Mindestens ein Modus muss bleiben",
+  "🛡️ Mode hidden":
+    "🛡️ Modus ausgeblendet",
+  "🛡️ Mode shown":
+    "🛡️ Modus eingeblendet",
 });

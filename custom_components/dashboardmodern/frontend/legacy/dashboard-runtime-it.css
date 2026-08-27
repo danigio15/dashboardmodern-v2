@@ -77,6 +77,15 @@
   --transition: all 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
+/* Il telefono non decide lui quanto e' grande un carattere.
+ *
+ * Android gonfia da solo il testo dentro i contenitori che scorrono in
+ * orizzontale — le linguette delle stanze in Temperature erano il caso —
+ * e ogni volta che la misura la si rimpiccioliva in CSS lui la rigonfiava:
+ * per questo il font «sballato» tornava sempre. Qui gli si dice di lasciar
+ * stare, e le misure scritte valgono quelle che sono. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: 'Inter', sans-serif; background-color: var(--bg-sculpted); color: var(--text); min-height: 100vh; overflow-x: hidden; padding-bottom: env(safe-area-inset-bottom, 40px); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
@@ -4620,3 +4629,65 @@ html[data-theme="dark"] .tc2-hum { background: rgba(14,165,233,0.16); color:#7dd
 #cd-boot-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:#e8edf3;transition:opacity .26s ease}html[data-theme="dark"] #cd-boot-overlay{background:#0b1220}#cd-boot-overlay .s{width:44px;height:44px;border:4px solid rgba(14,165,233,.22);border-top-color:#0ea5e9;border-radius:50%;animation:cdBootSpin .8s linear infinite}@keyframes cdBootSpin{to{transform:rotate(360deg)}}
 
 @keyframes cdSpin{to{transform:rotate(360deg)}}
+
+/* ═══ Le linguette dell'editor, in colonna ═══
+ *
+ * Erano una fila che scorreva in orizzontale: diciassette voci, tre visibili
+ * per volta, e per arrivare a Stanze si trascinava al buio senza sapere quante
+ * ne restassero. In colonna ci stanno tutte una sotto l'altra e si leggono.
+ *
+ * Due cose vanno dette, perche' qui c'e' gia' un padrone.
+ *
+ * La prima: la scheda dell'editor cresce con il suo contenuto e a scorrere e'
+ * la pagina — `dashboard-runtime.css` lo impone, ed e' cosi' che si e' sistemato
+ * lo scorrimento a dito. Quella regola non si tocca: la colonna delle linguette
+ * non prova a scorrere per conto suo, si INCOLLA in alto e resta raggiungibile
+ * mentre il corpo scorre con la pagina.
+ *
+ * La seconda: quel foglio arriva dopo questo e dichiara le stesse regole sulle
+ * stesse classi. Qui si scrive `#editor-modal.modal-wrapper` — una specificita'
+ * in piu' — invece di alzare la voce con `!important`: cosi' vince chi ha
+ * ragione, non chi grida.
+ */
+#editor-modal.modal-wrapper .ed-shell {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: start;
+  width: min(100%, 980px);
+}
+#editor-modal.modal-wrapper .ed-head { grid-area: 1 / 1 / 2 / 3; }
+#editor-modal.modal-wrapper .ed-tabs {
+  grid-area: 2 / 1 / 3 / 2;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  flex-direction: column;
+  align-items: stretch;
+  width: clamp(104px, 30vw, 172px);
+  max-height: 100vh;
+  padding: 12px 8px;
+  gap: 3px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-bottom: 0;
+  border-right: 1px solid var(--card-border);
+}
+#editor-modal.modal-wrapper .ed-tab {
+  flex-shrink: 0;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.28;
+  padding: 10px 11px;
+}
+#editor-modal.modal-wrapper .ed-body {
+  grid-area: 2 / 2 / 3 / 3;
+  min-width: 0;
+  padding: 18px 18px 24px;
+}
+@media (min-width: 700px) {
+  /* La regola larga di prima faceva andare a capo una fila che adesso e' una
+     colonna: qui la si disdice, non la si combatte. */
+  #editor-modal.modal-wrapper .ed-tabs { flex-wrap: nowrap; }
+  #editor-modal.modal-wrapper .ed-body { padding: 20px 24px 26px; }
+}

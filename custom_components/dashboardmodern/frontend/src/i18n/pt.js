@@ -1538,4 +1538,14 @@ export default Object.freeze({
   "Choose brand": "Escolhe a marca",
   cleaning: "a limpar",
   "lowest charge": "carga mais baixa",
+  "Modes to show":
+    "Modos a mostrar",
+  "Only the modes the panel actually accepts are listed. Removing one hides it from the section and changes nothing about what the panel can do; disarm always stays.":
+    "Estão aqui apenas os modos que a central aceita mesmo. Tirar um esconde-o da secção e não muda nada do que a central sabe fazer; desarmar fica sempre.",
+  "At least one mode has to stay":
+    "Pelo menos um modo tem de ficar",
+  "🛡️ Mode hidden":
+    "🛡️ Modo escondido",
+  "🛡️ Mode shown":
+    "🛡️ Modo mostrado",
 });

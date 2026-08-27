@@ -22,12 +22,18 @@ const expectedTabs = [
   "config",
 ];
 /* Le impronte cambiano solo con una modifica voluta al foglio vendorizzato.
- * Questo giro: la griglia dei tasti dell'antifurto rapido non e' piu' fissa a
- * tre colonne — quanti tasti ci sono lo decide la centrale, che dichiara quali
- * inserimenti accetta. */
+ * Questo giro sono due:
+ *
+ *  - il telefono non decide piu' lui quanto e' grande un carattere. Android
+ *    gonfia da solo il testo dentro i contenitori che scorrono in orizzontale,
+ *    ed e' per questo che il font delle linguette delle stanze in Temperature
+ *    tornava «sballato» ogni volta che lo si rimpiccioliva in CSS;
+ *  - le linguette dell'editor stanno in colonna. Erano diciassette voci in una
+ *    fila che scorreva, tre visibili per volta: adesso si vedono tutte e il
+ *    corpo della scheda si apre accanto invece che sotto. */
 const vendoredCssSnapshots = {
-  "dashboard-runtime-it.css": "fecd2a46f41268a251bd559d98a1ae3e720952feda42ef8ae3596e2aa3d0871e",
-  "dashboard-runtime-en.css": "816d8caecb70c669eeca6795be4de172b6948173864bf91e66dcf1c4d06f6796",
+  "dashboard-runtime-it.css": "183b5c0ba833075333ccc65fb6c8cd902dd2a3e0f6417e228fa11fc91b26f4ae",
+  "dashboard-runtime-en.css": "8524fd313c369a4c41db1af77884172828f0653aabf65a257ccc4a025cd3115d",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {

@@ -1532,4 +1532,14 @@ export default Object.freeze({
   "Choose brand": "Wybierz markę",
   cleaning: "sprzątają",
   "lowest charge": "najniższy poziom",
+  "Modes to show":
+    "Tryby do pokazania",
+  "Only the modes the panel actually accepts are listed. Removing one hides it from the section and changes nothing about what the panel can do; disarm always stays.":
+    "Są tu tylko tryby, które centrala naprawdę przyjmuje. Usunięcie jednego ukrywa go w sekcji i niczego nie zmienia w tym, co centrala potrafi; rozbrojenie zostaje zawsze.",
+  "At least one mode has to stay":
+    "Przynajmniej jeden tryb musi zostać",
+  "🛡️ Mode hidden":
+    "🛡️ Tryb ukryty",
+  "🛡️ Mode shown":
+    "🛡️ Tryb pokazany",
 });

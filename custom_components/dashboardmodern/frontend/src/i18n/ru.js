@@ -1532,4 +1532,14 @@ export default Object.freeze({
   "Choose brand": "Выберите марку",
   cleaning: "убирают",
   "lowest charge": "самый низкий заряд",
+  "Modes to show":
+    "Показываемые режимы",
+  "Only the modes the panel actually accepts are listed. Removing one hides it from the section and changes nothing about what the panel can do; disarm always stays.":
+    "Здесь только те режимы, которые панель действительно принимает. Убрать один — значит скрыть его в разделе; на возможности панели это не влияет, а снятие с охраны остаётся всегда.",
+  "At least one mode has to stay":
+    "Хотя бы один режим должен остаться",
+  "🛡️ Mode hidden":
+    "🛡️ Режим скрыт",
+  "🛡️ Mode shown":
+    "🛡️ Режим показан",
 });

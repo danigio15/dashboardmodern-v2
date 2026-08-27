@@ -1538,4 +1538,14 @@ export default Object.freeze({
   "Choose brand": "Kies het merk",
   cleaning: "aan het stofzuigen",
   "lowest charge": "laagste lading",
+  "Modes to show":
+    "Te tonen standen",
+  "Only the modes the panel actually accepts are listed. Removing one hides it from the section and changes nothing about what the panel can do; disarm always stays.":
+    "Alleen de standen die de centrale echt aanneemt staan hier. Er een weghalen verbergt hem in de sectie en verandert niets aan wat de centrale kan; uitschakelen blijft altijd staan.",
+  "At least one mode has to stay":
+    "Er moet minstens één stand blijven",
+  "🛡️ Mode hidden":
+    "🛡️ Stand verborgen",
+  "🛡️ Mode shown":
+    "🛡️ Stand getoond",
 });

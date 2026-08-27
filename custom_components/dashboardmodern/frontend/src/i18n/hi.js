@@ -1524,4 +1524,14 @@ export default Object.freeze({
   "Choose brand": "ब्रांड चुनें",
   cleaning: "सफ़ाई कर रहे हैं",
   "lowest charge": "सबसे कम चार्ज",
+  "Modes to show":
+    "दिखाए जाने वाले मोड",
+  "Only the modes the panel actually accepts are listed. Removing one hides it from the section and changes nothing about what the panel can do; disarm always stays.":
+    "यहाँ केवल वही मोड हैं जिन्हें पैनल सचमुच स्वीकार करता है। किसी एक को हटाने पर वह अनुभाग में छिप जाता है और पैनल की क्षमता कुछ नहीं बदलती; निष्क्रिय करना हमेशा बना रहता है।",
+  "At least one mode has to stay":
+    "कम से कम एक मोड रहना चाहिए",
+  "🛡️ Mode hidden":
+    "🛡️ मोड छिपाया गया",
+  "🛡️ Mode shown":
+    "🛡️ मोड दिखाया गया",
 });

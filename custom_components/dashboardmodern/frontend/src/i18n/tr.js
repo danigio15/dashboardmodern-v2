@@ -1527,4 +1527,14 @@ export default Object.freeze({
   "Choose brand": "Marka seçin",
   cleaning: "temizliyor",
   "lowest charge": "en düşük şarj",
+  "Modes to show":
+    "Gösterilecek kipler",
+  "Only the modes the panel actually accepts are listed. Removing one hides it from the section and changes nothing about what the panel can do; disarm always stays.":
+    "Burada yalnızca panelin gerçekten kabul ettiği kipler var. Birini kaldırmak onu bölümden gizler, panelin yapabildiklerini değiştirmez; devre dışı bırakma her zaman kalır.",
+  "At least one mode has to stay":
+    "En az bir kip kalmalı",
+  "🛡️ Mode hidden":
+    "🛡️ Kip gizlendi",
+  "🛡️ Mode shown":
+    "🛡️ Kip gösterildi",
 });

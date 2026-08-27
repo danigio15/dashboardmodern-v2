@@ -1503,4 +1503,14 @@ export default Object.freeze({
   "Choose brand": "选择品牌",
   cleaning: "清扫中",
   "lowest charge": "最低电量",
+  "Modes to show":
+    "要显示的模式",
+  "Only the modes the panel actually accepts are listed. Removing one hides it from the section and changes nothing about what the panel can do; disarm always stays.":
+    "这里只列出主机真正接受的模式。去掉一个只是让它在此板块中隐藏，主机能做的事不会改变；撤防始终保留。",
+  "At least one mode has to stay":
+    "至少要留下一个模式",
+  "🛡️ Mode hidden":
+    "🛡️ 已隐藏该模式",
+  "🛡️ Mode shown":
+    "🛡️ 已显示该模式",
 });

@@ -5,6 +5,67 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.1
+
+### Corretto
+
+- **Nella barra Home e Stanze avevano la stessa icona.** Due case affiancate
+  sono due voci che non si distinguono al volo. Stanze porta la porta — la
+  stessa che ha già in configurazione.
+
+- **Le icone delle stanze uscivano scritte invece che disegnate.** Nelle
+  linguette della pagina Stanze si leggeva «MDI:SOFA» sopra il nome: le stanze
+  la loro icona la tengono in quel formato, e lì la si stampava così com'era.
+  Adesso si traduce nel simbolo, lo stesso che il resto della plancia disegna
+  per quella stanza.
+
+- **Nelle tessere del Colpo d'occhio la didascalia era tagliata a metà.** Stava
+  affiancata al nome della sezione, e su un telefono il nome si prende quasi
+  tutta la tessera: della didascalia restava una coda che scorreva senza mai
+  leggersi — «idità 61%», «tra Bagno Pic». Adesso ha una riga tutta sua.
+
+- **La tessera delle telecamere lampeggiava di nero a ogni aggiornamento.** Si
+  dichiarava «in caricamento» a ogni giro, e un'immagine non pronta ha opacità
+  zero sopra un fondo quasi nero. Il fotogramma di prima adesso resta a schermo
+  finché non arriva quello nuovo.
+
+- **Scegliere una vista dell'Energia spegneva la linguetta dell'impianto.** Una
+  classe sola la portano le viste, gli impianti e le stanze degli
+  elettrodomestici: spegnendole tutte si spegneva anche l'impianto scelto, e non
+  si vedeva più su quale casa si stesse guardando.
+
+- **Il telefono gonfiava da solo i caratteri.** Android ingrandisce il testo
+  dentro i contenitori che scorrono in orizzontale: è per questo che il font
+  delle linguette delle stanze in Temperature tornava «sballato» ogni volta che
+  lo si rimpiccioliva. Adesso le misure scritte valgono quelle che sono.
+
+- **In configurazione la tendina delle stanze mangiava il nome dell'entità.**
+  Dichiarata come elemento flessibile, il browser di Android le disegnava le
+  opzioni come testo in fila: nel MiniPC la riga diventava l'elenco delle stanze
+  appiccicato al nome. E dove la tendina si disegnava bene, era comunque in fila
+  col nome e con l'interruttore dei widget, su un telefono largo un dito: adesso
+  il nome tiene una riga sua e i due comandi vanno sotto.
+
+- **Il ritratto delle persone ballava, e la faccia stava ferma.** Un respiro in
+  CSS alzava e abbassava tutta la tela, mentre chi è in casa — cioè quasi
+  sempre tutti — portava l'unica espressione che non batteva le ciglia. Adesso
+  il riquadro sta fermo e le ciglia battono in ogni espressione.
+
+### Aggiunto
+
+- **Si sceglie quali modalità dell'antifurto vedere.** La centrale dice cosa
+  accetta; quello che serve davvero lo dice chi la usa. Una Ring accetta cinque
+  inserimenti, e chi in vacanza non ci va mai si ritrovava due tasti che non
+  premerà mai davanti a quello che usa ogni sera. In configurazione, sotto
+  Antifurto, la fila si spunta: ci sono solo le modalità che la centrale accetta
+  davvero, toglierne una la nasconde e non cambia niente di quello che la
+  centrale sa fare, e lo sblocco resta sempre.
+
+- **Le linguette della configurazione stanno in colonna.** Erano diciassette
+  voci in una fila che scorreva in orizzontale, tre visibili per volta: per
+  arrivare a Stanze si trascinava al buio. Adesso si vedono tutte una sotto
+  l'altra e il corpo della scheda si apre accanto invece che sotto.
+
 ## 1.3.0
 
 ### Aggiunto

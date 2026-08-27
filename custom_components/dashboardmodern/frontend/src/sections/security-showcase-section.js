@@ -30,9 +30,11 @@
  */
 import {
   ALARM_DISARM,
+  ALARM_MODE_CHOICE_KEY,
   alarmActiveMode,
   alarmCodeNeeded,
   alarmModes,
+  alarmVisibleModes,
 } from "../core/alarm-panel.js";
 import {
   activeLocale,
@@ -167,8 +169,14 @@ function alarmStateObject() {
 /* La fila dei tasti: uno per ogni inserimento che la centrale accetta davvero,
  * piu' lo sblocco. Un tasto che chiama un servizio che la centrale non ha e'
  * un tasto che non fa niente — e non deve stare li'. */
+/* I tasti scelti: quelli che la centrale accetta, meno quelli che si e' detto
+ * di non voler vedere. La scelta sta in configurazione, sotto Antifurto. */
+function modiVisibili(stateObj = alarmStateObject()) {
+  return alarmVisibleModes(stateObj, readJson(ALARM_MODE_CHOICE_KEY, []));
+}
+
 function modeRow(labels, stateObj = alarmStateObject()) {
-  return alarmModes(stateObj)
+  return modiVisibili(stateObj)
     .map((voce) => {
       const testi = labels.modes[voce.mode] || labels.modes[ALARM_DISARM.mode];
       return modeButton({ ...voce, label: testi.label, hint: testi.hint });
@@ -180,7 +188,7 @@ function modeRow(labels, stateObj = alarmStateObject()) {
  * ogni evento di stato — riscriverla sempre spegnerebbe l'animazione del tasto
  * acceso due volte al secondo. */
 function modeSignature(stateObj) {
-  return alarmModes(stateObj)
+  return modiVisibili(stateObj)
     .map((voce) => voce.mode)
     .join(",");
 }
@@ -451,9 +459,13 @@ function publishAlarmHelpers() {
   root.dmAlarmActiveMode = (state) =>
     alarmActiveMode(
       state,
-      alarmModes(alarmStateObject()).map((voce) => voce.mode),
+      modiVisibili().map((voce) => voce.mode),
     );
-  root.dmAlarmModes = () => alarmModes(alarmStateObject()).map((voce) => voce.mode);
+  root.dmAlarmModes = () => modiVisibili().map((voce) => voce.mode);
+  /* Quelle che la centrale ACCETTA, scelta o non scelta: e' l'elenco che la
+   * configurazione deve poter spuntare. */
+  root.dmAlarmSupportedModes = () =>
+    alarmModes(alarmStateObject()).map((voce) => voce.mode);
 }
 
 export function installSecurityShowcaseSection() {

@@ -128,10 +128,15 @@ export const ESPRESSIONI = Object.freeze({
   /* Occhi aperti: si batte e basta. */
   sveglio: { chiusura: 0, curva: 0, battito: true },
   /* Occhi socchiusi all'insu': e' la faccia di chi e' contento. */
-  contento: { chiusura: 0.52, curva: 0.42, battito: false },
+  contento: { chiusura: 0.52, curva: 0.42, battito: true },
   /* Palpebre pesanti, che respirano piano. */
-  assonnato: { chiusura: 0.6, curva: 0.05, battito: false },
+  assonnato: { chiusura: 0.6, curva: 0.05, battito: true },
 });
+
+/* Chi e' in casa porta la faccia contenta, ed era l'unica a non battere le
+ * ciglia: in una plancia di persone tutte a casa non si muoveva un occhio, e
+ * l'unica cosa viva restava il ritratto che ballava su e giu'. Adesso battono
+ * tutte — chi socchiude gli occhi li chiude un po' meno, ma li chiude. */
 
 /* ── La tela viva ─────────────────────────────────────────────────────── */
 
@@ -220,19 +225,13 @@ export function installAvatar3dStyle() {
     "dm-avatar-3d-style",
     `
       .dm-avatar-3d{width:100%;height:100%;display:block;object-fit:contain}
-      /* Il respiro: lo fa il compositore, non il filo principale. Ogni
-       * persona parte da un punto diverso del ciclo, cosi' in una fila di
-       * card non respirano all'unisono. */
-      .dm-avatar-3d{animation:dmAvatarRespiro 5.4s ease-in-out infinite;transform-origin:50% 92%}
-      .dm-person-card:nth-child(2n) .dm-avatar-3d{animation-delay:-1.5s}
-      .dm-person-card:nth-child(3n) .dm-avatar-3d{animation-delay:-3s}
-      .dm-person-card:nth-child(4n) .dm-avatar-3d{animation-delay:-4.3s}
-      @keyframes dmAvatarRespiro{
-        0%,100%{transform:translateY(0) scale(1) rotate(0deg)}
-        32%{transform:translateY(-2px) scale(1.02) rotate(-1deg)}
-        66%{transform:translateY(-.8px) scale(1.01) rotate(.9deg)}
-      }
-      @media(prefers-reduced-motion:reduce){.dm-avatar-3d{animation:none}}
+      /* Il ritratto sta fermo.
+       *
+       * Qui c'era un respiro in CSS che alzava e abbassava la tela: da dentro
+       * la card si vedeva la persona ballare su e giu', e la faccia — che e'
+       * dove la vita si guarda — restava di pietra. La vita adesso e' tutta
+       * nelle ciglia, che si battono sulla tela; il riquadro non si muove. */
+      .dm-avatar-3d{animation:none;transform:none}
     `,
   );
 }

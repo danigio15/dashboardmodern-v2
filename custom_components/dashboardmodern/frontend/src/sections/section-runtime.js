@@ -34,6 +34,7 @@ import { installAlertsSection } from "./alerts-section.js";
 import { installFloodAlertsSection } from "./flood-alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
+import { installAlarmModesEditorSection } from "./alarm-modes-editor-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installSecurityDoorsSection } from "./security-doors-section.js";
 import { installSecurityDoorsEditorSection } from "./security-doors-editor-section.js";
@@ -694,6 +695,9 @@ export function installSectionRuntime() {
      * la vetrina che costruisce lo scheletro in cui si inseriscono. */
     installSecurityDoorsSection();
     installSecurityDoorsEditorSection();
+    /* La scelta dei tasti dell'antifurto chiede alla vetrina quali la centrale
+     * accetta: si installa dopo di lei, che quella risposta la pubblica. */
+    installAlarmModesEditorSection();
     installClimateThermalSection();
     installLiveUiSection();
     installConnectionRecoverySection();

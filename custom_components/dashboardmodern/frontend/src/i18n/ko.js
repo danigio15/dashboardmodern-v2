@@ -1523,4 +1523,14 @@ export default Object.freeze({
   "Choose brand": "브랜드 선택",
   cleaning: "청소 중",
   "lowest charge": "가장 낮은 충전량",
+  "Modes to show":
+    "표시할 모드",
+  "Only the modes the panel actually accepts are listed. Removing one hides it from the section and changes nothing about what the panel can do; disarm always stays.":
+    "패널이 실제로 받아들이는 모드만 나옵니다. 하나를 빼면 섹션에서 숨겨질 뿐 패널이 할 수 있는 일은 달라지지 않으며, 해제는 언제나 남습니다.",
+  "At least one mode has to stay":
+    "모드는 최소한 하나는 남아야 합니다",
+  "🛡️ Mode hidden":
+    "🛡️ 모드를 숨겼습니다",
+  "🛡️ Mode shown":
+    "🛡️ 모드를 표시했습니다",
 });
