@@ -485,6 +485,11 @@ export function normalizeDevice(input = {}, section, context = {}) {
       remaining_entity: input.remaining_entity || input.remaining_time_entity || "",
       cycle_duration_entity: input.cycle_duration_entity || "",
       temperature_entity: input.temperature_entity || input.temp_entity || "",
+      /* Un frigorifero smart ne pubblica cinque, di temperature: ambiente,
+       * obiettivo e attuale del frigo, obiettivo e attuale del congelatore.
+       * Due sono quelle che si guardano, e con una casella sola se ne poteva
+       * dire una. */
+      temperature_entity_2: input.temperature_entity_2 || input.temp_entity_2 || "",
       alert_entity: input.alert_entity || input.problem_entity || "",
       last_start_entity: input.last_start_entity || input.start_time_entity || "",
       last_duration_entity: input.last_duration_entity || "",

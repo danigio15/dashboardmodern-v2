@@ -34,6 +34,8 @@ import { installAlertsSection } from "./alerts-section.js";
 import { installFloodAlertsSection } from "./flood-alerts-section.js";
 import { installLiveUiSection } from "./live-ui-section.js";
 import { installConnectionRecoverySection } from "./connection-recovery-section.js";
+import { installAlarmModesEditorSection } from "./alarm-modes-editor-section.js";
+import { installQuickClimateEditorSection } from "./quick-climate-editor-section.js";
 import { installSecurityShowcaseSection } from "./security-showcase-section.js";
 import { installSecurityDoorsSection } from "./security-doors-section.js";
 import { installSecurityDoorsEditorSection } from "./security-doors-editor-section.js";
@@ -47,6 +49,7 @@ import { installEditorContractsSection } from "./editor-contracts-section.js";
 import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
 import { installPageMastheadSection } from "./page-masthead-section.js";
+import { installWeatherInMasthead } from "./weather-in-masthead-section.js";
 import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installClimatePowerSection } from "./climate-power-section.js";
 import { installShutterSkySection } from "./shutter-sky-section.js";
@@ -58,6 +61,7 @@ import { installRobotSection } from "./robot-section.js";
 import { installEnergyPlantsSection } from "./energy-plants-section.js";
 import { installRoomAssignSection } from "./room-assign-section.js";
 import { installRoomsPageSection } from "./rooms-page-section.js";
+import { installRoomsOrderEditor } from "./rooms-order-editor-section.js";
 import { installRobotEditorSection } from "./robot-editor-section.js";
 import { installEditorEntrySection } from "./editor-entry-section.js";
 import { installEvSection } from "./ev-section.js";
@@ -694,7 +698,13 @@ export function installSectionRuntime() {
      * la vetrina che costruisce lo scheletro in cui si inseriscono. */
     installSecurityDoorsSection();
     installSecurityDoorsEditorSection();
+    /* La scelta dei tasti dell'antifurto chiede alla vetrina quali la centrale
+     * accetta: si installa dopo di lei, che quella risposta la pubblica. */
+    installAlarmModesEditorSection();
     installClimateThermalSection();
+    /* I parametri del tasto Clima rapido chiedono alle unita' cosa accettano:
+     * si installano dopo chi quelle unita' le tiene. */
+    installQuickClimateEditorSection();
     installLiveUiSection();
     installConnectionRecoverySection();
     installNavigationSection();
@@ -717,6 +727,10 @@ export function installSectionRuntime() {
     installClimatePowerSection();
     installShutterSkySection();
     installPageMastheadSection();
+    /* Il meteo si accoda al nome della casa nell'intestazione: si installa
+     * dopo le intestazioni di pagina, che dell'intestazione della plancia non
+     * si occupano, ma e' li' che si va a cercarle. */
+    installWeatherInMasthead();
     installPoolIrrigationSceneSection();
     installPoolExtraSection();
     installPoolEditorSection();
@@ -725,6 +739,9 @@ export function installSectionRuntime() {
     /* Le Stanze leggono le assegnazioni di tutte le altre sezioni e
      * riusano la card della pagina Luci: si installano dopo di lei. */
     installRoomsPageSection();
+    /* L'ordine delle stanze si cambia in configurazione: le frecce si
+     * appoggiano alle righe che disegna il documento vendorizzato. */
+    installRoomsOrderEditor();
     /* L'assegnatore va dopo la pagina Stanze: le chiede quali entita' una
      * stanza ce l'hanno gia' per mestiere, e su quelle non mette niente. */
     installRoomAssignSection();

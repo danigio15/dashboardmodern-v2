@@ -1,4 +1,5 @@
 {
+  "URL remoto (opzionale, es. https://xxxx.ui.nabu.casa)": "Optional remote URL (e.g. https://xxxx.ui.nabu.casa)",
   "_comment": [
     "Text the vendored English shell paints that is not the English pivot.",
     "",

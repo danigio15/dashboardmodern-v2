@@ -11,7 +11,7 @@ import {
   relayCoverCommands,
 } from "../core/cover-kind.js";
 import { contactEntity, isWindowOnly, windowOpenFromState } from "../core/shutter-window.js";
-import { allStates, clean, doc, esc, installStyle, root, t } from "./shared.js";
+import { allStates, clean, doc, esc, installStyle, root, roomLabel, t } from "./shared.js";
 
 // Single paint owner for the Tapparelle page.
 //
@@ -93,7 +93,7 @@ function coverView(item = {}, distingui = false) {
   const features = Number(current?.attributes?.supported_features) || 0;
   const grab = state.grabbed.get(entity);
   const position = grab ? grab.position : hasPosition ? reported : status === "open" ? 100 : status === "closed" ? 0 : 50;
-  const room = clean(item.room);
+  const room = roomLabel(clean(item.room));
   return {
     entity,
     kind: coverKind(item, current),
@@ -138,7 +138,7 @@ function windowOnlyView(item = {}) {
   const contatto = clean(contactEntity(item));
   if (!contatto) return null;
   const aperta = windowOpenFromState(allStates()[contatto]?.state);
-  const room = clean(item.room);
+  const room = roomLabel(clean(item.room));
   return {
     entity: contatto,
     soloInfisso: true,

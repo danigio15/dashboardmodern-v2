@@ -302,6 +302,16 @@ function pressTabSaves(body) {
     } catch (_error) {}
     return 0;
   }
+  /* I bottoni si prendono una volta sola, e si premono cosi' come sono.
+   *
+   * Ci ho provato a ricercarli fra un tocco e l'altro — parecchie schede, dopo
+   * aver salvato una riga, si ridisegnano e staccano dal documento i bottoni
+   * non ancora premuti — ma quel giro preme davvero ogni salvataggio, e le
+   * schede con piu' pannelli non sono fatte per riceverli tutti: la scheda
+   * Piscina ne usciva con una vasca che non era quella aggiunta. Il salvataggio
+   * di una riga che deve valere per tutte se lo prende in carico chi quella
+   * riga la disegna, leggendole tutte prima di scrivere: e' cosi' che lo fanno
+   * le Persone. Qui si resta al gesto semplice. */
   let pressed = 0;
   for (const button of buttons) {
     try {

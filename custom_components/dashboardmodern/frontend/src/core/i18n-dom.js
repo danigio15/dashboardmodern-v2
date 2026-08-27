@@ -16,7 +16,15 @@
 import { DEFAULT_LOCALE, SOURCE_LOCALE, getLocale, onLocaleChange, translate } from "./i18n.js";
 import { pivotKey } from "../i18n/source-index.js";
 
-/** Nodes whose text is markup, code or user input rather than UI copy. */
+/*
+ * Nodes whose *text* is markup, code or user input rather than UI copy.
+ *
+ * Their attributes are a different matter. A `<textarea>` holds what a person
+ * typed and must never be rewritten — but its `placeholder` is copy like any
+ * other, and skipping the element wholesale left the setup wizard telling a
+ * French user to "Paste your token here" with the translation sitting unused
+ * in the catalog. So these reject their contents and keep their labels.
+ */
 const SKIPPED_TAGS = new Set([
   "SCRIPT",
   "STYLE",
@@ -42,6 +50,25 @@ export const OPT_OUT_ATTRIBUTE = "data-dm-no-i18n";
 const originalText = new WeakMap();
 const originalAttributes = new WeakMap();
 
+/*
+ * The decoration a node carries in front of its words.
+ *
+ * The runtime prints its own copy and then dresses it: the appliance page paints
+ * `🧺 No appliance configured…`, a KPI paints `· Instant power`, a numbered step
+ * paints `1. Open HA…`. The catalog is keyed on the sentence, so the whole node
+ * matches nothing and stays English while the same sentence, printed bare
+ * somewhere else, translates. Peeling what is not a word off both ends and
+ * putting it back afterwards costs one extra lookup and closes that gap.
+ *
+ * Only leading and trailing runs, never anything inside: a string is either a
+ * decorated key or it is not, and cutting a sentence apart to find one would
+ * translate half of it. The front comes off first and on its own, because a
+ * sentence ends in a full stop that belongs to it: taking both ends at once
+ * turns `🧺 No appliance configured.` into a key nobody ever wrote.
+ */
+const LEADING = /^([^\p{L}\p{N}]+)([\s\S]+)$/u;
+const TRAILING = /^([\s\S]+?)([^\p{L}\p{N}]+)$/u;
+
 /**
  * Resolve any source string to its translation.
  * Text already in English is looked up directly; Italian text is mapped onto
@@ -50,6 +77,30 @@ const originalAttributes = new WeakMap();
 export function translateSource(text, locale = getLocale()) {
   const source = typeof text === "string" ? text : "";
   if (!source.trim()) return source;
+  const resolved = resolveWhole(source, locale);
+  if (resolved !== source) return resolved;
+
+  /* Front first: a sentence keeps its full stop, and peeling both ends at once
+   * would take it and leave a key nobody wrote. */
+  const front = LEADING.exec(source);
+  if (front) {
+    const inner = resolveWhole(front[2], locale);
+    if (inner !== front[2]) return `${front[1]}${inner}`;
+    const back = TRAILING.exec(front[2]);
+    if (back) {
+      const middle = resolveWhole(back[1], locale);
+      if (middle !== back[1]) return `${front[1]}${middle}${back[2]}`;
+    }
+  }
+  const back = TRAILING.exec(source);
+  if (back) {
+    const head = resolveWhole(back[1], locale);
+    if (head !== back[1]) return `${head}${back[2]}`;
+  }
+  return source;
+}
+
+function resolveWhole(source, locale) {
   if (locale === DEFAULT_LOCALE) {
     const key = pivotKey(source);
     return key || source;
@@ -61,11 +112,16 @@ export function translateSource(text, locale = getLocale()) {
   return key ? translate(key, locale) : source;
 }
 
+const optedOut = (node) =>
+  node.hasAttribute?.(OPT_OUT_ATTRIBUTE) || node.getAttribute?.("translate") === "no";
+
+const carriesLabel = (element) =>
+  TRANSLATABLE_ATTRIBUTES.some((name) => element.hasAttribute?.(name));
+
 function skipped(element) {
   for (let node = element; node; node = node.parentElement) {
     if (SKIPPED_TAGS.has(node.tagName)) return true;
-    if (node.hasAttribute?.(OPT_OUT_ATTRIBUTE)) return true;
-    if (node.getAttribute?.("translate") === "no") return true;
+    if (optedOut(node)) return true;
   }
   return false;
 }
@@ -132,18 +188,19 @@ export function translateTree(rootNode, locale = getLocale()) {
     {
       acceptNode(node) {
         if (node.nodeType === 1) {
-          if (
-            SKIPPED_TAGS.has(node.tagName) ||
-            node.hasAttribute?.(OPT_OUT_ATTRIBUTE) ||
-            node.getAttribute?.("translate") === "no"
-          ) {
-            return view.NodeFilter.FILTER_REJECT;
-          }
+          if (optedOut(node)) return view.NodeFilter.FILTER_REJECT;
+          /* Its text is not copy, but its label is: come in for the attributes
+           * and let the text-node branch below turn back at the door. */
+          if (SKIPPED_TAGS.has(node.tagName))
+            return carriesLabel(node)
+              ? view.NodeFilter.FILTER_ACCEPT
+              : view.NodeFilter.FILTER_REJECT;
           return view.NodeFilter.FILTER_ACCEPT;
         }
-        return node.nodeValue && node.nodeValue.trim()
-          ? view.NodeFilter.FILTER_ACCEPT
-          : view.NodeFilter.FILTER_REJECT;
+        if (!node.nodeValue || !node.nodeValue.trim()) return view.NodeFilter.FILTER_REJECT;
+        return skipped(node.parentElement)
+          ? view.NodeFilter.FILTER_REJECT
+          : view.NodeFilter.FILTER_ACCEPT;
       },
     },
   );
@@ -179,7 +236,31 @@ const RENDER_EVENTS = Object.freeze([
   "dashboardmodern:state-changed",
   "dashboardmodern:status",
   "dashboardmodern:temperature-editor-rendered",
+  /*
+   * Boot draws things nothing else announces.
+   *
+   * The legacy runtime paints the "your dashboard is almost ready" banner and
+   * the setup wizard while it comes up, before a single Home Assistant state
+   * has arrived and before anyone has touched anything — so the events above
+   * never fire, and the first pass has already run against an emptier page.
+   * The keys were in the catalog and the banner still read English: the only
+   * thing missing was a reason to look again.
+   */
+  "dashboardmodern:legacy-ready",
+  "dashboardmodern:states-ready",
+  "pageshow",
 ]);
+
+/*
+ * And once more when the page has settled.
+ *
+ * Some of that boot painting is announced by nothing at all — a wizard step
+ * writing its own placeholder, a card the runtime fills on a timer. A short
+ * tail of passes after load costs three walks of a page that is already
+ * finished, and is the difference between a first run in the user's language
+ * and a first run in English.
+ */
+const SETTLING_DELAYS = Object.freeze([250, 1000, 3000]);
 
 let scheduledRoot = null;
 let frameHandle = null;
@@ -229,6 +310,11 @@ export function observeTranslations(rootNode = globalThis.document?.body) {
     document?.addEventListener?.(name, onRender, { capture: true, passive: true });
     listeners.push(() => document?.removeEventListener?.(name, onRender, { capture: true }));
   }
+  for (const delay of SETTLING_DELAYS) {
+    const handle = view.setTimeout?.(() => scheduleTranslation(rootNode), delay);
+    if (handle !== undefined) listeners.push(() => view.clearTimeout?.(handle));
+  }
+
   const unsubscribe = onLocaleChange(() => {
     if (scheduledRoot) translateTree(scheduledRoot, getLocale());
   });

@@ -176,7 +176,7 @@ function avvisiMarkup() {
   }
   if (!markup) return "";
   return `<div class="ed-sec-title dm-widget-ed-sep">🔔 ${esc(
-    t("Avvisi in primo piano", "Alerts at a glance"),
+    t("Widget di avviso", "Alert widgets"),
   )}</div>${markup}`;
 }
 

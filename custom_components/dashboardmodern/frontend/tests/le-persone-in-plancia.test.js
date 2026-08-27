@@ -65,7 +65,14 @@ test("il ritratto vive sulla card: si compone, respira e sbatte le ciglia", () =
   assert.match(sezione, /contento/);
 
   const disegno = leggi("sections/person-avatar-section.js");
-  assert.match(disegno, /dmAvatarRespiro/, "il respiro e' CSS: lo fa il compositore");
+  /* Il riquadro sta fermo: il respiro in CSS alzava e abbassava la tela, e da
+   * dentro la card si vedeva la persona ballare. La vita e' nelle ciglia. */
+  assert.doesNotMatch(disegno, /dmAvatarRespiro|translateY/,
+    "il ritratto non si sposta: quello che si muove e' la faccia");
+  /* E battono tutte le espressioni: quella contenta era l'unica ferma, ed e'
+   * quella che porta chi e' in casa — cioe' quasi sempre tutti. */
+  for (const brano of disegno.match(/battito: (?:true|false)/g) || [])
+    assert.equal(brano, "battito: true", "una faccia che non batte mai le ciglia e' una fotografia");
   assert.match(disegno, /requestAnimationFrame/, "il battito e' a fotogrammi, ma solo mentre dura");
   assert.match(disegno, /setTimeout/, "e fuori dal battito si dorme");
   assert.doesNotMatch(disegno, /setInterval/, "un ciclo che non si ferma mai su una plancia non ci sta");

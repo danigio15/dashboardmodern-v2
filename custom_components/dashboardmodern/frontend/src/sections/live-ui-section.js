@@ -147,8 +147,17 @@ export async function loadCameraFrame(camera, image, registry = state.cameraUrls
   }
 
   const url = cacheBusted(picture);
+  const stessaTelecamera = image.dataset.dmCameraEntity === camera.entity;
   image.dataset.dmCameraEntity = camera.entity;
-  image.dataset.dmCameraState = "loading";
+  /* Il fotogramma di prima resta a schermo finche' non arriva quello nuovo.
+   *
+   * Qui si dichiarava «loading» a ogni giro, e il foglio di stile porta a zero
+   * l'opacita' di un'immagine che non e' pronta: sopra un fondo quasi nero,
+   * ogni aggiornamento diventava un lampo di buio e poi l'immagine — «va in
+   * continuo refresh nero e poi immagine». Una telecamera che sta gia'
+   * mostrando qualcosa continua a mostrarlo mentre si scarica il seguito. */
+  if (!stessaTelecamera || image.dataset.dmCameraState !== "ready")
+    image.dataset.dmCameraState = "loading";
 
   // entity_picture normally carries its own camera token. Use the current
   // dashboard origin instead of the legacy HA_HTTP_URL so hosted/Nabu Casa

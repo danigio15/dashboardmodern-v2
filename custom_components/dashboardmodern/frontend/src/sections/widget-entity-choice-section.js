@@ -152,8 +152,13 @@ export function ensureEntityChoices() {
       attacca(slot, entities, fuori, (button) => {
         button.classList.add("dm-widget-entity-slot");
         const etichetta = slot.querySelector(".ed-slot-lbl");
-        if (etichetta) etichetta.append(button);
-        else slot.append(button);
+        if (etichetta) {
+          /* La stessa riga la divide con la tendina della stanza: chi la
+           * impagina e' uno solo — il modulo delle stanze — e qui ci si limita
+           * a dichiarare che la riga e' affollata. */
+          etichetta.classList.add("dm-slot-lbl-affollata");
+          etichetta.append(button);
+        } else slot.append(button);
       })
     )
       messi += 1;
@@ -249,6 +254,20 @@ function installStyles() {
       /* Su un telefono la colonna del nome e' larga un dito: l'interruttore
        * resta, il tassello no — il nome vale piu' del suo disegno, e cosa fa
        * la levetta lo dicono il titolo e l'etichetta per chi legge a voce. */
+      /* In una riga d'elenco il nome viene prima dell'interruttore.
+       *
+       * La riga e' una griglia a colonne: simbolo, testo, i tasti. Quello che
+       * avanza va al testo, e l'interruttore vive dentro quella colonna. Con
+       * la parola «NEL WIDGET» addosso ne occupava novantotto pixel su
+       * centosei, e del nome della stanza non restava niente da leggere — in
+       * Temperatura la riga diventava un'icona con due tasti e basta.
+       *
+       * Qui resta la sola levetta, che e' quello che si tocca. Cosa fa lo
+       * dicono il titolo del tasto e l'etichetta per chi legge a voce, che ci
+       * sono sempre: e' il nome della stanza a non avere nessun altro posto
+       * dove farsi leggere. */
+      #ed-body .ed-row .dm-widget-entity{max-width:100%;padding:3px 6px;gap:4px}
+      #ed-body .ed-row .dm-widget-entity b{display:none}
       @media(max-width:640px){
         #ed-body .dm-widget-entity{padding:3px 6px;gap:4px}
         #ed-body .dm-widget-entity>span{display:none}

@@ -231,7 +231,13 @@ test("beta13: Temperature has no orphan icon row and Irrigation keeps a usable m
     };
   });
   expect(irrigation).not.toBeNull();
-  expect(irrigation.bodyWidth).toBeGreaterThan(330);
+  /* Trecentoventi, non piu' trecentotrenta: le linguette della configurazione
+   * adesso stanno in colonna, e su un telefono tenuto in piedi quella colonna
+   * costa quarantasei pixel — solo simboli, il nome ricompare girando lo
+   * schermo. Il patto vero non e' il numero: e' che la riga dell'entita' resti
+   * comoda da leggere e da toccare, e quello lo dicono le tre misure qui
+   * sotto, che non si sono mosse. */
+  expect(irrigation.bodyWidth).toBeGreaterThan(320);
   expect(irrigation.inputWidth).toBeGreaterThan(220);
   expect(irrigation.ratio).toBeGreaterThan(0.55);
   expect(irrigation.inputHeight).toBeGreaterThanOrEqual(44);

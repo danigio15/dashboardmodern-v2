@@ -66,6 +66,10 @@ const copy = () => ({
   ),
   gridView: t("Vista griglia", "Grid view"),
   listView: t("Vista elenco", "List view"),
+  /* Il gruppo aveva per nome le due voci incollate — «Vista griglia / Vista
+   * elenco» — che e' una stringa che nessun catalogo ha e che quindi restava
+   * nella lingua del guscio. Ne ha una sua. */
+  viewToggle: t("Vista griglia o elenco", "Grid or list view"),
   overview: t("Panoramica", "Overview"),
   rooms: t("Stanze", "Rooms"),
   allRooms: t("Tutte le stanze", "All rooms"),
@@ -89,6 +93,8 @@ const copy = () => ({
   sortState: t("Stato", "State"),
   power: t("Potenza attuale", "Current power"),
   temperature: t("Temperatura", "Temperature"),
+  temperature1: t("Temperatura 1", "Temperature 1"),
+  temperature2: t("Temperatura 2", "Temperature 2"),
   left: t("RIMANENTI", "LEFT"),
   lastCycle: t("Ultimo ciclo", "Last cycle"),
   start: t("Avvio", "Start"),
@@ -296,17 +302,25 @@ function panelMarkup(model, labels) {
   const ring = ringMarkup(model, labels);
   const temperature = model.temperature;
   const showPower =
-    !temperature ||
+    (!temperature && !model.temperature2) ||
     model.mode === "running" ||
     (finiteOrNull(model.watts) != null && model.watts >= 10);
   const meters = [];
-  if (temperature) {
-    const width = temperature.fraction == null ? 0 : Math.round(temperature.fraction * 100);
-    meters.push(`<div class="dm-ap-meter dm-ap-meter-temp">
-        <div class="dm-ap-meter-row"><span>${esc(labels.temperature)}</span><strong>${esc(temperature.label)}</strong></div>
+  /* Due strisce quando le temperature sono due: un frigorifero con dentro il
+   * congelatore e' due vani, e leggerne uno solo non dice come sta l'altro.
+   * Con una sola, l'etichetta resta quella di sempre. */
+  const strisciaTemperatura = (lettura, etichetta) => {
+    const width = lettura.fraction == null ? 0 : Math.round(lettura.fraction * 100);
+    return `<div class="dm-ap-meter dm-ap-meter-temp">
+        <div class="dm-ap-meter-row"><span>${esc(etichetta)}</span><strong>${esc(lettura.label)}</strong></div>
         <div class="dm-ap-bar cold"><span class="dm-ap-bar-ic">${ICONS.snow}</span><i style="width:${width}%"></i></div>
-      </div>`);
-  }
+      </div>`;
+  };
+  if (temperature)
+    meters.push(
+      strisciaTemperatura(temperature, model.temperature2 ? labels.temperature1 : labels.temperature),
+    );
+  if (model.temperature2) meters.push(strisciaTemperatura(model.temperature2, labels.temperature2));
   if (showPower) {
     const width = Math.round((model.power?.fraction || 0) * 100);
     meters.push(`<div class="dm-ap-meter">
@@ -475,7 +489,7 @@ function skeletonMarkup(labels) {
         </div>
       </div>
       <div class="dm-appl-head-actions">
-        <div class="dm-appl-viewtoggle" role="group" aria-label="${esc(labels.gridView)} / ${esc(labels.listView)}">
+        <div class="dm-appl-viewtoggle" role="group" aria-label="${esc(labels.viewToggle)}">
           <button type="button" data-dm-view="grid" class="${state.ui.view === "grid" ? "active" : ""}" aria-label="${esc(labels.gridView)}">${ICONS.grid}</button>
           <button type="button" data-dm-view="list" class="${state.ui.view === "list" ? "active" : ""}" aria-label="${esc(labels.listView)}">${ICONS.list}</button>
         </div>

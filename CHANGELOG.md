@@ -5,6 +5,326 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.1
+
+### Corretto
+
+- **La scelta delle modalita' dell'antifurto e il tasto Clima rapido non
+  viaggiavano.** Sono due preferenze nuove di questa versione, e nessuna delle
+  due era nell'elenco delle caselle che la configurazione si porta dietro: il
+  salvataggio partiva lo stesso ma senza il loro valore. Chi toglieva «Vacanza»
+  dal telefono se la ritrovava sul computer, e dal backup non usciva niente.
+
+- **Nascondendo la modalita' con cui l'allarme era inserito si accendeva
+  «Fuori».** Il ripiego sul tasto generico serve alle centrali che un
+  inserimento non lo dichiarano: la casa e' inserita, il tasto giusto non
+  esiste, e accenderne uno e' meglio di niente. Per un tasto tolto a mano non
+  vale: il tasto giusto la centrale ce l'ha, e' chi guarda che ha scelto di non
+  vederlo, e accendere «Fuori» voleva dire dire che la casa era inserita fuori
+  mentre era inserita in casa. Adesso in quel caso non si accende nessuno.
+
+- **Cambiando centrale non si riusciva piu' a nascondere una modalita'.** La
+  casella tiene quello che si e' tolto nel tempo, e una centrale sostituita si
+  porta dietro nomi che oggi non vuol dire piu' niente. Contandoli si arrivava
+  al limite di «almeno una deve restare» con due modalita' ancora in fila.
+  Adesso a contare sono solo quelle che la centrale accetta adesso.
+
+- **Le parole del meteo in testata tornavano nella lingua del guscio.** La
+  fascia nuova avvolge «💧 Umidità» e «💨 Vento» in un guscio per poterle
+  nascondere sul telefono, e le tagliava prima che la traduzione le vedesse: la
+  chiave del catalogo e' la frase intera, icona compresa, e due pezzi separati
+  non sono chiave di niente. Un francese leggeva «Vento» — lingua sbagliata due
+  volte, perche' anche la build inglese la scrive cosi'. Ora si traduce prima e
+  si taglia dopo, e la parola si rifa' da sola quando il catalogo arriva.
+
+- **La procedura guidata chiedeva il token in inglese.** Il campo e' una
+  `textarea`, e il passaggio di traduzione le saltava per intero — giustamente
+  per quello che ci si scrive dentro, che e' roba di chi la usa, ma insieme al
+  contenuto saltava anche il segnaposto, che invece e' testo nostro. La
+  traduzione c'era in tutti e tredici i cataloghi e non arrivava a schermo.
+
+- **Il gruppo dei tasti griglia/elenco aveva per nome due voci incollate.**
+  «Vista griglia / Vista elenco» non e' una stringa che qualcuno abbia scritto,
+  quindi nessun catalogo la conosceva e chi si fa leggere la pagina la sentiva
+  in inglese. Ne ha una sua.
+
+- **La procedura di primo avvio, gli editor e i loro messaggi erano in inglese
+  in tutte le lingue.** Quattrocento stringhe visibili — la connessione a Home
+  Assistant, la scelta delle luci, gli editor di elettrodomestici, avvisi e
+  telecamere, ogni messaggio che sollevano — vivono nel runtime vendorizzato, e
+  il vocabolario della plancia non l'aveva mai letto. Adesso lo legge: sono
+  tradotte in tutte e tredici le lingue.
+
+- **Anche chi sceglieva inglese leggeva italiano.** La build inglese del runtime
+  e' stata tradotta a forza di sostituzioni e la passata non e' mai finita:
+  «Potenza batteria (W)» ne era uscita «Power batteria (W)», e restavano
+  «Riconnessione...», «Nome stanza (es. Salone)», «Crea token» scritto
+  «Createte token». Trentasei stringhe rimesse a posto, senza toccare un file
+  vendorizzato che tornerebbe alla prossima sincronizzazione.
+
+- **Il cartello di benvenuto e la procedura guidata restavano in inglese anche
+  quando la traduzione c'era.** Vengono disegnati all'avvio, prima che arrivi
+  qualsiasi stato da Home Assistant: la passata di traduzione non aveva motivo
+  di guardarli. Ora guarda anche all'avvio e mentre la pagina si assesta.
+
+- **Il testo con una decorazione davanti non si traduceva.** «🧺 Nessun
+  elettrodomestico configurato» e «· Potenza istantanea» sono la stessa frase
+  del catalogo con un'icona o un punto davanti: adesso la decorazione si toglie,
+  si cerca la frase e si rimette dov'era.
+
+- **Nella barra Home e Stanze avevano la stessa icona.** Due case affiancate
+  sono due voci che non si distinguono al volo. Stanze porta la porta — la
+  stessa che ha già in configurazione.
+
+- **Le icone delle stanze uscivano scritte invece che disegnate.** Nelle
+  linguette della pagina Stanze si leggeva «MDI:SOFA» sopra il nome: le stanze
+  la loro icona la tengono in quel formato, e lì la si stampava così com'era.
+  Adesso si traduce nel simbolo, lo stesso che il resto della plancia disegna
+  per quella stanza.
+
+- **Nelle tessere del Colpo d'occhio la didascalia era tagliata a metà.** Stava
+  affiancata al nome della sezione, e su un telefono il nome si prende quasi
+  tutta la tessera: della didascalia restava una coda che scorreva senza mai
+  leggersi — «idità 61%», «tra Bagno Pic». Adesso ha una riga tutta sua.
+
+- **La tessera delle telecamere lampeggiava di nero a ogni aggiornamento.** Si
+  dichiarava «in caricamento» a ogni giro, e un'immagine non pronta ha opacità
+  zero sopra un fondo quasi nero. Il fotogramma di prima adesso resta a schermo
+  finché non arriva quello nuovo.
+
+- **Scegliere una vista dell'Energia spegneva la linguetta dell'impianto.** Una
+  classe sola la portano le viste, gli impianti e le stanze degli
+  elettrodomestici: spegnendole tutte si spegneva anche l'impianto scelto, e non
+  si vedeva più su quale casa si stesse guardando.
+
+- **Il telefono gonfiava da solo i caratteri.** Android ingrandisce il testo
+  dentro i contenitori che scorrono in orizzontale: è per questo che il font
+  delle linguette delle stanze in Temperature tornava «sballato» ogni volta che
+  lo si rimpiccioliva. Adesso le misure scritte valgono quelle che sono.
+
+- **In configurazione la tendina delle stanze mangiava il nome dell'entità.**
+  Dichiarata come elemento flessibile, il browser di Android le disegnava le
+  opzioni come testo in fila: nel MiniPC la riga diventava l'elenco delle stanze
+  appiccicato al nome. E dove la tendina si disegnava bene, era comunque in fila
+  col nome e con l'interruttore dei widget, su un telefono largo un dito: adesso
+  il nome tiene una riga sua e i due comandi vanno sotto.
+
+- **La tessera Auto in Home mostrava una vettura sola.** Il riferimento della
+  batteria ne indica una: quella che «Usa» ha copiato nelle chiavi globali. È
+  giusto per la pagina EV, dove si guarda un'auto per volta, ed è sbagliato per
+  un colpo d'occhio sulla casa: chi ha due auto vedeva sempre e solo l'ultima
+  messa in uso, senza nessun modo di accorgersi che l'altra era a secco. Adesso
+  ogni vettura si legge dal suo profilo — la stessa mappatura che «Usa» copia —
+  e la tessera le nomina tutte: il numero grande è la più scarica, perché è
+  quella che chiede qualcosa. Con una vettura sola non cambia niente.
+
+- **I popup non erano belli, e ognuno a modo suo.** Ogni sezione apre la sua
+  finestra e tutte passano dallo stesso foglio, ma erano nate una alla volta e
+  si vedeva: un anello bianco cucito dentro il bordo, che sul tema scuro faceva
+  da taglio; un'entrata lunga mezzo secondo che le faceva galleggiare; e in
+  cima, un tasto di chiusura grande come una pastiglia di comando, che pesava
+  più del titolo. Adesso hanno una veste sola — angoli più misurati, un'ombra
+  che scende, un filo di colore sul bordo alto, l'intestazione ordinata e la
+  chiusura tornata un tondino — e chi ha chiesto meno movimento non lo riceve.
+  Non cambia cosa fa nessuna finestra: cambia come si presentano, e cambia per
+  tutte insieme. La stessa veste ce l'hanno anche le finestre delle tessere del
+  Colpo d'occhio, che non passano da quel foglio — le disegna il modulo dei
+  widget — e lì il filo di colore prende il colore della tessera da cui si è
+  arrivati: il popup è la tessera che si apre, non un'altra cosa.
+
+- **Il ritratto delle persone ballava, e la faccia stava ferma.** Un respiro in
+  CSS alzava e abbassava tutta la tela, mentre chi è in casa — cioè quasi
+  sempre tutti — portava l'unica espressione che non batteva le ciglia. Adesso
+  il riquadro sta fermo e le ciglia battono in ogni espressione.
+
+- **La finestra di una tessera lunga tagliava la lista.** Il Clima di una casa
+  con le valvole ha quindici o venti righe: la finestra si fermava all'altezza
+  dello schermo e le ultime restavano fuori, senza modo di arrivarci. A
+  scorrere adesso è la lista, con l'intestazione ferma in cima; la barretta di
+  scorrimento porta il colore della tessera, così una lista lunga si vede che è
+  lunga.
+
+- **Tapparelle: le finestre mostravano ROOM_MT8VPZ7M invece del nome della
+  stanza.** La tendina delle stanze salva l'id quando c'è — è l'unica cosa che
+  regge un rinominamento — ma chi disegna una card scriveva quello che
+  trovava. Adesso l'id torna il nome; una configurazione vecchia che salvava
+  il nome continua a funzionare, e una stanza cancellata resta scritta com'era.
+
+- **Il widget Sicurezza mostrava il portoncino ma non lo apriva.** La riga lo
+  disegnava e basta: nome, stato, e un lucchetto che diceva soltanto «questa
+  vuole il PIN». Adesso c'è il tasto, e porta lo stesso gesto dei tasti della
+  pagina Sicurezza: stessa conferma, stesso tastierino del PIN, stessa
+  chiamata. Non è una seconda mano che apre: è la stessa.
+
+- **Persone: si modificava solo la prima riga, le altre tornavano com'erano.**
+  Il tasto unico in fondo alla scheda preme i salvataggi delle righe uno dopo
+  l'altro, e il primo salvataggio ridisegna la scheda — è così che
+  l'intestazione prende il nome appena scritto. Il ridisegno riscriveva le
+  caselle delle righe seguenti con quello che c'era in memoria: quando
+  arrivava il loro turno non avevano più niente da dire. Adesso ogni
+  salvataggio legge tutte le righe prima di scrivere, così il ridisegno arriva
+  quando ognuna ha già detto la sua. Stessa cosa aprendo un'altra riga con la
+  matita: quello che si stava scrivendo non si perde più.
+
+- **Persone: l'avatar scelto perdeva contro la fototessera dell'entità.** La
+  card mette la fotografia davanti all'avatar, ed è giusto — una foto vera è
+  meglio di un'emoji. Ma la fotografia arriva anche da sola: Home Assistant e
+  i tracker se la portano dietro, e quella automatica stava davanti a una
+  scelta fatta a mano. Chi si costruiva la faccia pezzo per pezzo continuava a
+  vedere la fototessera del telefono. Adesso l'ordine è: la foto scritta a
+  mano, poi l'avatar se qualcuno l'ha scelto, poi quella dell'entità.
+
+- **La barra in basso era alta e quasi trasparente.** Con del contenuto sotto,
+  le scritte delle sezioni ci si perdevano dentro. Adesso il fondo è quasi
+  pieno e il vetro sfoca di più — quello che passa sotto si intuisce e non si
+  legge, che è il punto di un vetro smerigliato — e ogni voce costa dodici
+  pixel in meno: l'icona e il nome ci stanno lo stesso, il resto era aria.
+
+- **Auto: col cavo attaccato la foto non cambiava.** Le due foto — l'auto ferma
+  e l'auto in carica — c'erano e si potevano scegliere, ma la seconda arrivava
+  solo riaprendo la pagina. La sezione Auto si ridisegna quando cambia
+  un'entità che le interessa, e quali le interessino se lo chiedeva guardando
+  dentro i profili delle vetture; le caselle da cui si capisce se il cavo è
+  attaccato — stato di ricarica, sensore del cavo, potenza del wallbox — sono
+  invece canoniche, e chi ha una macchina sola le riempie nella mappatura
+  generale della plancia, non nella scheda dell'auto. Il wallbox che passava a
+  «in carica» non risvegliava nessuno. Adesso sì.
+
+- **A barra ferma la seconda fila di tessere non si riusciva a premere.** Da
+  computer la barra sta nascosta e si affaccia quando il puntatore le arriva
+  vicino: a chiamarla è un rettangolo invisibile che le sborda intorno, e che
+  sta sopra la pagina. Con la barra già ferma e alzata quella fascia cadeva
+  proprio sulla seconda fila delle tessere della Home. A barra ferma il
+  rettangolo non serve — la barra è già lì — e adesso non c'è.
+
+### Aggiunto
+
+- **Il tasto Clima rapido si configura.** Toccando una stanza nel popup Clima
+  della Home la plancia accendeva sempre in raffrescamento a 26°C con la
+  ventola automatica: tre numeri scritti nel codice. Va benissimo per chi quei
+  numeri li voleva; per tutti gli altri era un tasto che faceva una cosa che
+  non gli avevano chiesto, e l'unico modo di cambiarla era non usarlo. Adesso
+  modalità, temperatura e ventola si scelgono nella scheda Clima. Ci sono solo
+  le modalità che le unità configurate accettano davvero — una che il
+  condizionatore non ha è un tasto che non fa niente — e temperatura e ventola
+  si possono lasciare vuote: vuoto vuol dire che il tasto non le tocca, per chi
+  la temperatura la governa dal termostato. La scritta sotto al titolo del
+  popup dice quello che il tasto farà davvero, non un esempio.
+
+- **Si sceglie quali modalità dell'antifurto vedere.** La centrale dice cosa
+  accetta; quello che serve davvero lo dice chi la usa. Una Ring accetta cinque
+  inserimenti, e chi in vacanza non ci va mai si ritrovava due tasti che non
+  premerà mai davanti a quello che usa ogni sera. In configurazione, sotto
+  Antifurto, la fila si spunta: ci sono solo le modalità che la centrale accetta
+  davvero, toglierne una la nasconde e non cambia niente di quello che la
+  centrale sa fare, e lo sblocco resta sempre.
+
+- **Il meteo è passato nell'intestazione.** Era una card alta quanto un terzo
+  di uno schermo di telefono, e diceva quattro numeri. Adesso sta accanto al
+  nome della casa, nella fascia in alto: stessa temperatura, stesso cielo,
+  stessa icona, e umidità e vento uno accanto all'altro invece che incolonnati
+  all'estremità opposta. Si apre come prima. Quello che si guadagna è la prima
+  fila di tessere, che adesso si vede senza scorrere. Da telefono ci sta tutto
+  su una riga sola — nome della casa, meteo, stato e configurazione — perché
+  ogni pezzo dice la stessa cosa con meno: via il sottotitolo che ripeteva il
+  titolo, via il cielo a parole che l'icona dice già, e «Umidità» e «Vento» li
+  dicono la goccia e il soffio.
+
+- **Lo stato della connessione è un puntino, non una frase.** «Connesso»
+  accanto a un pallino verde era la stessa cosa detta due volte, e su un
+  telefono quella frase era la larghezza che mancava al meteo. La parola resta
+  scritta per chi la pagina se la fa leggere a voce: sparisce dalla vista, non
+  dal documento.
+
+- **Le finestre delle tessere aprono come aprono le pagine.** Il filo di tre
+  pixel sul bordo alto era il colore detto a mezza voce: da lontano tutte le
+  finestre erano la stessa finestra bianca, e per sapere in quale si era
+  bisognava leggere il titolo. Adesso la testata è la stessa fascia con cui si
+  apre ogni pagina della plancia — l'alone di colore che entra dall'angolo, il
+  titolo in maiuscolo nel colore della sezione, il sottotitolo in
+  maiuscoletto, la riga che sfuma in fondo — con in più la pastiglia
+  dell'icona, che è quella della tessera da cui si è arrivati. Titolo e
+  sottotitolo adesso sono incolonnati: affiancati, il sottotitolo di una
+  sezione con sei voci finiva sempre coi puntini.
+
+- **Le stanze si ordinano.** L'elenco della scheda Stanze era l'ordine in cui
+  erano state aggiunte, e quello stesso ordine si ritrovava in ogni tendina che
+  chiede «in che stanza sta questa cosa» — elettrodomestici, clima, telecamere
+  — e nelle linguette della pagina Stanze. Chi aveva aggiunto il bagnetto per
+  ultimo se lo ritrovava per ultimo dappertutto, e l'unico modo di spostarlo
+  era cancellarlo e riscriverlo, perdendo tutto quello che gli era stato
+  attribuito. Adesso ogni riga ha le sue due frecce.
+
+- **La mappa dell'aspirapolvere si apre e si ingrandisce.** Stava dentro la
+  tessera, alta quanto una figurina: su una casa di sei stanze i corridoi
+  erano tratti di penna e capire dove il robot si fosse fermato voleva dire
+  aprire l'app del produttore. Adesso il disegno si tocca e va a schermo
+  pieno, si tira per spostarlo, si allarga con la rotella o con due dita — e
+  lo zoom insegue il punto che si sta guardando, non il centro del foglio —
+  con il tasto che rimette tutto com'era e Esc per chiudere. L'immagine e'
+  quella che la tessera ha gia' scaricato: a Home Assistant non si chiede
+  niente in piu'.
+
+- **Elettrodomestici: la temperatura si sceglie, e possono essere due.** Un
+  frigorifero smart ne pubblica cinque — ambiente, obiettivo e attuale del
+  frigo, obiettivo e attuale del congelatore — e la plancia prendeva la prima
+  che trovava: «ambiente», cioè la stanza intorno, il numero che di
+  quell'apparecchio non dice niente. Adesso i nomi che parlano della stanza o
+  di un obiettivo si mettono da parte, e se restano ancora più candidati non si
+  sceglie: una casella vuota si nota, un numero sbagliato no. In configurazione
+  la casella c'era già; accanto ne è comparsa una seconda, perché un
+  frigorifero col congelatore sono due vani e con due caselle piene la card
+  disegna due barre.
+
+- **Nel widget «Da fare» si aggiunge e si toglie.** La lista si poteva solo
+  spuntare: per segnare la spesa dimenticata, o per togliere una riga finita lì
+  per sbaglio, bisognava uscire dalla plancia e aprire Home Assistant. Adesso
+  in fondo a ogni lista c'è la riga per scrivere — invio o il tasto ＋, e la
+  voce compare subito senza aspettare la rilettura — e ogni voce porta il suo
+  cestino, che non è «fatta»: è «non c'entrava».
+
+- **Il Clima ha la rotella: modalità, temperatura e ventola sulla riga.** Sulla
+  riga ci stavano il nome, la temperatura e l'acceso/spento; tutto il resto —
+  in che modalità sta, a che velocità gira la ventola, alzare l'obiettivo di
+  mezzo grado — si poteva fare solo andando nella pagina Clima. Adesso la
+  rotella apre un pannello sotto la riga, e ci sono soltanto le modalità e le
+  velocità che quell'unità dichiara di accettare: un tasto che l'unità non sa
+  eseguire è peggio di un tasto che non c'è. Sotto, cosa sta facendo davvero e
+  l'umidità della stanza.
+
+- **In cima a ogni finestra ci sono i numeri che riassumono.** La tessera in
+  Home dice un numero solo — la media, quante ne sono accese — e aprendola
+  quel numero spariva: restava la lista, e il conto lo doveva fare chi legge.
+  Adesso restano tre numeri: quanti in funzione, la media in casa, l'obiettivo
+  per il Clima; accese e spente per le Luci; aperte e apertura media per le
+  Tapparelle; la più fredda, la media e la più calda per le Temperature.
+
+- **E dentro, ogni riga è la tessera della Home messa in orizzontale.** La
+  lista era una fila di pastiglie tutte uguali: un'emoji da quindici pixel, un
+  nome, e a destra il comando — chi era acceso e chi era spento lo diceva
+  soltanto il comando, in fondo alla riga, e per sapere quante luci erano
+  accese bisognava leggere gli interruttori uno per uno. Adesso l'icona sta
+  nella stessa pastiglia della tessera da cui si è arrivati, tinta del colore
+  della sezione quando la cosa è accesa e neutra quando è spenta, il nome pesa
+  più di quello che ha sotto, i numeri sono in Oswald come tutti i numeri
+  della plancia, e la riga intera si vela appena del colore quando è accesa:
+  da un metro di distanza si contano gli accesi senza leggere niente.
+
+- **«Colpo d'occhio» adesso si chiama «Widget».** È il nome con cui la sezione
+  viene chiamata da chi la usa e da chi la configura: due nomi per la stessa
+  cosa erano uno di troppo.
+
+- **Le linguette della configurazione stanno in colonna.** Erano diciassette
+  voci in una fila che scorreva in orizzontale, tre visibili per volta: per
+  arrivare a Stanze si trascinava al buio. Adesso si vedono tutte una sotto
+  l'altra e il corpo della scheda si apre accanto invece che sotto. Da telefono
+  tenuto in piedi la colonna si stringe al solo simbolo — su trecentonovanta
+  pixel una colonna che scrive anche i nomi si porta via un terzo dello schermo
+  per dire quello che il simbolo dice già — e il nome ricompare da solo appena
+  il telefono si gira. Chi un simbolo non lo riconosce lo legge tenendo premuto:
+  il nome resta nel titolo del tasto, e quindi anche per chi si fa leggere la
+  pagina a voce. Anche qui la casa era doppia: Stanze prende la porta.
+
 ## 1.3.0
 
 ### Aggiunto
@@ -209,6 +529,7 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 - **Il quadratino della stanza aveva due padroni**: il motore delle icone
   disegnava il glifo e la Personalizzazione lo ridipingeva col suo.
+
 
 ## 1.2.0
 

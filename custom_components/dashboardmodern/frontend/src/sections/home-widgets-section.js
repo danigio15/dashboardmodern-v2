@@ -32,7 +32,7 @@ import {
   isRelayEntity,
   relayCoverCommands,
 } from "../core/cover-kind.js";
-import { normalizeSecurityDoors } from "../core/security-door-model.js";
+import { doorOpenCall, normalizeSecurityDoors } from "../core/security-door-model.js";
 import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
@@ -72,6 +72,16 @@ const state = (root[KEY] ||= {
   lists: new Map(), // entity -> { items, fetchedAt, inflight }
   cameraTimer: 0,
   cameraUrls: new Map(), // entity -> object URL della tessera, MAI quelli del muro
+  /* Quali righe hanno il pannello della rotella aperto. Sta qui e non nel
+   * documento perche' il corpo della finestra si ridisegna a ogni giro di
+   * stati: se lo stato dell'apertura stesse solo nel documento, il pannello si
+   * richiuderebbe da solo appena un termostato manda un grado nuovo. */
+  aperti: new Set(),
+  /* Quello che si sta scrivendo nella riga «aggiungi», per lista. Il corpo
+   * della finestra si riscrive a ogni valore che cambia — e con dieci liste
+   * aperte cambia spesso: se la parola a meta' stesse solo nel documento,
+   * sparirebbe sotto le dita. */
+  bozze: new Map(),
 });
 
 export function configuredTodoLists() {
@@ -209,6 +219,53 @@ async function completeItem(list, uid, summary) {
   root.setTimeout?.(() => fetchItems(list.entity, { force: true }), 4000);
 }
 
+/* Una voce nuova.
+ *
+ * Ottimista come la spunta: compare subito in fondo alla lista, e la
+ * rilettura da Home Assistant qualche istante dopo la conferma — o la toglie,
+ * se la chiamata non e' andata. Senza, fra il dito e la comparsa passavano i
+ * secondi della rilettura, e sembrava che il tasto non avesse fatto niente. */
+async function addItem(list, summary) {
+  const testo = clean(summary);
+  if (!testo) return;
+  const cache = record(list.entity);
+  cache.items = [
+    ...(cache.items || []),
+    { uid: "", summary: testo, status: "needs_action", due: "", localNew: true },
+  ];
+  state.bozze.delete(list.id);
+  schedule();
+  const esito = await callHa("todo", "add_item", { entity_id: list.entity, item: testo });
+  if (esito === undefined) {
+    cache.items = (cache.items || []).filter((voce) => !voce.localNew || voce.summary !== testo);
+    schedule();
+    return;
+  }
+  root.setTimeout?.(() => fetchItems(list.entity, { force: true }), 1200);
+}
+
+/* Togliere una voce e basta: non e' «fatta», e' «non c'entrava». */
+async function removeItem(list, uid, summary) {
+  const cache = record(list.entity);
+  const voce = (cache.items || []).find(
+    (value) => (uid && value.uid === uid) || (!uid && value.summary === summary),
+  );
+  if (!voce) return;
+  const prima = cache.items;
+  cache.items = (cache.items || []).filter((value) => value !== voce);
+  schedule();
+  const esito = await callHa("todo", "remove_item", {
+    entity_id: list.entity,
+    item: voce.uid || voce.summary,
+  });
+  if (esito === undefined) {
+    cache.items = prima;
+    schedule();
+    return;
+  }
+  root.setTimeout?.(() => fetchItems(list.entity, { force: true }), 1200);
+}
+
 /* ── i modelli dei widget ─────────────────────────────────────────────── */
 
 function localToday() {
@@ -276,17 +333,30 @@ function climateModel(states) {
       if (!entity || !widgetIncludes(entity, fuori)) return null;
       const current = stateOf(states, entity);
       const raw = clean(current?.state).toLowerCase();
+      const attributi = current?.attributes || {};
+      const elenco = (valori) =>
+        Array.isArray(valori) ? valori.map(clean).filter(Boolean) : [];
+      const numero = (valore, difetto = null) =>
+        Number.isFinite(Number(valore)) ? Number(valore) : difetto;
       return {
         entity,
         name: clean(unit?.name) || entity,
         on: Boolean(current) && raw !== "off" && raw !== "unavailable" && raw !== "unknown",
         mode: raw,
-        ambient: Number.isFinite(Number(current?.attributes?.current_temperature))
-          ? Number(current.attributes.current_temperature)
-          : null,
-        target: Number.isFinite(Number(current?.attributes?.temperature))
-          ? Number(current.attributes.temperature)
-          : null,
+        ambient: numero(attributi.current_temperature),
+        target: numero(attributi.temperature),
+        /* Quello che serve al pannello della rotella: cosa l'unita' accetta, e
+         * dove sta adesso. Sono attributi che Home Assistant pubblica gia' —
+         * il modello si limita a portarli in riga invece di farli cercare a
+         * chi disegna. */
+        modi: elenco(attributi.hvac_modes),
+        ventole: elenco(attributi.fan_modes),
+        ventola: clean(attributi.fan_mode),
+        minima: numero(attributi.min_temp, 5),
+        massima: numero(attributi.max_temp, 35),
+        passo: numero(attributi.target_temp_step, 0.5) || 0.5,
+        umidita: numero(attributi.current_humidity),
+        azione: clean(attributi.hvac_action),
       };
     })
     .filter(Boolean);
@@ -300,6 +370,17 @@ function climateModel(states) {
     value: average == null ? String(on.length) : `${formatNumber(average, 1)}°`,
     caption: nomiAccesi(on, () => true, t(`${on.length} accese`, `${on.length} on`)),
     ring: Math.round((on.length / rows.length) * 100), rows };
+}
+
+/* La riga del Clima di quell'entita', ricalcolata al momento: serve al passo
+ * della temperatura, che deve sapere dove sta l'obiettivo adesso e fin dove
+ * quell'unita' lo lascia andare. */
+function climateRow(entity) {
+  try {
+    return climateModel(allStates())?.rows?.find((riga) => riga.entity === entity) || null;
+  } catch (_error) {
+    return null;
+  }
 }
 
 function coversModel(states) {
@@ -506,8 +587,51 @@ function refValue(states, ref, fuori) {
  * tutto. Chi legge la stessa cosa deve conoscere gli stessi nomi. */
 const RIF_BATTERIA_EV = Object.freeze(["dm.ev_batteria_auto", "dm.ev_battery", "dm.ev_soc"]);
 
-function evModel(states) {
-  const fuori = widgetExcludedEntities();
+/* Le vetture configurate, ognuna con la SUA mappatura.
+ *
+ * Il riferimento `dm.ev_batteria_auto` ne indica una sola: quella in uso. E'
+ * giusto per la pagina EV — li' si guarda un'auto per volta e si sceglie quale
+ * — ma la tessera in Home e' un colpo d'occhio sulla casa, e una casa con due
+ * auto ne ha due da guardare. Chi ha due vetture vedeva sempre e solo quella
+ * che aveva messo in uso per ultima, senza nessun modo di accorgersi che
+ * l'altra era a secco.
+ *
+ * La mappatura di ciascuna sta nel suo profilo — e' la stessa che «Usa» copia
+ * nelle chiavi globali — quindi si legge di li', senza toccare niente. */
+function vetture() {
+  const elenco = section("ev", readJson("cd_ev_cars", []));
+  return (Array.isArray(elenco) ? elenco : []).filter(
+    (auto) => auto && typeof auto === "object",
+  );
+}
+
+function letturaVettura(states, auto, fuori, indice) {
+  const mappa = (auto?.ov || auto?.overrides || {}) || {};
+  const misura = (riferimento) => {
+    const entity = clean(mappa[riferimento]);
+    if (!entity || !widgetIncludes(entity, fuori)) return null;
+    return { entity, value: numOf(states, entity), state: clean(states?.[entity]?.state) };
+  };
+  let carica = null;
+  for (const riferimento of RIF_BATTERIA_EV) {
+    carica = misura(riferimento);
+    if (carica) break;
+  }
+  const autonomia = misura("dm.ev_autonomia");
+  const stato = misura("dm.ev_stato_ricarica");
+  if (!carica && !autonomia) return null;
+  const percentuale = carica?.value == null ? null : Math.max(0, Math.min(100, carica.value));
+  return {
+    nome: clean(auto?.name) || clean(auto?.model) || `${t("Auto", "Car")} ${indice + 1}`,
+    percentuale,
+    km: autonomia?.value == null ? null : autonomia.value,
+    ricarica: stato?.state || "",
+  };
+}
+
+/* La lettura dell'auto in uso, dalle chiavi globali: e' la strada di sempre, e
+ * resta quella per chi di auto ne ha una sola o non ne ha profilate. */
+function letturaAttiva(states, fuori) {
   let carica = null;
   for (const riferimento of RIF_BATTERIA_EV) {
     carica = refValue(states, riferimento, fuori);
@@ -516,18 +640,71 @@ function evModel(states) {
   const autonomia = refValue(states, "dm.ev_autonomia", fuori);
   const stato = refValue(states, "dm.ev_stato_ricarica", fuori);
   if (!carica && !autonomia) return null;
-  const percentuale = carica?.value == null ? null : Math.max(0, Math.min(100, carica.value));
-  const rows = [];
-  if (percentuale != null)
-    rows.push({ glyph: "🔋", name: t("Carica", "Charge"), value: `${Math.round(percentuale)}%` });
-  if (autonomia?.value != null)
-    rows.push({ glyph: "🛣️", name: t("Autonomia", "Range"), value: `${formatNumber(autonomia.value, 0)} km` });
-  if (stato?.state) rows.push({ glyph: "🔌", name: t("Ricarica", "Charging"), value: stato.state });
+  return {
+    nome: "",
+    percentuale: carica?.value == null ? null : Math.max(0, Math.min(100, carica.value)),
+    km: autonomia?.value == null ? null : autonomia.value,
+    ricarica: stato?.state || "",
+  };
+}
+
+function righeVettura(lettura, conNome) {
+  const righe = [];
+  const prefisso = conNome && lettura.nome ? `${lettura.nome} · ` : "";
+  if (lettura.percentuale != null)
+    righe.push({
+      glyph: "🔋",
+      name: `${prefisso}${t("Carica", "Charge")}`,
+      value: `${Math.round(lettura.percentuale)}%`,
+    });
+  if (lettura.km != null)
+    righe.push({
+      glyph: "🛣️",
+      name: `${prefisso}${t("Autonomia", "Range")}`,
+      value: `${formatNumber(lettura.km, 0)} km`,
+    });
+  if (lettura.ricarica)
+    righe.push({
+      glyph: "🔌",
+      name: `${prefisso}${t("Ricarica", "Charging")}`,
+      value: lettura.ricarica,
+    });
+  return righe;
+}
+
+function evModel(states) {
+  const fuori = widgetExcludedEntities();
+  const profilate = vetture()
+    .map((auto, indice) => letturaVettura(states, auto, fuori, indice))
+    .filter(Boolean);
+  /* Con una sola vettura leggibile dai profili la tessera non cambia: e'
+   * quella che si vede da sempre, e nominarla sarebbe rumore. */
+  const letture = profilate.length > 1 ? profilate : [letturaAttiva(states, fuori)].filter(Boolean);
+  if (!letture.length) return null;
+  const piu = letture.length > 1;
+  const rows = letture.flatMap((lettura) => righeVettura(lettura, piu));
   if (!rows.length) return null;
+
+  /* Con piu' auto la tessera mostra la piu' scarica: e' quella che chiede
+   * qualcosa, ed e' la ragione per cui uno guarda la Home di sfuggita. */
+  const cariche = letture.map((lettura) => lettura.percentuale).filter((valore) => valore != null);
+  const percentuale = cariche.length ? Math.min(...cariche) : null;
+  const kmTotali = letture.map((lettura) => lettura.km).filter((valore) => valore != null);
+  const primaKm = kmTotali.length ? Math.min(...kmTotali) : null;
+  const didascalia = piu
+    ? letture
+        .map(
+          (lettura) =>
+            `${lettura.nome}${lettura.percentuale == null ? "" : ` ${Math.round(lettura.percentuale)}%`}`,
+        )
+        .join(" · ")
+    : percentuale != null && primaKm != null
+      ? `${formatNumber(primaKm, 0)} km`
+      : "";
   return {
     key: "ev", accent: "#06b6d4", icon: "🚗", label: t("Auto", "Car"),
-    value: percentuale == null ? `${formatNumber(autonomia?.value, 0)} km` : `${Math.round(percentuale)}%`,
-    caption: percentuale != null && autonomia?.value != null ? `${formatNumber(autonomia.value, 0)} km` : "",
+    value: percentuale == null ? `${formatNumber(primaKm, 0)} km` : `${Math.round(percentuale)}%`,
+    caption: didascalia,
     ring: percentuale, rows,
   };
 }
@@ -965,6 +1142,10 @@ function todoItemMarkup(list, item, today) {
         data-dm-todo-uid="${esc(item.uid)}" data-dm-todo-summary="${esc(item.summary)}"
         aria-label="${esc(t(`Segna fatta: ${item.summary}`, `Mark done: ${item.summary}`))}"${done ? " disabled" : ""}></button>
       <span class="dm-todo-text">${esc(item.summary)}${due}</span>
+      <button type="button" class="dm-todo-del" data-dm-todo-del data-dm-todo-list="${esc(list.id)}"
+        data-dm-todo-uid="${esc(item.uid)}" data-dm-todo-summary="${esc(item.summary)}"
+        title="${esc(t("Togli dalla lista", "Remove from the list"))}"
+        aria-label="${esc(t(`Togli dalla lista: ${item.summary}`, `Remove from the list: ${item.summary}`))}">🗑️</button>
     </li>`;
 }
 
@@ -984,7 +1165,18 @@ function todoDetail(widget) {
         body = `<ul class="dm-todo-items">${shown.map((item) => todoItemMarkup(list, item, today)).join("")}</ul>${
           extra > 0 ? `<p class="dm-w-empty">${esc(t(`+${extra} altre voci`, `+${extra} more items`))}</p>` : ""
         }`;
-      return `<div class="dm-w-block"><span class="dm-w-block-title">${esc(clean(list.name) || list.entity)}</span>${body}</div>`;
+      /* La riga per scrivere sta in fondo alla lista a cui appartiene: con
+       * piu' liste aperte, una casella sola in cima non direbbe in quale
+       * finisce quello che si scrive. */
+      const scrivi = `<div class="dm-todo-add">
+        <input type="text" class="dm-todo-new" data-dm-todo-new="${esc(list.id)}"
+          value="${esc(state.bozze.get(list.id) || "")}" maxlength="200"
+          placeholder="${esc(t("Aggiungi una cosa da fare…", "Add something to do…"))}"
+          aria-label="${esc(t(`Aggiungi a ${clean(list.name) || list.entity}`, `Add to ${clean(list.name) || list.entity}`))}">
+        <button type="button" class="dm-todo-plus" data-dm-todo-add="${esc(list.id)}"
+          title="${esc(t("Aggiungi", "Add"))}" aria-label="${esc(t("Aggiungi", "Add"))}">＋</button>
+      </div>`;
+      return `<div class="dm-w-block"><span class="dm-w-block-title">${esc(clean(list.name) || list.entity)}</span>${body}${scrivi}</div>`;
     })
     .join("");
 }
@@ -1014,18 +1206,129 @@ function climateGlyph(mode) {
   return "❄️";
 }
 
+/* I nomi delle modalita', gli stessi che usa la scheda del Clima rapido in
+ * configurazione: «cool» in faccia a chi guarda non lo dice nessuno. */
+const NOMI_MODO = () => ({
+  off: t("Spento", "Off"),
+  cool: t("Raffrescamento", "Cooling"),
+  heat: t("Riscaldamento", "Heating"),
+  heat_cool: t("Automatico caldo/freddo", "Heat/cool"),
+  auto: t("Automatico", "Auto"),
+  dry: t("Deumidificazione", "Dry"),
+  fan_only: t("Solo ventola", "Fan only"),
+});
+
+const NOMI_AZIONE = () => ({
+  heating: t("sta scaldando", "heating"),
+  cooling: t("sta raffrescando", "cooling"),
+  drying: t("sta deumidificando", "drying"),
+  fan: t("sta ventilando", "fanning"),
+  idle: t("in attesa", "idle"),
+  off: t("spento", "off"),
+});
+
+/* Il pannello che si apre sotto la riga, con la rotella.
+ *
+ * Sulla riga ci stanno il nome, la temperatura e l'acceso/spento: tutto il
+ * resto — in che modalita' sta, a che velocita' gira la ventola, di quanto
+ * alzare l'obiettivo — prima si poteva vedere solo andando nella pagina Clima.
+ * Adesso e' qui sotto, e ci sono soltanto le modalita' e le velocita' che
+ * quell'unita' dichiara di accettare: un tasto che l'unita' non sa eseguire e'
+ * peggio di un tasto che non c'e'. */
+function climatePanel(row) {
+  const nomi = NOMI_MODO();
+  const modi = row.modi?.length ? row.modi : [];
+  const modiMarkup = modi.length
+    ? `<div class="dm-w-panel-row">
+        <span class="dm-w-panel-lbl">${esc(t("Modalità", "Mode"))}</span>
+        <div class="dm-w-chips">${modi
+          .map(
+            (modo) =>
+              `<button type="button" class="dm-w-chip" data-dm-w-mode="${esc(modo)}"
+                 data-dm-w-target="${esc(row.entity)}" data-on="${modo === row.mode}">${esc(
+                   nomi[modo] || modo,
+                 )}</button>`,
+          )
+          .join("")}</div>
+      </div>`
+    : "";
+  const gradi = row.target == null ? null : formatNumber(row.target, 1);
+  const temperaturaMarkup =
+    row.target == null
+      ? ""
+      : `<div class="dm-w-panel-row">
+          <span class="dm-w-panel-lbl">${esc(t("Temperatura", "Temperature"))}</span>
+          <div class="dm-w-stepper">
+            <button type="button" data-dm-w-temp="-1" data-dm-w-target="${esc(row.entity)}"
+              aria-label="${esc(t("Abbassa", "Lower"))}">−</button>
+            <b>${gradi}°</b>
+            <button type="button" data-dm-w-temp="1" data-dm-w-target="${esc(row.entity)}"
+              aria-label="${esc(t("Alza", "Raise"))}">+</button>
+          </div>
+        </div>`;
+  const ventoleMarkup = row.ventole?.length
+    ? `<div class="dm-w-panel-row">
+        <span class="dm-w-panel-lbl">${esc(t("Ventola", "Fan"))}</span>
+        <div class="dm-w-chips">${row.ventole
+          .map(
+            (voce) =>
+              `<button type="button" class="dm-w-chip" data-dm-w-fan="${esc(voce)}"
+                 data-dm-w-target="${esc(row.entity)}" data-on="${voce === row.ventola}">${esc(
+                   voce,
+                 )}</button>`,
+          )
+          .join("")}</div>
+      </div>`
+    : "";
+  const azione = NOMI_AZIONE()[row.azione] || "";
+  const noteMarkup =
+    azione || row.umidita != null
+      ? `<p class="dm-w-panel-note">${[
+          azione,
+          row.umidita == null ? "" : `${t("umidità", "humidity")} ${Math.round(row.umidita)}%`,
+        ]
+          .filter(Boolean)
+          .map(esc)
+          .join(" · ")}</p>`
+      : "";
+  const dentro = `${modiMarkup}${temperaturaMarkup}${ventoleMarkup}${noteMarkup}`;
+  if (!dentro) return "";
+  return `<div class="dm-w-panel" data-dm-w-panel="${esc(row.entity)}"${
+    state.aperti.has(row.entity) ? "" : " hidden"
+  }>${dentro}</div>`;
+}
+
 function climateDetail(widget) {
   return widget.rows
-    .map((row) =>
-      rowShell(
+    .map((row) => {
+      const pannello = climatePanel(row);
+      const aperto = pannello && state.aperti.has(row.entity);
+      /* Il pannello sta FUORI dalla riga, subito sotto, e le si ricuce addosso
+       * con un margine negativo e gli angoli aperti.
+       *
+       * Dentro non poteva stare: la riga e' una fila flessibile, e una fila
+       * che va a capo, dentro una griglia, viene misurata come se non andasse
+       * a capo — la griglia le dava l'altezza di una riga sola e il pannello
+       * usciva sopra a quella dopo. Fuori e' un elemento come gli altri, alto
+       * quanto gli serve. */
+      return rowShell(
         `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${climateGlyph(row.mode || "")}</span>
          <span class="dm-w-name">${esc(row.name)}<small>${
            row.ambient == null ? "" : `${formatNumber(row.ambient, 1)}°`
          }${row.on && row.target != null ? ` → ${formatNumber(row.target, 1)}°` : ""}</small></span>
+         ${
+           pannello
+             ? `<button type="button" class="dm-w-more" data-dm-w-more="${esc(row.entity)}"
+                  aria-expanded="${Boolean(aperto)}"
+                  aria-label="${esc(t("Altre impostazioni", "More settings"))}"
+                  title="${esc(t("Altre impostazioni", "More settings"))}">⚙️</button>`
+             : ""
+         }
          <button type="button" class="dm-w-power" data-dm-w-clima="${esc(row.entity)}" data-on="${row.on}"
            aria-label="${esc(row.name)}">⏻</button>`,
-      ),
-    )
+        `data-dm-w-open="${Boolean(aperto)}"`,
+      ) + pannello;
+    })
     .join("");
 }
 
@@ -1098,11 +1401,34 @@ function securityDetail(widget, states) {
           : raw === "open"
             ? t("Aperta", "Open")
             : "";
+    /* La porta si apre anche da qui.
+     *
+     * La riga la disegnava e basta: nome, stato, e un lucchetto che diceva
+     * soltanto «questa vuole il PIN». Dalla pagina Sicurezza la stessa porta
+     * si apre, e chi arriva dalla tessera non capisce perche' qui no.
+     *
+     * Il tasto porta lo stesso `data-dm-door` dei tasti di quella pagina, e
+     * quel gesto lo ascolta il documento intero: e' la stessa mano che apre —
+     * stessa conferma, stesso tastierino del PIN, stessa chiamata. Qui non si
+     * ricopia niente, si chiede a chi lo sa gia' fare. */
+    const apre = doorOpenCall(door.entity, stateOf(states, door.entity));
+    const invito = door.pin
+      ? t("Apri, col PIN", "Open, with the PIN")
+      : t("Apri", "Open");
     parts.push(
       rowShell(
         `<span class="dm-w-glyph" aria-hidden="true">${esc(door.icon)}</span>
          <span class="dm-w-name">${esc(door.name || door.entity)}<small>${esc(label)}</small></span>
-         ${door.pin ? '<span class="dm-w-glyph" aria-hidden="true">🔒</span>' : ""}`,
+         ${
+           apre
+             ? `<button type="button" class="dm-w-door" data-dm-door="${esc(door.id)}"
+                  title="${esc(invito)}" aria-label="${esc(`${invito}: ${door.name || door.entity}`)}">${
+                    door.pin ? "🔐" : "🔓"
+                  }</button>`
+             : door.pin
+               ? '<span class="dm-w-glyph" aria-hidden="true">🔒</span>'
+               : ""
+         }`,
       ),
     );
   }
@@ -1228,7 +1554,88 @@ function camerasDetail(widget) {
     .join("")}</div>`;
 }
 
+/* Il riepilogo in cima alla finestra.
+ *
+ * La tessera in Home dice un numero solo — la media, quante ne sono accese —
+ * e aprendola quel numero spariva: restava la lista, che il conto lo fa fare a
+ * chi legge. Qui sopra restano tre numeri, quelli che si guardano prima di
+ * mettersi a leggere le righe, e sono ricavati dalle righe stesse: non c'e'
+ * niente di nuovo da tenere aggiornato.
+ */
+function summaryChips(widget) {
+  const righe = Array.isArray(widget.rows) ? widget.rows : [];
+  if (righe.length < 2) return [];
+  const media = (valori) =>
+    valori.length ? valori.reduce((somma, valore) => somma + valore, 0) / valori.length : null;
+  const numeri = (chiave) =>
+    righe.map((riga) => Number(riga?.[chiave])).filter((valore) => Number.isFinite(valore));
+  const accesi = righe.filter((riga) => riga?.on).length;
+  if (widget.key === "clima") {
+    const ambiente = media(numeri("ambient"));
+    const obiettivi = righe.filter((riga) => riga?.on).map((riga) => Number(riga?.target));
+    const obiettivo = media(obiettivi.filter((valore) => Number.isFinite(valore)));
+    return [
+      [t("in funzione", "running"), `${accesi}/${righe.length}`],
+      ambiente == null ? null : [t("in casa", "indoors"), `${formatNumber(ambiente, 1)}°`],
+      obiettivo == null ? null : [t("obiettivo", "target"), `${formatNumber(obiettivo, 1)}°`],
+    ].filter(Boolean);
+  }
+  if (widget.key === "luci")
+    return [
+      [t("accese", "on"), String(accesi)],
+      [t("spente", "off"), String(righe.length - accesi)],
+    ];
+  if (widget.key === "tapparelle") {
+    const posizioni = numeri("position");
+    const aperte = righe.filter((riga) => Number(riga?.position) > 0).length;
+    return [
+      [t("aperte", "open"), `${aperte}/${righe.length}`],
+      posizioni.length ? [t("apertura media", "average"), `${Math.round(media(posizioni))}%`] : null,
+    ].filter(Boolean);
+  }
+  if (widget.key === "batterie") {
+    const livelli = numeri("level");
+    if (!livelli.length) return [];
+    return [
+      [t("la più bassa", "lowest"), `${Math.round(Math.min(...livelli))}%`],
+      [t("media", "average"), `${Math.round(media(livelli))}%`],
+    ];
+  }
+  if (widget.key === "temperatura") {
+    const gradi = numeri("temperature");
+    if (!gradi.length) return [];
+    return [
+      [t("media", "average"), `${formatNumber(media(gradi), 1)}°`],
+      [t("la più fredda", "coldest"), `${formatNumber(Math.min(...gradi), 1)}°`],
+      [t("la più calda", "warmest"), `${formatNumber(Math.max(...gradi), 1)}°`],
+    ];
+  }
+  if (widget.key === "aperture") {
+    const aperte = righe.filter((riga) => riga?.on).length;
+    return [
+      [t("aperte", "open"), String(aperte)],
+      [t("chiuse", "closed"), String(righe.length - aperte)],
+    ];
+  }
+  return [];
+}
+
+function summaryMarkup(widget) {
+  const voci = summaryChips(widget);
+  if (voci.length < 2) return "";
+  return `<div class="dm-w-summary">${voci
+    .map(
+      ([etichetta, valore]) =>
+        `<div class="dm-w-stat"><b>${esc(valore)}</b><span>${esc(etichetta)}</span></div>`,
+    )
+    .join("")}</div>`;
+}
+
 function detailBody(widget, states) {
+  return `${summaryMarkup(widget)}${detailRows(widget, states)}`;
+}
+
+function detailRows(widget, states) {
   if (widget.key === "todo") return todoDetail(widget);
   if (widget.key === "luci") return lightsDetail(widget);
   if (widget.key === "clima") return climateDetail(widget);
@@ -1326,7 +1733,7 @@ export function renderHomeWidgets() {
   const mounted = host || ensureHost();
   if (!mounted) return false;
   const title = mounted.querySelector(".dm-widgets-title");
-  if (title) title.textContent = t("Colpo d'occhio", "At a glance");
+  if (title) title.textContent = t("Widget", "Widgets");
   /* La riga sotto il titolo diceva come si usa una tessera. Lo si capisce da
    * solo la prima volta, e da li' in poi e' una riga sprecata in cima alla
    * Home: adesso dice quante sezioni ci sono e quante chiedono attenzione,
@@ -1663,7 +2070,48 @@ function onChange(event) {
   });
 }
 
+/* La lista di quel riferimento, presa dalla configurazione. */
+function listaTodo(id) {
+  return configuredTodoLists().find((value) => value.id === clean(id)) || null;
+}
+
+/* Quello che si sta scrivendo si ricorda qui, non nel documento: il corpo
+ * della finestra si riscrive da solo a ogni valore che cambia. */
+function onInput(event) {
+  const casella = event.target?.closest?.("[data-dm-todo-new]");
+  if (!casella) return;
+  const id = clean(casella.dataset.dmTodoNew);
+  if (casella.value) state.bozze.set(id, casella.value);
+  else state.bozze.delete(id);
+}
+
+/* Invio aggiunge, come in ogni casella in cui si scrive una riga. */
+function onKeydown(event) {
+  if (event.key !== "Enter") return;
+  const casella = event.target?.closest?.("[data-dm-todo-new]");
+  if (!casella) return;
+  event.preventDefault();
+  const lista = listaTodo(casella.dataset.dmTodoNew);
+  if (lista) addItem(lista, casella.value);
+}
+
 function onClick(event) {
+  const aggiungi = event.target?.closest?.("[data-dm-todo-add]");
+  if (aggiungi) {
+    event.preventDefault();
+    const id = clean(aggiungi.dataset.dmTodoAdd);
+    const lista = listaTodo(id);
+    const casella = aggiungi.parentElement?.querySelector?.("[data-dm-todo-new]");
+    if (lista) addItem(lista, casella?.value || state.bozze.get(id) || "");
+    return;
+  }
+  const cestino = event.target?.closest?.("[data-dm-todo-del]");
+  if (cestino) {
+    event.preventDefault();
+    const lista = listaTodo(cestino.dataset.dmTodoList);
+    if (lista) removeItem(lista, clean(cestino.dataset.dmTodoUid), clean(cestino.dataset.dmTodoSummary));
+    return;
+  }
   const check = event.target?.closest?.("[data-dm-todo-check]");
   if (check && !check.disabled) {
     event.preventDefault();
@@ -1679,6 +2127,61 @@ function onClick(event) {
     // prossimo evento e conferma o corregge.
     light.dataset.on = String(light.dataset.on !== "true");
     callHa(entity.split(".")[0] || "light", "toggle", { entity_id: entity });
+    return;
+  }
+  /* La rotella apre e chiude il pannello della riga. Non passa da un
+   * ridisegno: si tocca il documento e si segna la scelta, cosi' l'apertura e'
+   * immediata e il prossimo ridisegno la ritrova. */
+  const rotella = event.target?.closest?.("[data-dm-w-more]");
+  if (rotella) {
+    event.preventDefault();
+    const entity = clean(rotella.dataset.dmWMore);
+    const pannello = doc?.querySelector?.(
+      `[data-dm-w-panel="${entity.replace(/["\\]/g, "\\$&")}"]`,
+    );
+    const apri = !state.aperti.has(entity);
+    if (apri) state.aperti.add(entity);
+    else state.aperti.delete(entity);
+    if (pannello) pannello.hidden = !apri;
+    rotella.setAttribute("aria-expanded", String(apri));
+    rotella.closest(".dm-w-row")?.setAttribute("data-dm-w-open", String(apri));
+    return;
+  }
+  const modo = event.target?.closest?.("[data-dm-w-mode]");
+  if (modo) {
+    event.preventDefault();
+    callHa("climate", "set_hvac_mode", {
+      entity_id: clean(modo.dataset.dmWTarget),
+      hvac_mode: clean(modo.dataset.dmWMode),
+    });
+    root.setTimeout?.(schedule, 500);
+    return;
+  }
+  const ventola = event.target?.closest?.("[data-dm-w-fan]");
+  if (ventola) {
+    event.preventDefault();
+    callHa("climate", "set_fan_mode", {
+      entity_id: clean(ventola.dataset.dmWTarget),
+      fan_mode: clean(ventola.dataset.dmWFan),
+    });
+    root.setTimeout?.(schedule, 500);
+    return;
+  }
+  const gradi = event.target?.closest?.("[data-dm-w-temp]");
+  if (gradi) {
+    event.preventDefault();
+    const entity = clean(gradi.dataset.dmWTarget);
+    const riga = climateRow(entity);
+    if (riga && riga.target != null) {
+      const passo = (Number(gradi.dataset.dmWTemp) || 0) * (riga.passo || 0.5);
+      const voluta = Math.min(riga.massima, Math.max(riga.minima, riga.target + passo));
+      /* Il numero si aggiorna subito sotto il dito: la conferma vera arriva
+       * col prossimo giro di stati. */
+      const casella = gradi.parentElement?.querySelector?.("b");
+      if (casella) casella.textContent = `${formatNumber(voluta, 1)}°`;
+      callHa("climate", "set_temperature", { entity_id: entity, temperature: voluta });
+      root.setTimeout?.(schedule, 700);
+    }
     return;
   }
   const clima = event.target?.closest?.("[data-dm-w-clima]");
@@ -1747,58 +2250,386 @@ function installStyles() {
  * fondo e' un'altra lingua, e qui si parla quella di casa. */
 #dm-widget-popup{
   position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
-  padding:20px;background:rgba(230,235,241,.85);
+  padding:20px;
+  background:color-mix(in srgb,var(--bg-sculpted,#e6ebf1) 62%,rgba(15,23,42,.34));
   backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   animation:dmWidgetPopupIn .2s ease-out}
 :root:is([data-theme="dark"]) #dm-widget-popup,
-html[data-theme="dark"] #dm-widget-popup{background:rgba(9,14,26,.82)}
+html[data-theme="dark"] #dm-widget-popup{background:color-mix(in srgb,#060a14 74%,rgba(2,6,15,.9))}
 #dm-widget-popup[hidden]{display:none}
 @keyframes dmWidgetPopupIn{from{opacity:0}to{opacity:1}}
 html.dm-widget-popup-open{overflow:hidden}
+/* La stessa veste delle altre finestre della plancia.
+ *
+ * Non passa dal foglio dei popup — questa finestra e' roba di questo modulo, e
+ * la disegna lui — quindi la veste va ripetuta qui: angolo piu' misurato,
+ * un'ombra che scende invece dell'alone, e il filo di colore sul bordo alto,
+ * dipinto nello sfondo perche' la finestra e' lei stessa il contenitore che
+ * scorre e un elemento appoggiato scorrerebbe via col contenuto.
+ *
+ * Via anche l'anello bianco cucito dentro il bordo: valeva solo sul tema
+ * chiaro, e sullo scuro era una riga luminosa in mezzo al buio. */
 #dm-widget-popup .dm-widget-detail{
-  width:min(560px,100%);max-height:min(80dvh,760px);overflow:auto;margin:0;
-  border:1px solid var(--card-border,#e8edf3);border-radius:36px;
+  /* Chi scorre e' il corpo, non la finestra.
+   *
+   * La finestra deve restare a contenuto tagliato — glielo chiede la regola che
+   * condivide con la tessera aperta in griglia, che sta piu' in basso in questo
+   * foglio e quindi vince a parita' di peso: dirle qui di farsi scorrere non
+   * ha mai avuto effetto, e la Clima con dodici termostati finiva tagliata a
+   * meta' senza modo di arrivare in fondo. Cosi' invece la card e' una colonna
+   * alta al massimo quanto lo schermo, l'intestazione sta ferma in cima e la
+   * lista sotto scorre da sola. */
+  display:flex;flex-direction:column;
+  width:min(560px,100%);max-height:min(80dvh,760px);margin:0;
+  border:1px solid var(--card-border,#e8edf3);border-radius:28px;
   background:var(--card-bg,#fff);
-  box-shadow:0 40px 80px rgba(0,0,0,.15),inset 0 0 0 1px color-mix(in srgb,#fff 60%,transparent);
+  box-shadow:0 32px 64px -28px rgba(2,6,23,.45),0 6px 18px -12px rgba(2,6,23,.25);
   animation:dmWidgetPopupCard .28s cubic-bezier(.16,1,.3,1)}
-@keyframes dmWidgetPopupCard{from{opacity:0;transform:scale(.92) translateY(24px)}to{opacity:1;transform:none}}
+@keyframes dmWidgetPopupCard{from{opacity:0;transform:scale(.96) translateY(12px)}to{opacity:1;transform:none}}
+/* Chi ha chiesto meno movimento non lo riceve: la finestra c'e' o non c'e'. */
+@media(prefers-reduced-motion:reduce){
+  #dm-widget-popup,#dm-widget-popup .dm-widget-detail{animation:none}
+}
 /* L'intestazione parla come le altre della plancia: maiuscoletto spaziato,
- * riga di separazione, il tondo per chiudere. */
-#dm-widget-popup .dm-w-head{
-  position:sticky;top:0;z-index:1;gap:13px;padding:22px 24px 18px;
+ * riga di separazione, il tondo per chiudere. Il velo colorato era un
+ * gradiente che partiva dall'angolo e sbiadiva a meta': adesso e' un fondo
+ * appena tinto, che non contende la scena al titolo. */
+/* La testata della finestra e' la stessa fascia che aprono le pagine.
+ *
+ * Ci sono passate due versioni sbagliate per lo stesso motivo: erano tutte e
+ * due invenzioni. Il filo di tre pixel sul bordo alto era il colore detto a
+ * mezza voce, e da lontano tutte le finestre erano la stessa finestra bianca;
+ * la fascia di colore pieno si vedeva benissimo, ma non somigliava a niente
+ * del resto della plancia.
+ *
+ * La forma giusta la plancia ce l'ha gia', ed e' la fascia che apre ogni
+ * pagina: fondo della card, un alone del colore che entra dall'angolo in alto
+ * a destra, il titolo in Oswald maiuscolo nel colore della sezione, il
+ * sottotitolo in piccolo maiuscoletto spaziato, e in fondo alla fascia una
+ * riga di due pixel che sfuma. Qui e' quella, con l'aggiunta della pastiglia
+ * dell'icona — la stessa della tessera da cui si e' arrivati, perche' la
+ * finestra e' quella tessera che si apre.
+ *
+ * Titolo e sottotitolo vanno incolonnati, non affiancati: affiancati, il
+ * sottotitolo di una sezione con sei voci finiva sempre coi puntini. */
+#dm-widget-popup .dm-widget-detail .dm-w-head{
+  flex:0 0 auto;position:relative;overflow:hidden;
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto auto;
+  column-gap:15px;row-gap:5px;align-items:center;
+  padding:20px 22px 19px;color:var(--text,#0f172a);border-bottom:0;box-shadow:none;
+  /* Il testo a sinistra: questa e' un <header>, e da telefono il foglio della
+     plancia centra il testo di ogni <header> — quello suo, in cima alla
+     pagina. Qui centrava titolo e sottotitolo lasciando l'icona da una parte. */
+  text-align:left;
   background:
-    linear-gradient(135deg,color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 16%,transparent),transparent 70%),
-    var(--card-bg,#fff);
-  border-bottom:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 22%,var(--card-border,#e8edf3))}
-/* La stessa pastiglia della tessera da cui si e' arrivati: il popup e' la
- * tessera che si apre, non un'altra cosa. */
-#dm-widget-popup .dm-w-head-ic{
-  flex:0 0 44px;width:44px;height:44px;display:grid;place-items:center;border-radius:15px;font-size:22px;
-  background:linear-gradient(145deg,
-    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 92%,#fff),
-    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 62%,#000 8%));
-  box-shadow:0 10px 22px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 34%,transparent),
-    inset 0 1px 0 rgba(255,255,255,.45)}
-#dm-widget-popup .dm-w-head strong{font-size:16px;letter-spacing:1.4px}
-#dm-widget-popup .dm-w-head small{font-size:12px}
-#dm-widget-popup .dm-w-close{
-  flex:0 0 34px;width:34px;height:34px;border-radius:50%;
-  background:var(--surface-3,#f1f5f9);border:1px solid var(--card-border,#e2e8f0);
-  box-shadow:0 6px 15px rgba(0,0,0,.05)}
-#dm-widget-popup .dm-w-body{padding:16px 18px 20px;display:grid;gap:9px}
+    radial-gradient(130% 190% at 88% -60%,
+      color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 22%,transparent),
+      transparent 58%),
+    var(--card-bg,#fff)}
+/* La riga in fondo alla fascia: due pixel che partono dal colore e sfumano,
+   come in cima a ogni pagina. */
+#dm-widget-popup .dm-widget-detail .dm-w-head::after{
+  content:"";position:absolute;inset:auto 0 0 0;height:2px;opacity:.7;
+  background:linear-gradient(90deg,
+    var(--dm-widget-accent,#0ea5e9),
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 45%,transparent) 62%,transparent)}
+/* La pastiglia dell'icona: la tinta della sezione, appena posata, con l'anello
+ * sottile che hanno tutte le pastiglie della plancia. */
+#dm-widget-popup .dm-widget-detail .dm-w-head-ic{
+  grid-row:1/3;flex:0 0 48px;width:48px;height:48px;display:grid;place-items:center;
+  border-radius:16px;font-size:23px;
+  background:linear-gradient(140deg,
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 17%,var(--card-bg,#fff)),
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 7%,var(--card-bg,#fff)));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 24%,transparent),
+    0 6px 14px -8px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 55%,transparent)}
+/* Il selettore e' lungo apposta: le stesse righe le riscrive piu' in basso la
+ * regola condivisa con la tessera aperta in griglia, che a parita' di peso
+ * vincerebbe perche' viene dopo. */
+#dm-widget-popup .dm-widget-detail .dm-w-head strong{
+  grid-column:2;grid-row:1;
+  font-family:'Oswald',system-ui,sans-serif;font-weight:700;
+  font-size:clamp(19px,2.4vw,25px);line-height:1.05;letter-spacing:2px;text-transform:uppercase;
+  color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 78%,#0f172a)}
+#dm-widget-popup .dm-widget-detail .dm-w-head small{
+  grid-column:2;grid-row:2;flex:none;
+  font-size:11px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;
+  color:var(--text-dim,#64748b);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dm-widget-popup .dm-widget-detail .dm-w-close{
+  grid-column:3;grid-row:1/3;
+  flex:0 0 38px;width:38px;height:38px;border-radius:50%;
+  display:grid;place-items:center;font-size:15px;font-weight:800;
+  background:var(--card-bg,#fff);border:1px solid var(--card-border,#e2e8f0);
+  color:var(--text-dim,#64748b);box-shadow:0 6px 16px -10px rgba(15,23,42,.5);
+  transition:background .18s ease,border-color .18s ease,color .18s ease}
+#dm-widget-popup .dm-widget-detail .dm-w-close:hover{
+  background:#fee2e2;border-color:#fecaca;color:#dc2626}
+html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
+  background:rgba(220,38,38,.22);border-color:rgba(248,113,113,.45);color:#fca5a5}
+/* E la finestra non ha piu' bisogno del filo di colore sul bordo alto: adesso
+ * il colore ce l'ha la fascia. */
+#dm-widget-popup .dm-widget-detail::before{display:none}
+#dm-widget-popup .dm-w-body{
+  padding:16px 18px 20px;display:grid;gap:9px;
+  /* L'altezza minima azzerata perche' un figlio di colonna flex, per difetto,
+     non scende sotto il proprio contenuto: senza, la lista non si accorcia mai
+     e non c'e' niente da scorrere. */
+  flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  /* Una barra sottile del colore della tessera: senza, su un portatile che
+     nasconde le barre finche' non si scorre, una lista lunga sembrava finire
+     dove finisce la finestra. */
+  scrollbar-width:thin;
+  scrollbar-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 42%,transparent) transparent}
+#dm-widget-popup .dm-w-body::-webkit-scrollbar{width:9px}
+#dm-widget-popup .dm-w-body::-webkit-scrollbar-track{background:transparent}
+#dm-widget-popup .dm-w-body::-webkit-scrollbar-thumb{
+  border-radius:100px;border:2px solid transparent;background-clip:padding-box;
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 38%,transparent)}
+/* Ogni riga e' una tessera coricata.
+ *
+ * La lista era una fila di pastiglie tutte uguali: un'emoji da quindici pixel,
+ * un nome, e a destra il comando. Chi era acceso e chi era spento lo diceva
+ * soltanto il comando, in fondo alla riga — per sapere quante luci erano
+ * accese bisognava leggere gli interruttori uno per uno. E la tessera da cui
+ * si arrivava, in Home, era fatta in tutt'altro modo: pastiglia dell'icona
+ * tinta, valore grande, nome sotto.
+ *
+ * Adesso la riga e' quella tessera messa in orizzontale. L'icona sta nella
+ * stessa pastiglia — tinta del colore della sezione quando la cosa e' accesa,
+ * neutra quando e' spenta — il nome e' piu' grosso di quello che ha sotto, il
+ * valore e' in Oswald come tutti i numeri della plancia, e la riga intera si
+ * vela appena del colore quando e' accesa: da un metro di distanza si contano
+ * gli accesi senza leggere niente. */
+/* Il riepilogo in cima: tre numeri grandi, quelli che si guardano prima di
+ * mettersi a leggere le righe. Stessa aria delle tessere della Home — numero
+ * in Oswald, etichetta minuscola sotto — dentro un vassoio appena tinto del
+ * colore della sezione. */
+#dm-widget-popup .dm-w-summary{
+  display:flex;margin:0 0 4px;border-radius:18px;
+  border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 22%,transparent);
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 5%,var(--card-bg,#fff))}
+#dm-widget-popup .dm-w-stat{
+  flex:1;min-width:0;display:grid;gap:2px;justify-items:center;padding:11px 8px 10px}
+/* Le colonne le separa una riga, non un buco nello sfondo: il vassoio a
+   griglia con la fessura da un pixel veniva misurato piu' corto di quello che
+   e' e tagliava le etichette. */
+#dm-widget-popup .dm-w-stat+.dm-w-stat{
+  border-left:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 18%,transparent)}
+#dm-widget-popup .dm-w-stat b{
+  font-family:'Oswald',system-ui,sans-serif;font-size:21px;font-weight:600;line-height:1;
+  font-variant-numeric:tabular-nums;
+  color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 72%,#0f172a)}
+#dm-widget-popup .dm-w-stat span{
+  font-size:10px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--text-dim,#94a3b8);text-align:center}
+/* La rotella: apre il pannello della riga, e quando e' aperto si tinge —
+ * altrimenti, con il pannello sotto, non si capiva quale riga l'aveva
+ * aperto. */
+#dm-widget-popup .dm-w-row .dm-w-more{
+  flex:0 0 32px;width:32px;height:32px;display:grid;place-items:center;
+  border-radius:11px;font-size:14px;cursor:pointer;
+  border:1px solid var(--card-border,#e8edf3);background:var(--surface-2,#f8fafc);
+  transition:background .18s ease,border-color .18s ease,transform .25s ease}
+#dm-widget-popup .dm-w-row[data-dm-w-open="true"] .dm-w-more{
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent);
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
+  transform:rotate(60deg)}
+/* Il pannello si accoda alla riga: margine negativo per chiudere lo spazio
+ * fra le righe, angoli alti squadrati e nessun bordo in cima. Le due cose
+ * diventano una card sola. */
+#dm-widget-popup .dm-w-panel{
+  display:grid;gap:10px;margin:-9px 0 0;padding:14px 14px 15px;
+  border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
+  border-top:0;border-radius:0 0 18px 18px;
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 5%,var(--card-bg,#fff));
+  box-shadow:0 14px 30px -22px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent)}
+#dm-widget-popup .dm-w-panel[hidden]{display:none}
+#dm-widget-popup .dm-w-panel-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#dm-widget-popup .dm-w-panel-lbl{
+  flex:0 0 82px;font-size:10px;font-weight:800;letter-spacing:.9px;
+  text-transform:uppercase;color:var(--text-dim,#94a3b8)}
+#dm-widget-popup .dm-w-chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+#dm-widget-popup .dm-w-chip{
+  padding:6px 11px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--card-border,#e8edf3);background:var(--card-bg,#fff);
+  font:inherit;font-size:11.5px;font-weight:800;color:var(--text-dim,#64748b);
+  transition:background .18s ease,border-color .18s ease,color .18s ease}
+#dm-widget-popup .dm-w-chip:hover{
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 45%,transparent)}
+#dm-widget-popup .dm-w-chip[data-on="true"]{
+  background:var(--dm-widget-accent,#0ea5e9);border-color:transparent;color:#fff;
+  box-shadow:0 6px 14px -9px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent)}
+/* Il passo della temperatura: meno, il numero, piu'. */
+#dm-widget-popup .dm-w-stepper{
+  display:inline-flex;align-items:center;gap:2px;padding:2px;border-radius:12px;
+  background:var(--card-bg,#fff);box-shadow:inset 0 0 0 1px var(--card-border,#e8edf3)}
+#dm-widget-popup .dm-w-stepper button{
+  width:30px;height:28px;display:grid;place-items:center;border:0;border-radius:10px;
+  background:transparent;color:var(--text,#0f172a);
+  font:inherit;font-size:16px;font-weight:800;line-height:1;cursor:pointer;
+  transition:background .15s ease}
+#dm-widget-popup .dm-w-stepper button:hover{
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent)}
+#dm-widget-popup .dm-w-stepper b{
+  min-width:52px;text-align:center;
+  font-family:'Oswald',system-ui,sans-serif;font-size:17px;font-weight:600;
+  font-variant-numeric:tabular-nums}
+#dm-widget-popup .dm-w-panel-note{
+  margin:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8)}
+/* Sul telefono l'etichetta va sopra: ottantadue pixel di colonna, su
+   trecentonovanta, lasciavano alle modalita' una pastiglia per riga. */
+@media(max-width:600px){
+  #dm-widget-popup .dm-w-panel-row{flex-direction:column;align-items:stretch;gap:6px}
+  #dm-widget-popup .dm-w-panel-lbl{flex:none}
+  #dm-widget-popup .dm-w-stepper{align-self:flex-start}
+}
 #dm-widget-popup .dm-w-row{
-  padding:13px 15px;border-radius:17px;border:1px solid var(--card-border,#eef2f7);
-  background:var(--surface-2,#f8fafc);margin:0}
+  position:relative;display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:18px;
+  border:1px solid var(--card-border,#eef2f7);
+  background:var(--card-bg,#fff);margin:0;
+  box-shadow:0 1px 2px rgba(15,23,42,.03);
+  transition:border-color .18s ease,background .18s ease,box-shadow .18s ease}
+/* Il binario di colore sul fianco non serve piu': il colore ce l'ha la
+   pastiglia, e due cose colorate sulla stessa riga erano una di troppo. */
+#dm-widget-popup .dm-w-row::before{display:none}
 #dm-widget-popup .dm-w-row:hover{
-  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 34%,transparent);
-  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 6%,var(--surface-2,#f8fafc))}
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 32%,transparent);
+  box-shadow:0 6px 16px -10px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 60%,transparent)}
+/* Aperta, la riga apre gli angoli in basso e lascia entrare il pannello. */
+#dm-widget-popup .dm-w-row[data-dm-w-open="true"]{
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
+  border-bottom-color:transparent;
+  border-bottom-left-radius:0;border-bottom-right-radius:0;
+  box-shadow:none}
+/* Accesa: la velatura sulla riga. Lo stato lo dice il comando o l'icona, a
+   seconda di cosa quella sezione mette in riga — si guardano tutti e tre. */
+#dm-widget-popup .dm-w-row:is(
+  :has(.dm-w-glyph[data-on="true"]),
+  :has(.dm-w-switch[data-on="true"]),
+  :has(.dm-w-power[data-on="true"])){
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 5%,var(--card-bg,#fff));
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 22%,var(--card-border,#eef2f7))}
+/* La pastiglia dell'icona: la stessa della tessera in Home. */
+#dm-widget-popup .dm-w-row .dm-w-glyph{
+  flex:0 0 38px;width:38px;height:38px;display:grid;place-items:center;
+  border-radius:13px;font-size:18px;filter:none;opacity:1;
+  background:var(--surface-2,#f8fafc);
+  box-shadow:inset 0 0 0 1px var(--card-border,#e8edf3);
+  transition:background .2s ease,box-shadow .2s ease,filter .2s ease}
+#dm-widget-popup .dm-w-row .dm-w-glyph[data-on="true"]{
+  background:linear-gradient(150deg,
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 20%,#fff),
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 11%,#fff));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 26%,transparent)}
+/* Spenta: il grigio sta sulla pastiglia intera, ma il fondo e' gia' quasi
+   grigio — a cambiare e' solo l'emoji, che e' quello che si vuole. */
+#dm-widget-popup .dm-w-row .dm-w-glyph[data-on="false"]{filter:grayscale(1);opacity:.5}
+/* Il nome pesa piu' di quello che ha sotto: prima erano quasi uguali e la riga
+   si leggeva tutta insieme, senza un ordine. */
+#dm-widget-popup .dm-w-row .dm-w-name{
+  gap:2px;font-size:14px;font-weight:800;letter-spacing:.1px}
+#dm-widget-popup .dm-w-row .dm-w-name small{
+  font-size:11px;font-weight:700;letter-spacing:.2px;color:var(--text-dim,#94a3b8)}
+/* I numeri in Oswald, come tutti i numeri della plancia, e incolonnabili. */
+#dm-widget-popup .dm-w-row .dm-w-val{
+  font-family:'Oswald',system-ui,sans-serif;font-size:18px;font-weight:600;
+  font-variant-numeric:tabular-nums;color:var(--text,#0f172a)}
+/* Il tasto di accensione: pastiglia quadrata come le altre, non un cerchio
+   con l'alone — l'alone era l'unica cosa che si vedeva della riga. */
+#dm-widget-popup .dm-w-row .dm-w-power{
+  flex:0 0 36px;width:36px;height:36px;border-radius:12px;font-size:15px;
+  border:1px solid var(--card-border,#e8edf3);background:var(--surface-2,#f8fafc);
+  color:var(--text-dim,#94a3b8);box-shadow:none}
+#dm-widget-popup .dm-w-row .dm-w-power[data-on="true"]{
+  border-color:transparent;background:var(--dm-widget-accent,#0ea5e9);color:#fff;
+  box-shadow:0 6px 14px -8px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 85%,transparent)}
+/* L'interruttore: un filo piu' largo, e da spento un grigio che si vede senza
+   gridare. */
+#dm-widget-popup .dm-w-row .dm-w-switch{
+  flex:0 0 44px;width:44px;height:26px;
+  background:color-mix(in srgb,var(--text-dim,#94a3b8) 26%,transparent)}
+#dm-widget-popup .dm-w-row .dm-w-switch i{top:3px;left:3px;width:20px;height:20px}
+#dm-widget-popup .dm-w-row .dm-w-switch[data-on="true"] i{transform:translateX(18px)}
+/* I comandi minori — la tendina della posizione, le frecce — prendono la
+   stessa forma della pastiglia, cosi' la riga ha un solo raggio. */
+#dm-widget-popup .dm-w-row :is(.dm-w-position,.dm-w-arrows button,.dm-w-alarm button){
+  border-radius:11px;background:var(--surface-2,#f8fafc);
+  border:1px solid var(--card-border,#e8edf3)}
+#dm-widget-popup .dm-w-row .dm-w-position{height:30px;width:38px}
+#dm-widget-popup .dm-w-row .dm-w-arrows button{width:32px;height:32px}
+/* Il titolo di un gruppo dentro la lista: maiuscoletto spaziato con la sua
+   riga sottile, come le altre separazioni della plancia. */
+/* Il tasto che apre una porta: la stessa pastiglia quadrata degli altri
+ * comandi di riga, in verde perche' apre. */
+#dm-widget-popup .dm-w-row .dm-w-door{
+  flex:0 0 36px;width:36px;height:36px;display:grid;place-items:center;
+  border-radius:12px;font-size:16px;cursor:pointer;
+  border:1px solid var(--card-border,#e8edf3);background:var(--surface-2,#f8fafc);
+  transition:background .18s ease,border-color .18s ease,transform .15s ease}
+#dm-widget-popup .dm-w-row .dm-w-door:hover{
+  background:color-mix(in srgb,var(--dm-widget-accent,#10b981) 14%,transparent);
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#10b981) 45%,transparent)}
+#dm-widget-popup .dm-w-row .dm-w-door:active{transform:scale(.94)}
+@media(prefers-reduced-motion:reduce){
+  #dm-widget-popup .dm-w-row .dm-w-door{transition:none}
+  #dm-widget-popup .dm-w-row .dm-w-door:active{transform:none}
+}
+/* La riga per scrivere: una casella e un piu', larghi quanto la lista. */
+#dm-widget-popup .dm-todo-add{
+  display:flex;gap:8px;margin:9px 0 2px}
+#dm-widget-popup .dm-todo-new{
+  flex:1 1 auto;min-width:0;height:38px;padding:0 13px;border-radius:13px;
+  border:1px solid var(--card-border,#e8edf3);background:var(--card-bg,#fff);
+  font:inherit;font-size:13px;font-weight:700;color:var(--text,#0f172a);
+  transition:border-color .18s ease,box-shadow .18s ease}
+#dm-widget-popup .dm-todo-new::placeholder{color:var(--text-dim,#94a3b8);font-weight:600}
+#dm-widget-popup .dm-todo-new:focus{
+  outline:none;border-color:var(--dm-widget-accent,#0ea5e9);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 18%,transparent)}
+#dm-widget-popup .dm-todo-plus{
+  flex:0 0 38px;width:38px;height:38px;display:grid;place-items:center;
+  border:0;border-radius:13px;cursor:pointer;
+  background:var(--dm-widget-accent,#0ea5e9);color:#fff;
+  font:inherit;font-size:19px;font-weight:800;line-height:1;
+  box-shadow:0 8px 18px -10px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent);
+  transition:transform .15s ease,filter .18s ease}
+#dm-widget-popup .dm-todo-plus:hover{filter:brightness(1.06)}
+#dm-widget-popup .dm-todo-plus:active{transform:scale(.94)}
+/* Il cestino sta in fondo alla riga e si fa vedere quando serve: sempre sul
+   telefono, dove non c'e' un puntatore da avvicinare. */
+#dm-widget-popup .dm-todo-del{
+  flex:0 0 30px;width:30px;height:30px;display:grid;place-items:center;
+  margin-left:auto;border:0;border-radius:10px;cursor:pointer;
+  background:transparent;font-size:14px;line-height:1;opacity:.35;
+  transition:opacity .18s ease,background .18s ease}
+#dm-widget-popup .dm-todo-item:hover .dm-todo-del{opacity:1}
+#dm-widget-popup .dm-todo-del:hover{background:#fee2e2;opacity:1}
+@media(hover:none){#dm-widget-popup .dm-todo-del{opacity:.7}}
+@media(prefers-reduced-motion:reduce){
+  #dm-widget-popup .dm-todo-plus:active{transform:none}
+}
+#dm-widget-popup .dm-w-block-title{
+  padding:10px 4px 8px;font-size:10.5px;letter-spacing:1.2px;
+  border-bottom:1px solid var(--card-border,#eef2f7);margin-bottom:2px}
+#dm-widget-popup .dm-w-empty{margin:6px 4px;font-size:13px}
+/* Le miniature delle telecamere: lo stesso angolo delle righe. */
+#dm-widget-popup .dm-w-cam{border-radius:16px}
+@media(prefers-reduced-motion:reduce){
+  #dm-widget-popup .dm-w-row,#dm-widget-popup .dm-w-close,
+  #dm-widget-popup .dm-w-row .dm-w-more{transition:none}
+  #dm-widget-popup .dm-w-row[data-dm-w-open="true"] .dm-w-more{transform:none}
+  #dm-widget-popup .dm-w-close:hover{transform:none}
+}
 #dm-widget-popup .dm-w-name{font-size:13.5px;font-weight:800}
 #dm-widget-popup .dm-w-val{font-size:14.5px;font-weight:900}
 #dm-widget-popup .dm-w-glyph{font-size:17px}
 @media(max-width:600px){
   #dm-widget-popup{padding:16px}
-  #dm-widget-popup .dm-widget-detail{border-radius:30px;max-height:82dvh}
-  #dm-widget-popup .dm-w-head{padding:18px 18px 13px}
+  #dm-widget-popup .dm-widget-detail{border-radius:22px;max-height:82dvh}
+  #dm-widget-popup .dm-widget-detail .dm-w-head{padding:16px 16px 15px;column-gap:12px}
   #dm-widget-popup .dm-w-body{padding:13px 15px 18px}
 }
 /* ── «In primo piano»: il ponte dei widget della Home ─────────────────── */
@@ -1876,14 +2707,20 @@ html.dm-widget-popup-open{overflow:hidden}
   font-size:23px;font-weight:900;line-height:1.05;letter-spacing:-.4px;font-variant-numeric:tabular-nums;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-under{
-  display:flex;align-items:baseline;gap:6px;min-width:0}
+  /* Una riga per uno.
+   *
+   * Nome e didascalia stavano affiancati, e su un telefono il nome si prende
+   * quasi tutta la tessera: della didascalia restava una coda tagliata a
+   * meta' — «idita' 61%», «tra Bagno Pic» — che scorreva senza mai leggersi.
+   * In colonna la didascalia ha la larghezza intera della tessera. */
+  display:grid;gap:1px;min-width:0}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-label{
   /* Il nome della sezione non si abbrevia: e' l'unica parola che dice di che
    * cosa si sta parlando. A stringersi e' semmai la didascalia accanto. */
   flex:0 0 auto;font-size:10px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;
   color:var(--text-dim,#64748b);white-space:nowrap}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-caption{
-  flex:1 1 auto;min-width:0;font-size:10.5px;font-weight:700;color:var(--text-dim,#94a3b8);
+  min-width:0;font-size:10.5px;font-weight:700;color:var(--text-dim,#94a3b8);
   white-space:nowrap;overflow:hidden;
   /* Sfuma sul bordo invece di tagliare: si capisce che il testo continua. */
   mask-image:linear-gradient(90deg,#000 84%,transparent);
@@ -1898,7 +2735,6 @@ html.dm-widget-popup-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){
   :is(#dm-widgets,#dm-widget-popup) .dm-tile-scroll[data-dm-scroll="true"]{animation:none}
 }
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-caption:not(:empty)::before{content:"· "}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-go{
   flex:0 0 auto;color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 65%,var(--text-dim,#94a3b8));
   font-size:17px;font-weight:900;line-height:1;opacity:.75;
@@ -2101,6 +2937,8 @@ export function installHomeWidgetsSection() {
   doc.addEventListener("click", onClick);
   bindEscape();
   doc.addEventListener("change", onChange);
+  doc.addEventListener("input", onInput);
+  doc.addEventListener("keydown", onKeydown);
   for (const eventName of [
     "dashboardmodern:legacy-ready",
     "dashboardmodern:runtime-ready",

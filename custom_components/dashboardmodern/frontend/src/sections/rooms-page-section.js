@@ -22,6 +22,7 @@
  * una seconda card per la stessa luce vorrebbe dire mantenerne due.
  */
 import { lightCommand, lightView, lightsSignature } from "../core/light-model.js";
+import { roomGlyph } from "../core/personalization-catalog.js";
 import {
   ROOM_ASSIGN_KEY,
   ROOM_BLOCKS,
@@ -227,7 +228,10 @@ export function ensureRoomsTab() {
   tab.className = "tab";
   tab.dataset.tab = ROOMS_TAB;
   tab.id = `tab-${ROOMS_TAB}`;
-  tab.innerHTML = `<span class="icon">🏠</span><span class="text">${esc(t("Stanze", "Rooms"))}</span>`;
+  /* La porta, non la casa: nella barra la casa e' Home, e due case vicine
+   * sono due voci che si somigliano troppo per distinguerle al volo. La porta
+   * e' la stessa che la sezione porta gia' in configurazione. */
+  tab.innerHTML = `<span class="icon">🚪</span><span class="text">${esc(t("Stanze", "Rooms"))}</span>`;
   /* Il gestore che il runtime lega alle voci lo lega una volta sola, al
    * caricamento: questa arriva dopo, e il suo tocco se lo deve gestire da se'. */
   tab.addEventListener("click", () => {
@@ -261,7 +265,11 @@ export function pillsMarkup(pagine, scelta) {
   return `<nav class="dm-stanze-tabs" aria-label="${esc(t("Stanze", "Rooms"))}">${pagine
     .map((pagina) => {
       const nome = pagina.senzaStanza ? t("Senza stanza", "No room") : pagina.name;
-      const icona = pagina.icon || (pagina.senzaStanza ? "📦" : "🏠");
+      /* Le stanze la loro icona la tengono come mdi — «mdi:sofa» — e scritta
+       * cosi' finiva nella linguetta come parola, sopra il nome. Qui si
+       * traduce nel simbolo, che e' quello che il resto della plancia disegna
+       * per la stessa stanza. */
+      const icona = pagina.senzaStanza ? "📦" : roomGlyph(pagina.icon) || "🏠";
       return `<button type="button" class="sub-tab-btn dm-stanze-tab${
         pagina.id === scelta ? " active" : ""
       }" data-dm-stanza="${esc(pagina.id)}" aria-selected="${pagina.id === scelta}">

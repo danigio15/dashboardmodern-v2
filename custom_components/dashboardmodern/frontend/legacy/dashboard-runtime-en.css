@@ -77,6 +77,15 @@
   --transition: all 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
+/* Il telefono non decide lui quanto e' grande un carattere.
+ *
+ * Android gonfia da solo il testo dentro i contenitori che scorrono in
+ * orizzontale — le linguette delle stanze in Temperature erano il caso —
+ * e ogni volta che la misura la si rimpiccioliva in CSS lui la rigonfiava:
+ * per questo il font «sballato» tornava sempre. Qui gli si dice di lasciar
+ * stare, e le misure scritte valgono quelle che sono. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: 'Inter', sans-serif; background-color: var(--bg-sculpted); color: var(--text); min-height: 100vh; overflow-x: hidden; padding-bottom: env(safe-area-inset-bottom, 40px); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
@@ -4609,8 +4618,249 @@ body.cd-nav-fixed nav.tabs.bottom-nav-bar {
     transform: translateX(-50%) scale(1) !important;
 }
 body.cd-nav-fixed .bottom-nav-handle { display: none !important; }
-body.cd-nav-fixed { padding-bottom: 96px !important; }
+body.cd-nav-fixed { padding-bottom: 112px !important; }
+/* La barra ferma non ha bisogno del sensore che la chiama.
+ *
+ * Da desktop la barra sta nascosta e si affaccia quando il puntatore le arriva
+ * vicino: a chiamarla e' un rettangolo invisibile che le sta intorno e sborda
+ * di 22px verso l'alto. Quel rettangolo e' dentro la barra, e la barra sta a
+ * z-index 9900: sborda sopra la pagina e si prende i clic che passano di li'.
+ * Con la barra ferma e alzata quella fascia cade proprio sulla seconda fila
+ * delle tessere della Home, e le ultime righe non si riuscivano a premere.
+ * A barra ferma il sensore non serve — la barra e' gia' li'. */
+body.cd-nav-fixed nav.tabs.bottom-nav-bar::before { display: none !important; }
+
+/* La barra: piu' bassa, e con un fondo che regge quello che ci passa sotto.
+ *
+ * Era alta ottanta pixel e trasparente al sessantacinque per cento: con del
+ * contenuto sotto — le tessere della Home, una griglia di card — le scritte
+ * delle sezioni ci si perdevano dentro, e la barra sembrava una velatura
+ * invece di una barra. Adesso il fondo e' quasi pieno e il vetro sfoca di
+ * piu': quello che passa sotto si intuisce e non si legge, che e' il punto di
+ * un vetro smerigliato. E ogni voce costa dodici pixel in meno in altezza:
+ * l'icona e il nome ci stanno lo stesso, il resto era aria. */
+nav.tabs.bottom-nav-bar {
+    background: rgba(255, 255, 255, 0.92) !important;
+    backdrop-filter: blur(42px) saturate(170%) !important;
+    -webkit-backdrop-filter: blur(42px) saturate(170%) !important;
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.16), inset 0 0 0 1px rgba(255,255,255,0.7) !important;
+    padding: 5px 10px !important;
+}
+html[data-theme="dark"] nav.tabs.bottom-nav-bar,
+body.dark-theme nav.tabs.bottom-nav-bar {
+    background: rgba(15, 23, 42, 0.92) !important;
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(148, 163, 184, 0.22) !important;
+}
+nav.tabs.bottom-nav-bar .tab { padding: 6px 14px !important; gap: 4px !important; }
+nav.tabs.bottom-nav-bar .tab .icon { font-size: 21px !important; }
 
 #cd-boot-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:#e8edf3;transition:opacity .26s ease}html[data-theme="dark"] #cd-boot-overlay{background:#0b1220}#cd-boot-overlay .s{width:44px;height:44px;border:4px solid rgba(14,165,233,.22);border-top-color:#0ea5e9;border-radius:50%;animation:cdBootSpin .8s linear infinite}@keyframes cdBootSpin{to{transform:rotate(360deg)}}
 
 @keyframes cdSpin{to{transform:rotate(360deg)}}
+
+/* ═══ Le linguette dell'editor, in colonna ═══
+ *
+ * Erano una fila che scorreva in orizzontale: diciassette voci, tre visibili
+ * per volta, e per arrivare a Stanze si trascinava al buio senza sapere quante
+ * ne restassero. In colonna ci stanno tutte una sotto l'altra e si leggono.
+ *
+ * Due cose vanno dette, perche' qui c'e' gia' un padrone.
+ *
+ * La prima: la scheda dell'editor cresce con il suo contenuto e a scorrere e'
+ * la pagina — `dashboard-runtime.css` lo impone, ed e' cosi' che si e' sistemato
+ * lo scorrimento a dito. Quella regola non si tocca: la colonna delle linguette
+ * non prova a scorrere per conto suo, si INCOLLA in alto e resta raggiungibile
+ * mentre il corpo scorre con la pagina.
+ *
+ * La seconda: quel foglio arriva dopo questo e dichiara le stesse regole sulle
+ * stesse classi. Qui si scrive `#editor-modal.modal-wrapper` — una specificita'
+ * in piu' — invece di alzare la voce con `!important`: cosi' vince chi ha
+ * ragione, non chi grida.
+ */
+#editor-modal.modal-wrapper .ed-shell {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: start;
+  width: min(100%, 980px);
+}
+#editor-modal.modal-wrapper .ed-head { grid-area: 1 / 1 / 2 / 3; }
+#editor-modal.modal-wrapper .ed-tabs {
+  grid-area: 2 / 1 / 3 / 2;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  flex-direction: column;
+  align-items: stretch;
+  width: clamp(104px, 30vw, 172px);
+  max-height: 100vh;
+  padding: 12px 8px;
+  gap: 3px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-bottom: 0;
+  border-right: 1px solid var(--card-border);
+}
+#editor-modal.modal-wrapper .ed-tab {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.28;
+  padding: 10px 11px;
+}
+/* Telefono tenuto in piedi: la colonna si stringe al simbolo.
+ *
+ * Qui c'e' solo la geometria della colonna, che e' quello che questo foglio
+ * possiede. Il nome dentro la linguetta lo nasconde chi quel pezzo lo crea —
+ * il modulo delle rifiniture da telefono — perche' e' li' che gli si impone di
+ * vedersi, e due fogli che decidono la stessa cosa sarebbero due padroni. */
+@media (orientation: portrait) and (max-width: 640px) {
+  /* La colonna si prende quel poco che le serve, e il resto torna alla scheda:
+     su un telefono lo spazio per leggere e per toccare e' tutto li', e una
+     colonna di simboli non deve costare piu' di una colonna di simboli. */
+  #editor-modal.modal-wrapper .ed-shell {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+  #editor-modal.modal-wrapper .ed-tabs {
+    width: 46px;
+    padding: 10px 3px;
+  }
+  #editor-modal.modal-wrapper .ed-tab {
+    justify-content: center;
+    padding: 11px 2px;
+  }
+}
+#editor-modal.modal-wrapper .ed-body {
+  grid-area: 2 / 2 / 3 / 3;
+  min-width: 0;
+  padding: 18px 18px 24px;
+}
+@media (min-width: 700px) {
+  /* La regola larga di prima faceva andare a capo una fila che adesso e' una
+     colonna: qui la si disdice, non la si combatte. */
+  #editor-modal.modal-wrapper .ed-tabs { flex-wrap: nowrap; }
+  #editor-modal.modal-wrapper .ed-body { padding: 20px 24px 26px; }
+}
+
+/* ═══ I popup, tutti con la stessa veste ═══
+ *
+ * Ogni sezione apre la sua finestra, e tutte passano di qui: `.modal-wrapper`
+ * per il fondo, `.modal-card` per il foglio. Erano nate una alla volta e si
+ * vedeva — un anello bianco cucito dentro il bordo, che sul tema scuro faceva
+ * da taglio; un'entrata lunga mezzo secondo che le faceva galleggiare; una
+ * intestazione col tasto di chiusura grande come una pastiglia di comando, che
+ * pesava piu' del titolo.
+ *
+ * Qui non cambia cosa fa nessuna finestra: cambia come si presenta, e cambia
+ * per tutte insieme, perche' e' una sola regola.
+ *
+ * La scheda della configurazione resta fuori dalla parte geometrica: ha una
+ * forma sua — la colonna delle linguette e il corpo accanto — e imporle questa
+ * significherebbe due padroni sulla stessa misura.
+ */
+.modal-wrapper {
+  background: color-mix(in srgb, var(--bg-sculpted, #e6ebf1) 62%, rgba(15, 23, 42, 0.34));
+}
+html[data-theme="dark"] .modal-wrapper {
+  background: color-mix(in srgb, #060a14 74%, rgba(2, 6, 15, 0.9));
+}
+
+.modal-card:not(.ed-shell) {
+  border-radius: 28px;
+  padding: 24px 22px;
+  /* Un'ombra che scende, e un filo di bordo. L'anello bianco cucito dentro
+     valeva solo sul tema chiaro: sullo scuro era una riga luminosa in mezzo al
+     buio. */
+  box-shadow:
+    0 32px 64px -28px rgba(2, 6, 23, 0.45),
+    0 6px 18px -12px rgba(2, 6, 23, 0.25);
+  border: 1px solid var(--card-border);
+}
+/* Il filo di luce in cima: dice dove comincia la finestra senza disegnarci
+   sopra una barra.
+   E' dipinto nello sfondo, non appoggiato sopra: la finestra e' lei stessa il
+   contenitore che scorre, e un elemento appoggiato scorrerebbe via col
+   contenuto lasciando il bordo nudo appena si scende di una riga. */
+.modal-card:not(.ed-shell) {
+  background-image: linear-gradient(
+    90deg,
+    var(--primary-color, #0ea5e9),
+    color-mix(in srgb, var(--primary-color, #0ea5e9) 18%, transparent)
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 3px;
+  background-position: 0 0;
+}
+
+/* L'entrata: piu' corta e meno larga di movimento. Mezzo secondo e trenta
+   pixel di salita facevano sembrare che la finestra arrivasse da lontano. */
+.modal-card {
+  transform: scale(0.96) translateY(12px);
+  transition:
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.22s ease;
+}
+.modal-wrapper.show .modal-card {
+  transform: scale(1) translateY(0);
+}
+
+/* L'intestazione: il titolo pesa, la chiusura no.
+   Era una pastiglia maiuscola larga quanto un comando, e in cima a ogni
+   finestra il primo posto se lo prendeva lei. */
+.ev-waw-header {
+  gap: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--card-border) !important;
+}
+.ev-waw-title {
+  font-size: 21px;
+  letter-spacing: 0.6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ev-waw-close {
+  flex: 0 0 auto !important;
+  width: 38px !important;
+  height: 38px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  font-size: 0 !important;
+  letter-spacing: 0 !important;
+  box-shadow: none !important;
+  background: var(--surface-3) !important;
+  border: 1px solid var(--card-border) !important;
+}
+.ev-waw-close::before {
+  content: "✕";
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.ev-waw-close:hover {
+  transform: none !important;
+  background: #fee2e2 !important;
+  border-color: #fecaca !important;
+  color: #dc2626 !important;
+}
+html[data-theme="dark"] .ev-waw-close:hover {
+  background: rgba(220, 38, 38, 0.22) !important;
+  border-color: rgba(248, 113, 113, 0.45) !important;
+  color: #fca5a5 !important;
+}
+
+@media (max-width: 640px) {
+  .modal-card:not(.ed-shell) { border-radius: 22px; padding: 18px 14px; }
+  .ev-waw-title { font-size: 18px; }
+}
+
+/* Chi ha chiesto meno movimento non lo riceve: la finestra c'e' o non c'e'. */
+@media (prefers-reduced-motion: reduce) {
+  .modal-card, .modal-wrapper { transition: opacity 0.12s linear !important; }
+  .modal-card { transform: none !important; }
+  .modal-wrapper.show .modal-card { transform: none !important; }
+}

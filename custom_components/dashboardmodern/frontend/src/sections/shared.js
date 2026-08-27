@@ -281,6 +281,30 @@ export function section(name, fallback) {
  * configurazione scritta a mano puo' non avere id, e togliere la scelta a chi
  * ce l'ha gia' sarebbe peggio del problema. La riga scelta si riconosce
  * dall'uno o dall'altro, per lo stesso motivo. */
+/* Il nome di una stanza, da qualunque cosa ci sia scritto.
+ *
+ * La tendina qui sotto salva l'id quando c'e' — e' l'unica cosa che regge un
+ * rinominamento — ma chi disegna una card scrive quello che trova, e su una
+ * configurazione recente quello che trova e' «ROOM_MT8VPZ7M». Sulle finestre
+ * si leggeva quello, sotto al nome e nella riga che separa i gruppi.
+ *
+ * Qui l'id torna il nome; un nome resta il nome — le configurazioni vecchie
+ * salvavano quello — e una stanza che non esiste piu' resta com'era scritta,
+ * che e' comunque meglio di niente. */
+export function roomLabel(reference) {
+  const cercato = String(reference ?? "").trim();
+  if (!cercato) return "";
+  try {
+    const stanze = section("rooms", readJson("cd_stanze", [])) || [];
+    for (const room of Array.isArray(stanze) ? stanze : []) {
+      const id = String(room?.id ?? "").trim();
+      const nome = String(room?.name ?? "").trim();
+      if ((id && id === cercato) || (nome && nome === cercato)) return nome || cercato;
+    }
+  } catch (_error) {}
+  return cercato;
+}
+
 export function roomOptionsMarkup(selected = "", vuoto = "") {
   const stanze = section("rooms", readJson("cd_stanze", [])) || [];
   const scelto = String(selected ?? "").trim();

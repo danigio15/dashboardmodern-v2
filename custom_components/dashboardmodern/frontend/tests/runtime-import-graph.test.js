@@ -342,7 +342,38 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // scheda, e su quelle che una stanza ce l'hanno gia' per mestiere non mette
   // niente. Aggiungere il campo a dieci editor voleva dire dieci punti in cui
   // scriverlo e dieci modi di sbagliarlo.
-  assert.ok(relative.length <= 157, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 158 con la scelta di quali tasti dell'antifurto vedere:
+  // `alarm-modes-editor-section.js` spunta la fila in configurazione. La
+  // centrale dice cosa ACCETTA — ed e' gia' la 156 a dirlo — ma quello che uno
+  // vuole vedere e' un'altra domanda: una Ring accetta cinque inserimenti, e
+  // chi in vacanza non ci va mai si ritrovava due tasti che non premera' mai
+  // davanti a quello che usa ogni sera. La regola di cosa si vede resta nel
+  // modello puro; qui c'e' solo il modo di dirla.
+  // 160 con i parametri del tasto Clima rapido: `core/quick-climate.js` dice
+  // cosa vuol dire un'impostazione e in quali chiamate si traduce, e
+  // `quick-climate-editor-section.js` la fa scegliere. Il popup della Home
+  // accendeva sempre in raffrescamento a ventisei gradi con la ventola
+  // automatica, scritti nel codice: chi voleva altro non aveva nessun posto
+  // dove dirlo. Il modello e' puro perche' la traduzione in tre chiamate si
+  // prova a tavolino — e' l'unico modo di essere sicuri che il tasto faccia
+  // quello che la scheda dice.
+  // 161 con il meteo nell'intestazione: `weather-in-masthead-section.js`
+  // sposta la striscia del meteo accanto al nome della casa e le da' la
+  // taglia di una fascia invece che di una card. Non e' un modulo di dati —
+  // non legge nessuno stato e non disegna niente: prende il blocco che c'e'
+  // gia', lo mette da un'altra parte e lo rimpicciolisce. Sta da solo perche'
+  // il posto e la taglia sono una scelta che si cambia in un punto, e perche'
+  // chi disegna le tessere della Home non deve sapere dove sta il meteo.
+  // 162 con l'ordine delle stanze: `rooms-order-editor-section.js` attacca due
+  // frecce a ogni riga della scheda Stanze. L'elenco delle stanze e' l'ordine
+  // in cui sono state aggiunte, e quello stesso ordine si ritrova in ogni
+  // tendina che chiede «in che stanza sta questa cosa» e nelle linguette della
+  // pagina Stanze: chi ha aggiunto il bagnetto per ultimo se lo ritrovava per
+  // ultimo dappertutto, e l'unico modo di spostarlo era cancellarlo e
+  // riscriverlo, perdendo tutto quello che gli era stato attribuito. La scheda
+  // la disegna il documento vendorizzato e non si tocca: sta da solo perche' e'
+  // un pezzo appoggiato a una scheda di cui non e' il padrone.
+  assert.ok(relative.length <= 162, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.
@@ -392,9 +423,22 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // so the section switch and the save stay in place when a tab's own panels
   // arrive late. The MiniPC page owns one scoped to #page-server, so a heading
   // follows the block the auto-hide empties — the auto-hide is called from
-  // inside the runtime, so there is no name to wrap. The loop below still
-  // rejects observers rooted at document/body/documentElement.
-  assert.ok(observers.length <= 7, `too many production observers: ${observers.length}`);
+  // inside the runtime, so there is no name to wrap. The alarm-mode chooser owns
+  // one more, scoped to the children of #ed-body: it has to appear under the
+  // panel field the moment the Security tab is drawn, and the only honest signal
+  // that the card has been redrawn is the card itself — the tab class is set
+  // before the body is mounted, and the legacy `editorSwitch` may not exist yet
+  // when modules install, so wrapping it is a hook that can silently fail.
+  // The quick-climate settings own the ninth, for the same reason and scoped the
+  // same way: the block has to appear under the climate units the moment the
+  // Clima tab is drawn, and the card itself is the only honest signal that it
+  // has been redrawn.
+  // The loop below still rejects observers rooted at document/body/documentElement.
+  // Il decimo e' del meteo nell'intestazione, e guarda solo i figli di
+  // #page-home: la striscia si sposta una volta sola, ma se qualcuno la
+  // rimette dentro la pagina — un ridisegno che riscrive #page-home per
+  // intero — va ripresa, e non c'e' nessun nome da avvolgere per saperlo.
+  assert.ok(observers.length <= 10, `too many production observers: ${observers.length}`);
   for (const [file, source] of observers) {
     assert.doesNotMatch(
       source,

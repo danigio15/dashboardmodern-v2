@@ -446,7 +446,19 @@ export function personViewModel(person, states = {}, nowMs = null) {
   const known =
     Boolean(entityState) && !["unknown", "unavailable", ""].includes(rawState.toLowerCase());
   const battery = batteryFor(person, states);
-  const photo = person.photo || clean(entityState?.attributes?.entity_picture);
+  /* Chi ha scelto un avatar vede l'avatar.
+   *
+   * La foto scritta a mano vince su tutto — e' la piu' precisa delle scelte.
+   * Subito dopo viene l'avatar, se qualcuno l'ha scelto: un'emoji o una faccia
+   * costruita pezzo per pezzo sono un gesto, uno e' andato in configurazione e
+   * ha detto «voglio questa». La fotografia che arriva dall'entita' — quella
+   * di Home Assistant, o quella che il tracker si porta dietro — e' il
+   * ripiego automatico, e stava davanti alla scelta: chi si costruiva la
+   * faccia continuava a vedere la fototessera del telefono, e non capiva
+   * perche' l'avatar non arrivasse mai. */
+  const avatarScelto = Boolean(person.avatar?.face) || Boolean(clean(person.avatar?.emoji));
+  const photo =
+    person.photo || (avatarScelto ? "" : clean(entityState?.attributes?.entity_picture));
   const away = known && presence !== "home";
   const watch = readNumber(states?.[person.watch]?.state);
   return {

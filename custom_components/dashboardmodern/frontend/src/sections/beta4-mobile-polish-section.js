@@ -20,7 +20,9 @@ const TAB_ICONS = Object.freeze({
   sez9: "❄️",
   appliances: "🧺",
   luci: "💡",
-  stanze: "🏠",
+  /* La porta, non la casa: la casa e' Home, e da telefono — dove della
+   * linguetta resta il solo simbolo — due case affiancate non si distinguono. */
+  stanze: "🚪",
   avvisi: "🔔",
   tapp: "🪟",
   irr: "💧",
@@ -122,6 +124,15 @@ function syncConfigTabIcons() {
     }
     iconNode.textContent = icon;
     if (!clean(labelNode.textContent)) labelNode.textContent = labelText;
+    /* Il nome anche fuori dal pezzo che lo scrive.
+     *
+     * Da telefono, tenuto in piedi, quel pezzo si nasconde e della linguetta
+     * resta il simbolo: senza questo, un simbolo che uno non riconosce non ha
+     * piu' nessun modo di dire chi e' — ne' a chi tiene premuto, ne' a chi la
+     * pagina se la fa leggere. */
+    const nome = clean(labelNode.textContent) || labelText;
+    if (button.title !== nome) button.title = nome;
+    if (button.getAttribute("aria-label") !== nome) button.setAttribute("aria-label", nome);
   });
 }
 
@@ -588,6 +599,22 @@ function installStyles() {
     nav.tabs.bottom-nav-bar{transition:transform .4s cubic-bezier(0.175,0.885,0.32,1.275),bottom .4s cubic-bezier(0.175,0.885,0.32,1.275),opacity .3s ease,box-shadow .4s ease,backdrop-filter .3s ease,-webkit-backdrop-filter .3s ease!important}
     .ed-tab[data-tab]>.dm-beta4-tab-icon{display:inline-grid!important;place-items:center!important;flex:0 0 auto!important;min-width:1.2em!important;margin-right:5px!important;visibility:visible!important;opacity:1!important}
     .ed-tab[data-tab]>.dm-beta4-tab-label{display:inline!important;white-space:nowrap!important}
+    /* Telefono tenuto in piedi: della linguetta resta il simbolo.
+     *
+     * Le linguette della configurazione stanno in colonna, e su trecentonovanta
+     * pixel una colonna che scrive anche i nomi si porta via un terzo dello
+     * schermo per dire quello che il simbolo dice gia'. Il nome non sparisce
+     * davvero: resta nel titolo del tasto — quindi anche per chi legge a voce —
+     * e ricompare da solo appena il telefono si gira, perche' in orizzontale lo
+     * schermo e' largo abbastanza e questa regola non vale piu'.
+     *
+     * Sta qui e non nel foglio della plancia perche' e' qui che quel pezzo di
+     * linguetta nasce, e sono queste righe a imporgli di vedersi: nasconderlo
+     * da un altro foglio vorrebbe dire due padroni sulla stessa decisione. */
+    @media (orientation:portrait) and (max-width:640px){
+      #editor-modal .ed-tab[data-tab]>.dm-beta4-tab-label{display:none!important}
+      #editor-modal .ed-tab[data-tab]>.dm-beta4-tab-icon{margin-right:0!important;font-size:21px!important}
+    }
 
     #ed-body .ed-row[data-section-key] .ed-row-main{display:grid!important;grid-template-columns:minmax(0,1fr) 44px!important;grid-template-rows:auto!important;align-items:center!important;gap:8px!important;min-width:0!important;padding-right:0!important;position:relative!important}
     #ed-body .ed-row[data-section-key] .ed-row-main>.ed-row-new{grid-column:1!important;grid-row:1!important;min-width:0!important}

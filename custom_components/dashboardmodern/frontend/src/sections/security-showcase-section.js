@@ -30,9 +30,11 @@
  */
 import {
   ALARM_DISARM,
+  ALARM_MODE_CHOICE_KEY,
   alarmActiveMode,
   alarmCodeNeeded,
   alarmModes,
+  alarmVisibleModes,
 } from "../core/alarm-panel.js";
 import {
   activeLocale,
@@ -167,8 +169,14 @@ function alarmStateObject() {
 /* La fila dei tasti: uno per ogni inserimento che la centrale accetta davvero,
  * piu' lo sblocco. Un tasto che chiama un servizio che la centrale non ha e'
  * un tasto che non fa niente — e non deve stare li'. */
+/* I tasti scelti: quelli che la centrale accetta, meno quelli che si e' detto
+ * di non voler vedere. La scelta sta in configurazione, sotto Antifurto. */
+function modiVisibili(stateObj = alarmStateObject()) {
+  return alarmVisibleModes(stateObj, readJson(ALARM_MODE_CHOICE_KEY, []));
+}
+
 function modeRow(labels, stateObj = alarmStateObject()) {
-  return alarmModes(stateObj)
+  return modiVisibili(stateObj)
     .map((voce) => {
       const testi = labels.modes[voce.mode] || labels.modes[ALARM_DISARM.mode];
       return modeButton({ ...voce, label: testi.label, hint: testi.hint });
@@ -180,7 +188,7 @@ function modeRow(labels, stateObj = alarmStateObject()) {
  * ogni evento di stato — riscriverla sempre spegnerebbe l'animazione del tasto
  * acceso due volte al secondo. */
 function modeSignature(stateObj) {
-  return alarmModes(stateObj)
+  return modiVisibili(stateObj)
     .map((voce) => voce.mode)
     .join(",");
 }
@@ -448,12 +456,31 @@ function installOverrides() {
  * Se questi non ci sono, il runtime si comporta come si e' sempre comportato. */
 function publishAlarmHelpers() {
   root.dmAlarmCodeNeeded = (service) => alarmCodeNeeded(alarmStateObject(), service);
-  root.dmAlarmActiveMode = (state) =>
-    alarmActiveMode(
+  /* Quale tasto e' acceso, con due domande separate.
+   *
+   * Il ripiego su «Fuori» dentro `alarmActiveMode` serve per le centrali che
+   * un inserimento non lo dichiarano: la casa e' inserita, il tasto giusto non
+   * esiste, e accendere quello generico e' meglio di non accenderne nessuno.
+   * Non serve per un tasto tolto a mano: li' il tasto giusto la centrale ce
+   * l'ha, e' chi guarda che ha scelto di non vederlo, e accendere «Fuori»
+   * significherebbe dire che la casa e' inserita fuori quando e' inserita in
+   * casa. Su un antifurto e' la bugia peggiore che si possa dire.
+   *
+   * Quindi il ripiego lo si calcola su quello che la centrale ACCETTA, e poi
+   * si spegne tutto se quel tasto non e' fra quelli che si vedono. */
+  root.dmAlarmActiveMode = (state) => {
+    const acceso = alarmActiveMode(
       state,
       alarmModes(alarmStateObject()).map((voce) => voce.mode),
     );
-  root.dmAlarmModes = () => alarmModes(alarmStateObject()).map((voce) => voce.mode);
+    if (!acceso) return "";
+    return modiVisibili().some((voce) => voce.mode === acceso) ? acceso : "";
+  };
+  root.dmAlarmModes = () => modiVisibili().map((voce) => voce.mode);
+  /* Quelle che la centrale ACCETTA, scelta o non scelta: e' l'elenco che la
+   * configurazione deve poter spuntare. */
+  root.dmAlarmSupportedModes = () =>
+    alarmModes(alarmStateObject()).map((voce) => voce.mode);
 }
 
 export function installSecurityShowcaseSection() {

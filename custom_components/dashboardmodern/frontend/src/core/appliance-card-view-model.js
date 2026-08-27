@@ -231,17 +231,49 @@ export function remainingInfo(device = {}, states = {}, now = 0, record = null) 
   };
 }
 
-export function temperatureInfo(device = {}, states = {}) {
-  let snapshot = stateSnapshot(states, device.temperature_entity);
-  if (!snapshot) {
-    for (const reference of device.entities || []) {
-      const candidate = stateSnapshot(states, reference);
-      const unit = clean(candidate?.attributes?.unit_of_measurement);
-      if (candidate && /^°?[CF]$/i.test(unit) && finiteOrNull(candidate.state) != null) {
-        snapshot = candidate;
-        break;
-      }
-    }
+/* Una temperatura che non e' quella dell'elettrodomestico.
+ *
+ * «Ambiente» e' la stanza intorno, non il vano: su un frigorifero e' il numero
+ * meno utile dei cinque che pubblica, ed era proprio quello che veniva scelto
+ * da solo — perche' era il primo. Un nome cosi' non si prende mai come
+ * candidato buono; se e' l'unico che c'e', lo si prende lo stesso, perche'
+ * qualcosa e' meglio di niente. */
+const TEMPERATURA_DI_CONTORNO =
+  /(ambient|ambiente|room|stanza|esterno|outdoor|target|obiettivo|setpoint|impostat)/i;
+
+function candidateTemperatures(device, states) {
+  const trovate = [];
+  for (const reference of device.entities || []) {
+    const candidate = stateSnapshot(states, reference);
+    const unit = clean(candidate?.attributes?.unit_of_measurement);
+    if (!candidate || !/^°?[CF]$/i.test(unit) || finiteOrNull(candidate.state) == null) continue;
+    const nome = `${clean(reference)} ${clean(candidate.attributes?.friendly_name)}`;
+    trovate.push({ candidate, contorno: TEMPERATURA_DI_CONTORNO.test(nome) });
+  }
+  return trovate;
+}
+
+/**
+ * La temperatura da mostrare. `quale` sceglie la casella: la seconda serve a
+ * chi ha frigo e congelatore nello stesso apparecchio.
+ */
+export function temperatureInfo(device = {}, states = {}, quale = 1) {
+  const casella = quale === 2 ? device.temperature_entity_2 : device.temperature_entity;
+  let snapshot = stateSnapshot(states, casella);
+  /* Si indovina solo per la prima, e solo se non c'e' niente da sbagliare.
+   *
+   * Prima si prendeva il primo sensore in gradi che capitava, e su un
+   * frigorifero che ne pubblica cinque il primo era «ambiente»: un numero che
+   * non dice niente di quell'apparecchio, scelto al posto di quello che
+   * conta. Adesso i nomi che parlano della stanza o di un obiettivo si mettono
+   * da parte, e se restano ancora piu' candidati non si sceglie: la casella in
+   * configurazione e' li' apposta, e una casella vuota si nota — un numero
+   * sbagliato no. */
+  if (!snapshot && quale === 1 && !clean(casella)) {
+    const trovate = candidateTemperatures(device, states);
+    const buone = trovate.filter((voce) => !voce.contorno);
+    const scelta = buone.length === 1 ? buone[0] : trovate.length === 1 ? trovate[0] : null;
+    snapshot = scelta?.candidate || null;
   }
   if (!snapshot) return null;
   const value = finiteOrNull(snapshot.state);
@@ -382,6 +414,9 @@ export function applianceCardModel(device = {}, states = {}, options = {}) {
     ? remainingInfo(device, states, now, record)
     : remainingInfo(device, states, now, null);
   const temperature = temperatureInfo(device, states);
+  /* La seconda, quando c'e': frigo e congelatore nello stesso apparecchio sono
+   * due numeri, non uno. */
+  const temperature2 = temperatureInfo(device, states, 2);
   const daily = dailyEnergyKwh(device, states);
   return Object.freeze({
     ...base,
@@ -393,6 +428,7 @@ export function applianceCardModel(device = {}, states = {}, options = {}) {
     running,
     remaining: running ? remaining : { ...remaining, seconds: null, fraction: null, label: "" },
     temperature,
+    temperature2,
     power: powerInfo(device, base.watts, artworkType),
     cycle: lastCycleInfo(device, states, {
       now,
