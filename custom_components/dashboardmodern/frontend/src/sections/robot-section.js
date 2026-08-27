@@ -84,7 +84,9 @@ export function ensureRobotTab() {
   let tab = doc.querySelector(`.tab[data-tab="${ROBOT_TAB}"]`);
   if (tab) return tab;
   const nav = doc.querySelector("nav.tabs");
-  const before = nav?.querySelector('.tab[data-tab="security"]') || nav?.querySelector('.tab[data-tab="config"]');
+  const before =
+    nav?.querySelector('.tab[data-tab="security"]') ||
+    nav?.querySelector('.tab[data-tab="config"]');
   if (!nav) return null;
   tab = doc.createElement("button");
   tab.className = "tab";
@@ -141,7 +143,10 @@ function batteryMarkup(view) {
 function fanMarkup(view) {
   if (!view.fanSpeeds.length) return "";
   const options = view.fanSpeeds
-    .map((speed) => `<option value="${esc(speed)}"${speed === view.fanSpeed ? " selected" : ""}>${esc(speed)}</option>`)
+    .map(
+      (speed) =>
+        `<option value="${esc(speed)}"${speed === view.fanSpeed ? " selected" : ""}>${esc(speed)}</option>`,
+    )
     .join("");
   return `<label class="dm-robot-fan"><span>${esc(t("Aspirazione", "Suction"))}</span>
     <select data-dm-robot-fan aria-label="${esc(t("Potenza di aspirazione", "Suction power"))}">${options}</select></label>`;
@@ -150,9 +155,12 @@ function fanMarkup(view) {
 function mapMarkup(view) {
   if (!view.mapEntity)
     return `<div class="dm-robot-map dm-vuota" data-dm-robot-map><span class="dm-robot-map-hint">${esc(t("Nessuna mappa collegata", "No map linked"))}</span></div>`;
-  return `<div class="dm-robot-map" data-dm-robot-map data-dm-map-state="loading">
+  return `<div class="dm-robot-map" data-dm-robot-map data-dm-map-state="loading"
+      role="button" tabindex="0" data-dm-robot-map-open="${esc(view.entity)}"
+      title="${esc(t("Apri la mappa", "Open the map"))}">
     <img alt="${esc(t(`Mappa di ${view.name}`, `Map of ${view.name}`))}" data-dm-robot-map-image decoding="async">
     <span class="dm-robot-map-hint">${esc(t("Mappa non disponibile", "Map unavailable"))}</span>
+    <span class="dm-robot-map-zoom" aria-hidden="true">⤢</span>
   </div>`;
 }
 
@@ -190,7 +198,16 @@ function emptyMarkup() {
 
 function signatureOf(views) {
   return views
-    .map((view) => [view.entity, view.name, view.room, view.features, view.mapEntity, view.fanSpeeds.join("+")].join("~"))
+    .map((view) =>
+      [
+        view.entity,
+        view.name,
+        view.room,
+        view.features,
+        view.mapEntity,
+        view.fanSpeeds.join("+"),
+      ].join("~"),
+    )
     .join("|");
 }
 
@@ -212,7 +229,8 @@ function syncCard(card, view) {
 
   const fan = card.querySelector("[data-dm-robot-fan]");
   // Mai riscrivere una scelta mentre la si sta facendo.
-  if (fan && fan !== doc.activeElement && view.fanSpeed && fan.value !== view.fanSpeed) fan.value = view.fanSpeed;
+  if (fan && fan !== doc.activeElement && view.fanSpeed && fan.value !== view.fanSpeed)
+    fan.value = view.fanSpeed;
 
   const error = card.querySelector("[data-dm-robot-error]");
   if (error) {
@@ -249,6 +267,196 @@ export function renderRobots() {
     const card = wrap.querySelector(`[data-dm-robot="${CSS.escape(view.entity)}"]`);
     if (card) syncCard(card, view);
   }
+  return true;
+}
+
+/* ── la mappa aperta ──────────────────────────────────────────────────────
+ *
+ * Nella card la mappa sta in un riquadro quattro terzi: ci sta tutta — e'
+ * disegnata `contain`, non ritagliata — ma di una casa intera dentro trecento
+ * pixel non si legge niente, e non c'era modo di guardarla piu' da vicino.
+ *
+ * Qui si apre a schermo pieno, e si puo' spostare e ingrandire: la rotella e
+ * il pizzico ingrandiscono attorno al punto che si sta guardando — non al
+ * centro del riquadro, che e' il modo in cui si perde sempre quello che si
+ * cercava — il dito la trascina, e un tocco doppio la rimette com'era.
+ *
+ * Il disegno e' lo stesso della card: si prende la sorgente da li'. Non si
+ * chiede niente in piu' a Home Assistant per aprirla.
+ */
+const VISORE_ID = "dm-robot-map-view";
+const INGRANDIMENTO_MIN = 1;
+const INGRANDIMENTO_MAX = 8;
+
+function vista() {
+  return (state.vista ||= { scala: 1, x: 0, y: 0, trascina: null, pizzico: null });
+}
+
+function applicaVista(figura) {
+  const v = vista();
+  figura.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.scala})`;
+  figura.dataset.dmZoom = v.scala > 1.01 ? "true" : "false";
+}
+
+function azzeraVista(figura) {
+  const v = vista();
+  v.scala = 1;
+  v.x = 0;
+  v.y = 0;
+  if (figura) applicaVista(figura);
+}
+
+/* Ingrandisce tenendo fermo il punto sotto il dito: senza, la mappa scappa
+ * verso il centro a ogni scatto di rotella. */
+function ingrandisci(figura, fattore, puntoX, puntoY) {
+  const v = vista();
+  const prima = v.scala;
+  const dopo = Math.min(INGRANDIMENTO_MAX, Math.max(INGRANDIMENTO_MIN, prima * fattore));
+  if (dopo === prima) return;
+  const riquadro = figura.parentElement?.getBoundingClientRect?.();
+  const cx = riquadro ? puntoX - riquadro.left - riquadro.width / 2 : 0;
+  const cy = riquadro ? puntoY - riquadro.top - riquadro.height / 2 : 0;
+  v.x = cx - ((cx - v.x) * dopo) / prima;
+  v.y = cy - ((cy - v.y) * dopo) / prima;
+  v.scala = dopo;
+  if (dopo === INGRANDIMENTO_MIN) {
+    v.x = 0;
+    v.y = 0;
+  }
+  applicaVista(figura);
+}
+
+function chiudiVisore() {
+  const visore = doc?.getElementById?.(VISORE_ID);
+  if (!visore) return false;
+  visore.hidden = true;
+  doc.documentElement?.classList?.remove("dm-robot-map-open");
+  return true;
+}
+
+function creaVisore() {
+  let visore = doc.getElementById(VISORE_ID);
+  if (visore) return visore;
+  visore = doc.createElement("div");
+  visore.id = VISORE_ID;
+  visore.hidden = true;
+  visore.innerHTML = `<div class="dm-robot-map-sheet" role="dialog" aria-modal="true">
+      <header class="dm-robot-map-head">
+        <strong data-dm-map-title></strong>
+        <span class="dm-robot-map-tip">${esc(t("Trascina per spostare · rotella o pizzico per ingrandire", "Drag to move · wheel or pinch to zoom"))}</span>
+        <button type="button" class="dm-robot-map-btn" data-dm-map-out aria-label="${esc(t("Rimpicciolisci", "Zoom out"))}">−</button>
+        <button type="button" class="dm-robot-map-btn" data-dm-map-in aria-label="${esc(t("Ingrandisci", "Zoom in"))}">+</button>
+        <button type="button" class="dm-robot-map-btn" data-dm-map-reset aria-label="${esc(t("Rimetti com'era", "Reset"))}">⟳</button>
+        <button type="button" class="dm-robot-map-btn dm-robot-map-close" data-dm-map-close aria-label="${esc(t("Chiudi", "Close"))}">✕</button>
+      </header>
+      <div class="dm-robot-map-stage" data-dm-map-stage>
+        <img alt="" data-dm-map-big decoding="async">
+      </div>
+    </div>`;
+  doc.body?.append(visore);
+  installaGestiVisore(visore);
+  return visore;
+}
+
+function installaGestiVisore(visore) {
+  const palco = visore.querySelector("[data-dm-map-stage]");
+  const figura = visore.querySelector("[data-dm-map-big]");
+  if (!palco || !figura) return;
+  const v = vista();
+
+  visore.addEventListener("click", (event) => {
+    if (event.target === visore || event.target.closest("[data-dm-map-close]")) {
+      chiudiVisore();
+      return;
+    }
+    if (event.target.closest("[data-dm-map-in]")) ingrandisci(figura, 1.4, ...centro(palco));
+    else if (event.target.closest("[data-dm-map-out]"))
+      ingrandisci(figura, 1 / 1.4, ...centro(palco));
+    else if (event.target.closest("[data-dm-map-reset]")) azzeraVista(figura);
+  });
+
+  palco.addEventListener(
+    "wheel",
+    (event) => {
+      event.preventDefault();
+      ingrandisci(figura, event.deltaY < 0 ? 1.18 : 1 / 1.18, event.clientX, event.clientY);
+    },
+    { passive: false },
+  );
+
+  /* Il dito e il puntatore fanno la stessa cosa: si trascina. Due dita
+   * ingrandiscono, come ovunque. */
+  const dita = new Map();
+  palco.addEventListener("pointerdown", (event) => {
+    palco.setPointerCapture?.(event.pointerId);
+    dita.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (dita.size === 1) v.trascina = { x: event.clientX - v.x, y: event.clientY - v.y };
+    if (dita.size === 2) {
+      v.trascina = null;
+      v.pizzico = distanza(dita);
+    }
+  });
+  palco.addEventListener("pointermove", (event) => {
+    if (!dita.has(event.pointerId)) return;
+    dita.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (dita.size === 2 && v.pizzico) {
+      const adesso = distanza(dita);
+      const [px, py] = medio(dita);
+      if (adesso > 0) ingrandisci(figura, adesso / v.pizzico, px, py);
+      v.pizzico = adesso;
+      return;
+    }
+    if (!v.trascina || v.scala <= 1.01) return;
+    v.x = event.clientX - v.trascina.x;
+    v.y = event.clientY - v.trascina.y;
+    applicaVista(figura);
+  });
+  const molla = (event) => {
+    dita.delete(event.pointerId);
+    if (dita.size < 2) v.pizzico = null;
+    if (!dita.size) v.trascina = null;
+  };
+  palco.addEventListener("pointerup", molla);
+  palco.addEventListener("pointercancel", molla);
+  palco.addEventListener("dblclick", () => azzeraVista(figura));
+}
+
+const centro = (palco) => {
+  const r = palco.getBoundingClientRect();
+  return [r.left + r.width / 2, r.top + r.height / 2];
+};
+
+function distanza(dita) {
+  const [a, b] = [...dita.values()];
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function medio(dita) {
+  const [a, b] = [...dita.values()];
+  return [(a.x + b.x) / 2, (a.y + b.y) / 2];
+}
+
+/** Apre la mappa di quel robot, con il disegno che la card ha gia' preso. */
+export function apriMappaRobot(entity) {
+  const card = doc?.querySelector?.(
+    `[data-dm-robot-map-open="${clean(entity).replace(/["\\]/g, "\\$&")}"]`,
+  );
+  const sorgente = clean(card?.querySelector?.("[data-dm-robot-map-image]")?.getAttribute?.("src"));
+  if (!sorgente) return false;
+  const visore = creaVisore();
+  const figura = visore.querySelector("[data-dm-map-big]");
+  const titolo = visore.querySelector("[data-dm-map-title]");
+  if (titolo)
+    titolo.textContent =
+      clean(
+        card?.closest?.("[data-dm-robot-card]")?.querySelector?.(".dm-robot-name")?.textContent,
+      ) || t("Mappa", "Map");
+  if (figura) {
+    figura.src = sorgente;
+    azzeraVista(figura);
+  }
+  visore.hidden = false;
+  doc.documentElement?.classList?.add("dm-robot-map-open");
   return true;
 }
 
@@ -324,7 +532,8 @@ async function loadMap(card, view) {
  * dopo un'ora di plancia aperta. */
 function releaseMap(entity, next) {
   const previous = state.mapUrls.get(entity);
-  if (previous && previous !== next && previous.startsWith("blob:")) root.URL?.revokeObjectURL?.(previous);
+  if (previous && previous !== next && previous.startsWith("blob:"))
+    root.URL?.revokeObjectURL?.(previous);
   state.mapUrls.set(entity, next);
 }
 
@@ -350,6 +559,14 @@ function callService(command) {
 }
 
 export function handleRobotClick(event) {
+  /* Il tocco sulla mappa la apre. Sta prima dei comandi perche' la mappa non
+   * e' un comando: e' la cosa piu' grande della card, e chi la tocca vuole
+   * guardarla da vicino. */
+  const mappa = event.target?.closest?.("[data-dm-robot-map-open]");
+  if (mappa) {
+    event.preventDefault();
+    return apriMappaRobot(mappa.dataset.dmRobotMapOpen);
+  }
   const button = event.target?.closest?.("[data-dm-robot-act]");
   if (!button) return false;
   const card = button.closest("[data-dm-robot]");
@@ -422,6 +639,14 @@ function installStyles() {
          vuoto: la riga dice cosa manca e basta. */
       #page-robot .dm-robot-map.dm-vuota{aspect-ratio:auto;min-height:0;padding:16px 12px;position:static}
       #page-robot .dm-robot-map.dm-vuota .dm-robot-map-hint{position:static}
+      /* Il segno che la mappa si apre: si fa vedere quando c'e' un disegno. */
+      #page-robot .dm-robot-map[data-dm-robot-map-open]{cursor:zoom-in}
+      #page-robot .dm-robot-map-zoom{
+        position:absolute;right:8px;bottom:8px;display:none;
+        width:28px;height:28px;place-items:center;border-radius:9px;
+        background:rgba(15,23,42,.55);color:#fff;font-size:13px;line-height:1}
+      #page-robot .dm-robot-map[data-dm-map-state="ready"] .dm-robot-map-zoom{display:grid}
+      #page-robot .dm-robot-map:focus-visible{outline:2px solid #0ea5e9;outline-offset:2px}
       #page-robot .dm-robot-map-hint{position:absolute;color:var(--secondary-text-color,#94a3b8);font-size:12px;font-weight:700;text-align:center;padding:0 12px}
       #page-robot .dm-robot-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
       #page-robot .dm-robot-batt{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800}
@@ -432,6 +657,51 @@ function installStyles() {
       #page-robot .dm-robot-batt[data-charging="true"] .dm-robot-batt-shell b{background:#0ea5e9}
       #page-robot .dm-robot-fan{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;margin-left:auto}
       #page-robot .dm-robot-fan select{padding:5px 8px;border:1px solid var(--divider-color,#dbe4ee);border-radius:9px;background:var(--card-bg,#fff);font:inherit;font-size:12px}
+      /* La mappa aperta: una finestra come le altre della plancia, e dentro un
+         palco che tiene il disegno e lo lascia spostare. */
+      html.dm-robot-map-open{overflow:hidden}
+      #dm-robot-map-view{
+        position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+        padding:16px;background:color-mix(in srgb,var(--bg-sculpted,#e6ebf1) 58%,rgba(15,23,42,.42));
+        backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+      #dm-robot-map-view[hidden]{display:none}
+      #dm-robot-map-view .dm-robot-map-sheet{
+        display:flex;flex-direction:column;width:min(1100px,100%);height:min(88dvh,900px);
+        border:1px solid var(--card-border,#e8edf3);border-radius:26px;overflow:hidden;
+        background:var(--card-bg,#fff);
+        box-shadow:0 32px 64px -28px rgba(2,6,23,.45)}
+      #dm-robot-map-view .dm-robot-map-head{
+        display:flex;align-items:center;gap:10px;padding:13px 15px;
+        border-bottom:1px solid var(--card-border,#e8edf3)}
+      #dm-robot-map-view .dm-robot-map-head strong{
+        font-family:'Oswald',system-ui,sans-serif;font-size:16px;letter-spacing:1.4px;
+        text-transform:uppercase}
+      #dm-robot-map-view .dm-robot-map-tip{
+        flex:1;min-width:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      #dm-robot-map-view .dm-robot-map-btn{
+        flex:0 0 34px;width:34px;height:34px;display:grid;place-items:center;cursor:pointer;
+        border:1px solid var(--card-border,#e8edf3);border-radius:11px;
+        background:var(--surface-2,#f8fafc);font:inherit;font-size:15px;font-weight:800;
+        color:var(--text,#0f172a)}
+      #dm-robot-map-view .dm-robot-map-btn:hover{border-color:#0ea5e9}
+      #dm-robot-map-view .dm-robot-map-close:hover{background:#fee2e2;border-color:#fecaca;color:#dc2626}
+      #dm-robot-map-view .dm-robot-map-stage{
+        flex:1;min-height:0;position:relative;overflow:hidden;touch-action:none;
+        display:grid;place-items:center;background:var(--secondary-background-color,#eef3f8);
+        cursor:grab}
+      #dm-robot-map-view .dm-robot-map-stage img{
+        max-width:100%;max-height:100%;display:block;transform-origin:center center;
+        transition:transform .12s ease-out;will-change:transform}
+      #dm-robot-map-view .dm-robot-map-stage img[data-dm-zoom="true"]{cursor:grab}
+      @media(max-width:600px){
+        #dm-robot-map-view{padding:10px}
+        #dm-robot-map-view .dm-robot-map-sheet{height:min(92dvh,900px);border-radius:20px}
+        #dm-robot-map-view .dm-robot-map-tip{display:none}
+      }
+      @media(prefers-reduced-motion:reduce){
+        #dm-robot-map-view .dm-robot-map-stage img{transition:none}
+      }
       #page-robot .dm-robot-error{margin:0;color:#b91c1c;font-size:12px;font-weight:800}
       #page-robot .dm-robot-error[hidden]{display:none}
       #page-robot .dm-robot-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px}
@@ -452,6 +722,19 @@ export function installRobotSection() {
   ensureRobotTab();
   teachNavVisibility();
   doc.addEventListener("click", handleRobotClick);
+  /* La mappa aperta si chiude con Esc, come ogni finestra della plancia, e col
+   * tasto invio o barra si apre da tastiera — il riquadro e' un bottone. */
+  doc.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      chiudiVisore();
+      return;
+    }
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const mappa = event.target?.closest?.("[data-dm-robot-map-open]");
+    if (!mappa) return;
+    event.preventDefault();
+    apriMappaRobot(mappa.dataset.dmRobotMapOpen);
+  });
   doc.addEventListener("change", handleFanChange);
   for (const name of ["render", "cdApplyNavVis"]) wrapFunction(name, "__dmRobotSection", schedule);
   for (const event of [

@@ -235,6 +235,16 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   era cancellarlo e riscriverlo, perdendo tutto quello che gli era stato
   attribuito. Adesso ogni riga ha le sue due frecce.
 
+- **La mappa dell'aspirapolvere si apre e si ingrandisce.** Stava dentro la
+  tessera, alta quanto una figurina: su una casa di sei stanze i corridoi
+  erano tratti di penna e capire dove il robot si fosse fermato voleva dire
+  aprire l'app del produttore. Adesso il disegno si tocca e va a schermo
+  pieno, si tira per spostarlo, si allarga con la rotella o con due dita — e
+  lo zoom insegue il punto che si sta guardando, non il centro del foglio —
+  con il tasto che rimette tutto com'era e Esc per chiudere. L'immagine e'
+  quella che la tessera ha gia' scaricato: a Home Assistant non si chiede
+  niente in piu'.
+
 - **Elettrodomestici: la temperatura si sceglie, e possono essere due.** Un
   frigorifero smart ne pubblica cinque — ambiente, obiettivo e attuale del
   frigo, obiettivo e attuale del congelatore — e la plancia prendeva la prima
