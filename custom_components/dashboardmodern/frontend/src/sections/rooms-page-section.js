@@ -23,6 +23,7 @@
  */
 import { lightCommand, lightView, lightsSignature } from "../core/light-model.js";
 import {
+  ROOM_ASSIGN_KEY,
   ROOM_BLOCKS,
   pickRoomPage,
   roomOverviewModel,
@@ -58,9 +59,11 @@ const lista = (nome, chiave) => {
   return Array.isArray(legacy) ? legacy : [];
 };
 
-export function roomPages() {
+/* Le sorgenti da cui la pagina Stanze legge la casa. Le usa anche
+ * l'assegnatore, per sapere chi la stanza ce l'ha gia' per mestiere. */
+export function roomSources() {
   const canoniche = section("lights", null);
-  return roomOverviewModel({
+  return {
     rooms: lista("rooms", "cd_stanze"),
     lights: Array.isArray(canoniche) && canoniche.length ? canoniche : readJson("cd_luci", {}),
     lightRooms: readJson("cd_luci_rooms", {}),
@@ -71,7 +74,33 @@ export function roomPages() {
     loads: lista("loads", "cd_loads"),
     robots: lista("robots", "cd_robot"),
     irrigation: section("irrigation", null) || readJson("cd_irrigazione", {}),
-  });
+    assigned: assignedItems(),
+  };
+}
+
+export function roomPages() {
+  return roomOverviewModel(roomSources());
+}
+
+/* Le entita' assegnate a mano a una stanza, da qualunque scheda.
+ *
+ * La mappa e' `entita' -> stanza` e la scrive l'assegnatore in configurazione.
+ * Qui si trasforma in voci con un nome leggibile: quello di Home Assistant se
+ * c'e', altrimenti l'entity_id — brutto da leggere ma mai una bugia. */
+export function assignedItems(mappa = readJson(ROOM_ASSIGN_KEY, {}), states = allStates()) {
+  if (!mappa || typeof mappa !== "object") return [];
+  return Object.entries(mappa)
+    .map(([entity, room]) => {
+      const id = clean(entity);
+      const stanza = clean(room);
+      if (!id || !stanza) return null;
+      return {
+        entity: id,
+        name: clean(states?.[id]?.attributes?.friendly_name) || id,
+        room_id: stanza,
+      };
+    })
+    .filter(Boolean);
 }
 
 /* Come si chiama ogni blocco, e con che faccia. Le parole stanno qui e non nel
@@ -85,6 +114,7 @@ const BLOCK_LABELS = Object.freeze({
   carichi: ["Carichi", "Loads", "🔌"],
   robot: ["Aspirapolvere", "Vacuums", "🤖"],
   irrigazione: ["Irrigazione", "Irrigation", "💧"],
+  altro: ["Altro in questa stanza", "Also in this room", "📍"],
 });
 
 const nomeBlocco = (blocco) => {
@@ -315,6 +345,9 @@ const TAB_DI = Object.freeze({
   carichi: "energy",
   robot: "robot",
   irrigazione: "irrigazione",
+  // Un'entita' assegnata a mano puo' venire da qualunque parte: il tocco la
+  // riporta in Home, che e' l'unico posto che le contiene tutte.
+  altro: "home",
 });
 
 export function blockMarkup(blocco, states) {
@@ -377,6 +410,10 @@ function signature(pagine, scelta, states) {
       ),
     ),
   ].join("§");
+}
+
+export function renderRoomsPage() {
+  return paint();
 }
 
 function paint() {

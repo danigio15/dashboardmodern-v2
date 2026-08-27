@@ -131,7 +131,19 @@ test("la scena della stanza tocca le luci, e solo quelle", () => {
 test("i blocchi sono quelli, nell'ordine con cui si guarda una stanza entrandoci", async () => {
   assert.deepEqual(
     ROOM_BLOCKS.map((blocco) => blocco.key),
-    ["clima", "luci", "coperture", "elettrodomestici", "telecamere", "carichi", "robot", "irrigazione"],
+    [
+      "clima",
+      "luci",
+      "coperture",
+      "elettrodomestici",
+      "telecamere",
+      "carichi",
+      "robot",
+      "irrigazione",
+      // In fondo: quello che una stanza non ce l'ha per mestiere e gliela si
+      // assegna a mano — sonde, allagamenti, finestre di un avviso, pompe.
+      "altro",
+    ],
   );
   /* Il modulo e' puro: non sa che lingua si parla e non deve saperlo. Le parole
    * e le icone stanno nella sezione, come per ogni altra tabella bilingue. */

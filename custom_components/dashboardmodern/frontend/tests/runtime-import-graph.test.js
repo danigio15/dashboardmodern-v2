@@ -337,7 +337,12 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // sempre gli stessi tre tasti: con Ring il tasto Notte non faceva niente
   // perche' Ring la notte non ce l'ha, e `armed_home` accendeva Fuori. Non sa
   // cos'e' una pagina: risponde su un oggetto di stato e basta.
-  assert.ok(relative.length <= 156, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 157 con la stanza che si puo' dire ovunque: `room-assign-section.js` mette
+  // una tendina sulla riga in cui l'entita' e' gia' scritta, in qualunque
+  // scheda, e su quelle che una stanza ce l'hanno gia' per mestiere non mette
+  // niente. Aggiungere il campo a dieci editor voleva dire dieci punti in cui
+  // scriverlo e dieci modi di sbagliarlo.
+  assert.ok(relative.length <= 157, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

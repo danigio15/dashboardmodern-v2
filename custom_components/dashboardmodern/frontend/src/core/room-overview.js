@@ -46,6 +46,11 @@ export const roomKey = (value) => slug(value).replace(/^room-/, "");
  * Questo modulo e' puro e non sa che lingua si parla; il nome che ogni blocco
  * porta a schermo lo mette la sezione, insieme all'icona. Qui c'e' solo il
  * legame fra il blocco e la sezione da cui pesca. */
+/* Dove sta scritto che un'entita' appartiene a una stanza, quando la sua
+ * scheda non lo chiede. Una casella sola, `entita' -> stanza`: cambiare il
+ * nome di una stanza non la rompe, perche' dentro ci va l'id. */
+export const ROOM_ASSIGN_KEY = "cd_stanze_entita";
+
 export const ROOM_BLOCKS = Object.freeze([
   { key: "clima", section: "climate" },
   { key: "luci", section: "lights" },
@@ -55,6 +60,19 @@ export const ROOM_BLOCKS = Object.freeze([
   { key: "carichi", section: "loads" },
   { key: "robot", section: "robots" },
   { key: "irrigazione", section: "irrigation" },
+  /* Tutto il resto della casa.
+   *
+   * Le sezioni qui sopra la stanza ce l'hanno addosso perche' la loro scheda
+   * la chiede. Ce ne sono altre che non la chiedono e non e' detto che
+   * debbano: un sensore di allagamento, una sonda di temperatura, la finestra
+   * di un avviso, la pompa della piscina. Senza di loro la pagina di una
+   * stanza racconta meta' della stanza.
+   *
+   * Per quelle c'e' una assegnazione a mano, entita' per entita', che si fa
+   * dalla riga in cui l'entita' e' gia' scritta — in qualunque scheda si
+   * trovi. Sta in fondo perche' e' quello che avanza dopo aver guardato le
+   * cose che una stanza ce l'hanno per mestiere. */
+  { key: "altro", section: "assigned" },
 ]);
 
 /* La stanza di una voce, comunque sia scritta.
@@ -144,6 +162,7 @@ export function roomOverviewModel(input = {}) {
     loads: array(input.loads),
     robots: array(input.robots),
     irrigation: irrigationZones(input.irrigation),
+    assigned: array(input.assigned),
   };
 
   const assegnate = new Set();
