@@ -322,11 +322,12 @@ export function normalizeDevice(input = {}, section, context = {}) {
    * `item.room` continuavano a mostrarlo di la'. Se l'id dice una stanza, il
    * nome accanto dice la stessa: quello della stanza trovata, e se quella
    * stanza non e' in elenco non dice piu' niente. */
-  const stanzaDellId = context.rooms?.find(
-    (room) => room.id === roomId || room.name === roomId,
-  );
+  const stanzaDellId = context.rooms?.find((room) => room.id === roomId || room.name === roomId);
   const riferimentoLegacy =
-    roomId && stanzaDellId && stanzaDellId.name !== legacyRoomRef && stanzaDellId.id !== legacyRoomRef
+    roomId &&
+    stanzaDellId &&
+    stanzaDellId.name !== legacyRoomRef &&
+    stanzaDellId.id !== legacyRoomRef
       ? stanzaDellId.name
       : roomId && !stanzaDellId && explicitRoomId && explicitRoomId !== legacyRoomRef
         ? ""
