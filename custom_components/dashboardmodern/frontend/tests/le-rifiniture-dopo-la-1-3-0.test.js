@@ -131,7 +131,10 @@ test("da telefono in piedi della linguetta resta il simbolo", () => {
     const foglio = leggi(`legacy/${file}`);
     const coda = foglio.slice(foglio.indexOf("Le linguette dell'editor, in colonna"));
     assert.match(coda, /@media \(orientation: portrait\) and \(max-width: 640px\)/, file);
-    assert.match(coda, /\.ed-tabs \{\s*width: 58px;/, file);
+    /* Quarantasei pixel: la colonna si prende quel poco che le serve per
+     * disegnare un simbolo, e il resto torna alla scheda — su un telefono lo
+     * spazio per leggere e per toccare e' tutto li'. */
+    assert.match(coda, /\.ed-tabs \{\s*width: 46px;/, file);
     assert.doesNotMatch(coda, /tab-label/, `${file}: la visibilita' del nome non e' di questo foglio`);
   }
 });

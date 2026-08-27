@@ -38,8 +38,8 @@ const expectedTabs = [
  *    faceva da taglio, un'entrata lunga mezzo secondo, e un tasto di chiusura
  *    che pesava piu' del titolo. */
 const vendoredCssSnapshots = {
-  "dashboard-runtime-it.css": "4006d424e4bb452981ec408a24d168b98bdd5d6f1f3943283b8809bcf1e781b6",
-  "dashboard-runtime-en.css": "da68e488bad4d1da52a2b7dd5b22e828653093c0ac0c66945715c86680ca3390",
+  "dashboard-runtime-it.css": "c25204270dc6ad0f5de7bf783a009cc67ff66d676a36846406225dc126edb827",
+  "dashboard-runtime-en.css": "eb079101f3733ee3e7e96b098eb6447bd31fdc8f39e91db13dc194021fff567b",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {

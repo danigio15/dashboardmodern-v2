@@ -4690,13 +4690,20 @@ html[data-theme="dark"] .tc2-hum { background: rgba(14,165,233,0.16); color:#7dd
  * il modulo delle rifiniture da telefono — perche' e' li' che gli si impone di
  * vedersi, e due fogli che decidono la stessa cosa sarebbero due padroni. */
 @media (orientation: portrait) and (max-width: 640px) {
+  /* La colonna si prende quel poco che le serve, e il resto torna alla scheda:
+     su un telefono lo spazio per leggere e per toccare e' tutto li', e una
+     colonna di simboli non deve costare piu' di una colonna di simboli. */
+  #editor-modal.modal-wrapper .ed-shell {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
   #editor-modal.modal-wrapper .ed-tabs {
-    width: 58px;
-    padding: 10px 5px;
+    width: 46px;
+    padding: 10px 3px;
   }
   #editor-modal.modal-wrapper .ed-tab {
     justify-content: center;
-    padding: 11px 4px;
+    padding: 11px 2px;
   }
 }
 #editor-modal.modal-wrapper .ed-body {

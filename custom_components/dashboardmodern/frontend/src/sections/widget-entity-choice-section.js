@@ -190,17 +190,6 @@ export function ensureEntityChoices() {
     button.setAttribute(CHOICE_ATTRIBUTE, entities.join(","));
     button.dataset.on = String(dentro);
     vestiInterruttore(button, dentro);
-    /* E se nel frattempo il blocco del nome e' nato, l'interruttore torna
-     * dentro.
-     *
-     * Le righe dell'editor le impagina qualcun altro, e quel blocco lo crea
-     * quando gli arriva il turno: chi passava prima trovava la riga nuda,
-     * appoggiava l'interruttore alla riga, e li' restava. La riga e' una
-     * griglia a colonne fisse — simbolo, testo, i tasti — e un figlio in piu'
-     * si prende una colonna: quella del nome si stringeva fino a sparire, e
-     * della stanza in Temperatura non si leggeva piu' niente. */
-    const casa = row.querySelector(".ed-row-main");
-    if (casa && button.parentElement !== casa) casa.prepend(button);
   }
   return messi;
 }
