@@ -146,6 +146,13 @@ const NOMI_VESTITI = () => ({
   meccanico: t("Meccanico", "Mechanic"), contadino: t("Contadino", "Farmer"),
   pilota: t("Pilota", "Pilot"), astronauta: t("Astronauta", "Astronaut"),
   giudice: t("Giudice", "Judge"), supereroe: t("Supereroe", "Superhero"),
+  scienziato: t("Scienziato", "Scientist"), insegnante: t("Insegnante", "Teacher"),
+  studente: t("Studente", "Student"), informatico: t("Informatico", "Technologist"),
+  artista: t("Artista", "Artist"), cantante: t("Cantante", "Singer"),
+  guardia: t("Guardia", "Guard"), detective: t("Detective", "Detective"),
+  turbante: t("Turbante", "Turban"), supercattivo: t("Supercattivo", "Supervillain"),
+  mago: t("Mago", "Mage"), fata: t("Fata", "Fairy"),
+  vampiro: t("Vampiro", "Vampire"), elfo: t("Elfo", "Elf"),
 });
 
 function builderMarkup(person) {

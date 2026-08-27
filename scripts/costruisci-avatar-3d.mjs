@@ -91,6 +91,23 @@ export const VESTITI = [
   { key: "astronauta", nome: "astronaut" },
   { key: "giudice", nome: "judge" },
   { key: "supereroe", nome: "superhero" },
+  /* Il guardaroba largo: mestieri che mancavano e qualche travestimento.
+   * Sono tutti ritratti «di mestiere» come gli altri — busto vestito, testa
+   * libera — e hanno tutte e cinque le carnagioni a monte. */
+  { key: "scienziato", nome: "scientist" },
+  { key: "insegnante", nome: "teacher" },
+  { key: "studente", nome: "student" },
+  { key: "informatico", nome: "technologist" },
+  { key: "artista", nome: "artist" },
+  { key: "cantante", nome: "singer" },
+  { key: "guardia", nome: "guard" },
+  { key: "detective", nome: "detective" },
+  { key: "turbante", nome: "wearing turban" },
+  { key: "supercattivo", nome: "supervillain" },
+  { key: "mago", nome: "mage" },
+  { key: "fata", nome: "fairy" },
+  { key: "vampiro", nome: "vampire" },
+  { key: "elfo", nome: "elf" },
 ];
 
 const nomeFile = (nome, tono) => `${nome} ${tono}`.toLowerCase().replace(/[ -]/g, "_");

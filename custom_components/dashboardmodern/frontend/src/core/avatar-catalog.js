@@ -45,6 +45,20 @@ export const AVATAR_VESTITI = [
   { key: "astronauta" },
   { key: "giudice" },
   { key: "supereroe" },
+  { key: "scienziato" },
+  { key: "insegnante" },
+  { key: "studente" },
+  { key: "informatico" },
+  { key: "artista" },
+  { key: "cantante" },
+  { key: "guardia" },
+  { key: "detective" },
+  { key: "turbante" },
+  { key: "supercattivo" },
+  { key: "mago" },
+  { key: "fata" },
+  { key: "vampiro" },
+  { key: "elfo" },
 ];
 export const AVATAR_TESTE = {
   "uomo|lisci|chiara": "man_light",
@@ -304,6 +318,146 @@ export const AVATAR_BUSTI = {
   "supereroe|donna|media": "woman_superhero_medium",
   "supereroe|donna|ambrata": "woman_superhero_medium_dark",
   "supereroe|donna|scura": "woman_superhero_dark",
+  "scienziato|uomo|chiara": "man_scientist_light",
+  "scienziato|uomo|chiara2": "man_scientist_medium_light",
+  "scienziato|uomo|media": "man_scientist_medium",
+  "scienziato|uomo|ambrata": "man_scientist_medium_dark",
+  "scienziato|uomo|scura": "man_scientist_dark",
+  "scienziato|donna|chiara": "woman_scientist_light",
+  "scienziato|donna|chiara2": "woman_scientist_medium_light",
+  "scienziato|donna|media": "woman_scientist_medium",
+  "scienziato|donna|ambrata": "woman_scientist_medium_dark",
+  "scienziato|donna|scura": "woman_scientist_dark",
+  "insegnante|uomo|chiara": "man_teacher_light",
+  "insegnante|uomo|chiara2": "man_teacher_medium_light",
+  "insegnante|uomo|media": "man_teacher_medium",
+  "insegnante|uomo|ambrata": "man_teacher_medium_dark",
+  "insegnante|uomo|scura": "man_teacher_dark",
+  "insegnante|donna|chiara": "woman_teacher_light",
+  "insegnante|donna|chiara2": "woman_teacher_medium_light",
+  "insegnante|donna|media": "woman_teacher_medium",
+  "insegnante|donna|ambrata": "woman_teacher_medium_dark",
+  "insegnante|donna|scura": "woman_teacher_dark",
+  "studente|uomo|chiara": "man_student_light",
+  "studente|uomo|chiara2": "man_student_medium_light",
+  "studente|uomo|media": "man_student_medium",
+  "studente|uomo|ambrata": "man_student_medium_dark",
+  "studente|uomo|scura": "man_student_dark",
+  "studente|donna|chiara": "woman_student_light",
+  "studente|donna|chiara2": "woman_student_medium_light",
+  "studente|donna|media": "woman_student_medium",
+  "studente|donna|ambrata": "woman_student_medium_dark",
+  "studente|donna|scura": "woman_student_dark",
+  "informatico|uomo|chiara": "man_technologist_light",
+  "informatico|uomo|chiara2": "man_technologist_medium_light",
+  "informatico|uomo|media": "man_technologist_medium",
+  "informatico|uomo|ambrata": "man_technologist_medium_dark",
+  "informatico|uomo|scura": "man_technologist_dark",
+  "informatico|donna|chiara": "woman_technologist_light",
+  "informatico|donna|chiara2": "woman_technologist_medium_light",
+  "informatico|donna|media": "woman_technologist_medium",
+  "informatico|donna|ambrata": "woman_technologist_medium_dark",
+  "informatico|donna|scura": "woman_technologist_dark",
+  "artista|uomo|chiara": "man_artist_light",
+  "artista|uomo|chiara2": "man_artist_medium_light",
+  "artista|uomo|media": "man_artist_medium",
+  "artista|uomo|ambrata": "man_artist_medium_dark",
+  "artista|uomo|scura": "man_artist_dark",
+  "artista|donna|chiara": "woman_artist_light",
+  "artista|donna|chiara2": "woman_artist_medium_light",
+  "artista|donna|media": "woman_artist_medium",
+  "artista|donna|ambrata": "woman_artist_medium_dark",
+  "artista|donna|scura": "woman_artist_dark",
+  "cantante|uomo|chiara": "man_singer_light",
+  "cantante|uomo|chiara2": "man_singer_medium_light",
+  "cantante|uomo|media": "man_singer_medium",
+  "cantante|uomo|ambrata": "man_singer_medium_dark",
+  "cantante|uomo|scura": "man_singer_dark",
+  "cantante|donna|chiara": "woman_singer_light",
+  "cantante|donna|chiara2": "woman_singer_medium_light",
+  "cantante|donna|media": "woman_singer_medium",
+  "cantante|donna|ambrata": "woman_singer_medium_dark",
+  "cantante|donna|scura": "woman_singer_dark",
+  "guardia|uomo|chiara": "man_guard_light",
+  "guardia|uomo|chiara2": "man_guard_medium_light",
+  "guardia|uomo|media": "man_guard_medium",
+  "guardia|uomo|ambrata": "man_guard_medium_dark",
+  "guardia|uomo|scura": "man_guard_dark",
+  "guardia|donna|chiara": "woman_guard_light",
+  "guardia|donna|chiara2": "woman_guard_medium_light",
+  "guardia|donna|media": "woman_guard_medium",
+  "guardia|donna|ambrata": "woman_guard_medium_dark",
+  "guardia|donna|scura": "woman_guard_dark",
+  "detective|uomo|chiara": "man_detective_light",
+  "detective|uomo|chiara2": "man_detective_medium_light",
+  "detective|uomo|media": "man_detective_medium",
+  "detective|uomo|ambrata": "man_detective_medium_dark",
+  "detective|uomo|scura": "man_detective_dark",
+  "detective|donna|chiara": "woman_detective_light",
+  "detective|donna|chiara2": "woman_detective_medium_light",
+  "detective|donna|media": "woman_detective_medium",
+  "detective|donna|ambrata": "woman_detective_medium_dark",
+  "detective|donna|scura": "woman_detective_dark",
+  "turbante|uomo|chiara": "man_wearing_turban_light",
+  "turbante|uomo|chiara2": "man_wearing_turban_medium_light",
+  "turbante|uomo|media": "man_wearing_turban_medium",
+  "turbante|uomo|ambrata": "man_wearing_turban_medium_dark",
+  "turbante|uomo|scura": "man_wearing_turban_dark",
+  "turbante|donna|chiara": "woman_wearing_turban_light",
+  "turbante|donna|chiara2": "woman_wearing_turban_medium_light",
+  "turbante|donna|media": "woman_wearing_turban_medium",
+  "turbante|donna|ambrata": "woman_wearing_turban_medium_dark",
+  "turbante|donna|scura": "woman_wearing_turban_dark",
+  "supercattivo|uomo|chiara": "man_supervillain_light",
+  "supercattivo|uomo|chiara2": "man_supervillain_medium_light",
+  "supercattivo|uomo|media": "man_supervillain_medium",
+  "supercattivo|uomo|ambrata": "man_supervillain_medium_dark",
+  "supercattivo|uomo|scura": "man_supervillain_dark",
+  "supercattivo|donna|chiara": "woman_supervillain_light",
+  "supercattivo|donna|chiara2": "woman_supervillain_medium_light",
+  "supercattivo|donna|media": "woman_supervillain_medium",
+  "supercattivo|donna|ambrata": "woman_supervillain_medium_dark",
+  "supercattivo|donna|scura": "woman_supervillain_dark",
+  "mago|uomo|chiara": "man_mage_light",
+  "mago|uomo|chiara2": "man_mage_medium_light",
+  "mago|uomo|media": "man_mage_medium",
+  "mago|uomo|ambrata": "man_mage_medium_dark",
+  "mago|uomo|scura": "man_mage_dark",
+  "mago|donna|chiara": "woman_mage_light",
+  "mago|donna|chiara2": "woman_mage_medium_light",
+  "mago|donna|media": "woman_mage_medium",
+  "mago|donna|ambrata": "woman_mage_medium_dark",
+  "mago|donna|scura": "woman_mage_dark",
+  "fata|uomo|chiara": "man_fairy_light",
+  "fata|uomo|chiara2": "man_fairy_medium_light",
+  "fata|uomo|media": "man_fairy_medium",
+  "fata|uomo|ambrata": "man_fairy_medium_dark",
+  "fata|uomo|scura": "man_fairy_dark",
+  "fata|donna|chiara": "woman_fairy_light",
+  "fata|donna|chiara2": "woman_fairy_medium_light",
+  "fata|donna|media": "woman_fairy_medium",
+  "fata|donna|ambrata": "woman_fairy_medium_dark",
+  "fata|donna|scura": "woman_fairy_dark",
+  "vampiro|uomo|chiara": "man_vampire_light",
+  "vampiro|uomo|chiara2": "man_vampire_medium_light",
+  "vampiro|uomo|media": "man_vampire_medium",
+  "vampiro|uomo|ambrata": "man_vampire_medium_dark",
+  "vampiro|uomo|scura": "man_vampire_dark",
+  "vampiro|donna|chiara": "woman_vampire_light",
+  "vampiro|donna|chiara2": "woman_vampire_medium_light",
+  "vampiro|donna|media": "woman_vampire_medium",
+  "vampiro|donna|ambrata": "woman_vampire_medium_dark",
+  "vampiro|donna|scura": "woman_vampire_dark",
+  "elfo|uomo|chiara": "man_elf_light",
+  "elfo|uomo|chiara2": "man_elf_medium_light",
+  "elfo|uomo|media": "man_elf_medium",
+  "elfo|uomo|ambrata": "man_elf_medium_dark",
+  "elfo|uomo|scura": "man_elf_dark",
+  "elfo|donna|chiara": "woman_elf_light",
+  "elfo|donna|chiara2": "woman_elf_medium_light",
+  "elfo|donna|media": "woman_elf_medium",
+  "elfo|donna|ambrata": "woman_elf_medium_dark",
+  "elfo|donna|scura": "woman_elf_dark",
 };
 export const AVATAR_MISURE = {
   man_light: {
@@ -2089,6 +2243,899 @@ export const AVATAR_MISURE = {
     occhi: [
       { cx: 77.4, cy: 59.6, w: 11, h: 8, pelle: [82, 64, 61] },
       { cx: 113.5, cy: 59.5, w: 11, h: 8, pelle: [82, 52, 48] },
+    ],
+  },
+  man_scientist_light: {
+    testa: { alto: 12, basso: 179, cx: 92.5, w: 77 },
+    occhi: [
+      { cx: 74.2, cy: 120.4, w: 32, h: 32, pelle: [221, 206, 241] },
+      { cx: 124, cy: 118.8, w: 46, h: 50, pelle: [231, 184, 174] },
+    ],
+  },
+  man_scientist_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 92.5, w: 77 },
+    occhi: [
+      { cx: 74.2, cy: 120.5, w: 32, h: 30, pelle: [221, 206, 240] },
+      { cx: 124.2, cy: 118.9, w: 46, h: 50, pelle: [217, 168, 152] },
+    ],
+  },
+  man_scientist_medium: {
+    testa: { alto: 12, basso: 179, cx: 92.5, w: 77 },
+    occhi: [
+      { cx: 74.4, cy: 120.8, w: 32, h: 29, pelle: [220, 206, 240] },
+      { cx: 124.3, cy: 118.4, w: 45, h: 50, pelle: [179, 141, 133] },
+    ],
+  },
+  man_scientist_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 92.5, w: 77 },
+    occhi: [
+      { cx: 74.4, cy: 121, w: 32, h: 28, pelle: [220, 206, 240] },
+      { cx: 124.5, cy: 118.4, w: 45, h: 50, pelle: [144, 109, 111] },
+    ],
+  },
+  man_scientist_dark: {
+    testa: { alto: 12, basso: 179, cx: 92.5, w: 77 },
+    occhi: [
+      { cx: 74.5, cy: 121.2, w: 32, h: 28, pelle: [220, 206, 240] },
+      { cx: 124.6, cy: 118.6, w: 45, h: 50, pelle: [98, 81, 84] },
+    ],
+  },
+  woman_scientist_light: {
+    testa: { alto: 12, basso: 179, cx: 92.5, w: 91 },
+    occhi: [
+      { cx: 75, cy: 118.6, w: 32, h: 36, pelle: [220, 201, 243] },
+      { cx: 123.6, cy: 115.8, w: 44, h: 51, pelle: [253, 205, 186] },
+    ],
+  },
+  woman_scientist_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 92.5, w: 91 },
+    occhi: [
+      { cx: 74.8, cy: 118.5, w: 32, h: 35, pelle: [220, 201, 243] },
+      { cx: 123.8, cy: 115.9, w: 44, h: 51, pelle: [231, 181, 155] },
+    ],
+  },
+  woman_scientist_medium: {
+    testa: { alto: 12, basso: 179, cx: 92.5, w: 91 },
+    occhi: [
+      { cx: 75.3, cy: 119.2, w: 32, h: 32, pelle: [220, 202, 243] },
+      { cx: 124.1, cy: 115.7, w: 44, h: 45, pelle: [199, 154, 131] },
+    ],
+  },
+  woman_scientist_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 92.5, w: 91 },
+    occhi: [
+      { cx: 75.3, cy: 119.2, w: 32, h: 32, pelle: [220, 202, 243] },
+      { cx: 124.4, cy: 115.9, w: 44, h: 44, pelle: [153, 113, 101] },
+    ],
+  },
+  woman_scientist_dark: {
+    testa: { alto: 12, basso: 179, cx: 92.5, w: 91 },
+    occhi: [
+      { cx: 75.4, cy: 119.4, w: 32, h: 32, pelle: [220, 201, 243] },
+      { cx: 124.5, cy: 115.9, w: 43, h: 44, pelle: [88, 61, 59] },
+    ],
+  },
+  man_teacher_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 169 },
+    occhi: [
+      { cx: 77.7, cy: 59.3, w: 12, h: 8, pelle: [85, 63, 84] },
+      { cx: 113.3, cy: 59.3, w: 12, h: 8, pelle: [105, 82, 102] },
+    ],
+  },
+  man_teacher_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 169 },
+    occhi: [
+      { cx: 77.7, cy: 59.3, w: 12, h: 8, pelle: [84, 61, 85] },
+      { cx: 113.6, cy: 59.5, w: 11, h: 8, pelle: [59, 42, 73] },
+    ],
+  },
+  man_teacher_medium: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 169 },
+    occhi: [
+      { cx: 77.7, cy: 59.3, w: 12, h: 8, pelle: [67, 48, 83] },
+      { cx: 113.2, cy: 59.2, w: 12, h: 8, pelle: [71, 51, 73] },
+    ],
+  },
+  man_teacher_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 169 },
+    occhi: [
+      { cx: 77.6, cy: 59.4, w: 12, h: 8, pelle: [69, 49, 78] },
+      { cx: 113.3, cy: 59.3, w: 12, h: 8, pelle: [84, 62, 89] },
+    ],
+  },
+  man_teacher_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 169 },
+    occhi: [
+      { cx: 77.2, cy: 59.7, w: 11, h: 7, pelle: [75, 59, 85] },
+      { cx: 113.9, cy: 59.7, w: 11, h: 7, pelle: [51, 34, 59] },
+    ],
+  },
+  woman_teacher_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 169 },
+    occhi: [
+      { cx: 77.7, cy: 59.4, w: 12, h: 8, pelle: [72, 52, 77] },
+      { cx: 113.3, cy: 59.4, w: 12, h: 8, pelle: [79, 61, 86] },
+    ],
+  },
+  woman_teacher_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 169 },
+    occhi: [
+      { cx: 77.6, cy: 59.5, w: 12, h: 8, pelle: [168, 122, 111] },
+      { cx: 113.3, cy: 59.4, w: 12, h: 8, pelle: [79, 59, 87] },
+    ],
+  },
+  woman_teacher_medium: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 169 },
+    occhi: [
+      { cx: 77.5, cy: 59.6, w: 12, h: 7, pelle: [92, 67, 81] },
+      { cx: 113.4, cy: 59.5, w: 12, h: 8, pelle: [161, 125, 113] },
+    ],
+  },
+  woman_teacher_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 169 },
+    occhi: [
+      { cx: 77.2, cy: 59.7, w: 11, h: 7, pelle: [67, 50, 83] },
+      { cx: 113.7, cy: 59.7, w: 13, h: 7, pelle: [144, 104, 90] },
+    ],
+  },
+  woman_teacher_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 169 },
+    occhi: [
+      { cx: 77.2, cy: 59.7, w: 11, h: 7, pelle: [64, 50, 78] },
+      { cx: 113.8, cy: 59.7, w: 11, h: 7, pelle: [61, 46, 76] },
+    ],
+  },
+  man_student_light: {
+    testa: { alto: 12, basso: 179, cx: 97.5, w: 111 },
+    occhi: [
+      { cx: 77.2, cy: 59.3, w: 11, h: 8, pelle: [231, 172, 149] },
+      { cx: 114, cy: 59.4, w: 10, h: 8, pelle: [255, 214, 186] },
+    ],
+  },
+  man_student_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 97.5, w: 111 },
+    occhi: [
+      { cx: 77.2, cy: 59.3, w: 11, h: 8, pelle: [215, 157, 129] },
+      { cx: 114, cy: 59.4, w: 10, h: 8, pelle: [244, 191, 153] },
+    ],
+  },
+  man_student_medium: {
+    testa: { alto: 12, basso: 179, cx: 97.5, w: 111 },
+    occhi: [
+      { cx: 77.1, cy: 59.3, w: 12, h: 8, pelle: [152, 114, 101] },
+      { cx: 113.8, cy: 59.3, w: 11, h: 8, pelle: [194, 150, 123] },
+    ],
+  },
+  man_student_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 97.5, w: 111 },
+    occhi: [
+      { cx: 77.2, cy: 59.3, w: 11, h: 8, pelle: [128, 93, 85] },
+      { cx: 113.9, cy: 59.4, w: 12, h: 8, pelle: [150, 107, 92] },
+    ],
+  },
+  man_student_dark: {
+    testa: { alto: 12, basso: 179, cx: 97.5, w: 111 },
+    occhi: [
+      { cx: 77, cy: 59.4, w: 10, h: 8, pelle: [79, 60, 56] },
+      { cx: 114, cy: 59.4, w: 10, h: 8, pelle: [83, 54, 51] },
+    ],
+  },
+  woman_student_light: {
+    testa: { alto: 12, basso: 179, cx: 97.5, w: 111 },
+    occhi: [
+      { cx: 76.9, cy: 62.7, w: 9, h: 8, pelle: [228, 171, 151] },
+      { cx: 114, cy: 62.6, w: 9, h: 8, pelle: [255, 215, 188] },
+    ],
+  },
+  woman_student_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 97.5, w: 111 },
+    occhi: [
+      { cx: 76.9, cy: 62.7, w: 9, h: 8, pelle: [215, 157, 131] },
+      { cx: 114, cy: 62.6, w: 9, h: 8, pelle: [246, 193, 156] },
+    ],
+  },
+  woman_student_medium: {
+    testa: { alto: 12, basso: 179, cx: 97.5, w: 111 },
+    occhi: [
+      { cx: 76.9, cy: 62.7, w: 9, h: 8, pelle: [151, 111, 100] },
+      { cx: 114, cy: 62.6, w: 9, h: 8, pelle: [197, 152, 126] },
+    ],
+  },
+  woman_student_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 97.5, w: 111 },
+    occhi: [
+      { cx: 76.8, cy: 62.9, w: 8, h: 8, pelle: [123, 86, 81] },
+      { cx: 114, cy: 62.6, w: 9, h: 8, pelle: [152, 108, 93] },
+    ],
+  },
+  woman_student_dark: {
+    testa: { alto: 12, basso: 179, cx: 97.5, w: 111 },
+    occhi: [
+      { cx: 76.8, cy: 62.9, w: 8, h: 8, pelle: [74, 55, 52] },
+      { cx: 114.2, cy: 62.8, w: 9, h: 8, pelle: [83, 54, 50] },
+    ],
+  },
+  man_technologist_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 77 },
+    occhi: [
+      { cx: 77.7, cy: 59.3, w: 12, h: 8, pelle: [226, 170, 144] },
+      { cx: 113.5, cy: 59.5, w: 12, h: 8, pelle: [255, 214, 184] },
+    ],
+  },
+  man_technologist_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 77 },
+    occhi: [
+      { cx: 77.6, cy: 59.4, w: 12, h: 8, pelle: [210, 154, 124] },
+      { cx: 113.8, cy: 59.6, w: 11, h: 8, pelle: [244, 193, 152] },
+    ],
+  },
+  man_technologist_medium: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 77 },
+    occhi: [
+      { cx: 77.7, cy: 59.3, w: 12, h: 8, pelle: [147, 112, 97] },
+      { cx: 113.3, cy: 59.3, w: 12, h: 8, pelle: [191, 151, 123] },
+    ],
+  },
+  man_technologist_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 77 },
+    occhi: [
+      { cx: 77.6, cy: 59.4, w: 12, h: 8, pelle: [123, 91, 83] },
+      { cx: 113.4, cy: 59.4, w: 13, h: 8, pelle: [150, 110, 94] },
+    ],
+  },
+  man_technologist_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 77 },
+    occhi: [
+      { cx: 77.2, cy: 59.7, w: 11, h: 7, pelle: [82, 64, 60] },
+      { cx: 113.8, cy: 59.6, w: 11, h: 8, pelle: [85, 59, 55] },
+    ],
+  },
+  woman_technologist_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 91 },
+    occhi: [
+      { cx: 77.7, cy: 59.4, w: 12, h: 8, pelle: [229, 173, 148] },
+      { cx: 113.3, cy: 59.4, w: 12, h: 8, pelle: [255, 215, 185] },
+    ],
+  },
+  woman_technologist_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 91 },
+    occhi: [
+      { cx: 77.6, cy: 59.5, w: 12, h: 8, pelle: [211, 156, 126] },
+      { cx: 113.3, cy: 59.4, w: 12, h: 8, pelle: [244, 193, 152] },
+    ],
+  },
+  woman_technologist_medium: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 91 },
+    occhi: [
+      { cx: 77.5, cy: 59.6, w: 12, h: 7, pelle: [146, 111, 95] },
+      { cx: 113.4, cy: 59.5, w: 12, h: 8, pelle: [191, 150, 121] },
+    ],
+  },
+  woman_technologist_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 91 },
+    occhi: [
+      { cx: 77.2, cy: 59.7, w: 11, h: 7, pelle: [124, 91, 82] },
+      { cx: 113.7, cy: 59.7, w: 13, h: 7, pelle: [143, 103, 86] },
+    ],
+  },
+  woman_technologist_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 91 },
+    occhi: [
+      { cx: 77.2, cy: 59.7, w: 11, h: 7, pelle: [81, 63, 59] },
+      { cx: 113.8, cy: 59.7, w: 11, h: 7, pelle: [85, 57, 53] },
+    ],
+  },
+  man_artist_light: {
+    testa: { alto: 12, basso: 179, cx: 93, w: 84 },
+    occhi: [
+      { cx: 77.7, cy: 59.3, w: 12, h: 8, pelle: [179, 137, 124] },
+      { cx: 113.5, cy: 59.5, w: 12, h: 8, pelle: [255, 215, 187] },
+    ],
+  },
+  man_artist_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 93, w: 84 },
+    occhi: [
+      { cx: 77.7, cy: 59.3, w: 12, h: 8, pelle: [166, 123, 105] },
+      { cx: 113.8, cy: 59.6, w: 11, h: 8, pelle: [246, 193, 155] },
+    ],
+  },
+  man_artist_medium: {
+    testa: { alto: 12, basso: 179, cx: 93, w: 84 },
+    occhi: [
+      { cx: 77.7, cy: 59.3, w: 12, h: 8, pelle: [124, 94, 87] },
+      { cx: 113.3, cy: 59.3, w: 12, h: 8, pelle: [194, 152, 126] },
+    ],
+  },
+  man_artist_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 93, w: 84 },
+    occhi: [
+      { cx: 77.6, cy: 59.4, w: 12, h: 8, pelle: [100, 73, 70] },
+      { cx: 113.3, cy: 59.3, w: 12, h: 8, pelle: [152, 110, 95] },
+    ],
+  },
+  man_artist_dark: {
+    testa: { alto: 12, basso: 179, cx: 93, w: 84 },
+    occhi: [
+      { cx: 77.2, cy: 59.7, w: 11, h: 7, pelle: [59, 46, 46] },
+      { cx: 113.8, cy: 59.6, w: 11, h: 8, pelle: [84, 56, 54] },
+    ],
+  },
+  woman_artist_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 91 },
+    occhi: [
+      { cx: 77.6, cy: 59.5, w: 12, h: 8, pelle: [232, 173, 151] },
+      { cx: 113.3, cy: 59.4, w: 12, h: 8, pelle: [255, 215, 187] },
+    ],
+  },
+  woman_artist_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 91 },
+    occhi: [
+      { cx: 77.6, cy: 59.5, w: 12, h: 8, pelle: [218, 159, 132] },
+      { cx: 113.4, cy: 59.4, w: 12, h: 8, pelle: [243, 191, 154] },
+    ],
+  },
+  woman_artist_medium: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 91 },
+    occhi: [
+      { cx: 77.5, cy: 59.6, w: 12, h: 7, pelle: [153, 113, 101] },
+      { cx: 113.4, cy: 59.5, w: 12, h: 8, pelle: [193, 151, 124] },
+    ],
+  },
+  woman_artist_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 91 },
+    occhi: [
+      { cx: 77.2, cy: 59.7, w: 11, h: 7, pelle: [128, 92, 85] },
+      { cx: 113.7, cy: 59.7, w: 13, h: 7, pelle: [147, 106, 90] },
+    ],
+  },
+  woman_artist_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 91 },
+    occhi: [
+      { cx: 77.2, cy: 59.7, w: 11, h: 7, pelle: [82, 64, 59] },
+      { cx: 113.8, cy: 59.7, w: 11, h: 7, pelle: [84, 56, 53] },
+    ],
+  },
+  man_singer_light: {
+    testa: { alto: 19, basso: 172, cx: 90.5, w: 79 },
+    occhi: [
+      { cx: 71.5, cy: 68.2, w: 11, h: 8, pelle: [234, 146, 137] },
+      { cx: 109.5, cy: 68.1, w: 12, h: 8, pelle: [255, 215, 188] },
+    ],
+  },
+  man_singer_medium_light: {
+    testa: { alto: 19, basso: 172, cx: 90.5, w: 79 },
+    occhi: [
+      { cx: 71.5, cy: 68.2, w: 11, h: 8, pelle: [224, 134, 123] },
+      { cx: 109.5, cy: 68.1, w: 12, h: 8, pelle: [246, 192, 156] },
+    ],
+  },
+  man_singer_medium: {
+    testa: { alto: 19, basso: 172, cx: 90.5, w: 79 },
+    occhi: [
+      { cx: 71.5, cy: 68.2, w: 11, h: 8, pelle: [170, 100, 99] },
+      { cx: 109.5, cy: 68.1, w: 12, h: 8, pelle: [194, 152, 126] },
+    ],
+  },
+  man_singer_medium_dark: {
+    testa: { alto: 19, basso: 172, cx: 90.5, w: 79 },
+    occhi: [
+      { cx: 71.5, cy: 68.2, w: 11, h: 8, pelle: [155, 85, 89] },
+      { cx: 109.6, cy: 68.1, w: 12, h: 8, pelle: [152, 109, 95] },
+    ],
+  },
+  man_singer_dark: {
+    testa: { alto: 19, basso: 172, cx: 90.5, w: 79 },
+    occhi: [
+      { cx: 71.5, cy: 68.2, w: 11, h: 8, pelle: [121, 63, 69] },
+      { cx: 109.5, cy: 68.1, w: 12, h: 8, pelle: [86, 60, 57] },
+    ],
+  },
+  woman_singer_light: {
+    testa: { alto: 19, basso: 172, cx: 90.5, w: 93 },
+    occhi: [
+      { cx: 71.7, cy: 68.1, w: 12, h: 8, pelle: [227, 169, 151] },
+      { cx: 109.5, cy: 68.1, w: 12, h: 8, pelle: [255, 214, 188] },
+    ],
+  },
+  woman_singer_medium_light: {
+    testa: { alto: 19, basso: 172, cx: 90.5, w: 93 },
+    occhi: [
+      { cx: 71.7, cy: 68.1, w: 12, h: 8, pelle: [213, 155, 131] },
+      { cx: 109.5, cy: 68.1, w: 12, h: 8, pelle: [245, 191, 155] },
+    ],
+  },
+  woman_singer_medium: {
+    testa: { alto: 19, basso: 172, cx: 90.5, w: 93 },
+    occhi: [
+      { cx: 71.7, cy: 68.1, w: 12, h: 8, pelle: [154, 113, 101] },
+      { cx: 109.5, cy: 68.1, w: 12, h: 8, pelle: [194, 150, 125] },
+    ],
+  },
+  woman_singer_medium_dark: {
+    testa: { alto: 19, basso: 172, cx: 90.5, w: 93 },
+    occhi: [
+      { cx: 71.7, cy: 68.1, w: 12, h: 8, pelle: [128, 91, 85] },
+      { cx: 109.5, cy: 68.1, w: 12, h: 8, pelle: [151, 107, 93] },
+    ],
+  },
+  woman_singer_dark: {
+    testa: { alto: 19, basso: 172, cx: 90.5, w: 93 },
+    occhi: [
+      { cx: 71.7, cy: 68.1, w: 12, h: 8, pelle: [80, 61, 59] },
+      { cx: 109.5, cy: 68.1, w: 12, h: 8, pelle: [84, 57, 55] },
+    ],
+  },
+  man_guard_light: { testa: { alto: 12, basso: 179, cx: 95.5, w: 81 }, occhi: null },
+  man_guard_medium_light: { testa: { alto: 12, basso: 179, cx: 95.5, w: 81 }, occhi: null },
+  man_guard_medium: { testa: { alto: 12, basso: 179, cx: 95.5, w: 81 }, occhi: null },
+  man_guard_medium_dark: { testa: { alto: 12, basso: 179, cx: 95.5, w: 81 }, occhi: null },
+  man_guard_dark: { testa: { alto: 12, basso: 179, cx: 95.5, w: 81 }, occhi: null },
+  woman_guard_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 89 },
+    occhi: [
+      { cx: 76.1, cy: 89.3, w: 9, h: 8, pelle: [216, 183, 211] },
+      { cx: 114.9, cy: 89.3, w: 9, h: 8, pelle: [232, 207, 232] },
+    ],
+  },
+  woman_guard_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 89 },
+    occhi: [
+      { cx: 76.2, cy: 89.2, w: 9, h: 8, pelle: [212, 160, 160] },
+      { cx: 114.8, cy: 89.2, w: 9, h: 8, pelle: [219, 171, 164] },
+    ],
+  },
+  woman_guard_medium: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 89 },
+    occhi: [
+      { cx: 76.1, cy: 89.3, w: 9, h: 8, pelle: [194, 166, 207] },
+      { cx: 114.9, cy: 89.3, w: 9, h: 8, pelle: [222, 199, 230] },
+    ],
+  },
+  woman_guard_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 89 },
+    occhi: [
+      { cx: 76.2, cy: 89.2, w: 9, h: 8, pelle: [148, 114, 130] },
+      { cx: 114.9, cy: 89.3, w: 9, h: 8, pelle: [217, 195, 228] },
+    ],
+  },
+  woman_guard_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 89 },
+    occhi: [
+      { cx: 76.5, cy: 88.7, w: 8, h: 7, pelle: [75, 54, 57] },
+      { cx: 114.5, cy: 88.7, w: 8, h: 7, pelle: [74, 48, 48] },
+    ],
+  },
+  man_detective_light: {
+    testa: { alto: 12, basso: 179, cx: 100, w: 140 },
+    occhi: [
+      { cx: 81, cy: 133, w: 11, h: 10, pelle: [106, 89, 131] },
+      { cx: 99.4, cy: 130.8, w: 14, h: 14, pelle: [93, 73, 116] },
+    ],
+  },
+  man_detective_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 100, w: 140 },
+    occhi: [
+      { cx: 80.9, cy: 133.1, w: 11, h: 9, pelle: [104, 87, 128] },
+      { cx: 99.2, cy: 131.1, w: 13, h: 13, pelle: [91, 71, 113] },
+    ],
+  },
+  man_detective_medium: {
+    testa: { alto: 12, basso: 179, cx: 100, w: 140 },
+    occhi: [
+      { cx: 80.7, cy: 133.1, w: 10, h: 10, pelle: [103, 87, 130] },
+      { cx: 99.7, cy: 131.3, w: 11, h: 13, pelle: [89, 69, 111] },
+    ],
+  },
+  man_detective_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 100, w: 140 },
+    occhi: [
+      { cx: 80.7, cy: 133.2, w: 9, h: 9, pelle: [108, 92, 129] },
+      { cx: 99.7, cy: 131.5, w: 11, h: 12, pelle: [87, 68, 110] },
+    ],
+  },
+  man_detective_dark: {
+    testa: { alto: 12, basso: 179, cx: 100, w: 140 },
+    occhi: [
+      { cx: 80.7, cy: 133.8, w: 10, h: 9, pelle: [100, 86, 127] },
+      { cx: 99.5, cy: 131.8, w: 12, h: 12, pelle: [88, 70, 112] },
+    ],
+  },
+  woman_detective_light: {
+    testa: { alto: 12, basso: 179, cx: 100, w: 140 },
+    occhi: [
+      { cx: 80.4, cy: 131.5, w: 13, h: 14, pelle: [103, 87, 135] },
+      { cx: 101.3, cy: 126.7, w: 19, h: 24, pelle: [92, 71, 117] },
+    ],
+  },
+  woman_detective_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 100, w: 140 },
+    occhi: [
+      { cx: 80.5, cy: 131.4, w: 13, h: 14, pelle: [103, 87, 134] },
+      { cx: 101.4, cy: 126.7, w: 18, h: 25, pelle: [91, 70, 116] },
+    ],
+  },
+  woman_detective_medium: {
+    testa: { alto: 12, basso: 179, cx: 100, w: 140 },
+    occhi: [
+      { cx: 80.3, cy: 131.5, w: 12, h: 14, pelle: [103, 87, 134] },
+      { cx: 101.2, cy: 127.6, w: 16, h: 22, pelle: [91, 71, 117] },
+    ],
+  },
+  woman_detective_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 100, w: 140 },
+    occhi: [
+      { cx: 80.3, cy: 131.8, w: 12, h: 14, pelle: [102, 87, 134] },
+      { cx: 100.9, cy: 128.1, w: 15, h: 21, pelle: [92, 73, 117] },
+    ],
+  },
+  woman_detective_dark: {
+    testa: { alto: 12, basso: 179, cx: 100, w: 140 },
+    occhi: [
+      { cx: 80.6, cy: 131.9, w: 13, h: 13, pelle: [101, 87, 133] },
+      { cx: 100.5, cy: 128.5, w: 17, h: 21, pelle: [90, 71, 117] },
+    ],
+  },
+  man_wearing_turban_light: {
+    testa: { alto: 11, basso: 179, cx: 96.5, w: 141 },
+    occhi: [
+      { cx: 81.8, cy: 18.8, w: 14, h: 15, pelle: [195, 192, 199] },
+      { cx: 97.5, cy: 26.8, w: 26, h: 32, pelle: [206, 183, 216] },
+    ],
+  },
+  man_wearing_turban_medium_light: {
+    testa: { alto: 11, basso: 179, cx: 96.5, w: 141 },
+    occhi: [
+      { cx: 81.8, cy: 18.8, w: 14, h: 15, pelle: [195, 192, 199] },
+      { cx: 97.5, cy: 26.8, w: 26, h: 32, pelle: [203, 179, 213] },
+    ],
+  },
+  man_wearing_turban_medium: {
+    testa: { alto: 11, basso: 179, cx: 96.5, w: 141 },
+    occhi: [
+      { cx: 81.8, cy: 18.8, w: 14, h: 15, pelle: [195, 192, 199] },
+      { cx: 97.5, cy: 26.8, w: 26, h: 32, pelle: [197, 176, 212] },
+    ],
+  },
+  man_wearing_turban_medium_dark: {
+    testa: { alto: 11, basso: 179, cx: 96.5, w: 141 },
+    occhi: [
+      { cx: 81.8, cy: 18.8, w: 14, h: 15, pelle: [195, 192, 199] },
+      { cx: 97.5, cy: 26.7, w: 26, h: 32, pelle: [194, 173, 211] },
+    ],
+  },
+  man_wearing_turban_dark: {
+    testa: { alto: 11, basso: 179, cx: 96.5, w: 141 },
+    occhi: [
+      { cx: 81.7, cy: 18.9, w: 14, h: 15, pelle: [195, 191, 199] },
+      { cx: 97.6, cy: 26.7, w: 25, h: 32, pelle: [207, 193, 221] },
+    ],
+  },
+  woman_wearing_turban_light: {
+    testa: { alto: 11, basso: 179, cx: 96.5, w: 141 },
+    occhi: [
+      { cx: 81.7, cy: 18.9, w: 14, h: 15, pelle: [196, 192, 199] },
+      { cx: 97.4, cy: 26.8, w: 27, h: 32, pelle: [208, 185, 217] },
+    ],
+  },
+  woman_wearing_turban_medium_light: {
+    testa: { alto: 11, basso: 179, cx: 96.5, w: 141 },
+    occhi: [
+      { cx: 81.8, cy: 18.9, w: 14, h: 15, pelle: [196, 192, 199] },
+      { cx: 97.5, cy: 26.8, w: 26, h: 32, pelle: [206, 183, 215] },
+    ],
+  },
+  woman_wearing_turban_medium: {
+    testa: { alto: 11, basso: 179, cx: 96.5, w: 141 },
+    occhi: [
+      { cx: 81.8, cy: 18.9, w: 14, h: 15, pelle: [195, 192, 199] },
+      { cx: 97.5, cy: 26.7, w: 26, h: 32, pelle: [200, 179, 214] },
+    ],
+  },
+  woman_wearing_turban_medium_dark: {
+    testa: { alto: 11, basso: 179, cx: 96.5, w: 141 },
+    occhi: [
+      { cx: 81.8, cy: 18.9, w: 14, h: 15, pelle: [195, 192, 199] },
+      { cx: 97.5, cy: 26.7, w: 26, h: 32, pelle: [196, 176, 213] },
+    ],
+  },
+  woman_wearing_turban_dark: {
+    testa: { alto: 11, basso: 179, cx: 96.5, w: 141 },
+    occhi: [
+      { cx: 81.8, cy: 18.9, w: 14, h: 15, pelle: [195, 191, 199] },
+      { cx: 97.6, cy: 26.6, w: 25, h: 32, pelle: [209, 195, 223] },
+    ],
+  },
+  man_supervillain_light: { testa: { alto: 12, basso: 179, cx: 96, w: 90 }, occhi: null },
+  man_supervillain_medium_light: { testa: { alto: 12, basso: 179, cx: 96, w: 90 }, occhi: null },
+  man_supervillain_medium: { testa: { alto: 12, basso: 179, cx: 96, w: 90 }, occhi: null },
+  man_supervillain_medium_dark: { testa: { alto: 12, basso: 179, cx: 96, w: 90 }, occhi: null },
+  man_supervillain_dark: { testa: { alto: 12, basso: 179, cx: 96, w: 90 }, occhi: null },
+  woman_supervillain_light: { testa: { alto: 12, basso: 179, cx: 95.5, w: 91 }, occhi: null },
+  woman_supervillain_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 91 },
+    occhi: null,
+  },
+  woman_supervillain_medium: { testa: { alto: 12, basso: 179, cx: 95.5, w: 91 }, occhi: null },
+  woman_supervillain_medium_dark: { testa: { alto: 12, basso: 179, cx: 95.5, w: 91 }, occhi: null },
+  woman_supervillain_dark: { testa: { alto: 12, basso: 179, cx: 95.5, w: 91 }, occhi: null },
+  man_mage_light: {
+    testa: { alto: 12, basso: 179, cx: 98, w: 148 },
+    occhi: [
+      { cx: 76.8, cy: 86.3, w: 12, h: 8, pelle: [182, 180, 204] },
+      { cx: 113.9, cy: 86.3, w: 11, h: 8, pelle: [227, 223, 240] },
+    ],
+  },
+  man_mage_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 98, w: 148 },
+    occhi: [
+      { cx: 77.1, cy: 86.3, w: 11, h: 8, pelle: [186, 183, 206] },
+      { cx: 113.9, cy: 86.3, w: 11, h: 8, pelle: [226, 222, 239] },
+    ],
+  },
+  man_mage_medium: {
+    testa: { alto: 12, basso: 179, cx: 98, w: 148 },
+    occhi: [
+      { cx: 77, cy: 86.2, w: 11, h: 8, pelle: [184, 182, 205] },
+      { cx: 114.2, cy: 86.3, w: 12, h: 8, pelle: [219, 216, 234] },
+    ],
+  },
+  man_mage_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 98, w: 148 },
+    occhi: [
+      { cx: 77.1, cy: 86.3, w: 11, h: 8, pelle: [185, 183, 206] },
+      { cx: 113.9, cy: 86.3, w: 11, h: 8, pelle: [223, 220, 238] },
+    ],
+  },
+  man_mage_dark: {
+    testa: { alto: 12, basso: 179, cx: 98, w: 148 },
+    occhi: [
+      { cx: 77.2, cy: 86.1, w: 11, h: 8, pelle: [183, 182, 205] },
+      { cx: 113.8, cy: 86.1, w: 11, h: 8, pelle: [222, 219, 237] },
+    ],
+  },
+  woman_mage_light: {
+    testa: { alto: 12, basso: 179, cx: 98, w: 148 },
+    occhi: [
+      { cx: 77.1, cy: 92.4, w: 10, h: 8, pelle: [218, 165, 153] },
+      { cx: 113.9, cy: 92.4, w: 10, h: 8, pelle: [239, 191, 173] },
+    ],
+  },
+  woman_mage_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 98, w: 148 },
+    occhi: [
+      { cx: 77.1, cy: 92.4, w: 10, h: 8, pelle: [205, 150, 132] },
+      { cx: 113.9, cy: 92.4, w: 10, h: 8, pelle: [221, 171, 144] },
+    ],
+  },
+  woman_mage_medium: {
+    testa: { alto: 12, basso: 179, cx: 98, w: 148 },
+    occhi: [
+      { cx: 76.9, cy: 92.5, w: 11, h: 8, pelle: [144, 106, 105] },
+      { cx: 114, cy: 92.5, w: 11, h: 8, pelle: [173, 132, 115] },
+    ],
+  },
+  woman_mage_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 98, w: 148 },
+    occhi: [
+      { cx: 77.1, cy: 92.5, w: 10, h: 8, pelle: [121, 85, 84] },
+      { cx: 113.9, cy: 92.4, w: 10, h: 8, pelle: [136, 95, 86] },
+    ],
+  },
+  woman_mage_dark: {
+    testa: { alto: 12, basso: 179, cx: 98, w: 148 },
+    occhi: [
+      { cx: 77.1, cy: 92.5, w: 10, h: 8, pelle: [75, 57, 57] },
+      { cx: 114, cy: 92.5, w: 10, h: 8, pelle: [73, 49, 49] },
+    ],
+  },
+  man_fairy_light: {
+    testa: { alto: 13, basso: 178, cx: 97, w: 108 },
+    occhi: [
+      { cx: 74.3, cy: 50, w: 27, h: 28, pelle: [0, 0, 0] },
+      { cx: 124.8, cy: 50, w: 26, h: 28, pelle: [0, 0, 0] },
+    ],
+  },
+  man_fairy_medium_light: {
+    testa: { alto: 13, basso: 178, cx: 97, w: 108 },
+    occhi: [
+      { cx: 74.3, cy: 50, w: 27, h: 28, pelle: [0, 0, 0] },
+      { cx: 124.8, cy: 50, w: 26, h: 28, pelle: [0, 0, 0] },
+    ],
+  },
+  man_fairy_medium: {
+    testa: { alto: 13, basso: 178, cx: 97, w: 108 },
+    occhi: [
+      { cx: 74.3, cy: 50, w: 27, h: 28, pelle: [0, 0, 0] },
+      { cx: 124.9, cy: 50, w: 26, h: 28, pelle: [0, 0, 0] },
+    ],
+  },
+  man_fairy_medium_dark: {
+    testa: { alto: 13, basso: 178, cx: 97, w: 108 },
+    occhi: [
+      { cx: 74.3, cy: 50, w: 27, h: 28, pelle: [0, 0, 0] },
+      { cx: 124.9, cy: 50, w: 26, h: 28, pelle: [0, 0, 0] },
+    ],
+  },
+  man_fairy_dark: {
+    testa: { alto: 13, basso: 178, cx: 97, w: 108 },
+    occhi: [
+      { cx: 74.3, cy: 50, w: 27, h: 28, pelle: [0, 0, 0] },
+      { cx: 124.9, cy: 50, w: 26, h: 28, pelle: [0, 0, 0] },
+    ],
+  },
+  woman_fairy_light: {
+    testa: { alto: 13, basso: 178, cx: 97, w: 108 },
+    occhi: [
+      { cx: 71.1, cy: 46.6, w: 17, h: 21, pelle: [0, 0, 0] },
+      { cx: 128, cy: 46.7, w: 17, h: 21, pelle: [255, 214, 190] },
+    ],
+  },
+  woman_fairy_medium_light: {
+    testa: { alto: 13, basso: 178, cx: 97, w: 108 },
+    occhi: [
+      { cx: 71.1, cy: 46.6, w: 17, h: 21, pelle: [0, 0, 0] },
+      { cx: 128, cy: 46.7, w: 17, h: 21, pelle: [243, 193, 160] },
+    ],
+  },
+  woman_fairy_medium: {
+    testa: { alto: 13, basso: 178, cx: 97, w: 108 },
+    occhi: [
+      { cx: 71.1, cy: 46.6, w: 17, h: 21, pelle: [0, 0, 0] },
+      { cx: 128, cy: 46.7, w: 17, h: 21, pelle: [197, 155, 132] },
+    ],
+  },
+  woman_fairy_medium_dark: {
+    testa: { alto: 13, basso: 178, cx: 97, w: 108 },
+    occhi: [
+      { cx: 71.1, cy: 46.6, w: 17, h: 21, pelle: [0, 0, 0] },
+      { cx: 128, cy: 46.7, w: 17, h: 21, pelle: [155, 114, 102] },
+    ],
+  },
+  woman_fairy_dark: {
+    testa: { alto: 13, basso: 178, cx: 97, w: 108 },
+    occhi: [
+      { cx: 71.1, cy: 46.6, w: 17, h: 21, pelle: [0, 0, 0] },
+      { cx: 128, cy: 46.7, w: 17, h: 21, pelle: [92, 68, 66] },
+    ],
+  },
+  man_vampire_light: {
+    testa: { alto: 12, basso: 179, cx: 96, w: 130 },
+    occhi: [
+      { cx: 80.2, cy: 112, w: 9, h: 7, pelle: [81, 59, 99] },
+      { cx: 110.2, cy: 108.8, w: 12, h: 17, pelle: [90, 71, 109] },
+    ],
+  },
+  man_vampire_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 96, w: 130 },
+    occhi: [
+      { cx: 79.9, cy: 112.3, w: 8, h: 7, pelle: [81, 59, 99] },
+      { cx: 110.4, cy: 109, w: 11, h: 16, pelle: [90, 70, 109] },
+    ],
+  },
+  man_vampire_medium: {
+    testa: { alto: 12, basso: 179, cx: 96, w: 130 },
+    occhi: [
+      { cx: 76.6, cy: 59.6, w: 10, h: 8, pelle: [153, 113, 102] },
+      { cx: 114.3, cy: 59.6, w: 9, h: 8, pelle: [198, 153, 127] },
+    ],
+  },
+  man_vampire_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 96, w: 130 },
+    occhi: [
+      { cx: 76.2, cy: 60, w: 7, h: 7, pelle: [123, 86, 80] },
+      { cx: 114.4, cy: 59.6, w: 10, h: 8, pelle: [153, 109, 94] },
+    ],
+  },
+  man_vampire_dark: {
+    testa: { alto: 12, basso: 179, cx: 96, w: 130 },
+    occhi: [
+      { cx: 76.3, cy: 60, w: 7, h: 7, pelle: [73, 55, 52] },
+      { cx: 114.8, cy: 60, w: 7, h: 7, pelle: [83, 53, 50] },
+    ],
+  },
+  woman_vampire_light: {
+    testa: { alto: 13, basso: 179, cx: 96, w: 130 },
+    occhi: [
+      { cx: 76.3, cy: 60, w: 7, h: 7, pelle: [226, 170, 150] },
+      { cx: 114.8, cy: 60, w: 7, h: 7, pelle: [255, 217, 190] },
+    ],
+  },
+  woman_vampire_medium_light: {
+    testa: { alto: 13, basso: 179, cx: 96, w: 130 },
+    occhi: [
+      { cx: 76.3, cy: 60, w: 7, h: 7, pelle: [211, 155, 129] },
+      { cx: 114.8, cy: 60, w: 7, h: 7, pelle: [247, 194, 157] },
+    ],
+  },
+  woman_vampire_medium: {
+    testa: { alto: 13, basso: 179, cx: 96, w: 130 },
+    occhi: [
+      { cx: 76.3, cy: 60, w: 7, h: 7, pelle: [149, 109, 99] },
+      { cx: 114.8, cy: 60, w: 7, h: 7, pelle: [198, 153, 127] },
+    ],
+  },
+  woman_vampire_medium_dark: {
+    testa: { alto: 13, basso: 179, cx: 96, w: 130 },
+    occhi: [
+      { cx: 76.3, cy: 60, w: 7, h: 7, pelle: [123, 85, 80] },
+      { cx: 115, cy: 60.1, w: 8, h: 7, pelle: [153, 108, 93] },
+    ],
+  },
+  woman_vampire_dark: {
+    testa: { alto: 13, basso: 179, cx: 96, w: 130 },
+    occhi: [
+      { cx: 76.5, cy: 59.9, w: 8, h: 7, pelle: [73, 55, 52] },
+      { cx: 114.8, cy: 60, w: 7, h: 7, pelle: [83, 53, 50] },
+    ],
+  },
+  man_elf_light: {
+    testa: { alto: 13, basso: 179, cx: 96, w: 110 },
+    occhi: [
+      { cx: 77.7, cy: 59.3, w: 12, h: 8, pelle: [229, 171, 149] },
+      { cx: 113.5, cy: 59.5, w: 12, h: 8, pelle: [255, 216, 188] },
+    ],
+  },
+  man_elf_medium_light: {
+    testa: { alto: 13, basso: 179, cx: 96, w: 110 },
+    occhi: [
+      { cx: 77.7, cy: 59.3, w: 12, h: 8, pelle: [214, 156, 129] },
+      { cx: 113.8, cy: 59.6, w: 11, h: 8, pelle: [247, 194, 156] },
+    ],
+  },
+  man_elf_medium: {
+    testa: { alto: 13, basso: 179, cx: 96, w: 110 },
+    occhi: [
+      { cx: 77.7, cy: 59.3, w: 12, h: 8, pelle: [152, 113, 101] },
+      { cx: 113.3, cy: 59.3, w: 12, h: 8, pelle: [194, 152, 125] },
+    ],
+  },
+  man_elf_medium_dark: {
+    testa: { alto: 13, basso: 179, cx: 96, w: 110 },
+    occhi: [
+      { cx: 77.6, cy: 59.4, w: 12, h: 8, pelle: [127, 92, 85] },
+      { cx: 113.4, cy: 59.4, w: 13, h: 8, pelle: [151, 109, 94] },
+    ],
+  },
+  man_elf_dark: {
+    testa: { alto: 13, basso: 179, cx: 96, w: 110 },
+    occhi: [
+      { cx: 77.2, cy: 59.7, w: 11, h: 7, pelle: [82, 64, 60] },
+      { cx: 113.8, cy: 59.6, w: 11, h: 8, pelle: [85, 56, 54] },
+    ],
+  },
+  woman_elf_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 99 },
+    occhi: [
+      { cx: 77.5, cy: 59.6, w: 12, h: 7, pelle: [231, 173, 151] },
+      { cx: 113.4, cy: 59.5, w: 12, h: 8, pelle: [255, 216, 187] },
+    ],
+  },
+  woman_elf_medium_light: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 99 },
+    occhi: [
+      { cx: 77.5, cy: 59.6, w: 12, h: 7, pelle: [217, 158, 131] },
+      { cx: 113.4, cy: 59.5, w: 12, h: 8, pelle: [246, 192, 155] },
+    ],
+  },
+  woman_elf_medium: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 99 },
+    occhi: [
+      { cx: 77.5, cy: 59.6, w: 12, h: 7, pelle: [151, 112, 99] },
+      { cx: 113.5, cy: 59.6, w: 12, h: 7, pelle: [195, 152, 125] },
+    ],
+  },
+  woman_elf_medium_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 99 },
+    occhi: [
+      { cx: 77.2, cy: 59.7, w: 11, h: 7, pelle: [127, 91, 84] },
+      { cx: 113.5, cy: 59.6, w: 12, h: 7, pelle: [151, 108, 93] },
+    ],
+  },
+  woman_elf_dark: {
+    testa: { alto: 12, basso: 179, cx: 95.5, w: 99 },
+    occhi: [
+      { cx: 77.2, cy: 59.7, w: 11, h: 7, pelle: [81, 63, 58] },
+      { cx: 113.8, cy: 59.7, w: 11, h: 7, pelle: [84, 56, 53] },
     ],
   },
 };
