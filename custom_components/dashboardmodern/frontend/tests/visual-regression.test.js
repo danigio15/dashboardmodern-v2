@@ -42,10 +42,16 @@ const expectedTabs = [
  *    e' un rettangolo invisibile che le sborda intorno, e che sta dentro di
  *    lei — quindi sopra la pagina. Con la barra gia' ferma e alzata quella
  *    fascia cadeva sulla seconda fila delle tessere della Home, e quelle
- *    tessere non si riuscivano a premere. Sotto, un po' di respiro in piu'. */
+ *    tessere non si riuscivano a premere. Sotto, un po' di respiro in piu';
+ *  - la barra e' piu' bassa e meno trasparente. Era alta ottanta pixel e
+ *    velata al sessantacinque per cento: con del contenuto sotto le scritte
+ *    delle sezioni ci si perdevano dentro. Adesso il fondo e' quasi pieno, il
+ *    vetro sfoca di piu' — quello che passa sotto si intuisce e non si legge,
+ *    che e' il punto di un vetro smerigliato — e ogni voce costa dodici pixel
+ *    in meno: l'icona e il nome ci stanno lo stesso, il resto era aria. */
 const vendoredCssSnapshots = {
-  "dashboard-runtime-it.css": "956831d7cc251e4a0ad7217c1b495e155fae118689445ae582b80b0fbde259b0",
-  "dashboard-runtime-en.css": "af6f2c8fca7af683765751c530acbd59e91ca47fb8e1d291f0460de7295c02f2",
+  "dashboard-runtime-it.css": "4a552a37b22aed71bce1437083aefe8f5aa30d384b82b5bbba89f65cee158040",
+  "dashboard-runtime-en.css": "58f2316aea1acaac607fb1edb5dcc00eccea5d9a5cc42a9bbf0c5d071ddff7e1",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {

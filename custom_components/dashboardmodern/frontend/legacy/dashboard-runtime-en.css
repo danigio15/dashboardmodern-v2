@@ -4630,6 +4630,30 @@ body.cd-nav-fixed { padding-bottom: 112px !important; }
  * A barra ferma il sensore non serve — la barra e' gia' li'. */
 body.cd-nav-fixed nav.tabs.bottom-nav-bar::before { display: none !important; }
 
+/* La barra: piu' bassa, e con un fondo che regge quello che ci passa sotto.
+ *
+ * Era alta ottanta pixel e trasparente al sessantacinque per cento: con del
+ * contenuto sotto — le tessere della Home, una griglia di card — le scritte
+ * delle sezioni ci si perdevano dentro, e la barra sembrava una velatura
+ * invece di una barra. Adesso il fondo e' quasi pieno e il vetro sfoca di
+ * piu': quello che passa sotto si intuisce e non si legge, che e' il punto di
+ * un vetro smerigliato. E ogni voce costa dodici pixel in meno in altezza:
+ * l'icona e il nome ci stanno lo stesso, il resto era aria. */
+nav.tabs.bottom-nav-bar {
+    background: rgba(255, 255, 255, 0.92) !important;
+    backdrop-filter: blur(42px) saturate(170%) !important;
+    -webkit-backdrop-filter: blur(42px) saturate(170%) !important;
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.16), inset 0 0 0 1px rgba(255,255,255,0.7) !important;
+    padding: 5px 10px !important;
+}
+html[data-theme="dark"] nav.tabs.bottom-nav-bar,
+body.dark-theme nav.tabs.bottom-nav-bar {
+    background: rgba(15, 23, 42, 0.92) !important;
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(148, 163, 184, 0.22) !important;
+}
+nav.tabs.bottom-nav-bar .tab { padding: 6px 14px !important; gap: 4px !important; }
+nav.tabs.bottom-nav-bar .tab .icon { font-size: 21px !important; }
+
 #cd-boot-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:#e8edf3;transition:opacity .26s ease}html[data-theme="dark"] #cd-boot-overlay{background:#0b1220}#cd-boot-overlay .s{width:44px;height:44px;border:4px solid rgba(14,165,233,.22);border-top-color:#0ea5e9;border-radius:50%;animation:cdBootSpin .8s linear infinite}@keyframes cdBootSpin{to{transform:rotate(360deg)}}
 
 @keyframes cdSpin{to{transform:rotate(360deg)}}

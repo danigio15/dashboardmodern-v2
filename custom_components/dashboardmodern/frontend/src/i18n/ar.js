@@ -1563,4 +1563,5 @@ export default Object.freeze({
   "Add to ${clean(list.name) || list.entity}": "أضف إلى ${clean(list.name) || list.entity}",
   "Remove from the list": "إزالة من القائمة",
   "Remove from the list: ${item.summary}": "إزالة من القائمة: ${item.summary}",
+  "Open, with the PIN": "افتح، بالرمز",
 });

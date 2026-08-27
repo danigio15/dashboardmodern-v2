@@ -1581,4 +1581,5 @@ export default Object.freeze({
   "Add to ${clean(list.name) || list.entity}": "Toevoegen aan ${clean(list.name) || list.entity}",
   "Remove from the list": "Uit de lijst verwijderen",
   "Remove from the list: ${item.summary}": "Uit de lijst verwijderen: ${item.summary}",
+  "Open, with the PIN": "Openen, met de pincode",
 });

@@ -32,7 +32,7 @@ import {
   isRelayEntity,
   relayCoverCommands,
 } from "../core/cover-kind.js";
-import { normalizeSecurityDoors } from "../core/security-door-model.js";
+import { doorOpenCall, normalizeSecurityDoors } from "../core/security-door-model.js";
 import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
@@ -1401,11 +1401,34 @@ function securityDetail(widget, states) {
           : raw === "open"
             ? t("Aperta", "Open")
             : "";
+    /* La porta si apre anche da qui.
+     *
+     * La riga la disegnava e basta: nome, stato, e un lucchetto che diceva
+     * soltanto «questa vuole il PIN». Dalla pagina Sicurezza la stessa porta
+     * si apre, e chi arriva dalla tessera non capisce perche' qui no.
+     *
+     * Il tasto porta lo stesso `data-dm-door` dei tasti di quella pagina, e
+     * quel gesto lo ascolta il documento intero: e' la stessa mano che apre —
+     * stessa conferma, stesso tastierino del PIN, stessa chiamata. Qui non si
+     * ricopia niente, si chiede a chi lo sa gia' fare. */
+    const apre = doorOpenCall(door.entity, stateOf(states, door.entity));
+    const invito = door.pin
+      ? t("Apri, col PIN", "Open, with the PIN")
+      : t("Apri", "Open");
     parts.push(
       rowShell(
         `<span class="dm-w-glyph" aria-hidden="true">${esc(door.icon)}</span>
          <span class="dm-w-name">${esc(door.name || door.entity)}<small>${esc(label)}</small></span>
-         ${door.pin ? '<span class="dm-w-glyph" aria-hidden="true">🔒</span>' : ""}`,
+         ${
+           apre
+             ? `<button type="button" class="dm-w-door" data-dm-door="${esc(door.id)}"
+                  title="${esc(invito)}" aria-label="${esc(`${invito}: ${door.name || door.entity}`)}">${
+                    door.pin ? "🔐" : "🔓"
+                  }</button>`
+             : door.pin
+               ? '<span class="dm-w-glyph" aria-hidden="true">🔒</span>'
+               : ""
+         }`,
       ),
     );
   }
@@ -2539,6 +2562,21 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 #dm-widget-popup .dm-w-row .dm-w-arrows button{width:32px;height:32px}
 /* Il titolo di un gruppo dentro la lista: maiuscoletto spaziato con la sua
    riga sottile, come le altre separazioni della plancia. */
+/* Il tasto che apre una porta: la stessa pastiglia quadrata degli altri
+ * comandi di riga, in verde perche' apre. */
+#dm-widget-popup .dm-w-row .dm-w-door{
+  flex:0 0 36px;width:36px;height:36px;display:grid;place-items:center;
+  border-radius:12px;font-size:16px;cursor:pointer;
+  border:1px solid var(--card-border,#e8edf3);background:var(--surface-2,#f8fafc);
+  transition:background .18s ease,border-color .18s ease,transform .15s ease}
+#dm-widget-popup .dm-w-row .dm-w-door:hover{
+  background:color-mix(in srgb,var(--dm-widget-accent,#10b981) 14%,transparent);
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#10b981) 45%,transparent)}
+#dm-widget-popup .dm-w-row .dm-w-door:active{transform:scale(.94)}
+@media(prefers-reduced-motion:reduce){
+  #dm-widget-popup .dm-w-row .dm-w-door{transition:none}
+  #dm-widget-popup .dm-w-row .dm-w-door:active{transform:none}
+}
 /* La riga per scrivere: una casella e un piu', larghi quanto la lista. */
 #dm-widget-popup .dm-todo-add{
   display:flex;gap:8px;margin:9px 0 2px}

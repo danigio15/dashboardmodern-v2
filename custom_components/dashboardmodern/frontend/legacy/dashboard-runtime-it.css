@@ -4614,6 +4614,30 @@ body.cd-nav-fixed { padding-bottom: 112px !important; }
  * A barra ferma il sensore non serve — la barra e' gia' li'. */
 body.cd-nav-fixed nav.tabs.bottom-nav-bar::before { display: none !important; }
 
+/* La barra: piu' bassa, e con un fondo che regge quello che ci passa sotto.
+ *
+ * Era alta ottanta pixel e trasparente al sessantacinque per cento: con del
+ * contenuto sotto — le tessere della Home, una griglia di card — le scritte
+ * delle sezioni ci si perdevano dentro, e la barra sembrava una velatura
+ * invece di una barra. Adesso il fondo e' quasi pieno e il vetro sfoca di
+ * piu': quello che passa sotto si intuisce e non si legge, che e' il punto di
+ * un vetro smerigliato. E ogni voce costa dodici pixel in meno in altezza:
+ * l'icona e il nome ci stanno lo stesso, il resto era aria. */
+nav.tabs.bottom-nav-bar {
+    background: rgba(255, 255, 255, 0.92) !important;
+    backdrop-filter: blur(42px) saturate(170%) !important;
+    -webkit-backdrop-filter: blur(42px) saturate(170%) !important;
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.16), inset 0 0 0 1px rgba(255,255,255,0.7) !important;
+    padding: 5px 10px !important;
+}
+html[data-theme="dark"] nav.tabs.bottom-nav-bar,
+body.dark-theme nav.tabs.bottom-nav-bar {
+    background: rgba(15, 23, 42, 0.92) !important;
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(148, 163, 184, 0.22) !important;
+}
+nav.tabs.bottom-nav-bar .tab { padding: 6px 14px !important; gap: 4px !important; }
+nav.tabs.bottom-nav-bar .tab .icon { font-size: 21px !important; }
+
 /* v0.8.2: STANZE — icona grande in badge colorato (in coda per vincere sulle regole base) */
 .temp-room-icon { font-size: 30px !important; width: 54px !important; height: 54px !important; display: flex !important; align-items: center !important; justify-content: center !important; border-radius: 16px !important; background: linear-gradient(135deg, rgba(var(--tc-rgb),0.22), rgba(var(--tc-rgb),0.07)) !important; box-shadow: inset 0 0 0 1.5px rgba(var(--tc-rgb),0.30) !important; flex-shrink: 0 !important; line-height: 1 !important; }
 /* ═══ v0.8.3: CARD STANZE PREMIUM (tc2) ═══ */

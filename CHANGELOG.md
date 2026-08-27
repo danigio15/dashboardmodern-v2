@@ -81,6 +81,32 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   scorrimento porta il colore della tessera, così una lista lunga si vede che è
   lunga.
 
+- **Tapparelle: le finestre mostravano ROOM_MT8VPZ7M invece del nome della
+  stanza.** La tendina delle stanze salva l'id quando c'è — è l'unica cosa che
+  regge un rinominamento — ma chi disegna una card scriveva quello che
+  trovava. Adesso l'id torna il nome; una configurazione vecchia che salvava
+  il nome continua a funzionare, e una stanza cancellata resta scritta com'era.
+
+- **Il widget Sicurezza mostrava il portoncino ma non lo apriva.** La riga lo
+  disegnava e basta: nome, stato, e un lucchetto che diceva soltanto «questa
+  vuole il PIN». Adesso c'è il tasto, e porta lo stesso gesto dei tasti della
+  pagina Sicurezza: stessa conferma, stesso tastierino del PIN, stessa
+  chiamata. Non è una seconda mano che apre: è la stessa.
+
+- **Persone: l'avatar scelto perdeva contro la fototessera dell'entità.** La
+  card mette la fotografia davanti all'avatar, ed è giusto — una foto vera è
+  meglio di un'emoji. Ma la fotografia arriva anche da sola: Home Assistant e
+  i tracker se la portano dietro, e quella automatica stava davanti a una
+  scelta fatta a mano. Chi si costruiva la faccia pezzo per pezzo continuava a
+  vedere la fototessera del telefono. Adesso l'ordine è: la foto scritta a
+  mano, poi l'avatar se qualcuno l'ha scelto, poi quella dell'entità.
+
+- **La barra in basso era alta e quasi trasparente.** Con del contenuto sotto,
+  le scritte delle sezioni ci si perdevano dentro. Adesso il fondo è quasi
+  pieno e il vetro sfoca di più — quello che passa sotto si intuisce e non si
+  legge, che è il punto di un vetro smerigliato — e ogni voce costa dodici
+  pixel in meno: l'icona e il nome ci stanno lo stesso, il resto era aria.
+
 - **Auto: col cavo attaccato la foto non cambiava.** Le due foto — l'auto ferma
   e l'auto in carica — c'erano e si potevano scegliere, ma la seconda arrivava
   solo riaprendo la pagina. La sezione Auto si ridisegna quando cambia

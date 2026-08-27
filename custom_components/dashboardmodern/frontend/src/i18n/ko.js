@@ -1566,4 +1566,5 @@ export default Object.freeze({
   "Add to ${clean(list.name) || list.entity}": "${clean(list.name) || list.entity}에 추가",
   "Remove from the list": "목록에서 제거",
   "Remove from the list: ${item.summary}": "목록에서 제거: ${item.summary}",
+  "Open, with the PIN": "PIN으로 열기",
 });

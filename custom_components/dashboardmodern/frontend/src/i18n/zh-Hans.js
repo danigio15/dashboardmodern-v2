@@ -1546,4 +1546,5 @@ export default Object.freeze({
   "Add to ${clean(list.name) || list.entity}": "添加到 ${clean(list.name) || list.entity}",
   "Remove from the list": "从列表中移除",
   "Remove from the list: ${item.summary}": "从列表中移除：${item.summary}",
+  "Open, with the PIN": "用 PIN 打开",
 });

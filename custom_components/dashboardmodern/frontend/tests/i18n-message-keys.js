@@ -903,6 +903,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Open in map",
   "Open instant appliance power",
   "Open today's appliance energy breakdown",
+  "Open, with the PIN",
   "Opening",
   "Opening · Closing · Group scenes",
   "Opening entity",

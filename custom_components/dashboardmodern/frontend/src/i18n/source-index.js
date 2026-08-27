@@ -238,6 +238,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Apri in mappa": "Open in map",
   "Apri la telecamera": "Open camera",
   "Apri tutto": "Open all",
+  "Apri, col PIN": "Open, with the PIN",
   "Aprile": "April",
   "Arancione": "Orange",
   "Aree della casa": "Areas of the home",
