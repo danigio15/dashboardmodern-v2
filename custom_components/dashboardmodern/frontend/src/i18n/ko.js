@@ -1571,4 +1571,10 @@ export default Object.freeze({
   "Temperature 1": "온도 1",
   "Temperature 2": "온도 2",
   "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "냉동실이 있는 냉장고는 두 칸입니다. 두 번째는 여기에. 둘 다 채우면 카드가 막대 두 개를 그립니다.",
+  "Drag to move · wheel or pinch to zoom": "끌어서 이동 · 휠이나 핀치로 확대",
+  "Map": "지도",
+  "Open the map": "지도 열기",
+  "Reset": "초기화",
+  "Zoom in": "확대",
+  "Zoom out": "축소",
 });

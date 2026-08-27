@@ -1575,4 +1575,10 @@ export default Object.freeze({
   "Temperature 1": "Sıcaklık 1",
   "Temperature 2": "Sıcaklık 2",
   "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "Dondurucusu olan bir buzdolabı iki bölmedir: ikincisi buraya. Her iki kutu doluyken kart iki çubuk çizer.",
+  "Drag to move · wheel or pinch to zoom": "Taşımak için sürükleyin · yakınlaştırmak için tekerlek veya kıstırma",
+  "Map": "Harita",
+  "Open the map": "Haritayı aç",
+  "Reset": "Sıfırla",
+  "Zoom in": "Yakınlaştır",
+  "Zoom out": "Uzaklaştır",
 });

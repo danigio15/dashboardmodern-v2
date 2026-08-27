@@ -471,6 +471,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Download blocked here: use “Copy”",
   "Download the backup",
   "Download the file",
+  "Drag to move · wheel or pinch to zoom",
   "DRAW",
   "Driving",
   "Dry",
@@ -757,6 +758,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Mail",
   "Man",
   "Manual settings",
+  "Map",
   "Map entity",
   "Map of ${view.name}",
   "Map unavailable",
@@ -903,6 +905,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Open gate",
   "Open in map",
   "Open instant appliance power",
+  "Open the map",
   "Open today's appliance energy breakdown",
   "Open, with the PIN",
   "Opening",
@@ -1044,6 +1047,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Report and previous months",
   "Report entity",
   "Report saved",
+  "Reset",
   "Restore and reload",
   "Restore from a backup",
   "Returning to dock",
@@ -1421,6 +1425,8 @@ export const MESSAGE_KEYS = Object.freeze([
   "Zones · Schedule · Forecast rain",
   "zones configured",
   "zones running",
+  "Zoom in",
+  "Zoom out",
 ]);
 
 export default MESSAGE_KEYS;
