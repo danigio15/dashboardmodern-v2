@@ -760,25 +760,78 @@ function robotsModel(states) {
   };
 }
 
+/* Quello che il solare termico ha da dire, casella per casella.
+ *
+ * Prima erano tre righe fisse — le sonde — chiamate «Sonda 1, 2, 3». Due cose
+ * sbagliate in una. La prima: «Sonda 2» non e' il nome di niente, e chi ha il
+ * pannello sopra e il boiler sotto quei numeri se li deve ricordare a memoria;
+ * il nome vero ce l'ha l'entita', e si legge di li'. La seconda: tutto il
+ * resto del solare — le pompe, il delta, la pressione — non entrava mai, e
+ * allora l'interruttore «nel widget» acceso su quelle righe non portava
+ * niente in Home. Un interruttore che si accende e non fa succedere niente e'
+ * peggio di un interruttore che non c'e'.
+ *
+ * Adesso ogni casella mappata puo' arrivare in Home, e a decidere quali resta
+ * l'interruttore. Le temperature portano il loro numero; le pompe e gli
+ * interruttori portano acceso o spento, perche' di una pompa quello si
+ * guarda. */
+const CASELLE_SOLARE = Object.freeze([
+  { ref: "dm.boiler_sonda_temperatura_1", glyph: "🌡️", unita: "°", cifre: 1 },
+  { ref: "dm.boiler_sonda_temperatura_2", glyph: "🌡️", unita: "°", cifre: 1 },
+  { ref: "dm.boiler_sonda_temperatura_3", glyph: "🌡️", unita: "°", cifre: 1 },
+  { ref: "dm.boiler_temperatura", glyph: "🌡️", unita: "°", cifre: 1 },
+  { ref: "dm.boiler_delta_temperatura", glyph: "📐", unita: "°", cifre: 1 },
+  { ref: "dm.boiler_pressione_acqua", glyph: "💧", unita: " bar", cifre: 1 },
+  { ref: "dm.boiler_potenza_resistenza_boiler", glyph: "⚡", unita: " W", cifre: 0 },
+  { ref: "dm.boiler_potenza", glyph: "⚡", unita: " W", cifre: 0 },
+  { ref: "dm.boiler_stato_pompa_solare", glyph: "🔄", acceso: true },
+  { ref: "dm.boiler_sensore_pompa_solare", glyph: "🔄", acceso: true },
+  { ref: "dm.boiler_pompa_solare", glyph: "🔄", acceso: true },
+  { ref: "dm.boiler_centralina_solare_termico", glyph: "🎛️", acceso: true },
+  { ref: "dm.boiler_interruttore_solare_termico", glyph: "🔌", acceso: true },
+  { ref: "dm.boiler_interruttore_boiler", glyph: "🔌", acceso: true },
+  { ref: "dm.boiler_valvola_di_sicurezza", glyph: "🛡️", acceso: true },
+]);
+
+const STATI_ACCESI = /^(on|true|1|running|attiva|attivo|open|aperta|heat|heating)$/i;
+
 function solarThermalModel(states) {
   const fuori = widgetExcludedEntities();
-  const sonde = ["dm.boiler_sonda_temperatura_1", "dm.boiler_sonda_temperatura_2", "dm.boiler_sonda_temperatura_3"]
-    .map((ref, indice) => ({ indice, dato: refValue(states, ref, fuori) }))
-    .filter((riga) => riga.dato?.value != null);
-  const pompa = refValue(states, "dm.boiler_stato_pompa_solare", fuori);
-  if (!sonde.length) return null;
-  const acqua = sonde[0].dato.value;
-  const attiva = pompa ? ["on", "true", "running", "attiva"].includes(pompa.state.toLowerCase()) : false;
+  const righe = [];
+  const visti = new Set();
+  let primaSonda = null;
+  let pompa = null;
+  for (const casella of CASELLE_SOLARE) {
+    const dato = refValue(states, casella.ref, fuori);
+    if (!dato || visti.has(dato.entity)) continue;
+    if (casella.acceso) {
+      if (!dato.state) continue;
+      const attivo = STATI_ACCESI.test(dato.state);
+      if (pompa == null && casella.ref.includes("pompa")) pompa = attivo;
+      visti.add(dato.entity);
+      righe.push({
+        glyph: casella.glyph,
+        name: friendlyName(states, dato.entity),
+        value: attivo ? t("Acceso", "On") : t("Spento", "Off"),
+      });
+      continue;
+    }
+    if (dato.value == null) continue;
+    if (primaSonda == null && casella.ref.startsWith("dm.boiler_sonda")) primaSonda = dato.value;
+    visti.add(dato.entity);
+    righe.push({
+      glyph: casella.glyph,
+      name: friendlyName(states, dato.entity),
+      value: `${formatNumber(dato.value, casella.cifre)}${casella.unita}`,
+    });
+  }
+  if (!righe.length) return null;
   return {
     key: "solare", accent: "#f59e0b", icon: "🌞", label: t("Solare termico", "Solar thermal"),
-    value: `${formatNumber(acqua, 1)}°`,
-    caption: pompa ? (attiva ? t("Pompa in funzione", "Pump running") : t("Pompa ferma", "Pump idle")) : "",
+    value: primaSonda == null ? t("Attivo", "Active") : `${formatNumber(primaSonda, 1)}°`,
+    caption: pompa == null ? "" : pompa ? t("Pompa in funzione", "Pump running") : t("Pompa ferma", "Pump idle"),
     ring: null,
-    rows: sonde.map((riga) => ({
-      glyph: "🌡️",
-      name: `${t("Sonda", "Probe")} ${riga.indice + 1}`,
-      value: `${formatNumber(riga.dato.value, 1)}°`,
-    })),
+    rows: righe,
   };
 }
 
@@ -1208,6 +1261,18 @@ function climateGlyph(mode) {
 
 /* I nomi delle modalita', gli stessi che usa la scheda del Clima rapido in
  * configurazione: «cool» in faccia a chi guarda non lo dice nessuno. */
+/* Il simbolo di accensione, disegnato invece che scritto.
+ *
+ * Il carattere «⏻» (U+23FB) sta in un blocco che i font di sistema di Android
+ * non coprono: sul telefono al posto del tasto usciva il quadratino vuoto del
+ * carattere che manca — un comando che non si capisce e' un comando che non si
+ * preme. Due tratti in SVG non dipendono da nessun font, prendono il colore
+ * della riga come tutto il resto e restano nitidi a qualunque misura. */
+const GLIFO_ACCENSIONE =
+  '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" focusable="false" fill="none" ' +
+  'stroke="currentColor" stroke-width="2.3" stroke-linecap="round">' +
+  '<path d="M12 3v8"/><path d="M6.8 6.6a7.5 7.5 0 1 0 10.4 0"/></svg>';
+
 const NOMI_MODO = () => ({
   off: t("Spento", "Off"),
   cool: t("Raffrescamento", "Cooling"),
@@ -1325,7 +1390,7 @@ function climateDetail(widget) {
              : ""
          }
          <button type="button" class="dm-w-power" data-dm-w-clima="${esc(row.entity)}" data-on="${row.on}"
-           aria-label="${esc(row.name)}">⏻</button>`,
+           aria-label="${esc(row.name)}">${GLIFO_ACCENSIONE}</button>`,
         `data-dm-w-open="${Boolean(aperto)}"`,
       ) + pannello;
     })
@@ -1676,13 +1741,12 @@ function ensureHost() {
   if (host) return host;
   host = doc.createElement("section");
   host.id = "dm-widgets";
-  host.innerHTML = `<div class="dm-widgets-head">
-      <span class="dm-widgets-ic" aria-hidden="true">🧩</span>
-      <div class="dm-widgets-copy">
-        <h3 class="dm-widgets-title"></h3>
-        <p class="dm-widgets-sub"></p>
-      </div>
-    </div>
+  /* Il titolo e' un titolo di sezione, come «Azioni rapide» e come
+   * «Persone»: sulla Home i blocchi si annunciano tutti allo stesso modo, e
+   * una fascia con l'alone di colore in mezzo agli altri due faceva sembrare
+   * i Widget un'altra cosa. Sotto, la riga che dice come sta la casa. */
+  host.innerHTML = `<h3 class="section-title dm-widgets-title"></h3>
+    <p class="dm-widgets-sub"></p>
     <div class="dm-widgets-grid"></div>`;
   // Sotto le persone di casa quando ci sono, altrimenti sotto le pastiglie:
   // sempre prima del Quadro Avvisi.
@@ -1743,13 +1807,24 @@ export function renderHomeWidgets() {
     const quante = models.length;
     const avvisi = models.filter((widget) => widget.alert).length;
     const sezioni = quante === 1 ? t("1 sezione", "1 section") : t(`${quante} sezioni`, `${quante} sections`);
+    /* Non basta dire QUANTE chiedono attenzione: bisogna dire QUALI.
+     *
+     * «2 chiedono attenzione» sopra otto tessere obbliga a guardarle tutte per
+     * scoprire chi sono, che e' esattamente il lavoro che una riga di
+     * riepilogo dovrebbe risparmiare. I nomi in larghezza ci stanno di rado, e
+     * allora la riga scorre: la stessa andatura delle didascalie delle
+     * tessere, e solo quando serve davvero. */
+    const nomi = models.filter((widget) => widget.alert).map((widget) => widget.label).join(", ");
     const attenzione = avvisi
       ? avvisi === 1
-        ? t("1 chiede attenzione", "1 needs attention")
-        : t(`${avvisi} chiedono attenzione`, `${avvisi} need attention`)
+        ? `${t("1 chiede attenzione", "1 needs attention")}: ${nomi}`
+        : `${t(`${avvisi} chiedono attenzione`, `${avvisi} need attention`)}: ${nomi}`
       : t("tutto tranquillo", "all quiet");
     const testo = `${sezioni} · ${attenzione}`;
-    if (sub.textContent !== testo) sub.textContent = testo;
+    if (sub.textContent !== testo) {
+      sub.textContent = testo;
+      scorriUnaRiga(sub);
+    }
     const stato = avvisi ? "avviso" : "quiete";
     if (mounted.dataset.dmMood !== stato) mounted.dataset.dmMood = stato;
   }
@@ -1927,6 +2002,36 @@ function sincronizzaPopup(models, states) {
  * del testo, cosi' due parole scorrono in fretta e una fila di nomi con
  * calma. Chi ci sta resta fermo: niente da leggere in movimento senza
  * motivo. */
+/* Una riga sola che scorre, quando non ci sta.
+ *
+ * Il nastro delle tessere misura il figlio dentro il padre; qui il testo sta
+ * gia' nell'elemento, quindi lo si avvolge una volta sola e da li' in poi si
+ * rimisura quello. Se ci sta, non si muove niente: una riga che scorre senza
+ * bisogno e' solo una riga che non si riesce a leggere. */
+function scorriUnaRiga(riga) {
+  if (!riga) return false;
+  let nastro = riga.querySelector(":scope > .dm-sub-scroll");
+  if (!nastro) {
+    const testo = riga.textContent;
+    riga.textContent = "";
+    nastro = doc.createElement("span");
+    nastro.className = "dm-sub-scroll";
+    nastro.textContent = testo;
+    riga.append(nastro);
+  }
+  const eccesso = nastro.scrollWidth - riga.clientWidth;
+  if (eccesso > 4) {
+    nastro.dataset.dmScroll = "true";
+    nastro.style.setProperty("--dm-scroll-x", `${-eccesso - 2}px`);
+    nastro.style.setProperty("--dm-scroll-dur", `${Math.min(22, Math.max(7, eccesso / 11))}s`);
+    return true;
+  }
+  delete nastro.dataset.dmScroll;
+  nastro.style.removeProperty("--dm-scroll-x");
+  nastro.style.removeProperty("--dm-scroll-dur");
+  return false;
+}
+
 function scorriDidascalie(grid) {
   if (!grid?.querySelectorAll) return 0;
   let mossi = 0;
@@ -2634,34 +2739,18 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 }
 /* ── «In primo piano»: il ponte dei widget della Home ─────────────────── */
 #dm-widgets{display:block;margin:16px 0 6px}
-/* L'intestazione e' una fascia come quelle delle altre pagine, non una riga
-   qualsiasi: stessa famiglia di caratteri, stessa aria, e una sottile linea
-   di colore che si accende quando qualcosa chiede attenzione. */
-:is(#dm-widgets,#dm-widget-popup) .dm-widgets-head{
-  position:relative;display:flex;align-items:center;gap:13px;
-  padding:14px 16px;margin-bottom:12px;border-radius:20px;
-  background:linear-gradient(120deg,
-    color-mix(in srgb,var(--primary-color,#0ea5e9) 7%,var(--card-bg,#fff)),
-    var(--card-bg,#fff) 62%);
-  border:1px solid var(--card-border,#e8edf3);
-  box-shadow:0 4px 16px rgba(15,23,42,.05)}
-:is(#dm-widgets,#dm-widget-popup) .dm-widgets-head::after{
-  content:'';position:absolute;left:16px;right:16px;bottom:0;height:2px;border-radius:2px;
-  background:linear-gradient(90deg,var(--primary-color,#0ea5e9),transparent 72%);opacity:.5}
-#dm-widgets[data-dm-mood="avviso"] .dm-widgets-head::after{
-  background:linear-gradient(90deg,#f59e0b,transparent 72%);opacity:.85}
-:is(#dm-widgets,#dm-widget-popup) .dm-widgets-ic{
-  width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center;font-size:22px;
-  border-radius:15px;background:linear-gradient(140deg,#dbeafe,#ede9fe 55%,#dcfce7);
-  box-shadow:inset 0 0 0 1px rgba(59,130,246,.16),0 6px 14px rgba(59,130,246,.12)}
-:is(#dm-widgets,#dm-widget-popup) .dm-widgets-copy{min-width:0;flex:1}
-:is(#dm-widgets,#dm-widget-popup) .dm-widgets-title{
-  margin:0;font-family:'Oswald',sans-serif;font-weight:700;
-  font-size:clamp(19px,2.6vw,26px);line-height:1.02;letter-spacing:2px;
-  text-transform:uppercase;color:var(--text,#0f172a)}
-:is(#dm-widgets,#dm-widget-popup) .dm-widgets-sub{
-  margin:3px 0 0;font-size:12px;font-weight:700;letter-spacing:.2px;color:var(--text-dim,#64748b)}
+/* L'intestazione e' un titolo di sezione, uguale a «Azioni rapide» e a
+   «Persone»: sulla Home i blocchi si annunciano tutti allo stesso modo. Sotto,
+   la riga che dice come sta la casa, e che si tinge quando qualcosa chiede
+   attenzione. */
+#dm-widgets .dm-widgets-title{
+  margin:15px 0 0;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;
+  letter-spacing:2px;text-transform:uppercase;color:var(--text-dim,#64748b);
+  display:flex;align-items:center;gap:8px}
+#dm-widgets .dm-widgets-sub{
+  margin:4px 0 14px;font-size:12px;font-weight:700;letter-spacing:.2px;color:var(--text-dim,#64748b)}
 #dm-widgets[data-dm-mood="avviso"] .dm-widgets-sub{color:#b45309}
+#dm-widgets .dm-widgets-title::before{content:"🧩";font-size:15px;letter-spacing:0}
 
 /* Le tessere: piccole, quiete, con l'anello che racconta e la freccia che
    promette. L'accento vive nei dettagli — l'anello, il fianco, il bagliore
@@ -2735,6 +2824,16 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 @media(prefers-reduced-motion:reduce){
   :is(#dm-widgets,#dm-widget-popup) .dm-tile-scroll[data-dm-scroll="true"]{animation:none}
 }
+:is(#dm-widgets) .dm-widgets-sub{
+  overflow:hidden;white-space:nowrap;text-overflow:clip}
+:is(#dm-widgets) .dm-sub-scroll{display:inline-block;will-change:transform}
+:is(#dm-widgets) .dm-sub-scroll[data-dm-scroll="true"]{
+  animation:dmTileScroll var(--dm-scroll-dur,12s) ease-in-out infinite alternate;
+  animation-delay:1.6s}
+@media(prefers-reduced-motion:reduce){
+  :is(#dm-widgets) .dm-sub-scroll[data-dm-scroll="true"]{animation:none}
+}
+
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-go{
   flex:0 0 auto;color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 65%,var(--text-dim,#94a3b8));
   font-size:17px;font-weight:900;line-height:1;opacity:.75;
@@ -2859,6 +2958,9 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 :is(#dm-widgets,#dm-widget-popup) .dm-w-power[data-on="true"]{
   border-color:transparent;background:var(--dm-widget-accent,#0ea5e9);color:#fff;
   box-shadow:0 4px 12px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent)}
+/* Il disegno dell'accensione sta al centro e prende il colore del tasto. */
+:is(#dm-widgets,#dm-widget-popup) .dm-w-power svg{display:block;width:17px;height:17px}
+#dm-widget-popup .dm-w-row .dm-w-power{display:grid;place-items:center}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-position{
   appearance:none;-webkit-appearance:none;flex:0 0 auto;margin-left:5px;height:26px;
   width:34px;text-align:center;text-align-last:center;

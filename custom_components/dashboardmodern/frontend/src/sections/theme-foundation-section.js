@@ -57,6 +57,32 @@ export function installThemeFoundationSection() {
       --secondary-text-color:var(--text-dim);
       --primary-text-color:var(--text);
     }
+
+    /* Il margine laterale della plancia.
+     *
+     * Il guscio non ne ha mai avuto uno: il corpo della pagina parte a filo di
+     * schermo, e tutto quello che ci sta dentro parte con lui. Su un telefono
+     * si vede subito da dove: la «P» di PERSONE nasce sul bordo e sembra
+     * tagliata, le tessere finiscono contro il vetro, e ogni titolo di sezione
+     * comincia dove finisce il mondo. Non e' una scelta, e' una riga che
+     * nessuno ha mai scritto.
+     *
+     * Qui si scrive, una volta sola e per tutte le pagine: il corpo tiene le
+     * distanze dai bordi, e con box-sizing border-box gia' dichiarato nel
+     * guscio nessuno diventa piu' largo di prima. La barra in basso non si
+     * muove — e' fissa, il margine del corpo non la riguarda — e le finestre
+     * nemmeno, per lo stesso motivo. Le tacche del telefono si rispettano,
+     * dove ci sono. */
+    body{
+      padding-left:max(14px,env(safe-area-inset-left,0px));
+      padding-right:max(14px,env(safe-area-inset-right,0px));
+    }
+    @media(min-width:769px){
+      body{
+        padding-left:max(22px,env(safe-area-inset-left,0px));
+        padding-right:max(22px,env(safe-area-inset-right,0px));
+      }
+    }
   `);
   return true;
 }

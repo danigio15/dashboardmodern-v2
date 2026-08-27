@@ -107,7 +107,7 @@ test("le voci arrivano col return_response e si spuntano con update_item", () =>
   // quando ci sono: una parte della Home con una tessera per sezione, che al
   // tocco si espande nel dettaglio vivo.
   assert.match(sezione, /id = "dm-widgets"/);
-  assert.match(sezione, /dm-widgets-head/);
+  assert.match(sezione, /dm-widgets-title/);
   assert.match(sezione, /data-dm-widget=/);
   assert.match(sezione, /data-dm-widget-detail=/);
   assert.match(sezione, /getElementById\("dm-people"\)/);
