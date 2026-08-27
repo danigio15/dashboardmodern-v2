@@ -72,6 +72,11 @@ const state = (root[KEY] ||= {
   lists: new Map(), // entity -> { items, fetchedAt, inflight }
   cameraTimer: 0,
   cameraUrls: new Map(), // entity -> object URL della tessera, MAI quelli del muro
+  /* Quali righe hanno il pannello della rotella aperto. Sta qui e non nel
+   * documento perche' il corpo della finestra si ridisegna a ogni giro di
+   * stati: se lo stato dell'apertura stesse solo nel documento, il pannello si
+   * richiuderebbe da solo appena un termostato manda un grado nuovo. */
+  aperti: new Set(),
 });
 
 export function configuredTodoLists() {
@@ -276,17 +281,30 @@ function climateModel(states) {
       if (!entity || !widgetIncludes(entity, fuori)) return null;
       const current = stateOf(states, entity);
       const raw = clean(current?.state).toLowerCase();
+      const attributi = current?.attributes || {};
+      const elenco = (valori) =>
+        Array.isArray(valori) ? valori.map(clean).filter(Boolean) : [];
+      const numero = (valore, difetto = null) =>
+        Number.isFinite(Number(valore)) ? Number(valore) : difetto;
       return {
         entity,
         name: clean(unit?.name) || entity,
         on: Boolean(current) && raw !== "off" && raw !== "unavailable" && raw !== "unknown",
         mode: raw,
-        ambient: Number.isFinite(Number(current?.attributes?.current_temperature))
-          ? Number(current.attributes.current_temperature)
-          : null,
-        target: Number.isFinite(Number(current?.attributes?.temperature))
-          ? Number(current.attributes.temperature)
-          : null,
+        ambient: numero(attributi.current_temperature),
+        target: numero(attributi.temperature),
+        /* Quello che serve al pannello della rotella: cosa l'unita' accetta, e
+         * dove sta adesso. Sono attributi che Home Assistant pubblica gia' —
+         * il modello si limita a portarli in riga invece di farli cercare a
+         * chi disegna. */
+        modi: elenco(attributi.hvac_modes),
+        ventole: elenco(attributi.fan_modes),
+        ventola: clean(attributi.fan_mode),
+        minima: numero(attributi.min_temp, 5),
+        massima: numero(attributi.max_temp, 35),
+        passo: numero(attributi.target_temp_step, 0.5) || 0.5,
+        umidita: numero(attributi.current_humidity),
+        azione: clean(attributi.hvac_action),
       };
     })
     .filter(Boolean);
@@ -300,6 +318,17 @@ function climateModel(states) {
     value: average == null ? String(on.length) : `${formatNumber(average, 1)}°`,
     caption: nomiAccesi(on, () => true, t(`${on.length} accese`, `${on.length} on`)),
     ring: Math.round((on.length / rows.length) * 100), rows };
+}
+
+/* La riga del Clima di quell'entita', ricalcolata al momento: serve al passo
+ * della temperatura, che deve sapere dove sta l'obiettivo adesso e fin dove
+ * quell'unita' lo lascia andare. */
+function climateRow(entity) {
+  try {
+    return climateModel(allStates())?.rows?.find((riga) => riga.entity === entity) || null;
+  } catch (_error) {
+    return null;
+  }
 }
 
 function coversModel(states) {
@@ -1110,18 +1139,129 @@ function climateGlyph(mode) {
   return "❄️";
 }
 
+/* I nomi delle modalita', gli stessi che usa la scheda del Clima rapido in
+ * configurazione: «cool» in faccia a chi guarda non lo dice nessuno. */
+const NOMI_MODO = () => ({
+  off: t("Spento", "Off"),
+  cool: t("Raffrescamento", "Cooling"),
+  heat: t("Riscaldamento", "Heating"),
+  heat_cool: t("Automatico caldo/freddo", "Heat/cool"),
+  auto: t("Automatico", "Auto"),
+  dry: t("Deumidificazione", "Dry"),
+  fan_only: t("Solo ventola", "Fan only"),
+});
+
+const NOMI_AZIONE = () => ({
+  heating: t("sta scaldando", "heating"),
+  cooling: t("sta raffrescando", "cooling"),
+  drying: t("sta deumidificando", "drying"),
+  fan: t("sta ventilando", "fanning"),
+  idle: t("in attesa", "idle"),
+  off: t("spento", "off"),
+});
+
+/* Il pannello che si apre sotto la riga, con la rotella.
+ *
+ * Sulla riga ci stanno il nome, la temperatura e l'acceso/spento: tutto il
+ * resto — in che modalita' sta, a che velocita' gira la ventola, di quanto
+ * alzare l'obiettivo — prima si poteva vedere solo andando nella pagina Clima.
+ * Adesso e' qui sotto, e ci sono soltanto le modalita' e le velocita' che
+ * quell'unita' dichiara di accettare: un tasto che l'unita' non sa eseguire e'
+ * peggio di un tasto che non c'e'. */
+function climatePanel(row) {
+  const nomi = NOMI_MODO();
+  const modi = row.modi?.length ? row.modi : [];
+  const modiMarkup = modi.length
+    ? `<div class="dm-w-panel-row">
+        <span class="dm-w-panel-lbl">${esc(t("Modalità", "Mode"))}</span>
+        <div class="dm-w-chips">${modi
+          .map(
+            (modo) =>
+              `<button type="button" class="dm-w-chip" data-dm-w-mode="${esc(modo)}"
+                 data-dm-w-target="${esc(row.entity)}" data-on="${modo === row.mode}">${esc(
+                   nomi[modo] || modo,
+                 )}</button>`,
+          )
+          .join("")}</div>
+      </div>`
+    : "";
+  const gradi = row.target == null ? null : formatNumber(row.target, 1);
+  const temperaturaMarkup =
+    row.target == null
+      ? ""
+      : `<div class="dm-w-panel-row">
+          <span class="dm-w-panel-lbl">${esc(t("Temperatura", "Temperature"))}</span>
+          <div class="dm-w-stepper">
+            <button type="button" data-dm-w-temp="-1" data-dm-w-target="${esc(row.entity)}"
+              aria-label="${esc(t("Abbassa", "Lower"))}">−</button>
+            <b>${gradi}°</b>
+            <button type="button" data-dm-w-temp="1" data-dm-w-target="${esc(row.entity)}"
+              aria-label="${esc(t("Alza", "Raise"))}">+</button>
+          </div>
+        </div>`;
+  const ventoleMarkup = row.ventole?.length
+    ? `<div class="dm-w-panel-row">
+        <span class="dm-w-panel-lbl">${esc(t("Ventola", "Fan"))}</span>
+        <div class="dm-w-chips">${row.ventole
+          .map(
+            (voce) =>
+              `<button type="button" class="dm-w-chip" data-dm-w-fan="${esc(voce)}"
+                 data-dm-w-target="${esc(row.entity)}" data-on="${voce === row.ventola}">${esc(
+                   voce,
+                 )}</button>`,
+          )
+          .join("")}</div>
+      </div>`
+    : "";
+  const azione = NOMI_AZIONE()[row.azione] || "";
+  const noteMarkup =
+    azione || row.umidita != null
+      ? `<p class="dm-w-panel-note">${[
+          azione,
+          row.umidita == null ? "" : `${t("umidità", "humidity")} ${Math.round(row.umidita)}%`,
+        ]
+          .filter(Boolean)
+          .map(esc)
+          .join(" · ")}</p>`
+      : "";
+  const dentro = `${modiMarkup}${temperaturaMarkup}${ventoleMarkup}${noteMarkup}`;
+  if (!dentro) return "";
+  return `<div class="dm-w-panel" data-dm-w-panel="${esc(row.entity)}"${
+    state.aperti.has(row.entity) ? "" : " hidden"
+  }>${dentro}</div>`;
+}
+
 function climateDetail(widget) {
   return widget.rows
-    .map((row) =>
-      rowShell(
+    .map((row) => {
+      const pannello = climatePanel(row);
+      const aperto = pannello && state.aperti.has(row.entity);
+      /* Il pannello sta FUORI dalla riga, subito sotto, e le si ricuce addosso
+       * con un margine negativo e gli angoli aperti.
+       *
+       * Dentro non poteva stare: la riga e' una fila flessibile, e una fila
+       * che va a capo, dentro una griglia, viene misurata come se non andasse
+       * a capo — la griglia le dava l'altezza di una riga sola e il pannello
+       * usciva sopra a quella dopo. Fuori e' un elemento come gli altri, alto
+       * quanto gli serve. */
+      return rowShell(
         `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${climateGlyph(row.mode || "")}</span>
          <span class="dm-w-name">${esc(row.name)}<small>${
            row.ambient == null ? "" : `${formatNumber(row.ambient, 1)}°`
          }${row.on && row.target != null ? ` → ${formatNumber(row.target, 1)}°` : ""}</small></span>
+         ${
+           pannello
+             ? `<button type="button" class="dm-w-more" data-dm-w-more="${esc(row.entity)}"
+                  aria-expanded="${Boolean(aperto)}"
+                  aria-label="${esc(t("Altre impostazioni", "More settings"))}"
+                  title="${esc(t("Altre impostazioni", "More settings"))}">⚙️</button>`
+             : ""
+         }
          <button type="button" class="dm-w-power" data-dm-w-clima="${esc(row.entity)}" data-on="${row.on}"
            aria-label="${esc(row.name)}">⏻</button>`,
-      ),
-    )
+        `data-dm-w-open="${Boolean(aperto)}"`,
+      ) + pannello;
+    })
     .join("");
 }
 
@@ -1324,7 +1464,88 @@ function camerasDetail(widget) {
     .join("")}</div>`;
 }
 
+/* Il riepilogo in cima alla finestra.
+ *
+ * La tessera in Home dice un numero solo — la media, quante ne sono accese —
+ * e aprendola quel numero spariva: restava la lista, che il conto lo fa fare a
+ * chi legge. Qui sopra restano tre numeri, quelli che si guardano prima di
+ * mettersi a leggere le righe, e sono ricavati dalle righe stesse: non c'e'
+ * niente di nuovo da tenere aggiornato.
+ */
+function summaryChips(widget) {
+  const righe = Array.isArray(widget.rows) ? widget.rows : [];
+  if (righe.length < 2) return [];
+  const media = (valori) =>
+    valori.length ? valori.reduce((somma, valore) => somma + valore, 0) / valori.length : null;
+  const numeri = (chiave) =>
+    righe.map((riga) => Number(riga?.[chiave])).filter((valore) => Number.isFinite(valore));
+  const accesi = righe.filter((riga) => riga?.on).length;
+  if (widget.key === "clima") {
+    const ambiente = media(numeri("ambient"));
+    const obiettivi = righe.filter((riga) => riga?.on).map((riga) => Number(riga?.target));
+    const obiettivo = media(obiettivi.filter((valore) => Number.isFinite(valore)));
+    return [
+      [t("in funzione", "running"), `${accesi}/${righe.length}`],
+      ambiente == null ? null : [t("in casa", "indoors"), `${formatNumber(ambiente, 1)}°`],
+      obiettivo == null ? null : [t("obiettivo", "target"), `${formatNumber(obiettivo, 1)}°`],
+    ].filter(Boolean);
+  }
+  if (widget.key === "luci")
+    return [
+      [t("accese", "on"), String(accesi)],
+      [t("spente", "off"), String(righe.length - accesi)],
+    ];
+  if (widget.key === "tapparelle") {
+    const posizioni = numeri("position");
+    const aperte = righe.filter((riga) => Number(riga?.position) > 0).length;
+    return [
+      [t("aperte", "open"), `${aperte}/${righe.length}`],
+      posizioni.length ? [t("apertura media", "average"), `${Math.round(media(posizioni))}%`] : null,
+    ].filter(Boolean);
+  }
+  if (widget.key === "batterie") {
+    const livelli = numeri("level");
+    if (!livelli.length) return [];
+    return [
+      [t("la più bassa", "lowest"), `${Math.round(Math.min(...livelli))}%`],
+      [t("media", "average"), `${Math.round(media(livelli))}%`],
+    ];
+  }
+  if (widget.key === "temperatura") {
+    const gradi = numeri("temperature");
+    if (!gradi.length) return [];
+    return [
+      [t("media", "average"), `${formatNumber(media(gradi), 1)}°`],
+      [t("la più fredda", "coldest"), `${formatNumber(Math.min(...gradi), 1)}°`],
+      [t("la più calda", "warmest"), `${formatNumber(Math.max(...gradi), 1)}°`],
+    ];
+  }
+  if (widget.key === "aperture") {
+    const aperte = righe.filter((riga) => riga?.on).length;
+    return [
+      [t("aperte", "open"), String(aperte)],
+      [t("chiuse", "closed"), String(righe.length - aperte)],
+    ];
+  }
+  return [];
+}
+
+function summaryMarkup(widget) {
+  const voci = summaryChips(widget);
+  if (voci.length < 2) return "";
+  return `<div class="dm-w-summary">${voci
+    .map(
+      ([etichetta, valore]) =>
+        `<div class="dm-w-stat"><b>${esc(valore)}</b><span>${esc(etichetta)}</span></div>`,
+    )
+    .join("")}</div>`;
+}
+
 function detailBody(widget, states) {
+  return `${summaryMarkup(widget)}${detailRows(widget, states)}`;
+}
+
+function detailRows(widget, states) {
   if (widget.key === "todo") return todoDetail(widget);
   if (widget.key === "luci") return lightsDetail(widget);
   if (widget.key === "clima") return climateDetail(widget);
@@ -1777,6 +1998,61 @@ function onClick(event) {
     callHa(entity.split(".")[0] || "light", "toggle", { entity_id: entity });
     return;
   }
+  /* La rotella apre e chiude il pannello della riga. Non passa da un
+   * ridisegno: si tocca il documento e si segna la scelta, cosi' l'apertura e'
+   * immediata e il prossimo ridisegno la ritrova. */
+  const rotella = event.target?.closest?.("[data-dm-w-more]");
+  if (rotella) {
+    event.preventDefault();
+    const entity = clean(rotella.dataset.dmWMore);
+    const pannello = doc?.querySelector?.(
+      `[data-dm-w-panel="${entity.replace(/["\\]/g, "\\$&")}"]`,
+    );
+    const apri = !state.aperti.has(entity);
+    if (apri) state.aperti.add(entity);
+    else state.aperti.delete(entity);
+    if (pannello) pannello.hidden = !apri;
+    rotella.setAttribute("aria-expanded", String(apri));
+    rotella.closest(".dm-w-row")?.setAttribute("data-dm-w-open", String(apri));
+    return;
+  }
+  const modo = event.target?.closest?.("[data-dm-w-mode]");
+  if (modo) {
+    event.preventDefault();
+    callHa("climate", "set_hvac_mode", {
+      entity_id: clean(modo.dataset.dmWTarget),
+      hvac_mode: clean(modo.dataset.dmWMode),
+    });
+    root.setTimeout?.(schedule, 500);
+    return;
+  }
+  const ventola = event.target?.closest?.("[data-dm-w-fan]");
+  if (ventola) {
+    event.preventDefault();
+    callHa("climate", "set_fan_mode", {
+      entity_id: clean(ventola.dataset.dmWTarget),
+      fan_mode: clean(ventola.dataset.dmWFan),
+    });
+    root.setTimeout?.(schedule, 500);
+    return;
+  }
+  const gradi = event.target?.closest?.("[data-dm-w-temp]");
+  if (gradi) {
+    event.preventDefault();
+    const entity = clean(gradi.dataset.dmWTarget);
+    const riga = climateRow(entity);
+    if (riga && riga.target != null) {
+      const passo = (Number(gradi.dataset.dmWTemp) || 0) * (riga.passo || 0.5);
+      const voluta = Math.min(riga.massima, Math.max(riga.minima, riga.target + passo));
+      /* Il numero si aggiorna subito sotto il dito: la conferma vera arriva
+       * col prossimo giro di stati. */
+      const casella = gradi.parentElement?.querySelector?.("b");
+      if (casella) casella.textContent = `${formatNumber(voluta, 1)}°`;
+      callHa("climate", "set_temperature", { entity_id: entity, temperature: voluta });
+      root.setTimeout?.(schedule, 700);
+    }
+    return;
+  }
   const clima = event.target?.closest?.("[data-dm-w-clima]");
   if (clima) {
     event.preventDefault();
@@ -1995,6 +2271,89 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
  * valore e' in Oswald come tutti i numeri della plancia, e la riga intera si
  * vela appena del colore quando e' accesa: da un metro di distanza si contano
  * gli accesi senza leggere niente. */
+/* Il riepilogo in cima: tre numeri grandi, quelli che si guardano prima di
+ * mettersi a leggere le righe. Stessa aria delle tessere della Home — numero
+ * in Oswald, etichetta minuscola sotto — dentro un vassoio appena tinto del
+ * colore della sezione. */
+#dm-widget-popup .dm-w-summary{
+  display:flex;margin:0 0 4px;border-radius:18px;
+  border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 22%,transparent);
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 5%,var(--card-bg,#fff))}
+#dm-widget-popup .dm-w-stat{
+  flex:1;min-width:0;display:grid;gap:2px;justify-items:center;padding:11px 8px 10px}
+/* Le colonne le separa una riga, non un buco nello sfondo: il vassoio a
+   griglia con la fessura da un pixel veniva misurato piu' corto di quello che
+   e' e tagliava le etichette. */
+#dm-widget-popup .dm-w-stat+.dm-w-stat{
+  border-left:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 18%,transparent)}
+#dm-widget-popup .dm-w-stat b{
+  font-family:'Oswald',system-ui,sans-serif;font-size:21px;font-weight:600;line-height:1;
+  font-variant-numeric:tabular-nums;
+  color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 72%,#0f172a)}
+#dm-widget-popup .dm-w-stat span{
+  font-size:10px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--text-dim,#94a3b8);text-align:center}
+/* La rotella: apre il pannello della riga, e quando e' aperto si tinge —
+ * altrimenti, con il pannello sotto, non si capiva quale riga l'aveva
+ * aperto. */
+#dm-widget-popup .dm-w-row .dm-w-more{
+  flex:0 0 32px;width:32px;height:32px;display:grid;place-items:center;
+  border-radius:11px;font-size:14px;cursor:pointer;
+  border:1px solid var(--card-border,#e8edf3);background:var(--surface-2,#f8fafc);
+  transition:background .18s ease,border-color .18s ease,transform .25s ease}
+#dm-widget-popup .dm-w-row[data-dm-w-open="true"] .dm-w-more{
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent);
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
+  transform:rotate(60deg)}
+/* Il pannello si accoda alla riga: margine negativo per chiudere lo spazio
+ * fra le righe, angoli alti squadrati e nessun bordo in cima. Le due cose
+ * diventano una card sola. */
+#dm-widget-popup .dm-w-panel{
+  display:grid;gap:10px;margin:-9px 0 0;padding:14px 14px 15px;
+  border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
+  border-top:0;border-radius:0 0 18px 18px;
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 5%,var(--card-bg,#fff));
+  box-shadow:0 14px 30px -22px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent)}
+#dm-widget-popup .dm-w-panel[hidden]{display:none}
+#dm-widget-popup .dm-w-panel-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#dm-widget-popup .dm-w-panel-lbl{
+  flex:0 0 82px;font-size:10px;font-weight:800;letter-spacing:.9px;
+  text-transform:uppercase;color:var(--text-dim,#94a3b8)}
+#dm-widget-popup .dm-w-chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+#dm-widget-popup .dm-w-chip{
+  padding:6px 11px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--card-border,#e8edf3);background:var(--card-bg,#fff);
+  font:inherit;font-size:11.5px;font-weight:800;color:var(--text-dim,#64748b);
+  transition:background .18s ease,border-color .18s ease,color .18s ease}
+#dm-widget-popup .dm-w-chip:hover{
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 45%,transparent)}
+#dm-widget-popup .dm-w-chip[data-on="true"]{
+  background:var(--dm-widget-accent,#0ea5e9);border-color:transparent;color:#fff;
+  box-shadow:0 6px 14px -9px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent)}
+/* Il passo della temperatura: meno, il numero, piu'. */
+#dm-widget-popup .dm-w-stepper{
+  display:inline-flex;align-items:center;gap:2px;padding:2px;border-radius:12px;
+  background:var(--card-bg,#fff);box-shadow:inset 0 0 0 1px var(--card-border,#e8edf3)}
+#dm-widget-popup .dm-w-stepper button{
+  width:30px;height:28px;display:grid;place-items:center;border:0;border-radius:10px;
+  background:transparent;color:var(--text,#0f172a);
+  font:inherit;font-size:16px;font-weight:800;line-height:1;cursor:pointer;
+  transition:background .15s ease}
+#dm-widget-popup .dm-w-stepper button:hover{
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent)}
+#dm-widget-popup .dm-w-stepper b{
+  min-width:52px;text-align:center;
+  font-family:'Oswald',system-ui,sans-serif;font-size:17px;font-weight:600;
+  font-variant-numeric:tabular-nums}
+#dm-widget-popup .dm-w-panel-note{
+  margin:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8)}
+/* Sul telefono l'etichetta va sopra: ottantadue pixel di colonna, su
+   trecentonovanta, lasciavano alle modalita' una pastiglia per riga. */
+@media(max-width:600px){
+  #dm-widget-popup .dm-w-panel-row{flex-direction:column;align-items:stretch;gap:6px}
+  #dm-widget-popup .dm-w-panel-lbl{flex:none}
+  #dm-widget-popup .dm-w-stepper{align-self:flex-start}
+}
 #dm-widget-popup .dm-w-row{
   position:relative;display:flex;align-items:center;gap:12px;
   padding:10px 12px;border-radius:18px;
@@ -2008,6 +2367,12 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 #dm-widget-popup .dm-w-row:hover{
   border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 32%,transparent);
   box-shadow:0 6px 16px -10px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 60%,transparent)}
+/* Aperta, la riga apre gli angoli in basso e lascia entrare il pannello. */
+#dm-widget-popup .dm-w-row[data-dm-w-open="true"]{
+  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
+  border-bottom-color:transparent;
+  border-bottom-left-radius:0;border-bottom-right-radius:0;
+  box-shadow:none}
 /* Accesa: la velatura sulla riga. Lo stato lo dice il comando o l'icona, a
    seconda di cosa quella sezione mette in riga — si guardano tutti e tre. */
 #dm-widget-popup .dm-w-row:is(
@@ -2073,7 +2438,9 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 /* Le miniature delle telecamere: lo stesso angolo delle righe. */
 #dm-widget-popup .dm-w-cam{border-radius:16px}
 @media(prefers-reduced-motion:reduce){
-  #dm-widget-popup .dm-w-row,#dm-widget-popup .dm-w-close{transition:none}
+  #dm-widget-popup .dm-w-row,#dm-widget-popup .dm-w-close,
+  #dm-widget-popup .dm-w-row .dm-w-more{transition:none}
+  #dm-widget-popup .dm-w-row[data-dm-w-open="true"] .dm-w-more{transform:none}
   #dm-widget-popup .dm-w-close:hover{transform:none}
 }
 #dm-widget-popup .dm-w-name{font-size:13.5px;font-weight:800}

@@ -138,6 +138,22 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   sottotitolo adesso sono incolonnati: affiancati, il sottotitolo di una
   sezione con sei voci finiva sempre coi puntini.
 
+- **Il Clima ha la rotella: modalità, temperatura e ventola sulla riga.** Sulla
+  riga ci stavano il nome, la temperatura e l'acceso/spento; tutto il resto —
+  in che modalità sta, a che velocità gira la ventola, alzare l'obiettivo di
+  mezzo grado — si poteva fare solo andando nella pagina Clima. Adesso la
+  rotella apre un pannello sotto la riga, e ci sono soltanto le modalità e le
+  velocità che quell'unità dichiara di accettare: un tasto che l'unità non sa
+  eseguire è peggio di un tasto che non c'è. Sotto, cosa sta facendo davvero e
+  l'umidità della stanza.
+
+- **In cima a ogni finestra ci sono i numeri che riassumono.** La tessera in
+  Home dice un numero solo — la media, quante ne sono accese — e aprendola
+  quel numero spariva: restava la lista, e il conto lo doveva fare chi legge.
+  Adesso restano tre numeri: quanti in funzione, la media in casa, l'obiettivo
+  per il Clima; accese e spente per le Luci; aperte e apertura media per le
+  Tapparelle; la più fredda, la media e la più calda per le Temperature.
+
 - **E dentro, ogni riga è la tessera della Home messa in orizzontale.** La
   lista era una fila di pastiglie tutte uguali: un'emoji da quindici pixel, un
   nome, e a destra il comando — chi era acceso e chi era spento lo diceva
