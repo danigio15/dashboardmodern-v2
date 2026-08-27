@@ -72,3 +72,48 @@ test("la casella ha un nome, e chi la scrive e chi la legge usano quello", () =>
   assert.match(editor, /dmAlarmSupportedModes/);
   assert.match(vetrina, /root\.dmAlarmSupportedModes\s*=/);
 });
+
+/* ── e le tre cose che la review ha trovato dopo ────────────────────────────
+ *
+ * Tre difetti che nascono tutti dalla stessa distrazione: la scelta di cosa si
+ * vede e' stata trattata come se fosse la stessa cosa di cosa la centrale sa
+ * fare. Sono due domande diverse, e confonderle costa.
+ */
+
+test("la scelta viaggia con la configurazione, come tutte le altre", () => {
+  /* Senza il suo nome nell'elenco delle chiavi gestite, il salvataggio partiva
+   * lo stesso ma senza il valore: la scelta restava sul telefono che l'aveva
+   * fatta, spariva dagli altri dispositivi e dal backup non usciva. */
+  const persistenza = leggi("sections/config-persistence-section.js");
+  assert.match(persistenza, /"cd_antifurto_modi"/);
+  assert.match(persistenza, /"cd_clima_rapido"/);
+  /* E chi aggiunge chiavi alza la revisione, altrimenti un salvataggio vecchio
+   * che quelle chiavi non le ha non viene completato con quelle di qui. */
+  assert.match(persistenza, /CONFIG_KEYS_REVISION = 8/);
+});
+
+test("una modalita' nascosta a mano non ne accende un'altra al posto suo", () => {
+  /* Il ripiego su «Fuori» e' per le centrali che un inserimento non lo
+   * dichiarano. Se la centrale lo dichiara ed e' chi guarda ad averlo tolto,
+   * accendere «Fuori» direbbe che la casa e' inserita fuori mentre e' inserita
+   * in casa: su un antifurto e' la bugia peggiore. */
+  const vetrina = leggi("sections/security-showcase-section.js");
+  const pezzo = vetrina.slice(vetrina.indexOf("root.dmAlarmActiveMode"), vetrina.indexOf("root.dmAlarmModes"));
+  assert.match(pezzo, /alarmModes\(alarmStateObject\(\)\)/,
+    "il ripiego si calcola su quello che la centrale accetta");
+  assert.match(pezzo, /modiVisibili\(\)\.some/,
+    "e poi si spegne tutto se quel tasto non e' fra quelli che si vedono");
+  assert.doesNotMatch(pezzo, /alarmActiveMode\(\s*state,\s*modiVisibili/,
+    "passare le sole visibili e' esattamente il difetto");
+});
+
+test("il limite conta le modalita' che la centrale accetta adesso, non i ricordi", () => {
+  /* Chi cambia centrale si porta dietro nella casella nomi che oggi non
+   * vogliono dire piu' niente: contandoli si arrivava al limite con due
+   * modalita' ancora in fila, e la plancia rispondeva «almeno una deve
+   * restare» a chi ne vedeva due. */
+  const editor = leggi("sections/alarm-modes-editor-section.js");
+  assert.match(editor, /accettabili\.has\(voce\)/);
+  assert.match(editor, /nascoste\.length >= accettabili\.size/);
+  assert.doesNotMatch(editor, /fuori\.size >= accettate\(\)\.length/);
+});

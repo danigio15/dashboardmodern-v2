@@ -9,6 +9,26 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **La scelta delle modalita' dell'antifurto e il tasto Clima rapido non
+  viaggiavano.** Sono due preferenze nuove di questa versione, e nessuna delle
+  due era nell'elenco delle caselle che la configurazione si porta dietro: il
+  salvataggio partiva lo stesso ma senza il loro valore. Chi toglieva «Vacanza»
+  dal telefono se la ritrovava sul computer, e dal backup non usciva niente.
+
+- **Nascondendo la modalita' con cui l'allarme era inserito si accendeva
+  «Fuori».** Il ripiego sul tasto generico serve alle centrali che un
+  inserimento non lo dichiarano: la casa e' inserita, il tasto giusto non
+  esiste, e accenderne uno e' meglio di niente. Per un tasto tolto a mano non
+  vale: il tasto giusto la centrale ce l'ha, e' chi guarda che ha scelto di non
+  vederlo, e accendere «Fuori» voleva dire dire che la casa era inserita fuori
+  mentre era inserita in casa. Adesso in quel caso non si accende nessuno.
+
+- **Cambiando centrale non si riusciva piu' a nascondere una modalita'.** La
+  casella tiene quello che si e' tolto nel tempo, e una centrale sostituita si
+  porta dietro nomi che oggi non vuol dire piu' niente. Contandoli si arrivava
+  al limite di «almeno una deve restare» con due modalita' ancora in fila.
+  Adesso a contare sono solo quelle che la centrale accetta adesso.
+
 - **Le parole del meteo in testata tornavano nella lingua del guscio.** La
   fascia nuova avvolge «💧 Umidità» e «💨 Vento» in un guscio per poterle
   nascondere sul telefono, e le tagliava prima che la traduzione le vedesse: la

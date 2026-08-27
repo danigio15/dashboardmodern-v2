@@ -11,8 +11,13 @@ const USER_DATA_VERSION = 1;
  * La revisione 6 aggiunge le aperture della Sicurezza (`cd_security_doors`,
  * #195) e le liste ToDo della Home (`cd_todo`, #201), con la stessa regola.
  * La revisione 7 aggiunge le preferenze del ponte dei widget (`cd_widgets`):
- * quali tessere si vedono in Home e in che ordine. */
-export const CONFIG_KEYS_REVISION = 7;
+ * quali tessere si vedono in Home e in che ordine.
+ * La revisione 8 aggiunge le due scelte della 1.3.1: quali modalita' della
+ * centrale si vogliono vedere (`cd_antifurto_modi`) e cosa fa il tasto Clima
+ * rapido (`cd_clima_rapido`). Sono preferenze della plancia, non del
+ * dispositivo che le ha fatte: senza stare qui restavano su un telefono solo e
+ * dal backup sparivano. */
+export const CONFIG_KEYS_REVISION = 8;
 /* La generazione dello scrittore, nel salvataggio stesso.
  *
  * Le versioni prima di questa marcavano «modifica in sospeso» anche per le
@@ -86,6 +91,8 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_devices",
   "cd_people",
   "cd_security_doors",
+  // Quali modalita' della centrale si e' scelto di non vedere.
+  "cd_antifurto_modi",
   "cd_todo",
   "cd_widgets",
   "cd_luci",
@@ -93,6 +100,8 @@ export const CONFIG_KEYS = Object.freeze([
   "cd_luci_order",
   "cd_luci_room_order",
   "cd_clima_units",
+  // Cosa accende il tasto Clima rapido: modalita', temperatura e ventola.
+  "cd_clima_rapido",
   "cd_ev_cars",
   "cd_ev_car_active",
   "cd_ev_visual",

@@ -145,8 +145,16 @@ function onClick(event) {
   if (fuori.has(mode)) fuori.delete(mode);
   else fuori.add(mode);
   /* Toglierli tutti vorrebbe dire una sezione col solo sblocco: chi sceglie di
-   * non vederne nessuno sta sbagliando gesto, non esprimendo una preferenza. */
-  if (fuori.size >= accettate().length) {
+   * non vederne nessuno sta sbagliando gesto, non esprimendo una preferenza.
+   *
+   * A contare sono pero' solo le modalita' che questa centrale accetta ancora.
+   * La casella tiene quello che si e' tolto nel tempo, e una centrale cambiata
+   * si porta dietro nomi che oggi non vogliono dire piu' niente: contandoli si
+   * arrivava al limite senza che sullo schermo mancasse niente, e la plancia
+   * rispondeva «almeno una deve restare» a chi ne aveva ancora due davanti. */
+  const accettabili = new Set(accettate());
+  const nascoste = [...fuori].filter((voce) => accettabili.has(voce));
+  if (nascoste.length >= accettabili.size) {
     root.edToast?.(t("Almeno una modalità deve restare", "At least one mode has to stay"));
     return;
   }
