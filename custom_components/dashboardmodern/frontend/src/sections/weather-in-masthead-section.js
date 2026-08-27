@@ -24,10 +24,13 @@ const STILE = `
 header.dm-testata-col-meteo{gap:14px}
 header.dm-testata-col-meteo .header-left-wrap{flex:0 0 auto;min-width:0}
 /* Larga quanto le serve, non quanto avanza: una fascia tirata fino allo stato
-   del ponte sarebbe mezzo schermo di vuoto attorno a quattro numeri. */
+   del ponte sarebbe mezzo schermo di vuoto attorno a quattro numeri.
+   E staccata dal nome della casa: appiccicata sembrava una parte del nome,
+   non un'altra cosa. Il margine cresce con la finestra — su uno schermo largo
+   lo spazio c'e', e due blocchi lontani si leggono come due blocchi. */
 header.dm-testata-col-meteo .weather-widget{
-  flex:0 1 auto;min-width:0;order:0;margin-right:auto;
-  margin:0;padding:8px 14px;border-radius:20px;gap:12px;
+  flex:0 1 auto;min-width:0;order:0;
+  margin:0 0 0 clamp(18px,4.5vw,72px);padding:8px 14px;border-radius:20px;gap:12px;
   box-shadow:none;background:var(--surface-2,#f8fafc);
   border:1px solid var(--card-border,#e8edf3);
   transition:border-color .2s ease,background .2s ease}
@@ -93,7 +96,7 @@ header.dm-testata-col-meteo .w-detail{
      lasciando al nome della casa lo spazio per «SM…». */
   header.dm-testata-col-meteo .weather-widget{
     flex:0 0 auto;max-width:138px;flex-wrap:wrap;row-gap:0;column-gap:6px;
-    padding:4px 9px;border-radius:14px}
+    margin:0;padding:4px 9px;border-radius:14px}
   header.dm-testata-col-meteo .w-left{flex:1 0 100%;gap:5px}
   header.dm-testata-col-meteo .w-icon{font-size:18px}
   header.dm-testata-col-meteo .w-temp{font-size:15px}
