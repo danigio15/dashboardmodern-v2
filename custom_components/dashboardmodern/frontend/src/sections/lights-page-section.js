@@ -194,9 +194,11 @@ export function pageCardMarkup(view) {
       <span class="dm-lucip-orb" aria-hidden="true">${view.domain === "light" ? BULB : PLUG}</span>
       <span class="dm-lucip-title">
         <strong>${esc(view.name)}</strong>
-        <small class="dm-lucip-state" data-dm-lucip-state>${stateText(view)}</small>
+        <span class="dm-lucip-meta">
+          <small class="dm-lucip-state" data-dm-lucip-state>${stateText(view)}</small>
+          ${badge ? `<span class="dm-lucip-badge" data-kind="${badge.kind}">${badge.label}</span>` : ""}
+        </span>
       </span>
-      ${badge ? `<span class="dm-lucip-badge" data-kind="${badge.kind}">${badge.label}</span>` : ""}
       <span class="dm-lucip-led" aria-hidden="true"></span>
     </button>
     ${dimmer || tools ? `<div class="dm-lucip-tools">${dimmer}${tools}</div>` : ""}
@@ -574,7 +576,7 @@ function installStyles() {
        * metro di bianco a destra. Con auto-fit le colonne vuote spariscono e
        * le card si allargano fino al tetto — oltre il quale una luce sola non
        * diventa un cartellone. */
-      :is(#page-luci,#page-stanze) .dm-lucip-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(258px,1fr))}
+      :is(#page-luci,#page-stanze) .dm-lucip-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(288px,1fr))}
 
       /* La card: la superficie, il bagliore, il bordo e il LED leggono il
        * colore della lampada stessa, mai un ambra fisso. */
@@ -598,7 +600,11 @@ function installStyles() {
       /* «Lampadario C…» non dice quale lampadario e': il nome ha due righe
        * prima di arrendersi, e i trattini di «Salone - Faretti» sono un punto
        * dove andare a capo, non dove tagliare. */
-      :is(#page-luci,#page-stanze) .dm-lucip-title strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:15px;font-weight:900;line-height:1.22;letter-spacing:-.2px;overflow-wrap:anywhere}
+      :is(#page-luci,#page-stanze) .dm-lucip-title strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:15.5px;font-weight:900;line-height:1.22;letter-spacing:-.2px;overflow-wrap:anywhere}
+      /* Stato e pastiglia stanno sotto il nome, non accanto: prima si
+         dividevano la riga con lui, e «Lampadario grande del salone» finiva a
+         due lettere per riga. Il nome adesso ha tutta la larghezza. */
+      :is(#page-luci,#page-stanze) .dm-lucip-meta{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
       :is(#page-luci,#page-stanze) .dm-lucip-state{font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;color:var(--secondary-text-color,#94a3b8)}
       :is(#page-luci,#page-stanze) .dm-lucip-card.is-on .dm-lucip-state{color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 60%,var(--text,#0f172a))}
       :is(#page-luci,#page-stanze) .dm-lucip-badge{flex:0 0 auto;padding:2px 7px;border-radius:999px;font-size:8.5px;font-weight:900;letter-spacing:.6px;background:color-mix(in srgb,var(--dm-light-color,#f59e0b) 16%,transparent);color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 55%,var(--text,#0f172a));border:1px solid color-mix(in srgb,var(--dm-light-color,#f59e0b) 26%,transparent)}
@@ -642,7 +648,7 @@ function installStyles() {
          * occupano la larghezza intera invece di lasciare mezzo metro di
          * bianco a destra, e una luce sola non diventa un cartellone. */
         :is(#page-luci,#page-stanze) .dm-lucip-grid{display:flex;flex-wrap:wrap}
-        :is(#page-luci,#page-stanze) .dm-lucip-card{flex:1 1 272px;max-width:384px}
+        :is(#page-luci,#page-stanze) .dm-lucip-card{flex:1 1 306px;max-width:396px}
         :is(#page-luci,#page-stanze) .dm-lucip-bulk{flex:0 1 560px}
         :is(#page-luci,#page-stanze) .dm-lucip-kpi{min-width:132px}
         :is(#page-luci,#page-stanze) .dm-lucip-room{margin-top:14px}
