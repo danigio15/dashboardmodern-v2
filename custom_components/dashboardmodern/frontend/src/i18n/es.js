@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "One room at a time · Scenes · Sensors": "Una habitación a la vez · Escenas · Sensores",
   " — configured": " — configurada",
   "— Choose —": "— Elegir —",
   "— kWh from PV": "— kWh de la FV",

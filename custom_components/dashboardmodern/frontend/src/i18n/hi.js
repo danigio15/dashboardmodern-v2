@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "One room at a time · Scenes · Sensors": "एक बार में एक कमरा · दृश्य · सेंसर",
   " — configured": " — कॉन्फ़िगर किया गया",
   "— Choose —": "— चुनें —",
   "— kWh from PV": "— सौर से kWh",

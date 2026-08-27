@@ -1177,6 +1177,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "On/off · Brightness · Colour",
   "On/off control",
   "one or more entities",
+  "One room at a time · Scenes · Sensors",
   "One window can carry all three: fill in the boxes you have, the box tells the type.",
   "Only daily sensors or Recorder deltas from cumulative total meters are counted. Lifetime values are never added directly.",
   "Only if you already have a helper measuring the period. Without one, the period comes from the total meter.",

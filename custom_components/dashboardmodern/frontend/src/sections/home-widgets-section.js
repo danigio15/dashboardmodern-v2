@@ -1160,12 +1160,26 @@ function tileMarkup(widget, index = 0) {
   const open = state.expanded === widget.key;
   const giaVista = viste().has(widget.key) ? ' data-dm-seen="true"' : "";
   const quota = widget.ring == null ? null : Math.max(0, Math.min(100, widget.ring));
+/* Quanto e' lungo il numero grande, per deciderne la misura.
+ *
+ * Sulla tessera ci va di solito un numero corto — «26,3°», «2,98 kW» — e
+ * ventitre pixel gli stanno bene. Ma la Sicurezza al posto del numero ci mette
+ * una parola: «Disinserito» a ventitre pixel non ci sta, e si leggeva
+ * «Disinse...» — cioe' nulla, perche' «disinserito» e «disinserimento in
+ * corso» cominciano uguale. Il numero grande resta grande finche' e' corto; a
+ * una parola si da' la misura che la fa entrare intera. */
+function misuraValore(valore) {
+  const quanto = String(valore ?? "").length;
+  if (quanto <= 7) return "corto";
+  return quanto <= 11 ? "medio" : "lungo";
+}
+
   return `<button type="button" class="dm-tile" data-dm-widget="${widget.key}" data-open="${open}"${giaVista}
       data-alert="${Boolean(widget.alert)}"
       style="--dm-widget-accent:${widget.accent};--dm-tile-i:${index}" aria-expanded="${open}" aria-label="${esc(widget.label)}">
       <span class="dm-tile-chip" aria-hidden="true">${widget.icon}</span>
       <span class="dm-tile-copy">
-        <b class="dm-tile-value" data-dm-tile-value>${esc(widget.value)}</b>
+        <b class="dm-tile-value" data-dm-tile-value data-dm-len="${misuraValore(widget.value)}">${esc(widget.value)}</b>
         <span class="dm-tile-under">
           <span class="dm-tile-label">${esc(widget.label)}</span>
           <small class="dm-tile-caption"><span class="dm-tile-scroll" data-dm-tile-caption>${esc(widget.caption)}</span></small>
@@ -1875,6 +1889,7 @@ export function renderHomeWidgets() {
       const value = tile.querySelector("[data-dm-tile-value]");
       if (value && value.textContent !== widget.value) {
         value.textContent = widget.value;
+        value.dataset.dmLen = misuraValore(widget.value);
         cambiato = true;
       }
       const caption = tile.querySelector("[data-dm-tile-caption]");
@@ -2795,6 +2810,10 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-value{
   font-size:23px;font-weight:900;line-height:1.05;letter-spacing:-.4px;font-variant-numeric:tabular-nums;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Una parola al posto di un numero si rimpicciolisce quanto basta a entrare
+   intera: meglio leggerla tutta che leggerne meta' in grande. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-value[data-dm-len="medio"]{font-size:18px;letter-spacing:-.2px}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-value[data-dm-len="lungo"]{font-size:15px;letter-spacing:0}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-under{
   /* Una riga per uno.
    *

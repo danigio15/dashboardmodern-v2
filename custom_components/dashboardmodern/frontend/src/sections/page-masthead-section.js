@@ -46,6 +46,15 @@ const PAGES = Object.freeze([
     it: ["Robot aspirapolvere", "Stato · Batteria · Mappa della casa"],
     en: ["Robot vacuum", "State · Battery · Home map"],
   },
+  /* Le Stanze sono nate dopo questo elenco e ci sono rimaste fuori: erano la
+   * sola pagina della plancia che partiva dalle linguette, senza mai dire dove
+   * si era arrivati. */
+  {
+    id: "page-stanze",
+    tint: ["217,119,6", "14,165,233"],
+    it: ["Stanze", "Una stanza per volta · Scene · Sensori"],
+    en: ["Rooms", "One room at a time · Scenes · Sensors"],
+  },
   {
     id: "page-luci",
     tint: ["245,158,11", "249,115,22"],

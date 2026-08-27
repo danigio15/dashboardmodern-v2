@@ -1754,6 +1754,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Un'emoji o un'icona mdi:. Tocca il riquadro accanto per sceglierla dal catalogo dei carichi.": "An emoji or an mdi: icon. Tap the box beside it to pick one from the load catalogue.",
   "Una luce può essere un'entità light.* oppure uno switch.*: una lampada dietro un relè si aggiunge esattamente allo stesso modo.": "A light can be a light.* entity or a switch.*: a lamp behind a relay is added in exactly the same way.",
   "una o più entità": "one or more entities",
+  "Una stanza per volta · Scene · Sensori": "One room at a time · Scenes · Sensors",
   "unità clima": "climate units",
   "Unità clima": "Climate units",
   "Unità clima aggiunta": "Climate unit added",

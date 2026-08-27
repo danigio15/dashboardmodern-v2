@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "One room at a time · Scenes · Sensors": "一次一个房间 · 场景 · 传感器",
   " — configured": " — 已配置",
   "— Choose —": "— 选择 —",
   "— kWh from PV": "— 来自光伏的 kWh",

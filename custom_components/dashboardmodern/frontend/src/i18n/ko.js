@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "One room at a time · Scenes · Sensors": "한 번에 한 방씩 · 장면 · 센서",
   " — configured": " — 설정됨",
   "— Choose —": "— 선택 —",
   "— kWh from PV": "— 태양광에서 kWh",
