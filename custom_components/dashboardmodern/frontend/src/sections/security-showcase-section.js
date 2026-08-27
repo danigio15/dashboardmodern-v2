@@ -29,6 +29,12 @@
  * stylesheet is therefore rebuilt when the language changes.
  */
 import {
+  ALARM_DISARM,
+  alarmActiveMode,
+  alarmCodeNeeded,
+  alarmModes,
+} from "../core/alarm-panel.js";
+import {
   activeLocale,
   allStates,
   clean,
@@ -65,12 +71,14 @@ const copy = () => ({
   subtitle: t("Antifurto e videosorveglianza", "Alarm system and video surveillance"),
   alarmCap: t("Stato antifurto", "Alarm status"),
   loading: t("CARICAMENTO", "LOADING"),
-  away: t("Fuori", "Away"),
-  awayHint: t("Inserimento totale", "Full arm"),
-  night: t("Notte", "Night"),
-  nightHint: t("Perimetro attivo", "Perimeter"),
-  disarm: t("Sblocca", "Disarm"),
-  disarmHint: t("Disinserisci", "Turn off"),
+  modes: {
+    home: { label: t("Casa", "Home"), hint: t("Solo perimetro", "Perimeter only") },
+    away: { label: t("Fuori", "Away"), hint: t("Inserimento totale", "Full arm") },
+    night: { label: t("Notte", "Night"), hint: t("Perimetro attivo", "Perimeter") },
+    vacation: { label: t("Vacanza", "Vacation"), hint: t("Assenza lunga", "Extended away") },
+    custom: { label: t("Parziale", "Partial"), hint: t("Con esclusioni", "With bypass") },
+    disarm: { label: t("Sblocca", "Disarm"), hint: t("Disinserisci", "Turn off") },
+  },
   cctv: t("Videosorveglianza", "Video surveillance"),
   rec: "REC",
   live: "LIVE",
@@ -145,6 +153,58 @@ function cameraModels(cameras = securityCameras()) {
 
 /* ── markup ───────────────────────────────────────────────────────────── */
 
+/* Lo stato della centrale, con l'entita' risolta come la risolve il runtime. */
+function alarmStateObject() {
+  const riferimento = "dm.security_centrale_allarme";
+  let risolto = riferimento;
+  try {
+    risolto = clean(root.resolveEntity?.(riferimento)) || riferimento;
+  } catch (_error) {}
+  const states = allStates();
+  return states[risolto] || states[riferimento] || null;
+}
+
+/* La fila dei tasti: uno per ogni inserimento che la centrale accetta davvero,
+ * piu' lo sblocco. Un tasto che chiama un servizio che la centrale non ha e'
+ * un tasto che non fa niente — e non deve stare li'. */
+function modeRow(labels, stateObj = alarmStateObject()) {
+  return alarmModes(stateObj)
+    .map((voce) => {
+      const testi = labels.modes[voce.mode] || labels.modes[ALARM_DISARM.mode];
+      return modeButton({ ...voce, label: testi.label, hint: testi.hint });
+    })
+    .join("");
+}
+
+/* Quali tasti ci sono adesso: si riscrive la fila solo quando cambiano, non a
+ * ogni evento di stato — riscriverla sempre spegnerebbe l'animazione del tasto
+ * acceso due volte al secondo. */
+function modeSignature(stateObj) {
+  return alarmModes(stateObj)
+    .map((voce) => voce.mode)
+    .join(",");
+}
+
+function syncModes(shell, labels) {
+  const fila = shell.querySelector("[data-dm-alarm-modes]");
+  if (!fila) return false;
+  const stateObj = alarmStateObject();
+  const firma = modeSignature(stateObj);
+  if (fila.dataset.dmModes === firma) return false;
+  fila.dataset.dmModes = firma;
+  fila.innerHTML = modeRow(labels, stateObj);
+  /* Il tasto acceso lo marca il giro di disegno storico, ed era marcato su un
+   * tasto che adesso non c'e' piu': rifare la fila lo spegne. Gli si chiede di
+   * ripassare — succede solo quando i tasti cambiano davvero, cioe' una volta
+   * all'avvio, e il differita evita di rientrare in questo stesso giro. */
+  root.setTimeout?.(() => {
+    try {
+      root.render?.();
+    } catch (_error) {}
+  }, 0);
+  return true;
+}
+
 function modeButton({ mode, service, icon, label, hint }) {
   return `<button type="button" class="alarm-mode-btn dm-sec-mode" data-mode="${mode}" onclick="promptPinAndSet('${service}')">
       <span class="dm-sec-mode-ic" aria-hidden="true">${icon}</span>
@@ -183,11 +243,7 @@ function skeletonMarkup(labels) {
         </span>
       </div>
     </div>
-    <div class="dm-sec-modes">
-      ${modeButton({ mode: "away", service: "alarm_arm_away", icon: "🏠", label: labels.away, hint: labels.awayHint })}
-      ${modeButton({ mode: "night", service: "alarm_arm_night", icon: "🌙", label: labels.night, hint: labels.nightHint })}
-      ${modeButton({ mode: "disarm", service: "alarm_disarm", icon: "🔓", label: labels.disarm, hint: labels.disarmHint })}
-    </div>
+    <div class="dm-sec-modes" data-dm-alarm-modes>${modeRow(labels)}</div>
   </section>
 
   <section class="dm-sec-cctv">
@@ -285,6 +341,10 @@ export function renderSecurity() {
   const grid = doc.getElementById("cam-grid");
   if (!shell || !grid) return false;
 
+  /* I tasti seguono la centrale: cambiare integrazione — o mapparla per la
+   * prima volta — cambia quello che accetta, e la fila si rifa'. */
+  syncModes(shell, labels);
+
   const models = cameraModels();
   // A rebuilt wall is a wall of empty <img> elements: whatever frame the live
   // owner had already written is gone with the markup it lived in, and nothing
@@ -380,9 +440,26 @@ function installOverrides() {
   }
 }
 
+/* Le due domande sulla centrale, per il runtime vecchio.
+ *
+ * Il tasto acceso e il tastierino li disegna e li apre la plancia storica, che
+ * e' uno script normale e non puo' importare un modulo. La regola pero' deve
+ * restare una sola: sta in `core/alarm-panel.js`, e qui le si apre una porta.
+ * Se questi non ci sono, il runtime si comporta come si e' sempre comportato. */
+function publishAlarmHelpers() {
+  root.dmAlarmCodeNeeded = (service) => alarmCodeNeeded(alarmStateObject(), service);
+  root.dmAlarmActiveMode = (state) =>
+    alarmActiveMode(
+      state,
+      alarmModes(alarmStateObject()).map((voce) => voce.mode),
+    );
+  root.dmAlarmModes = () => alarmModes(alarmStateObject()).map((voce) => voce.mode);
+}
+
 export function installSecurityShowcaseSection() {
   if (!doc) return;
   installStyle(STYLE_ID, securityCss());
+  publishAlarmHelpers();
   installOverrides();
   if (!state.listeners) {
     state.listeners = true;
@@ -566,7 +643,9 @@ function securityCss() {
 
 /* keypad — keeps the legacy .alarm-mode-btn contract */
 .dm-sec-modes{
-  position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
+  /* Tante colonne quanti sono i tasti: la centrale decide quanti ce ne sono
+     — tre erano quelli di prima, non una legge. */
+  position:relative;z-index:1;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;
   margin-top:24px;padding:6px;border-radius:20px;
   background:var(--surface-2,#f8fafc);border:1px solid var(--dm-sec-border);
   box-shadow:inset 0 2px 8px rgba(15,23,42,.05)

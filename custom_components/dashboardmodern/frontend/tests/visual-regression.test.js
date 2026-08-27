@@ -22,11 +22,12 @@ const expectedTabs = [
   "config",
 ];
 /* Le impronte cambiano solo con una modifica voluta al foglio vendorizzato.
- * Questo giro: .sub-tab-btn eredita il font del documento, perche' un <button>
- * non lo fa da solo e le pillole delle stanze uscivano nel font di sistema. */
+ * Questo giro: la griglia dei tasti dell'antifurto rapido non e' piu' fissa a
+ * tre colonne — quanti tasti ci sono lo decide la centrale, che dichiara quali
+ * inserimenti accetta. */
 const vendoredCssSnapshots = {
-  "dashboard-runtime-it.css": "d344fab1b44b791ccede567172784c5badc96d4e5489ad0c96275cf941491caa",
-  "dashboard-runtime-en.css": "2dfe8778726520c4626ceb09a1a390ced68f8187492a8c628afe993607c07439",
+  "dashboard-runtime-it.css": "fecd2a46f41268a251bd559d98a1ae3e720952feda42ef8ae3596e2aa3d0871e",
+  "dashboard-runtime-en.css": "816d8caecb70c669eeca6795be4de172b6948173864bf91e66dcf1c4d06f6796",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {

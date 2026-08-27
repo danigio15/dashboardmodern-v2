@@ -2498,10 +2498,12 @@ html.dm-touch-navigation .bottom-nav-handle { display: block !important; }
   letter-spacing: 0.5px;
 }
 
-/* Griglia bottoni */
+/* Griglia bottoni — tante colonne quanti sono i tasti che la centrale accetta:
+   tre erano quelli di prima, non un numero fisso. */
 .qa-alarm-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 12px;
   margin-bottom: 14px;
 }

@@ -331,7 +331,13 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // e non toglie niente, e la foto sta nel profilo: non c'e' piu' niente da
   // rimettere ne' da contendersi. `ev-console.js` resta perche' argine non e'
   // mai stato: dice se la console di ricarica evcc e' configurata.
-  assert.ok(relative.length <= 155, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 156 con la centrale antifurto che dichiara cosa sa fare: `alarm-panel.js`
+  // legge `supported_features` e dice quali inserimenti esistono davvero, quale
+  // tasto corrisponde allo stato, e se un codice c'e'. La plancia mostrava
+  // sempre gli stessi tre tasti: con Ring il tasto Notte non faceva niente
+  // perche' Ring la notte non ce l'ha, e `armed_home` accendeva Fuori. Non sa
+  // cos'e' una pagina: risponde su un oggetto di stato e basta.
+  assert.ok(relative.length <= 156, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

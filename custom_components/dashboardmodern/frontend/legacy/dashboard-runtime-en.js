@@ -5642,8 +5642,31 @@ let currentPin = ''; let targetAlarmService = '';
 function updatePinDisplay() { for(let i=1; i<=4; i++) { const dot = document.getElementById('dot-'+i); if(i <= Math.min(currentPin.length, 4)) dot.classList.add('filled'); else dot.classList.remove('filled'); } }
 function kp(num) { if(navigator.vibrate) navigator.vibrate(15); if(currentPin.length < 8) { currentPin += num; updatePinDisplay(); } }
 function kpDel() { if(navigator.vibrate) navigator.vibrate(10); if(currentPin.length > 0) { currentPin = currentPin.slice(0, -1); updatePinDisplay(); } }
-function kpOk() { if(!ws) return; if(navigator.vibrate) navigator.vibrate([15, 30, 15]); let data = { entity_id: (typeof resolveEntity === 'function' ? resolveEntity('dm.security_centrale_allarme') : 'dm.security_centrale_allarme') }; if(currentPin.length > 0) data.code = currentPin; ws.send(JSON.stringify({ id: msgId++, type: 'call_service', domain: 'alarm_control_panel', service: targetAlarmService, service_data: data })); forceClose('custom-keypad'); }
-function promptPinAndSet(service) { if(navigator.vibrate) navigator.vibrate(15); currentPin = ''; targetAlarmService = service; updatePinDisplay(); const labels = { 'alarm_arm_away': 'Armamento Total', 'alarm_arm_night': 'Armamento Notturno', 'alarm_disarm': 'Disinserimento Antifurto' }; setTxt('keypad-action-name', labels[service] || 'Azione'); document.getElementById('custom-keypad').classList.add('show'); }
+function kpOk() { if(!ws) return; if(navigator.vibrate) navigator.vibrate([15, 30, 15]); callAlarmService(targetAlarmService, currentPin.length > 0 ? currentPin : ''); forceClose('custom-keypad'); }
+/* Chiama la centrale, con il codice se il tastierino ne ha raccolto uno. */
+function callAlarmService(service, code) {
+    if(!ws) return;
+    let data = { entity_id: (typeof resolveEntity === 'function' ? resolveEntity('dm.security_centrale_allarme') : 'dm.security_centrale_allarme') };
+    if(code) data.code = code;
+    ws.send(JSON.stringify({ id: msgId++, type: 'call_service', domain: 'alarm_control_panel', service: service, service_data: data }));
+}
+/* Il tastierino compare se la centrale un codice ce l'ha davvero.
+ *
+ * Chi non ne pubblica nessuno — Ring via ring-mqtt, per dirne una — lo
+ * faceva comparire lo stesso: si premeva OK a vuoto e il comando partiva
+ * uguale. Un lucchetto che si apre senza chiave non e' un lucchetto, e' un
+ * passaggio in piu'. Chi il codice ce l'ha continua a vederselo chiedere.
+ * La regola sta in core/alarm-panel.js: qui si domanda soltanto. */
+function promptPinAndSet(service) {
+    if(navigator.vibrate) navigator.vibrate(15);
+    let serve = true;
+    try { if (typeof dmAlarmCodeNeeded === 'function') serve = !!dmAlarmCodeNeeded(service); } catch(e) {}
+    if (!serve) { callAlarmService(service); return; }
+    currentPin = ''; targetAlarmService = service; updatePinDisplay();
+    const labels = { 'alarm_arm_home': 'Arm Home', 'alarm_arm_away': 'Arm Away', 'alarm_arm_night': 'Arm Night', 'alarm_arm_vacation': 'Arm Vacation', 'alarm_arm_custom_bypass': 'Arm Partial', 'alarm_disarm': 'Disarm Alarm' };
+    setTxt('keypad-action-name', labels[service] || 'Action');
+    document.getElementById('custom-keypad').classList.add('show');
+}
 
 const errorImgSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='225'><rect width='400' height='225' fill='%23f0f4f8'/><text x='50%' y='50%' fill='%23a1a1a1' font-family='sans-serif' font-weight='800' font-size='20' text-anchor='middle' dominant-baseline='middle'>NESSUN SEGNALE</text></svg>";
 
@@ -6257,7 +6280,11 @@ function render() {
         } else if (alarmState === 'armed_night') {
           color = '#7c3aed'; rgb = '124,58,237'; text = 'ARMATO · NOTTE'; icon = '🌙'; activeBtn = 'night'; isArmed = true;
         } else if (alarmState === 'armed_home') {
-          color = '#06b6d4'; rgb = '6,182,212';  text = 'ARMATO · CASA';  icon = '🏡'; activeBtn = 'away'; isArmed = true;
+          color = '#06b6d4'; rgb = '6,182,212';  text = 'ARMATO · CASA';  icon = '🏡'; activeBtn = 'home'; isArmed = true;
+        } else if (alarmState === 'armed_custom_bypass') {
+          color = '#e11d48'; rgb = '225,29,72'; text = 'ARMATO · PARZIALE'; icon = '🎚️'; activeBtn = 'custom'; isArmed = true;
+        } else if (alarmState === 'armed_vacation') {
+          color = '#e11d48'; rgb = '225,29,72'; text = 'ARMATO · VACANZA'; icon = '✈️'; activeBtn = 'vacation'; isArmed = true;
         } else if (alarmState === 'pending' || alarmState === 'arming') {
           color = '#f59e0b'; rgb = '245,158,11'; text = 'IN USCITA...';   icon = '⏳'; activeBtn = ''; isArmed = true;
         } else if (alarmState === 'disarmed') {
@@ -6273,6 +6300,10 @@ function render() {
         if (isArmed) alStage.classList.add('armed');
         
         // Marca pulsante modalità attivo
+        /* Quale tasto corrisponde a questo stato lo sa core/alarm-panel.js, che
+           sa anche quali tasti la centrale ha davvero: se Casa non c'e', si
+           accende l'inserimento totale invece di lasciare la fila spenta. */
+        try { if (activeBtn && typeof dmAlarmActiveMode === 'function') activeBtn = dmAlarmActiveMode(alarmState) || activeBtn; } catch(e) {}
         if (activeBtn) {
           const btn = document.querySelector(`.alarm-mode-btn[data-mode="${activeBtn}"]`);
           if (btn) btn.classList.add('active');
@@ -6749,13 +6780,36 @@ function renderQuickAntifurto() {
       dotEl.className = 'qa-alarm-status-dot' + (dotClass ? ' ' + dotClass : '');
     }
 
-    // Highlight bottone attivo
+    /* Prima di tutto: quali tasti questa centrale ha davvero.
+       Ring non ha la modalita' Notte, e un tasto che chiama un servizio che la
+       centrale non conosce e' un tasto che chiede il PIN e poi non fa niente. */
     const allBtns = document.querySelectorAll('#qa-alarm-grid .qa-alarm-btn');
+    let disponibili = null;
+    try { if (typeof dmAlarmModes === 'function') disponibili = dmAlarmModes(); } catch(e) {}
+    allBtns.forEach(b => {
+      const suo = b.getAttribute('data-mode');
+      const c1 = !disponibili || disponibili.indexOf(suo) >= 0;
+      b.style.display = c1 ? '' : 'none';
+      b.hidden = !c1;
+    });
+    /* E la riga del PIN si accende solo se un PIN c'e'. */
+    const pinHint = document.getElementById('qa-alarm-pin-hint');
+    if (pinHint) {
+      let chiede = true;
+      try { if (typeof dmAlarmCodeNeeded === 'function') chiede = !!dmAlarmCodeNeeded('alarm_disarm'); } catch(e) {}
+      pinHint.style.display = chiede ? '' : 'none';
+    }
+
+    // Highlight bottone attivo
     allBtns.forEach(b => b.classList.remove('active'));
     let activeMode = null;
-    if (cur === 'armed_away' || cur === 'armed_home' || cur === 'armed_custom_bypass') activeMode = 'away';
-    else if (cur === 'armed_night') activeMode = 'night';
-    else if (cur === 'disarmed')    activeMode = 'disarm';
+    /* Stessa regola della pagina Sicurezza, e uno solo che la scrive. */
+    try { if (typeof dmAlarmActiveMode === 'function') activeMode = dmAlarmActiveMode(cur) || null; } catch(e) {}
+    if (!activeMode) {
+      if (cur === 'armed_away' || cur === 'armed_custom_bypass') activeMode = 'away';
+      else if (cur === 'armed_night') activeMode = 'night';
+      else if (cur === 'disarmed')    activeMode = 'disarm';
+    }
     if (activeMode) {
       const btn = document.querySelector(`#qa-alarm-grid .qa-alarm-btn[data-mode="${activeMode}"]`);
       if (btn) btn.classList.add('active');
