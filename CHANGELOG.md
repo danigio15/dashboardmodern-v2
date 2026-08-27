@@ -115,7 +115,25 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   nome della casa, nella fascia in alto: stessa temperatura, stesso cielo,
   stessa icona, e umidità e vento uno accanto all'altro invece che incolonnati
   all'estremità opposta. Si apre come prima. Quello che si guadagna è la prima
-  fila di tessere, che adesso si vede senza scorrere.
+  fila di tessere, che adesso si vede senza scorrere. Da telefono ci sta tutto
+  su una riga sola — nome della casa, meteo, stato e configurazione — perché
+  ogni pezzo dice la stessa cosa con meno: via il sottotitolo che ripeteva il
+  titolo, via il cielo a parole che l'icona dice già, e «Umidità» e «Vento» li
+  dicono la goccia e il soffio.
+
+- **Lo stato della connessione è un puntino, non una frase.** «Connesso»
+  accanto a un pallino verde era la stessa cosa detta due volte, e su un
+  telefono quella frase era la larghezza che mancava al meteo. La parola resta
+  scritta per chi la pagina se la fa leggere a voce: sparisce dalla vista, non
+  dal documento.
+
+- **Le finestre delle tessere portano il colore della loro sezione.** Il filo
+  di tre pixel sul bordo alto era il colore detto a mezza voce: da lontano
+  tutte le finestre erano la stessa finestra bianca, e per sapere in quale si
+  era bisognava leggere il titolo. Adesso la fascia in cima è il colore —
+  quello della tessera da cui si è arrivati, lo stesso — con il titolo in
+  bianco, e ogni riga della lista porta lo stesso colore su un binario a
+  sinistra.
 
 - **«Colpo d'occhio» adesso si chiama «Widget».** È il nome con cui la sezione
   viene chiamata da chi la usa e da chi la configura: due nomi per la stessa

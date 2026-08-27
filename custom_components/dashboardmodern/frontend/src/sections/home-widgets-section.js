@@ -1887,38 +1887,47 @@ html.dm-widget-popup-open{overflow:hidden}
  * riga di separazione, il tondo per chiudere. Il velo colorato era un
  * gradiente che partiva dall'angolo e sbiadiva a meta': adesso e' un fondo
  * appena tinto, che non contende la scena al titolo. */
+/* L'intestazione porta il colore della sezione, tutta.
+ *
+ * Il filo di tre pixel sul bordo alto era il colore detto a mezza voce: da
+ * lontano tutte le finestre erano la stessa finestra bianca, e per sapere in
+ * quale si era bisognava leggere il titolo. Adesso la fascia in cima e' il
+ * colore — quello della tessera da cui si e' arrivati, lo stesso — e la si
+ * riconosce prima di leggerla. */
 #dm-widget-popup .dm-w-head{
-  flex:0 0 auto;position:relative;z-index:1;gap:13px;padding:18px 22px 14px;
-  /* Il filo di colore sta qui e non sulla finestra: l'intestazione copre il
-     bordo alto della card, e quello che ci si dipinta sopra non si vedrebbe.
-     Qui invece resta a vista mentre la lista sotto scorre. */
+  flex:0 0 auto;position:relative;z-index:1;gap:14px;padding:20px 22px 18px;
+  color:#fff;border-bottom:0;
   background:
-    linear-gradient(90deg,
-      var(--dm-widget-accent,#0ea5e9),
-      color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 18%,transparent)) no-repeat 0 0/100% 3px,
-    linear-gradient(180deg,color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 9%,transparent),transparent),
-    var(--card-bg,#fff);
-  border-bottom:1px solid var(--card-border,#e8edf3)}
-/* La stessa pastiglia della tessera da cui si e' arrivati: il popup e' la
- * tessera che si apre, non un'altra cosa. */
-#dm-widget-popup .dm-w-head-ic{
-  flex:0 0 44px;width:44px;height:44px;display:grid;place-items:center;border-radius:15px;font-size:22px;
-  background:linear-gradient(145deg,
-    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 92%,#fff),
-    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 62%,#000 8%));
-  box-shadow:0 10px 22px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 34%,transparent),
-    inset 0 1px 0 rgba(255,255,255,.45)}
-#dm-widget-popup .dm-w-head strong{font-size:16px;letter-spacing:1.4px}
-#dm-widget-popup .dm-w-head small{font-size:12px}
-#dm-widget-popup .dm-w-close{
-  flex:0 0 38px;width:38px;height:38px;border-radius:50%;
-  display:grid;place-items:center;font-size:15px;font-weight:800;
-  background:var(--surface-3,#f1f5f9);border:1px solid var(--card-border,#e2e8f0);
-  box-shadow:none;transition:background .18s ease,border-color .18s ease,color .18s ease}
-#dm-widget-popup .dm-w-close:hover{
-  background:#fee2e2;border-color:#fecaca;color:#dc2626}
-html[data-theme="dark"] #dm-widget-popup .dm-w-close:hover{
-  background:rgba(220,38,38,.22);border-color:rgba(248,113,113,.45);color:#fca5a5}
+    radial-gradient(120% 140% at 88% -30%,rgba(255,255,255,.30),transparent 62%),
+    linear-gradient(135deg,
+      color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 88%,#fff 12%),
+      color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 78%,#0f172a 22%));
+  box-shadow:0 6px 16px -12px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 60%,transparent)}
+/* Sul colore pieno la pastiglia colorata sparirebbe: qui e' un vetro smerigliato
+ * che lascia passare il fondo. */
+#dm-widget-popup .dm-widget-detail .dm-w-head-ic{
+  flex:0 0 46px;width:46px;height:46px;display:grid;place-items:center;
+  border-radius:16px;font-size:23px;
+  background:rgba(255,255,255,.20);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.38),0 6px 16px -8px rgba(2,6,23,.5)}
+/* Il selettore e' lungo apposta: le stesse tre righe le scrive piu' in basso
+ * la regola condivisa con la tessera aperta in griglia, che a parita' di peso
+ * vincerebbe perche' viene dopo — e li' il sottotitolo e' grigio chiaro, che
+ * sul colore pieno non si legge. */
+#dm-widget-popup .dm-widget-detail .dm-w-head strong{
+  font-size:16.5px;letter-spacing:1.4px;color:#fff}
+#dm-widget-popup .dm-widget-detail .dm-w-head small{
+  font-size:12px;color:rgba(255,255,255,.85);font-weight:700}
+/* E la finestra non ha piu' bisogno del filo di colore sul bordo alto: il
+ * colore adesso e' tutta la fascia. */
+#dm-widget-popup .dm-widget-detail::before{display:none}
+#dm-widget-popup .dm-widget-detail .dm-w-close{
+  flex:0 0 36px;width:36px;height:36px;border-radius:50%;
+  display:grid;place-items:center;font-size:15px;font-weight:800;color:#fff;
+  background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.34);
+  box-shadow:none;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+#dm-widget-popup .dm-widget-detail .dm-w-close:hover{
+  background:rgba(255,255,255,.34);border-color:rgba(255,255,255,.6);transform:rotate(90deg)}
 #dm-widget-popup .dm-w-body{
   padding:16px 18px 20px;display:grid;gap:9px;
   /* L'altezza minima azzerata perche' un figlio di colonna flex, per difetto,
@@ -1936,19 +1945,34 @@ html[data-theme="dark"] #dm-widget-popup .dm-w-close:hover{
 #dm-widget-popup .dm-w-body::-webkit-scrollbar-thumb{
   border-radius:100px;border:2px solid transparent;background-clip:padding-box;
   background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 38%,transparent)}
+/* Ogni riga porta un binario del colore della sezione sul fianco sinistro:
+ * lega la riga alla fascia in cima, e da' alla lista un verso da leggere. */
 #dm-widget-popup .dm-w-row{
-  padding:13px 15px;border-radius:17px;border:1px solid var(--card-border,#eef2f7);
-  background:var(--surface-2,#f8fafc);margin:0}
+  position:relative;padding:13px 15px 13px 19px;border-radius:16px;
+  border:1px solid var(--card-border,#eef2f7);
+  background:var(--surface-2,#f8fafc);margin:0;overflow:hidden;
+  transition:border-color .18s ease,background .18s ease,transform .18s ease}
+#dm-widget-popup .dm-w-row::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 34%,transparent);
+  transition:background .18s ease}
 #dm-widget-popup .dm-w-row:hover{
   border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 34%,transparent);
-  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 6%,var(--surface-2,#f8fafc))}
+  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 6%,var(--surface-2,#f8fafc));
+  transform:translateX(2px)}
+#dm-widget-popup .dm-w-row:hover::before{background:var(--dm-widget-accent,#0ea5e9)}
+@media(prefers-reduced-motion:reduce){
+  #dm-widget-popup .dm-w-row,#dm-widget-popup .dm-w-close{transition:none}
+  #dm-widget-popup .dm-w-row:hover{transform:none}
+  #dm-widget-popup .dm-w-close:hover{transform:none}
+}
 #dm-widget-popup .dm-w-name{font-size:13.5px;font-weight:800}
 #dm-widget-popup .dm-w-val{font-size:14.5px;font-weight:900}
 #dm-widget-popup .dm-w-glyph{font-size:17px}
 @media(max-width:600px){
   #dm-widget-popup{padding:16px}
   #dm-widget-popup .dm-widget-detail{border-radius:22px;max-height:82dvh}
-  #dm-widget-popup .dm-w-head{padding:15px 16px 12px}
+  #dm-widget-popup .dm-w-head{padding:16px 16px 15px;gap:11px}
   #dm-widget-popup .dm-w-body{padding:13px 15px 18px}
 }
 /* ── «In primo piano»: il ponte dei widget della Home ─────────────────── */

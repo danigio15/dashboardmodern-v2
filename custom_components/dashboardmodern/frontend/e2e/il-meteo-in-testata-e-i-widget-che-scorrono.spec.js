@@ -111,6 +111,35 @@ test("il meteo sta nell'intestazione, accanto al nome della casa", async ({ page
   expect(distanza).toBeLessThanOrEqual(12);
 });
 
+test("da telefono la fascia in alto sta su una riga, e la connessione e' un puntino", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  test.skip(testInfo.project.name !== "mobile", "e' la fascia del telefono che deve starci");
+  await avvia(page, testInfo);
+  const fascia = await page.evaluate(() => {
+    const testata = document.querySelector("header:not(.dm-page-mast)");
+    const alto = (nodo) => Math.round(nodo.getBoundingClientRect().top);
+    const figli = [...testata.children].filter((n) => n.getBoundingClientRect().width > 0);
+    return {
+      strabordo: testata.scrollWidth > testata.clientWidth + 1,
+      // Una riga sola: nessun figlio comincia sotto la meta' della fascia.
+      aCapo: figli.some((n) => alto(n) > alto(testata) + testata.clientHeight / 2),
+      parola: getComputedStyle(document.getElementById("conn-text")).clipPath,
+      puntino: Boolean(testata.querySelector(".live-dot")),
+      nomeIntero:
+        testata.querySelector(".brand-text h1").scrollWidth <=
+        testata.querySelector(".brand-text h1").clientWidth + 1,
+    };
+  });
+  expect(fascia.strabordo).toBe(false);
+  expect(fascia.aCapo).toBe(false);
+  expect(fascia.puntino).toBe(true);
+  // La parola resta nel documento per chi si fa leggere la pagina, ma non si vede.
+  expect(fascia.parola).toContain("inset");
+  expect(fascia.nomeIntero).toBe(true);
+});
+
 test("la finestra di una tessera lunga si scorre invece di tagliare", async ({
   page,
 }, testInfo) => {
