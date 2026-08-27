@@ -92,10 +92,11 @@ test("i ritratti arrivano in Home, e il costruttore mostra la faccia vera", asyn
   await page.evaluate(() => window.apriConfigEntita());
   await page.locator('.ed-tab[data-tab="people"]').click();
   await page.locator("#ed-body [data-person-edit]").first().click();
-  /* Sei persone, sei capelli, cinque carnagioni, sedici vestiti: trentatre
-   * pastiglie, e ognuna e' un ritratto composto — quindi si aspettano. */
+  /* Sei persone, sei capelli, cinque carnagioni e trenta vestiti — «nessuno»
+   * compreso, che e' il ritratto della sola testa: quarantasette pastiglie, e
+   * ognuna e' un ritratto composto, quindi si aspettano. */
   const pastiglie = page.locator("#ed-body .dm-people-row[data-open='true'] .dm-face-opt-img img");
-  await expect(pastiglie).toHaveCount(33, { timeout: 30000 });
+  await expect(pastiglie).toHaveCount(47, { timeout: 60000 });
 
   /* E si sceglie: cambiando vestito il ritratto salvato cambia con lui. */
   const riga = page.locator('#ed-body .dm-people-row[data-open="true"]');

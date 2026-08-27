@@ -3237,6 +3237,14 @@ function cdApplyNavFixedBody() {
     if (f) f.classList.toggle('active', fixed);
 }
 document.addEventListener('DOMContentLoaded', cdApplyNavFixedBody);
+/* E anche subito, senza aspettare il documento.
+ *
+ * Questo script si carica in fondo alla pagina: se il documento e' gia' pronto
+ * quel listener non scatta mai piu', e la classe non la mette nessuno. La
+ * barra restava «a scomparsa» finche' il modulo della navigazione non si
+ * installava e la rimetteva ferma: in mezzo c'era una finestra in cui la
+ * maniglia compariva e spariva da sola. */
+try { cdApplyNavFixedBody(); } catch (e) {}
 document.addEventListener('DOMContentLoaded', () => {
     if (sessionStorage.getItem('cd_open_editor_after_reload')) {
         sessionStorage.removeItem('cd_open_editor_after_reload');
