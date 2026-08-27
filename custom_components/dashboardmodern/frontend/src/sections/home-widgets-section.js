@@ -1887,47 +1887,82 @@ html.dm-widget-popup-open{overflow:hidden}
  * riga di separazione, il tondo per chiudere. Il velo colorato era un
  * gradiente che partiva dall'angolo e sbiadiva a meta': adesso e' un fondo
  * appena tinto, che non contende la scena al titolo. */
-/* L'intestazione porta il colore della sezione, tutta.
+/* La testata della finestra e' la stessa fascia che aprono le pagine.
  *
- * Il filo di tre pixel sul bordo alto era il colore detto a mezza voce: da
- * lontano tutte le finestre erano la stessa finestra bianca, e per sapere in
- * quale si era bisognava leggere il titolo. Adesso la fascia in cima e' il
- * colore — quello della tessera da cui si e' arrivati, lo stesso — e la si
- * riconosce prima di leggerla. */
-#dm-widget-popup .dm-w-head{
-  flex:0 0 auto;position:relative;z-index:1;gap:14px;padding:20px 22px 18px;
-  color:#fff;border-bottom:0;
+ * Ci sono passate due versioni sbagliate per lo stesso motivo: erano tutte e
+ * due invenzioni. Il filo di tre pixel sul bordo alto era il colore detto a
+ * mezza voce, e da lontano tutte le finestre erano la stessa finestra bianca;
+ * la fascia di colore pieno si vedeva benissimo, ma non somigliava a niente
+ * del resto della plancia.
+ *
+ * La forma giusta la plancia ce l'ha gia', ed e' la fascia che apre ogni
+ * pagina: fondo della card, un alone del colore che entra dall'angolo in alto
+ * a destra, il titolo in Oswald maiuscolo nel colore della sezione, il
+ * sottotitolo in piccolo maiuscoletto spaziato, e in fondo alla fascia una
+ * riga di due pixel che sfuma. Qui e' quella, con l'aggiunta della pastiglia
+ * dell'icona — la stessa della tessera da cui si e' arrivati, perche' la
+ * finestra e' quella tessera che si apre.
+ *
+ * Titolo e sottotitolo vanno incolonnati, non affiancati: affiancati, il
+ * sottotitolo di una sezione con sei voci finiva sempre coi puntini. */
+#dm-widget-popup .dm-widget-detail .dm-w-head{
+  flex:0 0 auto;position:relative;overflow:hidden;
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto auto;
+  column-gap:15px;row-gap:5px;align-items:center;
+  padding:20px 22px 19px;color:var(--text,#0f172a);border-bottom:0;box-shadow:none;
+  /* Il testo a sinistra: questa e' un <header>, e da telefono il foglio della
+     plancia centra il testo di ogni <header> — quello suo, in cima alla
+     pagina. Qui centrava titolo e sottotitolo lasciando l'icona da una parte. */
+  text-align:left;
   background:
-    radial-gradient(120% 140% at 88% -30%,rgba(255,255,255,.30),transparent 62%),
-    linear-gradient(135deg,
-      color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 88%,#fff 12%),
-      color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 78%,#0f172a 22%));
-  box-shadow:0 6px 16px -12px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 60%,transparent)}
-/* Sul colore pieno la pastiglia colorata sparirebbe: qui e' un vetro smerigliato
- * che lascia passare il fondo. */
+    radial-gradient(130% 190% at 88% -60%,
+      color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 22%,transparent),
+      transparent 58%),
+    var(--card-bg,#fff)}
+/* La riga in fondo alla fascia: due pixel che partono dal colore e sfumano,
+   come in cima a ogni pagina. */
+#dm-widget-popup .dm-widget-detail .dm-w-head::after{
+  content:"";position:absolute;inset:auto 0 0 0;height:2px;opacity:.7;
+  background:linear-gradient(90deg,
+    var(--dm-widget-accent,#0ea5e9),
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 45%,transparent) 62%,transparent)}
+/* La pastiglia dell'icona: la tinta della sezione, appena posata, con l'anello
+ * sottile che hanno tutte le pastiglie della plancia. */
 #dm-widget-popup .dm-widget-detail .dm-w-head-ic{
-  flex:0 0 46px;width:46px;height:46px;display:grid;place-items:center;
+  grid-row:1/3;flex:0 0 48px;width:48px;height:48px;display:grid;place-items:center;
   border-radius:16px;font-size:23px;
-  background:rgba(255,255,255,.20);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.38),0 6px 16px -8px rgba(2,6,23,.5)}
-/* Il selettore e' lungo apposta: le stesse tre righe le scrive piu' in basso
- * la regola condivisa con la tessera aperta in griglia, che a parita' di peso
- * vincerebbe perche' viene dopo — e li' il sottotitolo e' grigio chiaro, che
- * sul colore pieno non si legge. */
+  background:linear-gradient(140deg,
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 17%,var(--card-bg,#fff)),
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 7%,var(--card-bg,#fff)));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 24%,transparent),
+    0 6px 14px -8px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 55%,transparent)}
+/* Il selettore e' lungo apposta: le stesse righe le riscrive piu' in basso la
+ * regola condivisa con la tessera aperta in griglia, che a parita' di peso
+ * vincerebbe perche' viene dopo. */
 #dm-widget-popup .dm-widget-detail .dm-w-head strong{
-  font-size:16.5px;letter-spacing:1.4px;color:#fff}
+  grid-column:2;grid-row:1;
+  font-family:'Oswald',system-ui,sans-serif;font-weight:700;
+  font-size:clamp(19px,2.4vw,25px);line-height:1.05;letter-spacing:2px;text-transform:uppercase;
+  color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 78%,#0f172a)}
 #dm-widget-popup .dm-widget-detail .dm-w-head small{
-  font-size:12px;color:rgba(255,255,255,.85);font-weight:700}
-/* E la finestra non ha piu' bisogno del filo di colore sul bordo alto: il
- * colore adesso e' tutta la fascia. */
-#dm-widget-popup .dm-widget-detail::before{display:none}
+  grid-column:2;grid-row:2;flex:none;
+  font-size:11px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;
+  color:var(--text-dim,#64748b);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #dm-widget-popup .dm-widget-detail .dm-w-close{
-  flex:0 0 36px;width:36px;height:36px;border-radius:50%;
-  display:grid;place-items:center;font-size:15px;font-weight:800;color:#fff;
-  background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.34);
-  box-shadow:none;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+  grid-column:3;grid-row:1/3;
+  flex:0 0 38px;width:38px;height:38px;border-radius:50%;
+  display:grid;place-items:center;font-size:15px;font-weight:800;
+  background:var(--card-bg,#fff);border:1px solid var(--card-border,#e2e8f0);
+  color:var(--text-dim,#64748b);box-shadow:0 6px 16px -10px rgba(15,23,42,.5);
+  transition:background .18s ease,border-color .18s ease,color .18s ease}
 #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
-  background:rgba(255,255,255,.34);border-color:rgba(255,255,255,.6);transform:rotate(90deg)}
+  background:#fee2e2;border-color:#fecaca;color:#dc2626}
+html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
+  background:rgba(220,38,38,.22);border-color:rgba(248,113,113,.45);color:#fca5a5}
+/* E la finestra non ha piu' bisogno del filo di colore sul bordo alto: adesso
+ * il colore ce l'ha la fascia. */
+#dm-widget-popup .dm-widget-detail::before{display:none}
 #dm-widget-popup .dm-w-body{
   padding:16px 18px 20px;display:grid;gap:9px;
   /* L'altezza minima azzerata perche' un figlio di colonna flex, per difetto,
@@ -1972,7 +2007,7 @@ html.dm-widget-popup-open{overflow:hidden}
 @media(max-width:600px){
   #dm-widget-popup{padding:16px}
   #dm-widget-popup .dm-widget-detail{border-radius:22px;max-height:82dvh}
-  #dm-widget-popup .dm-w-head{padding:16px 16px 15px;gap:11px}
+  #dm-widget-popup .dm-widget-detail .dm-w-head{padding:16px 16px 15px;column-gap:12px}
   #dm-widget-popup .dm-w-body{padding:13px 15px 18px}
 }
 /* ── «In primo piano»: il ponte dei widget della Home ─────────────────── */

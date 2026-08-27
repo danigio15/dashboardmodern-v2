@@ -127,13 +127,17 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   scritta per chi la pagina se la fa leggere a voce: sparisce dalla vista, non
   dal documento.
 
-- **Le finestre delle tessere portano il colore della loro sezione.** Il filo
-  di tre pixel sul bordo alto era il colore detto a mezza voce: da lontano
-  tutte le finestre erano la stessa finestra bianca, e per sapere in quale si
-  era bisognava leggere il titolo. Adesso la fascia in cima è il colore —
-  quello della tessera da cui si è arrivati, lo stesso — con il titolo in
-  bianco, e ogni riga della lista porta lo stesso colore su un binario a
-  sinistra.
+- **Le finestre delle tessere aprono come aprono le pagine.** Il filo di tre
+  pixel sul bordo alto era il colore detto a mezza voce: da lontano tutte le
+  finestre erano la stessa finestra bianca, e per sapere in quale si era
+  bisognava leggere il titolo. Adesso la testata è la stessa fascia con cui si
+  apre ogni pagina della plancia — l'alone di colore che entra dall'angolo, il
+  titolo in maiuscolo nel colore della sezione, il sottotitolo in
+  maiuscoletto, la riga che sfuma in fondo — con in più la pastiglia
+  dell'icona, che è quella della tessera da cui si è arrivati. Titolo e
+  sottotitolo adesso sono incolonnati: affiancati, il sottotitolo di una
+  sezione con sei voci finiva sempre coi puntini. E ogni riga della lista
+  porta il colore della sezione su un binario a sinistra.
 
 - **«Colpo d'occhio» adesso si chiama «Widget».** È il nome con cui la sezione
   viene chiamata da chi la usa e da chi la configura: due nomi per la stessa
