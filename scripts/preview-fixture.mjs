@@ -510,6 +510,76 @@ const appliance = (config) => ({
   ].filter(Boolean),
 });
 
+/* ── Chi abita la casa (1.1+) ──────────────────────────────────────────────
+ *
+ * Le persone sono `person.*` come in Home Assistant: lo stato e' la zona, e il
+ * telefono porta con se' batteria, stato di carica e distanza da casa. Tre
+ * situazioni diverse di proposito — chi e' in casa, chi sta rientrando, chi e'
+ * fuori con la batteria agli sgoccioli — perche' la card cambia faccia per
+ * ognuna. */
+push("person.giovanni", "home", { friendly_name: "Giovanni", id: "giovanni" });
+push("person.laura", "not_home", { friendly_name: "Laura", id: "laura" });
+push("person.marco", "Ufficio", { friendly_name: "Marco", id: "marco" });
+
+percent("sensor.telefono_giovanni_batteria", 82, "Batteria telefono Giovanni", "battery");
+push("sensor.telefono_giovanni_stato_batteria", "Charging", {
+  friendly_name: "Stato batteria Giovanni",
+});
+percent("sensor.telefono_laura_batteria", 46, "Batteria telefono Laura", "battery");
+push("sensor.telefono_laura_stato_batteria", "Not Charging", {
+  friendly_name: "Stato batteria Laura",
+});
+push("sensor.laura_distanza", 8.4, {
+  friendly_name: "Distanza Laura",
+  unit_of_measurement: "km",
+  device_class: "distance",
+});
+push("sensor.laura_tempo_rientro", 14, {
+  friendly_name: "Tempo di rientro Laura",
+  unit_of_measurement: "min",
+});
+percent("sensor.telefono_marco_batteria", 9, "Batteria telefono Marco", "battery");
+push("sensor.telefono_marco_stato_batteria", "Not Charging", {
+  friendly_name: "Stato batteria Marco",
+});
+
+/* ── Aspirapolvere (1.2+) ─────────────────────────────────────────────────── */
+push("vacuum.robot", "cleaning", {
+  friendly_name: "Robot aspirapolvere",
+  battery_level: 63,
+  fan_speed: "medium",
+  fan_speed_list: ["quiet", "balanced", "medium", "turbo"],
+  status: "In pulizia",
+  supported_features: 16375,
+});
+
+/* ── Le cose da fare (1.2+) ───────────────────────────────────────────────── */
+push("todo.spesa", 4, { friendly_name: "Spesa" });
+push("todo.casa", 2, { friendly_name: "Cose di casa" });
+
+/* ── Il secondo impianto (1.3+) ───────────────────────────────────────────────
+ *
+ * «Una casa che e' l'unione di due appartamenti»: il secondo ha i suoi
+ * misuratori e i suoi carichi, piu' piccoli del primo perche' e' un
+ * appartamento e non tutta la casa. */
+power("sensor.dependance_casa_potenza", 1180, "Consumo dependance");
+energy("sensor.dependance_casa_energia_totale", 4210, "Energia casa dependance", true);
+power("sensor.dependance_rete_potenza", 620, "Prelievo dependance");
+energy("sensor.dependance_rete_prelievo_totale", 2980, "Prelievo totale dependance", true);
+power("sensor.dependance_fv_potenza", 1740, "Fotovoltaico dependance");
+energy("sensor.dependance_fv_energia_totale", 5120, "Produzione totale dependance", true);
+power("sensor.dependance_pdc_potenza", 640, "Pompa di calore dependance");
+energy("sensor.dependance_pdc_energia_totale", 1870, "Energia pompa di calore", true);
+power("sensor.dependance_cucina_potenza", 210, "Cucina dependance");
+energy("sensor.dependance_cucina_energia_totale", 640, "Energia cucina dependance", true);
+
+/* ── Le aperture della Sicurezza (1.2+) ───────────────────────────────────── */
+push("lock.portone", "locked", {
+  friendly_name: "Portone",
+  supported_features: 1,
+});
+push("lock.garage", "unlocked", { friendly_name: "Serratura garage" });
+
 export const seed = {
   schema_version: 4,
   sections: {
@@ -717,6 +787,14 @@ export const seed = {
       order: index,
       ...(contact ? { contact } : {}),
     })),
+    robots: [
+      {
+        id: "robot-piano-terra",
+        name: "Robot piano terra",
+        entity: "vacuum.robot",
+        room_id: "room-soggiorno",
+      },
+    ],
     pool: {
       tempEnt: "sensor.piscina_temperatura",
       phEnt: "sensor.piscina_ph",
@@ -749,6 +827,42 @@ export const seed = {
       enabled: true,
     },
     energy: {
+      plants: [
+        {
+          id: "impianto-dependance",
+          name: "Dependance",
+          house: {
+            power: "sensor.dependance_casa_potenza",
+            total_energy: "sensor.dependance_casa_energia_totale",
+          },
+          grid: {
+            power: "sensor.dependance_rete_potenza",
+            total_energy: "sensor.dependance_rete_prelievo_totale",
+          },
+          solar: {
+            power: "sensor.dependance_fv_potenza",
+            total_energy: "sensor.dependance_fv_energia_totale",
+          },
+          loads: [
+            {
+              id: "load-dep-pdc",
+              name: "Pompa di calore",
+              icon: "❄️",
+              color: "#38bdf8",
+              power_entity: "sensor.dependance_pdc_potenza",
+              total_energy_entity: "sensor.dependance_pdc_energia_totale",
+            },
+            {
+              id: "load-dep-cucina",
+              name: "Cucina",
+              icon: "🍳",
+              color: "#f59e0b",
+              power_entity: "sensor.dependance_cucina_potenza",
+              total_energy_entity: "sensor.dependance_cucina_energia_totale",
+            },
+          ],
+        },
+      ],
       house: {
         power: "sensor.casa_potenza",
         daily_energy: "sensor.casa_energia_oggi",
@@ -909,6 +1023,9 @@ export const seed = {
   },
   visibility: {
     home: true,
+    stanze: true,
+    luci: true,
+    robot: true,
     energy: true,
     appliances: true,
     ev: true,
@@ -943,6 +1060,62 @@ export const extraStorage = {
   cd_costo_kwh: 0.28,
   cd_prezzo_immissione: 0.09,
   cd_navbar_mode: "auto",
+  /* Le persone: tre situazioni diverse, perche' la card cambia faccia per
+   * ognuna — a casa, in rientro, fuori con la batteria agli sgoccioli. I
+   * ritratti sono combinazioni dei render 3D vendorizzati. */
+  cd_people: [
+    {
+      id: "person-giovanni",
+      name: "Giovanni",
+      entity: "person.giovanni",
+      battery: "sensor.telefono_giovanni_batteria",
+      batteryState: "sensor.telefono_giovanni_stato_batteria",
+      avatar: {
+        color: "#0ea5e9",
+        face: { persona: "uomo", capelli: "barba", carnagione: "media", vestito: "informatico" },
+      },
+    },
+    {
+      id: "person-laura",
+      name: "Laura",
+      entity: "person.laura",
+      battery: "sensor.telefono_laura_batteria",
+      batteryState: "sensor.telefono_laura_stato_batteria",
+      distance: "sensor.laura_distanza",
+      travel: "sensor.laura_tempo_rientro",
+      avatar: {
+        color: "#ec4899",
+        face: { persona: "donna", capelli: "ricci", carnagione: "chiara2", vestito: "medico" },
+      },
+    },
+    {
+      id: "person-marco",
+      name: "Marco",
+      entity: "person.marco",
+      battery: "sensor.telefono_marco_batteria",
+      batteryState: "sensor.telefono_marco_stato_batteria",
+      avatar: {
+        color: "#16a34a",
+        face: { persona: "uomo", capelli: "lisci", carnagione: "ambrata", vestito: "ufficio" },
+      },
+    },
+  ],
+  cd_todo: [
+    { entity: "todo.spesa", name: "Spesa" },
+    { entity: "todo.casa", name: "Cose di casa" },
+  ],
+  cd_security_doors: [
+    { id: "door-portone", name: "Portone", entity: "lock.portone", icon: "🚪" },
+    { id: "door-garage", name: "Garage", entity: "lock.garage", icon: "🅿️" },
+  ],
+  /* La stanza detta sulla singola entita' (1.3): e' quello che riempie la
+   * pagina di una stanza con cio' che nessuna scheda le chiedeva. */
+  cd_stanze_entita: {
+    "binary_sensor.finestra_cucina": "room-cucina",
+    "binary_sensor.porta_ingresso": "room-garage",
+    "sensor.piscina_temperatura": "room-giardino",
+    "binary_sensor.pompa_solare": "room-garage",
+  },
 };
 
 /* Daily / monthly / yearly recorder deltas used by the mocked statistics API. */
