@@ -292,9 +292,13 @@ function panelOnScreen(button) {
   return !panel || panel.getClientRects().length > 0;
 }
 
+/* Nessuna scheda ha piu' di questi salvataggi in una passata: e' un fermo per
+ * un elenco che si riscrivesse all'infinito, non una scelta di quante righe si
+ * possono avere. */
+const MASSIMO_SALVATAGGI = 200;
+
 function pressTabSaves(body) {
-  const buttons = sectionSaves(body).filter(panelOnScreen);
-  if (!buttons.length) {
+  if (!sectionSaves(body).filter(panelOnScreen).length) {
     // Tabs whose rows are written as they are edited still answer the gesture,
     // with the runtime's own "section saved" acknowledgement.
     try {
@@ -302,10 +306,25 @@ function pressTabSaves(body) {
     } catch (_error) {}
     return 0;
   }
+  /* I bottoni si ricercano a ogni giro, e si preme quello in POSIZIONE.
+   *
+   * Prendere l'elenco una volta sola e premerli tutti sembrava la stessa cosa,
+   * e non lo era: parecchie schede, dopo aver salvato una riga, si ridisegnano
+   * — e' cosi' che l'intestazione della riga prende il nome appena scritto.
+   * Ridisegnandosi staccano dal documento tutti i bottoni che non erano ancora
+   * stati premuti, e un bottone staccato riceve il clic ma non lo fa arrivare
+   * a nessuno: l'ascolto sta sul documento, e quel nodo dal documento e'
+   * uscito. Si salvava la prima riga e nessun'altra — nelle Persone si vedeva
+   * benissimo: la seconda e la terza tornavano come erano.
+   *
+   * La posizione regge il ridisegno perche' l'ordine delle righe non cambia
+   * salvandone una. */
   let pressed = 0;
-  for (const button of buttons) {
+  for (let posizione = 0; posizione < MASSIMO_SALVATAGGI; posizione += 1) {
+    const buttons = sectionSaves(body).filter(panelOnScreen);
+    if (posizione >= buttons.length) break;
     try {
-      button.click();
+      buttons[posizione].click();
       pressed += 1;
     } catch (_error) {}
   }

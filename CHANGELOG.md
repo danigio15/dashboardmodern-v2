@@ -93,6 +93,19 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   pagina Sicurezza: stessa conferma, stesso tastierino del PIN, stessa
   chiamata. Non è una seconda mano che apre: è la stessa.
 
+- **Persone: si modificava solo la prima riga, le altre tornavano com'erano.**
+  Due difetti sullo stesso gesto. Il tasto unico in fondo alla scheda preme i
+  salvataggi delle righe uno dopo l'altro: li cercava una volta sola e poi li
+  premeva tutti, ma il primo salvataggio ridisegna la scheda — è così che
+  l'intestazione prende il nome appena scritto — e il ridisegno stacca dal
+  documento i bottoni non ancora premuti. Un bottone staccato riceve il clic
+  ma non lo fa arrivare a nessuno. E anche arrivandoci non sarebbe bastato: il
+  ridisegno aveva già riscritto le caselle delle righe seguenti con quello che
+  c'era in memoria. Adesso i bottoni si ricercano fra un tocco e l'altro, e
+  ogni salvataggio legge tutte le righe prima di scrivere. Stessa cosa
+  aprendo un'altra riga con la matita: quello che si stava scrivendo non si
+  perde più.
+
 - **Persone: l'avatar scelto perdeva contro la fototessera dell'entità.** La
   card mette la fotografia davanti all'avatar, ed è giusto — una foto vera è
   meglio di un'emoji. Ma la fotografia arriva anche da sola: Home Assistant e

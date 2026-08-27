@@ -269,6 +269,26 @@ function bodyMarkup(people) {
     </div>`;
 }
 
+/* Quello che c'e' scritto adesso in TUTTE le righe.
+ *
+ * Serve a due gesti diversi, e per lo stesso motivo: perche' subito dopo la
+ * scheda si ridisegna, e il ridisegno riscrive le caselle con quello che c'e'
+ * in memoria. Chi non ha ancora detto la sua la perde.
+ *
+ * Le righe si prendono solo se l'entita' regge: sostituire una scelta buona
+ * con una casella svuotata per sbaglio sarebbe peggio del silenzio. La riga su
+ * cui si sta agendo la legge chi chiama, che sa anche come dirle di no. */
+function raccogliRighe(body, people, esclusa = -1) {
+  const next = people.slice();
+  for (const riga of body?.querySelectorAll?.("[data-person-index]") || []) {
+    const posizione = Number(riga.dataset.personIndex);
+    if (!Number.isFinite(posizione) || !people[posizione] || posizione === esclusa) continue;
+    const bozza = leggiRiga(riga, people[posizione]);
+    if (ENTITY_RE.test(bozza.entity)) next[posizione] = bozza;
+  }
+  return next;
+}
+
 function leggiRiga(riga, person) {
   const next = { ...person, avatar: { ...person.avatar } };
   for (const input of riga.querySelectorAll("[data-person-field]")) {
@@ -527,6 +547,11 @@ async function onClick(event) {
   }
   if (event.target.closest("[data-person-edit]")) {
     event.preventDefault();
+    /* Aprire un'altra riga non butta via quello che si stava scrivendo in
+     * questa: la matita ridisegna la scheda, e il ridisegno riscrive le
+     * caselle con quello che c'e' in memoria. Prima di ridisegnare, quindi, in
+     * memoria ci si mette quello che c'e' scritto. */
+    salva(raccogliRighe(body, people));
     state.aperto = state.aperto === index ? -1 : index;
     ridisegna();
     return;
@@ -542,7 +567,12 @@ async function onClick(event) {
   }
   if (event.target.closest("[data-person-save]")) {
     event.preventDefault();
-    const next = people.slice();
+    /* Il salvataggio per riga non e' piu' un gesto per riga: il tasto unico in
+     * fondo alla scheda preme quei bottoni uno dopo l'altro. Il primo salva e
+     * ridisegna, e il ridisegno riscrive le caselle delle righe dopo con
+     * quello che c'e' in memoria: quando arrivava il loro turno non avevano
+     * piu' niente da dire. Si leggono tutte prima di scrivere. */
+    const next = raccogliRighe(body, people, index);
     next[index] = leggiRiga(riga, people[index]);
     const errore = riga.querySelector("[data-person-error]");
     /* Un'entita' che non sa dire dove sta una persona non fa una card: la
