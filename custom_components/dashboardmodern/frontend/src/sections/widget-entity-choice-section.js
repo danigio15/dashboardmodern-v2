@@ -72,25 +72,65 @@ export function entitiesOfRow(row) {
   return [...new Set(ids)];
 }
 
+/* Cosa c'e' scritto sopra, e cosa promette.
+ *
+ * Era muto: un'icona e basta, e nessuno capiva a cosa servisse. Poi diceva
+ * «In Home», che dice dove ma non cosa. Adesso dice quello che fa davvero —
+ * la tessera della Home mostra questa entita', o non la mostra — e lo dice al
+ * presente, cambiando parola quando cambia stato: si legge il risultato, non
+ * il comando. */
+function vestiInterruttore(button, dentro) {
+  const parola = dentro ? t("Nel widget", "In the widget") : t("Fuori", "Out");
+  const spiega = dentro
+    ? t(
+        "Questa entità è dentro la tessera della Home: tocca per toglierla.",
+        "This entity is inside the Home tile: tap to leave it out.",
+      )
+    : t(
+        "Questa entità non entra nella tessera della Home: tocca per rimetterla.",
+        "This entity stays out of the Home tile: tap to put it back.",
+      );
+  button.setAttribute("aria-label", spiega);
+  button.title = spiega;
+  const testo = button.querySelector("b");
+  if (testo && testo.textContent !== parola) testo.textContent = parola;
+}
+
 function interruttore(entities, dentro) {
-  const label = dentro
-    ? t("In Home: sì", "On Home: yes")
-    : t("In Home: no", "On Home: no");
   const button = doc.createElement("button");
   button.type = "button";
   button.className = "dm-widget-entity";
   button.setAttribute(CHOICE_ATTRIBUTE, entities.join(","));
   button.dataset.on = String(dentro);
-  button.setAttribute("aria-label", label);
-  button.title = t(
-    "Mostra questa entità nei widget della Home",
-    "Show this entity in the Home widgets",
-  );
-  /* L'interruttore era muto: un'icona e basta, e nessuno capiva a cosa
-   * servisse. Adesso lo dice — «In Home» — e lo stato si legge dal colore
-   * come in ogni altro interruttore della configurazione. */
-  button.innerHTML = `<span aria-hidden="true">🧩</span><b>${esc(t("In Home", "On Home"))}</b><i></i>`;
+  button.innerHTML = `<span aria-hidden="true">🧩</span><b></b><i></i>`;
+  vestiInterruttore(button, dentro);
   return button;
+}
+
+/* Le sezioni a caselle: EV, solare termico, MiniPC, piscina, antifurto.
+ *
+ * Le loro entita' non stanno su una riga con l'entity_id scritto sotto: stanno
+ * dentro una casella con l'etichetta a sinistra e l'entita' scelta a destra.
+ * L'interruttore le saltava tutte — e sono proprio le sezioni dove uno vuole
+ * dire «questa in Home si', questa no», perche' sono quelle con dieci sensori
+ * di cui in Home ne interessano due. */
+function entitiesOfSlot(slot) {
+  const value = clean(slot?.querySelector?.(".ed-slot-in[data-ref]")?.value);
+  return ENTITY_RE.test(value) ? [value] : [];
+}
+
+function attacca(contenitore, entities, fuori, dove) {
+  const dentro = entities.some((entity) => !fuori.has(entity));
+  let button = contenitore.querySelector(`:scope [${CHOICE_ATTRIBUTE}]`);
+  if (button) {
+    button.setAttribute(CHOICE_ATTRIBUTE, entities.join(","));
+    button.dataset.on = String(dentro);
+    vestiInterruttore(button, dentro);
+    return false;
+  }
+  button = interruttore(entities, dentro);
+  dove(button);
+  return true;
 }
 
 /** Mette l'interruttore su ogni riga che nomina un'entita'. */
@@ -99,6 +139,25 @@ export function ensureEntityChoices() {
   if (!body) return 0;
   const fuori = escluse();
   let messi = 0;
+  for (const slot of body.querySelectorAll(".ed-slot")) {
+    // Il modulo delle caselle salta le stesse che salta lui: il form dei
+    // carichi riusa la stessa classe per una cosa che casella non e'.
+    if (slot.closest("[data-load-form]")) continue;
+    const entities = entitiesOfSlot(slot);
+    if (!entities.length) {
+      slot.querySelector(`:scope [${CHOICE_ATTRIBUTE}]`)?.remove();
+      continue;
+    }
+    if (
+      attacca(slot, entities, fuori, (button) => {
+        button.classList.add("dm-widget-entity-slot");
+        const etichetta = slot.querySelector(".ed-slot-lbl");
+        if (etichetta) etichetta.append(button);
+        else slot.append(button);
+      })
+    )
+      messi += 1;
+  }
   for (const row of body.querySelectorAll(".ed-row")) {
     // Una persona in Home ha la sua card, non una tessera del ponte: un
     // interruttore che promette di toglierla dai widget prometterebbe una cosa
@@ -125,6 +184,7 @@ export function ensureEntityChoices() {
     }
     button.setAttribute(CHOICE_ATTRIBUTE, entities.join(","));
     button.dataset.on = String(dentro);
+    vestiInterruttore(button, dentro);
   }
   return messi;
 }
@@ -146,6 +206,7 @@ function onClick(event) {
     else fuori.delete(entity);
   }
   button.dataset.on = String(!dentro);
+  vestiInterruttore(button, !dentro);
   salvaEscluse(fuori);
   root.edToast?.(
     dentro
@@ -168,6 +229,11 @@ function installStyles() {
       #ed-body .dm-widget-entity b{
         font-size:10px;font-weight:900;letter-spacing:.4px;text-transform:uppercase;
         color:var(--text-dim,#64748b)}
+      /* Dentro una casella l'etichetta e' gia' a sinistra e l'entita' a
+         destra: l'interruttore si mette sotto l'etichetta, in fila con lei,
+         invece di galleggiare in un angolo che li' non esiste. */
+      #ed-body .ed-slot .dm-widget-entity-slot{
+        float:none;display:inline-flex;margin:5px 0 0;align-self:flex-start}
       #ed-body .dm-widget-entity[data-on="true"] b{color:#059669}
       #ed-body .dm-widget-entity i{
         width:26px;height:15px;border-radius:999px;position:relative;

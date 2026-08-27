@@ -916,11 +916,7 @@ function tileMarkup(widget, index = 0) {
         </span>
       </span>
       <span class="dm-tile-go" aria-hidden="true">›</span>
-      ${
-        quota == null
-          ? ""
-          : `<span class="dm-tile-bar" aria-hidden="true"><i style="--dm-quota:${quota}%"></i></span>`
-      }
+      <span class="dm-tile-bar" aria-hidden="true"${quota == null ? " hidden" : ""}><i style="--dm-quota:${quota == null ? 0 : quota}%"></i></span>
       <span class="dm-tile-shine" aria-hidden="true"></span>
     </button>`;
 }
@@ -1270,11 +1266,18 @@ function ensureHost() {
  * l'apertura anima; cambiano i valori → si scrivono al loro posto, e il corpo
  * del dettaglio si riscrive da dentro senza rifare la card — o l'ingresso
  * ripartirebbe a ogni evento di stato. */
+/* La struttura e' QUALI tessere ci sono, e quale e' aperta. Nient'altro.
+ *
+ * Ci stava dentro anche il fatto che una tessera avesse o no la barra, e la
+ * barra dipende da un valore: un sensore che per un giro dice «non
+ * disponibile» faceva sparire la barra, cambiare la firma, e riscrivere in
+ * blocco tutte le tessere della Home. Da fuori si vede un tremolio, e
+ * capitava a ogni evento di stato che passasse di li'.
+ *
+ * La barra adesso sta sempre nel markup e si accende e si spegne da sola,
+ * come i valori: cambia quello che c'e' scritto, non quello che c'e'. */
 function structureSignature(models) {
-  return [
-    state.expanded,
-    models.map((widget) => `${widget.key}:${widget.ring == null ? "flat" : "ring"}`).join("|"),
-  ].join("§");
+  return [state.expanded, models.map((widget) => widget.key).join("|")].join("§");
 }
 
 export function renderHomeWidgets() {
@@ -1290,15 +1293,39 @@ export function renderHomeWidgets() {
   const mounted = host || ensureHost();
   if (!mounted) return false;
   const title = mounted.querySelector(".dm-widgets-title");
-  if (title) title.textContent = t("La casa adesso", "Your home now");
+  if (title) title.textContent = t("Colpo d'occhio", "At a glance");
+  /* La riga sotto il titolo diceva come si usa una tessera. Lo si capisce da
+   * solo la prima volta, e da li' in poi e' una riga sprecata in cima alla
+   * Home: adesso dice quante sezioni ci sono e quante chiedono attenzione,
+   * che e' la sola cosa che si vuole sapere senza aprire niente. */
   const sub = mounted.querySelector(".dm-widgets-sub");
-  if (sub) sub.textContent = t("Tocca una tessera per aprirla", "Tap a tile to open it");
+  if (sub) {
+    const quante = models.length;
+    const avvisi = models.filter((widget) => widget.alert).length;
+    const sezioni = quante === 1 ? t("1 sezione", "1 section") : t(`${quante} sezioni`, `${quante} sections`);
+    const attenzione = avvisi
+      ? avvisi === 1
+        ? t("1 chiede attenzione", "1 needs attention")
+        : t(`${avvisi} chiedono attenzione`, `${avvisi} need attention`)
+      : t("tutto tranquillo", "all quiet");
+    const testo = `${sezioni} · ${attenzione}`;
+    if (sub.textContent !== testo) sub.textContent = testo;
+    const stato = avvisi ? "avviso" : "quiete";
+    if (mounted.dataset.dmMood !== stato) mounted.dataset.dmMood = stato;
+  }
 
   if (state.expanded && !models.some((widget) => widget.key === state.expanded)) state.expanded = "";
   const grid = mounted.querySelector(".dm-widgets-grid");
   if (!grid) return false;
 
   const signature = structureSignature(models);
+  /* Si misura il testo solo se qualcosa e' cambiato davvero.
+   *
+   * `scorriDidascalie` legge `scrollWidth`, e leggerlo obbliga il browser a
+   * rifare i conti dell'impaginazione: farlo a ogni evento di stato — che in
+   * una casa vera vuol dire piu' volte al secondo — e' esattamente la Home che
+   * «si riaggiorna» sotto le dita. */
+  let cambiato = false;
   if (state.signature !== signature || !grid.firstElementChild) {
     state.signature = signature;
     /* Prima si disegna, poi si segna.
@@ -1313,6 +1340,7 @@ export function renderHomeWidgets() {
      * prima, e solo dopo si prende nota di chi c'e' adesso. */
     grid.innerHTML = models.map((widget, index) => tileMarkup(widget, index)).join("");
     for (const widget of models) viste().add(widget.key);
+    cambiato = true;
   } else {
     // Solo i valori: la tessera resta dov'e', l'apertura non riparte.
     for (const widget of models) {
@@ -1320,12 +1348,27 @@ export function renderHomeWidgets() {
       if (!tile) continue;
       tile.style.setProperty("--dm-widget-accent", widget.accent);
       const value = tile.querySelector("[data-dm-tile-value]");
-      if (value && value.textContent !== widget.value) value.textContent = widget.value;
+      if (value && value.textContent !== widget.value) {
+        value.textContent = widget.value;
+        cambiato = true;
+      }
       const caption = tile.querySelector("[data-dm-tile-caption]");
-      if (caption && caption.textContent !== widget.caption) caption.textContent = widget.caption;
-      const barra = tile.querySelector(".dm-tile-bar i");
-      if (barra && widget.ring != null)
-        barra.style.setProperty("--dm-quota", `${Math.max(0, Math.min(100, widget.ring))}%`);
+      if (caption && caption.textContent !== widget.caption) {
+        caption.textContent = widget.caption;
+        cambiato = true;
+      }
+      /* L'avviso non fa piu' parte della struttura: si accende qui, come tutto
+       * il resto che cambia da un momento all'altro. */
+      const avviso = String(Boolean(widget.alert));
+      if (tile.dataset.alert !== avviso) tile.dataset.alert = avviso;
+      const cornice = tile.querySelector(".dm-tile-bar");
+      const barra = cornice?.querySelector("i");
+      if (cornice) {
+        const senza = widget.ring == null;
+        if (cornice.hidden !== senza) cornice.hidden = senza;
+        if (barra && !senza)
+          barra.style.setProperty("--dm-quota", `${Math.max(0, Math.min(100, widget.ring))}%`);
+      }
       if (state.expanded === widget.key) {
         const captionDetail = doc.querySelector("#dm-widget-popup [data-dm-detail-caption]");
         if (captionDetail && captionDetail.textContent !== widget.caption)
@@ -1346,7 +1389,7 @@ export function renderHomeWidgets() {
     }
   }
 
-  scorriDidascalie(grid);
+  if (cambiato) scorriDidascalie(grid);
   sincronizzaPopup(models, states);
 
   for (const list of configuredTodoLists()) fetchItems(list.entity);
@@ -1699,29 +1742,57 @@ html.dm-widget-popup-open{overflow:hidden}
 }
 /* ── «In primo piano»: il ponte dei widget della Home ─────────────────── */
 #dm-widgets{display:block;margin:16px 0 6px}
-:is(#dm-widgets,#dm-widget-popup) .dm-widgets-head{display:flex;align-items:center;gap:12px;padding:0 4px 12px}
+/* L'intestazione e' una fascia come quelle delle altre pagine, non una riga
+   qualsiasi: stessa famiglia di caratteri, stessa aria, e una sottile linea
+   di colore che si accende quando qualcosa chiede attenzione. */
+:is(#dm-widgets,#dm-widget-popup) .dm-widgets-head{
+  position:relative;display:flex;align-items:center;gap:13px;
+  padding:14px 16px;margin-bottom:12px;border-radius:20px;
+  background:linear-gradient(120deg,
+    color-mix(in srgb,var(--primary-color,#0ea5e9) 7%,var(--card-bg,#fff)),
+    var(--card-bg,#fff) 62%);
+  border:1px solid var(--card-border,#e8edf3);
+  box-shadow:0 4px 16px rgba(15,23,42,.05)}
+:is(#dm-widgets,#dm-widget-popup) .dm-widgets-head::after{
+  content:'';position:absolute;left:16px;right:16px;bottom:0;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,var(--primary-color,#0ea5e9),transparent 72%);opacity:.5}
+#dm-widgets[data-dm-mood="avviso"] .dm-widgets-head::after{
+  background:linear-gradient(90deg,#f59e0b,transparent 72%);opacity:.85}
 :is(#dm-widgets,#dm-widget-popup) .dm-widgets-ic{
-  width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;font-size:21px;
-  border-radius:14px;background:linear-gradient(140deg,#dbeafe,#ede9fe 55%,#dcfce7);
-  box-shadow:inset 0 0 0 1px rgba(59,130,246,.14)}
+  width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center;font-size:22px;
+  border-radius:15px;background:linear-gradient(140deg,#dbeafe,#ede9fe 55%,#dcfce7);
+  box-shadow:inset 0 0 0 1px rgba(59,130,246,.16),0 6px 14px rgba(59,130,246,.12)}
 :is(#dm-widgets,#dm-widget-popup) .dm-widgets-copy{min-width:0;flex:1}
 :is(#dm-widgets,#dm-widget-popup) .dm-widgets-title{
   margin:0;font-family:'Oswald',sans-serif;font-weight:700;
-  font-size:clamp(17px,2.2vw,22px);line-height:1.05;letter-spacing:1.8px;
+  font-size:clamp(19px,2.6vw,26px);line-height:1.02;letter-spacing:2px;
   text-transform:uppercase;color:var(--text,#0f172a)}
-:is(#dm-widgets,#dm-widget-popup) .dm-widgets-sub{margin:2px 0 0;font-size:12px;font-weight:600;color:var(--text-dim,#64748b)}
+:is(#dm-widgets,#dm-widget-popup) .dm-widgets-sub{
+  margin:3px 0 0;font-size:12px;font-weight:700;letter-spacing:.2px;color:var(--text-dim,#64748b)}
+#dm-widgets[data-dm-mood="avviso"] .dm-widgets-sub{color:#b45309}
 
 /* Le tessere: piccole, quiete, con l'anello che racconta e la freccia che
    promette. L'accento vive nei dettagli — l'anello, il fianco, il bagliore
    all'apertura — mai su tutta la tessera. */
-:is(#dm-widgets,#dm-widget-popup) .dm-widgets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:10px}
+:is(#dm-widgets,#dm-widget-popup) .dm-widgets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:11px}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile{
-  position:relative;overflow:hidden;display:flex;align-items:center;gap:11px;
-  min-height:78px;padding:12px 13px 16px;
-  border:1px solid var(--card-border,#e8edf3);border-radius:19px;
-  background:var(--card-bg,#fff);color:var(--text,#0f172a);font:inherit;text-align:left;cursor:pointer;
-  box-shadow:0 4px 14px rgba(15,23,42,.06);
+  position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;
+  min-height:84px;padding:13px 14px 18px;
+  border:1px solid var(--card-border,#e8edf3);border-radius:21px;
+  /* Un velo del colore della sezione, non una tessera colorata: si riconosce
+     di che cosa parla anche prima di leggerla, e resta una card chiara. */
+  background:
+    radial-gradient(120% 90% at 100% 0%,
+      color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 11%,transparent),
+      transparent 62%),
+    var(--card-bg,#fff);
+  color:var(--text,#0f172a);font:inherit;text-align:left;cursor:pointer;
+  box-shadow:0 4px 14px rgba(15,23,42,.06),inset 0 1px 0 rgba(255,255,255,.6);
   transition:transform .26s cubic-bezier(.16,1,.3,1),box-shadow .26s ease,border-color .26s ease}
+/* Il fianco della sezione: un filo di colore, non un bordo intero. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile::before{
+  content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;
+  background:var(--dm-widget-accent,#0ea5e9);opacity:.55}
 /* L'ingresso e' per chi entra adesso: una tessera gia' vista non rianima. */
 :is(#dm-widgets,#dm-widget-popup) .dm-tile:not([data-dm-seen]){
   animation:dmTileIn .4s cubic-bezier(.16,1,.3,1) both;
@@ -1733,7 +1804,7 @@ html.dm-widget-popup-open{overflow:hidden}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile:active{transform:none}
 /* La pastiglia del simbolo: e' l'unico punto di colore pieno. */
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-chip{
-  flex:0 0 36px;width:36px;height:36px;display:grid;place-items:center;border-radius:12px;font-size:17px;
+  flex:0 0 40px;width:40px;height:40px;display:grid;place-items:center;border-radius:14px;font-size:19px;
   background:linear-gradient(150deg,
     color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 20%,#fff),
     color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 11%,#fff));
@@ -1741,7 +1812,7 @@ html.dm-widget-popup-open{overflow:hidden}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-copy{
   flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-value{
-  font-size:22px;font-weight:900;line-height:1.05;letter-spacing:-.4px;
+  font-size:23px;font-weight:900;line-height:1.05;letter-spacing:-.4px;font-variant-numeric:tabular-nums;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-under{
   display:flex;align-items:baseline;gap:6px;min-width:0}
@@ -1787,6 +1858,11 @@ html.dm-widget-popup-open{overflow:hidden}
   background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);
   transform:skewX(-14deg);transition:left .55s cubic-bezier(.16,1,.3,1)}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile:hover .dm-tile-shine{left:120%}
+/* Una tessera che chiede attenzione si riconosce senza leggerla: il fianco e
+   il bordo si scaldano, e la pastiglia pulsa. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"]{
+  border-color:color-mix(in srgb,#f59e0b 42%,var(--card-border,#e8edf3))}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"]::before{background:#f59e0b;opacity:.9}
 /* Un avviso non sta fermo: la pastiglia pulsa, come faceva l'anello prima. */
 :is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-chip{
   position:relative;
