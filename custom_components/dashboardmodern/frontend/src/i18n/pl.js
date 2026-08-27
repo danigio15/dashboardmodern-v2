@@ -810,6 +810,7 @@ export default Object.freeze({
   "Grid exchange power (W)": "Moc wymiany z siecią (W)",
   "Grid export": "Oddanie do sieci",
   "Grid import": "Pobór z sieci",
+  "Grid or list view": "Widok siatki lub listy",
   "Grid view": "Widok siatki",
   "Grill": "Grill",
   "Groceries": "Zakupy",

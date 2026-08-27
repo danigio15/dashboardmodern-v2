@@ -9,6 +9,25 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Corretto
 
+- **Le parole del meteo in testata tornavano nella lingua del guscio.** La
+  fascia nuova avvolge «💧 Umidità» e «💨 Vento» in un guscio per poterle
+  nascondere sul telefono, e le tagliava prima che la traduzione le vedesse: la
+  chiave del catalogo e' la frase intera, icona compresa, e due pezzi separati
+  non sono chiave di niente. Un francese leggeva «Vento» — lingua sbagliata due
+  volte, perche' anche la build inglese la scrive cosi'. Ora si traduce prima e
+  si taglia dopo, e la parola si rifa' da sola quando il catalogo arriva.
+
+- **La procedura guidata chiedeva il token in inglese.** Il campo e' una
+  `textarea`, e il passaggio di traduzione le saltava per intero — giustamente
+  per quello che ci si scrive dentro, che e' roba di chi la usa, ma insieme al
+  contenuto saltava anche il segnaposto, che invece e' testo nostro. La
+  traduzione c'era in tutti e tredici i cataloghi e non arrivava a schermo.
+
+- **Il gruppo dei tasti griglia/elenco aveva per nome due voci incollate.**
+  «Vista griglia / Vista elenco» non e' una stringa che qualcuno abbia scritto,
+  quindi nessun catalogo la conosceva e chi si fa leggere la pagina la sentiva
+  in inglese. Ne ha una sua.
+
 - **La procedura di primo avvio, gli editor e i loro messaggi erano in inglese
   in tutte le lingue.** Quattrocento stringhe visibili — la connessione a Home
   Assistant, la scelta delle luci, gli editor di elettrodomestici, avvisi e

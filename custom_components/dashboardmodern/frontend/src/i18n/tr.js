@@ -810,6 +810,7 @@ export default Object.freeze({
   "Grid exchange power (W)": "Şebekeyle alışveriş gücü (W)",
   "Grid export": "Şebekeye verilen",
   "Grid import": "Şebekeden çekiş",
+  "Grid or list view": "Izgara ya da liste görünümü",
   "Grid view": "Izgara görünümü",
   "Grill": "Izgara",
   "Groceries": "Alışveriş",

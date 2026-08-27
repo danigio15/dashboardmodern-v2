@@ -66,6 +66,10 @@ const copy = () => ({
   ),
   gridView: t("Vista griglia", "Grid view"),
   listView: t("Vista elenco", "List view"),
+  /* Il gruppo aveva per nome le due voci incollate — «Vista griglia / Vista
+   * elenco» — che e' una stringa che nessun catalogo ha e che quindi restava
+   * nella lingua del guscio. Ne ha una sua. */
+  viewToggle: t("Vista griglia o elenco", "Grid or list view"),
   overview: t("Panoramica", "Overview"),
   rooms: t("Stanze", "Rooms"),
   allRooms: t("Tutte le stanze", "All rooms"),
@@ -485,7 +489,7 @@ function skeletonMarkup(labels) {
         </div>
       </div>
       <div class="dm-appl-head-actions">
-        <div class="dm-appl-viewtoggle" role="group" aria-label="${esc(labels.gridView)} / ${esc(labels.listView)}">
+        <div class="dm-appl-viewtoggle" role="group" aria-label="${esc(labels.viewToggle)}">
           <button type="button" data-dm-view="grid" class="${state.ui.view === "grid" ? "active" : ""}" aria-label="${esc(labels.gridView)}">${ICONS.grid}</button>
           <button type="button" data-dm-view="list" class="${state.ui.view === "list" ? "active" : ""}" aria-label="${esc(labels.listView)}">${ICONS.list}</button>
         </div>

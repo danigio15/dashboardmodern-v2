@@ -814,6 +814,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Grid exchange power (W)",
   "Grid export",
   "Grid import",
+  "Grid or list view",
   "Grid view",
   "Grill",
   "Groceries",

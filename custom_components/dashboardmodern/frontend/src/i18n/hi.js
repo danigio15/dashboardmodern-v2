@@ -810,6 +810,7 @@ export default Object.freeze({
   "Grid exchange power (W)": "ग्रिड के साथ आदान-प्रदान की पावर (W)",
   "Grid export": "ग्रिड को दिया गया",
   "Grid import": "ग्रिड से लिया गया",
+  "Grid or list view": "ग्रिड या सूची दृश्य",
   "Grid view": "ग्रिड दृश्य",
   "Grill": "ग्रिल",
   "Groceries": "किराना",

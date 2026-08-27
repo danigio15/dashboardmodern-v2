@@ -1783,6 +1783,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Visibile nella dashboard": "Visible on dashboard",
   "Vista elenco": "List view",
   "Vista griglia": "Grid view",
+  "Vista griglia o elenco": "Grid or list view",
   "Voce Report aggiunta": "Report entry added",
   "Voce Report rimossa": "Report entry removed",
   "voci": "entries",

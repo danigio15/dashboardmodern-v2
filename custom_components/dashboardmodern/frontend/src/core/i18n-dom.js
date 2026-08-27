@@ -16,7 +16,15 @@
 import { DEFAULT_LOCALE, SOURCE_LOCALE, getLocale, onLocaleChange, translate } from "./i18n.js";
 import { pivotKey } from "../i18n/source-index.js";
 
-/** Nodes whose text is markup, code or user input rather than UI copy. */
+/*
+ * Nodes whose *text* is markup, code or user input rather than UI copy.
+ *
+ * Their attributes are a different matter. A `<textarea>` holds what a person
+ * typed and must never be rewritten — but its `placeholder` is copy like any
+ * other, and skipping the element wholesale left the setup wizard telling a
+ * French user to "Paste your token here" with the translation sitting unused
+ * in the catalog. So these reject their contents and keep their labels.
+ */
 const SKIPPED_TAGS = new Set([
   "SCRIPT",
   "STYLE",
@@ -104,11 +112,16 @@ function resolveWhole(source, locale) {
   return key ? translate(key, locale) : source;
 }
 
+const optedOut = (node) =>
+  node.hasAttribute?.(OPT_OUT_ATTRIBUTE) || node.getAttribute?.("translate") === "no";
+
+const carriesLabel = (element) =>
+  TRANSLATABLE_ATTRIBUTES.some((name) => element.hasAttribute?.(name));
+
 function skipped(element) {
   for (let node = element; node; node = node.parentElement) {
     if (SKIPPED_TAGS.has(node.tagName)) return true;
-    if (node.hasAttribute?.(OPT_OUT_ATTRIBUTE)) return true;
-    if (node.getAttribute?.("translate") === "no") return true;
+    if (optedOut(node)) return true;
   }
   return false;
 }
@@ -175,18 +188,19 @@ export function translateTree(rootNode, locale = getLocale()) {
     {
       acceptNode(node) {
         if (node.nodeType === 1) {
-          if (
-            SKIPPED_TAGS.has(node.tagName) ||
-            node.hasAttribute?.(OPT_OUT_ATTRIBUTE) ||
-            node.getAttribute?.("translate") === "no"
-          ) {
-            return view.NodeFilter.FILTER_REJECT;
-          }
+          if (optedOut(node)) return view.NodeFilter.FILTER_REJECT;
+          /* Its text is not copy, but its label is: come in for the attributes
+           * and let the text-node branch below turn back at the door. */
+          if (SKIPPED_TAGS.has(node.tagName))
+            return carriesLabel(node)
+              ? view.NodeFilter.FILTER_ACCEPT
+              : view.NodeFilter.FILTER_REJECT;
           return view.NodeFilter.FILTER_ACCEPT;
         }
-        return node.nodeValue && node.nodeValue.trim()
-          ? view.NodeFilter.FILTER_ACCEPT
-          : view.NodeFilter.FILTER_REJECT;
+        if (!node.nodeValue || !node.nodeValue.trim()) return view.NodeFilter.FILTER_REJECT;
+        return skipped(node.parentElement)
+          ? view.NodeFilter.FILTER_REJECT
+          : view.NodeFilter.FILTER_ACCEPT;
       },
     },
   );

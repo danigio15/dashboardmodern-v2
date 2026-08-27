@@ -810,6 +810,7 @@ export default Object.freeze({
   "Grid exchange power (W)": "Vermogen van de netuitwisseling (W)",
   "Grid export": "Teruglevering",
   "Grid import": "Netafname",
+  "Grid or list view": "Raster- of lijstweergave",
   "Grid view": "Rasterweergave",
   "Grill": "Grill",
   "Groceries": "Boodschappen",

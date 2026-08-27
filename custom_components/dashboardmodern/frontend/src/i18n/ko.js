@@ -810,6 +810,7 @@ export default Object.freeze({
   "Grid exchange power (W)": "계통 주고받는 전력 (W)",
   "Grid export": "계통 송전",
   "Grid import": "계통 수전",
+  "Grid or list view": "격자 보기 또는 목록 보기",
   "Grid view": "격자 보기",
   "Grill": "그릴",
   "Groceries": "장보기",

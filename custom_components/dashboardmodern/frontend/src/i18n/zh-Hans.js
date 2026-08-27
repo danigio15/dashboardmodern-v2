@@ -810,6 +810,7 @@ export default Object.freeze({
   "Grid exchange power (W)": "与电网交换功率（W）",
   "Grid export": "电网上网",
   "Grid import": "电网购电",
+  "Grid or list view": "网格视图或列表视图",
   "Grid view": "网格视图",
   "Grill": "烤架",
   "Groceries": "购物清单",

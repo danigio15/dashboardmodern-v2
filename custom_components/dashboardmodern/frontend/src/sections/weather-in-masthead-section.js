@@ -12,6 +12,8 @@
  * il clic apre lo stesso popup di prima. Qui cambiano solo il posto e la
  * taglia.
  */
+import { onLocaleChange } from "../core/i18n.js";
+import { translateSource } from "../core/i18n-dom.js";
 import { doc, installStyle, root } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_WEATHER_MASTHEAD__";
@@ -136,16 +138,46 @@ function testata() {
 /* «💧 Umidita' 38%» e' un'icona, una parola e un numero, ma la parola nel
  * documento e' un nodo di testo nudo: il CSS su quello non puo' niente. Qui la
  * si avvolge, una volta sola, cosi' sul telefono si puo' togliere di mezzo
- * lasciando l'icona e il numero — che e' tutto quello che serve leggere. */
+ * lasciando l'icona e il numero — che e' tutto quello che serve leggere.
+ *
+ * Si traduce prima e si taglia dopo, e l'ordine non e' un dettaglio: la chiave
+ * del catalogo e' «💧 Umidita'» intera, icona compresa. Tagliando per primi si
+ * ottengono due pezzi che non sono chiavi di niente — un'emoji da una parte e
+ * una parola dall'altra — e tre stringhe che si traducevano da sempre tornano
+ * nella lingua del guscio: in francese si leggeva «Vento», che e' pure la
+ * lingua sbagliata due volte, perche' anche la build inglese la scrive cosi'.
+ *
+ * L'originale si tiene da parte sulla misura. Il catalogo di una lingua si
+ * scarica quando serve, quindi la prima passata puo' arrivare prima di lui e
+ * scrivere l'inglese: con il testo di partenza ancora a portata di mano si
+ * rifa' la parola quando la lingua e' pronta, invece di restare com'era. */
+const SORGENTE = "data-dm-meteo-src";
+
 function avvolgiLeParole(meteo) {
   for (const misura of meteo.querySelectorAll(".w-detail")) {
-    if (misura.querySelector(".dm-meteo-parola")) continue;
+    const gia = misura.querySelector(".dm-meteo-parola");
+    if (gia && misura.hasAttribute(SORGENTE)) {
+      const parti = translateSource(misura.getAttribute(SORGENTE)).match(
+        /^([^\p{L}]*)(\p{L}[\s\S]*?)(\s*)$/u,
+      );
+      if (parti) {
+        if (gia.previousSibling?.nodeType === 3) gia.previousSibling.textContent = parti[1];
+        gia.textContent = parti[2];
+      }
+      continue;
+    }
+    if (gia) continue;
     for (const pezzo of [...misura.childNodes]) {
       if (pezzo.nodeType !== 3) continue;
+      const intero = pezzo.textContent;
+      if (!/\p{L}/u.test(intero)) continue;
+      misura.setAttribute(SORGENTE, intero.trim());
+      const coda = /\s*$/.exec(intero)[0];
+      const tradotto = `${translateSource(intero.trim())}${coda}`;
       /* Il pezzo e' «💧 Umidita' »: l'icona davanti resta com'e' — e' lei che
        * dice di che misura si tratta quando la parola non c'e' piu' — e si
        * avvolge soltanto la parola. */
-      const parti = pezzo.textContent.match(/^([^\p{L}]*)(\p{L}[\s\S]*?)(\s*)$/u);
+      const parti = tradotto.match(/^([^\p{L}]*)(\p{L}[\s\S]*?)(\s*)$/u);
       if (!parti) continue;
       const gruppo = doc.createDocumentFragment();
       if (parti[1]) gruppo.append(parti[1]);
@@ -187,6 +219,12 @@ export function installWeatherInMasthead() {
     state.observer = new root.MutationObserver(() => sposta());
     state.observer.observe(page, { childList: true });
   }
+  /* La lingua puo' arrivare dopo: il catalogo si scarica, e quando e' pronto
+   * le parole del meteo vanno rifatte dal loro originale. */
+  state.stopLocale = onLocaleChange(() => {
+    const meteo = doc?.querySelector?.(".weather-widget");
+    if (meteo) avvolgiLeParole(meteo);
+  });
   state.installed = true;
   return true;
 }
