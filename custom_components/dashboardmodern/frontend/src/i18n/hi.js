@@ -1568,4 +1568,8 @@ export default Object.freeze({
   "Remove from the list": "सूची से हटाएँ",
   "Remove from the list: ${item.summary}": "सूची से हटाएँ: ${item.summary}",
   "Open, with the PIN": "पिन के साथ खोलें",
+  "Second temperature (optional)": "दूसरा तापमान (वैकल्पिक)",
+  "Temperature 1": "तापमान 1",
+  "Temperature 2": "तापमान 2",
+  "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "फ्रीज़र वाला फ्रिज दो हिस्से हैं: दूसरा यहाँ डालें। दोनों भरे हों तो कार्ड दो पट्टियाँ बनाता है।",
 });

@@ -1582,4 +1582,8 @@ export default Object.freeze({
   "Remove from the list": "Uit de lijst verwijderen",
   "Remove from the list: ${item.summary}": "Uit de lijst verwijderen: ${item.summary}",
   "Open, with the PIN": "Openen, met de pincode",
+  "Second temperature (optional)": "Tweede temperatuur (optioneel)",
+  "Temperature 1": "Temperatuur 1",
+  "Temperature 2": "Temperatuur 2",
+  "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "Een koelkast met vriesvak is twee compartimenten: het tweede komt hier. Zijn beide vakjes gevuld, dan tekent de kaart twee balken.",
 });

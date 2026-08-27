@@ -166,9 +166,17 @@ test("scegliere la barra a scomparsa non sbianca la plancia", async ({ page }, t
   test.setTimeout(testInfo.project.name === "webkit-ipad" ? 120_000 : 75_000);
   await bootHostedPlancia(page);
 
+  /* La soglia dice «la pagina c'e' ed e' disegnata», non «e' alta cosi'».
+   *
+   * Era duecento pixel, e li teneva perche' in cima alla Home c'era la card
+   * del meteo: da sola ne faceva centocinquanta. Il meteo e' passato
+   * nell'intestazione, e la Home di una plancia appena accesa — che e' quella
+   * che questa prova costruisce, senza niente configurato — e' legittimamente
+   * piu' corta. Il bianco che questa prova cerca non lascia centoventi pixel
+   * di pagina: ne lascia zero. */
   const prima = await planciaDipinta(page);
   expect(prima.pagineVisibili).toBeGreaterThan(0);
-  expect(prima.altezzaPaginaAttiva).toBeGreaterThan(200);
+  expect(prima.altezzaPaginaAttiva).toBeGreaterThan(120);
 
   await page
     .frameLocator("iframe")
@@ -179,7 +187,7 @@ test("scegliere la barra a scomparsa non sbianca la plancia", async ({ page }, t
 
   await expect.poll(() => planciaDipinta(page).then((v) => v.pagineVisibili)).toBeGreaterThan(0);
   const dopo = await planciaDipinta(page);
-  expect(dopo.altezzaPaginaAttiva).toBeGreaterThan(200);
+  expect(dopo.altezzaPaginaAttiva).toBeGreaterThan(120);
   expect(dopo.corpoVisibile).not.toBe("hidden");
   expect(dopo.altezzaCorpo).toBeGreaterThan(100);
 });

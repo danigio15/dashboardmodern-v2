@@ -1582,4 +1582,8 @@ export default Object.freeze({
   "Remove from the list": "Remover da lista",
   "Remove from the list: ${item.summary}": "Remover da lista: ${item.summary}",
   "Open, with the PIN": "Abrir, com o PIN",
+  "Second temperature (optional)": "Segunda temperatura (opcional)",
+  "Temperature 1": "Temperatura 1",
+  "Temperature 2": "Temperatura 2",
+  "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "Um frigorífico com congelador são dois compartimentos: o segundo vai aqui. Com as duas caixas preenchidas o cartão desenha duas barras.",
 });

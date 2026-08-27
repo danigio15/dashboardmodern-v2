@@ -61,6 +61,7 @@ import { installRobotSection } from "./robot-section.js";
 import { installEnergyPlantsSection } from "./energy-plants-section.js";
 import { installRoomAssignSection } from "./room-assign-section.js";
 import { installRoomsPageSection } from "./rooms-page-section.js";
+import { installRoomsOrderEditor } from "./rooms-order-editor-section.js";
 import { installRobotEditorSection } from "./robot-editor-section.js";
 import { installEditorEntrySection } from "./editor-entry-section.js";
 import { installEvSection } from "./ev-section.js";
@@ -738,6 +739,9 @@ export function installSectionRuntime() {
     /* Le Stanze leggono le assegnazioni di tutte le altre sezioni e
      * riusano la card della pagina Luci: si installano dopo di lei. */
     installRoomsPageSection();
+    /* L'ordine delle stanze si cambia in configurazione: le frecce si
+     * appoggiano alle righe che disegna il documento vendorizzato. */
+    installRoomsOrderEditor();
     /* L'assegnatore va dopo la pagina Stanze: le chiede quali entita' una
      * stanza ce l'hanno gia' per mestiere, e su quelle non mette niente. */
     installRoomAssignSection();

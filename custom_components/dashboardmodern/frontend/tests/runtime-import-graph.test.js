@@ -364,7 +364,16 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // gia', lo mette da un'altra parte e lo rimpicciolisce. Sta da solo perche'
   // il posto e la taglia sono una scelta che si cambia in un punto, e perche'
   // chi disegna le tessere della Home non deve sapere dove sta il meteo.
-  assert.ok(relative.length <= 161, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 162 con l'ordine delle stanze: `rooms-order-editor-section.js` attacca due
+  // frecce a ogni riga della scheda Stanze. L'elenco delle stanze e' l'ordine
+  // in cui sono state aggiunte, e quello stesso ordine si ritrova in ogni
+  // tendina che chiede «in che stanza sta questa cosa» e nelle linguette della
+  // pagina Stanze: chi ha aggiunto il bagnetto per ultimo se lo ritrovava per
+  // ultimo dappertutto, e l'unico modo di spostarlo era cancellarlo e
+  // riscriverlo, perdendo tutto quello che gli era stato attribuito. La scheda
+  // la disegna il documento vendorizzato e non si tocca: sta da solo perche' e'
+  // un pezzo appoggiato a una scheda di cui non e' il padrone.
+  assert.ok(relative.length <= 162, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

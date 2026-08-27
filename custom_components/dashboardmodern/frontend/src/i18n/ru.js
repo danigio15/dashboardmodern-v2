@@ -1576,4 +1576,8 @@ export default Object.freeze({
   "Remove from the list": "Убрать из списка",
   "Remove from the list: ${item.summary}": "Убрать из списка: ${item.summary}",
   "Open, with the PIN": "Открыть, по PIN-коду",
+  "Second temperature (optional)": "Вторая температура (необязательно)",
+  "Temperature 1": "Температура 1",
+  "Temperature 2": "Температура 2",
+  "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "Холодильник с морозильной камерой — это два отделения: второе указывается здесь. Когда заполнены оба поля, карточка рисует две полосы.",
 });

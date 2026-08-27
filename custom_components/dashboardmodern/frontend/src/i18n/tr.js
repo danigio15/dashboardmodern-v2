@@ -1571,4 +1571,8 @@ export default Object.freeze({
   "Remove from the list": "Listeden kaldır",
   "Remove from the list: ${item.summary}": "Listeden kaldır: ${item.summary}",
   "Open, with the PIN": "PIN ile aç",
+  "Second temperature (optional)": "İkinci sıcaklık (isteğe bağlı)",
+  "Temperature 1": "Sıcaklık 1",
+  "Temperature 2": "Sıcaklık 2",
+  "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "Dondurucusu olan bir buzdolabı iki bölmedir: ikincisi buraya. Her iki kutu doluyken kart iki çubuk çizer.",
 });

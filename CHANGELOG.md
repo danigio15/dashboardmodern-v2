@@ -184,6 +184,25 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   sottotitolo adesso sono incolonnati: affiancati, il sottotitolo di una
   sezione con sei voci finiva sempre coi puntini.
 
+- **Le stanze si ordinano.** L'elenco della scheda Stanze era l'ordine in cui
+  erano state aggiunte, e quello stesso ordine si ritrovava in ogni tendina che
+  chiede «in che stanza sta questa cosa» — elettrodomestici, clima, telecamere
+  — e nelle linguette della pagina Stanze. Chi aveva aggiunto il bagnetto per
+  ultimo se lo ritrovava per ultimo dappertutto, e l'unico modo di spostarlo
+  era cancellarlo e riscriverlo, perdendo tutto quello che gli era stato
+  attribuito. Adesso ogni riga ha le sue due frecce.
+
+- **Elettrodomestici: la temperatura si sceglie, e possono essere due.** Un
+  frigorifero smart ne pubblica cinque — ambiente, obiettivo e attuale del
+  frigo, obiettivo e attuale del congelatore — e la plancia prendeva la prima
+  che trovava: «ambiente», cioè la stanza intorno, il numero che di
+  quell'apparecchio non dice niente. Adesso i nomi che parlano della stanza o
+  di un obiettivo si mettono da parte, e se restano ancora più candidati non si
+  sceglie: una casella vuota si nota, un numero sbagliato no. In configurazione
+  la casella c'era già; accanto ne è comparsa una seconda, perché un
+  frigorifero col congelatore sono due vani e con due caselle piene la card
+  disegna due barre.
+
 - **Nel widget «Da fare» si aggiunge e si toglie.** La lista si poteva solo
   spuntare: per segnare la spesa dimenticata, o per togliere una riga finita lì
   per sbaglio, bisognava uscire dalla plancia e aprire Home Assistant. Adesso

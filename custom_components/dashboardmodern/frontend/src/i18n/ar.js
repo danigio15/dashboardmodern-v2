@@ -1564,4 +1564,8 @@ export default Object.freeze({
   "Remove from the list": "إزالة من القائمة",
   "Remove from the list: ${item.summary}": "إزالة من القائمة: ${item.summary}",
   "Open, with the PIN": "افتح، بالرمز",
+  "Second temperature (optional)": "درجة الحرارة الثانية (اختيارية)",
+  "Temperature 1": "الحرارة ١",
+  "Temperature 2": "الحرارة ٢",
+  "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "الثلاجة مع الفريزر حيّزان: الثاني يوضع هنا. عند ملء الحقلين ترسم البطاقة شريطين.",
 });

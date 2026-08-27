@@ -1574,4 +1574,8 @@ export default Object.freeze({
   "Remove from the list": "リストから削除",
   "Remove from the list: ${item.summary}": "リストから削除：${item.summary}",
   "Open, with the PIN": "PINで開く",
+  "Second temperature (optional)": "2つめの温度（任意）",
+  "Temperature 1": "温度 1",
+  "Temperature 2": "温度 2",
+  "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "冷凍室のある冷蔵庫は二つの区画です。二つめはここに。両方を入れるとカードは二本のバーを描きます。",
 });

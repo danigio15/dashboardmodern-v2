@@ -1567,4 +1567,8 @@ export default Object.freeze({
   "Remove from the list": "목록에서 제거",
   "Remove from the list: ${item.summary}": "목록에서 제거: ${item.summary}",
   "Open, with the PIN": "PIN으로 열기",
+  "Second temperature (optional)": "두 번째 온도(선택)",
+  "Temperature 1": "온도 1",
+  "Temperature 2": "온도 2",
+  "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "냉동실이 있는 냉장고는 두 칸입니다. 두 번째는 여기에. 둘 다 채우면 카드가 막대 두 개를 그립니다.",
 });

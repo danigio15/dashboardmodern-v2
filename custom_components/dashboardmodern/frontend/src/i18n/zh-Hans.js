@@ -1547,4 +1547,8 @@ export default Object.freeze({
   "Remove from the list": "从列表中移除",
   "Remove from the list: ${item.summary}": "从列表中移除：${item.summary}",
   "Open, with the PIN": "用 PIN 打开",
+  "Second temperature (optional)": "第二个温度（可选）",
+  "Temperature 1": "温度 1",
+  "Temperature 2": "温度 2",
+  "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips.": "带冷冻室的冰箱是两个隔间：第二个填在这里。两个框都填好，卡片会画两条条带。",
 });

@@ -224,6 +224,7 @@ const CARD_FIELD_KEYS = [
   "cycle_minutes",
   "off_delay_minutes",
   "temperature_entity",
+  "temperature_entity_2",
   "temp_min",
   "temp_max",
   "max_power",
@@ -253,6 +254,7 @@ function cardFieldsMarkup(device = {}) {
       ${entityField("cycle_duration_entity", t("Durata programma", "Program duration"), device.cycle_duration_entity, t("Facoltativa: durata totale del programma per la percentuale dell'anello.", "Optional: total program duration for the ring percentage."))}
       ${numberField("cycle_minutes", t("Durata ciclo fissa (minuti)", "Fixed cycle duration (minutes)"), value("cycle_minutes"), t("Alternativa semplice alla durata da entità.", "Simple alternative to the duration entity."), { step: "1", placeholder: "es. 120" })}
       ${entityField("temperature_entity", t("Entità temperatura", "Temperature entity"), device.temperature_entity, t("Per frigo e congelatore: mostra la barra temperatura al posto della potenza.", "For fridge and freezer: shows the temperature strip instead of the power bar."))}
+      ${entityField("temperature_entity_2", t("Seconda temperatura (facoltativa)", "Second temperature (optional)"), device.temperature_entity_2, t("Un frigorifero con il congelatore sono due vani: qui il secondo. Con due caselle piene la card disegna due barre.", "A fridge with a freezer is two compartments: the second one goes here. With both boxes filled the card draws two strips."))}
       ${numberField("temp_min", t("Temperatura min (barra)", "Min temperature (bar)"), value("temp_min"), "", { step: "0.5", placeholder: "0" })}
       ${numberField("temp_max", t("Temperatura max (barra)", "Max temperature (bar)"), value("temp_max"), "", { step: "0.5", placeholder: "10" })}
       ${numberField("max_power", t("Potenza massima (W)", "Maximum power (W)"), value("max_power"), t("Scala della barra Potenza attuale. Vuoto = valore tipico per il tipo.", "Scale of the current power bar. Empty = typical value for the type."), { step: "50", placeholder: "es. 2200" })}
@@ -408,6 +410,7 @@ export function openApplianceEditor(index) {
       cycle_minutes: clean(values.cycle_minutes),
       off_delay_minutes: clean(values.off_delay_minutes),
       temperature_entity: clean(values.temperature_entity),
+      temperature_entity_2: clean(values.temperature_entity_2),
       temp_min: clean(values.temp_min),
       temp_max: clean(values.temp_max),
       max_power: clean(values.max_power),
