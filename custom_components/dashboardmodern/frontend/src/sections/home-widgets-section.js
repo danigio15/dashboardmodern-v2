@@ -506,8 +506,51 @@ function refValue(states, ref, fuori) {
  * tutto. Chi legge la stessa cosa deve conoscere gli stessi nomi. */
 const RIF_BATTERIA_EV = Object.freeze(["dm.ev_batteria_auto", "dm.ev_battery", "dm.ev_soc"]);
 
-function evModel(states) {
-  const fuori = widgetExcludedEntities();
+/* Le vetture configurate, ognuna con la SUA mappatura.
+ *
+ * Il riferimento `dm.ev_batteria_auto` ne indica una sola: quella in uso. E'
+ * giusto per la pagina EV — li' si guarda un'auto per volta e si sceglie quale
+ * — ma la tessera in Home e' un colpo d'occhio sulla casa, e una casa con due
+ * auto ne ha due da guardare. Chi ha due vetture vedeva sempre e solo quella
+ * che aveva messo in uso per ultima, senza nessun modo di accorgersi che
+ * l'altra era a secco.
+ *
+ * La mappatura di ciascuna sta nel suo profilo — e' la stessa che «Usa» copia
+ * nelle chiavi globali — quindi si legge di li', senza toccare niente. */
+function vetture() {
+  const elenco = section("ev", readJson("cd_ev_cars", []));
+  return (Array.isArray(elenco) ? elenco : []).filter(
+    (auto) => auto && typeof auto === "object",
+  );
+}
+
+function letturaVettura(states, auto, fuori, indice) {
+  const mappa = (auto?.ov || auto?.overrides || {}) || {};
+  const misura = (riferimento) => {
+    const entity = clean(mappa[riferimento]);
+    if (!entity || !widgetIncludes(entity, fuori)) return null;
+    return { entity, value: numOf(states, entity), state: clean(states?.[entity]?.state) };
+  };
+  let carica = null;
+  for (const riferimento of RIF_BATTERIA_EV) {
+    carica = misura(riferimento);
+    if (carica) break;
+  }
+  const autonomia = misura("dm.ev_autonomia");
+  const stato = misura("dm.ev_stato_ricarica");
+  if (!carica && !autonomia) return null;
+  const percentuale = carica?.value == null ? null : Math.max(0, Math.min(100, carica.value));
+  return {
+    nome: clean(auto?.name) || clean(auto?.model) || `${t("Auto", "Car")} ${indice + 1}`,
+    percentuale,
+    km: autonomia?.value == null ? null : autonomia.value,
+    ricarica: stato?.state || "",
+  };
+}
+
+/* La lettura dell'auto in uso, dalle chiavi globali: e' la strada di sempre, e
+ * resta quella per chi di auto ne ha una sola o non ne ha profilate. */
+function letturaAttiva(states, fuori) {
   let carica = null;
   for (const riferimento of RIF_BATTERIA_EV) {
     carica = refValue(states, riferimento, fuori);
@@ -516,18 +559,71 @@ function evModel(states) {
   const autonomia = refValue(states, "dm.ev_autonomia", fuori);
   const stato = refValue(states, "dm.ev_stato_ricarica", fuori);
   if (!carica && !autonomia) return null;
-  const percentuale = carica?.value == null ? null : Math.max(0, Math.min(100, carica.value));
-  const rows = [];
-  if (percentuale != null)
-    rows.push({ glyph: "🔋", name: t("Carica", "Charge"), value: `${Math.round(percentuale)}%` });
-  if (autonomia?.value != null)
-    rows.push({ glyph: "🛣️", name: t("Autonomia", "Range"), value: `${formatNumber(autonomia.value, 0)} km` });
-  if (stato?.state) rows.push({ glyph: "🔌", name: t("Ricarica", "Charging"), value: stato.state });
+  return {
+    nome: "",
+    percentuale: carica?.value == null ? null : Math.max(0, Math.min(100, carica.value)),
+    km: autonomia?.value == null ? null : autonomia.value,
+    ricarica: stato?.state || "",
+  };
+}
+
+function righeVettura(lettura, conNome) {
+  const righe = [];
+  const prefisso = conNome && lettura.nome ? `${lettura.nome} · ` : "";
+  if (lettura.percentuale != null)
+    righe.push({
+      glyph: "🔋",
+      name: `${prefisso}${t("Carica", "Charge")}`,
+      value: `${Math.round(lettura.percentuale)}%`,
+    });
+  if (lettura.km != null)
+    righe.push({
+      glyph: "🛣️",
+      name: `${prefisso}${t("Autonomia", "Range")}`,
+      value: `${formatNumber(lettura.km, 0)} km`,
+    });
+  if (lettura.ricarica)
+    righe.push({
+      glyph: "🔌",
+      name: `${prefisso}${t("Ricarica", "Charging")}`,
+      value: lettura.ricarica,
+    });
+  return righe;
+}
+
+function evModel(states) {
+  const fuori = widgetExcludedEntities();
+  const profilate = vetture()
+    .map((auto, indice) => letturaVettura(states, auto, fuori, indice))
+    .filter(Boolean);
+  /* Con una sola vettura leggibile dai profili la tessera non cambia: e'
+   * quella che si vede da sempre, e nominarla sarebbe rumore. */
+  const letture = profilate.length > 1 ? profilate : [letturaAttiva(states, fuori)].filter(Boolean);
+  if (!letture.length) return null;
+  const piu = letture.length > 1;
+  const rows = letture.flatMap((lettura) => righeVettura(lettura, piu));
   if (!rows.length) return null;
+
+  /* Con piu' auto la tessera mostra la piu' scarica: e' quella che chiede
+   * qualcosa, ed e' la ragione per cui uno guarda la Home di sfuggita. */
+  const cariche = letture.map((lettura) => lettura.percentuale).filter((valore) => valore != null);
+  const percentuale = cariche.length ? Math.min(...cariche) : null;
+  const kmTotali = letture.map((lettura) => lettura.km).filter((valore) => valore != null);
+  const primaKm = kmTotali.length ? Math.min(...kmTotali) : null;
+  const didascalia = piu
+    ? letture
+        .map(
+          (lettura) =>
+            `${lettura.nome}${lettura.percentuale == null ? "" : ` ${Math.round(lettura.percentuale)}%`}`,
+        )
+        .join(" · ")
+    : percentuale != null && primaKm != null
+      ? `${formatNumber(primaKm, 0)} km`
+      : "";
   return {
     key: "ev", accent: "#06b6d4", icon: "🚗", label: t("Auto", "Car"),
-    value: percentuale == null ? `${formatNumber(autonomia?.value, 0)} km` : `${Math.round(percentuale)}%`,
-    caption: percentuale != null && autonomia?.value != null ? `${formatNumber(autonomia.value, 0)} km` : "",
+    value: percentuale == null ? `${formatNumber(primaKm, 0)} km` : `${Math.round(percentuale)}%`,
+    caption: didascalia,
     ring: percentuale, rows,
   };
 }

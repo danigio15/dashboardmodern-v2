@@ -32,10 +32,14 @@ const expectedTabs = [
  *    fila che scorreva, tre visibili per volta: adesso si vedono tutte e il
  *    corpo della scheda si apre accanto invece che sotto. Da telefono tenuto in
  *    piedi la colonna si stringe al simbolo — il nome lo nasconde chi quel
- *    pezzo lo crea — e si riallarga appena il telefono si gira. */
+ *    pezzo lo crea — e si riallarga appena il telefono si gira;
+ *  - tutte le finestre della plancia hanno una veste sola: erano nate una alla
+ *    volta e si vedeva — un anello bianco cucito nel bordo che sul tema scuro
+ *    faceva da taglio, un'entrata lunga mezzo secondo, e un tasto di chiusura
+ *    che pesava piu' del titolo. */
 const vendoredCssSnapshots = {
-  "dashboard-runtime-it.css": "376764c49898df3d3c0e62642936cdcdc1fe96efecbe9bd9ee828a2b9ac551cc",
-  "dashboard-runtime-en.css": "2f3c647a390364d51fefbf2f83b32e094f70f001adf18726d60220d6c2892ffb",
+  "dashboard-runtime-it.css": "4006d424e4bb452981ec408a24d168b98bdd5d6f1f3943283b8809bcf1e781b6",
+  "dashboard-runtime-en.css": "da68e488bad4d1da52a2b7dd5b22e828653093c0ac0c66945715c86680ca3390",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {

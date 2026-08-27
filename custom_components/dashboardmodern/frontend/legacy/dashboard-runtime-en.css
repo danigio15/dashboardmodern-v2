@@ -4704,3 +4704,122 @@ body.cd-nav-fixed { padding-bottom: 96px !important; }
   #editor-modal.modal-wrapper .ed-tabs { flex-wrap: nowrap; }
   #editor-modal.modal-wrapper .ed-body { padding: 20px 24px 26px; }
 }
+
+/* ═══ I popup, tutti con la stessa veste ═══
+ *
+ * Ogni sezione apre la sua finestra, e tutte passano di qui: `.modal-wrapper`
+ * per il fondo, `.modal-card` per il foglio. Erano nate una alla volta e si
+ * vedeva — un anello bianco cucito dentro il bordo, che sul tema scuro faceva
+ * da taglio; un'entrata lunga mezzo secondo che le faceva galleggiare; una
+ * intestazione col tasto di chiusura grande come una pastiglia di comando, che
+ * pesava piu' del titolo.
+ *
+ * Qui non cambia cosa fa nessuna finestra: cambia come si presenta, e cambia
+ * per tutte insieme, perche' e' una sola regola.
+ *
+ * La scheda della configurazione resta fuori dalla parte geometrica: ha una
+ * forma sua — la colonna delle linguette e il corpo accanto — e imporle questa
+ * significherebbe due padroni sulla stessa misura.
+ */
+.modal-wrapper {
+  background: color-mix(in srgb, var(--bg-sculpted, #e6ebf1) 62%, rgba(15, 23, 42, 0.34));
+}
+html[data-theme="dark"] .modal-wrapper {
+  background: color-mix(in srgb, #060a14 74%, rgba(2, 6, 15, 0.9));
+}
+
+.modal-card:not(.ed-shell) {
+  border-radius: 28px;
+  padding: 24px 22px;
+  /* Un'ombra che scende, e un filo di bordo. L'anello bianco cucito dentro
+     valeva solo sul tema chiaro: sullo scuro era una riga luminosa in mezzo al
+     buio. */
+  box-shadow:
+    0 32px 64px -28px rgba(2, 6, 23, 0.45),
+    0 6px 18px -12px rgba(2, 6, 23, 0.25);
+  border: 1px solid var(--card-border);
+}
+/* Il filo di luce in cima: dice dove comincia la finestra senza disegnarci
+   sopra una barra.
+   E' dipinto nello sfondo, non appoggiato sopra: la finestra e' lei stessa il
+   contenitore che scorre, e un elemento appoggiato scorrerebbe via col
+   contenuto lasciando il bordo nudo appena si scende di una riga. */
+.modal-card:not(.ed-shell) {
+  background-image: linear-gradient(
+    90deg,
+    var(--primary-color, #0ea5e9),
+    color-mix(in srgb, var(--primary-color, #0ea5e9) 18%, transparent)
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 3px;
+  background-position: 0 0;
+}
+
+/* L'entrata: piu' corta e meno larga di movimento. Mezzo secondo e trenta
+   pixel di salita facevano sembrare che la finestra arrivasse da lontano. */
+.modal-card {
+  transform: scale(0.96) translateY(12px);
+  transition:
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.22s ease;
+}
+.modal-wrapper.show .modal-card {
+  transform: scale(1) translateY(0);
+}
+
+/* L'intestazione: il titolo pesa, la chiusura no.
+   Era una pastiglia maiuscola larga quanto un comando, e in cima a ogni
+   finestra il primo posto se lo prendeva lei. */
+.ev-waw-header {
+  gap: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--card-border) !important;
+}
+.ev-waw-title {
+  font-size: 21px;
+  letter-spacing: 0.6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ev-waw-close {
+  flex: 0 0 auto !important;
+  width: 38px !important;
+  height: 38px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  font-size: 0 !important;
+  letter-spacing: 0 !important;
+  box-shadow: none !important;
+  background: var(--surface-3) !important;
+  border: 1px solid var(--card-border) !important;
+}
+.ev-waw-close::before {
+  content: "✕";
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.ev-waw-close:hover {
+  transform: none !important;
+  background: #fee2e2 !important;
+  border-color: #fecaca !important;
+  color: #dc2626 !important;
+}
+html[data-theme="dark"] .ev-waw-close:hover {
+  background: rgba(220, 38, 38, 0.22) !important;
+  border-color: rgba(248, 113, 113, 0.45) !important;
+  color: #fca5a5 !important;
+}
+
+@media (max-width: 640px) {
+  .modal-card:not(.ed-shell) { border-radius: 22px; padding: 18px 14px; }
+  .ev-waw-title { font-size: 18px; }
+}
+
+/* Chi ha chiesto meno movimento non lo riceve: la finestra c'e' o non c'e'. */
+@media (prefers-reduced-motion: reduce) {
+  .modal-card, .modal-wrapper { transition: opacity 0.12s linear !important; }
+  .modal-card { transform: none !important; }
+  .modal-wrapper.show .modal-card { transform: none !important; }
+}

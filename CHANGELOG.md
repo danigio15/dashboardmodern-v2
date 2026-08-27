@@ -46,6 +46,26 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   col nome e con l'interruttore dei widget, su un telefono largo un dito: adesso
   il nome tiene una riga sua e i due comandi vanno sotto.
 
+- **La tessera Auto in Home mostrava una vettura sola.** Il riferimento della
+  batteria ne indica una: quella che «Usa» ha copiato nelle chiavi globali. È
+  giusto per la pagina EV, dove si guarda un'auto per volta, ed è sbagliato per
+  un colpo d'occhio sulla casa: chi ha due auto vedeva sempre e solo l'ultima
+  messa in uso, senza nessun modo di accorgersi che l'altra era a secco. Adesso
+  ogni vettura si legge dal suo profilo — la stessa mappatura che «Usa» copia —
+  e la tessera le nomina tutte: il numero grande è la più scarica, perché è
+  quella che chiede qualcosa. Con una vettura sola non cambia niente.
+
+- **I popup non erano belli, e ognuno a modo suo.** Ogni sezione apre la sua
+  finestra e tutte passano dallo stesso foglio, ma erano nate una alla volta e
+  si vedeva: un anello bianco cucito dentro il bordo, che sul tema scuro faceva
+  da taglio; un'entrata lunga mezzo secondo che le faceva galleggiare; e in
+  cima, un tasto di chiusura grande come una pastiglia di comando, che pesava
+  più del titolo. Adesso hanno una veste sola — angoli più misurati, un'ombra
+  che scende, un filo di colore sul bordo alto, l'intestazione ordinata e la
+  chiusura tornata un tondino — e chi ha chiesto meno movimento non lo riceve.
+  Non cambia cosa fa nessuna finestra: cambia come si presentano, e cambia per
+  tutte insieme.
+
 - **Il ritratto delle persone ballava, e la faccia stava ferma.** Un respiro in
   CSS alzava e abbassava tutta la tela, mentre chi è in casa — cioè quasi
   sempre tutti — portava l'unica espressione che non batteva le ciglia. Adesso
