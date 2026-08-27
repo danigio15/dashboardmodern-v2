@@ -149,12 +149,22 @@ for (const variant of ["dashboard.html", "dashboard-en.html"]) {
       editorSwitch("sez2");
       window.dispatchEvent(new Event("pageshow"));
     });
-    await expect
-      .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cd_ev_image"))))
-      .toBe("/local/auto/b10.png");
+    /* Un percorso storto si sistema PER IL DISEGNO, e la configurazione non si
+     * tocca.
+     *
+     * Qui si pretendeva che `cd_ev_image` venisse riscritto corretto. Quella
+     * riscrittura e' stata tolta apposta, ed e' meta' della segnalazione «le
+     * foto si mischiano»: la casella in cui il valore corretto finiva la
+     * sceglieva il cavo, quindi la foto col cavo attaccato poteva finire in
+     * quella senza — e da li' le due diventavano la stessa da sole, su tutte e
+     * due le auto. Correggeva una volta e sbagliava per sempre. Adesso il
+     * percorso si raddrizza a ogni disegno e non risale mai alla fonte. */
     await page.evaluate(() => render?.());
     const vehicle = page.locator("#ev-mod-car-img");
     await expect(vehicle).toHaveAttribute("src", /\/local\/auto\/b10\.png$/);
+    await expect
+      .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cd_ev_image"))))
+      .toBe("/loca/auto/b10.png");
 
     await page.locator("#editor-modal .ed-head-close").last().click();
     await expect(page.locator("#editor-modal")).toHaveCount(0);

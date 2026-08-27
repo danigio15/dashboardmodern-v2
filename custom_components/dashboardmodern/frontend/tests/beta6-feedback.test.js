@@ -44,8 +44,18 @@ test("legacy quick-action editor delegates picker and glyph rendering to the ico
 test("manufacturer art is canonical, with a local Leapmotor emblem and no post-render swapping", async () => {
   const catalog = await read("src/core/personalization-catalog.js");
   const feedback = await read("src/sections/beta6-feedback-section.js");
-  assert.match(catalog, /SIMPLE_ICONS_VERSION = "16\.27\.1"/);
-  assert.match(catalog, /simple-icons@\$\{SIMPLE_ICONS_VERSION\}\/icons\/\$\{slug\}\.svg/);
+  /* I loghi stanno in casa, non su un CDN.
+   *
+   * Questa prova fissava l'indirizzo remoto — `simple-icons@…/icons/x.svg` —
+   * cioe' esattamente la cosa che non andava: una plancia di Home Assistant sta
+   * su una rete di casa, e molte non escono su internet. Li' i loghi non
+   * arrivavano MAI, tutti quanti, e nessuno se ne accorgeva perche' un'immagine
+   * che non arriva non fa rumore. Adesso i file sono dentro l'integrazione, e
+   * niente in questo modulo puo' andare a prenderli fuori. */
+  assert.doesNotMatch(catalog, /https?:\/\//);
+  assert.match(catalog, /function cartellaLoghi/);
+  assert.match(catalog, /dashboardmodern_static\/brands\//);
+  assert.match(catalog, /LOGHI_IN_CASA\.includes\(item\.id\)/);
   assert.match(catalog, /function leapmotorVisual/);
   assert.match(catalog, /dm-leapmotor-mark/);
   assert.doesNotMatch(catalog, /upload\.wikimedia\.org\/wikipedia\/commons\/d\/d8\/Leapmotor_logo_en\.svg/);

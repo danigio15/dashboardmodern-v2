@@ -20,12 +20,18 @@ test("beta11 is loaded after the existing beta entry in generated and source bui
   }
 });
 
-test("EV preview constrains inline and remote logos and follows active vehicle identity", async () => {
+test("del riquadro del marchio resta la misura, non il comando", async () => {
+  /* Questo modulo teneva le tendine allineate all'auto che credeva giusta, e
+   * ridipingeva il riquadro. Era il terzo padrone dello stesso quadratino: se
+   * n'e' andato, e con lui la firma dell'auto e i valori rimessi a forza.
+   *
+   * Quello che resta e' CSS: quanto e' grande il logo dentro il riquadro, e
+   * come e' impaginata la card. Misurare non e' comandare — e per misurare non
+   * serve sapere di quale auto si stia parlando. */
   const source = await readFile(polishUrl, "utf8");
-  assert.match(source, /cd_ev_car_active/);
-  assert.match(source, /panel\.dataset\.dmBeta11VehicleSignature/);
-  assert.match(source, /dispatchValue\(brandSelect, brand(?:, \{ force: true \})?\)/);
-  assert.match(source, /dispatchValue\(modelSelect, model\)/);
+  assert.doesNotMatch(source, /dispatchValue\(/);
+  assert.doesNotMatch(source, /dmBeta11VehicleSignature/);
+  assert.doesNotMatch(source, /cd_ev_car_active/);
   assert.match(source, /\.dm-leapmotor-mark/);
   assert.match(source, /width:108px!important/);
   assert.match(source, /height:48px!important/);

@@ -11,3 +11,7 @@ playwright-report/
 test-results/
 .DS_Store
 dashboardmodern.zip
+
+# La cartella di lavoro dello script che prepara i ritratti: i PNG originali
+# si riscaricano, quello che si tiene sono i WebP gia' pronti.
+.avatar-cache/

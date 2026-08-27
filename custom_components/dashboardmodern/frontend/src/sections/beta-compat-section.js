@@ -1,4 +1,6 @@
 import { doc, root } from "./shared.js";
+import { activeVehicle, profiles } from "./ev-section.js";
+import { vehicleIndex } from "../core/vehicle-model.js";
 
 const KEY = "__DASHBOARDMODERN_BETA_COMPAT__";
 const state = (root[KEY] ||= { installed: false });
@@ -35,26 +37,22 @@ function openCanonicalRoomPicker(input) {
   );
 }
 
+/* Chi e' l'auto in uso adesso, in una riga confrontabile.
+ *
+ * Questo modulo si rileggeva `cd_ev_cars` grezza e `cd_ev_car_active` come
+ * POSIZIONE, con la sua idea di quale fosse l'identita' di una vettura — l'id,
+ * o l'entita', o il nome, o il numero d'ordine. Erano tre moduli con tre idee
+ * della stessa cosa. Adesso l'auto la da' chi la possiede, e l'identita' e'
+ * l'uid: non cambia riordinando l'elenco, ed e' proprio quello che serve a una
+ * firma che deve dire «e' cambiata la vettura». */
 function activeVehicleSignature() {
-  let cars = [];
-  try {
-    const legacy = JSON.parse(root.localStorage?.getItem("cd_ev_cars") || "[]");
-    if (Array.isArray(legacy) && legacy.length) cars = legacy;
-  } catch (_error) {}
-  if (!cars.length) {
-    try {
-      const canonical = root.DashboardModernModules?.store?.getSection?.("ev");
-      if (Array.isArray(canonical)) cars = canonical;
-    } catch (_error) {}
-  }
+  const cars = profiles();
   if (!cars.length) return "";
-  const raw = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "0", 10);
-  const index = Math.max(0, Math.min(cars.length - 1, Number.isFinite(raw) ? raw : 0));
-  const car = cars[index] || {};
+  const car = activeVehicle(cars);
+  if (!car) return "";
   const brand = String(car.brand || "").trim();
   const model = String(car.model || car.vehicle_model || car.name || "").trim();
-  const identity = String(car.id || car.entity || car.name || index).trim();
-  return `${index}|${identity}|${brand}|${model}`;
+  return `${vehicleIndex(cars, car.uid)}|${car.uid}|${brand}|${model}`;
 }
 
 function preserveManualEvAppearanceEdit(event) {
@@ -66,7 +64,7 @@ function preserveManualEvAppearanceEdit(event) {
   if (!panel || !signature) return;
   // Mark the current active vehicle as already synchronized before Beta11's
   // document-level change reconciler runs. This protects a user's unsaved
-  // Brand/Model choice, while a later cd_ev_car_active change still produces a
+  // Brand/Model choice, while a later change of active car still produces a
   // different signature and therefore triggers the intended active-car sync.
   panel.dataset.dmBeta11VehicleSignature = signature;
   panel.dataset.dmBeta11ManualEdit = "true";

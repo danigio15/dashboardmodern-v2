@@ -334,6 +334,19 @@ export function ensureSaveFooter(body = editorBody(), tab = activeTab()) {
     // thing that behaves differently from tab to tab.
     button.addEventListener("click", () => pressTabSaves(body));
   }
+  /* Nella scheda EV il salvataggio ha un nome preciso.
+   *
+   * Li' tutto quello che si compila appartiene a UN'auto — nome, marca,
+   * entita', foto — e il bottone della scheda lo dice: «Salva la nuova auto»
+   * oppure «Salva le modifiche a NOME». Il bottone in fondo fa esattamente
+   * quello, quindi porta le stesse parole: erano tre tasti per due gesti, e
+   * nessuno capiva quale creasse davvero una vettura. */
+  const salvaAuto = body.querySelector("[data-ev-save-car]");
+  const etichetta = footer.querySelector(".dm-save-footer-btn");
+  if (etichetta) {
+    const testo = salvaAuto ? clean(salvaAuto.textContent) : `💾 ${t("Salva sezione", "Save section")}`;
+    if (testo && etichetta.textContent !== testo) etichetta.textContent = testo;
+  }
   // Always the last thing on the tab, whatever the tab appended after it.
   if (body.lastElementChild !== footer) body.append(footer);
   return true;

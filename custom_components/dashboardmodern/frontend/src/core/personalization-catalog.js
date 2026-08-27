@@ -331,7 +331,6 @@ export const CAR_BRANDS = Object.freeze(
   ),
 );
 
-const SIMPLE_ICONS_VERSION = "16.27.1";
 const SIMPLE_ICON_SLUGS = Object.freeze({
   abarth: "abarth",
   "alfa-romeo": "alfaromeo",
@@ -373,14 +372,124 @@ const SIMPLE_ICON_SLUGS = Object.freeze({
 });
 const CAR_BRAND_OVERRIDES = Object.freeze({});
 
+/* La tinta d'istituto di ogni marchio.
+ *
+ * I loghi erano tutti neri: su fondo scuro sparivano, e messi in fila
+ * sembravano tutti la stessa cosa. Il colore lo dichiara il pacchetto da cui
+ * vengono i file — quelli disegnati da noi hanno il colore della loro casa — e
+ * lo scrive lo script di build: un colore copiato a occhio e' un colore
+ * sbagliato che nessuno rilegge piu'. */
+const CAR_BRAND_COLORS = Object.freeze({
+  abarth: "#B01B2E",
+  "alfa-romeo": "#981E32",
+  audi: "#BB0A30",
+  bmw: "#0066B1",
+  byd: "#D0021B",
+  citroen: "#DA291C",
+  cupra: "#95572B",
+  dacia: "#646B52",
+  fiat: "#941711",
+  ford: "#00274E",
+  honda: "#E40521",
+  hyundai: "#002C5E",
+  lancia: "#003B7A",
+  leapmotor: "#0B69C7",
+  "mercedes-benz": "#00A19B",
+  mg: "#FF0000",
+  nissan: "#C3002F",
+  opel: "#F7FF14",
+  porsche: "#B12B28",
+  renault: "#FFCC33",
+  smart: "#D7E600",
+  subaru: "#013C74",
+  suzuki: "#E30613",
+  tesla: "#CC0000",
+  toyota: "#EB0A1E",
+  volkswagen: "#151F5D",
+  volvo: "#003057",
+  xpeng: "#00A0E9",
+});
+
+/** Di che colore va disegnato questo marchio. Vuoto = quello del tema. */
+export function carBrandColor(value) {
+  const item = brandMatch(value);
+  return (item && CAR_BRAND_COLORS[item.id]) || "";
+}
+
+/* I marchi di cui il logo ce l'abbiamo davvero, in casa.
+ *
+ * Lo scrive `scripts/costruisci-loghi-auto.mjs` guardando cosa e' riuscito a
+ * mettere in `frontend/brands/`. Otto marchi non ci sono — Simple Icons li ha
+ * tolti per ragioni di marchio registrato — e per quelli resta il tondo con le
+ * iniziali, che e' disegnato da noi e non manca mai.
+ *
+ * Questo elenco NON si scrive a mano: se qualcuno aggiunge un logo alla
+ * cartella e si dimentica di aggiungerlo qui, una prova lo ferma. */
+const LOGHI_IN_CASA = Object.freeze([
+  "abarth",
+  "alfa-romeo",
+  "audi",
+  "bmw",
+  "byd",
+  "citroen",
+  "cupra",
+  "dacia",
+  "ds",
+  "fiat",
+  "ford",
+  "honda",
+  "hyundai",
+  "jeep",
+  "kia",
+  "lancia",
+  "lexus",
+  "mazda",
+  "mercedes-benz",
+  "mg",
+  "mini",
+  "nissan",
+  "opel",
+  "peugeot",
+  "polestar",
+  "porsche",
+  "renault",
+  "seat",
+  "skoda",
+  "smart",
+  "subaru",
+  "suzuki",
+  "tesla",
+  "toyota",
+  "volkswagen",
+  "volvo",
+  "xpeng",
+]);
+
+/* Dove stanno i file.
+ *
+ * Non sono codice, quindi non hanno un `import.meta.url` loro: si ricava dal
+ * nostro, togliendo la versione. I loghi non cambiano da un rilascio all'altro,
+ * e tenerli fuori dalla versione vuol dire non riscaricarli ogni volta. */
+function cartellaLoghi() {
+  const qui = import.meta.url;
+  const taglio = qui.indexOf("/dashboardmodern_static/");
+  if (taglio < 0) return "../../brands/";
+  return `${qui.slice(0, taglio)}/dashboardmodern_static/brands/`;
+}
+
+/**
+ * L'indirizzo del logo di un marchio, dentro l'integrazione.
+ *
+ * Prima era un indirizzo su un CDN, costruito a mano. Una plancia di Home
+ * Assistant sta su una rete di casa, e molte non escono su internet: li' i
+ * loghi non arrivavano mai, tutti quanti. Adesso i file sono nostri, arrivano
+ * sempre, e si possono ritoccare.
+ */
 export function carBrandImageSource(value) {
   const item = brandMatch(value);
   if (!item) return "";
   if (CAR_BRAND_OVERRIDES[item.id]) return CAR_BRAND_OVERRIDES[item.id];
-  const slug = SIMPLE_ICON_SLUGS[item.id];
-  return slug
-    ? `https://cdn.jsdelivr.net/npm/simple-icons@${SIMPLE_ICONS_VERSION}/icons/${slug}.svg`
-    : "";
+  return LOGHI_IN_CASA.includes(item.id) ? `${cartellaLoghi()}${item.id}.svg` : "";
 }
 
 export const CAR_ICON_CATALOG = Object.freeze(
@@ -458,7 +567,7 @@ function svg(body, size, className, token) {
 
 function leapmotorVisual(size = 48) {
   const safeSize = Math.max(20, Math.min(160, Number(size) || 48));
-  return `<span class="dm-car-brand dm-leapmotor-mark" data-brand="leapmotor" data-brand-source="inline" data-dm-beta5-brand="Leapmotor" title="Leapmotor" style="width:${safeSize}px;height:${safeSize}px"><span data-brand-logo="leapmotor" style="display:grid;place-items:center;width:100%;height:100%"><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" aria-hidden="true" fill="currentColor"><path d="M6 16 17 10v19l6 4v9L6 32z"/><path d="M24 5l18 10v17l-14 8V28l7-4v-6l-7-4v31l-4-2z"/></svg></span></span>`;
+  return `<span class="dm-car-brand dm-leapmotor-mark" data-brand="leapmotor" data-brand-source="inline" data-dm-beta5-brand="Leapmotor" title="Leapmotor" style="width:${safeSize}px;height:${safeSize}px;color:${CAR_BRAND_COLORS.leapmotor || "currentColor"}"><span data-brand-logo="leapmotor" style="display:grid;place-items:center;width:100%;height:100%"><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" aria-hidden="true" fill="currentColor"><path d="M6 16 17 10v19l6 4v9L6 32z"/><path d="M24 5l18 10v17l-14 8V28l7-4v-6l-7-4v31l-4-2z"/></svg></span></span>`;
 }
 
 export function roomCatalogMatch(value) {
@@ -506,6 +615,16 @@ export function brandMatch(value) {
  * quello che e' stato scritto: e' onesto, e si legge. */
 function brandFallback(value, safeSize) {
   const nome = String(value ?? "").trim();
+  /* Nessuna marca scelta non e' «marca sconosciuta».
+   *
+   * Le iniziali sono la risposta giusta a «hai scritto una marca che non
+   * conosco»: dicono cosa c'e' scritto, e sono oneste. Ma su una scheda dove
+   * non si e' ancora scelto niente non c'e' niente da abbreviare, e usciva un
+   * punto interrogativo dentro un cerchio: sembra un errore, e non lo e'. Chi
+   * non ha ancora scelto vede una macchina, che e' esattamente quello che c'e'
+   * da vedere. */
+  if (!nome)
+    return `<span class="dm-car-brand" data-brand="" data-brand-source="empty" aria-hidden="true" style="width:${safeSize}px;height:${safeSize}px;display:grid;place-items:center;font-size:${Math.round(safeSize * 0.62)}px">🚗</span>`;
   const initials = (nome.slice(0, 2) || "?").toUpperCase();
   const fontSize = initials.length > 2 ? 10 : initials.length === 2 ? 13 : 16;
   return `<span class="dm-car-brand" data-brand="" data-brand-source="unknown" title="${nome}" style="width:${safeSize}px;height:${safeSize}px"><span data-brand-logo=""><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="3" width="42" height="42" rx="14" fill="currentColor" opacity=".12"/><circle cx="24" cy="24" r="15.5" fill="none" stroke="currentColor" stroke-width="2.4" opacity=".9"/><text x="24" y="28.5" text-anchor="middle" font-size="${fontSize}" font-family="system-ui,sans-serif" font-weight="900" fill="currentColor">${initials}</text></svg></span></span>`;
@@ -516,14 +635,43 @@ export function carBrandVisual(value, size = 48) {
   const item = brandMatch(value);
   if (!item) return brandFallback(value, safeSize);
   if (item.id === "leapmotor") return leapmotorVisual(safeSize);
+  const initials = item.initials || item.name.slice(0, 2).toUpperCase();
+  const fontSize = initials.length > 2 ? 10 : initials.length === 2 ? 13 : 16;
   const source = carBrandImageSource(item.name);
   if (source) {
     const width = Math.max(safeSize, Math.round(safeSize * 1.75));
-    return `<span class="dm-car-brand" data-brand="${item.id}" data-brand-source="canonical" data-dm-beta5-brand="${item.name}" title="${item.name}" style="width:${width}px;height:${safeSize}px"><span data-brand-logo="${item.id}" style="display:grid;place-items:center;width:100%;height:100%"><img data-dm-brand-image="${item.id}" src="${source}" alt="${item.name}" decoding="async" loading="eager" referrerpolicy="no-referrer" style="display:block;width:100%;height:100%;object-fit:contain;object-position:center"></span></span>`;
+    const tinta = CAR_BRAND_COLORS[item.id];
+    /* La forma viene dal file, il colore dalla plancia.
+     *
+     * Il logo era un `<img>`, e un SVG dentro un `<img>` e' un documento a
+     * parte: `currentColor` li' dentro non vede niente e resta nero. Erano
+     * tutti neri qualunque cosa dicesse il catalogo — e un logo nero su tema
+     * scuro sparisce.
+     *
+     * Con la maschera il file dice solo DOVE disegnare, e il colore lo mette
+     * il fondo: la tinta d'istituto dove ce n'e' una leggibile, il colore del
+     * tema per le case il cui marchio e' nero — che seguono la plancia invece
+     * di sparirci dentro. Il file resta un file, modificabile, e non ottanta
+     * chilobyte di percorsi dentro a un modulo. */
+    /* Le virgolette qui dentro sono singole di proposito: doppie chiuderebbero
+     * l'attributo `style` a meta' frase, e la maschera arriverebbe vuota — che
+     * si vede come un riquadro senza niente, non come un errore. E le proprieta'
+     * sono scritte per esteso invece che nella forma breve, che non tutti i
+     * motori accettano con la stessa grammatica. */
+    const maschera = [
+      `-webkit-mask-image:url('${source}')`,
+      "-webkit-mask-size:contain",
+      "-webkit-mask-repeat:no-repeat",
+      "-webkit-mask-position:center",
+      `mask-image:url('${source}')`,
+      "mask-size:contain",
+      "mask-repeat:no-repeat",
+      "mask-position:center",
+    ].join(";");
+    return `<span class="dm-car-brand" data-brand="${item.id}" data-brand-source="canonical" data-dm-beta5-brand="${item.name}" title="${item.name}" style="width:${width}px;height:${safeSize}px${tinta ? `;color:${tinta}` : ""}"><span data-brand-logo="${item.id}" data-dm-brand-image="${item.id}" role="img" aria-label="${item.name}" style="display:block;width:100%;height:100%;background:currentColor;${maschera}"></span></span>`;
   }
-  const initials = item.initials || item.name.slice(0, 2).toUpperCase();
-  const fontSize = initials.length > 2 ? 10 : initials.length === 2 ? 13 : 16;
-  return `<span class="dm-car-brand" data-brand="${item.id}" data-brand-source="fallback" data-dm-beta5-brand="${item.name}" title="${item.name}" style="width:${safeSize}px;height:${safeSize}px"><span data-brand-logo="${item.id}"><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="3" width="42" height="42" rx="14" fill="currentColor" opacity=".12"/><circle cx="24" cy="24" r="15.5" fill="none" stroke="currentColor" stroke-width="2.4" opacity=".9"/><text x="24" y="28.5" text-anchor="middle" font-size="${fontSize}" font-family="system-ui,sans-serif" font-weight="900" fill="currentColor">${initials}</text></svg></span></span>`;
+  const tintaRipiego = CAR_BRAND_COLORS[item.id];
+  return `<span class="dm-car-brand" data-brand="${item.id}" data-brand-source="fallback" data-dm-beta5-brand="${item.name}" title="${item.name}" style="width:${safeSize}px;height:${safeSize}px${tintaRipiego ? `;color:${tintaRipiego}` : ""}"><span data-brand-logo="${item.id}"><svg width="${safeSize}" height="${safeSize}" viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="3" width="42" height="42" rx="14" fill="currentColor" opacity=".12"/><circle cx="24" cy="24" r="15.5" fill="none" stroke="currentColor" stroke-width="2.4" opacity=".9"/><text x="24" y="28.5" text-anchor="middle" font-size="${fontSize}" font-family="system-ui,sans-serif" font-weight="900" fill="currentColor">${initials}</text></svg></span></span>`;
 }
 
 export function carIconMatch(value) {

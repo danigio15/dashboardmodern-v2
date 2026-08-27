@@ -1287,6 +1287,11 @@
       <span class="qa-alarm-status-value" id="qa-alarm-state-text">—</span>
     </div>
     <div class="qa-alarm-grid" id="qa-alarm-grid">
+      <button class="qa-alarm-btn" data-mode="home" onclick="promptPinAndSet('alarm_arm_home')">
+        <span class="qa-alarm-btn-icon">🏡</span>
+        <span class="qa-alarm-btn-name">Casa</span>
+        <span class="qa-alarm-btn-sub">Solo perimetro</span>
+      </button>
       <button class="qa-alarm-btn" data-mode="away" onclick="promptPinAndSet('alarm_arm_away')">
         <span class="qa-alarm-btn-icon">🏠</span>
         <span class="qa-alarm-btn-name">Total</span>
@@ -1303,7 +1308,7 @@
         <span class="qa-alarm-btn-sub">Disinserisci</span>
       </button>
     </div>
-    <div class="ns-clima-hint">Verrà richiesto il PIN per confermare l'operazione</div>
+    <div class="ns-clima-hint" id="qa-alarm-pin-hint">Verrà richiesto il PIN per confermare l'operazione</div>
   </div>
 </div>
 

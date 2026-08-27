@@ -15,6 +15,8 @@
  * are re-derived from it on save. Event driven: no polling, no observer.
  */
 import { openIconPicker } from "./icon-engine-section.js";
+import { applianceArtwork } from "../core/appliance-artwork.js";
+import { IMPIANTO_SCELTO_KEY, PRIMO_IMPIANTO, plantAt, plantLabel } from "../core/energy-plants.js";
 import { createEntityPickerField } from "../core/renderers.js";
 import {
   MAX_FLOW_LOADS,
@@ -55,10 +57,24 @@ function configuredLoads() {
   return Array.isArray(stored) ? stored : [];
 }
 
+/* Quale impianto sta configurando questa maschera.
+ *
+ * La stessa linguetta che sceglie il misuratore in cima alla sezione sceglie
+ * anche i cerchi: si configura un impianto per volta, com'e' per il resto
+ * dell'Energia. Con un impianto solo — chiunque non abbia chiesto il secondo —
+ * qui esce il primo, e non cambia niente di niente. */
+function impiantoAperto() {
+  const scelto = clean(root.localStorage?.getItem(IMPIANTO_SCELTO_KEY));
+  return plantAt(section("energy", {}) || {}, scelto);
+}
+
 /* Read once, from wherever the configuration currently lives, and keep editing
  * that model until it is saved. */
 function readModel() {
+  const { plant, index } = impiantoAperto();
   return loadsConfigModel({
+    plant,
+    plantIndex: index,
     loads: configuredLoads(),
     appliances: Array.isArray(section("appliances", null))
       ? section("appliances", [])
@@ -81,13 +97,38 @@ function markDirty(panel) {
 
 async function persist(panel) {
   const previous = configuredLoads();
-  const { loads, groups, subloads, flowNodes } = loadsConfigToSections(model(), previous);
+  const { plant, list } = impiantoAperto();
+  const { loads, groups, subloads, flowNodes } = loadsConfigToSections(
+    model(),
+    previous,
+    plant ? (clean(plant.id) === PRIMO_IMPIANTO ? "" : clean(plant.id)) : null,
+  );
   const store = dashboardStore();
   if (store?.replaceSection) await store.replaceSection("loads", loads);
   else writeJsonIfChanged("cd_loads", loads, { sync: false });
-  // Derived mirrors: the hosted subload popup reads these directly.
-  writeJsonIfChanged("cd_subload_groups", groups, { sync: false });
-  writeJsonIfChanged("cd_subloads_extra", subloads, { sync: false });
+  /* Gli specchi legacy — il popup degli elettrodomestici li legge diretti —
+   * si riscrivono interi con un impianto solo, com'e' sempre stato. Con piu'
+   * di un impianto no: questa maschera ne ha mostrato uno, e riscriverli
+   * interi cancellerebbe i gruppi dell'altro. Quelli che questo giro non ha
+   * toccato restano dove sono. */
+  const piuCase = list.length > 1;
+  const gruppiPrima = piuCase ? readJson("cd_subload_groups", []) : [];
+  const nomiNuovi = new Set(groups.map((voce) => clean(voce?.id)));
+  const gruppiFinali = piuCase
+    ? [
+        ...(Array.isArray(gruppiPrima) ? gruppiPrima : []).filter(
+          (voce) => !nomiNuovi.has(clean(voce?.id)),
+        ),
+        ...groups,
+      ]
+    : groups;
+  const sottoPrima = piuCase ? readJson("cd_subloads_extra", null) : null;
+  const sottoFinali =
+    piuCase && sottoPrima && typeof sottoPrima === "object" && !Array.isArray(sottoPrima)
+      ? { ...sottoPrima, ...subloads }
+      : subloads;
+  writeJsonIfChanged("cd_subload_groups", gruppiFinali, { sync: false });
+  writeJsonIfChanged("cd_subloads_extra", sottoFinali, { sync: false });
   writeJsonIfChanged("cd_flow_nodes", flowNodes);
   state.dirty = false;
   state.model = null;
@@ -168,9 +209,23 @@ function subloadRow(panel, load, child, index) {
   const row = element("article", "ed-row dm-loads-subload");
   row.dataset.dmSubload = child.id;
   row.dataset.dmSubloadSource = child.source || "load";
+  /* Lo stesso elettrodomestico, disegnato allo stesso modo.
+   *
+   * Qui usciva il carattere scritto nel campo — un'emoji — mentre la sezione
+   * Elettrodomestici disegna il ritratto del catalogo. La stessa lavatrice
+   * aveva due facce a seconda di dove la si guardava, e chi configura non ha
+   * modo di sapere che sono la stessa. Quando il tipo si conosce si chiede il
+   * ritratto a chi lo possiede; per tutto il resto resta il carattere. */
   const main = element("div", "ed-row-main");
   const title = element("div", "ed-row-new");
-  title.textContent = `${child.icon || "🔌"} ${child.name}`;
+  const ritratto = child.visual ? applianceArtwork(child.visual, 26) : "";
+  if (ritratto) {
+    const segno = element("span", "dm-loads-subload-art");
+    segno.innerHTML = ritratto;
+    title.append(segno, doc.createTextNode(` ${child.name}`));
+  } else {
+    title.textContent = `${child.icon || "🔌"} ${child.name}`;
+  }
   const detail = element("div", "ed-row-old mono");
   detail.textContent =
     [child.power, child.daily, child.monthly, child.total].filter(Boolean).join(" · ") ||
@@ -533,6 +588,23 @@ export function renderEnergyLoadsEditor(panel = doc?.querySelector?.(PANEL)) {
       ),
     );
 
+    /* Con due impianti la maschera ne mostra uno: lo dice, o un cerchio
+     * aggiunto qui sembrerebbe sparito quando si torna sull'altra casa. */
+    const { plant, list: impianti } = impiantoAperto();
+    if (impianti.length > 1 && plant) {
+      const quale = plantLabel(plant, impianti.indexOf(plant), t("Impianto", "Plant"));
+      host.append(
+        element(
+          "div",
+          "ed-hint dm-loads-plant",
+          `${t("Carichi di", "Loads of")} ${quale} — ${t(
+            "gli altri impianti hanno i loro, e questo salvataggio non li tocca",
+            "the other plants have their own, and this save does not touch them",
+          )}`,
+        ),
+      );
+    }
+
     if (!values.length)
       host.append(
         element(
@@ -555,7 +627,9 @@ export function renderEnergyLoadsEditor(panel = doc?.querySelector?.(PANEL)) {
     add.dataset.dmLoadAdd = "true";
     add.addEventListener("click", () => {
       if (model().length >= MAX_FLOW_LOADS) return;
-      const load = emptyLoad(model(), activeLocale());
+      const { plant } = impiantoAperto();
+      const suo = plant && clean(plant.id) !== PRIMO_IMPIANTO ? clean(plant.id) : "";
+      const load = emptyLoad(model(), activeLocale(), suo);
       state.model = [...model(), load];
       state.open.add(load.id);
       markDirty(panel);
@@ -637,6 +711,10 @@ function installStyles() {
     .dm-loads-warnings{margin:10px 0 0;padding-left:18px;color:var(--muted,#64748b);font-size:13px;line-height:1.45}
     .dm-loads-children{margin-top:14px}
     .dm-loads-subload[data-dm-subload-source="appliance"]{opacity:.9}
+    /* Il ritratto dell'elettrodomestico sta sulla riga come ci stava l'emoji:
+       alto quanto il testo, allineato con lui. */
+    .dm-loads-subload-art{display:inline-grid;place-items:center;width:26px;height:26px;vertical-align:-6px}
+    .dm-loads-subload-art svg{display:block;width:100%;height:100%}
     .dm-loads-source-tag{flex:none;padding:4px 10px;border-radius:999px;background:var(--divider-color,#e2e8f0);color:var(--muted,#64748b);font-size:11px;font-weight:800;letter-spacing:.3px}
     .dm-loads-subload-form{margin:0 0 10px;padding:12px;border-radius:14px;background:color-mix(in srgb,var(--card-bg,#fff) 92%,var(--divider-color,#e2e8f0))}
     /* The phone is exactly where the three squeezed fields were unreadable, so

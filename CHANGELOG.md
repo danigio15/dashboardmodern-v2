@@ -5,6 +5,211 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.0
+
+### Aggiunto
+
+- **Sezione nuova: Stanze, con una pillola per stanza e le sue scene.** «Sarebbe
+  carino avere una sezione dove vedere le entità raggruppate per stanze, tipo
+  una sezione divisa a pagine dove ogni pagina è una stanza con tutte le entità
+  della stessa.» Ogni sezione della plancia legge la casa per tipo — tutte le
+  luci, tutte le tapparelle — ed è il verso giusto quando si cerca una cosa e
+  quello sbagliato quando si sta in una stanza. La pagina gira il verso: le
+  pillole delle stanze in alto, e sotto tutto quello che quella stanza possiede,
+  diviso per tipo. Non sposta e non riscrive niente — le assegnazioni esistono
+  già, si leggono soltanto dall'altro lato — e le card non sono nuove dove non
+  serve che lo siano: la luce è la card della pagina Luci, la stessa, col suo
+  cursore che funziona. In cima a ogni stanza ci sono **Accendi tutto** e
+  **Spegni tutto**, con scritto quante luci toccheranno: «tutto» qui vuol dire
+  la luce, perché un condizionatore e una tapparella hanno un verso loro e
+  decidere al posto di chi guarda quale sia «acceso» sarebbe inventare. Chi non
+  ha stanza finisce sotto una pillola sua: non è un errore da nascondere, è la
+  sola occasione di accorgersene.
+
+- **La stanza si può dire su qualunque entità, non solo dove la scheda la
+  chiede.** Luci, clima, tapparelle, elettrodomestici, telecamere, carichi,
+  robot e zone d'irrigazione la stanza ce l'hanno addosso perché la loro
+  scheda la chiede. Tutto il resto della casa no — una sonda, un sensore di
+  allagamento, la finestra di un avviso, la pompa della piscina, il solare
+  termico — e senza di loro la pagina di una stanza ne raccontava metà.
+  Aggiungere il campo a dieci schede vorrebbe dire dieci punti in cui
+  scriverlo, dieci in cui leggerlo e dieci modi di sbagliarlo: qui ce n'è uno
+  solo, la riga in cui l'entità è già scritta prende una tendina — in
+  qualunque scheda si trovi, elenco o casella. Dentro ci va l'**id** della
+  stanza e non il suo nome, quindi rinominarla non rompe niente. Chi la stanza
+  ce l'ha già per mestiere non riceve nessuna tendina: due tendine sulla stessa
+  luce sarebbero due padroni della stessa cosa.
+
+- **Energia: più impianti sotto lo stesso tetto.** «Ho una casa che è l'unione
+  di due appartamenti, quindi ho 2 misuratori di consumo nei due appartamenti e
+  ogni appartamento ha i rispettivi carichi.» Le linguette in cima all'Energia
+  scelgono di quale casa si parla, e con un impianto solo non compaiono
+  affatto. Ogni impianto ha il suo nome, i suoi carichi — con tetto di otto per
+  impianto, non otto in tutto — e i suoi misuratori: Rete, Solare e Casa
+  seguono la linguetta scelta invece di restare sui contatori del primo.
+  Cancellarne uno porta via i suoi carichi, che altrimenti restavano orfani e
+  invisibili. L'id di un impianto nasce una volta e non si ricava mai dal nome:
+  rinominare «Casa Giovanni» non sposta niente.
+
+- **L'antifurto mostra i tasti che la centrale ha davvero.** La plancia dava
+  per scontato che ogni centrale fosse fatta come quella di casa: tre tasti
+  fissi — Fuori, Notte, Sblocca — qualunque cosa ci fosse dietro. Con Ring via
+  ring-mqtt il tasto Notte chiedeva il PIN e poi non faceva niente, perché Ring
+  quella modalità non ce l'ha. Adesso i tasti si costruiscono da
+  `supported_features`, che è l'entità stessa a dichiarare, e ogni stato
+  accende il suo — `armed_home` accendeva l'inserimento totale. Il tastierino
+  compare solo se un codice esiste davvero (`code_format`) e serve anche per
+  inserire (`code_arm_required`): dove non c'è, si premeva OK a vuoto e il
+  comando partiva uguale.
+
+- **Il ritratto delle persone e' un personaggio 3D, e i pezzi si combinano
+  liberamente.** Il disegno costruito a mano se n'e' andato: al suo posto ci
+  sono i render 3D di Fluent Emoji (Microsoft, licenza MIT), vendorizzati
+  nell'integrazione — 390 immagini, 3,2 MB, nessuna rete a runtime. Si
+  scelgono quattro cose: **persona** (uomo, donna, neutro, ragazzo, ragazza,
+  anziano), **capelli** (lisci, barba, ricci, rossi, bianchi, calvo),
+  **carnagione** (cinque, nessun giallo) e **vestito** (ufficio, medico,
+  cuoco, smoking, velo, pompiere, poliziotto, muratore, operaio, meccanico,
+  contadino, pilota, astronauta, giudice, supereroe, scienziato, insegnante,
+  studente, informatico, artista, cantante, guardia, detective, turbante,
+  supercattivo, mago, fata, vampiro, elfo). Sono **oltre tremila
+  combinazioni**, e sono libere davvero: «ricci» e «cuoco» insieme si possono,
+  perche' la testa scelta viene riscalata e incollata sul busto scelto. Le
+  misure che servono a incastrarle — dove sta la testa in ogni immagine — le
+  prende lo script di build una volta sola. Nel costruttore ogni pastiglia e'
+  il TUO ritratto con quel pezzo addosso, non un'icona; e c'e' il 🎲.
+
+- **I ritratti respirano e sbattono le ciglia.** Il respiro e' CSS, quindi
+  gratis. Il battito no: gli occhi in un render non stanno su un livello a
+  parte, quindi lo script di build li **trova** — sono le due macchie chiare e
+  desaturate nella meta' alta della testa — e la plancia ci disegna sopra la
+  palpebra, prendendo il colore dalla guancia della persona stessa cosi' che
+  combaci con qualunque carnagione. Il battito dura trecento millisecondi e
+  poi la tela torna a dormire: ferma, una plancia con quattro persone non
+  disegna niente. L'espressione la decide quello che la plancia sa gia': chi
+  e' a casa ha gli occhi che ridono, chi ha la batteria agli sgoccioli o il
+  telefono fermo da ore ha le palpebre pesanti.
+
+  Le facce disegnate con la versione precedente non si perdono: carnagione,
+  capelli, barba e vestito vengono tradotti nei tratti nuovi.
+
+- **Il ponte dei widget: la tessera degli aspirapolvere, e un'intestazione che
+  dice qualcosa.** Mancava la tessera dei robot, che c'era per ogni altra
+  sezione. E la riga sotto il titolo spiegava come si tocca una tessera — lo si
+  capisce da solo la prima volta: adesso dice quante sezioni ci sono e quante
+  chiedono attenzione, con la fascia che si scalda quando ce n'è almeno una.
+
+- **L'interruttore dei widget su ogni sezione, e con scritto cosa fa.** Stava
+  solo sulle righe che mostrano l'entity_id sotto il nome, e saltava tutte le
+  sezioni fatte a caselle: EV, solare termico, MiniPC, antifurto — proprio
+  quelle con dieci sensori di cui in Home ne interessano due. E diceva «In
+  Home», che dice dove ma non cosa: adesso dice se quell'entità è dentro la
+  tessera o ne sta fuori, e cambia parola quando cambia stato.
+
+- **I marchi delle auto stanno in casa, col loro colore vero.** Arrivavano da
+  un CDN: una plancia Home Assistant vive su una rete domestica, spesso senza
+  uscita verso internet, e un'immagine che non arriva non fa rumore. I **38
+  marchi** stanno in `frontend/brands/`, serviti da Home Assistant come già si
+  fa con gli avatar, e portano i colori ufficiali letti dai metadati di
+  simple-icons.
+
+- **Il cavo dell'auto si può dichiarare.** La plancia lo deduceva dal testo
+  dello stato e dalla potenza del wallbox, e un wallbox fermo a zero watt col
+  cavo dentro veniva letto come staccato. Adesso c'è la sua casella.
+
+### Corretto
+
+- **Una stanza scritta ma non risolta veniva buttata via.** Il modello canonico
+  ricava `room_id` dall'*id* della stanza trovata: se quella stanza un id non ce
+  l'ha — una configurazione scritta a mano, o un salvataggio più vecchio degli
+  id — il campo restava vuoto e l'assegnazione spariva in silenzio, lasciando il
+  dispositivo senza stanza pur avendone una scritta accanto. Adesso il
+  riferimento originale resta, accanto all'id: mezza dozzina di sezioni lo
+  leggevano già così (`item.room || item.room_id`), aspettandosi che ci fosse.
+
+- **La finestra che si apre a mano non si poteva inserire.** «Io non ho le
+  tapparelle, ho le persiane e sono manuali, però ho sensori di apertura,
+  volevo inserirli ma chiede obbligatoriamente l'entità tapparella.» Aveva
+  ragione: la scheda offriva la casella del sensore e poi rifiutava di salvare
+  la riga che conteneva solo quello — una promessa e un dietrofront. Adesso il
+  sensore da solo basta: ne esce una card che disegna lo stesso serramento
+  degli altri, con le ante che si scostano quando il contatto dice che è
+  aperta, e sotto niente da toccare — perché su una persiana manuale
+  Apri/Ferma/Chiudi sarebbe un comando che non arriva da nessuna parte. Nel
+  conteggio in cima quelle finestre hanno una voce loro: contarle fra le
+  «aperte» avrebbe detto che c'è una tapparella su, e non c'è.
+
+- **Le pillole delle stanze parlavano un font che sulla plancia non esiste.**
+  Un `<button>` non eredita il font del documento: nessuno gliel'aveva mai
+  detto, e le pillole delle stanze in Temperature cadevano sul font di
+  sistema — diverso su ogni telefono, e su nessuno uguale al resto della
+  plancia. Adesso lo ereditano, come tutte le altre pillole della casa. E da
+  schermo largo un nome lungo ha lo spazio per starci, invece di diventare
+  «Camera mat…».
+
+- **Le card delle Luci da desktop: nomi troncati e mezzo schermo di bianco.**
+  «Lampadario C…», «Salone - Farett…»: la tessera era larga 258px fissi e il
+  titolo stava su una riga sola, quindi il nome moriva prima di dire quale
+  lampadario fosse. Adesso il titolo ha due righe e le tessere, da schermo
+  largo, crescono fino a riempire la riga — con un tetto, perche' una stanza
+  con una luce sola non diventi un cartellone. Il comando della stanza, che
+  finiva all'altro capo dello schermo a un metro dal conteggio che lo
+  riguarda, gli e' tornato accanto.
+
+- **Auto da desktop: la foto tagliata e i tag che spingevano tutto in fondo.**
+  La cornice della foto e' larga quanto lo schermo e bassa come su un
+  telefono: ritagliando la foto per riempirla, di un'auto si perdevano il
+  tetto e le ruote e restava una fascia di fiancata. Adesso la foto ci sta
+  dentro tutta e il vuoto ai lati lo riempie una copia sfocata di se stessa —
+  funziona con qualunque proporzione senza doverla sapere. E le linguette dei
+  modelli, che sono nate come bersagli per il pollice, su schermo largo si
+  stringono su una riga sola accanto alla marca, invece di essere una fascia
+  alta che spinge il resto sotto la piega.
+
+- **La sezione EV aveva sei padroni.** «Di chi è questa scheda» aveva due
+  funzioni a rispondere e nella bozza si contraddicevano; il pannello mostrava
+  le foto della vettura precedente e «Salva foto» ce le riscriveva sopra; `＋
+  Nuova auto` apriva una scheda già compilata Leapmotor B10 per via di un
+  ripiego scritto nel codice; l'ascoltatore del cambio marca era appeso a un
+  pezzo di disegno invece che alla tendina, quindi scegliere una marca non
+  riempiva i modelli; l'interruttore toglieva l'auto dalle linguette ma la
+  lasciava in plancia. La card del marchio adesso ha un padrone solo: uno la
+  costruiva, un secondo teneva una seconda copia del catalogo marche-modelli, un
+  terzo riallineava le tendine.
+
+- **I marchi delle auto erano scritti a colori e mostrati in grigio.** Una
+  regola marcata importante — dell'epoca del CDN, quando le immagini andavano
+  normalizzate a un inchiostro solo — li ridipingeva tutti dello stesso grigio
+  un istante dopo. Il colore giusto scritto e mai mostrato è come non averlo.
+
+- **Le tessere della Home tremavano.** Nella firma che decide se ridisegnarle
+  c'era anche il fatto che una tessera avesse o no la barra, e la barra dipende
+  da un valore: un sensore che per un giro dice «non disponibile» faceva
+  sparire la barra, cambiare la firma e riscrivere in blocco tutte le tessere.
+  A ogni evento di stato che passasse di lì. Nello stesso giro se ne va la
+  misura del testo scorrevole a ogni evento: leggere `scrollWidth` obbliga il
+  browser a rifare i conti dell'impaginazione, e lo si faceva più volte al
+  secondo per niente.
+
+- **L'animazione d'ingresso delle tessere non è mai partita.** Il segno «già
+  vista» si metteva prima di stampare il markup, che lo legge: ogni tessera
+  nasceva marcata, compresa quella appena arrivata.
+
+- **Gli avvisi del ponte stavano fermi.** Due selettori su tre puntavano a nomi
+  che la tessera ha smesso di usare, e una terza copia teneva viva l'illusione
+  sul Quadro. Quaranta righe di selettori sono diventate quattordici.
+
+- **Gli elettrodomestici nei Carichi avevano due facce.** Portavano il
+  carattere del campo invece del ritratto del catalogo: la stessa lavatrice
+  aveva un disegno nella sua pagina e un altro nell'Energia.
+
+- **La stanza del robot si sceglie da una tendina.** Era l'ultima casella dove
+  si poteva scrivere un nome che non esiste e vedere l'oggetto sparire in
+  silenzio.
+
+- **Il quadratino della stanza aveva due padroni**: il motore delle icone
+  disegnava il glifo e la Personalizzazione lo ridipingeva col suo.
+
 ## 1.2.0
 
 ### Aggiunto

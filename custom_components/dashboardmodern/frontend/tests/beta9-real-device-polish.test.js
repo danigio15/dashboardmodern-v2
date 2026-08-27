@@ -28,18 +28,38 @@ test("quick-action icons are delegated to the single-owner engine without beta9 
   assert.match(engine, /event\.stopImmediatePropagation\(\)/);
 });
 
-test("EV brand dropdown owns logo preview and model options, and not its place", async () => {
+test("della card del marchio questo modulo non e' piu' padrone", async () => {
   const source = await readFile(polishUrl, "utf8");
   // Where the panel goes belongs to the module that builds it — inside the
   // vehicle's own section. This one used to prepend it to the tab on every
   // pass, and the tab flickered between the two placements.
   assert.doesNotMatch(source, /body\.prepend\(panel\)/);
-  assert.match(source, /brandSelect\.addEventListener\("input", syncBrand\)/);
-  assert.match(source, /brandSelect\.addEventListener\("change", syncBrand\)/);
-  assert.match(source, /modelSelect\.innerHTML = modelOptions\(brand, keep\)/);
-  assert.match(source, /"Leapmotor": \["T03", "B10", "C10", "C10 REEV"\]/);
-  assert.match(source, /"MINI": \["Cooper Electric", "Aceman", "Countryman Electric"\]/);
-  assert.match(source, /filter:grayscale\(1\) brightness\(0\)!important/);
+  /* E non ne comanda piu' nemmeno il contenuto.
+   *
+   * Ci appendeva i suoi ascoltatori e teneva una seconda copia del catalogo
+   * dei modelli — un elenco di marche e modelli che viveva qui e uno che
+   * viveva nella Personalizzazione, destinati a divergere. Il quadratino
+   * aveva tre padroni e vinceva l'ultimo che passava. Adesso ne ha uno, e non
+   * e' questo: qui non resta ne' il catalogo, ne' gli ascoltatori, ne' il
+   * disegno del riquadro. */
+  assert.doesNotMatch(source, /CAR_MODELS/);
+  assert.doesNotMatch(source, /select\[data-brand\]/);
+  assert.doesNotMatch(source, /select\[data-model\]/);
+  assert.doesNotMatch(source, /\[data-brand-preview\]/);
+  assert.doesNotMatch(source, /carBrandVisual/);
+  /* Lo sbiancamento non c'e' piu', ed e' voluto.
+   *
+   * Serviva quando i loghi arrivavano da un CDN come immagini di provenienza
+   * incerta: si normalizzavano a un inchiostro solo. Adesso le figure stanno
+   * in casa e si disegnano come maschera, ognuna col colore vero del suo
+   * marchio — e ridipingerle tutte uguali era esattamente cio' che era stato
+   * chiesto di non fare. */
+  assert.doesNotMatch(source, /filter:grayscale\(1\) brightness\(0\)/);
+  assert.doesNotMatch(
+    source,
+    /#dm-visual-picker\[data-kind="car"\] \.dm-car-brand\{\s*color:/,
+    "il marchio nel catalogo tiene il colore che si e' dato",
+  );
   assert.match(source, /dm-v10-brand-wordmark/);
 });
 

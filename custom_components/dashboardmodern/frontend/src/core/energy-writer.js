@@ -17,6 +17,8 @@
 let queue = Promise.resolve();
 let inFlight = 0;
 
+import { PRIMO_IMPIANTO, pickPlant, plantList, storedPlants } from "./energy-plants.js";
+
 const clean = (value) => String(value ?? "").trim();
 
 /* La versione delle semantiche non si riporta indietro.
@@ -81,7 +83,27 @@ export function flushEnergyWrites() {
  * compilando la maschera dall'alto in basso — non si sovrascrivono piu' a
  * vicenda.
  */
-export function persistEnergyFields(store, updates = []) {
+/* Dove poggiare una scrittura, dentro l'oggetto salvato.
+ *
+ * Con un impianto solo — e con il primo — si scrive dove si e' sempre scritto:
+ * al primo livello. E' quello che tiene la forma identica per chi non ha mai
+ * chiesto piu' di una casa. Per gli altri si tocca il loro pezzo dell'elenco e
+ * si riserializza, senza spostare il primo di un millimetro. */
+function scriviNellImpianto(model, plantId, muta) {
+  const lista = plantList(model);
+  const impianto = pickPlant(lista, plantId);
+  if (!impianto || impianto.id === PRIMO_IMPIANTO) {
+    muta(model);
+    return model;
+  }
+  muta(impianto);
+  return storedPlants(
+    lista.map((voce) => (voce.id === impianto.id ? impianto : voce)),
+    model,
+  );
+}
+
+export function persistEnergyFields(store, updates = [], plantId = "") {
   const changes = (Array.isArray(updates) ? updates : []).filter(
     (entry) => Array.isArray(entry) && clean(entry[0]) && clean(entry[1]),
   );
@@ -89,11 +111,13 @@ export function persistEnergyFields(store, updates = []) {
   return queueEnergyWrite(() =>
     write(async () => {
       if (!store?.getSection || !store?.replaceSection) return;
-      const model = store.getSection("energy") || {};
-      for (const [group, key, value] of changes) {
-        model[group] = { ...(model[group] || {}) };
-        model[group][key] = clean(value);
-      }
+      const salvato = store.getSection("energy") || {};
+      const model = scriviNellImpianto(salvato, plantId, (bersaglio) => {
+        for (const [group, key, value] of changes) {
+          bersaglio[group] = { ...(bersaglio[group] || {}) };
+          bersaglio[group][key] = clean(value);
+        }
+      });
       model.metadata = withSemantics(model);
       await store.replaceSection("energy", model);
     }),
@@ -101,8 +125,8 @@ export function persistEnergyFields(store, updates = []) {
 }
 
 /** Scrive un singolo campo del modello Energia. */
-export const persistEnergyField = (store, group, key, value) =>
-  persistEnergyFields(store, [[group, key, value]]);
+export const persistEnergyField = (store, group, key, value, plantId = "") =>
+  persistEnergyFields(store, [[group, key, value]], plantId);
 
 /**
  * Scrive la dichiarazione di sorgente unica di un gruppo.
@@ -111,29 +135,31 @@ export const persistEnergyField = (store, group, key, value) =>
  * dichiarata deve lasciare il gruppo come se la sorgente unica non fosse mai
  * stata scelta, non un guscio vuoto che continua a comandare.
  */
-export function persistSignedSource(store, group, signed) {
+export function persistSignedSource(store, group, signed, plantId = "") {
   return queueEnergyWrite(() =>
     write(async () => {
       if (!store?.getSection || !store?.replaceSection) return;
-      const model = store.getSection("energy") || {};
-      model[group] = { ...(model[group] || {}) };
-      const entities = Object.entries(signed || {}).filter(
-        ([key, value]) => key !== "positive" && clean(value),
-      );
-      /* Il verso conta quanto un'entita'.
-       *
-       * Filtrando via `positive` e poi cancellando tutto quando non restava
-       * nessuna entita', la scelta del verso fatta prima di scrivere il
-       * sensore veniva buttata nel momento stesso in cui la si salvava. Chi
-       * ridisegnava subito dopo rileggeva un modello vuoto e richiudeva la
-       * scheda: si toccava il verso e la scheda si riazzerava, ogni volta. */
-      const verso = clean(signed?.positive);
-      if (!entities.length && !verso) delete model[group].signed;
-      else
-        model[group].signed = {
-          ...Object.fromEntries(entities.map(([key, value]) => [key, clean(value)])),
-          positive: verso,
-        };
+      const salvato = store.getSection("energy") || {};
+      const model = scriviNellImpianto(salvato, plantId, (bersaglio) => {
+        bersaglio[group] = { ...(bersaglio[group] || {}) };
+        const entities = Object.entries(signed || {}).filter(
+          ([key, value]) => key !== "positive" && clean(value),
+        );
+        /* Il verso conta quanto un'entita'.
+         *
+         * Filtrando via `positive` e poi cancellando tutto quando non restava
+         * nessuna entita', la scelta del verso fatta prima di scrivere il
+         * sensore veniva buttata nel momento stesso in cui la si salvava. Chi
+         * ridisegnava subito dopo rileggeva un modello vuoto e richiudeva la
+         * scheda: si toccava il verso e la scheda si riazzerava, ogni volta. */
+        const verso = clean(signed?.positive);
+        if (!entities.length && !verso) delete bersaglio[group].signed;
+        else
+          bersaglio[group].signed = {
+            ...Object.fromEntries(entities.map(([key, value]) => [key, clean(value)])),
+            positive: verso,
+          };
+      });
       model.metadata = withSemantics(model);
       await store.replaceSection("energy", model);
     }),

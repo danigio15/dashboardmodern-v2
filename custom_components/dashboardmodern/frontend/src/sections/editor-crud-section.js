@@ -218,6 +218,8 @@ function beginEdit(kind, index) {
     // Il rele' di discesa (#194): si mostra grezzo, cosi' una riga scritta a
     // mano non lo perde mentre la si riapre.
     setField("ed-tp-down", clean(item?.down) || "");
+    setField("ed-tp-down-tenda", clean(item?.tendaDown) || "");
+    setField("ed-tp-down-tendasole", clean(item?.tendaSoleDown) || "");
   } else if (kind === "room") {
     setField("ed-room-name", item.name || "");
     setField("ed-room-icon", item.icon || "🏠");
@@ -343,12 +345,18 @@ function installAddWrappers() {
     else list[index].preset = preset;
     // Il rele' di discesa (#194): tenuto solo se la riga ha senso, cioe' se
     // anche il primo comando e' un rele'.
-    const down = coverDownRelay({
-      entity: list[index].entity,
-      down: doc.getElementById("ed-tp-down")?.value,
-    });
-    if (down) list[index].down = down;
-    else delete list[index].down;
+    for (const [campo, chiave, casella] of [
+      ["entity", "down", "ed-tp-down"],
+      ["tenda", "tendaDown", "ed-tp-down-tenda"],
+      ["tendaSole", "tendaSoleDown", "ed-tp-down-tendasole"],
+    ]) {
+      const giu = coverDownRelay({
+        entity: list[index][campo],
+        down: doc.getElementById(casella)?.value,
+      });
+      if (giu) list[index][chiave] = giu;
+      else delete list[index][chiave];
+    }
     salvaTapparelle(list);
   },
   /* Il contatto sopravvive anche a una tapparella appena aggiunta: l'elenco lo
@@ -365,6 +373,8 @@ function installAddWrappers() {
       tendaSole: clean(doc.getElementById("ed-tp-tendasole")?.value),
       preset: clean(doc.getElementById("ed-tp-preset")?.value),
       down: clean(doc.getElementById("ed-tp-down")?.value),
+      tendaDown: clean(doc.getElementById("ed-tp-down-tenda")?.value),
+      tendaSoleDown: clean(doc.getElementById("ed-tp-down-tendasole")?.value),
     };
     const entity = clean(doc.getElementById("ed-tp-ent")?.value);
     /* Un infisso puo' avere la sola tenda: pretendere la tapparella qui
@@ -392,7 +402,17 @@ function installAddWrappers() {
      * a un sensore. */
     // Anche un rele': switch.* comanda molte tapparelle vere.
     const eUnaCopertura = (valore) => /^(cover|switch)\./i.test(clean(valore));
-    const alternativaValida = eUnaCopertura(extra.tenda) || eUnaCopertura(extra.tendaSole);
+    /* E una finestra puo' non avere motori affatto.
+     *
+     * «Io non ho le tapparelle, ho le persiane e sono manuali, pero' ho sensori
+     * di apertura, volevo inserirli ma chiede obbligatoriamente l'entita'
+     * tapparella». Il modulo offriva la casella del contatto e poi rifiutava la
+     * riga che conteneva solo quello: una promessa e un dietrofront. Il contatto
+     * da solo non comanda niente, ma dice se la finestra e' aperta, ed e'
+     * esattamente cio' che la card sa disegnare. */
+    const eUnContatto = (valore) => /^(binary_sensor|sensor|input_boolean)\./i.test(clean(valore));
+    const alternativaValida =
+      eUnaCopertura(extra.tenda) || eUnaCopertura(extra.tendaSole) || eUnContatto(extra.contact);
     const zittire = !entity && alternativaValida;
     const avviso = zittire ? root.alert : null;
     if (zittire) {

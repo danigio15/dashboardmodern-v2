@@ -301,7 +301,48 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // accanto a ogni entità già scritta negli editor l'interruttore che dice se
   // va in Home. Non disegna una scheda sua — decora quelle che ci sono — e la
   // scelta la scrive dove abitano già le preferenze del ponte.
-  assert.ok(relative.length <= 150, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 152 col ritratto delle persone rifatto: i render 3D di Fluent Emoji al
+  // posto del disegno a mano. Il catalogo generato dallo script di build
+  // (core/avatar-catalog.js) porta i nomi dei file e le misure prese una
+  // volta sola; il modello (core/avatar-3d.js) dice quali due immagini
+  // servono e come incastrarle, e non sa cos'e' una pagina; la sezione
+  // (sections/person-avatar-section.js) le incastra su una tela e ci disegna
+  // sopra le palpebre. Il motore che disegnava le facce a mano se n'e'
+  // andato con tutti i suoi pezzi.
+  // 154 con le Stanze: la casa letta per stanza invece che per tipo. Il
+  // modello (core/room-overview.js) raccoglie le assegnazioni che le
+  // sezioni gia' scrivono e le gira dall'altro lato — senza spostare
+  // niente e senza sapere cos'e' una pagina; la sezione
+  // (sections/rooms-page-section.js) le disegna, e per le luci non fa una
+  // card sua: usa quella della pagina Luci, che e' esportata apposta.
+  // 155 con gli impianti dell'energia: sotto lo stesso tetto puo' esserci
+  // piu' di un misuratore, e core/energy-plants.js e' il livello che
+  // mancava. Tiene la forma — il primo impianto resta al primo livello
+  // dell'oggetto salvato, gli altri in un elenco accanto — e le regole
+  // dell'id, che nasce una volta, non si ricava dal nome e non torna buono
+  // una seconda volta. Non sa cos'e' una pagina.
+  // 156 con le linguette degli impianti: la pagina Energia non cambia di una
+  // virgola, si aggiunge una riga sopra per scegliere quale casa si sta
+  // guardando — e con una casa sola quella riga non compare affatto.
+  // 155: se ne sono andati tutti e due gli argini della EV.
+  // `vehicle-identity.js` rimetteva a un'auto quello che `edEvCarAdd` del
+  // runtime le toglieva; `vehicle-photos.js` decideva di chi fosse una foto
+  // quando la stessa foto viveva in due posti. Adesso il salvataggio e' nostro
+  // e non toglie niente, e la foto sta nel profilo: non c'e' piu' niente da
+  // rimettere ne' da contendersi. `ev-console.js` resta perche' argine non e'
+  // mai stato: dice se la console di ricarica evcc e' configurata.
+  // 156 con la centrale antifurto che dichiara cosa sa fare: `alarm-panel.js`
+  // legge `supported_features` e dice quali inserimenti esistono davvero, quale
+  // tasto corrisponde allo stato, e se un codice c'e'. La plancia mostrava
+  // sempre gli stessi tre tasti: con Ring il tasto Notte non faceva niente
+  // perche' Ring la notte non ce l'ha, e `armed_home` accendeva Fuori. Non sa
+  // cos'e' una pagina: risponde su un oggetto di stato e basta.
+  // 157 con la stanza che si puo' dire ovunque: `room-assign-section.js` mette
+  // una tendina sulla riga in cui l'entita' e' gia' scritta, in qualunque
+  // scheda, e su quelle che una stanza ce l'hanno gia' per mestiere non mette
+  // niente. Aggiungere il campo a dieci editor voleva dire dieci punti in cui
+  // scriverlo e dieci modi di sbagliarlo.
+  assert.ok(relative.length <= 157, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

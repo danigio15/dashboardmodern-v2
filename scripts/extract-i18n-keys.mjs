@@ -135,6 +135,7 @@ const SECTION_TABLES = Object.freeze([
   { file: "minipc-showcase-section.js", name: "GROUPS", rows: "items", at: ["it", "en"] },
   { file: "page-masthead-section.js", name: "PAGES", rows: "items", at: ["it", "en"] },
   { file: "pool-editor-section.js", name: "CAMPI", rows: "items", at: [1, 2] },
+  { file: "rooms-page-section.js", name: "BLOCK_LABELS", rows: "values", at: [0, 1] },
   { file: "unified-editors-section.js", name: "ACTION_TYPES", rows: "items", at: [2, 3] },
 ]);
 

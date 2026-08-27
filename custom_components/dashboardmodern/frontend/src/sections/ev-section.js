@@ -1,17 +1,25 @@
 import { carBrandVisual } from "../core/personalization-catalog.js";
-import { assignCarKeys, carIndexByKey, carKey, restoreCarIdentities } from "../core/vehicle-identity.js";
-import { adoptLoosePhotos, photosForProfile, withProfilePhotos } from "../core/vehicle-photos.js";
+import {
+  VEHICLE_KEY_FIELD,
+  VEHICLE_OVERRIDES_FIELD,
+  VEHICLE_PHOTO_FIELDS,
+  nuovoVeicolo,
+  pickVehicle,
+  storedVehicles,
+  updateVehicle,
+  vehicleIndex,
+  vehicleList,
+  vehiclePhoto,
+  vehiclePhotos,
+} from "../core/vehicle-model.js";
 import { pickMediaImage } from "./media-picker-section.js";
-import { allStates, clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, section, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
+import { allStates, clean, dashboardStore, doc, esc, installStyle, onEditorRedraw, readJson, root, section, setLexicalGlobal, t, wrapFunction, writeJsonIfChanged } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_EV_SECTION__";
 const state = (root[KEY] ||= {
   installed: false,
-  lastUrl: "",
   frame: 0,
-  previousRefresh: null,
-  previousApply: null,
   legacyRefreshSignature: "",
   // L'ultimo verdetto valido su "il cavo e' attaccato": un wallbox vero perde
   // la connessione un istante e torna, e in quell'istante ne' il testo di
@@ -118,6 +126,24 @@ const HA_SILENT_STATES = /^(unknown|unavailable)$/i;
  *
  * Quando ne' il testo ne' la potenza rispondono, resta il verdetto di prima. */
 export function vehiclePlugged() {
+  /* Se il cavo e' attaccato, ADESSO si puo' chiedere.
+   *
+   * Qui sotto si indovina: si legge il testo dello stato di ricarica e, se non
+   * dice niente di utilizzabile, la potenza del wallbox. Sono indizi, e come
+   * tutti gli indizi ogni tanto sbagliano — un wallbox che resta a zero watt
+   * col cavo dentro e l'auto piena viene letto come cavo staccato.
+   *
+   * Chi ha un sensore che lo dice davvero — quasi tutte le wallbox ne
+   * pubblicano uno — adesso puo' dichiararlo, e allora si crede a lui e basta.
+   * Chi non ce l'ha continua come prima: la casella vuota non cambia niente. */
+  const cavo = liveState("dm.ev_cavo_collegato");
+  const dichiarato = clean(cavo?.state).toLowerCase();
+  if (dichiarato && !HA_SILENT_STATES.test(dichiarato)) {
+    if (/^(on|true|1|home|connected|plugged|collegato|attaccato)$/.test(dichiarato))
+      return (state.lastPlugged = true);
+    if (/^(off|false|0|not_home|disconnected|unplugged|scollegato|staccato)$/.test(dichiarato))
+      return (state.lastPlugged = false);
+  }
   const status = clean(liveState("dm.ev_stato_ricarica")?.state);
   if (status && !HA_SILENT_STATES.test(status)) {
     if (UNPLUGGED_STATES.test(status) || UNPLUGGED_WORDS.test(status)) return (state.lastPlugged = false);
@@ -131,8 +157,20 @@ export function vehiclePlugged() {
   return state.lastPlugged;
 }
 
-/** The photo the hero should be showing right now. */
+/* La foto che l'eroe deve mostrare adesso.
+ *
+ * La leggeva dalle due caselle sciolte, che sono una COPIA: qualcuno doveva
+ * tenerle allineate all'auto in uso, e per farlo c'erano una risemina all'avvio
+ * e una riscrittura a ogni cambio d'auto. Bastava che una delle due non
+ * scattasse — un ricaricamento della pagina, per dirne una — e nelle caselle
+ * restava la foto dell'altra vettura. Da qui la foto che cambiava da sola.
+ *
+ * Adesso si legge il profilo, che e' la fonte. Le caselle restano il ripiego di
+ * una configurazione a una macchina sola che non ha mai portato la sua foto
+ * dentro al profilo: li' sono ancora casa sua. */
 export function activeVehiclePhoto(photos = configuredPhotos(), plugged = vehiclePlugged()) {
+  const sua = vehiclePhoto(activeVehicle(), plugged);
+  if (sua) return sua;
   const chosen = plugged ? photos.plugged || photos.idle : photos.idle || photos.plugged;
   return clean(chosen);
 }
@@ -155,34 +193,28 @@ export function applyVehicleAsset() {
   const plugged = vehiclePlugged();
   const original = activeVehiclePhoto(photos, plugged);
   const url = resolveVehicleAsset(original);
-  /* La correzione torna solo dov'era il valore corretto.
+  /* Le due foto sono DATI dell'auto: il disegno le legge e basta.
    *
-   * Un percorso scritto a mano puo' arrivare storto — "/loca/..." invece di
-   * "/local/...", o il percorso su disco invece di quello che il browser sa
-   * servire — e riscriverlo nella sua forma buona evita di ripetere la
-   * correzione a ogni disegno. La chiave in cui finiva pero' la sceglieva il
-   * cavo: con la sola foto "col cavo" impostata e il cavo staccato, la foto
-   * attiva veniva da quella chiave ma veniva riscritta in quella "senza cavo".
-   * Da li' le due foto diventavano la stessa, da sole, poco dopo averle
-   * inserite — e con due profili la stessa coppia finiva su entrambe le auto.
+   * Qui viveva una riscrittura «correttiva» che rimetteva nella
+   * configurazione il percorso sistemato. Correggeva una volta e sbagliava
+   * per sempre: la casella in cui finiva la sceglieva il cavo, quindi la foto
+   * col cavo attaccato poteva finire in quella senza — e da li' le due
+   * diventavano la stessa da sole, su tutte e due le auto. Il percorso storto
+   * si sistema per il disegno, ogni volta, e non risale mai alla fonte:
+   * scollegato e collegato di ogni vettura restano quelli che sono stati
+   * scelti, e nessun giro di disegno li tocca. */
+  /* Il runtime storico tiene la sua copia della foto in una variabile presa
+   * all'avvio e la rimette sull'eroe a ogni giro: con due auto, o col cavo
+   * che cambia, quella copia e' vecchia e le due scritture si alternavano —
+   * la foto tremolava e mostrava l'altra macchina. La copia si allinea a
+   * quello che disegniamo, e la guerra finisce. */
+  /* E si allinea anche quando la foto non c'e'.
    *
-   * La correzione va adesso nelle caselle che quel valore lo contengono
-   * davvero, e in nessun'altra: una foto non puo' piu' passare da una casella
-   * all'altra da sola. */
-  if (url && clean(original) && clean(original) !== url) {
-    for (const [name, key] of Object.entries(EV_PHOTO_KEYS)) {
-      if (clean(photos[name]) !== clean(original)) continue;
-      root.localStorage?.setItem(key, JSON.stringify(url));
-    }
-    /* La foto adesso abita nel profilo, e la correzione deve arrivarci: se si
-     * fermasse alle caselle, la risemina del giro dopo le riporterebbe al
-     * valore storto e la correzione ripartirebbe a ogni disegno, per sempre. */
-    saveProfilePhotos({
-      idle: clean(photos.idle) === clean(original) ? url : photos.idle,
-      plugged: clean(photos.plugged) === clean(original) ? url : photos.plugged,
-    });
-  }
-  state.lastUrl = url;
+   * Scrivendola solo quando c'e', passando da un'auto con foto a una senza
+   * restava dentro l'indirizzo della prima: questo giro toglieva la sorgente
+   * dall'immagine, e quello storico gliela rimetteva un istante dopo — sotto
+   * la seconda macchina compariva la foto della prima. */
+  setLexicalGlobal("CD_EV_IMAGE", url || "");
   let mounted = false;
   for (const id of ["ev-mod-car-img", "ev-new-car-img"]) {
     const image = doc.getElementById(id); if (!image) continue;
@@ -200,6 +232,52 @@ export function applyVehicleAsset() {
     hero.dataset.evCable = plugged ? "plugged" : "unplugged";
   }
   return mounted;
+}
+
+/* Rimette in uso l'auto che era in uso, entita' comprese.
+ *
+ * Il runtime storico, quando salva un profilo, lo rende anche attivo: chi
+ * apriva la seconda vettura con la matita e premeva «Salva auto» si ritrovava
+ * la plancia cambiata sotto le mani. Salvare e' un gesto della
+ * configurazione; scegliere quale auto si vede e' «Usa». Qui si rimette a
+ * posto quello che il salvataggio ha spostato: l'indice attivo e la mappa
+ * delle entita' globali, che il giro di cattura riempie con quelle della
+ * vettura appena salvata. */
+function rimettiInUso(auto, indice) {
+  if (!auto || !Number.isInteger(indice) || indice < 0) return false;
+  const mappa = (auto.ov || auto.overrides || {});
+  try {
+    const salvate = readJson("cd_entity_overrides", {}) || {};
+    const prossime = {};
+    for (const [chiave, valore] of Object.entries(salvate))
+      if (!String(chiave).startsWith("dm.ev_")) prossime[chiave] = valore;
+    for (const [chiave, valore] of Object.entries(mappa)) prossime[chiave] = valore;
+    writeJsonIfChanged("cd_entity_overrides", prossime);
+    root.cdApplyCanonicalOverrides?.(prossime);
+  } catch (_error) {}
+  root.localStorage?.setItem("cd_ev_car_active", String(indice));
+  return true;
+}
+
+/* I campi entita' della scheda, riempiti con quelli dell'auto aperta.
+ *
+ * E' quello che faceva `cdEvApplyCar` come effetto secondario del mettere in
+ * uso; qui si fa solo la parte che riguarda il modulo di configurazione, e
+ * nessuna chiave globale viene toccata. Un campo lasciato vuoto dall'auto
+ * torna vuoto: e' cosi' che si vede che quella vettura quella entita' non ce
+ * l'ha. */
+function caricaCampiDaProfilo(auto) {
+  const contenitore = doc?.getElementById("ed-body");
+  if (!contenitore) return false;
+  const mappa = (auto && typeof auto === "object" && (auto.ov || auto.overrides)) || {};
+  for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]')) {
+    const valore = clean(mappa[clean(slot.dataset.ref)]);
+    if (slot.value === valore) continue;
+    slot.value = valore;
+    slot.dispatchEvent(new Event("input", { bubbles: true }));
+    slot.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  return true;
 }
 
 /* ── the two photos, in the configuration ──────────────────────────────── */
@@ -251,12 +329,18 @@ function paintPhotoPreview(field) {
 
 function savePhotos(panelNode) {
   const salvate = { idle: "", plugged: "" };
+  /* Le due caselle sciolte sono il DISEGNO di adesso, cioe' l'auto in uso.
+   * Configurando un'altra vettura con la matita non si tocca il disegno:
+   * scriverci dentro faceva comparire in plancia la foto di un'auto che
+   * nessuno aveva scelto — l'altra meta' del «le foto si mischiano». */
+  const elenco = profiles();
+  const scriveIlDisegno = vehiclePhotoTargetIndex(elenco) === activeIndex();
   for (const field of panelNode.querySelectorAll("[data-ev-photo]")) {
     const kind = field.dataset.evPhoto === "plugged" ? "plugged" : "idle";
     const value = clean(field.querySelector("[data-ev-photo-input]")?.value);
     const stored = value ? resolveVehicleAsset(value) || value : "";
     salvate[kind] = stored;
-    root.localStorage?.setItem(EV_PHOTO_KEYS[kind], JSON.stringify(stored));
+    if (scriveIlDisegno) root.localStorage?.setItem(EV_PHOTO_KEYS[kind], JSON.stringify(stored));
     // Written: what is on screen and what is stored say the same thing again.
     delete field.dataset.evPhotoEdited;
   }
@@ -271,11 +355,85 @@ function savePhotos(panelNode) {
   scheduleEvSyncSettled();
 }
 
+/* L'auto a cui il pannello delle foto sta parlando.
+ *
+ * NON e' per forza quella in uso. La matita apre una sessione su QUELLA auto,
+ * e finche' e' aperta tutto quello che si configura — nome, marca, entita' —
+ * appartiene a lei: le foto non possono fare eccezione, o si torna al difetto
+ * di sempre («ho aperto la Zoe, la foto e' finita sulla Tesla»). Senza
+ * sessione aperta si scrive sull'auto in uso, che e' quella che la plancia
+ * sta mostrando. Il -1 resta -1: nessuna auto, nessun salvataggio. */
+/* L'auto di cui parla la scheda adesso.
+ *
+ * I tre casi che la sessione distingue, e che chiunque chieda «di chi stiamo
+ * parlando» deve distinguere allo stesso modo:
+ *   null  — nessun gesto: si racconta l'auto in uso;
+ *   ""    — bozza (＋ Nuova auto): NESSUNA auto, la vettura non esiste ancora;
+ *   uid   — la matita ha aperto QUELLA.
+ *
+ * Il caso di mezzo e' quello che si dimentica, ed e' quello che conta: una
+ * bozza che ricade sull'auto in uso le mette addosso i panni della vettura che
+ * sta nascendo. */
+/** Se la scheda e' una BOZZA: ＋ Nuova auto aperto, nessuna vettura dietro. */
+export function bozzaAperta() {
+  return editingKey() === "";
+}
+
+export function editedVehicle(list = profiles()) {
+  const chiave = editingKey();
+  if (chiave === "") return null;
+  if (chiave) return list.find((car) => uidDi(car) === chiave) || null;
+  return activeVehicle(list);
+}
+
+/* Dove sta, nell'elenco, l'auto di cui parla la scheda.
+ *
+ * La domanda e' la stessa di `editedVehicle`, e la risposta deve essere la
+ * stessa: qui si traduce soltanto in una posizione, per i giri che ancora
+ * ragionano a numeri.
+ *
+ * Questa funzione se la rispondeva da sola, e nella BOZZA sbagliava: `""` non
+ * e' un uid, quindi cadeva sull'auto in uso — il pannello delle foto mostrava
+ * la vettura vecchia su una scheda vuota, e «Salva foto» le riscriveva
+ * addosso il percorso appena battuto per quella nuova. E' il difetto del
+ * brand, sull'altro pannello: la bozza vestita coi panni dell'attiva.
+ *
+ * Una domanda, un posto solo che risponde. */
+export function vehiclePhotoTargetIndex(cars = profiles()) {
+  if (!Array.isArray(cars) || !cars.length) return -1;
+  const auto = editedVehicle(cars);
+  return auto ? vehicleIndex(cars, uidDi(auto)) : -1;
+}
+
+/* Le foto che la PLANCIA disegna: sempre quelle dell'auto in uso. La matita
+ * configura, non cambia cio' che si vede — sono due gesti diversi. */
 function fotoDelProfiloAttivo() {
   const elenco = profiles();
   if (!elenco.length) return configuredPhotos();
-  const indice = Math.max(0, Math.min(elenco.length - 1, activeIndex()));
-  return photosForProfile(elenco[indice], configuredPhotos(), elenco.length);
+  return fotoDi(elenco[Math.max(0, Math.min(elenco.length - 1, activeIndex()))], elenco.length);
+}
+
+/* Le foto che il PANNELLO mostra e salva: quelle dell'auto aperta. */
+function fotoDelProfiloInModifica() {
+  const elenco = profiles();
+  if (!elenco.length) return configuredPhotos();
+  const indice = vehiclePhotoTargetIndex(elenco);
+  if (indice < 0) return { idle: "", plugged: "" };
+  return fotoDi(elenco[indice], elenco.length);
+}
+
+/* Le foto di UN profilo.
+ *
+ * Con una macchina sola le due caselle sono ancora casa sua: un profilo senza
+ * foto tiene quella che c'era, ed e' quello che ogni configurazione a una
+ * vettura ha sempre fatto. Da due in su no — se il profilo non ha una foto,
+ * quell'auto non ha una foto, e mostrarle quella dell'altra e' come scriverle
+ * il nome dell'altra. Era questo a far sembrare le due auto la stessa. */
+function fotoDi(car, quante = profiles().length) {
+  const proprie = vehiclePhotos(car);
+  if (quante > 1) return proprie;
+  const caselle = configuredPhotos();
+  return { idle: proprie.idle || caselle.idle, plugged: proprie.plugged || caselle.plugged };
 }
 
 export function ensureVehiclePhotoEditor() {
@@ -292,7 +450,7 @@ export function ensureVehiclePhotoEditor() {
    * risalvava — e' il ponte con cui la foto di un'auto finiva sull'altra, col
    * titolo giusto a fare da alibi. La fonte e' il profilo attivo; le caselle
    * restano solo il ripiego di chi ha una vettura sola col formato vecchio. */
-  const photos = fotoDelProfiloAttivo();
+  const photos = fotoDelProfiloInModifica();
   if (!panelNode) {
     panelNode = doc.createElement("section");
     panelNode.className = "ed-form dm-ev-photos";
@@ -373,8 +531,8 @@ export function ensureVehiclePhotoEditor() {
   const titolo = panelNode.querySelector("[data-ev-photos-title]");
   if (titolo) {
     const elenco = profiles();
-    const attiva = elenco[Math.max(0, Math.min(elenco.length - 1, activeIndex()))];
-    const nome = clean(attiva?.name);
+    const bersaglio = elenco[vehiclePhotoTargetIndex(elenco)];
+    const nome = clean(bersaglio?.name);
     const testo = nome && elenco.length > 1
       ? `📸 ${t("Foto dell'auto", "Vehicle photos")} — ${nome}`
       : `📸 ${t("Foto dell'auto", "Vehicle photos")}`;
@@ -388,7 +546,7 @@ export function ensureVehiclePhotoEditor() {
      * nuovo a fare da alibi. Al cambio si azzera il segno di modifica e i
      * campi si ricaricano dalle foto dell'auto appena scelta. */
     if (titolo.dataset.evPhotosFor !== undefined && titolo.dataset.evPhotosFor !== nome) {
-      const foto = fotoDelProfiloAttivo();
+      const foto = fotoDelProfiloInModifica();
       for (const field of panelNode.querySelectorAll("[data-ev-photo]")) {
         delete field.dataset.evPhotoEdited;
         const input = field.querySelector("[data-ev-photo-input]");
@@ -405,75 +563,25 @@ export function ensureVehiclePhotoEditor() {
   return true;
 }
 
-/* Il nome sulla scheda decide di chi sono i campi.
+/* Il nome sulla scheda e' un dato, non un timone.
  *
- * La scheda dell'auto e' un campo nome sopra le caselle delle entita' dm.ev_*,
- * che mostrano la mappatura VIVA — quella dell'auto attiva. Scrivere li' il
- * nome di un'auto nuova e premere «salva scheda» catturava quei campi cosi'
- * com'erano: la nuova nasceva con le entita' dell'altra addosso, e sembrava
- * la stessa macchina con un altro nome. Segnalato alla lettera: «appena
- * inserisco il nome di un'altra auto deve svuotare i dati».
+ * La scheda dell'auto e' un campo nome sopra le caselle delle entita'
+ * dm.ev_*. Scriverci dentro un tempo RICARICAVA o SVUOTAVA quelle caselle a
+ * seconda che il nome fosse di qualcuno o di nessuno: rinominare un'auto era
+ * impossibile — a meta' digitazione i campi cambiavano padrone — e un
+ * prefisso uguale a un'altra auto ne caricava la mappatura addosso.
  *
- * Il campo nome adesso governa le caselle: un nome che non e' di nessuno le
- * svuota — l'auto nuova parte da zero — e il nome di un'auto esistente le
- * ricarica dai dati SUOI, cosi' risalvarla non le scrive addosso la mappatura
- * di quella attiva. Si toccano solo i campi a video: le mappature salvate non
- * cambiano finche' non si preme salva, ed e' `edSetSlot` — il giro di sempre —
- * a leggere i campi al salvataggio.
+ * Contro quel guaio si era messo un segnalibro dei campi toccati a mano, per
+ * non svuotare quello che l'utente stava scrivendo. Poi il timone e' stato
+ * tolto: di chi sono i campi lo decide la SESSIONE — la matita apre un'auto,
+ * ＋ apre una bozza — e il nome e' semplicemente il nome che quell'auto
+ * avra'. Senza piu' nessuno che svuoti, non restava niente da proteggere: il
+ * segnalibro si riempiva e si azzerava senza che nessuno lo leggesse mai. Se
+ * n'e' andato con la guardia che lo teneva.
  *
- * Un campo scritto A MANO in questa seduta pero' non si tocca: chi compila
- * prima le entita' della vettura nuova e per ultimo il nome sta descrivendo
- * proprio lei, e svuotarglielo sarebbe rubargli il lavoro dalle dita — la
- * scheda poi nemmeno si salverebbe, perche' il runtime esige almeno una
- * entita'. E' la stessa regola delle bozze del pannello foto. Il segno vive
- * qui nel modulo, per riferimento: l'editor si ridisegna di continuo e un
- * segno appoggiato sul nodo morirebbe col nodo — il valore no, perche' il
- * cambio l'ha gia' scritto nelle mappature e il ridisegno lo ristampa. Si
- * azzera quando la scheda si salva e quando si cambia auto: da li' i campi
- * tornano a raccontare il modello. */
-const refToccati = () => (state.evTouchedRefs ||= new Set());
-
-/* Il segnalibro dei campi toccati deve esserci PRIMA che qualcuno tocchi.
- *
- * Stava dentro ensureCarNameGuard, che parte col primo giro differito della
- * sezione: su un dispositivo lento c'e' una finestra in cui l'editor e' gia'
- * visibile ma il giro non e' ancora passato. Un'entita' digitata li' dentro
- * non veniva marcata; al primo nome scritto il guardiano la prendeva per un
- * residuo dell'auto precedente e la svuotava — e il salvataggio rispondeva
- * «nessuna entita' mappata». Si installa al montaggio della sezione. */
-function installSlotTouchTracker() {
-  if (!doc || state.evSlotTouchGuard) return;
-  state.evSlotTouchGuard = true;
-  for (const eventName of ["input", "change"]) {
-    doc.addEventListener(
-      eventName,
-      (event) => {
-        const input = event.target;
-        if (!input?.matches?.('input.ed-slot-in[data-ref^="dm.ev_"]')) return;
-        const ref = clean(input.dataset?.ref);
-        if (ref) refToccati().add(ref);
-      },
-      true,
-    );
-  }
-}
-
-function ensureCarNameGuard() {
-  if (!doc) return false;
-  installSlotTouchTracker();
-  const campo = doc.getElementById("ed-evcar-name");
-  if (!campo || campo.dataset.dmEvNameGuard === "true") return false;
-  campo.dataset.dmEvNameGuard = "true";
-  /* Il nome e' un dato della scheda, non un timone.
-   *
-   * Prima scrivere qui dentro RICARICAVA o SVUOTAVA le caselle delle entita'
-   * a seconda che il nome fosse di qualcuno o di nessuno: rinominare un'auto
-   * era impossibile (a meta' digitazione i campi cambiavano padrone) e un
-   * prefisso uguale a un'altra auto ne caricava la mappatura. Di chi sono i
-   * campi lo decide la SESSIONE — la matita apre un'auto, ＋ apre la bozza —
-   * e il nome scritto qui e' semplicemente il nome che quell'auto avra'. */
-  return true;
-}
+ * Qui adesso non c'e' niente, ed e' esattamente il punto: nessun ascoltatore
+ * sul campo del nome, e nessuna scrittura nelle caselle a partire da quello
+ * che ci si digita dentro. */
 
 /* La lista delle auto parla la lingua delle altre sezioni.
  *
@@ -499,11 +607,75 @@ function ensureCarListDecor() {
   const contenitore = doc.getElementById("ed-body");
   if (!contenitore) return false;
 
+  /* «Usa» non diceva niente.
+   *
+   * «Continuo a vedere nel config il tasto usa, a che serve»: e' il tasto che
+   * sceglie QUALE auto la plancia mostra — una sola alla volta. Adesso lo
+   * dice: quella mostrata porta il distintivo pieno e non e' piu' un bottone,
+   * le altre invitano a mostrarle. */
+  /* Niente da scegliere: c'e' un interruttore, e basta.
+   *
+   * «Che significa in plancia? A che serve quel tasto? Va abolito: al massimo
+   * uno switch se attivarla o meno nella sezione.» Il tasto «Usa» decideva
+   * quale auto fosse "quella attiva", ed e' il concetto da cui le foto si
+   * spostavano da sola a sola. Sparisce: ogni auto ha il suo interruttore —
+   * accesa, compare tra le linguette della sezione EV; spenta, non c'e'. Qual
+   * e' quella aperta la sceglie chi guarda, toccando la linguetta. */
   for (const bottone of contenitore.querySelectorAll('[data-act="use"]')) {
     const riga = bottone.closest(".ed-row");
     if (!riga) continue;
     for (const badge of riga.querySelectorAll(".pool-badge"))
       if (/attiv/i.test(clean(badge.textContent))) badge.remove();
+    bottone.style.setProperty("display", "none", "important");
+    const indiceRiga = Number.parseInt(bottone.dataset.idx || "-1", 10);
+    const principale = riga.querySelector(".ed-row-main");
+    if (principale) principale.style.cssText = "flex:1 1 auto;min-width:0;";
+    if (Number.isFinite(indiceRiga) && !riga.querySelector("[data-ev-enabled]")) {
+      const interruttore = doc.createElement("button");
+      interruttore.type = "button";
+      interruttore.className = "dm-ev-enabled";
+      interruttore.dataset.evEnabled = String(indiceRiga);
+      interruttore.innerHTML = "<i></i>";
+      interruttore.addEventListener("click", () => {
+        const indice = Number.parseInt(interruttore.dataset.evEnabled, 10);
+        const elenco = ensureCarKeys();
+        const auto = elenco[indice];
+        if (!auto) return;
+        const accesa = auto.enabled !== false;
+        const rimesse = elenco.map((car, posto) =>
+          posto === indice ? { ...car, enabled: !accesa } : car,
+        );
+        salvaAuto(rimesse);
+        /* Spegnendo proprio l'auto in mostra, la sezione passa a una accesa.
+         *
+         * L'interruttore dice se una vettura compare nella sezione, e questa
+         * appena spenta non ci compare piu': restando lei quella in uso, la
+         * plancia continuava a disegnare la sua foto sotto le linguette che
+         * non la portavano piu'. Si sposta su chi c'e' ancora — se non c'e'
+         * piu' nessuno acceso non si tocca niente, perche' `carsShownInSection`
+         * in quel caso le rimette tutte. */
+        if (accesa && uidDi(auto) === uidDi(activeVehicle(rimesse))) {
+          const prossima = rimesse.findIndex(
+            (car, posto) => posto !== indice && car?.enabled !== false,
+          );
+          if (prossima >= 0) chooseProfile(prossima);
+        }
+        scheduleEvSync();
+        ensureCarListDecor();
+      });
+      bottone.insertAdjacentElement("beforebegin", interruttore);
+    }
+    const interruttore = riga.querySelector("[data-ev-enabled]");
+    if (interruttore) {
+      const auto = profiles()[indiceRiga];
+      const accesa = auto ? auto.enabled !== false : true;
+      interruttore.dataset.on = String(accesa);
+      interruttore.setAttribute("aria-pressed", String(accesa));
+      interruttore.title = accesa
+        ? t("Attiva nella sezione EV — tocca per toglierla", "Active in the EV section — tap to remove it")
+        : t("Non compare nella sezione EV — tocca per attivarla", "Not in the EV section — tap to add it");
+      interruttore.setAttribute("aria-label", interruttore.title);
+    }
     if (!riga.querySelector("[data-ev-edit]")) {
       const matita = doc.createElement("button");
       matita.type = "button";
@@ -517,8 +689,17 @@ function ensureCarListDecor() {
         if (!Number.isFinite(indice)) return;
         const auto = ensureCarKeys()[indice] || profiles()[indice];
         const nome = clean(auto?.name);
-        try { root.cdEvCarSelEd?.({ value: String(indice) }); } catch (_error) {}
-        setEditingKey(carKey(auto || {}));
+        /* La matita APRE, non mette in uso.
+         *
+         * Passava per `cdEvCarSelEd`, che chiama `cdEvApplyCar`: aprire
+         * un'auto per configurarla la faceva diventare quella della plancia —
+         * foto compresa. Chi apriva la seconda vettura vedeva cambiare la
+         * macchina in Home senza aver toccato «Usa», ed e' meta' del «le foto
+         * si mischiano». Aprire e usare sono due gesti, e la riga ha due
+         * bottoni: qui si riempiono solo i campi con le entita' di QUELLA
+         * auto, e niente esce da questa scheda. */
+        caricaCampiDaProfilo(auto);
+        setEditingKey(uidDi(auto || {}));
         /* La matita e' l'unico gesto che dice «sto modificando LEI»: da qui
          * salvare con un nome diverso rinomina, invece di creare una riga. */
         state.evRenameArmed = true;
@@ -539,8 +720,26 @@ function ensureCarListDecor() {
 
   const salva = contenitore.querySelector('button[onclick*="edEvCarAdd"]');
   if (salva) {
-    const testoSalva = `💾 ${t("Salva auto", "Save car")}`;
+    /* Un salvataggio solo, e dice cosa salva.
+     *
+     * «Tasto ＋, tasto salva auto e giu' salva sezione: non si capisce quale
+     * aggiunge davvero un'auto». Sono tre bottoni per due gesti. Adesso:
+     * ＋ apre una scheda vuota e il salvataggio diventa «Salva la nuova
+     * auto»; con un'auto aperta dalla matita diventa «Salva le modifiche a
+     * NOME». Il bottone verde in fondo alla sezione fa esattamente questo, e
+     * lo dice con le stesse parole — non e' un terzo gesto. */
+    const chiaveAperta = editingKey();
+    const elencoAuto = profiles();
+    const apertaIndice = chiaveAperta ? vehicleIndex(elencoAuto, chiaveAperta) : -1;
+    const nomeAperta = clean(elencoAuto[apertaIndice]?.name);
+    const nuova = chiaveAperta === "" || (!nomeAperta && apertaIndice < 0);
+    const testoSalva = nuova
+      ? `💾 ${t("Salva la nuova auto", "Save the new car")}`
+      : nomeAperta
+        ? `💾 ${t("Salva le modifiche a", "Save changes to")} ${nomeAperta}`
+        : `💾 ${t("Salva auto", "Save car")}`;
     if (salva.textContent !== testoSalva) salva.textContent = testoSalva;
+    salva.dataset.evSaveCar = "true";
     const rigaNome = salva.parentElement;
     if (rigaNome && !contenitore.querySelector("[data-ev-add-new]")) {
       const aggiungi = doc.createElement("button");
@@ -548,7 +747,7 @@ function ensureCarListDecor() {
       aggiungi.className = "ed-btn-add";
       aggiungi.dataset.evAddNew = "true";
       aggiungi.style.cssText = "display:block;width:100%;margin:12px 0 8px;";
-      aggiungi.textContent = `＋ ${t("Aggiungi auto", "Add car")}`;
+      aggiungi.textContent = `＋ ${t("Nuova auto", "New car")}`;
       aggiungi.addEventListener("click", () => {
         const campo = doc.getElementById("ed-evcar-name");
         if (!campo) return;
@@ -556,9 +755,7 @@ function ensureCarListDecor() {
         state.evRenameArmed = false;
         campo.value = "";
         // Il ＋ e' il gesto «riparto da zero»: si svuota tutto qui, in modo
-        // esplicito — il guardiano del nome protegge i valori scritti a
-        // mano, e qui invece anche quelli devono andarsene.
-        refToccati().clear();
+        // esplicito.
         for (const slot of contenitore.querySelectorAll('input.ed-slot-in[data-ref^="dm.ev_"]'))
           slot.value = "";
         campo.dispatchEvent(new Event("input", { bubbles: true }));
@@ -586,8 +783,8 @@ function ensureCarListDecor() {
   );
   if (intro) {
     const testo = `🚗 ${t(
-      "Ogni auto è una scheda: ＋ Aggiungi auto per crearne una nuova — nome, marca, modello e tutte le entità qui sotto — la matita per modificarla, USA per mostrarla in plancia.",
-      "Each car is its own card: ＋ Add car to create a new one — name, brand, model and all its entities below — the pencil to edit it, USE to show it on the dashboard.",
+      "Tre gesti, e basta: ＋ Nuova auto apre una scheda vuota, la ✏️ apre un'auto già salvata, l'interruttore la accende o la spegne nella sezione EV. Sotto si compila nome, marca, modello, entità e le due foto — e il salvataggio è uno solo: dice se sta creando o modificando, e in fondo alla sezione porta le stesse parole. Quale auto guardare si sceglie dalle linguette della sezione, non da qui.",
+      "Three gestures, no more: ＋ New car opens an empty card, the ✏️ opens a car you already saved, the switch turns it on or off in the EV section. Below you fill in name, brand, model, entities and both photos — and there is a single save: it says whether it is creating or editing, and the one at the bottom of the section carries the same words. Which car you look at is picked from the section's own tabs, not from here.",
     )}`;
     if (clean(intro.textContent) !== clean(testo)) intro.textContent = testo;
   }
@@ -596,7 +793,16 @@ function ensureCarListDecor() {
 
 function legacyProfiles() { const cars = readJson("cd_ev_cars", []); return Array.isArray(cars) ? cars : []; }
 function canonicalProfiles() { const cars = section("ev", []); return Array.isArray(cars) ? cars : []; }
-function profiles() { const legacy = legacyProfiles(); return legacy.length ? legacy : canonicalProfiles(); }
+/* L'elenco delle auto, in una forma sola.
+ *
+ * Passa da `vehicleList`: e' li' che un profilo diventa un'auto — con il suo
+ * uid, la sua mappatura ripulita e le sue foto dentro invece che sparse. Sei
+ * moduli leggevano `cd_ev_cars` grezza, ognuno con la sua idea di cosa ci fosse
+ * scritto; da qui in poi la forma la decide un posto solo. */
+export function profiles() {
+  const legacy = legacyProfiles();
+  return vehicleList(legacy.length ? legacy : canonicalProfiles());
+}
 function collectEntityIds(value, output, depth = 0) {
   if (depth > 10 || value == null) return;
   if (typeof value === "string") { const id = clean(value); if (ENTITY_ID.test(id)) output.add(id); return; }
@@ -611,7 +817,32 @@ export function stateChangeAffectsEv(event) {
   return [...changed].some((id) => configured.has(id));
 }
 
-function activeIndex() { const index = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "-1", 10); return Number.isFinite(index) ? index : -1; }
+/* L'identita' di un'auto, letta dove sta scritta.
+ *
+ * Era `carKey`, che se non trovava la chiave scritta se la RICAVAVA dal nome e
+ * dalla marca: due auto chiamate quasi uguale ne ricavavano una sola, e
+ * sceglierne una apriva l'altra. Adesso non si ricava piu' niente — l'uid ce
+ * l'hanno tutte perche' `profiles()` passa dal modello, e chi non ce l'aveva se
+ * l'e' visto scrivere al primo salvataggio. */
+const uidDi = (car) => clean(car?.[VEHICLE_KEY_FIELD]);
+
+/* Quale auto si sta guardando.
+ *
+ * La casella ha tenuto per anni una POSIZIONE, e ogni riordino dell'elenco
+ * spostava l'auto in uso sotto i piedi di chi la stava guardando. Adesso il
+ * riferimento e' l'uid; un numero si accetta ancora, perche' chi arriva da
+ * prima non deve perdere l'auto che aveva scelto. */
+export const VEHICLE_ACTIVE_KEY = "cd_ev_car_active";
+
+export function activeVehicle(list = profiles()) {
+  return pickVehicle(list, root.localStorage?.getItem(VEHICLE_ACTIVE_KEY) || "");
+}
+
+function activeIndex() {
+  const list = profiles();
+  const scelta = activeVehicle(list);
+  return scelta ? vehicleIndex(list, scelta[VEHICLE_KEY_FIELD]) : -1;
+}
 
 /* Ogni auto porta la sua chiave, sempre.
  *
@@ -620,15 +851,53 @@ function activeIndex() { const index = Number.parseInt(root.localStorage?.getIte
  * ricadeva sul nome — che e' esattamente il modo in cui le auto si mescolavano.
  * Qui la chiave si assegna appena l'elenco passa di mano, e da li' non cambia
  * piu': rinominare un'auto non la fa diventare un'altra. */
+/* Dove sta il segno che dice a che numero di uid siamo arrivati.
+ *
+ * `cd_ev_cars` e' un elenco e un posto per questo non ce l'ha. Serve perche' un
+ * uid non deve tornare buono una seconda volta: chi cancella l'ultima auto e ne
+ * aggiunge un'altra si ritroverebbe le foto e la mappatura di quella
+ * cancellata. */
+const EV_META_KEY = "cd_ev_meta";
+
+const letturaMetadata = () => {
+  const salvato = readJson(EV_META_KEY, {});
+  return salvato && typeof salvato === "object" && !Array.isArray(salvato) ? salvato : {};
+};
+
+/**
+ * L'unico modo di scrivere l'elenco delle auto.
+ *
+ * Erano sette punti di scrittura in questa sezione piu' uno nella
+ * Personalizzazione, ognuno con la sua idea di cosa andasse normalizzato e cosa
+ * no: e' il motivo per cui un profilo perdeva pezzi a seconda di chi l'aveva
+ * toccato per ultimo. Adesso ogni scrittura passa da qui, e da qui passa dal
+ * modello — che e' il solo a sapere cos'e' un'auto.
+ */
+export function salvaAuto(list) {
+  const { cars, metadata } = storedVehicles(list, letturaMetadata());
+  writeJsonIfChanged("cd_ev_cars", cars);
+  writeJsonIfChanged(EV_META_KEY, metadata, { sync: false });
+  try { dashboardStore()?.replaceSection?.("ev", cars)?.catch?.(() => {}); } catch (_error) {}
+  root.cdMarkDirty?.();
+  root.cdSyncPush?.();
+  return cars;
+}
+
+/* Ogni auto porta il suo uid, scritto.
+ *
+ * `vehicleList` lo assegna leggendo, ma un uid che vive solo in memoria non e'
+ * un'identita': al giro dopo lo riassegna, e se nel frattempo l'elenco e'
+ * cambiato di posto non e' piu' lo stesso. Qui si scrive la prima volta che
+ * l'elenco passa di mano, e da li' non cambia piu'. */
 function ensureCarKeys() {
   const legacy = legacyProfiles();
   if (!legacy.length) return legacy;
-  const conChiavi = assignCarKeys(legacy);
-  if (conChiavi !== legacy) {
-    writeJsonIfChanged("cd_ev_cars", conChiavi);
-    try { dashboardStore()?.replaceSection?.("ev", conChiavi)?.catch?.(() => {}); } catch (_error) {}
-  }
-  return conChiavi;
+  const normalizzate = vehicleList(legacy);
+  const uguali =
+    normalizzate.length === legacy.length &&
+    normalizzate.every((car, posto) => clean(legacy[posto]?.[VEHICLE_KEY_FIELD]) === car[VEHICLE_KEY_FIELD]);
+  if (uguali) return normalizzate;
+  return salvaAuto(normalizzate);
 }
 
 /* Di chi sono i campi della scheda, adesso.
@@ -670,12 +939,25 @@ export function vehicleBatteryEntity(car = profiles()[activeIndex()] || profiles
   return "";
 }
 
+/* La riga sotto il nome, dentro la linguetta.
+ *
+ * Diceva solo la percentuale di batteria, e il modello dell'auto stava in un
+ * badge a parte — un quarto riquadro nella stessa riga, che parlava sempre e
+ * solo della vettura in uso mentre accanto c'erano le linguette di tutte. Due
+ * disegni per la stessa cosa, e chi guardava vedeva tre riquadri per due auto.
+ *
+ * Il modello sta qui, dove sta il nome a cui appartiene: «Cooper SE · 72%». Se
+ * la batteria non risponde resta il modello; se non c'e' nemmeno quello, la
+ * riga dice cos'e' la linguetta. */
 function profileMeta(car = {}) {
   const overrides = car.ov || car.overrides || {};
   const batteryEntity = overrides["dm.ev_batteria_auto"] || overrides["dm.ev_battery"] || overrides["dm.ev_soc"] || car.battery_entity || car.soc_entity || "";
   const current = batteryEntity && (root.STATES?.[batteryEntity] || root._RAW_STATES?.[batteryEntity]);
   const value = Number(current?.state);
-  return Number.isFinite(value) ? `${Math.round(value)}%` : t("Profilo EV", "EV profile");
+  const carica = Number.isFinite(value) ? `${Math.round(value)}%` : "";
+  const modello = clean(car.model || car.vehicle_model);
+  const pezzi = [modello, carica].filter(Boolean);
+  return pezzi.length ? pezzi.join(" · ") : t("Profilo EV", "EV profile");
 }
 function vehicleProfileVisual(car = {}) {
   const brand = clean(car.brand); if (brand) return carBrandVisual(brand, 28);
@@ -693,26 +975,30 @@ function chooseProfile(index) {
 }
 
 function selectorStructureSignature(cars) {
-  return cars.map((car,index)=>[index,carKey(car),clean(car.name),clean(car.brand),clean(car.icon)].join("~")).join("|");
+  return cars.map((car,index)=>[index,uidDi(car),clean(car.name),clean(car.brand),clean(car.icon)].join("~")).join("|");
 }
 function bindProfileNav(nav) {
   if (nav.dataset.dmEvBound === "true") return;
   nav.dataset.dmEvBound = "true";
   nav.addEventListener("click", (event) => {
-    const button = event.target?.closest?.(".dm-vehicle-profile-card[data-vehicle-index]");
+    const button = event.target?.closest?.(".dm-vehicle-profile-card[data-vehicle-key]");
     if (!button || !nav.contains(button)) return;
-    /* Il tab porta la CHIAVE dell'auto e l'indice si risolve adesso,
+    /* Il tab porta la CHIAVE dell'auto e il posto si risolve adesso,
      * sull'elenco di adesso: fra il disegno e il tocco la lista puo' essere
-     * cambiata (una cancellazione, un riordino) e un indice fotografato
-     * avrebbe aperto la vettura sbagliata. */
-    const key = clean(button.dataset.vehicleKey);
-    const risolto = key ? carIndexByKey(profiles(), key) : -1;
-    const index = risolto >= 0 ? risolto : Number.parseInt(button.dataset.vehicleIndex, 10);
-    if (Number.isFinite(index) && index >= 0) chooseProfile(index);
+     * cambiata (una cancellazione, un riordino) e un numero fotografato
+     * avrebbe aperto la vettura sbagliata.
+     *
+     * Un numero ce l'aveva scritto accanto, come ripiego — ma era il posto
+     * dentro le auto MOSTRATE, e chi lo leggeva lo cercava nell'elenco
+     * intero: due conteggi diversi che si somigliano. Se la chiave non
+     * risolve non si sceglie niente: meglio una linguetta che non risponde di
+     * una che apre l'auto sbagliata. */
+    const index = vehicleIndex(profiles(), clean(button.dataset.vehicleKey));
+    if (index >= 0) chooseProfile(index);
   });
 }
 function buildProfileButtons(nav, cars) {
-  nav.innerHTML = cars.map((car,index)=>`<button type="button" class="dm-vehicle-profile-card" data-vehicle-index="${index}" data-vehicle-key="${esc(carKey(car))}"><span class="dm-vehicle-profile-icon">${vehicleProfileVisual(car)}</span><span class="dm-vehicle-profile-copy"><strong>${esc(car.name || `${t("Auto","Vehicle")} ${index+1}`)}</strong><small></small></span><span class="dm-vehicle-profile-check" aria-hidden="true"></span></button>`).join("");
+  nav.innerHTML = cars.map((car,index)=>`<button type="button" class="dm-vehicle-profile-card" data-vehicle-key="${esc(uidDi(car))}"><span class="dm-vehicle-profile-icon">${vehicleProfileVisual(car)}</span><span class="dm-vehicle-profile-copy"><strong>${esc(car.name || `${t("Auto","Vehicle")} ${index+1}`)}</strong><small></small></span><span class="dm-vehicle-profile-check" aria-hidden="true"></span></button>`).join("");
   bindProfileNav(nav);
 }
 
@@ -729,6 +1015,16 @@ function buildProfileButtons(nav, cars) {
  * fatto — nel popup scrive gia'. La firma della struttura sta adesso
  * sull'elemento invece che nel modulo, perche' i posti sono due e un valore
  * solo avrebbe fatto ridisegnare uno a ogni passata dell'altro. */
+/* Le auto che la sezione mostra: quelle accese. Spenta e' spenta — resta in
+ * configurazione, con tutto quello che ha, ma fuori dalle linguette. */
+export function carsShownInSection(cars = profiles()) {
+  const elenco = Array.isArray(cars) ? cars : [];
+  const accese = elenco.filter((car) => car?.enabled !== false);
+  /* Tutte spente e' quasi sempre una distrazione: meglio mostrarle tutte che
+   * lasciare la sezione muta senza spiegare perche'. */
+  return accese.length ? accese : elenco;
+}
+
 function paintSelector(host, cars) {
   let nav = host.querySelector(".dm-vehicle-profile-tabs");
   if (!nav) { nav=doc.createElement("nav"); nav.className="dm-vehicle-profile-tabs"; nav.setAttribute("aria-label",t("Seleziona auto","Select vehicle")); host.append(nav); bindProfileNav(nav); }
@@ -739,9 +1035,16 @@ function paintSelector(host, cars) {
   host.style.display=""; host.dataset.profileCount=String(cars.length);
   const structure = selectorStructureSignature(cars);
   if (host.dataset.dmEvSignature !== structure || nav.children.length !== cars.length) { buildProfileButtons(nav,cars); host.dataset.dmEvSignature=structure; }
-  const selected = Math.max(0,Math.min(cars.length-1,activeIndex()));
+  /* La linguetta accesa si riconosce dalla CHIAVE, non dal numero.
+   *
+   * Il numero dell'auto in uso si conta sull'elenco intero; le linguette sono
+   * solo quelle accese. Sono due conteggi diversi, e confrontarli come se
+   * fossero lo stesso accendeva la linguetta sbagliata appena una vettura
+   * spenta stava prima di quella in mostra. */
+  const inUso = uidDi(activeVehicle(profiles()));
   nav.querySelectorAll(".dm-vehicle-profile-card").forEach((button,index)=>{
-    const active=index===selected; button.classList.toggle("active",active); button.setAttribute("aria-pressed",String(active));
+    const chiave = clean(button.dataset.vehicleKey) || uidDi(cars[index]);
+    const active = Boolean(inUso) && chiave === inUso; button.classList.toggle("active",active); button.setAttribute("aria-pressed",String(active));
     const small=button.querySelector("small"), check=button.querySelector(".dm-vehicle-profile-check");
     const meta=profileMeta(cars[index]); if (small && small.textContent!==meta) small.textContent=meta;
     if (check) check.textContent=active?"✓":"";
@@ -767,12 +1070,13 @@ function popupSelectorHost() {
 
 export function renderVehicleSelector() {
   const cars = profiles();
+  const visibili = carsShownInSection(cars);
   const popup = popupSelectorHost();
-  if (popup) paintSelector(popup, cars);
+  if (popup) paintSelector(popup, visibili);
   const host = nativeHost(); if (!host) return false;
   host.classList.add("dm-vehicle-profile-host");
   const select = nativeSelect(); if (select) { select.classList.add("dm-vehicle-native-select"); select.setAttribute("aria-hidden","true"); select.tabIndex=-1; }
-  return paintSelector(host, cars);
+  return paintSelector(host, visibili);
 }
 
 /* Two cars, two pairs of photos.
@@ -796,8 +1100,14 @@ function storePhoto(key, url) {
   root.localStorage?.setItem(key, JSON.stringify(next));
 }
 
-function restoreProfilePhotos(car, before, profileCount = profiles().length) {
-  const mostra = photosForProfile(car, before, profileCount);
+/* Le due caselle sciolte restano scritte, ma non comandano piu' niente.
+ *
+ * Il disegno adesso legge il profilo. Queste si continuano ad allineare solo
+ * perche' il runtime vendorizzato e il selettore nativo le leggono ancora in
+ * qualche giro: sono una copia, e una copia non e' piu' l'unica verita'. Il
+ * giorno che nessuno le legge piu', questa funzione se ne va da sola. */
+function restoreProfilePhotos(car, profileCount = profiles().length) {
+  const mostra = fotoDi(car, profileCount);
   storePhoto(EV_PHOTO_KEYS.idle, mostra.idle);
   storePhoto(EV_PHOTO_KEYS.plugged, mostra.plugged);
 }
@@ -840,7 +1150,7 @@ export function seedActiveProfilePhotos() {
   const car = elenco[indice];
   if (!car) return false;
   const before = configuredPhotos();
-  restoreProfilePhotos(car, before, elenco.length);
+  restoreProfilePhotos(car, elenco.length);
   const dopo = configuredPhotos();
   return dopo.idle !== before.idle || dopo.plugged !== before.plugged;
 }
@@ -859,9 +1169,11 @@ function saveProfilePhotos(photos) {
   if (!cars.length) return false;
   /* Con l'attiva appena cancellata l'indice vale -1: il vecchio clamp a zero
    * scriveva le foto della vettura sparita sulla prima della lista. Nessuna
-   * auto attiva, nessun salvataggio. */
-  if (activeIndex() < 0) return false;
-  const posizione = Math.max(0, Math.min(cars.length - 1, activeIndex()));
+   * auto attiva, nessun salvataggio. E con la matita aperta si scrive su
+   * QUELLA auto, non su quella in uso: e' la stessa che il pannello legge e
+   * che il titolo dichiara. */
+  const posizione = vehiclePhotoTargetIndex(cars);
+  if (posizione < 0) return false;
   /* Niente pulizie d'ufficio sugli altri profili.
    *
    * C'era la tentazione di togliere la coppia appena salvata a chi la portava
@@ -872,12 +1184,14 @@ function saveProfilePhotos(photos) {
    * risalvando le foto giuste su ciascuna auto, col pannello che adesso
    * dichiara a chi sta scrivendo — e la resurrezione dagli alias e' chiusa
    * alla fonte. */
-  const aggiornate = withProfilePhotos(cars, posizione, photos);
+  const bersaglio = cars[posizione];
+  if (!bersaglio) return false;
+  const aggiornate = updateVehicle(cars, uidDi(bersaglio), {
+    [VEHICLE_PHOTO_FIELDS.idle]: clean(photos.idle),
+    [VEHICLE_PHOTO_FIELDS.plugged]: clean(photos.plugged),
+  });
   if (aggiornate === cars) return false;
-  if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);
-  try {
-    dashboardStore()?.replaceSection?.("ev", aggiornate)?.catch?.(() => {});
-  } catch (_error) {}
+  salvaAuto(aggiornate);
   return true;
 }
 
@@ -905,12 +1219,21 @@ function adoptExistingPhotos() {
   if (!cars.length) return false;
   if (root.localStorage?.getItem(PHOTO_MIGRATION_KEY) === "1") return false;
   root.localStorage?.setItem(PHOTO_MIGRATION_KEY, "1");
-  const aggiornate = adoptLoosePhotos(cars, Math.max(0, activeIndex()), configuredPhotos());
+  /* Il travaso una-tantum: una configurazione a una macchina sola tiene la
+   * foto solo nelle caselle, e da li' deve salire dentro al profilo — che da
+   * adesso e' la fonte. Si scrive solo dove il profilo non ha gia' la sua. */
+  const caselle = configuredPhotos();
+  const posto = Math.max(0, activeIndex());
+  const attiva = cars[posto];
+  const aggiornate =
+    attiva && (!vehiclePhotos(attiva).idle || !vehiclePhotos(attiva).plugged)
+      ? updateVehicle(cars, uidDi(attiva), {
+          [VEHICLE_PHOTO_FIELDS.idle]: vehiclePhotos(attiva).idle || caselle.idle,
+          [VEHICLE_PHOTO_FIELDS.plugged]: vehiclePhotos(attiva).plugged || caselle.plugged,
+        })
+      : cars;
   if (aggiornate === cars) return false;
-  if (legacy.length) writeJsonIfChanged("cd_ev_cars", aggiornate);
-  try {
-    dashboardStore()?.replaceSection?.("ev", aggiornate)?.catch?.(() => {});
-  } catch (_error) {}
+  salvaAuto(aggiornate);
   return true;
 }
 
@@ -919,7 +1242,7 @@ function legacyRefreshSignature() {
 }
 function installLegacyWrappers() {
   if (typeof root.cdEvCarsRefresh === "function" && !root.cdEvCarsRefresh.__dmEvSection) {
-    state.previousRefresh ||= root.cdEvCarsRefresh; const previous=root.cdEvCarsRefresh;
+    const previous=root.cdEvCarsRefresh;
     function refreshProfiles(...args) {
       const signature=legacyRefreshSignature();
       if (signature===state.legacyRefreshSignature) return undefined;
@@ -928,17 +1251,15 @@ function installLegacyWrappers() {
     refreshProfiles.__dmEvSection=true; refreshProfiles.__dmPrevious=previous; root.cdEvCarsRefresh=refreshProfiles;
   }
   if (typeof root.cdEvApplyCar === "function" && !root.cdEvApplyCar.__dmEvSection) {
-    state.previousApply ||= root.cdEvApplyCar; const previous=root.cdEvApplyCar;
+    const previous=root.cdEvApplyCar;
     function applyProfile(index, ...rest) {
-      const before=configuredPhotos();
       const car=legacyProfiles()[Number(index)] || {};
       // Cambiare auto chiude la seduta di scrittura: i campi raccontano lei.
-      refToccati().clear();
-      setEditingKey(carKey(car));
+      setEditingKey(uidDi(car));
       // Applicare non e' un mandato di rinomina: quello lo da' solo la matita.
       state.evRenameArmed = false;
       const result=previous.call(this,index,...rest);
-      restoreProfilePhotos(car, before);
+      restoreProfilePhotos(car);
       state.legacyRefreshSignature=""; root.queueMicrotask?.(scheduleEvSync); return result;
     }
     applyProfile.__dmEvSection=true; applyProfile.__dmPrevious=previous; root.cdEvApplyCar=applyProfile;
@@ -960,55 +1281,44 @@ function installLegacyWrappers() {
     }
     captureProfile.__dmEvSection=true; captureProfile.__dmPrevious=previous; root.cdEvCaptureProfile=captureProfile;
   }
-  /* Risalvare un profilo non deve cancellare l'auto, ne' rubarle la foto
-   * dell'altra.
+  /* Salvare un profilo lo scrive questa sezione, non il runtime.
    *
-   * `edEvCarAdd` cerca un profilo con lo stesso nome e, trovandolo, ci scrive
-   * sopra un oggetto nuovo: `{ name, ov, img }`. Tutto il resto se ne andava
-   * senza che nessuno l'avesse chiesto — la marca scelta nella
-   * Personalizzazione, il modello, la foto col cavo attaccato, e adesso la
-   * chiave. Chi rimappava un'entita' si ritrovava l'auto senza logo e senza la
-   * seconda foto, e con la chiave persa quell'auto tornava a essere una riga.
+   * `edEvCarAdd` del runtime vendorizzato cercava un profilo con lo stesso nome
+   * e ci scriveva sopra un oggetto nuovo di zecca: `{ name, ov, img }`. Tutto
+   * il resto se ne andava senza che nessuno l'avesse chiesto — la marca scelta
+   * nella Personalizzazione, il modello, la foto col cavo attaccato, la chiave.
    *
-   * Il giro del runtime resta quello che e': si guarda com'erano le auto prima,
-   * e dopo si rimette a ciascuna quello che le appartiene.
+   * Per anni ci si e' difesi cosi': lo si lasciava scrivere, si guardava
+   * com'erano le auto prima, e dopo si rimetteva a ciascuna quello che le
+   * apparteneva. Centotrentacinque righe per riparare i danni di una chiamata,
+   * piu' un modulo intero (`vehicle-identity`) che diceva cosa rimettere. Ogni
+   * volta che il runtime imparava un modo nuovo di rompere, l'argine cresceva.
    *
-   * Con due auto configurate c'e' pero' un'altra cosa da guardare: l'accordion
-   * lascia modificare la mappatura di un'auto senza prima averla resa attiva,
-   * e il profilo appena catturato porta le foto delle due caselle piatte —
-   * quelle dell'auto *attiva*, non necessariamente di questa. Rimappare
-   * un'entita' di T03 mentre B10 e' quella in mostra faceva finire la foto di
-   * B10 dentro a T03, e viceversa: si segna qui chi era attiva prima di
-   * chiamare il runtime, per poter dire dopo se le foto appena catturate
-   * erano davvero sue o solo di passaggio. */
+   * Adesso non lo si chiama piu'. Il salvataggio e' qui, e passa da
+   * `salvaAuto`: si legge la mappatura dalle caselle — quello il runtime lo sa
+   * fare, ed e' l'unica cosa che gli si chiede ancora — e si scrive l'auto
+   * giusta. Non c'e' niente da rimettere perche' non si toglie niente.
+   */
   if (typeof root.edEvCarAdd === "function" && !root.edEvCarAdd.__dmEvSection) {
-    const previous=root.edEvCarAdd;
-    function addProfile(...args) {
-      ensureCarKeys();
-      const primaOriginale=legacyProfiles();
-      const indiceAttivoPrima=activeIndex();
-      /* La sessione dice CHI si sta salvando; il runtime invece riconosce per
-       * nome. I due mondi si allineano prima di chiamarlo:
-       * - salvare la sessione col nome cambiato RINOMINA quell'auto (la
-       *   chiave resta: e' sempre lei), cosi' il runtime la ritrova per nome
-       *   e ci scrive sopra invece di partorire una riga doppia;
-       * - un nome che appartiene a UN'ALTRA auto non si salva: era il gesto
-       *   da cui una vettura si prendeva i dati dell'altra. */
+    const previous = root.edEvCarAdd;
+    function addProfile() {
+      const elenco = profiles();
       const nomeScritto = clean(doc?.getElementById("ed-evcar-name")?.value);
       const chiaveSessione = editingKey();
-      /* La sessione ESPLICITA (matita, applica) autorizza la rinomina; senza
-       * un gesto la scheda si comporta come sempre: un nome nuovo crea una
-       * vettura nuova, il nome dell'attiva la risalva. Il fallback all'attiva
-       * serve solo a distinguere «il suo stesso nome» da «il nome di
-       * un'altra» — mai a rinominarla di nascosto. */
+      /* La sessione ESPLICITA (matita, applica) dice CHI si sta salvando.
+       * Senza un gesto, la scheda si comporta come sempre: il nome dell'auto
+       * in uso la risalva, un nome nuovo crea una vettura nuova. */
       const sessioneEsplicita = chiaveSessione
-        ? primaOriginale.find((car) => carKey(car) === chiaveSessione) || null
+        ? elenco.find((car) => uidDi(car) === chiaveSessione) || null
         : null;
-      const sessione = sessioneEsplicita
-        || (chiaveSessione === "" ? null : primaOriginale[indiceAttivoPrima] || null);
+      const sessione =
+        sessioneEsplicita || (chiaveSessione === "" ? null : activeVehicle(elenco) || null);
+
+      /* Un nome che appartiene a UN'ALTRA auto non si salva: era il gesto da
+       * cui una vettura si prendeva i dati dell'altra. */
       const omonima = nomeScritto
-        ? primaOriginale.find(
-            (car) => clean(car?.name) === nomeScritto && (!sessione || carKey(car) !== carKey(sessione)),
+        ? elenco.find(
+            (car) => clean(car?.name) === nomeScritto && (!sessione || uidDi(car) !== uidDi(sessione)),
           )
         : null;
       if (omonima) {
@@ -1019,74 +1329,99 @@ function installLegacyWrappers() {
         try { root.edToast?.(avviso); } catch (_error) {}
         return undefined;
       }
-      let prima = primaOriginale;
-      if (sessioneEsplicita && state.evRenameArmed && nomeScritto && clean(sessioneEsplicita.name) !== nomeScritto) {
-        prima = primaOriginale.map((car) =>
-          carKey(car) === carKey(sessioneEsplicita) ? { ...car, name: nomeScritto } : car,
-        );
-        writeJsonIfChanged("cd_ev_cars", prima);
-      }
-      /* La scelta viva di marca e modello si legge ORA: il ridisegno che il
-       * runtime fa salvando smonta la card Brand, e a cose fatte le tendine
-       * non ci sono piu'. */
-      const pannelloPrima = doc?.querySelector?.("#ed-body [data-ev-appearance]");
-      const marcaViva = clean(pannelloPrima?.querySelector?.("select[data-brand]")?.value);
-      const modelloVivo = clean(pannelloPrima?.querySelector?.("select[data-model]")?.value);
-      const result=previous.apply(this,args);
-      const dopo=legacyProfiles();
-      let rimesse=restoreCarIdentities(dopo, prima, indiceAttivoPrima);
-      /* Un'auto NUOVA nasce senza foto.
+
+      /* La mappatura delle entita' la raccoglie il runtime dalle caselle: e'
+       * l'unica cosa che gli si chiede ancora, e la sa fare. Restituisce anche
+       * una foto — quella delle due caselle piatte, che parlano dell'auto in
+       * uso — e quella si butta: le foto di un'auto si scelgono dal suo
+       * pannello, non si ereditano da chi era in mostra. */
+      let mappatura = {};
+      try { mappatura = root.cdEvCaptureProfile?.()?.ov || {}; } catch (_error) {}
+
+      /* La scelta viva di marca e modello si legge ORA: il ridisegno smonta la
+       * card Brand, e a cose fatte le tendine non ci sono piu'. */
+      const pannello = doc?.querySelector?.("#ed-body [data-ev-appearance]");
+      const marcaViva = clean(pannello?.querySelector?.("select[data-brand]")?.value);
+      const modelloVivo = clean(pannello?.querySelector?.("select[data-model]")?.value);
+
+      /* Chi si sta salvando.
        *
-       * Il runtime la battezza con le due caselle piatte — che sono le foto
-       * dell'auto ATTIVA in quel momento. Con una vettura gia' configurata,
-       * la seconda nasceva cosi' con la foto della prima addosso, e nessuna
-       * protezione poteva accorgersene: `restoreCarIdentities` restituisce
-       * intatta un'auto che prima non c'era. Le foto di un'auto nuova si
-       * scelgono dal pannello, non si ereditano. Il primissimo profilo resta
-       * fuori: li' il travaso dalle caselle e' l'adozione del formato
-       * vecchio, ed e' voluto. */
-      if (prima.length) {
-        /* Un'auto e' "gia' conosciuta" se porta una chiave che era in lista:
-         * il nome non basta piu' (rinominare non e' nascere). Le nuove nate
-         * escono da assignCarKeys con una chiave fresca, mai vista. */
-        const conosciute = new Set(prima.map((car) => clean(car?.uid)).filter(Boolean));
-        rimesse = rimesse.map((car) =>
-          conosciute.has(clean(car?.uid))
-            ? car
-            : { ...car, img: "", imgPlugged: "", image: "", image_url: "" },
-        );
+       * Comanda il NOME scritto, non la sessione: dopo aver salvato «Zoe» la
+       * scheda resta aperta su Zoe, e scrivendoci sopra «Tesla» si vuole una
+       * seconda auto — non Zoe travestita. Mettendo la sessione davanti, la
+       * seconda vettura non nasceva mai e la prima si prendeva le sue entita'.
+       *
+       * Quindi: il nome scritto sceglie l'auto che gia' lo porta; un nome nuovo
+       * ne fa nascere una, tranne quando la matita ha armato una rinomina — e
+       * allora quel nome e' il nome nuovo di quella che si stava modificando.
+       * Senza nome scritto si risalva quella in uso, com'e' sempre stato. */
+      const perNome = nomeScritto
+        ? elenco.find((car) => clean(car?.name) === nomeScritto) || null
+        : null;
+      const bersaglio =
+        perNome ||
+        (sessioneEsplicita && state.evRenameArmed && nomeScritto ? sessioneEsplicita : null) ||
+        (nomeScritto ? null : chiaveSessione === "" ? null : sessione);
+
+      const rinomina =
+        sessioneEsplicita && state.evRenameArmed && nomeScritto ? { name: nomeScritto } : {};
+      const vestito = marcaViva ? { brand: marcaViva, ...(modelloVivo ? { model: modelloVivo } : {}) } : {};
+
+      const bersaglioEsplicito = Boolean(
+        bersaglio && sessioneEsplicita && uidDi(bersaglio) === uidDi(sessioneEsplicita),
+      );
+
+      let rimesse;
+      let salvata;
+      if (bersaglio) {
+        const patch = {
+          [VEHICLE_OVERRIDES_FIELD]: mappatura,
+          ...rinomina,
+          /* Marca e modello: sull'auto che si sta modificando si scrivono
+           * sempre, sulle altre solo se sono nude.
+           *
+           * Il freno serviva a non vestire un'auto diversa da quella che la
+           * tendina mostra. Ma sull'auto aperta apposta — quella del tasto
+           * «Salva le modifiche a …» — significava che cambiare marca e
+           * premere Salva non cambiava niente, e bisognava scoprire il
+           * secondo tasto dell'aspetto. Chi ha aperto quella scheda ha detto
+           * di quale auto sta parlando. */
+          ...(bersaglioEsplicito || !clean(bersaglio.brand) ? vestito : {}),
+        };
+        rimesse = salvaAuto(updateVehicle(elenco, uidDi(bersaglio), patch));
+        salvata = rimesse.find((car) => uidDi(car) === uidDi(bersaglio)) || null;
+      } else {
+        /* Un'auto nuova nasce senza foto e senza eredita': quello che c'era
+         * nelle caselle era di chi era in mostra, non suo. */
+        const nata = {
+          ...nuovoVeicolo(elenco, nomeScritto, letturaMetadata()),
+          [VEHICLE_OVERRIDES_FIELD]: mappatura,
+          ...vestito,
+        };
+        rimesse = salvaAuto([...elenco, nata]);
+        salvata = rimesse.find((car) => uidDi(car) === nata[VEHICLE_KEY_FIELD]) || null;
       }
-      /* Marca e modello della vettura nuova stanno nelle tendine della card
-       * Brand: durante la bozza «Salva brand e modello» non scrive su
-       * nessuno (avrebbe vestito l'auto ancora attiva coi panni della
-       * nuova), quindi e' QUI, alla nascita del profilo, che la scelta
-       * viva sale a bordo. */
-      if (marcaViva) {
-        const nate = new Set(prima.map((car) => clean(car?.uid)).filter(Boolean));
-        rimesse = rimesse.map((car) =>
-          nate.has(clean(car?.uid)) || clean(car?.brand)
-            ? car
-            : { ...car, brand: marcaViva, ...(modelloVivo ? { model: modelloVivo } : {}) },
-        );
-      }
-      if (rimesse !== dopo) writeJsonIfChanged("cd_ev_cars", rimesse);
-      // Scheda salvata: la seduta di scrittura e' chiusa, i segni si azzerano,
-      // e la sessione diventa l'auto appena salvata (il runtime l'ha attivata).
-      refToccati().clear();
-      setEditingKey(carKey(rimesse[activeIndex()] || {}));
+
+      // Scheda salvata: la seduta di scrittura e' chiusa.
       state.evRenameArmed = false;
-      /* Il runtime ha appena reso attiva l'auto salvata, ma le due caselle da
-       * cui il disegno legge portano ancora le foto di quella di prima: senza
-       * questa risemina l'eroe mostrava la vettura vecchia sotto la linguetta
-       * nuova, e un «Salva foto» in quel momento gliela scriveva addosso. */
-      const indiceDopo = activeIndex();
-      const attivaDopo = rimesse[indiceDopo];
-      if (attivaDopo && indiceDopo !== indiceAttivoPrima)
-        restoreProfilePhotos(attivaDopo, configuredPhotos(), rimesse.length);
+      /* La scheda resta aperta su QUELLA auto: quella appena salvata se e' nata
+       * adesso, quella che si stava modificando altrimenti. */
+      if (salvata) setEditingKey(uidDi(salvata));
+
+      /* Salvare non cambia l'auto che si vede — tranne la primissima, che
+       * diventa lei quella in uso perche' prima non c'era niente. */
+      if (elenco.length === 0 && salvata) {
+        const posto = vehicleIndex(rimesse, uidDi(salvata));
+        if (posto >= 0) rimettiInUso(salvata, posto);
+      }
+      root.dmRenderVehicleSelector?.();
+      root.render?.();
       root.queueMicrotask?.(scheduleEvSyncSettled);
-      return result;
+      return undefined;
     }
-    addProfile.__dmEvSection=true; addProfile.__dmPrevious=previous; root.edEvCarAdd=addProfile;
+    addProfile.__dmEvSection = true;
+    addProfile.__dmPrevious = previous;
+    root.edEvCarAdd = addProfile;
   }
   /* «SALVA SEZIONE» salva anche le foto.
    *
@@ -1147,7 +1482,7 @@ function installLegacyWrappers() {
       }
       const indice=Math.max(0, Math.min(elenco.length - 1, activeIndex()));
       const attiva=elenco[indice];
-      if (attiva) restoreProfilePhotos(attiva, configuredPhotos(), elenco.length);
+      if (attiva) restoreProfilePhotos(attiva, elenco.length);
       root.queueMicrotask?.(scheduleEvSync);
       return result;
     }
@@ -1177,7 +1512,7 @@ export function scheduleEvSync() {
    * all'elenco delle auto proprio mentre qualcun altro lo stava cambiando, e la
    * marca appena scelta tornava indietro da sola. Le migrazioni stanno
    * all'avvio, dove stanno le migrazioni. */
-  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();ensureCarNameGuard();ensureCarListDecor();};
+  const run=()=>{state.frame=0;installLegacyWrappers();renderVehicleSelector();applyVehicleAsset();ensureVehiclePhotoEditor();ensureCarListDecor();};
   state.frame=root.requestAnimationFrame?.(run)||root.setTimeout?.(run,0)||0;
 }
 
@@ -1204,6 +1539,15 @@ function installStyles() {
 #ed-body#ed-body .ed-slot[hidden]{display:none!important}
   `);
   installStyle("dm-ev-section-style",`
+#ed-body .dm-ev-enabled{
+  flex:0 0 42px;width:42px;height:24px;position:relative;margin-right:8px;border:0;border-radius:999px;
+  cursor:pointer;background:color-mix(in srgb,var(--text-dim,#94a3b8) 32%,transparent);
+  transition:background .25s ease}
+#ed-body .dm-ev-enabled i{
+  position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;
+  box-shadow:0 2px 6px rgba(15,23,42,.25);transition:transform .25s cubic-bezier(.16,1,.3,1)}
+#ed-body .dm-ev-enabled[data-on="true"]{background:#059669}
+#ed-body .dm-ev-enabled[data-on="true"] i{transform:translateX(18px)}
 #ev-mod-car-img[data-ev-image-error],#ev-new-car-img[data-ev-image-error],#ev-mod-car-img[data-ev-failed="1"],#ev-new-car-img[data-ev-failed="1"]{display:none!important}
 #ev-car-picker.dm-vehicle-profile-host{box-sizing:border-box!important;width:fit-content!important;max-width:calc(100% - 28px)!important;margin:12px auto 10px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}#ev-car-picker.dm-vehicle-profile-host>.dm-vehicle-native-select{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important;opacity:0!important;pointer-events:none!important}
 #ev-popup .dm-vehicle-profile-popup{box-sizing:border-box!important;width:100%!important;max-width:100%!important;margin:0 0 12px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
@@ -1215,7 +1559,7 @@ function installStyles() {
 #ev-popup .dm-vehicle-profile-popup .dm-vehicle-profile-card{max-width:100%!important}
 .dm-vehicle-profile-tabs{display:flex!important;align-items:stretch!important;justify-content:center!important;flex-wrap:wrap!important;gap:8px!important;width:auto!important;max-width:100%!important}.dm-vehicle-profile-card{display:grid!important;grid-template-columns:58px minmax(0,max-content) 20px!important;align-items:start!important;gap:8px!important;box-sizing:border-box!important;width:max-content!important;max-width:min(100%,340px)!important;min-height:54px!important;margin:0!important;padding:8px 9px!important;border:1px solid var(--divider-color,var(--card-border,#dbe4ee))!important;border-radius:15px!important;background:var(--ha-card-background,var(--card-bg,#fff))!important;color:var(--text,#0f172a)!important;box-shadow:0 6px 16px rgba(15,23,42,.07)!important;text-align:left!important;cursor:pointer!important;transition:border-color .12s ease,box-shadow .12s ease!important}.dm-vehicle-profile-card.active{border-color:var(--accent,#0ea5e9)!important;background:color-mix(in srgb,var(--accent,#0ea5e9) 10%,var(--ha-card-background,#fff))!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent,#0ea5e9) 18%,transparent),0 8px 20px rgba(14,165,233,.13)!important}
 .dm-vehicle-profile-icon{display:grid!important;place-items:start center!important;align-self:start!important;width:58px!important;height:34px!important;min-width:58px!important;overflow:hidden!important;border-radius:10px!important;background:color-mix(in srgb,var(--accent,#0ea5e9) 10%,transparent)!important}.dm-vehicle-profile-icon .dm-car-brand{display:grid!important;place-items:center!important;width:54px!important;max-width:54px!important;height:28px!important;margin:2px auto 0!important}.dm-vehicle-profile-icon .dm-car-brand img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important}.dm-vehicle-profile-icon ha-icon{margin:3px auto 0!important}.dm-vehicle-profile-copy{display:grid!important;gap:2px!important;min-width:0!important;padding-top:1px!important}.dm-vehicle-profile-copy strong,.dm-vehicle-profile-copy small{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.dm-vehicle-profile-copy strong{max-width:210px!important;font-size:13px!important;font-weight:900!important;line-height:1.1!important}.dm-vehicle-profile-copy small{font-size:9px!important;font-weight:750!important;line-height:1.1!important;color:var(--secondary-text-color,var(--text-dim,#64748b))!important}.dm-vehicle-profile-check{display:grid!important;place-items:center!important;width:20px!important;height:20px!important;border-radius:50%!important;background:var(--accent,#0ea5e9)!important;color:#fff!important;font-size:11px!important;font-weight:900!important;opacity:0!important}.dm-vehicle-profile-card.active .dm-vehicle-profile-check{opacity:1!important}
-.dm-ev-brand-badge .dm-car-brand{display:grid!important;place-items:center!important;max-width:105px!important;height:34px!important}.dm-ev-brand-badge .dm-car-brand img{width:100%!important;height:100%!important;object-fit:contain!important}
+
 @media(max-width:620px){#ev-car-picker.dm-vehicle-profile-host{width:auto!important;max-width:calc(100% - 20px)!important;margin:8px auto!important}.dm-vehicle-profile-tabs{justify-content:flex-start!important;flex-wrap:nowrap!important;gap:7px!important;max-width:calc(100vw - 20px)!important;overflow-x:auto!important;padding:2px 2px 5px!important;scrollbar-width:none!important}.dm-vehicle-profile-tabs::-webkit-scrollbar{display:none!important}.dm-vehicle-profile-card{flex:0 0 auto!important;max-width:76vw!important;min-height:50px!important;padding:7px 8px!important;grid-template-columns:52px minmax(0,max-content) 18px!important;gap:7px!important}.dm-vehicle-profile-icon{width:52px!important;min-width:52px!important;height:32px!important}.dm-vehicle-profile-icon .dm-car-brand{width:48px!important;max-width:48px!important;height:25px!important}.dm-vehicle-profile-copy strong{max-width:44vw!important;font-size:12px!important}.dm-vehicle-profile-copy small{font-size:8.5px!important}.dm-vehicle-profile-check{width:18px!important;height:18px!important;font-size:10px!important}}
   `);
 }
@@ -1227,7 +1571,7 @@ function bindEditorEntryPoints() {
 
 export function installEvSection() {
   if (!doc) return;
-  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installSlotTouchTracker(); installLegacyWrappers(); bindEditorEntryPoints();
+  root.dmRenderVehicleSelector=renderVehicleSelector; installStyles(); installLegacyWrappers(); bindEditorEntryPoints();
   /* Gli involucri si prendono appena i giri del runtime esistono.
    *
    * `installLegacyWrappers` non puo' fare niente se il runtime non ha ancora

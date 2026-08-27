@@ -236,6 +236,10 @@ header { display: flex; align-items: center; justify-content: space-between; mar
 }
 
 .sub-tab-btn {
+  /* Un <button> non eredita il font dal documento: senza questa riga le
+   * pillole delle stanze escono nel font di sistema e stonano con il resto
+   * della plancia, che e' tutta in Inter. */
+  font-family: inherit;
   background: var(--card-bg);
   border: 1.5px solid rgba(226, 232, 240, 0.9);
   padding: 12px 22px;
@@ -2494,10 +2498,12 @@ html.dm-touch-navigation .bottom-nav-handle { display: block !important; }
   letter-spacing: 0.5px;
 }
 
-/* Griglia bottoni */
+/* Griglia bottoni — tante colonne quanti sono i tasti che la centrale accetta:
+   tre erano quelli di prima, non un numero fisso. */
 .qa-alarm-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 12px;
   margin-bottom: 14px;
 }

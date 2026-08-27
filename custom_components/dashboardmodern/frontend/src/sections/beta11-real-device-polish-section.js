@@ -62,116 +62,15 @@ function queueMicrotaskSafe(callback) {
   else Promise.resolve().then(callback);
 }
 
-function vehicles() {
-  const legacy = readJson("cd_ev_cars", []);
-  if (Array.isArray(legacy) && legacy.length) return legacy;
-  try {
-    const canonical = dashboardStore()?.getSection?.("ev");
-    return Array.isArray(canonical) ? canonical : [];
-  } catch (_error) {
-    return [];
-  }
-}
-
-function activeVehicleIndex(cars = vehicles()) {
-  if (!cars.length) return -1;
-  const raw = Number.parseInt(root.localStorage?.getItem("cd_ev_car_active") || "0", 10);
-  const index = Number.isFinite(raw) ? raw : 0;
-  return Math.max(0, Math.min(cars.length - 1, index));
-}
-
-function hasOption(select, value) {
-  const wanted = clean(value);
-  return Boolean(wanted) && [...(select?.options || [])].some((option) => clean(option.value) === wanted);
-}
-
-function dispatchValue(input, value, { force = false } = {}) {
-  if (!input) return false;
-  const changed = clean(input.value) !== clean(value);
-  if (changed) input.value = value;
-  if (changed || force) {
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-  }
-  return changed || force;
-}
-
-function normalizeEvPreview(panel) {
-  const preview = panel?.querySelector?.("[data-brand-preview]");
-  const brandSelect = panel?.querySelector?.("select[data-brand]");
-  const modelSelect = panel?.querySelector?.("select[data-model]");
-  if (!preview || !brandSelect || !modelSelect) return false;
-  preview.dataset.dmBeta11EvPreview = "true";
-  preview.dataset.dmBeta11Brand = clean(brandSelect.value).toLowerCase();
-  preview
-    .querySelector(".dm-car-brand,.dm-leapmotor-mark")
-    ?.setAttribute?.("data-dm-beta11-logo", "true");
-  const copy = preview.querySelector(".dm-ev-brand-copy");
-  if (copy) {
-    copy.dataset.dmBeta11Copy = "true";
-    copy.querySelector("b")?.setAttribute("title", clean(brandSelect.value));
-    copy.querySelector("small")?.setAttribute("title", clean(modelSelect.value));
-  }
-  return true;
-}
-
-function syncEvPanelToActiveVehicle() {
-  if (activeTab() !== "sez2") return false;
-  const panel = doc?.querySelector?.("#ed-body [data-ev-appearance]");
-  const brandSelect = panel?.querySelector?.("select[data-brand]");
-  const modelSelect = panel?.querySelector?.("select[data-model]");
-  if (!panel || !brandSelect || !modelSelect) return false;
-
-  const cars = vehicles();
-  const index = activeVehicleIndex(cars);
-  const car = index >= 0 ? cars[index] : null;
-  if (!car) return false;
-  const brand = clean(car.brand);
-  const model = clean(car.model || car.vehicle_model || car.name);
-  const identity = clean(car.id || car.entity || car.name || index);
-  const signature = `${index}|${identity}|${brand}|${model}`;
-  const sameVehicle = panel.dataset.dmBeta11VehicleIndex === String(index);
-
-  // A manual brand/model choice belongs to the editor draft. Do not let the
-  // compatibility synchronizer overwrite it until the active vehicle changes.
-  if (panel.dataset.dmBeta11ManualEdit === "true" && sameVehicle) {
-    normalizeEvPreview(panel);
-    return true;
-  }
-  if (panel.dataset.dmBeta11ManualEdit === "true" && !sameVehicle) {
-    delete panel.dataset.dmBeta11ManualEdit;
-  }
-  if (panel.dataset.dmBeta11VehicleSignature === signature) {
-    normalizeEvPreview(panel);
-    return true;
-  }
-
-  panel.dataset.dmBeta11Syncing = "true";
-  if (brand && hasOption(brandSelect, brand)) {
-    dispatchValue(brandSelect, brand, { force: true });
-  }
-  queueMicrotaskSafe(() => {
-    if (model && hasOption(modelSelect, model)) dispatchValue(modelSelect, model);
-    panel.dataset.dmBeta11VehicleSignature = signature;
-    panel.dataset.dmBeta11VehicleIndex = String(index);
-    delete panel.dataset.dmBeta11ManualEdit;
-    delete panel.dataset.dmBeta11Syncing;
-    normalizeEvPreview(panel);
-  });
-  return true;
-}
-
-function markManualEvEdit(event) {
-  const input = event.target;
-  if (!input?.matches?.("[data-ev-appearance] select[data-brand],[data-ev-appearance] select[data-model]")) {
-    return false;
-  }
-  const panel = input.closest("[data-ev-appearance]");
-  if (!panel || panel.dataset.dmBeta11Syncing === "true") return false;
-  panel.dataset.dmBeta11ManualEdit = "true";
-  normalizeEvPreview(panel);
-  return true;
-}
+/* Delle auto qui non si sa piu' niente, ed e' la fine giusta della storia.
+ *
+ * Questo modulo ne teneva una copia sua — l'elenco letto grezzo, l'auto in uso
+ * intesa come posizione — e con quella riallineava le tendine della card del
+ * marchio. Erano tre moduli con tre idee della stessa cosa, e bastava che
+ * l'elenco cambiasse ordine perche' due di loro parlassero di vetture diverse.
+ * Poi ha smesso di tenere la copia e si e' messo a chiederlo a chi le auto le
+ * possiede. Adesso non chiede piu' nemmeno quello: la card ha un padrone solo,
+ * e non e' questo. Qui resta il CSS che misura il logo, e basta. */
 
 function mergedRooms() {
   let canonical = [];
@@ -304,7 +203,6 @@ function decorateAlertIconField() {
 function run() {
   state.frame = 0;
   ensureOwners();
-  syncEvPanelToActiveVehicle();
   decorateRoomRows();
   decorateAlertIconField();
 }
@@ -385,7 +283,6 @@ function install() {
     doc.addEventListener(
       "change",
       (event) => {
-        markManualEvEdit(event);
         if (event.target?.closest?.("#editor-modal,#ed-body")) schedule();
       },
       true,

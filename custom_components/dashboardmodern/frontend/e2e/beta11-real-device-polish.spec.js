@@ -154,9 +154,13 @@ for (const variant of PRIMARY) {
       localStorage.setItem("cd_ev_car_active", "1");
       window.dispatchEvent(new CustomEvent("dashboardmodern:legacy-ready"));
     });
+    /* La card segue l'auto in uso, e continua a farlo — ma perche' e' chi la
+       costruisce a rifarla quando cambia il bersaglio, non perche' un secondo
+       modulo le rimetta i valori a forza. Il contrassegno che quel secondo
+       modulo lasciava sul pannello se n'e' andato con lui: quello che conta e'
+       cosa dicono le tendine, ed e' quello che si guarda qui sotto. */
     await expect(brand).toHaveValue("MINI");
     await expect(model).toHaveValue("Cooper Electric");
-    await expect(panel).toHaveAttribute("data-dm-beta11-vehicle-index", "1");
     await expect(panel.locator("[data-brand-preview]")).toContainText("MINI");
     await expect(panel.locator("[data-brand-preview]")).toContainText("Cooper Electric");
   });

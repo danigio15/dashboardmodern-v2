@@ -40,15 +40,28 @@ test("il disegno legge il profilo attivo e risemina le caselle", () => {
   assert.match(corpo, /storePhoto\(EV_PHOTO_KEYS\.plugged, photos\.plugged\);/);
 });
 
-test("la correzione del percorso storto arriva fino al profilo", () => {
-  /* Se si fermasse alle caselle, la risemina del giro dopo la annullerebbe e
-   * la correzione ripartirebbe a ogni disegno, per sempre. */
+test("le due foto sono blindate: il disegno non le riscrive mai", () => {
+  /* Qui viveva una riscrittura «correttiva»: il percorso sistemato tornava
+   * nella configurazione, e la casella in cui finiva la sceglieva il cavo —
+   * cosi' la foto col cavo attaccato finiva in quella senza, le due
+   * diventavano la stessa da sole e con due profili la coppia si copiava
+   * sull'altra auto. Scollegato e collegato di ogni vettura restano quelli
+   * che sono stati scelti: il disegno legge, e non scrive. */
   const sezione = leggi("sections/ev-section.js");
   const corpo = sezione.slice(
     sezione.indexOf("export function applyVehicleAsset()"),
-    sezione.indexOf("/* ── the two photos, in the configuration"),
+    sezione.indexOf("/* I campi entita' della scheda"),
   );
-  assert.match(corpo, /saveProfilePhotos\(\{/);
+  assert.doesNotMatch(corpo, /saveProfilePhotos\(/,
+    "il disegno non puo' salvare foto: e' il gesto che le mescolava");
+  assert.doesNotMatch(corpo, /localStorage\?\.setItem\(key/,
+    "nessuna foto puo' passare da una casella all'altra da sola");
+  /* E la copia che il runtime storico tiene dell'immagine si allinea a quella
+   * disegnata: altrimenti la rimette lei a ogni giro e la foto tremola. E si
+   * allinea ANCHE quando la foto non c'e': scrivendola solo quando c'era,
+   * passando a un'auto senza foto restava dentro l'indirizzo della prima e
+   * il runtime storico lo rimetteva sull'eroe. */
+  assert.match(corpo, /setLexicalGlobal\("CD_EV_IMAGE", url \|\| ""\)/);
 });
 
 test("«SALVA SEZIONE» salva anche le foto toccate", () => {
@@ -120,16 +133,31 @@ test("cancellata l'ultima auto, se ne vanno caselle e indice", () => {
   assert.match(corpo, /removeItem\("cd_ev_car_active"\)/);
 });
 
-test("il nome sulla scheda decide di chi sono i campi", () => {
+test("il nome sulla scheda non comanda le caselle delle entita'", () => {
   /* Scrivere il nome di un'auto nuova e salvare catturava la mappatura viva
-   * dell'auto attiva: la nuova nasceva con le entita' dell'altra addosso. */
+   * dell'auto attiva: la nuova nasceva con le entita' dell'altra addosso.
+   *
+   * La riparazione di allora era un guardiano sul campo del nome, che
+   * ricaricava o svuotava le caselle a ogni tasto. Adesso di chi sono i campi
+   * lo decide la sessione — matita, ＋, applica — e il nome e' solo un nome:
+   * il guardiano non c'e' piu', e con lui il segnalibro dei campi toccati che
+   * serviva a non calpestare quello che l'utente stava scrivendo. */
   const sezione = leggi("sections/ev-section.js");
-  const corpo = sezione.slice(sezione.indexOf("function ensureCarNameGuard()"));
-  assert.match(corpo, /getElementById\("ed-evcar-name"\)/);
-  assert.match(corpo, /data-ref\^="dm\.ev_"/,
-    "sono le caselle condivise dm.ev_* a portare i dati dell'altra auto");
-  assert.match(sezione, /ensureVehiclePhotoEditor\(\);ensureCarNameGuard\(\);/,
-    "il guardiano si aggancia nello stesso giro che tiene vivo il pannello");
+  assert.doesNotMatch(
+    sezione,
+    /ensureCarNameGuard|refToccati|evTouchedRefs/,
+    "il guardiano e il suo segnalibro se ne sono andati insieme",
+  );
+  /* Nessuno ascolta quel campo: e' cosi' che si sa che digitarci dentro non
+   * puo' spostare niente. */
+  for (const brano of sezione.match(/getElementById\("ed-evcar-name"\)[\s\S]{0,240}/g) || [])
+    assert.doesNotMatch(
+      brano,
+      /\.addEventListener\(\s*"input"/,
+      "il campo del nome non prende ascoltatori",
+    );
+  /* E la sessione, che comanda al posto suo, c'e'. */
+  assert.match(sezione, /function editingKey\(\)/);
 });
 
 test("l'ultima modifica salvata sopravvive alla riapertura, per ogni sezione", async () => {

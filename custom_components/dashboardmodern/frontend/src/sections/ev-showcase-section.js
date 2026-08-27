@@ -175,9 +175,31 @@ function mountModeButtons(page) {
  * Mark the frame from the photo that actually loaded. `data-ev-image` only says
  * whether a URL is configured, so a broken URL used to leave an empty slab.
  */
+/* La foto dell'auto sta in una cornice larga e bassa, e una foto d'auto non ha
+ * quelle proporzioni: ritagliandola per riempire — che e' quello che faceva —
+ * su uno schermo largo si perdevano il tetto e le ruote, e restava una fascia
+ * di fiancata. Adesso la foto ci sta dentro TUTTA, e il vuoto ai lati lo
+ * riempie una copia sfocata di se stessa: e' il modo in cui lo fanno i player
+ * video, e funziona con qualunque proporzione senza dover sapere quale sia.
+ */
+function sfondoSfocato(hero, image) {
+  let copia = hero.querySelector(":scope > .dm-evv-hero-blur");
+  const src = clean(image.getAttribute("src"));
+  if (!src) { copia?.remove(); return; }
+  if (!copia) {
+    copia = doc.createElement("img");
+    copia.className = "dm-evv-hero-blur";
+    copia.alt = "";
+    copia.setAttribute("aria-hidden", "true");
+    hero.prepend(copia);
+  }
+  if (copia.getAttribute("src") !== src) copia.setAttribute("src", src);
+}
+
 function syncPhoto(hero) {
   const image = doc.getElementById("ev-mod-car-img");
   if (!image) return;
+  sfondoSfocato(hero, image);
   if (!image.dataset.dmEvvWatched) {
     image.dataset.dmEvvWatched = "true";
     for (const eventName of ["load", "error"]) {
@@ -188,6 +210,29 @@ function syncPhoto(hero) {
   const loaded = Boolean(clean(image.getAttribute("src"))) && !broken && image.naturalWidth > 0;
   const value = loaded ? "on" : "off";
   if (hero.dataset.dmEvvPhoto !== value) hero.dataset.dmEvvPhoto = value;
+  /* La cornice prende la forma della foto.
+   *
+   * Era alta un numero fisso e larga quanto lo schermo: da telefono combaciava
+   * quasi, da desktop diventava un nastro di millequattrocento per
+   * duecentonovanta, e dentro una foto sedici a nove ci sta alta al massimo
+   * duecentonovanta — cioe' cinquecento pixel di macchina in mezzo a un mare
+   * sfocato. Intera, ma minuscola.
+   *
+   * La proporzione la sa solo la foto, e si sa solo dopo averla caricata:
+   * quindi si scrive qui, dove la si e' appena guardata. La cornice ci si
+   * adatta e la foto la riempie tutta, senza tagliarne niente.
+   *
+   * Fra 1,15 e 2,4: una panoramica non deve schiacciare la cornice in una
+   * fessura, e un ritratto non deve farne una torre. Fuori da quei due
+   * estremi si accetta un po' di margine ai lati — che e' sempre meglio di
+   * una pagina sfondata. */
+  if (loaded) {
+    const forma = image.naturalWidth / image.naturalHeight;
+    const dentro = Math.max(1.15, Math.min(2.4, forma));
+    const scritta = dentro.toFixed(3);
+    if (hero.style.getPropertyValue("--dm-evv-hero-ratio") !== scritta)
+      hero.style.setProperty("--dm-evv-hero-ratio", scritta);
+  } else hero.style.removeProperty("--dm-evv-hero-ratio");
 }
 
 /* ── render ───────────────────────────────────────────────────────────── */
@@ -377,12 +422,75 @@ function evShowcaseCss() {
 #page-ev.dm-evv .dm-vehicle-profile-card.active .dm-vehicle-profile-icon{background:rgba(var(--evv-green-rgb),.12)!important}
 #page-ev.dm-evv .dm-vehicle-profile-check{width:18px!important;height:18px!important;background:var(--evv-green)!important;font-size:10px!important}
 
+/* ── da schermo largo ─────────────────────────────────────────────────────
+ *
+ * Due cose cambiano quando c'e' spazio, e sono le due che il piccolo non ha:
+ *
+ *  - la cornice della foto si alza. Su un telefono e' larga quanto lo schermo
+ *    e bassa, e va bene; su un monitor resta larga uguale ma la stessa altezza
+ *    la rende una feritoia, e l'auto dentro diventa un francobollo;
+ *  - le linguette delle auto si stringono. Sono nate per il pollice — icona
+ *    grande, due righe di testo, tanta aria — e in cima a una pagina larga
+ *    diventano una fascia che spinge tutto il resto sotto la piega. Col mouse
+ *    bastano molto piu' piccole, e in fila con la marca invece che sopra.
+ */
+@media(min-width:900px){
+  #page-ev.dm-evv .lm-hero{height:clamp(300px,26vw,420px)!important}
+  #page-ev.dm-evv #ev-car-picker.dm-vehicle-profile-host{
+    display:flex!important;flex-direction:row!important;align-items:center!important;
+    justify-content:center!important;gap:12px!important;
+    width:100%!important;max-width:100%!important;margin:2px auto 8px!important
+  }
+  #page-ev.dm-evv .dm-ev-brand-badge{margin-right:0!important;flex:0 0 auto!important}
+  #page-ev.dm-evv .dm-vehicle-profile-tabs{flex-wrap:nowrap!important;gap:7px!important}
+  #page-ev.dm-evv .dm-vehicle-profile-card{
+    min-height:0!important;padding:5px 10px 5px 6px!important;border-radius:12px!important;
+    grid-template-columns:40px minmax(0,max-content) 16px!important;gap:7px!important;align-items:center!important
+  }
+  #page-ev.dm-evv .dm-vehicle-profile-icon{width:40px!important;min-width:40px!important;height:24px!important}
+  #page-ev.dm-evv .dm-vehicle-profile-icon .dm-car-brand{width:36px!important;max-width:36px!important;height:20px!important}
+  #page-ev.dm-evv .dm-vehicle-profile-copy strong{font-size:12px!important;line-height:1.15!important}
+  #page-ev.dm-evv .dm-vehicle-profile-copy small{font-size:9px!important;line-height:1.1!important}
+  #page-ev.dm-evv .dm-vehicle-profile-check{width:15px!important;height:15px!important;font-size:9px!important}
+}
+
 /* ── hero: the photo in its frame ─────────────────────────────────────── */
 #page-ev.dm-evv .lm-hero{
   min-height:0!important;height:clamp(212px,44vw,290px)!important;
   border-radius:var(--evv-r)!important;margin-bottom:0!important;
   background:linear-gradient(180deg,#fff,#eaf1f8)!important;
   box-shadow:0 26px 44px -28px rgba(10,26,44,.6),0 2px 6px -3px rgba(10,26,44,.14)!important
+}
+/* Da schermo largo la cornice della foto e' una card come le altre.
+ *
+ * Andava da bordo a bordo mentre tutto il resto della pagina sta dentro un
+ * margine, e restava alta duecentonovanta: una foto sedici a nove ci entrava
+ * larga cinquecento pixel, in mezzo a novecento di sfocato. Adesso prende la
+ * larghezza delle altre card e la FORMA della foto — che il giro di disegno
+ * scrive dopo averla caricata — cosi' la riempie tutta, intera. */
+@media(min-width:900px){
+  #page-ev.dm-evv .lm-hero{
+    box-sizing:border-box!important;
+    /* La larghezza si dice cosi', e non con la misura della pagina: quella
+       variabile non e' definita ovunque, e dove manca il minimo fra le due
+       non calcola niente — la cornice diventava un francobollo da ottanta
+       pixel. */
+    width:100%!important;
+    /* Non piu' larga di una card, e non piu' alta di mezzo schermo: il tetto
+       si mette sulla larghezza, moltiplicando l'altezza massima per la forma
+       della foto. Se lo si mettesse sull'altezza, la cornice resterebbe larga
+       860 e alta 440 quando la foto ne vuole 484 — cioe' di nuovo due bande
+       ai lati. Cosi' invece la cornice E' la foto. */
+    max-width:min(860px,calc(min(52vh,440px) * var(--dm-evv-hero-ratio,1.778)))!important;
+    margin-inline:auto!important;
+    height:auto!important;
+    aspect-ratio:var(--dm-evv-hero-ratio,1.778)!important
+  }
+  /* Senza foto non c'e' una forma da seguire: resta la fascia bassa e quieta
+     del segnaposto, che non deve diventare un quadrato vuoto grande cosi'. */
+  #page-ev.dm-evv .lm-hero[data-dm-evv-photo="off"]{
+    aspect-ratio:auto!important;height:clamp(150px,18vw,196px)!important
+  }
 }
 #page-ev.dm-evv .lm-hero::after,#page-ev.dm-evv .lm-hero.lm-charging::after{
   background:linear-gradient(to bottom,rgba(6,14,22,.16) 0%,rgba(6,14,22,0) 34%,rgba(6,14,22,.12) 100%)!important;
@@ -392,7 +500,16 @@ function evShowcaseCss() {
    caption goes: the photo already sits under the brand badge of the picker. */
 #page-ev.dm-evv .lm-hero-top{padding:13px 13px 0!important}
 #page-ev.dm-evv .lm-brand{display:none!important}
-#page-ev.dm-evv .lm-hero-bg{object-position:center center!important}
+#page-ev.dm-evv .lm-hero-bg{
+  object-fit:contain!important;object-position:center center!important;
+  z-index:1!important;filter:drop-shadow(0 18px 28px rgba(6,14,22,.35))!important
+}
+/* La copia sfocata: sta sotto, riempie la cornice e non si guarda. */
+#page-ev.dm-evv .dm-evv-hero-blur{
+  position:absolute!important;inset:-8%!important;width:116%!important;height:116%!important;
+  object-fit:cover!important;z-index:0!important;
+  filter:blur(26px) saturate(1.25) brightness(.86)!important;pointer-events:none!important
+}
 /* the badge keeps the inline colours the render loop writes per EVSE state */
 #page-ev.dm-evv .lm-charge-badge{
   opacity:1!important;transform:none!important;padding:7px 13px!important;border-radius:999px!important;

@@ -21,9 +21,13 @@ const expectedTabs = [
   "server",
   "config",
 ];
+/* Le impronte cambiano solo con una modifica voluta al foglio vendorizzato.
+ * Questo giro: la griglia dei tasti dell'antifurto rapido non e' piu' fissa a
+ * tre colonne — quanti tasti ci sono lo decide la centrale, che dichiara quali
+ * inserimenti accetta. */
 const vendoredCssSnapshots = {
-  "dashboard-runtime-it.css": "9c146bddbfed0a758a0caea5203b23e29b30c9d0908993a00473f03e313ba3aa",
-  "dashboard-runtime-en.css": "35d13c66388378fdce1b26b76b1d2b5dae015c5528cfebafd38a0315d3f00878",
+  "dashboard-runtime-it.css": "fecd2a46f41268a251bd559d98a1ae3e720952feda42ef8ae3596e2aa3d0871e",
+  "dashboard-runtime-en.css": "816d8caecb70c669eeca6795be4de172b6948173864bf91e66dcf1c4d06f6796",
 };
 
 for (const file of ["dashboard.html", "dashboard-en.html"]) {

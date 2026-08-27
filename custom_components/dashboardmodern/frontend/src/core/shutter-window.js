@@ -6,6 +6,8 @@
  * la regola si puo' provare senza aprire un browser.
  */
 
+import { coverEntries } from "./cover-kind.js";
+
 const clean = (value) => String(value ?? "").trim();
 
 /* I nomi che il contatto puo' avere nella configurazione della tapparella.
@@ -55,4 +57,17 @@ export function shutterWindowModel(cover = {}, states = {}, resolve = (value) =>
   }
   const snapshot = states?.[entity] || states?.[reference] || null;
   return { entity, open: windowOpenFromState(snapshot?.state), configured: true };
+}
+
+/* Una finestra che non si comanda: c'e' solo il contatto.
+ *
+ * «Io non ho le tapparelle, ho le persiane e sono manuali, pero' ho sensori di
+ * apertura, volevo inserirli ma chiede obbligatoriamente l'entita' tapparella».
+ * Aveva ragione: il modulo offre la casella del contatto e poi rifiuta di
+ * salvare la riga che contiene solo quello. Una riga cosi' non comanda niente,
+ * ma ha qualcosa da dire — se la finestra e' aperta o chiusa — e quello e'
+ * esattamente cio' che la card sa gia' disegnare.
+ */
+export function isWindowOnly(cover = {}) {
+  return Boolean(contactEntity(cover)) && coverEntries(cover).length === 0;
 }

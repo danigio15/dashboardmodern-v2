@@ -23,6 +23,7 @@
  */
 
 import { pick } from "./i18n.js";
+import { LOAD_PLANT_FIELD, loadBelongsToPlant } from "./energy-plants.js";
 
 export const MAX_FLOW_LOADS = 8;
 export const MAX_SUBLOADS = 12;
@@ -103,6 +104,12 @@ function normalizeChild(child = {}, index = 0, source = "load") {
     daily: clean(child.daily ?? child.daily_energy_entity),
     monthly: clean(child.monthly ?? child.monthly_energy_entity),
     total: clean(child.total ?? child.total_energy_entity),
+    /* Che elettrodomestico e'.
+     *
+     * Serve a disegnarlo come lo disegna la sua sezione: la lavatrice ha un
+     * suo ritratto nel catalogo, e qui usciva un'emoji. Due sezioni che
+     * parlano della stessa lavatrice devono mostrare la stessa lavatrice. */
+    visual: clean(child.visual_key || child.visual || child.device_type || child.type),
   };
 }
 
@@ -142,9 +149,19 @@ export function loadsConfigModel({
   flowNodes = null,
   groups = [],
   subloads = null,
+  plant = null,
+  plantIndex = 0,
 } = {}) {
   const all = array(loads);
-  const parents = all
+  /* Un impianto per volta.
+   *
+   * Il flusso disegna un impianto solo — quello scelto in cima alla sezione —
+   * e questo e' l'elenco dei suoi cerchi. Il tetto di otto vale li' dentro,
+   * non sulla somma: due impianti non si dividono i cerchi, ne hanno otto
+   * ciascuno. Senza impianto passato si prende tutto, che e' come si e'
+   * sempre comportato chi ne ha uno solo. */
+  const suoi = plant ? all.filter((load) => loadBelongsToPlant(load, plant, plantIndex)) : all;
+  const parents = suoi
     .filter(eligible)
     .slice()
     .sort((left, right) => (Number(left.order) || 0) - (Number(right.order) || 0))
@@ -212,11 +229,15 @@ export function loadsConfigModel({
       daily: clean(load.daily_energy_entity),
       monthly: clean(load.monthly_energy_entity),
       children: [...canonical, ...assigned, ...legacy].slice(0, MAX_SUBLOADS),
+      /* Di quale impianto e' questo cerchio. Vuoto vuol dire il primo, e non e'
+       * una svista: e' quello che lascia otto carichi gia' configurati dove
+       * stanno, il giorno in cui questo campo compare. */
+      plant: clean(load[LOAD_PLANT_FIELD]),
     };
   });
 }
 
-export function emptyLoad(model = [], locale = "it") {
+export function emptyLoad(model = [], locale = "it", plant = "") {
   const index = model.length;
   const used = new Set(model.map((item) => clean(item.id)));
   const id = uniqueId(`carico-${index + 1}`, used);
@@ -233,6 +254,9 @@ export function emptyLoad(model = [], locale = "it") {
     daily: "",
     monthly: "",
     children: [],
+    /* Un carico nuovo nasce nell'impianto che si sta guardando, non nel
+     * primo: chi apre «casa Donato» e aggiunge un cerchio lo aggiunge li'. */
+    plant: clean(plant),
   };
 }
 
@@ -268,8 +292,11 @@ export function moveLoad(model = [], id, delta) {
  * `previous` is the section as stored: fields this editor does not manage —
  * report options, thresholds, per-device pricing — are carried over untouched
  * rather than dropped on save. */
-export function loadsConfigToSections(model = [], previous = []) {
+export function loadsConfigToSections(model = [], previous = [], plant = null) {
   const before = new Map(array(previous).map((item) => [clean(item.id), item]));
+  /* L'impianto di cui parla questo modello. Il primo si scrive vuoto: e' il
+   * valore che una configurazione a un impianto solo ha sempre avuto. */
+  const impianto = clean(plant);
   const loads = [];
   const groups = [];
   const subloads = {};
@@ -284,6 +311,7 @@ export function loadsConfigToSections(model = [], previous = []) {
       loads.push({
         ...kept,
         id,
+        [LOAD_PLANT_FIELD]: impianto,
         name: clean(load.name) || `Carico ${index + 1}`,
         icon: clean(load.icon) || "🔌",
         color: clean(load.color) || PALETTE[index % PALETTE.length],
@@ -331,6 +359,10 @@ export function loadsConfigToSections(model = [], previous = []) {
         loads.push({
           ...childKept,
           id: clean(child.id),
+          /* Un elettrodomestico sta nell'impianto del suo cerchio: scriverlo
+           * qui e' cio' che permette, piu' sotto, di riconoscere in una riga
+           * sola tutto quello che appartiene a un altro impianto. */
+          [LOAD_PLANT_FIELD]: impianto,
           name: clean(child.name),
           icon: clean(child.icon) || "🔌",
           order: index,
@@ -364,10 +396,18 @@ export function loadsConfigToSections(model = [], previous = []) {
         };
     });
 
-  // Rows this editor never showed — manual report entries — survive a save.
+  /* Le righe che questa maschera non ha mostrato sopravvivono al salvataggio.
+   *
+   * Sono due famiglie. Le voci del report manuale, che non sono cerchi e non
+   * sono mai passate di qui. E — da quando gli impianti sono piu' d'uno —
+   * tutto quello che appartiene a un ALTRO impianto: la maschera ne mostra
+   * uno per volta, e salvare «casa Giovanni» non puo' cancellare i carichi di
+   * «casa Donato» solo perche' non erano sullo schermo. */
+  const altroImpianto = (item) =>
+    Boolean(impianto !== null) && clean(item?.[LOAD_PLANT_FIELD]) !== impianto;
   for (const item of array(previous))
     if (
-      item?.category === "manual-report" &&
+      (item?.category === "manual-report" || altroImpianto(item)) &&
       !loads.some((entry) => clean(entry.id) === clean(item.id))
     )
       loads.push(item);

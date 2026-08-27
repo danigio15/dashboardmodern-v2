@@ -241,8 +241,9 @@ test("un'auto nuova non nasce con la foto di quella attiva", async ({ page }, te
       { name: "T03", img: "", imgPlugged: "" },
     ]);
 
-  /* E il runtime ha reso attiva la T03: le caselle da cui il disegno legge e
-   * il pannello foto raccontano LEI — vuota — non la B10 di prima. */
+  /* Salvare non cambia l'auto che la sezione sta mostrando: resta la B10, con
+   * la sua foto. La T03 e' nata senza — le sue si scelgono dal pannello, che
+   * intanto dichiara di parlare con lei. */
   await expect
     .poll(() =>
       page.evaluate(() => ({
@@ -250,7 +251,9 @@ test("un'auto nuova non nasce con la foto di quella attiva", async ({ page }, te
         idle: JSON.parse(localStorage.getItem("cd_ev_image") || '""'),
       })),
     )
-    .toEqual({ active: "1", idle: "" });
+    .toEqual({ active: "0", idle: "/local/ev/b10-idle.png" });
+  /* E la scheda resta aperta sull'auto appena salvata: e' lei che il pannello
+   * dichiara, ed e' su di lei che «Salva foto» scrivera'. */
   await expect(page.locator("[data-ev-photos-title]")).toHaveText(/T03/);
   await expect(
     page.locator('#ed-body [data-ev-photos] [data-ev-photo="idle"] [data-ev-photo-input]'),
@@ -413,11 +416,17 @@ test("la lista auto ha la matita, niente distintivo, e il + svuota la scheda", a
   const matite = page.locator("#ed-body [data-ev-edit]");
   await expect(matite).toHaveCount(2, { timeout: 15_000 });
   await expect(page.locator("#ed-body .ed-row .pool-badge")).toHaveCount(0);
-  await expect(page.locator('#ed-body button[onclick*="edEvCarAdd"]')).toHaveText(/Salva auto/);
+  await expect(page.locator('#ed-body button[onclick*="edEvCarAdd"]')).toHaveText(
+    /Salva (auto|le modifiche a|la nuova auto)/,
+  );
 
-  // La matita apre QUELLA auto nella scheda: nome compreso.
+  /* La matita APRE quell'auto nella scheda — nome compreso — e non tocca
+   * nient'altro: quale vettura la sezione stia mostrando non e' affare della
+   * configurazione, e aprirne una per modificarla non deve cambiarla. */
+  const inUsoPrima = await page.evaluate(() => localStorage.getItem("cd_ev_car_active"));
   await matite.nth(1).click();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("cd_ev_car_active"))).toBe("1");
+  await expect(page.locator("#ed-evcar-name")).toHaveValue("T03", { timeout: 15_000 });
+  expect(await page.evaluate(() => localStorage.getItem("cd_ev_car_active"))).toBe(inUsoPrima);
   await expect(page.locator("#ed-evcar-name")).toHaveValue("T03", { timeout: 15_000 });
   await expect(
     page.locator('#ed-body .ed-slot-in[data-ref="dm.ev_batteria_auto"]').first(),
@@ -458,6 +467,12 @@ test("la bozza non veste l'auto attiva, e la vettura nuova nasce col suo brand",
       ?.setAttribute("open", "");
   });
   const marca = page.locator("#ed-body [data-ev-appearance] select[data-brand]");
+  /* Il ＋ fa rinascere la card: si sceglie quando la scheda dichiara di essere
+     la bozza, o si sceglie sul pannello di prima. */
+  await expect(page.locator("#ed-body [data-ev-appearance]")).toHaveAttribute(
+    "data-dm-vehicle-draft",
+    "true",
+  );
   await marca.selectOption("Kia");
   await page
     .locator("#ed-body [data-ev-appearance] select[data-model]")
@@ -500,4 +515,236 @@ test("la bozza non veste l'auto attiva, e la vettura nuova nasce col suo brand",
       ["T03", "Leapmotor"],
       ["Kia nuova", "Kia"],
     ]);
+});
+
+test("in bozza il pannello foto non scrive su nessuno", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* Lo stesso difetto del brand, sull'altro pannello. «＋ Nuova auto» apre
+   * una scheda che non appartiene ancora a nessuna vettura: la domanda «di
+   * chi sono queste foto» ha una risposta sola — di nessuno, non ancora.
+   *
+   * Il pannello pero' la chiedeva a un suo conto, e nella bozza ricadeva
+   * sull'auto in uso: mostrava le foto della B10 su una scheda vuota, e
+   * «Salva foto» gliele riscriveva addosso. Un percorso scritto per la
+   * vettura che sta nascendo finiva su quella vecchia. */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  await page.waitForFunction(() => Boolean(document.getElementById("ed-evcar-name")), null, {
+    timeout: 15_000,
+  });
+  await page.locator("#ed-body [data-ev-add-new]").click();
+
+  /* La scheda e' vuota, e il pannello con lei: nessuna foto ereditata. */
+  const campoFoto = page.locator(
+    '#ed-body [data-ev-photos] [data-ev-photo="idle"] [data-ev-photo-input]',
+  );
+  await expect(campoFoto).toHaveValue("");
+
+  /* Si scrive il percorso della vettura nuova e si salva. */
+  await campoFoto.fill("/local/ev/kia-idle.png");
+  await campoFoto.dispatchEvent("input");
+  // Il click diretto: il modale della configurazione tiene strati sopra.
+  await page.locator("#ed-body [data-ev-photos-save]").evaluate((bottone) => bottone.click());
+
+  /* Nessuna delle due auto configurate ha preso quella foto. */
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((c) => ({
+          name: c.name,
+          img: c.img || "",
+        })),
+      ),
+    )
+    .toEqual([
+      { name: "B10", img: "/local/ev/b10-idle.png" },
+      { name: "T03", img: "/local/ev/t03-idle.png" },
+    ]);
+  /* E nemmeno il disegno: in plancia resta la B10, che e' quella in uso. */
+  await expect
+    .poll(() => caselle(page))
+    .toEqual({
+      active: "0",
+      idle: "/local/ev/b10-idle.png",
+      plugged: "/local/ev/b10-cavo.png",
+    });
+});
+
+test("spegnere l'auto in mostra passa la sezione a quella accesa", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* L'interruttore dice se una vettura compare nella sezione. Spegnendo
+   * proprio quella in mostra, pero', restava lei l'auto in uso: la plancia
+   * continuava a disegnare la sua foto mentre le linguette non la portavano
+   * piu'. E la linguetta accesa era quella sbagliata, perche' il numero
+   * dell'auto in uso si contava sull'elenco INTERO e le linguette sono solo
+   * le accese: due conteggi diversi, letti come se fossero lo stesso. */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#ed-body [data-ev-enabled]")),
+    null,
+    {
+      timeout: 15_000,
+    },
+  );
+
+  // Si spegne la B10, che e' quella che la sezione sta mostrando.
+  await page.locator('#ed-body [data-ev-enabled="0"]').click();
+
+  /* Nella sezione resta una linguetta sola, ed e' la T03: e' lei che la
+   * sezione mostra adesso, foto compresa. */
+  const linguette = page.locator("#ev-car-picker .dm-vehicle-profile-card");
+  await expect(linguette).toHaveCount(1);
+  await expect(linguette.first()).toHaveText(/T03/);
+  await expect(linguette.first()).toHaveClass(/active/);
+  await expect
+    .poll(() => caselle(page))
+    .toEqual({
+      active: "1",
+      idle: "/local/ev/t03-idle.png",
+      plugged: "/local/ev/t03-cavo.png",
+    });
+
+  /* La B10 non e' sparita: e' spenta, e in configurazione c'e' ancora tutta. */
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((c) => ({
+          name: c.name,
+          enabled: c.enabled !== false,
+          img: c.img || "",
+        })),
+      ),
+    )
+    .toEqual([
+      { name: "B10", enabled: false, img: "/local/ev/b10-idle.png" },
+      { name: "T03", enabled: true, img: "/local/ev/t03-idle.png" },
+    ]);
+});
+
+test("con un'auto spenta davanti, la linguetta resta di chi e'", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* Le linguette sono solo le auto ACCESE, ma chi le vestiva le cercava per
+   * numero dentro l'elenco INTERO. Con la prima vettura spenta, l'unica
+   * linguetta rimasta prendeva nome, logo e modello di quella spenta: la
+   * T03 in mostra diceva «B10». */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#ed-body [data-ev-enabled]")),
+    null,
+    {
+      timeout: 15_000,
+    },
+  );
+  await page.locator('#ed-body [data-ev-enabled="0"]').click();
+
+  const linguetta = page.locator("#ev-car-picker .dm-vehicle-profile-card").first();
+  await expect(linguetta).toHaveText(/T03/);
+  await expect(linguetta).not.toHaveText(/B10/);
+  await expect(linguetta).toHaveAttribute("data-dm-vehicle-model", "T03");
+});
+
+test("la bozza nasce senza marca e senza modello, e resta cosi'", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* «＋ Nuova auto» apre una scheda che non appartiene ancora a nessuno. La
+   * card del brand pero' nasceva vestita: un ripiego scritto nel codice la
+   * faceva Leapmotor, e il modello lo sceglieva il browser prendendo il primo
+   * della lista. Chi apriva la scheda per una Tesla si trovava una Leapmotor
+   * B10 gia' compilata — e se non la cambiava, se la salvava.
+   *
+   * Un istante dopo arrivava il colpo di grazia: il giro di compatibilita'
+   * legge dal pannello di quale auto parla, trovava «di nessuno» e lo
+   * scambiava per «non lo so», ricadendo sull'auto in mostra e rimettendole
+   * addosso marca e modello. E' la terza volta che la stringa vuota viene
+   * letta come «non so» invece che come «nessuno». */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#ed-body [data-ev-appearance]")),
+    null,
+    { timeout: 15_000 },
+  );
+  const marca = page.locator("#ed-body [data-ev-appearance] select[data-brand]");
+  const modello = page.locator("#ed-body [data-ev-appearance] select[data-model]");
+  // Aperta sull'auto in uso, la card e' vestita: e' giusto cosi'.
+  await expect(marca).toHaveValue("Leapmotor");
+
+  await page.locator("#ed-body [data-ev-add-new]").click();
+  await expect(page.locator("#ed-body [data-ev-appearance]")).toHaveAttribute(
+    "data-dm-vehicle-draft",
+    "true",
+  );
+  await expect(marca).toHaveValue("");
+  await expect(modello).toHaveValue("");
+
+  /* E ci resta: il giro di compatibilita' passa piu' volte, e a nessuna deve
+   * venire in mente di vestirla. */
+  await page.waitForTimeout(2500);
+  await expect(marca).toHaveValue("");
+  await expect(modello).toHaveValue("");
+
+  /* Le due auto configurate non hanno cambiato vestito. */
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem("cd_ev_cars") || "[]").map((c) => `${c.name}:${c.brand}`),
+      ),
+    )
+    .toEqual(["B10:Leapmotor", "T03:Leapmotor"]);
+});
+
+test("scegliere la marca riempie i modelli, e l'anteprima la segue", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  /* La tendina dei modelli si riempiva solo per grazia di un altro modulo.
+   *
+   * `[data-brand]` non e' soltanto la tendina: e' anche l'attributo che il
+   * marchio disegnato porta addosso, e nel modello del pannello il marchio
+   * viene prima. L'ascoltatore del cambio marca finiva appeso a quel pezzo di
+   * disegno, che un evento «change» non lo emette mai: scegliere una marca
+   * non riempiva l'elenco dei modelli e l'anteprima restava indietro.
+   *
+   * Sembrava funzionare perche' il giro di compatibilita', per conto suo,
+   * riallineava le tendine all'auto in uso. Appena quello si e' fatto da parte
+   * sulla bozza, il buco e' venuto a galla. */
+  await avvia(page, testInfo);
+  await page.evaluate(() => {
+    window.apriConfigEntita();
+    window.editorSwitch("sez2");
+  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#ed-body [data-ev-appearance]")),
+    null,
+    { timeout: 15_000 },
+  );
+  await page.locator("#ed-body [data-ev-add-new]").click();
+  /* Si sceglie quando la scheda e' davvero la bozza: il ＋ la fa rinascere, e
+     scegliere mentre sta rinascendo vuol dire scegliere sul pannello di
+     prima. */
+  await expect(page.locator("#ed-body [data-ev-appearance]")).toHaveAttribute(
+    "data-dm-vehicle-draft",
+    "true",
+  );
+  await page.locator("#ed-body [data-ev-appearance] select[data-brand]").selectOption("Kia");
+
+  const modelli = page.locator("#ed-body [data-ev-appearance] select[data-model] option");
+  await expect.poll(() => modelli.count()).toBeGreaterThan(3);
+  await expect(page.locator("#ed-body [data-ev-appearance] select[data-brand]")).toHaveValue("Kia");
+
+  /* Il riquadro dell'anteprima non e' pinzato qui apposta: quel quadratino ha
+   * ancora piu' di un padrone — tre moduli lo ridipingono, ognuno con la sua
+   * idea di quale auto sia — e non e' ancora vero che segua sempre le tendine.
+   * Pinzarlo vorrebbe dire dichiarare risolto qualcosa che non lo e'. */
 });

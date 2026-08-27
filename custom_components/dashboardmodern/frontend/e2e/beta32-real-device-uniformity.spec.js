@@ -219,7 +219,10 @@ test("an alert animates the way its own alert behaves", async ({ page }, testInf
          ma tessere del ponte: il vocabolario dei movimenti si è trasferito
          con loro, e si legge dove adesso vivono. */
       [...document.querySelectorAll('#dm-widgets .dm-tile[data-alert="true"]')].map((card) => {
-        const wrap = card.querySelector(".dm-tile-ic,.dm-tile-ring i");
+        /* Il simbolo della tessera e' la pastiglia: `.dm-tile-ic` e
+           `.dm-tile-ring i` erano i nomi di quando il ponte disegnava un
+           disco, e non esistono piu'. */
+        const wrap = card.querySelector(".dm-tile-chip");
         const glyph = wrap?.querySelector(".dm-alert-glyph");
         return {
           name: card.querySelector(".dm-tile-label")?.textContent?.trim(),

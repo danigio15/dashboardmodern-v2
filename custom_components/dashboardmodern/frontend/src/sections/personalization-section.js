@@ -1,5 +1,7 @@
 import { ACTION_ICON_CATALOG, CAR_BRANDS, ROOM_CATALOG, actionVisual, carBrandVisual, roomVisual } from "../core/personalization-catalog.js";
 import { clean, doc, esc, installStyle, readJson, root, t, writeJsonIfChanged, wrapFunction } from "./shared.js";
+import { VEHICLE_KEY_FIELD } from "../core/vehicle-model.js";
+import { bozzaAperta, editedVehicle, profiles, salvaAuto } from "./ev-section.js";
 
 globalThis.__DM_20260815C__ = true;
 const KEY = "__DASHBOARDMODERN_PERSONALIZATION_SECTION__";
@@ -210,8 +212,22 @@ function decorateRoomEditorRows() {
       row.prepend(visual);
       changed = true;
     }
-    const markup = roomVisual(room.icon || room.name, 34) || iconMarkup(room.icon || "mdi:home", 30);
-    if (visual.innerHTML !== markup) visual.innerHTML = markup;
+    /* Il quadratino della stanza ha un padrone, ed e' il motore delle icone.
+     *
+     * Qui si ridipingeva comunque, un istante dopo di lui: il glifo che il
+     * motore aveva appena scritto veniva sostituito da un disegno con un altro
+     * nome, e chi cerca il primo non trova piu' niente. E' la stessa regola
+     * gia' scritta qui sotto per le righe del Report — chi si dichiara padrone
+     * della propria casella la tiene — solo che a queste non si applicava.
+     *
+     * Quando il motore c'e' si chiede a lui: e' lui che sa cosa disegnare, e
+     * disegnandolo una volta sola non c'e' piu' niente da contendersi. */
+    const motore = root.DashboardModernIconEngine;
+    if (motore?.render) motore.render(visual, "room", room.icon || room.name || "mdi:home", { size: 34 });
+    else {
+      const markup = roomVisual(room.icon || room.name, 34) || iconMarkup(room.icon || "mdi:home", 30);
+      if (visual.innerHTML !== markup) visual.innerHTML = markup;
+    }
     const label = main.querySelector(".ed-row-new");
     if (label) label.textContent = clean(room.name) || t("Stanza", "Room");
     main.dataset.dmRoomIconVisible = "true";
@@ -378,26 +394,31 @@ function ensureSectionRenamer() {
   }
 }
 
+/* Di quale auto parla la card «Brand e modello».
+ *
+ * Erano due sbagli in uno. Il primo: questa sezione si rileggeva `cd_ev_cars`
+ * grezza e `cd_ev_car_active` come POSIZIONE — la quarta copia della stessa
+ * conoscenza, con la sua idea di quale auto fosse quella giusta.
+ *
+ * Il secondo si vedeva a occhio nella scheda: la card parlava dell'auto ATTIVA
+ * mentre sopra, con la matita, se ne stava modificando un'altra. Due contesti
+ * nella stessa schermata, e da li' nascevano gli scambi — si sceglieva la marca
+ * credendo di vestire la vettura aperta e si vestiva quella in mostra.
+ *
+ * Adesso l'auto la da' la sezione EV, che le possiede, e il bersaglio e' lo
+ * stesso del pannello foto: quella aperta con la matita, e solo senza una
+ * sessione aperta quella in uso. Un gesto, un'auto. */
 function evVisual() {
-  const evStore = root.DashboardModernModules?.store;
-  const storeCars = evStore?.peekSection ? evStore.peekSection("ev") : evStore?.getSection?.("ev");
-  const legacyCars = readJson("cd_ev_cars", []);
-  /* La stessa precedenza della sezione EV: prima la lista legacy, poi il
-   * negozio. Qui era il contrario, e quando le due copie divergevano questa
-   * sezione salvava marca e modello sulla lista vecchia, risovrascrivendo
-   * quella appena aggiornata: due letture opposte sono un altro modo di avere
-   * due padroni. */
-  const cars = Array.isArray(legacyCars) && legacyCars.length
-    ? legacyCars
-    : Array.isArray(storeCars)
-      ? storeCars
-      : [];
-  const requested = Number(root.localStorage?.getItem("cd_ev_car_active") ?? -1);
-  const active = cars.length
-    ? Math.max(0, Math.min(cars.length - 1, Number.isFinite(requested) ? requested : 0))
-    : -1;
-  const current = active >= 0 ? cars[active] : null;
-  return { cars, active, current, fallback: readJson("cd_ev_visual", {}) };
+  const cars = profiles();
+  /* `editedVehicle` distingue i tre casi della sessione, bozza compresa: con
+   * ＋ Nuova auto non c'e' nessuna vettura, e la card deve nascere vuota invece
+   * di vestirsi coi panni di quella in uso. */
+  const current = cars.length ? editedVehicle(cars) : null;
+  const active = current ? cars.indexOf(current) : -1;
+  /* La bozza non e' «non so di chi parliamo»: e' «di nessuno, non ancora».
+   * Chi confonde i due casi veste la vettura che nasce coi panni di quella in
+   * mostra — ed e' il terzo posto in cui e' successo. */
+  return { cars, active, current, bozza: bozzaAperta(), fallback: readJson("cd_ev_visual", {}) };
 }
 
 async function saveEvAppearance(brand, model) {
@@ -420,8 +441,11 @@ async function saveEvAppearance(brand, model) {
   if (current?.id && typeof store?.updateItem === "function") {
     await store.updateItem("ev", current.id, { brand, model });
   } else if (Array.isArray(cars) && active >= 0 && cars[active]) {
-    cars[active] = { ...cars[active], brand, model };
-    writeJsonIfChanged("cd_ev_cars", cars);
+    /* La marca e il modello appartengono all'auto, e si scrivono dove si
+     * scrive un'auto: da `salvaAuto`, che e' il solo padrone dell'elenco. Qui
+     * si passava dritti su localStorage, ed era uno degli otto punti di
+     * scrittura che si contraddicevano a vicenda. */
+    salvaAuto(cars.map((car, posto) => (posto === active ? { ...car, brand, model } : car)));
   } else {
     writeJsonIfChanged("cd_ev_visual", { brand, model });
   }
@@ -432,19 +456,35 @@ async function saveEvAppearance(brand, model) {
 }
 
 function applyEvAppearance() {
-  const { cars, current, fallback } = evVisual();
-  const visual = current || fallback || {};
-  const brand = effectiveBrand(visual) || "Leapmotor";
+  const { cars, current, fallback, bozza } = evVisual();
+  /* In bozza non c'e' niente da mostrare: la vettura non esiste ancora, e
+   * quello che c'era nelle caselle apparteneva a un'altra. */
+  const visual = bozza ? {} : current || fallback || {};
+  const brand = effectiveBrand(visual);
   const model = effectiveModel(visual);
+  /* Il badge della marca non c'e' piu'.
+   *
+   * Stava dentro `#ev-car-picker`, la riga delle linguette, e mostrava marca e
+   * modello dell'auto ATTIVA: un riquadro in piu' accanto alle linguette di
+   * tutte le auto, disegnato quasi uguale ma con dentro un'altra cosa. Con due
+   * vetture configurate si vedevano tre riquadri per due auto, e il primo
+   * parlava di una sola. Adesso il modello sta nella linguetta della sua auto,
+   * accanto al nome a cui appartiene, e la marca e' il logo che la linguetta
+   * gia' porta. */
   const picker = doc?.getElementById("ev-car-picker");
-  if (picker && brand) {
-    let badge = picker.querySelector(".dm-ev-brand-badge");
-    if (!badge) { badge = doc.createElement("span"); badge.className = "dm-ev-brand-badge"; picker.prepend(badge); }
-    badge.innerHTML = `${carBrandVisual(brand, 38)}<span class="dm-ev-brand-copy"><b>${esc(brand)}</b>${model ? `<small>${esc(model)}</small>` : ""}</span>`;
-  }
-  doc?.querySelectorAll?.(".dm-vehicle-profile-card[data-vehicle-index]").forEach((card) => {
-    const index = Number(card.dataset.vehicleIndex);
-    const vehicle = cars[index];
+  picker?.querySelector?.(".dm-ev-brand-badge")?.remove?.();
+  /* La linguetta si riconosce dalla CHIAVE dell'auto, non dal suo posto.
+   *
+   * Il numero scritto sulla linguetta e' il posto dentro le auto MOSTRATE —
+   * solo quelle accese — e qui si cercava con quel numero dentro l'elenco
+   * INTERO. Con una vettura spenta davanti, la linguetta prendeva marca, logo
+   * e nome di un'altra: e' di nuovo «i dati sembrano di un'altra auto»,
+   * entrato dalla porta di servizio. */
+  doc?.querySelectorAll?.(".dm-vehicle-profile-card[data-vehicle-key]").forEach((card) => {
+    const chiave = clean(card.dataset.vehicleKey);
+    const vehicle = chiave
+      ? cars.find((car) => clean(car?.[VEHICLE_KEY_FIELD]) === chiave)
+      : null;
     if (!vehicle) return;
     const inferredBrand = effectiveBrand(vehicle);
     const inferredModel = effectiveModel(vehicle);
@@ -484,7 +524,17 @@ function ensureEvAppearanceEditor() {
       node.querySelector('.ed-slot-in[data-ref^="dm.ev_"]'),
     );
   const existing = body.querySelector("[data-ev-appearance]");
-  if (existing) {
+  /* La card segue l'auto aperta, e per farlo deve rinascere.
+   *
+   * Si costruiva una volta sola: aprendo la seconda vettura con la matita, il
+   * nome e le entita' sopra cambiavano e qui restava la marca della prima. Chi
+   * guardava vedeva la Leapmotor con scritto MINI — e sceglieva la marca
+   * credendo di vestire quella aperta. La card porta scritto di chi parla, e
+   * quando il gesto passa a un'altra auto se ne va e si rifa'. */
+  const bersaglio = evVisual().current;
+  const uidBersaglio = clean(bersaglio?.uid);
+  if (existing && clean(existing.dataset.dmVehicleUid) !== uidBersaglio) existing.remove();
+  else if (existing) {
     // The editor repaints #ed-body while the tab settles, so the vehicle
     // accordion can appear after the panel was built. Bring the panel home as
     // soon as its own section exists, retrying a bounded number of times rather
@@ -516,24 +566,71 @@ function ensureEvAppearanceEditor() {
     return;
   }
   state.evHomeAttempts = 0;
-  const { current, fallback } = evVisual();
-  const visual = current || fallback || {};
+  const { current, fallback, bozza } = evVisual();
+  const visual = bozza ? {} : current || fallback || {};
   const panel = doc.createElement("section");
   panel.className = "ed-form dm-ev-appearance";
   panel.dataset.evAppearance = "true";
-  const brand = effectiveBrand(visual) || clean(visual.brand) || "Leapmotor";
+  panel.dataset.dmVehicleUid = clean(current?.uid);
+  /* La bozza lo dichiara. Senza, chi legge solo l'uid vede una stringa vuota e
+   * la scambia per «non lo so»: da li' ricade sull'auto in mostra e rimette
+   * marca e modello di quella dentro la scheda della vettura che sta
+   * nascendo. */
+  if (bozza) panel.dataset.dmVehicleDraft = "true";
+  /* Niente marca per forza.
+   *
+   * Qui c'era «Leapmotor» come ripiego: una scheda vuota nasceva Leapmotor, e
+   * il modello lo sceglieva il browser prendendo il primo della lista. Chi
+   * apriva ＋ Nuova auto per una Tesla si trovava una Leapmotor B10 gia'
+   * scritta, e se non la cambiava se la salvava. Vuoto vuol dire vuoto: la
+   * tendina si apre sulla riga che chiede di scegliere. */
+  const brand = effectiveBrand(visual) || clean(visual.brand);
   const model = effectiveModel(visual);
-  panel.innerHTML = `<div class="ed-sec-title">🚘 ${t("Brand e modello auto", "Vehicle brand and model")}</div><div class="ed-intro">${t("Il logo viene associato automaticamente al marchio. Il modello sostituisce la vecchia icona auto generica.", "The logo is automatically associated with the brand. The model replaces the old generic car icon.")}</div><div class="dm-ev-appearance-grid"><button type="button" class="dm-brand-preview dm-visual-trigger" data-brand-preview aria-label="${t("Scegli brand auto", "Choose car brand")}">${carBrandVisual(brand, 56)}<span class="dm-ev-brand-copy"><b>${esc(brand)}</b>${model ? `<small>${esc(model)}</small>` : ""}</span></button><label class="dm-ev-appearance-field"><span>${t("Marchio", "Brand")}</span><select class="ed-input" data-brand>${CAR_BRANDS.map((item) => `<option value="${esc(item.name)}" ${item.name === brand ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select></label><label class="dm-ev-appearance-field"><span>${t("Modello elettrico / ibrido", "Electric / hybrid model")}</span><select class="ed-input" data-model>${modelOptions(brand, model)}</select></label></div><button type="button" class="ed-save-btn" data-save>💾 ${t("Salva brand e modello", "Save brand and model")}</button>`;
+  panel.innerHTML = `<div class="ed-sec-title">🚘 ${t("Brand e modello auto", "Vehicle brand and model")}</div><div class="ed-intro">${t("Il logo viene associato automaticamente al marchio. Il modello sostituisce la vecchia icona auto generica.", "The logo is automatically associated with the brand. The model replaces the old generic car icon.")}</div><div class="dm-ev-appearance-grid"><button type="button" class="dm-brand-preview dm-visual-trigger" data-brand-preview aria-label="${t("Scegli brand auto", "Choose car brand")}">${carBrandVisual(brand, 56)}<span class="dm-ev-brand-copy"><b>${esc(brand)}</b>${model ? `<small>${esc(model)}</small>` : ""}</span></button><label class="dm-ev-appearance-field"><span>${t("Marchio", "Brand")}</span><select class="ed-input" data-brand><option value="">— ${t("Seleziona marchio", "Choose brand")} —</option>${CAR_BRANDS.map((item) => `<option value="${esc(item.name)}" ${item.name === brand ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select></label><label class="dm-ev-appearance-field"><span>${t("Modello elettrico / ibrido", "Electric / hybrid model")}</span><select class="ed-input" data-model>${modelOptions(brand, model)}</select></label></div><button type="button" class="ed-save-btn" data-save>💾 ${t("Salva brand e modello", "Save brand and model")}</button>`;
   // The accordion is found by its own EV slots rather than by its wording, so a
   // renamed section still gets the panel. It exists: the guard above returned
   // early otherwise, which is what keeps this placement the only one.
   evAccordionBody().prepend(panel);
-  const brandSelect = panel.querySelector("[data-brand]");
-  const modelSelect = panel.querySelector("[data-model]");
+  /* Le tendine si cercano come tendine.
+   *
+   * `[data-brand]` non e' solo la tendina: e' anche l'attributo che il marchio
+   * disegnato porta addosso, e il marchio nel modello del pannello viene
+   * PRIMA. Cosi' qui finiva quello, e l'ascoltatore del cambio marca stava
+   * appeso a un pezzo di disegno che un evento «change» non lo emette mai:
+   * scegliere una marca non riempiva l'elenco dei modelli, e l'anteprima
+   * restava indietro. Sembrava che funzionasse perche' un altro modulo, per
+   * conto suo, riallineava le tendine all'auto in uso — e quando quello si e'
+   * fatto da parte sulla bozza, il buco e' venuto a galla. */
+  const brandSelect = panel.querySelector("select[data-brand]");
+  const modelSelect = panel.querySelector("select[data-model]");
+  /* Il riquadro del marchio ha UN padrone, ed e' questo.
+   *
+   * Ne aveva tre. Questo lo costruiva; un secondo modulo ci appendeva i propri
+   * ascoltatori e riempiva l'elenco dei modelli per conto suo; un terzo
+   * riallineava le tendine all'auto che credeva giusta. Tre opinioni sullo
+   * stesso quadratino, e vinceva l'ultima che passava: il riquadro raccontava
+   * una macchina e le tendine un'altra, nella stessa card. Il difetto della
+   * bozza vestita da Leapmotor e quello dei modelli che non si riempivano
+   * erano due facce di questo.
+   *
+   * Adesso si disegna da qui e basta, sempre dalle tendine. I contrassegni che
+   * la vecchia guardia lasciava sul nodo restano — c'e' del CSS che li cerca
+   * per misurare il logo — ma li scrive chi disegna, non chi passava. */
   const refreshPreview = () => {
     const selectedBrand = clean(brandSelect.value);
     const selectedModel = clean(modelSelect.value);
-    panel.querySelector("[data-brand-preview]").innerHTML = `${carBrandVisual(selectedBrand, 56)}<span class="dm-ev-brand-copy"><b>${esc(selectedBrand)}</b>${selectedModel ? `<small>${esc(selectedModel)}</small>` : ""}</span>`;
+    const preview = panel.querySelector("[data-brand-preview]");
+    preview.innerHTML = `${carBrandVisual(selectedBrand, 56)}<span class="dm-ev-brand-copy"><b>${esc(selectedBrand)}</b>${selectedModel ? `<small>${esc(selectedModel)}</small>` : ""}</span>`;
+    preview.dataset.dmBeta11EvPreview = "true";
+    preview.dataset.dmBeta11Brand = selectedBrand.toLowerCase();
+    preview.dataset.dmCurrentBrand = selectedBrand;
+    preview.querySelector(".dm-car-brand,.dm-leapmotor-mark")?.setAttribute("data-dm-beta11-logo", "true");
+    const copy = preview.querySelector(".dm-ev-brand-copy");
+    if (copy) {
+      copy.dataset.dmBeta11Copy = "true";
+      copy.querySelector("b")?.setAttribute("title", selectedBrand);
+      copy.querySelector("small")?.setAttribute("title", selectedModel);
+    }
   };
   brandSelect.addEventListener("change", () => {
     const previous = clean(modelSelect.value);
@@ -541,6 +638,13 @@ function ensureEvAppearanceEditor() {
     refreshPreview();
   });
   modelSelect.addEventListener("change", refreshPreview);
+  /* L'anteprima si disegna adesso, dalle tendine.
+   *
+   * Era stampata nel modello del pannello e poi non piu' toccata finche'
+   * qualcuno non cambiava una tendina: bastava che qualcun altro spostasse la
+   * scelta — il ＋, o il giro di compatibilita' — e il riquadro raccontava una
+   * macchina e le tendine un'altra, nella stessa card. */
+  refreshPreview();
   panel.querySelector("[data-brand-preview]").addEventListener("click", () => openVisualPicker(brandSelect, "car"));
   panel.querySelector("[data-save]").addEventListener("click", async (event) => {
     const button = event.currentTarget;
@@ -624,7 +728,12 @@ function subscribeStore() {
 
 function installStyles() {
   installStyle("dm-personalization-style", `
-    .dm-visual-picker{z-index:100020!important}.dm-picker-dialog{width:min(760px,calc(100vw - 24px))!important;max-height:min(82vh,760px)!important}.dm-picker-search{padding:14px 18px 6px}.dm-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;padding:12px 18px 20px;overflow:auto}.dm-picker-option{display:grid;place-items:center;gap:7px;min-height:108px;padding:10px;border:1px solid var(--divider-color,#dbe4ee);border-radius:16px;background:var(--card-background-color,#fff);color:var(--text,#0f172a);cursor:pointer}.dm-picker-option:hover{border-color:var(--primary-color,#0ea5e9);transform:translateY(-1px)}.dm-picker-option b{font-size:12px;line-height:1.2;text-align:center}.dm-picker-option[hidden]{display:none!important}.dm-picker-visual{display:grid;place-items:center;min-width:52px;min-height:52px}.dm-room-art,.dm-car-brand{display:inline-grid;place-items:center;color:var(--primary-color,#0ea5e9)}.dm-action-glyph{display:inline-grid;place-items:center;color:var(--primary-color,#0ea5e9);line-height:1}.dm-action-glyph svg{display:block!important;max-width:100%!important;max-height:100%!important}
+    .dm-visual-picker{z-index:100020!important}.dm-picker-dialog{width:min(760px,calc(100vw - 24px))!important;max-height:min(82vh,760px)!important}.dm-picker-search{padding:14px 18px 6px}.dm-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;padding:12px 18px 20px;overflow:auto}.dm-picker-option{display:grid;place-items:center;gap:7px;min-height:108px;padding:10px;border:1px solid var(--divider-color,#dbe4ee);border-radius:16px;background:var(--card-background-color,#fff);color:var(--text,#0f172a);cursor:pointer}.dm-picker-option:hover{border-color:var(--primary-color,#0ea5e9);transform:translateY(-1px)}.dm-picker-option b{font-size:12px;line-height:1.2;text-align:center}.dm-picker-option[hidden]{display:none!important}.dm-picker-visual{display:grid;place-items:center;min-width:52px;min-height:52px}.dm-room-art{display:inline-grid;place-items:center;color:var(--primary-color,#0ea5e9)}
+    /* Il marchio non prende l'accento della plancia: quelli che un colore ce
+       l'hanno se lo scrivono addosso, e quelli che non ce l'hanno — i marchi
+       sostanzialmente neri, lasciati apposta senza — devono seguire
+       l'inchiostro di dove stanno, non diventare azzurri. */
+    .dm-car-brand{display:inline-grid;place-items:center;color:inherit}.dm-action-glyph{display:inline-grid;place-items:center;color:var(--primary-color,#0ea5e9);line-height:1}.dm-action-glyph svg{display:block!important;max-width:100%!important;max-height:100%!important}
     #dm-visual-picker[data-kind="car"] .dm-picker-visual{width:94px!important;height:58px!important;overflow:hidden!important}#dm-visual-picker[data-kind="car"] .dm-picker-visual .dm-car-brand{width:88px!important;max-width:88px!important;height:54px!important;max-height:54px!important;overflow:hidden!important}#dm-visual-picker[data-kind="car"] .dm-picker-visual .dm-car-brand img,#dm-visual-picker[data-kind="car"] .dm-picker-visual .dm-car-brand svg{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important}
     .dm-unified-icon-row{grid-template-columns:72px minmax(0,1fr)!important}.dm-visual-pick-btn{display:none!important}.dm-visual-trigger,.dm-icon-preview-button{cursor:pointer!important;transition:transform .15s ease,box-shadow .15s ease!important}.dm-visual-trigger:hover,.dm-icon-preview-button:hover{transform:translateY(-1px)!important}.dm-unified-icon-preview.dm-visual-trigger,.dm-action-icon-preview.dm-visual-trigger{display:grid!important;place-items:center!important;width:72px!important;height:72px!important;border:1px solid var(--divider-color,#dbe4ee)!important;border-radius:18px!important;background:var(--secondary-background-color,#eef3f8)!important}/* Il quadratino dell'icona era l'unico controllo della configurazione vestito
        dal browser. Gli si diceva quanto grande e quanto arrotondato, mai di che
@@ -665,7 +774,16 @@ export function installPersonalizationSection() {
         openVisualPicker(input, "room");
       }
     }
-    if (event.target?.closest?.(".ed-tab,[data-tab],[data-dm-edit-kind],.ed-btn-add,.ed-save-btn,.ed-del")) root.setTimeout?.(schedule, 0);
+    /* La matita e il ＋ della lista auto cambiano di quale vettura parla la
+     * scheda, e con lei la card «Brand e modello»: senza questi due la card
+     * restava sull'auto di prima mentre tutto il resto era gia' passato
+     * all'altra. */
+    if (
+      event.target?.closest?.(
+        ".ed-tab,[data-tab],[data-dm-edit-kind],.ed-btn-add,.ed-save-btn,.ed-del,[data-ev-edit],[data-ev-add-new]",
+      )
+    )
+      root.setTimeout?.(schedule, 0);
   }, true);
   root.addEventListener?.("dashboardmodern:legacy-ready", () => {
     for (const name of ["editorSwitch", "buildTempCards", "buildClimaCards", "cdApplyNavOrder", "cdApplyNavVis", "cdEvCarsRefresh", "editorRenderStanze"]) wrapFunction(name, `__dmPersonal_${name}`, schedule);

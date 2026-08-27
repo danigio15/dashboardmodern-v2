@@ -194,9 +194,11 @@ export function pageCardMarkup(view) {
       <span class="dm-lucip-orb" aria-hidden="true">${view.domain === "light" ? BULB : PLUG}</span>
       <span class="dm-lucip-title">
         <strong>${esc(view.name)}</strong>
-        <small class="dm-lucip-state" data-dm-lucip-state>${stateText(view)}</small>
+        <span class="dm-lucip-meta">
+          <small class="dm-lucip-state" data-dm-lucip-state>${stateText(view)}</small>
+          ${badge ? `<span class="dm-lucip-badge" data-kind="${badge.kind}">${badge.label}</span>` : ""}
+        </span>
       </span>
-      ${badge ? `<span class="dm-lucip-badge" data-kind="${badge.kind}">${badge.label}</span>` : ""}
       <span class="dm-lucip-led" aria-hidden="true"></span>
     </button>
     ${dimmer || tools ? `<div class="dm-lucip-tools">${dimmer}${tools}</div>` : ""}
@@ -529,99 +531,143 @@ function schedule() {
 }
 
 function installStyles() {
+  /* La card della luce non appartiene a una pagina sola.
+   *
+   * La pagina Stanze mostra le stesse card, costruite da `pageCardMarkup`: se
+   * il foglio restasse incatenato a `#page-luci` la' arriverebbero nude. Il
+   * `:is()` tiene la stessa specificita' di prima — un id piu' una classe —
+   * quindi per la pagina Luci non cambia niente: cambia solo che adesso la
+   * card e' di chi la ospita. */
   installStyle(
     "dm-lights-page-style",
     `
       /* La larghezza non se la sceglie questa sezione: sta in --dm-page-room e
        * tutte le pagine la seguono insieme. */
-      #page-luci .dm-lucip-wrap{box-sizing:border-box;width:100%;max-width:var(--dm-page-room,none);margin:0 auto;padding:0 4px 18px;display:grid;gap:12px}
+      :is(#page-luci,#page-stanze) .dm-lucip-wrap{box-sizing:border-box;width:100%;max-width:var(--dm-page-room,none);margin:0 auto;padding:0 4px 18px;display:grid;gap:12px}
 
       /* La fascia in alto, nella forma di Clima e Tapparelle: la lettura a
        * sinistra, un solo controllo segmentato con i due comandi di casa. */
-      #page-luci .dm-lucip-hero{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;margin:0 0 4px}
-      #page-luci .dm-lucip-kpi{display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:110px;padding:10px 17px;border:1px solid var(--divider-color,#dbe4ee);border-radius:18px;background:var(--card-bg,#fff);box-shadow:0 12px 28px -22px rgba(15,23,42,.5)}
-      #page-luci .dm-lucip-kpi>span{font-size:9px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
-      #page-luci .dm-lucip-count{display:inline-flex;align-items:baseline;gap:6px;color:var(--text,#0f172a);font-size:17px;font-weight:900;letter-spacing:-.2px}
-      #page-luci .dm-lucip-count span{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
-      #page-luci .dm-lucip-count.is-on b{color:#d97706}
-      #page-luci .dm-lucip-bulk{display:flex;align-items:stretch;flex:1 1 260px;border:1px solid var(--divider-color,#dbe4ee);border-radius:18px;background:var(--card-bg,#fff);box-shadow:0 12px 28px -22px rgba(15,23,42,.5);overflow:hidden}
-      #page-luci .dm-lucip-bulk button{flex:1 1 0;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border:0;background:transparent;cursor:pointer;font:inherit;font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--secondary-text-color,#64748b);transition:color .25s ease,background .25s ease}
-      #page-luci .dm-lucip-bulk button[data-dm-lucip-all="on"]:hover{color:#b45309;background:color-mix(in srgb,#f59e0b 14%,transparent)}
-      #page-luci .dm-lucip-bulk button[data-dm-lucip-all="off"]:hover{color:var(--text,#0f172a);background:color-mix(in srgb,#64748b 12%,transparent)}
-      #page-luci .dm-lucip-bulk button:active{transform:scale(.97)}
-      #page-luci .dm-lucip-bulk-div{width:1px;margin:9px 0;background:var(--divider-color,#dbe4ee)}
+      :is(#page-luci,#page-stanze) .dm-lucip-hero{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;margin:0 0 4px}
+      :is(#page-luci,#page-stanze) .dm-lucip-kpi{display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:110px;padding:10px 17px;border:1px solid var(--divider-color,#dbe4ee);border-radius:18px;background:var(--card-bg,#fff);box-shadow:0 12px 28px -22px rgba(15,23,42,.5)}
+      :is(#page-luci,#page-stanze) .dm-lucip-kpi>span{font-size:9px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
+      :is(#page-luci,#page-stanze) .dm-lucip-count{display:inline-flex;align-items:baseline;gap:6px;color:var(--text,#0f172a);font-size:17px;font-weight:900;letter-spacing:-.2px}
+      :is(#page-luci,#page-stanze) .dm-lucip-count span{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--secondary-text-color,#64748b)}
+      :is(#page-luci,#page-stanze) .dm-lucip-count.is-on b{color:#d97706}
+      :is(#page-luci,#page-stanze) .dm-lucip-bulk{display:flex;align-items:stretch;flex:1 1 260px;border:1px solid var(--divider-color,#dbe4ee);border-radius:18px;background:var(--card-bg,#fff);box-shadow:0 12px 28px -22px rgba(15,23,42,.5);overflow:hidden}
+      :is(#page-luci,#page-stanze) .dm-lucip-bulk button{flex:1 1 0;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border:0;background:transparent;cursor:pointer;font:inherit;font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--secondary-text-color,#64748b);transition:color .25s ease,background .25s ease}
+      :is(#page-luci,#page-stanze) .dm-lucip-bulk button[data-dm-lucip-all="on"]:hover{color:#b45309;background:color-mix(in srgb,#f59e0b 14%,transparent)}
+      :is(#page-luci,#page-stanze) .dm-lucip-bulk button[data-dm-lucip-all="off"]:hover{color:var(--text,#0f172a);background:color-mix(in srgb,#64748b 12%,transparent)}
+      :is(#page-luci,#page-stanze) .dm-lucip-bulk button:active{transform:scale(.97)}
+      :is(#page-luci,#page-stanze) .dm-lucip-bulk-div{width:1px;margin:9px 0;background:var(--divider-color,#dbe4ee)}
 
       /* L'intestazione di una stanza: nome, conto e comando di gruppo, con la
        * riga che chiude come sulle Tapparelle. */
-      #page-luci .dm-lucip-room{display:flex;align-items:center;gap:10px;margin:8px 2px 0;color:var(--secondary-text-color,#64748b);font-size:11px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase}
-      #page-luci .dm-lucip-room-name{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      #page-luci .dm-lucip-room-count{flex:0 0 auto;padding:2px 9px;border:1px solid var(--divider-color,#dbe4ee);border-radius:999px;font-size:10px;letter-spacing:.6px;transition:color .25s ease,border-color .25s ease,background .25s ease}
-      #page-luci .dm-lucip-room-count[data-on="true"]{color:#b45309;border-color:color-mix(in srgb,#f59e0b 45%,transparent);background:color-mix(in srgb,#f59e0b 12%,transparent)}
-      #page-luci .dm-lucip-room::after{content:"";flex:1 1 auto;height:1px;background:linear-gradient(90deg,var(--divider-color,#dbe4ee),transparent)}
-      #page-luci .dm-lucip-room-btn{order:9;flex:0 0 auto;padding:6px 13px;border:1px solid var(--divider-color,#dbe4ee);border-radius:999px;background:transparent;color:var(--secondary-text-color,#64748b);font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;cursor:pointer;transition:color .2s ease,border-color .2s ease}
-      #page-luci .dm-lucip-room-btn:hover{color:var(--text,#0f172a);border-color:color-mix(in srgb,#f59e0b 45%,var(--divider-color,#dbe4ee))}
-      #page-luci .dm-lucip-room-btn:active{transform:scale(.96)}
+      :is(#page-luci,#page-stanze) .dm-lucip-room{display:flex;align-items:center;gap:10px;margin:8px 2px 0;color:var(--secondary-text-color,#64748b);font-size:11px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase}
+      :is(#page-luci,#page-stanze) .dm-lucip-room-name{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      :is(#page-luci,#page-stanze) .dm-lucip-room-count{flex:0 0 auto;padding:2px 9px;border:1px solid var(--divider-color,#dbe4ee);border-radius:999px;font-size:10px;letter-spacing:.6px;transition:color .25s ease,border-color .25s ease,background .25s ease}
+      :is(#page-luci,#page-stanze) .dm-lucip-room-count[data-on="true"]{color:#b45309;border-color:color-mix(in srgb,#f59e0b 45%,transparent);background:color-mix(in srgb,#f59e0b 12%,transparent)}
+      :is(#page-luci,#page-stanze) .dm-lucip-room::after{content:"";flex:1 1 auto;height:1px;background:linear-gradient(90deg,var(--divider-color,#dbe4ee),transparent)}
+      :is(#page-luci,#page-stanze) .dm-lucip-room-btn{order:9;flex:0 0 auto;padding:6px 13px;border:1px solid var(--divider-color,#dbe4ee);border-radius:999px;background:transparent;color:var(--secondary-text-color,#64748b);font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;cursor:pointer;transition:color .2s ease,border-color .2s ease}
+      :is(#page-luci,#page-stanze) .dm-lucip-room-btn:hover{color:var(--text,#0f172a);border-color:color-mix(in srgb,#f59e0b 45%,var(--divider-color,#dbe4ee))}
+      :is(#page-luci,#page-stanze) .dm-lucip-room-btn:active{transform:scale(.96)}
 
-      #page-luci .dm-lucip-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(258px,1fr))}
+      /* auto-fill lasciava le colonne vuote in piedi: quattro luci su uno
+       * schermo largo restavano quattro tessere strette a sinistra e mezzo
+       * metro di bianco a destra. Con auto-fit le colonne vuote spariscono e
+       * le card si allargano fino al tetto — oltre il quale una luce sola non
+       * diventa un cartellone. */
+      :is(#page-luci,#page-stanze) .dm-lucip-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(288px,1fr))}
 
       /* La card: la superficie, il bagliore, il bordo e il LED leggono il
        * colore della lampada stessa, mai un ambra fisso. */
       /* La card non e' una riga bianca: anche da spenta ha un respiro — un
        * velo di gradiente, l'angolo appena tinto, il binario in fondo — e da
        * accesa tutto prende il colore vero della lampada. */
-      #page-luci .dm-lucip-card{position:relative;display:grid;align-content:start;gap:0;overflow:hidden;border:1px solid var(--divider-color,#dbe4ee);border-radius:22px;background:radial-gradient(120% 90% at 100% 0%,color-mix(in srgb,#94a3b8 7%,transparent) 0%,transparent 55%),linear-gradient(180deg,var(--card-bg,#fff) 0%,color-mix(in srgb,#94a3b8 4%,var(--card-bg,#fff)) 100%);box-shadow:0 16px 32px -24px rgba(15,23,42,.45);transition:border-color .25s ease,box-shadow .25s ease,transform .15s ease}
-      #page-luci .dm-lucip-card::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--dm-light-color,#f59e0b) 55%,transparent),transparent 70%);opacity:.25;transition:opacity .3s ease}
-      #page-luci .dm-lucip-card.is-on::after{opacity:1}
-      #page-luci .dm-lucip-card[data-dm-lucip-available="false"]{opacity:.55}
-      #page-luci .dm-lucip-card.is-on{border-color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 55%,transparent);background:radial-gradient(120% 90% at 100% 0%,color-mix(in srgb,var(--dm-light-color,#f59e0b) 16%,transparent) 0%,transparent 60%),linear-gradient(150deg,color-mix(in srgb,var(--dm-light-color,#f59e0b) 9%,var(--card-bg,#fff)),var(--card-bg,#fff) 58%);box-shadow:0 8px 26px color-mix(in srgb,var(--dm-light-color,#f59e0b) 24%,transparent)}
-      #page-luci .dm-lucip-glow{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s ease}
-      #page-luci .dm-lucip-card.is-on .dm-lucip-glow{opacity:1;background:radial-gradient(120% 90% at 14% 0%,color-mix(in srgb,var(--dm-light-color,#f59e0b) 24%,transparent) 0%,transparent 62%)}
+      :is(#page-luci,#page-stanze) .dm-lucip-card{position:relative;display:grid;align-content:start;gap:0;overflow:hidden;border:1px solid var(--divider-color,#dbe4ee);border-radius:22px;background:radial-gradient(120% 90% at 100% 0%,color-mix(in srgb,#94a3b8 7%,transparent) 0%,transparent 55%),linear-gradient(180deg,var(--card-bg,#fff) 0%,color-mix(in srgb,#94a3b8 4%,var(--card-bg,#fff)) 100%);box-shadow:0 16px 32px -24px rgba(15,23,42,.45);transition:border-color .25s ease,box-shadow .25s ease,transform .15s ease}
+      :is(#page-luci,#page-stanze) .dm-lucip-card::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--dm-light-color,#f59e0b) 55%,transparent),transparent 70%);opacity:.25;transition:opacity .3s ease}
+      :is(#page-luci,#page-stanze) .dm-lucip-card.is-on::after{opacity:1}
+      :is(#page-luci,#page-stanze) .dm-lucip-card[data-dm-lucip-available="false"]{opacity:.55}
+      :is(#page-luci,#page-stanze) .dm-lucip-card.is-on{border-color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 55%,transparent);background:radial-gradient(120% 90% at 100% 0%,color-mix(in srgb,var(--dm-light-color,#f59e0b) 16%,transparent) 0%,transparent 60%),linear-gradient(150deg,color-mix(in srgb,var(--dm-light-color,#f59e0b) 9%,var(--card-bg,#fff)),var(--card-bg,#fff) 58%);box-shadow:0 8px 26px color-mix(in srgb,var(--dm-light-color,#f59e0b) 24%,transparent)}
+      :is(#page-luci,#page-stanze) .dm-lucip-glow{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s ease}
+      :is(#page-luci,#page-stanze) .dm-lucip-card.is-on .dm-lucip-glow{opacity:1;background:radial-gradient(120% 90% at 14% 0%,color-mix(in srgb,var(--dm-light-color,#f59e0b) 24%,transparent) 0%,transparent 62%)}
 
-      #page-luci .dm-lucip-main{position:relative;display:flex;align-items:center;gap:12px;box-sizing:border-box;width:100%;margin:0;padding:14px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
-      #page-luci .dm-lucip-main:active{transform:scale(.985)}
-      #page-luci .dm-lucip-orb{display:grid;place-items:center;flex:0 0 auto;width:50px;height:50px;border-radius:17px;background:linear-gradient(160deg,var(--secondary-background-color,#eef3f8),color-mix(in srgb,#94a3b8 14%,var(--secondary-background-color,#eef3f8)));color:var(--secondary-text-color,#94a3b8);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 -1px 2px rgba(15,23,42,.06);transition:background .3s ease,color .3s ease,box-shadow .3s ease,border-radius .3s ease}
-      #page-luci .dm-lucip-orb svg{width:26px;height:26px}
-      #page-luci .dm-lucip-card.is-on .dm-lucip-orb{border-radius:50%;background:radial-gradient(circle at 38% 32%,color-mix(in srgb,var(--dm-light-color,#f59e0b) 25%,#fff),var(--dm-light-color,#f59e0b));color:var(--dm-light-ink,#0f172a);box-shadow:0 3px 16px color-mix(in srgb,var(--dm-light-color,#f59e0b) 50%,transparent),inset 0 1px 0 rgba(255,255,255,.55)}
-      #page-luci .dm-lucip-title{display:grid;gap:2px;min-width:0;flex:1 1 auto}
-      #page-luci .dm-lucip-title strong{font-size:15px;font-weight:900;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      #page-luci .dm-lucip-state{font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;color:var(--secondary-text-color,#94a3b8)}
-      #page-luci .dm-lucip-card.is-on .dm-lucip-state{color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 60%,var(--text,#0f172a))}
-      #page-luci .dm-lucip-badge{flex:0 0 auto;padding:2px 7px;border-radius:999px;font-size:8.5px;font-weight:900;letter-spacing:.6px;background:color-mix(in srgb,var(--dm-light-color,#f59e0b) 16%,transparent);color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 55%,var(--text,#0f172a));border:1px solid color-mix(in srgb,var(--dm-light-color,#f59e0b) 26%,transparent)}
-      #page-luci .dm-lucip-badge[data-kind="switch"]{background:rgba(148,163,184,.14);color:var(--secondary-text-color,#64748b);border-color:rgba(148,163,184,.3)}
+      :is(#page-luci,#page-stanze) .dm-lucip-main{position:relative;display:flex;align-items:center;gap:12px;box-sizing:border-box;width:100%;margin:0;padding:14px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+      :is(#page-luci,#page-stanze) .dm-lucip-main:active{transform:scale(.985)}
+      :is(#page-luci,#page-stanze) .dm-lucip-orb{display:grid;place-items:center;flex:0 0 auto;width:50px;height:50px;border-radius:17px;background:linear-gradient(160deg,var(--secondary-background-color,#eef3f8),color-mix(in srgb,#94a3b8 14%,var(--secondary-background-color,#eef3f8)));color:var(--secondary-text-color,#94a3b8);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 -1px 2px rgba(15,23,42,.06);transition:background .3s ease,color .3s ease,box-shadow .3s ease,border-radius .3s ease}
+      :is(#page-luci,#page-stanze) .dm-lucip-orb svg{width:26px;height:26px}
+      :is(#page-luci,#page-stanze) .dm-lucip-card.is-on .dm-lucip-orb{border-radius:50%;background:radial-gradient(circle at 38% 32%,color-mix(in srgb,var(--dm-light-color,#f59e0b) 25%,#fff),var(--dm-light-color,#f59e0b));color:var(--dm-light-ink,#0f172a);box-shadow:0 3px 16px color-mix(in srgb,var(--dm-light-color,#f59e0b) 50%,transparent),inset 0 1px 0 rgba(255,255,255,.55)}
+      :is(#page-luci,#page-stanze) .dm-lucip-title{display:grid;gap:2px;min-width:0;flex:1 1 auto}
+      /* «Lampadario C…» non dice quale lampadario e': il nome ha due righe
+       * prima di arrendersi, e i trattini di «Salone - Faretti» sono un punto
+       * dove andare a capo, non dove tagliare. */
+      :is(#page-luci,#page-stanze) .dm-lucip-title strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:15.5px;font-weight:900;line-height:1.22;letter-spacing:-.2px;overflow-wrap:anywhere}
+      /* Stato e pastiglia stanno sotto il nome, non accanto: prima si
+         dividevano la riga con lui, e «Lampadario grande del salone» finiva a
+         due lettere per riga. Il nome adesso ha tutta la larghezza. */
+      :is(#page-luci,#page-stanze) .dm-lucip-meta{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
+      :is(#page-luci,#page-stanze) .dm-lucip-state{font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;color:var(--secondary-text-color,#94a3b8)}
+      :is(#page-luci,#page-stanze) .dm-lucip-card.is-on .dm-lucip-state{color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 60%,var(--text,#0f172a))}
+      :is(#page-luci,#page-stanze) .dm-lucip-badge{flex:0 0 auto;padding:2px 7px;border-radius:999px;font-size:8.5px;font-weight:900;letter-spacing:.6px;background:color-mix(in srgb,var(--dm-light-color,#f59e0b) 16%,transparent);color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 55%,var(--text,#0f172a));border:1px solid color-mix(in srgb,var(--dm-light-color,#f59e0b) 26%,transparent)}
+      :is(#page-luci,#page-stanze) .dm-lucip-badge[data-kind="switch"]{background:rgba(148,163,184,.14);color:var(--secondary-text-color,#64748b);border-color:rgba(148,163,184,.3)}
       /* Il puntino grigio diceva poco: al suo posto un interruttore a
        * pillola, con la manopola che scorre e si tinge del colore della
        * lampada. E' decorativo — il gesto resta il tocco sulla card — ma
        * racconta lo stato a colpo d'occhio. */
-      #page-luci .dm-lucip-led{position:relative;flex:0 0 auto;width:38px;height:22px;border-radius:999px;background:rgba(148,163,184,.28);box-shadow:inset 0 1px 3px rgba(15,23,42,.18);transition:background .25s ease,box-shadow .25s ease}
-      #page-luci .dm-lucip-led::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.35);transition:transform .25s ease,background .25s ease}
-      #page-luci .dm-lucip-card.is-on .dm-lucip-led{background:color-mix(in srgb,var(--dm-light-color,#f59e0b) 75%,#fff);box-shadow:inset 0 1px 3px color-mix(in srgb,var(--dm-light-color,#f59e0b) 40%,rgba(15,23,42,.2)),0 0 12px color-mix(in srgb,var(--dm-light-color,#f59e0b) 45%,transparent)}
-      #page-luci .dm-lucip-card.is-on .dm-lucip-led::after{transform:translateX(16px)}
+      :is(#page-luci,#page-stanze) .dm-lucip-led{position:relative;flex:0 0 auto;width:38px;height:22px;border-radius:999px;background:rgba(148,163,184,.28);box-shadow:inset 0 1px 3px rgba(15,23,42,.18);transition:background .25s ease,box-shadow .25s ease}
+      :is(#page-luci,#page-stanze) .dm-lucip-led::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.35);transition:transform .25s ease,background .25s ease}
+      :is(#page-luci,#page-stanze) .dm-lucip-card.is-on .dm-lucip-led{background:color-mix(in srgb,var(--dm-light-color,#f59e0b) 75%,#fff);box-shadow:inset 0 1px 3px color-mix(in srgb,var(--dm-light-color,#f59e0b) 40%,rgba(15,23,42,.2)),0 0 12px color-mix(in srgb,var(--dm-light-color,#f59e0b) 45%,transparent)}
+      :is(#page-luci,#page-stanze) .dm-lucip-card.is-on .dm-lucip-led::after{transform:translateX(16px)}
 
-      #page-luci .dm-lucip-tools{position:relative;display:flex;align-items:center;gap:10px;padding:0 14px 13px}
-      #page-luci .dm-lucip-dim{display:grid;flex:1 1 auto;min-width:0;gap:3px}
-      #page-luci .dm-lucip-dim-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:8.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--secondary-text-color,#94a3b8)}
-      #page-luci .dm-lucip-dim-head b{font-size:11px;letter-spacing:.3px;color:var(--text,#0f172a);font-variant-numeric:tabular-nums}
-      #page-luci .dm-lucip-card.is-on .dm-lucip-dim-head b{color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 60%,var(--text,#0f172a))}
-      #page-luci .dm-lucip-tune{display:grid;place-items:center;flex:0 0 auto;width:36px;height:36px;padding:0;border:1px solid var(--divider-color,#dbe4ee);border-radius:12px;background:transparent;color:var(--secondary-text-color,#94a3b8);cursor:pointer}
-      #page-luci .dm-lucip-card.is-on .dm-lucip-tune{border-color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 40%,transparent);color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 60%,var(--text,#0f172a))}
-      #page-luci .dm-lucip-tune svg{width:19px;height:19px}
-      #page-luci .dm-lucip-tune:active{transform:scale(.94)}
+      :is(#page-luci,#page-stanze) .dm-lucip-tools{position:relative;display:flex;align-items:center;gap:10px;padding:0 14px 13px}
+      :is(#page-luci,#page-stanze) .dm-lucip-dim{display:grid;flex:1 1 auto;min-width:0;gap:3px}
+      :is(#page-luci,#page-stanze) .dm-lucip-dim-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:8.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--secondary-text-color,#94a3b8)}
+      :is(#page-luci,#page-stanze) .dm-lucip-dim-head b{font-size:11px;letter-spacing:.3px;color:var(--text,#0f172a);font-variant-numeric:tabular-nums}
+      :is(#page-luci,#page-stanze) .dm-lucip-card.is-on .dm-lucip-dim-head b{color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 60%,var(--text,#0f172a))}
+      :is(#page-luci,#page-stanze) .dm-lucip-tune{display:grid;place-items:center;flex:0 0 auto;width:36px;height:36px;padding:0;border:1px solid var(--divider-color,#dbe4ee);border-radius:12px;background:transparent;color:var(--secondary-text-color,#94a3b8);cursor:pointer}
+      :is(#page-luci,#page-stanze) .dm-lucip-card.is-on .dm-lucip-tune{border-color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 40%,transparent);color:color-mix(in srgb,var(--dm-light-color,#f59e0b) 60%,var(--text,#0f172a))}
+      :is(#page-luci,#page-stanze) .dm-lucip-tune svg{width:19px;height:19px}
+      :is(#page-luci,#page-stanze) .dm-lucip-tune:active{transform:scale(.94)}
 
       /* Il binario del dimmer: la parte piena e' il colore della lampada. */
-      #page-luci .dm-lucip-range{box-sizing:border-box;width:100%;height:26px;margin:0;padding:0;border:0;appearance:none;-webkit-appearance:none;background:transparent;cursor:pointer;touch-action:pan-y}
-      #page-luci .dm-lucip-range::-webkit-slider-runnable-track{height:12px;border-radius:999px;background:linear-gradient(90deg,var(--dm-light-color,#f59e0b) 0 var(--dm-light-level,0%),rgba(148,163,184,.24) var(--dm-light-level,0%) 100%)}
-      #page-luci .dm-lucip-range::-moz-range-track{height:12px;border-radius:999px;background:linear-gradient(90deg,var(--dm-light-color,#f59e0b) 0 var(--dm-light-level,0%),rgba(148,163,184,.24) var(--dm-light-level,0%) 100%)}
-      #page-luci .dm-lucip-range::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-4px;border-radius:50%;border:2px solid #fff;background:var(--dm-light-color,#f59e0b);box-shadow:0 2px 6px rgba(15,23,42,.32)}
-      #page-luci .dm-lucip-range::-moz-range-thumb{width:20px;height:20px;border-radius:50%;border:2px solid #fff;background:var(--dm-light-color,#f59e0b);box-shadow:0 2px 6px rgba(15,23,42,.32)}
+      :is(#page-luci,#page-stanze) .dm-lucip-range{box-sizing:border-box;width:100%;height:26px;margin:0;padding:0;border:0;appearance:none;-webkit-appearance:none;background:transparent;cursor:pointer;touch-action:pan-y}
+      :is(#page-luci,#page-stanze) .dm-lucip-range::-webkit-slider-runnable-track{height:12px;border-radius:999px;background:linear-gradient(90deg,var(--dm-light-color,#f59e0b) 0 var(--dm-light-level,0%),rgba(148,163,184,.24) var(--dm-light-level,0%) 100%)}
+      :is(#page-luci,#page-stanze) .dm-lucip-range::-moz-range-track{height:12px;border-radius:999px;background:linear-gradient(90deg,var(--dm-light-color,#f59e0b) 0 var(--dm-light-level,0%),rgba(148,163,184,.24) var(--dm-light-level,0%) 100%)}
+      :is(#page-luci,#page-stanze) .dm-lucip-range::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-4px;border-radius:50%;border:2px solid #fff;background:var(--dm-light-color,#f59e0b);box-shadow:0 2px 6px rgba(15,23,42,.32)}
+      :is(#page-luci,#page-stanze) .dm-lucip-range::-moz-range-thumb{width:20px;height:20px;border-radius:50%;border:2px solid #fff;background:var(--dm-light-color,#f59e0b);box-shadow:0 2px 6px rgba(15,23,42,.32)}
 
-      #page-luci .dm-lucip-empty{color:var(--secondary-text-color,#94a3b8);font-size:12.5px;font-weight:600;line-height:1.5;padding:18px 4px}
+      :is(#page-luci,#page-stanze) .dm-lucip-empty{color:var(--secondary-text-color,#94a3b8);font-size:12.5px;font-weight:600;line-height:1.5;padding:18px 4px}
 
+      /* Da schermo largo la pagina cambia respiro, non impianto: la fascia in
+       * alto smette di essere due bottoni lunghi mezzo metro, il comando della
+       * stanza torna accanto al suo conteggio invece di finire all'altro capo
+       * dello schermo, e la card si allarga quanto basta perche' il nome ci
+       * stia davvero. */
+      @media(min-width:900px){
+        /* Da qui in su le tessere non stanno piu' su colonne fisse: crescono
+         * fino a riempire la riga e si fermano a 384px, cosi' quattro luci
+         * occupano la larghezza intera invece di lasciare mezzo metro di
+         * bianco a destra, e una luce sola non diventa un cartellone. */
+        :is(#page-luci,#page-stanze) .dm-lucip-grid{display:flex;flex-wrap:wrap}
+        :is(#page-luci,#page-stanze) .dm-lucip-card{flex:1 1 306px;max-width:396px}
+        :is(#page-luci,#page-stanze) .dm-lucip-bulk{flex:0 1 560px}
+        :is(#page-luci,#page-stanze) .dm-lucip-kpi{min-width:132px}
+        :is(#page-luci,#page-stanze) .dm-lucip-room{margin-top:14px}
+        :is(#page-luci,#page-stanze) .dm-lucip-room-btn{order:0}
+        :is(#page-luci,#page-stanze) .dm-lucip-room::after{order:1}
+        :is(#page-luci,#page-stanze) .dm-lucip-main{gap:14px;padding:16px}
+        :is(#page-luci,#page-stanze) .dm-lucip-orb{width:54px;height:54px;border-radius:18px}
+        :is(#page-luci,#page-stanze) .dm-lucip-orb svg{width:28px;height:28px}
+        :is(#page-luci,#page-stanze) .dm-lucip-title strong{font-size:15.5px}
+        :is(#page-luci,#page-stanze) .dm-lucip-tools{padding:0 16px 15px}
+        :is(#page-luci,#page-stanze) .dm-lucip-card:hover{transform:translateY(-2px);box-shadow:0 22px 40px -26px rgba(15,23,42,.55)}
+        :is(#page-luci,#page-stanze) .dm-lucip-card.is-on:hover{box-shadow:0 14px 34px color-mix(in srgb,var(--dm-light-color,#f59e0b) 30%,transparent)}
+      }
       @media(max-width:560px){
-        #page-luci .dm-lucip-grid{grid-template-columns:1fr}
-        #page-luci .dm-lucip-bulk button{padding:11px 10px}
+        :is(#page-luci,#page-stanze) .dm-lucip-grid{grid-template-columns:1fr}
+        :is(#page-luci,#page-stanze) .dm-lucip-bulk button{padding:11px 10px}
       }
       @media(prefers-reduced-motion:reduce){
-        #page-luci .dm-lucip-card,#page-luci .dm-lucip-glow,#page-luci .dm-lucip-orb,#page-luci .dm-lucip-led,#page-luci .dm-lucip-led::after{transition:none}
+        :is(#page-luci,#page-stanze) .dm-lucip-card,:is(#page-luci,#page-stanze) .dm-lucip-glow,:is(#page-luci,#page-stanze) .dm-lucip-orb,:is(#page-luci,#page-stanze) .dm-lucip-led,:is(#page-luci,#page-stanze) .dm-lucip-led::after{transition:none}
       }
     `,
   );

@@ -115,3 +115,26 @@ test("la voce nella barra e la pagina usano la stessa chiave delle altre", async
   assert.equal(LIGHTS_TAB, "luci");
   assert.equal(LIGHTS_PAGE_ID, "page-luci");
 });
+
+test("da schermo largo il nome ci sta e le tessere riempiono la riga", async () => {
+  const section = await read("../src/sections/lights-page-section.js");
+  /* «Lampadario C…» e «Salone - Farett…»: il nome moriva al primo troncamento
+   * perche' la card era larga 258px fissi e il titolo stava su una riga sola.
+   * Adesso il titolo ha due righe, e da schermo largo le tessere crescono fino
+   * a riempire la riga invece di lasciare mezzo metro di bianco a destra. */
+  assert.match(section, /-webkit-line-clamp:2/);
+  assert.doesNotMatch(section, /dm-lucip-title strong\{[^}]*white-space:nowrap/);
+  const desktop = section.match(/@media\(min-width:900px\)\{[\s\S]*?\n      \}/);
+  assert.ok(desktop, "manca il blocco da schermo largo");
+  /* La card della luce non e' piu' incatenata a una pagina sola: la pagina
+   * Stanze mostra le stesse, e il foglio deve valere anche li'. */
+  assert.match(desktop[0], /:is\(#page-luci,#page-stanze\) \.dm-lucip-grid\{display:flex;flex-wrap:wrap\}/);
+  // Il tetto serve: una stanza con una luce sola non diventa un cartellone.
+  assert.match(desktop[0], /:is\(#page-luci,#page-stanze\) \.dm-lucip-card\{flex:1 1 306px;max-width:396px\}/);
+  /* Il comando della stanza stava all'altro capo dello schermo, a un metro dal
+   * conteggio che lo riguarda: da schermo largo torna accanto al suo. */
+  assert.match(desktop[0], /\.dm-lucip-room-btn\{order:0\}/);
+  assert.match(desktop[0], /\.dm-lucip-room::after\{order:1\}/);
+  // E la fascia in alto smette di essere due bottoni lunghi mezzo metro.
+  assert.match(desktop[0], /\.dm-lucip-bulk\{flex:0 1 560px\}/);
+});

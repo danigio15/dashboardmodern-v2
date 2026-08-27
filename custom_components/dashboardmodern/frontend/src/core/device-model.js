@@ -42,6 +42,7 @@ export function canonicalClimateType(value) {
  * editor happened to know fewer appliance types.
  */
 import { pick } from "./i18n.js";
+import { LOAD_PLANT_FIELD } from "./energy-plants.js";
 import { contactEntity } from "./shutter-window.js";
 import {
   COVER_SLOTS,
@@ -311,6 +312,26 @@ export function normalizeDevice(input = {}, section, context = {}) {
     (room) => room.id === legacyRoomRef || room.name === legacyRoomRef,
   );
   const roomId = explicitRoomId || matchedRoom?.id || "";
+  /* Quando l'id cambia, il nome scritto accanto non puo' restare quello di
+   * prima.
+   *
+   * Un dispositivo migrato porta tutti e due: l'id e il nome della stanza.
+   * Spostandolo da un editor moderno cambiava solo l'id, e il salvataggio
+   * fonde la modifica con l'oggetto vecchio: restava scritto il nome della
+   * stanza da cui era appena uscito, e mezza dozzina di sezioni che leggono
+   * `item.room` continuavano a mostrarlo di la'. Se l'id dice una stanza, il
+   * nome accanto dice la stessa: quello della stanza trovata, e se quella
+   * stanza non e' in elenco non dice piu' niente. */
+  const stanzaDellId = context.rooms?.find((room) => room.id === roomId || room.name === roomId);
+  const riferimentoLegacy =
+    roomId &&
+    stanzaDellId &&
+    stanzaDellId.name !== legacyRoomRef &&
+    stanzaDellId.id !== legacyRoomRef
+      ? stanzaDellId.name
+      : roomId && !stanzaDellId && explicitRoomId && explicitRoomId !== legacyRoomRef
+        ? ""
+        : legacyRoomRef;
   const rawIcon = String(input.icon || "");
   const emoji =
     !rawIcon.startsWith("mdi:") && /[^\x00-\x7f]/.test(rawIcon)
@@ -334,6 +355,18 @@ export function normalizeDevice(input = {}, section, context = {}) {
     visual_key: String(visualKey || input.visual_key || ""),
     emoji_icon: emoji,
     room_id: String(roomId),
+    /* Quello che l'utente ha scritto, non quello a cui siamo riusciti a
+     * risolverlo.
+     *
+     * `room_id` viene dall'id della stanza trovata, e una stanza senza id — una
+     * configurazione scritta a mano, o un salvataggio piu' vecchio dell'id —
+     * lasciava `room_id` vuoto: l'assegnazione spariva senza che nessuno lo
+     * dicesse, e il dispositivo finiva senza stanza pur avendone una scritta
+     * accanto. Mezza dozzina di sezioni infatti leggono gia' `item.room ||
+     * item.room_id`, aspettandosi che il riferimento originale ci sia ancora.
+     * Adesso c'e'. Non sostituisce l'id: gli sta accanto, e serve solo a chi
+     * l'id non lo trova. */
+    room: String(riferimentoLegacy || ""),
     entities,
     enabled: input.enabled !== false,
     order: Number.isFinite(+input.order) ? +input.order : context.index || 0,
@@ -364,10 +397,19 @@ export function normalizeDevice(input = {}, section, context = {}) {
      * la terza volta — prima il contatto, poi il tipo, adesso queste. Si
      * leggono da `COVER_SLOTS`, che e' l'unico posto dove sta scritto quali
      * caselle esistono: se un giorno se ne aggiunge una, arriva anche qui. */
-    for (const { campo } of COVER_SLOTS) {
-      if (campo === "entity") continue;
-      const entity = String(input?.[campo] ?? "").trim();
-      if (entity) base[campo] = entity;
+    for (const { campo, giu } of COVER_SLOTS) {
+      if (campo !== "entity") {
+        const entity = String(input?.[campo] ?? "").trim();
+        if (entity) base[campo] = entity;
+      }
+      /* E il rele' di discesa di ognuna. Era dichiarato solo per la prima
+       * casella: una tenda su due rele' salvava il comando di salita e
+       * perdeva quello di discesa alla prima normalizzazione — che e'
+       * esattamente il difetto di cui parla il commento qui sopra, ripetuto
+       * su un campo nuovo. */
+      if (!giu || giu === "down") continue;
+      const discesa = String(input?.[giu] ?? "").trim();
+      if (discesa) base[giu] = discesa;
     }
     // La posizione preferita (#200): stessa regola dei campi qui sopra.
     const preset = coverPresetPosition(input);
@@ -449,6 +491,19 @@ export function normalizeDevice(input = {}, section, context = {}) {
       last_energy_entity: input.last_energy_entity || "",
       last_cost_entity: input.last_cost_entity || "",
     });
+    /* Di quale impianto e' questo carico.
+     *
+     * Il modello tiene solo i campi che conosce — e' quello che impedisce a una
+     * configurazione scritta a mano di portarsi dietro spazzatura — quindi un
+     * campo nuovo che non passa di qui sparisce alla prima normalizzazione. E'
+     * gia' successo tre volte alle tapparelle; qui sarebbe successo ai carichi
+     * della seconda casa, che sarebbero tornati tutti nella prima.
+     *
+     * Vuoto vuol dire il primo impianto, ed e' apposta: e' cosi' che otto
+     * carichi gia' configurati restano dove sono, il giorno in cui questo campo
+     * compare. */
+    const impianto = String(input[LOAD_PLANT_FIELD] ?? "").trim();
+    if (impianto) base[LOAD_PLANT_FIELD] = impianto;
     // Optional numbers are stored only when finite: an empty string must never
     // reach Number() consumers as 0 (a 0 W running threshold would mark every
     // plugged appliance as running).

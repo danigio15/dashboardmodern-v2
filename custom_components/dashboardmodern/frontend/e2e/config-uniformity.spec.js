@@ -119,7 +119,13 @@ function tabState(page) {
     const body = document.getElementById("ed-body");
     const seen = (node) => node.getClientRects().length > 0;
     const saves = [...body.querySelectorAll("button,.ed-btn-add,.ed-save-btn")].filter(
-      (node) => /salva|save/i.test(node.textContent || "") && seen(node),
+      (node) =>
+        /salva|save/i.test(node.textContent || "") &&
+        seen(node) &&
+        /* Il salvataggio della SCHEDA di un'auto non e' il salvataggio della
+           sezione: e' un gesto del profilo, e si riconosce dal suo segno —
+           non dalle parole, che ormai cambiano per dire cosa sta salvando. */
+        node.dataset.evSaveCar !== "true",
     );
     // The switch of a section: the runtime's own banner, or the one a tab builds
     // for itself with the same handler behind it (Energia does).
@@ -148,18 +154,26 @@ test.describe("the configuration behaves the same on every tab", () => {
     await boot(page, testInfo);
     for (const tab of [...SECTION_TABS, ...PLAIN_TABS]) {
       await openTab(page, tab);
-      // «💾 Salva auto» (nato «＋ Salva attuale») salva la scheda della
-      // vettura che si sta compilando, e «＋ Aggiungi auto» ne apre una
-      // nuova: sono gesti del profilo, non salvataggi della sezione, e
-      // stanno dove stanno.
+      /* Un salvataggio solo, e dice cosa salva.
+       *
+       * «＋ Aggiungi auto» apre una scheda nuova: e' un gesto del profilo, non
+       * un salvataggio, e resta fuori dal conto.
+       *
+       * Sulla scheda Auto il bottone in fondo NON dice «Salva sezione»:
+       * dice se sta creando una vettura o modificando quella aperta, e lo
+       * dice con le stesse parole del salvataggio qui sopra. E' una scelta,
+       * ed e' la risposta a «tasto ＋, tasto salva auto e giu' salva sezione:
+       * non si capisce quale aggiunge davvero un'auto». Il patto resta —
+       * UN salvataggio, in fondo — e cambiano solo le parole. */
+      const salvataggioAtteso =
+        tab === "sez2"
+          ? [expect.stringMatching(/^💾 Salva (la nuova auto|le modifiche a .+|auto)$/)]
+          : ["💾 Salva sezione"];
       await settledTabState(
         page,
-        (view) =>
-          view.saveLabels.filter(
-            (label) => !label.startsWith("＋") && !/salva auto|save car/i.test(label),
-          ),
+        (view) => view.saveLabels.filter((label) => !label.startsWith("＋")),
         `${tab}: one way to save`,
-      ).toEqual(["💾 Salva sezione"]);
+      ).toEqual(salvataggioAtteso);
       await settledTabState(
         page,
         (view) => view.footerIsLast,

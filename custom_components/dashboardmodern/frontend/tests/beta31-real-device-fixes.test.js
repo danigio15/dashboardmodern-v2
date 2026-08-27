@@ -279,8 +279,11 @@ test("the second photo travels with the car, not loose", async () => {
   for (const key of ["cd_ev_image", "cd_ev_image_plugged"]) {
     assert.equal(CONFIG_KEYS.includes(key), false, `${key} non deve viaggiare da sola`);
   }
-  const { PROFILE_PHOTO_FIELDS } = await import("../src/core/vehicle-photos.js");
-  assert.deepEqual(PROFILE_PHOTO_FIELDS, { idle: "img", plugged: "imgPlugged" });
+  /* I nomi dei due campi stanno nel modello dell'auto: e' lui a dire cosa
+   * un'auto E', foto comprese. Vivevano in un modulo a parte finche' le foto
+   * erano un caso speciale da difendere. */
+  const { VEHICLE_PHOTO_FIELDS } = await import("../src/core/vehicle-model.js");
+  assert.deepEqual(VEHICLE_PHOTO_FIELDS, { idle: "img", plugged: "imgPlugged" });
   const source = await read("../src/sections/ev-section.js");
   assert.match(source, /export const EV_PHOTO_KEYS/);
   assert.match(source, /export function ensureVehiclePhotoEditor\(\)/);
