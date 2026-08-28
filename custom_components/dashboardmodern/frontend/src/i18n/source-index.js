@@ -875,6 +875,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Il prato mostra le prime ${MAX_LAWN_ZONES} zone; sotto trovi tutte le ${config.zones.length}.": "The lawn shows the first ${MAX_LAWN_ZONES} zones; all ${config.zones.length} are listed below.",
   "Il relè di discesa dev'essere un'entità switch.*, e serve solo quando anche la casella della tapparella è un relè switch.*.": "The down relay must be a switch.* entity, and it only applies when the shutter box is a switch.* relay too.",
   "Il rilevamento aggiunge solo ciò che manca: niente doppioni.": "Detection only adds what is missing: no duplicates.",
+  "Il sensore di apertura dev'essere un'entità binary_sensor.*, sensor.* o input_boolean.*.": "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.",
   "Il sensore di batteria del telefono. Senza, la card usa quella che l'entità conosce già.": "The phone battery sensor. Without it, the card uses what the entity already knows.",
   "Il sensore Energia totale deve avere state_class total o total_increasing.": "The Total energy sensor must have state_class total or total_increasing.",
   "Il tocco chiede conferma; col PIN, il codice.": "A tap asks to confirm; with a PIN, the code.",

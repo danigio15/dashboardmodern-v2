@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "Açılma sensörü binary_sensor.*, sensor.* veya input_boolean.* varlığı olmalıdır.",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Bir ad ve en az bir varlık girin: panjur, perde ve tenteden bir cover.* ya da switch.*, veya yalnızca açılma sensörü.",
   "One room at a time · Scenes · Sensors": "Tek seferde bir oda · Sahneler · Sensörler",
   " — configured": " — yapılandırıldı",

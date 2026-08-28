@@ -144,6 +144,28 @@ function replaceCameraObjectUrl(chiave, nextUrl, registry = state.cameraUrls) {
  * Ogni <img> si porta la sua chiave, e revoca soltanto quello che stava
  * mostrando lei. */
 let contatoreImmagini = 0;
+
+/* Le chiavi di immagini che non ci sono piu' si restituiscono.
+ *
+ * Tenere il registro per immagine risolve il fotogramma nero, ma sposta un
+ * problema: quando un muro di telecamere si rifa' da capo — una telecamera
+ * aggiunta, una tolta — i vecchi elementi spariscono e i nuovi prendono chiavi
+ * nuove. Le voci vecchie non venivano piu' toccate da nessuno, e i loro blob
+ * restavano in memoria per tutta la vita della pagina. Prima di scrivere la
+ * chiave nuova si fa un giro: quello che non e' piu' nel documento si revoca. */
+function ripulisciChiaviMorte(registry) {
+  for (const [chiave, url] of [...registry.entries()]) {
+    if (!chiave.includes("#")) continue;
+    if (doc?.querySelector?.(`[data-dm-camera-key="${CSS.escape(chiave)}"]`)) continue;
+    if (typeof url === "string" && url.startsWith("blob:")) {
+      try {
+        root.URL?.revokeObjectURL?.(url);
+      } catch (_error) {}
+    }
+    registry.delete(chiave);
+  }
+}
+
 function chiaveImmagine(image, entity) {
   if (!image.dataset.dmCameraKey) {
     contatoreImmagini += 1;
@@ -170,6 +192,7 @@ export async function loadCameraFrame(camera, image, registry = state.cameraUrls
 
   const url = cacheBusted(picture);
   const chiave = chiaveImmagine(image, camera.entity);
+  ripulisciChiaviMorte(registry);
   const stessaTelecamera = image.dataset.dmCameraEntity === camera.entity;
   image.dataset.dmCameraEntity = camera.entity;
   /* Il fotogramma di prima resta a schermo finche' non arriva quello nuovo.

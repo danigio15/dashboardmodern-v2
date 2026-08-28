@@ -794,6 +794,13 @@ const CASELLE_SOLARE = Object.freeze([
 ]);
 
 const STATI_ACCESI = /^(on|true|1|running|attiva|attivo|open|aperta|heat|heating)$/i;
+/* «unknown» e «unavailable» sono il modo in cui Home Assistant dice «adesso
+ * questa entita' non risponde», non «e' spenta». Scriverli come «Spento»
+ * significherebbe raccontare per certo il contrario di quello che si sa: una
+ * pompa staccata dalla rete verrebbe data per ferma, e una riga che nessuno
+ * puo' leggere farebbe comunque numero. Una riga che non sa cosa dire non la
+ * si scrive. */
+const STATI_MUTI = /^(unknown|unavailable|none|)$/i;
 
 function solarThermalModel(states) {
   const fuori = widgetExcludedEntities();
@@ -805,7 +812,7 @@ function solarThermalModel(states) {
     const dato = refValue(states, casella.ref, fuori);
     if (!dato || visti.has(dato.entity)) continue;
     if (casella.acceso) {
-      if (!dato.state) continue;
+      if (STATI_MUTI.test(dato.state)) continue;
       const attivo = STATI_ACCESI.test(dato.state);
       if (pompa == null && casella.ref.includes("pompa")) pompa = attivo;
       visti.add(dato.entity);
@@ -1838,8 +1845,19 @@ export function renderHomeWidgets() {
         : `${t(`${avvisi} chiedono attenzione`, `${avvisi} need attention`)}: ${nomi}`
       : t("tutto tranquillo", "all quiet");
     const testo = `${sezioni} · ${attenzione}`;
-    if (sub.textContent !== testo) {
-      sub.textContent = testo;
+    /* Si rimisura anche a parole ferme.
+     *
+     * La decisione «ci sta o non ci sta» dipende dalla larghezza, non solo dal
+     * testo: girando il telefono, o entrando in schermo diviso, una riga che
+     * prima ci stava viene tagliata e una che scorreva continua a scorrere di
+     * una distanza che non esiste piu'. Misurare costa un conto
+     * d'impaginazione, quindi lo si fa solo quando la larghezza e' cambiata
+     * davvero. */
+    const cambiatoTesto = sub.textContent !== testo;
+    if (cambiatoTesto) sub.textContent = testo;
+    const larghezza = Math.round(sub.clientWidth);
+    if (cambiatoTesto || sub.dataset.dmLarghezza !== String(larghezza)) {
+      sub.dataset.dmLarghezza = String(larghezza);
       scorriUnaRiga(sub);
     }
     const stato = avvisi ? "avviso" : "quiete";

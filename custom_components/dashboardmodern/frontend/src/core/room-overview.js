@@ -147,6 +147,19 @@ export function roomOverviewModel(input = {}) {
       floor: clean(room.floor),
       temp: clean(room.temp),
       hum: clean(room.hum),
+      /* Le sonde in piu' viaggiano con la stanza.
+       *
+       * Una stanza puo' avere piu' di una coppia di sensori — il comodino, il
+       * termostato a muro, la sonda della veranda — e le associazioni oltre la
+       * prima stanno in `metadata.temperature_entries`. Questa proiezione le
+       * lasciava fuori, cosi' chi disegna la pagina Stanze poteva vedere solo
+       * la prima coppia per quante ne fossero configurate: la pagina non aveva
+       * modo di sapere che le altre esistevano. Il nome della prima sta in
+       * `temp_name`, e senza di lui tre righe uguali non si distinguono. */
+      temp_name: clean(room.temp_name),
+      metadata: {
+        temperature_entries: array(room?.metadata?.temperature_entries),
+      },
       rgb: clean(room.rgb),
       order: Number.isFinite(+room.order) ? +room.order : index,
     }))
@@ -207,6 +220,8 @@ export function roomOverviewModel(input = {}) {
       floor: "",
       temp: "",
       hum: "",
+      temp_name: "",
+      metadata: { temperature_entries: [] },
       rgb: "",
       order: pagine.length,
       senzaStanza: true,

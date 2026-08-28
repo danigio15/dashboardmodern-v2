@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "El sensor de apertura debe ser una entidad binary_sensor.*, sensor.* o input_boolean.*.",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Introduce un nombre y al menos una entidad: una cubierta cover.* o switch.* entre persiana, cortina y toldo, o solo el sensor de apertura.",
   "One room at a time · Scenes · Sensors": "Una habitación a la vez · Escenas · Sensores",
   " — configured": " — configurada",

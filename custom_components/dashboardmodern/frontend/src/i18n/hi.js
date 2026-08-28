@@ -11,6 +11,7 @@
  */
 
 export default Object.freeze({
+  "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "खुलने का सेंसर binary_sensor.*, sensor.* या input_boolean.* इकाई होना चाहिए।",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "एक नाम और कम से कम एक इकाई दर्ज करें: शटर, पर्दे या शामियाने में से कोई cover.* या switch.*, या केवल खुलने का सेंसर।",
   "One room at a time · Scenes · Sensors": "एक बार में एक कमरा · दृश्य · सेंसर",
   " — configured": " — कॉन्फ़िगर किया गया",

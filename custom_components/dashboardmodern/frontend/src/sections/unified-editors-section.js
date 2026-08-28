@@ -347,9 +347,22 @@ function openShutterEditor(item, index) {
      * modificarla contava solo le tre coperture, quindi rifiutava la riga che
      * l'altro aveva appena creato. Il contatto non comanda niente, ma dice se
      * la finestra e' aperta, ed e' esattamente cio' che la card disegna. */
+    /* E il contatto dev'essere un contatto: la stessa regola che usa chi
+     * inserisce la riga. Accettare qualunque testo vorrebbe dire salvare una
+     * finestra che il resto della plancia considera configurata e che non
+     * potra' mai dire se e' aperta — un `light.camera` battuto per sbaglio si
+     * salverebbe in silenzio. */
     const contatto = clean(list[index].contact);
+    const contattoValido = /^(binary_sensor|sensor|input_boolean)\./i.test(contatto);
     const errore = form.querySelector("[data-error]");
-    if (!list[index].name || (!compilate.length && !contatto)) {
+    if (contatto && !contattoValido) {
+      errore.textContent = t(
+        "Il sensore di apertura dev'essere un'entità binary_sensor.*, sensor.* o input_boolean.*.",
+        "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.",
+      );
+      return;
+    }
+    if (!list[index].name || (!compilate.length && !contattoValido)) {
       errore.textContent = t(
         "Inserisci un nome e almeno una entità: una copertura cover.* o switch.* fra tapparella, tenda e tenda da sole, oppure il solo sensore di apertura.",
         "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.",
