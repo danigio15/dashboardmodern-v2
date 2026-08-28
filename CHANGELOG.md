@@ -47,6 +47,43 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   dell'auto, la barra per il resto. Dove una misura che appartiene alla cosa
   non c'e', non si mette niente.
 
+### Corretto
+
+- **Il nome della casa tornava tagliato in testata.** Adesso che la plancia
+  tiene davvero le distanze dai bordi, la fascia in alto ha ventotto pixel in
+  meno e se li e' presi il meteo. Sui telefoni stretti il meteo si stringe e
+  lascia a casa l'ultimo dettaglio — il vento sta comunque nella sua pagina —
+  e il nome della casa, che e' l'unica parola che dice dove sei, torna intero.
+
+- **L'auto risultava attaccata alla presa col cavo staccato.** Per accendere la
+  tessera si cercava dentro lo stato della ricarica la parola «charging» o
+  «plug»: «not_charging», «disconnected» e «unplugged» contengono la stessa
+  parola e dicono l'esatto contrario. Adesso si guardano prima le negazioni, e
+  le lettere della norma — A nessun veicolo, B collegato, C e D in carica — si
+  leggono per quello che sono.
+
+- **In Energia i conflitti dei periodi si contavano su un impianto e si
+  svuotavano su un altro.** L'avviso leggeva sempre la prima casa: chi guardava
+  la seconda si vedeva elencare campi che non erano suoi, e premendo «Svuota i
+  campi di periodo» perdeva i propri, che nell'elenco non c'erano. Chi legge e
+  chi scrive adesso guardano lo stesso impianto.
+
+- **La finestra della pagina Clima non sapeva aprire un'unita' tolta dalla
+  Home.** Il pannello che legge davvero cosa l'unita' accetta passava dal
+  modello della tessera, e quel modello e' filtrato: chi spegneva
+  l'interruttore «nel widget» su un termosifone se lo ritrovava, in pagina, coi
+  cinque tasti scritti a mano nel guscio. Il filtro e' una faccenda della
+  tessera, non della riga.
+
+- **Il Solare termico si diceva «Attivo» con la pompa ferma.** Senza sonda di
+  temperatura la tessera scriveva «Attivo» comunque, il contrario di quello che
+  diceva la didascalia due righe sotto. Senza sonda adesso parla la pompa.
+
+- **La Piscina annunciava «pH —» dove il pH non c'era.** La didascalia era
+  sempre il pH, anche quando quella sonda non era mai stata mappata: annunciava
+  un dato per dire di non averlo. Adesso parla la prima riga che ha qualcosa da
+  dire, o non parla.
+
 ## 1.3.2
 
 ### Corretto
