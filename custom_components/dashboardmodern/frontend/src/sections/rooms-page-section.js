@@ -562,6 +562,47 @@ function runScene(on) {
   schedule();
 }
 
+/* Portare nella sezione non basta: bisogna arrivare sulla cosa.
+ *
+ * Il tocco su una riga cambiava pagina e finiva li'. In una casa con dodici
+ * condizionatori vuol dire scaricare chi guarda in cima a un elenco e lasciarlo
+ * cercare quello che aveva appena toccato — «mi rimanda alla sezione clima ma
+ * non all'entita', quindi cosi' non serve a niente». Detto giusto.
+ *
+ * Dopo il cambio di pagina si apre la cosa: il clima ha il suo popup per
+ * entita', e per il resto si cerca la scheda che porta quell'entita' addosso e
+ * si tocca quella. Se non si trova niente resta il comportamento di prima —
+ * la sezione aperta — che e' comunque meglio di restare dov'eravamo.
+ *
+ * Il rinvio di un fotogramma non e' pigrizia: la pagina di destinazione si
+ * disegna quando diventa attiva, e cercare la scheda un istante prima vuol dire
+ * cercarla in una pagina ancora vuota. */
+function apriLaVoce(entity) {
+  if (!entity || !doc) return false;
+  const prova = () => {
+    if (typeof root.apriClimaPopup === "function" && entity.startsWith("climate.")) {
+      try {
+        root.apriClimaPopup(entity);
+        return true;
+      } catch (_errore) {}
+    }
+    const scheda = doc.querySelector(
+      `.page.active [data-appliance-id="${CSS.escape(entity)}"],` +
+        `.page.active [data-dm-lucip="${CSS.escape(entity)}"],` +
+        `.page.active [data-entity="${CSS.escape(entity)}"],` +
+        `.page.active [data-dm-entita="${CSS.escape(entity)}"]`,
+    );
+    if (!scheda) return false;
+    scheda.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    scheda.click?.();
+    return true;
+  };
+  root.requestAnimationFrame?.(() => {
+    if (!prova()) root.setTimeout?.(prova, 220);
+  }) || root.setTimeout?.(prova, 0);
+  return true;
+}
+
 function handleClick(event) {
   const pillola = event.target?.closest?.("[data-dm-stanza]");
   if (pillola) {
@@ -580,6 +621,7 @@ function handleClick(event) {
   if (vai) {
     const tab = doc?.querySelector?.(`.tab[data-tab="${vai.getAttribute("data-dm-stanza-vai")}"]`);
     tab?.click?.();
+    apriLaVoce(clean(vai.getAttribute("data-dm-stanza-entita")));
   }
 }
 

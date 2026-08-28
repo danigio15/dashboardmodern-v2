@@ -123,3 +123,26 @@ test("una stanza senza luci non offre una scena che non farebbe niente", async (
   await expect(page.locator("#page-stanze [data-dm-stanza-scena]")).toHaveCount(0);
   await expect(page.locator("#page-stanze")).toContainText(/non ha ancora niente|Nothing here yet/);
 });
+
+/* La luce si accende da qui, non solo si guarda.
+ *
+ * La card della luce e' la stessa della pagina Luci — stessa forma, stesso
+ * cursore — ma il gesto era rimasto legato a quella pagina: il gestore
+ * pretendeva che il tocco venisse da dentro il suo recinto, e qui il recinto
+ * non c'e'. Si vedeva l'interruttore, si premeva, e non succedeva niente.
+ * Segnalato esattamente cosi'. Il cursore della luminosita' invece ha sempre
+ * funzionato, perche' il suo gestore guarda la card: era il recinto a essere
+ * di troppo, non la card a essere nel posto sbagliato.
+ */
+test("l'interruttore della luce comanda anche dalla pagina Stanze", async ({ page }, testInfo) => {
+  await apri(page, testInfo);
+  const carta = page.locator('#page-stanze [data-dm-lucip="light.faretti_sx"]');
+  await expect(carta).toHaveCount(1);
+  await carta.locator("[data-dm-lucip-toggle]").click();
+
+  const chiamate = await page.evaluate(() => window.__DM_CHIAMATE__);
+  expect(chiamate.length).toBeGreaterThan(0);
+  const ultima = chiamate[chiamate.length - 1];
+  expect(ultima.data?.entity_id).toBe("light.faretti_sx");
+  expect(ultima.service).toBe("turn_on");
+});
