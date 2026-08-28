@@ -352,8 +352,22 @@ export function syncQuickActionIcons() {
   return nodes.length > 0;
 }
 
+/* Le superfici da decorare stanno tutte dentro una scheda o una finestra di
+ * modifica. Nessuna delle tre e' nel documento finche' non le si apre — il
+ * runtime le crea e le toglie — quindi qui non c'e' niente da fare, e prima ci
+ * si passava lo stesso a ogni giro di stati: quattro giri del documento e una
+ * lettura della configurazione per non trovare mai nulla. */
+function superficiDaDecorare() {
+  return Boolean(
+    doc?.getElementById?.("ed-body") ||
+      doc?.getElementById?.("editor-modal") ||
+      doc?.getElementById?.("dm-action-editor-modal") ||
+      doc?.getElementById?.("dm-room-editor-modal"),
+  );
+}
+
 export function syncEditorIconSurfaces() {
-  if (!doc) return false;
+  if (!doc || !superficiDaDecorare()) return false;
   let changed = false;
   const actionModal = doc.getElementById("dm-action-editor-modal");
   const actionInput = actionModal?.querySelector('input[name="icon"]');
