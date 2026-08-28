@@ -1156,10 +1156,6 @@ function nomiAccesi(rows, quali = (row) => row.on, fallback = "") {
  * adesso. */
 const viste = () => (state.viste ||= new Set());
 
-function tileMarkup(widget, index = 0) {
-  const open = state.expanded === widget.key;
-  const giaVista = viste().has(widget.key) ? ' data-dm-seen="true"' : "";
-  const quota = widget.ring == null ? null : Math.max(0, Math.min(100, widget.ring));
 /* Quanto e' lungo il numero grande, per deciderne la misura.
  *
  * Sulla tessera ci va di solito un numero corto — «26,3°», «2,98 kW» — e
@@ -1167,13 +1163,20 @@ function tileMarkup(widget, index = 0) {
  * una parola: «Disinserito» a ventitre pixel non ci sta, e si leggeva
  * «Disinse...» — cioe' nulla, perche' «disinserito» e «disinserimento in
  * corso» cominciano uguale. Il numero grande resta grande finche' e' corto; a
- * una parola si da' la misura che la fa entrare intera. */
+ * una parola si da' la misura che la fa entrare intera.
+ *
+ * Sta qui, a livello di modulo, e non dentro chi disegna la tessera: la misura
+ * serve anche al giro che riscrive i valori, che vive in un'altra funzione. */
 function misuraValore(valore) {
   const quanto = String(valore ?? "").length;
   if (quanto <= 7) return "corto";
   return quanto <= 11 ? "medio" : "lungo";
 }
 
+function tileMarkup(widget, index = 0) {
+  const open = state.expanded === widget.key;
+  const giaVista = viste().has(widget.key) ? ' data-dm-seen="true"' : "";
+  const quota = widget.ring == null ? null : Math.max(0, Math.min(100, widget.ring));
   return `<button type="button" class="dm-tile" data-dm-widget="${widget.key}" data-open="${open}"${giaVista}
       data-alert="${Boolean(widget.alert)}"
       style="--dm-widget-accent:${widget.accent};--dm-tile-i:${index}" aria-expanded="${open}" aria-label="${esc(widget.label)}">
