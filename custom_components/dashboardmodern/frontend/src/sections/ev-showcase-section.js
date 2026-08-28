@@ -31,7 +31,6 @@
  * `data-dm-ev-mode` from whichever `.evcc-mode-btn` carries `.active`.
  */
 import { evccPresence } from "../core/ev-console.js";
-import { configuredPhotos, resolveVehicleAsset } from "./ev-section.js";
 import { allStates, clean, doc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EV_SHOWCASE__";
@@ -197,57 +196,32 @@ function sfondoSfocato(hero, image) {
   if (copia.getAttribute("src") !== src) copia.setAttribute("src", src);
 }
 
-/* Le proporzioni buone, per indirizzo: una foto si misura una volta. Qui ci
- * finiscono solo i numeri veri — un ripiego scritto qui dentro non se ne
- * andrebbe piu'. Chi e' gia' stato chiesto sta nell'altro insieme. */
-const formeMisurate = new Map();
-const misureInCorso = new Set();
-
-/* La proporzione della foto a riposo, misurata di lato se non e' a schermo.
+/* La proporzione della foto a riposo, chiesta a chi la sta mostrando.
  *
- * Tre strade, in ordine di fiducia. Se a schermo c'e' proprio la foto a
- * riposo, si misura quella: e' la misura piu' sicura che ci sia, e riscrive
- * quella chiesta di lato. Se no, vale quella gia' misurata. Se non si sa
- * ancora, si chiede una copia di lato e intanto si tiene la forma che la
- * cornice ha gia'.
+ * La cornice deve tenere UNA forma sola: le due foto di un'auto — cavo
+ * staccato e cavo attaccato — quasi mai hanno la stessa proporzione, e
+ * misurando quella a schermo la cornice cambiava forma da sola quando si
+ * attaccava la spina.
  *
- * Il terzo passo era il punto debole. La casella si riempiva subito con uno
- * zero per non chiedere due volte, e se la richiesta di lato non rispondeva —
- * su WebKit una figura vettoriale servita dalla prova non sempre dichiara
- * quanto e' grande — quello zero restava li' per sempre: la cornice non
- * prendeva piu' nessuna forma, e nessuno riprovava. Adesso in quella casella
- * ci vanno solo numeri veri, e chi e' stato chiesto lo dice un insieme a
- * parte.
+ * Quale delle due sia a schermo non serve andarlo a cercare nella
+ * configurazione: la sezione dell'auto lo scrive gia' sull'immagine, ogni
+ * volta che la monta. Prima lo si chiedeva alla configurazione, e per farlo
+ * questo modulo importava quello dell'auto: una freccia in piu' fra i moduli,
+ * che cambia l'ordine in cui si avviano — e l'ordine in cui si avviano e' la
+ * cosa da cui dipende chi vince quando due mettono mano alla stessa scheda.
+ * Un dato che sta gia' a schermo non vale una dipendenza.
  *
- * E finche' la forma a riposo non si sa, si tiene quella che c'e': la foto
- * col cavo attaccato non deve dettarla mai, che e' tutto il punto. */
-function formaDellaCornice(hero, image, loaded) {
-  const riposo = clean(resolveVehicleAsset(configuredPhotos().idle));
-  const attuale = clean(image.getAttribute("src"));
+ * Cosi' sparisce anche la copia caricata di lato solo per farsi misurare: una
+ * richiesta in meno a ogni disegno, e nessuna misura che possa non tornare
+ * mai. Finche' la foto a riposo non si e' vista almeno una volta vale quella
+ * che c'e'; da li' in poi comanda lei. */
+function formaDellaCornice(image, loaded) {
   const aSchermo = loaded && image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : 0;
-  if (aSchermo > 0 && (!riposo || riposo === attuale)) {
-    if (attuale) formeMisurate.set(attuale, aSchermo);
+  if (aSchermo > 0 && image.dataset.evPhoto !== "plugged") {
+    state.formaRiposo = aSchermo;
     return aSchermo;
   }
-  if (!riposo) return aSchermo;
-  const nota = formeMisurate.get(riposo);
-  if (nota > 0) return nota;
-  if (!misureInCorso.has(riposo)) {
-    misureInCorso.add(riposo);
-    const misura = new root.Image();
-    misura.onload = () => {
-      const propria = misura.naturalWidth / misura.naturalHeight;
-      if (!Number.isFinite(propria) || propria <= 0) return;
-      formeMisurate.set(riposo, propria);
-      scheduleEvShowcase();
-    };
-    misura.src = riposo;
-  }
-  /* Meglio la forma che la cornice ha gia' che una presa dalla foto sbagliata;
-   * e se non ne ha ancora nessuna, quella a schermo e' sempre meglio di niente
-   * — al ritorno della misura di lato la cornice si assesta. */
-  const gia = Number(clean(hero.style.getPropertyValue("--dm-evv-hero-ratio")));
-  return Number.isFinite(gia) && gia > 0 ? gia : aSchermo;
+  return state.formaRiposo > 0 ? state.formaRiposo : aSchermo;
 }
 
 function syncPhoto(hero) {
@@ -290,7 +264,7 @@ function syncPhoto(hero) {
    * La forma la detta sempre la foto a riposo, che e' quella che c'e' sempre.
    * Se serve, si carica di lato solo per farsi misurare: non si disegna, si
    * chiede solo quanto e' larga e quanto e' alta. */
-  const forma = formaDellaCornice(hero, image, loaded);
+  const forma = formaDellaCornice(image, loaded);
   if (forma) {
     const scritta = Math.max(1.15, Math.min(2.4, forma)).toFixed(3);
     if (hero.style.getPropertyValue("--dm-evv-hero-ratio") !== scritta)
