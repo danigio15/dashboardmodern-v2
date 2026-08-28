@@ -31,6 +31,7 @@
  * `data-dm-ev-mode` from whichever `.evcc-mode-btn` carries `.active`.
  */
 import { evccPresence } from "../core/ev-console.js";
+import { configuredPhotos, resolveVehicleAsset } from "./ev-section.js";
 import { allStates, clean, doc, installStyle, root, t } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_EV_SHOWCASE__";
@@ -196,6 +197,36 @@ function sfondoSfocato(hero, image) {
   if (copia.getAttribute("src") !== src) copia.setAttribute("src", src);
 }
 
+/* Le proporzioni gia' misurate, per indirizzo: una foto si misura una volta. */
+const formeMisurate = new Map();
+
+/* La proporzione della foto a riposo, misurata di lato se non e' a schermo. */
+function formaDellaCornice(image, loaded) {
+  const riposo = clean(resolveVehicleAsset(configuredPhotos().idle));
+  const attuale = clean(image.getAttribute("src"));
+  if (loaded && (!riposo || riposo === attuale)) {
+    const propria = image.naturalWidth / image.naturalHeight;
+    if (Number.isFinite(propria) && propria > 0) {
+      if (attuale) formeMisurate.set(attuale, propria);
+      return propria;
+    }
+  }
+  if (!riposo) return loaded && image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : 0;
+  if (formeMisurate.has(riposo)) return formeMisurate.get(riposo);
+  /* Non si sa ancora: si chiede, e al ritorno si ridisegna. La casella si
+   * riempie subito col valore nullo, cosi' la richiesta parte una volta sola. */
+  formeMisurate.set(riposo, 0);
+  const misura = new root.Image();
+  misura.onload = () => {
+    const propria = misura.naturalWidth / misura.naturalHeight;
+    formeMisurate.set(riposo, Number.isFinite(propria) && propria > 0 ? propria : 0);
+    scheduleEvShowcase();
+  };
+  misura.onerror = () => formeMisurate.set(riposo, 0);
+  misura.src = riposo;
+  return loaded && image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : 0;
+}
+
 function syncPhoto(hero) {
   const image = doc.getElementById("ev-mod-car-img");
   if (!image) return;
@@ -226,10 +257,19 @@ function syncPhoto(hero) {
    * fessura, e un ritratto non deve farne una torre. Fuori da quei due
    * estremi si accetta un po' di margine ai lati — che e' sempre meglio di
    * una pagina sfondata. */
-  if (loaded) {
-    const forma = image.naturalWidth / image.naturalHeight;
-    const dentro = Math.max(1.15, Math.min(2.4, forma));
-    const scritta = dentro.toFixed(3);
+  /* La cornice tiene UNA forma sola, anche quando la foto cambia.
+   *
+   * Le foto di un'auto sono due — cavo staccato e cavo attaccato — e quasi mai
+   * hanno la stessa proporzione: ritagliate in momenti diversi, magari prese da
+   * due siti. Misurando quella a schermo, la cornice cambiava forma da sola
+   * quando si attaccava il cavo, e la stessa macchina si vedeva in due modi.
+   *
+   * La forma la detta sempre la foto a riposo, che e' quella che c'e' sempre.
+   * Se serve, si carica di lato solo per farsi misurare: non si disegna, si
+   * chiede solo quanto e' larga e quanto e' alta. */
+  const forma = formaDellaCornice(image, loaded);
+  if (forma) {
+    const scritta = Math.max(1.15, Math.min(2.4, forma)).toFixed(3);
     if (hero.style.getPropertyValue("--dm-evv-hero-ratio") !== scritta)
       hero.style.setProperty("--dm-evv-hero-ratio", scritta);
   } else hero.style.removeProperty("--dm-evv-hero-ratio");
