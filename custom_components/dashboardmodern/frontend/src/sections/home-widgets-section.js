@@ -3205,7 +3205,12 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 /* Come «Azioni rapide»: solo la parola, senza disegni davanti. Il simbolo che
  * c'era faceva di questa scritta un'altra cosa dalle sue sorelle. */
 #dm-widgets .dm-widgets-title{
-  margin:15px 0 0;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;
+  /* L'aria sopra e' la stessa di tutte le intestazioni della Home: ventotto
+   * pixel, perche' la card di sopra butta ombra per diciotto e con quindici il
+   * titolo cominciava dentro l'ombra. Sta scritta anche qui, e non solo nella
+   * regola comune, perche' i due fogli hanno lo stesso peso e a decidere
+   * sarebbe l'ordine in cui si installano. */
+  margin:28px 0 0;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;
   letter-spacing:2px;text-transform:uppercase;color:var(--text-dim,#64748b)}
 #dm-widgets .dm-widgets-sub{
   margin:4px 0 14px;font-size:12px;font-weight:700;letter-spacing:.2px;color:var(--text-dim,#64748b)}
