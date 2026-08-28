@@ -24,7 +24,7 @@ import {
   pendingTodoItems,
 } from "../core/todo-model.js";
 import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-view-model.js";
-import { canonicalClimateType } from "../core/device-model.js";
+import { applianceVisualKey, canonicalClimateType } from "../core/device-model.js";
 import {
   coverEntries,
   coverKindLabel,
@@ -543,7 +543,12 @@ function appliancesModel(states) {
         name: model.name,
         mode: model.mode,
         watts: model.watts,
-        type: clean(root.cdApplianceType?.(device)) || "generico",
+        /* Lo stesso disegno della sua pagina.
+         *
+         * Qui si chiedeva al runtime storico, che conosce un elenco piu' corto
+         * e risponde «generico» per tutto il resto: lo stesso apparecchio
+         * aveva l'oblo' nella sezione e una bolla anonima in Home. */
+        type: applianceVisualKey(device),
       };
     });
   if (!rows.length) return null;
@@ -623,9 +628,11 @@ function vetture() {
 
 function letturaVettura(states, auto, fuori, indice) {
   const mappa = (auto?.ov || auto?.overrides || {}) || {};
+  const visti = new Set();
   const misura = (riferimento) => {
     const entity = clean(mappa[riferimento]);
     if (!entity || !widgetIncludes(entity, fuori)) return null;
+    visti.add(entity);
     return { entity, value: numOf(states, entity), state: clean(states?.[entity]?.state) };
   };
   let carica = null;
@@ -642,25 +649,103 @@ function letturaVettura(states, auto, fuori, indice) {
     percentuale,
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: stato?.state || "",
+    altre: altreCaselleEv(states, mappa, fuori, visti),
   };
+}
+
+/* Una riga qualunque, da una entita' qualunque.
+ *
+ * Serve alle sezioni fatte a caselle — l'auto, il solare, la piscina — dove
+ * l'interruttore «nel widget» sta accanto a OGNI casella mappata, ma la
+ * tessera ne leggeva soltanto tre o quattro scelte a mano: l'interruttore
+ * poteva solo togliere, mai mettere, e acceso non faceva niente. Chi legge
+ * deve conoscere le stesse caselle che l'interruttore governa.
+ *
+ * Cosa esce dipende da cosa dice l'entita': un numero con la sua unita', un
+ * acceso/spento quando lo stato e' uno dei due, altrimenti lo stato cosi'
+ * com'e'. Chi non sa dire niente — «unknown», «unavailable» — non fa riga. */
+function rigaDaEntita(states, entity, glifo = "•") {
+  const chiave = clean(entity);
+  if (!chiave) return null;
+  const stato = stateOf(states, chiave);
+  const grezzo = clean(stato?.state);
+  if (STATI_MUTI.test(grezzo)) return null;
+  const nome = friendlyName(states, chiave);
+  const numero = numOf(states, chiave);
+  if (numero != null) {
+    const unita = clean(stato?.attributes?.unit_of_measurement);
+    const cifre = Number.isInteger(numero) || Math.abs(numero) >= 100 ? 0 : 1;
+    return {
+      glyph: glifo,
+      name: nome,
+      value: `${formatNumber(numero, cifre)}${unita ? ` ${unita}` : ""}`,
+    };
+  }
+  if (STATI_ACCESI.test(grezzo))
+    return { glyph: glifo, name: nome, value: t("Acceso", "On") };
+  if (STATI_SPENTI.test(grezzo))
+    return { glyph: glifo, name: nome, value: t("Spento", "Off") };
+  return { glyph: glifo, name: nome, value: grezzo };
+}
+
+/* Il disegno di una casella dell'auto, indovinato dal nome del riferimento:
+ * sono venti caselle e nessuna porta un'icona scritta da nessuna parte. */
+const GLIFI_EV = Object.freeze([
+  [/soc|batteria/, "🔋"],
+  [/autonomia|odometro|km/, "🛣️"],
+  [/cavo|stato_ricarica|modalita/, "🔌"],
+  [/energia|potenza|power|prelievo|tensione/, "⚡"],
+  [/temperatura/, "🌡️"],
+  [/solare/, "☀️"],
+]);
+
+function glifoEv(riferimento) {
+  for (const [prova, glifo] of GLIFI_EV) if (prova.test(riferimento)) return glifo;
+  return "🚗";
+}
+
+/* Tutte le caselle dell'auto che sono state mappate, meno quelle gia' dette e
+ * quelle che l'interruttore ha messo fuori. */
+function altreCaselleEv(states, mappa, fuori, visti) {
+  const righe = [];
+  for (const riferimento of Object.keys(mappa || {}).sort()) {
+    if (!/^dm\.ev_/.test(riferimento)) continue;
+    const entity = clean(mappa[riferimento]);
+    if (!entity || visti.has(entity) || !widgetIncludes(entity, fuori)) continue;
+    const riga = rigaDaEntita(states, entity, glifoEv(riferimento));
+    if (!riga) continue;
+    visti.add(entity);
+    righe.push(riga);
+  }
+  return righe;
 }
 
 /* La lettura dell'auto in uso, dalle chiavi globali: e' la strada di sempre, e
  * resta quella per chi di auto ne ha una sola o non ne ha profilate. */
 function letturaAttiva(states, fuori) {
+  const visti = new Set();
+  const misura = (riferimento) => {
+    const dato = refValue(states, riferimento, fuori);
+    if (dato) visti.add(dato.entity);
+    return dato;
+  };
   let carica = null;
   for (const riferimento of RIF_BATTERIA_EV) {
-    carica = refValue(states, riferimento, fuori);
+    carica = misura(riferimento);
     if (carica) break;
   }
-  const autonomia = refValue(states, "dm.ev_autonomia", fuori);
-  const stato = refValue(states, "dm.ev_stato_ricarica", fuori);
+  const autonomia = misura("dm.ev_autonomia");
+  const stato = misura("dm.ev_stato_ricarica");
   if (!carica && !autonomia) return null;
+  /* La mappatura dell'auto in uso e' quella canonica: le stesse caselle che
+   * l'interruttore governa nella scheda EV. */
+  const mappa = readJson("cd_entity_overrides", {}) || {};
   return {
     nome: "",
     percentuale: carica?.value == null ? null : Math.max(0, Math.min(100, carica.value)),
     km: autonomia?.value == null ? null : autonomia.value,
     ricarica: stato?.state || "",
+    altre: altreCaselleEv(states, mappa, fuori, visti),
   };
 }
 
@@ -685,6 +770,10 @@ function righeVettura(lettura, conNome) {
       name: `${prefisso}${t("Ricarica", "Charging")}`,
       value: lettura.ricarica,
     });
+  /* E tutte le altre caselle mappate di questa vettura: sono quelle su cui
+   * l'interruttore «nel widget» sta acceso, e finora non uscivano. */
+  for (const riga of lettura.altre || [])
+    righe.push(prefisso ? { ...riga, name: `${prefisso}${riga.name}` } : riga);
   return righe;
 }
 
@@ -810,6 +899,7 @@ const CASELLE_SOLARE = Object.freeze([
 ]);
 
 const STATI_ACCESI = /^(on|true|1|running|attiva|attivo|open|aperta|heat|heating)$/i;
+const STATI_SPENTI = /^(off|false|0|idle|ferma|fermo|closed|chiusa|standby)$/i;
 /* «unknown» e «unavailable» sono il modo in cui Home Assistant dice «adesso
  * questa entita' non risponde», non «e' spenta». Scriverli come «Spento»
  * significherebbe raccontare per certo il contrario di quello che si sa: una
@@ -867,13 +957,28 @@ function poolModel(states) {
     if (!entity || !widgetIncludes(entity, fuori)) return null;
     const valore = numOf(states, entity);
     if (valore == null) return null;
-    return { glyph, name: etichetta, value: `${formatNumber(valore, 1)}${unita}`, raw: valore };
+    return { glyph, name: etichetta, value: `${formatNumber(valore, 1)}${unita}`, raw: valore, entity };
   };
   const rows = [
     leggi("tempEnt", t("Acqua", "Water"), "🌡️", "°"),
     leggi("phEnt", "pH", "🧪"),
     leggi("clEnt", t("Cloro", "Chlorine"), "💧"),
   ].filter(Boolean);
+  /* E tutto il resto che e' stato mappato: pompa, riscaldamento, luce.
+   *
+   * La tessera ne leggeva tre — acqua, pH, cloro — mentre l'interruttore «nel
+   * widget» sta accanto a ognuna delle caselle della scheda. Acceso su una
+   * delle altre non faceva niente, perche' qui non le guardava nessuno. */
+  const visti = new Set(rows.map((riga) => riga.entity).filter(Boolean));
+  const GLIFI_PISCINA = { pumpEnt: "🔄", heatEnt: "🔥", lightEnt: "💡" };
+  for (const [chiave, glifo] of Object.entries(GLIFI_PISCINA)) {
+    const entity = clean(config[chiave]);
+    if (!entity || visti.has(entity) || !widgetIncludes(entity, fuori)) continue;
+    const riga = rigaDaEntita(states, entity, glifo);
+    if (!riga) continue;
+    visti.add(entity);
+    rows.push(riga);
+  }
   if (!rows.length) return null;
   const acqua = rows.find((riga) => riga.name === t("Acqua", "Water"));
   return {
@@ -1318,6 +1423,31 @@ function climateGlyph(mode, tipo = "clima") {
  * carattere che manca — un comando che non si capisce e' un comando che non si
  * preme. Due tratti in SVG non dipendono da nessun font, prendono il colore
  * della riga come tutto il resto e restano nitidi a qualunque misura. */
+/* I comandi si disegnano, non si scrivono.
+ *
+ * Le tapparelle avevano tre caratteri di testo — «▲», «■», «▼» — e con essi le
+ * loro etichette: chi legge lo schermo ad alta voce sentiva «triangolo nero
+ * rivolto verso l'alto». Sono anche caratteri di ripiego, disegnati da
+ * qualunque font capiti, quindi tre pesi diversi in tre telefoni diversi. Qui
+ * sono tre tratti come quello dell'accensione: stesso spessore, stesso colore
+ * della riga, nitidi a qualunque misura, e la parola sta nell'etichetta.
+ *
+ * La freccia e' una punta con la sua asta, non un triangolo pieno: dice «va
+ * su» invece di «guarda in su», e accanto al quadrato dello stop le tre cose
+ * si leggono come una famiglia. */
+const TRATTO =
+  'viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false" fill="none" ' +
+  'stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"';
+
+const GLIFO_SU = `<svg ${TRATTO}><path d="M12 19V6"/><path d="M6 11.5 12 5.5l6 6"/></svg>`;
+const GLIFO_GIU = `<svg ${TRATTO}><path d="M12 5v13"/><path d="M6 12.5 12 18.5l6-6"/></svg>`;
+const GLIFO_FERMA =
+  '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false" ' +
+  'fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2.4"/></svg>';
+const GLIFO_ROTELLA =
+  `<svg ${TRATTO}><circle cx="12" cy="12" r="3.1"/>` +
+  '<path d="M12 3.6v2.2M12 18.2v2.2M20.4 12h-2.2M5.8 12H3.6M18 6l-1.6 1.6M7.6 16.4 6 18M18 18l-1.6-1.6M7.6 7.6 6 6"/></svg>';
+
 const GLIFO_ACCENSIONE =
   '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" focusable="false" fill="none" ' +
   'stroke="currentColor" stroke-width="2.3" stroke-linecap="round">' +
@@ -1459,7 +1589,7 @@ function climateDetail(widget) {
              ? `<button type="button" class="dm-w-more" data-dm-w-more="${esc(row.entity)}"
                   aria-expanded="${Boolean(aperto)}"
                   aria-label="${esc(t("Altre impostazioni", "More settings"))}"
-                  title="${esc(t("Altre impostazioni", "More settings"))}">⚙️</button>`
+                  title="${esc(t("Altre impostazioni", "More settings"))}">${GLIFO_ROTELLA}</button>`
              : ""
          }
          <button type="button" class="dm-w-power" data-dm-w-clima="${esc(row.entity)}" data-on="${row.on}"
@@ -1487,6 +1617,15 @@ function positionSelectMarkup(row) {
       aria-label="${esc(invito)}" title="${esc(invito)}"><option value="">↕</option>${voci}</select>`;
 }
 
+/* Un comando della tapparella: il disegno dentro, la parola nell'etichetta —
+ * e la parola dice cosa succede a quella tapparella, non che forma ha il
+ * tasto. */
+function comandoTapparella(row, servizio, glifo, parola) {
+  const invito = `${parola}: ${row.name}`;
+  return `<button type="button" data-dm-w-cover="${esc(row.entity)}" data-dm-w-down="${esc(row.down)}"
+      data-svc="${servizio}" title="${esc(parola)}" aria-label="${esc(invito)}">${glifo}</button>`;
+}
+
 function coversDetail(widget) {
   return widget.rows
     .map((row) =>
@@ -1498,9 +1637,9 @@ function coversDetail(widget) {
          ${
            row.isCover || row.relay
              ? `<span class="dm-w-arrows">
-                 <button type="button" data-dm-w-cover="${esc(row.entity)}" data-dm-w-down="${esc(row.down)}" data-svc="open_cover" aria-label="▲">▲</button>
-                 <button type="button" data-dm-w-cover="${esc(row.entity)}" data-dm-w-down="${esc(row.down)}" data-svc="stop_cover" aria-label="■">■</button>
-                 <button type="button" data-dm-w-cover="${esc(row.entity)}" data-dm-w-down="${esc(row.down)}" data-svc="close_cover" aria-label="▼">▼</button>
+                 ${comandoTapparella(row, "open_cover", GLIFO_SU, t("Apri", "Open"))}
+                 ${comandoTapparella(row, "stop_cover", GLIFO_FERMA, t("Ferma", "Stop"))}
+                 ${comandoTapparella(row, "close_cover", GLIFO_GIU, t("Chiudi", "Close"))}
                </span>${positionSelectMarkup(row)}`
              : ""
          }`,
@@ -3092,6 +3231,11 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
   width:29px;height:29px;display:grid;place-items:center;border-radius:9px;cursor:pointer;
   border:1px solid var(--card-border,#e8edf3);background:var(--surface-3,#f1f5f9);
   color:var(--text,#0f172a);font-size:11px;transition:all .2s ease}
+/* I tre comandi sono disegni, non caratteri: qui si dice solo quanto sono
+   grandi, il colore lo prendono dalla riga come tutto il resto. */
+:is(#dm-widgets,#dm-widget-popup) .dm-w-arrows button svg{display:block;width:15px;height:15px}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-more svg{display:block;width:15px;height:15px}
+:is(#dm-widgets,#dm-widget-popup) .dm-w-more{display:grid;place-items:center}
 :is(#dm-widgets,#dm-widget-popup) .dm-w-arrows button:hover{
   background:var(--dm-widget-accent,#8b5cf6);border-color:transparent;color:#fff}
 
