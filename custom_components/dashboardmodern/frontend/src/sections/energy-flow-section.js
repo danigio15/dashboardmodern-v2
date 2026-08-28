@@ -758,6 +758,23 @@ export function installEnergyFlowSection() {
   });
   root.addEventListener?.("dashboardmodern:energy-bundle", scheduleSettled);
   root.addEventListener?.("dashboardmodern:energy-stable", scheduleSettled);
+  /* E i cambi di stato, che sono la ragione per cui questa pagina esiste.
+   *
+   * La scena si ridisegnava solo agli eventi grossi: l'avvio, i pacchetti
+   * dello storico, il tocco su una linguetta, un salvataggio. Le potenze
+   * istantanee pero' le legge dagli stati vivi, e quelli cambiano di
+   * continuo: fra un pacchetto e l'altro il disegno restava fermo a
+   * com'era. Se la prima passata capitava mentre un'entita' era ancora
+   * «unavailable» — un riavvio di Home Assistant, una riconnessione, un
+   * integrazione lenta a partire — le linee e la bolla della batteria
+   * restavano vuote finche' non passava un evento grosso, o finche' non si
+   * ricaricava la pagina: «i flussi spesso scompaiono e nel mio caso la
+   * batteria anche, devo ricaricare spesso la pagina».
+   *
+   * L'evento e' gia' raccolto a mazzetti dal filtro degli stati — mezzo
+   * secondo, e solo per le entita' configurate — e il fotogramma si accoda
+   * una volta sola: qui non si aggiunge nessun giro di controllo. */
+  root.addEventListener?.("dashboardmodern:state-changed", schedule);
   root.addEventListener?.("dashboardmodern:states-ready", scheduleSettled);
   root.addEventListener?.("dashboardmodern:runtime-ready", scheduleSettled);
   root.addEventListener?.("dashboardmodern:legacy-ready", scheduleSettled);
