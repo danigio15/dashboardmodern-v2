@@ -1350,7 +1350,7 @@ const NOMI_AZIONE = () => ({
  * Adesso e' qui sotto, e ci sono soltanto le modalita' e le velocita' che
  * quell'unita' dichiara di accettare: un tasto che l'unita' non sa eseguire e'
  * peggio di un tasto che non c'e'. */
-function climatePanel(row) {
+function climatePanel(row, solo = false) {
   const nomi = NOMI_MODO();
   const modi = row.modi?.length ? row.modi : [];
   const modiMarkup = modi.length
@@ -1408,9 +1408,32 @@ function climatePanel(row) {
       : "";
   const dentro = `${modiMarkup}${temperaturaMarkup}${ventoleMarkup}${noteMarkup}`;
   if (!dentro) return "";
+  if (solo)
+    return `<div class="dm-w-panel dm-w-panel-solo" data-dm-w-panel="${esc(row.entity)}">${dentro}</div>`;
   return `<div class="dm-w-panel" data-dm-w-panel="${esc(row.entity)}"${
     state.aperti.has(row.entity) ? "" : " hidden"
   }>${dentro}</div>`;
+}
+
+/* Lo stesso pannello, per chi non e' una tessera.
+ *
+ * La finestra della pagina Clima aveva la sua idea di cosa un'unita' sa fare:
+ * cinque modalita' scritte a mano nel guscio — freddo, caldo, ventola, secco,
+ * auto — mostrate a tutti allo stesso modo, e nascoste in blocco se il nome
+ * dell'entita' conteneva la parola «termosifone». Un tasto che l'unita' non sa
+ * eseguire e' peggio di un tasto che non c'e', e una pompa di calore chiamata
+ * in un altro modo restava senza modalita' del tutto.
+ *
+ * Qui il pannello e' uno solo, e lo costruisce chi legge le entita': ci sono
+ * le modalita' e le ventole che QUELL unita' dichiara, e i tasti li ascolta lo
+ * stesso giro che ascolta quelli della tessera — sono attaccati al documento,
+ * non alla finestra. */
+export function climatePanelMarkup(entity) {
+  const chiave = clean(entity);
+  if (!chiave) return "";
+  const modello = climateModel(allStates());
+  const riga = modello?.rows?.find((voce) => voce.entity === chiave);
+  return riga ? climatePanel(riga, true) : "";
 }
 
 function climateDetail(widget) {
@@ -2625,49 +2648,54 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 /* Il pannello si accoda alla riga: margine negativo per chiudere lo spazio
  * fra le righe, angoli alti squadrati e nessun bordo in cima. Le due cose
  * diventano una card sola. */
-#dm-widget-popup .dm-w-panel{
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel{
   display:grid;gap:10px;margin:-9px 0 0;padding:14px 14px 15px;
   border:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
   border-top:0;border-radius:0 0 18px 18px;
   background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 5%,var(--card-bg,#fff));
   box-shadow:0 14px 30px -22px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent)}
-#dm-widget-popup .dm-w-panel[hidden]{display:none}
-#dm-widget-popup .dm-w-panel-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-#dm-widget-popup .dm-w-panel-lbl{
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel[hidden]{display:none}
+/* Da sola non e' accodata a niente: torna una card intera, con tutti e quattro
+   gli angoli e il bordo in cima. */
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-solo{
+  margin:0;border-top:1px solid color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 40%,transparent);
+  border-radius:18px}
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-lbl{
   flex:0 0 82px;font-size:10px;font-weight:800;letter-spacing:.9px;
   text-transform:uppercase;color:var(--text-dim,#94a3b8)}
-#dm-widget-popup .dm-w-chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
-#dm-widget-popup .dm-w-chip{
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-chip{
   padding:6px 11px;border-radius:999px;cursor:pointer;
   border:1px solid var(--card-border,#e8edf3);background:var(--card-bg,#fff);
   font:inherit;font-size:11.5px;font-weight:800;color:var(--text-dim,#64748b);
   transition:background .18s ease,border-color .18s ease,color .18s ease}
-#dm-widget-popup .dm-w-chip:hover{
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-chip:hover{
   border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 45%,transparent)}
-#dm-widget-popup .dm-w-chip[data-on="true"]{
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-chip[data-on="true"]{
   background:var(--dm-widget-accent,#0ea5e9);border-color:transparent;color:#fff;
   box-shadow:0 6px 14px -9px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent)}
 /* Il passo della temperatura: meno, il numero, piu'. */
-#dm-widget-popup .dm-w-stepper{
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper{
   display:inline-flex;align-items:center;gap:2px;padding:2px;border-radius:12px;
   background:var(--card-bg,#fff);box-shadow:inset 0 0 0 1px var(--card-border,#e8edf3)}
-#dm-widget-popup .dm-w-stepper button{
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper button{
   width:30px;height:28px;display:grid;place-items:center;border:0;border-radius:10px;
   background:transparent;color:var(--text,#0f172a);
   font:inherit;font-size:16px;font-weight:800;line-height:1;cursor:pointer;
   transition:background .15s ease}
-#dm-widget-popup .dm-w-stepper button:hover{
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper button:hover{
   background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent)}
-#dm-widget-popup .dm-w-stepper b{
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-stepper b{
   min-width:52px;text-align:center;
   font-family:'Oswald',system-ui,sans-serif;font-size:17px;font-weight:600;
   font-variant-numeric:tabular-nums}
-#dm-widget-popup .dm-w-panel-note{
+:is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-note{
   margin:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8)}
 /* Sul telefono l'etichetta va sopra: ottantadue pixel di colonna, su
    trecentonovanta, lasciavano alle modalita' una pastiglia per riga. */
 @media(max-width:600px){
-  #dm-widget-popup .dm-w-panel-row{flex-direction:column;align-items:stretch;gap:6px}
+  :is(#dm-widget-popup,#clima-popup-overlay) .dm-w-panel-row{flex-direction:column;align-items:stretch;gap:6px}
   #dm-widget-popup .dm-w-panel-lbl{flex:none}
   #dm-widget-popup .dm-w-stepper{align-self:flex-start}
 }

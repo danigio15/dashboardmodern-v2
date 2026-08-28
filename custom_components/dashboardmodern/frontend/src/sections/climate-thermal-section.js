@@ -29,6 +29,7 @@
  * Irrigation redesign did.
  */
 import { canonicalClimateType } from "../core/device-model.js";
+import { climatePanelMarkup } from "./home-widgets-section.js";
 import {
   activeLocale,
   allStates,
@@ -46,7 +47,13 @@ import {
 
 const KEY = "__DASHBOARDMODERN_CLIMATE_THERMAL__";
 const STYLE_ID = "dm-climate-thermal-style";
-const state = (root[KEY] ||= { installed: false, listeners: false, history: new Map() });
+const state = (root[KEY] ||= {
+  installed: false,
+  listeners: false,
+  history: new Map(),
+  climaAperta: "",
+  climaAscolto: false,
+});
 
 /* Scale of the rail. Cooling units are set between 16° and 30°, radiators
  * between 10° and 28°, which is the range the legacy popup already clamps to. */
@@ -702,6 +709,99 @@ function installOverrides() {
   installTemperatureStep();
   // Switching zone changes what the readout summarises.
   wrapFunction("setClimaPageMode", "__dmClimateThermalMode", () => renderClimate());
+  installPannelloDellaFinestra();
+}
+
+/* La finestra della pagina Clima prende il pannello della tessera.
+ *
+ * Nel guscio le modalita' sono cinque, scritte a mano: freddo, caldo, ventola,
+ * secco, auto — le stesse per tutti, e nascoste in blocco quando il nome
+ * dell'entita' contiene la parola «termosifone». Un tasto che l'unita' non sa
+ * eseguire e' peggio di un tasto che non c'e', e una pompa di calore chiamata
+ * in un altro modo restava senza modalita' del tutto.
+ *
+ * Il pannello della tessera quelle cose le sa gia': legge `hvac_modes` e
+ * `fan_modes` dell'unita' aperta e offre solo quelle. Qui si mette al posto
+ * delle due sezioni scritte a mano. I tasti li ascolta il giro dei widget, che
+ * ascolta il documento e non la finestra: non c'e' niente da ricucire. */
+function pannelloNellaFinestra(entity) {
+  const finestra = doc?.querySelector?.("#clima-popup-overlay .clima-popup");
+  if (!finestra) return false;
+  const modalita = doc.getElementById("cp-mode-section");
+  const ventola = doc.getElementById("cp-fan-section");
+  const markup = climatePanelMarkup(entity);
+  let ospite = finestra.querySelector("[data-dm-cl-panel]");
+  /* Si scrive `display`, non `hidden`: le due sezioni del guscio se lo
+   * scrivono da sole a ogni apertura, in linea, e una regola in linea batte
+   * l'attributo. */
+  if (!markup) {
+    ospite?.remove();
+    /* Senza pannello si torna a quello che c'era: e' meglio di niente. */
+    for (const nodo of [modalita, ventola]) nodo?.style?.removeProperty("display");
+    return false;
+  }
+  for (const nodo of [modalita, ventola]) nodo?.style?.setProperty("display", "none", "important");
+  if (!ospite) {
+    ospite = doc.createElement("div");
+    ospite.setAttribute("data-dm-cl-panel", "");
+    (modalita || ventola)?.before(ospite);
+    if (!ospite.isConnected) finestra.append(ospite);
+  }
+  if (ospite.innerHTML !== markup) ospite.innerHTML = markup;
+  intestazioneDellaFinestra(entity);
+  return true;
+}
+
+/* E il nome in cima alla finestra e' quello che si e' scelto.
+ *
+ * Nel guscio c'e' una tabella scritta a mano che traduce dieci entita' — le
+ * dieci della casa di chi ha scritto la plancia — in «Condizionatore Salone» e
+ * simili; per tutte le altre resta il pezzo dopo il punto dell'entita'. In una
+ * casa qualunque vuol dire aprire «Pompa Salone» e leggere «pompa». Il nome
+ * vero e la stanza stanno nella configurazione, che e' dove li si e' scritti. */
+const ICONE_CLIMA = Object.freeze({ termo: "🔥", pompa: "♨️", clima: "❄️" });
+
+function intestazioneDellaFinestra(entity) {
+  const chiave = clean(entity);
+  const grezza = readClimateUnits().find(
+    (voce) => clean(voce?.entity || voce?.entity_id || voce?.entities?.[0]) === chiave,
+  );
+  const unita = climateUnits().find((voce) => voce.entity === chiave);
+  if (!unita) return false;
+  const nome = doc?.getElementById?.("cp-name");
+  const stanza = doc?.getElementById?.("cp-room");
+  const glifo = ICONE_CLIMA[canonicalClimateType(grezza?.type)] || "🌡️";
+  if (nome && clean(unita.name)) nome.textContent = unita.name;
+  if (stanza) stanza.textContent = `${glifo} ${clean(unita.room) || t("Clima", "Climate")}`;
+  return true;
+}
+
+/* Qui non basta `wrapFunction`: quello richiama a cose fatte ma senza dire con
+ * che argomenti, e l'entita' aperta e' proprio l'argomento. */
+function installPannelloDellaFinestra() {
+  const originale = root.apriClimaPopup;
+  if (typeof originale !== "function" || originale.__dmClimaPopupPanel) return false;
+  function avvolto(entity, ...resto) {
+    const esito = originale.call(this, entity, ...resto);
+    state.climaAperta = clean(entity);
+    root.queueMicrotask?.(() => pannelloNellaFinestra(state.climaAperta));
+    return esito;
+  }
+  Object.assign(avvolto, originale);
+  avvolto.__dmClimaPopupPanel = true;
+  avvolto.__dmPrevious = originale;
+  root.apriClimaPopup = avvolto;
+  /* Finche' la finestra e' aperta il pannello segue i gradi: cambia l'unita',
+   * cambia quello che c'e' scritto sui tasti. */
+  if (!state.climaAscolto) {
+    state.climaAscolto = true;
+    root.addEventListener?.("dashboardmodern:state-changed", () => {
+      const velo = doc?.getElementById?.("clima-popup-overlay");
+      if (velo?.classList?.contains("show") && state.climaAperta)
+        pannelloNellaFinestra(state.climaAperta);
+    });
+  }
+  return true;
 }
 
 export function installClimateThermalSection() {
