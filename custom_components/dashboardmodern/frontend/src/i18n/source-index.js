@@ -409,7 +409,6 @@ export const SOURCE_INDEX = Object.freeze({
   "Attiva nella sezione EV — tocca per toglierla": "Active in the EV section — tap to remove it",
   "Attiva solo quelle rilevanti per casa tua — potrai cambiarle in seguito.": "Enable only the ones relevant to your home — you can change them later.",
   "Attività": "Activity",
-  "Attivo": "Active",
   "Aut. Prevista": "Expected range",
   "Auth WebRTC rifiutata": "WebRTC auth rejected",
   "Auto": "Car",

@@ -68,7 +68,16 @@ test("attaccare il cavo non cambia la forma della cornice", async ({ page }, tes
       };
       window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready", { detail: {} }));
     }, attaccato);
-    await page.waitForTimeout(900);
+    /* Non un'attesa a tempo: la sezione si ridisegna quando le pare, e su una
+     * macchina carica novecento millesimi non bastano — la prova cadeva li'.
+     * Si aspetta la cosa che deve succedere, cioe' la foto giusta a schermo. */
+    const attesa = attaccato ? "auto-carica" : "auto-riposo";
+    await expect
+      .poll(
+        () => page.evaluate(() => document.getElementById("ev-mod-car-img")?.getAttribute("src")),
+        { timeout: 15_000 },
+      )
+      .toContain(attesa);
     return page.evaluate(() => ({
       forma: document.getElementById("lm-hero-card")?.style.getPropertyValue("--dm-evv-hero-ratio"),
       foto: document.getElementById("ev-mod-car-img")?.getAttribute("src"),

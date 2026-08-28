@@ -302,7 +302,6 @@ export default Object.freeze({
   "Active climate": "सक्रिय जलवायु",
   "Active in the EV section — tap to remove it": "EV अनुभाग में सक्रिय — हटाने के लिए टैप करें",
   "Active renderer": "सक्रिय रेंडरर",
-  "Active": "सक्रिय",
   "Activity": "गतिविधि",
   "Add": "जोड़ें",
   "Add appliance": "उपकरण जोड़ें",

@@ -1,5 +1,6 @@
 import { clean, dashboardStore, doc, energyPeriodConflicts, english, esc, installStyle, onEditorRedraw, root, section, t, wrapFunction } from "./shared.js";
 import { scriviNellImpianto } from "../core/energy-writer.js";
+import { plantModel } from "../core/energy-plants.js";
 import { impiantoScelto } from "./energy-section.js";
 
 globalThis.__DM_20260815C__ = true;
@@ -62,11 +63,19 @@ function periodLabel(key) {
  *
  * section("energy") passa dal filtro che toglie i campi di periodo quando c'e'
  * un totale: leggerla qui mostrerebbe una maschera gia' pulita e non ci sarebbe
- * piu' niente da segnalare. L'avviso deve nascere dai valori grezzi. */
+ * piu' niente da segnalare. L'avviso deve nascere dai valori grezzi.
+ *
+ * Grezzi si', ma dell'impianto che si sta guardando. Il salvataggio tiene la
+ * prima casa al primo livello e le altre in un elenco: leggere solo il primo
+ * livello voleva dire segnalare i conflitti della casa numero uno anche a chi
+ * aveva davanti la seconda — e poi svuotare i campi della seconda, che non
+ * erano quelli elencati. Chi legge e chi scrive adesso guardano lo stesso
+ * impianto. */
 function configuredEnergy() {
   const store = dashboardStore();
   try {
-    return store?.peekSection?.("energy") ?? store?.getSection?.("energy") ?? {};
+    const grezzo = store?.peekSection?.("energy") ?? store?.getSection?.("energy") ?? {};
+    return plantModel(grezzo, impiantoScelto());
   } catch (_error) {
     return {};
   }

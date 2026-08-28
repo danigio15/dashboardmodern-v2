@@ -334,18 +334,18 @@ function lightsModel(states) {
     ring: Math.round((on.length / rows.length) * 100), rows, on };
 }
 
-function climateModel(states) {
-  let units = [];
-  try {
-    units = readClimateUnits();
-  } catch (_error) {
-    return null;
-  }
-  const fuori = widgetExcludedEntities();
-  const rows = units
-    .map((unit) => {
+/* Una riga del Clima da una unita' configurata.
+ *
+ * Sta fuori dal modello della tessera perche' serve anche a chi la tessera non
+ * la guarda: la finestra della pagina Clima chiede il pannello di UNA unita',
+ * e quell'unita' puo' benissimo essere una di quelle che l'interruttore «nel
+ * widget» tiene fuori dalla Home. Passando dal modello filtrato la riga non
+ * usciva e la finestra ripiegava sui cinque tasti scritti a mano nel guscio:
+ * chi toglieva un termosifone dalla Home si ritrovava, in pagina, il pannello
+ * vecchio. Il filtro e' una faccenda della tessera, non della riga. */
+function rigaClima(states, unit) {
       const entity = clean(unit?.entity || unit?.entity_id || unit?.entities?.[0]);
-      if (!entity || !widgetIncludes(entity, fuori)) return null;
+      if (!entity) return null;
       const current = stateOf(states, entity);
       const raw = clean(current?.state).toLowerCase();
       const attributi = current?.attributes || {};
@@ -377,8 +377,19 @@ function climateModel(states) {
          * radiatore era il disegno di un'altra casa. */
         tipo: canonicalClimateType(unit?.type),
       };
-    })
-    .filter(Boolean);
+}
+
+function climateModel(states) {
+  let units = [];
+  try {
+    units = readClimateUnits();
+  } catch (_error) {
+    return null;
+  }
+  const fuori = widgetExcludedEntities();
+  const rows = units
+    .map((unit) => rigaClima(states, unit))
+    .filter((riga) => riga && widgetIncludes(riga.entity, fuori));
   if (!rows.length) return null;
   const on = rows.filter((row) => row.on);
   const ambient = rows.map((row) => row.ambient).filter((value) => value !== null);
@@ -396,7 +407,13 @@ function climateModel(states) {
  * quell'unita' lo lascia andare. */
 function climateRow(entity) {
   try {
-    return climateModel(allStates())?.rows?.find((riga) => riga.entity === entity) || null;
+    const chiave = clean(entity);
+    const states = allStates();
+    return (
+      readClimateUnits()
+        .map((voce) => rigaClima(states, voce))
+        .find((riga) => riga && riga.entity === chiave) || null
+    );
   } catch (_error) {
     return null;
   }
@@ -629,6 +646,30 @@ function vetture() {
   );
 }
 
+/* Se l'auto e' attaccata alla presa, leggendo lo stato della ricarica.
+ *
+ * Cercare dentro allo stato le parole «charging» o «plug» non basta e anzi fa
+ * il danno peggiore: «not_charging», «disconnected» e «unplugged» contengono
+ * la stessa parola e dicono l'esatto contrario — la tessera si accendeva
+ * proprio quando il cavo era staccato. Prima si guardano le negazioni, e solo
+ * su quel che resta si cerca la parola buona.
+ *
+ * Le lettere singole sono la norma IEC 61851, che evcc pubblica cosi': A
+ * nessun veicolo, B collegato, C e D in carica, E ed F guasto. */
+export function autoAllaPresa(stato) {
+  const testo = String(stato ?? "")
+    .trim()
+    .toLowerCase();
+  if (!testo) return false;
+  if (/^[a-f]$/.test(testo)) return testo === "b" || testo === "c" || testo === "d";
+  if (SPINA_NO.test(testo)) return false;
+  return SPINA_SI.test(testo);
+}
+
+const SPINA_NO =
+  /(not[\s_-]*charging|dis[\s_-]*connect|un[\s_-]*plug|no[nt]?[\s_-]*(in[\s_-]*)?carica|no[nt]?[\s_-]*colleg|scolleg|staccat|no[\s_-]*vehicle|not[\s_-]*connect)/;
+const SPINA_SI = /(charging|carica|plug|connect|conness|colleg)/;
+
 function letturaVettura(states, auto, fuori, indice) {
   const mappa = (auto?.ov || auto?.overrides || {}) || {};
   const visti = new Set();
@@ -817,7 +858,7 @@ function evModel(states) {
      * al settanta per cento non e' una tessera accesa. Acceso vuol dire
      * attaccata alla presa. */
     ring: percentuale,
-    attiva: letture.some((lettura) => /carica|charging|plug|connesso|connected/i.test(String(lettura.ricarica || ""))),
+    attiva: letture.some((lettura) => autoAllaPresa(lettura.ricarica)),
     rows,
   };
 }
@@ -948,9 +989,24 @@ function solarThermalModel(states) {
     });
   }
   if (!righe.length) return null;
+  /* Cosa scrivere in grande.
+   *
+   * Con una sonda e' la sua temperatura, ed e' il caso normale. Senza sonda si
+   * scriveva «Attivo» comunque: chi aveva configurato la sola pompa se la
+   * vedeva dichiarare attiva anche da ferma, il contrario di quello che
+   * diceva la didascalia due righe sotto. Senza sonda parla la pompa; se non
+   * c'e' nemmeno quella parla la prima riga, che qualcosa da dire ce l'ha. */
+  const inGrande =
+    primaSonda != null
+      ? `${formatNumber(primaSonda, 1)}°`
+      : pompa != null
+        ? pompa
+          ? t("Acceso", "On")
+          : t("Spento", "Off")
+        : righe[0].value;
   return {
     key: "solare", accent: "#f59e0b", icon: "🌞", label: t("Solare termico", "Solar thermal"),
-    value: primaSonda == null ? t("Attivo", "Active") : `${formatNumber(primaSonda, 1)}°`,
+    value: inGrande,
     caption: pompa == null ? "" : pompa ? t("Pompa in funzione", "Pump running") : t("Pompa ferma", "Pump idle"),
     ring: null,
     // La quota qui non c'e': la tessera si accende quando la pompa lavora.
@@ -992,10 +1048,20 @@ function poolModel(states) {
   }
   if (!rows.length) return null;
   const acqua = rows.find((riga) => riga.name === t("Acqua", "Water"));
+  /* Sotto il numero grande sta la seconda cosa che si vuole sapere.
+   *
+   * Era sempre il pH, scritto anche quando la sonda del pH non c'era: la
+   * tessera di una piscina con la sola pompa mappata mostrava «pH —», cioe'
+   * annunciava un dato per dire che non ce l'aveva. Se il pH c'e' e' lui,
+   * altrimenti parla la prima riga rimasta; se non ne resta nessuna, niente. */
+  const testa = acqua || rows[0];
+  const compagna =
+    rows.find((riga) => riga.name === "pH" && riga !== testa) ||
+    rows.find((riga) => riga !== testa);
   return {
     key: "piscina", accent: "#0ea5e9", icon: "🏊", label: t("Piscina", "Pool"),
-    value: acqua ? acqua.value : rows[0].value,
-    caption: acqua && rows.length > 1 ? `pH ${rows.find((r) => r.name === "pH")?.value || "—"}` : "",
+    value: testa.value,
+    caption: compagna ? `${compagna.name} ${compagna.value}` : "",
     ring: null, rows,
   };
 }
@@ -1736,8 +1802,19 @@ function climatePanel(row, solo = false) {
 export function climatePanelMarkup(entity) {
   const chiave = clean(entity);
   if (!chiave) return "";
-  const modello = climateModel(allStates());
-  const riga = modello?.rows?.find((voce) => voce.entity === chiave);
+  let unita = [];
+  try {
+    unita = readClimateUnits();
+  } catch (_error) {
+    return "";
+  }
+  /* Si cerca fra le unita' configurate, non fra le righe della tessera: la
+   * finestra della pagina deve saper aprire anche quelle tenute fuori dalla
+   * Home. */
+  const states = allStates();
+  const riga = unita
+    .map((voce) => rigaClima(states, voce))
+    .find((voce) => voce && voce.entity === chiave);
   return riga ? climatePanel(riga, true) : "";
 }
 

@@ -300,7 +300,6 @@ export const MESSAGE_KEYS = Object.freeze([
   "A valid vacuum.* entity is required.",
   "Above this power = Running. For non-wifi appliances set ~5 W.",
   "Action",
-  "Active",
   "Active climate",
   "Active in the EV section — tap to remove it",
   "Active renderer",

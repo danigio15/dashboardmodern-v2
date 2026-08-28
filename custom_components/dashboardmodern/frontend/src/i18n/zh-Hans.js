@@ -302,7 +302,6 @@ export default Object.freeze({
   "Active climate": "冷暖运行中",
   "Active in the EV section — tap to remove it": "已在电动车分区显示 — 点按可移除",
   "Active renderer": "当前渲染器",
-  "Active": "运行中",
   "Activity": "活动",
   "Add": "添加",
   "Add appliance": "添加家电",

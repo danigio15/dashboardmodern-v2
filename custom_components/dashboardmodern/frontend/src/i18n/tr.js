@@ -302,7 +302,6 @@ export default Object.freeze({
   "Active climate": "Etkin iklim",
   "Active in the EV section — tap to remove it": "EV bölümünde etkin — kaldırmak için dokunun",
   "Active renderer": "Etkin işleyici",
-  "Active": "Etkin",
   "Activity": "Aktivite",
   "Add": "Ekle",
   "Add appliance": "Cihaz ekle",
