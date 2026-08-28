@@ -1,5 +1,6 @@
 // DM-FIX-20260812B
 import { getDeviceVisual } from "./device-model.js";
+import { isCumulativeEnergyEntity } from "./period-service.js";
 
 export const ENERGY_SLOT_MAP = Object.freeze({
   "house.power": "dm.energy_potenza_consumo_casa",
@@ -223,12 +224,16 @@ function isValidEnergyCandidate(states, entityId) {
   );
 }
 
-export function isCumulativeEnergyEntity(entityId, states = globalThis.STATES || {}) {
-  if (!isValidEnergyCandidate(states, entityId)) return false;
-  const stateClass = entityStateClass(states, entityId);
-  if (stateClass === "total" || stateClass === "total_increasing") return true;
-  return /(?:^|[._-])(total|totale|lifetime|meter|contatore)(?:[._-]|$)/i.test(entityId);
-}
+/* La domanda «e' un contatore totale?» la fa period-service, per tutti.
+ *
+ * Qui ce n'era una seconda copia, con lo stesso nome e regole diverse: quella
+ * di la' non controllava di avere davvero un'entita' di energia (e prendeva i
+ * watt per kilowattora), questa non conosceva la parola «counter» e non
+ * guardava mai il nome amichevole. Due meta' della stessa risposta, in due
+ * moduli che non si parlano, su una decisione da cui dipende tutto il calcolo
+ * dell'energia. Adesso e' una sola, e sta dove non ha dipendenze. Si
+ * riesporta perche' mezza plancia la chiede a questo modulo. */
+export { isCumulativeEnergyEntity };
 
 export function reportEntityForDevice(item = {}, states = globalThis.STATES || {}) {
   const candidates = [...new Set(entityIds(item))];
