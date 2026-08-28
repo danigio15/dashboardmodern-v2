@@ -413,7 +413,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // quando diverge si perdono dati di qualcuno e non si capisce perche'. Sta da
   // sola perche' non appartiene ne' all'energia ne' alle auto: e' una regola
   // sugli identificativi, e domani vale anche per le piscine.
-  assert.ok(relative.length <= 168, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 170 col catalogo dei disegni e la sua tavolozza: le stanze, le azioni e i
+  // carichi uscivano a emoji — quelle del sistema, che cambiano faccia da un
+  // telefono a un altro — accanto alla scocca blu notte degli elettrodomestici.
+  // Tre stili nella stessa schermata. I cinquantasei disegni che mancavano
+  // stanno in `catalogo-disegni.js`, e i colori e i tratti con cui sono fatti
+  // in `tavolozza-disegni.js`, scritti una volta sola: sono due perche' la
+  // tavolozza la usa anche chi disegnera' la cinquantasettesima, e senza un
+  // posto dove chiederla si ricomincia a occhio.
+  assert.ok(relative.length <= 170, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

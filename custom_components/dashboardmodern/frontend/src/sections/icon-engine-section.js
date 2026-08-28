@@ -8,10 +8,14 @@ import {
   directEmoji,
   LOAD_ICON_CATALOG,
   loadGlyph,
+  loadCatalogMatch,
   ROOM_CATALOG,
   ROOM_GLYPHS,
+  roomCatalogMatch,
   roomGlyph,
 } from "../core/personalization-catalog.js";
+import { applianceArtwork, canonicalArtworkType } from "../core/appliance-artwork.js";
+import { disegnoDelCatalogo } from "../core/catalogo-disegni.js";
 import { clean, doc, esc, installStyle, root, t } from "./shared.js";
 
 globalThis.__DM_20260815C__ = true;
@@ -74,10 +78,41 @@ function glyphClass(kind) {
   return normalizeKind(kind) === "room" ? "dm-beta12-room-glyph" : "dm-beta12-action-glyph";
 }
 
+/* Il disegno di casa, prima dell'emoji.
+ *
+ * Le stanze, le azioni e i carichi uscivano a emoji: quelle del sistema, che
+ * cambiano faccia da un telefono a un altro e nella stessa schermata stavano
+ * accanto alla scocca blu notte degli elettrodomestici. Tre stili in una
+ * pagina sola. Adesso si guarda prima in casa: il disegno dell'elettrodomestico
+ * se quella cosa e' un elettrodomestico, altrimenti quello del catalogo — che
+ * e' fatto con la stessa tavolozza. L'emoji resta il ripiego per un valore che
+ * non conosciamo, e nel catalogo di serie non ce n'e' piu' nessuno. */
+function disegnoDiCasa(kind, token, size) {
+  const daElettrodomestico = canonicalArtworkType(token);
+  if (daElettrodomestico) return applianceArtwork(daElettrodomestico, size);
+  /* Il selettore passa il nome mdi della voce — `mdi:sofa`, `mdi:teddy-bear` —
+   * e i disegni hanno il nome della voce, non quello di mdi. Si chiede al
+   * catalogo di che voce si tratta, e si disegna quella: cosi' il nome mdi
+   * resta quello che si salva, e il disegno non deve conoscerlo. */
+  const voce =
+    kind === "room"
+      ? roomCatalogMatch(token)
+      : kind === "load"
+        ? loadCatalogMatch(token)
+        : actionCatalogMatch(token);
+  const chiave = kind === "room" && voce?.id ? `room-${voce.id}` : voce?.id;
+  const daVoce = chiave ? canonicalArtworkType(chiave) : "";
+  if (daVoce) return applianceArtwork(daVoce, size);
+  return disegnoDelCatalogo(chiave || token, size) || disegnoDelCatalogo(token, size);
+}
+
 export function iconGlyphMarkup(kind, value, { size = 38 } = {}) {
   const normalized = normalizeKind(kind);
   if (normalized === "car") return carBrandVisual(value, size);
   const token = clean(value || (normalized === "room" ? "mdi:home" : "mdi:star"));
+  const disegno = disegnoDiCasa(normalized, token, size);
+  if (disegno)
+    return `<span class="dm-icon-engine-glyph ${glyphClass(normalized)}" data-dm-icon-engine-glyph="${normalized}" data-token="${esc(token)}" data-dm-disegno="casa">${disegno}</span>`;
   const glyph = iconGlyph(normalized, token);
   const safeSize = Math.max(18, Math.min(72, Number(size) || 38));
   return `<span class="dm-icon-engine-glyph ${glyphClass(normalized)}" data-dm-icon-engine-glyph="${normalized}" data-token="${esc(token)}" style="font-size:${safeSize}px"><span aria-hidden="true">${esc(glyph)}</span></span>`;
