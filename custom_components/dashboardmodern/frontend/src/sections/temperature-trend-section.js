@@ -42,6 +42,22 @@ function viewFor(panel) {
   return { ...VIEW, width, height, left: width < 520 ? VIEW.left : 44 };
 }
 const COMFORT = Object.freeze({ low: 18, high: 26 });
+/* Nessuna stanza uguale a un'altra, nemmeno la settima.
+ *
+ * Le tinte erano sei e le stanze si prendevano il colore col resto della
+ * divisione: la settima ripartiva dalla prima. In una casa con sette stanze
+ * uscivano due linee dello stesso azzurro — il salone e il bagno piccolo — e
+ * nella legenda due pallini identici. Non e' un dettaglio estetico: sono due
+ * righe che non si possono distinguere, ed e' meta' del «non si capisce
+ * nulla».
+ *
+ * Cercare dodici tinte tutte diverse a occhio non funziona: oltre la sesta si
+ * finisce comunque con due azzurri o due viola che si somigliano. Quindi le
+ * tinte restano sei, scelte lontane, e a cambiare e' il tratto: piena, poi
+ * tratteggiata, poi punteggiata. Diciotto stanze prima che due linee si
+ * assomiglino in tutto e due le cose, e a quel punto c'e' la linguetta della
+ * singola stanza. Il tratto si vede anche nella legenda, cosi' il pallino
+ * dice la stessa cosa della linea. */
 const SERIES_COLOURS = Object.freeze([
   "14,165,233",
   "244,63,94",
@@ -50,6 +66,14 @@ const SERIES_COLOURS = Object.freeze([
   "249,115,22",
   "234,179,8",
 ]);
+const SERIES_STROKES = Object.freeze(["", "7 5", "1.5 4"]);
+
+function vestitoDellaSerie(index) {
+  return {
+    colour: SERIES_COLOURS[index % SERIES_COLOURS.length],
+    stroke: SERIES_STROKES[Math.floor(index / SERIES_COLOURS.length) % SERIES_STROKES.length],
+  };
+}
 
 function rooms() {
   const values = section("rooms", []);
@@ -84,7 +108,7 @@ export function trendSeriesModel(roomValues = rooms(), roomId = "all") {
             clean(room.name) ||
             (t("Temperatura", "Temperature")),
           entity: clean(entry.temp),
-          colour: SERIES_COLOURS[index % SERIES_COLOURS.length],
+          ...vestitoDellaSerie(index),
         })),
     };
   }
@@ -98,7 +122,7 @@ export function trendSeriesModel(roomValues = rooms(), roomId = "all") {
           id: clean(room.id),
           name: clean(room.name) || (t("Stanza", "Room")),
           entity: clean(entry.temp),
-          colour: SERIES_COLOURS[index % SERIES_COLOURS.length],
+          ...vestitoDellaSerie(index),
         };
       })
       .filter(Boolean),
@@ -164,6 +188,33 @@ export function trendGeometry(series, window, view = VIEW) {
       };
     }),
   };
+}
+
+/* Le righe orizzontali della scala, a numeri tondi.
+ *
+ * Ce n'erano al massimo due, e solo se 18 o 26 gradi cadevano dentro il
+ * disegno. In una giornata d'estate fra 25 e 29 gradi ne restava una sola: si
+ * vedevano sette linee che salgono e scendono senza un solo numero accanto a
+ * cui misurarle. «Poco leggibile, non si capisce nulla» — e con un riferimento
+ * solo e' vero.
+ *
+ * Adesso la scala si prende un passo tondo — mezzo grado, uno, due, cinque —
+ * scelto perche' ne escano fra le quattro e le sette: abbastanza per leggere,
+ * poche abbastanza da non diventare una grata. */
+export function tacche(min, max) {
+  const ampiezza = max - min;
+  if (!Number.isFinite(ampiezza) || ampiezza <= 0) return [];
+  const passi = [0.5, 1, 2, 5, 10, 20];
+  const passo = passi.find((valore) => ampiezza / valore <= 7) || passi[passi.length - 1];
+  const valori = [];
+  const primo = Math.ceil(min / passo) * passo;
+  /* Una riga esattamente sul bordo si confonde con la base del disegno e non
+   * aggiunge niente: si parte dalla prima che sta dentro davvero. */
+  for (let valore = primo; valore < max - 1e-9; valore += passo) {
+    const tondo = Math.round(valore * 10) / 10;
+    if (tondo > min + 1e-9) valori.push(tondo);
+  }
+  return valori;
 }
 
 function degrees(value) {
@@ -342,15 +393,11 @@ function drawChart(chart, geometry, window, view) {
   }
 
   const axis = svg("g", { class: "dm-trend-axis" });
-  const ticks = [COMFORT.high, COMFORT.low].filter(
-    (value) => value > geometry.min && value < geometry.max,
-  );
-  if (!ticks.length) ticks.push(Math.round(geometry.max - 0.5), Math.round(geometry.min + 0.5));
-  for (const value of ticks) {
+  for (const value of tacche(geometry.min, geometry.max)) {
     const y = geometry.y(value);
     axis.append(svg("line", { x1: view.left, x2: view.width - view.right, y1: y, y2: y }));
     const label = svg("text", { x: view.left - 7, y: y + 3, class: "dm-trend-tick" });
-    label.textContent = `${value}°`;
+    label.textContent = `${Number.isInteger(value) ? value : value.toFixed(1).replace(".", t(",", "."))}°`;
     axis.append(label);
   }
   axis.append(
@@ -371,23 +418,54 @@ function drawChart(chart, geometry, window, view) {
   chart.append(axis);
 
   const single = geometry.series.length === 1;
-  for (const item of geometry.series) {
+  /* I numeri in coda alla linea non si sovrappongono.
+   *
+   * Ognuno stava all'altezza della sua linea, e in una casa dove le stanze
+   * viaggiano tutte fra i 27 e i 28 gradi finivano uno sopra l'altro: cinque
+   * numeri impilati in dieci pixel, illeggibili, e per giunta coprivano le
+   * linee. Si calcolano prima tutte le altezze, poi si allontanano quel tanto
+   * che basta a starci — partendo dal basso, cosi' l'ordine resta quello delle
+   * linee e nessuno esce dal disegno. */
+  const ALTEZZA_ETICHETTA = 13;
+  const fondo = view.height - view.bottom - 2;
+  const cima = view.top + 4;
+  const code = geometry.series
+    .map((item, indice) => ({ indice, y: item.last.y + 3.5 }))
+    .sort((primo, secondo) => secondo.y - primo.y);
+  let limite = fondo;
+  for (const coda of code) {
+    coda.y = Math.min(coda.y, limite);
+    limite = coda.y - ALTEZZA_ETICHETTA;
+  }
+  // Se il mucchio ha sfondato in alto, si ridiscende dall'orlo superiore.
+  let minimo = cima;
+  for (const coda of [...code].reverse()) {
+    coda.y = Math.max(coda.y, minimo);
+    minimo = coda.y + ALTEZZA_ETICHETTA;
+  }
+  const altezzaCoda = new Map(code.map((coda) => [coda.indice, coda.y]));
+
+  geometry.series.forEach((item, indice) => {
     const group = svg("g", { class: "dm-trend-series", style: `--dm-series:${item.colour}` });
     if (single) group.append(svg("path", { class: "dm-trend-area", d: item.area }));
     group.append(
-      svg("path", { class: "dm-trend-line", d: item.line }),
+      svg("path", {
+        class: "dm-trend-line",
+        d: item.line,
+        ...(item.stroke ? { "stroke-dasharray": item.stroke } : {}),
+      }),
       svg("circle", { class: "dm-trend-dot", cx: item.last.x, cy: item.last.y, r: 3.4 }),
     );
     // the current reading rides at the end of its own line
     const tag = svg("text", {
       class: "dm-trend-value",
       x: Math.min(item.last.x + 7, view.width - 4),
-      y: Math.max(view.top + 4, Math.min(item.last.y + 3.5, view.height - view.bottom - 2)),
+      y: altezzaCoda.get(indice) ?? item.last.y + 3.5,
     });
     tag.textContent = degrees(item.last.value);
     group.append(tag);
     chart.append(group);
-  }
+  });
 }
 
 function drawLegend(legend, geometry) {
@@ -395,8 +473,11 @@ function drawLegend(legend, geometry) {
   for (const item of geometry.series) {
     const chip = element("span", "dm-trend-chip");
     chip.style.setProperty("--dm-series", item.colour);
+    const pallino = element("i", "dm-trend-swatch");
+    // Lo stesso vestito della linea: chi ha il tratteggio lo porta anche qui.
+    if (item.stroke) pallino.dataset.dmTratto = item.stroke === "7 5" ? "tratti" : "punti";
     chip.append(
-      element("i", "dm-trend-swatch"),
+      pallino,
       element("b", "dm-trend-chip-name", item.name),
       element("span", "dm-trend-chip-now", degrees(item.last.value)),
       element("small", "dm-trend-chip-range", `${degrees(item.low)} · ${degrees(item.high)}`),
@@ -494,6 +575,11 @@ function installStyles() {
     #dm-temperature-trend .dm-trend-legend{display:flex!important;flex-wrap:wrap!important;gap:8px!important}
     #dm-temperature-trend .dm-trend-chip{display:inline-flex!important;align-items:baseline!important;gap:7px!important;padding:7px 11px!important;border:1px solid color-mix(in srgb,rgb(var(--dm-series)) 26%,transparent)!important;border-radius:13px!important;background:color-mix(in srgb,rgb(var(--dm-series)) 8%,var(--dm-trend-surface))!important}
     #dm-temperature-trend .dm-trend-swatch{width:9px!important;height:9px!important;border-radius:3px!important;background:rgb(var(--dm-series))!important;align-self:center!important}
+    /* Il pallino della legenda dice lo stesso della linea: pieno, a tratti,
+       a puntini. Senza, due stanze dello stesso colore sarebbero uguali qui
+       anche quando nel disegno si distinguono benissimo. */
+    #dm-temperature-trend .dm-trend-swatch[data-dm-tratto="tratti"]{background:repeating-linear-gradient(90deg,rgb(var(--dm-series)) 0 3px,transparent 3px 5px)!important}
+    #dm-temperature-trend .dm-trend-swatch[data-dm-tratto="punti"]{background:repeating-linear-gradient(90deg,rgb(var(--dm-series)) 0 1.5px,transparent 1.5px 4px)!important}
     #dm-temperature-trend .dm-trend-chip-name{font-size:12px!important;font-weight:850!important;color:var(--text,#0f172a)!important;max-width:150px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
     #dm-temperature-trend .dm-trend-chip-now{font-size:14px!important;font-weight:900!important;color:rgb(var(--dm-series))!important;font-variant-numeric:tabular-nums!important}
     #dm-temperature-trend .dm-trend-chip-range{font-size:9.5px!important;font-weight:800!important;color:var(--text-dim,#64748b)!important;font-variant-numeric:tabular-nums!important}
