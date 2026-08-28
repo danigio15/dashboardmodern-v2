@@ -387,7 +387,14 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // caricamento: cambiarla in un punto non bastava mai. Sta da solo perche' il
   // ripiano e' una scelta di forma della Home, e chi disegna le tessere non
   // deve sapere che esiste.
-  assert.ok(relative.length <= 164, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 165 con il servizio giusto per le azioni rapide:
+  // `azioni-servizio-giusto-section.js` sa quale servizio ogni dominio sa
+  // davvero eseguire. Il guscio ne conosce due — `turn_on` per script e scene,
+  // `toggle` per tutto il resto — e `toggle` non e' universale: un `button` ha
+  // solo `press`, e chiedergli `toggle` non muove niente e non dice niente.
+  // Sta da solo perche' e' una sola domanda, e la risposta non serve a chi
+  // disegna i tasti: quello e' mestiere del vassoio, che infatti non lo sa.
+  assert.ok(relative.length <= 165, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

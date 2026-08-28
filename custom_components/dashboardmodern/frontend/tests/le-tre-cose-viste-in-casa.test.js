@@ -55,10 +55,14 @@ test("l'ordine delle stanze e' quello scelto, e vale per tutti", async () => {
 
 test("le pagine che raggruppano per stanza chiedono l'ordine a un posto solo", () => {
   // La risposta la da' il nucleo, e le tre pagine gliela chiedono.
+  /* Le quattro pagine che raggruppano per stanza. Il Clima e' quella che la
+   * segnalazione nominava per prima — «tipo nelle pagine delle luci, clima,
+   * tapparelle ecc.» — e la prima volta me l'ero persa. */
   for (const modulo of [
     "sections/shutter-scene-section.js",
     "sections/lights-scene-section.js",
     "sections/appliance-showcase-section.js",
+    "sections/climate-thermal-section.js",
   ]) {
     const testo = leggi(modulo);
     assert.match(
@@ -84,6 +88,8 @@ test("le pagine che raggruppano per stanza chiedono l'ordine a un posto solo", (
   assert.match(luci, /stanza\(left\.room\) - stanza\(right\.room\)/);
   const elettro = leggi("sections/appliance-showcase-section.js");
   assert.match(elettro, /stanza\(left\.room\?\.name\) - stanza\(right\.room\?\.name\)/);
+  const clima = leggi("sections/climate-thermal-section.js");
+  assert.match(clima, /stanza\(sinistra\.room\) - stanza\(destra\.room\)/);
 });
 
 test("i watt si contano leggendo l'unita', non solo il numero", async () => {

@@ -29,6 +29,7 @@
  * Irrigation redesign did.
  */
 import { canonicalClimateType } from "../core/device-model.js";
+import { roomOrderRank } from "../core/room-overview.js";
 import { climatePanelMarkup } from "./home-widgets-section.js";
 import {
   activeLocale,
@@ -41,7 +42,9 @@ import {
   finiteOrNull,
   installStyle,
   readClimateUnits,
+  readJson,
   root,
+  section,
   t,
   wrapFunction,
 } from "./shared.js";
@@ -400,6 +403,18 @@ function cardMarkup(unit, labels) {
 /* Group by floor only. The legacy grouping printed one heading per room, which
  * on this layout means a heading above every single card; the room already has
  * its own line inside the card. */
+/* Quale stanza viene prima, secondo la configurazione.
+ *
+ * L'ordine lo decide chi ci abita, nella scheda Stanze, e la risposta la da'
+ * il nucleo: qui si legge soltanto l'elenco salvato. */
+function ordineStanze() {
+  try {
+    return roomOrderRank(section("rooms", readJson("cd_stanze", [])) || []);
+  } catch (_error) {
+    return () => Number.MAX_SAFE_INTEGER;
+  }
+}
+
 function floorOf(unit) {
   try {
     return clean(root.cdRoomFloorOf?.(unit.room));
@@ -425,9 +440,21 @@ function groupedMarkup(units, labels) {
     const ib = order.indexOf(b);
     return (ia < 0 ? 9999 : ia) - (ib < 0 ? 9999 : ib);
   });
+  /* Dentro il piano, le stanze nell'ordine scelto in configurazione.
+   *
+   * Qui non si ordinava affatto: le unita' uscivano nell'ordine in cui erano
+   * state configurate. Chi si era messo in fila le stanze — «ho ordinato le
+   * stanze ma poi l'ordinamento non me lo ritrovo da nessuna parte, tipo
+   * nelle pagine delle luci, clima, tapparelle» — qui non lo ritrovava. */
+  const stanza = ordineStanze();
   return keys
     .map((floor) => {
-      const cards = groups.get(floor).map((unit) => cardMarkup(unit, labels)).join("");
+      const cards = groups
+        .get(floor)
+        .slice()
+        .sort((sinistra, destra) => stanza(sinistra.room) - stanza(destra.room))
+        .map((unit) => cardMarkup(unit, labels))
+        .join("");
       const heading = floor && keys.length > 1 ? `<div class="dm-cl-floor">🏢 ${esc(floor)}</div>` : "";
       return `${heading}${cards}`;
     })

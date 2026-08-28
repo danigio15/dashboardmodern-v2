@@ -50,6 +50,7 @@ import { installReportEditorSection } from "./report-editor-section.js";
 import { installShutterSection } from "./shutter-section.js";
 import { installPageMastheadSection } from "./page-masthead-section.js";
 import { installAzioniRapideVassoio } from "./azioni-rapide-vassoio-section.js";
+import { installAzioniServizioGiusto } from "./azioni-servizio-giusto-section.js";
 import { installWeatherInMasthead } from "./weather-in-masthead-section.js";
 import { installShutterSceneSection } from "./shutter-scene-section.js";
 import { installClimatePowerSection } from "./climate-power-section.js";
@@ -736,6 +737,7 @@ export function installSectionRuntime() {
      * la Home, perche' il ripiano si mette attorno a una griglia che deve
      * gia' esistere. */
     installAzioniRapideVassoio();
+    installAzioniServizioGiusto();
     installPoolIrrigationSceneSection();
     installPoolExtraSection();
     installPoolEditorSection();
