@@ -11,7 +11,8 @@ import {
   relayCoverCommands,
 } from "../core/cover-kind.js";
 import { contactEntity, isWindowOnly, windowOpenFromState } from "../core/shutter-window.js";
-import { allStates, clean, doc, esc, installStyle, root, roomLabel, roomRank, t } from "./shared.js";
+import { roomOrderRank } from "../core/room-overview.js";
+import { allStates, clean, doc, esc, installStyle, readJson, root, roomLabel, section, t } from "./shared.js";
 
 // Single paint owner for the Tapparelle page.
 //
@@ -57,6 +58,21 @@ function configuredCovers() {
   if (Array.isArray(legacy)) return legacy;
   const stored = root.dashboardStore?.()?.getSection?.("covers");
   return Array.isArray(stored) ? stored : [];
+}
+
+/* Quale stanza viene prima, secondo la configurazione.
+ *
+ * L'ordine lo decide chi ci abita, nella scheda Stanze, e la risposta la da'
+ * il nucleo: qui si legge soltanto l'elenco salvato. La domanda la fanno tre
+ * pagine, e per un po' era passata da `shared` — che pero' e' la base che
+ * ogni sezione carica per prima, e farle crescere una dipendenza per comodita'
+ * di tre chiamanti sposta l'ordine in cui si avvia tutto il resto. */
+function ordineStanze() {
+  try {
+    return roomOrderRank(section("rooms", readJson("cd_stanze", [])) || []);
+  } catch (_error) {
+    return () => Number.MAX_SAFE_INTEGER;
+  }
 }
 
 function floorOrder() {
@@ -187,7 +203,7 @@ function coverList() {
    * Chi ha messo il bagnetto in cima se lo ritrovava comunque fra la B e la C:
    * l'ordinamento c'era, ma qui non arrivava. Chi non e' fra le stanze
    * configurate resta in fondo, come prima. */
-  const stanza = roomRank();
+  const stanza = ordineStanze();
   return views.sort((a, b) => {
     if (rank(a.floor) !== rank(b.floor)) return rank(a.floor) - rank(b.floor);
     const left = stanza(a.room);

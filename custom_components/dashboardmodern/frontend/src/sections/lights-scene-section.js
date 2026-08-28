@@ -12,7 +12,8 @@ import {
   rgbToHsv,
 } from "../core/light-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, roomRank, t } from "./shared.js";
+import { roomOrderRank } from "../core/room-overview.js";
+import { allStates, clean, doc, esc, installStyle, readJson, root, section, t } from "./shared.js";
 
 /* Single paint owner for the Gestione Luci popup and for the controls of one
  * light.
@@ -159,6 +160,21 @@ function lightViews() {
  * own heading, a room with one is merged into the closing group where the card
  * carries the room as its title. Rooms follow the floor order the user set.
  */
+/* Quale stanza viene prima, secondo la configurazione.
+ *
+ * L'ordine lo decide chi ci abita, nella scheda Stanze, e la risposta la da'
+ * il nucleo: qui si legge soltanto l'elenco salvato. La domanda la fanno tre
+ * pagine, e per un po' era passata da `shared` — che pero' e' la base che
+ * ogni sezione carica per prima, e farle crescere una dipendenza per comodita'
+ * di tre chiamanti sposta l'ordine in cui si avvia tutto il resto. */
+function ordineStanze() {
+  try {
+    return roomOrderRank(section("rooms", readJson("cd_stanze", [])) || []);
+  } catch (_error) {
+    return () => Number.MAX_SAFE_INTEGER;
+  }
+}
+
 function lightGroups(views) {
   const floors = root.cdFloorNames?.();
   const order = Array.isArray(floors) ? floors : [];
@@ -189,7 +205,7 @@ function lightGroups(views) {
   /* Dentro il piano, le stanze nell'ordine scelto in configurazione. Prima
    * qui non si ordinava affatto: le stanze uscivano nell'ordine in cui le luci
    * erano state configurate, che non e' un ordine che qualcuno abbia scelto. */
-  const stanza = roomRank();
+  const stanza = ordineStanze();
   groups.sort(
     (left, right) => rank(left.floor) - rank(right.floor) || stanza(left.room) - stanza(right.room),
   );

@@ -54,24 +54,31 @@ test("l'ordine delle stanze e' quello scelto, e vale per tutti", async () => {
 });
 
 test("le pagine che raggruppano per stanza chiedono l'ordine a un posto solo", () => {
-  // Il posto solo: la sezione lo chiede a `shared`, che lo chiede al nucleo.
-  const condiviso = leggi("sections/shared.js");
-  assert.match(condiviso, /import \{ roomOrderRank \} from "\.\.\/core\/room-overview\.js"/);
-  assert.match(condiviso, /export function roomRank\(\)/);
-
-  // Le tre pagine che se lo riscrivevano da sole.
+  // La risposta la da' il nucleo, e le tre pagine gliela chiedono.
   for (const modulo of [
     "sections/shutter-scene-section.js",
     "sections/lights-scene-section.js",
     "sections/appliance-showcase-section.js",
   ]) {
     const testo = leggi(modulo);
-    assert.match(testo, /roomRank/, `${modulo} non chiede l'ordine delle stanze`);
+    assert.match(
+      testo,
+      /import \{ roomOrderRank \} from "\.\.\/core\/room-overview\.js"/,
+      `${modulo} non chiede l'ordine delle stanze al nucleo`,
+    );
+    assert.match(testo, /ordineStanze\(\)/, `${modulo} non usa l'ordine delle stanze`);
   }
+
+  /* E `shared` resta senza: e' la base che ogni sezione carica per prima, e
+   * farle crescere una dipendenza per comodita' di tre chiamanti sposta
+   * l'ordine in cui si avvia tutto il resto — che su WebKit e' bastato a far
+   * tornare il pannello foto dell'auto a vestirsi coi panni dell'auto in uso. */
+  const condiviso = leggi("sections/shared.js");
+  assert.doesNotMatch(condiviso, /room-overview/);
 
   // E nessuna delle tre ordina piu' le stanze per alfabeto e basta.
   const tapparelle = leggi("sections/shutter-scene-section.js");
-  assert.match(tapparelle, /const stanza = roomRank\(\)/);
+  assert.match(tapparelle, /const stanza = ordineStanze\(\)/);
   assert.match(tapparelle, /left !== right\) return left - right/);
   const luci = leggi("sections/lights-scene-section.js");
   assert.match(luci, /stanza\(left\.room\) - stanza\(right\.room\)/);
