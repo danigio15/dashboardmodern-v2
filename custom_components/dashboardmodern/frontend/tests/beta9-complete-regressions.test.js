@@ -30,8 +30,18 @@ test("quick actions use canonical colour glyphs and only the single-owner icon p
   assert.doesNotMatch(guard, /openStableActionPicker|modal\.id = "dm-beta9-action-picker"/);
   assert.doesNotMatch(guard, /ACTION_ICON_CATALOG|actionVisual/);
   assert.match(guard, /html body #page-home #qa-grid/);
-  assert.match(personalization, /AZIONI\\s\+RAPIDE\\s\+PREMIUM/);
-  assert.match(personalization, /"AZIONI RAPIDE"/);
+  /* Il titolo delle Azioni rapide ha un proprietario solo: il guscio.
+   *
+   * Qui si pretendeva il contrario — che fosse questo modulo a riscriverlo a
+   * meta' avvio — e cosi' la stessa parola l'avevano in due: il guscio diceva
+   * «Azioni Rapide Premium», mezzo secondo dopo il modulo la cambiava, e chi
+   * guardava lo schermo li vedeva tutti e due. */
+  assert.doesNotMatch(personalization, /normalizeQuickActionsTitle/);
+  for (const variante of ["dashboard.html", "dashboard-en.html"]) {
+    const guscio = await readFile(new URL(`../legacy/${variante}`, import.meta.url), "utf8");
+    assert.doesNotMatch(guscio, /Premium\s+Quick\s+Actions/i, variante);
+    assert.doesNotMatch(guscio, /Azioni\s+Rapide\s+Premium/i, variante);
+  }
 });
 
 test("valued energy connectors are revived, animated and restore legacy visibility when idle", async () => {

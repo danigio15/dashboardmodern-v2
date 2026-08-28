@@ -616,7 +616,13 @@ function installStyles() {
 
       /* Le pillole sono quelle di Temperature: stessa forma, stesso font, stesso
        * conteggio. Due modi di disegnare la stessa cosa sarebbero due cose. */
-      #page-stanze .dm-stanze-tabs{display:flex;align-items:center;gap:10px;width:100%;margin:6px 0 4px;overflow-x:auto;scrollbar-width:none}
+      /* La striscia che scorre di lato taglia anche in alto e in basso.
+       *
+       * Lo scorrimento di lato porta con se' un taglio anche sull'altro verso: le
+       * pillole hanno un bordo e un'ombra che scende, e senza spazio dentro la
+       * striscia finivano tagliate contro la testata della sezione. Il posto
+       * per l'ombra si fa qui dentro, non fuori. */
+      #page-stanze .dm-stanze-tabs{display:flex;align-items:center;gap:10px;width:100%;margin:2px 0 0;padding:8px 2px 12px;overflow-x:auto;scrollbar-width:none}
       #page-stanze .dm-stanze-tabs::-webkit-scrollbar{display:none}
       #page-stanze .dm-stanze-tab{font-family:inherit;display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;min-height:44px;padding:9px 16px;border:1.5px solid var(--divider-color,#dbe4ee);border-radius:100px;background:var(--card-bg,#fff);color:var(--text-dim,#64748b);font-size:12px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;box-shadow:0 8px 20px -12px rgba(15,23,42,.28)}
       #page-stanze .dm-stanze-tab.active{border-color:color-mix(in srgb,var(--primary-color,#0ea5e9) 46%,transparent);background:color-mix(in srgb,var(--primary-color,#0ea5e9) 12%,var(--card-bg,#fff));color:var(--primary-color,#0284c7)}

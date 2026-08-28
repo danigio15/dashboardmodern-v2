@@ -83,6 +83,17 @@ const state = (root[KEY] ||= {
    * aperte cambia spesso: se la parola a meta' stesse solo nel documento,
    * sparirebbe sotto le dita. */
   bozze: new Map(),
+  /* L'ultimo corpo SCRITTO nella finestra, non quello che c'e' adesso.
+   *
+   * Il confronto si faceva contro `body.innerHTML`, cioe' contro il documento
+   * vivo. Le miniature delle telecamere pero' nel markup nascono senza
+   * fotogramma — la foto la posa dopo chi le scarica, insieme al suo
+   * «pronto» — quindi il documento e il markup appena scritto erano SEMPRE
+   * diversi, e il corpo si rifaceva a ogni evento di stato: i riquadri delle
+   * telecamere venivano buttati via e ricaricati di continuo, che da fuori e'
+   * il nero e il rinfresco senza fine. Ricordando cosa si e' scritto, il
+   * confronto torna a essere fra due testi che si assomigliano davvero. */
+  corpo: { chiave: "", markup: "" },
 });
 
 export function configuredTodoLists() {
@@ -1962,13 +1973,15 @@ export function renderHomeWidgets() {
           captionDetail.textContent = widget.caption;
         const body = doc.querySelector("#dm-widget-popup .dm-w-body");
         const markup = detailBody(widget, states);
-        if (body && body.innerHTML !== markup) {
+        const scritto = state.corpo.chiave === widget.key && state.corpo.markup === markup;
+        if (body && !scritto) {
           /* Il corpo si riscrive a ogni valore che cambia: se le righe
            * rientrassero in scena ogni volta, la card aperta tremerebbe da
            * sola. L'ingresso e' solo del primo disegno — quello che segue
            * l'apertura. */
           const primoDisegno = body.dataset.dmPainted !== "true";
           body.innerHTML = markup;
+          state.corpo = { chiave: widget.key, markup };
           body.dataset.dmPainted = "true";
           body.dataset.dmFresh = primoDisegno ? "true" : "false";
         }
@@ -2010,6 +2023,7 @@ function popupHost() {
 
 function chiudiPopup() {
   state.expanded = "";
+  state.corpo = { chiave: "", markup: "" };
   const host = doc?.getElementById?.("dm-widget-popup");
   if (host) {
     host.hidden = true;
@@ -2028,6 +2042,7 @@ function sincronizzaPopup(models, states) {
     if (!host.hidden) {
       host.hidden = true;
       host.replaceChildren();
+      state.corpo = { chiave: "", markup: "" };
       doc?.documentElement?.classList?.remove("dm-widget-popup-open");
     }
     return false;
@@ -2046,6 +2061,9 @@ function sincronizzaPopup(models, states) {
     host.dataset.dmPopupOf = aperto.key;
     host.hidden = false;
     host.innerHTML = detailMarkup(aperto, states);
+    /* La finestra e' nata adesso: quello che c'e' dentro e' quello che si e'
+     * appena scritto, e da qui riparte il confronto. */
+    state.corpo = { chiave: aperto.key, markup: detailBody(aperto, states) };
     doc?.documentElement?.classList?.add("dm-widget-popup-open");
     const body = host.querySelector(".dm-w-body");
     if (body) {
@@ -2785,6 +2803,11 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 #dm-widget-popup .dm-w-empty{margin:6px 4px;font-size:13px}
 /* Le miniature delle telecamere: lo stesso angolo delle righe. */
 #dm-widget-popup .dm-w-cam{border-radius:16px}
+/* Nella finestra la colonna e' larga il doppio della tessera: con la stessa
+ * misura minima i riquadri raddoppiavano, e quattro telecamere diventavano
+ * quattro manifesti. Qui la traccia minima e' piu' stretta, cosi' le
+ * miniature restano miniature e ce ne stanno tre per riga. */
+#dm-widget-popup .dm-w-cams{grid-template-columns:repeat(auto-fill,minmax(148px,1fr))}
 @media(prefers-reduced-motion:reduce){
   #dm-widget-popup .dm-w-row,#dm-widget-popup .dm-w-close,
   #dm-widget-popup .dm-w-row .dm-w-more{transition:none}

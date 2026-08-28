@@ -440,7 +440,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Avviso rimosso": "Alert removed",
   "Azione": "Action",
   "Azione rapida": "Quick action",
-  "Azioni Rapide Premium": "Quick actions",
+  "Azioni rapide": "Quick actions",
   "Backup valido": "Valid backup",
   "Bagno": "Bathroom",
   "Balcone": "Balcony",

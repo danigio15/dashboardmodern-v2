@@ -37,6 +37,11 @@ test("anche le pillole delle stanze, che hanno una regola propria", async () => 
 
 test("un nome lungo di stanza ha piu' spazio da schermo largo", async () => {
   const modulo = await leggi("../src/sections/beta26-real-device-stability-section.js");
-  // «CAMERA MAT…» tagliava a meta' una stanza che sullo schermo ci stava.
-  assert.match(modulo, /@media\(min-width:900px\)\{#dm-beta16-temperature-tabs[^}]*max-width:220px!important/);
+  /* «CAMERA MAT…» tagliava a meta' una stanza che sullo schermo ci stava.
+   *
+   * Da telefono il tetto era fisso a 148px e tagliava lo stesso: la striscia
+   * scorre gia' di lato, quindi non c'era niente da proteggere. Adesso il
+   * limite segue lo schermo. */
+  assert.match(modulo, /max-width:min\(240px,64vw\)!important/);
+  assert.match(modulo, /@media\(min-width:900px\)\{#dm-beta16-temperature-tabs[^}]*max-width:320px!important/);
 });

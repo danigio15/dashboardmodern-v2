@@ -668,22 +668,6 @@ function ensureEvAppearanceEditor() {
   });
 }
 
-function normalizeQuickActionsTitle() {
-  const page = doc?.getElementById("page-home") || doc?.getElementById("home");
-  if (!page) return false;
-  const walker = doc.createTreeWalker(page, NodeFilter.SHOW_TEXT);
-  const nodes = [];
-  while (walker.nextNode()) nodes.push(walker.currentNode);
-  let changed = false;
-  nodes.forEach((node) => {
-    const text = node.nodeValue || "";
-    let next = text.replace(/AZIONI\s+RAPIDE\s+PREMIUM/gi, "AZIONI RAPIDE");
-    next = next.replace(/PREMIUM\s+QUICK\s+ACTIONS/gi, "QUICK ACTIONS");
-    if (next !== text) { node.nodeValue = next; changed = true; }
-  });
-  return changed;
-}
-
 function correctDisplayedVersion() {
   const version = actualVersion();
   if (!version) return;
@@ -712,7 +696,12 @@ function schedule() {
     ensureEvAppearanceEditor();
     applySectionNames();
     applyEvAppearance();
-    normalizeQuickActionsTitle();
+    /* Il titolo delle Azioni rapide non si riscrive piu' a meta' avvio.
+     *
+     * Il guscio diceva «Azioni Rapide Premium» e mezzo secondo dopo questo giro
+     * lo riscriveva in «Azioni rapide»: due proprietari della stessa parola, e
+     * chi guardava lo schermo li vedeva tutti e due. La parola giusta adesso e'
+     * gia' nel guscio, e qui non c'e' piu' niente da correggere. */
     correctDisplayedVersion();
   };
   state.frame = root.requestAnimationFrame?.(run) || root.setTimeout?.(run, 0);
