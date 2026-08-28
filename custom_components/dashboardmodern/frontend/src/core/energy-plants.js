@@ -32,6 +32,8 @@
  * Il modulo e' puro: entra un oggetto, esce un oggetto.
  */
 
+import { prossimoIdentificativo, segnoPiuAlto } from "./segno-progressivo.js";
+
 const clean = (value) => String(value ?? "").trim();
 
 /* L'id del primo impianto non e' scelto: e' quello, sempre.
@@ -128,7 +130,10 @@ export function storedPlants(list = [], previous = {}) {
    * volta, con addosso quello che apparteneva a chi non c'e' piu'. */
   risultato.metadata = {
     ...oggetto(risultato.metadata),
-    [SEQ_FIELD]: altoSegno(impianti, { ...oggetto(base.metadata), ...oggetto(primo?.metadata) }),
+    [SEQ_FIELD]: altoSegnoImpianti(impianti, {
+      ...oggetto(base.metadata),
+      ...oggetto(primo?.metadata),
+    }),
   };
   return risultato;
 }
@@ -150,22 +155,21 @@ export function storedPlants(list = [], previous = {}) {
  * quando l'impianto che l'ha alzato non c'e' piu'. */
 export const SEQ_FIELD = "plant_seq";
 
-const numeroDi = (id) => {
-  const match = new RegExp(`^${PRIMO_IMPIANTO}-(\\d+)$`).exec(clean(id));
-  return match ? Number(match[1]) : 0;
-};
+const richiestaDelSegno = (list, metadata) => ({
+  elenco: list,
+  metadata,
+  prefisso: PRIMO_IMPIANTO,
+  identificativo: (plant) => plant?.id,
+  campoSegno: SEQ_FIELD,
+  minimo: 1,
+});
 
-export function altoSegno(list = [], metadata = {}) {
-  const daiVivi = (Array.isArray(list) ? list : []).reduce(
-    (massimo, plant) => Math.max(massimo, numeroDi(plant?.id)),
-    1,
-  );
-  const scritto = Number(oggetto(metadata)[SEQ_FIELD]);
-  return Math.max(daiVivi, Number.isFinite(scritto) ? scritto : 0, 1);
+export function altoSegnoImpianti(list = [], metadata = {}) {
+  return segnoPiuAlto(richiestaDelSegno(list, metadata));
 }
 
 export function nuovoImpiantoId(list = [], metadata = {}) {
-  return `${PRIMO_IMPIANTO}-${altoSegno(list, metadata) + 1}`;
+  return prossimoIdentificativo(richiestaDelSegno(list, metadata));
 }
 
 /** Un impianto nuovo, vuoto, pronto a essere configurato da capo. */

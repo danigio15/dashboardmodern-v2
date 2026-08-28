@@ -902,12 +902,11 @@ export function loadGlyph(value) {
   return loadCatalogMatch(token)?.glyph || actionCatalogMatch(token)?.glyph || "🔌";
 }
 
-export function roomOptionsMarkup({ selected = "", locale = getLocale() } = {}) {
-  return ROOM_CATALOG.map(
-    (item) =>
-      `<option value="${item.mdi}" ${clean(selected) === item.mdi ? "selected" : ""}>${catalogLabel(item, locale)}</option>`,
-  ).join("");
-}
+/* Qui c'era anche un roomOptionsMarkup che elencava le icone del catalogo.
+ * Nessuno lo importava, e il nome era quello con cui mezza plancia chiede
+ * l'elenco delle stanze configurate — che vive in sections/shared.js e fa una
+ * cosa completamente diversa. Un nome uguale per due cose diverse e' un errore
+ * che aspetta chi importa in fretta. */
 
 /* Catalog entries carry an Italian and an English name; the English one is the
  * pivot every other language is keyed by. */

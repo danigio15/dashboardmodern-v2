@@ -236,7 +236,14 @@ export function filterShowcaseModels(models = [], ui = {}) {
     });
 }
 
-export function sparklinePath(samples = [], width = 100, height = 28) {
+/* Il filo dei consumi parte da zero, sempre.
+ *
+ * Si chiamava sparklinePath come quello del Clima, che pero' disegna un'altra
+ * cosa: quello si adatta al minimo e al massimo della serie, perche' fra 21 e
+ * 22 gradi il movimento va visto; qui il fondo e' zero, perche' una macchina
+ * spenta deve stare per terra e non a meta' del riquadro. Due fili diversi con
+ * lo stesso nome sono uno scambio che aspetta. */
+export function filoDaZero(samples = [], width = 100, height = 28) {
   const values = samples.map((value) => Math.max(0, finiteOrNull(value) ?? 0));
   if (values.length < 2) {
     const y = height - 3;
@@ -684,7 +691,7 @@ function renderSidebar(shell, models, counts, rooms, labels) {
     active.textContent = String(counts.running);
   const spark = shell.querySelector("[data-dm-spark]");
   if (spark) {
-    const { line, area } = sparklinePath(state.spark, 100, 28);
+    const { line, area } = filoDaZero(state.spark, 100, 28);
     const lineNode = spark.querySelector(".dm-spark-line");
     const areaNode = spark.querySelector(".dm-spark-area");
     if (lineNode && lineNode.getAttribute("d") !== line) lineNode.setAttribute("d", line);

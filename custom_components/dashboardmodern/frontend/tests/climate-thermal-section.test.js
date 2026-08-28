@@ -101,7 +101,7 @@ test("a missing temperature never becomes a number on the rail", async () => {
 });
 
 test("the sparkline needs real history before it draws anything", async () => {
-  const { sparklinePath } = await loadSection();
+  const { filoFraMinimoEMassimo: sparklinePath } = await loadSection();
   assert.equal(sparklinePath([]), null);
   assert.equal(sparklinePath([21.4, 21.5]), null);
   const path = sparklinePath([21, 21.6, 22.2, 22]);

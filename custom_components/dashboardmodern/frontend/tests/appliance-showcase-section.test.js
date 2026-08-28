@@ -88,7 +88,7 @@ test("filter and sort helpers implement the sidebar and chip semantics", async (
 });
 
 test("sparkline path stays inside the viewbox and closes the area", async () => {
-  const { sparklinePath } = await loadSection();
+  const { filoDaZero: sparklinePath } = await loadSection();
   const { line, area } = sparklinePath([0, 500, 2450, 1200], 100, 28);
   assert.match(line, /^M0 25/);
   assert.match(line, /L100 /);

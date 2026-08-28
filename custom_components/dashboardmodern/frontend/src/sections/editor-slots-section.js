@@ -32,8 +32,13 @@ const KEY = "__DASHBOARDMODERN_EDITOR_SLOTS__";
 const STYLE_ID = "dm-editor-slots-style";
 const state = (root[KEY] ||= { installed: false, frame: 0, pending: 0, retries: 0 });
 
-/** Friendly name Home Assistant knows for an entity, "" when it knows none. */
-export function entityLabel(entity, states = root._RAW_STATES || root.STATES || {}) {
+/* Il nome che Home Assistant conosce per un'entita', "" se non ne conosce uno.
+ *
+ * Si chiamava entityLabel come quello di core/device-model.js, che pero' fa
+ * un'altra cosa: quello si inventa un nome leggibile dall'identificativo
+ * (sensor.b10_soc -> "B10 Soc"), questo restituisce il nome vero o niente. Chi
+ * importava a memoria poteva prendersi l'uno per l'altro. */
+export function nomeDaHomeAssistant(entity, states = root._RAW_STATES || root.STATES || {}) {
   const id = clean(entity);
   if (!id) return "";
   const name = clean(states?.[id]?.attributes?.friendly_name);
@@ -121,7 +126,7 @@ function paint(slot) {
   const chip = slot.querySelector(":scope > .dm-slot-chip");
   if (!input || !chip) return;
   const value = clean(input.value);
-  const label = entityLabel(value);
+  const label = nomeDaHomeAssistant(value);
   slot.dataset.dmSlot = value ? "mapped" : "empty";
   // Non si toglie quello che non c'e'.
   const clear = slot.querySelector(":scope > .dm-slot-clear");
@@ -528,7 +533,7 @@ function paintFieldChip(host) {
   const chip = host.querySelector(".dm-entity-picker.dm-slot-chip");
   if (!input || !chip) return;
   const value = clean(input.value);
-  const label = entityLabel(value);
+  const label = nomeDaHomeAssistant(value);
   // Only ever write what actually changed. The editors watch their own panels
   // for mutations and re-render when they see one, and a re-render throws away
   // the draft the open form is collecting — so a row that repaints itself with

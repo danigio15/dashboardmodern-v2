@@ -405,7 +405,15 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // stesso difetto tre volte — la pillola accesa tagliata contro la testata,
   // e le ultime linguette irraggiungibili col mouse. Adesso quella regola ha
   // un padrone solo: `le-strisce-di-linguette-section.js`.
-  assert.ok(relative.length <= 167, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 168 col segno progressivo: «un identificativo non si riusa mai, perche'
+  // altrimenti chi nasce eredita in silenzio quello che apparteneva a chi e'
+  // stato cancellato — i carichi di un impianto, le foto di un'auto». Quella
+  // regola era scritta due volte, con lo stesso nome, negli impianti e nelle
+  // auto: e' proprio il genere di regola che non deve poter divergere, perche'
+  // quando diverge si perdono dati di qualcuno e non si capisce perche'. Sta da
+  // sola perche' non appartiene ne' all'energia ne' alle auto: e' una regola
+  // sugli identificativi, e domani vale anche per le piscine.
+  assert.ok(relative.length <= 168, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

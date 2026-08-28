@@ -47,13 +47,9 @@ export function applianceGroups(appliances = [], roomInput = []) {
   return { rooms, all: appliances.slice(), groups, unassigned };
 }
 
-export function entityLabel(entityId = "") {
-  const objectId = String(entityId).split(".").pop() || "";
-  return objectId
-    .replace(/[_-]+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
+/* Qui c'era una seconda copia di entityLabel, identica a quella di
+ * core/device-model.js e importata da nessuno: due volte la stessa regola per
+ * ricavare un nome leggibile da un identificativo, con lo stesso nome. */
 
 export function applianceName(appliance = {}, states = {}, fallback = "Appliance") {
   const name = getDeviceDisplayName(
