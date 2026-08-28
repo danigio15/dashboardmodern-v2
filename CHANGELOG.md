@@ -33,6 +33,18 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   che li rifa' — `scripts/porta-in-casa-le-librerie.mjs` — si ferma se il
   registro npm servisse un byte diverso.
 
+- **La fascia della plancia si vede sulla Home, e a dirlo e' la pagina aperta.**
+  Chi decideva era l'ultimo che aveva cliccato: il guscio accende e spegne
+  quella fascia dentro il gestore delle voci in basso, e quel gestore lo lega
+  una volta sola al caricamento. Le tre pagine nate dopo — Stanze, Luci,
+  Aspirapolvere — hanno ciascuna il proprio ascolto, e di quella fascia non
+  sanno niente: la portavano avanti com'era. Da Home a Stanze restava accesa,
+  e sulla stessa pagina si vedevano due intestazioni; nell'altro verso, chi
+  arrivava alla Home lasciando la fascia spenta se la ritrovava spenta — la
+  Home senza la sua testata, senza aver toccato niente. Adesso la decisione
+  non e' di un clic ma della pagina che sta aperta, scritta una volta sola nel
+  modulo che le intestazioni gia' le possiede.
+
 - **I numeri delle tessere si vedevano con la testa mozzata.** Il numero e'
   Oswald a quaranta con l'interlinea stretta a .92 — trentasette pixel di riga
   — e il disegno di quel carattere, fra quello che sale e quello che scende, a
