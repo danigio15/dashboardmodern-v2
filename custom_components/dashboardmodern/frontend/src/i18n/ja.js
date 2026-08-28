@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "Leave it as the group icon to follow it; change it to tell this opening from the others.": "グループのアイコンのままにすると連動します。変更すると、この開口部をほかと区別できます。",
+  "Pick the icon": "アイコンを選ぶ",
+  "The group decides where the alert is watched.": "通知をどこで監視するかはグループが決めます。",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "開閉センサーは binary_sensor.*、sensor.*、input_boolean.* のいずれかのエンティティである必要があります。",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "名前と、シャッター・カーテン・オーニングのいずれかの cover.* か switch.*、または開閉センサーだけでも、少なくとも一つのエンティティを入力してください。",
   "One room at a time · Scenes · Sensors": "一部屋ずつ · シーン · センサー",
@@ -1569,7 +1572,6 @@ export default Object.freeze({
   "Terrace": "テラス",
   "Test connection →": "接続を試す →",
   "thanks to solar": "太陽光のおかげで",
-  "The alert icon follows the selected group, as in the dashboard.": "通知のアイコンは、ダッシュボードと同じように選んだグループに従います。",
   "The backup gathers the whole dashboard configuration into one file: sections, rooms, entities, people, cars, everything. Restore puts it back and reloads.": "バックアップはダッシュボードの設定全体を1つのファイルにまとめます。セクション、部屋、エンティティ、人、車、すべて。復元で元に戻して再読み込みします。",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "カードとポップアップには常にすべてのパーセントを並べたドロップダウンがあります（0 = 閉、100 = 開）。ここではいつも使う値を選びます。5 ならほぼ閉じたまま少しだけ風を通せます。選んだ値はドロップダウンに星付きで表示されます。空欄ならお気に入りなし。",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "しきい値を超えた最後の電力から指定した分だけカードは稼働中のままになります。食洗機の0W乾燥フェーズやサイクル中の休止をカバーします。",

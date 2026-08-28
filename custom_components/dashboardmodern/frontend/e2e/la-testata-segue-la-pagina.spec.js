@@ -52,9 +52,18 @@ test("la fascia della plancia si vede solo sulla Home", async ({ page }, testInf
       };
     });
 
+  /* La voce va aspettata prima di premerla: le Stanze, le Luci e
+   * l'Aspirapolvere sono pagine nate da un modulo, e la loro voce compare
+   * quando quel modulo si e' installato — piu' tardi dell'avvio. Chi premeva
+   * subito trovava `null`, il `?.` si mangiava il tocco senza dire niente, e
+   * la prova cadeva su una pagina che non era mai stata chiesta. */
   const voce = async (tab) => {
+    await page
+      .locator(`[data-tab="${tab}"]`)
+      .first()
+      .waitFor({ state: "attached", timeout: 20_000 });
     await page.evaluate((quale) => document.querySelector(`[data-tab="${quale}"]`)?.click(), tab);
-    await expect.poll(async () => (await fascia()).pagina).toBe(`page-${tab}`);
+    await expect.poll(async () => (await fascia()).pagina, { timeout: 15_000 }).toBe(`page-${tab}`);
   };
 
   /* Una pagina del guscio: la fascia si spegne, e tornando si riaccende. */

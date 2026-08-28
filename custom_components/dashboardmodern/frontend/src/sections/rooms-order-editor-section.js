@@ -62,6 +62,7 @@ export function ensureRoomsOrder() {
    * lista — o la scheda non ha finito di disegnarsi — e allora si aspetta: una
    * freccia che sposta la riga sbagliata e' peggio di nessuna freccia. */
   if (!elenco.length || elenco.length !== quante) return false;
+  allineaOrdine();
   let messe = 0;
   elenco.forEach((riga, posizione) => {
     if (riga.querySelector("[data-dm-room-move]")) return;
@@ -74,7 +75,48 @@ export function ensureRoomsOrder() {
   return messe > 0;
 }
 
-/** Scambia due stanze e salva. L'ordine e' l'elenco: non c'e' altro da scrivere. */
+/* L'ordine non e' solo l'elenco: e' anche il numero scritto su ogni stanza.
+ *
+ * Qui c'era scritto «l'ordine e' l'elenco: non c'e' altro da scrivere», e non
+ * era piu' vero. Il modello canonico porta su ogni stanza un campo `order`, e
+ * chi lo trova gia' scritto se lo tiene (`migrateRooms`): quel numero nasce
+ * alla prima migrazione e vale la posizione di ALLORA. Le pagine che
+ * raggruppano per stanza — Luci, Tapparelle, Clima, Elettrodomestici —
+ * ordinano su quel campo, non sull'elenco.
+ *
+ * Il risultato lo si vedeva e non si capiva: le frecce spostavano la riga, la
+ * scheda Stanze si ridisegnava nell'ordine nuovo — la scheda l'elenco lo legge
+ * davvero — e tutte le altre pagine restavano nell'ordine in cui le stanze
+ * erano state create. Chi ha messo l'Ingresso per primo continuava a vedere
+ * il Soggiorno in cima alle tapparelle.
+ *
+ * Adesso quando l'elenco cambia si riscrive anche il numero, uno per riga.
+ * Elenco e campo dicono la stessa cosa, e non c'e' piu' un secondo padrone. */
+function numerate(elenco) {
+  return elenco.map((stanza, posizione) =>
+    Number(stanza?.order) === posizione ? stanza : { ...stanza, order: posizione },
+  );
+}
+
+/** Vero se qualche stanza porta un numero che non e' la sua posizione. */
+function daRinumerare(elenco) {
+  return elenco.some((stanza, posizione) => Number(stanza?.order) !== posizione);
+}
+
+/* La stessa correzione, per chi l'ordine se l'era gia' scelto.
+ *
+ * Chi ha ordinato le stanze prima di questa versione ha in casa un elenco
+ * giusto e dei numeri vecchi, e senza toccare piu' le frecce resterebbe cosi'
+ * per sempre. La passata che attacca le frecce allinea i numeri all'elenco:
+ * l'elenco e' quello che si vede e quello che si e' scelto, quindi e' lui ad
+ * avere ragione. */
+export function allineaOrdine() {
+  const elenco = stanze();
+  if (!elenco.length || !daRinumerare(elenco)) return false;
+  return writeJsonIfChanged(ROOMS_KEY, numerate(elenco));
+}
+
+/** Scambia due stanze e salva, riscrivendo i numeri d'ordine. */
 export function spostaStanza(posizione, direzione) {
   const elenco = stanze();
   const bersaglio = posizione + direzione;
@@ -82,7 +124,7 @@ export function spostaStanza(posizione, direzione) {
   if (bersaglio < 0 || bersaglio >= elenco.length) return false;
   const prossimo = elenco.slice();
   [prossimo[posizione], prossimo[bersaglio]] = [prossimo[bersaglio], prossimo[posizione]];
-  writeJsonIfChanged(ROOMS_KEY, prossimo);
+  writeJsonIfChanged(ROOMS_KEY, numerate(prossimo));
   return true;
 }
 

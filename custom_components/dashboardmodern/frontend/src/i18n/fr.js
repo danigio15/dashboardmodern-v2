@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "Leave it as the group icon to follow it; change it to tell this opening from the others.": "Laissez l'icône du groupe pour la suivre ; changez-la pour distinguer cette ouverture des autres.",
+  "Pick the icon": "Choisir l'icône",
+  "The group decides where the alert is watched.": "Le groupe décide où l'alerte est surveillée.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "Le capteur d'ouverture doit être une entité binary_sensor.*, sensor.* ou input_boolean.*.",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Saisis un nom et au moins une entité : une couverture cover.* ou switch.* parmi volet, rideau et store, ou le seul capteur d'ouverture.",
   "One room at a time · Scenes · Sensors": "Une pièce à la fois · Scènes · Capteurs",
@@ -1569,7 +1572,6 @@ export default Object.freeze({
   "Terrace": "Terrasse",
   "Test connection →": "Tester la connexion →",
   "thanks to solar": "grâce au photovoltaïque",
-  "The alert icon follows the selected group, as in the dashboard.": "L'icône de l'alerte suit le groupe sélectionné, comme dans le tableau de bord.",
   "The backup gathers the whole dashboard configuration into one file: sections, rooms, entities, people, cars, everything. Restore puts it back and reloads.": "La sauvegarde rassemble toute la configuration du tableau de bord dans un fichier : sections, pièces, entités, personnes, voitures, tout. La restauration la remet en place et recharge.",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "La carte et la fenêtre proposent toujours la liste déroulante avec tous les pourcentages : 0 = fermé, 100 = ouvert. Choisis ici celui que tu utilises d’habitude — 5 ferme presque tout en laissant passer un peu d’air — et il apparaît avec une étoile dans la liste. Vide = aucun favori.",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "La carte reste En marche pendant ces minutes après la dernière puissance au-dessus du seuil : cela couvre le séchage à 0 W du lave-vaisselle et les pauses du cycle.",

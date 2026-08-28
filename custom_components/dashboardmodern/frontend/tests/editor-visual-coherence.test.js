@@ -42,5 +42,12 @@ test("room and alert editors expose the same visual preview used by their sectio
   assert.match(unified, /data-room-icon-preview/);
   assert.match(alerts, /function groupIcon/);
   assert.match(alerts, /data-alert-group-preview/);
-  assert.match(alerts, /L’icona dell’avviso segue il gruppo selezionato/);
+  /* L'icona non la decide piu' soltanto il gruppo: chi vuole distinguere una
+   * finestra da una portafinestra puo' sceglierla per quell'avviso, e chi non
+   * sceglie continua a seguire il gruppo come prima. L'anteprima mostra quella
+   * che si vedra' davvero. */
+  assert.match(alerts, /export function alertIcon/);
+  assert.match(alerts, /alertIcon\(oldEntity, oldGroup\)/);
+  assert.match(alerts, /id="dm-alert-icon"/);
+  assert.doesNotMatch(alerts, /L’icona dell’avviso segue il gruppo selezionato/);
 });

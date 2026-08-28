@@ -2058,14 +2058,24 @@ function temperatureDetail(widget) {
     .join("");
 }
 
+/* L'icona di un'apertura, quando chi l'ha configurata ne ha scelta una.
+ *
+ * Il ripiego resta quello di prima — si indovina dal nome se e' una porta o
+ * una finestra — perche' chi non ha scelto niente deve continuare a vedere
+ * quello che vedeva. Chi invece l'icona l'ha scelta in configurazione se la
+ * ritrova qui: e' l'unico posto dove quelle undici righe si distinguono. */
+function iconaApertura(row) {
+  const scelta = clean(readJson("cd_avvisi_icone", {})?.[clean(row.entity)]);
+  if (scelta) return scelta;
+  return /porta|cancell|door|gate/i.test(row.name) ? "🚪" : "🪟";
+}
+
 function openingsDetail(widget) {
   const rows = [...widget.rows].sort((a, b) => Number(b.on) - Number(a.on)).slice(0, MAX_DETAIL_ROWS);
   return rows
     .map((row) =>
       rowShell(
-        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${
-          /porta|cancell|door|gate/i.test(row.name) ? "🚪" : "🪟"
-        }</span>
+        `<span class="dm-w-glyph" data-on="${row.on}" aria-hidden="true">${esc(iconaApertura(row))}</span>
          <span class="dm-w-name">${esc(row.name)}</span>
          <b class="dm-w-val">${esc(row.on ? t("Aperta", "Open") : t("Chiusa", "Closed"))}</b>`,
       ),

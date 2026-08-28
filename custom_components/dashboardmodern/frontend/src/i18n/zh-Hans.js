@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "Leave it as the group icon to follow it; change it to tell this opening from the others.": "保持与分组图标一致即可跟随分组；修改它可把这个开口与其他区分开。",
+  "Pick the icon": "选择图标",
+  "The group decides where the alert is watched.": "由分组决定在哪里监视该提醒。",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "开合传感器必须是 binary_sensor.*、sensor.* 或 input_boolean.* 实体。",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "请填写名称，并至少填写一个实体：卷帘、窗帘或遮阳篷中的 cover.* 或 switch.*，或者仅填开合传感器。",
   "One room at a time · Scenes · Sensors": "一次一个房间 · 场景 · 传感器",
@@ -1569,7 +1572,6 @@ export default Object.freeze({
   "Terrace": "露台",
   "Test connection →": "测试连接 →",
   "thanks to solar": "得益于光伏",
-  "The alert icon follows the selected group, as in the dashboard.": "提醒图标会跟随所选分组，和面板中一样。",
   "The backup gathers the whole dashboard configuration into one file: sections, rooms, entities, people, cars, everything. Restore puts it back and reloads.": "备份把仪表盘的全部配置汇集到一个文件中：分区、房间、实体、人员、车辆，一切。恢复会将其放回并重新加载。",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "卡片和弹窗始终提供包含所有百分比的下拉菜单：0 = 关闭，100 = 打开。在这里选择你常用的那一档——5 几乎完全关闭，只留一点通风——它会在下拉菜单中带星号显示。留空则没有常用档位。",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "在最后一次功率超过阈值后的这些分钟内，卡片保持运行中：涵盖洗碗机 0 W 的烘干阶段和周期中的暂停。",

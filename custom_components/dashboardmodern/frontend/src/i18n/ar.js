@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "Leave it as the group icon to follow it; change it to tell this opening from the others.": "اتركها كأيقونة المجموعة لتتبعها؛ غيّرها لتمييز هذه الفتحة عن غيرها.",
+  "Pick the icon": "اختر الأيقونة",
+  "The group decides where the alert is watched.": "تحدد المجموعة أين تتم مراقبة التنبيه.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "يجب أن يكون مستشعر الفتح كيانًا من نوع binary_sensor.* أو sensor.* أو input_boolean.*.",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "أدخل اسمًا وكيانًا واحدًا على الأقل: غطاء cover.* أو switch.* من الستارة أو الستارة الخارجية، أو مستشعر الفتح وحده.",
   "One room at a time · Scenes · Sensors": "غرفة واحدة في كل مرة · مشاهد · مستشعرات",
@@ -1569,7 +1572,6 @@ export default Object.freeze({
   "Terrace": "التراس",
   "Test connection →": "اختبر الاتصال ←",
   "thanks to solar": "بفضل الطاقة الشمسية",
-  "The alert icon follows the selected group, as in the dashboard.": "أيقونة التنبيه تتبع المجموعة المحدَّدة، كما في اللوحة.",
   "The backup gathers the whole dashboard configuration into one file: sections, rooms, entities, people, cars, everything. Restore puts it back and reloads.": "تجمع النسخة الاحتياطية كامل إعدادات اللوحة في ملف واحد: الأقسام والغرف والكيانات والأشخاص والسيارات، كل شيء. الاستعادة تعيدها وتعيد التحميل.",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "تعرض البطاقة والنافذة المنبثقة دائمًا القائمة المنسدلة بكل النسب: 0 = مغلقة، 100 = مفتوحة. اختر هنا النسبة المعتادة لديك — 5 تغلق تقريبًا بالكامل مع ترك مجال لمرور بعض الهواء — وتظهر في القائمة وعليها نجمة. فارغ = لا توجد نسبة مفضلة.",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "تبقى البطاقة قيد التشغيل لهذه الدقائق بعد آخر قراءة قدرة فوق العتبة: يغطي ذلك مرحلة تجفيف غسالة الصحون عند 0 واط وتوقفات الدورة.",

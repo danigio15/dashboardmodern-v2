@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "Leave it as the group icon to follow it; change it to tell this opening from the others.": "Deixe igual ao ícone do grupo para o seguir; mude-o para distinguir esta abertura das outras.",
+  "Pick the icon": "Escolher o ícone",
+  "The group decides where the alert is watched.": "O grupo decide onde o aviso é vigiado.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "O sensor de abertura tem de ser uma entidade binary_sensor.*, sensor.* ou input_boolean.*.",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Introduz um nome e pelo menos uma entidade: uma cobertura cover.* ou switch.* entre estore, cortina e toldo, ou apenas o sensor de abertura.",
   "One room at a time · Scenes · Sensors": "Um cómodo de cada vez · Cenas · Sensores",
@@ -1569,7 +1572,6 @@ export default Object.freeze({
   "Terrace": "Terraço",
   "Test connection →": "Testar a ligação →",
   "thanks to solar": "graças ao fotovoltaico",
-  "The alert icon follows the selected group, as in the dashboard.": "O ícone do aviso segue o grupo selecionado, tal como no painel.",
   "The backup gathers the whole dashboard configuration into one file: sections, rooms, entities, people, cars, everything. Restore puts it back and reloads.": "O backup reúne toda a configuração do painel num ficheiro: secções, divisões, entidades, pessoas, carros, tudo. Restaurar volta a pô-la no lugar e recarrega.",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "O cartão e o pop-up mostram sempre a lista com todas as percentagens: 0 = fechada, 100 = aberta. Aqui escolhes a do costume — 5 fecha quase tudo deixando passar um pouco de ar — e aparece com uma estrela na lista. Vazio = sem favorita.",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "O cartão continua Em funcionamento por estes minutos após a última potência acima do limiar: cobre a secagem a 0 W da máquina de lavar louça e as pausas do ciclo.",

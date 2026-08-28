@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "Leave it as the group icon to follow it; change it to tell this opening from the others.": "Déjalo igual al icono del grupo para seguirlo; cámbialo para distinguir esta abertura de las demás.",
+  "Pick the icon": "Elegir el icono",
+  "The group decides where the alert is watched.": "El grupo decide dónde se vigila el aviso.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "El sensor de apertura debe ser una entidad binary_sensor.*, sensor.* o input_boolean.*.",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Introduce un nombre y al menos una entidad: una cubierta cover.* o switch.* entre persiana, cortina y toldo, o solo el sensor de apertura.",
   "One room at a time · Scenes · Sensors": "Una habitación a la vez · Escenas · Sensores",
@@ -1569,7 +1572,6 @@ export default Object.freeze({
   "Terrace": "Terraza",
   "Test connection →": "Probar la conexión →",
   "thanks to solar": "gracias al fotovoltaico",
-  "The alert icon follows the selected group, as in the dashboard.": "El icono del aviso sigue al grupo seleccionado, igual que en el panel.",
   "The backup gathers the whole dashboard configuration into one file: sections, rooms, entities, people, cars, everything. Restore puts it back and reloads.": "La copia reúne toda la configuración del panel en un archivo: secciones, habitaciones, entidades, personas, coches, todo. Restaurar la vuelve a poner y recarga.",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "La tarjeta y la ventana emergente ofrecen siempre el desplegable con todos los porcentajes: 0 = cerrada, 100 = abierta. Aquí eliges el habitual — 5 cierra casi del todo dejando pasar algo de aire — y aparece con una estrella en el desplegable. Vacío = sin favorito.",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "La tarjeta sigue En marcha durante estos minutos tras la última potencia por encima del umbral: cubre el secado a 0 W del lavavajillas y las pausas del ciclo.",

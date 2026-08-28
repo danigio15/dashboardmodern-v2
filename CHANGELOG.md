@@ -33,6 +33,38 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   che li rifa' — `scripts/porta-in-casa-le-librerie.mjs` — si ferma se il
   registro npm servisse un byte diverso.
 
+- **L'ordine delle stanze arriva davvero a tutte le pagine.** Le frecce nella
+  scheda Stanze spostavano la riga, la scheda si ridisegnava nell'ordine nuovo
+  — la scheda l'elenco lo legge davvero — e Luci, Tapparelle, Clima ed
+  Elettrodomestici restavano nell'ordine in cui le stanze erano state create.
+  Chi ha messo l'Ingresso per primo continuava a vedere il Soggiorno in cima
+  alle tapparelle. Il motivo: il modello canonico porta su ogni stanza un campo
+  `order`, e chi lo trova gia' scritto se lo tiene; quel numero nasce alla
+  prima migrazione e vale la posizione di allora. Le frecce riscrivevano
+  l'elenco e non lo toccavano — due padroni dello stesso ordine, e vinceva
+  quello vecchio. Adesso quando l'elenco cambia si riscrive anche il numero, e
+  chi l'ordine se l'era gia' scelto se lo ritrova allineato alla prima apertura
+  della scheda, senza dover ripremere niente.
+
+- **Un'apertura tolta e rimessa adesso resta.** Le liste sono due — quello che
+  hai aggiunto e quello che hai tolto — e il guscio le legge in quest'ordine:
+  prima somma le aggiunte, poi toglie le rimozioni. Ma chi aggiungeva non
+  ripuliva mai la seconda: un'apertura tolta una volta e rimessa dopo finiva in
+  tutte e due, e la sottrazione arrivava per ultima. Nel giro in corso si
+  vedeva — l'aggiunta entra anche in memoria — e al riavvio spariva. Da fuori
+  si legge «non riesco piu' ad aggiungerne altre»: si aggiungevano davvero, e
+  non tornavano piu' su. Le due liste non possono piu' dire il contrario l'una
+  dell'altra: se un'entita' sta in tutt'e due ha ragione l'aggiunta, che e'
+  l'ultimo gesto fatto apposta.
+
+- **Ogni avviso puo' avere la sua icona.** La decideva il gruppo e basta:
+  undici aperture, undici porte uguali, e la finestra del bagno
+  indistinguibile dalla portafinestra del salotto. Adesso nella finestra di
+  modifica c'e' il campo dell'icona, con lo stesso selettore del resto della
+  plancia. Chi non la tocca continua a seguire il gruppo come prima — anche
+  cambiando gruppo — e chi la sceglie se la ritrova nella tessera Aperture,
+  che e' il posto dove quelle righe si devono distinguere.
+
 - **La fascia della plancia si vede sulla Home, e a dirlo e' la pagina aperta.**
   Chi decideva era l'ultimo che aveva cliccato: il guscio accende e spegne
   quella fascia dentro il gestore delle voci in basso, e quel gestore lo lega

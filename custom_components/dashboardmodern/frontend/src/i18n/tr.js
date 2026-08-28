@@ -11,6 +11,9 @@
  */
 
 export default Object.freeze({
+  "Leave it as the group icon to follow it; change it to tell this opening from the others.": "Grubu izlemesi için grup simgesiyle aynı bırakın; bu açıklığı diğerlerinden ayırmak için değiştirin.",
+  "Pick the icon": "Simgeyi seç",
+  "The group decides where the alert is watched.": "Uyarının nerede izleneceğine grup karar verir.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "Açılma sensörü binary_sensor.*, sensor.* veya input_boolean.* varlığı olmalıdır.",
   "Enter a name and at least one entity: a cover.* or switch.* among shutter, curtain and awning, or the opening sensor alone.": "Bir ad ve en az bir varlık girin: panjur, perde ve tenteden bir cover.* ya da switch.*, veya yalnızca açılma sensörü.",
   "One room at a time · Scenes · Sensors": "Tek seferde bir oda · Sahneler · Sensörler",
@@ -1569,7 +1572,6 @@ export default Object.freeze({
   "Terrace": "Teras",
   "Test connection →": "Bağlantıyı sına →",
   "thanks to solar": "güneş panelleri sayesinde",
-  "The alert icon follows the selected group, as in the dashboard.": "Uyarı simgesi, panodaki gibi seçilen grubu izler.",
   "The backup gathers the whole dashboard configuration into one file: sections, rooms, entities, people, cars, everything. Restore puts it back and reloads.": "Yedek, panonun tüm yapılandırmasını tek dosyada toplar: bölümler, odalar, varlıklar, kişiler, arabalar, her şey. Geri yükleme yerine koyar ve yeniler.",
   "The card and the popup always offer the dropdown with every percentage: 0 = closed, 100 = open. Here you pick your usual one — 5 closes almost fully while letting some air through — and it shows up starred in the dropdown. Empty = no favorite.": "Kart ve açılır pencere her zaman tüm yüzdeleri içeren listeyi sunar: 0 = kapalı, 100 = açık. Burada her zamanki değerini seçersin — 5 biraz hava geçirecek kadar bırakıp neredeyse tamamen kapatır — ve listede yıldızlı görünür. Boş = favori yok.",
   "The card stays Running for these minutes after the last power reading above the threshold: it covers the dishwasher's 0 W drying phase and mid-cycle pauses.": "Kart, eşiğin üzerindeki son güç okumasından sonra bu dakikalar boyunca Çalışıyor kalır: bulaşık makinesinin 0 W kurutma aşamasını ve döngü aralarını kapsar.",
