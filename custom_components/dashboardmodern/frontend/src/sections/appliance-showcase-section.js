@@ -29,6 +29,7 @@ import { createApplianceViewModel } from "../core/appliance-view-model.js";
 import { createCycleTracker } from "../core/appliance-cycle-tracker.js";
 import { scheduleApplianceNormalization } from "./appliances-section.js";
 import { iconGlyph } from "./icon-engine-section.js";
+import { roomOrderRank } from "../core/room-overview.js";
 import {
   activeLocale,
   allStates,
@@ -120,6 +121,21 @@ function devices() {
   return Array.isArray(values) ? values : [];
 }
 
+/* Quale stanza viene prima, secondo la configurazione.
+ *
+ * L'ordine lo decide chi ci abita, nella scheda Stanze, e la risposta la da'
+ * il nucleo: qui si legge soltanto l'elenco salvato. La domanda la fanno tre
+ * pagine, e per un po' era passata da `shared` — che pero' e' la base che
+ * ogni sezione carica per prima, e farle crescere una dipendenza per comodita'
+ * di tre chiamanti sposta l'ordine in cui si avvia tutto il resto. */
+function ordineStanze() {
+  try {
+    return roomOrderRank(section("rooms", readJson("cd_stanze", [])) || []);
+  } catch (_error) {
+    return () => Number.MAX_SAFE_INTEGER;
+  }
+}
+
 function roomList() {
   const values = section("rooms", readJson("cd_stanze", []));
   if (!Array.isArray(values)) return [];
@@ -187,6 +203,7 @@ export function filterShowcaseModels(models = [], ui = {}) {
   const sort = ui.sort || "power-desc";
   const stateRank = { running: 0, standby: 1, off: 2, unavailable: 3 };
   const watts = (model) => finiteOrNull(model.watts) ?? -1;
+  const stanza = ordineStanze();
   return models
     .filter((model) => {
       if (room === "unassigned" && model.room) return false;
@@ -202,6 +219,10 @@ export function filterShowcaseModels(models = [], ui = {}) {
       if (sort === "name") return left.name.localeCompare(right.name);
       if (sort === "room")
         return (
+          /* «Per stanza» vuol dire nell'ordine in cui le stanze sono state
+           * messe in configurazione, non in ordine alfabetico: e' l'ordine in
+           * cui si gira per casa, ed e' quello che si e' scelto. */
+          stanza(left.room?.name) - stanza(right.room?.name) ||
           clean(left.room?.name).localeCompare(clean(right.room?.name)) ||
           left.name.localeCompare(right.name)
         );

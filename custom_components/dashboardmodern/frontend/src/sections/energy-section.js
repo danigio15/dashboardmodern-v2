@@ -685,7 +685,12 @@ function scheduleProjection() {
   state.projectionFrame = root.requestAnimationFrame?.(callback) || root.setTimeout?.(callback, 0);
 }
 
-function scheduleEnergyRefresh(force = false, explicitDelay = null) {
+/* Chiedere il ricalcolo dei periodi, da fuori.
+ *
+ * Serve a chi cambia la CONFIGURAZIONE dell'Energia senza che nessuna entita'
+ * cambi stato — cambiare impianto e' il caso vero — perche' il giro che
+ * ascolta gli stati chiede l'entita' cambiata, e li' non ce n'e' nessuna. */
+export function scheduleEnergyRefresh(force = false, explicitDelay = null) {
   root.clearTimeout?.(state.refreshTimer);
   const elapsed = Date.now() - state.lastRefreshAt;
   const delay = explicitDelay ?? (force ? 0 : Math.max(250, 15000 - elapsed));

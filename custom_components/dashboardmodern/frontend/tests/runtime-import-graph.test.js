@@ -373,7 +373,34 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // riscriverlo, perdendo tutto quello che gli era stato attribuito. La scheda
   // la disegna il documento vendorizzato e non si tocca: sta da solo perche' e'
   // un pezzo appoggiato a una scheda di cui non e' il padrone.
-  assert.ok(relative.length <= 162, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 163 con gli oggetti delle tessere: `core/oggetti-widget.js` tiene i disegni
+  // che vanno dentro la pastiglia di ogni tessera — la lampadina col bulbo
+  // caldo, il termometro col mercurio, l'auto col parabrezza. Prima li' c'era
+  // un'emoji, e ogni sistema la disegna a modo suo: sei tessere vicine avevano
+  // sei stili diversi. Sta da solo, e senza dipendenze, perche' e' un
+  // vocabolario di disegni: lo leggono le tessere della Home e le intestazioni
+  // dei popup, e nessuno dei due deve sapere come e' fatto l'altro.
+  // 164 con il vassoio delle azioni rapide: `azioni-rapide-vassoio-section.js`
+  // mette i tasti dentro un ripiano incavato e ne possiede la geometria. Prima
+  // quella misura la scrivevano in due col peso massimo — la guardia del
+  // marchio e la sezione delle regressioni — e vinceva l'ordine di
+  // caricamento: cambiarla in un punto non bastava mai. Sta da solo perche' il
+  // ripiano e' una scelta di forma della Home, e chi disegna le tessere non
+  // deve sapere che esiste.
+  // 165 con il servizio giusto per le azioni rapide:
+  // `azioni-servizio-giusto-section.js` sa quale servizio ogni dominio sa
+  // davvero eseguire. Il guscio ne conosce due — `turn_on` per script e scene,
+  // `toggle` per tutto il resto — e `toggle` non e' universale: un `button` ha
+  // solo `press`, e chiedergli `toggle` non muove niente e non dice niente.
+  // Sta da solo perche' e' una sola domanda, e la risposta non serve a chi
+  // disegna i tasti: quello e' mestiere del vassoio, che infatti non lo sa.
+  // 166 col foglio del guscio: `foglio-del-guscio-section.js` si accorge se il
+  // foglio di stile grosso non e' arrivato e lo richiede. Quando si perde, la
+  // plancia sembra quasi normale — i moduli portano il proprio stile — ma i
+  // cerchi del flusso, che hanno lo stile solo li', restano invisibili: da
+  // fuori «i flussi sono scomparsi». Sta da solo perche' guarda il documento,
+  // non una sezione, e nessuna sezione deve sapere che esiste.
+  assert.ok(relative.length <= 166, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

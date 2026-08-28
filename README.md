@@ -32,14 +32,14 @@
 </p>
 
 <p align="center">
-  <img src="docs/preview/home-light.webp" alt="Home di DashboardModern, tema chiaro" width="100%">
-  <img src="docs/preview/home.webp" alt="Home di DashboardModern, tema scuro" width="100%">
+  <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/home-light.webp" alt="Home di DashboardModern, tema chiaro" width="100%">
+  <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/home.webp" alt="Home di DashboardModern, tema scuro" width="100%">
 </p>
 
 <table>
 <tr>
-<td width="30%"><img src="docs/preview/home-mobile-light.webp" alt="Home su telefono, tema chiaro"></td>
-<td width="70%"><img src="docs/preview/rooms-light.webp" alt="Sezione Stanze, tema chiaro"></td>
+<td width="30%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/home-mobile-light.webp" alt="Home su telefono, tema chiaro"></td>
+<td width="70%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/rooms-light.webp" alt="Sezione Stanze, tema chiaro"></td>
 </tr>
 </table>
 
@@ -204,8 +204,8 @@ Restano legate al singolo dispositivo solo le preferenze che hanno senso solo l�
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/home-light.webp" alt="Home in tema chiaro"> | <img src="docs/preview/home.webp" alt="Home in tema scuro"> |
-| <img src="docs/preview/home-mobile-light.webp" alt="Home su telefono, tema chiaro" width="230"> | <img src="docs/preview/home-mobile.webp" alt="Home su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/home-light.webp" alt="Home in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/home.webp" alt="Home in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/home-mobile-light.webp" alt="Home su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/home-mobile.webp" alt="Home su telefono, tema scuro" width="230"> |
 
 La Home è la pagina di apertura, ed è fatta di tre fasce sotto un'intestazione che dice già molto.
 
@@ -223,8 +223,8 @@ Quali entità finiscono nei widget lo decidi entità per entità, con l'interrut
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/widget-popup-light.webp" alt="La finestra di una tessera, tema chiaro"> | <img src="docs/preview/widget-popup.webp" alt="La finestra di una tessera, tema scuro"> |
-| <img src="docs/preview/widget-popup-mobile-light.webp" alt="La finestra di una tessera su telefono, tema chiaro" width="230"> | <img src="docs/preview/widget-popup-mobile.webp" alt="La finestra di una tessera su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/widget-popup-light.webp" alt="La finestra di una tessera, tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/widget-popup.webp" alt="La finestra di una tessera, tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/widget-popup-mobile-light.webp" alt="La finestra di una tessera su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/widget-popup-mobile.webp" alt="La finestra di una tessera su telefono, tema scuro" width="230"> |
 
 **Le finestre aprono come aprono le pagine**: la testata è la stessa fascia con cui si apre ogni pagina della plancia — l'alone di colore dall'angolo, il titolo in maiuscolo nel colore della sezione, il sottotitolo in maiuscoletto, la riga che sfuma in fondo.
 
@@ -236,8 +236,8 @@ Dentro, **ogni riga è la tessera della Home messa in orizzontale**: pastiglia d
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/widget-popup-climate-dial-light.webp" alt="La rotella del Clima, tema chiaro"> | <img src="docs/preview/widget-popup-climate-dial.webp" alt="La rotella del Clima, tema scuro"> |
-| <img src="docs/preview/widget-popup-climate-dial-mobile-light.webp" alt="La rotella del Clima su telefono, tema chiaro" width="230"> | <img src="docs/preview/widget-popup-climate-dial-mobile.webp" alt="La rotella del Clima su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/widget-popup-climate-dial-light.webp" alt="La rotella del Clima, tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/widget-popup-climate-dial.webp" alt="La rotella del Clima, tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/widget-popup-climate-dial-mobile-light.webp" alt="La rotella del Clima su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/widget-popup-climate-dial-mobile.webp" alt="La rotella del Clima su telefono, tema scuro" width="230"> |
 
 Sulla riga del Clima c'è una rotella: si apre e porta **modalità, temperatura e ventola** lì, senza andare nella pagina Clima. Ci sono soltanto le modalità e le velocità che **quell'unità dichiara di accettare** — un tasto che l'unità non sa eseguire è peggio di un tasto che non c'è — e sotto, cosa sta facendo davvero e l'umidità della stanza.
 
@@ -247,8 +247,8 @@ Sulla riga del Clima c'è una rotella: si apre e porta **modalità, temperatura 
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/rooms-light.webp" alt="Sezione Stanze in tema chiaro"> | <img src="docs/preview/rooms.webp" alt="Sezione Stanze in tema scuro"> |
-| <img src="docs/preview/rooms-mobile-light.webp" alt="Sezione Stanze su telefono, tema chiaro" width="230"> | <img src="docs/preview/rooms-mobile.webp" alt="Sezione Stanze su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/rooms-light.webp" alt="Sezione Stanze in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/rooms.webp" alt="Sezione Stanze in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/rooms-mobile-light.webp" alt="Sezione Stanze su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/rooms-mobile.webp" alt="Sezione Stanze su telefono, tema scuro" width="230"> |
 
 Ogni altra sezione legge la casa **per tipo**: tutte le luci insieme, tutte le tapparelle insieme. È il verso giusto quando cerchi una cosa, ed è quello sbagliato quando sei in una stanza. Questa pagina gira il verso.
 
@@ -267,8 +267,8 @@ Non sposta e non riscrive niente: le assegnazioni esistono già, questa pagina l
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/navigation-light.webp" alt="Barra di navigazione in tema chiaro"> | <img src="docs/preview/navigation.webp" alt="Barra di navigazione in tema scuro"> |
-| <img src="docs/preview/navigation-mobile-light.webp" alt="Barra di navigazione su telefono, tema chiaro" width="230"> | <img src="docs/preview/navigation-mobile.webp" alt="Barra di navigazione su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/navigation-light.webp" alt="Barra di navigazione in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/navigation.webp" alt="Barra di navigazione in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/navigation-mobile-light.webp" alt="Barra di navigazione su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/navigation-mobile.webp" alt="Barra di navigazione su telefono, tema scuro" width="230"> |
 
 Ogni sezione ha la sua icona — Home la casa, Stanze la porta, come in configurazione. La barra elenca **solo le sezioni che hai configurato**: una sezione senza dati non compare, e si accende da sola appena riceve la prima entità. L'ordine si dispone dall'editor, desktop e mobile possono differire, e ogni sezione si può nascondere a mano — una scelta fatta di persona viene ricordata e non viene più riaccesa dall'automatismo.
 
@@ -284,8 +284,8 @@ Sei viste, scelte dalle linguette in cima: **Istantanea**, **Giornaliera**, **Me
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/energy-flow-light.webp" alt="Flusso energetico live in tema chiaro"> | <img src="docs/preview/energy-flow.webp" alt="Flusso energetico live in tema scuro"> |
-| <img src="docs/preview/energy-flow-mobile-light.webp" alt="Flusso energetico live su telefono, tema chiaro" width="230"> | <img src="docs/preview/energy-flow-mobile.webp" alt="Flusso energetico live su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-flow-light.webp" alt="Flusso energetico live in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-flow.webp" alt="Flusso energetico live in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-flow-mobile-light.webp" alt="Flusso energetico live su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-flow-mobile.webp" alt="Flusso energetico live su telefono, tema scuro" width="230"> |
 
 Diagramma dinamico dei flussi: **Solare, Rete, Batteria e Casa**, più **un cerchio per ogni carico configurato**. Spessore e velocità di ogni connettore seguono la lettura reale del carico: un wallbox a 4 kW disegna una linea più marcata e veloce di un frigo da 80 W. Un carico sotto soglia resta visibile ma spento, uno senza entità mostra `—` invece di uno zero inventato.
 
@@ -295,9 +295,9 @@ Toccando un cerchio si apre il popup con i dispositivi che lo compongono — con
 
 | Giornaliera | Mensile |
 | --- | --- |
-| <img src="docs/preview/energy-day-light.webp" alt="Energia giornaliera in tema chiaro"> | <img src="docs/preview/energy-month-light.webp" alt="Energia mensile in tema chiaro"> |
-| <img src="docs/preview/energy-day.webp" alt="Energia giornaliera in tema scuro"> | <img src="docs/preview/energy-month.webp" alt="Energia mensile in tema scuro"> |
-| <img src="docs/preview/energy-day-mobile-light.webp" alt="Energia giornaliera su telefono, tema chiaro" width="230"> <img src="docs/preview/energy-day-mobile.webp" alt="Energia giornaliera su telefono, tema scuro" width="230"> | <img src="docs/preview/energy-month-mobile-light.webp" alt="Energia mensile su telefono, tema chiaro" width="230"> <img src="docs/preview/energy-month-mobile.webp" alt="Energia mensile su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-day-light.webp" alt="Energia giornaliera in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-month-light.webp" alt="Energia mensile in tema chiaro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-day.webp" alt="Energia giornaliera in tema scuro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-month.webp" alt="Energia mensile in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-day-mobile-light.webp" alt="Energia giornaliera su telefono, tema chiaro" width="230"> <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-day-mobile.webp" alt="Energia giornaliera su telefono, tema scuro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-month-mobile-light.webp" alt="Energia mensile su telefono, tema chiaro" width="230"> <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-month-mobile.webp" alt="Energia mensile su telefono, tema scuro" width="230"> |
 
 Produzione, consumo, prelievo e immissione del giorno e del mese, con costi e risparmio calcolati sulle tariffe che hai impostato, e il confronto con i periodi precedenti.
 
@@ -305,9 +305,9 @@ Produzione, consumo, prelievo e immissione del giorno e del mese, con costi e ri
 
 | Report | Analisi |
 | --- | --- |
-| <img src="docs/preview/energy-report-light.webp" alt="Report energia in tema chiaro"> | <img src="docs/preview/energy-analysis-light.webp" alt="Analisi energia in tema chiaro"> |
-| <img src="docs/preview/energy-report.webp" alt="Report energia in tema scuro"> | <img src="docs/preview/energy-analysis.webp" alt="Analisi energia in tema scuro"> |
-| <img src="docs/preview/energy-report-mobile-light.webp" alt="Report energia su telefono, tema chiaro" width="230"> <img src="docs/preview/energy-report-mobile.webp" alt="Report energia su telefono, tema scuro" width="230"> | |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-report-light.webp" alt="Report energia in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-analysis-light.webp" alt="Analisi energia in tema chiaro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-report.webp" alt="Report energia in tema scuro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-analysis.webp" alt="Analisi energia in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-report-mobile-light.webp" alt="Report energia su telefono, tema chiaro" width="230"> <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-report-mobile.webp" alt="Report energia su telefono, tema scuro" width="230"> | |
 
 Il **Report** mette in fila le voci che hai scelto — apparecchi, carichi, sorgenti — con il consumo del periodo, il costo e la quota sul totale.
 
@@ -323,8 +323,8 @@ Le icone del Report seguono lo stesso catalogo delle schede: una lavatrice ha lo
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/energy-temperatures-light.webp" alt="Temperature impianto in tema chiaro"> | <img src="docs/preview/energy-temperatures.webp" alt="Temperature impianto in tema scuro"> |
-| <img src="docs/preview/energy-temperatures-mobile-light.webp" alt="Temperature impianto su telefono, tema chiaro" width="230"> | <img src="docs/preview/energy-temperatures-mobile.webp" alt="Temperature impianto su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-temperatures-light.webp" alt="Temperature impianto in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-temperatures.webp" alt="Temperature impianto in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-temperatures-mobile-light.webp" alt="Temperature impianto su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/energy-temperatures-mobile.webp" alt="Temperature impianto su telefono, tema scuro" width="230"> |
 
 Le sonde dell'impianto — inverter, batteria, quadro — con il loro andamento.
 
@@ -334,8 +334,8 @@ Le sonde dell'impianto — inverter, batteria, quadro — con il loro andamento.
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/appliances-light.webp" alt="Elettrodomestici in tema chiaro"> | <img src="docs/preview/appliances.webp" alt="Elettrodomestici in tema scuro"> |
-| <img src="docs/preview/appliances-mobile-light.webp" alt="Elettrodomestici su telefono, tema chiaro" width="230"> | <img src="docs/preview/appliances-mobile.webp" alt="Elettrodomestici su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliances-light.webp" alt="Elettrodomestici in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliances.webp" alt="Elettrodomestici in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliances-mobile-light.webp" alt="Elettrodomestici su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliances-mobile.webp" alt="Elettrodomestici su telefono, tema scuro" width="230"> |
 
 Ogni apparecchio ha il suo **ritratto disegnato** — lavatrice, lavastoviglie, forno, asciugatrice, frigo e altri venti tipi — che **si anima quando l'apparecchio lavora**. La card dice se è **in funzione**, a che punto è il programma, quanto manca, e quanto è costato l'ultimo ciclo.
 
@@ -345,9 +345,9 @@ Un apparecchio è «in funzione» quando supera la sua **soglia di potenza**, e 
 
 | Consumi | Dettaglio di un apparecchio |
 | --- | --- |
-| <img src="docs/preview/appliances-consumption-light.webp" alt="Vista consumi in tema chiaro"> | <img src="docs/preview/appliance-detail-light.webp" alt="Dettaglio elettrodomestico in tema chiaro"> |
-| <img src="docs/preview/appliances-consumption.webp" alt="Vista consumi in tema scuro"> | <img src="docs/preview/appliance-detail.webp" alt="Dettaglio elettrodomestico in tema scuro"> |
-| | <img src="docs/preview/appliance-detail-mobile-light.webp" alt="Dettaglio elettrodomestico su telefono, tema chiaro" width="230"> <img src="docs/preview/appliance-detail-mobile.webp" alt="Dettaglio elettrodomestico su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliances-consumption-light.webp" alt="Vista consumi in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliance-detail-light.webp" alt="Dettaglio elettrodomestico in tema chiaro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliances-consumption.webp" alt="Vista consumi in tema scuro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliance-detail.webp" alt="Dettaglio elettrodomestico in tema scuro"> |
+| | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliance-detail-mobile-light.webp" alt="Dettaglio elettrodomestico su telefono, tema chiaro" width="230"> <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/appliance-detail-mobile.webp" alt="Dettaglio elettrodomestico su telefono, tema scuro" width="230"> |
 
 Il dettaglio elenca **tutte le entità mappate** su quell'apparecchio con il loro valore: è anche il modo più rapido per capire se un sensore manca o punta al posto sbagliato.
 
@@ -357,8 +357,8 @@ Il dettaglio elenca **tutte le entità mappate** su quell'apparecchio con il lor
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/ev-light.webp" alt="Sezione auto elettrica in tema chiaro"> | <img src="docs/preview/ev.webp" alt="Sezione auto elettrica in tema scuro"> |
-| <img src="docs/preview/ev-mobile-light.webp" alt="Sezione auto elettrica su telefono, tema chiaro" width="230"> | <img src="docs/preview/ev-mobile.webp" alt="Sezione auto elettrica su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ev-light.webp" alt="Sezione auto elettrica in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ev.webp" alt="Sezione auto elettrica in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ev-mobile-light.webp" alt="Sezione auto elettrica su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/ev-mobile.webp" alt="Sezione auto elettrica su telefono, tema scuro" width="230"> |
 
 Profilo veicolo con **marchio e modello** dal catalogo di **38 marche** — servite dall'integrazione, con i loro colori ufficiali, senza chiamare nessun CDN — oppure la tua foto. Stato di carica, autonomia, odometro, km dall'ultima ricarica, **sessione di ricarica** con quota solare, tensione e temperatura della wallbox, target di carica e **console modalità** (Spento / Solar / Min+Sol / Fast) quando l'integrazione le espone.
 
@@ -372,8 +372,8 @@ DashboardModern non sostituisce l'integrazione del veicolo o della wallbox: ne p
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/lights-light.webp" alt="Sezione luci in tema chiaro"> | <img src="docs/preview/lights.webp" alt="Sezione luci in tema scuro"> |
-| <img src="docs/preview/lights-mobile-light.webp" alt="Sezione luci su telefono, tema chiaro" width="230"> | <img src="docs/preview/lights-mobile.webp" alt="Sezione luci su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/lights-light.webp" alt="Sezione luci in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/lights.webp" alt="Sezione luci in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/lights-mobile-light.webp" alt="Sezione luci su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/lights-mobile.webp" alt="Sezione luci su telefono, tema scuro" width="230"> |
 
 Le luci hanno una **sezione propria nella barra**: prima erano solo un popup della Home, che resta comunque raggiungibile dalle azioni rapide.
 
@@ -383,8 +383,8 @@ Ogni luce è una tessera con nome su due righe, stato, e il **cursore della lumi
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/light-control-popup-light.webp" alt="Controlli di una luce in tema chiaro"> | <img src="docs/preview/light-control-popup.webp" alt="Controlli di una luce in tema scuro"> |
-| <img src="docs/preview/light-control-popup-mobile-light.webp" alt="Controlli di una luce su telefono, tema chiaro" width="230"> | <img src="docs/preview/light-control-popup-mobile.webp" alt="Controlli di una luce su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/light-control-popup-light.webp" alt="Controlli di una luce in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/light-control-popup.webp" alt="Controlli di una luce in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/light-control-popup-mobile-light.webp" alt="Controlli di una luce su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/light-control-popup-mobile.webp" alt="Controlli di una luce su telefono, tema scuro" width="230"> |
 
 Luminosità, dodici colori pronti, tinta e saturazione, temperatura di colore. **La plancia offre solo i comandi che l'entità dichiara di accettare**: una luce che non ha il colore non mostra la ruota, una che è di fatto un interruttore mostra solo acceso e spento.
 
@@ -392,9 +392,9 @@ Restano raggiungibili dalle azioni rapide anche i due popup della Home: **gestio
 
 | Gestione luci | Controllo rapido clima |
 | --- | --- |
-| <img src="docs/preview/lights-popup-light.webp" alt="Popup gestione luci in tema chiaro"> | <img src="docs/preview/climate-popup-light.webp" alt="Controllo rapido clima in tema chiaro"> |
-| <img src="docs/preview/lights-popup.webp" alt="Popup gestione luci in tema scuro"> | <img src="docs/preview/climate-popup.webp" alt="Controllo rapido clima in tema scuro"> |
-| <img src="docs/preview/lights-popup-mobile-light.webp" alt="Gestione luci su telefono, tema chiaro" width="230"> <img src="docs/preview/lights-popup-mobile.webp" alt="Gestione luci su telefono, tema scuro" width="230"> | <img src="docs/preview/climate-popup-mobile-light.webp" alt="Controllo clima su telefono, tema chiaro" width="230"> <img src="docs/preview/climate-popup-mobile.webp" alt="Controllo clima su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/lights-popup-light.webp" alt="Popup gestione luci in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/climate-popup-light.webp" alt="Controllo rapido clima in tema chiaro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/lights-popup.webp" alt="Popup gestione luci in tema scuro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/climate-popup.webp" alt="Controllo rapido clima in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/lights-popup-mobile-light.webp" alt="Gestione luci su telefono, tema chiaro" width="230"> <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/lights-popup-mobile.webp" alt="Gestione luci su telefono, tema scuro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/climate-popup-mobile-light.webp" alt="Controllo clima su telefono, tema chiaro" width="230"> <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/climate-popup-mobile.webp" alt="Controllo clima su telefono, tema scuro" width="230"> |
 
 ---
 
@@ -402,8 +402,8 @@ Restano raggiungibili dalle azioni rapide anche i due popup della Home: **gestio
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/climate-light.webp" alt="Sezione clima in tema chiaro"> | <img src="docs/preview/climate.webp" alt="Sezione clima in tema scuro"> |
-| <img src="docs/preview/climate-mobile-light.webp" alt="Sezione clima su telefono, tema chiaro" width="230"> | <img src="docs/preview/climate-mobile.webp" alt="Sezione clima su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/climate-light.webp" alt="Sezione clima in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/climate.webp" alt="Sezione clima in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/climate-mobile-light.webp" alt="Sezione clima su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/climate-mobile.webp" alt="Sezione clima su telefono, tema scuro" width="230"> |
 
 Le unità si dividono in **Freddo** e **Caldo**, e la pagina mostra **solo le famiglie che la casa ha davvero**: con soli condizionatori la scheda «Caldo» non compare, e quando ne resta una l'interruttore sparisce perché non c'è niente fra cui scegliere.
 
@@ -415,8 +415,8 @@ Una **pompa di calore** che fa entrambe le cose si dichiara come tale e compare 
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/temperature-light.webp" alt="Sezione temperature in tema chiaro"> | <img src="docs/preview/temperature.webp" alt="Sezione temperature in tema scuro"> |
-| <img src="docs/preview/temperature-mobile-light.webp" alt="Sezione temperature su telefono, tema chiaro" width="230"> | <img src="docs/preview/temperature-mobile.webp" alt="Sezione temperature su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/temperature-light.webp" alt="Sezione temperature in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/temperature.webp" alt="Sezione temperature in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/temperature-mobile-light.webp" alt="Sezione temperature su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/temperature-mobile.webp" alt="Sezione temperature su telefono, tema scuro" width="230"> |
 
 Una card per stanza con temperatura, umidità e un **giudizio di comfort** — freddo, comfort, caldo — con la barra colorata che dice dove sta il valore. Le pillole in alto filtrano per stanza, e il grafico in fondo confronta **tutte le stanze** sulle 24 ore o sui 7 giorni, con la fascia di comfort disegnata dietro.
 
@@ -426,8 +426,8 @@ Una card per stanza con temperatura, umidità e un **giudizio di comfort** — f
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/shutters-light.webp" alt="Sezione tapparelle in tema chiaro"> | <img src="docs/preview/shutters.webp" alt="Sezione tapparelle in tema scuro"> |
-| <img src="docs/preview/shutters-mobile-light.webp" alt="Sezione tapparelle su telefono, tema chiaro" width="230"> | <img src="docs/preview/shutters-mobile.webp" alt="Sezione tapparelle su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/shutters-light.webp" alt="Sezione tapparelle in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/shutters.webp" alt="Sezione tapparelle in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/shutters-mobile-light.webp" alt="Sezione tapparelle su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/shutters-mobile.webp" alt="Sezione tapparelle su telefono, tema scuro" width="230"> |
 
 Ogni scheda è una **finestra guardata dalla stanza**, che è da dove si guarda una tapparella davvero. In primo piano l'**infisso**: telaio, due ante con il vetro, maniglia. Dietro il vetro **scende la tapparella**, disegnata a stecche. Dietro ancora c'è il fuori: cielo con sole e nuvole di giorno, luna e stelle di notte, che **segue l'ora reale**.
 
@@ -443,8 +443,8 @@ Ogni scheda è una **finestra guardata dalla stanza**, che è da dove si guarda 
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/security-light.webp" alt="Sezione sicurezza in tema chiaro"> | <img src="docs/preview/security.webp" alt="Sezione sicurezza in tema scuro"> |
-| <img src="docs/preview/security-mobile-light.webp" alt="Sezione sicurezza su telefono, tema chiaro" width="230"> | <img src="docs/preview/security-mobile.webp" alt="Sezione sicurezza su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/security-light.webp" alt="Sezione sicurezza in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/security.webp" alt="Sezione sicurezza in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/security-mobile-light.webp" alt="Sezione sicurezza su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/security-mobile.webp" alt="Sezione sicurezza su telefono, tema scuro" width="230"> |
 
 **L'antifurto mostra i tasti che la tua centrale ha davvero.** Non tre tasti fissi uguali per tutti: i comandi si costruiscono da quello che l'entità dichiara di supportare, e ogni stato accende il suo. Il **tastierino compare solo se un codice esiste**, e serve anche per inserire quando la centrale lo richiede — dove non serve, non si preme OK a vuoto.
 
@@ -456,7 +456,7 @@ E **si sceglie quali modalità vedere**: la centrale dice cosa accetta, quello c
 
 | Dettaglio avvisi |
 | --- |
-| <img src="docs/preview/alerts-popup-light.webp" alt="Dettaglio avvisi in tema chiaro" width="49%"> <img src="docs/preview/alerts-popup.webp" alt="Dettaglio avvisi in tema scuro" width="49%"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/alerts-popup-light.webp" alt="Dettaglio avvisi in tema chiaro" width="49%"> <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/alerts-popup.webp" alt="Dettaglio avvisi in tema scuro" width="49%"> |
 
 Porte, finestre, allagamenti, fumo e batterie scariche vivono nei **gruppi di avvisi**, che compaiono come tessere in Home. Ogni avviso si muove come quello che significa: la porta si apre sul cardine, la batteria cala di livello, l'antifurto pulsa.
 
@@ -466,8 +466,8 @@ Porte, finestre, allagamenti, fumo e batterie scariche vivono nei **gruppi di av
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/solar-thermal-light.webp" alt="Sezione solare termico in tema chiaro"> | <img src="docs/preview/solar-thermal.webp" alt="Sezione solare termico in tema scuro"> |
-| <img src="docs/preview/solar-thermal-mobile-light.webp" alt="Sezione solare termico su telefono, tema chiaro" width="230"> | <img src="docs/preview/solar-thermal-mobile.webp" alt="Sezione solare termico su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/solar-thermal-light.webp" alt="Sezione solare termico in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/solar-thermal.webp" alt="Sezione solare termico in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/solar-thermal-mobile-light.webp" alt="Sezione solare termico su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/solar-thermal-mobile.webp" alt="Sezione solare termico su telefono, tema scuro" width="230"> |
 
 L'impianto disegnato in vista isometrica: pannelli, circuito, accumulo e valvole. Ogni sonda dice **cosa misura**, e la pompa si anima quando circola davvero.
 
@@ -477,8 +477,8 @@ L'impianto disegnato in vista isometrica: pannelli, circuito, accumulo e valvole
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/pool-light.webp" alt="Sezione piscina in tema chiaro"> | <img src="docs/preview/pool.webp" alt="Sezione piscina in tema scuro"> |
-| <img src="docs/preview/pool-mobile-light.webp" alt="Sezione piscina su telefono, tema chiaro" width="230"> | <img src="docs/preview/pool-mobile.webp" alt="Sezione piscina su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/pool-light.webp" alt="Sezione piscina in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/pool.webp" alt="Sezione piscina in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/pool-mobile-light.webp" alt="Sezione piscina su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/pool-mobile.webp" alt="Sezione piscina su telefono, tema scuro" width="230"> |
 
 La vasca disegnata con l'acqua che si muove, temperatura, **pH e cloro** con le loro soglie, filtrazione, riscaldamento e luce. Fuori soglia il valore si colora, invece di restare un numero come gli altri.
 
@@ -488,8 +488,8 @@ La vasca disegnata con l'acqua che si muove, temperatura, **pH e cloro** con le 
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/irrigation-light.webp" alt="Sezione irrigazione in tema chiaro"> | <img src="docs/preview/irrigation.webp" alt="Sezione irrigazione in tema scuro"> |
-| <img src="docs/preview/irrigation-mobile-light.webp" alt="Sezione irrigazione su telefono, tema chiaro" width="230"> | <img src="docs/preview/irrigation-mobile.webp" alt="Sezione irrigazione su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/irrigation-light.webp" alt="Sezione irrigazione in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/irrigation.webp" alt="Sezione irrigazione in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/irrigation-mobile-light.webp" alt="Sezione irrigazione su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/irrigation-mobile.webp" alt="Sezione irrigazione su telefono, tema scuro" width="230"> |
 
 Le zone con la loro valvola, i minuti di ciascuna, l'orario di partenza e il **blocco pioggia**: sopra la probabilità che hai impostato, il ciclo non parte.
 
@@ -501,8 +501,8 @@ Le zone con la loro valvola, i minuti di ciascuna, l'orario di partenza e il **b
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/robot-light.webp" alt="Sezione aspirapolvere in tema chiaro"> | <img src="docs/preview/robot.webp" alt="Sezione aspirapolvere in tema scuro"> |
-| <img src="docs/preview/robot-mobile-light.webp" alt="Sezione aspirapolvere su telefono, tema chiaro" width="230"> | <img src="docs/preview/robot-mobile.webp" alt="Sezione aspirapolvere su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-light.webp" alt="Sezione aspirapolvere in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot.webp" alt="Sezione aspirapolvere in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-mobile-light.webp" alt="Sezione aspirapolvere su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/robot-mobile.webp" alt="Sezione aspirapolvere su telefono, tema scuro" width="230"> |
 
 I robot di casa con stato, batteria, potenza di aspirazione e i comandi — avvio, pausa, rientro alla base. Ogni robot ha la sua stanza, scelta da una tendina, e la mappa quando l'integrazione la espone.
 
@@ -512,8 +512,8 @@ I robot di casa con stato, batteria, potenza di aspirazione e i comandi — avvi
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/server-light.webp" alt="Sezione MiniPC in tema chiaro"> | <img src="docs/preview/server.webp" alt="Sezione MiniPC in tema scuro"> |
-| <img src="docs/preview/server-mobile-light.webp" alt="Sezione MiniPC su telefono, tema chiaro" width="230"> | <img src="docs/preview/server-mobile.webp" alt="Sezione MiniPC su telefono, tema scuro" width="230"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/server-light.webp" alt="Sezione MiniPC in tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/server.webp" alt="Sezione MiniPC in tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/server-mobile-light.webp" alt="Sezione MiniPC su telefono, tema chiaro" width="230"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/server-mobile.webp" alt="Sezione MiniPC su telefono, tema scuro" width="230"> |
 
 La macchina disegnata in 3D con **CPU, RAM e disco** come barre che crescono, il **termometro della CPU** con giudizio e limite, la telemetria (consumo, uptime, Speedtest download e upload), il **carico CPU live** e la riga di rete con connettività e stato dell'inverter.
 
@@ -528,7 +528,7 @@ Tutte le configurazioni descritte qui sono **visuali**: nessun YAML.
 
 > Le schermate qui sotto sono in **tema chiaro**; l'editor segue il tema della plancia, quindi in tema scuro le stesse schede appaiono scure — c'è una galleria in fondo al capitolo.
 
-<img src="docs/preview/editor-settings-light.webp" alt="Editor - impostazioni generali" width="100%">
+<img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-settings-light.webp" alt="Editor - impostazioni generali" width="100%">
 
 ### ⚙️ Impostazioni
 
@@ -549,7 +549,7 @@ La visibilità di ogni sezione si accende e si spegne dal pulsante verde in test
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/editor-autodetect-light.webp" alt="Autorilevamento entità, tema chiaro"> | <img src="docs/preview/editor-autodetect.webp" alt="Autorilevamento entità, tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-autodetect-light.webp" alt="Autorilevamento entità, tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-autodetect.webp" alt="Autorilevamento entità, tema scuro"> |
 
 Un pulsante legge tutte le entità di Home Assistant e **propone** collegamenti, luci, stanze, unità clima, telecamere e gruppi di avvisi.
 
@@ -564,7 +564,7 @@ Al termine compare il riepilogo **🪄 Ecco cosa ho trovato**, con quante entit�
 
 ### 🚪 Stanze
 
-<img src="docs/preview/editor-rooms-light.webp" alt="Editor - stanze" width="100%">
+<img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-rooms-light.webp" alt="Editor - stanze" width="100%">
 
 Le stanze sono il **registro condiviso**: nome, **icona dal catalogo visuale**, piano e ordine. Rinominare una stanza o spostarla di piano aggiorna insieme Temperatura, Clima, Luci, Tapparelle, Elettrodomestici e la pagina Stanze, perché tutte le sezioni referenziano l'`id` della stanza, non il suo nome.
 
@@ -572,7 +572,7 @@ Le stanze sono il **registro condiviso**: nome, **icona dal catalogo visuale**, 
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/editor-people-light.webp" alt="Editor - persone, tema chiaro"> | <img src="docs/preview/editor-people.webp" alt="Editor - persone, tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-people-light.webp" alt="Editor - persone, tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-people.webp" alt="Editor - persone, tema scuro"> |
 
 Ogni persona ha un'entità (`person.*`, o `device_tracker.*` per chi non ha creato le persone in Home Assistant), un nome e un ritratto. Il pulsante **importa** propone ogni `person.*` che la plancia non conosce ancora, col suo nome e la sua foto.
 
@@ -597,7 +597,7 @@ I ritratti sono i render 3D di **Fluent Emoji** (Microsoft, licenza MIT), **vend
 
 Quattro pannelli interni: **Flussi ed entità**, **Carichi**, **Report**, **Impostazioni**. In cima, le linguette degli **impianti**.
 
-<img src="docs/preview/editor-energy-light.webp" alt="Editor - energia, flussi ed entità" width="100%">
+<img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-energy-light.webp" alt="Editor - energia, flussi ed entità" width="100%">
 
 **Flussi ed entità** — per ognuna delle sorgenti (**Casa**, **Rete prelevata**, **Rete immessa**, **Fotovoltaico**, **Batteria carica**, **Batteria scarica**):
 
@@ -610,9 +610,9 @@ Quattro pannelli interni: **Flussi ed entità**, **Carichi**, **Report**, **Impo
 
 <table>
 <tr>
-<td width="33%"><img src="docs/preview/editor-energy-loads-light.webp" alt="Editor - carichi"></td>
-<td width="33%"><img src="docs/preview/editor-energy-report-light.webp" alt="Editor - report"></td>
-<td width="33%"><img src="docs/preview/editor-energy-settings-light.webp" alt="Editor - tariffe energia"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-energy-loads-light.webp" alt="Editor - carichi"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-energy-report-light.webp" alt="Editor - report"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-energy-settings-light.webp" alt="Editor - tariffe energia"></td>
 </tr>
 </table>
 
@@ -626,13 +626,13 @@ Quattro pannelli interni: **Flussi ed entità**, **Carichi**, **Report**, **Impo
 
 ### 🌡️ Temperatura
 
-<img src="docs/preview/editor-temperature-light.webp" alt="Editor - temperatura" width="100%">
+<img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-temperature-light.webp" alt="Editor - temperatura" width="100%">
 
 Temperatura e umidità per stanza, con le soglie di comfort.
 
 ### 🧺 Elettrodomestici
 
-<img src="docs/preview/editor-appliances-light.webp" alt="Editor - elettrodomestici" width="100%">
+<img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-appliances-light.webp" alt="Editor - elettrodomestici" width="100%">
 
 Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto animato), stanza, entità di controllo, potenza, energia giornaliera e totale, stato del programma, tempo rimanente, temperatura, ultimo ciclo (durata, energia, costo), **soglie di standby e funzionamento** e **ritardo di fine ciclo**.
 
@@ -640,9 +640,9 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 
 <table>
 <tr>
-<td width="33%"><img src="docs/preview/editor-lights-light.webp" alt="Editor - luci"></td>
-<td width="33%"><img src="docs/preview/editor-climate-light.webp" alt="Editor - clima"></td>
-<td width="33%"><img src="docs/preview/editor-shutters-light.webp" alt="Editor - tapparelle"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-lights-light.webp" alt="Editor - luci"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-climate-light.webp" alt="Editor - clima"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-shutters-light.webp" alt="Editor - tapparelle"></td>
 </tr>
 </table>
 
@@ -654,9 +654,9 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 
 <table>
 <tr>
-<td width="33%"><img src="docs/preview/editor-robot-light.webp" alt="Editor - aspirapolvere"></td>
-<td width="33%"><img src="docs/preview/editor-todo-light.webp" alt="Editor - cose da fare"></td>
-<td width="33%"><img src="docs/preview/editor-doors-light.webp" alt="Editor - aperture"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-robot-light.webp" alt="Editor - aspirapolvere"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-todo-light.webp" alt="Editor - cose da fare"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-doors-light.webp" alt="Editor - aperture"></td>
 </tr>
 </table>
 
@@ -668,8 +668,8 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 
 <table>
 <tr>
-<td width="50%"><img src="docs/preview/editor-alerts-light.webp" alt="Editor - widget e avvisi"></td>
-<td width="50%"><img src="docs/preview/editor-quick-actions-light.webp" alt="Editor - azioni rapide"></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-alerts-light.webp" alt="Editor - widget e avvisi"></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-quick-actions-light.webp" alt="Editor - azioni rapide"></td>
 </tr>
 </table>
 
@@ -680,9 +680,9 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 
 <table>
 <tr>
-<td width="33%"><img src="docs/preview/editor-pool-light.webp" alt="Editor - piscina"></td>
-<td width="33%"><img src="docs/preview/editor-irrigation-light.webp" alt="Editor - irrigazione"></td>
-<td width="33%"><img src="docs/preview/editor-ev-light.webp" alt="Editor - auto elettrica"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-pool-light.webp" alt="Editor - piscina"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-irrigation-light.webp" alt="Editor - irrigazione"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-ev-light.webp" alt="Editor - auto elettrica"></td>
 </tr>
 </table>
 
@@ -694,7 +694,7 @@ Per ogni apparecchio: **tipo** dal catalogo (venti tipi, ognuno col suo ritratto
 
 | Tema chiaro | Tema scuro |
 | --- | --- |
-| <img src="docs/preview/editor-backup-light.webp" alt="Editor - backup, tema chiaro"> | <img src="docs/preview/editor-backup.webp" alt="Editor - backup, tema scuro"> |
+| <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-backup-light.webp" alt="Editor - backup, tema chiaro"> | <img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-backup.webp" alt="Editor - backup, tema scuro"> |
 
 Scarica l'intera configurazione come file e la rimette da un file. Serve per spostare una plancia su un'altra installazione, per tenersi una copia prima di una modifica grossa, o per tornare indietro dopo un ripensamento.
 
@@ -708,13 +708,13 @@ L'ultima scheda è di diagnostica: versione della plancia, stato del bridge di a
 <summary><strong>Apri la galleria dell'editor in tema scuro</strong></summary>
 
 <table>
-<tr><td width="33%"><img src="docs/preview/editor-settings.webp" alt="Editor Impostazioni in tema scuro"><br><sub>Impostazioni</sub></td><td width="33%"><img src="docs/preview/editor-rooms.webp" alt="Editor Stanze in tema scuro"><br><sub>Stanze</sub></td><td width="33%"><img src="docs/preview/editor-people.webp" alt="Editor Persone in tema scuro"><br><sub>Persone</sub></td></tr>
-<tr><td width="33%"><img src="docs/preview/editor-energy.webp" alt="Editor Energia in tema scuro"><br><sub>Energia · flussi</sub></td><td width="33%"><img src="docs/preview/editor-energy-loads.webp" alt="Editor Carichi in tema scuro"><br><sub>Energia · carichi</sub></td><td width="33%"><img src="docs/preview/editor-energy-report.webp" alt="Editor Report in tema scuro"><br><sub>Energia · report</sub></td></tr>
-<tr><td width="33%"><img src="docs/preview/editor-energy-settings.webp" alt="Editor tariffe in tema scuro"><br><sub>Energia · tariffe</sub></td><td width="33%"><img src="docs/preview/editor-appliances.webp" alt="Editor Elettrodomestici in tema scuro"><br><sub>Elettrodomestici</sub></td><td width="33%"><img src="docs/preview/editor-temperature.webp" alt="Editor Temperatura in tema scuro"><br><sub>Temperatura</sub></td></tr>
-<tr><td width="33%"><img src="docs/preview/editor-lights.webp" alt="Editor Luci in tema scuro"><br><sub>Luci</sub></td><td width="33%"><img src="docs/preview/editor-climate.webp" alt="Editor Clima in tema scuro"><br><sub>Clima</sub></td><td width="33%"><img src="docs/preview/editor-shutters.webp" alt="Editor Tapparelle in tema scuro"><br><sub>Tapparelle</sub></td></tr>
-<tr><td width="33%"><img src="docs/preview/editor-robot.webp" alt="Editor Aspirapolvere in tema scuro"><br><sub>Aspirapolvere</sub></td><td width="33%"><img src="docs/preview/editor-todo.webp" alt="Editor Cose da fare in tema scuro"><br><sub>Cose da fare</sub></td><td width="33%"><img src="docs/preview/editor-doors.webp" alt="Editor Aperture in tema scuro"><br><sub>Aperture</sub></td></tr>
-<tr><td width="33%"><img src="docs/preview/editor-pool.webp" alt="Editor Piscina in tema scuro"><br><sub>Piscina</sub></td><td width="33%"><img src="docs/preview/editor-irrigation.webp" alt="Editor Irrigazione in tema scuro"><br><sub>Irrigazione</sub></td><td width="33%"><img src="docs/preview/editor-ev.webp" alt="Editor Auto elettrica in tema scuro"><br><sub>Auto elettrica</sub></td></tr>
-<tr><td width="33%"><img src="docs/preview/editor-alerts.webp" alt="Editor Widget in tema scuro"><br><sub>Widget e avvisi</sub></td><td width="33%"><img src="docs/preview/editor-quick-actions.webp" alt="Editor Azioni rapide in tema scuro"><br><sub>Azioni rapide</sub></td><td width="33%"><img src="docs/preview/editor-backup.webp" alt="Editor Backup in tema scuro"><br><sub>Backup</sub></td></tr>
+<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-settings.webp" alt="Editor Impostazioni in tema scuro"><br><sub>Impostazioni</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-rooms.webp" alt="Editor Stanze in tema scuro"><br><sub>Stanze</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-people.webp" alt="Editor Persone in tema scuro"><br><sub>Persone</sub></td></tr>
+<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-energy.webp" alt="Editor Energia in tema scuro"><br><sub>Energia · flussi</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-energy-loads.webp" alt="Editor Carichi in tema scuro"><br><sub>Energia · carichi</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-energy-report.webp" alt="Editor Report in tema scuro"><br><sub>Energia · report</sub></td></tr>
+<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-energy-settings.webp" alt="Editor tariffe in tema scuro"><br><sub>Energia · tariffe</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-appliances.webp" alt="Editor Elettrodomestici in tema scuro"><br><sub>Elettrodomestici</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-temperature.webp" alt="Editor Temperatura in tema scuro"><br><sub>Temperatura</sub></td></tr>
+<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-lights.webp" alt="Editor Luci in tema scuro"><br><sub>Luci</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-climate.webp" alt="Editor Clima in tema scuro"><br><sub>Clima</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-shutters.webp" alt="Editor Tapparelle in tema scuro"><br><sub>Tapparelle</sub></td></tr>
+<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-robot.webp" alt="Editor Aspirapolvere in tema scuro"><br><sub>Aspirapolvere</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-todo.webp" alt="Editor Cose da fare in tema scuro"><br><sub>Cose da fare</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-doors.webp" alt="Editor Aperture in tema scuro"><br><sub>Aperture</sub></td></tr>
+<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-pool.webp" alt="Editor Piscina in tema scuro"><br><sub>Piscina</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-irrigation.webp" alt="Editor Irrigazione in tema scuro"><br><sub>Irrigazione</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-ev.webp" alt="Editor Auto elettrica in tema scuro"><br><sub>Auto elettrica</sub></td></tr>
+<tr><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-alerts.webp" alt="Editor Widget in tema scuro"><br><sub>Widget e avvisi</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-quick-actions.webp" alt="Editor Azioni rapide in tema scuro"><br><sub>Azioni rapide</sub></td><td width="33%"><img src="https://raw.githubusercontent.com/danigio15/dashboardmodern-v2/main/docs/preview/editor-backup.webp" alt="Editor Backup in tema scuro"><br><sub>Backup</sub></td></tr>
 </table>
 
 </details>

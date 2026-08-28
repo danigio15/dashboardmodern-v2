@@ -2,8 +2,7 @@ import { applianceArtwork } from "../core/appliance-artwork.js";
 import {
   APPLIANCE_CATALOG,
   applianceCatalogLabel,
-  canonicalApplianceVisualKey,
-} from "../core/device-model.js";
+  canonicalApplianceVisualKey, applianceVisualKey } from "../core/device-model.js";
 import { iconGlyph } from "./icon-engine-section.js";
 import {
   activeLocale,
@@ -73,18 +72,10 @@ function editorVisualKey(value) {
   return canonicalApplianceVisualKey(value) || "";
 }
 
-function deviceVisualKey(device = {}) {
-  const explicit = [device.visual_key, device.device_type, device.icon, device.type]
-    .map(editorVisualKey)
-    .filter(Boolean);
-  const specific = explicit.find((key) => key !== "generico");
-  if (specific) return specific;
-  // 0.15.19/0.15.20 could save the first select option (`generico`) when an
-  // appliance type was absent from the short Edit-only list. Recover those
-  // records from their human name without touching their entity links.
-  const named = editorVisualKey(device.name);
-  return named || explicit[0] || "generico";
-}
+/* La domanda «che disegno ha questo apparecchio» ha un proprietario solo, in
+ * `core/device-model.js`: la faceva anche la tessera della Home, in un altro
+ * modo, e lo stesso apparecchio usciva diverso nei due posti. */
+const deviceVisualKey = applianceVisualKey;
 
 function catalogItem(value) {
   const key = editorVisualKey(value) || "generico";

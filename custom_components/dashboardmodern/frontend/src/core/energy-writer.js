@@ -89,7 +89,7 @@ export function flushEnergyWrites() {
  * al primo livello. E' quello che tiene la forma identica per chi non ha mai
  * chiesto piu' di una casa. Per gli altri si tocca il loro pezzo dell'elenco e
  * si riserializza, senza spostare il primo di un millimetro. */
-function scriviNellImpianto(model, plantId, muta) {
+export function scriviNellImpianto(model, plantId, muta) {
   const lista = plantList(model);
   const impianto = pickPlant(lista, plantId);
   if (!impianto || impianto.id === PRIMO_IMPIANTO) {

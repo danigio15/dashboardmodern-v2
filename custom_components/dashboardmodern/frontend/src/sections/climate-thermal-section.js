@@ -29,24 +29,35 @@
  * Irrigation redesign did.
  */
 import { canonicalClimateType } from "../core/device-model.js";
+import { roomOrderRank } from "../core/room-overview.js";
+import { climatePanelMarkup } from "./home-widgets-section.js";
 import {
   activeLocale,
   allStates,
   clean,
   doc,
+  lexicalGlobal,
   english,
   esc,
   finiteOrNull,
   installStyle,
   readClimateUnits,
+  readJson,
   root,
+  section,
   t,
   wrapFunction,
 } from "./shared.js";
 
 const KEY = "__DASHBOARDMODERN_CLIMATE_THERMAL__";
 const STYLE_ID = "dm-climate-thermal-style";
-const state = (root[KEY] ||= { installed: false, listeners: false, history: new Map() });
+const state = (root[KEY] ||= {
+  installed: false,
+  listeners: false,
+  history: new Map(),
+  climaAperta: "",
+  climaAscolto: false,
+});
 
 /* Scale of the rail. Cooling units are set between 16° and 30°, radiators
  * between 10° and 28°, which is the range the legacy popup already clamps to. */
@@ -392,6 +403,18 @@ function cardMarkup(unit, labels) {
 /* Group by floor only. The legacy grouping printed one heading per room, which
  * on this layout means a heading above every single card; the room already has
  * its own line inside the card. */
+/* Quale stanza viene prima, secondo la configurazione.
+ *
+ * L'ordine lo decide chi ci abita, nella scheda Stanze, e la risposta la da'
+ * il nucleo: qui si legge soltanto l'elenco salvato. */
+function ordineStanze() {
+  try {
+    return roomOrderRank(section("rooms", readJson("cd_stanze", [])) || []);
+  } catch (_error) {
+    return () => Number.MAX_SAFE_INTEGER;
+  }
+}
+
 function floorOf(unit) {
   try {
     return clean(root.cdRoomFloorOf?.(unit.room));
@@ -417,9 +440,21 @@ function groupedMarkup(units, labels) {
     const ib = order.indexOf(b);
     return (ia < 0 ? 9999 : ia) - (ib < 0 ? 9999 : ib);
   });
+  /* Dentro il piano, le stanze nell'ordine scelto in configurazione.
+   *
+   * Qui non si ordinava affatto: le unita' uscivano nell'ordine in cui erano
+   * state configurate. Chi si era messo in fila le stanze — «ho ordinato le
+   * stanze ma poi l'ordinamento non me lo ritrovo da nessuna parte, tipo
+   * nelle pagine delle luci, clima, tapparelle» — qui non lo ritrovava. */
+  const stanza = ordineStanze();
   return keys
     .map((floor) => {
-      const cards = groups.get(floor).map((unit) => cardMarkup(unit, labels)).join("");
+      const cards = groups
+        .get(floor)
+        .slice()
+        .sort((sinistra, destra) => stanza(sinistra.room) - stanza(destra.room))
+        .map((unit) => cardMarkup(unit, labels))
+        .join("");
       const heading = floor && keys.length > 1 ? `<div class="dm-cl-floor">🏢 ${esc(floor)}</div>` : "";
       return `${heading}${cards}`;
     })
@@ -702,6 +737,187 @@ function installOverrides() {
   installTemperatureStep();
   // Switching zone changes what the readout summarises.
   wrapFunction("setClimaPageMode", "__dmClimateThermalMode", () => renderClimate());
+  installPannelloDellaFinestra();
+  installClimaRapido();
+}
+
+/* Il «Clima rapido» disegnava le stanze di un'altra casa.
+ *
+ * Nel runtime storico c'e' un elenco scritto a mano — Matrimoniale,
+ * Cameretta, Cucina, Salone, Bagno, Studio — con dentro le caselle fisse di
+ * quella casa. Non e' configurabile da nessuna parte: chi ha altre stanze
+ * apriva quel popup e trovava sei tasti coi nomi di casa d'altri, legati a
+ * caselle che magari non ha mai riempito.
+ *
+ * Le unita' del clima le sa la configurazione, ed e' la stessa che disegna la
+ * pagina Clima e la scheda: la griglia adesso viene di li'. Il tasto resta
+ * quello di prima — stesso vestito, stesso gesto — ma parla della casa vera. */
+function unitaDelModo(modo) {
+  const freddo = clean(modo).toLowerCase() !== "caldo";
+  const grezze = readClimateUnits();
+  const perEntita = new Map();
+  for (const grezza of Array.isArray(grezze) ? grezze : []) {
+    const entity = clean(grezza?.entity || grezza?.entity_id || grezza?.entities?.[0]);
+    if (entity && !perEntita.has(entity)) perEntita.set(entity, grezza);
+  }
+  const viste = new Set();
+  return climateUnits().filter((unita) => {
+    if (viste.has(unita.entity)) return false;
+    const zone = climateZones(perEntita.get(unita.entity) || {});
+    if (!zone.includes(freddo ? "freddo" : "caldo")) return false;
+    viste.add(unita.entity);
+    return true;
+  });
+}
+
+function tastoRapido(unita, states) {
+  const stato = states?.[unita.entity];
+  const grezzo = clean(stato?.state).toLowerCase();
+  const acceso = Boolean(grezzo) && !["off", "unavailable", "unknown"].includes(grezzo);
+  const modo = clean(lexicalGlobal("currentClimaMode")).toLowerCase() || "freddo";
+  const freddo = modo !== "caldo";
+  let gradi = "";
+  if (freddo && stato) {
+    const obiettivo = stato.attributes?.temperature;
+    const ambiente = stato.attributes?.current_temperature;
+    if (acceso && obiettivo !== undefined) gradi = `${obiettivo}°`;
+    else if (ambiente !== undefined) gradi = `${Math.round(ambiente)}°`;
+  }
+  const tasto = doc.createElement("button");
+  tasto.type = "button";
+  tasto.className = `ns-clima-btn${acceso ? (freddo ? " on-clima" : " on-heat") : ""}`;
+  tasto.setAttribute("data-entity", unita.entity);
+  tasto.onclick = () => {
+    if (freddo) root.nsToggleClima?.(unita.entity);
+    else root.nsToggleTerm?.(unita.entity);
+  };
+  const nome = clean(unita.name) || clean(unita.room) || unita.entity;
+  const icona = clean(unita.room) ? "🚪" : freddo ? "❄️" : "🔥";
+  tasto.innerHTML =
+    `${gradi ? `<span class="ns-clima-btn-temp">${esc(gradi)}</span>` : ""}` +
+    `<span class="ns-clima-btn-icon">${esc(icona)}</span>` +
+    `<span class="ns-clima-btn-name">${esc(nome)}</span>`;
+  return tasto;
+}
+
+export function disegnaClimaRapido() {
+  const griglia = doc?.getElementById?.("quick-clima-grid");
+  if (!griglia) return false;
+  /* Senza nemmeno un'unita' configurata non c'e' niente di meglio da mettere:
+   * si lascia quello che il runtime ha disegnato. */
+  if (!climateUnits().length) return false;
+  const modo = clean(lexicalGlobal("currentClimaMode")).toLowerCase() || "freddo";
+  const unita = unitaDelModo(modo);
+  const states = allStates();
+  griglia.replaceChildren();
+  if (!unita.length) {
+    const vuoto = doc.createElement("p");
+    vuoto.className = "ns-clima-empty";
+    vuoto.textContent =
+      modo === "caldo"
+        ? t("Nessun termosifone configurato", "No radiator configured")
+        : t("Nessun condizionatore configurato", "No air conditioner configured");
+    griglia.append(vuoto);
+    return true;
+  }
+  for (const voce of unita) griglia.append(tastoRapido(voce, states));
+  return true;
+}
+
+function installClimaRapido() {
+  wrapFunction("renderQuickClima", "__dmClimaRapidoStanze", () => disegnaClimaRapido());
+}
+
+/* La finestra della pagina Clima prende il pannello della tessera.
+ *
+ * Nel guscio le modalita' sono cinque, scritte a mano: freddo, caldo, ventola,
+ * secco, auto — le stesse per tutti, e nascoste in blocco quando il nome
+ * dell'entita' contiene la parola «termosifone». Un tasto che l'unita' non sa
+ * eseguire e' peggio di un tasto che non c'e', e una pompa di calore chiamata
+ * in un altro modo restava senza modalita' del tutto.
+ *
+ * Il pannello della tessera quelle cose le sa gia': legge `hvac_modes` e
+ * `fan_modes` dell'unita' aperta e offre solo quelle. Qui si mette al posto
+ * delle due sezioni scritte a mano. I tasti li ascolta il giro dei widget, che
+ * ascolta il documento e non la finestra: non c'e' niente da ricucire. */
+function pannelloNellaFinestra(entity) {
+  const finestra = doc?.querySelector?.("#clima-popup-overlay .clima-popup");
+  if (!finestra) return false;
+  const modalita = doc.getElementById("cp-mode-section");
+  const ventola = doc.getElementById("cp-fan-section");
+  const markup = climatePanelMarkup(entity);
+  let ospite = finestra.querySelector("[data-dm-cl-panel]");
+  /* Si scrive `display`, non `hidden`: le due sezioni del guscio se lo
+   * scrivono da sole a ogni apertura, in linea, e una regola in linea batte
+   * l'attributo. */
+  if (!markup) {
+    ospite?.remove();
+    /* Senza pannello si torna a quello che c'era: e' meglio di niente. */
+    for (const nodo of [modalita, ventola]) nodo?.style?.removeProperty("display");
+    return false;
+  }
+  for (const nodo of [modalita, ventola]) nodo?.style?.setProperty("display", "none", "important");
+  if (!ospite) {
+    ospite = doc.createElement("div");
+    ospite.setAttribute("data-dm-cl-panel", "");
+    (modalita || ventola)?.before(ospite);
+    if (!ospite.isConnected) finestra.append(ospite);
+  }
+  if (ospite.innerHTML !== markup) ospite.innerHTML = markup;
+  intestazioneDellaFinestra(entity);
+  return true;
+}
+
+/* E il nome in cima alla finestra e' quello che si e' scelto.
+ *
+ * Nel guscio c'e' una tabella scritta a mano che traduce dieci entita' — le
+ * dieci della casa di chi ha scritto la plancia — in «Condizionatore Salone» e
+ * simili; per tutte le altre resta il pezzo dopo il punto dell'entita'. In una
+ * casa qualunque vuol dire aprire «Pompa Salone» e leggere «pompa». Il nome
+ * vero e la stanza stanno nella configurazione, che e' dove li si e' scritti. */
+const ICONE_CLIMA = Object.freeze({ termo: "🔥", pompa: "♨️", clima: "❄️" });
+
+function intestazioneDellaFinestra(entity) {
+  const chiave = clean(entity);
+  const grezza = readClimateUnits().find(
+    (voce) => clean(voce?.entity || voce?.entity_id || voce?.entities?.[0]) === chiave,
+  );
+  const unita = climateUnits().find((voce) => voce.entity === chiave);
+  if (!unita) return false;
+  const nome = doc?.getElementById?.("cp-name");
+  const stanza = doc?.getElementById?.("cp-room");
+  const glifo = ICONE_CLIMA[canonicalClimateType(grezza?.type)] || "🌡️";
+  if (nome && clean(unita.name)) nome.textContent = unita.name;
+  if (stanza) stanza.textContent = `${glifo} ${clean(unita.room) || t("Clima", "Climate")}`;
+  return true;
+}
+
+/* Qui non basta `wrapFunction`: quello richiama a cose fatte ma senza dire con
+ * che argomenti, e l'entita' aperta e' proprio l'argomento. */
+function installPannelloDellaFinestra() {
+  const originale = root.apriClimaPopup;
+  if (typeof originale !== "function" || originale.__dmClimaPopupPanel) return false;
+  function avvolto(entity, ...resto) {
+    const esito = originale.call(this, entity, ...resto);
+    state.climaAperta = clean(entity);
+    root.queueMicrotask?.(() => pannelloNellaFinestra(state.climaAperta));
+    return esito;
+  }
+  Object.assign(avvolto, originale);
+  avvolto.__dmClimaPopupPanel = true;
+  avvolto.__dmPrevious = originale;
+  root.apriClimaPopup = avvolto;
+  /* Finche' la finestra e' aperta il pannello segue i gradi: cambia l'unita',
+   * cambia quello che c'e' scritto sui tasti. */
+  if (!state.climaAscolto) {
+    state.climaAscolto = true;
+    root.addEventListener?.("dashboardmodern:state-changed", () => {
+      const velo = doc?.getElementById?.("clima-popup-overlay");
+      if (velo?.classList?.contains("show") && state.climaAperta)
+        pannelloNellaFinestra(state.climaAperta);
+    });
+  }
+  return true;
 }
 
 export function installClimateThermalSection() {

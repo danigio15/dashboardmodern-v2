@@ -302,7 +302,6 @@ export default Object.freeze({
   "Active climate": "Clima ativo",
   "Active in the EV section — tap to remove it": "Ativa na secção EV — toque para remover",
   "Active renderer": "Renderizador ativo",
-  "Active": "Ativo",
   "Activity": "Atividade",
   "Add": "Adicionar",
   "Add appliance": "Adicionar eletrodoméstico",

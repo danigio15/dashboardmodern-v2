@@ -302,7 +302,6 @@ export default Object.freeze({
   "Active climate": "مناخ نشط",
   "Active in the EV section — tap to remove it": "مفعّلة في قسم السيارة — اضغط لإزالتها",
   "Active renderer": "المُصيِّر النشط",
-  "Active": "نشط",
   "Activity": "النشاط",
   "Add": "إضافة",
   "Add appliance": "إضافة جهاز",

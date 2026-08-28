@@ -195,6 +195,29 @@ function tokenContains(token, candidate) {
   );
 }
 
+/**
+ * Il disegno di un elettrodomestico, deciso una volta sola.
+ *
+ * La stessa domanda se la facevano in due modi diversi: la scheda guardava
+ * `visual_key`, `device_type`, `icon`, `type` e — per i record vecchi salvati
+ * come «generico» — anche il nome; la tessera della Home chiedeva al runtime
+ * storico, che conosce un elenco piu' corto e risponde «generico» per tutto il
+ * resto. Cosi' lo stesso apparecchio aveva l'obló nella sua pagina e una
+ * bolla anonima in Home. La domanda adesso e' una.
+ *
+ * @param {object} device l'elettrodomestico configurato
+ * @returns {string} la chiave del disegno, mai vuota
+ */
+export function applianceVisualKey(device = {}) {
+  const dichiarati = [device?.visual_key, device?.device_type, device?.icon, device?.type]
+    .map((value) => canonicalApplianceVisualKey(value) || "")
+    .filter(Boolean);
+  const preciso = dichiarati.find((key) => key !== "generico");
+  if (preciso) return preciso;
+  const dalNome = canonicalApplianceVisualKey(device?.name) || "";
+  return dalNome || dichiarati[0] || "generico";
+}
+
 export function canonicalApplianceVisualKey(value = "") {
   const token = normalizedToken(value);
   if (!token) return "";

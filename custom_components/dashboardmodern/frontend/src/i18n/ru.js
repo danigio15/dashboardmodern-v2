@@ -302,7 +302,6 @@ export default Object.freeze({
   "Active climate": "Климат активен",
   "Active in the EV section — tap to remove it": "Активна в разделе EV — нажмите, чтобы убрать",
   "Active renderer": "Активный рендерер",
-  "Active": "Активен",
   "Activity": "Активность",
   "Add": "Добавить",
   "Add appliance": "Добавить прибор",

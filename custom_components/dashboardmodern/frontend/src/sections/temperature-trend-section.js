@@ -31,8 +31,15 @@ const VIEW = Object.freeze({ width: 720, height: 250, left: 38, right: 54, top: 
 function viewFor(panel) {
   const plot = panel?.querySelector?.(".dm-trend-plot");
   const width = Math.max(320, Math.round(plot?.clientWidth || VIEW.width));
-  const height = width < 520 ? 210 : VIEW.height;
-  return { ...VIEW, width, height };
+  /* Il disegno cresce con la pagina.
+   *
+   * Il pannello si fermava a mille e ventiquattro pixel e il grafico a
+   * duecentocinquanta di altezza: su uno schermo largo restava una striscia
+   * bassa in mezzo alla sezione, con le linee tutte schiacciate le une sulle
+   * altre. Adesso il pannello e' largo quanto tutto il resto e il disegno
+   * cresce con lui, cosi' due gradi di differenza si vedono come due gradi. */
+  const height = width < 520 ? 210 : width < 900 ? VIEW.height : 320;
+  return { ...VIEW, width, height, left: width < 520 ? VIEW.left : 44 };
 }
 const COMFORT = Object.freeze({ low: 18, high: 26 });
 const SERIES_COLOURS = Object.freeze([
@@ -458,7 +465,7 @@ function installStyles() {
   installStyle(
     "dm-temperature-trend-style",
     `
-    #dm-temperature-trend{--dm-trend-surface:var(--ha-card-background,var(--card-bg,#fff));box-sizing:border-box!important;display:grid!important;gap:12px!important;width:calc(100% - 36px)!important;max-width:1024px!important;margin:6px 18px 30px!important;padding:16px 18px 14px!important;border:1px solid var(--card-border,var(--divider-color,#e2e8f0))!important;border-radius:24px!important;background:linear-gradient(180deg,var(--dm-trend-surface),color-mix(in srgb,var(--primary-color,#0ea5e9) 3%,var(--dm-trend-surface)))!important;box-shadow:0 16px 34px -22px rgba(15,23,42,.5)!important}
+    #dm-temperature-trend{--dm-trend-surface:var(--ha-card-background,var(--card-bg,#fff));box-sizing:border-box!important;display:grid!important;gap:12px!important;width:calc(100% - 36px)!important;margin:6px 18px 30px!important;padding:18px 22px 16px!important;border:1px solid var(--card-border,var(--divider-color,#e2e8f0))!important;border-radius:24px!important;background:linear-gradient(180deg,var(--dm-trend-surface),color-mix(in srgb,var(--primary-color,#0ea5e9) 3%,var(--dm-trend-surface)))!important;box-shadow:0 16px 34px -22px rgba(15,23,42,.5)!important}
     #dm-temperature-trend[data-state="empty"] .dm-trend-plot,#dm-temperature-trend[data-state="empty"] .dm-trend-legend,#dm-temperature-trend[data-state="loading"] .dm-trend-plot,#dm-temperature-trend[data-state="loading"] .dm-trend-legend{display:none!important}
     #dm-temperature-trend[data-state="ready"] .dm-trend-empty{display:none!important}
     #dm-temperature-trend .dm-trend-empty{margin:2px 0 4px!important;color:var(--text-dim,#64748b)!important;font-size:12.5px!important;font-weight:750!important}
@@ -471,17 +478,18 @@ function installStyles() {
     #dm-temperature-trend .dm-trend-range.active{background:var(--dm-trend-surface)!important;color:var(--text,#0f172a)!important;box-shadow:0 4px 12px -6px rgba(15,23,42,.5)!important}
     #dm-temperature-trend .dm-trend-plot{width:100%!important;min-width:0!important}
     #dm-temperature-trend .dm-trend-chart{display:block!important;width:100%!important;height:250px!important}
+    @media(min-width:900px){#dm-temperature-trend .dm-trend-chart{height:320px!important}}
     #dm-temperature-trend .dm-trend-night rect{fill:color-mix(in srgb,var(--text-dim,#64748b) 8%,transparent)!important}
     #dm-temperature-trend .dm-trend-band{fill:color-mix(in srgb,var(--success-color,#10b981) 12%,transparent)!important}
     #dm-temperature-trend .dm-trend-axis line{stroke:color-mix(in srgb,var(--text-dim,#64748b) 24%,transparent)!important;stroke-width:1!important;stroke-dasharray:3 4!important;vector-effect:non-scaling-stroke!important}
     #dm-temperature-trend .dm-trend-axis line.dm-trend-baseline{stroke-dasharray:none!important;stroke:color-mix(in srgb,var(--text-dim,#64748b) 30%,transparent)!important}
-    #dm-temperature-trend .dm-trend-tick,#dm-temperature-trend .dm-trend-time{fill:var(--text-dim,#64748b)!important;font-size:9px!important;font-weight:800!important}
+    #dm-temperature-trend .dm-trend-tick,#dm-temperature-trend .dm-trend-time{fill:var(--text-dim,#64748b)!important;font-size:11px!important;font-weight:800!important;font-variant-numeric:tabular-nums!important}
     #dm-temperature-trend .dm-trend-tick{text-anchor:end!important}
     #dm-temperature-trend .dm-trend-band-label{fill:var(--success-color,#10b981)!important;font-size:8.5px!important;font-weight:900!important;letter-spacing:.14em!important;text-transform:uppercase!important}
-    #dm-temperature-trend .dm-trend-value{fill:rgb(var(--dm-series))!important;font-size:11px!important;font-weight:900!important}
+    #dm-temperature-trend .dm-trend-value{fill:rgb(var(--dm-series))!important;font-size:12.5px!important;font-weight:900!important;font-variant-numeric:tabular-nums!important;paint-order:stroke!important;stroke:var(--dm-trend-surface)!important;stroke-width:3.5!important;stroke-linejoin:round!important}
     #dm-temperature-trend .dm-trend-time{text-anchor:middle!important}
-    #dm-temperature-trend .dm-trend-area{fill:color-mix(in srgb,rgb(var(--dm-series)) 14%,transparent)!important}
-    #dm-temperature-trend .dm-trend-line{fill:none!important;stroke:rgb(var(--dm-series))!important;stroke-width:2!important;stroke-linecap:round!important;stroke-linejoin:round!important;vector-effect:non-scaling-stroke!important}
+    #dm-temperature-trend .dm-trend-area{fill:color-mix(in srgb,rgb(var(--dm-series)) 18%,transparent)!important}
+    #dm-temperature-trend .dm-trend-line{fill:none!important;stroke:rgb(var(--dm-series))!important;stroke-width:2.6!important;stroke-linecap:round!important;stroke-linejoin:round!important;vector-effect:non-scaling-stroke!important}
     #dm-temperature-trend .dm-trend-dot{fill:rgb(var(--dm-series))!important;stroke:var(--dm-trend-surface)!important;stroke-width:2!important;vector-effect:non-scaling-stroke!important}
     #dm-temperature-trend .dm-trend-legend{display:flex!important;flex-wrap:wrap!important;gap:8px!important}
     #dm-temperature-trend .dm-trend-chip{display:inline-flex!important;align-items:baseline!important;gap:7px!important;padding:7px 11px!important;border:1px solid color-mix(in srgb,rgb(var(--dm-series)) 26%,transparent)!important;border-radius:13px!important;background:color-mix(in srgb,rgb(var(--dm-series)) 8%,var(--dm-trend-surface))!important}

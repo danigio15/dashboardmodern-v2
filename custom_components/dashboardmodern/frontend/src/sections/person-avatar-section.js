@@ -127,10 +127,17 @@ export function disegnaPalpebre(pennello, occhi, quanto, curva = 0) {
 export const ESPRESSIONI = Object.freeze({
   /* Occhi aperti: si batte e basta. */
   sveglio: { chiusura: 0, curva: 0, battito: true },
-  /* Occhi socchiusi all'insu': e' la faccia di chi e' contento. */
-  contento: { chiusura: 0.52, curva: 0.42, battito: true },
+  /* Occhi socchiusi all'insu': e' la faccia di chi e' contento.
+   *
+   * Erano socchiusi a meta' e con la palpebra molto curva, e la curva scende
+   * SOTTO il bordo: fra le due, l'occhio di chi era in casa risultava quasi
+   * chiuso — «avatar a casa ha occhi chiusi praticamente». E il battito non si
+   * vedeva per lo stesso motivo: si disegna il piu' chiuso fra la posa e il
+   * battito, quindi tutta la prima meta' del battito spariva sotto la posa.
+   * Un sorriso negli occhi e' una strizzatina, non una dormita. */
+  contento: { chiusura: 0.26, curva: 0.3, battito: true },
   /* Palpebre pesanti, che respirano piano. */
-  assonnato: { chiusura: 0.6, curva: 0.05, battito: true },
+  assonnato: { chiusura: 0.5, curva: 0.05, battito: true },
 });
 
 /* Chi e' in casa porta la faccia contenta, ed era l'unica a non battere le

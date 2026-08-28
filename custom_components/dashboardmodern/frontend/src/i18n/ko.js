@@ -302,7 +302,6 @@ export default Object.freeze({
   "Active climate": "냉난방 가동 중",
   "Active in the EV section — tap to remove it": "EV 섹션에 표시 중 — 탭하면 제외",
   "Active renderer": "사용 중인 렌더러",
-  "Active": "작동 중",
   "Activity": "활동",
   "Add": "추가",
   "Add appliance": "가전 추가",

@@ -114,6 +114,22 @@ header.dm-testata-col-meteo .w-detail{
   /* «Umidita'» e «Vento» le dicono gia' la goccia e il soffio. */
   header.dm-testata-col-meteo .dm-meteo-parola{display:none}
 }
+/* Sul telefono stretto il nome della casa torna intero.
+ *
+ * Da quando la plancia tiene davvero la distanza dai bordi, la fascia e'
+ * ventotto pixel piu' stretta: se li prendeva il nome, che si accorciava coi
+ * puntini — «Smart Home» diventava «Smart Ho…». Il nome e' l'unica parola che
+ * dice dove si e', quindi qui a cedere e' il meteo: il suo tetto di larghezza
+ * scende di ventisei pixel, quanti ne servono al nome.
+ *
+ * A cedere e' il tetto, non il contenuto. Il primo tentativo spegneva
+ * l'ultimo dettaglio del riquadro per fare spazio, e l'ultimo dettaglio non
+ * e' sempre lo stesso: dove c'e' la percepita era lei a sparire, cioe' un
+ * dato che il riquadro aveva e non mostrava piu'. Una riga che si accorcia si
+ * legge lo stesso; una riga che non c'e' non si legge affatto. */
+@media(max-width:560px){
+  header.dm-testata-col-meteo .weather-widget{max-width:112px;padding:4px 8px}
+}
 /* Lo stato della connessione e' un puntino, non una frase.
  *
  * «Connesso» accanto a un pallino verde e' la stessa cosa detta due volte, e

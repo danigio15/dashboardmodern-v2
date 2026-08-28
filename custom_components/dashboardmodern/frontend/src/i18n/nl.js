@@ -302,7 +302,6 @@ export default Object.freeze({
   "Active climate": "Klimaat actief",
   "Active in the EV section — tap to remove it": "Actief in de EV-sectie — tik om te verwijderen",
   "Active renderer": "Actieve renderer",
-  "Active": "Actief",
   "Activity": "Activiteit",
   "Add": "Toevoegen",
   "Add appliance": "Apparaat toevoegen",

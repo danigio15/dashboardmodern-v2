@@ -73,15 +73,19 @@ export function installThemeFoundationSection() {
      * muove — e' fissa, il margine del corpo non la riguarda — e le finestre
      * nemmeno, per lo stesso motivo. Le tacche del telefono si rispettano,
      * dove ci sono. */
+    /* La misura sta in un posto solo.
+     *
+     * La prima volta questa regola l'aveva scritta due volte: qui, e nel foglio
+     * del chiosco, che sui telefoni e' sempre acceso e la scriveva col peso
+     * massimo, chiedendo la tacca laterale con zero come ripiego. Su un
+     * telefono senza tacca quella misura vale zero, e vinceva: il
+     * margine c'era, scritto, e non si e' mai visto. Adesso la distanza ha un
+     * nome, e chi ha bisogno di ripeterla ripete il nome. */
+    :root{--dm-gutter:14px}
+    @media(min-width:769px){:root{--dm-gutter:22px}}
     body{
-      padding-left:max(14px,env(safe-area-inset-left,0px));
-      padding-right:max(14px,env(safe-area-inset-right,0px));
-    }
-    @media(min-width:769px){
-      body{
-        padding-left:max(22px,env(safe-area-inset-left,0px));
-        padding-right:max(22px,env(safe-area-inset-right,0px));
-      }
+      padding-left:max(var(--dm-gutter),env(safe-area-inset-left,0px));
+      padding-right:max(var(--dm-gutter),env(safe-area-inset-right,0px));
     }
   `);
   return true;

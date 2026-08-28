@@ -302,7 +302,6 @@ export default Object.freeze({
   "Active climate": "空調稼働中",
   "Active in the EV section — tap to remove it": "EVセクションに表示中 — タップで外す",
   "Active renderer": "使用中のレンダラー",
-  "Active": "稼働中",
   "Activity": "アクティビティ",
   "Add": "追加",
   "Add appliance": "家電を追加",

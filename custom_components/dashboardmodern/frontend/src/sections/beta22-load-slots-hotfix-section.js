@@ -234,14 +234,6 @@ function writeLoadNode(node, load, period, value) {
   node.dataset.dmCanonicalLoadPeriod = period;
 }
 
-function removeTemporaryEnergyLoads() {
-  doc
-    ?.querySelectorAll?.(
-      "[data-energy-load-node],[data-energy-load-arc],[data-energy-loads-editor],.dm-energy-loads-editor",
-    )
-    .forEach((node) => node.remove());
-}
-
 /* Beta 30 renders one computed bubble per configured Load and owns the whole
  * stage topology. When it is installed this corrective stands down instead of
  * re-showing the five fixed circles underneath it; the SOC, Temperature and
@@ -252,7 +244,6 @@ function dynamicFlowOwnerInstalled() {
 
 function syncCanonicalLoadBubbles() {
   if (!doc || dynamicFlowOwnerInstalled()) return false;
-  removeTemporaryEnergyLoads();
   /* Anche il giro storico mostra un impianto per volta.
    *
    * Questo e' il disegno di ripiego — quello vero lo fa `energy-flow-section`,
@@ -408,17 +399,25 @@ function repairEnergyCostEditor() {
   return true;
 }
 
-function repairEnergyEditor() {
-  removeTemporaryEnergyLoads();
-  repairEnergyCostEditor();
+/* La scheda di configurazione c'e' o non c'e'.
+ *
+ * Non si nasconde: il runtime la crea quando si apre e la toglie dal documento
+ * quando si chiude. Quindi cercarla e' la domanda giusta, e le due riparazioni
+ * qui sotto — che parlano solo di quello che sta dentro la scheda — non hanno
+ * niente da fare finche' la risposta e' no. Prima ci passavano lo stesso, a
+ * ogni giro di stati: due giri completi del documento per non trovare mai
+ * nulla, piu' volte al secondo. */
+function schedaAperta() {
+  return Boolean(doc?.getElementById?.("editor-modal") || doc?.getElementById?.("ed-body"));
 }
 
 function applyAll() {
   flowState.frame = 0;
   syncCanonicalLoadBubbles();
   syncBatterySoc();
+  if (!schedaAperta()) return;
   repairTemperatureRows();
-  repairEnergyEditor();
+  repairEnergyCostEditor();
 }
 
 function schedule(delay = 0) {
@@ -486,7 +485,6 @@ function installStyle() {
   const style = doc.createElement("style");
   style.id = "dm-beta22-load-slots-hotfix-style";
   style.textContent = `
-    [data-energy-loads-editor],.dm-energy-loads-editor,[data-energy-load-node],[data-energy-load-arc]{display:none!important}
     #editor-modal [data-temperature-room],#ed-body [data-temperature-room]{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto auto!important;align-items:center!important;column-gap:12px!important}
     #editor-modal [data-temperature-room] .ed-row-main,#ed-body [data-temperature-room] .ed-row-main{display:flex!important;flex-direction:column!important;justify-content:center!important;min-width:0!important;width:auto!important;max-width:none!important;opacity:1!important;visibility:visible!important;overflow:visible!important}
     #editor-modal [data-temperature-room] .ed-row-new,#ed-body [data-temperature-room] .ed-row-new{display:block!important;position:static!important;width:auto!important;max-width:100%!important;min-width:0!important;height:auto!important;opacity:1!important;visibility:visible!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:var(--text,#0f172a)!important;font-weight:800!important;font-size:16px!important;line-height:1.25!important}

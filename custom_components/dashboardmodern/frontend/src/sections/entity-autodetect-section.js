@@ -35,7 +35,8 @@
  * `edAutoRileva` runs instead.
  */
 import { ENERGY_SLOT_MAP } from "../core/energy-projection.js";
-import { keptSemanticsVersion } from "../core/energy-writer.js";
+import { keptSemanticsVersion, scriviNellImpianto } from "../core/energy-writer.js";
+import { impiantoScelto } from "./energy-section.js";
 import { buildEntityIndex } from "../core/entity-search-index.js";
 import { buildPostings, detectCategories, detectSlots, parseSlotPlan } from "../core/entity-autodetect.js";
 import { allStates, clean, dashboardStore, doc, installStyle, lexicalGlobal, readJson, reloadDashboard, root, t } from "./shared.js";
@@ -396,12 +397,21 @@ async function writeEnergyAssignments(assignments) {
   if (!energy.length) return assignments;
   const store = dashboardStore();
   const rest = assignments.filter((item) => !ENERGY_SLOT_PATHS.has(item.ref));
-  const model = store?.getSection ? { ...(store.getSection("energy") || {}) } : readJson("cd_energy_model", {}) || {};
-  for (const item of energy) {
-    const [group, key] = ENERGY_SLOT_PATHS.get(item.ref);
-    model[group] = { ...(model[group] || {}) };
-    if (!clean(model[group][key])) model[group][key] = item.id;
-  }
+  const salvato = store?.getSection
+    ? { ...(store.getSection("energy") || {}) }
+    : readJson("cd_energy_model", {}) || {};
+  /* Quello che si riconosce va nell'impianto aperto.
+   *
+   * Scriveva sempre al primo livello, cioe' nella prima casa: con la seconda
+   * davanti agli occhi, i sensori riconosciuti finivano sull'altra e la
+   * maschera restava vuota. */
+  const model = scriviNellImpianto(salvato, impiantoScelto(), (bersaglio) => {
+    for (const item of energy) {
+      const [group, key] = ENERGY_SLOT_PATHS.get(item.ref);
+      bersaglio[group] = { ...(bersaglio[group] || {}) };
+      if (!clean(bersaglio[group][key])) bersaglio[group][key] = item.id;
+    }
+  });
   model.metadata = { ...(model.metadata || {}), semantics_version: keptSemanticsVersion(model.metadata) };
   if (store?.replaceSection) await store.replaceSection("energy", model);
   else writeJson("cd_energy_model", model);

@@ -135,8 +135,11 @@ test("un avviso che non si sa leggere si muove lo stesso", async ({ page }, test
     window.dispatchEvent(new CustomEvent("dashboardmodern:states-ready"));
   });
 
-  /* L'avviso personalizzato vive nella tessera del ponte dei widget: entra
-   * con la sua animazione e, da avviso, respira col ping dell'accento. */
+  /* L'avviso personalizzato vive nella tessera del ponte dei widget: entra con
+   * la sua animazione e, da avviso, respira. Il respiro adesso e' l'alone
+   * dietro la tessera invece dell'anello attorno alla pastiglia: un avviso di
+   * cui non si sa il mestiere non ha un movimento suo — la porta che oscilla,
+   * la goccia che cade — e questo e' il segno che vale per tutti. */
   const tessera = page.locator('#dm-widgets [data-dm-widget="custom-0"]');
   await expect(tessera).toBeVisible();
   await expect(tessera).toHaveAttribute("data-alert", "true");
@@ -146,7 +149,7 @@ test("un avviso che non si sa leggere si muove lo stesso", async ({ page }, test
       tessera.evaluate((nodo) =>
         nodo
           .getAnimations({ subtree: true })
-          .some((animazione) => animazione.animationName === "dmWidgetPing"),
+          .some((animazione) => animazione.animationName === "dmTileRespiro"),
       ),
     )
     .toBe(true);

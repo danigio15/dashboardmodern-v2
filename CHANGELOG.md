@@ -5,6 +5,138 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## 1.3.3
+
+### Cambiato
+
+- **La Home ha una grafica sola.** Le tessere dei widget e le card delle Azioni
+  rapide erano due idee di card impilate una sotto l'altra — orizzontale e
+  colorata la prima, quadrata bianca e spoglia la seconda — e si vedeva. Adesso
+  le azioni stanno dentro un ripiano incavato: le tessere sporgono dalla pagina,
+  i tasti ci sprofondano dentro. Sopra quello che si legge, sotto quello che si
+  preme, e la geometria del tasto ha finalmente un padrone solo invece di due
+  che se la scrivevano col peso massimo.
+
+- **Le tessere sono in tre righe, e i nomi ci entrano.** Il nome divideva la
+  riga con la misura e la misura vinceva sempre: con «Temperatura» al nome
+  restavano zero pixel e finiva coi puntini. Adesso la prima riga e' della
+  pastiglia e del nome, la seconda del numero, la terza del dettaglio con la
+  misura accanto. E un nome non finisce mai coi puntini: se non entra si
+  stringe la spaziatura, poi si scende di corpo, e solo alla fine si va a capo
+  — «Elettrodomestici» entra in una riga sola anche su un telefono da 320
+  pixel. Provato a 320, 360, 390, 430, 768 e 1240.
+
+- **Le tessere portano oggetti disegnati al posto delle emoji.** Ogni sistema
+  disegna le emoji a modo suo, e sei tessere vicine avevano sei stili diversi:
+  la lampadina lucida di Android accanto al fiocco piatto. Adesso sono oggetti
+  con vetro, riflesso e ombra propria, tutti con la stessa luce che viene
+  dall'alto — e la finestra che si apre porta lo stesso oggetto della tessera
+  da cui e' partita, con il titolo che si stringe invece di finire sotto il
+  tasto di chiusura.
+
+- **E' colorato solo chi ha qualcosa da dire.** Le tessere gridavano tutte allo
+  stesso modo, e quando gridano tutte non si sente nessuna. Una tessera adesso
+  nasce calma e prende il colore — velo, pastiglia, ombra lunga — solo quando
+  il suo stato lo merita: luci accese, clima in funzione, un'apertura da
+  chiudere, l'auto attaccata alla presa. Nel momento in cui si accende, una
+  lama di luce del suo colore l'attraversa una volta sola.
+
+- **A ogni tessera la misura del suo mestiere.** Al posto della barretta uguale
+  per tutti: i segmenti per le cose che si contano (due luci accese su quattro
+  si leggono senza il numero), la batteria che si riempie per la carica
+  dell'auto, la barra per il resto. Dove una misura che appartiene alla cosa
+  non c'e', non si mette niente.
+
+### Corretto
+
+- **Il nome della casa tornava tagliato in testata.** Adesso che la plancia
+  tiene davvero le distanze dai bordi, la fascia in alto ha ventotto pixel in
+  meno e se li e' presi il meteo. Sui telefoni stretti il meteo si stringe e
+  lascia a casa l'ultimo dettaglio — il vento sta comunque nella sua pagina —
+  e il nome della casa, che e' l'unica parola che dice dove sei, torna intero.
+
+- **L'auto risultava attaccata alla presa col cavo staccato.** Per accendere la
+  tessera si cercava dentro lo stato della ricarica la parola «charging» o
+  «plug»: «not_charging», «disconnected» e «unplugged» contengono la stessa
+  parola e dicono l'esatto contrario. Adesso si guardano prima le negazioni, e
+  le lettere della norma — A nessun veicolo, B collegato, C e D in carica — si
+  leggono per quello che sono.
+
+- **In Energia i conflitti dei periodi si contavano su un impianto e si
+  svuotavano su un altro.** L'avviso leggeva sempre la prima casa: chi guardava
+  la seconda si vedeva elencare campi che non erano suoi, e premendo «Svuota i
+  campi di periodo» perdeva i propri, che nell'elenco non c'erano. Chi legge e
+  chi scrive adesso guardano lo stesso impianto.
+
+- **La finestra della pagina Clima non sapeva aprire un'unita' tolta dalla
+  Home.** Il pannello che legge davvero cosa l'unita' accetta passava dal
+  modello della tessera, e quel modello e' filtrato: chi spegneva
+  l'interruttore «nel widget» su un termosifone se lo ritrovava, in pagina, coi
+  cinque tasti scritti a mano nel guscio. Il filtro e' una faccenda della
+  tessera, non della riga.
+
+- **Il Solare termico si diceva «Attivo» con la pompa ferma.** Senza sonda di
+  temperatura la tessera scriveva «Attivo» comunque, il contrario di quello che
+  diceva la didascalia due righe sotto. Senza sonda adesso parla la pompa.
+
+- **La Piscina annunciava «pH —» dove il pH non c'era.** La didascalia era
+  sempre il pH, anche quando quella sonda non era mai stata mappata: annunciava
+  un dato per dire di non averlo. Adesso parla la prima riga che ha qualcosa da
+  dire, o non parla.
+
+- **Il widget Energia diceva «0 W» con un contatore in kW.** Un misuratore che
+  pubblica in kW e' normale quanto uno in watt, e la tessera leggeva il numero
+  ignorando l'unita': 0,27 arrotondato all'intero fa zero, cioe' una casa
+  spenta mentre sta consumando duecentosettanta watt — col flusso che nella
+  stessa pagina, a due dita di distanza, scriveva 0,27 kW.
+
+- **Le finestre col solo sensore di apertura non arrivavano in Home.** Una
+  finestra con le persiane manuali e un contatto sull'anta non ha coperture da
+  elencare: la pagina Tapparelle la disegna da tempo, la tessera la saltava.
+  Chi ha solo i sensori non vedeva quali infissi aveva lasciato aperti, che e'
+  la cosa che si vuole sapere uscendo di casa. Adesso entra nel conteggio, e
+  non prende i comandi: le frecce su un contatto sarebbero una promessa che
+  nessuno mantiene.
+
+- **L'ordine delle stanze non arrivava alle pagine.** La scheda Stanze lascia
+  ordinarle, ma Luci, Clima, Tapparelle ed Elettrodomestici se lo riscrivevano
+  ognuna a modo suo: due in ordine alfabetico, una nell'ordine in cui le cose
+  erano state configurate, una che non ordinava affatto. Spostare una stanza in
+  cima sembrava non servire a niente. Adesso la domanda passa da un posto solo.
+
+- **Dal computer, con tante stanze, le ultime non si raggiungevano.** Il nastro
+  delle linguette scorre di lato con la barra nascosta apposta: col dito e' il
+  gesto giusto, col mouse quel gesto non esiste e la barra non c'e' da
+  afferrare. Con quattordici stanze le ultime otto restavano oltre il bordo
+  destro, visibili a meta'. Dove si punta col mouse la fila va a capo.
+
+- **Un'azione rapida su un pulsante non faceva niente.** Il servizio si
+  sceglieva da una riga sola — `turn_on` per script e scene, `toggle` per tutto
+  il resto — ma `toggle` non e' universale: un `button` ha soltanto `press`,
+  perche' non ha due stati da scambiare, e una `lock` ha `lock` e `unlock`.
+  Home Assistant rispondeva che il servizio non esiste, il messaggio restava in
+  console e il portone non si muoveva: da fuori, un tasto rotto.
+
+- **I flussi dell'Energia restavano indietro.** La scena si ridisegnava solo
+  agli eventi grossi — l'avvio, i pacchetti dello storico, un salvataggio — ma
+  le potenze istantanee le legge dagli stati vivi, che cambiano di continuo.
+  Misurato sullo stesso cambio: la bolla della batteria ci metteva 3127
+  millesimi ad accorgersene, adesso 308.
+
+- **I cerchi del flusso sparivano finche' non si ricaricava la pagina.** Il
+  foglio di stile del guscio a volte non arriva, o arriva tardissimo. Quando
+  succede la plancia sembra quasi normale — i moduli portano il proprio stile
+  con se' — ma i cerchi del flusso hanno le loro regole solo li' e restano
+  invisibili, con due archi tratteggiati appesi al nulla. Adesso quel foglio si
+  richiede da solo, tre volte, sempre piu' distanziate.
+
+- **«＋ Nuova auto» non svuotava le foto.** Il gesto e' «riparto da zero» e la
+  scheda si svuota in un punto solo: nome, entita', marca, modello. Le foto
+  erano l'eccezione, lasciate a una passata successiva. Quando quella arrivava
+  tardi, la scheda nuova restava vestita con le foto dell'auto in uso e «Salva
+  foto» gliele riscriveva addosso: il percorso battuto per la vettura che sta
+  nascendo finiva su un'altra.
+
 ## 1.3.2
 
 ### Corretto

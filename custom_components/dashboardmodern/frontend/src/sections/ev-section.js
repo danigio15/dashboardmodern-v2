@@ -800,6 +800,29 @@ function ensureCarListDecor() {
           modello.value = "";
           modello.dispatchEvent(new Event("change", { bubbles: true }));
         }
+        /* E le foto, che erano l'unica cosa lasciata a qualcun altro.
+         *
+         * Tutto il resto di questa scheda si svuota qui, adesso, come dice il
+         * commento sopra. Le foto no: si contava che le ripulisse la passata
+         * che ridisegna il pannello, riconoscendo dal titolo che l'auto di
+         * destinazione era cambiata. Quella passata arriva quasi sempre prima
+         * che uno se ne accorga — ma non e' garantito che arrivi prima, e
+         * quando arrivava dopo la scheda nuova restava vestita con le foto
+         * dell'auto in uso. Da li' «Salva foto» le riscriveva addosso a
+         * quella vecchia: il percorso battuto per la vettura che sta nascendo
+         * finiva su un'altra.
+         *
+         * Sulla prova del browser questo si vedeva come un rosso ogni tanto,
+         * sempre sullo stesso controllo e mai riproducibile a comando: era
+         * questa corsa, non la prova. Adesso non c'e' piu' niente da
+         * rincorrere — le foto si svuotano col resto, nello stesso gesto. */
+        const pannelloFoto = doc.querySelector("#ed-body [data-ev-photos]");
+        for (const casella of pannelloFoto?.querySelectorAll("[data-ev-photo]") || []) {
+          delete casella.dataset.evPhotoEdited;
+          const dentro = casella.querySelector("[data-ev-photo-input]");
+          if (dentro) dentro.value = "";
+          paintPhotoPreview(casella);
+        }
         campo.focus();
       });
       rigaNome.insertAdjacentElement("beforebegin", aggiungi);

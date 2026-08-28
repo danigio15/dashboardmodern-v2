@@ -108,6 +108,9 @@ test("le voci arrivano col return_response e si spuntano con update_item", () =>
   // tocco si espande nel dettaglio vivo.
   assert.match(sezione, /id = "dm-widgets"/);
   assert.match(sezione, /dm-widgets-title/);
+  /* «Widget» si scrive come «Azioni rapide»: solo la parola. Il simbolo che
+   * c'era davanti faceva di quella scritta un'altra cosa dalle sue sorelle. */
+  assert.doesNotMatch(sezione, /dm-widgets-title::before/);
   assert.match(sezione, /data-dm-widget=/);
   assert.match(sezione, /data-dm-widget-detail=/);
   assert.match(sezione, /getElementById\("dm-people"\)/);

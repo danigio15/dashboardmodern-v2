@@ -196,6 +196,34 @@ function sfondoSfocato(hero, image) {
   if (copia.getAttribute("src") !== src) copia.setAttribute("src", src);
 }
 
+/* La proporzione della foto a riposo, chiesta a chi la sta mostrando.
+ *
+ * La cornice deve tenere UNA forma sola: le due foto di un'auto — cavo
+ * staccato e cavo attaccato — quasi mai hanno la stessa proporzione, e
+ * misurando quella a schermo la cornice cambiava forma da sola quando si
+ * attaccava la spina.
+ *
+ * Quale delle due sia a schermo non serve andarlo a cercare nella
+ * configurazione: la sezione dell'auto lo scrive gia' sull'immagine, ogni
+ * volta che la monta. Prima lo si chiedeva alla configurazione, e per farlo
+ * questo modulo importava quello dell'auto: una freccia in piu' fra i moduli,
+ * che cambia l'ordine in cui si avviano — e l'ordine in cui si avviano e' la
+ * cosa da cui dipende chi vince quando due mettono mano alla stessa scheda.
+ * Un dato che sta gia' a schermo non vale una dipendenza.
+ *
+ * Cosi' sparisce anche la copia caricata di lato solo per farsi misurare: una
+ * richiesta in meno a ogni disegno, e nessuna misura che possa non tornare
+ * mai. Finche' la foto a riposo non si e' vista almeno una volta vale quella
+ * che c'e'; da li' in poi comanda lei. */
+function formaDellaCornice(image, loaded) {
+  const aSchermo = loaded && image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : 0;
+  if (aSchermo > 0 && image.dataset.evPhoto !== "plugged") {
+    state.formaRiposo = aSchermo;
+    return aSchermo;
+  }
+  return state.formaRiposo > 0 ? state.formaRiposo : aSchermo;
+}
+
 function syncPhoto(hero) {
   const image = doc.getElementById("ev-mod-car-img");
   if (!image) return;
@@ -226,10 +254,19 @@ function syncPhoto(hero) {
    * fessura, e un ritratto non deve farne una torre. Fuori da quei due
    * estremi si accetta un po' di margine ai lati — che e' sempre meglio di
    * una pagina sfondata. */
-  if (loaded) {
-    const forma = image.naturalWidth / image.naturalHeight;
-    const dentro = Math.max(1.15, Math.min(2.4, forma));
-    const scritta = dentro.toFixed(3);
+  /* La cornice tiene UNA forma sola, anche quando la foto cambia.
+   *
+   * Le foto di un'auto sono due — cavo staccato e cavo attaccato — e quasi mai
+   * hanno la stessa proporzione: ritagliate in momenti diversi, magari prese da
+   * due siti. Misurando quella a schermo, la cornice cambiava forma da sola
+   * quando si attaccava il cavo, e la stessa macchina si vedeva in due modi.
+   *
+   * La forma la detta sempre la foto a riposo, che e' quella che c'e' sempre.
+   * Se serve, si carica di lato solo per farsi misurare: non si disegna, si
+   * chiede solo quanto e' larga e quanto e' alta. */
+  const forma = formaDellaCornice(image, loaded);
+  if (forma) {
+    const scritta = Math.max(1.15, Math.min(2.4, forma)).toFixed(3);
     if (hero.style.getPropertyValue("--dm-evv-hero-ratio") !== scritta)
       hero.style.setProperty("--dm-evv-hero-ratio", scritta);
   } else hero.style.removeProperty("--dm-evv-hero-ratio");

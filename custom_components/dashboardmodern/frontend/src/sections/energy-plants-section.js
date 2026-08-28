@@ -26,7 +26,7 @@ import {
   plantList,
   storedPlants,
 } from "../core/energy-plants.js";
-import { IMPIANTO_SCELTO_KEY, impiantoScelto } from "./energy-section.js";
+import { IMPIANTO_SCELTO_KEY, impiantoScelto, scheduleEnergyRefresh } from "./energy-section.js";
 import {
   clean,
   dashboardStore,
@@ -76,6 +76,20 @@ function scegli(id) {
    * a diciassette moduli e' l'evento che gia' ascoltano quando la
    * configurazione cambia. */
   root.dispatchEvent?.(new CustomEvent("dashboardmodern:state-changed"));
+  /* E i periodi si rifanno il conto.
+   *
+   * Giornaliera, Mensile e Report non nascono dagli stati: nascono da un
+   * «bundle» che si chiede al registratore di Home Assistant, e chi lo chiede
+   * si sveglia sull'evento di stato guardando QUALE entita' e' cambiata.
+   * Cambiando impianto non cambia nessuna entita' — cambia quali si leggono —
+   * quindi quell'evento passava senza che nessuno lo raccogliesse: il disegno
+   * ripartiva sulle caselle nuove senza numeri dietro, e tutte e tre le
+   * linguette si azzeravano insieme finche' un sensore qualunque della casa
+   * nuova non si muoveva da solo. Cambiare impianto e' un cambio di
+   * configurazione, e lo si dice a chi tiene i conti. */
+  try {
+    scheduleEnergyRefresh(true);
+  } catch (_error) {}
   root.render?.();
   schedule();
 }

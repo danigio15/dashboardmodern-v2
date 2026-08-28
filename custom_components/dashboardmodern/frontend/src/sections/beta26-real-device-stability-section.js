@@ -1146,7 +1146,7 @@ function installStyles() {
   installStyle(
     "dm-beta27-real-device-stability-style",
     `
-      #dm-beta16-temperature-tabs{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;width:100%!important;margin:12px 0 8px!important;padding:0 18px!important;overflow-x:auto!important;scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important}
+      #dm-beta16-temperature-tabs{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;width:100%!important;margin:8px 0 0!important;padding:8px 18px 12px!important;overflow-x:auto!important;scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important}
       #dm-beta16-temperature-tabs[hidden]{display:none!important}
       #dm-beta16-temperature-tabs::-webkit-scrollbar{display:none!important}
       /* La veste tipografica e' quella delle pillole .sub-tab-btn di tutta la
@@ -1154,7 +1154,13 @@ function installStyles() {
        * solo il layout (icona, conteggio, scorrimento), non un font diverso. */
       #dm-beta16-temperature-tabs .dm-beta27-temperature-tab{--dm-tab-surface:var(--ha-card-background,var(--card-bg,#fff));font-family:inherit!important;display:inline-flex!important;align-items:center!important;gap:8px!important;flex:0 0 auto!important;min-height:44px!important;padding:9px 16px!important;border:1.5px solid var(--card-border,var(--divider-color,#dbe4ee))!important;border-radius:100px!important;background:var(--dm-tab-surface)!important;color:var(--text-dim,var(--secondary-text-color,#64748b))!important;font-size:12px!important;font-weight:800!important;letter-spacing:1.2px!important;text-transform:uppercase!important;box-shadow:0 8px 20px -12px rgba(15,23,42,.28)!important;transition:background .14s ease,border-color .14s ease,color .14s ease,transform .14s ease!important}
       #dm-beta16-temperature-tabs .dm-beta27-temperature-tab.active{border-color:color-mix(in srgb,var(--primary-color,#0ea5e9) 46%,transparent)!important;background:color-mix(in srgb,var(--primary-color,#0ea5e9) 12%,var(--dm-tab-surface))!important;color:var(--primary-color,#0284c7)!important;box-shadow:0 10px 22px -12px color-mix(in srgb,var(--primary-color,#0ea5e9) 55%,transparent)!important}
-      #dm-beta16-temperature-tabs .dm-beta27-temperature-tab>span:not(.dm-beta27-temperature-tab-icon){display:block!important;max-width:148px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+      /* Il nome della stanza ci deve stare. La striscia scorre gia' di lato,
+         quindi il taglio a 148px non serviva a proteggere niente: serviva solo
+         a far finire «Camera matrimoniale» in tre puntini. Adesso il tetto e'
+         largo quanto la maggior parte dello schermo, e le lettere spaziate
+         quel tanto che basta a leggersi senza rubare posto. */
+      #dm-beta16-temperature-tabs .dm-beta27-temperature-tab{letter-spacing:.6px!important}
+      #dm-beta16-temperature-tabs .dm-beta27-temperature-tab>span:not(.dm-beta27-temperature-tab-icon){display:block!important;max-width:min(240px,64vw)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
       #dm-beta16-temperature-tabs .dm-beta27-temperature-tab-icon{display:grid!important;place-items:center!important;width:24px!important;height:24px!important;font-size:20px!important;line-height:1!important}
       #dm-beta16-temperature-tabs small{display:grid!important;place-items:center!important;min-width:19px!important;height:19px!important;padding:0 5px!important;border-radius:999px!important;background:color-mix(in srgb,currentColor 15%,transparent)!important;color:inherit!important;font-size:9px!important;font-weight:900!important}
       #temp-grid .temp-card[hidden]{display:none!important}
@@ -1176,8 +1182,8 @@ function installStyles() {
       .dm-beta27-form-actions>*{flex:1 1 180px!important}
       #subloads-modal .ev-waw-card{border-color:color-mix(in srgb,var(--dm-beta27-group-color,#0ea5e9) 42%,transparent)!important;box-shadow:0 24px 70px color-mix(in srgb,var(--dm-beta27-group-color,#0ea5e9) 18%,rgba(15,23,42,.28))!important}
       #subloads-title{color:var(--dm-beta27-group-color,var(--primary-color,#0ea5e9))!important}
-      @media(min-width:900px){#dm-beta16-temperature-tabs .dm-beta27-temperature-tab>span:not(.dm-beta27-temperature-tab-icon){max-width:220px!important}}
-      @media(max-width:640px){#dm-beta16-temperature-tabs{padding:0 14px!important}.dm-beta27-load-section{padding:11px!important}.dm-beta27-flow-node .ed-form-row,.dm-beta27-group-meta,.dm-beta27-new-group>.ed-form-row{display:grid!important;grid-template-columns:minmax(0,1fr) 70px!important}.dm-beta27-flow-node .ed-form-row>.dm-beta27-color,.dm-beta27-group-meta>.dm-beta27-color,.dm-beta27-new-group .dm-beta27-color{width:100%!important;min-width:0!important}.dm-beta27-child-row{grid-template-columns:minmax(0,1fr) repeat(2,42px)!important}.dm-beta27-child-row>.ed-del:nth-of-type(1),.dm-beta27-child-row>.ed-del:nth-of-type(2){display:none!important}}
+      @media(min-width:900px){#dm-beta16-temperature-tabs .dm-beta27-temperature-tab>span:not(.dm-beta27-temperature-tab-icon){max-width:320px!important}}
+      @media(max-width:640px){#dm-beta16-temperature-tabs{padding:8px 14px 12px!important}.dm-beta27-load-section{padding:11px!important}.dm-beta27-flow-node .ed-form-row,.dm-beta27-group-meta,.dm-beta27-new-group>.ed-form-row{display:grid!important;grid-template-columns:minmax(0,1fr) 70px!important}.dm-beta27-flow-node .ed-form-row>.dm-beta27-color,.dm-beta27-group-meta>.dm-beta27-color,.dm-beta27-new-group .dm-beta27-color{width:100%!important;min-width:0!important}.dm-beta27-child-row{grid-template-columns:minmax(0,1fr) repeat(2,42px)!important}.dm-beta27-child-row>.ed-del:nth-of-type(1),.dm-beta27-child-row>.ed-del:nth-of-type(2){display:none!important}}
     `,
   );
 }

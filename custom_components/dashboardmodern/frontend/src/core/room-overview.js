@@ -51,6 +51,39 @@ export const roomKey = (value) => slug(value).replace(/^room-/, "");
  * nome di una stanza non la rompe, perche' dentro ci va l'id. */
 export const ROOM_ASSIGN_KEY = "cd_stanze_entita";
 
+/* L'ordine delle stanze e' uno solo, e vale ovunque.
+ *
+ * Chi ordina le stanze in configurazione lo fa per una ragione: e' l'ordine in
+ * cui gira per casa. Quell'ordine pero' arrivava solo alla pagina Stanze e
+ * alle tendine. Le pagine che raggruppano per stanza — Luci, Tapparelle,
+ * Elettrodomestici — se lo riscrivevano ognuna a modo suo: due in ordine
+ * alfabetico, una nell'ordine in cui le cose erano state configurate. Il
+ * bagnetto spostato in cima restava in fondo dappertutto, e l'ordinamento
+ * sembrava non essere servito a niente.
+ *
+ * La domanda «quale stanza viene prima» ha una risposta sola, ed e' questa.
+ * Le stanze che nessuno ha configurato — un nome scritto a mano su una luce,
+ * o il gruppo «senza stanza» — vanno in fondo, dove stavano.
+ */
+export function roomOrderRank(rooms = []) {
+  const posti = new Map();
+  array(rooms)
+    .map((room, index) => ({
+      nome: clean(room?.name),
+      posto: Number.isFinite(+room?.order) ? +room.order : index,
+    }))
+    .filter((voce) => voce.nome)
+    .sort((sinistra, destra) => sinistra.posto - destra.posto)
+    .forEach((voce, posizione) => {
+      const chiave = roomKey(voce.nome);
+      if (!posti.has(chiave)) posti.set(chiave, posizione);
+    });
+  return (nome) => {
+    const posto = posti.get(roomKey(clean(nome)));
+    return posto === undefined ? Number.MAX_SAFE_INTEGER : posto;
+  };
+}
+
 export const ROOM_BLOCKS = Object.freeze([
   { key: "clima", section: "climate" },
   { key: "luci", section: "lights" },

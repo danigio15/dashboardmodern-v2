@@ -616,8 +616,29 @@ function installStyles() {
 
       /* Le pillole sono quelle di Temperature: stessa forma, stesso font, stesso
        * conteggio. Due modi di disegnare la stessa cosa sarebbero due cose. */
-      #page-stanze .dm-stanze-tabs{display:flex;align-items:center;gap:10px;width:100%;margin:6px 0 4px;overflow-x:auto;scrollbar-width:none}
+      /* La striscia che scorre di lato taglia anche in alto e in basso.
+       *
+       * Lo scorrimento di lato porta con se' un taglio anche sull'altro verso: le
+       * pillole hanno un bordo e un'ombra che scende, e senza spazio dentro la
+       * striscia finivano tagliate contro la testata della sezione. Il posto
+       * per l'ombra si fa qui dentro, non fuori. */
+      #page-stanze .dm-stanze-tabs{display:flex;align-items:center;gap:10px;width:100%;margin:2px 0 0;padding:8px 2px 12px;overflow-x:auto;scrollbar-width:none}
       #page-stanze .dm-stanze-tabs::-webkit-scrollbar{display:none}
+      /* Col mouse la fila va a capo, invece di scorrere di lato.
+       *
+       * Il nastro scorre in orizzontale con la barra nascosta apposta: col
+       * dito e' il gesto giusto e la barra sarebbe solo sporcizia. Col mouse
+       * pero' quel gesto non esiste — la rotella sopra una fila orizzontale
+       * scorre la pagina in giu' — e la barra non c'e' da afferrare: con
+       * quattordici stanze le ultime otto restavano oltre il bordo destro,
+       * visibili a meta' e irraggiungibili.
+       *
+       * In verticale lo spazio c'e': la fila va a capo e ogni stanza sta a
+       * schermo, senza nessun gesto da scoprire. Dove si tocca, resta il
+       * nastro che si spinge col dito. */
+      @media (hover:hover) and (pointer:fine){
+        #page-stanze .dm-stanze-tabs{flex-wrap:wrap;overflow-x:visible}
+      }
       #page-stanze .dm-stanze-tab{font-family:inherit;display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;min-height:44px;padding:9px 16px;border:1.5px solid var(--divider-color,#dbe4ee);border-radius:100px;background:var(--card-bg,#fff);color:var(--text-dim,#64748b);font-size:12px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;box-shadow:0 8px 20px -12px rgba(15,23,42,.28)}
       #page-stanze .dm-stanze-tab.active{border-color:color-mix(in srgb,var(--primary-color,#0ea5e9) 46%,transparent);background:color-mix(in srgb,var(--primary-color,#0ea5e9) 12%,var(--card-bg,#fff));color:var(--primary-color,#0284c7)}
       #page-stanze .dm-stanze-tab>span:not(.dm-stanze-tab-icon){max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

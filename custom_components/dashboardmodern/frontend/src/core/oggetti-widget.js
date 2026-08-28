@@ -1,0 +1,250 @@
+/* Gli oggetti delle tessere: disegni, non simboli.
+ *
+ * Sulla plancia le tessere portavano un'emoji. Ogni sistema le disegna a modo
+ * suo — la lampadina di Android non e' quella di iOS, e accanto al fiocco di
+ * neve piatto arrivava un termometro lucido — cosi' sei tessere vicine avevano
+ * sei stili diversi. La strada opposta, i simboli a filo tutti uguali, e'
+ * peggio: sembrano finti, e una lampadina spenta a contorno grigio non sembra
+ * una lampadina.
+ *
+ * Qui ci sono oggetti: vetro, riflesso, ghiera di metallo, e sotto ognuno la
+ * sua ombra. Una sola fonte di luce per tutti, in alto a sinistra, ed e'
+ * quello che li tiene insieme — non lo spessore della linea.
+ *
+ * Ogni disegno sta in una griglia di 32x32 e si porta dietro le proprie
+ * sfumature. Due tessere che mostrano lo stesso oggetto ripetono gli stessi
+ * identificatori: sono definizioni identiche, quindi il disegno non cambia.
+ * Le tessere che uno si costruisce da se' ("custom-...") non hanno un oggetto
+ * nostro: per quelle resta il simbolo scelto da chi le ha fatte.
+ */
+
+const OMBRA = (cx, cy, rx) =>
+  `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="1.8" fill="#0b1220" opacity=".14"/>`;
+
+const OGGETTI = Object.freeze({
+  /* La lampadina: bulbo caldo, ghiera di metallo, il riflesso del vetro. */
+  luci: `<defs>
+      <radialGradient id="dmoLuceB" cx=".4" cy=".33" r=".75">
+        <stop offset="0" stop-color="#fffbe8"/><stop offset=".45" stop-color="#fcd34d"/>
+        <stop offset="1" stop-color="#f59e0b"/></radialGradient>
+      <linearGradient id="dmoLuceG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#cbd5e1"/><stop offset="1" stop-color="#7c8ba1"/></linearGradient></defs>
+    ${OMBRA(16, 27.6, 6.6)}
+    <path d="M16 3a8.6 8.6 0 0 0-5 15.5c.8.6 1.3 1.5 1.5 2.5l.2 1h6.6l.2-1c.2-1 .7-1.9 1.5-2.5A8.6 8.6 0 0 0 16 3Z" fill="url(#dmoLuceB)"/>
+    <path d="M12.4 22.6h7.2v1.6a2 2 0 0 1-2 2h-3.2a2 2 0 0 1-2-2Z" fill="url(#dmoLuceG)"/>
+    <path d="M13.4 24.6h5.2" stroke="#fff" stroke-opacity=".45" stroke-width="1.1"/>
+    <path d="M12.6 7.4a6 6 0 0 0-2.2 4.2" stroke="#fff" stroke-opacity=".8" stroke-width="1.7" fill="none" stroke-linecap="round"/>`,
+
+  /* Il fiocco: sei bracci di ghiaccio e il cuore chiaro nel mezzo. */
+  clima: `<defs>
+      <linearGradient id="dmoGelo" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#e0f2fe"/><stop offset=".5" stop-color="#38bdf8"/>
+        <stop offset="1" stop-color="#0284c7"/></linearGradient></defs>
+    <g stroke="url(#dmoGelo)" stroke-width="3" stroke-linecap="round">
+      <path d="M16 4v24M6.4 9.6l19.2 12.8M25.6 9.6 6.4 22.4"/></g>
+    <g stroke="url(#dmoGelo)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="m12.6 7.4 3.4 2.6 3.4-2.6M12.6 24.6l3.4-2.6 3.4 2.6"/></g>
+    <circle cx="16" cy="16" r="2.4" fill="#fff" opacity=".9"/>`,
+
+  /* Il termometro: mercurio dentro il vetro, e le tacche della scala. */
+  temperatura: `<defs>
+      <linearGradient id="dmoMerc" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#fecaca"/><stop offset=".45" stop-color="#ef4444"/>
+        <stop offset="1" stop-color="#b91c1c"/></linearGradient>
+      <linearGradient id="dmoVetro" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#e2e8f0"/>
+        <stop offset="1" stop-color="#b6c2d2"/></linearGradient></defs>
+    ${OMBRA(16, 29.2, 6)}
+    <path d="M19.4 18.2V6.6a3.4 3.4 0 1 0-6.8 0v11.6a6 6 0 1 0 6.8 0Z" fill="url(#dmoVetro)"/>
+    <circle cx="16" cy="22.6" r="4.1" fill="url(#dmoMerc)"/>
+    <rect x="14.6" y="9.4" width="2.8" height="11.4" rx="1.4" fill="url(#dmoMerc)"/>
+    <path d="M14.2 7.6v9.4" stroke="#fff" stroke-opacity=".75" stroke-width="1.1" stroke-linecap="round"/>
+    <g stroke="#94a3b8" stroke-width="1.1" stroke-linecap="round">
+      <path d="M20.8 10.6h2.2M20.8 13.8h1.4M20.8 17h2.2"/></g>`,
+
+  /* L'auto: scocca lucida, parabrezza chiaro, ruote in ombra. */
+  ev: `<defs>
+      <linearGradient id="dmoScocca" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#67e8f9"/><stop offset=".55" stop-color="#06b6d4"/>
+        <stop offset="1" stop-color="#0e7490"/></linearGradient>
+      <linearGradient id="dmoParab" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f1f9ff"/><stop offset="1" stop-color="#a5c8dd"/></linearGradient></defs>
+    ${OMBRA(16, 26.4, 10.6)}
+    <path d="M4.4 22.4v-4.2l2.2-5.4A3 3 0 0 1 9.4 11h13.2a3 3 0 0 1 2.8 1.8l2.2 5.4v4.2a1.6 1.6 0 0 1-1.6 1.6h-1.6a1.6 1.6 0 0 1-1.6-1.6v-.8H9.2v.8a1.6 1.6 0 0 1-1.6 1.6H6a1.6 1.6 0 0 1-1.6-1.6Z" fill="url(#dmoScocca)"/>
+    <path d="M8.6 17.4 10.2 13h11.6l1.6 4.4Z" fill="url(#dmoParab)"/>
+    <circle cx="9.6" cy="18.9" r="1.5" fill="#0b1220" opacity=".5"/>
+    <circle cx="22.4" cy="18.9" r="1.5" fill="#0b1220" opacity=".5"/>
+    <path d="M6.6 14.8h18.8" stroke="#fff" stroke-opacity=".3" stroke-width="1"/>`,
+
+  /* Il sole del solare termico: disco caldo e raggi corti. */
+  solare: `<defs>
+      <radialGradient id="dmoSole" cx=".38" cy=".34" r=".72">
+        <stop offset="0" stop-color="#fff7d6"/><stop offset=".5" stop-color="#fbbf24"/>
+        <stop offset="1" stop-color="#ea580c"/></radialGradient></defs>
+    <g stroke="#f59e0b" stroke-width="2.6" stroke-linecap="round" opacity=".92">
+      <path d="M16 2.8v3.2M16 26v3.2M29.2 16H26M6 16H2.8M25.4 6.6l-2.2 2.2M8.8 23.2l-2.2 2.2M25.4 25.4l-2.2-2.2M8.8 8.8 6.6 6.6"/></g>
+    <circle cx="16" cy="16" r="7.4" fill="url(#dmoSole)"/>
+    <path d="M11.9 11.5a5.5 5.5 0 0 0-1.6 3.3" stroke="#fff" stroke-opacity=".7" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
+
+  /* La porta: pannello, maniglia, e il pavimento sotto. */
+  aperture: `<defs>
+      <linearGradient id="dmoPorta" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#fca5a5"/><stop offset=".5" stop-color="#ef4444"/>
+        <stop offset="1" stop-color="#b91c1c"/></linearGradient></defs>
+    ${OMBRA(16, 28.6, 8.4)}
+    <path d="M4.4 27.4h23.2" stroke="#94a3b8" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M8.6 27V6.4A1.4 1.4 0 0 1 10 5h12a1.4 1.4 0 0 1 1.4 1.4V27Z" fill="url(#dmoPorta)"/>
+    <path d="M10.8 7.2h4V25h-4Z" fill="#fff" opacity=".17"/>
+    <circle cx="20.4" cy="16.4" r="1.4" fill="#fff" opacity=".9"/>`,
+
+  /* La tapparella: infisso e stecche mezze calate. */
+  tapparelle: `<defs>
+      <linearGradient id="dmoInfisso" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ede9fe"/><stop offset="1" stop-color="#a78bfa"/></linearGradient>
+      <linearGradient id="dmoStecche" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#6d28d9"/></linearGradient></defs>
+    <rect x="4.4" y="4.4" width="23.2" height="23.2" rx="2.6" fill="url(#dmoInfisso)"/>
+    <rect x="7" y="7" width="18" height="18" rx="1.4" fill="#dbeafe"/>
+    <path d="M9.4 22.6 13 10.6" stroke="#fff" stroke-opacity=".7" stroke-width="2" stroke-linecap="round"/>
+    <g fill="url(#dmoStecche)">
+      <rect x="7" y="7" width="18" height="3" rx="1"/>
+      <rect x="7" y="10.8" width="18" height="3" rx="1"/>
+      <rect x="7" y="14.6" width="18" height="3" rx="1"/></g>
+    <rect x="4.4" y="4.4" width="23.2" height="23.2" rx="2.6" fill="none" stroke="#7c3aed" stroke-opacity=".45" stroke-width="1.4"/>`,
+
+  /* Lo scudo: la piastra e il suo lucido. */
+  sicurezza: `<defs>
+      <linearGradient id="dmoScudo" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#6ee7b7"/><stop offset=".55" stop-color="#10b981"/>
+        <stop offset="1" stop-color="#047857"/></linearGradient></defs>
+    ${OMBRA(16, 29, 6.4)}
+    <path d="M16 3.2 26 6.8v8.4c0 6-4.2 10.2-10 12.4-5.8-2.2-10-6.4-10-12.4V6.8Z" fill="url(#dmoScudo)"/>
+    <path d="M16 5.4 8 8.2v7c0 4.6 3.2 8 8 9.9Z" fill="#fff" opacity=".18"/>
+    <path d="m11.6 15.6 3.2 3.2 5.8-6.2" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  /* La telecamera: corpo, obiettivo di vetro, spia accesa. */
+  telecamere: `<defs>
+      <linearGradient id="dmoCam" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#7dd3fc"/><stop offset=".55" stop-color="#0284c7"/>
+        <stop offset="1" stop-color="#075985"/></linearGradient>
+      <radialGradient id="dmoLente" cx=".36" cy=".33" r=".7">
+        <stop offset="0" stop-color="#e0f2fe"/><stop offset=".6" stop-color="#0f2942"/>
+        <stop offset="1" stop-color="#020c18"/></radialGradient></defs>
+    ${OMBRA(16, 27.4, 8.6)}
+    <rect x="4.6" y="9" width="19.6" height="14" rx="3.4" fill="url(#dmoCam)"/>
+    <path d="m24.2 14.4 4.6-2.8v9l-4.6-2.8Z" fill="url(#dmoCam)"/>
+    <circle cx="12.6" cy="16" r="4.6" fill="url(#dmoLente)"/>
+    <circle cx="11" cy="14.4" r="1.4" fill="#fff" opacity=".7"/>
+    <circle cx="20.6" cy="12.4" r="1.3" fill="#f87171"/>
+    <path d="M6.4 11.4h7" stroke="#fff" stroke-opacity=".35" stroke-width="1.2" stroke-linecap="round"/>`,
+
+  /* Il fulmine dell'energia, con il suo bagliore. */
+  energia: `<defs>
+      <linearGradient id="dmoLampo" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fed7aa"/><stop offset=".45" stop-color="#f97316"/>
+        <stop offset="1" stop-color="#c2410c"/></linearGradient></defs>
+    ${OMBRA(16, 28.6, 6.2)}
+    <path d="M18.6 2 7.4 17.2h6.8L12.8 30l12-16.4h-7.4Z" fill="url(#dmoLampo)"/>
+    <path d="M17.6 4.6 10.4 15.4h3.2" stroke="#fff" stroke-opacity=".55" stroke-width="1.4" fill="none" stroke-linecap="round"/>`,
+
+  /* La lavatrice: obl&ograve; di vetro e cassetto del detersivo. */
+  elettrodomestici: `<defs>
+      <linearGradient id="dmoElet" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#cffafe"/><stop offset="1" stop-color="#a5b4c4"/></linearGradient>
+      <radialGradient id="dmoOblo" cx=".38" cy=".34" r=".72">
+        <stop offset="0" stop-color="#e0f2fe"/><stop offset=".55" stop-color="#22d3ee"/>
+        <stop offset="1" stop-color="#0e7490"/></radialGradient></defs>
+    ${OMBRA(16, 28.8, 8)}
+    <rect x="5.6" y="3.4" width="20.8" height="24.4" rx="3.4" fill="url(#dmoElet)" stroke="#94a3b8" stroke-opacity=".5" stroke-width="1.2"/>
+    <rect x="8.4" y="6.2" width="10.4" height="3.2" rx="1.4" fill="#fff" opacity=".85"/>
+    <circle cx="22.4" cy="7.8" r="1.5" fill="#22d3ee"/>
+    <circle cx="16" cy="18.6" r="7" fill="url(#dmoOblo)"/>
+    <circle cx="16" cy="18.6" r="4.4" fill="#0b1220" opacity=".22"/>
+    <path d="M12.4 15a5 5 0 0 0-1.4 3" stroke="#fff" stroke-opacity=".75" stroke-width="1.6" fill="none" stroke-linecap="round"/>`,
+
+  /* La lista delle cose da fare: foglio, spunta e righe. */
+  todo: `<defs>
+      <linearGradient id="dmoFoglio" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#cbd5e1"/></linearGradient>
+      <linearGradient id="dmoSpunta" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#6ee7b7"/><stop offset="1" stop-color="#059669"/></linearGradient></defs>
+    ${OMBRA(16, 28.8, 7.4)}
+    <rect x="6" y="4" width="20" height="24" rx="3.2" fill="url(#dmoFoglio)"/>
+    <rect x="11.6" y="2.4" width="8.8" height="4.4" rx="2.2" fill="#94a3b8"/>
+    <g stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round">
+      <path d="M10.4 13h5M10.4 18h7.6M10.4 23h4.4"/></g>
+    <circle cx="22" cy="21.6" r="6" fill="url(#dmoSpunta)"/>
+    <path d="m19.4 21.8 1.8 1.8 3.6-4" stroke="#fff" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  /* Il robot: scocca tonda, paraurti e la spia del lavoro. */
+  robot: `<defs>
+      <linearGradient id="dmoRobot" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#e2e8f0"/><stop offset=".5" stop-color="#94a3b8"/>
+        <stop offset="1" stop-color="#475569"/></linearGradient></defs>
+    ${OMBRA(16, 28.4, 9)}
+    <circle cx="16" cy="16.4" r="11.4" fill="url(#dmoRobot)"/>
+    <path d="M6 12.4a11.4 11.4 0 0 1 20 0Z" fill="#0f172a" opacity=".22"/>
+    <circle cx="16" cy="16.4" r="4.4" fill="#0f172a" opacity=".35"/>
+    <circle cx="16" cy="16.4" r="2" fill="#38bdf8"/>
+    <path d="M9.4 9.4a9.4 9.4 0 0 1 4.4-2.6" stroke="#fff" stroke-opacity=".75" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
+
+  /* La piscina: acqua e onde. */
+  piscina: `<defs>
+      <linearGradient id="dmoAcqua" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#a5f3fc"/><stop offset=".5" stop-color="#22d3ee"/>
+        <stop offset="1" stop-color="#0369a1"/></linearGradient></defs>
+    ${OMBRA(16, 28.6, 9.4)}
+    <path d="M4 12.4a24 24 0 0 1 24 0v10.4a3.4 3.4 0 0 1-3.4 3.4H7.4A3.4 3.4 0 0 1 4 22.8Z" fill="url(#dmoAcqua)"/>
+    <g stroke="#fff" stroke-opacity=".72" stroke-width="1.8" fill="none" stroke-linecap="round">
+      <path d="M6.6 17.4c2-1.6 3.4-1.6 5.4 0s3.4 1.6 5.4 0 3.4-1.6 5.4 0 1.6 1.2 2.6.6"/>
+      <path d="M6.6 22c2-1.6 3.4-1.6 5.4 0s3.4 1.6 5.4 0 3.4-1.6 5.4 0"/></g>
+    <path d="M10.4 12V6.4a2.4 2.4 0 0 1 4.8 0" stroke="#e2e8f0" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+
+  /* L'irrigazione: la goccia con il suo lucido. */
+  irrigazione: `<defs>
+      <linearGradient id="dmoGoccia" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#bbf7d0"/><stop offset=".5" stop-color="#10b981"/>
+        <stop offset="1" stop-color="#047857"/></linearGradient></defs>
+    ${OMBRA(16, 29, 6.2)}
+    <path d="M16 2.6c4.6 5.6 8.6 10 8.6 14.6a8.6 8.6 0 1 1-17.2 0c0-4.6 4-9 8.6-14.6Z" fill="url(#dmoGoccia)"/>
+    <path d="M12.4 12.6a8 8 0 0 0-2 5" stroke="#fff" stroke-opacity=".7" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
+
+  /* La batteria: involucro, carica e polo. */
+  batterie: `<defs>
+      <linearGradient id="dmoBatt" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#fde68a"/><stop offset=".55" stop-color="#eab308"/>
+        <stop offset="1" stop-color="#a16207"/></linearGradient></defs>
+    ${OMBRA(16, 28.6, 7)}
+    <rect x="9" y="6.4" width="14" height="21.2" rx="3" fill="#e2e8f0"/>
+    <rect x="12.6" y="3.6" width="6.8" height="3.4" rx="1.6" fill="#94a3b8"/>
+    <rect x="11" y="13.6" width="10" height="12" rx="1.8" fill="url(#dmoBatt)"/>
+    <path d="M11.8 8.6v3.4" stroke="#fff" stroke-opacity=".8" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M17 15.6 13.6 21h2.8l-.8 4 3.6-5.6h-2.6Z" fill="#fff" opacity=".85"/>`,
+
+  /* L'allagamento: la goccia caduta e il cerchio che si allarga. */
+  allagamenti: `<defs>
+      <linearGradient id="dmoAllag" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#e0f2fe"/><stop offset=".5" stop-color="#38bdf8"/>
+        <stop offset="1" stop-color="#0369a1"/></linearGradient></defs>
+    <path d="M16 2.6c4 4.8 7.4 8.6 7.4 12.6a7.4 7.4 0 1 1-14.8 0c0-4 3.4-7.8 7.4-12.6Z" fill="url(#dmoAllag)"/>
+    <path d="M12.8 11.6a7 7 0 0 0-1.8 4.4" stroke="#fff" stroke-opacity=".7" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+    <g stroke="#38bdf8" stroke-width="2" fill="none" stroke-linecap="round" opacity=".65">
+      <path d="M6.4 25.4c2.6-2.2 4.6-2.2 7.2 0s4.6 2.2 7.2 0 3.2-1.6 4.8-.4"/></g>`,
+});
+
+/* Il disegno della tessera, pronto da mettere dentro la pastiglia.
+ *
+ * Chi chiama passa anche il simbolo di ripiego — quello scelto in
+ * configurazione per le tessere fatte in casa — e per quelle si tiene il suo. */
+export function oggettoWidget(chiave, ripiego = "") {
+  const disegno = OGGETTI[String(chiave || "")];
+  if (!disegno) return String(ripiego || "");
+  return `<svg class="dm-oggetto" viewBox="0 0 32 32" aria-hidden="true" focusable="false">${disegno}</svg>`;
+}
+
+/* Serve alle prove e a chi vuole sapere se un tasto avra' il suo disegno. */
+export function haOggettoWidget(chiave) {
+  return Object.prototype.hasOwnProperty.call(OGGETTI, String(chiave || ""));
+}
+
+export const CHIAVI_OGGETTI = Object.freeze(Object.keys(OGGETTI));
