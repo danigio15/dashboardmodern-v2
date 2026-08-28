@@ -25,6 +25,7 @@ import {
 } from "../core/todo-model.js";
 import { createApplianceViewModel, onRunHoldExpiry } from "../core/appliance-view-model.js";
 import { applianceVisualKey, canonicalClimateType } from "../core/device-model.js";
+import { oggettoWidget } from "../core/oggetti-widget.js";
 import {
   coverEntries,
   coverKindLabel,
@@ -304,7 +305,9 @@ function todoModel() {
   const percent = total ? Math.round(((total - pending) / total) * 100) : 0;
   return { key: "todo", accent: "#059669", icon: "✅", label: t("Da fare", "To-do"),
     value: String(pending), caption: t(`${pending} da fare`, `${pending} to do`),
-    ring: percent, blocks };
+    // La quota dice quanto e' stato spuntato: la tessera pero' si accende
+    // quando resta qualcosa da fare, non quando e' tutto finito.
+    ring: percent, attiva: pending > 0, blocks };
 }
 
 function lightsModel(states) {
@@ -810,7 +813,12 @@ function evModel(states) {
     key: "ev", accent: "#06b6d4", icon: "🚗", label: t("Auto", "Car"),
     value: percentuale == null ? `${formatNumber(primaKm, 0)} km` : `${Math.round(percentuale)}%`,
     caption: didascalia,
-    ring: percentuale, rows,
+    /* La quota qui e' la carica, non «quanto e' attivo»: una macchina ferma
+     * al settanta per cento non e' una tessera accesa. Acceso vuol dire
+     * attaccata alla presa. */
+    ring: percentuale,
+    attiva: letture.some((lettura) => /carica|charging|plug|connesso|connected/i.test(String(lettura.ricarica || ""))),
+    rows,
   };
 }
 
@@ -855,6 +863,7 @@ function robotsModel(states) {
     /* L'anello racconta la carica solo quando nessuno sta lavorando: mentre
      * puliscono la notizia e' che stanno pulendo. */
     ring: attivi.length ? null : piuScarico,
+    attiva: attivi.length > 0,
     rows: viste.map((vista) => ({
       glyph: vista.cleaning ? "🧹" : vista.charging ? "🔌" : "🤖",
       name: vista.name,
@@ -944,6 +953,8 @@ function solarThermalModel(states) {
     value: primaSonda == null ? t("Attivo", "Active") : `${formatNumber(primaSonda, 1)}°`,
     caption: pompa == null ? "" : pompa ? t("Pompa in funzione", "Pump running") : t("Pompa ferma", "Pump idle"),
     ring: null,
+    // La quota qui non c'e': la tessera si accende quando la pompa lavora.
+    attiva: Boolean(pompa),
     rows: righe,
   };
 }
@@ -1024,6 +1035,7 @@ function irrigationModel(states) {
         ? t("zone configurate", "zones configured")
         : t("umidità terreno", "soil moisture"),
     ring: inFunzione.length ? null : umidita,
+    attiva: inFunzione.length > 0,
     rows: attive.map((zona) => ({
       glyph: "🌱",
       name: clean(zona.name) || clean(zona.entity),
@@ -1301,24 +1313,187 @@ function misuraValore(valore) {
   return quanto <= 11 ? "medio" : "lungo";
 }
 
+/* Il numero da una parte, l'unita' dall'altra.
+ *
+ * Il modello scrive una stringa sola — «26,3°», «2,98 kW», «Disinserito» — e
+ * sulla tessera il numero va grande e l'unita' piccola accanto. Se davanti non
+ * c'e' una cifra, e' una parola: resta intera e non si spezza in due. */
+export function dividiValore(valore) {
+  const testo = String(valore ?? "").trim();
+  const pezzi = testo.match(/^([-+]?\d[\d.,\s]*)\s*(.*)$/);
+  if (!pezzi) return { numero: testo, unita: "" };
+  return { numero: pezzi[1].trim(), unita: pezzi[2].trim() };
+}
+
+/* La misura del mestiere.
+ *
+ * La quota che il modello calcola non e' la stessa cosa per tutti: per l'auto
+ * e' la carica, e allora si disegna una batteria che si riempie; per le luci,
+ * le tapparelle, gli elettrodomestici e' quanti su quanti, e allora si
+ * disegnano i segmenti — due accesi su quattro si leggono senza il numero.
+ * Per il resto una barra. Dove una quota non c'e', non si mette niente: una
+ * tessera senza misura e' meglio di una misura che finge. */
+export function firmaMisura(widget) {
+  const quota = widget?.ring == null ? null : Math.max(0, Math.min(100, Math.round(widget.ring)));
+  if (quota == null) return "";
+  const totale = Array.isArray(widget?.rows) ? widget.rows.length : 0;
+  if (widget?.key === "ev") return `batt:${quota}`;
+  if (totale >= 2) {
+    const segmenti = Math.min(totale, 6);
+    const accesi = Math.min(segmenti, Math.max(quota > 0 ? 1 : 0, Math.round((quota / 100) * segmenti)));
+    return `punti:${accesi}/${segmenti}`;
+  }
+  return `barra:${quota}`;
+}
+
+function misuraMarkup(widget) {
+  const firma = firmaMisura(widget);
+  if (!firma) return "";
+  const [tipo, dato] = firma.split(":");
+  if (tipo === "batt")
+    return `<span class="dm-tile-batt"><i style="width:${dato}%"></i></span>`;
+  if (tipo === "punti") {
+    const [accesi, segmenti] = dato.split("/").map(Number);
+    let dentro = "";
+    for (let i = 0; i < segmenti; i += 1) dentro += `<i${i < accesi ? ' data-on="true"' : ""}></i>`;
+    return `<span class="dm-tile-punti">${dentro}</span>`;
+  }
+  return `<span class="dm-tile-scala"><i style="width:${dato}%"></i></span>`;
+}
+
+/* Il numero gira come un contatore.
+ *
+ * Da 20,5 a 20,9 si muove solo il 5 che diventa 9, e le cifre che cambiano
+ * partono sfalsate. Prima scorreva tutto il numero e a colpo d'occhio sembrava
+ * che fosse cambiato tutto. Torna vero se qualcosa e' cambiato davvero. */
+function scriviNumero(nodo, nuovo, lunghezza) {
+  const vecchio = nodo.dataset.dmVal ?? nodo.textContent ?? "";
+  if (nodo.dataset.dmLen !== lunghezza) nodo.dataset.dmLen = lunghezza;
+  if (vecchio === nuovo) return false;
+  const sale =
+    Number.parseFloat(String(nuovo).replace(",", ".")) >
+    Number.parseFloat(String(vecchio).replace(",", "."));
+  const verso = sale ? "su" : "giu";
+  const prima = [...String(vecchio)];
+  nodo.dataset.dmVal = nuovo;
+  nodo.textContent = "";
+  /* Spezzato in cifre, chi legge con la voce sentirebbe «due zero virgola
+   * cinque»: il numero intero resta scritto qui, e le cifre sono solo disegno. */
+  nodo.setAttribute("aria-label", nuovo);
+  [...String(nuovo)].forEach((carattere, i) => {
+    const cifra = doc.createElement("span");
+    cifra.className = "dm-cifra";
+    cifra.setAttribute("aria-hidden", "true");
+    cifra.textContent = carattere;
+    if (prima[i] !== carattere) {
+      cifra.dataset.verso = verso;
+      cifra.style.animationDelay = `${i * 30}ms`;
+    }
+    nodo.append(cifra);
+  });
+  return true;
+}
+
+/* La misura si muove quando puo', si rifa' quando deve.
+ *
+ * Una barra che cambia quota scorre; dei segmenti che si accendono si
+ * accendono. Si riscrive da capo solo se cambia il tipo di misura — cosa che
+ * capita quando una sezione perde o guadagna una riga. */
+function aggiornaMisura(nodo, widget, firma) {
+  const [tipo, dato] = firma.split(":");
+  const barra = nodo.querySelector(".dm-tile-scala i") || nodo.querySelector(".dm-tile-batt i");
+  const punti = nodo.querySelectorAll(".dm-tile-punti i");
+  if ((tipo === "barra" || tipo === "batt") && barra) {
+    barra.style.width = `${dato}%`;
+    return;
+  }
+  if (tipo === "punti" && punti.length) {
+    const [accesi, segmenti] = dato.split("/").map(Number);
+    if (punti.length === segmenti) {
+      punti.forEach((segmento, i) => {
+        if (i < accesi) segmento.dataset.on = "true";
+        else delete segmento.dataset.on;
+      });
+      return;
+    }
+  }
+  nodo.innerHTML = misuraMarkup(widget);
+}
+
+/* Un nome non finisce mai coi puntini.
+ *
+ * Prima si stringe la spaziatura fra le lettere, poi si scende di corpo, e
+ * solo alla fine si va a capo su due righe. «Elettrodomestici», che e' il piu'
+ * lungo di tutti, entra in una riga sola anche su un telefono stretto. */
+function fallaEntrare(nodo, spazioBase, corpoMinimo) {
+  if (!nodo) return;
+  nodo.style.letterSpacing = "";
+  nodo.style.fontSize = "";
+  const stretta = () =>
+    nodo.scrollWidth > nodo.clientWidth + 1 || nodo.scrollHeight > nodo.clientHeight + 1;
+  if (!stretta()) return;
+  let spazio = spazioBase;
+  let corpo = Number.parseFloat(root.getComputedStyle?.(nodo)?.fontSize) || 10;
+  for (let giro = 0; giro < 20 && stretta(); giro += 1) {
+    if (spazio > 0.015) {
+      spazio -= 0.025;
+      nodo.style.letterSpacing = `${spazio.toFixed(3)}em`;
+    } else if (corpo > corpoMinimo) {
+      corpo -= 0.4;
+      nodo.style.fontSize = `${corpo.toFixed(1)}px`;
+    } else break;
+  }
+}
+
+function sistemaLeScritte(dove = doc) {
+  for (const nome of dove?.querySelectorAll?.("[data-dm-tile-label]") || [])
+    fallaEntrare(nome, 0.11, 7.6);
+  /* Anche il titolo della finestra: «Elettrodomestici» a venticinque pixel
+   * con due di spaziatura finiva sotto il tasto di chiusura. */
+  for (const titolo of dove?.querySelectorAll?.("[data-dm-titolo]") || [])
+    fallaEntrare(titolo, 0.09, 15);
+}
+
+/* Accesa o calma.
+ *
+ * Le sei tessere gridavano tutte allo stesso modo: sei pastiglie colorate, sei
+ * aloni, sei bagliori. Quando gridano tutti non si sente nessuno. Una tessera
+ * adesso nasce calma — pastiglia neutra, niente velo — e prende colore solo
+ * quando il suo stato lo merita: luci accese, clima in funzione, un'apertura
+ * da chiudere, l'auto attaccata alla presa.
+ *
+ * Il dato c'era gia': la quota che il modello calcola e' quasi sempre «quanti
+ * su quanti sono attivi». Dove non lo e' — la carica dell'auto, le cose da
+ * fare — il modello lo dice chiaro con «attiva». */
+export function tesseraAccesa(widget) {
+  if (widget?.alert) return true;
+  if (typeof widget?.attiva === "boolean") return widget.attiva;
+  return widget?.ring != null && widget.ring > 0;
+}
+
+/* Il grado e la percentuale stanno attaccati al numero; i chilowatt e i
+ * chilometri sono parole, e vanno staccati come un'etichetta. */
+function unitaSimbolo(unita) {
+  return /^[°%]/.test(String(unita || ""));
+}
+
 function tileMarkup(widget, index = 0) {
   const open = state.expanded === widget.key;
   const giaVista = viste().has(widget.key) ? ' data-dm-seen="true"' : "";
-  const quota = widget.ring == null ? null : Math.max(0, Math.min(100, widget.ring));
+  const { numero, unita } = dividiValore(widget.value);
   return `<button type="button" class="dm-tile" data-dm-widget="${widget.key}" data-open="${open}"${giaVista}
-      data-alert="${Boolean(widget.alert)}"
+      data-alert="${Boolean(widget.alert)}" data-acceso="${tesseraAccesa(widget)}"
       style="--dm-widget-accent:${widget.accent};--dm-tile-i:${index}" aria-expanded="${open}" aria-label="${esc(widget.label)}">
-      <span class="dm-tile-chip" aria-hidden="true">${widget.icon}</span>
-      <span class="dm-tile-copy">
-        <b class="dm-tile-value" data-dm-tile-value data-dm-len="${misuraValore(widget.value)}">${esc(widget.value)}</b>
-        <span class="dm-tile-under">
-          <span class="dm-tile-label">${esc(widget.label)}</span>
-          <small class="dm-tile-caption"><span class="dm-tile-scroll" data-dm-tile-caption>${esc(widget.caption)}</span></small>
-        </span>
+      <span class="dm-tile-alone" aria-hidden="true"></span>
+      <span class="dm-tile-cima">
+        <span class="dm-tile-chip" aria-hidden="true">${oggettoWidget(widget.key, widget.icon)}</span>
+        <span class="dm-tile-label" data-dm-tile-label>${esc(widget.label)}</span>
       </span>
-      <span class="dm-tile-go" aria-hidden="true">›</span>
-      <span class="dm-tile-bar" aria-hidden="true"${quota == null ? " hidden" : ""}><i style="--dm-quota:${quota == null ? 0 : quota}%"></i></span>
-      <span class="dm-tile-shine" aria-hidden="true"></span>
+      <span class="dm-tile-val"><b class="dm-tile-value" data-dm-tile-value data-dm-len="${misuraValore(widget.value)}">${esc(numero)}</b><i class="dm-tile-unit" data-dm-tile-unit data-simbolo="${unitaSimbolo(unita)}">${esc(unita)}</i></span>
+      <span class="dm-tile-fondo">
+        <small class="dm-tile-caption"><span class="dm-tile-scroll" data-dm-tile-caption>${esc(widget.caption)}</span></small>
+        <span class="dm-tile-misura" data-dm-misura="${esc(firmaMisura(widget))}" aria-hidden="true">${misuraMarkup(widget)}</span>
+      </span>
     </button>`;
 }
 
@@ -1935,8 +2110,8 @@ function detailMarkup(widget, states) {
   return `<article class="dm-widget-detail" data-dm-widget-detail="${widget.key}"
       style="--dm-widget-accent:${widget.accent}">
       <header class="dm-w-head">
-        <span class="dm-w-head-ic" aria-hidden="true">${widget.icon}</span>
-        <strong>${esc(widget.label)}</strong>
+        <span class="dm-w-head-ic" aria-hidden="true">${oggettoWidget(widget.key, widget.icon)}</span>
+        <strong data-dm-titolo>${esc(widget.label)}</strong>
         <small data-dm-detail-caption>${esc(widget.caption)}</small>
         <button type="button" class="dm-w-close" data-dm-widget-close aria-label="${esc(t("Chiudi", "Close"))}">✕</button>
       </header>
@@ -2086,6 +2261,9 @@ export function renderHomeWidgets() {
      * tessere nascono DOPO l'ultima passata di quel modulo, restano ferme
      * finche' non capita un altro evento: per un avviso appena scattato puo'
      * volerci parecchio. Cosi' invece si annuncia, e chi ascolta ripassa. */
+    /* I nomi vanno fatti entrare adesso, che le tessere hanno la loro
+     * larghezza: prima non c'era niente da misurare. */
+    sistemaLeScritte(grid);
     try {
       root.dispatchEvent?.(new CustomEvent("dashboardmodern:widgets-painted"));
     } catch (_errore) {}
@@ -2096,9 +2274,17 @@ export function renderHomeWidgets() {
       if (!tile) continue;
       tile.style.setProperty("--dm-widget-accent", widget.accent);
       const value = tile.querySelector("[data-dm-tile-value]");
-      if (value && value.textContent !== widget.value) {
-        value.textContent = widget.value;
-        value.dataset.dmLen = misuraValore(widget.value);
+      const unita = tile.querySelector("[data-dm-tile-unit]");
+      const pezzi = dividiValore(widget.value);
+      if (value && scriviNumero(value, pezzi.numero, misuraValore(widget.value))) cambiato = true;
+      if (unita && unita.textContent !== pezzi.unita) {
+        unita.textContent = pezzi.unita;
+        unita.dataset.simbolo = String(unitaSimbolo(pezzi.unita));
+        cambiato = true;
+      }
+      const accesa = String(tesseraAccesa(widget));
+      if (tile.dataset.acceso !== accesa) {
+        tile.dataset.acceso = accesa;
         cambiato = true;
       }
       const caption = tile.querySelector("[data-dm-tile-caption]");
@@ -2117,17 +2303,27 @@ export function renderHomeWidgets() {
        * vecchio; adesso il nodo resta, quindi il segno lo si toglie qui. */
       const avviso = String(Boolean(widget.alert));
       if (tile.dataset.alert !== avviso) {
+        const siAccende = avviso === "true";
         tile.dataset.alert = avviso;
         const pastiglia = tile.querySelector(".dm-tile-chip");
         if (pastiglia) delete pastiglia.dataset.dmAlertMotion;
+        /* Il momento in cui una tessera si accende e' l'unico in cui la
+         * plancia alza la voce: la lama di luce la attraversa una volta sola
+         * e la pastiglia sboccia. Poi torna tutto fermo. */
+        if (siAccende && pastiglia) {
+          tile.dataset.dmAccende = "1";
+          pastiglia.dataset.dmSboccia = "1";
+          root.setTimeout?.(() => {
+            delete tile.dataset.dmAccende;
+            delete pastiglia.dataset.dmSboccia;
+          }, 900);
+        }
       }
-      const cornice = tile.querySelector(".dm-tile-bar");
-      const barra = cornice?.querySelector("i");
-      if (cornice) {
-        const senza = widget.ring == null;
-        if (cornice.hidden !== senza) cornice.hidden = senza;
-        if (barra && !senza)
-          barra.style.setProperty("--dm-quota", `${Math.max(0, Math.min(100, widget.ring))}%`);
+      const misura = tile.querySelector("[data-dm-misura]");
+      const firma = firmaMisura(widget);
+      if (misura && misura.dataset.dmMisura !== firma) {
+        aggiornaMisura(misura, widget, firma);
+        misura.dataset.dmMisura = firma;
       }
       if (state.expanded === widget.key) {
         const captionDetail = doc.querySelector("#dm-widget-popup [data-dm-detail-caption]");
@@ -2223,6 +2419,9 @@ function sincronizzaPopup(models, states) {
     host.dataset.dmPopupOf = aperto.key;
     host.hidden = false;
     host.innerHTML = detailMarkup(aperto, states);
+    /* Il titolo della finestra si fa misurare adesso che ha una larghezza:
+     * «Elettrodomestici» a corpo pieno finiva sotto il tasto di chiusura. */
+    sistemaLeScritte(host);
     /* La finestra e' nata adesso: quello che c'e' dentro e' quello che si e'
      * appena scritto, e da qui riparte il confronto. */
     state.corpo = { chiave: aperto.key, markup: detailBody(aperto, states) };
@@ -2689,13 +2888,20 @@ html.dm-widget-popup-open{overflow:hidden}
   background:linear-gradient(140deg,
     color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 17%,var(--card-bg,#fff)),
     color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 7%,var(--card-bg,#fff)));
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 24%,transparent),
-    0 6px 14px -8px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 55%,transparent)}
+  box-shadow:
+    inset 0 1px 0 var(--dm-vetrino,rgba(255,255,255,.72)),
+    inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 30%,transparent),
+    inset 0 -3px 7px -4px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 50%,transparent),
+    0 9px 18px -11px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 70%,transparent)}
+/* L'oggetto disegnato dentro la pastiglia della finestra e' lo stesso della
+   tessera da cui si e' arrivati, un po' piu' grande perche' qui c'e' posto. */
+#dm-widget-popup .dm-widget-detail .dm-w-head-ic .dm-oggetto{
+  width:30px;height:30px;display:block;filter:drop-shadow(0 2px 3px rgba(15,23,42,.22))}
 /* Il selettore e' lungo apposta: le stesse righe le riscrive piu' in basso la
  * regola condivisa con la tessera aperta in griglia, che a parita' di peso
  * vincerebbe perche' viene dopo. */
 #dm-widget-popup .dm-widget-detail .dm-w-head strong{
-  grid-column:2;grid-row:1;
+  grid-column:2;grid-row:1;min-width:0;white-space:nowrap;overflow:hidden;
   font-family:'Oswald',system-ui,sans-serif;font-weight:700;
   font-size:clamp(19px,2.4vw,25px);line-height:1.05;letter-spacing:2px;text-transform:uppercase;
   color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 78%,#0f172a)}
@@ -3005,68 +3211,184 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
   margin:4px 0 14px;font-size:12px;font-weight:700;letter-spacing:.2px;color:var(--text-dim,#64748b)}
 #dm-widgets[data-dm-mood="avviso"] .dm-widgets-sub{color:#b45309}
 
-/* Le tessere: piccole, quiete, con l'anello che racconta e la freccia che
-   promette. L'accento vive nei dettagli — l'anello, il fianco, il bagliore
-   all'apertura — mai su tutta la tessera. */
-:is(#dm-widgets,#dm-widget-popup) .dm-widgets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:11px}
+/* Le tessere.
+ *
+ * Tre righe, e ognuna con un mestiere solo: la pastiglia col nome, il numero,
+ * il dettaglio con la misura. Prima nome e misura si dividevano la stessa
+ * riga e la misura vinceva sempre: con «Temperatura» al nome restavano zero
+ * pixel, e finiva coi puntini. Adesso la riga del nome e' tutta sua.
+ *
+ * Il colore non e' una decorazione: una tessera nasce calma — pastiglia
+ * neutra, niente velo — e si accende solo quando ha qualcosa da dire. Se
+ * gridano tutte non si sente nessuna.
+ *
+ * La luce viene sempre dall'alto: filo chiaro sul bordo di sopra, filo scuro
+ * su quello di sotto, ombra corta attaccata alla carta e ombra lunga sfumata
+ * sotto. E' quello che fa sembrare le tessere appoggiate sulla pagina invece
+ * che stampate sopra. */
+:is(#dm-widgets,#dm-widget-popup){
+  --dm-vetrino:rgba(255,255,255,.72);
+  --dm-velo:9%;
+  --dm-cuscino:15%;
+  --dm-grana:.5;
+  --dm-alone:.26}
+html[data-theme="dark"] :is(#dm-widgets,#dm-widget-popup),
+body.dark-theme :is(#dm-widgets,#dm-widget-popup){
+  --dm-vetrino:rgba(255,255,255,.06);
+  --dm-velo:14%;
+  --dm-cuscino:22%;
+  --dm-grana:.34;
+  --dm-alone:.55}
+:is(#dm-widgets,#dm-widget-popup) .dm-widgets-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile{
-  position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;
-  min-height:84px;padding:13px 14px 18px;
-  border:1px solid var(--card-border,#e8edf3);border-radius:21px;
-  /* Un velo del colore della sezione, non una tessera colorata: si riconosce
-     di che cosa parla anche prima di leggerla, e resta una card chiara. */
-  background:
-    radial-gradient(120% 90% at 100% 0%,
-      color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 11%,transparent),
-      transparent 62%),
-    var(--card-bg,#fff);
+  position:relative;overflow:hidden;display:flex;flex-direction:column;gap:10px;
+  min-height:118px;padding:15px 16px 17px;border:0;border-radius:22px;
+  background:linear-gradient(180deg,var(--card-bg,#fff),
+    color-mix(in srgb,var(--card-bg,#fff) 92%,var(--bg,#eef2f7)));
   color:var(--text,#0f172a);font:inherit;text-align:left;cursor:pointer;
-  box-shadow:0 4px 14px rgba(15,23,42,.06),inset 0 1px 0 rgba(255,255,255,.6);
-  transition:transform .26s cubic-bezier(.16,1,.3,1),box-shadow .26s ease,border-color .26s ease}
-/* Il fianco della sezione: un filo di colore, non un bordo intero. */
+  box-shadow:
+    inset 0 1px 0 var(--dm-vetrino),
+    inset 0 0 0 1px color-mix(in srgb,var(--text,#0f172a) 7%,transparent),
+    inset 0 -1px 0 color-mix(in srgb,var(--text,#0f172a) 6%,transparent),
+    0 1px 1px rgba(15,23,42,.05),0 14px 28px -18px rgba(15,23,42,.55);
+  transition:transform .18s cubic-bezier(.16,1,.3,1),box-shadow .2s ease,background .45s ease}
+/* La grana: la carta vera non e' mai perfettamente liscia, e senza quel velo
+   le tessere sembrano vetro stampato. */
 :is(#dm-widgets,#dm-widget-popup) .dm-tile::before{
-  content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;
-  background:var(--dm-widget-accent,#0ea5e9);opacity:.55}
+  content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size:140px 140px;mix-blend-mode:soft-light;opacity:var(--dm-grana)}
+/* Accesa: il velo del suo colore, il bordo che si scalda e l'ombra lunga che
+   prende la tinta della sezione. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-acceso="true"],
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-open="true"]{
+  background:
+    radial-gradient(135% 105% at 100% 0%,
+      color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) var(--dm-velo),transparent),transparent 66%),
+    linear-gradient(180deg,var(--card-bg,#fff),
+      color-mix(in srgb,var(--card-bg,#fff) 92%,var(--bg,#eef2f7)));
+  box-shadow:
+    inset 0 1px 0 var(--dm-vetrino),
+    inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 28%,transparent),
+    inset 0 -1px 0 color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 16%,transparent),
+    0 1px 1px rgba(15,23,42,.05),
+    0 16px 32px -18px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 60%,rgba(15,23,42,.5))}
+/* L'alone che respira: sta dietro la tessera che chiede attenzione, e si
+   spegne appena la cosa rientra. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-alone{
+  position:absolute;inset:-40% -30% auto -30%;height:150%;pointer-events:none;opacity:0;
+  background:radial-gradient(60% 60% at 50% 0%,
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 55%,transparent),transparent 70%);
+  transition:opacity .5s ease}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-alone{
+  opacity:var(--dm-alone);animation:dmTileRespiro 3.4s ease-in-out infinite}
+@keyframes dmTileRespiro{
+  0%,100%{opacity:calc(var(--dm-alone) * .45);transform:translateY(4px) scale(.97)}
+  50%{opacity:var(--dm-alone);transform:translateY(-2px) scale(1.03)}}
+/* La lama: quando una tessera si accende, una luce del suo colore la
+   attraversa una volta sola. E' l'unico momento in cui la plancia alza la voce. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-dm-accende]::after{
+  content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(105deg,transparent 30%,
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 26%,transparent) 48%,transparent 66%);
+  transform:translateX(-120%);animation:dmTileLama .85s cubic-bezier(.3,.7,.3,1)}
+@keyframes dmTileLama{to{transform:translateX(120%)}}
 /* L'ingresso e' per chi entra adesso: una tessera gia' vista non rianima. */
 :is(#dm-widgets,#dm-widget-popup) .dm-tile:not([data-dm-seen]){
-  animation:dmTileIn .4s cubic-bezier(.16,1,.3,1) both;
-  animation-delay:calc(var(--dm-tile-i,0) * 40ms)}
-@keyframes dmTileIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover{
-  transform:translateY(-2px);box-shadow:0 12px 26px rgba(15,23,42,.11);
-  border-color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 34%,transparent)}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile:active{transform:none}
-/* La pastiglia del simbolo: e' l'unico punto di colore pieno. */
+  animation:dmTileIn .42s cubic-bezier(.16,1,.3,1) both;
+  animation-delay:calc(var(--dm-tile-i,0) * 55ms)}
+@keyframes dmTileIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+@media(hover:hover){
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile:hover{transform:translateY(-2px)}
+}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile:active{transform:translateY(1px) scale(.995)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile:focus-visible{
+  outline:2px solid var(--dm-widget-accent,#0ea5e9);outline-offset:3px}
+
+/* La prima riga: la pastiglia e il nome, e nient'altro. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-cima{
+  position:relative;display:flex;align-items:center;gap:11px;min-width:0}
+/* La pastiglia e' un cuscino: gradiente, anello sottile, incavo in basso, e
+   l'oggetto che ci posa sopra con la sua ombra. */
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-chip{
-  flex:0 0 40px;width:40px;height:40px;display:grid;place-items:center;border-radius:14px;font-size:19px;
-  background:linear-gradient(150deg,
-    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 20%,#fff),
-    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 11%,#fff));
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 24%,transparent)}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-copy{
-  flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
+  flex:0 0 41px;width:41px;height:41px;display:grid;place-items:center;border-radius:15px;font-size:20px;
+  background:linear-gradient(158deg,
+    color-mix(in srgb,var(--text,#0f172a) 8%,var(--card-bg,#fff)),
+    color-mix(in srgb,var(--text,#0f172a) 3%,var(--card-bg,#fff)));
+  box-shadow:
+    inset 0 1px 0 var(--dm-vetrino),
+    inset 0 0 0 1px color-mix(in srgb,var(--text,#0f172a) 7%,transparent),
+    inset 0 -3px 6px -4px color-mix(in srgb,var(--text,#0f172a) 30%,transparent),
+    0 5px 11px -9px rgba(15,23,42,.8);
+  transition:background .5s ease,box-shadow .5s ease}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-acceso="true"] .dm-tile-chip,
+:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-open="true"] .dm-tile-chip{
+  background:linear-gradient(158deg,
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) var(--dm-cuscino),var(--card-bg,#fff)),
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 9%,var(--card-bg,#fff)));
+  box-shadow:
+    inset 0 1px 0 var(--dm-vetrino),
+    inset 0 0 0 1px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 32%,transparent),
+    inset 0 -3px 7px -4px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 55%,transparent),
+    0 10px 18px -11px color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 90%,transparent)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-chip .dm-oggetto{
+  width:26px;height:26px;display:block;filter:drop-shadow(0 2px 3px rgba(15,23,42,.22))}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-chip[data-dm-sboccia]{
+  animation:dmTileSboccia .62s cubic-bezier(.2,.9,.25,1)}
+@keyframes dmTileSboccia{
+  0%{transform:scale(1)}35%{transform:scale(1.2)}70%{transform:scale(.96)}100%{transform:scale(1)}}
+/* Il nome non finisce mai coi puntini: se non entra si stringe la spaziatura,
+   poi si scende di corpo, e solo alla fine va su due righe. Chi lo stringe e'
+   il codice, qui c'e' solo il punto di partenza. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-label{
+  flex:1;min-width:0;font-size:9.8px;font-weight:900;letter-spacing:.11em;line-height:1.25;
+  text-transform:uppercase;color:var(--text-dim,#64748b);
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
+  word-break:normal;overflow-wrap:normal}
+
+/* La seconda riga: il numero, e l'unita' che gli sta accanto senza pesare. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-val{
+  /* Il numero e la sua unita' devono restare attaccati anche per chi il testo
+     lo legge invece di guardarlo: due riquadri di blocco affiancati diventano
+     «42 %» quando si copiano o si ascoltano. Qui sono due pezzi in riga. */
+  display:block;min-width:0;line-height:1}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-value{
-  font-size:23px;font-weight:900;line-height:1.05;letter-spacing:-.4px;font-variant-numeric:tabular-nums;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  max-width:100%;overflow:hidden;padding-bottom:4px;margin-bottom:-4px;
+  display:inline-flex;align-items:baseline;vertical-align:baseline;
+  font-family:'Oswald','Inter',sans-serif;font-weight:200;font-size:40px;line-height:.92;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
 /* Una parola al posto di un numero si rimpicciolisce quanto basta a entrare
    intera: meglio leggerla tutta che leggerne meta' in grande. */
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-value[data-dm-len="medio"]{font-size:18px;letter-spacing:-.2px}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-value[data-dm-len="lungo"]{font-size:15px;letter-spacing:0}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-under{
-  /* Una riga per uno.
-   *
-   * Nome e didascalia stavano affiancati, e su un telefono il nome si prende
-   * quasi tutta la tessera: della didascalia restava una coda tagliata a
-   * meta' — «idita' 61%», «tra Bagno Pic» — che scorreva senza mai leggersi.
-   * In colonna la didascalia ha la larghezza intera della tessera. */
-  display:grid;gap:1px;min-width:0}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-label{
-  /* Il nome della sezione non si abbrevia: e' l'unica parola che dice di che
-   * cosa si sta parlando. A stringersi e' semmai la didascalia accanto. */
-  flex:0 0 auto;font-size:10px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;
-  color:var(--text-dim,#64748b);white-space:nowrap}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-value[data-dm-len="medio"]{
+  font-family:'Inter',sans-serif;font-weight:800;font-size:20px;letter-spacing:-.01em}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-value[data-dm-len="lungo"]{
+  font-family:'Inter',sans-serif;font-weight:800;font-size:16px;letter-spacing:0;
+  white-space:normal;line-height:1.15;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-unit{
+  display:inline;margin-left:6px;font-style:normal;font-size:10.5px;font-weight:900;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text-dim,#94a3b8)}
+/* Il grado e la percentuale sono parte del numero, non un'etichetta: stanno
+   attaccati e grandi quanto basta a leggerli. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-unit[data-simbolo="true"]{
+  margin-left:1px;font-size:17px;font-weight:300;letter-spacing:0;
+  font-family:'Oswald','Inter',sans-serif;color:var(--text-dim,#64748b)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-unit:empty{display:none}
+/* Il numero gira come un contatore: si muovono solo le cifre che cambiano. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-value .dm-cifra{display:inline-block}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-value .dm-cifra[data-verso="su"]{
+  animation:dmCifraSu .46s cubic-bezier(.2,.9,.25,1) both}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-value .dm-cifra[data-verso="giu"]{
+  animation:dmCifraGiu .46s cubic-bezier(.2,.9,.25,1) both}
+@keyframes dmCifraSu{0%{transform:translateY(70%);opacity:0}100%{transform:none;opacity:1}}
+@keyframes dmCifraGiu{0%{transform:translateY(-70%);opacity:0}100%{transform:none;opacity:1}}
+
+/* La terza riga: il dettaglio, e la misura che gli sta accanto. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-fondo{
+  display:flex;align-items:center;gap:10px;min-width:0;margin-top:auto}
 :is(#dm-widgets,#dm-widget-popup) .dm-tile-caption{
-  min-width:0;font-size:10.5px;font-weight:700;color:var(--text-dim,#94a3b8);
+  flex:1;min-width:0;font-size:11px;font-weight:700;color:var(--text-dim,#94a3b8);
   white-space:nowrap;overflow:hidden;
   /* Sfuma sul bordo invece di tagliare: si capisce che il testo continua. */
   mask-image:linear-gradient(90deg,#000 84%,transparent);
@@ -3081,6 +3403,62 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
 @media(prefers-reduced-motion:reduce){
   :is(#dm-widgets,#dm-widget-popup) .dm-tile-scroll[data-dm-scroll="true"]{animation:none}
 }
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-misura{
+  flex:0 0 auto;display:flex;align-items:center}
+/* I segmenti: quanti su quanti, senza leggere il numero. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-punti{display:flex;gap:3px}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-punti i{
+  width:8px;height:18px;border-radius:4px;
+  background:color-mix(in srgb,var(--text,#0f172a) 9%,transparent);
+  box-shadow:inset 0 1px 0 var(--dm-vetrino);
+  transition:background .4s ease,box-shadow .4s ease}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-punti i[data-on="true"]{
+  background:linear-gradient(180deg,
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 78%,#fff),var(--dm-widget-accent,#0ea5e9));
+  box-shadow:0 5px 10px -6px var(--dm-widget-accent,#0ea5e9),inset 0 1px 0 rgba(255,255,255,.5)}
+/* La barra: il letto incavato e il pieno lucido. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-scala{
+  position:relative;width:62px;height:5px;border-radius:99px;overflow:hidden;
+  background:color-mix(in srgb,var(--text,#0f172a) 10%,transparent);
+  box-shadow:inset 0 1px 2px rgba(15,23,42,.16)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-scala i{
+  display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 55%,#fff),var(--dm-widget-accent,#0ea5e9));
+  transition:width .5s cubic-bezier(.16,1,.3,1)}
+/* La batteria: si riempie, col vetrino sopra e il polo di lato. */
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-batt{
+  position:relative;display:flex;align-items:center;width:37px;height:18px;border-radius:6px;padding:2.6px;
+  box-shadow:inset 0 0 0 1.8px color-mix(in srgb,var(--text,#0f172a) 20%,transparent),
+             inset 0 1px 0 var(--dm-vetrino)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-batt::after{
+  content:"";position:absolute;right:-4.5px;top:5px;width:3.4px;height:8px;border-radius:0 2px 2px 0;
+  background:color-mix(in srgb,var(--text,#0f172a) 20%,transparent)}
+:is(#dm-widgets,#dm-widget-popup) .dm-tile-batt i{
+  display:block;height:100%;border-radius:3px;
+  background:linear-gradient(180deg,
+    color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 75%,#fff),var(--dm-widget-accent,#0ea5e9));
+  transition:width .5s cubic-bezier(.16,1,.3,1)}
+
+/* Sugli schermi stretti scala tutto insieme, invece di tagliare. */
+@media(max-width:768px){
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile{padding:13px 13px 15px;min-height:110px;gap:9px}
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-chip{flex-basis:36px;width:36px;height:36px;border-radius:13px}
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-chip .dm-oggetto{width:23px;height:23px}
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-cima{gap:9px}
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-label{font-size:9.2px;letter-spacing:.07em}
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-value{font-size:34px}
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-caption{font-size:10.5px}
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-scala{width:44px}
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-punti i{width:6px;height:15px}
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-batt{width:31px;height:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-alone,
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile[data-dm-accende]::after,
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-chip[data-dm-sboccia],
+  :is(#dm-widgets,#dm-widget-popup) .dm-tile-value .dm-cifra{animation:none}
+}
 :is(#dm-widgets) .dm-widgets-sub{
   overflow:hidden;white-space:nowrap;text-overflow:clip}
 :is(#dm-widgets) .dm-sub-scroll{display:inline-block;will-change:transform}
@@ -3089,49 +3467,6 @@ html[data-theme="dark"] #dm-widget-popup .dm-widget-detail .dm-w-close:hover{
   animation-delay:1.6s}
 @media(prefers-reduced-motion:reduce){
   :is(#dm-widgets) .dm-sub-scroll[data-dm-scroll="true"]{animation:none}
-}
-
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-go{
-  flex:0 0 auto;color:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 65%,var(--text-dim,#94a3b8));
-  font-size:17px;font-weight:900;line-height:1;opacity:.75;
-  transition:transform .26s cubic-bezier(.16,1,.3,1),opacity .26s ease}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover .dm-tile-go{transform:translateX(2px);opacity:1}
-/* La quota: un filo sul bordo basso, largo quanto la tessera. */
-/* La quota: un filo dentro la tessera, con gli angoli tondi come lei — non
- * una riga che sborda dal bordo. */
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-bar{
-  position:absolute;left:13px;right:13px;bottom:7px;height:3px;border-radius:99px;overflow:hidden;
-  background:color-mix(in srgb,var(--dm-widget-accent,#0ea5e9) 14%,transparent)}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile-bar i{
-  display:block;height:100%;width:var(--dm-quota,0%);border-radius:99px;
-  background:var(--dm-widget-accent,#0ea5e9);
-  transition:width .5s cubic-bezier(.16,1,.3,1)}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile .dm-tile-shine{
-  position:absolute;top:-20%;bottom:-20%;width:34%;left:-60%;pointer-events:none;
-  background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);
-  transform:skewX(-14deg);transition:left .55s cubic-bezier(.16,1,.3,1)}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile:hover .dm-tile-shine{left:120%}
-/* Una tessera che chiede attenzione si riconosce senza leggerla: il fianco e
-   il bordo si scaldano, e la pastiglia pulsa. */
-:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"]{
-  border-color:color-mix(in srgb,#f59e0b 42%,var(--card-border,#e8edf3))}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"]::before{background:#f59e0b;opacity:.9}
-/* Un avviso non sta fermo: la pastiglia pulsa, come faceva l'anello prima. */
-:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-chip{
-  position:relative;
-  background:linear-gradient(150deg,
-    color-mix(in srgb,var(--dm-widget-accent,#ef4444) 34%,#fff),
-    color-mix(in srgb,var(--dm-widget-accent,#ef4444) 18%,#fff))}
-:is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-chip::after{
-  content:"";position:absolute;inset:-3px;border-radius:15px;pointer-events:none;
-  border:2px solid color-mix(in srgb,var(--dm-widget-accent,#ef4444) 55%,transparent);
-  animation:dmWidgetPing 2.2s ease-out infinite}
-@keyframes dmWidgetPing{
-  0%{opacity:.75;transform:scale(.92)}
-  70%{opacity:0;transform:scale(1.35)}
-  100%{opacity:0;transform:scale(1.35)}}
-@media(prefers-reduced-motion:reduce){
-  :is(#dm-widgets,#dm-widget-popup) .dm-tile[data-alert="true"] .dm-tile-chip::after{animation:none}
 }
 :is(#dm-widgets,#dm-widget-popup) .dm-widget-detail{
   grid-column:1/-1;position:relative;overflow:hidden;
@@ -3329,6 +3664,13 @@ export function installHomeWidgetsSection() {
     true,
   );
   doc.addEventListener("visibilitychange", () => schedule());
+  /* Girando il telefono le tessere cambiano larghezza: i nomi che erano stati
+   * stretti per entrare vanno rimisurati, se no restano stretti per sempre. */
+  let rimisura = 0;
+  root.addEventListener?.("resize", () => {
+    root.clearTimeout?.(rimisura);
+    rimisura = root.setTimeout?.(() => sistemaLeScritte(doc.getElementById("dm-widgets")), 140);
+  });
   /* Il ritardo di fine ciclo scade in silenzio: l'elettrodomestico ha smesso
    * di consumare, e nessun cambio di stato arriva ad avvisare la tessera. */
   onRunHoldExpiry(() => schedule());

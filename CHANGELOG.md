@@ -5,6 +5,48 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## Non rilasciato
+
+### Cambiato
+
+- **La Home ha una grafica sola.** Le tessere dei widget e le card delle Azioni
+  rapide erano due idee di card impilate una sotto l'altra — orizzontale e
+  colorata la prima, quadrata bianca e spoglia la seconda — e si vedeva. Adesso
+  le azioni stanno dentro un ripiano incavato: le tessere sporgono dalla pagina,
+  i tasti ci sprofondano dentro. Sopra quello che si legge, sotto quello che si
+  preme, e la geometria del tasto ha finalmente un padrone solo invece di due
+  che se la scrivevano col peso massimo.
+
+- **Le tessere sono in tre righe, e i nomi ci entrano.** Il nome divideva la
+  riga con la misura e la misura vinceva sempre: con «Temperatura» al nome
+  restavano zero pixel e finiva coi puntini. Adesso la prima riga e' della
+  pastiglia e del nome, la seconda del numero, la terza del dettaglio con la
+  misura accanto. E un nome non finisce mai coi puntini: se non entra si
+  stringe la spaziatura, poi si scende di corpo, e solo alla fine si va a capo
+  — «Elettrodomestici» entra in una riga sola anche su un telefono da 320
+  pixel. Provato a 320, 360, 390, 430, 768 e 1240.
+
+- **Le tessere portano oggetti disegnati al posto delle emoji.** Ogni sistema
+  disegna le emoji a modo suo, e sei tessere vicine avevano sei stili diversi:
+  la lampadina lucida di Android accanto al fiocco piatto. Adesso sono oggetti
+  con vetro, riflesso e ombra propria, tutti con la stessa luce che viene
+  dall'alto — e la finestra che si apre porta lo stesso oggetto della tessera
+  da cui e' partita, con il titolo che si stringe invece di finire sotto il
+  tasto di chiusura.
+
+- **E' colorato solo chi ha qualcosa da dire.** Le tessere gridavano tutte allo
+  stesso modo, e quando gridano tutte non si sente nessuna. Una tessera adesso
+  nasce calma e prende il colore — velo, pastiglia, ombra lunga — solo quando
+  il suo stato lo merita: luci accese, clima in funzione, un'apertura da
+  chiudere, l'auto attaccata alla presa. Nel momento in cui si accende, una
+  lama di luce del suo colore l'attraversa una volta sola.
+
+- **A ogni tessera la misura del suo mestiere.** Al posto della barretta uguale
+  per tutti: i segmenti per le cose che si contano (due luci accese su quattro
+  si leggono senza il numero), la batteria che si riempie per la carica
+  dell'auto, la barra per il resto. Dove una misura che appartiene alla cosa
+  non c'e', non si mette niente.
+
 ## 1.3.2
 
 ### Corretto

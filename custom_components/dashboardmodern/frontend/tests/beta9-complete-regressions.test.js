@@ -29,7 +29,16 @@ test("quick actions use canonical colour glyphs and only the single-owner icon p
   assert.match(engine, /dm-beta9-action-picker/);
   assert.doesNotMatch(guard, /openStableActionPicker|modal\.id = "dm-beta9-action-picker"/);
   assert.doesNotMatch(guard, /ACTION_ICON_CATALOG|actionVisual/);
-  assert.match(guard, /html body #page-home #qa-grid/);
+  /* La geometria del tasto delle azioni rapide ha cambiato padrone: adesso la
+   * scrive chi le mette dentro il ripiano, e la guardia del marchio non deve
+   * piu' dire la sua — erano due a scrivere la stessa misura col peso massimo,
+   * e vinceva l'ordine di caricamento. */
+  assert.doesNotMatch(guard, /#qa-grid \.qa-btn\{/);
+  const vassoio = await readFile(
+    new URL("../src/sections/azioni-rapide-vassoio-section.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(vassoio, /html body #page-home \.dm-vassoio #qa-grid \.qa-btn\{/);
   /* Il titolo delle Azioni rapide ha un proprietario solo: il guscio.
    *
    * Qui si pretendeva il contrario — che fosse questo modulo a riscriverlo a

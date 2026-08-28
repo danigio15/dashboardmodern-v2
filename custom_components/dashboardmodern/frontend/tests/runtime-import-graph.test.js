@@ -373,7 +373,21 @@ test("production graph is single-owner, acyclic and contains no facade pass-thro
   // riscriverlo, perdendo tutto quello che gli era stato attribuito. La scheda
   // la disegna il documento vendorizzato e non si tocca: sta da solo perche' e'
   // un pezzo appoggiato a una scheda di cui non e' il padrone.
-  assert.ok(relative.length <= 162, `production graph unexpectedly grew to ${relative.length} modules`);
+  // 163 con gli oggetti delle tessere: `core/oggetti-widget.js` tiene i disegni
+  // che vanno dentro la pastiglia di ogni tessera — la lampadina col bulbo
+  // caldo, il termometro col mercurio, l'auto col parabrezza. Prima li' c'era
+  // un'emoji, e ogni sistema la disegna a modo suo: sei tessere vicine avevano
+  // sei stili diversi. Sta da solo, e senza dipendenze, perche' e' un
+  // vocabolario di disegni: lo leggono le tessere della Home e le intestazioni
+  // dei popup, e nessuno dei due deve sapere come e' fatto l'altro.
+  // 164 con il vassoio delle azioni rapide: `azioni-rapide-vassoio-section.js`
+  // mette i tasti dentro un ripiano incavato e ne possiede la geometria. Prima
+  // quella misura la scrivevano in due col peso massimo — la guardia del
+  // marchio e la sezione delle regressioni — e vinceva l'ordine di
+  // caricamento: cambiarla in un punto non bastava mai. Sta da solo perche' il
+  // ripiano e' una scelta di forma della Home, e chi disegna le tessere non
+  // deve sapere che esiste.
+  assert.ok(relative.length <= 164, `production graph unexpectedly grew to ${relative.length} modules`);
   assertAcyclic(edges);
 
   /* No polling, with two declared exceptions.

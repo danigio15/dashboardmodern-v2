@@ -36,11 +36,16 @@ test("l'icona di una stanza si traduce nel simbolo, non si scrive", () => {
 
 test("la didascalia della tessera ha una riga sua", () => {
   const sezione = leggi("src/sections/home-widgets-section.js");
-  const sotto = sezione.slice(sezione.indexOf(".dm-tile-under{"));
-  const regola = sotto.slice(0, sotto.indexOf("}"));
-  assert.match(regola, /display:grid/,
-    "affiancata al nome, su un telefono, della didascalia restava una coda tagliata");
-  assert.doesNotMatch(regola, /display:flex/);
+  // La tessera e' in tre righe: nome, numero, dettaglio. La didascalia sta in
+  // fondo e prende la larghezza che avanza, con accanto la sola misura —
+  // affiancata al nome, su un telefono, ne restava una coda tagliata.
+  const fondo = sezione.slice(sezione.indexOf(".dm-tile-fondo{"));
+  assert.match(fondo.slice(0, fondo.indexOf("}")), /display:flex/);
+  const didascalia = sezione.slice(sezione.indexOf(".dm-tile-caption{"));
+  assert.match(didascalia.slice(0, didascalia.indexOf("}")), /flex:1;min-width:0/,
+    "la didascalia si prende la larghezza che avanza sulla sua riga");
+  assert.doesNotMatch(sezione, /\.dm-tile-under/,
+    "la vecchia colonna nome+didascalia non deve restare in giro");
 });
 
 test("una telecamera che sta gia' mostrando qualcosa non diventa nera per ricaricare", () => {

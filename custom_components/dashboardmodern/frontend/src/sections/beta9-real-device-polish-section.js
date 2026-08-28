@@ -357,6 +357,11 @@ function classifyAlert(card) {
  * bare text node, so it is wrapped once — and wrapped again whenever the
  * runtime rewrites the card, which it does whenever the alert count changes. */
 function glyphOf(icon) {
+  /* La pastiglia della tessera adesso porta un oggetto disegnato al posto di
+   * un simbolo scritto: non c'e' niente da avvolgere, e a svuotarla come si
+   * faceva col testo il disegno sparirebbe. Il movimento se lo prende lui. */
+  const oggetto = icon.querySelector(":scope > .dm-oggetto");
+  if (oggetto) return oggetto;
   const existing = icon.querySelector(":scope > .dm-alert-glyph");
   if (existing && icon.childNodes.length === 1) return existing;
   const glyph = existing || doc.createElement("span");
@@ -584,30 +589,30 @@ function installStyles() {
      * funzionare sul Quadro: gli avvisi del ponte stavano fermi, e sembrava
      * che le animazioni fossero sparite di nuovo. */
     #page-home .g-icon-wrap[class*="dm-alert-"]{animation:none!important;transform:none!important}
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip) .dm-alert-glyph{display:inline-block!important;line-height:1!important}
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-static .dm-alert-glyph{animation:none!important;transform:none!important}
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip) :is(.dm-alert-glyph,.dm-oggetto){display:inline-block!important;line-height:1!important}
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-static :is(.dm-alert-glyph,.dm-oggetto){animation:none!important;transform:none!important}
     /* A door swings on its hinge: wide open, a pause, and shut again. */
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-door .dm-alert-glyph{
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-door :is(.dm-alert-glyph,.dm-oggetto){
       transform-origin:left center!important;animation:dmAlertDoor 3.2s ease-in-out infinite!important}
     /* A window sash swings the other way, and less far. */
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-window .dm-alert-glyph{
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-window :is(.dm-alert-glyph,.dm-oggetto){
       transform-origin:right center!important;animation:dmAlertWindow 3s ease-in-out infinite!important}
     /* A flat battery empties from the top down, then refills out of sight. */
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-battery .dm-alert-glyph{
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-battery :is(.dm-alert-glyph,.dm-oggetto){
       transform-origin:center bottom!important;animation:dmAlertBattery 3.4s linear infinite!important}
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-leak .dm-alert-glyph{animation:dmAlertDrip 1.7s ease-in infinite!important}
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-flame .dm-alert-glyph{animation:dmAlertFlame 1.5s ease-in-out infinite!important}
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-motion .dm-alert-glyph{animation:dmAlertStep 1.1s ease-in-out infinite!important}
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-temperature .dm-alert-glyph{animation:dmAlertTemp 2.6s ease-in-out infinite!important}
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-power .dm-alert-glyph{animation:dmAlertSurge 2.1s ease-in-out infinite!important}
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-light .dm-alert-glyph{animation:dmAlertLight 2.2s ease-in-out infinite!important}
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-security .dm-alert-glyph{animation:dmAlertSecurity 1.6s ease-in-out infinite!important}
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-leak :is(.dm-alert-glyph,.dm-oggetto){animation:dmAlertDrip 1.7s ease-in infinite!important}
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-flame :is(.dm-alert-glyph,.dm-oggetto){animation:dmAlertFlame 1.5s ease-in-out infinite!important}
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-motion :is(.dm-alert-glyph,.dm-oggetto){animation:dmAlertStep 1.1s ease-in-out infinite!important}
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-temperature :is(.dm-alert-glyph,.dm-oggetto){animation:dmAlertTemp 2.6s ease-in-out infinite!important}
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-power :is(.dm-alert-glyph,.dm-oggetto){animation:dmAlertSurge 2.1s ease-in-out infinite!important}
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-light :is(.dm-alert-glyph,.dm-oggetto){animation:dmAlertLight 2.2s ease-in-out infinite!important}
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-security :is(.dm-alert-glyph,.dm-oggetto){animation:dmAlertSecurity 1.6s ease-in-out infinite!important}
     /* L'avviso che non si sa leggere: un battito, niente di piu'. */
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-generic .dm-alert-glyph{animation:dmAlertGeneric 2.4s ease-in-out infinite!important}
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-generic :is(.dm-alert-glyph,.dm-oggetto){animation:dmAlertGeneric 2.4s ease-in-out infinite!important}
     :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-shutter-moving .dm-alert-glyph{animation:dmAlertShutterMove 1.25s ease-in-out infinite!important}
     /* Il telo si riavvolge verso il cassonetto: scaleY dall'alto, stessa
        regola in due dimensioni di porta e finestra — niente 3D, niente clip. */
-    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-shutter .dm-alert-glyph{
+    :is(#page-home .g-icon-wrap,#dm-widgets .dm-tile[data-alert="true"] .dm-tile-chip).dm-alert-shutter :is(.dm-alert-glyph,.dm-oggetto){
       transform-origin:center top!important;animation:dmAlertShutter 2.8s ease-in-out infinite!important}
     /* The door and the window swing on their hinge with scaleX, not with a
        perspective rotateY. On screen the two are the same movement — the leaf

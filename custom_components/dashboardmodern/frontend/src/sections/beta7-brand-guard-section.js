@@ -140,11 +140,11 @@ function installStyles() {
       text-overflow:ellipsis!important;
     }
 
-    /* Keep only the compact quick-action card geometry. The icon glyph and its
-       picker are canonicalized synchronously by icon-engine-section. */
-    html body #page-home #qa-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,210px))!important;justify-content:start!important;align-items:stretch!important;gap:14px!important;width:100%!important}
-    html body #page-home #qa-grid .qa-btn{box-sizing:border-box!important;width:100%!important;max-width:210px!important;min-height:116px!important;height:auto!important;padding:16px 14px!important;border-radius:22px!important;justify-content:center!important;gap:9px!important;background:var(--card-background-color,var(--card-bg,#fff))!important;box-shadow:var(--shadow-sculpted,0 5px 18px rgba(15,23,42,.08))!important}
-    @media(max-width:560px){html body #page-home #qa-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;justify-content:stretch!important}html body #page-home #qa-grid .qa-btn{max-width:none!important;min-height:108px!important}}
+    /* La geometria del tasto delle azioni rapide non sta piu' qui: la scrive
+       «azioni-rapide-vassoio-section.js», che le mette dentro il loro ripiano.
+       Due padroni per la stessa misura si risolvevano nell'ordine di
+       caricamento, ed era il motivo per cui cambiarla in un punto non bastava.
+       Il simbolo e il suo scegli-icona restano al motore delle icone. */
   `,
   );
 }

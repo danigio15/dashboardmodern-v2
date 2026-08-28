@@ -276,7 +276,7 @@ function installStyles() {
     }
 
     @media(hover:none){
-      #page-clima .cp-card:hover,#qa-grid .qa-btn:hover{transform:none!important}
+      #page-clima .cp-card:hover{transform:none!important}
     }
   `);
 }
