@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Leave it as the group icon to follow it; change it to tell this opening from the others.": "保持与分组图标一致即可跟随分组；修改它可把这个开口与其他区分开。",
+  "Open section": "打开该板块",
   "Pick the icon": "选择图标",
   "The group decides where the alert is watched.": "由分组决定在哪里监视该提醒。",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "开合传感器必须是 binary_sensor.*、sensor.* 或 input_boolean.* 实体。",

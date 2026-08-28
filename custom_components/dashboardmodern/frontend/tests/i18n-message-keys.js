@@ -1195,6 +1195,7 @@ export const MESSAGE_KEYS = Object.freeze([
   "Open gate",
   "Open in map",
   "Open instant appliance power",
+  "Open section",
   "Open the map",
   "Open the Rooms accordion to edit",
   "Open today's appliance energy breakdown",

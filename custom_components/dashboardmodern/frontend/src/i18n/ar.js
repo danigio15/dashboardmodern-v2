@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Leave it as the group icon to follow it; change it to tell this opening from the others.": "اتركها كأيقونة المجموعة لتتبعها؛ غيّرها لتمييز هذه الفتحة عن غيرها.",
+  "Open section": "افتح القسم",
   "Pick the icon": "اختر الأيقونة",
   "The group decides where the alert is watched.": "تحدد المجموعة أين تتم مراقبة التنبيه.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "يجب أن يكون مستشعر الفتح كيانًا من نوع binary_sensor.* أو sensor.* أو input_boolean.*.",

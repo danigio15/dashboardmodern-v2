@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Leave it as the group icon to follow it; change it to tell this opening from the others.": "그룹 아이콘 그대로 두면 따라갑니다. 이 개구부를 다른 것과 구분하려면 바꾸세요.",
+  "Open section": "섹션 열기",
   "Pick the icon": "아이콘 고르기",
   "The group decides where the alert is watched.": "알림을 어디에서 감시할지는 그룹이 정합니다.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "열림 센서는 binary_sensor.*, sensor.* 또는 input_boolean.* 엔터티여야 합니다.",

@@ -384,6 +384,7 @@ export const SOURCE_INDEX = Object.freeze({
   "Apri l'accordion Stanze per modificare": "Open the Rooms accordion to edit",
   "Apri la mappa": "Open the map",
   "Apri la telecamera": "Open camera",
+  "Apri sezione": "Open section",
   "Apri tutto": "Open all",
   "Apri, col PIN": "Open, with the PIN",
   "Aprile": "April",

@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Leave it as the group icon to follow it; change it to tell this opening from the others.": "Grubu izlemesi için grup simgesiyle aynı bırakın; bu açıklığı diğerlerinden ayırmak için değiştirin.",
+  "Open section": "Bölümü aç",
   "Pick the icon": "Simgeyi seç",
   "The group decides where the alert is watched.": "Uyarının nerede izleneceğine grup karar verir.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "Açılma sensörü binary_sensor.*, sensor.* veya input_boolean.* varlığı olmalıdır.",

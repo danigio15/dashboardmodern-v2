@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Leave it as the group icon to follow it; change it to tell this opening from the others.": "Оставьте значок группы, чтобы следовать за ней; измените его, чтобы отличить этот проём от остальных.",
+  "Open section": "Открыть раздел",
   "Pick the icon": "Выбрать значок",
   "The group decides where the alert is watched.": "Группа определяет, где отслеживается оповещение.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "Датчик открытия должен быть сущностью binary_sensor.*, sensor.* или input_boolean.*.",

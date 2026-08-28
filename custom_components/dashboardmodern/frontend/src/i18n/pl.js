@@ -12,6 +12,7 @@
 
 export default Object.freeze({
   "Leave it as the group icon to follow it; change it to tell this opening from the others.": "Zostaw ikonę grupy, aby za nią podążała; zmień ją, aby odróżnić ten otwór od pozostałych.",
+  "Open section": "Otwórz sekcję",
   "Pick the icon": "Wybierz ikonę",
   "The group decides where the alert is watched.": "Grupa decyduje, gdzie alert jest nadzorowany.",
   "The opening sensor must be a binary_sensor.*, sensor.* or input_boolean.* entity.": "Czujnik otwarcia musi być encją binary_sensor.*, sensor.* lub input_boolean.*.",

@@ -36,6 +36,17 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   tiene su una rete senza uscita puo' spegnere il controllo dalle opzioni
   dell'integrazione: spento, non contatta piu' nessuno.
 
+- **Dalla finestra di una tessera si va nella sua sezione.** La finestra dice
+  cosa sta succedendo; quando non basta si va nella sezione, che e' il posto
+  dove quella roba si comanda per intero — e prima da li' si usciva soltanto
+  chiudendo e andando a cercare la voce in basso. Adesso in fondo c'e' «Apri
+  sezione», e porta davvero: chiude la finestra e preme la voce vera, che e' il
+  gesto che il guscio conosce e l'unico che funziona per le pagine nate da un
+  modulo. Il tasto non c'e' dove non porterebbe da nessuna parte — batterie,
+  allagamenti e cose da fare vivono soltanto in Home — ne' dove la sezione e'
+  stata spenta in configurazione: aprire una pagina che l'utente ha deciso di
+  non avere sarebbe peggio che non offrirla.
+
 ### Corretto
 
 - **La plancia non chiede piu' niente alla rete per aprirsi.** La testata del
