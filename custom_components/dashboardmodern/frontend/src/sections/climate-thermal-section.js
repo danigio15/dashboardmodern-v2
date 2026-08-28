@@ -35,6 +35,7 @@ import {
   allStates,
   clean,
   doc,
+  lexicalGlobal,
   english,
   esc,
   finiteOrNull,
@@ -710,6 +711,94 @@ function installOverrides() {
   // Switching zone changes what the readout summarises.
   wrapFunction("setClimaPageMode", "__dmClimateThermalMode", () => renderClimate());
   installPannelloDellaFinestra();
+  installClimaRapido();
+}
+
+/* Il «Clima rapido» disegnava le stanze di un'altra casa.
+ *
+ * Nel runtime storico c'e' un elenco scritto a mano — Matrimoniale,
+ * Cameretta, Cucina, Salone, Bagno, Studio — con dentro le caselle fisse di
+ * quella casa. Non e' configurabile da nessuna parte: chi ha altre stanze
+ * apriva quel popup e trovava sei tasti coi nomi di casa d'altri, legati a
+ * caselle che magari non ha mai riempito.
+ *
+ * Le unita' del clima le sa la configurazione, ed e' la stessa che disegna la
+ * pagina Clima e la scheda: la griglia adesso viene di li'. Il tasto resta
+ * quello di prima — stesso vestito, stesso gesto — ma parla della casa vera. */
+function unitaDelModo(modo) {
+  const freddo = clean(modo).toLowerCase() !== "caldo";
+  const grezze = readClimateUnits();
+  const perEntita = new Map();
+  for (const grezza of Array.isArray(grezze) ? grezze : []) {
+    const entity = clean(grezza?.entity || grezza?.entity_id || grezza?.entities?.[0]);
+    if (entity && !perEntita.has(entity)) perEntita.set(entity, grezza);
+  }
+  const viste = new Set();
+  return climateUnits().filter((unita) => {
+    if (viste.has(unita.entity)) return false;
+    const zone = climateZones(perEntita.get(unita.entity) || {});
+    if (!zone.includes(freddo ? "freddo" : "caldo")) return false;
+    viste.add(unita.entity);
+    return true;
+  });
+}
+
+function tastoRapido(unita, states) {
+  const stato = states?.[unita.entity];
+  const grezzo = clean(stato?.state).toLowerCase();
+  const acceso = Boolean(grezzo) && !["off", "unavailable", "unknown"].includes(grezzo);
+  const modo = clean(lexicalGlobal("currentClimaMode")).toLowerCase() || "freddo";
+  const freddo = modo !== "caldo";
+  let gradi = "";
+  if (freddo && stato) {
+    const obiettivo = stato.attributes?.temperature;
+    const ambiente = stato.attributes?.current_temperature;
+    if (acceso && obiettivo !== undefined) gradi = `${obiettivo}°`;
+    else if (ambiente !== undefined) gradi = `${Math.round(ambiente)}°`;
+  }
+  const tasto = doc.createElement("button");
+  tasto.type = "button";
+  tasto.className = `ns-clima-btn${acceso ? (freddo ? " on-clima" : " on-heat") : ""}`;
+  tasto.setAttribute("data-entity", unita.entity);
+  tasto.onclick = () => {
+    if (freddo) root.nsToggleClima?.(unita.entity);
+    else root.nsToggleTerm?.(unita.entity);
+  };
+  const nome = clean(unita.name) || clean(unita.room) || unita.entity;
+  const icona = clean(unita.room) ? "🚪" : freddo ? "❄️" : "🔥";
+  tasto.innerHTML =
+    `${gradi ? `<span class="ns-clima-btn-temp">${esc(gradi)}</span>` : ""}` +
+    `<span class="ns-clima-btn-icon">${esc(icona)}</span>` +
+    `<span class="ns-clima-btn-name">${esc(nome)}</span>`;
+  return tasto;
+}
+
+export function disegnaClimaRapido() {
+  const griglia = doc?.getElementById?.("quick-clima-grid");
+  if (!griglia) return false;
+  /* Senza nemmeno un'unita' configurata non c'e' niente di meglio da mettere:
+   * si lascia quello che il runtime ha disegnato. */
+  if (!climateUnits().length) return false;
+  const modo = clean(lexicalGlobal("currentClimaMode")).toLowerCase() || "freddo";
+  const unita = unitaDelModo(modo);
+  const states = allStates();
+  griglia.replaceChildren();
+  if (!unita.length) {
+    const vuoto = doc.createElement("p");
+    vuoto.className = "ns-clima-empty";
+    vuoto.textContent =
+      modo === "caldo"
+        ? t("Nessun termosifone configurato", "No radiator configured")
+        : t("Nessun condizionatore configurato", "No air conditioner configured");
+    griglia.append(vuoto);
+    return true;
+  }
+  for (const voce of unita) griglia.append(tastoRapido(voce, states));
+  return true;
+}
+
+function installClimaRapido() {
+  wrapFunction("renderQuickClima", "__dmClimaRapidoStanze", () => disegnaClimaRapido());
 }
 
 /* La finestra della pagina Clima prende il pannello della tessera.
