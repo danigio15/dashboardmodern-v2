@@ -38,13 +38,17 @@ test("energy flow module restores active source colors", async () => {
   assert.match(source, /dm-energy-flow-active/);
 });
 
+/* L'icona nell'editor e i comandi sulla scheda restano visibili — e a
+ * garantirlo e' chi li disegna. Il tasto di accensione lo cercava anche il
+ * foglio della vecchia scheda alta: la prova lo trovava li' ed era contenta,
+ * mentre sulla scheda vera il tasto lo mette e lo dimensiona la sezione. */
 test("appliance editor and cards keep icon and controls visible", async () => {
   const editor = await read("src/sections/appliance-editor-section.js");
-  const layout = await read("src/sections/appliance-layout-section.js");
+  const sezione = await read("src/sections/appliances-section.js");
   assert.match(editor, /dm-appliance-icon-preview/);
   assert.match(editor, /visual_key: visualKey/);
   assert.match(editor, /device_type: visualKey/);
-  assert.match(layout, /data-dm-power-toggle/);
-  assert.match(layout, /visibility:visible/);
-  assert.doesNotMatch(layout, /max-height:188px/);
+  assert.match(sezione, /data-dm-power-toggle/);
+  assert.match(sezione, /dm-appliance-power-toggle/);
+  assert.match(sezione, /restoreLegacyActions/);
 });

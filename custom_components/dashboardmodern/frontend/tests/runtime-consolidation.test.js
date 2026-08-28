@@ -151,6 +151,10 @@ test("one hosted bootstrap delegates to the section runtime, which owns the guar
     new URL("../src/sections/appliance-layout-section.js", import.meta.url),
     "utf8",
   );
+  const applianceShowcase = await readFile(
+    new URL("../src/sections/appliance-showcase-section.js", import.meta.url),
+    "utf8",
+  );
   const ev = await readFile(new URL("../src/sections/ev-section.js", import.meta.url), "utf8");
   const guard = await readFile(
     new URL("../src/transport/hosted-bridge-guard.js", import.meta.url),
@@ -211,8 +215,14 @@ test("one hosted bootstrap delegates to the section runtime, which owns the guar
   assert.match(report, /grid-template-areas/);
   for (const kind of ["action", "climate", "shutter", "room"])
     assert.match(editors, new RegExp(`kind === "${kind}"`));
-  assert.match(applianceLayout, /border-radius:22px/);
-  assert.doesNotMatch(applianceLayout, /border-radius:999px/);
+  // La scheda dell'elettrodomestico ha gli angoli arrotondati, non e' una
+  // pastiglia — e a deciderlo e' la sezione che la disegna. Il foglio accanto
+  // ne teneva una seconda copia, per una scheda che nessuno disegnava piu'.
+  const scheda = /\.appl-wide-card\.dm-ap-card\{([^}]*)\}/.exec(applianceShowcase);
+  assert.ok(scheda, "manca la regola della scheda");
+  assert.match(scheda[1], /border-radius:22px/);
+  assert.doesNotMatch(scheda[1], /border-radius:999px/);
+  assert.doesNotMatch(applianceLayout, /appl-wide-card:not\(\.dm-ap-card\)/);
   assert.match(ev, /dm-vehicle-profile-card/);
   assert.match(ev, /dm-vehicle-native-select/);
   assert.doesNotMatch(ev, /shutter|alert/i);

@@ -43,18 +43,18 @@ test("the power toggle is sized for its glyph, not for the widest label", () => 
   assert.match(behavior, /\.dm-appliance-power-toggle svg/);
 });
 
-test("no later sheet restores the pill the owner just squared off", () => {
-  // beta27-release-stability-section sizes the same control with a more
-  // specific selector AND re-appends itself last in the cascade, so a floor
-  // left behind there silently outranks the owner and the fix does nothing.
-  assert.doesNotMatch(stability, /min-width:88px/);
-  const width = /\[data-dm-power-toggle="true"\]:not\(\.dm-ap-power\)[^{]*\{[^}]*width:(\d+)px/s.exec(
-    stability,
-  );
-  assert.ok(width, "the stability sheet still sizes the toggle");
-  const owner = /\.dm-appliance-power-toggle,[^{]*\{[^}]*[^-]width:(\d+)px/s.exec(behavior);
-  assert.ok(owner, "and so does the owner");
-  assert.equal(width[1], owner[1], "the two sizings must agree");
+/* Il tasto di accensione lo dimensiona uno solo.
+ *
+ * Prima erano due: la sezione lo squadrava, e il foglio delle rifiniture — che
+ * si rimette apposta per ultimo nella cascata — lo ridimensionava di nuovo con
+ * un selettore piu' forte. Finche' i due numeri coincidevano non si vedeva
+ * niente; il giorno che uno dei due cambiava, vinceva quello sbagliato. Adesso
+ * quel foglio non tocca piu' la sezione Elettrodomestici, e la prova serve a
+ * non farcelo tornare. */
+test("nessun altro foglio rimette in tondo il tasto che la sezione ha squadrato", () => {
+  assert.doesNotMatch(stability, /data-dm-power-toggle/);
+  assert.doesNotMatch(stability, /appl-/);
+  assert.match(behavior, /\.dm-appliance-power-toggle,[^{]*\{[^}]*[^-]width:\d+px/s);
 });
 
 test("a toggle drawn by an earlier build is redrawn, not left showing the word", () => {
