@@ -67,9 +67,11 @@ test("togliere una chiave non alza la revisione", async () => {
    * le aperture (`cd_security_doors`) e le liste ToDo (`cd_todo`), la 7 con
    * le preferenze del ponte dei widget (`cd_widgets`), la 8 con le modalita'
    * scelte dell'antifurto (`cd_antifurto_modi`) e il tasto Clima rapido
-   * (`cd_clima_rapido`). Quelle tolte restano fuori dall'elenco, che e' quello
-   * che questa prova difende. */
-  assert.equal(CONFIG_KEYS_REVISION, 8);
+   * (`cd_clima_rapido`), la 9 con le icone degli avvisi (`cd_avvisi_icone`),
+   * le entita' assegnate a mano a una stanza (`cd_stanze_entita`) e il segno
+   * progressivo delle auto (`cd_ev_meta`). Quelle tolte restano fuori
+   * dall'elenco, che e' quello che questa prova difende. */
+  assert.equal(CONFIG_KEYS_REVISION, 9);
   for (const chiave of ["cd_ev_image", "cd_ev_image_plugged"])
     assert.equal(CONFIG_KEYS.includes(chiave), false);
 
