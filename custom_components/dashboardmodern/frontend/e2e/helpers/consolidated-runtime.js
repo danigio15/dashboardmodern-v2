@@ -209,16 +209,15 @@ const wrongMonthValues = Object.fromEntries(
 );
 
 export async function bootConsolidatedDashboard(page, variant, testInfo) {
-  await page.route("https://**", (route) => {
-    const url = route.request().url();
-    if (url.includes("chart.js")) {
-      return route.fulfill({
-        contentType: "application/javascript",
-        body: "window.Chart=class{static defaults={color:'',font:{}};static getChart(){return null}constructor(){this.data={};}destroy(){}}",
-      });
-    }
-    return route.fulfill({ status: 200, body: "" });
-  });
+  /* Chart.js adesso arriva dall'integrazione, non da jsdelivr: il finto va
+   * messo li'. Le altre librerie in `vendor/` se le prende davvero. */
+  await page.route(/\/vendor\/chart\.umd\.min\.js(?:\?.*)?$/, (route) =>
+    route.fulfill({
+      contentType: "application/javascript",
+      body: "window.Chart=class{static defaults={color:'',font:{}};static getChart(){return null}constructor(){this.data={};}destroy(){}}",
+    }),
+  );
+  await page.route("https://**", (route) => route.fulfill({ status: 200, body: "" }));
   await page.addInitScript(
     ({ haStates, daily, currentMonthly, monthly, annual, wrongMonthly }) => {
       window.DASHBOARDMODERN_AUTH_TOKEN = "e2e-token";

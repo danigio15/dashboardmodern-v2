@@ -1,0 +1,6 @@
+# Le librerie e i caratteri che la plancia serviva dalla rete stanno in casa:
+# sono byte di terzi, non codice di questo progetto. Marcarli tiene le
+# statistiche del repository oneste e evita che un diff provi a stamparli.
+custom_components/dashboardmodern/frontend/legacy/vendor/** linguist-vendored
+custom_components/dashboardmodern/frontend/legacy/vendor/*.js -diff
+custom_components/dashboardmodern/frontend/legacy/vendor/fonts/*.woff2 binary

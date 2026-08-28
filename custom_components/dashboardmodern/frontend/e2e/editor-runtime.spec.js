@@ -3,19 +3,28 @@ import { clickStableButton } from "./helpers/navigation.js";
 import { editEntityFieldByHand, saveSection, showRawEntityFields } from "./helpers/entity-field.js";
 import { PRIMARY } from "./helpers/variants.js";
 
-async function disableSriForMockedExternalScripts(page) {
-  // These E2E routes replace the pinned CDN files with deterministic stubs.
-  // Their bytes intentionally differ from production, so SRI would reject the
-  // stubs. Strip SRI only from the document served inside this test; the
-  // committed legacy HTML remains pinned/SRI-protected and is validated by the
-  // release-hardening frontend contract.
-  await page.route(/\/legacy\/dashboard(?:-en)?\.html(?:\?.*)?$/, async (route) => {
-    const response = await route.fetch();
-    const body = (await response.text()).replace(
-      /\s+integrity="sha384-[^"]+"\s+crossorigin="anonymous"/g,
-      "",
-    );
-    await route.fulfill({ response, body });
+/* Le tre librerie stanno in casa, e queste prove le sostituiscono li'.
+ *
+ * Prima arrivavano da jsdelivr e bastava dirottare `https://**`; adesso le
+ * serve l'integrazione da `legacy/vendor/`, quindi si dirotta quel percorso.
+ * Chi passa `null` come corpo se le prende davvero. */
+async function stubVendorScripts(page, corpi) {
+  await page.route(/\/vendor\/[^/]+\.js(?:\?.*)?$/, (route) => {
+    const nome = route.request().url().split("/").pop().split("?")[0];
+    const corpo = corpi[nome];
+    if (corpo === undefined) return route.continue();
+    return route.fulfill({ contentType: "application/javascript", body: corpo });
+  });
+}
+
+/* Nessuna richiesta verso l'esterno, mai piu'.
+ *
+ * E' la garanzia che questo giro difende: una casa senza internet sul quadro
+ * deve vedere la plancia com'e', non aspettare che il browser si arrenda. */
+function nienteRete(page, fuori) {
+  page.on("request", (richiesta) => {
+    const url = richiesta.url();
+    if (/^https?:\/\/(?!127\.0\.0\.1|localhost)/.test(url)) fuori.push(url);
   });
 }
 
@@ -23,22 +32,12 @@ for (const variant of PRIMARY) {
   test(`${variant}: missing Chart.js still reaches legacy readiness`, async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(`${error.message}\n${error.stack || ""}`));
-    await disableSriForMockedExternalScripts(page);
-    await page.route("https://**", (route) => {
-      const url = route.request().url();
-      if (url.startsWith("https://fonts.googleapis.com/"))
-        return route.fulfill({
-          status: 200,
-          contentType: "text/css",
-          body: "/* E2E font stub */",
-        });
-      if (url.startsWith("https://fonts.gstatic.com/"))
-        return route.fulfill({
-          status: 200,
-          contentType: "font/woff2",
-          body: Buffer.from([]),
-        });
-      return route.fulfill({ status: 200, contentType: "application/javascript", body: "" });
+    const fuori = [];
+    nienteRete(page, fuori);
+    await stubVendorScripts(page, {
+      "chart.umd.min.js": "",
+      "panzoom.min.js": "",
+      "hls.min.js": "",
     });
     await page.addInitScript(() => {
       window.WebSocket = class extends EventTarget {
@@ -58,6 +57,7 @@ for (const variant of PRIMARY) {
       }),
     ).toHaveCount(0);
     expect(pageErrors).toEqual([]);
+    expect(fuori, "la plancia ha chiesto qualcosa alla rete").toEqual([]);
   });
 
   test(`${variant}: runtime, energy, loads and report use the shipped module`, async ({
@@ -125,37 +125,13 @@ for (const variant of PRIMARY) {
       pageErrors.push(detail);
       rejectEarlyPageError(new Error(`Page error before runtime readiness:\n${detail}`));
     });
-    await disableSriForMockedExternalScripts(page);
-    await page.route("https://**", async (route) => {
-      const url = route.request().url();
-      if (url.startsWith("https://fonts.googleapis.com/"))
-        return route.fulfill({
-          status: 200,
-          contentType: "text/css",
-          body: "/* E2E font stub */",
-        });
-      if (url.startsWith("https://fonts.gstatic.com/"))
-        return route.fulfill({
-          status: 200,
-          contentType: "font/woff2",
-          body: Buffer.from([]),
-        });
-      if (url.includes("chart.js"))
-        return route.fulfill({
-          contentType: "application/javascript",
-          body: "window.Chart=class{static defaults={color:'',font:{}};constructor(){}destroy(){}}",
-        });
-      if (url.includes("panzoom"))
-        return route.fulfill({
-          contentType: "application/javascript",
-          body: "window.panzoom=()=>({dispose(){}})",
-        });
-      if (url.includes("hls.js"))
-        return route.fulfill({
-          contentType: "application/javascript",
-          body: "window.Hls=class{static isSupported(){return false}}",
-        });
-      return route.fulfill({ status: 200, contentType: "application/javascript", body: "" });
+    const fuori = [];
+    nienteRete(page, fuori);
+    await stubVendorScripts(page, {
+      "chart.umd.min.js":
+        "window.Chart=class{static defaults={color:'',font:{}};constructor(){}destroy(){}}",
+      "panzoom.min.js": "window.panzoom=()=>({dispose(){}})",
+      "hls.min.js": "window.Hls=class{static isSupported(){return false}}",
     });
     await page.addInitScript(() => {
       class TestSocket extends EventTarget {
@@ -501,5 +477,6 @@ for (const variant of PRIMARY) {
     });
     expect(errors).toEqual([]);
     expect(pageErrors).toEqual([]);
+    expect(fuori, "la plancia ha chiesto qualcosa alla rete").toEqual([]);
   });
 }

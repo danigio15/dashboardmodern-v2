@@ -5,6 +5,42 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
+## Non ancora rilasciato
+
+### Corretto
+
+- **La plancia non chiede piu' niente alla rete per aprirsi.** La testata del
+  documento apriva quattro connessioni verso l'esterno prima di disegnare
+  qualsiasi cosa — il foglio dei caratteri di Google e tre librerie da
+  jsdelivr — e nessuna delle quattro era rimandata: bastava che una sola non
+  rispondesse perche' la lettura della pagina si fermasse li'. Home Assistant
+  sta in casa, e molte case sul quadro non hanno internet, o ce l'hanno lento,
+  o hanno un DNS che risponde quando gli pare: su quelle case la plancia non
+  era lenta, era ferma, e ripartiva soltanto quando il browser si arrendeva da
+  solo — decine di secondi dopo. Adesso le tre librerie e i caratteri li serve
+  l'integrazione, dalla stessa cartella di tutto il resto. Su una linea che non
+  arriva a Google la plancia passa da tredici secondi e mezzo prima di
+  cominciare a uno e sette.
+
+  E' anche la spiegazione piu' credibile del foglio del guscio che ogni tanto
+  non arrivava — quello che faceva sparire i flussi finche' non si ricaricava
+  la pagina: la sua richiesta stava in coda dietro quattro connessioni ferme.
+  La rete di sicurezza messa nella 1.3.3 resta dov'e', ma adesso la coda
+  davanti non c'e' piu'.
+
+  Le impronte firmate che stavano negli attributi `integrity` non sono andate
+  perse: si controllano sui byte in cartella a ogni giro di prove, e il giro
+  che li rifa' — `scripts/porta-in-casa-le-librerie.mjs` — si ferma se il
+  registro npm servisse un byte diverso.
+
+- **Una delle tre librerie non la usava nessuno.** panzoom arrivava a ogni
+  avvio, trentadue chilobyte da scaricare, leggere ed eseguire prima che la
+  pagina potesse andare avanti, e in tutta la plancia non c'e' una riga che lo
+  chiami: la mappa dell'aspirapolvere si sposta e si ingrandisce con le sue
+  trasformazioni. Adesso non arriva piu'. E hls.js — mezzo mega, che serve
+  soltanto quando si apre una telecamera — e' passato a `defer`: c'e' lo
+  stesso quando serve, ma non ferma piu' la lettura della pagina.
+
 ## 1.3.3
 
 ### Cambiato

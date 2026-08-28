@@ -3,12 +3,17 @@
  *
  * The first version of this bridge handed the hosted dashboard a Home Assistant
  * access token, which it stored in localStorage so its existing bootstrap could
- * use it unchanged. That was wrong. The hosted page loads three scripts from a
+ * use it unchanged. That was wrong. The hosted page loaded three scripts from a
  * public CDN — Chart.js, hls.js, panzoom — and any script running in a page can
  * read that page's localStorage. Nothing suggests those libraries do anything
  * of the sort, but putting a working Home Assistant credential within reach of
  * third-party code is an exposure with no upside, and the whole point of the
  * integration was to stop tokens existing.
+ *
+ * Those libraries now ship with the integration and are served from the same
+ * origin as everything else — panzoom is gone entirely, nothing ever used it.
+ * That removes the third party, not the reasoning: a credential the page never
+ * holds is a credential nothing in the page can read.
  *
  * So no token crosses over. Instead the panel installs this shim in place of
  * the hosted document's WebSocket constructor. The hosted code still calls
