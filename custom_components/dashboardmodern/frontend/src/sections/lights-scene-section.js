@@ -12,7 +12,7 @@ import {
   rgbToHsv,
 } from "../core/light-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
-import { allStates, clean, doc, esc, installStyle, readJson, root, t } from "./shared.js";
+import { allStates, clean, doc, esc, installStyle, readJson, root, roomRank, t } from "./shared.js";
 
 /* Single paint owner for the Gestione Luci popup and for the controls of one
  * light.
@@ -186,7 +186,13 @@ function lightGroups(views) {
     }
     groups.push({ room, floor: members[0].floor, views: members, merged: false });
   }
-  groups.sort((left, right) => rank(left.floor) - rank(right.floor));
+  /* Dentro il piano, le stanze nell'ordine scelto in configurazione. Prima
+   * qui non si ordinava affatto: le stanze uscivano nell'ordine in cui le luci
+   * erano state configurate, che non e' un ordine che qualcuno abbia scelto. */
+  const stanza = roomRank();
+  groups.sort(
+    (left, right) => rank(left.floor) - rank(right.floor) || stanza(left.room) - stanza(right.room),
+  );
   if (singles.length) groups.push({ room: others, floor: "", views: singles, merged: true });
   return groups;
 }

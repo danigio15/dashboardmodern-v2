@@ -1,5 +1,6 @@
 // DM-FIX-20260812B
 import { canonicalClimateType } from "../core/device-model.js";
+import { roomOrderRank } from "../core/room-overview.js";
 import {
   DEFAULT_LOCALE,
   SOURCE_LOCALE,
@@ -291,6 +292,21 @@ export function section(name, fallback) {
  * Qui l'id torna il nome; un nome resta il nome — le configurazioni vecchie
  * salvavano quello — e una stanza che non esiste piu' resta com'era scritta,
  * che e' comunque meglio di niente. */
+/* Quale stanza viene prima, secondo la configurazione.
+ *
+ * Le pagine che raggruppano per stanza se lo chiedevano ognuna per conto suo,
+ * e rispondevano in modo diverso: due in ordine alfabetico, una nell'ordine in
+ * cui le cose erano state configurate. L'ordine scelto nella scheda Stanze non
+ * arrivava a nessuna di loro. Adesso la domanda passa di qui, e la risposta e'
+ * una sola per tutta la plancia. */
+export function roomRank() {
+  try {
+    return roomOrderRank(section("rooms", readJson("cd_stanze", [])) || []);
+  } catch (_error) {
+    return () => Number.MAX_SAFE_INTEGER;
+  }
+}
+
 export function roomLabel(reference) {
   const cercato = String(reference ?? "").trim();
   if (!cercato) return "";

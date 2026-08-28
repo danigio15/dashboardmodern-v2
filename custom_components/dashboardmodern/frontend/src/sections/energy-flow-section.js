@@ -4,6 +4,7 @@ import {
   flowStageModel,
 } from "../core/energy-flow-topology.js";
 import { allocateSourceFlows, batteryReadout } from "../core/energy-flow-truth.js";
+import { wattsFromState } from "../core/signed-energy.js";
 import { vehicleBatteryEntity } from "./ev-section.js";
 import { IMPIANTO_SCELTO_KEY, plantAt, plantLoads } from "../core/energy-plants.js";
 import {
@@ -472,10 +473,9 @@ function potenzaViva(reference) {
   if (!nodo || nodo.state === undefined) return null;
   const raw = String(nodo.state);
   if (raw === "unknown" || raw === "unavailable") return null;
-  const value = Number.parseFloat(raw.replace(",", "."));
-  if (!Number.isFinite(value)) return null;
-  const unit = String(nodo.attributes?.unit_of_measurement || "").toLowerCase();
-  return unit === "kw" ? value * 1000 : value;
+  /* I watt li conta chi sa contarli: qui si guardava solo il kW, e un
+   * contatore in MW passava per un contatore in watt. */
+  return wattsFromState(nodo);
 }
 
 function instantSourceFlows() {

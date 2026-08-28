@@ -11,7 +11,7 @@ import {
   relayCoverCommands,
 } from "../core/cover-kind.js";
 import { contactEntity, isWindowOnly, windowOpenFromState } from "../core/shutter-window.js";
-import { allStates, clean, doc, esc, installStyle, root, roomLabel, t } from "./shared.js";
+import { allStates, clean, doc, esc, installStyle, root, roomLabel, roomRank, t } from "./shared.js";
 
 // Single paint owner for the Tapparelle page.
 //
@@ -183,11 +183,19 @@ function coverList() {
     return index < 0 ? Number.MAX_SAFE_INTEGER : index;
   };
   if (!views.some((view) => view.room)) return views;
+  /* Le stanze nell'ordine scelto in configurazione, non in ordine alfabetico.
+   * Chi ha messo il bagnetto in cima se lo ritrovava comunque fra la B e la C:
+   * l'ordinamento c'era, ma qui non arrivava. Chi non e' fra le stanze
+   * configurate resta in fondo, come prima. */
+  const stanza = roomRank();
   return views.sort((a, b) => {
     if (rank(a.floor) !== rank(b.floor)) return rank(a.floor) - rank(b.floor);
-    const left = a.room || "￿";
-    const right = b.room || "￿";
-    return left === right ? 0 : left < right ? -1 : 1;
+    const left = stanza(a.room);
+    const right = stanza(b.room);
+    if (left !== right) return left - right;
+    const nomeSinistra = a.room || "￿";
+    const nomeDestra = b.room || "￿";
+    return nomeSinistra === nomeDestra ? 0 : nomeSinistra < nomeDestra ? -1 : 1;
   });
 }
 

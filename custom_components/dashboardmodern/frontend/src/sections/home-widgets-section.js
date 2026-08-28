@@ -35,6 +35,8 @@ import {
   relayCoverCommands,
 } from "../core/cover-kind.js";
 import { doorOpenCall, normalizeSecurityDoors } from "../core/security-door-model.js";
+import { wattsFromState } from "../core/signed-energy.js";
+import { contactEntity, isWindowOnly, windowOpenFromState } from "../core/shutter-window.js";
 import { normalizeRobots, robotStateLabel, robotView } from "../core/robot-model.js";
 import { configuredLightGroups } from "./lights-alerts-section.js";
 import { floodEntities, floodIsWet } from "./flood-alerts-section.js";
@@ -428,29 +430,51 @@ function coversModel(states) {
    * vedeva. Adesso ogni copertura della riga e' una voce, col suo nome e col
    * suo rele' di discesa. */
   const rows = values
-    .flatMap((item) =>
-      coverEntries(item).map((voce) => ({
+    .flatMap((item) => {
+      /* Una finestra senza motori — persiane manuali, un contatto sull'anta e
+       * nient'altro — non ha coperture da elencare, e qui spariva: la tessera
+       * chiedeva le coperture della riga, e di coperture non ne aveva
+       * nessuna. La pagina Tapparelle quella riga la disegna da tempo e sa
+       * dire se la finestra e' aperta; in Home non arrivava niente, e chi ha
+       * solo i sensori di apertura non aveva modo di vedere a colpo d'occhio
+       * quali infissi ha lasciato aperti — che e' esattamente la cosa che si
+       * vuole sapere uscendo di casa. */
+      if (isWindowOnly(item))
+        return [
+          {
+            item,
+            voce: { entity: contactEntity(item), kind: "", down: "" },
+            etichetta: clean(item?.name) || clean(contactEntity(item)),
+            soloSensore: true,
+          },
+        ];
+      return coverEntries(item).map((voce) => ({
         item,
         voce,
         etichetta:
           coverEntries(item).length > 1 && voce.kind
             ? `${clean(item?.name) || voce.entity} · ${coverKindLabel(voce.kind)}`
             : clean(item?.name) || voce.entity,
-      })),
-    )
-    .map(({ item, voce, etichetta }) => {
+      }));
+    })
+    .map(({ item, voce, etichetta, soloSensore }) => {
       const entity = clean(voce.entity);
       if (!entity || !widgetIncludes(entity, fuori)) return null;
       const current = stateOf(states, entity);
       const raw = clean(current?.state).toLowerCase();
       const position = Number(current?.attributes?.current_position);
-      const open = raw === "open" || raw === "opening" || (Number.isFinite(position) && position > 0);
+      /* Il contatto parla la sua lingua — `on` e' aperto — e non ha posizione:
+       * chiederla a lui vorrebbe dire inventarla. */
+      const open = soloSensore
+        ? windowOpenFromState(current?.state) === true
+        : raw === "open" || raw === "opening" || (Number.isFinite(position) && position > 0);
       return {
+        soloSensore: Boolean(soloSensore),
         entity,
         name: etichetta,
         open,
-        position: Number.isFinite(position) ? Math.round(position) : null,
-        isCover: /^cover\./i.test(entity),
+        position: soloSensore || !Number.isFinite(position) ? null : Math.round(position),
+        isCover: !soloSensore && /^cover\./i.test(entity),
         // Chi accetta `set_cover_position` (bit 4) si ferma dove gli si dice.
         settable: Boolean(Number(current?.attributes?.supported_features) & 4),
         preset: coverPresetPosition(item),
@@ -531,11 +555,22 @@ const ENERGY_SLOTS = Object.freeze([
   ["battery", "power", "dm.energy_potenza_batteria"],
 ]);
 
+/* La potenza di un'entita', in watt, qualunque unita' dichiari.
+ *
+ * La tessera leggeva il numero e basta: un contatore che pubblica in kW —
+ * normale quanto uno in watt — le faceva scrivere «0 W» sopra una casa che
+ * stava consumando duecentosettanta watt, perche' 0,27 arrotondato all'intero
+ * e' zero. Il numero grande della tessera diceva il contrario di quello che
+ * diceva il flusso, nella stessa pagina, a due dita di distanza. */
+function wattsOf(states, entity) {
+  return wattsFromState(stateOf(states, entity));
+}
+
 function energyModel(states) {
   const model = section("energy", {}) || {};
   const readings = ENERGY_SLOTS.map(([group, field, slot]) => ({
     group,
-    watts: numOf(states, clean(model?.[group]?.[field]) || slot),
+    watts: wattsOf(states, clean(model?.[group]?.[field]) || slot),
   }));
   const house = readings.find((row) => row.group === "house")?.watts ?? null;
   const today = numOf(states, clean(model?.house?.daily_energy) || "dm.energy_consumo_casa_oggi");
@@ -1884,7 +1919,13 @@ function coversDetail(widget) {
       rowShell(
         `<span class="dm-w-glyph" data-on="${row.open}" aria-hidden="true">🪟</span>
          <span class="dm-w-name">${esc(row.name)}<small>${
-           row.position == null ? "" : `${row.position}%`
+           /* La finestra col solo contatto non ha una percentuale da mostrare:
+            * al suo posto dice quello che sa, cioe' se e' aperta. */
+           row.soloSensore
+             ? esc(row.open ? t("Aperta", "Open") : t("Chiusa", "Closed"))
+             : row.position == null
+               ? ""
+               : `${row.position}%`
          }</small></span>
          ${
            row.isCover || row.relay

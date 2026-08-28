@@ -243,6 +243,28 @@ const POWER_UNIT_FACTORS = Object.freeze({
   mW: 0.001,
 });
 
+/* I watt di un'entita' di potenza, qualunque unita' dichiari.
+ *
+ * Un contatore che pubblica in kW e' normale quanto uno che pubblica in W, e
+ * chi legge il numero e basta si sbaglia di mille: 0,27 kW letti come watt
+ * diventano «0 W», cioe' una casa spenta mentre sta consumando duecentosettanta
+ * watt. La domanda «quanti watt sono» aveva quattro risposte sparse per la
+ * plancia — una completa, due a meta' e una che non se la poneva. Questa e'
+ * quella completa, e adesso e' anche l'unica.
+ *
+ * Senza unita' dichiarata si assumono i watt, come ha sempre fatto il runtime:
+ * cambiare quella regola qui vorrebbe dire cambiare cosa mostrano le case che
+ * funzionano gia'. */
+export function wattsFromState(snapshot) {
+  if (!snapshot) return null;
+  const valore = Number.parseFloat(String(snapshot.state ?? "").replace(",", "."));
+  if (!Number.isFinite(valore)) return null;
+  const unit = clean(snapshot.attributes?.unit_of_measurement);
+  if (!unit) return valore;
+  const factor = POWER_UNIT_FACTORS[unit] ?? POWER_UNIT_FACTORS[unit.toLowerCase()];
+  return factor === undefined ? valore : valore * factor;
+}
+
 function watts(reading) {
   if (!reading || reading.value === null || reading.value === undefined) return null;
   const unit = clean(reading.source?.attributes?.unit_of_measurement);

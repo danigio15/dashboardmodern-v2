@@ -40,6 +40,7 @@ import {
   installStyle,
   readJson,
   root,
+  roomRank,
   section,
   t,
 } from "./shared.js";
@@ -187,6 +188,7 @@ export function filterShowcaseModels(models = [], ui = {}) {
   const sort = ui.sort || "power-desc";
   const stateRank = { running: 0, standby: 1, off: 2, unavailable: 3 };
   const watts = (model) => finiteOrNull(model.watts) ?? -1;
+  const stanza = roomRank();
   return models
     .filter((model) => {
       if (room === "unassigned" && model.room) return false;
@@ -202,6 +204,10 @@ export function filterShowcaseModels(models = [], ui = {}) {
       if (sort === "name") return left.name.localeCompare(right.name);
       if (sort === "room")
         return (
+          /* «Per stanza» vuol dire nell'ordine in cui le stanze sono state
+           * messe in configurazione, non in ordine alfabetico: e' l'ordine in
+           * cui si gira per casa, ed e' quello che si e' scelto. */
+          stanza(left.room?.name) - stanza(right.room?.name) ||
           clean(left.room?.name).localeCompare(clean(right.room?.name)) ||
           left.name.localeCompare(right.name)
         );
