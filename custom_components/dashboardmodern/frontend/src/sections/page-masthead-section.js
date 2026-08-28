@@ -432,11 +432,16 @@ function foldRules() {
  * conosce `:has` — nessun browser di oggi, ma la rete e' lunga — non si
  * prende nessuna delle due righe e resta al comportamento di prima, invece di
  * ritrovarsi la fascia accesa dappertutto. */
+/* E si parla della fascia della plancia, che e' una sola ed e' figlia diretta
+ * del corpo del documento: da qui il `>`. Non e' un vezzo — `header` e basta
+ * prende anche le intestazioni delle finestre di modifica, che stanno in fondo
+ * al corpo dentro la loro scheda, e le spegneva tutte, croce di chiusura
+ * compresa, ogni volta che la pagina aperta non era la Home. */
 function regolaDellaFascia() {
   const fascia = "header:not(.dm-page-mast)";
   return `@supports selector(:has(*)){
-      body:has(.page.active) ${fascia}{display:flex!important}
-      body:has(.page.active:not(#page-home)) ${fascia}{display:none!important}
+      body:has(.page.active)>${fascia}{display:flex!important}
+      body:has(.page.active:not(#page-home))>${fascia}{display:none!important}
     }`;
 }
 

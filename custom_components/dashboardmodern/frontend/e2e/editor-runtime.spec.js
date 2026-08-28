@@ -407,9 +407,20 @@ for (const variant of PRIMARY) {
     await expect(roomPicker).toHaveAttribute("data-dm-beta17-picker", "room");
     const roomOptions = roomPicker.locator(".dm-beta17-room-option");
     expect(await roomOptions.count()).toBeGreaterThanOrEqual(20);
-    for (const icon of ["🛏️", "🛋️", "🍳", "🚿", "💻", "🚗", "🌇", "🧺"]) {
+    /* Le stanze del selettore hanno il disegno di casa, non piu' l'emoji del
+     * sistema: si cerca il nome del disegno. */
+    for (const disegno of [
+      "room-bedroom",
+      "room-living",
+      "oven",
+      "room-bathroom",
+      "room-office",
+      "room-garage",
+      "room-balcony",
+      "washer",
+    ]) {
       expect(
-        await roomPicker.locator(".dm-beta12-room-glyph", { hasText: icon }).count(),
+        await roomPicker.locator(`.dm-beta12-room-glyph [data-dm-art="${disegno}"]`).count(),
       ).toBeGreaterThanOrEqual(1);
     }
     const roomSearch = roomPicker.locator("[data-search]");

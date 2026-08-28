@@ -1,5 +1,6 @@
 // DM-FIX-20260813C
 import { expect, test } from "@playwright/test";
+import { vettorialiEstranei } from "./helpers/glifo-di-casa.js";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
 const seed = {
@@ -87,7 +88,7 @@ async function assertStablePicker(page, kind, glyph) {
   const picker = page.locator(`#dm-visual-picker[data-kind="${kind}"]`);
   await expect(picker).toBeVisible();
   await expect(picker).toHaveAttribute("data-dm-icon-engine", "single-owner");
-  await expect(picker.locator("svg,ha-icon")).toHaveCount(0);
+  expect(await vettorialiEstranei(picker)).toEqual({ haIcon: 0, svg: 0 });
   await expect(picker.locator("[data-search]")).not.toBeFocused();
   const first = picker.locator('.dm-picker-option[data-index="0"] .dm-picker-visual');
   await expect(first).toHaveAttribute("data-dm-icon-engine-glyph-value", glyph);
@@ -97,7 +98,7 @@ async function assertStablePicker(page, kind, glyph) {
     glyph: node.dataset.dmIconEngineGlyphValue,
   }));
   await page.waitForTimeout(1250);
-  await expect(picker.locator("svg,ha-icon")).toHaveCount(0);
+  expect(await vettorialiEstranei(picker)).toEqual({ haIcon: 0, svg: 0 });
   await expect(first).toHaveAttribute("data-dm-icon-engine-glyph-value", glyph);
   const after = await first.evaluate((node) => ({
     text: getComputedStyle(node, "::before").content,
@@ -123,7 +124,7 @@ test("beta18: action and room pickers remain visually stable beyond former delay
   await page.locator('#ed-body [data-dm-edit-kind="action"][data-dm-edit-index="0"]').click();
   const actionPreview = page.locator("#dm-action-editor-modal [data-action-icon-preview]");
   await expect(actionPreview).toHaveAttribute("data-dm-icon-engine-glyph-value", "💡");
-  await expect(actionPreview.locator("svg,ha-icon")).toHaveCount(0);
+  expect(await vettorialiEstranei(actionPreview)).toEqual({ haIcon: 0, svg: 0 });
   await actionPreview.click();
   await assertStablePicker(page, "action", "🏠");
   await page.locator("#dm-visual-picker [data-close]").click();

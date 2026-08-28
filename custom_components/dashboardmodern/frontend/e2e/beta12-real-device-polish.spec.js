@@ -1,5 +1,6 @@
 // DM-FIX-20260812B
 import { expect, test } from "@playwright/test";
+import { attendiDisegno, attendiIlGlifo } from "./helpers/glifo-di-casa.js";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 import { PRIMARY } from "./helpers/variants.js";
 
@@ -120,16 +121,7 @@ async function openEditor(page, tab) {
 }
 
 async function expectColoredRoomIcon(locator, glyph) {
-  await expect(locator).toBeVisible();
-  await expect
-    .poll(async () =>
-      locator.evaluate((node) => {
-        const semantic = node.querySelector(".dm-beta12-room-glyph")?.textContent || "";
-        const fallback = getComputedStyle(node, "::before").content || "";
-        return `${semantic}${fallback}`;
-      }),
-    )
-    .toContain(glyph);
+  await attendiIlGlifo(locator, "dm-beta12-room-glyph", glyph);
 }
 
 async function expectQuickActionDisplayGlyph(locator, glyph) {
@@ -169,18 +161,22 @@ for (const variant of PRIMARY) {
       window.dispatchEvent(new CustomEvent("dashboardmodern:legacy-ready"));
       buildQuickActions();
       const icon = document.querySelector("#qa-grid .qa-btn .icon");
+      const glifo = icon?.querySelector(".dm-beta12-action-glyph");
       return {
-        text: icon?.textContent || "",
-        colored: Boolean(icon?.querySelector(".dm-beta12-action-glyph")),
+        // La lampadina adesso e' un disegno di casa: il nome sta li', non nel
+        // testo, che un disegno non ce l'ha.
+        disegno: glifo?.querySelector("[data-dm-art]")?.dataset.dmArt || "",
+        colored: Boolean(glifo),
         displayGlyph: icon?.dataset.dmBeta12DisplayGlyph || "",
         svgCount: icon?.querySelectorAll("svg").length || 0,
       };
     });
 
-    expect(immediate.text).toBe("💡");
+    expect(immediate.disegno).toBe("lights");
     expect(immediate.colored).toBe(true);
     expect(immediate.displayGlyph).toBe("💡");
-    expect(immediate.svgCount).toBe(0);
+    // Un disegno solo: due svg vorrebbe dire due icone una sopra l'altra.
+    expect(immediate.svgCount).toBe(1);
 
     const settled = page.locator("#qa-grid .qa-btn .icon").first();
     await expectQuickActionDisplayGlyph(settled, "💡");
@@ -202,13 +198,13 @@ for (const variant of PRIMARY) {
       .first();
     const rowIcon = row.locator(".dm-room-list-icon");
     await expect(row).toBeVisible();
-    await expectColoredRoomIcon(rowIcon, "🛋️");
+    await expectColoredRoomIcon(rowIcon, "disegno:room-living");
 
     await row.locator('[data-dm-edit-kind="room"]').click();
     const modal = page.locator("#dm-room-editor-modal");
     await expect(modal).toBeVisible();
     const preview = modal.locator("[data-room-icon-preview]");
-    await expect(preview.locator(".dm-beta12-room-glyph")).toHaveText("🛋️");
+    await attendiDisegno(preview.locator(".dm-beta12-room-glyph"), "room-living");
     await expect(preview).toHaveAttribute("data-dm-beta12-colored", "true");
     await preview.click();
 
@@ -218,12 +214,14 @@ for (const variant of PRIMARY) {
     expect(
       await picker.locator(".dm-picker-option .dm-beta12-room-glyph").count(),
     ).toBeGreaterThanOrEqual(20);
-    await expect(
+    await attendiDisegno(
       picker.locator('.dm-picker-option[data-index="0"] .dm-beta12-room-glyph'),
-    ).toHaveText("🛋️");
-    await expect(
+      "room-living",
+    );
+    await attendiDisegno(
       picker.locator('.dm-picker-option[data-index="5"] .dm-beta12-room-glyph'),
-    ).toHaveText("🚿");
+      "room-bathroom",
+    );
   });
 
   test(`${variant}: configured temperatures render from the canonical room registry`, async ({

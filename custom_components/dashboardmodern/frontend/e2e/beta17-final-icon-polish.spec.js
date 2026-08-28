@@ -1,5 +1,6 @@
 // DM-FIX-20260813A
 import { expect, test } from "@playwright/test";
+import { attendiDisegno, vettorialiEstranei } from "./helpers/glifo-di-casa.js";
 import { bootNamespacedDashboard } from "./helpers/namespaced-dashboard.js";
 
 const seed = {
@@ -202,8 +203,8 @@ test("beta17: Action picker is colored from first mutation", async ({ page }, te
   await edit.click();
   const preview = page.locator("#dm-action-editor-modal [data-action-icon-preview]");
   await expect(preview).toBeVisible();
-  await expect(preview.locator("svg,ha-icon")).toHaveCount(0);
-  await expect(preview.locator(".dm-beta12-action-glyph")).toHaveText("💡");
+  expect(await vettorialiEstranei(preview)).toEqual({ haIcon: 0, svg: 0 });
+  await attendiDisegno(preview.locator(".dm-beta12-action-glyph"), "lights");
 
   await page.evaluate(() => {
     window.__beta17PickerMutations = [];
@@ -215,8 +216,15 @@ test("beta17: Action picker is colored from first mutation", async ({ page }, te
           window.__beta17PickerMutations.push({
             kind: node.getAttribute("data-kind"),
             owner: node.getAttribute("data-dm-beta17-picker"),
-            svgCount: node.querySelectorAll("svg,ha-icon").length,
-            firstGlyph: node.querySelector(first)?.textContent?.trim() || "",
+            // I disegni di casa sono svg: qui interessano solo quelli
+            // estranei, che accanto alle scocche stonerebbero.
+            svgCount:
+              node.querySelectorAll("ha-icon").length +
+              [...node.querySelectorAll("svg")].filter(
+                (disegno) => !disegno.closest('[data-dm-disegno="casa"]'),
+              ).length,
+            firstGlyph:
+              node.querySelector(first)?.querySelector("[data-dm-art]")?.dataset.dmArt || "",
           });
         });
       });
@@ -230,9 +238,9 @@ test("beta17: Action picker is colored from first mutation", async ({ page }, te
   await expect(picker).toBeVisible();
   await expect(picker).toHaveAttribute("data-dm-beta17-picker", "action");
   await expect(picker).toHaveAttribute("data-dm-single-glyph-owner", "true");
-  await expect(picker.locator("svg,ha-icon")).toHaveCount(0);
+  expect(await vettorialiEstranei(picker)).toEqual({ haIcon: 0, svg: 0 });
   const firstGlyph = picker.locator('.dm-picker-option[data-index="0"] .dm-beta12-action-glyph');
-  await expect(firstGlyph).toHaveText("🏠");
+  await attendiDisegno(firstGlyph, "home");
 
   const mutations = await page.evaluate(() => {
     window.__beta17PickerObserver?.disconnect();
@@ -243,7 +251,7 @@ test("beta17: Action picker is colored from first mutation", async ({ page }, te
     kind: "action",
     owner: "action",
     svgCount: 0,
-    firstGlyph: "🏠",
+    firstGlyph: "home",
   });
 });
 
@@ -260,7 +268,7 @@ test("beta17: room add/edit share one color picker", async ({ page }, testInfo) 
   await expect(firstPicker).toBeVisible();
   await expect(firstPicker).toHaveAttribute("data-dm-beta17-picker", "room");
   await expect(firstPicker.locator("header strong")).toContainText("Scegli l'icona");
-  await expect(firstPicker.locator("svg,ha-icon")).toHaveCount(0);
+  expect(await vettorialiEstranei(firstPicker)).toEqual({ haIcon: 0, svg: 0 });
   const firstPalette = await pickerPalette(page);
   expect(firstPalette.length).toBeGreaterThanOrEqual(20);
   await firstPicker.locator("[data-close]").click();
@@ -272,15 +280,15 @@ test("beta17: room add/edit share one color picker", async ({ page }, testInfo) 
   const roomModal = page.locator("#dm-room-editor-modal");
   await expect(roomModal).toBeVisible();
   const preview = roomModal.locator("[data-room-icon-preview]");
-  await expect(preview.locator("svg,ha-icon")).toHaveCount(0);
-  await expect(preview.locator(".dm-beta12-room-glyph")).toHaveText("🛏️");
+  expect(await vettorialiEstranei(preview)).toEqual({ haIcon: 0, svg: 0 });
+  await attendiDisegno(preview.locator(".dm-beta12-room-glyph"), "room-bedroom");
   await preview.click();
 
   const editPicker = page.locator('#dm-visual-picker[data-kind="room"]');
   await expect(editPicker).toBeVisible();
   await expect(editPicker).toHaveAttribute("data-dm-beta17-picker", "room");
   await expect(editPicker.locator("header strong")).toContainText("Scegli l'icona");
-  await expect(editPicker.locator("svg,ha-icon")).toHaveCount(0);
+  expect(await vettorialiEstranei(editPicker)).toEqual({ haIcon: 0, svg: 0 });
   const editPalette = await pickerPalette(page);
   expect(editPalette).toEqual(firstPalette);
 });
