@@ -213,3 +213,27 @@ export function disegnoDelCatalogo(valore, misura = 96) {
 export function chiaviDisegnate() {
   return Object.keys(CORPI);
 }
+
+/* Con che nomi provare a cercare il disegno di una voce, in ordine.
+ *
+ * La configurazione salva il nome mdi — `mdi:stove` — mentre i disegni hanno il
+ * nome della voce — `kitchen`, e per le stanze `room-kitchen`. In mezzo c'e' il
+ * catalogo, che dal nome mdi risale alla voce. Chi cerca un disegno deve
+ * provarli tutti e tre: qui c'e' l'elenco, in un posto solo, cosi' il motore
+ * che disegna e la prova che pretende il disegno guardano la stessa cosa —
+ * prima non era cosi', e restavano tredici voci disegnate sulla carta e a
+ * emoji sullo schermo. */
+export function chiaviDaProvare(kind, token, voce = null) {
+  const nomi = [];
+  const aggiungi = (valore) => {
+    const nome = pulito(valore);
+    if (nome && !nomi.includes(nome)) nomi.push(nome);
+  };
+  aggiungi(token);
+  if (voce?.id) {
+    if (kind === "room") aggiungi(`room-${voce.id}`);
+    aggiungi(voce.id);
+    aggiungi(voce.mdi);
+  }
+  return nomi;
+}

@@ -22,34 +22,54 @@ import {
   LOAD_ICON_CATALOG,
   ROOM_CATALOG,
 } from "../src/core/personalization-catalog.js";
+import {
+  actionCatalogMatch,
+  loadCatalogMatch,
+  roomCatalogMatch,
+} from "../src/core/personalization-catalog.js";
 import { canonicalArtworkType } from "../src/core/appliance-artwork.js";
-import { chiaveDelDisegno, chiaviDisegnate } from "../src/core/catalogo-disegni.js";
+import { chiaveDelDisegno, chiaviDaProvare, chiaviDisegnate } from "../src/core/catalogo-disegni.js";
 
-const disegnata = (voce, prefisso = "") => {
-  const chiave = prefisso ? `${prefisso}${voce.id}` : voce.id;
-  return Boolean(
-    canonicalArtworkType(chiave) ||
-      canonicalArtworkType(voce.id) ||
-      canonicalArtworkType(voce.mdi) ||
-      chiaveDelDisegno(chiave) ||
-      chiaveDelDisegno(voce.id) ||
-      chiaveDelDisegno(voce.mdi),
+/* Si cerca il disegno partendo da dove parte lo schermo: dal nome mdi salvato
+ * nella configurazione, con lo stesso giro che fa il motore delle icone.
+ *
+ * Prima si partiva dall'identificativo della voce, che pero' lo schermo non ce
+ * l'ha: bastava che il catalogo non sapesse risalire dal nome mdi alla voce
+ * perche' la prova restasse verde e la faccina tornasse in mezzo alle scocche.
+ * E' successo per tredici voci. */
+const disegnata = (kind, voce) => {
+  const trovata =
+    kind === "room"
+      ? roomCatalogMatch(voce.mdi)
+      : kind === "load"
+        ? loadCatalogMatch(voce.mdi)
+        : actionCatalogMatch(voce.mdi);
+  return chiaviDaProvare(kind, voce.mdi, trovata).some(
+    (chiave) => canonicalArtworkType(chiave) || chiaveDelDisegno(chiave),
   );
 };
 
 test("ogni stanza del catalogo ha il suo disegno", () => {
-  const senza = ROOM_CATALOG.filter((voce) => !disegnata(voce, "room-")).map((voce) => voce.id);
+  const senza = ROOM_CATALOG.filter((voce) => !disegnata("room", voce)).map((voce) => voce.id);
   assert.deepEqual(senza, [], `stanze senza disegno: ${senza.join(", ")}`);
 });
 
 test("ogni azione rapida ha il suo disegno", () => {
-  const senza = ACTION_ICON_CATALOG.filter((voce) => !disegnata(voce)).map((voce) => voce.id);
+  const senza = ACTION_ICON_CATALOG.filter((voce) => !disegnata("action", voce)).map(
+    (voce) => voce.id,
+  );
   assert.deepEqual(senza, [], `azioni senza disegno: ${senza.join(", ")}`);
 });
 
 test("ogni carico ha il suo disegno", () => {
-  const senza = LOAD_ICON_CATALOG.filter((voce) => !disegnata(voce)).map((voce) => voce.id);
+  const senza = LOAD_ICON_CATALOG.filter((voce) => !disegnata("load", voce)).map((voce) => voce.id);
   assert.deepEqual(senza, [], `carichi senza disegno: ${senza.join(", ")}`);
+});
+
+/* E il nome mdi va alla sua voce, non alla prima che gli somiglia: `mdi:home`
+ * apriva la soffitta. */
+test("il nome mdi porta alla sua voce, non a una che le somiglia", () => {
+  for (const voce of ROOM_CATALOG) assert.equal(roomCatalogMatch(voce.mdi)?.id, voce.id);
 });
 
 /* E i disegni sono davvero della stessa famiglia: stesso riquadro, stessa
