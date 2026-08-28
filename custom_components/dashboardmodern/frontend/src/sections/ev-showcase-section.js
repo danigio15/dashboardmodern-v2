@@ -197,34 +197,57 @@ function sfondoSfocato(hero, image) {
   if (copia.getAttribute("src") !== src) copia.setAttribute("src", src);
 }
 
-/* Le proporzioni gia' misurate, per indirizzo: una foto si misura una volta. */
+/* Le proporzioni buone, per indirizzo: una foto si misura una volta. Qui ci
+ * finiscono solo i numeri veri — un ripiego scritto qui dentro non se ne
+ * andrebbe piu'. Chi e' gia' stato chiesto sta nell'altro insieme. */
 const formeMisurate = new Map();
+const misureInCorso = new Set();
 
-/* La proporzione della foto a riposo, misurata di lato se non e' a schermo. */
-function formaDellaCornice(image, loaded) {
+/* La proporzione della foto a riposo, misurata di lato se non e' a schermo.
+ *
+ * Tre strade, in ordine di fiducia. Se a schermo c'e' proprio la foto a
+ * riposo, si misura quella: e' la misura piu' sicura che ci sia, e riscrive
+ * quella chiesta di lato. Se no, vale quella gia' misurata. Se non si sa
+ * ancora, si chiede una copia di lato e intanto si tiene la forma che la
+ * cornice ha gia'.
+ *
+ * Il terzo passo era il punto debole. La casella si riempiva subito con uno
+ * zero per non chiedere due volte, e se la richiesta di lato non rispondeva —
+ * su WebKit una figura vettoriale servita dalla prova non sempre dichiara
+ * quanto e' grande — quello zero restava li' per sempre: la cornice non
+ * prendeva piu' nessuna forma, e nessuno riprovava. Adesso in quella casella
+ * ci vanno solo numeri veri, e chi e' stato chiesto lo dice un insieme a
+ * parte.
+ *
+ * E finche' la forma a riposo non si sa, si tiene quella che c'e': la foto
+ * col cavo attaccato non deve dettarla mai, che e' tutto il punto. */
+function formaDellaCornice(hero, image, loaded) {
   const riposo = clean(resolveVehicleAsset(configuredPhotos().idle));
   const attuale = clean(image.getAttribute("src"));
-  if (loaded && (!riposo || riposo === attuale)) {
-    const propria = image.naturalWidth / image.naturalHeight;
-    if (Number.isFinite(propria) && propria > 0) {
-      if (attuale) formeMisurate.set(attuale, propria);
-      return propria;
-    }
+  const aSchermo = loaded && image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : 0;
+  if (aSchermo > 0 && (!riposo || riposo === attuale)) {
+    if (attuale) formeMisurate.set(attuale, aSchermo);
+    return aSchermo;
   }
-  if (!riposo) return loaded && image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : 0;
-  if (formeMisurate.has(riposo)) return formeMisurate.get(riposo);
-  /* Non si sa ancora: si chiede, e al ritorno si ridisegna. La casella si
-   * riempie subito col valore nullo, cosi' la richiesta parte una volta sola. */
-  formeMisurate.set(riposo, 0);
-  const misura = new root.Image();
-  misura.onload = () => {
-    const propria = misura.naturalWidth / misura.naturalHeight;
-    formeMisurate.set(riposo, Number.isFinite(propria) && propria > 0 ? propria : 0);
-    scheduleEvShowcase();
-  };
-  misura.onerror = () => formeMisurate.set(riposo, 0);
-  misura.src = riposo;
-  return loaded && image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : 0;
+  if (!riposo) return aSchermo;
+  const nota = formeMisurate.get(riposo);
+  if (nota > 0) return nota;
+  if (!misureInCorso.has(riposo)) {
+    misureInCorso.add(riposo);
+    const misura = new root.Image();
+    misura.onload = () => {
+      const propria = misura.naturalWidth / misura.naturalHeight;
+      if (!Number.isFinite(propria) || propria <= 0) return;
+      formeMisurate.set(riposo, propria);
+      scheduleEvShowcase();
+    };
+    misura.src = riposo;
+  }
+  /* Meglio la forma che la cornice ha gia' che una presa dalla foto sbagliata;
+   * e se non ne ha ancora nessuna, quella a schermo e' sempre meglio di niente
+   * — al ritorno della misura di lato la cornice si assesta. */
+  const gia = Number(clean(hero.style.getPropertyValue("--dm-evv-hero-ratio")));
+  return Number.isFinite(gia) && gia > 0 ? gia : aSchermo;
 }
 
 function syncPhoto(hero) {
@@ -267,7 +290,7 @@ function syncPhoto(hero) {
    * La forma la detta sempre la foto a riposo, che e' quella che c'e' sempre.
    * Se serve, si carica di lato solo per farsi misurare: non si disegna, si
    * chiede solo quanto e' larga e quanto e' alta. */
-  const forma = formaDellaCornice(image, loaded);
+  const forma = formaDellaCornice(hero, image, loaded);
   if (forma) {
     const scritta = Math.max(1.15, Math.min(2.4, forma)).toFixed(3);
     if (hero.style.getPropertyValue("--dm-evv-hero-ratio") !== scritta)
