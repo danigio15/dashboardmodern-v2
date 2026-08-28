@@ -5,7 +5,7 @@
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e le
 versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
 
-## Non ancora rilasciato
+## 1.3.4
 
 ### Aggiunto
 
@@ -48,6 +48,124 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   non avere sarebbe peggio che non offrirla.
 
 ### Corretto
+
+- **Elettrodomestici: due disegni morti della stessa scheda.** La sezione si
+  costruisce le proprie schede da quando c'e' la vetrina, ma il disegno
+  precedente — la scheda alta, con l'immagine grande sopra e i numeri sotto —
+  era rimasto in piedi in due fogli diversi, e i due si contendevano
+  centoventisei decisioni: quanto e' larga, che angoli ha, quanto e' grande il
+  numero. Vinceva chi caricava per ultimo. Solo che quella scheda non la
+  disegna piu' nessuno: messa in piedi la plancia e contati i selettori uno per
+  uno, dei duecentoquindici del primo foglio ne trovavano qualcosa quattro, e
+  uno solo dei quarantanove del secondo. Se ne vanno tutti e due, e con loro
+  dieci animazioni per famiglia di elettrodomestico che non hanno mai girato:
+  quelle che si vedono sono sempre state le altre, della vetrina, piu' ricche.
+
+- **Centosettantasei regole di stile avevano due padroni; adesso zero.** La
+  stessa regola scritta col peso massimo in due fogli che non si parlano:
+  finche' i valori coincidono non si vede niente, il giorno che uno cambia
+  vince quello che capita di caricare per ultimo e la modifica «non fa
+  effetto». Due non erano peso morto ma difetti veri. L'editor scuro cambiava
+  colore a seconda del tema di fuori, perche' il secondo padrone usava i nomi
+  del tema di Home Assistant, che esistono solo quando la plancia e' gia'
+  scura. E le righe delle luci erano rotte fra 761 e 900 pixel — la finestra a
+  meta' schermo, il tablet in verticale: un foglio diceva «quattro caselle
+  disposte cosi'», un altro ne dava cinque, e il nome della luce finiva
+  schiacciato in 140 pixel con un buco da 257 accanto. Una prova apre la
+  plancia, legge i fogli nell'ordine vero e dice quale riga di quale foglio non
+  fa effetto.
+
+- **Un disegno per fotogramma, non uno per evento.** Home Assistant manda un
+  evento per ogni entita' che cambia stato, e in una casa vera sono decine al
+  secondo. La plancia rispondeva ridisegnando tutto ogni volta — settecento
+  righe di render piu' sedici moduli agganciati, per ogni singolo sensore che
+  si muoveva. Misurato: centosettanta cambi di stato facevano centosettanta
+  disegni e 1125 millisecondi dentro render, su una plancia quasi vuota e su un
+  computer. Adesso la risposta agli eventi si mette in coda e disegna una volta
+  sola alla fine della raffica: un disegno, sette millisecondi. Chi chiama il
+  disegno a mano — un salvataggio, un cambio di pagina — continua ad averlo
+  subito.
+
+- **I carichi comparivano sotto Elettrodomestici, Aperture e Backup.** Un
+  blocco «CARICHI / + Aggiungi carico» spoglio, che li' non vuol dire niente.
+  Era un secondo editor dei carichi, con lo stesso nome di funzione di quello
+  vero: cercava il pannello dei flussi e, se non lo trovava — cioe' ogni volta
+  che la configurazione era aperta su un'altra linguetta — ripiegava sulla
+  scheda intera, e da li' ti seguiva ovunque. Bastava aprire Energia una volta.
+
+- **Tre configurazioni restavano su un dispositivo solo.** Le icone degli
+  avvisi, le entita' assegnate a mano a una stanza e il segno progressivo delle
+  auto non erano nell'elenco di cio' che viaggia fra i dispositivi, quindi
+  nemmeno nel backup. Le prime due si configuravano sul telefono e sul computer
+  non c'erano; la terza e' la guardia contro gli identificativi riusati, e senza
+  viaggiare il secondo dispositivo ripartiva da capo col conteggio — la
+  prossima auto nasceva con l'identificativo di una cancellata, ereditandone le
+  foto. Una prova legge i sorgenti e pretende che ogni casella scritta stia o
+  nell'elenco che viaggia o in quello di cio' che resta sul dispositivo, col
+  perche' scritto accanto.
+
+- **Stanze: la luce non si accendeva, e il clima non portava sul clima
+  giusto.** La card della luce e' la stessa della pagina Luci, ma il gesto era
+  rimasto legato a quella pagina: si vedeva l'interruttore, si premeva, non
+  succedeva niente. Il clima invece cambiava pagina e finiva li', che in una
+  casa con dodici condizionatori vuol dire lasciare chi guarda in cima a un
+  elenco. Adesso la luce si comanda da dove e' disegnata, e dopo il cambio di
+  pagina si apre la cosa che si e' toccata.
+
+- **Il grafico delle temperature non si leggeva.** Una sola riga orizzontale
+  con un numero accanto — quella del comfort — e tutto il resto sospeso nel
+  vuoto; due stanze dello stesso azzurro, perche' le tinte erano sei e la
+  settima ripartiva dalla prima; e i numeri in coda alle linee tutti impilati
+  in dieci pixel. Adesso la scala si prende un passo tondo con quattro-sette
+  righe numerate, le tinte restano sei ma cambia il tratto — pieno, a tratti, a
+  puntini, quindi diciotto stanze prima che due linee si somiglino — e i numeri
+  si allontanano invece di sovrapporsi.
+
+- **«E' un contatore totale?» era una domanda con due risposte.** Da quella
+  risposta dipende tutto il calcolo dell'energia: si parte da un contatore che
+  sale e non torna mai indietro, e giorno, mese e anno sono la differenza fra
+  due letture. La domanda era scritta due volte, con regole diverse. Una
+  guardava solo il nome, e cosi' un sensore di potenza chiamato `total_power`,
+  che sta in watt, passava per contatore: si prendeva la differenza fra due
+  watt e la si chiamava energia. Lo stesso per un contatore dell'acqua in litri
+  marcato `total_increasing`. L'altra controllava di avere davvero energia ma
+  non conosceva la parola «counter» e non guardava mai il nome amichevole.
+  Adesso e' una sola, con l'unione delle due meta' giuste.
+
+- **La plancia chiedeva i suoi moduli a dieci riprese.** Sono
+  centosessantacinque, tre megabyte e mezzo, e la catena degli import e'
+  profonda dieci livelli: un browser scopre un modulo solo quando ha finito di
+  leggere quello che lo importa. In quei secondi si vede la plancia com'e'
+  disegnata dal guscio — il meteo grande in mezzo alla pagina, le azioni rapide
+  senza il loro ripiano — e poi si sposta tutto sotto gli occhi. Adesso il
+  guscio porta l'elenco davanti e il browser li chiede tutti insieme:
+  mediana su tre giri a caldo, l'ultimo modulo arriva a 645 millisecondi invece
+  di 1500. Resta il pezzo piu' grosso, che non e' rete: durante l'avvio il filo
+  principale sta occupato 2,3 secondi a installare i moduli, ed e' li' che vive
+  il resto dell'attesa.
+
+- **Sette nomi per quattordici funzioni.** Chi importa a memoria si prende
+  l'una per l'altra, e il codice continua a funzionare finche' un giorno non
+  funziona. Tre erano copie morte che nessuno importava, due erano cose diverse
+  col nome uguale — il filo dei consumi parte da zero, quello della temperatura
+  si adatta al minimo e al massimo — e un `formatNumber` era una trappola: due
+  versioni con argomenti diversi, e chi importava quella sbagliata vedeva il
+  numero uscire con le cifre di serie, senza un errore.
+
+### Aggiunto
+
+- **Un catalogo di icone tutto nostro, cinquantasei disegni nuovi.** Nella
+  stessa schermata ne convivevano tre stili: la scocca blu notte degli
+  elettrodomestici, il tratto sottile delle stanze, e le emoji del sistema per
+  le stanze nel selettore dei carichi, per le azioni rapide e per i carichi —
+  che per giunta cambiano faccia da un telefono a un altro, per cui la stessa
+  plancia non era uguale nemmeno a se stessa. Adesso i disegni sono tutti della
+  stessa famiglia: le ventiquattro stanze, le azioni, e gli impianti — pompa di
+  calore, riscaldamento a pavimento, deumidificatore, server, router, stampante,
+  fotovoltaico, batteria, pompa, irrigazione, sauna, ascensore, presa, stufa a
+  pellet. Contate le voci dei tre cataloghi: centotredici, e nessuna resta senza.
+  I colori e i tratti stanno in un modulo a parte, cosi' chi disegnera' la
+  cinquantasettesima li chiede li' invece di sceglierli a occhio.
 
 - **La plancia non chiede piu' niente alla rete per aprirsi.** La testata del
   documento apriva quattro connessioni verso l'esterno prima di disegnare
