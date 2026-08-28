@@ -84,6 +84,59 @@ versioni seguono [Semantic Versioning](https://semver.org/lang/it/).
   un dato per dire di non averlo. Adesso parla la prima riga che ha qualcosa da
   dire, o non parla.
 
+- **Il widget Energia diceva «0 W» con un contatore in kW.** Un misuratore che
+  pubblica in kW e' normale quanto uno in watt, e la tessera leggeva il numero
+  ignorando l'unita': 0,27 arrotondato all'intero fa zero, cioe' una casa
+  spenta mentre sta consumando duecentosettanta watt — col flusso che nella
+  stessa pagina, a due dita di distanza, scriveva 0,27 kW.
+
+- **Le finestre col solo sensore di apertura non arrivavano in Home.** Una
+  finestra con le persiane manuali e un contatto sull'anta non ha coperture da
+  elencare: la pagina Tapparelle la disegna da tempo, la tessera la saltava.
+  Chi ha solo i sensori non vedeva quali infissi aveva lasciato aperti, che e'
+  la cosa che si vuole sapere uscendo di casa. Adesso entra nel conteggio, e
+  non prende i comandi: le frecce su un contatto sarebbero una promessa che
+  nessuno mantiene.
+
+- **L'ordine delle stanze non arrivava alle pagine.** La scheda Stanze lascia
+  ordinarle, ma Luci, Clima, Tapparelle ed Elettrodomestici se lo riscrivevano
+  ognuna a modo suo: due in ordine alfabetico, una nell'ordine in cui le cose
+  erano state configurate, una che non ordinava affatto. Spostare una stanza in
+  cima sembrava non servire a niente. Adesso la domanda passa da un posto solo.
+
+- **Dal computer, con tante stanze, le ultime non si raggiungevano.** Il nastro
+  delle linguette scorre di lato con la barra nascosta apposta: col dito e' il
+  gesto giusto, col mouse quel gesto non esiste e la barra non c'e' da
+  afferrare. Con quattordici stanze le ultime otto restavano oltre il bordo
+  destro, visibili a meta'. Dove si punta col mouse la fila va a capo.
+
+- **Un'azione rapida su un pulsante non faceva niente.** Il servizio si
+  sceglieva da una riga sola — `turn_on` per script e scene, `toggle` per tutto
+  il resto — ma `toggle` non e' universale: un `button` ha soltanto `press`,
+  perche' non ha due stati da scambiare, e una `lock` ha `lock` e `unlock`.
+  Home Assistant rispondeva che il servizio non esiste, il messaggio restava in
+  console e il portone non si muoveva: da fuori, un tasto rotto.
+
+- **I flussi dell'Energia restavano indietro.** La scena si ridisegnava solo
+  agli eventi grossi — l'avvio, i pacchetti dello storico, un salvataggio — ma
+  le potenze istantanee le legge dagli stati vivi, che cambiano di continuo.
+  Misurato sullo stesso cambio: la bolla della batteria ci metteva 3127
+  millesimi ad accorgersene, adesso 308.
+
+- **I cerchi del flusso sparivano finche' non si ricaricava la pagina.** Il
+  foglio di stile del guscio a volte non arriva, o arriva tardissimo. Quando
+  succede la plancia sembra quasi normale — i moduli portano il proprio stile
+  con se' — ma i cerchi del flusso hanno le loro regole solo li' e restano
+  invisibili, con due archi tratteggiati appesi al nulla. Adesso quel foglio si
+  richiede da solo, tre volte, sempre piu' distanziate.
+
+- **«＋ Nuova auto» non svuotava le foto.** Il gesto e' «riparto da zero» e la
+  scheda si svuota in un punto solo: nome, entita', marca, modello. Le foto
+  erano l'eccezione, lasciate a una passata successiva. Quando quella arrivava
+  tardi, la scheda nuova restava vestita con le foto dell'auto in uso e «Salva
+  foto» gliele riscriveva addosso: il percorso battuto per la vettura che sta
+  nascendo finiva su un'altra.
+
 ## 1.3.2
 
 ### Corretto
